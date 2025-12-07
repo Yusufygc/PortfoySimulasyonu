@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, dt_date
 from decimal import Decimal
 from typing import Optional, Literal
 
@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
 # İstersen direkt Trade domain modelini burada kullanmayıp
 # sadece dict döndürebilirsin. Şimdilik dict döndürelim.
 SideLiteral = Literal["BUY", "SELL"]
-
+DialogMode = Literal["trade", "edit_stock"]
 
 class TradeDialog(QDialog):
     """
@@ -49,7 +49,7 @@ class TradeDialog(QDialog):
         super().__init__(parent)
         self.stock_id = stock_id
         self.ticker = ticker
-
+        self._mode: DialogMode = "trade"   # <-- eklendi
         self._init_ui()
         self._connect_signals()
 
@@ -79,14 +79,38 @@ class TradeDialog(QDialog):
         form_layout = QFormLayout()
 
         # Tarih
+        today_q = QDate.currentDate()
+
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
-        self.date_edit.setDate(QDate.currentDate())
+        self.date_edit.setDate(today_q)
+
+        # Gelecek tarih seçilemesin
+        self.date_edit.setMaximumDate(today_q)
+
+        # Sinyal bağla: kullanıcı tarihi değiştirince hafta sonuna izin vermeyelim
+        self.date_edit.dateChanged.connect(self._on_date_changed)
 
         # Saat (opsiyonel)
         self.time_edit = QTimeEdit()
-        self.time_edit.setTime(QTime.currentTime())
         self.time_edit.setDisplayFormat("HH:mm")
+
+        min_t = QTime(10, 0)
+        max_t = QTime(17, 59)  # 18:00 hariç
+
+        # Varsayılan: şu an bu aralıktaysa onu, değilse 10:00
+        now_t = QTime.currentTime()
+        if now_t < min_t or now_t > max_t:
+            self.time_edit.setTime(min_t)
+        else:
+            self.time_edit.setTime(now_t)
+
+        self.time_edit.setMinimumTime(min_t)
+        self.time_edit.setMaximumTime(max_t)
+
+        # Kullanıcı manuel yazarsa da clamp’leyelim
+        self.time_edit.timeChanged.connect(self._on_time_changed)
+
 
         # Alış / Satış
         side_layout = QHBoxLayout()
@@ -119,29 +143,47 @@ class TradeDialog(QDialog):
 
         # Alt kısım: butonlar
         button_layout = QHBoxLayout()
-        self.btn_ok = QPushButton("Kaydet")
-        self.btn_cancel = QPushButton("İptal")
         button_layout.addStretch()
+
+        self.btn_edit_stock = QPushButton("Hisseyi Düzenle")
+        self.btn_ok = QPushButton("İşlem Kaydet")
+        self.btn_cancel = QPushButton("İptal")
+
+        self.btn_ok.setObjectName("primaryButton")
+
+        button_layout.addWidget(self.btn_edit_stock)
         button_layout.addWidget(self.btn_ok)
         button_layout.addWidget(self.btn_cancel)
 
         main_layout.addLayout(button_layout)
 
+
     def _connect_signals(self):
         self.btn_ok.clicked.connect(self._on_ok_clicked)
         self.btn_cancel.clicked.connect(self.reject)
+        self.btn_edit_stock.clicked.connect(self._on_edit_stock_clicked)
+
+    # --------- Hisse düzenleme butonu --------- #
+    def _on_edit_stock_clicked(self):
+        """
+        Hisseyi düzenle moduna geçer; trade kaydetmez.
+        """
+        self._mode = "edit_stock"
+        self.accept()
+
 
     # --------- OK tıklanınca doğrulama --------- #
 
     def _on_ok_clicked(self):
         try:
-            # Bir defa parse edip hata varsa exception ile yakalayalım
             _ = self._build_trade_data()
         except ValueError as e:
             QMessageBox.warning(self, "Geçersiz Girdi", str(e))
             return
 
+        self._mode = "trade"
         self.accept()
+
 
     # --------- Dışarıya verilecek trade_data --------- #
 
@@ -151,6 +193,25 @@ class TradeDialog(QDialog):
 
         trade_date = date(qdate.year(), qdate.month(), qdate.day())
         trade_time = time(qtime.hour(), qtime.minute())
+
+        today_py = dt_date.today()
+        if trade_date > today_py:
+            raise ValueError("Gelecek tarih için işlem girilemez.")
+
+        if trade_date.weekday() >= 5:
+            raise ValueError("Hafta sonu tarihine işlem girilemez (Cumartesi/Pazar).")
+
+        if not (10 <= trade_time.hour < 18):
+            raise ValueError("İşlem saati 10:00 ile 18:00 arasında olmalıdır.")
+
+
+                # --- Tarih / saat validasyonu ---
+        if trade_date.weekday() >= 5:
+            raise ValueError("Hafta sonu tarihine işlem ekleyemezsiniz (Cumartesi/Pazar).")
+
+        if not (10 <= trade_time.hour < 18):
+            raise ValueError("İşlem saati 10:00 ile 18:00 arasında olmalıdır.")
+
 
         if self.radio_buy.isChecked():
             side: SideLiteral = "BUY"
@@ -190,11 +251,60 @@ class TradeDialog(QDialog):
         }
 
 
+    def get_mode(self) -> DialogMode:
+        return self._mode
+
     def get_trade_data(self) -> Optional[dict]:
         """
-        Dialog ACCEPT ile kapandıysa trade_data döner,
-        İPTAL ise None döner.
+        Sadece 'trade' modunda ACCEPT ile kapandıysa trade_data döner.
         """
         if self.result() != QDialog.Accepted:
             return None
+        if self._mode != "trade":
+            return None
         return self._build_trade_data()
+
+    def _normalize_trade_date(self, qdate: QDate) -> QDate:
+        """Hafta sonu / geleceğe taşan tarihleri düzeltir."""
+        today_q = QDate.currentDate()
+
+        # Gelecek tarihse bugüne çek
+        if qdate > today_q:
+            return today_q
+
+        # Qt: 1=PAZARTESİ ... 6=CUMARTESİ, 7=PAZAR
+        weekday = qdate.dayOfWeek()
+        if weekday == 6:      # Cumartesi
+            return qdate.addDays(-1)
+        elif weekday == 7:    # Pazar
+            return qdate.addDays(-2)
+        return qdate
+
+    def _on_date_changed(self, new_date: QDate):
+        fixed = self._normalize_trade_date(new_date)
+        if fixed != new_date:
+            # Sonsuz döngüye girmemek için sinyali blokla
+            self.date_edit.blockSignals(True)
+            self.date_edit.setDate(fixed)
+            self.date_edit.blockSignals(False)
+            # İstersen sessiz de yapabilirsin; bilgi mesajı opsiyonel:
+            # QMessageBox.information(
+            #     self, "Tarih Düzenlendi",
+            #     "Hafta sonu / gelecekteki tarihler için işlem girilemez.\n"
+            #     "Tarih en yakın iş gününe çekildi."
+            # )
+    
+    def _on_time_changed(self, new_time: QTime):
+        min_t = QTime(10, 0)
+        max_t = QTime(17, 59)
+
+        fixed = new_time
+        if new_time < min_t:
+            fixed = min_t
+        elif new_time > max_t:
+            fixed = max_t
+
+        if fixed != new_time:
+            self.time_edit.blockSignals(True)
+            self.time_edit.setTime(fixed)
+            self.time_edit.blockSignals(False)

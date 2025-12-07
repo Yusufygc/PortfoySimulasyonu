@@ -22,7 +22,9 @@ from PyQt5.QtWidgets import QDialog,QHeaderView
 from src.ui.widgets.trade_dialog import TradeDialog
 from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
 from src.ui.portfolio_table_model import PortfolioTableModel
+from src.ui.widgets.edit_stock_dialog import EditStockDialog
 
+from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.models.stock import Stock
 from src.domain.services_interfaces.i_stock_repo import IStockRepository  # sadece type hint istersen
@@ -230,53 +232,87 @@ class MainWindow(QMainWindow):
 
     def on_table_double_clicked(self, index: QModelIndex):
         """
-        Kullanıcı tablo satırına çift tıkladığında yeni işlem eklemek için dialog açar.
+        Kullanıcı tablo satırına çift tıklayınca:
+          - Varsayılan: yeni trade ekleme
+          - İsterse: 'Hisseyi Düzenle' butonuyla ticker/ad düzenleme
         """
         if not index.isValid():
             return
 
-        # Model hazır mı?
         if not hasattr(self, "model") or self.model is None:
             return
 
         row = index.row()
-
-        # Güvenlik: row, modelin rowCount'ı içinde mi?
         if row < 0 or row >= self.model.rowCount():
             return
 
-        # Modelden pozisyonu al
         position: Position = self.model.get_position(row)
         stock_id = position.stock_id
-        ...
 
+        # Mevcut ticker'ı repo'dan alalım (label için de kullanabiliriz)
+        stock = self.stock_repo.get_stock_by_id(stock_id)
+        ticker = stock.ticker if stock is not None else None
 
-        # Şimdilik ticker'ı bilmiyoruz; istersen stock_repo ile lookup yapıp verebilirsin.
-        dialog = TradeDialog(stock_id=stock_id, ticker=None, parent=self)
+        dialog = TradeDialog(stock_id=stock_id, ticker=ticker, parent=self)
 
         if dialog.exec_() != QDialog.Accepted:
             return
 
+        # 1) Hisseyi düzenleme modu
+        if dialog.get_mode() == "edit_stock":
+            if stock is None:
+                QMessageBox.warning(self, "Uyarı", "Bu pozisyona ait hisse kaydı bulunamadı.")
+                return
+
+            edit_dlg = EditStockDialog(stock, parent=self)
+            if edit_dlg.exec_() != QDialog.Accepted:
+                return
+
+            try:
+                result = edit_dlg.get_result()
+            except ValueError as e:
+                QMessageBox.warning(self, "Geçersiz Girdi", str(e))
+                return
+
+            updated_stock = Stock(
+                id=stock.id,
+                ticker=result.ticker,
+                name=result.name,
+                currency_code=stock.currency_code,
+                created_at=stock.created_at,
+                updated_at=stock.updated_at,
+            )
+
+            try:
+                self.stock_repo.update_stock(updated_stock)
+            except Exception as e:
+                QMessageBox.critical(self, "Hata", f"Hisse güncellenemedi:\n{e}")
+                return
+
+            self._load_initial_data()
+            QMessageBox.information(self, "Başarılı", "Hisse bilgileri güncellendi.")
+            return
+
+        # 2) Normal trade modu
         trade_data = dialog.get_trade_data()
         if not trade_data:
             return
 
-        # Trade domain objesini oluştur
         if trade_data["side"] == "BUY":
             trade = Trade.create_buy(
                 stock_id=trade_data["stock_id"],
                 trade_date=trade_data["trade_date"],
+                trade_time=trade_data["trade_time"],
                 quantity=trade_data["quantity"],
                 price=trade_data["price"],
-                trade_time=trade_data["trade_time"],
             )
         else:
             trade = Trade.create_sell(
                 stock_id=trade_data["stock_id"],
                 trade_date=trade_data["trade_date"],
+                trade_time=trade_data["trade_time"],
                 quantity=trade_data["quantity"],
                 price=trade_data["price"],
-                trade_time=trade_data["trade_time"],
             )
 
         try:
@@ -287,8 +323,8 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(
                     self,
                     "Geçersiz İşlem",
-                    "Elinde o kadar lot yok, daha fazla satamazsın.\n"
-                    "Önce yeterli alış işlemi eklemen gerekiyor.",
+                    "Elindeki lottan fazla satış yapamazsın.\n"
+                    "Önce yeterli alış işlemi eklemelisin.",
                 )
             else:
                 QMessageBox.warning(self, "Geçersiz İşlem", msg)
@@ -297,9 +333,8 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Hata", f"İşlem kaydedilemedi: {e}")
             return
 
-
-        # Tablo ve özetleri yenile (basit çözüm: baştan yükle)
         self._load_initial_data()
+
 
     def on_new_stock_trade_clicked(self):
         """
@@ -411,3 +446,6 @@ class MainWindow(QMainWindow):
         self.lbl_monthly_return.setText("Aylık Getiri: -")
 
         QMessageBox.information(self, "Tamamlandı", "Portföy başarıyla sıfırlandı.")
+
+
+   

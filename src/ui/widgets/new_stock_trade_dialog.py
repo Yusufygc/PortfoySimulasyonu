@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date, time,dt_date
 from decimal import Decimal
 from typing import Optional, Literal, Dict, Any
 
@@ -185,6 +185,26 @@ class NewStockTradeDialog(QDialog):
         trade_date = date(qdate.year(), qdate.month(), qdate.day())
         trade_time = time(qtime.hour(), qtime.minute())
 
+        today_py = dt_date.today()
+        if trade_date > today_py:
+            raise ValueError("Gelecek tarih için işlem girilemez.")
+
+        if trade_date.weekday() >= 5:
+            raise ValueError("Hafta sonu tarihine işlem girilemez (Cumartesi/Pazar).")
+
+        if not (10 <= trade_time.hour < 18):
+            raise ValueError("İşlem saati 10:00 ile 18:00 arasında olmalıdır.")
+
+                # --- Tarih / saat validasyonu ---
+        # Hafta sonu (Cumartesi = 5, Pazar = 6) engelle
+        if trade_date.weekday() >= 5:
+            raise ValueError("Hafta sonu tarihine işlem ekleyemezsiniz (Cumartesi/Pazar).")
+
+        # Saat 10:00 - 18:00 aralığında olmalı
+        if not (10 <= trade_time.hour < 18):
+            raise ValueError("İşlem saati 10:00 ile 18:00 arasında olmalıdır.")
+
+
         if self.radio_buy.isChecked():
             side: SideLiteral = "BUY"
         elif self.radio_sell.isChecked():
@@ -231,3 +251,33 @@ class NewStockTradeDialog(QDialog):
         if self.result() != QDialog.Accepted:
             return None
         return self._collect_data()
+
+    def _normalize_trade_date(self, qdate: QDate) -> QDate:
+        """Hafta sonu / geleceğe taşan tarihleri düzeltir."""
+        today_q = QDate.currentDate()
+
+        # Gelecek tarihse bugüne çek
+        if qdate > today_q:
+            return today_q
+
+        # Qt: 1=PAZARTESİ ... 6=CUMARTESİ, 7=PAZAR
+        weekday = qdate.dayOfWeek()
+        if weekday == 6:      # Cumartesi
+            return qdate.addDays(-1)
+        elif weekday == 7:    # Pazar
+            return qdate.addDays(-2)
+        return qdate
+
+    def _on_date_changed(self, new_date: QDate):
+        fixed = self._normalize_trade_date(new_date)
+        if fixed != new_date:
+            # Sonsuz döngüye girmemek için sinyali blokla
+            self.date_edit.blockSignals(True)
+            self.date_edit.setDate(fixed)
+            self.date_edit.blockSignals(False)
+            # İstersen sessiz de yapabilirsin; bilgi mesajı opsiyonel:
+            # QMessageBox.information(
+            #     self, "Tarih Düzenlendi",
+            #     "Hafta sonu / gelecekteki tarihler için işlem girilemez.\n"
+            #     "Tarih en yakın iş gününe çekildi."
+            # )
