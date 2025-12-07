@@ -192,3 +192,13 @@ class MySQLStockRepository(IStockRepository):
         with self._cp.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(sql, (stock_id,))
+
+    def delete_all_stocks(self) -> None:
+        """
+        Tüm stocks kayıtlarını siler.
+        Not: FK'ler nedeniyle trades ve daily_prices önce temizlenmiş olmalı.
+        """
+        sql = "DELETE FROM stocks"
+        with self._cp.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql)

@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
         return_calc_service: ReturnCalcService,
         update_coordinator: PortfolioUpdateCoordinator,
         stock_repo,   # <--- yeni parametre
+        reset_service,
         parent=None,
     ):
         super().__init__(parent)
@@ -46,6 +47,7 @@ class MainWindow(QMainWindow):
         self.return_calc_service = return_calc_service
         self.update_coordinator = update_coordinator
         self.stock_repo = stock_repo   # <--- sakla
+        self.reset_service = reset_service   # <--- sakla
 
         self.setWindowTitle("Portföy Simülasyonu")
         self.resize(1000, 600)
@@ -64,10 +66,12 @@ class MainWindow(QMainWindow):
         self.btn_new_trade = QPushButton("Yeni Hisse / İşlem Ekle")   # YENİ
         self.btn_update_prices = QPushButton("Gün Sonu Fiyatlarını Güncelle")
         self.btn_refresh_returns = QPushButton("Haftalık / Aylık Getiriyi Göster")
+        self.btn_reset_portfolio = QPushButton("Portföyü Sıfırla")   # <--- YENİ
 
         button_layout.addWidget(self.btn_new_trade)
         button_layout.addWidget(self.btn_update_prices)
         button_layout.addWidget(self.btn_refresh_returns)
+        button_layout.addWidget(self.btn_reset_portfolio)   # <--- YENİ
         button_layout.addStretch()
 
         # Orta: tablo
@@ -97,6 +101,7 @@ class MainWindow(QMainWindow):
         self.btn_new_trade.clicked.connect(self.on_new_stock_trade_clicked)
         self.btn_update_prices.clicked.connect(self.on_update_prices_clicked)
         self.btn_refresh_returns.clicked.connect(self.on_refresh_returns_clicked)
+        self.btn_reset_portfolio.clicked.connect(self.on_reset_portfolio_clicked)  # <--- YENİ
 
 
     # --------- Başlangıç verisi yükleme --------- #
@@ -305,3 +310,34 @@ class MainWindow(QMainWindow):
         # 4) Ekranı yenile
         self._load_initial_data()
         QMessageBox.information(self, "Başarılı", "İşlem başarıyla eklendi.")
+
+    def on_reset_portfolio_clicked(self):
+        """
+        'Portföyü Sıfırla' butonu:
+        Tüm hisseleri, işlemleri ve fiyat kayıtlarını siler.
+        """
+        reply = QMessageBox.question(
+            self,
+            "Portföyü Sıfırla",
+            "TÜM hisse, işlem ve fiyat kayıtları silinecek.\n"
+            "Bu işlem geri alınamaz. Emin misiniz?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply != QMessageBox.Yes:
+            return
+
+        try:
+            self.reset_service.reset_all()
+        except Exception as e:
+            QMessageBox.critical(self, "Hata", f"Portföy sıfırlanırken hata oluştu:\n{e}")
+            return
+
+        # UI'ı sıfırla
+        self._load_initial_data()
+        self.lbl_total_value.setText("Toplam Değer: 0.00")
+        self.lbl_weekly_return.setText("Haftalık Getiri: -")
+        self.lbl_monthly_return.setText("Aylık Getiri: -")
+
+        QMessageBox.information(self, "Tamamlandı", "Portföy başarıyla sıfırlandı.")

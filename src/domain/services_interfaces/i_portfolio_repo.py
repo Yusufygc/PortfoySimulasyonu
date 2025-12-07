@@ -97,3 +97,11 @@ class IPortfolioRepository(ABC):
         Dikkat: Gerçek hayatta "soft delete" daha mantıklı olabilir.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def delete_all_trades(self) -> None:
+        """
+        Tüm trade kayıtlarını siler.
+        Portföyü tamamen sıfırlarken kullanılır.
+        """
+        raise NotImplementedError

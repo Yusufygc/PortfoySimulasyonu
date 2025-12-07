@@ -12,6 +12,8 @@ from src.application.services.portfolio_service import PortfolioService
 from src.application.services.price_update_service import PriceUpdateService
 from src.application.services.return_calc_service import ReturnCalcService
 from src.application.services.portfolio_update_coordinator import PortfolioUpdateCoordinator
+from src.application.services.portfolio_reset_service import PortfolioResetService
+
 
 from src.ui.main_window import MainWindow
 
@@ -35,6 +37,7 @@ def main():
     portfolio_service = PortfolioService(portfolio_repo, price_repo)
     price_update_service = PriceUpdateService(price_repo, market_client)
     return_calc_service = ReturnCalcService(portfolio_repo, price_repo)
+    reset_service = PortfolioResetService(portfolio_repo, price_repo, stock_repo)
 
     # 5) Coordinator
     coordinator = PortfolioUpdateCoordinator(
@@ -50,6 +53,7 @@ def main():
         return_calc_service=return_calc_service,
         update_coordinator=coordinator,
         stock_repo=stock_repo,        # <--- EKLENDİ
+        reset_service=reset_service, 
     )
     window.show()
 

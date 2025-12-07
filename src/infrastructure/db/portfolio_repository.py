@@ -216,3 +216,13 @@ class MySQLPortfolioRepository(IPortfolioRepository):
         with self._cp.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(sql, (trade_id,))
+
+
+    def delete_all_trades(self) -> None:
+        """
+        Tüm trades tablosunu temizler.
+        """
+        sql = "DELETE FROM trades"
+        with self._cp.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql)

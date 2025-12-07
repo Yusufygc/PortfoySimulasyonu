@@ -216,3 +216,19 @@ class MySQLPriceRepository(IPriceRepository):
         with self._cp.get_connection() as conn:
             cursor = conn.cursor()
             cursor.executemany(sql, params)
+
+
+    def delete_all_prices(self) -> None:
+        """
+        daily_prices ve portfolio_snapshots tablolarını temizler.
+        Sıra önemli değil ama aynı transaction içinde gidiyor.
+        """
+        with self._cp.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM daily_prices")
+            # snapshot tablosunu da sıfırlamak istiyorsan:
+            try:
+                cursor.execute("DELETE FROM portfolio_snapshots")
+            except Exception:
+                # tablo yoksa sessiz geçilebilir
+                pass

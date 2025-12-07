@@ -113,7 +113,7 @@ class TradeDialog(QDialog):
         form_layout.addRow("Saat:", self.time_edit)
         form_layout.addRow("İşlem Türü:", side_layout)
         form_layout.addRow("Lot:", self.spin_quantity)
-        form_layout.addRow("Fiyat:", self.spin_price)
+        form_layout.addRow("Fiyat:", self.edit_price)
 
         main_layout.addLayout(form_layout)
 

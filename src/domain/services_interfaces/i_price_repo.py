@@ -111,3 +111,11 @@ class IPriceRepository(ABC):
           - IPriceRepository.upsert_daily_prices_bulk(...) ile DB'ye yazılır.
         """
         raise NotImplementedError
+    # ------------------ DELETE operasyonları ------------------ #
+    @abstractmethod
+    def delete_all_prices(self) -> None:
+        """
+        Tüm daily_prices ve ilgili snapshot kayıtlarını siler.
+        (Uygulamada günlük fiyat ve snapshot'ları sıfırlamak için.)
+        """
+        raise NotImplementedError

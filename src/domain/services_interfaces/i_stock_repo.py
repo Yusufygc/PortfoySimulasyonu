@@ -97,3 +97,13 @@ class IStockRepository(ABC):
         (Gerçekte soft delete tercih edilebilir ama şimdilik basit.)
         """
         raise NotImplementedError
+    
+    @abstractmethod
+    def delete_all_stocks(self) -> None:
+        """
+        Tüm stock kayıtlarını siler.
+        DİKKAT: trades ve daily_prices tabloları önce temizlenmelidir
+        (FK kısıtları nedeniyle).
+        """
+        raise NotImplementedError
+
