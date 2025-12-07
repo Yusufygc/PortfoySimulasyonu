@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, time,dt_date
+from datetime import date, time
 from decimal import Decimal
 from typing import Optional, Literal, Dict, Any
 
@@ -103,16 +103,43 @@ class NewStockTradeDialog(QDialog):
         form_layout.addRow("Hisse Adı:", self.line_name)
 
         # Tarih
+        today_q = QDate.currentDate()
+        normalized_today = self._normalize_trade_date(today_q)
+
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
-        self.date_edit.setDate(QDate.currentDate())
+
+        # Bugün hafta sonuysa varsayılanı otomatik Cuma'ya çek
+        self.date_edit.setDate(normalized_today)
+
+        # İleri tarih yine seçilemesin (max = bugün)
+        self.date_edit.setMaximumDate(today_q)
+
+
+        # Gelecek tarih seçilemesin
+        self.date_edit.setMaximumDate(today_q)
+
         form_layout.addRow("Tarih:", self.date_edit)
 
         # Saat
         self.time_edit = QTimeEdit()
         self.time_edit.setDisplayFormat("HH:mm")
-        self.time_edit.setTime(QTime.currentTime())
+
+        min_t = QTime(10, 0)
+        max_t = QTime(17, 59)  # 18:00 hariç
+
+        # Varsayılan: şu an aralıktaysa onu, değilse 10:00
+        now_t = QTime.currentTime()
+        if now_t < min_t or now_t > max_t:
+            self.time_edit.setTime(min_t)
+        else:
+            self.time_edit.setTime(now_t)
+
+        self.time_edit.setMinimumTime(min_t)
+        self.time_edit.setMaximumTime(max_t)
+
         form_layout.addRow("Saat:", self.time_edit)
+
 
         # İşlem türü
         side_layout = QHBoxLayout()
@@ -159,6 +186,11 @@ class NewStockTradeDialog(QDialog):
         self.btn_ok.clicked.connect(self._on_ok_clicked)
         self.btn_cancel.clicked.connect(self.reject)
 
+        # Tarih & saat değişince otomatik düzeltme
+        self.date_edit.dateChanged.connect(self._on_date_changed)
+        self.time_edit.timeChanged.connect(self._on_time_changed)
+
+
     def _on_ok_clicked(self):
         try:
             _ = self._collect_data()
@@ -185,22 +217,13 @@ class NewStockTradeDialog(QDialog):
         trade_date = date(qdate.year(), qdate.month(), qdate.day())
         trade_time = time(qtime.hour(), qtime.minute())
 
-        today_py = dt_date.today()
+        today_py = date.today()
         if trade_date > today_py:
             raise ValueError("Gelecek tarih için işlem girilemez.")
 
         if trade_date.weekday() >= 5:
             raise ValueError("Hafta sonu tarihine işlem girilemez (Cumartesi/Pazar).")
 
-        if not (10 <= trade_time.hour < 18):
-            raise ValueError("İşlem saati 10:00 ile 18:00 arasında olmalıdır.")
-
-                # --- Tarih / saat validasyonu ---
-        # Hafta sonu (Cumartesi = 5, Pazar = 6) engelle
-        if trade_date.weekday() >= 5:
-            raise ValueError("Hafta sonu tarihine işlem ekleyemezsiniz (Cumartesi/Pazar).")
-
-        # Saat 10:00 - 18:00 aralığında olmalı
         if not (10 <= trade_time.hour < 18):
             raise ValueError("İşlem saati 10:00 ile 18:00 arasında olmalıdır.")
 
@@ -281,3 +304,18 @@ class NewStockTradeDialog(QDialog):
             #     "Hafta sonu / gelecekteki tarihler için işlem girilemez.\n"
             #     "Tarih en yakın iş gününe çekildi."
             # )
+
+    def _on_time_changed(self, new_time: QTime):
+        min_t = QTime(10, 0)
+        max_t = QTime(17, 59)
+
+        fixed = new_time
+        if new_time < min_t:
+            fixed = min_t
+        elif new_time > max_t:
+            fixed = max_t
+
+        if fixed != new_time:
+            self.time_edit.blockSignals(True)
+            self.time_edit.setTime(fixed)
+            self.time_edit.blockSignals(False)

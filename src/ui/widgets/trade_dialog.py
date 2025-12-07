@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time, dt_date
+from datetime import date, datetime, time
+from datetime import date as dt_date 
 from decimal import Decimal
 from typing import Optional, Literal
 
@@ -80,13 +81,13 @@ class TradeDialog(QDialog):
 
         # Tarih
         today_q = QDate.currentDate()
+        normalized_today = self._normalize_trade_date(today_q)
 
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
-        self.date_edit.setDate(today_q)
-
-        # Gelecek tarih seçilemesin
+        self.date_edit.setDate(normalized_today)
         self.date_edit.setMaximumDate(today_q)
+
 
         # Sinyal bağla: kullanıcı tarihi değiştirince hafta sonuna izin vermeyelim
         self.date_edit.dateChanged.connect(self._on_date_changed)
