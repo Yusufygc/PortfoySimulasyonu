@@ -56,17 +56,25 @@ class PortfolioService:
         """
         Yeni bir işlem (alış/satış) ekler.
 
-        Burada istersen:
-          - Satışta yeterli lot var mı kontrolü
-          - Negatif fiyat/lot guard'ları
-        gibi domain kontrolleri de yapabilirsin.
-        Şimdilik Trade.create_buy/sell zaten temel validasyon yapıyor.
+        - Mevcut trade'lerden portföyü kurar
+        - Yeni trade'i bu portföye uygular (VALIDASYON)
+        - Eğer geçerliyse DB'ye yazar
         """
-        # *** DEBUG ***
-        print("DEBUG add_trade -> stock_id:", trade.stock_id,
-              "qty:", trade.quantity,
-              "price:", trade.price)
 
+        # Mevcut portföyü oluştur
+        trades: List[Trade] = self._portfolio_repo.get_all_trades()
+        portfolio = Portfolio.from_trades(trades)
+
+        # Domain kuralı: elindeki lottan fazla satamazsın vb.
+        try:
+            portfolio.apply_trade(trade)
+        except ValueError as e:
+            # Bu noktada trade HİÇBİR YERE yazılmadı
+            # UI tarafı bu hatayı yakalayıp kullanıcıya mesaj gösterecek
+            raise
+
+        # Buraya gelebildiysek trade domain açısından geçerli demektir
         saved_trade = self._portfolio_repo.insert_trade(trade)
         return saved_trade
+
 

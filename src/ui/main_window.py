@@ -17,20 +17,21 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 from PyQt5.QtCore import Qt, QModelIndex
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog,QHeaderView
 
+from src.ui.widgets.trade_dialog import TradeDialog
 from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
+from src.ui.portfolio_table_model import PortfolioTableModel
+
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.models.stock import Stock
 from src.domain.services_interfaces.i_stock_repo import IStockRepository  # sadece type hint istersen
-from src.ui.widgets.trade_dialog import TradeDialog
-from src.application.services.portfolio_service import PortfolioService
-from src.application.services.return_calc_service import ReturnCalcService
-from src.application.services.portfolio_update_coordinator import PortfolioUpdateCoordinator
-from src.ui.portfolio_table_model import PortfolioTableModel
 from src.domain.models.position import Position
 from src.domain.models.portfolio import Portfolio
 
+from src.application.services.portfolio_service import PortfolioService
+from src.application.services.return_calc_service import ReturnCalcService
+from src.application.services.portfolio_update_coordinator import PortfolioUpdateCoordinator
 
 class MainWindow(QMainWindow):
     def __init__(
@@ -67,6 +68,7 @@ class MainWindow(QMainWindow):
         self.btn_update_prices = QPushButton("Gün Sonu Fiyatlarını Güncelle")
         self.btn_refresh_returns = QPushButton("Haftalık / Aylık Getiriyi Göster")
         self.btn_reset_portfolio = QPushButton("Portföyü Sıfırla")   # <--- YENİ
+        self.btn_update_prices.setObjectName("primaryButton")
 
         button_layout.addWidget(self.btn_new_trade)
         button_layout.addWidget(self.btn_update_prices)
@@ -76,19 +78,40 @@ class MainWindow(QMainWindow):
 
         # Orta: tablo
         self.table_view = QTableView()
+        self.table_view.setAlternatingRowColors(True)
+        self.table_view.setSelectionBehavior(QTableView.SelectRows)
+        self.table_view.setSelectionMode(QTableView.SingleSelection)
+        self.table_view.setSortingEnabled(True)
+        self.table_view.verticalHeader().setVisible(False)
+
+        header = self.table_view.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)
+        header.setHighlightSections(False)
+
+        self.table_view.setStyleSheet("QTableView { border-radius: 8px; }")
+        self.table_view.setShowGrid(True)
 
         # Alt: özet label'ları
         summary_layout = QHBoxLayout()
-        self.lbl_total_value = QLabel("Toplam Değer: -")
-        self.lbl_weekly_return = QLabel("Haftalık Getiri: -")
-        self.lbl_monthly_return = QLabel("Aylık Getiri: -")
 
-        for lbl in (self.lbl_total_value, self.lbl_weekly_return, self.lbl_monthly_return):
+        def make_summary_label(text: str) -> QLabel:
+            lbl = QLabel(text)
+            lbl.setObjectName("summaryLabel")
             lbl.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            summary_layout.addWidget(lbl)
+            return lbl
 
+        self.lbl_total_value = make_summary_label("Toplam Değer: 0.00")
+        self.lbl_weekly_return = make_summary_label("Haftalık Getiri: -")
+        self.lbl_monthly_return = make_summary_label("Aylık Getiri: -")
+
+        summary_layout.addWidget(self.lbl_total_value)
+        summary_layout.addSpacing(24)
+        summary_layout.addWidget(self.lbl_weekly_return)
+        summary_layout.addSpacing(24)
+        summary_layout.addWidget(self.lbl_monthly_return)
         summary_layout.addStretch()
-
+        
+        # Layout ekleme
         main_layout.addLayout(button_layout)
         main_layout.addWidget(self.table_view)
         main_layout.addLayout(summary_layout)
@@ -256,12 +279,24 @@ class MainWindow(QMainWindow):
                 trade_time=trade_data["trade_time"],
             )
 
-        # Service çağrısı: DB'ye kaydet
         try:
             self.portfolio_service.add_trade(trade)
+        except ValueError as e:
+            msg = str(e)
+            if "Cannot sell more than current position quantity" in msg:
+                QMessageBox.warning(
+                    self,
+                    "Geçersiz İşlem",
+                    "Elinde o kadar lot yok, daha fazla satamazsın.\n"
+                    "Önce yeterli alış işlemi eklemen gerekiyor.",
+                )
+            else:
+                QMessageBox.warning(self, "Geçersiz İşlem", msg)
+            return
         except Exception as e:
             QMessageBox.critical(self, "Hata", f"İşlem kaydedilemedi: {e}")
             return
+
 
         # Tablo ve özetleri yenile (basit çözüm: baştan yükle)
         self._load_initial_data()
@@ -326,6 +361,18 @@ class MainWindow(QMainWindow):
         # 3) Trade'i kaydet
         try:
             self.portfolio_service.add_trade(trade)
+        except ValueError as e:
+            msg = str(e)
+            if "Cannot sell more than current position quantity" in msg:
+                QMessageBox.warning(
+                    self,
+                    "Geçersiz İşlem",
+                    "Elinde o kadar lot yok, daha fazla satamazsın.\n"
+                    "Önce yeterli alış işlemi eklemen gerekiyor.",
+                )
+            else:
+                QMessageBox.warning(self, "Geçersiz İşlem", msg)
+            return
         except Exception as e:
             QMessageBox.critical(self, "Hata", f"İşlem kaydedilemedi: {e}")
             return

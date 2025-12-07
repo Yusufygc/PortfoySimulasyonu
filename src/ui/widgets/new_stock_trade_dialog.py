@@ -37,49 +37,84 @@ class NewStockTradeDialog(QDialog):
 
     Dışarıya basit bir dict döner.
     """
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self._init_ui()
         self._connect_signals()
 
+        # Yardım butonunu ( ? ) kapat
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+
+        # Başlangıçta ticker alanına odaklan
+        self.line_ticker.setFocus()
+
+        # Parent ortasına taşı
+        if parent is not None:
+            geo = parent.geometry()
+            self.move(
+                geo.center().x() - self.width() // 2,
+                geo.center().y() - self.height() // 2,
+            )
+
     def _init_ui(self):
         self.setWindowTitle("Yeni Hisse / İşlem Ekle")
         self.setModal(True)
-        self.resize(420, 280)
+        self.setMinimumWidth(520)
 
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(18, 18, 18, 18)
+        main_layout.setSpacing(12)
 
-        # Başlık
-        header = QLabel("Yeni hisse ekleyip ilk işlemini girebilirsiniz.")
-        header.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        main_layout.addWidget(header)
+        # ----- Header -----
+        title = QLabel("Yeni hisse ekleyip ilk işlemini girebilirsiniz.")
+        title.setObjectName("summaryLabel")  # style.py'deki daha güçlü fontu kullanalım
+        title.setWordWrap(True)
 
+        subtitle = QLabel(
+            "BIST hisseleri için sadece kod yazmanız yeterli (örn: AKBNK). "
+            "Sistem otomatik olarak .IS ekleyecek."
+        )
+        subtitle.setWordWrap(True)
+
+        main_layout.addWidget(title)
+        main_layout.addWidget(subtitle)
+
+        # Küçük bir ayraç
+        line = QLabel()
+        line.setFixedHeight(1)
+        line.setStyleSheet("background-color: #1f2937;")
+        main_layout.addWidget(line)
+
+        # ----- Form -----
         form_layout = QFormLayout()
+        form_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        form_layout.setFormAlignment(Qt.AlignTop)
+        form_layout.setHorizontalSpacing(16)
+        form_layout.setVerticalSpacing(10)
 
         # Ticker
         self.line_ticker = QLineEdit()
-        self.line_ticker.setPlaceholderText("Örn: AKBNK.IS")
+        self.line_ticker.setPlaceholderText("Örn: AKBNK")
         form_layout.addRow("Ticker:", self.line_ticker)
 
-        # Hisse adı (opsiyonel)
+        # Hisse adı
         self.line_name = QLineEdit()
         self.line_name.setPlaceholderText("Örn: Akbank T.A.Ş. (isteğe bağlı)")
         form_layout.addRow("Hisse Adı:", self.line_name)
 
-        # Tarih / saat
+        # Tarih
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setDate(QDate.currentDate())
+        form_layout.addRow("Tarih:", self.date_edit)
 
+        # Saat
         self.time_edit = QTimeEdit()
         self.time_edit.setDisplayFormat("HH:mm")
         self.time_edit.setTime(QTime.currentTime())
-
-        form_layout.addRow("Tarih:", self.date_edit)
         form_layout.addRow("Saat:", self.time_edit)
 
-        # BUY / SELL
+        # İşlem türü
         side_layout = QHBoxLayout()
         self.radio_buy = QRadioButton("Alış (BUY)")
         self.radio_sell = QRadioButton("Satış (SELL)")
@@ -93,26 +128,32 @@ class NewStockTradeDialog(QDialog):
         self.spin_quantity = QSpinBox()
         self.spin_quantity.setMinimum(1)
         self.spin_quantity.setMaximum(10_000_000)
-        self.spin_quantity.setValue(1)
+        self.spin_quantity.setValue(100)
         form_layout.addRow("Lot:", self.spin_quantity)
 
-        # Fiyat (artık QLineEdit, virgülü kendimiz parse edeceğiz)
+        # Fiyat
         self.edit_price = QLineEdit()
         self.edit_price.setPlaceholderText("Örn: 9,18 veya 9.18")
         form_layout.addRow("Fiyat:", self.edit_price)
 
-
         main_layout.addLayout(form_layout)
 
-        # Butonlar
-        buttons_layout = QHBoxLayout()
+        # ----- Alt aksiyon butonları -----
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
         self.btn_ok = QPushButton("Kaydet")
         self.btn_cancel = QPushButton("İptal")
-        buttons_layout.addStretch()
-        buttons_layout.addWidget(self.btn_ok)
-        buttons_layout.addWidget(self.btn_cancel)
 
-        main_layout.addLayout(buttons_layout)
+        # Kaydet butonunu primary gibi göstermek için id ver
+        self.btn_ok.setObjectName("primaryButton")
+
+        button_layout.addWidget(self.btn_ok)
+        button_layout.addWidget(self.btn_cancel)
+
+        main_layout.addSpacing(6)
+        main_layout.addLayout(button_layout)
+
 
     def _connect_signals(self):
         self.btn_ok.clicked.connect(self._on_ok_clicked)

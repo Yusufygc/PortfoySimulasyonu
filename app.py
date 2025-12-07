@@ -14,12 +14,13 @@ from src.application.services.return_calc_service import ReturnCalcService
 from src.application.services.portfolio_update_coordinator import PortfolioUpdateCoordinator
 from src.application.services.portfolio_reset_service import PortfolioResetService
 
-
+from src.ui.style import apply_app_style
 from src.ui.main_window import MainWindow
 
 
 def main():
     app = QApplication(sys.argv)
+    apply_app_style(app)
 
     # 1) DB config & connection pool
     db_config = load_settings()
