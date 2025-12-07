@@ -23,12 +23,19 @@ class PortfolioTableModel(QAbstractTableModel):
       5: Gerçekleşmemiş Kar/Zarar
     """
 
-    def __init__(self, positions: List[Position], price_map: Dict[int, Decimal], parent=None):
+    def __init__(
+        self,
+        positions: List[Position],
+        price_map: Dict[int, Decimal],
+        ticker_map: Dict[int, str],
+        parent=None,
+    ):
         super().__init__(parent)
         self._positions = positions
         self._price_map = price_map
+        self._ticker_map = ticker_map  # { stock_id: "ASELS.IS" ... }
         self._headers = [
-            "Stock ID",
+            "Hisse",          # <-- Stock ID yerine
             "Lot",
             "Ort. Maliyet",
             "Güncel Fiyat",
@@ -62,7 +69,8 @@ class PortfolioTableModel(QAbstractTableModel):
 
         col = index.column()
         if col == 0:
-            return str(stock_id)
+            ticker = self._ticker_map.get(stock_id)
+            return ticker if ticker is not None else str(stock_id)
         elif col == 1:
             return str(position.total_quantity)
         elif col == 2:
@@ -84,16 +92,25 @@ class PortfolioTableModel(QAbstractTableModel):
         return QVariant()
 
     # UI'yı güncellemek için helper
-    def update_data(self, positions: List[Position], price_map: Dict[int, Decimal]):
+    def update_data(
+        self,
+        positions: List[Position],
+        price_map: Dict[int, Decimal],
+        ticker_map: Dict[int, str],
+    ):
         self.beginResetModel()
         self._positions = positions
         self._price_map = price_map
+        self._ticker_map = ticker_map
         self.endResetModel()
+
     
 
     def get_position(self, row: int) -> Position:
         """
         Verilen satırdaki Position objesini döner.
-        MainWindow çift tıklamada kullanacak.
         """
+        if row < 0 or row >= len(self._positions):
+            raise IndexError("Row out of range in PortfolioTableModel.get_position")
         return self._positions[row]
+

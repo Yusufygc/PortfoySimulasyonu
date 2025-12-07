@@ -107,24 +107,27 @@ class MainWindow(QMainWindow):
     # --------- Başlangıç verisi yükleme --------- #
 
     def _load_initial_data(self):
-        """
-        Uygulama açıldığında mevcut trade'lerden portföyü hesaplar
-        ve tabloyu doldurur.
-        """
-        # Tüm trade'leri al → Portfolio
         portfolio: Portfolio = self.portfolio_service.get_current_portfolio()
 
-        # Bugünün yerine istersen son fiyatın olduğu tarihi kullanabilirsin,
-        # şimdilik bugün diyelim:
         today = date.today()
         _, end_snapshot = self._get_single_day_snapshot(today)
 
-        # Pozisyon listesi:
-        positions: List[Position] = list(portfolio.positions.values())
+        all_positions: List[Position] = list(portfolio.positions.values())
+        positions: List[Position] = [
+            p for p in all_positions
+            if p.total_quantity != 0
+        ]
+
         price_map: Dict[int, Decimal] = end_snapshot.price_map if end_snapshot else {}
 
-        self.model = PortfolioTableModel(positions, price_map, parent=self)
+        # Ticker map: { stock_id: "AKBNK.IS", ... }
+        stock_ids = [p.stock_id for p in positions]
+        ticker_map = self.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
+
+        self.model = PortfolioTableModel(positions, price_map, ticker_map, parent=self)
         self.table_view.setModel(self.model)
+
+
 
         # Özet label'ları güncelle
         if end_snapshot:
@@ -154,14 +157,23 @@ class MainWindow(QMainWindow):
 
         # Tabloyu güncellemek için:
         portfolio: Portfolio = self.portfolio_service.get_current_portfolio()
-        positions: List[Position] = list(portfolio.positions.values())
+        all_positions: List[Position] = list(portfolio.positions.values())
+        positions: List[Position] = [
+            p for p in all_positions
+            if p.total_quantity != 0
+        ]
+
         price_map = snapshot.price_map
 
+        stock_ids = [p.stock_id for p in positions]
+        ticker_map = self.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
+
         if hasattr(self, "model"):
-            self.model.update_data(positions, price_map)
+            self.model.update_data(positions, price_map, ticker_map)
         else:
-            self.model = PortfolioTableModel(positions, price_map, parent=self)
+            self.model = PortfolioTableModel(positions, price_map, ticker_map, parent=self)
             self.table_view.setModel(self.model)
+
 
         # Özet label'ları
         self.lbl_total_value.setText(f"Toplam Değer: {snapshot.total_value:.2f}")
@@ -200,10 +212,21 @@ class MainWindow(QMainWindow):
         if not index.isValid():
             return
 
+        # Model hazır mı?
+        if not hasattr(self, "model") or self.model is None:
+            return
+
         row = index.row()
+
+        # Güvenlik: row, modelin rowCount'ı içinde mi?
+        if row < 0 or row >= self.model.rowCount():
+            return
+
         # Modelden pozisyonu al
         position: Position = self.model.get_position(row)
         stock_id = position.stock_id
+        ...
+
 
         # Şimdilik ticker'ı bilmiyoruz; istersen stock_repo ile lookup yapıp verebilirsin.
         dialog = TradeDialog(stock_id=stock_id, ticker=None, parent=self)
