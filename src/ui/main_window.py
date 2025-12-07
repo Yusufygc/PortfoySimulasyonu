@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import yfinance as yf
+from datetime import datetime, timezone
 from datetime import date
 from decimal import Decimal
-from typing import Dict, List
+from typing import Dict, List,NamedTuple, Optional
 
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -35,6 +37,12 @@ from src.application.services.portfolio_service import PortfolioService
 from src.application.services.return_calc_service import ReturnCalcService
 from src.application.services.portfolio_update_coordinator import PortfolioUpdateCoordinator
 
+class PriceLookupResult(NamedTuple):
+    price: Decimal
+    as_of: datetime    # fiyatın zamanı
+    source: str        # "intraday" veya "last_close"
+
+
 class MainWindow(QMainWindow):
     def __init__(
         self,
@@ -43,6 +51,7 @@ class MainWindow(QMainWindow):
         update_coordinator: PortfolioUpdateCoordinator,
         stock_repo,   # <--- yeni parametre
         reset_service,
+        market_client,
         parent=None,
     ):
         super().__init__(parent)
@@ -51,6 +60,7 @@ class MainWindow(QMainWindow):
         self.update_coordinator = update_coordinator
         self.stock_repo = stock_repo   # <--- sakla
         self.reset_service = reset_service   # <--- sakla
+        self.market_client = market_client   # <--- sakla
 
         self.setWindowTitle("Portföy Simülasyonu")
         self.resize(1000, 600)
@@ -253,7 +263,14 @@ class MainWindow(QMainWindow):
         stock = self.stock_repo.get_stock_by_id(stock_id)
         ticker = stock.ticker if stock is not None else None
 
-        dialog = TradeDialog(stock_id=stock_id, ticker=ticker, parent=self)
+        dialog = TradeDialog(
+            stock_id=stock_id,
+            ticker=ticker,
+            parent=self,
+            price_lookup_func=self.lookup_price_for_ticker,  # yeni
+            lot_size=1,                                      # istersen 100
+        )
+
 
         if dialog.exec_() != QDialog.Accepted:
             return
@@ -341,7 +358,11 @@ class MainWindow(QMainWindow):
         Üstteki 'Yeni Hisse / İşlem Ekle' butonunun handler'ı.
         Yeni hisse gerekiyorsa ekler, ardından trade'i kaydeder, tabloyu yeniler.
         """
-        dlg = NewStockTradeDialog(parent=self)
+        dlg = NewStockTradeDialog(
+            parent=self,
+            price_lookup_func=self.lookup_price_for_ticker,
+            lot_size=1,  # ya da 100, nasıl tanımlamak istiyorsan
+        )
         if dlg.exec_() != QDialog.Accepted:
             return
 
@@ -447,5 +468,81 @@ class MainWindow(QMainWindow):
 
         QMessageBox.information(self, "Tamamlandı", "Portföy başarıyla sıfırlandı.")
 
+    def lookup_price_for_ticker(self, ticker: str) -> Optional[PriceLookupResult]:
+        """
+        UI dialog'larının kullanacağı gelişmiş fiyat lookup.
+
+        Öncelik sırası:
+          1) intraday (current/regularMarketPrice)
+          2) son işlem gününün kapanış fiyatı (history)
+
+        Hata veya veri yoksa None döner.
+        """
+        if not ticker:
+            return None
+
+        # BIST için .IS ekleyelim (yoksa)
+        if "." not in ticker:
+            ticker = ticker.upper() + ".IS"
+        else:
+            ticker = ticker.upper()
+
+        try:
+            yt = yf.Ticker(ticker)
+        except Exception as e:
+            print("YF Ticker init failed:", e)
+            return None
+
+        # 1) Intraday denemesi
+        price = None
+        info = {}
+        try:
+            # fast_info daha hızlı, yoksa info
+            info = getattr(yt, "fast_info", None) or yt.info
+        except Exception:
+            info = {}
+
+        if isinstance(info, dict):
+            candidates = [
+                info.get("lastPrice"),
+                info.get("last_price"),
+                info.get("regularMarketPrice"),
+                info.get("currentPrice"),
+            ]
+            for v in candidates:
+                if v is not None:
+                    try:
+                        price = Decimal(str(float(v)))
+                        as_of = datetime.now(timezone.utc)
+                        return PriceLookupResult(price=price, as_of=as_of, source="intraday")
+                    except Exception:
+                        pass
+
+        # 2) Fallback: son kapanış (last close)
+        try:
+            hist = yt.history(period="5d", auto_adjust=False)
+        except Exception as e:
+            print("YF history failed for", ticker, ":", e)
+            return None
+
+        if hist is not None and not hist.empty and "Close" in hist:
+            # Close sütunu dolu son satır
+            close_series = hist["Close"].dropna()
+            if not close_series.empty:
+                last_ts = close_series.index[-1]
+                last_price = close_series.iloc[-1]
+                try:
+                    price = Decimal(str(float(last_price)))
+                    # index genelde Timestamp
+                    if hasattr(last_ts, "to_pydatetime"):
+                        as_of = last_ts.to_pydatetime().replace(tzinfo=timezone.utc)
+                    else:
+                        as_of = datetime.now(timezone.utc)
+                    return PriceLookupResult(price=price, as_of=as_of, source="last_close")
+                except Exception:
+                    pass
+
+        print("Price lookup failed for", ticker)
+        return None
 
    

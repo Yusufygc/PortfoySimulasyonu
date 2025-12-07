@@ -55,6 +55,7 @@ def main():
         update_coordinator=coordinator,
         stock_repo=stock_repo,        # <--- EKLENDİ
         reset_service=reset_service, 
+        market_client=market_client, 
     )
     window.show()
 

@@ -37,8 +37,14 @@ class NewStockTradeDialog(QDialog):
 
     Dışarıya basit bir dict döner.
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, price_lookup_func=None, lot_size: int = 1):
         super().__init__(parent)
+        self.price_lookup_func = price_lookup_func  # callback
+        self.lot_size = lot_size                   # 1 ya da 100 gibi
+        self.current_price: Optional[Decimal] = None
+        self._updating_amount = False
+        self._updating_quantity = False
+
         self._init_ui()
         self._connect_signals()
 
@@ -67,7 +73,7 @@ class NewStockTradeDialog(QDialog):
 
         # ----- Header -----
         title = QLabel("Yeni hisse ekleyip ilk işlemini girebilirsiniz.")
-        title.setObjectName("summaryLabel")  # style.py'deki daha güçlü fontu kullanalım
+        title.setObjectName("summaryLabel")  # style.py'deki daha güçlü font
         title.setWordWrap(True)
 
         subtitle = QLabel(
@@ -108,16 +114,8 @@ class NewStockTradeDialog(QDialog):
 
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
-
-        # Bugün hafta sonuysa varsayılanı otomatik Cuma'ya çek
         self.date_edit.setDate(normalized_today)
-
-        # İleri tarih yine seçilemesin (max = bugün)
-        self.date_edit.setMaximumDate(today_q)
-
-
-        # Gelecek tarih seçilemesin
-        self.date_edit.setMaximumDate(today_q)
+        self.date_edit.setMaximumDate(today_q)  # ileri tarih yok
 
         form_layout.addRow("Tarih:", self.date_edit)
 
@@ -128,7 +126,6 @@ class NewStockTradeDialog(QDialog):
         min_t = QTime(10, 0)
         max_t = QTime(17, 59)  # 18:00 hariç
 
-        # Varsayılan: şu an aralıktaysa onu, değilse 10:00
         now_t = QTime.currentTime()
         if now_t < min_t or now_t > max_t:
             self.time_edit.setTime(min_t)
@@ -140,16 +137,9 @@ class NewStockTradeDialog(QDialog):
 
         form_layout.addRow("Saat:", self.time_edit)
 
-
-        # İşlem türü
-        side_layout = QHBoxLayout()
-        self.radio_buy = QRadioButton("Alış (BUY)")
-        self.radio_sell = QRadioButton("Satış (SELL)")
-        self.radio_buy.setChecked(True)
-        side_layout.addWidget(self.radio_buy)
-        side_layout.addWidget(self.radio_sell)
-        side_layout.addStretch()
-        form_layout.addRow("İşlem Türü:", side_layout)
+        # --- Piyasa fiyatı gösterimi ---
+        self.lbl_market_price = QLabel("-")
+        form_layout.addRow("Güncel Fiyat (yfinance):", self.lbl_market_price)
 
         # Lot
         self.spin_quantity = QSpinBox()
@@ -158,10 +148,31 @@ class NewStockTradeDialog(QDialog):
         self.spin_quantity.setValue(100)
         form_layout.addRow("Lot:", self.spin_quantity)
 
+        # Tutar (TL)
+        self.edit_amount = QLineEdit()
+        self.edit_amount.setPlaceholderText("Örn: 15000 (TL)")
+        form_layout.addRow("Tutar (TL):", self.edit_amount)
+
         # Fiyat
         self.edit_price = QLineEdit()
         self.edit_price.setPlaceholderText("Örn: 9,18 veya 9.18")
         form_layout.addRow("Fiyat:", self.edit_price)
+
+        # ---- İŞLEM TÜRÜ (EN ALTA) ----
+        side_layout = QHBoxLayout()
+        self.radio_buy = QRadioButton("Alış (BUY)")
+        self.radio_sell = QRadioButton("Satış (SELL)")
+        self.radio_buy.setChecked(True)
+
+        # Renkler
+        self.radio_buy.setStyleSheet("color: #22c55e; font-weight: 600;")
+        self.radio_sell.setStyleSheet("color: #ef4444; font-weight: 600;")
+
+        side_layout.addStretch()
+        side_layout.addWidget(self.radio_buy)
+        side_layout.addWidget(self.radio_sell)
+        side_layout.addStretch()
+        form_layout.addRow("İşlem Türü:", side_layout)
 
         main_layout.addLayout(form_layout)
 
@@ -172,7 +183,6 @@ class NewStockTradeDialog(QDialog):
         self.btn_ok = QPushButton("Kaydet")
         self.btn_cancel = QPushButton("İptal")
 
-        # Kaydet butonunu primary gibi göstermek için id ver
         self.btn_ok.setObjectName("primaryButton")
 
         button_layout.addWidget(self.btn_ok)
@@ -181,15 +191,19 @@ class NewStockTradeDialog(QDialog):
         main_layout.addSpacing(6)
         main_layout.addLayout(button_layout)
 
-
     def _connect_signals(self):
         self.btn_ok.clicked.connect(self._on_ok_clicked)
         self.btn_cancel.clicked.connect(self.reject)
 
-        # Tarih & saat değişince otomatik düzeltme
         self.date_edit.dateChanged.connect(self._on_date_changed)
         self.time_edit.timeChanged.connect(self._on_time_changed)
 
+        # Ticker alanı değişince fiyatı getir
+        self.line_ticker.editingFinished.connect(self._on_ticker_edited)
+
+        # Dinamik hesaplama
+        self.spin_quantity.valueChanged.connect(self._on_quantity_changed)
+        self.edit_amount.textChanged.connect(self._on_amount_changed)
 
     def _on_ok_clicked(self):
         try:
@@ -319,3 +333,71 @@ class NewStockTradeDialog(QDialog):
             self.time_edit.blockSignals(True)
             self.time_edit.setTime(fixed)
             self.time_edit.blockSignals(False)
+
+    def _on_ticker_edited(self):
+        ticker = self.line_ticker.text().strip().upper()
+        if not ticker or self.price_lookup_func is None:
+            return
+
+        result = self.price_lookup_func(ticker)
+        if result is None:
+            self.current_price = None
+            self.lbl_market_price.setText("Fiyat bulunamadı")
+            return
+
+        price = result.price
+        self.current_price = price
+
+        # Label metni: fiyat + kaynağı + tarih
+        if result.source == "intraday":
+            info_text = f"{price:.2f} (anlık)"
+        else:
+            d_str = result.as_of.strftime("%d.%m.%Y")
+            info_text = f"{price:.2f} (son kapanış {d_str})"
+
+        self.lbl_market_price.setText(info_text)
+
+        # Kullanıcı fiyat alanını boş bıraktıysa otomatik dolduralım
+        if not self.edit_price.text().strip():
+            self.edit_price.setText(str(price))
+
+    def _on_quantity_changed(self, value: int):
+        if self._updating_amount:
+            return
+        if self.current_price is None:
+            return
+
+        self._updating_quantity = True
+        try:
+            lot_size = self.lot_size or 1
+            total = value * float(self.current_price) * lot_size
+            self.edit_amount.setText(f"{total:.2f}")
+        finally:
+            self._updating_quantity = False
+
+    def _on_amount_changed(self, text: str):
+        if self._updating_quantity:
+            return
+        if self.current_price is None:
+            return
+        text = text.strip().replace(",", ".")
+        if not text:
+            return
+        try:
+            amount = float(text)
+        except ValueError:
+            return
+
+        if amount <= 0:
+            return
+
+        lot_size = self.lot_size or 1
+        max_lot = int(amount // (float(self.current_price) * lot_size))
+        if max_lot <= 0:
+            return
+
+        self._updating_amount = True
+        try:
+            self.spin_quantity.setValue(max_lot)
+        finally:
+            self._updating_amount = False
