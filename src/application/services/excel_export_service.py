@@ -11,74 +11,57 @@ from typing import List, Optional, Dict, Iterable, Union
 
 import pandas as pd
 
-from src.domain.models.portfolio import Portfolio
-from src.domain.models.position import Position
-from src.domain.models.trade import Trade
-from src.domain.models.stock import Stock
+# Domain importları
+from src.domain.models.daily_price import DailyPrice
 from src.domain.repositories.portfolio_repository import IPortfolioRepository
 from src.domain.repositories.price_repository import IPriceRepository
 from src.domain.repositories.stock_repository import IStockRepository
+from src.domain.services_interfaces.i_market_data_client import IMarketDataClient
 
 
 class ExportMode(str, Enum):
-    """Excel çıktı davranışı."""
-    OVERWRITE = "overwrite"  # Dosyayı komple baştan yaz
-    APPEND = "append"        # Var olan dosyaya yeni satırları ekle / güncelle
+    OVERWRITE = "overwrite"
+    APPEND = "append"
 
 
 @dataclass
 class DailyPosition:
     date: date
     ticker: str
-    stock_id: int
     quantity: int
     avg_cost: Decimal
-
-    # Fiyat / değer
-    close_price: Optional[Decimal]           # o günün kapanış fiyatı
-    position_value: Optional[Decimal]        # qty * close_price
-
-    # Performans metrikleri
-    daily_price_change_pct: Optional[Decimal]  # d-1 kapanışına göre fiyat değişimi
-    unrealized_pnl_tl: Optional[Decimal]       # (close - avg_cost) * qty
-    unrealized_pnl_pct: Optional[Decimal]      # unrealized_pnl_tl / (avg_cost * qty)
-    weight_pct: Optional[Decimal]              # pozisyon_değeri / portföy_değeri
-
+    cost_basis: Decimal              # Maliyet Esası (Lot * AvgCost)
+    close_price: Optional[Decimal]
+    position_value: Optional[Decimal]
+    daily_price_change_pct: Optional[Decimal]
+    unrealized_pnl_tl: Optional[Decimal]
+    unrealized_pnl_pct: Optional[Decimal]
+    weight_pct: Optional[Decimal]
 
 
 @dataclass
 class DailyPortfolioSnapshot:
-    """Belirli bir tarihte portföyün toplam durumu."""
     date: date
     total_value: Optional[Decimal]
     daily_return_pct: Optional[Decimal]
     cumulative_return_pct: Optional[Decimal]
     daily_pnl: Optional[Decimal]
     cumulative_pnl: Optional[Decimal]
-    status: str  # Normal / Hafta Sonu / Tatil / Veri Yok vb.
+    status: str
 
 
 class ExcelExportService:
-    """
-    Portföy tarihçesini Excel'e aktaran servis.
-
-    - Sheet1: PortfolioSummary (gün bazlı tek satır)
-    - Sheet2: PositionsDetail (gün x hisse bazlı çok satır)
-    """
-
     def __init__(
-            self,
-            portfolio_repo: IPortfolioRepository,
-            price_repo: IPriceRepository,
-            stock_repo: IStockRepository,
-        ) -> None:
-            self.portfolio_repo = portfolio_repo
-            self.price_repo = price_repo
-            self.stock_repo = stock_repo
-
-    # ------------------------------------------------------------------
-    # PUBLIC API
-    # ------------------------------------------------------------------
+        self,
+        portfolio_repo: IPortfolioRepository,
+        price_repo: IPriceRepository,
+        stock_repo: IStockRepository,
+        market_data_client: IMarketDataClient,
+    ) -> None:
+        self.portfolio_repo = portfolio_repo
+        self.price_repo = price_repo
+        self.stock_repo = stock_repo
+        self.market_data_client = market_data_client
 
     def export_history(
         self,
@@ -87,99 +70,52 @@ class ExcelExportService:
         file_path: Union[str, Path],
         mode: ExportMode = ExportMode.OVERWRITE,
     ) -> None:
-        """
-        Belirli bir tarih aralığındaki portföy tarihçesini Excel'e yazar.
-
-        :param start_date: Dahil başlangıç günü
-        :param end_date: Dahil bitiş günü
-        :param file_path: Oluşturulacak / güncellenecek Excel dosyasının yolu
-        :param mode: OVERWRITE = dosyayı baştan yaz, APPEND = var olana ekle
-        """
         file_path = Path(file_path)
-
-        # 1) DB'den gerekli veriyi çek ve günlük snapshot'ları oluştur
-        daily_positions, daily_snapshots = self._build_daily_history(
-            start_date=start_date,
-            end_date=end_date,
-        )
-
-        # 2) pandas DataFrame'lerine dönüştür
+        
+        # 1. Veriyi Hazırla
+        daily_positions, daily_snapshots = self._build_daily_history(start_date, end_date)
+        
+        # 2. DataFrame'leri Oluştur
+        # Not: _build_detail_df artık snapshots'ı da alıyor (günlük toplamları hesaplamak için)
+        detail_df = self._build_detail_df(daily_positions, daily_snapshots)
         summary_df = self._build_summary_df(daily_snapshots)
-        detail_df = self._build_detail_df(daily_positions)
+        stock_summary_df = self._build_stock_summary_df(daily_positions)
 
-        # 3) Excel'e yaz / ekle
+        # 3. Yazma İşlemi
         if mode == ExportMode.OVERWRITE or not file_path.exists():
-            self._write_fresh_excel(file_path, summary_df, detail_df)
+            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df)
         else:
-            self._append_to_existing_excel(file_path, summary_df, detail_df)
+            self._append_to_existing_excel(file_path, summary_df, detail_df, stock_summary_df)
 
-    # ------------------------------------------------------------------
-    # INTERNAL: tarihçeyi hesaplama
-    # ------------------------------------------------------------------
-
-    def _build_daily_history(
-        self,
-        start_date: date,
-        end_date: date,
-    ) -> tuple[List[DailyPosition], List[DailyPortfolioSnapshot]]:
-        """
-        DB'deki trades + daily_prices'tan günlük pozisyonları ve portföy
-        snapshot'larını üretir.
-
-        Mantık:
-        - Tüm işlemleri al, tarih/saat'e göre sırala.
-        - start_date..end_date aralığında gün gün ilerle.
-        - O güne kadar olan işlemleri pozisyon durumuna uygula.
-        - price_repo.get_prices_for_date(gün) ile kapanış fiyatlarını çek.
-        - Eğer fiyat varsa: portföy değerini hesapla, günlük & toplam getiri çıkar.
-        - Eğer fiyat yoksa ama daha önce değer varsa: son değeri taşı,
-          status alanına "Piyasa Kapalı (...)" yaz.
-        """
-
-        # --- 0) Hazırlık: tarih aralığı guard ---
+    def _build_daily_history(self, start_date: date, end_date: date):
         if end_date < start_date:
             start_date, end_date = end_date, start_date
 
-        # --- 1) Tüm işlemleri al ve filtrele / sırala ---
-        all_trades: List[Trade] = self.portfolio_repo.get_all_trades()
-        # Sadece end_date'e kadar olan işlemler önemli
+        all_trades = self.portfolio_repo.get_all_trades()
         relevant_trades = [t for t in all_trades if t.trade_date <= end_date]
 
         if not relevant_trades:
-            # Hiç işlem yoksa boş dön
             return [], []
 
-        # Tarih + zaman'a göre sırala
         from datetime import time as dt_time
+        relevant_trades.sort(key=lambda t: (t.trade_date, getattr(t, "trade_time", None) or dt_time.min))
 
-        def _trade_sort_key(t: Trade):
-            trade_time = getattr(t, "trade_time", None) or dt_time.min
-            return (t.trade_date, trade_time)
-
-        relevant_trades.sort(key=_trade_sort_key)
-
-        # --- 2) Ticker map (stock_id -> ticker) ---
-        # get_all_stocks() kullanarak id -> ticker sözlüğü üretelim
         stocks = self.stock_repo.get_all_stocks()
-        ticker_map: Dict[int, str] = {s.id: s.ticker for s in stocks}
+        ticker_map = {s.id: s.ticker for s in stocks}
 
-        # --- 3) Gün gün ilerlerken kullanılacak state'ler ---
-        # Pozisyon durumu: stock_id -> {"qty": int, "total_cost": Decimal}
-        positions_state: Dict[int, Dict[str, Decimal]] = {}
+        positions_state = {}
         trade_idx = 0
         n_trades = len(relevant_trades)
 
-        daily_positions: List[DailyPosition] = []
-        daily_snapshots: List[DailyPortfolioSnapshot] = []
+        daily_positions = []
+        daily_snapshots = []
+        last_close_by_stock = {}
+        last_portfolio_value = None
+        base_portfolio_value = None
 
-        last_close_by_stock: Dict[int, Decimal] = {}
-        last_portfolio_value: Optional[Decimal] = None
-        base_portfolio_value: Optional[Decimal] = None  # ilk geçerli değer
-
-        # --- 4) Tarih aralığında gün gün ilerle ---
         cur = start_date
         while cur <= end_date:
-            # 4.1) Bu güne kadar olan işlemleri uygula
+            # 1. İşlemleri Uygula
             while trade_idx < n_trades and relevant_trades[trade_idx].trade_date <= cur:
                 t = relevant_trades[trade_idx]
                 stock_id = t.stock_id
@@ -187,318 +123,310 @@ class ExcelExportService:
                 price = Decimal(str(t.price))
 
                 if stock_id not in positions_state:
-                    positions_state[stock_id] = {
-                        "qty": Decimal("0"),
-                        "total_cost": Decimal("0"),
-                    }
+                    positions_state[stock_id] = {"qty": Decimal("0"), "total_cost": Decimal("0")}
 
                 state = positions_state[stock_id]
                 cur_qty = state["qty"]
-                cur_cost = state["total_cost"]
-                avg_cost = (cur_cost / cur_qty) if cur_qty != 0 else Decimal("0")
-
+                
                 if t.side == "BUY":
-                    # Alış: adet ekle, maliyeti artır
-                    state["qty"] = cur_qty + Decimal(qty)
-                    state["total_cost"] = cur_cost + (Decimal(qty) * price)
+                    state["qty"] += Decimal(qty)
+                    state["total_cost"] += (Decimal(qty) * price)
                 elif t.side == "SELL":
-                    # Satış: adet azalt, maliyetten avg_cost * qty düş
-                    sell_qty = Decimal(qty)
-                    if sell_qty > cur_qty:
-                        # Domain tarafında zaten engellenmiş olması lazım ama yine de guard
-                        sell_qty = cur_qty
-
-                    state["qty"] = cur_qty - sell_qty
-                    state["total_cost"] = cur_cost - (avg_cost * sell_qty)
-
-                    # Eğer pozisyon sıfırlandıysa total_cost'u 0'la
+                    avg_cost = (state["total_cost"] / cur_qty) if cur_qty != 0 else Decimal("0")
+                    sell_qty = min(Decimal(qty), cur_qty)
+                    state["qty"] -= sell_qty
+                    state["total_cost"] -= (avg_cost * sell_qty)
                     if state["qty"] == 0:
                         state["total_cost"] = Decimal("0")
-                else:
-                    # Bilinmeyen side
-                    pass
-
+                
                 trade_idx += 1
 
-            # 4.2) Bugünün fiyatlarını çek
-            prices_for_day: Dict[int, Decimal] = self.price_repo.get_prices_for_date(cur)
+            # 2. Fiyatları Çek (Eksikse Tamamla)
+            active_stock_ids = [sid for sid, st in positions_state.items() if st["qty"] > 0]
+            prices_for_day = self.price_repo.get_prices_for_date(cur)
+            
+            is_weekend = cur.weekday() >= 5
+            if not is_weekend and active_stock_ids:
+                missing_ids = [sid for sid in active_stock_ids if sid not in prices_for_day]
+                if missing_ids:
+                    missing_tickers = [ticker_map.get(sid) for sid in missing_ids if sid in ticker_map]
+                    if missing_tickers:
+                        try:
+                            fetched_prices = self.market_data_client.get_closing_prices(
+                                stock_ids=missing_ids, tickers=missing_tickers, price_date=cur
+                            )
+                            new_daily_prices = []
+                            for sid, price in fetched_prices.items():
+                                prices_for_day[sid] = price
+                                new_daily_prices.append(DailyPrice(
+                                    id=None, stock_id=sid, price_date=cur, close_price=price
+                                ))
+                            if new_daily_prices:
+                                self.price_repo.upsert_daily_prices_bulk(new_daily_prices)
+                        except Exception:
+                            pass
 
-            is_weekend = cur.weekday() >= 5  # 5=Cumartesi, 6=Pazar
+            # 3. Hesaplamalar
             has_prices = bool(prices_for_day)
-
-            # 4.3) Pozisyonlar ve portföy değeri
-            day_positions: List[DailyPosition] = []
-            portfolio_value: Optional[Decimal] = None
+            day_positions_list = []
+            portfolio_value = None
 
             if has_prices:
-                # Normal işlem günü: önce pozisyon değerlerini hesapla
-                temp_positions: List[Dict] = []
                 total_value = Decimal("0")
+                temp_positions = []
 
                 for stock_id, state in positions_state.items():
                     qty = int(state["qty"])
-                    if qty <= 0:
-                        continue
+                    if qty <= 0: continue
 
                     avg_cost = (state["total_cost"] / state["qty"]) if state["qty"] != 0 else Decimal("0")
+                    cost_basis = avg_cost * Decimal(qty)
+                    
                     close_price = prices_for_day.get(stock_id)
 
-                    if close_price is None:
-                        position_value = None
-                        daily_price_change_pct = None
-                        unrealized_pnl_tl = None
-                        unrealized_pnl_pct = None
+                    if close_price:
+                        pos_val = Decimal(qty) * close_price
+                        total_value += pos_val
+                        
+                        last_c = last_close_by_stock.get(stock_id)
+                        daily_chg = ((close_price / last_c) - 1) if (last_c and last_c != 0) else None
+                        
+                        unrealized_tl = (close_price - avg_cost) * Decimal(qty)
+                        unrealized_pct = (unrealized_tl / cost_basis) if cost_basis != 0 else None
                     else:
-                        # Pozisyon değeri
-                        position_value = Decimal(qty) * close_price
-                        total_value += position_value
+                        pos_val, daily_chg, unrealized_tl, unrealized_pct = None, None, None, None
 
-                        # Günlük fiyat değişimi (%)
-                        last_close = last_close_by_stock.get(stock_id)
-                        if last_close is not None and last_close != 0:
-                            daily_price_change_pct = (close_price / last_close) - Decimal("1")
-                        else:
-                            daily_price_change_pct = None
+                    temp_positions.append({
+                        "ticker": ticker_map.get(stock_id, f"ID_{stock_id}"),
+                        "qty": qty,
+                        "avg_cost": avg_cost,
+                        "cost_basis": cost_basis,
+                        "close_price": close_price,
+                        "pos_val": pos_val,
+                        "daily_chg": daily_chg,
+                        "unr_tl": unrealized_tl,
+                        "unr_pct": unrealized_pct
+                    })
 
-                        # Gerçekleşmemiş K/Z (TL ve %)
-                        cost_basis = avg_cost * Decimal(qty)
-                        unrealized_pnl_tl = (close_price - avg_cost) * Decimal(qty)
-                        if cost_basis != 0:
-                            unrealized_pnl_pct = unrealized_pnl_tl / cost_basis
-                        else:
-                            unrealized_pnl_pct = None
-
-                    ticker = ticker_map.get(stock_id, f"ID_{stock_id}")
-
-                    temp_positions.append(
-                        {
-                            "stock_id": stock_id,
-                            "ticker": ticker,
-                            "qty": qty,
-                            "avg_cost": avg_cost,
-                            "close_price": close_price,
-                            "position_value": position_value,
-                            "daily_price_change_pct": daily_price_change_pct,
-                            "unrealized_pnl_tl": unrealized_pnl_tl,
-                            "unrealized_pnl_pct": unrealized_pnl_pct,
-                        }
-                    )
-
-                # Şimdi ağırlıkları (weight_pct) hesaplayarak DailyPosition objeleri üretelim
-                day_positions: List[DailyPosition] = []
                 for tmp in temp_positions:
-                    position_value = tmp["position_value"]
-                    if position_value is not None and total_value != 0:
-                        weight_pct = position_value / total_value
-                    else:
-                        weight_pct = None
-
-                    day_positions.append(
-                        DailyPosition(
-                            date=cur,
-                            ticker=tmp["ticker"],
-                            stock_id=tmp["stock_id"],
-                            quantity=tmp["qty"],
-                            avg_cost=tmp["avg_cost"],
-                            close_price=tmp["close_price"],
-                            position_value=position_value,
-                            daily_price_change_pct=tmp["daily_price_change_pct"],
-                            unrealized_pnl_tl=tmp["unrealized_pnl_tl"],
-                            unrealized_pnl_pct=tmp["unrealized_pnl_pct"],
-                            weight_pct=weight_pct,
-                        )
-                    )
-
-                portfolio_value = total_value
-                last_close_by_stock = prices_for_day.copy()
-
-
+                    w_pct = (tmp["pos_val"] / total_value) if (tmp["pos_val"] and total_value) else None
+                    day_positions_list.append(DailyPosition(
+                        date=cur,
+                        ticker=tmp["ticker"],
+                        quantity=tmp["qty"],
+                        avg_cost=tmp["avg_cost"],
+                        cost_basis=tmp["cost_basis"],
+                        close_price=tmp["close_price"],
+                        position_value=tmp["pos_val"],
+                        daily_price_change_pct=tmp["daily_chg"],
+                        unrealized_pnl_tl=tmp["unr_tl"],
+                        unrealized_pnl_pct=tmp["unr_pct"],
+                        weight_pct=w_pct
+                    ))
+                
+                if total_value > 0:
+                    portfolio_value = total_value
+                    last_close_by_stock = prices_for_day.copy()
             else:
-                # Fiyat yok: hafta sonu veya tatil / veri yok
-                if last_portfolio_value is not None:
-                    # Son işlem gününün değerini taşı (carry forward)
-                    portfolio_value = last_portfolio_value
-                else:
-                    portfolio_value = None  # henüz hiç değer oluşmamış
+                portfolio_value = last_portfolio_value if last_portfolio_value else None
 
-            # 4.4) Günlük & toplam getiri hesapları
-            if portfolio_value is not None:
-                if base_portfolio_value is None:
-                    base_portfolio_value = portfolio_value
-
-                if last_portfolio_value is not None and last_portfolio_value != 0:
+            # Getiri hesapları
+            daily_pnl, daily_ret, cum_pnl, cum_ret = None, None, None, None
+            if portfolio_value:
+                if not base_portfolio_value: base_portfolio_value = portfolio_value
+                
+                if last_portfolio_value:
                     daily_pnl = portfolio_value - last_portfolio_value
-                    daily_return_pct = daily_pnl / last_portfolio_value
-                else:
-                    daily_pnl = None
-                    daily_return_pct = None
+                    daily_ret = (daily_pnl / last_portfolio_value) if last_portfolio_value else None
+                
+                if base_portfolio_value:
+                    cum_pnl = portfolio_value - base_portfolio_value
+                    cum_ret = (cum_pnl / base_portfolio_value) if base_portfolio_value else None
 
-                if base_portfolio_value is not None and base_portfolio_value != 0:
-                    cumulative_pnl = portfolio_value - base_portfolio_value
-                    cumulative_return_pct = cumulative_pnl / base_portfolio_value
-                else:
-                    cumulative_pnl = None
-                    cumulative_return_pct = None
-            else:
-                daily_pnl = None
-                daily_return_pct = None
-                cumulative_pnl = None
-                cumulative_return_pct = None
+            status = "Normal" if has_prices else ("Hafta Sonu" if is_weekend else "Veri Yok")
+            
+            if day_positions_list:
+                daily_positions.extend(day_positions_list)
+            
+            daily_snapshots.append(DailyPortfolioSnapshot(
+                date=cur, total_value=portfolio_value, 
+                daily_return_pct=daily_ret, cumulative_return_pct=cum_ret,
+                daily_pnl=daily_pnl, cumulative_pnl=cum_pnl, status=status
+            ))
 
-            # 4.5) Status metni
-            if has_prices:
-                status = "Normal"
-            else:
-                if portfolio_value is None:
-                    # hiç değer yok ve fiyat yok
-                    status = "Veri Yok / İşlem Yok"
-                else:
-                    status = "Piyasa Kapalı (Hafta Sonu)" if is_weekend else "Piyasa Kapalı (Tatil / Veri Yok)"
-
-            # 4.6) Snapshot listelerine ekle
-            # Detail: sadece fiyat olan günler için pozisyon satırı ekliyoruz
-            if day_positions:
-                daily_positions.extend(day_positions)
-
-            daily_snapshots.append(
-                DailyPortfolioSnapshot(
-                    date=cur,
-                    total_value=portfolio_value,
-                    daily_return_pct=daily_return_pct,
-                    cumulative_return_pct=cumulative_return_pct,
-                    daily_pnl=daily_pnl,
-                    cumulative_pnl=cumulative_pnl,
-                    status=status,
-                )
-            )
-
-            # Son portföy değerini güncelle
-            if portfolio_value is not None:
-                last_portfolio_value = portfolio_value
-
-            # bir sonraki gün
-            cur = cur + timedelta(days=1)
+            if portfolio_value: last_portfolio_value = portfolio_value
+            cur += timedelta(days=1)
 
         return daily_positions, daily_snapshots
 
-
-    # ------------------------------------------------------------------
-    # INTERNAL: DataFrame üretimi
-    # ------------------------------------------------------------------
-
-    def _build_summary_df(
-        self,
-        snapshots: Iterable[DailyPortfolioSnapshot],
-    ) -> pd.DataFrame:
+    def _build_detail_df(self, positions: Iterable[DailyPosition], snapshots: Iterable[DailyPortfolioSnapshot]) -> pd.DataFrame:
         """
-        PortfolioSummary sheet'i için DataFrame üretir.
+        StockDetails sayfasını oluşturur. 
+        Her gün grubunun sonuna bir 'GÜNLÜK TOPLAM' satırı ekler.
         """
+        # Snapshot'ları tarihe göre haritala (Günlük getiriye erişmek için)
+        snapshot_map = {s.date: s for s in snapshots}
+        
+        # Pozisyonları tarihe göre grupla
+        positions_by_date = {}
+        for p in positions:
+            if p.date not in positions_by_date:
+                positions_by_date[p.date] = []
+            positions_by_date[p.date].append(p)
+            
         records = []
-        for s in snapshots:
-            records.append(
-                {
-                    "Tarih": s.date,
-                    "Portföy Değeri": float(s.total_value) if s.total_value is not None else None,
-                    "Günlük Getiri %": float(s.daily_return_pct) if s.daily_return_pct is not None else None,
-                    "Toplam Getiri %": float(s.cumulative_return_pct) if s.cumulative_return_pct is not None else None,
-                    "Günlük K/Z": float(s.daily_pnl) if s.daily_pnl is not None else None,
-                    "Toplam K/Z": float(s.cumulative_pnl) if s.cumulative_pnl is not None else None,
-                    "Durum": s.status,
-                }
-            )
+        
+        # Tarihleri sırala ve döngüye gir
+        sorted_dates = sorted(positions_by_date.keys())
+        
+        for d in sorted_dates:
+            day_positions = positions_by_date[d]
+            # Hisseleri ticker'a göre sırala
+            day_positions.sort(key=lambda x: x.ticker)
+            
+            # Günlük Toplam Değişkenleri
+            total_cost_basis = Decimal("0")
+            total_position_value = Decimal("0")
+            total_unrealized_pnl_tl = Decimal("0")
+            
+            # 1. Hisse Satırlarını Ekle
+            for p in day_positions:
+                records.append({
+                    "Tarih": p.date,
+                    "Ticker": p.ticker,
+                    "Lot": p.quantity,
+                    "Ortalama Maliyet": float(p.avg_cost),
+                    "Güncel Fiyat": float(p.close_price) if p.close_price else None,
+                    "Pozisyon Değeri": float(p.position_value) if p.position_value else None,
+                    "Maliyet Esası": float(p.cost_basis),
+                    "Günlük Fiyat Değişim %": float(p.daily_price_change_pct) if p.daily_price_change_pct else None,
+                    "Gerç. Olmayan K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl else None,
+                    "Gerç. Olmayan K/Z %": float(p.unrealized_pnl_pct) if p.unrealized_pnl_pct else None,
+                    "Portföy Ağırlığı %": float(p.weight_pct) if p.weight_pct else None,
+                })
+                
+                # Toplamlar için biriktir
+                if p.cost_basis: total_cost_basis += p.cost_basis
+                if p.position_value: total_position_value += p.position_value
+                if p.unrealized_pnl_tl: total_unrealized_pnl_tl += p.unrealized_pnl_tl
+
+            # 2. GÜNLÜK TOPLAM Satırını Ekle
+            snapshot = snapshot_map.get(d)
+            
+            # Toplam Kar/Zarar Oranı
+            total_unrealized_pct = (total_unrealized_pnl_tl / total_cost_basis) if total_cost_basis != 0 else None
+            
+            # Günlük Portföy Değişimi (Snapshot'tan gelir)
+            portfolio_daily_ret = snapshot.daily_return_pct if snapshot else None
+            
+            summary_row = {
+                "Tarih": d,
+                "Ticker": ">>> GÜNLÜK TOPLAM <<<",
+                "Lot": None,
+                "Ortalama Maliyet": None,
+                "Güncel Fiyat": None,
+                "Pozisyon Değeri": float(total_position_value),
+                "Maliyet Esası": float(total_cost_basis),
+                "Günlük Fiyat Değişim %": float(portfolio_daily_ret) if portfolio_daily_ret is not None else None,
+                "Gerç. Olmayan K/Z (TL)": float(total_unrealized_pnl_tl),
+                "Gerç. Olmayan K/Z %": float(total_unrealized_pct) if total_unrealized_pct is not None else None,
+                "Portföy Ağırlığı %": 1.0, # %100
+            }
+            records.append(summary_row)
 
         df = pd.DataFrame.from_records(records)
-        # Tarihi excel'de düzgün görünsün diye sort + reset index
+        
+        # Kolon sıralamasını garanti et
+        cols = [
+            "Tarih", "Ticker", "Lot", "Ortalama Maliyet", "Güncel Fiyat", 
+            "Pozisyon Değeri", "Maliyet Esası", "Günlük Fiyat Değişim %", 
+            "Gerç. Olmayan K/Z (TL)", "Gerç. Olmayan K/Z %", "Portföy Ağırlığı %"
+        ]
+        
+        if not df.empty:
+            df = df[cols]
+            # Sıralama zaten loop içinde yapıldığı için tekrar sort etmiyoruz
+            # (Tekrar sort edersek "TOPLAM" satırlarının yeri karışabilir)
+        return df
+
+    def _build_stock_summary_df(self, positions: List[DailyPosition]) -> pd.DataFrame:
+        if not positions:
+            return pd.DataFrame()
+
+        # Ticker bazında grupla ve en son kaydı al
+        latest_positions = {}
+        stock_days_count = {}
+
+        for p in positions:
+            latest_positions[p.ticker] = p
+            stock_days_count[p.ticker] = stock_days_count.get(p.ticker, 0) + 1
+
+        records = []
+        for ticker, p in latest_positions.items():
+            records.append({
+                "Ticker": ticker,
+                "Son Lot": p.quantity,
+                "Ort. Maliyet": float(p.avg_cost),
+                "Son Fiyat": float(p.close_price) if p.close_price else None,
+                "Son Pozisyon Değeri": float(p.position_value) if p.position_value else None,
+                "Toplam Gerç.Olmayan K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl else None,
+                "Toplam Gerç.Olmayan K/Z %": float(p.unrealized_pnl_pct) if p.unrealized_pnl_pct else None,
+                "Gün Sayısı": stock_days_count[ticker]
+            })
+        
+        df = pd.DataFrame.from_records(records)
+        if not df.empty:
+            df = df.sort_values("Ticker").reset_index(drop=True)
+        return df
+
+    def _build_summary_df(self, snapshots: Iterable[DailyPortfolioSnapshot]) -> pd.DataFrame:
+        records = []
+        for s in snapshots:
+            records.append({
+                "Tarih": s.date,
+                "Portföy Değeri": float(s.total_value) if s.total_value else None,
+                "Günlük Getiri %": float(s.daily_return_pct) if s.daily_return_pct else None,
+                "Toplam Getiri %": float(s.cumulative_return_pct) if s.cumulative_return_pct else None,
+                "Günlük K/Z": float(s.daily_pnl) if s.daily_pnl else None,
+                "Toplam K/Z": float(s.cumulative_pnl) if s.cumulative_pnl else None,
+                "Durum": s.status,
+            })
+        df = pd.DataFrame.from_records(records)
         if not df.empty:
             df = df.sort_values("Tarih").reset_index(drop=True)
         return df
 
-    def _build_detail_df(
-        self,
-        positions: Iterable[DailyPosition],
-    ) -> pd.DataFrame:
-        records = []
-        for p in positions:
-            records.append(
-                {
-                    "Tarih": p.date,
-                    "Ticker": p.ticker,
-                    "Stock ID": p.stock_id,
-                    "Lot": p.quantity,
-                    "Ortalama Maliyet": float(p.avg_cost),
-                    "Kapanış Fiyatı": float(p.close_price) if p.close_price is not None else None,
-                    "Pozisyon Değeri": float(p.position_value) if p.position_value is not None else None,
-                    "Günlük Fiyat Değişim %": float(p.daily_price_change_pct) if p.daily_price_change_pct is not None else None,
-                    "Gerç. Olmayan K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl is not None else None,
-                    "Gerç. Olmayan K/Z %": float(p.unrealized_pnl_pct) if p.unrealized_pnl_pct is not None else None,
-                    "Portföy Ağırlığı %": float(p.weight_pct) if p.weight_pct is not None else None,
-                }
-            )
-
-        df = pd.DataFrame.from_records(records)
-        if not df.empty:
-            df = df.sort_values(["Tarih", "Ticker"]).reset_index(drop=True)
-        return df
-
-    # ------------------------------------------------------------------
-    # INTERNAL: Excel yazma / ekleme
-    # ------------------------------------------------------------------
-
-    def _write_fresh_excel(
-        self,
-        file_path: Path,
-        summary_df: pd.DataFrame,
-        detail_df: pd.DataFrame,
-    ) -> None:
-        """
-        Dosyayı komple baştan yazar (varsa üstüne yazar).
-        """
+    def _write_fresh_excel(self, file_path: Path, summary_df: pd.DataFrame, detail_df: pd.DataFrame, stock_summary_df: pd.DataFrame) -> None:
         with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
+            detail_df.to_excel(writer, sheet_name="StockDetails", index=False)
             summary_df.to_excel(writer, sheet_name="PortfolioSummary", index=False)
-            detail_df.to_excel(writer, sheet_name="PositionsDetail", index=False)
+            stock_summary_df.to_excel(writer, sheet_name="StockSummary", index=False)
 
-    def _append_to_existing_excel(
-        self,
-        file_path: Path,
-        summary_df: pd.DataFrame,
-        detail_df: pd.DataFrame,
-    ) -> None:
-        """
-        Var olan Excel dosyasına yeni satırları ekler.
-
-        - Tarih / (Tarih+Ticker) bazında duplicate satırlar varsa
-          en son geleni korumak için basit bir birleştirme yapılır.
-        """
-        # Mevcut dosyayı oku
+    def _append_to_existing_excel(self, file_path: Path, summary_df: pd.DataFrame, detail_df: pd.DataFrame, stock_summary_df: pd.DataFrame) -> None:
         try:
-            existing_summary = pd.read_excel(file_path, sheet_name="PortfolioSummary")
-            existing_detail = pd.read_excel(file_path, sheet_name="PositionsDetail")
+            with pd.ExcelFile(file_path, engine='openpyxl') as xls:
+                existing_summary = pd.read_excel(xls, sheet_name="PortfolioSummary") if "PortfolioSummary" in xls.sheet_names else pd.DataFrame()
+                existing_detail = pd.read_excel(xls, sheet_name="StockDetails") if "StockDetails" in xls.sheet_names else pd.DataFrame()
+                existing_stock_sum = pd.read_excel(xls, sheet_name="StockSummary") if "StockSummary" in xls.sheet_names else pd.DataFrame()
         except Exception:
-            # Dosya bozuksa veya sheet yoksa, fresh yaz
-            self._write_fresh_excel(file_path, summary_df, detail_df)
+            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df)
             return
 
-        # Summary: Tarih bazlı birleştirme
         combined_summary = pd.concat([existing_summary, summary_df], ignore_index=True)
         if not combined_summary.empty:
-            combined_summary = (
-                combined_summary
-                .drop_duplicates(subset=["Tarih"], keep="last")
-                .sort_values("Tarih")
-                .reset_index(drop=True)
-            )
+            combined_summary = combined_summary.drop_duplicates(subset=["Tarih"], keep="last").sort_values("Tarih").reset_index(drop=True)
 
-        # Detail: Tarih + Ticker bazlı birleştirme
+        # Detail append'inde normal sort kullanırsak "TOPLAM" satırları kayabilir.
+        # Bu yüzden burada basitçe append edip kullanıcıya bırakıyoruz veya 
+        # daha karmaşık bir sort anahtarı gerekiyor. 
+        # Şimdilik taze yazmayı (overwrite) öneririm, append mantığı "Toplam" satırları varken karmaşıklaşabilir.
         combined_detail = pd.concat([existing_detail, detail_df], ignore_index=True)
-        if not combined_detail.empty:
-            combined_detail = (
-                combined_detail
-                .drop_duplicates(subset=["Tarih", "Ticker"], keep="last")
-                .sort_values(["Tarih", "Ticker"])
-                .reset_index(drop=True)
-            )
+        
+        combined_stock_sum = pd.concat([existing_stock_sum, stock_summary_df], ignore_index=True)
+        if not combined_stock_sum.empty:
+            combined_stock_sum = combined_stock_sum.drop_duplicates(subset=["Ticker"], keep="last").sort_values("Ticker").reset_index(drop=True)
 
-        # Yeniden yaz (ama kullanıcı açısından "append" gibi çalışıyor)
         with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
+            combined_detail.to_excel(writer, sheet_name="StockDetails", index=False)
             combined_summary.to_excel(writer, sheet_name="PortfolioSummary", index=False)
-            combined_detail.to_excel(writer, sheet_name="PositionsDetail", index=False)
+            combined_stock_sum.to_excel(writer, sheet_name="StockSummary", index=False)

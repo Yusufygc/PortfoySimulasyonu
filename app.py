@@ -44,6 +44,7 @@ def main():
         portfolio_repo=portfolio_repo,
         price_repo=price_repo,
         stock_repo=stock_repo,
+        market_data_client=market_client,
     )
     # 5) Coordinator
     coordinator = PortfolioUpdateCoordinator(
