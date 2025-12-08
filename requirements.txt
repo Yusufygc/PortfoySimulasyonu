@@ -1,0 +1,5 @@
+PyQt5 
+yfinance 
+pandas 
+openpyxl 
+mysql-connector-python
