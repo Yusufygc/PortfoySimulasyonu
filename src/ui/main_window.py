@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QTableView,
     QMessageBox,
+    QFrame
 )
 from PyQt5.QtCore import Qt, QModelIndex
 from PyQt5.QtWidgets import QDialog,QHeaderView,QFileDialog
@@ -75,78 +76,123 @@ class MainWindow(QMainWindow):
     # --------- UI Kurulumu --------- #
 
     def _init_ui(self):
-        central = QWidget()
-        main_layout = QVBoxLayout(central)
+        # Ana Widget
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        
+        # Ana Layout (Yatay): Sol Menü | Sağ İçerik
+        self.main_layout = QHBoxLayout(self.central_widget)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
 
-        # Üstte butonlar
-        button_layout = QHBoxLayout()
-        self.btn_new_trade = QPushButton("Yeni Hisse / İşlem Ekle")   # YENİ
-        self.btn_update_prices = QPushButton("Gün Sonu Fiyatlarını Güncelle")
-        self.btn_refresh_returns = QPushButton("Haftalık / Aylık Getiriyi Göster")
-        self.btn_export_range = QPushButton("Excel'e Aktar (Aralık)")   # YENİ
-        self.btn_export_today = QPushButton("Bugünü Excel'e Aktar")  
-        self.btn_reset_portfolio = QPushButton("Portföyü Sıfırla")   # <--- YENİ
-        self.btn_update_prices.setObjectName("primaryButton")
+        # --- 1. SOL MENÜ (SIDEBAR) ---
+        self.sidebar = QFrame()
+        self.sidebar.setObjectName("sidebar")
+        self.sidebar.setFixedWidth(250)
+        self.sidebar_layout = QVBoxLayout(self.sidebar)
+        self.sidebar_layout.setContentsMargins(15, 25, 15, 25)
+        self.sidebar_layout.setSpacing(15)
 
-        button_layout.addWidget(self.btn_new_trade)
-        button_layout.addWidget(self.btn_update_prices)
-        button_layout.addWidget(self.btn_refresh_returns)
-        button_layout.addWidget(self.btn_export_range)   # YENİ
-        button_layout.addWidget(self.btn_export_today)   # YENİ
-        button_layout.addWidget(self.btn_reset_portfolio)   # <--- YENİ
-        button_layout.addStretch()
+        # Butonlar
+        self.btn_new_trade = QPushButton("Yeni İşlem Ekle")
+        self.btn_new_trade.setObjectName("primaryButton") # Vurgulu buton
+        self.btn_new_trade.setCursor(Qt.PointingHandCursor)
 
-        # Orta: tablo
+        self.btn_update_prices = QPushButton("Fiyatları Güncelle")
+        self.btn_update_prices.setCursor(Qt.PointingHandCursor)
+
+        self.btn_refresh_returns = QPushButton("Getiri Analizi")
+        self.btn_refresh_returns.setCursor(Qt.PointingHandCursor)
+
+        self.btn_export_today = QPushButton("Rapor: Bugün")
+        self.btn_export_today.setCursor(Qt.PointingHandCursor)
+
+        self.btn_export_range = QPushButton("Rapor: Tarih Aralığı")
+        self.btn_export_range.setCursor(Qt.PointingHandCursor)
+        
+        self.btn_reset_portfolio = QPushButton("Sistemi Sıfırla")
+        self.btn_reset_portfolio.setStyleSheet("color: #ef4444;") # Kırmızı uyarı rengi
+        self.btn_reset_portfolio.setCursor(Qt.PointingHandCursor)
+
+        # Sidebar'a ekle
+        self.sidebar_layout.addWidget(self.btn_new_trade)
+        self.sidebar_layout.addWidget(self.btn_update_prices)
+        self.sidebar_layout.addWidget(self.btn_refresh_returns)
+        
+        # Ayraç (Spacer yerine boş bir widget veya çizgi)
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setStyleSheet("background-color: #334155;")
+        self.sidebar_layout.addWidget(line)
+        
+        self.sidebar_layout.addWidget(self.btn_export_today)
+        self.sidebar_layout.addWidget(self.btn_export_range)
+        self.sidebar_layout.addStretch() # Boşluğu aşağı it
+        self.sidebar_layout.addWidget(self.btn_reset_portfolio)
+
+        # --- 2. SAĞ İÇERİK ALANI ---
+        self.content_area = QWidget()
+        self.content_layout = QVBoxLayout(self.content_area)
+        self.content_layout.setContentsMargins(25, 25, 25, 25)
+        self.content_layout.setSpacing(20)
+
+        # A) Dashboard Kartları (Üst Kısım)
+        self.cards_layout = QHBoxLayout()
+        self.cards_layout.setSpacing(20)
+
+        # Kart Oluşturma Helper'ı
+        def create_card(title, initial_value):
+            card = QFrame()
+            card.setObjectName("infoCard")
+            card.setFrameShape(QFrame.StyledPanel)
+            
+            l_layout = QVBoxLayout(card)
+            l_layout.setContentsMargins(20, 20, 20, 20)
+            
+            lbl_title = QLabel(title)
+            lbl_title.setObjectName("cardTitle")
+            
+            lbl_value = QLabel(initial_value)
+            lbl_value.setObjectName("cardValue")
+            
+            l_layout.addWidget(lbl_title)
+            l_layout.addWidget(lbl_value)
+            return card, lbl_value
+
+        # Kartları oluştur
+        self.card_total, self.lbl_total_value = create_card("TOPLAM PORTFÖY DEĞERİ", "₺ 0.00")
+        self.card_weekly, self.lbl_weekly_return = create_card("HAFTALIK GETİRİ", "-")
+        self.card_monthly, self.lbl_monthly_return = create_card("AYLIK GETİRİ", "-")
+
+        self.cards_layout.addWidget(self.card_total)
+        self.cards_layout.addWidget(self.card_weekly)
+        self.cards_layout.addWidget(self.card_monthly)
+
+        # B) Tablo (Orta Kısım)
         self.table_view = QTableView()
-        self.table_view.setAlternatingRowColors(True)
+        self.table_view.setAlternatingRowColors(False) # Style.py ile kontrol ediyoruz
         self.table_view.setSelectionBehavior(QTableView.SelectRows)
         self.table_view.setSelectionMode(QTableView.SingleSelection)
         self.table_view.setSortingEnabled(True)
         self.table_view.verticalHeader().setVisible(False)
+        self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_view.setShowGrid(False) # Izgarayı kapattık, daha temiz görünür
 
-        header = self.table_view.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)
-        header.setHighlightSections(False)
+        # Layoutları Birleştir
+        self.content_layout.addLayout(self.cards_layout)
+        self.content_layout.addWidget(self.table_view)
 
-        self.table_view.setStyleSheet("QTableView { border-radius: 8px; }")
-        self.table_view.setShowGrid(True)
+        # Ana Layout'a ekle
+        self.main_layout.addWidget(self.sidebar)
+        self.main_layout.addWidget(self.content_area)
 
-        # Alt: özet label'ları
-        summary_layout = QHBoxLayout()
-
-        def make_summary_label(text: str) -> QLabel:
-            lbl = QLabel(text)
-            lbl.setObjectName("summaryLabel")
-            lbl.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            return lbl
-
-        self.lbl_total_value = make_summary_label("Toplam Değer: 0.00")
-        self.lbl_weekly_return = make_summary_label("Haftalık Getiri: -")
-        self.lbl_monthly_return = make_summary_label("Aylık Getiri: -")
-
-        summary_layout.addWidget(self.lbl_total_value)
-        summary_layout.addSpacing(24)
-        summary_layout.addWidget(self.lbl_weekly_return)
-        summary_layout.addSpacing(24)
-        summary_layout.addWidget(self.lbl_monthly_return)
-        summary_layout.addStretch()
-        
-        # Layout ekleme
-        main_layout.addLayout(button_layout)
-        main_layout.addWidget(self.table_view)
-        main_layout.addLayout(summary_layout)
-
-        self.setCentralWidget(central)
-
-        # Signal/slot bağlantıları
+        # Signal/Slot Bağlantıları (Değişmedi)
         self.btn_update_prices.clicked.connect(self.on_update_prices_clicked)
         self.btn_refresh_returns.clicked.connect(self.on_refresh_returns_clicked)
         self.btn_new_trade.clicked.connect(self.on_new_stock_trade_clicked)
-        self.btn_update_prices.clicked.connect(self.on_update_prices_clicked)
-        self.btn_refresh_returns.clicked.connect(self.on_refresh_returns_clicked)
-        self.btn_export_range.clicked.connect(self.on_export_range_clicked)   # YENİ
-        self.btn_export_today.clicked.connect(self.on_export_today_clicked)   # YENİ
-        self.btn_reset_portfolio.clicked.connect(self.on_reset_portfolio_clicked)  # <--- YENİ
+        self.btn_export_range.clicked.connect(self.on_export_range_clicked)
+        self.btn_export_today.clicked.connect(self.on_export_today_clicked)
+        self.btn_reset_portfolio.clicked.connect(self.on_reset_portfolio_clicked)
 
 
     # --------- Başlangıç verisi yükleme --------- #
@@ -172,11 +218,9 @@ class MainWindow(QMainWindow):
         self.model = PortfolioTableModel(positions, price_map, ticker_map, parent=self)
         self.table_view.setModel(self.model)
 
-
-
         # Özet label'ları güncelle
         if end_snapshot:
-            self.lbl_total_value.setText(f"Toplam Değer: {end_snapshot.total_value:.2f}")
+            self.lbl_total_value.setText(f"₺ {end_snapshot.total_value:,.2f}")
         
         self.table_view.doubleClicked.connect(self.on_table_double_clicked)
 

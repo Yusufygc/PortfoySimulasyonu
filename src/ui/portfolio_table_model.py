@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import List, Dict
-
+from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex, QVariant
 from decimal import Decimal
 
@@ -57,37 +57,58 @@ class PortfolioTableModel(QAbstractTableModel):
         return section + 1
 
     def data(self, index: QModelIndex, role=Qt.DisplayRole):
-        if not index.isValid() or role not in (Qt.DisplayRole, Qt.TextAlignmentRole):
+        if not index.isValid():
+            return QVariant()
+
+        # --- RENKLENDİRME MANTIĞI (FOREGROUND ROLE) ---
+        if role == Qt.ForegroundRole:
+            col = index.column()
+            # 5. Kolon: Gerç. Olmayan K/Z
+            if col == 5:
+                # Değeri hesapla veya cache'den al
+                position = self._positions[index.row()]
+                stock_id = position.stock_id
+                current_price = self._price_map.get(stock_id)
+                
+                if current_price is not None:
+                    pl = position.unrealized_pl(current_price)
+                    if pl > 0:
+                        return QColor("#22c55e")  # Yeşil
+                    elif pl < 0:
+                        return QColor("#ef4444")  # Kırmızı
             return QVariant()
 
         position = self._positions[index.row()]
         stock_id = position.stock_id
         current_price = self._price_map.get(stock_id)
 
+        if role == Qt.DisplayRole:
+            position = self._positions[index.row()]
+            stock_id = position.stock_id
+            current_price = self._price_map.get(stock_id)
+            
+            col = index.column()
+            if col == 0:
+                ticker = self._ticker_map.get(stock_id)
+                return ticker if ticker is not None else str(stock_id)
+            elif col == 1:
+                return f"{position.total_quantity:,}" # Binlik ayracı eklendi
+            elif col == 2:
+                avg = position.average_cost
+                return f"{avg:,.2f}" if avg is not None else "-"
+            elif col == 3:
+                return f"{current_price:,.2f}" if current_price is not None else "-"
+            elif col == 4:
+                if current_price is None: return "-"
+                mv = position.market_value(current_price)
+                return f"{mv:,.2f}"
+            elif col == 5:
+                if current_price is None: return "-"
+                u_pl = position.unrealized_pl(current_price)
+                return f"{u_pl:+,.2f}" # + işareti eklendi
+
         if role == Qt.TextAlignmentRole:
             return Qt.AlignCenter
-
-        col = index.column()
-        if col == 0:
-            ticker = self._ticker_map.get(stock_id)
-            return ticker if ticker is not None else str(stock_id)
-        elif col == 1:
-            return str(position.total_quantity)
-        elif col == 2:
-            avg = position.average_cost
-            return f"{avg:.2f}" if avg is not None else "-"
-        elif col == 3:
-            return f"{current_price:.2f}" if current_price is not None else "-"
-        elif col == 4:
-            if current_price is None:
-                return "-"
-            mv = position.market_value(current_price)
-            return f"{mv:.2f}"
-        elif col == 5:
-            if current_price is None:
-                return "-"
-            u_pl = position.unrealized_pl(current_price)
-            return f"{u_pl:.2f}"
 
         return QVariant()
 
@@ -103,8 +124,6 @@ class PortfolioTableModel(QAbstractTableModel):
         self._price_map = price_map
         self._ticker_map = ticker_map
         self.endResetModel()
-
-    
 
     def get_position(self, row: int) -> Position:
         """
