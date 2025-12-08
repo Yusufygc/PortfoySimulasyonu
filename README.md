@@ -106,6 +106,6 @@ Projeye katkıda bulunmak isterseniz, lütfen bir Fork oluşturun ve değişikli
 
 ---
 
-**Geliştirici**: Muhammed Yusuf Yağcı 
+**Geliştirici**: Muhammed Yusuf Yağcı
 **İletişim**: yusufygc118@gmail.com  
 **Proje Durumu**: Aktif Geliştirme (v1.0)
