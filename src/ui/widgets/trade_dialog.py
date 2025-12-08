@@ -2,42 +2,25 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date, time
 from decimal import Decimal
 from typing import Optional, Literal
 
 from PyQt5.QtCore import Qt, QDate, QTime
 from PyQt5.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QFormLayout,
-    QLabel,
-    QRadioButton,
-    QSpinBox,
-    QLineEdit,
-    QDateEdit,
-    QTimeEdit,
-    QPushButton,
-    QMessageBox,
+    QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
+    QLabel, QRadioButton, QSpinBox, QLineEdit, 
+    QDateEdit, QTimeEdit, QPushButton, QMessageBox, QFrame, QWidget
 )
 
-# İstersen direkt Trade domain modelini burada kullanmayıp
-# sadece dict döndürebilirsin. Şimdilik dict döndürelim.
+# Tür tanımları
 SideLiteral = Literal["BUY", "SELL"]
 DialogMode = Literal["trade", "edit_stock"]
 
 class TradeDialog(QDialog):
     """
-    Hisseye çift tıklayınca açılan alış/satış işlemi dialog'u.
-
-    Bu dialog DB'ye yazmaz, domain'i bilmez;
-    sadece kullanıcıdan veri toplar ve "trade_data" döner.
-
-    MainWindow:
-      - dialog.exec_()
-      - dialog.get_trade_data() → dict
-      - PortfolioService.add_trade(...) çağırır.
+    Mevcut hisseye işlem ekleme penceresi.
+    Tabloya çift tıklayınca açılır.
     """
 
     def __init__(
@@ -51,353 +34,272 @@ class TradeDialog(QDialog):
         super().__init__(parent)
         self.stock_id = stock_id
         self.ticker = ticker
-
-        # yeni alanlar
         self.price_lookup_func = price_lookup_func
         self.lot_size = lot_size
+        
         self.current_price: Optional[Decimal] = None
+        self._mode: DialogMode = "trade"
+        
+        # State
         self._updating_amount = False
         self._updating_quantity = False
 
         self._init_ui()
         self._connect_signals()
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
-
-        # ticker varsa açılışta fiyatı çek
+        
+        # Fiyatı çek
         if self.ticker and self.price_lookup_func:
             self._fetch_initial_price()
 
-       # --------- UI kurulum --------- #
-
     def _init_ui(self):
-        self.setWindowTitle("Yeni İşlem (Alış / Satış)")
-        self.setModal(True)
-        self.setMinimumWidth(520)
+        self.setWindowTitle("İşlem Ekle")
+        self.setMinimumWidth(450)
+        # Koyu Tema Arka Planı
+        self.setStyleSheet("background-color: #0f172a; color: #f8fafc;")
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(18, 18, 18, 18)
-        main_layout.setSpacing(12)
+        # Ana Layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # ---------- HEADER ----------
-        header_layout = QVBoxLayout()
+        # --- HEADER (Üst Bilgi) ---
+        header = QFrame()
+        header.setStyleSheet("background-color: #1e293b; border-bottom: 1px solid #334155;")
+        header.setFixedHeight(75)
+        h_layout = QVBoxLayout(header)
+        h_layout.setContentsMargins(20, 10, 20, 10)
+        h_layout.setSpacing(5)
+        
+        self.lbl_ticker = QLabel(f"{self.ticker}" if self.ticker else f"ID: {self.stock_id}")
+        self.lbl_ticker.setStyleSheet("font-size: 18px; font-weight: bold; color: #3b82f6;")
+        
+        self.lbl_price_info = QLabel("Fiyat Yükleniyor...")
+        self.lbl_price_info.setStyleSheet("font-size: 13px; color: #94a3b8;")
+        
+        h_layout.addWidget(self.lbl_ticker)
+        h_layout.addWidget(self.lbl_price_info)
+        
+        layout.addWidget(header)
 
-        if self.ticker:
-            title_text = f"Hisse: {self.ticker} (ID: {self.stock_id})"
-        else:
-            title_text = f"Hisse ID: {self.stock_id}"
-
-        self.lbl_header = QLabel(title_text)
-        self.lbl_header.setObjectName("summaryLabel")
-
-        # Güncel fiyat label'ı (yfinance)
-        self.lbl_market_price = QLabel("Güncel Fiyat (yfinance): -")
-
-        header_layout.addWidget(self.lbl_header)
-        header_layout.addWidget(self.lbl_market_price)
-
-        main_layout.addLayout(header_layout)
-
-        # ---------- FORM ----------
-        form_layout = QFormLayout()
+        # --- FORM ALANI ---
+        form_widget = QWidget()
+        form_layout = QFormLayout(form_widget)
+        form_layout.setContentsMargins(30, 30, 30, 30)
+        form_layout.setSpacing(15)
         form_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        form_layout.setHorizontalSpacing(16)
-        form_layout.setVerticalSpacing(10)
 
-        # LOT
-        self.spin_quantity = QSpinBox()
-        self.spin_quantity.setMinimum(1)
-        self.spin_quantity.setMaximum(10_000_000)
-        self.spin_quantity.setValue(100)
-        form_layout.addRow("Lot:", self.spin_quantity)
+        # Input Stili
+        input_style = """
+            QLineEdit, QSpinBox, QDateEdit, QTimeEdit {
+                background-color: #1e293b; 
+                border: 1px solid #334155; 
+                border-radius: 6px; 
+                padding: 10px;
+                color: white;
+                font-size: 14px;
+            }
+            QLineEdit:focus, QSpinBox:focus { border: 1px solid #3b82f6; }
+            QDateEdit::drop-down { border: none; }
+        """
+        self.setStyleSheet(self.styleSheet() + input_style)
+        
+        label_style = "color: #cbd5e1; font-weight: 500;"
 
-        # TUTAR (TL)
-        self.edit_amount = QLineEdit()
-        self.edit_amount.setPlaceholderText("Örn: 15000 (TL)")
-        form_layout.addRow("Tutar (TL):", self.edit_amount)
-
-        # FİYAT
-        self.edit_price = QLineEdit()
-        self.edit_price.setPlaceholderText("Örn: 9,18 veya 9.18")
-        form_layout.addRow("Fiyat:", self.edit_price)
-
-        # TARİH
-        today_q = QDate.currentDate()
-        normalized_today = self._normalize_trade_date(today_q)
-
-        self.date_edit = QDateEdit()
-        self.date_edit.setCalendarPopup(True)
-        self.date_edit.setDate(normalized_today)
-        self.date_edit.setMaximumDate(today_q)
-        form_layout.addRow("Tarih:", self.date_edit)
-
-        # SAAT
-        self.time_edit = QTimeEdit()
-        self.time_edit.setDisplayFormat("HH:mm")
-
-        min_t = QTime(10, 0)
-        max_t = QTime(17, 59)
-        now_t = QTime.currentTime()
-        if now_t < min_t or now_t > max_t:
-            self.time_edit.setTime(min_t)
-        else:
-            self.time_edit.setTime(now_t)
-        self.time_edit.setMinimumTime(min_t)
-        self.time_edit.setMaximumTime(max_t)
-        form_layout.addRow("Saat:", self.time_edit)
-
-        # İŞLEM TÜRÜ
-        side_layout = QHBoxLayout()
-        self.radio_buy = QRadioButton("Alış (BUY)")
-        self.radio_sell = QRadioButton("Satış (SELL)")
+        # 1. İşlem Yönü
+        side_container = QWidget()
+        side_layout = QHBoxLayout(side_container)
+        side_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.radio_buy = QRadioButton("ALIŞ")
+        self.radio_sell = QRadioButton("SATIŞ")
         self.radio_buy.setChecked(True)
+        
+        # Radio butonlarını özelleştir
+        radio_style = """
+            QRadioButton { font-weight: bold; color: white; font-size: 14px; }
+            QRadioButton::indicator:checked { border: 2px solid; border-radius: 6px; }
+        """
+        self.radio_buy.setStyleSheet(radio_style + "QRadioButton::indicator:checked { background-color: #22c55e; border-color: #22c55e; }")
+        self.radio_sell.setStyleSheet(radio_style + "QRadioButton::indicator:checked { background-color: #ef4444; border-color: #ef4444; }")
+        
         side_layout.addWidget(self.radio_buy)
         side_layout.addWidget(self.radio_sell)
-        side_layout.addStretch()
-        form_layout.addRow("İşlem Türü:", side_layout)
+        
+        lbl_side = QLabel("İşlem:")
+        lbl_side.setStyleSheet(label_style)
+        form_layout.addRow(lbl_side, side_container)
 
-        main_layout.addLayout(form_layout)
+        # 2. Tarih / Saat
+        self.date_edit = QDateEdit(QDate.currentDate())
+        self.date_edit.setCalendarPopup(True)
+        self.time_edit = QTimeEdit(QTime.currentTime())
+        self.time_edit.setDisplayFormat("HH:mm")
+        
+        # Tarih normalizasyonu
+        self._normalize_trade_date(QDate.currentDate())
+        
+        # Yan yana koyalım
+        dt_container = QWidget()
+        dt_layout = QHBoxLayout(dt_container)
+        dt_layout.setContentsMargins(0, 0, 0, 0)
+        dt_layout.setSpacing(10)
+        dt_layout.addWidget(self.date_edit)
+        dt_layout.addWidget(self.time_edit)
+        
+        lbl_date = QLabel("Zaman:")
+        lbl_date.setStyleSheet(label_style)
+        form_layout.addRow(lbl_date, dt_container)
 
-        # ---------- ALT BUTONLAR ----------
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        # 3. Lot / Fiyat / Tutar
+        self.spin_quantity = QSpinBox()
+        self.spin_quantity.setRange(1, 10_000_000)
+        self.spin_quantity.setValue(1)
+        
+        self.edit_price = QLineEdit()
+        self.edit_price.setPlaceholderText("0.00")
+        
+        self.edit_amount = QLineEdit()
+        self.edit_amount.setPlaceholderText("Toplam Tutar")
 
-        self.btn_edit_stock = QPushButton("Hisseyi Düzenle")
-        self.btn_ok = QPushButton("İşlem Kaydet")
-        self.btn_cancel = QPushButton("İptal")
+        lbl_lot = QLabel("Adet (Lot):")
+        lbl_lot.setStyleSheet(label_style)
+        lbl_price = QLabel("Birim Fiyat:")
+        lbl_price.setStyleSheet(label_style)
+        lbl_total = QLabel("Toplam:")
+        lbl_total.setStyleSheet(label_style)
 
-        self.btn_ok.setObjectName("primaryButton")
+        form_layout.addRow(lbl_lot, self.spin_quantity)
+        form_layout.addRow(lbl_price, self.edit_price)
+        form_layout.addRow(lbl_total, self.edit_amount)
 
-        button_layout.addWidget(self.btn_edit_stock)
-        button_layout.addWidget(self.btn_ok)
-        button_layout.addWidget(self.btn_cancel)
+        layout.addWidget(form_widget)
+        layout.addStretch()
 
-        main_layout.addLayout(button_layout)
+        # --- FOOTER (Butonlar) ---
+        footer = QFrame()
+        footer.setStyleSheet("background-color: #0f172a; border-top: 1px solid #334155;")
+        footer.setFixedHeight(70)
+        f_layout = QHBoxLayout(footer)
+        f_layout.setContentsMargins(20, 10, 20, 10)
+
+        self.btn_edit_stock = QPushButton("Hisse Bilgisini Düzenle")
+        self.btn_edit_stock.setCursor(Qt.PointingHandCursor)
+        self.btn_edit_stock.setStyleSheet("""
+            QPushButton { color: #94a3b8; background: transparent; border: none; font-size: 13px; }
+            QPushButton:hover { color: #f8fafc; text-decoration: underline; }
+        """)
+
+        self.btn_save = QPushButton("Kaydet")
+        self.btn_save.setCursor(Qt.PointingHandCursor)
+        self.btn_save.setStyleSheet("""
+            QPushButton { 
+                background-color: #3b82f6; color: white; 
+                border-radius: 6px; padding: 10px 30px; font-weight: bold; font-size: 14px;
+            }
+            QPushButton:hover { background-color: #2563eb; }
+        """)
+
+        f_layout.addWidget(self.btn_edit_stock)
+        f_layout.addStretch()
+        f_layout.addWidget(self.btn_save)
+
+        layout.addWidget(footer)
 
     def _connect_signals(self):
-        self.btn_ok.clicked.connect(self._on_ok_clicked)
-        self.btn_cancel.clicked.connect(self.reject)
+        self.btn_save.clicked.connect(self._on_ok_clicked)
         self.btn_edit_stock.clicked.connect(self._on_edit_stock_clicked)
-
-        # Tarih / saat clamp
+        
+        # Hesaplamalar
+        self.spin_quantity.valueChanged.connect(self._on_quantity_changed)
+        self.edit_amount.textChanged.connect(self._on_amount_changed)
+        
+        # Tarih kontrol
         self.date_edit.dateChanged.connect(self._on_date_changed)
         self.time_edit.timeChanged.connect(self._on_time_changed)
 
-        # Dinamik para ↔ lot hesaplama
-        self.spin_quantity.valueChanged.connect(self._on_quantity_changed)
-        self.edit_amount.textChanged.connect(self._on_amount_changed)
-
     def _fetch_initial_price(self):
-        """
-        MainWindow'dan gelen price_lookup_func ile:
-        - önce intraday,
-        - yoksa son kapanış fiyatını çeker.
-        Label'ı da buna göre doldurur.
-        """
-        if not self.price_lookup_func or not self.ticker:
-            return
-
-        result = self.price_lookup_func(self.ticker)
-        if result is None:
-            self.current_price = None
-            self.lbl_market_price.setText("Güncel Fiyat (yfinance): Fiyat bulunamadı")
-            return
-
-        price = result.price
-        self.current_price = price
-
-        if result.source == "intraday":
-            info_text = f"{price:.2f} (anlık)"
+        if not self.price_lookup_func or not self.ticker: return
+        
+        res = self.price_lookup_func(self.ticker)
+        if res:
+            self.current_price = res.price
+            self.lbl_price_info.setText(f"Güncel: ₺ {res.price:,.2f} ({'Anlık' if res.source=='intraday' else 'Kapanış'})")
+            if not self.edit_price.text():
+                self.edit_price.setText(str(res.price))
         else:
-            d_str = result.as_of.strftime("%d.%m.%Y")
-            info_text = f"{price:.2f} (son kapanış {d_str})"
+            self.lbl_price_info.setText("Fiyat verisi alınamadı.")
 
-        self.lbl_market_price.setText(f"Güncel Fiyat (yfinance): {info_text}")
-
-        # Fiyat alanı boşsa otomatik doldur
-        if not self.edit_price.text().strip():
-            self.edit_price.setText(str(price))
-
-    def _on_quantity_changed(self, value: int):
-        if self._updating_amount:
-            return
-        if self.current_price is None:
-            return
-
-        self._updating_quantity = True
+    # --- HESAPLAMA MANTIĞI ---
+    def _on_quantity_changed(self, val):
+        if self._updating_amount: return
         try:
-            lot_size = self.lot_size or 1
-            total = value * float(self.current_price) * lot_size
-            self.edit_amount.setText(f"{total:.2f}")
-        finally:
+            p = float(self.edit_price.text().replace(",", ".") or 0)
+            self._updating_quantity = True
+            self.edit_amount.setText(f"{val * p:.2f}")
             self._updating_quantity = False
+        except: pass
 
-    def _on_amount_changed(self, text: str):
-        if self._updating_quantity:
-            return
-        if self.current_price is None:
-            return
-
-        txt = text.strip().replace(",", ".")
-        if not txt:
-            return
-
+    def _on_amount_changed(self, text):
+        if self._updating_quantity: return
         try:
-            amount = float(txt)
-        except ValueError:
-            return
+            p = float(self.edit_price.text().replace(",", ".") or 0)
+            amt = float(text.replace(",", ".") or 0)
+            if p > 0:
+                self._updating_amount = True
+                self.spin_quantity.setValue(int(amt / p))
+                self._updating_amount = False
+        except: pass
 
-        if amount <= 0:
-            return
+    # --- TARİH KONTROLLERİ ---
+    def _normalize_trade_date(self, qdate: QDate):
+        now = QDate.currentDate()
+        if qdate > now: self.date_edit.setDate(now)
+        elif qdate.dayOfWeek() > 5: # Haftasonu
+            self.date_edit.setDate(qdate.addDays(-(qdate.dayOfWeek() - 5)))
 
-        lot_size = self.lot_size or 1
-        # alınabilecek maksimum lot sayısı
-        max_lot = int(amount // (float(self.current_price) * lot_size))
-        if max_lot <= 0:
-            return
+    def _on_date_changed(self, date):
+        self._normalize_trade_date(date)
 
-        self._updating_amount = True
-        try:
-            self.spin_quantity.setValue(max_lot)
-        finally:
-            self._updating_amount = False
+    def _on_time_changed(self, time):
+        # 10:00 - 18:00 arası
+        if time.hour() < 10: self.time_edit.setTime(QTime(10, 0))
+        elif time.hour() >= 18: self.time_edit.setTime(QTime(17, 59))
 
-    # --------- Hisse düzenleme butonu --------- #
+    # --- BUTON AKSİYONLARI ---
     def _on_edit_stock_clicked(self):
-        """
-        Hisseyi düzenle moduna geçer; trade kaydetmez.
-        """
         self._mode = "edit_stock"
         self.accept()
 
-    # --------- OK tıklanınca doğrulama --------- #
     def _on_ok_clicked(self):
+        # Validasyon
         try:
-            _ = self._build_trade_data()
-        except ValueError as e:
-            QMessageBox.warning(self, "Geçersiz Girdi", str(e))
+            p = float(self.edit_price.text().replace(",", ".") or 0)
+            if p <= 0: raise ValueError("Fiyat 0 olamaz")
+        except:
+            QMessageBox.warning(self, "Hata", "Geçersiz fiyat.")
             return
-
+            
         self._mode = "trade"
         self.accept()
 
-    # --------- Dışarıya verilecek trade_data --------- #
-    def _build_trade_data(self) -> dict:
-        qdate: QDate = self.date_edit.date()
-        qtime: QTime = self.time_edit.time()
-
-        trade_date = date(qdate.year(), qdate.month(), qdate.day())
-        trade_time = time(qtime.hour(), qtime.minute())
-
-        today_py = date.today()
-        if trade_date > today_py:
-            raise ValueError("Gelecek tarih için işlem girilemez.")
-
-        if trade_date.weekday() >= 5:
-            raise ValueError("Hafta sonu tarihine işlem girilemez (Cumartesi/Pazar).")
-
-        if not (10 <= trade_time.hour < 18):
-            raise ValueError("İşlem saati 10:00 ile 18:00 arasında olmalıdır.")
-
-
-                # --- Tarih / saat validasyonu ---
-        if trade_date.weekday() >= 5:
-            raise ValueError("Hafta sonu tarihine işlem ekleyemezsiniz (Cumartesi/Pazar).")
-
-        if not (10 <= trade_time.hour < 18):
-            raise ValueError("İşlem saati 10:00 ile 18:00 arasında olmalıdır.")
-
-
-        if self.radio_buy.isChecked():
-            side: SideLiteral = "BUY"
-        elif self.radio_sell.isChecked():
-            side = "SELL"
-        else:
-            raise ValueError("Lütfen işlem türünü seçin (Alış veya Satış).")
-
-        quantity = self.spin_quantity.value()
-        if quantity <= 0:
-            raise ValueError("Lot sayısı pozitif olmalıdır.")
-
-        raw_text = self.edit_price.text().strip()
-        if not raw_text:
-            raise ValueError("Lütfen fiyat girin.")
-
-        raw_text = raw_text.replace(",", ".")  # 1,25 -> 1.25
-
-        try:
-            price = Decimal(raw_text)
-        except Exception:
-            raise ValueError("Geçerli bir fiyat girin. Örn: 1,25")
-
-        if price <= 0:
-            raise ValueError("Fiyat pozitif olmalıdır.")
-
-        print("DEBUG TradeDialog price text:", repr(raw_text), "Decimal:", price)
-
-
-        return {
-            "stock_id": self.stock_id,
-            "trade_date": trade_date,
-            "trade_time": trade_time,
-            "side": side,
-            "quantity": quantity,
-            "price": price,
-        }
-
+    # --- PUBLIC METHODS ---
     def get_mode(self) -> DialogMode:
         return self._mode
 
     def get_trade_data(self) -> Optional[dict]:
-        """
-        Sadece 'trade' modunda ACCEPT ile kapandıysa trade_data döner.
-        """
-        if self.result() != QDialog.Accepted:
+        if self.result() != QDialog.Accepted or self._mode != "trade":
             return None
-        if self._mode != "trade":
-            return None
-        return self._build_trade_data()
+            
+        try:
+            price = Decimal(self.edit_price.text().replace(",", "."))
+        except: price = Decimal("0")
 
-    def _normalize_trade_date(self, qdate: QDate) -> QDate:
-        """Hafta sonu / geleceğe taşan tarihleri düzeltir."""
-        today_q = QDate.currentDate()
-
-        # Gelecek tarihse bugüne çek
-        if qdate > today_q:
-            return today_q
-
-        # Qt: 1=PAZARTESİ ... 6=CUMARTESİ, 7=PAZAR
-        weekday = qdate.dayOfWeek()
-        if weekday == 6:      # Cumartesi
-            return qdate.addDays(-1)
-        elif weekday == 7:    # Pazar
-            return qdate.addDays(-2)
-        return qdate
-
-    def _on_date_changed(self, new_date: QDate):
-        fixed = self._normalize_trade_date(new_date)
-        if fixed != new_date:
-            # Sonsuz döngüye girmemek için sinyali blokla
-            self.date_edit.blockSignals(True)
-            self.date_edit.setDate(fixed)
-            self.date_edit.blockSignals(False)
-            # İstersen sessiz de yapabilirsin; bilgi mesajı opsiyonel:
-            # QMessageBox.information(
-            #     self, "Tarih Düzenlendi",
-            #     "Hafta sonu / gelecekteki tarihler için işlem girilemez.\n"
-            #     "Tarih en yakın iş gününe çekildi."
-            # )
-    
-    def _on_time_changed(self, new_time: QTime):
-        min_t = QTime(10, 0)
-        max_t = QTime(17, 59)
-
-        fixed = new_time
-        if new_time < min_t:
-            fixed = min_t
-        elif new_time > max_t:
-            fixed = max_t
-
-        if fixed != new_time:
-            self.time_edit.blockSignals(True)
-            self.time_edit.setTime(fixed)
-            self.time_edit.blockSignals(False)
+        return {
+            "stock_id": self.stock_id,
+            "trade_date": self.date_edit.date().toPyDate(),
+            "trade_time": self.time_edit.time().toPyTime(),
+            "side": "BUY" if self.radio_buy.isChecked() else "SELL",
+            "quantity": self.spin_quantity.value(),
+            "price": price
+        }

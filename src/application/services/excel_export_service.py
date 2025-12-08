@@ -8,6 +8,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Dict, Iterable, Union
+import shutil # Dosya yedekleme için
 
 import pandas as pd
 
@@ -30,7 +31,7 @@ class DailyPosition:
     ticker: str
     quantity: int
     avg_cost: Decimal
-    cost_basis: Decimal              # Maliyet Esası (Lot * AvgCost)
+    cost_basis: Decimal
     close_price: Optional[Decimal]
     position_value: Optional[Decimal]
     daily_price_change_pct: Optional[Decimal]
@@ -76,13 +77,17 @@ class ExcelExportService:
         daily_positions, daily_snapshots = self._build_daily_history(start_date, end_date)
         
         # 2. DataFrame'leri Oluştur
-        # Not: _build_detail_df artık snapshots'ı da alıyor (günlük toplamları hesaplamak için)
         detail_df = self._build_detail_df(daily_positions, daily_snapshots)
         summary_df = self._build_summary_df(daily_snapshots)
         stock_summary_df = self._build_stock_summary_df(daily_positions)
 
         # 3. Yazma İşlemi
-        if mode == ExportMode.OVERWRITE or not file_path.exists():
+        # Eğer dosya yoksa, mod ne olursa olsun taze yaz
+        if not file_path.exists():
+            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df)
+            return
+
+        if mode == ExportMode.OVERWRITE:
             self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df)
         else:
             self._append_to_existing_excel(file_path, summary_df, detail_df, stock_summary_df)
@@ -260,14 +265,7 @@ class ExcelExportService:
         return daily_positions, daily_snapshots
 
     def _build_detail_df(self, positions: Iterable[DailyPosition], snapshots: Iterable[DailyPortfolioSnapshot]) -> pd.DataFrame:
-        """
-        StockDetails sayfasını oluşturur. 
-        Her gün grubunun sonuna bir 'GÜNLÜK TOPLAM' satırı ekler.
-        """
-        # Snapshot'ları tarihe göre haritala (Günlük getiriye erişmek için)
         snapshot_map = {s.date: s for s in snapshots}
-        
-        # Pozisyonları tarihe göre grupla
         positions_by_date = {}
         for p in positions:
             if p.date not in positions_by_date:
@@ -275,21 +273,16 @@ class ExcelExportService:
             positions_by_date[p.date].append(p)
             
         records = []
-        
-        # Tarihleri sırala ve döngüye gir
         sorted_dates = sorted(positions_by_date.keys())
         
         for d in sorted_dates:
             day_positions = positions_by_date[d]
-            # Hisseleri ticker'a göre sırala
             day_positions.sort(key=lambda x: x.ticker)
             
-            # Günlük Toplam Değişkenleri
             total_cost_basis = Decimal("0")
             total_position_value = Decimal("0")
             total_unrealized_pnl_tl = Decimal("0")
             
-            # 1. Hisse Satırlarını Ekle
             for p in day_positions:
                 records.append({
                     "Tarih": p.date,
@@ -305,18 +298,12 @@ class ExcelExportService:
                     "Portföy Ağırlığı %": float(p.weight_pct) if p.weight_pct else None,
                 })
                 
-                # Toplamlar için biriktir
                 if p.cost_basis: total_cost_basis += p.cost_basis
                 if p.position_value: total_position_value += p.position_value
                 if p.unrealized_pnl_tl: total_unrealized_pnl_tl += p.unrealized_pnl_tl
 
-            # 2. GÜNLÜK TOPLAM Satırını Ekle
             snapshot = snapshot_map.get(d)
-            
-            # Toplam Kar/Zarar Oranı
             total_unrealized_pct = (total_unrealized_pnl_tl / total_cost_basis) if total_cost_basis != 0 else None
-            
-            # Günlük Portföy Değişimi (Snapshot'tan gelir)
             portfolio_daily_ret = snapshot.daily_return_pct if snapshot else None
             
             summary_row = {
@@ -330,30 +317,24 @@ class ExcelExportService:
                 "Günlük Fiyat Değişim %": float(portfolio_daily_ret) if portfolio_daily_ret is not None else None,
                 "Gerç. Olmayan K/Z (TL)": float(total_unrealized_pnl_tl),
                 "Gerç. Olmayan K/Z %": float(total_unrealized_pct) if total_unrealized_pct is not None else None,
-                "Portföy Ağırlığı %": 1.0, # %100
+                "Portföy Ağırlığı %": 1.0,
             }
             records.append(summary_row)
 
         df = pd.DataFrame.from_records(records)
-        
-        # Kolon sıralamasını garanti et
         cols = [
             "Tarih", "Ticker", "Lot", "Ortalama Maliyet", "Güncel Fiyat", 
             "Pozisyon Değeri", "Maliyet Esası", "Günlük Fiyat Değişim %", 
             "Gerç. Olmayan K/Z (TL)", "Gerç. Olmayan K/Z %", "Portföy Ağırlığı %"
         ]
-        
         if not df.empty:
             df = df[cols]
-            # Sıralama zaten loop içinde yapıldığı için tekrar sort etmiyoruz
-            # (Tekrar sort edersek "TOPLAM" satırlarının yeri karışabilir)
         return df
 
     def _build_stock_summary_df(self, positions: List[DailyPosition]) -> pd.DataFrame:
         if not positions:
             return pd.DataFrame()
 
-        # Ticker bazında grupla ve en son kaydı al
         latest_positions = {}
         stock_days_count = {}
 
@@ -397,36 +378,66 @@ class ExcelExportService:
         return df
 
     def _write_fresh_excel(self, file_path: Path, summary_df: pd.DataFrame, detail_df: pd.DataFrame, stock_summary_df: pd.DataFrame) -> None:
-        with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
-            detail_df.to_excel(writer, sheet_name="StockDetails", index=False)
-            summary_df.to_excel(writer, sheet_name="PortfolioSummary", index=False)
-            stock_summary_df.to_excel(writer, sheet_name="StockSummary", index=False)
+        try:
+            with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
+                detail_df.to_excel(writer, sheet_name="StockDetails", index=False)
+                summary_df.to_excel(writer, sheet_name="PortfolioSummary", index=False)
+                stock_summary_df.to_excel(writer, sheet_name="StockSummary", index=False)
+        except PermissionError:
+            raise PermissionError(f"Dosyaya yazılamadı: {file_path}\nDosya açık olabilir. Lütfen kapatıp tekrar deneyin.")
 
     def _append_to_existing_excel(self, file_path: Path, summary_df: pd.DataFrame, detail_df: pd.DataFrame, stock_summary_df: pd.DataFrame) -> None:
+        # GÜVENLİK KONTROLÜ: Dosya açık mı?
+        try:
+            # Sadece okumayı dene, açıksa hata verir
+            with open(file_path, "r+"):
+                pass
+        except PermissionError:
+            raise PermissionError(f"Dosya şu an açık: {file_path.name}\nLütfen Excel dosyasını kapatıp tekrar deneyin.")
+        except Exception:
+            pass # Dosya yoksa veya başka sorunsa devam et
+
         try:
             with pd.ExcelFile(file_path, engine='openpyxl') as xls:
-                existing_summary = pd.read_excel(xls, sheet_name="PortfolioSummary") if "PortfolioSummary" in xls.sheet_names else pd.DataFrame()
-                existing_detail = pd.read_excel(xls, sheet_name="StockDetails") if "StockDetails" in xls.sheet_names else pd.DataFrame()
-                existing_stock_sum = pd.read_excel(xls, sheet_name="StockSummary") if "StockSummary" in xls.sheet_names else pd.DataFrame()
-        except Exception:
+                # Sayfaları oku, yoksa boş DataFrame oluştur
+                sheet_names = xls.sheet_names
+                
+                existing_summary = pd.read_excel(xls, sheet_name="PortfolioSummary") if "PortfolioSummary" in sheet_names else pd.DataFrame()
+                existing_detail = pd.read_excel(xls, sheet_name="StockDetails") if "StockDetails" in sheet_names else pd.DataFrame()
+                existing_stock_sum = pd.read_excel(xls, sheet_name="StockSummary") if "StockSummary" in sheet_names else pd.DataFrame()
+        except Exception as e:
+            # Dosya bozuksa veya format çok eskiyse
+            print(f"Eski dosya okunamadı: {e}. Dosya yedeklenip yeniden oluşturulacak.")
+            backup_path = file_path.with_suffix(file_path.suffix + ".bak")
+            shutil.copy(file_path, backup_path)
             self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df)
             return
 
+        # BİRLEŞTİRME VE TEMİZLEME
+        
+        # 1. Özet Tablo
         combined_summary = pd.concat([existing_summary, summary_df], ignore_index=True)
-        if not combined_summary.empty:
+        if not combined_summary.empty and "Tarih" in combined_summary.columns:
+            # Tarihe göre tekrar edenleri sil (son ekleneni tut)
             combined_summary = combined_summary.drop_duplicates(subset=["Tarih"], keep="last").sort_values("Tarih").reset_index(drop=True)
 
-        # Detail append'inde normal sort kullanırsak "TOPLAM" satırları kayabilir.
-        # Bu yüzden burada basitçe append edip kullanıcıya bırakıyoruz veya 
-        # daha karmaşık bir sort anahtarı gerekiyor. 
-        # Şimdilik taze yazmayı (overwrite) öneririm, append mantığı "Toplam" satırları varken karmaşıklaşabilir.
+        # 2. Detay Tablo
         combined_detail = pd.concat([existing_detail, detail_df], ignore_index=True)
-        
+        if not combined_detail.empty and "Tarih" in combined_detail.columns and "Ticker" in combined_detail.columns:
+            # Aynı gün aynı hisse için çift kaydı önle
+            # Not: ">>> GÜNLÜK TOPLAM <<<" satırları da Ticker olduğu için mantık bozulmaz
+            combined_detail = combined_detail.drop_duplicates(subset=["Tarih", "Ticker"], keep="last").sort_values(["Tarih", "Ticker"]).reset_index(drop=True)
+            
+        # 3. Hisse Özet Tablosu
         combined_stock_sum = pd.concat([existing_stock_sum, stock_summary_df], ignore_index=True)
-        if not combined_stock_sum.empty:
+        if not combined_stock_sum.empty and "Ticker" in combined_stock_sum.columns:
             combined_stock_sum = combined_stock_sum.drop_duplicates(subset=["Ticker"], keep="last").sort_values("Ticker").reset_index(drop=True)
 
-        with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
-            combined_detail.to_excel(writer, sheet_name="StockDetails", index=False)
-            combined_summary.to_excel(writer, sheet_name="PortfolioSummary", index=False)
-            combined_stock_sum.to_excel(writer, sheet_name="StockSummary", index=False)
+        # 4. DOSYAYA YAZ
+        try:
+            with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
+                combined_detail.to_excel(writer, sheet_name="StockDetails", index=False)
+                combined_summary.to_excel(writer, sheet_name="PortfolioSummary", index=False)
+                combined_stock_sum.to_excel(writer, sheet_name="StockSummary", index=False)
+        except PermissionError:
+             raise PermissionError(f"Dosyaya yazılamadı: {file_path}\nDosya açık olabilir. Lütfen kapatıp tekrar deneyin.")

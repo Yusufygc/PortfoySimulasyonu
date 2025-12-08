@@ -40,7 +40,7 @@ class PortfolioTableModel(QAbstractTableModel):
             "Ort. Maliyet",
             "Güncel Fiyat",
             "Piyasa Değeri",
-            "Gerç. Olmayan K/Z",
+            " Kar/Zarar",
         ]
 
     def rowCount(self, parent=QModelIndex()) -> int:
