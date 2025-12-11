@@ -36,6 +36,7 @@ class DailyPosition:
     close_price: Optional[Decimal]
     position_value: Optional[Decimal]
     daily_price_change_pct: Optional[Decimal]
+    daily_pnl_tl: Optional[Decimal]          # <--- YENİ EKLENDİ
     unrealized_pnl_tl: Optional[Decimal]
     unrealized_pnl_pct: Optional[Decimal]
     weight_pct: Optional[Decimal]
@@ -199,12 +200,18 @@ class ExcelExportService:
                         total_value += pos_val
                         
                         last_c = last_close_by_stock.get(stock_id)
-                        daily_chg = ((close_price / last_c) - 1) if (last_c and last_c != 0) else None
+                        if last_c and last_c != 0:
+                            daily_chg = (close_price / last_c) - 1
+                            # YENİ: Günlük PnL = (Bugünkü Fiyat - Dünkü Fiyat) * Adet
+                            daily_pos_pnl = (close_price - last_c) * Decimal(qty)
+                        else:
+                            daily_chg = None
+                            daily_pos_pnl = None
                         
                         unrealized_tl = (close_price - avg_cost) * Decimal(qty)
                         unrealized_pct = (unrealized_tl / cost_basis) if cost_basis != 0 else None
                     else:
-                        pos_val, daily_chg, unrealized_tl, unrealized_pct = None, None, None, None
+                        pos_val, daily_chg, daily_pos_pnl, unrealized_tl, unrealized_pct = None, None, None, None, None
 
                     temp_positions.append({
                         "ticker": ticker_map.get(stock_id, f"ID_{stock_id}"),
@@ -214,6 +221,7 @@ class ExcelExportService:
                         "close_price": close_price,
                         "pos_val": pos_val,
                         "daily_chg": daily_chg,
+                        "daily_pos_pnl": daily_pos_pnl,  # <--- Eklendi
                         "unr_tl": unrealized_tl,
                         "unr_pct": unrealized_pct
                     })
@@ -229,6 +237,7 @@ class ExcelExportService:
                         close_price=tmp["close_price"],
                         position_value=tmp["pos_val"],
                         daily_price_change_pct=tmp["daily_chg"],
+                        daily_pnl_tl=tmp["daily_pos_pnl"], # <--- Eklendi
                         unrealized_pnl_tl=tmp["unr_tl"],
                         unrealized_pnl_pct=tmp["unr_pct"],
                         weight_pct=w_pct
@@ -252,7 +261,7 @@ class ExcelExportService:
                     cum_pnl = portfolio_value - base_portfolio_value
                     cum_ret = (cum_pnl / base_portfolio_value) if base_portfolio_value else None
 
-            status = "Normal" if has_prices else ("Hafta Sonu" if is_weekend else "Veri Yok")
+            status = "Piyasa Açık" if has_prices else ("Hafta Sonu" if is_weekend else "Veri Yok")
             
             if day_positions_list:
                 daily_positions.extend(day_positions_list)
@@ -276,7 +285,6 @@ class ExcelExportService:
         latest_snapshot = snapshots[-1]
         returns = [s.daily_return_pct for s in snapshots if s.daily_return_pct is not None]
         
-        # En iyi ve en kötü performans
         latest_positions = {}
         for p in positions:
             latest_positions[p.ticker] = p
@@ -286,23 +294,18 @@ class ExcelExportService:
         worst_stock = min(latest_positions.values(),
                          key=lambda p: p.unrealized_pnl_pct if p.unrealized_pnl_pct else Decimal('inf'))
         
-        # Volatilite hesapla
         volatility = None
         if len(returns) > 1:
             returns_series = pd.Series([float(r) for r in returns])
-            # Volatiliteyi göstermek için 100 ile çarpıp string yapıyoruz çünkü bu tekil bir değer
             volatility = float(returns_series.std() * 100)
         
-        # Maksimum düşüş
         max_drawdown = self._calculate_max_drawdown(snapshots)
         
         records = [
             {"Metrik": "Güncel Portföy Değeri", "Değer": float(latest_snapshot.total_value) if latest_snapshot.total_value else 0},
             {"Metrik": "Toplam Kâr/Zarar (TL)", "Değer": float(latest_snapshot.cumulative_pnl) if latest_snapshot.cumulative_pnl else 0},
-            # Toplam Getiri % olarak değil oran olarak (0.12) saklanır, Excel formatlar
             {"Metrik": "Toplam Getiri (%)", "Değer": self._format_pct(latest_snapshot.cumulative_return_pct) if latest_snapshot.cumulative_return_pct else 0},
             
-            # Text içinde gösterildiği için burada manuel formatlama yapıyoruz
             {"Metrik": "En İyi Performans", "Değer": f"{best_stock.ticker} ({float(best_stock.unrealized_pnl_pct * 100):.2f}%)" if best_stock.unrealized_pnl_pct else "N/A"},
             {"Metrik": "En Kötü Performans", "Değer": f"{worst_stock.ticker} ({float(worst_stock.unrealized_pnl_pct * 100):.2f}%)" if worst_stock.unrealized_pnl_pct else "N/A"},
             
@@ -314,7 +317,6 @@ class ExcelExportService:
         return pd.DataFrame(records)
 
     def _calculate_max_drawdown(self, snapshots: List[DailyPortfolioSnapshot]) -> Optional[float]:
-        """Maksimum düşüş hesapla"""
         values = [float(s.total_value) for s in snapshots if s.total_value]
         if len(values) < 2:
             return None
@@ -357,11 +359,12 @@ class ExcelExportService:
                     "Adet": p.quantity,
                     "Ort. Maliyet (TL)": float(p.avg_cost),
                     "Güncel Fiyat (TL)": float(p.close_price) if p.close_price else None,
+                    "Toplam Maliyet (TL)": float(p.cost_basis),
                     "Pozisyon Değeri (TL)": float(p.position_value) if p.position_value else None,
-                    "Maliyet Esası (TL)": float(p.cost_basis),
                     "Günlük Fiyat Değ. (%)": self._format_pct(p.daily_price_change_pct),
-                    "K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl else None,
-                    "K/Z (%)": self._format_pct(p.unrealized_pnl_pct),
+                    "Günlük K/Z (TL)": float(p.daily_pnl_tl) if p.daily_pnl_tl is not None else None, # <--- Eklendi
+                    "Toplam K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl else None,
+                    "Toplam K/Z (%)": self._format_pct(p.unrealized_pnl_pct),
                     "Portföy Ağırlığı (%)": self._format_pct(p.weight_pct),
                 })
                 
@@ -370,22 +373,20 @@ class ExcelExportService:
                 if p.unrealized_pnl_tl: total_unrealized_pnl_tl += p.unrealized_pnl_tl
 
             snapshot = snapshot_map.get(d)
-            # DİKKAT: Burada 100 ile çarpmıyoruz, saf oran (ratio) hesaplıyoruz
             total_unrealized_ratio = (total_unrealized_pnl_tl / total_cost_basis) if (total_cost_basis and total_cost_basis != 0) else None
             
             summary_row = {
-                "Tarih": d,
-                "Hisse": "▼ GÜNLÜK TOPLAM",
+                "Tarih":None,# d,
+                "Hisse": "GÜNLÜK TOPLAM ➤➤➤",
                 "Adet": None,
                 "Ort. Maliyet (TL)": None,
                 "Güncel Fiyat (TL)": None,
+                "Toplam Maliyet (TL)": float(total_cost_basis),
                 "Pozisyon Değeri (TL)": float(total_position_value),
-                "Maliyet Esası (TL)": float(total_cost_basis),
-                "Günlük Fiyat Değ. (%)": self._format_pct(snapshot.daily_return_pct) if snapshot else None,
-                "K/Z (TL)": float(total_unrealized_pnl_tl),
-                # Saf oran gönderiliyor:
-                "K/Z (%)": self._format_pct(total_unrealized_ratio),
-                # %100'ü temsil etmek için 1.0 gönderiyoruz:
+                "Günlük Fiyat Değ. (%)":None,# self._format_pct(snapshot.daily_return_pct) if snapshot else None,
+                "Günlük K/Z (TL)": float(snapshot.daily_pnl) if snapshot and snapshot.daily_pnl else None, # <--- Portföy Toplam Günlük K/Z
+                "Toplam K/Z (TL)": float(total_unrealized_pnl_tl),
+                "Toplam K/Z (%)": self._format_pct(total_unrealized_ratio),
                 "Portföy Ağırlığı (%)": self._format_pct(Decimal("1.0")),
             }
             records.append(summary_row)
@@ -432,7 +433,7 @@ class ExcelExportService:
                 "Toplam Getiri (%)": self._format_pct(s.cumulative_return_pct),
                 "Günlük K/Z (TL)": float(s.daily_pnl) if s.daily_pnl else None,
                 "Toplam K/Z (TL)": float(s.cumulative_pnl) if s.cumulative_pnl else None,
-                "Durum": s.status,
+                "Piyasa Durumu": s.status,
             })
         df = pd.DataFrame.from_records(records)
         if not df.empty:
@@ -489,13 +490,17 @@ class ExcelExportService:
                 cell.border = thin_border
                 cell.alignment = Alignment(vertical="center")
         
-        # 3. SAYISAL FORMATLAR
+        # 3. SAYISAL VE TARİH FORMATLARI
         for col_num, col_name in enumerate(df.columns, 1):
             for row_num in range(2, len(df) + 2):
                 cell = worksheet.cell(row=row_num, column=col_num)
                 
+                # Tarih Formatı (Mobil Uyumlu)
+                if "Tarih" in col_name and cell.value is not None:
+                    cell.number_format = 'dd.mm.yyyy'
+                
                 # TL sütunları
-                if "(TL)" in col_name and cell.value is not None:
+                elif "(TL)" in col_name and cell.value is not None:
                     if "Ort. Maliyet" in col_name or "Güncel Fiyat" in col_name or "Son Fiyat" in col_name:
                         cell.number_format = '#,##0.00'
                     else:
@@ -503,8 +508,6 @@ class ExcelExportService:
                 
                 # Yüzde sütunları
                 elif "(%)" in col_name and cell.value is not None:
-                    # Excel Standart Yüzde Formatı:
-                    # 0.125 değerini %12.50 olarak gösterir.
                     cell.number_format = '0.00%'
                 
                 # Adet sütunu
@@ -518,6 +521,7 @@ class ExcelExportService:
         red_font = Font(color="9C0006", bold=True)
         
         for col_num, col_name in enumerate(df.columns, 1):
+            # K/Z veya Getiri sütunları (Günlük K/Z dahil)
             if "K/Z" in col_name or "Getiri" in col_name:
                 for row_num in range(2, len(df) + 2):
                     cell = worksheet.cell(row=row_num, column=col_num)
