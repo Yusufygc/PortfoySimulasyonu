@@ -30,8 +30,6 @@ from src.ui.widgets.edit_stock_dialog import EditStockDialog
 
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
-from src.domain.models.stock import Stock
-from src.domain.services_interfaces.i_stock_repo import IStockRepository  # sadece type hint istersen
 from src.domain.models.position import Position
 from src.domain.models.portfolio import Portfolio
 
@@ -52,8 +50,8 @@ class MainWindow(QMainWindow):
         portfolio_service: PortfolioService,
         return_calc_service: ReturnCalcService,
         update_coordinator: PortfolioUpdateCoordinator,
-        excel_export_service: ExcelExportService,   # YENİ
-        stock_repo,   # <--- yeni parametre
+        excel_export_service: ExcelExportService,
+        stock_repo,
         reset_service,
         market_client,
         parent=None,
@@ -62,10 +60,10 @@ class MainWindow(QMainWindow):
         self.portfolio_service = portfolio_service
         self.return_calc_service = return_calc_service
         self.update_coordinator = update_coordinator
-        self.stock_repo = stock_repo   # <--- sakla
-        self.reset_service = reset_service   # <--- sakla
-        self.market_client = market_client   # <--- sakla
-        self.excel_export_service = excel_export_service   # YEN
+        self.stock_repo = stock_repo
+        self.reset_service = reset_service
+        self.market_client = market_client
+        self.excel_export_service = excel_export_service
         
         self.setWindowTitle("Portföy Simülasyonu")
         self.resize(1000, 600)
@@ -95,7 +93,7 @@ class MainWindow(QMainWindow):
 
         # Butonlar
         self.btn_new_trade = QPushButton("Yeni İşlem Ekle")
-        self.btn_new_trade.setObjectName("primaryButton") # Vurgulu buton
+        self.btn_new_trade.setObjectName("primaryButton")
         self.btn_new_trade.setCursor(Qt.PointingHandCursor)
 
         self.btn_update_prices = QPushButton("Fiyatları Güncelle")
@@ -111,7 +109,7 @@ class MainWindow(QMainWindow):
         self.btn_export_range.setCursor(Qt.PointingHandCursor)
         
         self.btn_reset_portfolio = QPushButton("Sistemi Sıfırla")
-        self.btn_reset_portfolio.setStyleSheet("color: #ef4444;") # Kırmızı uyarı rengi
+        self.btn_reset_portfolio.setStyleSheet("color: #ef4444;")
         self.btn_reset_portfolio.setCursor(Qt.PointingHandCursor)
 
         # Sidebar'a ekle
@@ -119,15 +117,16 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.addWidget(self.btn_update_prices)
         self.sidebar_layout.addWidget(self.btn_refresh_returns)
         
-        # Ayraç (Spacer yerine boş bir widget veya çizgi)
+        # Ayraç
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
         line.setStyleSheet("background-color: #334155;")
         self.sidebar_layout.addWidget(line)
         
+        # Rapor butonlarını ekle (Checkbox kaldırıldı)
         self.sidebar_layout.addWidget(self.btn_export_today)
         self.sidebar_layout.addWidget(self.btn_export_range)
-        self.sidebar_layout.addStretch() # Boşluğu aşağı it
+        self.sidebar_layout.addStretch()
         self.sidebar_layout.addWidget(self.btn_reset_portfolio)
 
         # --- 2. SAĞ İÇERİK ALANI ---
@@ -140,7 +139,6 @@ class MainWindow(QMainWindow):
         self.cards_layout = QHBoxLayout()
         self.cards_layout.setSpacing(20)
 
-        # Kart Oluşturma Helper'ı
         def create_card(title, initial_value):
             card = QFrame()
             card.setObjectName("infoCard")
@@ -159,7 +157,6 @@ class MainWindow(QMainWindow):
             l_layout.addWidget(lbl_value)
             return card, lbl_value
 
-        # Kartları oluştur
         self.card_total, self.lbl_total_value = create_card("TOPLAM PORTFÖY DEĞERİ", "₺ 0.00")
         self.card_weekly, self.lbl_weekly_return = create_card("HAFTALIK GETİRİ", "-")
         self.card_monthly, self.lbl_monthly_return = create_card("AYLIK GETİRİ", "-")
@@ -170,23 +167,21 @@ class MainWindow(QMainWindow):
 
         # B) Tablo (Orta Kısım)
         self.table_view = QTableView()
-        self.table_view.setAlternatingRowColors(False) # Style.py ile kontrol ediyoruz
+        self.table_view.setAlternatingRowColors(False)
         self.table_view.setSelectionBehavior(QTableView.SelectRows)
         self.table_view.setSelectionMode(QTableView.SingleSelection)
         self.table_view.setSortingEnabled(True)
         self.table_view.verticalHeader().setVisible(False)
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table_view.setShowGrid(False) # Izgarayı kapattık, daha temiz görünür
+        self.table_view.setShowGrid(False)
 
-        # Layoutları Birleştir
         self.content_layout.addLayout(self.cards_layout)
         self.content_layout.addWidget(self.table_view)
 
-        # Ana Layout'a ekle
         self.main_layout.addWidget(self.sidebar)
         self.main_layout.addWidget(self.content_area)
 
-        # Signal/Slot Bağlantıları (Değişmedi)
+        # Signal/Slot Bağlantıları
         self.btn_update_prices.clicked.connect(self.on_update_prices_clicked)
         self.btn_refresh_returns.clicked.connect(self.on_refresh_returns_clicked)
         self.btn_new_trade.clicked.connect(self.on_new_stock_trade_clicked)
@@ -211,31 +206,21 @@ class MainWindow(QMainWindow):
 
         price_map: Dict[int, Decimal] = end_snapshot.price_map if end_snapshot else {}
 
-        # Ticker map: { stock_id: "AKBNK.IS", ... }
         stock_ids = [p.stock_id for p in positions]
         ticker_map = self.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
 
         self.model = PortfolioTableModel(positions, price_map, ticker_map, parent=self)
         self.table_view.setModel(self.model)
 
-        # Özet label'ları güncelle
         if end_snapshot:
             self.lbl_total_value.setText(f"₺ {end_snapshot.total_value:,.2f}")
         
         self.table_view.doubleClicked.connect(self.on_table_double_clicked)
 
 
-    # --------- Yardımcı: tek gün snapshot (bugün veya herhangi bir tarih) --------- #
-
     def _get_single_day_snapshot(self, value_date: date):
-        """
-        ReturnCalcService ile value_date için snapshot hesaplar.
-        Küçük bir helper.
-        """
         snapshot = self.return_calc_service.compute_portfolio_value_on(value_date)
         return value_date, snapshot
-
-    # --------- Slot: Gün sonu fiyatlarını güncelle --------- #
 
     def on_update_prices_clicked(self):
         try:
@@ -244,7 +229,6 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Hata", f"Fiyat güncelleme sırasında hata: {e}")
             return
 
-        # Tabloyu güncellemek için:
         portfolio: Portfolio = self.portfolio_service.get_current_portfolio()
         all_positions: List[Position] = list(portfolio.positions.values())
         positions: List[Position] = [
@@ -263,8 +247,6 @@ class MainWindow(QMainWindow):
             self.model = PortfolioTableModel(positions, price_map, ticker_map, parent=self)
             self.table_view.setModel(self.model)
 
-
-        # Özet label'ları
         self.lbl_total_value.setText(f"Toplam Değer: {snapshot.total_value:.2f}")
 
         QMessageBox.information(
@@ -272,8 +254,6 @@ class MainWindow(QMainWindow):
             "Güncelleme Tamamlandı",
             f"{price_update_result.updated_count} hisse için gün sonu fiyatı güncellendi.",
         )
-
-    # --------- Slot: Haftalık / aylık getiri --------- #
 
     def on_refresh_returns_clicked(self):
         today = date.today()
@@ -295,11 +275,6 @@ class MainWindow(QMainWindow):
             self.lbl_monthly_return.setText("Aylık Getiri: -")
 
     def on_table_double_clicked(self, index: QModelIndex):
-        """
-        Kullanıcı tablo satırına çift tıklayınca:
-          - Varsayılan: yeni trade ekleme
-          - İsterse: 'Hisseyi Düzenle' butonuyla ticker/ad düzenleme
-        """
         if not index.isValid():
             return
 
@@ -313,7 +288,6 @@ class MainWindow(QMainWindow):
         position: Position = self.model.get_position(row)
         stock_id = position.stock_id
 
-        # Mevcut ticker'ı repo'dan alalım (label için de kullanabiliriz)
         stock = self.stock_repo.get_stock_by_id(stock_id)
         ticker = stock.ticker if stock is not None else None
 
@@ -321,15 +295,14 @@ class MainWindow(QMainWindow):
             stock_id=stock_id,
             ticker=ticker,
             parent=self,
-            price_lookup_func=self.lookup_price_for_ticker,  # yeni
-            lot_size=1,                                      # istersen 100
+            price_lookup_func=self.lookup_price_for_ticker,
+            lot_size=1,
         )
-
 
         if dialog.exec_() != QDialog.Accepted:
             return
 
-        # 1) Hisseyi düzenleme modu
+        # Hisseyi düzenleme modu
         if dialog.get_mode() == "edit_stock":
             if stock is None:
                 QMessageBox.warning(self, "Uyarı", "Bu pozisyona ait hisse kaydı bulunamadı.")
@@ -364,7 +337,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Başarılı", "Hisse bilgileri güncellendi.")
             return
 
-        # 2) Normal trade modu
+        # Normal trade modu
         trade_data = dialog.get_trade_data()
         if not trade_data:
             return
@@ -408,14 +381,10 @@ class MainWindow(QMainWindow):
 
 
     def on_new_stock_trade_clicked(self):
-        """
-        Üstteki 'Yeni Hisse / İşlem Ekle' butonunun handler'ı.
-        Yeni hisse gerekiyorsa ekler, ardından trade'i kaydeder, tabloyu yeniler.
-        """
         dlg = NewStockTradeDialog(
             parent=self,
             price_lookup_func=self.lookup_price_for_ticker,
-            lot_size=1,  # ya da 100, nasıl tanımlamak istiyorsan
+            lot_size=1,
         )
         if dlg.exec_() != QDialog.Accepted:
             return
@@ -427,7 +396,6 @@ class MainWindow(QMainWindow):
         ticker = data["ticker"]
         name = data["name"]
 
-        # 1) Hisse zaten var mı?
         try:
             existing_stock = self.stock_repo.get_stock_by_ticker(ticker)
         except Exception as e:
@@ -435,7 +403,6 @@ class MainWindow(QMainWindow):
             return
 
         if existing_stock is None:
-            # Yeni hisse oluştur
             try:
                 new_stock = Stock(id=None, ticker=ticker, name=name or ticker, currency_code="TRY")
                 saved_stock = self.stock_repo.insert_stock(new_stock)
@@ -446,7 +413,6 @@ class MainWindow(QMainWindow):
         else:
             stock_id = existing_stock.id
 
-        # 2) Trade domain objesi oluştur
         try:
             if data["side"] == "BUY":
                 trade = Trade.create_buy(
@@ -468,7 +434,6 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Geçersiz İşlem", str(e))
             return
 
-        # 3) Trade'i kaydet
         try:
             self.portfolio_service.add_trade(trade)
         except ValueError as e:
@@ -487,15 +452,10 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Hata", f"İşlem kaydedilemedi: {e}")
             return
 
-        # 4) Ekranı yenile
         self._load_initial_data()
         QMessageBox.information(self, "Başarılı", "İşlem başarıyla eklendi.")
 
     def on_reset_portfolio_clicked(self):
-        """
-        'Portföyü Sıfırla' butonu:
-        Tüm hisseleri, işlemleri ve fiyat kayıtlarını siler.
-        """
         reply = QMessageBox.question(
             self,
             "Portföyü Sıfırla",
@@ -514,7 +474,6 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Hata", f"Portföy sıfırlanırken hata oluştu:\n{e}")
             return
 
-        # UI'ı sıfırla
         self._load_initial_data()
         self.lbl_total_value.setText("Toplam Değer: 0.00")
         self.lbl_weekly_return.setText("Haftalık Getiri: -")
@@ -523,19 +482,9 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Tamamlandı", "Portföy başarıyla sıfırlandı.")
 
     def lookup_price_for_ticker(self, ticker: str) -> Optional[PriceLookupResult]:
-        """
-        UI dialog'larının kullanacağı gelişmiş fiyat lookup.
-
-        Öncelik sırası:
-          1) intraday (current/regularMarketPrice)
-          2) son işlem gününün kapanış fiyatı (history)
-
-        Hata veya veri yoksa None döner.
-        """
         if not ticker:
             return None
 
-        # BIST için .IS ekleyelim (yoksa)
         if "." not in ticker:
             ticker = ticker.upper() + ".IS"
         else:
@@ -547,11 +496,8 @@ class MainWindow(QMainWindow):
             print("YF Ticker init failed:", e)
             return None
 
-        # 1) Intraday denemesi
-        price = None
         info = {}
         try:
-            # fast_info daha hızlı, yoksa info
             info = getattr(yt, "fast_info", None) or yt.info
         except Exception:
             info = {}
@@ -572,7 +518,6 @@ class MainWindow(QMainWindow):
                     except Exception:
                         pass
 
-        # 2) Fallback: son kapanış (last close)
         try:
             hist = yt.history(period="5d", auto_adjust=False)
         except Exception as e:
@@ -580,14 +525,12 @@ class MainWindow(QMainWindow):
             return None
 
         if hist is not None and not hist.empty and "Close" in hist:
-            # Close sütunu dolu son satır
             close_series = hist["Close"].dropna()
             if not close_series.empty:
                 last_ts = close_series.index[-1]
                 last_price = close_series.iloc[-1]
                 try:
                     price = Decimal(str(float(last_price)))
-                    # index genelde Timestamp
                     if hasattr(last_ts, "to_pydatetime"):
                         as_of = last_ts.to_pydatetime().replace(tzinfo=timezone.utc)
                     else:
@@ -600,16 +543,12 @@ class MainWindow(QMainWindow):
         return None
 
     def _get_first_trade_date(self) -> Optional[date]:
-        trades = self.portfolio_service._portfolio_repo.get_all_trades()  # ya da repo'ya doğrudan erişiyorsan oradan
+        trades = self.portfolio_service._portfolio_repo.get_all_trades()
         if not trades:
             return None
         return min(t.trade_date for t in trades)
 
     def on_export_range_clicked(self):
-        """
-        'Excel'e Aktar (Aralık)' butonu:
-        Kullanıcıdan tarih aralığı + dosya yolu + overwrite/append tercihi alır.
-        """
         first_date = self._get_first_trade_date()
         if first_date is None:
             QMessageBox.information(self, "Bilgi", "Herhangi bir işlem bulunamadı; aktarılacak veri yok.")
@@ -626,7 +565,6 @@ class MainWindow(QMainWindow):
             return
         start_date, end_date = result
 
-        # Dosya yolu seç
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Excel Dosyası Seç",
@@ -636,7 +574,6 @@ class MainWindow(QMainWindow):
         if not file_path:
             return
 
-        # Kullanıcıdan overwrite / append tercihini sor
         choice = QMessageBox.question(
             self,
             "Yazma Modu",
@@ -666,10 +603,6 @@ class MainWindow(QMainWindow):
 
 
     def on_export_today_clicked(self):
-        """
-        'Bugünü Excel'e Aktar' butonu:
-        İlk işlem tarihinden bugüne kadar olan aralığı export eder.
-        """
         first_date = self._get_first_trade_date()
         if first_date is None:
             QMessageBox.information(self, "Bilgi", "Herhangi bir işlem bulunamadı; aktarılacak veri yok.")
@@ -677,7 +610,6 @@ class MainWindow(QMainWindow):
 
         today = date.today()
 
-        # Dosya yolu seç
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Excel Dosyası Seç",
@@ -687,7 +619,6 @@ class MainWindow(QMainWindow):
         if not file_path:
             return
 
-        # Yazma modu sor
         choice = QMessageBox.question(
             self,
             "Yazma Modu",
