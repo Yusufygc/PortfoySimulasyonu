@@ -8,16 +8,23 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 from typing import List, Optional, Dict, Iterable, Union
-import shutil # Dosya yedekleme için
+import shutil
 
 import pandas as pd
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
+from openpyxl.utils import get_column_letter
 
-# Domain importları
 from src.domain.models.daily_price import DailyPrice
 from src.domain.repositories.portfolio_repository import IPortfolioRepository
 from src.domain.repositories.price_repository import IPriceRepository
 from src.domain.repositories.stock_repository import IStockRepository
 from src.domain.services_interfaces.i_market_data_client import IMarketDataClient
+
+
+# Not: IPriceRepository'de upsert_daily_prices_bulk metodu yoksa ekleyin:
+# def upsert_daily_prices_bulk(self, daily_prices: List[DailyPrice]) -> None:
+#     """Birden fazla günlük fiyatı toplu olarak ekler/günceller"""
+#     ...
 
 
 class ExportMode(str, Enum):
@@ -73,24 +80,21 @@ class ExcelExportService:
     ) -> None:
         file_path = Path(file_path)
         
-        # 1. Veriyi Hazırla
         daily_positions, daily_snapshots = self._build_daily_history(start_date, end_date)
         
-        # 2. DataFrame'leri Oluştur
         detail_df = self._build_detail_df(daily_positions, daily_snapshots)
         summary_df = self._build_summary_df(daily_snapshots)
         stock_summary_df = self._build_stock_summary_df(daily_positions)
+        dashboard_df = self._build_dashboard_df(daily_snapshots, daily_positions)
 
-        # 3. Yazma İşlemi
-        # Eğer dosya yoksa, mod ne olursa olsun taze yaz
         if not file_path.exists():
-            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df)
+            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)
             return
 
         if mode == ExportMode.OVERWRITE:
-            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df)
+            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)
         else:
-            self._append_to_existing_excel(file_path, summary_df, detail_df, stock_summary_df)
+            self._append_to_existing_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)
 
     def _build_daily_history(self, start_date: date, end_date: date):
         if end_date < start_date:
@@ -120,7 +124,6 @@ class ExcelExportService:
 
         cur = start_date
         while cur <= end_date:
-            # 1. İşlemleri Uygula
             while trade_idx < n_trades and relevant_trades[trade_idx].trade_date <= cur:
                 t = relevant_trades[trade_idx]
                 stock_id = t.stock_id
@@ -146,7 +149,6 @@ class ExcelExportService:
                 
                 trade_idx += 1
 
-            # 2. Fiyatları Çek (Eksikse Tamamla)
             active_stock_ids = [sid for sid, st in positions_state.items() if st["qty"] > 0]
             prices_for_day = self.price_repo.get_prices_for_date(cur)
             
@@ -171,7 +173,6 @@ class ExcelExportService:
                         except Exception:
                             pass
 
-            # 3. Hesaplamalar
             has_prices = bool(prices_for_day)
             day_positions_list = []
             portfolio_value = None
@@ -235,7 +236,6 @@ class ExcelExportService:
             else:
                 portfolio_value = last_portfolio_value if last_portfolio_value else None
 
-            # Getiri hesapları
             daily_pnl, daily_ret, cum_pnl, cum_ret = None, None, None, None
             if portfolio_value:
                 if not base_portfolio_value: base_portfolio_value = portfolio_value
@@ -264,6 +264,64 @@ class ExcelExportService:
 
         return daily_positions, daily_snapshots
 
+    def _build_dashboard_df(self, snapshots: List[DailyPortfolioSnapshot], positions: List[DailyPosition]) -> pd.DataFrame:
+        """Özet gösterge paneli"""
+        if not snapshots:
+            return pd.DataFrame()
+        
+        latest_snapshot = snapshots[-1]
+        returns = [s.daily_return_pct for s in snapshots if s.daily_return_pct is not None]
+        
+        # En iyi ve en kötü performans
+        latest_positions = {}
+        for p in positions:
+            latest_positions[p.ticker] = p
+        
+        best_stock = max(latest_positions.values(), 
+                        key=lambda p: p.unrealized_pnl_pct if p.unrealized_pnl_pct else Decimal('-inf'))
+        worst_stock = min(latest_positions.values(),
+                         key=lambda p: p.unrealized_pnl_pct if p.unrealized_pnl_pct else Decimal('inf'))
+        
+        # Volatilite hesapla
+        volatility = None
+        if len(returns) > 1:
+            returns_series = pd.Series([float(r) for r in returns])
+            volatility = float(returns_series.std() * 100)
+        
+        # Maksimum düşüş
+        max_drawdown = self._calculate_max_drawdown(snapshots)
+        
+        records = [
+            {"Metrik": "Güncel Portföy Değeri", "Değer": float(latest_snapshot.total_value) if latest_snapshot.total_value else 0},
+            {"Metrik": "Toplam Kâr/Zarar (TL)", "Değer": float(latest_snapshot.cumulative_pnl) if latest_snapshot.cumulative_pnl else 0},
+            {"Metrik": "Toplam Getiri (%)", "Değer": float(latest_snapshot.cumulative_return_pct * 100) if latest_snapshot.cumulative_return_pct else 0},
+            {"Metrik": "En İyi Performans", "Değer": f"{best_stock.ticker} ({float(best_stock.unrealized_pnl_pct * 100):.2f}%)" if best_stock.unrealized_pnl_pct else "N/A"},
+            {"Metrik": "En Kötü Performans", "Değer": f"{worst_stock.ticker} ({float(worst_stock.unrealized_pnl_pct * 100):.2f}%)" if worst_stock.unrealized_pnl_pct else "N/A"},
+            {"Metrik": "Aktif Pozisyon Sayısı", "Değer": len(latest_positions)},
+            {"Metrik": "Günlük Volatilite (%)", "Değer": f"{volatility:.2f}" if volatility else "N/A"},
+            {"Metrik": "Maksimum Düşüş (%)", "Değer": f"{max_drawdown:.2f}" if max_drawdown else "N/A"},
+        ]
+        
+        return pd.DataFrame(records)
+
+    def _calculate_max_drawdown(self, snapshots: List[DailyPortfolioSnapshot]) -> Optional[float]:
+        """Maksimum düşüş hesapla"""
+        values = [float(s.total_value) for s in snapshots if s.total_value]
+        if len(values) < 2:
+            return None
+        
+        peak = values[0]
+        max_dd = 0
+        
+        for value in values:
+            if value > peak:
+                peak = value
+            dd = (peak - value) / peak * 100
+            if dd > max_dd:
+                max_dd = dd
+        
+        return max_dd
+
     def _build_detail_df(self, positions: Iterable[DailyPosition], snapshots: Iterable[DailyPortfolioSnapshot]) -> pd.DataFrame:
         snapshot_map = {s.date: s for s in snapshots}
         positions_by_date = {}
@@ -286,16 +344,16 @@ class ExcelExportService:
             for p in day_positions:
                 records.append({
                     "Tarih": p.date,
-                    "Ticker": p.ticker,
-                    "Lot": p.quantity,
-                    "Ortalama Maliyet": float(p.avg_cost),
-                    "Güncel Fiyat": float(p.close_price) if p.close_price else None,
-                    "Pozisyon Değeri": float(p.position_value) if p.position_value else None,
-                    "Maliyet Esası": float(p.cost_basis),
-                    "Günlük Fiyat Değişim %": float(p.daily_price_change_pct) if p.daily_price_change_pct else None,
-                    "Gerç. Olmayan K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl else None,
-                    "Gerç. Olmayan K/Z %": float(p.unrealized_pnl_pct) if p.unrealized_pnl_pct else None,
-                    "Portföy Ağırlığı %": float(p.weight_pct) if p.weight_pct else None,
+                    "Hisse": p.ticker,
+                    "Adet": p.quantity,
+                    "Ort. Maliyet (TL)": float(p.avg_cost),
+                    "Güncel Fiyat (TL)": float(p.close_price) if p.close_price else None,
+                    "Pozisyon Değeri (TL)": float(p.position_value) if p.position_value else None,
+                    "Maliyet Esası (TL)": float(p.cost_basis),
+                    "Günlük Fiyat Değ. (%)": float(p.daily_price_change_pct * 100) if p.daily_price_change_pct else None,
+                    "K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl else None,
+                    "K/Z (%)": float(p.unrealized_pnl_pct * 100) if p.unrealized_pnl_pct else None,
+                    "Portföy Ağırlığı (%)": float(p.weight_pct * 100) if p.weight_pct else None,
                 })
                 
                 if p.cost_basis: total_cost_basis += p.cost_basis
@@ -303,32 +361,25 @@ class ExcelExportService:
                 if p.unrealized_pnl_tl: total_unrealized_pnl_tl += p.unrealized_pnl_tl
 
             snapshot = snapshot_map.get(d)
-            total_unrealized_pct = (total_unrealized_pnl_tl / total_cost_basis) if total_cost_basis != 0 else None
-            portfolio_daily_ret = snapshot.daily_return_pct if snapshot else None
+            total_unrealized_pct = (total_unrealized_pnl_tl / total_cost_basis * 100) if total_cost_basis != 0 else None
+            portfolio_daily_ret = (snapshot.daily_return_pct * 100) if snapshot and snapshot.daily_return_pct else None
             
             summary_row = {
                 "Tarih": d,
-                "Ticker": ">>> GÜNLÜK TOPLAM <<<",
-                "Lot": None,
-                "Ortalama Maliyet": None,
-                "Güncel Fiyat": None,
-                "Pozisyon Değeri": float(total_position_value),
-                "Maliyet Esası": float(total_cost_basis),
-                "Günlük Fiyat Değişim %": float(portfolio_daily_ret) if portfolio_daily_ret is not None else None,
-                "Gerç. Olmayan K/Z (TL)": float(total_unrealized_pnl_tl),
-                "Gerç. Olmayan K/Z %": float(total_unrealized_pct) if total_unrealized_pct is not None else None,
-                "Portföy Ağırlığı %": 1.0,
+                "Hisse": "GÜNLÜK TOPLAM ➤➤➤",
+                "Adet": None,
+                "Ort. Maliyet (TL)": None,
+                "Güncel Fiyat (TL)": None,
+                "Pozisyon Değeri (TL)": float(total_position_value),
+                "Maliyet Esası (TL)": float(total_cost_basis),
+                "Günlük Fiyat Değ. (%)": float(portfolio_daily_ret) if portfolio_daily_ret is not None else None,
+                "K/Z (TL)": float(total_unrealized_pnl_tl),
+                "K/Z (%)": float(total_unrealized_pct) if total_unrealized_pct is not None else None,
+                "Portföy Ağırlığı (%)": 100.0,
             }
             records.append(summary_row)
 
         df = pd.DataFrame.from_records(records)
-        cols = [
-            "Tarih", "Ticker", "Lot", "Ortalama Maliyet", "Güncel Fiyat", 
-            "Pozisyon Değeri", "Maliyet Esası", "Günlük Fiyat Değişim %", 
-            "Gerç. Olmayan K/Z (TL)", "Gerç. Olmayan K/Z %", "Portföy Ağırlığı %"
-        ]
-        if not df.empty:
-            df = df[cols]
         return df
 
     def _build_stock_summary_df(self, positions: List[DailyPosition]) -> pd.DataFrame:
@@ -345,19 +396,19 @@ class ExcelExportService:
         records = []
         for ticker, p in latest_positions.items():
             records.append({
-                "Ticker": ticker,
-                "Son Lot": p.quantity,
-                "Ort. Maliyet": float(p.avg_cost),
-                "Son Fiyat": float(p.close_price) if p.close_price else None,
-                "Son Pozisyon Değeri": float(p.position_value) if p.position_value else None,
-                "Toplam Gerç.Olmayan K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl else None,
-                "Toplam Gerç.Olmayan K/Z %": float(p.unrealized_pnl_pct) if p.unrealized_pnl_pct else None,
-                "Gün Sayısı": stock_days_count[ticker]
+                "Hisse": ticker,
+                "Son Adet": p.quantity,
+                "Ort. Maliyet (TL)": float(p.avg_cost),
+                "Son Fiyat (TL)": float(p.close_price) if p.close_price else None,
+                "Son Pozisyon Değeri (TL)": float(p.position_value) if p.position_value else None,
+                "K/Z (TL)": float(p.unrealized_pnl_tl) if p.unrealized_pnl_tl else None,
+                "K/Z (%)": float(p.unrealized_pnl_pct * 100) if p.unrealized_pnl_pct else None,
+                "Toplam Gün Sayısı": stock_days_count[ticker]
             })
         
         df = pd.DataFrame.from_records(records)
         if not df.empty:
-            df = df.sort_values("Ticker").reset_index(drop=True)
+            df = df.sort_values("Hisse").reset_index(drop=True)
         return df
 
     def _build_summary_df(self, snapshots: Iterable[DailyPortfolioSnapshot]) -> pd.DataFrame:
@@ -365,11 +416,11 @@ class ExcelExportService:
         for s in snapshots:
             records.append({
                 "Tarih": s.date,
-                "Portföy Değeri": float(s.total_value) if s.total_value else None,
-                "Günlük Getiri %": float(s.daily_return_pct) if s.daily_return_pct else None,
-                "Toplam Getiri %": float(s.cumulative_return_pct) if s.cumulative_return_pct else None,
-                "Günlük K/Z": float(s.daily_pnl) if s.daily_pnl else None,
-                "Toplam K/Z": float(s.cumulative_pnl) if s.cumulative_pnl else None,
+                "Portföy Değeri (TL)": float(s.total_value) if s.total_value else None,
+                "Günlük Getiri (%)": float(s.daily_return_pct * 100) if s.daily_return_pct else None,
+                "Toplam Getiri (%)": float(s.cumulative_return_pct * 100) if s.cumulative_return_pct else None,
+                "Günlük K/Z (TL)": float(s.daily_pnl) if s.daily_pnl else None,
+                "Toplam K/Z (TL)": float(s.cumulative_pnl) if s.cumulative_pnl else None,
                 "Durum": s.status,
             })
         df = pd.DataFrame.from_records(records)
@@ -377,67 +428,181 @@ class ExcelExportService:
             df = df.sort_values("Tarih").reset_index(drop=True)
         return df
 
-    def _write_fresh_excel(self, file_path: Path, summary_df: pd.DataFrame, detail_df: pd.DataFrame, stock_summary_df: pd.DataFrame) -> None:
+    def _write_fresh_excel(self, file_path: Path, summary_df: pd.DataFrame, detail_df: pd.DataFrame, 
+                          stock_summary_df: pd.DataFrame, dashboard_df: pd.DataFrame) -> None:
         try:
             with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
-                detail_df.to_excel(writer, sheet_name="StockDetails", index=False)
-                summary_df.to_excel(writer, sheet_name="PortfolioSummary", index=False)
-                stock_summary_df.to_excel(writer, sheet_name="StockSummary", index=False)
+                # Sayfa sırası: Dashboard ilk
+                dashboard_df.to_excel(writer, sheet_name="Özet Panel", index=False)
+                summary_df.to_excel(writer, sheet_name="Portföy Özeti", index=False)
+                detail_df.to_excel(writer, sheet_name="Günlük Detaylar", index=False)
+                stock_summary_df.to_excel(writer, sheet_name="Hisse Özeti", index=False)
+                
+                # Formatlamayı uygula
+                self._apply_formatting(writer, "Özet Panel", dashboard_df)
+                self._apply_formatting(writer, "Portföy Özeti", summary_df)
+                self._apply_formatting(writer, "Günlük Detaylar", detail_df)
+                self._apply_formatting(writer, "Hisse Özeti", stock_summary_df)
+                
         except PermissionError:
             raise PermissionError(f"Dosyaya yazılamadı: {file_path}\nDosya açık olabilir. Lütfen kapatıp tekrar deneyin.")
 
-    def _append_to_existing_excel(self, file_path: Path, summary_df: pd.DataFrame, detail_df: pd.DataFrame, stock_summary_df: pd.DataFrame) -> None:
-        # GÜVENLİK KONTROLÜ: Dosya açık mı?
+    def _apply_formatting(self, writer, sheet_name: str, df: pd.DataFrame):
+        """Profesyonel Excel formatlaması"""
+        if df.empty:
+            return
+            
+        worksheet = writer.sheets[sheet_name]
+        
+        # 1. BAŞLIK SATIRI - Koyu mavi arka plan, beyaz kalın yazı
+        header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        thin_border = Border(
+            left=Side(style='thin'), right=Side(style='thin'),
+            top=Side(style='thin'), bottom=Side(style='thin')
+        )
+        
+        for col_num, column_title in enumerate(df.columns, 1):
+            cell = worksheet.cell(row=1, column=col_num)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            cell.border = thin_border
+        
+        # 2. ZEBRASI SATIRLAR - Açık gri/beyaz
+        light_gray = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+        
+        for row_num in range(2, len(df) + 2):
+            for col_num in range(1, len(df.columns) + 1):
+                cell = worksheet.cell(row=row_num, column=col_num)
+                if row_num % 2 == 0:
+                    cell.fill = light_gray
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical="center")
+        
+        # 3. SAYISAL FORMATLAR - Binlik ayırıcı ve ondalık
+        for col_num, col_name in enumerate(df.columns, 1):
+            for row_num in range(2, len(df) + 2):
+                cell = worksheet.cell(row=row_num, column=col_num)
+                
+                # TL sütunları - binlik nokta, 2 ondalık
+                if "(TL)" in col_name and cell.value is not None:
+                    if "Ort. Maliyet" in col_name or "Güncel Fiyat" in col_name or "Son Fiyat" in col_name:
+                        cell.number_format = '#,##0.00'  # Fiyatlar: 2 ondalık
+                    else:
+                        cell.number_format = '#,##0.00'  # Tutarlar: 2 ondalık
+                
+                # Yüzde sütunları
+                elif "(%)" in col_name and cell.value is not None:
+                    cell.number_format = '0.00"%"'
+                
+                # Adet sütunu - tam sayı
+                elif col_name in ["Adet", "Son Adet", "Lot", "Toplam Gün Sayısı", "Aktif Pozisyon Sayısı"] and cell.value is not None:
+                    cell.number_format = '#,##0'
+        
+        # 4. KOŞULLU RENKLENDIRME - Kâr/Zarar sütunları
+        green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
+        green_font = Font(color="006100", bold=True)
+        red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
+        red_font = Font(color="9C0006", bold=True)
+        
+        for col_num, col_name in enumerate(df.columns, 1):
+            if "K/Z" in col_name or "Getiri" in col_name:
+                for row_num in range(2, len(df) + 2):
+                    cell = worksheet.cell(row=row_num, column=col_num)
+                    if cell.value and isinstance(cell.value, (int, float)):
+                        if cell.value > 0:
+                            cell.fill = green_fill
+                            cell.font = green_font
+                        elif cell.value < 0:
+                            cell.fill = red_fill
+                            cell.font = red_font
+        
+        # 5. TOPLAM SATIRLARINI VURGULA
+        bold_font = Font(bold=True, size=11)
+        summary_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+        
+        for row_num in range(2, len(df) + 2):
+            ticker_cell = None
+            for col_num, col_name in enumerate(df.columns, 1):
+                if "Hisse" in col_name or "Ticker" in col_name:
+                    ticker_cell = worksheet.cell(row=row_num, column=col_num)
+                    break
+            
+            if ticker_cell and ticker_cell.value and ("TOPLAM" in str(ticker_cell.value) or "▼" in str(ticker_cell.value)):
+                for col_num in range(1, len(df.columns) + 1):
+                    cell = worksheet.cell(row=row_num, column=col_num)
+                    cell.font = bold_font
+                    cell.fill = summary_fill
+        
+        # 6. SÜTUN GENİŞLİKLERİ - Otomatik ayarlama
+        for idx, col in enumerate(df.columns, 1):
+            max_length = len(str(col))
+            for row_num in range(2, min(len(df) + 2, 100)):  # İlk 100 satıra bak
+                cell_value = worksheet.cell(row=row_num, column=idx).value
+                if cell_value:
+                    max_length = max(max_length, len(str(cell_value)))
+            
+            adjusted_width = min(max_length + 3, 50)  # Max 50 karakter
+            worksheet.column_dimensions[get_column_letter(idx)].width = adjusted_width
+        
+        # 7. BAŞLIK SATIRINI DONDUR
+        worksheet.freeze_panes = "A2"
+        
+        # 8. OTOM ATİK FİLTRE
+        worksheet.auto_filter.ref = f"A1:{get_column_letter(len(df.columns))}1"
+
+    def _append_to_existing_excel(self, file_path: Path, summary_df: pd.DataFrame, detail_df: pd.DataFrame,
+                                  stock_summary_df: pd.DataFrame, dashboard_df: pd.DataFrame) -> None:
         try:
-            # Sadece okumayı dene, açıksa hata verir
             with open(file_path, "r+"):
                 pass
         except PermissionError:
             raise PermissionError(f"Dosya şu an açık: {file_path.name}\nLütfen Excel dosyasını kapatıp tekrar deneyin.")
         except Exception:
-            pass # Dosya yoksa veya başka sorunsa devam et
+            pass
 
         try:
             with pd.ExcelFile(file_path, engine='openpyxl') as xls:
-                # Sayfaları oku, yoksa boş DataFrame oluştur
                 sheet_names = xls.sheet_names
                 
-                existing_summary = pd.read_excel(xls, sheet_name="PortfolioSummary") if "PortfolioSummary" in sheet_names else pd.DataFrame()
-                existing_detail = pd.read_excel(xls, sheet_name="StockDetails") if "StockDetails" in sheet_names else pd.DataFrame()
-                existing_stock_sum = pd.read_excel(xls, sheet_name="StockSummary") if "StockSummary" in sheet_names else pd.DataFrame()
+                existing_summary = pd.read_excel(xls, sheet_name="Portföy Özeti") if "Portföy Özeti" in sheet_names else pd.DataFrame()
+                existing_detail = pd.read_excel(xls, sheet_name="Günlük Detaylar") if "Günlük Detaylar" in sheet_names else pd.DataFrame()
+                existing_stock_sum = pd.read_excel(xls, sheet_name="Hisse Özeti") if "Hisse Özeti" in sheet_names else pd.DataFrame()
+                existing_dashboard = pd.read_excel(xls, sheet_name="Özet Panel") if "Özet Panel" in sheet_names else pd.DataFrame()
         except Exception as e:
-            # Dosya bozuksa veya format çok eskiyse
             print(f"Eski dosya okunamadı: {e}. Dosya yedeklenip yeniden oluşturulacak.")
             backup_path = file_path.with_suffix(file_path.suffix + ".bak")
             shutil.copy(file_path, backup_path)
-            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df)
+            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)
             return
 
-        # BİRLEŞTİRME VE TEMİZLEME
-        
-        # 1. Özet Tablo
+        # Birleştirme
         combined_summary = pd.concat([existing_summary, summary_df], ignore_index=True)
         if not combined_summary.empty and "Tarih" in combined_summary.columns:
-            # Tarihe göre tekrar edenleri sil (son ekleneni tut)
             combined_summary = combined_summary.drop_duplicates(subset=["Tarih"], keep="last").sort_values("Tarih").reset_index(drop=True)
 
-        # 2. Detay Tablo
         combined_detail = pd.concat([existing_detail, detail_df], ignore_index=True)
-        if not combined_detail.empty and "Tarih" in combined_detail.columns and "Ticker" in combined_detail.columns:
-            # Aynı gün aynı hisse için çift kaydı önle
-            # Not: ">>> GÜNLÜK TOPLAM <<<" satırları da Ticker olduğu için mantık bozulmaz
-            combined_detail = combined_detail.drop_duplicates(subset=["Tarih", "Ticker"], keep="last").sort_values(["Tarih", "Ticker"]).reset_index(drop=True)
+        if not combined_detail.empty and "Tarih" in combined_detail.columns and "Hisse" in combined_detail.columns:
+            combined_detail = combined_detail.drop_duplicates(subset=["Tarih", "Hisse"], keep="last").sort_values(["Tarih", "Hisse"]).reset_index(drop=True)
             
-        # 3. Hisse Özet Tablosu
         combined_stock_sum = pd.concat([existing_stock_sum, stock_summary_df], ignore_index=True)
-        if not combined_stock_sum.empty and "Ticker" in combined_stock_sum.columns:
-            combined_stock_sum = combined_stock_sum.drop_duplicates(subset=["Ticker"], keep="last").sort_values("Ticker").reset_index(drop=True)
+        if not combined_stock_sum.empty and "Hisse" in combined_stock_sum.columns:
+            combined_stock_sum = combined_stock_sum.drop_duplicates(subset=["Hisse"], keep="last").sort_values("Hisse").reset_index(drop=True)
+        
+        # Dashboard her zaman en güncel veriyi gösterir
+        combined_dashboard = dashboard_df
 
-        # 4. DOSYAYA YAZ
         try:
             with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
-                combined_detail.to_excel(writer, sheet_name="StockDetails", index=False)
-                combined_summary.to_excel(writer, sheet_name="PortfolioSummary", index=False)
-                combined_stock_sum.to_excel(writer, sheet_name="StockSummary", index=False)
+                combined_dashboard.to_excel(writer, sheet_name="Özet Panel", index=False)
+                combined_summary.to_excel(writer, sheet_name="Portföy Özeti", index=False)
+                combined_detail.to_excel(writer, sheet_name="Günlük Detaylar", index=False)
+                combined_stock_sum.to_excel(writer, sheet_name="Hisse Özeti", index=False)
+                
+                self._apply_formatting(writer, "Özet Panel", combined_dashboard)
+                self._apply_formatting(writer, "Portföy Özeti", combined_summary)
+                self._apply_formatting(writer, "Günlük Detaylar", combined_detail)
+                self._apply_formatting(writer, "Hisse Özeti", combined_stock_sum)
         except PermissionError:
-             raise PermissionError(f"Dosyaya yazılamadı: {file_path}\nDosya açık olabilir. Lütfen kapatıp tekrar deneyin.")
+            raise PermissionError(f"Dosyaya yazılamadı: {file_path}\nDosya açık olabilir. Lütfen kapatıp tekrar deneyin.")
