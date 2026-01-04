@@ -51,6 +51,7 @@ class DailyPortfolioSnapshot:
     daily_pnl: Optional[Decimal]
     cumulative_pnl: Optional[Decimal]
     status: str
+    #active_stock_count: int 
 
 
 class ExcelExportService:
@@ -181,6 +182,7 @@ class ExcelExportService:
             has_prices = bool(prices_for_day)
             day_positions_list = []
             portfolio_value = None
+            total_cost_basis = Decimal("0") 
 
             if has_prices:
                 total_value = Decimal("0")
@@ -192,6 +194,7 @@ class ExcelExportService:
 
                     avg_cost = (state["total_cost"] / state["qty"]) if state["qty"] != 0 else Decimal("0")
                     cost_basis = avg_cost * Decimal(qty)
+                    total_cost_basis += cost_basis
                     
                     close_price = prices_for_day.get(stock_id)
 
@@ -200,18 +203,21 @@ class ExcelExportService:
                         total_value += pos_val
                         
                         last_c = last_close_by_stock.get(stock_id)
-                        if last_c and last_c != 0:
-                            daily_chg = (close_price / last_c) - 1
-                            # YENİ: Günlük PnL = (Bugünkü Fiyat - Dünkü Fiyat) * Adet
-                            daily_pos_pnl = (close_price - last_c) * Decimal(qty)
-                        else:
-                            daily_chg = None
-                            daily_pos_pnl = None
+                        daily_chg = ((close_price / last_c) - 1) if (last_c and last_c != 0) else None
                         
+                        # ÖNCE unrealized_tl hesapla
                         unrealized_tl = (close_price - avg_cost) * Decimal(qty)
                         unrealized_pct = (unrealized_tl / cost_basis) if cost_basis != 0 else None
+
+                        # SONRA daily_pnl_stock hesapla
+                        if last_c and last_c != 0:
+                            # Normal gün: (Bugün - Dün) * Adet
+                            daily_pnl_stock = (close_price - last_c) * Decimal(qty)
+                        else:
+                            # İlk gün: Toplam kar/zarar = günlük kar/zarar
+                            daily_pnl_stock = unrealized_tl
                     else:
-                        pos_val, daily_chg, daily_pos_pnl, unrealized_tl, unrealized_pct = None, None, None, None, None
+                        pos_val, daily_chg, daily_pnl_stock, unrealized_tl, unrealized_pct = None, None, None, None, None
 
                     temp_positions.append({
                         "ticker": ticker_map.get(stock_id, f"ID_{stock_id}"),
@@ -221,7 +227,7 @@ class ExcelExportService:
                         "close_price": close_price,
                         "pos_val": pos_val,
                         "daily_chg": daily_chg,
-                        "daily_pos_pnl": daily_pos_pnl,  # <--- Eklendi
+                        "daily_pnl": daily_pnl_stock,  # DOĞRU değişken adı
                         "unr_tl": unrealized_tl,
                         "unr_pct": unrealized_pct
                     })
@@ -237,7 +243,7 @@ class ExcelExportService:
                         close_price=tmp["close_price"],
                         position_value=tmp["pos_val"],
                         daily_price_change_pct=tmp["daily_chg"],
-                        daily_pnl_tl=tmp["daily_pos_pnl"], # <--- Eklendi
+                        daily_pnl_tl=tmp["daily_pnl"],  # DOĞRU alan adı
                         unrealized_pnl_tl=tmp["unr_tl"],
                         unrealized_pnl_pct=tmp["unr_pct"],
                         weight_pct=w_pct
@@ -251,15 +257,30 @@ class ExcelExportService:
 
             daily_pnl, daily_ret, cum_pnl, cum_ret = None, None, None, None
             if portfolio_value:
-                if not base_portfolio_value: base_portfolio_value = portfolio_value
+                if not base_portfolio_value: 
+                    base_portfolio_value = portfolio_value
                 
                 if last_portfolio_value:
+                    # Normal gün
                     daily_pnl = portfolio_value - last_portfolio_value
-                    daily_ret = (daily_pnl / last_portfolio_value) if last_portfolio_value else None
+                    daily_ret = (daily_pnl / last_portfolio_value)
+                elif total_cost_basis > 0:
+                    # İLK GÜN
+                    daily_pnl = portfolio_value - total_cost_basis
+                    daily_ret = (daily_pnl / total_cost_basis)
                 
+                # Kümülatif hesaplar
                 if base_portfolio_value:
-                    cum_pnl = portfolio_value - base_portfolio_value
-                    cum_ret = (cum_pnl / base_portfolio_value) if base_portfolio_value else None
+                    if portfolio_value == base_portfolio_value and total_cost_basis > 0:
+                        cum_pnl = portfolio_value - total_cost_basis
+                        cum_ret = (cum_pnl / total_cost_basis)
+                    else:
+                        if total_cost_basis > 0:
+                            cum_pnl = portfolio_value - total_cost_basis
+                            cum_ret = (cum_pnl / total_cost_basis)
+                        else:
+                            cum_pnl = portfolio_value - base_portfolio_value
+                            cum_ret = (cum_pnl / base_portfolio_value)
 
             status = "Piyasa Açık" if has_prices else ("Hafta Sonu" if is_weekend else "Veri Yok")
             
@@ -285,9 +306,11 @@ class ExcelExportService:
         latest_snapshot = snapshots[-1]
         returns = [s.daily_return_pct for s in snapshots if s.daily_return_pct is not None]
         
+        latest_date = latest_snapshot.date
         latest_positions = {}
         for p in positions:
-            latest_positions[p.ticker] = p
+            if p.date == latest_date:  # <--- Sadece son günü al
+                latest_positions[p.ticker] = p
         
         best_stock = max(latest_positions.values(), 
                         key=lambda p: p.unrealized_pnl_pct if p.unrealized_pnl_pct else Decimal('-inf'))
@@ -374,7 +397,9 @@ class ExcelExportService:
 
             snapshot = snapshot_map.get(d)
             total_unrealized_ratio = (total_unrealized_pnl_tl / total_cost_basis) if (total_cost_basis and total_cost_basis != 0) else None
-            
+            portfolio_daily_ret = snapshot.daily_return_pct if snapshot else None
+            portfolio_daily_pnl = snapshot.daily_pnl if snapshot else None
+
             summary_row = {
                 "Tarih":None,# d,
                 "Hisse": "GÜNLÜK TOPLAM ➤➤➤",
@@ -383,8 +408,8 @@ class ExcelExportService:
                 "Güncel Fiyat (TL)": None,
                 "Toplam Maliyet (TL)": float(total_cost_basis),
                 "Pozisyon Değeri (TL)": float(total_position_value),
-                "Günlük Fiyat Değ. (%)":None,# self._format_pct(snapshot.daily_return_pct) if snapshot else None,
-                "Günlük K/Z (TL)": float(snapshot.daily_pnl) if snapshot and snapshot.daily_pnl else None, # <--- Portföy Toplam Günlük K/Z
+                "Günlük Fiyat Değ. (%)": self._format_pct(portfolio_daily_ret),
+                "Günlük K/Z (TL)": float(portfolio_daily_pnl) if portfolio_daily_pnl is not None else None,
                 "Toplam K/Z (TL)": float(total_unrealized_pnl_tl),
                 "Toplam K/Z (%)": self._format_pct(total_unrealized_ratio),
                 "Portföy Ağırlığı (%)": self._format_pct(Decimal("1.0")),
