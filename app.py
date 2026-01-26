@@ -7,6 +7,7 @@ from src.infrastructure.db.portfolio_repository import MySQLPortfolioRepository
 from src.infrastructure.db.price_repository import MySQLPriceRepository
 from src.infrastructure.db.stock_repository import MySQLStockRepository
 from src.infrastructure.db.watchlist_repository import MySQLWatchlistRepository
+from src.infrastructure.db.model_portfolio_repository import MySQLModelPortfolioRepository
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
 
 from src.application.services.portfolio_service import PortfolioService
@@ -16,6 +17,7 @@ from src.application.services.portfolio_update_coordinator import PortfolioUpdat
 from src.application.services.portfolio_reset_service import PortfolioResetService
 from src.application.services.excel_export_service import ExcelExportService, ExportMode
 from src.application.services.watchlist_service import WatchlistService
+from src.application.services.model_portfolio_service import ModelPortfolioService
 
 from src.ui.style import apply_app_style
 from src.ui.main_window import MainWindow
@@ -34,6 +36,7 @@ def main():
     price_repo = MySQLPriceRepository(conn_provider)
     stock_repo = MySQLStockRepository(conn_provider)
     watchlist_repo = MySQLWatchlistRepository(conn_provider)
+    model_portfolio_repo = MySQLModelPortfolioRepository(conn_provider)
 
     # 3) Market data client (yfinance)
     market_client = YFinanceMarketDataClient()
@@ -51,6 +54,10 @@ def main():
     )
     watchlist_service = WatchlistService(
         watchlist_repo=watchlist_repo,
+        stock_repo=stock_repo,
+    )
+    model_portfolio_service = ModelPortfolioService(
+        model_portfolio_repo=model_portfolio_repo,
         stock_repo=stock_repo,
     )
     # 5) Coordinator
@@ -71,6 +78,7 @@ def main():
         market_client=market_client, 
         excel_export_service=excel_export_service,
         watchlist_service=watchlist_service,
+        model_portfolio_service=model_portfolio_service,
     )
     window.show()
 

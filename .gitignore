@@ -1,6 +1,9 @@
 *.sql
 *.xlsx
 
+/Eklenebilirler.txt
+/sorun.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -28,6 +28,7 @@ from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
 from src.ui.portfolio_table_model import PortfolioTableModel
 from src.ui.widgets.edit_stock_dialog import EditStockDialog
 from src.ui.widgets.watchlist_manager_dialog import WatchlistManagerDialog
+from src.ui.widgets.model_portfolio_manager_dialog import ModelPortfolioManagerDialog
 
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
@@ -56,6 +57,7 @@ class MainWindow(QMainWindow):
         reset_service,
         market_client,
         watchlist_service=None,
+        model_portfolio_service=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -67,6 +69,7 @@ class MainWindow(QMainWindow):
         self.market_client = market_client
         self.excel_export_service = excel_export_service
         self.watchlist_service = watchlist_service
+        self.model_portfolio_service = model_portfolio_service
         
         self.setWindowTitle("Portföy Simülasyonu")
         self.resize(1000, 600)
@@ -114,6 +117,9 @@ class MainWindow(QMainWindow):
         self.btn_watchlists = QPushButton("📋 Listelerim")
         self.btn_watchlists.setCursor(Qt.PointingHandCursor)
 
+        self.btn_model_portfolios = QPushButton("📊 Model Portföyler")
+        self.btn_model_portfolios.setCursor(Qt.PointingHandCursor)
+
         self.btn_reset_portfolio = QPushButton("Sistemi Sıfırla")
         self.btn_reset_portfolio.setStyleSheet("color: #ef4444;")
         self.btn_reset_portfolio.setCursor(Qt.PointingHandCursor)
@@ -141,6 +147,7 @@ class MainWindow(QMainWindow):
         
         # Listelerim butonu
         self.sidebar_layout.addWidget(self.btn_watchlists)
+        self.sidebar_layout.addWidget(self.btn_model_portfolios)
         self.sidebar_layout.addStretch()
         self.sidebar_layout.addWidget(self.btn_reset_portfolio)
 
@@ -204,6 +211,7 @@ class MainWindow(QMainWindow):
         self.btn_export_today.clicked.connect(self.on_export_today_clicked)
         self.btn_reset_portfolio.clicked.connect(self.on_reset_portfolio_clicked)
         self.btn_watchlists.clicked.connect(self.on_watchlists_clicked)
+        self.btn_model_portfolios.clicked.connect(self.on_model_portfolios_clicked)
 
 
     # --------- Başlangıç verisi yükleme --------- #
@@ -509,6 +517,23 @@ class MainWindow(QMainWindow):
 
         dialog = WatchlistManagerDialog(
             watchlist_service=self.watchlist_service,
+            price_lookup_func=self.lookup_price_for_ticker,
+            parent=self,
+        )
+        dialog.exec_()
+
+    def on_model_portfolios_clicked(self):
+        """Model Portföy yönetimi diyaloğunu açar."""
+        if self.model_portfolio_service is None:
+            QMessageBox.warning(
+                self,
+                "Uyarı",
+                "Model Portföy servisi yüklenmedi. Lütfen uygulamayı yeniden başlatın."
+            )
+            return
+
+        dialog = ModelPortfolioManagerDialog(
+            model_portfolio_service=self.model_portfolio_service,
             price_lookup_func=self.lookup_price_for_ticker,
             parent=self,
         )
