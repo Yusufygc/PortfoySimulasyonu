@@ -27,6 +27,7 @@ from src.ui.widgets.trade_dialog import TradeDialog
 from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
 from src.ui.portfolio_table_model import PortfolioTableModel
 from src.ui.widgets.edit_stock_dialog import EditStockDialog
+from src.ui.widgets.watchlist_manager_dialog import WatchlistManagerDialog
 
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
@@ -54,6 +55,7 @@ class MainWindow(QMainWindow):
         stock_repo,
         reset_service,
         market_client,
+        watchlist_service=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -64,6 +66,7 @@ class MainWindow(QMainWindow):
         self.reset_service = reset_service
         self.market_client = market_client
         self.excel_export_service = excel_export_service
+        self.watchlist_service = watchlist_service
         
         self.setWindowTitle("Portföy Simülasyonu")
         self.resize(1000, 600)
@@ -108,6 +111,9 @@ class MainWindow(QMainWindow):
         self.btn_export_range = QPushButton("Rapor: Tarih Aralığı")
         self.btn_export_range.setCursor(Qt.PointingHandCursor)
         
+        self.btn_watchlists = QPushButton("📋 Listelerim")
+        self.btn_watchlists.setCursor(Qt.PointingHandCursor)
+
         self.btn_reset_portfolio = QPushButton("Sistemi Sıfırla")
         self.btn_reset_portfolio.setStyleSheet("color: #ef4444;")
         self.btn_reset_portfolio.setCursor(Qt.PointingHandCursor)
@@ -126,6 +132,15 @@ class MainWindow(QMainWindow):
         # Rapor butonlarını ekle (Checkbox kaldırıldı)
         self.sidebar_layout.addWidget(self.btn_export_today)
         self.sidebar_layout.addWidget(self.btn_export_range)
+        
+        # Ayraç 2
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setStyleSheet("background-color: #334155;")
+        self.sidebar_layout.addWidget(line2)
+        
+        # Listelerim butonu
+        self.sidebar_layout.addWidget(self.btn_watchlists)
         self.sidebar_layout.addStretch()
         self.sidebar_layout.addWidget(self.btn_reset_portfolio)
 
@@ -188,6 +203,7 @@ class MainWindow(QMainWindow):
         self.btn_export_range.clicked.connect(self.on_export_range_clicked)
         self.btn_export_today.clicked.connect(self.on_export_today_clicked)
         self.btn_reset_portfolio.clicked.connect(self.on_reset_portfolio_clicked)
+        self.btn_watchlists.clicked.connect(self.on_watchlists_clicked)
 
 
     # --------- Başlangıç verisi yükleme --------- #
@@ -480,6 +496,23 @@ class MainWindow(QMainWindow):
         self.lbl_monthly_return.setText("Aylık Getiri: -")
 
         QMessageBox.information(self, "Tamamlandı", "Portföy başarıyla sıfırlandı.")
+
+    def on_watchlists_clicked(self):
+        """Watchlist yönetimi diyaloğunu açar."""
+        if self.watchlist_service is None:
+            QMessageBox.warning(
+                self,
+                "Uyarı",
+                "Watchlist servisi yüklenmedi. Lütfen uygulamayı yeniden başlatın."
+            )
+            return
+
+        dialog = WatchlistManagerDialog(
+            watchlist_service=self.watchlist_service,
+            price_lookup_func=self.lookup_price_for_ticker,
+            parent=self,
+        )
+        dialog.exec_()
 
     def lookup_price_for_ticker(self, ticker: str) -> Optional[PriceLookupResult]:
         if not ticker:
