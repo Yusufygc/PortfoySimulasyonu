@@ -36,6 +36,7 @@ class MainWindow(QMainWindow):
     PAGE_DASHBOARD = 0
     PAGE_WATCHLIST = 1
     PAGE_MODEL_PORTFOLIO = 2
+    PAGE_ANALYSIS = 3
 
     def __init__(
         self,
@@ -102,14 +103,15 @@ class MainWindow(QMainWindow):
         # Ayraç
         self._add_separator()
 
-        # Navigasyon Butonları
         self.btn_dashboard = self._create_nav_button("🏠 Dashboard", self.PAGE_DASHBOARD)
         self.btn_watchlist = self._create_nav_button("📋 Listelerim", self.PAGE_WATCHLIST)
         self.btn_model_portfolio = self._create_nav_button("📊 Model Portföyler", self.PAGE_MODEL_PORTFOLIO)
+        self.btn_analysis = self._create_nav_button("📈 Analiz", self.PAGE_ANALYSIS)
 
         self.sidebar_layout.addWidget(self.btn_dashboard)
         self.sidebar_layout.addWidget(self.btn_watchlist)
         self.sidebar_layout.addWidget(self.btn_model_portfolio)
+        self.sidebar_layout.addWidget(self.btn_analysis)
 
         self.sidebar_layout.addStretch()
 
@@ -206,12 +208,20 @@ class MainWindow(QMainWindow):
         )
         self.stacked_widget.addWidget(self.watchlist_page)  # Index 1
 
-        # Model Portfolio Page
         self.model_portfolio_page = ModelPortfolioPage(
             model_portfolio_service=self.model_portfolio_service,
             price_lookup_func=self.lookup_price_for_ticker,
         )
         self.stacked_widget.addWidget(self.model_portfolio_page)  # Index 2
+
+        # Analysis Page
+        from src.ui.pages.analysis_page import AnalysisPage
+        self.analysis_page = AnalysisPage(
+            stock_repo=self.stock_repo,
+            portfolio_service=self.portfolio_service,
+            price_repo=None,  # Opsiyonel
+        )
+        self.stacked_widget.addWidget(self.analysis_page)  # Index 3
 
     def _goto_page(self, page_index: int):
         """Belirtilen sayfaya geçiş yapar."""
@@ -259,6 +269,7 @@ class MainWindow(QMainWindow):
         self.btn_dashboard.setChecked(active_page == self.PAGE_DASHBOARD)
         self.btn_watchlist.setChecked(active_page == self.PAGE_WATCHLIST)
         self.btn_model_portfolio.setChecked(active_page == self.PAGE_MODEL_PORTFOLIO)
+        self.btn_analysis.setChecked(active_page == self.PAGE_ANALYSIS)
 
     def lookup_price_for_ticker(self, ticker: str) -> Optional[PriceLookupResult]:
         """Hisse fiyatını sorgular."""
