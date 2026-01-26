@@ -1,6 +1,0 @@
-Veri Doğrulama (Validation) Eksikliği:
-
-Kullanıcı "Lot" kısmına çok büyük sayılar veya mantıksız değerler girdiğinde sadece ValueError fırlatılıyor.
-
-Öneri: QValidator kullanarak input alanlarına kısıtlama 
-getirin (Örn: Sadece sayı girilebilsin, virgül otomatik noktaya dönüşsün).
