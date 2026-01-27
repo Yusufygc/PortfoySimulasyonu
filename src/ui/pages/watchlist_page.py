@@ -111,12 +111,11 @@ class WatchlistPage(BasePage):
 
         # Hisse tablosu
         self.stock_table = QTableWidget()
-        self.stock_table.setColumnCount(4)
-        self.stock_table.setHorizontalHeaderLabels(["Ticker", "Hisse Adı", "Not", ""])
-        self.stock_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.stock_table.setColumnCount(3)
+        self.stock_table.setHorizontalHeaderLabels(["Hisse Adı", "Not", ""])
+        self.stock_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.stock_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.stock_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
-        self.stock_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.stock_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.stock_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.stock_table.setAlternatingRowColors(True)
         self.stock_table.verticalHeader().setVisible(False)
@@ -179,16 +178,15 @@ class WatchlistPage(BasePage):
         for i, stock_data in enumerate(stocks):
             self.stock_table.insertRow(i)
             
-            ticker_item = QTableWidgetItem(stock_data["ticker"])
-            ticker_item.setData(Qt.UserRole, stock_data)
-            self.stock_table.setItem(i, 0, ticker_item)
-            
-            name_item = QTableWidgetItem(stock_data["name"] or "")
-            self.stock_table.setItem(i, 1, name_item)
+            # Ticker kolonu kalktı, veriyi Hisse Adı kolonuna gömüyoruz
+            name_text = stock_data["name"] or stock_data["ticker"]
+            name_item = QTableWidgetItem(name_text)
+            name_item.setData(Qt.UserRole, stock_data) # Veriyi burada saklıyoruz
+            self.stock_table.setItem(i, 0, name_item)
             
             notes = stock_data["item"].notes or ""
             notes_item = QTableWidgetItem(notes)
-            self.stock_table.setItem(i, 2, notes_item)
+            self.stock_table.setItem(i, 1, notes_item)
             
             btn_remove = QPushButton("🗑️")
             btn_remove.setCursor(Qt.PointingHandCursor)
@@ -196,7 +194,7 @@ class WatchlistPage(BasePage):
             btn_remove.clicked.connect(
                 lambda checked, sid=stock_data["stock"].id: self._on_remove_stock(sid)
             )
-            self.stock_table.setCellWidget(i, 3, btn_remove)
+            self.stock_table.setCellWidget(i, 2, btn_remove)
 
     def _on_new_list(self):
         name, ok = QInputDialog.getText(self, "Yeni Liste", "Liste adı:", QLineEdit.Normal, "")

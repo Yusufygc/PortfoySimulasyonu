@@ -141,12 +141,12 @@ class ModelPortfolioPage(BasePage):
         right_layout.addWidget(lbl_positions)
 
         self.positions_table = QTableWidget()
-        self.positions_table.setColumnCount(7)
+        self.positions_table.setColumnCount(6)
         self.positions_table.setHorizontalHeaderLabels([
-            "Ticker", "Hisse", "Lot", "Ort. Maliyet", "Güncel", "Değer", "K/Z"
+            "Hisse", "Lot", "Ort. Maliyet", "Güncel", "Değer", "K/Z"
         ])
-        for i in range(7):
-            mode = QHeaderView.Stretch if i == 1 else QHeaderView.ResizeToContents
+        for i in range(6):
+            mode = QHeaderView.Stretch if i == 0 else QHeaderView.ResizeToContents
             self.positions_table.horizontalHeader().setSectionResizeMode(i, mode)
         self.positions_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.positions_table.setAlternatingRowColors(True)
@@ -268,22 +268,29 @@ class ModelPortfolioPage(BasePage):
         for i, pos in enumerate(positions):
             self.positions_table.insertRow(i)
             
-            self.positions_table.setItem(i, 0, QTableWidgetItem(pos["ticker"]))
-            self.positions_table.setItem(i, 1, QTableWidgetItem(pos["name"] or ""))
-            self.positions_table.setItem(i, 2, QTableWidgetItem(str(pos["quantity"])))
-            self.positions_table.setItem(i, 3, QTableWidgetItem(f"₺ {pos['avg_cost']:.2f}"))
+            # Tüm hücreleri salt-okunur yap
+            def create_readonly_item(text: str):
+                item = QTableWidgetItem(text)
+                item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                return item
+            
+            # Ticker kolonu kaldırıldı, diğerleri kaydırıldı
+            self.positions_table.setItem(i, 0, create_readonly_item(pos["name"] or ""))
+            self.positions_table.setItem(i, 1, create_readonly_item(str(pos["quantity"])))
+            self.positions_table.setItem(i, 2, create_readonly_item(f"₺ {pos['avg_cost']:.2f}"))
             
             if pos["current_price"]:
-                self.positions_table.setItem(i, 4, QTableWidgetItem(f"₺ {pos['current_price']:.2f}"))
-                self.positions_table.setItem(i, 5, QTableWidgetItem(f"₺ {pos['current_value']:,.2f}"))
+                self.positions_table.setItem(i, 3, create_readonly_item(f"₺ {pos['current_price']:.2f}"))
+                self.positions_table.setItem(i, 4, create_readonly_item(f"₺ {pos['current_value']:,.2f}"))
                 
                 pl_item = QTableWidgetItem(f"₺ {pos['profit_loss']:+,.2f}")
+                pl_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
                 pl_item.setForeground(Qt.green if pos["profit_loss"] >= 0 else Qt.red)
-                self.positions_table.setItem(i, 6, pl_item)
+                self.positions_table.setItem(i, 5, pl_item)
             else:
-                self.positions_table.setItem(i, 4, QTableWidgetItem("-"))
-                self.positions_table.setItem(i, 5, QTableWidgetItem("-"))
-                self.positions_table.setItem(i, 6, QTableWidgetItem("-"))
+                self.positions_table.setItem(i, 3, create_readonly_item("-"))
+                self.positions_table.setItem(i, 4, create_readonly_item("-"))
+                self.positions_table.setItem(i, 5, create_readonly_item("-"))
 
     def _on_new_portfolio(self):
         dialog = PortfolioInputDialog(self)
@@ -499,54 +506,117 @@ class TradeInputDialog(QDialog):
         self.price_lookup_func = price_lookup_func
 
         self.setWindowTitle("📈 Hisse Al" if side == "BUY" else "📉 Hisse Sat")
-        self.resize(350, 250)
+        self.setFixedSize(450, 320)  # Boyutu artırdım
         self.setModal(True)
         self._init_ui()
 
     def _init_ui(self):
+        # Stil tanımları
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #0f172a;
+            }
+            QLabel {
+                color: #e2e8f0;
+                font-weight: bold;
+                font-size: 15px; /* Label boyutu artırıldı */
+            }
+            QLineEdit, QSpinBox, QDoubleSpinBox, QDateEdit {
+                background-color: #1e293b; 
+                color: #f1f5f9;
+                border: 1px solid #334155;
+                border-radius: 8px;
+                padding: 10px; /* Padding artırıldı */
+                font-size: 16px; /* Input yazı boyutu artırıldı */
+                min-height: 25px; /* Kırpılmayı önlemek için min yükseklik */
+            }
+            QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QDateEdit:focus {
+                border: 1px solid #3b82f6;
+                background-color: #334155;
+            }
+            QSpinBox::up-button, QSpinBox::down-button,
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button,
+            QDateEdit::up-button, QDateEdit::down-button {
+                width: 20px;
+                background-color: #334155;
+                border: none;
+                border-radius: 2px;
+                margin: 2px;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover,
+            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+                background-color: #475569;
+            }
+            QPushButton {
+                font-weight: bold;
+                border-radius: 6px;
+                font-size: 14px;
+            }
+        """)
+
         layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        layout.setContentsMargins(25, 25, 25, 25)
+        
         form = QFormLayout()
+        form.setSpacing(15) # Form elemanları arası boşluk
+        form.setLabelAlignment(Qt.AlignLeft)
 
         # Ticker
-        ticker_layout = QHBoxLayout()
         self.txt_ticker = QLineEdit()
         self.txt_ticker.setPlaceholderText("Örn: ASELS")
-        ticker_layout.addWidget(self.txt_ticker)
-        
-        btn_lookup = QPushButton("🔍")
-        btn_lookup.setFixedWidth(40)
-        btn_lookup.clicked.connect(self._on_lookup)
-        ticker_layout.addWidget(btn_lookup)
-        form.addRow("Ticker:", ticker_layout)
+        self.txt_ticker.setMinimumHeight(45)
+        self.txt_ticker.returnPressed.connect(self._on_lookup)
+        form.addRow("Ticker:", self.txt_ticker)
 
         self.spin_qty = QSpinBox()
         self.spin_qty.setRange(1, 1000000)
         self.spin_qty.setValue(100)
+        self.spin_qty.setMinimumHeight(45)
         form.addRow("Lot:", self.spin_qty)
 
+        # Fiyat satırı: SpinBox + Büyüteç butonu
+        price_layout = QHBoxLayout()
+        price_layout.setSpacing(10)
+        
         self.spin_price = QDoubleSpinBox()
         self.spin_price.setRange(0.01, 100000)
-        self.spin_price.setValue(10)
-        self.spin_price.setDecimals(4)
+        self.spin_price.setDecimals(2)
         self.spin_price.setSuffix(" TL")
-        form.addRow("Fiyat:", self.spin_price)
+        self.spin_price.setMinimumWidth(180)
+        self.spin_price.setMinimumHeight(45)
+        price_layout.addWidget(self.spin_price)
+        
+        self.btn_lookup = QPushButton("🔍 Fiyat Al")
+        self.btn_lookup.setCursor(Qt.PointingHandCursor)
+        self.btn_lookup.setStyleSheet("padding: 5px 15px; background-color: #3b82f6; color: white;")
+        self.btn_lookup.setMinimumHeight(45)
+        self.btn_lookup.clicked.connect(self._on_lookup)
+        price_layout.addWidget(self.btn_lookup)
+        
+        form.addRow("Fiyat:", price_layout)
 
         self.date_edit = QDateEdit()
         self.date_edit.setDate(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
+        self.date_edit.setMinimumHeight(45)
         form.addRow("Tarih:", self.date_edit)
 
         layout.addLayout(form)
+        layout.addStretch()
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         
         btn_cancel = QPushButton("İptal")
+        btn_cancel.setMinimumHeight(40)
+        btn_cancel.setStyleSheet("background-color: #475569; color: white; padding: 0 20px;")
         btn_cancel.clicked.connect(self.reject)
         
         btn_action = QPushButton("Al" if self.side == "BUY" else "Sat")
+        btn_action.setMinimumHeight(40)
         btn_action.setStyleSheet(
-            f"background-color: {'#10b981' if self.side == 'BUY' else '#ef4444'}; color: white;"
+            f"background-color: {'#10b981' if self.side == 'BUY' else '#ef4444'}; color: white; padding: 0 30px;"
         )
         btn_action.clicked.connect(self.accept)
         
