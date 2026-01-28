@@ -75,6 +75,9 @@ class PortfolioService:
 
         # Buraya gelebildiysek trade domain açısından geçerli demektir
         saved_trade = self._portfolio_repo.insert_trade(trade)
-        return saved_trade
+    def get_trades_for_stock(self, stock_id: int) -> List[Trade]:
+        """Belirli bir hisseye ait işlemleri getirir."""
+        all_trades = self._portfolio_repo.get_all_trades()
+        return [t for t in all_trades if t.stock_id == stock_id]
 
 

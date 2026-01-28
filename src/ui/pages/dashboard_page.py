@@ -116,10 +116,10 @@ class DashboardPage(BasePage):
         cards_row1 = QHBoxLayout()
         cards_row1.setSpacing(20)
 
-        self.card_total, self.lbl_total_value = self._create_card("TOPLAM PORTFÖY DEĞERİ", "₺ 0.00", "#3b82f6")
-        self.card_cost, self.lbl_total_cost = self._create_card("TOPLAM MALİYET", "₺ 0.00", "#8b5cf6")
-        self.card_capital, self.lbl_capital = self._create_card("NAKİT SERMAYE", "₺ 0.00", "#10b981")
-        self.card_pl, self.lbl_profit_loss = self._create_card("KAR / ZARAR", "₺ 0.00", "#94a3b8")
+        self.card_total, self.lbl_total_value, self.lbl_total_context = self._create_card("TOPLAM PORTFÖY DEĞERİ", "₺ 0.00", "#3b82f6")
+        self.card_cost, self.lbl_total_cost, _ = self._create_card("TOPLAM MALİYET", "₺ 0.00", "#8b5cf6")
+        self.card_capital, self.lbl_capital, _ = self._create_card("NAKİT SERMAYE", "₺ 0.00", "#10b981")
+        self.card_pl, self.lbl_profit_loss, _ = self._create_card("KAR / ZARAR", "₺ 0.00", "#94a3b8")
 
         cards_row1.addWidget(self.card_total)
         cards_row1.addWidget(self.card_cost)
@@ -132,8 +132,8 @@ class DashboardPage(BasePage):
         cards_row2 = QHBoxLayout()
         cards_row2.setSpacing(20)
 
-        self.card_weekly, self.lbl_weekly_return = self._create_card("HAFTALIK GETİRİ", "-", "#f59e0b")
-        self.card_monthly, self.lbl_monthly_return = self._create_card("AYLIK GETİRİ", "-", "#ec4899")
+        self.card_weekly, self.lbl_weekly_return, _ = self._create_card("HAFTALIK GETİRİ", "-", "#f59e0b")
+        self.card_monthly, self.lbl_monthly_return, _ = self._create_card("AYLIK GETİRİ", "-", "#ec4899")
 
         cards_row2.addWidget(self.card_weekly)
         cards_row2.addWidget(self.card_monthly)
@@ -201,7 +201,13 @@ class DashboardPage(BasePage):
         
         layout.addWidget(lbl_title)
         layout.addWidget(lbl_value)
-        return card, lbl_value
+        
+        # Context Label (Alt açıklama)
+        lbl_context = QLabel("")
+        lbl_context.setStyleSheet("color: #64748b; font-size: 11px; margin-top: 2px;")
+        layout.addWidget(lbl_context)
+        
+        return card, lbl_value, lbl_context
 
     def on_page_enter(self):
         """Sayfa aktif olduğunda verileri yükle."""
@@ -262,6 +268,20 @@ class DashboardPage(BasePage):
         else:
             self.lbl_profit_loss.setText(f"₺ {profit_loss:,.2f}")
             self.lbl_profit_loss.setStyleSheet("color: #ef4444; font-size: 18px; font-weight: bold;")
+
+        # Hero Metric Context (Total Value altına P/L)
+        cost_basis = total_value - profit_loss
+        roi = 0
+        if cost_basis != 0:
+            roi = (profit_loss / cost_basis) * 100
+            
+        prefix = "▲" if profit_loss >= 0 else "▼"
+        sign = "+" if profit_loss >= 0 else ""
+        color = "#10b981" if profit_loss >= 0 else "#ef4444"
+        
+        self.lbl_total_context.setText(f"{prefix} ₺ {abs(profit_loss):,.2f} ({sign}{roi:.1f}% All Time)")
+        self.lbl_total_context.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: 500;")
+
 
     def _on_capital_management(self):
         """Sermaye yönetimi diyaloğu."""
@@ -400,7 +420,7 @@ class DashboardPage(BasePage):
             self.lbl_monthly_return.setStyleSheet("color: #f1f5f9; font-size: 18px; font-weight: bold;")
 
     def _on_table_double_clicked(self, index: QModelIndex):
-        """Tablo çift tıklama - işlem ekleme."""
+        """Tablo çift tıklama - detay sayfası."""
         if not index.isValid() or self.model is None:
             return
 
@@ -413,56 +433,12 @@ class DashboardPage(BasePage):
         stock = self.stock_repo.get_stock_by_id(stock_id)
         ticker = stock.ticker if stock else None
 
-        dialog = TradeDialog(
-            stock_id=stock_id,
-            ticker=ticker,
-            parent=self,
-            price_lookup_func=self.price_lookup_func,
-            lot_size=1,
-        )
-
-        if dialog.exec_() != QDialog.Accepted:
-            return
-
-        if dialog.get_mode() == "edit_stock":
-            if stock is None:
-                QMessageBox.warning(self, "Uyarı", "Bu pozisyona ait hisse kaydı bulunamadı.")
-                return
-            self._edit_stock(stock)
-            return
-
-        trade_data = dialog.get_trade_data()
-        if not trade_data:
-            return
-
-        trade_amount = trade_data["price"] * Decimal(trade_data["quantity"])
-
-        try:
-            if trade_data["side"] == "BUY":
-                trade = Trade.create_buy(
-                    stock_id=trade_data["stock_id"],
-                    trade_date=trade_data["trade_date"],
-                    trade_time=trade_data["trade_time"],
-                    quantity=trade_data["quantity"],
-                    price=trade_data["price"],
-                )
-                self._capital -= trade_amount
-            else:
-                trade = Trade.create_sell(
-                    stock_id=trade_data["stock_id"],
-                    trade_date=trade_data["trade_date"],
-                    trade_time=trade_data["trade_time"],
-                    quantity=trade_data["quantity"],
-                    price=trade_data["price"],
-                )
-                self._capital += trade_amount
-            
-            self.portfolio_service.add_trade(trade)
-            self.refresh_data()
-        except ValueError as e:
-            QMessageBox.warning(self, "Geçersiz İşlem", str(e))
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"İşlem kaydedilemedi: {e}")
+        # MainWindow'a ulaş ve detay sayfasını aç
+        main_window = self.window()
+        if hasattr(main_window, "show_stock_detail"):
+            main_window.show_stock_detail(ticker, stock_id)
+        else:
+            QMessageBox.warning(self, "Hata", "Detay sayfasına erişilemedi.")
 
     def _edit_stock(self, stock: Stock):
         """Hisse düzenleme."""

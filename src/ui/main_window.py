@@ -36,7 +36,9 @@ class MainWindow(QMainWindow):
     PAGE_DASHBOARD = 0
     PAGE_WATCHLIST = 1
     PAGE_MODEL_PORTFOLIO = 2
+    PAGE_MODEL_PORTFOLIO = 2
     PAGE_ANALYSIS = 3
+    PAGE_STOCK_DETAIL = 4
 
     def __init__(
         self,
@@ -223,6 +225,16 @@ class MainWindow(QMainWindow):
         )
         self.stacked_widget.addWidget(self.analysis_page)  # Index 3
 
+        # Stock Detail Page
+        from src.ui.pages.stock_detail_page import StockDetailPage
+        self.stock_detail_page = StockDetailPage(
+            portfolio_service=self.portfolio_service,
+            stock_repo=self.stock_repo,
+            price_lookup_func=self.lookup_price_for_ticker,
+            parent=self
+        )
+        self.stacked_widget.addWidget(self.stock_detail_page)  # Index 4
+
     def _goto_page(self, page_index: int):
         """Belirtilen sayfaya geçiş yapar."""
         current_index = self.stacked_widget.currentIndex()
@@ -244,6 +256,11 @@ class MainWindow(QMainWindow):
         
         # Geri butonunu güncelle
         self.btn_back.setEnabled(len(self.navigation_history) > 0)
+
+    def show_stock_detail(self, ticker: str, stock_id: Optional[int] = None):
+        """Hisse detay sayfasına git."""
+        self.stock_detail_page.set_stock(ticker, stock_id)
+        self._goto_page(self.PAGE_STOCK_DETAIL)
 
     def _on_back(self):
         """Önceki sayfaya döner."""
