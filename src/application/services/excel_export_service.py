@@ -44,6 +44,7 @@ class DailyPosition:
 
 @dataclass
 class DailyPortfolioSnapshot:
+    total_cost_basis: Optional[Decimal]
     date: date
     total_value: Optional[Decimal]
     daily_return_pct: Optional[Decimal]
@@ -288,6 +289,7 @@ class ExcelExportService:
                 daily_positions.extend(day_positions_list)
             
             daily_snapshots.append(DailyPortfolioSnapshot(
+                total_cost_basis=total_cost_basis,  # <--- FIXED
                 date=cur, total_value=portfolio_value, 
                 daily_return_pct=daily_ret, cumulative_return_pct=cum_ret,
                 daily_pnl=daily_pnl, cumulative_pnl=cum_pnl, status=status
@@ -325,19 +327,29 @@ class ExcelExportService:
         max_drawdown = self._calculate_max_drawdown(snapshots)
         
         records = [
-            {"Metrik": "Güncel Portföy Değeri", "Değer": float(latest_snapshot.total_value) if latest_snapshot.total_value else 0},
-            {"Metrik": "Toplam Kâr/Zarar (TL)", "Değer": float(latest_snapshot.cumulative_pnl) if latest_snapshot.cumulative_pnl else 0},
-            {"Metrik": "Toplam Getiri (%)", "Değer": self._format_pct(latest_snapshot.cumulative_return_pct) if latest_snapshot.cumulative_return_pct else 0},
+            {"Metrik": "Toplam Maliyet", "Değer": self._fmt_tr_money(latest_snapshot.total_cost_basis)},
+            {"Metrik": "Güncel Portföy Değeri", "Değer": self._fmt_tr_money(latest_snapshot.total_value)},
+            {"Metrik": "Toplam Kâr/Zarar (TL)", "Değer": self._fmt_tr_money(latest_snapshot.cumulative_pnl)},
+            {"Metrik": "Toplam Getiri (%)", "Değer": self._fmt_tr_pct(latest_snapshot.cumulative_return_pct)},
             
             {"Metrik": "En İyi Performans", "Değer": f"{best_stock.ticker} ({float(best_stock.unrealized_pnl_pct * 100):.2f}%)" if best_stock.unrealized_pnl_pct else "N/A"},
             {"Metrik": "En Kötü Performans", "Değer": f"{worst_stock.ticker} ({float(worst_stock.unrealized_pnl_pct * 100):.2f}%)" if worst_stock.unrealized_pnl_pct else "N/A"},
             
-            {"Metrik": "Aktif Pozisyon Sayısı", "Değer": len(latest_positions)},
-            {"Metrik": "Günlük Volatilite (%)", "Değer": f"%{volatility:.2f}" if volatility else "N/A"},
-            {"Metrik": "Maksimum Düşüş (%)", "Değer": f"%{max_drawdown:.2f}" if max_drawdown else "N/A"},
         ]
         
         return pd.DataFrame(records)
+
+    def _fmt_tr_money(self, val: Optional[Decimal]) -> str:
+        if val is None: return "0,00"
+        # 1234.56 -> 1.234,56
+        s = f"{val:,.2f}"
+        return s.replace(",", "X").replace(".", ",").replace("X", ".")
+
+    def _fmt_tr_pct(self, val: Optional[Decimal]) -> str:
+        if val is None: return "%0,00"
+        # 0.1234 -> %12,34
+        s = f"{val * 100:.2f}"
+        return f"%{s.replace('.', ',')}"
 
     def _calculate_max_drawdown(self, snapshots: List[DailyPortfolioSnapshot]) -> Optional[float]:
         values = [float(s.total_value) for s in snapshots if s.total_value]
@@ -451,6 +463,10 @@ class ExcelExportService:
     def _build_summary_df(self, snapshots: Iterable[DailyPortfolioSnapshot]) -> pd.DataFrame:
         records = []
         for s in snapshots:
+            # Hafta sonlarını (veya veri olmayan tatil günlerini) atla
+            if s.status == "Hafta Sonu":
+                continue
+
             records.append({
                 "Tarih": s.date,
                 "Portföy Değeri (TL)": float(s.total_value) if s.total_value else None,
@@ -458,7 +474,6 @@ class ExcelExportService:
                 "Toplam Getiri (%)": self._format_pct(s.cumulative_return_pct),
                 "Günlük K/Z (TL)": float(s.daily_pnl) if s.daily_pnl else None,
                 "Toplam K/Z (TL)": float(s.cumulative_pnl) if s.cumulative_pnl else None,
-                "Piyasa Durumu": s.status,
             })
         df = pd.DataFrame.from_records(records)
         if not df.empty:
