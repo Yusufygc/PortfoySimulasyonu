@@ -9,8 +9,19 @@ def load_settings() -> MySQLConfig:
     """
     .env dosyasını okuyarak MySQLConfig nesnesi oluşturur.
     """
-    load_dotenv()  # .env otomatik yukarıya doğru taranır
+    load_dotenv()  # .env otomatik yukarıya doğru taranır (Geliştirme ortamı için)
 
+    # Exe modunda (Nuitka/PyInstaller) .env dosyasını temp klasöründen oku (Gömülü dosya)
+    import sys
+    if getattr(sys, 'frozen', False):
+        # Nuitka onefile modunda dosya temp klasörüne açılır.
+        # Bu dosya: config/settings_loader.py. İki üst klasör root'tur.
+        base_path = os.path.dirname(os.path.dirname(__file__))
+        env_path = os.path.join(base_path, '.env')
+        
+        if os.path.exists(env_path):
+            load_dotenv(env_path)
+    
     host = os.getenv("DB_HOST", "localhost")
     port = int(os.getenv("DB_PORT", "3306"))
     user = os.getenv("DB_USER", "root")

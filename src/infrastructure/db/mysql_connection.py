@@ -42,6 +42,7 @@ class MySQLConnectionProvider:
             user=self._config.user,
             password=self._config.password,
             database=self._config.database,
+            use_pure=True,  # Nuitka compatibility fix
         )
 
     @contextmanager
