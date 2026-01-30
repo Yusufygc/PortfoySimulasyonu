@@ -1,111 +1,96 @@
-# 📈 Portföy Simülasyonu ve Takip Sistemi (V1.0)
+# 📈 Portföy Simülasyonu (Portfolio Simulation)
 
-Portföy Simülasyonu, BIST (Borsa İstanbul) hisse senedi yatırımlarınızı takip etmenizi, maliyet analizi yapmanızı ve portföyünüzün performansını simüle etmenizi sağlayan kapsamlı bir masaüstü uygulamasıdır.
+**Portföy Simülasyonu**, yatırımcıların portföylerini gerçek zamanlı piyasa verileriyle takip etmelerini, geçmiş performanslarını analiz etmelerini ve farklı yatırım senaryolarını test etmelerini sağlayan kapsamlı bir masaüstü uygulamasıdır. Modern ve kullanıcı dostu arayüzü, güçlü veritabanı altyapısı ve detaylı analiz araçlarıyla profesyonel bir deneyim sunar.
 
-Bu proje, Clean Architecture prensiplerine sadık kalınarak, sürdürülebilir ve geliştirilebilir bir yapıda tasarlanmıştır.
+---
 
 ## 🚀 Özellikler
 
-### 1. İşlem Yönetimi
-- **Kolay Ekleme**: Yeni hisse senetleri ekleyebilir veya mevcut hisseleriniz için "Alış" (BUY) / "Satış" (SELL) işlemleri girebilirsiniz.
-- **Akıllı Sihirbaz**: Yeni işlem ekleme ekranı, hisse fiyatını otomatik sorgular ve sizi adım adım yönlendirir.
-- **Validasyon**: Elde olmayan lotun satılmasını engelleyen iş kuralları mevcuttur.
+### 📊 Kapsamlı Dashboard
+*   **Genel Bakış:** Toplam portföy değeri, günlük değişimler, kar/zarar durumu ve nakit dengesini tek bir ekranda görüntüleyin.
+*   **Görsel Grafikler:** Varlık dağılımı ve performans grafiklerini inceleyin.
 
-### 2. Finansal Analiz
-- **Maliyet Hesabı**: Portföydeki pozisyonlar Ağırlıklı Ortalama Maliyet (Weighted Average Cost) yöntemine göre dinamik olarak hesaplanır.
-- **Getiri Takibi**: Günlük, haftalık ve aylık bazda portföyünüzün getiri oranlarını ve kâr/zarar durumunu anlık takip edebilirsiniz.
-- **Görsel Bildirimler**: Kârda olan pozisyonlar yeşil, zararda olanlar kırmızı ile renklendirilerek hızlı analiz imkanı sunar.
+### 💼 Portföy Yönetimi
+*   **İşlem Kaydı:** Hisse senedi alım/satım işlemlerinizi kolayca kaydedin.
+*   **Pozisyon Takibi:** Açık pozisyonlarınızın maliyet, adet ve güncel değerlerini anlık olarak izleyin.
+*   **Tarihsel Veri:** Geçmiş işlemlerinizi ve portföy değişimlerinizi analiz edin.
 
-### 3. Veri Entegrasyonu
-- **Otomatik Fiyat Güncelleme**: yfinance kütüphanesi entegrasyonu sayesinde, tek tuşla tüm portföyünüzün güncel piyasa fiyatlarını çekebilirsiniz.
-- **BIST Uyumluluğu**: Borsa İstanbul hisseleri (örn: ASELS, THYAO) için otomatik .IS uzantısı desteği sunar.
+### 🔍 Detaylı Hisse Analizi
+*   **Teknik & Temel Veriler:** Seçtiğiniz hisse senedinin detaylı piyasa verilerine, grafiklerine ve temel analiz rasyolarına ulaşın.
+*   **Dinamik Grafikler:** Fiyat hareketlerini etkileşimli grafikler üzerinde inceleyin.
 
-### 4. Raporlama ve Dışa Aktarım
-- **Excel Export**: Portföyünüzün detaylı tarihçesini, günlük değişimlerini ve hisse bazlı özetlerini Excel formatında dışarı aktarabilirsiniz.
-- **Veritabanı**: Tüm veriler güvenli bir şekilde yerel MySQL veritabanında saklanır.
+### 📋 Takip Listeleri (Watchlists)
+*   **Özel Listeler:** İlgilendiğiniz hisseleri kategorize ederek kendi takip listelerinizi oluşturun.
+*   **Hızlı Erişim:** Piyasa hareketlerini yakından izlemek için listeler arasında hızlıca geçiş yapın.
 
-## 🛠️ Kurulum
+### 🧪 Model Portföyler
+*   **Senaryo Analizi:** Gerçek portföyünüzü etkilemeden sanal portföyler oluşturun ve stratejilerinizi test edin.
+*   **Performans Karşılaştırma:** Farklı yatırım stratejilerinin potansiyel getirilerini karşılaştırın.
 
-Projeyi yerel makinenizde çalıştırmak için aşağıdaki adımları izleyin.
+### 📉 Excel Dışa Aktarım
+*   **Raporlama:** Portföy durumunuzu, işlem geçmişinizi ve analizlerinizi Excel formatında dışa aktararak harici analizler yapın.
 
-### Gereksinimler
-- Python 3.9 veya üzeri
-- MySQL Veritabanı
+---
 
-### 1. Projeyi Klonlayın
+## 🛠️ Teknoloji Yığını ve Mimari
 
-```bash
-git clone https://github.com/kullaniciadi/portfoy-simulasyonu.git
-cd portfoy-simulasyonu
+Bu proje, **Clean Architecture** (Temiz Mimari) ve **Domain-Driven Design** (DDD) prensiplerine sadık kalarak geliştirilmiştir. Bu sayede sürdürülebilir, test edilebilir ve genişletilebilir bir kod tabanı sunar.
+
+*   **Dil:** Python 3.x
+*   **Arayüz (GUI):** PyQt5 (Modern, responsive tasarım)
+*   **Veritabanı:** MySQL (Güvenilir veri saklama)
+*   **Veri Sağlayıcı:** yfinance (Yahoo Finance API)
+*   **Veri Analizi:** Pandas, OpenPyXL
+*   **ORM/Veri Erişimi:** Custom Repository Pattern
+
+---
+
+## � Proje Yapısı
+
+```
+PortfoySimulasyonu/
+├── app.py                  # Uygulama giriş noktası
+├── config/                 # Konfigürasyon dosyaları
+├── src/
+│   ├── application/        # İş mantığı ve servisler (Use Cases)
+│   ├── domain/             # Temel iş varlıkları (Entity layer)
+│   ├── infrastructure/     # Veritabanı ve dış servis entegrasyonları
+│   └── ui/                 # Kullanıcı arayüzü (Pages, Widgets, Styles)
+├── icons/                  # Uygulama ikonları
+└── requirements.txt        # Bağımlılıklar
 ```
 
-### 2. Sanal Ortamı Kurun (Önerilen)
+---
 
+## ⚙️ Kurulum ve Çalıştırma
+
+### Gereksinimler
+*   Python 3.8 veya üzeri
+*   MySQL Server
+
+### Adım 1: Depoyu Klonlayın
 ```bash
-# Windows için
-python -m venv venv
-.\venv\Scripts\activate
+git clone https://github.com/Yusufygc/PortfoySimulasyonu.git
+cd PortfoySimulasyonu
+```
 
-# macOS/Linux için
-python3 -m venv venv
+### Adım 2: Sanal Ortam Oluşturun (Önerilen)
+```bash
+python -m venv venv
+# Windows için:
+venv\Scripts\activate
+# macOS/Linux için:
 source venv/bin/activate
 ```
 
-### 3. Bağımlılıkları Yükleyin
-
+### Adım 3: Bağımlılıkları Yükleyin
 ```bash
 pip install -r requirements.txt
 ```
 
-> **Not**: Eğer `requirements.txt` yoksa:
-> ```bash
-> pip install PyQt5 yfinance pandas openpyxl python-dotenv mysql-connector-python
-> ```
+### Adım 4: Veritabanı Yapılandırması
+Projenin çalışması için bir MySQL veritabanına ihtiyacı vardır. `.env` dosyası veya `config` klasörü içerisindeki ayarları kendi veritabanı bilgilerinize göre düzenleyin.
 
-### 4. Veritabanı Ayarları
-
-Proje ana dizininde `.env` adında bir dosya oluşturun ve veritabanı bilgilerinizi girin:
-
-```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=sifreniz
-DB_NAME=portfoy_db
-DB_PORT=3306
-```
-
-### 5. Uygulamayı Başlatın
-
-```bash
+### Adım 5: Uygulamayı Başlatın
 python app.py
-```
 
-## 🏗️ Proje Mimarisi
-
-Uygulama, sorumlulukların ayrılığı ilkesine dayanan katmanlı bir mimariye sahiptir:
-
-- **src/domain**: İş kuralları, veri modelleri (Stock, Trade, Portfolio) ve soyut arayüzler (Interfaces).
-- **src/infrastructure**: Veritabanı bağlantıları (MySQL), dış servisler (yfinance) ve repository implementasyonları.
-- **src/application**: Uygulama mantığı, servisler (PortfolioService, ReturnCalcService) ve kullanım senaryoları.
-- **src/ui**: Kullanıcı arayüzü (PyQt5), pencereler ve widget'lar.
-
-## 🔮 Gelecek Planları (Roadmap)
-
-Bu proje şu anda Versiyon 1.0 (MVP) aşamasındadır. İlerleyen dönemlerde eklenmesi planlanan özellikler şunlardır:
-
-- [ ] **Asenkron İşlemler**: Fiyat güncelleme işlemlerinin arka planda (Threading) yapılarak arayüz donmalarının engellenmesi.
-- [ ] **Gelişmiş Grafikler**: Portföy dağılımı (Pasta Grafik) ve tarihsel getiri eğrisi (Çizgi Grafik) gibi görsel analiz araçları.
-- [ ] **Çoklu Para Birimi**: Sadece TRY değil, USD/EUR bazlı hisse ve varlık takibi.
-- [ ] **Temettü Takibi**: Hisselerin temettü ödemelerinin otomatik işlenmesi.
-- [ ] **Mobil/Web Arayüzü**: Masaüstü bağımlılığını azaltmak için web tabanlı bir dashboard.
-- [ ] **Gelişmiş Hata Yönetimi**: Loglama altyapısının güçlendirilmesi ve kullanıcı dostu hata mesajları.
-
-## 🤝 Katkıda Bulunma
-
-Projeye katkıda bulunmak isterseniz, lütfen bir Fork oluşturun ve değişikliklerinizi Pull Request olarak gönderin. Hata bildirimleri ve önerileriniz için "Issues" bölümünü kullanabilirsiniz.
-
----
-
-**Geliştirici**: Muhammed Yusuf Yağcı
-**İletişim**: yusufygc118@gmail.com  
-**Proje Durumu**: Aktif Geliştirme (v1.0)
