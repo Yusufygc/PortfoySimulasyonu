@@ -36,9 +36,11 @@ class MainWindow(QMainWindow):
     PAGE_DASHBOARD = 0
     PAGE_WATCHLIST = 1
     PAGE_MODEL_PORTFOLIO = 2
-    PAGE_MODEL_PORTFOLIO = 2
     PAGE_ANALYSIS = 3
     PAGE_STOCK_DETAIL = 4
+    PAGE_OPTIMIZATION = 5
+    PAGE_PLANNING = 6
+    PAGE_RISK_PROFILE = 7
 
     def __init__(
         self,
@@ -51,6 +53,10 @@ class MainWindow(QMainWindow):
         market_client,
         watchlist_service=None,
         model_portfolio_service=None,
+        optimization_service=None,
+        planning_service=None,
+        risk_profile_service=None,
+        backfill_service=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -63,6 +69,10 @@ class MainWindow(QMainWindow):
         self.excel_export_service = excel_export_service
         self.watchlist_service = watchlist_service
         self.model_portfolio_service = model_portfolio_service
+        self.optimization_service = optimization_service
+        self.planning_service = planning_service
+        self.risk_profile_service = risk_profile_service
+        self.backfill_service = backfill_service
         
         # Navigasyon geçmişi
         self.navigation_history: List[int] = []
@@ -109,11 +119,17 @@ class MainWindow(QMainWindow):
         self.btn_watchlist = self._create_nav_button("📋 Listelerim", self.PAGE_WATCHLIST)
         self.btn_model_portfolio = self._create_nav_button("📊 Model Portföyler", self.PAGE_MODEL_PORTFOLIO)
         self.btn_analysis = self._create_nav_button("📈 Analiz", self.PAGE_ANALYSIS)
+        self.btn_optimization = self._create_nav_button("⚡ Portföy Optimizasyonu", self.PAGE_OPTIMIZATION)
+        self.btn_planning = self._create_nav_button("💰 Finansal Planlama", self.PAGE_PLANNING)
+        self.btn_risk_profile = self._create_nav_button("🛡️ Risk Profili", self.PAGE_RISK_PROFILE)
 
         self.sidebar_layout.addWidget(self.btn_dashboard)
         self.sidebar_layout.addWidget(self.btn_watchlist)
         self.sidebar_layout.addWidget(self.btn_model_portfolio)
         self.sidebar_layout.addWidget(self.btn_analysis)
+        self.sidebar_layout.addWidget(self.btn_optimization)
+        self.sidebar_layout.addWidget(self.btn_planning)
+        self.sidebar_layout.addWidget(self.btn_risk_profile)
 
         self.sidebar_layout.addStretch()
 
@@ -201,6 +217,7 @@ class MainWindow(QMainWindow):
             market_client=self.market_client,
             excel_export_service=self.excel_export_service,
             price_lookup_func=self.lookup_price_for_ticker,
+            backfill_service=self.backfill_service,
         )
         self.stacked_widget.addWidget(self.dashboard_page)  # Index 0
 
@@ -234,6 +251,28 @@ class MainWindow(QMainWindow):
             parent=self
         )
         self.stacked_widget.addWidget(self.stock_detail_page)  # Index 4
+
+        # Optimization Page
+        from src.ui.pages.optimization_page import OptimizationPage
+        self.optimization_page = OptimizationPage(
+            optimization_service=self.optimization_service,
+            price_lookup_func=self.lookup_price_for_ticker,
+        )
+        self.stacked_widget.addWidget(self.optimization_page)  # Index 5
+
+        # Planning Page
+        from src.ui.pages.planning_page import PlanningPage
+        self.planning_page = PlanningPage(
+            planning_service=self.planning_service,
+        )
+        self.stacked_widget.addWidget(self.planning_page)  # Index 6
+
+        # Risk Profile Page
+        from src.ui.pages.risk_profile_page import RiskProfilePage
+        self.risk_profile_page = RiskProfilePage(
+            risk_profile_service=self.risk_profile_service,
+        )
+        self.stacked_widget.addWidget(self.risk_profile_page)  # Index 7
 
     def _goto_page(self, page_index: int):
         """Belirtilen sayfaya geçiş yapar."""
@@ -287,6 +326,9 @@ class MainWindow(QMainWindow):
         self.btn_watchlist.setChecked(active_page == self.PAGE_WATCHLIST)
         self.btn_model_portfolio.setChecked(active_page == self.PAGE_MODEL_PORTFOLIO)
         self.btn_analysis.setChecked(active_page == self.PAGE_ANALYSIS)
+        self.btn_optimization.setChecked(active_page == self.PAGE_OPTIMIZATION)
+        self.btn_planning.setChecked(active_page == self.PAGE_PLANNING)
+        self.btn_risk_profile.setChecked(active_page == self.PAGE_RISK_PROFILE)
 
     def lookup_price_for_ticker(self, ticker: str) -> Optional[PriceLookupResult]:
         """Hisse fiyatını sorgular."""

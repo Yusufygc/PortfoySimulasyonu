@@ -119,3 +119,13 @@ class IPriceRepository(ABC):
         (Uygulamada günlük fiyat ve snapshot'ları sıfırlamak için.)
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def delete_prices_in_range(self, start_date: date, end_date: date) -> int:
+        """
+        Belirtilen tarih aralığındaki fiyat kayıtlarını siler.
+
+        Returns:
+            Silinen kayıt sayısı
+        """
+        raise NotImplementedError

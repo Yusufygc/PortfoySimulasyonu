@@ -3,3 +3,5 @@ yfinance
 pandas 
 openpyxl 
 mysql-connector-python
+numpy
+scipy

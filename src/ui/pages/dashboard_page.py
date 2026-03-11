@@ -36,6 +36,7 @@ from src.domain.models.trade import Trade, TradeSide
 from src.domain.models.position import Position
 from src.domain.models.portfolio import Portfolio
 from src.application.services.excel_export_service import ExportMode
+from src.ui.widgets.backfill_dialog import BackfillDialog
 
 
 class DashboardPage(BasePage):
@@ -54,6 +55,7 @@ class DashboardPage(BasePage):
         market_client,
         excel_export_service,
         price_lookup_func,
+        backfill_service=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -67,6 +69,7 @@ class DashboardPage(BasePage):
         self.market_client = market_client
         self.excel_export_service = excel_export_service
         self.price_lookup_func = price_lookup_func
+        self.backfill_service = backfill_service
         
         # Sermaye takibi (başlangıçta 0, hisse alım/satımıyla değişir)
         self._capital = Decimal("0")
@@ -104,9 +107,26 @@ class DashboardPage(BasePage):
             }
         """)
         
+        self.btn_backfill = QPushButton("📦 Geçmiş Veri Yönetimi")
+        self.btn_backfill.setCursor(Qt.PointingHandCursor)
+        self.btn_backfill.clicked.connect(self._on_backfill)
+        self.btn_backfill.setStyleSheet("""
+            QPushButton {
+                background-color: #1e293b;
+                color: #f1f5f9;
+                border: 1px solid #334155;
+                padding: 8px 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #334155;
+            }
+        """)
+
         action_layout.addWidget(self.btn_new_trade)
         action_layout.addWidget(self.btn_update_prices)
         action_layout.addWidget(self.btn_capital)
+        action_layout.addWidget(self.btn_backfill)
         action_layout.addStretch()
         
         self.main_layout.addLayout(action_layout)
@@ -552,6 +572,63 @@ class DashboardPage(BasePage):
         if not trades:
             return None
         return min(t.trade_date for t in trades)
+
+    def _on_backfill(self):
+        """Geçmişe yönelik veri yönetimi diyaloğu."""
+        if not self.backfill_service:
+            QMessageBox.warning(self, "Uyarı", "Backfill servisi kullanılamıyor.")
+            return
+
+        dialog = BackfillDialog(self)
+        if dialog.exec_() != QDialog.Accepted:
+            return
+
+        result = dialog.get_result()
+        if not result:
+            QMessageBox.warning(self, "Uyarı", "Başlangıç tarihi bitiş tarihinden sonra olamaz.")
+            return
+
+        action = result["action"]
+        start_date = result["start_date"]
+        end_date = result["end_date"]
+
+        if action == "delete":
+            reply = QMessageBox.question(
+                self, "Veri Silme Onayı",
+                f"{start_date} — {end_date} arasındaki tüm fiyat verileri silinecek.\n"
+                "Bu işlem geri alınamaz. Emin misiniz?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if reply != QMessageBox.Yes:
+                return
+
+            try:
+                count = self.backfill_service.delete_range(start_date, end_date)
+                self.refresh_data()
+                QMessageBox.information(
+                    self, "Başarılı", f"{count} adet fiyat verisi silindi."
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Hata", f"Silme sırasında hata: {e}")
+        else:
+            # Veri çekme
+            try:
+                self.btn_backfill.setEnabled(False)
+                self.btn_backfill.setText("⏳ Veri indiriliyor...")
+                from PyQt5.QtWidgets import QApplication
+                QApplication.processEvents()
+
+                count = self.backfill_service.backfill_range(start_date, end_date)
+                self.refresh_data()
+                QMessageBox.information(
+                    self, "Başarılı",
+                    f"{start_date} — {end_date} için {count} adet fiyat verisi indirildi."
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Hata", f"Veri çekme sırasında hata: {e}")
+            finally:
+                self.btn_backfill.setEnabled(True)
+                self.btn_backfill.setText("📦 Geçmiş Veri Yönetimi")
 
 
 class CapitalDialog(QDialog):

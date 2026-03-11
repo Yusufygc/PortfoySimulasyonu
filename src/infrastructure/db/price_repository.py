@@ -232,3 +232,12 @@ class MySQLPriceRepository(IPriceRepository):
             except Exception:
                 # tablo yoksa sessiz geçilebilir
                 pass
+
+    def delete_prices_in_range(self, start_date: date, end_date: date) -> int:
+        """Belirtilen tarih aralığındaki fiyat kayıtlarını siler."""
+        sql = "DELETE FROM daily_prices WHERE price_date BETWEEN %s AND %s"
+        with self._cp.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, (start_date, end_date))
+            return cursor.rowcount
+

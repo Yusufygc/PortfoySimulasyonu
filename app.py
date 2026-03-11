@@ -8,6 +8,8 @@ from src.infrastructure.db.price_repository import MySQLPriceRepository
 from src.infrastructure.db.stock_repository import MySQLStockRepository
 from src.infrastructure.db.watchlist_repository import MySQLWatchlistRepository
 from src.infrastructure.db.model_portfolio_repository import MySQLModelPortfolioRepository
+from src.infrastructure.db.planning_repository import MySQLPlanningRepository
+from src.infrastructure.db.risk_profile_repository import MySQLRiskProfileRepository
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
 
 from src.application.services.portfolio_service import PortfolioService
@@ -18,6 +20,10 @@ from src.application.services.portfolio_reset_service import PortfolioResetServi
 from src.application.services.excel_export_service import ExcelExportService, ExportMode
 from src.application.services.watchlist_service import WatchlistService
 from src.application.services.model_portfolio_service import ModelPortfolioService
+from src.application.services.optimization_service import OptimizationService
+from src.application.services.planning_service import PlanningService
+from src.application.services.risk_profile_service import RiskProfileService
+from src.application.services.backfill_service import BackfillService
 
 from src.ui.style import apply_app_style
 from src.ui.main_window import MainWindow
@@ -37,6 +43,8 @@ def main():
     stock_repo = MySQLStockRepository(conn_provider)
     watchlist_repo = MySQLWatchlistRepository(conn_provider)
     model_portfolio_repo = MySQLModelPortfolioRepository(conn_provider)
+    planning_repo = MySQLPlanningRepository(conn_provider)
+    risk_profile_repo = MySQLRiskProfileRepository(conn_provider)
 
     # 3) Market data client (yfinance)
     market_client = YFinanceMarketDataClient()
@@ -60,6 +68,21 @@ def main():
         model_portfolio_repo=model_portfolio_repo,
         stock_repo=stock_repo,
     )
+    optimization_service = OptimizationService(
+        portfolio_service=portfolio_service,
+        model_portfolio_service=model_portfolio_service,
+        stock_repo=stock_repo,
+    )
+    planning_service = PlanningService(
+        planning_repo=planning_repo,
+    )
+    risk_profile_service = RiskProfileService(
+        risk_profile_repo=risk_profile_repo,
+    )
+    backfill_service = BackfillService(
+        stock_repo=stock_repo,
+        price_repo=price_repo,
+    )
     # 5) Coordinator
     coordinator = PortfolioUpdateCoordinator(
         portfolio_repo=portfolio_repo,
@@ -79,6 +102,10 @@ def main():
         excel_export_service=excel_export_service,
         watchlist_service=watchlist_service,
         model_portfolio_service=model_portfolio_service,
+        optimization_service=optimization_service,
+        planning_service=planning_service,
+        risk_profile_service=risk_profile_service,
+        backfill_service=backfill_service,
     )
     window.show()
 
