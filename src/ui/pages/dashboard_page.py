@@ -21,8 +21,12 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QDoubleSpinBox,
     QComboBox,
+    QStyledItemDelegate,
+    QTableWidget,
+    QTableWidgetItem,
 )
 from PyQt5.QtCore import Qt, QModelIndex
+from PyQt5.QtGui import QPainter, QColor
 
 from .base_page import BasePage
 from src.ui.portfolio_table_model import PortfolioTableModel
@@ -91,6 +95,9 @@ class DashboardPage(BasePage):
         self.btn_update_prices.setCursor(Qt.PointingHandCursor)
         self.btn_update_prices.clicked.connect(self._on_update_prices)
         
+        self.lbl_last_update = QLabel("")
+        self.lbl_last_update.setStyleSheet("color: #64748b; font-size: 11px; margin-left: 5px;")
+        
         self.btn_capital = QPushButton("💰 Sermaye Yönetimi")
         self.btn_capital.setCursor(Qt.PointingHandCursor)
         self.btn_capital.clicked.connect(self._on_capital_management)
@@ -125,6 +132,7 @@ class DashboardPage(BasePage):
 
         action_layout.addWidget(self.btn_new_trade)
         action_layout.addWidget(self.btn_update_prices)
+        action_layout.addWidget(self.lbl_last_update)
         action_layout.addWidget(self.btn_capital)
         action_layout.addWidget(self.btn_backfill)
         action_layout.addStretch()
@@ -139,27 +147,16 @@ class DashboardPage(BasePage):
         self.card_total, self.lbl_total_value, self.lbl_total_context = self._create_card("TOPLAM PORTFÖY DEĞERİ", "₺ 0.00", "#3b82f6")
         self.card_cost, self.lbl_total_cost, _ = self._create_card("TOPLAM MALİYET", "₺ 0.00", "#8b5cf6")
         self.card_capital, self.lbl_capital, _ = self._create_card("NAKİT SERMAYE", "₺ 0.00", "#10b981")
-        self.card_pl, self.lbl_profit_loss, _ = self._create_card("KAR / ZARAR", "₺ 0.00", "#94a3b8")
+        
+        # Kar/Zarar yerine Haftalık ve Aylık Getiri Kombine Kartı
+        self.card_returns, self.lbl_weekly_return, self.lbl_monthly_return = self._create_returns_card()
 
-        cards_row1.addWidget(self.card_total)
-        cards_row1.addWidget(self.card_cost)
-        cards_row1.addWidget(self.card_capital)
-        cards_row1.addWidget(self.card_pl)
+        cards_row1.addWidget(self.card_total, 1)
+        cards_row1.addWidget(self.card_cost, 1)
+        cards_row1.addWidget(self.card_capital, 1)
+        cards_row1.addWidget(self.card_returns, 1)
 
         self.main_layout.addLayout(cards_row1)
-
-        # İkinci satır: Getiriler
-        cards_row2 = QHBoxLayout()
-        cards_row2.setSpacing(20)
-
-        self.card_weekly, self.lbl_weekly_return, _ = self._create_card("HAFTALIK GETİRİ", "-", "#f59e0b")
-        self.card_monthly, self.lbl_monthly_return, _ = self._create_card("AYLIK GETİRİ", "-", "#ec4899")
-
-        cards_row2.addWidget(self.card_weekly)
-        cards_row2.addWidget(self.card_monthly)
-        cards_row2.addStretch()
-
-        self.main_layout.addLayout(cards_row2)
 
         # Tablo
         self.table_view = QTableView()
@@ -168,11 +165,35 @@ class DashboardPage(BasePage):
         self.table_view.setSelectionMode(QTableView.SingleSelection)
         self.table_view.setSortingEnabled(True)
         self.table_view.verticalHeader().setVisible(False)
+        self.table_view.verticalHeader().setDefaultSectionSize(40) # Satır yüksekliği artırıldı
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_view.setShowGrid(False)
         self.table_view.doubleClicked.connect(self._on_table_double_clicked)
+        
+        self.row_delegate = PortfolioRowDelegate(self.table_view)
+        self.table_view.setItemDelegate(self.row_delegate)
 
         self.main_layout.addWidget(self.table_view)
+
+        # TOPLAM Özet Satırı (Tek satırlık QTableWidget)
+        self.table_summary = QTableWidget(1, 7)
+        self.table_summary.horizontalHeader().setVisible(False)
+        self.table_summary.verticalHeader().setVisible(False)
+        self.table_summary.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table_summary.setFixedHeight(40) # Tek satır boyutu
+        self.table_summary.setSelectionMode(QTableView.NoSelection)
+        self.table_summary.setFocusPolicy(Qt.NoFocus)
+        self.table_summary.setEditTriggers(QTableView.NoEditTriggers)
+        self.table_summary.setShowGrid(False)
+        self.table_summary.setStyleSheet("""
+            QTableWidget {
+                background-color: #1e293b;
+                border-top: 2px solid #334155;
+                font-weight: bold;
+                color: #f1f5f9;
+            }
+        """)
+        self.main_layout.addWidget(self.table_summary)
 
         # Alt butonlar (Rapor)
         bottom_layout = QHBoxLayout()
@@ -229,6 +250,54 @@ class DashboardPage(BasePage):
         
         return card, lbl_value, lbl_context
 
+    def _create_returns_card(self):
+        """Haftalık ve aylık getiriyi beraber gösteren yeni kart."""
+        card = QFrame()
+        card.setObjectName("infoCard")
+        card.setFrameShape(QFrame.StyledPanel)
+        card.setStyleSheet("""
+            QFrame#infoCard {
+                background-color: #1e293b;
+                border-radius: 12px;
+                border-left: 4px solid #f59e0b;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 15, 20, 15)
+        
+        lbl_title = QLabel("DÖNEMSEL GETİRİLER")
+        lbl_title.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: bold;")
+        layout.addWidget(lbl_title)
+        
+        returns_layout = QVBoxLayout()
+        returns_layout.setSpacing(5)
+        
+        weekly_layout = QHBoxLayout()
+        lbl_wk_title = QLabel("Haftalık:")
+        lbl_wk_title.setStyleSheet("color: #94a3b8; font-size: 13px;")
+        lbl_wk_value = QLabel("-")
+        lbl_wk_value.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: bold;")
+        weekly_layout.addWidget(lbl_wk_title)
+        weekly_layout.addWidget(lbl_wk_value)
+        weekly_layout.addStretch()
+        
+        monthly_layout = QHBoxLayout()
+        lbl_mo_title = QLabel("Aylık:")
+        lbl_mo_title.setStyleSheet("color: #94a3b8; font-size: 13px;")
+        lbl_mo_value = QLabel("-")
+        lbl_mo_value.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: bold;")
+        monthly_layout.addWidget(lbl_mo_title)
+        monthly_layout.addWidget(lbl_mo_value)
+        monthly_layout.addStretch()
+        
+        returns_layout.addLayout(weekly_layout)
+        returns_layout.addLayout(monthly_layout)
+        
+        layout.addLayout(returns_layout)
+        
+        return card, lbl_wk_value, lbl_mo_value
+
     def on_page_enter(self):
         """Sayfa aktif olduğunda verileri yükle."""
         self._load_capital()
@@ -281,13 +350,7 @@ class DashboardPage(BasePage):
         self.lbl_total_cost.setText(f"₺ {total_cost:,.2f}")
         self.lbl_capital.setText(f"₺ {self._capital:,.2f}")
         
-        # Kar/Zarar rengi
-        if profit_loss >= 0:
-            self.lbl_profit_loss.setText(f"₺ +{profit_loss:,.2f}")
-            self.lbl_profit_loss.setStyleSheet("color: #10b981; font-size: 18px; font-weight: bold;")
-        else:
-            self.lbl_profit_loss.setText(f"₺ {profit_loss:,.2f}")
-            self.lbl_profit_loss.setStyleSheet("color: #ef4444; font-size: 18px; font-weight: bold;")
+        self.lbl_capital.setText(f"₺ {self._capital:,.2f}")
 
         # Hero Metric Context (Total Value altına P/L)
         cost_basis = total_value - profit_loss
@@ -301,6 +364,38 @@ class DashboardPage(BasePage):
         
         self.lbl_total_context.setText(f"{prefix} ₺ {abs(profit_loss):,.2f} ({sign}{roi:.1f}% All Time)")
         self.lbl_total_context.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: 500;")
+
+        self._update_summary_row(total_value, profit_loss)
+
+
+    def _update_summary_row(self, total_value: Decimal, profit_loss: Decimal):
+        """Alt kısımdaki toplam özet satırını günceller."""
+        for col in range(7):
+            item = QTableWidgetItem("")
+            item.setTextAlignment(Qt.AlignCenter)
+            self.table_summary.setItem(0, col, item)
+            
+        item_title = QTableWidgetItem("TOPLAM")
+        item_title.setTextAlignment(Qt.AlignCenter)
+        self.table_summary.setItem(0, 0, item_title)
+        
+        # Piyasa Değeri (Kolon 5)
+        item_mv = QTableWidgetItem(f"{total_value:,.2f}")
+        item_mv.setTextAlignment(Qt.AlignCenter)
+        self.table_summary.setItem(0, 5, item_mv)
+        
+        # Kar/Zarar (Kolon 6)
+        item_pl = QTableWidgetItem(f"{profit_loss:+,.2f}")
+        item_pl.setTextAlignment(Qt.AlignCenter)
+        
+        if profit_loss > 0:
+            item_pl.setForeground(QColor("#22c55e"))
+        elif profit_loss < 0:
+            item_pl.setForeground(QColor("#ef4444"))
+        else:
+            item_pl.setForeground(QColor("#f1f5f9"))
+            
+        self.table_summary.setItem(0, 6, item_pl)
 
 
     def _on_capital_management(self):
@@ -404,6 +499,10 @@ class DashboardPage(BasePage):
             # Getirileri otomatik hesapla
             self._update_returns()
             
+            from datetime import datetime
+            now_str = datetime.now().strftime("%H:%M")
+            self.lbl_last_update.setText(f"Son güncelleme: {now_str} (15dk gecikmeli)")
+            
             QMessageBox.information(
                 self,
                 "Güncelleme Tamamlandı",
@@ -426,19 +525,19 @@ class DashboardPage(BasePage):
             pct = weekly_rate * 100
             color = "#10b981" if pct >= 0 else "#ef4444"
             self.lbl_weekly_return.setText(f"%{pct:+.2f}")
-            self.lbl_weekly_return.setStyleSheet(f"color: {color}; font-size: 18px; font-weight: bold;")
+            self.lbl_weekly_return.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold;")
         else:
             self.lbl_weekly_return.setText("-")
-            self.lbl_weekly_return.setStyleSheet("color: #f1f5f9; font-size: 18px; font-weight: bold;")
+            self.lbl_weekly_return.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: bold;")
 
         if monthly_rate is not None:
             pct = monthly_rate * 100
             color = "#10b981" if pct >= 0 else "#ef4444"
             self.lbl_monthly_return.setText(f"%{pct:+.2f}")
-            self.lbl_monthly_return.setStyleSheet(f"color: {color}; font-size: 18px; font-weight: bold;")
+            self.lbl_monthly_return.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold;")
         else:
             self.lbl_monthly_return.setText("-")
-            self.lbl_monthly_return.setStyleSheet("color: #f1f5f9; font-size: 18px; font-weight: bold;")
+            self.lbl_monthly_return.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: bold;")
 
     def _on_table_double_clicked(self, index: QModelIndex):
         """Tablo çift tıklama - detay sayfası."""
@@ -561,7 +660,6 @@ class DashboardPage(BasePage):
             self.lbl_total_value.setText("₺ 0.00")
             self.lbl_total_cost.setText("₺ 0.00")
             self.lbl_capital.setText("₺ 0.00")
-            self.lbl_profit_loss.setText("₺ 0.00")
             self.lbl_weekly_return.setText("-")
             self.lbl_monthly_return.setText("-")
             QMessageBox.information(self, "Tamamlandı", "Portföy başarıyla sıfırlandı.")
@@ -639,7 +737,7 @@ class CapitalDialog(QDialog):
         super().__init__(parent)
         self.current_capital = current_capital
         
-        self.setWindowTitle("💰 Sermaye Yönetimi")
+        self.setWindowTitle("Sermaye Yönetimi")
         self.resize(350, 200)
         self.setModal(True)
         
@@ -745,3 +843,45 @@ class CapitalDialog(QDialog):
             "action": action,
             "amount": amount,
         }
+
+class PortfolioRowDelegate(QStyledItemDelegate):
+    """
+    Tablo satırlarının sol kenarına kar/zarar durumuna göre 
+    3px renkli border (indicator) çizen delegate.
+    """
+    def paint(self, painter, option, index):
+        super().paint(painter, option, index)
+        
+        # Sadece ilk kolonun (0) sol kenarına çiz
+        if index.column() == 0:
+            model = index.model()
+            row = index.row()
+            
+            # Eğer Proxy model kullanılıyorsa, sourceRow/sourceModel alalım (ileride eklenebilir ihtimaline karşı)
+            if hasattr(model, 'mapToSource'):
+                source_index = model.mapToSource(index)
+                model = model.sourceModel()
+                row = source_index.row()
+                
+            if hasattr(model, 'get_position') and hasattr(model, '_price_map'):
+                try:
+                    position = model.get_position(row)
+                    current_price = model._price_map.get(position.stock_id)
+                    
+                    # Varsayılan: Nötr gri
+                    color = QColor("#555555")
+                    
+                    if current_price is not None:
+                        pl = position.unrealized_pl(current_price)
+                        if pl > 0:
+                            color = QColor("#00C853")
+                        elif pl < 0:
+                            color = QColor("#FF1744")
+                    
+                    painter.save()
+                    painter.setPen(Qt.NoPen)
+                    painter.setBrush(color)
+                    painter.drawRect(option.rect.x(), option.rect.y(), 3, option.rect.height())
+                    painter.restore()
+                except Exception:
+                    pass

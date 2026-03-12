@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import List, Dict
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex, QVariant
 from decimal import Decimal
 
@@ -35,12 +35,13 @@ class PortfolioTableModel(QAbstractTableModel):
         self._price_map = price_map
         self._ticker_map = ticker_map  # { stock_id: "ASELS.IS" ... }
         self._headers = [
-            "Hisse",          # <-- Stock ID yerine
+            "Hisse",
+            "Güncel Fiyat",
+            "Değişim %",
             "Lot",
             "Ort. Maliyet",
-            "Güncel Fiyat",
             "Piyasa Değeri",
-            " Kar/Zarar",
+            "Kar/Zarar",
         ]
 
     def rowCount(self, parent=QModelIndex()) -> int:
@@ -60,55 +61,87 @@ class PortfolioTableModel(QAbstractTableModel):
         if not index.isValid():
             return QVariant()
 
-        # --- RENKLENDİRME MANTIĞI (FOREGROUND ROLE) ---
+        position = self._positions[index.row()]
+        stock_id = position.stock_id
+        current_price = self._price_map.get(stock_id)
+
+        # Görüntülenecek metni belirleyelim, böylece Foreground ve Font rollerinde kullanabiliriz.
+        display_text = ""
+        col = index.column()
+        if col == 0: # HISSE
+            ticker = self._ticker_map.get(stock_id)
+            display_text = ticker if ticker is not None else str(stock_id)
+        elif col == 1: # GÜNCEL FİYAT
+            display_text = f"{current_price:,.2f}" if current_price is not None else "-"
+        elif col == 2: # DEĞİŞİM%
+            if current_price is None: 
+                display_text = "-"
+            else:
+                avg = position.average_cost
+                if avg and avg > 0:
+                    pct = ((current_price - avg) / avg) * 100
+                    display_text = f"%{pct:+.2f}"
+                else:
+                    display_text = "-"
+        elif col == 3: # LOT
+            display_text = f"{position.total_quantity:,}"
+        elif col == 4: # ORT. MALİYET
+            avg = position.average_cost
+            display_text = f"{avg:,.2f}" if avg is not None else "-"
+        elif col == 5: # PİYASA DEĞERİ
+            if current_price is None: 
+                display_text = "-"
+            else:
+                mv = position.market_value(current_price)
+                display_text = f"{mv:,.2f}"
+        elif col == 6: # KAR/ZARAR
+            if current_price is None: 
+                display_text = "-"
+            else:
+                u_pl = position.unrealized_pl(current_price)
+                display_text = f"{u_pl:+,.2f}"
+
+
         if role == Qt.ForegroundRole:
-            col = index.column()
-            # 5. Kolon: Gerç. Olmayan K/Z
-            if col == 5:
-                # Değeri hesapla veya cache'den al
-                position = self._positions[index.row()]
-                stock_id = position.stock_id
-                current_price = self._price_map.get(stock_id)
+            if display_text == "-":
+                return QColor("#666666")
                 
-                if current_price is not None:
+            if current_price is not None:
+                # 6. Kolon: Gerç. Olmayan K/Z
+                if col == 6:
                     pl = position.unrealized_pl(current_price)
                     if pl > 0:
                         return QColor("#22c55e")  # Yeşil
                     elif pl < 0:
                         return QColor("#ef4444")  # Kırmızı
+                
+                # 2. Kolon: Değişim %
+                elif col == 2:
+                    avg = position.average_cost
+                    if avg and avg > 0:
+                        change_pct = ((current_price - avg) / avg) * 100
+                        if change_pct > 0:
+                            return QColor("#22c55e")
+                        elif change_pct < 0:
+                            return QColor("#ef4444")
+                            
             return QVariant()
 
-        position = self._positions[index.row()]
-        stock_id = position.stock_id
-        current_price = self._price_map.get(stock_id)
+        if role == Qt.FontRole:
+            if display_text == "-":
+                font = QFont()
+                font.setItalic(True)
+                return font
+            return QVariant()
 
         if role == Qt.DisplayRole:
-            position = self._positions[index.row()]
-            stock_id = position.stock_id
-            current_price = self._price_map.get(stock_id)
-            
-            col = index.column()
-            if col == 0:
-                ticker = self._ticker_map.get(stock_id)
-                return ticker if ticker is not None else str(stock_id)
-            elif col == 1:
-                return f"{position.total_quantity:,}" # Binlik ayracı eklendi
-            elif col == 2:
-                avg = position.average_cost
-                return f"{avg:,.2f}" if avg is not None else "-"
-            elif col == 3:
-                return f"{current_price:,.2f}" if current_price is not None else "-"
-            elif col == 4:
-                if current_price is None: return "-"
-                mv = position.market_value(current_price)
-                return f"{mv:,.2f}"
-            elif col == 5:
-                if current_price is None: return "-"
-                u_pl = position.unrealized_pl(current_price)
-                return f"{u_pl:+,.2f}" # + işareti eklendi
+            return display_text
 
         if role == Qt.TextAlignmentRole:
             return Qt.AlignCenter
+            
+        if role == Qt.ToolTipRole:
+            return "Hisse detaylarını görmek için çift tıkla"
 
         return QVariant()
 

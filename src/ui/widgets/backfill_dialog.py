@@ -33,7 +33,7 @@ class BackfillDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("📦 Geçmişe Yönelik Veri Yönetimi")
+        self.setWindowTitle("Geçmişe Yönelik Veri Yönetimi")
         self.setFixedSize(480, 380)
         self.setModal(True)
         self._init_ui()

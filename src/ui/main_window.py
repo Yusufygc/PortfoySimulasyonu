@@ -16,8 +16,10 @@ from PyQt5.QtWidgets import (
     QLabel,
     QFrame,
     QStackedWidget,
+   
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 
 
 class PriceLookupResult(NamedTuple):
@@ -78,7 +80,8 @@ class MainWindow(QMainWindow):
         self.navigation_history: List[int] = []
         
         self.setWindowTitle("Portföy Simülasyonu")
-        self.resize(1250, 750)
+        self.setWindowIcon(QIcon("icons/wallet.ico"))   
+        self.resize(1300, 800)
 
         self._init_ui()
         self._goto_page(self.PAGE_DASHBOARD)
@@ -185,11 +188,13 @@ class MainWindow(QMainWindow):
             }
             QPushButton:hover {
                 background-color: #1e293b;
-                color: #f1f5f9;
+                color: #00D4FF;
             }
             QPushButton:checked {
-                background-color: #3b82f6;
-                color: white;
+                background-color: #1e293b;
+                color: #00D4FF;
+                border-left: 3px solid #00D4FF;
+                border-radius: 0px;
             }
         """)
         return btn
