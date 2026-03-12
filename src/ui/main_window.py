@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self.navigation_history: List[int] = []
         
         self.setWindowTitle("Portföy Simülasyonu")
-        self.resize(1200, 700)
+        self.resize(1250, 750)
 
         self._init_ui()
         self._goto_page(self.PAGE_DASHBOARD)
