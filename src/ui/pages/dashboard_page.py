@@ -245,7 +245,7 @@ class DashboardPage(BasePage):
                     capital += trade.total_amount
                 else:
                     capital -= trade.total_amount
-            self._capital = capital
+            self._capital = max(Decimal("0"), capital)
         except Exception as e:
             print(f"Sermaye yüklenemedi: {e}")
             self._capital = Decimal("0")
@@ -375,6 +375,7 @@ class DashboardPage(BasePage):
                     price=data["price"],
                 )
                 self._capital -= trade_amount
+                self._capital = max(Decimal("0"), self._capital)
             else:
                 # Satış: sermayeye ekle
                 trade = Trade.create_sell(
