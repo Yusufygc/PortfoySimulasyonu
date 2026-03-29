@@ -32,6 +32,10 @@ class AppContainer:
     Sayfalar ve bileşenler, ihtiyaç duydukları servislere doğrudan bu konteyner üzerinden erişir.
     """
     def __init__(self):
+        # 0) Event Bus
+        from src.application.events.event_bus import GlobalEventBus
+        self.event_bus = GlobalEventBus()
+        
         # 1) DB config & connection pool
         self.db_config = load_settings()
         self.conn_provider = MySQLConnectionProvider(self.db_config)
@@ -90,4 +94,5 @@ class AppContainer:
             stock_repo=self.stock_repo,
             price_update_service=self.price_update_service,
             return_calc_service=self.return_calc_service,
+            event_bus=self.event_bus,
         )

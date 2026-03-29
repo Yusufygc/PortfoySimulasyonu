@@ -28,12 +28,15 @@ class PortfolioTableModel(QAbstractTableModel):
         positions: List[Position],
         price_map: Dict[int, Decimal],
         ticker_map: Dict[int, str],
+        event_bus=None,
         parent=None,
     ):
         super().__init__(parent)
         self._positions = positions
         self._price_map = price_map
         self._ticker_map = ticker_map  # { stock_id: "ASELS.IS" ... }
+        self._event_bus = event_bus
+        
         self._headers = [
             "Hisse",
             "Güncel Fiyat",
@@ -43,6 +46,9 @@ class PortfolioTableModel(QAbstractTableModel):
             "Piyasa Değeri",
             "Kar/Zarar",
         ]
+        
+        if self._event_bus:
+            self._event_bus.prices_updated.connect(self._on_prices_updated)
 
     def rowCount(self, parent=QModelIndex()) -> int:
         return len(self._positions)
@@ -165,4 +171,22 @@ class PortfolioTableModel(QAbstractTableModel):
         if row < 0 or row >= len(self._positions):
             raise IndexError("Row out of range in PortfolioTableModel.get_position")
         return self._positions[row]
+
+    def _on_prices_updated(self, new_prices: Dict[int, Decimal]):
+        """EventBus'tan gelen anlık fiyat güncellemesi. Sadece değişen hücreleri/satırları render eder."""
+        if not new_prices:
+            return
+            
+        self._price_map.update(new_prices)
+        
+        changed_rows = []
+        for row, pos in enumerate(self._positions):
+            if pos.stock_id in new_prices:
+                changed_rows.append(row)
+                
+        for row in changed_rows:
+            top_left = self.index(row, 1)  # 1: Güncel Fiyat kolonu
+            bottom_right = self.index(row, 6)  # 6: Kar/Zarar kolonu
+            self.dataChanged.emit(top_left, bottom_right, [Qt.DisplayRole, Qt.ForegroundRole])
+
 

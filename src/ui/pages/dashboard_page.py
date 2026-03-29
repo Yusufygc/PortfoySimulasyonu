@@ -327,10 +327,23 @@ class DashboardPage(BasePage):
         ticker_map = self.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
 
         if self.model is None:
-            self.model = PortfolioTableModel(positions, price_map, ticker_map, parent=self)
+            self.model = PortfolioTableModel(
+                positions, 
+                price_map, 
+                ticker_map, 
+                event_bus=self.container.event_bus, 
+                parent=self
+            )
             self.table_view.setModel(self.model)
         else:
-            self.model.update_data(positions, price_map, ticker_map)
+            # EventBus sayesinde fiyat güncellemeleri asenkron / reaktif hücre bazlı olmuştur.
+            # Tablo modelini baştan aşağı resetlememek (dondurmamak) için, 
+            # sadece eklendi/çıkarıldı varsa (len or stock ids differs) hard reset yapıyoruz.
+            current_ids = set(p.stock_id for p in positions)
+            model_ids = set(p.stock_id for p in self.model._positions)
+            
+            if len(positions) != self.model.rowCount() or current_ids != model_ids:
+                self.model.update_data(positions, price_map, ticker_map)
 
         # Değerleri hesapla
         total_value = snapshot.total_value if snapshot else Decimal("0")

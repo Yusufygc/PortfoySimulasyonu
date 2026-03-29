@@ -28,6 +28,7 @@ class PortfolioUpdateCoordinator:
     stock_repo: IStockRepository
     price_update_service: PriceUpdateService
     return_calc_service: ReturnCalcService
+    event_bus: object = None
 
     def update_today_prices_and_get_snapshot(self):
         """
@@ -49,6 +50,10 @@ class PortfolioUpdateCoordinator:
             price_date=today,
             stock_ticker_map=stock_ticker_map,
         )
+
+        # Yayın yap
+        if self.event_bus and hasattr(price_update_result, "prices"):
+            self.event_bus.prices_updated.emit(price_update_result.prices)
 
         # 4) Güncel portföy değerini hesapla
         portfolio_snapshot = self.return_calc_service.compute_portfolio_value_on(today)
