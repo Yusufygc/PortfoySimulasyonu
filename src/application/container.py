@@ -1,14 +1,14 @@
 # src/application/container.py
 
 from config.settings_loader import load_settings
-from src.infrastructure.db.mysql_connection import MySQLConnectionProvider
-from src.infrastructure.db.portfolio_repository import MySQLPortfolioRepository
-from src.infrastructure.db.price_repository import MySQLPriceRepository
-from src.infrastructure.db.stock_repository import MySQLStockRepository
-from src.infrastructure.db.watchlist_repository import MySQLWatchlistRepository
-from src.infrastructure.db.model_portfolio_repository import MySQLModelPortfolioRepository
-from src.infrastructure.db.planning_repository import MySQLPlanningRepository
-from src.infrastructure.db.risk_profile_repository import MySQLRiskProfileRepository
+from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
+from src.infrastructure.db.sqlalchemy.repositories.sa_portfolio_repository import SQLAlchemyPortfolioRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_price_repository import SQLAlchemyPriceRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_watchlist_repository import SQLAlchemyWatchlistRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_model_portfolio_repository import SQLAlchemyModelPortfolioRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_planning_repository import SQLAlchemyPlanningRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_risk_profile_repository import SQLAlchemyRiskProfileRepository
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
 
 from src.application.services.portfolio_service import PortfolioService
@@ -29,25 +29,25 @@ class AppContainer:
     """
     Dependency Injection Konteyneri.
     Uygulamanın ihtiyaç duyduğu tüm repo ve servisleri tek bir noktada başlatıp tutar.
-    Sayfalar ve bileşenler, ihtiyaç duydukları servislere doğrudan bu konteyner üzerinden erişir.
+    SQLAlchemy sürümüne güncellenmiştir.
     """
     def __init__(self):
         # 0) Event Bus
         from src.application.events.event_bus import GlobalEventBus
         self.event_bus = GlobalEventBus()
         
-        # 1) DB config & connection pool
+        # 1) DB config & SQLAlchemy Engine
         self.db_config = load_settings()
-        self.conn_provider = MySQLConnectionProvider(self.db_config)
+        self.conn_provider = SQLAlchemyEngineProvider(self.db_config)
 
-        # 2) Repositories
-        self.portfolio_repo = MySQLPortfolioRepository(self.conn_provider)
-        self.price_repo = MySQLPriceRepository(self.conn_provider)
-        self.stock_repo = MySQLStockRepository(self.conn_provider)
-        self.watchlist_repo = MySQLWatchlistRepository(self.conn_provider)
-        self.model_portfolio_repo = MySQLModelPortfolioRepository(self.conn_provider)
-        self.planning_repo = MySQLPlanningRepository(self.conn_provider)
-        self.risk_profile_repo = MySQLRiskProfileRepository(self.conn_provider)
+        # 2) Dependencies (ORM Based Repositories)
+        self.portfolio_repo = SQLAlchemyPortfolioRepository(self.conn_provider)
+        self.price_repo = SQLAlchemyPriceRepository(self.conn_provider)
+        self.stock_repo = SQLAlchemyStockRepository(self.conn_provider)
+        self.watchlist_repo = SQLAlchemyWatchlistRepository(self.conn_provider)
+        self.model_portfolio_repo = SQLAlchemyModelPortfolioRepository(self.conn_provider)
+        self.planning_repo = SQLAlchemyPlanningRepository(self.conn_provider)
+        self.risk_profile_repo = SQLAlchemyRiskProfileRepository(self.conn_provider)
 
         # 3) Market data client
         self.market_client = YFinanceMarketDataClient()
