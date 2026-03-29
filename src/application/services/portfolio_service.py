@@ -80,4 +80,17 @@ class PortfolioService:
         all_trades = self._portfolio_repo.get_all_trades()
         return [t for t in all_trades if t.stock_id == stock_id]
 
+    def calculate_capital(self) -> Decimal:
+        """Sermayeyi hesaplar (Kümülatif Satışlar - Alışlar)."""
+        from src.domain.models.trade import TradeSide
+        trades = self._portfolio_repo.get_all_trades()
+        capital = Decimal("0")
+        for trade in trades:
+            trade_amount = trade.price * Decimal(trade.quantity)
+            if trade.side == TradeSide.SELL:
+                capital += trade_amount
+            else:
+                capital -= trade_amount
+        return max(Decimal("0"), capital)
+
 

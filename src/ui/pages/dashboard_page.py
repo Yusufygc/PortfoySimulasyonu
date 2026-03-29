@@ -310,17 +310,9 @@ class DashboardPage(BasePage):
         self.refresh_data()
 
     def _load_capital(self):
-        """Sermayeyi veritabanından yükle (settings tablosu veya hesaplama)."""
-        # Şimdilik trade'lerden hesapla: satışlar + sermaye - alışlar
+        """Sermayeyi veritabanından yükle (Service katmanından çekilir)."""
         try:
-            trades = self.portfolio_service._portfolio_repo.get_all_trades()
-            capital = Decimal("0")
-            for trade in trades:
-                if trade.side == TradeSide.SELL:
-                    capital += trade.total_amount
-                else:
-                    capital -= trade.total_amount
-            self._capital = max(Decimal("0"), capital)
+            self._capital = self.portfolio_service.calculate_capital()
         except Exception as e:
             logger.error(f"Sermaye yüklenemedi: {e}", exc_info=True)
             self._capital = Decimal("0")
@@ -467,7 +459,6 @@ class DashboardPage(BasePage):
 
         try:
             if data["side"] == "BUY":
-                # Alış: sermayeden düş
                 trade = Trade.create_buy(
                     stock_id=stock_id,
                     trade_date=data["trade_date"],
@@ -478,7 +469,6 @@ class DashboardPage(BasePage):
                 self._capital -= trade_amount
                 self._capital = max(Decimal("0"), self._capital)
             else:
-                # Satış: sermayeye ekle
                 trade = Trade.create_sell(
                     stock_id=stock_id,
                     trade_date=data["trade_date"],
