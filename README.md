@@ -91,67 +91,94 @@
 Bu proje, endüstri standartlarında **Temiz Mimari (Clean Architecture)** ve **SOLID** prensipleriyle inşa edilmiştir. Katmanlar birbirinden tam bağımsızdır ve "tak-çıkar" mantığıyla çalışır.
 
 ```mermaid
-graph TB
-    subgraph "🖥️ Sunum Katmanı (UI)"
-        A[MainWindow] --> B[DashboardPage]
-        A --> C[AnalysisPage]
-        A --> D[ModelPortfolioPage]
-        A --> E[OptimizationPage]
-        A --> F[PlanningPage]
-        A --> G[RiskProfilePage]
-        A --> H[StockDetailPage]
-        A --> I[WatchlistPage]
-        TM[ThemeManager] -.->|QSS Teması| A
+graph LR
+    subgraph UI["Sunum Katmani - UI"]
+        MW["MainWindow"]
+        DP["DashboardPage"]
+        AP["AnalysisPage"]
+        MP["ModelPortfolioPage"]
+        OP["OptimizationPage"]
+        PP["PlanningPage"]
+        RP["RiskProfilePage"]
+        SD["StockDetailPage"]
+        WP["WatchlistPage"]
+        TM["ThemeManager"]
     end
 
-    subgraph "⚙️ Uygulama Katmanı (Application)"
-        J[AppContainer - DI] --> K[PortfolioService]
-        J --> L[PriceUpdateService]
-        J --> M[ReturnCalcService]
-        J --> N[WatchlistService]
-        J --> O[ModelPortfolioService]
-        J --> P[OptimizationService]
-        J --> Q[PlanningService]
-        J --> R[RiskProfileService]
-        J --> S[ExcelExportService]
-        J --> T[BackfillService]
-        J --> U[PortfolioUpdateCoordinator]
-        J --> EB[GlobalEventBus]
+    subgraph APP["Uygulama Katmani - Application"]
+        DI["AppContainer DI"]
+        PS["PortfolioService"]
+        PUS["PriceUpdateService"]
+        RCS["ReturnCalcService"]
+        WS["WatchlistService"]
+        MPS["ModelPortfolioService"]
+        OS["OptimizationService"]
+        PLS["PlanningService"]
+        RPS["RiskProfileService"]
+        EES["ExcelExportService"]
+        PUC["UpdateCoordinator"]
+        EB["GlobalEventBus"]
     end
 
-    subgraph "🧠 Domain Katmanı (İş Kuralları)"
-        V[Portfolio] --> W[Position]
-        V --> X[Trade]
-        Y[Stock]
-        Z[DailyPrice]
-        AA[ModelPortfolio]
-        AB[Budget / FinancialGoal]
-        AC[RiskProfile]
+    subgraph DOMAIN["Domain Katmani - Is Kurallari"]
+        PO["Portfolio"]
+        TR["Trade"]
+        ST["Stock"]
+        DPR["DailyPrice"]
+        MPO["ModelPortfolio"]
+        BG["Budget"]
+        RPR["RiskProfile"]
     end
 
-    subgraph "🗄️ Altyapı Katmanı (Infrastructure)"
-        AD[SQLAlchemy Engine] --> AE[ORM Models]
-        AE --> AF[SA_PortfolioRepo]
-        AE --> AG[SA_StockRepo]
-        AE --> AH[SA_PriceRepo]
-        AE --> AI[SA_WatchlistRepo]
-        AE --> AJ[SA_PlanningRepo]
-        AE --> AK[SA_ModelPortfolioRepo]
-        AE --> AL[SA_RiskProfileRepo]
-        AM[YFinance Client]
+    subgraph INFRA["Altyapi Katmani - Infrastructure"]
+        SE["SQLAlchemy Engine"]
+        ORM["ORM Models"]
+        SAR["SA Repositories x7"]
+        YF["YFinance Client"]
     end
 
-    B & C & D & E & F & G & H & I -->|Container| J
-    K & L & M & N & O & P & Q & R & S & T -->|Interfaces| V & Y & Z & AA & AB & AC
-    AF & AG & AH & AI & AJ & AK & AL -->|implements| V & Y & Z & AA & AB & AC
-    AM -->|Market Data| L
-    U -->|emit signal| EB
-    EB -->|prices_updated| B
+    MW --> DP
+    MW --> AP
+    MW --> MP
+    MW --> OP
+    MW --> PP
+    MW --> RP
+    MW --> SD
+    MW --> WP
+    TM -.-> MW
 
-    style J fill:#2563eb,color:#fff,stroke:#1d4ed8
+    DP --> DI
+    DI --> PS
+    DI --> PUS
+    DI --> RCS
+    DI --> WS
+    DI --> MPS
+    DI --> OS
+    DI --> PLS
+    DI --> RPS
+    DI --> EES
+    DI --> PUC
+    DI --> EB
+
+    PS --> PO
+    PUS --> DPR
+    RCS --> TR
+    MPS --> MPO
+    PLS --> BG
+    RPS --> RPR
+    OS --> ST
+
+    SE --> ORM
+    ORM --> SAR
+    YF --> PUS
+
+    PUC -->|emit| EB
+    EB -->|signal| DP
+
+    style DI fill:#2563eb,color:#fff,stroke:#1d4ed8
     style EB fill:#16a34a,color:#fff,stroke:#15803d
     style TM fill:#7c3aed,color:#fff,stroke:#6d28d9
-    style AD fill:#dc2626,color:#fff,stroke:#b91c1c
+    style SE fill:#dc2626,color:#fff,stroke:#b91c1c
 ```
 
 ### Katman Bağımsızlığı İlkesi
@@ -551,13 +578,7 @@ docs:     Dokümantasyon
 test:     Test ekleme/güncelleme
 ```
 
----
 
-## 📜 Lisans
-
-Bu proje özel kullanım amaçlı geliştirilmektedir. Tüm hakları saklıdır.
-
----
 
 <p align="center">
   <strong>Portföy Simülasyonu</strong> — Clean Architecture ile inşa edilmiş profesyonel finans platformu 🚀
