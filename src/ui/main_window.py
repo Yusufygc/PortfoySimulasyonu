@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import yfinance as yf
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Dict, List, NamedTuple, Optional
@@ -348,7 +351,7 @@ class MainWindow(QMainWindow):
         try:
             yt = yf.Ticker(ticker)
         except Exception as e:
-            print("YF Ticker init failed:", e)
+            logger.error(f"YF Ticker init failed for {ticker}: {e}")
             return None
 
         info = {}
@@ -376,7 +379,7 @@ class MainWindow(QMainWindow):
         try:
             hist = yt.history(period="5d", auto_adjust=False)
         except Exception as e:
-            print("YF history failed for", ticker, ":", e)
+            logger.error(f"YF history failed for {ticker}: {e}")
             return None
 
         if hist is not None and not hist.empty and "Close" in hist:
@@ -394,5 +397,5 @@ class MainWindow(QMainWindow):
                 except Exception:
                     pass
 
-        print("Price lookup failed for", ticker)
+        logger.warning(f"Price lookup failed for {ticker}")
         return None

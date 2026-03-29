@@ -1,6 +1,9 @@
 # src/ui/pages/model_portfolio_page.py
 
 from __future__ import annotations
+import logging
+
+logger = logging.getLogger(__name__)
 
 from typing import Optional, Dict, Any
 from decimal import Decimal
@@ -432,7 +435,7 @@ class ModelPortfolioPage(BasePage):
                     self.current_price_map[pos["stock_id"]] = result.price
                     updated_count += 1
             except Exception as e:
-                print(f"Fiyat alınamadı: {ticker} - {e}")
+                logger.error(f"Fiyat alınamadı: {ticker} - {e}")
 
         self._update_view()
         QMessageBox.information(self, "Fiyatlar Güncellendi", f"{updated_count} hisse için fiyat güncellendi.")

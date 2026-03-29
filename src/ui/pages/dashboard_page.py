@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date
+
+logger = logging.getLogger(__name__)
 from decimal import Decimal
 from typing import Dict, List, Optional, NamedTuple
 
@@ -319,7 +322,7 @@ class DashboardPage(BasePage):
                     capital -= trade.total_amount
             self._capital = max(Decimal("0"), capital)
         except Exception as e:
-            print(f"Sermaye yüklenemedi: {e}")
+            logger.error(f"Sermaye yüklenemedi: {e}", exc_info=True)
             self._capital = Decimal("0")
 
     def refresh_data(self):
@@ -538,7 +541,7 @@ class DashboardPage(BasePage):
             weekly_rate, _, _ = self.return_calc_service.compute_weekly_return(today)
             monthly_rate, _, _ = self.return_calc_service.compute_monthly_return(today)
         except Exception as e:
-            print(f"Getiri hesaplama hatası: {e}")
+            logger.error(f"Getiri hesaplama hatası: {e}", exc_info=True)
             return
 
         if weekly_rate is not None:

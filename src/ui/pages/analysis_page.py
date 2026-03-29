@@ -1,6 +1,10 @@
 # src/ui/pages/analysis_page.py
 
 from __future__ import annotations
+import logging
+
+import pandas as pd
+logger = logging.getLogger(__name__)
 
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
@@ -347,7 +351,7 @@ class AnalysisPage(BasePage):
                     if trade_date < self.stock_first_trade_dates[stock_id]:
                         self.stock_first_trade_dates[stock_id] = trade_date
         except Exception as e:
-            print(f"İlk işlem tarihleri yüklenemedi: {e}")
+            logger.error(f"İlk işlem tarihleri yüklenemedi: {e}", exc_info=True)
 
     def _get_earliest_trade_date(self) -> date:
         """Seçili hisseler için en erken işlem tarihini döner."""
@@ -456,7 +460,7 @@ class AnalysisPage(BasePage):
                 self.price_cache[cache_key] = data
                 return data
         except Exception as e:
-            print(f"Veri çekilemedi: {ticker} - {e}")
+            logger.error(f"Veri çekilemedi: {ticker} - {e}", exc_info=True)
         
         return None
 

@@ -1,6 +1,9 @@
 # src/ui/widgets/model_portfolio_manager_dialog.py
 
 from __future__ import annotations
+import logging
+
+logger = logging.getLogger(__name__)
 
 from typing import Optional, Dict, Any
 from decimal import Decimal
@@ -494,7 +497,7 @@ class ModelPortfolioManagerDialog(QDialog):
                     self.current_price_map[pos["stock_id"]] = result.price
                     updated_count += 1
             except Exception as e:
-                print(f"Fiyat alınamadı: {ticker} - {e}")
+                logger.error(f"Fiyat alınamadı: {ticker} - {e}")
 
         self._update_portfolio_view()
         QMessageBox.information(

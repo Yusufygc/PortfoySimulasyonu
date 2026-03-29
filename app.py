@@ -1,6 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication
 
+from src.infrastructure.logging.logger_setup import setup_logger, setup_global_exception_handler
 from config.settings_loader import load_settings
 from src.infrastructure.db.mysql_connection import MySQLConnectionProvider
 from src.infrastructure.db.portfolio_repository import MySQLPortfolioRepository
@@ -30,6 +31,10 @@ from src.ui.main_window import MainWindow
 
 
 def main():
+    logger = setup_logger()
+    setup_global_exception_handler()
+    logger.info("Uygulama başlatılıyor...")
+
     app = QApplication(sys.argv)
     apply_app_style(app)
 

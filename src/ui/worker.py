@@ -2,7 +2,10 @@
 
 import sys
 import traceback
+import logging
 from PyQt5.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
+
+logger = logging.getLogger(__name__)
 
 class WorkerSignals(QObject):
     """
@@ -34,8 +37,8 @@ class Worker(QRunnable):
     def run(self):
         try:
             result = self.fn(*self.args, **self.kwargs)
-        except Exception:
-            traceback.print_exc()
+        except Exception as e:
+            logger.exception("Worker thread içinde hata oluştu:")
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
         else:

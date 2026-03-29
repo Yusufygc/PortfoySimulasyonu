@@ -1,6 +1,9 @@
 # src/application/services/excel_export_service.py
 
 from __future__ import annotations
+import logging
+
+logger = logging.getLogger(__name__)
 
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -626,7 +629,7 @@ class ExcelExportService:
                 existing_stock_sum = pd.read_excel(xls, sheet_name="Hisse Özeti") if "Hisse Özeti" in sheet_names else pd.DataFrame()
                 existing_dashboard = pd.read_excel(xls, sheet_name="Özet Panel") if "Özet Panel" in sheet_names else pd.DataFrame()
         except Exception as e:
-            print(f"Eski dosya okunamadı: {e}. Dosya yedeklenip yeniden oluşturulacak.")
+            logger.warning(f"Eski dosya okunamadı: {e}. Dosya yedeklenip yeniden oluşturulacak.")
             backup_path = file_path.with_suffix(file_path.suffix + ".bak")
             shutil.copy(file_path, backup_path)
             self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)

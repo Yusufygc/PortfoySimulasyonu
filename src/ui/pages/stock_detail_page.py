@@ -1,4 +1,7 @@
 from __future__ import annotations
+import logging
+
+logger = logging.getLogger(__name__)
 
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
@@ -494,7 +497,7 @@ class StockDetailPage(BasePage):
                 # Alım formundaki fiyatı da güncelle (eğer kullanıcı değiştirmediyse pratik olur)
                 self.spin_price.setValue(float(self.current_price))
         except Exception as e:
-            print(f"Fiyat hatası: {e}")
+            logger.error(f"Fiyat hatası: {e}")
 
     def _calculate_stats(self):
         if not self.current_stock_id:
@@ -670,7 +673,7 @@ class StockDetailPage(BasePage):
                 ax.text(0.5, 0.5, "Veri bulunamadı", color='#94a3b8', ha='center', va='center')
                 
         except Exception as e:
-            print(f"Grafik hatası: {e}")
+            logger.error(f"Grafik hatası: {e}")
             ax.text(0.5, 0.5, "Grafik yüklenemedi", color='#94a3b8', ha='center', va='center')
             
         self.figure.tight_layout()
