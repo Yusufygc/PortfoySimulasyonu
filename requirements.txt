@@ -5,3 +5,5 @@ openpyxl
 mysql-connector-python
 numpy
 scipy
+pytest
+pytest-mock
