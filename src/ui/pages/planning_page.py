@@ -39,10 +39,11 @@ class PlanningPage(BasePage):
         2. Hedef Takibi: Finansal hedef yönetimi ve fizibilite analizi
     """
 
-    def __init__(self, planning_service, parent=None):
+    def __init__(self, container, parent=None):
         super().__init__(parent)
+        self.container = container
         self.page_title = "Finansal Planlama"
-        self._service = planning_service
+        self._service = container.planning_service
         self._init_ui()
 
     def _init_ui(self):

@@ -54,16 +54,15 @@ class AnalysisPage(BasePage):
 
     def __init__(
         self,
-        stock_repo,
-        portfolio_service,
-        price_repo,
+        container,
         parent=None,
     ):
         super().__init__(parent)
+        self.container = container
         self.page_title = "Analiz"
-        self.stock_repo = stock_repo
-        self.portfolio_service = portfolio_service
-        self.price_repo = price_repo
+        self.stock_repo = container.stock_repo
+        self.portfolio_service = container.portfolio_service
+        self.price_repo = container.price_repo
         
         self.price_cache: Dict[str, Any] = {}
         self.stock_first_trade_dates: Dict[int, date] = {}  # stock_id -> first_trade_date

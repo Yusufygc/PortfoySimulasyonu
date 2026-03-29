@@ -2,29 +2,7 @@ import sys
 from PyQt5.QtWidgets import QApplication
 
 from src.infrastructure.logging.logger_setup import setup_logger, setup_global_exception_handler
-from config.settings_loader import load_settings
-from src.infrastructure.db.mysql_connection import MySQLConnectionProvider
-from src.infrastructure.db.portfolio_repository import MySQLPortfolioRepository
-from src.infrastructure.db.price_repository import MySQLPriceRepository
-from src.infrastructure.db.stock_repository import MySQLStockRepository
-from src.infrastructure.db.watchlist_repository import MySQLWatchlistRepository
-from src.infrastructure.db.model_portfolio_repository import MySQLModelPortfolioRepository
-from src.infrastructure.db.planning_repository import MySQLPlanningRepository
-from src.infrastructure.db.risk_profile_repository import MySQLRiskProfileRepository
-from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
-
-from src.application.services.portfolio_service import PortfolioService
-from src.application.services.price_update_service import PriceUpdateService
-from src.application.services.return_calc_service import ReturnCalcService
-from src.application.services.portfolio_update_coordinator import PortfolioUpdateCoordinator
-from src.application.services.portfolio_reset_service import PortfolioResetService
-from src.application.services.excel_export_service import ExcelExportService, ExportMode
-from src.application.services.watchlist_service import WatchlistService
-from src.application.services.model_portfolio_service import ModelPortfolioService
-from src.application.services.optimization_service import OptimizationService
-from src.application.services.planning_service import PlanningService
-from src.application.services.risk_profile_service import RiskProfileService
-from src.application.services.backfill_service import BackfillService
+from src.application.container import AppContainer
 
 from src.ui.style import apply_app_style
 from src.ui.main_window import MainWindow
@@ -38,80 +16,11 @@ def main():
     app = QApplication(sys.argv)
     apply_app_style(app)
 
-    # 1) DB config & connection pool
-    db_config = load_settings()
-    conn_provider = MySQLConnectionProvider(db_config)
-
-    # 2) Repositories
-    portfolio_repo = MySQLPortfolioRepository(conn_provider)
-    price_repo = MySQLPriceRepository(conn_provider)
-    stock_repo = MySQLStockRepository(conn_provider)
-    watchlist_repo = MySQLWatchlistRepository(conn_provider)
-    model_portfolio_repo = MySQLModelPortfolioRepository(conn_provider)
-    planning_repo = MySQLPlanningRepository(conn_provider)
-    risk_profile_repo = MySQLRiskProfileRepository(conn_provider)
-
-    # 3) Market data client (yfinance)
-    market_client = YFinanceMarketDataClient()
-
-    # 4) Services
-    portfolio_service = PortfolioService(portfolio_repo, price_repo)
-    price_update_service = PriceUpdateService(price_repo, market_client)
-    return_calc_service = ReturnCalcService(portfolio_repo, price_repo)
-    reset_service = PortfolioResetService(portfolio_repo, price_repo, stock_repo)
-    excel_export_service = ExcelExportService(
-        portfolio_repo=portfolio_repo,
-        price_repo=price_repo,
-        stock_repo=stock_repo,
-        market_data_client=market_client,
-    )
-    watchlist_service = WatchlistService(
-        watchlist_repo=watchlist_repo,
-        stock_repo=stock_repo,
-    )
-    model_portfolio_service = ModelPortfolioService(
-        model_portfolio_repo=model_portfolio_repo,
-        stock_repo=stock_repo,
-    )
-    optimization_service = OptimizationService(
-        portfolio_service=portfolio_service,
-        model_portfolio_service=model_portfolio_service,
-        stock_repo=stock_repo,
-    )
-    planning_service = PlanningService(
-        planning_repo=planning_repo,
-    )
-    risk_profile_service = RiskProfileService(
-        risk_profile_repo=risk_profile_repo,
-    )
-    backfill_service = BackfillService(
-        stock_repo=stock_repo,
-        price_repo=price_repo,
-    )
-    # 5) Coordinator
-    coordinator = PortfolioUpdateCoordinator(
-        portfolio_repo=portfolio_repo,
-        stock_repo=stock_repo,
-        price_update_service=price_update_service,
-        return_calc_service=return_calc_service,
-    )
+    # Container yapısını başlat (Bütün repo ve servisler içinde ayağa kalkar)
+    container = AppContainer()
 
     # 6) UI
-    window = MainWindow(
-        portfolio_service=portfolio_service,
-        return_calc_service=return_calc_service,
-        update_coordinator=coordinator,
-        stock_repo=stock_repo,
-        reset_service=reset_service, 
-        market_client=market_client, 
-        excel_export_service=excel_export_service,
-        watchlist_service=watchlist_service,
-        model_portfolio_service=model_portfolio_service,
-        optimization_service=optimization_service,
-        planning_service=planning_service,
-        risk_profile_service=risk_profile_service,
-        backfill_service=backfill_service,
-    )
+    window = MainWindow(container=container)
     window.show()
 
     sys.exit(app.exec_())

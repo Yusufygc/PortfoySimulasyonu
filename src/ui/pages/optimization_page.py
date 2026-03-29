@@ -57,13 +57,14 @@ class OptimizationPage(BasePage):
 
     def __init__(
         self,
-        optimization_service,
+        container,
         price_lookup_func=None,
         parent=None,
     ):
         super().__init__(parent)
+        self.container = container
         self.page_title = "Portföy Optimizasyonu"
-        self._optimization_service = optimization_service
+        self._optimization_service = container.optimization_service
         self._price_lookup_func = price_lookup_func
         self._worker: Optional[_OptimizationWorker] = None
         self._model_portfolios: list = []

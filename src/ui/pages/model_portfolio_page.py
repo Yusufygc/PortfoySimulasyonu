@@ -40,10 +40,11 @@ class ModelPortfolioPage(BasePage):
     Portföy CRUD, hisse alım/satım ve pozisyon takibi.
     """
 
-    def __init__(self, model_portfolio_service, price_lookup_func=None, parent=None):
+    def __init__(self, container, price_lookup_func=None, parent=None):
         super().__init__(parent)
+        self.container = container
         self.page_title = "Model Portföyler"
-        self.model_portfolio_service = model_portfolio_service
+        self.model_portfolio_service = container.model_portfolio_service
         self.price_lookup_func = price_lookup_func
         self.current_portfolio_id: Optional[int] = None
         self.current_price_map: Dict[int, Decimal] = {}

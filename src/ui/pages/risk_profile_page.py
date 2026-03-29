@@ -30,10 +30,11 @@ class RiskProfilePage(BasePage):
     Mevcut profil varsa üstte gösterir, yeni anket doldurulabilir.
     """
 
-    def __init__(self, risk_profile_service, parent=None):
+    def __init__(self, container, parent=None):
         super().__init__(parent)
+        self.container = container
         self.page_title = "Risk Profili"
-        self._service = risk_profile_service
+        self._service = container.risk_profile_service
         self._init_ui()
 
     def _init_ui(self):

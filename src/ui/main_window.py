@@ -49,35 +49,11 @@ class MainWindow(QMainWindow):
 
     def __init__(
         self,
-        portfolio_service,
-        return_calc_service,
-        update_coordinator,
-        excel_export_service,
-        stock_repo,
-        reset_service,
-        market_client,
-        watchlist_service=None,
-        model_portfolio_service=None,
-        optimization_service=None,
-        planning_service=None,
-        risk_profile_service=None,
-        backfill_service=None,
+        container,
         parent=None,
     ):
         super().__init__(parent)
-        self.portfolio_service = portfolio_service
-        self.return_calc_service = return_calc_service
-        self.update_coordinator = update_coordinator
-        self.stock_repo = stock_repo
-        self.reset_service = reset_service
-        self.market_client = market_client
-        self.excel_export_service = excel_export_service
-        self.watchlist_service = watchlist_service
-        self.model_portfolio_service = model_portfolio_service
-        self.optimization_service = optimization_service
-        self.planning_service = planning_service
-        self.risk_profile_service = risk_profile_service
-        self.backfill_service = backfill_service
+        self.container = container
         
         # Navigasyon geçmişi
         self.navigation_history: List[int] = []
@@ -217,26 +193,19 @@ class MainWindow(QMainWindow):
 
         # Dashboard Page
         self.dashboard_page = DashboardPage(
-            portfolio_service=self.portfolio_service,
-            return_calc_service=self.return_calc_service,
-            update_coordinator=self.update_coordinator,
-            stock_repo=self.stock_repo,
-            reset_service=self.reset_service,
-            market_client=self.market_client,
-            excel_export_service=self.excel_export_service,
+            container=self.container,
             price_lookup_func=self.lookup_price_for_ticker,
-            backfill_service=self.backfill_service,
         )
         self.stacked_widget.addWidget(self.dashboard_page)  # Index 0
 
         # Watchlist Page
         self.watchlist_page = WatchlistPage(
-            watchlist_service=self.watchlist_service,
+            container=self.container,
         )
         self.stacked_widget.addWidget(self.watchlist_page)  # Index 1
 
         self.model_portfolio_page = ModelPortfolioPage(
-            model_portfolio_service=self.model_portfolio_service,
+            container=self.container,
             price_lookup_func=self.lookup_price_for_ticker,
         )
         self.stacked_widget.addWidget(self.model_portfolio_page)  # Index 2
@@ -244,17 +213,14 @@ class MainWindow(QMainWindow):
         # Analysis Page
         from src.ui.pages.analysis_page import AnalysisPage
         self.analysis_page = AnalysisPage(
-            stock_repo=self.stock_repo,
-            portfolio_service=self.portfolio_service,
-            price_repo=None,  # Opsiyonel
+            container=self.container,
         )
         self.stacked_widget.addWidget(self.analysis_page)  # Index 3
 
         # Stock Detail Page
         from src.ui.pages.stock_detail_page import StockDetailPage
         self.stock_detail_page = StockDetailPage(
-            portfolio_service=self.portfolio_service,
-            stock_repo=self.stock_repo,
+            container=self.container,
             price_lookup_func=self.lookup_price_for_ticker,
             parent=self
         )
@@ -263,7 +229,7 @@ class MainWindow(QMainWindow):
         # Optimization Page
         from src.ui.pages.optimization_page import OptimizationPage
         self.optimization_page = OptimizationPage(
-            optimization_service=self.optimization_service,
+            container=self.container,
             price_lookup_func=self.lookup_price_for_ticker,
         )
         self.stacked_widget.addWidget(self.optimization_page)  # Index 5
@@ -271,14 +237,14 @@ class MainWindow(QMainWindow):
         # Planning Page
         from src.ui.pages.planning_page import PlanningPage
         self.planning_page = PlanningPage(
-            planning_service=self.planning_service,
+            container=self.container,
         )
         self.stacked_widget.addWidget(self.planning_page)  # Index 6
 
         # Risk Profile Page
         from src.ui.pages.risk_profile_page import RiskProfilePage
         self.risk_profile_page = RiskProfilePage(
-            risk_profile_service=self.risk_profile_service,
+            container=self.container,
         )
         self.stacked_widget.addWidget(self.risk_profile_page)  # Index 7
 

@@ -48,15 +48,15 @@ class StockDetailPage(BasePage):
 
     def __init__(
         self,
-        portfolio_service,
-        stock_repo,
+        container,
         price_lookup_func,
         parent=None,
     ):
         super().__init__(parent)
+        self.container = container
         self.page_title = "Hisse Detayı"
-        self.portfolio_service = portfolio_service
-        self.stock_repo = stock_repo
+        self.portfolio_service = container.portfolio_service
+        self.stock_repo = container.stock_repo
         self.price_lookup_func = price_lookup_func
         
         self.current_ticker: Optional[str] = None

@@ -55,29 +55,23 @@ class DashboardPage(BasePage):
 
     def __init__(
         self,
-        portfolio_service,
-        return_calc_service,
-        update_coordinator,
-        stock_repo,
-        reset_service,
-        market_client,
-        excel_export_service,
+        container,
         price_lookup_func,
-        backfill_service=None,
         parent=None,
     ):
         super().__init__(parent)
+        self.container = container
         self.page_title = "Dashboard"
         
-        self.portfolio_service = portfolio_service
-        self.return_calc_service = return_calc_service
-        self.update_coordinator = update_coordinator
-        self.stock_repo = stock_repo
-        self.reset_service = reset_service
-        self.market_client = market_client
-        self.excel_export_service = excel_export_service
+        self.portfolio_service = container.portfolio_service
+        self.return_calc_service = container.return_calc_service
+        self.update_coordinator = container.update_coordinator
+        self.stock_repo = container.stock_repo
+        self.reset_service = container.reset_service
+        self.market_client = container.market_client
+        self.excel_export_service = container.excel_export_service
         self.price_lookup_func = price_lookup_func
-        self.backfill_service = backfill_service
+        self.backfill_service = container.backfill_service
         
         self.threadpool = QThreadPool()
         

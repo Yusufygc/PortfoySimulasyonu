@@ -32,10 +32,11 @@ class WatchlistPage(BasePage):
     Watchlist CRUD ve hisse yönetimi.
     """
 
-    def __init__(self, watchlist_service, parent=None):
+    def __init__(self, container, parent=None):
         super().__init__(parent)
+        self.container = container
         self.page_title = "Takip Listeleri"
-        self.watchlist_service = watchlist_service
+        self.watchlist_service = container.watchlist_service
         self.current_watchlist_id: Optional[int] = None
         
         self._init_ui()
