@@ -25,11 +25,12 @@ from PyQt5.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
 )
-from PyQt5.QtCore import Qt, QModelIndex
+from PyQt5.QtCore import Qt, QModelIndex, QThreadPool
 from PyQt5.QtGui import QPainter, QColor
 
 from .base_page import BasePage
 from src.ui.portfolio_table_model import PortfolioTableModel
+from src.ui.worker import Worker
 from src.ui.widgets.date_range_dialog import DateRangeDialog
 from src.ui.widgets.trade_dialog import TradeDialog
 from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
@@ -74,6 +75,8 @@ class DashboardPage(BasePage):
         self.excel_export_service = excel_export_service
         self.price_lookup_func = price_lookup_func
         self.backfill_service = backfill_service
+        
+        self.threadpool = QThreadPool()
         
         # Sermaye takibi (başlangıçta 0, hisse alım/satımıyla değişir)
         self._capital = Decimal("0")
@@ -491,25 +494,42 @@ class DashboardPage(BasePage):
             QMessageBox.critical(self, "Hata", f"İşlem kaydedilemedi: {e}")
 
     def _on_update_prices(self):
-        """Fiyatları güncelle ve getirileri hesapla."""
-        try:
-            price_update_result, snapshot = self.update_coordinator.update_today_prices_and_get_snapshot()
-            self.refresh_data()
+        """Fiyatları asenkron güncelle ve getirileri hesapla."""
+        self.btn_update_prices.setEnabled(False)
+        self.btn_update_prices.setText("🔄 Güncelleniyor...")
+        self.btn_backfill.setEnabled(False)
+        
+        worker = Worker(self.update_coordinator.update_today_prices_and_get_snapshot)
+        worker.signals.result.connect(self._on_update_prices_success)
+        worker.signals.error.connect(self._on_update_prices_error)
+        
+        def on_finished():
+            self.btn_update_prices.setEnabled(True)
+            self.btn_update_prices.setText("🔄 Fiyatları Güncelle")
+            self.btn_backfill.setEnabled(True)
             
-            # Getirileri otomatik hesapla
-            self._update_returns()
-            
-            from datetime import datetime
-            now_str = datetime.now().strftime("%H:%M")
-            self.lbl_last_update.setText(f"Son güncelleme: {now_str} (15dk gecikmeli)")
-            
-            QMessageBox.information(
-                self,
-                "Güncelleme Tamamlandı",
-                f"{price_update_result.updated_count} hisse için fiyat güncellendi.",
-            )
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Fiyat güncelleme sırasında hata: {e}")
+        worker.signals.finished.connect(on_finished)
+        
+        self.threadpool.start(worker)
+
+    def _on_update_prices_success(self, result):
+        price_update_result, snapshot = result
+        self.refresh_data()
+        self._update_returns()
+        
+        from datetime import datetime
+        now_str = datetime.now().strftime("%H:%M")
+        self.lbl_last_update.setText(f"Son güncelleme: {now_str} (15dk gecikmeli)")
+        
+        QMessageBox.information(
+            self,
+            "Güncelleme Tamamlandı",
+            f"{price_update_result.updated_count} hisse için fiyat güncellendi.",
+        )
+
+    def _on_update_prices_error(self, err_tuple):
+        exctype, value, tb_str = err_tuple
+        QMessageBox.critical(self, "Hata", f"Fiyat güncelleme sırasında hata:\n{value}")
 
     def _update_returns(self):
         """Haftalık ve aylık getirileri hesapla."""
@@ -710,24 +730,35 @@ class DashboardPage(BasePage):
             except Exception as e:
                 QMessageBox.critical(self, "Hata", f"Silme sırasında hata: {e}")
         else:
-            # Veri çekme
-            try:
-                self.btn_backfill.setEnabled(False)
-                self.btn_backfill.setText("⏳ Veri indiriliyor...")
-                from PyQt5.QtWidgets import QApplication
-                QApplication.processEvents()
+            # Veri çekme (Asenkron)
+            self.btn_backfill.setEnabled(False)
+            self.btn_backfill.setText("⏳ Veri indiriliyor...")
+            self.btn_update_prices.setEnabled(False)
 
-                count = self.backfill_service.backfill_range(start_date, end_date)
-                self.refresh_data()
-                QMessageBox.information(
-                    self, "Başarılı",
-                    f"{start_date} — {end_date} için {count} adet fiyat verisi indirildi."
-                )
-            except Exception as e:
-                QMessageBox.critical(self, "Hata", f"Veri çekme sırasında hata: {e}")
-            finally:
+            worker = Worker(self.backfill_service.backfill_range, start_date, end_date)
+            # lambda default argument trick to capture start_date and end_date
+            worker.signals.result.connect(lambda count, sd=start_date, ed=end_date: self._on_backfill_success(count, sd, ed))
+            worker.signals.error.connect(self._on_backfill_error)
+            
+            def on_finished():
                 self.btn_backfill.setEnabled(True)
                 self.btn_backfill.setText("📦 Geçmiş Veri Yönetimi")
+                self.btn_update_prices.setEnabled(True)
+                
+            worker.signals.finished.connect(on_finished)
+
+            self.threadpool.start(worker)
+
+    def _on_backfill_success(self, count, start_date, end_date):
+        self.refresh_data()
+        QMessageBox.information(
+            self, "Başarılı",
+            f"{start_date} — {end_date} için {count} adet fiyat verisi indirildi."
+        )
+
+    def _on_backfill_error(self, err_tuple):
+        exctype, value, tb_str = err_tuple
+        QMessageBox.critical(self, "Hata", f"Veri çekme sırasında hata:\n{value}")
 
 
 class CapitalDialog(QDialog):
