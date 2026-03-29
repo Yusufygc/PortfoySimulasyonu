@@ -6,4 +6,5 @@ mysql-connector-python
 numpy
 scipy
 pytest
-pytest-mockSQLAlchemy>=2.0.0
+pytest-mock
+SQLAlchemy>=2.0.0
