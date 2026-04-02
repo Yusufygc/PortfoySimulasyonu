@@ -23,7 +23,9 @@ from src.application.services.optimization_service import OptimizationService
 from src.application.services.planning_service import PlanningService
 from src.application.services.risk_profile_service import RiskProfileService
 from src.application.services.backfill_service import BackfillService
-
+from src.application.services.history_simulation_service import HistorySimulationService
+from src.application.services.excel_formatter import ExcelFormatter
+from src.application.services.excel_report_builder import ExcelReportBuilder
 
 class AppContainer:
     """
@@ -58,12 +60,20 @@ class AppContainer:
         self.return_calc_service = ReturnCalcService(self.portfolio_repo, self.price_repo)
         self.reset_service = PortfolioResetService(self.portfolio_repo, self.price_repo, self.stock_repo)
         
-        self.excel_export_service = ExcelExportService(
+        self.history_simulation_service = HistorySimulationService(
             portfolio_repo=self.portfolio_repo,
             price_repo=self.price_repo,
             stock_repo=self.stock_repo,
             market_data_client=self.market_client,
         )
+        self.excel_formatter = ExcelFormatter()
+        self.excel_report_builder = ExcelReportBuilder(formatter=self.excel_formatter)
+        
+        self.excel_export_service = ExcelExportService(
+            simulation_service=self.history_simulation_service,
+            report_builder=self.excel_report_builder,
+        )
+
         self.watchlist_service = WatchlistService(
             watchlist_repo=self.watchlist_repo,
             stock_repo=self.stock_repo,

@@ -43,7 +43,7 @@ from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.models.position import Position
 from src.domain.models.portfolio import Portfolio
-from src.application.services.excel_export_service import ExportMode
+from src.application.services.daily_history_models import ExportMode
 from src.ui.widgets.backfill_dialog import BackfillDialog
 
 
