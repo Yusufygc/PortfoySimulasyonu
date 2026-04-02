@@ -2,7 +2,7 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from src.infrastructure.db.mysql_connection import MySQLConfig
+from src.infrastructure.db.db_config import MySQLConfig
 
 class SQLAlchemyEngineProvider:
     """

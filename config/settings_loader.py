@@ -3,7 +3,7 @@
 from __future__ import annotations
 import os
 from dotenv import load_dotenv
-from src.infrastructure.db.mysql_connection import MySQLConfig
+from src.infrastructure.db.db_config import MySQLConfig
 
 def load_settings() -> MySQLConfig:
     """
