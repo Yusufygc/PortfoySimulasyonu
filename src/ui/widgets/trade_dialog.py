@@ -6,12 +6,13 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Optional, Literal
 
-from PyQt5.QtCore import Qt, QDate, QTime
+from PyQt5.QtCore import Qt, QDate, QTime, QThreadPool
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
     QLabel, QRadioButton, QSpinBox, QLineEdit, 
     QDateEdit, QTimeEdit, QPushButton, QMessageBox, QFrame, QWidget
 )
+from src.ui.worker import Worker
 
 # Tür tanımları
 SideLiteral = Literal["BUY", "SELL"]
@@ -221,7 +222,15 @@ class TradeDialog(QDialog):
     def _fetch_initial_price(self):
         if not self.price_lookup_func or not self.ticker: return
         
-        res = self.price_lookup_func(self.ticker)
+        self.lbl_price_info.setText("⏳ Yükleniyor...")
+        self.btn_save.setEnabled(False)
+
+        worker = Worker(self.price_lookup_func, self.ticker)
+        worker.signals.result.connect(self._on_price_fetched)
+        worker.signals.error.connect(self._on_price_error)
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_price_fetched(self, res):
         if res:
             self.current_price = res.price
             self.lbl_price_info.setText(f"Güncel: ₺ {res.price:,.2f} ({'Anlık' if res.source=='intraday' else 'Kapanış'})")
@@ -229,6 +238,11 @@ class TradeDialog(QDialog):
                 self.edit_price.setText(str(res.price))
         else:
             self.lbl_price_info.setText("Fiyat verisi alınamadı.")
+        self.btn_save.setEnabled(True)
+
+    def _on_price_error(self, err_tuple):
+        self.lbl_price_info.setText("Ağ Hatası")
+        self.btn_save.setEnabled(True)
 
     # --- HESAPLAMA MANTIĞI ---
     def _on_quantity_changed(self, val):

@@ -79,7 +79,46 @@ class DashboardPage(BasePage):
         self._capital = Decimal("0")
         
         self.model = None
+        self._is_refreshing = False
         self._init_ui()
+        
+        if self.container.event_bus:
+            self.container.event_bus.prices_updated.connect(self._on_prices_updated_event)
+
+    def _on_prices_updated_event(self, new_prices: Dict[int, Decimal]):
+        """EventBus'tan tetiklenir: Tablodaki fiyata göre Dashboard özet kartlarını asenkron canlandırır."""
+        if not self.model or getattr(self, "_is_refreshing", False):
+            return
+            
+        # self.model zaten _price_map'i içinde barındırıyor (ve güncelledi)
+        price_map = getattr(self.model, '_price_map', {})
+        
+        total_cost = Decimal("0")
+        total_value = Decimal("0")
+        
+        for p in self.model._positions:
+            if p.total_quantity > 0:
+                total_cost += p.total_cost
+                curr_price = price_map.get(p.stock_id, Decimal("0"))
+                total_value += p.market_value(curr_price)
+                
+        profit_loss = total_value - total_cost
+
+        # Değerleri formatlayıp yaz
+        self.lbl_total_value.setText(f"₺ {total_value:,.2f}")
+        
+        roi = 0
+        if total_cost != 0:
+            roi = (profit_loss / total_cost) * 100
+            
+        prefix = "▲" if profit_loss >= 0 else "▼"
+        sign = "+" if profit_loss >= 0 else ""
+        color = "#10b981" if profit_loss >= 0 else "#ef4444"
+        
+        self.lbl_total_context.setText(f"{prefix} ₺ {abs(profit_loss):,.2f} ({sign}{roi:.1f}% All Time)")
+        self.lbl_total_context.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: 500;")
+
+        self._update_summary_row(total_value, profit_loss)
 
     def _init_ui(self):
         # Üst aksiyon butonları

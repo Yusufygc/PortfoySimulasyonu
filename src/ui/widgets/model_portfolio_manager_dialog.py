@@ -31,10 +31,11 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QGroupBox,
 )
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtCore import Qt, QDate, QThreadPool
 
 from src.application.services.model_portfolio_service import ModelPortfolioService
 from src.domain.models.model_portfolio import ModelPortfolio
+from src.ui.worker import Worker
 
 
 class ModelPortfolioManagerDialog(QDialog):
@@ -675,7 +676,7 @@ class TradeInputDialog(QDialog):
         self.lbl_total.setText(f"₺ {total:,.2f}")
 
     def _on_lookup_price(self):
-        """Fiyat sorgula."""
+        """Fiyat sorgula (Asenkron)."""
         if not self.price_lookup_func:
             QMessageBox.warning(self, "Uyarı", "Fiyat sorgulama mevcut değil.")
             return
@@ -685,19 +686,29 @@ class TradeInputDialog(QDialog):
             QMessageBox.warning(self, "Uyarı", "Lütfen ticker girin.")
             return
 
-        try:
-            result = self.price_lookup_func(ticker)
-            if result:
-                self.spin_price.setValue(float(result.price))
-                QMessageBox.information(
-                    self, 
-                    "Fiyat Bulundu", 
-                    f"{ticker.upper()}: ₺ {result.price:.4f}\nKaynak: {result.source}"
-                )
-            else:
-                QMessageBox.warning(self, "Uyarı", f"{ticker} için fiyat bulunamadı.")
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Fiyat sorgulanırken hata:\n{e}")
+        self.lbl_total.setText("⏳ Yükleniyor...")
+
+        worker = Worker(self.price_lookup_func, ticker)
+        worker.signals.result.connect(lambda res: self._on_lookup_price_result(res, ticker))
+        worker.signals.error.connect(self._on_lookup_price_error)
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_lookup_price_result(self, result, ticker):
+        if result:
+            self.spin_price.setValue(float(result.price))
+            self._update_total()
+            QMessageBox.information(
+                self, 
+                "Fiyat Bulundu", 
+                f"{ticker.upper()}: ₺ {result.price:.4f}\nKaynak: {result.source}"
+            )
+        else:
+            self._update_total()
+            QMessageBox.warning(self, "Uyarı", f"{ticker} için fiyat bulunamadı.")
+
+    def _on_lookup_price_error(self, err_tuple):
+        self._update_total()
+        QMessageBox.critical(self, "Hata", "Fiyat sorgulanırken ağ hatası.")
 
     def get_result(self) -> Optional[Dict[str, Any]]:
         ticker = self.txt_ticker.text().strip()

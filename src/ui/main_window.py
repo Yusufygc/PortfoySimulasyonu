@@ -144,7 +144,11 @@ class MainWindow(QMainWindow):
         self.stacked_widget = QStackedWidget()
         
         # Sayfaları oluştur ve ekle
-        self._create_pages()
+        self.pages = {}
+        for i in range(8):
+            self.stacked_widget.addWidget(QWidget())
+            
+        self._instantiate_page(self.PAGE_DASHBOARD)
 
         self.main_layout.addWidget(self.sidebar)
         self.main_layout.addWidget(self.stacked_widget, 1)
@@ -185,93 +189,81 @@ class MainWindow(QMainWindow):
         line.setStyleSheet("background-color: #334155; margin: 10px 0;")
         self.sidebar_layout.addWidget(line)
 
-    def _create_pages(self):
-        """Sayfa widget'larını oluşturur."""
-        from src.ui.pages.dashboard_page import DashboardPage
-        from src.ui.pages.watchlist_page import WatchlistPage
-        from src.ui.pages.model_portfolio_page import ModelPortfolioPage
+    def _instantiate_page(self, page_index: int):
+        """İstenilen sayfayı ilk kez çağrıldığında ayağa kaldırır (Lazy Loading)."""
+        if page_index in self.pages:
+            return
 
-        # Dashboard Page
-        self.dashboard_page = DashboardPage(
-            container=self.container,
-            price_lookup_func=self.lookup_price_for_ticker,
-        )
-        self.stacked_widget.addWidget(self.dashboard_page)  # Index 0
+        page = None
+        if page_index == self.PAGE_DASHBOARD:
+            from src.ui.pages.dashboard_page import DashboardPage
+            page = DashboardPage(container=self.container, price_lookup_func=self.lookup_price_for_ticker)
+            self.dashboard_page = page
+        elif page_index == self.PAGE_WATCHLIST:
+            from src.ui.pages.watchlist_page import WatchlistPage
+            page = WatchlistPage(container=self.container)
+            self.watchlist_page = page
+        elif page_index == self.PAGE_MODEL_PORTFOLIO:
+            from src.ui.pages.model_portfolio_page import ModelPortfolioPage
+            page = ModelPortfolioPage(container=self.container, price_lookup_func=self.lookup_price_for_ticker)
+            self.model_portfolio_page = page
+        elif page_index == self.PAGE_ANALYSIS:
+            from src.ui.pages.analysis_page import AnalysisPage
+            page = AnalysisPage(container=self.container)
+            self.analysis_page = page
+        elif page_index == self.PAGE_STOCK_DETAIL:
+            from src.ui.pages.stock_detail_page import StockDetailPage
+            page = StockDetailPage(container=self.container, price_lookup_func=self.lookup_price_for_ticker, parent=self)
+            self.stock_detail_page = page
+        elif page_index == self.PAGE_OPTIMIZATION:
+            from src.ui.pages.optimization_page import OptimizationPage
+            page = OptimizationPage(container=self.container, price_lookup_func=self.lookup_price_for_ticker)
+            self.optimization_page = page
+        elif page_index == self.PAGE_PLANNING:
+            from src.ui.pages.planning_page import PlanningPage
+            page = PlanningPage(container=self.container)
+            self.planning_page = page
+        elif page_index == self.PAGE_RISK_PROFILE:
+            from src.ui.pages.risk_profile_page import RiskProfilePage
+            page = RiskProfilePage(container=self.container)
+            self.risk_profile_page = page
 
-        # Watchlist Page
-        self.watchlist_page = WatchlistPage(
-            container=self.container,
-        )
-        self.stacked_widget.addWidget(self.watchlist_page)  # Index 1
-
-        self.model_portfolio_page = ModelPortfolioPage(
-            container=self.container,
-            price_lookup_func=self.lookup_price_for_ticker,
-        )
-        self.stacked_widget.addWidget(self.model_portfolio_page)  # Index 2
-
-        # Analysis Page
-        from src.ui.pages.analysis_page import AnalysisPage
-        self.analysis_page = AnalysisPage(
-            container=self.container,
-        )
-        self.stacked_widget.addWidget(self.analysis_page)  # Index 3
-
-        # Stock Detail Page
-        from src.ui.pages.stock_detail_page import StockDetailPage
-        self.stock_detail_page = StockDetailPage(
-            container=self.container,
-            price_lookup_func=self.lookup_price_for_ticker,
-            parent=self
-        )
-        self.stacked_widget.addWidget(self.stock_detail_page)  # Index 4
-
-        # Optimization Page
-        from src.ui.pages.optimization_page import OptimizationPage
-        self.optimization_page = OptimizationPage(
-            container=self.container,
-            price_lookup_func=self.lookup_price_for_ticker,
-        )
-        self.stacked_widget.addWidget(self.optimization_page)  # Index 5
-
-        # Planning Page
-        from src.ui.pages.planning_page import PlanningPage
-        self.planning_page = PlanningPage(
-            container=self.container,
-        )
-        self.stacked_widget.addWidget(self.planning_page)  # Index 6
-
-        # Risk Profile Page
-        from src.ui.pages.risk_profile_page import RiskProfilePage
-        self.risk_profile_page = RiskProfilePage(
-            container=self.container,
-        )
-        self.stacked_widget.addWidget(self.risk_profile_page)  # Index 7
+        if page:
+            dummy = self.stacked_widget.widget(page_index)
+            self.stacked_widget.removeWidget(dummy)
+            self.stacked_widget.insertWidget(page_index, page)
+            self.pages[page_index] = page
 
     def _goto_page(self, page_index: int):
         """Belirtilen sayfaya geçiş yapar."""
         current_index = self.stacked_widget.currentIndex()
-        
-        # Aynı sayfa değilse geçmişe ekle
-        if current_index != page_index:
+        if current_index == page_index and current_index in self.pages:
+            return
+
+        if current_index in self.pages:
+            current_page = self.pages[current_index]
+            if hasattr(current_page, 'on_page_leave'):
+                current_page.on_page_leave()
+
+        if page_index not in self.pages:
+            self._instantiate_page(page_index)
+
+        if current_index != page_index and current_index >= 0:
             self.navigation_history.append(current_index)
-        
-        # Sayfayı değiştir
+
         self.stacked_widget.setCurrentIndex(page_index)
-        
-        # Yeni sayfanın on_page_enter metodunu çağır
-        current_page = self.stacked_widget.currentWidget()
-        if hasattr(current_page, 'on_page_enter'):
-            current_page.on_page_enter()
-        
-        # Buton durumlarını güncelle
+
+        new_page = self.stacked_widget.currentWidget()
+        if hasattr(new_page, 'on_page_enter'):
+            new_page.on_page_enter()
+
         self._update_nav_buttons(page_index)
-        
-        # Geri butonunu güncelle
         self.btn_back.setEnabled(len(self.navigation_history) > 0)
 
     def show_stock_detail(self, ticker: str, stock_id: Optional[int] = None):
         """Hisse detay sayfasına git."""
+        if self.PAGE_STOCK_DETAIL not in self.pages:
+            self._instantiate_page(self.PAGE_STOCK_DETAIL)
         self.stock_detail_page.set_stock(ticker, stock_id)
         self._goto_page(self.PAGE_STOCK_DETAIL)
 
@@ -279,19 +271,25 @@ class MainWindow(QMainWindow):
         """Önceki sayfaya döner."""
         if not self.navigation_history:
             return
-        
-        previous_page = self.navigation_history.pop()
-        self.stacked_widget.setCurrentIndex(previous_page)
-        
-        # Yeni sayfanın on_page_enter metodunu çağır
-        current_page = self.stacked_widget.currentWidget()
-        if hasattr(current_page, 'on_page_enter'):
-            current_page.on_page_enter()
-        
-        # Buton durumlarını güncelle
-        self._update_nav_buttons(previous_page)
-        
-        # Geri butonunu güncelle
+
+        current_index = self.stacked_widget.currentIndex()
+        if current_index in self.pages:
+            current_page = self.pages[current_index]
+            if hasattr(current_page, 'on_page_leave'):
+                current_page.on_page_leave()
+
+        previous_page_idx = self.navigation_history.pop()
+
+        if previous_page_idx not in self.pages:
+            self._instantiate_page(previous_page_idx)
+
+        self.stacked_widget.setCurrentIndex(previous_page_idx)
+
+        new_page = self.stacked_widget.currentWidget()
+        if hasattr(new_page, 'on_page_enter'):
+            new_page.on_page_enter()
+
+        self._update_nav_buttons(previous_page_idx)
         self.btn_back.setEnabled(len(self.navigation_history) > 0)
 
     def _update_nav_buttons(self, active_page: int):

@@ -6,13 +6,14 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Optional, Literal, Dict, Any
 
-from PyQt5.QtCore import Qt, QDate, QTime
+from PyQt5.QtCore import Qt, QDate, QTime, QThreadPool
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
     QLabel, QLineEdit, QRadioButton, QSpinBox, 
     QDateEdit, QTimeEdit, QPushButton, QMessageBox, 
     QStackedWidget, QWidget, QFrame
 )
+from src.ui.worker import Worker
 
 SideLiteral = Literal["BUY", "SELL"]
 
@@ -419,19 +420,37 @@ class NewStockTradeDialog(QDialog):
         if not ticker or not self.price_lookup_func:
             return
 
-        result = self.price_lookup_func(ticker)
+        self.btn_next.setEnabled(False)
+        self.btn_next.setText("⏳ Bekleniyor...")
+        self.lbl_fetched_price.setText("⏳ Yükleniyor...")
+        self.lbl_fetched_source.setText("")
+        self.price_info_frame.show()
+
+        worker = Worker(self.price_lookup_func, ticker)
+        worker.signals.result.connect(self._on_price_fetched)
+        worker.signals.error.connect(self._on_price_error)
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_price_fetched(self, result):
         if result:
             self.current_price = result.price
-            
-            # Fiyat bilgisini göster
             self.lbl_fetched_price.setText(f"₺ {result.price:,.2f}")
             source_text = "Anlık Veri (15dk gecikmeli olabilir)" if result.source == "intraday" else f"Kapanış ({result.as_of.strftime('%d.%m.%Y')})"
             self.lbl_fetched_source.setText(source_text)
-            self.price_info_frame.show()
         else:
             self.current_price = None
-            self.price_info_frame.hide()
             self.lbl_fetched_price.setText("-")
+            self.lbl_fetched_source.setText("Fiyat Bilgisi Bulunamadı")
+            
+        self.btn_next.setEnabled(True)
+        self.btn_next.setText("Devam Et")
+
+    def _on_price_error(self, err_tuple):
+        self.current_price = None
+        self.lbl_fetched_price.setText("-")
+        self.lbl_fetched_source.setText("Ağ Hatası")
+        self.btn_next.setEnabled(True)
+        self.btn_next.setText("Devam Et")
 
     def _on_quantity_changed(self, val):
         if self._updating_amount: return
