@@ -8,3 +8,5 @@ scipy
 pytest
 pytest-mock
 SQLAlchemy>=2.0.0
+dotenv
+matplotlib
