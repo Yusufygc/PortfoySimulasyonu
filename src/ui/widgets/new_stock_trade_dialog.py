@@ -377,7 +377,7 @@ class NewStockTradeDialog(QDialog):
             p_text = self.edit_price.text().replace(",", ".")
             price = float(p_text) if p_text else 0.0
             if price <= 0: raise ValueError
-        except:
+        except (ValueError, TypeError):
             QMessageBox.warning(self, "Hata", "Geçerli bir fiyat giriniz.")
             return False
             
@@ -400,7 +400,7 @@ class NewStockTradeDialog(QDialog):
         
         try:
             price = Decimal(self.edit_price.text().replace(",", "."))
-        except:
+        except (ValueError, Exception):
             price = Decimal("0")
 
         return {
@@ -462,7 +462,7 @@ class NewStockTradeDialog(QDialog):
             self._updating_quantity = True
             self.edit_amount.setText(f"{total:.2f}")
             self._updating_quantity = False
-        except: pass
+        except (ValueError, TypeError): pass
 
     def _on_amount_changed(self, text):
         if self._updating_quantity: return
@@ -476,7 +476,7 @@ class NewStockTradeDialog(QDialog):
                 self._updating_amount = True
                 self.spin_quantity.setValue(qty)
                 self._updating_amount = False
-        except: pass
+        except (ValueError, TypeError): pass
 
     def _normalize_initial_datetime(self):
         now = QDate.currentDate()

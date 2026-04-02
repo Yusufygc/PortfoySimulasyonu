@@ -252,7 +252,7 @@ class TradeDialog(QDialog):
             self._updating_quantity = True
             self.edit_amount.setText(f"{val * p:.2f}")
             self._updating_quantity = False
-        except: pass
+        except (ValueError, TypeError): pass
 
     def _on_amount_changed(self, text):
         if self._updating_quantity: return
@@ -263,7 +263,7 @@ class TradeDialog(QDialog):
                 self._updating_amount = True
                 self.spin_quantity.setValue(int(amt / p))
                 self._updating_amount = False
-        except: pass
+        except (ValueError, TypeError): pass
 
     # --- TARİH KONTROLLERİ ---
     def _normalize_trade_date(self, qdate: QDate):
@@ -290,7 +290,7 @@ class TradeDialog(QDialog):
         try:
             p = float(self.edit_price.text().replace(",", ".") or 0)
             if p <= 0: raise ValueError("Fiyat 0 olamaz")
-        except:
+        except (ValueError, TypeError):
             QMessageBox.warning(self, "Hata", "Geçersiz fiyat.")
             return
             
@@ -307,7 +307,7 @@ class TradeDialog(QDialog):
             
         try:
             price = Decimal(self.edit_price.text().replace(",", "."))
-        except: price = Decimal("0")
+        except (ValueError, Exception): price = Decimal("0")
 
         return {
             "stock_id": self.stock_id,
