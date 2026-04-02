@@ -56,6 +56,11 @@ class IModelPortfolioRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def count_trades_by_portfolio_id(self, portfolio_id: int) -> int:
+        """Belirli bir model portföye ait trade sayısını veritabanından optimize biçimde sayar."""
+        raise NotImplementedError
+
+    @abstractmethod
     def get_trade_by_id(self, trade_id: int) -> Optional[ModelPortfolioTrade]:
         """Tek bir trade'i id üzerinden döner. Bulunamazsa None."""
         raise NotImplementedError

@@ -398,6 +398,5 @@ class ModelPortfolioService:
         return result
 
     def get_trade_count(self, portfolio_id: int) -> int:
-        """Portföydeki trade sayısını döner."""
-        trades = self._portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
-        return len(trades)
+        """Portföydeki trade sayısını belleği sızdırmadan döner."""
+        return self._portfolio_repo.count_trades_by_portfolio_id(portfolio_id)

@@ -119,6 +119,10 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
                 .all()
             return [self._to_domain_trade(r) for r in rows]
 
+    def count_trades_by_portfolio_id(self, portfolio_id: int) -> int:
+        with self._provider.get_session() as session:
+            return session.query(ORMModelPortfolioTrade).filter_by(portfolio_id=portfolio_id).count()
+
     def get_trade_by_id(self, trade_id: int) -> Optional[ModelPortfolioTrade]:
         with self._provider.get_session() as session:
             row = session.query(ORMModelPortfolioTrade).filter_by(id=trade_id).first()
