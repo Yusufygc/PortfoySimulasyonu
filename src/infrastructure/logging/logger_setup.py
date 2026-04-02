@@ -1,7 +1,9 @@
 # src/infrastructure/logging/logger_setup.py
 
 import logging
+import os
 import sys
+from logging.handlers import RotatingFileHandler
 
 def setup_logger():
     """
@@ -17,8 +19,15 @@ def setup_logger():
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
 
-    # Dosya İşleyicisi (FileHandler)
-    file_handler = logging.FileHandler('app.log', encoding='utf-8')
+    # Dosya İşleyicisi (RotatingFileHandler - 5MB, 5 Ydek)
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        
+    log_file = os.path.join(log_dir, 'app.log')
+    file_handler = RotatingFileHandler(
+        log_file, maxBytes=5 * 1024 * 1024, backupCount=5, encoding='utf-8'
+    )
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
 

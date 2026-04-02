@@ -4,6 +4,7 @@
 /Eklenebilirler.txt
 /sorun.txt
 /docs
+/logs
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
