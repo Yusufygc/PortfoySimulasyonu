@@ -196,7 +196,7 @@ class MainWindow(QMainWindow):
 
         page = None
         if page_index == self.PAGE_DASHBOARD:
-            from src.ui.pages.dashboard_page import DashboardPage
+            from src.ui.pages.dashboard import DashboardPage
             page = DashboardPage(container=self.container, price_lookup_func=self.lookup_price_for_ticker)
             self.dashboard_page = page
         elif page_index == self.PAGE_WATCHLIST:
