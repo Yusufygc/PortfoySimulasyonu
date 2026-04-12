@@ -7,8 +7,8 @@ from datetime import date
 
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
-from src.application.services.price_update_service import PriceUpdateService
-from src.application.services.return_calc_service import ReturnCalcService
+from src.application.services.portfolio.price_update_service import PriceUpdateService
+from src.application.services.analysis.return_calc_service import ReturnCalcService
 
 
 @dataclass

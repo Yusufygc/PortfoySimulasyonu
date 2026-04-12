@@ -33,7 +33,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QDate, QThreadPool
 
-from src.application.services.model_portfolio_service import ModelPortfolioService
+from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.worker import Worker
 

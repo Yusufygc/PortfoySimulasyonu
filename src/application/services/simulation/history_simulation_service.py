@@ -9,7 +9,7 @@ from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
-from src.application.services.daily_history_models import DailyPosition, DailyPortfolioSnapshot
+from src.application.services.reporting.daily_history_models import DailyPosition, DailyPortfolioSnapshot
 from src.domain.models.portfolio import Portfolio
 
 class HistorySimulationService:

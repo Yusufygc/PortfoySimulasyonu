@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 
-from src.application.services.watchlist_service import WatchlistService
+from src.application.services.watchlist.watchlist_service import WatchlistService
 from src.domain.models.watchlist import Watchlist
 
 

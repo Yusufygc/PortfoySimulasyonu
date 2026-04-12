@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from datetime import date
 from decimal import Decimal
 
-from src.application.services.history_simulation_service import HistorySimulationService
+from src.application.services.simulation.history_simulation_service import HistorySimulationService
 from src.domain.models.trade import Trade
 
 @pytest.fixture

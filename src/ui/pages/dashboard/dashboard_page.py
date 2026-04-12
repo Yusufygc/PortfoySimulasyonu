@@ -24,7 +24,7 @@ from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.models.position import Position
 from src.domain.models.portfolio import Portfolio
-from src.application.services.daily_history_models import ExportMode
+from src.application.services.reporting.daily_history_models import ExportMode
 
 from .dashboard_summary_cards import DashboardSummaryCards
 from .dashboard_portfolio_table import DashboardPortfolioTable

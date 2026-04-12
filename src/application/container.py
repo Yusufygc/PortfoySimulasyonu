@@ -11,21 +11,21 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_planning_repository import
 from src.infrastructure.db.sqlalchemy.repositories.sa_risk_profile_repository import SQLAlchemyRiskProfileRepository
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
 
-from src.application.services.portfolio_service import PortfolioService
-from src.application.services.price_update_service import PriceUpdateService
-from src.application.services.return_calc_service import ReturnCalcService
-from src.application.services.portfolio_update_coordinator import PortfolioUpdateCoordinator
-from src.application.services.portfolio_reset_service import PortfolioResetService
-from src.application.services.excel_export_service import ExcelExportService
-from src.application.services.watchlist_service import WatchlistService
-from src.application.services.model_portfolio_service import ModelPortfolioService
-from src.application.services.optimization_service import OptimizationService
-from src.application.services.planning_service import PlanningService
-from src.application.services.risk_profile_service import RiskProfileService
-from src.application.services.backfill_service import BackfillService
-from src.application.services.history_simulation_service import HistorySimulationService
-from src.application.services.excel_formatter import ExcelFormatter
-from src.application.services.excel_report_builder import ExcelReportBuilder
+from src.application.services.portfolio.portfolio_service import PortfolioService
+from src.application.services.portfolio.price_update_service import PriceUpdateService
+from src.application.services.analysis.return_calc_service import ReturnCalcService
+from src.application.services.portfolio.portfolio_update_coordinator import PortfolioUpdateCoordinator
+from src.application.services.portfolio.portfolio_reset_service import PortfolioResetService
+from src.application.services.reporting.excel_export_service import ExcelExportService
+from src.application.services.watchlist.watchlist_service import WatchlistService
+from src.application.services.planning.model_portfolio_service import ModelPortfolioService
+from src.application.services.planning.optimization_service import OptimizationService
+from src.application.services.planning.planning_service import PlanningService
+from src.application.services.planning.risk_profile_service import RiskProfileService
+from src.application.services.simulation.backfill_service import BackfillService
+from src.application.services.simulation.history_simulation_service import HistorySimulationService
+from src.application.services.reporting.excel_formatter import ExcelFormatter
+from src.application.services.reporting.excel_report_builder import ExcelReportBuilder
 
 class AppContainer:
     """

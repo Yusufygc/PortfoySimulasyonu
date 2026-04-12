@@ -8,8 +8,8 @@ from typing import List, Iterable, Optional
 
 import pandas as pd
 
-from src.application.services.excel_formatter import ExcelFormatter
-from src.application.services.daily_history_models import DailyPosition, DailyPortfolioSnapshot, ExportMode
+from src.application.services.reporting.excel_formatter import ExcelFormatter
+from src.application.services.reporting.daily_history_models import DailyPosition, DailyPortfolioSnapshot, ExportMode
 
 logger = logging.getLogger(__name__)
 
