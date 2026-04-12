@@ -212,7 +212,7 @@ class MainWindow(QMainWindow):
             page = AnalysisPage(container=self.container)
             self.analysis_page = page
         elif page_index == self.PAGE_STOCK_DETAIL:
-            from src.ui.pages.stock_detail_page import StockDetailPage
+            from src.ui.pages.stock_detail import StockDetailPage
             page = StockDetailPage(container=self.container, price_lookup_func=self.lookup_price_for_ticker, parent=self)
             self.stock_detail_page = page
         elif page_index == self.PAGE_OPTIMIZATION:
