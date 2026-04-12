@@ -5,10 +5,10 @@ from decimal import Decimal
 from typing import Tuple, List
 
 from src.domain.models.daily_price import DailyPrice
-from src.domain.repositories.portfolio_repository import IPortfolioRepository
-from src.domain.repositories.price_repository import IPriceRepository
-from src.domain.repositories.stock_repository import IStockRepository
-from src.domain.services_interfaces.i_market_data_client import IMarketDataClient
+from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.ports.repositories.i_price_repo import IPriceRepository
+from src.domain.ports.repositories.i_stock_repo import IStockRepository
+from src.domain.ports.services.i_market_data_client import IMarketDataClient
 from src.application.services.daily_history_models import DailyPosition, DailyPortfolioSnapshot
 from src.domain.models.portfolio import Portfolio
 

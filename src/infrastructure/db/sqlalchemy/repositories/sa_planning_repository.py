@@ -4,7 +4,7 @@ from datetime import date
 from typing import List, Optional
 from src.domain.models.budget import Budget
 from src.domain.models.financial_goal import FinancialGoal
-from src.domain.services_interfaces.i_planning_repo import IPlanningRepository
+from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMBudget, ORMFinancialGoal
 

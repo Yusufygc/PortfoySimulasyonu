@@ -7,8 +7,8 @@ from decimal import Decimal
 
 from src.domain.models.watchlist import Watchlist, WatchlistItem
 from src.domain.models.stock import Stock
-from src.domain.services_interfaces.i_watchlist_repo import IWatchlistRepository
-from src.domain.services_interfaces.i_stock_repo import IStockRepository
+from src.domain.ports.repositories.i_watchlist_repo import IWatchlistRepository
+from src.domain.ports.repositories.i_stock_repo import IStockRepository
 
 
 class WatchlistService:

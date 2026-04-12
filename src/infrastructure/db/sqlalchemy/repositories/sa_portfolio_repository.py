@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Iterable, List, Optional, Sequence
 from src.domain.models.trade import Trade, TradeSide
-from src.domain.services_interfaces.i_portfolio_repo import IPortfolioRepository
+from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMTrade
 

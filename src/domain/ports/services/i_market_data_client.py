@@ -1,4 +1,4 @@
-# src/domain/services_interfaces/i_market_data_client.py
+# src/domain/ports/services/i_market_data_client.py
 
 from __future__ import annotations
 

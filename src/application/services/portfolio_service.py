@@ -9,8 +9,8 @@ from decimal import Decimal
 from src.domain.models.trade import Trade
 from src.domain.models.portfolio import Portfolio
 from src.domain.models.position import Position
-from src.domain.services_interfaces.i_portfolio_repo import IPortfolioRepository
-from src.domain.services_interfaces.i_price_repo import IPriceRepository
+from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.ports.repositories.i_price_repo import IPriceRepository
 
 
 class PortfolioService:

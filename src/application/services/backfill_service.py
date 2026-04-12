@@ -9,7 +9,7 @@ import yfinance as yf
 import pandas as pd
 
 from src.domain.models.daily_price import DailyPrice
-from src.domain.services_interfaces.i_price_repo import IPriceRepository
+from src.domain.ports.repositories.i_price_repo import IPriceRepository
 
 
 class BackfillService:

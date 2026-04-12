@@ -1,4 +1,4 @@
-# src/domain/services_interfaces/i_risk_profile_repo.py
+# src/domain/ports/repositories/i_risk_profile_repo.py
 
 from __future__ import annotations
 

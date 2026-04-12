@@ -8,8 +8,8 @@ from decimal import Decimal
 from typing import Dict
 
 from src.domain.models.daily_price import DailyPrice
-from src.domain.services_interfaces.i_price_repo import IPriceRepository
-from src.domain.services_interfaces.i_market_data_client import IMarketDataClient
+from src.domain.ports.repositories.i_price_repo import IPriceRepository
+from src.domain.ports.services.i_market_data_client import IMarketDataClient
 
 
 @dataclass

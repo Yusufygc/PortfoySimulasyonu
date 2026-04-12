@@ -8,8 +8,8 @@ from decimal import Decimal
 from typing import Dict, Optional, Tuple
 
 from src.domain.models.portfolio import Portfolio
-from src.domain.services_interfaces.i_portfolio_repo import IPortfolioRepository
-from src.domain.services_interfaces.i_price_repo import IPriceRepository
+from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.ports.repositories.i_price_repo import IPriceRepository
 
 
 @dataclass

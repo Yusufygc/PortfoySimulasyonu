@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List, Optional, Sequence
 
 from sqlalchemy.dialects.mysql import insert
 from src.domain.models.daily_price import DailyPrice
-from src.domain.services_interfaces.i_price_repo import IPriceRepository
+from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMDailyPrice
 

@@ -1,4 +1,4 @@
-# src/domain/services_interfaces/i_stock_repo.py
+# src/domain/ports/repositories/i_stock_repo.py
 
 from __future__ import annotations
 

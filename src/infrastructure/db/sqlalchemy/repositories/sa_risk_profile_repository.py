@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from src.domain.models.risk_profile import RiskProfile
-from src.domain.services_interfaces.i_risk_profile_repo import IRiskProfileRepository
+from src.domain.ports.repositories.i_risk_profile_repo import IRiskProfileRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMRiskProfile
 

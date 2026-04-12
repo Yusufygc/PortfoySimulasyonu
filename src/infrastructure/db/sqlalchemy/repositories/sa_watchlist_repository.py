@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from src.domain.models.watchlist import Watchlist, WatchlistItem
-from src.domain.services_interfaces.i_watchlist_repo import IWatchlistRepository
+from src.domain.ports.repositories.i_watchlist_repo import IWatchlistRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMWatchlist, ORMWatchlistItem
 

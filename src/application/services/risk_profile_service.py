@@ -11,7 +11,7 @@ from src.domain.models.risk_profile import (
     Reaction,
     PROFILE_INFO,
 )
-from src.domain.services_interfaces.i_risk_profile_repo import IRiskProfileRepository
+from src.domain.ports.repositories.i_risk_profile_repo import IRiskProfileRepository
 
 
 class RiskProfileService:

@@ -9,7 +9,7 @@ from typing import Dict, Sequence
 import yfinance as yf
 import pandas as pd
 
-from src.domain.services_interfaces.i_market_data_client import IMarketDataClient
+from src.domain.ports.services.i_market_data_client import IMarketDataClient
 
 
 class YFinanceMarketDataClient(IMarketDataClient):

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from src.domain.models.budget import Budget
 from src.domain.models.financial_goal import FinancialGoal, GoalStatus
-from src.domain.services_interfaces.i_planning_repo import IPlanningRepository
+from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
 
 
 class PlanningService:

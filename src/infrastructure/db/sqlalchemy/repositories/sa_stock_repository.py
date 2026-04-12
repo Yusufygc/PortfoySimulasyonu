@@ -2,7 +2,7 @@
 
 from typing import Dict, Iterable, List, Optional, Sequence
 from src.domain.models.stock import Stock
-from src.domain.services_interfaces.i_stock_repo import IStockRepository
+from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMStock
 

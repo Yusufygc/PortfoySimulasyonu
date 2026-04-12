@@ -1,4 +1,4 @@
-# src/domain/services_interfaces/i_planning_repo.py
+# src/domain/ports/repositories/i_planning_repo.py
 
 from __future__ import annotations
 

@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade, ModelTradeSide
-from src.domain.services_interfaces.i_model_portfolio_repo import IModelPortfolioRepository
+from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMModelPortfolio, ORMModelPortfolioTrade
 

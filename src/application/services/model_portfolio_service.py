@@ -9,8 +9,8 @@ from collections import defaultdict
 
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade, ModelTradeSide
 from src.domain.models.stock import Stock
-from src.domain.services_interfaces.i_model_portfolio_repo import IModelPortfolioRepository
-from src.domain.services_interfaces.i_stock_repo import IStockRepository
+from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
+from src.domain.ports.repositories.i_stock_repo import IStockRepository
 
 
 class ModelPortfolioService:

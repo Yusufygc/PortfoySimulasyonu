@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from src.domain.services_interfaces.i_portfolio_repo import IPortfolioRepository
-from src.domain.services_interfaces.i_stock_repo import IStockRepository
+from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.application.services.price_update_service import PriceUpdateService
 from src.application.services.return_calc_service import ReturnCalcService
 
