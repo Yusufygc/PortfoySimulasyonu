@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
             page = ModelPortfolioPage(container=self.container, price_lookup_func=self.lookup_price_for_ticker)
             self.model_portfolio_page = page
         elif page_index == self.PAGE_ANALYSIS:
-            from src.ui.pages.analysis_page import AnalysisPage
+            from src.ui.pages.analysis import AnalysisPage
             page = AnalysisPage(container=self.container)
             self.analysis_page = page
         elif page_index == self.PAGE_STOCK_DETAIL:
