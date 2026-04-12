@@ -340,7 +340,7 @@ class AnalysisPage(BasePage):
         """Her hisse için ilk işlem tarihini yükle."""
         self.stock_first_trade_dates.clear()
         try:
-            trades = self.portfolio_service._portfolio_repo.get_all_trades()
+            trades = self.portfolio_service.get_all_trades()
             for trade in trades:
                 stock_id = trade.stock_id
                 trade_date = trade.trade_date

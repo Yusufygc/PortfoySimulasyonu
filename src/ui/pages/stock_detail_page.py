@@ -138,10 +138,6 @@ class StockDetailPage(BasePage):
         stats_layout = QHBoxLayout()
         stats_layout.setSpacing(15)
         
-        # İstatistik Kartları (Sıralama: Toplam Değer -> K/Z -> Maliyet -> Lot)
-        stats_layout = QHBoxLayout()
-        stats_layout.setSpacing(15)
-        
         # Hero Metric: Toplam Değer
         self.card_total_val = self._create_stat_card("TOPLAM DEĞER", "₺ 0.00", icon="💰", is_hero=True)
         self.card_pl = self._create_stat_card("KAR / ZARAR", "₺ 0.00", is_colored=True, icon="📈")
@@ -316,7 +312,6 @@ class StockDetailPage(BasePage):
         self.btn_trade = QPushButton("EMRİ GÖNDER")
         self.btn_trade.setCursor(Qt.PointingHandCursor)
         self.btn_trade.setMinimumHeight(50)
-        self.btn_trade.clicked.connect(self._on_submit_trade)
         self.btn_trade.clicked.connect(self._on_submit_trade)
         # Stil tanımlarını güncelle
         self._update_trade_mode_ui()
@@ -553,7 +548,6 @@ class StockDetailPage(BasePage):
             self.history_table.setItem(i, 1, item_type)
             
             self.history_table.setItem(i, 2, QTableWidgetItem(str(trade.quantity)))
-            self.history_table.setItem(i, 3, QTableWidgetItem(f"₺ {trade.price:,.2f}"))
             self.history_table.setItem(i, 3, QTableWidgetItem(f"₺ {trade.price:,.2f}"))
             self.history_table.setItem(i, 4, QTableWidgetItem(f"₺ {trade.total_amount:,.2f}"))
             

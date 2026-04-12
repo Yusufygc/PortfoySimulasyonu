@@ -93,4 +93,14 @@ class PortfolioService:
                 capital -= trade_amount
         return max(Decimal("0"), capital)
 
+    def get_all_trades(self) -> List[Trade]:
+        """Tüm işlemleri döner (UI'ın doğrudan repo'ya erişmesini önler)."""
+        return self._portfolio_repo.get_all_trades()
 
+    def get_first_trade_date(self):
+        """Portföydeki en eski işlem tarihini döner. İşlem yoksa None."""
+        from typing import Optional
+        trades = self._portfolio_repo.get_all_trades()
+        if not trades:
+            return None
+        return min(t.trade_date for t in trades)

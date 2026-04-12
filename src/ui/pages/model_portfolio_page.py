@@ -638,8 +638,8 @@ class TradeInputDialog(QDialog):
             result = self.price_lookup_func(ticker)
             if result:
                 self.spin_price.setValue(float(result.price))
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Fiyat sorgulama başarısız ({ticker}): {e}")
 
     def get_result(self):
         ticker = self.txt_ticker.text().strip()

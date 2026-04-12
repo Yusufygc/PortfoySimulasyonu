@@ -393,8 +393,6 @@ class DashboardPage(BasePage):
         self.lbl_total_value.setText(f"₺ {total_value:,.2f}")
         self.lbl_total_cost.setText(f"₺ {total_cost:,.2f}")
         self.lbl_capital.setText(f"₺ {self._capital:,.2f}")
-        
-        self.lbl_capital.setText(f"₺ {self._capital:,.2f}")
 
         # Hero Metric Context (Total Value altına P/L)
         cost_basis = total_value - profit_loss
@@ -726,10 +724,7 @@ class DashboardPage(BasePage):
             QMessageBox.critical(self, "Hata", f"Portföy sıfırlanırken hata: {e}")
 
     def _get_first_trade_date(self):
-        trades = self.portfolio_service._portfolio_repo.get_all_trades()
-        if not trades:
-            return None
-        return min(t.trade_date for t in trades)
+        return self.portfolio_service.get_first_trade_date()
 
     def _on_backfill(self):
         """Geçmişe yönelik veri yönetimi diyaloğu."""
