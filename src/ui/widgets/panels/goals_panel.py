@@ -44,17 +44,20 @@ class GoalsPanel(QWidget):
         # Buton satırı
         btn_row = QHBoxLayout()
 
-        self._btn_add = AnimatedButton("➕ Yeni Hedef")
+        self._btn_add = AnimatedButton(" Yeni Hedef")
+        self._btn_add.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self._btn_add.setMinimumHeight(38)
         self._btn_add.setProperty("cssClass", "successButton")
         self._btn_add.clicked.connect(self.add_requested)
 
-        self._btn_contribute = AnimatedButton("💵 Katkı Ekle")
+        self._btn_contribute = AnimatedButton(" Katkı Ekle")
+        self._btn_contribute.setIconName("wallet", color="@COLOR_TEXT_WHITE")
         self._btn_contribute.setMinimumHeight(38)
         self._btn_contribute.setProperty("cssClass", "primaryButton")
         self._btn_contribute.clicked.connect(self._emit_contribute)
 
-        self._btn_delete = AnimatedButton("🗑️ Sil")
+        self._btn_delete = AnimatedButton(" Sil")
+        self._btn_delete.setIconName("trash-2", color="@COLOR_DANGER")
         self._btn_delete.setMinimumHeight(38)
         self._btn_delete.setProperty("cssClass", "dangerOutlineButton")
         self._btn_delete.clicked.connect(self._emit_delete)
@@ -64,7 +67,8 @@ class GoalsPanel(QWidget):
         btn_row.addWidget(self._btn_delete)
         btn_row.addStretch()
 
-        self._btn_analyze = AnimatedButton("📊 Fizibilite Analizi")
+        self._btn_analyze = AnimatedButton(" Fizibilite Analizi")
+        self._btn_analyze.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
         self._btn_analyze.setMinimumHeight(38)
         self._btn_analyze.setProperty("cssClass", "purpleButton")
         self._btn_analyze.clicked.connect(self.analyze_requested)
