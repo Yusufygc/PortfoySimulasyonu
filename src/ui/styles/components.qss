@@ -71,7 +71,17 @@ QSpinBox[cssClass="surveySpinBox"] {
 }
 QSpinBox[cssClass="surveySpinBox"]:focus { border: 1px solid @COLOR_PRIMARY; }
 QSpinBox[cssClass="surveySpinBox"]::up-button, QSpinBox[cssClass="surveySpinBox"]::down-button {
-    width: 20px; background-color: @COLOR_BORDER; border: none; margin: 1px;
+    width: 12px;
+    border: none;
+    background-color: @COLOR_BG_SURFACE;
+}
+QSpinBox[cssClass="surveySpinBox"]::up-button { 
+    image: url(@ICON_CHEVRON_UP); 
+    padding-top: 2px;
+}
+QSpinBox[cssClass="surveySpinBox"]::down-button { 
+    image: url(@ICON_CHEVRON_DOWN); 
+    padding-bottom: 2px;
 }
 
 QPushButton[cssClass="calculateButton"] {
@@ -143,13 +153,14 @@ QComboBox[cssClass="customComboBox"] {
     font-size: @FONT_MD;
 }
 QComboBox[cssClass="customComboBox"]:hover { border: 1px solid @COLOR_PRIMARY; }
-QComboBox[cssClass="customComboBox"]::drop-down { border: none; width: 25px; }
+QComboBox[cssClass="customComboBox"]::drop-down { 
+    border: none; 
+    width: 34px; 
+}
 QComboBox[cssClass="customComboBox"]::down-arrow {
-    image: none;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 6px solid @COLOR_TEXT_SECONDARY;
-    margin-right: @SPACE_MD;
+    image: url(@ICON_CHEVRON_DOWN);
+    width: 16px;
+    height: 16px;
 }
 QComboBox[cssClass="customComboBox"] QAbstractItemView {
     background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
@@ -189,7 +200,21 @@ QDoubleSpinBox[cssClass="customDoubleSpinBox"] {
 QDoubleSpinBox[cssClass="customDoubleSpinBox"]:focus { border: 1px solid @COLOR_PRIMARY; }
 QDoubleSpinBox[cssClass="customDoubleSpinBox"]::up-button,
 QDoubleSpinBox[cssClass="customDoubleSpinBox"]::down-button {
-    width: 18px; background-color: @COLOR_BORDER; border: none; margin: 1px;
+    width: 12px;
+    border: none;
+    background-color: @COLOR_BG_BASE;
+}
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::up-button { 
+    image: url(@ICON_CHEVRON_UP); 
+    padding-top: 2px;
+}
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::down-button { 
+    image: url(@ICON_CHEVRON_DOWN); 
+    padding-bottom: 2px;
+}
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::up-button:hover,
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::down-button:hover {
+    background-color: @COLOR_BG_SURFACE;
 }
 
 QPushButton[cssClass="dangerButton"] {
@@ -221,11 +246,24 @@ QDialog[cssClass="tradeDialog"] QDateEdit:focus {
 QDialog[cssClass="tradeDialog"] QSpinBox::up-button,
 QDialog[cssClass="tradeDialog"] QSpinBox::down-button,
 QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button,
-QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button {
+    width: 12px;
+    border: none;
+}
+QDialog[cssClass="tradeDialog"] QSpinBox::up-button, 
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button { 
+    image: url(@ICON_CHEVRON_UP); 
+}
+QDialog[cssClass="tradeDialog"] QSpinBox::down-button, 
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button { 
+    image: url(@ICON_CHEVRON_DOWN); 
+}
 QDialog[cssClass="tradeDialog"] QDateEdit::up-button,
 QDialog[cssClass="tradeDialog"] QDateEdit::down-button {
-    width: 20px; background-color: @COLOR_BORDER; border: none; border-radius: 2px; margin: 2px;
+    width: 12px; background-color: @COLOR_BORDER; border: none; border-radius: 2px; margin: 2px;
 }
+QDialog[cssClass="tradeDialog"] QDateEdit::up-button { image: url(@ICON_CHEVRON_UP); }
+QDialog[cssClass="tradeDialog"] QDateEdit::down-button { image: url(@ICON_CHEVRON_DOWN); }
 QDialog[cssClass="tradeDialog"] QSpinBox::up-button:hover,
 QDialog[cssClass="tradeDialog"] QSpinBox::down-button:hover,
 QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button:hover,
@@ -458,3 +496,43 @@ QProgressBar[cssClass="aiProgressBlue"] {
     color: @COLOR_TEXT_WHITE; height: 16px;
 }
 QProgressBar[cssClass="aiProgressBlue"]::chunk { background-color: @COLOR_ACCENT_LIGHT; border-radius: @RADIUS_SM; }
+
+/* -------------------------------------------------------
+   Liste Görünümleri (Listelerim, Portföylerim vb.)
+   ------------------------------------------------------- */
+QListWidget, QListView {
+    background-color: @COLOR_BG_SURFACE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+    color: @COLOR_TEXT_BODY;
+    padding: @SPACE_MD;
+    outline: none;
+}
+
+QListWidget::item, QListView::item {
+    padding: @SPACE_LG;
+    border-radius: @RADIUS_MD;
+    margin-bottom: 2px;
+    color: @COLOR_TEXT_BODY;
+}
+
+QListWidget::item:hover, QListView::item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+QListWidget::item:selected, QListView::item:selected {
+    background-color: @COLOR_PRIMARY;
+    color: @COLOR_TEXT_WHITE;
+    font-weight: bold;
+}
+
+QListWidget::item:selected:!active, QListView::item:selected:!active {
+    background-color: @COLOR_PRIMARY_HOVER;
+    color: @COLOR_TEXT_WHITE;
+}
+
+/* Alternatif Satır Rengi */
+QListWidget {
+    alternate-background-color: rgba(255, 255, 255, 0.02);
+}

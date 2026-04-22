@@ -5,8 +5,19 @@
 ======================================================= */
 
 QFrame[cssClass="navSeparator"] {
-    background-color: @COLOR_BORDER;
-    margin: @SPACE_LG 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: @SPACE_LG @SPACE_XL;
+}
+
+#sidebar {
+    background-color: @COLOR_SIDEBAR;
+    border-right: 1px solid @COLOR_BORDER;
+}
+
+#sidebar QLabel[cssClass="appTitle"] {
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_LG;
+    margin-bottom: @SPACE_XL;
 }
 
 QFrame[cssClass="summaryCard"] {
@@ -213,3 +224,42 @@ QLabel[cssState="aggressive"]   { color: @COLOR_DANGER; }
 QLabel[cssState="positive"] { color: @COLOR_SUCCESS; }
 QLabel[cssState="negative"] { color: @COLOR_DANGER; }
 QLabel[cssState="neutral"]  { color: @COLOR_TEXT_PRIMARY; }
+
+#sidebar {
+    background-color: @COLOR_SIDEBAR;
+    border-right: 1px solid @COLOR_BORDER;
+}
+
+#sidebar QLabel[cssClass="appTitle"] {
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_LG;
+    margin-bottom: @SPACE_XL;
+}
+
+QFrame[cssClass="navSeparator"] {
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: @SPACE_LG @SPACE_XL;
+}
+
+/* -------------------------------------------------------
+   Navigasyon Menü Butonları (Sidebar)
+   ------------------------------------------------------- */
+QPushButton[cssClass="navMenuBtn"] {
+    background-color: transparent;
+    color: @COLOR_TEXT_SECONDARY;
+    border: none;
+    text-align: left;
+    padding: @SPACE_LG @SPACE_XL;
+    border-radius: @RADIUS_LG;
+    font-size: @FONT_MD;
+    font-weight: 500;
+}
+QPushButton[cssClass="navMenuBtn"]:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: @COLOR_TEXT_PRIMARY;
+}
+QPushButton[cssClass="navMenuBtn"]:checked {
+    background-color: rgba(37, 99, 235, 0.15);
+    color: @COLOR_PRIMARY;
+    font-weight: bold;
+}

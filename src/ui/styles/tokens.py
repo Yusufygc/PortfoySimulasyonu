@@ -26,6 +26,7 @@ DARK_THEME: dict[str, str] = {
     # -----------------------------------------------------------
     "COLOR_BG_BASE":        "#0f172a",   # En derin arka plan (sayfa zemini)
     "COLOR_BG_SURFACE":     "#1e293b",   # Kartlar, paneller (zemine bir kat üst)
+    "COLOR_SIDEBAR":        "#020617",   # Daha koyu sidebar rengi
     "COLOR_BG_ELEVATED":    "#334155",   # Hover, seçili satır (en üst katman)
     "COLOR_BG_OVERLAY":     "#475569",   # Tooltip, dropdown overlay
 
