@@ -76,17 +76,20 @@ class WatchlistPage(BasePage):
         # Butonlar
         btn_layout = QHBoxLayout()
         
-        self.btn_new = AnimatedButton("➕ Yeni")
+        self.btn_new = AnimatedButton(" Yeni")
+        self.btn_new.setIconName("plus", color="@COLOR_TEXT_PRIMARY")
+        self.btn_new.setProperty("cssClass", "secondaryButton")
         self.btn_new.clicked.connect(self._on_new_list)
         
-        self.btn_edit = AnimatedButton("✏️ Düzenle")
-        self.btn_edit.clicked.connect(self._on_edit_list)
+        self.btn_edit = AnimatedButton(" Düzenle")
+        self.btn_edit.setIconName("pencil", color="@COLOR_TEXT_PRIMARY")
+        self.btn_edit.setProperty("cssClass", "secondaryButton")
         self.btn_edit.setEnabled(False)
         
-        self.btn_delete = AnimatedButton("🗑️ Sil")
-        self.btn_delete.clicked.connect(self._on_delete_list)
+        self.btn_delete = AnimatedButton(" Sil")
+        self.btn_delete.setIconName("trash-2", color="@COLOR_DANGER")
         self.btn_delete.setEnabled(False)
-        self.btn_delete.setProperty("cssClass", "dangerTextButton")
+        self.btn_delete.setProperty("cssClass", "dangerOutlineButton")
 
         btn_layout.addWidget(self.btn_new)
         btn_layout.addWidget(self.btn_edit)
@@ -125,7 +128,8 @@ class WatchlistPage(BasePage):
         stock_btn_layout = QHBoxLayout()
         stock_btn_layout.addStretch()
         
-        self.btn_add_stock = AnimatedButton("➕ Hisse Ekle")
+        self.btn_add_stock = AnimatedButton(" Hisse Ekle")
+        self.btn_add_stock.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_add_stock.clicked.connect(self._on_add_stock)
         self.btn_add_stock.setEnabled(False)
         self.btn_add_stock.setProperty("cssClass", "primaryButton")
@@ -187,9 +191,10 @@ class WatchlistPage(BasePage):
             notes_item = QTableWidgetItem(notes)
             self.stock_table.setItem(i, 1, notes_item)
             
-            btn_remove = QPushButton("🗑️")
-            btn_remove.setCursor(Qt.PointingHandCursor)
+            btn_remove = AnimatedButton("")
+            btn_remove.setIconName("trash-2", color="@COLOR_DANGER")
             btn_remove.setFixedWidth(40)
+            btn_remove.setProperty("cssClass", "dangerTextButton")
             btn_remove.clicked.connect(
                 lambda checked, sid=stock_data["stock"].id: self._on_remove_stock(sid)
             )

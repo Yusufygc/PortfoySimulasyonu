@@ -94,14 +94,14 @@ class MainWindow(QMainWindow):
         # Ayraç
         self._add_separator()
 
-        self.btn_dashboard = self._create_nav_button("🏠 Dashboard", self.PAGE_DASHBOARD)
-        self.btn_watchlist = self._create_nav_button("📋 Listelerim", self.PAGE_WATCHLIST)
-        self.btn_model_portfolio = self._create_nav_button("📊 Model Portföyler", self.PAGE_MODEL_PORTFOLIO)
-        self.btn_analysis = self._create_nav_button("📈 Analiz", self.PAGE_ANALYSIS)
-        self.btn_optimization = self._create_nav_button("⚡ Portföy Optimizasyonu", self.PAGE_OPTIMIZATION)
-        self.btn_planning = self._create_nav_button("💰 Finansal Planlama", self.PAGE_PLANNING)
-        self.btn_risk_profile = self._create_nav_button("🛡️ Risk Profili", self.PAGE_RISK_PROFILE)
-        self.btn_ai_page = self._create_nav_button("🤖 AI Asistan", self.PAGE_AI_PAGE)
+        self.btn_dashboard = self._create_nav_button("Dashboard", self.PAGE_DASHBOARD, "layout-dashboard")
+        self.btn_watchlist = self._create_nav_button("Listelerim", self.PAGE_WATCHLIST, "list")
+        self.btn_model_portfolio = self._create_nav_button("Model Portföyler", self.PAGE_MODEL_PORTFOLIO, "wallet")
+        self.btn_analysis = self._create_nav_button("Analiz", self.PAGE_ANALYSIS, "trending-up")
+        self.btn_optimization = self._create_nav_button("Optimizasyon", self.PAGE_OPTIMIZATION, "zap")
+        self.btn_planning = self._create_nav_button("Finansal Planlama", self.PAGE_PLANNING, "save")
+        self.btn_risk_profile = self._create_nav_button("Risk Profili", self.PAGE_RISK_PROFILE, "shield-check")
+        self.btn_ai_page = self._create_nav_button("AI Asistan", self.PAGE_AI_PAGE, "bot")
 
         self.sidebar_layout.addWidget(self.btn_dashboard)
         self.sidebar_layout.addWidget(self.btn_watchlist)
@@ -117,7 +117,8 @@ class MainWindow(QMainWindow):
         # Geri butonu
         self._add_separator()
         
-        self.btn_back = AnimatedButton("← Geri")
+        self.btn_back = AnimatedButton(" Geri")
+        self.btn_back.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY")
         self.btn_back.clicked.connect(self._on_back)
         self.btn_back.setEnabled(False)
         self.btn_back.setProperty("cssClass", "navBackBtn")
@@ -136,9 +137,11 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(self.sidebar)
         self.main_layout.addWidget(self.stacked_widget, 1)
 
-    def _create_nav_button(self, text: str, page_index: int) -> AnimatedButton:
-        """Mikro etkileşimli navigasyon butonu oluşturur."""
-        btn = AnimatedButton(text)
+    def _create_nav_button(self, text: str, page_index: int, icon_name: str = "") -> AnimatedButton:
+        """Mikro etkileşimli ve ikonlu navigasyon butonu oluşturur."""
+        btn = AnimatedButton(f" {text}")
+        if icon_name:
+            btn.setIconName(icon_name, color="@COLOR_TEXT_SECONDARY")
         btn.setCheckable(True)
         btn.clicked.connect(lambda: self._goto_page(page_index))
         btn.setProperty("cssClass", "navMenuBtn")

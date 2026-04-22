@@ -19,6 +19,7 @@ from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
 from src.ui.widgets.edit_stock_dialog import EditStockDialog
 from src.ui.widgets.capital_dialog import CapitalDialog
 from src.ui.widgets.backfill_dialog import BackfillDialog
+from src.ui.widgets.animated_button import AnimatedButton
 
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
@@ -73,25 +74,25 @@ class DashboardPage(BasePage):
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
         
-        self.btn_new_trade = QPushButton("➕ Yeni İşlem")
-        self.btn_new_trade.setObjectName("primaryButton")
-        self.btn_new_trade.setCursor(Qt.PointingHandCursor)
+        self.btn_new_trade = AnimatedButton(" Yeni İşlem")
+        self.btn_new_trade.setIconName("plus", color="@COLOR_TEXT_WHITE")
+        self.btn_new_trade.setProperty("cssClass", "primaryButton")
         self.btn_new_trade.clicked.connect(self._on_new_trade)
         
-        self.btn_update_prices = QPushButton("🔄 Fiyatları Güncelle")
-        self.btn_update_prices.setCursor(Qt.PointingHandCursor)
+        self.btn_update_prices = AnimatedButton(" Fiyatları Güncelle")
+        self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
         self.btn_update_prices.clicked.connect(self._on_update_prices)
         
         self.lbl_last_update = QLabel("")
         self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
         
-        self.btn_capital = QPushButton("💰 Sermaye Yönetimi")
-        self.btn_capital.setCursor(Qt.PointingHandCursor)
+        self.btn_capital = AnimatedButton(" Sermaye Yönetimi")
+        self.btn_capital.setIconName("coins", color="@COLOR_TEXT_PRIMARY")
         self.btn_capital.clicked.connect(self._on_capital_management)
         self.btn_capital.setProperty("cssClass", "secondaryButton")
         
-        self.btn_backfill = QPushButton("📦 Geçmiş Veri Yönetimi")
-        self.btn_backfill.setCursor(Qt.PointingHandCursor)
+        self.btn_backfill = AnimatedButton(" Geçmiş Veri Yönetimi")
+        self.btn_backfill.setIconName("history", color="@COLOR_TEXT_PRIMARY")
         self.btn_backfill.clicked.connect(self._on_backfill)
         self.btn_backfill.setProperty("cssClass", "secondaryButton")
 
@@ -117,17 +118,17 @@ class DashboardPage(BasePage):
         bottom_layout = QHBoxLayout()
         bottom_layout.addStretch()
         
-        self.btn_export_today = QPushButton("📄 Rapor: Bugün")
-        self.btn_export_today.setCursor(Qt.PointingHandCursor)
+        self.btn_export_today = AnimatedButton(" Rapor: Bugün")
+        self.btn_export_today.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
         self.btn_export_today.clicked.connect(self._on_export_today)
         
-        self.btn_export_range = QPushButton("📄 Rapor: Tarih Aralığı")
-        self.btn_export_range.setCursor(Qt.PointingHandCursor)
+        self.btn_export_range = AnimatedButton(" Rapor: Tarih Aralığı")
+        self.btn_export_range.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
         self.btn_export_range.clicked.connect(self._on_export_range)
         
-        self.btn_reset = QPushButton("🗑️ Sistemi Sıfırla")
+        self.btn_reset = AnimatedButton(" Sistemi Sıfırla")
+        self.btn_reset.setIconName("trash-2", color="@COLOR_DANGER")
         self.btn_reset.setProperty("cssClass", "dangerTextButton")
-        self.btn_reset.setCursor(Qt.PointingHandCursor)
         self.btn_reset.clicked.connect(self._on_reset)
         
         bottom_layout.addWidget(self.btn_export_today)

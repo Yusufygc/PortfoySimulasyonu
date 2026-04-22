@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QSizePolicy
+from src.ui.widgets.animated_button import AnimatedButton
 
 
 class PortfolioListPanel(QFrame):
@@ -55,19 +56,21 @@ class PortfolioListPanel(QFrame):
         # CRUD butonları
         btn_row = QHBoxLayout()
 
-        self._btn_new = QPushButton("➕ Yeni")
-        self._btn_new.setCursor(Qt.PointingHandCursor)
+        self._btn_new = AnimatedButton(" Yeni")
+        self._btn_new.setIconName("plus", color="@COLOR_TEXT_PRIMARY")
+        self._btn_new.setProperty("cssClass", "secondaryButton")
         self._btn_new.clicked.connect(self.new_requested)
 
-        self._btn_edit = QPushButton("✏️ Düzenle")
-        self._btn_edit.setCursor(Qt.PointingHandCursor)
+        self._btn_edit = AnimatedButton(" Düzenle")
+        self._btn_edit.setIconName("pencil", color="@COLOR_TEXT_PRIMARY")
+        self._btn_edit.setProperty("cssClass", "secondaryButton")
         self._btn_edit.setEnabled(False)
         self._btn_edit.clicked.connect(self.edit_requested)
 
-        self._btn_delete = QPushButton("🗑️ Sil")
-        self._btn_delete.setCursor(Qt.PointingHandCursor)
+        self._btn_delete = AnimatedButton(" Sil")
+        self._btn_delete.setIconName("trash-2", color="@COLOR_DANGER")
         self._btn_delete.setEnabled(False)
-        self._btn_delete.setProperty("cssClass", "dangerTextButton")
+        self._btn_delete.setProperty("cssClass", "dangerOutlineButton")
         self._btn_delete.clicked.connect(self.delete_requested)
 
         btn_row.addWidget(self._btn_new)

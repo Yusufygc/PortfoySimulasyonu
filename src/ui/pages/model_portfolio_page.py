@@ -83,7 +83,8 @@ class ModelPortfolioPage(BasePage):
         header.addWidget(self.lbl_portfolio_name)
         header.addStretch()
 
-        self.btn_refresh = AnimatedButton("🔄 Fiyat Güncelle")
+        self.btn_refresh = AnimatedButton(" Fiyat Güncelle")
+        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
         self.btn_refresh.setEnabled(False)
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
         header.addWidget(self.btn_refresh)
@@ -112,12 +113,14 @@ class ModelPortfolioPage(BasePage):
         trade_row = QHBoxLayout()
         trade_row.addStretch()
 
-        self.btn_buy = AnimatedButton("📈 Hisse Al")
+        self.btn_buy = AnimatedButton(" Hisse Al")
+        self.btn_buy.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
         self.btn_buy.setEnabled(False)
         self.btn_buy.setProperty("cssClass", "successButton")
         self.btn_buy.clicked.connect(lambda: self._on_trade("BUY"))
 
-        self.btn_sell = AnimatedButton("📉 Hisse Sat")
+        self.btn_sell = AnimatedButton(" Hisse Sat")
+        self.btn_sell.setIconName("trending-down", color="@COLOR_TEXT_WHITE")
         self.btn_sell.setEnabled(False)
         self.btn_sell.setProperty("cssClass", "dangerButton")
         self.btn_sell.clicked.connect(lambda: self._on_trade("SELL"))
