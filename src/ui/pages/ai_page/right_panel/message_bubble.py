@@ -28,46 +28,36 @@ class MessageBubble(QWidget):
 
         # Mesaj tipine göre stil
         if self.message.role == MessageRole.USER:
-            self.bubble.setStyleSheet("""
-                QFrame {
-                    background-color: #2A3F5F;
-                    border-radius: 12px;
-                    border-top-right-radius: 0px;
-                }
-            """)
-            lbl_content.setStyleSheet("color: white; font-size: 14px;")
-            lbl_time.setStyleSheet("color: #94a3b8; font-size: 10px;")
+            self.bubble.setProperty("cssClass", "chatBubble")
+            self.bubble.setProperty("cssState", "user")
+            lbl_content.setProperty("cssClass", "chatContent")
+            lbl_content.setProperty("cssState", "user")
+            lbl_time.setProperty("cssClass", "chatTime")
+            lbl_time.setProperty("cssState", "user")
             main_layout.addStretch()
             main_layout.addWidget(self.bubble)
 
         elif self.message.role == MessageRole.AI:
-            self.bubble.setStyleSheet("""
-                QFrame {
-                    background-color: #1E2A3A;
-                    border-radius: 12px;
-                    border-top-left-radius: 0px;
-                    border-left: 3px solid #00C853;
-                }
-            """)
-            lbl_content.setStyleSheet("color: #cbd5e1; font-size: 14px;")
-            lbl_time.setStyleSheet("color: #64748b; font-size: 10px;")
+            self.bubble.setProperty("cssClass", "chatBubble")
+            self.bubble.setProperty("cssState", "ai")
+            lbl_content.setProperty("cssClass", "chatContent")
+            lbl_content.setProperty("cssState", "ai")
+            lbl_time.setProperty("cssClass", "chatTime")
+            lbl_time.setProperty("cssState", "ai")
             main_layout.addWidget(self.bubble)
             main_layout.addStretch()
 
         elif self.message.role == MessageRole.SYSTEM:
-            self.bubble.setStyleSheet("""
-                QFrame {
-                    background-color: #2D1F3D;
-                    border-radius: 12px;
-                    border: 1px solid #a855f7;
-                }
-            """)
+            self.bubble.setProperty("cssClass", "chatBubble")
+            self.bubble.setProperty("cssState", "system")
             lbl_header = QLabel("🤖 Otomatik Aktarım")
-            lbl_header.setStyleSheet("color: #a855f7; font-weight: bold; font-size: 12px;")
+            lbl_header.setProperty("cssClass", "systemChatHeader")
             bubble_layout.addWidget(lbl_header)
             
-            lbl_content.setStyleSheet("color: #e2e8f0; font-size: 13px; font-style: italic;")
-            lbl_time.setStyleSheet("color: #94a3b8; font-size: 10px;")
+            lbl_content.setProperty("cssClass", "chatContent")
+            lbl_content.setProperty("cssState", "system")
+            lbl_time.setProperty("cssClass", "chatTime")
+            lbl_time.setProperty("cssState", "system")
             main_layout.addWidget(self.bubble)
 
         bubble_layout.addWidget(lbl_content)

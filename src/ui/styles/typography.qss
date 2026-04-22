@@ -297,3 +297,52 @@ QLabel[cssClass="warningLabelBg"] {
 QLabel[cssClass="formLabelBold"] {
     color: #e2e8f0; font-weight: bold; font-size: 13px;
 }
+
+QLabel[cssClass="warningBanner"] {
+    background-color: #ca8a04;
+    color: white;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+QLabel[cssClass="priceValueLargeCyan"] {
+    font-size: 18px; font-weight: bold; color: #00D4FF;
+}
+
+QLabel[cssClass="dateLabelMuted"] {
+    color: #64748b; font-size: 12px;
+}
+
+/* Chat Text Styles */
+QLabel[cssClass="chatContent"][cssState="user"] { color: white; font-size: 14px; }
+QLabel[cssClass="chatContent"][cssState="ai"] { color: #cbd5e1; font-size: 14px; }
+QLabel[cssClass="chatContent"][cssState="system"] { color: #e2e8f0; font-size: 13px; font-style: italic; }
+
+QLabel[cssClass="chatTime"][cssState="user"] { color: #94a3b8; font-size: 10px; }
+QLabel[cssClass="chatTime"][cssState="ai"] { color: #64748b; font-size: 10px; }
+QLabel[cssClass="chatTime"][cssState="system"] { color: #94a3b8; font-size: 10px; }
+
+QLabel[cssClass="systemChatHeader"] { color: #a855f7; font-weight: bold; font-size: 12px; }
+
+/* Signal Label */
+QLabel[cssClass="signalLabel"] {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #334155;
+    color: #94a3b8;
+}
+QLabel[cssClass="signalLabel"][cssState="buy"] {
+    background-color: #00C853; color: white;
+}
+QLabel[cssClass="signalLabel"][cssState="sell"] {
+    background-color: #D50000; color: white;
+}
+QLabel[cssClass="signalLabel"][cssState="hold"] {
+    background-color: #FFD600; color: black;
+}
+QLabel[cssClass="signalLabel"][cssState="neutral"] {
+    background-color: #334155; color: #94a3b8;
+}

@@ -46,13 +46,7 @@ class ModelPanel(QWidget):
         if not self.adapter.is_available():
             self.banner = QLabel("⚠ Model henüz bağlı değil — Demo verileri gösteriliyor")
             self.banner.setAlignment(Qt.AlignCenter)
-            self.banner.setStyleSheet("""
-                background-color: #ca8a04;
-                color: white;
-                font-weight: bold;
-                padding: 10px;
-                border-radius: 6px;
-            """)
+            self.banner.setProperty("cssClass", "warningBanner")
             layout.addWidget(self.banner)
 
         # 2. Input

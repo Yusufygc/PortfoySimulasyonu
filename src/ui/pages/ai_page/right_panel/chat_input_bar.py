@@ -16,34 +16,12 @@ class ChatInputBar(QWidget):
         self.text_edit = QTextEdit()
         self.text_edit.setPlaceholderText("Mesajınızı yazın... (Göndermek için Shift+Enter)")
         self.text_edit.setFixedHeight(60)
-        self.text_edit.setStyleSheet("""
-            QTextEdit {
-                background-color: #1e293b;
-                color: white;
-                padding: 10px;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                font-size: 14px;
-            }
-            QTextEdit:focus {
-                border: 1px solid #00D4FF;
-            }
-        """)
+        self.text_edit.setProperty("cssClass", "aiInput")
 
         self.btn_send = QPushButton("▶\nGönder")
         self.btn_send.setFixedHeight(60)
         self.btn_send.setFixedWidth(70)
-        self.btn_send.setStyleSheet("""
-            QPushButton {
-                background-color: #00D4FF;
-                color: #0f172a;
-                font-weight: bold;
-                border-radius: 6px;
-                font-size: 12px;
-            }
-            QPushButton:hover { background-color: #38bdf8; }
-            QPushButton:disabled { background-color: #334155; color: #94a3b8; }
-        """)
+        self.btn_send.setProperty("cssClass", "aiPrimaryBtn")
         self.btn_send.clicked.connect(self._on_send)
 
         layout.addWidget(self.text_edit)

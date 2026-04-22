@@ -126,3 +126,48 @@ QFrame[cssClass="borderlessFrame"] {
 QWidget[cssClass="chartWidget"] {
     background-color: #0f172a; border-radius: 8px;
 }
+
+QSplitter::handle {
+    background-color: #334155;
+    margin: 0px 5px;
+    width: 2px;
+}
+
+QScrollArea[cssClass="chatScrollArea"] {
+    border: none; background-color: #0f172a; border-radius: 8px;
+}
+
+/* Chat Bubbles */
+QFrame[cssClass="chatBubble"][cssState="user"] {
+    background-color: #2A3F5F;
+    border-radius: 12px;
+    border-top-right-radius: 0px;
+}
+QFrame[cssClass="chatBubble"][cssState="ai"] {
+    background-color: #1E2A3A;
+    border-radius: 12px;
+    border-top-left-radius: 0px;
+    border-left: 3px solid #00C853;
+}
+QFrame[cssClass="chatBubble"][cssState="system"] {
+    background-color: #2D1F3D;
+    border-radius: 12px;
+    border: 1px solid #a855f7;
+}
+
+QFrame[cssClass="aiCard"], QWidget[cssClass="aiCard"] { 
+    background-color: #1e293b; border-radius: 8px; 
+}
+
+QWidget#scroll_content { background-color: transparent; }
+
+QScrollBar:vertical {
+    border: none;
+    background: #1e293b;
+    width: 10px;
+    border-radius: 5px;
+}
+QScrollBar::handle:vertical {
+    background: #475569;
+    border-radius: 5px;
+}

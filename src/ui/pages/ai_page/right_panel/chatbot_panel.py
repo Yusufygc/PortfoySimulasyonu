@@ -20,19 +20,10 @@ class ChatbotPanel(QWidget):
         # Header
         header_layout = QHBoxLayout()
         lbl_title = QLabel("💬 AI Finans Asistanı")
-        lbl_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #f8fafc;")
+        lbl_title.setProperty("cssClass", "dialogHeaderTitleLarge")
         
         btn_clear = QPushButton("🗑 Sohbeti Temizle")
-        btn_clear.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #ef4444;
-                border: 1px solid #ef4444;
-                padding: 5px 10px;
-                border-radius: 4px;
-            }
-            QPushButton:hover { background-color: #ef4444; color: white; }
-        """)
+        btn_clear.setProperty("cssClass", "outlineDangerBtn")
         btn_clear.clicked.connect(self.clear_chat)
 
         header_layout.addWidget(lbl_title)

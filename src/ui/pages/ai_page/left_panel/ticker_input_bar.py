@@ -15,36 +15,13 @@ class TickerInputBar(QWidget):
 
         self.input_field = QLineEdit()
         self.input_field.setPlaceholderText("Hisse Kodu (Örn: THYAO)")
-        self.input_field.setStyleSheet("""
-            QLineEdit {
-                background-color: #1e293b;
-                color: white;
-                padding: 10px;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                font-size: 14px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #00D4FF;
-            }
-        """)
+        self.input_field.setProperty("cssClass", "aiInput")
         self.input_field.returnPressed.connect(self._on_analyze)
         self.input_field.textChanged.connect(self._on_text_changed)
 
         self.btn_analyze = QPushButton("Analiz Et")
         self.btn_analyze.setEnabled(False)
-        self.btn_analyze.setStyleSheet("""
-            QPushButton {
-                background-color: #00D4FF;
-                color: #0f172a;
-                font-weight: bold;
-                padding: 10px 20px;
-                border-radius: 6px;
-                font-size: 14px;
-            }
-            QPushButton:hover { background-color: #38bdf8; }
-            QPushButton:disabled { background-color: #334155; color: #94a3b8; }
-        """)
+        self.btn_analyze.setProperty("cssClass", "aiPrimaryBtn")
         self.btn_analyze.clicked.connect(self._on_analyze)
 
         layout.addWidget(self.input_field)

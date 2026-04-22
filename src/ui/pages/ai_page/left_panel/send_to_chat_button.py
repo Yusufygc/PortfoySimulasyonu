@@ -14,18 +14,7 @@ class SendToChatButton(QPushButton):
 
     def _init_ui(self):
         self.setEnabled(False)
-        self.setStyleSheet("""
-            QPushButton {
-                background-color: #6366f1;
-                color: white;
-                font-weight: bold;
-                padding: 12px;
-                border-radius: 6px;
-                font-size: 14px;
-            }
-            QPushButton:hover { background-color: #818cf8; }
-            QPushButton:disabled { background-color: #334155; color: #94a3b8; }
-        """)
+        self.setProperty("cssClass", "aiActionButton")
 
     def set_result(self, result: AnalysisResult):
         self.current_result = result

@@ -12,20 +12,7 @@ class ConversationView(QScrollArea):
     def _init_ui(self):
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setStyleSheet("""
-            QScrollArea { border: none; background-color: #0f172a; border-radius: 8px;}
-            QWidget#scroll_content { background-color: transparent; }
-            QScrollBar:vertical {
-                border: none;
-                background: #1e293b;
-                width: 10px;
-                border-radius: 5px;
-            }
-            QScrollBar::handle:vertical {
-                background: #475569;
-                border-radius: 5px;
-            }
-        """)
+        self.setProperty("cssClass", "chatScrollArea")
 
         self.content_widget = QWidget()
         self.content_widget.setObjectName("scroll_content")

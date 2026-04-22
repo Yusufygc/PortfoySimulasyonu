@@ -9,29 +9,18 @@ class SignalCard(QWidget):
         self._init_ui()
 
     def _init_ui(self):
-        self.setStyleSheet("""
-            QWidget { background-color: #1e293b; border-radius: 8px; }
-            QLabel { color: #f8fafc; }
-        """)
+        self.setProperty("cssClass", "aiCard")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
 
         title = QLabel("🎯 SİNYAL")
-        title.setStyleSheet("font-size: 14px; font-weight: bold; color: #94a3b8;")
+        title.setProperty("cssClass", "cardLabel")
         layout.addWidget(title)
 
         self.lbl_signal = QLabel("-")
         self.lbl_signal.setAlignment(Qt.AlignCenter)
-        self.lbl_signal.setStyleSheet("""
-            QLabel {
-                font-size: 24px;
-                font-weight: bold;
-                padding: 15px;
-                border-radius: 8px;
-                background-color: #334155;
-                color: #94a3b8;
-            }
-        """)
+        self.lbl_signal.setProperty("cssClass", "signalLabel")
+        self.lbl_signal.setProperty("cssState", "neutral")
         layout.addWidget(self.lbl_signal)
 
         strength_layout = QHBoxLayout()
@@ -39,45 +28,28 @@ class SignalCard(QWidget):
         self.progress_strength = QProgressBar()
         self.progress_strength.setRange(0, 100)
         self.progress_strength.setValue(0)
-        self.progress_strength.setStyleSheet("""
-            QProgressBar { border: 1px solid #334155; border-radius: 4px; text-align: center; color: white; }
-            QProgressBar::chunk { background-color: #a855f7; border-radius: 4px; }
-        """)
+        self.progress_strength.setProperty("cssClass", "aiProgressPurple")
         strength_layout.addWidget(self.progress_strength)
         
         layout.addLayout(strength_layout)
 
     def update_data(self, signal: Signal, strength: float):
-        colors = {
-            Signal.BUY: ("#00C853", "white"),
-            Signal.SELL: ("#D50000", "white"),
-            Signal.HOLD: ("#FFD600", "black")
+        state_map = {
+            Signal.BUY: "buy",
+            Signal.SELL: "sell",
+            Signal.HOLD: "hold"
         }
-        bg_color, fg_color = colors.get(signal, ("#334155", "#94a3b8"))
+        state = state_map.get(signal, "neutral")
         
         self.lbl_signal.setText(signal.value)
-        self.lbl_signal.setStyleSheet(f"""
-            QLabel {{
-                font-size: 24px;
-                font-weight: bold;
-                padding: 15px;
-                border-radius: 8px;
-                background-color: {bg_color};
-                color: {fg_color};
-            }}
-        """)
+        self.lbl_signal.setProperty("cssState", state)
+        self.lbl_signal.style().unpolish(self.lbl_signal)
+        self.lbl_signal.style().polish(self.lbl_signal)
         self.progress_strength.setValue(int(strength * 100))
 
     def reset(self):
         self.lbl_signal.setText("-")
-        self.lbl_signal.setStyleSheet("""
-            QLabel {
-                font-size: 24px;
-                font-weight: bold;
-                padding: 15px;
-                border-radius: 8px;
-                background-color: #334155;
-                color: #94a3b8;
-            }
-        """)
+        self.lbl_signal.setProperty("cssState", "neutral")
+        self.lbl_signal.style().unpolish(self.lbl_signal)
+        self.lbl_signal.style().polish(self.lbl_signal)
         self.progress_strength.setValue(0)

@@ -34,12 +34,4 @@ class AIPage(QWidget):
         # Genişlik oranları (55 - 45)
         self.splitter.setSizes([550, 450])
         
-        self.splitter.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #334155;
-                margin: 0px 5px;
-                width: 2px;
-            }
-        """)
-        
         layout.addWidget(self.splitter)
