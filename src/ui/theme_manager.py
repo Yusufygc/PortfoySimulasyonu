@@ -110,6 +110,14 @@ class ThemeManager:
 
         def replace_token(match: re.Match) -> str:
             token_name = match.group(1)
+            
+            # İkon referansı mı? (@ICON_...)
+            if token_name.startswith("ICON_"):
+                icon_name = token_name[5:].lower().replace("_", "-")
+                from src.ui.core.icon_manager import IconManager
+                # QSS ikonlarını varsayılan parlak renkte (beyaz) oluştur
+                return IconManager.get_icon_path(icon_name, color="@COLOR_TEXT_PRIMARY")
+            
             value = tokens.get(token_name)
             if value is None:
                 logger.warning(f"[ThemeManager] Bilinmeyen token: @{token_name}")
