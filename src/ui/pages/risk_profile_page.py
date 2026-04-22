@@ -41,40 +41,32 @@ class RiskProfilePage(BasePage):
         # ====== BAŞLIK ====== #
         header = QHBoxLayout()
         lbl_title = QLabel("🛡️ Risk Profil Analizi")
-        lbl_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #f1f5f9;")
+        lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
         self.main_layout.addLayout(header)
 
         lbl_desc = QLabel("Yatırım tarzınızı belirlemek için 3 kısa soruya cevap verin.")
-        lbl_desc.setStyleSheet("color: #94a3b8; font-size: 13px; margin-bottom: 5px;")
+        lbl_desc.setProperty("cssClass", "pageDescription")
         self.main_layout.addWidget(lbl_desc)
 
         # ====== MEVCUT PROFİL KARTI ====== #
         self.profile_card = QFrame()
-        self.profile_card.setStyleSheet("""
-            QFrame {
-                background-color: #1e293b;
-                border-radius: 12px;
-                border: 2px solid #334155;
-            }
-        """)
+        self.profile_card.setProperty("cssClass", "profileCard")
         card_layout = QVBoxLayout(self.profile_card)
         card_layout.setContentsMargins(25, 20, 25, 20)
         card_layout.setSpacing(10)
 
         self.lbl_profile_header = QLabel("📊 Mevcut Profiliniz")
-        self.lbl_profile_header.setStyleSheet(
-            "color: #94a3b8; font-size: 14px; font-weight: bold; border: none;"
-        )
+        self.lbl_profile_header.setProperty("cssClass", "profileHeader")
         card_layout.addWidget(self.lbl_profile_header)
 
         # Skor + etiket satırı
         score_row = QHBoxLayout()
         self.lbl_score = QLabel("Puan: —")
-        self.lbl_score.setStyleSheet("color: #f1f5f9; font-size: 16px; font-weight: bold; border: none;")
+        self.lbl_score.setProperty("cssClass", "profileScore")
         self.lbl_label = QLabel("")
-        self.lbl_label.setStyleSheet("font-size: 22px; font-weight: bold; border: none;")
+        self.lbl_label.setProperty("cssClass", "profileLabel")
         score_row.addWidget(self.lbl_score)
         score_row.addStretch()
         score_row.addWidget(self.lbl_label)
@@ -82,17 +74,17 @@ class RiskProfilePage(BasePage):
 
         self.lbl_profile_desc = QLabel("")
         self.lbl_profile_desc.setWordWrap(True)
-        self.lbl_profile_desc.setStyleSheet("color: #94a3b8; font-size: 13px; border: none;")
+        self.lbl_profile_desc.setProperty("cssClass", "profileDesc")
         card_layout.addWidget(self.lbl_profile_desc)
 
         # Detay satırı
         detail_row = QHBoxLayout()
         self.lbl_age_detail = QLabel("")
-        self.lbl_age_detail.setStyleSheet("color: #64748b; font-size: 12px; border: none;")
+        self.lbl_age_detail.setProperty("cssClass", "profileDetail")
         self.lbl_horizon_detail = QLabel("")
-        self.lbl_horizon_detail.setStyleSheet("color: #64748b; font-size: 12px; border: none;")
+        self.lbl_horizon_detail.setProperty("cssClass", "profileDetail")
         self.lbl_reaction_detail = QLabel("")
-        self.lbl_reaction_detail.setStyleSheet("color: #64748b; font-size: 12px; border: none;")
+        self.lbl_reaction_detail.setProperty("cssClass", "profileDetail")
         detail_row.addWidget(self.lbl_age_detail)
         detail_row.addWidget(self.lbl_horizon_detail)
         detail_row.addWidget(self.lbl_reaction_detail)
@@ -104,42 +96,24 @@ class RiskProfilePage(BasePage):
 
         # ====== ANKET FORMU ====== #
         survey_frame = QFrame()
-        survey_frame.setStyleSheet("""
-            QFrame {
-                background-color: #1e293b;
-                border-radius: 12px;
-                border: 1px solid #334155;
-            }
-        """)
+        survey_frame.setProperty("cssClass", "surveyFrame")
         survey_layout = QVBoxLayout(survey_frame)
         survey_layout.setContentsMargins(25, 20, 25, 25)
         survey_layout.setSpacing(18)
 
         lbl_survey_title = QLabel("📝 Risk Profili Anketi")
-        lbl_survey_title.setStyleSheet(
-            "color: #f1f5f9; font-size: 16px; font-weight: bold; border: none;"
-        )
+        lbl_survey_title.setProperty("cssClass", "surveyTitle")
         survey_layout.addWidget(lbl_survey_title)
 
         # --- Soru 1: Yaş ---
-        q1_group = self._create_question_group("1️⃣ Yaşınız kaç?")
+        q1_group = self._create_question_group("1-Yaşınız kaç?")
         q1_layout = QHBoxLayout()
         self.spin_age = QSpinBox()
         self.spin_age.setRange(18, 100)
         self.spin_age.setValue(30)
         self.spin_age.setMinimumHeight(40)
         self.spin_age.setMinimumWidth(100)
-        self.spin_age.setStyleSheet("""
-            QSpinBox {
-                background-color: #0f172a; color: #f1f5f9;
-                border: 1px solid #334155; border-radius: 8px;
-                padding: 8px; font-size: 16px;
-            }
-            QSpinBox:focus { border: 1px solid #3b82f6; }
-            QSpinBox::up-button, QSpinBox::down-button {
-                width: 20px; background-color: #334155; border: none; margin: 1px;
-            }
-        """)
+        self.spin_age.setProperty("cssClass", "surveySpinBox")
         q1_layout.addWidget(self.spin_age)
         q1_layout.addStretch()
         q1_group.layout().addLayout(q1_layout)
@@ -147,7 +121,7 @@ class RiskProfilePage(BasePage):
 
         # --- Soru 2: Yatırım Vadesi ---
         q2_group = self._create_question_group(
-            "2️⃣ Yatırımlarınızı genelde ne kadar süre tutarsınız?"
+            "2- Yatırımlarınızı genelde ne kadar süre tutarsınız?"
         )
         self.horizon_group = QButtonGroup(self)
         q2_options = QHBoxLayout()
@@ -170,7 +144,7 @@ class RiskProfilePage(BasePage):
 
         # --- Soru 3: Kayıp Tepkisi ---
         q3_group = self._create_question_group(
-            "3️⃣ Portföyünüz bir haftada %20 değer kaybetse ne yaparsınız?"
+            "3- Portföyünüz bir haftada %20 değer kaybetse ne yaparsınız?"
         )
         self.reaction_group = QButtonGroup(self)
         q3_options = QHBoxLayout()
@@ -198,14 +172,7 @@ class RiskProfilePage(BasePage):
         self.btn_calculate.setCursor(Qt.PointingHandCursor)
         self.btn_calculate.setMinimumHeight(48)
         self.btn_calculate.setMinimumWidth(220)
-        self.btn_calculate.setStyleSheet("""
-            QPushButton {
-                background-color: #8b5cf6; color: white; border: none;
-                border-radius: 10px; font-size: 16px; font-weight: bold;
-                padding: 12px 30px;
-            }
-            QPushButton:hover { background-color: #7c3aed; }
-        """)
+        self.btn_calculate.setProperty("cssClass", "calculateButton")
         self.btn_calculate.clicked.connect(self._on_calculate)
         btn_layout.addWidget(self.btn_calculate)
         btn_layout.addStretch()
@@ -219,18 +186,12 @@ class RiskProfilePage(BasePage):
     @staticmethod
     def _create_question_group(title: str) -> QGroupBox:
         group = QGroupBox()
-        group.setStyleSheet("""
-            QGroupBox {
-                border: none;
-                margin-top: 0;
-                padding: 0;
-            }
-        """)
+        group.setProperty("cssClass", "surveyGroup")
         layout = QVBoxLayout()
         layout.setSpacing(10)
 
         lbl = QLabel(title)
-        lbl.setStyleSheet("color: #e2e8f0; font-size: 14px; font-weight: bold;")
+        lbl.setProperty("cssClass", "surveyQuestion")
         layout.addWidget(lbl)
 
         group.setLayout(layout)
@@ -242,35 +203,7 @@ class RiskProfilePage(BasePage):
         rb.setProperty("optionValue", value)
         rb.setCursor(Qt.PointingHandCursor)
         rb.setMinimumHeight(55)
-        rb.setStyleSheet("""
-            QRadioButton {
-                background-color: #0f172a;
-                color: #f1f5f9;
-                border: 1px solid #334155;
-                border-radius: 10px;
-                padding: 12px 18px;
-                font-size: 13px;
-                spacing: 8px;
-            }
-            QRadioButton:hover {
-                border: 1px solid #3b82f6;
-                background-color: #1e293b;
-            }
-            QRadioButton:checked {
-                border: 2px solid #8b5cf6;
-                background-color: rgba(139, 92, 246, 0.15);
-            }
-            QRadioButton::indicator {
-                width: 16px; height: 16px;
-                border: 2px solid #64748b;
-                border-radius: 8px;
-                background-color: #0f172a;
-            }
-            QRadioButton::indicator:checked {
-                background-color: #8b5cf6;
-                border: 2px solid #8b5cf6;
-            }
-        """)
+        rb.setProperty("cssClass", "surveyRadio")
         return rb
 
     # ==================== İş Mantığı ==================== #
@@ -309,19 +242,11 @@ class RiskProfilePage(BasePage):
         self.profile_card.setVisible(True)
 
         # Kart kenarlık rengini profile göre ayarla
-        self.profile_card.setStyleSheet(f"""
-            QFrame {{
-                background-color: #1e293b;
-                border-radius: 12px;
-                border: 2px solid {profile.color};
-            }}
-        """)
+        self.profile_card.setStyleSheet(f"border-color: {profile.color};")
 
         self.lbl_score.setText(f"Puan: {profile.risk_score} / 100")
         self.lbl_label.setText(f"{profile.emoji} {profile.risk_label}")
-        self.lbl_label.setStyleSheet(
-            f"color: {profile.color}; font-size: 22px; font-weight: bold; border: none;"
-        )
+        self.lbl_label.setStyleSheet(f"color: {profile.color};")
         self.lbl_profile_desc.setText(profile.description)
 
         self.lbl_age_detail.setText(f"🎂 Yaş: {profile.age}")

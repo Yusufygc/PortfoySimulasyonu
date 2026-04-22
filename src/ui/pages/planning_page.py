@@ -51,38 +51,14 @@ class PlanningPage(BasePage):
         # Başlık
         header_layout = QHBoxLayout()
         lbl_title = QLabel("💰 Finansal Planlama")
-        lbl_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #f1f5f9;")
+        lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         self.main_layout.addLayout(header_layout)
 
         # Tab Widget
         self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #334155;
-                border-radius: 8px;
-                background-color: #0f172a;
-            }
-            QTabBar::tab {
-                background-color: #1e293b;
-                color: #94a3b8;
-                padding: 10px 25px;
-                margin-right: 3px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QTabBar::tab:selected {
-                background-color: #3b82f6;
-                color: white;
-            }
-            QTabBar::tab:hover:!selected {
-                background-color: #334155;
-                color: #f1f5f9;
-            }
-        """)
+        self.tab_widget.setProperty("cssClass", "mainTabWidget")
 
         # Sekme 1: Bütçe
         self.budget_tab = QWidget()
@@ -109,36 +85,13 @@ class PlanningPage(BasePage):
         top_row = QHBoxLayout()
 
         lbl_month = QLabel("📅 Ay:")
-        lbl_month.setStyleSheet("color: #94a3b8; font-weight: bold; font-size: 14px;")
+        lbl_month.setProperty("cssClass", "panelTitle")
         top_row.addWidget(lbl_month)
 
         self.combo_month = QComboBox()
         self.combo_month.setMinimumWidth(150)
         self.combo_month.setMinimumHeight(36)
-        self.combo_month.setStyleSheet("""
-            QComboBox {
-                background-color: #1e293b;
-                color: #f1f5f9;
-                border: 1px solid #334155;
-                border-radius: 6px;
-                padding: 6px 10px;
-                font-size: 14px;
-            }
-            QComboBox:hover { border: 1px solid #3b82f6; }
-            QComboBox::drop-down { border: none; width: 25px; }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 6px solid #94a3b8;
-                margin-right: 8px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #1e293b; color: #f1f5f9;
-                border: 1px solid #334155;
-                selection-background-color: #3b82f6;
-            }
-        """)
+        self.combo_month.setProperty("cssClass", "customComboBox")
         self._populate_months()
         self.combo_month.currentIndexChanged.connect(self._on_month_changed)
         top_row.addWidget(self.combo_month)
@@ -148,13 +101,7 @@ class PlanningPage(BasePage):
         self.btn_save_budget = QPushButton("💾 Bütçeyi Kaydet")
         self.btn_save_budget.setCursor(Qt.PointingHandCursor)
         self.btn_save_budget.setMinimumHeight(38)
-        self.btn_save_budget.setStyleSheet("""
-            QPushButton {
-                background-color: #3b82f6; color: white; border: none;
-                border-radius: 8px; font-weight: bold; padding: 8px 20px; font-size: 14px;
-            }
-            QPushButton:hover { background-color: #2563eb; }
-        """)
+        self.btn_save_budget.setProperty("cssClass", "primaryButton")
         self.btn_save_budget.clicked.connect(self._on_save_budget)
         top_row.addWidget(self.btn_save_budget)
         layout.addLayout(top_row)
@@ -174,25 +121,20 @@ class PlanningPage(BasePage):
 
         # --- Durum mesajı ---
         self.lbl_budget_status = QLabel("")
-        self.lbl_budget_status.setStyleSheet("""
-            background-color: #1e293b; color: #94a3b8;
-            border-radius: 8px; padding: 12px; font-size: 14px;
-        """)
+        self.lbl_budget_status.setProperty("cssClass", "statusLabelInfo")
         self.lbl_budget_status.setAlignment(Qt.AlignCenter)
         self.lbl_budget_status.setVisible(False)
         layout.addWidget(self.lbl_budget_status)
 
         # --- Form: Gelir/Gider ---
         form_frame = QFrame()
-        form_frame.setStyleSheet("""
-            QFrame { background-color: #1e293b; border-radius: 10px; }
-        """)
+        form_frame.setProperty("cssClass", "panelFrame")
         form_layout_outer = QVBoxLayout(form_frame)
         form_layout_outer.setContentsMargins(20, 15, 20, 15)
 
         # Gelirler
         lbl_income_header = QLabel("📥 Gelirler")
-        lbl_income_header.setStyleSheet("color: #10b981; font-weight: bold; font-size: 14px;")
+        lbl_income_header.setProperty("cssClass", "successHeader")
         form_layout_outer.addWidget(lbl_income_header)
 
         income_form = QHBoxLayout()
@@ -205,7 +147,7 @@ class PlanningPage(BasePage):
 
         # Giderler
         lbl_expense_header = QLabel("📤 Giderler")
-        lbl_expense_header.setStyleSheet("color: #ef4444; font-weight: bold; font-size: 14px; margin-top: 10px;")
+        lbl_expense_header.setProperty("cssClass", "dangerHeader")
         form_layout_outer.addWidget(lbl_expense_header)
 
         expense_form1 = QHBoxLayout()
@@ -250,17 +192,7 @@ class PlanningPage(BasePage):
         spin.setSuffix(" TL")
         spin.setMinimumHeight(36)
         spin.setMinimumWidth(140)
-        spin.setStyleSheet("""
-            QDoubleSpinBox {
-                background-color: #0f172a; color: #f1f5f9;
-                border: 1px solid #334155; border-radius: 6px;
-                padding: 6px; font-size: 14px;
-            }
-            QDoubleSpinBox:focus { border: 1px solid #3b82f6; }
-            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
-                width: 18px; background-color: #334155; border: none; margin: 1px;
-            }
-        """)
+        spin.setProperty("cssClass", "customDoubleSpinBox")
         return spin
 
     @staticmethod
@@ -268,28 +200,23 @@ class PlanningPage(BasePage):
         layout = QVBoxLayout()
         layout.setSpacing(4)
         lbl = QLabel(label_text)
-        lbl.setStyleSheet("color: #94a3b8; font-size: 12px;")
+        lbl.setProperty("cssClass", "inputLabel")
         layout.addWidget(lbl)
         layout.addWidget(spin)
         return layout
 
     def _create_info_card(self, title: str, value: str) -> QFrame:
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #1e293b; border-radius: 10px;
-                border: 1px solid #334155;
-            }
-        """)
+        card.setProperty("cssClass", "infoCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(15, 12, 15, 12)
         layout.setSpacing(5)
 
         lbl_title = QLabel(title)
-        lbl_title.setStyleSheet("color: #94a3b8; font-size: 12px; font-weight: bold; border: none;")
+        lbl_title.setProperty("cssClass", "infoCardTitle")
         lbl_value = QLabel(value)
         lbl_value.setObjectName("cardValue")
-        lbl_value.setStyleSheet("color: #f1f5f9; font-size: 20px; font-weight: bold; border: none;")
+        lbl_value.setProperty("cssClass", "infoCardValue")
 
         layout.addWidget(lbl_title)
         layout.addWidget(lbl_value)
@@ -358,7 +285,7 @@ class PlanningPage(BasePage):
         if savings_lbl:
             savings_lbl.setText(f"₺ {net:,.2f}")
             color = "#10b981" if net >= 0 else "#ef4444"
-            savings_lbl.setStyleSheet(f"color: {color}; font-size: 20px; font-weight: bold; border: none;")
+            savings_lbl.setStyleSheet(f"color: {color};")
 
         self.lbl_budget_status.setText(budget.status_message)
         self.lbl_budget_status.setVisible(True)
@@ -368,7 +295,7 @@ class PlanningPage(BasePage):
             lbl = card.findChild(QLabel, "cardValue")
             if lbl:
                 lbl.setText("₺ 0")
-                lbl.setStyleSheet("color: #f1f5f9; font-size: 20px; font-weight: bold; border: none;")
+                lbl.setStyleSheet("")
         self.lbl_budget_status.setVisible(False)
 
     # ====================================================================
@@ -386,39 +313,21 @@ class PlanningPage(BasePage):
         self.btn_add_goal = QPushButton("➕ Yeni Hedef")
         self.btn_add_goal.setCursor(Qt.PointingHandCursor)
         self.btn_add_goal.setMinimumHeight(38)
-        self.btn_add_goal.setStyleSheet("""
-            QPushButton {
-                background-color: #10b981; color: white; border: none;
-                border-radius: 8px; font-weight: bold; padding: 8px 20px; font-size: 14px;
-            }
-            QPushButton:hover { background-color: #059669; }
-        """)
+        self.btn_add_goal.setProperty("cssClass", "successButton")
         self.btn_add_goal.clicked.connect(self._on_add_goal)
         top_row.addWidget(self.btn_add_goal)
 
         self.btn_contribute = QPushButton("💵 Katkı Ekle")
         self.btn_contribute.setCursor(Qt.PointingHandCursor)
         self.btn_contribute.setMinimumHeight(38)
-        self.btn_contribute.setStyleSheet("""
-            QPushButton {
-                background-color: #3b82f6; color: white; border: none;
-                border-radius: 8px; font-weight: bold; padding: 8px 20px; font-size: 14px;
-            }
-            QPushButton:hover { background-color: #2563eb; }
-        """)
+        self.btn_contribute.setProperty("cssClass", "primaryButton")
         self.btn_contribute.clicked.connect(self._on_contribute)
         top_row.addWidget(self.btn_contribute)
 
         self.btn_delete_goal = QPushButton("🗑️ Sil")
         self.btn_delete_goal.setCursor(Qt.PointingHandCursor)
         self.btn_delete_goal.setMinimumHeight(38)
-        self.btn_delete_goal.setStyleSheet("""
-            QPushButton {
-                background-color: transparent; color: #ef4444; border: 1px solid #ef4444;
-                border-radius: 8px; font-weight: bold; padding: 8px 16px; font-size: 14px;
-            }
-            QPushButton:hover { background-color: #ef4444; color: white; }
-        """)
+        self.btn_delete_goal.setProperty("cssClass", "dangerOutlineButton")
         self.btn_delete_goal.clicked.connect(self._on_delete_goal)
         top_row.addWidget(self.btn_delete_goal)
 
@@ -427,13 +336,7 @@ class PlanningPage(BasePage):
         self.btn_analyze = QPushButton("📊 Fizibilite Analizi")
         self.btn_analyze.setCursor(Qt.PointingHandCursor)
         self.btn_analyze.setMinimumHeight(38)
-        self.btn_analyze.setStyleSheet("""
-            QPushButton {
-                background-color: #8b5cf6; color: white; border: none;
-                border-radius: 8px; font-weight: bold; padding: 8px 20px; font-size: 14px;
-            }
-            QPushButton:hover { background-color: #7c3aed; }
-        """)
+        self.btn_analyze.setProperty("cssClass", "purpleButton")
         self.btn_analyze.clicked.connect(self._on_analyze)
         top_row.addWidget(self.btn_analyze)
 
@@ -441,21 +344,16 @@ class PlanningPage(BasePage):
 
         # Fizibilite sonucu kartı
         self.feasibility_frame = QFrame()
-        self.feasibility_frame.setStyleSheet("""
-            QFrame {
-                background-color: #1e293b; border-radius: 10px;
-                border: 1px solid #334155;
-            }
-        """)
+        self.feasibility_frame.setProperty("cssClass", "panelFrameBordered")
         feas_layout = QHBoxLayout(self.feasibility_frame)
         feas_layout.setContentsMargins(18, 12, 18, 12)
 
         self.lbl_feas_power = QLabel("Aylık Tasarruf Gücü: —")
-        self.lbl_feas_power.setStyleSheet("color: #94a3b8; font-size: 14px; font-weight: bold; border: none;")
+        self.lbl_feas_power.setProperty("cssClass", "feasibilityText")
         self.lbl_feas_need = QLabel("Toplam Aylık İhtiyaç: —")
-        self.lbl_feas_need.setStyleSheet("color: #94a3b8; font-size: 14px; font-weight: bold; border: none;")
+        self.lbl_feas_need.setProperty("cssClass", "feasibilityText")
         self.lbl_feas_status = QLabel("")
-        self.lbl_feas_status.setStyleSheet("font-size: 14px; font-weight: bold; border: none;")
+        self.lbl_feas_status.setProperty("cssClass", "feasibilityStatus")
 
         feas_layout.addWidget(self.lbl_feas_power)
         feas_layout.addWidget(self.lbl_feas_need)
@@ -639,9 +537,7 @@ class PlanningPage(BasePage):
 
         status_color = "#10b981" if status == "BAŞARILI" else "#ef4444"
         self.lbl_feas_status.setText(status)
-        self.lbl_feas_status.setStyleSheet(
-            f"color: {status_color}; font-size: 16px; font-weight: bold; border: none;"
-        )
+        self.lbl_feas_status.setStyleSheet(f"color: {status_color};")
 
         # Tablodaki durum sütunlarını da güncelle
         self._load_goals()

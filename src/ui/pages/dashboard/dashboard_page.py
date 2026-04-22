@@ -83,23 +83,17 @@ class DashboardPage(BasePage):
         self.btn_update_prices.clicked.connect(self._on_update_prices)
         
         self.lbl_last_update = QLabel("")
-        self.lbl_last_update.setStyleSheet("color: #64748b; font-size: 11px; margin-left: 5px;")
+        self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
         
         self.btn_capital = QPushButton("💰 Sermaye Yönetimi")
         self.btn_capital.setCursor(Qt.PointingHandCursor)
         self.btn_capital.clicked.connect(self._on_capital_management)
-        self.btn_capital.setStyleSheet("""
-            QPushButton {
-                background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155;
-                padding: 8px 16px; border-radius: 6px;
-            }
-            QPushButton:hover { background-color: #334155; }
-        """)
+        self.btn_capital.setProperty("cssClass", "secondaryButton")
         
         self.btn_backfill = QPushButton("📦 Geçmiş Veri Yönetimi")
         self.btn_backfill.setCursor(Qt.PointingHandCursor)
         self.btn_backfill.clicked.connect(self._on_backfill)
-        self.btn_backfill.setStyleSheet(self.btn_capital.styleSheet())
+        self.btn_backfill.setProperty("cssClass", "secondaryButton")
 
         top_layout.addWidget(self.btn_new_trade)
         top_layout.addWidget(self.btn_update_prices)
@@ -132,7 +126,7 @@ class DashboardPage(BasePage):
         self.btn_export_range.clicked.connect(self._on_export_range)
         
         self.btn_reset = QPushButton("🗑️ Sistemi Sıfırla")
-        self.btn_reset.setStyleSheet("color: #ef4444;")
+        self.btn_reset.setProperty("cssClass", "dangerTextButton")
         self.btn_reset.setCursor(Qt.PointingHandCursor)
         self.btn_reset.clicked.connect(self._on_reset)
         

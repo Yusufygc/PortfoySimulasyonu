@@ -15,9 +15,9 @@ class DashboardSummaryCards(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(20)
 
-        self.card_total, self.lbl_total_value, self.lbl_total_context = self._create_card("TOPLAM PORTFÖY DEĞERİ", "₺ 0.00", "#3b82f6")
-        self.card_cost, self.lbl_total_cost, _ = self._create_card("TOPLAM MALİYET", "₺ 0.00", "#8b5cf6")
-        self.card_capital, self.lbl_capital, _ = self._create_card("NAKİT SERMAYE", "₺ 0.00", "#10b981")
+        self.card_total, self.lbl_total_value, self.lbl_total_context = self._create_card("TOPLAM PORTFÖY DEĞERİ", "₺ 0.00", "total")
+        self.card_cost, self.lbl_total_cost, _ = self._create_card("TOPLAM MALİYET", "₺ 0.00", "cost")
+        self.card_capital, self.lbl_capital, _ = self._create_card("NAKİT SERMAYE", "₺ 0.00", "capital")
         
         self.card_returns, self.lbl_weekly_return, self.lbl_monthly_return = self._create_returns_card()
 
@@ -26,53 +26,41 @@ class DashboardSummaryCards(QWidget):
         layout.addWidget(self.card_capital, 1)
         layout.addWidget(self.card_returns, 1)
 
-    def _create_card(self, title, initial_value, accent_color="#3b82f6"):
+    def _create_card(self, title, initial_value, card_type="total"):
         card = QFrame()
-        card.setObjectName("infoCard")
+        card.setProperty("cssClass", "summaryCard")
+        card.setProperty("cardType", card_type)
         card.setFrameShape(QFrame.StyledPanel)
-        card.setStyleSheet(f"""
-            QFrame#infoCard {{
-                background-color: #1e293b;
-                border-radius: 12px;
-                border-left: 4px solid {accent_color};
-            }}
-        """)
         
         lay = QVBoxLayout(card)
         lay.setContentsMargins(20, 15, 20, 15)
         
         lbl_title = QLabel(title)
-        lbl_title.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: bold;")
+        lbl_title.setProperty("cssClass", "summaryCardTitle")
         
         lbl_value = QLabel(initial_value)
-        lbl_value.setStyleSheet("color: #f1f5f9; font-size: 18px; font-weight: bold;")
+        lbl_value.setProperty("cssClass", "summaryCardValue")
         
         lay.addWidget(lbl_title)
         lay.addWidget(lbl_value)
         
         lbl_context = QLabel("")
-        lbl_context.setStyleSheet("color: #64748b; font-size: 11px; margin-top: 2px;")
+        lbl_context.setProperty("cssClass", "summaryCardContext")
         lay.addWidget(lbl_context)
         
         return card, lbl_value, lbl_context
 
     def _create_returns_card(self):
         card = QFrame()
-        card.setObjectName("infoCard")
+        card.setProperty("cssClass", "summaryCard")
+        card.setProperty("cardType", "returns")
         card.setFrameShape(QFrame.StyledPanel)
-        card.setStyleSheet("""
-            QFrame#infoCard {
-                background-color: #1e293b;
-                border-radius: 12px;
-                border-left: 4px solid #f59e0b;
-            }
-        """)
         
         lay = QVBoxLayout(card)
         lay.setContentsMargins(20, 15, 20, 15)
         
         lbl_title = QLabel("DÖNEMSEL GETİRİLER")
-        lbl_title.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: bold;")
+        lbl_title.setProperty("cssClass", "summaryCardTitle")
         lay.addWidget(lbl_title)
         
         returns_lay = QVBoxLayout()
@@ -80,18 +68,18 @@ class DashboardSummaryCards(QWidget):
         
         weekly_lay = QHBoxLayout()
         lbl_wk_title = QLabel("Haftalık:")
-        lbl_wk_title.setStyleSheet("color: #94a3b8; font-size: 13px;")
+        lbl_wk_title.setProperty("cssClass", "summaryCardSubTitle")
         lbl_wk_value = QLabel("-")
-        lbl_wk_value.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: bold;")
+        lbl_wk_value.setProperty("cssClass", "summaryCardValueSmall")
         weekly_lay.addWidget(lbl_wk_title)
         weekly_lay.addWidget(lbl_wk_value)
         weekly_lay.addStretch()
         
         monthly_lay = QHBoxLayout()
         lbl_mo_title = QLabel("Aylık:")
-        lbl_mo_title.setStyleSheet("color: #94a3b8; font-size: 13px;")
+        lbl_mo_title.setProperty("cssClass", "summaryCardSubTitle")
         lbl_mo_value = QLabel("-")
-        lbl_mo_value.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: bold;")
+        lbl_mo_value.setProperty("cssClass", "summaryCardValueSmall")
         monthly_lay.addWidget(lbl_mo_title)
         monthly_lay.addWidget(lbl_mo_value)
         monthly_lay.addStretch()
@@ -114,24 +102,32 @@ class DashboardSummaryCards(QWidget):
             
         prefix = "▲" if profit_loss >= 0 else "▼"
         sign = "+" if profit_loss >= 0 else ""
-        color = "#10b981" if profit_loss >= 0 else "#ef4444"
+        state = "positive" if profit_loss >= 0 else "negative"
         
         self.lbl_total_context.setText(f"{prefix} ₺ {abs(profit_loss):,.2f} ({sign}{roi:.1f}% All Time)")
-        self.lbl_total_context.setStyleSheet(f"color: {color}; font-size: 12px; font-weight: 500;")
+        self.lbl_total_context.setProperty("state", state)
+        self.lbl_total_context.style().unpolish(self.lbl_total_context)
+        self.lbl_total_context.style().polish(self.lbl_total_context)
 
     def update_returns(self, weekly_pct: float, monthly_pct: float):
         if weekly_pct is not None:
-            color = "#10b981" if weekly_pct >= 0 else "#ef4444"
+            state = "positive" if weekly_pct >= 0 else "negative"
             self.lbl_weekly_return.setText(f"%{weekly_pct:+.2f}")
-            self.lbl_weekly_return.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold;")
+            self.lbl_weekly_return.setProperty("state", state)
         else:
             self.lbl_weekly_return.setText("-")
-            self.lbl_weekly_return.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: bold;")
+            self.lbl_weekly_return.setProperty("state", "neutral")
+            
+        self.lbl_weekly_return.style().unpolish(self.lbl_weekly_return)
+        self.lbl_weekly_return.style().polish(self.lbl_weekly_return)
 
         if monthly_pct is not None:
-            color = "#10b981" if monthly_pct >= 0 else "#ef4444"
+            state = "positive" if monthly_pct >= 0 else "negative"
             self.lbl_monthly_return.setText(f"%{monthly_pct:+.2f}")
-            self.lbl_monthly_return.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: bold;")
+            self.lbl_monthly_return.setProperty("state", state)
         else:
             self.lbl_monthly_return.setText("-")
-            self.lbl_monthly_return.setStyleSheet("color: #f1f5f9; font-size: 14px; font-weight: bold;")
+            self.lbl_monthly_return.setProperty("state", "neutral")
+            
+        self.lbl_monthly_return.style().unpolish(self.lbl_monthly_return)
+        self.lbl_monthly_return.style().polish(self.lbl_monthly_return)

@@ -21,21 +21,14 @@ class TradeFormPanel(QFrame):
         self._init_ui()
 
     def _init_ui(self):
-        self.setStyleSheet("""
-            QFrame#tradePanel {
-                background-color: #1e293b;
-                border-radius: 12px;
-                border: 1px solid #334155;
-            }
-            QLabel { color: #cbd5e1; }
-        """)
+        self.setProperty("cssClass", "tradeFormPanel")
         
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
         
         lbl_trade_title = QLabel("Hızlı İşlem")
-        lbl_trade_title.setStyleSheet("font-size: 18px; font-weight: bold; color: #f1f5f9;")
+        lbl_trade_title.setProperty("cssClass", "panelTitleLarge")
         layout.addWidget(lbl_trade_title)
         
         # Form
@@ -49,9 +42,11 @@ class TradeFormPanel(QFrame):
         self.btn_buy_mode = QPushButton("ALIM")
         self.btn_buy_mode.setCheckable(True)
         self.btn_buy_mode.setChecked(True)
+        self.btn_buy_mode.setProperty("cssClass", "tradeModeBtnLeft")
         
         self.btn_sell_mode = QPushButton("SATIŞ")
         self.btn_sell_mode.setCheckable(True)
+        self.btn_sell_mode.setProperty("cssClass", "tradeModeBtnRight")
         
         self.mode_group = QButtonGroup(self)
         self.mode_group.addButton(self.btn_buy_mode)
@@ -66,7 +61,7 @@ class TradeFormPanel(QFrame):
         self.spin_qty = QSpinBox()
         self.spin_qty.setRange(1, 1_000_000)
         self.spin_qty.setValue(1)
-        self.spin_qty.setStyleSheet(self._get_input_style(16))
+        self.spin_qty.setProperty("cssClass", "tradeInputLarge")
         form.addRow("Adet (Lot):", self.spin_qty)
         
         # Fiyat
@@ -74,14 +69,14 @@ class TradeFormPanel(QFrame):
         self.spin_price.setRange(0.01, 1_000_000)
         self.spin_price.setDecimals(2)
         self.spin_price.setSuffix(" ₺")
-        self.spin_price.setStyleSheet(self._get_input_style(16))
+        self.spin_price.setProperty("cssClass", "tradeInputLarge")
         form.addRow("Fiyat:", self.spin_price)
         
         # Tarih
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setDate(QDate.currentDate())
-        self.date_edit.setStyleSheet(self._get_input_style(14))
+        self.date_edit.setProperty("cssClass", "tradeInputNormal")
         form.addRow("Tarih:", self.date_edit)
         
         layout.addLayout(form)
@@ -89,7 +84,7 @@ class TradeFormPanel(QFrame):
         # Toplam Tutar Alanı
         total_layout = QHBoxLayout()
         self.lbl_total_amount = QLabel("Toplam: ₺ 0.00")
-        self.lbl_total_amount.setStyleSheet("color: #f1f5f9; font-size: 16px; font-weight: bold;")
+        self.lbl_total_amount.setProperty("cssClass", "totalAmountText")
         self.lbl_total_amount.setAlignment(Qt.AlignCenter)
         total_layout.addWidget(self.lbl_total_amount)
         layout.addLayout(total_layout)
@@ -114,38 +109,22 @@ class TradeFormPanel(QFrame):
         
         self._update_trade_mode_ui()
 
-    def _get_input_style(self, font_size=14):
-        return f"""
-            background-color: #0f172a;
-            color: #f1f5f9;
-            border: 1px solid #334155;
-            border-radius: 6px;
-            padding: 8px;
-            font-size: {font_size}px;
-            font-weight: bold;
-        """
+        pass
 
     def _create_impact_card(self):
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #0f172a;
-                border-radius: 8px;
-                border: 1px solid #334155;
-            }
-            QLabel { color: #cbd5e1; font-size: 13px; border: none; }
-        """)
+        card.setProperty("cssClass", "impactCard")
         lay = QVBoxLayout(card)
         lay.setSpacing(8)
         lay.setContentsMargins(15, 12, 15, 12)
         
         title = QLabel("İŞLEM ETKİSİ (Tahmini)")
-        title.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; border: none;")
+        title.setProperty("cssClass", "impactCardTitle")
         lay.addWidget(title)
         
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
-        line.setStyleSheet("background-color: #334155; border: none; margin-bottom: 5px;")
+        line.setProperty("cssClass", "impactCardLine")
         line.setFixedHeight(1)
         lay.addWidget(line)
 
@@ -158,44 +137,15 @@ class TradeFormPanel(QFrame):
     def _update_trade_mode_ui(self):
         is_buy = self.btn_buy_mode.isChecked()
         
-        base_style = """
-            QPushButton {
-                border: 1px solid #334155;
-                font-weight: bold; font-size: 14px;
-                color: #94a3b8; background-color: #0f172a;
-                opacity: 0.5;
-            }
-        """
-        active_style_buy = """
-            QPushButton {
-                background-color: rgba(16, 185, 129, 0.2);
-                color: #10b981; border: 2px solid #10b981;
-                font-weight: bold; font-size: 14px; outline: none;
-            }
-        """
-        active_style_sell = """
-            QPushButton {
-                background-color: rgba(239, 68, 68, 0.2);
-                color: #ef4444; border: 2px solid #ef4444;
-                font-weight: bold; font-size: 14px; outline: none;
-            }
-        """
+        if is_buy:
+            self.btn_trade.setProperty("cssClass", "tradeConfirmBuyBtn")
+            self.btn_trade.setText("ALIM EMRİNİ ONAYLA")
+        else:
+            self.btn_trade.setProperty("cssClass", "tradeConfirmSellBtn")
+            self.btn_trade.setText("SATIŞ EMRİNİ ONAYLA")
         
-        self.btn_buy_mode.setStyleSheet(active_style_buy if is_buy else base_style + "border-top-left-radius: 8px; border-bottom-left-radius: 8px;")
-        self.btn_sell_mode.setStyleSheet(active_style_sell if not is_buy else base_style + "border-top-right-radius: 8px; border-bottom-right-radius: 8px;")
-        
-        color = "#10b981" if is_buy else "#ef4444"
-        text = "ALIM EMRİNİ ONAYLA" if is_buy else "SATIŞ EMRİNİ ONAYLA"
-        self.btn_trade.setText(text)
-        self.btn_trade.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {color}; color: white;
-                font-weight: bold; font-size: 16px;
-                border-radius: 8px; border: none;
-            }}
-            QPushButton:hover {{ background-color: {color}; opacity: 0.9; }}
-            QPushButton:pressed {{ background-color: {color}; opacity: 0.8; }}
-        """)
+        self.btn_trade.style().unpolish(self.btn_trade)
+        self.btn_trade.style().polish(self.btn_trade)
         
         self.impact_preview_request()
 
@@ -261,7 +211,7 @@ class TradeFormPanel(QFrame):
 
     def _add_impact_row(self, label, value, color="#f1f5f9"):
         lbl_key = QLabel(label + ":")
-        lbl_key.setStyleSheet("color: #94a3b8;")
+        lbl_key.setProperty("cssClass", "impactRowKey")
         lbl_val = QLabel(value)
         lbl_val.setStyleSheet(f"color: {color}; font-weight: bold;")
         lbl_val.setAlignment(Qt.AlignRight)

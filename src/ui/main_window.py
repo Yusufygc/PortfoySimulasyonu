@@ -86,12 +86,7 @@ class MainWindow(QMainWindow):
 
         # Logo/Başlık
         lbl_app_title = QLabel("📈 Portföy\nSimülasyonu")
-        lbl_app_title.setStyleSheet("""
-            font-size: 18px; 
-            font-weight: bold; 
-            color: #f1f5f9;
-            padding: 10px 0;
-        """)
+        lbl_app_title.setProperty("cssClass", "appTitle")
         lbl_app_title.setAlignment(Qt.AlignCenter)
         self.sidebar_layout.addWidget(lbl_app_title)
 
@@ -125,22 +120,7 @@ class MainWindow(QMainWindow):
         self.btn_back.setCursor(Qt.PointingHandCursor)
         self.btn_back.clicked.connect(self._on_back)
         self.btn_back.setEnabled(False)
-        self.btn_back.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #94a3b8;
-                border: 1px solid #334155;
-                padding: 10px;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #334155;
-            }
-            QPushButton:disabled {
-                color: #475569;
-                border-color: #1e293b;
-            }
-        """)
+        self.btn_back.setProperty("cssClass", "navBackBtn")
         self.sidebar_layout.addWidget(self.btn_back)
 
         # --- 2. SAĞ İÇERİK ALANI (STACKED WIDGET) ---
@@ -162,34 +142,14 @@ class MainWindow(QMainWindow):
         btn.setCursor(Qt.PointingHandCursor)
         btn.setCheckable(True)
         btn.clicked.connect(lambda: self._goto_page(page_index))
-        btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #94a3b8;
-                border: none;
-                padding: 12px 15px;
-                text-align: left;
-                border-radius: 8px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #1e293b;
-                color: #00D4FF;
-            }
-            QPushButton:checked {
-                background-color: #1e293b;
-                color: #00D4FF;
-                border-left: 3px solid #00D4FF;
-                border-radius: 0px;
-            }
-        """)
+        btn.setProperty("cssClass", "navMenuBtn")
         return btn
 
     def _add_separator(self):
         """Sidebar'a ayraç ekler."""
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
-        line.setStyleSheet("background-color: #334155; margin: 10px 0;")
+        line.setProperty("cssClass", "navSeparator")
         self.sidebar_layout.addWidget(line)
 
     def _instantiate_page(self, page_index: int):

@@ -49,14 +49,7 @@ class DashboardPortfolioTable(QWidget):
         self.table_summary.setFocusPolicy(Qt.NoFocus)
         self.table_summary.setEditTriggers(QTableView.NoEditTriggers)
         self.table_summary.setShowGrid(False)
-        self.table_summary.setStyleSheet("""
-            QTableWidget {
-                background-color: #1e293b;
-                border-top: 2px solid #334155;
-                font-weight: bold;
-                color: #f1f5f9;
-            }
-        """)
+        self.table_summary.setProperty("cssClass", "tableSummary")
         layout.addWidget(self.table_summary)
 
     def set_model(self, model):

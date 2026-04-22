@@ -54,20 +54,20 @@ class StockDetailPage(BasePage):
         top_layout.setContentsMargins(0, 0, 0, 10)
 
         self.lbl_breadcrumb = QLabel("Portföy > ...")
-        self.lbl_breadcrumb.setStyleSheet("color: #64748b; font-size: 12px; font-weight: bold;")
+        self.lbl_breadcrumb.setProperty("cssClass", "breadcrumbText")
         top_layout.addWidget(self.lbl_breadcrumb)
 
         title_row = QHBoxLayout()
         title_row.setSpacing(15)
 
         self.lbl_ticker = QLabel("TICKER")
-        self.lbl_ticker.setStyleSheet("color: #f1f5f9; font-size: 28px; font-weight: 900;")
+        self.lbl_ticker.setProperty("cssClass", "stockTitleLarge")
         
         self.lbl_name = QLabel("Hisse Adı")
-        self.lbl_name.setStyleSheet("color: #94a3b8; font-size: 18px; margin-top: 8px;")
+        self.lbl_name.setProperty("cssClass", "stockSubtitle")
         
         self.lbl_price = QLabel("₺ 0.00")
-        self.lbl_price.setStyleSheet("color: #10b981; font-size: 32px; font-weight: bold;")
+        self.lbl_price.setProperty("cssClass", "stockPriceCurrent")
         
         title_row.addWidget(self.lbl_ticker)
         title_row.addWidget(self.lbl_name)
@@ -76,7 +76,7 @@ class StockDetailPage(BasePage):
         price_container = QVBoxLayout()
         price_label_caption = QLabel("Güncel Fiyat")
         price_label_caption.setAlignment(Qt.AlignRight)
-        price_label_caption.setStyleSheet("color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;")
+        price_label_caption.setProperty("cssClass", "stockPriceCaption")
         
         price_container.addWidget(price_label_caption)
         price_container.addWidget(self.lbl_price)
@@ -87,7 +87,7 @@ class StockDetailPage(BasePage):
         
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
-        line.setStyleSheet("background-color: #334155; margin-bottom: 15px;")
+        line.setProperty("cssClass", "horizontalDivider")
         self.main_layout.addWidget(line)
 
         # Splitter (Sol: Grafik+İst, Sağ: Form)
@@ -106,7 +106,7 @@ class StockDetailPage(BasePage):
         left_layout.addWidget(self.stats_panel)
         
         lbl_history = QLabel("İşlem Geçmişi")
-        lbl_history.setStyleSheet("font-weight: bold; color: #94a3b8; font-size: 14px; margin-top: 10px;")
+        lbl_history.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_history)
         
         self.history_table = QTableWidget()
@@ -200,18 +200,7 @@ class StockDetailPage(BasePage):
                     item.setBackground(QColor("#1e293b" if i % 2 == 0 else "#0f172a"))
                     
         self.history_table.setShowGrid(False)
-        self.history_table.setStyleSheet("""
-            QTableWidget {
-                background-color: #0f172a; border: none; gridline-color: transparent; outline: none;
-            }
-            QTableWidget::item { padding: 10px; border: none; border-bottom: 1px solid #1e293b; }
-            QTableWidget::item:selected { background-color: #334155; color: #f1f5f9; }
-            QTableWidget::item:hover { background-color: #1e293b; }
-            QHeaderView::section {
-                background-color: #0f172a; color: #64748b; padding: 8px; border: none;
-                border-bottom: 2px solid #334155; font-weight: bold; text-transform: uppercase; font-size: 11px;
-            }
-        """)
+        self.history_table.setProperty("cssClass", "dataTable")
 
     def _on_submit_trade(self, is_buy: bool, qty: int, price: float, date_sel: QDate):
         if not self.current_ticker:

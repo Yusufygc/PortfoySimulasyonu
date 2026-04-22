@@ -13,34 +13,24 @@ class CardFactory:
         Güncellenebilmesi için hem çerçeveyi (QFrame) hem de değer etiketini (QLabel) Tuple olarak döner.
         """
         card = QFrame()
-        bg_color = "#1e293b" if not is_hero else "#0f172a"
-        border = "1px solid #334155" if not is_hero else "1px solid #3b82f6"
-        card.setStyleSheet(f"""
-            QFrame {{
-                background-color: {bg_color}; 
-                border-radius: 12px;
-                border: {border};
-            }}
-            QLabel {{ border: none; }}
-        """)
+        card.setProperty("cssClass", "statCard")
+        card.setProperty("isHero", is_hero)
+        
         layout = QVBoxLayout(card)
         layout.setContentsMargins(15, 15, 15, 15)
         
         header_layout = QHBoxLayout()
         lbl_title = QLabel(f"{icon} {title}")
-        lbl_title.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase;")
+        lbl_title.setProperty("cssClass", "statCardTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         layout.addLayout(header_layout)
         
         lbl_val = QLabel(initial_value)
-        val_size = "20px" if not is_hero else "28px"
         lbl_val.setObjectName("valueLabel")
-        if is_colored:
-            lbl_val.setStyleSheet(f"color: #f1f5f9; font-size: {val_size}; font-weight: bold;")
-        else:
-            val_color = "#f1f5f9" if not is_hero else "#3b82f6"
-            lbl_val.setStyleSheet(f"color: {val_color}; font-size: {val_size}; font-weight: bold;")
+        lbl_val.setProperty("cssClass", "statCardValue")
+        lbl_val.setProperty("isHero", is_hero)
+        lbl_val.setProperty("colored", is_colored)
             
         layout.addWidget(lbl_val)
         

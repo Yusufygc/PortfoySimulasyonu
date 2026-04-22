@@ -55,7 +55,7 @@ class ModelPortfolioPage(BasePage):
         # Başlık
         header_layout = QHBoxLayout()
         lbl_title = QLabel("📊 Model Portföyler")
-        lbl_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #f1f5f9;")
+        lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         self.main_layout.addLayout(header_layout)
@@ -73,7 +73,7 @@ class ModelPortfolioPage(BasePage):
         left_layout.setSpacing(10)
 
         lbl_portfolios = QLabel("Portföylerim")
-        lbl_portfolios.setStyleSheet("font-size: 14px; font-weight: bold; color: #94a3b8;")
+        lbl_portfolios.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_portfolios)
 
         self.list_widget = QListWidget()
@@ -96,7 +96,7 @@ class ModelPortfolioPage(BasePage):
         self.btn_delete.setCursor(Qt.PointingHandCursor)
         self.btn_delete.clicked.connect(self._on_delete_portfolio)
         self.btn_delete.setEnabled(False)
-        self.btn_delete.setStyleSheet("color: #ef4444;")
+        self.btn_delete.setProperty("cssClass", "dangerTextButton")
 
         btn_layout.addWidget(self.btn_new)
         btn_layout.addWidget(self.btn_edit)
@@ -113,7 +113,7 @@ class ModelPortfolioPage(BasePage):
         # Başlık ve fiyat güncelle
         header_layout2 = QHBoxLayout()
         self.lbl_portfolio_name = QLabel("Bir portföy seçin")
-        self.lbl_portfolio_name.setStyleSheet("font-size: 18px; font-weight: bold; color: #f1f5f9;")
+        self.lbl_portfolio_name.setProperty("cssClass", "panelTitleLarge")
         header_layout2.addWidget(self.lbl_portfolio_name)
         header_layout2.addStretch()
         
@@ -141,7 +141,7 @@ class ModelPortfolioPage(BasePage):
 
         # Pozisyonlar tablosu
         lbl_positions = QLabel("Pozisyonlar")
-        lbl_positions.setStyleSheet("font-size: 14px; font-weight: bold; color: #94a3b8;")
+        lbl_positions.setProperty("cssClass", "panelTitle")
         right_layout.addWidget(lbl_positions)
 
         self.positions_table = QTableWidget()
@@ -165,13 +165,13 @@ class ModelPortfolioPage(BasePage):
         self.btn_buy.setCursor(Qt.PointingHandCursor)
         self.btn_buy.clicked.connect(lambda: self._on_trade("BUY"))
         self.btn_buy.setEnabled(False)
-        self.btn_buy.setStyleSheet("background-color: #10b981; color: white; padding: 8px 16px;")
+        self.btn_buy.setProperty("cssClass", "successButton")
         
         self.btn_sell = QPushButton("📉 Hisse Sat")
         self.btn_sell.setCursor(Qt.PointingHandCursor)
         self.btn_sell.clicked.connect(lambda: self._on_trade("SELL"))
         self.btn_sell.setEnabled(False)
-        self.btn_sell.setStyleSheet("background-color: #ef4444; color: white; padding: 8px 16px;")
+        self.btn_sell.setProperty("cssClass", "dangerButton")
         
         trade_layout.addWidget(self.btn_buy)
         trade_layout.addWidget(self.btn_sell)
@@ -184,22 +184,17 @@ class ModelPortfolioPage(BasePage):
     def _create_card(self, title: str, value: str) -> QFrame:
         card = QFrame()
         card.setObjectName("summaryCard")
-        card.setStyleSheet("""
-            QFrame#summaryCard {
-                background-color: #1e293b;
-                border-radius: 8px;
-            }
-        """)
+        card.setProperty("cssClass", "summaryCard")
         
         layout = QVBoxLayout(card)
         layout.setContentsMargins(15, 10, 15, 10)
         layout.setSpacing(5)
         
         lbl_title = QLabel(title)
-        lbl_title.setStyleSheet("color: #94a3b8; font-size: 12px;")
+        lbl_title.setProperty("cssClass", "summaryCardTitle")
         
         lbl_value = QLabel(value)
-        lbl_value.setStyleSheet("color: #f1f5f9; font-size: 16px; font-weight: bold;")
+        lbl_value.setProperty("cssClass", "summaryCardValue")
         lbl_value.setObjectName("valueLabel")
         
         layout.addWidget(lbl_title)
@@ -253,9 +248,7 @@ class ModelPortfolioPage(BasePage):
         pl_text = f"₺ {pl:+,.2f}"
         pl_color = "#10b981" if pl >= 0 else "#ef4444"
         self.card_pl.findChild(QLabel, "valueLabel").setText(pl_text)
-        self.card_pl.findChild(QLabel, "valueLabel").setStyleSheet(
-            f"color: {pl_color}; font-size: 16px; font-weight: bold;"
-        )
+        self.card_pl.findChild(QLabel, "valueLabel").setStyleSheet(f"color: {pl_color};")
 
         self._load_positions()
 
@@ -453,6 +446,7 @@ class PortfolioInputDialog(QDialog):
         self.setWindowTitle("Portföy Düzenle" if self.is_edit else "Yeni Portföy")
         self.resize(400, 200)
         self.setModal(True)
+        self.setProperty("cssClass", "tradeDialog")
         self._init_ui()
 
     def _init_ui(self):
@@ -482,8 +476,10 @@ class PortfolioInputDialog(QDialog):
         btn_layout.addStretch()
         
         btn_cancel = QPushButton("İptal")
+        btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
         btn_save = QPushButton("Kaydet")
+        btn_save.setProperty("cssClass", "successButton")
         btn_save.clicked.connect(self.accept)
         
         btn_layout.addWidget(btn_cancel)
@@ -516,47 +512,7 @@ class TradeInputDialog(QDialog):
 
     def _init_ui(self):
         # Stil tanımları
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #0f172a;
-            }
-            QLabel {
-                color: #e2e8f0;
-                font-weight: bold;
-                font-size: 15px; /* Label boyutu artırıldı */
-            }
-            QLineEdit, QSpinBox, QDoubleSpinBox, QDateEdit {
-                background-color: #1e293b; 
-                color: #f1f5f9;
-                border: 1px solid #334155;
-                border-radius: 8px;
-                padding: 10px; /* Padding artırıldı */
-                font-size: 16px; /* Input yazı boyutu artırıldı */
-                min-height: 25px; /* Kırpılmayı önlemek için min yükseklik */
-            }
-            QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QDateEdit:focus {
-                border: 1px solid #3b82f6;
-                background-color: #334155;
-            }
-            QSpinBox::up-button, QSpinBox::down-button,
-            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button,
-            QDateEdit::up-button, QDateEdit::down-button {
-                width: 20px;
-                background-color: #334155;
-                border: none;
-                border-radius: 2px;
-                margin: 2px;
-            }
-            QSpinBox::up-button:hover, QSpinBox::down-button:hover,
-            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
-                background-color: #475569;
-            }
-            QPushButton {
-                font-weight: bold;
-                border-radius: 6px;
-                font-size: 14px;
-            }
-        """)
+        self.setProperty("cssClass", "tradeDialog")
 
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
@@ -593,7 +549,7 @@ class TradeInputDialog(QDialog):
         
         self.btn_lookup = QPushButton("🔍 Fiyat Al")
         self.btn_lookup.setCursor(Qt.PointingHandCursor)
-        self.btn_lookup.setStyleSheet("padding: 5px 15px; background-color: #3b82f6; color: white;")
+        self.btn_lookup.setProperty("cssClass", "primaryButton")
         self.btn_lookup.setMinimumHeight(45)
         self.btn_lookup.clicked.connect(self._on_lookup)
         price_layout.addWidget(self.btn_lookup)
@@ -614,14 +570,15 @@ class TradeInputDialog(QDialog):
         
         btn_cancel = QPushButton("İptal")
         btn_cancel.setMinimumHeight(40)
-        btn_cancel.setStyleSheet("background-color: #475569; color: white; padding: 0 20px;")
+        btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
         
         btn_action = QPushButton("Al" if self.side == "BUY" else "Sat")
         btn_action.setMinimumHeight(40)
-        btn_action.setStyleSheet(
-            f"background-color: {'#10b981' if self.side == 'BUY' else '#ef4444'}; color: white; padding: 0 30px;"
-        )
+        if self.side == "BUY":
+            btn_action.setProperty("cssClass", "successButton")
+        else:
+            btn_action.setProperty("cssClass", "dangerButton")
         btn_action.clicked.connect(self.accept)
         
         btn_layout.addWidget(btn_cancel)

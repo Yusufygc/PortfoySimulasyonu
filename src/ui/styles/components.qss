@@ -1,0 +1,328 @@
+/* =======================================================
+   PORTFÖY SİMÜLASYONU - COMPONENTS
+   Butonlar, ComboBox, Input, Table vb. bileşenlerin spesifik özellikleri
+======================================================= */
+
+QPushButton[cssClass="navBackBtn"] {
+    background-color: transparent;
+    color: #94a3b8;
+    border: 1px solid #334155;
+    padding: 10px;
+    border-radius: 6px;
+}
+QPushButton[cssClass="navBackBtn"]:hover {
+    background-color: #334155;
+}
+QPushButton[cssClass="navBackBtn"]:disabled {
+    color: #475569;
+    border-color: #1e293b;
+}
+
+QPushButton[cssClass="navMenuBtn"] {
+    background-color: transparent;
+    color: #94a3b8;
+    border: none;
+    padding: 12px 15px;
+    text-align: left;
+    border-radius: 8px;
+    font-size: 14px;
+}
+QPushButton[cssClass="navMenuBtn"]:hover {
+    background-color: #1e293b;
+    color: #00D4FF;
+}
+QPushButton[cssClass="navMenuBtn"]:checked {
+    background-color: #1e293b;
+    color: #00D4FF;
+    border-left: 3px solid #00D4FF;
+    border-radius: 0px;
+}
+
+QTableWidget[cssClass="tableSummary"] {
+    background-color: #1e293b;
+    border-top: 2px solid #334155;
+    font-weight: bold;
+    color: #f1f5f9;
+}
+
+QPushButton[cssClass="secondaryButton"] {
+    background-color: #1e293b; 
+    color: #f1f5f9; 
+    border: 1px solid #334155;
+    padding: 8px 16px; 
+    border-radius: 6px;
+}
+QPushButton[cssClass="secondaryButton"]:hover { 
+    background-color: #334155; 
+}
+
+QPushButton[cssClass="dangerTextButton"] {
+    color: #ef4444;
+}
+QPushButton[cssClass="dangerTextButton"]:hover {
+    color: #dc2626;
+}
+
+QSpinBox[cssClass="surveySpinBox"] {
+    background-color: #0f172a; color: #f1f5f9;
+    border: 1px solid #334155; border-radius: 8px;
+    padding: 8px; font-size: 16px;
+}
+QSpinBox[cssClass="surveySpinBox"]:focus { border: 1px solid #3b82f6; }
+QSpinBox[cssClass="surveySpinBox"]::up-button, QSpinBox[cssClass="surveySpinBox"]::down-button {
+    width: 20px; background-color: #334155; border: none; margin: 1px;
+}
+
+QPushButton[cssClass="calculateButton"] {
+    background-color: #8b5cf6; color: white; border: none;
+    border-radius: 10px; font-size: 16px; font-weight: bold;
+    padding: 12px 30px;
+}
+QPushButton[cssClass="calculateButton"]:hover { background-color: #7c3aed; }
+
+QRadioButton[cssClass="surveyRadio"] {
+    background-color: #0f172a;
+    color: #f1f5f9;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 13px;
+    spacing: 8px;
+}
+QRadioButton[cssClass="surveyRadio"]:hover {
+    border: 1px solid #3b82f6;
+    background-color: #1e293b;
+}
+QRadioButton[cssClass="surveyRadio"]:checked {
+    border: 2px solid #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.15);
+}
+QRadioButton[cssClass="surveyRadio"]::indicator {
+    width: 16px; height: 16px;
+    border: 2px solid #64748b;
+    border-radius: 8px;
+    background-color: #0f172a;
+}
+QRadioButton[cssClass="surveyRadio"]::indicator:checked {
+    background-color: #8b5cf6;
+    border: 2px solid #8b5cf6;
+}
+
+QTabWidget[cssClass="mainTabWidget"]::pane {
+    border: 1px solid #334155;
+    border-radius: 8px;
+    background-color: #0f172a;
+}
+QTabBar[cssClass="mainTabWidget"]::tab,
+QTabWidget[cssClass="mainTabWidget"] QTabBar::tab {
+    background-color: #1e293b;
+    color: #94a3b8;
+    padding: 10px 25px;
+    margin-right: 3px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+}
+QTabWidget[cssClass="mainTabWidget"] QTabBar::tab:selected {
+    background-color: #3b82f6;
+    color: white;
+}
+QTabWidget[cssClass="mainTabWidget"] QTabBar::tab:hover:!selected {
+    background-color: #334155;
+    color: #f1f5f9;
+}
+
+QComboBox[cssClass="customComboBox"] {
+    background-color: #1e293b;
+    color: #f1f5f9;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+QComboBox[cssClass="customComboBox"]:hover { border: 1px solid #3b82f6; }
+QComboBox[cssClass="customComboBox"]::drop-down { border: none; width: 25px; }
+QComboBox[cssClass="customComboBox"]::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid #94a3b8;
+    margin-right: 8px;
+}
+QComboBox[cssClass="customComboBox"] QAbstractItemView {
+    background-color: #1e293b; color: #f1f5f9;
+    border: 1px solid #334155;
+    selection-background-color: #3b82f6;
+}
+
+QPushButton[cssClass="successButton"] {
+    background-color: #10b981; color: white; border: none;
+    border-radius: 8px; font-weight: bold; padding: 8px 20px; font-size: 14px;
+}
+QPushButton[cssClass="successButton"]:hover { background-color: #059669; }
+
+QPushButton[cssClass="primaryButton"] {
+    background-color: #3b82f6; color: white; border: none;
+    border-radius: 8px; font-weight: bold; padding: 8px 20px; font-size: 14px;
+}
+QPushButton[cssClass="primaryButton"]:hover { background-color: #2563eb; }
+
+QPushButton[cssClass="dangerOutlineButton"] {
+    background-color: transparent; color: #ef4444; border: 1px solid #ef4444;
+    border-radius: 8px; font-weight: bold; padding: 8px 16px; font-size: 14px;
+}
+QPushButton[cssClass="dangerOutlineButton"]:hover { background-color: #ef4444; color: white; }
+
+QPushButton[cssClass="purpleButton"] {
+    background-color: #8b5cf6; color: white; border: none;
+    border-radius: 8px; font-weight: bold; padding: 8px 20px; font-size: 14px;
+}
+QPushButton[cssClass="purpleButton"]:hover { background-color: #7c3aed; }
+
+QDoubleSpinBox[cssClass="customDoubleSpinBox"] {
+    background-color: #0f172a; color: #f1f5f9;
+    border: 1px solid #334155; border-radius: 6px;
+    padding: 6px; font-size: 14px;
+}
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]:focus { border: 1px solid #3b82f6; }
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::up-button, 
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::down-button {
+    width: 18px; background-color: #334155; border: none; margin: 1px;
+}
+
+QPushButton[cssClass="dangerButton"] {
+    background-color: #ef4444; color: white; border: none;
+    border-radius: 8px; font-weight: bold; padding: 8px 16px; font-size: 14px;
+}
+QPushButton[cssClass="dangerButton"]:hover { background-color: #dc2626; }
+
+QPushButton[cssClass="secondaryButton"] {
+    background-color: #475569; color: white; border: none;
+    border-radius: 8px; font-weight: bold; padding: 8px 20px; font-size: 14px;
+}
+QPushButton[cssClass="secondaryButton"]:hover { background-color: #334155; }
+
+QDialog[cssClass="tradeDialog"] {
+    background-color: #0f172a;
+}
+QDialog[cssClass="tradeDialog"] QLabel {
+    color: #e2e8f0; font-weight: bold; font-size: 15px;
+}
+QDialog[cssClass="tradeDialog"] QLineEdit, 
+QDialog[cssClass="tradeDialog"] QSpinBox, 
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox, 
+QDialog[cssClass="tradeDialog"] QDateEdit {
+    background-color: #1e293b; color: #f1f5f9;
+    border: 1px solid #334155; border-radius: 8px;
+    padding: 10px; font-size: 16px; min-height: 25px;
+}
+QDialog[cssClass="tradeDialog"] QLineEdit:focus, 
+QDialog[cssClass="tradeDialog"] QSpinBox:focus, 
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox:focus, 
+QDialog[cssClass="tradeDialog"] QDateEdit:focus {
+    border: 1px solid #3b82f6; background-color: #334155;
+}
+QDialog[cssClass="tradeDialog"] QSpinBox::up-button, 
+QDialog[cssClass="tradeDialog"] QSpinBox::down-button,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button, 
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button,
+QDialog[cssClass="tradeDialog"] QDateEdit::up-button, 
+QDialog[cssClass="tradeDialog"] QDateEdit::down-button {
+    width: 20px; background-color: #334155; border: none; border-radius: 2px; margin: 2px;
+}
+QDialog[cssClass="tradeDialog"] QSpinBox::up-button:hover, 
+QDialog[cssClass="tradeDialog"] QSpinBox::down-button:hover,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button:hover, 
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button:hover {
+    background-color: #475569;
+}
+
+QPushButton[cssClass="primaryButtonLarge"] {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 10px 25px;
+}
+QPushButton[cssClass="primaryButtonLarge"]:hover {
+    background-color: #2563eb;
+}
+QPushButton[cssClass="primaryButtonLarge"]:disabled {
+    background-color: #475569;
+    color: #94a3b8;
+}
+
+QProgressBar[cssClass="optimizationProgressBar"] {
+    background-color: #1e293b;
+    border: none;
+    border-radius: 2px;
+}
+QProgressBar[cssClass="optimizationProgressBar"]::chunk {
+    background-color: #3b82f6;
+    border-radius: 2px;
+}
+
+QSpinBox[cssClass="tradeInputLarge"], QDoubleSpinBox[cssClass="tradeInputLarge"] {
+    background-color: #0f172a; color: #f1f5f9;
+    border: 1px solid #334155; border-radius: 6px;
+    padding: 8px; font-size: 16px; font-weight: bold;
+}
+QDateEdit[cssClass="tradeInputNormal"] {
+    background-color: #0f172a; color: #f1f5f9;
+    border: 1px solid #334155; border-radius: 6px;
+    padding: 8px; font-size: 14px; font-weight: bold;
+}
+
+QPushButton[cssClass="tradeModeBtnLeft"] {
+    border: 1px solid #334155; font-weight: bold; font-size: 14px;
+    color: #64748b; background-color: #0f172a;
+    border-top-left-radius: 8px; border-bottom-left-radius: 8px;
+}
+QPushButton[cssClass="tradeModeBtnLeft"]:checked {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981; border: 2px solid #10b981;
+}
+
+QPushButton[cssClass="tradeModeBtnRight"] {
+    border: 1px solid #334155; font-weight: bold; font-size: 14px;
+    color: #64748b; background-color: #0f172a;
+    border-top-right-radius: 8px; border-bottom-right-radius: 8px;
+}
+QPushButton[cssClass="tradeModeBtnRight"]:checked {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444; border: 2px solid #ef4444;
+}
+
+QPushButton[cssClass="tradeConfirmBuyBtn"] {
+    background-color: #10b981; color: white;
+    font-weight: bold; font-size: 16px;
+    border-radius: 8px; border: none;
+}
+QPushButton[cssClass="tradeConfirmBuyBtn"]:hover { background-color: #059669; }
+
+QPushButton[cssClass="tradeConfirmSellBtn"] {
+    background-color: #ef4444; color: white;
+    font-weight: bold; font-size: 16px;
+    border-radius: 8px; border: none;
+}
+QPushButton[cssClass="tradeConfirmSellBtn"]:hover { background-color: #dc2626; }
+
+QTableWidget[cssClass="dataTable"] {
+    background-color: #0f172a; border: none; gridline-color: transparent; outline: none;
+}
+QTableWidget[cssClass="dataTable"]::item { 
+    padding: 10px; border: none; border-bottom: 1px solid #1e293b; 
+}
+QTableWidget[cssClass="dataTable"]::item:selected { 
+    background-color: #334155; color: #f1f5f9; 
+}
+QTableWidget[cssClass="dataTable"]::item:hover { 
+    background-color: #1e293b; 
+}
+QTableWidget[cssClass="dataTable"] QHeaderView::section {
+    background-color: #0f172a; color: #64748b; padding: 8px; border: none;
+    border-bottom: 2px solid #334155; font-weight: bold; text-transform: uppercase; font-size: 11px;
+}

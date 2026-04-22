@@ -1,0 +1,109 @@
+/* =======================================================
+   PORTFÖY SİMÜLASYONU - LAYOUT & CONTAINERS
+   QFrame, Dialog, Panel gibi düzenleyicilerin stilleri
+======================================================= */
+
+QFrame[cssClass="navSeparator"] {
+    background-color: #334155; 
+    margin: 10px 0;
+}
+
+QFrame[cssClass="summaryCard"] {
+    background-color: #1e293b;
+    border-radius: 12px;
+}
+QFrame[cssClass="summaryCard"][cardType="total"] {
+    border-left: 4px solid #3b82f6;
+}
+QFrame[cssClass="summaryCard"][cardType="cost"] {
+    border-left: 4px solid #8b5cf6;
+}
+QFrame[cssClass="summaryCard"][cardType="capital"] {
+    border-left: 4px solid #10b981;
+}
+QFrame[cssClass="summaryCard"][cardType="returns"] {
+    border-left: 4px solid #f59e0b;
+}
+
+QFrame[cssClass="statCard"] {
+    background-color: #1e293b;
+    border-radius: 12px;
+    border: 1px solid #334155;
+}
+QFrame[cssClass="statCard"][isHero="true"] {
+    background-color: #0f172a;
+    border: 1px solid #3b82f6;
+}
+QFrame[cssClass="statCard"] QLabel {
+    border: none;
+}
+
+QFrame[cssClass="profileCard"] {
+    background-color: #1e293b;
+    border-radius: 12px;
+    border: 2px solid #334155;
+}
+
+QFrame[cssClass="surveyFrame"] {
+    background-color: #1e293b;
+    border-radius: 12px;
+    border: 1px solid #334155;
+}
+
+QGroupBox[cssClass="surveyGroup"] {
+    border: none;
+    margin-top: 0;
+    padding: 0;
+}
+
+QFrame[cssClass="panelFrame"] {
+    background-color: #1e293b; 
+    border-radius: 10px;
+}
+QFrame[cssClass="panelFrameBordered"] {
+    background-color: #1e293b; border-radius: 10px;
+    border: 1px solid #334155;
+}
+QFrame[cssClass="infoCard"] {
+    background-color: #1e293b; border-radius: 10px;
+    border: 1px solid #334155;
+}
+
+QFrame[cssClass="summaryCard"] {
+    background-color: #1e293b;
+    border-radius: 8px;
+}
+
+QFrame[cssClass="panelFramePadded"] {
+    background-color: #1e293b;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+QFrame[cssClass="tradeFormPanel"] {
+    background-color: #1e293b;
+    border-radius: 12px;
+    border: 1px solid #334155;
+}
+QFrame[cssClass="tradeFormPanel"] QLabel {
+    color: #cbd5e1;
+}
+
+QFrame[cssClass="impactCard"] {
+    background-color: #0f172a;
+    border-radius: 8px;
+    border: 1px solid #334155;
+}
+QFrame[cssClass="impactCard"] QLabel {
+    color: #cbd5e1; font-size: 13px; border: none;
+}
+QFrame[cssClass="impactCardLine"] {
+    background-color: #334155; border: none; margin-bottom: 5px;
+}
+
+QFrame[cssClass="horizontalDivider"] {
+    background-color: #334155; margin-bottom: 15px;
+}
+QWidget[cssClass="chartWidget"] {
+    background-color: #0f172a; border-radius: 8px;
+}

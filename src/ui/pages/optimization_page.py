@@ -75,7 +75,7 @@ class OptimizationPage(BasePage):
         # ====== BAŞLIK ====== #
         header_layout = QHBoxLayout()
         lbl_title = QLabel("⚡ Portföy Optimizasyonu")
-        lbl_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #f1f5f9;")
+        lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         self.main_layout.addLayout(header_layout)
@@ -85,59 +85,24 @@ class OptimizationPage(BasePage):
             "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n"
             "maksimize eden optimal portföy ağırlıklarını hesaplar."
         )
-        lbl_desc.setStyleSheet("color: #94a3b8; font-size: 13px; margin-bottom: 5px;")
+        lbl_desc.setProperty("cssClass", "pageDescription")
         self.main_layout.addWidget(lbl_desc)
 
         # ====== KAYNAK SEÇİMİ ====== #
         source_frame = QFrame()
-        source_frame.setStyleSheet("""
-            QFrame {
-                background-color: #1e293b;
-                border-radius: 10px;
-                padding: 10px;
-            }
-        """)
+        source_frame.setProperty("cssClass", "panelFramePadded")
         source_layout = QHBoxLayout(source_frame)
         source_layout.setContentsMargins(15, 12, 15, 12)
         source_layout.setSpacing(15)
 
         lbl_source = QLabel("📂 Kaynak:")
-        lbl_source.setStyleSheet("color: #94a3b8; font-weight: bold; font-size: 14px;")
+        lbl_source.setProperty("cssClass", "panelTitle")
         source_layout.addWidget(lbl_source)
 
         self.combo_source = QComboBox()
         self.combo_source.setMinimumWidth(280)
         self.combo_source.setMinimumHeight(38)
-        self.combo_source.setStyleSheet("""
-            QComboBox {
-                background-color: #0f172a;
-                color: #f1f5f9;
-                border: 1px solid #334155;
-                border-radius: 8px;
-                padding: 8px 12px;
-                font-size: 14px;
-            }
-            QComboBox:hover {
-                border: 1px solid #3b82f6;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 30px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 6px solid #94a3b8;
-                margin-right: 10px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #1e293b;
-                color: #f1f5f9;
-                border: 1px solid #334155;
-                selection-background-color: #3b82f6;
-            }
-        """)
+        self.combo_source.setProperty("cssClass", "customComboBox")
         source_layout.addWidget(self.combo_source)
         source_layout.addStretch()
 
@@ -145,24 +110,7 @@ class OptimizationPage(BasePage):
         self.btn_optimize.setCursor(Qt.PointingHandCursor)
         self.btn_optimize.setMinimumHeight(42)
         self.btn_optimize.setMinimumWidth(160)
-        self.btn_optimize.setStyleSheet("""
-            QPushButton {
-                background-color: #3b82f6;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 15px;
-                font-weight: bold;
-                padding: 10px 25px;
-            }
-            QPushButton:hover {
-                background-color: #2563eb;
-            }
-            QPushButton:disabled {
-                background-color: #475569;
-                color: #94a3b8;
-            }
-        """)
+        self.btn_optimize.setProperty("cssClass", "primaryButtonLarge")
         self.btn_optimize.clicked.connect(self._on_optimize)
         source_layout.addWidget(self.btn_optimize)
 
@@ -172,17 +120,7 @@ class OptimizationPage(BasePage):
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)  # Indeterminate
         self.progress_bar.setMaximumHeight(4)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                background-color: #1e293b;
-                border: none;
-                border-radius: 2px;
-            }
-            QProgressBar::chunk {
-                background-color: #3b82f6;
-                border-radius: 2px;
-            }
-        """)
+        self.progress_bar.setProperty("cssClass", "optimizationProgressBar")
         self.progress_bar.setVisible(False)
         self.main_layout.addWidget(self.progress_bar)
 
@@ -211,9 +149,7 @@ class OptimizationPage(BasePage):
 
         # ====== ÖNERİLER TABLOSU ====== #
         self.lbl_suggestions = QLabel("📋 Önerilen Dağılım")
-        self.lbl_suggestions.setStyleSheet(
-            "font-size: 16px; font-weight: bold; color: #f1f5f9; margin-top: 5px;"
-        )
+        self.lbl_suggestions.setProperty("cssClass", "tableTitle")
         self.lbl_suggestions.setVisible(False)
         self.main_layout.addWidget(self.lbl_suggestions)
 
@@ -240,7 +176,7 @@ class OptimizationPage(BasePage):
         self.lbl_empty = QLabel(
             "Bir portföy kaynağı seçin ve 'Optimize Et' butonuna tıklayın."
         )
-        self.lbl_empty.setStyleSheet("color: #64748b; font-size: 15px; padding: 40px;")
+        self.lbl_empty.setProperty("cssClass", "emptyStateText")
         self.lbl_empty.setAlignment(Qt.AlignCenter)
         self.main_layout.addWidget(self.lbl_empty)
 
@@ -253,13 +189,7 @@ class OptimizationPage(BasePage):
     ) -> QFrame:
         """Mevcut vs Optimal karşılaştırmalı metrik kartı oluşturur."""
         card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background-color: #1e293b;
-                border-radius: 10px;
-                border: 1px solid #334155;
-            }
-        """)
+        card.setProperty("cssClass", "infoCard")
 
         layout = QVBoxLayout(card)
         layout.setContentsMargins(18, 14, 18, 14)
@@ -267,16 +197,16 @@ class OptimizationPage(BasePage):
 
         # Başlık
         lbl_title = QLabel(title)
-        lbl_title.setStyleSheet("color: #94a3b8; font-size: 12px; font-weight: bold; border: none;")
+        lbl_title.setProperty("cssClass", "infoCardTitle")
         layout.addWidget(lbl_title)
 
         # Mevcut değer
         row_current = QHBoxLayout()
         lbl_curr_label = QLabel("Mevcut:")
-        lbl_curr_label.setStyleSheet("color: #64748b; font-size: 12px; border: none;")
+        lbl_curr_label.setProperty("cssClass", "infoCardDetail")
         lbl_curr_value = QLabel(current_val)
         lbl_curr_value.setObjectName("currentValue")
-        lbl_curr_value.setStyleSheet("color: #94a3b8; font-size: 14px; font-weight: bold; border: none;")
+        lbl_curr_value.setProperty("cssClass", "infoCardValueSmall")
         row_current.addWidget(lbl_curr_label)
         row_current.addStretch()
         row_current.addWidget(lbl_curr_value)
@@ -285,10 +215,10 @@ class OptimizationPage(BasePage):
         # Optimal değer
         row_optimal = QHBoxLayout()
         lbl_opt_label = QLabel("Optimal:")
-        lbl_opt_label.setStyleSheet("color: #64748b; font-size: 12px; border: none;")
+        lbl_opt_label.setProperty("cssClass", "infoCardDetail")
         lbl_opt_value = QLabel(optimal_val)
         lbl_opt_value.setObjectName("optimalValue")
-        lbl_opt_value.setStyleSheet("color: #f1f5f9; font-size: 18px; font-weight: bold; border: none;")
+        lbl_opt_value.setProperty("cssClass", "infoCardValueMedium")
         row_optimal.addWidget(lbl_opt_label)
         row_optimal.addStretch()
         row_optimal.addWidget(lbl_opt_value)
@@ -297,7 +227,7 @@ class OptimizationPage(BasePage):
         # Delta
         lbl_delta = QLabel(delta_val)
         lbl_delta.setObjectName("deltaValue")
-        lbl_delta.setStyleSheet("color: #94a3b8; font-size: 12px; border: none;")
+        lbl_delta.setProperty("cssClass", "infoCardDelta")
         lbl_delta.setAlignment(Qt.AlignRight)
         layout.addWidget(lbl_delta)
 
@@ -434,7 +364,7 @@ class OptimizationPage(BasePage):
             color = "#10b981" if is_good else "#ef4444"
             arrow = "▲" if is_positive else "▼"
             lbl_delta.setText(f"{arrow} {abs(delta):+.2f}")
-            lbl_delta.setStyleSheet(f"color: {color}; font-size: 13px; font-weight: bold; border: none;")
+            lbl_delta.setStyleSheet(f"color: {color};")
 
     def _populate_suggestions_table(self, suggestions):
         """Öneriler tablosunu doldurur."""

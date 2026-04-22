@@ -45,7 +45,7 @@ class WatchlistPage(BasePage):
         # Başlık
         header_layout = QHBoxLayout()
         lbl_title = QLabel("📋 Takip Listeleri")
-        lbl_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #f1f5f9;")
+        lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         self.main_layout.addLayout(header_layout)
@@ -63,7 +63,7 @@ class WatchlistPage(BasePage):
         left_layout.setSpacing(10)
 
         lbl_lists = QLabel("Listelerim")
-        lbl_lists.setStyleSheet("font-size: 14px; font-weight: bold; color: #94a3b8;")
+        lbl_lists.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_lists)
 
         self.list_widget = QListWidget()
@@ -87,7 +87,7 @@ class WatchlistPage(BasePage):
         self.btn_delete.setCursor(Qt.PointingHandCursor)
         self.btn_delete.clicked.connect(self._on_delete_list)
         self.btn_delete.setEnabled(False)
-        self.btn_delete.setStyleSheet("color: #ef4444;")
+        self.btn_delete.setProperty("cssClass", "dangerTextButton")
 
         btn_layout.addWidget(self.btn_new)
         btn_layout.addWidget(self.btn_edit)
@@ -102,11 +102,11 @@ class WatchlistPage(BasePage):
         right_layout.setSpacing(15)
 
         self.lbl_list_name = QLabel("Bir liste seçin")
-        self.lbl_list_name.setStyleSheet("font-size: 18px; font-weight: bold; color: #f1f5f9;")
+        self.lbl_list_name.setProperty("cssClass", "panelTitleLarge")
         right_layout.addWidget(self.lbl_list_name)
 
         self.lbl_list_desc = QLabel("")
-        self.lbl_list_desc.setStyleSheet("color: #94a3b8;")
+        self.lbl_list_desc.setProperty("cssClass", "panelDescription")
         self.lbl_list_desc.setWordWrap(True)
         right_layout.addWidget(self.lbl_list_desc)
 

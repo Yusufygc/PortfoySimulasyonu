@@ -1,0 +1,240 @@
+/* =======================================================
+   PORTFÖY SİMÜLASYONU - TYPOGRAPHY
+   Tüm metin (Label, vb.) stilleri burada yer alacaktır.
+======================================================= */
+
+QLabel[cssClass="appTitle"] {
+    font-size: 18px; 
+    font-weight: bold; 
+    color: #f1f5f9;
+    padding: 10px 0;
+}
+
+QLabel[cssClass="summaryCardTitle"] {
+    color: #94a3b8; 
+    font-size: 11px; 
+    font-weight: bold;
+}
+
+QLabel[cssClass="summaryCardValue"] {
+    color: #f1f5f9; 
+    font-size: 18px; 
+    font-weight: bold;
+}
+
+QLabel[cssClass="summaryCardContext"] {
+    color: #64748b; 
+    font-size: 11px; 
+    margin-top: 2px;
+}
+QLabel[cssClass="summaryCardContext"][state="positive"] {
+    color: #10b981; 
+    font-size: 12px; 
+    font-weight: 500;
+}
+QLabel[cssClass="summaryCardContext"][state="negative"] {
+    color: #ef4444; 
+    font-size: 12px; 
+    font-weight: 500;
+}
+
+QLabel[cssClass="summaryCardSubTitle"] {
+    color: #94a3b8; 
+    font-size: 13px;
+}
+
+QLabel[cssClass="summaryCardValueSmall"] {
+    color: #f1f5f9; 
+    font-size: 14px; 
+    font-weight: bold;
+}
+QLabel[cssClass="summaryCardValueSmall"][state="positive"] {
+    color: #10b981;
+}
+QLabel[cssClass="summaryCardValueSmall"][state="negative"] {
+    color: #ef4444;
+}
+QLabel[cssClass="summaryCardValueSmall"][state="neutral"] {
+    color: #f1f5f9;
+}
+
+QLabel[cssClass="lastUpdateLabel"] {
+    color: #64748b; 
+    font-size: 11px; 
+    margin-left: 5px;
+}
+
+QLabel[cssClass="statCardTitle"] {
+    color: #94a3b8; 
+    font-size: 11px; 
+    font-weight: bold; 
+    text-transform: uppercase;
+}
+
+QLabel[cssClass="statCardValue"] {
+    color: #f1f5f9;
+    font-size: 20px;
+    font-weight: bold;
+}
+QLabel[cssClass="statCardValue"][isHero="true"] {
+    color: #3b82f6;
+    font-size: 28px;
+}
+QLabel[cssClass="statCardValue"][colored="true"] {
+    color: #f1f5f9;
+}
+
+QLabel[cssClass="pageTitle"] {
+    font-size: 20px;
+    font-weight: bold;
+    color: #f1f5f9;
+}
+QLabel[cssClass="pageDescription"] {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+QLabel[cssClass="panelTitle"] {
+    font-size: 14px;
+    font-weight: bold;
+    color: #94a3b8;
+}
+QLabel[cssClass="panelTitleLarge"] {
+    font-size: 18px;
+    font-weight: bold;
+    color: #f1f5f9;
+}
+QLabel[cssClass="panelDescription"] {
+    color: #94a3b8;
+}
+QLabel[cssClass="profileHeader"] {
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileScore"] {
+    color: #f1f5f9;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileLabel"] {
+    font-size: 22px;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileDesc"] {
+    color: #94a3b8;
+    font-size: 13px;
+    border: none;
+}
+QLabel[cssClass="profileDetail"] {
+    color: #64748b;
+    font-size: 12px;
+    border: none;
+}
+QLabel[cssClass="surveyTitle"] {
+    color: #f1f5f9;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="surveyQuestion"] {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+QLabel[cssClass="statusLabelInfo"] {
+    background-color: #1e293b; color: #94a3b8;
+    border-radius: 8px; padding: 12px; font-size: 14px;
+}
+QLabel[cssClass="successHeader"] {
+    color: #10b981; font-weight: bold; font-size: 14px;
+}
+QLabel[cssClass="dangerHeader"] {
+    color: #ef4444; font-weight: bold; font-size: 14px; margin-top: 10px;
+}
+QLabel[cssClass="inputLabel"] {
+    color: #94a3b8; font-size: 12px;
+}
+QLabel[cssClass="infoCardTitle"] {
+    color: #94a3b8; font-size: 12px; font-weight: bold; border: none;
+}
+QLabel[cssClass="infoCardValue"] {
+    color: #f1f5f9; font-size: 20px; font-weight: bold; border: none;
+}
+QLabel[cssClass="feasibilityText"] {
+    color: #94a3b8; font-size: 14px; font-weight: bold; border: none;
+}
+QLabel[cssClass="feasibilityStatus"] {
+    font-size: 16px; font-weight: bold; border: none;
+}
+
+QLabel[cssClass="summaryCardTitle"] {
+    color: #94a3b8; font-size: 12px;
+}
+QLabel[cssClass="summaryCardValue"] {
+    color: #f1f5f9; font-size: 16px; font-weight: bold;
+}
+
+QLabel[cssClass="tableTitle"] {
+    font-size: 16px;
+    font-weight: bold;
+    color: #f1f5f9;
+    margin-top: 5px;
+}
+QLabel[cssClass="emptyStateText"] {
+    color: #64748b;
+    font-size: 15px;
+    padding: 40px;
+}
+QLabel[cssClass="infoCardDetail"] {
+    color: #64748b;
+    font-size: 12px;
+    border: none;
+}
+QLabel[cssClass="infoCardValueSmall"] {
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="infoCardValueMedium"] {
+    color: #f1f5f9;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="infoCardDelta"] {
+    font-size: 13px;
+    font-weight: bold;
+    border: none;
+}
+
+QLabel[cssClass="totalAmountText"] {
+    color: #f1f5f9; font-size: 16px; font-weight: bold;
+}
+QLabel[cssClass="impactCardTitle"] {
+    color: #94a3b8; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; border: none;
+}
+QLabel[cssClass="impactRowKey"] {
+    color: #94a3b8;
+}
+
+QLabel[cssClass="breadcrumbText"] {
+    color: #64748b; font-size: 12px; font-weight: bold;
+}
+QLabel[cssClass="stockTitleLarge"] {
+    color: #f1f5f9; font-size: 28px; font-weight: 900;
+}
+QLabel[cssClass="stockSubtitle"] {
+    color: #94a3b8; font-size: 18px; margin-top: 8px;
+}
+QLabel[cssClass="stockPriceCurrent"] {
+    color: #10b981; font-size: 32px; font-weight: bold;
+}
+QLabel[cssClass="stockPriceCaption"] {
+    color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+}

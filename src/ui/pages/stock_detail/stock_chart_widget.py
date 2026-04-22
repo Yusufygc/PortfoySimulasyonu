@@ -19,7 +19,7 @@ class StockChartWidget(QFrame):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setStyleSheet("background-color: #0f172a; border-radius: 8px;")
+        self.setProperty("cssClass", "chartWidget")
         self._init_ui()
 
     def _init_ui(self):
