@@ -50,6 +50,13 @@ class AnimatedButton(QPushButton):
         self._hover_anim = self._make_anim(self._HOVER_DURATION)
         self._press_group = self._make_press_group()
 
+    def setIconName(self, name: str, color: str = "@COLOR_TEXT_WHITE", size: int = 18):
+        """İkon adıyla IconManager üzerinden ikon set eder."""
+        from src.ui.core.icon_manager import IconManager
+        from PyQt5.QtCore import QSize
+        self.setIcon(IconManager.get_icon(name, color=color, size=QSize(size, size)))
+
+
     # ------------------------------------------------------------------
     # Animasyon oluşturucular
     # ------------------------------------------------------------------
