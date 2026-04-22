@@ -6,8 +6,8 @@
 QWidget {
     background-color: #0f172a; /* Ana Arka Plan */
     color: #f8fafc; /* Ana Metin */
-    font-family: 'Segoe UI', Inter, sans-serif;
-    font-size: 13px;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
 }
 
 /* ScrollBars */

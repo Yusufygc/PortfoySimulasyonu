@@ -16,6 +16,7 @@ from src.ui.widgets.panels import BudgetFormPanel, GoalsPanel
 from src.ui.widgets.goal_input_dialog import GoalInputDialog
 from src.ui.widgets.contribution_dialog import ContributionDialog
 from src.ui.widgets.toast import Toast
+from src.ui.widgets.animated_button import AnimatedButton
 
 
 class PlanningPage(BasePage):
@@ -80,8 +81,7 @@ class PlanningPage(BasePage):
         top_row.addWidget(self.combo_month)
         top_row.addStretch()
 
-        btn_save = QPushButton("💾 Bütçeyi Kaydet")
-        btn_save.setCursor(Qt.PointingHandCursor)
+        btn_save = AnimatedButton("💾 Bütçeyi Kaydet")
         btn_save.setMinimumHeight(38)
         btn_save.setProperty("cssClass", "primaryButton")
         btn_save.clicked.connect(self._on_save_budget)

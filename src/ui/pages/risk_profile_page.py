@@ -242,17 +242,33 @@ class RiskProfilePage(BasePage):
         """Profil kartını günceller ve gösterir."""
         self.profile_card.setVisible(True)
 
-        # Kart kenarlık rengini profile göre ayarla
-        self.profile_card.setStyleSheet(f"border-color: {profile.color};")
+        # Profil rengini cssState property ile aktar (inline setStyleSheet yok)
+        color_state = self._color_to_state(profile.color)
+        self.profile_card.setProperty("cssState", color_state)
+        self.profile_card.style().unpolish(self.profile_card)
+        self.profile_card.style().polish(self.profile_card)
 
         self.lbl_score.setText(f"Puan: {profile.risk_score} / 100")
         self.lbl_label.setText(f"{profile.emoji} {profile.risk_label}")
-        self.lbl_label.setStyleSheet(f"color: {profile.color};")
+        self.lbl_label.setProperty("cssState", color_state)
+        self.lbl_label.style().unpolish(self.lbl_label)
+        self.lbl_label.style().polish(self.lbl_label)
         self.lbl_profile_desc.setText(profile.description)
 
         self.lbl_age_detail.setText(f"🎂 Yaş: {profile.age}")
         self.lbl_horizon_detail.setText(f"⏳ Vade: {profile.horizon_display}")
         self.lbl_reaction_detail.setText(f"💭 Tepki: {profile.reaction_display}")
+
+    @staticmethod
+    def _color_to_state(color: str) -> str:
+        """Profile rengini QSS cssState adına dönüştürür."""
+        mapping = {
+            "#10b981": "conservative",
+            "#3b82f6": "moderate",
+            "#f59e0b": "balanced",
+            "#ef4444": "aggressive",
+        }
+        return mapping.get(color.lower(), "moderate")
 
     # ==================== Sayfa Olayları ==================== #
 

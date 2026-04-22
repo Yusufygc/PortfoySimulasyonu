@@ -164,3 +164,52 @@ QScrollBar::handle:vertical {
     background: @COLOR_BG_OVERLAY;
     border-radius: 5px;
 }
+
+/* -------------------------------------------------------
+   Tablo Okunabilirliği — Kolon başlıkları ve hücre içerikleri
+------------------------------------------------------- */
+QTableWidget {
+    font-size: @FONT_TABLE_CELL;
+    gridline-color: @COLOR_BORDER_SUBTLE;
+}
+QHeaderView::section {
+    font-size: @FONT_TABLE_HEADER;
+    font-weight: bold;
+    padding: 8px 6px;
+    background-color: @COLOR_BG_ELEVATED;
+    color: @COLOR_TEXT_SECONDARY;
+    border: none;
+    border-bottom: 2px solid @COLOR_BORDER;
+}
+QTableWidget[cssClass="dataTable"] {
+    font-size: @FONT_TABLE_CELL;
+}
+QTableWidget[cssClass="dataTable"]::item {
+    padding: 6px 8px;
+}
+
+/* -------------------------------------------------------
+   İmpact Row Value (trade_form_panel)
+------------------------------------------------------- */
+QLabel[cssClass="impactRowValue"]                          { font-weight: bold; color: @COLOR_TEXT_PRIMARY; }
+QLabel[cssClass="impactRowValue"][cssState="positive"]     { color: @COLOR_SUCCESS; }
+QLabel[cssClass="impactRowValue"][cssState="negative"]     { color: @COLOR_DANGER; }
+QLabel[cssClass="impactRowValue"][cssState="balanced"]     { color: @COLOR_WARNING; }
+
+/* -------------------------------------------------------
+   Risk Profil Kartı cssState renkleri
+------------------------------------------------------- */
+QFrame[cssState="conservative"] { border-color: @COLOR_SUCCESS; }
+QFrame[cssState="moderate"]     { border-color: @COLOR_PRIMARY; }
+QFrame[cssState="balanced"]     { border-color: @COLOR_WARNING; }
+QFrame[cssState="aggressive"]   { border-color: @COLOR_DANGER; }
+
+QLabel[cssState="conservative"] { color: @COLOR_SUCCESS; }
+QLabel[cssState="moderate"]     { color: @COLOR_PRIMARY; }
+QLabel[cssState="balanced"]     { color: @COLOR_WARNING; }
+QLabel[cssState="aggressive"]   { color: @COLOR_DANGER; }
+
+/* K/Z etiketleri (stock_stats_panel) */
+QLabel[cssState="positive"] { color: @COLOR_SUCCESS; }
+QLabel[cssState="negative"] { color: @COLOR_DANGER; }
+QLabel[cssState="neutral"]  { color: @COLOR_TEXT_PRIMARY; }

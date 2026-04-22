@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
+from src.ui.widgets.animated_button import AnimatedButton
 
 
 class PriceLookupResult(NamedTuple):
@@ -116,8 +117,7 @@ class MainWindow(QMainWindow):
         # Geri butonu
         self._add_separator()
         
-        self.btn_back = QPushButton("← Geri")
-        self.btn_back.setCursor(Qt.PointingHandCursor)
+        self.btn_back = AnimatedButton("← Geri")
         self.btn_back.clicked.connect(self._on_back)
         self.btn_back.setEnabled(False)
         self.btn_back.setProperty("cssClass", "navBackBtn")
@@ -136,10 +136,9 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(self.sidebar)
         self.main_layout.addWidget(self.stacked_widget, 1)
 
-    def _create_nav_button(self, text: str, page_index: int) -> QPushButton:
-        """Navigasyon butonu oluşturur."""
-        btn = QPushButton(text)
-        btn.setCursor(Qt.PointingHandCursor)
+    def _create_nav_button(self, text: str, page_index: int) -> AnimatedButton:
+        """Mikro etkileşimli navigasyon butonu oluşturur."""
+        btn = AnimatedButton(text)
         btn.setCheckable(True)
         btn.clicked.connect(lambda: self._goto_page(page_index))
         btn.setProperty("cssClass", "navMenuBtn")

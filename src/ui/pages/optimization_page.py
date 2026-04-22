@@ -20,6 +20,7 @@ from src.domain.models.optimization_result import OptimizationResult
 from src.ui.widgets.cards import MetricCard
 from src.ui.widgets.tables.suggestions_table import SuggestionsTable
 from src.ui.widgets.toast import Toast
+from src.ui.widgets.animated_button import AnimatedButton
 
 
 class _OptimizationWorker(QThread):
@@ -133,8 +134,7 @@ class OptimizationPage(BasePage):
         layout.addWidget(self.combo_source)
         layout.addStretch()
 
-        self.btn_optimize = QPushButton("🚀 Optimize Et")
-        self.btn_optimize.setCursor(Qt.PointingHandCursor)
+        self.btn_optimize = AnimatedButton("🚀 Optimize Et")
         self.btn_optimize.setMinimumHeight(42)
         self.btn_optimize.setMinimumWidth(160)
         self.btn_optimize.setProperty("cssClass", "primaryButtonLarge")

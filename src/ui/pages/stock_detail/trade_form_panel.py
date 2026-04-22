@@ -191,29 +191,30 @@ class TradeFormPanel(QFrame):
             total_new_qty = current_qty + qty
             new_avg_cost = (total_current_cost + new_cost) / total_new_qty if total_new_qty > 0 else 0
             
-            self._add_impact_row("Yeni Ort. Maliyet", f"₺ {new_avg_cost:,.2f}", 
-                               color="#fbbf24" if new_avg_cost != current_avg else "#f1f5f9")
+            self._add_impact_row("Yeni Ort. Maliyet", f"₺ {new_avg_cost:,.2f}",
+                               state="balanced" if new_avg_cost != current_avg else "neutral")
             self._add_impact_row("Yeni Toplam Lot", f"{total_new_qty} (+{qty})")
             self._add_impact_row("İşlem Tutarı", f"₺ {new_cost:,.2f}")
         else:
             if qty > current_qty:
-                self._add_impact_row("Uyarı", "Yetersiz Bakiye", color="#ef4444")
+                self._add_impact_row("Uyarı", "Yetersiz Bakiye", state="negative")
             else:
                 realized_pl = (price - current_avg) * qty
                 remaining_qty = current_qty - qty
-                pl_color = "#10b981" if realized_pl >= 0 else "#ef4444"
+                pl_state = "positive" if realized_pl >= 0 else "negative"
                 prefix = "+" if realized_pl >= 0 else ""
-                self._add_impact_row("Tahmini K/Z", f"{prefix}₺ {realized_pl:,.2f}", color=pl_color)
+                self._add_impact_row("Tahmini K/Z", f"{prefix}₺ {realized_pl:,.2f}", state=pl_state)
                 self._add_impact_row("Kalan Lot", f"{remaining_qty}")
                 self._add_impact_row("Ort. Maliyet", f"₺ {current_avg:,.2f}")
 
         self.impact_card.setVisible(True)
 
-    def _add_impact_row(self, label, value, color="#f1f5f9"):
+    def _add_impact_row(self, label: str, value: str, state: str = "neutral") -> None:
         lbl_key = QLabel(label + ":")
         lbl_key.setProperty("cssClass", "impactRowKey")
         lbl_val = QLabel(value)
-        lbl_val.setStyleSheet(f"color: {color}; font-weight: bold;")
+        lbl_val.setProperty("cssClass", "impactRowValue")
+        lbl_val.setProperty("cssState", state)
         lbl_val.setAlignment(Qt.AlignRight)
         self.impact_grid.addRow(lbl_key, lbl_val)
 

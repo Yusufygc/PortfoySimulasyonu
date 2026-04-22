@@ -25,6 +25,7 @@ from PyQt5.QtCore import Qt
 from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
 from src.ui.widgets.toast import Toast
+from src.ui.widgets.animated_button import AnimatedButton
 
 
 class WatchlistPage(BasePage):
@@ -75,17 +76,14 @@ class WatchlistPage(BasePage):
         # Butonlar
         btn_layout = QHBoxLayout()
         
-        self.btn_new = QPushButton("➕ Yeni")
-        self.btn_new.setCursor(Qt.PointingHandCursor)
+        self.btn_new = AnimatedButton("➕ Yeni")
         self.btn_new.clicked.connect(self._on_new_list)
         
-        self.btn_edit = QPushButton("✏️ Düzenle")
-        self.btn_edit.setCursor(Qt.PointingHandCursor)
+        self.btn_edit = AnimatedButton("✏️ Düzenle")
         self.btn_edit.clicked.connect(self._on_edit_list)
         self.btn_edit.setEnabled(False)
         
-        self.btn_delete = QPushButton("🗑️ Sil")
-        self.btn_delete.setCursor(Qt.PointingHandCursor)
+        self.btn_delete = AnimatedButton("🗑️ Sil")
         self.btn_delete.clicked.connect(self._on_delete_list)
         self.btn_delete.setEnabled(False)
         self.btn_delete.setProperty("cssClass", "dangerTextButton")
@@ -127,11 +125,10 @@ class WatchlistPage(BasePage):
         stock_btn_layout = QHBoxLayout()
         stock_btn_layout.addStretch()
         
-        self.btn_add_stock = QPushButton("➕ Hisse Ekle")
-        self.btn_add_stock.setCursor(Qt.PointingHandCursor)
+        self.btn_add_stock = AnimatedButton("➕ Hisse Ekle")
         self.btn_add_stock.clicked.connect(self._on_add_stock)
         self.btn_add_stock.setEnabled(False)
-        self.btn_add_stock.setObjectName("primaryButton")
+        self.btn_add_stock.setProperty("cssClass", "primaryButton")
         
         stock_btn_layout.addWidget(self.btn_add_stock)
         right_layout.addLayout(stock_btn_layout)

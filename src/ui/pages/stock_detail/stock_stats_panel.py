@@ -52,7 +52,10 @@ class StockStatsPanel(QWidget):
             
             prefix = "▲" if pl >= 0 else "▼"
             self.lbl_pl.setText(f"{prefix} ₺ {abs(pl):,.2f}")
-            self.lbl_pl.setStyleSheet(f"color: {'#10b981' if pl >= 0 else '#ef4444'};")
+            state = "positive" if pl >= 0 else "negative"
+            self.lbl_pl.setProperty("cssState", state)
+            self.lbl_pl.style().unpolish(self.lbl_pl)
+            self.lbl_pl.style().polish(self.lbl_pl)
         else:
             self.clear_stats()
             
@@ -61,3 +64,6 @@ class StockStatsPanel(QWidget):
         self.lbl_total_qty.setText("0")
         self.lbl_total_val.setText("₺ 0.00")
         self.lbl_pl.setText("₺ 0.00")
+        self.lbl_pl.setProperty("cssState", "neutral")
+        self.lbl_pl.style().unpolish(self.lbl_pl)
+        self.lbl_pl.style().polish(self.lbl_pl)

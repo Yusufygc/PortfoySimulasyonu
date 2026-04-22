@@ -101,18 +101,21 @@ DARK_THEME: dict[str, str] = {
     "COLOR_BUBBLE_SYSTEM":  "#2D1F3D",   # Sistem mesaj balonu
 
     # -----------------------------------------------------------
-    # FONT SIZES
+    # FONT SIZES — Okunabilirlik için optimize edilmiş
     # -----------------------------------------------------------
-    "FONT_XS":   "10px",   # Zaman damgaları, çok küçük metinler
-    "FONT_SM":   "11px",   # Tablo header, etiket üst yazılar
-    "FONT_BASE": "13px",   # Standart gövde metni
-    "FONT_MD":   "14px",   # Form elemanları, buton metni
-    "FONT_LG":   "15px",   # Büyük etiketler
-    "FONT_XL":   "16px",   # Büyük input alanları, fiyat göstergeleri
-    "FONT_2XL":  "18px",   # Kart başlık değerleri
-    "FONT_3XL":  "20px",   # Sayfa alt başlıkları
-    "FONT_4XL":  "24px",   # Sinyal etiketi
-    "FONT_5XL":  "28px",   # Büyük fiyat göstergesi
+    "FONT_XS":   "11px",   # Zaman damgaları, çok küçük metinler
+    "FONT_SM":   "12px",   # Üst yazılar, tablo başlıkları
+    "FONT_BASE": "14px",   # Standart gövde metni
+    "FONT_MD":   "15px",   # Form elemanları, buton metni
+    "FONT_LG":   "16px",   # Büyük etiketler
+    "FONT_XL":   "17px",   # Büyük input alanları, fiyat göstergeleri
+    "FONT_2XL":  "20px",   # Kart başlık değerleri
+    "FONT_3XL":  "22px",   # Sayfa alt başlıkları
+    "FONT_4XL":  "26px",   # Sinyal etiketi
+    "FONT_5XL":  "30px",   # Büyük fiyat göstergesi
+    # Tablo okunabilirliği için özel tokenlar
+    "FONT_TABLE_HEADER": "13px",   # Kolon başlıkları (QHeaderView)
+    "FONT_TABLE_CELL":   "14px",   # Satır içerikleri
 
     # -----------------------------------------------------------
     # SPACING (Padding / Margin)

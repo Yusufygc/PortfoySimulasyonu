@@ -21,6 +21,7 @@ from src.ui.widgets.cards import InfoCard
 from src.ui.widgets.tables import PositionsTable
 from src.ui.widgets.panels import PortfolioListPanel
 from src.ui.widgets.toast import Toast
+from src.ui.widgets.animated_button import AnimatedButton
 
 
 class ModelPortfolioPage(BasePage):
@@ -82,8 +83,7 @@ class ModelPortfolioPage(BasePage):
         header.addWidget(self.lbl_portfolio_name)
         header.addStretch()
 
-        self.btn_refresh = QPushButton("🔄 Fiyat Güncelle")
-        self.btn_refresh.setCursor(Qt.PointingHandCursor)
+        self.btn_refresh = AnimatedButton("🔄 Fiyat Güncelle")
         self.btn_refresh.setEnabled(False)
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
         header.addWidget(self.btn_refresh)
@@ -112,14 +112,12 @@ class ModelPortfolioPage(BasePage):
         trade_row = QHBoxLayout()
         trade_row.addStretch()
 
-        self.btn_buy = QPushButton("📈 Hisse Al")
-        self.btn_buy.setCursor(Qt.PointingHandCursor)
+        self.btn_buy = AnimatedButton("📈 Hisse Al")
         self.btn_buy.setEnabled(False)
         self.btn_buy.setProperty("cssClass", "successButton")
         self.btn_buy.clicked.connect(lambda: self._on_trade("BUY"))
 
-        self.btn_sell = QPushButton("📉 Hisse Sat")
-        self.btn_sell.setCursor(Qt.PointingHandCursor)
+        self.btn_sell = AnimatedButton("📉 Hisse Sat")
         self.btn_sell.setEnabled(False)
         self.btn_sell.setProperty("cssClass", "dangerButton")
         self.btn_sell.clicked.connect(lambda: self._on_trade("SELL"))

@@ -3,7 +3,7 @@ import os
 import logging
 from typing import Optional
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QFontDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,10 @@ class ThemeManager:
             token_overrides: Varsayılan tokenların üzerine yazılacak ekstra
                              değerler (örn. Light Mode için).
         """
-        # 1. Font ayarla
-        font = QFont("Segoe UI", 10)
+        # 1. Inter fontunu yükle (yoksa Segoe UI'ya düş)
+        font_name = cls._load_inter_font()
+        font = QFont(font_name, 10)
+        font.setHintingPreference(QFont.PreferFullHinting)
         app.setFont(font)
 
         # 2. Design Tokenları yükle
@@ -122,3 +124,37 @@ class ThemeManager:
 
         return resolved
 
+    @classmethod
+    def _load_inter_font(cls) -> str:
+        """
+        Inter font dosyalarını QFontDatabase'e yükler.
+        Başarılı olursa 'Inter', aksi halde 'Segoe UI' döner.
+        """
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        fonts_dir = os.path.join(base_dir, "fonts")
+
+        font_files = [
+            "Inter-Regular.ttf",
+            "Inter-Medium.ttf",
+            "Inter-SemiBold.ttf",
+            "Inter-Bold.ttf",
+        ]
+
+        loaded = 0
+        for filename in font_files:
+            path = os.path.join(fonts_dir, filename)
+            if os.path.exists(path):
+                font_id = QFontDatabase.addApplicationFont(path)
+                if font_id >= 0:
+                    loaded += 1
+                else:
+                    logger.warning(f"[ThemeManager] Font yüklenemedi: {filename}")
+            else:
+                logger.debug(f"[ThemeManager] Font dosyası bulunamadı: {path}")
+
+        if loaded > 0:
+            logger.info(f"[ThemeManager] Inter font yüklendi ({loaded}/{len(font_files)} dosya).")
+            return "Inter"
+
+        logger.warning("[ThemeManager] Inter font bulunamadı, Segoe UI kullanılıyor.")
+        return "Segoe UI"
