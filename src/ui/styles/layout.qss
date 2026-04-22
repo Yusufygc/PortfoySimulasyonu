@@ -1,53 +1,54 @@
 /* =======================================================
    PORTFÖY SİMÜLASYONU - LAYOUT & CONTAINERS
    QFrame, Dialog, Panel gibi düzenleyicilerin stilleri
+   Token referansları: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
 QFrame[cssClass="navSeparator"] {
-    background-color: #334155; 
-    margin: 10px 0;
+    background-color: @COLOR_BORDER;
+    margin: @SPACE_LG 0;
 }
 
 QFrame[cssClass="summaryCard"] {
-    background-color: #1e293b;
-    border-radius: 12px;
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
 }
 QFrame[cssClass="summaryCard"][cardType="total"] {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid @COLOR_PRIMARY;
 }
 QFrame[cssClass="summaryCard"][cardType="cost"] {
-    border-left: 4px solid #8b5cf6;
+    border-left: 4px solid @COLOR_PURPLE;
 }
 QFrame[cssClass="summaryCard"][cardType="capital"] {
-    border-left: 4px solid #10b981;
+    border-left: 4px solid @COLOR_SUCCESS;
 }
 QFrame[cssClass="summaryCard"][cardType="returns"] {
     border-left: 4px solid #f59e0b;
 }
 
 QFrame[cssClass="statCard"] {
-    background-color: #1e293b;
-    border-radius: 12px;
-    border: 1px solid #334155;
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="statCard"][isHero="true"] {
-    background-color: #0f172a;
-    border: 1px solid #3b82f6;
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_PRIMARY;
 }
 QFrame[cssClass="statCard"] QLabel {
     border: none;
 }
 
 QFrame[cssClass="profileCard"] {
-    background-color: #1e293b;
-    border-radius: 12px;
-    border: 2px solid #334155;
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 2px solid @COLOR_BORDER;
 }
 
 QFrame[cssClass="surveyFrame"] {
-    background-color: #1e293b;
-    border-radius: 12px;
-    border: 1px solid #334155;
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 1px solid @COLOR_BORDER;
 }
 
 QGroupBox[cssClass="surveyGroup"] {
@@ -57,117 +58,109 @@ QGroupBox[cssClass="surveyGroup"] {
 }
 
 QFrame[cssClass="panelFrame"] {
-    background-color: #1e293b; 
-    border-radius: 10px;
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_XL;
 }
 QFrame[cssClass="panelFrameBordered"] {
-    background-color: #1e293b; border-radius: 10px;
-    border: 1px solid #334155;
+    background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_XL;
+    border: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="infoCard"] {
-    background-color: #1e293b; border-radius: 10px;
-    border: 1px solid #334155;
-}
-
-QFrame[cssClass="summaryCard"] {
-    background-color: #1e293b;
-    border-radius: 8px;
+    background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_XL;
+    border: 1px solid @COLOR_BORDER;
 }
 
 QFrame[cssClass="panelFramePadded"] {
-    background-color: #1e293b;
-    border-radius: 10px;
-    padding: 10px;
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_XL;
+    padding: @SPACE_LG;
 }
 
 QFrame[cssClass="tradeFormPanel"] {
-    background-color: #1e293b;
-    border-radius: 12px;
-    border: 1px solid #334155;
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="tradeFormPanel"] QLabel {
-    color: #cbd5e1;
+    color: @COLOR_TEXT_BODY;
 }
 
 QFrame[cssClass="impactCard"] {
-    background-color: #0f172a;
-    border-radius: 8px;
-    border: 1px solid #334155;
+    background-color: @COLOR_BG_BASE;
+    border-radius: @RADIUS_LG;
+    border: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="impactCard"] QLabel {
-    color: #cbd5e1; font-size: 13px; border: none;
+    color: @COLOR_TEXT_BODY; font-size: @FONT_BASE; border: none;
 }
 QFrame[cssClass="impactCardLine"] {
-    background-color: #334155; border: none; margin-bottom: 5px;
+    background-color: @COLOR_BORDER; border: none; margin-bottom: @SPACE_XS;
 }
 
 QFrame[cssClass="horizontalDivider"] {
-    background-color: #1e293b;
+    background-color: @COLOR_BG_SURFACE;
 }
 
 QDialog[cssClass="dialogContainer"] {
-    background-color: #0f172a; color: #f8fafc;
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_BRIGHT;
 }
 QFrame[cssClass="dialogHeaderFrame"] {
-    background-color: #1e293b; border-bottom: 1px solid #334155;
+    background-color: @COLOR_BG_SURFACE; border-bottom: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="dialogFooterFrame"] {
-    background-color: #0f172a; border-top: 1px solid #334155;
+    background-color: @COLOR_BG_BASE; border-top: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="infoFrame"] {
-    background-color: #1e293b; border-radius: 8px; border: 1px solid #334155;
-}
-QFrame[cssClass="summaryCard"] {
-    background-color: #1e293b; border-radius: 8px; padding: 10px;
+    background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_LG; border: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="borderlessFrame"] {
     border: none; background: transparent;
 }
 QWidget[cssClass="chartWidget"] {
-    background-color: #0f172a; border-radius: 8px;
+    background-color: @COLOR_BG_BASE; border-radius: @RADIUS_LG;
 }
 
 QSplitter::handle {
-    background-color: #334155;
-    margin: 0px 5px;
+    background-color: @COLOR_BORDER;
+    margin: 0px @SPACE_XS;
     width: 2px;
 }
 
 QScrollArea[cssClass="chatScrollArea"] {
-    border: none; background-color: #0f172a; border-radius: 8px;
+    border: none; background-color: @COLOR_BG_BASE; border-radius: @RADIUS_LG;
 }
 
 /* Chat Bubbles */
 QFrame[cssClass="chatBubble"][cssState="user"] {
-    background-color: #2A3F5F;
-    border-radius: 12px;
+    background-color: @COLOR_BUBBLE_USER;
+    border-radius: @RADIUS_2XL;
     border-top-right-radius: 0px;
 }
 QFrame[cssClass="chatBubble"][cssState="ai"] {
-    background-color: #1E2A3A;
-    border-radius: 12px;
+    background-color: @COLOR_BUBBLE_AI;
+    border-radius: @RADIUS_2XL;
     border-top-left-radius: 0px;
-    border-left: 3px solid #00C853;
+    border-left: 3px solid @COLOR_SUCCESS_DARK;
 }
 QFrame[cssClass="chatBubble"][cssState="system"] {
-    background-color: #2D1F3D;
-    border-radius: 12px;
-    border: 1px solid #a855f7;
+    background-color: @COLOR_BUBBLE_SYSTEM;
+    border-radius: @RADIUS_2XL;
+    border: 1px solid @COLOR_PURPLE_BRIGHT;
 }
 
-QFrame[cssClass="aiCard"], QWidget[cssClass="aiCard"] { 
-    background-color: #1e293b; border-radius: 8px; 
+QFrame[cssClass="aiCard"], QWidget[cssClass="aiCard"] {
+    background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_LG;
 }
 
 QWidget#scroll_content { background-color: transparent; }
 
 QScrollBar:vertical {
     border: none;
-    background: #1e293b;
+    background: @COLOR_BG_SURFACE;
     width: 10px;
     border-radius: 5px;
 }
 QScrollBar::handle:vertical {
-    background: #475569;
+    background: @COLOR_BG_OVERLAY;
     border-radius: 5px;
 }

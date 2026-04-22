@@ -1,121 +1,116 @@
 /* =======================================================
    PORTFÖY SİMÜLASYONU - TYPOGRAPHY
    Tüm metin (Label, vb.) stilleri burada yer alacaktır.
+   Token referansları: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
 QLabel[cssClass="appTitle"] {
-    font-size: 18px; 
-    font-weight: bold; 
-    color: #f1f5f9;
-    padding: 10px 0;
+    font-size: @FONT_2XL;
+    font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY;
+    padding: @SPACE_LG 0;
 }
 
 QLabel[cssClass="summaryCardTitle"] {
-    color: #94a3b8; 
-    font-size: 11px; 
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_SM;
     font-weight: bold;
 }
 
 QLabel[cssClass="summaryCardValue"] {
-    color: #f1f5f9; 
-    font-size: 18px; 
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_2XL;
     font-weight: bold;
 }
 
 QLabel[cssClass="summaryCardContext"] {
-    color: #64748b; 
-    font-size: 11px; 
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_SM;
     margin-top: 2px;
 }
 QLabel[cssClass="summaryCardContext"][state="positive"] {
-    color: #10b981; 
-    font-size: 12px; 
+    color: @COLOR_SUCCESS;
+    font-size: @FONT_BASE;
     font-weight: 500;
 }
 QLabel[cssClass="summaryCardContext"][state="negative"] {
-    color: #ef4444; 
-    font-size: 12px; 
+    color: @COLOR_DANGER;
+    font-size: @FONT_BASE;
     font-weight: 500;
 }
 
 QLabel[cssClass="summaryCardSubTitle"] {
-    color: #94a3b8; 
-    font-size: 13px;
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_BASE;
 }
 
 QLabel[cssClass="summaryCardValueSmall"] {
-    color: #f1f5f9; 
-    font-size: 14px; 
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_MD;
     font-weight: bold;
 }
-QLabel[cssClass="summaryCardValueSmall"][state="positive"] {
-    color: #10b981;
-}
-QLabel[cssClass="summaryCardValueSmall"][state="negative"] {
-    color: #ef4444;
-}
-QLabel[cssClass="summaryCardValueSmall"][state="neutral"] {
-    color: #f1f5f9;
-}
+QLabel[cssClass="summaryCardValueSmall"][state="positive"] { color: @COLOR_SUCCESS; }
+QLabel[cssClass="summaryCardValueSmall"][state="negative"] { color: @COLOR_DANGER; }
+QLabel[cssClass="summaryCardValueSmall"][state="neutral"]  { color: @COLOR_TEXT_PRIMARY; }
 
 QLabel[cssClass="lastUpdateLabel"] {
-    color: #64748b; 
-    font-size: 11px; 
-    margin-left: 5px;
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_SM;
+    margin-left: @SPACE_XS;
 }
 
 QLabel[cssClass="statCardTitle"] {
-    color: #94a3b8; 
-    font-size: 11px; 
-    font-weight: bold; 
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_SM;
+    font-weight: bold;
     text-transform: uppercase;
 }
 
 QLabel[cssClass="statCardValue"] {
-    color: #f1f5f9;
-    font-size: 20px;
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_3XL;
     font-weight: bold;
 }
 QLabel[cssClass="statCardValue"][isHero="true"] {
-    color: #3b82f6;
-    font-size: 28px;
+    color: @COLOR_PRIMARY;
+    font-size: @FONT_5XL;
 }
 QLabel[cssClass="statCardValue"][colored="true"] {
-    color: #f1f5f9;
+    color: @COLOR_TEXT_PRIMARY;
 }
 
 QLabel[cssClass="pageTitle"] {
-    font-size: 20px;
+    font-size: @FONT_3XL;
     font-weight: bold;
-    color: #f1f5f9;
+    color: @COLOR_TEXT_PRIMARY;
 }
 QLabel[cssClass="pageDescription"] {
-    color: #94a3b8;
-    font-size: 13px;
-    margin-bottom: 5px;
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_BASE;
+    margin-bottom: @SPACE_XS;
 }
 QLabel[cssClass="panelTitle"] {
-    font-size: 14px;
+    font-size: @FONT_MD;
     font-weight: bold;
-    color: #94a3b8;
+    color: @COLOR_TEXT_SECONDARY;
 }
 QLabel[cssClass="panelTitleLarge"] {
-    font-size: 18px;
+    font-size: @FONT_2XL;
     font-weight: bold;
-    color: #f1f5f9;
+    color: @COLOR_TEXT_PRIMARY;
 }
 QLabel[cssClass="panelDescription"] {
-    color: #94a3b8;
+    color: @COLOR_TEXT_SECONDARY;
 }
 QLabel[cssClass="profileHeader"] {
-    color: #94a3b8;
-    font-size: 14px;
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_MD;
     font-weight: bold;
     border: none;
 }
 QLabel[cssClass="profileScore"] {
-    color: #f1f5f9;
-    font-size: 16px;
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_XL;
     font-weight: bold;
     border: none;
 }
@@ -125,224 +120,210 @@ QLabel[cssClass="profileLabel"] {
     border: none;
 }
 QLabel[cssClass="profileDesc"] {
-    color: #94a3b8;
-    font-size: 13px;
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_BASE;
     border: none;
 }
 QLabel[cssClass="profileDetail"] {
-    color: #64748b;
-    font-size: 12px;
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_XS;
     border: none;
 }
 QLabel[cssClass="surveyTitle"] {
-    color: #f1f5f9;
-    font-size: 16px;
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_XL;
     font-weight: bold;
     border: none;
 }
 QLabel[cssClass="surveyQuestion"] {
     color: #e2e8f0;
-    font-size: 14px;
+    font-size: @FONT_MD;
     font-weight: bold;
 }
 
 QLabel[cssClass="statusLabelInfo"] {
-    background-color: #1e293b; color: #94a3b8;
-    border-radius: 8px; padding: 12px; font-size: 14px;
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_SECONDARY;
+    border-radius: @RADIUS_LG; padding: @SPACE_XL; font-size: @FONT_MD;
 }
 QLabel[cssClass="successHeader"] {
-    color: #10b981; font-weight: bold; font-size: 14px;
+    color: @COLOR_SUCCESS; font-weight: bold; font-size: @FONT_MD;
 }
 QLabel[cssClass="dangerHeader"] {
-    color: #ef4444; font-weight: bold; font-size: 14px; margin-top: 10px;
+    color: @COLOR_DANGER; font-weight: bold; font-size: @FONT_MD; margin-top: @SPACE_LG;
 }
 QLabel[cssClass="inputLabel"] {
-    color: #94a3b8; font-size: 12px;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS;
 }
 QLabel[cssClass="infoCardTitle"] {
-    color: #94a3b8; font-size: 12px; font-weight: bold; border: none;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; font-weight: bold; border: none;
 }
 QLabel[cssClass="infoCardValue"] {
-    color: #f1f5f9; font-size: 20px; font-weight: bold; border: none;
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_3XL; font-weight: bold; border: none;
 }
 QLabel[cssClass="feasibilityText"] {
-    color: #94a3b8; font-size: 14px; font-weight: bold; border: none;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; font-weight: bold; border: none;
 }
 QLabel[cssClass="feasibilityStatus"] {
-    font-size: 16px; font-weight: bold; border: none;
-}
-
-QLabel[cssClass="summaryCardTitle"] {
-    color: #94a3b8; font-size: 12px;
-}
-QLabel[cssClass="summaryCardValue"] {
-    color: #f1f5f9; font-size: 16px; font-weight: bold;
+    font-size: @FONT_XL; font-weight: bold; border: none;
 }
 
 QLabel[cssClass="tableTitle"] {
-    font-size: 16px;
+    font-size: @FONT_XL;
     font-weight: bold;
-    color: #f1f5f9;
-    margin-top: 5px;
+    color: @COLOR_TEXT_PRIMARY;
+    margin-top: @SPACE_XS;
 }
 QLabel[cssClass="emptyStateText"] {
-    color: #64748b;
-    font-size: 15px;
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_LG;
     padding: 40px;
 }
 QLabel[cssClass="infoCardDetail"] {
-    color: #64748b;
-    font-size: 12px;
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_XS;
     border: none;
 }
 QLabel[cssClass="infoCardValueSmall"] {
-    color: #94a3b8;
-    font-size: 14px;
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_MD;
     font-weight: bold;
     border: none;
 }
 QLabel[cssClass="infoCardValueMedium"] {
-    color: #f1f5f9;
-    font-size: 18px;
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_2XL;
     font-weight: bold;
     border: none;
 }
 QLabel[cssClass="infoCardDelta"] {
-    font-size: 13px;
+    font-size: @FONT_BASE;
     font-weight: bold;
     border: none;
 }
 
 QLabel[cssClass="totalAmountText"] {
-    color: #f1f5f9; font-size: 16px; font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_XL; font-weight: bold;
 }
 QLabel[cssClass="impactCardTitle"] {
-    color: #94a3b8; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; border: none;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_SM; font-weight: bold; letter-spacing: 0.5px; border: none;
 }
 QLabel[cssClass="impactRowKey"] {
-    color: #94a3b8;
+    color: @COLOR_TEXT_SECONDARY;
 }
 
 QLabel[cssClass="breadcrumbText"] {
-    color: #64748b; font-size: 12px; font-weight: bold;
+    color: @COLOR_TEXT_MUTED; font-size: @FONT_XS; font-weight: bold;
 }
 QLabel[cssClass="stockTitleLarge"] {
-    color: #f1f5f9; font-size: 28px; font-weight: 900;
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_5XL; font-weight: 900;
 }
 QLabel[cssClass="stockSubtitle"] {
-    color: #94a3b8; font-size: 18px; margin-top: 8px;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_2XL; margin-top: @SPACE_MD;
 }
 QLabel[cssClass="stockPriceCurrent"] {
-    color: #10b981; font-size: 32px; font-weight: bold;
+    color: @COLOR_SUCCESS; font-size: 32px; font-weight: bold;
 }
 QLabel[cssClass="stockPriceCaption"] {
-    color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: @COLOR_TEXT_MUTED; font-size: @FONT_SM; text-transform: uppercase; letter-spacing: 1px;
 }
 
 QLabel[cssClass="chartSummaryText"] {
-    color: #94a3b8; padding: 10px; font-size: 13px;
+    color: @COLOR_TEXT_SECONDARY; padding: @SPACE_LG; font-size: @FONT_BASE;
 }
 QLabel[cssClass="panelSubtitle"] {
-    font-weight: bold; color: #94a3b8; font-size: 13px;
+    font-weight: bold; color: @COLOR_TEXT_SECONDARY; font-size: @FONT_BASE;
 }
 QLabel[cssClass="dateLabel"] {
-    color: #94a3b8; font-size: 12px;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS;
 }
 
 QLabel[cssClass="dialogHeaderTitle"] {
-    font-size: 16px; font-weight: bold; color: #f1f5f9;
+    font-size: @FONT_XL; font-weight: bold; color: @COLOR_TEXT_PRIMARY;
 }
 QLabel[cssClass="dialogHeaderTitleLarge"] {
-    font-size: 18px; font-weight: bold; color: #f1f5f9;
+    font-size: @FONT_2XL; font-weight: bold; color: @COLOR_TEXT_PRIMARY;
 }
 QLabel[cssClass="dialogSubtitle"] {
-    color: #94a3b8; font-size: 13px; line-height: 1.4;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_BASE; line-height: 1.4;
 }
 QLabel[cssClass="formLabel"] {
-    color: #cbd5e1; font-weight: 500; font-size: 13px;
+    color: @COLOR_TEXT_BODY; font-weight: 500; font-size: @FONT_BASE;
 }
 QLabel[cssClass="dialogStepIndicator"] {
-    color: #94a3b8; font-weight: 500; font-size: 14px;
+    color: @COLOR_TEXT_SECONDARY; font-weight: 500; font-size: @FONT_MD;
 }
 QLabel[cssClass="infoTitle"] {
-    color: #94a3b8; font-size: 12px; font-weight: bold;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; font-weight: bold;
 }
 QLabel[cssClass="priceLarge"] {
-    color: #f8fafc; font-size: 28px; font-weight: bold;
+    color: @COLOR_TEXT_BRIGHT; font-size: @FONT_5XL; font-weight: bold;
 }
 QLabel[cssClass="successText"] {
-    color: #22c55e; font-size: 13px;
+    color: @COLOR_SUCCESS_BRIGHT; font-size: @FONT_BASE;
 }
 QLabel[cssClass="summaryTitle"] {
-    color: #3b82f6; font-size: 20px; font-weight: bold; margin-bottom: 10px;
+    color: @COLOR_PRIMARY; font-size: @FONT_3XL; font-weight: bold; margin-bottom: @SPACE_LG;
 }
 QLabel[cssClass="cardLabel"] {
-    color: #94a3b8; font-size: 12px;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS;
 }
 QLabel[cssClass="cardValueLarge"] {
-    color: #f1f5f9; font-size: 16px; font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_XL; font-weight: bold;
 }
 QLabel[cssState="positive"] {
-    color: #10b981; font-size: 16px; font-weight: bold;
+    color: @COLOR_SUCCESS; font-size: @FONT_XL; font-weight: bold;
 }
 QLabel[cssState="negative"] {
-    color: #ef4444; font-size: 16px; font-weight: bold;
+    color: @COLOR_DANGER; font-size: @FONT_XL; font-weight: bold;
 }
 QLabel[cssClass="formLabelTotal"] {
-    font-size: 14px; font-weight: bold; color: #f1f5f9;
+    font-size: @FONT_MD; font-weight: bold; color: @COLOR_TEXT_PRIMARY;
 }
 QLabel[cssClass="warningLabelBg"] {
-    color: #ef4444; font-size: 12px; font-weight: bold; padding: 8px; background-color: rgba(239,68,68,0.1); border-radius: 6px;
+    color: @COLOR_DANGER; font-size: @FONT_XS; font-weight: bold;
+    padding: @SPACE_MD; background-color: rgba(239,68,68,0.1); border-radius: @RADIUS_MD;
 }
 QLabel[cssClass="formLabelBold"] {
-    color: #e2e8f0; font-weight: bold; font-size: 13px;
+    color: #e2e8f0; font-weight: bold; font-size: @FONT_BASE;
 }
 
 QLabel[cssClass="warningBanner"] {
-    background-color: #ca8a04;
-    color: white;
+    background-color: @COLOR_WARNING;
+    color: @COLOR_TEXT_WHITE;
     font-weight: bold;
-    padding: 10px;
-    border-radius: 6px;
+    padding: @SPACE_LG;
+    border-radius: @RADIUS_MD;
 }
 
 QLabel[cssClass="priceValueLargeCyan"] {
-    font-size: 18px; font-weight: bold; color: #00D4FF;
+    font-size: @FONT_2XL; font-weight: bold; color: @COLOR_ACCENT;
 }
 
 QLabel[cssClass="dateLabelMuted"] {
-    color: #64748b; font-size: 12px;
+    color: @COLOR_TEXT_MUTED; font-size: @FONT_XS;
 }
 
 /* Chat Text Styles */
-QLabel[cssClass="chatContent"][cssState="user"] { color: white; font-size: 14px; }
-QLabel[cssClass="chatContent"][cssState="ai"] { color: #cbd5e1; font-size: 14px; }
-QLabel[cssClass="chatContent"][cssState="system"] { color: #e2e8f0; font-size: 13px; font-style: italic; }
+QLabel[cssClass="chatContent"][cssState="user"]   { color: @COLOR_TEXT_WHITE; font-size: @FONT_MD; }
+QLabel[cssClass="chatContent"][cssState="ai"]     { color: @COLOR_TEXT_BODY; font-size: @FONT_MD; }
+QLabel[cssClass="chatContent"][cssState="system"] { color: #e2e8f0; font-size: @FONT_BASE; font-style: italic; }
 
-QLabel[cssClass="chatTime"][cssState="user"] { color: #94a3b8; font-size: 10px; }
-QLabel[cssClass="chatTime"][cssState="ai"] { color: #64748b; font-size: 10px; }
-QLabel[cssClass="chatTime"][cssState="system"] { color: #94a3b8; font-size: 10px; }
+QLabel[cssClass="chatTime"][cssState="user"]   { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; }
+QLabel[cssClass="chatTime"][cssState="ai"]     { color: @COLOR_TEXT_MUTED; font-size: @FONT_XS; }
+QLabel[cssClass="chatTime"][cssState="system"] { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; }
 
-QLabel[cssClass="systemChatHeader"] { color: #a855f7; font-weight: bold; font-size: 12px; }
+QLabel[cssClass="systemChatHeader"] { color: @COLOR_PURPLE_BRIGHT; font-weight: bold; font-size: @FONT_XS; }
 
 /* Signal Label */
 QLabel[cssClass="signalLabel"] {
-    font-size: 24px;
+    font-size: @FONT_4XL;
     font-weight: bold;
-    padding: 15px;
-    border-radius: 8px;
-    background-color: #334155;
-    color: #94a3b8;
+    padding: @SPACE_2XL;
+    border-radius: @RADIUS_LG;
+    background-color: @COLOR_BORDER;
+    color: @COLOR_TEXT_SECONDARY;
 }
-QLabel[cssClass="signalLabel"][cssState="buy"] {
-    background-color: #00C853; color: white;
-}
-QLabel[cssClass="signalLabel"][cssState="sell"] {
-    background-color: #D50000; color: white;
-}
-QLabel[cssClass="signalLabel"][cssState="hold"] {
-    background-color: #FFD600; color: black;
-}
-QLabel[cssClass="signalLabel"][cssState="neutral"] {
-    background-color: #334155; color: #94a3b8;
-}
+QLabel[cssClass="signalLabel"][cssState="buy"]     { background-color: @COLOR_SUCCESS_DARK; color: @COLOR_TEXT_WHITE; }
+QLabel[cssClass="signalLabel"][cssState="sell"]    { background-color: @COLOR_DANGER_DARK; color: @COLOR_TEXT_WHITE; }
+QLabel[cssClass="signalLabel"][cssState="hold"]    { background-color: @COLOR_WARNING_DARK; color: black; }
+QLabel[cssClass="signalLabel"][cssState="neutral"] { background-color: @COLOR_BORDER; color: @COLOR_TEXT_SECONDARY; }
