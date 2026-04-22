@@ -135,22 +135,6 @@ class OptimizationService:
     ) -> OptimizationResult:
         """
         Markowitz MPT optimizasyon motorunu çalıştırır.
-
-        1. yfinance'ten son 1 yılın kapanış fiyatlarını çeker
-        2. Logaritmik günlük getirileri hesaplar
-        3. Kovaryans matrisini oluşturur
-        4. scipy.optimize.minimize ile Sharpe'ı maksimize eden ağırlıkları bulur
-        5. Mevcut vs optimal karşılaştırma yapar
-
-        Args:
-            tickers: Hisse sembolü listesi
-            current_weights: Mevcut portföy ağırlıkları (toplam = 1)
-
-        Returns:
-            OptimizationResult
-
-        Raises:
-            ValueError: Yetersiz veri veya optimizasyon başarısızlığı durumunda
         """
         # 1. Geçmiş fiyat verisi
         price_df = self._get_historical_prices(tickers, days=365)

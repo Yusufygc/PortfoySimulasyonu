@@ -46,6 +46,7 @@ class MainWindow(QMainWindow):
     PAGE_OPTIMIZATION = 5
     PAGE_PLANNING = 6
     PAGE_RISK_PROFILE = 7
+    PAGE_AI_PAGE = 8
 
     def __init__(
         self,
@@ -104,6 +105,7 @@ class MainWindow(QMainWindow):
         self.btn_optimization = self._create_nav_button("⚡ Portföy Optimizasyonu", self.PAGE_OPTIMIZATION)
         self.btn_planning = self._create_nav_button("💰 Finansal Planlama", self.PAGE_PLANNING)
         self.btn_risk_profile = self._create_nav_button("🛡️ Risk Profili", self.PAGE_RISK_PROFILE)
+        self.btn_ai_page = self._create_nav_button("🤖 AI Asistan", self.PAGE_AI_PAGE)
 
         self.sidebar_layout.addWidget(self.btn_dashboard)
         self.sidebar_layout.addWidget(self.btn_watchlist)
@@ -112,6 +114,7 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.addWidget(self.btn_optimization)
         self.sidebar_layout.addWidget(self.btn_planning)
         self.sidebar_layout.addWidget(self.btn_risk_profile)
+        self.sidebar_layout.addWidget(self.btn_ai_page)
 
         self.sidebar_layout.addStretch()
 
@@ -145,7 +148,7 @@ class MainWindow(QMainWindow):
         
         # Sayfaları oluştur ve ekle
         self.pages = {}
-        for i in range(8):
+        for i in range(9):
             self.stacked_widget.addWidget(QWidget())
             
         self._instantiate_page(self.PAGE_DASHBOARD)
@@ -227,6 +230,10 @@ class MainWindow(QMainWindow):
             from src.ui.pages.risk_profile_page import RiskProfilePage
             page = RiskProfilePage(container=self.container)
             self.risk_profile_page = page
+        elif page_index == self.PAGE_AI_PAGE:
+            from src.ui.pages.ai_page import AIPage
+            page = AIPage(container=self.container)
+            self.ai_page = page
 
         if page:
             dummy = self.stacked_widget.widget(page_index)
@@ -301,6 +308,7 @@ class MainWindow(QMainWindow):
         self.btn_optimization.setChecked(active_page == self.PAGE_OPTIMIZATION)
         self.btn_planning.setChecked(active_page == self.PAGE_PLANNING)
         self.btn_risk_profile.setChecked(active_page == self.PAGE_RISK_PROFILE)
+        self.btn_ai_page.setChecked(active_page == self.PAGE_AI_PAGE)
 
     def lookup_price_for_ticker(self, ticker: str) -> Optional[PriceLookupResult]:
         """Hisse fiyatını sorgular."""

@@ -2,7 +2,7 @@
 *.xlsx
 
 /Eklenebilirler.txt
-/sorun.txt
+/Ai_sayfasi.md
 /docs
 /logs
 # Byte-compiled / optimized / DLL files

@@ -1,12 +1,24 @@
-PyQt5 
-yfinance 
-pandas 
-openpyxl 
-mysql-connector-python
+# --- Temel Veri Bilimi ve Analiz ---
 numpy
+pandas>=2.0.0
 scipy
+matplotlib
+openpyxl
+
+# --- Borsa ve Finansal Veri ---
+yfinance==0.2.66
+
+# --- Google AI (Gemini) ---
+google-generativeai
+
+# --- Veritabanı ve Çevre Değişkenleri ---
+SQLAlchemy>=2.0.0
+mysql-connector-python
+python-dotenv
+
+# --- Arayüz ve Görselleştirme ---
+PyQt5
+
+# --- Test ve Kalite ---
 pytest
 pytest-mock
-SQLAlchemy>=2.0.0
-dotenv
-matplotlib
