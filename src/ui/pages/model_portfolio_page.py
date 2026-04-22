@@ -20,6 +20,7 @@ from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.widgets.cards import InfoCard
 from src.ui.widgets.tables import PositionsTable
 from src.ui.widgets.panels import PortfolioListPanel
+from src.ui.widgets.toast import Toast
 
 
 class ModelPortfolioPage(BasePage):
@@ -200,9 +201,9 @@ class ModelPortfolioPage(BasePage):
         try:
             self.model_portfolio_service.create_portfolio(**result)
             self._load_portfolios()
-            QMessageBox.information(self, "Başarılı", f"'{result['name']}' portföyü oluşturuldu.")
+            Toast.success(self, f"'{result['name']}' portföyü oluşturuldu.")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Portföy oluşturulamadı: {e}")
+            Toast.error(self, f"Portföy oluşturulamadı: {e}")
 
     def _on_edit_portfolio(self):
         if self.current_portfolio_id is None:
@@ -223,9 +224,9 @@ class ModelPortfolioPage(BasePage):
             self._load_portfolios()
             self.lbl_portfolio_name.setText(result["name"])
             self._update_view()
-            QMessageBox.information(self, "Başarılı", "Portföy güncellendi.")
+            Toast.success(self, "Portföy güncellendi.")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Portföy güncellenemedi: {e}")
+            Toast.error(self, f"Portföy güncellenemedi: {e}")
 
     def _on_delete_portfolio(self):
         if self.current_portfolio_id is None:
@@ -241,9 +242,9 @@ class ModelPortfolioPage(BasePage):
             self.current_portfolio_id = None
             self._load_portfolios()
             self._clear_right_panel()
-            QMessageBox.information(self, "Başarılı", "Portföy silindi.")
+            Toast.success(self, "Portföy silindi.")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Portföy silinemedi: {e}")
+            Toast.error(self, f"Portföy silinemedi: {e}")
 
     def _on_trade(self, side: str):
         if self.current_portfolio_id is None:
@@ -266,17 +267,17 @@ class ModelPortfolioPage(BasePage):
             self._load_portfolios()
             self._update_view()
             action = "alındı" if side == "BUY" else "satıldı"
-            QMessageBox.information(self, "Başarılı", f"{result['quantity']} lot {result['ticker']} {action}.")
+            Toast.success(self, f"{result['quantity']} lot {result['ticker']} {action}.")
         except ValueError as e:
-            QMessageBox.warning(self, "Uyarı", str(e))
+            Toast.warning(self, str(e))
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"İşlem gerçekleştirilemedi: {e}")
+            Toast.error(self, f"İşlem gerçekleştirilemedi: {e}")
 
     def _on_refresh_prices(self):
         if self.current_portfolio_id is None:
             return
         if not self.price_lookup_func:
-            QMessageBox.warning(self, "Uyarı", "Fiyat sorgulama fonksiyonu mevcut değil.")
+            Toast.warning(self, "Fiyat sorgulama fonksiyonu mevcut değil.")
             return
         positions = self.model_portfolio_service.get_positions_with_details(self.current_portfolio_id)
         updated_count = 0
@@ -289,7 +290,7 @@ class ModelPortfolioPage(BasePage):
             except Exception as e:
                 logger.error(f"Fiyat alınamadı: {pos['ticker']} - {e}")
         self._update_view()
-        QMessageBox.information(self, "Fiyatlar Güncellendi", f"{updated_count} hisse için fiyat güncellendi.")
+        Toast.success(self, f"{updated_count} hisse için fiyat güncellendi.")
 
 
 # ======================================================================

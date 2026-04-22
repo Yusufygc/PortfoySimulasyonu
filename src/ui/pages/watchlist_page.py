@@ -24,6 +24,7 @@ from PyQt5.QtCore import Qt
 
 from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
+from src.ui.widgets.toast import Toast
 
 
 class WatchlistPage(BasePage):
@@ -207,9 +208,9 @@ class WatchlistPage(BasePage):
         try:
             self.watchlist_service.create_watchlist(name.strip(), desc.strip() if ok2 else None)
             self._load_watchlists()
-            QMessageBox.information(self, "Başarılı", f"'{name}' listesi oluşturuldu.")
+            Toast.success(self, f"'{name}' listesi oluşturuldu.")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Liste oluşturulamadı: {e}")
+            Toast.error(self, f"Liste oluşturulamadı: {e}")
 
     def _on_edit_list(self):
         if self.current_watchlist_id is None:
@@ -233,9 +234,9 @@ class WatchlistPage(BasePage):
             )
             self._load_watchlists()
             self.lbl_list_name.setText(name.strip())
-            QMessageBox.information(self, "Başarılı", "Liste güncellendi.")
+            Toast.success(self, "Liste güncellendi.")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Liste güncellenemedi: {e}")
+            Toast.error(self, f"Liste güncellenemedi: {e}")
 
     def _on_delete_list(self):
         if self.current_watchlist_id is None:
@@ -254,9 +255,9 @@ class WatchlistPage(BasePage):
             self.current_watchlist_id = None
             self._load_watchlists()
             self._clear_right_panel()
-            QMessageBox.information(self, "Başarılı", "Liste silindi.")
+            Toast.success(self, "Liste silindi.")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Liste silinemedi: {e}")
+            Toast.error(self, f"Liste silinemedi: {e}")
 
     def _clear_right_panel(self):
         self.lbl_list_name.setText("Bir liste seçin")
@@ -284,11 +285,11 @@ class WatchlistPage(BasePage):
             )
             self._load_stocks()
             self._load_watchlists()
-            QMessageBox.information(self, "Başarılı", f"'{ticker.upper()}' listeye eklendi.")
+            Toast.success(self, f"'{ticker.upper()}' listeye eklendi.")
         except ValueError as e:
-            QMessageBox.warning(self, "Uyarı", str(e))
+            Toast.warning(self, str(e))
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Hisse eklenemedi: {e}")
+            Toast.error(self, f"Hisse eklenemedi: {e}")
 
     def _on_remove_stock(self, stock_id: int):
         if self.current_watchlist_id is None:

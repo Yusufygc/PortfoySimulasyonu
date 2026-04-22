@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 
 from .base_page import BasePage
+from src.ui.widgets.toast import Toast
 from src.domain.models.risk_profile import RiskProfile, PROFILE_INFO
 
 
@@ -220,7 +221,7 @@ class RiskProfilePage(BasePage):
         reaction = self._get_selected_value(self.reaction_group)
 
         if not horizon or not reaction:
-            QMessageBox.warning(self, "Uyarı", "Lütfen tüm soruları cevaplayın.")
+            Toast.warning(self, "Lütfen tüm soruları cevaplayın.")
             return
 
         try:
@@ -235,7 +236,7 @@ class RiskProfilePage(BasePage):
                 f"{profile.description}"
             )
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Profil hesaplanamadı: {e}")
+            Toast.error(self, f"Profil hesaplanamadı: {e}")
 
     def _display_profile(self, profile: RiskProfile):
         """Profil kartını günceller ve gösterir."""

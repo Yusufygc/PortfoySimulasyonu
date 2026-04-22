@@ -19,6 +19,7 @@ from .base_page import BasePage
 from src.domain.models.optimization_result import OptimizationResult
 from src.ui.widgets.cards import MetricCard
 from src.ui.widgets.tables.suggestions_table import SuggestionsTable
+from src.ui.widgets.toast import Toast
 
 
 class _OptimizationWorker(QThread):
@@ -187,7 +188,7 @@ class OptimizationPage(BasePage):
     def _on_optimize(self):
         source_data = self.combo_source.currentData()
         if source_data is None:
-            QMessageBox.warning(self, "Uyarı", "Lütfen bir portföy kaynağı seçin.")
+            Toast.warning(self, "Lütfen bir portföy kaynağı seçin.")
             return
 
         self._set_loading(True)
@@ -211,7 +212,7 @@ class OptimizationPage(BasePage):
 
     def _on_optimization_error(self, error_msg: str):
         self._set_loading(False)
-        QMessageBox.warning(self, "Optimizasyon Uyarısı", error_msg)
+        Toast.error(self, error_msg)
 
     def _set_loading(self, loading: bool):
         self.btn_optimize.setEnabled(not loading)

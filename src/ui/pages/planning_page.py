@@ -15,6 +15,7 @@ from src.ui.widgets.cards import InfoCard
 from src.ui.widgets.panels import BudgetFormPanel, GoalsPanel
 from src.ui.widgets.goal_input_dialog import GoalInputDialog
 from src.ui.widgets.contribution_dialog import ContributionDialog
+from src.ui.widgets.toast import Toast
 
 
 class PlanningPage(BasePage):
@@ -159,9 +160,9 @@ class PlanningPage(BasePage):
         try:
             budget = self._service.save_budget(month=month, **self.budget_form.get_values())
             self._update_budget_cards(budget)
-            QMessageBox.information(self, "Başarılı", f"{month} bütçesi kaydedildi!")
+            Toast.success(self, f"{month} bütçesi kaydedildi!")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Bütçe kaydedilemedi: {e}")
+            Toast.error(self, f"Bütçe kaydedilemedi: {e}")
 
     def _update_budget_cards(self, budget) -> None:
         self.card_income.set_value(f"₺ {budget.total_income:,.2f}")
@@ -192,13 +193,13 @@ class PlanningPage(BasePage):
         try:
             self._service.add_goal(**result)
             self._load_goals()
-            QMessageBox.information(self, "Başarılı", f"'{result['name']}' hedefi eklendi!")
+            Toast.success(self, f"'{result['name']}' hedefi eklendi!")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Hedef eklenemedi: {e}")
+            Toast.error(self, f"Hedef eklenemedi: {e}")
 
     def _on_contribute(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
-            QMessageBox.warning(self, "Uyarı", "Lütfen bir hedef seçin.")
+            Toast.warning(self, "Lütfen bir hedef seçin.")
             return
         dialog = ContributionDialog(goal_name, self)
         if dialog.exec_() != QDialog.Accepted:
@@ -209,13 +210,13 @@ class PlanningPage(BasePage):
         try:
             self._service.add_contribution(goal_id, amount)
             self._load_goals()
-            QMessageBox.information(self, "Başarılı", f"₺ {amount:,.2f} katkı eklendi!")
+            Toast.success(self, f"₺ {amount:,.2f} katkı eklendi!")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Katkı eklenemedi: {e}")
+            Toast.error(self, f"Katkı eklenemedi: {e}")
 
     def _on_delete_goal(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
-            QMessageBox.warning(self, "Uyarı", "Lütfen bir hedef seçin.")
+            Toast.warning(self, "Lütfen bir hedef seçin.")
             return
         reply = QMessageBox.question(
             self, "Hedef Sil",
@@ -227,18 +228,18 @@ class PlanningPage(BasePage):
         try:
             self._service.delete_goal(goal_id)
             self._load_goals()
-            QMessageBox.information(self, "Başarılı", "Hedef silindi.")
+            Toast.success(self, "Hedef silindi.")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Hedef silinemedi: {e}")
+            Toast.error(self, f"Hedef silinemedi: {e}")
 
     def _on_analyze(self) -> None:
         try:
             result = self._service.analyze_feasibility()
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Analiz yapılamadı: {e}")
+            Toast.error(self, f"Analiz yapılamadı: {e}")
             return
         if "monthly_power" not in result:
-            QMessageBox.information(self, "Bilgi", result.get("message", "Veri yok."))
+            Toast.info(self, result.get("message", "Veri yok."))
             return
         self.goals_panel.show_feasibility(result)
         self._load_goals()
