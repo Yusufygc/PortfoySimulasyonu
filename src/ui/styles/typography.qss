@@ -109,8 +109,8 @@ QLabel[cssClass="profileHeader"] {
     border: none;
 }
 QLabel[cssClass="profileScore"] {
-    color: @COLOR_TEXT_PRIMARY;
-    font-size: @FONT_XL;
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_2XL;
     font-weight: bold;
     border: none;
 }
@@ -120,13 +120,13 @@ QLabel[cssClass="profileLabel"] {
     border: none;
 }
 QLabel[cssClass="profileDesc"] {
-    color: @COLOR_TEXT_SECONDARY;
-    font-size: @FONT_BASE;
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_MD;
     border: none;
 }
 QLabel[cssClass="profileDetail"] {
-    color: @COLOR_TEXT_MUTED;
-    font-size: @FONT_XS;
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_SM;
     border: none;
 }
 QLabel[cssClass="surveyTitle"] {
