@@ -391,3 +391,15 @@ QPushButton[cssClass="tradeConfirmSellBtn"] {
 QPushButton[cssClass="tradeConfirmSellBtn"]:hover {
     background-color: #dc2626;
 }
+
+QRadioButton[cssClass="primaryRadio"] {
+    color: #f1f5f9; font-size: 13px; spacing: 6px;
+}
+QRadioButton[cssClass="primaryRadio"]::indicator {
+    width: 14px; height: 14px;
+    border: 2px solid #64748b; border-radius: 7px;
+    background-color: #0f172a;
+}
+QRadioButton[cssClass="primaryRadio"]::indicator:checked {
+    background-color: #3b82f6; border: 2px solid #3b82f6;
+}

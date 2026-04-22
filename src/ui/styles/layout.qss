@@ -120,6 +120,9 @@ QFrame[cssClass="infoFrame"] {
 QFrame[cssClass="summaryCard"] {
     background-color: #1e293b; border-radius: 8px; padding: 10px;
 }
+QFrame[cssClass="borderlessFrame"] {
+    border: none; background: transparent;
+}
 QWidget[cssClass="chartWidget"] {
     background-color: #0f172a; border-radius: 8px;
 }

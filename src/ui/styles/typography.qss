@@ -291,3 +291,9 @@ QLabel[cssState="negative"] {
 QLabel[cssClass="formLabelTotal"] {
     font-size: 14px; font-weight: bold; color: #f1f5f9;
 }
+QLabel[cssClass="warningLabelBg"] {
+    color: #ef4444; font-size: 12px; font-weight: bold; padding: 8px; background-color: rgba(239,68,68,0.1); border-radius: 6px;
+}
+QLabel[cssClass="formLabelBold"] {
+    color: #e2e8f0; font-weight: bold; font-size: 13px;
+}

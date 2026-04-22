@@ -22,6 +22,7 @@ class CapitalDialog(QDialog):
         self.setWindowTitle("Sermaye Yönetimi")
         self.resize(350, 200)
         self.setModal(True)
+        self.setProperty("cssClass", "dialogContainer")
         
         self._init_ui()
 
@@ -31,7 +32,7 @@ class CapitalDialog(QDialog):
         
         # Mevcut sermaye
         lbl_current = QLabel(f"Mevcut Sermaye: ₺{self.current_capital:,.2f}")
-        lbl_current.setStyleSheet("font-size: 14px; font-weight: bold; color: #f1f5f9;")
+        lbl_current.setProperty("cssClass", "dialogHeaderTitle")
         layout.addWidget(lbl_current)
         
         form = QFormLayout()
@@ -40,20 +41,7 @@ class CapitalDialog(QDialog):
         # İşlem türü
         self.combo_action = QComboBox()
         self.combo_action.addItems(["Sermaye Ekle", "Sermaye Çek"])
-        self.combo_action.setStyleSheet("""
-            QComboBox {
-                background-color: #1e293b;
-                color: #f1f5f9;
-                border: 1px solid #334155;
-                padding: 8px;
-                border-radius: 6px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #1e293b;
-                color: #f1f5f9;
-                selection-background-color: #3b82f6;
-            }
-        """)
+        self.combo_action.setProperty("cssClass", "tradeInputNormal")
         form.addRow("İşlem:", self.combo_action)
         
         # Tutar
@@ -62,15 +50,7 @@ class CapitalDialog(QDialog):
         self.spin_amount.setValue(10000)
         self.spin_amount.setDecimals(2)
         self.spin_amount.setSuffix(" TL")
-        self.spin_amount.setStyleSheet("""
-            QDoubleSpinBox {
-                background-color: #1e293b;
-                color: #f1f5f9;
-                border: 1px solid #334155;
-                padding: 8px;
-                border-radius: 6px;
-            }
-        """)
+        self.spin_amount.setProperty("cssClass", "tradeInputNormal")
         form.addRow("Tutar:", self.spin_amount)
         
         layout.addLayout(form)
@@ -81,34 +61,11 @@ class CapitalDialog(QDialog):
         
         btn_cancel = QPushButton("İptal")
         btn_cancel.clicked.connect(self.reject)
-        btn_cancel.setStyleSheet("""
-            QPushButton {
-                background-color: #334155;
-                color: #f1f5f9;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 6px;
-            }
-            QPushButton:hover {
-                background-color: #475569;
-            }
-        """)
+        btn_cancel.setProperty("cssClass", "secondaryButton")
         
         btn_confirm = QPushButton("Onayla")
         btn_confirm.clicked.connect(self.accept)
-        btn_confirm.setStyleSheet("""
-            QPushButton {
-                background-color: #10b981;
-                color: white;
-                padding: 10px 20px;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #059669;
-            }
-        """)
+        btn_confirm.setProperty("cssClass", "tradeConfirmBuyBtn")
         
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(btn_confirm)

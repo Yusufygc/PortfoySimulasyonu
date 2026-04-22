@@ -39,6 +39,7 @@ class DateRangeDialog(QDialog):
         self.setWindowTitle(title)
         self.setModal(True)
         self.setMinimumWidth(360)
+        self.setProperty("cssClass", "dialogContainer")
 
         today_q = QDate.currentDate()
         self._min_qdate = QDate(min_date.year, min_date.month, min_date.day) if min_date else QDate(2000, 1, 1)
@@ -49,6 +50,7 @@ class DateRangeDialog(QDialog):
         main_layout.setSpacing(12)
 
         header = QLabel("Excel’e aktarım için tarih aralığını seçin.")
+        header.setProperty("cssClass", "dialogSubtitle")
         header.setWordWrap(True)
         main_layout.addWidget(header)
 
@@ -63,6 +65,7 @@ class DateRangeDialog(QDialog):
         self.start_edit.setMinimumDate(self._min_qdate)
         self.start_edit.setMaximumDate(self._max_qdate)
         self.start_edit.setDate(self._min_qdate if self._min_qdate.isValid() else today_q)
+        self.start_edit.setProperty("cssClass", "tradeInputNormal")
 
         # Bitiş tarihi
         self.end_edit = QDateEdit()
@@ -70,9 +73,15 @@ class DateRangeDialog(QDialog):
         self.end_edit.setMinimumDate(self._min_qdate)
         self.end_edit.setMaximumDate(self._max_qdate)
         self.end_edit.setDate(self._max_qdate if self._max_qdate.isValid() else today_q)
+        self.end_edit.setProperty("cssClass", "tradeInputNormal")
 
-        form.addRow("Başlangıç:", self.start_edit)
-        form.addRow("Bitiş:", self.end_edit)
+        lbl_start = QLabel("Başlangıç:")
+        lbl_start.setProperty("cssClass", "formLabel")
+        form.addRow(lbl_start, self.start_edit)
+        
+        lbl_end = QLabel("Bitiş:")
+        lbl_end.setProperty("cssClass", "formLabel")
+        form.addRow(lbl_end, self.end_edit)
 
         main_layout.addLayout(form)
 
@@ -81,7 +90,9 @@ class DateRangeDialog(QDialog):
         btn_layout.addStretch()
 
         self.btn_ok = QPushButton("Tamam")
+        self.btn_ok.setProperty("cssClass", "primaryButton")
         self.btn_cancel = QPushButton("İptal")
+        self.btn_cancel.setProperty("cssClass", "secondaryButton")
 
         btn_layout.addWidget(self.btn_ok)
         btn_layout.addWidget(self.btn_cancel)
