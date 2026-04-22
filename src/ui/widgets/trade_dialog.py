@@ -57,7 +57,7 @@ class TradeDialog(QDialog):
         self.setWindowTitle("İşlem Ekle")
         self.setMinimumWidth(450)
         # Koyu Tema Arka Planı
-        self.setStyleSheet("background-color: #0f172a; color: #f8fafc;")
+        self.setProperty("cssClass", "dialogContainer")
 
         # Ana Layout
         layout = QVBoxLayout(self)
@@ -66,17 +66,17 @@ class TradeDialog(QDialog):
 
         # --- HEADER (Üst Bilgi) ---
         header = QFrame()
-        header.setStyleSheet("background-color: #1e293b; border-bottom: 1px solid #334155;")
+        header.setProperty("cssClass", "dialogHeaderFrame")
         header.setFixedHeight(75)
         h_layout = QVBoxLayout(header)
         h_layout.setContentsMargins(20, 10, 20, 10)
         h_layout.setSpacing(5)
         
         self.lbl_ticker = QLabel(f"{self.ticker}" if self.ticker else f"ID: {self.stock_id}")
-        self.lbl_ticker.setStyleSheet("font-size: 18px; font-weight: bold; color: #3b82f6;")
+        self.lbl_ticker.setProperty("cssClass", "dialogHeaderTitleLarge")
         
         self.lbl_price_info = QLabel("Fiyat Yükleniyor...")
-        self.lbl_price_info.setStyleSheet("font-size: 13px; color: #94a3b8;")
+        self.lbl_price_info.setProperty("cssClass", "dialogSubtitle")
         
         h_layout.addWidget(self.lbl_ticker)
         h_layout.addWidget(self.lbl_price_info)
@@ -90,22 +90,7 @@ class TradeDialog(QDialog):
         form_layout.setSpacing(15)
         form_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        # Input Stili
-        input_style = """
-            QLineEdit, QSpinBox, QDateEdit, QTimeEdit {
-                background-color: #1e293b; 
-                border: 1px solid #334155; 
-                border-radius: 6px; 
-                padding: 10px;
-                color: white;
-                font-size: 14px;
-            }
-            QLineEdit:focus, QSpinBox:focus { border: 1px solid #3b82f6; }
-            QDateEdit::drop-down { border: none; }
-        """
-        self.setStyleSheet(self.styleSheet() + input_style)
-        
-        label_style = "color: #cbd5e1; font-weight: 500;"
+
 
         # 1. İşlem Yönü
         side_container = QWidget()
@@ -116,26 +101,23 @@ class TradeDialog(QDialog):
         self.radio_sell = QRadioButton("SATIŞ")
         self.radio_buy.setChecked(True)
         
-        # Radio butonlarını özelleştir
-        radio_style = """
-            QRadioButton { font-weight: bold; color: white; font-size: 14px; }
-            QRadioButton::indicator:checked { border: 2px solid; border-radius: 6px; }
-        """
-        self.radio_buy.setStyleSheet(radio_style + "QRadioButton::indicator:checked { background-color: #22c55e; border-color: #22c55e; }")
-        self.radio_sell.setStyleSheet(radio_style + "QRadioButton::indicator:checked { background-color: #ef4444; border-color: #ef4444; }")
+        self.radio_buy.setProperty("cssClass", "tradeRadioBuy")
+        self.radio_sell.setProperty("cssClass", "tradeRadioSell")
         
         side_layout.addWidget(self.radio_buy)
         side_layout.addWidget(self.radio_sell)
         
         lbl_side = QLabel("İşlem:")
-        lbl_side.setStyleSheet(label_style)
+        lbl_side.setProperty("cssClass", "formLabel")
         form_layout.addRow(lbl_side, side_container)
 
         # 2. Tarih / Saat
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
+        self.date_edit.setProperty("cssClass", "tradeInputNormal")
         self.time_edit = QTimeEdit(QTime.currentTime())
         self.time_edit.setDisplayFormat("HH:mm")
+        self.time_edit.setProperty("cssClass", "tradeInputNormal")
         
         # Tarih normalizasyonu
         self._normalize_trade_date(QDate.currentDate())
@@ -149,26 +131,29 @@ class TradeDialog(QDialog):
         dt_layout.addWidget(self.time_edit)
         
         lbl_date = QLabel("Zaman:")
-        lbl_date.setStyleSheet(label_style)
+        lbl_date.setProperty("cssClass", "formLabel")
         form_layout.addRow(lbl_date, dt_container)
 
         # 3. Lot / Fiyat / Tutar
         self.spin_quantity = QSpinBox()
         self.spin_quantity.setRange(1, 10_000_000)
         self.spin_quantity.setValue(1)
+        self.spin_quantity.setProperty("cssClass", "tradeInputNormal")
         
         self.edit_price = QLineEdit()
         self.edit_price.setPlaceholderText("0.00")
+        self.edit_price.setProperty("cssClass", "tradeInputNormal")
         
         self.edit_amount = QLineEdit()
         self.edit_amount.setPlaceholderText("Toplam Tutar")
+        self.edit_amount.setProperty("cssClass", "tradeInputNormal")
 
         lbl_lot = QLabel("Adet (Lot):")
-        lbl_lot.setStyleSheet(label_style)
+        lbl_lot.setProperty("cssClass", "formLabel")
         lbl_price = QLabel("Birim Fiyat:")
-        lbl_price.setStyleSheet(label_style)
+        lbl_price.setProperty("cssClass", "formLabel")
         lbl_total = QLabel("Toplam:")
-        lbl_total.setStyleSheet(label_style)
+        lbl_total.setProperty("cssClass", "formLabel")
 
         form_layout.addRow(lbl_lot, self.spin_quantity)
         form_layout.addRow(lbl_price, self.edit_price)
@@ -179,27 +164,18 @@ class TradeDialog(QDialog):
 
         # --- FOOTER (Butonlar) ---
         footer = QFrame()
-        footer.setStyleSheet("background-color: #0f172a; border-top: 1px solid #334155;")
+        footer.setProperty("cssClass", "dialogFooterFrame")
         footer.setFixedHeight(70)
         f_layout = QHBoxLayout(footer)
         f_layout.setContentsMargins(20, 10, 20, 10)
 
         self.btn_edit_stock = QPushButton("Hisse Bilgisini Düzenle")
         self.btn_edit_stock.setCursor(Qt.PointingHandCursor)
-        self.btn_edit_stock.setStyleSheet("""
-            QPushButton { color: #94a3b8; background: transparent; border: none; font-size: 13px; }
-            QPushButton:hover { color: #f8fafc; text-decoration: underline; }
-        """)
+        self.btn_edit_stock.setProperty("cssClass", "linkButton")
 
         self.btn_save = QPushButton("Kaydet")
         self.btn_save.setCursor(Qt.PointingHandCursor)
-        self.btn_save.setStyleSheet("""
-            QPushButton { 
-                background-color: #3b82f6; color: white; 
-                border-radius: 6px; padding: 10px 30px; font-weight: bold; font-size: 14px;
-            }
-            QPushButton:hover { background-color: #2563eb; }
-        """)
+        self.btn_save.setProperty("cssClass", "primaryButton")
 
         f_layout.addWidget(self.btn_edit_stock)
         f_layout.addStretch()

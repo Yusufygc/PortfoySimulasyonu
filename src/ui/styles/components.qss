@@ -351,3 +351,43 @@ QPushButton[cssClass="quickDateBtn"] {
 QPushButton[cssClass="quickDateBtn"]:hover { 
     background-color: #3b82f6; border-color: #3b82f6; 
 }
+
+QPushButton[cssClass="dangerTextBtn"] {
+    color: #ef4444; background: transparent; border: none; font-weight: bold; font-size: 13px;
+}
+QPushButton[cssClass="dangerTextBtn"]:hover {
+    text-decoration: underline;
+}
+
+QRadioButton[cssClass="tradeRadioBuy"] { 
+    font-weight: bold; color: white; font-size: 14px; 
+}
+QRadioButton[cssClass="tradeRadioBuy"]::indicator:checked { 
+    border: 2px solid #22c55e; border-radius: 6px; background-color: #22c55e; 
+}
+
+QRadioButton[cssClass="tradeRadioSell"] { 
+    font-weight: bold; color: white; font-size: 14px; 
+}
+QRadioButton[cssClass="tradeRadioSell"]::indicator:checked { 
+    border: 2px solid #ef4444; border-radius: 6px; background-color: #ef4444; 
+}
+
+QPushButton[cssClass="linkButton"] { 
+    color: #94a3b8; background: transparent; border: none; font-size: 13px; font-weight: 500;
+}
+QPushButton[cssClass="linkButton"]:hover { 
+    color: #f8fafc; text-decoration: underline; 
+}
+
+QLineEdit[cssClass="tradeInputBold"] {
+    background-color: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 10px; color: white; font-size: 14px; font-weight: bold; text-transform: uppercase;
+}
+QLineEdit[cssClass="tradeInputBold"]:focus { border: 1px solid #3b82f6; }
+
+QPushButton[cssClass="tradeConfirmSellBtn"] {
+    background-color: #ef4444; color: white; border-radius: 6px; padding: 10px 16px; font-weight: bold; font-size: 14px;
+}
+QPushButton[cssClass="tradeConfirmSellBtn"]:hover {
+    background-color: #dc2626;
+}

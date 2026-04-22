@@ -67,7 +67,7 @@ class WatchlistManagerDialog(QDialog):
 
         # Başlık
         lbl_title = QLabel("Listelerim")
-        lbl_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #f1f5f9;")
+        lbl_title.setProperty("cssClass", "dialogHeaderTitle")
         left_layout.addWidget(lbl_title)
 
         # Liste widget
@@ -92,7 +92,7 @@ class WatchlistManagerDialog(QDialog):
         self.btn_delete.setCursor(Qt.PointingHandCursor)
         self.btn_delete.clicked.connect(self._on_delete_list)
         self.btn_delete.setEnabled(False)
-        self.btn_delete.setStyleSheet("color: #ef4444;")
+        self.btn_delete.setProperty("cssClass", "dangerTextBtn")
 
         btn_layout.addWidget(self.btn_new)
         btn_layout.addWidget(self.btn_edit)
@@ -108,11 +108,11 @@ class WatchlistManagerDialog(QDialog):
 
         # Başlık ve açıklama
         self.lbl_list_name = QLabel("Bir liste seçin")
-        self.lbl_list_name.setStyleSheet("font-size: 18px; font-weight: bold; color: #f1f5f9;")
+        self.lbl_list_name.setProperty("cssClass", "dialogHeaderTitleLarge")
         right_layout.addWidget(self.lbl_list_name)
 
         self.lbl_list_desc = QLabel("")
-        self.lbl_list_desc.setStyleSheet("color: #94a3b8;")
+        self.lbl_list_desc.setProperty("cssClass", "dialogSubtitle")
         self.lbl_list_desc.setWordWrap(True)
         right_layout.addWidget(self.lbl_list_desc)
 
@@ -136,7 +136,7 @@ class WatchlistManagerDialog(QDialog):
         self.btn_add_stock.setCursor(Qt.PointingHandCursor)
         self.btn_add_stock.clicked.connect(self._on_add_stock)
         self.btn_add_stock.setEnabled(False)
-        self.btn_add_stock.setObjectName("primaryButton")
+        self.btn_add_stock.setProperty("cssClass", "primaryButton")
         
         stock_btn_layout.addStretch()
         stock_btn_layout.addWidget(self.btn_add_stock)

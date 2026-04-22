@@ -102,7 +102,23 @@ QFrame[cssClass="impactCardLine"] {
 }
 
 QFrame[cssClass="horizontalDivider"] {
-    background-color: #334155; margin-bottom: 15px;
+    background-color: #1e293b;
+}
+
+QDialog[cssClass="dialogContainer"] {
+    background-color: #0f172a; color: #f8fafc;
+}
+QFrame[cssClass="dialogHeaderFrame"] {
+    background-color: #1e293b; border-bottom: 1px solid #334155;
+}
+QFrame[cssClass="dialogFooterFrame"] {
+    background-color: #0f172a; border-top: 1px solid #334155;
+}
+QFrame[cssClass="infoFrame"] {
+    background-color: #1e293b; border-radius: 8px; border: 1px solid #334155;
+}
+QFrame[cssClass="summaryCard"] {
+    background-color: #1e293b; border-radius: 8px; padding: 10px;
 }
 QWidget[cssClass="chartWidget"] {
     background-color: #0f172a; border-radius: 8px;

@@ -248,3 +248,46 @@ QLabel[cssClass="panelSubtitle"] {
 QLabel[cssClass="dateLabel"] {
     color: #94a3b8; font-size: 12px;
 }
+
+QLabel[cssClass="dialogHeaderTitle"] {
+    font-size: 16px; font-weight: bold; color: #f1f5f9;
+}
+QLabel[cssClass="dialogHeaderTitleLarge"] {
+    font-size: 18px; font-weight: bold; color: #f1f5f9;
+}
+QLabel[cssClass="dialogSubtitle"] {
+    color: #94a3b8; font-size: 13px; line-height: 1.4;
+}
+QLabel[cssClass="formLabel"] {
+    color: #cbd5e1; font-weight: 500; font-size: 13px;
+}
+QLabel[cssClass="dialogStepIndicator"] {
+    color: #94a3b8; font-weight: 500; font-size: 14px;
+}
+QLabel[cssClass="infoTitle"] {
+    color: #94a3b8; font-size: 12px; font-weight: bold;
+}
+QLabel[cssClass="priceLarge"] {
+    color: #f8fafc; font-size: 28px; font-weight: bold;
+}
+QLabel[cssClass="successText"] {
+    color: #22c55e; font-size: 13px;
+}
+QLabel[cssClass="summaryTitle"] {
+    color: #3b82f6; font-size: 20px; font-weight: bold; margin-bottom: 10px;
+}
+QLabel[cssClass="cardLabel"] {
+    color: #94a3b8; font-size: 12px;
+}
+QLabel[cssClass="cardValueLarge"] {
+    color: #f1f5f9; font-size: 16px; font-weight: bold;
+}
+QLabel[cssState="positive"] {
+    color: #10b981; font-size: 16px; font-weight: bold;
+}
+QLabel[cssState="negative"] {
+    color: #ef4444; font-size: 16px; font-weight: bold;
+}
+QLabel[cssClass="formLabelTotal"] {
+    font-size: 14px; font-weight: bold; color: #f1f5f9;
+}

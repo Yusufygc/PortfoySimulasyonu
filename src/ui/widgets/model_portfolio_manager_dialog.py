@@ -77,7 +77,7 @@ class ModelPortfolioManagerDialog(QDialog):
 
         # Başlık
         lbl_title = QLabel("Model Portföylerim")
-        lbl_title.setStyleSheet("font-size: 16px; font-weight: bold; color: #f1f5f9;")
+        lbl_title.setProperty("cssClass", "dialogHeaderTitle")
         left_layout.addWidget(lbl_title)
 
         # Liste widget
@@ -102,7 +102,7 @@ class ModelPortfolioManagerDialog(QDialog):
         self.btn_delete.setCursor(Qt.PointingHandCursor)
         self.btn_delete.clicked.connect(self._on_delete_portfolio)
         self.btn_delete.setEnabled(False)
-        self.btn_delete.setStyleSheet("color: #ef4444;")
+        self.btn_delete.setProperty("cssClass", "dangerTextBtn")
 
         btn_layout.addWidget(self.btn_new)
         btn_layout.addWidget(self.btn_edit)
@@ -120,7 +120,7 @@ class ModelPortfolioManagerDialog(QDialog):
         header_layout = QHBoxLayout()
         
         self.lbl_portfolio_name = QLabel("Bir portföy seçin")
-        self.lbl_portfolio_name.setStyleSheet("font-size: 18px; font-weight: bold; color: #f1f5f9;")
+        self.lbl_portfolio_name.setProperty("cssClass", "dialogHeaderTitleLarge")
         header_layout.addWidget(self.lbl_portfolio_name)
         header_layout.addStretch()
         
@@ -156,7 +156,7 @@ class ModelPortfolioManagerDialog(QDialog):
 
         # Pozisyonlar tablosu
         lbl_positions = QLabel("Pozisyonlar")
-        lbl_positions.setStyleSheet("font-size: 14px; font-weight: bold; color: #94a3b8;")
+        lbl_positions.setProperty("cssClass", "dialogSubtitle")
         right_layout.addWidget(lbl_positions)
 
         self.positions_table = QTableWidget()
@@ -184,13 +184,13 @@ class ModelPortfolioManagerDialog(QDialog):
         self.btn_buy.clicked.connect(lambda: self._on_trade("BUY"))
         self.btn_buy.setEnabled(False)
         self.btn_buy.setObjectName("primaryButton")
-        self.btn_buy.setStyleSheet("background-color: #10b981;")
+        self.btn_buy.setProperty("cssClass", "tradeConfirmBuyBtn")
         
         self.btn_sell = QPushButton("📉 Hisse Sat")
         self.btn_sell.setCursor(Qt.PointingHandCursor)
         self.btn_sell.clicked.connect(lambda: self._on_trade("SELL"))
         self.btn_sell.setEnabled(False)
-        self.btn_sell.setStyleSheet("background-color: #ef4444;")
+        self.btn_sell.setProperty("cssClass", "tradeConfirmSellBtn")
         
         trade_btn_layout.addStretch()
         trade_btn_layout.addWidget(self.btn_buy)
@@ -204,23 +204,17 @@ class ModelPortfolioManagerDialog(QDialog):
         """Özet kartı oluşturur."""
         card = QFrame()
         card.setObjectName("summaryCard")
-        card.setStyleSheet("""
-            QFrame#summaryCard {
-                background-color: #1e293b;
-                border-radius: 8px;
-                padding: 10px;
-            }
-        """)
+        card.setProperty("cssClass", "summaryCard")
         
         layout = QVBoxLayout(card)
         layout.setContentsMargins(15, 10, 15, 10)
         layout.setSpacing(5)
         
         lbl_title = QLabel(title)
-        lbl_title.setStyleSheet("color: #94a3b8; font-size: 12px;")
+        lbl_title.setProperty("cssClass", "cardLabel")
         
         lbl_value = QLabel(value)
-        lbl_value.setStyleSheet("color: #f1f5f9; font-size: 16px; font-weight: bold;")
+        lbl_value.setProperty("cssClass", "cardValueLarge")
         lbl_value.setObjectName("valueLabel")
         
         layout.addWidget(lbl_title)
@@ -277,11 +271,12 @@ class ModelPortfolioManagerDialog(QDialog):
         )
         
         pl_text = f"₺ {summary['profit_loss']:+,.2f} ({summary['profit_loss_pct']:+.2f}%)"
-        pl_color = "#10b981" if summary['profit_loss'] >= 0 else "#ef4444"
-        self.card_pl.findChild(QLabel, "valueLabel").setText(pl_text)
-        self.card_pl.findChild(QLabel, "valueLabel").setStyleSheet(
-            f"color: {pl_color}; font-size: 16px; font-weight: bold;"
-        )
+        pl_color = "positive" if summary['profit_loss'] >= 0 else "negative"
+        pl_label = self.card_pl.findChild(QLabel, "valueLabel")
+        pl_label.setText(pl_text)
+        pl_label.setProperty("cssState", pl_color)
+        pl_label.style().unpolish(pl_label)
+        pl_label.style().polish(pl_label)
 
         # Pozisyonları güncelle
         self._load_positions()
@@ -641,7 +636,7 @@ class TradeInputDialog(QDialog):
 
         # Toplam tutar
         self.lbl_total = QLabel("₺ 1,000.00")
-        self.lbl_total.setStyleSheet("font-size: 14px; font-weight: bold; color: #f1f5f9;")
+        self.lbl_total.setProperty("cssClass", "formLabelTotal")
         form_layout.addRow("Toplam Tutar:", self.lbl_total)
 
         layout.addLayout(form_layout)
@@ -657,9 +652,9 @@ class TradeInputDialog(QDialog):
         btn_action = QPushButton(action_text)
         btn_action.setObjectName("primaryButton")
         if self.side == "BUY":
-            btn_action.setStyleSheet("background-color: #10b981;")
+            btn_action.setProperty("cssClass", "tradeConfirmBuyBtn")
         else:
-            btn_action.setStyleSheet("background-color: #ef4444;")
+            btn_action.setProperty("cssClass", "tradeConfirmSellBtn")
         btn_action.clicked.connect(self.accept)
         
         btn_layout.addWidget(btn_cancel)

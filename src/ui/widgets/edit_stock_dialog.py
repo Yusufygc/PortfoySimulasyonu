@@ -58,7 +58,7 @@ class EditStockDialog(QDialog):
 
         line = QLabel()
         line.setFixedHeight(1)
-        line.setStyleSheet("background-color: #1f2937;")
+        line.setProperty("cssClass", "horizontalDivider")
         main_layout.addWidget(line)
 
         form = QFormLayout()

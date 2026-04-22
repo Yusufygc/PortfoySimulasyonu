@@ -42,7 +42,7 @@ class NewStockTradeDialog(QDialog):
         self.setFixedHeight(550)
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         # Koyu tema arka planı
-        self.setStyleSheet("background-color: #0f172a; color: #f8fafc;")
+        self.setProperty("cssClass", "dialogContainer")
 
         # Başlangıçta 1. sayfayı göster
         self.stack.setCurrentIndex(0)
@@ -56,16 +56,16 @@ class NewStockTradeDialog(QDialog):
 
         # --- ÜST BİLGİ ŞERİDİ (HEADER) ---
         header_frame = QFrame()
-        header_frame.setStyleSheet("background-color: #1e293b; border-bottom: 1px solid #334155;")
+        header_frame.setProperty("cssClass", "dialogHeaderFrame")
         header_frame.setFixedHeight(70)
         header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(20, 0, 20, 0)
         
         self.lbl_step_title = QLabel("ADIM 1: Hisse Seçimi")
-        self.lbl_step_title.setStyleSheet("color: #f8fafc; font-weight: bold; font-size: 16px;")
+        self.lbl_step_title.setProperty("cssClass", "dialogHeaderTitle")
         
         self.lbl_step_indicator = QLabel("1 / 2")
-        self.lbl_step_indicator.setStyleSheet("color: #94a3b8; font-weight: 500; font-size: 14px;")
+        self.lbl_step_indicator.setProperty("cssClass", "dialogStepIndicator")
         
         header_layout.addWidget(self.lbl_step_title)
         header_layout.addStretch()
@@ -89,33 +89,23 @@ class NewStockTradeDialog(QDialog):
 
         # --- ALT BUTONLAR (FOOTER) ---
         footer_frame = QFrame()
-        footer_frame.setStyleSheet("background-color: #0f172a; border-top: 1px solid #334155;")
+        footer_frame.setProperty("cssClass", "dialogFooterFrame")
         footer_frame.setFixedHeight(70)
         footer_layout = QHBoxLayout(footer_frame)
         footer_layout.setContentsMargins(20, 10, 20, 10)
 
         self.btn_cancel = QPushButton("İptal")
         self.btn_cancel.setCursor(Qt.PointingHandCursor)
-        self.btn_cancel.setStyleSheet("""
-            QPushButton { color: #94a3b8; background: transparent; border: none; font-weight: 500; font-size: 14px; }
-            QPushButton:hover { color: #f8fafc; }
-        """)
+        self.btn_cancel.setProperty("cssClass", "linkButton")
         
         self.btn_back = QPushButton("Geri")
         self.btn_back.setCursor(Qt.PointingHandCursor)
         self.btn_back.setVisible(False) # İlk sayfada gizli
-        self.btn_back.setStyleSheet("""
-            QPushButton { background-color: #334155; color: white; border-radius: 6px; padding: 8px 16px; font-weight: 600; }
-            QPushButton:hover { background-color: #475569; }
-        """)
+        self.btn_back.setProperty("cssClass", "secondaryButton")
 
         self.btn_next = QPushButton("Devam Et") # Sayfa 1'de Devam, Sayfa 2'de Kaydet olacak
         self.btn_next.setCursor(Qt.PointingHandCursor)
-        # primaryButton stili
-        self.btn_next.setStyleSheet("""
-            QPushButton { background-color: #3b82f6; color: white; border-radius: 6px; padding: 8px 24px; font-weight: 600; font-size: 14px; }
-            QPushButton:hover { background-color: #2563eb; }
-        """)
+        self.btn_next.setProperty("cssClass", "primaryButton")
 
         footer_layout.addWidget(self.btn_cancel)
         footer_layout.addStretch()
@@ -133,7 +123,7 @@ class NewStockTradeDialog(QDialog):
 
         # Açıklama
         info = QLabel("İşlem yapmak istediğiniz hisse kodunu (Ticker) giriniz.\nBIST hisseleri için .IS uzantısı otomatik eklenecektir.")
-        info.setStyleSheet("color: #94a3b8; font-size: 14px; line-height: 1.4;")
+        info.setProperty("cssClass", "dialogSubtitle")
         info.setWordWrap(True)
         layout.addWidget(info)
 
@@ -141,31 +131,18 @@ class NewStockTradeDialog(QDialog):
         form = QFormLayout()
         form.setVerticalSpacing(20)
         
-        # Input Stilleri
-        input_style = """
-            QLineEdit { 
-                background-color: #1e293b; 
-                border: 1px solid #334155; 
-                border-radius: 6px; 
-                padding: 10px; 
-                color: white; 
-                font-size: 14px; 
-            }
-            QLineEdit:focus { border: 1px solid #3b82f6; }
-        """
-
         self.line_ticker = QLineEdit()
         self.line_ticker.setPlaceholderText("Örn: ASELS, THYAO")
-        self.line_ticker.setStyleSheet(input_style + "font-weight: bold; text-transform: uppercase;")
+        self.line_ticker.setProperty("cssClass", "tradeInputBold")
         
         self.line_name = QLineEdit()
         self.line_name.setPlaceholderText("Şirket adı (İsteğe bağlı)")
-        self.line_name.setStyleSheet(input_style)
+        self.line_name.setProperty("cssClass", "tradeInputNormal")
 
         lbl_ticker = QLabel("Hisse Kodu:")
-        lbl_ticker.setStyleSheet("color: #cbd5e1; font-weight: 500;")
+        lbl_ticker.setProperty("cssClass", "formLabel")
         lbl_name = QLabel("Şirket Adı:")
-        lbl_name.setStyleSheet("color: #cbd5e1; font-weight: 500;")
+        lbl_name.setProperty("cssClass", "formLabel")
 
         form.addRow(lbl_ticker, self.line_ticker)
         form.addRow(lbl_name, self.line_name)
@@ -173,20 +150,20 @@ class NewStockTradeDialog(QDialog):
 
         # Fiyat Bilgi Kartı (Sorgu Sonucu)
         self.price_info_frame = QFrame()
-        self.price_info_frame.setStyleSheet("background-color: #1e293b; border-radius: 8px; border: 1px solid #334155;")
+        self.price_info_frame.setProperty("cssClass", "infoFrame")
         self.price_info_frame.hide() # Başlangıçta gizli
         
         pi_layout = QVBoxLayout(self.price_info_frame)
         pi_layout.setContentsMargins(20, 15, 20, 15)
         
         lbl_info_title = QLabel("GÜNCEL PİYASA FİYATI")
-        lbl_info_title.setStyleSheet("color: #94a3b8; font-size: 12px; font-weight: bold;")
+        lbl_info_title.setProperty("cssClass", "infoTitle")
         
         self.lbl_fetched_price = QLabel("-")
-        self.lbl_fetched_price.setStyleSheet("color: #f8fafc; font-size: 28px; font-weight: bold;")
+        self.lbl_fetched_price.setProperty("cssClass", "priceLarge")
         
         self.lbl_fetched_source = QLabel("-")
-        self.lbl_fetched_source.setStyleSheet("color: #22c55e; font-size: 13px;")
+        self.lbl_fetched_source.setProperty("cssClass", "successText")
         
         pi_layout.addWidget(lbl_info_title)
         pi_layout.addWidget(self.lbl_fetched_price)
@@ -202,7 +179,7 @@ class NewStockTradeDialog(QDialog):
         
         # Hisse Özeti (Hangi hissede işlem yapıyoruz?)
         self.lbl_summary_ticker = QLabel("ASELS.IS")
-        self.lbl_summary_ticker.setStyleSheet("color: #3b82f6; font-size: 20px; font-weight: bold; margin-bottom: 10px;")
+        self.lbl_summary_ticker.setProperty("cssClass", "summaryTitle")
         self.lbl_summary_ticker.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.lbl_summary_ticker)
 
@@ -210,34 +187,22 @@ class NewStockTradeDialog(QDialog):
         form.setSpacing(15)
         form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        # Input Style
-        input_style = """
-            QDateEdit, QTimeEdit, QSpinBox, QLineEdit {
-                background-color: #1e293b; 
-                border: 1px solid #334155; 
-                border-radius: 6px; 
-                padding: 8px;
-                color: white;
-                font-size: 14px;
-            }
-            QDateEdit::drop-down { border: none; }
-        """
-        self.page2.setStyleSheet(input_style)
-        
-        label_style = "color: #cbd5e1; font-weight: 500;"
+
 
         # Tarih / Saat
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
+        self.date_edit.setProperty("cssClass", "tradeInputNormal")
         self.time_edit = QTimeEdit(QTime.currentTime())
         self.time_edit.setDisplayFormat("HH:mm")
+        self.time_edit.setProperty("cssClass", "tradeInputNormal")
         
         self._normalize_initial_datetime() # Haftasonu kontrolü
 
         lbl_date = QLabel("Tarih:")
-        lbl_date.setStyleSheet(label_style)
+        lbl_date.setProperty("cssClass", "formLabel")
         lbl_time = QLabel("Saat:")
-        lbl_time.setStyleSheet(label_style)
+        lbl_time.setProperty("cssClass", "formLabel")
 
         form.addRow(lbl_date, self.date_edit)
         form.addRow(lbl_time, self.time_edit)
@@ -247,38 +212,37 @@ class NewStockTradeDialog(QDialog):
         self.radio_buy = QRadioButton("ALIŞ (Buy)")
         self.radio_sell = QRadioButton("SATIŞ (Sell)")
         self.radio_buy.setChecked(True)
-        # Renklendirme
-        radio_style = """
-            QRadioButton { color: white; font-size: 14px; font-weight: 500; }
-            QRadioButton::indicator:checked { border: 2px solid; border-radius: 6px; }
-        """
-        self.radio_buy.setStyleSheet(radio_style + "QRadioButton::indicator:checked { background-color: #22c55e; border-color: #22c55e; }")
-        self.radio_sell.setStyleSheet(radio_style + "QRadioButton::indicator:checked { background-color: #ef4444; border-color: #ef4444; }")
+        
+        self.radio_buy.setProperty("cssClass", "tradeRadioBuy")
+        self.radio_sell.setProperty("cssClass", "tradeRadioSell")
         
         side_layout.addWidget(self.radio_buy)
         side_layout.addWidget(self.radio_sell)
         
         lbl_side = QLabel("İşlem Yönü:")
-        lbl_side.setStyleSheet(label_style)
+        lbl_side.setProperty("cssClass", "formLabel")
         form.addRow(lbl_side, side_layout)
 
         # Lot / Fiyat / Tutar
         self.spin_quantity = QSpinBox()
         self.spin_quantity.setRange(1, 10_000_000)
         self.spin_quantity.setValue(1)
+        self.spin_quantity.setProperty("cssClass", "tradeInputNormal")
 
         self.edit_price = QLineEdit()
         self.edit_price.setPlaceholderText("0.00")
+        self.edit_price.setProperty("cssClass", "tradeInputNormal")
         
         self.edit_amount = QLineEdit()
         self.edit_amount.setPlaceholderText("Toplam Tutar")
+        self.edit_amount.setProperty("cssClass", "tradeInputNormal")
 
         lbl_lot = QLabel("Lot Adedi:")
-        lbl_lot.setStyleSheet(label_style)
+        lbl_lot.setProperty("cssClass", "formLabel")
         lbl_price = QLabel("Birim Fiyat:")
-        lbl_price.setStyleSheet(label_style)
+        lbl_price.setProperty("cssClass", "formLabel")
         lbl_total = QLabel("Toplam Tutar:")
-        lbl_total.setStyleSheet(label_style)
+        lbl_total.setProperty("cssClass", "formLabel")
 
         form.addRow(lbl_lot, self.spin_quantity)
         form.addRow(lbl_price, self.edit_price)
