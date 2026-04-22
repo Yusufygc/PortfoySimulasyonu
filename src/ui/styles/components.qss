@@ -326,3 +326,28 @@ QTableWidget[cssClass="dataTable"] QHeaderView::section {
     background-color: #0f172a; color: #64748b; padding: 8px; border: none;
     border-bottom: 2px solid #334155; font-weight: bold; text-transform: uppercase; font-size: 11px;
 }
+
+QPushButton[cssClass="secondaryButton"] {
+    background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; padding: 8px 16px; border-radius: 6px; 
+}
+QPushButton[cssClass="secondaryButton"]:hover { 
+    background-color: #334155; 
+}
+
+QWidget[cssClass="chartToolbar"] {
+    background-color: #1e293b; color: #f1f5f9;
+}
+
+QListWidget[cssClass="stockListWidget"] { 
+    background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; border-radius: 6px; 
+}
+QListWidget[cssClass="stockListWidget"]::item { padding: 6px; }
+QListWidget[cssClass="stockListWidget"]::item:selected { background-color: #3b82f6; color: white; }
+QListWidget[cssClass="stockListWidget"]::item:alternate { background-color: #0f172a; }
+
+QPushButton[cssClass="quickDateBtn"] { 
+    background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; 
+}
+QPushButton[cssClass="quickDateBtn"]:hover { 
+    background-color: #3b82f6; border-color: #3b82f6; 
+}

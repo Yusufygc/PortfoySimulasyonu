@@ -36,7 +36,7 @@ class AnalysisFilterPanel(QFrame):
         layout.setSpacing(15)
 
         lbl_stocks = QLabel("Hisse Seç")
-        lbl_stocks.setStyleSheet("font-weight: bold; color: #94a3b8; font-size: 13px;")
+        lbl_stocks.setProperty("cssClass", "panelSubtitle")
         layout.addWidget(lbl_stocks)
 
         self.stock_list = QListWidget()
@@ -44,16 +44,11 @@ class AnalysisFilterPanel(QFrame):
         self.stock_list.setAlternatingRowColors(True)
         self.stock_list.setMaximumHeight(200)
         self.stock_list.itemSelectionChanged.connect(self.filter_changed.emit)
-        self.stock_list.setStyleSheet("""
-            QListWidget { background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; border-radius: 6px; }
-            QListWidget::item { padding: 6px; }
-            QListWidget::item:selected { background-color: #3b82f6; color: white; }
-            QListWidget::item:alternate { background-color: #0f172a; }
-        """)
+        self.stock_list.setProperty("cssClass", "stockListWidget")
         layout.addWidget(self.stock_list)
 
         lbl_chart_type = QLabel("Grafik Türü")
-        lbl_chart_type.setStyleSheet("font-weight: bold; color: #94a3b8; font-size: 13px;")
+        lbl_chart_type.setProperty("cssClass", "panelSubtitle")
         layout.addWidget(lbl_chart_type)
 
         self.combo_chart_type = QComboBox()
@@ -65,46 +60,33 @@ class AnalysisFilterPanel(QFrame):
             self.CHART_PORTFOLIO_VALUE,
         ])
         self.combo_chart_type.currentTextChanged.connect(lambda _: self.filter_changed.emit())
-        self.combo_chart_type.setStyleSheet("""
-            QComboBox { background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
-            QComboBox:hover { border-color: #3b82f6; }
-            QComboBox::drop-down { border: none; width: 30px; }
-            QComboBox::down-arrow { image: none; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #94a3b8; margin-right: 10px; }
-            QComboBox QAbstractItemView { background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; selection-background-color: #3b82f6; }
-        """)
+        self.combo_chart_type.setProperty("cssClass", "customComboBox")
         layout.addWidget(self.combo_chart_type)
 
         lbl_date_range = QLabel("Tarih Aralığı")
-        lbl_date_range.setStyleSheet("font-weight: bold; color: #94a3b8; font-size: 13px;")
+        lbl_date_range.setProperty("cssClass", "panelSubtitle")
         layout.addWidget(lbl_date_range)
 
         date_layout = QVBoxLayout()
         date_layout.setSpacing(5)
         
-        date_style = """
-            QDateEdit { background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; }
-            QDateEdit:hover { border-color: #3b82f6; }
-            QDateEdit::drop-down { border: none; width: 25px; }
-            QDateEdit QAbstractItemView { background-color: #1e293b; color: #f1f5f9; }
-        """
-        
         lbl_start = QLabel("Başlangıç:")
-        lbl_start.setStyleSheet("color: #94a3b8; font-size: 12px;")
+        lbl_start.setProperty("cssClass", "dateLabel")
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
         self.date_start.setDate(QDate.currentDate().addMonths(-1))
         self.date_start.dateChanged.connect(self.filter_changed.emit)
-        self.date_start.setStyleSheet(date_style)
+        self.date_start.setProperty("cssClass", "tradeInputNormal")
         date_layout.addWidget(lbl_start)
         date_layout.addWidget(self.date_start)
         
         lbl_end = QLabel("Bitiş:")
-        lbl_end.setStyleSheet("color: #94a3b8; font-size: 12px;")
+        lbl_end.setProperty("cssClass", "dateLabel")
         self.date_end = QDateEdit()
         self.date_end.setCalendarPopup(True)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
-        self.date_end.setStyleSheet(date_style)
+        self.date_end.setProperty("cssClass", "tradeInputNormal")
         date_layout.addWidget(lbl_end)
         date_layout.addWidget(self.date_end)
         
@@ -113,29 +95,24 @@ class AnalysisFilterPanel(QFrame):
         quick_date_layout = QHBoxLayout()
         quick_date_layout.setSpacing(5)
         
-        quick_btn_style = """
-            QPushButton { background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; }
-            QPushButton:hover { background-color: #3b82f6; border-color: #3b82f6; }
-        """
-        
         btn_1w = QPushButton("1H")
-        btn_1w.setStyleSheet(quick_btn_style)
+        btn_1w.setProperty("cssClass", "quickDateBtn")
         btn_1w.clicked.connect(lambda: self._set_quick_date(7))
         
         btn_1m = QPushButton("1A")
-        btn_1m.setStyleSheet(quick_btn_style)
+        btn_1m.setProperty("cssClass", "quickDateBtn")
         btn_1m.clicked.connect(lambda: self._set_quick_date(30))
         
         btn_3m = QPushButton("3A")
-        btn_3m.setStyleSheet(quick_btn_style)
+        btn_3m.setProperty("cssClass", "quickDateBtn")
         btn_3m.clicked.connect(lambda: self._set_quick_date(90))
         
         btn_1y = QPushButton("1Y")
-        btn_1y.setStyleSheet(quick_btn_style)
+        btn_1y.setProperty("cssClass", "quickDateBtn")
         btn_1y.clicked.connect(lambda: self._set_quick_date(365))
         
         btn_all = QPushButton("Tümü")
-        btn_all.setStyleSheet(quick_btn_style)
+        btn_all.setProperty("cssClass", "quickDateBtn")
         btn_all.clicked.connect(self._set_all_time)
         
         quick_date_layout.addWidget(btn_1w)
@@ -150,10 +127,7 @@ class AnalysisFilterPanel(QFrame):
         self.btn_save = QPushButton("💾 Grafiği Kaydet")
         self.btn_save.setCursor(Qt.PointingHandCursor)
         self.btn_save.clicked.connect(self.save_requested.emit)
-        self.btn_save.setStyleSheet("""
-            QPushButton { background-color: #3b82f6; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; }
-            QPushButton:hover { background-color: #2563eb; }
-        """)
+        self.btn_save.setProperty("cssClass", "primaryButtonLarge")
         layout.addWidget(self.btn_save)
 
     def set_stocks(self, stock_map: Dict[int, str]):

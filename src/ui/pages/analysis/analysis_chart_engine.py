@@ -31,13 +31,13 @@ class AnalysisChartEngine(QWidget):
         self.figure = Figure(figsize=(10, 6), facecolor='#0f172a')
         self.canvas = FigureCanvas(self.figure)
         self.toolbar = NavigationToolbar(self.canvas, self)
-        self.toolbar.setStyleSheet("background-color: #1e293b; color: #f1f5f9;")
+        self.toolbar.setProperty("cssClass", "chartToolbar")
 
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
 
         self.lbl_summary = QLabel("Hisse seçin ve grafik oluşturun")
-        self.lbl_summary.setStyleSheet("color: #94a3b8; padding: 10px; font-size: 13px;")
+        self.lbl_summary.setProperty("cssClass", "chartSummaryText")
         layout.addWidget(self.lbl_summary)
 
     def draw_empty_chart(self, message: str):

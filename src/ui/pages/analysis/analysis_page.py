@@ -42,17 +42,14 @@ class AnalysisPage(BasePage):
         # Header
         header_layout = QHBoxLayout()
         lbl_title = QLabel("📈 Hisse Analizi")
-        lbl_title.setStyleSheet("font-size: 20px; font-weight: bold; color: #f1f5f9;")
+        lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         
         self.btn_refresh = QPushButton("🔄 Verileri Güncelle")
         self.btn_refresh.setCursor(Qt.PointingHandCursor)
         self.btn_refresh.clicked.connect(self._on_refresh_data)
-        self.btn_refresh.setStyleSheet("""
-            QPushButton { background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; padding: 8px 16px; border-radius: 6px; }
-            QPushButton:hover { background-color: #334155; }
-        """)
+        self.btn_refresh.setProperty("cssClass", "secondaryButton")
         header_layout.addWidget(self.btn_refresh)
         
         self.main_layout.addLayout(header_layout)
