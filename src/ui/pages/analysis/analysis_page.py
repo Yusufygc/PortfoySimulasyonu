@@ -10,7 +10,8 @@ from PyQt5.QtWidgets import (
     QHBoxLayout, QPushButton, QLabel,
     QMessageBox, QFileDialog, QSplitter
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
+from src.ui.core.icon_manager import IconManager
 
 from src.ui.pages.base_page import BasePage
 from .analysis_filter_panel import AnalysisFilterPanel
@@ -41,12 +42,20 @@ class AnalysisPage(BasePage):
     def _init_ui(self):
         # Header
         header_layout = QHBoxLayout()
-        lbl_title = QLabel("📈 Hisse Analizi")
+        header_layout.setSpacing(10)
+        
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(IconManager.get_icon("line-chart", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        header_layout.addWidget(icon_lbl)
+        
+        lbl_title = QLabel("Hisse Analizi")
         lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         
-        self.btn_refresh = QPushButton("🔄 Verileri Güncelle")
+        self.btn_refresh = QPushButton("Verileri Güncelle")
+        self.btn_refresh.setIcon(IconManager.get_icon("refresh-cw", color="@COLOR_TEXT_WHITE"))
+        self.btn_refresh.setIconSize(QSize(18, 18))
         self.btn_refresh.setCursor(Qt.PointingHandCursor)
         self.btn_refresh.clicked.connect(self._on_refresh_data)
         self.btn_refresh.setProperty("cssClass", "secondaryButton")

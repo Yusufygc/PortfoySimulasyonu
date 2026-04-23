@@ -17,9 +17,10 @@ from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout,
     QListWidget, QListWidgetItem, QPushButton, QLabel
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtWidgets import QSizePolicy
 from src.ui.widgets.animated_button import AnimatedButton
+from src.ui.core.icon_manager import IconManager
 
 
 class PortfolioListPanel(QFrame):
@@ -44,9 +45,17 @@ class PortfolioListPanel(QFrame):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
 
+        lbl_row = QHBoxLayout()
+        lbl_row.setSpacing(8)
+        img = QLabel()
+        img.setPixmap(IconManager.get_icon("layers", color="@COLOR_TEXT_BRIGHT", size=QSize(18, 18)).pixmap(18, 18))
+        lbl_row.addWidget(img)
+        
         lbl = QLabel("Portföylerim")
-        lbl.setProperty("cssClass", "panelTitle")
-        layout.addWidget(lbl)
+        lbl.setStyleSheet("font-size: 16px; color: #FFFFFF; font-weight: bold; border: none;") # Brighter and larger as requested
+        lbl_row.addWidget(lbl)
+        lbl_row.addStretch()
+        layout.addLayout(lbl_row)
 
         self._list = QListWidget()
         self._list.setAlternatingRowColors(True)

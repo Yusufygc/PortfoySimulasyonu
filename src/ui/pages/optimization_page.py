@@ -12,10 +12,15 @@ from PyQt5.QtWidgets import (
     QFrame,
     QProgressBar,
     QMessageBox,
+    QScrollArea,
+    QWidget,
+    QVBoxLayout,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize
+from PyQt5.QtGui import QIcon
 
 from .base_page import BasePage
+from src.ui.core.icon_manager import IconManager
 from src.domain.models.optimization_result import OptimizationResult
 from src.ui.widgets.cards import MetricCard
 from src.ui.widgets.tables.suggestions_table import SuggestionsTable
@@ -68,23 +73,39 @@ class OptimizationPage(BasePage):
     # ------------------------------------------------------------------
 
     def _init_ui(self):
+        # Sayfa Kaydırma Alanı (İçerik sidebar dışına taşarsa çalışır)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.NoFrame)
+        self.scroll.setStyleSheet("background-color: transparent;")
+        
+        self.scroll_content = QWidget()
+        self.scroll_content.setStyleSheet("background-color: transparent;")
+        self.scroll_layout = QVBoxLayout(self.scroll_content)
+        self.scroll_layout.setContentsMargins(25, 25, 25, 25)
+        self.scroll_layout.setSpacing(20)
+        
         # Başlık
         header = QHBoxLayout()
-        lbl_title = QLabel("⚡ Portföy Optimizasyonu")
+        self.lbl_title_icon = QLabel()
+        self.lbl_title_icon.setPixmap(IconManager.get_icon("zap", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        header.addWidget(self.lbl_title_icon)
+        
+        lbl_title = QLabel("Portföy Optimizasyonu")
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
-        self.main_layout.addLayout(header)
+        self.scroll_layout.addLayout(header)
 
         lbl_desc = QLabel(
             "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n"
             "maksimize eden optimal portföy ağırlıklarını hesaplar."
         )
         lbl_desc.setProperty("cssClass", "pageDescription")
-        self.main_layout.addWidget(lbl_desc)
+        self.scroll_layout.addWidget(lbl_desc)
 
         # Kaynak seçimi paneli
-        self.main_layout.addWidget(self._build_source_panel())
+        self.scroll_layout.addWidget(self._build_source_panel())
 
         # Progress bar
         self.progress_bar = QProgressBar()
@@ -92,28 +113,41 @@ class OptimizationPage(BasePage):
         self.progress_bar.setMaximumHeight(4)
         self.progress_bar.setProperty("cssClass", "optimizationProgressBar")
         self.progress_bar.setVisible(False)
-        self.main_layout.addWidget(self.progress_bar)
+        self.scroll_layout.addWidget(self.progress_bar)
 
         # Metrik kartları
-        self.main_layout.addWidget(self._build_metrics_panel())
+        self.scroll_layout.addWidget(self._build_metrics_panel())
 
         # Öneriler başlığı + tablo
-        self.lbl_suggestions = QLabel("📋 Önerilen Dağılım")
+        suggestions_header = QHBoxLayout()
+        suggestions_header.setSpacing(10)
+        
+        self.lbl_sug_icon = QLabel()
+        self.lbl_sug_icon.setPixmap(IconManager.get_icon("list", color="@COLOR_TEXT_SECONDARY", size=QSize(20, 20)).pixmap(20, 20))
+        self.lbl_sug_icon.setVisible(False)
+        suggestions_header.addWidget(self.lbl_sug_icon)
+
+        self.lbl_suggestions = QLabel("Önerilen Dağılım")
         self.lbl_suggestions.setProperty("cssClass", "tableTitle")
         self.lbl_suggestions.setVisible(False)
-        self.main_layout.addWidget(self.lbl_suggestions)
+        suggestions_header.addWidget(self.lbl_suggestions)
+        suggestions_header.addStretch()
+        self.scroll_layout.addLayout(suggestions_header)
 
         self.suggestions_table = SuggestionsTable()
         self.suggestions_table.setVisible(False)
-        self.main_layout.addWidget(self.suggestions_table)
+        self.scroll_layout.addWidget(self.suggestions_table)
 
         # Boş durum
         self.lbl_empty = QLabel("Bir portföy kaynağı seçin ve 'Optimize Et' butonuna tıklayın.")
         self.lbl_empty.setProperty("cssClass", "emptyStateText")
         self.lbl_empty.setAlignment(Qt.AlignCenter)
-        self.main_layout.addWidget(self.lbl_empty)
+        self.scroll_layout.addWidget(self.lbl_empty)
 
-        self.main_layout.addStretch()
+        self.scroll_layout.addStretch()
+        
+        self.scroll.setWidget(self.scroll_content)
+        self.main_layout.addWidget(self.scroll)
 
     def _build_source_panel(self) -> QFrame:
         """Kaynak seçimi ve Optimize Et butonu paneli."""
@@ -123,7 +157,7 @@ class OptimizationPage(BasePage):
         layout.setContentsMargins(15, 12, 15, 12)
         layout.setSpacing(15)
 
-        lbl = QLabel("📂 Kaynak:")
+        lbl = QLabel("Kaynak:")
         lbl.setProperty("cssClass", "panelTitle")
         layout.addWidget(lbl)
 
@@ -134,7 +168,8 @@ class OptimizationPage(BasePage):
         layout.addWidget(self.combo_source)
         layout.addStretch()
 
-        self.btn_optimize = AnimatedButton("🚀 Optimize Et")
+        self.btn_optimize = AnimatedButton("Optimize Et")
+        self.btn_optimize.setIconName("zap", color="@COLOR_TEXT_WHITE", size=18)
         self.btn_optimize.setMinimumHeight(42)
         self.btn_optimize.setMinimumWidth(160)
         self.btn_optimize.setProperty("cssClass", "primaryButtonLarge")
@@ -150,9 +185,9 @@ class OptimizationPage(BasePage):
         metrics_layout.setContentsMargins(0, 0, 0, 0)
         metrics_layout.setSpacing(15)
 
-        self.card_return = MetricCard("📈 Beklenen Yıllık Getiri")
-        self.card_risk   = MetricCard("📊 Risk (Volatilite)")
-        self.card_sharpe = MetricCard("⭐ Sharpe Oranı")
+        self.card_return = MetricCard("Beklenen Yıllık Getiri", icon_name="trending-up")
+        self.card_risk   = MetricCard("Risk (Volatilite)", icon_name="trending-down")
+        self.card_sharpe = MetricCard("Sharpe Oranı", icon_name="star")
 
         metrics_layout.addWidget(self.card_return)
         metrics_layout.addWidget(self.card_risk)
@@ -173,11 +208,11 @@ class OptimizationPage(BasePage):
 
     def _load_sources(self):
         self.combo_source.clear()
-        self.combo_source.addItem("🏠 Dashboard Portföyü", self.SOURCE_DASHBOARD)
+        self.combo_source.addItem(IconManager.get_icon("layout-dashboard", color="@COLOR_TEXT_PRIMARY", size=QSize(16, 16)), "Dashboard Portföyü", self.SOURCE_DASHBOARD)
         try:
             self._model_portfolios = self._optimization_service.get_model_portfolios()
             for mp in self._model_portfolios:
-                self.combo_source.addItem(f"📊 {mp.name}", f"{self.SOURCE_MODEL}:{mp.id}")
+                self.combo_source.addItem(IconManager.get_icon("wallet", color="@COLOR_TEXT_PRIMARY", size=QSize(16, 16)), mp.name, f"{self.SOURCE_MODEL}:{mp.id}")
         except Exception:
             pass
 
@@ -216,7 +251,7 @@ class OptimizationPage(BasePage):
 
     def _set_loading(self, loading: bool):
         self.btn_optimize.setEnabled(not loading)
-        self.btn_optimize.setText("⏳ Hesaplanıyor..." if loading else "🚀 Optimize Et")
+        self.btn_optimize.setText("Hesaplanıyor..." if loading else "Optimize Et")
         self.progress_bar.setVisible(loading)
 
     # ------------------------------------------------------------------
@@ -227,6 +262,7 @@ class OptimizationPage(BasePage):
         self.lbl_empty.setVisible(False)
         self.metrics_frame.setVisible(True)
         self.lbl_suggestions.setVisible(True)
+        self.lbl_sug_icon.setVisible(True)
         self.suggestions_table.setVisible(True)
 
         curr = result.current_metrics

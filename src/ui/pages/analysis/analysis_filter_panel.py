@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import (
     QListWidget, QListWidgetItem, QAbstractItemView,
     QComboBox, QDateEdit, QPushButton
 )
-from PyQt5.QtCore import Qt, QDate, pyqtSignal
+from PyQt5.QtCore import Qt, QDate, QSize, pyqtSignal
+from src.ui.core.icon_manager import IconManager
 
 class AnalysisFilterPanel(QFrame):
     """Analiz sayfasının sol panelindeki denetimleri içerir."""
@@ -35,9 +36,17 @@ class AnalysisFilterPanel(QFrame):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
+        lbl_stocks_row = QHBoxLayout()
+        lbl_stocks_row.setSpacing(8)
+        img_stocks = QLabel()
+        img_stocks.setPixmap(IconManager.get_icon("list", color="@COLOR_TEXT_SECONDARY", size=QSize(16, 16)).pixmap(16, 16))
+        lbl_stocks_row.addWidget(img_stocks)
+        
         lbl_stocks = QLabel("Hisse Seç")
         lbl_stocks.setProperty("cssClass", "panelSubtitle")
-        layout.addWidget(lbl_stocks)
+        lbl_stocks_row.addWidget(lbl_stocks)
+        lbl_stocks_row.addStretch()
+        layout.addLayout(lbl_stocks_row)
 
         self.stock_list = QListWidget()
         self.stock_list.setSelectionMode(QAbstractItemView.MultiSelection)
@@ -47,9 +56,17 @@ class AnalysisFilterPanel(QFrame):
         self.stock_list.setProperty("cssClass", "stockListWidget")
         layout.addWidget(self.stock_list)
 
+        lbl_chart_row = QHBoxLayout()
+        lbl_chart_row.setSpacing(8)
+        img_chart = QLabel()
+        img_chart.setPixmap(IconManager.get_icon("settings-2", color="@COLOR_TEXT_SECONDARY", size=QSize(16, 16)).pixmap(16, 16))
+        lbl_chart_row.addWidget(img_chart)
+        
         lbl_chart_type = QLabel("Grafik Türü")
         lbl_chart_type.setProperty("cssClass", "panelSubtitle")
-        layout.addWidget(lbl_chart_type)
+        lbl_chart_row.addWidget(lbl_chart_type)
+        lbl_chart_row.addStretch()
+        layout.addLayout(lbl_chart_row)
 
         self.combo_chart_type = QComboBox()
         self.combo_chart_type.addItems([
@@ -63,9 +80,17 @@ class AnalysisFilterPanel(QFrame):
         self.combo_chart_type.setProperty("cssClass", "customComboBox")
         layout.addWidget(self.combo_chart_type)
 
+        lbl_date_row = QHBoxLayout()
+        lbl_date_row.setSpacing(8)
+        img_date = QLabel()
+        img_date.setPixmap(IconManager.get_icon("calendar", color="@COLOR_TEXT_SECONDARY", size=QSize(16, 16)).pixmap(16, 16))
+        lbl_date_row.addWidget(img_date)
+        
         lbl_date_range = QLabel("Tarih Aralığı")
         lbl_date_range.setProperty("cssClass", "panelSubtitle")
-        layout.addWidget(lbl_date_range)
+        lbl_date_row.addWidget(lbl_date_range)
+        lbl_date_row.addStretch()
+        layout.addLayout(lbl_date_row)
 
         date_layout = QVBoxLayout()
         date_layout.setSpacing(5)
@@ -124,7 +149,9 @@ class AnalysisFilterPanel(QFrame):
 
         layout.addStretch()
 
-        self.btn_save = QPushButton("💾 Grafiği Kaydet")
+        self.btn_save = QPushButton("Grafiği Kaydet")
+        self.btn_save.setIcon(IconManager.get_icon("save", color="@COLOR_TEXT_WHITE"))
+        self.btn_save.setIconSize(QSize(20, 20))
         self.btn_save.setCursor(Qt.PointingHandCursor)
         self.btn_save.clicked.connect(self.save_requested.emit)
         self.btn_save.setProperty("cssClass", "primaryButtonLarge")

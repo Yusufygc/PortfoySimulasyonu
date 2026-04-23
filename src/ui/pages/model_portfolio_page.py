@@ -22,6 +22,8 @@ from src.ui.widgets.tables import PositionsTable
 from src.ui.widgets.panels import PortfolioListPanel
 from src.ui.widgets.toast import Toast
 from src.ui.widgets.animated_button import AnimatedButton
+from src.ui.core.icon_manager import IconManager
+from PyQt5.QtCore import Qt, QDate, QSize
 
 
 class ModelPortfolioPage(BasePage):
@@ -48,7 +50,13 @@ class ModelPortfolioPage(BasePage):
     def _init_ui(self):
         # Başlık
         header = QHBoxLayout()
-        lbl_title = QLabel("📊 Model Portföyler")
+        header.setSpacing(10)
+        
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(IconManager.get_icon("layers", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        header.addWidget(icon_lbl)
+        
+        lbl_title = QLabel("Model Portföyler")
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
@@ -93,10 +101,10 @@ class ModelPortfolioPage(BasePage):
         # Özet kartları
         cards_row = QHBoxLayout()
         cards_row.setSpacing(15)
-        self.card_initial = InfoCard("Başlangıç", "₺ 0")
-        self.card_cash    = InfoCard("Nakit",      "₺ 0")
-        self.card_value   = InfoCard("Değer",      "₺ 0")
-        self.card_pl      = InfoCard("K/Z",        "₺ 0")
+        self.card_initial = InfoCard("Başlangıç", "₺ 0", icon_name="wallet")
+        self.card_cash    = InfoCard("Nakit",      "₺ 0", icon_name="coins")
+        self.card_value   = InfoCard("Değer",      "₺ 0", icon_name="bar-chart-2")
+        self.card_pl      = InfoCard("K/Z",        "₺ 0", icon_name="target")
         for card in (self.card_initial, self.card_cash, self.card_value, self.card_pl):
             cards_row.addWidget(card)
         layout.addLayout(cards_row)

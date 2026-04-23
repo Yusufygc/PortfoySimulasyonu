@@ -146,16 +146,16 @@ QLabel[cssClass="statusLabelInfo"] {
     border-radius: @RADIUS_LG; padding: @SPACE_XL; font-size: @FONT_MD;
 }
 QLabel[cssClass="successHeader"] {
-    color: @COLOR_SUCCESS; font-weight: bold; font-size: @FONT_MD;
+    color: @COLOR_SUCCESS; font-weight: bold; font-size: @FONT_XL;
 }
 QLabel[cssClass="dangerHeader"] {
-    color: @COLOR_DANGER; font-weight: bold; font-size: @FONT_MD; margin-top: @SPACE_LG;
+    color: @COLOR_DANGER; font-weight: bold; font-size: @FONT_XL; margin-top: @SPACE_LG;
 }
 QLabel[cssClass="inputLabel"] {
-    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS;
+    color: @COLOR_TEXT_BODY; font-size: @FONT_MD; font-weight: 500;
 }
 QLabel[cssClass="infoCardTitle"] {
-    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; font-weight: bold; border: none;
+    color: @COLOR_TEXT_BRIGHT; font-size: @FONT_MD; font-weight: bold; border: none;
 }
 QLabel[cssClass="infoCardValue"] {
     color: @COLOR_TEXT_PRIMARY; font-size: @FONT_3XL; font-weight: bold; border: none;
@@ -179,24 +179,24 @@ QLabel[cssClass="emptyStateText"] {
     padding: 40px;
 }
 QLabel[cssClass="infoCardDetail"] {
-    color: @COLOR_TEXT_MUTED;
-    font-size: @FONT_XS;
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_MD;
     border: none;
 }
 QLabel[cssClass="infoCardValueSmall"] {
-    color: @COLOR_TEXT_SECONDARY;
-    font-size: @FONT_MD;
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_LG;
     font-weight: bold;
     border: none;
 }
 QLabel[cssClass="infoCardValueMedium"] {
-    color: @COLOR_TEXT_PRIMARY;
-    font-size: @FONT_2XL;
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_3XL;
     font-weight: bold;
     border: none;
 }
 QLabel[cssClass="infoCardDelta"] {
-    font-size: @FONT_BASE;
+    font-size: @FONT_XL;
     font-weight: bold;
     border: none;
 }

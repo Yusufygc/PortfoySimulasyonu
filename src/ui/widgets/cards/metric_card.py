@@ -20,7 +20,7 @@ class MetricCard(QFrame):
     Delta değeri QSS cssState ile renklenir (inline setStyleSheet kullanılmaz).
     """
 
-    def __init__(self, title: str = "", parent=None):
+    def __init__(self, title: str = "", icon_name: str = "", parent=None):
         super().__init__(parent)
         self.setProperty("cssClass", "infoCard")
 
@@ -28,10 +28,23 @@ class MetricCard(QFrame):
         layout.setContentsMargins(18, 14, 18, 14)
         layout.setSpacing(8)
 
-        # Başlık
+        # Başlık ve İkon
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(10)
+        
+        if icon_name:
+            from src.ui.core.icon_manager import IconManager
+            from PyQt5.QtCore import QSize
+            self._lbl_icon = QLabel()
+            self._lbl_icon.setPixmap(IconManager.get_icon(icon_name, color="@COLOR_TEXT_SECONDARY", size=QSize(20, 20)).pixmap(20, 20))
+            header_layout.addWidget(self._lbl_icon)
+
         self._lbl_title = QLabel(title)
         self._lbl_title.setProperty("cssClass", "infoCardTitle")
-        layout.addWidget(self._lbl_title)
+        header_layout.addWidget(self._lbl_title)
+        header_layout.addStretch()
+        
+        layout.addLayout(header_layout)
 
         # Mevcut değer satırı
         row_current = QHBoxLayout()

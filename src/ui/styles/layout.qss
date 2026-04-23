@@ -77,8 +77,12 @@ QFrame[cssClass="panelFrameBordered"] {
     border: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="infoCard"] {
-    background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_XL;
+    background-color: @COLOR_BG_SURFACE; 
+    border-radius: @RADIUS_XL;
     border: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="infoCard"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
 }
 
 QFrame[cssClass="panelFramePadded"] {
@@ -184,11 +188,11 @@ QTableWidget {
     gridline-color: @COLOR_BORDER_SUBTLE;
 }
 QHeaderView::section {
-    font-size: @FONT_TABLE_HEADER;
+    font-size: @FONT_MD;
     font-weight: bold;
-    padding: 8px 6px;
-    background-color: @COLOR_BG_ELEVATED;
-    color: @COLOR_TEXT_SECONDARY;
+    padding: 10px 8px;
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_WHITE;
     border: none;
     border-bottom: 2px solid @COLOR_BORDER;
 }

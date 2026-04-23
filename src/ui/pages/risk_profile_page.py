@@ -17,11 +17,12 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QSizePolicy,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 
 from .base_page import BasePage
 from src.ui.widgets.toast import Toast
 from src.domain.models.risk_profile import RiskProfile, PROFILE_INFO
+from src.ui.core.icon_manager import IconManager
 
 
 class RiskProfilePage(BasePage):
@@ -41,7 +42,13 @@ class RiskProfilePage(BasePage):
     def _init_ui(self):
         # ====== BAŞLIK ====== #
         header = QHBoxLayout()
-        lbl_title = QLabel("🛡️ Risk Profil Analizi")
+        header.setSpacing(10)
+        
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(IconManager.get_icon("shield-check", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        header.addWidget(icon_lbl)
+        
+        lbl_title = QLabel("Risk Profil Analizi")
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
@@ -58,9 +65,14 @@ class RiskProfilePage(BasePage):
         card_layout.setContentsMargins(25, 20, 25, 20)
         card_layout.setSpacing(10)
 
+        header_row = QHBoxLayout()
+        header_row.setSpacing(10)
+        
         self.lbl_profile_header = QLabel("📊 Mevcut Profiliniz")
         self.lbl_profile_header.setProperty("cssClass", "profileHeader")
-        card_layout.addWidget(self.lbl_profile_header)
+        header_row.addWidget(self.lbl_profile_header)
+        header_row.addStretch()
+        card_layout.addLayout(header_row)
 
         # Skor + etiket satırı
         score_row = QHBoxLayout()
@@ -102,9 +114,17 @@ class RiskProfilePage(BasePage):
         survey_layout.setContentsMargins(25, 20, 25, 25)
         survey_layout.setSpacing(18)
 
-        lbl_survey_title = QLabel("📝 Risk Profili Anketi")
+        survey_header = QHBoxLayout()
+        survey_header.setSpacing(10)
+        img_survey = QLabel()
+        img_survey.setPixmap(IconManager.get_icon("clipboard-list", color="@COLOR_TEXT_SECONDARY", size=QSize(22, 22)).pixmap(22, 22))
+        survey_header.addWidget(img_survey)
+        
+        lbl_survey_title = QLabel("Risk Profili Anketi")
         lbl_survey_title.setProperty("cssClass", "surveyTitle")
-        survey_layout.addWidget(lbl_survey_title)
+        survey_header.addWidget(lbl_survey_title)
+        survey_header.addStretch()
+        survey_layout.addLayout(survey_header)
 
         # --- Soru 1: Yaş ---
         q1_group = self._create_question_group("1-Yaşınız kaç?")
@@ -128,9 +148,9 @@ class RiskProfilePage(BasePage):
         q2_options = QHBoxLayout()
         q2_options.setSpacing(15)
 
-        self.rb_short = self._create_radio_button("⏱️ Kısa Vade\n(< 1 Ay)", "short")
-        self.rb_medium = self._create_radio_button("📅 Orta Vade\n(1-12 Ay)", "medium")
-        self.rb_long = self._create_radio_button("📈 Uzun Vade\n(> 1 Yıl)", "long")
+        self.rb_short = self._create_radio_button("Kısa Vade\n(< 1 Ay)", "short")
+        self.rb_medium = self._create_radio_button("Orta Vade\n(1-12 Ay)", "medium")
+        self.rb_long = self._create_radio_button("Uzun Vade\n(> 1 Yıl)", "long")
 
         self.horizon_group.addButton(self.rb_short)
         self.horizon_group.addButton(self.rb_medium)
@@ -151,9 +171,9 @@ class RiskProfilePage(BasePage):
         q3_options = QHBoxLayout()
         q3_options.setSpacing(15)
 
-        self.rb_sell = self._create_radio_button("😰 Panik yapıp\nsatarım", "sell")
-        self.rb_hold = self._create_radio_button("🧘 Sakince\nbeklerim", "hold")
-        self.rb_buy_more = self._create_radio_button("💪 Fırsat bilip\ndaha çok alırım", "buy_more")
+        self.rb_sell = self._create_radio_button("Panik yapıp\nsatarım", "sell")
+        self.rb_hold = self._create_radio_button("Sakince\nbeklerim", "hold")
+        self.rb_buy_more = self._create_radio_button("Fırsat bilip\ndaha çok alırım", "buy_more")
 
         self.reaction_group.addButton(self.rb_sell)
         self.reaction_group.addButton(self.rb_hold)
@@ -169,7 +189,9 @@ class RiskProfilePage(BasePage):
         # --- Hesapla Butonu ---
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        self.btn_calculate = QPushButton("🎯 Profili Hesapla")
+        self.btn_calculate = QPushButton("Profili Hesapla")
+        self.btn_calculate.setIcon(IconManager.get_icon("refresh-cw", color="@COLOR_TEXT_WHITE"))
+        self.btn_calculate.setIconSize(QSize(20, 20))
         self.btn_calculate.setCursor(Qt.PointingHandCursor)
         self.btn_calculate.setMinimumHeight(48)
         self.btn_calculate.setMinimumWidth(220)
@@ -249,7 +271,9 @@ class RiskProfilePage(BasePage):
         self.profile_card.style().polish(self.profile_card)
 
         self.lbl_score.setText(f"Puan: {profile.risk_score} / 100")
+        
         self.lbl_label.setText(f"{profile.emoji} {profile.risk_label}")
+        
         self.lbl_label.setProperty("cssState", color_state)
         self.lbl_label.style().unpolish(self.lbl_label)
         self.lbl_label.style().polish(self.lbl_label)

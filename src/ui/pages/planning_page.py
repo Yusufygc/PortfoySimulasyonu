@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout, QPushButton, QLabel,
     QTabWidget, QWidget, QComboBox, QMessageBox, QDialog,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 
 from .base_page import BasePage
 from src.ui.widgets.cards import InfoCard
@@ -17,6 +17,7 @@ from src.ui.widgets.goal_input_dialog import GoalInputDialog
 from src.ui.widgets.contribution_dialog import ContributionDialog
 from src.ui.widgets.toast import Toast
 from src.ui.widgets.animated_button import AnimatedButton
+from src.ui.core.icon_manager import IconManager
 
 
 class PlanningPage(BasePage):
@@ -39,7 +40,13 @@ class PlanningPage(BasePage):
 
     def _init_ui(self):
         header = QHBoxLayout()
-        lbl_title = QLabel("💰 Finansal Planlama")
+        header.setSpacing(10)
+        
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(IconManager.get_icon("wallet", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        header.addWidget(icon_lbl)
+        
+        lbl_title = QLabel("Finansal Planlama")
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
@@ -50,12 +57,14 @@ class PlanningPage(BasePage):
 
         # Sekme 1: Bütçe
         budget_tab = QWidget()
-        self.tab_widget.addTab(budget_tab, "📊 Bütçe Yönetimi")
+        self.tab_widget.addTab(budget_tab, "Bütçe Yönetimi")
+        self.tab_widget.setTabIcon(0, IconManager.get_icon("list", color="@COLOR_TEXT_SECONDARY"))
         self._build_budget_tab(budget_tab)
 
         # Sekme 2: Hedefler
         goals_tab = QWidget()
-        self.tab_widget.addTab(goals_tab, "🎯 Hedef Takibi")
+        self.tab_widget.addTab(goals_tab, "Hedef Takibi")
+        self.tab_widget.setTabIcon(1, IconManager.get_icon("target", color="@COLOR_TEXT_SECONDARY"))
         self._build_goals_tab(goals_tab)
 
         self.main_layout.addWidget(self.tab_widget)
@@ -68,7 +77,13 @@ class PlanningPage(BasePage):
 
         # Ay seçici + Kaydet
         top_row = QHBoxLayout()
-        lbl_month = QLabel("📅 Ay:")
+        top_row.setSpacing(8)
+        
+        icon_month = QLabel()
+        icon_month.setPixmap(IconManager.get_icon("calendar", color="@COLOR_PRIMARY", size=QSize(18, 18)).pixmap(18, 18))
+        top_row.addWidget(icon_month)
+        
+        lbl_month = QLabel("Ay:")
         lbl_month.setProperty("cssClass", "panelTitle")
         top_row.addWidget(lbl_month)
 
@@ -81,7 +96,8 @@ class PlanningPage(BasePage):
         top_row.addWidget(self.combo_month)
         top_row.addStretch()
 
-        btn_save = AnimatedButton("💾 Bütçeyi Kaydet")
+        btn_save = AnimatedButton("Bütçeyi Kaydet")
+        btn_save.setIconName("save", color="@COLOR_TEXT_WHITE", size=16)
         btn_save.setMinimumHeight(38)
         btn_save.setProperty("cssClass", "primaryButton")
         btn_save.clicked.connect(self._on_save_budget)
@@ -91,9 +107,9 @@ class PlanningPage(BasePage):
         # Özet kartları
         cards_row = QHBoxLayout()
         cards_row.setSpacing(15)
-        self.card_income  = InfoCard("💵 Toplam Gelir",          "₺ 0")
-        self.card_expense = InfoCard("💸 Toplam Gider",          "₺ 0")
-        self.card_savings = InfoCard("🏦 Tasarruf Potansiyeli",  "₺ 0")
+        self.card_income  = InfoCard("Toplam Gelir",          "₺ 0", icon_name="trending-up")
+        self.card_expense = InfoCard("Toplam Gider",          "₺ 0", icon_name="trending-down")
+        self.card_savings = InfoCard("Tasarruf Potansiyeli",  "₺ 0", icon_name="banknote")
         for card in (self.card_income, self.card_expense, self.card_savings):
             cards_row.addWidget(card)
         layout.addLayout(cards_row)

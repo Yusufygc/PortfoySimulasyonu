@@ -37,6 +37,11 @@ class SuggestionsTable(QTableWidget):
         self.setEditTriggers(QTableWidget.NoEditTriggers)
         self.setProperty("cssClass", "dataTable")
 
+        # İç scrollbarları devre dışı bırakıyoruz (Sayfa seviyesinde scroll olacak)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setFrameShape(QTableWidget.NoFrame)
+
     def populate(self, suggestions) -> None:
         """
         Öneri listesini tabloya doldurur.
@@ -72,6 +77,22 @@ class SuggestionsTable(QTableWidget):
             else:
                 action_item.setForeground(Qt.gray)
             self.setItem(i, 4, action_item)
+
+        # Tablo yüksekliğini içeriğe göre ayarla
+        self._adjust_height()
+
+    def _adjust_height(self) -> None:
+        """Tablonun minimum yüksekliğini satır sayısına göre hesaplar."""
+        row_count = self.rowCount()
+        if row_count == 0:
+            self.setMinimumHeight(0)
+            return
+
+        header_height = self.horizontalHeader().height()
+        row_height = self.rowHeight(0) if row_count > 0 else 35
+        total_height = header_height + (row_count * row_height) + 2
+        self.setMinimumHeight(total_height)
+        self.setMaximumHeight(total_height)
 
     def _set_readonly(self, row: int, col: int, text: str, align=None) -> None:
         item = QTableWidgetItem(text)

@@ -20,7 +20,8 @@ from PyQt5.QtWidgets import (
     QInputDialog,
     QSplitter,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
+from src.ui.core.icon_manager import IconManager
 
 from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
@@ -46,7 +47,13 @@ class WatchlistPage(BasePage):
     def _init_ui(self):
         # Başlık
         header_layout = QHBoxLayout()
-        lbl_title = QLabel("📋 Takip Listeleri")
+        header_layout.setSpacing(10)
+        
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(IconManager.get_icon("clipboard-list", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        header_layout.addWidget(icon_lbl)
+        
+        lbl_title = QLabel("Takip Listeleri")
         lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
@@ -64,9 +71,17 @@ class WatchlistPage(BasePage):
         left_layout.setContentsMargins(15, 15, 15, 15)
         left_layout.setSpacing(10)
 
+        lbl_row = QHBoxLayout()
+        lbl_row.setSpacing(8)
+        img = QLabel()
+        img.setPixmap(IconManager.get_icon("bookmark", color="@COLOR_TEXT_BRIGHT", size=QSize(18, 18)).pixmap(18, 18))
+        lbl_row.addWidget(img)
+        
         lbl_lists = QLabel("Listelerim")
-        lbl_lists.setProperty("cssClass", "panelTitle")
-        left_layout.addWidget(lbl_lists)
+        lbl_lists.setStyleSheet("font-size: 16px; color: #FFFFFF; font-weight: bold; border: none;") # Brighter and larger as requested
+        lbl_row.addWidget(lbl_lists)
+        lbl_row.addStretch()
+        left_layout.addLayout(lbl_row)
 
         self.list_widget = QListWidget()
         self.list_widget.setAlternatingRowColors(True)

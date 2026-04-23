@@ -15,6 +15,8 @@ Kullanım:
 from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDoubleSpinBox
 )
+from src.ui.core.icon_manager import IconManager
+from PyQt5.QtCore import QSize
 
 
 class BudgetFormPanel(QFrame):
@@ -31,31 +33,47 @@ class BudgetFormPanel(QFrame):
         outer.setSpacing(12)
 
         # Gelirler
-        lbl_income = QLabel("📥 Gelirler")
+        lbl_income = QLabel("Gelirler")
         lbl_income.setProperty("cssClass", "successHeader")
-        outer.addWidget(lbl_income)
+        
+        income_header = QHBoxLayout()
+        income_header.setSpacing(10)
+        img_income = QLabel()
+        img_income.setPixmap(IconManager.get_icon("banknote", color="@COLOR_SUCCESS", size=QSize(22, 22)).pixmap(22, 22))
+        income_header.addWidget(img_income)
+        income_header.addWidget(lbl_income)
+        income_header.addStretch()
+        outer.addLayout(income_header)
 
         income_row = QHBoxLayout()
         income_row.setSpacing(20)
         self.spin_salary     = self._make_spin()
         self.spin_additional = self._make_spin()
-        income_row.addLayout(self._labeled("Maaş:", self.spin_salary))
-        income_row.addLayout(self._labeled("Ek Gelir:", self.spin_additional))
+        income_row.addLayout(self._labeled("Maaş", self.spin_salary, "wallet"))
+        income_row.addLayout(self._labeled("Ek Gelir", self.spin_additional, "plus"))
         outer.addLayout(income_row)
 
         # Giderler
-        lbl_expense = QLabel("📤 Giderler")
+        lbl_expense = QLabel("Giderler")
         lbl_expense.setProperty("cssClass", "dangerHeader")
-        outer.addWidget(lbl_expense)
+        
+        expense_header = QHBoxLayout()
+        expense_header.setSpacing(10)
+        img_expense = QLabel()
+        img_expense.setPixmap(IconManager.get_icon("shopping-cart", color="@COLOR_DANGER", size=QSize(22, 22)).pixmap(22, 22))
+        expense_header.addWidget(img_expense)
+        expense_header.addWidget(lbl_expense)
+        expense_header.addStretch()
+        outer.addLayout(expense_header)
 
         expense_row1 = QHBoxLayout()
         expense_row1.setSpacing(20)
         self.spin_rent      = self._make_spin()
         self.spin_bills     = self._make_spin()
         self.spin_food      = self._make_spin()
-        expense_row1.addLayout(self._labeled("Kira:", self.spin_rent))
-        expense_row1.addLayout(self._labeled("Fatura:", self.spin_bills))
-        expense_row1.addLayout(self._labeled("Market:", self.spin_food))
+        expense_row1.addLayout(self._labeled("Kira", self.spin_rent, "home"))
+        expense_row1.addLayout(self._labeled("Fatura", self.spin_bills, "file-text"))
+        expense_row1.addLayout(self._labeled("Market", self.spin_food, "shopping-cart"))
         outer.addLayout(expense_row1)
 
         expense_row2 = QHBoxLayout()
@@ -63,9 +81,9 @@ class BudgetFormPanel(QFrame):
         self.spin_transport = self._make_spin()
         self.spin_luxury    = self._make_spin()
         self.spin_target    = self._make_spin()
-        expense_row2.addLayout(self._labeled("Ulaşım:", self.spin_transport))
-        expense_row2.addLayout(self._labeled("Lüks:", self.spin_luxury))
-        expense_row2.addLayout(self._labeled("🎯 Hedef:", self.spin_target))
+        expense_row2.addLayout(self._labeled("Ulaşım", self.spin_transport, "car"))
+        expense_row2.addLayout(self._labeled("Lüks", self.spin_luxury, "star"))
+        expense_row2.addLayout(self._labeled("Bütçe Hedefi", self.spin_target, "target"))
         outer.addLayout(expense_row2)
 
     # ------------------------------------------------------------------
@@ -116,12 +134,23 @@ class BudgetFormPanel(QFrame):
         return spin
 
     @staticmethod
-    def _labeled(text: str, spin: QDoubleSpinBox) -> QVBoxLayout:
+    def _labeled(text: str, spin: QDoubleSpinBox, icon_name: str = "") -> QVBoxLayout:
         layout = QVBoxLayout()
-        layout.setSpacing(4)
+        layout.setSpacing(6)
+        
+        lbl_row = QHBoxLayout()
+        lbl_row.setSpacing(6)
+        if icon_name:
+            img = QLabel()
+            img.setPixmap(IconManager.get_icon(icon_name, color="@COLOR_TEXT_SECONDARY", size=QSize(16, 16)).pixmap(16, 16))
+            lbl_row.addWidget(img)
+            
         lbl = QLabel(text)
         lbl.setProperty("cssClass", "inputLabel")
-        layout.addWidget(lbl)
+        lbl_row.addWidget(lbl)
+        lbl_row.addStretch()
+        
+        layout.addLayout(lbl_row)
         layout.addWidget(spin)
         return layout
 

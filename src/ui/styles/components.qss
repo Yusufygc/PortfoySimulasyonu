@@ -274,7 +274,7 @@ QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button:hover {
 QPushButton[cssClass="primaryButtonLarge"] {
     background-color: @COLOR_PRIMARY;
     color: @COLOR_TEXT_WHITE;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: @RADIUS_LG;
     font-size: @FONT_LG;
     font-weight: bold;
