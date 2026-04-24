@@ -54,8 +54,10 @@ class FakeStockRepo:
 class FakeMarketDataClient:
     def __init__(self, series_map):
         self._series_map = series_map
+        self.requested_tickers = []
 
     def get_price_series(self, ticker, start_date, end_date):
+        self.requested_tickers.append(ticker)
         series = self._series_map.get(ticker, {})
         return {
             point_date: value
@@ -174,6 +176,86 @@ def test_missing_price_data_creates_warning():
     risk_view = service.get_allocation_risk_view(filter_state)
 
     assert any("AKBNK" in warning for warning in risk_view.warnings)
+
+
+def test_market_benchmark_falls_back_to_secondary_ticker():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("100")),
+    ]
+    market_client = FakeMarketDataClient(
+        {
+            "^XU100": {
+                date(2026, 1, 1): Decimal("100"),
+                date(2026, 1, 2): Decimal("101"),
+                date(2026, 1, 3): Decimal("102"),
+            }
+        }
+    )
+    service = AnalysisService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo({1: {
+            date(2026, 1, 1): Decimal("100"),
+            date(2026, 1, 2): Decimal("105"),
+            date(2026, 1, 3): Decimal("110"),
+        }}),
+        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
+        market_data_client=market_client,
+    )
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_benchmarks=["bist100"],
+        portfolio_source="dashboard",
+    )
+
+    overview = service.get_overview(filter_state)
+
+    assert overview.benchmark_gap_pct is not None
+    assert market_client.requested_tickers[:2] == ["XU100.IS", "^XU100"]
+    assert not any("BIST 100" in warning for warning in overview.warnings)
+
+
+def test_gold_benchmark_can_be_composed_from_gold_and_usd_series():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("100")),
+    ]
+    market_client = FakeMarketDataClient(
+        {
+            "XAUUSD=X": {
+                date(2026, 1, 1): Decimal("100"),
+                date(2026, 1, 2): Decimal("102"),
+                date(2026, 1, 3): Decimal("104"),
+            },
+            "TRY=X": {
+                date(2026, 1, 1): Decimal("30"),
+                date(2026, 1, 2): Decimal("31"),
+                date(2026, 1, 3): Decimal("32"),
+            },
+        }
+    )
+    service = AnalysisService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo({1: {
+            date(2026, 1, 1): Decimal("100"),
+            date(2026, 1, 2): Decimal("105"),
+            date(2026, 1, 3): Decimal("110"),
+        }}),
+        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
+        market_data_client=market_client,
+    )
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_benchmarks=["gold"],
+        portfolio_source="dashboard",
+    )
+
+    comparison = service.get_comparison_view(filter_state, ["gold"])
+
+    assert len(comparison.benchmark_series) == 1
+    gold_series = comparison.benchmark_series[0].points
+    assert list(gold_series.values()) == [Decimal("3000"), Decimal("3162"), Decimal("3328")]
+    assert market_client.requested_tickers[:3] == ["XAUTRY=X", "XAUUSD=X", "TRY=X"]
 
 
 def test_invalid_date_range_raises_value_error(analysis_service):

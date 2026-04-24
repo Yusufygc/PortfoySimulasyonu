@@ -81,6 +81,7 @@ class AnalysisPage(BasePage):
 
         self.warning_banner = QLabel("")
         self.warning_banner.setProperty("cssClass", "warningBanner")
+        self.warning_banner.setWordWrap(True)
         self.warning_banner.hide()
         left_layout.addWidget(self.warning_banner)
 

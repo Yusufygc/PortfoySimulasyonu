@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from src.application.services.analysis import AnalysisOverviewDTO
 from src.ui.widgets.cards import InfoCard, MetricCard
@@ -28,11 +28,13 @@ class AnalysisOverviewSection(QWidget):
 
         self.warning_banner = QLabel("")
         self.warning_banner.setProperty("cssClass", "warningBanner")
+        self.warning_banner.setWordWrap(True)
         self.warning_banner.hide()
         layout.addWidget(self.warning_banner)
 
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(15)
+        cards_grid = QGridLayout()
+        cards_grid.setHorizontalSpacing(15)
+        cards_grid.setVerticalSpacing(15)
 
         self.card_total = InfoCard("Toplam Portföy Değeri", "₺ 0", icon_name="wallet")
         self.card_return = InfoCard("Dönem Getirisi", "—", icon_name="trending-up")
@@ -40,9 +42,12 @@ class AnalysisOverviewSection(QWidget):
         self.card_position = InfoCard("En Büyük Pozisyon", "—", icon_name="layers")
         self.card_drawdown = InfoCard("Maks. Drawdown", "—", icon_name="trending-down")
 
-        for card in [self.card_total, self.card_return, self.card_gap, self.card_position, self.card_drawdown]:
-            cards_row.addWidget(card, 1)
-        layout.addLayout(cards_row)
+        overview_cards = [self.card_total, self.card_return, self.card_gap, self.card_position, self.card_drawdown]
+        for idx, card in enumerate(overview_cards):
+            cards_grid.addWidget(card, idx // 3, idx % 3)
+        for column in range(3):
+            cards_grid.setColumnStretch(column, 1)
+        layout.addLayout(cards_grid)
 
         detail_row = QHBoxLayout()
         detail_row.setSpacing(15)

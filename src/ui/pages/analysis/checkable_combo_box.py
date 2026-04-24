@@ -93,8 +93,8 @@ class CheckableComboBox(QComboBox):
         super().mousePressEvent(event)
 
     def eventFilter(self, obj, event) -> bool:
-        popup_view = getattr(self, "_popup_view", None)
-        popup_frame = getattr(self, "_popup_frame", None)
+        popup_view = self._safe_popup_view()
+        popup_frame = self._safe_popup_frame()
 
         if obj is self.lineEdit() and event.type() == QEvent.MouseButtonRelease:
             self._toggle_popup()
@@ -116,18 +116,24 @@ class CheckableComboBox(QComboBox):
     def showPopup(self) -> None:
         if self._popup_is_open:
             return
+        popup_view = self._safe_popup_view()
+        popup_frame = self._safe_popup_frame()
+        if popup_view is None or popup_frame is None:
+            return
         self._update_popup_geometry()
         popup_pos = self.mapToGlobal(QPoint(0, self.height() + 2))
-        self._popup_frame.move(popup_pos)
-        self._popup_frame.show()
-        self._popup_frame.raise_()
-        self._popup_view.setFocus()
-        self._popup_view.scrollToTop()
+        popup_frame.move(popup_pos)
+        popup_frame.show()
+        popup_frame.raise_()
+        popup_view.setFocus()
+        popup_view.scrollToTop()
         self._popup_is_open = True
 
     def hidePopup(self) -> None:
         self._popup_is_open = False
-        self._popup_frame.hide()
+        popup_frame = self._safe_popup_frame()
+        if popup_frame is not None:
+            popup_frame.hide()
 
     def _toggle_popup(self) -> None:
         if self._popup_is_open:
@@ -153,12 +159,36 @@ class CheckableComboBox(QComboBox):
         line_edit.setCursorPosition(0)
 
     def _update_popup_geometry(self) -> None:
+        popup_view = self._safe_popup_view()
+        popup_frame = self._safe_popup_frame()
+        if popup_view is None or popup_frame is None:
+            return
         row_count = self.model().rowCount()
         visible_rows = min(max(row_count, 1), self.maxVisibleItems())
-        row_height = self._popup_view.sizeHintForRow(0) if row_count else self.height()
+        row_height = popup_view.sizeHintForRow(0) if row_count else self.height()
         row_height = max(row_height, 32)
         popup_width = max(self.width(), 300)
         popup_height = (visible_rows * row_height) + 12
-        self._popup_view.setMinimumWidth(popup_width)
-        self._popup_view.setMinimumHeight(popup_height)
-        self._popup_frame.resize(popup_width, popup_height)
+        popup_view.setMinimumWidth(popup_width)
+        popup_view.setMinimumHeight(popup_height)
+        popup_frame.resize(popup_width, popup_height)
+
+    def _safe_popup_view(self):
+        popup_view = getattr(self, "_popup_view", None)
+        if popup_view is None:
+            return None
+        try:
+            popup_view.viewport()
+        except RuntimeError:
+            return None
+        return popup_view
+
+    def _safe_popup_frame(self):
+        popup_frame = getattr(self, "_popup_frame", None)
+        if popup_frame is None:
+            return None
+        try:
+            popup_frame.isVisible()
+        except RuntimeError:
+            return None
+        return popup_frame

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 import os
 from dataclasses import dataclass, field
@@ -15,6 +16,8 @@ from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -116,6 +119,12 @@ class AnalysisService:
     DEFAULT_DEPOSIT_RATE = Decimal("0.45")
     SOURCE_DASHBOARD = "dashboard"
     SOURCE_MODEL_PREFIX = "model:"
+    MARKET_BENCHMARK_CANDIDATES: Dict[str, Sequence[str]] = {
+        "bist100": ("XU100.IS", "^XU100"),
+        "usd": ("TRY=X", "USDTRY=X"),
+    }
+    GOLD_DIRECT_TICKERS: Sequence[str] = ("XAUTRY=X",)
+    GOLD_USD_TICKERS: Sequence[str] = ("XAUUSD=X", "GC=F")
 
     def __init__(
         self,
@@ -513,15 +522,86 @@ class AnalysisService:
             try:
                 if definition.kind == "synthetic":
                     points = self._build_deposit_series(start_date, end_date)
+                elif definition.code == "gold":
+                    points = self._build_gold_series(start_date, end_date)
                 else:
-                    points = self._market_data_client.get_price_series(definition.ticker, start_date, end_date)
+                    points = self._build_market_series(definition, start_date, end_date)
             except Exception:
+                logger.warning("Benchmark serisi oluşturulamadı: %s", definition.code, exc_info=True)
                 points = {}
             if not points:
                 warnings.append(f"{definition.label} benchmark verisi alınamadı.")
                 continue
             results.append(BenchmarkSeries(code=definition.code, label=definition.label, points=points))
         return results, warnings
+
+    def _build_market_series(
+        self,
+        definition: BenchmarkDefinition,
+        start_date: date,
+        end_date: date,
+    ) -> Dict[date, Decimal]:
+        candidates = self._get_market_ticker_candidates(definition)
+        points, _ = self._fetch_first_available_market_series(candidates, start_date, end_date)
+        return points
+
+    def _build_gold_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
+        direct_series, _ = self._fetch_first_available_market_series(self.GOLD_DIRECT_TICKERS, start_date, end_date)
+        if direct_series:
+            return direct_series
+
+        gold_usd_series, _ = self._fetch_first_available_market_series(self.GOLD_USD_TICKERS, start_date, end_date)
+        if not gold_usd_series:
+            return {}
+
+        usd_definition = self._benchmarks.get("usd")
+        usd_candidates = self._get_market_ticker_candidates(usd_definition) if usd_definition is not None else []
+        usd_try_series, _ = self._fetch_first_available_market_series(usd_candidates, start_date, end_date)
+        if usd_try_series:
+            combined = self._combine_series_by_date(gold_usd_series, usd_try_series)
+            if combined:
+                return combined
+
+        return gold_usd_series
+
+    def _get_market_ticker_candidates(self, definition: BenchmarkDefinition | None) -> List[str]:
+        if definition is None:
+            return []
+
+        candidates: List[str] = []
+        if definition.ticker:
+            candidates.append(definition.ticker)
+        for ticker in self.MARKET_BENCHMARK_CANDIDATES.get(definition.code, ()):
+            if ticker not in candidates:
+                candidates.append(ticker)
+        return candidates
+
+    def _fetch_first_available_market_series(
+        self,
+        candidates: Sequence[str],
+        start_date: date,
+        end_date: date,
+    ) -> tuple[Dict[date, Decimal], Optional[str]]:
+        for ticker in candidates:
+            try:
+                points = self._market_data_client.get_price_series(ticker, start_date, end_date)
+            except Exception:
+                logger.debug("Benchmark ticker denemesi başarısız: %s", ticker, exc_info=True)
+                points = {}
+            if points:
+                return points, ticker
+        return {}, None
+
+    def _combine_series_by_date(
+        self,
+        left_series: Dict[date, Decimal],
+        right_series: Dict[date, Decimal],
+    ) -> Dict[date, Decimal]:
+        shared_dates = sorted(set(left_series).intersection(right_series))
+        return {
+            point_date: left_series[point_date] * right_series[point_date]
+            for point_date in shared_dates
+        }
 
     def _build_deposit_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
         annual_rate = Decimal(os.getenv("ANALYSIS_DEPOSIT_ANNUAL_RATE", str(self.DEFAULT_DEPOSIT_RATE)))

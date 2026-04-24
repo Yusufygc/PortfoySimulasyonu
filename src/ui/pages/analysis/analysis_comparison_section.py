@@ -29,6 +29,7 @@ class AnalysisComparisonSection(QWidget):
 
         self.warning_banner = QLabel("")
         self.warning_banner.setProperty("cssClass", "warningBanner")
+        self.warning_banner.setWordWrap(True)
         self.warning_banner.hide()
         layout.addWidget(self.warning_banner)
 

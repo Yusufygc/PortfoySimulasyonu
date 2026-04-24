@@ -6,10 +6,11 @@ import pytest
 pytest.importorskip("PyQt5")
 from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtGui import QMouseEvent
-from PyQt5.QtWidgets import QApplication, QSizePolicy
+from PyQt5.QtWidgets import QApplication, QGridLayout, QSizePolicy
 
 from src.ui.pages.analysis import AnalysisPage
 from src.ui.pages.analysis.analysis_control_panel import AnalysisControlPanel
+from src.ui.pages.analysis.analysis_overview_section import AnalysisOverviewSection
 from src.ui.pages.analysis.benchmark_chip_group import BenchmarkChipGroup
 from src.ui.pages.analysis.checkable_combo_box import CheckableComboBox
 from src.ui.theme_manager import ThemeManager
@@ -113,6 +114,17 @@ def test_checkable_combo_box_popup_has_minimum_geometry():
     assert view.minimumHeight() > 0
 
 
+def test_checkable_combo_box_ignores_deleted_popup_view():
+    class DeletedPopupView:
+        def viewport(self):
+            raise RuntimeError("wrapped C/C++ object of type QListView has been deleted")
+
+    combo = CheckableComboBox()
+    combo._popup_view = DeletedPopupView()
+
+    assert combo.eventFilter(object(), QEvent(QEvent.MouseButtonRelease)) is False
+
+
 def test_control_panel_places_stock_selection_below_view_mode():
     panel = AnalysisControlPanel()
     layout = panel.layout()
@@ -136,6 +148,14 @@ def test_control_panel_populates_comparison_and_stock_items():
 
     assert panel.compare_combo.model().rowCount() == 2
     assert panel.stock_combo.model().rowCount() == 2
+
+
+def test_overview_section_uses_wrapped_warning_banner_and_metric_grid():
+    section = AnalysisOverviewSection()
+    metrics_layout = section.layout().itemAt(1).layout()
+
+    assert section.warning_banner.wordWrap() is True
+    assert isinstance(metrics_layout, QGridLayout)
 
 
 def test_checkable_combo_box_popup_layout_resolves_inside_analysis_page():
