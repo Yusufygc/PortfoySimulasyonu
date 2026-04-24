@@ -11,6 +11,7 @@ from .analysis import AnalysisPage
 from .optimization_page import OptimizationPage
 from .planning_page import PlanningPage
 from .risk_profile_page import RiskProfilePage
+from .settings_page import SettingsPage
 
 __all__ = [
     "BasePage",
@@ -21,6 +22,7 @@ __all__ = [
     "OptimizationPage",
     "PlanningPage",
     "RiskProfilePage",
+    "SettingsPage",
 ]
 
 

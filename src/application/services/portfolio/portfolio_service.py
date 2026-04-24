@@ -1,25 +1,18 @@
-# src/application/services/portfolio_service.py
-
 from __future__ import annotations
 
-from typing import Dict, List,Tuple
 from datetime import date
 from decimal import Decimal
+from typing import Dict, List, Tuple
 
-from src.domain.models.trade import Trade
 from src.domain.models.portfolio import Portfolio
-from src.domain.models.position import Position
+from src.domain.models.trade import Trade, TradeSide
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 
 
 class PortfolioService:
     """
-    Portföy ile ilgili temel işlemleri yöneten application servisi.
-
-    - Tüm trade'leri çekip Portfolio domain nesnesi oluşturur
-    - Yeni trade ekler (alış/satış)
-    - İstenirse belirli tarihteki fiyatlarla birlikte portföyü döner
+    Portfoy ile ilgili temel islemleri yoneten application servisi.
     """
 
     def __init__(
@@ -30,12 +23,7 @@ class PortfolioService:
         self._portfolio_repo = portfolio_repo
         self._price_repo = price_repo
 
-    # --------- Portföy görüntüleme --------- #
-
     def get_current_portfolio(self) -> Portfolio:
-        """
-        DB'deki tüm trade'leri okuyup portföyü oluşturur.
-        """
         trades: List[Trade] = self._portfolio_repo.get_all_trades()
         return Portfolio.from_trades(trades)
 
@@ -43,46 +31,21 @@ class PortfolioService:
         self,
         value_date: date,
     ) -> Tuple[Portfolio, Dict[int, Decimal]]:
-        """
-        Verilen tarihteki fiyatlarla birlikte portföyü döner.
-        """
         portfolio = self.get_current_portfolio()
         price_map = self._price_repo.get_prices_for_date(value_date)
         return portfolio, price_map
 
-    # --------- Trade ekleme --------- #
-
     def add_trade(self, trade: Trade) -> Trade:
-        """
-        Yeni bir işlem (alış/satış) ekler.
-
-        - Mevcut trade'lerden portföyü kurar
-        - Yeni trade'i bu portföye uygular (VALIDASYON)
-        - Eğer geçerliyse DB'ye yazar
-        """
-
-        # Mevcut portföyü oluştur
         trades: List[Trade] = self._portfolio_repo.get_all_trades()
         portfolio = Portfolio.from_trades(trades)
+        portfolio.apply_trade(trade)
+        return self._portfolio_repo.insert_trade(trade)
 
-        # Domain kuralı: elindeki lottan fazla satamazsın vb.
-        try:
-            portfolio.apply_trade(trade)
-        except ValueError as e:
-            # Bu noktada trade HİÇBİR YERE yazılmadı
-            # UI tarafı bu hatayı yakalayıp kullanıcıya mesaj gösterecek
-            raise
-
-        # Buraya gelebildiysek trade domain açısından geçerli demektir
-        saved_trade = self._portfolio_repo.insert_trade(trade)
     def get_trades_for_stock(self, stock_id: int) -> List[Trade]:
-        """Belirli bir hisseye ait işlemleri getirir."""
         all_trades = self._portfolio_repo.get_all_trades()
-        return [t for t in all_trades if t.stock_id == stock_id]
+        return [trade for trade in all_trades if trade.stock_id == stock_id]
 
     def calculate_capital(self) -> Decimal:
-        """Sermayeyi hesaplar (Kümülatif Satışlar - Alışlar)."""
-        from src.domain.models.trade import TradeSide
         trades = self._portfolio_repo.get_all_trades()
         capital = Decimal("0")
         for trade in trades:
@@ -94,13 +57,11 @@ class PortfolioService:
         return max(Decimal("0"), capital)
 
     def get_all_trades(self) -> List[Trade]:
-        """Tüm işlemleri döner (UI'ın doğrudan repo'ya erişmesini önler)."""
         return self._portfolio_repo.get_all_trades()
 
     def get_first_trade_date(self):
-        """Portföydeki en eski işlem tarihini döner. İşlem yoksa None."""
-        from typing import Optional
         trades = self._portfolio_repo.get_all_trades()
         if not trades:
             return None
-        return min(t.trade_date for t in trades)
+        return min(trade.trade_date for trade in trades)
+

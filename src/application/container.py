@@ -11,8 +11,10 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_planning_repository import
 from src.infrastructure.db.sqlalchemy.repositories.sa_risk_profile_repository import SQLAlchemyRiskProfileRepository
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
 
+from src.application.services.market.price_lookup_service import PriceLookupService
 from src.application.services.portfolio.portfolio_service import PortfolioService
 from src.application.services.portfolio.price_update_service import PriceUpdateService
+from src.application.services.portfolio.trade_entry_service import TradeEntryService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.analysis.analysis_service import AnalysisService
 from src.application.services.portfolio.portfolio_update_coordinator import PortfolioUpdateCoordinator
@@ -54,9 +56,14 @@ class AppContainer:
 
         # 3) Market data client
         self.market_client = YFinanceMarketDataClient()
+        self.price_lookup_service = PriceLookupService()
 
         # 4) Services
         self.portfolio_service = PortfolioService(self.portfolio_repo, self.price_repo)
+        self.trade_entry_service = TradeEntryService(
+            stock_repo=self.stock_repo,
+            portfolio_service=self.portfolio_service,
+        )
         self.price_update_service = PriceUpdateService(self.price_repo, self.market_client)
         self.return_calc_service = ReturnCalcService(self.portfolio_repo, self.price_repo)
         self.model_portfolio_service = ModelPortfolioService(

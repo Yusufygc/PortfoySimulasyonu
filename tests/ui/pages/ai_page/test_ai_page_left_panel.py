@@ -1,5 +1,6 @@
 import pytest
 import sys
+pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 from src.ui.pages.ai_page.left_panel.ticker_input_bar import TickerInputBar
 from src.ui.pages.ai_page.left_panel.prediction_card import PredictionCard

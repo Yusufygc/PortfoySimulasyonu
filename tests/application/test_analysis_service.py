@@ -266,3 +266,17 @@ def test_invalid_date_range_raises_value_error(analysis_service):
 
     with pytest.raises(ValueError):
         analysis_service.get_overview(filter_state)
+
+
+def test_page_payload_contains_all_sections(analysis_service):
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_stock_ids=[],
+        selected_benchmarks=["bist100"],
+        portfolio_source="dashboard",
+    )
+
+    payload = analysis_service.get_page_payload(filter_state)
+
+    assert set(payload.keys()) == {"overview", "comparison", "risk"}

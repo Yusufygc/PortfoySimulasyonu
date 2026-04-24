@@ -1,5 +1,6 @@
 import pytest
 import sys
+pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 from src.ui.pages.ai_page.right_panel.chat_input_bar import ChatInputBar
 from src.ui.pages.ai_page.right_panel.message_bubble import MessageBubble

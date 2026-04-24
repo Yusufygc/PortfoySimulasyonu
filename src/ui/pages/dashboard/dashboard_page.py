@@ -1,43 +1,26 @@
-# src/ui/pages/dashboard/dashboard_page.py
-
 import logging
-from datetime import date
 from decimal import Decimal
-from typing import Dict, List, Optional
 
-from PyQt5.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QMessageBox, QDialog, QFileDialog
-)
-from PyQt5.QtCore import Qt, QModelIndex, QThreadPool
+from PyQt5.QtCore import QModelIndex, QThreadPool, QSize
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout
 
 from src.ui.pages.base_page import BasePage
-from src.ui.portfolio_table_model import PortfolioTableModel
-from src.ui.worker import Worker
+from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.animated_button import AnimatedButton
+from src.ui.widgets.backfill_dialog import BackfillDialog
+from src.ui.widgets.capital_dialog import CapitalDialog
 from src.ui.widgets.date_range_dialog import DateRangeDialog
 from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
-from src.ui.widgets.edit_stock_dialog import EditStockDialog
-from src.ui.widgets.capital_dialog import CapitalDialog
-from src.ui.widgets.backfill_dialog import BackfillDialog
-from src.ui.widgets.animated_button import AnimatedButton
 
-from src.domain.models.stock import Stock
-from src.domain.models.trade import Trade, TradeSide
-from src.domain.models.position import Position
-from src.domain.models.portfolio import Portfolio
-from src.application.services.reporting.daily_history_models import ExportMode
-
-from .dashboard_summary_cards import DashboardSummaryCards
+from .dashboard_actions import DashboardActions
 from .dashboard_portfolio_table import DashboardPortfolioTable
+from .dashboard_presenter import DashboardPresenter
+from .dashboard_summary_cards import DashboardSummaryCards
 
 logger = logging.getLogger(__name__)
 
-class DashboardPage(BasePage):
-    """
-    Ana dashboard sayfası orchestrator'ı.
-    Alt bileşenlerle arayüzü çizer, asıl iş mantığı ve sinyalleri yönetir.
-    """
 
+class DashboardPage(BasePage):
     def __init__(
         self,
         container,
@@ -47,7 +30,7 @@ class DashboardPage(BasePage):
         super().__init__(parent)
         self.container = container
         self.page_title = "Dashboard"
-        
+
         self.portfolio_service = container.portfolio_service
         self.return_calc_service = container.return_calc_service
         self.update_coordinator = container.update_coordinator
@@ -55,281 +38,124 @@ class DashboardPage(BasePage):
         self.reset_service = container.reset_service
         self.market_client = container.market_client
         self.excel_export_service = container.excel_export_service
+        self.trade_entry_service = container.trade_entry_service
         self.price_lookup_func = price_lookup_func
         self.backfill_service = container.backfill_service
-        
+
+        self.new_trade_dialog_cls = NewStockTradeDialog
+        self.date_range_dialog_cls = DateRangeDialog
+        self.capital_dialog_cls = CapitalDialog
+        self.backfill_dialog_cls = BackfillDialog
         self.threadpool = QThreadPool()
         self._capital = Decimal("0")
-        
         self.portfolio_model = None
         self._is_refreshing = False
-        
+        self._last_trade_result = None
+
+        self._presenter = DashboardPresenter(self)
+        self._actions = DashboardActions(self, self._presenter)
+
         self._init_ui()
-        
         if self.container.event_bus:
-            self.container.event_bus.prices_updated.connect(self._on_prices_updated_event)
+            self.container.event_bus.prices_updated.connect(self._presenter.on_prices_updated_event)
 
     def _init_ui(self):
-        # Üst Aksiyonlar
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(20)
+
+        title_layout = QVBoxLayout()
+        title_layout.setSpacing(4)
+
+        title_row = QHBoxLayout()
+        title_row.setSpacing(10)
+
+        icon_label = QLabel()
+        icon_label.setPixmap(
+            IconManager.get_icon("layout-dashboard", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28)
+        )
+        title_row.addWidget(icon_label)
+
+        title_label = QLabel("Dashboard")
+        title_label.setProperty("cssClass", "pageTitle")
+        title_row.addWidget(title_label)
+        title_row.addStretch()
+        title_layout.addLayout(title_row)
+
+        description_label = QLabel("Portfoyunuzun ozetini, raporlarini ve guncelleme aksiyonlarini tek yerden yonetin.")
+        description_label.setProperty("cssClass", "pageDescription")
+        description_label.setWordWrap(True)
+        title_layout.addWidget(description_label)
+
+        header_layout.addLayout(title_layout, 1)
+
+        actions_layout = QVBoxLayout()
+        actions_layout.setSpacing(6)
+
         top_layout = QHBoxLayout()
         top_layout.setSpacing(10)
-        
-        self.btn_new_trade = AnimatedButton(" Yeni İşlem")
+
+        self.btn_new_trade = AnimatedButton(" Yeni Islem")
         self.btn_new_trade.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_new_trade.setProperty("cssClass", "primaryButton")
-        self.btn_new_trade.clicked.connect(self._on_new_trade)
-        
-        self.btn_update_prices = AnimatedButton(" Fiyatları Güncelle")
+        self.btn_new_trade.clicked.connect(self._actions.on_new_trade)
+
+        self.btn_update_prices = AnimatedButton(" Fiyatlari Guncelle")
         self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
-        self.btn_update_prices.clicked.connect(self._on_update_prices)
-        
+        self.btn_update_prices.clicked.connect(self._actions.on_update_prices)
+
         self.lbl_last_update = QLabel("")
         self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
-        
-        self.btn_capital = AnimatedButton(" Sermaye Yönetimi")
+
+        self.btn_capital = AnimatedButton(" Sermaye Yonetimi")
         self.btn_capital.setIconName("coins", color="@COLOR_TEXT_PRIMARY")
-        self.btn_capital.clicked.connect(self._on_capital_management)
+        self.btn_capital.clicked.connect(self._actions.on_capital_management)
         self.btn_capital.setProperty("cssClass", "secondaryButton")
-        
-        self.btn_backfill = AnimatedButton(" Geçmiş Veri Yönetimi")
+
+        self.btn_backfill = AnimatedButton(" Gecmis Veri Yonetimi")
         self.btn_backfill.setIconName("history", color="@COLOR_TEXT_PRIMARY")
-        self.btn_backfill.clicked.connect(self._on_backfill)
+        self.btn_backfill.clicked.connect(self._actions.on_backfill)
         self.btn_backfill.setProperty("cssClass", "secondaryButton")
+
+        self.btn_export_today = AnimatedButton(" Rapor: Bugun")
+        self.btn_export_today.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
+        self.btn_export_today.clicked.connect(self._actions.on_export_today)
+
+        self.btn_export_range = AnimatedButton(" Rapor: Tarih Araligi")
+        self.btn_export_range.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
+        self.btn_export_range.clicked.connect(self._actions.on_export_range)
 
         top_layout.addWidget(self.btn_new_trade)
         top_layout.addWidget(self.btn_update_prices)
-        top_layout.addWidget(self.lbl_last_update)
         top_layout.addWidget(self.btn_capital)
         top_layout.addWidget(self.btn_backfill)
+        top_layout.addWidget(self.btn_export_today)
+        top_layout.addWidget(self.btn_export_range)
         top_layout.addStretch()
-        
-        self.main_layout.addLayout(top_layout)
+        actions_layout.addLayout(top_layout)
 
-        # Kartlar
+        last_update_row = QHBoxLayout()
+        last_update_row.setSpacing(0)
+        last_update_row.addStretch()
+        last_update_row.addWidget(self.lbl_last_update)
+        actions_layout.addLayout(last_update_row)
+
+        header_layout.addLayout(actions_layout, 0)
+        self.main_layout.addLayout(header_layout)
+
         self.summary_cards = DashboardSummaryCards()
+
         self.main_layout.addWidget(self.summary_cards)
 
-        # Tablo
         self.portfolio_table_widget = DashboardPortfolioTable()
         self.portfolio_table_widget.row_double_clicked.connect(self._on_table_double_clicked)
         self.main_layout.addWidget(self.portfolio_table_widget)
 
-        # Alt Butonlar (Footer)
-        bottom_layout = QHBoxLayout()
-        bottom_layout.addStretch()
-        
-        self.btn_export_today = AnimatedButton(" Rapor: Bugün")
-        self.btn_export_today.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
-        self.btn_export_today.clicked.connect(self._on_export_today)
-        
-        self.btn_export_range = AnimatedButton(" Rapor: Tarih Aralığı")
-        self.btn_export_range.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
-        self.btn_export_range.clicked.connect(self._on_export_range)
-        
-        self.btn_reset = AnimatedButton(" Sistemi Sıfırla")
-        self.btn_reset.setIconName("trash-2", color="@COLOR_DANGER")
-        self.btn_reset.setProperty("cssClass", "dangerTextButton")
-        self.btn_reset.clicked.connect(self._on_reset)
-        
-        bottom_layout.addWidget(self.btn_export_today)
-        bottom_layout.addWidget(self.btn_export_range)
-        bottom_layout.addWidget(self.btn_reset)
-        
-        self.main_layout.addLayout(bottom_layout)
-
     def on_page_enter(self):
-        """Sayfa aktif olduğunda verileri yükle."""
-        self._load_capital()
+        self._presenter.load_capital()
         self.refresh_data()
-
-    def _load_capital(self):
-        try:
-            self._capital = self.portfolio_service.calculate_capital()
-        except Exception as e:
-            logger.error(f"Sermaye yüklenemedi: {e}", exc_info=True)
-            self._capital = Decimal("0")
 
     def refresh_data(self):
-        portfolio: Portfolio = self.portfolio_service.get_current_portfolio()
-        today = date.today()
-        
-        snapshot = self.return_calc_service.compute_portfolio_value_on(today)
-
-        all_positions: List[Position] = list(portfolio.positions.values())
-        positions: List[Position] = [p for p in all_positions if p.total_quantity != 0]
-
-        price_map: Dict[int, Decimal] = snapshot.price_map if snapshot else {}
-
-        stock_ids = [p.stock_id for p in positions]
-        ticker_map = self.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
-
-        if self.portfolio_model is None:
-            self.portfolio_model = PortfolioTableModel(
-                positions, 
-                price_map, 
-                ticker_map, 
-                event_bus=self.container.event_bus, 
-                parent=self
-            )
-            self.portfolio_table_widget.set_model(self.portfolio_model)
-        else:
-            current_ids = set(p.stock_id for p in positions)
-            model_ids = set(p.stock_id for p in self.portfolio_model._positions)
-            
-            if len(positions) != self.portfolio_model.rowCount() or current_ids != model_ids:
-                self.portfolio_model.update_data(positions, price_map, ticker_map)
-
-        total_value = snapshot.total_value if snapshot else Decimal("0")
-        total_cost = sum(p.total_cost for p in positions)
-        profit_loss = total_value - total_cost
-
-        self.summary_cards.update_base_metrics(total_value, total_cost, self._capital, profit_loss)
-        self.portfolio_table_widget.update_summary_row(total_value, profit_loss)
-
-    def _on_prices_updated_event(self, new_prices: Dict[int, Decimal]):
-        if not self.portfolio_model or getattr(self, "_is_refreshing", False):
-            return
-            
-        price_map = getattr(self.portfolio_model, '_price_map', {})
-        
-        total_cost = Decimal("0")
-        total_value = Decimal("0")
-        
-        for p in self.portfolio_model._positions:
-            if p.total_quantity > 0:
-                total_cost += p.total_cost
-                curr_price = price_map.get(p.stock_id, Decimal("0"))
-                total_value += p.market_value(curr_price)
-                
-        profit_loss = total_value - total_cost
-
-        self.summary_cards.update_base_metrics(total_value, total_cost, self._capital, profit_loss)
-        self.portfolio_table_widget.update_summary_row(total_value, profit_loss)
-
-    def _on_capital_management(self):
-        dialog = CapitalDialog(self._capital, self)
-        if dialog.exec_() != QDialog.Accepted:
-            return
-        
-        result = dialog.get_result()
-        if not result:
-            return
-        
-        action = result["action"]
-        amount = result["amount"]
-        
-        if action == "deposit":
-            self._capital += amount
-            QMessageBox.information(self, "Başarılı", f"₺{amount:,.2f} sermaye eklendi.")
-        else:
-            if amount > self._capital:
-                QMessageBox.warning(self, "Uyarı", "Yetersiz sermaye.")
-                return
-            self._capital -= amount
-            QMessageBox.information(self, "Başarılı", f"₺{amount:,.2f} sermaye çekildi.")
-        
-        self.refresh_data()
-
-    def _on_new_trade(self):
-        dlg = NewStockTradeDialog(
-            parent=self, price_lookup_func=self.price_lookup_func, lot_size=1,
-        )
-        if dlg.exec_() != QDialog.Accepted:
-            return
-
-        data = dlg.get_result()
-        if not data:
-            return
-
-        ticker = data["ticker"]
-        name = data["name"]
-
-        try:
-            existing_stock = self.stock_repo.get_stock_by_ticker(ticker)
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Hisse sorgulanırken hata: {e}")
-            return
-
-        if existing_stock is None:
-            try:
-                new_stock = Stock(id=None, ticker=ticker, name=name or ticker, currency_code="TRY")
-                saved_stock = self.stock_repo.insert_stock(new_stock)
-                stock_id = saved_stock.id
-            except Exception as e:
-                QMessageBox.critical(self, "Hata", f"Yeni hisse eklenemedi: {e}")
-                return
-        else:
-            stock_id = existing_stock.id
-
-        trade_amount = data["price"] * Decimal(data["quantity"])
-
-        try:
-            if data["side"] == "BUY":
-                trade = Trade.create_buy(
-                    stock_id=stock_id, trade_date=data["trade_date"],
-                    trade_time=data["trade_time"], quantity=data["quantity"], price=data["price"],
-                )
-                self._capital -= trade_amount
-                self._capital = max(Decimal("0"), self._capital)
-            else:
-                trade = Trade.create_sell(
-                    stock_id=stock_id, trade_date=data["trade_date"],
-                    trade_time=data["trade_time"], quantity=data["quantity"], price=data["price"],
-                )
-                self._capital += trade_amount
-            
-            self.portfolio_service.add_trade(trade)
-            self.refresh_data()
-            QMessageBox.information(self, "Başarılı", "İşlem başarıyla eklendi.")
-        except ValueError as e:
-            QMessageBox.warning(self, "Geçersiz İşlem", str(e))
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"İşlem kaydedilemedi: {e}")
-
-    def _on_update_prices(self):
-        self.btn_update_prices.setEnabled(False)
-        self.btn_update_prices.setText("🔄 Güncelleniyor...")
-        self.btn_backfill.setEnabled(False)
-        
-        worker = Worker(self.update_coordinator.update_today_prices_and_get_snapshot)
-        worker.signals.result.connect(self._on_update_prices_success)
-        worker.signals.error.connect(self._on_update_prices_error)
-        
-        def on_finished():
-            self.btn_update_prices.setEnabled(True)
-            self.btn_update_prices.setText("🔄 Fiyatları Güncelle")
-            self.btn_backfill.setEnabled(True)
-            
-        worker.signals.finished.connect(on_finished)
-        self.threadpool.start(worker)
-
-    def _on_update_prices_success(self, result):
-        price_update_result, snapshot = result
-        self.refresh_data()
-        self._update_returns()
-        
-        from datetime import datetime
-        now_str = datetime.now().strftime("%H:%M")
-        self.lbl_last_update.setText(f"Son güncelleme: {now_str} (15dk gecikmeli)")
-        
-        QMessageBox.information(self, "Güncelleme Tamamlandı", f"{price_update_result.updated_count} hisse güncellendi.")
-
-    def _on_update_prices_error(self, err_tuple):
-        exctype, value, tb_str = err_tuple
-        QMessageBox.critical(self, "Hata", f"Hata:\n{value}")
-
-    def _update_returns(self):
-        today = date.today()
-        try:
-            weekly_rate, _, _ = self.return_calc_service.compute_weekly_return(today)
-            monthly_rate, _, _ = self.return_calc_service.compute_monthly_return(today)
-        except Exception as e:
-            logger.error(f"Getiri hesaplama hatası: {e}", exc_info=True)
-            return
-
-        w_pct = float(weekly_rate)*100 if weekly_rate is not None else None
-        m_pct = float(monthly_rate)*100 if monthly_rate is not None else None
-        self.summary_cards.update_returns(w_pct, m_pct)
+        self._presenter.refresh_data()
 
     def _on_table_double_clicked(self, index: QModelIndex):
         if not index.isValid() or self.portfolio_model is None:
@@ -339,118 +165,10 @@ class DashboardPage(BasePage):
         if row < 0 or row >= self.portfolio_model.rowCount():
             return
 
-        position: Position = self.portfolio_model.get_position(row)
-        stock_id = position.stock_id
-        stock = self.stock_repo.get_stock_by_id(stock_id)
+        position = self.portfolio_model.get_position(row)
+        stock = self.stock_repo.get_stock_by_id(position.stock_id)
         ticker = stock.ticker if stock else None
 
         main_window = self.window()
         if hasattr(main_window, "show_stock_detail"):
-            main_window.show_stock_detail(ticker, stock_id)
-        else:
-            QMessageBox.warning(self, "Hata", "Detay sayfasına erişilemedi.")
-
-    def _get_first_trade_date(self):
-        return self.portfolio_service.get_first_trade_date()
-
-    def _on_export_today(self):
-        first_date = self._get_first_trade_date()
-        if first_date is None:
-            QMessageBox.information(self, "Bilgi", "Herhangi bir işlem bulunamadı.")
-            return
-
-        file_path, _ = QFileDialog.getSaveFileName(self, "Excel Dosyası Seç", "portfoy_takip.xlsx", "Excel Dosyaları (*.xlsx)")
-        if not file_path:
-            return
-
-        try:
-            self.excel_export_service.export_history(start_date=first_date, end_date=date.today(), file_path=file_path, mode=ExportMode.OVERWRITE)
-            QMessageBox.information(self, "Başarılı", "Excel aktarımı tamamlandı.")
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Excel hatası: {e}")
-
-    def _on_export_range(self):
-        first_date = self._get_first_trade_date()
-        if first_date is None:
-            QMessageBox.information(self, "Bilgi", "İşlem bulunamadı.")
-            return
-
-        dlg = DateRangeDialog(self, min_date=first_date, max_date=date.today())
-        if dlg.exec_() != QDialog.Accepted:
-            return
-
-        result = dlg.get_range()
-        if not result:
-            return
-        start_date, end_date = result
-
-        file_path, _ = QFileDialog.getSaveFileName(self, "Excel Seç", "portfoy_takip.xlsx", "Excel Dosyaları (*.xlsx)")
-        if not file_path: return
-
-        try:
-            self.excel_export_service.export_history(start_date=start_date, end_date=end_date, file_path=file_path, mode=ExportMode.OVERWRITE)
-            QMessageBox.information(self, "Başarılı", "Excel aktarımı tamamlandı.")
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Hata: {e}")
-
-    def _on_reset(self):
-        reply = QMessageBox.question(
-            self, "Portföyü Sıfırla", "TÜM veriler silinecek. Emin misiniz?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes: return
-        try:
-            self.reset_service.reset_all()
-            self._capital = Decimal("0")
-            self.refresh_data()
-            self.summary_cards.update_returns(None, None)
-            QMessageBox.information(self, "Tamamlandı", "Başarıyla sıfırlandı.")
-        except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Hata: {e}")
-
-    def _on_backfill(self):
-        if not self.backfill_service:
-            QMessageBox.warning(self, "Uyarı", "Backfill servisi kullanılamıyor.")
-            return
-
-        dialog = BackfillDialog(self)
-        if dialog.exec_() != QDialog.Accepted: return
-        result = dialog.get_result()
-        if not result:
-            QMessageBox.warning(self, "Uyarı", "Başlangıç bitişten sonra olamaz.")
-            return
-
-        action, start_date, end_date = result["action"], result["start_date"], result["end_date"]
-
-        if action == "delete":
-            reply = QMessageBox.question(self, "Silme Onayı", "Veriler silinecek, emin misiniz?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if reply != QMessageBox.Yes: return
-            try:
-                count = self.backfill_service.delete_range(start_date, end_date)
-                self.refresh_data()
-                QMessageBox.information(self, "Başarılı", f"{count} veri silindi.")
-            except Exception as e:
-                QMessageBox.critical(self, "Hata", f"Hata: {e}")
-        else:
-            self.btn_backfill.setEnabled(False)
-            self.btn_backfill.setText("⏳ İndiriliyor...")
-            self.btn_update_prices.setEnabled(False)
-
-            worker = Worker(self.backfill_service.backfill_range, start_date, end_date)
-            worker.signals.result.connect(lambda count, sd=start_date, ed=end_date: self._on_backfill_success(count, sd, ed))
-            worker.signals.error.connect(self._on_backfill_error)
-            
-            def on_finished():
-                self.btn_backfill.setEnabled(True)
-                self.btn_backfill.setText("📦 Geçmiş Veri Yönetimi")
-                self.btn_update_prices.setEnabled(True)
-                
-            worker.signals.finished.connect(on_finished)
-            self.threadpool.start(worker)
-
-    def _on_backfill_success(self, count, start_date, end_date):
-        self.refresh_data()
-        QMessageBox.information(self, "Başarılı", f"{count} veri indirildi.")
-
-    def _on_backfill_error(self, err_tuple):
-        QMessageBox.critical(self, "Hata", f"Hata:\n{err_tuple[1]}")
+            main_window.show_stock_detail(ticker, position.stock_id)
