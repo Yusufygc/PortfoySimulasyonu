@@ -128,12 +128,14 @@ QTabBar[cssClass="mainTabWidget"]::tab,
 QTabWidget[cssClass="mainTabWidget"] QTabBar::tab {
     background-color: @COLOR_BG_SURFACE;
     color: @COLOR_TEXT_SECONDARY;
-    padding: @SPACE_LG @SPACE_4XL;
+    padding: 12px 18px;
     margin-right: 3px;
     border-top-left-radius: @RADIUS_LG;
     border-top-right-radius: @RADIUS_LG;
-    font-size: @FONT_MD;
+    min-width: 140px;
+    font-size: @FONT_BASE;
     font-weight: bold;
+    text-align: center;
 }
 QTabWidget[cssClass="mainTabWidget"] QTabBar::tab:selected {
     background-color: @COLOR_PRIMARY;
@@ -149,13 +151,20 @@ QComboBox[cssClass="customComboBox"] {
     color: @COLOR_TEXT_PRIMARY;
     border: 1px solid @COLOR_BORDER;
     border-radius: @RADIUS_MD;
-    padding: @SPACE_SM @SPACE_LG;
-    font-size: @FONT_MD;
+    padding: 7px 34px 7px 12px;
+    min-height: 36px;
+    font-size: @FONT_BASE;
 }
 QComboBox[cssClass="customComboBox"]:hover { border: 1px solid @COLOR_PRIMARY; }
 QComboBox[cssClass="customComboBox"]::drop-down { 
     border: none; 
-    width: 34px; 
+    width: 28px; 
+}
+QComboBox[cssClass="customComboBox"] QLineEdit {
+    border: none;
+    background: transparent;
+    padding: 0px;
+    margin: 0px;
 }
 QComboBox[cssClass="customComboBox"]::down-arrow {
     image: url(@ICON_CHEVRON_DOWN);
@@ -163,9 +172,51 @@ QComboBox[cssClass="customComboBox"]::down-arrow {
     height: 16px;
 }
 QComboBox[cssClass="customComboBox"] QAbstractItemView {
-    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
-    border: 1px solid @COLOR_BORDER;
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_PRIMARY;
+    border-radius: @RADIUS_MD;
     selection-background-color: @COLOR_PRIMARY;
+    padding: 6px;
+    outline: none;
+}
+QComboBox[cssClass="customComboBox"] QAbstractItemView::item {
+    min-height: 28px;
+    padding: 6px 8px;
+    border-radius: @RADIUS_SM;
+    margin: 2px;
+}
+QComboBox[cssClass="customComboBox"] QAbstractItemView::item:hover {
+    background-color: rgba(59, 130, 246, 0.14);
+}
+QComboBox[cssClass="customComboBox"] QAbstractItemView::item:selected {
+    color: @COLOR_TEXT_WHITE;
+}
+
+QFrame[cssClass="analysisComboPopup"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_PRIMARY;
+    border-radius: @RADIUS_MD;
+}
+QListView[cssClass="analysisComboPopupList"] {
+    background-color: transparent;
+    border: none;
+    border-radius: @RADIUS_MD;
+    padding: 6px;
+    outline: none;
+}
+QListView[cssClass="analysisComboPopupList"]::item {
+    min-height: 28px;
+    padding: 8px 10px;
+    border-radius: @RADIUS_SM;
+    margin: 2px;
+    color: @COLOR_TEXT_PRIMARY;
+}
+QListView[cssClass="analysisComboPopupList"]::item:hover {
+    background-color: rgba(59, 130, 246, 0.14);
+}
+QListView[cssClass="analysisComboPopupList"]::item:selected {
+    background-color: rgba(59, 130, 246, 0.14);
+    color: @COLOR_TEXT_PRIMARY;
 }
 
 QPushButton[cssClass="successButton"] {
@@ -312,6 +363,28 @@ QComboBox[cssClass="tradeInputNormal"] {
     border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_MD;
     padding: @SPACE_MD; font-size: @FONT_MD;
 }
+QDateEdit[cssClass="tradeInputNormal"] {
+    padding: 7px 30px 7px 8px;
+    min-height: 24px;
+}
+QDateEdit[cssClass="tradeInputNormal"]::up-button,
+QDateEdit[cssClass="tradeInputNormal"]::down-button {
+    width: 16px;
+    border: none;
+    background: transparent;
+}
+QDateEdit[cssClass="tradeInputNormal"]::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    margin: 5px 6px 0px 0px;
+}
+QDateEdit[cssClass="tradeInputNormal"]::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    margin: 0px 6px 5px 0px;
+}
+QDateEdit[cssClass="tradeInputNormal"]::up-arrow { image: url(@ICON_CHEVRON_UP); }
+QDateEdit[cssClass="tradeInputNormal"]::down-arrow { image: url(@ICON_CHEVRON_DOWN); }
 QLineEdit[cssClass="tradeInputNormal"]:focus,
 QSpinBox[cssClass="tradeInputNormal"]:focus,
 QDoubleSpinBox[cssClass="tradeInputNormal"]:focus,
@@ -390,6 +463,40 @@ QPushButton[cssClass="quickDateBtn"] {
 }
 QPushButton[cssClass="quickDateBtn"]:hover {
     background-color: @COLOR_PRIMARY; border-color: @COLOR_PRIMARY;
+}
+
+QPushButton[cssClass="benchmarkChip"] {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_XL;
+    padding: 6px 8px;
+    min-height: 46px;
+    font-weight: bold;
+    font-size: @FONT_SM;
+    text-align: center;
+}
+QPushButton[cssClass="benchmarkChip"]:hover {
+    border-color: @COLOR_PRIMARY;
+}
+QPushButton[cssClass="benchmarkChip"]:checked {
+    background-color: rgba(37, 99, 235, 0.18);
+    color: @COLOR_TEXT_WHITE;
+    border: 1px solid @COLOR_PRIMARY;
+}
+
+QFrame[cssClass="analysisFilterCard"] {
+    background-color: #243247;
+    border-radius: @RADIUS_XL;
+    border: 1px solid #3d4f69;
+}
+QFrame[cssClass="analysisFilterCard"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
+}
+
+QFrame[cssClass="benchmarkChipGroup"] {
+    background-color: transparent;
+    border: none;
 }
 
 QPushButton[cssClass="dangerTextBtn"] {

@@ -14,6 +14,7 @@ from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataCli
 from src.application.services.portfolio.portfolio_service import PortfolioService
 from src.application.services.portfolio.price_update_service import PriceUpdateService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
+from src.application.services.analysis.analysis_service import AnalysisService
 from src.application.services.portfolio.portfolio_update_coordinator import PortfolioUpdateCoordinator
 from src.application.services.portfolio.portfolio_reset_service import PortfolioResetService
 from src.application.services.reporting.excel_export_service import ExcelExportService
@@ -58,6 +59,17 @@ class AppContainer:
         self.portfolio_service = PortfolioService(self.portfolio_repo, self.price_repo)
         self.price_update_service = PriceUpdateService(self.price_repo, self.market_client)
         self.return_calc_service = ReturnCalcService(self.portfolio_repo, self.price_repo)
+        self.model_portfolio_service = ModelPortfolioService(
+            model_portfolio_repo=self.model_portfolio_repo,
+            stock_repo=self.stock_repo,
+        )
+        self.analysis_service = AnalysisService(
+            portfolio_repo=self.portfolio_repo,
+            price_repo=self.price_repo,
+            stock_repo=self.stock_repo,
+            market_data_client=self.market_client,
+            model_portfolio_service=self.model_portfolio_service,
+        )
         self.reset_service = PortfolioResetService(self.portfolio_repo, self.price_repo, self.stock_repo)
         
         self.history_simulation_service = HistorySimulationService(
@@ -76,10 +88,6 @@ class AppContainer:
 
         self.watchlist_service = WatchlistService(
             watchlist_repo=self.watchlist_repo,
-            stock_repo=self.stock_repo,
-        )
-        self.model_portfolio_service = ModelPortfolioService(
-            model_portfolio_repo=self.model_portfolio_repo,
             stock_repo=self.stock_repo,
         )
         self.optimization_service = OptimizationService(

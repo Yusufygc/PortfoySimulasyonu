@@ -10,7 +10,7 @@ Kullanım:
     card.set_value("₺ 12.500,00")
     card.set_value_state("positive")  # cssState ile QSS renk yönetimi
 """
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt, QSize
 from src.ui.core.icon_manager import IconManager
 
@@ -25,6 +25,8 @@ class InfoCard(QFrame):
     def __init__(self, title: str = "", value: str = "—", icon_name: str = "", parent=None):
         super().__init__(parent)
         self.setProperty("cssClass", "infoCard")
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 12, 15, 12)
@@ -38,11 +40,13 @@ class InfoCard(QFrame):
 
         self._lbl_title = QLabel(title)
         self._lbl_title.setProperty("cssClass", "infoCardTitle")
+        self._lbl_title.setWordWrap(True)
         title_row.addWidget(self._lbl_title)
         title_row.addStretch()
 
         self._lbl_value = QLabel(value)
         self._lbl_value.setProperty("cssClass", "infoCardValue")
+        self._lbl_value.setWordWrap(True)
 
         layout.addLayout(title_row)
         layout.addWidget(self._lbl_value)

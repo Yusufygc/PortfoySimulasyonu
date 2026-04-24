@@ -10,7 +10,7 @@ Kullanım:
     card.update(current="1.23", optimal="1.87", delta=0.64, positive_is_good=True)
     card.reset()
 """
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt
 
 
@@ -23,6 +23,8 @@ class MetricCard(QFrame):
     def __init__(self, title: str = "", icon_name: str = "", parent=None):
         super().__init__(parent)
         self.setProperty("cssClass", "infoCard")
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 14, 18, 14)
@@ -41,6 +43,7 @@ class MetricCard(QFrame):
 
         self._lbl_title = QLabel(title)
         self._lbl_title.setProperty("cssClass", "infoCardTitle")
+        self._lbl_title.setWordWrap(True)
         header_layout.addWidget(self._lbl_title)
         header_layout.addStretch()
         
@@ -52,6 +55,7 @@ class MetricCard(QFrame):
         lbl_curr_label.setProperty("cssClass", "infoCardDetail")
         self._lbl_current = QLabel("—")
         self._lbl_current.setProperty("cssClass", "infoCardValueSmall")
+        self._lbl_current.setWordWrap(True)
         row_current.addWidget(lbl_curr_label)
         row_current.addStretch()
         row_current.addWidget(self._lbl_current)
@@ -63,6 +67,7 @@ class MetricCard(QFrame):
         lbl_opt_label.setProperty("cssClass", "infoCardDetail")
         self._lbl_optimal = QLabel("—")
         self._lbl_optimal.setProperty("cssClass", "infoCardValueMedium")
+        self._lbl_optimal.setWordWrap(True)
         row_optimal.addWidget(lbl_opt_label)
         row_optimal.addStretch()
         row_optimal.addWidget(self._lbl_optimal)
