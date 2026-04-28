@@ -1,7 +1,7 @@
 import logging
 from decimal import Decimal
 
-from PyQt5.QtCore import QModelIndex, QThreadPool, QSize
+from PyQt5.QtCore import QModelIndex, QSettings, QThreadPool, QTimer, QSize
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout
 
 from src.ui.pages.base_page import BasePage
@@ -11,6 +11,7 @@ from src.ui.widgets.backfill_dialog import BackfillDialog
 from src.ui.widgets.capital_dialog import CapitalDialog
 from src.ui.widgets.date_range_dialog import DateRangeDialog
 from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
+from src.ui.widgets.toast import Toast
 
 from .dashboard_actions import DashboardActions
 from .dashboard_portfolio_table import DashboardPortfolioTable
@@ -18,6 +19,9 @@ from .dashboard_presenter import DashboardPresenter
 from .dashboard_summary_cards import DashboardSummaryCards
 
 logger = logging.getLogger(__name__)
+
+LAST_UPDATE_SETTINGS_KEY = "dashboard/last_price_update_at"
+LAST_UPDATE_TOAST_DURATION_MS = 4000
 
 
 class DashboardPage(BasePage):
@@ -51,6 +55,8 @@ class DashboardPage(BasePage):
         self.portfolio_model = None
         self._is_refreshing = False
         self._last_trade_result = None
+        self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._last_update_toast_shown_for = None
 
         self._presenter = DashboardPresenter(self)
         self._actions = DashboardActions(self, self._presenter)
@@ -153,9 +159,63 @@ class DashboardPage(BasePage):
     def on_page_enter(self):
         self._presenter.load_capital()
         self.refresh_data()
+        self._sync_last_update_label()
+        QTimer.singleShot(0, self.show_last_update_toast_once)
 
     def refresh_data(self):
         self._presenter.refresh_data()
+
+    def record_last_update_time(self, updated_at=None):
+        from datetime import datetime
+
+        updated_at = updated_at or datetime.now()
+        value = updated_at.isoformat(timespec="seconds")
+        self._settings.setValue(LAST_UPDATE_SETTINGS_KEY, value)
+        self._settings.sync()
+        self._last_update_toast_shown_for = None
+        self._sync_last_update_label(updated_at)
+        return updated_at
+
+    def show_last_update_toast_once(self, force: bool = False, detail: str | None = None) -> None:
+        updated_at = self._get_last_update_time()
+        if updated_at is None:
+            return
+
+        value = updated_at.isoformat(timespec="seconds")
+        if not force and self._last_update_toast_shown_for == value:
+            return
+
+        message = self._format_last_update_message(updated_at)
+        if detail:
+            message = f"{message} - {detail}"
+        Toast.info(
+            self,
+            message,
+            duration_ms=LAST_UPDATE_TOAST_DURATION_MS,
+            position="top",
+        )
+        self._last_update_toast_shown_for = value
+
+    def _sync_last_update_label(self, updated_at=None) -> None:
+        updated_at = updated_at or self._get_last_update_time()
+        self.lbl_last_update.setText(
+            self._format_last_update_message(updated_at) if updated_at else ""
+        )
+
+    def _get_last_update_time(self):
+        from datetime import datetime
+
+        value = self._settings.value(LAST_UPDATE_SETTINGS_KEY, "", type=str)
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _format_last_update_message(updated_at) -> str:
+        return f"Son guncelleme: {updated_at.strftime('%d.%m.%Y %H:%M')} (15dk gecikmeli)"
 
     def _on_table_double_clicked(self, index: QModelIndex):
         if not index.isValid() or self.portfolio_model is None:

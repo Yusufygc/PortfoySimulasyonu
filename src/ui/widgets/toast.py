@@ -20,13 +20,14 @@ Mimari Notlar:
 """
 from __future__ import annotations
 
-from typing import ClassVar, List, Literal
+from typing import ClassVar, List, Literal, Tuple
 
 from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, pyqtProperty
 from PyQt5.QtGui import QFont, QColor
 
 ToastType = Literal["success", "error", "warning", "info"]
+ToastPosition = Literal["top", "bottom"]
 
 # ──────────────────────────────────────────────────────────────
 #  Sabitleri buradan değiştirerek tüm Toast görünümü güncellenir
@@ -69,13 +70,21 @@ class _ToastWidget(QWidget):
     """Tek bir Toast baloncuğu."""
 
     # Üst pencere başına açık toast listesi
-    _registry: ClassVar[dict[int, List["_ToastWidget"]]] = {}
+    _registry: ClassVar[dict[Tuple[int, ToastPosition], List["_ToastWidget"]]] = {}
 
-    def __init__(self, message: str, kind: ToastType, parent: QWidget):
+    def __init__(
+        self,
+        message: str,
+        kind: ToastType,
+        parent: QWidget,
+        duration_ms: int = _DURATION,
+        position: ToastPosition = "bottom",
+    ):
         # parentless floating window — ama parent'ı referans için saklıyoruz
         super().__init__(parent, Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self._parent_ref = parent
         self._kind = kind
+        self._position = position
         self._opacity_val: float = 0.0
 
         self.setAttribute(Qt.WA_TranslucentBackground)
@@ -90,7 +99,7 @@ class _ToastWidget(QWidget):
         self._animate_opacity(0.0, 1.0, _FADE_MS)
 
         # Otomatik kapanma
-        QTimer.singleShot(_DURATION, self._begin_close)
+        QTimer.singleShot(duration_ms, self._begin_close)
 
     # ------------------------------------------------------------------
     # UI
@@ -177,7 +186,7 @@ class _ToastWidget(QWidget):
         self._anim_out.start()
 
     def _cleanup(self) -> None:
-        key = id(self._parent_ref)
+        key = (id(self._parent_ref), self._position)
         if key in _ToastWidget._registry:
             try:
                 _ToastWidget._registry[key].remove(self)
@@ -187,24 +196,24 @@ class _ToastWidget(QWidget):
                 del _ToastWidget._registry[key]
         self.close()
         # Kalan toastları yeniden konumlandır
-        _ToastWidget._reposition_for_parent(self._parent_ref)
+        _ToastWidget._reposition_for_parent(self._parent_ref, self._position)
 
     # ------------------------------------------------------------------
     # Konumlandırma
     # ------------------------------------------------------------------
 
     def _register(self) -> None:
-        key = id(self._parent_ref)
+        key = (id(self._parent_ref), self._position)
         if key not in _ToastWidget._registry:
             _ToastWidget._registry[key] = []
         _ToastWidget._registry[key].append(self)
 
     def _reposition_all(self) -> None:
-        _ToastWidget._reposition_for_parent(self._parent_ref)
+        _ToastWidget._reposition_for_parent(self._parent_ref, self._position)
 
     @staticmethod
-    def _reposition_for_parent(parent: QWidget) -> None:
-        key = id(parent)
+    def _reposition_for_parent(parent: QWidget, position: ToastPosition = "bottom") -> None:
+        key = (id(parent), position)
         stack = _ToastWidget._registry.get(key, [])
 
         # Üst pencerenin global konumu
@@ -217,16 +226,26 @@ class _ToastWidget(QWidget):
         panel_w = anchor.width()
         panel_h = anchor.height()
 
-        y_offset = global_pos.y() + panel_h - _MARGIN
-
-        for toast in reversed(stack):
-            toast.adjustSize()
-            w = min(toast.width(), _MAX_W)
-            x = global_pos.x() + panel_w - w - _MARGIN
-            y = y_offset - toast.height()
-            toast.move(x, y)
-            toast.show()
-            y_offset = y - _SPACING
+        if position == "top":
+            y_offset = global_pos.y() + _MARGIN
+            for toast in stack:
+                toast.adjustSize()
+                w = min(toast.width(), _MAX_W)
+                x = global_pos.x() + panel_w - w - _MARGIN
+                y = y_offset
+                toast.move(x, y)
+                toast.show()
+                y_offset = y + toast.height() + _SPACING
+        else:
+            y_offset = global_pos.y() + panel_h - _MARGIN
+            for toast in reversed(stack):
+                toast.adjustSize()
+                w = min(toast.width(), _MAX_W)
+                x = global_pos.x() + panel_w - w - _MARGIN
+                y = y_offset - toast.height()
+                toast.move(x, y)
+                toast.show()
+                y_offset = y - _SPACING
 
     def mouseReleaseEvent(self, event) -> None:
         self._begin_close()
@@ -246,20 +265,40 @@ class Toast:
     """
 
     @staticmethod
-    def success(parent: QWidget, message: str) -> None:
-        _ToastWidget(message, "success", _root(parent))
+    def success(
+        parent: QWidget,
+        message: str,
+        duration_ms: int = _DURATION,
+        position: ToastPosition = "bottom",
+    ) -> None:
+        _ToastWidget(message, "success", _root(parent), duration_ms, position)
 
     @staticmethod
-    def error(parent: QWidget, message: str) -> None:
-        _ToastWidget(message, "error", _root(parent))
+    def error(
+        parent: QWidget,
+        message: str,
+        duration_ms: int = _DURATION,
+        position: ToastPosition = "bottom",
+    ) -> None:
+        _ToastWidget(message, "error", _root(parent), duration_ms, position)
 
     @staticmethod
-    def warning(parent: QWidget, message: str) -> None:
-        _ToastWidget(message, "warning", _root(parent))
+    def warning(
+        parent: QWidget,
+        message: str,
+        duration_ms: int = _DURATION,
+        position: ToastPosition = "bottom",
+    ) -> None:
+        _ToastWidget(message, "warning", _root(parent), duration_ms, position)
 
     @staticmethod
-    def info(parent: QWidget, message: str) -> None:
-        _ToastWidget(message, "info", _root(parent))
+    def info(
+        parent: QWidget,
+        message: str,
+        duration_ms: int = _DURATION,
+        position: ToastPosition = "bottom",
+    ) -> None:
+        _ToastWidget(message, "info", _root(parent), duration_ms, position)
 
 
 def _root(widget: QWidget) -> QWidget:

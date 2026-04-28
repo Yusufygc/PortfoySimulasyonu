@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
+from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Optional
 
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QDialog
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSettings, QTimer, QSize
 
 from .base_page import BasePage
 from src.domain.models.model_portfolio import ModelPortfolio
@@ -19,6 +21,9 @@ from src.ui.widgets.toast import Toast
 
 logger = logging.getLogger(__name__)
 
+LAST_SELECTED_PORTFOLIO_KEY = "model_portfolios/last_selected_id"
+LAST_UPDATE_TOAST_DURATION_MS = 4000
+
 
 class ModelPortfolioPage(BasePage):
     def __init__(self, container, price_lookup_func=None, parent=None):
@@ -29,6 +34,8 @@ class ModelPortfolioPage(BasePage):
         self.price_lookup_func = price_lookup_func
         self.current_portfolio_id: Optional[int] = None
         self.current_price_map: Dict[int, Decimal] = {}
+        self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._last_update_toast_shown_for = None
         self._init_ui()
 
     def _init_ui(self):
@@ -70,6 +77,10 @@ class ModelPortfolioPage(BasePage):
         self.lbl_portfolio_name.setProperty("cssClass", "panelTitleLarge")
         header.addWidget(self.lbl_portfolio_name)
         header.addStretch()
+
+        self.lbl_last_update = QLabel("")
+        self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
+        header.addWidget(self.lbl_last_update)
 
         self.btn_refresh = AnimatedButton(" Fiyat Guncelle")
         self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
@@ -127,13 +138,28 @@ class ModelPortfolioPage(BasePage):
             portfolios,
             trade_count_func=self.model_portfolio_service.get_trade_count,
         )
+        selected_id = self.current_portfolio_id or self._get_last_selected_portfolio_id()
+        if selected_id is None:
+            return
+        selected_portfolio = self.list_panel.select_portfolio_by_id(selected_id)
+        if selected_portfolio:
+            self._set_current_portfolio(selected_portfolio, show_toast=True)
 
     def _on_portfolio_selected(self, portfolio: ModelPortfolio):
+        self._set_current_portfolio(portfolio, show_toast=True)
+
+    def _set_current_portfolio(self, portfolio: ModelPortfolio, show_toast: bool = False) -> None:
         self.current_portfolio_id = portfolio.id
+        self._settings.setValue(LAST_SELECTED_PORTFOLIO_KEY, portfolio.id)
+        self._settings.sync()
+        self.current_price_map = self._load_saved_price_map(portfolio.id)
+        self._sync_last_update_label()
         self.lbl_portfolio_name.setText(portfolio.name)
         for button in (self.btn_buy, self.btn_sell, self.btn_refresh):
             button.setEnabled(True)
         self._update_view()
+        if show_toast:
+            QTimer.singleShot(0, self.show_last_update_toast_once)
 
     def _update_view(self):
         if self.current_portfolio_id is None:
@@ -159,6 +185,7 @@ class ModelPortfolioPage(BasePage):
 
     def _clear_right_panel(self):
         self.lbl_portfolio_name.setText("Bir portfoy secin")
+        self.lbl_last_update.setText("")
         self.positions_table.setRowCount(0)
         for button in (self.btn_buy, self.btn_sell, self.btn_refresh):
             button.setEnabled(False)
@@ -174,7 +201,9 @@ class ModelPortfolioPage(BasePage):
         if not result:
             return
         try:
-            self.model_portfolio_service.create_portfolio(**result)
+            portfolio = self.model_portfolio_service.create_portfolio(**result)
+            if portfolio and portfolio.id is not None:
+                self.current_portfolio_id = portfolio.id
             self._load_portfolios()
             Toast.success(self, f"'{result['name']}' portfoyu olusturuldu.")
         except Exception as exc:
@@ -215,7 +244,13 @@ class ModelPortfolioPage(BasePage):
             return
         try:
             self.model_portfolio_service.delete_portfolio(self.current_portfolio_id)
+            self._settings.remove(self._price_map_settings_key(self.current_portfolio_id))
+            self._settings.remove(self._last_update_settings_key(self.current_portfolio_id))
+            self._settings.remove(LAST_SELECTED_PORTFOLIO_KEY)
+            self._settings.sync()
             self.current_portfolio_id = None
+            self.current_price_map = {}
+            self._last_update_toast_shown_for = None
             self._load_portfolios()
             self._clear_right_panel()
             Toast.success(self, "Portfoy silindi.")
@@ -266,5 +301,115 @@ class ModelPortfolioPage(BasePage):
             except Exception as exc:
                 logger.error("Fiyat alinamadi: %s - %s", pos["ticker"], exc)
         self._update_view()
-        Toast.success(self, f"{updated_count} hisse icin fiyat guncellendi.")
+        if updated_count <= 0:
+            Toast.warning(
+                self,
+                "Guncellenecek fiyat bulunamadi.",
+                duration_ms=LAST_UPDATE_TOAST_DURATION_MS,
+                position="top",
+            )
+            return
+        self.record_last_update_time()
+        self.show_last_update_toast_once(
+            force=True,
+            detail=f"{updated_count} hisse icin fiyat guncellendi.",
+        )
 
+    def record_last_update_time(self, updated_at=None):
+        if self.current_portfolio_id is None:
+            return None
+
+        updated_at = updated_at or datetime.now()
+        self._settings.setValue(
+            self._price_map_settings_key(self.current_portfolio_id),
+            self._serialize_price_map(self.current_price_map),
+        )
+        self._settings.setValue(
+            self._last_update_settings_key(self.current_portfolio_id),
+            updated_at.isoformat(timespec="seconds"),
+        )
+        self._settings.sync()
+        self._last_update_toast_shown_for = None
+        self._sync_last_update_label(updated_at)
+        return updated_at
+
+    def show_last_update_toast_once(self, force: bool = False, detail: str | None = None) -> None:
+        updated_at = self._get_last_update_time()
+        if updated_at is None:
+            return
+
+        value = f"{self.current_portfolio_id}:{updated_at.isoformat(timespec='seconds')}"
+        if not force and self._last_update_toast_shown_for == value:
+            return
+
+        message = self._format_last_update_message(updated_at)
+        if detail:
+            message = f"{message} - {detail}"
+        Toast.info(
+            self,
+            message,
+            duration_ms=LAST_UPDATE_TOAST_DURATION_MS,
+            position="top",
+        )
+        self._last_update_toast_shown_for = value
+
+    def _sync_last_update_label(self, updated_at=None) -> None:
+        updated_at = updated_at or self._get_last_update_time()
+        self.lbl_last_update.setText(
+            self._format_last_update_message(updated_at) if updated_at else ""
+        )
+
+    def _get_last_selected_portfolio_id(self) -> Optional[int]:
+        value = self._settings.value(LAST_SELECTED_PORTFOLIO_KEY, None)
+        try:
+            return int(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+
+    def _get_last_update_time(self):
+        if self.current_portfolio_id is None:
+            return None
+        value = self._settings.value(
+            self._last_update_settings_key(self.current_portfolio_id),
+            "",
+            type=str,
+        )
+        if not value:
+            return None
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return None
+
+    def _load_saved_price_map(self, portfolio_id: int) -> Dict[int, Decimal]:
+        value = self._settings.value(self._price_map_settings_key(portfolio_id), "", type=str)
+        if not value:
+            return {}
+        try:
+            raw_map = json.loads(value)
+        except (TypeError, json.JSONDecodeError):
+            return {}
+
+        price_map: Dict[int, Decimal] = {}
+        for stock_id, price in raw_map.items():
+            try:
+                price_map[int(stock_id)] = Decimal(str(price))
+            except Exception:
+                continue
+        return price_map
+
+    @staticmethod
+    def _serialize_price_map(price_map: Dict[int, Decimal]) -> str:
+        return json.dumps({str(stock_id): str(price) for stock_id, price in price_map.items()})
+
+    @staticmethod
+    def _price_map_settings_key(portfolio_id: int) -> str:
+        return f"model_portfolios/{portfolio_id}/price_map"
+
+    @staticmethod
+    def _last_update_settings_key(portfolio_id: int) -> str:
+        return f"model_portfolios/{portfolio_id}/last_price_update_at"
+
+    @staticmethod
+    def _format_last_update_message(updated_at) -> str:
+        return f"Son guncelleme: {updated_at.strftime('%d.%m.%Y %H:%M')} (15dk gecikmeli)"

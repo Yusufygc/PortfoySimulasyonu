@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog
 
 from src.application.services.reporting.daily_history_models import ExportMode
 from src.domain.models.trade import TradeSide
+from src.ui.widgets.toast import Toast
 from src.ui.worker import Worker
 
 logger = logging.getLogger(__name__)
@@ -95,13 +96,19 @@ class DashboardActions:
         price_update_result, _snapshot = result
         self._presenter.refresh_data()
         self._presenter.update_returns()
-        self._page.lbl_last_update.setText(
-            f"Son guncelleme: {datetime.now().strftime('%H:%M')} (15dk gecikmeli)"
-        )
-        QMessageBox.information(
-            self._page,
-            "Guncelleme Tamamlandi",
-            f"{price_update_result.updated_count} hisse guncellendi.",
+        if price_update_result.updated_count <= 0:
+            Toast.warning(
+                self._page,
+                "Guncellenecek fiyat bulunamadi.",
+                duration_ms=4000,
+                position="top",
+            )
+            return
+
+        self._page.record_last_update_time()
+        self._page.show_last_update_toast_once(
+            force=True,
+            detail=f"{price_update_result.updated_count} hisse guncellendi.",
         )
 
     def on_update_prices_error(self, err_tuple) -> None:
@@ -240,7 +247,20 @@ class DashboardActions:
 
     def on_backfill_success(self, count, start_date, end_date) -> None:
         self._presenter.refresh_data()
-        QMessageBox.information(self._page, "Basarili", f"{count} veri indirildi.")
+        if count <= 0:
+            Toast.warning(
+                self._page,
+                "Indirilecek veri bulunamadi.",
+                duration_ms=4000,
+                position="top",
+            )
+            return
+
+        self._page.record_last_update_time()
+        self._page.show_last_update_toast_once(
+            force=True,
+            detail=f"{count} veri indirildi.",
+        )
 
     def on_backfill_error(self, err_tuple) -> None:
         QMessageBox.critical(self._page, "Hata", f"Hata:\n{err_tuple[1]}")

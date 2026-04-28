@@ -25,6 +25,7 @@ from src.ui.core.icon_manager import IconManager
 
 from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
+from src.ui.widgets.action_list_item import ActionListItem
 from src.ui.widgets.toast import Toast
 from src.ui.widgets.animated_button import AnimatedButton
 
@@ -105,10 +106,13 @@ class WatchlistPage(BasePage):
         self.btn_delete.setIconName("trash-2", color="@COLOR_DANGER")
         self.btn_delete.setEnabled(False)
         self.btn_delete.setProperty("cssClass", "dangerOutlineButton")
+        self.btn_edit.hide()
+        self.btn_delete.hide()
 
         btn_layout.addWidget(self.btn_new)
         btn_layout.addWidget(self.btn_edit)
         btn_layout.addWidget(self.btn_delete)
+        btn_layout.addStretch()
         left_layout.addLayout(btn_layout)
 
         # Sağ Panel: İçerik
@@ -168,12 +172,23 @@ class WatchlistPage(BasePage):
 
         for wl in watchlists:
             count = self.watchlist_service.get_watchlist_item_count(wl.id)
-            item = QListWidgetItem(f"{wl.name} ({count})")
+            label = f"{wl.name} ({count})"
+            item = QListWidgetItem()
             item.setData(Qt.UserRole, wl)
+            item.setSizeHint(QSize(0, 36))
             self.list_widget.addItem(item)
+            row = ActionListItem(label)
+            row.selected.connect(lambda wl=wl, item=item: self._select_watchlist_item(item, wl))
+            row.edit_requested.connect(lambda wl=wl, item=item: self._run_watchlist_action(item, wl, self._on_edit_list))
+            row.delete_requested.connect(lambda wl=wl, item=item: self._run_watchlist_action(item, wl, self._on_delete_list))
+            self.list_widget.setItemWidget(item, row)
 
     def _on_list_selected(self, item: QListWidgetItem):
         watchlist: Watchlist = item.data(Qt.UserRole)
+        self._select_watchlist_item(item, watchlist)
+
+    def _select_watchlist_item(self, item: QListWidgetItem, watchlist: Watchlist) -> None:
+        self.list_widget.setCurrentItem(item)
         self.current_watchlist_id = watchlist.id
         
         self.lbl_list_name.setText(watchlist.name)
@@ -184,6 +199,10 @@ class WatchlistPage(BasePage):
         self.btn_add_stock.setEnabled(True)
 
         self._load_stocks()
+
+    def _run_watchlist_action(self, item: QListWidgetItem, watchlist: Watchlist, action) -> None:
+        self._select_watchlist_item(item, watchlist)
+        action()
 
     def _load_stocks(self):
         self.stock_table.setRowCount(0)

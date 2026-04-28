@@ -62,6 +62,18 @@ class ReturnCalcService:
 
         # 2) Fiyatlar
         price_map = self._price_repo.get_prices_for_date(value_date)
+        # Bugun icin fiyat yoksa ekrani bos birakmamak icin her acik
+        # pozisyonu ilgili tarihten onceki son kapanis fiyatiyla tamamla.
+        active_stock_ids = [
+            stock_id
+            for stock_id, position in portfolio.positions.items()
+            if position.total_quantity != 0
+        ]
+        price_map = self._fill_missing_prices_with_latest_before(
+            price_map=price_map,
+            stock_ids=active_stock_ids,
+            value_date=value_date,
+        )
         # price_map: { stock_id: Decimal(close_price) }
 
         # 3) Toplam değerler
@@ -78,6 +90,21 @@ class ReturnCalcService:
             total_realized_pl=total_realized,
             price_map=price_map,
         )
+
+    def _fill_missing_prices_with_latest_before(
+        self,
+        price_map: Dict[int, Decimal],
+        stock_ids: list[int],
+        value_date: date,
+    ) -> Dict[int, Decimal]:
+        completed_map = dict(price_map)
+        for stock_id in stock_ids:
+            if stock_id in completed_map:
+                continue
+            last_price = self._price_repo.get_last_price_before(stock_id, value_date)
+            if last_price is not None:
+                completed_map[stock_id] = last_price.close_price
+        return completed_map
 
     # ---------- Yardımcı: Basit getiri oranı ---------- #
 
