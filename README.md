@@ -1,310 +1,130 @@
 <p align="center">
-  <img src="icons/wallet.ico" alt="Portföy Simülasyonu Logo" width="80"/>
+  <img src="icons/wallet.ico" alt="Portföy Simülasyonu Logo" width="120"/>
 </p>
 
 <h1 align="center">📊 Portföy Simülasyonu</h1>
 
 <p align="center">
-  <strong>Profesyonel Borsa Portföy Yönetimi, Analiz ve Simülasyon Platformu</strong>
+  <strong>Profesyonel Borsa Portföy Yönetimi, Optimizasyon ve Simülasyon Laboratuvarı</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white" alt="Python"/>
-  <img src="https://img.shields.io/badge/PyQt5-Desktop_UI-41CD52?logo=qt&logoColor=white" alt="PyQt5"/>
-  <img src="https://img.shields.io/badge/SQLAlchemy-ORM-D71F00?logo=sqlalchemy&logoColor=white" alt="SQLAlchemy"/>
-  <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white" alt="MySQL"/>
-  <img src="https://img.shields.io/badge/YFinance-Market_Data-7B61FF" alt="YFinance"/>
-  <img src="https://img.shields.io/badge/Architecture-Clean_Architecture-brightgreen" alt="Clean Architecture"/>
-  <img src="https://img.shields.io/badge/License-Private-red" alt="License"/>
+  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"/>
+  <img src="https://img.shields.io/badge/PyQt5-Desktop_App-41CD52.svg?style=for-the-badge&logo=qt&logoColor=white" alt="PyQt5"/>
+  <img src="https://img.shields.io/badge/MySQL-8.0+-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL"/>
+  <img src="https://img.shields.io/badge/SQLAlchemy-ORM-D71F00.svg?style=for-the-badge&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy"/>
+  <img src="https://img.shields.io/badge/SciPy-Markowitz-8CAAE6.svg?style=for-the-badge&logo=scipy&logoColor=white" alt="SciPy"/>
+  <img src="https://img.shields.io/badge/Architecture-Clean_Architecture-brightgreen.svg?style=for-the-badge" alt="Clean Architecture"/>
 </p>
 
 <p align="center">
-  <em>BIST (Borsa İstanbul) ve global piyasa hisselerini gerçek zamanlı takip eden, portföy performansını analiz eden,<br/>
-  model portföy simülasyonları sunan ve finansal planlama araçları barındıran kapsamlı bir masaüstü uygulaması.</em>
+  <em>Portföy Simülasyonu; BIST ve global hisse senetleri için gerçek zamanlı fiyat takibi, Markowitz modeli ile portföy optimizasyonu, risksiz strateji testleri (sanal portföy) ve kapsamlı finansal planlama sunan uçtan uca bir masaüstü yatırım platformudur.</em>
 </p>
 
 ---
 
-## 📸 Ekran Görüntüleri
-
-> **Not:** Aşağıdaki alanlara uygulamanın ekran görüntülerini ekleyin.
-
-| Dashboard (Ana Sayfa) | Hisse Detay Sayfası |
-|:---:|:---:|
-| *`screenshots/dashboard.png`* | *`screenshots/stock_detail.png`* |
-
-| Model Portföy Simülasyonu | Portföy Optimizasyonu |
-|:---:|:---:|
-| *`screenshots/model_portfolio.png`* | *`screenshots/optimization.png`* |
-
-| Finansal Planlama | Risk Profili Analizi |
-|:---:|:---:|
-| *`screenshots/planning.png`* | *`screenshots/risk_profile.png`* |
+## 📑 İçindekiler
+1. [Görsel Sunum ve Ekran Görüntüleri](#-görsel-sunum-ve-ekran-görüntüleri)
+2. [Öne Çıkan Özellikler](#-öne-çıkan-özellikler)
+3. [Mimari ve Sistem Tasarımı](#-mimari-ve-sistem-tasarımı)
+4. [Kurulum ve Başlangıç](#-kurulum-ve-başlangıç)
+5. [Kullanıcı Senaryoları (Hızlı Başlangıç)](#-kullanıcı-senaryoları-hızlı-başlangıç)
+6. [Geliştirici Rehberi](#-geliştirici-rehberi)
+7. [Testler ve Yol Haritası](#-testler-ve-yol-haritası)
 
 ---
 
-## ✨ Öne Çıkan Özellikler
+## 📸 Görsel Sunum ve Ekran Görüntüleri
 
-### 🏠 Dashboard (Ana Kontrol Paneli)
-- **Gerçek zamanlı portföy özeti** — Toplam piyasa değeri, yatırılan sermaye, kâr/zarar durumu tek bakışta
-- **Canlı fiyat güncelleme** — YFinance API üzerinden anlık borsa fiyatları çekme
-- **Hücre bazlı reaktif tablo** — Sadece değişen fiyat hücresi güncellenir, tablonun tamamı yeniden çizilmez (Event-Bus Pub/Sub)
-- **Renk kodlu performans göstergeleri** — Kârdaki hisseler yeşil, zarardakiler kırmızı bordür ile işaretlenir
-- **Excel'e dışa aktarım** — Portföy verilerini detaylı `.xlsx` raporuna dönüştürme
+| Dashboard (Ana Panel) | Model Portföy Simülasyonu |
+|:---:|:---:|
+| > Portföy performansınızı gerçek zamanlı, hücre bazlı render mekanizması ile sıfır donma yaşayarak takip edin. | > Gerçek para harcamadan sanal bakiye ile yatırım stratejilerinizi test edin ve piyasa koşullarında ölçün. |
+| *(Buraya dashboard ekran görüntüsü eklenecek: `docs/screenshots/dashboard.png`)* | *(Buraya model portföy ekran görüntüsü eklenecek: `docs/screenshots/model_portfolio.png`)* |
 
-### 📈 Hisse Detay Sayfası
-- **Tekil hisse analizi** — Seçilen hissenin fiyat geçmişi, alım-satım işlemleri ve performans metrikleri
-- **Geçmişe yönelik veri yönetimi** — Manuel backfill ile eksik tarihsel fiyat verilerini tamamlama
-- **Getiri hesaplama** — Yatırım bazlı getiri oranı ve maliyet analizi
-
-### 📊 Analiz Sayfası
-- **Portföy genelinde performans analizi** — Toplam getiri, günlük/haftalık/aylık performans takibi
-- **Karşılaştırmalı analiz** — Farklı dönemlerdeki portföy değişimlerini yan yana inceleme
-
-### 🎯 Model Portföy Simülasyonu
-- **Sanal portföy oluşturma** — Gerçek para riski olmadan farklı yatırım stratejilerini test etme
-- **Başlangıç sermayesi belirleme** — İstenen miktarla simülasyon başlatma
-- **İşlem geçmişi** — Simülasyon portföyüne sanal alım/satım girişi yapma
-- **Performans karşılaştırması** — Model portföyün gerçek portföye göre durumunu ölçme
-
-### ⚡ Portföy Optimizasyonu
-- **Bilimsel ağırlık optimizasyonu** — Modern Portföy Teorisi (Markowitz) ile ideal hisse dağılımı hesaplama
-- **Risk-getiri dengesi** — Scipy tabanlı matematiksel optimizasyon motoruyla en verimli portföy yapısını önerme
-
-### 💰 Finansal Planlama
-- **Aylık bütçe yönetimi** — Gelir/gider kalemlerini takip etme
-- **Finansal hedefler** — Hedef tutara ulaşma sürecini izleme ve planlama
-- **Tasarruf analizi** — Yatırıma ayrılabilecek fonları hesaplama
-
-### 🛡️ Risk Profili
-- **Kişiselleştirilmiş risk analizi** — Yaş, yatırım ufku ve piyasa tepkisi bazlı risk profilleme
-- **Risk skoru** — Kategorize edilmiş risk seviyesi (Tutucu, Dengeli, Agresif vb.)
-
-### 👁️ Watchlist (Takip Listesi)
-- **Hisse takip listeleri** — İlgilendiğiniz hisseleri gruplandırma
-- **Hızlı erişim** — Takip listesinden portföye geçiş kolaylığı
+| Bilimsel Portföy Optimizasyonu | Finansal Planlama ve Risk Analizi |
+|:---:|:---:|
+| > Modern Portföy Teorisi (Markowitz) tabanlı SciPy optimizasyonu ile risk-getiri dengenizi maksimuma çıkarın. | > Hedeflerinizi belirleyin, aylık bütçenizi yönetin ve kişisel risk profilinize uygun yatırım kategorisi oluşturun. |
+| *(Buraya optimizasyon ekran görüntüsü eklenecek: `docs/screenshots/optimization.png`)* | *(Buraya planlama ekran görüntüsü eklenecek: `docs/screenshots/planning.png`)* |
 
 ---
 
-## 🏗️ Mimari Yapı (Clean Architecture)
+## 🎯 Öne Çıkan Özellikler
 
-Bu proje, endüstri standartlarında **Temiz Mimari (Clean Architecture)** ve **SOLID** prensipleriyle inşa edilmiştir. Katmanlar birbirinden tam bağımsızdır ve "tak-çıkar" mantığıyla çalışır.
+### 🚀 Gerçek Zamanlı Portföy Takibi
+- **Event-Bus Mimarisi:** Fiyatlar YFinance API'den güncellendiğinde tüm ekran donmaz. Sadece değişen hisse hücresi (satır bazlı) reaktif olarak güncellenir (Pub/Sub pattern).
+- **Detaylı Analitik:** Ağırlıklı ortalama maliyet, anlık kâr/zarar oranları, kur çevrimleri ve yatırılan sermaye analizleri.
+
+### 🧠 Bilimsel Portföy Optimizasyonu
+- **Markowitz Modern Portföy Teorisi:** Scipy kullanılarak portföydeki hisseler arasında geçmiş verilere göre maksimum getiriyi sağlayacak ideal ağırlık (weight) dağılımını hesaplar.
+- **Efficient Frontier (Etkin Sınır):** Risk limitinize göre alınabilecek en yüksek kâr kombinasyonlarını önerir.
+
+### 📈 Model Portföy & Simülasyon Laboratuvarı
+- **Sanal Bakiye Yönetimi:** X miktar sanal başlangıç parası ile hayali bir sepet oluşturma.
+- **Karşılaştırmalı Performans:** Model portföyünüzün zaman içindeki getirisini, gerçek portföyünüz ve endeks ile yan yana kıyaslama.
+
+### 🛡️ Kapsamlı Finansal Planlama
+- **Bütçe ve Tasarruf:** Gelir-gider tabloları üzerinden aylık yatırım yapılabilecek tutarın otomatik tespiti.
+- **Risk Profilleme:** Yaş, piyasa tepkisi ve gelir durumuna dayalı dinamik risk anketi. Ankete göre portföyün agresif/defansif yapısını analiz etme.
+
+---
+
+## 🏗 Mimari ve Sistem Tasarımı
+
+Uygulama, sürdürülebilirliği maksimize eden **Clean Architecture (Temiz Mimari)** ve **SOLID** prensipleriyle tasarlanmıştır.
+
+### Katmanlı Mimari (Clean Architecture)
 
 ```mermaid
-graph LR
-    subgraph UI["Sunum Katmani - UI"]
-        MW["MainWindow"]
-        DP["DashboardPage"]
-        AP["AnalysisPage"]
-        MP["ModelPortfolioPage"]
-        OP["OptimizationPage"]
-        PP["PlanningPage"]
-        RP["RiskProfilePage"]
-        SD["StockDetailPage"]
-        WP["WatchlistPage"]
-        TM["ThemeManager"]
-    end
+graph TD
+    UI[Sunum Katmanı - UI<br/>PyQt5, QSS ThemeManager]
+    APP[Uygulama Katmanı - App<br/>DI Container, Services, EventBus]
+    DOM[Domain Katmanı<br/>Models, Rules, Interfaces]
+    INFRA[Altyapı Katmanı - Infra<br/>SQLAlchemy ORM, MySQL, YFinance]
 
-    subgraph APP["Uygulama Katmani - Application"]
-        DI["AppContainer DI"]
-        PS["PortfolioService"]
-        PUS["PriceUpdateService"]
-        RCS["ReturnCalcService"]
-        WS["WatchlistService"]
-        MPS["ModelPortfolioService"]
-        OS["OptimizationService"]
-        PLS["PlanningService"]
-        RPS["RiskProfileService"]
-        EES["ExcelExportService"]
-        PUC["UpdateCoordinator"]
-        EB["GlobalEventBus"]
-    end
+    UI -->|Use Cases Çağrısı| APP
+    APP -->|İş Kurallarını Yönetir| DOM
+    INFRA -.->|Interface Uygular| DOM
+    APP -->|Altyapıyı Çağırır| INFRA
 
-    subgraph DOMAIN["Domain Katmani - Is Kurallari"]
-        PO["Portfolio"]
-        TR["Trade"]
-        ST["Stock"]
-        DPR["DailyPrice"]
-        MPO["ModelPortfolio"]
-        BG["Budget"]
-        RPR["RiskProfile"]
-    end
-
-    subgraph INFRA["Altyapi Katmani - Infrastructure"]
-        SE["SQLAlchemy Engine"]
-        ORM["ORM Models"]
-        SAR["SA Repositories x7"]
-        YF["YFinance Client"]
-    end
-
-    MW --> DP
-    MW --> AP
-    MW --> MP
-    MW --> OP
-    MW --> PP
-    MW --> RP
-    MW --> SD
-    MW --> WP
-    TM -.-> MW
-
-    DP --> DI
-    DI --> PS
-    DI --> PUS
-    DI --> RCS
-    DI --> WS
-    DI --> MPS
-    DI --> OS
-    DI --> PLS
-    DI --> RPS
-    DI --> EES
-    DI --> PUC
-    DI --> EB
-
-    PS --> PO
-    PUS --> DPR
-    RCS --> TR
-    MPS --> MPO
-    PLS --> BG
-    RPS --> RPR
-    OS --> ST
-
-    SE --> ORM
-    ORM --> SAR
-    YF --> PUS
-
-    PUC -->|emit| EB
-    EB -->|signal| DP
-
-    style DI fill:#2563eb,color:#fff,stroke:#1d4ed8
-    style EB fill:#16a34a,color:#fff,stroke:#15803d
-    style TM fill:#7c3aed,color:#fff,stroke:#6d28d9
-    style SE fill:#dc2626,color:#fff,stroke:#b91c1c
+    style DOM fill:#10b981,color:#fff,stroke:#047857
+    style UI fill:#3b82f6,color:#fff,stroke:#1d4ed8
+    style APP fill:#8b5cf6,color:#fff,stroke:#6d28d9
+    style INFRA fill:#f59e0b,color:#fff,stroke:#b45309
 ```
 
-### Katman Bağımsızlığı İlkesi
+| Katman | Görev | Bağımlılık Yönü |
+|---|---|---|
+| **Domain** | Saf iş kuralları (Portfolio, Trade, Stock modelleri). `Interface` tanımları buradadır. | Hiçbir katmana bağımlı değildir. |
+| **Application** | Servis sınıfları (`PortfolioService`), DI Konteyneri ve süreç orkestrasyonu. | Sadece `Domain` katmanına. |
+| **Infrastructure** | Veritabanı işlemleri (SQLAlchemy Repositories) ve Dış API servisleri (YFinance). | `Domain` katmanındaki interfaceleri uygular. |
+| **UI** | PyQt5 pencereleri, merkezi EventBus tetiklemeleri ve ThemeManager entegrasyonu. | Sadece `Application` katmanına. |
 
-| Katman | Sorumluluk | Bağımlılık Yönü |
-|--------|-----------|-----------------|
-| **UI (Sunum)** | Kullanıcı arayüzü, sayfa yönetimi, tema | → Application |
-| **Application** | İş akışları, servisler, DI konteyneri | → Domain |
-| **Domain** | İş kuralları, modeller, interface tanımları | Hiçbir katmana bağımlı değil ✅ |
-| **Infrastructure** | Veritabanı, API, dosya sistemi | → Domain (Interface uygular) |
+### Veritabanı Modeli (SQLAlchemy ORM)
 
-> 💡 **Dependency Inversion:** Üst katmanlar alt katmanların somut sınıflarını değil, Domain katmanındaki **arayüzleri (Interface)** kullanır. Bu sayede veritabanı motoru (MySQL → SQLAlchemy geçişi gibi) değiştirildiğinde iş mantığı ve UI katmanında **tek satır bile değişmez**.
-
----
-
-## 🔌 Kritik Altyapılar
-
-### 1. 📦 Dependency Injection Konteyneri
-
-Tüm bağımlılıklar merkezi `AppContainer` sınıfında yönetilir. Prop-drilling (parametre taşıma cehennemi) tamamen ortadan kaldırılmıştır.
-
-```python
-# src/application/container.py
-class AppContainer:
-    def __init__(self):
-        self.event_bus = GlobalEventBus()
-        self.conn_provider = SQLAlchemyEngineProvider(config)
-        
-        # Repository'ler (Tak-Çıkar Mantığı)
-        self.portfolio_repo = SQLAlchemyPortfolioRepository(self.conn_provider)
-        self.stock_repo = SQLAlchemyStockRepository(self.conn_provider)
-        # ...
-        
-        # Servisler
-        self.portfolio_service = PortfolioService(self.portfolio_repo, self.price_repo)
-        # ...
-```
-
-### 2. 📡 Event-Bus (Pub/Sub Mimarisi)
-
-UI bileşenleri ile arka plan servisleri arasında **asenkron, thread-safe** haberleşme sağlar. Fiyat güncellemeleri tüm tabloyu sıfırdan oluşturmak yerine **yalnızca değişen hücreleri** günceller.
-
-```mermaid
-sequenceDiagram
-    participant Worker as 🔄 PriceUpdateWorker
-    participant Coord as ⚙️ Coordinator
-    participant Bus as 📡 EventBus
-    participant Table as 📊 PortfolioTableModel
-    participant UI as 🖥️ Dashboard
-
-    Worker->>Coord: Fiyatlar güncellendi
-    Coord->>Bus: prices_updated.emit(new_prices)
-    Bus-->>Table: Signal: {stock_id: price}
-    Table->>Table: _on_prices_updated()
-    Note over Table: Sadece değişen satırın<br/>ilgili hücrelerini güncelle
-    Table->>UI: dataChanged.emit()
-    Note over UI: Tablo donmaz ✅<br/>60 FPS akıcılık
-```
-
-### 3. 🎨 Merkezi Tema Motoru (ThemeManager)
-
-Uygulama genelinde tutarlı görünüm sağlayan QSS tabanlı tema sistemi. Stiller `ThemeManager` manifest sırasıyla tema, base, shared ve feature modüllerinden birleştirilir.
-
-```
-src/ui/
-├── theme_manager.py          # Singleton Tema Yöneticisi
-└── styles/
-    ├── themes/               # Ana tema zemini
-    ├── base/                 # Genel Qt widget stilleri
-    ├── shared/               # Ortak UI bileşen stilleri
-    └── features/             # Sayfa/özellik bazlı stiller
-```
-
-**Tema Özellikleri:**
-- 🌙 **Tailwind Slate** renk paleti üzerine Dark Mode
-- 🎯 Buton varyantları: `primary`, `success`, `danger`, `ghost`
-- 📐 Tutarlı `border-radius`, `padding` ve `font-weight` değerleri
-- 🔄 Hover, pressed, disabled ve focus durumları
-- 🧩 Deterministik QSS manifest yükleme sırası
-
-### 4. 🗄️ SQLAlchemy ORM Katmanı
-
-Ham SQL sorguları tamamen ortadan kaldırılmış, yerini tip-güvenli ve nesne odaklı veritabanı iletişimi almıştır.
+Tablo yapısı tamamen `SQLAlchemy Declarative Base` ile oluşturulmuş tip-güvenli bir düzene sahiptir.
 
 ```mermaid
 erDiagram
-    STOCKS ||--o{ TRADES : "has"
-    STOCKS ||--o{ DAILY_PRICES : "has"
-    STOCKS ||--o{ WATCHLIST_ITEMS : "tracked_in"
-    STOCKS ||--o{ MODEL_PORTFOLIO_TRADES : "simulated_in"
-    WATCHLISTS ||--o{ WATCHLIST_ITEMS : "contains"
-    MODEL_PORTFOLIOS ||--o{ MODEL_PORTFOLIO_TRADES : "has"
+    PORTFOLIO ||--o{ TRADES : "içerir"
+    STOCKS ||--o{ TRADES : "ait"
+    STOCKS ||--o{ DAILY_PRICES : "sahip"
+    MODEL_PORTFOLIO ||--o{ MODEL_TRADES : "sanal işlemler"
     
     STOCKS {
         int id PK
-        string ticker UK
-        string name
-        string currency_code
+        string ticker "Hisse Kodu (Örn: THYAO.IS)"
     }
     TRADES {
         int id PK
-        int stock_id FK
         date trade_date
-        enum side "BUY/SELL"
+        enum side "BUY / SELL"
         int quantity
         decimal price
     }
-    DAILY_PRICES {
-        int id PK
-        int stock_id FK
-        date price_date
-        decimal close_price
-        string source
-    }
     BUDGETS {
         int id PK
-        string month UK
-        decimal income_salary
+        string month "Örn: 2026-04"
         decimal savings_target
-    }
-    FINANCIAL_GOALS {
-        int id PK
-        string name
-        decimal target_amount
-        date deadline
-        string status
     }
     RISK_PROFILES {
         int id PK
@@ -313,280 +133,117 @@ erDiagram
     }
 ```
 
-**ORM Avantajları:**
-- ✅ SQL Injection riski **sıfır** — Parametre binding otomatik
-- ✅ Tip güvenliği — Python IDE'leri sütun adlarını otomatik tamamlar
-- ✅ Veritabanı bağımsızlığı — MySQL, PostgreSQL veya SQLite'a tek satır değişiklikle geçiş
-- ✅ Connection pooling — `pool_pre_ping` ile kopan bağlantılar otomatik yeniden kurulur
-
 ---
 
-## 📁 Proje Yapısı
+## 🚀 Kurulum ve Başlangıç
 
-```
-PortfoySimulasyonu/
-│
-├── 📄 app.py                          # Uygulama giriş noktası
-├── 📄 requirements.txt                # Python bağımlılıkları
-├── 📄 .env                            # Veritabanı bağlantı bilgileri (gizli)
-├── 📄 build_nuitka.bat                # EXE derleme scripti
-│
-├── ⚙️ config/
-│   └── settings_loader.py             # Ortam değişkenleri okuyucu
-│
-├── 🧠 src/domain/                     # İş Kuralları Katmanı
-│   ├── models/
-│   │   ├── portfolio.py               # Portföy domain modeli
-│   │   ├── position.py                # Pozisyon modeli (Lot, Maliyet, Kâr/Zarar)
-│   │   ├── trade.py                   # Alım/Satım işlemi modeli
-│   │   ├── stock.py                   # Hisse senedi modeli
-│   │   ├── daily_price.py             # Günlük fiyat modeli
-│   │   ├── model_portfolio.py         # Model portföy ve simülasyon
-│   │   ├── budget.py                  # Bütçe modeli
-│   │   ├── financial_goal.py          # Finansal hedef modeli
-│   │   ├── risk_profile.py            # Risk profili modeli
-│   │   ├── optimization_result.py     # Optimizasyon sonucu
-│   │   └── watchlist.py               # Takip listesi modeli
-│   │
-│   └── services_interfaces/           # Repository Arayüzleri (Sözleşmeler)
-│       ├── i_portfolio_repo.py
-│       ├── i_price_repo.py
-│       ├── i_stock_repo.py
-│       ├── i_watchlist_repo.py
-│       ├── i_model_portfolio_repo.py
-│       ├── i_planning_repo.py
-│       ├── i_risk_profile_repo.py
-│       └── i_market_data_client.py
-│
-├── ⚙️ src/application/                # Uygulama Servisleri Katmanı
-│   ├── container.py                   # 📦 DI Konteyneri (Merkezi Bağımlılık Yönetimi)
-│   ├── events/
-│   │   └── event_bus.py               # 📡 Pub/Sub Event Bus (PyQt Sinyalleri)
-│   └── services/
-│       ├── portfolio_service.py       # Portföy iş mantığı
-│       ├── price_update_service.py    # Fiyat güncelleme
-│       ├── portfolio_update_coordinator.py  # Güncelleme orkestratörü
-│       ├── return_calc_service.py     # Getiri hesaplama
-│       ├── optimization_service.py    # Portföy optimizasyonu (Markowitz)
-│       ├── model_portfolio_service.py # Model portföy yönetimi
-│       ├── planning_service.py        # Finansal planlama
-│       ├── risk_profile_service.py    # Risk profilleme
-│       ├── watchlist_service.py       # Takip listesi yönetimi
-│       ├── excel_export_service.py    # Excel dışa aktarım
-│       ├── backfill_service.py        # Geçmiş veri tamamlama
-│       └── portfolio_reset_service.py # Portföy sıfırlama
-│
-├── 🗄️ src/infrastructure/             # Altyapı Katmanı
-│   ├── db/sqlalchemy/
-│   │   ├── database_engine.py         # SQLAlchemy Engine & Session Factory
-│   │   ├── orm_models.py             # Tablo Haritalandırma (Declarative Base)
-│   │   └── repositories/             # ORM Tabanlı Repository Uygulamaları
-│   │       ├── sa_portfolio_repository.py
-│   │       ├── sa_stock_repository.py
-│   │       ├── sa_price_repository.py
-│   │       ├── sa_watchlist_repository.py
-│   │       ├── sa_model_portfolio_repository.py
-│   │       ├── sa_planning_repository.py
-│   │       └── sa_risk_profile_repository.py
-│   ├── market_data/
-│   │   └── yfinance_client.py         # Yahoo Finance API entegrasyonu
-│   └── logging/
-│       └── logger_setup.py            # Merkezi loglama altyapısı
-│
-├── 🖥️ src/ui/                         # Sunum Katmanı (UI)
-│   ├── main_window.py                 # Ana Pencere & Sayfa Navigasyonu
-│   ├── theme_manager.py               # 🎨 Merkezi Tema Yöneticisi
-│   ├── portfolio_table_model.py       # Reaktif Tablo Modeli (Event-Bus destekli)
-│   ├── styles/
-│   │   ├── themes/                   # Tema yüzeyi
-│   │   ├── base/                     # Genel widget stilleri
-│   │   ├── shared/                   # Ortak bileşen stilleri
-│   │   └── features/                 # Sayfa bazlı stiller
-│   └── pages/
-│       ├── base_page.py               # Temel sayfa sınıfı
-│       ├── dashboard_page.py          # Ana dashboard
-│       ├── analysis_page.py           # Portföy analizi
-│       ├── model_portfolio_page.py    # Model portföy simülasyonu
-│       ├── optimization_page.py       # Portföy optimizasyonu
-│       ├── planning_page.py           # Finansal planlama
-│       ├── risk_profile_page.py       # Risk profili
-│       ├── stock_detail_page.py       # Hisse detay
-│       └── watchlist_page.py          # Takip listesi
-│
-├── 🧪 tests/                          # Unit Testler
-│   ├── conftest.py
-│   ├── application/
-│   │   └── test_portfolio_service.py
-│   └── domain/
-│       ├── test_portfolio.py
-│       └── test_trade.py
-│
-├── 📚 docs/                           # Proje Dokümantasyonu
-├── 🎨 icons/                          # Uygulama ikonları
-└── 📦 eskiKodlar.zip                  # Arşivlenmiş eski MySQL kodları
-```
+### Sistem Gereksinimleri
+- **İşletim Sistemi:** Windows / macOS / Linux
+- **Python:** Versiyon 3.10 veya üzeri
+- **Veritabanı:** MySQL 8.0+
 
----
+### Adım Adım Kurulum
 
-## 🚀 Kurulum
-
-### Önkoşullar
-
-| Araç | Minimum Sürüm | Açıklama |
-|------|---------------|----------|
-| **Python** | 3.10+ | Ana programlama dili |
-| **MySQL** | 8.0+ | Veritabanı sunucusu |
-| **pip** | 23.0+ | Paket yöneticisi |
-
-### 1. Projeyi Klonlayın
-
+**1. Depoyu İndirin:**
 ```bash
 git clone https://github.com/kullanici/PortfoySimulasyonu.git
 cd PortfoySimulasyonu
 ```
 
-### 2. Sanal Ortam Oluşturun (Önerilen)
-
+**2. Sanal Ortam Oluşturun (Önerilir):**
 ```bash
 python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
+venv\Scripts\activate      # Windows
+source venv/bin/activate   # macOS / Linux
 ```
 
-### 3. Bağımlılıkları Yükleyin
-
+**3. Bağımlılıkları Yükleyin:**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Veritabanı Yapılandırması
-
-Proje kök dizininde `.env` dosyası oluşturun:
-
-```env
+**4. Ortam Değişkenleri ve Veritabanı Ayarı:**
+Kök dizinde bir `.env` dosyası oluşturun ve bilgilerinizi doldurun:
+```ini
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
-DB_PASSWORD=sifreniz
+DB_PASSWORD=gizli_sifreniz
 DB_NAME=portfoySim
 ```
+*Not: Uygulama ilk açılışta `orm_models.py` üzerinden gerekli tabloları otomatik olarak MySQL sunucunuzda yaratacaktır.*
 
-MySQL'de gerekli tabloları oluşturun. SQLAlchemy ORM modelleri `src/infrastructure/db/sqlalchemy/orm_models.py` dosyasında tanımlıdır.
-
-### 5. Uygulamayı Başlatın
-
+**5. Uygulamayı Başlatın:**
 ```bash
 python app.py
 ```
 
-### 6. (Opsiyonel) EXE Olarak Derleme
-
-Nuitka ile tek dosya masaüstü uygulaması oluşturmak için:
-
+**(Opsiyonel) Taşınabilir EXE Derleme:**
+Windows ortamında tek tıklamalı `.exe` elde etmek için:
 ```bash
 build_nuitka.bat
 ```
 
 ---
 
-## 🧪 Testler
+## 🏃‍♂️ Kullanıcı Senaryoları (Hızlı Başlangıç)
 
+Uygulamayı ilk açtığınızda neler yapmalısınız?
+
+1. **İlk Hissenizi Ekleyin:** `Dashboard` (Ana Panel) sayfasından "İşlem Ekle" butonuna basın. Bir BIST hissesi (Örn: `TUPRS.IS`) veya Global bir hisse kodu girin, alış fiyatı ve miktar belirterek portföyünüze ekleyin.
+2. **Geçmiş Veriyi İndirin:** `Hisse Detay` sayfasına giderek "Geçmiş Verileri Doldur (Backfill)" yapın. Böylece getiri hesaplamaları için gerekli veri tabanı oluşturulur.
+3. **Simülasyona Başlayın:** `Model Portföy` sekmesine geçip "Sanal Portföy Oluştur" deyin. 100.000 TL sanal bakiye ile deneme alımları yapmaya başlayın.
+4. **Risk Profilinizi Öğrenin:** `Risk Profili` ekranına giderek anketi çözün. Sistemin size önereceği hisse/nakit dengesini öğrenin.
+
+---
+
+## 🛠 Geliştirici Rehberi
+
+### Yeni Bir Servis Eklemek
+Clean Architecture kuralları gereği, veri tabanı ve arayüz asla birbirine direkt bağlanmaz.
+
+1. `src/domain/services_interfaces` içine arayüzü yazın (Örn: `IMyService`).
+2. `src/infrastructure/db/sqlalchemy/repositories` içine bu arayüzü uygulayan Repository dosyasını yazın.
+3. `src/application/container.py` içerisindeki `AppContainer` sınıfında bu servisin instance'ını (Dependency Injection) oluşturun.
+
+### Olay Döngüsü (Event Bus) Kullanımı
+Ekran dondurmadan arka planda güncelleme yapmak için Qt sinyallerini kullanan `GlobalEventBus` kullanın:
+```python
+# Arka plan servisinde
+container.event_bus.prices_updated.emit({"THYAO.IS": 320.50})
+
+# UI (Sunum) tarafında dinleme
+container.event_bus.prices_updated.connect(self._tabloyu_guncelle)
+```
+
+### Tema Yönetimi (QSS)
+Görsel değişiklikler için koda dokunmayın. `src/ui/styles/` dizinindeki ilgili klasöre gidin:
+- `base/`: Temel buton/tablo davranışları.
+- `themes/`: Renk paleti (Dark, Light).
+- `features/`: Sayfalara özel CSS kuralları (Örn: Risk sayfası fontları).
+
+---
+
+## 🧪 Testler ve Yol Haritası
+
+Mevcut test süitini çalıştırmak için projenin kök dizininde pytest komutunu verin:
 ```bash
-# Tüm testleri çalıştır
 python -m pytest tests/ -v
-
-# Belirli bir modülü test et
-python -m pytest tests/domain/test_portfolio.py -v
 ```
+*(Mevcut testler; portföy getiri hesaplamaları, alış/satış domain objesi validasyonları ve servis entegrasyon testlerini kapsar.)*
 
-**Mevcut Test Kapsamı:**
-- ✅ `test_portfolio.py` — Portföy domain modelinin pozisyon hesaplama testleri
-- ✅ `test_trade.py` — Alım/satım işlemi doğrulama testleri
-- ✅ `test_portfolio_service.py` — Servis katmanı entegrasyon testleri
+### Yakın Gelecek Yol Haritası (Roadmap)
+- [ ] ML/AI tabanlı (HisseTahmin Entegrasyonu) hisse fiyatı yön tahminleme sekmesi.
+- [ ] Nakit, USD ve EUR döviz cüzdanlarının entegrasyonu.
+
 
 ---
 
-## 🛠️ Kullanılan Teknolojiler
+## 📜 Lisans & İletişim
 
-| Kategori | Teknoloji | Kullanım Amacı |
-|----------|----------|----------------|
-| **Dil** | Python 3.10+ | Ana geliştirme dili |
-| **UI Framework** | PyQt5 | Masaüstü kullanıcı arayüzü |
-| **ORM** | SQLAlchemy 2.0 | Veritabanı iletişimi (Object-Relational Mapping) |
-| **Veritabanı** | MySQL 8.0 | Kalıcı veri depolama |
-| **Piyasa Verisi** | YFinance | Gerçek zamanlı ve tarihsel borsa verileri |
-| **Veri Analizi** | Pandas, NumPy | Finansal hesaplamalar ve veri manipülasyonu |
-| **Optimizasyon** | SciPy | Portföy ağırlık optimizasyonu (Markowitz) |
-| **Excel** | OpenPyXL | Portföy raporlarını Excel formatına dışa aktarım |
-| **Test** | Pytest, pytest-mock | Unit test ve mock altyapısı |
-| **Derleme** | Nuitka | Tek dosya EXE oluşturma |
-
----
-
-## 📐 Mimari Kararlar ve Tasarım Desenleri
-
-| Desen | Uygulama | Faydası |
-|-------|----------|--------|
-| **Clean Architecture** | 4 katmanlı yapı (UI → App → Domain ← Infra) | Katman bağımsızlığı, test edilebilirlik |
-| **Dependency Injection** | `AppContainer` merkezi konteyneri | Prop-drilling eliminasyonu, tek noktadan yönetim |
-| **Repository Pattern** | `IPortfolioRepo` → `SQLAlchemyPortfolioRepo` | Veritabanı soyutlama, tak-çıkar değiştirilebilirlik |
-| **Pub/Sub (Event-Bus)** | `GlobalEventBus` (PyQt Sinyalleri) | Asenkron UI güncellemesi, thread-safety |
-| **Strategy Pattern** | `ThemeManager` + QSS dosyaları | Tema değiştirilebilirliği |
-| **Coordinator Pattern** | `PortfolioUpdateCoordinator` | Karmaşık iş akışı orkestrasyonu |
-| **Domain Model** | `Portfolio`, `Position`, `Trade` | İş kurallarının kod içinde yaşaması |
-
----
-
-## 📈 Modernizasyon Yol Haritası
-
-Proje, aşamalı bir mimari modernizasyon sürecinden geçirilmiştir:
-
-```mermaid
-timeline
-    title Mimari Modernizasyon Süreci
-    
-    Faz 1 - Temel Mimari : Dependency Injection Container kurulumu
-                         : Prop-drilling eliminasyonu
-                         : Merkezi ThemeManager (QSS) geçişi
-                         
-    Faz 2 - Performans   : Event-Bus (Pub/Sub) mimarisi
-                         : Reaktif hücre bazlı tablo render
-                         : Thread-safe sinyal sistemi
-                         
-    Faz 3 - Veri Katmanı : SQLAlchemy ORM entegrasyonu
-                         : 7 adet ORM Repository oluşturma
-                         : Ham SQL kodlarının arşivlenmesi
-                         
-    Faz 4 - Gelecek      : ML/AI Fiyat Tahminleme modülü
-                         : Nakit ve Döviz Cüzdan Sistemi
-                         : Gerçek zamanlı WebSocket entegrasyonu
-```
-
----
-
-## 🤝 Katkıda Bulunma
-
-1. Bu depoyu fork edin
-2. Feature branch oluşturun (`git checkout -b feature/yeni-ozellik`)
-3. Değişikliklerinizi commit edin (`git commit -m 'feat: Yeni özellik eklendi'`)
-4. Branch'i push edin (`git push origin feature/yeni-ozellik`)
-5. Pull Request oluşturun
-
-### Commit Mesajı Kuralları
-
-```
-feat:     Yeni özellik
-fix:      Hata düzeltmesi
-refactor: Kod iyileştirmesi
-chore:    Bakım / temizlik
-docs:     Dokümantasyon
-test:     Test ekleme/güncelleme
-```
-
-
+Bu yazılım kapalı kaynak ve lisanslı bir mimaridir.  
+Herhangi bir soru, destek veya katkı süreci için iletişime geçiniz.
 
 <p align="center">
-  <strong>Portföy Simülasyonu</strong> — Clean Architecture ile inşa edilmiş profesyonel finans platformu 🚀
+  <sub>Yüksek performanslı ve ölçeklenebilir kodlama mimarisi ile inşa edilmiştir </sub>
 </p>
