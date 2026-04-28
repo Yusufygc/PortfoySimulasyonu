@@ -13,7 +13,7 @@ Kullanım (herhangi bir QWidget içinden):
     Toast.info(self, "Bilgi mesajı.")
 
 Mimari Notlar:
-    - Toast, ebeveyn pencerenin SAĞ ALT köşesine overlay olarak yapışır.
+    - Toast, ebeveyn pencerenin SAĞ ÜST köşesine overlay olarak yapışır.
     - Birden fazla toast üst üste yığılır (stacking).
     - 3.5 saniye sonra fade-out animasyonuyla kaybolur.
     - Kullanıcı üzerine tıklayarak da kapatabilir.
@@ -23,7 +23,7 @@ from __future__ import annotations
 from typing import ClassVar, List, Literal, Tuple
 
 from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton
-from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, pyqtProperty
+from PyQt5.QtCore import QEvent, Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, pyqtProperty
 from PyQt5.QtGui import QFont, QColor
 
 ToastType = Literal["success", "error", "warning", "info"]
@@ -59,11 +59,12 @@ _STYLE: dict[str, dict] = {
     },
 }
 
-_MARGIN   = 16   # Kenardan boşluk (px)
-_SPACING  = 8    # Toastlar arası boşluk (px)
+_MARGIN   = 18   # Kenardan boşluk (px)
+_SPACING  = 10   # Toastlar arası boşluk (px)
 _DURATION = 3500 # Görünme süresi (ms)
 _FADE_MS  = 300  # Fade animasyon süresi (ms)
-_MAX_W    = 380  # Maksimum genişlik (px)
+_MIN_W    = 460  # Minimum genişlik (px)
+_MAX_W    = 620  # Maksimum genişlik (px)
 
 
 class _ToastWidget(QWidget):
@@ -78,11 +79,12 @@ class _ToastWidget(QWidget):
         kind: ToastType,
         parent: QWidget,
         duration_ms: int = _DURATION,
-        position: ToastPosition = "bottom",
+        position: ToastPosition = "top",
     ):
         # parentless floating window — ama parent'ı referans için saklıyoruz
         super().__init__(parent, Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self._parent_ref = parent
+        self._anchor_ref = self._anchor_for(parent)
         self._kind = kind
         self._position = position
         self._opacity_val: float = 0.0
@@ -92,6 +94,7 @@ class _ToastWidget(QWidget):
         self.setWindowOpacity(0.0)
 
         self._build_ui(message, kind)
+        self._install_parent_filters()
         self._register()
         self._reposition_all()
 
@@ -100,6 +103,16 @@ class _ToastWidget(QWidget):
 
         # Otomatik kapanma
         QTimer.singleShot(duration_ms, self._begin_close)
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched in (self._parent_ref, self._anchor_ref) and event.type() in {
+            QEvent.Move,
+            QEvent.Resize,
+            QEvent.Show,
+            QEvent.WindowStateChange,
+        }:
+            QTimer.singleShot(0, self._reposition_all)
+        return super().eventFilter(watched, event)
 
     # ------------------------------------------------------------------
     # UI
@@ -120,31 +133,34 @@ class _ToastWidget(QWidget):
         """)
 
         row = QHBoxLayout(container)
-        row.setContentsMargins(14, 10, 10, 10)
-        row.setSpacing(10)
+        row.setContentsMargins(18, 14, 14, 14)
+        row.setSpacing(14)
 
         lbl_icon = QLabel(cfg["icon"])
-        lbl_icon.setStyleSheet("background: transparent; font-size: 16px; border: none;")
-        lbl_icon.setFixedWidth(20)
+        lbl_icon.setStyleSheet("background: transparent; font-size: 20px; border: none;")
+        lbl_icon.setFixedWidth(26)
 
         lbl_msg = QLabel(message)
         lbl_msg.setWordWrap(True)
-        lbl_msg.setMaximumWidth(_MAX_W - 90)
+        lbl_msg.setMinimumWidth(_MIN_W - 120)
+        lbl_msg.setMaximumWidth(_MAX_W - 120)
         lbl_msg.setStyleSheet(f"""
             background: transparent;
             color: #f1f5f9;
-            font-size: 13px;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.35;
             border: none;
         """)
 
         btn_close = QPushButton("×")
-        btn_close.setFixedSize(20, 20)
+        btn_close.setFixedSize(26, 26)
         btn_close.setCursor(Qt.PointingHandCursor)
         btn_close.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 color: #94a3b8;
-                font-size: 16px;
+                font-size: 20px;
                 border: none;
                 border-radius: 4px;
             }
@@ -163,6 +179,7 @@ class _ToastWidget(QWidget):
 
         container.adjustSize()
         self.adjustSize()
+        self.setMinimumWidth(_MIN_W)
         self.setMaximumWidth(_MAX_W)
 
     # ------------------------------------------------------------------
@@ -194,6 +211,7 @@ class _ToastWidget(QWidget):
                 pass
             if not _ToastWidget._registry[key]:
                 del _ToastWidget._registry[key]
+        self._remove_parent_filters()
         self.close()
         # Kalan toastları yeniden konumlandır
         _ToastWidget._reposition_for_parent(self._parent_ref, self._position)
@@ -212,15 +230,12 @@ class _ToastWidget(QWidget):
         _ToastWidget._reposition_for_parent(self._parent_ref, self._position)
 
     @staticmethod
-    def _reposition_for_parent(parent: QWidget, position: ToastPosition = "bottom") -> None:
+    def _reposition_for_parent(parent: QWidget, position: ToastPosition = "top") -> None:
         key = (id(parent), position)
         stack = _ToastWidget._registry.get(key, [])
 
         # Üst pencerenin global konumu
-        if hasattr(parent, "centralWidget"):
-            anchor = parent.centralWidget()
-        else:
-            anchor = parent
+        anchor = _ToastWidget._anchor_for(parent)
         global_pos = anchor.mapToGlobal(QPoint(0, 0))
 
         panel_w = anchor.width()
@@ -247,6 +262,24 @@ class _ToastWidget(QWidget):
                 toast.show()
                 y_offset = y - _SPACING
 
+    @staticmethod
+    def _anchor_for(parent: QWidget) -> QWidget:
+        if hasattr(parent, "centralWidget") and parent.centralWidget() is not None:
+            return parent.centralWidget()
+        return parent
+
+    def _install_parent_filters(self) -> None:
+        self._parent_ref.installEventFilter(self)
+        if self._anchor_ref is not self._parent_ref:
+            self._anchor_ref.installEventFilter(self)
+
+    def _remove_parent_filters(self) -> None:
+        for watched in {self._parent_ref, self._anchor_ref}:
+            try:
+                watched.removeEventFilter(self)
+            except RuntimeError:
+                pass
+
     def mouseReleaseEvent(self, event) -> None:
         self._begin_close()
 
@@ -269,7 +302,7 @@ class Toast:
         parent: QWidget,
         message: str,
         duration_ms: int = _DURATION,
-        position: ToastPosition = "bottom",
+        position: ToastPosition = "top",
     ) -> None:
         _ToastWidget(message, "success", _root(parent), duration_ms, position)
 
@@ -278,7 +311,7 @@ class Toast:
         parent: QWidget,
         message: str,
         duration_ms: int = _DURATION,
-        position: ToastPosition = "bottom",
+        position: ToastPosition = "top",
     ) -> None:
         _ToastWidget(message, "error", _root(parent), duration_ms, position)
 
@@ -287,7 +320,7 @@ class Toast:
         parent: QWidget,
         message: str,
         duration_ms: int = _DURATION,
-        position: ToastPosition = "bottom",
+        position: ToastPosition = "top",
     ) -> None:
         _ToastWidget(message, "warning", _root(parent), duration_ms, position)
 
@@ -296,7 +329,7 @@ class Toast:
         parent: QWidget,
         message: str,
         duration_ms: int = _DURATION,
-        position: ToastPosition = "bottom",
+        position: ToastPosition = "top",
     ) -> None:
         _ToastWidget(message, "info", _root(parent), duration_ms, position)
 
