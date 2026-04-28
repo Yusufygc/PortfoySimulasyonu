@@ -110,6 +110,12 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
                 session.delete(orm_obj)
                 session.commit()
 
+    def delete_all_model_portfolios(self) -> None:
+        with self._provider.get_session() as session:
+            session.query(ORMModelPortfolioTrade).delete()
+            session.query(ORMModelPortfolio).delete()
+            session.commit()
+
     # ---------- ModelPortfolioTrade READ operasyonları ---------- #
     def get_trades_by_portfolio_id(self, portfolio_id: int) -> List[ModelPortfolioTrade]:
         with self._provider.get_session() as session:

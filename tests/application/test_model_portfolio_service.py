@@ -1,9 +1,11 @@
 from datetime import date
 from decimal import Decimal
 
+from src.application.services.portfolio.trade_entry_service import TradeEntryService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade
 from src.domain.models.stock import Stock
+from src.domain.models.trade import TradeSide
 
 
 class FakeModelPortfolioRepo:
@@ -104,3 +106,40 @@ def test_model_portfolio_service_returns_positions_with_details():
     assert positions[0]["current_value"] == Decimal("96")
     assert positions[0]["profit_loss"] == Decimal("16")
 
+
+class FakePortfolioService:
+    def __init__(self):
+        self.saved_trades = []
+
+    def add_trade(self, trade):
+        self.saved_trades.append(trade)
+        return trade
+
+
+def test_dashboard_and_model_portfolio_reuse_same_stock_for_same_ticker():
+    stock_repo = FakeStockRepo()
+    dashboard_service = TradeEntryService(
+        stock_repo=stock_repo,
+        portfolio_service=FakePortfolioService(),
+    )
+    model_service = ModelPortfolioService(FakeModelPortfolioRepo(), stock_repo)
+
+    dashboard_result = dashboard_service.submit_trade(
+        ticker="asels",
+        side=TradeSide.BUY,
+        quantity=1,
+        price=Decimal("10"),
+        trade_date=date(2026, 1, 3),
+        name="ASELSAN",
+    )
+    model_trade = model_service.add_trade_by_ticker(
+        portfolio_id=1,
+        ticker="ASELS",
+        side="BUY",
+        quantity=1,
+        price=Decimal("10"),
+        trade_date=date(2026, 1, 3),
+    )
+
+    assert dashboard_result.stock_id == 10
+    assert model_trade.stock_id == dashboard_result.stock_id

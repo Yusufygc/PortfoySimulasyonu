@@ -48,6 +48,11 @@ class IModelPortfolioRepository(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def delete_all_model_portfolios(self) -> None:
+        """Tüm model portföyleri siler; trade'ler FK/CASCADE ile temizlenir."""
+        raise NotImplementedError
+
     # ---------- ModelPortfolioTrade READ operasyonları ---------- #
 
     @abstractmethod

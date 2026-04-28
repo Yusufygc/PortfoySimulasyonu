@@ -48,6 +48,11 @@ class IWatchlistRepository(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def delete_all_watchlists(self) -> None:
+        """Tüm watchlist kayıtlarını siler; item'lar FK/CASCADE ile temizlenir."""
+        raise NotImplementedError
+
     # ---------- WatchlistItem READ operasyonları ---------- #
 
     @abstractmethod

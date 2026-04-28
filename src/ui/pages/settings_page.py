@@ -13,10 +13,12 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMessageBox,
+    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from .base_page import BasePage
@@ -60,11 +62,27 @@ class SettingsPage(BasePage):
         description.setProperty("cssClass", "pageDescription")
         self.main_layout.addWidget(description)
 
-        self._create_price_data_card()
-        self._create_reset_card()
-        self.main_layout.addStretch()
+        self.tabs = QTabWidget()
+        self.tabs.setProperty("cssClass", "mainTabs")
 
-    def _create_price_data_card(self) -> None:
+        self.home_tab = QWidget()
+        self.home_layout = QVBoxLayout(self.home_tab)
+        self.home_layout.setContentsMargins(0, 0, 0, 0)
+        self.home_layout.setSpacing(18)
+        self._create_reset_card(self.home_layout)
+        self.home_layout.addStretch()
+
+        self.price_data_tab = QWidget()
+        self.price_data_layout = QVBoxLayout(self.price_data_tab)
+        self.price_data_layout.setContentsMargins(0, 0, 0, 0)
+        self.price_data_layout.setSpacing(18)
+        self._create_price_data_card(self.price_data_layout)
+
+        self.tabs.addTab(self.home_tab, IconManager.get_icon("home", color="@COLOR_TEXT_SECONDARY", size=QSize(18, 18)), "Ana Sayfa")
+        self.tabs.addTab(self.price_data_tab, IconManager.get_icon("bar-chart-2", color="@COLOR_TEXT_SECONDARY", size=QSize(18, 18)), "Fiyat Verisi Yönetimi")
+        self.main_layout.addWidget(self.tabs, 1)
+
+    def _create_price_data_card(self, parent_layout: QVBoxLayout) -> None:
         card = QFrame()
         card.setProperty("cssClass", "panelFramePadded")
         layout = QVBoxLayout(card)
@@ -92,10 +110,10 @@ class SettingsPage(BasePage):
 
         summary_grid = QGridLayout()
         summary_grid.setSpacing(10)
-        self.lbl_stock_count = self._summary_label("Hisse", "-")
-        self.lbl_missing_count = self._summary_label("Eksik Gün", "-")
-        self.lbl_holiday_count = self._summary_label("Tatil Adayı", "-")
-        self.lbl_latest_date = self._summary_label("Son Güncel Tarih", "-")
+        self.lbl_stock_count = self._summary_label("Hisse", "-", "list")
+        self.lbl_missing_count = self._summary_label("Eksik Gün", "-", "alert-triangle")
+        self.lbl_holiday_count = self._summary_label("Tatil Adayı", "-", "calendar")
+        self.lbl_latest_date = self._summary_label("Son Güncel Tarih", "-", "history")
         summary_grid.addWidget(self.lbl_stock_count, 0, 0)
         summary_grid.addWidget(self.lbl_missing_count, 0, 1)
         summary_grid.addWidget(self.lbl_holiday_count, 0, 2)
@@ -108,7 +126,7 @@ class SettingsPage(BasePage):
         self.date_start.setCalendarPopup(True)
         self.date_start.setProperty("cssClass", "tradeInputNormal")
         self.date_start.setMinimumHeight(36)
-        self.date_start.setDate(QDate.currentDate().addDays(-90))
+        self._apply_minimum_start_date()
 
         self.date_end = QDateEdit()
         self.date_end.setCalendarPopup(True)
@@ -176,7 +194,16 @@ class SettingsPage(BasePage):
         self.health_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.health_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.health_table.verticalHeader().setVisible(False)
-        self.health_table.horizontalHeader().setStretchLastSection(True)
+        
+        from PyQt5.QtWidgets import QHeaderView
+        header = self.health_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)      # Hisse
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents) # Son Veri
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents) # Eksik Gün
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents) # Durum
+        header.setSectionResizeMode(4, QHeaderView.Stretch)      # İlk Eksik
+        header.setSectionResizeMode(5, QHeaderView.Stretch)      # Son Eksik
+        
         self.health_table.setProperty("cssClass", "dataTable")
         self.health_table.itemSelectionChanged.connect(self._on_health_selection_changed)
         content_row.addWidget(self.health_table, 3)
@@ -189,12 +216,12 @@ class SettingsPage(BasePage):
         content_row.addWidget(self.detail_text, 1)
         layout.addLayout(content_row)
 
-        self.main_layout.addWidget(card)
+        parent_layout.addWidget(card)
         if self.price_data_health_service is None:
             self._set_price_data_controls_enabled(False)
             self.detail_text.setText("Fiyat verisi yönetim servisi kullanılamıyor.")
 
-    def _create_reset_card(self) -> None:
+    def _create_reset_card(self, parent_layout: QVBoxLayout) -> None:
         reset_card = QFrame()
         reset_card.setProperty("cssClass", "panelFramePadded")
         reset_layout = QVBoxLayout(reset_card)
@@ -223,25 +250,64 @@ class SettingsPage(BasePage):
         action_row.addWidget(self.btn_reset)
 
         reset_layout.addLayout(action_row)
-        self.main_layout.addWidget(reset_card)
+        parent_layout.addWidget(reset_card)
 
-    def _summary_label(self, title: str, value: str) -> QFrame:
+    def _summary_label(self, title: str, value: str, icon_name: str = None) -> QFrame:
         frame = QFrame()
         frame.setProperty("cssClass", "infoCard")
         layout = QVBoxLayout(frame)
         layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(4)
+
+        title_row = QHBoxLayout()
+        title_row.setSpacing(8)
+        if icon_name:
+            icon_lbl = QLabel()
+            icon_lbl.setPixmap(
+                IconManager.get_icon(icon_name, color="@COLOR_ACCENT", size=QSize(18, 18)).pixmap(18, 18)
+            )
+            title_row.addWidget(icon_lbl)
+
         caption = QLabel(title)
         caption.setProperty("cssClass", "cardTitle")
+        title_row.addWidget(caption)
+        title_row.addStretch()
+        layout.addLayout(title_row)
+
         metric = QLabel(value)
         metric.setObjectName("metricValue")
         metric.setProperty("cssClass", "metricValue")
-        layout.addWidget(caption)
         layout.addWidget(metric)
         frame.metric_label = metric
         return frame
 
+    def _apply_minimum_start_date(self) -> None:
+        default_date = QDate.currentDate().addDays(-90)
+        if self.price_data_health_service is None:
+            self.date_start.setDate(default_date)
+            return
+
+        minimum_start = self.price_data_health_service.minimum_start_date()
+        if minimum_start is None:
+            self.date_start.setDate(default_date)
+            return
+
+        minimum_qdate = QDate(minimum_start.year, minimum_start.month, minimum_start.day)
+        self.date_start.setMinimumDate(minimum_qdate)
+        self.date_start.setDate(minimum_qdate if default_date < minimum_qdate else default_date)
+
     def _date_range(self) -> tuple[date, date]:
-        return self.date_start.date().toPyDate(), self.date_end.date().toPyDate()
+        start_date = self.date_start.date().toPyDate()
+        end_date = self.date_end.date().toPyDate()
+        minimum_start = self.price_data_health_service.minimum_start_date() if self.price_data_health_service else None
+        if minimum_start and start_date < minimum_start:
+            start_date = minimum_start
+            self.date_start.setDate(QDate(minimum_start.year, minimum_start.month, minimum_start.day))
+            Toast.warning(
+                self,
+                f"Başlangıç tarihi portföye ilk hisse eklenme tarihinden önce olamaz ({minimum_start:%d.%m.%Y}).",
+            )
+        return start_date, end_date
 
     def _on_analyze(self) -> None:
         if self.price_data_health_service is None:
@@ -343,8 +409,11 @@ class SettingsPage(BasePage):
             )
         else:
             Toast.warning(self, "Güncellenecek fiyat kaydı bulunamadı.")
+            if result.errors:
+                self.detail_text.setText("Hata detayları:\n" + "\n".join(result.errors[:30]))
+            return
         if result.errors:
-            self.detail_text.setText("Hata detayları:\n" + "\n".join(result.errors[:20]))
+            Toast.warning(self, f"{len(result.errors)} veri kaynağı uyarısı oluştu.")
         self._on_analyze()
 
     def _on_delete_success(self, deleted_count: int) -> None:
@@ -361,7 +430,7 @@ class SettingsPage(BasePage):
         self.lbl_holiday_count.metric_label.setText(str(report.holiday_candidate_count))
         self.lbl_latest_date.metric_label.setText(report.latest_price_date.strftime("%d.%m.%Y") if report.latest_price_date else "-")
         self._populate_health_table()
-        self.detail_text.setText(self._format_report_text(report))
+        self.detail_text.setHtml(self._format_report_text(report))
 
     def _populate_health_table(self) -> None:
         if self._current_report is None:
@@ -373,6 +442,9 @@ class SettingsPage(BasePage):
             if not only_problem or row.missing_count > 0
         ]
         self.health_table.setRowCount(len(rows))
+        
+        from PyQt5.QtGui import QColor, QFont
+        
         for row_index, row in enumerate(rows):
             values = [
                 row.ticker,
@@ -385,10 +457,25 @@ class SettingsPage(BasePage):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                
                 if column == 0:
                     item.setData(Qt.UserRole, row.stock_id)
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+                    item.setForeground(QColor("#3b82f6")) # Primary Blue
+                
+                if column == 3: # Durum
+                    if "Sağlıklı" in value:
+                        item.setForeground(QColor("#10b981")) # Success Green
+                    else:
+                        item.setForeground(QColor("#ef4444")) # Danger Red
+                
+                if column == 2: # Eksik Gün
+                    if row.missing_count > 0:
+                        item.setForeground(QColor("#ef4444"))
+                
                 self.health_table.setItem(row_index, column, item)
-        self.health_table.resizeColumnsToContents()
 
     def _on_health_selection_changed(self) -> None:
         if self._current_report is None:
@@ -399,21 +486,39 @@ class SettingsPage(BasePage):
         row = next((item for item in self._current_report.rows if item.stock_id == stock_id), None)
         if row is None:
             return
+        
         missing_text = ", ".join(point_date.strftime("%d.%m.%Y") for point_date in row.missing_dates[:80])
         if row.missing_count > 80:
-            missing_text += f"\n... +{row.missing_count - 80} gün"
+            missing_text += f"<br>... +{row.missing_count - 80} gün"
         if not missing_text:
-            missing_text = "Eksik gün yok."
+            missing_text = "<span style='color: #94a3b8;'>Eksik gün yok.</span>"
+        
         holiday_text = ", ".join(point_date.strftime("%d.%m.%Y") for point_date in self._current_report.holiday_candidate_dates[:60])
         if not holiday_text:
-            holiday_text = "Tatil/kapalı gün adayı yok."
-        self.detail_text.setText(
-            f"{row.ticker}\n"
-            f"Durum: {row.status}\n"
-            f"Son veri: {row.last_price_date.strftime('%d.%m.%Y') if row.last_price_date else '-'}\n\n"
-            f"Eksik günler:\n{missing_text}\n\n"
-            f"Tatil/kapalı gün adayları:\n{holiday_text}"
-        )
+            holiday_text = "<span style='color: #94a3b8;'>Tatil/kapalı gün adayı yok.</span>"
+            
+        status_color = "#10b981" if "Sağlıklı" in row.status else "#ef4444"
+        
+        html = f"""
+        <div style='font-family: Segoe UI, Arial; line-height: 1.4;'>
+            <h3 style='color: #3b82f6; margin-bottom: 4px;'>{row.ticker}</h3>
+            <div style='margin-bottom: 12px;'>
+                <b>Durum:</b> <span style='color: {status_color};'>{row.status}</span><br>
+                <b>Son Veri:</b> {row.last_price_date.strftime('%d.%m.%Y') if row.last_price_date else '-'}
+            </div>
+            
+            <div style='margin-bottom: 12px;'>
+                <b style='color: #ef4444;'>Eksik Günler ({row.missing_count}):</b><br>
+                <div style='color: #cbd5e1; font-size: 13px;'>{missing_text}</div>
+            </div>
+            
+            <div>
+                <b style='color: #ca8a04;'>Tatil/Kapalı Gün Adayları:</b><br>
+                <div style='color: #cbd5e1; font-size: 13px;'>{holiday_text}</div>
+            </div>
+        </div>
+        """
+        self.detail_text.setHtml(html)
 
     def _selected_stock_id(self) -> int | None:
         selected = self.health_table.selectedItems()
@@ -427,24 +532,48 @@ class SettingsPage(BasePage):
         problematic = [row for row in report.rows if row.missing_count > 0]
         holidays = ", ".join(point_date.strftime("%d.%m.%Y") for point_date in report.holiday_candidate_dates[:40])
         if len(report.holiday_candidate_dates) > 40:
-            holidays += f"\n... +{len(report.holiday_candidate_dates) - 40} gün"
-        lines = [
-            "Fiyat Verisi Sağlık Raporu",
-            f"Aralık: {report.start_date:%d.%m.%Y} - {report.end_date:%d.%m.%Y}",
-            f"Durum: {report.health_label}",
-            f"Hisse: {report.total_stock_count}",
-            f"Beklenen işlem günü: {report.expected_business_day_count}",
-            f"Eksik kayıt: {report.total_missing_count}",
-            f"Tatil/kapalı gün adayı: {report.holiday_candidate_count}",
-            "",
-            "Sorunlu hisseler:",
-        ]
+            holidays += f"<br>... +{len(report.holiday_candidate_dates) - 40} gün"
+        
+        status_color = "#10b981" if "Sağlıklı" in report.health_label else "#ef4444"
+        
+        problematic_html = ""
         if problematic:
-            lines.extend(f"- {row.ticker}: {row.missing_count} eksik gün" for row in problematic[:30])
+            for row in problematic[:20]:
+                problematic_html += f"<li>{row.ticker}: <span style='color: #ef4444;'>{row.missing_count} eksik</span></li>"
+            if len(problematic) > 20:
+                problematic_html += f"<li>... ve {len(problematic) - 20} hisse daha</li>"
         else:
-            lines.append("- Yok")
-        lines.extend(["", "Tatil/kapalı gün adayları:", holidays or "- Yok"])
-        return "\n".join(lines)
+            problematic_html = "<li>Yok</li>"
+
+        html = f"""
+        <div style='font-family: Segoe UI, Arial; line-height: 1.4;'>
+            <h3 style='color: #3b82f6; margin-top: 0;'>Fiyat Verisi Sağlık Raporu</h3>
+            <div style='margin-bottom: 12px;'>
+                <b>Aralık:</b> {report.start_date:%d.%m.%Y} - {report.end_date:%d.%m.%Y}<br>
+                <b>Durum:</b> <span style='color: {status_color}; font-weight: bold;'>{report.health_label}</span>
+            </div>
+            
+            <div style='margin-bottom: 12px;'>
+                <b>Hisse:</b> {report.total_stock_count}<br>
+                <b>Beklenen İşlem Günü:</b> {report.expected_business_day_count}<br>
+                <b>Eksik Kayıt:</b> <span style='color: #ef4444;'>{report.total_missing_count}</span><br>
+                <b>Tatil Adayı:</b> <span style='color: #ca8a04;'>{report.holiday_candidate_count}</span>
+            </div>
+            
+            <div style='margin-bottom: 12px;'>
+                <b style='color: #ef4444;'>Sorunlu Hisseler:</b>
+                <ul style='margin-top: 4px; padding-left: 20px; color: #cbd5e1;'>
+                    {problematic_html}
+                </ul>
+            </div>
+            
+            <div>
+                <b style='color: #ca8a04;'>Tatil/Kapalı Gün Adayları:</b><br>
+                <div style='color: #cbd5e1; font-size: 13px;'>{holidays or "Yok"}</div>
+            </div>
+        </div>
+        """
+        return html
 
     def _set_busy(self, busy: bool, text: str | None = None) -> None:
         self._set_price_data_controls_enabled(not busy)

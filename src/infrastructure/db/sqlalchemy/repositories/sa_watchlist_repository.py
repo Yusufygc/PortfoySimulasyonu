@@ -88,6 +88,12 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
                 session.delete(orm_obj)
                 session.commit()
 
+    def delete_all_watchlists(self) -> None:
+        with self._provider.get_session() as session:
+            session.query(ORMWatchlistItem).delete()
+            session.query(ORMWatchlist).delete()
+            session.commit()
+
     # ---------- WatchlistItem READ operasyonları ---------- #
     def get_items_by_watchlist_id(self, watchlist_id: int) -> List[WatchlistItem]:
         with self._provider.get_session() as session:

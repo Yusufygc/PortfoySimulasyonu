@@ -13,6 +13,7 @@ from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataCli
 
 from src.application.services.market.price_lookup_service import PriceLookupService
 from src.application.services.market.price_data_health_service import PriceDataHealthService
+from src.application.services.database import DatabaseIntegrityService
 from src.application.services.portfolio.portfolio_service import PortfolioService
 from src.application.services.portfolio.price_update_service import PriceUpdateService
 from src.application.services.portfolio.trade_entry_service import TradeEntryService
@@ -58,6 +59,7 @@ class AppContainer:
         # 3) Market data client
         self.market_client = YFinanceMarketDataClient()
         self.price_lookup_service = PriceLookupService()
+        self.db_integrity_service = DatabaseIntegrityService(self.conn_provider)
 
         # 4) Services
         self.portfolio_service = PortfolioService(self.portfolio_repo, self.price_repo)
@@ -70,6 +72,8 @@ class AppContainer:
             stock_repo=self.stock_repo,
             price_repo=self.price_repo,
             market_data_client=self.market_client,
+            portfolio_repo=self.portfolio_repo,
+            model_portfolio_repo=self.model_portfolio_repo,
         )
         self.return_calc_service = ReturnCalcService(self.portfolio_repo, self.price_repo)
         self.model_portfolio_service = ModelPortfolioService(
@@ -83,7 +87,13 @@ class AppContainer:
             market_data_client=self.market_client,
             model_portfolio_service=self.model_portfolio_service,
         )
-        self.reset_service = PortfolioResetService(self.portfolio_repo, self.price_repo, self.stock_repo)
+        self.reset_service = PortfolioResetService(
+            portfolio_repo=self.portfolio_repo,
+            price_repo=self.price_repo,
+            stock_repo=self.stock_repo,
+            watchlist_repo=self.watchlist_repo,
+            model_portfolio_repo=self.model_portfolio_repo,
+        )
         
         self.history_simulation_service = HistorySimulationService(
             portfolio_repo=self.portfolio_repo,

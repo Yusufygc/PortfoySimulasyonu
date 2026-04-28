@@ -21,7 +21,8 @@ class DummyResetService:
 
 
 class DummyPriceDataHealthService:
-    pass
+    def minimum_start_date(self):
+        return date(2026, 1, 10)
 
 
 class DummyContainer:
@@ -33,10 +34,14 @@ class DummyContainer:
 def test_settings_page_renders_price_data_management_section():
     page = SettingsPage(container=DummyContainer())
 
+    assert page.tabs.count() == 2
+    assert page.tabs.tabText(0) == "Ana Sayfa"
+    assert page.tabs.tabText(1) == "Fiyat Verisi Yönetimi"
     assert page.btn_analyze.text().strip() == "Analiz Et"
     assert page.btn_update_missing.text().strip() == "Toplu Eksikleri Güncelle"
     assert page.health_table.columnCount() == 6
     assert page.health_table.horizontalHeaderItem(0).text() == "Hisse"
+    assert page.date_start.minimumDate().toPyDate() == date(2026, 1, 10)
 
 
 def test_settings_page_populates_health_table_from_report():

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, Optional
 
@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QMessageBox, QVBoxLayou
 from PyQt5.QtCore import QSettings, QTimer, QSize
 
 from .base_page import BasePage
+from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.model_portfolio import PortfolioInputDialog, PortfolioListPanel, PositionsTable, TradeInputDialog
@@ -27,6 +28,7 @@ class ModelPortfolioPage(BasePage):
         self.container = container
         self.page_title = "Model Portfoyler"
         self.model_portfolio_service = container.model_portfolio_service
+        self.price_repo = container.price_repo
         self.price_lookup_func = price_lookup_func
         self.current_portfolio_id: Optional[int] = None
         self.current_price_map: Dict[int, Decimal] = {}
@@ -288,14 +290,30 @@ class ModelPortfolioPage(BasePage):
             return
         positions = self.model_portfolio_service.get_positions_with_details(self.current_portfolio_id)
         updated_count = 0
+        prices_to_save = []
+        event_prices: Dict[int, Decimal] = {}
         for pos in positions:
             try:
                 result = self.price_lookup_func(pos["ticker"])
                 if result:
                     self.current_price_map[pos["stock_id"]] = result.price
+                    event_prices[pos["stock_id"]] = result.price
+                    prices_to_save.append(
+                        DailyPrice(
+                            id=None,
+                            stock_id=pos["stock_id"],
+                            price_date=self._price_date_for_lookup_result(result),
+                            close_price=result.price,
+                            source=result.source,
+                        )
+                    )
                     updated_count += 1
             except Exception as exc:
                 logger.error("Fiyat alinamadi: %s - %s", pos["ticker"], exc)
+        if prices_to_save:
+            self.price_repo.upsert_daily_prices_bulk(prices_to_save)
+        if event_prices and getattr(self.container, "event_bus", None):
+            self.container.event_bus.prices_updated.emit(event_prices)
         self._update_view()
         if updated_count <= 0:
             Toast.warning(
@@ -409,3 +427,9 @@ class ModelPortfolioPage(BasePage):
     @staticmethod
     def _format_last_update_message(updated_at) -> str:
         return f"Son guncelleme: {updated_at.strftime('%d.%m.%Y %H:%M')} (15dk gecikmeli)"
+
+    @staticmethod
+    def _price_date_for_lookup_result(result) -> date:
+        if getattr(result, "source", "") == "last_close" and getattr(result, "as_of", None):
+            return result.as_of.date()
+        return date.today()
