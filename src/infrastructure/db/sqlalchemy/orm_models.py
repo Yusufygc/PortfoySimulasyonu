@@ -1,6 +1,6 @@
 # src/infrastructure/db/sqlalchemy/orm_models.py
 
-from sqlalchemy import Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String, Time, UniqueConstraint
+from sqlalchemy import Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
@@ -166,5 +166,10 @@ class ORMRiskProfile(Base):
     horizon = Column(String(50), default="medium")
     reaction = Column(String(50), default="hold")
     risk_score = Column(Integer, default=0)
-    risk_label = Column(String(50), default="DENGELİ")
+    risk_label = Column(String(50), default="DENGELI")
+    questionnaire_version = Column(String(20), default="legacy")
+    answers_json = Column(JSON, nullable=True)
+    dimension_scores_json = Column(JSON, nullable=True)
+    recommended_allocation_json = Column(JSON, nullable=True)
+    suitability_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())

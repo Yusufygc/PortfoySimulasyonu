@@ -23,19 +23,40 @@ QSpinBox[cssClass="surveySpinBox"]::down-button {
     padding-bottom: 2px;
 }
 
-QPushButton[cssClass="calculateButton"] {
+QPushButton[cssClass="calculateButton"],
+QPushButton[cssClass="primaryButton"] {
     background-color: @COLOR_PURPLE; color: @COLOR_TEXT_WHITE; border: none;
-    border-radius: @RADIUS_XL; font-size: @FONT_XL; font-weight: bold;
-    padding: @SPACE_XL 30px;
+    border-radius: @RADIUS_LG; font-size: @FONT_MD; font-weight: bold;
+    padding: @SPACE_MD 24px;
 }
-QPushButton[cssClass="calculateButton"]:hover { background-color: @COLOR_PURPLE_HOVER; }
+QPushButton[cssClass="calculateButton"]:hover,
+QPushButton[cssClass="primaryButton"]:hover { background-color: @COLOR_PURPLE_HOVER; }
+
+QPushButton[cssClass="secondaryButton"] {
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+    font-size: @FONT_MD;
+    font-weight: bold;
+    padding: @SPACE_MD 18px;
+}
+QPushButton[cssClass="secondaryButton"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
+    background-color: @COLOR_BG_ELEVATED;
+}
+QPushButton[cssClass="secondaryButton"]:disabled {
+    color: @COLOR_TEXT_MUTED;
+    border: 1px solid @COLOR_BORDER_SUBTLE;
+    background-color: @COLOR_BG_SURFACE;
+}
 
 QRadioButton[cssClass="surveyRadio"] {
     background-color: @COLOR_BG_BASE;
     color: @COLOR_TEXT_PRIMARY;
     border: 1px solid @COLOR_BORDER;
-    border-radius: @RADIUS_XL;
-    padding: @SPACE_XL 18px;
+    border-radius: @RADIUS_LG;
+    padding: @SPACE_MD 14px;
     font-size: @FONT_BASE;
     spacing: @SPACE_SM;
 }
@@ -46,9 +67,10 @@ QRadioButton[cssClass="surveyRadio"]:hover {
 QRadioButton[cssClass="surveyRadio"]:checked {
     border: 2px solid @COLOR_PURPLE;
     background-color: rgba(139, 92, 246, 0.15);
+    padding: 7px 13px;
 }
 QRadioButton[cssClass="surveyRadio"]::indicator {
-    width: 16px; height: 16px;
+    width: 15px; height: 15px;
     border: 2px solid @COLOR_TEXT_MUTED;
     border-radius: @SPACE_SM;
     background-color: @COLOR_BG_BASE;
@@ -58,13 +80,6 @@ QRadioButton[cssClass="surveyRadio"]::indicator:checked {
     border: 2px solid @COLOR_PURPLE;
 }
 
-QPushButton[cssClass="calculateButton"] {
-    background-color: @COLOR_PURPLE; color: @COLOR_TEXT_WHITE; border: none;
-    border-radius: @RADIUS_XL; font-size: @FONT_XL; font-weight: bold;
-    padding: @SPACE_XL 30px;
-}
-QPushButton[cssClass="calculateButton"]:hover { background-color: @COLOR_PURPLE_HOVER; }
-
 QLabel[cssClass="profileHeader"] {
     color: @COLOR_TEXT_SECONDARY;
     font-size: @FONT_MD;
@@ -73,12 +88,12 @@ QLabel[cssClass="profileHeader"] {
 }
 QLabel[cssClass="profileScore"] {
     color: @COLOR_TEXT_WHITE;
-    font-size: @FONT_2XL;
+    font-size: @FONT_3XL;
     font-weight: bold;
     border: none;
 }
 QLabel[cssClass="profileLabel"] {
-    font-size: 22px;
+    font-size: @FONT_3XL;
     font-weight: bold;
     border: none;
 }
@@ -92,16 +107,56 @@ QLabel[cssClass="profileDetail"] {
     font-size: @FONT_SM;
     border: none;
 }
+QLabel[cssClass="profileDetailStrong"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_SM;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileMetricTitle"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_SM;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileMetricValue"] {
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: @FONT_LG;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileInfoTitle"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_SM;
+    font-weight: bold;
+    border: none;
+}
 QLabel[cssClass="surveyTitle"] {
     color: @COLOR_TEXT_PRIMARY;
     font-size: @FONT_XL;
     font-weight: bold;
     border: none;
 }
+QLabel[cssClass="surveyStep"] {
+    color: @COLOR_ACCENT_LIGHT;
+    font-size: @FONT_SM;
+    font-weight: bold;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_FULL;
+    padding: @SPACE_SM @SPACE_XL;
+    background-color: @COLOR_BG_BASE;
+}
+QLabel[cssClass="surveySectionTitle"] {
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: @FONT_2XL;
+    font-weight: bold;
+    border: none;
+}
 QLabel[cssClass="surveyQuestion"] {
-    color: #e2e8f0;
+    color: @COLOR_TEXT_BRIGHT;
     font-size: @FONT_MD;
     font-weight: bold;
+    border: none;
 }
 
 QFrame[cssClass="profileCard"] {
@@ -110,16 +165,53 @@ QFrame[cssClass="profileCard"] {
     border: 2px solid @COLOR_BORDER;
 }
 
+QFrame[cssClass="profileMetricCard"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+}
+
+QFrame[cssClass="profileInfoBlock"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_BORDER_SUBTLE;
+    border-radius: @RADIUS_LG;
+}
+
 QFrame[cssClass="surveyFrame"] {
     background-color: @COLOR_BG_SURFACE;
     border-radius: @RADIUS_2XL;
     border: 1px solid @COLOR_BORDER;
+    min-height: 410px;
 }
 
-QGroupBox[cssClass="surveyGroup"] {
+QStackedWidget[cssClass="surveyStack"] {
+    background: transparent;
     border: none;
-    margin-top: 0;
+}
+
+QScrollArea[cssClass="surveyScroll"] {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea[cssClass="surveyScroll"] > QWidget > QWidget {
+    background: transparent;
+}
+
+QFrame[cssClass="surveySectionPage"] {
+    background-color: transparent;
+    border: none;
+}
+
+QFrame[cssClass="surveyQuestionFrame"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
     padding: 0;
+}
+
+QFrame[cssClass="surveyQuestionFrame"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
 }
 
 /* -------------------------------------------------------
@@ -128,9 +220,11 @@ QGroupBox[cssClass="surveyGroup"] {
 QFrame[cssState="conservative"] { border-color: @COLOR_SUCCESS; }
 QFrame[cssState="moderate"]     { border-color: @COLOR_PRIMARY; }
 QFrame[cssState="balanced"]     { border-color: @COLOR_WARNING; }
+QFrame[cssState="growth"]       { border-color: @COLOR_PURPLE; }
 QFrame[cssState="aggressive"]   { border-color: @COLOR_DANGER; }
 
 QLabel[cssState="conservative"] { color: @COLOR_SUCCESS; }
 QLabel[cssState="moderate"]     { color: @COLOR_PRIMARY; }
 QLabel[cssState="balanced"]     { color: @COLOR_WARNING; }
+QLabel[cssState="growth"]       { color: @COLOR_PURPLE; }
 QLabel[cssState="aggressive"]   { color: @COLOR_DANGER; }
