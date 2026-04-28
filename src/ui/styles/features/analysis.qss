@@ -34,6 +34,12 @@ QWidget[cssClass="chartToolbar"] {
     background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
 }
 
+QFrame#analysisSeriesLegend {
+    background-color: @COLOR_BG_SURFACE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
+}
+
 QListWidget[cssClass="stockListWidget"] {
     background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
     border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_MD;

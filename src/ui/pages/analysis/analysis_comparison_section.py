@@ -17,6 +17,7 @@ class AnalysisComparisonSection(QWidget):
     MODE_PORTFOLIO = "portfolio_benchmark"
     MODE_PORTFOLIOS = "portfolio_portfolios"
     MODE_STOCKS = "stocks_portfolio"
+    MODE_STOCKS_ONLY = "stocks_only"
     MODE_RELATIVE = "relative_gap"
 
     def __init__(self, parent=None):
@@ -48,6 +49,7 @@ class AnalysisComparisonSection(QWidget):
         self.combo_mode.addItem("Portföy vs Benchmark", self.MODE_PORTFOLIO)
         self.combo_mode.addItem("Portföyler Arası", self.MODE_PORTFOLIOS)
         self.combo_mode.addItem("Hisseler vs Portföy", self.MODE_STOCKS)
+        self.combo_mode.addItem("Hisseler Arası", self.MODE_STOCKS_ONLY)
         self.combo_mode.addItem("Göreli Fark", self.MODE_RELATIVE)
         self.combo_mode.currentIndexChanged.connect(self._redraw_chart)
         top_layout.addWidget(self.combo_mode)
@@ -132,6 +134,19 @@ class AnalysisComparisonSection(QWidget):
             series_map.update(self._dto.stock_series)
             self.chart_engine.draw_line_series(
                 title="Seçili Hisseler ve Portföy",
+                y_label="Normalize Değer",
+                series_map=series_map,
+                normalize=True,
+                baseline=100,
+            )
+        elif mode == self.MODE_STOCKS_ONLY:
+            series_map = dict(self._dto.stock_series)
+            if not series_map:
+                self.chart_engine.draw_empty_chart("Karşılaştırılacak hisse verisi bulunamadı.")
+                return
+            title = "Seçili Hisseler Karşılaştırması" if len(series_map) > 1 else f"{next(iter(series_map))} Performansı"
+            self.chart_engine.draw_line_series(
+                title=title,
                 y_label="Normalize Değer",
                 series_map=series_map,
                 normalize=True,

@@ -18,6 +18,7 @@ python-dotenv
 
 # --- Arayüz ve Görselleştirme ---
 PyQt5
+pyqtgraph
 
 # --- Test ve Kalite ---
 pytest

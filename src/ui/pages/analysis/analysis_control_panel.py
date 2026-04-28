@@ -58,19 +58,13 @@ class AnalysisControlPanel(QFrame):
             )
         )
 
-        self.combo_view_mode = self._create_combo_box("G\u00f6r\u00fcn\u00fcm")
-        self.combo_view_mode.addItem("Portf\u00f6y \u00d6ncelikli", "portfolio")
-        self.combo_view_mode.addItem("Hisse Kar\u015f\u0131la\u015ft\u0131rma", "stocks")
-        self.combo_view_mode.currentIndexChanged.connect(self.filter_changed.emit)
-        layout.addWidget(self._wrap_field("G\u00f6r\u00fcn\u00fcm", self.combo_view_mode))
-
         self.stock_combo = CheckableComboBox("Hisse se\u00e7in")
         self.stock_combo.selection_changed.connect(self.filter_changed.emit)
         layout.addWidget(
             self._wrap_field(
-                "Hisse Se\u00e7imi",
+                "Hisse Filtresi",
                 self.stock_combo,
-                "Se\u00e7ilen portf\u00f6ydeki hisseler.",
+                "Se\u00e7ilen hisseler t\u00fcm analiz kapsam\u0131n\u0131 filtreler.",
             )
         )
 
@@ -186,9 +180,6 @@ class AnalysisControlPanel(QFrame):
 
     def selected_benchmarks(self) -> List[str]:
         return self.benchmark_chips.selected_codes()
-
-    def view_mode(self) -> str:
-        return self.combo_view_mode.currentData()
 
     def date_range(self) -> tuple[date, date]:
         return self.date_start.date().toPyDate(), self.date_end.date().toPyDate()

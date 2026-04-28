@@ -186,7 +186,6 @@ class AnalysisPage(BasePage):
             start_date=start_date,
             end_date=end_date,
             selected_stock_ids=self.control_panel.selected_stock_ids(),
-            view_mode=self.control_panel.view_mode(),
             selected_benchmarks=self.control_panel.selected_benchmarks(),
             portfolio_source=self.control_panel.selected_portfolio_source() or "dashboard",
             comparison_portfolio_sources=self.control_panel.selected_comparison_sources(),

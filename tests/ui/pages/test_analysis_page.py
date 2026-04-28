@@ -1,4 +1,6 @@
 import sys
+from datetime import date
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -8,7 +10,10 @@ from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtWidgets import QApplication, QGridLayout, QSizePolicy
 
+from src.application.services.analysis import ComparisonViewDTO
 from src.ui.pages.analysis import AnalysisPage
+from src.ui.pages.analysis.analysis_chart_engine import AnalysisChartEngine
+from src.ui.pages.analysis.analysis_comparison_section import AnalysisComparisonSection
 from src.ui.pages.analysis.analysis_control_panel import AnalysisControlPanel
 from src.ui.pages.analysis.analysis_overview_section import AnalysisOverviewSection
 from src.ui.pages.analysis.benchmark_chip_group import BenchmarkChipGroup
@@ -125,13 +130,14 @@ def test_checkable_combo_box_ignores_deleted_popup_view():
     assert combo.eventFilter(object(), QEvent(QEvent.MouseButtonRelease)) is False
 
 
-def test_control_panel_places_stock_selection_below_view_mode():
+def test_control_panel_places_stock_filter_below_comparison_portfolios():
     panel = AnalysisControlPanel()
     layout = panel.layout()
-    stock_frame = layout.itemAt(4).widget()
+    stock_frame = layout.itemAt(3).widget()
     stock_layout = stock_frame.layout()
 
     assert stock_layout.itemAt(stock_layout.count() - 1).widget() is panel.stock_combo
+    assert stock_layout.itemAt(0).widget().text() == "Hisse Filtresi"
 
 
 def test_control_panel_populates_comparison_and_stock_items():
@@ -209,3 +215,120 @@ def test_benchmark_chip_group_reserves_height_for_all_rows():
     assert group.layout().itemAtPosition(0, 3) is not None
     assert group.layout().itemAtPosition(1, 0) is None
     assert "\n" in group.layout().itemAtPosition(0, 3).widget().text()
+
+
+def test_chart_engine_trims_leading_zero_points_for_normalized_series():
+    chart = AnalysisChartEngine(show_toolbar=False)
+
+    chart.draw_line_series(
+        "Test",
+        "Normalize Değer",
+        {
+            "Ana Portföy": {
+                date(2026, 1, 1): Decimal("0"),
+                date(2026, 1, 2): Decimal("50"),
+                date(2026, 1, 3): Decimal("75"),
+            }
+        },
+        normalize=True,
+        baseline=100,
+    )
+
+    series = chart._prepared_series[0]
+    assert series.trimmed_points == 1
+    assert series.y_values == [100.0, 150.0]
+    assert len(series.x_values) == 2
+    assert "başlangıç noktası kırpıldı" in chart.lbl_summary.text()
+
+
+def test_chart_engine_draws_empty_state_for_all_zero_normalized_series():
+    chart = AnalysisChartEngine(show_toolbar=False)
+
+    chart.draw_line_series(
+        "Test",
+        "Normalize Değer",
+        {
+            "Boş Portföy": {
+                date(2026, 1, 1): Decimal("0"),
+                date(2026, 1, 2): Decimal("0"),
+            }
+        },
+        normalize=True,
+        baseline=100,
+    )
+
+    assert chart._prepared_series == []
+    assert chart.lbl_summary.text() == "Veri bulunamadı"
+
+
+def test_chart_engine_marks_first_series_as_primary():
+    chart = AnalysisChartEngine(show_toolbar=False)
+
+    chart.draw_line_series(
+        "Test",
+        "Normalize Değer",
+        {
+            "Ana Portföy": {date(2026, 1, 1): Decimal("100"), date(2026, 1, 2): Decimal("105")},
+            "BIST 100": {date(2026, 1, 1): Decimal("100"), date(2026, 1, 2): Decimal("102")},
+        },
+        normalize=True,
+        baseline=100,
+    )
+
+    assert chart._prepared_series[0].is_primary is True
+    assert chart._prepared_series[0].label == "Ana Portföy"
+    assert chart._prepared_series[1].is_primary is False
+
+
+def test_chart_engine_disables_si_prefix_on_date_axis():
+    chart = AnalysisChartEngine(show_toolbar=False)
+    bottom_axis = chart.plot_widget.getPlotItem().getAxis("bottom")
+
+    assert getattr(bottom_axis, "autoSIPrefix", None) is False
+
+
+def test_chart_engine_pie_uses_slice_labels_without_side_legend():
+    chart = AnalysisChartEngine(show_toolbar=False)
+
+    chart.draw_portfolio_pie("Dağılım", [("ASELS.IS", 60.0), ("THYAO.IS", 40.0)])
+
+    assert chart.pie_widget.isHidden() is False
+    assert chart.legend_panel.isHidden() is True
+    assert chart.legend_layout.count() == 0
+
+
+def test_comparison_section_can_draw_stocks_without_portfolio_series():
+    class SpyChartEngine:
+        def __init__(self):
+            self.last_call = None
+
+        def draw_line_series(self, **kwargs):
+            self.last_call = ("line", kwargs)
+
+        def draw_empty_chart(self, message):
+            self.last_call = ("empty", message)
+
+    section = AnalysisComparisonSection()
+    spy = SpyChartEngine()
+    section.chart_engine = spy
+    section._dto = ComparisonViewDTO(
+        portfolio_series={date(2026, 1, 1): Decimal("100")},
+        benchmark_series=[],
+        stock_series={
+            "ASELS.IS": {date(2026, 1, 1): Decimal("10"), date(2026, 1, 2): Decimal("11")},
+            "THYAO.IS": {date(2026, 1, 1): Decimal("20"), date(2026, 1, 2): Decimal("19")},
+        },
+        comparison_metrics=[],
+        comparison_portfolios=[],
+        current_portfolio_label="Ana Portföy",
+        warnings=[],
+    )
+
+    section.combo_mode.setCurrentIndex(section.combo_mode.findData(section.MODE_STOCKS_ONLY))
+    section._redraw_chart()
+
+    call_type, kwargs = spy.last_call
+    assert call_type == "line"
+    assert kwargs["title"] == "Seçili Hisseler Karşılaştırması"
+    assert list(kwargs["series_map"].keys()) == ["ASELS.IS", "THYAO.IS"]
+    assert "Ana Portföy" not in kwargs["series_map"]

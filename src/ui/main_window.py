@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QSettings, QThreadPool, QTimer, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QFrame,
@@ -16,6 +17,11 @@ from PyQt5.QtWidgets import (
 
 from src.ui.navigation.page_factory import PageFactory
 from src.ui.widgets.shared import AnimatedButton
+from src.ui.widgets.shared import Toast
+from src.ui.worker import Worker
+
+
+AUTO_BACKFILL_SETTINGS_KEY = "settings/last_auto_price_backfill_at"
 
 
 class MainWindow(QMainWindow):
@@ -41,6 +47,8 @@ class MainWindow(QMainWindow):
             price_lookup_func=self._price_lookup,
             parent_window=self,
         )
+        self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._threadpool = QThreadPool()
 
         self.setWindowTitle("Portfoy Simulasyonu")
         self.setWindowIcon(QIcon("icons/wallet.ico"))
@@ -48,6 +56,7 @@ class MainWindow(QMainWindow):
 
         self._init_ui()
         self._goto_page(self.PAGE_DASHBOARD)
+        QTimer.singleShot(0, self._start_auto_price_backfill_once)
 
     def _init_ui(self):
         self.central_widget = QWidget()
@@ -206,3 +215,34 @@ class MainWindow(QMainWindow):
         self.btn_risk_profile.setChecked(active_page == self.PAGE_RISK_PROFILE)
         self.btn_ai_page.setChecked(active_page == self.PAGE_AI_PAGE)
         self.btn_settings.setChecked(active_page == self.PAGE_SETTINGS)
+
+    def _start_auto_price_backfill_once(self) -> None:
+        service = getattr(self.container, "price_data_health_service", None)
+        if service is None:
+            return
+        today = date.today()
+        last_run = self._settings.value(AUTO_BACKFILL_SETTINGS_KEY, "", type=str)
+        if last_run == today.isoformat():
+            return
+
+        worker = Worker(service.update_from_latest_to_today, today)
+        worker.signals.result.connect(self._on_auto_price_backfill_success)
+        worker.signals.error.connect(self._on_auto_price_backfill_error)
+        self._threadpool.start(worker)
+
+    def _on_auto_price_backfill_success(self, result) -> None:
+        self._settings.setValue(AUTO_BACKFILL_SETTINGS_KEY, date.today().isoformat())
+        self._settings.sync()
+        if getattr(result, "prices", None) and getattr(self.container, "event_bus", None):
+            self.container.event_bus.prices_updated.emit(result.prices)
+        updated_count = getattr(result, "updated_count", 0)
+        error_count = len(getattr(result, "errors", []) or [])
+        if updated_count > 0:
+            Toast.success(self, f"Otomatik veri güncelleme tamamlandı: {updated_count} fiyat kaydı eklendi.")
+        elif error_count:
+            Toast.warning(self, f"Otomatik veri güncelleme tamamlandı, {error_count} hata oluştu.")
+
+    def _on_auto_price_backfill_error(self, err_tuple) -> None:
+        self._settings.setValue(AUTO_BACKFILL_SETTINGS_KEY, date.today().isoformat())
+        self._settings.sync()
+        Toast.warning(self, f"Otomatik veri güncelleme çalıştırılamadı: {err_tuple[1]}")

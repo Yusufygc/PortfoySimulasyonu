@@ -122,7 +122,6 @@ class AnalysisService:
             start_date=filter_state.start_date,
             end_date=filter_state.end_date,
             selected_stock_ids=list(filter_state.selected_stock_ids),
-            view_mode=filter_state.view_mode,
             selected_benchmarks=list(benchmark_codes),
             portfolio_source=filter_state.portfolio_source,
             comparison_portfolio_sources=list(filter_state.comparison_portfolio_sources),
@@ -220,7 +219,7 @@ class AnalysisService:
         benchmark_series, benchmark_warnings = self._benchmark_service.build_benchmark_series(
             filter_state.start_date,
             filter_state.end_date,
-            filter_state.selected_benchmarks or self._benchmark_service.DEFAULT_BENCHMARK_CODES,
+            filter_state.selected_benchmarks,
         )
         warnings.extend(benchmark_warnings)
         stock_series, stock_warnings = self._series_builder.build_stock_series(
@@ -277,4 +276,3 @@ class AnalysisService:
     def _validate_filter_state(self, filter_state: AnalysisFilterState) -> None:
         if filter_state.start_date > filter_state.end_date:
             raise ValueError("Baslangic tarihi bitis tarihinden sonra olamaz.")
-

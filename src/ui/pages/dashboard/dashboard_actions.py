@@ -79,7 +79,6 @@ class DashboardActions:
     def on_update_prices(self) -> None:
         self._page.btn_update_prices.setEnabled(False)
         self._page.btn_update_prices.setText("Guncelleniyor...")
-        self._page.btn_backfill.setEnabled(False)
 
         worker = Worker(self._page.update_coordinator.update_today_prices_and_get_snapshot)
         worker.signals.result.connect(self.on_update_prices_success)
@@ -90,7 +89,6 @@ class DashboardActions:
     def _finish_update_prices(self) -> None:
         self._page.btn_update_prices.setEnabled(True)
         self._page.btn_update_prices.setText(" Fiyatlari Guncelle")
-        self._page.btn_backfill.setEnabled(True)
 
     def on_update_prices_success(self, result) -> None:
         price_update_result, _snapshot = result
@@ -194,73 +192,3 @@ class DashboardActions:
             QMessageBox.information(self._page, "Tamamlandi", "Basariyla sifirlandi.")
         except Exception as exc:
             QMessageBox.critical(self._page, "Hata", f"Hata: {exc}")
-
-    def on_backfill(self) -> None:
-        if not self._page.backfill_service:
-            QMessageBox.warning(self._page, "Uyari", "Backfill servisi kullanilamiyor.")
-            return
-
-        dialog = self._page.backfill_dialog_cls(self._page)
-        if dialog.exec_() != QDialog.Accepted:
-            return
-        result = dialog.get_result()
-        if not result:
-            QMessageBox.warning(self._page, "Uyari", "Baslangic bitisten sonra olamaz.")
-            return
-
-        action = result["action"]
-        start_date = result["start_date"]
-        end_date = result["end_date"]
-
-        if action == "delete":
-            reply = QMessageBox.question(
-                self._page,
-                "Silme Onayi",
-                "Veriler silinecek, emin misiniz?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
-            )
-            if reply != QMessageBox.Yes:
-                return
-            try:
-                count = self._page.backfill_service.delete_range(start_date, end_date)
-                self._presenter.refresh_data()
-                QMessageBox.information(self._page, "Basarili", f"{count} veri silindi.")
-            except Exception as exc:
-                QMessageBox.critical(self._page, "Hata", f"Hata: {exc}")
-            return
-
-        self._page.btn_backfill.setEnabled(False)
-        self._page.btn_backfill.setText("Indiriliyor...")
-        self._page.btn_update_prices.setEnabled(False)
-
-        worker = Worker(self._page.backfill_service.backfill_range, start_date, end_date)
-        worker.signals.result.connect(lambda count, sd=start_date, ed=end_date: self.on_backfill_success(count, sd, ed))
-        worker.signals.error.connect(self.on_backfill_error)
-        worker.signals.finished.connect(self._finish_backfill)
-        self._page.threadpool.start(worker)
-
-    def _finish_backfill(self) -> None:
-        self._page.btn_backfill.setEnabled(True)
-        self._page.btn_backfill.setText(" Gecmis Veri Yonetimi")
-        self._page.btn_update_prices.setEnabled(True)
-
-    def on_backfill_success(self, count, start_date, end_date) -> None:
-        self._presenter.refresh_data()
-        if count <= 0:
-            Toast.warning(
-                self._page,
-                "Indirilecek veri bulunamadi.",
-                duration_ms=4000,
-                position="top",
-            )
-            return
-
-        self._page.record_last_update_time()
-        self._page.show_last_update_toast_once(
-            force=True,
-            detail=f"{count} veri indirildi.",
-        )
-
-    def on_backfill_error(self, err_tuple) -> None:
-        QMessageBox.critical(self._page, "Hata", f"Hata:\n{err_tuple[1]}")

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout
 
 from src.ui.pages.base_page import BasePage
 from src.ui.core.icon_manager import IconManager
-from src.ui.widgets.dashboard import BackfillDialog, CapitalDialog, DateRangeDialog, NewStockTradeDialog
+from src.ui.widgets.dashboard import CapitalDialog, DateRangeDialog, NewStockTradeDialog
 from src.ui.widgets.shared import AnimatedButton, Toast
 
 from .dashboard_actions import DashboardActions
@@ -40,12 +40,10 @@ class DashboardPage(BasePage):
         self.excel_export_service = container.excel_export_service
         self.trade_entry_service = container.trade_entry_service
         self.price_lookup_func = price_lookup_func
-        self.backfill_service = container.backfill_service
 
         self.new_trade_dialog_cls = NewStockTradeDialog
         self.date_range_dialog_cls = DateRangeDialog
         self.capital_dialog_cls = CapitalDialog
-        self.backfill_dialog_cls = BackfillDialog
         self.threadpool = QThreadPool()
         self._capital = Decimal("0")
         self.portfolio_model = None
@@ -113,11 +111,6 @@ class DashboardPage(BasePage):
         self.btn_capital.clicked.connect(self._actions.on_capital_management)
         self.btn_capital.setProperty("cssClass", "secondaryButton")
 
-        self.btn_backfill = AnimatedButton(" Gecmis Veri Yonetimi")
-        self.btn_backfill.setIconName("history", color="@COLOR_TEXT_PRIMARY")
-        self.btn_backfill.clicked.connect(self._actions.on_backfill)
-        self.btn_backfill.setProperty("cssClass", "secondaryButton")
-
         self.btn_export_today = AnimatedButton(" Rapor: Bugun")
         self.btn_export_today.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
         self.btn_export_today.clicked.connect(self._actions.on_export_today)
@@ -129,7 +122,6 @@ class DashboardPage(BasePage):
         top_layout.addWidget(self.btn_new_trade)
         top_layout.addWidget(self.btn_update_prices)
         top_layout.addWidget(self.btn_capital)
-        top_layout.addWidget(self.btn_backfill)
         top_layout.addWidget(self.btn_export_today)
         top_layout.addWidget(self.btn_export_range)
         top_layout.addStretch()

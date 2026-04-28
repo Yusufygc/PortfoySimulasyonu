@@ -11,7 +11,6 @@ class AnalysisFilterState:
     start_date: date
     end_date: date
     selected_stock_ids: List[int] = field(default_factory=list)
-    view_mode: str = "portfolio"
     selected_benchmarks: List[str] = field(default_factory=list)
     portfolio_source: str = "dashboard"
     comparison_portfolio_sources: List[str] = field(default_factory=list)
@@ -98,4 +97,3 @@ class AllocationRiskDTO:
     max_drawdown_pct: Optional[float]
     concentration_label: str
     warnings: List[str]
-

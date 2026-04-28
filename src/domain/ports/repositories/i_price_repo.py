@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
 from decimal import Decimal
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence, Set
 
 from src.domain.models.daily_price import DailyPrice
 
@@ -86,6 +86,33 @@ class IPriceRepository(ABC):
         Haftalık/aylık portföy getiri hesaplarını kolaylaştırır.
         Concrete implementation günlük fiyatlar üzerinden hesaplayabilir
         veya direkt view kullanabilir.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_price_dates_for_stock(self, stock_id: int, start_date: date, end_date: date) -> Set[date]:
+        """
+        Belirli bir hisse için tarih aralığındaki mevcut fiyat tarihlerini döner.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_latest_price_dates(self, stock_ids: Sequence[int]) -> Dict[int, date]:
+        """
+        Verilen hisseler için DB'deki son fiyat tarihini döner.
+        Fiyatı olmayan hisseler sonuçta yer almaz.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_price_presence_map(
+        self,
+        stock_ids: Sequence[int],
+        start_date: date,
+        end_date: date,
+    ) -> Dict[int, Set[date]]:
+        """
+        Verilen hisseler ve tarih aralığı için {stock_id: {price_date, ...}} haritası döner.
         """
         raise NotImplementedError
 

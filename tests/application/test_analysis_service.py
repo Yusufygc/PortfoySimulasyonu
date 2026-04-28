@@ -280,3 +280,20 @@ def test_page_payload_contains_all_sections(analysis_service):
     payload = analysis_service.get_page_payload(filter_state)
 
     assert set(payload.keys()) == {"overview", "comparison", "risk"}
+
+
+def test_empty_benchmark_selection_disables_benchmark_series(analysis_service):
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_stock_ids=[],
+        selected_benchmarks=[],
+        portfolio_source="dashboard",
+    )
+
+    comparison = analysis_service.get_comparison_view(filter_state)
+    overview = analysis_service.get_overview(filter_state)
+
+    assert comparison.benchmark_series == []
+    assert comparison.comparison_metrics == []
+    assert overview.benchmark_gap_pct is None

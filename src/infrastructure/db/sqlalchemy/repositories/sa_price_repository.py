@@ -2,9 +2,10 @@
 
 from datetime import date
 from decimal import Decimal
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence, Set
 
 from sqlalchemy.dialects.mysql import insert
+from sqlalchemy import func
 from src.domain.models.daily_price import DailyPrice
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
@@ -87,6 +88,45 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                     result[r.price_date] = {}
                 result[r.price_date][r.stock_id] = val
             return result
+
+    def get_price_dates_for_stock(self, stock_id: int, start_date: date, end_date: date) -> Set[date]:
+        with self._provider.get_session() as session:
+            rows = session.query(ORMDailyPrice.price_date)\
+                .filter(ORMDailyPrice.stock_id == stock_id)\
+                .filter(ORMDailyPrice.price_date >= start_date)\
+                .filter(ORMDailyPrice.price_date <= end_date)\
+                .all()
+            return {row.price_date for row in rows}
+
+    def get_latest_price_dates(self, stock_ids: Sequence[int]) -> Dict[int, date]:
+        if not stock_ids:
+            return {}
+        with self._provider.get_session() as session:
+            rows = session.query(ORMDailyPrice.stock_id, func.max(ORMDailyPrice.price_date).label("last_date"))\
+                .filter(ORMDailyPrice.stock_id.in_(stock_ids))\
+                .group_by(ORMDailyPrice.stock_id)\
+                .all()
+            return {row.stock_id: row.last_date for row in rows if row.last_date is not None}
+
+    def get_price_presence_map(
+        self,
+        stock_ids: Sequence[int],
+        start_date: date,
+        end_date: date,
+    ) -> Dict[int, Set[date]]:
+        result: Dict[int, Set[date]] = {stock_id: set() for stock_id in stock_ids}
+        if not stock_ids:
+            return result
+        with self._provider.get_session() as session:
+            rows = session.query(ORMDailyPrice.stock_id, ORMDailyPrice.price_date)\
+                .filter(ORMDailyPrice.stock_id.in_(stock_ids))\
+                .filter(ORMDailyPrice.price_date >= start_date)\
+                .filter(ORMDailyPrice.price_date <= end_date)\
+                .order_by(ORMDailyPrice.stock_id.asc(), ORMDailyPrice.price_date.asc())\
+                .all()
+            for row in rows:
+                result.setdefault(row.stock_id, set()).add(row.price_date)
+        return result
 
     # ---------- WRITE (UPSERT) ---------- #
     def upsert_daily_price(self, daily_price: DailyPrice) -> DailyPrice:
