@@ -1,0 +1,23 @@
+/* =======================================================
+   THEME - DARK GLOBAL SURFACE
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* --- GLOBAL UYGUNLUK --- */
+QWidget {
+    background-color: #0f172a; /* Ana Arka Plan */
+    color: #f8fafc; /* Ana Metin */
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+}
+
+/* --- DIALOGLAR & PENNCERELER --- */
+QDialog {
+    background-color: #0f172a;
+}
+QMessageBox {
+    background-color: #0f172a;
+}
+QMessageBox QLabel {
+    color: #f8fafc;
+}

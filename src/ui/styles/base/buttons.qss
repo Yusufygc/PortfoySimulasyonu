@@ -1,0 +1,68 @@
+/* =======================================================
+   BASE - BUTTONS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* --- BUTTONLAR --- */
+QPushButton {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #334155;
+    border-color: #475569;
+}
+QPushButton:pressed {
+    background-color: #475569;
+}
+QPushButton:disabled {
+    background-color: #0f172a;
+    color: #475569;
+    border-color: #1e293b;
+}
+
+/* Vurgulu (Primary) Buton SÄ±nÄ±fÄ± */
+QPushButton[type="primary"] {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+}
+QPushButton[type="primary"]:hover {
+    background-color: #3b82f6;
+}
+QPushButton[type="primary"]:pressed {
+    background-color: #1d4ed8;
+}
+
+/* BaÅŸarÄ± (Success) Butonu */
+QPushButton[type="success"] {
+    background-color: #16a34a;
+    color: white;
+    border: none;
+}
+QPushButton[type="success"]:hover {
+    background-color: #22c55e;
+}
+
+/* Tehlike (Danger) Butonu */
+QPushButton[type="danger"] {
+    background-color: #dc2626;
+    color: white;
+    border: none;
+}
+QPushButton[type="danger"]:hover {
+    background-color: #ef4444;
+}
+
+/* Ghost / Transparent Buton (Sidebar vb.) */
+QPushButton[type="ghost"] {
+    background-color: transparent;
+    border: none;
+}
+QPushButton[type="ghost"]:hover {
+    background-color: #1e293b;
+}

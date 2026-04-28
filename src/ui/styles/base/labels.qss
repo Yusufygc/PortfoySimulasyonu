@@ -1,0 +1,32 @@
+/* =======================================================
+   BASE - LABELS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* --- ETIKETLER (Labels) --- */
+QLabel {
+    color: #cbd5e1;
+    background-color: transparent;
+}
+QLabel[type="title"] {
+    font-size: 20px;
+    font-weight: bold;
+    color: #f1f5f9;
+}
+QLabel[type="subtitle"] {
+    font-size: 16px;
+    font-weight: bold;
+    color: #e2e8f0;
+}
+QLabel[type="muted"] {
+    color: #94a3b8;
+    font-size: 12px;
+}
+QLabel[type="value_positive"] {
+    color: #22c55e;
+    font-weight: bold;
+}
+QLabel[type="value_negative"] {
+    color: #ef4444;
+    font-weight: bold;
+}

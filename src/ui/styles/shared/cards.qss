@@ -1,0 +1,108 @@
+/* =======================================================
+   SHARED - CARDS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QFrame[cssClass="statCard"] {
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="statCard"][isHero="true"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_PRIMARY;
+}
+QFrame[cssClass="statCard"] QLabel {
+    border: none;
+}
+
+QFrame[cssClass="infoCard"] {
+    background-color: @COLOR_BG_SURFACE; 
+    border-radius: @RADIUS_XL;
+    border: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="infoCard"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
+}
+
+QLabel[cssClass="statCardTitle"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_SM;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+QLabel[cssClass="statCardValue"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_3XL;
+    font-weight: bold;
+}
+QLabel[cssClass="statCardValue"][isHero="true"] {
+    color: @COLOR_PRIMARY;
+    font-size: @FONT_5XL;
+}
+QLabel[cssClass="statCardValue"][colored="true"] {
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+QLabel[cssClass="infoCardTitle"] {
+    color: @COLOR_TEXT_BRIGHT; font-size: @FONT_MD; font-weight: bold; border: none;
+}
+QLabel[cssClass="infoCardValue"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_3XL; font-weight: bold; border: none;
+}
+QLabel[cssClass="feasibilityText"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; font-weight: bold; border: none;
+}
+QLabel[cssClass="feasibilityStatus"] {
+    font-size: @FONT_XL; font-weight: bold; border: none;
+}
+
+QLabel[cssClass="tableTitle"] {
+    font-size: @FONT_XL;
+    font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY;
+    margin-top: @SPACE_XS;
+}
+QLabel[cssClass="emptyStateText"] {
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_LG;
+    padding: 40px;
+}
+QLabel[cssClass="infoCardDetail"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_MD;
+    border: none;
+}
+QLabel[cssClass="infoCardValueSmall"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_LG;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="infoCardValueMedium"] {
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_3XL;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="infoCardDelta"] {
+    font-size: @FONT_XL;
+    font-weight: bold;
+    border: none;
+}
+
+/* -------------------------------------------------------
+   cssState: positive / negative / neutral
+   InfoCard.set_value_state() ve MetricCard.update() tarafÄ±ndan kullanÄ±lÄ±r.
+   inline setStyleSheet gereksiz â€” tÃ¼m renk yÃ¶netimi buradan.
+------------------------------------------------------- */
+QLabel[cssClass="infoCardValue"][cssState="positive"]   { color: @COLOR_SUCCESS; }
+QLabel[cssClass="infoCardValue"][cssState="negative"]   { color: @COLOR_DANGER; }
+QLabel[cssClass="infoCardValue"][cssState="neutral"]    { color: @COLOR_TEXT_PRIMARY; }
+
+QLabel[cssClass="infoCardDelta"][cssState="positive"]   { color: @COLOR_SUCCESS; }
+QLabel[cssClass="infoCardDelta"][cssState="negative"]   { color: @COLOR_DANGER; }
+
+QLabel[cssClass="feasibilityStatus"][cssState="positive"] { color: @COLOR_SUCCESS; font-weight: bold; }
+QLabel[cssClass="feasibilityStatus"][cssState="negative"] { color: @COLOR_DANGER; font-weight: bold; }

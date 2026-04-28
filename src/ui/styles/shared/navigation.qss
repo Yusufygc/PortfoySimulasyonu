@@ -1,0 +1,101 @@
+/* =======================================================
+   SHARED - NAVIGATION
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QLabel[cssClass="appTitle"] {
+    font-size: @FONT_2XL;
+    font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY;
+    padding: @SPACE_LG 0;
+}
+
+QPushButton[cssClass="navBackBtn"] {
+    background-color: transparent;
+    color: @COLOR_TEXT_SECONDARY;
+    border: 1px solid @COLOR_BORDER;
+    padding: @SPACE_LG;
+    border-radius: @RADIUS_MD;
+}
+QPushButton[cssClass="navBackBtn"]:hover {
+    background-color: @COLOR_BORDER;
+}
+QPushButton[cssClass="navBackBtn"]:disabled {
+    color: @COLOR_BG_OVERLAY;
+    border-color: @COLOR_BG_SURFACE;
+}
+
+QPushButton[cssClass="navMenuBtn"] {
+    background-color: transparent;
+    color: @COLOR_TEXT_SECONDARY;
+    border: none;
+    padding: @SPACE_XL @SPACE_2XL;
+    text-align: left;
+    border-radius: @RADIUS_LG;
+    font-size: @FONT_MD;
+}
+QPushButton[cssClass="navMenuBtn"]:hover {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_ACCENT;
+}
+QPushButton[cssClass="navMenuBtn"]:checked {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_ACCENT;
+    border-left: 3px solid @COLOR_ACCENT;
+    border-radius: 0px;
+}
+
+QFrame[cssClass="navSeparator"] {
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: @SPACE_LG @SPACE_XL;
+}
+
+#sidebar {
+    background-color: @COLOR_SIDEBAR;
+    border-right: 1px solid @COLOR_BORDER;
+}
+
+#sidebar QLabel[cssClass="appTitle"] {
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_LG;
+    margin-bottom: @SPACE_XL;
+}
+
+#sidebar {
+    background-color: @COLOR_SIDEBAR;
+    border-right: 1px solid @COLOR_BORDER;
+}
+
+#sidebar QLabel[cssClass="appTitle"] {
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_LG;
+    margin-bottom: @SPACE_XL;
+}
+
+QFrame[cssClass="navSeparator"] {
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: @SPACE_LG @SPACE_XL;
+}
+
+/* -------------------------------------------------------
+   Navigasyon MenÃ¼ ButonlarÄ± (Sidebar)
+   ------------------------------------------------------- */
+QPushButton[cssClass="navMenuBtn"] {
+    background-color: transparent;
+    color: @COLOR_TEXT_SECONDARY;
+    border: none;
+    text-align: left;
+    padding: @SPACE_LG @SPACE_XL;
+    border-radius: @RADIUS_LG;
+    font-size: @FONT_MD;
+    font-weight: 500;
+}
+QPushButton[cssClass="navMenuBtn"]:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: @COLOR_TEXT_PRIMARY;
+}
+QPushButton[cssClass="navMenuBtn"]:checked {
+    background-color: rgba(37, 99, 235, 0.15);
+    color: @COLOR_PRIMARY;
+    font-weight: bold;
+}

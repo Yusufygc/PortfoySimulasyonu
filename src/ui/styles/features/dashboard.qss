@@ -1,0 +1,69 @@
+/* =======================================================
+   FEATURE - DASHBOARD
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QLabel[cssClass="summaryCardTitle"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_SM;
+    font-weight: bold;
+}
+
+QLabel[cssClass="summaryCardValue"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_2XL;
+    font-weight: bold;
+}
+
+QLabel[cssClass="summaryCardContext"] {
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_SM;
+    margin-top: 2px;
+}
+QLabel[cssClass="summaryCardContext"][state="positive"] {
+    color: @COLOR_SUCCESS;
+    font-size: @FONT_BASE;
+    font-weight: 500;
+}
+QLabel[cssClass="summaryCardContext"][state="negative"] {
+    color: @COLOR_DANGER;
+    font-size: @FONT_BASE;
+    font-weight: 500;
+}
+
+QLabel[cssClass="summaryCardSubTitle"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_BASE;
+}
+
+QLabel[cssClass="summaryCardValueSmall"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_MD;
+    font-weight: bold;
+}
+QLabel[cssClass="summaryCardValueSmall"][state="positive"] { color: @COLOR_SUCCESS; }
+QLabel[cssClass="summaryCardValueSmall"][state="negative"] { color: @COLOR_DANGER; }
+QLabel[cssClass="summaryCardValueSmall"][state="neutral"]  { color: @COLOR_TEXT_PRIMARY; }
+
+QLabel[cssClass="lastUpdateLabel"] {
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_SM;
+    margin-left: @SPACE_XS;
+}
+
+QFrame[cssClass="summaryCard"] {
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+}
+QFrame[cssClass="summaryCard"][cardType="total"] {
+    border-left: 4px solid @COLOR_PRIMARY;
+}
+QFrame[cssClass="summaryCard"][cardType="cost"] {
+    border-left: 4px solid @COLOR_PURPLE;
+}
+QFrame[cssClass="summaryCard"][cardType="capital"] {
+    border-left: 4px solid @COLOR_SUCCESS;
+}
+QFrame[cssClass="summaryCard"][cardType="returns"] {
+    border-left: 4px solid #f59e0b;
+}

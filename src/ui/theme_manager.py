@@ -7,6 +7,36 @@ from PyQt5.QtGui import QFont, QFontDatabase
 
 logger = logging.getLogger(__name__)
 
+STYLE_MANIFEST: tuple[str, ...] = (
+    "themes/{theme_name}.qss",
+    "base/scrollbars.qss",
+    "base/buttons.qss",
+    "base/forms.qss",
+    "base/tables.qss",
+    "base/tabs.qss",
+    "base/labels.qss",
+    "base/groupboxes.qss",
+    "base/checks.qss",
+    "shared/navigation.qss",
+    "shared/buttons.qss",
+    "shared/forms.qss",
+    "shared/containers.qss",
+    "shared/dialogs.qss",
+    "shared/cards.qss",
+    "shared/tables.qss",
+    "shared/lists.qss",
+    "shared/trade_controls.qss",
+    "features/dashboard.qss",
+    "features/analysis.qss",
+    "features/ai.qss",
+    "features/optimization.qss",
+    "features/planning.qss",
+    "features/risk_profile.qss",
+    "features/stock_detail.qss",
+    "features/model_portfolio.qss",
+    "features/watchlist.qss",
+)
+
 
 class ThemeManager:
     """
@@ -54,24 +84,20 @@ class ThemeManager:
         base_dir = os.path.dirname(os.path.abspath(__file__))
         styles_dir = os.path.join(base_dir, "styles")
 
-        qss_files = [
-            f"{theme_name}.qss",  # Ana tema / global base stiller
-            "typography.qss",     # Yazı tipleri ve metin stilleri
-            "components.qss",     # Butonlar, inputlar, form elemanları
-            "layout.qss",         # Frame, kart ve layout stilleri
-        ]
+        qss_files = [entry.format(theme_name=theme_name) for entry in STYLE_MANIFEST]
 
         combined_qss = ""
         for file_name in qss_files:
             qss_path = os.path.join(styles_dir, file_name)
             if os.path.exists(qss_path):
                 try:
-                    with open(qss_path, "r", encoding="utf-8") as f:
-                        combined_qss += f.read() + "\n"
+                    with open(qss_path, "r", encoding="utf-8-sig") as f:
+                        combined_qss += f.read().lstrip("\ufeff") + "\n"
+                    logger.debug(f"[ThemeManager] Loaded style module: {file_name}")
                 except Exception as e:
                     logger.error(f"Error reading {file_name}: {e}")
             else:
-                if file_name == f"{theme_name}.qss":
+                if file_name == f"themes/{theme_name}.qss":
                     logger.warning(f"Main theme file not found: {qss_path}")
                 else:
                     logger.debug(f"Optional style file not found: {qss_path}")
@@ -84,7 +110,7 @@ class ThemeManager:
             if resolved_qss:
                 app.setStyleSheet(resolved_qss)
                 logger.info(
-                    f"Theme '{theme_name}' applied with {len(tokens)} design tokens."
+                    f"Theme '{theme_name}' applied with {len(tokens)} design tokens and {len(qss_files)} style modules."
                 )
         except Exception as e:
             logger.error(f"Error applying combined stylesheet: {e}")

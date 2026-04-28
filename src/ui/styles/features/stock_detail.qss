@@ -1,0 +1,84 @@
+/* =======================================================
+   FEATURE - STOCK DETAIL
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QFrame[cssClass="tradeFormPanel"] {
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="tradeFormPanel"] QLabel {
+    color: @COLOR_TEXT_BODY;
+}
+
+QFrame[cssClass="impactCard"] {
+    background-color: @COLOR_BG_BASE;
+    border-radius: @RADIUS_LG;
+    border: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="impactCard"] QLabel {
+    color: @COLOR_TEXT_BODY; font-size: @FONT_BASE; border: none;
+}
+QFrame[cssClass="impactCardLine"] {
+    background-color: @COLOR_BORDER; border: none; margin-bottom: @SPACE_XS;
+}
+
+/* -------------------------------------------------------
+   Ä°mpact Row Value (trade_form_panel)
+------------------------------------------------------- */
+QLabel[cssClass="impactRowValue"]                          { font-weight: bold; color: @COLOR_TEXT_PRIMARY; }
+QLabel[cssClass="impactRowValue"][cssState="positive"]     { color: @COLOR_SUCCESS; }
+QLabel[cssClass="impactRowValue"][cssState="negative"]     { color: @COLOR_DANGER; }
+QLabel[cssClass="impactRowValue"][cssState="balanced"]     { color: @COLOR_WARNING; }
+
+/* -------------------------------------------------------
+   Risk Profil KartÄ± cssState renkleri
+------------------------------------------------------- */
+QFrame[cssState="conservative"] { border-color: @COLOR_SUCCESS; }
+QFrame[cssState="moderate"]     { border-color: @COLOR_PRIMARY; }
+QFrame[cssState="balanced"]     { border-color: @COLOR_WARNING; }
+QFrame[cssState="aggressive"]   { border-color: @COLOR_DANGER; }
+
+QLabel[cssState="conservative"] { color: @COLOR_SUCCESS; }
+QLabel[cssState="moderate"]     { color: @COLOR_PRIMARY; }
+QLabel[cssState="balanced"]     { color: @COLOR_WARNING; }
+QLabel[cssState="aggressive"]   { color: @COLOR_DANGER; }
+
+/* K/Z etiketleri (stock_stats_panel) */
+QLabel[cssState="positive"] { color: @COLOR_SUCCESS; }
+QLabel[cssState="negative"] { color: @COLOR_DANGER; }
+QLabel[cssState="neutral"]  { color: @COLOR_TEXT_PRIMARY; }
+
+QLabel[cssClass="totalAmountText"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_XL; font-weight: bold;
+}
+QLabel[cssClass="impactCardTitle"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_SM; font-weight: bold; letter-spacing: 0.5px; border: none;
+}
+QLabel[cssClass="impactRowKey"] {
+    color: @COLOR_TEXT_SECONDARY;
+}
+
+QLabel[cssClass="breadcrumbText"] {
+    color: @COLOR_TEXT_MUTED; font-size: @FONT_XS; font-weight: bold;
+}
+QLabel[cssClass="stockTitleLarge"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_5XL; font-weight: 900;
+}
+QLabel[cssClass="stockSubtitle"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_2XL; margin-top: @SPACE_MD;
+}
+QLabel[cssClass="stockPriceCurrent"] {
+    color: @COLOR_SUCCESS; font-size: 32px; font-weight: bold;
+}
+QLabel[cssClass="stockPriceCaption"] {
+    color: @COLOR_TEXT_MUTED; font-size: @FONT_SM; text-transform: uppercase; letter-spacing: 1px;
+}
+
+QLabel[cssState="positive"] {
+    color: @COLOR_SUCCESS; font-size: @FONT_XL; font-weight: bold;
+}
+QLabel[cssState="negative"] {
+    color: @COLOR_DANGER; font-size: @FONT_XL; font-weight: bold;
+}

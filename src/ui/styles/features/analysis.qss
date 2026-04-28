@@ -1,0 +1,96 @@
+/* =======================================================
+   FEATURE - ANALYSIS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QFrame[cssClass="analysisComboPopup"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_PRIMARY;
+    border-radius: @RADIUS_MD;
+}
+QListView[cssClass="analysisComboPopupList"] {
+    background-color: transparent;
+    border: none;
+    border-radius: @RADIUS_MD;
+    padding: 6px;
+    outline: none;
+}
+QListView[cssClass="analysisComboPopupList"]::item {
+    min-height: 28px;
+    padding: 8px 10px;
+    border-radius: @RADIUS_SM;
+    margin: 2px;
+    color: @COLOR_TEXT_PRIMARY;
+}
+QListView[cssClass="analysisComboPopupList"]::item:hover {
+    background-color: rgba(59, 130, 246, 0.14);
+}
+QListView[cssClass="analysisComboPopupList"]::item:selected {
+    background-color: rgba(59, 130, 246, 0.14);
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+QWidget[cssClass="chartToolbar"] {
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
+}
+
+QListWidget[cssClass="stockListWidget"] {
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_MD;
+}
+QListWidget[cssClass="stockListWidget"]::item { padding: @SPACE_SM; }
+QListWidget[cssClass="stockListWidget"]::item:selected { background-color: @COLOR_PRIMARY; color: @COLOR_TEXT_WHITE; }
+QListWidget[cssClass="stockListWidget"]::item:alternate { background-color: @COLOR_BG_BASE; }
+
+QPushButton[cssClass="quickDateBtn"] {
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER; padding: @SPACE_MD;
+    border-radius: @RADIUS_MD; font-weight: bold; font-size: @FONT_SM;
+}
+QPushButton[cssClass="quickDateBtn"]:hover {
+    background-color: @COLOR_PRIMARY; border-color: @COLOR_PRIMARY;
+}
+
+QPushButton[cssClass="benchmarkChip"] {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_XL;
+    padding: 6px 8px;
+    min-height: 46px;
+    font-weight: bold;
+    font-size: @FONT_SM;
+    text-align: center;
+}
+QPushButton[cssClass="benchmarkChip"]:hover {
+    border-color: @COLOR_PRIMARY;
+}
+QPushButton[cssClass="benchmarkChip"]:checked {
+    background-color: rgba(37, 99, 235, 0.18);
+    color: @COLOR_TEXT_WHITE;
+    border: 1px solid @COLOR_PRIMARY;
+}
+
+QFrame[cssClass="analysisFilterCard"] {
+    background-color: #243247;
+    border-radius: @RADIUS_XL;
+    border: 1px solid #3d4f69;
+}
+QFrame[cssClass="analysisFilterCard"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
+}
+
+QFrame[cssClass="benchmarkChipGroup"] {
+    background-color: transparent;
+    border: none;
+}
+
+QLabel[cssClass="chartSummaryText"] {
+    color: @COLOR_TEXT_SECONDARY; padding: @SPACE_LG; font-size: @FONT_BASE;
+}
+QLabel[cssClass="panelSubtitle"] {
+    font-weight: bold; color: @COLOR_TEXT_SECONDARY; font-size: @FONT_BASE;
+}
+QLabel[cssClass="dateLabel"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS;
+}

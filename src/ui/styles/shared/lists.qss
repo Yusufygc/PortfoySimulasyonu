@@ -1,0 +1,44 @@
+/* =======================================================
+   SHARED - LISTS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* -------------------------------------------------------
+   Liste GÃ¶rÃ¼nÃ¼mleri (Listelerim, PortfÃ¶ylerim vb.)
+   ------------------------------------------------------- */
+QListWidget, QListView {
+    background-color: @COLOR_BG_SURFACE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+    color: @COLOR_TEXT_BODY;
+    padding: @SPACE_MD;
+    outline: none;
+}
+
+QListWidget::item, QListView::item {
+    padding: @SPACE_LG;
+    border-radius: @RADIUS_MD;
+    margin-bottom: 2px;
+    color: @COLOR_TEXT_BODY;
+}
+
+QListWidget::item:hover, QListView::item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+QListWidget::item:selected, QListView::item:selected {
+    background-color: @COLOR_PRIMARY;
+    color: @COLOR_TEXT_WHITE;
+    font-weight: bold;
+}
+
+QListWidget::item:selected:!active, QListView::item:selected:!active {
+    background-color: @COLOR_PRIMARY_HOVER;
+    color: @COLOR_TEXT_WHITE;
+}
+
+/* Alternatif SatÄ±r Rengi */
+QListWidget {
+    alternate-background-color: rgba(255, 255, 255, 0.02);
+}

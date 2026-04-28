@@ -1,0 +1,28 @@
+/* =======================================================
+   BASE - FORMS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* --- GÄ°RDÄ° ELEMANLARI (Inputs & ComboBox) --- */
+QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QDateEdit {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    padding: 6px 10px;
+    border-radius: 4px;
+    selection-background-color: #3b82f6;
+    selection-color: white;
+}
+QLineEdit:focus, QDoubleSpinBox:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {
+    border: 1px solid #3b82f6;
+    background-color: #0f172a;
+}
+QComboBox::drop-down {
+    border-left: 1px solid #334155;
+    width: 20px;
+}
+QComboBox QAbstractItemView {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    selection-background-color: #3b82f6;
+}

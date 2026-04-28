@@ -1,0 +1,102 @@
+/* =======================================================
+   SHARED - FORMS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QComboBox[cssClass="customComboBox"] {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
+    padding: 7px 34px 7px 12px;
+    min-height: 36px;
+    font-size: @FONT_BASE;
+}
+QComboBox[cssClass="customComboBox"]:hover { border: 1px solid @COLOR_PRIMARY; }
+QComboBox[cssClass="customComboBox"]::drop-down { 
+    border: none; 
+    width: 28px; 
+}
+QComboBox[cssClass="customComboBox"] QLineEdit {
+    border: none;
+    background: transparent;
+    padding: 0px;
+    margin: 0px;
+}
+QComboBox[cssClass="customComboBox"]::down-arrow {
+    image: url(@ICON_CHEVRON_DOWN);
+    width: 16px;
+    height: 16px;
+}
+QComboBox[cssClass="customComboBox"] QAbstractItemView {
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_PRIMARY;
+    border-radius: @RADIUS_MD;
+    selection-background-color: @COLOR_PRIMARY;
+    padding: 6px;
+    outline: none;
+}
+QComboBox[cssClass="customComboBox"] QAbstractItemView::item {
+    min-height: 28px;
+    padding: 6px 8px;
+    border-radius: @RADIUS_SM;
+    margin: 2px;
+}
+QComboBox[cssClass="customComboBox"] QAbstractItemView::item:hover {
+    background-color: rgba(59, 130, 246, 0.14);
+}
+QComboBox[cssClass="customComboBox"] QAbstractItemView::item:selected {
+    color: @COLOR_TEXT_WHITE;
+}
+
+QDoubleSpinBox[cssClass="customDoubleSpinBox"] {
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_MD;
+    padding: @SPACE_SM; font-size: @FONT_MD;
+}
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]:focus { border: 1px solid @COLOR_PRIMARY; }
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::up-button,
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::down-button {
+    width: 12px;
+    border: none;
+    background-color: @COLOR_BG_BASE;
+}
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::up-button { 
+    image: url(@ICON_CHEVRON_UP); 
+    padding-top: 2px;
+}
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::down-button { 
+    image: url(@ICON_CHEVRON_DOWN); 
+    padding-bottom: 2px;
+}
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::up-button:hover,
+QDoubleSpinBox[cssClass="customDoubleSpinBox"]::down-button:hover {
+    background-color: @COLOR_BG_SURFACE;
+}
+
+QRadioButton[cssClass="primaryRadio"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_BASE; spacing: @SPACE_SM;
+}
+QRadioButton[cssClass="primaryRadio"]::indicator {
+    width: 14px; height: 14px;
+    border: 2px solid @COLOR_TEXT_MUTED; border-radius: 7px;
+    background-color: @COLOR_BG_BASE;
+}
+QRadioButton[cssClass="primaryRadio"]::indicator:checked {
+    background-color: @COLOR_PRIMARY; border: 2px solid @COLOR_PRIMARY;
+}
+
+QLabel[cssClass="formLabel"] {
+    color: @COLOR_TEXT_BODY; font-weight: 500; font-size: @FONT_BASE;
+}
+
+QLabel[cssClass="formLabelTotal"] {
+    font-size: @FONT_MD; font-weight: bold; color: @COLOR_TEXT_PRIMARY;
+}
+QLabel[cssClass="warningLabelBg"] {
+    color: @COLOR_DANGER; font-size: @FONT_XS; font-weight: bold;
+    padding: @SPACE_MD; background-color: rgba(239,68,68,0.1); border-radius: @RADIUS_MD;
+}
+QLabel[cssClass="formLabelBold"] {
+    color: #e2e8f0; font-weight: bold; font-size: @FONT_BASE;
+}

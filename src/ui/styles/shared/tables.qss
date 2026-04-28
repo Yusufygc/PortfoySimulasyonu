@@ -1,0 +1,63 @@
+/* =======================================================
+   SHARED - TABLES
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QTableWidget[cssClass="tableSummary"] {
+    background-color: @COLOR_BG_SURFACE;
+    border-top: 2px solid @COLOR_BORDER;
+    font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+QTableWidget[cssClass="dataTable"] {
+    background-color: @COLOR_BG_BASE; border: none; gridline-color: transparent; outline: none;
+}
+QTableWidget[cssClass="dataTable"]::item {
+    padding: @SPACE_LG; border: none; border-bottom: 1px solid @COLOR_BG_SURFACE;
+}
+QTableWidget[cssClass="dataTable"]::item:selected {
+    background-color: @COLOR_BORDER; color: @COLOR_TEXT_PRIMARY;
+}
+QTableWidget[cssClass="dataTable"]::item:hover {
+    background-color: @COLOR_BG_SURFACE;
+}
+QTableWidget[cssClass="dataTable"] QHeaderView::section {
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_MUTED; padding: @SPACE_MD; border: none;
+    border-bottom: 2px solid @COLOR_BORDER; font-weight: bold; text-transform: uppercase; font-size: @FONT_SM;
+}
+
+QLabel[cssClass="tableTitle"] {
+    font-size: @FONT_XL;
+    font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY;
+    margin-top: @SPACE_XS;
+}
+QLabel[cssClass="emptyStateText"] {
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_LG;
+    padding: 40px;
+}
+
+/* Layout-level readability overrides.
+   These must stay after the dataTable component rules to preserve the
+   old dark_theme -> typography -> components -> layout cascade. */
+QTableWidget {
+    font-size: @FONT_TABLE_CELL;
+    gridline-color: @COLOR_BORDER_SUBTLE;
+}
+QHeaderView::section {
+    font-size: @FONT_MD;
+    font-weight: bold;
+    padding: 10px 8px;
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_WHITE;
+    border: none;
+    border-bottom: 2px solid @COLOR_BORDER;
+}
+QTableWidget[cssClass="dataTable"] {
+    font-size: @FONT_TABLE_CELL;
+}
+QTableWidget[cssClass="dataTable"]::item {
+    padding: 6px 8px;
+}

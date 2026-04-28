@@ -1,0 +1,45 @@
+/* =======================================================
+   SHARED - DIALOGS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QDialog[cssClass="dialogContainer"] {
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_BRIGHT;
+}
+QFrame[cssClass="dialogHeaderFrame"] {
+    background-color: @COLOR_BG_SURFACE; border-bottom: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="dialogFooterFrame"] {
+    background-color: @COLOR_BG_BASE; border-top: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="infoFrame"] {
+    background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_LG; border: 1px solid @COLOR_BORDER;
+}
+
+QLabel[cssClass="dialogHeaderTitle"] {
+    font-size: @FONT_XL; font-weight: bold; color: @COLOR_TEXT_PRIMARY;
+}
+QLabel[cssClass="dialogHeaderTitleLarge"] {
+    font-size: @FONT_2XL; font-weight: bold; color: @COLOR_TEXT_PRIMARY;
+}
+QLabel[cssClass="dialogSubtitle"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_BASE; line-height: 1.4;
+}
+QLabel[cssClass="formLabel"] {
+    color: @COLOR_TEXT_BODY; font-weight: 500; font-size: @FONT_BASE;
+}
+QLabel[cssClass="dialogStepIndicator"] {
+    color: @COLOR_TEXT_SECONDARY; font-weight: 500; font-size: @FONT_MD;
+}
+QLabel[cssClass="infoTitle"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; font-weight: bold;
+}
+QLabel[cssClass="priceLarge"] {
+    color: @COLOR_TEXT_BRIGHT; font-size: @FONT_5XL; font-weight: bold;
+}
+QLabel[cssClass="successText"] {
+    color: @COLOR_SUCCESS_BRIGHT; font-size: @FONT_BASE;
+}
+QLabel[cssClass="summaryTitle"] {
+    color: @COLOR_PRIMARY; font-size: @FONT_3XL; font-weight: bold; margin-bottom: @SPACE_LG;
+}

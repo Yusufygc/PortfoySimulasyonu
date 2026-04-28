@@ -1,0 +1,6 @@
+/* =======================================================
+   FEATURE - MODEL PORTFOLIO
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* Model portfoy ekranina ozel stiller su an shared modullerden geliyor. */

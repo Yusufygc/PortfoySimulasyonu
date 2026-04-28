@@ -1,0 +1,19 @@
+/* =======================================================
+   BASE - GROUPBOXES
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* --- GRUP KUTULARI (Group Box) --- */
+QGroupBox {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 4px;
+    color: #cbd5e1;
+    font-weight: bold;
+}

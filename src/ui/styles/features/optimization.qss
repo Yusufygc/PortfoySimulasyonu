@@ -1,0 +1,14 @@
+/* =======================================================
+   FEATURE - OPTIMIZATION
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QProgressBar[cssClass="optimizationProgressBar"] {
+    background-color: @COLOR_BG_SURFACE;
+    border: none;
+    border-radius: 2px;
+}
+QProgressBar[cssClass="optimizationProgressBar"]::chunk {
+    background-color: @COLOR_PRIMARY;
+    border-radius: 2px;
+}

@@ -1,0 +1,25 @@
+/* =======================================================
+   FEATURE - PLANNING
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QLabel[cssClass="statusLabelInfo"] {
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_SECONDARY;
+    border-radius: @RADIUS_LG; padding: @SPACE_XL; font-size: @FONT_MD;
+}
+QLabel[cssClass="successHeader"] {
+    color: @COLOR_SUCCESS; font-weight: bold; font-size: @FONT_XL;
+}
+QLabel[cssClass="dangerHeader"] {
+    color: @COLOR_DANGER; font-weight: bold; font-size: @FONT_XL; margin-top: @SPACE_LG;
+}
+QLabel[cssClass="inputLabel"] {
+    color: @COLOR_TEXT_BODY; font-size: @FONT_MD; font-weight: 500;
+}
+
+QLabel[cssClass="feasibilityText"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; font-weight: bold; border: none;
+}
+QLabel[cssClass="feasibilityStatus"] {
+    font-size: @FONT_XL; font-weight: bold; border: none;
+}

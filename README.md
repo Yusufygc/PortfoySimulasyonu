@@ -240,13 +240,16 @@ sequenceDiagram
 
 ### 3. 🎨 Merkezi Tema Motoru (ThemeManager)
 
-Uygulama genelinde tutarlı görünüm sağlayan QSS tabanlı tema sistemi. Tüm stiller `dark_theme.qss` dosyasında merkezi olarak yönetilir.
+Uygulama genelinde tutarlı görünüm sağlayan QSS tabanlı tema sistemi. Stiller `ThemeManager` manifest sırasıyla tema, base, shared ve feature modüllerinden birleştirilir.
 
 ```
 src/ui/
 ├── theme_manager.py          # Singleton Tema Yöneticisi
 └── styles/
-    └── dark_theme.qss        # Tailwind Slate renk paleti (268 satır)
+    ├── themes/               # Ana tema zemini
+    ├── base/                 # Genel Qt widget stilleri
+    ├── shared/               # Ortak UI bileşen stilleri
+    └── features/             # Sayfa/özellik bazlı stiller
 ```
 
 **Tema Özellikleri:**
@@ -254,6 +257,7 @@ src/ui/
 - 🎯 Buton varyantları: `primary`, `success`, `danger`, `ghost`
 - 📐 Tutarlı `border-radius`, `padding` ve `font-weight` değerleri
 - 🔄 Hover, pressed, disabled ve focus durumları
+- 🧩 Deterministik QSS manifest yükleme sırası
 
 ### 4. 🗄️ SQLAlchemy ORM Katmanı
 
@@ -394,7 +398,10 @@ PortfoySimulasyonu/
 │   ├── theme_manager.py               # 🎨 Merkezi Tema Yöneticisi
 │   ├── portfolio_table_model.py       # Reaktif Tablo Modeli (Event-Bus destekli)
 │   ├── styles/
-│   │   └── dark_theme.qss            # Tailwind Slate Dark Theme
+│   │   ├── themes/                   # Tema yüzeyi
+│   │   ├── base/                     # Genel widget stilleri
+│   │   ├── shared/                   # Ortak bileşen stilleri
+│   │   └── features/                 # Sayfa bazlı stiller
 │   └── pages/
 │       ├── base_page.py               # Temel sayfa sınıfı
 │       ├── dashboard_page.py          # Ana dashboard

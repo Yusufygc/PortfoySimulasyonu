@@ -1,0 +1,96 @@
+/* =======================================================
+   SHARED - BUTTONS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QPushButton[cssClass="secondaryButton"] {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    padding: @SPACE_MD 16px;
+    border-radius: @RADIUS_MD;
+}
+QPushButton[cssClass="secondaryButton"]:hover {
+    background-color: @COLOR_BORDER;
+}
+
+QPushButton[cssClass="dangerTextButton"] {
+    color: @COLOR_DANGER;
+}
+QPushButton[cssClass="dangerTextButton"]:hover {
+    color: @COLOR_DANGER_HOVER;
+}
+
+QPushButton[cssClass="successButton"] {
+    background-color: @COLOR_SUCCESS; color: @COLOR_TEXT_WHITE; border: none;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 20px; font-size: @FONT_MD;
+}
+QPushButton[cssClass="successButton"]:hover { background-color: @COLOR_SUCCESS_HOVER; }
+
+QPushButton[cssClass="primaryButton"] {
+    background-color: @COLOR_PRIMARY; color: @COLOR_TEXT_WHITE; border: none;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 20px; font-size: @FONT_MD;
+}
+QPushButton[cssClass="primaryButton"]:hover { background-color: @COLOR_PRIMARY_HOVER; }
+
+QPushButton[cssClass="dangerOutlineButton"] {
+    background-color: transparent; color: @COLOR_DANGER; border: 1px solid @COLOR_DANGER;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 16px; font-size: @FONT_MD;
+}
+QPushButton[cssClass="dangerOutlineButton"]:hover { background-color: @COLOR_DANGER; color: @COLOR_TEXT_WHITE; }
+
+QPushButton[cssClass="purpleButton"] {
+    background-color: @COLOR_PURPLE; color: @COLOR_TEXT_WHITE; border: none;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 20px; font-size: @FONT_MD;
+}
+QPushButton[cssClass="purpleButton"]:hover { background-color: @COLOR_PURPLE_HOVER; }
+
+QPushButton[cssClass="dangerButton"] {
+    background-color: @COLOR_DANGER; color: @COLOR_TEXT_WHITE; border: none;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 16px; font-size: @FONT_MD;
+}
+QPushButton[cssClass="dangerButton"]:hover { background-color: @COLOR_DANGER_HOVER; }
+
+QPushButton[cssClass="primaryButtonLarge"] {
+    background-color: @COLOR_PRIMARY;
+    color: @COLOR_TEXT_WHITE;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: @RADIUS_LG;
+    font-size: @FONT_LG;
+    font-weight: bold;
+    padding: @SPACE_LG @SPACE_4XL;
+}
+QPushButton[cssClass="primaryButtonLarge"]:hover {
+    background-color: @COLOR_PRIMARY_HOVER;
+}
+QPushButton[cssClass="primaryButtonLarge"]:disabled {
+    background-color: @COLOR_BG_OVERLAY;
+    color: @COLOR_TEXT_SECONDARY;
+}
+
+QPushButton[cssClass="dangerTextBtn"] {
+    color: @COLOR_DANGER; background: transparent; border: none; font-weight: bold; font-size: @FONT_BASE;
+}
+QPushButton[cssClass="dangerTextBtn"]:hover {
+    text-decoration: underline;
+}
+
+
+QPushButton[cssClass="linkButton"] {
+    color: @COLOR_TEXT_SECONDARY; background: transparent; border: none;
+    font-size: @FONT_BASE; font-weight: 500;
+}
+QPushButton[cssClass="linkButton"]:hover {
+    color: @COLOR_TEXT_BRIGHT; text-decoration: underline;
+}
+
+QPushButton[cssClass="outlineDangerBtn"] {
+    background-color: transparent;
+    color: @COLOR_DANGER;
+    border: 1px solid @COLOR_DANGER;
+    padding: @SPACE_XS @SPACE_LG;
+    border-radius: @RADIUS_SM;
+}
+QPushButton[cssClass="outlineDangerBtn"]:hover {
+    background-color: @COLOR_DANGER; color: @COLOR_TEXT_WHITE;
+}

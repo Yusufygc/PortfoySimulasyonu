@@ -1,0 +1,136 @@
+/* =======================================================
+   FEATURE - RISK PROFILE
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QSpinBox[cssClass="surveySpinBox"] {
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_LG;
+    padding: @SPACE_MD; font-size: @FONT_XL;
+}
+QSpinBox[cssClass="surveySpinBox"]:focus { border: 1px solid @COLOR_PRIMARY; }
+QSpinBox[cssClass="surveySpinBox"]::up-button, QSpinBox[cssClass="surveySpinBox"]::down-button {
+    width: 12px;
+    border: none;
+    background-color: @COLOR_BG_SURFACE;
+}
+QSpinBox[cssClass="surveySpinBox"]::up-button { 
+    image: url(@ICON_CHEVRON_UP); 
+    padding-top: 2px;
+}
+QSpinBox[cssClass="surveySpinBox"]::down-button { 
+    image: url(@ICON_CHEVRON_DOWN); 
+    padding-bottom: 2px;
+}
+
+QPushButton[cssClass="calculateButton"] {
+    background-color: @COLOR_PURPLE; color: @COLOR_TEXT_WHITE; border: none;
+    border-radius: @RADIUS_XL; font-size: @FONT_XL; font-weight: bold;
+    padding: @SPACE_XL 30px;
+}
+QPushButton[cssClass="calculateButton"]:hover { background-color: @COLOR_PURPLE_HOVER; }
+
+QRadioButton[cssClass="surveyRadio"] {
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_XL;
+    padding: @SPACE_XL 18px;
+    font-size: @FONT_BASE;
+    spacing: @SPACE_SM;
+}
+QRadioButton[cssClass="surveyRadio"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
+    background-color: @COLOR_BG_SURFACE;
+}
+QRadioButton[cssClass="surveyRadio"]:checked {
+    border: 2px solid @COLOR_PURPLE;
+    background-color: rgba(139, 92, 246, 0.15);
+}
+QRadioButton[cssClass="surveyRadio"]::indicator {
+    width: 16px; height: 16px;
+    border: 2px solid @COLOR_TEXT_MUTED;
+    border-radius: @SPACE_SM;
+    background-color: @COLOR_BG_BASE;
+}
+QRadioButton[cssClass="surveyRadio"]::indicator:checked {
+    background-color: @COLOR_PURPLE;
+    border: 2px solid @COLOR_PURPLE;
+}
+
+QPushButton[cssClass="calculateButton"] {
+    background-color: @COLOR_PURPLE; color: @COLOR_TEXT_WHITE; border: none;
+    border-radius: @RADIUS_XL; font-size: @FONT_XL; font-weight: bold;
+    padding: @SPACE_XL 30px;
+}
+QPushButton[cssClass="calculateButton"]:hover { background-color: @COLOR_PURPLE_HOVER; }
+
+QLabel[cssClass="profileHeader"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_MD;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileScore"] {
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_2XL;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileLabel"] {
+    font-size: 22px;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="profileDesc"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_MD;
+    border: none;
+}
+QLabel[cssClass="profileDetail"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_SM;
+    border: none;
+}
+QLabel[cssClass="surveyTitle"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_XL;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="surveyQuestion"] {
+    color: #e2e8f0;
+    font-size: @FONT_MD;
+    font-weight: bold;
+}
+
+QFrame[cssClass="profileCard"] {
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 2px solid @COLOR_BORDER;
+}
+
+QFrame[cssClass="surveyFrame"] {
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 1px solid @COLOR_BORDER;
+}
+
+QGroupBox[cssClass="surveyGroup"] {
+    border: none;
+    margin-top: 0;
+    padding: 0;
+}
+
+/* -------------------------------------------------------
+   Risk Profil KartÄ± cssState renkleri
+------------------------------------------------------- */
+QFrame[cssState="conservative"] { border-color: @COLOR_SUCCESS; }
+QFrame[cssState="moderate"]     { border-color: @COLOR_PRIMARY; }
+QFrame[cssState="balanced"]     { border-color: @COLOR_WARNING; }
+QFrame[cssState="aggressive"]   { border-color: @COLOR_DANGER; }
+
+QLabel[cssState="conservative"] { color: @COLOR_SUCCESS; }
+QLabel[cssState="moderate"]     { color: @COLOR_PRIMARY; }
+QLabel[cssState="balanced"]     { color: @COLOR_WARNING; }
+QLabel[cssState="aggressive"]   { color: @COLOR_DANGER; }

@@ -1,0 +1,6 @@
+/* =======================================================
+   FEATURE - WATCHLIST
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* Watchlist ekranina ozel stiller su an shared modullerden geliyor. */

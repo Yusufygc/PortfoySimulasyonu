@@ -1,0 +1,159 @@
+/* =======================================================
+   SHARED - TRADE CONTROLS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QDialog[cssClass="tradeDialog"] {
+    background-color: @COLOR_BG_BASE;
+}
+QDialog[cssClass="tradeDialog"] QLabel {
+    color: @COLOR_TEXT_BODY; font-weight: bold; font-size: @FONT_LG;
+}
+QDialog[cssClass="tradeDialog"] QLineEdit,
+QDialog[cssClass="tradeDialog"] QSpinBox,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox,
+QDialog[cssClass="tradeDialog"] QDateEdit {
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_LG;
+    padding: @SPACE_LG; font-size: @FONT_XL; min-height: 25px;
+}
+QDialog[cssClass="tradeDialog"] QLineEdit:focus,
+QDialog[cssClass="tradeDialog"] QSpinBox:focus,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox:focus,
+QDialog[cssClass="tradeDialog"] QDateEdit:focus {
+    border: 1px solid @COLOR_PRIMARY; background-color: @COLOR_BORDER;
+}
+QDialog[cssClass="tradeDialog"] QSpinBox::up-button,
+QDialog[cssClass="tradeDialog"] QSpinBox::down-button,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button {
+    width: 12px;
+    border: none;
+}
+QDialog[cssClass="tradeDialog"] QSpinBox::up-button, 
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button { 
+    image: url(@ICON_CHEVRON_UP); 
+}
+QDialog[cssClass="tradeDialog"] QSpinBox::down-button, 
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button { 
+    image: url(@ICON_CHEVRON_DOWN); 
+}
+QDialog[cssClass="tradeDialog"] QDateEdit::up-button,
+QDialog[cssClass="tradeDialog"] QDateEdit::down-button {
+    width: 12px; background-color: @COLOR_BORDER; border: none; border-radius: 2px; margin: 2px;
+}
+QDialog[cssClass="tradeDialog"] QDateEdit::up-button { image: url(@ICON_CHEVRON_UP); }
+QDialog[cssClass="tradeDialog"] QDateEdit::down-button { image: url(@ICON_CHEVRON_DOWN); }
+QDialog[cssClass="tradeDialog"] QSpinBox::up-button:hover,
+QDialog[cssClass="tradeDialog"] QSpinBox::down-button:hover,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button:hover,
+QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button:hover {
+    background-color: @COLOR_BG_OVERLAY;
+}
+
+QSpinBox[cssClass="tradeInputLarge"], QDoubleSpinBox[cssClass="tradeInputLarge"] {
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_MD;
+    padding: @SPACE_MD; font-size: @FONT_XL; font-weight: bold;
+}
+QLineEdit[cssClass="tradeInputNormal"],
+QSpinBox[cssClass="tradeInputNormal"],
+QDoubleSpinBox[cssClass="tradeInputNormal"],
+QDateEdit[cssClass="tradeInputNormal"],
+QComboBox[cssClass="tradeInputNormal"] {
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_MD;
+    padding: @SPACE_MD; font-size: @FONT_MD;
+}
+QDateEdit[cssClass="tradeInputNormal"] {
+    padding: 7px 30px 7px 8px;
+    min-height: 24px;
+}
+QDateEdit[cssClass="tradeInputNormal"]::up-button,
+QDateEdit[cssClass="tradeInputNormal"]::down-button {
+    width: 16px;
+    border: none;
+    background: transparent;
+}
+QDateEdit[cssClass="tradeInputNormal"]::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    margin: 5px 6px 0px 0px;
+}
+QDateEdit[cssClass="tradeInputNormal"]::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    margin: 0px 6px 5px 0px;
+}
+QDateEdit[cssClass="tradeInputNormal"]::up-arrow { image: url(@ICON_CHEVRON_UP); }
+QDateEdit[cssClass="tradeInputNormal"]::down-arrow { image: url(@ICON_CHEVRON_DOWN); }
+QLineEdit[cssClass="tradeInputNormal"]:focus,
+QSpinBox[cssClass="tradeInputNormal"]:focus,
+QDoubleSpinBox[cssClass="tradeInputNormal"]:focus,
+QDateEdit[cssClass="tradeInputNormal"]:focus {
+    border: 1px solid @COLOR_PRIMARY;
+}
+
+QPushButton[cssClass="tradeModeBtnLeft"] {
+    border: 1px solid @COLOR_BORDER; font-weight: bold; font-size: @FONT_MD;
+    color: @COLOR_TEXT_MUTED; background-color: @COLOR_BG_BASE;
+    border-top-left-radius: @RADIUS_LG; border-bottom-left-radius: @RADIUS_LG;
+}
+QPushButton[cssClass="tradeModeBtnLeft"]:checked {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: @COLOR_SUCCESS; border: 2px solid @COLOR_SUCCESS;
+}
+
+QPushButton[cssClass="tradeModeBtnRight"] {
+    border: 1px solid @COLOR_BORDER; font-weight: bold; font-size: @FONT_MD;
+    color: @COLOR_TEXT_MUTED; background-color: @COLOR_BG_BASE;
+    border-top-right-radius: @RADIUS_LG; border-bottom-right-radius: @RADIUS_LG;
+}
+QPushButton[cssClass="tradeModeBtnRight"]:checked {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: @COLOR_DANGER; border: 2px solid @COLOR_DANGER;
+}
+
+QPushButton[cssClass="tradeConfirmBuyBtn"] {
+    background-color: @COLOR_SUCCESS; color: @COLOR_TEXT_WHITE;
+    font-weight: bold; font-size: @FONT_XL;
+    border-radius: @RADIUS_LG; border: none;
+}
+QPushButton[cssClass="tradeConfirmBuyBtn"]:hover { background-color: @COLOR_SUCCESS_HOVER; }
+
+QPushButton[cssClass="tradeConfirmSellBtn"] {
+    background-color: @COLOR_DANGER; color: @COLOR_TEXT_WHITE;
+    font-weight: bold; font-size: @FONT_XL;
+    border-radius: @RADIUS_LG; border: none;
+    padding: @SPACE_LG 16px;
+}
+QPushButton[cssClass="tradeConfirmSellBtn"]:hover { background-color: @COLOR_DANGER_HOVER; }
+
+QRadioButton[cssClass="tradeRadioBuy"] {
+    font-weight: bold; color: @COLOR_TEXT_WHITE; font-size: @FONT_MD;
+}
+QRadioButton[cssClass="tradeRadioBuy"]::indicator:checked {
+    border: 2px solid @COLOR_SUCCESS_BRIGHT; border-radius: @RADIUS_MD; background-color: @COLOR_SUCCESS_BRIGHT;
+}
+
+QRadioButton[cssClass="tradeRadioSell"] {
+    font-weight: bold; color: @COLOR_TEXT_WHITE; font-size: @FONT_MD;
+}
+QRadioButton[cssClass="tradeRadioSell"]::indicator:checked {
+    border: 2px solid @COLOR_DANGER; border-radius: @RADIUS_MD; background-color: @COLOR_DANGER;
+}
+
+QPushButton[cssClass="linkButton"] {
+    color: @COLOR_TEXT_SECONDARY; background: transparent; border: none;
+    font-size: @FONT_BASE; font-weight: 500;
+}
+QPushButton[cssClass="linkButton"]:hover {
+    color: @COLOR_TEXT_BRIGHT; text-decoration: underline;
+}
+
+QLineEdit[cssClass="tradeInputBold"] {
+    background-color: @COLOR_BG_SURFACE; border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD; padding: @SPACE_LG; color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_MD; font-weight: bold; text-transform: uppercase;
+}
+QLineEdit[cssClass="tradeInputBold"]:focus { border: 1px solid @COLOR_PRIMARY; }
