@@ -22,10 +22,8 @@ from PyQt5.QtGui import QIcon
 from .base_page import BasePage
 from src.ui.core.icon_manager import IconManager
 from src.domain.models.optimization_result import OptimizationResult
-from src.ui.widgets.cards import MetricCard
-from src.ui.widgets.tables.suggestions_table import SuggestionsTable
-from src.ui.widgets.toast import Toast
-from src.ui.widgets.animated_button import AnimatedButton
+from src.ui.widgets.optimization import SuggestionsTable
+from src.ui.widgets.shared import AnimatedButton, MetricCard, Toast
 
 
 class _OptimizationWorker(QThread):

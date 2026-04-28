@@ -3,7 +3,7 @@ from __future__ import annotations
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from src.application.services.analysis import AllocationRiskDTO
-from src.ui.widgets.cards import InfoCard
+from src.ui.widgets.shared import InfoCard
 
 from .analysis_chart_engine import AnalysisChartEngine
 

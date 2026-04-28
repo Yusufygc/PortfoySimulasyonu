@@ -3,7 +3,7 @@ from __future__ import annotations
 from PyQt5.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from src.application.services.analysis import AnalysisOverviewDTO
-from src.ui.widgets.cards import InfoCard, MetricCard
+from src.ui.widgets.shared import InfoCard, MetricCard
 
 
 def _fmt_pct(value: float | None) -> str:

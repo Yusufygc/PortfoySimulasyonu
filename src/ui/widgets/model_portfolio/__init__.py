@@ -1,5 +1,5 @@
-from .portfolio_input_dialog import PortfolioInputDialog
-from .trade_input_dialog import TradeInputDialog
+from .dialogs import PortfolioInputDialog, TradeInputDialog
+from .panels import PortfolioListPanel
+from .tables import PositionsTable
 
-__all__ = ["PortfolioInputDialog", "TradeInputDialog"]
-
+__all__ = ["PortfolioInputDialog", "TradeInputDialog", "PortfolioListPanel", "PositionsTable"]

@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QSize
 
 from .base_page import BasePage
-from src.ui.widgets.toast import Toast
+from src.ui.widgets.shared import Toast
 from src.domain.models.risk_profile import RiskProfile, PROFILE_INFO
 from src.ui.core.icon_manager import IconManager
 

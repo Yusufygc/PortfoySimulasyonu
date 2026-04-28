@@ -11,12 +11,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QSize
 
 from .base_page import BasePage
-from src.ui.widgets.cards import InfoCard
-from src.ui.widgets.panels import BudgetFormPanel, GoalsPanel
-from src.ui.widgets.goal_input_dialog import GoalInputDialog
-from src.ui.widgets.contribution_dialog import ContributionDialog
-from src.ui.widgets.toast import Toast
-from src.ui.widgets.animated_button import AnimatedButton
+from src.ui.widgets.planning import BudgetFormPanel, ContributionDialog, GoalInputDialog, GoalsPanel
+from src.ui.widgets.shared import AnimatedButton, InfoCard, Toast
 from src.ui.core.icon_manager import IconManager
 
 

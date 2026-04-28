@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.ui.navigation.page_factory import PageFactory
-from src.ui.widgets.animated_button import AnimatedButton
+from src.ui.widgets.shared import AnimatedButton
 
 
 class MainWindow(QMainWindow):

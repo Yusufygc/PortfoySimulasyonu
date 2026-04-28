@@ -6,12 +6,8 @@ from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout
 
 from src.ui.pages.base_page import BasePage
 from src.ui.core.icon_manager import IconManager
-from src.ui.widgets.animated_button import AnimatedButton
-from src.ui.widgets.backfill_dialog import BackfillDialog
-from src.ui.widgets.capital_dialog import CapitalDialog
-from src.ui.widgets.date_range_dialog import DateRangeDialog
-from src.ui.widgets.new_stock_trade_dialog import NewStockTradeDialog
-from src.ui.widgets.toast import Toast
+from src.ui.widgets.dashboard import BackfillDialog, CapitalDialog, DateRangeDialog, NewStockTradeDialog
+from src.ui.widgets.shared import AnimatedButton, Toast
 
 from .dashboard_actions import DashboardActions
 from .dashboard_portfolio_table import DashboardPortfolioTable

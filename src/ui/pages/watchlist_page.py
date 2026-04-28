@@ -25,9 +25,7 @@ from src.ui.core.icon_manager import IconManager
 
 from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
-from src.ui.widgets.action_list_item import ActionListItem
-from src.ui.widgets.toast import Toast
-from src.ui.widgets.animated_button import AnimatedButton
+from src.ui.widgets.shared import ActionListItem, AnimatedButton, Toast
 
 
 class WatchlistPage(BasePage):

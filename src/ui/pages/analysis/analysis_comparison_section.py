@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel,
 
 from src.application.services.analysis import ComparisonViewDTO
 from src.ui.core.icon_manager import IconManager
-from src.ui.widgets.cards import MetricCard
+from src.ui.widgets.shared import MetricCard
 
 from .analysis_chart_engine import AnalysisChartEngine
 

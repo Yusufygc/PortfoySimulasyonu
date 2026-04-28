@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal
 from PyQt5.QtGui import QColor
 from decimal import Decimal
 
-from src.ui.widgets.portfolio_row_delegate import PortfolioRowDelegate
+from src.ui.widgets.dashboard import PortfolioRowDelegate
 
 class DashboardPortfolioTable(QWidget):
     """Portföy tablosu ve altındaki toplam özet satırını yöneten bileşen."""

@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog
 
 from src.application.services.reporting.daily_history_models import ExportMode
 from src.domain.models.trade import TradeSide
-from src.ui.widgets.toast import Toast
+from src.ui.widgets.shared import Toast
 from src.ui.worker import Worker
 
 logger = logging.getLogger(__name__)

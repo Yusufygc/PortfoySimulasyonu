@@ -12,12 +12,8 @@ from PyQt5.QtCore import QSettings, QTimer, QSize
 from .base_page import BasePage
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.core.icon_manager import IconManager
-from src.ui.widgets.animated_button import AnimatedButton
-from src.ui.widgets.cards import InfoCard
-from src.ui.widgets.model_portfolio import PortfolioInputDialog, TradeInputDialog
-from src.ui.widgets.panels import PortfolioListPanel
-from src.ui.widgets.tables import PositionsTable
-from src.ui.widgets.toast import Toast
+from src.ui.widgets.model_portfolio import PortfolioInputDialog, PortfolioListPanel, PositionsTable, TradeInputDialog
+from src.ui.widgets.shared import AnimatedButton, InfoCard, Toast
 
 logger = logging.getLogger(__name__)
 

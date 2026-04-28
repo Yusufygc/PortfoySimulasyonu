@@ -5,8 +5,7 @@ from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QMessageBox, QVBoxLayou
 
 from .base_page import BasePage
 from src.ui.core.icon_manager import IconManager
-from src.ui.widgets.animated_button import AnimatedButton
-from src.ui.widgets.toast import Toast
+from src.ui.widgets.shared import AnimatedButton, Toast
 
 
 class SettingsPage(BasePage):
@@ -88,4 +87,3 @@ class SettingsPage(BasePage):
             Toast.success(self, "Sistem basariyla sifirlandi.")
         except Exception as exc:
             Toast.error(self, f"Sistem sifirlanamadi: {exc}")
-
