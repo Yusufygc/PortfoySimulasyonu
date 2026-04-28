@@ -3,4 +3,54 @@
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* Watchlist ekranina ozel stiller su an shared modullerden geliyor. */
+QTableWidget[cssClass="watchlistTable"] {
+    background-color: @COLOR_BG_SURFACE;
+    alternate-background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_BRIGHT;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+    gridline-color: transparent;
+    outline: none;
+    selection-background-color: rgba(59, 130, 246, 0.22);
+    selection-color: @COLOR_TEXT_WHITE;
+}
+
+QTableWidget[cssClass="watchlistTable"]::item {
+    padding: 10px 12px;
+    border: none;
+    border-bottom: 1px solid @COLOR_BORDER_SUBTLE;
+}
+
+QTableWidget[cssClass="watchlistTable"]::item:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+QTableWidget[cssClass="watchlistTable"]::item:selected {
+    background-color: rgba(59, 130, 246, 0.24);
+    color: @COLOR_TEXT_WHITE;
+}
+
+QTableWidget[cssClass="watchlistTable"] QHeaderView::section {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_WHITE;
+    border: none;
+    border-bottom: 2px solid @COLOR_BORDER;
+    padding: 12px 10px;
+    font-size: @FONT_MD;
+    font-weight: bold;
+}
+
+QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="dangerTextButton"],
+QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="dangerTextBtn"] {
+    background-color: rgba(239, 68, 68, 0.08);
+    color: @COLOR_DANGER;
+    border: 1px solid rgba(239, 68, 68, 0.22);
+    border-radius: @RADIUS_MD;
+    padding: 4px;
+}
+
+QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="dangerTextButton"]:hover,
+QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="dangerTextBtn"]:hover {
+    background-color: rgba(239, 68, 68, 0.18);
+    border-color: @COLOR_DANGER;
+}

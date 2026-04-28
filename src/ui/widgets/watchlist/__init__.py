@@ -1,3 +1,3 @@
-from .dialogs import WatchlistManagerDialog
+from .dialogs import AddStockToWatchlistDialog
 
-__all__ = ["WatchlistManagerDialog"]
+__all__ = ["AddStockToWatchlistDialog"]

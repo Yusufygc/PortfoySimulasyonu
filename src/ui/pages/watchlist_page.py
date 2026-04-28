@@ -26,6 +26,7 @@ from src.ui.core.icon_manager import IconManager
 from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
 from src.ui.widgets.shared import ActionListItem, AnimatedButton, Toast
+from src.ui.widgets.watchlist.dialogs.add_stock_to_watchlist_dialog import AddStockToWatchlistDialog
 
 
 class WatchlistPage(BasePage):
@@ -137,7 +138,15 @@ class WatchlistPage(BasePage):
         self.stock_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.stock_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.stock_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.stock_table.setSelectionMode(QTableWidget.SingleSelection)
+        self.stock_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.stock_table.setAlternatingRowColors(True)
+        self.stock_table.setShowGrid(False)
+        self.stock_table.setFocusPolicy(Qt.NoFocus)
+        self.stock_table.setWordWrap(False)
+        self.stock_table.setProperty("cssClass", "watchlistTable")
+        self.stock_table.horizontalHeader().setHighlightSections(False)
+        self.stock_table.verticalHeader().setDefaultSectionSize(42)
         self.stock_table.verticalHeader().setVisible(False)
         right_layout.addWidget(self.stock_table)
 
@@ -215,12 +224,12 @@ class WatchlistPage(BasePage):
             
             # Ticker kolonu kalktı, veriyi Hisse Adı kolonuna gömüyoruz
             name_text = stock_data["name"] or stock_data["ticker"]
-            name_item = QTableWidgetItem(name_text)
+            name_item = self._readonly_table_item(name_text)
             name_item.setData(Qt.UserRole, stock_data) # Veriyi burada saklıyoruz
             self.stock_table.setItem(i, 0, name_item)
             
             notes = stock_data["item"].notes or ""
-            notes_item = QTableWidgetItem(notes)
+            notes_item = self._readonly_table_item(notes)
             self.stock_table.setItem(i, 1, notes_item)
             
             btn_remove = AnimatedButton("")
@@ -231,6 +240,12 @@ class WatchlistPage(BasePage):
                 lambda checked, sid=stock_data["stock"].id: self._on_remove_stock(sid)
             )
             self.stock_table.setCellWidget(i, 2, btn_remove)
+
+    @staticmethod
+    def _readonly_table_item(text: str) -> QTableWidgetItem:
+        item = QTableWidgetItem(text)
+        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        return item
 
     def _on_new_list(self):
         name, ok = QInputDialog.getText(self, "Yeni Liste", "Liste adı:", QLineEdit.Normal, "")
@@ -305,17 +320,14 @@ class WatchlistPage(BasePage):
         if self.current_watchlist_id is None:
             return
 
-        ticker, ok = QInputDialog.getText(
-            self, "Hisse Ekle", "Hisse ticker'ı (örn: ASELS):", QLineEdit.Normal, ""
-        )
-        if not ok or not ticker.strip():
+        result = AddStockToWatchlistDialog.get_stock_input(self)
+        if result is None:
             return
-
-        notes, ok2 = QInputDialog.getText(self, "Hisse Ekle", "Not (opsiyonel):", QLineEdit.Normal, "")
+        ticker, notes = result
 
         try:
             self.watchlist_service.add_stock_by_ticker(
-                self.current_watchlist_id, ticker.strip(), notes.strip() if ok2 else None
+                self.current_watchlist_id, ticker, notes
             )
             self._load_stocks()
             self._load_watchlists()
