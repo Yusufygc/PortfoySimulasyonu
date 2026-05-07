@@ -98,5 +98,5 @@ QLabel[cssClass="warningLabelBg"] {
     padding: @SPACE_MD; background-color: rgba(239,68,68,0.1); border-radius: @RADIUS_MD;
 }
 QLabel[cssClass="formLabelBold"] {
-    color: #e2e8f0; font-weight: bold; font-size: @FONT_BASE;
+    color: @COLOR_TEXT_BODY; font-weight: bold; font-size: @FONT_BASE;
 }

@@ -5,25 +5,25 @@
 
 /* --- TAB WIDGETS --- */
 QTabWidget::pane {
-    border: 1px solid #334155;
-    border-radius: 4px;
-    background-color: #0f172a;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_SM;
+    background-color: @COLOR_BG_BASE;
     margin-top: -1px;
 }
 QTabBar::tab {
-    background-color: #1e293b;
-    color: #94a3b8;
-    border: 1px solid #334155;
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_SECONDARY;
+    border: 1px solid @COLOR_BORDER;
     padding: 8px 16px;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+    border-top-left-radius: @RADIUS_SM;
+    border-top-right-radius: @RADIUS_SM;
 }
 QTabBar::tab:selected {
-    background-color: #0f172a;
-    color: #3b82f6;
-    border-bottom-color: #0f172a;
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_PRIMARY;
+    border-bottom-color: @COLOR_BG_BASE;
 }
 QTabBar::tab:hover:!selected {
-    background-color: #334155;
-    color: #f1f5f9;
+    background-color: @COLOR_BG_ELEVATED;
+    color: @COLOR_TEXT_PRIMARY;
 }

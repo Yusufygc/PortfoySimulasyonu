@@ -73,14 +73,14 @@ QPushButton[cssClass="benchmarkChip"]:hover {
 }
 QPushButton[cssClass="benchmarkChip"]:checked {
     background-color: rgba(37, 99, 235, 0.18);
-    color: @COLOR_TEXT_WHITE;
+    color: @COLOR_TEXT_PRIMARY;
     border: 1px solid @COLOR_PRIMARY;
 }
 
 QFrame[cssClass="analysisFilterCard"] {
-    background-color: #243247;
+    background-color: @COLOR_BG_SURFACE;
     border-radius: @RADIUS_XL;
-    border: 1px solid #3d4f69;
+    border: 1px solid @COLOR_BORDER;
 }
 QFrame[cssClass="analysisFilterCard"]:hover {
     border: 1px solid @COLOR_PRIMARY;

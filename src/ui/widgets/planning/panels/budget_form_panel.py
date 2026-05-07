@@ -15,8 +15,7 @@ Kullanım:
 from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDoubleSpinBox
 )
-from src.ui.core.icon_manager import IconManager
-from PyQt5.QtCore import QSize
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 
 class BudgetFormPanel(QFrame):
@@ -38,8 +37,7 @@ class BudgetFormPanel(QFrame):
         
         income_header = QHBoxLayout()
         income_header.setSpacing(10)
-        img_income = QLabel()
-        img_income.setPixmap(IconManager.get_icon("banknote", color="@COLOR_SUCCESS", size=QSize(22, 22)).pixmap(22, 22))
+        img_income = IconLabel("banknote", color="@COLOR_SUCCESS", size=22)
         income_header.addWidget(img_income)
         income_header.addWidget(lbl_income)
         income_header.addStretch()
@@ -59,8 +57,7 @@ class BudgetFormPanel(QFrame):
         
         expense_header = QHBoxLayout()
         expense_header.setSpacing(10)
-        img_expense = QLabel()
-        img_expense.setPixmap(IconManager.get_icon("shopping-cart", color="@COLOR_DANGER", size=QSize(22, 22)).pixmap(22, 22))
+        img_expense = IconLabel("shopping-cart", color="@COLOR_DANGER", size=22)
         expense_header.addWidget(img_expense)
         expense_header.addWidget(lbl_expense)
         expense_header.addStretch()
@@ -141,8 +138,7 @@ class BudgetFormPanel(QFrame):
         lbl_row = QHBoxLayout()
         lbl_row.setSpacing(6)
         if icon_name:
-            img = QLabel()
-            img.setPixmap(IconManager.get_icon(icon_name, color="@COLOR_TEXT_SECONDARY", size=QSize(16, 16)).pixmap(16, 16))
+            img = IconLabel(icon_name, color="@COLOR_TEXT_SECONDARY", size=16)
             lbl_row.addWidget(img)
             
         lbl = QLabel(text)

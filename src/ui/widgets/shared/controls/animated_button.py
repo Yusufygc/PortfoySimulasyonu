@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from PyQt5.QtWidgets import QPushButton, QGraphicsOpacityEffect
 from PyQt5.QtCore import (
-    Qt, QPropertyAnimation, QEasingCurve,
+    Qt, QEvent, QPropertyAnimation, QEasingCurve,
     QSequentialAnimationGroup, pyqtProperty,
 )
 
@@ -52,9 +52,17 @@ class AnimatedButton(QPushButton):
 
     def setIconName(self, name: str, color: str = "@COLOR_TEXT_WHITE", size: int = 18):
         """İkon adıyla IconManager üzerinden ikon set eder."""
+        self._icon_name = name
+        self._icon_color = color
+        self._icon_size = size
+        self._apply_icon()
+
+    def _apply_icon(self):
+        if not hasattr(self, "_icon_name"):
+            return
         from src.ui.core.icon_manager import IconManager
         from PyQt5.QtCore import QSize
-        self.setIcon(IconManager.get_icon(name, color=color, size=QSize(size, size)))
+        self.setIcon(IconManager.get_icon(self._icon_name, color=self._icon_color, size=QSize(self._icon_size, self._icon_size)))
 
 
     # ------------------------------------------------------------------
@@ -90,6 +98,11 @@ class AnimatedButton(QPushButton):
     # ------------------------------------------------------------------
     # Qt Events
     # ------------------------------------------------------------------
+
+    def changeEvent(self, event) -> None:
+        if event.type() == QEvent.StyleChange and hasattr(self, "_icon_name"):
+            self._apply_icon()
+        super().changeEvent(event)
 
     def enterEvent(self, event) -> None:
         """Fare üzerine gelince mat → parlak geçiş."""

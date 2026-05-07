@@ -141,5 +141,57 @@ DARK_THEME: dict[str, str] = {
     "RADIUS_FULL": "9999px",  # Tam yuvarlak (pill shape)
 }
 
-# Varsayılan tema
+
+# ============================================================
+#  LIGHT THEME TOKENS
+#  DARK_THEME üzerinden sadece görsel tokenlar override edilir.
+# ============================================================
+LIGHT_THEME: dict[str, str] = {
+    **DARK_THEME,   # Font, spacing, radius ve brand renkleri miras alınır
+
+    # -----------------------------------------------------------
+    # BACKGROUND (Açık Arka Plan Katmanları)
+    # -----------------------------------------------------------
+    "COLOR_BG_BASE":        "#f1f5f9",   # Açık mavi-gri sayfa zemini
+    "COLOR_BG_SURFACE":     "#ffffff",   # Beyaz kartlar / paneller
+    "COLOR_SIDEBAR":        "#1e293b",   # Sidebar her iki temada da koyu kalır
+    "COLOR_BG_ELEVATED":    "#e2e8f0",   # Hover / seçili satır
+    "COLOR_BG_OVERLAY":     "#cbd5e1",   # Tooltip / dropdown
+
+    # -----------------------------------------------------------
+    # BORDERS
+    # -----------------------------------------------------------
+    "COLOR_BORDER":         "#e2e8f0",
+    "COLOR_BORDER_SUBTLE":  "#f1f5f9",
+
+    # -----------------------------------------------------------
+    # TEXT (İçerik alanı — beyaz arka plan üzeri)
+    # -----------------------------------------------------------
+    "COLOR_TEXT_PRIMARY":   "#0f172a",   # Koyu başlık metni
+    "COLOR_TEXT_SECONDARY": "#64748b",   # İkincil metin
+    "COLOR_TEXT_MUTED":     "#94a3b8",   # Soluk metin
+    "COLOR_TEXT_BODY":      "#334155",   # Gövde metni
+    "COLOR_TEXT_BRIGHT":    "#020617",   # En koyu (vurgulu metin)
+
+    # -----------------------------------------------------------
+    # ACCENT (Açık arka planda biraz daha koyu cyan)
+    # -----------------------------------------------------------
+    "COLOR_ACCENT":         "#0284c7",
+    "COLOR_ACCENT_HOVER":   "#0369a1",
+    "COLOR_ACCENT_LIGHT":   "#38bdf8",
+
+    # -----------------------------------------------------------
+    # CHAT BUBBLE BACKGROUNDS (Açık tema için pastel tonlar)
+    # -----------------------------------------------------------
+    "COLOR_BUBBLE_USER":    "#dbeafe",
+    "COLOR_BUBBLE_AI":      "#f0f9ff",
+    "COLOR_BUBBLE_SYSTEM":  "#f5f3ff",
+}
+
+# Sidebar nav butonlarının hover rengi — sidebar her zaman koyu kaldığından
+# her iki temada da açık metin rengi kullanılır.
+DARK_THEME["COLOR_NAV_TEXT_ACTIVE"]  = "#f1f5f9"
+LIGHT_THEME["COLOR_NAV_TEXT_ACTIVE"] = "#f8fafc"
+
+# Varsayılan tema (ThemeManager runtime'da günceller)
 DEFAULT_THEME = DARK_THEME

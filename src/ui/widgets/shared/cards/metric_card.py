@@ -12,6 +12,7 @@ Kullanım:
 """
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 
 class MetricCard(QFrame):
@@ -35,10 +36,7 @@ class MetricCard(QFrame):
         header_layout.setSpacing(10)
         
         if icon_name:
-            from src.ui.core.icon_manager import IconManager
-            from PyQt5.QtCore import QSize
-            self._lbl_icon = QLabel()
-            self._lbl_icon.setPixmap(IconManager.get_icon(icon_name, color="@COLOR_TEXT_SECONDARY", size=QSize(20, 20)).pixmap(20, 20))
+            self._lbl_icon = IconLabel(icon_name, color="@COLOR_TEXT_SECONDARY", size=20)
             header_layout.addWidget(self._lbl_icon)
 
         self._lbl_title = QLabel(title)

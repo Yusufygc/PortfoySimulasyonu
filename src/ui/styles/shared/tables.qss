@@ -51,7 +51,7 @@ QHeaderView::section {
     font-weight: bold;
     padding: 10px 8px;
     background-color: @COLOR_BG_SURFACE;
-    color: @COLOR_TEXT_WHITE;
+    color: @COLOR_TEXT_PRIMARY;
     border: none;
     border-bottom: 2px solid @COLOR_BORDER;
 }

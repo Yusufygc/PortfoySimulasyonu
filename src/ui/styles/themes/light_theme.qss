@@ -1,0 +1,57 @@
+/* =======================================================
+   THEME - LIGHT GLOBAL SURFACE
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* --- GLOBAL --- */
+QWidget {
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_PRIMARY;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-size: @FONT_BASE;
+}
+
+/* --- DIALOGLAR & PENCERELER --- */
+QDialog {
+    background-color: @COLOR_BG_BASE;
+}
+QMessageBox {
+    background-color: @COLOR_BG_BASE;
+}
+QMessageBox QLabel {
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+/* --- KAYDIRMA ÇUBUĞU (açık temaya uygun) --- */
+QScrollBar:vertical,
+QScrollBar:horizontal {
+    background: @COLOR_BG_ELEVATED;
+}
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
+    background: @COLOR_BORDER;
+    border-radius: @RADIUS_SM;
+}
+QScrollBar::handle:vertical:hover,
+QScrollBar::handle:horizontal:hover {
+    background: @COLOR_TEXT_MUTED;
+}
+
+/* --- SIDEBAR (her iki temada da koyu kalır) --- */
+#sidebar {
+    background-color: @COLOR_SIDEBAR;
+    border-right: 1px solid @COLOR_BORDER;
+}
+#sidebar QWidget {
+    background-color: transparent;
+    color: @COLOR_NAV_TEXT_ACTIVE;
+}
+
+/* --- TOOLTIP --- */
+QToolTip {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    padding: 4px 8px;
+    border-radius: @RADIUS_MD;
+}

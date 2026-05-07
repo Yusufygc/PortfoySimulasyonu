@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (
 from .base_page import BasePage
 from src.application.services.market.price_data_health_service import PriceDataHealthReport, PriceDataUpdateResult
 from src.ui.core.icon_manager import IconManager
+from src.ui.theme_manager import ThemeManager, THEME_REGISTRY
 from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.worker import Worker
 
@@ -78,9 +79,199 @@ class SettingsPage(BasePage):
         self.price_data_layout.setSpacing(18)
         self._create_price_data_card(self.price_data_layout)
 
+        # --- Görünüm sekmesi ---
+        self.appearance_tab = QWidget()
+        self.appearance_layout = QVBoxLayout(self.appearance_tab)
+        self.appearance_layout.setContentsMargins(0, 0, 0, 0)
+        self.appearance_layout.setSpacing(18)
+        self._create_appearance_card(self.appearance_layout)
+
         self.tabs.addTab(self.home_tab, IconManager.get_icon("home", color="@COLOR_TEXT_SECONDARY", size=QSize(18, 18)), "Ana Sayfa")
+        self.tabs.addTab(self.appearance_tab, IconManager.get_icon("layers", color="@COLOR_TEXT_SECONDARY", size=QSize(18, 18)), "Görünüm")
         self.tabs.addTab(self.price_data_tab, IconManager.get_icon("bar-chart-2", color="@COLOR_TEXT_SECONDARY", size=QSize(18, 18)), "Fiyat Verisi Yönetimi")
         self.main_layout.addWidget(self.tabs, 1)
+
+    # ------------------------------------------------------------------
+    # Görünüm Sekmesi
+    # ------------------------------------------------------------------
+
+    def _create_appearance_card(self, parent_layout: QVBoxLayout) -> None:
+        card = QFrame()
+        card.setProperty("cssClass", "panelFramePadded")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+
+        title = QLabel("Tema Seçimi")
+        title.setProperty("cssClass", "panelTitle")
+        layout.addWidget(title)
+
+        desc = QLabel(
+            "Uygulamanın renk temasını seçin. Değişiklik anında uygulanır ve bir sonraki açılışta da korunur."
+        )
+        desc.setWordWrap(True)
+        desc.setProperty("cssClass", "pageDescription")
+        layout.addWidget(desc)
+
+        # Tema kartları yatay sıra
+        cards_row = QHBoxLayout()
+        cards_row.setSpacing(16)
+        self._theme_card_widgets: dict[str, dict] = {}
+
+        for theme_id, theme_info in THEME_REGISTRY.items():
+            card_frame, card_refs = self._build_theme_card(theme_id, theme_info)
+            self._theme_card_widgets[theme_id] = card_refs
+            cards_row.addWidget(card_frame)
+
+        cards_row.addStretch()
+        layout.addLayout(cards_row)
+        layout.addStretch()
+
+        parent_layout.addWidget(card)
+        parent_layout.addStretch()
+
+        # İlk render'da seçim durumunu yansıt
+        self._refresh_theme_selection()
+
+    def _build_theme_card(self, theme_id: str, theme_info: dict) -> tuple:
+        from src.ui.styles.tokens import DARK_THEME, LIGHT_THEME
+        _token_map = {"dark": DARK_THEME, "light": LIGHT_THEME}
+        tok = _token_map.get(theme_id, DARK_THEME)
+
+        card = QFrame()
+        card.setObjectName(f"themeCard_{theme_id}")
+        card.setFixedWidth(230)
+        card.setCursor(Qt.PointingHandCursor)
+        card.mousePressEvent = lambda _event, tid=theme_id: self._on_theme_selected(tid)
+
+        outer = QVBoxLayout(card)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # ---- Renk Önizleme Şeridi ----
+        preview_frame = QFrame()
+        preview_frame.setFixedHeight(60)
+        preview_frame.setStyleSheet(
+            f"background-color: {tok['COLOR_BG_BASE']}; border-radius: 8px 8px 0 0;"
+        )
+        preview_layout = QHBoxLayout(preview_frame)
+        preview_layout.setContentsMargins(12, 10, 12, 10)
+        preview_layout.setSpacing(6)
+
+        swatch_data = [
+            tok["COLOR_SIDEBAR"],
+            tok["COLOR_BG_SURFACE"],
+            tok["COLOR_PRIMARY"],
+            tok["COLOR_ACCENT"],
+            tok["COLOR_SUCCESS"],
+            tok["COLOR_DANGER"],
+        ]
+        for color in swatch_data:
+            swatch = QFrame()
+            swatch.setFixedSize(20, 36)
+            swatch.setStyleSheet(
+                f"background-color: {color}; border-radius: 4px; border: none;"
+            )
+            preview_layout.addWidget(swatch)
+        preview_layout.addStretch()
+        outer.addWidget(preview_frame)
+
+        # ---- Bilgi Alanı ----
+        info_frame = QFrame()
+        info_frame.setObjectName(f"themeCardInfo_{theme_id}")
+        info_frame.setStyleSheet("border-radius: 0 0 8px 8px;")
+        info_layout = QVBoxLayout(info_frame)
+        info_layout.setContentsMargins(14, 12, 14, 14)
+        info_layout.setSpacing(6)
+
+        name_row = QHBoxLayout()
+        name_row.setSpacing(8)
+
+        radio_lbl = QLabel("○")
+        radio_lbl.setFixedWidth(18)
+        name_row.addWidget(radio_lbl)
+
+        name_lbl = QLabel(theme_info["display_name"])
+        name_lbl.setProperty("cssClass", "panelTitle")
+        name_row.addWidget(name_lbl)
+        name_row.addStretch()
+
+        status_lbl = QLabel("")
+        status_lbl.setProperty("cssClass", "pageDescription")
+        name_row.addWidget(status_lbl)
+
+        info_layout.addLayout(name_row)
+
+        desc_lbl = QLabel(theme_info["description"])
+        desc_lbl.setWordWrap(True)
+        desc_lbl.setProperty("cssClass", "pageDescription")
+        info_layout.addWidget(desc_lbl)
+
+        outer.addWidget(info_frame)
+
+        refs = {
+            "card":   card,
+            "radio":  radio_lbl,
+            "name":   name_lbl,
+            "status": status_lbl,
+        }
+        return card, refs
+
+    def _on_theme_selected(self, theme_id: str) -> None:
+        if theme_id == ThemeManager.current_theme_id():
+            return
+        ThemeManager.switch_theme(theme_id)
+        self._refresh_theme_selection()
+        display = THEME_REGISTRY.get(theme_id, {}).get("display_name", theme_id)
+        Toast.success(self, f"Tema değiştirildi: {display}")
+
+    def _refresh_theme_selection(self) -> None:
+        from src.ui.styles.tokens import DEFAULT_THEME
+        current    = ThemeManager.current_theme_id()
+        primary    = DEFAULT_THEME.get("COLOR_PRIMARY",        "#3b82f6")
+        border_def = DEFAULT_THEME.get("COLOR_BORDER",         "#334155")
+        bg_surface = DEFAULT_THEME.get("COLOR_BG_SURFACE",     "#1e293b")
+        text_pri   = DEFAULT_THEME.get("COLOR_TEXT_PRIMARY",   "#f1f5f9")
+        text_sec   = DEFAULT_THEME.get("COLOR_TEXT_SECONDARY", "#94a3b8")
+
+        for theme_id, refs in self._theme_card_widgets.items():
+            selected = theme_id == current
+            card  = refs["card"]
+            radio = refs["radio"]
+            name  = refs["name"]
+            stat  = refs["status"]
+
+            if selected:
+                card.setStyleSheet(
+                    f"QFrame#themeCard_{theme_id} {{"
+                    f"  border: 2px solid {primary};"
+                    f"  border-radius: 10px;"
+                    f"  background-color: {bg_surface};"
+                    f"}}"
+                )
+                radio.setText("●")
+                radio.setStyleSheet(f"color: {primary}; font-size: 16px; background: transparent;")
+                name.setStyleSheet(f"color: {primary}; background: transparent;")
+                stat.setText("Aktif")
+                stat.setStyleSheet(
+                    f"color: {primary}; font-size: 11px;"
+                    f" background-color: transparent;"
+                    f" border: 1px solid {primary};"
+                    f" border-radius: 4px; padding: 1px 6px;"
+                )
+            else:
+                card.setStyleSheet(
+                    f"QFrame#themeCard_{theme_id} {{"
+                    f"  border: 1px solid {border_def};"
+                    f"  border-radius: 10px;"
+                    f"  background-color: {bg_surface};"
+                    f"}}"
+                )
+                radio.setText("○")
+                radio.setStyleSheet(f"color: {text_sec}; font-size: 16px; background: transparent;")
+                name.setStyleSheet(f"color: {text_pri}; background: transparent;")
+                stat.setText("")
+                stat.setStyleSheet("background: transparent; border: none;")
 
     def _create_price_data_card(self, parent_layout: QVBoxLayout) -> None:
         card = QFrame()
@@ -112,12 +303,14 @@ class SettingsPage(BasePage):
         summary_grid.setSpacing(10)
         self.lbl_stock_count = self._summary_label("Hisse", "-", "list")
         self.lbl_missing_count = self._summary_label("Eksik Gün", "-", "alert-triangle")
-        self.lbl_holiday_count = self._summary_label("Tatil Adayı", "-", "calendar")
+        self.lbl_holiday_count = self._summary_label("Bilinen Tatil", "-", "calendar")
+        self.lbl_holiday_candidate_count = self._summary_label("Tatil Adayı", "-", "clock")
         self.lbl_latest_date = self._summary_label("Son Güncel Tarih", "-", "history")
         summary_grid.addWidget(self.lbl_stock_count, 0, 0)
         summary_grid.addWidget(self.lbl_missing_count, 0, 1)
         summary_grid.addWidget(self.lbl_holiday_count, 0, 2)
-        summary_grid.addWidget(self.lbl_latest_date, 0, 3)
+        summary_grid.addWidget(self.lbl_holiday_candidate_count, 0, 3)
+        summary_grid.addWidget(self.lbl_latest_date, 0, 4)
         layout.addLayout(summary_grid)
 
         filter_row = QHBoxLayout()
@@ -427,7 +620,8 @@ class SettingsPage(BasePage):
         self._current_report = report
         self.lbl_stock_count.metric_label.setText(str(report.total_stock_count))
         self.lbl_missing_count.metric_label.setText(str(report.total_missing_count))
-        self.lbl_holiday_count.metric_label.setText(str(report.holiday_candidate_count))
+        self.lbl_holiday_count.metric_label.setText(str(report.known_holiday_count))
+        self.lbl_holiday_candidate_count.metric_label.setText(str(report.holiday_candidate_count))
         self.lbl_latest_date.metric_label.setText(report.latest_price_date.strftime("%d.%m.%Y") if report.latest_price_date else "-")
         self._populate_health_table()
         self.detail_text.setHtml(self._format_report_text(report))
@@ -492,13 +686,17 @@ class SettingsPage(BasePage):
             missing_text += f"<br>... +{row.missing_count - 80} gün"
         if not missing_text:
             missing_text = "<span style='color: #94a3b8;'>Eksik gün yok.</span>"
-        
-        holiday_text = ", ".join(point_date.strftime("%d.%m.%Y") for point_date in self._current_report.holiday_candidate_dates[:60])
-        if not holiday_text:
-            holiday_text = "<span style='color: #94a3b8;'>Tatil/kapalı gün adayı yok.</span>"
-            
+
+        known_text = ", ".join(d.strftime("%d.%m.%Y") for d in self._current_report.known_holiday_dates[:60])
+        if not known_text:
+            known_text = "<span style='color: #94a3b8;'>Bu aralıkta kayıtlı tatil yok.</span>"
+
+        candidate_text = ", ".join(d.strftime("%d.%m.%Y") for d in self._current_report.holiday_candidate_dates[:60])
+        if not candidate_text:
+            candidate_text = "<span style='color: #94a3b8;'>Tatil adayı yok.</span>"
+
         status_color = "#10b981" if "Sağlıklı" in row.status else "#ef4444"
-        
+
         html = f"""
         <div style='font-family: Segoe UI, Arial; line-height: 1.4;'>
             <h3 style='color: #3b82f6; margin-bottom: 4px;'>{row.ticker}</h3>
@@ -506,15 +704,20 @@ class SettingsPage(BasePage):
                 <b>Durum:</b> <span style='color: {status_color};'>{row.status}</span><br>
                 <b>Son Veri:</b> {row.last_price_date.strftime('%d.%m.%Y') if row.last_price_date else '-'}
             </div>
-            
+
             <div style='margin-bottom: 12px;'>
                 <b style='color: #ef4444;'>Eksik Günler ({row.missing_count}):</b><br>
                 <div style='color: #cbd5e1; font-size: 13px;'>{missing_text}</div>
             </div>
-            
+
+            <div style='margin-bottom: 10px;'>
+                <b style='color: #3b82f6;'>Bilinen BIST Tatilleri ({self._current_report.known_holiday_count}):</b><br>
+                <div style='color: #cbd5e1; font-size: 13px;'>{known_text}</div>
+            </div>
+
             <div>
-                <b style='color: #ca8a04;'>Tatil/Kapalı Gün Adayları:</b><br>
-                <div style='color: #cbd5e1; font-size: 13px;'>{holiday_text}</div>
+                <b style='color: #ca8a04;'>Tatil Adayları ({self._current_report.holiday_candidate_count}):</b><br>
+                <div style='color: #cbd5e1; font-size: 13px;'>{candidate_text}</div>
             </div>
         </div>
         """
@@ -530,12 +733,8 @@ class SettingsPage(BasePage):
 
     def _format_report_text(self, report: PriceDataHealthReport) -> str:
         problematic = [row for row in report.rows if row.missing_count > 0]
-        holidays = ", ".join(point_date.strftime("%d.%m.%Y") for point_date in report.holiday_candidate_dates[:40])
-        if len(report.holiday_candidate_dates) > 40:
-            holidays += f"<br>... +{len(report.holiday_candidate_dates) - 40} gün"
-        
         status_color = "#10b981" if "Sağlıklı" in report.health_label else "#ef4444"
-        
+
         problematic_html = ""
         if problematic:
             for row in problematic[:20]:
@@ -545,6 +744,14 @@ class SettingsPage(BasePage):
         else:
             problematic_html = "<li>Yok</li>"
 
+        known_html = ", ".join(d.strftime("%d.%m.%Y") for d in report.known_holiday_dates[:40])
+        if len(report.known_holiday_dates) > 40:
+            known_html += f"<br>... +{len(report.known_holiday_dates) - 40} gün"
+
+        candidate_html = ", ".join(d.strftime("%d.%m.%Y") for d in report.holiday_candidate_dates[:40])
+        if len(report.holiday_candidate_dates) > 40:
+            candidate_html += f"<br>... +{len(report.holiday_candidate_dates) - 40} gün"
+
         html = f"""
         <div style='font-family: Segoe UI, Arial; line-height: 1.4;'>
             <h3 style='color: #3b82f6; margin-top: 0;'>Fiyat Verisi Sağlık Raporu</h3>
@@ -552,24 +759,30 @@ class SettingsPage(BasePage):
                 <b>Aralık:</b> {report.start_date:%d.%m.%Y} - {report.end_date:%d.%m.%Y}<br>
                 <b>Durum:</b> <span style='color: {status_color}; font-weight: bold;'>{report.health_label}</span>
             </div>
-            
+
             <div style='margin-bottom: 12px;'>
                 <b>Hisse:</b> {report.total_stock_count}<br>
                 <b>Beklenen İşlem Günü:</b> {report.expected_business_day_count}<br>
                 <b>Eksik Kayıt:</b> <span style='color: #ef4444;'>{report.total_missing_count}</span><br>
-                <b>Tatil Adayı:</b> <span style='color: #ca8a04;'>{report.holiday_candidate_count}</span>
+                <b>Bilinen Tatil:</b> <span style='color: #3b82f6;'>{report.known_holiday_count}</span><br>
+                <b>Tatil Adayı (heuristik):</b> <span style='color: #ca8a04;'>{report.holiday_candidate_count}</span>
             </div>
-            
+
             <div style='margin-bottom: 12px;'>
                 <b style='color: #ef4444;'>Sorunlu Hisseler:</b>
                 <ul style='margin-top: 4px; padding-left: 20px; color: #cbd5e1;'>
                     {problematic_html}
                 </ul>
             </div>
-            
+
+            <div style='margin-bottom: 10px;'>
+                <b style='color: #3b82f6;'>Bilinen BIST Tatilleri ({report.known_holiday_count}):</b><br>
+                <div style='color: #cbd5e1; font-size: 13px;'>{known_html or "Yok"}</div>
+            </div>
+
             <div>
-                <b style='color: #ca8a04;'>Tatil/Kapalı Gün Adayları:</b><br>
-                <div style='color: #cbd5e1; font-size: 13px;'>{holidays or "Yok"}</div>
+                <b style='color: #ca8a04;'>Tatil Adayları — heuristik ({report.holiday_candidate_count}):</b><br>
+                <div style='color: #cbd5e1; font-size: 13px;'>{candidate_html or "Yok"}</div>
             </div>
         </div>
         """

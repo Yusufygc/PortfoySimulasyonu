@@ -3,8 +3,8 @@ from __future__ import annotations
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QSizePolicy, QVBoxLayout
 
-from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared import ActionListItem, AnimatedButton
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 
 class PortfolioListPanel(QFrame):
@@ -29,12 +29,11 @@ class PortfolioListPanel(QFrame):
 
         lbl_row = QHBoxLayout()
         lbl_row.setSpacing(8)
-        img = QLabel()
-        img.setPixmap(IconManager.get_icon("layers", color="@COLOR_TEXT_BRIGHT", size=QSize(18, 18)).pixmap(18, 18))
+        img = IconLabel("layers", color="@COLOR_TEXT_BRIGHT", size=18)
         lbl_row.addWidget(img)
 
         lbl = QLabel("Portföylerim")
-        lbl.setStyleSheet("font-size: 16px; color: #FFFFFF; font-weight: bold; border: none;")
+        lbl.setProperty("cssClass", "tableTitle")
         lbl_row.addWidget(lbl)
         lbl_row.addStretch()
         layout.addLayout(lbl_row)

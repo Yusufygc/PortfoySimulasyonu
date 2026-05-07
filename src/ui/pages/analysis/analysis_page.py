@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
 from src.application.services.analysis import AnalysisFilterState
 from src.ui.core.icon_manager import IconManager
 from src.ui.pages.base_page import BasePage
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.worker import Worker
 
 from .analysis_comparison_section import AnalysisComparisonSection
@@ -54,8 +55,7 @@ class AnalysisPage(BasePage):
         header_layout = QHBoxLayout()
         header_layout.setSpacing(10)
 
-        icon_lbl = QLabel()
-        icon_lbl.setPixmap(IconManager.get_icon("line-chart", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        icon_lbl = IconLabel("line-chart", color="@COLOR_ACCENT", size=28)
         header_layout.addWidget(icon_lbl)
 
         title_col = QVBoxLayout()
@@ -158,6 +158,12 @@ class AnalysisPage(BasePage):
 
     def on_page_enter(self):
         self.refresh_data()
+
+    def changeEvent(self, event):
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.StyleChange:
+            self.btn_refresh.setIcon(IconManager.get_icon("refresh-cw", color="@COLOR_TEXT_PRIMARY"))
+        super().changeEvent(event)
 
     def refresh_data(self):
         self._load_static_options()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Set
 
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.stock import Stock
@@ -12,6 +12,7 @@ from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
+from src.infrastructure.calendar.bist_holiday_calendar import get_bist_holidays
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,7 @@ class PriceDataHealthReport:
     holiday_candidate_dates: List[date]
     rows: List[StockPriceHealthRow]
     latest_price_date: date | None
+    known_holiday_dates: List[date] = field(default_factory=list)
 
     @property
     def expected_business_day_count(self) -> int:
@@ -53,6 +55,14 @@ class PriceDataHealthReport:
     @property
     def holiday_candidate_count(self) -> int:
         return len(self.holiday_candidate_dates)
+
+    @property
+    def known_holiday_count(self) -> int:
+        return len(self.known_holiday_dates)
+
+    @property
+    def total_excluded_holiday_count(self) -> int:
+        return self.known_holiday_count + self.holiday_candidate_count
 
     @property
     def health_label(self) -> str:
@@ -108,11 +118,16 @@ class PriceDataHealthService:
         first_trade_dates = self._first_trade_dates_by_stock()
         stocks = self._stocks_in_price_health_scope(first_trade_dates)
         stock_ids = [stock.id for stock in stocks if stock.id is not None]
-        business_days = self._business_days(start_date, end_date)
+
+        # Bilinen BIST tatillerini önce hesapla; bunları beklenen iş günlerinden çıkar
+        known_holidays = get_bist_holidays(start_date, end_date)
+        business_days = self._business_days(start_date, end_date, known_holidays)
         weekend_days = self._weekend_days(start_date, end_date)
+
         presence_map = self._price_repo.get_price_presence_map(stock_ids, start_date, end_date)
         latest_dates = self._price_repo.get_latest_price_dates(stock_ids)
 
+        # Heuristik tatil tespiti: iş günleri içinde hiçbir aktif hissenin verisi olmayan günler
         empty_weekdays = [
             point_date
             for point_date in business_days
@@ -164,6 +179,7 @@ class PriceDataHealthService:
             holiday_candidate_dates=holiday_candidates,
             rows=rows,
             latest_price_date=latest_price_date,
+            known_holiday_dates=sorted(known_holidays),
         )
 
     def update_missing_prices(
@@ -244,11 +260,12 @@ class PriceDataHealthService:
                 start_date = max(start_date, first_trade_dates[stock.id])
             if start_date > today:
                 continue
+            known_holidays = get_bist_holidays(start_date, today)
             result = self._fetch_and_save_stock_range(
                 stock=stock,
                 start_date=start_date,
                 end_date=today,
-                allowed_dates=set(self._business_days(start_date, today)),
+                allowed_dates=set(self._business_days(start_date, today, known_holidays)),
             )
             updated_count += result.updated_count
             errors.extend(result.errors)
@@ -363,11 +380,16 @@ class PriceDataHealthService:
             raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
 
     @staticmethod
-    def _business_days(start_date: date, end_date: date) -> List[date]:
+    def _business_days(
+        start_date: date,
+        end_date: date,
+        known_holidays: Set[date] | None = None,
+    ) -> List[date]:
+        excluded = known_holidays or set()
         return [
             point_date
             for point_date in PriceDataHealthService._date_range(start_date, end_date)
-            if point_date.weekday() < 5
+            if point_date.weekday() < 5 and point_date not in excluded
         ]
 
     @staticmethod

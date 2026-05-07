@@ -22,17 +22,17 @@ QTableWidget[cssClass="watchlistTable"]::item {
 }
 
 QTableWidget[cssClass="watchlistTable"]::item:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+    background-color: rgba(0, 0, 0, 0.04);
 }
 
 QTableWidget[cssClass="watchlistTable"]::item:selected {
     background-color: rgba(59, 130, 246, 0.24);
-    color: @COLOR_TEXT_WHITE;
+    color: @COLOR_TEXT_PRIMARY;
 }
 
 QTableWidget[cssClass="watchlistTable"] QHeaderView::section {
     background-color: @COLOR_BG_SURFACE;
-    color: @COLOR_TEXT_WHITE;
+    color: @COLOR_TEXT_PRIMARY;
     border: none;
     border-bottom: 2px solid @COLOR_BORDER;
     padding: 12px 10px;

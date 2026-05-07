@@ -13,9 +13,9 @@ def main():
     logger.info("Uygulama başlatılıyor...")
 
     app = QApplication(sys.argv)
-    
-    # Yeni modüler Tema Yöneticisi
-    ThemeManager.apply_theme(app, "dark_theme")
+
+    # Kayıtlı tema tercihini yükle (varsayılan: "dark")
+    ThemeManager.apply_theme(app)
 
     # Container yapısını başlat (Bütün repo ve servisler içinde ayağa kalkar)
     container = AppContainer()

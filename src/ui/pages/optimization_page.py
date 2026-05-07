@@ -21,6 +21,7 @@ from PyQt5.QtGui import QIcon
 
 from .base_page import BasePage
 from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.domain.models.optimization_result import OptimizationResult
 from src.ui.widgets.optimization import SuggestionsTable
 from src.ui.widgets.shared import AnimatedButton, MetricCard, Toast
@@ -85,8 +86,7 @@ class OptimizationPage(BasePage):
         
         # Başlık
         header = QHBoxLayout()
-        self.lbl_title_icon = QLabel()
-        self.lbl_title_icon.setPixmap(IconManager.get_icon("zap", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        self.lbl_title_icon = IconLabel("zap", color="@COLOR_ACCENT", size=28)
         header.addWidget(self.lbl_title_icon)
         
         lbl_title = QLabel("Portföy Optimizasyonu")
@@ -120,8 +120,7 @@ class OptimizationPage(BasePage):
         suggestions_header = QHBoxLayout()
         suggestions_header.setSpacing(10)
         
-        self.lbl_sug_icon = QLabel()
-        self.lbl_sug_icon.setPixmap(IconManager.get_icon("list", color="@COLOR_TEXT_SECONDARY", size=QSize(20, 20)).pixmap(20, 20))
+        self.lbl_sug_icon = IconLabel("list", color="@COLOR_TEXT_SECONDARY", size=20)
         self.lbl_sug_icon.setVisible(False)
         suggestions_header.addWidget(self.lbl_sug_icon)
 

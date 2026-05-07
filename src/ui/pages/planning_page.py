@@ -14,6 +14,7 @@ from .base_page import BasePage
 from src.ui.widgets.planning import BudgetFormPanel, ContributionDialog, GoalInputDialog, GoalsPanel
 from src.ui.widgets.shared import AnimatedButton, InfoCard, Toast
 from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 
 class PlanningPage(BasePage):
@@ -38,8 +39,7 @@ class PlanningPage(BasePage):
         header = QHBoxLayout()
         header.setSpacing(10)
         
-        icon_lbl = QLabel()
-        icon_lbl.setPixmap(IconManager.get_icon("wallet", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        icon_lbl = IconLabel("wallet", color="@COLOR_ACCENT", size=28)
         header.addWidget(icon_lbl)
         
         lbl_title = QLabel("Finansal Planlama")
@@ -75,8 +75,7 @@ class PlanningPage(BasePage):
         top_row = QHBoxLayout()
         top_row.setSpacing(8)
         
-        icon_month = QLabel()
-        icon_month.setPixmap(IconManager.get_icon("calendar", color="@COLOR_PRIMARY", size=QSize(18, 18)).pixmap(18, 18))
+        icon_month = IconLabel("calendar", color="@COLOR_PRIMARY", size=18)
         top_row.addWidget(icon_month)
         
         lbl_month = QLabel("Ay:")
@@ -270,6 +269,13 @@ class PlanningPage(BasePage):
     def on_page_enter(self):
         self._on_month_changed()
         self._load_goals()
+
+    def changeEvent(self, event):
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.StyleChange:
+            self.tab_widget.setTabIcon(0, IconManager.get_icon("list", color="@COLOR_TEXT_SECONDARY"))
+            self.tab_widget.setTabIcon(1, IconManager.get_icon("target", color="@COLOR_TEXT_SECONDARY"))
+        super().changeEvent(event)
 
     def refresh_data(self):
         self._on_month_changed()

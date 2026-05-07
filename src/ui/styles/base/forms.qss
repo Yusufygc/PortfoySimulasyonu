@@ -3,26 +3,28 @@
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* --- GÄ°RDÄ° ELEMANLARI (Inputs & ComboBox) --- */
+/* --- GİRDİ ELEMANLARI (Inputs & ComboBox) --- */
 QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QDateEdit {
-    background-color: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #334155;
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
     padding: 6px 10px;
-    border-radius: 4px;
-    selection-background-color: #3b82f6;
+    border-radius: @RADIUS_SM;
+    selection-background-color: @COLOR_PRIMARY;
     selection-color: white;
 }
 QLineEdit:focus, QDoubleSpinBox:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {
-    border: 1px solid #3b82f6;
-    background-color: #0f172a;
+    border: 1px solid @COLOR_PRIMARY;
+    background-color: @COLOR_BG_BASE;
 }
 QComboBox::drop-down {
-    border-left: 1px solid #334155;
+    border-left: 1px solid @COLOR_BORDER;
     width: 20px;
 }
 QComboBox QAbstractItemView {
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    selection-background-color: #3b82f6;
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    selection-background-color: @COLOR_PRIMARY;
+    selection-color: white;
 }

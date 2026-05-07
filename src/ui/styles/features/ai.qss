@@ -18,7 +18,7 @@ QPushButton[cssClass="aiPrimaryBtn"]:hover { background-color: @COLOR_ACCENT_HOV
 QPushButton[cssClass="aiPrimaryBtn"]:disabled { background-color: @COLOR_BORDER; color: @COLOR_TEXT_SECONDARY; }
 
 QLineEdit[cssClass="aiInput"], QTextEdit[cssClass="aiInput"] {
-    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_WHITE;
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
     padding: @SPACE_LG; border: 1px solid @COLOR_BORDER;
     border-radius: @RADIUS_MD; font-size: @FONT_MD;
 }
@@ -93,7 +93,7 @@ QLabel[cssClass="dateLabelMuted"] {
 /* Chat Text Styles */
 QLabel[cssClass="chatContent"][cssState="user"]   { color: @COLOR_TEXT_WHITE; font-size: @FONT_MD; }
 QLabel[cssClass="chatContent"][cssState="ai"]     { color: @COLOR_TEXT_BODY; font-size: @FONT_MD; }
-QLabel[cssClass="chatContent"][cssState="system"] { color: #e2e8f0; font-size: @FONT_BASE; font-style: italic; }
+QLabel[cssClass="chatContent"][cssState="system"] { color: @COLOR_TEXT_BODY; font-size: @FONT_BASE; font-style: italic; }
 
 QLabel[cssClass="chatTime"][cssState="user"]   { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; }
 QLabel[cssClass="chatTime"][cssState="ai"]     { color: @COLOR_TEXT_MUTED; font-size: @FONT_XS; }

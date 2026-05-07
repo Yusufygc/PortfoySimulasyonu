@@ -189,6 +189,12 @@ class AnalysisComparisonSection(QWidget):
             result[point_date] = portfolio_norm - benchmark_norm
         return result
 
+    def changeEvent(self, event):
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.StyleChange:
+            self.btn_save.setIcon(IconManager.get_icon("save", color="@COLOR_TEXT_PRIMARY"))
+        super().changeEvent(event)
+
     def _save_chart(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             self,

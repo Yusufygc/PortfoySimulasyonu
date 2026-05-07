@@ -12,7 +12,7 @@ from PyQt5.QtCore import QSettings, QTimer, QSize
 from .base_page import BasePage
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelPortfolio
-from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.model_portfolio import PortfolioInputDialog, PortfolioListPanel, PositionsTable, TradeInputDialog
 from src.ui.widgets.shared import AnimatedButton, InfoCard, Toast
 
@@ -40,8 +40,7 @@ class ModelPortfolioPage(BasePage):
         header = QHBoxLayout()
         header.setSpacing(10)
 
-        icon_label = QLabel()
-        icon_label.setPixmap(IconManager.get_icon("layers", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        icon_label = IconLabel("layers", color="@COLOR_ACCENT", size=28)
         header.addWidget(icon_label)
 
         title_label = QLabel("Model Portfoyler")

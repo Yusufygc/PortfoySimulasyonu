@@ -5,32 +5,32 @@
 
 /* --- TABLOLAR (QTableWidget, QTableView) --- */
 QTableWidget, QTableView {
-    background-color: #1e293b;
-    alternate-background-color: #0f172a;
-    color: #e2e8f0;
-    border: 1px solid #334155;
-    border-radius: 6px;
-    gridline-color: #334155;
-    selection-background-color: #3b82f6;
+    background-color: @COLOR_BG_SURFACE;
+    alternate-background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_BODY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
+    gridline-color: @COLOR_BORDER;
+    selection-background-color: @COLOR_PRIMARY;
     selection-color: white;
 }
 QHeaderView::section {
-    background-color: #0f172a;
-    color: #94a3b8;
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_SECONDARY;
     border: none;
-    border-right: 1px solid #334155;
-    border-bottom: 1px solid #334155;
+    border-right: 1px solid @COLOR_BORDER;
+    border-bottom: 1px solid @COLOR_BORDER;
     padding: 8px;
     font-weight: bold;
-    font-size: 12px;
+    font-size: @FONT_SM;
 }
 QTableWidget::item, QTableView::item {
     padding: 6px;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid @COLOR_BORDER_SUBTLE;
 }
 
 /* -------------------------------------------------------
-   Tablo OkunabilirliÄŸi â€” Kolon baÅŸlÄ±klarÄ± ve hÃ¼cre iÃ§erikleri
+   Okunabilirlik iyileştirmeleri
 ------------------------------------------------------- */
 QTableWidget {
     font-size: @FONT_TABLE_CELL;
@@ -41,7 +41,7 @@ QHeaderView::section {
     font-weight: bold;
     padding: 10px 8px;
     background-color: @COLOR_BG_SURFACE;
-    color: @COLOR_TEXT_WHITE;
+    color: @COLOR_TEXT_PRIMARY;
     border: none;
     border-bottom: 2px solid @COLOR_BORDER;
 }

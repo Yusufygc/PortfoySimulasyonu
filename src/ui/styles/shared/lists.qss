@@ -23,7 +23,7 @@ QListWidget::item, QListView::item {
 }
 
 QListWidget::item:hover, QListView::item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(0, 0, 0, 0.05);
     color: @COLOR_TEXT_PRIMARY;
 }
 
@@ -40,5 +40,5 @@ QListWidget::item:selected:!active, QListView::item:selected:!active {
 
 /* Alternatif SatÄ±r Rengi */
 QListWidget {
-    alternate-background-color: rgba(255, 255, 255, 0.02);
+    alternate-background-color: rgba(0, 0, 0, 0.02);
 }

@@ -5,15 +5,15 @@
 
 /* --- GRUP KUTULARI (Group Box) --- */
 QGroupBox {
-    background-color: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 6px;
+    background-color: @COLOR_BG_SURFACE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
     margin-top: 15px;
 }
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
     padding: 0 4px;
-    color: #cbd5e1;
+    color: @COLOR_TEXT_BODY;
     font-weight: bold;
 }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PyQt5.QtCore import Qt, QSize, pyqtSignal
+from PyQt5.QtCore import Qt, QEvent, QSize, pyqtSignal
 from PyQt5.QtWidgets import QAction, QHBoxLayout, QLabel, QMenu, QToolButton, QWidget
 
 from src.ui.core.icon_manager import IconManager
@@ -27,13 +27,13 @@ class ActionListItem(QWidget):
         self.label = QLabel(text)
         self.label.setTextInteractionFlags(Qt.NoTextInteraction)
         self.label.setAutoFillBackground(False)
+        # Let QSS cascade handle the color (base/labels.qss: QLabel { color: @COLOR_TEXT_BODY })
         self.label.setStyleSheet(
-            "QLabel { background: transparent; border: none; color: #f8fafc; font-size: 15px; }"
+            "QLabel { background: transparent; border: none; font-size: 15px; }"
         )
         layout.addWidget(self.label, 1)
 
         self.menu_button = QToolButton()
-        self.menu_button.setIcon(IconManager.get_icon("ellipsis", color="@COLOR_TEXT_PRIMARY", size=QSize(20, 20)))
         self.menu_button.setIconSize(QSize(20, 20))
         self.menu_button.setFixedSize(28, 28)
         self.menu_button.setCursor(Qt.PointingHandCursor)
@@ -53,17 +53,33 @@ class ActionListItem(QWidget):
             QToolButton::menu-indicator { image: none; width: 0; }
             """
         )
+        self._refresh_menu_icon()
+
+        self._action_edit = QAction("Düzenle", self)
+        self._action_delete = QAction("Sil", self)
+        self._action_edit.triggered.connect(lambda checked=False: self.edit_requested.emit())
+        self._action_delete.triggered.connect(lambda checked=False: self.delete_requested.emit())
+        self._refresh_action_icons()
 
         menu = QMenu(self.menu_button)
-        action_edit = QAction(IconManager.get_icon("pencil", color="@COLOR_TEXT_PRIMARY"), "Düzenle", self)
-        action_delete = QAction(IconManager.get_icon("trash-2", color="@COLOR_DANGER"), "Sil", self)
-        action_edit.triggered.connect(lambda checked=False: self.edit_requested.emit())
-        action_delete.triggered.connect(lambda checked=False: self.delete_requested.emit())
-        menu.addAction(action_edit)
-        menu.addAction(action_delete)
+        menu.addAction(self._action_edit)
+        menu.addAction(self._action_delete)
         self.menu_button.setMenu(menu)
 
         layout.addWidget(self.menu_button, 0, Qt.AlignVCenter)
+
+    def _refresh_menu_icon(self):
+        self.menu_button.setIcon(IconManager.get_icon("ellipsis", color="@COLOR_TEXT_PRIMARY", size=QSize(20, 20)))
+
+    def _refresh_action_icons(self):
+        self._action_edit.setIcon(IconManager.get_icon("pencil", color="@COLOR_TEXT_PRIMARY"))
+        self._action_delete.setIcon(IconManager.get_icon("trash-2", color="@COLOR_DANGER"))
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.StyleChange and hasattr(self, "menu_button"):
+            self._refresh_menu_icon()
+            self._refresh_action_icons()
+        super().changeEvent(event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:

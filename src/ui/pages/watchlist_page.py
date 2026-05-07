@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QSize
 from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
@@ -49,8 +50,7 @@ class WatchlistPage(BasePage):
         header_layout = QHBoxLayout()
         header_layout.setSpacing(10)
         
-        icon_lbl = QLabel()
-        icon_lbl.setPixmap(IconManager.get_icon("clipboard-list", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28))
+        icon_lbl = IconLabel("clipboard-list", color="@COLOR_ACCENT", size=28)
         header_layout.addWidget(icon_lbl)
         
         lbl_title = QLabel("Takip Listeleri")
@@ -73,12 +73,11 @@ class WatchlistPage(BasePage):
 
         lbl_row = QHBoxLayout()
         lbl_row.setSpacing(8)
-        img = QLabel()
-        img.setPixmap(IconManager.get_icon("bookmark", color="@COLOR_TEXT_BRIGHT", size=QSize(18, 18)).pixmap(18, 18))
+        img = IconLabel("bookmark", color="@COLOR_TEXT_BRIGHT", size=18)
         lbl_row.addWidget(img)
         
         lbl_lists = QLabel("Listelerim")
-        lbl_lists.setStyleSheet("font-size: 16px; color: #FFFFFF; font-weight: bold; border: none;") # Brighter and larger as requested
+        lbl_lists.setProperty("cssClass", "tableTitle")
         lbl_row.addWidget(lbl_lists)
         lbl_row.addStretch()
         left_layout.addLayout(lbl_row)

@@ -1,5 +1,8 @@
 *.sql
 *.xlsx
+.vscode
+.claude
+
 
 /Eklenebilirler.txt
 /Ai_sayfasi.md

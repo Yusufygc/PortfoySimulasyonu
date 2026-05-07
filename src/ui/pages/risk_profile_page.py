@@ -437,6 +437,12 @@ class RiskProfilePage(BasePage):
         except Exception:
             self.profile_card.setVisible(False)
 
+    def changeEvent(self, event):
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.StyleChange:
+            self.btn_previous.setIcon(IconManager.get_icon("arrow-left", color="@COLOR_TEXT_PRIMARY"))
+        super().changeEvent(event)
+
     def refresh_data(self):
         self.on_page_enter()
 
