@@ -1,6 +1,6 @@
 # src/infrastructure/db/sqlalchemy/orm_models.py
 
-from sqlalchemy import Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
+from sqlalchemy import Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
@@ -157,6 +157,36 @@ class ORMFinancialGoal(Base):
     status = Column(String(50), default="ACTIVE")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+class ActionTypeEnum(str, enum.Enum):
+    BEDELLI = "BEDELLI"
+    BEDELSIZ = "BEDELSIZ"
+
+class ORMCorporateAction(Base):
+    """
+    Bedelli / bedelsiz sermaye artırımı olaylarını saklar.
+    applied=1 → portföye uygulandı, tekrar işlem yapılamaz.
+    """
+    __tablename__ = "corporate_actions"
+
+    id                 = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    stock_id           = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
+    action_type        = Column(Enum(ActionTypeEnum), nullable=False)
+    ex_date            = Column(Date, nullable=False)
+    ratio              = Column(Numeric(10, 6), nullable=False)
+    subscription_price = Column(Numeric(18, 4), nullable=True)
+    announcement_date  = Column(Date, nullable=True)
+    notes              = Column(String(500), nullable=True)
+    applied            = Column(Boolean, nullable=False, default=False, server_default="0")
+    applied_at         = Column(DateTime, nullable=True)
+    created_at         = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_corporate_actions_stock_exdate", "stock_id", "ex_date"),
+        Index("idx_corporate_actions_exdate", "ex_date"),
+    )
+
+    stock = relationship("ORMStock")
 
 class ORMRiskProfile(Base):
     __tablename__ = "risk_profiles"

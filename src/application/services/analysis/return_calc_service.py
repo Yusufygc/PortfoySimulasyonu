@@ -56,9 +56,11 @@ class ReturnCalcService:
           3) value_date için fiyat map'ini repo'dan al
           4) Portfolio metodları ile toplam değer ve P&L hesaplarını yap
         """
-        # 1) Tüm trade'ler
+        # 1) Sadece value_date'e kadar olan trade'ler (bedelsiz synthetic BUY'lar
+        #    geçmiş tarih hesaplarına dahil edilmez; fiyat tutarlılığı korunur)
         trades = self._portfolio_repo.get_all_trades()
-        portfolio = Portfolio.from_trades(trades)
+        trades_as_of = [t for t in trades if t.trade_date <= value_date]
+        portfolio = Portfolio.from_trades(trades_as_of)
 
         # 2) Fiyatlar
         price_map = self._price_repo.get_prices_for_date(value_date)

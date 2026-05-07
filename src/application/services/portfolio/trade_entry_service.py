@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, time
 from decimal import Decimal
 from typing import Optional
 
@@ -67,7 +67,7 @@ class TradeEntryService:
             trade_factory(
                 stock_id=stock.id,
                 trade_date=trade_date,
-                trade_time=trade_time or datetime.now().time(),
+                trade_time=trade_time,
                 quantity=quantity,
                 price=price,
             )

@@ -1,7 +1,7 @@
 # src/ui/pages/dashboard/dashboard_portfolio_table.py
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableView, QHeaderView, QTableWidget, QTableWidgetItem
-from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableView, QHeaderView, QTableWidget, QTableWidgetItem, QMenu, QAction
+from PyQt5.QtCore import Qt, QModelIndex, QPoint, pyqtSignal
 from PyQt5.QtGui import QColor
 from decimal import Decimal
 
@@ -9,9 +9,10 @@ from src.ui.widgets.dashboard import PortfolioRowDelegate
 
 class DashboardPortfolioTable(QWidget):
     """Portföy tablosu ve altındaki toplam özet satırını yöneten bileşen."""
-    
-    # row_double_clicked(index)
+
     row_double_clicked = pyqtSignal(QModelIndex)
+    # row, action_type ("BEDELLI" | "BEDELSIZ")
+    corporate_action_requested = pyqtSignal(int, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -33,7 +34,11 @@ class DashboardPortfolioTable(QWidget):
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_view.setShowGrid(False)
         self.table_view.doubleClicked.connect(self.row_double_clicked.emit)
-        
+
+        # Sağ-tık context menü
+        self.table_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table_view.customContextMenuRequested.connect(self._on_context_menu_requested)
+
         self.row_delegate = PortfolioRowDelegate(self.table_view)
         self.table_view.setItemDelegate(self.row_delegate)
 
@@ -51,6 +56,25 @@ class DashboardPortfolioTable(QWidget):
         self.table_summary.setShowGrid(False)
         self.table_summary.setProperty("cssClass", "tableSummary")
         layout.addWidget(self.table_summary)
+
+    def _on_context_menu_requested(self, pos: QPoint):
+        index = self.table_view.indexAt(pos)
+        if not index.isValid():
+            return
+
+        row = index.row()
+        menu = QMenu(self.table_view)
+        menu.setProperty("cssClass", "contextMenu")
+
+        act_bedelsiz = QAction("📈  Bedelsiz Sermaye Artırımı", self)
+        act_bedelli  = QAction("💰  Bedelli Sermaye Artırımı (Rüçhan Hakkı)", self)
+
+        act_bedelsiz.triggered.connect(lambda: self.corporate_action_requested.emit(row, "BEDELSIZ"))
+        act_bedelli.triggered.connect(lambda: self.corporate_action_requested.emit(row, "BEDELLI"))
+
+        menu.addAction(act_bedelsiz)
+        menu.addAction(act_bedelli)
+        menu.exec_(self.table_view.viewport().mapToGlobal(pos))
 
     def set_model(self, model):
         self.model = model

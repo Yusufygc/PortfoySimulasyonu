@@ -16,7 +16,9 @@ from .dashboard_summary_cards import DashboardSummaryCards
 
 logger = logging.getLogger(__name__)
 
-LAST_UPDATE_SETTINGS_KEY = "dashboard/last_price_update_at"
+LAST_UPDATE_SETTINGS_KEY    = "dashboard/last_price_update_at"
+WEEKLY_RETURN_SETTINGS_KEY  = "dashboard/weekly_return_pct"
+MONTHLY_RETURN_SETTINGS_KEY = "dashboard/monthly_return_pct"
 LAST_UPDATE_TOAST_DURATION_MS = 4000
 
 
@@ -39,6 +41,8 @@ class DashboardPage(BasePage):
         self.market_client = container.market_client
         self.excel_export_service = container.excel_export_service
         self.trade_entry_service = container.trade_entry_service
+        self.corporate_action_service = container.corporate_action_service
+        self.backfill_service = container.backfill_service
         self.price_lookup_func = price_lookup_func
 
         self.new_trade_dialog_cls = NewStockTradeDialog
@@ -142,11 +146,19 @@ class DashboardPage(BasePage):
 
         self.portfolio_table_widget = DashboardPortfolioTable()
         self.portfolio_table_widget.row_double_clicked.connect(self._on_table_double_clicked)
+        self.portfolio_table_widget.corporate_action_requested.connect(self._actions.on_corporate_action)
         self.main_layout.addWidget(self.portfolio_table_widget)
 
     def on_page_enter(self):
         self._presenter.load_capital()
         self.refresh_data()
+
+        # Kayıtlı son değeri anında göster; sonra DB'den taze hesapla
+        weekly_saved, monthly_saved = self._load_saved_returns()
+        if weekly_saved is not None or monthly_saved is not None:
+            self.summary_cards.update_returns(weekly_saved, monthly_saved)
+        self._presenter.update_returns()
+
         self._sync_last_update_label()
         QTimer.singleShot(0, self.show_last_update_toast_once)
 
@@ -200,6 +212,19 @@ class DashboardPage(BasePage):
             return datetime.fromisoformat(value)
         except ValueError:
             return None
+
+    def _save_returns(self, weekly_pct, monthly_pct) -> None:
+        if weekly_pct is not None:
+            self._settings.setValue(WEEKLY_RETURN_SETTINGS_KEY, weekly_pct)
+        if monthly_pct is not None:
+            self._settings.setValue(MONTHLY_RETURN_SETTINGS_KEY, monthly_pct)
+        self._settings.sync()
+
+    def _load_saved_returns(self):
+        w = self._settings.value(WEEKLY_RETURN_SETTINGS_KEY,  None)
+        m = self._settings.value(MONTHLY_RETURN_SETTINGS_KEY, None)
+        return (float(w) if w is not None else None,
+                float(m) if m is not None else None)
 
     @staticmethod
     def _format_last_update_message(updated_at) -> str:

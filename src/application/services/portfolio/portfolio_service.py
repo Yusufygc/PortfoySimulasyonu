@@ -36,14 +36,10 @@ class PortfolioService:
         return portfolio, price_map
 
     def add_trade(self, trade: Trade) -> Trade:
-        trades: List[Trade] = self._portfolio_repo.get_all_trades()
-        portfolio = Portfolio.from_trades(trades)
-        portfolio.apply_trade(trade)
         return self._portfolio_repo.insert_trade(trade)
 
     def get_trades_for_stock(self, stock_id: int) -> List[Trade]:
-        all_trades = self._portfolio_repo.get_all_trades()
-        return [trade for trade in all_trades if trade.stock_id == stock_id]
+        return self._portfolio_repo.get_trades_by_stock(stock_id)
 
     def calculate_capital(self) -> Decimal:
         trades = self._portfolio_repo.get_all_trades()

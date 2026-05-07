@@ -31,6 +31,8 @@ from src.application.services.simulation.backfill_service import BackfillService
 from src.application.services.simulation.history_simulation_service import HistorySimulationService
 from src.application.services.reporting.excel_formatter import ExcelFormatter
 from src.application.services.reporting.excel_report_builder import ExcelReportBuilder
+from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
+from src.infrastructure.db.sqlalchemy.repositories.sa_corporate_action_repository import SQLAlchemyCorporateActionRepository
 
 class AppContainer:
     """
@@ -55,6 +57,7 @@ class AppContainer:
         self.model_portfolio_repo = SQLAlchemyModelPortfolioRepository(self.conn_provider)
         self.planning_repo = SQLAlchemyPlanningRepository(self.conn_provider)
         self.risk_profile_repo = SQLAlchemyRiskProfileRepository(self.conn_provider)
+        self.corporate_action_repo = SQLAlchemyCorporateActionRepository(self.conn_provider)
 
         # 3) Market data client
         self.market_client = YFinanceMarketDataClient()
@@ -99,7 +102,6 @@ class AppContainer:
             portfolio_repo=self.portfolio_repo,
             price_repo=self.price_repo,
             stock_repo=self.stock_repo,
-            market_data_client=self.market_client,
         )
         self.excel_formatter = ExcelFormatter()
         self.excel_report_builder = ExcelReportBuilder(formatter=self.excel_formatter)
@@ -123,6 +125,10 @@ class AppContainer:
         )
         self.risk_profile_service = RiskProfileService(
             risk_profile_repo=self.risk_profile_repo,
+        )
+        self.corporate_action_service = CorporateActionService(
+            action_repo=self.corporate_action_repo,
+            portfolio_repo=self.portfolio_repo,
         )
         self.backfill_service = BackfillService(
             stock_repo=self.stock_repo,

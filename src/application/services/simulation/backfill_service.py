@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 from typing import List
 
 import yfinance as yf
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from src.domain.models.daily_price import DailyPrice
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
@@ -57,7 +60,7 @@ class BackfillService:
                 start=start_date,
                 end=yf_end_date,
                 group_by="ticker",
-                auto_adjust=False,
+                auto_adjust=True,
                 progress=False,
             )
         except Exception as e:
@@ -90,6 +93,55 @@ class BackfillService:
             raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
 
         return self._price_repo.delete_prices_in_range(start_date, end_date)
+
+    def backfill_for_single_stock(
+        self,
+        stock_id: int,
+        ticker: str,
+        start_date: date,
+        end_date: date,
+    ) -> int:
+        """
+        Tek bir hisse için YFinance'den fiyat çekip daily_prices'ı günceller.
+        Sermaye artırımı sonrası retroaktif fiyat düzeltmesi için kullanılır.
+        YFinance ex-date sonrası adjusted fiyatları verir; eski kayıtlar upsert ile üzerine yazılır.
+        """
+        if start_date > end_date:
+            raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
+
+        yf_end_date = end_date + timedelta(days=1)
+        try:
+            df = yf.download(
+                ticker,
+                start=start_date,
+                end=yf_end_date,
+                auto_adjust=True,
+                progress=False,
+            )
+        except Exception as e:
+            raise RuntimeError(f"Yahoo Finance indirme hatası ({ticker}): {e}")
+
+        if df.empty:
+            return 0
+
+        prices = []
+        for timestamp, row in df.iterrows():
+            close_val = row.get("Close")
+            if isinstance(close_val, pd.Series):
+                close_val = close_val.iloc[0]
+            if close_val is None or pd.isna(close_val):
+                continue
+            prices.append(DailyPrice(
+                id=None,
+                stock_id=stock_id,
+                price_date=timestamp.date(),
+                close_price=float(close_val),
+            ))
+
+        if prices:
+            self._price_repo.upsert_daily_prices_bulk(prices)
+
+        return len(prices)
 
     @staticmethod
     def _parse_yfinance_data(
@@ -134,7 +186,8 @@ class BackfillService:
                     )
                     prices.append(daily_price)
 
-            except Exception:
+            except Exception as exc:
+                logger.warning("Ticker %s parse edilemedi: %s", ticker, exc)
                 continue
 
         return prices

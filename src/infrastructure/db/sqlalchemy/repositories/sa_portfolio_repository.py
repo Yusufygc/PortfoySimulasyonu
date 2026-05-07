@@ -91,14 +91,15 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             raise ValueError("Trade id is required for update")
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMTrade).filter_by(id=trade.id).first()
-            if orm_obj:
-                orm_obj.stock_id = trade.stock_id
-                orm_obj.trade_date = trade.trade_date
-                orm_obj.trade_time = trade.trade_time
-                orm_obj.side = trade.side.value
-                orm_obj.quantity = trade.quantity
-                orm_obj.price = trade.price
-                session.commit()
+            if orm_obj is None:
+                raise ValueError(f"Trade id={trade.id} bulunamadı.")
+            orm_obj.stock_id = trade.stock_id
+            orm_obj.trade_date = trade.trade_date
+            orm_obj.trade_time = trade.trade_time
+            orm_obj.side = trade.side.value
+            orm_obj.quantity = trade.quantity
+            orm_obj.price = trade.price
+            session.commit()
 
     def delete_trade(self, trade_id: int) -> None:
         with self._provider.get_session() as session:
