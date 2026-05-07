@@ -10,6 +10,22 @@ class ExportMode(str, Enum):
     OVERWRITE = "overwrite"
     APPEND = "append"
 
+
+SUMMARY_ROW_LABEL = "GÜNLÜK TOPLAM ➤➤➤"
+
+
+class PortfolioStatus:
+    OPEN    = "Piyasa Açık"
+    WEEKEND = "Hafta Sonu"
+    NO_DATA = "Veri Yok"
+
+
+class SheetName:
+    DASHBOARD     = "Özet Panel"
+    SUMMARY       = "Portföy Özeti"
+    DAILY_DETAIL  = "Günlük Detaylar"
+    STOCK_SUMMARY = "Hisse Özeti"
+
 @dataclass
 class DailyPosition:
     date: date

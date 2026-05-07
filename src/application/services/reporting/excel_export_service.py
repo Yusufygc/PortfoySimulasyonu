@@ -34,13 +34,14 @@ class ExcelExportService:
     ) -> None:
         file_path = Path(file_path)
         
-        # 1. Simulate the history
         daily_positions, daily_snapshots = self.simulation_service.simulate_history(
-            start_date=start_date, 
-            end_date=end_date
+            start_date=start_date,
+            end_date=end_date,
         )
-        
-        # 2. Build pandas dataframes and write to excel with formatting
+
+        if not daily_positions and not daily_snapshots:
+            raise ValueError("Belirtilen tarih aralığında gösterilecek veri bulunamadı.")
+
         self.report_builder.build_and_save(
             file_path=file_path, 
             daily_positions=daily_positions,

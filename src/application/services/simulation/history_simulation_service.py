@@ -4,12 +4,10 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Tuple, List
 
-from src.domain.models.daily_price import DailyPrice
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
-from src.domain.ports.services.i_market_data_client import IMarketDataClient
-from src.application.services.reporting.daily_history_models import DailyPosition, DailyPortfolioSnapshot
+from src.application.services.reporting.daily_history_models import DailyPosition, DailyPortfolioSnapshot, PortfolioStatus
 from src.domain.models.portfolio import Portfolio
 
 class HistorySimulationService:
@@ -18,18 +16,16 @@ class HistorySimulationService:
         portfolio_repo: IPortfolioRepository,
         price_repo: IPriceRepository,
         stock_repo: IStockRepository,
-        market_data_client: IMarketDataClient,
     ) -> None:
-        self.portfolio_repo = portfolio_repo
-        self.price_repo = price_repo
-        self.stock_repo = stock_repo
-        self.market_data_client = market_data_client
+        self._portfolio_repo = portfolio_repo
+        self._price_repo = price_repo
+        self._stock_repo = stock_repo
 
     def simulate_history(self, start_date: date, end_date: date) -> Tuple[List[DailyPosition], List[DailyPortfolioSnapshot]]:
         if end_date < start_date:
             start_date, end_date = end_date, start_date
 
-        all_trades = self.portfolio_repo.get_all_trades()
+        all_trades = self._portfolio_repo.get_all_trades()
         relevant_trades = [t for t in all_trades if t.trade_date <= end_date]
 
         if not relevant_trades:
@@ -38,8 +34,16 @@ class HistorySimulationService:
         from datetime import time as dt_time
         relevant_trades.sort(key=lambda t: (t.trade_date, getattr(t, "trade_time", None) or dt_time.min))
 
-        stocks = self.stock_repo.get_all_stocks()
+        stocks = self._stock_repo.get_all_stocks()
         ticker_map = {s.id: s.ticker for s in stocks}
+        all_stock_ids = [s.id for s in stocks]
+
+        # Tüm tarih aralığı için tek sorguda fiyatları yükle
+        price_series = self._price_repo.get_portfolio_value_series(
+            stock_ids=all_stock_ids,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
         trade_idx = 0
         n_trades = len(relevant_trades)
@@ -58,29 +62,8 @@ class HistorySimulationService:
                 portfolio.apply_trade(relevant_trades[trade_idx])
                 trade_idx += 1
 
-            active_stock_ids = [sid for sid, p in portfolio.positions.items() if p.total_quantity > 0]
-            prices_for_day = self.price_repo.get_prices_for_date(cur)
-            
+            prices_for_day = price_series.get(cur, {})
             is_weekend = cur.weekday() >= 5
-            if not is_weekend and active_stock_ids:
-                missing_ids = [sid for sid in active_stock_ids if sid not in prices_for_day]
-                if missing_ids:
-                    missing_tickers = [ticker_map.get(sid) for sid in missing_ids if sid in ticker_map]
-                    if missing_tickers:
-                        try:
-                            fetched_prices = self.market_data_client.get_closing_prices(
-                                stock_ids=missing_ids, tickers=missing_tickers, price_date=cur
-                            )
-                            new_daily_prices = []
-                            for sid, p in fetched_prices.items():
-                                prices_for_day[sid] = p
-                                new_daily_prices.append(DailyPrice(
-                                    id=None, stock_id=sid, price_date=cur, close_price=p
-                                ))
-                            if new_daily_prices:
-                                self.price_repo.upsert_daily_prices_bulk(new_daily_prices)
-                        except Exception:
-                            pass
 
             has_prices = bool(prices_for_day)
             day_positions_list = []
@@ -162,7 +145,7 @@ class HistorySimulationService:
                             cum_pnl = portfolio_value - base_portfolio_value
                             cum_ret = (cum_pnl / base_portfolio_value)
 
-            status = "Piyasa Açık" if has_prices else ("Hafta Sonu" if is_weekend else "Veri Yok")
+            status = PortfolioStatus.OPEN if has_prices else (PortfolioStatus.WEEKEND if is_weekend else PortfolioStatus.NO_DATA)
             
             if day_positions_list:
                 daily_positions.extend(day_positions_list)

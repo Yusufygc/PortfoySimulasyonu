@@ -47,10 +47,7 @@ class ExcelFormatter:
                 if "Tarih" in col_name and cell.value is not None:
                     cell.number_format = 'dd.mm.yyyy'
                 elif "(TL)" in col_name and cell.value is not None:
-                    if "Ort. Maliyet" in col_name or "Güncel Fiyat" in col_name or "Son Fiyat" in col_name:
-                        cell.number_format = '#,##0.00'
-                    else:
-                        cell.number_format = '#,##0.00'
+                    cell.number_format = '#,##0.00'
                 elif "(%)" in col_name and cell.value is not None:
                     cell.number_format = '0.00%'
                 elif col_name in ["Adet", "Son Adet", "Lot", "Toplam Gün Sayısı", "Aktif Pozisyon Sayısı"] and cell.value is not None:
@@ -66,7 +63,7 @@ class ExcelFormatter:
             if "K/Z" in col_name or "Getiri" in col_name:
                 for row_num in range(2, len(df) + 2):
                     cell = worksheet.cell(row=row_num, column=col_num)
-                    if cell.value and isinstance(cell.value, (int, float)):
+                    if cell.value is not None and isinstance(cell.value, (int, float)):
                         if cell.value > 0:
                             cell.fill = green_fill
                             cell.font = green_font
