@@ -85,5 +85,7 @@ class DashboardPresenter:
 
         weekly_pct = float(weekly_rate) * 100 if weekly_rate is not None else None
         monthly_pct = float(monthly_rate) * 100 if monthly_rate is not None else None
+
+        self._page._save_returns(weekly_pct, monthly_pct)
         self._page.summary_cards.update_returns(weekly_pct, monthly_pct)
 
