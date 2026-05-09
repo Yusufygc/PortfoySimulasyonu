@@ -71,6 +71,28 @@ class YFinanceMarketDataClient(IMarketDataClient):
     def _request_json(self, url: str):
         return json.loads(self._request_text(url))
 
+    def _request_json_post(self, url: str, payload: Dict[str, object]):
+        request = Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                ),
+                "Accept": "application/json, text/plain, */*",
+                "Content-Type": "application/json;charset=UTF-8",
+                "Origin": "https://evds3.tcmb.gov.tr",
+                "Referer": "https://evds3.tcmb.gov.tr/",
+            },
+            method="POST",
+        )
+        with urlopen(request, timeout=self._timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+
+    def _request_json_post_path(self, path: str, payload: Dict[str, object]):
+        return self._request_json_post(f"https://evds3.tcmb.gov.tr/igmevdsms-dis{path}", payload)
+
     def _request_to_investing(self, endpoint: str, params: Dict[str, object]):
         query = urlencode(params)
         url = f"https://tvc6.investing.com/{uuid4().hex}/0/0/0/0/{endpoint}?{query}"

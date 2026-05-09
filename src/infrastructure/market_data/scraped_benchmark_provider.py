@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date
 from decimal import Decimal
@@ -49,6 +50,8 @@ class ScrapedBenchmarkProvider:
             gold_series = self._fetch_macrotrends_gold_series(start_date, end_date)
             usd_try_series = self._fetch_exchange_rates_usdtry_series(start_date, end_date)
             return self._combine_series(gold_series, usd_try_series)
+        if normalized_ticker == "TCMB_TRY_DEPOSIT_3M":
+            return self._fetch_tcmb_try_deposit_3m_rates(start_date, end_date)
         return None
 
     def _filter_series_for_range(
@@ -186,3 +189,31 @@ class ScrapedBenchmarkProvider:
             for point_date in shared_dates
         }
 
+    def _fetch_tcmb_try_deposit_3m_rates(
+        self,
+        start_date: date,
+        end_date: date,
+    ) -> Dict[date, Decimal]:
+        """Mevduat faizi icin sentetik (sabit oranli) seri dondurur.
+
+        TCMB'nin eski REST API'leri artik calismiyor:
+        - evds2.tcmb.gov.tr/service/evds: React SPA'ya tasindi (HTML donuyor)
+        - evds3.tcmb.gov.tr/igmevdsms-dis/fe: HTTP 400 donuyor
+
+        Bu yuzden .env'den TCMB_DEPOSIT_RATE_FALLBACK degerini okuyup sabit oranli
+        bir gunluk bilesik faiz serisi olusturuyoruz. TCMB MPC oranlari aylik
+        degisir; kullanici .env uzerinden manuel guncelleyebilir.
+
+        Returns: {start_date: rate_percent} — _build_deposit_series tum gunler icin
+        bu orani uygular (carry-forward).
+        """
+        rate_str = os.environ.get("TCMB_DEPOSIT_RATE_FALLBACK", "45.0").strip()
+        try:
+            rate = Decimal(rate_str)
+        except (ValueError, ArithmeticError):
+            logger.warning(
+                "Gecersiz TCMB_DEPOSIT_RATE_FALLBACK: %r — varsayilan %%45.0 kullanilacak",
+                rate_str,
+            )
+            rate = Decimal("45.0")
+        return {start_date: rate}

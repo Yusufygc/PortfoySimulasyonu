@@ -104,6 +104,9 @@ def analysis_service():
             date(2026, 1, 2): Decimal("101"),
             date(2026, 1, 3): Decimal("103"),
         },
+        "TCMB_TRY_DEPOSIT_3M": {
+            date(2026, 1, 1): Decimal("36"),
+        },
     }
     return AnalysisService(
         portfolio_repo=FakePortfolioRepo(trades),
@@ -134,8 +137,7 @@ def test_overview_returns_expected_high_level_metrics(analysis_service):
     assert overview.warnings == []
 
 
-def test_comparison_view_builds_deposit_benchmark_series(monkeypatch, analysis_service):
-    monkeypatch.setenv("ANALYSIS_DEPOSIT_ANNUAL_RATE", "0.36")
+def test_comparison_view_builds_deposit_benchmark_series(analysis_service):
     filter_state = AnalysisFilterState(
         start_date=date(2026, 1, 1),
         end_date=date(2026, 1, 3),
@@ -151,6 +153,7 @@ def test_comparison_view_builds_deposit_benchmark_series(monkeypatch, analysis_s
     values = list(deposit_series.points.values())
     assert deposit_series.code == "deposit"
     assert len(values) == 3
+    assert values[0] == Decimal("100")
     assert values[1] > values[0]
     assert values[2] > values[1]
 
@@ -254,8 +257,78 @@ def test_gold_benchmark_can_be_composed_from_gold_and_usd_series():
 
     assert len(comparison.benchmark_series) == 1
     gold_series = comparison.benchmark_series[0].points
-    assert list(gold_series.values()) == [Decimal("3000"), Decimal("3162"), Decimal("3328")]
+    expected = [
+        Decimal("3000") / Decimal("31.1034768"),
+        Decimal("3162") / Decimal("31.1034768"),
+        Decimal("3328") / Decimal("31.1034768"),
+    ]
+    assert [float(value) for value in gold_series.values()] == pytest.approx([float(value) for value in expected])
     assert market_client.requested_tickers[:3] == ["XAUTRY=X", "XAUUSD=X", "TRY=X"]
+
+
+def test_gold_benchmark_converts_direct_xautry_ounce_value_to_gram():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("100")),
+    ]
+    market_client = FakeMarketDataClient(
+        {
+            "XAUTRY=X": {
+                date(2026, 1, 1): Decimal("31000"),
+                date(2026, 1, 2): Decimal("31100"),
+            },
+        }
+    )
+    service = AnalysisService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo({1: {
+            date(2026, 1, 1): Decimal("100"),
+            date(2026, 1, 2): Decimal("105"),
+        }}),
+        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
+        market_data_client=market_client,
+    )
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 2),
+        selected_benchmarks=["gold"],
+        portfolio_source="dashboard",
+    )
+
+    comparison = service.get_comparison_view(filter_state, ["gold"])
+
+    values = list(comparison.benchmark_series[0].points.values())
+    assert [float(value) for value in values] == pytest.approx([
+        float(Decimal("31000") / Decimal("31.1034768")),
+        float(Decimal("31100") / Decimal("31.1034768")),
+    ])
+    assert market_client.requested_tickers == ["XAUTRY=X"]
+
+
+def test_deposit_benchmark_warns_when_real_rate_data_missing():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("100")),
+    ]
+    service = AnalysisService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo({1: {
+            date(2026, 1, 1): Decimal("100"),
+            date(2026, 1, 2): Decimal("105"),
+            date(2026, 1, 3): Decimal("110"),
+        }}),
+        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
+        market_data_client=FakeMarketDataClient({}),
+    )
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_benchmarks=["deposit"],
+        portfolio_source="dashboard",
+    )
+
+    comparison = service.get_comparison_view(filter_state, ["deposit"])
+
+    assert comparison.benchmark_series == []
+    assert any("Mevduat Faizi" in warning for warning in comparison.warnings)
 
 
 def test_invalid_date_range_raises_value_error(analysis_service):

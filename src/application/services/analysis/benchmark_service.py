@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional, Sequence
@@ -15,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 class AnalysisBenchmarkService:
     DEFAULT_BENCHMARK_CODES = ["bist100", "gold", "usd", "deposit"]
-    DEFAULT_DEPOSIT_RATE = Decimal("0.45")
+    TROY_OUNCE_GRAMS = Decimal("31.1034768")
+    DEPOSIT_RATE_TICKERS: Sequence[str] = ("TCMB_TRY_DEPOSIT_3M",)
     MARKET_BENCHMARK_CANDIDATES: Dict[str, Sequence[str]] = {
         "bist100": ("XU100.IS", "^XU100"),
         "usd": ("TRY=X", "USDTRY=X"),
@@ -27,9 +27,9 @@ class AnalysisBenchmarkService:
         self._market_data_client = market_data_client
         self._benchmarks: Dict[str, BenchmarkDefinition] = {
             "bist100": BenchmarkDefinition("bist100", "BIST 100", "market", "XU100.IS"),
-            "gold": BenchmarkDefinition("gold", "Altin", "market", "GC=F"),
+            "gold": BenchmarkDefinition("gold", "Gram Altın", "market", "XAUTRY=X"),
             "usd": BenchmarkDefinition("usd", "USD/TRY", "market", "TRY=X"),
-            "deposit": BenchmarkDefinition("deposit", "Mevduat Faizi", "synthetic"),
+            "deposit": BenchmarkDefinition("deposit", "Mevduat Faizi", "market", "TCMB_TRY_DEPOSIT_3M"),
         }
 
     def get_benchmark_definitions(self) -> List[BenchmarkDefinition]:
@@ -48,7 +48,7 @@ class AnalysisBenchmarkService:
             if definition is None:
                 continue
             try:
-                if definition.kind == "synthetic":
+                if definition.code == "deposit":
                     points = self._build_deposit_series(start_date, end_date)
                 elif definition.code == "gold":
                     points = self._build_gold_series(start_date, end_date)
@@ -76,7 +76,7 @@ class AnalysisBenchmarkService:
     def _build_gold_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
         direct_series, _ = self._fetch_first_available_market_series(self.GOLD_DIRECT_TICKERS, start_date, end_date)
         if direct_series:
-            return direct_series
+            return self._convert_ounce_try_to_gram_try(direct_series)
 
         gold_usd_series, _ = self._fetch_first_available_market_series(self.GOLD_USD_TICKERS, start_date, end_date)
         if not gold_usd_series:
@@ -88,9 +88,9 @@ class AnalysisBenchmarkService:
         if usd_try_series:
             combined = self._combine_series_by_date(gold_usd_series, usd_try_series)
             if combined:
-                return combined
+                return self._convert_ounce_try_to_gram_try(combined)
 
-        return gold_usd_series
+        return self._convert_ounce_try_to_gram_try(gold_usd_series)
 
     def _get_market_ticker_candidates(self, definition: BenchmarkDefinition | None) -> List[str]:
         if definition is None:
@@ -131,15 +131,32 @@ class AnalysisBenchmarkService:
             for point_date in shared_dates
         }
 
+    def _convert_ounce_try_to_gram_try(self, series: Dict[date, Decimal]) -> Dict[date, Decimal]:
+        return {
+            point_date: value / self.TROY_OUNCE_GRAMS
+            for point_date, value in series.items()
+        }
+
     def _build_deposit_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
-        annual_rate = Decimal(os.getenv("ANALYSIS_DEPOSIT_ANNUAL_RATE", str(self.DEFAULT_DEPOSIT_RATE)))
-        daily_rate = annual_rate / Decimal("365")
+        rate_series, _ = self._fetch_first_available_market_series(self.DEPOSIT_RATE_TICKERS, start_date, end_date)
+        if not rate_series:
+            return {}
+
         value = Decimal("100")
         result: Dict[date, Decimal] = {}
+        rate_items = sorted(rate_series.items())
+        rate_idx = 0
+        current_rate: Decimal | None = None
         current_day = start_date
         while current_day <= end_date:
-            result[current_day] = value
-            value = value * (Decimal("1") + daily_rate)
+            while rate_idx < len(rate_items) and rate_items[rate_idx][0] <= current_day:
+                current_rate = rate_items[rate_idx][1]
+                rate_idx += 1
+            if current_rate is None:
+                result[current_day] = value
+            else:
+                result[current_day] = value
+                daily_rate = (current_rate / Decimal("100")) / Decimal("365")
+                value = value * (Decimal("1") + daily_rate)
             current_day += timedelta(days=1)
         return result
-
