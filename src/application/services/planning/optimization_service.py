@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 from scipy.optimize import minimize
+from sklearn.covariance import LedoitWolf
 
 from src.domain.models.optimization_result import (
     OptimizationMetrics,
@@ -36,6 +37,10 @@ class OptimizationService:
 
     # Türkiye risksiz faiz oranı (temsili)
     DEFAULT_RISK_FREE_RATE = 0.30
+
+    # Tek hisseye maksimum ağırlık limiti — corner solution önlemi
+    # Jagannathan & Ma (2003): kısıtsız Markowitz köşe çözümlerine yönelir
+    MAX_SINGLE_WEIGHT = 0.40
 
     def __init__(
         self,
@@ -136,17 +141,25 @@ class OptimizationService:
         """
         Markowitz MPT optimizasyon motorunu çalıştırır.
         """
-        # 1. Geçmiş fiyat verisi
-        price_df = self._get_historical_prices(tickers, days=365)
-        if price_df.empty or len(price_df) < 30:
-            raise ValueError("Yeterli fiyat geçmişi bulunamadı (en az 30 gün gerekli).")
+        # 1. Geçmiş fiyat verisi — 2 yıllık veri daha güvenilir istatistik sağlar
+        price_df = self._get_historical_prices(tickers, days=504)
+        if price_df.empty or len(price_df) < 60:
+            raise ValueError("Yeterli fiyat geçmişi bulunamadı (en az 60 gün gerekli).")
 
         # 2. Logaritmik getiriler
         log_returns = np.log(price_df / price_df.shift(1)).dropna()
 
         # 3. Yıllıklandırılmış ortalama getiri ve kovaryans matrisi
+        # Ledoit-Wolf shrinkage: az gözlemli durumda örnek kovaryansı ill-conditioned olur
+        # Ledoit & Wolf (2004) — düşük veri / çok hisse senaryosunda daha kararlı tahmin
         mean_returns = log_returns.mean() * self.TRADING_DAYS_PER_YEAR
-        cov_matrix = log_returns.cov() * self.TRADING_DAYS_PER_YEAR
+        lw = LedoitWolf()
+        lw.fit(log_returns.values)
+        cov_matrix = pd.DataFrame(
+            lw.covariance_ * self.TRADING_DAYS_PER_YEAR,
+            index=log_returns.columns,
+            columns=log_returns.columns,
+        )
 
         num_assets = len(tickers)
 
@@ -154,7 +167,10 @@ class OptimizationService:
         initial_weights = np.array([1.0 / num_assets] * num_assets)
 
         constraints = {"type": "eq", "fun": lambda w: np.sum(w) - 1}
-        bounds = tuple((0.0, 1.0) for _ in range(num_assets))
+        # Tek hisseye max ağırlık — köşe çözüm (corner solution) engeli
+        # Az hisse durumunda (2 hisse = min %50) limiti otomatik genişlet
+        max_w = max(self.MAX_SINGLE_WEIGHT, 1.0 / num_assets)
+        bounds = tuple((0.0, max_w) for _ in range(num_assets))
 
         result = minimize(
             self._negative_sharpe_ratio,

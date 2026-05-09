@@ -135,6 +135,15 @@ class OptimizationPage(BasePage):
         self.suggestions_table.setVisible(False)
         self.scroll_layout.addWidget(self.suggestions_table)
 
+        self.lbl_disclaimer = QLabel(
+            "Optimizasyon son 2 yıllık geçmiş veriye dayalıdır; geleceği garanti etmez. "
+            "Tek hisse maksimum ağırlığı %40 ile sınırlandırılmıştır."
+        )
+        self.lbl_disclaimer.setProperty("cssClass", "disclaimerText")
+        self.lbl_disclaimer.setAlignment(Qt.AlignLeft)
+        self.lbl_disclaimer.setVisible(False)
+        self.scroll_layout.addWidget(self.lbl_disclaimer)
+
         # Boş durum
         self.lbl_empty = QLabel("Bir portföy kaynağı seçin ve 'Optimize Et' butonuna tıklayın.")
         self.lbl_empty.setProperty("cssClass", "emptyStateText")
@@ -261,6 +270,7 @@ class OptimizationPage(BasePage):
         self.lbl_suggestions.setVisible(True)
         self.lbl_sug_icon.setVisible(True)
         self.suggestions_table.setVisible(True)
+        self.lbl_disclaimer.setVisible(True)
 
         curr = result.current_metrics
         opt  = result.optimized_metrics
