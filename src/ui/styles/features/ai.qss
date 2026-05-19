@@ -49,6 +49,21 @@ QProgressBar[cssClass="aiProgressBlue"] {
 }
 QProgressBar[cssClass="aiProgressBlue"]::chunk { background-color: @COLOR_ACCENT_LIGHT; border-radius: @RADIUS_SM; }
 
+QProgressBar[cssClass="aiProgressGreen"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_WHITE; height: 16px;
+}
+QProgressBar[cssClass="aiProgressGreen"]::chunk { background-color: @COLOR_SUCCESS; border-radius: @RADIUS_SM; }
+
+QProgressBar[cssClass="aiProgressRed"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_WHITE; height: 16px;
+}
+QProgressBar[cssClass="aiProgressRed"]::chunk { background-color: @COLOR_DANGER; border-radius: @RADIUS_SM; }
+
+QProgressBar[cssClass="aiProgressOrange"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_WHITE; height: 16px;
+}
+QProgressBar[cssClass="aiProgressOrange"]::chunk { background-color: @COLOR_WARNING; border-radius: @RADIUS_SM; }
+
 QScrollArea[cssClass="chatScrollArea"] {
     border: none; background-color: @COLOR_BG_BASE; border-radius: @RADIUS_LG;
 }
