@@ -58,22 +58,88 @@ class ChatbotPanel(QWidget):
         self._trigger_ai()
 
     def receive_system_message(self, result: AnalysisResult):
-        features_formatted = "\n".join([f"  - {k}: {v:.2f}" for k, v in result.xai_features.items()])
-        prompt = f"""[OTOMATİK ANALİZ AKTARIMI]
+        """Sol panelden gelen analiz sonucunu yapılandırılmış prompt olarak Gemini'ye gönderir."""
 
-Modelimiz {result.ticker} hissesi için şu analizi yaptı:
-- Sinyal       : {result.signal.value} (Güç: {int(result.signal_strength*100)}%)
-- Tahmini Fiyat: ₺{result.predicted_price}
-- Model Güveni : {int(result.confidence*100)}%
-- Önemli Faktörler:
-{features_formatted}
+        # ── XAI faktörleri formatla ──────────────────────────────────────
+        pos_factors = ""
+        if result.xai_positive_reasons:
+            lines = []
+            for f in result.xai_positive_reasons:
+                name = getattr(f, "human_label", "") or getattr(f, "feature_name", "")
+                imp = getattr(f, "importance", 0)
+                lines.append(f"    + {name} (önem: {imp:.3f})")
+            pos_factors = "\n".join(lines)
 
-Model Yorumu: {result.xai_text}
+        neg_factors = ""
+        if result.xai_negative_reasons:
+            lines = []
+            for f in result.xai_negative_reasons:
+                name = getattr(f, "human_label", "") or getattr(f, "feature_name", "")
+                imp = getattr(f, "importance", 0)
+                lines.append(f"    - {name} (önem: {imp:.3f})")
+            neg_factors = "\n".join(lines)
+
+        # Eski format fallback
+        if not pos_factors and not neg_factors and result.xai_features:
+            features_formatted = "\n".join([f"    {k}: {v:.2f}" for k, v in result.xai_features.items()])
+        else:
+            features_formatted = ""
+
+        # ── Prompt oluştur ───────────────────────────────────────────────
+        prompt = f"""[OTOMATİK ANALİZ AKTARIMI — API Payload]
+
+Hisse: {result.ticker}
+Analiz Durumu: {result.analysis_status}
+Oluşturulma: {result.generated_at}
+
+── VERİ ──
+Son Kapanış: ₺{result.last_close or '-'}
+Son Gözlem Tarihi: {result.last_observed_date or '-'}
+Veri Tazeliği: {result.data_freshness} ({result.staleness_days} gün geride)
+
+── MODEL ──
+Model Adı: {result.model_name or '-'}
+Model Ailesi: {result.model_family or '-'}
+Doğrulama Modu: {result.validation_mode or '-'}
+Eğitim Tarihi: {result.trained_at or '-'}
+
+── TAHMİN ──
+Trend: {result.trend_label or '-'}
+Tahmin Horizonu: {result.horizon_days or '-'} gün
+Tahmini Fiyat: ₺{result.predicted_price or '-'}
+Haftalık Beklenen Getiri: {f'{result.weekly_expected_return*100:.2f}%' if result.weekly_expected_return else '-'}
+
+── GÜVEN ──
+Güven Etiketi: {result.confidence_label}
+Güven Nedenleri: {', '.join(result.confidence_reasons) if result.confidence_reasons else '-'}
+Güven Uyarıları: {', '.join(result.confidence_warnings) if result.confidence_warnings else '-'}
+
+── PERFORMANS ──
+Bileşik Skor: {result.composite_score or '-'}
+Yön İsabeti: {f'%{result.directional_accuracy:.1f}' if result.directional_accuracy else '-'}
+İsabet Oranı: {f'%{result.hit_rate:.1f}' if result.hit_rate else '-'}
+Sharpe: {result.sharpe or '-'}
+RMSE: {result.rmse or '-'}
+MAE: {result.mae or '-'}
+
+── XAI (Açıklanabilirlik) ──
+XAI Mevcut: {'Evet' if result.xai_available else 'Hayır'}
+Yöntem: {result.xai_method or '-'}
+Fiyatı Yukarı Çeken Faktörler:
+{pos_factors or '    (veri yok)'}
+Fiyata Aşağı Baskı Yapan Faktörler:
+{neg_factors or '    (veri yok)'}
+{f'Genel Faktörler: {features_formatted}' if features_formatted else ''}
+XAI Uyarısı: {result.xai_caveat or '-'}
+
+── UYARI ──
+{result.disclaimer or 'Bu çıktı kişisel yatırım tavsiyesi değildir.'}
 
 Lütfen bu analizi değerlendir:
-1. Bu sinyalin güçlü ve zayıf yönleri neler?
-2. Bu faktörlerin {result.ticker} için önemi nedir?
-3. Yatırımcının dikkat etmesi gereken ek riskler var mı?
+1. Modelin genel durumu ve güvenilirliği hakkında kısa bir özet ver.
+2. Tahmin ve trend hakkında ne söylenebilir?
+3. XAI faktörleri ne anlama geliyor?
+4. Yatırımcının dikkat etmesi gereken riskler neler?
 """
         msg = ChatMessage(MessageRole.SYSTEM, prompt)
         self.add_message(msg)
