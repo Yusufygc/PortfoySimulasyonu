@@ -12,6 +12,9 @@ yfinance==0.2.66
 # --- Google AI (Gemini) ---
 google-generativeai
 
+# --- HTTP İstemci (AI_Core FastAPI haberleşmesi) ---
+requests>=2.31.0
+
 # --- Veritabanı ve Çevre Değişkenleri ---
 SQLAlchemy>=2.0.0
 mysql-connector-python

@@ -2,7 +2,8 @@
 *.xlsx
 .vscode
 .claude
-
+CLAUDE.md
+RULES.md
 
 /Eklenebilirler.txt
 /Ai_sayfasi.md
