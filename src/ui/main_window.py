@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
         self._threadpool = QThreadPool()
 
         self.setWindowTitle("Portfoy Simulasyonu")
-        self.setWindowIcon(QIcon("icons/wallet.ico"))
+        self.setWindowIcon(QIcon("icons/portfoy-simulasyonu.ico"))
         self.resize(1300, 800)
 
         self._init_ui()
