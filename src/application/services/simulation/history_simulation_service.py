@@ -1,14 +1,17 @@
-# src/application/services/history_simulation_service.py
+from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, time as dt_time, timedelta
 from decimal import Decimal
-from typing import Tuple, List
+from typing import List, Tuple
 
+from src.application.services.reporting.daily_history_models import DailyPortfolioSnapshot, DailyPosition
+from src.application.services.simulation.history_position_builder import HistoryPositionBuilder
+from src.application.services.simulation.history_simulation_state import SimulationState
+from src.application.services.simulation.history_snapshot_builder import HistorySnapshotBuilder
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
-from src.application.services.reporting.daily_history_models import DailyPosition, DailyPortfolioSnapshot, PortfolioStatus
-from src.domain.models.portfolio import Portfolio
+
 
 class HistorySimulationService:
     def __init__(
@@ -20,145 +23,91 @@ class HistorySimulationService:
         self._portfolio_repo = portfolio_repo
         self._price_repo = price_repo
         self._stock_repo = stock_repo
+        self._position_builder = HistoryPositionBuilder()
+        self._snapshot_builder = HistorySnapshotBuilder()
 
-    def simulate_history(self, start_date: date, end_date: date) -> Tuple[List[DailyPosition], List[DailyPortfolioSnapshot]]:
-        if end_date < start_date:
-            start_date, end_date = end_date, start_date
-
-        all_trades = self._portfolio_repo.get_all_trades()
-        relevant_trades = [t for t in all_trades if t.trade_date <= end_date]
-
+    def simulate_history(
+        self,
+        start_date: date,
+        end_date: date,
+    ) -> Tuple[List[DailyPosition], List[DailyPortfolioSnapshot]]:
+        start_date, end_date = self._normalized_range(start_date, end_date)
+        relevant_trades = self._sorted_relevant_trades(end_date)
         if not relevant_trades:
             return [], []
 
-        from datetime import time as dt_time
-        relevant_trades.sort(key=lambda t: (t.trade_date, getattr(t, "trade_time", None) or dt_time.min))
-
         stocks = self._stock_repo.get_all_stocks()
-        ticker_map = {s.id: s.ticker for s in stocks}
-        all_stock_ids = [s.id for s in stocks]
-
-        # Tüm tarih aralığı için tek sorguda fiyatları yükle
+        ticker_map = {stock.id: stock.ticker for stock in stocks}
+        stock_ids = [stock.id for stock in stocks]
         price_series = self._price_repo.get_portfolio_value_series(
-            stock_ids=all_stock_ids,
+            stock_ids=stock_ids,
             start_date=start_date,
             end_date=end_date,
         )
 
-        trade_idx = 0
-        n_trades = len(relevant_trades)
+        state = SimulationState()
+        daily_positions: list[DailyPosition] = []
+        daily_snapshots: list[DailyPortfolioSnapshot] = []
 
-        daily_positions = []
-        daily_snapshots = []
-        last_close_by_stock = {}
-        last_portfolio_value = None
-        base_portfolio_value = None
-
-        portfolio = Portfolio()
-
-        cur = start_date
-        while cur <= end_date:
-            while trade_idx < n_trades and relevant_trades[trade_idx].trade_date <= cur:
-                portfolio.apply_trade(relevant_trades[trade_idx])
-                trade_idx += 1
-
-            prices_for_day = price_series.get(cur, {})
-            is_weekend = cur.weekday() >= 5
-
+        current_date = start_date
+        while current_date <= end_date:
+            self._apply_due_trades(state, relevant_trades, current_date)
+            prices_for_day = price_series.get(current_date, {})
             has_prices = bool(prices_for_day)
-            day_positions_list = []
-            portfolio_value = None
             total_cost_basis = Decimal("0")
+            portfolio_value = state.last_portfolio_value if state.last_portfolio_value is not None else None
 
             if has_prices:
-                total_value = portfolio.total_market_value(prices_for_day)
-                total_cost_basis = portfolio.total_cost()
-                
-                for stock_id, position in portfolio.positions.items():
-                    qty = position.total_quantity
-                    if qty <= 0: continue
+                position_result = self._position_builder.build(
+                    current_date=current_date,
+                    portfolio=state.portfolio,
+                    prices_for_day=prices_for_day,
+                    ticker_map=ticker_map,
+                    last_close_by_stock=state.last_close_by_stock,
+                )
+                daily_positions.extend(position_result.positions)
+                total_cost_basis = position_result.total_cost_basis
+                portfolio_value = position_result.portfolio_value
+                state.last_close_by_stock = position_result.last_close_by_stock
 
-                    avg_cost = position.average_cost or Decimal("0")
-                    cost_basis = position.total_cost
-                    close_price = prices_for_day.get(stock_id)
-
-                    if close_price:
-                        pos_val = position.market_value(close_price)
-                        
-                        last_c = last_close_by_stock.get(stock_id)
-                        daily_chg = ((close_price / last_c) - 1) if (last_c and last_c != 0) else None
-                        
-                        unrealized_tl = position.unrealized_pl(close_price)
-                        unrealized_pct = (unrealized_tl / cost_basis) if cost_basis != 0 else None
-
-                        if last_c and last_c != 0:
-                            daily_pnl_stock = (close_price - last_c) * Decimal(qty)
-                        else:
-                            daily_pnl_stock = unrealized_tl
-                    else:
-                        pos_val, daily_chg, daily_pnl_stock, unrealized_tl, unrealized_pct = None, None, None, None, None
-
-                    w_pct = (pos_val / total_value) if (pos_val and total_value) else None
-                    
-                    day_positions_list.append(DailyPosition(
-                        date=cur,
-                        ticker=ticker_map.get(stock_id, f"ID_{stock_id}"),
-                        quantity=qty,
-                        avg_cost=avg_cost,
-                        cost_basis=cost_basis,
-                        close_price=close_price,
-                        position_value=pos_val,
-                        daily_price_change_pct=daily_chg,
-                        daily_pnl_tl=daily_pnl_stock,
-                        unrealized_pnl_tl=unrealized_tl,
-                        unrealized_pnl_pct=unrealized_pct,
-                        weight_pct=w_pct
-                    ))
-                
-                if total_value > 0:
-                    portfolio_value = total_value
-                    last_close_by_stock = prices_for_day.copy()
-            else:
-                portfolio_value = last_portfolio_value if last_portfolio_value else None
-
-            daily_pnl, daily_ret, cum_pnl, cum_ret = None, None, None, None
-            if portfolio_value:
-                if not base_portfolio_value: 
-                    base_portfolio_value = portfolio_value
-                
-                if last_portfolio_value:
-                    daily_pnl = portfolio_value - last_portfolio_value
-                    daily_ret = (daily_pnl / last_portfolio_value)
-                elif total_cost_basis > 0:
-                    daily_pnl = portfolio_value - total_cost_basis
-                    daily_ret = (daily_pnl / total_cost_basis)
-                
-                if base_portfolio_value:
-                    if portfolio_value == base_portfolio_value and total_cost_basis > 0:
-                        cum_pnl = portfolio_value - total_cost_basis
-                        cum_ret = (cum_pnl / total_cost_basis)
-                    else:
-                        if total_cost_basis > 0:
-                            cum_pnl = portfolio_value - total_cost_basis
-                            cum_ret = (cum_pnl / total_cost_basis)
-                        else:
-                            cum_pnl = portfolio_value - base_portfolio_value
-                            cum_ret = (cum_pnl / base_portfolio_value)
-
-            status = PortfolioStatus.OPEN if has_prices else (PortfolioStatus.WEEKEND if is_weekend else PortfolioStatus.NO_DATA)
-            
-            if day_positions_list:
-                daily_positions.extend(day_positions_list)
-            
-            daily_snapshots.append(DailyPortfolioSnapshot(
+            snapshot_result = self._snapshot_builder.build(
+                current_date=current_date,
+                portfolio_value=portfolio_value,
                 total_cost_basis=total_cost_basis,
-                date=cur, total_value=portfolio_value, 
-                daily_return_pct=daily_ret, cumulative_return_pct=cum_ret,
-                daily_pnl=daily_pnl, cumulative_pnl=cum_pnl, status=status
-            ))
-
-            if portfolio_value: last_portfolio_value = portfolio_value
-            cur += timedelta(days=1)
+                last_portfolio_value=state.last_portfolio_value,
+                base_portfolio_value=state.base_portfolio_value,
+                has_prices=has_prices,
+                is_weekend=current_date.weekday() >= 5,
+            )
+            daily_snapshots.append(snapshot_result.snapshot)
+            state.base_portfolio_value = snapshot_result.base_portfolio_value
+            state.last_portfolio_value = snapshot_result.last_portfolio_value
+            current_date += timedelta(days=1)
 
         return daily_positions, daily_snapshots
 
+    def _normalized_range(self, start_date: date, end_date: date) -> tuple[date, date]:
+        if end_date < start_date:
+            return end_date, start_date
+        return start_date, end_date
+
+    def _sorted_relevant_trades(self, end_date: date):
+        relevant_trades = [
+            trade
+            for trade in self._portfolio_repo.get_all_trades()
+            if trade.trade_date <= end_date
+        ]
+        relevant_trades.sort(
+            key=lambda trade: (
+                trade.trade_date,
+                getattr(trade, "trade_time", None) or dt_time.min,
+                getattr(trade, "id", None) or 0,
+            )
+        )
+        return relevant_trades
+
+    def _apply_due_trades(self, state: SimulationState, relevant_trades: list, current_date: date) -> None:
+        trade_count = len(relevant_trades)
+        while state.trade_cursor < trade_count and relevant_trades[state.trade_cursor].trade_date <= current_date:
+            state.portfolio.apply_trade(relevant_trades[state.trade_cursor])
+            state.trade_cursor += 1
