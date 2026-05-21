@@ -168,8 +168,10 @@ class ThemeManager:
         font_name = cls._load_inter_font()
         font = QFont(font_name, 10)
         font.setHintingPreference(QFont.PreferFullHinting)
-        if cls._app:
+        if cls._app and not cls._app.topLevelWidgets():
             cls._app.setFont(font)
+        elif cls._app:
+            logger.debug("[ThemeManager] Font apply skipped because widgets are already alive.")
 
         # QSS oluştur ve uygula
         qss_name = THEME_REGISTRY[theme_id]["qss_name"]

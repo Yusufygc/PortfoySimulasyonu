@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import date
 from decimal import Decimal
 from typing import Dict, Optional
 
 import pandas as pd
+
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +17,8 @@ class ScrapedBenchmarkProvider:
     COUNTRY_ECONOMY_BIST_MONTH_URL = "https://countryeconomy.com/stock-exchange/turkey?dr={month_key}"
     EXCHANGE_RATES_USDTRY_YEAR_URL = "https://www.exchange-rates.org/exchange-rate-history/usd-try-{year}"
     MACROTRENDS_GOLD_DAILY_URL = "https://www.macrotrends.net/economic-data/2627/D"
+    TCMB_DEPOSIT_SERIES = "TP.TRY.MT02"
+
     COUNTRY_ECONOMY_BIST_ROW_PATTERN = re.compile(
         r"<tr[^>]*>\s*<td[^>]*>\s*(\d{2}/\d{2}/\d{4})\s*</td>\s*<td[^>]*>\s*([\d,.]+)\s*</td>",
         re.IGNORECASE | re.DOTALL,
@@ -49,6 +53,8 @@ class ScrapedBenchmarkProvider:
             gold_series = self._fetch_macrotrends_gold_series(start_date, end_date)
             usd_try_series = self._fetch_exchange_rates_usdtry_series(start_date, end_date)
             return self._combine_series(gold_series, usd_try_series)
+        if normalized_ticker == "TCMB_TRY_DEPOSIT_3M":
+            return self._fetch_tcmb_try_deposit_3m_rates(start_date, end_date)
         return None
 
     def _filter_series_for_range(
@@ -85,7 +91,7 @@ class ScrapedBenchmarkProvider:
         try:
             html = self._owner._request_text(url)
         except Exception:
-            logger.debug("Countryeconomy BIST 100 verisi alinamadi: %s", month_key, exc_info=True)
+            logger.debug("Countryeconomy BIST 100 data could not be fetched: %s", month_key, exc_info=True)
             self._countryeconomy_month_cache[month_key] = {}
             return {}
 
@@ -119,7 +125,7 @@ class ScrapedBenchmarkProvider:
         try:
             html = self._owner._request_text(url)
         except Exception:
-            logger.debug("Exchange-rates USD/TRY verisi alinamadi: %s", year, exc_info=True)
+            logger.debug("Exchange-rates USD/TRY data could not be fetched: %s", year, exc_info=True)
             self._exchange_rates_year_cache[year] = {}
             return {}
 
@@ -151,7 +157,7 @@ class ScrapedBenchmarkProvider:
         try:
             payload = self._owner._request_json(self.MACROTRENDS_GOLD_DAILY_URL)
         except Exception:
-            logger.debug("Macrotrends altin verisi alinamadi", exc_info=True)
+            logger.debug("Macrotrends gold data could not be fetched", exc_info=True)
             self._macrotrends_gold_daily_cache = {}
             return {}
 
@@ -186,3 +192,56 @@ class ScrapedBenchmarkProvider:
             for point_date in shared_dates
         }
 
+    def _fetch_tcmb_try_deposit_3m_rates(
+        self,
+        start_date: date,
+        end_date: date,
+    ) -> Dict[date, Decimal]:
+        try:
+            self._owner._request_json_post_path(
+                "/serieList/fe/type=json",
+                {"dataGroupString": "bie_mt100h"},
+            )
+            payload = self._owner._request_json_post(
+                "https://evds3.tcmb.gov.tr/igmevdsms-dis/fe",
+                {
+                    "series": self.TCMB_DEPOSIT_SERIES,
+                    "startDate": start_date.strftime("%d-%m-%Y"),
+                    "endDate": end_date.strftime("%d-%m-%Y"),
+                    "frequency": 1,
+                    "aggregationType": "avg",
+                },
+            )
+            result = self._parse_tcmb_deposit_items(payload)
+            if result:
+                return self._filter_series_for_range(result, start_date, end_date)
+        except Exception:
+            logger.debug("TCMB deposit rates could not be fetched; using manual fallback", exc_info=True)
+
+        return self._manual_tcmb_deposit_fallback(start_date)
+
+    def _parse_tcmb_deposit_items(self, payload: dict) -> Dict[date, Decimal]:
+        result: Dict[date, Decimal] = {}
+        for item in payload.get("items") or []:
+            raw_date = item.get("Tarih")
+            raw_value = item.get(self.TCMB_DEPOSIT_SERIES)
+            if raw_date is None or raw_value is None:
+                continue
+            try:
+                point_date = pd.to_datetime(raw_date, format="%d-%m-%Y").date()
+                result[point_date] = Decimal(str(raw_value).replace(",", "."))
+            except (TypeError, ValueError):
+                continue
+        return result
+
+    def _manual_tcmb_deposit_fallback(self, start_date: date) -> Dict[date, Decimal]:
+        rate_str = os.environ.get("TCMB_DEPOSIT_RATE_FALLBACK", "45.0").strip()
+        try:
+            rate = Decimal(rate_str)
+        except (ValueError, ArithmeticError):
+            logger.warning(
+                "Invalid TCMB_DEPOSIT_RATE_FALLBACK: %r; defaulting to 45.0",
+                rate_str,
+            )
+            rate = Decimal("45.0")
+        return {start_date: rate}

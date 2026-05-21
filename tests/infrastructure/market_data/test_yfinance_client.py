@@ -147,6 +147,45 @@ def test_get_price_series_builds_xautry_from_gold_and_usd_sources(monkeypatch):
     }
 
 
+def test_get_price_series_uses_tcmb_evds_for_deposit_rates(monkeypatch):
+    client = YFinanceMarketDataClient()
+    calls = []
+    payload = {
+        "items": [
+            {"Tarih": "02-01-2026", "TP.TRY.MT02": "46.21"},
+            {"Tarih": "09-01-2026", "TP.TRY.MT02": "45,90"},
+        ]
+    }
+
+    def fake_request_json_post(url, request_payload):
+        calls.append((url, request_payload))
+        return payload
+
+    monkeypatch.setattr(
+        client,
+        "_request_json_post_path",
+        lambda path, request_payload: {
+            "maxStartDate": "01-01-2020",
+            "minEndDate": "10-01-2026",
+        },
+    )
+    monkeypatch.setattr(client, "_request_json_post", fake_request_json_post)
+    monkeypatch.setattr(
+        client,
+        "_download_dataframe",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
+    )
+
+    series = client.get_price_series("TCMB_TRY_DEPOSIT_3M", date(2026, 1, 1), date(2026, 1, 10))
+
+    assert series == {
+        date(2026, 1, 2): Decimal("46.21"),
+        date(2026, 1, 9): Decimal("45.90"),
+    }
+    assert calls[0][0] == "https://evds3.tcmb.gov.tr/igmevdsms-dis/fe"
+    assert calls[0][1]["series"] == "TP.TRY.MT02"
+
+
 def test_countryeconomy_month_cache_is_reused(monkeypatch):
     client = YFinanceMarketDataClient()
     counter = {"count": 0}

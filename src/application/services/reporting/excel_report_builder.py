@@ -30,6 +30,17 @@ class ExcelReportBuilder:
     def __init__(self, formatter: ExcelFormatter) -> None:
         self.formatter = formatter
 
+    @staticmethod
+    def normalize_date_column(df: pd.DataFrame, column: str = "Tarih") -> pd.DataFrame:
+        if df.empty or column not in df.columns:
+            return df
+
+        normalized_df = df.copy()
+        normalized_dates = pd.to_datetime(normalized_df[column], errors="coerce")
+        normalized_df[column] = normalized_dates.dt.date
+        normalized_df.loc[normalized_dates.isna(), column] = None
+        return normalized_df
+
     def build_and_save(
         self,
         file_path: Path,
@@ -270,6 +281,7 @@ class ExcelReportBuilder:
         # ── Summary dedup ─────────────────────────────────────────────────────
         combined_summary = pd.concat([existing_summary, summary_df], ignore_index=True)
         if not combined_summary.empty and "Tarih" in combined_summary.columns:
+            combined_summary = self.normalize_date_column(combined_summary)
             combined_summary = (
                 combined_summary
                 .drop_duplicates(subset=["Tarih"], keep="last")
@@ -284,10 +296,11 @@ class ExcelReportBuilder:
 
         combined_detail = pd.concat([existing_detail, detail_df], ignore_index=True)
         if not combined_detail.empty and "Tarih" in combined_detail.columns and "Hisse" in combined_detail.columns:
+            combined_detail = self.normalize_date_column(combined_detail)
             combined_detail = (
                 combined_detail
                 .drop_duplicates(subset=["Tarih", "Hisse"], keep="last")
-                .sort_values(["Tarih", "Hisse"])
+                .sort_values(["Tarih", "Hisse"], na_position="last")
                 .reset_index(drop=True)
             )
 

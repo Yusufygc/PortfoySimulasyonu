@@ -16,7 +16,7 @@ def setup_logger():
 
     # Formatlayıcı
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        '%(asctime)s - %(name)s - %(levelname)s - thread=%(threadName)s - %(message)s'
     )
 
     # Dosya İşleyicisi (RotatingFileHandler - 5MB, 5 Ydek)
