@@ -1,12 +1,15 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton
-from PyQt5.QtCore import Qt
+
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole, AnalysisResult
 from src.ui.pages.ai_page.core.gemini_service import GeminiWorker
+from src.ui.core.icon_manager import IconManager
 from .conversation_view import ConversationView
 from .chat_input_bar import ChatInputBar
 
+
 class ChatbotPanel(QWidget):
-    """Sağ Panel (Chatbot Paneli) Ana Kapsayıcısı"""
+    """Sağ Panel (Chatbot Paneli) Ana Kapsayıcısı."""
+
     def __init__(self):
         super().__init__()
         self.messages: list[ChatMessage] = []
@@ -14,34 +17,41 @@ class ChatbotPanel(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 0, 0, 0) # Sol boşluk bırak
+        layout.setContentsMargins(12, 0, 0, 0)
         layout.setSpacing(10)
 
-        # Header
         header_layout = QHBoxLayout()
-        lbl_title = QLabel("💬 AI Finans Asistanı")
-        lbl_title.setProperty("cssClass", "dialogHeaderTitleLarge")
         
-        btn_clear = QPushButton("🗑 Sohbeti Temizle")
+        lbl_icon = QLabel()
+        lbl_icon.setPixmap(IconManager.get_icon("bot", color="@COLOR_PRIMARY").pixmap(24, 24))
+        
+        lbl_title = QLabel("AI Finans Asistanı")
+        lbl_title.setProperty("cssClass", "dialogHeaderTitleLarge")
+
+        btn_clear = QPushButton("Sohbeti Temizle")
+        btn_clear.setIcon(IconManager.get_icon("trash-2", color="@COLOR_DANGER"))
         btn_clear.setProperty("cssClass", "outlineDangerBtn")
         btn_clear.clicked.connect(self.clear_chat)
 
+        header_layout.addWidget(lbl_icon)
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         header_layout.addWidget(btn_clear)
         layout.addLayout(header_layout)
 
-        # Conversation View
         self.conversation_view = ConversationView()
-        layout.addWidget(self.conversation_view)
+        layout.addWidget(self.conversation_view, 1)
 
-        # Input Bar
         self.input_bar = ChatInputBar()
         self.input_bar.send_requested.connect(self.send_user_message)
         layout.addWidget(self.input_bar)
 
-        # Başlangıç mesajı
-        self.add_message(ChatMessage(MessageRole.AI, "Merhaba! Borsa İstanbul ve portföy yönetimi hakkında size nasıl yardımcı olabilirim?"))
+        self.add_message(
+            ChatMessage(
+                MessageRole.AI,
+                "Merhaba! Borsa İstanbul ve portföy yönetimi hakkında size nasıl yardımcı olabilirim?",
+            )
+        )
 
     def add_message(self, msg: ChatMessage):
         self.messages.append(msg)
@@ -59,33 +69,25 @@ class ChatbotPanel(QWidget):
 
     def receive_system_message(self, result: AnalysisResult):
         """Sol panelden gelen analiz sonucunu yapılandırılmış prompt olarak Gemini'ye gönderir."""
-
-        # ── XAI faktörleri formatla ──────────────────────────────────────
         pos_factors = ""
         if result.xai_positive_reasons:
             lines = []
             for f in result.xai_positive_reasons:
-                name = getattr(f, "human_label", "") or getattr(f, "feature_name", "")
-                imp = getattr(f, "importance", 0)
-                lines.append(f"    + {name} (önem: {imp:.3f})")
+                lines.append(f"    + {self._format_xai_factor_for_prompt(f)}")
             pos_factors = "\n".join(lines)
 
         neg_factors = ""
         if result.xai_negative_reasons:
             lines = []
             for f in result.xai_negative_reasons:
-                name = getattr(f, "human_label", "") or getattr(f, "feature_name", "")
-                imp = getattr(f, "importance", 0)
-                lines.append(f"    - {name} (önem: {imp:.3f})")
+                lines.append(f"    - {self._format_xai_factor_for_prompt(f)}")
             neg_factors = "\n".join(lines)
 
-        # Eski format fallback
         if not pos_factors and not neg_factors and result.xai_features:
             features_formatted = "\n".join([f"    {k}: {v:.2f}" for k, v in result.xai_features.items()])
         else:
             features_formatted = ""
 
-        # ── Prompt oluştur ───────────────────────────────────────────────
         prompt = f"""[OTOMATİK ANALİZ AKTARIMI — API Payload]
 
 Hisse: {result.ticker}
@@ -105,9 +107,10 @@ Eğitim Tarihi: {result.trained_at or '-'}
 
 ── TAHMİN ──
 Trend: {result.trend_label or '-'}
+Yön Beklentisi: {result.outlook.value}
 Tahmin Horizonu: {result.horizon_days or '-'} gün
 Tahmini Fiyat: ₺{result.predicted_price or '-'}
-Haftalık Beklenen Getiri: {f'{result.weekly_expected_return*100:.2f}%' if result.weekly_expected_return else '-'}
+{f'{result.horizon_days} Günlük' if result.horizon_days else 'Horizon Sonu'} Bileşik Beklenen Getiri: {f'{result.weekly_expected_return*100:.2f}%' if result.weekly_expected_return is not None else '-'}
 
 ── GÜVEN ──
 Güven Etiketi: {result.confidence_label}
@@ -136,14 +139,68 @@ XAI Uyarısı: {result.xai_caveat or '-'}
 {result.disclaimer or 'Bu çıktı kişisel yatırım tavsiyesi değildir.'}
 
 Lütfen bu analizi değerlendir:
-1. Modelin genel durumu ve güvenilirliği hakkında kısa bir özet ver.
-2. Tahmin ve trend hakkında ne söylenebilir?
-3. XAI faktörleri ne anlama geliyor?
-4. Yatırımcının dikkat etmesi gereken riskler neler?
+1. Önce 2-3 cümlelik net bir genel yorum ver.
+2. Tahmin, güven ve performansı ayrı kısa paragraflarla açıkla.
+3. XAI faktörlerini "yukarı destek" ve "aşağı baskı" olarak sadeleştir; teknik/makro/model faktör grubunun neyi temsil ettiğini belirt.
+4. En önemli riskleri kısa maddelerle yaz.
+5. En sonda mutlaka "Gündelik Özet" başlığı aç ve teknik olmayan 2-3 cümleyle anlat.
+6. Cevap rapor gibi uzun olmasın; okunabilir, kullanıcıya dönük ve sade olsun.
+7. ### başlık, tablo ve uzun yıldızlı liste kullanma; başlıkları düz metin olarak yaz.
 """
-        msg = ChatMessage(MessageRole.SYSTEM, prompt)
+        msg = ChatMessage(
+            MessageRole.SYSTEM,
+            prompt,
+            display_content=self._build_analysis_display_summary(result),
+        )
         self.add_message(msg)
         self._trigger_ai()
+
+    @staticmethod
+    def _format_xai_factor_for_prompt(f) -> str:
+        name = getattr(f, "human_label", "") or getattr(f, "feature_name", "")
+        feature = getattr(f, "feature_name", "")
+        imp = getattr(f, "importance", 0) or 0
+        group = getattr(f, "feature_group", None)
+        reason = getattr(f, "reason", None)
+        method = getattr(f, "method", None)
+        contribution = getattr(f, "contribution", None)
+        approximate = getattr(f, "approximate", None)
+        parts = [f"{name}"]
+        if feature and feature != name:
+            parts.append(f"özellik: {feature}")
+        if group:
+            parts.append(f"grup: {group}")
+        parts.append(f"önem: {float(imp):.3f}")
+        if contribution is not None:
+            parts.append(f"katkı: {float(contribution):+.4f}")
+        if method:
+            parts.append(f"yöntem: {method}")
+        if approximate is True:
+            parts.append("yaklaşık")
+        text = " (" + ", ".join(parts[1:]) + ")" if len(parts) > 1 else ""
+        if reason:
+            text += f" — {reason}"
+        return f"{parts[0]}{text}"
+
+    @staticmethod
+    def _build_analysis_display_summary(result: AnalysisResult) -> str:
+        horizon = f"{result.horizon_days} günlük" if result.horizon_days else "Horizon sonu"
+        return_text = f"{result.weekly_expected_return * 100:.2f}%" if result.weekly_expected_return is not None else "-"
+        xai_state = "mevcut" if result.xai_available else "yok"
+        xai_detail = ""
+        top_factor = (result.xai_positive_reasons or result.xai_negative_reasons or [None])[0]
+        if top_factor is not None:
+            factor_name = getattr(top_factor, "human_label", "") or getattr(top_factor, "feature_name", "")
+            factor_group = getattr(top_factor, "feature_group", None)
+            group_text = f" · XAI ana grup: {factor_group}" if factor_group else ""
+            xai_detail = f"\nAna XAI faktörü: {factor_name}{group_text}"
+        return (
+            f"{result.ticker} analizi chat'e gönderildi.\n"
+            f"Model: {result.model_name or '-'} · Yön beklentisi: {result.outlook.value} · "
+            f"{horizon} bileşik getiri: {return_text}\n"
+            f"Güven: {result.confidence_label or '-'} · XAI: {xai_state}"
+            f"{xai_detail}"
+        )
 
     def _trigger_ai(self):
         self.input_bar.set_loading(True)
