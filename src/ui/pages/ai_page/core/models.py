@@ -1,13 +1,19 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal
 from enum import Enum
 
 
-class Signal(Enum):
-    BUY  = "AL"
-    SELL = "SAT"
-    HOLD = "TUT"
+DEFAULT_INVESTMENT_DISCLAIMER = (
+    "Bu çıktı kişisel yatırım tavsiyesi değildir. "
+    "Model geçmiş verilerden üretilmiş analitik bir tahmin sunar; "
+    "nihai karar kullanıcıya aittir."
+)
+
+
+class ModelOutlook(Enum):
+    UP = "Yükseliş eğilimi"
+    DOWN = "Düşüş eğilimi"
+    NEUTRAL = "Yatay/Nötr görünüm"
 
 
 class MessageRole(Enum):
@@ -32,6 +38,11 @@ class XaiFactorItem:
     human_label: str
     importance: float
     direction: str          # "positive" veya "negative"
+    feature_group: str | None = None
+    reason: str | None = None
+    method: str | None = None
+    contribution: float | None = None
+    approximate: bool | None = None
 
 
 @dataclass
@@ -54,9 +65,9 @@ class AnalysisResult:
     confidence_reasons: list[str] = field(default_factory=list)
     confidence_warnings: list[str] = field(default_factory=list)
 
-    # ── Sinyal (şimdilik trend_label'dan doğrudan; türetim sonraya) ────
-    signal: Signal = Signal.HOLD
-    signal_strength: float = 0.0                    # 0.0 – 1.0
+    # ── Yön beklentisi (trend_label'dan türetilen kullanıcı-facing görünüm) ──
+    outlook: ModelOutlook = ModelOutlook.NEUTRAL
+    outlook_strength: float = 0.0                   # 0.0 – 1.0
 
     # ── Veri bilgisi ─────────────────────────────────────────────────────
     last_close: float | None = None
@@ -109,4 +120,5 @@ class AnalysisResult:
 class ChatMessage:
     role: MessageRole
     content: str
+    display_content: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
