@@ -4,6 +4,7 @@
 .claude
 CLAUDE.md
 RULES.md
+.graphifyignore
 
 /Eklenebilirler.txt
 /Ai_sayfasi.md
@@ -214,6 +215,13 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Graphify
+graphify-out/
+graphify-out.*/
+.graphify_*.json
+.graphify_*.txt
+.graphify_old.json
 
 # Marimo
 marimo/_static/
