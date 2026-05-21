@@ -1,9 +1,12 @@
 """ExcelReportBuilder ve ExcelExportService birim testleri."""
 from __future__ import annotations
 
+import zipfile
+
 import pytest
 
 pd = pytest.importorskip("pandas")
+openpyxl = pytest.importorskip("openpyxl")
 
 from datetime import date
 from decimal import Decimal
@@ -14,10 +17,12 @@ from src.application.services.reporting.daily_history_models import (
     DailyPortfolioSnapshot,
     ExportMode,
     PortfolioStatus,
+    SheetName,
     SUMMARY_ROW_LABEL,
 )
 from src.application.services.reporting.excel_report_builder import ExcelReportBuilder
 from src.application.services.reporting.excel_export_service import ExcelExportService
+from src.application.services.reporting.excel_formatter import ExcelFormatter
 
 
 # ────── Yardımcı fabrikalar ──────────────────────────────────────────────────
@@ -52,6 +57,8 @@ def _pos(
 def _snap(
     d: date = date(2026, 1, 2),
     total_value: Decimal | None = Decimal("100"),
+    daily_return_pct: Decimal | None = Decimal("0"),
+    cumulative_return_pct: Decimal | None = Decimal("0"),
     daily_pnl: Decimal | None = Decimal("0"),
     cumulative_pnl: Decimal | None = Decimal("0"),
     status: str = PortfolioStatus.OPEN,
@@ -60,8 +67,8 @@ def _snap(
         date=d,
         total_cost_basis=Decimal("100"),
         total_value=total_value,
-        daily_return_pct=None,
-        cumulative_return_pct=None,
+        daily_return_pct=daily_return_pct,
+        cumulative_return_pct=cumulative_return_pct,
         daily_pnl=daily_pnl,
         cumulative_pnl=cumulative_pnl,
         status=status,
@@ -70,6 +77,56 @@ def _snap(
 
 def _builder() -> ExcelReportBuilder:
     return ExcelReportBuilder(formatter=MagicMock())
+
+
+def _chart_count(file_path, sheet_name: str = SheetName.CHARTS) -> int:
+    wb = openpyxl.load_workbook(file_path)
+    return len(wb[sheet_name]._charts)
+
+
+def _sample_report_frames(builder: ExcelReportBuilder):
+    positions = [
+        _pos(
+            "AAA.IS",
+            d=date(2026, 1, 5),
+            qty=10,
+            avg_cost=Decimal("10"),
+            close_price=Decimal("12"),
+            unrealized_pnl_tl=Decimal("20"),
+            unrealized_pnl_pct=Decimal("0.20"),
+        ),
+        _pos(
+            "BBB.IS",
+            d=date(2026, 1, 5),
+            qty=5,
+            avg_cost=Decimal("20"),
+            close_price=Decimal("18"),
+            unrealized_pnl_tl=Decimal("-10"),
+            unrealized_pnl_pct=Decimal("-0.10"),
+        ),
+    ]
+    snapshots = [
+        _snap(
+            d=date(2026, 1, 2),
+            total_value=Decimal("100"),
+            daily_return_pct=Decimal("0"),
+            cumulative_return_pct=Decimal("0"),
+        ),
+        _snap(
+            d=date(2026, 1, 5),
+            total_value=Decimal("210"),
+            daily_return_pct=Decimal("0.05"),
+            cumulative_return_pct=Decimal("0.10"),
+            daily_pnl=Decimal("10"),
+            cumulative_pnl=Decimal("20"),
+        ),
+    ]
+    return (
+        builder._build_summary_df(snapshots),
+        builder._build_detail_df(positions, snapshots),
+        builder._build_stock_summary_df(positions),
+        builder._build_dashboard_df(snapshots, positions),
+    )
 
 
 # ────── BUG 1: Decimal sıfır değerleri kaybolmamalı ─────────────────────────
@@ -115,12 +172,130 @@ def test_toplam_rows_not_duplicated_in_append_mode(tmp_path):
     # İkinci yazma (append — aynı veri)
     builder._append_to_existing_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
 
-    result = pd.read_excel(file_path, sheet_name="Günlük Detaylar")
+    result = pd.read_excel(file_path, sheet_name="Günlük Detaylar", header=1)
     toplam_count = result["Hisse"].str.contains("GÜNLÜK TOPLAM", na=False).sum()
     assert toplam_count == 1, f"TOPLAM satırı sadece 1 kez olmalı, {toplam_count} bulundu"
 
 
 # ────── TASARIM 2: _fmt_tr_money(None) → "—" ────────────────────────────────
+
+def test_fresh_excel_keeps_dashboard_plain_and_adds_charts_sheet(tmp_path):
+    builder = _builder()
+    file_path = tmp_path / "charts.xlsx"
+    summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
+
+    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+
+    wb = openpyxl.load_workbook(file_path)
+    assert SheetName.CHARTS in wb.sheetnames
+    assert wb[SheetName.CHARTS].sheet_state == "visible"
+    assert len(wb[SheetName.DASHBOARD]._charts) == 0
+    assert len(wb[SheetName.CHARTS]._charts) == 4
+
+
+def test_dashboard_freeze_pane_xml_is_excel_compatible(tmp_path):
+    builder = ExcelReportBuilder(formatter=ExcelFormatter())
+    file_path = tmp_path / "dashboard_panes.xlsx"
+    summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
+
+    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+
+    with zipfile.ZipFile(file_path) as workbook_zip:
+        sheet_xml = workbook_zip.read("xl/worksheets/sheet1.xml").decode("utf-8")
+
+    assert 'state="frozen"' in sheet_xml
+    assert 'topLeftCell="A2"' in sheet_xml
+    assert 'selection pane="bottomLeft"' in sheet_xml
+
+
+def test_dashboard_contains_only_metric_table(tmp_path):
+    builder = _builder()
+    file_path = tmp_path / "dashboard_plain.xlsx"
+    summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
+
+    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+
+    wb = openpyxl.load_workbook(file_path)
+    ws = wb[SheetName.DASHBOARD]
+
+    assert ws["A1"].value == "Metrik"
+    assert ws["B1"].value == "Değer"
+    assert ws["A2"].value == "Toplam Maliyet"
+    assert ws["D4"].value is None
+    assert ws["N5"].value is None
+    assert len(ws._charts) == 0
+
+
+def test_chart_data_sheet_is_hidden_and_supports_positive_negative_returns(tmp_path):
+    builder = _builder()
+    file_path = tmp_path / "chart_data.xlsx"
+    summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
+
+    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+
+    wb = openpyxl.load_workbook(file_path)
+    ws = wb[SheetName.CHART_DATA]
+
+    assert ws.sheet_state == "hidden"
+    assert wb[SheetName.CHARTS].sheet_state == "visible"
+    assert [ws.cell(row=1, column=col).value for col in range(1, 6)] == [
+        "Tarih",
+        "Portföy Değeri (TL)",
+        "Pozitif Günlük Getiri (%)",
+        "Negatif Günlük Getiri (%)",
+        "Toplam Getiri (%)",
+    ]
+    assert ws["C3"].value == pytest.approx(0.05)
+    assert ws["D3"].value is None
+
+
+def test_append_excel_recreates_charts_sheet_without_duplicates(tmp_path):
+    builder = _builder()
+    file_path = tmp_path / "append_charts.xlsx"
+    summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
+
+    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+    builder._append_to_existing_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+
+    assert _chart_count(file_path, SheetName.DASHBOARD) == 0
+    assert _chart_count(file_path, SheetName.CHARTS) == 4
+
+
+def test_charts_sheet_skips_empty_source_data(tmp_path):
+    builder = _builder()
+    file_path = tmp_path / "empty_charts.xlsx"
+    dashboard_df = pd.DataFrame([{"Metrik": "Toplam", "Deger": "0"}])
+
+    builder._write_fresh_excel(
+        file_path,
+        pd.DataFrame(),
+        pd.DataFrame(),
+        pd.DataFrame(),
+        dashboard_df,
+    )
+
+    assert _chart_count(file_path, SheetName.DASHBOARD) == 0
+    assert _chart_count(file_path, SheetName.CHARTS) == 0
+
+
+def test_dashboard_df_uses_latest_open_snapshot():
+    builder = _builder()
+    snapshots = [
+        _snap(d=date(2026, 5, 18), total_value=Decimal("120"), cumulative_pnl=Decimal("20")),
+        _snap(
+            d=date(2026, 5, 19),
+            total_value=Decimal("120"),
+            cumulative_pnl=None,
+            cumulative_return_pct=None,
+            status=PortfolioStatus.MARKET_CLOSED,
+        ),
+    ]
+
+    df = builder._build_dashboard_df(snapshots, [_pos("AAA.IS", d=date(2026, 5, 18))])
+
+    assert df[df["Metrik"] == "Güncel Portföy Değeri"].iloc[0]["Değer"] == "120,00"
+    assert df[df["Metrik"] == "Toplam Kâr/Zarar (TL)"].iloc[0]["Değer"] == "20,00"
+
 
 def test_fmt_tr_money_none_returns_dash():
     builder = _builder()
@@ -154,6 +329,8 @@ def test_summary_df_excludes_weekend_snapshots():
         _snap(d=date(2026, 1, 2), status=PortfolioStatus.OPEN),
         _snap(d=date(2026, 1, 3), status=PortfolioStatus.WEEKEND),
         _snap(d=date(2026, 1, 4), status=PortfolioStatus.WEEKEND),
+        _snap(d=date(2026, 1, 5), status=PortfolioStatus.NO_DATA),
+        _snap(d=date(2026, 5, 19), status=PortfolioStatus.MARKET_CLOSED),
         _snap(d=date(2026, 1, 5), status=PortfolioStatus.OPEN),
     ]
     df = builder._build_summary_df(snapshots)

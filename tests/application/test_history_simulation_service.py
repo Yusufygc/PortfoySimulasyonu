@@ -54,17 +54,17 @@ def test_simulate_history_with_trades(simulation_service, mock_portfolio_repo, m
     mock_stock_repo.get_all_stocks.return_value = [DummyStock()]
 
     trades = [
-        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("10.0")),
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 5), quantity=10, price=Decimal("10.0")),
     ]
     mock_portfolio_repo.get_all_trades.return_value = trades
 
     # get_portfolio_value_series döndürmesi: {date: {stock_id: price}}
     mock_price_repo.get_portfolio_value_series.return_value = {
-        date(2026, 1, 1): {1: Decimal("10.0")},
-        date(2026, 1, 2): {1: Decimal("12.0")},
+        date(2026, 1, 5): {1: Decimal("10.0")},
+        date(2026, 1, 6): {1: Decimal("12.0")},
     }
 
-    positions, snapshots = simulation_service.simulate_history(date(2026, 1, 1), date(2026, 1, 2))
+    positions, snapshots = simulation_service.simulate_history(date(2026, 1, 5), date(2026, 1, 6))
 
     assert len(positions) == 2
     assert len(snapshots) == 2
@@ -85,20 +85,20 @@ def test_simulate_history_swaps_reversed_date_range(
 ):
     mock_stock_repo.get_all_stocks.return_value = [DummyStock(1, "AAA")]
     mock_portfolio_repo.get_all_trades.return_value = [
-        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=1, price=Decimal("10")),
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 5), quantity=1, price=Decimal("10")),
     ]
     mock_price_repo.get_portfolio_value_series.return_value = {
-        date(2026, 1, 1): {1: Decimal("10")},
-        date(2026, 1, 2): {1: Decimal("11")},
+        date(2026, 1, 5): {1: Decimal("10")},
+        date(2026, 1, 6): {1: Decimal("11")},
     }
 
-    _, snapshots = simulation_service.simulate_history(date(2026, 1, 2), date(2026, 1, 1))
+    _, snapshots = simulation_service.simulate_history(date(2026, 1, 6), date(2026, 1, 5))
 
-    assert [snapshot.date for snapshot in snapshots] == [date(2026, 1, 1), date(2026, 1, 2)]
+    assert [snapshot.date for snapshot in snapshots] == [date(2026, 1, 5), date(2026, 1, 6)]
     mock_price_repo.get_portfolio_value_series.assert_called_once_with(
         stock_ids=[1],
-        start_date=date(2026, 1, 1),
-        end_date=date(2026, 1, 2),
+        start_date=date(2026, 1, 5),
+        end_date=date(2026, 1, 6),
     )
 
 
@@ -210,4 +210,30 @@ def test_simulate_history_carries_last_value_on_no_price_day(
     assert snapshots[0].total_value == Decimal("22")
     assert snapshots[1].status == PortfolioStatus.NO_DATA
     assert snapshots[1].total_value == Decimal("22")
-    assert snapshots[1].daily_pnl == Decimal("0")
+    assert snapshots[1].daily_pnl is None
+
+
+def test_simulate_history_ignores_prices_on_bist_holidays(
+    simulation_service, mock_portfolio_repo, mock_stock_repo, mock_price_repo
+):
+    mock_stock_repo.get_all_stocks.return_value = [DummyStock(1, "AAA")]
+    mock_portfolio_repo.get_all_trades.return_value = [
+        Trade.create_buy(1, date(2026, 5, 18), 1, Decimal("10")),
+    ]
+    mock_price_repo.get_portfolio_value_series.return_value = {
+        date(2026, 5, 18): {1: Decimal("10")},
+        date(2026, 5, 19): {1: Decimal("99")},
+        date(2026, 5, 20): {1: Decimal("12")},
+    }
+
+    positions, snapshots = simulation_service.simulate_history(date(2026, 5, 18), date(2026, 5, 20))
+
+    assert [snapshot.status for snapshot in snapshots] == [
+        PortfolioStatus.OPEN,
+        PortfolioStatus.MARKET_CLOSED,
+        PortfolioStatus.OPEN,
+    ]
+    assert [position.date for position in positions] == [date(2026, 5, 18), date(2026, 5, 20)]
+    assert snapshots[1].total_value == Decimal("10")
+    assert snapshots[1].daily_pnl is None
+    assert snapshots[2].daily_pnl == Decimal("2")
