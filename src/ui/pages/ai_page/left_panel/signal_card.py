@@ -1,10 +1,11 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
 from PyQt5.QtCore import Qt
-from src.ui.pages.ai_page.core.models import Signal
+from src.ui.pages.ai_page.core.models import ModelOutlook
+from src.ui.core.icon_manager import IconManager
 
 
 class SignalCard(QWidget):
-    """Sinyal (AL/SAT/TUT) ve trend bilgisi gösteren kart."""
+    """Modelin yön beklentisini emir dili kullanmadan gösteren kart."""
 
     def __init__(self):
         super().__init__()
@@ -13,20 +14,31 @@ class SignalCard(QWidget):
     def _init_ui(self):
         self.setProperty("cssClass", "aiCard")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(8)
 
-        title = QLabel("🎯 SİNYAL")
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        lbl_icon = QLabel()
+        lbl_icon.setPixmap(IconManager.get_icon("target", color="@COLOR_PRIMARY").pixmap(20, 20))
+        title = QLabel("YÖN BEKLENTİSİ")
         title.setProperty("cssClass", "cardLabel")
-        layout.addWidget(title)
+        header_layout.addWidget(lbl_icon)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        layout.addLayout(header_layout)
 
         self.lbl_signal = QLabel("-")
         self.lbl_signal.setAlignment(Qt.AlignCenter)
-        self.lbl_signal.setProperty("cssClass", "signalLabel")
+        self.lbl_signal.setProperty("cssClass", "outlookLabel")
         self.lbl_signal.setProperty("cssState", "neutral")
+        self.lbl_signal.setFixedHeight(54)
         layout.addWidget(self.lbl_signal)
 
         strength_layout = QHBoxLayout()
-        strength_layout.addWidget(QLabel("Güç: "))
+        lbl_strength = QLabel("Model beklenti gücü: ")
+        lbl_strength.setProperty("cssClass", "aiStrongMetaText")
+        strength_layout.addWidget(lbl_strength)
         self.progress_strength = QProgressBar()
         self.progress_strength.setRange(0, 100)
         self.progress_strength.setValue(0)
@@ -37,7 +49,7 @@ class SignalCard(QWidget):
 
         # Trend bilgisi
         self.lbl_trend_info = QLabel("")
-        self.lbl_trend_info.setProperty("cssClass", "dateLabelMuted")
+        self.lbl_trend_info.setProperty("cssClass", "aiMetaText")
         self.lbl_trend_info.setWordWrap(True)
         layout.addWidget(self.lbl_trend_info)
 
@@ -50,19 +62,19 @@ class SignalCard(QWidget):
 
     def update_data(
         self,
-        signal: Signal,
+        outlook: ModelOutlook,
         strength: float,
         trend_label: str | None = None,
         confidence_warnings: list[str] | None = None,
     ):
         state_map = {
-            Signal.BUY: "buy",
-            Signal.SELL: "sell",
-            Signal.HOLD: "hold"
+            ModelOutlook.UP: "up",
+            ModelOutlook.DOWN: "down",
+            ModelOutlook.NEUTRAL: "neutral",
         }
-        state = state_map.get(signal, "neutral")
+        state = state_map.get(outlook, "neutral")
 
-        self.lbl_signal.setText(signal.value)
+        self.lbl_signal.setText(outlook.value)
         self.lbl_signal.setProperty("cssState", state)
         self.lbl_signal.style().unpolish(self.lbl_signal)
         self.lbl_signal.style().polish(self.lbl_signal)
