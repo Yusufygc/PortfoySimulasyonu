@@ -4,7 +4,7 @@ import os
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 
-from src.ui.pages.ai_page.core.models import AnalysisResult
+from src.ui.pages.ai_page.core.models import AnalysisResult, DEFAULT_INVESTMENT_DISCLAIMER
 from src.ui.pages.ai_page.core.model_interface import (
     AIModelInterface,
     FastAPIAdapter,
@@ -72,7 +72,7 @@ class ModelPanel(QWidget):
     def _init_ui(self):
         # Ana layout — scroll destekli
         outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(0, 0, 10, 0)
+        outer_layout.setContentsMargins(0, 0, 12, 0)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -82,7 +82,7 @@ class ModelPanel(QWidget):
         content = QWidget()
         layout = QVBoxLayout(content)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(10)
 
         # 1. Bağlantı durumu banner'ı
         self.status_banner = StatusBanner()
@@ -108,7 +108,13 @@ class ModelPanel(QWidget):
         layout.addWidget(self.performance_card)
         layout.addWidget(self.xai_card)
 
-        # 4. Gönder butonu
+        # 4. Yatırım tavsiyesi uyarısı
+        self.lbl_disclaimer = QLabel(DEFAULT_INVESTMENT_DISCLAIMER)
+        self.lbl_disclaimer.setProperty("cssClass", "disclaimerText")
+        self.lbl_disclaimer.setWordWrap(True)
+        layout.addWidget(self.lbl_disclaimer)
+
+        # 5. Gönder butonu
         self.btn_send_chat = SendToChatButton()
         self.btn_send_chat.send_requested.connect(self.send_to_chat_requested.emit)
         layout.addWidget(self.btn_send_chat)
@@ -125,6 +131,7 @@ class ModelPanel(QWidget):
         self.performance_card.reset()
         self.xai_card.reset()
         self.btn_send_chat.reset()
+        self._set_disclaimer(DEFAULT_INVESTMENT_DISCLAIMER)
 
         # Analiz durumu banner'ını sıfırla
         if self._api_connected:
@@ -137,6 +144,8 @@ class ModelPanel(QWidget):
         self.worker.start()
 
     def _on_result_ready(self, result: AnalysisResult):
+        self._set_disclaimer(result.disclaimer)
+
         # Analiz durumu kontrol et
         if result.analysis_status not in ("ok", "low_confidence", "xai_unavailable"):
             self.status_banner.show_analysis_status(
@@ -166,8 +175,8 @@ class ModelPanel(QWidget):
         )
 
         self.signal_card.update_data(
-            signal=result.signal,
-            strength=result.signal_strength,
+            outlook=result.outlook,
+            strength=result.outlook_strength,
             trend_label=result.trend_label,
             confidence_warnings=result.confidence_warnings,
         )
@@ -196,4 +205,9 @@ class ModelPanel(QWidget):
         self.btn_send_chat.set_result(result)
 
     def _on_error(self, err: str):
+        self._set_disclaimer(DEFAULT_INVESTMENT_DISCLAIMER)
         self.status_banner.show_error(f"Analiz hatası: {err}")
+
+    def _set_disclaimer(self, disclaimer: str | None):
+        self.lbl_disclaimer.setText(disclaimer or DEFAULT_INVESTMENT_DISCLAIMER)
+        self.lbl_disclaimer.setVisible(True)
