@@ -7,6 +7,7 @@ pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 
 from src.application.services.market.price_data_health_service import PriceDataHealthReport, StockPriceHealthRow
+from src.ui.pages.settings import AppearancePanel, PriceDataPanel, ResetPanel
 from src.ui.pages.settings_page import SettingsPage
 
 
@@ -43,6 +44,24 @@ def test_settings_page_renders_price_data_management_section():
     assert page.health_table.columnCount() == 6
     assert page.health_table.horizontalHeaderItem(0).text() == "Hisse"
     assert page.date_start.minimumDate().toPyDate() == date(2026, 1, 10)
+
+
+def test_settings_page_keeps_proxy_surface():
+    page = SettingsPage(container=DummyContainer())
+
+    assert page.btn_analyze is page.price_data_tab.btn_analyze
+    assert page.health_table is page.price_data_tab.health_table
+    assert page.date_start is page.price_data_tab.date_start
+
+
+def test_settings_panels_render_smoke():
+    reset_panel = ResetPanel(DummyResetService())
+    appearance_panel = AppearancePanel()
+    price_data_panel = PriceDataPanel(DummyContainer(), DummyPriceDataHealthService())
+
+    assert reset_panel.btn_reset.text().strip() == "Sistemi Sıfırla"
+    assert appearance_panel._theme_card_widgets
+    assert price_data_panel.health_table.columnCount() == 6
 
 
 def test_settings_page_populates_health_table_from_report():
