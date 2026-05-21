@@ -1,249 +1,265 @@
-<p align="center">
-  <img src="icons/wallet.ico" alt="Portföy Simülasyonu Logo" width="120"/>
-</p>
-
-<h1 align="center">📊 Portföy Simülasyonu</h1>
+# Portföy Simülasyonu
 
 <p align="center">
-  <strong>Profesyonel Borsa Portföy Yönetimi, Optimizasyon ve Simülasyon Laboratuvarı</strong>
+  <img src="icons/portfoy-simulasyonu.png" alt="Portföy Simülasyonu ikonu" width="128">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version"/>
-  <img src="https://img.shields.io/badge/PyQt5-Desktop_App-41CD52.svg?style=for-the-badge&logo=qt&logoColor=white" alt="PyQt5"/>
-  <img src="https://img.shields.io/badge/MySQL-8.0+-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL"/>
-  <img src="https://img.shields.io/badge/SQLAlchemy-ORM-D71F00.svg?style=for-the-badge&logo=sqlalchemy&logoColor=white" alt="SQLAlchemy"/>
-  <img src="https://img.shields.io/badge/SciPy-Markowitz-8CAAE6.svg?style=for-the-badge&logo=scipy&logoColor=white" alt="SciPy"/>
-  <img src="https://img.shields.io/badge/Architecture-Clean_Architecture-brightgreen.svg?style=for-the-badge" alt="Clean Architecture"/>
+  BIST ve global hisseler için portföy takibi, fiyat veri sağlığı, model portföy simülasyonu, Markowitz optimizasyonu ve AI destekli analiz sunan PyQt5 masaüstü uygulaması.
 </p>
 
 <p align="center">
-  <em>Portföy Simülasyonu; BIST ve global hisse senetleri için gerçek zamanlı fiyat takibi, Markowitz modeli ile portföy optimizasyonu, risksiz strateji testleri (sanal portföy) ve kapsamlı finansal planlama sunan uçtan uca bir masaüstü yatırım platformudur.</em>
+  <img src="https://img.shields.io/badge/Python-3.11-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/UI-PyQt5-41CD52.svg" alt="PyQt5">
+  <img src="https://img.shields.io/badge/DB-MySQL%20%2B%20SQLAlchemy-4479A1.svg" alt="MySQL ve SQLAlchemy">
+  <img src="https://img.shields.io/badge/Test-pytest-0A9EDC.svg" alt="pytest">
+  <img src="https://img.shields.io/badge/Mimari-Clean%20Architecture-10B981.svg" alt="Clean Architecture">
 </p>
 
 ---
 
-## 📑 İçindekiler
-1. [Görsel Sunum ve Ekran Görüntüleri](#-görsel-sunum-ve-ekran-görüntüleri)
-2. [Öne Çıkan Özellikler](#-öne-çıkan-özellikler)
-3. [Mimari ve Sistem Tasarımı](#-mimari-ve-sistem-tasarımı)
-4. [Kurulum ve Başlangıç](#-kurulum-ve-başlangıç)
-5. [Kullanıcı Senaryoları (Hızlı Başlangıç)](#-kullanıcı-senaryoları-hızlı-başlangıç)
-6. [Geliştirici Rehberi](#-geliştirici-rehberi)
-7. [Testler ve Yol Haritası](#-testler-ve-yol-haritası)
+## İçindekiler
 
----
+- [Proje Özeti](#proje-özeti)
+- [Öne Çıkan Özellikler](#öne-çıkan-özellikler)
+- [Mimari](#mimari)
+- [Kurulum](#kurulum)
+- [Ortam Değişkenleri](#ortam-değişkenleri)
+- [Çalıştırma](#çalıştırma)
+- [Test Komutları](#test-komutları)
+- [Build](#build)
+- [Proje Yapısı](#proje-yapısı)
+- [Kalite Kuralları](#kalite-kuralları)
+- [Katkı ve Commit Notları](#katkı-ve-commit-notları)
+- [Bilinen Uyarılar](#bilinen-uyarılar)
 
-## 📸 Görsel Sunum ve Ekran Görüntüleri
+## Proje Özeti
 
-| Dashboard (Ana Panel) | Model Portföy Simülasyonu |
-|:---:|:---:|
-| > Portföy performansınızı gerçek zamanlı, hücre bazlı render mekanizması ile sıfır donma yaşayarak takip edin. | > Gerçek para harcamadan sanal bakiye ile yatırım stratejilerinizi test edin ve piyasa koşullarında ölçün. |
-| *(Buraya dashboard ekran görüntüsü eklenecek: `docs/screenshots/dashboard.png`)* | *(Buraya model portföy ekran görüntüsü eklenecek: `docs/screenshots/model_portfolio.png`)* |
+Portföy Simülasyonu, yatırım kayıtlarını ve piyasa verilerini tek masaüstü uygulamasında birleştirir. Uygulama gerçek portföy işlemlerini takip eder, günlük fiyat verisi eksiklerini analiz eder, geçmiş performans raporları üretir ve sanal/model portföylerle strateji denemeyi sağlar.
 
-| Bilimsel Portföy Optimizasyonu | Finansal Planlama ve Risk Analizi |
-|:---:|:---:|
-| > Modern Portföy Teorisi (Markowitz) tabanlı SciPy optimizasyonu ile risk-getiri dengenizi maksimuma çıkarın. | > Hedeflerinizi belirleyin, aylık bütçenizi yönetin ve kişisel risk profilinize uygun yatırım kategorisi oluşturun. |
-| *(Buraya optimizasyon ekran görüntüsü eklenecek: `docs/screenshots/optimization.png`)* | *(Buraya planlama ekran görüntüsü eklenecek: `docs/screenshots/planning.png`)* |
+Uygulama kişisel kullanım ve geliştirme denemeleri için tasarlanmıştır. Gerçek yatırım tavsiyesi vermez; hesaplamalar ve analizler karar destek aracı olarak değerlendirilmelidir.
 
----
+## Öne Çıkan Özellikler
 
-## 🎯 Öne Çıkan Özellikler
+- **Portföy takibi:** Alış/satış işlemleri, açık pozisyonlar, maliyet, ağırlık ve kar/zarar hesapları.
+- **Fiyat veri sağlığı:** Eksik günlük fiyatları, hafta sonlarını, bilinen tatilleri ve tatil adayı günleri ayrıştıran analiz ekranı.
+- **Model portföy:** Gerçek para kullanmadan sanal portföy oluşturma ve performans izleme.
+- **Tarihsel simülasyon:** İşlem geçmişinden günlük pozisyon ve portföy snapshot üretimi.
+- **Markowitz optimizasyonu:** Risk-getiri dengesine göre ağırlık önerileri; piyasa verisi provider sınırı üzerinden alınır.
+- **Excel raporlama:** Günlük özet ve detay satırlarıyla geçmiş portföy raporu üretimi.
+- **Risk profili ve finansal planlama:** Kullanıcı anketi, bütçe ve hedef odaklı planlama ekranları.
+- **AI destekli analiz:** AI Core/Gemini entegrasyonu ile ek analiz ve sohbet akışları.
+- **Tema sistemi:** QSS tabanlı koyu/açık tema ve modüler stil dosyaları.
 
-### 🚀 Gerçek Zamanlı Portföy Takibi
-- **Event-Bus Mimarisi:** Fiyatlar YFinance API'den güncellendiğinde tüm ekran donmaz. Sadece değişen hisse hücresi (satır bazlı) reaktif olarak güncellenir (Pub/Sub pattern).
-- **Detaylı Analitik:** Ağırlıklı ortalama maliyet, anlık kâr/zarar oranları, kur çevrimleri ve yatırılan sermaye analizleri.
+## Mimari
 
-### 🧠 Bilimsel Portföy Optimizasyonu
-- **Markowitz Modern Portföy Teorisi:** Scipy kullanılarak portföydeki hisseler arasında geçmiş verilere göre maksimum getiriyi sağlayacak ideal ağırlık (weight) dağılımını hesaplar.
-- **Efficient Frontier (Etkin Sınır):** Risk limitinize göre alınabilecek en yüksek kâr kombinasyonlarını önerir.
-
-### 📈 Model Portföy & Simülasyon Laboratuvarı
-- **Sanal Bakiye Yönetimi:** X miktar sanal başlangıç parası ile hayali bir sepet oluşturma.
-- **Karşılaştırmalı Performans:** Model portföyünüzün zaman içindeki getirisini, gerçek portföyünüz ve endeks ile yan yana kıyaslama.
-
-### 🛡️ Kapsamlı Finansal Planlama
-- **Bütçe ve Tasarruf:** Gelir-gider tabloları üzerinden aylık yatırım yapılabilecek tutarın otomatik tespiti.
-- **Risk Profilleme:** Yaş, piyasa tepkisi ve gelir durumuna dayalı dinamik risk anketi. Ankete göre portföyün agresif/defansif yapısını analiz etme.
-
----
-
-## 🏗 Mimari ve Sistem Tasarımı
-
-Uygulama, sürdürülebilirliği maksimize eden **Clean Architecture (Temiz Mimari)** ve **SOLID** prensipleriyle tasarlanmıştır.
-
-### Katmanlı Mimari (Clean Architecture)
+Proje Clean Architecture prensipleriyle ayrılmıştır:
 
 ```mermaid
-graph TD
-    UI[Sunum Katmanı - UI<br/>PyQt5, QSS ThemeManager]
-    APP[Uygulama Katmanı - App<br/>DI Container, Services, EventBus]
-    DOM[Domain Katmanı<br/>Models, Rules, Interfaces]
-    INFRA[Altyapı Katmanı - Infra<br/>SQLAlchemy ORM, MySQL, YFinance]
-
-    UI -->|Use Cases Çağrısı| APP
-    APP -->|İş Kurallarını Yönetir| DOM
-    INFRA -.->|Interface Uygular| DOM
-    APP -->|Altyapıyı Çağırır| INFRA
-
-    style DOM fill:#10b981,color:#fff,stroke:#047857
-    style UI fill:#3b82f6,color:#fff,stroke:#1d4ed8
-    style APP fill:#8b5cf6,color:#fff,stroke:#6d28d9
-    style INFRA fill:#f59e0b,color:#fff,stroke:#b45309
+flowchart LR
+    UI["UI\nPyQt5, QSS, Worker"] --> APP["Application\nServices, DI, EventBus"]
+    APP --> DOMAIN["Domain\nModels, Ports, Rules"]
+    INFRA["Infrastructure\nSQLAlchemy, Market Data, Logging"] --> DOMAIN
+    APP --> INFRA
 ```
 
-| Katman | Görev | Bağımlılık Yönü |
-|---|---|---|
-| **Domain** | Saf iş kuralları (Portfolio, Trade, Stock modelleri). `Interface` tanımları buradadır. | Hiçbir katmana bağımlı değildir. |
-| **Application** | Servis sınıfları (`PortfolioService`), DI Konteyneri ve süreç orkestrasyonu. | Sadece `Domain` katmanına. |
-| **Infrastructure** | Veritabanı işlemleri (SQLAlchemy Repositories) ve Dış API servisleri (YFinance). | `Domain` katmanındaki interfaceleri uygular. |
-| **UI** | PyQt5 pencereleri, merkezi EventBus tetiklemeleri ve ThemeManager entegrasyonu. | Sadece `Application` katmanına. |
+Katmanların temel sorumlulukları:
 
-### Veritabanı Modeli (SQLAlchemy ORM)
+| Katman | Sorumluluk |
+| --- | --- |
+| `src/domain` | Saf domain modelleri, port arayüzleri ve iş kuralları |
+| `src/application` | Use case servisleri, simülasyon, optimizasyon, raporlama ve DI container |
+| `src/infrastructure` | SQLAlchemy repository, piyasa verisi, logging ve dış kaynak adaptörleri |
+| `src/ui` | PyQt5 sayfaları, paneller, widget'lar, tema yöneticisi ve worker akışları |
 
-Tablo yapısı tamamen `SQLAlchemy Declarative Base` ile oluşturulmuş tip-güvenli bir düzene sahiptir.
+Son refactor çalışmalarıyla:
 
-```mermaid
-erDiagram
-    PORTFOLIO ||--o{ TRADES : "içerir"
-    STOCKS ||--o{ TRADES : "ait"
-    STOCKS ||--o{ DAILY_PRICES : "sahip"
-    MODEL_PORTFOLIO ||--o{ MODEL_TRADES : "sanal işlemler"
-    
-    STOCKS {
-        int id PK
-        string ticker "Hisse Kodu (Örn: THYAO.IS)"
-    }
-    TRADES {
-        int id PK
-        date trade_date
-        enum side "BUY / SELL"
-        int quantity
-        decimal price
-    }
-    BUDGETS {
-        int id PK
-        string month "Örn: 2026-04"
-        decimal savings_target
-    }
-    RISK_PROFILES {
-        int id PK
-        int risk_score
-        string risk_label
-    }
+- `SettingsPage` ince bir tab orchestrator yapısına indirildi; reset, görünüm ve fiyat verisi yönetimi ayrı panellere taşındı.
+- `HistorySimulationService.simulate_history()` public API korunarak state, günlük pozisyon builder ve snapshot builder sınıflarıyla sadeleştirildi.
+- `OptimizationService` doğrudan canlı piyasa verisi çağırmak yerine provider/policy sınırı üzerinden çalışır.
+
+Detaylı mimari notlar için `docs/wiki/architecture.md` dosyasına bakılabilir.
+
+## Kurulum
+
+### Gereksinimler
+
+- Python 3.11 önerilir.
+- MySQL 8.0 veya uyumlu bir MySQL sunucusu gerekir.
+- Windows üzerinde geliştirme için mevcut doğrulanmış ortam:
+
+```powershell
+C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe
 ```
 
----
+### Depoyu hazırlama
 
-## 🚀 Kurulum ve Başlangıç
-
-### Sistem Gereksinimleri
-- **İşletim Sistemi:** Windows / macOS / Linux
-- **Python:** Versiyon 3.10 veya üzeri
-- **Veritabanı:** MySQL 8.0+
-
-### Adım Adım Kurulum
-
-**1. Depoyu İndirin:**
-```bash
-git clone https://github.com/kullanici/PortfoySimulasyonu.git
+```powershell
+git clone https://github.com/Yusufygc/PortfoySimulasyonu.git
 cd PortfoySimulasyonu
 ```
 
-**2. Sanal Ortam Oluşturun (Önerilir):**
-```bash
-python -m venv venv
-venv\Scripts\activate      # Windows
-source venv/bin/activate   # macOS / Linux
+Yeni bir ortamla çalışılacaksa:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-**3. Bağımlılıkları Yükleyin:**
-```bash
-pip install -r requirements.txt
+Mevcut Fintech conda ortamı kullanılacaksa:
+
+```powershell
+C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pip install -r requirements.txt
 ```
 
-**4. Ortam Değişkenleri ve Veritabanı Ayarı:**
-Kök dizinde bir `.env` dosyası oluşturun ve bilgilerinizi doldurun:
+## Ortam Değişkenleri
+
+Gerçek `.env` değerleri repoya yazılmamalıdır. Başlangıç için örnek dosyayı kopyalayın:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+`.env.example` içinde beklenen anahtarlar:
+
 ```ini
 DB_HOST=localhost
 DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=gizli_sifreniz
+DB_USER=portfoy_user
+DB_PASSWORD=change-me
 DB_NAME=portfoySim
+POOL_NAME=portfoy_pool
+POOL_SIZE=5
+GEMINI_API_KEY=change-me
+AI_CORE_API_URL=http://localhost:8000
+TCMB_DEPOSIT_RATE_FALLBACK=45.0
 ```
-*Not: Uygulama ilk açılışta `orm_models.py` üzerinden gerekli tabloları otomatik olarak MySQL sunucunuzda yaratacaktır.*
 
-**5. Uygulamayı Başlatın:**
-```bash
+Notlar:
+
+- `DB_PORT` ve `POOL_SIZE` sayısal olmalıdır.
+- `GEMINI_API_KEY` ve `AI_CORE_API_URL` AI ekranı için kullanılır.
+- `TCMB_DEPOSIT_RATE_FALLBACK`, mevduat benchmark verisi canlı kaynaktan alınamadığında manuel fallback olarak kullanılır.
+
+## Çalıştırma
+
+Uygulamayı başlatmak için:
+
+```powershell
+C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe app.py
+```
+
+Genel Python ortamında:
+
+```powershell
 python app.py
 ```
 
-**(Opsiyonel) Taşınabilir EXE Derleme:**
-Windows ortamında tek tıklamalı `.exe` elde etmek için:
-```bash
-build_nuitka.bat
+İlk çalıştırmada SQLAlchemy ORM modeli gerekli tabloları veritabanında oluşturur. MySQL bağlantı bilgileri `.env` üzerinden okunur.
+
+## Test Komutları
+
+Tam test suite:
+
+```powershell
+C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests
 ```
 
----
+Hedefli testler:
 
-## 🏃‍♂️ Kullanıcı Senaryoları (Hızlı Başlangıç)
-
-Uygulamayı ilk açtığınızda neler yapmalısınız?
-
-1. **İlk Hissenizi Ekleyin:** `Dashboard` (Ana Panel) sayfasından "İşlem Ekle" butonuna basın. Bir BIST hissesi (Örn: `TUPRS.IS`) veya Global bir hisse kodu girin, alış fiyatı ve miktar belirterek portföyünüze ekleyin.
-2. **Geçmiş Veriyi İndirin:** `Hisse Detay` sayfasına giderek "Geçmiş Verileri Doldur (Backfill)" yapın. Böylece getiri hesaplamaları için gerekli veri tabanı oluşturulur.
-3. **Simülasyona Başlayın:** `Model Portföy` sekmesine geçip "Sanal Portföy Oluştur" deyin. 100.000 TL sanal bakiye ile deneme alımları yapmaya başlayın.
-4. **Risk Profilinizi Öğrenin:** `Risk Profili` ekranına giderek anketi çözün. Sistemin size önereceği hisse/nakit dengesini öğrenin.
-
----
-
-## 🛠 Geliştirici Rehberi
-
-### Yeni Bir Servis Eklemek
-Clean Architecture kuralları gereği, veri tabanı ve arayüz asla birbirine direkt bağlanmaz.
-
-1. `src/domain/services_interfaces` içine arayüzü yazın (Örn: `IMyService`).
-2. `src/infrastructure/db/sqlalchemy/repositories` içine bu arayüzü uygulayan Repository dosyasını yazın.
-3. `src/application/container.py` içerisindeki `AppContainer` sınıfında bu servisin instance'ını (Dependency Injection) oluşturun.
-
-### Olay Döngüsü (Event Bus) Kullanımı
-Ekran dondurmadan arka planda güncelleme yapmak için Qt sinyallerini kullanan `GlobalEventBus` kullanın:
-```python
-# Arka plan servisinde
-container.event_bus.prices_updated.emit({"THYAO.IS": 320.50})
-
-# UI (Sunum) tarafında dinleme
-container.event_bus.prices_updated.connect(self._tabloyu_guncelle)
+```powershell
+C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests/domain tests/application
+C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests/ui
+C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests/infrastructure
 ```
 
-### Tema Yönetimi (QSS)
-Görsel değişiklikler için koda dokunmayın. `src/ui/styles/` dizinindeki ilgili klasöre gidin:
-- `base/`: Temel buton/tablo davranışları.
-- `themes/`: Renk paleti (Dark, Light).
-- `features/`: Sayfalara özel CSS kuralları (Örn: Risk sayfası fontları).
+Önemli regresyon alanları:
 
----
+- Excel append/dedup davranışı: `tests/application/test_excel_report_builder.py`
+- Tarihsel simülasyon: `tests/application/test_history_simulation_service.py`
+- Ayarlar sayfası panelleri: `tests/ui/pages/test_settings_page.py`
+- Ortam doğrulama: `tests/infrastructure/test_settings_loader.py`
 
-## 🧪 Testler ve Yol Haritası
+## Build
 
-Mevcut test süitini çalıştırmak için projenin kök dizininde pytest komutunu verin:
-```bash
-python -m pytest tests/ -v
+Windows üzerinde tek dosya `.exe` üretmek için:
+
+```powershell
+.\build_nuitka.bat
 ```
-*(Mevcut testler; portföy getiri hesaplamaları, alış/satış domain objesi validasyonları ve servis entegrasyon testlerini kapsar.)*
 
-### Yakın Gelecek Yol Haritası (Roadmap)
-- [ ] ML/AI tabanlı (HisseTahmin Entegrasyonu) hisse fiyatı yön tahminleme sekmesi.
-- [ ] Nakit, USD ve EUR döviz cüzdanlarının entegrasyonu.
+Build script Nuitka kullanır ve uygulama ikonunu `icons/portfoy-simulasyonu.ico` dosyasından alır.
 
+## Proje Yapısı
 
----
+```text
+.
+├── app.py
+├── config/
+│   └── settings_loader.py
+├── icons/
+│   ├── portfoy-simulasyonu.svg
+│   ├── portfoy-simulasyonu.png
+│   └── portfoy-simulasyonu.ico
+├── src/
+│   ├── application/
+│   ├── domain/
+│   ├── infrastructure/
+│   └── ui/
+├── tests/
+│   ├── application/
+│   ├── domain/
+│   ├── infrastructure/
+│   └── ui/
+├── .env.example
+├── requirements.txt
+└── build_nuitka.bat
+```
 
-## 📜 Lisans & İletişim
+## Kalite Kuralları
 
-Bu yazılım kapalı kaynak ve lisanslı bir mimaridir.  
-Herhangi bir soru, destek veya katkı süreci için iletişime geçiniz.
+Ana kural kaynağı `RULES.md` dosyasıdır. Özet:
 
-<p align="center">
-  <sub>Yüksek performanslı ve ölçeklenebilir kodlama mimarisi ile inşa edilmiştir </sub>
-</p>
+- Büyük sınıf veya uzun fonksiyon eşiği aşıldığında yeni davranış eklemeden önce refactor yapılır.
+- UI page sınıfları layout ve wiring ile sınırlı tutulur; alt davranışlar panel/component sınıflarına taşınır.
+- Application servisleri dış API/client çağrılarını adapter veya provider interface üzerinden yapar.
+- Gerçek `.env` değerleri dokümana, loga veya commit'e yazılmaz.
+- Production bug fix önce kırmızı testle kanıtlanır, sonra fix ve tam test koşumu ile kapatılır.
+- Refactor sonrası minimum kabul komutu:
+
+```powershell
+C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests
+```
+
+## Katkı ve Commit Notları
+
+Commit mesajları Türkçe yazılır. Önerilen başlık fiilleri:
+
+- `ekle:` yeni özellik, dosya veya sayfa
+- `güncelle:` mevcut davranış veya dokümantasyon geliştirme
+- `düzelt:` hata giderme
+- `refaktör:` davranış değiştirmeden yapı sadeleştirme
+- `test:` test ekleme veya güncelleme
+- `yapılandır:` config, ortam veya build değişiklikleri
+- `belge:` yalnız dokümantasyon değişiklikleri
+
+Örnek:
+
+```text
+refaktör: SettingsPage sayfasını orchestrator yap
+
+Ayarlar sayfası başlık, tab wiring ve geriye dönük proxy yüzeylerle sınırlı
+ince bir sayfa haline getirildi.
+```
+
+## Bilinen Uyarılar
+
+- `google.generativeai` paketi için deprecation uyarısı görülebilir. `google.genai` geçişi bilinen teknik borçtur.
+- AI Core bağlantısı ayrı servis gerektirir; `AI_CORE_API_URL` erişilemezse AI ekranında bağlantı hatası alınabilir.
+- README içindeki komutlar Windows PowerShell öncelikli yazılmıştır; Linux/macOS ortamlarında sanal ortam aktivasyon komutları farklıdır.
+
+## Lisans ve Kullanım Notu
+
+Bu proje kişisel portföy takibi ve geliştirme çalışmaları için hazırlanmıştır. Finansal analiz çıktıları yatırım tavsiyesi değildir.
