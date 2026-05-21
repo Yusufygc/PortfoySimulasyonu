@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
 from PyQt5.QtCore import Qt
+from src.ui.core.icon_manager import IconManager
 
 
 class PredictionCard(QWidget):
@@ -12,18 +13,27 @@ class PredictionCard(QWidget):
     def _init_ui(self):
         self.setProperty("cssClass", "aiCard")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(6)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(8)
 
-        title = QLabel("📈 TAHMİN")
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        lbl_icon = QLabel()
+        lbl_icon.setPixmap(IconManager.get_icon("trending-up", color="@COLOR_PRIMARY").pixmap(20, 20))
+        title = QLabel("TAHMİN")
         title.setProperty("cssClass", "cardLabel")
-        layout.addWidget(title)
+        header_layout.addWidget(lbl_icon)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        layout.addLayout(header_layout)
 
         # Hisse & Model bilgisi
         info_layout = QHBoxLayout()
         self.lbl_ticker = QLabel("Hisse: -")
+        self.lbl_ticker.setProperty("cssClass", "aiPrimaryText")
         self.lbl_model = QLabel("")
-        self.lbl_model.setProperty("cssClass", "dateLabelMuted")
+        self.lbl_model.setProperty("cssClass", "aiMetaText")
+        self.lbl_model.setWordWrap(True)
         info_layout.addWidget(self.lbl_ticker)
         info_layout.addStretch()
         info_layout.addWidget(self.lbl_model)
@@ -34,7 +44,8 @@ class PredictionCard(QWidget):
         self.lbl_price = QLabel("Tahmini Fiyat: -")
         self.lbl_price.setProperty("cssClass", "priceValueLargeCyan")
         self.lbl_last_close = QLabel("")
-        self.lbl_last_close.setProperty("cssClass", "dateLabelMuted")
+        self.lbl_last_close.setProperty("cssClass", "aiMetaText")
+        self.lbl_last_close.setWordWrap(True)
         price_layout.addWidget(self.lbl_price)
         price_layout.addStretch()
         price_layout.addWidget(self.lbl_last_close)
@@ -46,9 +57,10 @@ class PredictionCard(QWidget):
         self.lbl_trend.setAlignment(Qt.AlignCenter)
         self.lbl_trend.setProperty("cssClass", "trendBadge")
         self.lbl_horizon = QLabel("")
-        self.lbl_horizon.setProperty("cssClass", "dateLabelMuted")
+        self.lbl_horizon.setProperty("cssClass", "aiMetaText")
         self.lbl_return = QLabel("")
-        self.lbl_return.setProperty("cssClass", "dateLabelMuted")
+        self.lbl_return.setProperty("cssClass", "aiStrongMetaText")
+        self.lbl_return.setWordWrap(True)
         trend_layout.addWidget(self.lbl_trend)
         trend_layout.addWidget(self.lbl_horizon)
         trend_layout.addStretch()
@@ -57,7 +69,9 @@ class PredictionCard(QWidget):
 
         # Güven barı
         conf_layout = QHBoxLayout()
-        conf_layout.addWidget(QLabel("Güven: "))
+        lbl_conf = QLabel("Güven: ")
+        lbl_conf.setProperty("cssClass", "aiStrongMetaText")
+        conf_layout.addWidget(lbl_conf)
         self.progress_conf = QProgressBar()
         self.progress_conf.setRange(0, 100)
         self.progress_conf.setValue(0)
@@ -121,11 +135,12 @@ class PredictionCard(QWidget):
         if horizon_days is not None:
             self.lbl_horizon.setText(f"{horizon_days} günlük tahmin")
 
-        # Beklenen getiri
+        # Horizon sonundaki bileşik beklenen getiri
         if weekly_expected_return is not None:
             pct = weekly_expected_return * 100
             sign = "+" if pct >= 0 else ""
-            self.lbl_return.setText(f"Beklenen Getiri: {sign}{pct:.2f}%")
+            horizon_label = f"{horizon_days} Günlük" if horizon_days is not None else "Horizon Sonu"
+            self.lbl_return.setText(f"{horizon_label} Bileşik Getiri: {sign}{pct:.2f}%")
 
     def reset(self):
         self.lbl_ticker.setText("Hisse: -")
