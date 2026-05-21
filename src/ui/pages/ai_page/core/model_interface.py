@@ -16,8 +16,9 @@ from typing import Any, Dict
 
 from src.ui.pages.ai_page.core.models import (
     AnalysisResult,
+    DEFAULT_INVESTMENT_DISCLAIMER,
     ForecastPoint,
-    Signal,
+    ModelOutlook,
     XaiFactorItem,
 )
 
@@ -46,6 +47,43 @@ class AIModelInterface(ABC):
 
 # Güven etiketi → sayısal değer eşleme
 _CONFIDENCE_MAP = {"low": 0.25, "medium": 0.60, "high": 0.85}
+
+
+def _parse_xai_factor(raw: Dict[str, Any], default_direction: str) -> XaiFactorItem:
+    """API XAI faktörünü UI modeline geriye uyumlu biçimde taşır."""
+    contribution = raw.get("contribution")
+    try:
+        contribution = None if contribution is None else float(contribution)
+    except (TypeError, ValueError):
+        contribution = None
+
+    return XaiFactorItem(
+        feature_name=raw.get("feature_name", ""),
+        human_label=raw.get("human_label", ""),
+        importance=abs(float(raw.get("importance", 0) or 0)),
+        direction=raw.get("direction", default_direction),
+        feature_group=raw.get("feature_group"),
+        reason=raw.get("reason"),
+        method=raw.get("method"),
+        contribution=contribution,
+        approximate=raw.get("approximate"),
+    )
+
+
+def _xai_factor_summary(item: XaiFactorItem) -> str:
+    name = item.human_label or item.feature_name
+    group = f" [{item.feature_group}]" if item.feature_group else ""
+    reason = f" — {item.reason}" if item.reason else ""
+    return f"{name}{group}{reason}"
+
+
+def _outlook_from_trend_label(trend_label: str | None) -> ModelOutlook:
+    trend_norm = str(trend_label or "").strip().lower()
+    if trend_norm == "up":
+        return ModelOutlook.UP
+    if trend_norm == "down":
+        return ModelOutlook.DOWN
+    return ModelOutlook.NEUTRAL
 
 
 def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
@@ -80,34 +118,19 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
     if forecast_points:
         predicted_price = forecast_points[-1].bounded_predicted_close
 
-    # ── Sinyal (trend_label'dan basit eşleme — gelişmiş türetim sonraya) ─
+    # ── Yön beklentisi (emir dili değil, analitik görünüm) ─
     trend_label = forecast_block.get("trend_label")
-    if trend_label == "up":
-        signal = Signal.BUY
-    elif trend_label == "down":
-        signal = Signal.SELL
-    else:
-        signal = Signal.HOLD
-
-    signal_strength = min(abs(forecast_block.get("weekly_expected_return", 0) or 0) * 10, 1.0)
+    trend_norm = str(trend_label or "").strip().lower()
+    outlook = _outlook_from_trend_label(trend_label)
+    outlook_strength = min(abs(forecast_block.get("weekly_expected_return", 0) or 0) * 10, 1.0)
 
     # ── XAI ──────────────────────────────────────────────────────────────
     xai_pos = [
-        XaiFactorItem(
-            feature_name=f.get("feature_name", ""),
-            human_label=f.get("human_label", ""),
-            importance=float(f.get("importance", 0)),
-            direction=f.get("direction", "positive"),
-        )
+        _parse_xai_factor(f, "positive")
         for f in xai_block.get("top_positive_reasons", [])
     ]
     xai_neg = [
-        XaiFactorItem(
-            feature_name=f.get("feature_name", ""),
-            human_label=f.get("human_label", ""),
-            importance=float(f.get("importance", 0)),
-            direction=f.get("direction", "negative"),
-        )
+        _parse_xai_factor(f, "negative")
         for f in xai_block.get("top_negative_reasons", [])
     ]
 
@@ -123,10 +146,10 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         parts = []
         if xai_pos:
             top = xai_pos[0]
-            parts.append(f"Fiyatı yukarı çeken en önemli faktör: {top.human_label or top.feature_name}")
+            parts.append(f"Fiyatı yukarı çeken en önemli faktör: {_xai_factor_summary(top)}")
         if xai_neg:
             top = xai_neg[0]
-            parts.append(f"Aşağı yönlü baskı yapan faktör: {top.human_label or top.feature_name}")
+            parts.append(f"Aşağı yönlü baskı yapan faktör: {_xai_factor_summary(top)}")
         xai_text = ". ".join(parts) + "."
 
     return AnalysisResult(
@@ -137,8 +160,8 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         confidence_label=conf_label,
         confidence_reasons=conf_block.get("reasons", []),
         confidence_warnings=conf_block.get("warnings", []),
-        signal=signal,
-        signal_strength=signal_strength,
+        outlook=outlook,
+        outlook_strength=outlook_strength,
         last_close=data_block.get("last_close"),
         last_observed_date=data_block.get("last_observed_date"),
         data_freshness=data_block.get("data_freshness", "unknown"),
@@ -148,7 +171,7 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         validation_mode=model_block.get("validation_mode"),
         trained_at=model_block.get("trained_at"),
         eligibility_status=model_block.get("eligibility_status", "eligible"),
-        trend_label=trend_label,
+        trend_label=trend_norm or trend_label,
         horizon_days=forecast_block.get("horizon_days"),
         weekly_expected_return=forecast_block.get("weekly_expected_return"),
         forecast_points=forecast_points,
@@ -167,7 +190,7 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         xai_text=xai_text,
         xai_caveat=xai_block.get("caveat", ""),
         xai_model_family_caveat=xai_block.get("model_family_caveat", ""),
-        disclaimer=data.get("disclaimer", ""),
+        disclaimer=data.get("disclaimer") or DEFAULT_INVESTMENT_DISCLAIMER,
         raw_output=data,
         generated_at=data.get("generated_at", ""),
     )
@@ -205,8 +228,8 @@ class MockAdapter(AIModelInterface):
         price = random.uniform(10.0, 500.0)
         conf_label = random.choice(["low", "medium", "high"])
         conf = _CONFIDENCE_MAP[conf_label]
-        signals = list(Signal)
-        sig = random.choice(signals)
+        trend_label = random.choice(["up", "down", "neutral"])
+        outlook = _outlook_from_trend_label(trend_label)
         strength = random.uniform(0.4, 0.9)
 
         return AnalysisResult(
@@ -216,13 +239,13 @@ class MockAdapter(AIModelInterface):
             confidence=round(conf, 2),
             confidence_label=conf_label,
             confidence_reasons=["Demo: Gerçek model bağlı değil"],
-            signal=sig,
-            signal_strength=round(strength, 2),
+            outlook=outlook,
+            outlook_strength=round(strength, 2),
             last_close=round(price * random.uniform(0.95, 1.05), 2),
             data_freshness="fresh",
             model_name="MockModel",
             model_family="demo",
-            trend_label=random.choice(["up", "down", "neutral"]),
+            trend_label=trend_label,
             horizon_days=5,
             weekly_expected_return=round(random.uniform(-0.05, 0.08), 4),
             rmse=round(random.uniform(0.5, 3.0), 2),
