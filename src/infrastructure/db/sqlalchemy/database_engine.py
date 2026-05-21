@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from src.infrastructure.db.db_config import MySQLConfig
 
+
 class SQLAlchemyEngineProvider:
     """
     SQLAlchemy için Engine ve Session üreten Provider.
@@ -33,3 +34,10 @@ class SQLAlchemyEngineProvider:
         Her repository operasyonunda kullanmak üzere thread-safe bir veritabanı oturumu döner.
         """
         return self.Session()
+
+    def remove_session(self) -> None:
+        self.Session.remove()
+
+    def dispose(self) -> None:
+        self.remove_session()
+        self._engine.dispose()
