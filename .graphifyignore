@@ -1,0 +1,51 @@
+# Graphify corpus hygiene
+.git/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.tox/
+.nox/
+.cache/
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Local/editor state
+.vscode/
+.idea/
+.cursor/
+.claude/
+docs/.obsidian/
+docs/wiki/.obsidian/
+
+# Runtime/build artefacts
+logs/
+build/
+dist/
+downloads/
+htmlcov/
+cover/
+icons/
+src/ui/assets/icons/
+src/ui/.icon_cache/
+*.log
+*.sqlite3
+*.db
+
+# Secrets and local env
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cert
+
+# Graphify generated files
+graphify-out/
+graphify-out.*/
+.graphify_*.json
+.graphify_*.txt
+.graphify_old.json
