@@ -18,8 +18,8 @@ class ConversationView(QScrollArea):
         self.content_widget.setObjectName("scroll_content")
         self.layout = QVBoxLayout(self.content_widget)
         self.layout.setAlignment(Qt.AlignTop)
-        self.layout.setContentsMargins(10, 10, 10, 10)
-        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(12, 12, 12, 12)
+        self.layout.setSpacing(8)
 
         self.setWidget(self.content_widget)
 
