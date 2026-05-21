@@ -1,29 +1,29 @@
-# --- Temel Veri Bilimi ve Analiz ---
-numpy
-pandas>=2.0.0
-scipy
-scikit-learn
-matplotlib
-openpyxl
+# Core data and analysis
+numpy==2.4.4
+pandas==3.0.2
+scipy==1.17.1
+scikit-learn==1.8.0
+matplotlib==3.10.8
+openpyxl==3.1.5
 
-# --- Borsa ve Finansal Veri ---
+# Market data
 yfinance==0.2.66
 
-# --- Google AI (Gemini) ---
-google-generativeai
+# Google AI (Gemini)
+google-generativeai==0.8.6
 
-# --- HTTP İstemci (AI_Core FastAPI haberleşmesi) ---
-requests>=2.31.0
+# HTTP client
+requests==2.33.1
 
-# --- Veritabanı ve Çevre Değişkenleri ---
-SQLAlchemy>=2.0.0
-mysql-connector-python
-python-dotenv
+# Database and environment
+SQLAlchemy==2.0.49
+mysql-connector-python==9.6.0
+python-dotenv==1.2.2
 
-# --- Arayüz ve Görselleştirme ---
-PyQt5
-pyqtgraph
+# UI and visualization
+PyQt5==5.15.11
+pyqtgraph==0.14.0
 
-# --- Test ve Kalite ---
-pytest
-pytest-mock
+# Test and quality
+pytest==9.0.3
+pytest-mock==3.15.1
