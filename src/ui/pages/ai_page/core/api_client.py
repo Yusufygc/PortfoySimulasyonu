@@ -103,12 +103,14 @@ class AICoreFastAPIClient:
         try:
             resp = self._session.get(url, params=params, timeout=self.timeout)
         except requests.ConnectionError as exc:
+            logger.warning("AI_Core connection failed: url=%s", url, exc_info=True)
             raise APIConnectionError(
                 f"AI_Core sunucusuna bağlanılamadı ({url}). "
                 "Sunucunun çalıştığından emin olun: "
                 "uvicorn src.api.main:app --port 8000"
             ) from exc
         except requests.Timeout as exc:
+            logger.warning("AI_Core request timed out: url=%s timeout=%s", url, self.timeout, exc_info=True)
             raise APIConnectionError(
                 f"AI_Core isteği zaman aşımına uğradı ({self.timeout}s): {url}"
             ) from exc
@@ -120,6 +122,11 @@ class AICoreFastAPIClient:
                 detail = body.get("detail", str(body))
             except Exception:
                 detail = resp.text[:200]
+            logger.error("AI_Core response error: url=%s status_code=%s detail=%s", url, resp.status_code, detail)
             raise APIResponseError(resp.status_code, detail)
 
-        return resp.json()
+        try:
+            return resp.json()
+        except ValueError as exc:
+            logger.error("AI_Core returned invalid JSON: url=%s", url, exc_info=True)
+            raise APIResponseError(resp.status_code, "Invalid JSON response") from exc
