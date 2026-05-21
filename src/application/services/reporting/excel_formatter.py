@@ -4,18 +4,20 @@ import pandas as pd
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
+from src.application.services.reporting import excel_theme as theme
+
 
 class ExcelFormatter:
     def apply_formatting(self, writer: pd.ExcelWriter, sheet_name: str, df: pd.DataFrame) -> None:
         """Profesyonel Excel formatlaması, durumsuz (stateless) operasyonlar."""
         if df.empty:
             return
-            
+
         worksheet = writer.sheets[sheet_name]
-        
+
         # 1. BAŞLIK SATIRI
-        header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-        header_font = Font(bold=True, color="FFFFFF", size=11)
+        header_fill = PatternFill(start_color=theme.NAVY_PRIMARY, end_color=theme.NAVY_PRIMARY, fill_type="solid")
+        header_font = Font(bold=True, color=theme.WHITE, size=11)
         thin_border = Border(
             left=Side(style='thin'), right=Side(style='thin'),
             top=Side(style='thin'), bottom=Side(style='thin')
@@ -29,7 +31,7 @@ class ExcelFormatter:
             cell.border = thin_border
         
         # 2. ZEBRASI SATIRLAR
-        light_gray = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+        light_gray = PatternFill(start_color=theme.ZEBRA, end_color=theme.ZEBRA, fill_type="solid")
         
         for row_num in range(2, len(df) + 2):
             for col_num in range(1, len(df.columns) + 1):
@@ -37,7 +39,7 @@ class ExcelFormatter:
                 if row_num % 2 == 0:
                     cell.fill = light_gray
                 cell.border = thin_border
-                cell.alignment = Alignment(vertical="center")
+                cell.alignment = Alignment(horizontal="center", vertical="center")
         
         # 3. SAYISAL VE TARİH FORMATLARI
         for col_num, col_name in enumerate(df.columns, 1):
@@ -54,10 +56,10 @@ class ExcelFormatter:
                     cell.number_format = '#,##0'
         
         # 4. KOŞULLU RENKLENDIRME
-        green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
-        green_font = Font(color="006100", bold=True)
-        red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
-        red_font = Font(color="9C0006", bold=True)
+        green_fill = PatternFill(start_color=theme.POSITIVE_FILL, end_color=theme.POSITIVE_FILL, fill_type="solid")
+        green_font = Font(color=theme.POSITIVE_FONT, bold=True)
+        red_fill = PatternFill(start_color=theme.NEGATIVE_FILL, end_color=theme.NEGATIVE_FILL, fill_type="solid")
+        red_font = Font(color=theme.NEGATIVE_FONT, bold=True)
         
         for col_num, col_name in enumerate(df.columns, 1):
             if "K/Z" in col_name or "Getiri" in col_name:
@@ -73,7 +75,7 @@ class ExcelFormatter:
         
         # 5. TOPLAM SATIRLARINI VURGULA
         bold_font = Font(bold=True, size=11)
-        summary_fill = PatternFill(start_color="E7E6E6", end_color="E7E6E6", fill_type="solid")
+        summary_fill = PatternFill(start_color=theme.SUMMARY_FILL, end_color=theme.SUMMARY_FILL, fill_type="solid")
         
         for row_num in range(2, len(df) + 2):
             ticker_cell = None
