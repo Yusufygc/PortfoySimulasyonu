@@ -10,6 +10,7 @@ from typing import Dict
 from src.domain.models.daily_price import DailyPrice
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
+from src.infrastructure.calendar.bist_holiday_calendar import is_bist_trading_day
 
 
 @dataclass
@@ -22,6 +23,7 @@ class PriceUpdateResult:
     """
     updated_count: int
     prices: Dict[int, Decimal]
+    skipped_reason: str | None = None
 
 
 class PriceUpdateService:
@@ -60,6 +62,13 @@ class PriceUpdateService:
         Dönüş:
             PriceUpdateResult
         """
+        if not is_bist_trading_day(price_date):
+            return PriceUpdateResult(
+                updated_count=0,
+                prices={},
+                skipped_reason=f"BIST kapalı ({price_date:%d.%m.%Y}); fiyat güncellemesi atlandı.",
+            )
+
         if not stock_ticker_map:
             return PriceUpdateResult(updated_count=0, prices={})
 

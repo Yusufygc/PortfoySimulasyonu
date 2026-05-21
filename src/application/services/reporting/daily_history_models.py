@@ -17,6 +17,7 @@ SUMMARY_ROW_LABEL = "GÜNLÜK TOPLAM ➤➤➤"
 class PortfolioStatus:
     OPEN    = "Piyasa Açık"
     WEEKEND = "Hafta Sonu"
+    MARKET_CLOSED = "Piyasa Kapalı"
     NO_DATA = "Veri Yok"
 
 
@@ -25,6 +26,8 @@ class SheetName:
     SUMMARY       = "Portföy Özeti"
     DAILY_DETAIL  = "Günlük Detaylar"
     STOCK_SUMMARY = "Hisse Özeti"
+    CHARTS        = "Grafikler"
+    CHART_DATA    = "Grafik Verileri"
 
 @dataclass
 class DailyPosition:

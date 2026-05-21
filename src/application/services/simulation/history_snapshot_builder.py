@@ -23,7 +23,7 @@ class HistorySnapshotBuilder:
         last_portfolio_value: Decimal | None,
         base_portfolio_value: Decimal | None,
         has_prices: bool,
-        is_weekend: bool,
+        is_trading_day: bool,
     ) -> SnapshotBuildResult:
         daily_pnl = None
         daily_ret = None
@@ -32,7 +32,7 @@ class HistorySnapshotBuilder:
         next_base = base_portfolio_value
         next_last = last_portfolio_value
 
-        if portfolio_value is not None:
+        if has_prices and portfolio_value is not None:
             if next_base is None:
                 next_base = portfolio_value
 
@@ -56,7 +56,14 @@ class HistorySnapshotBuilder:
 
             next_last = portfolio_value
 
-        status = PortfolioStatus.OPEN if has_prices else (PortfolioStatus.WEEKEND if is_weekend else PortfolioStatus.NO_DATA)
+        if has_prices:
+            status = PortfolioStatus.OPEN
+        elif current_date.weekday() >= 5:
+            status = PortfolioStatus.WEEKEND
+        elif not is_trading_day:
+            status = PortfolioStatus.MARKET_CLOSED
+        else:
+            status = PortfolioStatus.NO_DATA
         return SnapshotBuildResult(
             snapshot=DailyPortfolioSnapshot(
                 total_cost_basis=total_cost_basis,

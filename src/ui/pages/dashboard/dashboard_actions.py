@@ -108,9 +108,10 @@ class DashboardActions:
         self._presenter.refresh_data()
         self._presenter.update_returns()
         if price_update_result.updated_count <= 0:
+            skipped_reason = getattr(price_update_result, "skipped_reason", None)
             Toast.warning(
                 self._page,
-                "Guncellenecek fiyat bulunamadi.",
+                skipped_reason or "Guncellenecek fiyat bulunamadi.",
                 duration_ms=4000,
                 position="top",
             )

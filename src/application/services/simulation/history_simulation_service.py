@@ -11,6 +11,7 @@ from src.application.services.simulation.history_snapshot_builder import History
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
+from src.infrastructure.calendar.bist_holiday_calendar import is_bist_trading_day
 
 
 class HistorySimulationService:
@@ -52,7 +53,8 @@ class HistorySimulationService:
         current_date = start_date
         while current_date <= end_date:
             self._apply_due_trades(state, relevant_trades, current_date)
-            prices_for_day = price_series.get(current_date, {})
+            is_trading_day = is_bist_trading_day(current_date)
+            prices_for_day = price_series.get(current_date, {}) if is_trading_day else {}
             has_prices = bool(prices_for_day)
             total_cost_basis = Decimal("0")
             portfolio_value = state.last_portfolio_value if state.last_portfolio_value is not None else None
@@ -77,7 +79,7 @@ class HistorySimulationService:
                 last_portfolio_value=state.last_portfolio_value,
                 base_portfolio_value=state.base_portfolio_value,
                 has_prices=has_prices,
-                is_weekend=current_date.weekday() >= 5,
+                is_trading_day=is_trading_day,
             )
             daily_snapshots.append(snapshot_result.snapshot)
             state.base_portfolio_value = snapshot_result.base_portfolio_value
