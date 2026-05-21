@@ -1,42 +1,57 @@
-# config/settings_loader.py
-
 from __future__ import annotations
+
 import os
+import sys
+from pathlib import Path
+
 from dotenv import load_dotenv
+
 from src.infrastructure.db.db_config import MySQLConfig
 
+
+class SettingsError(RuntimeError):
+    pass
+
+
+def _env_file_path() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent / ".env"
+    return Path(__file__).resolve().parents[1] / ".env"
+
+
+def _load_project_env() -> None:
+    env_path = _env_file_path()
+    if env_path.exists():
+        load_dotenv(env_path, override=False)
+
+
+def _required_env(name: str) -> str:
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        raise SettingsError(f"Missing required environment variable: {name}")
+    return value.strip()
+
+
+def _required_int_env(name: str, minimum: int = 1) -> int:
+    raw_value = _required_env(name)
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise SettingsError(f"Environment variable {name} must be an integer.") from exc
+    if value < minimum:
+        raise SettingsError(f"Environment variable {name} must be >= {minimum}.")
+    return value
+
+
 def load_settings() -> MySQLConfig:
-    """
-    .env dosyasını okuyarak MySQLConfig nesnesi oluşturur.
-    """
-    load_dotenv()  # .env otomatik yukarıya doğru taranır (Geliştirme ortamı için)
-
-    # Exe modunda (Nuitka/PyInstaller) .env dosyasını temp klasöründen oku (Gömülü dosya)
-    import sys
-    if getattr(sys, 'frozen', False):
-        # Nuitka onefile modunda dosya temp klasörüne açılır.
-        # Bu dosya: config/settings_loader.py. İki üst klasör root'tur.
-        base_path = os.path.dirname(os.path.dirname(__file__))
-        env_path = os.path.join(base_path, '.env')
-        
-        if os.path.exists(env_path):
-            load_dotenv(env_path)
-    
-    host = os.getenv("DB_HOST", "localhost")
-    port = int(os.getenv("DB_PORT", "3306"))
-    user = os.getenv("DB_USER", "root")
-    password = os.getenv("DB_PASSWORD", "")
-    database = os.getenv("DB_NAME", "portfoySim")
-
-    pool_name = os.getenv("POOL_NAME", "portfoy_pool")
-    pool_size = int(os.getenv("POOL_SIZE", "5"))
+    _load_project_env()
 
     return MySQLConfig(
-        host=host,
-        port=port,
-        user=user,
-        password=password,
-        database=database,
-        pool_name=pool_name,
-        pool_size=pool_size,
+        host=_required_env("DB_HOST"),
+        port=_required_int_env("DB_PORT"),
+        user=_required_env("DB_USER"),
+        password=_required_env("DB_PASSWORD"),
+        database=_required_env("DB_NAME"),
+        pool_name=_required_env("POOL_NAME"),
+        pool_size=_required_int_env("POOL_SIZE"),
     )
