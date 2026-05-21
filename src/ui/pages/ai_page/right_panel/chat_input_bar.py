@@ -1,8 +1,11 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QTextEdit, QPushButton
 from PyQt5.QtCore import pyqtSignal, Qt
+from src.ui.core.icon_manager import IconManager
+
 
 class ChatInputBar(QWidget):
-    """Sohbet mesajı giriş alanı"""
+    """Sohbet mesajı giriş alanı."""
+
     send_requested = pyqtSignal(str)
 
     def __init__(self):
@@ -12,16 +15,18 @@ class ChatInputBar(QWidget):
     def _init_ui(self):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
 
         self.text_edit = QTextEdit()
         self.text_edit.setPlaceholderText("Mesajınızı yazın... (Göndermek için Shift+Enter)")
         self.text_edit.setFixedHeight(60)
         self.text_edit.setProperty("cssClass", "aiInput")
 
-        self.btn_send = QPushButton("▶\nGönder")
+        self.btn_send = QPushButton("Gönder")
         self.btn_send.setFixedHeight(60)
-        self.btn_send.setFixedWidth(70)
+        self.btn_send.setFixedWidth(88)
         self.btn_send.setProperty("cssClass", "aiPrimaryBtn")
+        self.btn_send.setIcon(IconManager.get_icon("send", color="#ffffff"))
         self.btn_send.clicked.connect(self._on_send)
 
         layout.addWidget(self.text_edit)
