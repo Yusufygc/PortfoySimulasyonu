@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar, QGridLayout
 from PyQt5.QtCore import Qt
+from src.ui.core.icon_manager import IconManager
 
 
 # ── Metrik → Türkçe açıklama eşlemesi ────────────────────────────────────────
@@ -71,9 +72,16 @@ class PerformanceCard(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(8)
 
-        title = QLabel("📊 MODEL PERFORMANSI")
+        header_layout = QHBoxLayout()
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        lbl_icon = QLabel()
+        lbl_icon.setPixmap(IconManager.get_icon("bar-chart-2", color="@COLOR_PRIMARY").pixmap(20, 20))
+        title = QLabel("MODEL PERFORMANSI")
         title.setProperty("cssClass", "cardLabel")
-        layout.addWidget(title)
+        header_layout.addWidget(lbl_icon)
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        layout.addLayout(header_layout)
 
         self.grid = QGridLayout()
         self.grid.setSpacing(6)
@@ -97,7 +105,7 @@ class PerformanceCard(QWidget):
             lbl_name = QLabel(info["label"])
             lbl_name.setProperty("cssClass", "metricLabel")
             lbl_name.setToolTip(info["desc"])
-            lbl_name.setFixedWidth(120)
+            lbl_name.setMinimumWidth(130)
 
             # Progress bar
             bar = QProgressBar()
@@ -123,7 +131,7 @@ class PerformanceCard(QWidget):
 
         # Açıklama alt etiketi
         self.lbl_hint = QLabel("ℹ Metrik adlarının üzerine gelerek açıklamasını görebilirsiniz")
-        self.lbl_hint.setProperty("cssClass", "dateLabelMuted")
+        self.lbl_hint.setProperty("cssClass", "aiHintText")
         self.lbl_hint.setWordWrap(True)
         layout.addWidget(self.lbl_hint)
 
