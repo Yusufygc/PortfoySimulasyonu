@@ -12,6 +12,7 @@ from PyQt5.QtCore import QSettings, QTimer, QSize
 from .base_page import BasePage
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelPortfolio
+from src.ui.formatters import display_ticker
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.model_portfolio import PortfolioInputDialog, PortfolioListPanel, PositionsTable, TradeInputDialog
 from src.ui.widgets.shared import AnimatedButton, InfoCard, Toast
@@ -26,7 +27,7 @@ class ModelPortfolioPage(BasePage):
     def __init__(self, container, price_lookup_func=None, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Model Portfoyler"
+        self.page_title = "Model Portföyler"
         self.model_portfolio_service = container.model_portfolio_service
         self.price_repo = container.price_repo
         self.price_lookup_func = price_lookup_func
@@ -43,7 +44,7 @@ class ModelPortfolioPage(BasePage):
         icon_label = IconLabel("layers", color="@COLOR_ACCENT", size=28)
         header.addWidget(icon_label)
 
-        title_label = QLabel("Model Portfoyler")
+        title_label = QLabel("Model Portföyler")
         title_label.setProperty("cssClass", "pageTitle")
         header.addWidget(title_label)
         header.addStretch()
@@ -70,7 +71,7 @@ class ModelPortfolioPage(BasePage):
         layout.setSpacing(15)
 
         header = QHBoxLayout()
-        self.lbl_portfolio_name = QLabel("Bir portfoy secin")
+        self.lbl_portfolio_name = QLabel("Bir portföy seçin")
         self.lbl_portfolio_name.setProperty("cssClass", "panelTitleLarge")
         header.addWidget(self.lbl_portfolio_name)
         header.addStretch()
@@ -79,7 +80,7 @@ class ModelPortfolioPage(BasePage):
         self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
         header.addWidget(self.lbl_last_update)
 
-        self.btn_refresh = AnimatedButton(" Fiyat Guncelle")
+        self.btn_refresh = AnimatedButton(" Fiyat Güncelle")
         self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
         self.btn_refresh.setEnabled(False)
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
@@ -88,9 +89,9 @@ class ModelPortfolioPage(BasePage):
 
         cards_row = QHBoxLayout()
         cards_row.setSpacing(15)
-        self.card_initial = InfoCard("Baslangic", "TL 0", icon_name="wallet")
+        self.card_initial = InfoCard("Başlangıç", "TL 0", icon_name="wallet")
         self.card_cash = InfoCard("Nakit", "TL 0", icon_name="coins")
-        self.card_value = InfoCard("Deger", "TL 0", icon_name="bar-chart-2")
+        self.card_value = InfoCard("Değer", "TL 0", icon_name="bar-chart-2")
         self.card_pl = InfoCard("K/Z", "TL 0", icon_name="target")
         for card in (self.card_initial, self.card_cash, self.card_value, self.card_pl):
             cards_row.addWidget(card)
@@ -181,7 +182,7 @@ class ModelPortfolioPage(BasePage):
         self.positions_table.populate(positions)
 
     def _clear_right_panel(self):
-        self.lbl_portfolio_name.setText("Bir portfoy secin")
+        self.lbl_portfolio_name.setText("Bir portföy seçin")
         self.lbl_last_update.setText("")
         self.positions_table.setRowCount(0)
         for button in (self.btn_buy, self.btn_sell, self.btn_refresh):
@@ -202,9 +203,9 @@ class ModelPortfolioPage(BasePage):
             if portfolio and portfolio.id is not None:
                 self.current_portfolio_id = portfolio.id
             self._load_portfolios()
-            Toast.success(self, f"'{result['name']}' portfoyu olusturuldu.")
+            Toast.success(self, f"'{result['name']}' portföyü oluşturuldu.")
         except Exception as exc:
-            Toast.error(self, f"Portfoy olusturulamadi: {exc}")
+            Toast.error(self, f"Portföy oluşturulamadı: {exc}")
 
     def _on_edit_portfolio(self):
         if self.current_portfolio_id is None:
@@ -223,17 +224,17 @@ class ModelPortfolioPage(BasePage):
             self._load_portfolios()
             self.lbl_portfolio_name.setText(result["name"])
             self._update_view()
-            Toast.success(self, "Portfoy guncellendi.")
+            Toast.success(self, "Portföy güncellendi.")
         except Exception as exc:
-            Toast.error(self, f"Portfoy guncellenemedi: {exc}")
+            Toast.error(self, f"Portföy güncellenemedi: {exc}")
 
     def _on_delete_portfolio(self):
         if self.current_portfolio_id is None:
             return
         reply = QMessageBox.question(
             self,
-            "Portfoy Sil",
-            "Bu portfoyu silmek istediginizden emin misiniz?",
+            "Portföy Sil",
+            "Bu portföyü silmek istediğinizden emin misiniz?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -250,9 +251,9 @@ class ModelPortfolioPage(BasePage):
             self._last_update_toast_shown_for = None
             self._load_portfolios()
             self._clear_right_panel()
-            Toast.success(self, "Portfoy silindi.")
+            Toast.success(self, "Portföy silindi.")
         except Exception as exc:
-            Toast.error(self, f"Portfoy silinemedi: {exc}")
+            Toast.error(self, f"Portföy silinemedi: {exc}")
 
     def _on_trade(self, side: str):
         if self.current_portfolio_id is None:
@@ -274,18 +275,18 @@ class ModelPortfolioPage(BasePage):
             )
             self._load_portfolios()
             self._update_view()
-            action = "alindi" if side == "BUY" else "satildi"
-            Toast.success(self, f"{result['quantity']} lot {result['ticker']} {action}.")
+            action = "alındı" if side == "BUY" else "satıldı"
+            Toast.success(self, f"{result['quantity']} lot {display_ticker(result['ticker'])} {action}.")
         except ValueError as exc:
             Toast.warning(self, str(exc))
         except Exception as exc:
-            Toast.error(self, f"Islem gerceklestirilemedi: {exc}")
+            Toast.error(self, f"İşlem gerçekleştirilemedi: {exc}")
 
     def _on_refresh_prices(self):
         if self.current_portfolio_id is None:
             return
         if not self.price_lookup_func:
-            Toast.warning(self, "Fiyat sorgulama fonksiyonu mevcut degil.")
+            Toast.warning(self, "Fiyat sorgulama fonksiyonu mevcut değil.")
             return
         positions = self.model_portfolio_service.get_positions_with_details(self.current_portfolio_id)
         updated_count = 0
@@ -308,7 +309,7 @@ class ModelPortfolioPage(BasePage):
                     )
                     updated_count += 1
             except Exception as exc:
-                logger.error("Fiyat alinamadi: %s - %s", pos["ticker"], exc)
+                logger.error("Fiyat alınamadı: %s - %s", pos["ticker"], exc)
         if prices_to_save:
             self.price_repo.upsert_daily_prices_bulk(prices_to_save)
         if event_prices and getattr(self.container, "event_bus", None):
@@ -317,7 +318,7 @@ class ModelPortfolioPage(BasePage):
         if updated_count <= 0:
             Toast.warning(
                 self,
-                "Guncellenecek fiyat bulunamadi.",
+                "Güncellenecek fiyat bulunamadı.",
                 duration_ms=LAST_UPDATE_TOAST_DURATION_MS,
                 position="top",
             )
@@ -325,7 +326,7 @@ class ModelPortfolioPage(BasePage):
         self.record_last_update_time()
         self.show_last_update_toast_once(
             force=True,
-            detail=f"{updated_count} hisse icin fiyat guncellendi.",
+            detail=f"{updated_count} hisse için fiyat güncellendi.",
         )
 
     def record_last_update_time(self, updated_at=None):

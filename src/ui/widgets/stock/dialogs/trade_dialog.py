@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QLabel, QRadioButton, QSpinBox, QLineEdit, 
     QDateEdit, QTimeEdit, QPushButton, QMessageBox, QFrame, QWidget
 )
+from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
 
 # Tür tanımları
@@ -72,7 +73,7 @@ class TradeDialog(QDialog):
         h_layout.setContentsMargins(20, 10, 20, 10)
         h_layout.setSpacing(5)
         
-        self.lbl_ticker = QLabel(f"{self.ticker}" if self.ticker else f"ID: {self.stock_id}")
+        self.lbl_ticker = QLabel(display_ticker(self.ticker) if self.ticker else f"ID: {self.stock_id}")
         self.lbl_ticker.setProperty("cssClass", "dialogHeaderTitleLarge")
         
         self.lbl_price_info = QLabel("Fiyat Yükleniyor...")

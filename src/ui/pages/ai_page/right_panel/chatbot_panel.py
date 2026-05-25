@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButt
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole, AnalysisResult
 from src.ui.pages.ai_page.core.gemini_service import GeminiWorker
 from src.ui.core.icon_manager import IconManager
+from src.ui.formatters import display_ticker
 from .conversation_view import ConversationView
 from .chat_input_bar import ChatInputBar
 
@@ -90,7 +91,7 @@ class ChatbotPanel(QWidget):
 
         prompt = f"""[OTOMATİK ANALİZ AKTARIMI — API Payload]
 
-Hisse: {result.ticker}
+Hisse: {display_ticker(result.ticker)}
 Analiz Durumu: {result.analysis_status}
 Oluşturulma: {result.generated_at}
 
@@ -195,7 +196,7 @@ Lütfen bu analizi değerlendir:
             group_text = f" · XAI ana grup: {factor_group}" if factor_group else ""
             xai_detail = f"\nAna XAI faktörü: {factor_name}{group_text}"
         return (
-            f"{result.ticker} analizi chat'e gönderildi.\n"
+            f"{display_ticker(result.ticker)} analizi chat'e gönderildi.\n"
             f"Model: {result.model_name or '-'} · Yön beklentisi: {result.outlook.value} · "
             f"{horizon} bileşik getiri: {return_text}\n"
             f"Güven: {result.confidence_label or '-'} · XAI: {xai_state}"

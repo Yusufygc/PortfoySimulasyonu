@@ -1,6 +1,14 @@
 # src/ui/pages/dashboard/dashboard_summary_cards.py
 
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import (
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QLabel,
+    QFrame,
+    QGraphicsDropShadowEffect,
+)
 from decimal import Decimal
 
 class DashboardSummaryCards(QWidget):
@@ -31,6 +39,7 @@ class DashboardSummaryCards(QWidget):
         card.setProperty("cssClass", "summaryCard")
         card.setProperty("cardType", card_type)
         card.setFrameShape(QFrame.StyledPanel)
+        self._apply_card_shadow(card)
         
         lay = QVBoxLayout(card)
         lay.setContentsMargins(20, 15, 20, 15)
@@ -55,6 +64,7 @@ class DashboardSummaryCards(QWidget):
         card.setProperty("cssClass", "summaryCard")
         card.setProperty("cardType", "returns")
         card.setFrameShape(QFrame.StyledPanel)
+        self._apply_card_shadow(card)
         
         lay = QVBoxLayout(card)
         lay.setContentsMargins(20, 15, 20, 15)
@@ -89,6 +99,19 @@ class DashboardSummaryCards(QWidget):
         lay.addLayout(returns_lay)
         
         return card, lbl_wk_value, lbl_mo_value
+
+    @staticmethod
+    def _apply_card_shadow(card: QFrame) -> None:
+        from src.ui.styles.tokens import DEFAULT_THEME
+
+        shadow = QGraphicsDropShadowEffect(card)
+        shadow.setBlurRadius(22)
+        shadow.setXOffset(0)
+        shadow.setYOffset(6)
+        color = QColor(DEFAULT_THEME.get("COLOR_SHADOW", "#000000"))
+        color.setAlpha(72)
+        shadow.setColor(color)
+        card.setGraphicsEffect(shadow)
 
     def update_base_metrics(self, total_value: Decimal, total_cost: Decimal, capital: Decimal, profit_loss: Decimal):
         self.lbl_total_value.setText(f"₺ {total_value:,.2f}")

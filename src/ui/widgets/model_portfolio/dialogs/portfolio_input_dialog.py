@@ -11,7 +11,7 @@ class PortfolioInputDialog(QDialog):
         super().__init__(parent)
         self.portfolio = portfolio
         self.is_edit = portfolio is not None
-        self.setWindowTitle("Portfoy Duzenle" if self.is_edit else "Yeni Portfoy")
+        self.setWindowTitle("Portföy Düzenle" if self.is_edit else "Yeni Portföy")
         self.resize(400, 200)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
@@ -22,10 +22,10 @@ class PortfolioInputDialog(QDialog):
         form = QFormLayout()
 
         self.txt_name = QLineEdit(self.portfolio.name if self.is_edit else "")
-        form.addRow("Adi:", self.txt_name)
+        form.addRow("Adı:", self.txt_name)
 
         self.txt_desc = QLineEdit((self.portfolio.description or "") if self.is_edit else "")
-        form.addRow("Aciklama:", self.txt_desc)
+        form.addRow("Açıklama:", self.txt_desc)
 
         self.spin_cash = QDoubleSpinBox()
         self.spin_cash.setRange(1000, 100_000_000)
@@ -38,7 +38,7 @@ class PortfolioInputDialog(QDialog):
 
         button_row = QHBoxLayout()
         button_row.addStretch()
-        btn_cancel = QPushButton("Iptal")
+        btn_cancel = QPushButton("İptal")
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
         btn_save = QPushButton("Kaydet")
@@ -57,4 +57,3 @@ class PortfolioInputDialog(QDialog):
             "description": self.txt_desc.text().strip() or None,
             "initial_cash": Decimal(str(self.spin_cash.value())),
         }
-

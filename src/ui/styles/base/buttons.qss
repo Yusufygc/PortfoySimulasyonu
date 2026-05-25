@@ -5,37 +5,37 @@
 
 /* --- BUTTONLAR (Base) --- */
 QPushButton {
-    background-color: @COLOR_BG_SURFACE;
-    color: @COLOR_TEXT_PRIMARY;
-    border: 1px solid @COLOR_BORDER;
+    background-color: @BUTTON_SECONDARY_BG;
+    color: @BUTTON_SECONDARY_TEXT;
+    border: 1px solid @BUTTON_SECONDARY_BORDER;
     padding: 8px 16px;
     border-radius: @RADIUS_MD;
     font-weight: bold;
 }
 QPushButton:hover {
-    background-color: @COLOR_BG_ELEVATED;
-    border-color: @COLOR_BG_OVERLAY;
+    background-color: @BUTTON_SECONDARY_BG_HOVER;
+    border-color: @BUTTON_SECONDARY_BORDER_HOVER;
 }
 QPushButton:pressed {
-    background-color: @COLOR_BG_OVERLAY;
+    background-color: @BUTTON_SECONDARY_BG_PRESSED;
 }
 QPushButton:disabled {
-    background-color: @COLOR_BG_BASE;
-    color: @COLOR_TEXT_MUTED;
-    border-color: @COLOR_BORDER_SUBTLE;
+    background-color: @BUTTON_DISABLED_BG;
+    color: @BUTTON_DISABLED_TEXT;
+    border-color: @BUTTON_DISABLED_BORDER;
 }
 
 /* Vurgulu (Primary) Buton */
 QPushButton[type="primary"] {
-    background-color: @COLOR_PRIMARY_HOVER;
-    color: white;
+    background-color: @BUTTON_PRIMARY_BG;
+    color: @BUTTON_PRIMARY_TEXT;
     border: none;
 }
 QPushButton[type="primary"]:hover {
-    background-color: @COLOR_PRIMARY;
+    background-color: @BUTTON_PRIMARY_BG_HOVER;
 }
 QPushButton[type="primary"]:pressed {
-    background-color: @COLOR_PRIMARY_DARK;
+    background-color: @BUTTON_PRIMARY_BG_PRESSED;
 }
 
 /* Başarı (Success) Butonu */
@@ -50,12 +50,12 @@ QPushButton[type="success"]:hover {
 
 /* Tehlike (Danger) Butonu */
 QPushButton[type="danger"] {
-    background-color: @COLOR_DANGER_HOVER;
-    color: white;
+    background-color: @BUTTON_DANGER_BG;
+    color: @BUTTON_DANGER_TEXT;
     border: none;
 }
 QPushButton[type="danger"]:hover {
-    background-color: @COLOR_DANGER;
+    background-color: @BUTTON_DANGER_BG_HOVER;
 }
 
 /* Ghost / Transparent Buton */
@@ -65,4 +65,32 @@ QPushButton[type="ghost"] {
 }
 QPushButton[type="ghost"]:hover {
     background-color: @COLOR_BG_SURFACE;
+}
+
+QPushButton::menu-indicator {
+    image: none;
+    width: 0px;
+}
+
+QMenu {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
+    padding: @SPACE_XS;
+}
+
+QMenu::item {
+    padding: @SPACE_MD 28px @SPACE_MD 14px;
+    border-radius: @RADIUS_SM;
+}
+
+QMenu::item:selected {
+    background-color: @COLOR_BG_ELEVATED;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: @COLOR_BORDER_SUBTLE;
+    margin: @SPACE_XS 0;
 }

@@ -154,6 +154,7 @@ def test_control_panel_populates_comparison_and_stock_items():
 
     assert panel.compare_combo.model().rowCount() == 2
     assert panel.stock_combo.model().rowCount() == 2
+    assert panel.stock_combo.model().item(0).text() == "ASELS"
 
 
 def test_overview_section_uses_wrapped_warning_banner_and_metric_grid():

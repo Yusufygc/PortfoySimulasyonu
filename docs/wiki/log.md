@@ -6,6 +6,17 @@
 
 ---
 
+## [2026-05-26] commit | UI tema modernizasyonu ve dashboard rapor akışı güncellendi
+
+- Component token tabanlı light/dark tema kontrastları güçlendirildi; dashboard kartları ve butonları modernize edildi
+- `QStackedWidget` seviyesindeki fade/graphics effect kaldırılarak hover sırasında buton kaybolması ve QPainter uyarıları giderildi
+- UI gösteriminde BIST `.IS` suffix'i gizlendi, Türkçe metin standardizasyonu yapıldı
+- Dashboard rapor üretimi tek `Rapor Al` menüsünde `Bugün` ve `Tarih Aralığı` seçeneklerine indirildi
+- Etkilenen dosyalar: `src/ui/`, `tests/ui/`, `docs/wiki/architecture.md`, `docs/wiki/log.md`
+- Bağlantılı sayfa: [architecture.md → UI](architecture.md#4-ui-srcui)
+
+---
+
 ## [2026-05-21] güncelleme | Kalite kapıları ve refactor planı belgelendi
 
 - `RULES.md` kod kalitesi, refactor güvenliği, test ve bağımlılık kapılarıyla genişletildi

@@ -49,8 +49,7 @@ class MainWindow(QMainWindow):
         )
         self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
         self._threadpool = QThreadPool()
-
-        self.setWindowTitle("Portfoy Simulasyonu")
+        self.setWindowTitle("Portföy Simülasyonu")
         self.setWindowIcon(QIcon("icons/portfoy-simulasyonu.ico"))
         self.resize(1300, 800)
 
@@ -73,7 +72,7 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.setContentsMargins(15, 25, 15, 25)
         self.sidebar_layout.setSpacing(10)
 
-        lbl_app_title = QLabel("Portfoy\nSimulasyonu")
+        lbl_app_title = QLabel("Portföy\nSimülasyonu")
         lbl_app_title.setProperty("cssClass", "appTitle")
         lbl_app_title.setAlignment(Qt.AlignCenter)
         self.sidebar_layout.addWidget(lbl_app_title)
@@ -82,7 +81,7 @@ class MainWindow(QMainWindow):
 
         self.btn_dashboard = self._create_nav_button("Dashboard", self.PAGE_DASHBOARD, "layout-dashboard")
         self.btn_watchlist = self._create_nav_button("Listelerim", self.PAGE_WATCHLIST, "list")
-        self.btn_model_portfolio = self._create_nav_button("Model Portfoyler", self.PAGE_MODEL_PORTFOLIO, "wallet")
+        self.btn_model_portfolio = self._create_nav_button("Model Portföyler", self.PAGE_MODEL_PORTFOLIO, "wallet")
         self.btn_analysis = self._create_nav_button("Analiz", self.PAGE_ANALYSIS, "trending-up")
         self.btn_optimization = self._create_nav_button("Optimizasyon", self.PAGE_OPTIMIZATION, "zap")
         self.btn_planning = self._create_nav_button("Finansal Planlama", self.PAGE_PLANNING, "save")
@@ -163,16 +162,19 @@ class MainWindow(QMainWindow):
 
         if page_index not in self.pages:
             self._instantiate_page(page_index)
+        if page_index not in self.pages:
+            return
 
         if current_index != page_index and current_index >= 0:
             self.navigation_history.append(current_index)
 
-        self.stacked_widget.setCurrentIndex(page_index)
+        self._activate_page(page_index)
 
+    def _activate_page(self, page_index: int):
+        self.stacked_widget.setCurrentIndex(page_index)
         new_page = self.stacked_widget.currentWidget()
         if hasattr(new_page, "on_page_enter"):
             new_page.on_page_enter()
-
         self._update_nav_buttons(page_index)
         self.btn_back.setEnabled(len(self.navigation_history) > 0)
 
@@ -196,14 +198,8 @@ class MainWindow(QMainWindow):
         previous_page_idx = self.navigation_history.pop()
         if previous_page_idx not in self.pages:
             self._instantiate_page(previous_page_idx)
-
-        self.stacked_widget.setCurrentIndex(previous_page_idx)
-        new_page = self.stacked_widget.currentWidget()
-        if hasattr(new_page, "on_page_enter"):
-            new_page.on_page_enter()
-
-        self._update_nav_buttons(previous_page_idx)
-        self.btn_back.setEnabled(len(self.navigation_history) > 0)
+        if previous_page_idx in self.pages:
+            self._activate_page(previous_page_idx)
 
     def _update_nav_buttons(self, active_page: int):
         self.btn_dashboard.setChecked(active_page == self.PAGE_DASHBOARD)

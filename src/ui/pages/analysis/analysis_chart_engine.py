@@ -16,6 +16,8 @@ from PyQt5.QtGui import QColor, QFont, QPainter, QPen
 from PyQt5.QtPrintSupport import QPrinter
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
+from src.ui.formatters import display_ticker
+
 
 BG_BASE = "#0f172a"
 BG_SURFACE = "#1e293b"
@@ -305,7 +307,7 @@ class AnalysisChartEngine(QWidget):
 
     def draw_portfolio_pie(self, title: str, breakdown: List[Tuple[str, float]]):
         self._show_pie()
-        clean_breakdown = [(label, float(value)) for label, value in breakdown if value > 0]
+        clean_breakdown = [(display_ticker(label), float(value)) for label, value in breakdown if value > 0]
         self._clear_legend()
         self.legend_panel.hide()
         if not clean_breakdown:
@@ -392,7 +394,7 @@ class AnalysisChartEngine(QWidget):
             y_values = [value for _, value in values]
             prepared.append(
                 PreparedSeries(
-                    label=label,
+                    label=display_ticker(label),
                     x_values=x_values,
                     y_values=y_values,
                     color=palette[idx % len(palette)],

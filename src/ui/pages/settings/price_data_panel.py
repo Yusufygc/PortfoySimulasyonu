@@ -27,6 +27,7 @@ from src.application.services.market.price_data_health_service import (
     PriceDataUpdateResult,
 )
 from src.ui.core.icon_manager import IconManager
+from src.ui.formatters import display_ticker
 from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.worker import Worker
 
@@ -399,7 +400,7 @@ class PriceDataPanel(QWidget):
 
         for row_index, row in enumerate(rows):
             values = [
-                row.ticker,
+                display_ticker(row.ticker),
                 row.last_price_date.strftime("%d.%m.%Y") if row.last_price_date else "-",
                 str(row.missing_count),
                 row.status,
@@ -453,22 +454,22 @@ class PriceDataPanel(QWidget):
 
         html = f"""
         <div style='font-family: Segoe UI, Arial; line-height: 1.4;'>
-            <h3 style='color: #3b82f6; margin-bottom: 4px;'>{row.ticker}</h3>
+            <h3 style='color: #3b82f6; margin-bottom: 4px;'>{display_ticker(row.ticker)}</h3>
             <div style='margin-bottom: 12px;'>
                 <b>Durum:</b> <span style='color: {status_color};'>{row.status}</span><br>
                 <b>Son Veri:</b> {row.last_price_date.strftime('%d.%m.%Y') if row.last_price_date else '-'}
             </div>
             <div style='margin-bottom: 12px;'>
                 <b style='color: #ef4444;'>Eksik Günler ({row.missing_count}):</b><br>
-                <div style='color: #cbd5e1; font-size: 13px;'>{missing_text}</div>
+                <div style='font-size: 13px;'>{missing_text}</div>
             </div>
             <div style='margin-bottom: 10px;'>
                 <b style='color: #3b82f6;'>Bilinen BIST Tatilleri ({self._current_report.known_holiday_count}):</b><br>
-                <div style='color: #cbd5e1; font-size: 13px;'>{known_text}</div>
+                <div style='font-size: 13px;'>{known_text}</div>
             </div>
             <div>
                 <b style='color: #ca8a04;'>Tatil Adayları ({self._current_report.holiday_candidate_count}):</b><br>
-                <div style='color: #cbd5e1; font-size: 13px;'>{candidate_text}</div>
+                <div style='font-size: 13px;'>{candidate_text}</div>
             </div>
         </div>
         """
@@ -489,7 +490,7 @@ class PriceDataPanel(QWidget):
         problematic_html = ""
         if problematic:
             for row in problematic[:20]:
-                problematic_html += f"<li>{row.ticker}: <span style='color: #ef4444;'>{row.missing_count} eksik</span></li>"
+                problematic_html += f"<li>{display_ticker(row.ticker)}: <span style='color: #ef4444;'>{row.missing_count} eksik</span></li>"
             if len(problematic) > 20:
                 problematic_html += f"<li>... ve {len(problematic) - 20} hisse daha</li>"
         else:
@@ -519,17 +520,17 @@ class PriceDataPanel(QWidget):
             </div>
             <div style='margin-bottom: 12px;'>
                 <b style='color: #ef4444;'>Sorunlu Hisseler:</b>
-                <ul style='margin-top: 4px; padding-left: 20px; color: #cbd5e1;'>
+                <ul style='margin-top: 4px; padding-left: 20px;'>
                     {problematic_html}
                 </ul>
             </div>
             <div style='margin-bottom: 10px;'>
                 <b style='color: #3b82f6;'>Bilinen BIST Tatilleri ({report.known_holiday_count}):</b><br>
-                <div style='color: #cbd5e1; font-size: 13px;'>{known_html or "Yok"}</div>
+                <div style='font-size: 13px;'>{known_html or "Yok"}</div>
             </div>
             <div>
                 <b style='color: #ca8a04;'>Tatil Adayları - heuristik ({report.holiday_candidate_count}):</b><br>
-                <div style='color: #cbd5e1; font-size: 13px;'>{candidate_html or "Yok"}</div>
+                <div style='font-size: 13px;'>{candidate_html or "Yok"}</div>
             </div>
         </div>
         """

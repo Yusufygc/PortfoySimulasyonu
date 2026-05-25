@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel,
 
 from src.application.services.analysis import ComparisonViewDTO
 from src.ui.core.icon_manager import IconManager
+from src.ui.formatters import display_ticker
 from src.ui.widgets.shared import MetricCard
 
 from .analysis_chart_engine import AnalysisChartEngine
@@ -144,7 +145,11 @@ class AnalysisComparisonSection(QWidget):
             if not series_map:
                 self.chart_engine.draw_empty_chart("Karşılaştırılacak hisse verisi bulunamadı.")
                 return
-            title = "Seçili Hisseler Karşılaştırması" if len(series_map) > 1 else f"{next(iter(series_map))} Performansı"
+            title = (
+                "Seçili Hisseler Karşılaştırması"
+                if len(series_map) > 1
+                else f"{display_ticker(next(iter(series_map)))} Performansı"
+            )
             self.chart_engine.draw_line_series(
                 title=title,
                 y_label="Normalize Değer",

@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QSize
 from src.ui.core.icon_manager import IconManager
+from src.ui.formatters import display_ticker
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 from .base_page import BasePage
@@ -222,7 +223,7 @@ class WatchlistPage(BasePage):
             self.stock_table.insertRow(i)
             
             # Ticker kolonu kalktı, veriyi Hisse Adı kolonuna gömüyoruz
-            name_text = stock_data["name"] or stock_data["ticker"]
+            name_text = stock_data["name"] or display_ticker(stock_data["ticker"])
             name_item = self._readonly_table_item(name_text)
             name_item.setData(Qt.UserRole, stock_data) # Veriyi burada saklıyoruz
             self.stock_table.setItem(i, 0, name_item)
@@ -330,7 +331,7 @@ class WatchlistPage(BasePage):
             )
             self._load_stocks()
             self._load_watchlists()
-            Toast.success(self, f"'{ticker.upper()}' listeye eklendi.")
+            Toast.success(self, f"'{display_ticker(ticker.upper())}' listeye eklendi.")
         except ValueError as e:
             Toast.warning(self, str(e))
         except Exception as e:

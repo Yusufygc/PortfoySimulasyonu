@@ -139,6 +139,13 @@ PyQt5 tabanlı masaüstü arayüz katmanı.
 - `widgets/` — Yeniden kullanılabilir tablo, diyalog, panel, kart bileşenleri
 - `styles/` — Modüler QSS stil dosyaları
 
+**Tema ve gösterim standartları:**
+
+- Tema sistemi component token yaklaşımını izler; buton, navigasyon, kart, tablo, form ve metin renkleri dark/light parity ile tanımlanır.
+- Sayfa geçişleri `QStackedWidget` seviyesinde graphics effect kullanmaz; `AnimatedButton` hover/press efektleriyle çakışmamak için navigasyon doğrudan `setCurrentIndex()` akışında kalır.
+- BIST ticker suffix'i servis/veri katmanında korunur, UI gösteriminde `display_ticker()` ile `.IS` gizlenir.
+- Dashboard rapor üretimi tek `Rapor Al` menüsü üzerinden `Bugün` ve `Tarih Aralığı` export akışlarını çağırır.
+
 ---
 
 ## Veri Akışı: Fiyat Güncellemesi

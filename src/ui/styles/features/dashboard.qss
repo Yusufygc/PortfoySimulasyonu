@@ -6,13 +6,14 @@
 QLabel[cssClass="summaryCardTitle"] {
     color: @COLOR_TEXT_SECONDARY;
     font-size: @FONT_SM;
-    font-weight: bold;
+    font-weight: 700;
+    padding-bottom: @SPACE_XS;
 }
 
 QLabel[cssClass="summaryCardValue"] {
-    color: @COLOR_TEXT_PRIMARY;
-    font-size: @FONT_2XL;
-    font-weight: bold;
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: @FONT_3XL;
+    font-weight: 700;
 }
 
 QLabel[cssClass="summaryCardContext"] {
@@ -34,12 +35,13 @@ QLabel[cssClass="summaryCardContext"][state="negative"] {
 QLabel[cssClass="summaryCardSubTitle"] {
     color: @COLOR_TEXT_SECONDARY;
     font-size: @FONT_BASE;
+    font-weight: 500;
 }
 
 QLabel[cssClass="summaryCardValueSmall"] {
-    color: @COLOR_TEXT_PRIMARY;
-    font-size: @FONT_MD;
-    font-weight: bold;
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: @FONT_LG;
+    font-weight: 700;
 }
 QLabel[cssClass="summaryCardValueSmall"][state="positive"] { color: @COLOR_SUCCESS; }
 QLabel[cssClass="summaryCardValueSmall"][state="negative"] { color: @COLOR_DANGER; }
@@ -49,21 +51,32 @@ QLabel[cssClass="lastUpdateLabel"] {
     color: @COLOR_TEXT_MUTED;
     font-size: @FONT_SM;
     margin-left: @SPACE_XS;
+    padding-top: @SPACE_XS;
 }
 
 QFrame[cssClass="summaryCard"] {
-    background-color: @COLOR_BG_SURFACE;
-    border-radius: @RADIUS_2XL;
+    background-color: @COLOR_CARD_SURFACE;
+    border: 1px solid @COLOR_BORDER_SUBTLE;
+    border-radius: @RADIUS_CARD;
 }
 QFrame[cssClass="summaryCard"][cardType="total"] {
-    border-left: 4px solid @COLOR_PRIMARY;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 @COLOR_CARD_SURFACE, stop:1 @COLOR_CARD_GRADIENT_TOTAL);
+    border: 1px solid @CARD_TOTAL_BORDER;
 }
 QFrame[cssClass="summaryCard"][cardType="cost"] {
-    border-left: 4px solid @COLOR_PURPLE;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 @COLOR_CARD_SURFACE, stop:1 @COLOR_CARD_GRADIENT_COST);
+    border: 1px solid @CARD_COST_BORDER;
 }
 QFrame[cssClass="summaryCard"][cardType="capital"] {
-    border-left: 4px solid @COLOR_SUCCESS;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 @COLOR_CARD_SURFACE, stop:1 @COLOR_CARD_GRADIENT_CAPITAL);
+    border: 1px solid @CARD_CAPITAL_BORDER;
 }
 QFrame[cssClass="summaryCard"][cardType="returns"] {
-    border-left: 4px solid #f59e0b;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 @COLOR_CARD_SURFACE, stop:1 @COLOR_CARD_GRADIENT_RETURNS);
+    border: 1px solid @CARD_RETURNS_BORDER;
+}
+
+QTableView {
+    selection-background-color: @COLOR_TABLE_SELECTED_BG;
+    selection-color: @COLOR_TEXT_PRIMARY;
 }

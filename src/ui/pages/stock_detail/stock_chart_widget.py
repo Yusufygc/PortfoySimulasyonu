@@ -11,6 +11,7 @@ matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
+from src.ui.formatters import display_ticker
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class StockChartWidget(QFrame):
                 if current_price:
                     ax.axhline(y=float(current_price), color='#10b981', linestyle='-', linewidth=1, alpha=0.9, label=f'Güncel: {current_price:.2f}')
 
-                ax.set_title(f"{current_ticker} - Fiyat Geçmişi", color='#f1f5f9', fontsize=14, fontweight='bold', pad=20)
+                ax.set_title(f"{display_ticker(current_ticker)} - Fiyat Geçmişi", color='#f1f5f9', fontsize=14, fontweight='bold', pad=20)
                 
                 ax.grid(True, which='major', color='#f1f5f9', linestyle='-', alpha=0.05)
                 ax.grid(True, which='minor', color='#f1f5f9', linestyle=':', alpha=0.02)

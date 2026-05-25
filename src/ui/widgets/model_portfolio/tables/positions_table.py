@@ -11,6 +11,7 @@ Kullanım:
 """
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
 from PyQt5.QtCore import Qt
+from src.ui.formatters import display_ticker
 
 
 class PositionsTable(QTableWidget):
@@ -50,7 +51,7 @@ class PositionsTable(QTableWidget):
 
         for i, pos in enumerate(positions):
             self.insertRow(i)
-            self._set_readonly(i, 0, pos.get("name") or "")
+            self._set_readonly(i, 0, display_ticker(pos.get("name") or pos.get("ticker") or ""))
             self._set_readonly(i, 1, str(pos.get("quantity", "")))
             self._set_readonly(i, 2, f"₺ {pos['avg_cost']:.2f}")
 

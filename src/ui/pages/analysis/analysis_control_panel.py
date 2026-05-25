@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.application.services.analysis import BenchmarkDefinition, PortfolioOption
+from src.ui.formatters import display_ticker
 
 from .benchmark_chip_group import BenchmarkChipGroup
 from .checkable_combo_box import CheckableComboBox
@@ -158,7 +159,10 @@ class AnalysisControlPanel(QFrame):
         self.compare_combo.set_items(items)
 
     def set_stocks(self, stock_map: Dict[int, str]) -> None:
-        items = [(ticker, str(stock_id)) for stock_id, ticker in sorted(stock_map.items(), key=lambda item: item[1])]
+        items = [
+            (display_ticker(ticker), str(stock_id))
+            for stock_id, ticker in sorted(stock_map.items(), key=lambda item: item[1])
+        ]
         current_selected = [str(stock_id) for stock_id in self.selected_stock_ids()]
         self.stock_combo.set_items(items)
         self.stock_combo.set_selected_data(current_selected)

@@ -41,7 +41,7 @@ class TradeInputDialog(QDialog):
         form.setLabelAlignment(Qt.AlignLeft)
 
         self.txt_ticker = QLineEdit()
-        self.txt_ticker.setPlaceholderText("Orn: ASELS")
+        self.txt_ticker.setPlaceholderText("Örn: ASELS")
         self.txt_ticker.setMinimumHeight(45)
         self.txt_ticker.returnPressed.connect(self._on_lookup)
         form.addRow("Ticker:", self.txt_ticker)
@@ -79,7 +79,7 @@ class TradeInputDialog(QDialog):
 
         button_row = QHBoxLayout()
         button_row.addStretch()
-        btn_cancel = QPushButton("Iptal")
+        btn_cancel = QPushButton("İptal")
         btn_cancel.setMinimumHeight(40)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
@@ -104,7 +104,7 @@ class TradeInputDialog(QDialog):
             if result:
                 self.spin_price.setValue(float(result.price))
         except Exception as exc:
-            logger.warning("Fiyat sorgulama basarisiz (%s): %s", ticker, exc)
+            logger.warning("Fiyat sorgulama başarısız (%s): %s", ticker, exc)
 
     def get_result(self) -> Optional[dict]:
         ticker = self.txt_ticker.text().strip()
@@ -116,4 +116,3 @@ class TradeInputDialog(QDialog):
             "price": Decimal(str(self.spin_price.value())),
             "trade_date": self.date_edit.date().toPyDate(),
         }
-

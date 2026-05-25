@@ -106,7 +106,7 @@ def test_settings_page_populates_health_table_from_report():
     assert page.lbl_holiday_count.metric_label.text() == "1"         # known holidays
     assert page.lbl_holiday_candidate_count.metric_label.text() == "1"  # heuristic candidates
     assert page.health_table.rowCount() == 2
-    assert page.health_table.item(1, 0).text() == "BBB.IS"
+    assert page.health_table.item(1, 0).text() == "BBB"
     assert page._selected_stock_id() is None
 
 

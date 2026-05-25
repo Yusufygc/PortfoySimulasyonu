@@ -2,7 +2,7 @@ import logging
 from decimal import Decimal
 
 from PyQt5.QtCore import QModelIndex, QSettings, QThreadPool, QTimer, QSize
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout
+from PyQt5.QtWidgets import QAction, QHBoxLayout, QLabel, QMenu, QVBoxLayout
 
 from src.ui.pages.base_page import BasePage
 from src.ui.core.icon_manager import IconManager
@@ -85,7 +85,7 @@ class DashboardPage(BasePage):
         title_row.addStretch()
         title_layout.addLayout(title_row)
 
-        description_label = QLabel("Portfoyunuzun ozetini, raporlarini ve guncelleme aksiyonlarini tek yerden yonetin.")
+        description_label = QLabel("Portföyünüzün özetini, raporlarını ve güncelleme aksiyonlarını tek yerden yönetin.")
         description_label.setProperty("cssClass", "pageDescription")
         description_label.setWordWrap(True)
         title_layout.addWidget(description_label)
@@ -95,41 +95,45 @@ class DashboardPage(BasePage):
         actions_layout = QVBoxLayout()
         actions_layout.setSpacing(6)
 
-        top_layout = QHBoxLayout()
-        top_layout.setSpacing(10)
+        primary_actions_layout = QHBoxLayout()
+        primary_actions_layout.setSpacing(10)
 
-        self.btn_new_trade = AnimatedButton(" Yeni Islem")
+        self.btn_new_trade = AnimatedButton(" Yeni İşlem")
         self.btn_new_trade.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_new_trade.setProperty("cssClass", "primaryButton")
         self.btn_new_trade.clicked.connect(self._actions.on_new_trade)
 
-        self.btn_update_prices = AnimatedButton(" Fiyatlari Guncelle")
+        self.btn_update_prices = AnimatedButton(" Fiyatları Güncelle")
         self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
+        self.btn_update_prices.setProperty("cssClass", "secondaryButton")
         self.btn_update_prices.clicked.connect(self._actions.on_update_prices)
 
         self.lbl_last_update = QLabel("")
         self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
 
-        self.btn_capital = AnimatedButton(" Sermaye Yonetimi")
+        self.btn_capital = AnimatedButton(" Sermaye Yönetimi")
         self.btn_capital.setIconName("coins", color="@COLOR_TEXT_PRIMARY")
         self.btn_capital.clicked.connect(self._actions.on_capital_management)
         self.btn_capital.setProperty("cssClass", "secondaryButton")
 
-        self.btn_export_today = AnimatedButton(" Rapor: Bugun")
-        self.btn_export_today.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
-        self.btn_export_today.clicked.connect(self._actions.on_export_today)
+        self.btn_report = AnimatedButton(" Rapor Al")
+        self.btn_report.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
+        self.btn_report.setProperty("cssClass", "secondaryButton")
+        self._report_menu = QMenu(self.btn_report)
+        self._report_today_action = QAction("Bugün", self)
+        self._report_today_action.triggered.connect(self._actions.on_export_today)
+        self._report_range_action = QAction("Tarih Aralığı", self)
+        self._report_range_action.triggered.connect(self._actions.on_export_range)
+        self._report_menu.addAction(self._report_today_action)
+        self._report_menu.addAction(self._report_range_action)
+        self.btn_report.setMenu(self._report_menu)
 
-        self.btn_export_range = AnimatedButton(" Rapor: Tarih Araligi")
-        self.btn_export_range.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
-        self.btn_export_range.clicked.connect(self._actions.on_export_range)
-
-        top_layout.addWidget(self.btn_new_trade)
-        top_layout.addWidget(self.btn_update_prices)
-        top_layout.addWidget(self.btn_capital)
-        top_layout.addWidget(self.btn_export_today)
-        top_layout.addWidget(self.btn_export_range)
-        top_layout.addStretch()
-        actions_layout.addLayout(top_layout)
+        primary_actions_layout.addWidget(self.btn_new_trade)
+        primary_actions_layout.addWidget(self.btn_update_prices)
+        primary_actions_layout.addWidget(self.btn_capital)
+        primary_actions_layout.addWidget(self.btn_report)
+        primary_actions_layout.addStretch()
+        actions_layout.addLayout(primary_actions_layout)
 
         last_update_row = QHBoxLayout()
         last_update_row.setSpacing(0)
@@ -228,7 +232,7 @@ class DashboardPage(BasePage):
 
     @staticmethod
     def _format_last_update_message(updated_at) -> str:
-        return f"Son guncelleme: {updated_at.strftime('%d.%m.%Y %H:%M')} (15dk gecikmeli)"
+        return f"Son güncelleme: {updated_at.strftime('%d.%m.%Y %H:%M')} (15dk gecikmeli)"
 
     def _on_table_double_clicked(self, index: QModelIndex):
         if not index.isValid() or self.portfolio_model is None:

@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QDateEdit, QTimeEdit, QPushButton, QMessageBox, 
     QStackedWidget, QWidget, QFrame
 )
+from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
 
 SideLiteral = Literal["BUY", "SELL"]
@@ -178,7 +179,7 @@ class NewStockTradeDialog(QDialog):
         layout.setContentsMargins(30, 30, 30, 30)
         
         # Hisse Özeti (Hangi hissede işlem yapıyoruz?)
-        self.lbl_summary_ticker = QLabel("ASELS.IS")
+        self.lbl_summary_ticker = QLabel("ASELS")
         self.lbl_summary_ticker.setProperty("cssClass", "summaryTitle")
         self.lbl_summary_ticker.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.lbl_summary_ticker)
@@ -302,7 +303,7 @@ class NewStockTradeDialog(QDialog):
         if "." not in ticker: ticker += ".IS"
         name = self.line_name.text().strip() or self.fetched_stock_name or ""
         
-        display_text = ticker
+        display_text = display_ticker(ticker)
         if name:
             display_text += f"\n<span style='font-size:14px; color:#94a3b8; font-weight:normal;'>{name}</span>"
             

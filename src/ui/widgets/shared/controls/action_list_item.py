@@ -38,7 +38,7 @@ class ActionListItem(QWidget):
         self.menu_button.setFixedSize(28, 28)
         self.menu_button.setCursor(Qt.PointingHandCursor)
         self.menu_button.setPopupMode(QToolButton.InstantPopup)
-        self.menu_button.setToolTip("Islemler")
+        self.menu_button.setToolTip("İşlemler")
         self.menu_button.setStyleSheet(
             """
             QToolButton {

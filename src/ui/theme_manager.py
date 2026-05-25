@@ -144,22 +144,48 @@ class ThemeManager:
         """Kayıtlı tüm temaları döner: {theme_id: {display_name, description, qss_name}}"""
         return THEME_REGISTRY
 
+    @classmethod
+    def build_theme_stylesheet(
+        cls,
+        theme_id: str,
+        token_overrides: Optional[dict] = None,
+    ) -> tuple[dict[str, str], str]:
+        """Tema token haritasını ve çözülmüş QSS'i test edilebilir şekilde üretir."""
+        from src.ui.styles.tokens import DARK_THEME, LIGHT_THEME
+
+        normalized_theme_id = _LEGACY_NAME_MAP.get(theme_id, theme_id)
+        if normalized_theme_id not in THEME_REGISTRY:
+            normalized_theme_id = "dark"
+
+        token_map: dict[str, dict] = {
+            "dark": DARK_THEME,
+            "light": LIGHT_THEME,
+        }
+        tokens: dict[str, str] = {**token_map.get(normalized_theme_id, DARK_THEME)}
+        if token_overrides:
+            tokens.update(token_overrides)
+
+        qss_name = THEME_REGISTRY[normalized_theme_id]["qss_name"]
+        return tokens, cls._build_qss(qss_name, tokens)
+
+    @classmethod
+    def validate_theme_tokens(cls, theme_id: str, token_overrides: Optional[dict] = None) -> list[str]:
+        """Çözülmemiş tokenları döner; boş liste tema QSS'inin temiz olduğunu gösterir."""
+        import re
+
+        _, qss = cls.build_theme_stylesheet(theme_id, token_overrides)
+        qss_without_comments = re.sub(r"/\*.*?\*/", "", qss, flags=re.DOTALL)
+        return sorted(set(re.findall(r"@([A-Z0-9_]+)", qss_without_comments)))
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
     @classmethod
     def _do_apply(cls, theme_id: str, token_overrides: Optional[dict] = None) -> None:
-        from src.ui.styles.tokens import DARK_THEME, LIGHT_THEME
         import src.ui.styles.tokens as _tokens_mod
 
-        _token_map: dict[str, dict] = {
-            "dark": DARK_THEME,
-            "light": LIGHT_THEME,
-        }
-        tokens: dict[str, str] = {**_token_map.get(theme_id, DARK_THEME)}
-        if token_overrides:
-            tokens.update(token_overrides)
+        tokens, resolved_qss = cls.build_theme_stylesheet(theme_id, token_overrides)
 
         # DEFAULT_THEME'i güncelle; IconManager token çözümlemesinde bunu kullanır.
         _tokens_mod.DEFAULT_THEME = tokens
@@ -174,8 +200,6 @@ class ThemeManager:
             logger.debug("[ThemeManager] Font apply skipped because widgets are already alive.")
 
         # QSS oluştur ve uygula
-        qss_name = THEME_REGISTRY[theme_id]["qss_name"]
-        resolved_qss = cls._build_qss(qss_name, tokens)
         if resolved_qss and cls._app:
             try:
                 cls._app.setStyleSheet(resolved_qss)

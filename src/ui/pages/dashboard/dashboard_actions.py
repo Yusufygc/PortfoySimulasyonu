@@ -12,6 +12,7 @@ from src.application.services.reporting.daily_history_models import ExportMode
 from src.domain.models.corporate_action import ActionType
 from src.domain.models.trade import TradeSide
 from src.ui.widgets.dashboard.dialogs.corporate_action_dialog import CorporateActionDialog
+from src.ui.formatters import display_ticker
 from src.ui.widgets.shared import Toast
 from src.ui.worker import Worker
 
@@ -35,13 +36,13 @@ class DashboardActions:
         amount = result["amount"]
         if action == "deposit":
             self._page._capital += amount
-            QMessageBox.information(self._page, "Basarili", f"{amount:,.2f} TL sermaye eklendi.")
+            QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye eklendi.")
         else:
             if amount > self._page._capital:
-                QMessageBox.warning(self._page, "Uyari", "Yetersiz sermaye.")
+                QMessageBox.warning(self._page, "Uyarı", "Yetersiz sermaye.")
                 return
             self._page._capital -= amount
-            QMessageBox.information(self._page, "Basarili", f"{amount:,.2f} TL sermaye cekildi.")
+            QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye çekildi.")
 
         self._presenter.refresh_data()
 
@@ -73,16 +74,16 @@ class DashboardActions:
             else:
                 self._page._capital += trade_amount
             self._presenter.refresh_data()
-            QMessageBox.information(self._page, "Basarili", "Islem basariyla eklendi.")
+            QMessageBox.information(self._page, "Başarılı", "İşlem başarıyla eklendi.")
             self._page._last_trade_result = result
         except ValueError as exc:
-            QMessageBox.warning(self._page, "Gecersiz Islem", str(exc))
+            QMessageBox.warning(self._page, "Geçersiz İşlem", str(exc))
         except Exception as exc:
-            QMessageBox.critical(self._page, "Hata", f"Islem kaydedilemedi: {exc}")
+            QMessageBox.critical(self._page, "Hata", f"İşlem kaydedilemedi: {exc}")
 
     def on_update_prices(self) -> None:
         self._page.btn_update_prices.setEnabled(False)
-        self._page.btn_update_prices.setText("Guncelleniyor...")
+        self._page.btn_update_prices.setText("Güncelleniyor...")
 
         # Ağ zaman aşımı durumunda butonu zorla aktifleştir (2 dakika)
         self._update_timeout_timer = QTimer(self._page)
@@ -101,7 +102,7 @@ class DashboardActions:
         if timer and timer.isActive():
             timer.stop()
         self._page.btn_update_prices.setEnabled(True)
-        self._page.btn_update_prices.setText(" Fiyatlari Guncelle")
+        self._page.btn_update_prices.setText(" Fiyatları Güncelle")
 
     def on_update_prices_success(self, result) -> None:
         price_update_result, _snapshot = result
@@ -111,7 +112,7 @@ class DashboardActions:
             skipped_reason = getattr(price_update_result, "skipped_reason", None)
             Toast.warning(
                 self._page,
-                skipped_reason or "Guncellenecek fiyat bulunamadi.",
+                skipped_reason or "Güncellenecek fiyat bulunamadı.",
                 duration_ms=4000,
                 position="top",
             )
@@ -120,7 +121,7 @@ class DashboardActions:
         self._page.record_last_update_time()
         self._page.show_last_update_toast_once(
             force=True,
-            detail=f"{price_update_result.updated_count} hisse guncellendi.",
+            detail=f"{price_update_result.updated_count} hisse güncellendi.",
         )
 
     def on_update_prices_error(self, err_tuple) -> None:
@@ -129,14 +130,14 @@ class DashboardActions:
     def on_export_today(self) -> None:
         first_date = self._page.portfolio_service.get_first_trade_date()
         if first_date is None:
-            QMessageBox.information(self._page, "Bilgi", "Herhangi bir islem bulunamadi.")
+            QMessageBox.information(self._page, "Bilgi", "Herhangi bir işlem bulunamadı.")
             return
 
         file_path, _ = QFileDialog.getSaveFileName(
             self._page,
-            "Excel Dosyasi Sec",
+            "Excel Dosyası Seç",
             "portfoy_takip.xlsx",
-            "Excel Dosyalari (*.xlsx)",
+            "Excel Dosyaları (*.xlsx)",
         )
         if not file_path:
             return
@@ -148,14 +149,14 @@ class DashboardActions:
                 file_path=file_path,
                 mode=ExportMode.OVERWRITE,
             )
-            QMessageBox.information(self._page, "Basarili", "Excel aktarimi tamamlandi.")
+            QMessageBox.information(self._page, "Başarılı", "Excel aktarımı tamamlandı.")
         except Exception as exc:
-            QMessageBox.critical(self._page, "Hata", f"Excel hatasi: {exc}")
+            QMessageBox.critical(self._page, "Hata", f"Excel hatası: {exc}")
 
     def on_export_range(self) -> None:
         first_date = self._page.portfolio_service.get_first_trade_date()
         if first_date is None:
-            QMessageBox.information(self._page, "Bilgi", "Islem bulunamadi.")
+            QMessageBox.information(self._page, "Bilgi", "İşlem bulunamadı.")
             return
 
         dialog = self._page.date_range_dialog_cls(self._page, min_date=first_date, max_date=date.today())
@@ -169,9 +170,9 @@ class DashboardActions:
 
         file_path, _ = QFileDialog.getSaveFileName(
             self._page,
-            "Excel Sec",
+            "Excel Seç",
             "portfoy_takip.xlsx",
-            "Excel Dosyalari (*.xlsx)",
+            "Excel Dosyaları (*.xlsx)",
         )
         if not file_path:
             return
@@ -183,7 +184,7 @@ class DashboardActions:
                 file_path=file_path,
                 mode=ExportMode.OVERWRITE,
             )
-            QMessageBox.information(self._page, "Basarili", "Excel aktarimi tamamlandi.")
+            QMessageBox.information(self._page, "Başarılı", "Excel aktarımı tamamlandı.")
         except Exception as exc:
             QMessageBox.critical(self._page, "Hata", f"Hata: {exc}")
 
@@ -296,7 +297,7 @@ class DashboardActions:
 
         Toast.info(
             self._page,
-            f"{ticker} için geçmiş fiyatlar güncelleniyor...",
+            f"{display_ticker(ticker)} için geçmiş fiyatlar güncelleniyor...",
             duration_ms=3000,
             position="top",
         )
@@ -337,8 +338,8 @@ class DashboardActions:
     def on_reset(self) -> None:
         reply = QMessageBox.question(
             self._page,
-            "Portfoyu Sifirla",
-            "TUM veriler silinecek. Emin misiniz?",
+            "Portföyü Sıfırla",
+            "TÜM veriler silinecek. Emin misiniz?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -350,6 +351,6 @@ class DashboardActions:
             self._page._capital = Decimal("0")
             self._presenter.refresh_data()
             self._page.summary_cards.update_returns(None, None)
-            QMessageBox.information(self._page, "Tamamlandi", "Basariyla sifirlandi.")
+            QMessageBox.information(self._page, "Tamamlandı", "Başarıyla sıfırlandı.")
         except Exception as exc:
             QMessageBox.critical(self._page, "Hata", f"Hata: {exc}")

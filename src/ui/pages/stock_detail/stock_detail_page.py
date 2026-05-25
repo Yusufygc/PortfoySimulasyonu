@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.domain.models.trade import TradeSide
+from src.ui.formatters import display_ticker
 from src.ui.pages.base_page import BasePage
 
 from .stock_chart_widget import StockChartWidget
@@ -36,7 +37,7 @@ class StockDetailPage(BasePage):
     ):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Hisse Detayi"
+        self.page_title = "Hisse Detayı"
         self.portfolio_service = container.portfolio_service
         self.stock_repo = container.stock_repo
         self.trade_entry_service = container.trade_entry_service
@@ -52,7 +53,7 @@ class StockDetailPage(BasePage):
         top_layout.setSpacing(0)
         top_layout.setContentsMargins(0, 0, 0, 10)
 
-        self.lbl_breadcrumb = QLabel("Portfoy > ...")
+        self.lbl_breadcrumb = QLabel("Portföy > ...")
         self.lbl_breadcrumb.setProperty("cssClass", "breadcrumbText")
         top_layout.addWidget(self.lbl_breadcrumb)
 
@@ -61,7 +62,7 @@ class StockDetailPage(BasePage):
 
         self.lbl_ticker = QLabel("TICKER")
         self.lbl_ticker.setProperty("cssClass", "stockTitleLarge")
-        self.lbl_name = QLabel("Hisse Adi")
+        self.lbl_name = QLabel("Hisse Adı")
         self.lbl_name.setProperty("cssClass", "stockSubtitle")
         self.lbl_price = QLabel("TL 0.00")
         self.lbl_price.setProperty("cssClass", "stockPriceCurrent")
@@ -71,7 +72,7 @@ class StockDetailPage(BasePage):
         title_row.addStretch()
 
         price_container = QVBoxLayout()
-        price_label_caption = QLabel("Guncel Fiyat")
+        price_label_caption = QLabel("Güncel Fiyat")
         price_label_caption.setAlignment(Qt.AlignRight)
         price_label_caption.setProperty("cssClass", "stockPriceCaption")
         price_container.addWidget(price_label_caption)
@@ -99,13 +100,13 @@ class StockDetailPage(BasePage):
         self.stats_panel = StockStatsPanel()
         left_layout.addWidget(self.stats_panel)
 
-        lbl_history = QLabel("Islem Gecmisi")
+        lbl_history = QLabel("İşlem Geçmişi")
         lbl_history.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_history)
 
         self.history_table = QTableWidget()
         self.history_table.setColumnCount(5)
-        self.history_table.setHorizontalHeaderLabels(["Tarih", "Islem", "Adet", "Fiyat", "Tutar"])
+        self.history_table.setHorizontalHeaderLabels(["Tarih", "İşlem", "Adet", "Fiyat", "Tutar"])
         self.history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.history_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.history_table.verticalHeader().setVisible(False)
@@ -127,8 +128,9 @@ class StockDetailPage(BasePage):
     def set_stock(self, ticker: str, stock_id: Optional[int] = None):
         self.current_ticker = ticker
         self.current_stock_id = stock_id
-        self.lbl_ticker.setText(ticker)
-        self.lbl_breadcrumb.setText(f"PORTFOY > {ticker}")
+        display = display_ticker(ticker)
+        self.lbl_ticker.setText(display)
+        self.lbl_breadcrumb.setText(f"PORTFÖY > {display}")
 
         if stock_id:
             stock = self.stock_repo.get_stock_by_id(stock_id)
@@ -208,8 +210,8 @@ class StockDetailPage(BasePage):
             )
             self.current_stock_id = result.stock_id
             self.current_ticker = result.ticker
-            QMessageBox.information(self, "Basarili", "Islem basariyla kaydedildi.")
+            QMessageBox.information(self, "Başarılı", "İşlem başarıyla kaydedildi.")
             self.refresh_data()
             self.trade_form.update_impact_preview(self.portfolio_service, self.current_stock_id)
         except Exception as exc:
-            QMessageBox.critical(self, "Hata", f"Islem hatasi: {exc}")
+            QMessageBox.critical(self, "Hata", f"İşlem hatası: {exc}")

@@ -11,6 +11,7 @@ Kullanım:
 """
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
 from PyQt5.QtCore import Qt
+from src.ui.formatters import display_ticker
 
 
 class SuggestionsTable(QTableWidget):
@@ -54,7 +55,7 @@ class SuggestionsTable(QTableWidget):
 
         for i, sug in enumerate(suggestions):
             self.insertRow(i)
-            self._set_readonly(i, 0, sug.symbol)
+            self._set_readonly(i, 0, display_ticker(sug.symbol))
             self._set_readonly(i, 1, f"{sug.current_weight:.2f}%", Qt.AlignCenter)
             self._set_readonly(i, 2, f"{sug.optimal_weight:.2f}%", Qt.AlignCenter)
 

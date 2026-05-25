@@ -32,6 +32,8 @@ from PyQt5.QtWidgets import (
     QGroupBox,
 )
 
+from src.ui.formatters import display_ticker
+
 
 class CorporateActionDialog(QDialog):
     """
@@ -58,13 +60,14 @@ class CorporateActionDialog(QDialog):
     ):
         super().__init__(parent)
         self._ticker = ticker
+        self._display_ticker = display_ticker(ticker)
         self._stock_id = stock_id
         self._current_qty = current_qty
         self._avg_cost = avg_cost or Decimal("0")
         self._total_cost = total_cost
         self._current_price = current_price
 
-        self.setWindowTitle(f"Sermaye Artırımı — {ticker}")
+        self.setWindowTitle(f"Sermaye Artırımı — {self._display_ticker}")
         self.setMinimumWidth(440)
         self.setModal(True)
         self.setProperty("cssClass", "dialogContainer")
@@ -102,7 +105,7 @@ class CorporateActionDialog(QDialog):
             return col
 
         price_txt = f"{self._current_price:,.4f} TL" if self._current_price else "—"
-        info_layout.addLayout(_info_col("Hisse", self._ticker))
+        info_layout.addLayout(_info_col("Hisse", self._display_ticker))
         info_layout.addLayout(_info_col("Mevcut Lot", f"{self._current_qty:,}"))
         info_layout.addLayout(_info_col("Ort. Maliyet", f"{self._avg_cost:,.4f} TL"))
         info_layout.addLayout(_info_col("Güncel Fiyat", price_txt))

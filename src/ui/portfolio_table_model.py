@@ -8,6 +8,7 @@ from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex, QVariant
 from decimal import Decimal
 
 from src.domain.models.position import Position
+from src.ui.formatters import display_ticker
 
 
 class PortfolioTableModel(QAbstractTableModel):
@@ -76,7 +77,7 @@ class PortfolioTableModel(QAbstractTableModel):
         col = index.column()
         if col == 0: # HISSE
             ticker = self._ticker_map.get(stock_id)
-            display_text = ticker if ticker is not None else str(stock_id)
+            display_text = display_ticker(ticker) if ticker is not None else str(stock_id)
         elif col == 1: # GÜNCEL FİYAT
             display_text = f"{current_price:,.2f}" if current_price is not None else "-"
         elif col == 2: # DEĞİŞİM%
@@ -133,6 +134,23 @@ class PortfolioTableModel(QAbstractTableModel):
                             
             return QVariant()
 
+        if role == Qt.BackgroundRole and current_price is not None:
+            if col == 6:
+                pl = position.unrealized_pl(current_price)
+                if pl > 0:
+                    return QColor(16, 185, 129, 20)
+                if pl < 0:
+                    return QColor(239, 68, 68, 20)
+            elif col == 2:
+                avg = position.average_cost
+                if avg and avg > 0:
+                    change_pct = ((current_price - avg) / avg) * 100
+                    if change_pct > 0:
+                        return QColor(16, 185, 129, 20)
+                    if change_pct < 0:
+                        return QColor(239, 68, 68, 20)
+            return QVariant()
+
         if role == Qt.FontRole:
             if display_text == "-":
                 font = QFont()
@@ -187,6 +205,6 @@ class PortfolioTableModel(QAbstractTableModel):
         for row in changed_rows:
             top_left = self.index(row, 1)  # 1: Güncel Fiyat kolonu
             bottom_right = self.index(row, 6)  # 6: Kar/Zarar kolonu
-            self.dataChanged.emit(top_left, bottom_right, [Qt.DisplayRole, Qt.ForegroundRole])
+            self.dataChanged.emit(top_left, bottom_right, [Qt.DisplayRole, Qt.ForegroundRole, Qt.BackgroundRole])
 
 

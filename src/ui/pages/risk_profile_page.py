@@ -125,7 +125,7 @@ class RiskProfilePage(BasePage):
         allocation_layout = QVBoxLayout(allocation_block)
         allocation_layout.setContentsMargins(12, 8, 12, 9)
         allocation_layout.setSpacing(4)
-        allocation_title = QLabel("Ornek Dagilim")
+        allocation_title = QLabel("Örnek Dağılım")
         allocation_title.setProperty("cssClass", "profileInfoTitle")
         allocation_layout.addWidget(allocation_title)
         self.lbl_allocation = QLabel("")

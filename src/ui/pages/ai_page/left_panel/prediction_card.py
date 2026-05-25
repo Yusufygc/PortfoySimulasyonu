@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
 from PyQt5.QtCore import Qt
 from src.ui.core.icon_manager import IconManager
+from src.ui.formatters import display_ticker
 
 
 class PredictionCard(QWidget):
@@ -97,7 +98,7 @@ class PredictionCard(QWidget):
         horizon_days: int | None = None,
         weekly_expected_return: float | None = None,
     ):
-        self.lbl_ticker.setText(f"Hisse: {ticker}")
+        self.lbl_ticker.setText(f"Hisse: {display_ticker(ticker)}")
 
         if predicted_price is not None:
             self.lbl_price.setText(f"Tahmini Fiyat: ₺{predicted_price:.2f}")
