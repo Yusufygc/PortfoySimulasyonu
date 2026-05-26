@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMessageBox,
-    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -87,7 +86,9 @@ class StockDetailPage(BasePage):
         line.setProperty("cssClass", "horizontalDivider")
         self.main_layout.addWidget(line)
 
-        splitter = QSplitter(Qt.Horizontal)
+        content_layout = QHBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(10)
 
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
@@ -108,7 +109,13 @@ class StockDetailPage(BasePage):
         self.history_table.setColumnCount(5)
         self.history_table.setHorizontalHeaderLabels(["Tarih", "İşlem", "Adet", "Fiyat", "Tutar"])
         self.history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.history_table.setSelectionMode(QTableWidget.NoSelection)
         self.history_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.history_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.history_table.setFocusPolicy(Qt.NoFocus)
+        self.history_table.setShowGrid(False)
+        self.history_table.setAlternatingRowColors(True)
+        self.history_table.setProperty("cssClass", "stockHistoryTable")
         self.history_table.verticalHeader().setVisible(False)
         left_layout.addWidget(self.history_table, 2)
 
@@ -118,9 +125,9 @@ class StockDetailPage(BasePage):
         self.trade_form.spin_price.valueChanged.connect(self._trigger_impact_update)
         self.trade_form.btn_buy_mode.toggled.connect(self._trigger_impact_update)
 
-        splitter.addWidget(left_panel)
-        splitter.addWidget(self.trade_form)
-        self.main_layout.addWidget(splitter)
+        content_layout.addWidget(left_panel, 1)
+        content_layout.addWidget(self.trade_form, 0)
+        self.main_layout.addLayout(content_layout, 1)
 
     def _trigger_impact_update(self):
         self.trade_form.update_impact_preview(self.portfolio_service, self.current_stock_id)
@@ -175,23 +182,23 @@ class StockDetailPage(BasePage):
 
         self.history_table.setRowCount(len(trades))
         for row_index, trade in enumerate(trades):
-            self.history_table.setItem(row_index, 0, QTableWidgetItem(trade.trade_date.strftime("%d.%m.%Y")))
+            self.history_table.setItem(row_index, 0, self._history_item(trade.trade_date.strftime("%d.%m.%Y")))
             type_str = "ALIM" if trade.side == TradeSide.BUY else "SATIM"
-            type_item = QTableWidgetItem(type_str)
-            type_item.setForeground(Qt.green if trade.side == TradeSide.BUY else Qt.red)
+            type_color = QColor("#10b981" if trade.side == TradeSide.BUY else "#ef4444")
+            type_item = self._history_item(type_str, type_color)
             self.history_table.setItem(row_index, 1, type_item)
-            self.history_table.setItem(row_index, 2, QTableWidgetItem(str(trade.quantity)))
-            self.history_table.setItem(row_index, 3, QTableWidgetItem(f"TL {trade.price:,.2f}"))
-            self.history_table.setItem(row_index, 4, QTableWidgetItem(f"TL {trade.total_amount:,.2f}"))
+            self.history_table.setItem(row_index, 2, self._history_item(str(trade.quantity)))
+            self.history_table.setItem(row_index, 3, self._history_item(f"TL {trade.price:,.2f}"))
+            self.history_table.setItem(row_index, 4, self._history_item(f"TL {trade.total_amount:,.2f}"))
 
-            for col in range(5):
-                item = self.history_table.item(row_index, col)
-                if item:
-                    item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-                    item.setBackground(QColor("#1e293b" if row_index % 2 == 0 else "#0f172a"))
-
-        self.history_table.setShowGrid(False)
-        self.history_table.setProperty("cssClass", "dataTable")
+    @staticmethod
+    def _history_item(text: str, foreground: Optional[QColor] = None) -> QTableWidgetItem:
+        item = QTableWidgetItem(text)
+        item.setFlags(Qt.ItemIsEnabled)
+        item.setTextAlignment(Qt.AlignCenter)
+        if foreground is not None:
+            item.setForeground(foreground)
+        return item
 
     def _on_submit_trade(self, is_buy: bool, qty: int, price: float, date_sel: QDate):
         if not self.current_ticker:

@@ -3,7 +3,7 @@
 from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QFormLayout, QDoubleSpinBox, 
-    QSpinBox, QDateEdit, QButtonGroup
+    QSpinBox, QDateEdit, QButtonGroup, QSizePolicy
 )
 from PyQt5.QtCore import Qt, QDate, pyqtSignal
 from decimal import Decimal
@@ -17,7 +17,8 @@ class TradeFormPanel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("tradePanel")
-        self.setFixedWidth(320)
+        self.setFixedWidth(290)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         self._init_ui()
 
     def _init_ui(self):
@@ -93,13 +94,12 @@ class TradeFormPanel(QFrame):
         self.impact_card = self._create_impact_card()
         layout.addWidget(self.impact_card)
         self.impact_card.setVisible(False)
-        
-        layout.addStretch()
-        
+
         # Ana Aksiyon Butonu
         self.btn_trade = QPushButton("ALIM EMRİNİ ONAYLA")
         self.btn_trade.setFixedHeight(45)
         layout.addWidget(self.btn_trade)
+        layout.addStretch()
 
         # Sinyaller
         self.btn_buy_mode.toggled.connect(self._update_trade_mode_ui)
@@ -108,8 +108,6 @@ class TradeFormPanel(QFrame):
         self.btn_trade.clicked.connect(self._submit_trade)
         
         self._update_trade_mode_ui()
-
-        pass
 
     def _create_impact_card(self):
         card = QFrame()

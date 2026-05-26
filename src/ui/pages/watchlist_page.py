@@ -18,7 +18,6 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QFrame,
     QInputDialog,
-    QSplitter,
 )
 from PyQt5.QtCore import Qt, QSize
 from src.ui.core.icon_manager import IconManager
@@ -137,8 +136,8 @@ class WatchlistPage(BasePage):
         self.stock_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.stock_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.stock_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.stock_table.setSelectionMode(QTableWidget.NoSelection)
         self.stock_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.stock_table.setSelectionMode(QTableWidget.SingleSelection)
         self.stock_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.stock_table.setAlternatingRowColors(True)
         self.stock_table.setShowGrid(False)
@@ -244,7 +243,7 @@ class WatchlistPage(BasePage):
     @staticmethod
     def _readonly_table_item(text: str) -> QTableWidgetItem:
         item = QTableWidgetItem(text)
-        item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+        item.setFlags(Qt.ItemIsEnabled)
         return item
 
     def _on_new_list(self):

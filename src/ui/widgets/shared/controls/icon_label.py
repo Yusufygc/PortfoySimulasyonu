@@ -19,6 +19,14 @@ class IconLabel(QLabel):
         icon = IconManager.get_icon(self._icon_name, color=self._color, size=QSize(self._size, self._size))
         self.setPixmap(icon.pixmap(self._size, self._size))
 
+    def set_icon(self, icon_name: str, color: str | None = None, size: int | None = None) -> None:
+        self._icon_name = icon_name
+        if color is not None:
+            self._color = color
+        if size is not None:
+            self._size = size
+        self._refresh()
+
     def changeEvent(self, event):
         if event.type() == QEvent.StyleChange:
             self._refresh()

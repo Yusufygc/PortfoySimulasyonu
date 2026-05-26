@@ -32,10 +32,12 @@ class SuggestionsTable(QTableWidget):
         for col in range(1, len(self._COLUMNS)):
             self.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeToContents)
 
+        self.setSelectionMode(QTableWidget.NoSelection)
         self.setSelectionBehavior(QTableWidget.SelectRows)
         self.setAlternatingRowColors(True)
         self.verticalHeader().setVisible(False)
         self.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.setFocusPolicy(Qt.NoFocus)
         self.setProperty("cssClass", "dataTable")
 
         # İç scrollbarları devre dışı bırakıyoruz (Sayfa seviyesinde scroll olacak)
@@ -61,7 +63,7 @@ class SuggestionsTable(QTableWidget):
 
             # Fark — renk kodlu
             change_item = QTableWidgetItem(f"{sug.change:+.2f}%")
-            change_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            change_item.setFlags(Qt.ItemIsEnabled)
             change_item.setTextAlignment(Qt.AlignCenter)
             color = Qt.green if sug.change > 0 else Qt.red if sug.change < 0 else Qt.gray
             change_item.setForeground(color)
@@ -69,7 +71,7 @@ class SuggestionsTable(QTableWidget):
 
             # Öneri (Aksiyon) — renk kodlu
             action_item = QTableWidgetItem(sug.action)
-            action_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            action_item.setFlags(Qt.ItemIsEnabled)
             action_item.setTextAlignment(Qt.AlignCenter)
             if sug.action == "EKLE":
                 action_item.setForeground(Qt.green)
@@ -97,7 +99,7 @@ class SuggestionsTable(QTableWidget):
 
     def _set_readonly(self, row: int, col: int, text: str, align=None) -> None:
         item = QTableWidgetItem(text)
-        item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        item.setFlags(Qt.ItemIsEnabled)
         if align is not None:
             item.setTextAlignment(align)
         self.setItem(row, col, item)

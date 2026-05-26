@@ -64,6 +64,11 @@ class PortfolioTableModel(QAbstractTableModel):
             return self._headers[section]
         return section + 1
 
+    def flags(self, index: QModelIndex):
+        if not index.isValid():
+            return Qt.NoItemFlags
+        return Qt.ItemIsEnabled
+
     def data(self, index: QModelIndex, role=Qt.DisplayRole):
         if not index.isValid():
             return QVariant()

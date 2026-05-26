@@ -76,6 +76,36 @@ QLabel[cssClass="stockPriceCaption"] {
     color: @COLOR_TEXT_MUTED; font-size: @FONT_SM; text-transform: uppercase; letter-spacing: 1px;
 }
 
+QTableWidget[cssClass="stockHistoryTable"] {
+    background-color: @TABLE_BG;
+    alternate-background-color: @TABLE_ALT_BG;
+    color: @TABLE_TEXT;
+    border: 1px solid @TABLE_BORDER;
+    border-radius: @RADIUS_LG;
+    gridline-color: transparent;
+    outline: none;
+    selection-background-color: transparent;
+    selection-color: @TABLE_TEXT;
+}
+QTableWidget[cssClass="stockHistoryTable"]::item {
+    padding: 6px 8px;
+    border: none;
+    border-bottom: 1px solid @TABLE_BORDER_SUBTLE;
+}
+QTableWidget[cssClass="stockHistoryTable"]::item:selected,
+QTableWidget[cssClass="stockHistoryTable"]::item:hover {
+    background-color: transparent;
+}
+QTableWidget[cssClass="stockHistoryTable"] QHeaderView::section {
+    background-color: @TABLE_HEADER_BG;
+    color: @TABLE_HEADER_TEXT;
+    padding: 10px 8px;
+    border: none;
+    border-bottom: 2px solid @TABLE_BORDER;
+    font-weight: bold;
+    font-size: @FONT_TABLE_HEADER;
+}
+
 QLabel[cssState="positive"] {
     color: @COLOR_SUCCESS; font-size: @FONT_XL; font-weight: bold;
 }

@@ -27,7 +27,8 @@ class DashboardPortfolioTable(QWidget):
         self.table_view = QTableView()
         self.table_view.setAlternatingRowColors(True)
         self.table_view.setSelectionBehavior(QTableView.SelectRows)
-        self.table_view.setSelectionMode(QTableView.SingleSelection)
+        self.table_view.setSelectionMode(QTableView.NoSelection)
+        self.table_view.setFocusPolicy(Qt.NoFocus)
         self.table_view.setSortingEnabled(True)
         self.table_view.verticalHeader().setVisible(False)
         self.table_view.verticalHeader().setDefaultSectionSize(44)
@@ -84,18 +85,22 @@ class DashboardPortfolioTable(QWidget):
         """Alt kısımdaki toplam özet satırını günceller."""
         for col in range(7):
             item = QTableWidgetItem("")
+            item.setFlags(Qt.ItemIsEnabled)
             item.setTextAlignment(Qt.AlignCenter)
             self.table_summary.setItem(0, col, item)
             
         item_title = QTableWidgetItem("TOPLAM")
+        item_title.setFlags(Qt.ItemIsEnabled)
         item_title.setTextAlignment(Qt.AlignCenter)
         self.table_summary.setItem(0, 0, item_title)
         
         item_mv = QTableWidgetItem(f"{total_value:,.2f}")
+        item_mv.setFlags(Qt.ItemIsEnabled)
         item_mv.setTextAlignment(Qt.AlignCenter)
         self.table_summary.setItem(0, 5, item_mv)
         
         item_pl = QTableWidgetItem(f"{profit_loss:+,.2f}")
+        item_pl.setFlags(Qt.ItemIsEnabled)
         item_pl.setTextAlignment(Qt.AlignCenter)
         
         if profit_loss > 0:

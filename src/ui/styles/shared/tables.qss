@@ -17,7 +17,7 @@ QTableWidget[cssClass="dataTable"]::item {
     padding: @SPACE_LG; border: none; border-bottom: 1px solid @COLOR_BG_SURFACE;
 }
 QTableWidget[cssClass="dataTable"]::item:selected {
-    background-color: @COLOR_BORDER; color: @COLOR_TEXT_PRIMARY;
+    background-color: @COLOR_BORDER;
 }
 QTableWidget[cssClass="dataTable"]::item:hover {
     background-color: @COLOR_BG_SURFACE;

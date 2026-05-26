@@ -12,6 +12,15 @@ QFrame[cssClass="statCard"][isHero="true"] {
     background-color: @COLOR_BG_BASE;
     border: 1px solid @COLOR_PRIMARY;
 }
+QFrame[cssClass="statCard"][cssState="positive"] {
+    border: 1px solid @COLOR_SUCCESS;
+}
+QFrame[cssClass="statCard"][cssState="negative"] {
+    border: 1px solid @COLOR_DANGER;
+}
+QFrame[cssClass="statCard"][cssState="neutral"] {
+    border: 1px solid @COLOR_BORDER;
+}
 QFrame[cssClass="statCard"] QLabel {
     border: none;
 }
@@ -42,6 +51,15 @@ QLabel[cssClass="statCardValue"][isHero="true"] {
     font-size: @FONT_5XL;
 }
 QLabel[cssClass="statCardValue"][colored="true"] {
+    color: @COLOR_TEXT_PRIMARY;
+}
+QLabel[cssClass="statCardValue"][cssState="positive"] {
+    color: @COLOR_SUCCESS;
+}
+QLabel[cssClass="statCardValue"][cssState="negative"] {
+    color: @COLOR_DANGER;
+}
+QLabel[cssClass="statCardValue"][cssState="neutral"] {
     color: @COLOR_TEXT_PRIMARY;
 }
 
