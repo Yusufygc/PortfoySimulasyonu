@@ -20,6 +20,11 @@ class Portfolio:
 
     # --------- Pozisyon erişimi --------- #
 
+    @property
+    def active_positions(self) -> Dict[int, Position]:
+        """Sıfırdan büyük lot'u olan açık pozisyonlar. Tam satılan hisseler dahil değil."""
+        return {sid: p for sid, p in self.positions.items() if p.total_quantity > 0}
+
     def get_position(self, stock_id: int) -> Position:
         """
         Hisse için pozisyonu döner; yoksa sıfırdan oluşturur.
@@ -47,7 +52,11 @@ class Portfolio:
         portfolio = cls()
         for trade in sorted(
             trades,
-            key=lambda t: (t.trade_date, t.trade_time or time.min, getattr(t, "id", 0) or 0),
+            key=lambda t: (
+                t.trade_date,
+                t.trade_time if t.trade_time is not None else time.min,
+                getattr(t, "id", 0) or 0,
+            ),
         ):
             portfolio.apply_trade(trade)
         return portfolio

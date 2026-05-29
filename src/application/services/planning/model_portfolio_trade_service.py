@@ -49,6 +49,7 @@ class ModelPortfolioTradeService:
         trade_date: date,
         trade_time: Optional[time] = None,
     ) -> ModelPortfolioTrade:
+        # --- tek portfolio + tek trades fetch; tüm alt çağrılara geçilir ---
         portfolio = self._portfolio_repo.get_model_portfolio_by_id(portfolio_id)
         if portfolio is None:
             raise ValueError(f"Portfoy bulunamadi: {portfolio_id}")
@@ -63,16 +64,19 @@ class ModelPortfolioTradeService:
         if price <= 0:
             raise ValueError("Fiyat pozitif olmalidir.")
 
-        # Ön kontrol — add_trade_by_ticker ile tutarlı olsun (ana portföy validate_trade deseni).
+        # Tüm trade'leri tek seferlik çek; as_of filtresi in-memory yapılır.
+        all_trades = self._portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
+        trades_at = self._filter_trades_until(all_trades, as_of=(trade_date, trade_time))
+        sim_at = self._simulate_with_portfolio(portfolio, trades_at)
+
+        total_amount = Decimal(quantity) * price
         if trade_side == ModelTradeSide.BUY:
-            total_amount = Decimal(quantity) * price
-            remaining_cash = self.get_remaining_cash(portfolio_id, as_of=(trade_date, trade_time))
-            if total_amount > remaining_cash:
+            if total_amount > sim_at.cash:
                 raise ValueError(
-                    f"Yetersiz nakit. Gerekli: {total_amount:.2f} TL, Mevcut: {remaining_cash:.2f} TL"
+                    f"Yetersiz nakit. Gerekli: {total_amount:.2f} TL, Mevcut: {sim_at.cash:.2f} TL"
                 )
         else:
-            available = self.get_position_quantity_as_of(portfolio_id, stock_id, as_of=(trade_date, trade_time))
+            available = sim_at.positions.get(stock_id, 0)
             if quantity > available:
                 raise ValueError(
                     f"Yetersiz pozisyon. Satmak istediğiniz: {quantity}, Mevcut: {available}"
@@ -97,7 +101,10 @@ class ModelPortfolioTradeService:
                 trade_time=trade_time,
             )
 
-        self._validate_candidate_timeline(portfolio_id, trade)
+        # Timeline doğrulama — önceden çekilen verilerle çalışır, yeniden DB'ye gitme.
+        all_trades_sorted = sorted(all_trades, key=self._trade_sort_key)
+        existing_valid = self._simulate_with_portfolio(portfolio, all_trades_sorted).valid_trades
+        self._validate_candidate_timeline(portfolio_id, trade, portfolio=portfolio, existing_trades=existing_valid)
         return self._portfolio_repo.insert_trade(trade)
 
     def add_trade_by_ticker(
@@ -122,13 +129,6 @@ class ModelPortfolioTradeService:
             raise ValueError("Lot adedi pozitif olmalidir.")
         if price <= 0:
             raise ValueError("Fiyat pozitif olmalidir.")
-        if trade_side == ModelTradeSide.BUY:
-            total_amount = Decimal(quantity) * price
-            remaining_cash = self.get_remaining_cash(portfolio_id, as_of=(trade_date, trade_time))
-            if total_amount > remaining_cash:
-                raise ValueError(
-                    f"Yetersiz nakit. Gerekli: {total_amount:.2f} TL, Mevcut: {remaining_cash:.2f} TL"
-                )
         stock = self._stock_repo.get_stock_by_ticker(normalized_ticker)
         if stock is None:
             if trade_side != ModelTradeSide.BUY:
@@ -189,36 +189,56 @@ class ModelPortfolioTradeService:
         as_of: date | tuple[date, time | None] | None = None,
     ):
         trades = self._portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
-        if as_of is None:
-            return sorted(trades, key=self._trade_sort_key)
-        as_date, as_time = (as_of, None) if isinstance(as_of, date) else as_of
-        max_key = (as_date, as_time or time.max, float("inf"))
-        return sorted((trade for trade in trades if self._trade_sort_key(trade) <= max_key), key=self._trade_sort_key)
+        return self._filter_trades_until(trades, as_of)
 
-    def _validate_candidate_timeline(self, portfolio_id: int, candidate: ModelPortfolioTrade) -> None:
-        existing_trades = self.get_valid_trades(portfolio_id)
-        baseline_violations = {
-            marker for marker, _reason in self._simulate(portfolio_id, existing_trades).violations
-        }
+    def _validate_candidate_timeline(
+        self,
+        portfolio_id: int,
+        candidate: ModelPortfolioTrade,
+        portfolio=None,
+        existing_trades=None,
+    ) -> None:
+        # existing_trades = zaten geçerli trade'ler (violations dışlanmış).
+        # Dışarıdan verilirse DB'ye gidilmez.
+        if portfolio is None:
+            portfolio = self._portfolio_repo.get_model_portfolio_by_id(portfolio_id)
+        if existing_trades is None:
+            all_trades = self._portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
+            existing_trades = self._simulate_with_portfolio(
+                portfolio, sorted(all_trades, key=self._trade_sort_key)
+            ).valid_trades
+
         candidate_marker = ("candidate", id(candidate))
-        result = self._simulate(
-            portfolio_id,
+        result = self._simulate_with_portfolio(
+            portfolio,
             list(existing_trades) + [candidate],
             candidate_marker=candidate_marker,
         )
         for marker, reason in result.violations:
             if marker == candidate_marker:
                 raise ValueError(reason)
-            if marker not in baseline_violations:
-                raise ValueError(
-                    "Bu tarih/saat ile işlem, sonraki model portföy nakit veya lot akışını geçersiz hale getiriyor."
-                )
+            raise ValueError(
+                "Bu tarih/saat ile işlem, sonraki model portföy nakit veya lot akışını geçersiz hale getiriyor."
+            )
+
+    def _filter_trades_until(self, trades, as_of: date | tuple[date, time | None] | None = None):
+        """Pre-fetched trade listesini as_of noktasına göre filtreler (DB çağrısı yok)."""
+        if as_of is None:
+            return sorted(trades, key=self._trade_sort_key)
+        as_date, as_time = (as_of, None) if isinstance(as_of, date) else as_of
+        max_key = (as_date, as_time if as_time is not None else time.max, float("inf"))
+        return sorted(
+            (t for t in trades if self._trade_sort_key(t) <= max_key),
+            key=self._trade_sort_key,
+        )
 
     def _simulate(self, portfolio_id: int, trades, candidate_marker: tuple | None = None):
         portfolio = self._portfolio_repo.get_model_portfolio_by_id(portfolio_id)
         if portfolio is None:
             raise ValueError(f"Portfoy bulunamadi: {portfolio_id}")
+        return self._simulate_with_portfolio(portfolio, trades, candidate_marker)
 
+    def _simulate_with_portfolio(self, portfolio, trades, candidate_marker: tuple | None = None):
         cash = portfolio.initial_cash
         positions: Dict[int, int] = defaultdict(int)
         valid_trades = []
@@ -269,7 +289,7 @@ class ModelPortfolioTradeService:
     def _trade_sort_key(trade: ModelPortfolioTrade) -> tuple:
         return (
             trade.trade_date,
-            trade.trade_time or time.min,
+            trade.trade_time if trade.trade_time is not None else time.min,
             trade.id or 0,
         )
 

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from PyQt5.QtCore import QSettings, QThreadPool, QTimer, Qt
 from PyQt5.QtGui import QIcon
@@ -143,6 +146,8 @@ class MainWindow(QMainWindow):
 
         page = self._page_factory.create(page_index)
         if page is None:
+            logger.error("PageFactory returned None for page_index=%d", page_index)
+            Toast.error(self, "Sayfa yüklenemedi. Uygulama durumu kontrol edin.")
             return
 
         placeholder = self.stacked_widget.widget(page_index)
@@ -178,12 +183,18 @@ class MainWindow(QMainWindow):
         self._update_nav_buttons(page_index)
         self.btn_back.setEnabled(len(self.navigation_history) > 0)
 
-    def show_stock_detail(self, ticker: str, stock_id: Optional[int] = None):
+    def show_stock_detail(self, ticker: str, stock_id: Optional[int] = None, context: Optional[dict] = None):
         if self.PAGE_STOCK_DETAIL not in self.pages:
             self._instantiate_page(self.PAGE_STOCK_DETAIL)
         page = self.pages[self.PAGE_STOCK_DETAIL]
-        page.set_stock(ticker, stock_id)
+        page.set_stock(ticker, stock_id, context=context)
         self._goto_page(self.PAGE_STOCK_DETAIL)
+
+    def show_dashboard(self):
+        self._goto_page(self.PAGE_DASHBOARD)
+
+    def show_model_portfolios(self):
+        self._goto_page(self.PAGE_MODEL_PORTFOLIO)
 
     def _on_back(self):
         if not self.navigation_history:

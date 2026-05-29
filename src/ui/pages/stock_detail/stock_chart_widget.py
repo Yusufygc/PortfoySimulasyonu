@@ -7,10 +7,11 @@ from datetime import date, datetime, time, timedelta
 
 import pyqtgraph as pg
 import yfinance as yf
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtWidgets import QFrame, QSizePolicy, QVBoxLayout
 
 from src.ui.formatters import display_ticker
+from src.ui.worker import Worker
 
 logger = logging.getLogger(__name__)
 
@@ -83,47 +84,77 @@ class StockChartWidget(QFrame):
         self.plot_widget.getPlotItem().setTitle(message, color=TEXT_SECONDARY, size="13pt")
         self.plot_widget.enableAutoRange()
 
-    def draw_chart(self, current_ticker: str, current_stock_id, current_price, portfolio_service):
+    def draw_chart(
+        self,
+        current_ticker: str,
+        current_stock_id,
+        current_price,
+        portfolio_service,
+        price_repo=None,
+        average_cost=None,
+    ):
         if not current_ticker:
             self.draw_empty_chart("Grafik verisi bekleniyor")
             return
 
-        self.plot_widget.clear()
-        self._clear_reference_legend()
-        self._configure_plot_item()
-        plot_item = self.plot_widget.getPlotItem()
-        plot_item.setTitle(
-            f"{display_ticker(current_ticker)} - Fiyat Geçmişi",
-            color=TEXT_PRIMARY,
-            size="15pt",
-        )
+        self.draw_empty_chart("Veri yükleniyor…")
 
-        try:
+        def _fetch():
             end_date = date.today()
             start_date = end_date - timedelta(days=180)
 
-            yf_ticker = current_ticker if "." in current_ticker else f"{current_ticker}.IS"
-            data = yf.download(
-                yf_ticker,
-                start=start_date,
-                end=end_date + timedelta(days=1),
-                progress=False,
-                auto_adjust=False,
+            points = self._db_series_to_points(price_repo, current_stock_id, start_date, end_date)
+            if not points:
+                yf_ticker = current_ticker if "." in current_ticker else f"{current_ticker}.IS"
+                data = yf.download(
+                    yf_ticker,
+                    start=start_date,
+                    end=end_date + timedelta(days=1),
+                    progress=False,
+                    auto_adjust=False,
+                )
+                if data is not None and not data.empty:
+                    close_col = "Close" if "Close" in data.columns else data.columns[0]
+                    close_data = data[close_col]
+                    if hasattr(close_data, "values") and len(close_data.shape) > 1:
+                        close_data = close_data.iloc[:, 0]
+                    points = self._series_to_points(close_data)
+
+            avg_cost = (
+                float(average_cost)
+                if average_cost is not None
+                else self._average_cost(current_stock_id, portfolio_service)
             )
+            return points, avg_cost
 
-            if data is None or data.empty:
-                self.draw_empty_chart("Veri bulunamadı")
-                return
+        worker = Worker(_fetch)
+        worker.signals.result.connect(
+            lambda result: self._render_chart(result[0], result[1], current_price, current_ticker)
+        )
+        worker.signals.error.connect(lambda _err: self.draw_empty_chart("Grafik yüklenemedi"))
+        QThreadPool.globalInstance().start(worker)
 
-            close_col = "Close" if "Close" in data.columns else data.columns[0]
-            close_data = data[close_col]
-            if hasattr(close_data, "values") and len(close_data.shape) > 1:
-                close_data = close_data.iloc[:, 0]
-
-            points = self._series_to_points(close_data)
+    def _render_chart(
+        self,
+        points: list,
+        avg_cost,
+        current_price,
+        current_ticker: str,
+    ) -> None:
+        try:
             if not points:
                 self.draw_empty_chart("Veri bulunamadı")
                 return
+
+            self.plot_widget.clear()
+            self._clear_reference_legend()
+            self._configure_plot_item()
+            plot_item = self.plot_widget.getPlotItem()
+            plot_item.setTitle(
+                f"{display_ticker(current_ticker)} - Fiyat Geçmişi",
+                color=TEXT_PRIMARY,
+                size="15pt",
+            )
 
             x_values = [point[0] for point in points]
             y_values = [point[1] for point in points]
@@ -146,16 +177,20 @@ class StockChartWidget(QFrame):
             padding = (ymax - ymin) * 0.12 if ymax > ymin else max(ymax * 0.1, 1.0)
             self.plot_widget.setYRange(max(0, ymin - padding), ymax + padding, padding=0)
 
-            avg_cost = self._average_cost(current_stock_id, portfolio_service)
             if avg_cost is not None:
                 self._add_reference_line(avg_cost, "Ort. Maliyet", LINE_AVG_COST, Qt.DashLine)
 
             if current_price:
-                self._add_reference_line(float(current_price), f"Güncel: {float(current_price):.2f}", LINE_CURRENT, Qt.SolidLine)
+                self._add_reference_line(
+                    float(current_price),
+                    f"Güncel: {float(current_price):.2f}",
+                    LINE_CURRENT,
+                    Qt.SolidLine,
+                )
 
             self.plot_widget.enableAutoRange(axis=pg.ViewBox.XAxis)
         except Exception as exc:
-            logger.error("Grafik hatası: %s", exc)
+            logger.error("Grafik render hatası: %s", exc)
             self.draw_empty_chart("Grafik yüklenemedi")
 
     def _add_reference_line(self, value: float, label: str, color: str, style: Qt.PenStyle) -> None:
@@ -219,4 +254,27 @@ class StockChartWidget(QFrame):
             else:
                 continue
             points.append((dt.timestamp(), value))
+        return points
+
+    @staticmethod
+    def _db_series_to_points(price_repo, stock_id, start_date: date, end_date: date) -> list[tuple[float, float]]:
+        if not price_repo or not stock_id:
+            return []
+        try:
+            series = price_repo.get_price_series(stock_id, start_date, end_date)
+        except Exception as exc:
+            logger.warning("DB fiyat serisi okunamadı: %s", exc)
+            return []
+
+        points: list[tuple[float, float]] = []
+        for daily in series or []:
+            price_date = getattr(daily, "price_date", None)
+            close_price = getattr(daily, "close_price", None)
+            if price_date is None or close_price is None:
+                continue
+            try:
+                value = float(close_price)
+            except (TypeError, ValueError):
+                continue
+            points.append((datetime.combine(price_date, time.min).timestamp(), value))
         return points

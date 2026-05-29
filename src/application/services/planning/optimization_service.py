@@ -50,9 +50,7 @@ class OptimizationService:
 
     def optimize_dashboard_portfolio(self) -> OptimizationResult:
         portfolio = self._portfolio_service.get_current_portfolio()
-        # Tam satılan pozisyonları (qty == 0) optimizasyon evreninden çıkar.
-        # portfolio.positions dict'i kapanmış pozisyonları silmez; açık olanları al.
-        positions = {sid: p for sid, p in portfolio.positions.items() if p.total_quantity > 0}
+        positions = portfolio.active_positions
 
         if len(positions) < 2:
             raise ValueError("Optimizasyon icin portfoyde en az 2 farkli hisse olmalidir.")
