@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+from datetime import time
 from decimal import Decimal
 from typing import Dict, Iterable, List, Mapping
 
@@ -44,7 +45,10 @@ class Portfolio:
         Genelde repository'den 'tüm trade'ler' çekilip burada domain'e dökülür.
         """
         portfolio = cls()
-        for trade in trades:
+        for trade in sorted(
+            trades,
+            key=lambda t: (t.trade_date, t.trade_time or time.min, getattr(t, "id", 0) or 0),
+        ):
             portfolio.apply_trade(trade)
         return portfolio
 

@@ -143,3 +143,43 @@ def test_dashboard_and_model_portfolio_reuse_same_stock_for_same_ticker():
 
     assert dashboard_result.stock_id == 10
     assert model_trade.stock_id == dashboard_result.stock_id
+
+
+def test_model_portfolio_rejects_buy_when_cash_is_insufficient():
+    service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
+
+    try:
+        service.add_trade_by_ticker(
+            portfolio_id=1,
+            ticker="ASELS",
+            side="BUY",
+            quantity=1000,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+        )
+    except ValueError as exc:
+        assert "Yetersiz nakit" in str(exc)
+    else:
+        raise AssertionError("Expected insufficient model cash error")
+
+
+def test_model_portfolio_rejects_sell_for_missing_stock_without_creating_stock():
+    stock_repo = FakeStockRepo()
+    service = ModelPortfolioService(FakeModelPortfolioRepo(), stock_repo)
+    before_ids = set(stock_repo.stocks)
+
+    try:
+        service.add_trade_by_ticker(
+            portfolio_id=1,
+            ticker="XXXX",
+            side="SELL",
+            quantity=1,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+        )
+    except ValueError as exc:
+        assert "Hisse bulunamadi" in str(exc)
+    else:
+        raise AssertionError("Expected missing stock error")
+
+    assert set(stock_repo.stocks) == before_ids
