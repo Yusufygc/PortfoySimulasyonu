@@ -21,6 +21,25 @@
 
 ---
 
+## [2026-05-31] güncelleme | Analiz ve optimizasyon ekranlarında iyileştirmeler
+
+- Analiz servisleri ve grafik motorunda (analysis_chart_engine) güncellemeler yapıldı
+- Optimizasyon sayfası ve öneri tablolarında (suggestions_table) stil iyileştirmeleri eklendi
+- Etkilenen dosyalar: `src/application/services/analysis/`, `src/ui/pages/`, `src/ui/widgets/optimization/`
+- Bağlantılı sayfa: [architecture.md](architecture.md)
+
+---
+
+## [2026-05-31] güncelleme | Tema sistemi modernizasyonu ve UI bileşenleri
+
+- Tema yöneticisi (theme_manager) ve stil tokenleri (tokens.py) modern bir yapıya kavuşturuldu
+- Buton, kart, liste ve geri bildirim (toast) gibi paylaşımlı QSS bileşenleri güncellendi/eklendi
+- Ayarlar sayfası görünüm paneli (appearance_panel) yeni token altyapısına bağlandı
+- Etkilenen dosyalar: `src/ui/theme_manager.py`, `src/ui/styles/`, `src/ui/widgets/shared/`
+- Bağlantılı sayfa: [architecture.md](architecture.md)
+
+---
+
 ## [2026-05-30] commit | Model portföy geçmiş simülasyonu ve Excel raporu
 
 - Model portföyler için geçmiş simülasyon servisi eklendi
