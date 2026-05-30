@@ -56,6 +56,12 @@ class ModelPortfolioService:
     def get_portfolio_trades(self, portfolio_id: int):
         return self._trade.get_portfolio_trades(portfolio_id)
 
+    def get_first_trade_date(self, portfolio_id: int):
+        return self._trade.get_first_trade_date(portfolio_id)
+
+    def get_stock_trades(self, portfolio_id: int, stock_id: int):
+        return self._trade.get_stock_trades(portfolio_id, stock_id)
+
     def add_trade(self, *args, **kwargs):
         return self._trade.add_trade(*args, **kwargs)
 
@@ -65,11 +71,17 @@ class ModelPortfolioService:
     def delete_trade(self, trade_id: int) -> None:
         self._trade.delete_trade(trade_id)
 
-    def get_positions(self, portfolio_id: int):
-        return self._trade.get_positions(portfolio_id)
+    def get_positions(self, *args, **kwargs):
+        return self._trade.get_positions(*args, **kwargs)
 
-    def get_remaining_cash(self, portfolio_id: int):
-        return self._trade.get_remaining_cash(portfolio_id)
+    def get_remaining_cash(self, *args, **kwargs):
+        return self._trade.get_remaining_cash(*args, **kwargs)
+
+    def get_position_quantity_as_of(self, *args, **kwargs):
+        return self._trade.get_position_quantity_as_of(*args, **kwargs)
+
+    def get_valid_trades(self, *args, **kwargs):
+        return self._trade.get_valid_trades(*args, **kwargs)
 
     def get_portfolio_summary(self, *args, **kwargs):
         return self._snapshot.get_portfolio_summary(*args, **kwargs)

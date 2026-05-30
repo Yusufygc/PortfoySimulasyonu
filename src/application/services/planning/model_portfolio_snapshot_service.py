@@ -48,7 +48,7 @@ class ModelPortfolioSnapshotService:
         portfolio_id: int,
         price_map: Optional[Dict[int, Decimal]] = None,
     ) -> List[Dict[str, Any]]:
-        trades = self._portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
+        trades = self._trade_service.get_valid_trades(portfolio_id)
         positions = self._trade_service.get_positions(portfolio_id)
         if not positions:
             return []
@@ -93,4 +93,3 @@ class ModelPortfolioSnapshotService:
 
     def get_trade_count(self, portfolio_id: int) -> int:
         return self._portfolio_repo.count_trades_by_portfolio_id(portfolio_id)
-

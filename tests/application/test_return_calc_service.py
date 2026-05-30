@@ -80,3 +80,22 @@ def test_compute_portfolio_value_keeps_exact_price_when_available():
 
     assert snapshot.price_map == {1: Decimal("13")}
     assert snapshot.total_value == Decimal("130")
+
+
+def test_compute_portfolio_value_ignores_invalid_sell_trade():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 4, 20), quantity=10, price=Decimal("10")),
+        Trade.create_sell(stock_id=1, trade_date=date(2026, 4, 21), quantity=12, price=Decimal("11")),
+    ]
+    service = ReturnCalcService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo(
+            prices_for_date={date(2026, 4, 24): {1: Decimal("13")}},
+            latest_prices={},
+        ),
+    )
+
+    snapshot = service.compute_portfolio_value_on(date(2026, 4, 24))
+
+    assert snapshot.total_cost == Decimal("100")
+    assert snapshot.total_value == Decimal("130")

@@ -49,6 +49,14 @@ class FakeModelPortfolioRepo:
         self._recorder.record("model_portfolios")
 
 
+class FakeCashMovementRepo:
+    def __init__(self, recorder):
+        self._recorder = recorder
+
+    def delete_all_movements(self):
+        self._recorder.record("cash_movements")
+
+
 def test_reset_all_deletes_stock_dependents_before_stocks():
     recorder = CallRecorder()
     service = PortfolioResetService(
@@ -57,6 +65,7 @@ def test_reset_all_deletes_stock_dependents_before_stocks():
         stock_repo=FakeStockRepo(recorder),
         watchlist_repo=FakeWatchlistRepo(recorder),
         model_portfolio_repo=FakeModelPortfolioRepo(recorder),
+        cash_movement_repo=FakeCashMovementRepo(recorder),
     )
 
     service.reset_all()
@@ -65,6 +74,7 @@ def test_reset_all_deletes_stock_dependents_before_stocks():
         "model_portfolios",
         "watchlists",
         "trades",
+        "cash_movements",
         "prices",
         "stocks",
     ]

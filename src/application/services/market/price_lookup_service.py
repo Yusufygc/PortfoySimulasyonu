@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 
 import yfinance as yf
 
@@ -16,6 +16,8 @@ class PriceLookupResult:
     price: Decimal
     as_of: datetime
     source: str
+    company_name: str | None = None
+    normalized_ticker: str = ""
 
 
 class PriceLookupService:
@@ -23,7 +25,7 @@ class PriceLookupService:
         if not ticker:
             return None
 
-        normalized_ticker = ticker.upper()
+        normalized_ticker = ticker.strip().upper()
         if "." not in normalized_ticker:
             normalized_ticker += ".IS"
 
@@ -33,18 +35,25 @@ class PriceLookupService:
             logger.error("YF Ticker init failed for %s: %s", normalized_ticker, exc)
             return None
 
+        fast_info = {}
+        try:
+            fast_info = self._as_mapping(getattr(yf_ticker, "fast_info", None))
+        except Exception:
+            fast_info = {}
+
         info = {}
         try:
-            info = getattr(yf_ticker, "fast_info", None) or yf_ticker.info
+            info = self._as_mapping(getattr(yf_ticker, "info", None))
         except Exception:
             info = {}
 
-        if isinstance(info, dict):
+        company_name = self._extract_company_name(info)
+        for price_source in (fast_info, info):
             for value in (
-                info.get("lastPrice"),
-                info.get("last_price"),
-                info.get("regularMarketPrice"),
-                info.get("currentPrice"),
+                price_source.get("lastPrice"),
+                price_source.get("last_price"),
+                price_source.get("regularMarketPrice"),
+                price_source.get("currentPrice"),
             ):
                 if value is None:
                     continue
@@ -53,12 +62,14 @@ class PriceLookupService:
                         price=Decimal(str(float(value))),
                         as_of=datetime.now(timezone.utc),
                         source="intraday",
+                        company_name=company_name,
+                        normalized_ticker=normalized_ticker,
                     )
                 except Exception:
                     continue
 
         try:
-            history = yf_ticker.history(period="5d", auto_adjust=False)
+            history = yf_ticker.history(period="7d", auto_adjust=False)
         except Exception as exc:
             logger.error("YF history failed for %s: %s", normalized_ticker, exc)
             return None
@@ -78,6 +89,8 @@ class PriceLookupService:
                         price=Decimal(str(float(last_price))),
                         as_of=as_of,
                         source="last_close",
+                        company_name=company_name,
+                        normalized_ticker=normalized_ticker,
                     )
                 except Exception:
                     pass
@@ -85,3 +98,35 @@ class PriceLookupService:
         logger.warning("Price lookup failed for %s", normalized_ticker)
         return None
 
+    @staticmethod
+    def _as_mapping(value: Any) -> dict:
+        if isinstance(value, dict):
+            return value
+        if value is None:
+            return {}
+
+        result = {}
+        for key in (
+            "lastPrice",
+            "last_price",
+            "regularMarketPrice",
+            "currentPrice",
+            "longName",
+            "shortName",
+            "displayName",
+        ):
+            try:
+                item = value.get(key) if hasattr(value, "get") else getattr(value, key, None)
+            except Exception:
+                item = None
+            if item is not None:
+                result[key] = item
+        return result
+
+    @staticmethod
+    def _extract_company_name(info: dict) -> str | None:
+        for key in ("longName", "shortName", "displayName"):
+            value = info.get(key)
+            if value:
+                return str(value).strip()
+        return None

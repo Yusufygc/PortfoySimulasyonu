@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Dict, Optional, Tuple
 
+from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
 from src.domain.models.portfolio import Portfolio
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
@@ -60,7 +61,7 @@ class ReturnCalcService:
         #    geçmiş tarih hesaplarına dahil edilmez; fiyat tutarlılığı korunur)
         trades = self._portfolio_repo.get_all_trades()
         trades_as_of = [t for t in trades if t.trade_date <= value_date]
-        portfolio = Portfolio.from_trades(trades_as_of)
+        portfolio = build_portfolio_safely(trades_as_of).portfolio
 
         # 2) Fiyatlar
         price_map = self._price_repo.get_prices_for_date(value_date)
