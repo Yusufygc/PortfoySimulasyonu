@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import time as dt_time
+from decimal import Decimal
 from typing import Dict, List, Set
 
 from sqlalchemy import text
+
+from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
+from src.domain.models.trade import Trade, TradeSide
 
 
 @dataclass(frozen=True)
@@ -29,6 +34,18 @@ class UnusedStock:
     ticker: str
     daily_price_count: int
     last_price_date: object | None
+
+
+@dataclass(frozen=True)
+class InvalidTradeReference:
+    trade_id: int | None
+    stock_id: int
+    ticker: str
+    trade_date: object
+    side: str
+    quantity: int
+    available_quantity: int
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -65,10 +82,11 @@ class DatabaseIntegrityReport:
     orphan_references: List[OrphanReference]
     stock_usage: StockUsageReport
     unused_stocks: List[UnusedStock]
+    invalid_trades: List[InvalidTradeReference] = field(default_factory=list)
 
     @property
     def has_issues(self) -> bool:
-        return bool(self.duplicate_groups or self.orphan_references or self.unused_stocks)
+        return bool(self.duplicate_groups or self.orphan_references or self.unused_stocks or self.invalid_trades)
 
 
 class DatabaseIntegrityService:
@@ -81,6 +99,7 @@ class DatabaseIntegrityService:
 
     TABLES = (
         "stocks",
+        "cash_movements",
         "trades",
         "daily_prices",
         "watchlists",
@@ -100,6 +119,7 @@ class DatabaseIntegrityService:
                 orphan_references=self._orphan_references(session),
                 stock_usage=self._stock_usage(session),
                 unused_stocks=self._unused_stocks(session),
+                invalid_trades=self._invalid_trades(session),
             )
 
     def _table_counts(self, session) -> Dict[str, int]:
@@ -203,6 +223,44 @@ class DatabaseIntegrityService:
                 last_price_date=row.last_price_date,
             )
             for row in session.execute(sql)
+        ]
+
+    def _invalid_trades(self, session) -> List[InvalidTradeReference]:
+        sql = text(
+            "SELECT t.id, t.stock_id, COALESCE(s.ticker, CONCAT('ID_', t.stock_id)) AS ticker, "
+            "t.trade_date, t.trade_time, t.side, t.quantity, t.price "
+            "FROM trades t LEFT JOIN stocks s ON s.id = t.stock_id "
+            "ORDER BY t.trade_date, t.trade_time, t.id"
+        )
+        trades = []
+        ticker_map: Dict[int, str] = {}
+        for row in session.execute(sql):
+            side_value = row.side.value if hasattr(row.side, "value") else str(row.side)
+            trade = Trade(
+                id=int(row.id) if row.id is not None else None,
+                stock_id=int(row.stock_id),
+                trade_date=row.trade_date,
+                trade_time=row.trade_time or dt_time.min,
+                side=TradeSide(side_value),
+                quantity=int(row.quantity),
+                price=row.price if isinstance(row.price, Decimal) else Decimal(str(row.price)),
+            )
+            trades.append(trade)
+            ticker_map[trade.stock_id] = str(row.ticker)
+
+        result = build_portfolio_safely(trades)
+        return [
+            InvalidTradeReference(
+                trade_id=invalid.trade.id,
+                stock_id=invalid.trade.stock_id,
+                ticker=ticker_map.get(invalid.trade.stock_id, f"ID_{invalid.trade.stock_id}"),
+                trade_date=invalid.trade.trade_date,
+                side=invalid.trade.side.value,
+                quantity=invalid.trade.quantity,
+                available_quantity=invalid.available_quantity,
+                reason=invalid.reason,
+            )
+            for invalid in result.invalid_trades
         ]
 
     @staticmethod

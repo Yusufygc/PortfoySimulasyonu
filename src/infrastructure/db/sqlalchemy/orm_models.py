@@ -12,6 +12,10 @@ class TradeSideEnum(str, enum.Enum):
     BUY = "BUY"
     SELL = "SELL"
 
+class CashMovementTypeEnum(str, enum.Enum):
+    DEPOSIT = "DEPOSIT"
+    WITHDRAW = "WITHDRAW"
+
 class ORMStock(Base):
     __tablename__ = "stocks"
 
@@ -50,6 +54,21 @@ class ORMTrade(Base):
     )
 
     stock = relationship("ORMStock", back_populates="trades")
+
+class ORMCashMovement(Base):
+    __tablename__ = "cash_movements"
+
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    movement_date = Column(Date, nullable=False)
+    movement_time = Column(Time, nullable=True)
+    type = Column(Enum(CashMovementTypeEnum), nullable=False)
+    amount = Column(Numeric(18, 4), nullable=False)
+    notes = Column(String(255))
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_cash_movements_date", "movement_date", "movement_time"),
+    )
 
 class ORMDailyPrice(Base):
     __tablename__ = "daily_prices"
