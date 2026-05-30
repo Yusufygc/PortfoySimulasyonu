@@ -34,11 +34,13 @@ class DashboardPage(BasePage):
         self.page_title = "Dashboard"
 
         self.portfolio_service = container.portfolio_service
+        self.cash_movement_service = container.cash_movement_service
         self.return_calc_service = container.return_calc_service
         self.update_coordinator = container.update_coordinator
         self.stock_repo = container.stock_repo
         self.reset_service = container.reset_service
         self.market_client = container.market_client
+        self.market_session_service = getattr(container, "bist_market_session_service", None)
         self.excel_export_service = container.excel_export_service
         self.trade_entry_service = container.trade_entry_service
         self.corporate_action_service = container.corporate_action_service
@@ -55,6 +57,7 @@ class DashboardPage(BasePage):
         self._last_trade_result = None
         self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
         self._last_update_toast_shown_for = None
+        self._last_invalid_trade_warning_count = 0
 
         self._presenter = DashboardPresenter(self)
         self._actions = DashboardActions(self, self._presenter)

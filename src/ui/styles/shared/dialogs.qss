@@ -43,3 +43,9 @@ QLabel[cssClass="successText"] {
 QLabel[cssClass="summaryTitle"] {
     color: @COLOR_PRIMARY; font-size: @FONT_3XL; font-weight: bold; margin-bottom: @SPACE_LG;
 }
+QLabel[cssClass="tradeSummaryTicker"] {
+    color: @COLOR_PRIMARY; font-size: @FONT_3XL; font-weight: bold;
+}
+QLabel[cssClass="tradeSummaryName"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_BASE; font-weight: 500;
+}

@@ -8,6 +8,7 @@ from typing import Dict, List
 from src.domain.models.portfolio import Portfolio
 from src.domain.models.position import Position
 from src.ui.portfolio_table_model import PortfolioTableModel
+from src.ui.widgets.shared import Toast
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +19,15 @@ class DashboardPresenter:
 
     def load_capital(self) -> None:
         try:
-            self._page._capital = self._page.portfolio_service.calculate_capital()
+            self._page._capital = self._page.portfolio_service.get_cash_balance()
         except Exception as exc:
             logger.error("Sermaye yuklenemedi: %s", exc, exc_info=True)
             self._page._capital = Decimal("0")
 
     def refresh_data(self) -> None:
+        self.load_capital()
         portfolio: Portfolio = self._page.portfolio_service.get_current_portfolio()
+        self._warn_invalid_trades()
         today = date.today()
         snapshot = self._page.return_calc_service.compute_portfolio_value_on(today)
 
@@ -44,10 +47,7 @@ class DashboardPresenter:
             )
             self._page.portfolio_table_widget.set_model(self._page.portfolio_model)
         else:
-            current_ids = {position.stock_id for position in positions}
-            model_ids = {position.stock_id for position in self._page.portfolio_model._positions}
-            if len(positions) != self._page.portfolio_model.rowCount() or current_ids != model_ids:
-                self._page.portfolio_model.update_data(positions, price_map, ticker_map)
+            self._page.portfolio_model.update_data(positions, price_map, ticker_map)
 
         total_value = snapshot.total_value if snapshot else Decimal("0")
         total_cost = sum(position.total_cost for position in positions)
@@ -55,6 +55,24 @@ class DashboardPresenter:
 
         self._page.summary_cards.update_base_metrics(total_value, total_cost, self._page._capital, profit_loss)
         self._page.portfolio_table_widget.update_summary_row(total_value, profit_loss)
+
+    def _warn_invalid_trades(self) -> None:
+        try:
+            invalid_count = len(self._page.portfolio_service.get_portfolio_health().invalid_trades)
+        except Exception:
+            return
+        if invalid_count <= 0:
+            self._page._last_invalid_trade_warning_count = 0
+            return
+        if getattr(self._page, "_last_invalid_trade_warning_count", 0) == invalid_count:
+            return
+        Toast.warning(
+            self._page,
+            f"{invalid_count} geçersiz işlem kaydı hesaplamaya dahil edilmedi.",
+            duration_ms=5000,
+            position="top",
+        )
+        self._page._last_invalid_trade_warning_count = invalid_count
 
     def on_prices_updated_event(self, new_prices: Dict[int, Decimal]) -> None:
         if not self._page.portfolio_model or getattr(self._page, "_is_refreshing", False):
@@ -88,4 +106,3 @@ class DashboardPresenter:
 
         self._page._save_returns(weekly_pct, monthly_pct)
         self._page.summary_cards.update_returns(weekly_pct, monthly_pct)
-

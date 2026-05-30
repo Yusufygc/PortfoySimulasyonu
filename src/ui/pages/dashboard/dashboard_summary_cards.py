@@ -116,7 +116,11 @@ class DashboardSummaryCards(QWidget):
     def update_base_metrics(self, total_value: Decimal, total_cost: Decimal, capital: Decimal, profit_loss: Decimal):
         self.lbl_total_value.setText(f"₺ {total_value:,.2f}")
         self.lbl_total_cost.setText(f"₺ {total_cost:,.2f}")
-        self.lbl_capital.setText(f"₺ {capital:,.2f}")
+        display_capital = max(capital, Decimal("0"))
+        self.lbl_capital.setText(f"₺ {display_capital:,.2f}")
+        self.lbl_capital.setProperty("state", "neutral" if display_capital == 0 else "positive")
+        self.lbl_capital.style().unpolish(self.lbl_capital)
+        self.lbl_capital.style().polish(self.lbl_capital)
 
         roi = 0
         cost_basis = total_value - profit_loss

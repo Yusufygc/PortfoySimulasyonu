@@ -4,7 +4,7 @@ import logging
 from decimal import Decimal
 from typing import Optional
 
-from PyQt5.QtCore import QDate, Qt
+from PyQt5.QtCore import QDate, QTime, Qt
 from PyQt5.QtWidgets import (
     QDateEdit,
     QDialog,
@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSpinBox,
+    QTimeEdit,
     QVBoxLayout,
 )
 
@@ -26,7 +27,7 @@ class TradeInputDialog(QDialog):
         self.side = side
         self.price_lookup_func = price_lookup_func
         self.setWindowTitle("Hisse Al" if side == "BUY" else "Hisse Sat")
-        self.setFixedSize(450, 320)
+        self.setFixedSize(450, 370)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
         self._init_ui()
@@ -74,6 +75,11 @@ class TradeInputDialog(QDialog):
         self.date_edit.setMinimumHeight(45)
         form.addRow("Tarih:", self.date_edit)
 
+        self.time_edit = QTimeEdit(QTime.currentTime())
+        self.time_edit.setDisplayFormat("HH:mm")
+        self.time_edit.setMinimumHeight(45)
+        form.addRow("Saat:", self.time_edit)
+
         layout.addLayout(form)
         layout.addStretch()
 
@@ -115,4 +121,5 @@ class TradeInputDialog(QDialog):
             "quantity": self.spin_qty.value(),
             "price": Decimal(str(self.spin_price.value())),
             "trade_date": self.date_edit.date().toPyDate(),
+            "trade_time": self.time_edit.time().toPyTime(),
         }

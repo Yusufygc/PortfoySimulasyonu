@@ -6,13 +6,28 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Dict, Optional
 
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QDialog
-from PyQt5.QtCore import QSettings, QTimer, QSize
+from PyQt5.QtWidgets import (
+    QAction,
+    QDialog,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QStackedWidget,
+    QMenu,
+    QVBoxLayout,
+    QWidget,
+)
+from PyQt5.QtCore import QSettings, QTimer, Qt
 
+from src.application.services.reporting.daily_history_models import ExportMode
 from .base_page import BasePage
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.formatters import display_ticker
+from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
+from src.ui.widgets.dashboard import DateRangeDialog
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.model_portfolio import PortfolioInputDialog, PortfolioListPanel, PositionsTable, TradeInputDialog
 from src.ui.widgets.shared import AnimatedButton, InfoCard, Toast
@@ -29,8 +44,11 @@ class ModelPortfolioPage(BasePage):
         self.container = container
         self.page_title = "Model Portföyler"
         self.model_portfolio_service = container.model_portfolio_service
+        self.model_portfolio_excel_export_service = container.model_portfolio_excel_export_service
         self.price_repo = container.price_repo
+        self.market_session_service = getattr(container, "bist_market_session_service", None)
         self.price_lookup_func = price_lookup_func
+        self.date_range_dialog_cls = DateRangeDialog
         self.current_portfolio_id: Optional[int] = None
         self.current_price_map: Dict[int, Decimal] = {}
         self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
@@ -85,6 +103,20 @@ class ModelPortfolioPage(BasePage):
         self.btn_refresh.setEnabled(False)
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
         header.addWidget(self.btn_refresh)
+
+        self.btn_report = AnimatedButton(" Rapor Al")
+        self.btn_report.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
+        self.btn_report.setProperty("cssClass", "secondaryButton")
+        self.btn_report.setEnabled(False)
+        self._report_menu = QMenu(self.btn_report)
+        self._report_today_action = QAction("Bugün", self)
+        self._report_today_action.triggered.connect(self._on_export_today)
+        self._report_range_action = QAction("Tarih Aralığı", self)
+        self._report_range_action.triggered.connect(self._on_export_range)
+        self._report_menu.addAction(self._report_today_action)
+        self._report_menu.addAction(self._report_range_action)
+        self.btn_report.setMenu(self._report_menu)
+        header.addWidget(self.btn_report)
         layout.addLayout(header)
 
         cards_row = QHBoxLayout()
@@ -97,15 +129,13 @@ class ModelPortfolioPage(BasePage):
             cards_row.addWidget(card)
         layout.addLayout(cards_row)
 
-        label_positions = QLabel("Pozisyonlar")
-        label_positions.setProperty("cssClass", "panelTitle")
-        layout.addWidget(label_positions)
+        positions_header = QHBoxLayout()
+        positions_header.setSpacing(12)
 
-        self.positions_table = PositionsTable()
-        layout.addWidget(self.positions_table)
-
-        trade_row = QHBoxLayout()
-        trade_row.addStretch()
+        self.label_positions = QLabel("Pozisyonlar")
+        self.label_positions.setProperty("cssClass", "modelPositionsTitle")
+        positions_header.addWidget(self.label_positions)
+        positions_header.addStretch()
 
         self.btn_buy = AnimatedButton(" Hisse Al")
         self.btn_buy.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
@@ -119,9 +149,18 @@ class ModelPortfolioPage(BasePage):
         self.btn_sell.setProperty("cssClass", "dangerButton")
         self.btn_sell.clicked.connect(lambda: self._on_trade("SELL"))
 
-        trade_row.addWidget(self.btn_buy)
-        trade_row.addWidget(self.btn_sell)
-        layout.addLayout(trade_row)
+        positions_header.addWidget(self.btn_buy)
+        positions_header.addWidget(self.btn_sell)
+        self._positions_header_layout = positions_header
+        layout.addLayout(positions_header)
+
+        self.positions_table = PositionsTable()
+        self.positions_table.row_double_clicked.connect(self._on_position_double_clicked)
+        self.empty_positions_state = self._create_empty_positions_state()
+        self.positions_stack = QStackedWidget()
+        self.positions_stack.addWidget(self.positions_table)
+        self.positions_stack.addWidget(self.empty_positions_state)
+        layout.addWidget(self.positions_stack, 1)
         return panel
 
     def on_page_enter(self):
@@ -153,7 +192,7 @@ class ModelPortfolioPage(BasePage):
         self.current_price_map = self._load_saved_price_map(portfolio.id)
         self._sync_last_update_label()
         self.lbl_portfolio_name.setText(portfolio.name)
-        for button in (self.btn_buy, self.btn_sell, self.btn_refresh):
+        for button in (self.btn_buy, self.btn_sell, self.btn_refresh, self.btn_report, self.btn_empty_buy):
             button.setEnabled(True)
         self._update_view()
         if show_toast:
@@ -180,12 +219,42 @@ class ModelPortfolioPage(BasePage):
             self.current_price_map,
         )
         self.positions_table.populate(positions)
+        self.positions_stack.setCurrentWidget(
+            self.empty_positions_state if not positions else self.positions_table
+        )
+
+    def _create_empty_positions_state(self) -> QWidget:
+        empty = QFrame()
+        empty.setProperty("cssClass", "modelPositionsEmptyState")
+        layout = QVBoxLayout(empty)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(14)
+        layout.addStretch()
+
+        icon = IconLabel("trending-up", color="@COLOR_TEXT_MUTED", size=30)
+        layout.addWidget(icon, 0, Qt.AlignCenter)
+
+        label = QLabel("Bu portföyde henüz pozisyon yok")
+        label.setProperty("cssClass", "modelPositionsEmptyTitle")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+
+        self.btn_empty_buy = AnimatedButton(" Hisse Al")
+        self.btn_empty_buy.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
+        self.btn_empty_buy.setProperty("cssClass", "successButton")
+        self.btn_empty_buy.setEnabled(False)
+        self.btn_empty_buy.clicked.connect(lambda: self._on_trade("BUY"))
+        layout.addWidget(self.btn_empty_buy, 0, Qt.AlignCenter)
+
+        layout.addStretch()
+        return empty
 
     def _clear_right_panel(self):
         self.lbl_portfolio_name.setText("Bir portföy seçin")
         self.lbl_last_update.setText("")
         self.positions_table.setRowCount(0)
-        for button in (self.btn_buy, self.btn_sell, self.btn_refresh):
+        self.positions_stack.setCurrentWidget(self.positions_table)
+        for button in (self.btn_buy, self.btn_sell, self.btn_refresh, self.btn_report, self.btn_empty_buy):
             button.setEnabled(False)
         for card in (self.card_initial, self.card_cash, self.card_value, self.card_pl):
             card.set_value("TL 0")
@@ -264,6 +333,13 @@ class ModelPortfolioPage(BasePage):
         result = dialog.get_result()
         if not result:
             return
+        if not confirm_market_session_if_needed(
+            self,
+            self.market_session_service,
+            result["trade_date"],
+            result.get("trade_time"),
+        ):
+            return
         try:
             self.model_portfolio_service.add_trade_by_ticker(
                 portfolio_id=self.current_portfolio_id,
@@ -272,6 +348,7 @@ class ModelPortfolioPage(BasePage):
                 quantity=result["quantity"],
                 price=result["price"],
                 trade_date=result["trade_date"],
+                trade_time=result["trade_time"],
             )
             self._load_portfolios()
             self._update_view()
@@ -281,6 +358,81 @@ class ModelPortfolioPage(BasePage):
             Toast.warning(self, str(exc))
         except Exception as exc:
             Toast.error(self, f"İşlem gerçekleştirilemedi: {exc}")
+
+    def _on_position_double_clicked(self, payload: dict) -> None:
+        ticker = payload.get("ticker")
+        stock_id = payload.get("stock_id")
+        if not ticker:
+            return
+        main_window = self.window()
+        if hasattr(main_window, "show_stock_detail"):
+            main_window.show_stock_detail(
+                ticker,
+                stock_id,
+                context={
+                    "source": "model_portfolio",
+                    "portfolio_id": self.current_portfolio_id,
+                    "price_map": dict(self.current_price_map),
+                },
+            )
+
+    def _on_export_today(self) -> None:
+        if self.current_portfolio_id is None:
+            return
+        first_date = self.model_portfolio_service.get_first_trade_date(self.current_portfolio_id)
+        if first_date is None:
+            QMessageBox.information(self, "Bilgi", "Bu model portföyde işlem bulunamadı.")
+            return
+        self._export_model_portfolio_history(first_date, date.today())
+
+    def _on_export_range(self) -> None:
+        if self.current_portfolio_id is None:
+            return
+        first_date = self.model_portfolio_service.get_first_trade_date(self.current_portfolio_id)
+        if first_date is None:
+            QMessageBox.information(self, "Bilgi", "Bu model portföyde işlem bulunamadı.")
+            return
+
+        dialog = self.date_range_dialog_cls(self, min_date=first_date, max_date=date.today())
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        result = dialog.get_range()
+        if not result:
+            return
+        start_date, end_date = result
+        self._export_model_portfolio_history(start_date, end_date)
+
+    def _export_model_portfolio_history(self, start_date: date, end_date: date) -> None:
+        if self.current_portfolio_id is None:
+            return
+        portfolio = self.list_panel.current_portfolio()
+        portfolio_name = portfolio.name if portfolio else self.lbl_portfolio_name.text()
+        default_name = f"model_portfoy_{self._safe_file_stem(portfolio_name)}.xlsx"
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Model Portföy Raporu",
+            default_name,
+            "Excel Dosyaları (*.xlsx)",
+        )
+        if not file_path:
+            return
+
+        try:
+            self.model_portfolio_excel_export_service.export_model_portfolio_history(
+                portfolio_id=self.current_portfolio_id,
+                start_date=start_date,
+                end_date=end_date,
+                file_path=file_path,
+                mode=ExportMode.OVERWRITE,
+            )
+            QMessageBox.information(self, "Başarılı", "Model portföy Excel raporu oluşturuldu.")
+        except Exception as exc:
+            QMessageBox.critical(self, "Hata", f"Excel raporu oluşturulamadı: {exc}")
+
+    @staticmethod
+    def _safe_file_stem(value: str) -> str:
+        cleaned = "".join(ch if ch.isalnum() else "_" for ch in value.strip().lower())
+        return "_".join(part for part in cleaned.split("_") if part) or "model_portfoy"
 
     def _on_refresh_prices(self):
         if self.current_portfolio_id is None:

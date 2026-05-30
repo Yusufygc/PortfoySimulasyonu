@@ -80,6 +80,44 @@ class StockStatsPanel(QWidget):
             self._set_pl_state(state)
         else:
             self.clear_stats()
+
+    def update_model_stats(
+        self,
+        model_portfolio_service,
+        portfolio_id: int | None,
+        stock_id: int | None,
+        current_price: Decimal | None,
+        price_map: dict[int, Decimal] | None = None,
+    ) -> None:
+        if not portfolio_id or not stock_id:
+            self.clear_stats()
+            return
+
+        effective_price_map = dict(price_map or {})
+        if current_price is not None:
+            effective_price_map[stock_id] = current_price
+
+        positions = model_portfolio_service.get_positions_with_details(portfolio_id, effective_price_map)
+        position = next((pos for pos in positions if pos.get("stock_id") == stock_id), None)
+        if not position:
+            self.clear_stats()
+            return
+
+        avg_cost = position.get("avg_cost") or Decimal("0")
+        total_qty = position.get("quantity") or 0
+        total_cost = position.get("total_cost") or Decimal("0")
+        current_val = position.get("current_value")
+        if current_val is None and current_price is not None:
+            current_val = current_price * Decimal(total_qty)
+        current_val = current_val or Decimal("0")
+        pl = current_val - total_cost
+
+        self.lbl_avg_cost.setText(f"₺ {avg_cost:,.2f}")
+        self.lbl_total_qty.setText(f"{total_qty}")
+        self.lbl_total_val.setText(f"₺ {current_val:,.2f}")
+        prefix = "▲" if pl >= 0 else "▼"
+        self.lbl_pl.setText(f"{prefix} ₺ {abs(pl):,.2f}")
+        self._set_pl_state("positive" if pl >= 0 else "negative")
             
     def clear_stats(self):
         self.lbl_avg_cost.setText("₺ 0.00")

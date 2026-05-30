@@ -136,9 +136,9 @@ class NewStockTradeDialog(QDialog):
         self.line_ticker.setPlaceholderText("Örn: ASELS, THYAO")
         self.line_ticker.setProperty("cssClass", "tradeInputBold")
         
-        self.line_name = QLineEdit()
-        self.line_name.setPlaceholderText("Şirket adı (İsteğe bağlı)")
-        self.line_name.setProperty("cssClass", "tradeInputNormal")
+        self.lbl_company_name = QLabel("Hisse kodu girildiğinde otomatik alınacak")
+        self.lbl_company_name.setProperty("cssClass", "dialogSubtitle")
+        self.lbl_company_name.setWordWrap(True)
 
         lbl_ticker = QLabel("Hisse Kodu:")
         lbl_ticker.setProperty("cssClass", "formLabel")
@@ -146,7 +146,7 @@ class NewStockTradeDialog(QDialog):
         lbl_name.setProperty("cssClass", "formLabel")
 
         form.addRow(lbl_ticker, self.line_ticker)
-        form.addRow(lbl_name, self.line_name)
+        form.addRow(lbl_name, self.lbl_company_name)
         layout.addLayout(form)
 
         # Fiyat Bilgi Kartı (Sorgu Sonucu)
@@ -179,10 +179,21 @@ class NewStockTradeDialog(QDialog):
         layout.setContentsMargins(30, 30, 30, 30)
         
         # Hisse Özeti (Hangi hissede işlem yapıyoruz?)
+        summary_widget = QWidget()
+        summary_layout = QVBoxLayout(summary_widget)
+        summary_layout.setContentsMargins(0, 0, 0, 12)
+        summary_layout.setSpacing(2)
+
         self.lbl_summary_ticker = QLabel("ASELS")
-        self.lbl_summary_ticker.setProperty("cssClass", "summaryTitle")
+        self.lbl_summary_ticker.setProperty("cssClass", "tradeSummaryTicker")
         self.lbl_summary_ticker.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.lbl_summary_ticker)
+        self.lbl_summary_name = QLabel("")
+        self.lbl_summary_name.setProperty("cssClass", "tradeSummaryName")
+        self.lbl_summary_name.setAlignment(Qt.AlignCenter)
+
+        summary_layout.addWidget(self.lbl_summary_ticker)
+        summary_layout.addWidget(self.lbl_summary_name)
+        layout.addWidget(summary_widget)
 
         form = QFormLayout()
         form.setSpacing(15)
@@ -299,15 +310,11 @@ class NewStockTradeDialog(QDialog):
         self.lbl_step_indicator.setText("2 / 2")
         
         # Ticker'ı başlığa yaz
-        ticker = self.line_ticker.text().upper().strip()
-        if "." not in ticker: ticker += ".IS"
-        name = self.line_name.text().strip() or self.fetched_stock_name or ""
-        
-        display_text = display_ticker(ticker)
-        if name:
-            display_text += f"\n<span style='font-size:14px; color:#94a3b8; font-weight:normal;'>{name}</span>"
-            
-        self.lbl_summary_ticker.setText(display_text)
+        ticker = self._normalized_ticker()
+        name = self.fetched_stock_name or ticker
+
+        self.lbl_summary_ticker.setText(display_ticker(ticker))
+        self.lbl_summary_name.setText(name)
         
         # Fiyatı aktar (Eğer henüz girilmediyse)
         if self.current_price and not self.edit_price.text():
@@ -360,8 +367,7 @@ class NewStockTradeDialog(QDialog):
         if self.result() != QDialog.Accepted:
             return None
             
-        ticker = self.line_ticker.text().strip().upper()
-        if "." not in ticker: ticker += ".IS"
+        ticker = self._normalized_ticker()
         
         try:
             price = Decimal(self.edit_price.text().replace(",", "."))
@@ -370,7 +376,7 @@ class NewStockTradeDialog(QDialog):
 
         return {
             "ticker": ticker,
-            "name": self.line_name.text().strip() or ticker,
+            "name": self.fetched_stock_name or ticker,
             "trade_date": self.date_edit.date().toPyDate(),
             "trade_time": self.time_edit.time().toPyTime(),
             "side": "BUY" if self.radio_buy.isChecked() else "SELL",
@@ -400,10 +406,19 @@ class NewStockTradeDialog(QDialog):
         if result:
             self.current_price = result.price
             self.lbl_fetched_price.setText(f"₺ {result.price:,.2f}")
-            source_text = "Anlık Veri (15dk gecikmeli olabilir)" if result.source == "intraday" else f"Kapanış ({result.as_of.strftime('%d.%m.%Y')})"
+            normalized_ticker = getattr(result, "normalized_ticker", None) or self._normalized_ticker()
+            self.fetched_stock_name = getattr(result, "company_name", None) or normalized_ticker
+            self.lbl_company_name.setText(self.fetched_stock_name)
+            source_text = (
+                "Anlık Veri (15dk gecikmeli olabilir)"
+                if result.source == "intraday"
+                else f"Son Kapanış ({result.as_of.strftime('%d.%m.%Y')})"
+            )
             self.lbl_fetched_source.setText(source_text)
         else:
             self.current_price = None
+            self.fetched_stock_name = None
+            self.lbl_company_name.setText("Şirket adı alınamadı")
             self.lbl_fetched_price.setText("-")
             self.lbl_fetched_source.setText("Fiyat Bilgisi Bulunamadı")
             
@@ -412,10 +427,18 @@ class NewStockTradeDialog(QDialog):
 
     def _on_price_error(self, err_tuple):
         self.current_price = None
+        self.fetched_stock_name = None
+        self.lbl_company_name.setText("Şirket adı alınamadı")
         self.lbl_fetched_price.setText("-")
         self.lbl_fetched_source.setText("Ağ Hatası")
         self.btn_next.setEnabled(True)
         self.btn_next.setText("Devam Et")
+
+    def _normalized_ticker(self) -> str:
+        ticker = self.line_ticker.text().strip().upper()
+        if ticker and "." not in ticker:
+            ticker += ".IS"
+        return ticker
 
     def _on_quantity_changed(self, val):
         if self._updating_amount: return
@@ -445,25 +468,13 @@ class NewStockTradeDialog(QDialog):
 
     def _normalize_initial_datetime(self):
         now = QDate.currentDate()
-        if now.dayOfWeek() > 5: # Haftasonu ise Cumaya çek
-            now = now.addDays(-(now.dayOfWeek() - 5))
         self.date_edit.setDate(now)
-        
-        # Saat sınırları
-        t = QTime.currentTime()
-        if t.hour() < 10: t = QTime(10, 0)
-        if t.hour() >= 18: t = QTime(17, 59)
-        self.time_edit.setTime(t)
+        self.time_edit.setTime(QTime.currentTime())
 
     def _on_date_changed(self, date):
         # Gelecek tarih kontrolü
         if date > QDate.currentDate():
             self.date_edit.setDate(QDate.currentDate())
-        # Hafta sonu kontrolü
-        elif date.dayOfWeek() > 5:
-            self.date_edit.setDate(date.addDays(-1 if date.dayOfWeek()==6 else -2))
     
     def _on_time_changed(self, time):
-        # Basit saat sınırı (10:00 - 18:00)
-        if time.hour() < 10: self.time_edit.setTime(QTime(10, 0))
-        elif time.hour() >= 18: self.time_edit.setTime(QTime(17, 59))
+        return

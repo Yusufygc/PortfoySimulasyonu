@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import date, timedelta
-from decimal import Decimal
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QDialog
@@ -13,6 +12,7 @@ from src.domain.models.corporate_action import ActionType
 from src.domain.models.trade import TradeSide
 from src.ui.widgets.dashboard.dialogs.corporate_action_dialog import CorporateActionDialog
 from src.ui.formatters import display_ticker
+from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
 from src.ui.widgets.shared import Toast
 from src.ui.worker import Worker
 
@@ -34,16 +34,18 @@ class DashboardActions:
 
         action = result["action"]
         amount = result["amount"]
-        if action == "deposit":
-            self._page._capital += amount
-            QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye eklendi.")
-        else:
-            if amount > self._page._capital:
-                QMessageBox.warning(self._page, "Uyarı", "Yetersiz sermaye.")
-                return
-            self._page._capital -= amount
-            QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye çekildi.")
+        try:
+            if action == "deposit":
+                self._page.cash_movement_service.add_deposit(amount, notes="Sermaye ekleme")
+                QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye eklendi.")
+            else:
+                self._page.cash_movement_service.add_withdraw(amount, notes="Sermaye çekme")
+                QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye çekildi.")
+        except ValueError as exc:
+            QMessageBox.warning(self._page, "Uyarı", str(exc))
+            return
 
+        self._presenter.load_capital()
         self._presenter.refresh_data()
 
     def on_new_trade(self) -> None:
@@ -57,8 +59,14 @@ class DashboardActions:
         data = dialog.get_result()
         if not data:
             return
+        if not confirm_market_session_if_needed(
+            self._page,
+            getattr(self._page, "market_session_service", None),
+            data["trade_date"],
+            data.get("trade_time"),
+        ):
+            return
 
-        trade_amount = data["price"] * Decimal(data["quantity"])
         try:
             result = self._page.trade_entry_service.submit_trade(
                 ticker=data["ticker"],
@@ -69,10 +77,7 @@ class DashboardActions:
                 trade_date=data["trade_date"],
                 trade_time=data["trade_time"],
             )
-            if data["side"] == "BUY":
-                self._page._capital = max(Decimal("0"), self._page._capital - trade_amount)
-            else:
-                self._page._capital += trade_amount
+            self._presenter.load_capital()
             self._presenter.refresh_data()
             QMessageBox.information(self._page, "Başarılı", "İşlem başarıyla eklendi.")
             self._page._last_trade_result = result

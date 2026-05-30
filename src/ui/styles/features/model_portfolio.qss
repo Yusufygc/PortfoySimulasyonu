@@ -3,4 +3,78 @@
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* Model portfoy ekranina ozel stiller su an shared modullerden geliyor. */
+QPushButton[cssClass="modelPortfolioNewButton"] {
+    background-color: @COLOR_SUCCESS;
+    color: @COLOR_TEXT_WHITE;
+    border: none;
+    border-radius: @RADIUS_MD;
+    font-weight: bold;
+    padding: 6px 12px;
+    font-size: @FONT_BASE;
+}
+
+QPushButton[cssClass="modelPortfolioNewButton"]:hover {
+    background-color: @COLOR_SUCCESS_HOVER;
+}
+
+QListWidget[cssClass="modelPortfolioList"]::item {
+    border-left: 3px solid transparent;
+}
+
+QListWidget[cssClass="modelPortfolioList"]::item:selected,
+QListWidget[cssClass="modelPortfolioList"]::item:selected:!active {
+    background-color: rgba(59, 130, 246, 0.12);
+    border-left: 3px solid @COLOR_PRIMARY;
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+QLabel[cssClass="modelPositionsTitle"] {
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: @FONT_XL;
+    font-weight: bold;
+}
+
+QFrame[cssClass="modelPositionsEmptyState"] {
+    background-color: @COLOR_BG_SURFACE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+}
+
+QLabel[cssClass="modelPositionsEmptyTitle"] {
+    color: @COLOR_TEXT_MUTED;
+    font-size: @FONT_LG;
+    font-weight: 600;
+}
+
+QTableWidget[cssClass="modelPositionsTable"] {
+    background-color: @COLOR_BG_SURFACE;
+    alternate-background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_BRIGHT;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+    gridline-color: transparent;
+    outline: none;
+}
+
+QTableWidget[cssClass="modelPositionsTable"]::item {
+    padding: 8px 10px;
+    border-right: 1px solid @COLOR_BORDER_SUBTLE;
+    border-bottom: 1px solid @COLOR_BORDER_SUBTLE;
+}
+
+QTableWidget[cssClass="modelPositionsTable"]::item:hover,
+QTableWidget[cssClass="modelPositionsTable"]::item:selected {
+    background-color: transparent;
+    color: @COLOR_TEXT_BRIGHT;
+}
+
+QTableWidget[cssClass="modelPositionsTable"] QHeaderView::section {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_BRIGHT;
+    border: none;
+    border-right: 1px solid @COLOR_BORDER_SUBTLE;
+    border-bottom: 2px solid @COLOR_BORDER;
+    padding: 10px 8px;
+    font-size: @FONT_MD;
+    font-weight: bold;
+}

@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Optional, Dict, Any
+from typing import Optional
 
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
-    QPushButton,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -18,9 +17,10 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QFrame,
     QInputDialog,
+    QStackedWidget,
+    QWidget,
 )
 from PyQt5.QtCore import Qt, QSize
-from src.ui.core.icon_manager import IconManager
 from src.ui.formatters import display_ticker
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 
@@ -80,38 +80,33 @@ class WatchlistPage(BasePage):
         lbl_lists.setProperty("cssClass", "tableTitle")
         lbl_row.addWidget(lbl_lists)
         lbl_row.addStretch()
+
+        self.btn_new = AnimatedButton(" Yeni")
+        self.btn_new.setIconName("plus", color="@COLOR_TEXT_WHITE")
+        self.btn_new.setProperty("cssClass", "watchlistNewButton")
+        self.btn_new.clicked.connect(self._on_new_list)
+        lbl_row.addWidget(self.btn_new)
+
+        self._left_header_layout = lbl_row
         left_layout.addLayout(lbl_row)
 
         self.list_widget = QListWidget()
+        self.list_widget.setProperty("cssClass", "watchlistList")
         self.list_widget.setAlternatingRowColors(True)
         self.list_widget.itemClicked.connect(self._on_list_selected)
         left_layout.addWidget(self.list_widget)
 
-        # Butonlar
-        btn_layout = QHBoxLayout()
-        
-        self.btn_new = AnimatedButton(" Yeni")
-        self.btn_new.setIconName("plus", color="@COLOR_TEXT_PRIMARY")
-        self.btn_new.setProperty("cssClass", "secondaryButton")
-        self.btn_new.clicked.connect(self._on_new_list)
-        
         self.btn_edit = AnimatedButton(" Düzenle")
         self.btn_edit.setIconName("pencil", color="@COLOR_TEXT_PRIMARY")
         self.btn_edit.setProperty("cssClass", "secondaryButton")
         self.btn_edit.setEnabled(False)
-        
+
         self.btn_delete = AnimatedButton(" Sil")
         self.btn_delete.setIconName("trash-2", color="@COLOR_DANGER")
         self.btn_delete.setEnabled(False)
         self.btn_delete.setProperty("cssClass", "dangerOutlineButton")
         self.btn_edit.hide()
         self.btn_delete.hide()
-
-        btn_layout.addWidget(self.btn_new)
-        btn_layout.addWidget(self.btn_edit)
-        btn_layout.addWidget(self.btn_delete)
-        btn_layout.addStretch()
-        left_layout.addLayout(btn_layout)
 
         # Sağ Panel: İçerik
         right_panel = QFrame()
@@ -120,9 +115,22 @@ class WatchlistPage(BasePage):
         right_layout.setContentsMargins(15, 15, 15, 15)
         right_layout.setSpacing(15)
 
+        detail_header_layout = QHBoxLayout()
+        detail_header_layout.setSpacing(12)
+
         self.lbl_list_name = QLabel("Bir liste seçin")
         self.lbl_list_name.setProperty("cssClass", "panelTitleLarge")
-        right_layout.addWidget(self.lbl_list_name)
+        detail_header_layout.addWidget(self.lbl_list_name, 1)
+
+        self.btn_add_stock = AnimatedButton(" Hisse Ekle")
+        self.btn_add_stock.setIconName("plus", color="@COLOR_TEXT_WHITE")
+        self.btn_add_stock.clicked.connect(self._on_add_stock)
+        self.btn_add_stock.setEnabled(False)
+        self.btn_add_stock.setProperty("cssClass", "primaryButton")
+        detail_header_layout.addWidget(self.btn_add_stock, 0, Qt.AlignRight | Qt.AlignVCenter)
+
+        self._detail_header_layout = detail_header_layout
+        right_layout.addLayout(detail_header_layout)
 
         self.lbl_list_desc = QLabel("")
         self.lbl_list_desc.setProperty("cssClass", "panelDescription")
@@ -147,20 +155,12 @@ class WatchlistPage(BasePage):
         self.stock_table.horizontalHeader().setHighlightSections(False)
         self.stock_table.verticalHeader().setDefaultSectionSize(42)
         self.stock_table.verticalHeader().setVisible(False)
-        right_layout.addWidget(self.stock_table)
 
-        # Hisse ekleme
-        stock_btn_layout = QHBoxLayout()
-        stock_btn_layout.addStretch()
-        
-        self.btn_add_stock = AnimatedButton(" Hisse Ekle")
-        self.btn_add_stock.setIconName("plus", color="@COLOR_TEXT_WHITE")
-        self.btn_add_stock.clicked.connect(self._on_add_stock)
-        self.btn_add_stock.setEnabled(False)
-        self.btn_add_stock.setProperty("cssClass", "primaryButton")
-        
-        stock_btn_layout.addWidget(self.btn_add_stock)
-        right_layout.addLayout(stock_btn_layout)
+        self.empty_state = self._create_empty_state()
+        self.content_stack = QStackedWidget()
+        self.content_stack.addWidget(self.stock_table)
+        self.content_stack.addWidget(self.empty_state)
+        right_layout.addWidget(self.content_stack, 1)
 
         content_layout.addWidget(left_panel)
         content_layout.addWidget(right_panel, 1)
@@ -203,6 +203,7 @@ class WatchlistPage(BasePage):
         self.btn_edit.setEnabled(True)
         self.btn_delete.setEnabled(True)
         self.btn_add_stock.setEnabled(True)
+        self.btn_empty_add_stock.setEnabled(True)
 
         self._load_stocks()
 
@@ -214,16 +215,18 @@ class WatchlistPage(BasePage):
         self.stock_table.setRowCount(0)
         
         if self.current_watchlist_id is None:
+            self.content_stack.setCurrentWidget(self.stock_table)
             return
 
         stocks = self.watchlist_service.get_watchlist_stocks(self.current_watchlist_id)
+        self.content_stack.setCurrentWidget(self.empty_state if not stocks else self.stock_table)
         
         for i, stock_data in enumerate(stocks):
             self.stock_table.insertRow(i)
             
             # Ticker kolonu kalktı, veriyi Hisse Adı kolonuna gömüyoruz
-            name_text = stock_data["name"] or display_ticker(stock_data["ticker"])
-            name_item = self._readonly_table_item(name_text)
+            name_text = display_ticker(stock_data["name"] or stock_data["ticker"])
+            name_item = self._readonly_table_item(name_text, align_center=True)
             name_item.setData(Qt.UserRole, stock_data) # Veriyi burada saklıyoruz
             self.stock_table.setItem(i, 0, name_item)
             
@@ -240,10 +243,38 @@ class WatchlistPage(BasePage):
             )
             self.stock_table.setCellWidget(i, 2, btn_remove)
 
+    def _create_empty_state(self) -> QWidget:
+        empty = QFrame()
+        empty.setProperty("cssClass", "watchlistEmptyState")
+        layout = QVBoxLayout(empty)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(14)
+        layout.addStretch()
+
+        icon = IconLabel("plus", color="@COLOR_TEXT_MUTED", size=28)
+        layout.addWidget(icon, 0, Qt.AlignCenter)
+
+        label = QLabel("Bu listede henüz hisse yok")
+        label.setProperty("cssClass", "watchlistEmptyTitle")
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+
+        btn_empty_add = AnimatedButton(" Hisse Ekle")
+        btn_empty_add.setIconName("plus", color="@COLOR_TEXT_WHITE")
+        btn_empty_add.setProperty("cssClass", "primaryButton")
+        btn_empty_add.clicked.connect(self._on_add_stock)
+        self.btn_empty_add_stock = btn_empty_add
+        layout.addWidget(btn_empty_add, 0, Qt.AlignCenter)
+
+        layout.addStretch()
+        return empty
+
     @staticmethod
-    def _readonly_table_item(text: str) -> QTableWidgetItem:
+    def _readonly_table_item(text: str, align_center: bool = False) -> QTableWidgetItem:
         item = QTableWidgetItem(text)
         item.setFlags(Qt.ItemIsEnabled)
+        if align_center:
+            item.setTextAlignment(Qt.AlignCenter)
         return item
 
     def _on_new_list(self):
@@ -311,9 +342,11 @@ class WatchlistPage(BasePage):
         self.lbl_list_name.setText("Bir liste seçin")
         self.lbl_list_desc.setText("")
         self.stock_table.setRowCount(0)
+        self.content_stack.setCurrentWidget(self.stock_table)
         self.btn_edit.setEnabled(False)
         self.btn_delete.setEnabled(False)
         self.btn_add_stock.setEnabled(False)
+        self.btn_empty_add_stock.setEnabled(False)
 
     def _on_add_stock(self):
         if self.current_watchlist_id is None:

@@ -36,21 +36,21 @@ class PortfolioListPanel(QFrame):
         lbl.setProperty("cssClass", "tableTitle")
         lbl_row.addWidget(lbl)
         lbl_row.addStretch()
+
+        self._btn_new = AnimatedButton(" Yeni")
+        self._btn_new.setIconName("plus", color="@COLOR_TEXT_WHITE")
+        self._btn_new.setProperty("cssClass", "modelPortfolioNewButton")
+        self._btn_new.clicked.connect(self.new_requested)
+        lbl_row.addWidget(self._btn_new)
+
+        self._header_layout = lbl_row
         layout.addLayout(lbl_row)
 
         self._list = QListWidget()
+        self._list.setProperty("cssClass", "modelPortfolioList")
         self._list.setAlternatingRowColors(True)
         self._list.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self._list)
-
-        btn_row = QHBoxLayout()
-        self._btn_new = AnimatedButton(" Yeni")
-        self._btn_new.setIconName("plus", color="@COLOR_TEXT_PRIMARY")
-        self._btn_new.setProperty("cssClass", "secondaryButton")
-        self._btn_new.clicked.connect(self.new_requested)
-        btn_row.addWidget(self._btn_new)
-        btn_row.addStretch()
-        layout.addLayout(btn_row)
 
     def refresh(self, portfolios: list, trade_count_func=None) -> None:
         self._list.clear()

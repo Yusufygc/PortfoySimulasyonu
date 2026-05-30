@@ -15,6 +15,9 @@ QLabel[cssClass="summaryCardValue"] {
     font-size: @FONT_3XL;
     font-weight: 700;
 }
+QLabel[cssClass="summaryCardValue"][state="positive"] { color: @COLOR_TEXT_BRIGHT; }
+QLabel[cssClass="summaryCardValue"][state="neutral"] { color: @COLOR_TEXT_BRIGHT; }
+QLabel[cssClass="summaryCardValue"][state="negative"] { color: @COLOR_DANGER; }
 
 QLabel[cssClass="summaryCardContext"] {
     color: @COLOR_TEXT_MUTED;

@@ -3,16 +3,16 @@
 from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QFormLayout, QDoubleSpinBox, 
-    QSpinBox, QDateEdit, QButtonGroup, QSizePolicy
+    QSpinBox, QDateEdit, QTimeEdit, QButtonGroup, QSizePolicy
 )
-from PyQt5.QtCore import Qt, QDate, pyqtSignal
+from PyQt5.QtCore import Qt, QDate, QTime, pyqtSignal
 from decimal import Decimal
 
 class TradeFormPanel(QFrame):
     """Sağ paneldeki Alım/Satım işlemlerini yöneten form bileşeni."""
     
     # Kullanıcı emir girdiğinde fırlatılacak sinyal (formdan gelen bilgiler)
-    trade_submitted = pyqtSignal(bool, int, float, QDate) # is_buy, qty, price, date
+    trade_submitted = pyqtSignal(bool, int, float, QDate, QTime) # is_buy, qty, price, date, time
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -79,6 +79,12 @@ class TradeFormPanel(QFrame):
         self.date_edit.setDate(QDate.currentDate())
         self.date_edit.setProperty("cssClass", "tradeInputNormal")
         form.addRow("Tarih:", self.date_edit)
+
+        self.time_edit = QTimeEdit()
+        self.time_edit.setDisplayFormat("HH:mm")
+        self.time_edit.setTime(QTime.currentTime())
+        self.time_edit.setProperty("cssClass", "tradeInputNormal")
+        form.addRow("Saat:", self.time_edit)
         
         layout.addLayout(form)
         
@@ -105,6 +111,8 @@ class TradeFormPanel(QFrame):
         self.btn_buy_mode.toggled.connect(self._update_trade_mode_ui)
         self.spin_qty.valueChanged.connect(self._on_input_changed)
         self.spin_price.valueChanged.connect(self._on_input_changed)
+        self.date_edit.dateChanged.connect(self._on_input_changed)
+        self.time_edit.timeChanged.connect(self._on_input_changed)
         self.btn_trade.clicked.connect(self._submit_trade)
         
         self._update_trade_mode_ui()
@@ -160,7 +168,7 @@ class TradeFormPanel(QFrame):
         # Bu bağımlılığı koparmak için bu sınıfta sadece arayüz bırakmalı.
         pass
 
-    def update_impact_preview(self, portfolio_service, current_stock_id: int):
+    def update_impact_preview(self, portfolio_service, current_stock_id: int, cash_balance: Decimal | None = None):
         """Bu fonksiyon dışarıdan (Orchestrator tarafından) çağrılarak preview render eder."""
         if not self.impact_card:
             return
@@ -193,11 +201,54 @@ class TradeFormPanel(QFrame):
                                state="balanced" if new_avg_cost != current_avg else "neutral")
             self._add_impact_row("Yeni Toplam Lot", f"{total_new_qty} (+{qty})")
             self._add_impact_row("İşlem Tutarı", f"₺ {new_cost:,.2f}")
+            if cash_balance is not None:
+                remaining_cash = cash_balance - new_cost
+                if remaining_cash < 0:
+                    self._add_impact_row("Kalan Nakit", "₺ 0.00", state="negative")
+                    self._add_impact_row("Uyarı", "Yetersiz Nakit", state="negative")
+                else:
+                    self._add_impact_row("Kalan Nakit", f"₺ {remaining_cash:,.2f}", state="neutral")
         else:
             if qty > current_qty:
                 self._add_impact_row("Uyarı", "Yetersiz Bakiye", state="negative")
             else:
                 realized_pl = (price - current_avg) * qty
+                remaining_qty = current_qty - qty
+                pl_state = "positive" if realized_pl >= 0 else "negative"
+                prefix = "+" if realized_pl >= 0 else ""
+                self._add_impact_row("Tahmini K/Z", f"{prefix}₺ {realized_pl:,.2f}", state=pl_state)
+                self._add_impact_row("Kalan Lot", f"{remaining_qty}")
+                self._add_impact_row("Ort. Maliyet", f"₺ {current_avg:,.2f}")
+
+        self.impact_card.setVisible(True)
+
+    def update_impact_preview_for_position(self, current_qty: int, current_avg: Decimal):
+        """Model portföy gibi dışarıdan hesaplanan pozisyon değerleriyle preview render eder."""
+        layout = self.impact_grid
+        while layout.rowCount() > 0:
+            layout.removeRow(0)
+
+        is_buy = self.btn_buy_mode.isChecked()
+        qty = int(self.spin_qty.value())
+        price = Decimal(str(self.spin_price.value()))
+        current_qty = int(current_qty or 0)
+        current_avg = current_avg or Decimal("0")
+
+        if is_buy:
+            total_current_cost = Decimal(current_qty) * current_avg
+            new_cost = Decimal(qty) * price
+            total_new_qty = current_qty + qty
+            new_avg_cost = (total_current_cost + new_cost) / Decimal(total_new_qty) if total_new_qty > 0 else Decimal("0")
+
+            self._add_impact_row("Yeni Ort. Maliyet", f"₺ {new_avg_cost:,.2f}",
+                                 state="balanced" if new_avg_cost != current_avg else "neutral")
+            self._add_impact_row("Yeni Toplam Lot", f"{total_new_qty} (+{qty})")
+            self._add_impact_row("İşlem Tutarı", f"₺ {new_cost:,.2f}")
+        else:
+            if qty > current_qty:
+                self._add_impact_row("Uyarı", "Yetersiz Pozisyon", state="negative")
+            else:
+                realized_pl = (price - current_avg) * Decimal(qty)
                 remaining_qty = current_qty - qty
                 pl_state = "positive" if realized_pl >= 0 else "negative"
                 prefix = "+" if realized_pl >= 0 else ""
@@ -221,7 +272,8 @@ class TradeFormPanel(QFrame):
         qty = self.spin_qty.value()
         price = self.spin_price.value()
         date_sel = self.date_edit.date()
-        self.trade_submitted.emit(is_buy, qty, price, date_sel)
+        time_sel = self.time_edit.time()
+        self.trade_submitted.emit(is_buy, qty, price, date_sel, time_sel)
 
     def set_price(self, price: float):
         self.spin_price.setValue(price)
