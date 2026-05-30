@@ -87,6 +87,20 @@ _VARIABLE_SET: Set[tuple] = {
 
 _FIXED_MONTHDAY: Set[tuple] = set(_FIXED)
 
+_HALF_DAYS: Set[tuple] = {
+    # Ramazan/Kurban arife gunleri ve 28 Ekim yarim gunleri.
+    (2020, 7, 30), (2020, 10, 28),
+    (2021, 5, 12), (2021, 7, 19), (2021, 10, 28),
+    (2022, 7, 8), (2022, 10, 28),
+    (2023, 4, 20), (2023, 6, 27),
+    (2024, 4, 9), (2024, 10, 28),
+    (2025, 6, 5), (2025, 10, 28),
+    (2026, 3, 19), (2026, 5, 26), (2026, 10, 28),
+    (2027, 3, 8), (2027, 10, 28),
+    (2028, 5, 4),
+    (2029, 2, 13), (2029, 10, 28),
+}
+
 
 def get_bist_holidays(start_date: date, end_date: date) -> Set[date]:
     """Verilen aralıktaki BIST resmi tatil günlerini döner (sadece hafta içi)."""
@@ -118,3 +132,12 @@ def is_bist_trading_day(d: date) -> bool:
     if (d.year, d.month, d.day) in _VARIABLE_SET:
         return False
     return True
+
+
+def is_bist_half_trading_day(d: date) -> bool:
+    """Tarihin BIST yarim gun islem gunu olup olmadigini dondurur."""
+    if d.weekday() >= 5:
+        return False
+    if not is_bist_trading_day(d):
+        return False
+    return (d.year, d.month, d.day) in _HALF_DAYS
