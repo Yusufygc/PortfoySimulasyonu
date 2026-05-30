@@ -5,6 +5,14 @@ Gelecekteki Claude oturumları bu kuralları `CLAUDE.md` üzerinden bu dosyaya y
 
 ---
 
+## 0. Oturum Başlangıç Kuralları
+
+Her ajan/LLM oturumu, kod veya plan üretmeden önce proje kökündeki `AGENTS.md` ve `CLAUDE.md` dosyalarını okur. `AGENTS.md` yerel ajan giriş noktasıdır; `CLAUDE.md` proje bağlamını ve bu `RULES.md` dosyasına yönlendirmeyi taşır.
+
+Dosyalar arasında çelişki olursa en dar kapsamlı ve kullanıcıya en yakın talimat uygulanır; güvenlik, commit ve wiki kuralları için bu dosyadaki bağlayıcı hükümler korunur.
+
+---
+
 ## 1. Wiki Güncelleme Kuralları
 
 ### 1.1 Temel İlke
@@ -205,6 +213,19 @@ Bu bölüm, aynı tür üretim hatalarının ve kontrolsüz büyüyen sınıf/me
 - Gerçek `.env` değerleri asla dokümana, loga veya test çıktısına yazılmaz. Ortam anahtarı değişirse `.env.example` güncellenir.
 
 ---
+
+### 4.3 Graphify Güncelleme Kuralı
+
+Bu projede `graphify-out/` kod tabanı haritası ve ilişki grafiği için yardımcı bağlamdır.
+
+- Mimariyi, modül ilişkilerini, UI bileşen sınırlarını, servis akışlarını veya dosya bağımlılıklarını anlamayı etkileyen anlamlı kod değişikliklerinden sonra graphify güncellemesi planlanır.
+- Kod tabanı soruları yanıtlanırken önce mevcut `graphify-out/GRAPH_REPORT.md` ve gerekirse `graphify-out/graph.json` okunur; yeterli değilse ilgili kaynak dosyalar ayrıca incelenir.
+- Değişiklik kod ağırlıklıysa graphify incremental/update akışı tercih edilir; gereksiz tam yeniden üretim yapılmaz.
+- Graphify çıktısı commit kapsamına ancak kullanıcı açıkça isterse alınır. Varsayılan olarak graphify çıktıları çalışma bağlamı kabul edilir, ürün kodu commit'ine karıştırılmaz.
+- Graphify komutları repo-tracked dosyaları değiştirecekse önce bunun amacını açıkça belirt ve yalnızca ilgili çıktıların güncellenmesini sağla.
+
+---
+
 
 ## 5. Kapsam Dışı
 

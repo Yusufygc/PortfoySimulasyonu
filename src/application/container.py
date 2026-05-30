@@ -4,6 +4,8 @@ from config.settings_loader import load_settings
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.repositories.sa_portfolio_repository import SQLAlchemyPortfolioRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_price_repository import SQLAlchemyPriceRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_cash_movement_repository import SQLAlchemyCashMovementRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_portfolio_maintenance_repository import SQLAlchemyPortfolioMaintenanceRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_watchlist_repository import SQLAlchemyWatchlistRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_model_portfolio_repository import SQLAlchemyModelPortfolioRepository
@@ -13,15 +15,19 @@ from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataCli
 
 from src.application.services.market.price_lookup_service import PriceLookupService
 from src.application.services.market.price_data_health_service import PriceDataHealthService
+from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.application.services.database import DatabaseIntegrityService
 from src.application.services.portfolio.portfolio_service import PortfolioService
 from src.application.services.portfolio.price_update_service import PriceUpdateService
 from src.application.services.portfolio.trade_entry_service import TradeEntryService
+from src.application.services.portfolio.cash_movement_service import CashMovementService
+from src.application.services.portfolio.portfolio_maintenance_service import PortfolioMaintenanceService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.analysis.analysis_service import AnalysisService
 from src.application.services.portfolio.portfolio_update_coordinator import PortfolioUpdateCoordinator
 from src.application.services.portfolio.portfolio_reset_service import PortfolioResetService
 from src.application.services.reporting.excel_export_service import ExcelExportService
+from src.application.services.reporting.model_portfolio_excel_export_service import ModelPortfolioExcelExportService
 from src.application.services.watchlist.watchlist_service import WatchlistService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.application.services.planning.optimization_service import OptimizationService
@@ -29,6 +35,7 @@ from src.application.services.planning.planning_service import PlanningService
 from src.application.services.planning.risk_profile_service import RiskProfileService
 from src.application.services.simulation.backfill_service import BackfillService
 from src.application.services.simulation.history_simulation_service import HistorySimulationService
+from src.application.services.simulation.model_portfolio_history_simulation_service import ModelPortfolioHistorySimulationService
 from src.application.services.reporting.excel_formatter import ExcelFormatter
 from src.application.services.reporting.excel_report_builder import ExcelReportBuilder
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
@@ -52,6 +59,8 @@ class AppContainer:
         # 2) Dependencies (ORM Based Repositories)
         self.portfolio_repo = SQLAlchemyPortfolioRepository(self.conn_provider)
         self.price_repo = SQLAlchemyPriceRepository(self.conn_provider)
+        self.cash_movement_repo = SQLAlchemyCashMovementRepository(self.conn_provider)
+        self.portfolio_maintenance_repo = SQLAlchemyPortfolioMaintenanceRepository(self.conn_provider)
         self.stock_repo = SQLAlchemyStockRepository(self.conn_provider)
         self.watchlist_repo = SQLAlchemyWatchlistRepository(self.conn_provider)
         self.model_portfolio_repo = SQLAlchemyModelPortfolioRepository(self.conn_provider)
@@ -62,10 +71,22 @@ class AppContainer:
         # 3) Market data client
         self.market_client = YFinanceMarketDataClient()
         self.price_lookup_service = PriceLookupService()
+        self.bist_market_session_service = BistMarketSessionService()
         self.db_integrity_service = DatabaseIntegrityService(self.conn_provider)
 
         # 4) Services
-        self.portfolio_service = PortfolioService(self.portfolio_repo, self.price_repo)
+        self.portfolio_service = PortfolioService(
+            self.portfolio_repo,
+            self.price_repo,
+            cash_movement_repo=self.cash_movement_repo,
+        )
+        self.cash_movement_service = CashMovementService(
+            cash_movement_repo=self.cash_movement_repo,
+            portfolio_service=self.portfolio_service,
+        )
+        self.portfolio_maintenance_service = PortfolioMaintenanceService(
+            maintenance_repo=self.portfolio_maintenance_repo,
+        )
         self.trade_entry_service = TradeEntryService(
             stock_repo=self.stock_repo,
             portfolio_service=self.portfolio_service,
@@ -96,10 +117,16 @@ class AppContainer:
             stock_repo=self.stock_repo,
             watchlist_repo=self.watchlist_repo,
             model_portfolio_repo=self.model_portfolio_repo,
+            cash_movement_repo=self.cash_movement_repo,
         )
         
         self.history_simulation_service = HistorySimulationService(
             portfolio_repo=self.portfolio_repo,
+            price_repo=self.price_repo,
+            stock_repo=self.stock_repo,
+        )
+        self.model_portfolio_history_simulation_service = ModelPortfolioHistorySimulationService(
+            model_portfolio_repo=self.model_portfolio_repo,
             price_repo=self.price_repo,
             stock_repo=self.stock_repo,
         )
@@ -108,6 +135,13 @@ class AppContainer:
         
         self.excel_export_service = ExcelExportService(
             simulation_service=self.history_simulation_service,
+            report_builder=self.excel_report_builder,
+        )
+        self.model_portfolio_excel_export_service = ModelPortfolioExcelExportService(
+            model_portfolio_service=self.model_portfolio_service,
+            stock_repo=self.stock_repo,
+            formatter=self.excel_formatter,
+            history_simulation_service=self.model_portfolio_history_simulation_service,
             report_builder=self.excel_report_builder,
         )
 

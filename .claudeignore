@@ -1,0 +1,80 @@
+# ==============================================================================
+# PROJE YÖNETİM VE TAKİP PLATFORMU - RESMİ .CLAUDEIGNORE DOSYASI
+# ==============================================================================
+# Bu dosya, yapay zeka asistanlarının (Claude, Devin, Cursor, GitHub Copilot vb.)
+# proje dizinini tararken gereksiz, büyük veya ikili (binary) dosyaları okumasını
+# ve bağlam pencerelerini (context window) lüzumsuz yere doldurmasını engeller.
+# RULES.md ve 16_SENIOR_MIMARI_STANDARTLAR.md kuralları uyarınca optimize edilmiştir.
+
+# --- VERİTABANI VE İKİLİ (BINARY) DOSYALAR (KRİTİK) ---
+# İkili veritabanı dosyaları yapay zeka tarafından anlamlandırılamaz ve token tüketimini patlatır.
+*.db
+*.sqlite
+*.sqlite3
+.backups/
+
+# --- LOGLAR VE GÜNLÜK DOSYALARI ---
+# Sürekli değişen ve şişen log metinleri ajanın odağını dağıtır.
+*.log
+logs/
+*.err
+
+# --- ANACONDA VE SANAL ORTAM BAĞIMLILIKLARI ---
+# Binlerce kütüphane dosyasının ajan tarafından taranması sistem kilitlenmelerine yol açar.
+.conda/
+conda-meta/
+envs/
+env/
+.venv/
+venv/
+ENV/
+lib/
+lib64/
+include/
+bin/
+share/
+
+# --- ÖNBELLEK DİZİNLERİ (CACHES) ---
+# Otomatik üretilen ve kod mantığı içermeyen araç önbellekleri.
+__pycache__/
+*.py[cod]
+*$py.class
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.htmlcov/
+.cache/
+
+# --- DERLEME VE PAKETLEME ÇIKTILARI (BUILD ARTIFACTS) ---
+# PyInstaller veya Nuitka tarafından üretilen geçici C++ veya binary dizinleri.
+build/
+dist/
+*.spec
+.nuitka/
+pyinstaller/
+*.egg-info/
+.eggs/
+*.egg
+
+# --- IDE VE EDİTÖR ÖZEL AYARLARI ---
+# Geliştiricinin kişisel editör konfigürasyonları ajanın bağlamını kirletmemelidir.
+.idea/
+.vscode/
+*.shadow/
+*.code-workspace
+.project
+.pydevproject
+
+# --- İŞLETİM SİSTEMİ ÇÖPLERİ ---
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- BÜYÜK STATİK VARLIKLAR VE MEDYA (GEREKİRSE) ---
+# Projede bulunabilecek ham tasarım dosyaları veya çok büyük font dosyaları (kod hariç)
+resources/fonts/*.ttf
+resources/fonts/*.otf

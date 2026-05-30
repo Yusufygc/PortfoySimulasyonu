@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Oturum Başlangıcı
+
+Her ajan/LLM oturumu, kod veya plan üretmeden önce proje kökündeki `AGENTS.md` ve `CLAUDE.md` dosyalarını okur. Ardından commit, wiki, test ve graphify kuralları için `RULES.md` takip edilir.
+
+---
+
 ## Kurallar ve Wiki
 
 Bu projedeki tüm **commit kuralları**, **wiki güncelleme protokolü** ve **LLM Wiki operasyon akışı** için bkz:
