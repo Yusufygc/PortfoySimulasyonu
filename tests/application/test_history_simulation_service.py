@@ -213,6 +213,24 @@ def test_simulate_history_carries_last_value_on_no_price_day(
     assert snapshots[1].daily_pnl is None
 
 
+def test_simulate_history_ignores_invalid_sell_trade(
+    simulation_service, mock_portfolio_repo, mock_stock_repo, mock_price_repo
+):
+    mock_stock_repo.get_all_stocks.return_value = [DummyStock(1, "AAA")]
+    mock_portfolio_repo.get_all_trades.return_value = [
+        Trade.create_buy(1, date(2026, 1, 5), 5, Decimal("10")),
+        Trade.create_sell(1, date(2026, 1, 6), 7, Decimal("11")),
+    ]
+    mock_price_repo.get_portfolio_value_series.return_value = {
+        date(2026, 1, 6): {1: Decimal("12")},
+    }
+
+    positions, snapshots = simulation_service.simulate_history(date(2026, 1, 6), date(2026, 1, 6))
+
+    assert positions[0].quantity == 5
+    assert snapshots[0].total_value == Decimal("60")
+
+
 def test_simulate_history_ignores_prices_on_bist_holidays(
     simulation_service, mock_portfolio_repo, mock_stock_repo, mock_price_repo
 ):
