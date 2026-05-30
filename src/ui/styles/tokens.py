@@ -205,6 +205,94 @@ DARK_THEME: dict[str, str] = {
     "RADIUS_2XL": "12px",
     "RADIUS_CARD": "14px",
     "RADIUS_FULL": "9999px",  # Tam yuvarlak (pill shape)
+
+    # -----------------------------------------------------------
+    # TOOLTIP
+    # -----------------------------------------------------------
+    "TOOLTIP_BG":     "#1e293b",
+    "TOOLTIP_TEXT":   "#e2e8f0",
+    "TOOLTIP_BORDER": "#334155",
+
+    # -----------------------------------------------------------
+    # SLIDER
+    # -----------------------------------------------------------
+    "SLIDER_GROOVE_BG":     "#334155",
+    "SLIDER_GROOVE_HEIGHT": "4px",
+    "SLIDER_HANDLE_BG":     "#3b82f6",
+    "SLIDER_HANDLE_BORDER": "#2563eb",
+    "SLIDER_HANDLE_SIZE":   "14px",
+
+    # -----------------------------------------------------------
+    # TOAST / FEEDBACK
+    # -----------------------------------------------------------
+    "TOAST_SUCCESS_BG":     "#14532d",
+    "TOAST_SUCCESS_BORDER": "#10b981",
+    "TOAST_WARNING_BG":     "#78350f",
+    "TOAST_WARNING_BORDER": "#ca8a04",
+    "TOAST_ERROR_BG":       "#7f1d1d",
+    "TOAST_ERROR_BORDER":   "#ef4444",
+    "TOAST_INFO_BG":        "#1e3a5f",
+    "TOAST_INFO_BORDER":    "#3b82f6",
+    "TOAST_TEXT":           "#f1f5f9",
+
+    # -----------------------------------------------------------
+    # PROGRESS BAR (semantic)
+    # -----------------------------------------------------------
+    "PROGRESS_DEFAULT_BG":  "#3b82f6",
+    "PROGRESS_SUCCESS_BG":  "#10b981",
+    "PROGRESS_DANGER_BG":   "#ef4444",
+    "PROGRESS_WARNING_BG":  "#ca8a04",
+    "PROGRESS_TRACK_BG":    "#334155",
+    "PROGRESS_BORDER_RADIUS": "4px",
+
+    # -----------------------------------------------------------
+    # SPLITTER
+    # -----------------------------------------------------------
+    "SPLITTER_HANDLE_BG":    "#334155",
+    "SPLITTER_HANDLE_HOVER": "#3b82f6",
+    "SPLITTER_HANDLE_WIDTH": "3px",
+
+    # -----------------------------------------------------------
+    # MENU / MENUBAR
+    # -----------------------------------------------------------
+    "MENU_BG":            "#1e293b",
+    "MENU_ITEM_HOVER_BG": "#334155",
+    "MENU_SEPARATOR":     "#1e293b",
+    "MENU_TEXT":          "#f1f5f9",
+    "MENU_SHORTCUT_TEXT": "#64748b",
+
+    # -----------------------------------------------------------
+    # INPUT — Semantic States
+    # -----------------------------------------------------------
+    "INPUT_ERROR_BORDER":       "#ef4444",
+    "INPUT_SUCCESS_BORDER":     "#10b981",
+    "INPUT_WARNING_BORDER":     "#ca8a04",
+    "INPUT_PLACEHOLDER_COLOR":  "#64748b",
+
+    # -----------------------------------------------------------
+    # BADGE
+    # -----------------------------------------------------------
+    "BADGE_SUCCESS_BG":   "#14532d",
+    "BADGE_SUCCESS_TEXT": "#22c55e",
+    "BADGE_DANGER_BG":    "#7f1d1d",
+    "BADGE_DANGER_TEXT":  "#ef4444",
+    "BADGE_WARNING_BG":   "#78350f",
+    "BADGE_WARNING_TEXT": "#fbbf24",
+    "BADGE_INFO_BG":      "#1e3a5f",
+    "BADGE_INFO_TEXT":    "#60a5fa",
+    "BADGE_NEUTRAL_BG":   "#334155",
+    "BADGE_NEUTRAL_TEXT": "#94a3b8",
+
+    # -----------------------------------------------------------
+    # TREE WIDGET
+    # -----------------------------------------------------------
+    "TREE_BG":          "#111827",
+    "TREE_ALT_BG":      "#0f172a",
+    "TREE_HEADER_BG":   "#111827",
+    "TREE_TEXT":        "#cbd5e1",
+    "TREE_HEADER_TEXT": "#f1f5f9",
+    "TREE_BORDER":      "#334155",
+    "TREE_SELECTION_BG": "rgba(59, 130, 246, 0.18)",
 }
 
 
@@ -317,6 +405,86 @@ LIGHT_THEME: dict[str, str] = {
     "COLOR_BUBBLE_USER":    "#dbeafe",
     "COLOR_BUBBLE_AI":      "#f0f9ff",
     "COLOR_BUBBLE_SYSTEM":  "#f5f3ff",
+
+    # -----------------------------------------------------------
+    # TOOLTIP
+    # -----------------------------------------------------------
+    "TOOLTIP_BG":     "#ffffff",
+    "TOOLTIP_TEXT":   "#0f172a",
+    "TOOLTIP_BORDER": "#e2e8f0",
+
+    # -----------------------------------------------------------
+    # SLIDER
+    # -----------------------------------------------------------
+    "SLIDER_GROOVE_BG":     "#e2e8f0",
+    "SLIDER_HANDLE_BG":     "#2563eb",
+    "SLIDER_HANDLE_BORDER": "#1d4ed8",
+
+    # -----------------------------------------------------------
+    # TOAST / FEEDBACK
+    # -----------------------------------------------------------
+    "TOAST_SUCCESS_BG":     "#f0fdf4",
+    "TOAST_SUCCESS_BORDER": "#059669",
+    "TOAST_WARNING_BG":     "#fffbeb",
+    "TOAST_WARNING_BORDER": "#d97706",
+    "TOAST_ERROR_BG":       "#fef2f2",
+    "TOAST_ERROR_BORDER":   "#dc2626",
+    "TOAST_INFO_BG":        "#eff6ff",
+    "TOAST_INFO_BORDER":    "#2563eb",
+    "TOAST_TEXT":           "#0f172a",
+
+    # -----------------------------------------------------------
+    # PROGRESS BAR
+    # -----------------------------------------------------------
+    "PROGRESS_TRACK_BG":    "#e2e8f0",
+
+    # -----------------------------------------------------------
+    # SPLITTER
+    # -----------------------------------------------------------
+    "SPLITTER_HANDLE_BG":    "#e2e8f0",
+    "SPLITTER_HANDLE_HOVER": "#2563eb",
+
+    # -----------------------------------------------------------
+    # MENU
+    # -----------------------------------------------------------
+    "MENU_BG":            "#ffffff",
+    "MENU_ITEM_HOVER_BG": "#f1f5f9",
+    "MENU_SEPARATOR":     "#e2e8f0",
+    "MENU_TEXT":          "#0f172a",
+    "MENU_SHORTCUT_TEXT": "#64748b",
+
+    # -----------------------------------------------------------
+    # INPUT — Semantic States
+    # -----------------------------------------------------------
+    "INPUT_ERROR_BORDER":      "#dc2626",
+    "INPUT_SUCCESS_BORDER":    "#059669",
+    "INPUT_WARNING_BORDER":    "#d97706",
+    "INPUT_PLACEHOLDER_COLOR": "#94a3b8",
+
+    # -----------------------------------------------------------
+    # BADGE
+    # -----------------------------------------------------------
+    "BADGE_SUCCESS_BG":   "#f0fdf4",
+    "BADGE_SUCCESS_TEXT": "#059669",
+    "BADGE_DANGER_BG":    "#fef2f2",
+    "BADGE_DANGER_TEXT":  "#dc2626",
+    "BADGE_WARNING_BG":   "#fffbeb",
+    "BADGE_WARNING_TEXT": "#d97706",
+    "BADGE_INFO_BG":      "#eff6ff",
+    "BADGE_INFO_TEXT":    "#2563eb",
+    "BADGE_NEUTRAL_BG":   "#f1f5f9",
+    "BADGE_NEUTRAL_TEXT": "#64748b",
+
+    # -----------------------------------------------------------
+    # TREE WIDGET
+    # -----------------------------------------------------------
+    "TREE_BG":           "#ffffff",
+    "TREE_ALT_BG":       "#f1f5f9",
+    "TREE_HEADER_BG":    "#f8fafc",
+    "TREE_TEXT":         "#0f172a",
+    "TREE_HEADER_TEXT":  "#020617",
+    "TREE_BORDER":       "#e2e8f0",
+    "TREE_SELECTION_BG": "rgba(37, 99, 235, 0.16)",
 }
 
 # Sidebar nav butonlarının hover rengi — sidebar her zaman koyu kaldığından

@@ -1,26 +1,25 @@
 /* =======================================================
-   BASE - LABELS
+   PRIMITIVE - LABELS
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* --- ETİKETLER (Labels) --- */
 QLabel {
     color: @COLOR_TEXT_BODY;
     background-color: transparent;
 }
 QLabel[type="title"] {
-    font-size: 20px;
+    font-size: @FONT_4XL;
     font-weight: bold;
     color: @COLOR_TEXT_PRIMARY;
 }
 QLabel[type="subtitle"] {
-    font-size: 16px;
+    font-size: @FONT_LG;
     font-weight: bold;
     color: @COLOR_TEXT_BODY;
 }
 QLabel[type="muted"] {
     color: @COLOR_TEXT_MUTED;
-    font-size: 12px;
+    font-size: @FONT_SM;
 }
 QLabel[type="value_positive"] {
     color: @COLOR_SUCCESS_BRIGHT;

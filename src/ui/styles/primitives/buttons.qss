@@ -1,14 +1,13 @@
 /* =======================================================
-   BASE - BUTTONS
+   PRIMITIVE - BUTTONS
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* --- BUTTONLAR (Base) --- */
 QPushButton {
     background-color: @BUTTON_SECONDARY_BG;
     color: @BUTTON_SECONDARY_TEXT;
     border: 1px solid @BUTTON_SECONDARY_BORDER;
-    padding: 8px 16px;
+    padding: @SPACE_MD @SPACE_3XL;
     border-radius: @RADIUS_MD;
     font-weight: bold;
 }
@@ -25,7 +24,6 @@ QPushButton:disabled {
     border-color: @BUTTON_DISABLED_BORDER;
 }
 
-/* Vurgulu (Primary) Buton */
 QPushButton[type="primary"] {
     background-color: @BUTTON_PRIMARY_BG;
     color: @BUTTON_PRIMARY_TEXT;
@@ -38,7 +36,6 @@ QPushButton[type="primary"]:pressed {
     background-color: @BUTTON_PRIMARY_BG_PRESSED;
 }
 
-/* Başarı (Success) Butonu */
 QPushButton[type="success"] {
     background-color: #16a34a;
     color: white;
@@ -48,7 +45,6 @@ QPushButton[type="success"]:hover {
     background-color: @COLOR_SUCCESS_BRIGHT;
 }
 
-/* Tehlike (Danger) Butonu */
 QPushButton[type="danger"] {
     background-color: @BUTTON_DANGER_BG;
     color: @BUTTON_DANGER_TEXT;
@@ -58,7 +54,6 @@ QPushButton[type="danger"]:hover {
     background-color: @BUTTON_DANGER_BG_HOVER;
 }
 
-/* Ghost / Transparent Buton */
 QPushButton[type="ghost"] {
     background-color: transparent;
     border: none;
@@ -70,27 +65,4 @@ QPushButton[type="ghost"]:hover {
 QPushButton::menu-indicator {
     image: none;
     width: 0px;
-}
-
-QMenu {
-    background-color: @COLOR_BG_SURFACE;
-    color: @COLOR_TEXT_PRIMARY;
-    border: 1px solid @COLOR_BORDER;
-    border-radius: @RADIUS_MD;
-    padding: @SPACE_XS;
-}
-
-QMenu::item {
-    padding: @SPACE_MD 28px @SPACE_MD 14px;
-    border-radius: @RADIUS_SM;
-}
-
-QMenu::item:selected {
-    background-color: @COLOR_BG_ELEVATED;
-}
-
-QMenu::separator {
-    height: 1px;
-    background-color: @COLOR_BORDER_SUBTLE;
-    margin: @SPACE_XS 0;
 }

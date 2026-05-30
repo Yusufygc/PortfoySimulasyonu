@@ -16,10 +16,3 @@ QLabel[cssClass="dangerHeader"] {
 QLabel[cssClass="inputLabel"] {
     color: @COLOR_TEXT_BODY; font-size: @FONT_MD; font-weight: 500;
 }
-
-QLabel[cssClass="feasibilityText"] {
-    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; font-weight: bold; border: none;
-}
-QLabel[cssClass="feasibilityStatus"] {
-    font-size: @FONT_XL; font-weight: bold; border: none;
-}

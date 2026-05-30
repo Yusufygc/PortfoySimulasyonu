@@ -1,0 +1,40 @@
+/* =======================================================
+   FEATURE - AI / CHAT
+   Chat scroll alanı, baloncuklar ve mesaj etiketleri.
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QScrollArea[cssClass="chatScrollArea"] {
+    border: 1px solid @COLOR_BORDER; background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_LG;
+}
+
+QFrame[cssClass="chatBubble"][cssState="user"] {
+    background-color: @COLOR_BUBBLE_USER;
+    border-radius: @RADIUS_LG;
+    border-top-right-radius: 0px;
+    border: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="chatBubble"][cssState="ai"] {
+    background-color: @COLOR_BUBBLE_AI;
+    border-radius: @RADIUS_LG;
+    border-top-left-radius: 0px;
+    border-left: 3px solid @COLOR_SUCCESS_DARK;
+    border-top: 1px solid @COLOR_BORDER;
+    border-right: 1px solid @COLOR_BORDER;
+    border-bottom: 1px solid @COLOR_BORDER;
+}
+QFrame[cssClass="chatBubble"][cssState="system"] {
+    background-color: @COLOR_BUBBLE_SYSTEM;
+    border-radius: @RADIUS_LG;
+    border: 1px solid @COLOR_PURPLE_BRIGHT;
+}
+
+QLabel[cssClass="chatContent"][cssState="user"]   { color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; }
+QLabel[cssClass="chatContent"][cssState="ai"]     { color: @COLOR_TEXT_BODY; font-size: @FONT_MD; }
+QLabel[cssClass="chatContent"][cssState="system"] { color: @COLOR_TEXT_BODY; font-size: @FONT_MD; }
+
+QLabel[cssClass="chatTime"][cssState="user"]   { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; }
+QLabel[cssClass="chatTime"][cssState="ai"]     { color: @COLOR_TEXT_MUTED; font-size: @FONT_XS; }
+QLabel[cssClass="chatTime"][cssState="system"] { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; }
+
+QLabel[cssClass="systemChatHeader"] { color: @COLOR_PURPLE_BRIGHT; font-weight: bold; font-size: @FONT_BASE; }

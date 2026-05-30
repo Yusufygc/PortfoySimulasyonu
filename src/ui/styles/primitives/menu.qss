@@ -1,0 +1,50 @@
+/* =======================================================
+   PRIMITIVE - MENU
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QMenu {
+    background-color: @MENU_BG;
+    color: @MENU_TEXT;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
+    padding: @SPACE_XS;
+}
+QMenu::item {
+    padding: @SPACE_MD 28px @SPACE_MD 14px;
+    border-radius: @RADIUS_SM;
+    color: @MENU_TEXT;
+}
+QMenu::item:selected {
+    background-color: @MENU_ITEM_HOVER_BG;
+}
+QMenu::item:disabled {
+    color: @COLOR_TEXT_MUTED;
+}
+QMenu::shortcut {
+    color: @MENU_SHORTCUT_TEXT;
+}
+QMenu::separator {
+    height: 1px;
+    background-color: @MENU_SEPARATOR;
+    margin: @SPACE_XS 0;
+}
+QMenu::indicator {
+    width: 16px;
+    height: 16px;
+    left: 6px;
+}
+
+QMenuBar {
+    background-color: @MENU_BG;
+    color: @MENU_TEXT;
+    border-bottom: 1px solid @COLOR_BORDER_SUBTLE;
+}
+QMenuBar::item {
+    padding: @SPACE_XS @SPACE_MD;
+    background: transparent;
+}
+QMenuBar::item:selected {
+    background-color: @MENU_ITEM_HOVER_BG;
+    border-radius: @RADIUS_SM;
+}

@@ -143,11 +143,11 @@ QRadioButton[cssClass="tradeRadioSell"]::indicator:checked {
     border: 2px solid @COLOR_DANGER; border-radius: @RADIUS_MD; background-color: @COLOR_DANGER;
 }
 
-QPushButton[cssClass="linkButton"] {
+QDialog[cssClass="tradeDialog"] QPushButton[cssClass="linkButton"] {
     color: @COLOR_TEXT_SECONDARY; background: transparent; border: none;
     font-size: @FONT_BASE; font-weight: 500;
 }
-QPushButton[cssClass="linkButton"]:hover {
+QDialog[cssClass="tradeDialog"] QPushButton[cssClass="linkButton"]:hover {
     color: @COLOR_TEXT_BRIGHT; text-decoration: underline;
 }
 

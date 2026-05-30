@@ -1,0 +1,66 @@
+/* =======================================================
+   FEATURE - AI / XAI
+   Açıklanabilir AI: metrik satırları, faktör bileşenleri,
+   görünüm etiketi ve uyarı alanları.
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QLabel[cssClass="metricLabel"] {
+    color: @COLOR_TEXT_BODY; font-size: @FONT_MD;
+}
+QLabel[cssClass="metricValue"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; font-weight: bold;
+}
+
+QLabel[cssClass="xaiSectionTitle"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; font-weight: bold;
+}
+QFrame[cssClass="xaiFactorRow"] {
+    background-color: transparent;
+    border: none;
+}
+QLabel[cssClass="xaiFactorLabel"] {
+    color: @COLOR_TEXT_BODY; font-size: @FONT_BASE; font-weight: bold;
+}
+QLabel[cssClass="xaiFactorReason"] {
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_BASE;
+}
+QLabel[cssClass="xaiFactorGroup"] {
+    color: @COLOR_TEXT_PRIMARY;
+    background-color: @COLOR_BG_ELEVATED;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_SM;
+    padding: 2px 6px;
+    font-size: @FONT_SM;
+    font-weight: bold;
+}
+
+QLabel[cssClass="warningText"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD;
+}
+QLabel[cssClass="disclaimerText"] {
+    color: @COLOR_TEXT_BODY;
+    background-color: @COLOR_BG_SURFACE;
+    border: 1px solid @COLOR_WARNING;
+    border-radius: @RADIUS_MD;
+    padding: @SPACE_MD;
+    font-size: @FONT_BASE;
+}
+QLabel[cssClass="confidenceBadge"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_BASE; font-weight: bold;
+}
+QLabel[cssClass="trendBadge"] {
+    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; font-weight: bold;
+}
+
+QLabel[cssClass="outlookLabel"] {
+    font-size: @FONT_XL;
+    font-weight: bold;
+    padding: @SPACE_MD;
+    border-radius: @RADIUS_LG;
+    background-color: @COLOR_BORDER;
+    color: @COLOR_TEXT_SECONDARY;
+}
+QLabel[cssClass="outlookLabel"][cssState="up"]      { background-color: @COLOR_SUCCESS_DARK; color: @COLOR_TEXT_WHITE; }
+QLabel[cssClass="outlookLabel"][cssState="down"]    { background-color: @COLOR_DANGER_DARK; color: @COLOR_TEXT_WHITE; }
+QLabel[cssClass="outlookLabel"][cssState="neutral"] { background-color: @COLOR_BORDER; color: @COLOR_TEXT_SECONDARY; }

@@ -1,12 +1,11 @@
 /* =======================================================
-   BASE - CHECKS
+   PRIMITIVE - CHECKS (Checkbox & RadioButton)
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* --- RADIO BUTTON & CHECKBOX --- */
 QRadioButton, QCheckBox {
     color: @COLOR_TEXT_BODY;
-    spacing: 8px;
+    spacing: @SPACE_MD;
 }
 QRadioButton::indicator, QCheckBox::indicator {
     width: 16px;
@@ -25,4 +24,11 @@ QRadioButton::indicator:checked {
 QCheckBox::indicator:checked {
     background-color: @COLOR_PRIMARY;
     border: 1px solid @COLOR_PRIMARY;
+}
+QRadioButton:disabled, QCheckBox:disabled {
+    color: @COLOR_TEXT_MUTED;
+}
+QRadioButton::indicator:disabled, QCheckBox::indicator:disabled {
+    border-color: @COLOR_BORDER_SUBTLE;
+    background-color: @COLOR_BG_BASE;
 }

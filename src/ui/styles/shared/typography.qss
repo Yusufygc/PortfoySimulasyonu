@@ -1,0 +1,41 @@
+/* =======================================================
+   SHARED - TYPOGRAPHY
+   Sayfa ve panel düzeyinde başlık/açıklama etiketleri.
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QLabel[cssClass="pageTitle"] {
+    font-size: @FONT_3XL;
+    font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+QLabel[cssClass="pageDescription"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_BASE;
+    margin-bottom: @SPACE_XS;
+}
+
+QLabel[cssClass="panelTitle"] {
+    font-size: @FONT_MD;
+    font-weight: bold;
+    color: @COLOR_TEXT_SECONDARY;
+}
+
+QLabel[cssClass="panelTitleLarge"] {
+    font-size: @FONT_2XL;
+    font-weight: bold;
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+QLabel[cssClass="panelDescription"] {
+    color: @COLOR_TEXT_SECONDARY;
+}
+
+QLabel[cssClass="warningBanner"] {
+    background-color: @COLOR_WARNING;
+    color: @COLOR_TEXT_WHITE;
+    font-weight: bold;
+    padding: @SPACE_LG;
+    border-radius: @RADIUS_MD;
+}

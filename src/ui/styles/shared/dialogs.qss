@@ -25,7 +25,7 @@ QLabel[cssClass="dialogHeaderTitleLarge"] {
 QLabel[cssClass="dialogSubtitle"] {
     color: @COLOR_TEXT_SECONDARY; font-size: @FONT_BASE; line-height: 1.4;
 }
-QLabel[cssClass="formLabel"] {
+QDialog QLabel[cssClass="formLabel"] {
     color: @COLOR_TEXT_BODY; font-weight: 500; font-size: @FONT_BASE;
 }
 QLabel[cssClass="dialogStepIndicator"] {

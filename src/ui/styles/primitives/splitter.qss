@@ -1,0 +1,20 @@
+/* =======================================================
+   PRIMITIVE - SPLITTER
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QSplitter::handle {
+    background-color: @SPLITTER_HANDLE_BG;
+}
+QSplitter::handle:hover {
+    background-color: @SPLITTER_HANDLE_HOVER;
+}
+QSplitter::handle:horizontal {
+    width: @SPLITTER_HANDLE_WIDTH;
+}
+QSplitter::handle:vertical {
+    height: @SPLITTER_HANDLE_WIDTH;
+}
+QSplitter::handle:pressed {
+    background-color: @SPLITTER_HANDLE_HOVER;
+}

@@ -1,0 +1,29 @@
+/* =======================================================
+   PRIMITIVE - PROGRESS BAR
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QProgressBar {
+    background-color: @PROGRESS_TRACK_BG;
+    border: none;
+    border-radius: @PROGRESS_BORDER_RADIUS;
+    text-align: center;
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_SM;
+    font-weight: 600;
+    min-height: 8px;
+    max-height: 16px;
+}
+QProgressBar::chunk {
+    background-color: @PROGRESS_DEFAULT_BG;
+    border-radius: @PROGRESS_BORDER_RADIUS;
+}
+QProgressBar[cssClass="success"]::chunk {
+    background-color: @PROGRESS_SUCCESS_BG;
+}
+QProgressBar[cssClass="danger"]::chunk {
+    background-color: @PROGRESS_DANGER_BG;
+}
+QProgressBar[cssClass="warning"]::chunk {
+    background-color: @PROGRESS_WARNING_BG;
+}

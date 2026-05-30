@@ -1,9 +1,8 @@
 /* =======================================================
-   BASE - TABLES
+   PRIMITIVE - TABLES
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* --- TABLOLAR (QTableWidget, QTableView) --- */
 QTableWidget, QTableView {
     background-color: @TABLE_BG;
     alternate-background-color: @TABLE_ALT_BG;
@@ -13,37 +12,22 @@ QTableWidget, QTableView {
     gridline-color: @TABLE_BORDER;
     selection-background-color: @TABLE_SELECTION_BG;
     selection-color: @TABLE_HEADER_TEXT;
+    font-size: @FONT_TABLE_CELL;
+    gridline-color: @TABLE_BORDER_SUBTLE;
 }
 QHeaderView::section {
     background-color: @TABLE_HEADER_BG;
     color: @TABLE_HEADER_TEXT;
     border: none;
     border-right: 1px solid @TABLE_BORDER;
-    border-bottom: 1px solid @TABLE_BORDER;
-    padding: 8px;
-    font-weight: bold;
-    font-size: @FONT_SM;
+    border-bottom: 2px solid @TABLE_BORDER;
+    padding: 11px 8px;
+    font-size: @FONT_TABLE_HEADER;
+    font-weight: 700;
 }
 QTableWidget::item, QTableView::item {
     padding: 8px;
     border-bottom: 1px solid @TABLE_BORDER_SUBTLE;
-}
-
-/* -------------------------------------------------------
-   Okunabilirlik iyileştirmeleri
-------------------------------------------------------- */
-QTableWidget {
-    font-size: @FONT_TABLE_CELL;
-    gridline-color: @TABLE_BORDER_SUBTLE;
-}
-QHeaderView::section {
-    font-size: @FONT_TABLE_HEADER;
-    font-weight: 700;
-    padding: 11px 8px;
-    background-color: @TABLE_HEADER_BG;
-    color: @TABLE_HEADER_TEXT;
-    border: none;
-    border-bottom: 2px solid @TABLE_BORDER;
 }
 QTableWidget[cssClass="dataTable"] {
     font-size: @FONT_TABLE_CELL;

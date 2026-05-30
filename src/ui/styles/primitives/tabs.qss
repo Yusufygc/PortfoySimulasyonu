@@ -1,9 +1,8 @@
 /* =======================================================
-   BASE - TABS
+   PRIMITIVE - TABS
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* --- TAB WIDGETS --- */
 QTabWidget::pane {
     border: 1px solid @COLOR_BORDER;
     border-radius: @RADIUS_SM;
@@ -14,7 +13,7 @@ QTabBar::tab {
     background-color: @COLOR_BG_SURFACE;
     color: @COLOR_TEXT_SECONDARY;
     border: 1px solid @COLOR_BORDER;
-    padding: 8px 16px;
+    padding: @SPACE_MD @SPACE_3XL;
     border-top-left-radius: @RADIUS_SM;
     border-top-right-radius: @RADIUS_SM;
 }

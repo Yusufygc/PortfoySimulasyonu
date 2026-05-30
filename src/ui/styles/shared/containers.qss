@@ -1,5 +1,6 @@
 /* =======================================================
    SHARED - CONTAINERS
+   QFrame ve QWidget kap/yüzey varyantları; tab widget.
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
@@ -7,17 +8,11 @@ QFrame[cssClass="panelFrame"] {
     background-color: @COLOR_BG_SURFACE;
     border-radius: @RADIUS_XL;
 }
+
 QFrame[cssClass="panelFrameBordered"] {
-    background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_XL;
-    border: 1px solid @COLOR_BORDER;
-}
-QFrame[cssClass="infoCard"] {
-    background-color: @COLOR_BG_SURFACE; 
+    background-color: @COLOR_BG_SURFACE;
     border-radius: @RADIUS_XL;
     border: 1px solid @COLOR_BORDER;
-}
-QFrame[cssClass="infoCard"]:hover {
-    border: 1px solid @COLOR_PRIMARY;
 }
 
 QFrame[cssClass="panelFramePadded"] {
@@ -31,57 +26,26 @@ QFrame[cssClass="horizontalDivider"] {
 }
 
 QFrame[cssClass="borderlessFrame"] {
-    border: none; background: transparent;
-}
-QWidget[cssClass="chartWidget"] {
-    background-color: @COLOR_BG_BASE; border-radius: @RADIUS_LG;
+    border: none;
+    background: transparent;
 }
 
-QSplitter::handle {
-    background-color: @COLOR_BORDER;
-    margin: 0px @SPACE_XS;
-    width: 2px;
+QWidget[cssClass="chartWidget"] {
+    background-color: @COLOR_BG_BASE;
+    border-radius: @RADIUS_LG;
 }
 
 QWidget#scroll_content { background-color: transparent; }
 
-QLabel[cssClass="pageTitle"] {
-    font-size: @FONT_3XL;
-    font-weight: bold;
-    color: @COLOR_TEXT_PRIMARY;
-}
-QLabel[cssClass="pageDescription"] {
-    color: @COLOR_TEXT_SECONDARY;
-    font-size: @FONT_BASE;
-    margin-bottom: @SPACE_XS;
-}
-QLabel[cssClass="panelTitle"] {
-    font-size: @FONT_MD;
-    font-weight: bold;
-    color: @COLOR_TEXT_SECONDARY;
-}
-QLabel[cssClass="panelTitleLarge"] {
-    font-size: @FONT_2XL;
-    font-weight: bold;
-    color: @COLOR_TEXT_PRIMARY;
-}
-QLabel[cssClass="panelDescription"] {
-    color: @COLOR_TEXT_SECONDARY;
-}
-
-QLabel[cssClass="warningBanner"] {
-    background-color: @COLOR_WARNING;
-    color: @COLOR_TEXT_WHITE;
-    font-weight: bold;
-    padding: @SPACE_LG;
-    border-radius: @RADIUS_MD;
-}
-
+/* -------------------------------------------------------
+   mainTabWidget: sayfa içi sekme şeridi varyantı
+------------------------------------------------------- */
 QTabWidget[cssClass="mainTabWidget"]::pane {
     border: 1px solid @COLOR_BORDER;
     border-radius: @RADIUS_LG;
     background-color: @COLOR_BG_BASE;
 }
+
 QTabBar[cssClass="mainTabWidget"]::tab,
 QTabWidget[cssClass="mainTabWidget"] QTabBar::tab {
     background-color: @COLOR_BG_SURFACE;
@@ -95,10 +59,12 @@ QTabWidget[cssClass="mainTabWidget"] QTabBar::tab {
     font-weight: bold;
     text-align: center;
 }
+
 QTabWidget[cssClass="mainTabWidget"] QTabBar::tab:selected {
     background-color: @COLOR_PRIMARY;
     color: @COLOR_TEXT_WHITE;
 }
+
 QTabWidget[cssClass="mainTabWidget"] QTabBar::tab:hover:!selected {
     background-color: @COLOR_BORDER;
     color: @COLOR_TEXT_PRIMARY;

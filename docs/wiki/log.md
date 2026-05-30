@@ -6,6 +6,21 @@
 
 ---
 
+## [2026-05-30] güncelleme | Modüler QSS sistemi ve design token altyapısı
+
+- `src/ui/styles/base/` silindi; yerine `primitives/` klasörü oluşturuldu
+- `src/ui/styles/tokens.py` eklendi: tüm `@TOKEN_ADI` yer tutucuları tek sözlükte toplandı
+- `theme_manager.py` `STYLE_MANIFEST` cascade sırası güncellendi (themes → primitives → shared → features)
+- `features/ai/`, `features/risk_profile/` alt klasörlerine bölündü; `shared/typography.qss` eklendi
+- QSS kapsam kuralı: bileşen-özel `cssState`/`cssClass` kuralları global widget seçicisine taşınmadı
+- `ThemeManager.validate_theme_tokens()` ile 0 çözülmemiş token doğrulandı (dark + light)
+- 3 ön-var test hatası giderildi: `active_positions` mock attr + `QThreadPool` async zamanlama
+- Test sonucu: **238 passed, 0 failed**
+- Etkilenen dosyalar: `src/ui/styles/`, `src/ui/theme_manager.py`, `src/ui/styles/tokens.py`, `tests/`
+- Bağlantılı sayfa: [architecture.md → Modüler QSS Sistemi](architecture.md#modüler-qss-sistemi-srcuistyles)
+
+---
+
 ## [2026-05-30] commit | Model portföy geçmiş simülasyonu ve Excel raporu
 
 - Model portföyler için geçmiş simülasyon servisi eklendi

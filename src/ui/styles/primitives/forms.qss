@@ -1,0 +1,71 @@
+/* =======================================================
+   PRIMITIVE - FORMS
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QDateEdit {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    padding: @SPACE_SM @SPACE_LG;
+    border-radius: @RADIUS_SM;
+    selection-background-color: @COLOR_PRIMARY;
+    selection-color: white;
+}
+QLineEdit:focus, QDoubleSpinBox:focus, QSpinBox:focus, QComboBox:focus, QDateEdit:focus {
+    border: 1px solid @COLOR_PRIMARY;
+    background-color: @COLOR_BG_BASE;
+}
+QLineEdit:disabled, QDoubleSpinBox:disabled, QSpinBox:disabled, QComboBox:disabled, QDateEdit:disabled {
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_MUTED;
+    border-color: @COLOR_BORDER_SUBTLE;
+}
+
+/* Semantic validation states */
+QLineEdit[cssClass="input-error"],
+QComboBox[cssClass="input-error"],
+QDoubleSpinBox[cssClass="input-error"],
+QSpinBox[cssClass="input-error"] {
+    border-color: @INPUT_ERROR_BORDER;
+}
+QLineEdit[cssClass="input-success"],
+QComboBox[cssClass="input-success"],
+QDoubleSpinBox[cssClass="input-success"],
+QSpinBox[cssClass="input-success"] {
+    border-color: @INPUT_SUCCESS_BORDER;
+}
+QLineEdit[cssClass="input-warning"],
+QComboBox[cssClass="input-warning"],
+QDoubleSpinBox[cssClass="input-warning"],
+QSpinBox[cssClass="input-warning"] {
+    border-color: @INPUT_WARNING_BORDER;
+}
+
+QComboBox::drop-down {
+    border-left: 1px solid @COLOR_BORDER;
+    width: 20px;
+}
+QComboBox QAbstractItemView {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    selection-background-color: @COLOR_PRIMARY;
+    selection-color: white;
+}
+
+QDoubleSpinBox::up-button, QSpinBox::up-button,
+QDoubleSpinBox::down-button, QSpinBox::down-button {
+    background-color: @COLOR_BG_ELEVATED;
+    border: none;
+    width: 16px;
+}
+QDoubleSpinBox::up-button:hover, QSpinBox::up-button:hover,
+QDoubleSpinBox::down-button:hover, QSpinBox::down-button:hover {
+    background-color: @COLOR_BORDER;
+}
+
+QDateEdit::drop-down {
+    border-left: 1px solid @COLOR_BORDER;
+    width: 20px;
+}

@@ -1,5 +1,7 @@
 /* =======================================================
-   FEATURE - AI
+   FEATURE - AI (core)
+   Butonlar, girdi alanları, kart konteyneri ve temel etiketler.
+   Alt modüller: ai/chat.qss  ai/progress.qss  ai/xai.qss
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
@@ -33,69 +35,6 @@ QTextEdit[cssClass="aiTextEdit"] {
     font-size: @FONT_MD;
 }
 
-QProgressBar[cssClass="aiProgressCyan"] {
-    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY;
-    background-color: @COLOR_BG_ELEVATED;
-}
-QProgressBar[cssClass="aiProgressCyan"]::chunk { background-color: @COLOR_ACCENT_HOVER; border-radius: @RADIUS_SM; }
-
-QProgressBar[cssClass="aiProgressPurple"] {
-    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY;
-    background-color: @COLOR_BG_ELEVATED;
-}
-QProgressBar[cssClass="aiProgressPurple"]::chunk { background-color: @COLOR_PURPLE_BRIGHT; border-radius: @RADIUS_SM; }
-
-QProgressBar[cssClass="aiProgressBlue"] {
-    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center;
-    color: @COLOR_TEXT_PRIMARY; height: 16px;
-    background-color: @COLOR_BG_ELEVATED;
-}
-QProgressBar[cssClass="aiProgressBlue"]::chunk { background-color: @COLOR_ACCENT_LIGHT; border-radius: @RADIUS_SM; }
-
-QProgressBar[cssClass="aiProgressGreen"] {
-    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY; height: 16px;
-    background-color: @COLOR_BG_ELEVATED;
-}
-QProgressBar[cssClass="aiProgressGreen"]::chunk { background-color: @COLOR_SUCCESS; border-radius: @RADIUS_SM; }
-
-QProgressBar[cssClass="aiProgressRed"] {
-    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY; height: 16px;
-    background-color: @COLOR_BG_ELEVATED;
-}
-QProgressBar[cssClass="aiProgressRed"]::chunk { background-color: @COLOR_DANGER; border-radius: @RADIUS_SM; }
-
-QProgressBar[cssClass="aiProgressOrange"] {
-    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY; height: 16px;
-    background-color: @COLOR_BG_ELEVATED;
-}
-QProgressBar[cssClass="aiProgressOrange"]::chunk { background-color: @COLOR_WARNING; border-radius: @RADIUS_SM; }
-
-QScrollArea[cssClass="chatScrollArea"] {
-    border: 1px solid @COLOR_BORDER; background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_LG;
-}
-
-/* Chat Bubbles */
-QFrame[cssClass="chatBubble"][cssState="user"] {
-    background-color: @COLOR_BUBBLE_USER;
-    border-radius: @RADIUS_LG;
-    border-top-right-radius: 0px;
-    border: 1px solid @COLOR_BORDER;
-}
-QFrame[cssClass="chatBubble"][cssState="ai"] {
-    background-color: @COLOR_BUBBLE_AI;
-    border-radius: @RADIUS_LG;
-    border-top-left-radius: 0px;
-    border-left: 3px solid @COLOR_SUCCESS_DARK;
-    border-top: 1px solid @COLOR_BORDER;
-    border-right: 1px solid @COLOR_BORDER;
-    border-bottom: 1px solid @COLOR_BORDER;
-}
-QFrame[cssClass="chatBubble"][cssState="system"] {
-    background-color: @COLOR_BUBBLE_SYSTEM;
-    border-radius: @RADIUS_LG;
-    border: 1px solid @COLOR_PURPLE_BRIGHT;
-}
-
 QFrame[cssClass="aiCard"], QWidget[cssClass="aiCard"] {
     background-color: @COLOR_BG_SURFACE; border-radius: @RADIUS_LG;
     border: 1px solid @COLOR_BORDER;
@@ -119,81 +58,9 @@ QLabel[cssClass="aiHintText"] {
 QLabel[cssClass="cardValueLarge"] {
     color: @COLOR_TEXT_PRIMARY; font-size: @FONT_XL; font-weight: bold;
 }
-
 QLabel[cssClass="priceValueLargeCyan"] {
     font-size: @FONT_2XL; font-weight: bold; color: @COLOR_ACCENT;
 }
-
 QLabel[cssClass="dateLabelMuted"] {
     color: @COLOR_TEXT_BODY; font-size: @FONT_BASE;
 }
-
-/* Chat Text Styles */
-QLabel[cssClass="chatContent"][cssState="user"]   { color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; }
-QLabel[cssClass="chatContent"][cssState="ai"]     { color: @COLOR_TEXT_BODY; font-size: @FONT_MD; }
-QLabel[cssClass="chatContent"][cssState="system"] { color: @COLOR_TEXT_BODY; font-size: @FONT_MD; }
-
-QLabel[cssClass="chatTime"][cssState="user"]   { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; }
-QLabel[cssClass="chatTime"][cssState="ai"]     { color: @COLOR_TEXT_MUTED; font-size: @FONT_XS; }
-QLabel[cssClass="chatTime"][cssState="system"] { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; }
-
-QLabel[cssClass="systemChatHeader"] { color: @COLOR_PURPLE_BRIGHT; font-weight: bold; font-size: @FONT_BASE; }
-
-QLabel[cssClass="metricLabel"] {
-    color: @COLOR_TEXT_BODY; font-size: @FONT_MD;
-}
-QLabel[cssClass="metricValue"] {
-    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; font-weight: bold;
-}
-QLabel[cssClass="xaiSectionTitle"] {
-    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; font-weight: bold;
-}
-QFrame[cssClass="xaiFactorRow"] {
-    background-color: transparent;
-    border: none;
-}
-QLabel[cssClass="xaiFactorLabel"] {
-    color: @COLOR_TEXT_BODY; font-size: @FONT_BASE; font-weight: bold;
-}
-QLabel[cssClass="xaiFactorReason"] {
-    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_BASE;
-}
-QLabel[cssClass="xaiFactorGroup"] {
-    color: @COLOR_TEXT_PRIMARY;
-    background-color: @COLOR_BG_ELEVATED;
-    border: 1px solid @COLOR_BORDER;
-    border-radius: @RADIUS_SM;
-    padding: 2px 6px;
-    font-size: @FONT_SM;
-    font-weight: bold;
-}
-QLabel[cssClass="warningText"] {
-    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD;
-}
-QLabel[cssClass="disclaimerText"] {
-    color: @COLOR_TEXT_BODY;
-    background-color: @COLOR_BG_SURFACE;
-    border: 1px solid @COLOR_WARNING;
-    border-radius: @RADIUS_MD;
-    padding: @SPACE_MD;
-    font-size: @FONT_BASE;
-}
-QLabel[cssClass="confidenceBadge"] {
-    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_BASE; font-weight: bold;
-}
-QLabel[cssClass="trendBadge"] {
-    color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; font-weight: bold;
-}
-
-/* Outlook Label */
-QLabel[cssClass="outlookLabel"] {
-    font-size: @FONT_XL;
-    font-weight: bold;
-    padding: @SPACE_MD;
-    border-radius: @RADIUS_LG;
-    background-color: @COLOR_BORDER;
-    color: @COLOR_TEXT_SECONDARY;
-}
-QLabel[cssClass="outlookLabel"][cssState="up"]      { background-color: @COLOR_SUCCESS_DARK; color: @COLOR_TEXT_WHITE; }
-QLabel[cssClass="outlookLabel"][cssState="down"]    { background-color: @COLOR_DANGER_DARK; color: @COLOR_TEXT_WHITE; }
-QLabel[cssClass="outlookLabel"][cssState="neutral"] { background-color: @COLOR_BORDER; color: @COLOR_TEXT_SECONDARY; }

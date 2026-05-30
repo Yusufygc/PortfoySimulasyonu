@@ -1,23 +1,80 @@
 /* =======================================================
-   THEME - DARK GLOBAL SURFACE
+   THEME — DARK GLOBAL SURFACE
    Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
 ======================================================= */
 
-/* --- GLOBAL UYGUNLUK --- */
+/* --- GLOBAL --- */
 QWidget {
-    background-color: #0f172a; /* Ana Arka Plan */
-    color: #f8fafc; /* Ana Metin */
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_PRIMARY;
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-    font-size: 14px;
+    font-size: @FONT_BASE;
 }
 
-/* --- DIALOGLAR & PENNCERELER --- */
+/* --- DIALOGLAR & PENCERELER --- */
 QDialog {
-    background-color: #0f172a;
+    background-color: @COLOR_BG_BASE;
 }
 QMessageBox {
-    background-color: #0f172a;
+    background-color: @COLOR_BG_BASE;
 }
 QMessageBox QLabel {
-    color: #f8fafc;
+    color: @COLOR_TEXT_PRIMARY;
+}
+
+/* --- SIDEBAR --- */
+#sidebar {
+    background-color: @COLOR_SIDEBAR;
+    border-right: 1px solid @COLOR_BORDER_SUBTLE;
+}
+#sidebar QWidget {
+    background-color: transparent;
+    color: @COLOR_NAV_TEXT_ACTIVE;
+}
+
+/* --- TOOLTIP --- */
+QToolTip {
+    background-color: @TOOLTIP_BG;
+    color: @TOOLTIP_TEXT;
+    border: 1px solid @TOOLTIP_BORDER;
+    padding: @SPACE_XS @SPACE_MD;
+    border-radius: @RADIUS_MD;
+    font-size: @FONT_SM;
+}
+
+/* --- TREE WIDGET --- */
+QTreeWidget,
+QTreeView {
+    background-color: @TREE_BG;
+    alternate-background-color: @TREE_ALT_BG;
+    color: @TREE_TEXT;
+    border: 1px solid @TREE_BORDER;
+    border-radius: @RADIUS_MD;
+    selection-background-color: @TREE_SELECTION_BG;
+    selection-color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_BASE;
+}
+QTreeWidget::item,
+QTreeView::item {
+    padding: @SPACE_XS @SPACE_MD;
+    border: none;
+}
+QTreeWidget::item:hover,
+QTreeView::item:hover {
+    background-color: @COLOR_BG_ELEVATED;
+}
+QTreeWidget::item:selected,
+QTreeView::item:selected {
+    background-color: @TREE_SELECTION_BG;
+    color: @COLOR_TEXT_PRIMARY;
+}
+QTreeWidget QHeaderView::section,
+QTreeView QHeaderView::section {
+    background-color: @TREE_HEADER_BG;
+    color: @TREE_HEADER_TEXT;
+    border: none;
+    border-bottom: 1px solid @TREE_BORDER;
+    padding: @SPACE_XS @SPACE_MD;
+    font-size: @FONT_SM;
+    font-weight: 600;
 }

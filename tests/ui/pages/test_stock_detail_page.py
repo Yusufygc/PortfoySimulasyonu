@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtWidgets import QApplication, QFormLayout, QHBoxLayout, QLabel, QSplitter, QTableWidget
 
 from src.domain.models.trade import TradeSide
@@ -241,6 +241,8 @@ def test_stock_chart_draws_price_series_with_pyqtgraph(monkeypatch):
 
     chart.draw_chart("OBAMS", 1, Decimal("7.96"), DummyPortfolioService())
     chart.draw_chart("OBAMS", 1, Decimal("7.96"), DummyPortfolioService())
+    QThreadPool.globalInstance().waitForDone()
+    app.processEvents()
 
     assert len(chart.plot_widget.listDataItems()) >= 1
     assert chart.plot_widget.getPlotItem().titleLabel.text == "OBAMS - Fiyat Geçmişi"
@@ -332,5 +334,7 @@ def test_stock_chart_uses_db_series_before_yfinance(monkeypatch):
     )
 
     chart.draw_chart("SMRTG.IS", 1, Decimal("11"), None, price_repo=price_repo, average_cost=Decimal("9"))
+    QThreadPool.globalInstance().waitForDone()
+    app.processEvents()
 
     assert len(chart.plot_widget.listDataItems()) >= 1

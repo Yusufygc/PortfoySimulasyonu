@@ -1,0 +1,33 @@
+/* =======================================================
+   PRIMITIVE - TEXT EDIT
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QTextEdit,
+QPlainTextEdit {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_SM;
+    padding: @SPACE_SM;
+    selection-background-color: @COLOR_PRIMARY;
+    selection-color: white;
+    font-size: @FONT_BASE;
+}
+QTextEdit:focus,
+QPlainTextEdit:focus {
+    border: 1px solid @COLOR_PRIMARY;
+    background-color: @COLOR_BG_BASE;
+}
+QTextEdit:read-only,
+QPlainTextEdit:read-only {
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_SECONDARY;
+    border-color: @COLOR_BORDER_SUBTLE;
+}
+QTextEdit:disabled,
+QPlainTextEdit:disabled {
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_MUTED;
+    border-color: @COLOR_BORDER_SUBTLE;
+}

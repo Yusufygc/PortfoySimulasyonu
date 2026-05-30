@@ -1,0 +1,120 @@
+/* =======================================================
+   FEATURE - RISK PROFILE / SURVEY
+   Anket adımları: SpinBox girdi, radio seçenekleri,
+   anket etiketleri ve kapsayıcı çerçeveler.
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QSpinBox[cssClass="surveySpinBox"] {
+    background-color: @COLOR_BG_BASE; color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_LG;
+    padding: @SPACE_MD; font-size: @FONT_XL;
+}
+QSpinBox[cssClass="surveySpinBox"]:focus { border: 1px solid @COLOR_PRIMARY; }
+QSpinBox[cssClass="surveySpinBox"]::up-button, QSpinBox[cssClass="surveySpinBox"]::down-button {
+    width: 12px;
+    border: none;
+    background-color: @COLOR_BG_SURFACE;
+}
+QSpinBox[cssClass="surveySpinBox"]::up-button {
+    image: url(@ICON_CHEVRON_UP);
+    padding-top: 2px;
+}
+QSpinBox[cssClass="surveySpinBox"]::down-button {
+    image: url(@ICON_CHEVRON_DOWN);
+    padding-bottom: 2px;
+}
+
+QRadioButton[cssClass="surveyRadio"] {
+    background-color: @COLOR_BG_BASE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+    padding: @SPACE_MD 14px;
+    font-size: @FONT_BASE;
+    spacing: @SPACE_SM;
+}
+QRadioButton[cssClass="surveyRadio"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
+    background-color: @COLOR_BG_SURFACE;
+}
+QRadioButton[cssClass="surveyRadio"]:checked {
+    border: 2px solid @COLOR_PURPLE;
+    background-color: rgba(139, 92, 246, 0.15);
+    padding: 7px 13px;
+}
+QRadioButton[cssClass="surveyRadio"]::indicator {
+    width: 15px; height: 15px;
+    border: 2px solid @COLOR_TEXT_MUTED;
+    border-radius: @SPACE_SM;
+    background-color: @COLOR_BG_BASE;
+}
+QRadioButton[cssClass="surveyRadio"]::indicator:checked {
+    background-color: @COLOR_PURPLE;
+    border: 2px solid @COLOR_PURPLE;
+}
+
+QLabel[cssClass="surveyTitle"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_XL;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="surveyStep"] {
+    color: @COLOR_ACCENT_LIGHT;
+    font-size: @FONT_SM;
+    font-weight: bold;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_FULL;
+    padding: @SPACE_SM @SPACE_XL;
+    background-color: @COLOR_BG_BASE;
+}
+QLabel[cssClass="surveySectionTitle"] {
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: @FONT_2XL;
+    font-weight: bold;
+    border: none;
+}
+QLabel[cssClass="surveyQuestion"] {
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: @FONT_MD;
+    font-weight: bold;
+    border: none;
+}
+
+QFrame[cssClass="surveyFrame"] {
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_2XL;
+    border: 1px solid @COLOR_BORDER;
+    min-height: 410px;
+}
+
+QStackedWidget[cssClass="surveyStack"] {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea[cssClass="surveyScroll"] {
+    background: transparent;
+    border: none;
+}
+
+QScrollArea[cssClass="surveyScroll"] > QWidget > QWidget {
+    background: transparent;
+}
+
+QFrame[cssClass="surveySectionPage"] {
+    background-color: transparent;
+    border: none;
+}
+
+QFrame[cssClass="surveyQuestionFrame"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+    padding: 0;
+}
+
+QFrame[cssClass="surveyQuestionFrame"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
+}

@@ -36,7 +36,7 @@ class FakePortfolioService:
             1: SimpleNamespace(total_quantity=10, average_cost=10.0),
             2: SimpleNamespace(total_quantity=20, average_cost=8.0),
         }
-        return SimpleNamespace(positions=positions)
+        return SimpleNamespace(positions=positions, active_positions=positions)
 
 
 class FakeModelPortfolioService:

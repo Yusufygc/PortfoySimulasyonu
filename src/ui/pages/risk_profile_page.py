@@ -219,7 +219,7 @@ class RiskProfilePage(BasePage):
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setMinimumHeight(42)
         self.btn_next.setMinimumWidth(150)
-        self.btn_next.setProperty("cssClass", "primaryButton")
+        self.btn_next.setProperty("cssClass", "purpleButton")
         self.btn_next.clicked.connect(self._on_next_section)
         btn_layout.addWidget(self.btn_next)
 

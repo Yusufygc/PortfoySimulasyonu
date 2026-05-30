@@ -1,0 +1,42 @@
+/* =======================================================
+   FEATURE - AI / PROGRESS
+   AI sayfasına özgü renk temalı ilerleme çubukları.
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+QProgressBar[cssClass="aiProgressCyan"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY;
+    background-color: @COLOR_BG_ELEVATED;
+}
+QProgressBar[cssClass="aiProgressCyan"]::chunk { background-color: @COLOR_ACCENT_HOVER; border-radius: @RADIUS_SM; }
+
+QProgressBar[cssClass="aiProgressPurple"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY;
+    background-color: @COLOR_BG_ELEVATED;
+}
+QProgressBar[cssClass="aiProgressPurple"]::chunk { background-color: @COLOR_PURPLE_BRIGHT; border-radius: @RADIUS_SM; }
+
+QProgressBar[cssClass="aiProgressBlue"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center;
+    color: @COLOR_TEXT_PRIMARY; height: 16px;
+    background-color: @COLOR_BG_ELEVATED;
+}
+QProgressBar[cssClass="aiProgressBlue"]::chunk { background-color: @COLOR_ACCENT_LIGHT; border-radius: @RADIUS_SM; }
+
+QProgressBar[cssClass="aiProgressGreen"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY; height: 16px;
+    background-color: @COLOR_BG_ELEVATED;
+}
+QProgressBar[cssClass="aiProgressGreen"]::chunk { background-color: @COLOR_SUCCESS; border-radius: @RADIUS_SM; }
+
+QProgressBar[cssClass="aiProgressRed"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY; height: 16px;
+    background-color: @COLOR_BG_ELEVATED;
+}
+QProgressBar[cssClass="aiProgressRed"]::chunk { background-color: @COLOR_DANGER; border-radius: @RADIUS_SM; }
+
+QProgressBar[cssClass="aiProgressOrange"] {
+    border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_SM; text-align: center; color: @COLOR_TEXT_PRIMARY; height: 16px;
+    background-color: @COLOR_BG_ELEVATED;
+}
+QProgressBar[cssClass="aiProgressOrange"]::chunk { background-color: @COLOR_WARNING; border-radius: @RADIUS_SM; }
