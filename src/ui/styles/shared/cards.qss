@@ -24,7 +24,7 @@ QFrame[cssClass="statCard"] QLabel { border: none; }
 QFrame[cssClass="infoCard"] {
     background-color: @COLOR_BG_SURFACE;
     border-radius: @RADIUS_XL;
-    border: 1px solid @COLOR_BORDER;
+    border: 1px solid @CARD_BORDER;
 }
 
 QFrame[cssClass="infoCard"]:hover {
@@ -61,7 +61,7 @@ QLabel[cssClass="infoCardValue"]  { color: @COLOR_TEXT_PRIMARY;  font-size: @FON
 QLabel[cssClass="infoCardDetail"] { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; border: none; }
 
 QLabel[cssClass="infoCardValueSmall"]  { color: @COLOR_TEXT_PRIMARY; font-size: @FONT_LG;  font-weight: bold; border: none; }
-QLabel[cssClass="infoCardValueMedium"] { color: @COLOR_TEXT_WHITE;   font-size: @FONT_3XL; font-weight: bold; border: none; }
+QLabel[cssClass="infoCardValueMedium"] { color: @COLOR_TEXT_PRIMARY; font-size: @FONT_3XL; font-weight: bold; border: none; }
 QLabel[cssClass="infoCardDelta"]       { font-size: @FONT_XL; font-weight: bold; border: none; }
 
 QLabel[cssClass="feasibilityText"]   { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; font-weight: bold; border: none; }

@@ -54,6 +54,7 @@ STYLE_MANIFEST: tuple[str, ...] = (
     "shared/cards.qss",
     "shared/tables.qss",
     "shared/lists.qss",
+    "shared/feedback.qss",
     "shared/trade_controls.qss",
     # 4. Features — sayfa bazlı geçersiz kılmalar
     "features/dashboard.qss",
@@ -69,6 +70,7 @@ STYLE_MANIFEST: tuple[str, ...] = (
     "features/stock_detail.qss",
     "features/model_portfolio.qss",
     "features/watchlist.qss",
+    "features/settings.qss",
 )
 
 # Eski tema isimleri → yeni tema ID eşlemesi (geriye dönük uyum)

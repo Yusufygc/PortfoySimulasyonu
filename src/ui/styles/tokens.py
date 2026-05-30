@@ -48,6 +48,7 @@ DARK_THEME: dict[str, str] = {
     "COLOR_TABLE_POSITIVE_BG": "rgba(16, 185, 129, 0.08)",
     "COLOR_TABLE_NEGATIVE_BG": "rgba(239, 68, 68, 0.08)",
     "COLOR_TABLE_SELECTED_BG": "rgba(59, 130, 246, 0.15)",
+    "COLOR_ITEM_HOVER_BG":     "rgba(148, 163, 184, 0.18)",  # Liste / ActionListItem satır hover
     "COLOR_SHADOW":        "#000000",
     "BUTTON_PRIMARY_BG": "#2563eb",
     "BUTTON_PRIMARY_BG_HOVER": "#1d4ed8",
@@ -368,6 +369,7 @@ LIGHT_THEME: dict[str, str] = {
     "TABLE_BORDER": "#cbd5e1",
     "TABLE_BORDER_SUBTLE": "#e2e8f0",
     "TABLE_SELECTION_BG": "rgba(37, 99, 235, 0.16)",
+    "COLOR_ITEM_HOVER_BG":     "rgba(100, 116, 139, 0.12)",  # Liste / ActionListItem satır hover
     "FORM_BG": "#ffffff",
     "FORM_BG_FOCUS": "#ffffff",
     "FORM_TEXT": "#0f172a",

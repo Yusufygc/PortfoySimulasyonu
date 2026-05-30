@@ -1,0 +1,70 @@
+/* =======================================================
+   SHARED - FEEDBACK
+   Toast / Snackbar bildirimleri.
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* -------------------------------------------------------
+   Toast Container — toastKind property'si ile
+   her bildirim türü kendi tema-duyarlı renk setini alır.
+   Light modda: TOAST_*_BG pastel; TOAST_TEXT koyu.
+   Dark modda:  TOAST_*_BG koyu; TOAST_TEXT açık.
+------------------------------------------------------- */
+
+QWidget#toastContainer[toastKind="success"] {
+    background-color: @TOAST_SUCCESS_BG;
+    border: 1px solid @TOAST_SUCCESS_BORDER;
+    border-left: 4px solid @TOAST_SUCCESS_BORDER;
+    border-radius: 8px;
+}
+
+QWidget#toastContainer[toastKind="error"] {
+    background-color: @TOAST_ERROR_BG;
+    border: 1px solid @TOAST_ERROR_BORDER;
+    border-left: 4px solid @TOAST_ERROR_BORDER;
+    border-radius: 8px;
+}
+
+QWidget#toastContainer[toastKind="warning"] {
+    background-color: @TOAST_WARNING_BG;
+    border: 1px solid @TOAST_WARNING_BORDER;
+    border-left: 4px solid @TOAST_WARNING_BORDER;
+    border-radius: 8px;
+}
+
+QWidget#toastContainer[toastKind="info"] {
+    background-color: @TOAST_INFO_BG;
+    border: 1px solid @TOAST_INFO_BORDER;
+    border-left: 4px solid @TOAST_INFO_BORDER;
+    border-radius: 8px;
+}
+
+/* -------------------------------------------------------
+   Toast İçerik Elemanları
+------------------------------------------------------- */
+
+QLabel[cssClass="toastIcon"] {
+    background: transparent;
+    font-size: 20px;
+    border: none;
+}
+
+QLabel[cssClass="toastMessage"] {
+    background: transparent;
+    color: @TOAST_TEXT;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+}
+
+QPushButton[cssClass="toastClose"] {
+    background: transparent;
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: 20px;
+    border: none;
+    border-radius: 4px;
+}
+
+QPushButton[cssClass="toastClose"]:hover {
+    color: @COLOR_TEXT_PRIMARY;
+}

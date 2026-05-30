@@ -1,0 +1,67 @@
+/* =======================================================
+   FEATURE - SETTINGS
+   Ayarlar sayfası: Görünüm / Tema seçim kartları.
+   Token referanslari: @TOKEN_ADI (bkz. src/ui/styles/tokens.py)
+======================================================= */
+
+/* -------------------------------------------------------
+   Tema Seçim Kartı (dış çerçeve)
+------------------------------------------------------- */
+
+QFrame[cssClass="themeCard"] {
+    border: 1px solid @COLOR_BORDER;
+    border-radius: 10px;
+    background-color: @COLOR_BG_SURFACE;
+}
+
+QFrame[cssClass="themeCard"][selected="true"] {
+    border: 2px solid @COLOR_PRIMARY;
+}
+
+/* -------------------------------------------------------
+   Tema Kartı Alt Bilgi Çerçevesi (önizleme altı kısım)
+------------------------------------------------------- */
+
+QFrame[cssClass="themeCardInfo"] {
+    border-radius: 0 0 8px 8px;
+}
+
+/* -------------------------------------------------------
+   Tema Kartı Etiketleri — seçili / deseçili durumlar
+   Python tarafı: setProperty("selected", "true"/"false") +
+                  style().unpolish() / polish() ile re-eval tetiklenir.
+------------------------------------------------------- */
+
+QLabel[cssClass="themeCardRadio"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: 16px;
+    background: transparent;
+    border: none;
+}
+
+QLabel[cssClass="themeCardRadio"][selected="true"] {
+    color: @COLOR_PRIMARY;
+}
+
+QLabel[cssClass="themeCardName"] {
+    color: @COLOR_TEXT_PRIMARY;
+    background: transparent;
+    border: none;
+}
+
+QLabel[cssClass="themeCardName"][selected="true"] {
+    color: @COLOR_PRIMARY;
+}
+
+QLabel[cssClass="themeCardStatus"] {
+    background: transparent;
+    border: none;
+}
+
+QLabel[cssClass="themeCardStatus"][selected="true"] {
+    color: @COLOR_PRIMARY;
+    font-size: 11px;
+    border: 1px solid @COLOR_PRIMARY;
+    border-radius: 4px;
+    padding: 1px 6px;
+}

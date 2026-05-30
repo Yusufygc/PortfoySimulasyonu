@@ -18,7 +18,7 @@ class ActionListItem(QWidget):
         self.setObjectName("actionListItem")
         self.setAttribute(Qt.WA_StyledBackground, False)
         self.setAutoFillBackground(False)
-        self.setStyleSheet("QWidget#actionListItem { background: transparent; border: none; }")
+        # Stil QSS'te: shared/lists.qss QWidget#actionListItem { background: transparent; }
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -27,10 +27,8 @@ class ActionListItem(QWidget):
         self.label = QLabel(text)
         self.label.setTextInteractionFlags(Qt.NoTextInteraction)
         self.label.setAutoFillBackground(False)
-        # Let QSS cascade handle the color (base/labels.qss: QLabel { color: @COLOR_TEXT_BODY })
-        self.label.setStyleSheet(
-            "QLabel { background: transparent; border: none; font-size: 15px; }"
-        )
+        self.label.setProperty("cssClass", "actionListLabel")
+        # Stil QSS'te: shared/lists.qss QLabel[cssClass="actionListLabel"]
         layout.addWidget(self.label, 1)
 
         self.menu_button = QToolButton()
@@ -39,20 +37,8 @@ class ActionListItem(QWidget):
         self.menu_button.setCursor(Qt.PointingHandCursor)
         self.menu_button.setPopupMode(QToolButton.InstantPopup)
         self.menu_button.setToolTip("İşlemler")
-        self.menu_button.setStyleSheet(
-            """
-            QToolButton {
-                background: transparent;
-                border: none;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            QToolButton:hover {
-                background-color: rgba(148, 163, 184, 0.18);
-            }
-            QToolButton::menu-indicator { image: none; width: 0; }
-            """
-        )
+        self.menu_button.setProperty("cssClass", "actionListMenuBtn")
+        # Stil QSS'te: shared/lists.qss QToolButton[cssClass="actionListMenuBtn"]
         self._refresh_menu_icon()
 
         self._action_edit = QAction("Düzenle", self)

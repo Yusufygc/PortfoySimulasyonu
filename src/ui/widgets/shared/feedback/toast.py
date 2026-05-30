@@ -33,30 +33,12 @@ ToastPosition = Literal["top", "bottom"]
 #  Sabitleri buradan değiştirerek tüm Toast görünümü güncellenir
 # ──────────────────────────────────────────────────────────────
 _STYLE: dict[str, dict] = {
-    "success": {
-        "bg":     "#064e3b",
-        "border": "#10b981",
-        "icon":   "✅",
-        "label":  "Başarılı",
-    },
-    "error": {
-        "bg":     "#450a0a",
-        "border": "#ef4444",
-        "icon":   "❌",
-        "label":  "Hata",
-    },
-    "warning": {
-        "bg":     "#451a03",
-        "border": "#f59e0b",
-        "icon":   "⚠️",
-        "label":  "Uyarı",
-    },
-    "info": {
-        "bg":     "#0c1a3d",
-        "border": "#3b82f6",
-        "icon":   "ℹ️",
-        "label":  "Bilgi",
-    },
+    # Renk/border artık QSS'te (shared/feedback.qss — @TOAST_* token'ları).
+    # Her iki tema için ayrı değerler ThemeManager tarafından çözülür.
+    "success": {"icon": "✅"},
+    "error":   {"icon": "❌"},
+    "warning": {"icon": "⚠️"},
+    "info":    {"icon": "ℹ️"},
 }
 
 _MARGIN   = 18   # Kenardan boşluk (px)
@@ -123,49 +105,28 @@ class _ToastWidget(QWidget):
 
         container = QWidget(self)
         container.setObjectName("toastContainer")
-        container.setStyleSheet(f"""
-            QWidget#toastContainer {{
-                background-color: {cfg['bg']};
-                border: 1px solid {cfg['border']};
-                border-left: 4px solid {cfg['border']};
-                border-radius: 8px;
-            }}
-        """)
+        # Renk/border QSS'te (shared/feedback.qss): toastKind property'si ile
+        # her bildirim türü kendi @TOAST_* token'larını alır — tema-duyarlı.
+        container.setProperty("toastKind", kind)
 
         row = QHBoxLayout(container)
         row.setContentsMargins(18, 14, 14, 14)
         row.setSpacing(14)
 
         lbl_icon = QLabel(cfg["icon"])
-        lbl_icon.setStyleSheet("background: transparent; font-size: 20px; border: none;")
+        lbl_icon.setProperty("cssClass", "toastIcon")
         lbl_icon.setFixedWidth(26)
 
         lbl_msg = QLabel(message)
         lbl_msg.setWordWrap(True)
         lbl_msg.setMinimumWidth(_MIN_W - 120)
         lbl_msg.setMaximumWidth(_MAX_W - 120)
-        lbl_msg.setStyleSheet(f"""
-            background: transparent;
-            color: #f1f5f9;
-            font-size: 16px;
-            font-weight: 600;
-            line-height: 1.35;
-            border: none;
-        """)
+        lbl_msg.setProperty("cssClass", "toastMessage")
 
         btn_close = QPushButton("×")
         btn_close.setFixedSize(26, 26)
         btn_close.setCursor(Qt.PointingHandCursor)
-        btn_close.setStyleSheet("""
-            QPushButton {
-                background: transparent;
-                color: #94a3b8;
-                font-size: 20px;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover { color: #f1f5f9; }
-        """)
+        btn_close.setProperty("cssClass", "toastClose")
         btn_close.clicked.connect(self._begin_close)
 
         row.addWidget(lbl_icon, 0, Qt.AlignTop)

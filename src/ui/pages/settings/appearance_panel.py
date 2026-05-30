@@ -59,6 +59,7 @@ class AppearancePanel(QWidget):
 
         card = QFrame()
         card.setObjectName(f"themeCard_{theme_id}")
+        card.setProperty("cssClass", "themeCard")
         card.setFixedWidth(230)
         card.setCursor(Qt.PointingHandCursor)
         card.mousePressEvent = lambda _event, tid=theme_id: self._on_theme_selected(tid)
@@ -67,6 +68,11 @@ class AppearancePanel(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
+        # ---- Önizleme çerçevesi ----
+        # NOT: Bu iki inline setStyleSheet bilinçli olarak kaldı.
+        # Önizleme, *başka temanın* literal renk paletini boyar (dark
+        # modda light kart önizlemesi gibi). Aktif temadan bağımsız
+        # olduğu için QSS token sistemiyle parametrize edilemez.
         preview_frame = QFrame()
         preview_frame.setFixedHeight(60)
         preview_frame.setStyleSheet(
@@ -91,9 +97,10 @@ class AppearancePanel(QWidget):
         preview_layout.addStretch()
         outer.addWidget(preview_frame)
 
+        # ---- Bilgi çerçevesi ----
         info_frame = QFrame()
         info_frame.setObjectName(f"themeCardInfo_{theme_id}")
-        info_frame.setStyleSheet("border-radius: 0 0 8px 8px;")
+        info_frame.setProperty("cssClass", "themeCardInfo")
         info_layout = QVBoxLayout(info_frame)
         info_layout.setContentsMargins(14, 12, 14, 14)
         info_layout.setSpacing(6)
@@ -103,15 +110,16 @@ class AppearancePanel(QWidget):
 
         radio_lbl = QLabel("○")
         radio_lbl.setFixedWidth(18)
+        radio_lbl.setProperty("cssClass", "themeCardRadio")
         name_row.addWidget(radio_lbl)
 
         name_lbl = QLabel(theme_info["display_name"])
-        name_lbl.setProperty("cssClass", "panelTitle")
+        name_lbl.setProperty("cssClass", "themeCardName")
         name_row.addWidget(name_lbl)
         name_row.addStretch()
 
         status_lbl = QLabel("")
-        status_lbl.setProperty("cssClass", "pageDescription")
+        status_lbl.setProperty("cssClass", "themeCardStatus")
         name_row.addWidget(status_lbl)
 
         info_layout.addLayout(name_row)
@@ -134,51 +142,36 @@ class AppearancePanel(QWidget):
         Toast.success(self, f"Tema değiştirildi: {display}")
 
     def _refresh_theme_selection(self) -> None:
-        from src.ui.styles.tokens import DEFAULT_THEME
+        """Seçili tema kartını QSS property'leri ile günceller.
 
+        Qt, polish sonrası değişen property'leri otomatik re-eval etmez.
+        Her widget için unpolish→polish çağrılarak QSS yeniden uygulanır.
+        """
         current = ThemeManager.current_theme_id()
-        primary = DEFAULT_THEME.get("COLOR_PRIMARY", "#3b82f6")
-        border_def = DEFAULT_THEME.get("COLOR_BORDER", "#334155")
-        bg_surface = DEFAULT_THEME.get("COLOR_BG_SURFACE", "#1e293b")
-        text_pri = DEFAULT_THEME.get("COLOR_TEXT_PRIMARY", "#f1f5f9")
-        text_sec = DEFAULT_THEME.get("COLOR_TEXT_SECONDARY", "#94a3b8")
 
         for theme_id, refs in self._theme_card_widgets.items():
             selected = theme_id == current
+            selected_str = "true" if selected else "false"
+
             card = refs["card"]
             radio = refs["radio"]
             name = refs["name"]
             stat = refs["status"]
 
-            if selected:
-                card.setStyleSheet(
-                    f"QFrame#themeCard_{theme_id} {{"
-                    f"  border: 2px solid {primary};"
-                    f"  border-radius: 10px;"
-                    f"  background-color: {bg_surface};"
-                    f"}}"
-                )
-                radio.setText("●")
-                radio.setStyleSheet(f"color: {primary}; font-size: 16px; background: transparent;")
-                name.setStyleSheet(f"color: {primary}; background: transparent;")
-                stat.setText("Aktif")
-                stat.setStyleSheet(
-                    f"color: {primary}; font-size: 11px;"
-                    f" background-color: transparent;"
-                    f" border: 1px solid {primary};"
-                    f" border-radius: 4px; padding: 1px 6px;"
-                )
-                continue
+            radio.setText("●" if selected else "○")
+            stat.setText("Aktif" if selected else "")
 
-            card.setStyleSheet(
-                f"QFrame#themeCard_{theme_id} {{"
-                f"  border: 1px solid {border_def};"
-                f"  border-radius: 10px;"
-                f"  background-color: {bg_surface};"
-                f"}}"
-            )
-            radio.setText("○")
-            radio.setStyleSheet(f"color: {text_sec}; font-size: 16px; background: transparent;")
-            name.setStyleSheet(f"color: {text_pri}; background: transparent;")
-            stat.setText("")
-            stat.setStyleSheet("background: transparent; border: none;")
+            for w in (card, radio, name, stat):
+                w.setProperty("selected", selected_str)
+                self._repolish(w)
+
+    @staticmethod
+    def _repolish(widget) -> None:
+        """QSS property değişiminden sonra widget'ı yeniden stillendirir.
+
+        Qt'de setProperty() çağrısı polish'ten sonra yapılırsa QSS
+        otomatik olarak yeniden hesaplanmaz. Unpolish→polish döngüsü
+        zorla re-eval tetikler.
+        """
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)

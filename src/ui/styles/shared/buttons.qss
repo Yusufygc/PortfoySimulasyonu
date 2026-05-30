@@ -79,6 +79,9 @@ QPushButton[cssClass="primaryButtonLarge"] {
 QPushButton[cssClass="primaryButtonLarge"]:hover {
     background-color: @BUTTON_PRIMARY_BG_HOVER;
 }
+QPushButton[cssClass="primaryButtonLarge"]:pressed {
+    background-color: @BUTTON_PRIMARY_BG_PRESSED;
+}
 QPushButton[cssClass="primaryButtonLarge"]:disabled {
     background-color: @BUTTON_DISABLED_BG;
     color: @BUTTON_DISABLED_TEXT;

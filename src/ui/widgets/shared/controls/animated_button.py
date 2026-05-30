@@ -1,54 +1,40 @@
 # src/ui/widgets/shared/controls/animated_button.py
 """
-AnimatedButton — Mikro Etkileşimli Buton Widget'ı
+AnimatedButton — Etkileşimli Buton Widget'ı
 
-PyQt5'te CSS `transition` desteklenmediğinden, hover/press
-efektleri QGraphicsOpacityEffect + QPropertyAnimation ile sağlanır.
+Hover/press görsel geri bildirimi QSS pseudo-state'leri (`:hover`, `:pressed`)
+ile sağlanır; bu yüzden tüm temalarda (light/dark) buton zemini doğru render
+edilir.
+
+Tarihsel not:
+    Daha önce hover/press için QGraphicsOpacityEffect + QPropertyAnimation
+    kullanılıyordu. Ancak grafik efekt butona bağlıyken QPushButton offscreen
+    buffer'a render ediliyor ve light temada QSS `background-color` kaybolup
+    buton beyaz görünüyordu. Efekti animasyon sırasında bağla/ayır denemeleri
+    `RuntimeError: wrapped C/C++ object ... deleted` çökmelerine yol açtı.
+    Sade ve sağlam çözüm: grafik efekti bırak, görsel feedback'i QSS'e taşı.
 
 Kullanım:
-    btn = AnimatedButton("🚀 Optimize Et")
+    btn = AnimatedButton("Optimize Et")
     btn.setProperty("cssClass", "primaryButtonLarge")
-
-Özellikler:
-    - Hover: Yumuşak opaklık artışı (0.85 → 1.0)
-    - Press: Anlık opacity baskısı (1.0 → 0.7 → 1.0)
-    - Performans: Animasyon süresi kısa tutuldu (150ms hover, 80ms press)
-    - Geriye dönük uyum: QPushButton'ın tüm API'sini miras alır
+    btn.setIconName("zap")
 """
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QPushButton, QGraphicsOpacityEffect
-from PyQt5.QtCore import (
-    Qt, QEvent, QPropertyAnimation, QEasingCurve,
-    QSequentialAnimationGroup, pyqtProperty,
-)
+from PyQt5.QtWidgets import QPushButton
+from PyQt5.QtCore import Qt, QEvent
 
 
 class AnimatedButton(QPushButton):
     """
-    Hover ve press animasyonları olan QPushButton.
-    setProperty("cssClass", ...) ile QSS'den normal buton gibi stillendirilir.
+    Pointer cursor ve token tabanlı ikon desteği olan QPushButton.
+    setProperty("cssClass", ...) ile QSS'den stillendirilir; hover/press
+    geri bildirimi QSS pseudo-state'leri tarafından yönetilir.
     """
-
-    _HOVER_DURATION  = 150   # ms — hover fade-in/out
-    _PRESS_DOWN_MS   = 60    # ms — tıklama baskısı
-    _PRESS_UP_MS     = 100   # ms — bırakma geri dönüşü
-    _OPACITY_NORMAL  = 1.0
-    _OPACITY_HOVER   = 0.92  # Hover hafif mat
-    _OPACITY_PRESSED = 0.65  # Press belirgin baskı
 
     def __init__(self, text: str = "", parent=None):
         super().__init__(text, parent)
         self.setCursor(Qt.PointingHandCursor)
-
-        # Opacity efekti
-        self._effect = QGraphicsOpacityEffect(self)
-        self._effect.setOpacity(self._OPACITY_NORMAL)
-        self.setGraphicsEffect(self._effect)
-
-        # Animasyonlar
-        self._hover_anim = self._make_anim(self._HOVER_DURATION)
-        self._press_group = self._make_press_group()
 
     def setIconName(self, name: str, color: str = "@COLOR_TEXT_WHITE", size: int = 18):
         """İkon adıyla IconManager üzerinden ikon set eder."""
@@ -64,66 +50,8 @@ class AnimatedButton(QPushButton):
         from PyQt5.QtCore import QSize
         self.setIcon(IconManager.get_icon(self._icon_name, color=self._icon_color, size=QSize(self._icon_size, self._icon_size)))
 
-
-    # ------------------------------------------------------------------
-    # Animasyon oluşturucular
-    # ------------------------------------------------------------------
-
-    def _make_anim(self, duration: int) -> QPropertyAnimation:
-        anim = QPropertyAnimation(self._effect, b"opacity")
-        anim.setDuration(duration)
-        anim.setEasingCurve(QEasingCurve.OutCubic)
-        return anim
-
-    def _make_press_group(self) -> QSequentialAnimationGroup:
-        """Baskı → bırakış animasyon zinciri."""
-        group = QSequentialAnimationGroup(self)
-
-        down = QPropertyAnimation(self._effect, b"opacity")
-        down.setDuration(self._PRESS_DOWN_MS)
-        down.setStartValue(self._OPACITY_NORMAL)
-        down.setEndValue(self._OPACITY_PRESSED)
-        down.setEasingCurve(QEasingCurve.OutQuart)
-
-        up = QPropertyAnimation(self._effect, b"opacity")
-        up.setDuration(self._PRESS_UP_MS)
-        up.setStartValue(self._OPACITY_PRESSED)
-        up.setEndValue(self._OPACITY_NORMAL)
-        up.setEasingCurve(QEasingCurve.OutBounce)
-
-        group.addAnimation(down)
-        group.addAnimation(up)
-        return group
-
-    # ------------------------------------------------------------------
-    # Qt Events
-    # ------------------------------------------------------------------
-
     def changeEvent(self, event) -> None:
+        # Tema değişiminde ikonu yeni token rengiyle yeniden üret.
         if event.type() == QEvent.StyleChange and hasattr(self, "_icon_name"):
             self._apply_icon()
         super().changeEvent(event)
-
-    def enterEvent(self, event) -> None:
-        """Fare üzerine gelince mat → parlak geçiş."""
-        self._hover_anim.stop()
-        self._hover_anim.setStartValue(self._effect.opacity())
-        self._hover_anim.setEndValue(self._OPACITY_HOVER)
-        self._hover_anim.start()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event) -> None:
-        """Fare ayrılınca normale dön."""
-        self._hover_anim.stop()
-        self._hover_anim.setStartValue(self._effect.opacity())
-        self._hover_anim.setEndValue(self._OPACITY_NORMAL)
-        self._hover_anim.start()
-        super().leaveEvent(event)
-
-    def mousePressEvent(self, event) -> None:
-        """Tıklamada baskı efekti."""
-        if event.button() == Qt.LeftButton:
-            self._hover_anim.stop()
-            self._press_group.stop()
-            self._press_group.start()
-        super().mousePressEvent(event)

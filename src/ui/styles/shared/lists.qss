@@ -42,3 +42,35 @@ QListWidget::item:selected:!active, QListView::item:selected:!active {
 QListWidget {
     alternate-background-color: rgba(0, 0, 0, 0.02);
 }
+
+/* -------------------------------------------------------
+   ActionListItem — üç-nokta menü satırı
+   (watchlist, model portföy vb.)
+------------------------------------------------------- */
+
+QWidget#actionListItem {
+    background: transparent;
+    border: none;
+}
+
+QLabel[cssClass="actionListLabel"] {
+    background: transparent;
+    border: none;
+    font-size: 15px;
+}
+
+QToolButton[cssClass="actionListMenuBtn"] {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+QToolButton[cssClass="actionListMenuBtn"]:hover {
+    background-color: @COLOR_ITEM_HOVER_BG;
+}
+
+QToolButton[cssClass="actionListMenuBtn"]::menu-indicator {
+    image: none;
+    width: 0;
+}
