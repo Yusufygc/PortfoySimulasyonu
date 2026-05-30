@@ -21,6 +21,15 @@
 
 ---
 
+## [2026-05-31] lint | Wiki sağlık kontrolü yapıldı
+
+- Silinmiş olan `architecture.md` belgesi git geçmişinden restore edilerek onarıldı
+- Yetim kalan `Plans.md` dosyası `index.md` içerik kataloğuna eklendi ve zorunlu navigasyon başlığı eklendi
+- Kırık bağlantılar onarıldı ve wiki bütünlüğü sağlandı
+- Etkilenen dosyalar: `docs/wiki/architecture.md`, `docs/wiki/index.md`, `docs/wiki/Plans.md`
+
+---
+
 ## [2026-05-31] güncelleme | Analiz ve optimizasyon ekranlarında iyileştirmeler
 
 - Analiz servisleri ve grafik motorunda (analysis_chart_engine) güncellemeler yapıldı
