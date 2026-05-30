@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Sequence
 
 from src.domain.models.portfolio import Portfolio
+from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
@@ -207,9 +208,10 @@ class AnalysisService:
         stock_ids = self._series_builder.resolve_stock_scope(scoped_trades, filter_state.selected_stock_ids)
         ticker_map = self._series_builder.get_ticker_map(stock_ids)
 
-        portfolio = Portfolio.from_trades([trade for trade in scoped_trades if trade.stock_id in stock_ids])
+        build_result = build_portfolio_safely([trade for trade in scoped_trades if trade.stock_id in stock_ids])
+        portfolio = build_result.portfolio
         portfolio_series, position_values_end, warnings = self._series_builder.compute_portfolio_series(
-            scoped_trades,
+            build_result.valid_trades,
             stock_ids,
             ticker_map,
             filter_state.start_date,
@@ -254,9 +256,10 @@ class AnalysisService:
             scoped_trades = [trade for trade in trades if trade.trade_date <= filter_state.end_date]
             stock_ids = self._series_builder.resolve_stock_scope(scoped_trades, [])
             ticker_map = self._series_builder.get_ticker_map(stock_ids)
-            portfolio = Portfolio.from_trades(scoped_trades)
+            build_result = build_portfolio_safely(scoped_trades)
+            portfolio = build_result.portfolio
             portfolio_series, _, _ = self._series_builder.compute_portfolio_series(
-                scoped_trades,
+                build_result.valid_trades,
                 stock_ids,
                 ticker_map,
                 filter_state.start_date,

@@ -27,10 +27,12 @@ class SuggestionsTable(QTableWidget):
         self.setColumnCount(len(self._COLUMNS))
         self.setHorizontalHeaderLabels(self._COLUMNS)
 
-        # İlk sütun esnek, diğerleri içeriğe göre
-        self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        # Tüm sütunlar orantılı genişlik — Hisse 2 birim, diğerleri 1 birim
+        header = self.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
         for col in range(1, len(self._COLUMNS)):
-            self.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeToContents)
+            header.setSectionResizeMode(col, QHeaderView.Stretch)
+        header.setDefaultAlignment(Qt.AlignCenter)
 
         self.setSelectionMode(QTableWidget.NoSelection)
         self.setSelectionBehavior(QTableWidget.SelectRows)
@@ -57,7 +59,7 @@ class SuggestionsTable(QTableWidget):
 
         for i, sug in enumerate(suggestions):
             self.insertRow(i)
-            self._set_readonly(i, 0, display_ticker(sug.symbol))
+            self._set_readonly(i, 0, display_ticker(sug.symbol), Qt.AlignCenter)
             self._set_readonly(i, 1, f"{sug.current_weight:.2f}%", Qt.AlignCenter)
             self._set_readonly(i, 2, f"{sug.optimal_weight:.2f}%", Qt.AlignCenter)
 

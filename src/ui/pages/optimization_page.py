@@ -76,10 +76,14 @@ class OptimizationPage(BasePage):
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
-        self.scroll.setStyleSheet("background-color: transparent;")
-        
+
+        # NOT: Buraya inline setStyleSheet("background-color: transparent")
+        # KOYMA. Qt'de parent'a verilen selector'suz stylesheet kuralı tüm
+        # alt widget'lara yayılır ve QSS buton arka planlarını ezer (buton
+        # beyaz görünür). Bunun yerine objectName ile QSS'teki
+        # `QWidget#scroll_content` kuralı kullanılır.
         self.scroll_content = QWidget()
-        self.scroll_content.setStyleSheet("background-color: transparent;")
+        self.scroll_content.setObjectName("scroll_content")
         self.scroll_layout = QVBoxLayout(self.scroll_content)
         self.scroll_layout.setContentsMargins(25, 25, 25, 25)
         self.scroll_layout.setSpacing(20)

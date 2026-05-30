@@ -100,3 +100,22 @@ QLabel[cssClass="panelSubtitle"] {
 QLabel[cssClass="dateLabel"] {
     color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS;
 }
+
+/* -------------------------------------------------------
+   Grafik Seri Efsanesi (Legend) etiketleri
+   Per-seri ■ marker rengi setText HTML <span> ile kalır.
+------------------------------------------------------- */
+
+QLabel[cssClass="chartLegendLabel"] {
+    background: transparent;
+    border: none;
+    color: @COLOR_TEXT_SECONDARY;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+QLabel[cssClass="chartLegendLabel"][chartPrimary="true"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-weight: 700;
+    font-size: 13px;
+}

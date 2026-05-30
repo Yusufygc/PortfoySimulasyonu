@@ -459,14 +459,11 @@ class AnalysisChartEngine(QWidget):
     def _add_legend_label(self, text: str, color: str, primary: bool = False) -> None:
         label = QLabel()
         label.setWordWrap(True)
-        label.setStyleSheet(
-            f"color: {TEXT_PRIMARY if primary else TEXT_SECONDARY};"
-            f"font-weight: {'700' if primary else '500'};"
-            "background: transparent;"
-            "border: none;"
-            f"font-size: {'13px' if primary else '12px'};"
-        )
+        # Renk/ağırlık/boyut QSS'te: features/analysis.qss chartLegendLabel + chartPrimary
+        label.setProperty("cssClass", "chartLegendLabel")
+        label.setProperty("chartPrimary", "true" if primary else "false")
         label.setProperty("seriesColor", color)
+        # Per-seri ■ marker rengi HTML span ile kalır (içerik, QSS değil)
         label.setText(f"<span style='color:{color};'>■</span> {text.replace(chr(10), '<br>')}")
         self.legend_layout.addWidget(label)
 
