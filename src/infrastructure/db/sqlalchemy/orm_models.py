@@ -94,6 +94,7 @@ class ORMWatchlist(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     description = Column(String(1000))
+    sort_order = Column(Integer, nullable=False, default=0, server_default="0")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -122,6 +123,7 @@ class ORMModelPortfolio(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(1000))
     initial_cash = Column(Numeric(18, 2), nullable=False, default=100000.00, server_default="100000.00")
+    sort_order = Column(Integer, nullable=False, default=0, server_default="0")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
