@@ -30,12 +30,13 @@ def trade_sort_key(trade: Trade) -> tuple:
     )
 
 
-def build_portfolio_safely(trades: Iterable[Trade]) -> PortfolioBuildResult:
+def build_portfolio_safely(trades: Iterable[Trade], is_sorted: bool = False) -> PortfolioBuildResult:
     portfolio = Portfolio()
     valid_trades: list[Trade] = []
     invalid_trades: list[InvalidTrade] = []
 
-    for trade in sorted(trades, key=trade_sort_key):
+    ordered_trades = trades if is_sorted else sorted(trades, key=trade_sort_key)
+    for trade in ordered_trades:
         position = portfolio.positions.get(trade.stock_id)
         available_quantity = position.total_quantity if position else 0
         if trade.side == TradeSide.SELL and trade.quantity > available_quantity:
