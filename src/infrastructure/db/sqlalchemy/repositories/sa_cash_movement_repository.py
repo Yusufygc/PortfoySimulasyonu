@@ -73,7 +73,11 @@ class SQLAlchemyCashMovementRepository(ICashMovementRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm(movement)
             session.add(orm_obj)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             session.refresh(orm_obj)
             return self._to_domain(orm_obj)
 
@@ -83,9 +87,17 @@ class SQLAlchemyCashMovementRepository(ICashMovementRepository):
             return
         with self._provider.get_session() as session:
             session.add_all([self._to_orm(movement) for movement in movement_list])
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     def delete_all_movements(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMCashMovement).delete()
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
