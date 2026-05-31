@@ -70,12 +70,12 @@ class AnalysisRiskSection(QWidget):
         
         if cost_breakdown:
             fig1 = build_pie_chart("Maliyet Bazlı Dağılım", cost_breakdown)
-            self.cost_chart.setHtml(fig1.to_html(include_plotlyjs="cdn"))
+            self.cost_chart.setHtml(fig1.to_html(include_plotlyjs=True))
         else:
             self.cost_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Maliyet verisi yok</div>")
             
         if current_breakdown:
             fig2 = build_pie_chart("Güncel Değer Dağılımı", current_breakdown)
-            self.value_chart.setHtml(fig2.to_html(include_plotlyjs="cdn"))
+            self.value_chart.setHtml(fig2.to_html(include_plotlyjs=True))
         else:
             self.value_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Değer verisi yok</div>")

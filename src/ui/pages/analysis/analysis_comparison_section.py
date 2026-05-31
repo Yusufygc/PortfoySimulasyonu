@@ -207,7 +207,7 @@ class AnalysisComparisonSection(QWidget):
             self._set_fig_to_view(fig)
 
     def _set_fig_to_view(self, fig):
-        html = fig.to_html(include_plotlyjs="cdn")
+        html = fig.to_html(include_plotlyjs=True)
         self.chart_engine.setHtml(html)
 
     def _build_relative_gap_series(
