@@ -2,11 +2,11 @@
 
 from datetime import date
 from typing import List, Optional
-from src.domain.models.budget import Budget
+from src.domain.models.budget import Budget, BudgetItem
 from src.domain.models.financial_goal import FinancialGoal
 from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
-from src.infrastructure.db.sqlalchemy.orm_models import ORMBudget, ORMFinancialGoal
+from src.infrastructure.db.sqlalchemy.orm_models import ORMBudget, ORMBudgetItem, ORMFinancialGoal
 
 class SQLAlchemyPlanningRepository(IPlanningRepository):
     """
@@ -15,36 +15,29 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
 
     def __init__(self, db_provider: SQLAlchemyEngineProvider) -> None:
         self._provider = db_provider
+        ORMBudget.__table__.create(bind=self._provider._engine, checkfirst=True)
+        ORMBudgetItem.__table__.create(bind=self._provider._engine, checkfirst=True)
+        ORMFinancialGoal.__table__.create(bind=self._provider._engine, checkfirst=True)
 
     # ==================== Row → Domain Mappers ==================== #
     def _to_domain_budget(self, orm: ORMBudget) -> Budget:
+        items = [
+            BudgetItem(
+                id=i.id,
+                budget_id=i.budget_id,
+                item_type=i.item_type,
+                name=i.name,
+                amount=float(i.amount),
+            )
+            for i in orm.items
+        ]
         return Budget(
             id=orm.id,
             month=orm.month,
-            income_salary=float(orm.income_salary),
-            income_additional=float(orm.income_additional),
-            expense_rent=float(orm.expense_rent),
-            expense_bills=float(orm.expense_bills),
-            expense_food=float(orm.expense_food),
-            expense_transport=float(orm.expense_transport),
-            expense_luxury=float(orm.expense_luxury),
             savings_target=float(orm.savings_target),
+            items=items,
             created_at=orm.created_at,
             updated_at=orm.updated_at,
-        )
-
-    def _to_orm_budget(self, domain: Budget) -> ORMBudget:
-        return ORMBudget(
-            id=domain.id,
-            month=domain.month,
-            income_salary=domain.income_salary,
-            income_additional=domain.income_additional,
-            expense_rent=domain.expense_rent,
-            expense_bills=domain.expense_bills,
-            expense_food=domain.expense_food,
-            expense_transport=domain.expense_transport,
-            expense_luxury=domain.expense_luxury,
-            savings_target=domain.savings_target,
         )
 
     def _to_domain_goal(self, orm: ORMFinancialGoal) -> FinancialGoal:
@@ -84,21 +77,24 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
 
     def upsert_budget(self, budget: Budget) -> Budget:
         with self._provider.get_session() as session:
-            # Check exist
             orm_obj = session.query(ORMBudget).filter_by(month=budget.month).first()
-            if orm_obj:
-                orm_obj.income_salary = budget.income_salary
-                orm_obj.income_additional = budget.income_additional
-                orm_obj.expense_rent = budget.expense_rent
-                orm_obj.expense_bills = budget.expense_bills
-                orm_obj.expense_food = budget.expense_food
-                orm_obj.expense_transport = budget.expense_transport
-                orm_obj.expense_luxury = budget.expense_luxury
-                orm_obj.savings_target = budget.savings_target
-            else:
-                orm_obj = self._to_orm_budget(budget)
+            if orm_obj is None:
+                orm_obj = ORMBudget(month=budget.month, savings_target=budget.savings_target)
                 session.add(orm_obj)
-            
+                session.flush()  # id üret
+            else:
+                orm_obj.savings_target = budget.savings_target
+
+            # Tüm mevcut kalemleri sil, yeniden yaz
+            session.query(ORMBudgetItem).filter_by(budget_id=orm_obj.id).delete()
+            for item in budget.items:
+                session.add(ORMBudgetItem(
+                    budget_id=orm_obj.id,
+                    item_type=item.item_type,
+                    name=item.name,
+                    amount=item.amount,
+                ))
+
             session.commit()
             session.refresh(orm_obj)
             return self._to_domain_budget(orm_obj)

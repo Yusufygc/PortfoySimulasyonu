@@ -32,43 +32,18 @@ class PlanningService:
         """Tüm bütçe kayıtlarını döner."""
         return self._repo.get_all_budgets()
 
-    def save_budget(
-        self,
-        month: str,
-        income_salary: float = 0.0,
-        income_additional: float = 0.0,
-        expense_rent: float = 0.0,
-        expense_bills: float = 0.0,
-        expense_food: float = 0.0,
-        expense_transport: float = 0.0,
-        expense_luxury: float = 0.0,
-        savings_target: float = 0.0,
-    ) -> Budget:
+    def save_budget(self, budget: Budget) -> Budget:
         """
         Bütçe kaydını oluşturur veya günceller.
 
         Args:
-            month: 'YYYY-MM' formatında ay
-            Diğer parametreler: Gelir/gider kalemleri ve tasarruf hedefi
+            budget: Kaydedilecek Budget nesnesi (items listesi dahil)
 
         Returns:
             Kaydedilen Budget nesnesi
         """
-        if not month or len(month) != 7:
+        if not budget.month or len(budget.month) != 7:
             raise ValueError("Ay formatı 'YYYY-MM' olmalıdır.")
-
-        budget = Budget(
-            id=None,
-            month=month,
-            income_salary=income_salary,
-            income_additional=income_additional,
-            expense_rent=expense_rent,
-            expense_bills=expense_bills,
-            expense_food=expense_food,
-            expense_transport=expense_transport,
-            expense_luxury=expense_luxury,
-            savings_target=savings_target,
-        )
         return self._repo.upsert_budget(budget)
 
     def get_monthly_analysis(self, month: str) -> Optional[Dict[str, Any]]:
@@ -89,13 +64,7 @@ class PlanningService:
             "total_expense": budget.total_expense,
             "net_potential": budget.net_savings_potential,
             "target": budget.savings_target,
-            "breakdown": {
-                "rent": budget.expense_rent,
-                "bills": budget.expense_bills,
-                "food": budget.expense_food,
-                "transport": budget.expense_transport,
-                "luxury": budget.expense_luxury,
-            },
+            "breakdown": {item.name: item.amount for item in budget.items},
             "message": budget.status_message,
         }
 

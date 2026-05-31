@@ -152,17 +152,25 @@ class ORMBudget(Base):
     __tablename__ = "budgets"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    month = Column(String(7), unique=True, nullable=False) # 'YYYY-MM'
-    income_salary = Column(Numeric(18, 2), default=0)
-    income_additional = Column(Numeric(18, 2), default=0)
-    expense_rent = Column(Numeric(18, 2), default=0)
-    expense_bills = Column(Numeric(18, 2), default=0)
-    expense_food = Column(Numeric(18, 2), default=0)
-    expense_transport = Column(Numeric(18, 2), default=0)
-    expense_luxury = Column(Numeric(18, 2), default=0)
+    month = Column(String(7), unique=True, nullable=False)  # 'YYYY-MM'
     savings_target = Column(Numeric(18, 2), default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    items = relationship("ORMBudgetItem", back_populates="budget",
+                         cascade="all, delete-orphan", lazy="select")
+
+
+class ORMBudgetItem(Base):
+    __tablename__ = "budget_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    budget_id = Column(Integer, ForeignKey("budgets.id", ondelete="CASCADE"), nullable=False)
+    item_type = Column(String(10), nullable=False)   # 'income' | 'expense'
+    name = Column(String(100), nullable=False)
+    amount = Column(Numeric(18, 2), default=0)
+
+    budget = relationship("ORMBudget", back_populates="items")
 
 class ORMFinancialGoal(Base):
     __tablename__ = "financial_goals"

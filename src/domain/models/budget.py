@@ -2,35 +2,32 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
+
+
+@dataclass
+class BudgetItem:
+    """Tek bir gelir veya gider kalemi."""
+    id: Optional[int]
+    budget_id: Optional[int]
+    item_type: str    # 'income' | 'expense'
+    name: str
+    amount: float = 0.0
 
 
 @dataclass
 class Budget:
     """
     Aylık bütçe kaydını temsil eder.
-    Gelir, gider kalemleri ve tasarruf hedefini tutar.
-    'budgets' tablosunun domain karşılığı.
+    Gelir/gider kalemleri BudgetItem listesi ile dinamik olarak tutulur.
+    'budgets' + 'budget_items' tablolarının domain karşılığı.
     """
     id: Optional[int]
     month: str                          # Format: 'YYYY-MM'
-
-    # Gelirler
-    income_salary: float = 0.0          # Maaş geliri
-    income_additional: float = 0.0      # Ek gelirler
-
-    # Giderler
-    expense_rent: float = 0.0           # Kira / Konut
-    expense_bills: float = 0.0          # Faturalar
-    expense_food: float = 0.0           # Market / Mutfak
-    expense_transport: float = 0.0      # Ulaşım
-    expense_luxury: float = 0.0         # Eğlence / Lüks
-
-    # Hedef
-    savings_target: float = 0.0         # Hedeflenen aylık tasarruf
-
+    savings_target: float = 0.0
+    items: List[BudgetItem] = field(default_factory=list)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -39,18 +36,12 @@ class Budget:
     @property
     def total_income(self) -> float:
         """Toplam gelir."""
-        return self.income_salary + self.income_additional
+        return sum(i.amount for i in self.items if i.item_type == 'income')
 
     @property
     def total_expense(self) -> float:
         """Toplam gider."""
-        return (
-            self.expense_rent
-            + self.expense_bills
-            + self.expense_food
-            + self.expense_transport
-            + self.expense_luxury
-        )
+        return sum(i.amount for i in self.items if i.item_type == 'expense')
 
     @property
     def net_savings_potential(self) -> float:
