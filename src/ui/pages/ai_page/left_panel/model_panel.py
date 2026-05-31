@@ -44,6 +44,7 @@ class AnalysisWorker(QThread):
 class ModelPanel(QWidget):
     """Sol Panel (Model Analiz Paneli) Ana Kapsayıcısı"""
     send_to_chat_requested = pyqtSignal(AnalysisResult)
+    connection_dropped = pyqtSignal()  # FastAPIAdapter aktifken analiz hatası → re-probe için
 
     def __init__(self):
         super().__init__()
@@ -54,7 +55,6 @@ class ModelPanel(QWidget):
         """Client kur; bağlantı kontrolü async yapılır (on_page_enter / AIPage Worker)."""
         base_url = os.getenv("AI_CORE_API_URL", "http://localhost:8000")
         self._client = AICoreFastAPIClient(base_url=base_url)
-        self._probe_client = AICoreFastAPIClient(base_url=base_url)
         self.adapter = MockAdapter()   # bağlantı doğrulanana kadar güvenli varsayılan
         self._api_connected = False
 
@@ -73,9 +73,8 @@ class ModelPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
-        # 1. Bağlantı durumu banner'ı (bekleme durumunda başlar; async probe sonucu günceller)
+        # 1. Bağlantı durumu banner'ı (set_connection_checking ile görünür olur)
         self.status_banner = StatusBanner()
-        self.status_banner.show_connecting()
         layout.addWidget(self.status_banner)
 
         # 2. Input
@@ -119,7 +118,9 @@ class ModelPanel(QWidget):
 
     def probe_connection(self) -> bool:
         """WORKER THREAD'de çalışır — yalnızca ağ I/O, UI'a DOKUNMAZ."""
-        return self._probe_client.health_check()
+        base_url = os.getenv("AI_CORE_API_URL", "http://localhost:8000")
+        probe = AICoreFastAPIClient(base_url=base_url)
+        return probe.health_check()
 
     def apply_connection_result(self, ok: bool) -> None:
         """MAIN THREAD (Qt sinyal üzerinden): adapter + banner günceller."""
@@ -218,6 +219,10 @@ class ModelPanel(QWidget):
     def _on_error(self, err: str):
         self._set_disclaimer(DEFAULT_INVESTMENT_DISCLAIMER)
         self.status_banner.show_error(f"Analiz hatası: {err}")
+        if self._api_connected:
+            self._api_connected = False
+            self.adapter = MockAdapter()
+            self.connection_dropped.emit()
 
     def _set_disclaimer(self, disclaimer: str | None):
         self.lbl_disclaimer.setText(disclaimer or DEFAULT_INVESTMENT_DISCLAIMER)
