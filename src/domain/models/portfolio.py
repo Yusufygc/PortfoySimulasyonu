@@ -1,9 +1,12 @@
 # src/domain/models/portfolio.py
 
 from __future__ import annotations
+import logging
 from dataclasses import dataclass, field
 from datetime import time
 from decimal import Decimal
+
+logger = logging.getLogger(__name__)
 from typing import Dict, Iterable, List, Mapping
 
 from .position import Position
@@ -44,20 +47,23 @@ class Portfolio:
         position.apply_trade(trade)
 
     @classmethod
-    def from_trades(cls, trades: Iterable[Trade]) -> "Portfolio":
+    def from_trades(cls, trades: Iterable[Trade], is_sorted: bool = False) -> "Portfolio":
         """
         Tüm trades listesinden portföyü oluşturur.
         Genelde repository'den 'tüm trade'ler' çekilip burada domain'e dökülür.
         """
         portfolio = cls()
-        for trade in sorted(
+        
+        ordered_trades = trades if is_sorted else sorted(
             trades,
             key=lambda t: (
                 t.trade_date,
                 t.trade_time if t.trade_time is not None else time.min,
                 getattr(t, "id", 0) or 0,
             ),
-        ):
+        )
+        
+        for trade in ordered_trades:
             portfolio.apply_trade(trade)
         return portfolio
 
@@ -84,8 +90,7 @@ class Portfolio:
         for stock_id, position in self.positions.items():
             current_price = price_map.get(stock_id)
             if current_price is None:
-                # Fiyatı olmayan hisseleri istersen atla, istersen hata fırlat.
-                # Şimdilik atlıyoruz.
+                logger.warning(f"Portfolio.total_market_value: Hisse ID {stock_id} için fiyat bulunamadı, hesaplamaya dahil edilmedi.")
                 continue
             total += position.market_value(current_price)
         return total
@@ -98,6 +103,7 @@ class Portfolio:
         for stock_id, position in self.positions.items():
             current_price = price_map.get(stock_id)
             if current_price is None:
+                logger.warning(f"Portfolio.total_unrealized_pl: Hisse ID {stock_id} için fiyat bulunamadı, hesaplamaya dahil edilmedi.")
                 continue
             total += position.unrealized_pl(current_price)
         return total
