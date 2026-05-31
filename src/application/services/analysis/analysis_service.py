@@ -67,8 +67,9 @@ class AnalysisService:
     def get_stock_map_for_source(self, source_code: str) -> Dict[int, str]:
         return self._source_resolver.get_stock_map_for_source(source_code)
 
-    def get_overview(self, filter_state: AnalysisFilterState) -> AnalysisOverviewDTO:
-        bundle = self._build_analysis_bundle(filter_state)
+    def get_overview(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> AnalysisOverviewDTO:
+        if bundle is None:
+            bundle = self._build_analysis_bundle(filter_state)
         ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
         position_snapshot = compute_position_snapshot(bundle["portfolio"], ticker_map)
         portfolio_series = bundle["portfolio_series"]
@@ -117,6 +118,7 @@ class AnalysisService:
         self,
         filter_state: AnalysisFilterState,
         selected_benchmarks: Optional[Sequence[str]] = None,
+        bundle: Optional[Dict[str, object]] = None,
     ) -> ComparisonViewDTO:
         benchmark_codes = list(selected_benchmarks) if selected_benchmarks is not None else filter_state.selected_benchmarks
         state = AnalysisFilterState(
@@ -127,7 +129,8 @@ class AnalysisService:
             portfolio_source=filter_state.portfolio_source,
             comparison_portfolio_sources=list(filter_state.comparison_portfolio_sources),
         )
-        bundle = self._build_analysis_bundle(state)
+        if bundle is None:
+            bundle = self._build_analysis_bundle(state)
         metrics: List[ComparisonMetric] = []
         portfolio_return = compute_return_pct(bundle["portfolio_series"])
         for benchmark in bundle["benchmarks"]:
@@ -165,8 +168,9 @@ class AnalysisService:
             warnings=bundle["warnings"],
         )
 
-    def get_allocation_risk_view(self, filter_state: AnalysisFilterState) -> AllocationRiskDTO:
-        bundle = self._build_analysis_bundle(filter_state)
+    def get_allocation_risk_view(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> AllocationRiskDTO:
+        if bundle is None:
+            bundle = self._build_analysis_bundle(filter_state)
         ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
         position_snapshot = sorted(
             compute_position_snapshot(bundle["portfolio"], ticker_map),
@@ -193,10 +197,11 @@ class AnalysisService:
         )
 
     def get_page_payload(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
+        bundle = self._build_analysis_bundle(filter_state)
         return {
-            "overview": self.get_overview(filter_state),
-            "comparison": self.get_comparison_view(filter_state, filter_state.selected_benchmarks),
-            "risk": self.get_allocation_risk_view(filter_state),
+            "overview": self.get_overview(filter_state, bundle=bundle),
+            "comparison": self.get_comparison_view(filter_state, filter_state.selected_benchmarks, bundle=bundle),
+            "risk": self.get_allocation_risk_view(filter_state, bundle=bundle),
         }
 
     def _build_analysis_bundle(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
