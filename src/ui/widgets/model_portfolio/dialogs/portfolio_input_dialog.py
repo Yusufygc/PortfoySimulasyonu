@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout
 
 
@@ -12,6 +13,7 @@ class PortfolioInputDialog(QDialog):
         self.portfolio = portfolio
         self.is_edit = portfolio is not None
         self.setWindowTitle("Portföy Düzenle" if self.is_edit else "Yeni Portföy")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.resize(400, 200)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
@@ -31,6 +33,7 @@ class PortfolioInputDialog(QDialog):
         self.spin_cash.setRange(1000, 100_000_000)
         self.spin_cash.setDecimals(2)
         self.spin_cash.setSuffix(" TL")
+        self.spin_cash.setGroupSeparatorShown(True)
         self.spin_cash.setValue(float(self.portfolio.initial_cash) if self.is_edit else 100_000)
         form.addRow("Sermaye:", self.spin_cash)
 
@@ -44,6 +47,7 @@ class PortfolioInputDialog(QDialog):
         btn_save = QPushButton("Kaydet")
         btn_save.setProperty("cssClass", "successButton")
         btn_save.clicked.connect(self.accept)
+        btn_save.setDefault(True)
         button_row.addWidget(btn_cancel)
         button_row.addWidget(btn_save)
         layout.addLayout(button_row)

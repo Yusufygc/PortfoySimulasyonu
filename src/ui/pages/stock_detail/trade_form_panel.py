@@ -71,6 +71,8 @@ class TradeFormPanel(QFrame):
         self.spin_price.setDecimals(2)
         self.spin_price.setSuffix(" ₺")
         self.spin_price.setProperty("cssClass", "tradeInputLarge")
+        self.spin_price.setReadOnly(True)
+        self.spin_price.setButtonSymbols(QDoubleSpinBox.NoButtons)
         form.addRow("Fiyat:", self.spin_price)
         
         # Tarih

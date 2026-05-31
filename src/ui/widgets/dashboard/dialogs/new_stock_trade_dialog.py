@@ -107,6 +107,7 @@ class NewStockTradeDialog(QDialog):
         self.btn_next = QPushButton("Devam Et") # Sayfa 1'de Devam, Sayfa 2'de Kaydet olacak
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setProperty("cssClass", "primaryButton")
+        self.btn_next.setDefault(True)
 
         footer_layout.addWidget(self.btn_cancel)
         footer_layout.addStretch()
@@ -244,10 +245,12 @@ class NewStockTradeDialog(QDialog):
         self.edit_price = QLineEdit()
         self.edit_price.setPlaceholderText("0.00")
         self.edit_price.setProperty("cssClass", "tradeInputNormal")
+        self.edit_price.setReadOnly(True)
         
         self.edit_amount = QLineEdit()
         self.edit_amount.setPlaceholderText("Toplam Tutar")
         self.edit_amount.setProperty("cssClass", "tradeInputNormal")
+        self.edit_amount.setReadOnly(True)
 
         lbl_lot = QLabel("Lot Adedi:")
         lbl_lot.setProperty("cssClass", "formLabel")
@@ -318,7 +321,7 @@ class NewStockTradeDialog(QDialog):
         
         # Fiyatı aktar (Eğer henüz girilmediyse)
         if self.current_price and not self.edit_price.text():
-            self.edit_price.setText(str(self.current_price))
+            self.edit_price.setText(f"{self.current_price:.2f}")
             # Lot 1 olduğu için tutarı da güncelle
             self.edit_amount.setText(f"{self.current_price:.2f}")
 

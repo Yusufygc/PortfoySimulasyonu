@@ -59,9 +59,23 @@ class StockDetailPage(BasePage):
         top_layout.setSpacing(0)
         top_layout.setContentsMargins(0, 0, 0, 10)
 
+        breadcrumb_row = QHBoxLayout()
+        breadcrumb_row.setSpacing(10)
+        
+        from src.ui.widgets.shared.controls.animated_button import AnimatedButton
+        self.btn_back = AnimatedButton(" Geri")
+        self.btn_back.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY", size=16)
+        self.btn_back.setProperty("cssClass", "secondaryButton")
+        self.btn_back.clicked.connect(self.navigate_back.emit)
+        
         self.lbl_breadcrumb = QLabel("Portföy > ...")
         self.lbl_breadcrumb.setProperty("cssClass", "breadcrumbText")
-        top_layout.addWidget(self.lbl_breadcrumb)
+        
+        breadcrumb_row.addWidget(self.btn_back)
+        breadcrumb_row.addWidget(self.lbl_breadcrumb)
+        breadcrumb_row.addStretch()
+        
+        top_layout.addLayout(breadcrumb_row)
 
         title_row = QHBoxLayout()
         title_row.setSpacing(15)

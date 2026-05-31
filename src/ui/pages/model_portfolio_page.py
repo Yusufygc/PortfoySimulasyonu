@@ -68,6 +68,11 @@ class ModelPortfolioPage(BasePage):
         header.addStretch()
         self.main_layout.addLayout(header)
 
+        lbl_desc = QLabel("Kendi portföy modellerinizi oluşturun ve performanslarını simüle edin.")
+        lbl_desc.setWordWrap(True)
+        lbl_desc.setProperty("cssClass", "pageDescription")
+        self.main_layout.addWidget(lbl_desc)
+
         content = QHBoxLayout()
         content.setSpacing(20)
         content.addWidget(self._build_left_panel())
@@ -80,6 +85,7 @@ class ModelPortfolioPage(BasePage):
         self.list_panel.new_requested.connect(self._on_new_portfolio)
         self.list_panel.edit_requested.connect(self._on_edit_portfolio)
         self.list_panel.delete_requested.connect(self._on_delete_portfolio)
+        self.list_panel.reordered.connect(self._on_portfolios_reordered)
         return self.list_panel
 
     def _build_right_panel(self) -> QFrame:
@@ -99,14 +105,15 @@ class ModelPortfolioPage(BasePage):
         header.addWidget(self.lbl_last_update)
 
         self.btn_refresh = AnimatedButton(" Fiyat Güncelle")
-        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
+        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE")
+        self.btn_refresh.setProperty("cssClass", "updatePricesBtn")
         self.btn_refresh.setEnabled(False)
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
         header.addWidget(self.btn_refresh)
 
         self.btn_report = AnimatedButton(" Rapor Al")
         self.btn_report.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
-        self.btn_report.setProperty("cssClass", "secondaryButton")
+        self.btn_report.setProperty("cssClass", "reportButton")
         self.btn_report.setEnabled(False)
         self._report_menu = QMenu(self.btn_report)
         self._report_today_action = QAction("Bugün", self)
@@ -210,9 +217,13 @@ class ModelPortfolioPage(BasePage):
         self.card_cash.set_value(f"TL {summary['remaining_cash']:,.2f}")
         self.card_value.set_value(f"TL {summary['total_value']:,.2f}")
 
-        profit_loss = summary["profit_loss"]
-        self.card_pl.set_value(f"TL {profit_loss:+,.2f}")
-        self.card_pl.set_value_state("positive" if profit_loss >= 0 else "negative")
+        profit_loss = round(summary["profit_loss"], 2)
+        if profit_loss == 0:
+            self.card_pl.set_value("TL 0.00")
+            self.card_pl.set_value_state("neutral")
+        else:
+            self.card_pl.set_value(f"TL {profit_loss:+,.2f}")
+            self.card_pl.set_value_state("positive" if profit_loss > 0 else "negative")
 
         positions = self.model_portfolio_service.get_positions_with_details(
             self.current_portfolio_id,
@@ -323,6 +334,13 @@ class ModelPortfolioPage(BasePage):
             Toast.success(self, "Portföy silindi.")
         except Exception as exc:
             Toast.error(self, f"Portföy silinemedi: {exc}")
+
+    def _on_portfolios_reordered(self, ordered_ids: list[int]) -> None:
+        try:
+            self.model_portfolio_service.reorder_portfolios(ordered_ids)
+            # No need to reload or toast, it's just updating DB order
+        except Exception as exc:
+            Toast.error(self, f"Sıralama güncellenemedi: {exc}")
 
     def _on_trade(self, side: str):
         if self.current_portfolio_id is None:

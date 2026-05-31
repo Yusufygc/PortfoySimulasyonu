@@ -11,8 +11,9 @@ QLabel[cssClass="pageTitle"] {
 }
 
 QLabel[cssClass="pageDescription"] {
-    color: @COLOR_TEXT_SECONDARY;
-    font-size: @FONT_BASE;
+    color: @COLOR_ACCENT;
+    font-size: @FONT_LG;
+    font-weight: bold;
     margin-bottom: @SPACE_XS;
 }
 

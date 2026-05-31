@@ -6,13 +6,15 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QPushButton
 )
+from PyQt5.QtCore import Qt
 
 class ContributionDialog(QDialog):
     """Hedefe katkı ekleme diyaloğu."""
 
     def __init__(self, goal_name: str, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"💵 Katkı Ekle — {goal_name}")
+        self.setWindowTitle(f"Katkı Ekle — {goal_name}")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setFixedSize(350, 180)
         self.setModal(True)
         self._init_ui()
@@ -32,6 +34,7 @@ class ContributionDialog(QDialog):
         self.spin_amount.setRange(0.01, 100_000_000)
         self.spin_amount.setDecimals(2)
         self.spin_amount.setSuffix(" TL")
+        self.spin_amount.setGroupSeparatorShown(True)
         self.spin_amount.setValue(1000)
         self.spin_amount.setProperty("cssClass", "tradeInputNormal")
         layout.addWidget(self.spin_amount)
@@ -46,6 +49,7 @@ class ContributionDialog(QDialog):
         btn_save = QPushButton("Ekle")
         btn_save.setProperty("cssClass", "primaryButton")
         btn_save.clicked.connect(self.accept)
+        btn_save.setDefault(True)
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(btn_save)
         layout.addLayout(btn_layout)

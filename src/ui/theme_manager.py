@@ -27,51 +27,7 @@ THEME_REGISTRY: dict[str, dict] = {
 _SETTINGS_KEY = "ui/theme_id"
 _QSETTINGS_APP = "PortfoySimulasyonu"
 
-STYLE_MANIFEST: tuple[str, ...] = (
-    # 1. Tema — global yüzey, renk, sidebar, tooltip, tree
-    "themes/{theme_name}.qss",
-    # 2. Primitives — widget düzeyinde temel stiller
-    "primitives/scrollbars.qss",
-    "primitives/buttons.qss",
-    "primitives/menu.qss",
-    "primitives/forms.qss",
-    "primitives/textedit.qss",
-    "primitives/tables.qss",
-    "primitives/tabs.qss",
-    "primitives/labels.qss",
-    "primitives/groupboxes.qss",
-    "primitives/checks.qss",
-    "primitives/slider.qss",
-    "primitives/splitter.qss",
-    "primitives/progressbar.qss",
-    # 3. Shared — bileşen kalıpları
-    "shared/navigation.qss",
-    "shared/typography.qss",
-    "shared/buttons.qss",
-    "shared/forms.qss",
-    "shared/containers.qss",
-    "shared/dialogs.qss",
-    "shared/cards.qss",
-    "shared/tables.qss",
-    "shared/lists.qss",
-    "shared/feedback.qss",
-    "shared/trade_controls.qss",
-    # 4. Features — sayfa bazlı geçersiz kılmalar
-    "features/dashboard.qss",
-    "features/analysis.qss",
-    "features/ai.qss",
-    "features/ai/chat.qss",
-    "features/ai/progress.qss",
-    "features/ai/xai.qss",
-    "features/optimization.qss",
-    "features/planning.qss",
-    "features/risk_profile/survey.qss",
-    "features/risk_profile/profile.qss",
-    "features/stock_detail.qss",
-    "features/model_portfolio.qss",
-    "features/watchlist.qss",
-    "features/settings.qss",
-)
+
 
 # Eski tema isimleri → yeni tema ID eşlemesi (geriye dönük uyum)
 _LEGACY_NAME_MAP: dict[str, str] = {
@@ -221,10 +177,31 @@ class ThemeManager:
                 cls._app.setStyleSheet(resolved_qss)
                 logger.info(
                     f"[ThemeManager] Tema uygulandı: '{theme_id}' "
-                    f"({len(tokens)} token, {len(STYLE_MANIFEST)} stil modülü)"
+                    f"({len(tokens)} token, dinamik QSS yüklendi)"
                 )
             except Exception as e:
                 logger.error(f"[ThemeManager] Stil uygulama hatası: {e}")
+
+    @classmethod
+    def _get_style_manifest(cls, qss_name: str) -> list[str]:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        styles_dir = os.path.join(base_dir, "styles")
+        
+        manifest = [f"themes/{qss_name}.qss"]
+        import glob
+        
+        def add_from_dir(directory: str):
+            pattern = os.path.join(styles_dir, directory, "**", "*.qss")
+            files = glob.glob(pattern, recursive=True)
+            for f in sorted(files):
+                rel_path = os.path.relpath(f, styles_dir).replace("\\", "/")
+                manifest.append(rel_path)
+                
+        add_from_dir("primitives")
+        add_from_dir("shared")
+        add_from_dir("features")
+        
+        return manifest
 
     @classmethod
     def _build_qss(cls, qss_name: str, tokens: dict[str, str]) -> str:
@@ -232,8 +209,8 @@ class ThemeManager:
         styles_dir = os.path.join(base_dir, "styles")
 
         combined_qss = ""
-        for entry in STYLE_MANIFEST:
-            file_name = entry.format(theme_name=qss_name)
+        manifest = cls._get_style_manifest(qss_name)
+        for file_name in manifest:
             qss_path = os.path.join(styles_dir, file_name)
             if os.path.exists(qss_path):
                 try:
@@ -267,7 +244,8 @@ class ThemeManager:
             if token_name.startswith("ICON_"):
                 icon_name = token_name[5:].lower().replace("_", "-")
                 from src.ui.core.icon_manager import IconManager
-                return IconManager.get_icon_path(icon_name, color="@COLOR_TEXT_PRIMARY")
+                icon_color = tokens.get("COLOR_TEXT_PRIMARY", "#ffffff")
+                return IconManager.get_icon_path(icon_name, color=icon_color)
             value = tokens.get(token_name)
             if value is None:
                 logger.warning(f"[ThemeManager] Bilinmeyen token: @{token_name}")

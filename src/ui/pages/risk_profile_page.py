@@ -20,8 +20,10 @@ from PyQt5.QtWidgets import (
 )
 
 from .base_page import BasePage
+from .risk_profile_presenter import RiskProfilePresenter
 from src.application.services.planning.risk_profile_service import DIMENSION_LABELS
 from src.domain.models.risk_profile import RiskProfile
+from src.ui.formatters import RiskFormatter
 from src.ui.widgets.shared import Toast
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
@@ -42,8 +44,8 @@ class RiskProfilePage(BasePage):
         super().__init__(parent)
         self.container = container
         self.page_title = "Risk Profili"
-        self._service = container.risk_profile_service
-        self.questionnaire_sections = list(self._service.get_questionnaire())
+        self.presenter = RiskProfilePresenter(self, container.risk_profile_service)
+        self.questionnaire_sections = list(container.risk_profile_service.get_questionnaire())
         self.questionnaire_items = [
             (section.title, question)
             for section in self.questionnaire_sections
@@ -212,7 +214,7 @@ class RiskProfilePage(BasePage):
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setMinimumHeight(42)
         self.btn_next.setMinimumWidth(150)
-        self.btn_next.setProperty("cssClass", "purpleButton")
+        self.btn_next.setProperty("cssClass", "primaryButton")
         self.btn_next.clicked.connect(self._on_next_section)
         btn_layout.addWidget(self.btn_next)
 
@@ -342,30 +344,29 @@ class RiskProfilePage(BasePage):
         answers = self._collect_answers()
         if answers is None:
             return
+        self.presenter.calculate_and_save(answers)
 
-        try:
-            profile = self._service.calculate_and_save_profile(answers=answers)
-            self._display_profile(profile)
-            QMessageBox.information(
-                self,
-                "Profil Hesaplandi",
-                f"Risk Skorunuz: {profile.risk_score}/100\n"
-                f"Profiliniz: {profile.emoji} {profile.display_name}\n\n"
-                f"{profile.description}",
-            )
-        except Exception as exc:
-            Toast.error(self, self._format_calculation_error(exc))
+    def show_calculation_success(self, profile: RiskProfile):
+        display_name = RiskFormatter.get_display_name(profile.risk_label)
+        QMessageBox.information(
+            self,
+            "Profil Hesaplandi",
+            f"Risk Skorunuz: {profile.risk_score}/100\n"
+            f"Profiliniz: {display_name}\n\n"
+            f"{profile.description}",
+        )
 
-    def _display_profile(self, profile: RiskProfile):
+    def display_profile(self, profile: RiskProfile):
         self.profile_card.setVisible(True)
 
-        color_state = self._color_to_state(profile.color)
+        color_state = RiskFormatter.get_state(profile.risk_label)
         self.profile_card.setProperty("cssState", color_state)
         self.profile_card.style().unpolish(self.profile_card)
         self.profile_card.style().polish(self.profile_card)
 
         self.lbl_score.setText(f"Puan: {profile.risk_score} / 100")
-        self.lbl_label.setText(f"{profile.emoji} {profile.display_name}")
+        display_name = RiskFormatter.get_display_name(profile.risk_label)
+        self.lbl_label.setText(display_name)
         self.lbl_label.setProperty("cssState", color_state)
         self.lbl_label.style().unpolish(self.lbl_label)
         self.lbl_label.style().polish(self.lbl_label)
@@ -394,17 +395,6 @@ class RiskProfilePage(BasePage):
         self.notes_block.setVisible(bool(visible_notes))
         self._select_answers(profile.answers)
 
-    @staticmethod
-    def _color_to_state(color: str) -> str:
-        mapping = {
-            "#10b981": "conservative",
-            "#3b82f6": "moderate",
-            "#f59e0b": "balanced",
-            "#8b5cf6": "growth",
-            "#ef4444": "aggressive",
-        }
-        return mapping.get(color.lower(), "moderate")
-
     def _select_answers(self, answers: Dict[str, str]):
         for question_id, value in answers.items():
             group = self.answer_groups.get(question_id)
@@ -412,15 +402,11 @@ class RiskProfilePage(BasePage):
                 continue
             self._select_radio(group, value)
 
+    def hide_profile(self):
+        self.profile_card.setVisible(False)
+
     def on_page_enter(self):
-        try:
-            profile = self._service.get_current_profile()
-            if profile:
-                self._display_profile(profile)
-            else:
-                self.profile_card.setVisible(False)
-        except Exception:
-            self.profile_card.setVisible(False)
+        self.presenter.load_initial_profile()
 
     def refresh_data(self):
         self.on_page_enter()
@@ -432,12 +418,4 @@ class RiskProfilePage(BasePage):
                 btn.setChecked(True)
                 return
 
-    @staticmethod
-    def _format_calculation_error(exc: Exception) -> str:
-        message = str(exc)
-        if "Unknown column" in message and "risk_profiles" in message:
-            return (
-                "Risk profili kaydedilemedi: veritabani semasi guncel degil. "
-                "scripts/alter_risk_profile_professional.sql dosyasini uygulayin."
-            )
-        return "Profil hesaplanamadi. Lutfen yanitlari kontrol edip tekrar deneyin."
+

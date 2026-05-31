@@ -48,22 +48,34 @@ class PlanningPage(BasePage):
         header.addStretch()
         self.main_layout.addLayout(header)
 
+        lbl_desc = QLabel("Finansal durumunuzu analiz edin, bütçenizi yönetin ve hedeflerinizi takip edin.")
+        lbl_desc.setWordWrap(True)
+        lbl_desc.setProperty("cssClass", "pageDescription")
+        self.main_layout.addWidget(lbl_desc)
+
         self.tab_widget = QTabWidget()
         self.tab_widget.setProperty("cssClass", "mainTabWidget")
 
         # Sekme 1: Bütçe
         budget_tab = QWidget()
         self.tab_widget.addTab(budget_tab, "Bütçe Yönetimi")
-        self.tab_widget.setTabIcon(0, IconManager.get_icon("list", color="@COLOR_TEXT_SECONDARY"))
         self._build_budget_tab(budget_tab)
 
         # Sekme 2: Hedefler
         goals_tab = QWidget()
         self.tab_widget.addTab(goals_tab, "Hedef Takibi")
-        self.tab_widget.setTabIcon(1, IconManager.get_icon("target", color="@COLOR_TEXT_SECONDARY"))
         self._build_goals_tab(goals_tab)
 
+        self.tab_widget.currentChanged.connect(self._update_tab_icons)
+        self._update_tab_icons()
         self.main_layout.addWidget(self.tab_widget)
+
+    def _update_tab_icons(self, index: int = -1) -> None:
+        idx = self.tab_widget.currentIndex() if index == -1 else index
+        c0 = "@COLOR_TEXT_WHITE" if idx == 0 else "@COLOR_TEXT_SECONDARY"
+        c1 = "@COLOR_TEXT_WHITE" if idx == 1 else "@COLOR_TEXT_SECONDARY"
+        self.tab_widget.setTabIcon(0, IconManager.get_icon("list", color=c0))
+        self.tab_widget.setTabIcon(1, IconManager.get_icon("target", color=c1))
 
     def _build_budget_tab(self, tab: QWidget) -> None:
         from PyQt5.QtWidgets import QVBoxLayout
@@ -255,8 +267,7 @@ class PlanningPage(BasePage):
     def changeEvent(self, event):
         from PyQt5.QtCore import QEvent
         if event.type() == QEvent.StyleChange:
-            self.tab_widget.setTabIcon(0, IconManager.get_icon("list", color="@COLOR_TEXT_SECONDARY"))
-            self.tab_widget.setTabIcon(1, IconManager.get_icon("target", color="@COLOR_TEXT_SECONDARY"))
+            self._update_tab_icons()
         super().changeEvent(event)
 
     def refresh_data(self):

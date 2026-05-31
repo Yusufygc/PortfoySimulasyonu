@@ -79,16 +79,10 @@ class DashboardPresenter:
             return
 
         price_map = getattr(self._page.portfolio_model, "_price_map", {})
-        total_cost = Decimal("0")
-        total_value = Decimal("0")
-        for position in self._page.portfolio_model._positions:
-            if position.total_quantity <= 0:
-                continue
-            total_cost += position.total_cost
-            current_price = price_map.get(position.stock_id, Decimal("0"))
-            total_value += position.market_value(current_price)
-
-        profit_loss = total_value - total_cost
+        portfolio = self._page.portfolio_service.get_current_portfolio()
+        total_cost = portfolio.total_cost
+        total_value = portfolio.total_market_value(price_map)
+        profit_loss = portfolio.total_unrealized_pl(price_map)
         self._page.summary_cards.update_base_metrics(total_value, total_cost, self._page._capital, profit_loss)
         self._page.portfolio_table_widget.update_summary_row(total_value, profit_loss)
 

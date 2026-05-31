@@ -31,7 +31,7 @@ QPushButton[cssClass="navMenuBtn"] {
     text-align: left;
     padding: @SPACE_LG @SPACE_XL;
     border-radius: @RADIUS_LG;
-    font-size: @FONT_MD;
+    font-size: @FONT_LG;
     font-weight: 500;
 }
 QPushButton[cssClass="navMenuBtn"]:hover {

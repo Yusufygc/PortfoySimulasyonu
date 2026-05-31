@@ -42,28 +42,36 @@ class SettingsPage(BasePage):
         self.main_layout.addWidget(description)
 
         self.tabs = QTabWidget()
-        self.tabs.setProperty("cssClass", "mainTabs")
+        self.tabs.setProperty("cssClass", "mainTabWidget")
 
         self.home_tab = ResetPanel(self.reset_service, self)
         self.appearance_tab = AppearancePanel(self)
         self.price_data_tab = PriceDataPanel(self.container, self.price_data_health_service, self)
 
-        self.tabs.addTab(
-            self.home_tab,
-            IconManager.get_icon("home", color="@COLOR_TEXT_SECONDARY", size=QSize(18, 18)),
-            "Ana Sayfa",
-        )
-        self.tabs.addTab(
-            self.appearance_tab,
-            IconManager.get_icon("layers", color="@COLOR_TEXT_SECONDARY", size=QSize(18, 18)),
-            "Görünüm",
-        )
-        self.tabs.addTab(
-            self.price_data_tab,
-            IconManager.get_icon("bar-chart-2", color="@COLOR_TEXT_SECONDARY", size=QSize(18, 18)),
-            "Fiyat Verisi Yönetimi",
-        )
+        self.tabs.addTab(self.home_tab, "Ana Sayfa")
+        self.tabs.addTab(self.appearance_tab, "Görünüm")
+        self.tabs.addTab(self.price_data_tab, "Fiyat Verisi Yönetimi")
+        
+        self.tabs.currentChanged.connect(self._update_tab_icons)
+        self._update_tab_icons()
         self.main_layout.addWidget(self.tabs, 1)
+
+    def _update_tab_icons(self, index: int = -1) -> None:
+        idx = self.tabs.currentIndex() if index == -1 else index
+        c0 = "@COLOR_TEXT_WHITE" if idx == 0 else "@COLOR_TEXT_SECONDARY"
+        c1 = "@COLOR_TEXT_WHITE" if idx == 1 else "@COLOR_TEXT_SECONDARY"
+        c2 = "@COLOR_TEXT_WHITE" if idx == 2 else "@COLOR_TEXT_SECONDARY"
+        from PyQt5.QtCore import QSize
+        from src.ui.core.icon_manager import IconManager
+        self.tabs.setTabIcon(0, IconManager.get_icon("home", color=c0, size=QSize(18, 18)))
+        self.tabs.setTabIcon(1, IconManager.get_icon("layers", color=c1, size=QSize(18, 18)))
+        self.tabs.setTabIcon(2, IconManager.get_icon("bar-chart-2", color=c2, size=QSize(18, 18)))
+
+    def changeEvent(self, event):
+        from PyQt5.QtCore import QEvent
+        if event.type() == QEvent.StyleChange:
+            self._update_tab_icons()
+        super().changeEvent(event)
 
     def _bind_price_data_compatibility_aliases(self) -> None:
         for name in (

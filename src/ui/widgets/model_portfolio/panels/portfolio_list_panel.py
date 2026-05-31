@@ -14,6 +14,7 @@ class PortfolioListPanel(QFrame):
     new_requested = pyqtSignal()
     edit_requested = pyqtSignal()
     delete_requested = pyqtSignal()
+    reordered = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -49,7 +50,9 @@ class PortfolioListPanel(QFrame):
         self._list = QListWidget()
         self._list.setProperty("cssClass", "modelPortfolioList")
         self._list.setAlternatingRowColors(True)
+        self._list.setDragDropMode(QListWidget.InternalMove)
         self._list.itemClicked.connect(self._on_item_clicked)
+        self._list.model().rowsMoved.connect(self._on_rows_moved)
         layout.addWidget(self._list)
 
     def refresh(self, portfolios: list, trade_count_func=None) -> None:
@@ -59,10 +62,10 @@ class PortfolioListPanel(QFrame):
             label = f"{portfolio.name} ({count} işlem)" if count != "" else portfolio.name
             item = QListWidgetItem()
             item.setData(Qt.UserRole, portfolio)
-            item.setSizeHint(QSize(0, 36))
+            item.setSizeHint(QSize(0, 44))
             self._list.addItem(item)
 
-            row = ActionListItem(label)
+            row = ActionListItem(label, draggable=True)
             row.selected.connect(lambda portfolio=portfolio, item=item: self._select_item(item, portfolio))
             row.edit_requested.connect(
                 lambda portfolio=portfolio, item=item: self._emit_item_action(item, portfolio, self.edit_requested)
@@ -100,3 +103,11 @@ class PortfolioListPanel(QFrame):
         self._list.setCurrentItem(item)
         self.portfolio_selected.emit(portfolio)
         signal.emit()
+
+    def _on_rows_moved(self, parent, start, end, destination, row):
+        ordered_ids = []
+        for i in range(self._list.count()):
+            portfolio = self._list.item(i).data(Qt.UserRole)
+            if portfolio:
+                ordered_ids.append(portfolio.id)
+        self.reordered.emit(ordered_ids)

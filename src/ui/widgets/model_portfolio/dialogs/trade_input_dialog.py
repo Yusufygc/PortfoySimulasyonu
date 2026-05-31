@@ -94,6 +94,7 @@ class TradeInputDialog(QDialog):
         btn_action.setMinimumHeight(40)
         btn_action.setProperty("cssClass", "successButton" if self.side == "BUY" else "dangerButton")
         btn_action.clicked.connect(self.accept)
+        btn_action.setDefault(True)
 
         button_row.addWidget(btn_cancel)
         button_row.addWidget(btn_action)

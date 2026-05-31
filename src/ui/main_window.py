@@ -108,12 +108,6 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.addStretch()
         self._add_separator()
 
-        self.btn_back = AnimatedButton(" Geri")
-        self.btn_back.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY")
-        self.btn_back.clicked.connect(self._on_back)
-        self.btn_back.setEnabled(False)
-        self.btn_back.setProperty("cssClass", "navBackBtn")
-        self.sidebar_layout.addWidget(self.btn_back)
 
         self.stacked_widget = QStackedWidget()
         self.pages = {}
@@ -150,6 +144,9 @@ class MainWindow(QMainWindow):
             Toast.error(self, "Sayfa yüklenemedi. Uygulama durumu kontrol edin.")
             return
 
+        if hasattr(page, "navigate_back"):
+            page.navigate_back.connect(self._on_back)
+
         placeholder = self.stacked_widget.widget(page_index)
         self.stacked_widget.removeWidget(placeholder)
         self.stacked_widget.insertWidget(page_index, page)
@@ -181,7 +178,6 @@ class MainWindow(QMainWindow):
         if hasattr(new_page, "on_page_enter"):
             new_page.on_page_enter()
         self._update_nav_buttons(page_index)
-        self.btn_back.setEnabled(len(self.navigation_history) > 0)
 
     def show_stock_detail(self, ticker: str, stock_id: Optional[int] = None, context: Optional[dict] = None):
         if self.PAGE_STOCK_DETAIL not in self.pages:
@@ -213,15 +209,23 @@ class MainWindow(QMainWindow):
             self._activate_page(previous_page_idx)
 
     def _update_nav_buttons(self, active_page: int):
-        self.btn_dashboard.setChecked(active_page == self.PAGE_DASHBOARD)
-        self.btn_watchlist.setChecked(active_page == self.PAGE_WATCHLIST)
-        self.btn_model_portfolio.setChecked(active_page == self.PAGE_MODEL_PORTFOLIO)
-        self.btn_analysis.setChecked(active_page == self.PAGE_ANALYSIS)
-        self.btn_optimization.setChecked(active_page == self.PAGE_OPTIMIZATION)
-        self.btn_planning.setChecked(active_page == self.PAGE_PLANNING)
-        self.btn_risk_profile.setChecked(active_page == self.PAGE_RISK_PROFILE)
-        self.btn_ai_page.setChecked(active_page == self.PAGE_AI_PAGE)
-        self.btn_settings.setChecked(active_page == self.PAGE_SETTINGS)
+        nav_buttons = {
+            self.PAGE_DASHBOARD: (self.btn_dashboard, "layout-dashboard"),
+            self.PAGE_WATCHLIST: (self.btn_watchlist, "list"),
+            self.PAGE_MODEL_PORTFOLIO: (self.btn_model_portfolio, "wallet"),
+            self.PAGE_ANALYSIS: (self.btn_analysis, "trending-up"),
+            self.PAGE_OPTIMIZATION: (self.btn_optimization, "zap"),
+            self.PAGE_PLANNING: (self.btn_planning, "save"),
+            self.PAGE_RISK_PROFILE: (self.btn_risk_profile, "shield-check"),
+            self.PAGE_AI_PAGE: (self.btn_ai_page, "bot"),
+            self.PAGE_SETTINGS: (self.btn_settings, "save"),
+        }
+
+        for page_idx, (btn, icon_name) in nav_buttons.items():
+            is_active = (page_idx == active_page)
+            btn.setChecked(is_active)
+            color = "@COLOR_TEXT_WHITE" if is_active else "@COLOR_TEXT_SECONDARY"
+            btn.setIconName(icon_name, color=color)
 
     def _start_auto_price_backfill_once(self) -> None:
         service = getattr(self.container, "price_data_health_service", None)

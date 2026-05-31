@@ -70,23 +70,47 @@ QDateEdit[cssClass="tradeInputNormal"] {
     min-height: 24px;
 }
 QDateEdit[cssClass="tradeInputNormal"]::up-button,
-QDateEdit[cssClass="tradeInputNormal"]::down-button {
+QDateEdit[cssClass="tradeInputNormal"]::down-button,
+QSpinBox[cssClass="tradeInputNormal"]::up-button,
+QSpinBox[cssClass="tradeInputNormal"]::down-button,
+QDoubleSpinBox[cssClass="tradeInputNormal"]::up-button,
+QDoubleSpinBox[cssClass="tradeInputNormal"]::down-button {
     width: 16px;
     border: none;
     background: transparent;
 }
-QDateEdit[cssClass="tradeInputNormal"]::up-button {
+QDateEdit[cssClass="tradeInputNormal"]::up-button,
+QSpinBox[cssClass="tradeInputNormal"]::up-button,
+QDoubleSpinBox[cssClass="tradeInputNormal"]::up-button {
     subcontrol-origin: border;
     subcontrol-position: top right;
     margin: 5px 6px 0px 0px;
 }
-QDateEdit[cssClass="tradeInputNormal"]::down-button {
+QDateEdit[cssClass="tradeInputNormal"]::down-button,
+QSpinBox[cssClass="tradeInputNormal"]::down-button,
+QDoubleSpinBox[cssClass="tradeInputNormal"]::down-button {
     subcontrol-origin: border;
     subcontrol-position: bottom right;
     margin: 0px 6px 5px 0px;
 }
-QDateEdit[cssClass="tradeInputNormal"]::up-arrow { image: url(@ICON_CHEVRON_UP); }
-QDateEdit[cssClass="tradeInputNormal"]::down-arrow { image: url(@ICON_CHEVRON_DOWN); }
+QDateEdit[cssClass="tradeInputNormal"]::up-arrow,
+QSpinBox[cssClass="tradeInputNormal"]::up-arrow,
+QDoubleSpinBox[cssClass="tradeInputNormal"]::up-arrow { image: url(@ICON_CHEVRON_UP); }
+QDateEdit[cssClass="tradeInputNormal"]::down-arrow,
+QSpinBox[cssClass="tradeInputNormal"]::down-arrow,
+QDoubleSpinBox[cssClass="tradeInputNormal"]::down-arrow { image: url(@ICON_CHEVRON_DOWN); }
+
+QComboBox[cssClass="tradeInputNormal"]::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 24px;
+    border-left: none;
+}
+QComboBox[cssClass="tradeInputNormal"]::down-arrow {
+    image: url(@ICON_CHEVRON_DOWN);
+    width: 16px;
+    height: 16px;
+}
 QLineEdit[cssClass="tradeInputNormal"]:focus,
 QSpinBox[cssClass="tradeInputNormal"]:focus,
 QDoubleSpinBox[cssClass="tradeInputNormal"]:focus,
@@ -98,6 +122,7 @@ QPushButton[cssClass="tradeModeBtnLeft"] {
     border: 1px solid @COLOR_BORDER; font-weight: bold; font-size: @FONT_MD;
     color: @COLOR_TEXT_MUTED; background-color: @COLOR_BG_BASE;
     border-top-left-radius: @RADIUS_LG; border-bottom-left-radius: @RADIUS_LG;
+    padding: 10px 5px;
 }
 QPushButton[cssClass="tradeModeBtnLeft"]:checked {
     background-color: rgba(16, 185, 129, 0.2);
@@ -108,6 +133,7 @@ QPushButton[cssClass="tradeModeBtnRight"] {
     border: 1px solid @COLOR_BORDER; font-weight: bold; font-size: @FONT_MD;
     color: @COLOR_TEXT_MUTED; background-color: @COLOR_BG_BASE;
     border-top-right-radius: @RADIUS_LG; border-bottom-right-radius: @RADIUS_LG;
+    padding: 10px 5px;
 }
 QPushButton[cssClass="tradeModeBtnRight"]:checked {
     background-color: rgba(239, 68, 68, 0.2);
@@ -130,14 +156,14 @@ QPushButton[cssClass="tradeConfirmSellBtn"] {
 QPushButton[cssClass="tradeConfirmSellBtn"]:hover { background-color: @COLOR_DANGER_HOVER; }
 
 QRadioButton[cssClass="tradeRadioBuy"] {
-    font-weight: bold; color: @COLOR_TEXT_WHITE; font-size: @FONT_MD;
+    font-weight: bold; color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD;
 }
 QRadioButton[cssClass="tradeRadioBuy"]::indicator:checked {
     border: 2px solid @COLOR_SUCCESS_BRIGHT; border-radius: @RADIUS_MD; background-color: @COLOR_SUCCESS_BRIGHT;
 }
 
 QRadioButton[cssClass="tradeRadioSell"] {
-    font-weight: bold; color: @COLOR_TEXT_WHITE; font-size: @FONT_MD;
+    font-weight: bold; color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD;
 }
 QRadioButton[cssClass="tradeRadioSell"]::indicator:checked {
     border: 2px solid @COLOR_DANGER; border-radius: @RADIUS_MD; background-color: @COLOR_DANGER;
@@ -153,7 +179,7 @@ QDialog[cssClass="tradeDialog"] QPushButton[cssClass="linkButton"]:hover {
 
 QLineEdit[cssClass="tradeInputBold"] {
     background-color: @COLOR_BG_SURFACE; border: 1px solid @COLOR_BORDER;
-    border-radius: @RADIUS_MD; padding: @SPACE_LG; color: @COLOR_TEXT_WHITE;
+    border-radius: @RADIUS_MD; padding: @SPACE_LG; color: @COLOR_TEXT_PRIMARY;
     font-size: @FONT_MD; font-weight: bold; text-transform: uppercase;
 }
 QLineEdit[cssClass="tradeInputBold"]:focus { border: 1px solid @COLOR_PRIMARY; }

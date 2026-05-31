@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QPushButton,
 )
+from PyQt5.QtCore import Qt
 
 class CapitalDialog(QDialog):
     """Sermaye ekleme/çekme diyaloğu."""
@@ -20,6 +21,7 @@ class CapitalDialog(QDialog):
         self.current_capital = current_capital
         
         self.setWindowTitle("Sermaye Yönetimi")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.resize(350, 200)
         self.setModal(True)
         self.setProperty("cssClass", "dialogContainer")
@@ -49,6 +51,7 @@ class CapitalDialog(QDialog):
         self.spin_amount.setRange(0.01, 100000000)
         self.spin_amount.setValue(10000)
         self.spin_amount.setDecimals(2)
+        self.spin_amount.setGroupSeparatorShown(True)
         self.spin_amount.setSuffix(" TL")
         self.spin_amount.setProperty("cssClass", "tradeInputNormal")
         form.addRow("Tutar:", self.spin_amount)
@@ -66,6 +69,7 @@ class CapitalDialog(QDialog):
         btn_confirm = QPushButton("Onayla")
         btn_confirm.clicked.connect(self.accept)
         btn_confirm.setProperty("cssClass", "tradeConfirmBuyBtn")
+        btn_confirm.setDefault(True)
         
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(btn_confirm)

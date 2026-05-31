@@ -74,7 +74,7 @@ def test_risk_profile_page_collects_answers_and_displays_result(qapp):
         suitability_notes=["Bu sonuc yatirim tavsiyesi degildir."],
     )
 
-    page._display_profile(profile)
+    page.display_profile(profile)
 
     assert not page.profile_card.isHidden()
     assert "63" in page.lbl_score.text()

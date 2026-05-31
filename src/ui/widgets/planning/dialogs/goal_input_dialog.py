@@ -10,14 +10,15 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QPushButton
 )
-from PyQt5.QtCore import QDate
+from PyQt5.QtCore import QDate, Qt
 
 class GoalInputDialog(QDialog):
     """Yeni hedef ekleme diyaloğu."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("🎯 Yeni Hedef")
+        self.setWindowTitle("Yeni Hedef")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setFixedSize(420, 300)
         self.setModal(True)
         self._init_ui()
@@ -43,6 +44,7 @@ class GoalInputDialog(QDialog):
         self.spin_amount.setRange(1, 100_000_000)
         self.spin_amount.setDecimals(2)
         self.spin_amount.setSuffix(" TL")
+        self.spin_amount.setGroupSeparatorShown(True)
         self.spin_amount.setValue(50000)
         self.spin_amount.setProperty("cssClass", "tradeInputNormal")
         lbl_amount = QLabel("Hedef Tutar:")
@@ -58,7 +60,7 @@ class GoalInputDialog(QDialog):
         form.addRow(lbl_date, self.date_deadline)
 
         self.combo_priority = QComboBox()
-        self.combo_priority.addItems(["LOW", "MEDIUM", "HIGH"])
+        self.combo_priority.addItems(["Düşük", "Orta", "Yüksek"])
         self.combo_priority.setCurrentIndex(1)
         self.combo_priority.setProperty("cssClass", "tradeInputNormal")
         lbl_prio = QLabel("Öncelik:")
@@ -76,6 +78,7 @@ class GoalInputDialog(QDialog):
         btn_save = QPushButton("Ekle")
         btn_save.setProperty("cssClass", "tradeConfirmBuyBtn")
         btn_save.clicked.connect(self.accept)
+        btn_save.setDefault(True)
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(btn_save)
         layout.addLayout(btn_layout)
@@ -84,9 +87,14 @@ class GoalInputDialog(QDialog):
         name = self.txt_name.text().strip()
         if not name:
             return None
+        priority_map = {
+            "Düşük": "LOW",
+            "Orta": "MEDIUM",
+            "Yüksek": "HIGH"
+        }
         return {
             "name": name,
             "target_amount": self.spin_amount.value(),
             "deadline": self.date_deadline.date().toPyDate(),
-            "priority": self.combo_priority.currentText(),
+            "priority": priority_map.get(self.combo_priority.currentText(), "MEDIUM"),
         }

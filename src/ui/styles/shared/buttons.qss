@@ -113,3 +113,27 @@ QPushButton[cssClass="outlineDangerBtn"] {
 QPushButton[cssClass="outlineDangerBtn"]:hover {
     background-color: @COLOR_DANGER; color: @COLOR_TEXT_WHITE;
 }
+
+QPushButton[cssClass="updatePricesBtn"] {
+    background-color: #90d5ff; color: #ffffff; border: none;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 16px; font-size: @FONT_MD;
+}
+QPushButton[cssClass="updatePricesBtn"]:hover {
+    background-color: #79c5f8;
+}
+
+QPushButton[cssClass="capitalButton"] {
+    background-color: @CARD_CAPITAL_ACCENT; color: @COLOR_TEXT_WHITE; border: none;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 16px; font-size: @FONT_MD;
+}
+QPushButton[cssClass="capitalButton"]:hover {
+    background-color: #059669; /* Darker emerald */
+}
+
+QPushButton[cssClass="reportButton"] {
+    background-color: @TABLE_ALT_BG; color: @COLOR_TEXT_PRIMARY; border: 1px solid @TABLE_BORDER;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 16px; font-size: @FONT_MD;
+}
+QPushButton[cssClass="reportButton"]:hover {
+    background-color: @BUTTON_SECONDARY_BG_HOVER; border-color: @BUTTON_SECONDARY_BORDER_HOVER;
+}

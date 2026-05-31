@@ -73,8 +73,8 @@ class AnalysisPage(BasePage):
         header_layout.addStretch()
 
         self.btn_refresh = AnimatedButton("Analizi Yenile")
-        self.btn_refresh.setProperty("cssClass", "secondaryButton")
-        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY", size=24)
+        self.btn_refresh.setProperty("cssClass", "primaryButton")
+        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=18)
         self.btn_refresh.clicked.connect(self.refresh_data)
         header_layout.addWidget(self.btn_refresh)
         left_layout.addLayout(header_layout)
@@ -235,4 +235,9 @@ class AnalysisPage(BasePage):
 
     def _set_loading(self, loading: bool) -> None:
         self.btn_refresh.setEnabled(not loading)
-        self.btn_refresh.setText("Y\u00fckleniyor..." if loading else "Analizi Yenile")
+        if loading:
+            self.btn_refresh.setText(" Analiz Hesaplanıyor...")
+            self.btn_refresh.setIconName("refresh-cw", color="@BUTTON_DISABLED_TEXT", size=18)
+        else:
+            self.btn_refresh.setText(" Analizi Yenile")
+            self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=18)

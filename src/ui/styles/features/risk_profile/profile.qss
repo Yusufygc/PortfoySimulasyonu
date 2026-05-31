@@ -6,17 +6,17 @@
 ======================================================= */
 
 QPushButton[cssClass="calculateButton"] {
-    background-color: @COLOR_PURPLE; color: @COLOR_TEXT_WHITE; border: none;
+    background-color: @COLOR_PRIMARY; color: @COLOR_TEXT_WHITE; border: none;
     border-radius: @RADIUS_LG; font-size: @FONT_MD; font-weight: bold;
     padding: @SPACE_MD 24px;
 }
-QPushButton[cssClass="calculateButton"]:hover { background-color: @COLOR_PURPLE_HOVER; }
+QPushButton[cssClass="calculateButton"]:hover { background-color: @COLOR_PRIMARY_HOVER; }
 
 /* -------------------------------------------------------
    Profil sonuç etiketleri
 ------------------------------------------------------- */
 QLabel[cssClass="profileHeader"] {
-    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; font-weight: bold; border: none;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_LG; font-weight: bold; border: none;
 }
 QLabel[cssClass="profileScore"] {
     color: @COLOR_TEXT_WHITE; font-size: @FONT_3XL; font-weight: bold; border: none;
@@ -28,16 +28,16 @@ QLabel[cssClass="profileDesc"] {
     color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; border: none;
 }
 QLabel[cssClass="profileDetail"] {
-    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_SM; border: none;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; border: none;
 }
 QLabel[cssClass="profileDetailStrong"] {
     color: @COLOR_TEXT_PRIMARY; font-size: @FONT_SM; font-weight: bold; border: none;
 }
 QLabel[cssClass="profileMetricTitle"] {
-    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_SM; font-weight: bold; border: none;
+    color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; font-weight: bold; border: none;
 }
 QLabel[cssClass="profileMetricValue"] {
-    color: @COLOR_TEXT_BRIGHT; font-size: @FONT_LG; font-weight: bold; border: none;
+    color: @COLOR_TEXT_BRIGHT; font-size: @FONT_2XL; font-weight: bold; border: none;
 }
 QLabel[cssClass="profileInfoTitle"] {
     color: @COLOR_TEXT_SECONDARY; font-size: @FONT_SM; font-weight: bold; border: none;
@@ -70,11 +70,10 @@ QFrame[cssClass="profileInfoBlock"] {
 QFrame[cssState="conservative"] { border-color: @COLOR_SUCCESS; }
 QFrame[cssState="moderate"]     { border-color: @COLOR_PRIMARY; }
 QFrame[cssState="balanced"]     { border-color: @COLOR_WARNING; }
-QFrame[cssState="growth"]       { border-color: @COLOR_PURPLE; }
+QFrame[cssState="growth"]       { border-color: @COLOR_ACCENT; }
 QFrame[cssState="aggressive"]   { border-color: @COLOR_DANGER; }
 
 QLabel[cssState="conservative"] { color: @COLOR_SUCCESS; }
 QLabel[cssState="moderate"]     { color: @COLOR_PRIMARY; }
 QLabel[cssState="balanced"]     { color: @COLOR_WARNING; }
-QLabel[cssState="growth"]       { color: @COLOR_PURPLE; }
-QLabel[cssState="aggressive"]   { color: @COLOR_DANGER; }
+

@@ -218,6 +218,7 @@ class CorporateActionDialog(QDialog):
         self._btn_confirm = QPushButton("Uygula")
         self._btn_confirm.clicked.connect(self.accept)
         self._btn_confirm.setProperty("cssClass", "tradeConfirmBuyBtn")
+        self._btn_confirm.setDefault(True)
 
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(self._btn_confirm)

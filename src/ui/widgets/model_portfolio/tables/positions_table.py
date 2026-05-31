@@ -75,11 +75,15 @@ class PositionsTable(QTableWidget):
                 self._set_readonly(i, 3, f"₺ {pos['current_price']:.2f}", payload)
                 self._set_readonly(i, 4, f"₺ {pos['current_value']:,.2f}", payload)
 
-                pl = pos["profit_loss"]
-                pl_item = QTableWidgetItem(f"₺ {pl:+,.2f}")
+                pl = round(pos["profit_loss"], 2)
+                if pl == 0:
+                    pl_item = QTableWidgetItem("₺ 0.00")
+                else:
+                    pl_item = QTableWidgetItem(f"₺ {pl:+,.2f}")
+                    pl_item.setForeground(Qt.green if pl > 0 else Qt.red)
+                
                 pl_item.setFlags(Qt.ItemIsEnabled)
                 pl_item.setTextAlignment(Qt.AlignCenter)
-                pl_item.setForeground(Qt.green if pl >= 0 else Qt.red)
                 pl_item.setData(Qt.UserRole, payload)
                 pl_item.setToolTip(self._DETAIL_TOOLTIP)
                 self.setItem(i, 5, pl_item)

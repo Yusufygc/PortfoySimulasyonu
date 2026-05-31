@@ -28,6 +28,7 @@ from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
 from src.ui.widgets.shared import ActionListItem, AnimatedButton, Toast
 from src.ui.widgets.watchlist.dialogs.add_stock_to_watchlist_dialog import AddStockToWatchlistDialog
+from src.ui.widgets.watchlist.dialogs.watchlist_dialog import WatchlistDialog
 
 
 class WatchlistPage(BasePage):
@@ -58,6 +59,11 @@ class WatchlistPage(BasePage):
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         self.main_layout.addLayout(header_layout)
+
+        lbl_desc = QLabel("Hisse senetlerini listeler halinde organize edin ve takip edin.")
+        lbl_desc.setWordWrap(True)
+        lbl_desc.setProperty("cssClass", "pageDescription")
+        self.main_layout.addWidget(lbl_desc)
 
         # Ana içerik - Yatay bölünmüş
         content_layout = QHBoxLayout()
@@ -93,6 +99,8 @@ class WatchlistPage(BasePage):
         self.list_widget = QListWidget()
         self.list_widget.setProperty("cssClass", "watchlistList")
         self.list_widget.setAlternatingRowColors(True)
+        self.list_widget.setDragDropMode(QListWidget.InternalMove)
+        self.list_widget.model().rowsMoved.connect(self._on_list_reordered)
         self.list_widget.itemClicked.connect(self._on_list_selected)
         left_layout.addWidget(self.list_widget)
 
@@ -181,9 +189,9 @@ class WatchlistPage(BasePage):
             label = f"{wl.name} ({count})"
             item = QListWidgetItem()
             item.setData(Qt.UserRole, wl)
-            item.setSizeHint(QSize(0, 36))
+            item.setSizeHint(QSize(0, 44))
             self.list_widget.addItem(item)
-            row = ActionListItem(label)
+            row = ActionListItem(label, draggable=True)
             row.selected.connect(lambda wl=wl, item=item: self._select_watchlist_item(item, wl))
             row.edit_requested.connect(lambda wl=wl, item=item: self._run_watchlist_action(item, wl, self._on_edit_list))
             row.delete_requested.connect(lambda wl=wl, item=item: self._run_watchlist_action(item, wl, self._on_delete_list))
@@ -192,6 +200,18 @@ class WatchlistPage(BasePage):
     def _on_list_selected(self, item: QListWidgetItem):
         watchlist: Watchlist = item.data(Qt.UserRole)
         self._select_watchlist_item(item, watchlist)
+
+    def _on_list_reordered(self, parent, start, end, destination, row):
+        ordered_ids = []
+        for i in range(self.list_widget.count()):
+            item = self.list_widget.item(i)
+            wl: Watchlist = item.data(Qt.UserRole)
+            ordered_ids.append(wl.id)
+            
+        try:
+            self.watchlist_service.reorder_watchlists(ordered_ids)
+        except Exception as e:
+            Toast.error(self, f"Sıralama kaydedilemedi: {e}")
 
     def _select_watchlist_item(self, item: QListWidgetItem, watchlist: Watchlist) -> None:
         self.list_widget.setCurrentItem(item)
@@ -278,14 +298,14 @@ class WatchlistPage(BasePage):
         return item
 
     def _on_new_list(self):
-        name, ok = QInputDialog.getText(self, "Yeni Liste", "Liste adı:", QLineEdit.Normal, "")
-        if not ok or not name.strip():
+        result = WatchlistDialog.get_watchlist_data(self, "Yeni Liste")
+        if not result:
             return
-
-        desc, ok2 = QInputDialog.getText(self, "Yeni Liste", "Açıklama (opsiyonel):", QLineEdit.Normal, "")
+            
+        name, desc = result
 
         try:
-            self.watchlist_service.create_watchlist(name.strip(), desc.strip() if ok2 else None)
+            self.watchlist_service.create_watchlist(name, desc if desc else None)
             self._load_watchlists()
             Toast.success(self, f"'{name}' listesi oluşturuldu.")
         except Exception as e:
@@ -301,15 +321,15 @@ class WatchlistPage(BasePage):
 
         watchlist: Watchlist = current_item.data(Qt.UserRole)
 
-        name, ok = QInputDialog.getText(self, "Liste Düzenle", "Liste adı:", QLineEdit.Normal, watchlist.name)
-        if not ok or not name.strip():
+        result = WatchlistDialog.get_watchlist_data(self, "Liste Düzenle", watchlist.name, watchlist.description or "")
+        if not result:
             return
-
-        desc, ok2 = QInputDialog.getText(self, "Liste Düzenle", "Açıklama:", QLineEdit.Normal, watchlist.description or "")
+            
+        name, desc = result
 
         try:
             self.watchlist_service.update_watchlist(
-                self.current_watchlist_id, name.strip(), desc.strip() if ok2 else None
+                self.current_watchlist_id, name, desc if desc else None
             )
             self._load_watchlists()
             self.lbl_list_name.setText(name.strip())

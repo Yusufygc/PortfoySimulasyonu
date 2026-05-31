@@ -8,21 +8,14 @@ THEME_MANAGER = ROOT / "src" / "ui" / "theme_manager.py"
 STYLES_DIR = ROOT / "src" / "ui" / "styles"
 
 
-def _style_manifest() -> tuple[str, ...]:
-    tree = ast.parse(THEME_MANAGER.read_text(encoding="utf-8"))
-    for node in tree.body:
-        if (
-            isinstance(node, ast.AnnAssign)
-            and isinstance(node.target, ast.Name)
-            and node.target.id == "STYLE_MANIFEST"
-        ):
-            return ast.literal_eval(node.value)
-    raise AssertionError("STYLE_MANIFEST not found")
+def _style_manifest(theme_name="dark_theme") -> list[str]:
+    from src.ui.theme_manager import ThemeManager
+    return ThemeManager._get_style_manifest(theme_name)
 
 
 def test_style_manifest_files_exist_and_are_utf8_without_bom():
-    for entry in _style_manifest():
-        path = STYLES_DIR / entry.format(theme_name="dark_theme")
+    for entry in _style_manifest("dark_theme"):
+        path = STYLES_DIR / entry
         assert path.exists(), f"Missing QSS manifest file: {path}"
 
         data = path.read_bytes()
@@ -30,8 +23,8 @@ def test_style_manifest_files_exist_and_are_utf8_without_bom():
 
 
 def test_qss_manifest_files_have_balanced_blocks():
-    for entry in _style_manifest():
-        path = STYLES_DIR / entry.format(theme_name="dark_theme")
+    for entry in _style_manifest("dark_theme"):
+        path = STYLES_DIR / entry
         balance = 0
         min_balance = 0
         for char in path.read_text(encoding="utf-8").replace("\ufeff", ""):
@@ -52,8 +45,8 @@ def test_theme_qss_resolves_all_known_tokens():
 
     for theme_name, tokens in (("dark_theme", DARK_THEME), ("light_theme", LIGHT_THEME)):
         qss = "\n".join(
-            (STYLES_DIR / entry.format(theme_name=theme_name)).read_text(encoding="utf-8")
-            for entry in _style_manifest()
+            (STYLES_DIR / entry).read_text(encoding="utf-8")
+            for entry in _style_manifest(theme_name)
         )
         qss = re.sub(
             r"@([A-Z0-9_]+)",

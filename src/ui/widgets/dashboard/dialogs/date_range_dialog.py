@@ -83,20 +83,6 @@ class DateRangeDialog(QDialog):
         lbl_end.setProperty("cssClass", "formLabel")
         form.addRow(lbl_end, self.end_edit)
 
-        main_layout.addLayout(form)
-
-        # Butonlar
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-
-        self.btn_ok = QPushButton("Tamam")
-        self.btn_ok.setProperty("cssClass", "primaryButton")
-        self.btn_cancel = QPushButton("İptal")
-        self.btn_cancel.setProperty("cssClass", "secondaryButton")
-
-        btn_layout.addWidget(self.btn_ok)
-        btn_layout.addWidget(self.btn_cancel)
-
         main_layout.addLayout(btn_layout)
 
         # Sinyaller

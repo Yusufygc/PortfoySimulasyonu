@@ -110,9 +110,9 @@ class BudgetFormPanel(QFrame):
             icon="shopping-cart",
             icon_color="@COLOR_DANGER",
             header_css="dangerHeader",
-            btn_css="dangerOutlineButton",
+            btn_css="dangerButton",
             btn_icon="plus",
-            btn_icon_color="@COLOR_DANGER",
+            btn_icon_color="@COLOR_TEXT_WHITE",
             on_add=lambda: self._add_row("", 0.0, "expense"),
         )
 

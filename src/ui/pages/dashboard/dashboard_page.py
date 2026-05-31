@@ -107,21 +107,21 @@ class DashboardPage(BasePage):
         self.btn_new_trade.clicked.connect(self._actions.on_new_trade)
 
         self.btn_update_prices = AnimatedButton(" Fiyatları Güncelle")
-        self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
-        self.btn_update_prices.setProperty("cssClass", "secondaryButton")
+        self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE")
+        self.btn_update_prices.setProperty("cssClass", "updatePricesBtn")
         self.btn_update_prices.clicked.connect(self._actions.on_update_prices)
 
         self.lbl_last_update = QLabel("")
         self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
 
         self.btn_capital = AnimatedButton(" Sermaye Yönetimi")
-        self.btn_capital.setIconName("coins", color="@COLOR_TEXT_PRIMARY")
+        self.btn_capital.setIconName("coins", color="@COLOR_TEXT_WHITE")
         self.btn_capital.clicked.connect(self._actions.on_capital_management)
-        self.btn_capital.setProperty("cssClass", "secondaryButton")
+        self.btn_capital.setProperty("cssClass", "capitalButton")
 
         self.btn_report = AnimatedButton(" Rapor Al")
         self.btn_report.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
-        self.btn_report.setProperty("cssClass", "secondaryButton")
+        self.btn_report.setProperty("cssClass", "reportButton")
         self._report_menu = QMenu(self.btn_report)
         self._report_today_action = QAction("Bugün", self)
         self._report_today_action.triggered.connect(self._actions.on_export_today)
