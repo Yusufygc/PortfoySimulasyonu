@@ -28,16 +28,17 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
             name=orm.name,
             description=orm.description,
             initial_cash=initial_cash or Decimal("100000.00"),
+            sort_order=orm.sort_order,
             created_at=orm.created_at,
             updated_at=orm.updated_at,
         )
 
-    def _to_orm_portfolio(self, domain: ModelPortfolio) -> ORMModelPortfolio:
         return ORMModelPortfolio(
             id=domain.id,
             name=domain.name,
             description=domain.description,
             initial_cash=domain.initial_cash,
+            sort_order=domain.sort_order,
             created_at=domain.created_at,
             updated_at=domain.updated_at,
         )
@@ -75,7 +76,7 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
     # ---------- ModelPortfolio READ operasyonları ---------- #
     def get_all_model_portfolios(self) -> List[ModelPortfolio]:
         with self._provider.get_session() as session:
-            rows = session.query(ORMModelPortfolio).order_by(ORMModelPortfolio.name).all()
+            rows = session.query(ORMModelPortfolio).order_by(ORMModelPortfolio.sort_order, ORMModelPortfolio.name).all()
             return [self._to_domain_portfolio(r) for r in rows]
 
     def get_model_portfolio_by_id(self, portfolio_id: int) -> Optional[ModelPortfolio]:
@@ -88,7 +89,11 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm_portfolio(portfolio)
             session.add(orm_obj)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             session.refresh(orm_obj)
             return self._to_domain_portfolio(orm_obj)
 
@@ -101,20 +106,44 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
                 orm_obj.name = portfolio.name
                 orm_obj.description = portfolio.description
                 orm_obj.initial_cash = portfolio.initial_cash
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
+
+    def update_model_portfolio_order(self, ordered_ids: List[int]) -> None:
+        with self._provider.get_session() as session:
+            for index, portfolio_id in enumerate(ordered_ids):
+                orm_obj = session.query(ORMModelPortfolio).filter_by(id=portfolio_id).first()
+                if orm_obj:
+                    orm_obj.sort_order = index
+            try:
                 session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     def delete_model_portfolio(self, portfolio_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMModelPortfolio).filter_by(id=portfolio_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def delete_all_model_portfolios(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMModelPortfolioTrade).delete()
             session.query(ORMModelPortfolio).delete()
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     # ---------- ModelPortfolioTrade READ operasyonları ---------- #
     def get_trades_by_portfolio_id(self, portfolio_id: int) -> List[ModelPortfolioTrade]:
@@ -139,7 +168,11 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm_trade(trade)
             session.add(orm_obj)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             session.refresh(orm_obj)
             return self._to_domain_trade(orm_obj)
 
@@ -148,9 +181,17 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
             orm_obj = session.query(ORMModelPortfolioTrade).filter_by(id=trade_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def delete_all_trades_by_portfolio_id(self, portfolio_id: int) -> None:
         with self._provider.get_session() as session:
             session.query(ORMModelPortfolioTrade).filter_by(portfolio_id=portfolio_id).delete()
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
