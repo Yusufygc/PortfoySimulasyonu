@@ -53,6 +53,9 @@ class ModelPortfolioService:
     def delete_portfolio(self, portfolio_id: int) -> None:
         self._admin.delete_portfolio(portfolio_id)
 
+    def reorder_portfolios(self, ordered_ids: list[int]) -> None:
+        self._admin.reorder_portfolios(ordered_ids)
+
     def get_portfolio_trades(self, portfolio_id: int):
         return self._trade.get_portfolio_trades(portfolio_id)
 
