@@ -10,6 +10,7 @@ from src.application.services.portfolio.safe_portfolio_builder import (
     build_portfolio_safely,
     trade_sort_key,
 )
+from src.application.services.portfolio.timeline_validator import PortfolioTimelineValidator
 from src.domain.models.cash_movement import CashMovementType
 from src.domain.models.portfolio import Portfolio
 from src.domain.models.trade import Trade, TradeSide
@@ -62,7 +63,7 @@ class PortfolioService:
     def get_cash_balance(self, as_of: date | tuple[date, dt_time | None] | None = None) -> Decimal:
         balance = Decimal("0")
         for _event_date, _event_time, _event_order, _event_id, event_type, amount in self._cash_events_until(as_of):
-            if event_type in ("DEPOSIT", "SELL"):
+            if event_type in (CashMovementType.DEPOSIT, TradeSide.SELL):
                 balance += amount
             else:
                 balance -= amount
@@ -83,7 +84,11 @@ class PortfolioService:
                 raise ValueError(
                     f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash_balance:.2f} TL"
                 )
-            self._validate_candidate_timeline(trade)
+            PortfolioTimelineValidator.validate_candidate_timeline(
+                candidate=trade,
+                existing_trades=self.get_valid_trades(),
+                cash_movements=self._cash_movement_events_until()
+            )
             return
 
         available_quantity = self.get_position_quantity_as_of(
@@ -94,7 +99,11 @@ class PortfolioService:
             raise ValueError(
                 f"Yetersiz pozisyon. Satmak istediğiniz: {trade.quantity}, Mevcut: {available_quantity}"
             )
-        self._validate_candidate_timeline(trade)
+        PortfolioTimelineValidator.validate_candidate_timeline(
+            candidate=trade,
+            existing_trades=self.get_valid_trades(),
+            cash_movements=self._cash_movement_events_until()
+        )
 
     def get_position_quantity_as_of(
         self,
@@ -125,7 +134,7 @@ class PortfolioService:
     def _cash_movements_balance(self, as_of: date | tuple[date, dt_time | None] | None = None) -> Decimal:
         balance = Decimal("0")
         for _event_date, _event_time, _event_order, _event_id, event_type, amount in self._cash_movement_events_until(as_of):
-            if event_type == "DEPOSIT":
+            if event_type == CashMovementType.DEPOSIT:
                 balance += amount
             else:
                 balance -= amount
@@ -136,17 +145,16 @@ class PortfolioService:
     def _cash_events_until(
         self,
         as_of: date | tuple[date, dt_time | None] | None = None,
-    ) -> list[tuple[date, dt_time, int, int, str, Decimal]]:
+    ) -> list[tuple[date, dt_time, int, int, object, Decimal]]:
         events = self._cash_movement_events_until(as_of)
         for trade in self.get_valid_trades(as_of=as_of):
-            event_type = "BUY" if trade.side == TradeSide.BUY else "SELL"
             events.append(
                 (
                     trade.trade_date,
                     trade.trade_time or dt_time.min,
                     20,
                     int(trade.id or 0),
-                    event_type,
+                    trade.side,
                     trade.total_amount,
                 )
             )
@@ -155,7 +163,7 @@ class PortfolioService:
     def _cash_movement_events_until(
         self,
         as_of: date | tuple[date, dt_time | None] | None = None,
-    ) -> list[tuple[date, dt_time, int, int, str, Decimal]]:
+    ) -> list[tuple[date, dt_time, int, int, object, Decimal]]:
         if self._cash_movement_repo is None:
             return []
 
@@ -166,9 +174,8 @@ class PortfolioService:
         else:
             movements = self._cash_movement_repo.get_movements_until(as_of)
 
-        events: list[tuple[date, dt_time, int, int, str, Decimal]] = []
+        events: list[tuple[date, dt_time, int, int, object, Decimal]] = []
         for movement in movements:
-            event_type = "DEPOSIT" if movement.type == CashMovementType.DEPOSIT else "WITHDRAW"
             event_order = 0 if movement.type == CashMovementType.DEPOSIT else 30
             events.append(
                 (
@@ -176,99 +183,10 @@ class PortfolioService:
                     movement.movement_time or dt_time.min,
                     event_order,
                     int(movement.id or 0),
-                    event_type,
+                    movement.type,
                     movement.amount,
                 )
             )
         return events
 
-    def _validate_candidate_timeline(self, candidate: Trade) -> None:
-        existing_trades = self.get_valid_trades()
-        baseline_violations = {
-            marker for marker, _reason in self._timeline_violations(existing_trades)
-        }
-        candidate_marker = ("candidate", id(candidate))
-        candidate_violations = self._timeline_violations(
-            list(existing_trades) + [candidate],
-            candidate_marker=candidate_marker,
-        )
 
-        for marker, reason in candidate_violations:
-            if marker == candidate_marker:
-                raise ValueError(reason)
-            if marker not in baseline_violations:
-                raise ValueError(
-                    "Bu tarih/saat ile işlem, sonraki nakit veya lot akışını geçersiz hale getiriyor."
-                )
-
-    def _timeline_violations(
-        self,
-        trades: list[Trade],
-        candidate_marker: tuple | None = None,
-    ) -> list[tuple[object, str]]:
-        cash = Decimal("0")
-        positions: dict[int, int] = defaultdict(int)
-        violations: list[tuple[object, str]] = []
-
-        events: list[tuple[date, dt_time, int, int, str, object, object]] = []
-        for event_date, event_time, event_order, event_id, event_type, amount in self._cash_movement_events_until():
-            events.append((event_date, event_time, event_order, event_id, event_type, amount, None))
-
-        for index, trade in enumerate(trades):
-            marker = candidate_marker if candidate_marker is not None and index == len(trades) - 1 else self._trade_marker(trade)
-            events.append(
-                (
-                    trade.trade_date,
-                    trade.trade_time or dt_time.min,
-                    20,
-                    int(trade.id or (10**12 if marker == candidate_marker else 0)),
-                    "TRADE",
-                    trade,
-                    marker,
-                )
-            )
-
-        events.sort(key=lambda event: (event[0], event[1], event[2], event[3]))
-        for _event_date, _event_time, _event_order, event_id, event_type, payload, marker in events:
-            if event_type == "DEPOSIT":
-                cash += payload
-                continue
-            if event_type == "WITHDRAW":
-                if payload > cash:
-                    violations.append((marker or ("cash", event_id), "Yetersiz nakit. Nakit çekimi bakiyeyi aşıyor."))
-                    cash = Decimal("0")
-                else:
-                    cash -= payload
-                continue
-
-            trade = payload
-            if trade.side == TradeSide.BUY:
-                if trade.total_amount > cash:
-                    violations.append(
-                        (
-                            marker,
-                            f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash:.2f} TL",
-                        )
-                    )
-                    cash = Decimal("0")
-                else:
-                    cash -= trade.total_amount
-                positions[trade.stock_id] += trade.quantity
-            else:
-                available = positions[trade.stock_id]
-                if trade.quantity > available:
-                    violations.append(
-                        (
-                            marker,
-                            f"Yetersiz pozisyon. Satmak istediğiniz: {trade.quantity}, Mevcut: {available}",
-                        )
-                    )
-                    continue
-                positions[trade.stock_id] -= trade.quantity
-                cash += trade.total_amount
-
-        return violations
-
-    @staticmethod
-    def _trade_marker(trade: Trade) -> object:
-        return ("trade", int(trade.id)) if trade.id is not None else ("trade_object", id(trade))
