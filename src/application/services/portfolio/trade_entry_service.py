@@ -74,7 +74,7 @@ class TradeEntryService:
             raise ValueError("Lot adedi pozitif olmalıdır.")
         if price <= 0:
             raise ValueError("Fiyat pozitif olmalıdır.")
-        if trade_side == TradeSide.BUY and hasattr(self._portfolio_service, "get_cash_balance"):
+        if trade_side == TradeSide.BUY:
             total_amount = Decimal(quantity) * price
             cash_balance = self._portfolio_service.get_cash_balance(as_of=(trade_date, trade_time))
             if total_amount > cash_balance:
@@ -95,8 +95,7 @@ class TradeEntryService:
             quantity=quantity,
             price=price,
         )
-        if hasattr(self._portfolio_service, "validate_trade"):
-            self._portfolio_service.validate_trade(trade)
+        self._portfolio_service.validate_trade(trade)
         saved_trade = self._portfolio_service.add_trade(trade)
         return TradeEntryResult(
             trade=saved_trade,
