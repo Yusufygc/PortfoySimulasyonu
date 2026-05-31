@@ -79,7 +79,11 @@ class SQLAlchemyStockRepository(IStockRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm(stock)
             session.add(orm_obj)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             session.refresh(orm_obj) # id ve created_at değerlerini almak için
             return self._to_domain(orm_obj)
 
@@ -90,7 +94,11 @@ class SQLAlchemyStockRepository(IStockRepository):
         with self._provider.get_session() as session:
             orm_objs = [self._to_orm(s) for s in stocks_list]
             session.add_all(orm_objs)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     def update_stock(self, stock: Stock) -> None:
         if stock.id is None:
@@ -103,14 +111,22 @@ class SQLAlchemyStockRepository(IStockRepository):
                 orm_obj.name = stock.name
                 orm_obj.currency_code = stock.currency_code
                 # created_at and updated_at handled by DB / server_default / onupdate
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def delete_stock(self, stock_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMStock).filter_by(id=stock_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def delete_all_stocks(self) -> None:
         """
@@ -118,4 +134,8 @@ class SQLAlchemyStockRepository(IStockRepository):
         """
         with self._provider.get_session() as session:
             session.query(ORMStock).delete()
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise

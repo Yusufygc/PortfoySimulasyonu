@@ -7,8 +7,19 @@ from typing import Dict, Optional
 from uuid import uuid4
 
 import pandas as pd
+import json
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+import urllib.error
+
+from src.domain.exceptions import MarketDataUnavailableError
 
 logger = logging.getLogger(__name__)
+
+USER_AGENT_WINDOWS_CHROME = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/104.0.5112.102 Safari/537.36"
+)
 
 
 class InvestingFallbackClient:
@@ -22,10 +33,27 @@ class InvestingFallbackClient:
         "GC=F": {"query": "Gold", "type": "Commodity", "exchange": ""},
     }
 
-    def __init__(self, owner) -> None:
-        self._owner = owner
+    def __init__(self, timeout: int = 10) -> None:
+        self._timeout = timeout
         self._investing_id_cache: Dict[tuple[str, str, str], Optional[int]] = {}
         self._series_cache: Dict[tuple[str, date, date], Dict[date, Decimal]] = {}
+
+    def _request_to_investing(self, endpoint: str, params: Dict[str, object]):
+        query = urlencode(params)
+        url = f"https://tvc6.investing.com/{uuid4().hex}/0/0/0/0/{endpoint}?{query}"
+        request = Request(
+            url,
+            headers={
+                "User-Agent": USER_AGENT_WINDOWS_CHROME,
+                "Referer": "https://tvc-invdn-com.investing.com/",
+                "Content-Type": "application/json",
+            },
+        )
+        try:
+            with urlopen(request, timeout=self._timeout) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.URLError as e:
+            raise MarketDataUnavailableError(f"Investing API erisilemiyor: {e}") from e
 
     def fetch_series_for_ticker(
         self,
@@ -50,7 +78,7 @@ class InvestingFallbackClient:
         to_timestamp = int(pd.Timestamp(end_date + timedelta(days=1), tz="UTC").timestamp())
 
         try:
-            data = self._owner._request_to_investing(
+            data = self._request_to_investing(
                 "history",
                 {
                     "symbol": investing_id,
@@ -59,7 +87,7 @@ class InvestingFallbackClient:
                     "resolution": "D",
                 },
             )
-        except Exception:
+        except MarketDataUnavailableError:
             logger.debug("Investing gecmis verisi alinamadi: %s", ticker, exc_info=True)
             self._series_cache[cache_key] = {}
             return {}
@@ -93,7 +121,7 @@ class InvestingFallbackClient:
         if cache_key in self._investing_id_cache:
             return self._investing_id_cache[cache_key]
 
-        results = self._owner._request_to_investing(
+        results = self._request_to_investing(
             "search",
             {
                 "query": cache_key[0],

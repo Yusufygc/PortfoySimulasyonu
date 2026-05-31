@@ -38,6 +38,43 @@ class TracingMarketDataClient(YFinanceMarketDataClient):
         self.events: list[SourceEvent] = []
         self.raw_post_responses: list[tuple[str, object]] = []
 
+        _orig_request_text = self._scraped_provider._request_text
+        def _traced_request_text(url):
+            self.events.append(SourceEvent("scraped", url))
+            return _orig_request_text(url)
+        self._scraped_provider._request_text = _traced_request_text
+
+        _orig_request_json = self._scraped_provider._request_json
+        def _traced_request_json(url):
+            self.events.append(SourceEvent("scraped-json", url))
+            return _orig_request_json(url)
+        self._scraped_provider._request_json = _traced_request_json
+
+        _orig_request_json_post = self._scraped_provider._evds_client.request_json_post
+        def _traced_request_json_post(url, payload):
+            series = payload.get("series", "")
+            start_date = payload.get("startDate", "")
+            end_date = payload.get("endDate", "")
+            self.events.append(SourceEvent("tcmb-evds", f"{url} series={series} start={start_date} end={end_date}"))
+            response = _orig_request_json_post(url, payload)
+            self.raw_post_responses.append((url, response))
+            return response
+        self._scraped_provider._evds_client.request_json_post = _traced_request_json_post
+
+        _orig_request_json_post_path = self._scraped_provider._evds_client.request_json_post_path
+        def _traced_request_json_post_path(path, payload):
+            self.events.append(SourceEvent("tcmb-evds", f"{path} {payload}"))
+            response = _orig_request_json_post_path(path, payload)
+            self.raw_post_responses.append((path, response))
+            return response
+        self._scraped_provider._evds_client.request_json_post_path = _traced_request_json_post_path
+
+        _orig_request_to_investing = self._investing_client._request_to_investing
+        def _traced_request_to_investing(endpoint, params):
+            self.events.append(SourceEvent("investing", f"{endpoint} {params}"))
+            return _orig_request_to_investing(endpoint, params)
+        self._investing_client._request_to_investing = _traced_request_to_investing
+
     def consume_events(self) -> list[SourceEvent]:
         events = list(self.events)
         self.events.clear()
@@ -46,33 +83,6 @@ class TracingMarketDataClient(YFinanceMarketDataClient):
     def _download_dataframe(self, tickers, start: date, end: date):
         self.events.append(SourceEvent("yfinance", f"tickers={tickers}, start={start}, end={end}"))
         return super()._download_dataframe(tickers, start, end)
-
-    def _request_text(self, url: str) -> str:
-        self.events.append(SourceEvent("scraped", url))
-        return super()._request_text(url)
-
-    def _request_json(self, url: str):
-        self.events.append(SourceEvent("scraped-json", url))
-        return super()._request_json(url)
-
-    def _request_json_post(self, url: str, payload: dict):
-        series = payload.get("series", "")
-        start_date = payload.get("startDate", "")
-        end_date = payload.get("endDate", "")
-        self.events.append(SourceEvent("tcmb-evds", f"{url} series={series} start={start_date} end={end_date}"))
-        response = super()._request_json_post(url, payload)
-        self.raw_post_responses.append((url, response))
-        return response
-
-    def _request_json_post_path(self, path: str, payload: dict):
-        self.events.append(SourceEvent("tcmb-evds", f"{path} {payload}"))
-        response = super()._request_json_post_path(path, payload)
-        self.raw_post_responses.append((path, response))
-        return response
-
-    def _request_to_investing(self, endpoint: str, params: dict):
-        self.events.append(SourceEvent("investing", f"{endpoint} {params}"))
-        return super()._request_to_investing(endpoint, params)
 
 
 def _parse_date(value: str) -> date:

@@ -96,7 +96,11 @@ class SQLAlchemyCorporateActionRepository(ICorporateActionRepository):
             orm_obj = self._to_orm(action)
             orm_obj.id = None
             session.add(orm_obj)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             session.refresh(orm_obj)
             return self._to_domain(orm_obj)
 
@@ -106,11 +110,19 @@ class SQLAlchemyCorporateActionRepository(ICorporateActionRepository):
             if row:
                 row.applied = True
                 row.applied_at = datetime.now()
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def delete(self, action_id: int) -> None:
         with self._provider.get_session() as session:
             row = session.query(ORMCorporateAction).filter_by(id=action_id).first()
             if row:
                 session.delete(row)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise

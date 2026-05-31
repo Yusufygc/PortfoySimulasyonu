@@ -144,7 +144,11 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 source=stmt.inserted.source
             )
             result = session.execute(stmt)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             
             # last inserted id
             inserted_id = result.lastrowid
@@ -180,12 +184,20 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 source=stmt.inserted.source
             )
             session.execute(stmt)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     def delete_all_prices(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMDailyPrice).delete()
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     def delete_prices_in_range(self, start_date: date, end_date: date) -> int:
         with self._provider.get_session() as session:
@@ -193,5 +205,9 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 .filter(ORMDailyPrice.price_date >= start_date)\
                 .filter(ORMDailyPrice.price_date <= end_date)\
                 .delete()
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             return deleted_count

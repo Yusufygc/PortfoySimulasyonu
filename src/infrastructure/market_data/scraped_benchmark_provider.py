@@ -6,8 +6,14 @@ import re
 from datetime import date
 from decimal import Decimal
 from typing import Dict, Optional
+import json
+from urllib.request import Request, urlopen
+import urllib.error
 
 import pandas as pd
+
+from src.domain.exceptions import MarketDataUnavailableError
+from .evds_client import EvdsClient
 
 
 logger = logging.getLogger(__name__)
@@ -30,11 +36,32 @@ class ScrapedBenchmarkProvider:
         re.IGNORECASE | re.DOTALL,
     )
 
-    def __init__(self, owner) -> None:
-        self._owner = owner
+    def __init__(self, timeout: int = 10) -> None:
+        self._timeout = timeout
+        self._evds_client = EvdsClient(timeout=timeout)
         self._countryeconomy_month_cache: Dict[str, Dict[date, Decimal]] = {}
         self._exchange_rates_year_cache: Dict[int, Dict[date, Decimal]] = {}
         self._macrotrends_gold_daily_cache: Optional[Dict[date, Decimal]] = None
+
+    def _request_text(self, url: str) -> str:
+        request = Request(
+            url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                ),
+                "Accept-Language": "en-US,en;q=0.9",
+            },
+        )
+        try:
+            with urlopen(request, timeout=self._timeout) as response:
+                return response.read().decode("utf-8")
+        except urllib.error.URLError as e:
+            raise MarketDataUnavailableError(f"Veri kaynagina erisilemiyor: {url}") from e
+
+    def _request_json(self, url: str):
+        return json.loads(self._request_text(url))
 
     def fetch_series_for_ticker(
         self,
@@ -89,8 +116,8 @@ class ScrapedBenchmarkProvider:
 
         url = self.COUNTRY_ECONOMY_BIST_MONTH_URL.format(month_key=month_key)
         try:
-            html = self._owner._request_text(url)
-        except Exception:
+            html = self._request_text(url)
+        except MarketDataUnavailableError:
             logger.debug("Countryeconomy BIST 100 data could not be fetched: %s", month_key, exc_info=True)
             self._countryeconomy_month_cache[month_key] = {}
             return {}
@@ -123,8 +150,8 @@ class ScrapedBenchmarkProvider:
 
         url = self.EXCHANGE_RATES_USDTRY_YEAR_URL.format(year=year)
         try:
-            html = self._owner._request_text(url)
-        except Exception:
+            html = self._request_text(url)
+        except MarketDataUnavailableError:
             logger.debug("Exchange-rates USD/TRY data could not be fetched: %s", year, exc_info=True)
             self._exchange_rates_year_cache[year] = {}
             return {}
@@ -155,8 +182,8 @@ class ScrapedBenchmarkProvider:
             return dict(self._macrotrends_gold_daily_cache)
 
         try:
-            payload = self._owner._request_json(self.MACROTRENDS_GOLD_DAILY_URL)
-        except Exception:
+            payload = self._request_json(self.MACROTRENDS_GOLD_DAILY_URL)
+        except MarketDataUnavailableError:
             logger.debug("Macrotrends gold data could not be fetched", exc_info=True)
             self._macrotrends_gold_daily_cache = {}
             return {}
@@ -198,11 +225,11 @@ class ScrapedBenchmarkProvider:
         end_date: date,
     ) -> Dict[date, Decimal]:
         try:
-            self._owner._request_json_post_path(
+            self._evds_client.request_json_post_path(
                 "/serieList/fe/type=json",
                 {"dataGroupString": "bie_mt100h"},
             )
-            payload = self._owner._request_json_post(
+            payload = self._evds_client.request_json_post(
                 "https://evds3.tcmb.gov.tr/igmevdsms-dis/fe",
                 {
                     "series": self.TCMB_DEPOSIT_SERIES,

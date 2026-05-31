@@ -20,6 +20,7 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
             id=orm.id,
             name=orm.name,
             description=orm.description,
+            sort_order=orm.sort_order,
             created_at=orm.created_at,
             updated_at=orm.updated_at,
         )
@@ -29,6 +30,7 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
             id=model.id,
             name=model.name,
             description=model.description,
+            sort_order=model.sort_order,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -54,7 +56,7 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
     # ---------- Watchlist READ operasyonları ---------- #
     def get_all_watchlists(self) -> List[Watchlist]:
         with self._provider.get_session() as session:
-            rows = session.query(ORMWatchlist).order_by(ORMWatchlist.name).all()
+            rows = session.query(ORMWatchlist).order_by(ORMWatchlist.sort_order.asc(), ORMWatchlist.name.asc()).all()
             return [self._to_domain_watchlist(r) for r in rows]
 
     def get_watchlist_by_id(self, watchlist_id: int) -> Optional[Watchlist]:
@@ -67,7 +69,11 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm_watchlist(watchlist)
             session.add(orm_obj)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             session.refresh(orm_obj)
             return self._to_domain_watchlist(orm_obj)
 
@@ -79,20 +85,33 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
             if orm_obj:
                 orm_obj.name = watchlist.name
                 orm_obj.description = watchlist.description
-                session.commit()
+                orm_obj.sort_order = watchlist.sort_order
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def delete_watchlist(self, watchlist_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMWatchlist).filter_by(id=watchlist_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def delete_all_watchlists(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMWatchlistItem).delete()
             session.query(ORMWatchlist).delete()
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     # ---------- WatchlistItem READ operasyonları ---------- #
     def get_items_by_watchlist_id(self, watchlist_id: int) -> List[WatchlistItem]:
@@ -113,7 +132,11 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm_item(item)
             session.add(orm_obj)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             session.refresh(orm_obj)
             return self._to_domain_item(orm_obj)
 
@@ -122,14 +145,22 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
             orm_obj = session.query(ORMWatchlistItem).filter_by(id=item_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def remove_stock_from_watchlist(self, watchlist_id: int, stock_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMWatchlistItem).filter_by(watchlist_id=watchlist_id, stock_id=stock_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def is_stock_in_watchlist(self, watchlist_id: int, stock_id: int) -> bool:
         with self._provider.get_session() as session:

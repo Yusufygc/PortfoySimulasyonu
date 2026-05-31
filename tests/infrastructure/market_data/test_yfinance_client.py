@@ -23,14 +23,14 @@ def test_get_price_series_uses_countryeconomy_for_bist_without_yfinance(monkeypa
         calls.append(url)
         return bist_html
 
-    monkeypatch.setattr(client, "_request_text", fake_request_text)
+    monkeypatch.setattr(client._scraped_provider, "_request_text", fake_request_text)
     monkeypatch.setattr(
         client,
         "_download_dataframe",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
     )
     monkeypatch.setattr(
-        client,
+        client._investing_client,
         "_request_to_investing",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Investing fallback cagrilmamaliydi")),
     )
@@ -67,14 +67,14 @@ def test_get_price_series_uses_exchange_rates_for_usdtry_without_yfinance(monkey
         </tr>
     """
 
-    monkeypatch.setattr(client, "_request_text", lambda url: year_html)
+    monkeypatch.setattr(client._scraped_provider, "_request_text", lambda url: year_html)
     monkeypatch.setattr(
         client,
         "_download_dataframe",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
     )
     monkeypatch.setattr(
-        client,
+        client._investing_client,
         "_request_to_investing",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Investing fallback cagrilmamaliydi")),
     )
@@ -126,15 +126,15 @@ def test_get_price_series_builds_xautry_from_gold_and_usd_sources(monkeypatch):
             return gold_payload
         raise AssertionError(f"Beklenmeyen json istegi: {url}")
 
-    monkeypatch.setattr(client, "_request_text", fake_request_text)
-    monkeypatch.setattr(client, "_request_json", fake_request_json)
+    monkeypatch.setattr(client._scraped_provider, "_request_text", fake_request_text)
+    monkeypatch.setattr(client._scraped_provider, "_request_json", fake_request_json)
     monkeypatch.setattr(
         client,
         "_download_dataframe",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
     )
     monkeypatch.setattr(
-        client,
+        client._investing_client,
         "_request_to_investing",
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Investing fallback cagrilmamaliydi")),
     )
@@ -162,14 +162,14 @@ def test_get_price_series_uses_tcmb_evds_for_deposit_rates(monkeypatch):
         return payload
 
     monkeypatch.setattr(
-        client,
-        "_request_json_post_path",
+        client._scraped_provider._evds_client,
+        "request_json_post_path",
         lambda path, request_payload: {
             "maxStartDate": "01-01-2020",
             "minEndDate": "10-01-2026",
         },
     )
-    monkeypatch.setattr(client, "_request_json_post", fake_request_json_post)
+    monkeypatch.setattr(client._scraped_provider._evds_client, "request_json_post", fake_request_json_post)
     monkeypatch.setattr(
         client,
         "_download_dataframe",
@@ -195,7 +195,7 @@ def test_countryeconomy_month_cache_is_reused(monkeypatch):
         counter["count"] += 1
         return bist_html
 
-    monkeypatch.setattr(client, "_request_text", fake_request_text)
+    monkeypatch.setattr(client._scraped_provider, "_request_text", fake_request_text)
     monkeypatch.setattr(
         client,
         "_download_dataframe",

@@ -9,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
 
 from src.domain.models.risk_profile import PROFILE_INFO, RiskLabel, RiskProfile
+from src.domain.exceptions import DatabaseSchemaError
 from src.domain.ports.repositories.i_risk_profile_repo import IRiskProfileRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMRiskProfile
@@ -63,7 +64,7 @@ class SQLAlchemyRiskProfileRepository(IRiskProfileRepository):
                 return self._to_domain(row) if row else None
             except ProgrammingError as exc:
                 if not self._is_missing_professional_column(exc):
-                    raise
+                    raise DatabaseSchemaError(f"Veritabani semasi guncel degil: {exc}") from exc
                 session.rollback()
                 row = session.execute(
                     text(
@@ -83,7 +84,7 @@ class SQLAlchemyRiskProfileRepository(IRiskProfileRepository):
                 return self._to_domain(orm_obj)
             except ProgrammingError as exc:
                 if not self._is_missing_professional_column(exc):
-                    raise
+                    raise DatabaseSchemaError(f"Veritabani semasi guncel degil: {exc}") from exc
                 session.rollback()
                 return self._save_legacy_compatible(session, profile)
 
@@ -94,7 +95,7 @@ class SQLAlchemyRiskProfileRepository(IRiskProfileRepository):
                 return [self._to_domain(row) for row in rows]
             except ProgrammingError as exc:
                 if not self._is_missing_professional_column(exc):
-                    raise
+                    raise DatabaseSchemaError(f"Veritabani semasi guncel degil: {exc}") from exc
                 session.rollback()
                 rows = session.execute(
                     text(
@@ -105,20 +106,23 @@ class SQLAlchemyRiskProfileRepository(IRiskProfileRepository):
                 return [self._legacy_row_to_domain(row) for row in rows]
 
     def _save_legacy_compatible(self, session, profile: RiskProfile) -> RiskProfile:
-        result = session.execute(
-            text(
-                "INSERT INTO risk_profiles (age, horizon, reaction, risk_score, risk_label) "
-                "VALUES (:age, :horizon, :reaction, :risk_score, :risk_label)"
-            ),
-            {
-                "age": profile.age,
-                "horizon": profile.horizon,
-                "reaction": profile.reaction,
-                "risk_score": profile.risk_score,
-                "risk_label": profile.risk_label,
-            },
-        )
-        session.commit()
+        try:
+            result = session.execute(
+                text(
+                    "INSERT INTO risk_profiles (age, horizon, reaction, risk_score, risk_label) "
+                    "VALUES (:age, :horizon, :reaction, :risk_score, :risk_label)"
+                ),
+                {
+                    "age": profile.age,
+                    "horizon": profile.horizon,
+                    "reaction": profile.reaction,
+                    "risk_score": profile.risk_score,
+                    "risk_label": profile.risk_label,
+                },
+            )
+            session.commit()
+        except ProgrammingError as exc:
+            raise DatabaseSchemaError(f"Eski sema uyumlu kayit yapilamadi: {exc}") from exc
         profile.id = int(getattr(result, "lastrowid", 0) or 0) or None
         profile.suitability_notes = list(profile.suitability_notes) + [
             "Veritabani eski semada oldugu icin detayli anket yanitlari kalici olarak saklanamadi. "

@@ -14,14 +14,15 @@ from uuid import uuid4
 import yfinance as yf
 from pandas.errors import Pandas4Warning
 
-from src.domain.ports.services.i_market_data_client import IMarketDataClient
-
+from src.domain.exceptions import MarketDataUnavailableError
 from .investing_fallback_client import InvestingFallbackClient
 from .scraped_benchmark_provider import ScrapedBenchmarkProvider
 from .yfinance_price_client import YFinancePriceClient
 
 logger = logging.getLogger(__name__)
 
+
+from src.domain.ports.services.i_market_data_client import IMarketDataClient
 
 class YFinanceMarketDataClient(IMarketDataClient):
     """
@@ -39,76 +40,23 @@ class YFinanceMarketDataClient(IMarketDataClient):
             category=Pandas4Warning,
             module=r"yfinance\..*",
         )
-        self._scraped_provider = ScrapedBenchmarkProvider(self)
-        self._investing_client = InvestingFallbackClient(self)
+        self._scraped_provider = ScrapedBenchmarkProvider(timeout=self._timeout)
+        self._investing_client = InvestingFallbackClient(timeout=self._timeout)
         self._price_client = YFinancePriceClient(self)
 
     def _download_dataframe(self, tickers, start: date, end: date):
-        return yf.download(
-            tickers=tickers,
-            start=start,
-            end=end,
-            interval="1d",
-            progress=False,
-            auto_adjust=False,
-            timeout=self._timeout,
-        )
-
-    def _request_text(self, url: str) -> str:
-        request = Request(
-            url,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-                ),
-                "Accept-Language": "en-US,en;q=0.9",
-            },
-        )
-        with urlopen(request, timeout=self._timeout) as response:
-            return response.read().decode("utf-8", errors="ignore")
-
-    def _request_json(self, url: str):
-        return json.loads(self._request_text(url))
-
-    def _request_json_post(self, url: str, payload: Dict[str, object]):
-        request = Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-                ),
-                "Accept": "application/json, text/plain, */*",
-                "Content-Type": "application/json;charset=UTF-8",
-                "Origin": "https://evds3.tcmb.gov.tr",
-                "Referer": "https://evds3.tcmb.gov.tr/",
-            },
-            method="POST",
-        )
-        with urlopen(request, timeout=self._timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
-
-    def _request_json_post_path(self, path: str, payload: Dict[str, object]):
-        return self._request_json_post(f"https://evds3.tcmb.gov.tr/igmevdsms-dis{path}", payload)
-
-    def _request_to_investing(self, endpoint: str, params: Dict[str, object]):
-        query = urlencode(params)
-        url = f"https://tvc6.investing.com/{uuid4().hex}/0/0/0/0/{endpoint}?{query}"
-        request = Request(
-            url,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/104.0.5112.102 Safari/537.36"
-                ),
-                "Referer": "https://tvc-invdn-com.investing.com/",
-                "Content-Type": "application/json",
-            },
-        )
-        with urlopen(request, timeout=self._timeout) as response:
-            return json.loads(response.read().decode("utf-8"))
+        try:
+            return yf.download(
+                tickers=tickers,
+                start=start,
+                end=end,
+                interval="1d",
+                progress=False,
+                auto_adjust=False,
+                timeout=self._timeout,
+            )
+        except Exception as e:
+            raise MarketDataUnavailableError(f"YFinance indirme hatasi: {e}") from e
 
     def get_closing_price(self, stock_id: int, ticker: str, price_date: date):
         return self._price_client.get_closing_price(ticker=ticker, price_date=price_date)

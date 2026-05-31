@@ -73,7 +73,11 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm(trade)
             session.add(orm_obj)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
             session.refresh(orm_obj)
             return self._to_domain(orm_obj)
 
@@ -84,7 +88,11 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
         with self._provider.get_session() as session:
             orm_objs = [self._to_orm(t) for t in trades_list]
             session.add_all(orm_objs)
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     def update_trade(self, trade: Trade) -> None:
         if trade.id is None:
@@ -99,19 +107,31 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             orm_obj.side = trade.side.value
             orm_obj.quantity = trade.quantity
             orm_obj.price = trade.price
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     def delete_trade(self, trade_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMTrade).filter_by(id=trade_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                session.commit()
+                try:
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
 
     def delete_all_trades(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMTrade).delete()
-            session.commit()
+            try:
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
 
     def get_first_trade_date(self) -> Optional[date]:
         with self._provider.get_session() as session:
