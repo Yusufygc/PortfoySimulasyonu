@@ -35,6 +35,7 @@ class AIPage(QWidget):
         
         # Paneller arası iletişimi (Faz 4) kur
         self.left_panel.send_to_chat_requested.connect(self.right_panel.receive_system_message)
+        self.left_panel.connection_dropped.connect(self._on_connection_dropped)
         
         # Genişlik oranları (55 - 45)
         self.splitter.setSizes([580, 420])
@@ -50,10 +51,10 @@ class AIPage(QWidget):
             return
         self._connection_in_progress = True
         self.left_panel.set_connection_checking()
-        worker = Worker(self.left_panel.probe_connection)
-        worker.signals.result.connect(self._on_ai_connection_result)
-        worker.signals.error.connect(self._on_ai_connection_error)
-        QThreadPool.globalInstance().start(worker)
+        self._connection_worker = Worker(self.left_panel.probe_connection)
+        self._connection_worker.signals.result.connect(self._on_ai_connection_result)
+        self._connection_worker.signals.error.connect(self._on_ai_connection_error)
+        QThreadPool.globalInstance().start(self._connection_worker)
 
     def _on_ai_connection_result(self, ok):
         self._connection_in_progress = False
@@ -64,3 +65,7 @@ class AIPage(QWidget):
         self._connection_in_progress = False
         self._is_ai_connected = False
         self.left_panel.apply_connection_result(False)
+
+    def _on_connection_dropped(self):
+        """ModelPanel sunucuya erişemeyince emitler; bir sonraki ziyarette re-probe yapılır."""
+        self._is_ai_connected = False
