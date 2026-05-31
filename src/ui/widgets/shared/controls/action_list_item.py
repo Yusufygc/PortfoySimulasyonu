@@ -13,16 +13,22 @@ class ActionListItem(QWidget):
     edit_requested = pyqtSignal()
     delete_requested = pyqtSignal()
 
-    def __init__(self, text: str, parent=None):
+    def __init__(self, text: str, draggable: bool = False, parent=None):
         super().__init__(parent)
         self.setObjectName("actionListItem")
         self.setAttribute(Qt.WA_StyledBackground, False)
         self.setAutoFillBackground(False)
-        # Stil QSS'te: shared/lists.qss QWidget#actionListItem { background: transparent; }
+        self._draggable = draggable
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
+
+        if self._draggable:
+            from src.ui.widgets.shared.controls.icon_label import IconLabel
+            self.drag_handle = IconLabel("grip-vertical", color="@COLOR_TEXT_MUTED", size=16)
+            self.drag_handle.setCursor(Qt.OpenHandCursor)
+            layout.addWidget(self.drag_handle, 0, Qt.AlignVCenter)
 
         self.label = QLabel(text)
         self.label.setTextInteractionFlags(Qt.NoTextInteraction)
