@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+
 from src.application.services.analysis import AllocationRiskDTO
 from src.ui.widgets.shared import InfoCard
 
-from .analysis_chart_engine import AnalysisChartEngine
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from .chart_builder import build_pie_chart
 
 
 def _fmt_pct(value: float | None) -> str:
@@ -37,8 +39,10 @@ class AnalysisRiskSection(QWidget):
 
         charts_row = QHBoxLayout()
         charts_row.setSpacing(15)
-        self.cost_chart = AnalysisChartEngine(show_toolbar=False)
-        self.value_chart = AnalysisChartEngine(show_toolbar=False)
+        self.cost_chart = QWebEngineView()
+        self.value_chart = QWebEngineView()
+        self.cost_chart.setMinimumHeight(400)
+        self.value_chart.setMinimumHeight(400)
         charts_row.addWidget(self.cost_chart, 1)
         charts_row.addWidget(self.value_chart, 1)
         layout.addLayout(charts_row)
@@ -46,8 +50,8 @@ class AnalysisRiskSection(QWidget):
     def set_error(self, message: str) -> None:
         self.warning_banner.setText(message)
         self.warning_banner.show()
-        self.cost_chart.draw_empty_chart(message)
-        self.value_chart.draw_empty_chart(message)
+        self.cost_chart.setHtml(f"<div style='color:white; text-align:center; padding-top:150px;'>{message}</div>")
+        self.value_chart.setHtml(f"<div style='color:white; text-align:center; padding-top:150px;'>{message}</div>")
 
     def set_data(self, dto: AllocationRiskDTO) -> None:
         if dto.warnings:
@@ -61,7 +65,17 @@ class AnalysisRiskSection(QWidget):
         self.card_drawdown.set_value(_fmt_pct(dto.max_drawdown_pct))
         self.card_concentration.set_value(dto.concentration_label)
 
-        cost_breakdown = [(item.label, item.cost_value) for item in dto.items if item.cost_value > 0]
-        current_breakdown = [(item.label, item.current_value) for item in dto.items if item.current_value > 0]
-        self.cost_chart.draw_portfolio_pie("Maliyet Bazlı Dağılım", cost_breakdown)
-        self.value_chart.draw_portfolio_pie("Güncel Değer Dağılımı", current_breakdown)
+        cost_breakdown = [(item.label, float(item.cost_value)) for item in dto.items if item.cost_value > 0]
+        current_breakdown = [(item.label, float(item.current_value)) for item in dto.items if item.current_value > 0]
+        
+        if cost_breakdown:
+            fig1 = build_pie_chart("Maliyet Bazlı Dağılım", cost_breakdown)
+            self.cost_chart.setHtml(fig1.to_html(include_plotlyjs="cdn"))
+        else:
+            self.cost_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Maliyet verisi yok</div>")
+            
+        if current_breakdown:
+            fig2 = build_pie_chart("Güncel Değer Dağılımı", current_breakdown)
+            self.value_chart.setHtml(fig2.to_html(include_plotlyjs="cdn"))
+        else:
+            self.value_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Değer verisi yok</div>")

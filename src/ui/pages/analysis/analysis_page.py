@@ -176,7 +176,6 @@ class AnalysisPage(BasePage):
         earliest = self.analysis_service.get_first_trade_date_for_source(source) or (date.today() - timedelta(days=365))
         self.control_panel.set_earliest_date(earliest)
         self.control_panel.set_comparison_portfolios(self.analysis_service.get_portfolio_options())
-
     def _on_source_changed(self, _source: str) -> None:
         self._sync_source_context()
 
@@ -189,6 +188,7 @@ class AnalysisPage(BasePage):
             selected_benchmarks=self.control_panel.selected_benchmarks(),
             portfolio_source=self.control_panel.selected_portfolio_source() or "dashboard",
             comparison_portfolio_sources=self.control_panel.selected_comparison_sources(),
+            currency_mode=self.control_panel.selected_currency_mode(),
         )
 
     def _request_refresh(self) -> None:

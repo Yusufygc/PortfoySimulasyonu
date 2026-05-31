@@ -59,6 +59,11 @@ class AnalysisControlPanel(QFrame):
             )
         )
 
+        self.combo_currency = self._create_combo_box("Para Birimi")
+        self.combo_currency.addItems(["TL", "USD", "REAL (TÜFE Düzeltilmiş)"])
+        self.combo_currency.currentIndexChanged.connect(self.filter_changed.emit)
+        layout.addWidget(self._wrap_field("Para Birimi", self.combo_currency, "Analiz verilerini hesaplama birimi."))
+
         self.stock_combo = CheckableComboBox("Hisse se\u00e7in")
         self.stock_combo.selection_changed.connect(self.filter_changed.emit)
         layout.addWidget(
@@ -178,6 +183,14 @@ class AnalysisControlPanel(QFrame):
 
     def selected_comparison_sources(self) -> List[str]:
         return self.compare_combo.selected_data()
+
+    def selected_currency_mode(self) -> str:
+        idx = self.combo_currency.currentIndex()
+        if idx == 1:
+            return "USD"
+        elif idx == 2:
+            return "REAL"
+        return "TL"
 
     def selected_stock_ids(self) -> List[int]:
         return [int(value) for value in self.stock_combo.selected_data()]

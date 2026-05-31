@@ -4,14 +4,16 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict
 
-from PyQt5.QtWidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget, QSizePolicy
 
 from src.application.services.analysis import ComparisonViewDTO
 from src.ui.formatters import display_ticker
 from src.ui.widgets.shared import MetricCard
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
-from .analysis_chart_engine import AnalysisChartEngine
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+import pandas as pd
+from .chart_builder import build_performance_line_chart_v2
 
 
 class AnalysisComparisonSection(QWidget):
@@ -67,13 +69,15 @@ class AnalysisComparisonSection(QWidget):
         self.metrics_layout.setSpacing(15)
         layout.addLayout(self.metrics_layout)
 
-        self.chart_engine = AnalysisChartEngine(show_toolbar=True)
+        self.chart_engine = QWebEngineView()
+        self.chart_engine.setMinimumHeight(500)
+        self.chart_engine.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(self.chart_engine)
 
     def set_error(self, message: str) -> None:
         self.warning_banner.setText(message)
         self.warning_banner.show()
-        self.chart_engine.draw_empty_chart(message)
+        self.chart_engine.setHtml(f"<div style='color:white; text-align:center; padding-top:200px;'>{message}</div>")
 
     def set_data(self, dto: ComparisonViewDTO) -> None:
         self._dto = dto
@@ -104,76 +108,107 @@ class AnalysisComparisonSection(QWidget):
 
     def _redraw_chart(self) -> None:
         if self._dto is None:
-            self.chart_engine.draw_empty_chart("Karşılaştırma verisi bekleniyor.")
+            self.chart_engine.setHtml("<div style='color:white; text-align:center; padding-top:200px;'>Karşılaştırma verisi bekleniyor.</div>")
             return
 
         mode = self.combo_mode.currentData()
+        
+        # Convert dict to pd.Series for Plotly builder
+        if not self._dto.portfolio_series:
+            self.chart_engine.setHtml("<div style='color:white; text-align:center; padding-top:200px;'>Portföy verisi bulunamadı.</div>")
+            return
+            
+        p_series = pd.Series({pd.Timestamp(d): float(v) for d, v in self._dto.portfolio_series.items()})
+        p_series.name = "Portföy"
+        
+        currency_label = "TL/USD/REAL" # TODO: get this from DTO
+        
         if mode == self.MODE_PORTFOLIO:
-            series_map: Dict[str, Dict[date, Decimal | float]] = {self._dto.current_portfolio_label: self._dto.portfolio_series}
+            b_data = {}
             for benchmark in self._dto.benchmark_series:
-                series_map[benchmark.label] = benchmark.points
-            self.chart_engine.draw_line_series(
+                b_data[benchmark.label] = {pd.Timestamp(d): float(v) for d, v in benchmark.points.items()}
+            b_df = pd.DataFrame(b_data)
+            
+            fig = build_performance_line_chart_v2(
+                portfolio_series=p_series,
+                benchmark_series=b_df,
+                currency_label=currency_label,
                 title="Portföy ve Benchmark Karşılaştırması",
-                y_label="Normalize Değer",
-                series_map=series_map,
-                normalize=True,
-                baseline=100,
             )
+            self._set_fig_to_view(fig)
+            
         elif mode == self.MODE_PORTFOLIOS:
-            series_map = {self._dto.current_portfolio_label: self._dto.portfolio_series}
+            b_data = {}
             for portfolio in self._dto.comparison_portfolios:
-                series_map[portfolio.label] = portfolio.points
-            self.chart_engine.draw_line_series(
+                b_data[portfolio.label] = {pd.Timestamp(d): float(v) for d, v in portfolio.points.items()}
+            b_df = pd.DataFrame(b_data)
+            
+            fig = build_performance_line_chart_v2(
+                portfolio_series=p_series,
+                benchmark_series=b_df,
+                currency_label=currency_label,
                 title="Portföyler Arası Karşılaştırma",
-                y_label="Normalize Değer",
-                series_map=series_map,
-                normalize=True,
-                baseline=100,
             )
+            self._set_fig_to_view(fig)
+            
         elif mode == self.MODE_STOCKS:
-            series_map = {self._dto.current_portfolio_label: self._dto.portfolio_series}
-            series_map.update(self._dto.stock_series)
-            self.chart_engine.draw_line_series(
+            b_data = {}
+            for label, series in self._dto.stock_series.items():
+                b_data[display_ticker(label)] = {pd.Timestamp(d): float(v) for d, v in series.items()}
+            b_df = pd.DataFrame(b_data)
+            
+            fig = build_performance_line_chart_v2(
+                portfolio_series=p_series,
+                benchmark_series=b_df,
+                currency_label=currency_label,
                 title="Seçili Hisseler ve Portföy",
-                y_label="Normalize Değer",
-                series_map=series_map,
-                normalize=True,
-                baseline=100,
             )
+            self._set_fig_to_view(fig)
+            
         elif mode == self.MODE_STOCKS_ONLY:
-            series_map = dict(self._dto.stock_series)
-            if not series_map:
-                self.chart_engine.draw_empty_chart("Karşılaştırılacak hisse verisi bulunamadı.")
+            if not self._dto.stock_series:
+                self.chart_engine.setHtml("<div style='color:white; text-align:center; padding-top:200px;'>Hisse verisi bulunamadı.</div>")
                 return
-            title = (
-                "Seçili Hisseler Karşılaştırması"
-                if len(series_map) > 1
-                else f"{display_ticker(next(iter(series_map)))} Performansı"
+            b_data = {}
+            for label, series in self._dto.stock_series.items():
+                b_data[display_ticker(label)] = {pd.Timestamp(d): float(v) for d, v in series.items()}
+            b_df = pd.DataFrame(b_data)
+            
+            fig = build_performance_line_chart_v2(
+                portfolio_series=None,
+                benchmark_series=b_df,
+                currency_label=currency_label,
+                title="Seçili Hisseler Karşılaştırması",
             )
-            self.chart_engine.draw_line_series(
-                title=title,
-                y_label="Normalize Değer",
-                series_map=series_map,
-                normalize=True,
-                baseline=100,
-            )
+            self._set_fig_to_view(fig)
+            
         else:
-            series_map = {}
+            # MODE_RELATIVE
+            b_data = {}
             for benchmark in self._dto.benchmark_series:
                 aligned = self._build_relative_gap_series(self._dto.portfolio_series, benchmark.points)
                 if aligned:
-                    series_map[f"{self._dto.current_portfolio_label} - {benchmark.label}"] = aligned
+                    b_data[f"{self._dto.current_portfolio_label} - {benchmark.label}"] = {pd.Timestamp(d): float(v) for d, v in aligned.items()}
+                    
             for portfolio in self._dto.comparison_portfolios:
                 aligned = self._build_relative_gap_series(self._dto.portfolio_series, portfolio.points)
                 if aligned:
-                    series_map[f"{self._dto.current_portfolio_label} - {portfolio.label}"] = aligned
-            self.chart_engine.draw_line_series(
+                    b_data[f"{self._dto.current_portfolio_label} - {portfolio.label}"] = {pd.Timestamp(d): float(v) for d, v in aligned.items()}
+                    
+            b_df = pd.DataFrame(b_data)
+            fig = build_performance_line_chart_v2(
+                portfolio_series=None,
+                benchmark_series=b_df,
+                currency_label="Fark (%)",
                 title="Göreli Fark Karşılaştırması",
-                y_label="Fark (%)",
-                series_map=series_map,
-                normalize=False,
-                baseline=0,
             )
+            # Override baseline since it's gap
+            fig.update_yaxes(title_text="Fark (%)")
+            self._set_fig_to_view(fig)
+
+    def _set_fig_to_view(self, fig):
+        html = fig.to_html(include_plotlyjs="cdn")
+        self.chart_engine.setHtml(html)
 
     def _build_relative_gap_series(
         self,
@@ -202,4 +237,6 @@ class AnalysisComparisonSection(QWidget):
             "PNG Dosyası (*.png);;PDF Dosyası (*.pdf);;SVG Dosyası (*.svg)",
         )
         if file_path:
-            self.chart_engine.save_chart(file_path)
+            # QWebEngineView save functionality requires calling page().printToPdf or snapshot.
+            # For simplicity here, we could take a widget grab
+            self.chart_engine.grab().save(file_path)
