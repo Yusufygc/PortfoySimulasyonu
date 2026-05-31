@@ -74,7 +74,7 @@ class AnalysisPage(BasePage):
 
         self.btn_refresh = AnimatedButton("Analizi Yenile")
         self.btn_refresh.setProperty("cssClass", "secondaryButton")
-        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
+        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY", size=24)
         self.btn_refresh.clicked.connect(self.refresh_data)
         header_layout.addWidget(self.btn_refresh)
         left_layout.addLayout(header_layout)
