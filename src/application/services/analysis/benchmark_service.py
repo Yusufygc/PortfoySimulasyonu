@@ -6,6 +6,8 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Sequence
 
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
+from src.infrastructure.market_data.evds_client import EvdsClient
+from datetime import datetime
 
 from .models import BenchmarkDefinition, BenchmarkSeries
 
@@ -13,23 +15,27 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysisBenchmarkService:
-    DEFAULT_BENCHMARK_CODES = ["bist100", "gold", "usd", "deposit"]
+    DEFAULT_BENCHMARK_CODES = ["bist100", "gold", "silver", "usd", "euro", "deposit", "cpi"]
     TROY_OUNCE_GRAMS = Decimal("31.1034768")
-    DEPOSIT_RATE_TICKERS: Sequence[str] = ("TCMB_TRY_DEPOSIT_3M",)
     MARKET_BENCHMARK_CANDIDATES: Dict[str, Sequence[str]] = {
         "bist100": ("XU100.IS", "^XU100"),
         "usd": ("TRY=X", "USDTRY=X"),
+        "euro": ("EURTRY=X",),
     }
-    GOLD_DIRECT_TICKERS: Sequence[str] = ("XAUTRY=X",)
     GOLD_USD_TICKERS: Sequence[str] = ("XAUUSD=X", "GC=F")
+    SILVER_USD_TICKERS: Sequence[str] = ("XAGUSD=X", "SI=F")
 
-    def __init__(self, market_data_client: IMarketDataClient) -> None:
+    def __init__(self, market_data_client: IMarketDataClient, evds_client: EvdsClient = None) -> None:
         self._market_data_client = market_data_client
+        self._evds_client = evds_client
         self._benchmarks: Dict[str, BenchmarkDefinition] = {
             "bist100": BenchmarkDefinition("bist100", "BIST 100", "market", "XU100.IS"),
             "gold": BenchmarkDefinition("gold", "Gram Altın", "market", "XAUTRY=X"),
+            "silver": BenchmarkDefinition("silver", "Gram Gümüş", "market", "XAGTRY=X"),
             "usd": BenchmarkDefinition("usd", "USD/TRY", "market", "TRY=X"),
-            "deposit": BenchmarkDefinition("deposit", "Mevduat Faizi", "market", "TCMB_TRY_DEPOSIT_3M"),
+            "euro": BenchmarkDefinition("euro", "EUR/TRY", "market", "EURTRY=X"),
+            "deposit": BenchmarkDefinition("deposit", "Mevduat Faizi", "market", "TP.KTF10"),
+            "cpi": BenchmarkDefinition("cpi", "TÜFE", "market", "TP.FG.J0"),
         }
 
     def get_benchmark_definitions(self) -> List[BenchmarkDefinition]:
@@ -50,8 +56,12 @@ class AnalysisBenchmarkService:
             try:
                 if definition.code == "deposit":
                     points = self._build_deposit_series(start_date, end_date)
+                elif definition.code == "cpi":
+                    points = self._build_cpi_series(start_date, end_date)
                 elif definition.code == "gold":
-                    points = self._build_gold_series(start_date, end_date)
+                    points = self._build_precious_metal_series(self.GOLD_USD_TICKERS, start_date, end_date)
+                elif definition.code == "silver":
+                    points = self._build_precious_metal_series(self.SILVER_USD_TICKERS, start_date, end_date)
                 else:
                     points = self._build_market_series(definition, start_date, end_date)
             except Exception:
@@ -71,26 +81,35 @@ class AnalysisBenchmarkService:
     ) -> Dict[date, Decimal]:
         candidates = self._get_market_ticker_candidates(definition)
         points, _ = self._fetch_first_available_market_series(candidates, start_date, end_date)
-        return points
+        return self._ffill_series(points, start_date, end_date)
 
-    def _build_gold_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
-        direct_series, _ = self._fetch_first_available_market_series(self.GOLD_DIRECT_TICKERS, start_date, end_date)
-        if direct_series:
-            return self._convert_ounce_try_to_gram_try(direct_series)
+    def _ffill_series(self, series: Dict[date, Decimal], start_date: date, end_date: date) -> Dict[date, Decimal]:
+        if not series:
+            return {}
+        result = {}
+        last_val = series.get(start_date) or series[min(series.keys())]
+        current_day = start_date
+        while current_day <= end_date:
+            if current_day in series:
+                last_val = series[current_day]
+            result[current_day] = last_val
+            current_day += timedelta(days=1)
+        return result
 
-        gold_usd_series, _ = self._fetch_first_available_market_series(self.GOLD_USD_TICKERS, start_date, end_date)
-        if not gold_usd_series:
+    def _build_precious_metal_series(self, usd_tickers: Sequence[str], start_date: date, end_date: date) -> Dict[date, Decimal]:
+        metal_usd_series, _ = self._fetch_first_available_market_series(usd_tickers, start_date, end_date)
+        if not metal_usd_series:
             return {}
 
         usd_definition = self._benchmarks.get("usd")
         usd_candidates = self._get_market_ticker_candidates(usd_definition) if usd_definition is not None else []
         usd_try_series, _ = self._fetch_first_available_market_series(usd_candidates, start_date, end_date)
         if usd_try_series:
-            combined = self._combine_series_by_date(gold_usd_series, usd_try_series)
+            combined = self._combine_series_by_date(metal_usd_series, usd_try_series)
             if combined:
-                return self._convert_ounce_try_to_gram_try(combined)
+                return self._ffill_series(self._convert_ounce_try_to_gram_try(combined), start_date, end_date)
 
-        return self._convert_ounce_try_to_gram_try(gold_usd_series)
+        return self._ffill_series(self._convert_ounce_try_to_gram_try(metal_usd_series), start_date, end_date)
 
     def _get_market_ticker_candidates(self, definition: BenchmarkDefinition | None) -> List[str]:
         if definition is None:
@@ -138,7 +157,28 @@ class AnalysisBenchmarkService:
         }
 
     def _build_deposit_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
-        rate_series, _ = self._fetch_first_available_market_series(self.DEPOSIT_RATE_TICKERS, start_date, end_date)
+        if not self._evds_client:
+            return {}
+            
+        # 1 Ay oncesinden baslayalim ki ilk oran kesin bulunsun
+        fetch_start = start_date - timedelta(days=30)
+        try:
+            items = self._evds_client.get_series("TP.KTF10", fetch_start, end_date)
+        except Exception as e:
+            logger.error(f"EVDS Mevduat verisi cekilemedi: {e}")
+            return {}
+
+        rate_series: Dict[date, Decimal] = {}
+        for item in items:
+            dt_str = item.get("Tarih")
+            val_str = item.get("TP_KTF10")
+            if dt_str and val_str is not None:
+                try:
+                    dt = datetime.strptime(dt_str, "%d-%m-%Y").date()
+                    rate_series[dt] = Decimal(str(val_str))
+                except (ValueError, TypeError):
+                    continue
+
         if not rate_series:
             return {}
 
@@ -152,11 +192,68 @@ class AnalysisBenchmarkService:
             while rate_idx < len(rate_items) and rate_items[rate_idx][0] <= current_day:
                 current_rate = rate_items[rate_idx][1]
                 rate_idx += 1
-            if current_rate is None:
+                
+            if current_rate is None and result:
+                current_rate = Decimal("30.0") # Fallback
+                
+            if current_rate is not None:
                 result[current_day] = value
-            else:
-                result[current_day] = value
+                # Basit günlük bilesik getiri
                 daily_rate = (current_rate / Decimal("100")) / Decimal("365")
                 value = value * (Decimal("1") + daily_rate)
             current_day += timedelta(days=1)
+        return result
+
+    def _build_cpi_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
+        if not self._evds_client:
+            return {}
+            
+        # TUFE verisi aylik gelir, endeksi yakalamak icin 2 ay oncesine gidelim
+        fetch_start = start_date - timedelta(days=60)
+        try:
+            items = self._evds_client.get_series("TP.FG.J0", fetch_start, end_date)
+        except Exception as e:
+            logger.error(f"EVDS TUFE verisi cekilemedi: {e}")
+            return {}
+
+        cpi_series: Dict[date, Decimal] = {}
+        for item in items:
+            dt_str = item.get("Tarih")
+            val_str = item.get("TP_FG_J0")
+            if dt_str and val_str is not None:
+                try:
+                    # '2023-01' gibi gelebilir ya da '01-2023'. EVDS aylik veride 'YYYY-MM' dönebilir.
+                    # Aslinda get_series ile cektigimizde '01-2023' formati da gelebiliyor.
+                    if "-" in dt_str and len(dt_str) == 7: # YYYY-MM veya MM-YYYY
+                        parts = dt_str.split("-")
+                        if len(parts[0]) == 4:
+                            dt = date(int(parts[0]), int(parts[1]), 1)
+                        else:
+                            dt = date(int(parts[1]), int(parts[0]), 1)
+                    else:
+                        dt = datetime.strptime(dt_str, "%d-%m-%Y").date()
+                        dt = dt.replace(day=1)
+                    cpi_series[dt] = Decimal(str(val_str))
+                except (ValueError, TypeError):
+                    continue
+
+        if not cpi_series:
+            return {}
+
+        result: Dict[date, Decimal] = {}
+        cpi_items = sorted(cpi_series.items())
+        cpi_idx = 0
+        current_cpi: Decimal | None = None
+        
+        current_day = start_date
+        while current_day <= end_date:
+            # Ffill yaklasimi ile son aciklanan ayin verisini al
+            while cpi_idx < len(cpi_items) and cpi_items[cpi_idx][0] <= current_day:
+                current_cpi = cpi_items[cpi_idx][1]
+                cpi_idx += 1
+                
+            if current_cpi is not None:
+                result[current_day] = current_cpi
+            current_day += timedelta(days=1)
+            
         return result

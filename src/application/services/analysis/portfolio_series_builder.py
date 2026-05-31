@@ -7,6 +7,8 @@ from typing import Dict, Iterable, List, Sequence
 from src.domain.models.portfolio import Portfolio
 from src.domain.models.position import Position
 from src.domain.models.trade import Trade
+from src.domain.models.trade import Trade
+from src.domain.models.cash_movement import CashMovement, CashMovementType
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 
@@ -29,6 +31,7 @@ class PortfolioSeriesBuilder:
     def compute_portfolio_series(
         self,
         trades: List[Trade],
+        cash_movements: List[CashMovement],
         stock_ids: Sequence[int],
         ticker_map: Dict[int, str],
         start_date: date,
@@ -54,23 +57,61 @@ class PortfolioSeriesBuilder:
                 warnings.append(f"{ticker_map.get(stock_id, str(stock_id))} icin tarih araliginda fiyat verisi bulunamadi.")
 
         trades_before = [trade for trade in trades if trade.trade_date < start_date and trade.stock_id in stock_ids]
+        cash_before = [cm for cm in cash_movements if cm.movement_date < start_date]
+        
         current_positions = {
             stock_id: Position.from_trades(stock_id, [trade for trade in trades_before if trade.stock_id == stock_id])
             for stock_id in stock_ids
         }
+        
+        # Baslangic nakit bakiyesi
+        current_cash = Decimal("0")
+        for cm in cash_before:
+            if cm.type == CashMovementType.DEPOSIT:
+                current_cash += cm.amount
+            elif cm.type == CashMovementType.WITHDRAW:
+                current_cash -= cm.amount
+                
+        # Gecmis islemlerden dogan nakit etkileri
+        for t in trades_before:
+            trade_value = t.quantity * t.price
+            if t.trade_type.name == "BUY":
+                current_cash -= trade_value
+            elif t.trade_type.name == "SELL":
+                current_cash += trade_value
+
         trades_by_date: Dict[date, List[Trade]] = {}
         for trade in trades:
             if trade.stock_id not in stock_ids:
                 continue
             if start_date <= trade.trade_date <= end_date:
                 trades_by_date.setdefault(trade.trade_date, []).append(trade)
+                
+        cash_by_date: Dict[date, List[CashMovement]] = {}
+        for cm in cash_movements:
+            if start_date <= cm.movement_date <= end_date:
+                cash_by_date.setdefault(cm.movement_date, []).append(cm)
 
         portfolio_series: Dict[date, Decimal] = {}
         current_day = start_date
         while current_day <= end_date:
+            # Gunluk nakit hareketlerini iske
+            for cm in sorted(cash_by_date.get(current_day, []), key=lambda item: item.movement_time or time.min):
+                if cm.type == CashMovementType.DEPOSIT:
+                    current_cash += cm.amount
+                elif cm.type == CashMovementType.WITHDRAW:
+                    current_cash -= cm.amount
+            
+            # Gunluk hisse islemlerini isle
             for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
                 current_positions[trade.stock_id].apply_trade(trade)
-            total_value = Decimal("0")
+                trade_value = trade.quantity * trade.price
+                if trade.trade_type.name == "BUY":
+                    current_cash -= trade_value
+                elif trade.trade_type.name == "SELL":
+                    current_cash += trade_value
+                    
+            total_value = current_cash
             for stock_id in stock_ids:
                 day_price = prices_by_stock[stock_id].get(current_day)
                 if day_price is not None:

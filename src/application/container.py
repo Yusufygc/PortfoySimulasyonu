@@ -12,6 +12,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_model_portfolio_repository
 from src.infrastructure.db.sqlalchemy.repositories.sa_planning_repository import SQLAlchemyPlanningRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_risk_profile_repository import SQLAlchemyRiskProfileRepository
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
+from src.infrastructure.market_data.evds_client import EvdsClient
 
 from src.application.services.market.price_lookup_service import PriceLookupService
 from src.application.services.market.price_data_health_service import PriceDataHealthService
@@ -70,6 +71,7 @@ class AppContainer:
 
         # 3) Market data client
         self.market_client = YFinanceMarketDataClient()
+        self.evds_client = EvdsClient()
         self.price_lookup_service = PriceLookupService()
         self.bist_market_session_service = BistMarketSessionService()
         self.db_integrity_service = DatabaseIntegrityService(self.conn_provider)
@@ -109,6 +111,8 @@ class AppContainer:
             price_repo=self.price_repo,
             stock_repo=self.stock_repo,
             market_data_client=self.market_client,
+            evds_client=self.evds_client,
+            cash_movement_repo=self.cash_movement_repo,
             model_portfolio_service=self.model_portfolio_service,
         )
         self.reset_service = PortfolioResetService(

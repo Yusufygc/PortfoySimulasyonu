@@ -14,6 +14,7 @@ class AnalysisFilterState:
     selected_benchmarks: List[str] = field(default_factory=list)
     portfolio_source: str = "dashboard"
     comparison_portfolio_sources: List[str] = field(default_factory=list)
+    currency_mode: str = "TL"
 
 
 @dataclass(frozen=True)

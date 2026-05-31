@@ -9,7 +9,9 @@ from src.application.services.portfolio.safe_portfolio_builder import build_port
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
+from src.domain.ports.repositories.i_cash_movement_repo import ICashMovementRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
+from src.infrastructure.market_data.evds_client import EvdsClient
 
 from .benchmark_service import AnalysisBenchmarkService
 from .models import (
@@ -41,9 +43,12 @@ class AnalysisService:
         price_repo: IPriceRepository,
         stock_repo: IStockRepository,
         market_data_client: IMarketDataClient,
+        evds_client: EvdsClient = None,
+        cash_movement_repo: Optional[ICashMovementRepository] = None,
         model_portfolio_service=None,
     ) -> None:
         self._stock_repo = stock_repo
+        self._cash_movement_repo = cash_movement_repo
         self._source_resolver = AnalysisSourceResolver(
             portfolio_repo=portfolio_repo,
             stock_repo=stock_repo,
@@ -53,7 +58,10 @@ class AnalysisService:
             price_repo=price_repo,
             stock_repo=stock_repo,
         )
-        self._benchmark_service = AnalysisBenchmarkService(market_data_client=market_data_client)
+        self._benchmark_service = AnalysisBenchmarkService(
+            market_data_client=market_data_client,
+            evds_client=evds_client
+        )
 
     def get_benchmark_definitions(self):
         return self._benchmark_service.get_benchmark_definitions()
@@ -215,20 +223,59 @@ class AnalysisService:
 
         build_result = build_portfolio_safely([trade for trade in scoped_trades if trade.stock_id in stock_ids])
         portfolio = build_result.portfolio
-        portfolio_series, position_values_end, warnings = self._series_builder.compute_portfolio_series(
+        
+        cash_movements = []
+        if filter_state.portfolio_source == "dashboard" and self._cash_movement_repo:
+            cash_movements = list(self._cash_movement_repo.get_all_movements())
+            
+        portfolio_series, position_values_end, warnings_pb = self._series_builder.compute_portfolio_series(
             build_result.valid_trades,
+            cash_movements,
             stock_ids,
             ticker_map,
             filter_state.start_date,
             filter_state.end_date,
             portfolio,
         )
-        benchmark_series, benchmark_warnings = self._benchmark_service.build_benchmark_series(
+        warnings.extend(warnings_pb)
+
+        # Ensure usd and cpi are requested to be fetched so we can use them for currency conversion
+        needed_benchmarks = list(filter_state.selected_benchmarks)
+        if filter_state.currency_mode == "USD" and "usd" not in needed_benchmarks:
+            needed_benchmarks.append("usd")
+        if filter_state.currency_mode == "REAL" and "cpi" not in needed_benchmarks:
+            needed_benchmarks.append("cpi")
+            
+        benchmark_series_raw, benchmark_warnings = self._benchmark_service.build_benchmark_series(
             filter_state.start_date,
             filter_state.end_date,
-            filter_state.selected_benchmarks,
+            needed_benchmarks,
         )
         warnings.extend(benchmark_warnings)
+
+        usd_series_dict = next((b.points for b in benchmark_series_raw if b.code == "usd"), {})
+        cpi_series_dict = next((b.points for b in benchmark_series_raw if b.code == "cpi"), {})
+
+        # Currency Conversion
+        portfolio_series = self._apply_currency_mode(
+            portfolio_series, filter_state.currency_mode, usd_series_dict, cpi_series_dict, is_normalized=False
+        )
+
+        benchmark_series = []
+        for b in benchmark_series_raw:
+            # We don't want to expose usd or cpi if they weren't explicitly requested by the user
+            if b.code not in filter_state.selected_benchmarks:
+                continue
+            
+            # Convert benchmark series
+            # Deposit rate and CPI are indices starting at 100
+            # Other benchmarks are raw TRY values normalized to 100 in the UI? Wait, currently benchmarks are NOT normalized here!
+            # Let's normalize them here to start at 100 after conversion.
+            converted_points = self._apply_currency_mode(
+                b.points, filter_state.currency_mode, usd_series_dict, cpi_series_dict, is_normalized=True
+            )
+            benchmark_series.append(BenchmarkSeries(code=b.code, label=b.label, points=converted_points))
+
         stock_series, stock_warnings = self._series_builder.build_stock_series(
             stock_ids,
             ticker_map,
@@ -236,6 +283,11 @@ class AnalysisService:
             filter_state.end_date,
         )
         warnings.extend(stock_warnings)
+
+        for sid, s_series in stock_series.items():
+            stock_series[sid] = self._apply_currency_mode(
+                s_series, filter_state.currency_mode, usd_series_dict, cpi_series_dict, is_normalized=False
+            )
 
         for stock_id, value in position_values_end.items():
             if stock_id in portfolio.positions:
@@ -250,7 +302,42 @@ class AnalysisService:
             "end_total_value": end_total_value,
             "warnings": warnings,
             "portfolio_label": portfolio_label,
+            "usd_series_dict": usd_series_dict,
+            "cpi_series_dict": cpi_series_dict,
         }
+
+    def _apply_currency_mode(
+        self, 
+        series: Dict[date, Decimal], 
+        currency_mode: str, 
+        usd_try_series: Dict[date, Decimal], 
+        cpi_series: Dict[date, Decimal],
+        is_normalized: bool = False
+    ) -> Dict[date, Decimal]:
+        if not series or currency_mode == "TL":
+            return series
+            
+        result = {}
+        if currency_mode == "USD":
+            for dt, val in series.items():
+                if dt in usd_try_series and usd_try_series[dt]:
+                    result[dt] = val / usd_try_series[dt]
+        elif currency_mode == "REAL":
+            if not cpi_series:
+                return series
+            base_cpi = cpi_series[min(cpi_series.keys())]
+            if base_cpi == 0:
+                return series
+            for dt, val in series.items():
+                if dt in cpi_series:
+                    result[dt] = val / (cpi_series[dt] / base_cpi)
+                    
+        if is_normalized and result:
+            base_val = result[min(result.keys())]
+            if base_val:
+                result = {dt: (val / base_val) * Decimal("100") for dt, val in result.items()}
+                
+        return result
 
     def _build_comparison_portfolio_series(self, filter_state: AnalysisFilterState) -> List[BenchmarkSeries]:
         results: List[BenchmarkSeries] = []
@@ -265,13 +352,20 @@ class AnalysisService:
             portfolio = build_result.portfolio
             portfolio_series, _, _ = self._series_builder.compute_portfolio_series(
                 build_result.valid_trades,
+                [], # Model portfoylerde nakit yok
                 stock_ids,
                 ticker_map,
                 filter_state.start_date,
                 filter_state.end_date,
                 portfolio,
             )
+            
             if portfolio_series:
+                usd_series = bundle.get("usd_series_dict", {}) if bundle else {}
+                cpi_series = bundle.get("cpi_series_dict", {}) if bundle else {}
+                portfolio_series = self._apply_currency_mode(
+                    portfolio_series, filter_state.currency_mode, usd_series, cpi_series, is_normalized=True
+                )
                 results.append(
                     BenchmarkSeries(
                         code=source_code,
