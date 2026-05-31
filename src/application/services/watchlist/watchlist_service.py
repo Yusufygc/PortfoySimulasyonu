@@ -81,10 +81,31 @@ class WatchlistService:
             id=watchlist_id,
             name=name.strip(),
             description=description.strip() if description else None,
+            sort_order=existing.sort_order,
             created_at=existing.created_at,
             updated_at=existing.updated_at,
         )
         self._watchlist_repo.update_watchlist(updated_watchlist)
+
+    def reorder_watchlists(self, watchlist_ids: List[int]) -> None:
+        """
+        Belirtilen id listesine göre watchlist'lerin sıralamasını günceller.
+        
+        Args:
+            watchlist_ids: Yeni sırayla watchlist ID'leri
+        """
+        for index, w_id in enumerate(watchlist_ids):
+            watchlist = self._watchlist_repo.get_watchlist_by_id(w_id)
+            if watchlist:
+                updated = Watchlist(
+                    id=watchlist.id,
+                    name=watchlist.name,
+                    description=watchlist.description,
+                    sort_order=index,
+                    created_at=watchlist.created_at,
+                    updated_at=watchlist.updated_at,
+                )
+                self._watchlist_repo.update_watchlist(updated)
 
     def delete_watchlist(self, watchlist_id: int) -> None:
         """
