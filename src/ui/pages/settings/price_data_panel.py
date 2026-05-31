@@ -407,7 +407,7 @@ class PriceDataPanel(QWidget):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter if column == 0 else Qt.AlignCenter)
+                item.setTextAlignment(Qt.AlignCenter)
 
                 if column == 0:
                     item.setData(Qt.UserRole, row.stock_id)
