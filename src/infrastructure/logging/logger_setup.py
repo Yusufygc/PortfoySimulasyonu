@@ -44,6 +44,9 @@ def setup_logger():
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
+    # yfinance log kirliliğini engelle (hata durumları kod içinde zaten ele alınıyor)
+    logging.getLogger('yfinance').setLevel(logging.CRITICAL)
+
     return logger
 
 def handle_exception(exc_type, exc_value, exc_traceback):
