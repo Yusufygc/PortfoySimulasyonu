@@ -41,6 +41,12 @@ class FakePortfolioService:
         self.saved_trades.append(trade)
         return trade
 
+    def get_cash_balance(self, as_of=None):
+        return Decimal("1000000")
+
+    def validate_trade(self, trade):
+        pass
+
 
 class FakePortfolioRepo:
     def __init__(self, trades=None):
