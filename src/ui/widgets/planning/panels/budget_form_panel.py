@@ -54,7 +54,7 @@ class _BudgetItemRow(QFrame):
         self.amount_spin.valueChanged.connect(self.changed)
 
         btn_edit = AnimatedButton()
-        btn_edit.setIconName("edit-2", color="@COLOR_TEXT_SECONDARY", size=13)
+        btn_edit.setIconName("pencil", color="@COLOR_TEXT_SECONDARY", size=13)
         btn_edit.setFixedSize(28, 28)
         btn_edit.setProperty("cssClass", "iconButton")
         btn_edit.clicked.connect(lambda: self.name_edit.setFocus())
