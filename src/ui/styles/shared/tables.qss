@@ -34,7 +34,7 @@ QTableWidget[cssClass="dataTable"]::item:hover {
 
 QTableWidget[cssClass="dataTable"] QHeaderView::section {
     background-color: @COLOR_BG_BASE;
-    color: @COLOR_TEXT_MUTED;
+    color: @COLOR_TEXT_PRIMARY;
     padding: @SPACE_MD;
     border: none;
     border-bottom: 2px solid @COLOR_BORDER;
