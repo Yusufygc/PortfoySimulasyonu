@@ -115,6 +115,12 @@ class FakePortfolioService:
         self.saved_trades.append(trade)
         return trade
 
+    def get_cash_balance(self, as_of=None):
+        return Decimal("1000000")
+
+    def validate_trade(self, trade):
+        pass
+
 
 def test_dashboard_and_model_portfolio_reuse_same_stock_for_same_ticker():
     stock_repo = FakeStockRepo()
