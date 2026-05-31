@@ -12,7 +12,7 @@ from PyQt5.QtCore import Qt, QSize
 
 from .base_page import BasePage
 from src.ui.widgets.planning import BudgetFormPanel, ContributionDialog, GoalInputDialog, GoalsPanel
-from src.ui.widgets.shared import AnimatedButton, InfoCard, Toast
+from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 
@@ -99,16 +99,6 @@ class PlanningPage(BasePage):
         top_row.addWidget(btn_save)
         layout.addLayout(top_row)
 
-        # Özet kartları
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(15)
-        self.card_income  = InfoCard("Toplam Gelir",          "₺ 0", icon_name="trending-up")
-        self.card_expense = InfoCard("Toplam Gider",          "₺ 0", icon_name="trending-down")
-        self.card_savings = InfoCard("Tasarruf Potansiyeli",  "₺ 0", icon_name="banknote")
-        for card in (self.card_income, self.card_expense, self.card_savings):
-            cards_row.addWidget(card)
-        layout.addLayout(cards_row)
-
         # Durum mesajı
         self.lbl_budget_status = QLabel("")
         self.lbl_budget_status.setProperty("cssClass", "statusLabelInfo")
@@ -118,8 +108,7 @@ class PlanningPage(BasePage):
 
         # Form paneli (BudgetFormPanel widget'ı)
         self.budget_form = BudgetFormPanel()
-        layout.addWidget(self.budget_form)
-        layout.addStretch()
+        layout.addWidget(self.budget_form, stretch=1)
 
     def _build_goals_tab(self, tab: QWidget) -> None:
         from PyQt5.QtWidgets import QVBoxLayout
@@ -169,25 +158,18 @@ class PlanningPage(BasePage):
         if not month:
             return
         try:
-            budget = self._service.save_budget(month=month, **self.budget_form.get_values())
-            self._update_budget_cards(budget)
+            budget = self.budget_form.get_budget(month)
+            saved = self._service.save_budget(budget)
+            self._update_budget_cards(saved)
             Toast.success(self, f"{month} bütçesi kaydedildi!")
         except Exception as e:
             Toast.error(self, f"Bütçe kaydedilemedi: {e}")
 
     def _update_budget_cards(self, budget) -> None:
-        self.card_income.set_value(f"₺ {budget.total_income:,.2f}")
-        self.card_expense.set_value(f"₺ {budget.total_expense:,.2f}")
-        net = budget.net_savings_potential
-        self.card_savings.set_value(f"₺ {net:,.2f}")
-        self.card_savings.set_value_state("positive" if net >= 0 else "negative")
         self.lbl_budget_status.setText(budget.status_message)
         self.lbl_budget_status.setVisible(True)
 
     def _reset_budget_cards(self) -> None:
-        for card in (self.card_income, self.card_expense, self.card_savings):
-            card.set_value("₺ 0")
-            card.set_value_state("neutral")
         self.lbl_budget_status.setVisible(False)
 
     # ------------------------------------------------------------------

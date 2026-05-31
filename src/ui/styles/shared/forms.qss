@@ -52,7 +52,7 @@ QComboBox[cssClass="customComboBox"] QAbstractItemView::item:selected {
 QDoubleSpinBox[cssClass="customDoubleSpinBox"] {
     background-color: @FORM_BG; color: @FORM_TEXT;
     border: 1px solid @FORM_BORDER; border-radius: @RADIUS_MD;
-    padding: @SPACE_SM; font-size: @FONT_MD;
+    padding: @SPACE_SM; padding-left: 10px; font-size: @FONT_MD;
 }
 QDoubleSpinBox[cssClass="customDoubleSpinBox"]:focus { border: 1px solid @FORM_BORDER_FOCUS; }
 QDoubleSpinBox[cssClass="customDoubleSpinBox"]::up-button,

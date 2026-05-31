@@ -16,3 +16,63 @@ QLabel[cssClass="dangerHeader"] {
 QLabel[cssClass="inputLabel"] {
     color: @COLOR_TEXT_BODY; font-size: @FONT_MD; font-weight: 500;
 }
+
+QLabel[cssClass="dangerHeader"] {
+    margin-top: 2px;
+}
+
+/* -------------------------------------------------------
+   BudgetFormPanel — dinamik kalem satırı ve ikon butonlar
+------------------------------------------------------- */
+QFrame[cssClass="budgetItemRow"] {
+    background-color: @COLOR_BG_SURFACE;
+    border-radius: @RADIUS_MD;
+}
+QFrame[cssClass="budgetItemRow"]:hover {
+    background-color: @COLOR_BG_ELEVATED;
+}
+
+QPushButton[cssClass="iconButton"] {
+    background: transparent;
+    border: none;
+    border-radius: @RADIUS_SM;
+    padding: 3px;
+}
+QPushButton[cssClass="iconButton"]:hover {
+    background-color: @COLOR_BG_ELEVATED;
+}
+
+QPushButton[cssClass="dangerIconButton"] {
+    background: transparent;
+    border: none;
+    border-radius: @RADIUS_SM;
+    padding: 3px;
+}
+QPushButton[cssClass="dangerIconButton"]:hover {
+    background-color: rgba(239, 68, 68, 0.12);
+}
+
+QFrame[cssClass="verticalSeparator"] {
+    background-color: @COLOR_BORDER;
+    max-width: 1px;
+    min-width: 1px;
+    margin: 0 8px;
+}
+
+QFrame[cssClass="horizontalSeparator"] {
+    background-color: @COLOR_BORDER;
+    max-height: 1px;
+    min-height: 1px;
+    margin: 4px 0;
+}
+
+QTableWidget[cssClass="goalsTable"] QHeaderView::section {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_PRIMARY;
+    font-weight: bold;
+    font-size: @FONT_MD;
+    padding: 10px 8px;
+    border: none;
+    border-bottom: 2px solid @COLOR_PRIMARY;
+    text-transform: uppercase;
+}

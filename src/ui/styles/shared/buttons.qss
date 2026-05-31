@@ -46,7 +46,7 @@ QPushButton[cssClass="primaryButton"]:disabled {
 
 QPushButton[cssClass="dangerOutlineButton"] {
     background-color: transparent; color: @COLOR_DANGER; border: 1px solid @COLOR_DANGER;
-    border-radius: @RADIUS_LG; font-weight: bold; padding: @SPACE_MD 16px; font-size: @FONT_MD;
+    border-radius: @RADIUS_LG; font-weight: bold; padding: 7px 15px; font-size: @FONT_MD;
 }
 QPushButton[cssClass="dangerOutlineButton"]:hover { background-color: @COLOR_DANGER; color: @COLOR_TEXT_WHITE; }
 

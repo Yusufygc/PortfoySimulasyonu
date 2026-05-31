@@ -35,6 +35,7 @@ class DashboardPortfolioTable(QWidget):
         self.table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table_view.setShowGrid(False)
         self.table_view.doubleClicked.connect(self.row_double_clicked.emit)
+        self.table_view.viewport().setCursor(Qt.PointingHandCursor)
 
         # Sağ-tık context menü
         self.table_view.setContextMenuPolicy(Qt.CustomContextMenu)

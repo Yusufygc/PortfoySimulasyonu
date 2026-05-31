@@ -16,9 +16,10 @@ Kullanım:
 """
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFrame
+    QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QSizePolicy
 )
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QColor
 from src.ui.widgets.shared import AnimatedButton
 
 
@@ -31,12 +32,19 @@ class GoalsPanel(QWidget):
     analyze_requested    = pyqtSignal()
 
     _COLUMNS = ["Hedef", "Hedef Tutar", "Biriken", "Kalan Ay", "Aylık Gereken", "İlerleme", "Durum"]
+    _STATUS_TR = {
+        "ACTIVE":    "AKTİF",
+        "COMPLETED": "TAMAMLANDI",
+        "PAUSED":    "DURAKLATILDI",
+        "CANCELLED": "İPTAL",
+    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._init_ui()
 
     def _init_ui(self) -> None:
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
@@ -47,13 +55,13 @@ class GoalsPanel(QWidget):
         self._btn_add = AnimatedButton(" Yeni Hedef")
         self._btn_add.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self._btn_add.setMinimumHeight(38)
-        self._btn_add.setProperty("cssClass", "successButton")
+        self._btn_add.setProperty("cssClass", "primaryButton")
         self._btn_add.clicked.connect(self.add_requested)
 
         self._btn_contribute = AnimatedButton(" Katkı Ekle")
-        self._btn_contribute.setIconName("wallet", color="@COLOR_TEXT_WHITE")
+        self._btn_contribute.setIconName("wallet", color="@COLOR_TEXT_PRIMARY")
         self._btn_contribute.setMinimumHeight(38)
-        self._btn_contribute.setProperty("cssClass", "primaryButton")
+        self._btn_contribute.setProperty("cssClass", "secondaryButton")
         self._btn_contribute.clicked.connect(self._emit_contribute)
 
         self._btn_delete = AnimatedButton(" Sil")
@@ -97,14 +105,20 @@ class GoalsPanel(QWidget):
         self._table = QTableWidget()
         self._table.setColumnCount(len(self._COLUMNS))
         self._table.setHorizontalHeaderLabels(self._COLUMNS)
-        self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        for col in range(1, len(self._COLUMNS)):
-            self._table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeToContents)
+        for col in range(len(self._COLUMNS)):
+            self._table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
+        hh = self._table.horizontalHeader()
+        for col in range(len(self._COLUMNS)):
+            hh.setSectionResizeMode(col, QHeaderView.Stretch)
+        hh.setStretchLastSection(True)
+        hh.setDefaultAlignment(Qt.AlignCenter)
         self._table.setSelectionBehavior(QTableWidget.SelectRows)
         self._table.setAlternatingRowColors(True)
+        self._table.setShowGrid(True)
         self._table.verticalHeader().setVisible(False)
+        self._table.verticalHeader().setDefaultSectionSize(40)
         self._table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self._table.setProperty("cssClass", "dataTable")
+        self._table.setProperty("cssClass", "goalsTable")
         layout.addWidget(self._table)
 
     # ------------------------------------------------------------------
@@ -121,11 +135,11 @@ class GoalsPanel(QWidget):
             self._set_readonly(i, 2, f"₺ {goal.current_amount:,.2f}", Qt.AlignCenter)
 
             months = goal.months_remaining()
-            m_item = QTableWidgetItem(f"{months} ay")
+            m_item = QTableWidgetItem(f"{months}")
             m_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             m_item.setTextAlignment(Qt.AlignCenter)
             if months == 0:
-                m_item.setForeground(Qt.red)
+                m_item.setForeground(QColor("#ef4444"))
             self._table.setItem(i, 3, m_item)
 
             self._set_readonly(i, 4, f"₺ {goal.required_monthly_contribution():,.2f}", Qt.AlignCenter)
@@ -135,16 +149,23 @@ class GoalsPanel(QWidget):
             p_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             p_item.setTextAlignment(Qt.AlignCenter)
             if pct >= 100:
-                p_item.setForeground(Qt.green)
+                p_item.setForeground(QColor("#10b981"))
             elif pct >= 50:
-                p_item.setForeground(Qt.yellow)
+                p_item.setForeground(QColor("#ca8a04"))
             self._table.setItem(i, 5, p_item)
 
-            s_item = QTableWidgetItem(goal.status)
+            status_tr = self._STATUS_TR.get(goal.status, goal.status)
+            s_item = QTableWidgetItem(status_tr)
             s_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             s_item.setTextAlignment(Qt.AlignCenter)
             if goal.status == "COMPLETED":
-                s_item.setForeground(Qt.green)
+                s_item.setForeground(QColor("#10b981"))
+            elif goal.status == "ACTIVE":
+                s_item.setForeground(QColor("#3b82f6"))
+            elif goal.status == "PAUSED":
+                s_item.setForeground(QColor("#ca8a04"))
+            else:
+                s_item.setForeground(QColor("#ef4444"))
             self._table.setItem(i, 6, s_item)
 
     def show_feasibility(self, result: dict) -> None:

@@ -69,3 +69,31 @@ QTableWidget[cssClass="dataTable"] {
 QTableWidget[cssClass="dataTable"]::item {
     padding: 6px 8px;
 }
+
+/* -------------------------------------------------------
+   goalsTable — Hedef Takibi tablosu
+------------------------------------------------------- */
+QTableWidget[cssClass="goalsTable"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_BORDER;
+    gridline-color: @COLOR_BORDER_SUBTLE;
+    outline: none;
+    font-size: @FONT_TABLE_CELL;
+}
+
+QTableWidget[cssClass="goalsTable"]::item {
+    padding: 8px 10px;
+    border: none;
+}
+
+QTableWidget[cssClass="goalsTable"]::item:alternate {
+    background-color: @COLOR_BG_SURFACE;
+}
+
+QTableWidget[cssClass="goalsTable"]::item:selected {
+    background-color: rgba(59, 130, 246, 0.18);
+}
+
+QTableWidget[cssClass="goalsTable"]::item:hover {
+    background-color: @COLOR_BG_SURFACE;
+}
