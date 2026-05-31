@@ -51,14 +51,15 @@ class Position:
     # --------- Pozisyonu trade'lerden oluşturma / güncelleme --------- #
 
     @classmethod
-    def from_trades(cls, stock_id: int, trades: Iterable[Trade]) -> "Position":
+    def from_trades(cls, stock_id: int, trades: Iterable[Trade], is_sorted: bool = False) -> "Position":
         """
         Aynı hisseye ait tüm trade'leri alıp pozisyonu baştan hesaplar.
         (DB'den çekilen datayı Domain'e çevirirken kullanışlı.)
         """
         position = cls(stock_id=stock_id)
 
-        for trade in sorted(trades, key=lambda t: (t.trade_date, t.trade_time or 0)):
+        ordered_trades = trades if is_sorted else sorted(trades, key=lambda t: (t.trade_date, t.trade_time or 0))
+        for trade in ordered_trades:
             position.apply_trade(trade)
 
         return position
