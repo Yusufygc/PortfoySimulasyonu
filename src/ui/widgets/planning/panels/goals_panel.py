@@ -20,7 +20,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
-from src.ui.widgets.shared import AnimatedButton
+from src.ui.widgets.shared import AnimatedButton, Toast
 
 
 class GoalsPanel(QWidget):
@@ -65,9 +65,9 @@ class GoalsPanel(QWidget):
         self._btn_contribute.clicked.connect(self._emit_contribute)
 
         self._btn_delete = AnimatedButton(" Sil")
-        self._btn_delete.setIconName("trash-2", color="@COLOR_DANGER")
+        self._btn_delete.setIconName("trash-2", color="@COLOR_TEXT_WHITE")
         self._btn_delete.setMinimumHeight(38)
-        self._btn_delete.setProperty("cssClass", "dangerOutlineButton")
+        self._btn_delete.setProperty("cssClass", "dangerButton")
         self._btn_delete.clicked.connect(self._emit_delete)
 
         btn_row.addWidget(self._btn_add)
@@ -196,6 +196,8 @@ class GoalsPanel(QWidget):
         goal_id, goal_name = self.current_goal()
         if goal_id is not None:
             self.contribute_requested.emit(goal_id, goal_name)
+        else:
+            Toast.warning(self, "Lütfen önce hedef seçiniz", position="top")
 
     def _emit_delete(self) -> None:
         goal_id, goal_name = self.current_goal()
