@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Dict, List
 
-from PyQt5.QtCore import QDate, pyqtSignal
+from PyQt5.QtCore import QDate, pyqtSignal, Qt
 from PyQt5.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -29,8 +29,8 @@ class AnalysisControlPanel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setProperty("cssClass", "panelFramePadded")
-        self.setMinimumWidth(500)
-        self.setMaximumWidth(560)
+        self.setMinimumWidth(320)
+        self.setMaximumWidth(360)
         self.setMinimumHeight(0)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self._earliest_date = date.today() - timedelta(days=365)
@@ -91,19 +91,39 @@ class AnalysisControlPanel(QFrame):
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
 
-        dates_row.addWidget(self._wrap_field("Ba\u015flang\u0131\u00e7", self.date_start), 1)
-        dates_row.addWidget(self._wrap_field("Biti\u015f", self.date_end), 1)
-        layout.addLayout(dates_row)
+        # Başlangıç ve bitiş tarihlerini tek bir "Tarih Aralığı" kartında birleştiriyoruz
+        dates_frame = QFrame()
+        dates_frame.setProperty("cssClass", "analysisFilterCard")
+        dates_layout = QVBoxLayout(dates_frame)
+        dates_layout.setContentsMargins(15, 15, 15, 15)
+        dates_layout.setSpacing(10)
+
+        dates_title = QLabel("Tarih Aralığı")
+        dates_title.setProperty("cssClass", "panelTitle")
+        dates_layout.addWidget(dates_title)
+
+        pickers_layout = QHBoxLayout()
+        pickers_layout.setSpacing(6)
+        pickers_layout.addWidget(self.date_start, 1)
+        
+        lbl_to = QLabel("—")
+        lbl_to.setAlignment(Qt.AlignCenter)
+        lbl_to.setStyleSheet("color: @COLOR_TEXT_SECONDARY;")
+        pickers_layout.addWidget(lbl_to)
+        
+        pickers_layout.addWidget(self.date_end, 1)
+        dates_layout.addLayout(pickers_layout)
+        layout.addWidget(dates_frame)
 
         quick_row = QHBoxLayout()
-        quick_row.setSpacing(8)
+        quick_row.setSpacing(6)
         for label, days in [("1A", 30), ("3A", 90), ("6A", 180), ("1Y", 365)]:
             button = QPushButton(label)
             button.setProperty("cssClass", "quickDateBtn")
             button.clicked.connect(lambda _, d=days: self._set_quick_date(d))
             quick_row.addWidget(button)
 
-        btn_all = QPushButton("T\u00fcm\u00fc")
+        btn_all = QPushButton("Tümü")
         btn_all.setProperty("cssClass", "quickDateBtn")
         btn_all.clicked.connect(self._set_all_time)
         quick_row.addWidget(btn_all)

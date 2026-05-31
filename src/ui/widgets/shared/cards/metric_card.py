@@ -64,7 +64,7 @@ class MetricCard(QFrame):
         lbl_opt_label = QLabel("Optimal:")
         lbl_opt_label.setProperty("cssClass", "infoCardDetail")
         self._lbl_optimal = QLabel("—")
-        self._lbl_optimal.setProperty("cssClass", "infoCardValueMedium")
+        self._lbl_optimal.setProperty("cssClass", "infoCardValueSmall")
         self._lbl_optimal.setWordWrap(True)
         row_optimal.addWidget(lbl_opt_label)
         row_optimal.addStretch()
@@ -104,7 +104,7 @@ class MetricCard(QFrame):
         is_good = is_positive if positive_is_good else not is_positive
 
         arrow = "▲" if is_positive else "▼"
-        self._lbl_delta.setText(f"{arrow} {abs(delta):+.2f}")
+        self._lbl_delta.setText(f"{arrow} {delta:+.2f}")
 
         # Renk QSS cssState ile yönetilir, inline setStyleSheet değil
         state = "positive" if is_good else "negative"

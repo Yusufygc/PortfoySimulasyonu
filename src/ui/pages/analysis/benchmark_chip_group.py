@@ -15,7 +15,7 @@ class BenchmarkChipGroup(QFrame):
         super().__init__(parent)
         self.setProperty("cssClass", "benchmarkChipGroup")
         self._buttons: Dict[str, QPushButton] = {}
-        self._column_count = 4
+        self._column_count = 2
 
         self._layout = QGridLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)

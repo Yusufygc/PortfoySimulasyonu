@@ -4,7 +4,8 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict
 
-from PyQt5.QtWidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget, QSizePolicy
+from PyQt5.QtWidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget, QSizePolicy, QScrollArea
+from PyQt5.QtCore import Qt
 
 from src.application.services.analysis import ComparisonViewDTO
 from src.ui.formatters import display_ticker
@@ -13,7 +14,7 @@ from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 import pandas as pd
-from .chart_builder import build_performance_line_chart_v2
+from .chart_builder import build_performance_line_chart_v2, patch_plotly_html
 
 
 class AnalysisComparisonSection(QWidget):
@@ -65,9 +66,24 @@ class AnalysisComparisonSection(QWidget):
         top_layout.addWidget(self.btn_save)
         layout.addWidget(top_panel)
 
-        self.metrics_layout = QHBoxLayout()
-        self.metrics_layout.setSpacing(15)
-        layout.addLayout(self.metrics_layout)
+        # Metrik kartları için yatay kaydırılabilir alan
+        self.metrics_scroll = QScrollArea()
+        self.metrics_scroll.setWidgetResizable(True)
+        self.metrics_scroll.setFrameShape(QFrame.NoFrame)
+        self.metrics_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.metrics_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.metrics_scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.metrics_scroll.setFixedHeight(125) # Kartların sığacağı sabit yükseklik
+        
+        self.metrics_container = QWidget()
+        self.metrics_container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        
+        self.metrics_layout = QHBoxLayout(self.metrics_container)
+        self.metrics_layout.setContentsMargins(0, 0, 0, 0)
+        self.metrics_layout.setSpacing(12)
+        
+        self.metrics_scroll.setWidget(self.metrics_container)
+        layout.addWidget(self.metrics_scroll)
 
         self.chart_engine = QWebEngineView()
         self.chart_engine.setMinimumHeight(500)
@@ -97,13 +113,15 @@ class AnalysisComparisonSection(QWidget):
                 widget.deleteLater()
         for metric in dto.comparison_metrics:
             card = MetricCard(metric.label, icon_name="scale")
+            card.setMinimumWidth(180) # Sıkışmayı önlemek için minimum genişlik veriyoruz
+            card.setMaximumWidth(240)
             card.update(
                 current="—" if metric.portfolio_return_pct is None else f"%{metric.portfolio_return_pct:+.2f}",
                 optimal="—" if metric.benchmark_return_pct is None else f"%{metric.benchmark_return_pct:+.2f}",
                 delta=metric.relative_gap_pct or 0.0,
                 positive_is_good=True,
             )
-            self.metrics_layout.addWidget(card, 1)
+            self.metrics_layout.addWidget(card)
         self.metrics_layout.addStretch()
 
     def _redraw_chart(self) -> None:
@@ -208,7 +226,18 @@ class AnalysisComparisonSection(QWidget):
 
     def _set_fig_to_view(self, fig):
         html = fig.to_html(include_plotlyjs=True)
-        self.chart_engine.setHtml(html)
+        html = patch_plotly_html(html)
+        if not hasattr(self, "_temp_file_path") or self._temp_file_path is None:
+            import tempfile
+            f = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
+            self._temp_file_path = f.name
+            f.close()
+            
+        with open(self._temp_file_path, "w", encoding="utf-8") as f:
+            f.write(html)
+            
+        from PyQt5.QtCore import QUrl
+        self.chart_engine.load(QUrl.fromLocalFile(self._temp_file_path))
 
     def _build_relative_gap_series(
         self,

@@ -6,6 +6,18 @@
 
 ---
 
+## [2026-06-01] güncelleme | Analiz Sayfası Arayüz Tasarımı Yenilenmesi ve Yerleşim İyileştirmeleri
+
+- Sağ filtre panelinin genişliği 320px-360px aralığına düşürülerek sol taraftaki grafiğe ekstra 200px çalışma alanı açıldı
+- Karşılaştırma sekmesindeki benchmark metrik kartları yatay kaydırılabilir scroll alanı (InfoCard Carousel) içine alınarak sıkışmalar ve taşmalar tamamen engellendi
+- Tarih kartları "Tarih Aralığı" adı altında yan yana yerleşen birleşik bir yapıya kavuşturuldu, dikey alan tasarrufu sağlandı
+- Benchmark seçim çipleri 4 sütundan 2 sütuna düşürülerek daralan filtre paneline uyumlu hale getirildi
+- MetricCard optimal değer yazı boyutu infoCardValueSmall ile eşitlendi ve negatif delta işareti hatası (örn. ▼ +2.95 yerine ▼ -2.95) düzeltildi
+- Etkilenen dosyalar: `src/ui/widgets/shared/cards/metric_card.py`, `src/ui/pages/analysis/analysis_control_panel.py`, `src/ui/pages/analysis/analysis_comparison_section.py`, `src/ui/pages/analysis/benchmark_chip_group.py`, `tests/ui/pages/test_analysis_page.py`
+- Bağlantılı sayfa: [architecture.md](architecture.md)
+
+---
+
 ## [2026-06-01] güncelleme | EVDS ve YFinance veri akışı entegrasyonu düzeltmeleri
 
 - EVDS API istek rotası yeni EVDS3 `/igmevdsms-dis/` API uç noktasına taşınarak HTTP HTML yönlendirme hatası çözüldü
