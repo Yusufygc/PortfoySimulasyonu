@@ -29,8 +29,8 @@ class EvdsClient:
         start_str = start_date.strftime("%d-%m-%Y")
         end_str = end_date.strftime("%d-%m-%Y")
         
-        # Ornek url format: https://evds3.tcmb.gov.tr/service/evds/series=TP.KTF10&startDate=01-01-2023&endDate=31-12-2023&type=json
-        url = f"https://evds2.tcmb.gov.tr/service/evds/series={series_code}&startDate={start_str}&endDate={end_str}&type=json"
+        # Ornek url format: https://evds3.tcmb.gov.tr/igmevdsms-dis/series=TP.KTF10&startDate=01-01-2023&endDate=31-12-2023&type=json
+        url = f"https://evds3.tcmb.gov.tr/igmevdsms-dis/series={series_code}&startDate={start_str}&endDate={end_str}&type=json"
         
         request = Request(
             url,

@@ -12,7 +12,11 @@ from urllib.request import Request, urlopen
 from uuid import uuid4
 
 import yfinance as yf
-from pandas.errors import Pandas4Warning
+try:
+    from pandas.errors import Pandas4Warning
+except ImportError:
+    class Pandas4Warning(Warning):
+        pass
 
 from src.domain.exceptions import MarketDataUnavailableError
 from .yfinance_price_client import YFinancePriceClient

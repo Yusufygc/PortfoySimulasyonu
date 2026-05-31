@@ -6,6 +6,17 @@
 
 ---
 
+## [2026-06-01] güncelleme | EVDS ve YFinance veri akışı entegrasyonu düzeltmeleri
+
+- EVDS API istek rotası yeni EVDS3 `/igmevdsms-dis/` API uç noktasına taşınarak HTTP HTML yönlendirme hatası çözüldü
+- YFinance `Pandas4Warning` import hatası giderildi ve Python ortamları arası uyumluluk sağlandı
+- YFinance `get_price_series` ve `get_closing_price` içindeki MultiIndex DataFrame yapısı uyumlulaştırıldı, benchmark serilerinin fırlattığı parse hataları giderildi
+- EVDS Deposit ve CPI lookback süreleri genişletilerek veri açıklanma gecikmelerinde (lag) son verinin forward-fill ile korunması sağlandı
+- Etkilenen dosyalar: `src/infrastructure/market_data/evds_client.py`, `src/infrastructure/market_data/yfinance_client.py`, `src/infrastructure/market_data/yfinance_price_client.py`, `src/application/services/analysis/benchmark_service.py`
+- Bağlantılı sayfa: [architecture.md](architecture.md)
+
+---
+
 ## [2026-05-30] güncelleme | Modüler QSS sistemi ve design token altyapısı
 
 - `src/ui/styles/base/` silindi; yerine `primitives/` klasörü oluşturuldu

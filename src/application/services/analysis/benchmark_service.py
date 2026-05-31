@@ -59,9 +59,9 @@ class AnalysisBenchmarkService:
                 elif definition.code == "cpi":
                     points = self._build_cpi_series(start_date, end_date)
                 elif definition.code == "gold":
-                    points = self._build_precious_metal_series(self.GOLD_USD_TICKERS, start_date, end_date)
+                    points = self._build_precious_metal_series("XAUTRY=X", self.GOLD_USD_TICKERS, start_date, end_date)
                 elif definition.code == "silver":
-                    points = self._build_precious_metal_series(self.SILVER_USD_TICKERS, start_date, end_date)
+                    points = self._build_precious_metal_series("XAGTRY=X", self.SILVER_USD_TICKERS, start_date, end_date)
                 else:
                     points = self._build_market_series(definition, start_date, end_date)
             except Exception:
@@ -109,7 +109,13 @@ class AnalysisBenchmarkService:
             current_day += timedelta(days=1)
         return result
 
-    def _build_precious_metal_series(self, usd_tickers: Sequence[str], start_date: date, end_date: date) -> Dict[date, Decimal]:
+    def _build_precious_metal_series(self, try_ticker: str, usd_tickers: Sequence[str], start_date: date, end_date: date) -> Dict[date, Decimal]:
+        # Try direct TRY ticker first (e.g., XAUTRY=X or XAGTRY=X)
+        points, _ = self._fetch_first_available_market_series([try_ticker], start_date, end_date)
+        if points:
+            return self._ffill_series(self._convert_ounce_try_to_gram_try(points), start_date, end_date)
+
+        # Fallback to cross rate
         metal_usd_series, _ = self._fetch_first_available_market_series(usd_tickers, start_date, end_date)
         if not metal_usd_series:
             return {}
@@ -170,27 +176,31 @@ class AnalysisBenchmarkService:
         }
 
     def _build_deposit_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
-        if not self._evds_client:
-            return {}
-            
-        # 1 Ay oncesinden baslayalim ki ilk oran kesin bulunsun
-        fetch_start = start_date - timedelta(days=30)
-        try:
-            items = self._evds_client.get_series("TP.KTF10", fetch_start, end_date)
-        except Exception as e:
-            logger.error(f"EVDS Mevduat verisi cekilemedi: {e}")
-            return {}
-
         rate_series: Dict[date, Decimal] = {}
-        for item in items:
-            dt_str = item.get("Tarih")
-            val_str = item.get("TP_KTF10")
-            if dt_str and val_str is not None:
-                try:
-                    dt = datetime.strptime(dt_str, "%d-%m-%Y").date()
-                    rate_series[dt] = Decimal(str(val_str))
-                except (ValueError, TypeError):
-                    continue
+        
+        if self._evds_client:
+            # En az ilk oranı kesin bulabilmek için 90 gün geriden başlıyoruz
+            fetch_start = start_date - timedelta(days=90)
+            try:
+                items = self._evds_client.get_series("TP.KTF10", fetch_start, end_date)
+                for item in items:
+                    dt_str = item.get("Tarih")
+                    val_str = item.get("TP_KTF10")
+                    if dt_str and val_str is not None:
+                        try:
+                            dt = datetime.strptime(dt_str, "%d-%m-%Y").date()
+                            rate_series[dt] = Decimal(str(val_str))
+                        except (ValueError, TypeError):
+                            continue
+            except Exception as e:
+                logger.error(f"EVDS Mevduat verisi cekilemedi: {e}")
+                
+        # Fallback to market data client (e.g. for unit tests)
+        if not rate_series:
+            try:
+                rate_series = self._market_data_client.get_price_series("TCMB_TRY_DEPOSIT_3M", start_date, end_date)
+            except Exception as e:
+                logger.debug(f"Market data client deposit series failed: {e}")
 
         if not rate_series:
             return {}
@@ -207,6 +217,8 @@ class AnalysisBenchmarkService:
                 rate_idx += 1
                 
             if current_rate is None and result:
+                pass
+            elif current_rate is None:
                 current_rate = Decimal("30.0") # Fallback
                 
             if current_rate is not None:
@@ -221,8 +233,8 @@ class AnalysisBenchmarkService:
         if not self._evds_client:
             return {}
             
-        # TUFE verisi aylik gelir, endeksi yakalamak icin 2 ay oncesine gidelim
-        fetch_start = start_date - timedelta(days=60)
+        # TUFE verisi aylik gelir, endeksi yakalamak icin 365 gün geriden başlıyoruz (lag durumunda veri kaybını önlemek için)
+        fetch_start = start_date - timedelta(days=365)
         try:
             items = self._evds_client.get_series("TP.FG.J0", fetch_start, end_date)
         except Exception as e:

@@ -13,17 +13,25 @@ class YFinancePriceClient:
 
     @staticmethod
     def to_decimal(value) -> Decimal:
-        return Decimal(str(float(value.squeeze())))
+        if hasattr(value, "squeeze"):
+            value = value.squeeze()
+        return Decimal(str(float(value)))
 
     @staticmethod
     def next_date(point_date: date) -> date:
+
         return point_date + timedelta(days=1)
 
     def get_closing_price(self, ticker: str, price_date: date) -> Decimal:
         dataframe = self._owner._download_dataframe(ticker, price_date, self.next_date(price_date))
         if dataframe.empty:
             raise ValueError(f"{ticker} icin {price_date} gun sonu fiyati bulunamadi.")
-        return self.to_decimal(dataframe["Close"].iloc[-1])
+        close_col = dataframe["Close"]
+        if isinstance(dataframe.columns, pd.MultiIndex):
+            close_series = close_col[ticker] if ticker in close_col.columns else close_col.iloc[:, 0]
+        else:
+            close_series = close_col
+        return self.to_decimal(close_series.iloc[-1])
 
     def get_closing_prices(
         self,
@@ -80,8 +88,14 @@ class YFinancePriceClient:
         if dataframe.empty:
             return {}
 
+        close_col = dataframe["Close"]
+        if isinstance(dataframe.columns, pd.MultiIndex):
+            close_series = close_col[ticker] if ticker in close_col.columns else close_col.iloc[:, 0]
+        else:
+            close_series = close_col
+
         result: Dict[date, Decimal] = {}
-        for timestamp, value in dataframe["Close"].items():
+        for timestamp, value in close_series.items():
             if pd.isna(value):
                 continue
             point_date = timestamp.date()
