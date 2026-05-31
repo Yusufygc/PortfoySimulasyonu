@@ -61,3 +61,6 @@ class ModelPortfolioAdminService:
     def delete_portfolio(self, portfolio_id: int) -> None:
         self._portfolio_repo.delete_model_portfolio(portfolio_id)
 
+    def reorder_portfolios(self, ordered_ids: list[int]) -> None:
+        if hasattr(self._portfolio_repo, "update_model_portfolio_order"):
+            self._portfolio_repo.update_model_portfolio_order(ordered_ids)
