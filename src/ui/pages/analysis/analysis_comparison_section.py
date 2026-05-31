@@ -7,9 +7,9 @@ from typing import Dict
 from PyQt5.QtWidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from src.application.services.analysis import ComparisonViewDTO
-from src.ui.core.icon_manager import IconManager
 from src.ui.formatters import display_ticker
 from src.ui.widgets.shared import MetricCard
+from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 from .analysis_chart_engine import AnalysisChartEngine
 
@@ -56,9 +56,9 @@ class AnalysisComparisonSection(QWidget):
         top_layout.addWidget(self.combo_mode)
         top_layout.addStretch()
 
-        self.btn_save = QPushButton("Grafiği Kaydet")
+        self.btn_save = AnimatedButton("Grafiği Kaydet")
         self.btn_save.setProperty("cssClass", "secondaryButton")
-        self.btn_save.setIcon(IconManager.get_icon("save", color="@COLOR_TEXT_PRIMARY"))
+        self.btn_save.setIconName("save", color="@COLOR_TEXT_PRIMARY")
         self.btn_save.clicked.connect(self._save_chart)
         top_layout.addWidget(self.btn_save)
         layout.addWidget(top_panel)
@@ -193,12 +193,6 @@ class AnalysisComparisonSection(QWidget):
             benchmark_norm = (float(benchmark_value) / benchmark_base) * 100
             result[point_date] = portfolio_norm - benchmark_norm
         return result
-
-    def changeEvent(self, event):
-        from PyQt5.QtCore import QEvent
-        if event.type() == QEvent.StyleChange:
-            self.btn_save.setIcon(IconManager.get_icon("save", color="@COLOR_TEXT_PRIMARY"))
-        super().changeEvent(event)
 
     def _save_chart(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(

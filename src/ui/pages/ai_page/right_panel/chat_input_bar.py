@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QTextEdit, QPushButton
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QTextEdit
 from PyQt5.QtCore import pyqtSignal, Qt
 from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 
 class ChatInputBar(QWidget):
@@ -22,11 +23,11 @@ class ChatInputBar(QWidget):
         self.text_edit.setFixedHeight(60)
         self.text_edit.setProperty("cssClass", "aiInput")
 
-        self.btn_send = QPushButton("Gönder")
+        self.btn_send = AnimatedButton("Gönder")
         self.btn_send.setFixedHeight(60)
         self.btn_send.setFixedWidth(88)
         self.btn_send.setProperty("cssClass", "aiPrimaryBtn")
-        self.btn_send.setIcon(IconManager.get_icon("send", color="#ffffff"))
+        self.btn_send.setIconName("send", color="@COLOR_TEXT_WHITE")
         self.btn_send.clicked.connect(self._on_send)
 
         layout.addWidget(self.text_edit)

@@ -1,9 +1,8 @@
-from PyQt5.QtWidgets import QPushButton
+from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from PyQt5.QtCore import pyqtSignal
 from src.ui.pages.ai_page.core.models import AnalysisResult
-from src.ui.core.icon_manager import IconManager
 
-class SendToChatButton(QPushButton):
+class SendToChatButton(AnimatedButton):
     """Analiz sonucunu sağ panele (chat) gönderme butonu"""
     send_requested = pyqtSignal(AnalysisResult)
 
@@ -16,7 +15,7 @@ class SendToChatButton(QPushButton):
     def _init_ui(self):
         self.setEnabled(False)
         self.setProperty("cssClass", "aiActionButton")
-        self.setIcon(IconManager.get_icon("send", color="#ffffff"))
+        self.setIconName("send", color="@COLOR_TEXT_WHITE")
 
     def set_result(self, result: AnalysisResult):
         self.current_result = result

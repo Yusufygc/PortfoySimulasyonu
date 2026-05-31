@@ -17,9 +17,9 @@ from PyQt5.QtWidgets import (
 )
 
 from src.application.services.analysis import AnalysisFilterState
-from src.ui.core.icon_manager import IconManager
 from src.ui.pages.base_page import BasePage
 from src.ui.widgets.shared.controls.icon_label import IconLabel
+from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from src.ui.worker import Worker
 
 from .analysis_comparison_section import AnalysisComparisonSection
@@ -72,9 +72,9 @@ class AnalysisPage(BasePage):
         header_layout.addLayout(title_col)
         header_layout.addStretch()
 
-        self.btn_refresh = QPushButton("Analizi Yenile")
+        self.btn_refresh = AnimatedButton("Analizi Yenile")
         self.btn_refresh.setProperty("cssClass", "secondaryButton")
-        self.btn_refresh.setIcon(IconManager.get_icon("refresh-cw", color="@COLOR_TEXT_PRIMARY"))
+        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
         self.btn_refresh.clicked.connect(self.refresh_data)
         header_layout.addWidget(self.btn_refresh)
         left_layout.addLayout(header_layout)
@@ -158,12 +158,6 @@ class AnalysisPage(BasePage):
 
     def on_page_enter(self):
         self.refresh_data()
-
-    def changeEvent(self, event):
-        from PyQt5.QtCore import QEvent
-        if event.type() == QEvent.StyleChange:
-            self.btn_refresh.setIcon(IconManager.get_icon("refresh-cw", color="@COLOR_TEXT_PRIMARY"))
-        super().changeEvent(event)
 
     def refresh_data(self):
         self._load_static_options()

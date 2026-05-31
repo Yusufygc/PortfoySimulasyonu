@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLineEdit
 from PyQt5.QtCore import pyqtSignal
 from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 class TickerInputBar(QWidget):
     """Hisse kodu giriş alanı ve analiz butonu"""
@@ -21,10 +22,10 @@ class TickerInputBar(QWidget):
         self.input_field.returnPressed.connect(self._on_analyze)
         self.input_field.textChanged.connect(self._on_text_changed)
 
-        self.btn_analyze = QPushButton("Analiz Et")
+        self.btn_analyze = AnimatedButton("Analiz Et")
         self.btn_analyze.setEnabled(False)
         self.btn_analyze.setProperty("cssClass", "aiPrimaryBtn")
-        self.btn_analyze.setIcon(IconManager.get_icon("zap", color="#ffffff"))
+        self.btn_analyze.setIconName("zap", color="@COLOR_TEXT_WHITE")
         self.btn_analyze.clicked.connect(self._on_analyze)
 
         layout.addWidget(self.input_field)

@@ -22,8 +22,9 @@ from PyQt5.QtWidgets import (
 from .base_page import BasePage
 from src.application.services.planning.risk_profile_service import DIMENSION_LABELS
 from src.domain.models.risk_profile import RiskProfile
-from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared import Toast
+from src.ui.widgets.shared.controls.icon_label import IconLabel
+from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 
 SECTION_ICONS = {
@@ -56,10 +57,7 @@ class RiskProfilePage(BasePage):
         header = QHBoxLayout()
         header.setSpacing(10)
 
-        icon_lbl = QLabel()
-        icon_lbl.setPixmap(
-            IconManager.get_icon("shield-check", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28)
-        )
+        icon_lbl = IconLabel("shield-check", color="@COLOR_ACCENT", size=28)
         header.addWidget(icon_lbl)
 
         lbl_title = QLabel("Risk Profil Analizi")
@@ -178,10 +176,7 @@ class RiskProfilePage(BasePage):
 
         survey_header = QHBoxLayout()
         survey_header.setSpacing(10)
-        img_survey = QLabel()
-        img_survey.setPixmap(
-            IconManager.get_icon("clipboard-list", color="@COLOR_TEXT_SECONDARY", size=QSize(22, 22)).pixmap(22, 22)
-        )
+        img_survey = IconLabel("clipboard-list", color="@COLOR_TEXT_SECONDARY", size=22)
         survey_header.addWidget(img_survey)
 
         lbl_survey_title = QLabel("Risk Profili Anketi")
@@ -202,9 +197,8 @@ class RiskProfilePage(BasePage):
 
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
-        self.btn_previous = QPushButton("Geri")
-        self.btn_previous.setIcon(IconManager.get_icon("arrow-left", color="@COLOR_TEXT_PRIMARY"))
-        self.btn_previous.setIconSize(QSize(18, 18))
+        self.btn_previous = AnimatedButton("Geri")
+        self.btn_previous.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY", size=18)
         self.btn_previous.setCursor(Qt.PointingHandCursor)
         self.btn_previous.setMinimumHeight(42)
         self.btn_previous.setProperty("cssClass", "secondaryButton")
@@ -213,9 +207,8 @@ class RiskProfilePage(BasePage):
 
         btn_layout.addStretch()
 
-        self.btn_next = QPushButton("Devam")
-        self.btn_next.setIcon(IconManager.get_icon("arrow-right", color="@COLOR_TEXT_WHITE"))
-        self.btn_next.setIconSize(QSize(18, 18))
+        self.btn_next = AnimatedButton("Devam")
+        self.btn_next.setIconName("arrow-right", color="@COLOR_TEXT_WHITE", size=18)
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setMinimumHeight(42)
         self.btn_next.setMinimumWidth(150)
@@ -223,9 +216,8 @@ class RiskProfilePage(BasePage):
         self.btn_next.clicked.connect(self._on_next_section)
         btn_layout.addWidget(self.btn_next)
 
-        self.btn_calculate = QPushButton("Profili Hesapla")
-        self.btn_calculate.setIcon(IconManager.get_icon("refresh-cw", color="@COLOR_TEXT_WHITE"))
-        self.btn_calculate.setIconSize(QSize(20, 20))
+        self.btn_calculate = AnimatedButton("Profili Hesapla")
+        self.btn_calculate.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=20)
         self.btn_calculate.setCursor(Qt.PointingHandCursor)
         self.btn_calculate.setMinimumHeight(42)
         self.btn_calculate.setMinimumWidth(220)
@@ -251,14 +243,7 @@ class RiskProfilePage(BasePage):
         section_header = QHBoxLayout()
         section_header.setSpacing(10)
 
-        icon = QLabel()
-        icon.setPixmap(
-            IconManager.get_icon(
-                self._section_icon_name(section_title),
-                color="@COLOR_ACCENT",
-                size=QSize(22, 22),
-            ).pixmap(22, 22)
-        )
+        icon = IconLabel(self._section_icon_name(section_title), color="@COLOR_ACCENT", size=22)
         section_header.addWidget(icon)
 
         title = QLabel(section_title)
@@ -436,12 +421,6 @@ class RiskProfilePage(BasePage):
                 self.profile_card.setVisible(False)
         except Exception:
             self.profile_card.setVisible(False)
-
-    def changeEvent(self, event):
-        from PyQt5.QtCore import QEvent
-        if event.type() == QEvent.StyleChange:
-            self.btn_previous.setIcon(IconManager.get_icon("arrow-left", color="@COLOR_TEXT_PRIMARY"))
-        super().changeEvent(event)
 
     def refresh_data(self):
         self.on_page_enter()
