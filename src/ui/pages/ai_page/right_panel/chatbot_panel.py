@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole, AnalysisResult
 from src.ui.pages.ai_page.core.gemini_service import GeminiWorker
 from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from src.ui.formatters import display_ticker
 from .conversation_view import ConversationView
 from .chat_input_bar import ChatInputBar
@@ -29,8 +30,8 @@ class ChatbotPanel(QWidget):
         lbl_title = QLabel("AI Finans Asistanı")
         lbl_title.setProperty("cssClass", "dialogHeaderTitleLarge")
 
-        btn_clear = QPushButton("Sohbeti Temizle")
-        btn_clear.setIcon(IconManager.get_icon("trash-2", color="@COLOR_DANGER"))
+        btn_clear = AnimatedButton("Sohbeti Temizle")
+        btn_clear.setIconName("trash-2", color="@COLOR_DANGER", size=24)
         btn_clear.setProperty("cssClass", "outlineDangerBtn")
         btn_clear.clicked.connect(self.clear_chat)
 
