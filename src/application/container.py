@@ -49,7 +49,7 @@ class AppContainer:
     """
     def __init__(self):
         # 0) Event Bus
-        from src.application.events.event_bus import GlobalEventBus
+        from src.ui.core.event_bus import GlobalEventBus
         self.event_bus = GlobalEventBus()
         
         # 1) DB config & SQLAlchemy Engine
