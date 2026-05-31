@@ -21,6 +21,16 @@
 
 ---
 
+## [2026-05-31] güncelleme | Asenkron bağlantı yönetimi ve UI iyileştirmeleri
+
+- AI_Core model bağlantı kontrolü UI thread'ini engellememesi için asenkron yapıya (Worker/QThreadPool) taşındı
+- AI sayfası yüklendiğinde bağlantı deneniyor durumunu gösteren `show_connecting` ara durumu eklendi
+- `price_data_panel` içerisindeki bağımsız threadpool yerine `QThreadPool.globalInstance()` kullanımına geçildi
+- Ayarlar fiyat verisi tablosundaki kolon genişlikleri (Stretch mode), metin hizalamaları ve başlık renk tonları iyileştirildi
+- Etkilenen dosyalar: `src/ui/pages/ai_page/`, `src/ui/pages/settings/price_data_panel.py`, `src/ui/styles/shared/tables.qss`
+
+---
+
 ## [2026-05-31] güncelleme | Finansal planlama ve bütçe modellerinin genişletilmesi
 
 - Bütçe hedefleri için alanlar (budget modeli) detaylandırıldı ve veritabanı yansımaları (`orm_models`) güncellendi
