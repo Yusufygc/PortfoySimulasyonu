@@ -37,7 +37,7 @@ class PriceDataPanel(QWidget):
         super().__init__(parent)
         self.container = container
         self.price_data_health_service = price_data_health_service
-        self.threadpool = QThreadPool()
+        self.threadpool = QThreadPool.globalInstance()
         self._current_report: PriceDataHealthReport | None = None
         self._init_ui()
 

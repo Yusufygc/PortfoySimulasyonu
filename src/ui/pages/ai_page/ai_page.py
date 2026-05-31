@@ -1,5 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSplitter
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThreadPool
+
+from src.ui.worker import Worker
 
 class AIPage(QWidget):
     """
@@ -37,5 +39,28 @@ class AIPage(QWidget):
         # Genişlik oranları (55 - 45)
         self.splitter.setSizes([580, 420])
         self.splitter.setChildrenCollapsible(False)
-        
+
         layout.addWidget(self.splitter)
+
+    def on_page_enter(self):
+        """main_window tarafından sayfa gösterildiğinde çağrılır."""
+        if getattr(self, "_is_ai_connected", False):
+            return
+        if getattr(self, "_connection_in_progress", False):
+            return
+        self._connection_in_progress = True
+        self.left_panel.set_connection_checking()
+        worker = Worker(self.left_panel.probe_connection)
+        worker.signals.result.connect(self._on_ai_connection_result)
+        worker.signals.error.connect(self._on_ai_connection_error)
+        QThreadPool.globalInstance().start(worker)
+
+    def _on_ai_connection_result(self, ok):
+        self._connection_in_progress = False
+        self._is_ai_connected = bool(ok)
+        self.left_panel.apply_connection_result(bool(ok))
+
+    def _on_ai_connection_error(self, err):
+        self._connection_in_progress = False
+        self._is_ai_connected = False
+        self.left_panel.apply_connection_result(False)

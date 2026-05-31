@@ -48,6 +48,10 @@ class StatusBanner(QWidget):
 
     # ─── API Bağlantı Durumu ────────────────────────────────────────────
 
+    def show_connecting(self) -> None:
+        """Bağlantı denenirken nötr/bekleme banner'ı gösterir."""
+        self._apply("⏳", "Yapay Zeka motoruna bağlanılıyor, lütfen bekleyin...", "warning")
+
     def show_api_connected(self) -> None:
         """API başarıyla bağlandığında yeşil banner gösterir."""
         self._apply("✓", "AI_Core modeli bağlı", "success")

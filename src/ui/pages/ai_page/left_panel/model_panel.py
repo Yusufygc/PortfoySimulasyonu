@@ -51,23 +51,12 @@ class ModelPanel(QWidget):
         self._init_ui()
 
     def _setup_adapter(self):
-        """API erişilebilirliğine göre adapter seçer."""
+        """Client kur; bağlantı kontrolü async yapılır (on_page_enter / AIPage Worker)."""
         base_url = os.getenv("AI_CORE_API_URL", "http://localhost:8000")
         self._client = AICoreFastAPIClient(base_url=base_url)
-
-        try:
-            if self._client.health_check():
-                self.adapter = FastAPIAdapter(self._client)
-                self._api_connected = True
-                logger.info("AI_Core FastAPI bağlantısı başarılı (%s)", base_url)
-            else:
-                self.adapter = MockAdapter()
-                self._api_connected = False
-                logger.warning("AI_Core erişilemedi, MockAdapter kullanılıyor")
-        except Exception:
-            self.adapter = MockAdapter()
-            self._api_connected = False
-            logger.warning("AI_Core bağlantı hatası, MockAdapter kullanılıyor", exc_info=True)
+        self._probe_client = AICoreFastAPIClient(base_url=base_url)
+        self.adapter = MockAdapter()   # bağlantı doğrulanana kadar güvenli varsayılan
+        self._api_connected = False
 
     def _init_ui(self):
         # Ana layout — scroll destekli
@@ -84,12 +73,9 @@ class ModelPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
-        # 1. Bağlantı durumu banner'ı
+        # 1. Bağlantı durumu banner'ı (bekleme durumunda başlar; async probe sonucu günceller)
         self.status_banner = StatusBanner()
-        if self._api_connected:
-            self.status_banner.show_api_connected()
-        else:
-            self.status_banner.show_mock_mode()
+        self.status_banner.show_connecting()
         layout.addWidget(self.status_banner)
 
         # 2. Input
@@ -123,6 +109,31 @@ class ModelPanel(QWidget):
 
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
+
+    # ── Async bağlantı kontrol API'si (AIPage.on_page_enter Worker'ı tarafından kullanılır) ──
+
+    def set_connection_checking(self) -> None:
+        """UI thread'de: bağlanılıyor durumunu gösterir, analiz butonunu devre dışı bırakır."""
+        self.status_banner.show_connecting()
+        self.input_bar.btn_analyze.setEnabled(False)
+
+    def probe_connection(self) -> bool:
+        """WORKER THREAD'de çalışır — yalnızca ağ I/O, UI'a DOKUNMAZ."""
+        return self._probe_client.health_check()
+
+    def apply_connection_result(self, ok: bool) -> None:
+        """MAIN THREAD (Qt sinyal üzerinden): adapter + banner günceller."""
+        self.input_bar.btn_analyze.setEnabled(True)
+        if ok:
+            self.adapter = FastAPIAdapter(self._client)
+            self._api_connected = True
+            self.status_banner.show_api_connected()
+            logger.info("AI_Core FastAPI bağlantısı başarılı (async probe)")
+        else:
+            self.adapter = MockAdapter()
+            self._api_connected = False
+            self.status_banner.show_mock_mode()
+            logger.warning("AI_Core erişilemedi (async probe), MockAdapter kullanılıyor")
 
     def _start_analysis(self, ticker: str):
         self.input_bar.btn_analyze.setEnabled(False)
