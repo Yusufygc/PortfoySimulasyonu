@@ -46,9 +46,14 @@ class AnimatedButton(QPushButton):
     def _apply_icon(self):
         if not hasattr(self, "_icon_name"):
             return
+            
+        from src.ui.theme_manager import ThemeManager
+        current_theme = ThemeManager.current_theme_id()
+            
         from src.ui.core.icon_manager import IconManager
         from PyQt5.QtCore import QSize
         self.setIcon(IconManager.get_icon(self._icon_name, color=self._icon_color, size=QSize(self._icon_size, self._icon_size)))
+        self._last_applied_theme = current_theme
 
     def changeEvent(self, event) -> None:
         # Tema değişiminde ikonu yeni token rengiyle yeniden üret.
