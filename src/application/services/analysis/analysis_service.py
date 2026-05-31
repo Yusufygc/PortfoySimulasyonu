@@ -214,6 +214,7 @@ class AnalysisService:
 
     def _build_analysis_bundle(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
         self._validate_filter_state(filter_state)
+        warnings: List[str] = []
 
         trades = self._source_resolver.get_source_trades(filter_state.portfolio_source)
         portfolio_label = self._source_resolver.get_source_label(filter_state.portfolio_source)
