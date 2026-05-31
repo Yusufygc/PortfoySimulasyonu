@@ -21,6 +21,7 @@ class AddStockToWatchlistDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Hisse Ekle")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setModal(True)
         self.setMinimumWidth(420)
         self.setProperty("cssClass", "dialogContainer")
@@ -49,7 +50,7 @@ class AddStockToWatchlistDialog(QDialog):
         self.notes_edit.setProperty("cssClass", "tradeInputNormal")
         self.notes_edit.setClearButtonEnabled(True)
 
-        ticker_label = QLabel("Hisse ticker'ı:")
+        ticker_label = QLabel("Hisse:")
         ticker_label.setProperty("cssClass", "formLabel")
         notes_label = QLabel("Not:")
         notes_label.setProperty("cssClass", "formLabel")
@@ -63,6 +64,7 @@ class AddStockToWatchlistDialog(QDialog):
 
         self.btn_ok = QPushButton("Ekle")
         self.btn_ok.setProperty("cssClass", "primaryButton")
+        self.btn_ok.setDefault(True)
         self.btn_cancel = QPushButton("İptal")
         self.btn_cancel.setProperty("cssClass", "secondaryButton")
 
@@ -89,7 +91,7 @@ class AddStockToWatchlistDialog(QDialog):
     def _on_accept_clicked(self) -> None:
         ticker = self.ticker_edit.text().strip()
         if not ticker:
-            QMessageBox.warning(self, "Eksik Bilgi", "Hisse ticker'ı boş olamaz.")
+            QMessageBox.warning(self, "Eksik Bilgi", "Hisse boş olamaz.")
             self.ticker_edit.setFocus()
             return
 
