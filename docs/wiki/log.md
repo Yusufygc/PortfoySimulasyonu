@@ -21,6 +21,17 @@
 
 ---
 
+## [2026-05-31] güncelleme | Finansal planlama ve bütçe modellerinin genişletilmesi
+
+- Bütçe hedefleri için alanlar (budget modeli) detaylandırıldı ve veritabanı yansımaları (`orm_models`) güncellendi
+- Planlama servisi ve `sa_planning_repository` yeni özelliklere göre uyarlandı
+- Planlama sayfasındaki bütçe form paneli (`budget_form_panel`) ve hedef paneli (`goals_panel`) geliştirildi
+- QSS stilleri (planning.qss, shared) UI tasarım sistemiyle uyumlu hale getirildi
+- Etkilenen dosyalar: `src/domain/models/`, `src/application/services/planning/`, `src/ui/pages/planning_page.py`, `src/ui/widgets/planning/`
+- Bağlantılı sayfa: [architecture.md](architecture.md)
+
+---
+
 ## [2026-05-31] lint | Wiki sağlık kontrolü yapıldı
 
 - Silinmiş olan `architecture.md` belgesi git geçmişinden restore edilerek onarıldı
