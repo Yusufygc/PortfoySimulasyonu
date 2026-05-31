@@ -75,9 +75,9 @@ class PortfolioSeriesBuilder:
         # Gecmis islemlerden dogan nakit etkileri
         for t in trades_before:
             trade_value = t.quantity * t.price
-            if t.trade_type.name == "BUY":
+            if t.side.name == "BUY":
                 current_cash -= trade_value
-            elif t.trade_type.name == "SELL":
+            elif t.side.name == "SELL":
                 current_cash += trade_value
 
         trades_by_date: Dict[date, List[Trade]] = {}
@@ -106,9 +106,9 @@ class PortfolioSeriesBuilder:
             for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
                 current_positions[trade.stock_id].apply_trade(trade)
                 trade_value = trade.quantity * trade.price
-                if trade.trade_type.name == "BUY":
+                if trade.side.name == "BUY":
                     current_cash -= trade_value
-                elif trade.trade_type.name == "SELL":
+                elif trade.side.name == "SELL":
                     current_cash += trade_value
                     
             total_value = current_cash
