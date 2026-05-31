@@ -6,6 +6,14 @@
 
 ---
 
+## [2026-06-01] güncelleme | Analiz tasarım dokümanlarının proje kuralları ve mimariye göre düzeltilmesi
+
+- `analizSayfasi` altındaki 4 tasarım dokümanı incelendi ve proje kurallarına (sabit light tema yerine dinamik tema, ayrı sayfa yerine AnalysisPage sekmeleri, dosya yolları vb.) uymayan kısımlar düzeltildi.
+- Etkilenen dosyalar: `analizSayfasi/1_COMPARISON_SERVICE.md`, `analizSayfasi/2_COMPARISON_CHART_FACTORY.md`, `analizSayfasi/3_UI_LAYERS_AND_SIGNALS.md`, `analizSayfasi/4_NAVIGATION_AND_INTEGRATION.md`
+- Bağlantılı sayfa: [architecture.md](architecture.md)
+
+---
+
 ## [2026-06-01] güncelleme | Analiz Sayfası Arayüz Tasarımı Yenilenmesi ve Yerleşim İyileştirmeleri
 
 - Sağ filtre panelinin genişliği 320px-360px aralığına düşürülerek sol taraftaki grafiğe ekstra 200px çalışma alanı açıldı
