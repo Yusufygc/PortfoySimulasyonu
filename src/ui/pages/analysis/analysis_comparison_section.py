@@ -58,7 +58,7 @@ class AnalysisComparisonSection(QWidget):
 
         self.btn_save = AnimatedButton("Grafiği Kaydet")
         self.btn_save.setProperty("cssClass", "secondaryButton")
-        self.btn_save.setIconName("save", color="@COLOR_TEXT_PRIMARY")
+        self.btn_save.setIconName("save", color="@COLOR_TEXT_PRIMARY", size=24)
         self.btn_save.clicked.connect(self._save_chart)
         top_layout.addWidget(self.btn_save)
         layout.addWidget(top_panel)
