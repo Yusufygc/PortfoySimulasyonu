@@ -68,9 +68,14 @@ class AnalysisBenchmarkService:
                 logger.warning("Benchmark serisi olusturulamadi: %s", definition.code, exc_info=True)
                 points = {}
             if not points:
-                warnings.append(f"{definition.label} benchmark verisi alinamadi.")
+                warnings.append(f"Veri akışı hatası: {definition.label} güncel verisi API'den alınamadı (Sembol değişmiş veya sistemden kaldırılmış olabilir).")
                 continue
+                
+            # Ffill durumunda kullanıcıyı 1 kere bilgilendirmek yeterli
             results.append(BenchmarkSeries(code=definition.code, label=definition.label, points=points))
+            
+        # Hafta sonu / tatil durumunda geriye dönük arama yapıldığına dair genel bilgi
+        warnings.append("Not: Seçilen tarih aralığında hafta sonu veya tatillere denk gelen günler için sistem otomatik olarak en yakın geçmiş işlem gününün (örn: Cuma) fiyatını referans almıştır (Forward Fill).")
         return results, warnings
 
     def _build_market_series(
@@ -86,8 +91,16 @@ class AnalysisBenchmarkService:
     def _ffill_series(self, series: Dict[date, Decimal], start_date: date, end_date: date) -> Dict[date, Decimal]:
         if not series:
             return {}
+            
         result = {}
-        last_val = series.get(start_date) or series[min(series.keys())]
+        # start_date ve öncesindeki en yakın tarihi bul
+        past_dates = [dt for dt in series.keys() if dt <= start_date]
+        if past_dates:
+            last_val = series[max(past_dates)]
+        else:
+            # Eğer öncesinde veri yoksa, mecburen elimizdeki en eski tarihi alırız
+            last_val = series[min(series.keys())]
+            
         current_day = start_date
         while current_day <= end_date:
             if current_day in series:

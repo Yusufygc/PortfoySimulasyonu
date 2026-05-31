@@ -74,7 +74,9 @@ class YFinancePriceClient:
         if start_date > end_date:
             raise ValueError("start_date end_date'ten buyuk olamaz.")
 
-        dataframe = self._owner._download_dataframe(ticker, start_date, self.next_date(end_date))
+        # En yakın geçmiş işlem gününü bulabilmek için 10 gün geriden taramaya başlıyoruz
+        lookback_start = start_date - timedelta(days=10)
+        dataframe = self._owner._download_dataframe(ticker, lookback_start, self.next_date(end_date))
         if dataframe.empty:
             return {}
 
@@ -83,7 +85,7 @@ class YFinancePriceClient:
             if pd.isna(value):
                 continue
             point_date = timestamp.date()
-            if start_date <= point_date <= end_date:
+            if point_date <= end_date:
                 result[point_date] = self.to_decimal(value)
         return result
 
