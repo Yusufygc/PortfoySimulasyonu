@@ -160,12 +160,9 @@ class PriceDataPanel(QWidget):
         self.health_table.verticalHeader().setVisible(False)
 
         header = self.health_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.Stretch)
-        header.setSectionResizeMode(5, QHeaderView.Stretch)
+        header.setDefaultAlignment(Qt.AlignCenter)
+        for i in range(6):
+            header.setSectionResizeMode(i, QHeaderView.Stretch)
 
         self.health_table.setProperty("cssClass", "dataTable")
         self.health_table.itemSelectionChanged.connect(self._on_health_selection_changed)
@@ -410,6 +407,7 @@ class PriceDataPanel(QWidget):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter if column == 0 else Qt.AlignCenter)
 
                 if column == 0:
                     item.setData(Qt.UserRole, row.stock_id)
