@@ -15,8 +15,6 @@ import yfinance as yf
 from pandas.errors import Pandas4Warning
 
 from src.domain.exceptions import MarketDataUnavailableError
-from .investing_fallback_client import InvestingFallbackClient
-from .scraped_benchmark_provider import ScrapedBenchmarkProvider
 from .yfinance_price_client import YFinancePriceClient
 
 logger = logging.getLogger(__name__)
@@ -40,8 +38,6 @@ class YFinanceMarketDataClient(IMarketDataClient):
             category=Pandas4Warning,
             module=r"yfinance\..*",
         )
-        self._scraped_provider = ScrapedBenchmarkProvider(timeout=self._timeout)
-        self._investing_client = InvestingFallbackClient(timeout=self._timeout)
         self._price_client = YFinancePriceClient(self)
 
     def _download_dataframe(self, tickers, start: date, end: date):

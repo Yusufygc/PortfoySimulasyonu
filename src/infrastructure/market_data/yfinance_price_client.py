@@ -20,16 +20,6 @@ class YFinancePriceClient:
         return point_date + timedelta(days=1)
 
     def get_closing_price(self, ticker: str, price_date: date) -> Decimal:
-        scraped_series = self._owner._scraped_provider.fetch_series_for_ticker(ticker, price_date, price_date)
-        if scraped_series is not None:
-            if price_date in scraped_series:
-                return scraped_series[price_date]
-            raise ValueError(f"{ticker} icin {price_date} gun sonu fiyati bulunamadi.")
-
-        investing_series = self._owner._investing_client.fetch_series_for_ticker(ticker, price_date, price_date)
-        if investing_series:
-            return investing_series[price_date]
-
         dataframe = self._owner._download_dataframe(ticker, price_date, self.next_date(price_date))
         if dataframe.empty:
             raise ValueError(f"{ticker} icin {price_date} gun sonu fiyati bulunamadi.")
@@ -47,18 +37,7 @@ class YFinancePriceClient:
             return {}
 
         preloaded_results: Dict[int, Decimal] = {}
-        remaining_pairs = []
-        for stock_id, ticker in zip(stock_ids, tickers):
-            scraped_series = self._owner._scraped_provider.fetch_series_for_ticker(ticker, price_date, price_date)
-            if scraped_series is not None:
-                if price_date in scraped_series:
-                    preloaded_results[stock_id] = scraped_series[price_date]
-                continue
-            investing_series = self._owner._investing_client.fetch_series_for_ticker(ticker, price_date, price_date)
-            if investing_series:
-                preloaded_results[stock_id] = investing_series[price_date]
-            else:
-                remaining_pairs.append((stock_id, ticker))
+        remaining_pairs = list(zip(stock_ids, tickers))
 
         if not remaining_pairs:
             return preloaded_results
@@ -94,14 +73,6 @@ class YFinancePriceClient:
     ) -> Dict[date, Decimal]:
         if start_date > end_date:
             raise ValueError("start_date end_date'ten buyuk olamaz.")
-
-        scraped_series = self._owner._scraped_provider.fetch_series_for_ticker(ticker, start_date, end_date)
-        if scraped_series is not None:
-            return scraped_series
-
-        investing_series = self._owner._investing_client.fetch_series_for_ticker(ticker, start_date, end_date)
-        if investing_series:
-            return investing_series
 
         dataframe = self._owner._download_dataframe(ticker, start_date, self.next_date(end_date))
         if dataframe.empty:

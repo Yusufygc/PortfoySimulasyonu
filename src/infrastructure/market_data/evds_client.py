@@ -2,41 +2,49 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Dict
+import os
+from typing import Dict, Optional, List
+from datetime import date
 from urllib.request import Request, urlopen
 import urllib.error
+import urllib.parse
 from src.domain.exceptions import MarketDataUnavailableError
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT_WINDOWS_CHROME = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-)
-
 class EvdsClient:
     def __init__(self, timeout: int = 10) -> None:
         self._timeout = timeout
+        # .env dosyasindan yuklenir. Settings loader tarafindan load_dotenv cagrilmis olmalidir.
+        self._api_key = os.environ.get("EVDS_API_KEY", "")
 
-    def request_json_post(self, url: str, payload: Dict[str, object]):
+    def get_series(self, series_code: str, start_date: date, end_date: date) -> List[Dict]:
+        """
+        Verilen seri kodu ve tarih araligi icin EVDS API'sinden veri ceker.
+        """
+        if not self._api_key:
+            logger.warning("EVDS_API_KEY bulunamadi. EVDS API sorgusu yapilamayacak.")
+            raise MarketDataUnavailableError("EVDS API_KEY tanimli degil.")
+            
+        start_str = start_date.strftime("%d-%m-%Y")
+        end_str = end_date.strftime("%d-%m-%Y")
+        
+        # Ornek url format: https://evds3.tcmb.gov.tr/service/evds/series=TP.KTF10&startDate=01-01-2023&endDate=31-12-2023&type=json
+        url = f"https://evds2.tcmb.gov.tr/service/evds/series={series_code}&startDate={start_str}&endDate={end_str}&type=json"
+        
         request = Request(
             url,
-            data=json.dumps(payload).encode("utf-8"),
             headers={
-                "User-Agent": USER_AGENT_WINDOWS_CHROME,
-                "Accept": "application/json, text/plain, */*",
-                "Content-Type": "application/json;charset=UTF-8",
-                "Origin": "https://evds3.tcmb.gov.tr",
-                "Referer": "https://evds3.tcmb.gov.tr/",
+                "key": self._api_key,
+                "Accept": "application/json"
             },
-            method="POST",
+            method="GET",
         )
         try:
             with urlopen(request, timeout=self._timeout) as response:
-                return json.loads(response.read().decode("utf-8"))
+                payload = json.loads(response.read().decode("utf-8"))
+                return payload.get("items", [])
         except urllib.error.URLError as e:
             logger.error("EVDS API baglanti hatasi: %s", e)
             raise MarketDataUnavailableError(f"EVDS API baglanti hatasi: {e}") from e
 
-    def request_json_post_path(self, path: str, payload: Dict[str, object]):
-        return self.request_json_post(f"https://evds3.tcmb.gov.tr/igmevdsms-dis{path}", payload)
