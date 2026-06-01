@@ -9,7 +9,7 @@ pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 
 from src.domain.models.model_portfolio import ModelPortfolio
-from src.ui.pages.model_portfolio_page import ModelPortfolioPage
+from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
 from src.ui.widgets.model_portfolio.panels.portfolio_list_panel import PortfolioListPanel
 
 
@@ -130,15 +130,15 @@ def test_model_portfolio_export_today_uses_history_report(tmp_path, monkeypatch)
 
     file_path = str(tmp_path / "model.xlsx")
     monkeypatch.setattr(
-        "src.ui.pages.model_portfolio_page.QFileDialog.getSaveFileName",
+        "src.ui.pages.model_portfolio.utils.portfolio_exporter.QFileDialog.getSaveFileName",
         lambda *args, **kwargs: (file_path, "Excel Dosyaları (*.xlsx)"),
     )
     monkeypatch.setattr(
-        "src.ui.pages.model_portfolio_page.QMessageBox.information",
+        "src.ui.pages.model_portfolio.utils.portfolio_exporter.QMessageBox.information",
         lambda *args, **kwargs: None,
     )
 
-    monkeypatch.setattr("src.ui.pages.model_portfolio_page.date", SimpleNamespace(today=lambda: date(2026, 5, 26)))
+    monkeypatch.setattr("src.ui.pages.model_portfolio.utils.portfolio_exporter.date", SimpleNamespace(today=lambda: date(2026, 5, 26)))
 
     ModelPortfolioPage._on_export_today(page)
 

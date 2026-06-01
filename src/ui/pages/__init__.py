@@ -6,7 +6,7 @@ Sayfa modülü - QStackedWidget ile kullanılan sayfa sınıfları.
 from .base_page import BasePage
 from .dashboard import DashboardPage
 from .watchlist_page import WatchlistPage
-from .model_portfolio_page import ModelPortfolioPage
+from .model_portfolio.model_portfolio_page import ModelPortfolioPage
 from .analysis import AnalysisPage
 from .optimization_page import OptimizationPage
 from .planning_page import PlanningPage

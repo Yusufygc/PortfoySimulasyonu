@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>GitClean Proje Sağlık Raporu - PortfoySimulasyonu</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Inter, Helvetica, sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        .container { max-width: 1000px; margin: 40px auto; padding: 20px; }
+        header {
+            background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+            color: #FFFFFF; padding: 30px; border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 30px;
+        }
+        header h1 { margin: 0; font-size: 28px; font-weight: 800; }
+        header p { margin: 10px 0 0 0; color: #94A3B8; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card-title { font-size: 12px; text-transform: uppercase; color: #64748B; font-weight: 700; margin-bottom: 5px; }
+        .card-value { font-size: 24px; font-weight: 800; color: #0F172A; }
+        .score-circle {
+            display: inline-block; width: 100px; height: 100px; line-height: 100px;
+            border-radius: 50%; text-align: center; font-size: 32px; font-weight: 900;
+            color: #FFFFFF; margin-right: 20px; vertical-align: middle; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .score-section {
+            display: flex; align-items: center; background: #FFFFFF;
+            border: 1px solid #E2E8F0; border-radius: 12px; padding: 25px; margin-bottom: 30px;
+        }
+        .score-details h2 { margin: 0; font-size: 22px; color: #0F172A; }
+        .score-details p { margin: 5px 0 0 0; color: #64748B; }
+        h3.section-title {
+            font-size: 18px; font-weight: 800; color: #0F172A;
+            border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-top: 40px; margin-bottom: 20px;
+        }
+        .issue-card {
+            background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px;
+            padding: 18px; margin-bottom: 15px; position: relative; border-left: 5px solid #E2E8F0;
+        }
+        .issue-card.severity-critical { border-left-color: #DC2626; background-color: #FEF2F2; }
+        .issue-card.severity-high { border-left-color: #EA580C; background-color: #FFF7ED; }
+        .issue-card.severity-medium { border-left-color: #D97706; }
+        .issue-card.severity-low { border-left-color: #2563EB; }
+        .issue-card.severity-info { border-left-color: #16A34A; }
+        .issue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .issue-title { font-weight: 700; font-size: 15px; color: #0F172A; }
+        .issue-desc { font-size: 13.5px; color: #475569; margin-bottom: 10px; }
+        .issue-rec {
+            font-size: 12.5px; color: #1E293B; background: rgba(255, 255, 255, 0.7);
+            padding: 8px 12px; border-radius: 4px; border: 1px dashed #CBD5E1;
+        }
+        .badge { font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 4px; color: #FFFFFF; }
+        .badge-critical { background-color: #DC2626; }
+        .badge-high { background-color: #EA580C; }
+        .badge-medium { background-color: #D97706; }
+        .badge-low { background-color: #2563EB; }
+        .badge-info { background-color: #16A34A; }
+        .path {
+            font-family: monospace; font-size: 11px; color: #64748B;
+            background: #F1F5F9; padding: 2px 6px; border-radius: 4px;
+        }
+        @media print {
+            body { background-color: #FFFFFF; }
+            .container { margin: 0; max-width: 100%; }
+            .issue-card { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Proje Sağlık ve Uyumluluk Analizi</h1>
+            <p>Proje Dizi Konumu: D:\1KodCalismalari\Projeler\VIBE_CODING_UYGULAMA_DENEMELERI\Merge_PortfoySim\PortfoySimulasyonu</p>
+            <p>Raporlama Tarihi: 01.06.2026 - 15:54:39</p>
+        </header>
+        <div class="score-section">
+            <div class="score-circle" style="background-color: #558B2F;">76</div>
+            <div class="score-details">
+                <h2>Sağlık Notu: B+</h2>
+                <p>Projenizin kurumsal standartlara, kod kalitesine ve temizlik kurallarına uyumluluk derecesidir.</p>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">Toplam Dosya</div>
+                <div class="card-value">8428</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Proje Boyutu</div>
+                <div class="card-value">37.0 MB</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Toplam Klasör</div>
+                <div class="card-value">466</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Kritik ve Yüksek Sorunlar</div>
+                <div class="card-value" style="color: #DC2626;">67</div>
+            </div>
+        </div>
+        <h3 class="section-title">🚨 KRİTİK VE YÜKSEK ÖNCELİKLİ SORUNLAR</h3>
+
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: AnalysisService <span class="path">analysis_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'AnalysisService' sınıfı 13 metoda ve yaklaşık 343 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: AnalysisBenchmarkService <span class="path">benchmark_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'AnalysisBenchmarkService' sınıfı 12 metoda ve yaklaşık 268 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: CorporateActionService <span class="path">corporate_action_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'CorporateActionService' sınıfı 11 metoda ve yaklaşık 268 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: price_data_health_service.py <span class="path">price_data_health_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 459 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: PriceDataHealthService <span class="path">price_data_health_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'PriceDataHealthService' sınıfı 19 metoda ve yaklaşık 371 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: ModelPortfolioService <span class="path">model_portfolio_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'ModelPortfolioService' sınıfı 20 metoda ve yaklaşık 86 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: ModelPortfolioTradeService <span class="path">model_portfolio_trade_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'ModelPortfolioTradeService' sınıfı 18 metoda ve yaklaşık 278 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: PlanningService <span class="path">planning_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'PlanningService' sınıfı 13 metoda ve yaklaşık 230 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: risk_profile_service.py <span class="path">risk_profile_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 448 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: RiskProfileService <span class="path">risk_profile_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'RiskProfileService' sınıfı 15 metoda ve yaklaşık 195 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: PortfolioService <span class="path">portfolio_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'PortfolioService' sınıfı 17 metoda ve yaklaşık 169 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: excel_report_builder.py <span class="path">excel_report_builder.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 1020 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: ExcelReportBuilder <span class="path">excel_report_builder.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'ExcelReportBuilder' sınıfı 38 metoda ve yaklaşık 983 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: SQLAlchemyModelPortfolioRepository <span class="path">sa_model_portfolio_repository.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'SQLAlchemyModelPortfolioRepository' sınıfı 17 metoda ve yaklaşık 186 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: SQLAlchemyPlanningRepository <span class="path">sa_planning_repository.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'SQLAlchemyPlanningRepository' sınıfı 14 metoda ve yaklaşık 166 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: SQLAlchemyPortfolioRepository <span class="path">sa_portfolio_repository.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'SQLAlchemyPortfolioRepository' sınıfı 14 metoda ve yaklaşık 130 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: SQLAlchemyPriceRepository <span class="path">sa_price_repository.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'SQLAlchemyPriceRepository' sınıfı 14 metoda ve yaklaşık 200 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: SQLAlchemyStockRepository <span class="path">sa_stock_repository.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'SQLAlchemyStockRepository' sınıfı 13 metoda ve yaklaşık 133 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: SQLAlchemyWatchlistRepository <span class="path">sa_watchlist_repository.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'SQLAlchemyWatchlistRepository' sınıfı 17 metoda ve yaklaşık 160 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: ScrapedBenchmarkProvider <span class="path">scraped_benchmark_provider.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'ScrapedBenchmarkProvider' sınıfı 17 metoda ve yaklaşık 253 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: MainWindow <span class="path">main_window.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'MainWindow' sınıfı 15 metoda ve yaklaşık 234 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: PageFactory <span class="path">page_factory.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'PageFactory' sınıfı 13 metoda ve yaklaşık 83 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: model_portfolio_page.py <span class="path">model_portfolio_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 605 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: ModelPortfolioPage <span class="path">model_portfolio_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'ModelPortfolioPage' sınıfı 34 metoda ve yaklaşık 565 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: OptimizationPage <span class="path">optimization_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'OptimizationPage' sınıfı 12 metoda ve yaklaşık 252 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: PlanningPage <span class="path">planning_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'PlanningPage' sınıfı 18 metoda ve yaklaşık 256 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: risk_profile_page.py <span class="path">risk_profile_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 421 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: RiskProfilePage <span class="path">risk_profile_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'RiskProfilePage' sınıfı 22 metoda ve yaklaşık 380 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: watchlist_page.py <span class="path">watchlist_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 409 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: WatchlistPage <span class="path">watchlist_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'WatchlistPage' sınıfı 18 metoda ve yaklaşık 376 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: XAICard <span class="path">xai_card.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'XAICard' sınıfı 12 metoda ve yaklaşık 295 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: AnalysisComparisonSection <span class="path">analysis_comparison_section.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'AnalysisComparisonSection' sınıfı 8 metoda ve yaklaşık 252 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: AnalysisControlPanel <span class="path">analysis_control_panel.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'AnalysisControlPanel' sınıfı 16 metoda ve yaklaşık 222 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: AnalysisPage <span class="path">analysis_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'AnalysisPage' sınıfı 15 metoda ve yaklaşık 206 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: chart_builder.py <span class="path">chart_builder.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 485 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: CheckableComboBox <span class="path">checkable_combo_box.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'CheckableComboBox' sınıfı 15 metoda ve yaklaşık 185 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: comparison_page.py <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 1362 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: ComparisonPage <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'ComparisonPage' sınıfı 38 metoda ve yaklaşık 1131 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: DashboardActions <span class="path">dashboard_actions.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'DashboardActions' sınıfı 12 metoda ve yaklaşık 340 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: price_data_panel.py <span class="path">price_data_panel.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 550 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: PriceDataPanel <span class="path">price_data_panel.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'PriceDataPanel' sınıfı 30 metoda ve yaklaşık 516 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: StockDetailPage <span class="path">stock_detail_page.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'StockDetailPage' sınıfı 15 metoda ve yaklaşık 359 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: TradeFormPanel <span class="path">trade_form_panel.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'TradeFormPanel' sınıfı 11 metoda ve yaklaşık 271 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: tokens.py <span class="path">tokens.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 498 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: CorporateActionDialog <span class="path">corporate_action_dialog.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'CorporateActionDialog' sınıfı 6 metoda ve yaklaşık 279 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: new_stock_trade_dialog.py <span class="path">new_stock_trade_dialog.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 483 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: NewStockTradeDialog <span class="path">new_stock_trade_dialog.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'NewStockTradeDialog' sınıfı 20 metoda ve yaklaşık 463 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: BudgetFormPanel <span class="path">budget_form_panel.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'BudgetFormPanel' sınıfı 12 metoda ve yaklaşık 266 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: _ToastWidget <span class="path">toast.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'_ToastWidget' sınıfı 13 metoda ve yaklaşık 195 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Tanrı Sınıf (God Object) Riski: TradeDialog <span class="path">trade_dialog.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">'TradeDialog' sınıfı 15 metoda ve yaklaşık 275 satır koda sahip. Bu sınıf sistemde çok fazla sorumluluk üstleniyor.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Sınıfı SOLID prensiplerine uygun olarak parçalayın. Sınıfın sadece tek bir aktöre veya amaca hizmet etmesini sağlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Aşırı Şişmiş Dosya: test_analysis_service.py <span class="path">test_analysis_service.py</span></span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">Dosya toplamda 417 satır kod içeriyor (Limit: 400).</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı mantıksal olarak daha küçük, tek sorumluluğa (SRP) sahip modüllere veya alt sınıflara parçalayın.</div>
+        </div>
+        
+        <div class="issue-card severity-critical">
+            <div class="issue-header">
+                <span class="issue-title">Kritik Güvenlik Riski: .env <span class="path">.env</span></span>
+                <span class="badge badge-critical">KRİTİK</span>
+            </div>
+            <div class="issue-desc">Hassas yapılandırma dosyası proje kökünde açıkta bırakılmış!</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Bu dosyayı hemen .gitignore içerisine ekleyin ve sunucuda ortam değişkeni (env) olarak tanımlayın.</div>
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 0015ba95e1d71eefd4d53c5f005f4a946aedf5e02ad5a1e10323a6490cfed018.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 21518d4cd71a87f20cc97a6f526bfd7876639ebbcf11928d0d09505baedac03e.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 222213bdd1e1493326a15dd7acdf3f8fd603c22ed5dbd55178f2db1d2b514b11.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 310ddd3d359c0eb4ef507ce55f1985316de3079c82b73ca1bd67ed3f5d9f85fd.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 44e865e0a0a27cdb3b60037676bc4cc34542b15b98e95c09c0f31f0308a30c43.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 4b9ba152f90352ff0f82a45f3740d971fe0cf41b377a880abff48726400d8c50.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 685f9e10c2629cf4b96d1172c93b81d8c2fd39388d4f9b2017b85dc417e55c9c.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 819652c6906c30c898816658b36c87b46f0c99a92550feb469b1ae940141baf9.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 8fe1345a237f2bda39cce41ad933cf457553a1a31edb9adb2a2c4231d60680e6.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: 9313f1ad2241436e2d1b65bb1ad17bff39aba4ae50f0cd805227f1183ea438dc.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.1 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: a4ba8d5156f63ac70c194db3fe2e5f53d49bf88752e51327106fe3f854eab190.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: aa4f63a5babdd0f51570efb88f3ac557967b053ccc09b0422a387a8c79d300ef.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: ad1a2391d3fea81fb027a0523613c7b495698e15de394d6b08dd300f5bda02f2.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: b6c2493828342e5f285f7caa24c50858eb0a48a0e8267335588e26c670f95bc7.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <div class="issue-card severity-high">
+            <div class="issue-header">
+                <span class="issue-title">Cift dosyalar: ec78844a98466dac3081b314438d383852659860a2db3c5565e39de24b6d63dc.json </span>
+                <span class="badge badge-high">YÜKSEK</span>
+            </div>
+            <div class="issue-desc">1 kopya, 0.0 MB gereksiz</div>
+            
+        </div>
+        
+        <h3 class="section-title">🔍 DİĞER BULGULAR VE İYİLEŞTİRMELER</h3>
+
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: main() <span class="path">auto_commit.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: backfill_process() <span class="path">manual_backfill.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 16 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: main() <span class="path">merko_bedelsiz_artirimi.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _build_analysis_bundle() <span class="path">analysis_service.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 12 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _apply_currency_mode() <span class="path">analysis_service.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 15 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _build_deposit_series() <span class="path">benchmark_service.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 17 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _build_cpi_series() <span class="path">benchmark_service.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 15 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: compute_portfolio_series() <span class="path">portfolio_series_builder.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 37 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: lookup_price_for_ticker() <span class="path">price_lookup_service.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 16 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _timeline_violations() <span class="path">timeline_validator.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 14 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: apply_formatting() <span class="path">excel_formatter.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 36 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _style_dashboard_kpi() <span class="path">excel_report_builder.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _append_to_existing_excel() <span class="path">excel_report_builder.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 14 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: build() <span class="path">history_snapshot_builder.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 13 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: fetch_series_for_ticker() <span class="path">investing_fallback_client.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _resolve_investing_symbol_id() <span class="path">investing_fallback_client.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 15 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: data() <span class="path">portfolio_table_model.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 40 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _parse_api_response() <span class="path">model_interface.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 12 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: update_data() <span class="path">xai_card.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: receive_system_message() <span class="path">chatbot_panel.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 26 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _redraw_chart() <span class="path">analysis_comparison_section.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 16 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _on_override_data_ready() <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 12 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _check_date_warnings() <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _request_refresh() <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 17 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _on_data_ready() <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _render_charts() <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 15 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: _render_main_chart() <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 12 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: on_page_leave() <span class="path">comparison_page.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: update_model_stats() <span class="path">stock_stats_panel.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 12 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: update_impact_preview() <span class="path">trade_form_panel.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 11 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Yüksek Karmaşıklık Saptandı: main() <span class="path">test_benchmark_fetch_manual.py</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">Metodun siklomatik karmaşıklık skoru 14 olarak hesaplandı (Önerilen Sınır: 10). Çok fazla dallanma (if, loop) var.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Metodu alt metotlara bölün (Extract Method). İç içe if-else bloklarını 'Guard Clauses' yöntemiyle düzleştirin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Kullanılmayan Kütüphane Tespit Edildi: pyqtgraph <span class="path">requirements.txt</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">'pyqtgraph' kütüphanesi requirements.txt içinde tanımlı fakat kodda import edilmemiş.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Eğer bu kütüphaneyi kullanmıyorsanız requirements.txt dosyasından silerek bağımlılıkları temizleyin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Kullanılmayan Kütüphane Tespit Edildi: numpy <span class="path">requirements.txt</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">'numpy' kütüphanesi requirements.txt içinde tanımlı fakat kodda import edilmemiş.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Eğer bu kütüphaneyi kullanmıyorsanız requirements.txt dosyasından silerek bağımlılıkları temizleyin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Kullanılmayan Kütüphane Tespit Edildi: google-genai <span class="path">requirements.txt</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">'google-genai' kütüphanesi requirements.txt içinde tanımlı fakat kodda import edilmemiş.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Eğer bu kütüphaneyi kullanmıyorsanız requirements.txt dosyasından silerek bağımlılıkları temizleyin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Kullanılmayan Kütüphane Tespit Edildi: yfinance <span class="path">requirements.txt</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">'yfinance' kütüphanesi requirements.txt içinde tanımlı fakat kodda import edilmemiş.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Eğer bu kütüphaneyi kullanmıyorsanız requirements.txt dosyasından silerek bağımlılıkları temizleyin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Kullanılmayan Kütüphane Tespit Edildi: pytest-mock <span class="path">requirements.txt</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">'pytest-mock' kütüphanesi requirements.txt içinde tanımlı fakat kodda import edilmemiş.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Eğer bu kütüphaneyi kullanmıyorsanız requirements.txt dosyasından silerek bağımlılıkları temizleyin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Kullanılmayan Kütüphane Tespit Edildi: matplotlib <span class="path">requirements.txt</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">'matplotlib' kütüphanesi requirements.txt içinde tanımlı fakat kodda import edilmemiş.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Eğer bu kütüphaneyi kullanmıyorsanız requirements.txt dosyasından silerek bağımlılıkları temizleyin.</div>
+        </div>
+        
+        <div class="issue-card severity-medium">
+            <div class="issue-header">
+                <span class="issue-title">Kullanılmayan Kütüphane Tespit Edildi: mysql-connector-python <span class="path">requirements.txt</span></span>
+                <span class="badge badge-medium">ORTA</span>
+            </div>
+            <div class="issue-desc">'mysql-connector-python' kütüphanesi requirements.txt içinde tanımlı fakat kodda import edilmemiş.</div>
+            <div class="issue-rec"><b>💡 Öneri:</b> Eğer bu kütüphaneyi kullanmıyorsanız requirements.txt dosyasından silerek bağımlılıkları temizleyin.</div>
+        </div>
+        
+        <div class="issue-card severity-info">
+            <div class="issue-header">
+                <span class="issue-title">Toplam proje boyutu: 19.8 MB </span>
+                <span class="badge badge-info">BİLGİ</span>
+            </div>
+            <div class="issue-desc">Proje 19.8 MB disk alani kapliyor.</div>
+            
+        </div>
+        
+        <div class="issue-card severity-info">
+            <div class="issue-header">
+                <span class="issue-title">Dosya turu: .json </span>
+                <span class="badge badge-info">BİLGİ</span>
+            </div>
+            <div class="issue-desc">313 adet dosya</div>
+            
+        </div>
+        
+        <div class="issue-card severity-info">
+            <div class="issue-header">
+                <span class="issue-title">Dosya turu: .md </span>
+                <span class="badge badge-info">BİLGİ</span>
+            </div>
+            <div class="issue-desc">302 adet dosya</div>
+            
+        </div>
+        
+        <div class="issue-card severity-info">
+            <div class="issue-header">
+                <span class="issue-title">Dosya turu: .py </span>
+                <span class="badge badge-info">BİLGİ</span>
+            </div>
+            <div class="issue-desc">280 adet dosya</div>
+            
+        </div>
+        
+        <div class="issue-card severity-info">
+            <div class="issue-header">
+                <span class="issue-title">Dosya turu: .svg </span>
+                <span class="badge badge-info">BİLGİ</span>
+            </div>
+            <div class="issue-desc">53 adet dosya</div>
+            
+        </div>
+        
+        <div class="issue-card severity-info">
+            <div class="issue-header">
+                <span class="issue-title">Dosya turu: .qss </span>
+                <span class="badge badge-info">BİLGİ</span>
+            </div>
+            <div class="issue-desc">40 adet dosya</div>
+            
+        </div>
+        
+        <div class="issue-card severity-low">
+            <div class="issue-header">
+                <span class="issue-title">Bos klasor: .vscode <span class="path">.vscode</span></span>
+                <span class="badge badge-low">DÜŞÜK</span>
+            </div>
+            <div class="issue-desc">Bu klasor bos.</div>
+            
+        </div>
+        
+        <div class="issue-card severity-low">
+            <div class="issue-header">
+                <span class="issue-title">Bos klasor: events <span class="path">events</span></span>
+                <span class="badge badge-low">DÜŞÜK</span>
+            </div>
+            <div class="issue-desc">Bu klasor bos.</div>
+            
+        </div>
+        
+        <div class="issue-card severity-low">
+            <div class="issue-header">
+                <span class="issue-title">Bos klasor: repositories <span class="path">repositories</span></span>
+                <span class="badge badge-low">DÜŞÜK</span>
+            </div>
+            <div class="issue-desc">Bu klasor bos.</div>
+            
+        </div>
+        
+        <div class="issue-card severity-low">
+            <div class="issue-header">
+                <span class="issue-title">Bos klasor: cards <span class="path">cards</span></span>
+                <span class="badge badge-low">DÜŞÜK</span>
+            </div>
+            <div class="issue-desc">Bu klasor bos.</div>
+            
+        </div>
+        
+        <div class="issue-card severity-low">
+            <div class="issue-header">
+                <span class="issue-title">Bos klasor: panels <span class="path">panels</span></span>
+                <span class="badge badge-low">DÜŞÜK</span>
+            </div>
+            <div class="issue-desc">Bu klasor bos.</div>
+            
+        </div>
+        
+        <div class="issue-card severity-low">
+            <div class="issue-header">
+                <span class="issue-title">Bos klasor: tables <span class="path">tables</span></span>
+                <span class="badge badge-low">DÜŞÜK</span>
+            </div>
+            <div class="issue-desc">Bu klasor bos.</div>
+            
+        </div>
+        
+    </div>
+</body>
+</html>

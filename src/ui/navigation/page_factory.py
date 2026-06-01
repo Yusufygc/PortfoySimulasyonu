@@ -37,7 +37,7 @@ class PageFactory:
         return WatchlistPage(container=self._container)
 
     def _create_model_portfolio(self):
-        from src.ui.pages.model_portfolio_page import ModelPortfolioPage
+        from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
 
         return ModelPortfolioPage(container=self._container, price_lookup_func=self._price_lookup_func)
 
