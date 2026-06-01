@@ -71,26 +71,49 @@ class ChatbotPanel(QWidget):
 
     def receive_system_message(self, result: AnalysisResult):
         """Sol panelden gelen analiz sonucunu yapılandırılmış prompt olarak Gemini'ye gönderir."""
-        pos_factors = ""
-        if result.xai_positive_reasons:
-            lines = []
-            for f in result.xai_positive_reasons:
-                lines.append(f"    + {self._format_xai_factor_for_prompt(f)}")
-            pos_factors = "\n".join(lines)
+        pos_factors = self._format_positive_factors(result)
+        neg_factors = self._format_negative_factors(result)
+        features_formatted = self._format_fallback_features(result, pos_factors, neg_factors)
 
-        neg_factors = ""
-        if result.xai_negative_reasons:
-            lines = []
-            for f in result.xai_negative_reasons:
-                lines.append(f"    - {self._format_xai_factor_for_prompt(f)}")
-            neg_factors = "\n".join(lines)
+        prompt = self._build_prompt_template(result, pos_factors, neg_factors, features_formatted)
 
+        msg = ChatMessage(
+            MessageRole.SYSTEM,
+            prompt,
+            display_content=self._build_analysis_display_summary(result),
+        )
+        self.add_message(msg)
+        self._trigger_ai()
+
+    def _format_positive_factors(self, result: AnalysisResult) -> str:
+        if not result.xai_positive_reasons:
+            return ""
+        lines = []
+        for f in result.xai_positive_reasons:
+            lines.append(f"    + {self._format_xai_factor_for_prompt(f)}")
+        return "\n".join(lines)
+
+    def _format_negative_factors(self, result: AnalysisResult) -> str:
+        if not result.xai_negative_reasons:
+            return ""
+        lines = []
+        for f in result.xai_negative_reasons:
+            lines.append(f"    - {self._format_xai_factor_for_prompt(f)}")
+        return "\n".join(lines)
+
+    def _format_fallback_features(self, result: AnalysisResult, pos_factors: str, neg_factors: str) -> str:
         if not pos_factors and not neg_factors and result.xai_features:
-            features_formatted = "\n".join([f"    {k}: {v:.2f}" for k, v in result.xai_features.items()])
-        else:
-            features_formatted = ""
+            return "\n".join([f"    {k}: {v:.2f}" for k, v in result.xai_features.items()])
+        return ""
 
-        prompt = f"""[OTOMATİK ANALİZ AKTARIMI — API Payload]
+    def _build_prompt_template(
+        self,
+        result: AnalysisResult,
+        pos_factors: str,
+        neg_factors: str,
+        features_formatted: str,
+    ) -> str:
+        return f"""[OTOMATİK ANALİZ AKTARIMI — API Payload]
 
 Hisse: {display_ticker(result.ticker)}
 Analiz Durumu: {result.analysis_status}

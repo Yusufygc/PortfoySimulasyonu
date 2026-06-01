@@ -76,95 +76,21 @@ class PortfolioTableModel(QAbstractTableModel):
         position = self._positions[index.row()]
         stock_id = position.stock_id
         current_price = self._price_map.get(stock_id)
-
-        # Görüntülenecek metni belirleyelim, böylece Foreground ve Font rollerinde kullanabiliriz.
-        display_text = ""
         col = index.column()
-        if col == 0: # HISSE
-            ticker = self._ticker_map.get(stock_id)
-            display_text = display_ticker(ticker) if ticker is not None else str(stock_id)
-        elif col == 1: # GÜNCEL FİYAT
-            display_text = f"{current_price:,.2f}" if current_price is not None else "-"
-        elif col == 2: # DEĞİŞİM%
-            if current_price is None: 
-                display_text = "-"
-            else:
-                avg = position.average_cost
-                if avg and avg > 0:
-                    pct = ((current_price - avg) / avg) * 100
-                    display_text = f"%{pct:+.2f}"
-                else:
-                    display_text = "-"
-        elif col == 3: # LOT
-            display_text = f"{position.total_quantity:,}"
-        elif col == 4: # ORT. MALİYET
-            avg = position.average_cost
-            display_text = f"{avg:,.2f}" if avg is not None else "-"
-        elif col == 5: # PİYASA DEĞERİ
-            if current_price is None: 
-                display_text = "-"
-            else:
-                mv = position.market_value(current_price)
-                display_text = f"{mv:,.2f}"
-        elif col == 6: # KAR/ZARAR
-            if current_price is None: 
-                display_text = "-"
-            else:
-                u_pl = position.unrealized_pl(current_price)
-                display_text = f"{u_pl:+,.2f}"
 
-
-        if role == Qt.ForegroundRole:
-            if display_text == "-":
-                return QColor("#666666")
-                
-            if current_price is not None:
-                # 6. Kolon: Gerç. Olmayan K/Z
-                if col == 6:
-                    pl = position.unrealized_pl(current_price)
-                    if pl > 0:
-                        return QColor("#22c55e")  # Yeşil
-                    elif pl < 0:
-                        return QColor("#ef4444")  # Kırmızı
-                
-                # 2. Kolon: Değişim %
-                elif col == 2:
-                    avg = position.average_cost
-                    if avg and avg > 0:
-                        change_pct = ((current_price - avg) / avg) * 100
-                        if change_pct > 0:
-                            return QColor("#22c55e")
-                        elif change_pct < 0:
-                            return QColor("#ef4444")
-                            
-            return QVariant()
-
-        if role == Qt.BackgroundRole and current_price is not None:
-            if col == 6:
-                pl = position.unrealized_pl(current_price)
-                if pl > 0:
-                    return QColor(16, 185, 129, 20)
-                if pl < 0:
-                    return QColor(239, 68, 68, 20)
-            elif col == 2:
-                avg = position.average_cost
-                if avg and avg > 0:
-                    change_pct = ((current_price - avg) / avg) * 100
-                    if change_pct > 0:
-                        return QColor(16, 185, 129, 20)
-                    if change_pct < 0:
-                        return QColor(239, 68, 68, 20)
-            return QVariant()
-
-        if role == Qt.FontRole:
-            if display_text == "-":
-                font = QFont()
-                font.setItalic(True)
-                return font
-            return QVariant()
+        display_text = self._get_display_text(position, col, current_price)
 
         if role == Qt.DisplayRole:
             return display_text
+
+        if role == Qt.ForegroundRole:
+            return self._get_foreground_color(position, col, current_price, display_text)
+
+        if role == Qt.BackgroundRole:
+            return self._get_background_color(position, col, current_price)
+
+        if role == Qt.FontRole:
+            return self._get_font(display_text)
 
         if role == Qt.TextAlignmentRole:
             return Qt.AlignCenter
@@ -172,6 +98,91 @@ class PortfolioTableModel(QAbstractTableModel):
         if role == Qt.ToolTipRole:
             return "Hisse detaylarını görmek için çift tıkla"
 
+        return QVariant()
+
+    def _get_display_text(self, position: Position, col: int, current_price: Decimal | None) -> str:
+        stock_id = position.stock_id
+        if col == 0:  # HISSE
+            ticker = self._ticker_map.get(stock_id)
+            return display_ticker(ticker) if ticker is not None else str(stock_id)
+        if col == 1:  # GÜNCEL FİYAT
+            return f"{current_price:,.2f}" if current_price is not None else "-"
+        if col == 2:  # DEĞİŞİM%
+            if current_price is None:
+                return "-"
+            avg = position.average_cost
+            if avg and avg > 0:
+                pct = ((current_price - avg) / avg) * 100
+                return f"%{pct:+.2f}"
+            return "-"
+        if col == 3:  # LOT
+            return f"{position.total_quantity:,}"
+        if col == 4:  # ORT. MALİYET
+            avg = position.average_cost
+            return f"{avg:,.2f}" if avg is not None else "-"
+        if col == 5:  # PİYASA DEĞERİ
+            if current_price is None:
+                return "-"
+            mv = position.market_value(current_price)
+            return f"{mv:,.2f}"
+        if col == 6:  # KAR/ZARAR
+            if current_price is None:
+                return "-"
+            u_pl = position.unrealized_pl(current_price)
+            return f"{u_pl:+,.2f}"
+        return ""
+
+    def _get_foreground_color(self, position: Position, col: int, current_price: Decimal | None, display_text: str):
+        if display_text == "-":
+            return QColor("#666666")
+
+        if current_price is not None:
+            # 6. Kolon: Gerç. Olmayan K/Z
+            if col == 6:
+                pl = position.unrealized_pl(current_price)
+                if pl > 0:
+                    return QColor("#22c55e")  # Yeşil
+                if pl < 0:
+                    return QColor("#ef4444")  # Kırmızı
+
+            # 2. Kolon: Değişim %
+            if col == 2:
+                avg = position.average_cost
+                if avg and avg > 0:
+                    change_pct = ((current_price - avg) / avg) * 100
+                    if change_pct > 0:
+                        return QColor("#22c55e")
+                    if change_pct < 0:
+                        return QColor("#ef4444")
+
+        return QVariant()
+
+    def _get_background_color(self, position: Position, col: int, current_price: Decimal | None):
+        if current_price is None:
+            return QVariant()
+
+        if col == 6:
+            pl = position.unrealized_pl(current_price)
+            if pl > 0:
+                return QColor(16, 185, 129, 20)
+            if pl < 0:
+                return QColor(239, 68, 68, 20)
+        elif col == 2:
+            avg = position.average_cost
+            if avg and avg > 0:
+                change_pct = ((current_price - avg) / avg) * 100
+                if change_pct > 0:
+                    return QColor(16, 185, 129, 20)
+                if change_pct < 0:
+                    return QColor(239, 68, 68, 20)
+
+        return QVariant()
+
+    def _get_font(self, display_text: str):
+        if display_text == "-":
+            font = QFont()
+            font.setItalic(True)
+            return font
         return QVariant()
 
     # UI'yı güncellemek için helper
