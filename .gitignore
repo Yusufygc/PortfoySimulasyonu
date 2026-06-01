@@ -9,6 +9,7 @@ auto_commit.py
 /Eklenebilirler.txt
 /Ai_sayfasi.md
 /logs
+/docs
 docs/**/.obsidian/
 docs/MyDocs
 .icon_cache/

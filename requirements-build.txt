@@ -1,0 +1,2 @@
+# Build tooling
+nuitka==2.7.14
