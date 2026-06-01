@@ -8,9 +8,9 @@ auto_commit.py
 
 /Eklenebilirler.txt
 /Ai_sayfasi.md
-/docs
 /logs
-
+docs/**/.obsidian/
+docs/MyDocs
 .icon_cache/
 
 # Byte-compiled / optimized / DLL files

@@ -1,5 +1,5 @@
-import os
 from PyQt5.QtCore import QThread, pyqtSignal
+from config.settings_loader import load_ai_settings
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole
 
 try:
@@ -54,14 +54,7 @@ class GeminiWorker(QThread):
         self._setup_api()
 
     def _setup_api(self):
-        self.api_key = os.environ.get("GEMINI_API_KEY")
-        if not self.api_key:
-            try:
-                from dotenv import load_dotenv
-                load_dotenv()
-                self.api_key = os.environ.get("GEMINI_API_KEY")
-            except ImportError:
-                pass
+        self.api_key = load_ai_settings().gemini_api_key
         
         if self.api_key and HAS_GEMINI:
             self.client = genai.Client(api_key=self.api_key)

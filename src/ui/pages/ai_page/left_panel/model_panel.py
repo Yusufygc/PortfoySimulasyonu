@@ -1,9 +1,9 @@
 import logging
-import os
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
 from PyQt5.QtCore import QThread, pyqtSignal, Qt
 
+from config.settings_loader import load_ai_settings
 from src.ui.pages.ai_page.core.models import AnalysisResult, DEFAULT_INVESTMENT_DISCLAIMER
 from src.ui.pages.ai_page.core.model_interface import (
     AIModelInterface,
@@ -53,7 +53,7 @@ class ModelPanel(QWidget):
 
     def _setup_adapter(self):
         """Client kur; bağlantı kontrolü async yapılır (on_page_enter / AIPage Worker)."""
-        base_url = os.getenv("AI_CORE_API_URL", "http://localhost:8000")
+        base_url = load_ai_settings().core_api_url
         self._client = AICoreFastAPIClient(base_url=base_url)
         self.adapter = MockAdapter()   # bağlantı doğrulanana kadar güvenli varsayılan
         self._api_connected = False
@@ -118,7 +118,7 @@ class ModelPanel(QWidget):
 
     def probe_connection(self) -> bool:
         """WORKER THREAD'de çalışır — yalnızca ağ I/O, UI'a DOKUNMAZ."""
-        base_url = os.getenv("AI_CORE_API_URL", "http://localhost:8000")
+        base_url = load_ai_settings().core_api_url
         probe = AICoreFastAPIClient(base_url=base_url)
         return probe.health_check()
 

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Dict, Optional, List
 from datetime import date
 from urllib.request import Request, urlopen
 import urllib.error
 import urllib.parse
+from config.settings_loader import load_market_settings
 from src.domain.exceptions import MarketDataUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 class EvdsClient:
     def __init__(self, timeout: int = 10) -> None:
         self._timeout = timeout
-        # .env dosyasindan yuklenir. Settings loader tarafindan load_dotenv cagrilmis olmalidir.
-        self._api_key = os.environ.get("EVDS_API_KEY", "")
+        self._api_key = load_market_settings().evds_api_key or ""
 
     def get_series(self, series_code: str, start_date: date, end_date: date) -> List[Dict]:
         """
@@ -47,4 +46,3 @@ class EvdsClient:
         except urllib.error.URLError as e:
             logger.error("EVDS API baglanti hatasi: %s", e)
             raise MarketDataUnavailableError(f"EVDS API baglanti hatasi: {e}") from e
-

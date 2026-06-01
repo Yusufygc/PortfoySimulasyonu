@@ -150,7 +150,7 @@ AI deneyimi:
 - Kullanıcıya sade cevap, log tarafında daha ayrıntılı hata bilgisi.
 - Yatırım tavsiyesi vermeyen karar destek dili.
 
-AI Core entegrasyonu `AI_CORE_API_URL` ile yapılandırılır. Gemini tarafında `google.generativeai` paketi kullanıldığı için deprecation uyarısı bilinen teknik borç olarak takip edilir.
+AI Core entegrasyonu `AI_CORE_API_URL` ile yapılandırılır. Gemini tarafında güncel `google.genai` istemcisi kullanılır.
 
 ### Ayarlar ve Yönetim Ekranı
 
@@ -250,10 +250,11 @@ POOL_NAME=portfoy_pool
 POOL_SIZE=5
 GEMINI_API_KEY=change-me
 AI_CORE_API_URL=http://localhost:8000
+EVDS_API_KEY=
 TCMB_DEPOSIT_RATE_FALLBACK=45.0
 ```
 
-`DB_PORT` ve `POOL_SIZE` parse hataları sessiz geçmez. Kritik ortam değerleri eksik veya geçersiz olduğunda açık hata üretilir.
+`DB_PORT`, `POOL_SIZE`, `AI_CORE_API_URL` ve `TCMB_DEPOSIT_RATE_FALLBACK` parse hataları sessiz geçmez. Kritik ortam değerleri eksik veya geçersiz olduğunda açık hata üretilir.
 
 ## Kalite ve Güvenilirlik
 
@@ -278,7 +279,7 @@ Son doğrulama komutu:
 C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests
 ```
 
-Beklenen durum: testler geçer; `google.generativeai` deprecation uyarısı bilinen teknik borç olarak kalabilir.
+Beklenen durum: testler geçer; dış servis gerektiren kontroller mock veya fallback akışlarıyla izole edilir.
 
 ### Bağımlılık Yönetimi
 
@@ -287,6 +288,7 @@ Beklenen durum: testler geçer; `google.generativeai` deprecation uyarısı bili
 Öne çıkan bağımlılıklar:
 
 - `PyQt5`
+- `PyQtWebEngine`
 - `SQLAlchemy`
 - `mysql-connector-python`
 - `numpy`
@@ -405,7 +407,9 @@ Python tabanlı kütüphaneleri (PyQt5, SciPy vb.) bağımsız bir masaüstü uy
 .\build_nuitka.bat
 ```
 
-Build script; uygulama ikonunu `icons/portfoy-simulasyonu.ico` dosyasından alır, plugin'leri aktif eder ve `/nuitka_build/` dizini altında son derlenmiş versiyonu çıkartır. Bilimsel kütüphanelerin paketlenmesi oldukça uzun sürebilir.
+Build script; uygulama ikonunu `icons/portfoy-simulasyonu.ico` dosyasından alır, plugin'leri aktif eder ve `dist/` dizini altında son derlenmiş versiyonu çıkartır. Bilimsel kütüphanelerin paketlenmesi oldukça uzun sürebilir.
+
+Build script `requirements.txt` ve `requirements-build.txt` dosyalarındaki pinli sürümleri kullanır. Gerçek `.env` dosyası exe içine gömülmez; dağıtılan uygulama kendi bulunduğu dizindeki kullanıcıya özel `.env` dosyasını runtime sırasında okur.
 
 ### Veritabanı Bakımı ve Scriptler
 
@@ -455,7 +459,6 @@ Bu maddeler mevcut ürünün bugünkü iddiası değil, mimarinin destekleyebile
 
 ## Bilinen Teknik Borçlar
 
-- `google.generativeai` paketi deprecation uyarısı üretir. `google.genai` geçişi planlanması gereken teknik borçtur.
 - AI Core bağlantısı harici servis gerektirir. `AI_CORE_API_URL` erişilemezse AI ekranı ilgili bağlantı hatasını gösterebilir.
 - README komutları Windows PowerShell önceliklidir. Linux/macOS ortamlarında sanal ortam aktivasyonu ve servis kurulum adımları uyarlanmalıdır.
 - Finansal veri kaynakları dış servis davranışına bağlıdır; upstream kesinti veya veri boşluğu durumunda fallback ve hata mesajı akışları devreye girer.

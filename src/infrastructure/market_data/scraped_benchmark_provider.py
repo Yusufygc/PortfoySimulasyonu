@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
 from datetime import date
 from decimal import Decimal
@@ -12,6 +11,7 @@ import urllib.error
 
 import pandas as pd
 
+from config.settings_loader import load_market_settings
 from src.domain.exceptions import MarketDataUnavailableError
 from .evds_client import EvdsClient
 
@@ -262,13 +262,5 @@ class ScrapedBenchmarkProvider:
         return result
 
     def _manual_tcmb_deposit_fallback(self, start_date: date) -> Dict[date, Decimal]:
-        rate_str = os.environ.get("TCMB_DEPOSIT_RATE_FALLBACK", "45.0").strip()
-        try:
-            rate = Decimal(rate_str)
-        except (ValueError, ArithmeticError):
-            logger.warning(
-                "Invalid TCMB_DEPOSIT_RATE_FALLBACK: %r; defaulting to 45.0",
-                rate_str,
-            )
-            rate = Decimal("45.0")
+        rate = load_market_settings().tcmb_deposit_rate_fallback
         return {start_date: rate}

@@ -21,8 +21,9 @@ python-dotenv==1.2.2
 
 # UI and visualization
 PyQt5==5.15.11
+PyQtWebEngine==5.15.7
 pyqtgraph==0.14.0
 
 # Test and quality
-pytest>=7.0.0
-pytest-mock>=3.10.0
+pytest==9.0.3
+pytest-mock==3.15.1

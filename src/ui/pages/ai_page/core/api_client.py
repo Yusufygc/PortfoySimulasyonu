@@ -11,10 +11,11 @@ Kullanım:
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Dict, List, Optional
 
 import requests
+
+from config.settings_loader import load_ai_settings
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ class AICoreFastAPIClient:
         base_url: Optional[str] = None,
         timeout: int = _DEFAULT_TIMEOUT,
     ) -> None:
-        raw_url = base_url or os.getenv("AI_CORE_API_URL", _DEFAULT_BASE_URL)
+        raw_url = base_url or load_ai_settings().core_api_url
         self.base_url = raw_url.rstrip("/")
         self.timeout = timeout
         self._session = requests.Session()

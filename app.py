@@ -1,6 +1,5 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 from src.infrastructure.logging.logger_setup import setup_logger, setup_global_exception_handler
 from src.application.container import AppContainer
