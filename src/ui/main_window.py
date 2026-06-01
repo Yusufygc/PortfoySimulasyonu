@@ -32,13 +32,14 @@ class MainWindow(QMainWindow):
     PAGE_WATCHLIST = 1
     PAGE_MODEL_PORTFOLIO = 2
     PAGE_ANALYSIS = 3
-    PAGE_STOCK_DETAIL = 4
-    PAGE_OPTIMIZATION = 5
-    PAGE_PLANNING = 6
-    PAGE_RISK_PROFILE = 7
-    PAGE_AI_PAGE = 8
-    PAGE_SETTINGS = 9
-    PAGE_COUNT = 10
+    PAGE_COMPARISON = 4
+    PAGE_STOCK_DETAIL = 5
+    PAGE_OPTIMIZATION = 6
+    PAGE_PLANNING = 7
+    PAGE_RISK_PROFILE = 8
+    PAGE_AI_PAGE = 9
+    PAGE_SETTINGS = 10
+    PAGE_COUNT = 11
 
     def __init__(self, container, parent=None):
         super().__init__(parent)
@@ -86,17 +87,19 @@ class MainWindow(QMainWindow):
         self.btn_watchlist = self._create_nav_button("Listelerim", self.PAGE_WATCHLIST, "list")
         self.btn_model_portfolio = self._create_nav_button("Model Portföyler", self.PAGE_MODEL_PORTFOLIO, "wallet")
         self.btn_analysis = self._create_nav_button("Analiz", self.PAGE_ANALYSIS, "trending-up")
+        self.btn_comparison = self._create_nav_button("Karşılaştırma", self.PAGE_COMPARISON, "bar-chart-2")
         self.btn_optimization = self._create_nav_button("Optimizasyon", self.PAGE_OPTIMIZATION, "zap")
         self.btn_planning = self._create_nav_button("Finansal Planlama", self.PAGE_PLANNING, "save")
         self.btn_risk_profile = self._create_nav_button("Risk Profili", self.PAGE_RISK_PROFILE, "shield-check")
         self.btn_ai_page = self._create_nav_button("AI Asistan", self.PAGE_AI_PAGE, "bot")
         self.btn_settings = self._create_nav_button("Ayarlar", self.PAGE_SETTINGS, "save")
-
+ 
         for button in (
             self.btn_dashboard,
             self.btn_watchlist,
             self.btn_model_portfolio,
             self.btn_analysis,
+            self.btn_comparison,
             self.btn_optimization,
             self.btn_planning,
             self.btn_risk_profile,
@@ -214,6 +217,7 @@ class MainWindow(QMainWindow):
             self.PAGE_WATCHLIST: (self.btn_watchlist, "list"),
             self.PAGE_MODEL_PORTFOLIO: (self.btn_model_portfolio, "wallet"),
             self.PAGE_ANALYSIS: (self.btn_analysis, "trending-up"),
+            self.PAGE_COMPARISON: (self.btn_comparison, "bar-chart-2"),
             self.PAGE_OPTIMIZATION: (self.btn_optimization, "zap"),
             self.PAGE_PLANNING: (self.btn_planning, "save"),
             self.PAGE_RISK_PROFILE: (self.btn_risk_profile, "shield-check"),

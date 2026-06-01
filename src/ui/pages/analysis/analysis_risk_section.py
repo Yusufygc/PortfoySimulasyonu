@@ -7,7 +7,7 @@ from src.application.services.analysis import AllocationRiskDTO
 from src.ui.widgets.shared import InfoCard
 
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from .chart_builder import build_pie_chart
+from .chart_builder import build_pie_chart, patch_plotly_html
 
 
 def _fmt_pct(value: float | None) -> str:
@@ -68,14 +68,33 @@ class AnalysisRiskSection(QWidget):
         cost_breakdown = [(item.label, float(item.cost_value)) for item in dto.items if item.cost_value > 0]
         current_breakdown = [(item.label, float(item.current_value)) for item in dto.items if item.current_value > 0]
         
+        from PyQt5.QtCore import QUrl
+        import tempfile
+
         if cost_breakdown:
             fig1 = build_pie_chart("Maliyet Bazlı Dağılım", cost_breakdown)
-            self.cost_chart.setHtml(fig1.to_html(include_plotlyjs=True))
+            html1 = fig1.to_html(include_plotlyjs=True)
+            html1 = patch_plotly_html(html1)
+            if not hasattr(self, "_cost_temp_file") or self._cost_temp_file is None:
+                f = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
+                self._cost_temp_file = f.name
+                f.close()
+            with open(self._cost_temp_file, "w", encoding="utf-8") as f:
+                f.write(html1)
+            self.cost_chart.load(QUrl.fromLocalFile(self._cost_temp_file))
         else:
             self.cost_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Maliyet verisi yok</div>")
             
         if current_breakdown:
             fig2 = build_pie_chart("Güncel Değer Dağılımı", current_breakdown)
-            self.value_chart.setHtml(fig2.to_html(include_plotlyjs=True))
+            html2 = fig2.to_html(include_plotlyjs=True)
+            html2 = patch_plotly_html(html2)
+            if not hasattr(self, "_val_temp_file") or self._val_temp_file is None:
+                f = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
+                self._val_temp_file = f.name
+                f.close()
+            with open(self._val_temp_file, "w", encoding="utf-8") as f:
+                f.write(html2)
+            self.value_chart.load(QUrl.fromLocalFile(self._val_temp_file))
         else:
             self.value_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Değer verisi yok</div>")

@@ -153,7 +153,7 @@ class AnalysisService:
                 )
             )
 
-        comparison_portfolios = self._build_comparison_portfolio_series(state)
+        comparison_portfolios = self._build_comparison_portfolio_series(state, bundle=bundle)
         for portfolio_series in comparison_portfolios:
             other_return = compute_return_pct(portfolio_series.points)
             rel_gap = compute_relative_gap_pct(bundle["portfolio_series"], portfolio_series.points)
@@ -340,7 +340,7 @@ class AnalysisService:
                 
         return result
 
-    def _build_comparison_portfolio_series(self, filter_state: AnalysisFilterState) -> List[BenchmarkSeries]:
+    def _build_comparison_portfolio_series(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> List[BenchmarkSeries]:
         results: List[BenchmarkSeries] = []
         for source_code in filter_state.comparison_portfolio_sources:
             if source_code == filter_state.portfolio_source:

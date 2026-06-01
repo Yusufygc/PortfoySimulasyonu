@@ -134,7 +134,8 @@ def test_overview_returns_expected_high_level_metrics(analysis_service):
     assert overview.largest_position_label == "AKBNK"
     assert overview.best_contributor_label == "AKBNK"
     assert overview.worst_contributor_label == "ASELS"
-    assert overview.warnings == []
+    assert len(overview.warnings) == 1
+    assert "Forward Fill" in overview.warnings[0]
 
 
 def test_comparison_view_builds_deposit_benchmark_series(analysis_service):
@@ -370,3 +371,47 @@ def test_empty_benchmark_selection_disables_benchmark_series(analysis_service):
     assert comparison.benchmark_series == []
     assert comparison.comparison_metrics == []
     assert overview.benchmark_gap_pct is None
+
+
+def test_comparison_view_with_other_portfolios(analysis_service):
+    class FakeModelPortfolio:
+        def __init__(self, id, name):
+            self.id = id
+            self.name = name
+
+    class FakeModelTrade:
+        def __init__(self, stock_id, trade_date, quantity, price, side):
+            self.stock_id = stock_id
+            self.trade_date = trade_date
+            self.quantity = quantity
+            self.price = price
+            self.side = side
+            self.trade_time = None
+
+    class FakeModelPortfolioService:
+        def get_all_portfolios(self):
+            return [FakeModelPortfolio(4, "Model Portfoy 4")]
+        def get_portfolio_trades(self, portfolio_id):
+            from src.domain.models.model_portfolio import ModelTradeSide
+            return [
+                FakeModelTrade(1, date(2026, 1, 1), 10, Decimal("100"), ModelTradeSide.BUY)
+            ]
+
+    analysis_service._source_resolver._model_portfolio_service = FakeModelPortfolioService()
+
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_stock_ids=[],
+        selected_benchmarks=[],
+        portfolio_source="dashboard",
+        comparison_portfolio_sources=["dashboard", "model:4"],
+    )
+
+    comparison = analysis_service.get_comparison_view(filter_state)
+
+    assert len(comparison.comparison_portfolios) == 1
+    p4_series = comparison.comparison_portfolios[0]
+    assert p4_series.code == "model:4"
+    assert p4_series.label == "Model Portfoy 4"
+    assert len(p4_series.points) == 3

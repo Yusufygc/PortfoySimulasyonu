@@ -65,20 +65,23 @@ class PortfolioSeriesBuilder:
         }
         
         # Baslangic nakit bakiyesi
+        has_cash_tracking = len(cash_movements) > 0 or len(cash_before) > 0
         current_cash = Decimal("0")
-        for cm in cash_before:
-            if cm.type == CashMovementType.DEPOSIT:
-                current_cash += cm.amount
-            elif cm.type == CashMovementType.WITHDRAW:
-                current_cash -= cm.amount
-                
-        # Gecmis islemlerden dogan nakit etkileri
-        for t in trades_before:
-            trade_value = t.quantity * t.price
-            if t.side.name == "BUY":
-                current_cash -= trade_value
-            elif t.side.name == "SELL":
-                current_cash += trade_value
+        
+        if has_cash_tracking:
+            for cm in cash_before:
+                if cm.type == CashMovementType.DEPOSIT:
+                    current_cash += cm.amount
+                elif cm.type == CashMovementType.WITHDRAW:
+                    current_cash -= cm.amount
+                    
+            # Gecmis islemlerden dogan nakit etkileri
+            for t in trades_before:
+                trade_value = t.quantity * t.price
+                if t.side.name == "BUY":
+                    current_cash -= trade_value
+                elif t.side.name == "SELL":
+                    current_cash += trade_value
 
         trades_by_date: Dict[date, List[Trade]] = {}
         for trade in trades:
@@ -95,21 +98,26 @@ class PortfolioSeriesBuilder:
         portfolio_series: Dict[date, Decimal] = {}
         current_day = start_date
         while current_day <= end_date:
-            # Gunluk nakit hareketlerini iske
-            for cm in sorted(cash_by_date.get(current_day, []), key=lambda item: item.movement_time or time.min):
-                if cm.type == CashMovementType.DEPOSIT:
-                    current_cash += cm.amount
-                elif cm.type == CashMovementType.WITHDRAW:
-                    current_cash -= cm.amount
-            
-            # Gunluk hisse islemlerini isle
-            for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
-                current_positions[trade.stock_id].apply_trade(trade)
-                trade_value = trade.quantity * trade.price
-                if trade.side.name == "BUY":
-                    current_cash -= trade_value
-                elif trade.side.name == "SELL":
-                    current_cash += trade_value
+            if has_cash_tracking:
+                # Gunluk nakit hareketlerini isle
+                for cm in sorted(cash_by_date.get(current_day, []), key=lambda item: item.movement_time or time.min):
+                    if cm.type == CashMovementType.DEPOSIT:
+                        current_cash += cm.amount
+                    elif cm.type == CashMovementType.WITHDRAW:
+                        current_cash -= cm.amount
+                
+                # Gunluk hisse islemlerini isle
+                for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
+                    current_positions[trade.stock_id].apply_trade(trade)
+                    trade_value = trade.quantity * trade.price
+                    if trade.side.name == "BUY":
+                        current_cash -= trade_value
+                    elif trade.side.name == "SELL":
+                        current_cash += trade_value
+            else:
+                # Sadece hisse pozisyonlarini guncelle, nakit 0 kalir
+                for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
+                    current_positions[trade.stock_id].apply_trade(trade)
                     
             total_value = current_cash
             for stock_id in stock_ids:

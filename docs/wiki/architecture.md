@@ -71,7 +71,7 @@ Sinyal örnekleri:
 |-------|-----------|
 | `portfolio/` | İşlem girişi, portföy koordinatörü, fiyat güncelleme zincirleme |
 | `market/` | Fiyat sorgulama, veri sağlığı kontrolü |
-| `analysis/` | Portföy analizi, benchmark karşılaştırması, metrikler |
+| `analysis/` | Portföy analizi, benchmark karşılaştırması, çoklu varlık karşılaştırma motoru (ComparisonService) |
 | `planning/` | Model portföy, optimizasyon, finansal planlama, risk profili |
 | `simulation/` | Geçmiş veri backfill, tarihsel simülasyon |
 | `reporting/` | Excel dışa aktarma (openpyxl, biçimlendirilmiş çıktı) |
@@ -120,7 +120,8 @@ PyQt5 tabanlı masaüstü arayüz katmanı.
 | Sayfa | İşlev |
 |-------|-------|
 | `dashboard/` | Ana portföy özeti, getiri oranları |
-| `analysis/` | Çoklu hisse analizi, benchmark grafikleri |
+| `analysis/` | Portföy kokpiti, hisse analizi ve benchmark grafikleri |
+| `comparison/` | Karşılaştırma Laboratuvarı, çoklu varlık karşılaştırma ve rasyo analizleri |
 | `stock_detail/` | Tek hisse detay ve geçmiş |
 | `model_portfolio_page.py` | Sanal portföy simülasyonu |
 | `optimization_page.py` | Markowitz optimizasyon arayüzü |

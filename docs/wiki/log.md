@@ -6,6 +6,33 @@
 
 ---
 
+## [2026-06-01] güncelleme | Analiz filtre panelinin sadeleştirilmesi
+
+- Kıyaslama sekmesinin kaldırılmasının ardından analiz sayfasındaki filtre panelinde gereksiz kalan çoklu karşılaştırma portföy seçicisi (`compare_combo`) ve çoklu benchmark seçici çip grubu (`BenchmarkChipGroup`) kaldırıldı.
+- Genel Bakış sekmesindeki kıyaslama farkı hesabı için tekil kıyaslama endeksi seçilmesini sağlayan bir Benchmark Seçici ComboBox entegre edildi.
+- İlgili tüm entegrasyonlar (`AnalysisPage`) ve testler (`test_analysis_page.py`) güncellendi.
+- Etkilenen dosyalar: `src/ui/pages/analysis/analysis_control_panel.py`, `src/ui/pages/analysis/analysis_page.py`, `tests/ui/pages/test_analysis_page.py`, `docs/wiki/log.md`
+
+---
+
+## [2026-06-01] güncelleme | Karşılaştırma Laboratuvarı layout ve KeyError çözümleri
+
+- Rasyo modunda ("dashboard" kodu ile "Ana Portföy" etiketi eşleşmemesinden kaynaklanan) `KeyError: 'Dashboard'` hatası çözüldü. DTO'dan gelen varlık kodlarını ve etiketlerini dinamik eşleyen `code_to_label` yapısı eklendi.
+- Grafik yerleşimi, kullanıcının talebi üzerine yan yana grid / splitter yapısından kurtarılarak dikey scroll listesi (tek sütunda alt alta tam genişlikte listeleme) haline getirildi.
+- Etkilenen dosyalar: `src/ui/pages/comparison/comparison_page.py`, `docs/wiki/log.md`
+
+---
+
+## [2026-06-01] güncelleme | Karşılaştırma Laboratuvarı entegrasyonu ve mimari dokümantasyonu
+
+- Karşılaştırma Laboratuvarı'na yönelik matematiksel motor (`ComparisonService`), görselleştirme motoru (`ComparisonChartFactory`), UI katmanı (`ComparisonPage`, `ComparisonRibbonBar`) ve navigasyon entegrasyonu tamamlandı.
+- Eski "Karşılaştırma" sekmesi `AnalysisPage` içerisinden tamamen kaldırıldı, portföy kokpiti sadeleştirildi.
+- Mimari dokümanı (`architecture.md`) yeni sayfalar ve servislerle güncellendi.
+- Etkilenen dosyalar: `docs/wiki/architecture.md`, `src/application/services/analysis/comparison_service.py`, `src/ui/pages/comparison/chart_factory.py`, `src/ui/pages/comparison/comparison_page.py`, `src/ui/pages/comparison/widgets/ribbon_bar.py`, `src/ui/main_window.py`, `src/ui/navigation/page_factory.py`, `src/ui/pages/analysis/analysis_page.py`
+- Bağlantılı sayfa: [architecture.md](architecture.md)
+
+---
+
 ## [2026-06-01] güncelleme | Analiz tasarım dokümanlarının proje kuralları ve mimariye göre düzeltilmesi
 
 - `analizSayfasi` altındaki 4 tasarım dokümanı incelendi ve proje kurallarına (sabit light tema yerine dinamik tema, ayrı sayfa yerine AnalysisPage sekmeleri, dosya yolları vb.) uymayan kısımlar düzeltildi.

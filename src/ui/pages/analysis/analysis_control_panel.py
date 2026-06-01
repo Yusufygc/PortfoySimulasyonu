@@ -49,16 +49,6 @@ class AnalysisControlPanel(QFrame):
         self.combo_portfolio.currentIndexChanged.connect(self._on_source_changed)
         layout.addWidget(self._wrap_field("Portf\u00f6y", self.combo_portfolio))
 
-        self.compare_combo = CheckableComboBox("Kar\u015f\u0131la\u015ft\u0131rma portf\u00f6yleri se\u00e7in")
-        self.compare_combo.selection_changed.connect(self.filter_changed.emit)
-        layout.addWidget(
-            self._wrap_field(
-                "Kar\u015f\u0131la\u015ft\u0131rma Portf\u00f6yleri",
-                self.compare_combo,
-                "Portf\u00f6y kar\u015f\u0131la\u015ft\u0131rmas\u0131na dahil edilecek di\u011fer portf\u00f6yler.",
-            )
-        )
-
         self.combo_currency = self._create_combo_box("Para Birimi")
         self.combo_currency.addItems(["TL", "USD", "REAL (TÜFE Düzeltilmiş)"])
         self.combo_currency.currentIndexChanged.connect(self.filter_changed.emit)
@@ -130,9 +120,9 @@ class AnalysisControlPanel(QFrame):
         quick_row.addStretch()
         layout.addLayout(quick_row)
 
-        self.benchmark_chips = BenchmarkChipGroup()
-        self.benchmark_chips.selection_changed.connect(self.filter_changed.emit)
-        layout.addWidget(self._wrap_field("Benchmark Se\u00e7imi", self.benchmark_chips))
+        self.combo_benchmark = self._create_combo_box("Benchmark")
+        self.combo_benchmark.currentIndexChanged.connect(self.filter_changed.emit)
+        layout.addWidget(self._wrap_field("Kıyaslama Endeksi", self.combo_benchmark, "Genel Bakışta fark hesabı için birincil kıyaslama endeksi."))
         layout.addStretch()
 
     def _create_combo_box(self, _placeholder: str) -> QComboBox:
@@ -178,11 +168,6 @@ class AnalysisControlPanel(QFrame):
         if self.combo_portfolio.count() and self.combo_portfolio.currentIndex() < 0:
             self.combo_portfolio.setCurrentIndex(0)
 
-    def set_comparison_portfolios(self, options: List[PortfolioOption]) -> None:
-        current_source = self.selected_portfolio_source()
-        items = [(option.label, option.code) for option in options if option.code != current_source]
-        self.compare_combo.set_items(items)
-
     def set_stocks(self, stock_map: Dict[int, str]) -> None:
         items = [
             (display_ticker(ticker), str(stock_id))
@@ -193,16 +178,25 @@ class AnalysisControlPanel(QFrame):
         self.stock_combo.set_selected_data(current_selected)
 
     def set_benchmarks(self, definitions: List[BenchmarkDefinition]) -> None:
-        self.benchmark_chips.set_benchmarks(definitions)
+        current = self.selected_benchmarks()
+        current_code = current[0] if current else None
+        self.combo_benchmark.blockSignals(True)
+        self.combo_benchmark.clear()
+        for b in definitions:
+            self.combo_benchmark.addItem(b.label, b.code)
+        if current_code:
+            idx = self.combo_benchmark.findData(current_code)
+            if idx >= 0:
+                self.combo_benchmark.setCurrentIndex(idx)
+        self.combo_benchmark.blockSignals(False)
+        if self.combo_benchmark.count() and self.combo_benchmark.currentIndex() < 0:
+            self.combo_benchmark.setCurrentIndex(0)
 
     def set_earliest_date(self, earliest: date) -> None:
         self._earliest_date = earliest
 
     def selected_portfolio_source(self) -> str:
         return self.combo_portfolio.currentData()
-
-    def selected_comparison_sources(self) -> List[str]:
-        return self.compare_combo.selected_data()
 
     def selected_currency_mode(self) -> str:
         idx = self.combo_currency.currentIndex()
@@ -216,7 +210,8 @@ class AnalysisControlPanel(QFrame):
         return [int(value) for value in self.stock_combo.selected_data()]
 
     def selected_benchmarks(self) -> List[str]:
-        return self.benchmark_chips.selected_codes()
+        code = self.combo_benchmark.currentData()
+        return [code] if code else []
 
     def date_range(self) -> tuple[date, date]:
         return self.date_start.date().toPyDate(), self.date_end.date().toPyDate()

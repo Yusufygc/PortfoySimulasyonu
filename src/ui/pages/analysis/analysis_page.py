@@ -22,7 +22,6 @@ from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from src.ui.worker import Worker
 
-from .analysis_comparison_section import AnalysisComparisonSection
 from .analysis_control_panel import AnalysisControlPanel
 from .analysis_overview_section import AnalysisOverviewSection
 from .analysis_risk_section import AnalysisRiskSection
@@ -95,10 +94,8 @@ class AnalysisPage(BasePage):
         tab_bar.setElideMode(Qt.ElideNone)
 
         self.overview_section = AnalysisOverviewSection()
-        self.comparison_section = AnalysisComparisonSection()
         self.risk_section = AnalysisRiskSection()
         self.tabs.addTab(self._wrap_scroll(self.overview_section), "Genel Bak\u0131\u015f")
-        self.tabs.addTab(self._wrap_scroll(self.comparison_section), "Kar\u015f\u0131la\u015ft\u0131rma")
         self.tabs.addTab(self._wrap_scroll(self.risk_section), "Da\u011f\u0131l\u0131m & Risk")
         left_layout.addWidget(self.tabs, 1)
         content_layout.addWidget(left_container, 1)
@@ -167,7 +164,6 @@ class AnalysisPage(BasePage):
     def _load_static_options(self) -> None:
         options = self.analysis_service.get_portfolio_options()
         self.control_panel.set_portfolio_options(options)
-        self.control_panel.set_comparison_portfolios(options)
         self.control_panel.set_benchmarks(self.analysis_service.get_benchmark_definitions())
 
     def _sync_source_context(self) -> None:
@@ -175,7 +171,7 @@ class AnalysisPage(BasePage):
         self.control_panel.set_stocks(self.analysis_service.get_stock_map_for_source(source))
         earliest = self.analysis_service.get_first_trade_date_for_source(source) or (date.today() - timedelta(days=365))
         self.control_panel.set_earliest_date(earliest)
-        self.control_panel.set_comparison_portfolios(self.analysis_service.get_portfolio_options())
+
     def _on_source_changed(self, _source: str) -> None:
         self._sync_source_context()
 
@@ -187,7 +183,7 @@ class AnalysisPage(BasePage):
             selected_stock_ids=self.control_panel.selected_stock_ids(),
             selected_benchmarks=self.control_panel.selected_benchmarks(),
             portfolio_source=self.control_panel.selected_portfolio_source() or "dashboard",
-            comparison_portfolio_sources=self.control_panel.selected_comparison_sources(),
+            comparison_portfolio_sources=[],
             currency_mode=self.control_panel.selected_currency_mode(),
         )
 
@@ -212,7 +208,6 @@ class AnalysisPage(BasePage):
             return
         self.warning_banner.hide()
         self.overview_section.set_data(payload["overview"])
-        self.comparison_section.set_data(payload["comparison"])
         self.risk_section.set_data(payload["risk"])
 
     def _on_payload_error(self, request_id: int, err_tuple) -> None:
@@ -230,7 +225,6 @@ class AnalysisPage(BasePage):
         self.warning_banner.setText(message)
         self.warning_banner.show()
         self.overview_section.set_error(message)
-        self.comparison_section.set_error(message)
         self.risk_section.set_error(message)
 
     def _set_loading(self, loading: bool) -> None:

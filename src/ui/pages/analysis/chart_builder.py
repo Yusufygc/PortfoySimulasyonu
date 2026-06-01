@@ -448,4 +448,38 @@ def build_pie_chart(title: str, breakdown: list) -> go.Figure:
     return fig
 
 
+def patch_plotly_html(html: str) -> str:
+    """
+    Older Chromium engine in QWebEngine throws Uncaught SyntaxError when CSSStyleSheet.insertRule
+    tries to parse newer CSS rules such as ':focus-visible'. This function patches the HTML output
+    by overriding CSSStyleSheet.prototype.insertRule with a try-catch block before Plotly loads.
+    """
+    patch_script = """
+    <script type="text/javascript">
+    (function() {
+        try {
+            var orig = CSSStyleSheet.prototype.insertRule;
+            CSSStyleSheet.prototype.insertRule = function(rule, index) {
+                try {
+                    return orig.call(this, rule, index);
+                } catch (e) {
+                    console.warn("Ignored CSSStyleSheet.insertRule error: ", rule, e);
+                    return 0;
+                }
+            };
+        } catch (e) {
+            console.error("Failed to patch CSSStyleSheet.insertRule", e);
+        }
+    })();
+    </script>
+    """
+    if "<head>" in html:
+        return html.replace("<head>", "<head>\n" + patch_script, 1)
+    elif "<html>" in html:
+        return html.replace("<html>", "<html>\n" + patch_script, 1)
+    else:
+        return patch_script + "\n" + html
+
+
+
 

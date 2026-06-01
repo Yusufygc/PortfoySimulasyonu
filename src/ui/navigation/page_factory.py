@@ -11,12 +11,13 @@ class PageFactory:
             1: self._create_watchlist,
             2: self._create_model_portfolio,
             3: self._create_analysis,
-            4: self._create_stock_detail,
-            5: self._create_optimization,
-            6: self._create_planning,
-            7: self._create_risk_profile,
-            8: self._create_ai_page,
-            9: self._create_settings,
+            4: self._create_comparison,
+            5: self._create_stock_detail,
+            6: self._create_optimization,
+            7: self._create_planning,
+            8: self._create_risk_profile,
+            9: self._create_ai_page,
+            10: self._create_settings,
         }
 
     def create(self, page_index: int):
@@ -78,3 +79,8 @@ class PageFactory:
         from src.ui.pages.settings_page import SettingsPage
 
         return SettingsPage(container=self._container)
+
+    def _create_comparison(self):
+        from src.ui.pages.comparison.comparison_page import ComparisonPage
+
+        return ComparisonPage(container=self._container)

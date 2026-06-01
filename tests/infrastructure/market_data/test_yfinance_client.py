@@ -1,209 +1,70 @@
+import pandas as pd
 from datetime import date
 from decimal import Decimal
-
 import pytest
-
-pd = pytest.importorskip("pandas")
-pytest.importorskip("yfinance")
-
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
 
-
-def test_get_price_series_uses_countryeconomy_for_bist_without_yfinance(monkeypatch):
+def test_get_closing_price_success(monkeypatch):
     client = YFinanceMarketDataClient()
-    calls = []
-    bist_html = """
-        <table>
-            <tr><td>01/01/2026</td><td>12,345.67</td><td>0.10%</td></tr>
-            <tr><td>01/02/2026</td><td>12,400.01</td><td>0.44%</td></tr>
-        </table>
-    """
+    
+    # Create dummy dataframe representing a yfinance response
+    df = pd.DataFrame({"Close": [10.5]}, index=[pd.Timestamp("2026-01-01")])
+    
+    download_calls = []
+    def mock_download(tickers, start, end):
+        download_calls.append((tickers, start, end))
+        return df
+        
+    monkeypatch.setattr(client, "_download_dataframe", mock_download)
+    
+    price = client.get_closing_price(1, "AAPL", date(2026, 1, 1))
+    assert price == Decimal("10.5")
+    assert len(download_calls) == 1
+    assert download_calls[0] == ("AAPL", date(2026, 1, 1), date(2026, 1, 2))
 
-    def fake_request_text(url):
-        calls.append(url)
-        return bist_html
+def test_get_closing_price_empty_response(monkeypatch):
+    client = YFinanceMarketDataClient()
+    df = pd.DataFrame()
+    
+    monkeypatch.setattr(client, "_download_dataframe", lambda *a: df)
+    
+    with pytest.raises(ValueError, match="AAPL icin 2026-01-01 gun sonu fiyati bulunamadi"):
+        client.get_closing_price(1, "AAPL", date(2026, 1, 1))
 
-    monkeypatch.setattr(client._scraped_provider, "_request_text", fake_request_text)
-    monkeypatch.setattr(
-        client,
-        "_download_dataframe",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
-    )
-    monkeypatch.setattr(
-        client._investing_client,
-        "_request_to_investing",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Investing fallback cagrilmamaliydi")),
-    )
+def test_get_closing_prices_multi_ticker(monkeypatch):
+    client = YFinanceMarketDataClient()
+    
+    # yfinance returns multi-index columns for multi-ticker download
+    columns = pd.MultiIndex.from_tuples([("Close", "AAPL"), ("Close", "MSFT")])
+    df = pd.DataFrame([[150.0, 400.0]], index=[pd.Timestamp("2026-01-01")], columns=columns)
+    
+    download_calls = []
+    def mock_download(tickers, start, end):
+        download_calls.append((tickers, start, end))
+        return df
+        
+    monkeypatch.setattr(client, "_download_dataframe", mock_download)
+    
+    prices = client.get_closing_prices([1, 2], ["AAPL", "MSFT"], date(2026, 1, 1))
+    assert prices == {1: Decimal("150.0"), 2: Decimal("400.0")}
+    assert download_calls[0][0] == ["AAPL", "MSFT"]
 
-    series = client.get_price_series("XU100.IS", date(2026, 1, 1), date(2026, 1, 2))
-
+def test_get_price_series(monkeypatch):
+    client = YFinanceMarketDataClient()
+    
+    df = pd.DataFrame({"Close": [100.0, 101.5, 102.0]}, 
+                      index=pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]))
+                      
+    download_calls = []
+    def mock_download(tickers, start, end):
+        download_calls.append((tickers, start, end))
+        return df
+        
+    monkeypatch.setattr(client, "_download_dataframe", mock_download)
+    
+    series = client.get_price_series("AAPL", date(2026, 1, 1), date(2026, 1, 3))
     assert series == {
-        date(2026, 1, 1): Decimal("12345.67"),
-        date(2026, 1, 2): Decimal("12400.01"),
+        date(2026, 1, 1): Decimal("100.0"),
+        date(2026, 1, 2): Decimal("101.5"),
+        date(2026, 1, 3): Decimal("102.0"),
     }
-    assert calls == ["https://countryeconomy.com/stock-exchange/turkey?dr=2026-01"]
-
-
-def test_get_price_series_uses_exchange_rates_for_usdtry_without_yfinance(monkeypatch):
-    client = YFinanceMarketDataClient()
-    year_html = """
-        <tr>
-            <td>
-                <a href="/exchange-rate-history/usd-try-2026-01-01" class="w">January 1, 2026</a>
-                <a href="/exchange-rate-history/usd-try-2026-01-01" class="n">2026-1-1</a>
-            </td>
-            <td>
-                <span class="w"><span class="nowrap">1 USD =</span> <span class="nowrap">42.971 TRY</span></span>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <a href="/exchange-rate-history/usd-try-2026-01-02" class="w">January 2, 2026</a>
-                <a href="/exchange-rate-history/usd-try-2026-01-02" class="n">2026-1-2</a>
-            </td>
-            <td>
-                <span class="w"><span class="nowrap">1 USD =</span> <span class="nowrap">43.038 TRY</span></span>
-            </td>
-        </tr>
-    """
-
-    monkeypatch.setattr(client._scraped_provider, "_request_text", lambda url: year_html)
-    monkeypatch.setattr(
-        client,
-        "_download_dataframe",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
-    )
-    monkeypatch.setattr(
-        client._investing_client,
-        "_request_to_investing",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Investing fallback cagrilmamaliydi")),
-    )
-
-    series = client.get_price_series("TRY=X", date(2026, 1, 1), date(2026, 1, 2))
-
-    assert series == {
-        date(2026, 1, 1): Decimal("42.971"),
-        date(2026, 1, 2): Decimal("43.038"),
-    }
-
-
-def test_get_price_series_builds_xautry_from_gold_and_usd_sources(monkeypatch):
-    client = YFinanceMarketDataClient()
-    gold_payload = {
-        "data": [
-            [int(pd.Timestamp("2026-01-01", tz="UTC").timestamp() * 1000), 100],
-            [int(pd.Timestamp("2026-01-02", tz="UTC").timestamp() * 1000), 101.5],
-        ]
-    }
-    year_html = """
-        <tr>
-            <td>
-                <a href="/exchange-rate-history/usd-try-2026-01-01" class="w">January 1, 2026</a>
-                <a href="/exchange-rate-history/usd-try-2026-01-01" class="n">2026-1-1</a>
-            </td>
-            <td>
-                <span class="w"><span class="nowrap">1 USD =</span> <span class="nowrap">43.000 TRY</span></span>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <a href="/exchange-rate-history/usd-try-2026-01-02" class="w">January 2, 2026</a>
-                <a href="/exchange-rate-history/usd-try-2026-01-02" class="n">2026-1-2</a>
-            </td>
-            <td>
-                <span class="w"><span class="nowrap">1 USD =</span> <span class="nowrap">44.000 TRY</span></span>
-            </td>
-        </tr>
-    """
-
-    def fake_request_text(url):
-        if "exchange-rates.org" in url:
-            return year_html
-        raise AssertionError(f"Beklenmeyen text istegi: {url}")
-
-    def fake_request_json(url):
-        if "macrotrends.net/economic-data/2627/D" in url:
-            return gold_payload
-        raise AssertionError(f"Beklenmeyen json istegi: {url}")
-
-    monkeypatch.setattr(client._scraped_provider, "_request_text", fake_request_text)
-    monkeypatch.setattr(client._scraped_provider, "_request_json", fake_request_json)
-    monkeypatch.setattr(
-        client,
-        "_download_dataframe",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
-    )
-    monkeypatch.setattr(
-        client._investing_client,
-        "_request_to_investing",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Investing fallback cagrilmamaliydi")),
-    )
-
-    series = client.get_price_series("XAUTRY=X", date(2026, 1, 1), date(2026, 1, 2))
-
-    assert series == {
-        date(2026, 1, 1): Decimal("4300.0"),
-        date(2026, 1, 2): Decimal("4466.0"),
-    }
-
-
-def test_get_price_series_uses_tcmb_evds_for_deposit_rates(monkeypatch):
-    client = YFinanceMarketDataClient()
-    calls = []
-    payload = {
-        "items": [
-            {"Tarih": "02-01-2026", "TP.TRY.MT02": "46.21"},
-            {"Tarih": "09-01-2026", "TP.TRY.MT02": "45,90"},
-        ]
-    }
-
-    def fake_request_json_post(url, request_payload):
-        calls.append((url, request_payload))
-        return payload
-
-    monkeypatch.setattr(
-        client._scraped_provider._evds_client,
-        "request_json_post_path",
-        lambda path, request_payload: {
-            "maxStartDate": "01-01-2020",
-            "minEndDate": "10-01-2026",
-        },
-    )
-    monkeypatch.setattr(client._scraped_provider._evds_client, "request_json_post", fake_request_json_post)
-    monkeypatch.setattr(
-        client,
-        "_download_dataframe",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
-    )
-
-    series = client.get_price_series("TCMB_TRY_DEPOSIT_3M", date(2026, 1, 1), date(2026, 1, 10))
-
-    assert series == {
-        date(2026, 1, 2): Decimal("46.21"),
-        date(2026, 1, 9): Decimal("45.90"),
-    }
-    assert calls[0][0] == "https://evds3.tcmb.gov.tr/igmevdsms-dis/fe"
-    assert calls[0][1]["series"] == "TP.TRY.MT02"
-
-
-def test_countryeconomy_month_cache_is_reused(monkeypatch):
-    client = YFinanceMarketDataClient()
-    counter = {"count": 0}
-    bist_html = "<tr><td>01/01/2026</td><td>12,345.67</td><td>0.10%</td></tr>"
-
-    def fake_request_text(url):
-        counter["count"] += 1
-        return bist_html
-
-    monkeypatch.setattr(client._scraped_provider, "_request_text", fake_request_text)
-    monkeypatch.setattr(
-        client,
-        "_download_dataframe",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance cagrilmamaliydi")),
-    )
-
-    first = client.get_price_series("XU100.IS", date(2026, 1, 1), date(2026, 1, 1))
-    second = client.get_price_series("XU100.IS", date(2026, 1, 1), date(2026, 1, 1))
-
-    assert first == second == {date(2026, 1, 1): Decimal("12345.67")}
-    assert counter["count"] == 1

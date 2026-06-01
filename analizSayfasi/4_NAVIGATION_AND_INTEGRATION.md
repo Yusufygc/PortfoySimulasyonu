@@ -1,51 +1,50 @@
-# Aşama 4: Uygulama Entegrasyonu ve Sayfa Akışı (AnalysisPage Entegrasyonu)
+# Aşama 4: Navigasyon ve Uygulama Entegrasyonu (MainWindow Refactor)
 
 ## 📌 Amaç
-Bu aşamada, yeni "Karşılaştırma" bölümünün [analysis_page.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/analysis/analysis_page.py) (Analiz Sayfası) içerisine entegrasyonu ve genel sayfa akışı belgelenmiştir. Sistem, tüm analiz işlevlerini ("Genel Bakış", "Karşılaştırma", "Dağılım & Risk") tek bir sekme yapısında (TabWidget) birleştirerek düzenli bir kokpit arayüzü sunmaktadır.
+Bu aşamada, yazılan yeni "Karşılaştırma Laboratuvarı" sayfasını uygulamanın ana penceresine (`MainWindow`) entegre edeceğiz. Sol menüye (Sidebar) yeni sayfa için dinamik temaya uygun bir buton ekleyecek, sayfa indekslerini güncelleyecek ve eski analiz sayfasındaki ("PAGE_ANALYSIS") kalabalık tab yapısını temizleyerek sistemi ayağa kaldıracağız.
 
 ## 📁 Dosya Hedefi
-- [analysis_page.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/analysis/analysis_page.py) (Filtre kontrol ve tab yönetiminin yapıldığı ana sayfa)
+- [main_window.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/main_window.py) (Mevcut dosya güncellenecek)
+- [analysis_page.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/analysis/analysis_page.py) (Mevcut dosyadaki karşılaştırma tabı kaldırılacak)
 
 ## 🏗️ Mimari Gereksinimler ve Kurallar
-1. **Tek Noktadan Veri Akışı:** `AnalysisPage` merkezi bir controller görevi üstlenerek sağdaki [analysis_control_panel.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/analysis/analysis_control_panel.py) filtre panelindeki değişimleri dinler, tek bir asenkron Worker çağrısıyla (`get_page_payload`) tüm alt sayfaların verisini çeker ve sekmelere dağıtır.
-2. **TabWidget Entegrasyonu:** Sol menüdeki ana "Analiz" sayfa yapısı korunur, böylece sol menünün karmaşıklaşması engellenir. Karşılaştırma modülü sayfa içi sekme olarak konumlandırılır.
+1. **Gevşek Bağlılık (Loose Coupling):** `MainWindow`, yeni sayfanın iç mantığını veya filtre süreçlerini bilmemelidir. Sadece sayfayı `QStackedWidget` içerisine eklemeli ve menüden tıklandığında ilgili indekse geçişi (Router görevi) sağlamalıdır.
+2. **Temiz Kod / Satır Sınırı:** `MainWindow` içerisindeki sayfa ekleme ve buton bağlama mantığı sade tutulmalı, `RULES.md` uyarınca dosya büyümesinin önüne geçilmelidir.
+3. **Dinamik Tema Uyumu:** Sol menüye eklenecek yeni butonun normal, hover ve active durumlarındaki QSS tasarımları, dinamik tema sistemine (`ThemeManager` ve `@COLOR` token'ları) tamamen uyumlu olacak şekilde tasarlanacaktır.
 
-## 🛠️ Entegrasyon Adımları ve Sayfa Yapısı
+## 🛠️ Uygulama Adımları ve Entegrasyon Detayları
 
-### 1. Sekmelerin (TabWidget) Tanımlanması
-`AnalysisPage._init_ui` metodu içerisinde `QTabWidget` oluşturulur ve alt bölümler sekme olarak eklenir:
-```python
-self.overview_section = AnalysisOverviewSection()
-self.comparison_section = AnalysisComparisonSection()
-self.risk_section = AnalysisRiskSection()
+### 1. Sayfa İndekslerinin ve StackedWidget Yapısının Güncellenmesi
+- `src/ui/main_window.py` dosyasındaki sayfa sabitlerine (Constants) yeni bir indeks eklenmelidir:
+  ```python
+  PAGE_DASHBOARD = 0
+  PAGE_PORTFOLIO = 1
+  PAGE_ANALYSIS = 2
+  PAGE_COMPARISON = 3  # Yeni eklenen Karşılaştırma Laboratuvarı sayfası
+  ```
 
-self.tabs.addTab(self._wrap_scroll(self.overview_section), "Genel Bakış")
-self.tabs.addTab(self._wrap_scroll(self.comparison_section), "Karşılaştırma")
-self.tabs.addTab(self._wrap_scroll(self.risk_section), "Dağılım & Risk")
-```
+- `MainWindow.__init__` veya `setup_ui` metodu içerisinde, `QStackedWidget` bileşenine yeni sayfamızın örneği (Instance) eklenmelidir:
+  ```python
+  from src.ui.pages.comparison.comparison_page import ComparisonPage
 
-### 2. Filtre Kontrol Paneli (`AnalysisControlPanel`)
-Sayfanın sağ tarafında dikey olarak konumlanan ve 320px-360px genişliğe sahip paneldir:
-- **Portföy Kaynağı:** "Dashboard" (Gerçek portföy) veya kayıtlı sanal portföyler seçilebilir.
-- **Tarih Aralığı:** Birleşik tarih aralığı kartı üzerinden başlangıç ve bitiş tarihleri.
-- **Benchmark Karşılaştırmaları:** BIST100, Altın, Mevduat, Dolar vb. kıyaslanacak benchmark'ların seçilebildiği iki kolonlu çip grubu.
-- **Dinamik Portföy Karşılaştırmaları:** Diğer sanal portföylerle performans kıyası için checkbox listesi.
-- **Para Birimi Modu:** TL, USD ve REAL (Enflasyondan Arındırılmış) getiri modları.
+  self.comparison_page = ComparisonPage()
+  self.stacked_widget.addWidget(self.comparison_page)
+  ```
 
-### 3. Asenkron payload Veri Dağıtımı
-Veriler başarıyla yüklendiğinde tetiklenen `_on_payload_ready` metodu, tek bir merkezi veri paketini (payload) parçalayarak ilgili sekmelere dağıtır:
-```python
-def _on_payload_ready(self, request_id: int, payload: dict) -> None:
-    if request_id != self._request_seq:
-        return
-    self.warning_banner.hide()
-    self.overview_section.set_data(payload["overview"])
-    self.comparison_section.set_data(payload["comparison"])
-    self.risk_section.set_data(payload["risk"])
-```
+### 2. Sol Menü (Sidebar) Güncellemesi ve Buton Tasarımı
+Sol menü şeridine "Analiz" butonunun hemen altına gelecek şekilde "Karşılaştırma" (veya "Kıyaslama Lab") butonu eklenmelidir.
+- **İkon seçimi:** Kurumsal yapıyı destekleyen, çizgi grafikleri veya üst üste binen katmanları temsil eden bir ikon (layers, bar-chart-2 veya sliders türevi) seçilmelidir.
+- Butona tıklandığında `self.stacked_widget.setCurrentIndex(PAGE_COMPARISON)` slotu tetiklenmelidir.
+- Sayfa geçişlerinde sol menüdeki aktif buton vurgusunun (Highlight) yeni butona da hatasız uygulanması sağlanmalıdır.
 
-## 🏁 Entegrasyon Sonrası Kontrol Listesi
-- [x] Uygulama hatasız olarak ayağa kalkıyor.
-- [x] Sol menüden "Analiz" sekmesine geçildiğinde, "Karşılaştırma" sekmesi sorunsuz olarak yükleniyor.
-- [x] Sağdaki filtre panelinden benchmark veya tarih değiştirildiğinde arka planda asenkron istek tetiklenip sayfaları yeniliyor.
-- [x] Seçilen para birimine göre (USD/REAL) fiyat serileri dönüştürülüyor ve Plotly grafiğinde normalize edilerek gösteriliyor.
+### 3. Eski Analiz Sayfasının (AnalysisPage) Hafifletilmesi
+- `src/ui/pages/analysis/analysis_page.py` içerisindeki `QTabWidget` yapısı veya "Karşılaştırma" sekmesi (Tab) tamamen koddan kaldırılmalıdır.
+- Eski sayfadaki sağ dikey filtre paneli temizlenmeli, analiz sayfası da kendi içinde yatay üst şerit (Ribbon Bar) düzenine geçirilerek sadeleştirilmelidir.
+- Böylece eski sayfa sadece portföy içi performans, varlık dağılımı ve risk metriklerine (Sharpe, Drawdown vb.) odaklanan temiz bir "Portföy Analiz Kokpiti" haline gelecektir.
+
+## 🏁 Entegrasyon Sonrası Kontrol Listesi (Checklist)
+- [ ] Uygulama hatasız ayağa kalkıyor mu?
+- [ ] Sol menüden "Karşılaştırma" butonuna basıldığında yeni sayfa tam ekran ve ferah bir şekilde yükleniyor mu?
+- [ ] Grafik modundan "Rasyo Modu" seçildiğinde Pay/Payda combo-box'ları dinamik olarak beliriyor mu?
+- [ ] TradingView tarzı hızlı tarih butonlarına (1A, 3A vb.) tıklandığında grafikler asenkron olarak ve donma olmadan güncelleniyor mu?
+- [ ] Tüm arayüz elemanları dinamik tema (ThemeManager) standartlarına uyuyor mu?

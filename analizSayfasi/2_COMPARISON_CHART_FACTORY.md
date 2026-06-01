@@ -1,58 +1,80 @@
-# Aşama 2: Görselleştirme Motoru (chart_builder)
+# Aşama 2: Görselleştirme Motoru (ComparisonChartFactory)
 
 ## 📌 Amaç
-Bu aşamada, analiz servisleri tarafından üretilen finansal metrikleri ve zaman serilerini grafiklere dönüştüren [chart_builder.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/analysis/chart_builder.py) modülü belgelenmiştir. Tüm grafikler Plotly (`plotly.graph_objects`) mimarisiyle üretilmekte ve PyQt tarafında `QWebEngineView` içinde render edilmeye hazır HTML/JSON çıktısı vermektedir.
+Bu aşamada, `ComparisonService` tarafından üretilen finansal metrikleri ve zaman serilerini, üst düzey aracı kurum terminalleri standartlarında grafiklere ve veri tablolarına dönüştürecek olan `ComparisonChartFactory` modülü yazılacaktır. Tüm grafikler Plotly (`plotly.graph_objects`) mimarisiyle üretilecek ve PyQt tarafında `QWebEngineView` içinde render edilmeye hazır HTML/JSON çıktısı verecektir.
 
 ## 📁 Dosya Hedefi
-- [chart_builder.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/analysis/chart_builder.py) (Görselleştirme fonksiyonlarını içeren modül)
+- [chart_factory.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/comparison/chart_factory.py) (Yeni dosya)
 
 ## 🏗️ Mimari Gereksinimler ve Kurallar
-1. **Saf Fonksiyon Yapısı:** Grafik çizim fonksiyonları bağımsız saf fonksiyonlar (pure functions) mantığıyla çalışmalı, state tutmamalıdır.
-2. **Dinamik Tema Uyumu:** Grafik tasarımları uygulamanın dinamik tema yöneticisine (`ThemeManager` ve `@COLOR` token'ları) ve varsayılan olarak Plotly'nin koyu tema şablonuna (`template="plotly_dark"`) uyumlu olacak şekilde yapılandırılmıştır.
-3. **Chromium Uyumluluğu (`patch_plotly_html`):** Eski Chromium motorları barındıran PyQt QWebEngineView üzerinde Plotly'nin fırlatabileceği `:focus-visible` CSS insertRule hataları bir maymuncuk (monkeypatch) script'i ile onarılmıştır.
+1. **Statik Fabrika Tasarım Kalıbı (Factory Pattern):** Sınıf içindeki tüm grafik çizim fonksiyonları `@staticmethod` olarak tanımlanmalıdır. Sınıf state tutmamalı, saf fonksiyon (pure function) mantığıyla çalışmalıdır.
+2. **Dinamik Tema Uyumu:** Grafik tasarımları uygulamanın dinamik tema sistemine (`ThemeManager` ve `@COLOR` token'ları) ve varsayılan koyu/açık tema şablonlarına (`plotly_dark` veya özelleştirilmiş açık tema standartları) tamamen uyumlu ve dinamik olacak şekilde tasarlanmalıdır.
+3. **Temiz Kod / Satır Sınırı:** Her grafik fonksiyonu kendi layout yapılandırmasını içermeli, kod tekrarını önlemek için ortak eksen ayarları yardımcı bir iç metoda (`_apply_theme_layout`) delege edilmelidir. Dosya boyutu 300 satırı aşmamalıdır.
+
+## 🎨 Dinamik Renk Paleti ve Tema Ayarları
+Grafiklerde kullanılacak renk paletleri ve stiller `ThemeManager` üzerinden okunmalı ve uygulanmalıdır:
+- **Arka Plan (Paper/Plot Background):** Aktif temaya göre dinamik (koyu modda koyu gri/siyah, açık modda saf beyaz veya açık gri).
+- **Metin / Grid Renkleri:** Metinler için tema metin rengi (örn. `@COLOR_TEXT_PRIMARY`), kılavuz çizgileri (Grid) için tema sınır rengi.
+- **Performans Renk Skalası:** Pozitif/Kâr için yeşil tonları (örn. `#2DC653` veya `@COLOR_ACCENT`), Negatif/Zarar için kırmızı/gül tonları (örn. `#E63946`).
 
 ## 🛠️ Uygulama Adımları ve Grafik Metodları
 
-### 1. Normalize Performans Grafiği (`build_performance_line_chart_v2`)
-- **Grafik Türü:** `go.Scatter`
-- **Tasarım:** Varlıklar ve portföy normalize edilmiş getiri (Başlangıç=100) bazında çizgi grafiği olarak karşılaştırılır. Range selector butonları (`1A`, `3A`, `6A`, `YBB`, `1Y`, `Tümü`) ve bir range slider (mini zaman çubuğu) içerir.
+### 1. Dönem Sonu Getiri Özeti Tablosu (`build_summary_table`)
+- **Grafik Türü:** `go.Table`
+- **Girdi:** `df_summary` (Kolonlar: Varlık Adı, Başlangıç Değeri [Baz 100], Dönem Sonu Değeri, Toplam Getiri %)
+- **Tasarım:** Veriler toplam getiri yüzdesine göre büyükten küçüğe sıralanmalıdır. Hücre içi renkler, getirinin pozitif veya negatif olmasına göre yeşil/kırmızı tonlarında koşullu renklendirilmelidir. Header alanı tema renklerine uygun olmalıdır.
 
-### 2. Yuvarlanan Getiri Analizi Grafiği (`build_rolling_returns_chart`)
-- **Grafik Türü:** `make_subplots` (go.Scatter)
-- **Tasarım:** Farklı pencere boyutlarında (örn. 30 ve 90 günlük) yuvarlanan kümülatif getiri yüzdelerini alt alta alt-grafikler (subplots) halinde çizer.
-
-### 3. Maksimum Drawdown Grafiği (`build_drawdown_chart`)
+### 2. Maksimum Drawdown Grafiği (`build_drawdown_chart`)
 - **Grafik Türü:** `go.Scatter` (Line + Area)
-- **Tasarım:** Tepe noktasından yüzde düşüşleri (drawdown) gösterir. Portföy çizgisinin altı yarı saydam kırmızı (`rgba(230,57,70,0.12)`) dolguyla (`fill='tozeroy'`) vurgulanır.
+- **Girdi:** `df_drawdowns` (Zaman indeksli, her varlığın $\le 0$ olan yüzdesel drawdown serisi)
+- **Tasarım:** Çizgi altındaki alanlar sıfır çizgisine doğru doldurulmalıdır (`fill='tozeroy'`). Modülün sarsıcı etkisini göstermek adına alan dolgu renkleri şeffaf kırmızı tonlarında seçilmelidir.
 
-### 4. Varlık Getiri Korelasyon Grafiği (`build_correlation_heatmap`)
-- **Grafik Türü:** `go.Heatmap`
-- **Tasarım:** Varlık getirilerinin günlük bazda korelasyon matrisini çizer. Renk skalası olarak kırmızı (-1) → nötr/koyu gri (0) → yeşil (+1) skalası uygulanır.
+### 3. Dönemsel Getiri Çubuk Grafiği (`build_period_bar_chart`)
+- **Grafik Türü:** `go.Bar` (Grouped Bar Chart)
+- **Girdi:** `df_periodic` (Satırlar: Ay/Yıl periyotları, Kolonlar: Varlıkların o dönemdeki getiri %'leri)
+- **Tasarım:** Her periyot grubu altında varlıklar yan yana sütunlar (barchart) halinde yarışmalıdır. `barmode='group'` ayarı kullanılmalıdır.
 
-### 5. Dönemsel Getiri Çubuk Grafiği (`build_period_bar_chart`)
-- **Grafik Türü:** `go.Bar`
-- **Tasarım:** Aylık (`ME`) veya çeyreklik bazda periyodik getiri yüzdelerini yan yana sütunlar halinde kıyaslar (`barmode='group'`).
-
-### 6. Kar/Zarar Katkı Haritası (`build_treemap`)
-- **Grafik Türü:** `go.Treemap`
-- **Tasarım:** Varlıkların portföy içindeki ağırlıklarına göre kutu boyutlarını ayarlar, getiri oranlarına göre ise kırmızıdan yeşile renk tonu vererek kâr/zarar katkısını görselleştirir.
-
-### 7. Risk-Getiri Dağılımı Grafiği (`build_risk_return_scatter`)
+### 4. Risk-Getiri Dağılımı Grafiği (`build_risk_return_scatter`)
 - **Grafik Türü:** `go.Scatter` (Markers + Text)
-- **Tasarım:** X ekseninde yıllık volatilite (%), Y ekseninde toplam dönem getiri (%) olacak şekilde varlıkların dağılımını gösterir. Portföy bir yıldız marker sembolüyle öne çıkarılır.
+- **Girdi:** `df_risk_return` (Her varlık için hesaplanmış 'Yıllıklandırılmış Volatilite' ve 'Toplam Getiri' değerleri)
+- **Tasarım:** X ekseni "Yıllık Volatilite (%)", Y ekseni "Toplam Getiri (%)" olmalıdır. Her varlık grafik üzerinde bir nokta (marker) olarak konumlanmalı, varlığın adı noktanın hemen üstünde (`textposition='top center'`) kalıcı olarak yazmalıdır.
 
-## ⚙️ Layout Yapılandırma Mantığı
-Grafiklerin layout ayarlarında Türkçe ay isimleri ve dinamik tema tokenlerine uyumlu koyu renkler (`#1e1e2e` arka plan, `#cdd6f4` metin renkleri) tercih edilir:
+### 5. Getiri Katkı Haritası (`build_treemap`)
+- **Grafik Türü:** `go.Treemap`
+- **Girdi:** `df_portfolio_weights` (Portföydeki varlıkların güncel ağırlıkları ve dönem içi bireysel getiri %'leri)
+- **Tasarım:** Kutuların büyüklükleri (büyüklük parametresi) varlıkların portföy içerisindeki ağırlığını temsil etmelidir. Kutuların renkleri (color parametresi) ise varlığın getiri yüzdesine göre sürekli bir renk skalasında dağılmalıdır.
+
+## ⚙️ Örnek Fonksiyon İmzası Taslağı
 ```python
-fig.update_layout(
-    xaxis=dict(
-        rangeselector=dict(
-            bgcolor="#313244",
-            activecolor="#585b70",
-            font=dict(color="#cdd6f4", size=11)
-        ),
-        rangeslider=dict(visible=True, bgcolor="#1e1e2e")
-    ),
-    template="plotly_dark"
-)
+import plotly.graph_objects as go
+import pandas as pd
+
+class ComparisonChartFactory:
+    @staticmethod
+    def _apply_theme_layout(fig: go.Figure, title: str, theme_colors: dict) -> go.Figure:
+        """Tüm grafiklere aktif temaya uygun layout standartlarını uygular."""
+        fig.update_layout(
+            title={"text": title, "font": {"size": 16, "color": theme_colors["text"]}},
+            paper_bgcolor=theme_colors["paper_bg"],
+            plot_bgcolor=theme_colors["plot_bg"],
+            font={"family": "Segoe UI, Arial", "color": theme_colors["text"]},
+            margin={"l": 40, "r": 40, "t": 60, "b": 40},
+            xaxis={"gridcolor": theme_colors["grid"], "zerolinecolor": theme_colors["zeroline"]},
+            yaxis={"gridcolor": theme_colors["grid"], "zerolinecolor": theme_colors["zeroline"]}
+        )
+        return fig
+
+    @staticmethod
+    def build_drawdown_chart(df_drawdowns: pd.DataFrame, theme_colors: dict) -> go.Figure:
+        fig = go.Figure()
+        for column in df_drawdowns.columns:
+            fig.add_trace(go.Scatter(
+                x=df_drawdowns.index,
+                y=df_drawdowns[column],
+                mode='lines',
+                name=column,
+                fill='tozeroy',
+                line={"width": 2}
+            ))
+        return ComparisonChartFactory._apply_theme_layout(fig, "Maksimum Drawdown Analizi (%)", theme_colors)
 ```

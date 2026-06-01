@@ -44,7 +44,7 @@ class DummyPortfolioService:
         return None
 
 
-def test_analysis_page_has_three_primary_tabs():
+def test_analysis_page_has_two_primary_tabs():
     container = SimpleNamespace(
         analysis_service=DummyAnalysisService(),
         portfolio_service=DummyPortfolioService(),
@@ -52,10 +52,9 @@ def test_analysis_page_has_three_primary_tabs():
 
     page = AnalysisPage(container=container)
 
-    assert page.tabs.count() == 3
-    assert page.tabs.tabText(0) == "Genel Bak\u0131\u015f"
-    assert page.tabs.tabText(1) == "Kar\u015f\u0131la\u015ft\u0131rma"
-    assert page.tabs.tabText(2) == "Da\u011f\u0131l\u0131m & Risk"
+    assert page.tabs.count() == 2
+    assert page.tabs.tabText(0) == "Genel Bakış"
+    assert page.tabs.tabText(1) == "Dağılım & Risk"
 
 
 def test_analysis_page_keeps_filter_panel_in_a_full_height_right_column():
@@ -129,30 +128,26 @@ def test_checkable_combo_box_ignores_deleted_popup_view():
     assert combo.eventFilter(object(), QEvent(QEvent.MouseButtonRelease)) is False
 
 
-def test_control_panel_places_stock_filter_below_comparison_portfolios():
+def test_control_panel_places_stock_filter_below_currency():
     panel = AnalysisControlPanel()
     layout = panel.layout()
-    stock_frame = layout.itemAt(4).widget()
+    # layout: 0 title, 1 portfolio, 2 currency, 3 stock, 4 dates, 5 quick, 6 benchmark
+    stock_frame = layout.itemAt(3).widget()
     stock_layout = stock_frame.layout()
 
     assert stock_layout.itemAt(stock_layout.count() - 1).widget() is panel.stock_combo
     assert stock_layout.itemAt(0).widget().text() == "Hisse Filtresi"
 
 
-
-def test_control_panel_populates_comparison_and_stock_items():
+def test_control_panel_populates_stock_items():
     panel = AnalysisControlPanel()
     options = [
         SimpleNamespace(code="dashboard", label="Ana Portf\u00f6y"),
-        SimpleNamespace(code="model:1", label="Portf\u00f6y 1"),
-        SimpleNamespace(code="model:2", label="Portf\u00f6y 2"),
     ]
 
     panel.set_portfolio_options(options)
-    panel.set_comparison_portfolios(options)
     panel.set_stocks({1: "ASELS.IS", 2: "THYAO.IS"})
 
-    assert panel.compare_combo.model().rowCount() == 2
     assert panel.stock_combo.model().rowCount() == 2
     assert panel.stock_combo.model().item(0).text() == "ASELS"
 
@@ -176,21 +171,14 @@ def test_checkable_combo_box_popup_layout_resolves_inside_analysis_page():
         [
             SimpleNamespace(code="dashboard", label="Ana Portföy"),
             SimpleNamespace(code="model:1", label="Portföy 1"),
-            SimpleNamespace(code="model:2", label="Portföy 2"),
         ]
     )
-    page.control_panel.set_comparison_portfolios(
-        [
-            SimpleNamespace(code="dashboard", label="Ana Portföy"),
-            SimpleNamespace(code="model:1", label="Portföy 1"),
-            SimpleNamespace(code="model:2", label="Portföy 2"),
-        ]
-    )
+    page.control_panel.set_stocks({1: "ASELS.IS", 2: "THYAO.IS"})
     page.resize(1400, 900)
     page.show()
     app.processEvents()
 
-    combo = page.control_panel.compare_combo
+    combo = page.control_panel.stock_combo
     combo.showPopup()
     app.processEvents()
     view = combo.popup_view()
