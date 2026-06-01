@@ -197,9 +197,9 @@ Bu bölüm, aynı tür üretim hatalarının ve kontrolsüz büyüyen sınıf/me
 
 ### 4.1 Kod Kalitesi ve Refactor Güvenlik Kapıları
 
-- Bir sınıf 300 satırı veya 20 metodu aşarsa yeni özellik eklenmeden önce panel, helper veya servis ayrımı yapılır.
-- Bir fonksiyon 50 satırı, 5 parametreyi veya yaklaşık cyclomatic complexity 10 eşiğini aşarsa yeni davranış eklemek yerine önce küçük helper'lara bölünür.
-- UI page sınıfları yalnızca layout ve wiring sorumluluğu taşır. Tablo doldurma, rapor formatlama, worker orchestration, tema kartı ve reset onayı gibi alt davranışlar panel/component sınıflarına taşınır.
+- Bir sınıf 300 satırı veya 20 metodu aşarsa (yorum satırları hariç) yeni özellik eklenmeden önce panel, helper veya servis ayrımı yapılır.
+- Bir fonksiyon 50 satırı (yorum satırları hariç), 5 parametreyi veya yaklaşık cyclomatic complexity 10 eşiğini aşarsa yeni davranış eklemek yerine önce küçük helper'lara bölünür.
+- UI page sınıfları (dosya limiti: 400 satır, yorumlar hariç) yalnızca layout ve wiring sorumluluğu taşır. Tablo doldurma, rapor formatlama, worker orchestration, tema kartı ve reset onayı gibi alt davranışlar panel/component sınıflarına taşınır.
 - Application servisleri doğrudan dış API/client çağırmaz. Dış kaynaklar adapter/provider interface üzerinden kullanılır.
 - `except Exception` ancak hata loglandığında, kullanıcıya anlamlı sonuç döndürüldüğünde ve ilgili davranış testle kapatıldığında kabul edilir.
 - PyQt global `QApplication` ayarları canlı widget varken yeniden uygulanmaz. Tema değişiminde QSS güvenli kabul edilir; font ve global state değişimi kontrollü yapılır.

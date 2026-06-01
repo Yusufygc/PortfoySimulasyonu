@@ -162,6 +162,21 @@ Ayarlar sayfası refactor edilerek üç panel sorumluluğuna ayrılmıştır:
 
 Ana `SettingsPage` artık başlık, tab layout ve geriye dönük proxy yüzeyleriyle sınırlı ince bir orchestrator olarak çalışır.
 
+### Karşılaştırma Laboratuvarı (Comparison Lab)
+
+Karşılaştırma Laboratuvarı, Plotly kütüphanesini temel alan, çoklu varlık ve model portföyleri grafiksel olarak kıyaslama imkanı sunan bağımsız bir araştırma modülüdür. 
+
+Öne çıkan yetenekler:
+- Portföyünüzün XU100, Altın, Döviz gibi benchmarklarla veya kendi yarattığınız sanal Model Portföylerle grafiksel (Line chart, Bar chart) kıyaslanması.
+- Bağımsız veri katmanı (`ComparisonService`) ile UI'ı kilitlemeden asenkron veri birleştirme.
+- AI (Gemini) entegrasyonu sayesinde üretilen Plotly grafiklerinin JSON şablonlarının okunarak "Görselin Sözele Çevrilmesi" (Multimodal hissi veren veri okuma) yeteneği.
+
+### Kurumsal Aksiyonlar ve İzleme (Watchlist)
+
+Bu modül, sadece fiyata değil varlıkların yapısal değişikliklerine odaklanır:
+- **Temettü (Dividend) ve Bölünmeler:** Hisse senedinin bedelli veya bedelsiz bölünmesi durumunda, yatırımcının geçmiş işlemlerinin, lot sayısının ve ortalama maliyetinin sistem tarafından matematiksel olarak düzeltilmesi.
+- **İzleme Listesi (Watchlist):** Henüz portföye alınmamış ancak fiyat düşüşü beklenen hisselerin hedef fiyatlarla birlikte radar (Watchlist) ekranında tutulup arka planda fiyat sağlık denetiminden geçirilmesi.
+
 ## Teknik Mimari
 
 Proje Clean Architecture prensipleriyle yapılandırılmıştır. Bağımlılık yönü domain kurallarını UI ve infrastructure ayrıntılarından koruyacak şekilde tasarlanmıştır.
@@ -244,16 +259,18 @@ TCMB_DEPOSIT_RATE_FALLBACK=45.0
 
 Bu proje yalnızca çalışır özelliklere değil, sürdürülebilir geliştirme disiplinine de odaklanır.
 
-### Test Olgunluğu
+### Test Olgunluğu ve Pytest Stratejisi
 
-Test suite domain, application, infrastructure ve UI katmanlarını kapsar.
+Test suite; domain, application, infrastructure ve UI katmanlarını dış API bağımlılıkları olmadan test etmeyi hedefler.
 
-| Test Alanı | Kapsam |
-| --- | --- |
-| `tests/domain` | Domain modelleri, trade ve portföy hesap kuralları |
-| `tests/application` | Analiz, optimizasyon, simülasyon, raporlama ve servis davranışları |
-| `tests/infrastructure` | ORM şeması, repository ve ayar yükleyici kontrolleri |
-| `tests/ui` | PyQt sayfaları, AI panelleri, ayarlar paneli ve stil manifesti |
+| Test Alanı | Kapsam | Pytest Stratejisi |
+| --- | --- | --- |
+| `tests/domain` | Domain modelleri, trade ve portföy hesap kuralları | Veritabanı veya dış sistem mocklanmaz. Saf matematiksel hesaplamalar test edilir. |
+| `tests/application` | Analiz, optimizasyon, simülasyon ve servis davranışları | `pytest-mock` (mocker) ile YFinance ve veritabanı Repoları mocklanır. API Limitsiz çalışır. |
+| `tests/infrastructure` | ORM şeması, repository ve ayar yükleyici kontrolleri | Test veritabanı (SQLite In-Memory) veya Docker MySQL ile entegrasyon. |
+| `tests/ui` | PyQt sayfaları, AI panelleri ve QSS | `pytest-qt` eklentisi kullanılarak widget davranışları ve EventBus tetiklemeleri denenir. |
+
+Ayrıca projenin `conftest.py` dosyasında, her testin tekrar tekrar portföy yaratmasını engelleyen "Ortak Fixture (Shared Fixture)" modelleri kurgulanmıştır.
 
 Son doğrulama komutu:
 
@@ -380,13 +397,23 @@ C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests/application/te
 C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests/ui/pages/test_settings_page.py
 ```
 
-### Windows EXE Build
+### Windows EXE Build (Nuitka)
+
+Python tabanlı kütüphaneleri (PyQt5, SciPy vb.) bağımsız bir masaüstü uygulamasına (.exe) çevirmek için Nuitka paketleyicisi kullanılır. PyInstaller yerine Nuitka'nın tercih edilme sebebi kaynak kodların C diline derlenerek (transpile) güvenlik ve nispi performans artışı sağlamasıdır.
 
 ```powershell
 .\build_nuitka.bat
 ```
 
-Build script Nuitka kullanır ve uygulama ikonunu `icons/portfoy-simulasyonu.ico` dosyasından alır.
+Build script; uygulama ikonunu `icons/portfoy-simulasyonu.ico` dosyasından alır, plugin'leri aktif eder ve `/nuitka_build/` dizini altında son derlenmiş versiyonu çıkartır. Bilimsel kütüphanelerin paketlenmesi oldukça uzun sürebilir.
+
+### Veritabanı Bakımı ve Scriptler
+
+Sistem, bozuk trade'leri (eksik nakit veya sıfır lot altına düşme durumu) engellemek için Event-Sourcing tabanlı korumalara sahiptir. Ancak manuel müdahaleler sonrasında veritabanı sağlığını doğrulamak ve bakım yapmak için özel scriptler mevcuttur:
+
+- `DbIntegrityService`: Veritabanındaki tüm işlemleri baştan sona simüle eder ve portföy kuralına aykırı (negatif nakit vs.) durumları tespit edip UI'da raporlar.
+- `scripts/purge_stock.py`: İsim değiştirmiş veya delist olmuş hisseleri (Watchlist ve Model Portföy dahil) tüm veritabanından kalıcı olarak siler.
+- `scripts/clean_db_prices.py`: Eksik veya 0 değerli fiyat geçmişlerini temizleyerek YFinance'in tekrar düzgün indirmesini tetikler.
 
 ## Proje Yapısı
 

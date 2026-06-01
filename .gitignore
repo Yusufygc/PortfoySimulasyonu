@@ -4,7 +4,6 @@
 .claude
 CLAUDE.md
 RULES.md
-.graphifyignore
 auto_commit.py
 
 /Eklenebilirler.txt
@@ -217,12 +216,6 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Graphify
-graphify-out/
-graphify-out.*/
-.graphify_*.json
-.graphify_*.txt
-.graphify_old.json
 
 # Marimo
 marimo/_static/
