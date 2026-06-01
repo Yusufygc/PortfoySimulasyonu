@@ -15,6 +15,11 @@ def main():
 
     app = QApplication(sys.argv)
 
+    # Global mouse scroll filtresini yükle
+    from src.ui.shared.event_filters import GlobalWheelEventFilter
+    wheel_filter = GlobalWheelEventFilter(app)
+    app.installEventFilter(wheel_filter)
+
     # Kayıtlı tema tercihini yükle (varsayılan: "dark")
     ThemeManager.apply_theme(app)
 

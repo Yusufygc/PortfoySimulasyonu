@@ -63,10 +63,11 @@ class _ToastWidget(QWidget):
         duration_ms: int = _DURATION,
         position: ToastPosition = "top",
     ):
-        # parentless floating window — ama parent'ı referans için saklıyoruz
-        super().__init__(parent, Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        # Alt widget (child widget) olarak başlat
+        anchor = self._anchor_for(parent)
+        super().__init__(anchor)
         self._parent_ref = parent
-        self._anchor_ref = self._anchor_for(parent)
+        self._anchor_ref = anchor
         self._kind = kind
         self._position = position
         self._opacity_val: float = 0.0
@@ -195,31 +196,31 @@ class _ToastWidget(QWidget):
         key = (id(parent), position)
         stack = _ToastWidget._registry.get(key, [])
 
-        # Üst pencerenin global konumu
         anchor = _ToastWidget._anchor_for(parent)
-        global_pos = anchor.mapToGlobal(QPoint(0, 0))
 
         panel_w = anchor.width()
         panel_h = anchor.height()
 
         if position == "top":
-            y_offset = global_pos.y() + _MARGIN
+            y_offset = _MARGIN
             for toast in stack:
                 toast.adjustSize()
                 w = min(toast.width(), _MAX_W)
-                x = global_pos.x() + panel_w - w - _MARGIN
+                x = panel_w - w - _MARGIN
                 y = y_offset
                 toast.move(x, y)
+                toast.raise_()
                 toast.show()
                 y_offset = y + toast.height() + _SPACING
         else:
-            y_offset = global_pos.y() + panel_h - _MARGIN
+            y_offset = panel_h - _MARGIN
             for toast in reversed(stack):
                 toast.adjustSize()
                 w = min(toast.width(), _MAX_W)
-                x = global_pos.x() + panel_w - w - _MARGIN
+                x = panel_w - w - _MARGIN
                 y = y_offset - toast.height()
                 toast.move(x, y)
+                toast.raise_()
                 toast.show()
                 y_offset = y - _SPACING
 

@@ -6,6 +6,49 @@
 
 ---
 
+## [2026-06-01] lint | Dökümantasyon sağlık kontrolü, çapraz referanslama ve token optimizasyonu
+
+- Projedeki tüm wiki dosyaları (`index.md`, `architecture.md`, `comparison_lab.md`, `Plans.md`) gözden geçirilerek dökümantasyon sağlığı doğrulandı.
+- Gelecekteki LLM oturumlarının bağlam kazanmasını hızlandırmak ve token maliyetini optimize etmek adına gereksiz açıklamalardan arındırılarak şematik tablolara, Mermaid diyagramlarına ve doğrudan kod dosyalarına yönlendiren tıklanabilir `file://` linklerine dönüştürüldü.
+- Tarihsel tasarım spesifikasyonları (`analizSayfasi/` altındaki 4 aşama belgesi) ana dizin olan `index.md` dosyasına ve `comparison_lab.md` belgesine çapraz referanslarla bağlandı.
+- Gelecek teknik borçlar, code review ihtiyaçları ve yol haritası `Plans.md` dosyası altında genişletilerek yapılandırıldı.
+- Bağlantılı sayfalar: [index.md](index.md), [architecture.md](architecture.md), [comparison_lab.md](comparison_lab.md), [Plans.md](Plans.md)
+
+---
+
+## [2026-06-01] güncelleme | Karşılaştırma Laboratuvarı gelişmiş görsel ve grafik-özelinde özelleştirme
+
+- Grafik Bilgi Kartlarının (`ChartInfoCard`) yazı tipi boyutları iki katına çıkarıldı, parlak neon mavi (`#00ffff`), neon sarı (`#fbbf24`) ve parlak beyaz renk şeması uygulandı.
+- Sayfadaki emojiler tamamen kaldırılarak `IconManager` üzerinden Lucide SVG vektör ikon entegrasyonu sağlandı (AI bot ikonu, info ikonu, chart ikonları vb.).
+- Her bir grafik için bağımsız çalışan portföy içi kıyaslama özelliği eklenerek grafik özelinde filtreleme yapılması sağlandı.
+- Grafik-özelinde filtrelerin sıfırlanıp küresel filtreye geri dönmesini sağlayan checkable "Küresel Seçime Dön" aksiyonu (`refresh-cw` ikonu ile) `QMenu` menülerine entegre edildi. Koyu mod uyumlu kontrast stili QMenu üzerine uygulandı.
+- Varlık karşılaştırma listesine "Portföy + Hisseleri" sanal seçeneği eklenerek portföyün kendisini ve içindeki tüm hisseleri tek tıkla Ribbon Bar filtrelerine yükleyen reaktif akış sağlandı.
+- İlgili tüm unit testler güncellendi, `test_chart_specific_override` eklendi ve tüm testlerin (249 test) yeşil olduğu doğrulandı.
+- Etkilenen dosyalar: `src/ui/pages/comparison/comparison_page.py`, `src/ui/pages/comparison/widgets/ribbon_bar.py`, `tests/ui/pages/test_comparison_page.py`, `docs/wiki/comparison_lab.md`, `docs/wiki/log.md`
+- Bağlantılı sayfa: [comparison_lab.md](comparison_lab.md)
+
+---
+
+## [2026-06-01] yeni-sayfa | Karşılaştırma Laboratuvarı kart büyütme, portföy içi kıyaslama ve dokümantasyon entegrasyonu
+
+- Grafik bilgi kartları (`ChartInfoCard`) ve AI analiz panellerinin yazı boyutları, kenar boşlukları ve padding'leri büyütülerek görsel okunabilirlik artırıldı.
+- Grafik panelleri `ChartPanel` adlı container bileşeniyle sarmalanarak başlık ve dinamik aksiyon butonları eklendi.
+- Her grafik üzerine yerleştirilen "Portföy İçeriğini Kıyasla" açılır menüsü ile seçilen portföyün içindeki hisselerin kümülatif getirileri ve drawdown performanslarının portföyle yan yana kıyaslanması sağlandı.
+- Karşılaştırma Laboratuvarı mimarisini, veri entegrasyonunu ve Gemini AI asistan akışını detaylandıran `docs/wiki/comparison_lab.md` sayfası oluşturuldu ve `index.md` ile `architecture.md` belgesine bağlandı.
+- Etkilenen dosyalar: `src/ui/pages/comparison/comparison_page.py`, `src/ui/pages/comparison/widgets/ribbon_bar.py`, `tests/ui/pages/test_comparison_page.py`, `docs/wiki/comparison_lab.md`, `docs/wiki/index.md`, `docs/wiki/architecture.md`, `docs/wiki/log.md`
+- Bağlantılı sayfa: [comparison_lab.md](comparison_lab.md)
+
+## [2026-06-01] güncelleme | Karşılaştırma Laboratuvarı hata çözümleri ve dikey kaydırma iyileştirmesi
+
+- Gram Gümüş ("silver") ve EUR/TRY ("euro") benchmark seçimlerinin doğru tanınmasını engelleyen filtreleme hatası düzeltildi.
+- Kullanıcı explicitly hisse seçimi yapmadığında portföy içindeki bireysel hisselerin grafiğe eklenmesi engellendi.
+- Grafik modu "Rasyo Modu" olduğunda tüm alt grafiklerin (drawdown, aylık getiri vb.) ve getiri tablosunun rasyo serisini temel alması sağlandı.
+- Getiri tablosunun scrollbar'ı kaldırıldı, yüksekliği dinamikleştirildi ve hücre verileri ortalandı.
+- QWebEngineView bileşenlerinde dikey kaydırma (mouse wheel) hareketini ana dikey scroll alanına ileten olay filtresi (WheelRedirectFilter) entegre edildi.
+- Etkilenen dosyalar: `src/ui/pages/comparison/comparison_page.py`, `tests/ui/pages/test_comparison_page.py`, `docs/wiki/log.md`
+
+---
+
 ## [2026-06-01] güncelleme | Analiz filtre panelinin sadeleştirilmesi
 
 - Kıyaslama sekmesinin kaldırılmasının ardından analiz sayfasındaki filtre panelinde gereksiz kalan çoklu karşılaştırma portföy seçicisi (`compare_combo`) ve çoklu benchmark seçici çip grubu (`BenchmarkChipGroup`) kaldırıldı.

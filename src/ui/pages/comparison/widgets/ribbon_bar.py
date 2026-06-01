@@ -171,6 +171,10 @@ class ComparisonRibbonBar(QFrame):
     def selected_assets(self) -> list[str]:
         return self.compare_combo.selected_data()
         
+    def set_selected_assets(self, codes: list[str]) -> None:
+        self.compare_combo.set_selected_data(codes)
+        self.filter_changed.emit()
+        
     def selected_mode(self) -> str:
         return self.combo_mode.currentText()
         

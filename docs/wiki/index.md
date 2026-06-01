@@ -1,28 +1,42 @@
 # Wiki — İçerik Kataloğu
 
-> Bu dosya tüm wiki sayfalarının dizinidir. Oturum başında okunur; ilgili sayfalar buradan bulunur.  
-> Değişiklik günlüğü: [log.md](log.md)
+> Bu dosya tüm wiki sayfalarının ve teknik tasarım belgelerinin ana dizinidir.  
+> Değişiklik günlüğü: [log.md](log.md) | Yol haritası: [Plans.md](Plans.md)
 
 ---
 
-## Mimari ve Teknik
+## 🏗️ Mimari ve Teknik Belgeler
 
 | Sayfa | Özet |
 |-------|------|
 | [architecture.md](architecture.md) | Katmanlı mimari (Clean Architecture), tüm domain modelleri, servisler, DB şeması, veri akışı, optimizasyon motoru |
+| [comparison_lab.md](comparison_lab.md) | Karşılaştırma Laboratuvarı mimarisi, görsel bileşenleri, veri entegrasyonu, tarih doğrulama ve Gemini AI asistan yapısı |
 
 ---
 
-## Operasyon ve Süreç
+## 📈 Tasarım Spesifikasyonları (Tarihsel Aşamalar)
+
+Comparison Lab geliştirme sürecinde takip edilen teknik şartnameler ve uygulama blueprints dosyaları:
+
+| Dosya | Açıklama |
+|-------|----------|
+| [1_COMPARISON_SERVICE.md](../../analizSayfasi/1_COMPARISON_SERVICE.md) | Aşama 1: Matematiksel altyapı ve veri motorunun (`ComparisonService`) teknik gereksinimleri |
+| [2_COMPARISON_CHART_FACTORY.md](../../analizSayfasi/2_COMPARISON_CHART_FACTORY.md) | Aşama 2: Plotly grafik üreticisi (`ComparisonChartFactory`) ve JSON şablon tasarımı |
+| [3_UI_LAYERS_AND_SIGNALS.md](../../analizSayfasi/3_UI_LAYERS_AND_SIGNALS.md) | Aşama 3: PyQt5 UI bileşenleri, `CheckableComboBox` ve veri güncelleme sinyal ağı |
+| [4_NAVIGATION_AND_INTEGRATION.md](../../analizSayfasi/4_NAVIGATION_AND_INTEGRATION.md) | Aşama 4: Sol navigasyon barı, sayfa geçişleri, DI container entegrasyonu ve Gemini analist prompt tasarımı |
+
+---
+
+## 🛠️ Operasyon ve Süreç
 
 | Sayfa | Özet |
 |-------|------|
 | [log.md](log.md) | Kronolojik, yalnızca ekleme yapılan wiki güncelleme ve commit kaydı |
-| [Plans.md](Plans.md) | Gelecek geliştirmeler, notlar ve code review ihtiyaçları |
+| [Plans.md](Plans.md) | Gelecek geliştirmeler, teknik borç notları ve code review ihtiyaçları |
 
 ---
 
-## Proje Genel Bakış
+## 🌐 Proje Genel Bakış
 
 **Portföy Simülasyonu** — PyQt5 masaüstü portföy yönetim uygulaması.
 
@@ -37,13 +51,14 @@ Commit ve wiki kuralları için bkz. [../../RULES.md](../../RULES.md).
 
 ---
 
-## Sayfa Ekleme Talimatı
+## 📌 Sayfa Ekleme ve Güncelleme Talimatı
 
-Yeni wiki sayfası oluşturulduğunda:
-1. Bu tabloya bir satır ekle
-2. `log.md`'ye `yeni-sayfa` girişi ekle
-3. Yeni sayfanın üstüne navigation satırı ekle
+Yeni bir wiki sayfası veya teknik doküman eklendiğinde:
+1. Bu dizin (`index.md`) tablosuna ilgili satırı ekle.
+2. `log.md` dosyasına `yeni-sayfa` veya `güncelleme` türünde kronolojik kaydı işle.
+3. Yeni sayfanın en üstüne index ve log sayfalarına kolay erişim sunan yönlendirme satırını ekle (örn. `> Ana sayfa: [index.md](index.md)...`).
+4. **Token Tasarrufu**: Belgeleri net, şematik ve yapılandırılmış tutarak gelecekteki LLM oturumlarının hızlıca bağlam kazanmasını ve gereksiz token tüketimini engellemesini sağlayın.
 
 ---
 
-*Son güncelleme: 2026-05-09 — Wiki sistemi başlatıldı, LLM Wiki pattern uygulandı.*
+*Son güncelleme: 2026-06-01 — Gelişmiş karşılaştırma laboratuvarı ve tasarım spesifikasyonları dizine bağlandı.*

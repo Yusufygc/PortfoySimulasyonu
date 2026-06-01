@@ -214,16 +214,6 @@ Bu bölüm, aynı tür üretim hatalarının ve kontrolsüz büyüyen sınıf/me
 
 ---
 
-### 4.3 Graphify Güncelleme Kuralı
-
-Bu projede `graphify-out/` kod tabanı haritası ve ilişki grafiği için yardımcı bağlamdır.
-
-- Mimariyi, modül ilişkilerini, UI bileşen sınırlarını, servis akışlarını veya dosya bağımlılıklarını anlamayı etkileyen anlamlı kod değişikliklerinden sonra graphify güncellemesi planlanır.
-- Kod tabanı soruları yanıtlanırken önce mevcut `graphify-out/GRAPH_REPORT.md` ve gerekirse `graphify-out/graph.json` okunur; yeterli değilse ilgili kaynak dosyalar ayrıca incelenir.
-- Değişiklik kod ağırlıklıysa graphify incremental/update akışı tercih edilir; gereksiz tam yeniden üretim yapılmaz.
-- Graphify çıktısı commit kapsamına ancak kullanıcı açıkça isterse alınır. Varsayılan olarak graphify çıktıları çalışma bağlamı kabul edilir, ürün kodu commit'ine karıştırılmaz.
-- Graphify komutları repo-tracked dosyaları değiştirecekse önce bunun amacını açıkça belirt ve yalnızca ilgili çıktıların güncellenmesini sağla.
-
 ---
 
 

@@ -3,8 +3,8 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole
 
 try:
-    import google.generativeai as genai
-    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+    from google import genai
+    from google.genai import types
     HAS_GEMINI = True
 except ImportError:
     HAS_GEMINI = False
@@ -64,11 +64,11 @@ class GeminiWorker(QThread):
                 pass
         
         if self.api_key and HAS_GEMINI:
-            genai.configure(api_key=self.api_key)
+            self.client = genai.Client(api_key=self.api_key)
 
     def run(self):
         if not HAS_GEMINI:
-            self.error_occurred.emit("google-generativeai kütüphanesi eksik. Lütfen 'pip install google-generativeai' çalıştırın.")
+            self.error_occurred.emit("google-genai kütüphanesi eksik. Lütfen 'pip install google-genai' çalıştırın.")
             return
 
         if not self.api_key:
@@ -76,8 +76,7 @@ class GeminiWorker(QThread):
             return
 
         try:
-            model = genai.GenerativeModel(
-                model_name="gemini-3-flash-preview",
+            config = types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT
             )
             
@@ -92,10 +91,14 @@ class GeminiWorker(QThread):
                 if msg.role == MessageRole.SYSTEM:
                     content = "[SİSTEM AKTARIMI]\n" + content
                     
-                history.append({"role": role, "parts": [content]})
+                history.append(types.Content(role=role, parts=[types.Part.from_text(text=content)]))
             
             # Son mesajı gönder
-            chat = model.start_chat(history=history)
+            chat = self.client.chats.create(
+                model="gemini-3-flash-preview",
+                config=config,
+                history=history
+            )
             
             last_msg = recent_messages[-1]
             last_content = last_msg.content
