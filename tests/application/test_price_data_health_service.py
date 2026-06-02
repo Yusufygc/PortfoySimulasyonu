@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from src.application.services.market.price_data_health_service import PriceDataHealthService
+from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade
 from src.domain.models.stock import Stock
@@ -104,12 +105,21 @@ class FakeMarketClient:
         return self._single_prices_by_ticker[ticker][price_date]
 
 
+class FakeCorporateActionRepo:
+    def __init__(self, actions_by_stock):
+        self._actions_by_stock = actions_by_stock
+
+    def get_by_stock(self, stock_id):
+        return list(self._actions_by_stock.get(stock_id, []))
+
+
 def make_service(
     prices_by_stock,
     series_by_ticker=None,
     trades=None,
     model_trades_by_portfolio=None,
     single_prices_by_ticker=None,
+    corporate_actions_by_stock=None,
 ):
     stocks = [
         Stock(id=1, ticker="AAA.IS", name="AAA"),
@@ -125,6 +135,11 @@ def make_service(
         model_portfolio_repo=(
             FakeModelPortfolioRepo(model_trades_by_portfolio)
             if model_trades_by_portfolio is not None
+            else None
+        ),
+        corporate_action_repo=(
+            FakeCorporateActionRepo(corporate_actions_by_stock)
+            if corporate_actions_by_stock is not None
             else None
         ),
     )
@@ -267,6 +282,32 @@ def test_stocks_without_dashboard_or_model_trades_are_not_scanned_when_repos_are
     assert [row.stock_id for row in report.rows] == [1]
 
 
+def test_closed_dashboard_position_is_not_scanned_by_default():
+    service, price_repo, market_client = make_service(
+        {
+            1: {date(2026, 1, 2): Decimal("10")},
+            2: {date(2026, 1, 2): Decimal("20")},
+        },
+        {
+            "AAA.IS": {date(2026, 1, 5): Decimal("12")},
+            "BBB.IS": {date(2026, 1, 5): Decimal("22")},
+        },
+        trades=[
+            Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10")),
+            Trade.create_buy(stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20")),
+            Trade.create_sell(stock_id=2, trade_date=date(2026, 1, 3), quantity=1, price=Decimal("21")),
+        ],
+    )
+
+    report = service.analyze(date(2026, 1, 2), date(2026, 1, 5))
+    result = service.update_from_latest_to_today(today=date(2026, 1, 5))
+
+    assert [row.stock_id for row in report.rows] == [1]
+    assert result.updated_count == 1
+    assert {item.stock_id for item in price_repo.saved_prices} == {1}
+    assert market_client.requests == [("AAA.IS", date(2026, 1, 3), date(2026, 1, 5))]
+
+
 def test_model_portfolio_stocks_are_scanned_and_stored_like_dashboard_stocks():
     model_trade = ModelPortfolioTrade.create_buy(
         portfolio_id=4,
@@ -296,3 +337,69 @@ def test_model_portfolio_stocks_are_scanned_and_stored_like_dashboard_stocks():
     assert result.updated_count == 1
     assert price_repo.prices_by_stock[2][date(2026, 1, 2)] == Decimal("22")
     assert market_client.requests == [("BBB.IS", date(2026, 1, 2), date(2026, 1, 2))]
+
+
+def test_closed_model_portfolio_position_is_not_scanned_by_default():
+    open_model_trade = ModelPortfolioTrade.create_buy(
+        portfolio_id=4,
+        stock_id=1,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("10"),
+    )
+    closed_model_buy = ModelPortfolioTrade.create_buy(
+        portfolio_id=4,
+        stock_id=2,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("20"),
+    )
+    closed_model_sell = ModelPortfolioTrade.create_sell(
+        portfolio_id=4,
+        stock_id=2,
+        trade_date=date(2026, 1, 3),
+        quantity=1,
+        price=Decimal("21"),
+    )
+    service, _, _ = make_service(
+        {
+            1: {date(2026, 1, 2): Decimal("10")},
+            2: {date(2026, 1, 2): Decimal("20")},
+        },
+        trades=[],
+        model_trades_by_portfolio={4: [open_model_trade, closed_model_buy, closed_model_sell]},
+    )
+
+    report = service.analyze(date(2026, 1, 2), date(2026, 1, 5))
+
+    assert [row.stock_id for row in report.rows] == [1]
+
+
+def test_price_health_update_normalizes_pre_ex_market_prices_for_adjusted_actions():
+    action = CorporateAction(
+        id=1,
+        stock_id=1,
+        action_type=ActionType.BEDELSIZ,
+        ex_date=date(2026, 5, 5),
+        ratio=Decimal("1"),
+        subscription_price=None,
+        announcement_date=None,
+        notes=None,
+        applied=True,
+        prices_adjusted=True,
+        price_adjustment_factor=Decimal("0.5"),
+    )
+    service, price_repo, _ = make_service(
+        {1: {}, 2: {}},
+        {"AAA.IS": {date(2026, 5, 4): Decimal("20"), date(2026, 5, 5): Decimal("10")}},
+        trades=[
+            Trade.create_buy(stock_id=1, trade_date=date(2026, 5, 4), quantity=1, price=Decimal("20")),
+        ],
+        corporate_actions_by_stock={1: [action]},
+    )
+
+    result = service.update_stock_range(1, date(2026, 5, 4), date(2026, 5, 5))
+
+    assert result.updated_count == 2
+    assert price_repo.prices_by_stock[1][date(2026, 5, 4)] == Decimal("10.0")
+    assert price_repo.prices_by_stock[1][date(2026, 5, 5)] == Decimal("10")
