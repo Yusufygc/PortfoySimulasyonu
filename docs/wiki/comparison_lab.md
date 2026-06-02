@@ -105,3 +105,8 @@ Geliştirme aşamasındaki orijinal tasarım spec dosyalarına buradan ulaşabil
 * [Aşama 2: Plotly Grafik Üreticisi ve Şablon Yapısı](../../analizSayfasi/2_COMPARISON_CHART_FACTORY.md)
 * [Aşama 3: PyQt5 UI Bileşenleri ve Sinyal Ağı](../../analizSayfasi/3_UI_LAYERS_AND_SIGNALS.md)
 * [Aşama 4: Navigasyon ve Entegrasyon Aşamaları](../../analizSayfasi/4_NAVIGATION_AND_INTEGRATION.md)
+## Plotly WebEngine Render Notu (2026-06-02)
+
+- QWebEngine'in eski Chromium motoru Plotly'nin `:focus-visible` CSS rule'unu parse edemediginde grafikler `Plotly is not defined` hatasiyla bos kalabilir.
+- Comparison Lab artik `plotly-shared-patched.min.js` uretir; `CSSStyleSheet.insertRule` patch'i Plotly bundle calismadan once ayni JS dosyasinin basinda uygulanir.
+- CDN veya canli network kullanilmaz; patched shared JS yazilamazsa inline Plotly HTML fallback'i patch script'iyle birlikte uretilir.
