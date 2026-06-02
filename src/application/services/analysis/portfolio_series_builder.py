@@ -4,9 +4,9 @@ from datetime import date, time, timedelta
 from decimal import Decimal
 from typing import Dict, Iterable, List, Sequence
 
+from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
 from src.domain.models.portfolio import Portfolio
 from src.domain.models.position import Position
-from src.domain.models.trade import Trade
 from src.domain.models.trade import Trade
 from src.domain.models.cash_movement import CashMovement, CashMovementType
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
@@ -22,11 +22,46 @@ class PortfolioSeriesBuilder:
         self._price_repo = price_repo
         self._stock_repo = stock_repo
 
-    def resolve_stock_scope(self, trades: Iterable[Trade], selected_stock_ids: Sequence[int]) -> List[int]:
+    def resolve_stock_scope(
+        self,
+        trades: Iterable[Trade],
+        selected_stock_ids: Sequence[int],
+        as_of: date | None = None,
+    ) -> List[int]:
         selected = [stock_id for stock_id in selected_stock_ids if stock_id]
         if selected:
             return sorted(set(selected))
-        return sorted({trade.stock_id for trade in trades})
+        scoped_trades = [trade for trade in trades if as_of is None or trade.trade_date <= as_of]
+        return sorted(build_portfolio_safely(scoped_trades).portfolio.active_positions)
+
+    def resolve_valuation_stock_scope(
+        self,
+        trades: Iterable[Trade],
+        selected_stock_ids: Sequence[int],
+        start_date: date,
+        end_date: date,
+    ) -> List[int]:
+        selected = [stock_id for stock_id in selected_stock_ids if stock_id]
+        if selected:
+            return sorted(set(selected))
+
+        ordered_trades = sorted(
+            (trade for trade in trades if trade.trade_date <= end_date),
+            key=lambda trade: (trade.trade_date, trade.trade_time or time.min, trade.id or 0),
+        )
+        valid_trades = build_portfolio_safely(ordered_trades, is_sorted=True).valid_trades
+        portfolio = build_portfolio_safely(
+            (trade for trade in valid_trades if trade.trade_date < start_date),
+            is_sorted=True,
+        ).portfolio
+        stock_ids = set(portfolio.active_positions)
+        for trade in valid_trades:
+            if trade.trade_date < start_date:
+                continue
+            portfolio.apply_trade(trade)
+            if portfolio.positions[trade.stock_id].total_quantity > 0:
+                stock_ids.add(trade.stock_id)
+        return sorted(stock_ids)
 
     def compute_portfolio_series(
         self,
@@ -37,8 +72,10 @@ class PortfolioSeriesBuilder:
         start_date: date,
         end_date: date,
         portfolio: Portfolio,
+        trade_stock_ids: Sequence[int] | None = None,
     ) -> tuple[Dict[date, Decimal], Dict[int, Decimal], List[str]]:
-        if not stock_ids:
+        trade_scope = sorted(set(trade_stock_ids or stock_ids))
+        if not stock_ids and not trade_scope:
             return {}, {}, []
 
         prices_by_stock, last_prices, warnings = self._init_prices_and_warnings(
@@ -46,11 +83,11 @@ class PortfolioSeriesBuilder:
         )
 
         current_positions, current_cash, has_cash_tracking = self._calc_initial_cash_and_positions(
-            trades, cash_movements, stock_ids, start_date
+            trades, cash_movements, trade_scope, start_date
         )
 
         trades_by_date, cash_by_date = self._group_events_by_date(
-            trades, cash_movements, stock_ids, start_date, end_date
+            trades, cash_movements, trade_scope, start_date, end_date
         )
 
         portfolio_series = self._run_simulation_loop(
