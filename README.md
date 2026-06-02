@@ -248,13 +248,19 @@ DB_PASSWORD=change-me
 DB_NAME=portfoySim
 POOL_NAME=portfoy_pool
 POOL_SIZE=5
+DB_POOL_RECYCLE_SECONDS=3600
+DB_POOL_PRE_PING=true
 GEMINI_API_KEY=change-me
 AI_CORE_API_URL=http://localhost:8000
 EVDS_API_KEY=
 TCMB_DEPOSIT_RATE_FALLBACK=45.0
+LOG_DIR=logs
+LOG_LEVEL=INFO
+LOG_CONSOLE_LEVEL=DEBUG
+LOG_FILE_LEVEL=INFO
 ```
 
-`DB_PORT`, `POOL_SIZE`, `AI_CORE_API_URL` ve `TCMB_DEPOSIT_RATE_FALLBACK` parse hataları sessiz geçmez. Kritik ortam değerleri eksik veya geçersiz olduğunda açık hata üretilir.
+`DB_PORT`, `POOL_SIZE`, `DB_POOL_RECYCLE_SECONDS`, `DB_POOL_PRE_PING`, `AI_CORE_API_URL` ve `TCMB_DEPOSIT_RATE_FALLBACK` parse hataları sessiz geçmez. Kritik ortam değerleri eksik veya geçersiz olduğunda açık hata üretilir.
 
 ## Kalite ve Güvenilirlik
 
@@ -409,7 +415,16 @@ Python tabanlı kütüphaneleri (PyQt5, SciPy vb.) bağımsız bir masaüstü uy
 
 Build script; uygulama ikonunu `icons/portfoy-simulasyonu.ico` dosyasından alır, plugin'leri aktif eder ve `dist/` dizini altında son derlenmiş versiyonu çıkartır. Bilimsel kütüphanelerin paketlenmesi oldukça uzun sürebilir.
 
-Build script `requirements.txt` ve `requirements-build.txt` dosyalarındaki pinli sürümleri kullanır. Gerçek `.env` dosyası exe içine gömülmez; dağıtılan uygulama kendi bulunduğu dizindeki kullanıcıya özel `.env` dosyasını runtime sırasında okur.
+Build script `requirements.txt` ve `requirements-build.txt` dosyalarındaki pinli sürümleri kullanır. `scripts/build_preflight.py` önce Python sürümü, pinli dependency formatı, Nuitka kurulumu, ikon, `.env.example`, pytest marker'ları ve `dist/.env` guard kontrollerini çalıştırır. Gerçek `.env` dosyası exe içine gömülmez; dağıtılan uygulama kendi bulunduğu dizindeki kullanıcıya özel `.env` dosyasını runtime sırasında okur.
+
+Aktif ortamda build bağımlılığı kontrolü:
+
+```powershell
+python scripts/build_preflight.py
+python -m nuitka --version
+```
+
+`nuitka` import edilemiyorsa bu release blocker'dır; `python -m pip install -r requirements-build.txt` ile build ortamı hazırlanmalıdır.
 
 ### Veritabanı Bakımı ve Scriptler
 

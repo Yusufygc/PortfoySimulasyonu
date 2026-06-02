@@ -22,9 +22,9 @@ class SQLAlchemyEngineProvider:
         db_url = f"mysql+mysqlconnector://{self._config.user}:{self._config.password}@{self._config.host}:{self._config.port}/{self._config.database}"
         engine = create_engine(
             db_url,
-            pool_recycle=3600,
+            pool_recycle=self._config.pool_recycle_seconds,
             pool_size=self._config.pool_size,
-            pool_pre_ping=True, # Bağlantı kopmalarını otomatik canlandır
+            pool_pre_ping=self._config.pool_pre_ping,
             echo=False 
         )
         return engine
