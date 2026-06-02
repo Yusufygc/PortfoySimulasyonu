@@ -14,6 +14,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+
 
 class AddStockToWatchlistDialog(QDialog):
     """Takip listesine hisse eklemek icin tek adimli form dialogu."""
@@ -75,6 +77,7 @@ class AddStockToWatchlistDialog(QDialog):
         self.btn_ok.clicked.connect(self._on_accept_clicked)
         self.btn_cancel.clicked.connect(self.reject)
         self.ticker_edit.returnPressed.connect(self._on_accept_clicked)
+        configure_dialog_behavior(self, self.btn_ok, self._on_accept_clicked)
 
     def values(self) -> Tuple[str, Optional[str]]:
         ticker = self.ticker_edit.text().strip()
