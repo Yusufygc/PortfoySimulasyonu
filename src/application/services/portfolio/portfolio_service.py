@@ -114,6 +114,10 @@ class PortfolioService:
         position = portfolio.positions.get(stock_id)
         return position.total_quantity if position else 0
 
+    def get_active_stock_ids(self) -> list[int]:
+        portfolio = self.get_current_portfolio()
+        return sorted(portfolio.active_positions)
+
     def get_all_trades(self) -> List[Trade]:
         return self._portfolio_repo.get_all_trades()
 
