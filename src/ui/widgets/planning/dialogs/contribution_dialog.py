@@ -8,6 +8,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+
 class ContributionDialog(QDialog):
     """Hedefe katkı ekleme diyaloğu."""
 
@@ -18,6 +20,7 @@ class ContributionDialog(QDialog):
         self.setFixedSize(350, 180)
         self.setModal(True)
         self._init_ui()
+        configure_dialog_behavior(self, self.btn_save, self.accept)
 
     def _init_ui(self):
         self.setProperty("cssClass", "dialogContainer")
@@ -46,12 +49,12 @@ class ContributionDialog(QDialog):
         btn_cancel = QPushButton("İptal")
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
-        btn_save = QPushButton("Ekle")
-        btn_save.setProperty("cssClass", "primaryButton")
-        btn_save.clicked.connect(self.accept)
-        btn_save.setDefault(True)
+        self.btn_save = QPushButton("Ekle")
+        self.btn_save.setProperty("cssClass", "primaryButton")
+        self.btn_save.clicked.connect(self.accept)
+        self.btn_save.setDefault(True)
         btn_layout.addWidget(btn_cancel)
-        btn_layout.addWidget(btn_save)
+        btn_layout.addWidget(self.btn_save)
         layout.addLayout(btn_layout)
 
     def get_amount(self) -> float:
