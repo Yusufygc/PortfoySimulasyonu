@@ -29,6 +29,14 @@ class SQLAlchemyCorporateActionRepository(ICorporateActionRepository):
             announcement_date=orm.announcement_date,
             notes=orm.notes,
             applied=bool(orm.applied),
+            prices_adjusted=bool(orm.prices_adjusted),
+            prices_adjusted_at=orm.prices_adjusted_at,
+            price_adjustment_factor=(
+                Decimal(str(orm.price_adjustment_factor))
+                if orm.price_adjustment_factor is not None
+                else None
+            ),
+            price_adjustment_count=int(orm.price_adjustment_count or 0),
         )
 
     def _to_orm(self, domain: CorporateAction) -> ORMCorporateAction:
@@ -42,6 +50,10 @@ class SQLAlchemyCorporateActionRepository(ICorporateActionRepository):
             announcement_date=domain.announcement_date,
             notes=domain.notes,
             applied=domain.applied,
+            prices_adjusted=domain.prices_adjusted,
+            prices_adjusted_at=domain.prices_adjusted_at,
+            price_adjustment_factor=domain.price_adjustment_factor,
+            price_adjustment_count=domain.price_adjustment_count,
         )
 
     # ──────────────── READ ────────────────
@@ -106,6 +118,16 @@ class SQLAlchemyCorporateActionRepository(ICorporateActionRepository):
             if row:
                 row.applied = True
                 row.applied_at = datetime.now()
+                commit_or_rollback(session)
+
+    def mark_prices_adjusted(self, action_id: int, factor: Decimal, adjusted_count: int) -> None:
+        with self._provider.get_session() as session:
+            row = session.query(ORMCorporateAction).filter_by(id=action_id).first()
+            if row:
+                row.prices_adjusted = True
+                row.prices_adjusted_at = datetime.now()
+                row.price_adjustment_factor = factor
+                row.price_adjustment_count = adjusted_count
                 commit_or_rollback(session)
 
     def delete(self, action_id: int) -> None:
