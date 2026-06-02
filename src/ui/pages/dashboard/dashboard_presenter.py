@@ -49,9 +49,10 @@ class DashboardPresenter:
         else:
             self._page.portfolio_model.update_data(positions, price_map, ticker_map)
 
-        total_value = snapshot.total_value if snapshot else Decimal("0")
+        positions_value = snapshot.total_value if snapshot else Decimal("0")
+        total_value = positions_value + self._page._capital
         total_cost = sum(position.total_cost for position in positions)
-        profit_loss = total_value - total_cost
+        profit_loss = snapshot.total_unrealized_pl if snapshot else Decimal("0")
 
         self._page.summary_cards.update_base_metrics(total_value, total_cost, self._page._capital, profit_loss)
         self._page.portfolio_table_widget.update_summary_row(total_value, profit_loss)
@@ -79,10 +80,27 @@ class DashboardPresenter:
             return
 
         price_map = getattr(self._page.portfolio_model, "_price_map", {})
+        price_map.update(new_prices)
         portfolio = self._page.portfolio_service.get_current_portfolio()
-        total_cost = portfolio.total_cost
-        total_value = portfolio.total_market_value(price_map)
-        profit_loss = portfolio.total_unrealized_pl(price_map)
+        active_positions = portfolio.active_positions
+        total_cost = sum((position.total_cost for position in active_positions.values()), Decimal("0"))
+        positions_value = sum(
+            (
+                position.market_value(price_map[position.stock_id])
+                for position in active_positions.values()
+                if position.stock_id in price_map
+            ),
+            Decimal("0"),
+        )
+        total_value = positions_value + self._page._capital
+        profit_loss = sum(
+            (
+                position.unrealized_pl(price_map[position.stock_id])
+                for position in active_positions.values()
+                if position.stock_id in price_map
+            ),
+            Decimal("0"),
+        )
         self._page.summary_cards.update_base_metrics(total_value, total_cost, self._page._capital, profit_loss)
         self._page.portfolio_table_widget.update_summary_row(total_value, profit_loss)
 
