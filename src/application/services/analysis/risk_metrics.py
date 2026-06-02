@@ -31,12 +31,15 @@ def compute_relative_gap_pct(
 
 
 def compute_daily_return_vector(series: Dict[date, Decimal]) -> List[float]:
-    values = [float(value) for value in series.values() if value is not None and value > 0]
+    dates = sorted(series.keys())
     returns: List[float] = []
-    for prev, curr in zip(values, values[1:]):
-        if prev == 0:
+    for prev_date, curr_date in zip(dates, dates[1:]):
+        if curr_date.weekday() >= 5:
             continue
-        returns.append((curr - prev) / prev)
+        prev_val = float(series[prev_date] or 0)
+        curr_val = float(series[curr_date] or 0)
+        if prev_val > 0:
+            returns.append((curr_val - prev_val) / prev_val)
     return returns
 
 
@@ -47,6 +50,55 @@ def compute_volatility_pct(series: Dict[date, Decimal]) -> Optional[float]:
     mean = sum(returns) / len(returns)
     variance = sum((item - mean) ** 2 for item in returns) / (len(returns) - 1)
     return math.sqrt(variance) * math.sqrt(252) * 100
+
+def compute_sharpe_ratio(series: Dict[date, Decimal], risk_free_rate: float = 0.40) -> Optional[float]:
+    returns = compute_daily_return_vector(series)
+    if len(returns) < 2:
+        return None
+    daily_rf = risk_free_rate / 252.0
+    excess_returns = [r - daily_rf for r in returns]
+    mean_excess = sum(excess_returns) / len(excess_returns)
+    variance = sum((r - (sum(returns)/len(returns))) ** 2 for r in returns) / (len(returns) - 1)
+    if variance == 0:
+        return None
+    return (mean_excess / math.sqrt(variance)) * math.sqrt(252)
+
+def compute_beta(portfolio_series: Dict[date, Decimal], benchmark_series: Dict[date, Decimal]) -> Optional[float]:
+    dates = sorted(set(portfolio_series.keys()) & set(benchmark_series.keys()))
+    port_returns = []
+    bench_returns = []
+    for prev_date, curr_date in zip(dates, dates[1:]):
+        if curr_date.weekday() >= 5:
+            continue
+        p_prev, p_curr = float(portfolio_series[prev_date] or 0), float(portfolio_series[curr_date] or 0)
+        b_prev, b_curr = float(benchmark_series[prev_date] or 0), float(benchmark_series[curr_date] or 0)
+        if p_prev > 0 and b_prev > 0:
+            port_returns.append((p_curr - p_prev) / p_prev)
+            bench_returns.append((b_curr - b_prev) / b_prev)
+    if len(port_returns) < 2:
+        return None
+    p_mean = sum(port_returns) / len(port_returns)
+    b_mean = sum(bench_returns) / len(bench_returns)
+    covariance = sum((p - p_mean) * (b - b_mean) for p, b in zip(port_returns, bench_returns)) / (len(port_returns) - 1)
+    b_variance = sum((b - b_mean) ** 2 for b in bench_returns) / (len(bench_returns) - 1)
+    if b_variance == 0:
+        return None
+    return covariance / b_variance
+
+def compute_alpha(portfolio_series: Dict[date, Decimal], benchmark_series: Dict[date, Decimal], risk_free_rate: float = 0.40) -> Optional[float]:
+    beta = compute_beta(portfolio_series, benchmark_series)
+    if beta is None:
+        return None
+    p_return = compute_return_pct(portfolio_series)
+    b_return = compute_return_pct(benchmark_series)
+    if p_return is None or b_return is None:
+        return None
+    dates = sorted(portfolio_series.keys())
+    if not dates: return None
+    days = (dates[-1] - dates[0]).days
+    if days == 0: return None
+    period_rf = risk_free_rate * (days / 365.0) * 100.0
+    return p_return - (period_rf + beta * (b_return - period_rf))
 
 
 def compute_max_drawdown_pct(series: Dict[date, Decimal]) -> Optional[float]:
