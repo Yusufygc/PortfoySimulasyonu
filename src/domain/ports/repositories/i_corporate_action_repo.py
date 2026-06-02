@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from decimal import Decimal
 from typing import List, Optional
 
 from src.domain.models.corporate_action import CorporateAction
@@ -43,6 +44,11 @@ class ICorporateActionRepository(ABC):
     @abstractmethod
     def mark_applied(self, action_id: int) -> None:
         """applied=True, applied_at=now() olarak günceller."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def mark_prices_adjusted(self, action_id: int, factor: Decimal, adjusted_count: int) -> None:
+        """Fiyat gecmisi duzeltmesini idempotency icin kaydeder."""
         raise NotImplementedError
 
     @abstractmethod
