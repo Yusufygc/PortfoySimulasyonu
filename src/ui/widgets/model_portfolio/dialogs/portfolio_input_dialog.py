@@ -6,6 +6,8 @@ from typing import Optional
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout
 
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+
 
 class PortfolioInputDialog(QDialog):
     def __init__(self, parent=None, portfolio=None):
@@ -18,6 +20,7 @@ class PortfolioInputDialog(QDialog):
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
         self._init_ui()
+        configure_dialog_behavior(self, self.btn_save, self.accept)
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -44,12 +47,12 @@ class PortfolioInputDialog(QDialog):
         btn_cancel = QPushButton("İptal")
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
-        btn_save = QPushButton("Kaydet")
-        btn_save.setProperty("cssClass", "successButton")
-        btn_save.clicked.connect(self.accept)
-        btn_save.setDefault(True)
+        self.btn_save = QPushButton("Kaydet")
+        self.btn_save.setProperty("cssClass", "successButton")
+        self.btn_save.clicked.connect(self.accept)
+        self.btn_save.setDefault(True)
         button_row.addWidget(btn_cancel)
-        button_row.addWidget(btn_save)
+        button_row.addWidget(self.btn_save)
         layout.addLayout(button_row)
 
     def get_result(self) -> Optional[dict]:
