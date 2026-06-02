@@ -3,6 +3,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
@@ -38,6 +39,10 @@ class CorporateAction:
     announcement_date: Optional[date]
     notes: Optional[str]
     applied: bool
+    prices_adjusted: bool = False
+    prices_adjusted_at: Optional[datetime] = None
+    price_adjustment_factor: Optional[Decimal] = None
+    price_adjustment_count: int = 0
 
     # ──────────────── Factory Methods ────────────────
 
@@ -56,6 +61,12 @@ class CorporateAction:
                 raise ValueError("Subscription price must be positive for BEDELLI actions")
         elif self.subscription_price is not None:
             raise ValueError("Subscription price must be empty for BEDELSIZ actions")
+
+        if self.price_adjustment_factor is not None and self.price_adjustment_factor <= 0:
+            raise ValueError("Price adjustment factor must be positive")
+
+        if self.price_adjustment_count < 0:
+            raise ValueError("Price adjustment count cannot be negative")
 
     @classmethod
     def create_bedelsiz(
