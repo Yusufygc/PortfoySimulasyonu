@@ -26,6 +26,7 @@ from src.application.services.simulation.backfill_service import BackfillService
 from src.application.services.simulation.history_simulation_service import HistorySimulationService
 from src.application.services.simulation.model_portfolio_history_simulation_service import ModelPortfolioHistorySimulationService
 from src.application.services.watchlist.watchlist_service import WatchlistService
+from src.infrastructure.calendar.bist_holiday_provider import BistHolidayProvider
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,7 @@ class ServiceSet:
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
     foundation = _build_foundation_services(repositories, market_clients)
-    reporting = _build_reporting_services(repositories, foundation)
+    reporting = _build_reporting_services(repositories, market_clients, foundation)
     feature_services = _build_feature_services(
         repositories,
         market_clients,
@@ -92,7 +93,11 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
         stock_repo=repositories.stock_repo,
         portfolio_service=portfolio_service,
     )
-    price_update_service = PriceUpdateService(repositories.price_repo, market_clients.market_client)
+    price_update_service = PriceUpdateService(
+        repositories.price_repo,
+        market_clients.market_client,
+        trading_calendar=market_clients.trading_calendar,
+    )
     return_calc_service = ReturnCalcService(repositories.portfolio_repo, repositories.price_repo)
     model_portfolio_service = ModelPortfolioService(
         model_portfolio_repo=repositories.model_portfolio_repo,
@@ -112,16 +117,22 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
     }
 
 
-def _build_reporting_services(repositories: RepositorySet, foundation: dict) -> dict:
+def _build_reporting_services(
+    repositories: RepositorySet,
+    market_clients: MarketClientSet,
+    foundation: dict,
+) -> dict:
     history_simulation_service = HistorySimulationService(
         portfolio_repo=repositories.portfolio_repo,
         price_repo=repositories.price_repo,
         stock_repo=repositories.stock_repo,
+        trading_calendar=market_clients.trading_calendar,
     )
     model_portfolio_history_simulation_service = ModelPortfolioHistorySimulationService(
         model_portfolio_repo=repositories.model_portfolio_repo,
         price_repo=repositories.price_repo,
         stock_repo=repositories.stock_repo,
+        trading_calendar=market_clients.trading_calendar,
     )
     excel_formatter = ExcelFormatter()
     excel_report_builder = ExcelReportBuilder(formatter=excel_formatter)
@@ -161,6 +172,7 @@ def _build_feature_services(
             market_data_client=market_clients.market_client,
             portfolio_repo=repositories.portfolio_repo,
             model_portfolio_repo=repositories.model_portfolio_repo,
+            holiday_provider=BistHolidayProvider(),
         ),
         "analysis_service": AnalysisService(
             portfolio_repo=repositories.portfolio_repo,
@@ -187,6 +199,7 @@ def _build_feature_services(
             portfolio_service=foundation["portfolio_service"],
             model_portfolio_service=model_portfolio_service,
             stock_repo=repositories.stock_repo,
+            market_data_provider=market_clients.optimization_market_data_provider,
         ),
         "planning_service": PlanningService(planning_repo=repositories.planning_repo),
         "risk_profile_service": RiskProfileService(risk_profile_repo=repositories.risk_profile_repo),
@@ -197,5 +210,6 @@ def _build_feature_services(
         "backfill_service": BackfillService(
             stock_repo=repositories.stock_repo,
             price_repo=repositories.price_repo,
+            market_data_client=market_clients.market_client,
         ),
     }

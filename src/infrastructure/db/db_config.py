@@ -17,3 +17,5 @@ class MySQLConfig:
     database: str
     pool_name: str
     pool_size: int
+    pool_recycle_seconds: int = 3600
+    pool_pre_ping: bool = True

@@ -22,6 +22,8 @@ OPTIONAL_ENV = {
     "AI_CORE_API_URL",
     "EVDS_API_KEY",
     "TCMB_DEPOSIT_RATE_FALLBACK",
+    "DB_POOL_RECYCLE_SECONDS",
+    "DB_POOL_PRE_PING",
 }
 
 
@@ -74,6 +76,41 @@ def test_load_settings_builds_mysql_config(monkeypatch, tmp_path):
     assert config.database == "portfoySim"
     assert config.pool_name == "portfoy_pool"
     assert config.pool_size == 5
+    assert config.pool_recycle_seconds == 3600
+    assert config.pool_pre_ping is True
+
+
+def test_load_settings_accepts_db_pool_overrides(monkeypatch, tmp_path):
+    _disable_env_file(monkeypatch, tmp_path)
+    _clear_required_env(monkeypatch)
+
+    for key, value in REQUIRED_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("DB_POOL_RECYCLE_SECONDS", "7200")
+    monkeypatch.setenv("DB_POOL_PRE_PING", "false")
+
+    config = settings_loader.load_settings()
+
+    assert config.pool_recycle_seconds == 7200
+    assert config.pool_pre_ping is False
+
+
+def test_load_settings_rejects_invalid_db_pool_overrides(monkeypatch, tmp_path):
+    _disable_env_file(monkeypatch, tmp_path)
+    _clear_required_env(monkeypatch)
+
+    for key, value in REQUIRED_ENV.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("DB_POOL_RECYCLE_SECONDS", "0")
+
+    with pytest.raises(settings_loader.SettingsError, match="DB_POOL_RECYCLE_SECONDS"):
+        settings_loader.load_settings()
+
+    monkeypatch.setenv("DB_POOL_RECYCLE_SECONDS", "3600")
+    monkeypatch.setenv("DB_POOL_PRE_PING", "maybe")
+
+    with pytest.raises(settings_loader.SettingsError, match="DB_POOL_PRE_PING"):
+        settings_loader.load_settings()
 
 
 def test_load_app_settings_builds_optional_settings(monkeypatch, tmp_path):

@@ -72,6 +72,31 @@ def _required_int_env(name: str, minimum: int = 1) -> int:
     return value
 
 
+def _optional_int_env(name: str, default: int, minimum: int = 1) -> int:
+    raw_value = _optional_env(name)
+    if raw_value is None:
+        return default
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise SettingsError(f"Environment variable {name} must be an integer.") from exc
+    if value < minimum:
+        raise SettingsError(f"Environment variable {name} must be >= {minimum}.")
+    return value
+
+
+def _bool_env(name: str, default: bool) -> bool:
+    raw_value = _optional_env(name)
+    if raw_value is None:
+        return default
+    normalized = raw_value.lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise SettingsError(f"Environment variable {name} must be a boolean.")
+
+
 def _decimal_env(name: str, default: str) -> Decimal:
     raw_value = _optional_env(name) or default
     try:
@@ -97,6 +122,8 @@ def _load_db_settings() -> MySQLConfig:
         database=_required_env("DB_NAME"),
         pool_name=_required_env("POOL_NAME"),
         pool_size=_required_int_env("POOL_SIZE"),
+        pool_recycle_seconds=_optional_int_env("DB_POOL_RECYCLE_SECONDS", 3600),
+        pool_pre_ping=_bool_env("DB_POOL_PRE_PING", True),
     )
 
 
