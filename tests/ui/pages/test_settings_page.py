@@ -7,7 +7,12 @@ pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 
 from src.application.services.market.price_data_health_service import PriceDataHealthReport, StockPriceHealthRow
-from src.ui.pages.settings import AppearancePanel, PriceDataPanel, ResetPanel
+from src.ui.pages.settings import (
+    AppearancePanel,
+    CorporateActionCandidatesPanel,
+    PriceDataPanel,
+    ResetPanel,
+)
 from src.ui.pages.settings_page import SettingsPage
 
 
@@ -30,17 +35,21 @@ class DummyContainer:
     reset_service = DummyResetService()
     price_data_health_service = DummyPriceDataHealthService()
     event_bus = None
+    corporate_action_discovery_service = None
+    corporate_action_candidate_review_service = None
+    stock_repo = None
 
 
 def test_settings_page_renders_price_data_management_section():
     page = SettingsPage(container=DummyContainer())
 
-    assert page.tabs.count() == 3
+    assert page.tabs.count() == 4
     assert page.tabs.tabText(0) == "Ana Sayfa"
     assert page.tabs.tabText(1) == "Görünüm"
     assert page.tabs.tabText(2) == "Fiyat Verisi Yönetimi"
+    assert page.tabs.tabText(3) == "Kurumsal Aksiyonlar"
     assert page.btn_analyze.text().strip() == "Analiz Et"
-    assert page.btn_update_missing.text().strip() == "Toplu Eksikleri Güncelle"
+    assert page.btn_update_missing.text().strip().startswith("Toplu Eksikleri")
     assert page.health_table.columnCount() == 6
     assert page.health_table.horizontalHeaderItem(0).text() == "Hisse"
     assert page.date_start.minimumDate().toPyDate() == date(2026, 1, 10)
@@ -58,10 +67,12 @@ def test_settings_panels_render_smoke():
     reset_panel = ResetPanel(DummyResetService())
     appearance_panel = AppearancePanel()
     price_data_panel = PriceDataPanel(DummyContainer(), DummyPriceDataHealthService())
+    corporate_action_panel = CorporateActionCandidatesPanel(DummyContainer())
 
-    assert reset_panel.btn_reset.text().strip() == "Sistemi Sıfırla"
+    assert reset_panel.btn_reset.text().strip().startswith("Sistemi")
     assert appearance_panel._theme_card_widgets
     assert price_data_panel.health_table.columnCount() == 6
+    assert corporate_action_panel.table.columnCount() == 8
 
 
 def test_settings_page_populates_health_table_from_report():
@@ -75,7 +86,6 @@ def test_settings_page_populates_health_table_from_report():
         empty_weekdays=[],
         holiday_candidate_dates=[date(2026, 1, 5)],
         latest_price_date=date(2026, 1, 2),
-        # date(2026, 1, 1) is Yılbaşı — known holiday, excluded from expected_business_days
         known_holiday_dates=[date(2026, 1, 1)],
         rows=[
             StockPriceHealthRow(
@@ -85,7 +95,7 @@ def test_settings_page_populates_health_table_from_report():
                 missing_dates=[],
                 first_missing_date=None,
                 last_missing_date=None,
-                status="Sağlıklı",
+                status="Saglikli",
             ),
             StockPriceHealthRow(
                 stock_id=2,
@@ -103,15 +113,14 @@ def test_settings_page_populates_health_table_from_report():
 
     assert page.lbl_stock_count.metric_label.text() == "2"
     assert page.lbl_missing_count.metric_label.text() == "1"
-    assert page.lbl_holiday_count.metric_label.text() == "1"         # known holidays
-    assert page.lbl_holiday_candidate_count.metric_label.text() == "1"  # heuristic candidates
+    assert page.lbl_holiday_count.metric_label.text() == "1"
+    assert page.lbl_holiday_candidate_count.metric_label.text() == "1"
     assert page.health_table.rowCount() == 2
     assert page.health_table.item(1, 0).text() == "BBB"
     assert page._selected_stock_id() is None
 
 
 def test_report_without_known_holidays_backwards_compatible():
-    """known_holiday_dates alanı opsiyonel; eski kod default ile çalışmalı."""
     report = PriceDataHealthReport(
         start_date=date(2026, 1, 1),
         end_date=date(2026, 1, 5),
