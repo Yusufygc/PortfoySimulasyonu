@@ -18,6 +18,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,10 +29,11 @@ class TradeInputDialog(QDialog):
         self.side = side
         self.price_lookup_func = price_lookup_func
         self.setWindowTitle("Hisse Al" if side == "BUY" else "Hisse Sat")
-        self.setFixedSize(450, 370)
+        self.setFixedSize(450, 425)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
         self._init_ui()
+        configure_dialog_behavior(self, self.btn_action, self._on_enter_pressed)
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -60,6 +63,7 @@ class TradeInputDialog(QDialog):
         self.spin_price.setSuffix(" TL")
         self.spin_price.setMinimumWidth(180)
         self.spin_price.setMinimumHeight(45)
+        self.spin_price.valueChanged.connect(self._update_amount)
         price_row.addWidget(self.spin_price)
 
         btn_lookup = QPushButton("Fiyat Al")
@@ -69,6 +73,14 @@ class TradeInputDialog(QDialog):
         btn_lookup.clicked.connect(self._on_lookup)
         price_row.addWidget(btn_lookup)
         form.addRow("Fiyat:", price_row)
+
+        self.edit_amount = QLineEdit()
+        self.edit_amount.setReadOnly(True)
+        self.edit_amount.setMinimumHeight(45)
+        self.edit_amount.setProperty("cssClass", "tradeInputNormal")
+        form.addRow("Tutar:", self.edit_amount)
+        self.spin_qty.valueChanged.connect(self._update_amount)
+        self._update_amount()
 
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
@@ -90,14 +102,14 @@ class TradeInputDialog(QDialog):
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
 
-        btn_action = QPushButton("Al" if self.side == "BUY" else "Sat")
-        btn_action.setMinimumHeight(40)
-        btn_action.setProperty("cssClass", "successButton" if self.side == "BUY" else "dangerButton")
-        btn_action.clicked.connect(self.accept)
-        btn_action.setDefault(True)
+        self.btn_action = QPushButton("Al" if self.side == "BUY" else "Sat")
+        self.btn_action.setMinimumHeight(40)
+        self.btn_action.setProperty("cssClass", "successButton" if self.side == "BUY" else "dangerButton")
+        self.btn_action.clicked.connect(self.accept)
+        self.btn_action.setDefault(True)
 
         button_row.addWidget(btn_cancel)
-        button_row.addWidget(btn_action)
+        button_row.addWidget(self.btn_action)
         layout.addLayout(button_row)
 
     def _on_lookup(self):
@@ -112,6 +124,16 @@ class TradeInputDialog(QDialog):
                 self.spin_price.setValue(float(result.price))
         except Exception as exc:
             logger.warning("Fiyat sorgulama başarısız (%s): %s", ticker, exc)
+
+    def _update_amount(self):
+        amount = Decimal(self.spin_qty.value()) * Decimal(str(self.spin_price.value()))
+        self.edit_amount.setText(f"{amount:,.2f} TL")
+
+    def _on_enter_pressed(self):
+        if self.focusWidget() is self.txt_ticker and self.price_lookup_func and self.spin_price.value() <= 0.01:
+            self._on_lookup()
+            return
+        self.accept()
 
     def get_result(self) -> Optional[dict]:
         ticker = self.txt_ticker.text().strip()
