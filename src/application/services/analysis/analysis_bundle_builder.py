@@ -32,18 +32,32 @@ class AnalysisBundleBuilder:
         trades = self._source_resolver.get_source_trades(filter_state.portfolio_source)
         portfolio_label = self._source_resolver.get_source_label(filter_state.portfolio_source)
         scoped_trades = [trade for trade in trades if trade.trade_date <= filter_state.end_date]
-        stock_ids = self._series_builder.resolve_stock_scope(scoped_trades, filter_state.selected_stock_ids)
-        ticker_map = self._series_builder.get_ticker_map(stock_ids)
-        build_result = build_portfolio_safely([trade for trade in scoped_trades if trade.stock_id in stock_ids])
+        display_stock_ids = self._series_builder.resolve_stock_scope(
+            scoped_trades,
+            filter_state.selected_stock_ids,
+            as_of=filter_state.end_date,
+        )
+        valuation_stock_ids = self._series_builder.resolve_valuation_stock_scope(
+            scoped_trades,
+            filter_state.selected_stock_ids,
+            filter_state.start_date,
+            filter_state.end_date,
+        )
+        trade_stock_ids = display_stock_ids if filter_state.selected_stock_ids else sorted({trade.stock_id for trade in scoped_trades})
+        ticker_map = self._series_builder.get_ticker_map(sorted(set(display_stock_ids) | set(valuation_stock_ids)))
+        build_result = build_portfolio_safely(
+            [trade for trade in scoped_trades if not trade_stock_ids or trade.stock_id in trade_stock_ids]
+        )
         cash_movements = self._cash_movements_for(filter_state)
         portfolio_series, position_values_end, series_warnings = self._series_builder.compute_portfolio_series(
             build_result.valid_trades,
             cash_movements,
-            stock_ids,
+            valuation_stock_ids,
             ticker_map,
             filter_state.start_date,
             filter_state.end_date,
             build_result.portfolio,
+            trade_stock_ids=trade_stock_ids,
         )
         warnings.extend(series_warnings)
         raw_benchmarks, benchmark_warnings = self._benchmark_service.build_benchmark_series(
@@ -61,7 +75,7 @@ class AnalysisBundleBuilder:
             cpi_series,
         )
         benchmark_series = self._converted_benchmarks(filter_state, raw_benchmarks, usd_series, cpi_series)
-        stock_series, stock_warnings = self._converted_stock_series(filter_state, stock_ids, ticker_map, usd_series, cpi_series)
+        stock_series, stock_warnings = self._converted_stock_series(filter_state, display_stock_ids, ticker_map, usd_series, cpi_series)
         warnings.extend(stock_warnings)
         return self._bundle_dict(
             portfolio=build_result.portfolio,
