@@ -160,8 +160,8 @@ def test_overview_section_uses_wrapped_warning_banner_and_metric_grid():
     assert isinstance(metrics_layout, QGridLayout)
 
 
-def test_checkable_combo_box_popup_layout_resolves_inside_analysis_page():
-    ThemeManager.apply_theme(app, "dark_theme")
+def test_checkable_combo_box_popup_layout_resolves_inside_analysis_page(qapp, drain_qt_events):
+    ThemeManager.apply_theme(qapp, "dark_theme")
     container = SimpleNamespace(
         analysis_service=DummyAnalysisService(),
         portfolio_service=DummyPortfolioService(),
@@ -176,11 +176,11 @@ def test_checkable_combo_box_popup_layout_resolves_inside_analysis_page():
     page.control_panel.set_stocks({1: "ASELS.IS", 2: "THYAO.IS"})
     page.resize(1400, 900)
     page.show()
-    app.processEvents()
+    drain_qt_events()
 
     combo = page.control_panel.stock_combo
     combo.showPopup()
-    app.processEvents()
+    drain_qt_events()
     view = combo.popup_view()
 
     first_rect = view.visualRect(combo.model().index(0, 0))

@@ -9,6 +9,11 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Iterable
 
+import pytest
+
+
+pytestmark = [pytest.mark.manual, pytest.mark.network]
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:

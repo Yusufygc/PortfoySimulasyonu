@@ -86,9 +86,17 @@ def test_table_height_adjustment():
     assert page.summary_table.minimumHeight() > 0
     assert page.summary_table.maximumHeight() == page.summary_table.minimumHeight()
 
-def test_check_date_warnings(monkeypatch):
+def test_check_date_warnings(monkeypatch, fixed_today):
     from datetime import date, timedelta
     from PyQt5.QtCore import QDate
+    from src.ui.pages.comparison.utils import comparison_warning_builder
+
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return fixed_today
+
+    monkeypatch.setattr(comparison_warning_builder, "date", FixedDate)
     
     class MockContainerForWarnings:
         def __init__(self):
@@ -125,7 +133,7 @@ def test_check_date_warnings(monkeypatch):
     assert any("ilk işlem tarihinden" in w for w in warnings)
     
     # 3. Test case: End date in the future
-    future_date = date.today() + timedelta(days=10)
+    future_date = fixed_today + timedelta(days=10)
     page.ribbon_bar.date_start.setDate(QDate(2026, 1, 1))
     page.ribbon_bar.date_end.setDate(QDate(future_date.year, future_date.month, future_date.day))
     warnings = page._check_date_warnings()

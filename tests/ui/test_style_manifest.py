@@ -65,6 +65,24 @@ def test_theme_qss_resolves_all_known_tokens():
     assert ThemeManager.validate_theme_tokens("light") == []
 
 
+def test_inline_styles_are_limited_to_documented_exceptions():
+    allowed = {
+        Path("src/ui/theme_manager.py"),
+        Path("src/ui/pages/settings/appearance_panel.py"),
+    }
+    offenders = []
+
+    for path in (ROOT / "src" / "ui").rglob("*.py"):
+        rel_path = path.relative_to(ROOT)
+        if rel_path in allowed:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "setStyleSheet(" in text:
+            offenders.append(str(rel_path).replace("\\", "/"))
+
+    assert not offenders, f"Unexpected inline setStyleSheet usage: {offenders}"
+
+
 def _hex_to_rgb(value: str) -> tuple[float, float, float]:
     assert re.fullmatch(r"#[0-9a-fA-F]{6}", value), f"Expected 6-digit hex color, got {value!r}"
     return tuple(int(value[index : index + 2], 16) / 255 for index in (1, 3, 5))

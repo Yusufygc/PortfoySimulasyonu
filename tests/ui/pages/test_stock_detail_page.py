@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt, QThreadPool
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QFormLayout, QHBoxLayout, QLabel, QSplitter, QTableWidget
 
 from src.domain.models.trade import TradeSide
@@ -228,7 +228,7 @@ def test_stock_chart_draws_empty_state_and_disables_date_si_prefix():
     assert chart.plot_widget.getPlotItem().titleLabel.text == "Veri bulunamadı"
 
 
-def test_stock_chart_draws_price_series_with_pyqtgraph(monkeypatch):
+def test_stock_chart_draws_price_series_with_pyqtgraph(monkeypatch, drain_qt_events):
     chart = StockChartWidget()
     data = pd.DataFrame(
         {"Close": [Decimal("7.50"), Decimal("7.80"), Decimal("7.96")]},
@@ -241,8 +241,7 @@ def test_stock_chart_draws_price_series_with_pyqtgraph(monkeypatch):
 
     chart.draw_chart("OBAMS", 1, Decimal("7.96"), DummyPortfolioService())
     chart.draw_chart("OBAMS", 1, Decimal("7.96"), DummyPortfolioService())
-    QThreadPool.globalInstance().waitForDone()
-    app.processEvents()
+    drain_qt_events()
 
     assert len(chart.plot_widget.listDataItems()) >= 1
     assert chart.plot_widget.getPlotItem().titleLabel.text == "OBAMS - Fiyat Geçmişi"
@@ -320,7 +319,7 @@ def test_stock_detail_real_submit_warns_when_trade_validation_fails(monkeypatch)
     assert warnings == ["Yetersiz pozisyon"]
 
 
-def test_stock_chart_uses_db_series_before_yfinance(monkeypatch):
+def test_stock_chart_uses_db_series_before_yfinance(monkeypatch, drain_qt_events):
     chart = StockChartWidget()
     price_repo = SimpleNamespace(
         get_price_series=lambda *args: [
@@ -334,7 +333,6 @@ def test_stock_chart_uses_db_series_before_yfinance(monkeypatch):
     )
 
     chart.draw_chart("SMRTG.IS", 1, Decimal("11"), None, price_repo=price_repo, average_cost=Decimal("9"))
-    QThreadPool.globalInstance().waitForDone()
-    app.processEvents()
+    drain_qt_events()
 
     assert len(chart.plot_widget.listDataItems()) >= 1
