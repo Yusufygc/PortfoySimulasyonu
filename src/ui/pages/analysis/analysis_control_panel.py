@@ -70,14 +70,14 @@ class AnalysisControlPanel(QFrame):
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
         self.date_start.setProperty("cssClass", "tradeInputNormal")
-        self.date_start.setMinimumHeight(38)
+        self.date_start.setMinimumHeight(45)
         self.date_start.setDate(QDate.currentDate().addMonths(-3))
         self.date_start.dateChanged.connect(self.filter_changed.emit)
 
         self.date_end = QDateEdit()
         self.date_end.setCalendarPopup(True)
         self.date_end.setProperty("cssClass", "tradeInputNormal")
-        self.date_end.setMinimumHeight(38)
+        self.date_end.setMinimumHeight(45)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
 
@@ -194,6 +194,13 @@ class AnalysisControlPanel(QFrame):
 
     def set_earliest_date(self, earliest: date) -> None:
         self._earliest_date = earliest
+
+    def reset_to_earliest_date(self) -> None:
+        start_qdate = QDate(self._earliest_date.year, self._earliest_date.month, self._earliest_date.day)
+        self.date_start.blockSignals(True)
+        self.date_start.setDate(start_qdate)
+        self.date_start.blockSignals(False)
+        self.filter_changed.emit()
 
     def selected_portfolio_source(self) -> str:
         return self.combo_portfolio.currentData()
