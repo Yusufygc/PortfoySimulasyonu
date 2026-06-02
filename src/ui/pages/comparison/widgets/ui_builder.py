@@ -45,21 +45,12 @@ class ComparisonUIBuilder:
         """Tarih doğrulama uyarı panelini oluşturur ve layout'a ekler."""
         page = self.page
         page.warning_panel = QFrame()
-        page.warning_panel.setProperty("cssClass", "panelFramePadded")
-        page.warning_panel.setStyleSheet("""
-            QFrame {
-                background-color: #2d1616;
-                border: 1px solid #7f1d1d;
-                border-radius: 8px;
-            }
-        """)
+        page.warning_panel.setProperty("cssClass", "comparisonWarningPanel")
         warning_layout = QVBoxLayout(page.warning_panel)
         warning_layout.setContentsMargins(15, 10, 15, 10)
         page.warning_label = QLabel()
         page.warning_label.setWordWrap(True)
-        page.warning_label.setStyleSheet(
-            "color: #fca5a5; font-size: 13px; font-weight: 500;"
-        )
+        page.warning_label.setProperty("cssClass", "comparisonWarningLabel")
         warning_layout.addWidget(page.warning_label)
         page.warning_panel.setVisible(False)
         layout.addWidget(page.warning_panel)

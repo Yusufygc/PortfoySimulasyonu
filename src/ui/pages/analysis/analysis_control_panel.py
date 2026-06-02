@@ -98,7 +98,7 @@ class AnalysisControlPanel(QFrame):
         
         lbl_to = QLabel("—")
         lbl_to.setAlignment(Qt.AlignCenter)
-        lbl_to.setStyleSheet("color: @COLOR_TEXT_SECONDARY;")
+        lbl_to.setProperty("cssClass", "dateSeparatorLabel")
         pickers_layout.addWidget(lbl_to)
         
         pickers_layout.addWidget(self.date_end, 1)

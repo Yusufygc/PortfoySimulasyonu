@@ -24,6 +24,7 @@ from src.application.services.market.price_data_health_service import (
     PriceDataUpdateResult,
 )
 from src.ui.core.icon_manager import IconManager
+from src.ui.shared.price_event_publisher import publish_prices_updated
 from src.ui.widgets.shared import AnimatedButton, Toast
 
 from src.ui.pages.settings.utils.price_data_actions import PriceDataActions
@@ -290,8 +291,7 @@ class PriceDataPanel(QWidget):
         self.chk_problem_only.setEnabled(enabled)
 
     def _emit_prices_updated(self, result: PriceDataUpdateResult) -> None:
-        if result.prices and getattr(self.container, "event_bus", None):
-            self.container.event_bus.prices_updated.emit(result.prices)
+        publish_prices_updated(getattr(self.container, "event_bus", None), result.prices)
 
     # Proxy delegasyonları (testler tarafından kullanılıyor)
     def _apply_report(self, report: PriceDataHealthReport) -> None:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -12,6 +11,10 @@ from PyQt5.QtCore import QThreadPool
 from src.ui.worker import Worker
 from src.application.services.analysis.models import AnalysisFilterState
 from src.application.services.analysis.comparison_service import ComparisonService
+from src.ui.pages.comparison.utils.comparison_asset_options import ComparisonAssetOptions
+from src.ui.pages.comparison.utils.comparison_filter_state_builder import ComparisonFilterStateBuilder
+from src.ui.pages.comparison.utils.comparison_series_builder import ComparisonSeriesBuilder
+from src.ui.pages.comparison.utils.comparison_warning_builder import ComparisonWarningBuilder
 
 if TYPE_CHECKING:
     from src.ui.pages.comparison.comparison_page import ComparisonPage
@@ -29,6 +32,13 @@ class ComparisonDataManager:
         self.page = page
         self.analysis_service = analysis_service
         self.threadpool = QThreadPool.globalInstance()
+        self._asset_options = ComparisonAssetOptions(
+            page,
+            analysis_service,
+            self.handle_chart_portfolio_selected,
+        )
+        self._filter_state_builder = ComparisonFilterStateBuilder(page, analysis_service)
+        self._warning_builder = ComparisonWarningBuilder(page, analysis_service)
 
     # ------------------------------------------------------------------
     # Varlık seçeneklerini yükleme
@@ -36,63 +46,15 @@ class ComparisonDataManager:
 
     def get_current_base_assets(self) -> list[tuple[str, str]]:
         """Tüm portföy, benchmark ve çözümlenmiş hisse seçeneklerini döner."""
-        assets: list[tuple[str, str]] = []
-        page = self.page
-
-        if not hasattr(page, "_asset_labels"):
-            page._asset_labels = {}
-
-        portfolios = self.analysis_service.get_portfolio_options()
-        for p in portfolios:
-            assets.append((p.label, p.code))
-            assets.append((f"{p.label} + Hisseleri", f"holdings:{p.code}"))
-            page._asset_labels[p.code] = p.label
-            page._asset_labels[f"holdings:{p.code}"] = f"{p.label} + Hisseleri"
-
-        benchmarks = self.analysis_service.get_benchmark_definitions()
-        for b in benchmarks:
-            assets.append((b.label, b.code))
-            page._asset_labels[b.code] = b.label
-
-        for code, label in page._asset_labels.items():
-            if code.isdigit() and not any(item[1] == code for item in assets):
-                assets.append((label, code))
-
-        page._base_assets_cache = assets
-        return assets
+        return self._asset_options.get_current_base_assets()
 
     def load_initial_options(self) -> None:
         """Ribbon bar'ı başlangıç seçenekleriyle doldurur."""
-        page = self.page
-        page._asset_labels = {}
-        assets = self.get_current_base_assets()
-        page.ribbon_bar.set_assets(assets)
-        self.refresh_panel_options()
+        self._asset_options.load_initial_options()
 
     def refresh_panel_options(self) -> None:
         """Her grafik panelinin portföy override menüsünü günceller."""
-        page = self.page
-        portfolio_choices = [
-            (p.label, p.code)
-            for p in self.analysis_service.get_portfolio_options()
-        ]
-        panel_keys = [
-            ("main_chart_panel",    "main_chart"),
-            ("summary_table_panel", "summary_table"),
-            ("drawdown_chart_panel","drawdown_chart"),
-            ("periodic_chart_panel","periodic_chart"),
-            ("scatter_chart_panel", "scatter_chart"),
-            ("treemap_chart_panel", "treemap_chart"),
-        ]
-        for panel_attr, chart_key in panel_keys:
-            panel = getattr(page, panel_attr, None)
-            if panel is None:
-                continue
-            panel.update_portfolio_options(
-                portfolio_choices,
-                page.chart_overrides.get(chart_key),
-                lambda code, ck=chart_key: self.handle_chart_portfolio_selected(ck, code),
-            )
+        self._asset_options.refresh_panel_options()
 
     # ------------------------------------------------------------------
     # Override mantığı
@@ -170,30 +132,12 @@ class ComparisonDataManager:
         if page.chart_overrides.get(chart_key) != portfolio_code:
             return
 
-        series_dict: dict[str, pd.Series] = {}
-
-        if dto.portfolio_series:
-            p_series = pd.Series(
-                {pd.Timestamp(d): float(v) for d, v in dto.portfolio_series.items()}
-            )
-            p_series.name = dto.current_portfolio_label
-            series_dict[dto.current_portfolio_label] = p_series
-            page.code_to_label[portfolio_code] = dto.current_portfolio_label
-            page.code_to_label[f"portfolio:{portfolio_code}"] = dto.current_portfolio_label
-
-        for cp in dto.comparison_portfolios:
-            if cp.points:
-                s = pd.Series({pd.Timestamp(d): float(v) for d, v in cp.points.items()})
-                s.name = cp.label
-                series_dict[cp.label] = s
-                page.code_to_label[cp.code] = cp.label
-                page.code_to_label[f"portfolio:{cp.code}"] = cp.label
-
-        for stock_id, points in dto.stock_series.items():
-            if points:
-                s = pd.Series({pd.Timestamp(d): float(v) for d, v in points.items()})
-                s.name = page._asset_labels.get(str(stock_id), str(stock_id))
-                series_dict[s.name] = s
+        series_dict, label_updates = ComparisonSeriesBuilder.build_override_series(
+            dto,
+            portfolio_code,
+            getattr(page, "_asset_labels", {}),
+        )
+        page.code_to_label.update(label_updates)
 
         if not series_dict:
             return
@@ -222,40 +166,7 @@ class ComparisonDataManager:
 
     def check_date_warnings(self) -> list[str]:
         """Seçili tarihlere ilişkin doğrulama uyarıları döner."""
-        page = self.page
-        warnings: list[str] = []
-        start_date, end_date = page.ribbon_bar.date_range()
-
-        if start_date > end_date:
-            warnings.append("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
-            return warnings
-
-        if end_date > date.today():
-            warnings.append("Bitiş tarihi bugünden ileri bir tarih olamaz.")
-
-        selected_codes = page.ribbon_bar.selected_assets()
-        for code in selected_codes:
-            if code == "dashboard" or code.startswith("portfolio:") or code.startswith("model:"):
-                try:
-                    first_trade_dt = self.analysis_service.get_first_trade_date_for_source(code)
-                    if first_trade_dt and start_date < first_trade_dt:
-                        label = getattr(page, "_asset_labels", {}).get(code, code)
-                        warnings.append(
-                            f"Seçilen başlangıç tarihi ({start_date.strftime('%d.%m.%Y')}), "
-                            f"<b>{label}</b> varlığının ilk işlem tarihinden "
-                            f"({first_trade_dt.strftime('%d.%m.%Y')}) öncedir. "
-                            "Bu dönemde portföy değeri 0 veya sabit nakit olarak "
-                            "görüneceğinden kıyaslama yanıltıcı olabilir."
-                        )
-                except Exception as exc:
-                    logger.debug("Failed to get first trade date for %s: %s", code, exc)
-
-        if (end_date - start_date).days < 7:
-            warnings.append(
-                "Seçilen tarih aralığı çok kısa (7 günden az). "
-                "Yıllıklandırılmış volatilite ve drawdown hesaplamaları kararsız olabilir."
-            )
-        return warnings
+        return self._warning_builder.check_date_warnings()
 
     # ------------------------------------------------------------------
     # Ana veri isteği
@@ -271,24 +182,7 @@ class ComparisonDataManager:
             page._renderer.render_empty_state("Lütfen kıyaslanacak varlıkları seçin.")
             return
 
-        has_holdings_trigger = False
-        new_selected_codes = list(selected_codes)
-        for code in selected_codes:
-            if code.startswith("holdings:"):
-                has_holdings_trigger = True
-                portfolio_code = code.split(":", 1)[1]
-                try:
-                    stock_map = self.analysis_service.get_stock_map_for_source(portfolio_code)
-                    if stock_map:
-                        if portfolio_code not in new_selected_codes:
-                            new_selected_codes.append(portfolio_code)
-                        for sid, ticker in stock_map.items():
-                            sid_str = str(sid)
-                            page._asset_labels[sid_str] = ticker
-                            if sid_str not in new_selected_codes:
-                                new_selected_codes.append(sid_str)
-                except Exception as exc:
-                    logger.error("Error loading holdings in refresh: %s", exc)
+        new_selected_codes, has_holdings_trigger = self._filter_state_builder.expand_holdings(selected_codes)
 
         if has_holdings_trigger:
             updated_assets = self.get_current_base_assets()
@@ -314,33 +208,8 @@ class ComparisonDataManager:
         page._request_seq += 1
         request_id = page._request_seq
 
-        portfolio_sources: list[str] = []
-        benchmarks: list[str] = []
-        stock_ids: list[int] = []
-
-        for code in selected_codes:
-            if code == "dashboard" or code.startswith("portfolio:") or code.startswith("model:"):
-                portfolio_sources.append(code)
-            elif code in {"bist100", "gold", "silver", "usd", "euro", "deposit", "cpi"}:
-                benchmarks.append(code)
-            else:
-                try:
-                    stock_ids.append(int(code))
-                except ValueError:
-                    pass
-
+        filter_state, stock_ids = self._filter_state_builder.build(selected_codes, start_date, end_date)
         page._selected_stock_ids = stock_ids
-        primary_source = portfolio_sources[0] if portfolio_sources else "dashboard"
-
-        filter_state = AnalysisFilterState(
-            start_date=start_date,
-            end_date=end_date,
-            selected_stock_ids=stock_ids,
-            selected_benchmarks=benchmarks,
-            portfolio_source=primary_source,
-            comparison_portfolio_sources=portfolio_sources,
-            currency_mode="TL",
-        )
         worker = Worker(self.analysis_service.get_comparison_view, filter_state)
         worker.signals.result.connect(
             lambda result, rid=request_id: self._on_data_ready(rid, result)
@@ -356,40 +225,8 @@ class ComparisonDataManager:
         if request_id != page._request_seq:
             return
 
-        series_dict: dict[str, pd.Series] = {}
-        page.code_to_label = {}
-
-        if dto.portfolio_series:
-            p_series = pd.Series(
-                {pd.Timestamp(d): float(v) for d, v in dto.portfolio_series.items()}
-            )
-            p_series.name = dto.current_portfolio_label
-            series_dict[dto.current_portfolio_label] = p_series
-            page.code_to_label["dashboard"] = dto.current_portfolio_label
-
-        for cp in dto.comparison_portfolios:
-            if cp.points:
-                s = pd.Series({pd.Timestamp(d): float(v) for d, v in cp.points.items()})
-                s.name = cp.label
-                series_dict[cp.label] = s
-                page.code_to_label[cp.code] = cp.label
-                page.code_to_label[f"portfolio:{cp.code}"] = cp.label
-
-        for b in dto.benchmark_series:
-            if b.points:
-                s = pd.Series({pd.Timestamp(d): float(v) for d, v in b.points.items()})
-                s.name = b.label
-                series_dict[b.label] = s
-                page.code_to_label[b.code] = b.label
-
         selected_sids = getattr(page, "_selected_stock_ids", [])
-        if selected_sids:
-            for stock_id, points in dto.stock_series.items():
-                if points:
-                    s = pd.Series({pd.Timestamp(d): float(v) for d, v in points.items()})
-                    s.name = str(stock_id)
-                    series_dict[s.name] = s
-                    page.code_to_label[str(stock_id)] = s.name
+        series_dict, page.code_to_label = ComparisonSeriesBuilder.build_global_series(dto, selected_sids)
 
         if not series_dict:
             page._renderer.render_empty_state("Seçilen filtreler için veri bulunamadı.")

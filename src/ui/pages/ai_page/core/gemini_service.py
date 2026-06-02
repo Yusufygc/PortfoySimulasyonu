@@ -1,4 +1,3 @@
-from PyQt5.QtCore import QThread, pyqtSignal
 from config.settings_loader import load_ai_settings
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole
 
@@ -44,62 +43,43 @@ YANIT FORMATI:
 Yanıtların her zaman Türkçe olacak.
 """
 
-class GeminiWorker(QThread):
-    response_ready = pyqtSignal(str)
-    error_occurred = pyqtSignal(str)
+def generate_gemini_response(messages: list[ChatMessage]) -> str:
+    """Synchronous Gemini call intended to be executed inside src.ui.worker.Worker."""
+    if not HAS_GEMINI:
+        raise RuntimeError("google-genai kütüphanesi eksik. Lütfen 'pip install google-genai' çalıştırın.")
 
-    def __init__(self, messages: list[ChatMessage]):
-        super().__init__()
-        self.messages = messages
-        self._setup_api()
+    api_key = load_ai_settings().gemini_api_key
+    if not api_key:
+        raise RuntimeError("Gemini API key bulunamadı. Lütfen ayarlardan ekleyin.")
 
-    def _setup_api(self):
-        self.api_key = load_ai_settings().gemini_api_key
-        
-        if self.api_key and HAS_GEMINI:
-            self.client = genai.Client(api_key=self.api_key)
+    recent_messages = messages[-20:]
+    if not recent_messages:
+        raise RuntimeError("Gemini isteği için mesaj bulunamadı.")
 
-    def run(self):
-        if not HAS_GEMINI:
-            self.error_occurred.emit("google-genai kütüphanesi eksik. Lütfen 'pip install google-genai' çalıştırın.")
-            return
+    try:
+        client = genai.Client(api_key=api_key)
+        config = types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT)
+        history = []
 
-        if not self.api_key:
-            self.error_occurred.emit("Gemini API key bulunamadı. Lütfen ayarlardan ekleyin.")
-            return
+        for msg in recent_messages[:-1]:
+            role = "user" if msg.role in (MessageRole.USER, MessageRole.SYSTEM) else "model"
+            content = msg.content
+            if msg.role == MessageRole.SYSTEM:
+                content = "[SİSTEM AKTARIMI]\n" + content
+            history.append(types.Content(role=role, parts=[types.Part.from_text(text=content)]))
 
-        try:
-            config = types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT
-            )
-            
-            # Geçmişi Gemini formatına çevir (Sadece son 20 mesajı al)
-            recent_messages = self.messages[-20:]
-            history = []
-            
-            for msg in recent_messages[:-1]:
-                # Sistem aktarımlarını 'user' olarak gönderelim ama belirtelim
-                role = "user" if msg.role in (MessageRole.USER, MessageRole.SYSTEM) else "model"
-                content = msg.content
-                if msg.role == MessageRole.SYSTEM:
-                    content = "[SİSTEM AKTARIMI]\n" + content
-                    
-                history.append(types.Content(role=role, parts=[types.Part.from_text(text=content)]))
-            
-            # Son mesajı gönder
-            chat = self.client.chats.create(
-                model="gemini-3-flash-preview",
-                config=config,
-                history=history
-            )
-            
-            last_msg = recent_messages[-1]
-            last_content = last_msg.content
-            if last_msg.role == MessageRole.SYSTEM:
-                last_content = "[SİSTEM AKTARIMI]\n" + last_content
+        chat = client.chats.create(
+            model="gemini-3-flash-preview",
+            config=config,
+            history=history,
+        )
 
-            response = chat.send_message(last_content)
-            self.response_ready.emit(response.text)
+        last_msg = recent_messages[-1]
+        last_content = last_msg.content
+        if last_msg.role == MessageRole.SYSTEM:
+            last_content = "[SİSTEM AKTARIMI]\n" + last_content
 
-        except Exception as e:
-            self.error_occurred.emit(f"Gemini API Hatası: {str(e)}")
+        response = chat.send_message(last_content)
+        return response.text
+    except Exception as exc:
+        raise RuntimeError(f"Gemini API Hatası: {exc}") from exc

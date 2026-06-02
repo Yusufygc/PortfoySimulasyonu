@@ -241,9 +241,9 @@ class BudgetFormPanel(QFrame):
         """Kaydedilmiş bütçenin kalemlerini forma yükler."""
         self._clear_rows(self._income_rows, self._income_layout)
         self._clear_rows(self._expense_rows, self._expense_layout)
-        self.spin_target.setValue(budget.savings_target)
+        self.spin_target.setValue(float(budget.savings_target))
         for item in budget.items:
-            self._add_row(item.name, item.amount, item.item_type, emit=False)
+            self._add_row(item.name, float(item.amount), item.item_type, emit=False)
         self._refresh_summary()
 
     def reset(self) -> None:

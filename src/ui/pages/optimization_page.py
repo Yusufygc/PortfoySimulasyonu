@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from PyQt5.QtWidgets import (
     QHBoxLayout,
     QPushButton,
@@ -16,8 +14,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt, QThreadPool, QSize
 
 from .base_page import BasePage
 from src.ui.core.icon_manager import IconManager
@@ -25,26 +22,7 @@ from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.domain.models.optimization_result import OptimizationResult
 from src.ui.widgets.optimization import SuggestionsTable
 from src.ui.widgets.shared import AnimatedButton, MetricCard, Toast
-
-
-class _OptimizationWorker(QThread):
-    """
-    Arka plan thread'inde optimizasyon çalıştırır.
-    Ağır scipy hesaplaması ve yfinance ağ çağrıları UI'ı bloklamasın diye ayrı thread.
-    """
-    finished = pyqtSignal(object)   # OptimizationResult veya Exception
-    error = pyqtSignal(str)
-
-    def __init__(self, func, parent=None):
-        super().__init__(parent)
-        self._func = func
-
-    def run(self):
-        try:
-            result = self._func()
-            self.finished.emit(result)
-        except Exception as exc:
-            self.error.emit(str(exc))
+from src.ui.worker import Worker
 
 
 class OptimizationPage(BasePage):
@@ -63,7 +41,9 @@ class OptimizationPage(BasePage):
         self.page_title = "Portföy Optimizasyonu"
         self._optimization_service = container.optimization_service
         self._price_lookup_func = price_lookup_func
-        self._worker: Optional[_OptimizationWorker] = None
+        self._threadpool = QThreadPool.globalInstance()
+        self._worker = None
+        self._optimization_request_id = 0
         self._model_portfolios: list = []
         self._init_ui()
 
@@ -77,7 +57,7 @@ class OptimizationPage(BasePage):
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
 
-        # NOT: Buraya inline setStyleSheet("background-color: transparent")
+        # NOT: Buraya selector'suz inline stylesheet ile transparent arka plan
         # KOYMA. Qt'de parent'a verilen selector'suz stylesheet kuralı tüm
         # alt widget'lara yayılır ve QSS buton arka planlarını ezer (buton
         # beyaz görünür). Bunun yerine objectName ile QSS'teki
@@ -236,6 +216,8 @@ class OptimizationPage(BasePage):
             Toast.warning(self, "Lütfen bir portföy kaynağı seçin.")
             return
 
+        self._optimization_request_id += 1
+        request_id = self._optimization_request_id
         self._set_loading(True)
 
         if source_data == self.SOURCE_DASHBOARD:
@@ -246,18 +228,26 @@ class OptimizationPage(BasePage):
                 pid, self._price_lookup_func
             )
 
-        self._worker = _OptimizationWorker(func, self)
-        self._worker.finished.connect(self._on_optimization_finished)
-        self._worker.error.connect(self._on_optimization_error)
-        self._worker.start()
+        self._worker = Worker(func)
+        self._worker.signals.result.connect(
+            lambda result, rid=request_id: self._on_optimization_finished(rid, result)
+        )
+        self._worker.signals.error.connect(
+            lambda err, rid=request_id: self._on_optimization_error(rid, err)
+        )
+        self._threadpool.start(self._worker)
 
-    def _on_optimization_finished(self, result: OptimizationResult):
+    def _on_optimization_finished(self, request_id: int, result: OptimizationResult):
+        if request_id != self._optimization_request_id:
+            return
         self._set_loading(False)
         self._display_result(result)
 
-    def _on_optimization_error(self, error_msg: str):
+    def _on_optimization_error(self, request_id: int, err_tuple):
+        if request_id != self._optimization_request_id:
+            return
         self._set_loading(False)
-        Toast.error(self, error_msg)
+        Toast.error(self, str(err_tuple[1]))
 
     def _set_loading(self, loading: bool):
         self.btn_optimize.setEnabled(not loading)

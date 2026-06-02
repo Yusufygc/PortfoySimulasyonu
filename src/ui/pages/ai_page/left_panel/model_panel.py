@@ -1,7 +1,7 @@
 import logging
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
-from PyQt5.QtCore import QThread, pyqtSignal, Qt
+from PyQt5.QtCore import QThreadPool, pyqtSignal, Qt
 
 from config.settings_loader import load_ai_settings
 from src.ui.pages.ai_page.core.models import AnalysisResult, DEFAULT_INVESTMENT_DISCLAIMER
@@ -18,27 +18,9 @@ from .signal_card import SignalCard
 from .xai_card import XAICard
 from .performance_card import PerformanceCard
 from .send_to_chat_button import SendToChatButton
+from src.ui.worker import Worker
 
 logger = logging.getLogger(__name__)
-
-
-class AnalysisWorker(QThread):
-    """Analizi UI donmadan arka planda çalıştıran worker"""
-    result_ready = pyqtSignal(AnalysisResult)
-    error_occurred = pyqtSignal(str)
-
-    def __init__(self, adapter: AIModelInterface, ticker: str):
-        super().__init__()
-        self.adapter = adapter
-        self.ticker = ticker
-
-    def run(self):
-        try:
-            result = self.adapter.analyze(self.ticker)
-            self.result_ready.emit(result)
-        except Exception as e:
-            logger.exception("Analiz worker hatası")
-            self.error_occurred.emit(str(e))
 
 
 class ModelPanel(QWidget):
@@ -48,6 +30,9 @@ class ModelPanel(QWidget):
 
     def __init__(self):
         super().__init__()
+        self._threadpool = QThreadPool.globalInstance()
+        self._analysis_request_id = 0
+        self.worker = None
         self._setup_adapter()
         self._init_ui()
 
@@ -137,6 +122,8 @@ class ModelPanel(QWidget):
             logger.warning("AI_Core erişilemedi (async probe), MockAdapter kullanılıyor")
 
     def _start_analysis(self, ticker: str):
+        self._analysis_request_id += 1
+        request_id = self._analysis_request_id
         self.input_bar.btn_analyze.setEnabled(False)
         self.prediction_card.reset()
         self.signal_card.reset()
@@ -149,11 +136,25 @@ class ModelPanel(QWidget):
         if self._api_connected:
             self.status_banner.show_api_connected()
 
-        self.worker = AnalysisWorker(self.adapter, ticker)
-        self.worker.result_ready.connect(self._on_result_ready)
-        self.worker.error_occurred.connect(self._on_error)
-        self.worker.finished.connect(lambda: self.input_bar.btn_analyze.setEnabled(True))
-        self.worker.start()
+        adapter = self.adapter
+        self.worker = Worker(adapter.analyze, ticker)
+        self.worker.signals.result.connect(lambda result, rid=request_id: self._on_worker_result(rid, result))
+        self.worker.signals.error.connect(lambda err, rid=request_id: self._on_worker_error(rid, err))
+        self.worker.signals.finished.connect(lambda rid=request_id: self._on_worker_finished(rid))
+        self._threadpool.start(self.worker)
+
+    def _on_worker_result(self, request_id: int, result: AnalysisResult):
+        if request_id == self._analysis_request_id:
+            self._on_result_ready(result)
+
+    def _on_worker_error(self, request_id: int, err_tuple):
+        if request_id == self._analysis_request_id:
+            logger.error("Analiz worker hatası: %s", err_tuple[1])
+            self._on_error(str(err_tuple[1]))
+
+    def _on_worker_finished(self, request_id: int):
+        if request_id == self._analysis_request_id:
+            self.input_bar.btn_analyze.setEnabled(True)
 
     def _on_result_ready(self, result: AnalysisResult):
         self._set_disclaimer(result.disclaimer)

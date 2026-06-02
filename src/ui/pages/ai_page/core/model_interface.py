@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 class AIModelInterface(ABC):
     @abstractmethod
     def analyze(self, ticker: str) -> AnalysisResult:
-        """Senkron çağrı. QThread içinde çalıştırılacak."""
+        """Senkron çağrı. UI Worker içinde çalıştırılacak."""
         pass
 
     @abstractmethod
@@ -199,7 +199,7 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
 class FastAPIAdapter(AIModelInterface):
     """
     AI_Core FastAPI servisinden gerçek model analiz verisini çeker.
-    analyze() metodu QThread içinde çağrılır — UI donmaz.
+    analyze() metodu UI Worker içinde çağrılır — UI donmaz.
     """
 
     def __init__(self, client) -> None:

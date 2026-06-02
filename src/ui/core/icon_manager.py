@@ -150,4 +150,5 @@ class IconManager:
             import shutil
             try:
                 shutil.rmtree(cache_dir)
-            except: pass
+            except OSError as exc:
+                logger.warning("[IconManager] Cache temizlenemedi: %s", exc)

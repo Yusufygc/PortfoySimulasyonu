@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict
 from src.domain.models.daily_price import DailyPrice
+from src.ui.shared.price_event_publisher import publish_prices_updated
 from src.ui.widgets.shared import Toast
 
 logger = logging.getLogger(__name__)
@@ -48,8 +49,7 @@ class PortfolioPriceUpdater:
         if prices_to_save:
             self.page.price_repo.upsert_daily_prices_bulk(prices_to_save)
 
-        if event_prices and getattr(self.page.container, "event_bus", None):
-            self.page.container.event_bus.prices_updated.emit(event_prices)
+        publish_prices_updated(getattr(self.page.container, "event_bus", None), event_prices)
 
         self.page._update_view()
 

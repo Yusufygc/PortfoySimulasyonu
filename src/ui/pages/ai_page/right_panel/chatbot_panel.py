@@ -1,10 +1,12 @@
+from PyQt5.QtCore import QThreadPool
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole, AnalysisResult
-from src.ui.pages.ai_page.core.gemini_service import GeminiWorker
+from src.ui.pages.ai_page.core.gemini_service import generate_gemini_response
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from src.ui.formatters import display_ticker
+from src.ui.worker import Worker
 from .conversation_view import ConversationView
 from .chat_input_bar import ChatInputBar
 
@@ -15,6 +17,9 @@ class ChatbotPanel(QWidget):
     def __init__(self):
         super().__init__()
         self.messages: list[ChatMessage] = []
+        self._threadpool = QThreadPool.globalInstance()
+        self._request_seq = 0
+        self.worker = None
         self._init_ui()
 
     def _init_ui(self):
@@ -228,17 +233,27 @@ Lütfen bu analizi değerlendir:
         )
 
     def _trigger_ai(self):
+        self._request_seq += 1
+        request_id = self._request_seq
         self.input_bar.set_loading(True)
-        self.worker = GeminiWorker(self.messages)
-        self.worker.response_ready.connect(self._on_ai_response)
-        self.worker.error_occurred.connect(self._on_error)
-        self.worker.finished.connect(lambda: self.input_bar.set_loading(False))
-        self.worker.start()
+        self.worker = Worker(generate_gemini_response, list(self.messages))
+        self.worker.signals.result.connect(lambda text, rid=request_id: self._on_ai_response(rid, text))
+        self.worker.signals.error.connect(lambda err, rid=request_id: self._on_error(rid, err))
+        self.worker.signals.finished.connect(lambda rid=request_id: self._on_ai_finished(rid))
+        self._threadpool.start(self.worker)
 
-    def _on_ai_response(self, text: str):
+    def _on_ai_response(self, request_id: int, text: str):
+        if request_id != self._request_seq:
+            return
         msg = ChatMessage(MessageRole.AI, text)
         self.add_message(msg)
 
-    def _on_error(self, err: str):
-        msg = ChatMessage(MessageRole.SYSTEM, f"SİSTEM HATASI: {err}")
+    def _on_error(self, request_id: int, err_tuple):
+        if request_id != self._request_seq:
+            return
+        msg = ChatMessage(MessageRole.SYSTEM, f"SİSTEM HATASI: {err_tuple[1]}")
         self.add_message(msg)
+
+    def _on_ai_finished(self, request_id: int):
+        if request_id == self._request_seq:
+            self.input_bar.set_loading(False)

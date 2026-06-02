@@ -1,0 +1,139 @@
+QLabel[cssClass="dateSeparatorLabel"] {
+    color: @COLOR_TEXT_SECONDARY;
+}
+
+QFrame[cssClass="comparisonWarningPanel"] {
+    background-color: #2d1616;
+    border: 1px solid #7f1d1d;
+    border-radius: 8px;
+}
+
+QLabel[cssClass="comparisonWarningLabel"] {
+    color: #fca5a5;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+QFrame[cssClass="comparisonChartPlaceholder"] {
+    background-color: #0f172a;
+    border: 1px dashed #1e293b;
+    border-radius: 8px;
+}
+
+QLabel[cssClass="comparisonChartPlaceholderLabel"] {
+    color: #64748b;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+QFrame[cssClass="comparisonChartInfoCard"] {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+}
+
+QFrame[cssClass="comparisonChartPanel"],
+QFrame[cssClass="comparisonAiPanel"] {
+    background-color: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+}
+
+QLabel[cssClass="comparisonChartTitle"] {
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+QPushButton[cssClass="comparisonInspectButton"] {
+    background-color: #1e293b;
+    color: #38bdf8;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+QPushButton[cssClass="comparisonInspectButton"]:hover {
+    background-color: #334155;
+    color: #0ea5e9;
+}
+
+QPushButton[cssClass="comparisonInspectButton"]::menu-indicator {
+    image: none;
+}
+
+QMenu[cssClass="comparisonInspectMenu"] {
+    background-color: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+QMenu[cssClass="comparisonInspectMenu"]::item {
+    padding: 6px 25px 6px 25px;
+    border-radius: 4px;
+    color: #f8fafc;
+}
+
+QMenu[cssClass="comparisonInspectMenu"]::item:selected {
+    background-color: #334155;
+    color: #38bdf8;
+}
+
+QMenu[cssClass="comparisonInspectMenu"]::item:checked {
+    font-weight: bold;
+    color: #00ffff;
+}
+
+QLabel[cssClass="comparisonAiTitle"] {
+    color: #38bdf8;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+QLabel[cssClass="comparisonAiDescription"] {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+QPushButton[cssClass="comparisonAiButton"] {
+    background-color: #0284c7;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    padding: 8px 16px;
+    border: none;
+}
+
+QPushButton[cssClass="comparisonAiButton"]:hover {
+    background-color: #0369a1;
+}
+
+QPushButton[cssClass="comparisonAiButton"]:disabled {
+    background-color: #334155;
+    color: #64748b;
+}
+
+QProgressBar[cssClass="comparisonAiProgress"] {
+    border: none;
+    background-color: #1e293b;
+    border-radius: 2px;
+}
+
+QProgressBar[cssClass="comparisonAiProgress"]::chunk {
+    background-color: #38bdf8;
+    border-radius: 2px;
+}
+
+QTextBrowser[cssClass="comparisonAiBrowser"] {
+    background-color: #1e293b;
+    color: #f8fafc;
+    font-family: "Segoe UI", "-apple-system", sans-serif;
+    font-size: 18px;
+    border-radius: 8px;
+    padding: 24px;
+    border: 1px solid #38bdf8;
+}

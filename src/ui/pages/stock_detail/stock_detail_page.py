@@ -21,10 +21,10 @@ from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.models.trade import TradeSide
 from src.ui.formatters import display_ticker
 from src.ui.pages.base_page import BasePage
-from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
 
 from .stock_chart_widget import StockChartWidget
 from .stock_stats_panel import StockStatsPanel
+from .stock_trade_submitter import StockTradeSubmitter
 from .trade_form_panel import TradeFormPanel
 
 logger = logging.getLogger(__name__)
@@ -52,6 +52,7 @@ class StockDetailPage(BasePage):
         self.current_stock_id: Optional[int] = None
         self.current_price: Optional[Decimal] = None
         self._detail_context: dict = {}
+        self._trade_submitter = StockTradeSubmitter(self)
         self._init_ui()
 
     def _init_ui(self):
@@ -263,50 +264,7 @@ class StockDetailPage(BasePage):
         return item
 
     def _on_submit_trade(self, is_buy: bool, qty: int, price: float, date_sel: QDate, time_sel: QTime | None = None):
-        if not self.current_ticker:
-            return
-
-        trade_date = date_sel.toPyDate()
-        trade_time = time_sel.toPyTime() if time_sel is not None else self.trade_form.time_edit.time().toPyTime()
-        if not confirm_market_session_if_needed(
-            self,
-            self.market_session_service,
-            trade_date,
-            trade_time,
-        ):
-            return
-
-        if self._is_model_context():
-            self._submit_model_trade(is_buy, qty, price, trade_date, trade_time)
-            return
-
-        trade_side = TradeSide.BUY if is_buy else TradeSide.SELL
-        try:
-            result = self.trade_entry_service.submit_trade(
-                ticker=self.current_ticker,
-                stock_id=self.current_stock_id,
-                side=trade_side,
-                quantity=qty,
-                price=Decimal(str(price)),
-                trade_date=trade_date,
-                trade_time=trade_time,
-                name=self.current_ticker,
-            )
-            self.current_stock_id = result.stock_id
-            self.current_ticker = result.ticker
-            position_closed = (not is_buy) and self.portfolio_service.get_position_quantity_as_of(self.current_stock_id) <= 0
-            message = "Pozisyon kapandı. Dashboard'a dönülüyor." if position_closed else "İşlem başarıyla kaydedildi."
-            QMessageBox.information(self, "Başarılı", message)
-            self.refresh_data()
-            self.trade_form.update_impact_preview(self.portfolio_service, self.current_stock_id)
-            if position_closed:
-                main_window = self.window()
-                if hasattr(main_window, "show_dashboard"):
-                    main_window.show_dashboard()
-        except ValueError as exc:
-            QMessageBox.warning(self, "Geçersiz İşlem", str(exc))
-        except Exception as exc:
-            QMessageBox.critical(self, "Hata", f"İşlem hatası: {exc}")
+        self._trade_submitter.submit(is_buy, qty, price, date_sel, time_sel)
 
     def _sync_quantity_limits(self) -> None:
         if self.trade_form.btn_buy_mode.isChecked():
@@ -331,44 +289,6 @@ class StockDetailPage(BasePage):
             as_of = (self.trade_form.date_edit.date().toPyDate(), self.trade_form.time_edit.time().toPyTime())
             available = self.portfolio_service.get_position_quantity_as_of(self.current_stock_id, as_of=as_of)
         self.trade_form.spin_qty.setMaximum(max(1, available))
-
-    def _submit_model_trade(self, is_buy: bool, qty: int, price: float, trade_date, trade_time) -> None:
-        portfolio_id = self._model_portfolio_id()
-        if not portfolio_id or not self.model_portfolio_service:
-            QMessageBox.critical(self, "Hata", "Model portföy bağlamı bulunamadı.")
-            return
-
-        side = "BUY" if is_buy else "SELL"
-        try:
-            trade = self.model_portfolio_service.add_trade_by_ticker(
-                portfolio_id=portfolio_id,
-                ticker=self.current_ticker,
-                side=side,
-                quantity=qty,
-                price=Decimal(str(price)),
-                trade_date=trade_date,
-                trade_time=trade_time,
-            )
-            self.current_stock_id = trade.stock_id
-            self._detail_context.setdefault("price_map", {})[trade.stock_id] = Decimal(str(price))
-            position_closed = False
-            if not is_buy and hasattr(self.model_portfolio_service, "get_position_quantity_as_of"):
-                position_closed = self.model_portfolio_service.get_position_quantity_as_of(
-                    portfolio_id,
-                    self.current_stock_id,
-                ) <= 0
-            message = "Pozisyon kapandı. Model portföy sayfasına dönülüyor." if position_closed else "Model portföy işlemi başarıyla kaydedildi."
-            QMessageBox.information(self, "Başarılı", message)
-            self.refresh_data()
-            self._trigger_impact_update()
-            if position_closed:
-                main_window = self.window()
-                if hasattr(main_window, "show_model_portfolios"):
-                    main_window.show_model_portfolios()
-        except ValueError as exc:
-            QMessageBox.warning(self, "Geçersiz İşlem", str(exc))
-        except Exception as exc:
-            QMessageBox.critical(self, "Hata", f"Model portföy işlem hatası: {exc}")
 
     def _is_model_context(self) -> bool:
         return self._detail_context.get("source") == "model_portfolio"

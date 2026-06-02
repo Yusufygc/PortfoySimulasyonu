@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.ui.navigation.page_factory import PageFactory
+from src.ui.shared.price_event_publisher import publish_prices_updated
 from src.ui.widgets.shared import AnimatedButton
 from src.ui.widgets.shared import Toast
 from src.ui.worker import Worker
@@ -248,8 +249,7 @@ class MainWindow(QMainWindow):
     def _on_auto_price_backfill_success(self, result) -> None:
         self._settings.setValue(AUTO_BACKFILL_SETTINGS_KEY, date.today().isoformat())
         self._settings.sync()
-        if getattr(result, "prices", None) and getattr(self.container, "event_bus", None):
-            self.container.event_bus.prices_updated.emit(result.prices)
+        publish_prices_updated(getattr(self.container, "event_bus", None), getattr(result, "prices", None))
         updated_count = getattr(result, "updated_count", 0)
         error_count = len(getattr(result, "errors", []) or [])
         if updated_count > 0:

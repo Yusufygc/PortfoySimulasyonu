@@ -2,7 +2,7 @@
 """AI yorum paneli widget kurulumu ve Gemini worker yönetimi."""
 
 import logging
-from PyQt5.QtCore import Qt, QCoreApplication, QSize
+from PyQt5.QtCore import Qt, QCoreApplication, QSize, QThreadPool
 from PyQt5.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton,
     QSizePolicy, QTextBrowser, QVBoxLayout,
@@ -10,7 +10,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtWidgets import QMessageBox
 
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole
-from src.ui.pages.ai_page.core.gemini_service import GeminiWorker
+from src.ui.pages.ai_page.core.gemini_service import generate_gemini_response
+from src.ui.worker import Worker
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,8 @@ class AICommentaryHelper:
     def __init__(self, page) -> None:
         self.page = page
         self.ai_worker = None
+        self._threadpool = QThreadPool.globalInstance()
+        self._request_seq = 0
 
     # ------------------------------------------------------------------
     # Panel kurulumu
@@ -33,14 +36,7 @@ class AICommentaryHelper:
         """
         page = self.page
         panel = QFrame()
-        panel.setProperty("cssClass", "panelFramePadded")
-        panel.setStyleSheet("""
-            QFrame {
-                background-color: #0f172a;
-                border: 1px solid #1e293b;
-                border-radius: 8px;
-            }
-        """)
+        panel.setProperty("cssClass", "comparisonAiPanel")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(15)
@@ -53,7 +49,7 @@ class AICommentaryHelper:
             IconManager.get_icon("bot", color="#38bdf8", size=QSize(28, 28)).pixmap(28, 28)
         )
         title_lbl = QLabel("Yapay Zeka Rapor ve Analiz Asistanı")
-        title_lbl.setStyleSheet("color: #38bdf8; font-size: 18px; font-weight: bold;")
+        title_lbl.setProperty("cssClass", "comparisonAiTitle")
         title_row.addWidget(icon_lbl)
         title_row.addWidget(title_lbl)
         title_row.addStretch()
@@ -66,7 +62,7 @@ class AICommentaryHelper:
             "şekilde yorumlanmasını sağlamak için aşağıdaki butona tıklayın."
         )
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #94a3b8; font-size: 14px; line-height: 1.4;")
+        desc.setProperty("cssClass", "comparisonAiDescription")
         layout.addWidget(desc)
 
         # Buton
@@ -75,14 +71,7 @@ class AICommentaryHelper:
         page.ai_btn.setMinimumWidth(200)
         page.ai_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         page.ai_btn.setFocusPolicy(Qt.NoFocus)
-        page.ai_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0284c7; color: white; font-weight: bold;
-                border-radius: 6px; padding: 8px 16px; border: none;
-            }
-            QPushButton:hover { background-color: #0369a1; }
-            QPushButton:disabled { background-color: #334155; color: #64748b; }
-        """)
+        page.ai_btn.setProperty("cssClass", "comparisonAiButton")
         page.ai_btn.clicked.connect(page._generate_ai_commentary)
         layout.addWidget(page.ai_btn)
 
@@ -91,10 +80,7 @@ class AICommentaryHelper:
         page.ai_progress.setTextVisible(False)
         page.ai_progress.setRange(0, 0)
         page.ai_progress.setFixedHeight(4)
-        page.ai_progress.setStyleSheet("""
-            QProgressBar { border: none; background-color: #1e293b; border-radius: 2px; }
-            QProgressBar::chunk { background-color: #38bdf8; border-radius: 2px; }
-        """)
+        page.ai_progress.setProperty("cssClass", "comparisonAiProgress")
         page.ai_progress.setVisible(False)
         layout.addWidget(page.ai_progress)
 
@@ -103,15 +89,7 @@ class AICommentaryHelper:
         page.ai_browser.setFrameShape(QFrame.NoFrame)
         page.ai_browser.setReadOnly(True)
         page.ai_browser.setOpenExternalLinks(True)
-        page.ai_browser.setStyleSheet("""
-            QTextBrowser {
-                background-color: #1e293b; color: #f8fafc;
-                font-family: 'Segoe UI', -apple-system, sans-serif;
-                font-size: 18px; line-height: 1.6;
-                border-radius: 8px; padding: 24px;
-                border: 1px solid #38bdf8;
-            }
-        """)
+        page.ai_browser.setProperty("cssClass", "comparisonAiBrowser")
         page.ai_browser.setMinimumHeight(400)
         page.ai_browser.setVisible(False)
         page.ai_browser.setFocusPolicy(Qt.NoFocus)
@@ -180,12 +158,20 @@ class AICommentaryHelper:
         QCoreApplication.processEvents()
         scroll_bar.setValue(scroll_pos)
 
-        self.ai_worker = GeminiWorker([system_msg, user_msg])
-        self.ai_worker.response_ready.connect(self._on_ai_response_ready)
-        self.ai_worker.error_occurred.connect(self._on_ai_error)
-        self.ai_worker.start()
+        self._request_seq += 1
+        request_id = self._request_seq
+        self.ai_worker = Worker(generate_gemini_response, [system_msg, user_msg])
+        self.ai_worker.signals.result.connect(
+            lambda response, rid=request_id: self._on_ai_response_ready(rid, response)
+        )
+        self.ai_worker.signals.error.connect(
+            lambda err, rid=request_id: self._on_ai_error(rid, err)
+        )
+        self._threadpool.start(self.ai_worker)
 
-    def _on_ai_response_ready(self, response_text: str) -> None:
+    def _on_ai_response_ready(self, request_id: int, response_text: str) -> None:
+        if request_id != self._request_seq:
+            return
         scroll_bar = self.page.scroll_area.verticalScrollBar()
         scroll_pos = scroll_bar.value()
         self.page.ai_btn.setEnabled(True)
@@ -199,7 +185,9 @@ class AICommentaryHelper:
         QCoreApplication.processEvents()
         scroll_bar.setValue(scroll_pos)
 
-    def _on_ai_error(self, error_msg: str) -> None:
+    def _on_ai_error(self, request_id: int, err_tuple) -> None:
+        if request_id != self._request_seq:
+            return
         scroll_bar = self.page.scroll_area.verticalScrollBar()
         scroll_pos = scroll_bar.value()
         self.page.ai_btn.setEnabled(True)
@@ -207,7 +195,7 @@ class AICommentaryHelper:
         self.page.ai_progress.setVisible(False)
         error_html = (
             f"<div style='color: #ef4444; font-weight: bold;'>Yapay Zeka Hatasi:</div>"
-            f"<div style='color: #f8fafc; margin-top: 8px;'>{error_msg}</div>"
+            f"<div style='color: #f8fafc; margin-top: 8px;'>{err_tuple[1]}</div>"
         )
         self.page.ai_browser.setHtml(error_html)
         self.page.ai_browser.setVisible(True)
@@ -215,12 +203,6 @@ class AICommentaryHelper:
         scroll_bar.setValue(scroll_pos)
 
     def cleanup(self) -> None:
-        """Sayfa kapanırken çalışan worker'ı durdurur."""
-        if self.ai_worker and self.ai_worker.isRunning():
-            try:
-                self.ai_worker.response_ready.disconnect()
-                self.ai_worker.error_occurred.disconnect()
-            except TypeError:
-                pass
-            self.ai_worker.terminate()
-            self.ai_worker.wait()
+        """Sayfa kapanırken bekleyen worker sonucunu geçersiz kılar."""
+        self._request_seq += 1
+        self.ai_worker = None
