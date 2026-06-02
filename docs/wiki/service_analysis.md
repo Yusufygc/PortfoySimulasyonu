@@ -45,3 +45,10 @@ graph LR
 - `AnalysisService` orchestration servisi olarak kalır; bundle kurma `AnalysisBundleBuilder`, TL/USD/REAL dönüşümü `CurrencyConversionService`, karşılaştırma portföy serileri `ComparisonPortfolioSeriesBuilder` tarafından yapılır.
 - Benchmark EVDS parsing yardımcı metodlara ayrıldı; veri akışı hatalarında broad exception noktaları log + empty series fallback contract olarak korunur.
 - Public DTO shape ve UI-facing payload anahtarları değişmedi.
+
+## Aktif Kapsam ve Nakit Dahil Toplam Deger Notu (2026-06-03)
+
+- Analiz kaynak secimi ve hisse filtreleri event-sourced net acik pozisyon kapsamindan uretilir; tamamen satilmis hisseler otomatik filtre/holdings listesine girmez.
+- Tarihsel portfoy serisi kapatilmis islemleri silmez; cash replay icin tum ilgili trade'ler korunur, fiyat uyarilari ise yalniz analiz araliginda degerleme gereken hisseler icin uretilir.
+- Ana portfoy `Toplam Portfoy Degeri` nakit bakiye + acik pozisyon piyasa degeri olarak hesaplanir.
+- Silinmis model portfoy secimi stale kalirsa analiz kaynagi dashboard'a normalize edilir ve karsilastirma serisi olarak tekrar eklenmez.
