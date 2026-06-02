@@ -8,6 +8,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 
 from src.application.services.simulation.backfill_service import BackfillService
+from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.stock import Stock
 
@@ -34,18 +35,23 @@ class FakeMarketDataClient:
         return self.series_by_ticker.get(ticker, {})
 
 
-def _make_service(stocks=None, series_by_ticker=None):
+def _make_service(stocks=None, series_by_ticker=None, corporate_actions_by_stock=None):
     stock_repo = MagicMock()
     stock_repo.get_all_stocks.return_value = stocks or []
 
     price_repo = MagicMock()
     price_repo.upsert_daily_prices_bulk.return_value = None
+    action_repo = MagicMock()
+    action_repo.get_by_stock.side_effect = lambda stock_id: list(
+        (corporate_actions_by_stock or {}).get(stock_id, [])
+    )
 
     market_client = FakeMarketDataClient(series_by_ticker=series_by_ticker)
     service = BackfillService(
         stock_repo=stock_repo,
         price_repo=price_repo,
         market_data_client=market_client,
+        corporate_action_repo=action_repo if corporate_actions_by_stock is not None else None,
     )
 
     return service, stock_repo, price_repo, market_client
@@ -129,6 +135,38 @@ def test_backfill_for_single_stock_saves_price_series():
     assert saved[0].close_price == Decimal("15.0")
     assert saved[1].close_price == Decimal("16.25")
     assert market_client.series_requests == [("MERKO.IS", date(2026, 1, 1), date(2026, 1, 5))]
+
+
+def test_backfill_for_single_stock_normalizes_pre_ex_prices_for_adjusted_actions():
+    action = CorporateAction(
+        id=1,
+        stock_id=1,
+        action_type=ActionType.BEDELSIZ,
+        ex_date=date(2026, 5, 5),
+        ratio=Decimal("6.3833834"),
+        subscription_price=None,
+        announcement_date=None,
+        notes=None,
+        applied=True,
+        prices_adjusted=True,
+        price_adjustment_factor=Decimal("0.1354392670"),
+    )
+    svc, _, price_repo, _ = _make_service(
+        series_by_ticker={
+            "MERKO.IS": {
+                date(2026, 5, 4): Decimal("73.833834"),
+                date(2026, 5, 5): Decimal("10.00"),
+            }
+        },
+        corporate_actions_by_stock={1: [action]},
+    )
+
+    count = svc.backfill_for_single_stock(1, "MERKO.IS", date(2026, 5, 4), date(2026, 5, 5))
+
+    assert count == 2
+    saved = price_repo.upsert_daily_prices_bulk.call_args[0][0]
+    assert saved[0].close_price == Decimal("73.833834") * Decimal("0.1354392670")
+    assert saved[1].close_price == Decimal("10.00")
 
 
 # ────── delete_range ─────────────────────────────────────────────────────────
