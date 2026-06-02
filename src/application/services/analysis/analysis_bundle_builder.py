@@ -49,7 +49,7 @@ class AnalysisBundleBuilder:
             [trade for trade in scoped_trades if not trade_stock_ids or trade.stock_id in trade_stock_ids]
         )
         cash_movements = self._cash_movements_for(filter_state)
-        portfolio_series, position_values_end, series_warnings = self._series_builder.compute_portfolio_series(
+        portfolio_series, twr_series, position_values_end, series_warnings = self._series_builder.compute_portfolio_series(
             build_result.valid_trades,
             cash_movements,
             valuation_stock_ids,
@@ -68,18 +68,26 @@ class AnalysisBundleBuilder:
         warnings.extend(benchmark_warnings)
         usd_series = next((benchmark.points for benchmark in raw_benchmarks if benchmark.code == "usd"), {})
         cpi_series = next((benchmark.points for benchmark in raw_benchmarks if benchmark.code == "cpi"), {})
-        portfolio_series = self._currency_service.apply_currency_mode(
+        raw_portfolio_series = self._currency_service.apply_currency_mode(
             portfolio_series,
             filter_state.currency_mode,
             usd_series,
             cpi_series,
+        )
+        twr_series = self._currency_service.apply_currency_mode(
+            twr_series,
+            filter_state.currency_mode,
+            usd_series,
+            cpi_series,
+            is_normalized=True,
         )
         benchmark_series = self._converted_benchmarks(filter_state, raw_benchmarks, usd_series, cpi_series)
         stock_series, stock_warnings = self._converted_stock_series(filter_state, display_stock_ids, ticker_map, usd_series, cpi_series)
         warnings.extend(stock_warnings)
         return self._bundle_dict(
             portfolio=build_result.portfolio,
-            portfolio_series=portfolio_series,
+            portfolio_series=twr_series,
+            end_total_value=next(reversed(raw_portfolio_series.values())) if raw_portfolio_series else Decimal("0"),
             benchmark_series=benchmark_series,
             stock_series=stock_series,
             position_values_end=position_values_end,
@@ -93,6 +101,7 @@ class AnalysisBundleBuilder:
     def _bundle_dict(
         portfolio,
         portfolio_series,
+        end_total_value,
         benchmark_series,
         stock_series,
         position_values_end,
@@ -107,7 +116,7 @@ class AnalysisBundleBuilder:
             "benchmarks": benchmark_series,
             "stock_series": stock_series,
             "position_values_end": position_values_end,
-            "end_total_value": next(reversed(portfolio_series.values())) if portfolio_series else Decimal("0"),
+            "end_total_value": end_total_value,
             "warnings": warnings,
             "portfolio_label": portfolio_label,
             "usd_series_dict": usd_series,
