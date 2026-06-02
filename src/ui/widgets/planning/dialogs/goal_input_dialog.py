@@ -12,6 +12,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QDate, Qt
 
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+
 class GoalInputDialog(QDialog):
     """Yeni hedef ekleme diyaloğu."""
 
@@ -22,6 +24,7 @@ class GoalInputDialog(QDialog):
         self.setFixedSize(420, 300)
         self.setModal(True)
         self._init_ui()
+        configure_dialog_behavior(self, self.btn_save, self.accept)
 
     def _init_ui(self):
         self.setProperty("cssClass", "dialogContainer")
@@ -75,12 +78,12 @@ class GoalInputDialog(QDialog):
         btn_cancel = QPushButton("İptal")
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
-        btn_save = QPushButton("Ekle")
-        btn_save.setProperty("cssClass", "tradeConfirmBuyBtn")
-        btn_save.clicked.connect(self.accept)
-        btn_save.setDefault(True)
+        self.btn_save = QPushButton("Ekle")
+        self.btn_save.setProperty("cssClass", "tradeConfirmBuyBtn")
+        self.btn_save.clicked.connect(self.accept)
+        self.btn_save.setDefault(True)
         btn_layout.addWidget(btn_cancel)
-        btn_layout.addWidget(btn_save)
+        btn_layout.addWidget(self.btn_save)
         layout.addLayout(btn_layout)
 
     def get_result(self):
