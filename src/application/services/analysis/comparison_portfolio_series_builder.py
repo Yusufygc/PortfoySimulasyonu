@@ -60,7 +60,7 @@ class ComparisonPortfolioSeriesBuilder:
         trade_stock_ids = sorted({trade.stock_id for trade in scoped_trades})
         ticker_map = self._series_builder.get_ticker_map(stock_ids)
         build_result = build_portfolio_safely(scoped_trades)
-        portfolio_series, _, _ = self._series_builder.compute_portfolio_series(
+        raw_series, twr_series, _, _ = self._series_builder.compute_portfolio_series(
             build_result.valid_trades,
             [],
             stock_ids,
@@ -70,7 +70,7 @@ class ComparisonPortfolioSeriesBuilder:
             build_result.portfolio,
             trade_stock_ids=trade_stock_ids,
         )
-        return portfolio_series
+        return twr_series
 
     def _convert_series(
         self,
