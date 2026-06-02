@@ -183,6 +183,23 @@ class SQLAlchemyPriceRepository(IPriceRepository):
             session.execute(stmt)
             commit_or_rollback(session)
 
+    def adjust_prices_before_date(self, stock_id: int, before_date: date, factor: Decimal) -> int:
+        if factor <= 0:
+            raise ValueError("Price adjustment factor must be positive")
+
+        with self._provider.get_session() as session:
+            updated_count = (
+                session.query(ORMDailyPrice)
+                .filter(ORMDailyPrice.stock_id == stock_id)
+                .filter(ORMDailyPrice.price_date < before_date)
+                .update(
+                    {ORMDailyPrice.close_price: ORMDailyPrice.close_price * factor},
+                    synchronize_session=False,
+                )
+            )
+            commit_or_rollback(session)
+            return int(updated_count or 0)
+
     def delete_all_prices(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMDailyPrice).delete()
