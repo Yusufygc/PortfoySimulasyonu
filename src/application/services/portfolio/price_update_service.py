@@ -8,9 +8,9 @@ from decimal import Decimal
 from typing import Dict
 
 from src.domain.models.daily_price import DailyPrice
+from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
-from src.infrastructure.calendar.bist_holiday_calendar import is_bist_trading_day
 
 
 @dataclass
@@ -43,9 +43,11 @@ class PriceUpdateService:
         self,
         price_repo: IPriceRepository,
         market_data_client: IMarketDataClient,
+        trading_calendar: MarketTradingCalendar | None = None,
     ) -> None:
         self._price_repo = price_repo
         self._market_data_client = market_data_client
+        self._trading_calendar = trading_calendar or WeekdayTradingCalendar()
 
     def update_closing_prices_for_stocks(
         self,
@@ -62,7 +64,7 @@ class PriceUpdateService:
         Dönüş:
             PriceUpdateResult
         """
-        if not is_bist_trading_day(price_date):
+        if not self._trading_calendar.is_trading_day(price_date):
             return PriceUpdateResult(
                 updated_count=0,
                 prices={},
@@ -72,37 +74,34 @@ class PriceUpdateService:
         if not stock_ticker_map:
             return PriceUpdateResult(updated_count=0, prices={})
 
-        stock_ids = list(stock_ticker_map.keys())
-        tickers = [stock_ticker_map[sid] for sid in stock_ids]
-
-        # 1) Market data'dan fiyatları çek
-        prices_map = self._market_data_client.get_closing_prices(
-            stock_ids=stock_ids,
-            tickers=tickers,
-            price_date=price_date,
-        )
-        # prices_map: { stock_id: Decimal(close_price) }
+        prices_map = self._fetch_closing_prices(price_date, stock_ticker_map)
 
         if not prices_map:
             return PriceUpdateResult(updated_count=0, prices={})
 
-        # 2) DailyPrice domain objelerine çevir
-        daily_price_list = [
+        self._price_repo.upsert_daily_prices_bulk(self._daily_prices(price_date, prices_map))
+
+        return PriceUpdateResult(
+            updated_count=len(prices_map),
+            prices=prices_map,
+        )
+
+    def _fetch_closing_prices(self, price_date: date, stock_ticker_map: Dict[int, str]) -> Dict[int, Decimal]:
+        stock_ids = list(stock_ticker_map.keys())
+        return self._market_data_client.get_closing_prices(
+            stock_ids=stock_ids,
+            tickers=[stock_ticker_map[stock_id] for stock_id in stock_ids],
+            price_date=price_date,
+        )
+
+    @staticmethod
+    def _daily_prices(price_date: date, prices_map: Dict[int, Decimal]) -> list[DailyPrice]:
+        return [
             DailyPrice(
                 id=None,
                 stock_id=stock_id,
                 price_date=price_date,
                 close_price=close_price,
-                # currency_code ve source default parametreleri kullanılıyor
             )
             for stock_id, close_price in prices_map.items()
         ]
-
-        # 3) DB'de UPSERT
-        self._price_repo.upsert_daily_prices_bulk(daily_price_list)
-
-        # 4) Basit özet dön
-        return PriceUpdateResult(
-            updated_count=len(prices_map),
-            prices=prices_map,
-        )

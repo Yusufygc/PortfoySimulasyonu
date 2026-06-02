@@ -180,6 +180,15 @@ class TestApplyBedelsiz:
 
         mock_action_repo.mark_applied.assert_called_once_with(1)
 
+    def test_insert_failure_does_not_mark_action_applied(self, service, mock_action_repo, mock_portfolio_repo):
+        self._setup(mock_action_repo, mock_portfolio_repo)
+        mock_portfolio_repo.insert_trade.side_effect = RuntimeError("insert failed")
+
+        with pytest.raises(RuntimeError, match="insert failed"):
+            service.apply_action(action_id=1)
+
+        mock_action_repo.mark_applied.assert_not_called()
+
     def test_theoretical_price_included_when_given(self, service, mock_action_repo, mock_portfolio_repo):
         self._setup(mock_action_repo, mock_portfolio_repo)
         # Mevcut fiyat = 15 TL, teorik = 15 / 1.50 = 10.00

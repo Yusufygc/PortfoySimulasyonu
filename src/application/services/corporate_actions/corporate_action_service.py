@@ -45,6 +45,78 @@ class CorporateActionResult:
     description: str
 
 
+def _bedelsiz_description(
+    action: CorporateAction,
+    shares_before: int,
+    new_shares: int,
+    new_qty: int,
+    avg_cost_before: Decimal,
+    avg_cost_after: Decimal,
+    theoretical_price: Optional[Decimal],
+) -> str:
+    pct = float(action.ratio_percent)
+    desc = (
+        f"Bedelsiz Sermaye Artırımı %{pct:.0f} — "
+        f"ex-date: {action.ex_date} | "
+        f"{shares_before} lot + {new_shares} bedelsiz lot = {new_qty} lot | "
+        f"Ort. maliyet: {avg_cost_before:.4f} → {avg_cost_after:.4f} TL"
+    )
+    if theoretical_price is not None:
+        desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
+    return desc
+
+
+def _bedelli_description(
+    action: CorporateAction,
+    shares_before: int,
+    new_shares: int,
+    new_qty: int,
+    avg_cost_before: Decimal,
+    avg_cost_after: Decimal,
+    capital_spent: Decimal,
+    theoretical_price: Optional[Decimal],
+) -> str:
+    pct = float(action.ratio_percent)
+    sub_price = action.subscription_price
+    desc = (
+        f"Bedelli Sermaye Artırımı %{pct:.0f} — "
+        f"ex-date: {action.ex_date} | "
+        f"Kullanım fiyatı: {sub_price:.4f} TL | "
+        f"{shares_before} lot + {new_shares} yeni lot = {new_qty} lot | "
+        f"Sermaye kullanımı: {capital_spent:.2f} TL | "
+        f"Ort. maliyet: {avg_cost_before:.4f} → {avg_cost_after:.4f} TL"
+    )
+    if theoretical_price is not None:
+        desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
+    return desc
+
+
+def _build_action_result(
+    action: CorporateAction,
+    shares_before: int,
+    new_shares: int,
+    shares_after: int,
+    avg_cost_before: Optional[Decimal],
+    avg_cost_after: Optional[Decimal],
+    theoretical_price: Optional[Decimal],
+    capital_spent: Decimal,
+    description: str,
+) -> CorporateActionResult:
+    return CorporateActionResult(
+        action_id=action.id,
+        action_type=action.action_type,
+        stock_id=action.stock_id,
+        shares_before=shares_before,
+        new_shares=new_shares,
+        shares_after=shares_after,
+        avg_cost_before=avg_cost_before,
+        avg_cost_after=avg_cost_after,
+        theoretical_ex_price=theoretical_price,
+        capital_spent=capital_spent,
+        description=description,
+    )
+
+
 class CorporateActionService:
     """
     Bedelli / Bedelsiz Sermaye Artırımı uygulama servisi.
@@ -173,15 +245,12 @@ class CorporateActionService:
 
         theoretical = action.theoretical_price(current_price) if current_price else None
 
-        # mark_applied önce işaretlenir; insert_trade başarısız olursa
-        # aksiyon "applied" kalır ama çift uygulama riski önlenir.
-        self._action_repo.mark_applied(action_id)
-
         if action.action_type == ActionType.BEDELSIZ:
             result = self._apply_bedelsiz(action, position, new_shares, theoretical)
         else:
             result = self._apply_bedelli(action, position, new_shares, theoretical)
 
+        self._action_repo.mark_applied(action_id)
         return result
 
     # ──────────────── İç Uygulama Metotları ────────────────
@@ -221,28 +290,18 @@ class CorporateActionService:
         new_qty = shares_before + new_shares
         avg_cost_after = (position.total_cost / Decimal(str(new_qty))) if new_qty > 0 else Decimal("0")
 
-        pct = float(action.ratio_percent)
-        desc = (
-            f"Bedelsiz Sermaye Artırımı %{pct:.0f} — "
-            f"ex-date: {action.ex_date} | "
-            f"{shares_before} lot + {new_shares} bedelsiz lot = {new_qty} lot | "
-            f"Ort. maliyet: {avg_cost_before:.4f} → {avg_cost_after:.4f} TL"
-        )
-        if theoretical_price is not None:
-            desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
-
-        return CorporateActionResult(
-            action_id=action.id,
-            action_type=action.action_type,
-            stock_id=action.stock_id,
+        return _build_action_result(
+            action=action,
             shares_before=shares_before,
             new_shares=new_shares,
             shares_after=new_qty,
             avg_cost_before=avg_cost_before,
             avg_cost_after=avg_cost_after,
-            theoretical_ex_price=theoretical_price,
+            theoretical_price=theoretical_price,
             capital_spent=Decimal("0"),
-            description=desc,
+            description=_bedelsiz_description(
+                action, shares_before, new_shares, new_qty, avg_cost_before, avg_cost_after, theoretical_price
+            ),
         )
 
     def _apply_bedelli(
@@ -275,30 +334,18 @@ class CorporateActionService:
         new_total_cost = position.total_cost + capital_spent
         avg_cost_after = new_total_cost / Decimal(str(new_qty)) if new_qty > 0 else Decimal("0")
 
-        pct = float(action.ratio_percent)
-        desc = (
-            f"Bedelli Sermaye Artırımı %{pct:.0f} — "
-            f"ex-date: {action.ex_date} | "
-            f"Kullanım fiyatı: {sub_price:.4f} TL | "
-            f"{shares_before} lot + {new_shares} yeni lot = {new_qty} lot | "
-            f"Sermaye kullanımı: {capital_spent:.2f} TL | "
-            f"Ort. maliyet: {avg_cost_before:.4f} → {avg_cost_after:.4f} TL"
-        )
-        if theoretical_price is not None:
-            desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
-
-        return CorporateActionResult(
-            action_id=action.id,
-            action_type=action.action_type,
-            stock_id=action.stock_id,
+        return _build_action_result(
+            action=action,
             shares_before=shares_before,
             new_shares=new_shares,
             shares_after=new_qty,
             avg_cost_before=avg_cost_before,
             avg_cost_after=avg_cost_after,
-            theoretical_ex_price=theoretical_price,
+            theoretical_price=theoretical_price,
             capital_spent=capital_spent,
-            description=desc,
+            description=_bedelli_description(
+                action, shares_before, new_shares, new_qty, avg_cost_before, avg_cost_after, capital_spent, theoretical_price
+            ),
         )
 
     # ══════════════════════════════════════════════════════════

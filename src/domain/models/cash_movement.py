@@ -22,6 +22,15 @@ class CashMovement:
     notes: Optional[str] = None
     created_at: Optional[datetime] = None
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.type, CashMovementType):
+            try:
+                object.__setattr__(self, "type", CashMovementType(self.type))
+            except ValueError as exc:
+                raise ValueError(f"Unknown cash movement type: {self.type}") from exc
+
+        self._validate_amount(self.amount)
+
     @classmethod
     def create_deposit(
         cls,

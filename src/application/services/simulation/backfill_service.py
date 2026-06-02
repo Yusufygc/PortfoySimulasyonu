@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, timedelta
-from typing import List
-
-import yfinance as yf
-import pandas as pd
+from datetime import date
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
 from src.domain.models.daily_price import DailyPrice
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
+from src.domain.ports.services.i_market_data_client import IMarketDataClient
 
 
 class BackfillService:
@@ -20,17 +18,23 @@ class BackfillService:
     Geçmişe yönelik fiyat verisi yönetim servisi.
 
     İki ana işlev:
-        1. backfill_range: yfinance'den tarih aralığı için veri çeker ve DB'ye kaydeder
+        1. backfill_range: market data portundan tarih aralığı için veri çeker ve DB'ye kaydeder
         2. delete_range: belirli tarih aralığındaki fiyat verilerini siler
     """
 
-    def __init__(self, stock_repo, price_repo: IPriceRepository) -> None:
+    def __init__(
+        self,
+        stock_repo,
+        price_repo: IPriceRepository,
+        market_data_client: IMarketDataClient,
+    ) -> None:
         self._stock_repo = stock_repo
         self._price_repo = price_repo
+        self._market_data_client = market_data_client
 
     def backfill_range(self, start_date: date, end_date: date) -> int:
         """
-        Belirtilen tarih aralığı için yfinance'den veri çeker ve DB'ye kaydeder.
+        Belirtilen tarih aralığı için market data portundan veri çeker ve DB'ye kaydeder.
 
         Args:
             start_date: Başlangıç tarihi (dahil)
@@ -47,30 +51,19 @@ class BackfillService:
         if not stocks:
             raise ValueError("Veritabanında kayıtlı hisse yok.")
 
-        tickers = [s.ticker for s in stocks]
-        stock_map = {s.ticker: s.id for s in stocks}
-
-        # yfinance end_date'i dahil etmez, +1 gün ekle
-        yf_end_date = end_date + timedelta(days=1)
-
-        # Yahoo Finance'den indir
-        try:
-            df = yf.download(
-                tickers,
-                start=start_date,
-                end=yf_end_date,
-                group_by="ticker",
-                auto_adjust=True,
-                progress=False,
+        prices_to_save: list[DailyPrice] = []
+        for stock in stocks:
+            if stock.id is None:
+                logger.warning("Stock %s has no id, skipping backfill", stock.ticker)
+                continue
+            prices_to_save.extend(
+                self._build_daily_prices(
+                    stock_id=stock.id,
+                    ticker=stock.ticker,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
             )
-        except Exception as e:
-            raise RuntimeError(f"Yahoo Finance indirme hatası: {e}")
-
-        if df.empty:
-            return 0
-
-        # Veriyi DailyPrice listesine dönüştür
-        prices_to_save = self._parse_yfinance_data(df, tickers, stock_map)
 
         # DB'ye kaydet
         if prices_to_save:
@@ -102,92 +95,45 @@ class BackfillService:
         end_date: date,
     ) -> int:
         """
-        Tek bir hisse için YFinance'den fiyat çekip daily_prices'ı günceller.
+        Tek bir hisse için market data portundan fiyat çekip daily_prices'ı günceller.
         Sermaye artırımı sonrası retroaktif fiyat düzeltmesi için kullanılır.
-        YFinance ex-date sonrası adjusted fiyatları verir; eski kayıtlar upsert ile üzerine yazılır.
+        Eski kayıtlar upsert ile üzerine yazılır.
         """
         if start_date > end_date:
             raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
 
-        yf_end_date = end_date + timedelta(days=1)
-        try:
-            df = yf.download(
-                ticker,
-                start=start_date,
-                end=yf_end_date,
-                auto_adjust=True,
-                progress=False,
-            )
-        except Exception as e:
-            raise RuntimeError(f"Yahoo Finance indirme hatası ({ticker}): {e}")
-
-        if df.empty:
-            return 0
-
-        prices = []
-        for timestamp, row in df.iterrows():
-            close_val = row.get("Close")
-            if isinstance(close_val, pd.Series):
-                close_val = close_val.iloc[0]
-            if close_val is None or pd.isna(close_val):
-                continue
-            prices.append(DailyPrice(
-                id=None,
-                stock_id=stock_id,
-                price_date=timestamp.date(),
-                close_price=float(close_val),
-            ))
+        prices = self._build_daily_prices(
+            stock_id=stock_id,
+            ticker=ticker,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
         if prices:
             self._price_repo.upsert_daily_prices_bulk(prices)
 
         return len(prices)
 
-    @staticmethod
-    def _parse_yfinance_data(
-        df: pd.DataFrame,
-        tickers: List[str],
-        stock_map: dict,
-    ) -> List[DailyPrice]:
-        """yfinance DataFrame'ini DailyPrice listesine dönüştürür."""
-        prices = []
-        is_multi_index = isinstance(df.columns, pd.MultiIndex)
-
-        for ticker in tickers:
-            stock_id = stock_map.get(ticker)
-            if not stock_id:
-                continue
-
-            try:
-                if is_multi_index:
-                    if ticker not in df.columns.levels[0]:
-                        continue
-                    stock_data = df[ticker]
-                else:
-                    if len(tickers) == 1:
-                        stock_data = df
-                    else:
-                        continue
-
-                for timestamp, row in stock_data.iterrows():
-                    close_val = row.get("Close")
-
-                    if isinstance(close_val, pd.Series):
-                        close_val = close_val.iloc[0]
-
-                    if pd.isna(close_val):
-                        continue
-
-                    daily_price = DailyPrice(
-                        id=None,
-                        stock_id=stock_id,
-                        price_date=timestamp.date(),
-                        close_price=float(close_val),
-                    )
-                    prices.append(daily_price)
-
-            except Exception as exc:
-                logger.warning("Ticker %s parse edilemedi: %s", ticker, exc)
-                continue
-
+    def _build_daily_prices(
+        self,
+        stock_id: int,
+        ticker: str,
+        start_date: date,
+        end_date: date,
+    ) -> list[DailyPrice]:
+        series = self._market_data_client.get_price_series(ticker, start_date, end_date)
+        prices = [
+            DailyPrice(
+                id=None,
+                stock_id=stock_id,
+                price_date=price_date,
+                close_price=self._to_decimal(close_price),
+            )
+            for price_date, close_price in sorted(series.items())
+            if start_date <= price_date <= end_date
+        ]
         return prices
+
+    @staticmethod
+    def _to_decimal(value: Decimal | int | float | str) -> Decimal:
+        return value if isinstance(value, Decimal) else Decimal(str(value))

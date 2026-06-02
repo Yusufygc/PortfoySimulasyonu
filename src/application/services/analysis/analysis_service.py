@@ -1,25 +1,23 @@
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal
 from typing import Dict, List, Optional, Sequence
 
-from src.domain.models.portfolio import Portfolio
-from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.repositories.i_cash_movement_repo import ICashMovementRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
-from src.infrastructure.market_data.evds_client import EvdsClient
 
-from .benchmark_service import AnalysisBenchmarkService
+from .analysis_bundle_builder import AnalysisBundleBuilder
+from .benchmark_service import AnalysisBenchmarkService, EvdsSeriesProvider
+from .comparison_portfolio_series_builder import ComparisonPortfolioSeriesBuilder
+from .currency_conversion_service import CurrencyConversionService
 from .models import (
     AllocationItem,
     AllocationRiskDTO,
     AnalysisFilterState,
     AnalysisOverviewDTO,
-    BenchmarkSeries,
     ComparisonMetric,
     ComparisonViewDTO,
 )
@@ -43,7 +41,7 @@ class AnalysisService:
         price_repo: IPriceRepository,
         stock_repo: IStockRepository,
         market_data_client: IMarketDataClient,
-        evds_client: EvdsClient = None,
+        evds_client: EvdsSeriesProvider | None = None,
         cash_movement_repo: Optional[ICashMovementRepository] = None,
         model_portfolio_service=None,
     ) -> None:
@@ -62,6 +60,19 @@ class AnalysisService:
             market_data_client=market_data_client,
             evds_client=evds_client
         )
+        self._currency_service = CurrencyConversionService()
+        self._bundle_builder = AnalysisBundleBuilder(
+            source_resolver=self._source_resolver,
+            series_builder=self._series_builder,
+            benchmark_service=self._benchmark_service,
+            currency_service=self._currency_service,
+            cash_movement_repo=cash_movement_repo,
+        )
+        self._comparison_series_builder = ComparisonPortfolioSeriesBuilder(
+            source_resolver=self._source_resolver,
+            series_builder=self._series_builder,
+            currency_service=self._currency_service,
+        )
 
     def get_benchmark_definitions(self):
         return self._benchmark_service.get_benchmark_definitions()
@@ -79,7 +90,11 @@ class AnalysisService:
         if bundle is None:
             bundle = self._build_analysis_bundle(filter_state)
         ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
-        position_snapshot = compute_position_snapshot(bundle["portfolio"], ticker_map)
+        position_snapshot = compute_position_snapshot(
+            bundle["portfolio"],
+            ticker_map,
+            bundle["position_values_end"],
+        )
         portfolio_series = bundle["portfolio_series"]
         primary_benchmark = bundle["benchmarks"][0] if bundle["benchmarks"] else None
         benchmark_gap = (
@@ -139,32 +154,10 @@ class AnalysisService:
         )
         if bundle is None:
             bundle = self._build_analysis_bundle(state)
-        metrics: List[ComparisonMetric] = []
         portfolio_return = compute_return_pct(bundle["portfolio_series"])
-        for benchmark in bundle["benchmarks"]:
-            benchmark_return = compute_return_pct(benchmark.points)
-            rel_gap = compute_relative_gap_pct(bundle["portfolio_series"], benchmark.points)
-            metrics.append(
-                ComparisonMetric(
-                    label=benchmark.label,
-                    portfolio_return_pct=portfolio_return,
-                    benchmark_return_pct=benchmark_return,
-                    relative_gap_pct=rel_gap,
-                )
-            )
-
+        metrics = self._benchmark_comparison_metrics(bundle, portfolio_return)
         comparison_portfolios = self._build_comparison_portfolio_series(state, bundle=bundle)
-        for portfolio_series in comparison_portfolios:
-            other_return = compute_return_pct(portfolio_series.points)
-            rel_gap = compute_relative_gap_pct(bundle["portfolio_series"], portfolio_series.points)
-            metrics.append(
-                ComparisonMetric(
-                    label=portfolio_series.label,
-                    portfolio_return_pct=portfolio_return,
-                    benchmark_return_pct=other_return,
-                    relative_gap_pct=rel_gap,
-                )
-            )
+        metrics.extend(self._portfolio_comparison_metrics(bundle, comparison_portfolios, portfolio_return))
 
         return ComparisonViewDTO(
             portfolio_series=bundle["portfolio_series"],
@@ -176,12 +169,40 @@ class AnalysisService:
             warnings=bundle["warnings"],
         )
 
+    @staticmethod
+    def _benchmark_comparison_metrics(bundle: Dict[str, object], portfolio_return) -> List[ComparisonMetric]:
+        return [
+            ComparisonMetric(
+                label=benchmark.label,
+                portfolio_return_pct=portfolio_return,
+                benchmark_return_pct=compute_return_pct(benchmark.points),
+                relative_gap_pct=compute_relative_gap_pct(bundle["portfolio_series"], benchmark.points),
+            )
+            for benchmark in bundle["benchmarks"]
+        ]
+
+    @staticmethod
+    def _portfolio_comparison_metrics(
+        bundle: Dict[str, object],
+        comparison_portfolios: Sequence,
+        portfolio_return,
+    ) -> List[ComparisonMetric]:
+        return [
+            ComparisonMetric(
+                label=portfolio_series.label,
+                portfolio_return_pct=portfolio_return,
+                benchmark_return_pct=compute_return_pct(portfolio_series.points),
+                relative_gap_pct=compute_relative_gap_pct(bundle["portfolio_series"], portfolio_series.points),
+            )
+            for portfolio_series in comparison_portfolios
+        ]
+
     def get_allocation_risk_view(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> AllocationRiskDTO:
         if bundle is None:
             bundle = self._build_analysis_bundle(filter_state)
         ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
         position_snapshot = sorted(
-            compute_position_snapshot(bundle["portfolio"], ticker_map),
+            compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"]),
             key=lambda item: item["weight"],
             reverse=True,
         )
@@ -214,167 +235,30 @@ class AnalysisService:
 
     def _build_analysis_bundle(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
         self._validate_filter_state(filter_state)
-        warnings: List[str] = []
-
-        trades = self._source_resolver.get_source_trades(filter_state.portfolio_source)
-        portfolio_label = self._source_resolver.get_source_label(filter_state.portfolio_source)
-        scoped_trades = [trade for trade in trades if trade.trade_date <= filter_state.end_date]
-        stock_ids = self._series_builder.resolve_stock_scope(scoped_trades, filter_state.selected_stock_ids)
-        ticker_map = self._series_builder.get_ticker_map(stock_ids)
-
-        build_result = build_portfolio_safely([trade for trade in scoped_trades if trade.stock_id in stock_ids])
-        portfolio = build_result.portfolio
-        
-        cash_movements = []
-        if filter_state.portfolio_source == "dashboard" and self._cash_movement_repo:
-            cash_movements = list(self._cash_movement_repo.get_all_movements())
-            
-        portfolio_series, position_values_end, warnings_pb = self._series_builder.compute_portfolio_series(
-            build_result.valid_trades,
-            cash_movements,
-            stock_ids,
-            ticker_map,
-            filter_state.start_date,
-            filter_state.end_date,
-            portfolio,
-        )
-        warnings.extend(warnings_pb)
-
-        # Ensure usd and cpi are requested to be fetched so we can use them for currency conversion
-        needed_benchmarks = list(filter_state.selected_benchmarks)
-        if filter_state.currency_mode == "USD" and "usd" not in needed_benchmarks:
-            needed_benchmarks.append("usd")
-        if filter_state.currency_mode == "REAL" and "cpi" not in needed_benchmarks:
-            needed_benchmarks.append("cpi")
-            
-        benchmark_series_raw, benchmark_warnings = self._benchmark_service.build_benchmark_series(
-            filter_state.start_date,
-            filter_state.end_date,
-            needed_benchmarks,
-        )
-        warnings.extend(benchmark_warnings)
-
-        usd_series_dict = next((b.points for b in benchmark_series_raw if b.code == "usd"), {})
-        cpi_series_dict = next((b.points for b in benchmark_series_raw if b.code == "cpi"), {})
-
-        # Currency Conversion
-        portfolio_series = self._apply_currency_mode(
-            portfolio_series, filter_state.currency_mode, usd_series_dict, cpi_series_dict, is_normalized=False
-        )
-
-        benchmark_series = []
-        for b in benchmark_series_raw:
-            # We don't want to expose usd or cpi if they weren't explicitly requested by the user
-            if b.code not in filter_state.selected_benchmarks:
-                continue
-            
-            # Convert benchmark series
-            # Deposit rate and CPI are indices starting at 100
-            # Other benchmarks are raw TRY values normalized to 100 in the UI? Wait, currently benchmarks are NOT normalized here!
-            # Let's normalize them here to start at 100 after conversion.
-            converted_points = self._apply_currency_mode(
-                b.points, filter_state.currency_mode, usd_series_dict, cpi_series_dict, is_normalized=True
-            )
-            benchmark_series.append(BenchmarkSeries(code=b.code, label=b.label, points=converted_points))
-
-        stock_series, stock_warnings = self._series_builder.build_stock_series(
-            stock_ids,
-            ticker_map,
-            filter_state.start_date,
-            filter_state.end_date,
-        )
-        warnings.extend(stock_warnings)
-
-        for sid, s_series in stock_series.items():
-            stock_series[sid] = self._apply_currency_mode(
-                s_series, filter_state.currency_mode, usd_series_dict, cpi_series_dict, is_normalized=False
-            )
-
-        for stock_id, value in position_values_end.items():
-            if stock_id in portfolio.positions:
-                setattr(portfolio.positions[stock_id], "_analysis_current_value", value)
-
-        end_total_value = next(reversed(portfolio_series.values())) if portfolio_series else Decimal("0")
-        return {
-            "portfolio": portfolio,
-            "portfolio_series": portfolio_series,
-            "benchmarks": benchmark_series,
-            "stock_series": stock_series,
-            "end_total_value": end_total_value,
-            "warnings": warnings,
-            "portfolio_label": portfolio_label,
-            "usd_series_dict": usd_series_dict,
-            "cpi_series_dict": cpi_series_dict,
-        }
+        return self._bundle_builder.build(filter_state)
 
     def _apply_currency_mode(
         self, 
-        series: Dict[date, Decimal], 
+        series: dict, 
         currency_mode: str, 
-        usd_try_series: Dict[date, Decimal], 
-        cpi_series: Dict[date, Decimal],
+        usd_try_series: dict, 
+        cpi_series: dict,
         is_normalized: bool = False
-    ) -> Dict[date, Decimal]:
-        if not series or currency_mode == "TL":
-            return series
-            
-        result = {}
-        if currency_mode == "USD":
-            for dt, val in series.items():
-                if dt in usd_try_series and usd_try_series[dt]:
-                    result[dt] = val / usd_try_series[dt]
-        elif currency_mode == "REAL":
-            if not cpi_series:
-                return series
-            base_cpi = cpi_series[min(cpi_series.keys())]
-            if base_cpi == 0:
-                return series
-            for dt, val in series.items():
-                if dt in cpi_series:
-                    result[dt] = val / (cpi_series[dt] / base_cpi)
-                    
-        if is_normalized and result:
-            base_val = result[min(result.keys())]
-            if base_val:
-                result = {dt: (val / base_val) * Decimal("100") for dt, val in result.items()}
-                
-        return result
+    ) -> dict:
+        return self._currency_service.apply_currency_mode(
+            series,
+            currency_mode,
+            usd_try_series,
+            cpi_series,
+            is_normalized=is_normalized,
+        )
 
-    def _build_comparison_portfolio_series(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> List[BenchmarkSeries]:
-        results: List[BenchmarkSeries] = []
-        for source_code in filter_state.comparison_portfolio_sources:
-            if source_code == filter_state.portfolio_source:
-                continue
-            trades = self._source_resolver.get_source_trades(source_code)
-            scoped_trades = [trade for trade in trades if trade.trade_date <= filter_state.end_date]
-            stock_ids = self._series_builder.resolve_stock_scope(scoped_trades, [])
-            ticker_map = self._series_builder.get_ticker_map(stock_ids)
-            build_result = build_portfolio_safely(scoped_trades)
-            portfolio = build_result.portfolio
-            portfolio_series, _, _ = self._series_builder.compute_portfolio_series(
-                build_result.valid_trades,
-                [], # Model portfoylerde nakit yok
-                stock_ids,
-                ticker_map,
-                filter_state.start_date,
-                filter_state.end_date,
-                portfolio,
-            )
-            
-            if portfolio_series:
-                usd_series = bundle.get("usd_series_dict", {}) if bundle else {}
-                cpi_series = bundle.get("cpi_series_dict", {}) if bundle else {}
-                portfolio_series = self._apply_currency_mode(
-                    portfolio_series, filter_state.currency_mode, usd_series, cpi_series, is_normalized=True
-                )
-                results.append(
-                    BenchmarkSeries(
-                        code=source_code,
-                        label=self._source_resolver.get_source_label(source_code),
-                        points=portfolio_series,
-                    )
-                )
-        return results
+    def _build_comparison_portfolio_series(
+        self,
+        filter_state: AnalysisFilterState,
+        bundle: Optional[Dict[str, object]] = None,
+    ) -> list:
+        return self._comparison_series_builder.build(filter_state, bundle=bundle)
 
     def _validate_filter_state(self, filter_state: AnalysisFilterState) -> None:
         if filter_state.start_date > filter_state.end_date:

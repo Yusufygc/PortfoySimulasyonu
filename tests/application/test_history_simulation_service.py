@@ -8,6 +8,7 @@ import pytest
 from src.application.services.reporting.daily_history_models import PortfolioStatus
 from src.application.services.simulation.history_simulation_service import HistorySimulationService
 from src.domain.models.trade import Trade
+from src.infrastructure.calendar.bist_trading_calendar_provider import BistTradingCalendarProvider
 
 
 class DummyStock:
@@ -36,6 +37,7 @@ def simulation_service(mock_portfolio_repo, mock_price_repo, mock_stock_repo):
         portfolio_repo=mock_portfolio_repo,
         price_repo=mock_price_repo,
         stock_repo=mock_stock_repo,
+        trading_calendar=BistTradingCalendarProvider(),
     )
 
 def test_simulate_history_no_trades(simulation_service, mock_portfolio_repo):

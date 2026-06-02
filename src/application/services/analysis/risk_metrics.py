@@ -85,11 +85,13 @@ def build_benchmark_insight(benchmark_label: str, gap: Optional[float]) -> str:
 def compute_position_snapshot(
     portfolio: Portfolio,
     ticker_map: Dict[int, str],
+    current_values: Dict[int, Decimal] | None = None,
 ) -> List[Dict[str, object]]:
+    values_by_stock = current_values or {}
     total_value = sum(
         (
-            getattr(position, "_analysis_current_value", Decimal("0"))
-            for position in portfolio.positions.values()
+            values_by_stock.get(stock_id, Decimal("0"))
+            for stock_id, position in portfolio.positions.items()
             if position.total_quantity > 0
         ),
         Decimal("0"),
@@ -98,7 +100,7 @@ def compute_position_snapshot(
     for stock_id, position in portfolio.positions.items():
         if position.total_quantity <= 0:
             continue
-        current_value = getattr(position, "_analysis_current_value", Decimal("0"))
+        current_value = values_by_stock.get(stock_id, Decimal("0"))
         weight = float((current_value / total_value) * Decimal("100")) if total_value > 0 else 0.0
         return_pct = None
         if position.total_cost > 0:
@@ -113,4 +115,3 @@ def compute_position_snapshot(
             }
         )
     return items
-

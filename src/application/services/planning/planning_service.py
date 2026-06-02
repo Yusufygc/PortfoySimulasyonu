@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from src.domain.models.budget import Budget
 from src.domain.models.financial_goal import FinancialGoal, GoalStatus
 from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
+
+
+def _to_decimal(value: Decimal | float | int | str) -> Decimal:
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
 
 
 class PlanningService:
@@ -60,11 +67,11 @@ class PlanningService:
 
         return {
             "month": budget.month,
-            "total_income": budget.total_income,
-            "total_expense": budget.total_expense,
-            "net_potential": budget.net_savings_potential,
-            "target": budget.savings_target,
-            "breakdown": {item.name: item.amount for item in budget.items},
+            "total_income": float(budget.total_income),
+            "total_expense": float(budget.total_expense),
+            "net_potential": float(budget.net_savings_potential),
+            "target": float(budget.savings_target),
+            "breakdown": {item.name: float(item.amount) for item in budget.items},
             "message": budget.status_message,
         }
 
@@ -104,14 +111,15 @@ class PlanningService:
         if not name or not name.strip():
             raise ValueError("Hedef adı boş olamaz.")
 
-        if target_amount <= 0:
+        target_amount_decimal = _to_decimal(target_amount)
+        if target_amount_decimal <= 0:
             raise ValueError("Hedef tutar pozitif olmalıdır.")
 
         goal = FinancialGoal(
             id=None,
             name=name.strip(),
-            target_amount=target_amount,
-            current_amount=0.0,
+            target_amount=target_amount_decimal,
+            current_amount=Decimal("0"),
             deadline=deadline,
             priority=priority,
             status=GoalStatus.ACTIVE,
@@ -134,7 +142,7 @@ class PlanningService:
         updated = FinancialGoal(
             id=goal_id,
             name=name.strip(),
-            target_amount=target_amount,
+            target_amount=_to_decimal(target_amount),
             current_amount=existing.current_amount,
             deadline=deadline,
             priority=priority,
@@ -158,14 +166,15 @@ class PlanningService:
         Returns:
             Güncellenmiş FinancialGoal
         """
-        if amount <= 0:
+        amount_decimal = _to_decimal(amount)
+        if amount_decimal <= 0:
             raise ValueError("Katkı tutarı pozitif olmalıdır.")
 
         goal = self._repo.get_goal_by_id(goal_id)
         if goal is None:
             raise ValueError(f"Hedef bulunamadı: {goal_id}")
 
-        new_amount = goal.current_amount + amount
+        new_amount = goal.current_amount + amount_decimal
         new_status = GoalStatus.COMPLETED if new_amount >= goal.target_amount else goal.status
 
         updated = FinancialGoal(
@@ -193,13 +202,7 @@ class PlanningService:
         if not active_goals:
             return {"status": "BİLGİ", "message": "Henüz aktif bir hedefiniz yok."}
 
-        # Son bütçe kaydından tasarruf gücünü hesapla
-        all_budgets = self._repo.get_all_budgets()
-        monthly_power = 0.0
-
-        if all_budgets:
-            latest_budget = all_budgets[0]  # DESC sıralı, ilk eleman en güncel
-            monthly_power = latest_budget.net_savings_potential
+        monthly_power = self._latest_monthly_savings_power()
 
         if monthly_power <= 0:
             return {
@@ -210,28 +213,8 @@ class PlanningService:
                 "details": [],
             }
 
-        # Hedef bazlı analiz
-        details = []
-        total_monthly_need = 0.0
-
-        for goal in active_goals:
-            required_monthly = goal.required_monthly_contribution()
-            total_monthly_need += required_monthly
-
-            is_possible = monthly_power >= required_monthly
-
-            details.append({
-                "goal_id": goal.id,
-                "goal_name": goal.name,
-                "target": goal.target_amount,
-                "saved": goal.current_amount,
-                "remaining": goal.remaining_amount,
-                "progress": goal.progress_ratio,
-                "months_left": goal.months_remaining(),
-                "required_monthly": required_monthly,
-                "status": "YETİŞİR" if is_possible else "RİSKLİ",
-            })
-
+        details = [self._goal_feasibility_detail(goal, monthly_power) for goal in active_goals]
+        total_monthly_need = sum(detail["required_monthly"] for detail in details)
         overall_status = "BAŞARILI" if monthly_power >= total_monthly_need else "YETERSİZ KAYNAK"
 
         return {
@@ -239,4 +222,28 @@ class PlanningService:
             "monthly_power": monthly_power,
             "total_monthly_need": total_monthly_need,
             "details": details,
+        }
+
+    def _latest_monthly_savings_power(self) -> float:
+        all_budgets = self._repo.get_all_budgets()
+        if not all_budgets:
+            return 0.0
+        latest_budget = all_budgets[0]  # DESC sıralı, ilk eleman en güncel
+        return float(latest_budget.net_savings_potential)
+
+    @staticmethod
+    def _goal_feasibility_detail(goal: FinancialGoal, monthly_power: float) -> Dict[str, Any]:
+        required_monthly = float(goal.required_monthly_contribution())
+        is_possible = monthly_power >= required_monthly
+
+        return {
+            "goal_id": goal.id,
+            "goal_name": goal.name,
+            "target": float(goal.target_amount),
+            "saved": float(goal.current_amount),
+            "remaining": float(goal.remaining_amount),
+            "progress": goal.progress_ratio,
+            "months_left": goal.months_remaining(),
+            "required_monthly": required_monthly,
+            "status": "YETİŞİR" if is_possible else "RİSKLİ",
         }

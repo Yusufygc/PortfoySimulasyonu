@@ -41,6 +41,22 @@ class CorporateAction:
 
     # ──────────────── Factory Methods ────────────────
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.action_type, ActionType):
+            try:
+                object.__setattr__(self, "action_type", ActionType(self.action_type))
+            except ValueError as exc:
+                raise ValueError(f"Unknown corporate action type: {self.action_type}") from exc
+
+        if self.ratio <= 0:
+            raise ValueError("Corporate action ratio must be positive")
+
+        if self.action_type == ActionType.BEDELLI:
+            if self.subscription_price is None or self.subscription_price <= 0:
+                raise ValueError("Subscription price must be positive for BEDELLI actions")
+        elif self.subscription_price is not None:
+            raise ValueError("Subscription price must be empty for BEDELSIZ actions")
+
     @classmethod
     def create_bedelsiz(
         cls,

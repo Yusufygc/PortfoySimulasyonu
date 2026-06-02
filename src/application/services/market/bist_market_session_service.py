@@ -3,10 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, time
 
-from src.infrastructure.calendar.bist_holiday_calendar import (
-    is_bist_half_trading_day,
-    is_bist_trading_day,
-)
+from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
 
 
 @dataclass(frozen=True)
@@ -27,8 +24,11 @@ class BistMarketSessionService:
     HALF_DAY_OPEN = time(10, 0)
     HALF_DAY_CLOSE = time(13, 0)
 
+    def __init__(self, trading_calendar: MarketTradingCalendar | None = None) -> None:
+        self._trading_calendar = trading_calendar or WeekdayTradingCalendar()
+
     def status_for(self, trade_date: date, trade_time: time | None = None) -> MarketSessionStatus:
-        if not is_bist_trading_day(trade_date):
+        if not self._trading_calendar.is_trading_day(trade_date):
             return MarketSessionStatus(
                 is_open=False,
                 day_type="closed",
@@ -39,7 +39,7 @@ class BistMarketSessionService:
                 ),
             )
 
-        is_half_day = is_bist_half_trading_day(trade_date)
+        is_half_day = self._trading_calendar.is_half_trading_day(trade_date)
         open_time = self.HALF_DAY_OPEN if is_half_day else self.FULL_DAY_OPEN
         close_time = self.HALF_DAY_CLOSE if is_half_day else self.FULL_DAY_CLOSE
         day_type = "half_day" if is_half_day else "full_day"

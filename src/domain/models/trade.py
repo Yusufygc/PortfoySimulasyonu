@@ -27,6 +27,19 @@ class Trade:
     quantity: int          # lot sayısı
     price: Decimal         # birim fiyat
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.side, TradeSide):
+            try:
+                object.__setattr__(self, "side", TradeSide(self.side))
+            except ValueError as exc:
+                raise ValueError(f"Unknown trade side: {self.side}") from exc
+
+        if self.quantity <= 0:
+            raise ValueError("Quantity must be positive")
+
+        if self.price < 0:
+            raise ValueError("Price cannot be negative")
+
     @property
     def total_amount(self) -> Decimal:
         """

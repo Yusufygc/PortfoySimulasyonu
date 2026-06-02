@@ -47,7 +47,19 @@ class PortfolioTimelineValidator:
         cash = Decimal("0")
         positions: dict[int, int] = defaultdict(int)
         violations: list[tuple[object, str]] = []
+        events = cls._timeline_events(trades, cash_movements, candidate_marker)
 
+        for _event_date, _event_time, _event_order, event_id, event_type, payload, marker in events:
+            cash = cls._apply_event(event_id, event_type, payload, marker, cash, positions, violations)
+        return violations
+
+    @classmethod
+    def _timeline_events(
+        cls,
+        trades: list[Trade],
+        cash_movements: list[tuple[date, dt_time, int, int, object, Decimal]],
+        candidate_marker: tuple | None = None,
+    ) -> list[tuple[date, dt_time, int, int, object, object, object]]:
         events: list[tuple[date, dt_time, int, int, object, object, object]] = []
         for event_date, event_time, event_order, event_id, event_type, amount in cash_movements:
             events.append((event_date, event_time, event_order, event_id, event_type, amount, None))
@@ -67,45 +79,43 @@ class PortfolioTimelineValidator:
             )
 
         events.sort(key=lambda event: (event[0], event[1], event[2], event[3]))
-        for _event_date, _event_time, _event_order, event_id, event_type, payload, marker in events:
-            if event_type == CashMovementType.DEPOSIT:
-                cash += payload
-                continue
-            if event_type == CashMovementType.WITHDRAW:
-                if payload > cash:
-                    violations.append((marker or ("cash", event_id), "Yetersiz nakit. Nakit çekimi bakiyeyi aşıyor."))
-                    cash = Decimal("0")
-                else:
-                    cash -= payload
-                continue
+        return events
 
-            trade = payload
-            if trade.side == TradeSide.BUY:
-                if trade.total_amount > cash:
-                    violations.append(
-                        (
-                            marker,
-                            f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash:.2f} TL",
-                        )
-                    )
-                    cash = Decimal("0")
-                else:
-                    cash -= trade.total_amount
-                positions[trade.stock_id] += trade.quantity
-            else:
-                available = positions[trade.stock_id]
-                if trade.quantity > available:
-                    violations.append(
-                        (
-                            marker,
-                            f"Yetersiz pozisyon. Satmak istediğiniz: {trade.quantity}, Mevcut: {available}",
-                        )
-                    )
-                    continue
-                positions[trade.stock_id] -= trade.quantity
-                cash += trade.total_amount
+    @classmethod
+    def _apply_event(cls, event_id, event_type, payload, marker, cash, positions, violations) -> Decimal:
+        if event_type == CashMovementType.DEPOSIT:
+            return cash + payload
+        if event_type == CashMovementType.WITHDRAW:
+            return cls._apply_withdraw(event_id, payload, marker, cash, violations)
+        return cls._apply_trade_event(payload, marker, cash, positions, violations)
 
-        return violations
+    @staticmethod
+    def _apply_withdraw(event_id, amount: Decimal, marker, cash: Decimal, violations) -> Decimal:
+        if amount > cash:
+            violations.append((marker or ("cash", event_id), "Yetersiz nakit. Nakit çekimi bakiyeyi aşıyor."))
+            return Decimal("0")
+        return cash - amount
+
+    @classmethod
+    def _apply_trade_event(cls, trade: Trade, marker, cash: Decimal, positions, violations) -> Decimal:
+        if trade.side == TradeSide.BUY:
+            return cls._apply_buy_trade(trade, marker, cash, positions, violations)
+        available = positions[trade.stock_id]
+        if trade.quantity > available:
+            violations.append((marker, f"Yetersiz pozisyon. Satmak istediğiniz: {trade.quantity}, Mevcut: {available}"))
+            return cash
+        positions[trade.stock_id] -= trade.quantity
+        return cash + trade.total_amount
+
+    @staticmethod
+    def _apply_buy_trade(trade: Trade, marker, cash: Decimal, positions, violations) -> Decimal:
+        if trade.total_amount > cash:
+            violations.append((marker, f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash:.2f} TL"))
+            cash = Decimal("0")
+        else:
+            cash -= trade.total_amount
+        positions[trade.stock_id] += trade.quantity
+        return cash
 
     @staticmethod
     def _trade_marker(trade: Trade) -> object:

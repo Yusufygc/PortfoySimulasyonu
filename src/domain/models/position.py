@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
+from datetime import time
 from decimal import Decimal
 from typing import Iterable, List, Optional
 
@@ -58,7 +59,7 @@ class Position:
         """
         position = cls(stock_id=stock_id)
 
-        ordered_trades = trades if is_sorted else sorted(trades, key=lambda t: (t.trade_date, t.trade_time or 0))
+        ordered_trades = trades if is_sorted else sorted(trades, key=lambda t: (t.trade_date, t.trade_time or time.min))
         for trade in ordered_trades:
             position.apply_trade(trade)
 
@@ -74,14 +75,14 @@ class Position:
         if trade.stock_id != self.stock_id:
             raise ValueError("Trade stock_id does not match Position stock_id")
 
-        self.trades.append(trade)
-
         if trade.side == TradeSide.BUY:
             self._apply_buy(trade)
         elif trade.side == TradeSide.SELL:
             self._apply_sell(trade)
         else:
             raise ValueError(f"Unknown trade side: {trade.side}")
+
+        self.trades.append(trade)
 
     def _apply_buy(self, trade: Trade) -> None:
         """

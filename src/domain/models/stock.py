@@ -21,3 +21,14 @@ class Stock:
     currency_code: str = "TRY"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+    def __post_init__(self) -> None:
+        ticker = (self.ticker or "").strip().upper()
+        if not ticker:
+            raise ValueError("Ticker is required")
+        object.__setattr__(self, "ticker", ticker)
+
+        currency_code = (self.currency_code or "").strip().upper()
+        if not currency_code:
+            raise ValueError("Currency code is required")
+        object.__setattr__(self, "currency_code", currency_code)

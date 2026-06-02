@@ -11,6 +11,7 @@ from src.application.services.reporting.daily_history_models import (
     PortfolioStatus,
     SUMMARY_ROW_LABEL,
 )
+from src.application.services.reporting.excel_dashboard_stats_calculator import ExcelDashboardStatsCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,9 @@ def _sf(val: Optional[Decimal]) -> Optional[float]:
 
 
 class ExcelDataPreparer:
+    def __init__(self) -> None:
+        self._dashboard_stats_calculator = ExcelDashboardStatsCalculator()
+
     @staticmethod
     def normalize_date_column(df: pd.DataFrame, column: str = "Tarih") -> pd.DataFrame:
         if df.empty or column not in df.columns:
@@ -126,55 +130,59 @@ class ExcelDataPreparer:
         records = []
         for d in sorted(positions_by_date):
             day_positions = sorted(positions_by_date[d], key=lambda x: x.ticker)
-
-            total_cost_basis       = Decimal("0")
-            total_position_value   = Decimal("0")
-            total_unrealized_pnl   = Decimal("0")
-
-            for p in day_positions:
-                records.append({
-                    "Tarih":                  p.date,
-                    "Hisse":                  p.ticker,
-                    "Adet":                   p.quantity,
-                    "Ort. Maliyet (TL)":      float(p.avg_cost),
-                    "Güncel Fiyat (TL)":      _sf(p.close_price),
-                    "Toplam Maliyet (TL)":    float(p.cost_basis),
-                    "Pozisyon Değeri (TL)":   _sf(p.position_value),
-                    "Günlük Fiyat Değ. (%)":  self._format_pct(p.daily_price_change_pct),
-                    "Günlük K/Z (TL)":        _sf(p.daily_pnl_tl),
-                    "Toplam K/Z (TL)":        _sf(p.unrealized_pnl_tl),
-                    "Toplam K/Z (%)":         self._format_pct(p.unrealized_pnl_pct),
-                    "Portföy Ağırlığı (%)":   self._format_pct(p.weight_pct),
-                })
-
-                total_cost_basis     += p.cost_basis
-                if p.position_value is not None:
-                    total_position_value += p.position_value
-                if p.unrealized_pnl_tl is not None:
-                    total_unrealized_pnl += p.unrealized_pnl_tl
-
-            snapshot = snapshot_map.get(d)
-            total_unrealized_ratio = (
-                total_unrealized_pnl / total_cost_basis
-                if total_cost_basis != 0 else None
-            )
-
-            records.append({
-                "Tarih":                  None,
-                "Hisse":                  SUMMARY_ROW_LABEL,
-                "Adet":                   None,
-                "Ort. Maliyet (TL)":      None,
-                "Güncel Fiyat (TL)":      None,
-                "Toplam Maliyet (TL)":    float(total_cost_basis),
-                "Pozisyon Değeri (TL)":   float(total_position_value),
-                "Günlük Fiyat Değ. (%)":  self._format_pct(snapshot.daily_return_pct if snapshot else None),
-                "Günlük K/Z (TL)":        _sf(snapshot.daily_pnl if snapshot else None),
-                "Toplam K/Z (TL)":        float(total_unrealized_pnl),
-                "Toplam K/Z (%)":         self._format_pct(total_unrealized_ratio),
-                "Portföy Ağırlığı (%)":   self._format_pct(Decimal("1.0")),
-            })
+            day_records, totals = self._detail_rows_for_day(day_positions)
+            records.extend(day_records)
+            records.append(self._detail_total_row(snapshot_map.get(d), totals))
 
         return pd.DataFrame.from_records(records)
+
+    def _detail_rows_for_day(self, day_positions: list[DailyPosition]) -> tuple[list[dict], dict]:
+        totals = {"cost_basis": Decimal("0"), "position_value": Decimal("0"), "unrealized_pnl": Decimal("0")}
+        records = []
+        for position in day_positions:
+            records.append(self._detail_position_row(position))
+            totals["cost_basis"] += position.cost_basis
+            if position.position_value is not None:
+                totals["position_value"] += position.position_value
+            if position.unrealized_pnl_tl is not None:
+                totals["unrealized_pnl"] += position.unrealized_pnl_tl
+        return records, totals
+
+    def _detail_position_row(self, position: DailyPosition) -> dict:
+        return {
+            "Tarih": position.date,
+            "Hisse": position.ticker,
+            "Adet": position.quantity,
+            "Ort. Maliyet (TL)": float(position.avg_cost),
+            "Güncel Fiyat (TL)": _sf(position.close_price),
+            "Toplam Maliyet (TL)": float(position.cost_basis),
+            "Pozisyon Değeri (TL)": _sf(position.position_value),
+            "Günlük Fiyat Değ. (%)": self._format_pct(position.daily_price_change_pct),
+            "Günlük K/Z (TL)": _sf(position.daily_pnl_tl),
+            "Toplam K/Z (TL)": _sf(position.unrealized_pnl_tl),
+            "Toplam K/Z (%)": self._format_pct(position.unrealized_pnl_pct),
+            "Portföy Ağırlığı (%)": self._format_pct(position.weight_pct),
+        }
+
+    def _detail_total_row(self, snapshot: DailyPortfolioSnapshot | None, totals: dict) -> dict:
+        total_unrealized_ratio = (
+            totals["unrealized_pnl"] / totals["cost_basis"]
+            if totals["cost_basis"] != 0 else None
+        )
+        return {
+            "Tarih": None,
+            "Hisse": SUMMARY_ROW_LABEL,
+            "Adet": None,
+            "Ort. Maliyet (TL)": None,
+            "Güncel Fiyat (TL)": None,
+            "Toplam Maliyet (TL)": float(totals["cost_basis"]),
+            "Pozisyon Değeri (TL)": float(totals["position_value"]),
+            "Günlük Fiyat Değ. (%)": self._format_pct(snapshot.daily_return_pct if snapshot else None),
+            "Günlük K/Z (TL)": _sf(snapshot.daily_pnl if snapshot else None),
+            "Toplam K/Z (TL)": float(totals["unrealized_pnl"]),
+            "Toplam K/Z (%)": self._format_pct(total_unrealized_ratio),
+            "Portföy Ağırlığı (%)": self._format_pct(Decimal("1.0")),
+        }
 
     def build_stock_summary_df(self, positions: List[DailyPosition]) -> pd.DataFrame:
         if not positions:
@@ -255,96 +263,7 @@ class ExcelDataPreparer:
         ]]
 
     def dashboard_stats(self, summary_df: pd.DataFrame, stock_summary_df: pd.DataFrame) -> dict:
-        stats = {
-            "period": "Veri yok",
-            "portfolio_sentence": "Portföy değeri grafiği için yeterli veri yok.",
-            "return_sentence": "Getiri grafikleri için yeterli veri yok.",
-            "allocation_sentence": "Hisse dağılımı için yeterli veri yok.",
-            "rows": [],
-            "top_holdings": [],
-        }
-        if not summary_df.empty:
-            df = summary_df.copy()
-            df["Tarih"] = pd.to_datetime(df["Tarih"], errors="coerce")
-            df = df.dropna(subset=["Tarih"]).reset_index(drop=True)
-            if not df.empty:
-                first = df.iloc[0]
-                last = df.iloc[-1]
-                start_value = self._num(first.get("Portföy Değeri (TL)"))
-                end_value = self._num(last.get("Portföy Değeri (TL)"))
-                change_tl = end_value - start_value if start_value is not None and end_value is not None else None
-                change_pct = change_tl / start_value if change_tl is not None and start_value else None
-
-                value_series = pd.to_numeric(df["Portföy Değeri (TL)"], errors="coerce")
-                peak_idx = value_series.idxmax() if value_series.notna().any() else None
-                low_idx = value_series.idxmin() if value_series.notna().any() else None
-                peak = df.loc[peak_idx] if peak_idx is not None else None
-                low = df.loc[low_idx] if low_idx is not None else None
-
-                daily_series = pd.to_numeric(df["Günlük Getiri (%)"], errors="coerce")
-                best_idx = daily_series.idxmax() if daily_series.notna().any() else None
-                worst_idx = daily_series.idxmin() if daily_series.notna().any() else None
-                best = df.loc[best_idx] if best_idx is not None else None
-                worst = df.loc[worst_idx] if worst_idx is not None else None
-
-                stats["period"] = f"{self._fmt_date(first['Tarih'])} - {self._fmt_date(last['Tarih'])}"
-                stats["rows"] = [
-                    ("Rapor dönemi", stats["period"]),
-                    ("Başlangıç değeri", self._fmt_tl(start_value)),
-                    ("Bitiş değeri", self._fmt_tl(end_value)),
-                    ("Dönem değişimi", f"{self._fmt_tl(change_tl)} / {self._fmt_pct_value(change_pct)}"),
-                    (
-                        "En yüksek değer",
-                        f"{self._fmt_tl(self._num(peak['Portföy Değeri (TL)']))} ({self._fmt_date(peak['Tarih'])})" if peak is not None else "—",
-                    ),
-                    (
-                        "En düşük değer",
-                        f"{self._fmt_tl(self._num(low['Portföy Değeri (TL)']))} ({self._fmt_date(low['Tarih'])})" if low is not None else "—",
-                    ),
-                    ("Dönem sonu getiri", self._fmt_pct_value(self._num(last.get("Toplam Getiri (%)")))),
-                ]
-                stats["portfolio_sentence"] = (
-                    f"Portföy {stats['period']} döneminde {self._fmt_tl(start_value)} seviyesinden "
-                    f"{self._fmt_tl(end_value)} seviyesine geldi. Net değişim {self._fmt_tl(change_tl)} "
-                    f"({self._fmt_pct_value(change_pct)})."
-                )
-                stats["return_sentence"] = (
-                    f"En iyi günlük getiri {self._fmt_date(best['Tarih'])} tarihinde "
-                    f"{self._fmt_pct_value(self._num(best['Günlük Getiri (%)']))}; en kötü günlük getiri "
-                    f"{self._fmt_date(worst['Tarih'])} tarihinde {self._fmt_pct_value(self._num(worst['Günlük Getiri (%)']))}."
-                    if best is not None and worst is not None
-                    else stats["return_sentence"]
-                )
-
-        holdings = self.top_holdings(stock_summary_df)
-        if holdings:
-            stats["top_holdings"] = holdings
-            leader = holdings[0]
-            stats["allocation_sentence"] = (
-                f"En büyük ağırlık {leader['ticker']} hissesinde: "
-                f"{self._fmt_tl(leader['value'])} ({self._fmt_pct_value(leader['weight'])})."
-            )
-        return stats
+        return self._dashboard_stats_calculator.dashboard_stats(summary_df, stock_summary_df)
 
     def top_holdings(self, stock_summary_df: pd.DataFrame) -> list[dict]:
-        if stock_summary_df.empty or "Son Pozisyon Değeri (TL)" not in stock_summary_df.columns:
-            return []
-        df = stock_summary_df[["Hisse", "Son Pozisyon Değeri (TL)"]].copy()
-        df["Son Pozisyon Değeri (TL)"] = pd.to_numeric(df["Son Pozisyon Değeri (TL)"], errors="coerce")
-        df = df.dropna(subset=["Son Pozisyon Değeri (TL)"])
-        total_value = df["Son Pozisyon Değeri (TL)"].sum()
-        if total_value <= 0:
-            return []
-        df = df.sort_values("Son Pozisyon Değeri (TL)", ascending=False).reset_index(drop=True)
-        top_rows = [
-            {
-                "ticker": row["Hisse"],
-                "value": float(row["Son Pozisyon Değeri (TL)"]),
-                "weight": float(row["Son Pozisyon Değeri (TL)"] / total_value),
-            }
-            for _, row in df.head(3).iterrows()
-        ]
-        remainder = float(df.iloc[3:]["Son Pozisyon Değeri (TL)"].sum())
-        if remainder > 0:
-            top_rows.append({"ticker": "Diğer", "value": remainder, "weight": remainder / total_value})
-        return top_rows
+        return self._dashboard_stats_calculator.top_holdings(stock_summary_df)

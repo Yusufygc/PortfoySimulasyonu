@@ -6,13 +6,13 @@ from typing import List, Tuple
 
 from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
 from src.application.services.reporting.daily_history_models import DailyPortfolioSnapshot, DailyPosition
+from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
 from src.application.services.simulation.history_position_builder import HistoryPositionBuilder
 from src.application.services.simulation.history_simulation_state import SimulationState
 from src.application.services.simulation.history_snapshot_builder import HistorySnapshotBuilder
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
-from src.infrastructure.calendar.bist_holiday_calendar import is_bist_trading_day
 
 
 class HistorySimulationService:
@@ -21,10 +21,12 @@ class HistorySimulationService:
         portfolio_repo: IPortfolioRepository,
         price_repo: IPriceRepository,
         stock_repo: IStockRepository,
+        trading_calendar: MarketTradingCalendar | None = None,
     ) -> None:
         self._portfolio_repo = portfolio_repo
         self._price_repo = price_repo
         self._stock_repo = stock_repo
+        self._trading_calendar = trading_calendar or WeekdayTradingCalendar()
         self._position_builder = HistoryPositionBuilder()
         self._snapshot_builder = HistorySnapshotBuilder()
 
@@ -50,42 +52,16 @@ class HistorySimulationService:
         state = SimulationState()
         daily_positions: list[DailyPosition] = []
         daily_snapshots: list[DailyPortfolioSnapshot] = []
-
-        current_date = start_date
-        while current_date <= end_date:
-            self._apply_due_trades(state, relevant_trades, current_date)
-            is_trading_day = is_bist_trading_day(current_date)
-            prices_for_day = price_series.get(current_date, {}) if is_trading_day else {}
-            has_prices = bool(prices_for_day)
-            total_cost_basis = Decimal("0")
-            portfolio_value = state.last_portfolio_value if state.last_portfolio_value is not None else None
-
-            if has_prices:
-                position_result = self._position_builder.build(
-                    current_date=current_date,
-                    portfolio=state.portfolio,
-                    prices_for_day=prices_for_day,
-                    ticker_map=ticker_map,
-                    last_close_by_stock=state.last_close_by_stock,
-                )
-                daily_positions.extend(position_result.positions)
-                total_cost_basis = position_result.total_cost_basis
-                portfolio_value = position_result.portfolio_value
-                state.last_close_by_stock = position_result.last_close_by_stock
-
-            snapshot_result = self._snapshot_builder.build(
+        for current_date in self._date_range(start_date, end_date):
+            self._simulate_day(
                 current_date=current_date,
-                portfolio_value=portfolio_value,
-                total_cost_basis=total_cost_basis,
-                last_portfolio_value=state.last_portfolio_value,
-                base_portfolio_value=state.base_portfolio_value,
-                has_prices=has_prices,
-                is_trading_day=is_trading_day,
+                state=state,
+                relevant_trades=relevant_trades,
+                price_series=price_series,
+                ticker_map=ticker_map,
+                daily_positions=daily_positions,
+                daily_snapshots=daily_snapshots,
             )
-            daily_snapshots.append(snapshot_result.snapshot)
-            state.base_portfolio_value = snapshot_result.base_portfolio_value
-            state.last_portfolio_value = snapshot_result.last_portfolio_value
-            current_date += timedelta(days=1)
 
         return daily_positions, daily_snapshots
 
@@ -114,3 +90,63 @@ class HistorySimulationService:
         while state.trade_cursor < trade_count and relevant_trades[state.trade_cursor].trade_date <= current_date:
             state.portfolio.apply_trade(relevant_trades[state.trade_cursor])
             state.trade_cursor += 1
+
+    def _simulate_day(
+        self,
+        current_date: date,
+        state: SimulationState,
+        relevant_trades: list,
+        price_series: dict,
+        ticker_map: dict[int, str],
+        daily_positions: list[DailyPosition],
+        daily_snapshots: list[DailyPortfolioSnapshot],
+    ) -> None:
+        self._apply_due_trades(state, relevant_trades, current_date)
+        is_trading_day = self._trading_calendar.is_trading_day(current_date)
+        prices_for_day = price_series.get(current_date, {}) if is_trading_day else {}
+        position_result = self._build_positions_for_day(current_date, state, prices_for_day, ticker_map)
+        if position_result is not None:
+            daily_positions.extend(position_result.positions)
+            total_cost_basis = position_result.total_cost_basis
+            portfolio_value = position_result.portfolio_value
+            state.last_close_by_stock = position_result.last_close_by_stock
+        else:
+            total_cost_basis = Decimal("0")
+            portfolio_value = state.last_portfolio_value if state.last_portfolio_value is not None else None
+
+        snapshot_result = self._snapshot_builder.build(
+            current_date=current_date,
+            portfolio_value=portfolio_value,
+            total_cost_basis=total_cost_basis,
+            last_portfolio_value=state.last_portfolio_value,
+            base_portfolio_value=state.base_portfolio_value,
+            has_prices=bool(prices_for_day),
+            is_trading_day=is_trading_day,
+        )
+        daily_snapshots.append(snapshot_result.snapshot)
+        state.base_portfolio_value = snapshot_result.base_portfolio_value
+        state.last_portfolio_value = snapshot_result.last_portfolio_value
+
+    def _build_positions_for_day(
+        self,
+        current_date: date,
+        state: SimulationState,
+        prices_for_day: dict,
+        ticker_map: dict[int, str],
+    ):
+        if not prices_for_day:
+            return None
+        return self._position_builder.build(
+            current_date=current_date,
+            portfolio=state.portfolio,
+            prices_for_day=prices_for_day,
+            ticker_map=ticker_map,
+            last_close_by_stock=state.last_close_by_stock,
+        )
+
+    @staticmethod
+    def _date_range(start_date: date, end_date: date):
+        current_date = start_date
+        while current_date <= end_date:
+            yield current_date
+            current_date += timedelta(days=1)

@@ -2,10 +2,15 @@ from datetime import date, time
 
 from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.infrastructure.calendar.bist_holiday_calendar import is_bist_half_trading_day
+from src.infrastructure.calendar.bist_trading_calendar_provider import BistTradingCalendarProvider
+
+
+def _service() -> BistMarketSessionService:
+    return BistMarketSessionService(trading_calendar=BistTradingCalendarProvider())
 
 
 def test_half_day_uses_early_close():
-    service = BistMarketSessionService()
+    service = _service()
 
     assert is_bist_half_trading_day(date(2026, 5, 26))
     assert service.status_for(date(2026, 5, 26), time(12, 45)).is_open
@@ -17,7 +22,7 @@ def test_half_day_uses_early_close():
 
 
 def test_closed_holiday_is_warning_not_open():
-    service = BistMarketSessionService()
+    service = _service()
 
     status = service.status_for(date(2026, 5, 27), time(10, 0))
 
@@ -26,7 +31,7 @@ def test_closed_holiday_is_warning_not_open():
 
 
 def test_full_day_session_bounds():
-    service = BistMarketSessionService()
+    service = _service()
 
     assert service.status_for(date(2026, 5, 25), time(10, 0)).is_open
     assert service.status_for(date(2026, 5, 25), time(18, 10)).is_open

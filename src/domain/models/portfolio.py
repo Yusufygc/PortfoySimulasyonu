@@ -1,12 +1,10 @@
 # src/domain/models/portfolio.py
 
 from __future__ import annotations
-import logging
 from dataclasses import dataclass, field
 from datetime import time
 from decimal import Decimal
 
-logger = logging.getLogger(__name__)
 from typing import Dict, Iterable, List, Mapping
 
 from .position import Position
@@ -90,7 +88,6 @@ class Portfolio:
         for stock_id, position in self.positions.items():
             current_price = price_map.get(stock_id)
             if current_price is None:
-                logger.warning(f"Portfolio.total_market_value: Hisse ID {stock_id} için fiyat bulunamadı, hesaplamaya dahil edilmedi.")
                 continue
             total += position.market_value(current_price)
         return total
@@ -103,7 +100,6 @@ class Portfolio:
         for stock_id, position in self.positions.items():
             current_price = price_map.get(stock_id)
             if current_price is None:
-                logger.warning(f"Portfolio.total_unrealized_pl: Hisse ID {stock_id} için fiyat bulunamadı, hesaplamaya dahil edilmedi.")
                 continue
             total += position.unrealized_pl(current_price)
         return total

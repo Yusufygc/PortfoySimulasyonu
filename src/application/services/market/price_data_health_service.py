@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Dict, List, Sequence, Set
+from typing import Dict, List, Protocol, Sequence, Set
 
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.stock import Stock
@@ -12,7 +12,16 @@ from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
-from src.infrastructure.calendar.bist_holiday_calendar import get_bist_holidays
+
+
+class MarketHolidayProvider(Protocol):
+    def get_holidays(self, start_date: date, end_date: date) -> Set[date]:
+        ...
+
+
+class NoKnownMarketHolidayProvider:
+    def get_holidays(self, start_date: date, end_date: date) -> Set[date]:
+        return set()
 
 
 @dataclass(frozen=True)
@@ -86,89 +95,133 @@ class PriceDataUpdateResult:
     prices: Dict[int, Decimal] = field(default_factory=dict)
 
 
-class PriceDataHealthService:
+def _validate_range(start_date: date, end_date: date) -> None:
+    if start_date > end_date:
+        raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
+
+
+def _date_range(start_date: date, end_date: date) -> List[date]:
+    days: List[date] = []
+    current = start_date
+    while current <= end_date:
+        days.append(current)
+        current += timedelta(days=1)
+    return days
+
+
+def _business_days(
+    start_date: date,
+    end_date: date,
+    known_holidays: Set[date] | None = None,
+) -> List[date]:
+    excluded = known_holidays or set()
+    return [
+        point_date
+        for point_date in _date_range(start_date, end_date)
+        if point_date.weekday() < 5 and point_date not in excluded
+    ]
+
+
+def _weekend_days(start_date: date, end_date: date) -> List[date]:
+    return [
+        point_date
+        for point_date in _date_range(start_date, end_date)
+        if point_date.weekday() >= 5
+    ]
+
+
+def _status_for_missing_count(missing_count: int, expected_count: int) -> str:
+    if missing_count == 0:
+        return "Sağlıklı"
+    if expected_count <= 0 or missing_count / expected_count < 0.1:
+        return "Eksik Var"
+    return "Kritik"
+
+
+def _active_stock_ids_for_date(
+    stock_ids: Sequence[int],
+    first_trade_dates: Dict[int, date],
+    point_date: date,
+) -> List[int]:
+    if not first_trade_dates:
+        return list(stock_ids)
+    return [
+        stock_id
+        for stock_id in stock_ids
+        if first_trade_dates.get(stock_id) is not None and first_trade_dates[stock_id] <= point_date
+    ]
+
+
+class PriceScopeResolver:
     def __init__(
         self,
         stock_repo: IStockRepository,
-        price_repo: IPriceRepository,
-        market_data_client: IMarketDataClient,
         portfolio_repo: IPortfolioRepository | None = None,
         model_portfolio_repo: IModelPortfolioRepository | None = None,
-        default_lookback_days: int = 90,
     ) -> None:
         self._stock_repo = stock_repo
-        self._price_repo = price_repo
-        self._market_data_client = market_data_client
         self._portfolio_repo = portfolio_repo
         self._model_portfolio_repo = model_portfolio_repo
-        self._default_lookback_days = default_lookback_days
 
-    def default_start_date(self, today: date | None = None) -> date:
-        today = today or date.today()
-        candidate = today - timedelta(days=self._default_lookback_days)
-        minimum = self.minimum_start_date()
-        return max(candidate, minimum) if minimum else candidate
+    def first_trade_dates_by_stock(self) -> Dict[int, date]:
+        if self._portfolio_repo is None and self._model_portfolio_repo is None:
+            return {}
+        result: Dict[int, date] = {}
+        for trade in self.price_scope_trades():
+            current = result.get(trade.stock_id)
+            if current is None or trade.trade_date < current:
+                result[trade.stock_id] = trade.trade_date
+        return result
 
-    def minimum_start_date(self) -> date | None:
-        first_dates = self._first_trade_dates_by_stock()
-        return min(first_dates.values(), default=None)
+    def stocks_in_scope(self, first_trade_dates: Dict[int, date]) -> List[Stock]:
+        stocks = self._stock_repo.get_all_stocks()
+        if self._portfolio_repo is None and self._model_portfolio_repo is None:
+            return stocks
+        active_stock_ids = set(first_trade_dates)
+        return [stock for stock in stocks if stock.id in active_stock_ids]
+
+    def price_scope_trades(self):
+        if self._portfolio_repo is not None:
+            yield from self._portfolio_repo.get_all_trades()
+        if self._model_portfolio_repo is None:
+            return
+        for portfolio in self._model_portfolio_repo.get_all_model_portfolios():
+            if portfolio.id is None:
+                continue
+            yield from self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio.id)
+
+
+class PriceHealthAnalyzer:
+    def __init__(
+        self,
+        price_repo: IPriceRepository,
+        scope_resolver: PriceScopeResolver,
+        holiday_provider: MarketHolidayProvider,
+    ) -> None:
+        self._price_repo = price_repo
+        self._scope_resolver = scope_resolver
+        self._holiday_provider = holiday_provider
 
     def analyze(self, start_date: date, end_date: date) -> PriceDataHealthReport:
-        self._validate_range(start_date, end_date)
-        first_trade_dates = self._first_trade_dates_by_stock()
-        stocks = self._stocks_in_price_health_scope(first_trade_dates)
+        _validate_range(start_date, end_date)
+        first_trade_dates = self._scope_resolver.first_trade_dates_by_stock()
+        stocks = self._scope_resolver.stocks_in_scope(first_trade_dates)
         stock_ids = [stock.id for stock in stocks if stock.id is not None]
 
-        # Bilinen BIST tatillerini önce hesapla; bunları beklenen iş günlerinden çıkar
-        known_holidays = get_bist_holidays(start_date, end_date)
-        business_days = self._business_days(start_date, end_date, known_holidays)
-        weekend_days = self._weekend_days(start_date, end_date)
+        known_holidays = self._holiday_provider.get_holidays(start_date, end_date)
+        business_days = _business_days(start_date, end_date, known_holidays)
+        weekend_days = _weekend_days(start_date, end_date)
 
         presence_map = self._price_repo.get_price_presence_map(stock_ids, start_date, end_date)
         latest_dates = self._price_repo.get_latest_price_dates(stock_ids)
-
-        # Heuristik tatil tespiti: iş günleri içinde hiçbir aktif hissenin verisi olmayan günler
-        empty_weekdays = [
-            point_date
-            for point_date in business_days
-            if self._active_stock_ids_for_date(stock_ids, first_trade_dates, point_date)
-            and not any(
-                point_date in presence_map.get(stock_id, set())
-                for stock_id in self._active_stock_ids_for_date(stock_ids, first_trade_dates, point_date)
-            )
-        ]
+        empty_weekdays = self._empty_weekdays(
+            stock_ids=stock_ids,
+            first_trade_dates=first_trade_dates,
+            business_days=business_days,
+            presence_map=presence_map,
+        )
         holiday_candidates = list(empty_weekdays)
-        holiday_candidate_set = set(holiday_candidates)
 
-        rows: List[StockPriceHealthRow] = []
-        for stock in stocks:
-            if stock.id is None:
-                continue
-            existing_dates = presence_map.get(stock.id, set())
-            active_start_date = max(start_date, first_trade_dates.get(stock.id, start_date))
-            missing_dates = [
-                point_date
-                for point_date in business_days
-                if point_date >= active_start_date
-                and point_date not in holiday_candidate_set
-                and point_date not in existing_dates
-            ]
-            expected_count = len([point_date for point_date in business_days if point_date >= active_start_date])
-            status = self._status_for_missing_count(len(missing_dates), expected_count)
-            rows.append(
-                StockPriceHealthRow(
-                    stock_id=stock.id,
-                    ticker=stock.ticker,
-                    last_price_date=latest_dates.get(stock.id),
-                    missing_dates=missing_dates,
-                    first_missing_date=missing_dates[0] if missing_dates else None,
-                    last_missing_date=missing_dates[-1] if missing_dates else None,
-                    status=status,
-                    first_trade_date=first_trade_dates.get(stock.id),
-                )
-            )
-
-        latest_price_date = max(latest_dates.values(), default=None)
         return PriceDataHealthReport(
             start_date=start_date,
             end_date=end_date,
@@ -177,10 +230,109 @@ class PriceDataHealthService:
             weekend_days=weekend_days,
             empty_weekdays=empty_weekdays,
             holiday_candidate_dates=holiday_candidates,
-            rows=rows,
-            latest_price_date=latest_price_date,
+            rows=self._build_rows(
+                stocks=stocks,
+                start_date=start_date,
+                business_days=business_days,
+                first_trade_dates=first_trade_dates,
+                presence_map=presence_map,
+                latest_dates=latest_dates,
+                holiday_candidate_set=set(holiday_candidates),
+            ),
+            latest_price_date=max(latest_dates.values(), default=None),
             known_holiday_dates=sorted(known_holidays),
         )
+
+    def _empty_weekdays(
+        self,
+        stock_ids: Sequence[int],
+        first_trade_dates: Dict[int, date],
+        business_days: Sequence[date],
+        presence_map: Dict[int, Set[date]],
+    ) -> List[date]:
+        empty_weekdays: List[date] = []
+        for point_date in business_days:
+            active_ids = _active_stock_ids_for_date(stock_ids, first_trade_dates, point_date)
+            if active_ids and not any(point_date in presence_map.get(stock_id, set()) for stock_id in active_ids):
+                empty_weekdays.append(point_date)
+        return empty_weekdays
+
+    def _build_rows(
+        self,
+        stocks: Sequence[Stock],
+        start_date: date,
+        business_days: Sequence[date],
+        first_trade_dates: Dict[int, date],
+        presence_map: Dict[int, Set[date]],
+        latest_dates: Dict[int, date],
+        holiday_candidate_set: Set[date],
+    ) -> List[StockPriceHealthRow]:
+        rows: List[StockPriceHealthRow] = []
+        for stock in stocks:
+            if stock.id is None:
+                continue
+            missing_dates, expected_count = self._missing_dates_for_stock(
+                stock_id=stock.id,
+                start_date=start_date,
+                business_days=business_days,
+                first_trade_dates=first_trade_dates,
+                presence_map=presence_map,
+                holiday_candidate_set=holiday_candidate_set,
+            )
+            rows.append(
+                StockPriceHealthRow(
+                    stock_id=stock.id,
+                    ticker=stock.ticker,
+                    last_price_date=latest_dates.get(stock.id),
+                    missing_dates=missing_dates,
+                    first_missing_date=missing_dates[0] if missing_dates else None,
+                    last_missing_date=missing_dates[-1] if missing_dates else None,
+                    status=_status_for_missing_count(len(missing_dates), expected_count),
+                    first_trade_date=first_trade_dates.get(stock.id),
+                )
+            )
+        return rows
+
+    def _missing_dates_for_stock(
+        self,
+        stock_id: int,
+        start_date: date,
+        business_days: Sequence[date],
+        first_trade_dates: Dict[int, date],
+        presence_map: Dict[int, Set[date]],
+        holiday_candidate_set: Set[date],
+    ) -> tuple[List[date], int]:
+        existing_dates = presence_map.get(stock_id, set())
+        active_start_date = max(start_date, first_trade_dates.get(stock_id, start_date))
+        missing_dates = [
+            point_date
+            for point_date in business_days
+            if point_date >= active_start_date
+            and point_date not in holiday_candidate_set
+            and point_date not in existing_dates
+        ]
+        expected_count = len([point_date for point_date in business_days if point_date >= active_start_date])
+        return missing_dates, expected_count
+
+
+class PriceHealthUpdater:
+    def __init__(
+        self,
+        stock_repo: IStockRepository,
+        price_repo: IPriceRepository,
+        market_data_client: IMarketDataClient,
+        scope_resolver: PriceScopeResolver,
+        analyzer: PriceHealthAnalyzer,
+        holiday_provider: MarketHolidayProvider,
+        default_start_date_func,
+    ) -> None:
+        self._stock_repo = stock_repo
+        self._price_repo = price_repo
+        self._market_data_client = market_data_client
+        self._scope_resolver = scope_resolver
+        self._analyzer = analyzer
+        self._holiday_provider = holiday_provider
+        self._default_start_date_func = default_start_date_func
 
     def update_missing_prices(
         self,
@@ -188,7 +340,7 @@ class PriceDataHealthService:
         end_date: date,
         stock_ids: Sequence[int] | None = None,
     ) -> PriceDataUpdateResult:
-        report = self.analyze(start_date, end_date)
+        report = self._analyzer.analyze(start_date, end_date)
         selected_ids = set(stock_ids or [])
         rows = [row for row in report.rows if not selected_ids or row.stock_id in selected_ids]
         stocks_by_id = {stock.id: stock for stock in self._stock_repo.get_all_stocks() if stock.id is not None}
@@ -221,8 +373,8 @@ class PriceDataHealthService:
         )
 
     def update_stock_range(self, stock_id: int, start_date: date, end_date: date) -> PriceDataUpdateResult:
-        self._validate_range(start_date, end_date)
-        first_trade_date = self._first_trade_dates_by_stock().get(stock_id)
+        _validate_range(start_date, end_date)
+        first_trade_date = self._scope_resolver.first_trade_dates_by_stock().get(stock_id)
         if first_trade_date and start_date < first_trade_date:
             raise ValueError(
                 f"Başlangıç tarihi {stock_id} id'li hissenin portföye eklenme tarihinden önce olamaz "
@@ -245,8 +397,8 @@ class PriceDataHealthService:
 
     def update_from_latest_to_today(self, today: date | None = None) -> PriceDataUpdateResult:
         today = today or date.today()
-        first_trade_dates = self._first_trade_dates_by_stock()
-        stocks = [stock for stock in self._stocks_in_price_health_scope(first_trade_dates) if stock.id is not None]
+        first_trade_dates = self._scope_resolver.first_trade_dates_by_stock()
+        stocks = [stock for stock in self._scope_resolver.stocks_in_scope(first_trade_dates) if stock.id is not None]
         latest_dates = self._price_repo.get_latest_price_dates([stock.id for stock in stocks if stock.id is not None])
         updated_count = 0
         errors: List[str] = []
@@ -255,17 +407,17 @@ class PriceDataHealthService:
         for stock in stocks:
             assert stock.id is not None
             latest_date = latest_dates.get(stock.id)
-            start_date = latest_date + timedelta(days=1) if latest_date else self.default_start_date(today)
+            start_date = latest_date + timedelta(days=1) if latest_date else self._default_start_date_func(today)
             if stock.id in first_trade_dates:
                 start_date = max(start_date, first_trade_dates[stock.id])
             if start_date > today:
                 continue
-            known_holidays = get_bist_holidays(start_date, today)
+            known_holidays = self._holiday_provider.get_holidays(start_date, today)
             result = self._fetch_and_save_stock_range(
                 stock=stock,
                 start_date=start_date,
                 end_date=today,
-                allowed_dates=set(self._business_days(start_date, today, known_holidays)),
+                allowed_dates=set(_business_days(start_date, today, known_holidays)),
             )
             updated_count += result.updated_count
             errors.extend(result.errors)
@@ -277,10 +429,6 @@ class PriceDataHealthService:
             errors=errors,
             prices=prices,
         )
-
-    def delete_range(self, start_date: date, end_date: date) -> int:
-        self._validate_range(start_date, end_date)
-        return self._price_repo.delete_prices_in_range(start_date, end_date)
 
     def _fetch_and_save_stock_range(
         self,
@@ -299,42 +447,59 @@ class PriceDataHealthService:
         else:
             fetch_errors = []
         if not series:
-            fallback_result = self._fetch_and_save_stock_dates(
+            return self._fallback_stock_range(
                 stock=stock,
-                dates=sorted(allowed_dates) if allowed_dates is not None else self._business_days(start_date, end_date),
-                base_errors=fetch_errors,
-            )
-            if fallback_result.updated_count > 0:
-                return fallback_result
-            return PriceDataUpdateResult(
-                scanned_stock_count=1,
-                updated_count=0,
-                errors=fetch_errors
-                + [f"{stock.ticker}: {start_date:%d.%m.%Y} - {end_date:%d.%m.%Y} araliginda fiyat verisi bulunamadi."],
+                start_date=start_date,
+                end_date=end_date,
+                allowed_dates=allowed_dates,
+                fetch_errors=fetch_errors,
             )
 
-        prices_to_save: List[DailyPrice] = []
-        last_price: Decimal | None = None
-        for point_date, close_price in sorted(series.items()):
-            if allowed_dates is not None and point_date not in allowed_dates:
-                continue
-            daily_price = DailyPrice(
-                id=None,
-                stock_id=stock.id,
-                price_date=point_date,
-                close_price=close_price,
-            )
-            prices_to_save.append(daily_price)
-            last_price = close_price
-
+        prices_to_save, last_price = self._daily_prices_from_series(stock, series, allowed_dates)
         if prices_to_save:
             self._price_repo.upsert_daily_prices_bulk(prices_to_save)
-
         return PriceDataUpdateResult(
             scanned_stock_count=1,
             updated_count=len(prices_to_save),
             prices={stock.id: last_price} if last_price is not None else {},
         )
+
+    def _fallback_stock_range(
+        self,
+        stock: Stock,
+        start_date: date,
+        end_date: date,
+        allowed_dates: set[date] | None,
+        fetch_errors: List[str],
+    ) -> PriceDataUpdateResult:
+        fallback_result = self._fetch_and_save_stock_dates(
+            stock=stock,
+            dates=sorted(allowed_dates) if allowed_dates is not None else _business_days(start_date, end_date),
+            base_errors=fetch_errors,
+        )
+        if fallback_result.updated_count > 0:
+            return fallback_result
+        return PriceDataUpdateResult(
+            scanned_stock_count=1,
+            updated_count=0,
+            errors=fetch_errors
+            + [f"{stock.ticker}: {start_date:%d.%m.%Y} - {end_date:%d.%m.%Y} araliginda fiyat verisi bulunamadi."],
+        )
+
+    @staticmethod
+    def _daily_prices_from_series(
+        stock: Stock,
+        series: Dict[date, Decimal],
+        allowed_dates: set[date] | None,
+    ) -> tuple[List[DailyPrice], Decimal | None]:
+        prices_to_save: List[DailyPrice] = []
+        last_price: Decimal | None = None
+        for point_date, close_price in sorted(series.items()):
+            if allowed_dates is not None and point_date not in allowed_dates:
+                continue
+            prices_to_save.append(DailyPrice(id=None, stock_id=stock.id, price_date=point_date, close_price=close_price))
+            last_price = close_price
+        return prices_to_save, last_price
 
     def _fetch_and_save_stock_dates(
         self,
@@ -374,86 +539,68 @@ class PriceDataHealthService:
             prices={stock.id: last_price} if last_price is not None else {},
         )
 
-    @staticmethod
-    def _validate_range(start_date: date, end_date: date) -> None:
-        if start_date > end_date:
-            raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
 
-    @staticmethod
-    def _business_days(
+class PriceDataHealthService:
+    def __init__(
+        self,
+        stock_repo: IStockRepository,
+        price_repo: IPriceRepository,
+        market_data_client: IMarketDataClient,
+        portfolio_repo: IPortfolioRepository | None = None,
+        model_portfolio_repo: IModelPortfolioRepository | None = None,
+        holiday_provider: MarketHolidayProvider | None = None,
+        default_lookback_days: int = 90,
+    ) -> None:
+        self._stock_repo = stock_repo
+        self._price_repo = price_repo
+        self._market_data_client = market_data_client
+        self._portfolio_repo = portfolio_repo
+        self._model_portfolio_repo = model_portfolio_repo
+        self._holiday_provider = holiday_provider or NoKnownMarketHolidayProvider()
+        self._default_lookback_days = default_lookback_days
+        self._scope_resolver = PriceScopeResolver(stock_repo, portfolio_repo, model_portfolio_repo)
+        self._analyzer = PriceHealthAnalyzer(
+            price_repo=price_repo,
+            scope_resolver=self._scope_resolver,
+            holiday_provider=self._holiday_provider,
+        )
+        self._updater = PriceHealthUpdater(
+            stock_repo=stock_repo,
+            price_repo=price_repo,
+            market_data_client=market_data_client,
+            scope_resolver=self._scope_resolver,
+            analyzer=self._analyzer,
+            holiday_provider=self._holiday_provider,
+            default_start_date_func=self.default_start_date,
+        )
+
+    def default_start_date(self, today: date | None = None) -> date:
+        today = today or date.today()
+        candidate = today - timedelta(days=self._default_lookback_days)
+        minimum = self.minimum_start_date()
+        return max(candidate, minimum) if minimum else candidate
+
+    def minimum_start_date(self) -> date | None:
+        first_dates = self._scope_resolver.first_trade_dates_by_stock()
+        return min(first_dates.values(), default=None)
+
+    def analyze(self, start_date: date, end_date: date) -> PriceDataHealthReport:
+        return self._analyzer.analyze(start_date, end_date)
+
+    def update_missing_prices(
+        self,
         start_date: date,
         end_date: date,
-        known_holidays: Set[date] | None = None,
-    ) -> List[date]:
-        excluded = known_holidays or set()
-        return [
-            point_date
-            for point_date in PriceDataHealthService._date_range(start_date, end_date)
-            if point_date.weekday() < 5 and point_date not in excluded
-        ]
+        stock_ids: Sequence[int] | None = None,
+    ) -> PriceDataUpdateResult:
+        return self._updater.update_missing_prices(start_date, end_date, stock_ids)
 
-    @staticmethod
-    def _weekend_days(start_date: date, end_date: date) -> List[date]:
-        return [
-            point_date
-            for point_date in PriceDataHealthService._date_range(start_date, end_date)
-            if point_date.weekday() >= 5
-        ]
+    def update_stock_range(self, stock_id: int, start_date: date, end_date: date) -> PriceDataUpdateResult:
+        return self._updater.update_stock_range(stock_id, start_date, end_date)
 
-    @staticmethod
-    def _date_range(start_date: date, end_date: date) -> List[date]:
-        days: List[date] = []
-        current = start_date
-        while current <= end_date:
-            days.append(current)
-            current += timedelta(days=1)
-        return days
+    def update_from_latest_to_today(self, today: date | None = None) -> PriceDataUpdateResult:
+        return self._updater.update_from_latest_to_today(today)
 
-    @staticmethod
-    def _status_for_missing_count(missing_count: int, expected_count: int) -> str:
-        if missing_count == 0:
-            return "Sağlıklı"
-        if expected_count <= 0 or missing_count / expected_count < 0.1:
-            return "Eksik Var"
-        return "Kritik"
-
-    def _first_trade_dates_by_stock(self) -> Dict[int, date]:
-        if self._portfolio_repo is None and self._model_portfolio_repo is None:
-            return {}
-        result: Dict[int, date] = {}
-        for trade in self._price_scope_trades():
-            current = result.get(trade.stock_id)
-            if current is None or trade.trade_date < current:
-                result[trade.stock_id] = trade.trade_date
-        return result
-
-    def _stocks_in_price_health_scope(self, first_trade_dates: Dict[int, date]) -> List[Stock]:
-        stocks = self._stock_repo.get_all_stocks()
-        if self._portfolio_repo is None and self._model_portfolio_repo is None:
-            return stocks
-        active_stock_ids = set(first_trade_dates)
-        return [stock for stock in stocks if stock.id in active_stock_ids]
-
-    def _price_scope_trades(self):
-        if self._portfolio_repo is not None:
-            yield from self._portfolio_repo.get_all_trades()
-        if self._model_portfolio_repo is None:
-            return
-        for portfolio in self._model_portfolio_repo.get_all_model_portfolios():
-            if portfolio.id is None:
-                continue
-            yield from self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio.id)
-
-    @staticmethod
-    def _active_stock_ids_for_date(
-        stock_ids: Sequence[int],
-        first_trade_dates: Dict[int, date],
-        point_date: date,
-    ) -> List[int]:
-        if not first_trade_dates:
-            return list(stock_ids)
-        return [
-            stock_id
-            for stock_id in stock_ids
-            if first_trade_dates.get(stock_id) is not None and first_trade_dates[stock_id] <= point_date
-        ]
+    def delete_range(self, start_date: date, end_date: date) -> int:
+        _validate_range(start_date, end_date)
+        return self._price_repo.delete_prices_in_range(start_date, end_date)

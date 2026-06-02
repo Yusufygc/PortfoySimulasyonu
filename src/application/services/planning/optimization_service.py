@@ -10,7 +10,6 @@ from sklearn.covariance import LedoitWolf
 from src.application.services.planning.optimization_market_data import (
     OptimizationMarketDataProvider,
     OptimizationPolicy,
-    YFinanceOptimizationMarketDataProvider,
 )
 from src.domain.models.optimization_result import (
     OptimizationMetrics,
@@ -29,8 +28,8 @@ class OptimizationService:
         portfolio_service,
         model_portfolio_service,
         stock_repo,
+        market_data_provider: OptimizationMarketDataProvider,
         risk_free_rate: float | None = None,
-        market_data_provider: OptimizationMarketDataProvider | None = None,
         policy: OptimizationPolicy | None = None,
     ) -> None:
         self._portfolio_service = portfolio_service
@@ -46,7 +45,7 @@ class OptimizationService:
             )
         self._policy = base_policy
         self._risk_free_rate = base_policy.risk_free_rate
-        self._market_data_provider = market_data_provider or YFinanceOptimizationMarketDataProvider()
+        self._market_data_provider = market_data_provider
 
     def optimize_dashboard_portfolio(self) -> OptimizationResult:
         portfolio = self._portfolio_service.get_current_portfolio()
@@ -95,7 +94,9 @@ class OptimizationService:
         if price_df.empty or len(price_df) < 60:
             raise ValueError("Yeterli fiyat gecmisi bulunamadi (en az 60 gun gerekli).")
 
-        log_returns = np.log(price_df / price_df.shift(1)).dropna()
+        log_returns = np.log(price_df / price_df.shift(1)).replace([np.inf, -np.inf], np.nan).dropna()
+        if log_returns.empty or len(log_returns) < 2:
+            raise ValueError("Yeterli fiyat gecmisi bulunamadi (en az 60 gun gerekli).")
         mean_returns = log_returns.mean() * self._policy.trading_days_per_year
 
         lw = LedoitWolf()
@@ -143,7 +144,9 @@ class OptimizationService:
         risk_free_rate: float,
     ) -> float:
         portfolio_return = np.sum(mean_returns * weights)
-        portfolio_volatility = np.sqrt(weights.T @ cov_matrix @ weights)
+        portfolio_volatility = OptimizationService._portfolio_volatility(weights, cov_matrix)
+        if portfolio_volatility <= 0 or not np.isfinite(portfolio_volatility):
+            return 1e9
         return -(portfolio_return - risk_free_rate) / portfolio_volatility
 
     def _calculate_metrics(
@@ -153,14 +156,30 @@ class OptimizationService:
         cov_matrix: np.ndarray,
     ) -> OptimizationMetrics:
         portfolio_return = float(np.sum(mean_returns * weights))
-        portfolio_volatility = float(np.sqrt(weights.T @ cov_matrix @ weights))
-        sharpe = (portfolio_return - self._risk_free_rate) / portfolio_volatility
+        if not np.isfinite(portfolio_return):
+            portfolio_return = 0.0
+
+        portfolio_volatility = self._portfolio_volatility(weights, cov_matrix)
+        if portfolio_volatility <= 0 or not np.isfinite(portfolio_volatility):
+            portfolio_volatility = 0.0
+            sharpe = 0.0
+        else:
+            sharpe = (portfolio_return - self._risk_free_rate) / portfolio_volatility
+            if not np.isfinite(sharpe):
+                sharpe = 0.0
 
         return OptimizationMetrics(
             expected_return=portfolio_return,
             volatility=portfolio_volatility,
             sharpe_ratio=float(sharpe),
         )
+
+    @staticmethod
+    def _portfolio_volatility(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
+        variance = float(weights.T @ cov_matrix @ weights)
+        if variance <= 0 or not np.isfinite(variance):
+            return 0.0
+        return float(np.sqrt(variance))
 
     @staticmethod
     def _build_suggestions(

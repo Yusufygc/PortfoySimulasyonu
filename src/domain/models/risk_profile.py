@@ -61,6 +61,9 @@ PROFILE_INFO = {
     },
 }
 
+VALID_HORIZONS = {Horizon.SHORT, Horizon.MEDIUM, Horizon.LONG}
+VALID_REACTIONS = {Reaction.SELL, Reaction.HOLD, Reaction.BUY_MORE}
+
 
 @dataclass
 class RiskProfile:
@@ -82,6 +85,25 @@ class RiskProfile:
     suitability_notes: List[str] = field(default_factory=list)
 
     created_at: Optional[datetime] = None
+
+    def __post_init__(self) -> None:
+        if self.age < 0:
+            raise ValueError("Age cannot be negative")
+
+        if self.horizon not in VALID_HORIZONS:
+            raise ValueError(f"Unknown investment horizon: {self.horizon}")
+
+        if self.reaction not in VALID_REACTIONS:
+            raise ValueError(f"Unknown loss reaction: {self.reaction}")
+
+        if self.risk_score < 0:
+            raise ValueError("Risk score cannot be negative")
+
+        if self.risk_label not in PROFILE_INFO:
+            raise ValueError(f"Unknown risk label: {self.risk_label}")
+
+        if not self.recommended_allocation:
+            self.recommended_allocation = dict(PROFILE_INFO[self.risk_label]["allocation"])
 
     @property
     def description(self) -> str:

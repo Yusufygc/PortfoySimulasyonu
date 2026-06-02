@@ -44,6 +44,19 @@ class ModelPortfolioTrade:
     price: Decimal         # birim fiyat
     created_at: Optional[datetime] = None
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.side, ModelTradeSide):
+            try:
+                object.__setattr__(self, "side", ModelTradeSide(self.side))
+            except ValueError as exc:
+                raise ValueError(f"Unknown model trade side: {self.side}") from exc
+
+        if self.quantity <= 0:
+            raise ValueError("Quantity must be positive")
+
+        if self.price <= 0:
+            raise ValueError("Price must be positive")
+
     @property
     def total_amount(self) -> Decimal:
         """

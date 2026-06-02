@@ -3,15 +3,28 @@ from __future__ import annotations
 import logging
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Protocol, Sequence
 
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
-from src.infrastructure.market_data.evds_client import EvdsClient
 from datetime import datetime
 
 from .models import BenchmarkDefinition, BenchmarkSeries
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_evds_month_date(value: str) -> date:
+    if "-" in value and len(value) == 7:
+        parts = value.split("-")
+        if len(parts[0]) == 4:
+            return date(int(parts[0]), int(parts[1]), 1)
+        return date(int(parts[1]), int(parts[0]), 1)
+    return datetime.strptime(value, "%d-%m-%Y").date().replace(day=1)
+
+
+class EvdsSeriesProvider(Protocol):
+    def get_series(self, series_code: str, start_date: date, end_date: date) -> List[dict]:
+        ...
 
 
 class AnalysisBenchmarkService:
@@ -25,7 +38,11 @@ class AnalysisBenchmarkService:
     GOLD_USD_TICKERS: Sequence[str] = ("XAUUSD=X", "GC=F")
     SILVER_USD_TICKERS: Sequence[str] = ("XAGUSD=X", "SI=F")
 
-    def __init__(self, market_data_client: IMarketDataClient, evds_client: EvdsClient = None) -> None:
+    def __init__(
+        self,
+        market_data_client: IMarketDataClient,
+        evds_client: EvdsSeriesProvider | None = None,
+    ) -> None:
         self._market_data_client = market_data_client
         self._evds_client = evds_client
         self._benchmarks: Dict[str, BenchmarkDefinition] = {
@@ -176,35 +193,50 @@ class AnalysisBenchmarkService:
         }
 
     def _build_deposit_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
-        rate_series: Dict[date, Decimal] = {}
-        
-        if self._evds_client:
-            # En az ilk oranı kesin bulabilmek için 90 gün geriden başlıyoruz
-            fetch_start = start_date - timedelta(days=90)
-            try:
-                items = self._evds_client.get_series("TP.KTF10", fetch_start, end_date)
-                for item in items:
-                    dt_str = item.get("Tarih")
-                    val_str = item.get("TP_KTF10")
-                    if dt_str and val_str is not None:
-                        try:
-                            dt = datetime.strptime(dt_str, "%d-%m-%Y").date()
-                            rate_series[dt] = Decimal(str(val_str))
-                        except (ValueError, TypeError):
-                            continue
-            except Exception as e:
-                logger.error(f"EVDS Mevduat verisi cekilemedi: {e}")
-                
-        # Fallback to market data client (e.g. for unit tests)
-        if not rate_series:
-            try:
-                rate_series = self._market_data_client.get_price_series("TCMB_TRY_DEPOSIT_3M", start_date, end_date)
-            except Exception as e:
-                logger.debug(f"Market data client deposit series failed: {e}")
-
+        rate_series = self._deposit_rate_series(start_date, end_date)
         if not rate_series:
             return {}
+        return self._compound_deposit_index(rate_series, start_date, end_date)
 
+    def _deposit_rate_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
+        rate_series = self._evds_deposit_rates(start_date, end_date)
+        if rate_series:
+            return rate_series
+        try:
+            return self._market_data_client.get_price_series("TCMB_TRY_DEPOSIT_3M", start_date, end_date)
+        except Exception as e:
+            logger.debug(f"Market data client deposit series failed: {e}")
+            return {}
+
+    def _evds_deposit_rates(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
+        if not self._evds_client:
+            return {}
+        try:
+            items = self._evds_client.get_series("TP.KTF10", start_date - timedelta(days=90), end_date)
+        except Exception as e:
+            logger.error(f"EVDS Mevduat verisi cekilemedi: {e}")
+            return {}
+        return self._parse_evds_daily_series(items, "TP_KTF10")
+
+    @staticmethod
+    def _parse_evds_daily_series(items: Sequence[dict], value_key: str) -> Dict[date, Decimal]:
+        result: Dict[date, Decimal] = {}
+        for item in items:
+            dt_str = item.get("Tarih")
+            val_str = item.get(value_key)
+            if dt_str and val_str is not None:
+                try:
+                    result[datetime.strptime(dt_str, "%d-%m-%Y").date()] = Decimal(str(val_str))
+                except (ValueError, TypeError):
+                    continue
+        return result
+
+    @staticmethod
+    def _compound_deposit_index(
+        rate_series: Dict[date, Decimal],
+        start_date: date,
+        end_date: date,
+    ) -> Dict[date, Decimal]:
         value = Decimal("100")
         result: Dict[date, Decimal] = {}
         rate_items = sorted(rate_series.items())
@@ -230,41 +262,40 @@ class AnalysisBenchmarkService:
         return result
 
     def _build_cpi_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
+        cpi_series = self._evds_cpi_series(start_date, end_date)
+        if not cpi_series:
+            return {}
+        return self._ffill_monthly_index(cpi_series, start_date, end_date)
+
+    def _evds_cpi_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
         if not self._evds_client:
             return {}
-            
-        # TUFE verisi aylik gelir, endeksi yakalamak icin 365 gün geriden başlıyoruz (lag durumunda veri kaybını önlemek için)
-        fetch_start = start_date - timedelta(days=365)
         try:
-            items = self._evds_client.get_series("TP.FG.J0", fetch_start, end_date)
+            items = self._evds_client.get_series("TP.FG.J0", start_date - timedelta(days=365), end_date)
         except Exception as e:
             logger.error(f"EVDS TUFE verisi cekilemedi: {e}")
             return {}
+        return self._parse_evds_monthly_series(items, "TP_FG_J0")
 
-        cpi_series: Dict[date, Decimal] = {}
+    @staticmethod
+    def _parse_evds_monthly_series(items: Sequence[dict], value_key: str) -> Dict[date, Decimal]:
+        result: Dict[date, Decimal] = {}
         for item in items:
             dt_str = item.get("Tarih")
-            val_str = item.get("TP_FG_J0")
+            val_str = item.get(value_key)
             if dt_str and val_str is not None:
                 try:
-                    # '2023-01' gibi gelebilir ya da '01-2023'. EVDS aylik veride 'YYYY-MM' dönebilir.
-                    # Aslinda get_series ile cektigimizde '01-2023' formati da gelebiliyor.
-                    if "-" in dt_str and len(dt_str) == 7: # YYYY-MM veya MM-YYYY
-                        parts = dt_str.split("-")
-                        if len(parts[0]) == 4:
-                            dt = date(int(parts[0]), int(parts[1]), 1)
-                        else:
-                            dt = date(int(parts[1]), int(parts[0]), 1)
-                    else:
-                        dt = datetime.strptime(dt_str, "%d-%m-%Y").date()
-                        dt = dt.replace(day=1)
-                    cpi_series[dt] = Decimal(str(val_str))
+                    result[_parse_evds_month_date(dt_str)] = Decimal(str(val_str))
                 except (ValueError, TypeError):
                     continue
+        return result
 
-        if not cpi_series:
-            return {}
-
+    @staticmethod
+    def _ffill_monthly_index(
+        cpi_series: Dict[date, Decimal],
+        start_date: date,
+        end_date: date,
+    ) -> Dict[date, Decimal]:
         result: Dict[date, Decimal] = {}
         cpi_items = sorted(cpi_series.items())
         cpi_idx = 0

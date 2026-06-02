@@ -36,3 +36,15 @@ def test_sell_more_than_owned(empty_portfolio):
     
     with pytest.raises(ValueError):
         empty_portfolio.apply_trade(sell_trade)
+
+
+def test_missing_prices_are_excluded_from_market_value_and_unrealized_pl(empty_portfolio):
+    first_trade = Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("10.0"))
+    second_trade = Trade.create_buy(stock_id=2, trade_date=date(2026, 1, 1), quantity=20, price=Decimal("5.0"))
+    empty_portfolio.apply_trade(first_trade)
+    empty_portfolio.apply_trade(second_trade)
+
+    price_map = {1: Decimal("12.0")}
+
+    assert empty_portfolio.total_market_value(price_map) == Decimal("120.0")
+    assert empty_portfolio.total_unrealized_pl(price_map) == Decimal("20.0")

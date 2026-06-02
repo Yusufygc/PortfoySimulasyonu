@@ -3,12 +3,17 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 
 from src.application.services.portfolio.price_update_service import PriceUpdateService
+from src.infrastructure.calendar.bist_trading_calendar_provider import BistTradingCalendarProvider
 
 
 def test_update_closing_prices_skips_bist_closed_day():
     price_repo = MagicMock()
     market_client = MagicMock()
-    service = PriceUpdateService(price_repo=price_repo, market_data_client=market_client)
+    service = PriceUpdateService(
+        price_repo=price_repo,
+        market_data_client=market_client,
+        trading_calendar=BistTradingCalendarProvider(),
+    )
 
     result = service.update_closing_prices_for_stocks(
         price_date=date(2026, 5, 19),
@@ -26,7 +31,11 @@ def test_update_closing_prices_saves_open_day_prices():
     price_repo = MagicMock()
     market_client = MagicMock()
     market_client.get_closing_prices.return_value = {1: Decimal("12.34")}
-    service = PriceUpdateService(price_repo=price_repo, market_data_client=market_client)
+    service = PriceUpdateService(
+        price_repo=price_repo,
+        market_data_client=market_client,
+        trading_calendar=BistTradingCalendarProvider(),
+    )
 
     result = service.update_closing_prices_for_stocks(
         price_date=date(2026, 5, 20),
