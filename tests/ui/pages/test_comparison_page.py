@@ -1,5 +1,8 @@
 import sys
+from pathlib import Path
+
 import pytest
+import plotly.graph_objects as go
 
 pytest.importorskip("PyQt5")
 from PyQt5.QtWebEngineWidgets import QWebEngineView  # Must be imported before QApplication
@@ -201,6 +204,33 @@ def test_chart_specific_override():
     # Set it back to None (Küresel Seçime Dön)
     page.handle_chart_portfolio_selected("main_chart", None)
     assert page.chart_overrides.get("main_chart") is None
+
+
+def test_chart_renderer_writes_plotly_html_and_loads_local_file(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from src.ui.pages.comparison.utils import chart_renderer
+
+    class FakeView:
+        def __init__(self):
+            self.loaded_url = None
+
+        def load(self, url):
+            self.loaded_url = url
+
+    shared_js = tmp_path / "plotly-shared-patched.min.js"
+    shared_js.write_text("patched", encoding="utf-8")
+    monkeypatch.setattr(chart_renderer, "ensure_patched_plotly_js", lambda: str(shared_js))
+
+    page = SimpleNamespace()
+    renderer = chart_renderer.ChartRenderer(page)
+    view = FakeView()
+
+    renderer._load_plotly_to_view(view, go.Figure(data=[go.Scatter(x=[1], y=[2])]))
+
+    loaded_path = view.loaded_url.toLocalFile()
+    assert loaded_path.endswith(".html")
+    assert "plotly-shared-patched.min.js" in open(loaded_path, encoding="utf-8").read()
+    assert Path(page._view_temp_files[view]) == Path(loaded_path)
 
 
 
