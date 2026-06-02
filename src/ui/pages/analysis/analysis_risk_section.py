@@ -37,6 +37,20 @@ class AnalysisRiskSection(QWidget):
             cards_row.addWidget(card, 1)
         layout.addLayout(cards_row)
 
+        cards_row2 = QHBoxLayout()
+        cards_row2.setSpacing(15)
+        self.card_sharpe = InfoCard("Sharpe Oranı", "—", icon_name="bar-chart-2")
+        self.card_sharpe.setToolTip("Alınan 1 birim riske karşılık ne kadar ekstra getiri sağlandığını gösterir (>1 iyidir).")
+        self.card_beta = InfoCard("Beta (BIST100)", "—", icon_name="target")
+        self.card_beta.setToolTip("Portföyün BIST100'e karşı duyarlılığı (1 = endeksle aynı).")
+        self.card_alpha = InfoCard("Alpha", "—", icon_name="star")
+        self.card_alpha.setToolTip("Endeks getirisinden bağımsız olarak yaratılan ekstra değer.")
+        for card in [self.card_sharpe, self.card_beta, self.card_alpha]:
+            cards_row2.addWidget(card, 1)
+        # Empty space to balance 4 cards vs 3 cards row
+        cards_row2.addStretch(1)
+        layout.addLayout(cards_row2)
+
         charts_row = QHBoxLayout()
         charts_row.setSpacing(15)
         self.cost_chart = QWebEngineView()
@@ -64,6 +78,9 @@ class AnalysisRiskSection(QWidget):
         self.card_volatility.set_value(_fmt_pct(dto.volatility_pct))
         self.card_drawdown.set_value(_fmt_pct(dto.max_drawdown_pct))
         self.card_concentration.set_value(dto.concentration_label)
+        self.card_sharpe.set_value(f"{dto.sharpe_ratio:.2f}" if dto.sharpe_ratio is not None else "—")
+        self.card_beta.set_value(f"{dto.beta:.2f}" if dto.beta is not None else "—")
+        self.card_alpha.set_value(_fmt_pct(dto.alpha) if dto.alpha is not None else "—")
 
         cost_breakdown = [(item.label, float(item.cost_value)) for item in dto.items if item.cost_value > 0]
         current_breakdown = [(item.label, float(item.current_value)) for item in dto.items if item.current_value > 0]
