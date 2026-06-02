@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 )
 from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
 # Tür tanımları
 SideLiteral = Literal["BUY", "SELL"]
@@ -48,7 +49,7 @@ class TradeDialog(QDialog):
 
         self._init_ui()
         self._connect_signals()
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        configure_dialog_behavior(self, self.btn_save, self._on_ok_clicked)
         
         # Fiyatı çek
         if self.ticker and self.price_lookup_func:
