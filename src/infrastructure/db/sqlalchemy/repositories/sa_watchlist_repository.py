@@ -5,6 +5,7 @@ from src.domain.models.watchlist import Watchlist, WatchlistItem
 from src.domain.ports.repositories.i_watchlist_repo import IWatchlistRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMWatchlist, ORMWatchlistItem
+from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback, commit_refresh_or_rollback
 
 class SQLAlchemyWatchlistRepository(IWatchlistRepository):
     """
@@ -69,12 +70,7 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm_watchlist(watchlist)
             session.add(orm_obj)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
-            session.refresh(orm_obj)
+            commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain_watchlist(orm_obj)
 
     def update_watchlist(self, watchlist: Watchlist) -> None:
@@ -86,32 +82,20 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
                 orm_obj.name = watchlist.name
                 orm_obj.description = watchlist.description
                 orm_obj.sort_order = watchlist.sort_order
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def delete_watchlist(self, watchlist_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMWatchlist).filter_by(id=watchlist_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def delete_all_watchlists(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMWatchlistItem).delete()
             session.query(ORMWatchlist).delete()
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
 
     # ---------- WatchlistItem READ operasyonları ---------- #
     def get_items_by_watchlist_id(self, watchlist_id: int) -> List[WatchlistItem]:
@@ -132,12 +116,7 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm_item(item)
             session.add(orm_obj)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
-            session.refresh(orm_obj)
+            commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain_item(orm_obj)
 
     def remove_item_from_watchlist(self, item_id: int) -> None:
@@ -145,22 +124,14 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
             orm_obj = session.query(ORMWatchlistItem).filter_by(id=item_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def remove_stock_from_watchlist(self, watchlist_id: int, stock_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMWatchlistItem).filter_by(watchlist_id=watchlist_id, stock_id=stock_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def is_stock_in_watchlist(self, watchlist_id: int, stock_id: int) -> bool:
         with self._provider.get_session() as session:

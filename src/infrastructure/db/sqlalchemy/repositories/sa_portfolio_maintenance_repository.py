@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.application.services.portfolio.portfolio_maintenance_service import PurgeStockResult
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
@@ -53,7 +54,7 @@ class SQLAlchemyPortfolioMaintenanceRepository:
                 deleted_corporate_actions=deleted_corporate_actions,
                 deleted_stocks=deleted_stocks,
             )
-        except Exception:
+        except SQLAlchemyError:
             session.rollback()
             raise
         finally:

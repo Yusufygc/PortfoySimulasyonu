@@ -2,7 +2,14 @@ import pandas as pd
 from datetime import date
 from decimal import Decimal
 import pytest
+from yfinance.exceptions import YFException
+
+from src.domain.exceptions import MarketDataUnavailableError
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
+from src.infrastructure.market_data.yfinance_optimization_market_data_provider import (
+    YFinanceOptimizationMarketDataProvider,
+)
+from src.infrastructure.market_data.yfinance_price_lookup_provider import YFinancePriceLookupProvider
 
 def test_get_closing_price_success(monkeypatch):
     client = YFinanceMarketDataClient()
@@ -68,3 +75,45 @@ def test_get_price_series(monkeypatch):
         date(2026, 1, 2): Decimal("101.5"),
         date(2026, 1, 3): Decimal("102.0"),
     }
+
+
+def test_download_dataframe_wraps_yfinance_failures(monkeypatch):
+    client = YFinanceMarketDataClient()
+
+    def fail_download(**_kwargs):
+        raise YFException("rate limited")
+
+    monkeypatch.setattr("src.infrastructure.market_data.yfinance_client.yf.download", fail_download)
+
+    with pytest.raises(MarketDataUnavailableError, match="YFinance indirme hatasi"):
+        client._download_dataframe("AAPL", date(2026, 1, 1), date(2026, 1, 2))
+
+
+def test_price_lookup_returns_none_when_history_fails(monkeypatch):
+    class FakeTicker:
+        fast_info = {}
+        info = {}
+
+        def history(self, **_kwargs):
+            raise YFException("history unavailable")
+
+    monkeypatch.setattr(
+        "src.infrastructure.market_data.yfinance_price_lookup_provider.yf.Ticker",
+        lambda _ticker: FakeTicker(),
+    )
+
+    assert YFinancePriceLookupProvider().lookup("AAPL") is None
+
+
+def test_optimization_last_price_returns_none_on_yfinance_failure(monkeypatch):
+    class FakeTicker:
+        @property
+        def fast_info(self):
+            raise YFException("ticker unavailable")
+
+    monkeypatch.setattr(
+        "src.infrastructure.market_data.yfinance_optimization_market_data_provider.yf.Ticker",
+        lambda _ticker: FakeTicker(),
+    )
+
+    assert YFinanceOptimizationMarketDataProvider().get_last_price("AAPL") is None

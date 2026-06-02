@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import json
 import logging
 import tempfile
 import warnings
 from datetime import date
 from pathlib import Path
-from typing import Dict, Sequence
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
-from uuid import uuid4
+from typing import Sequence
 
 import yfinance as yf
 try:
@@ -19,6 +15,7 @@ except ImportError:
         pass
 
 from src.domain.exceptions import MarketDataUnavailableError
+from ._errors import MARKET_DATA_FALLBACK_ERRORS
 from .yfinance_price_client import YFinancePriceClient
 
 logger = logging.getLogger(__name__)
@@ -55,7 +52,7 @@ class YFinanceMarketDataClient(IMarketDataClient):
                 auto_adjust=False,
                 timeout=self._timeout,
             )
-        except Exception as e:
+        except MARKET_DATA_FALLBACK_ERRORS as e:
             raise MarketDataUnavailableError(f"YFinance indirme hatasi: {e}") from e
 
     def get_closing_price(self, stock_id: int, ticker: str, price_date: date):

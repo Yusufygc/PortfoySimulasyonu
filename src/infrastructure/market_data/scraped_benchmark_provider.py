@@ -13,6 +13,7 @@ import pandas as pd
 
 from config.settings_loader import load_market_settings
 from src.domain.exceptions import MarketDataUnavailableError
+from ._errors import MARKET_DATA_FALLBACK_ERRORS
 from .evds_client import EvdsClient
 
 
@@ -61,7 +62,10 @@ class ScrapedBenchmarkProvider:
             raise MarketDataUnavailableError(f"Veri kaynagina erisilemiyor: {url}") from e
 
     def _request_json(self, url: str):
-        return json.loads(self._request_text(url))
+        try:
+            return json.loads(self._request_text(url))
+        except json.JSONDecodeError as exc:
+            raise MarketDataUnavailableError(f"Veri kaynagi JSON uretmedi: {url}") from exc
 
     def fetch_series_for_ticker(
         self,
@@ -242,7 +246,7 @@ class ScrapedBenchmarkProvider:
             result = self._parse_tcmb_deposit_items(payload)
             if result:
                 return self._filter_series_for_range(result, start_date, end_date)
-        except Exception:
+        except MARKET_DATA_FALLBACK_ERRORS:
             logger.debug("TCMB deposit rates could not be fetched; using manual fallback", exc_info=True)
 
         return self._manual_tcmb_deposit_fallback(start_date)

@@ -1,12 +1,14 @@
 # src/infrastructure/db/sqlalchemy/repositories/sa_planning_repository.py
 
 from datetime import date
+from decimal import Decimal
 from typing import List, Optional
 from src.domain.models.budget import Budget, BudgetItem
 from src.domain.models.financial_goal import FinancialGoal
 from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMBudget, ORMBudgetItem, ORMFinancialGoal
+from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback, commit_refresh_or_rollback
 
 class SQLAlchemyPlanningRepository(IPlanningRepository):
     """
@@ -27,14 +29,14 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
                 budget_id=i.budget_id,
                 item_type=i.item_type,
                 name=i.name,
-                amount=float(i.amount),
+                amount=Decimal(str(i.amount)),
             )
             for i in orm.items
         ]
         return Budget(
             id=orm.id,
             month=orm.month,
-            savings_target=float(orm.savings_target),
+            savings_target=Decimal(str(orm.savings_target)),
             items=items,
             created_at=orm.created_at,
             updated_at=orm.updated_at,
@@ -44,8 +46,8 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
         return FinancialGoal(
             id=orm.id,
             name=orm.name,
-            target_amount=float(orm.target_amount),
-            current_amount=float(orm.current_amount),
+            target_amount=Decimal(str(orm.target_amount)),
+            current_amount=Decimal(str(orm.current_amount)),
             deadline=orm.deadline,
             priority=orm.priority,
             status=orm.status,
@@ -95,15 +97,7 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
                     amount=item.amount,
                 ))
 
-            try:
-
-                session.commit()
-
-            except Exception:
-
-                session.rollback()
-
-                raise
+            commit_or_rollback(session)
             session.refresh(orm_obj)
             return self._to_domain_budget(orm_obj)
 
@@ -112,11 +106,7 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
             orm_obj = session.query(ORMBudget).filter_by(id=budget_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     # ==================== FinancialGoal İşlemleri ==================== #
     def get_all_goals(self) -> List[FinancialGoal]:
@@ -138,12 +128,7 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm_goal(goal)
             session.add(orm_obj)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
-            session.refresh(orm_obj)
+            commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain_goal(orm_obj)
 
     def update_goal(self, goal: FinancialGoal) -> None:
@@ -158,19 +143,11 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
                 orm_obj.deadline = goal.deadline
                 orm_obj.priority = goal.priority
                 orm_obj.status = goal.status
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def delete_goal(self, goal_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMFinancialGoal).filter_by(id=goal_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)

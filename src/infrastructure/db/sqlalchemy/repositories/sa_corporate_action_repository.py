@@ -8,6 +8,7 @@ from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMCorporateAction
+from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback, commit_refresh_or_rollback
 
 
 class SQLAlchemyCorporateActionRepository(ICorporateActionRepository):
@@ -96,12 +97,7 @@ class SQLAlchemyCorporateActionRepository(ICorporateActionRepository):
             orm_obj = self._to_orm(action)
             orm_obj.id = None
             session.add(orm_obj)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
-            session.refresh(orm_obj)
+            commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain(orm_obj)
 
     def mark_applied(self, action_id: int) -> None:
@@ -110,19 +106,11 @@ class SQLAlchemyCorporateActionRepository(ICorporateActionRepository):
             if row:
                 row.applied = True
                 row.applied_at = datetime.now()
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def delete(self, action_id: int) -> None:
         with self._provider.get_session() as session:
             row = session.query(ORMCorporateAction).filter_by(id=action_id).first()
             if row:
                 session.delete(row)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)

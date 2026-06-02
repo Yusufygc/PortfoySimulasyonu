@@ -5,6 +5,7 @@ from src.domain.models.stock import Stock
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMStock
+from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback, commit_refresh_or_rollback
 
 class SQLAlchemyStockRepository(IStockRepository):
     """
@@ -79,12 +80,7 @@ class SQLAlchemyStockRepository(IStockRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm(stock)
             session.add(orm_obj)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
-            session.refresh(orm_obj) # id ve created_at değerlerini almak için
+            commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain(orm_obj)
 
     def insert_stocks_bulk(self, stocks: Iterable[Stock]) -> None:
@@ -94,11 +90,7 @@ class SQLAlchemyStockRepository(IStockRepository):
         with self._provider.get_session() as session:
             orm_objs = [self._to_orm(s) for s in stocks_list]
             session.add_all(orm_objs)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
 
     def update_stock(self, stock: Stock) -> None:
         if stock.id is None:
@@ -111,22 +103,14 @@ class SQLAlchemyStockRepository(IStockRepository):
                 orm_obj.name = stock.name
                 orm_obj.currency_code = stock.currency_code
                 # created_at and updated_at handled by DB / server_default / onupdate
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def delete_stock(self, stock_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMStock).filter_by(id=stock_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def delete_all_stocks(self) -> None:
         """
@@ -134,8 +118,4 @@ class SQLAlchemyStockRepository(IStockRepository):
         """
         with self._provider.get_session() as session:
             session.query(ORMStock).delete()
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)

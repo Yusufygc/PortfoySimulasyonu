@@ -6,6 +6,7 @@ from src.domain.models.trade import Trade, TradeSide
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMTrade
+from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback, commit_refresh_or_rollback
 
 class SQLAlchemyPortfolioRepository(IPortfolioRepository):
     """
@@ -73,12 +74,7 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm(trade)
             session.add(orm_obj)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
-            session.refresh(orm_obj)
+            commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain(orm_obj)
 
     def insert_trades_bulk(self, trades: Iterable[Trade]) -> None:
@@ -88,11 +84,7 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
         with self._provider.get_session() as session:
             orm_objs = [self._to_orm(t) for t in trades_list]
             session.add_all(orm_objs)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
 
     def update_trade(self, trade: Trade) -> None:
         if trade.id is None:
@@ -107,31 +99,19 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             orm_obj.side = trade.side.value
             orm_obj.quantity = trade.quantity
             orm_obj.price = trade.price
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
 
     def delete_trade(self, trade_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMTrade).filter_by(id=trade_id).first()
             if orm_obj:
                 session.delete(orm_obj)
-                try:
-                    session.commit()
-                except Exception:
-                    session.rollback()
-                    raise
+                commit_or_rollback(session)
 
     def delete_all_trades(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMTrade).delete()
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
 
     def get_first_trade_date(self) -> Optional[date]:
         with self._provider.get_session() as session:

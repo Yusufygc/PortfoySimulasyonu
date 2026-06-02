@@ -8,6 +8,7 @@ from src.domain.models.cash_movement import CashMovement, CashMovementType
 from src.domain.ports.repositories.i_cash_movement_repo import ICashMovementRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMCashMovement
+from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback, commit_refresh_or_rollback
 
 
 class SQLAlchemyCashMovementRepository(ICashMovementRepository):
@@ -73,12 +74,7 @@ class SQLAlchemyCashMovementRepository(ICashMovementRepository):
         with self._provider.get_session() as session:
             orm_obj = self._to_orm(movement)
             session.add(orm_obj)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
-            session.refresh(orm_obj)
+            commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain(orm_obj)
 
     def insert_movements_bulk(self, movements: Iterable[CashMovement]) -> None:
@@ -87,17 +83,9 @@ class SQLAlchemyCashMovementRepository(ICashMovementRepository):
             return
         with self._provider.get_session() as session:
             session.add_all([self._to_orm(movement) for movement in movement_list])
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
 
     def delete_all_movements(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMCashMovement).delete()
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)

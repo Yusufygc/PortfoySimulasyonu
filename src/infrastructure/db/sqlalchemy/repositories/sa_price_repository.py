@@ -10,6 +10,7 @@ from src.domain.models.daily_price import DailyPrice
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMDailyPrice
+from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback
 
 class SQLAlchemyPriceRepository(IPriceRepository):
     """
@@ -144,11 +145,7 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 source=stmt.inserted.source
             )
             result = session.execute(stmt)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
             
             # last inserted id
             inserted_id = result.lastrowid
@@ -184,20 +181,12 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 source=stmt.inserted.source
             )
             session.execute(stmt)
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
 
     def delete_all_prices(self) -> None:
         with self._provider.get_session() as session:
             session.query(ORMDailyPrice).delete()
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
 
     def delete_prices_in_range(self, start_date: date, end_date: date) -> int:
         with self._provider.get_session() as session:
@@ -205,9 +194,5 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 .filter(ORMDailyPrice.price_date >= start_date)\
                 .filter(ORMDailyPrice.price_date <= end_date)\
                 .delete()
-            try:
-                session.commit()
-            except Exception:
-                session.rollback()
-                raise
+            commit_or_rollback(session)
             return deleted_count
