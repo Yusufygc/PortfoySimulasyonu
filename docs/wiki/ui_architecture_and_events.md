@@ -60,3 +60,10 @@ Bütün ekranlar `main_window.py` üzerinde barınır. Ancak kod kalabalığın�
 - Fiyat event yayınları UI tarafında yalnız `publish_prices_updated(event_bus, prices)` helper'ı ile yapılır; application coordinator kendi EventBus orkestrasyonunu korur.
 - UI testlerinde event döngüsü boşaltma için ortak `drain_qt_events` fixture'ı kullanılır.
 - `pytest.ini` manual/network marker'ları default suite'i canlı dış kaynaklardan ayırır; benchmark canlı veri kontrolü manuel operasyon olarak kalır.
+- Dialog davranis guard'i `tests/ui/widgets/test_dialog_behavior.py` ile korunur: context-help `?` butonu kapali, Enter primary aksiyona bagli ve model portfoy tutar alani readonly kalir.
+
+## Dialog Davranis Standardi (2026-06-02)
+
+- Uygulama `QDialog` pencereleri `src/ui/widgets/dialog_behavior.py` icindeki `configure_dialog_behavior(...)` helper'i ile `?` context-help butonunu kapatir.
+- Ayni helper Enter/Return tusunu primary aksiyona baglar; `Esc` iptal davranisini, cok satirli metin alanlari ve acik popup girisleri kendi davranisini korur.
+- Model portfoy al/sat dialogu lot ve fiyat degisimlerinde readonly `Tutar` alanini canli hesaplar; dialog sonucu ve servis API'si degismez.
