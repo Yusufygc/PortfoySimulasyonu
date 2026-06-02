@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from src.infrastructure.db.sqlalchemy.repositories.sa_cash_movement_repository import SQLAlchemyCashMovementRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_corporate_action_candidate_repository import (
+    SQLAlchemyCorporateActionCandidateRepository,
+)
 from src.infrastructure.db.sqlalchemy.repositories.sa_corporate_action_repository import SQLAlchemyCorporateActionRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_model_portfolio_repository import SQLAlchemyModelPortfolioRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_planning_repository import SQLAlchemyPlanningRepository
@@ -26,6 +29,7 @@ class RepositorySet:
     planning_repo: SQLAlchemyPlanningRepository
     risk_profile_repo: SQLAlchemyRiskProfileRepository
     corporate_action_repo: SQLAlchemyCorporateActionRepository
+    corporate_action_candidate_repo: SQLAlchemyCorporateActionCandidateRepository
 
 
 def build_repositories(conn_provider) -> RepositorySet:
@@ -40,4 +44,5 @@ def build_repositories(conn_provider) -> RepositorySet:
         planning_repo=SQLAlchemyPlanningRepository(conn_provider),
         risk_profile_repo=SQLAlchemyRiskProfileRepository(conn_provider),
         corporate_action_repo=SQLAlchemyCorporateActionRepository(conn_provider),
+        corporate_action_candidate_repo=SQLAlchemyCorporateActionCandidateRepository(conn_provider),
     )
