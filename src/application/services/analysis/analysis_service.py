@@ -30,6 +30,9 @@ from .risk_metrics import (
     compute_return_pct,
     compute_volatility_pct,
     get_concentration_label,
+    compute_sharpe_ratio,
+    compute_beta,
+    compute_alpha,
 )
 from .source_resolver import AnalysisSourceResolver
 
@@ -105,7 +108,7 @@ class AnalysisService:
 
         top_position = max(position_snapshot, key=lambda item: item["weight"], default=None)
         best = max(position_snapshot, key=lambda item: item["return_pct"], default=None)
-        worst = min(position_snapshot, key=lambda item: item["return_pct"], default=None)
+        worst = min(position_snapshot, key=lambda item: item["return_pct"], default=None) if len(position_snapshot) > 1 else None
         max_drawdown = compute_max_drawdown_pct(portfolio_series)
         concentration_label = get_concentration_label(
             sum(item["weight"] for item in sorted(position_snapshot, key=lambda x: x["weight"], reverse=True)[:3])
@@ -135,6 +138,7 @@ class AnalysisService:
             insights=insights,
             warnings=bundle["warnings"],
             portfolio_label=bundle["portfolio_label"],
+            currency_mode=filter_state.currency_mode,
         )
 
     def get_comparison_view(
@@ -216,11 +220,16 @@ class AnalysisService:
             for item in position_snapshot
         ]
         top_three = sum(item["weight"] for item in position_snapshot[:3]) if position_snapshot else None
+        primary_benchmark_series = bundle["benchmarks"][0].points if bundle.get("benchmarks") else None
+        
         return AllocationRiskDTO(
             items=items,
             top_three_weight_pct=top_three,
             volatility_pct=compute_volatility_pct(bundle["portfolio_series"]),
             max_drawdown_pct=compute_max_drawdown_pct(bundle["portfolio_series"]),
+            sharpe_ratio=compute_sharpe_ratio(bundle["portfolio_series"]),
+            beta=compute_beta(bundle["portfolio_series"], primary_benchmark_series) if primary_benchmark_series else None,
+            alpha=compute_alpha(bundle["portfolio_series"], primary_benchmark_series) if primary_benchmark_series else None,
             concentration_label=get_concentration_label(top_three),
             warnings=bundle["warnings"],
         )
