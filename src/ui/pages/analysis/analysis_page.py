@@ -174,6 +174,7 @@ class AnalysisPage(BasePage):
 
     def _on_source_changed(self, _source: str) -> None:
         self._sync_source_context()
+        self.control_panel.reset_to_earliest_date()
 
     def _build_filter_state(self) -> AnalysisFilterState:
         start_date, end_date = self.control_panel.date_range()
