@@ -7,6 +7,9 @@ from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
+from src.application.services.corporate_actions.candidate_discovery_service import CorporateActionDiscoveryService
+from src.application.services.corporate_actions.candidate_review_service import CorporateActionCandidateReviewService
+from src.application.services.corporate_actions.price_adjustment_service import CorporateActionPriceAdjustmentService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.application.services.planning.optimization_service import OptimizationService
 from src.application.services.planning.planning_service import PlanningService
@@ -27,6 +30,7 @@ from src.application.services.simulation.history_simulation_service import Histo
 from src.application.services.simulation.model_portfolio_history_simulation_service import ModelPortfolioHistorySimulationService
 from src.application.services.watchlist.watchlist_service import WatchlistService
 from src.infrastructure.calendar.bist_holiday_provider import BistHolidayProvider
+from src.infrastructure.corporate_actions import KapMkkCorporateActionProvider
 
 
 @dataclass(frozen=True)
@@ -52,6 +56,8 @@ class ServiceSet:
     planning_service: PlanningService
     risk_profile_service: RiskProfileService
     corporate_action_service: CorporateActionService
+    corporate_action_discovery_service: CorporateActionDiscoveryService
+    corporate_action_candidate_review_service: CorporateActionCandidateReviewService
     backfill_service: BackfillService
     update_coordinator: PortfolioUpdateCoordinator
 
@@ -164,6 +170,15 @@ def _build_feature_services(
     from src.application.services.market.price_data_health_service import PriceDataHealthService
 
     model_portfolio_service = foundation["model_portfolio_service"]
+    corporate_action_price_adjustment_service = CorporateActionPriceAdjustmentService(
+        action_repo=repositories.corporate_action_repo,
+        price_repo=repositories.price_repo,
+    )
+    corporate_action_service = CorporateActionService(
+        action_repo=repositories.corporate_action_repo,
+        portfolio_repo=repositories.portfolio_repo,
+        price_adjustment_service=corporate_action_price_adjustment_service,
+    )
 
     return {
         "price_data_health_service": PriceDataHealthService(
@@ -172,6 +187,7 @@ def _build_feature_services(
             market_data_client=market_clients.market_client,
             portfolio_repo=repositories.portfolio_repo,
             model_portfolio_repo=repositories.model_portfolio_repo,
+            corporate_action_repo=repositories.corporate_action_repo,
             holiday_provider=BistHolidayProvider(),
         ),
         "analysis_service": AnalysisService(
@@ -203,13 +219,24 @@ def _build_feature_services(
         ),
         "planning_service": PlanningService(planning_repo=repositories.planning_repo),
         "risk_profile_service": RiskProfileService(risk_profile_repo=repositories.risk_profile_repo),
-        "corporate_action_service": CorporateActionService(
+        "corporate_action_service": corporate_action_service,
+        "corporate_action_discovery_service": CorporateActionDiscoveryService(
+            provider=KapMkkCorporateActionProvider(),
+            candidate_repo=repositories.corporate_action_candidate_repo,
+            stock_repo=repositories.stock_repo,
             action_repo=repositories.corporate_action_repo,
             portfolio_repo=repositories.portfolio_repo,
+            watchlist_repo=repositories.watchlist_repo,
+            model_portfolio_repo=repositories.model_portfolio_repo,
+        ),
+        "corporate_action_candidate_review_service": CorporateActionCandidateReviewService(
+            candidate_repo=repositories.corporate_action_candidate_repo,
+            corporate_action_service=corporate_action_service,
         ),
         "backfill_service": BackfillService(
             stock_repo=repositories.stock_repo,
             price_repo=repositories.price_repo,
             market_data_client=market_clients.market_client,
+            corporate_action_repo=repositories.corporate_action_repo,
         ),
     }
