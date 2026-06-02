@@ -5,7 +5,12 @@ from PyQt5.QtWidgets import QHBoxLayout, QLabel, QTabWidget
 
 from .base_page import BasePage
 from src.ui.core.icon_manager import IconManager
-from src.ui.pages.settings import AppearancePanel, PriceDataPanel, ResetPanel
+from src.ui.pages.settings import (
+    AppearancePanel,
+    CorporateActionCandidatesPanel,
+    PriceDataPanel,
+    ResetPanel,
+)
 
 
 class SettingsPage(BasePage):
@@ -47,11 +52,13 @@ class SettingsPage(BasePage):
         self.home_tab = ResetPanel(self.reset_service, self)
         self.appearance_tab = AppearancePanel(self)
         self.price_data_tab = PriceDataPanel(self.container, self.price_data_health_service, self)
+        self.corporate_action_candidates_tab = CorporateActionCandidatesPanel(self.container, self)
 
         self.tabs.addTab(self.home_tab, "Ana Sayfa")
         self.tabs.addTab(self.appearance_tab, "Görünüm")
         self.tabs.addTab(self.price_data_tab, "Fiyat Verisi Yönetimi")
-        
+        self.tabs.addTab(self.corporate_action_candidates_tab, "Kurumsal Aksiyonlar")
+
         self.tabs.currentChanged.connect(self._update_tab_icons)
         self._update_tab_icons()
         self.main_layout.addWidget(self.tabs, 1)
@@ -61,14 +68,15 @@ class SettingsPage(BasePage):
         c0 = "@COLOR_TEXT_WHITE" if idx == 0 else "@COLOR_TEXT_SECONDARY"
         c1 = "@COLOR_TEXT_WHITE" if idx == 1 else "@COLOR_TEXT_SECONDARY"
         c2 = "@COLOR_TEXT_WHITE" if idx == 2 else "@COLOR_TEXT_SECONDARY"
-        from PyQt5.QtCore import QSize
-        from src.ui.core.icon_manager import IconManager
+        c3 = "@COLOR_TEXT_WHITE" if idx == 3 else "@COLOR_TEXT_SECONDARY"
         self.tabs.setTabIcon(0, IconManager.get_icon("home", color=c0, size=QSize(18, 18)))
         self.tabs.setTabIcon(1, IconManager.get_icon("layers", color=c1, size=QSize(18, 18)))
         self.tabs.setTabIcon(2, IconManager.get_icon("bar-chart-2", color=c2, size=QSize(18, 18)))
+        self.tabs.setTabIcon(3, IconManager.get_icon("clipboard-list", color=c3, size=QSize(18, 18)))
 
     def changeEvent(self, event):
         from PyQt5.QtCore import QEvent
+
         if event.type() == QEvent.StyleChange:
             self._update_tab_icons()
         super().changeEvent(event)
