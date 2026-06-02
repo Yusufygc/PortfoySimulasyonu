@@ -33,6 +33,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.ui.formatters import display_ticker
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
 
 class CorporateActionDialog(QDialog):
@@ -73,6 +74,7 @@ class CorporateActionDialog(QDialog):
         self.setProperty("cssClass", "dialogContainer")
 
         self._init_ui()
+        configure_dialog_behavior(self, self._btn_confirm, self.accept)
         self._update_preview()
 
     # ══════════════════════════════════════════════════════════
