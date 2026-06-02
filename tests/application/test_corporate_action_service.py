@@ -15,6 +15,11 @@ from src.application.services.corporate_actions.corporate_action_service import 
     CorporateActionService,
     CorporateActionResult,
 )
+from src.application.services.corporate_actions.price_adjustment_service import (
+    CorporateActionPriceAdjustmentService,
+    adjusted_market_price,
+    calculate_price_adjustment_factor,
+)
 
 
 # ══════════════════════════════════════════════════════════
@@ -54,7 +59,9 @@ def _make_action(
 
 @pytest.fixture
 def mock_action_repo():
-    return MagicMock()
+    repo = MagicMock()
+    repo.get_by_stock.return_value = []
+    return repo
 
 @pytest.fixture
 def mock_portfolio_repo():
@@ -93,6 +100,20 @@ class TestRegisterBedelsiz:
         with pytest.raises(ValueError):
             service.register_bedelsiz(stock_id=1, ex_date=date(2026, 1, 1), ratio=Decimal("0"))
 
+    def test_duplicate_stock_type_ex_date_raises(self, service, mock_action_repo):
+        mock_action_repo.get_by_stock.return_value = [
+            _make_action(99, 10, ActionType.BEDELSIZ, "6.38340000", applied=True)
+        ]
+
+        with pytest.raises(ValueError, match="zaten kayitli"):
+            service.register_bedelsiz(
+                stock_id=10,
+                ex_date=date(2026, 3, 15),
+                ratio=Decimal("6.3833834"),
+            )
+
+        mock_action_repo.insert.assert_not_called()
+
 
 # ══════════════════════════════════════════════════════════
 #  register_bedelli
@@ -119,6 +140,21 @@ class TestRegisterBedelli:
                 stock_id=1, ex_date=date(2026, 1, 1),
                 ratio=Decimal("0.20"), subscription_price=Decimal("0")
             )
+
+    def test_duplicate_bedelli_stock_type_ex_date_raises(self, service, mock_action_repo):
+        mock_action_repo.get_by_stock.return_value = [
+            _make_action(100, 5, ActionType.BEDELLI, "0.20", "1.00")
+        ]
+
+        with pytest.raises(ValueError, match="zaten kayitli"):
+            service.register_bedelli(
+                stock_id=5,
+                ex_date=date(2026, 3, 15),
+                ratio=Decimal("0.20"),
+                subscription_price=Decimal("1.00"),
+            )
+
+        mock_action_repo.insert.assert_not_called()
 
 
 # ══════════════════════════════════════════════════════════
@@ -329,3 +365,137 @@ def test_floor_rounding_in_service(service, mock_action_repo, mock_portfolio_rep
 
     assert result.new_shares == 49   # int(99 * 0.50) = 49
     assert result.shares_after == 148
+
+
+def test_bedelsiz_price_adjustment_factor_for_merko_ratio():
+    action = _make_action(10, 7, ActionType.BEDELSIZ, "6.3833834")
+
+    factor = calculate_price_adjustment_factor(action)
+
+    assert abs(factor - (Decimal("1") / Decimal("7.3833834"))) < Decimal("0.0000000001")
+
+
+def test_bedelli_price_adjustment_factor_uses_previous_close_and_subscription_price():
+    action = _make_action(11, 7, ActionType.BEDELLI, "0.20", "1.00")
+
+    factor = calculate_price_adjustment_factor(action, previous_close=Decimal("20"))
+
+    assert abs(factor - (Decimal("20.20") / Decimal("24.00"))) < Decimal("0.0000000001")
+
+
+def test_apply_action_adjusts_historical_prices_after_synthetic_trade(
+    mock_action_repo,
+    mock_portfolio_repo,
+):
+    action = _make_action(12, 10, ActionType.BEDELSIZ, "0.50")
+    mock_action_repo.get_by_id.return_value = action
+    mock_portfolio_repo.get_trades_by_stock.return_value = [_make_buy_trade(10, 100, 10)]
+    mock_portfolio_repo.insert_trade.return_value = MagicMock()
+    price_repo = MagicMock()
+    price_repo.adjust_prices_before_date.return_value = 3
+    adjustment_service = CorporateActionPriceAdjustmentService(mock_action_repo, price_repo)
+    service = CorporateActionService(
+        action_repo=mock_action_repo,
+        portfolio_repo=mock_portfolio_repo,
+        price_adjustment_service=adjustment_service,
+    )
+
+    result = service.apply_action(12)
+
+    mock_portfolio_repo.insert_trade.assert_called_once()
+    mock_action_repo.mark_applied.assert_called_once_with(12)
+    price_repo.adjust_prices_before_date.assert_called_once_with(
+        stock_id=10,
+        before_date=date(2026, 3, 15),
+        factor=Decimal("1") / Decimal("1.50"),
+    )
+    mock_action_repo.mark_prices_adjusted.assert_called_once_with(
+        12,
+        Decimal("1") / Decimal("1.50"),
+        3,
+    )
+    assert result.price_adjustment_count == 3
+
+
+def test_apply_action_does_not_adjust_prices_when_trade_insert_fails(
+    mock_action_repo,
+    mock_portfolio_repo,
+):
+    action = _make_action(13, 10, ActionType.BEDELSIZ, "0.50")
+    mock_action_repo.get_by_id.return_value = action
+    mock_portfolio_repo.get_trades_by_stock.return_value = [_make_buy_trade(10, 100, 10)]
+    mock_portfolio_repo.insert_trade.side_effect = RuntimeError("insert failed")
+    price_repo = MagicMock()
+    service = CorporateActionService(
+        action_repo=mock_action_repo,
+        portfolio_repo=mock_portfolio_repo,
+        price_adjustment_service=CorporateActionPriceAdjustmentService(mock_action_repo, price_repo),
+    )
+
+    with pytest.raises(RuntimeError, match="insert failed"):
+        service.apply_action(13)
+
+    price_repo.adjust_prices_before_date.assert_not_called()
+    mock_action_repo.mark_prices_adjusted.assert_not_called()
+
+
+def test_adjust_prices_for_action_is_idempotent_for_already_adjusted_action(mock_action_repo):
+    action = CorporateAction(
+        id=14,
+        stock_id=10,
+        action_type=ActionType.BEDELSIZ,
+        ex_date=date(2026, 3, 15),
+        ratio=Decimal("0.50"),
+        subscription_price=None,
+        announcement_date=None,
+        notes=None,
+        applied=True,
+        prices_adjusted=True,
+        price_adjustment_factor=Decimal("0.6666666667"),
+        price_adjustment_count=4,
+    )
+    mock_action_repo.get_by_id.return_value = action
+    price_repo = MagicMock()
+    service = CorporateActionPriceAdjustmentService(mock_action_repo, price_repo)
+
+    result = service.adjust_prices_for_action(14)
+
+    price_repo.adjust_prices_before_date.assert_not_called()
+    mock_action_repo.mark_prices_adjusted.assert_not_called()
+    assert result.already_adjusted is True
+    assert result.adjusted_count == 4
+
+
+def test_adjusted_market_price_applies_multiple_adjusted_actions():
+    actions = [
+        CorporateAction(
+            id=1,
+            stock_id=10,
+            action_type=ActionType.BEDELSIZ,
+            ex_date=date(2026, 5, 5),
+            ratio=Decimal("1"),
+            subscription_price=None,
+            announcement_date=None,
+            notes=None,
+            applied=True,
+            prices_adjusted=True,
+            price_adjustment_factor=Decimal("0.5"),
+        ),
+        CorporateAction(
+            id=2,
+            stock_id=10,
+            action_type=ActionType.BEDELSIZ,
+            ex_date=date(2026, 6, 5),
+            ratio=Decimal("1"),
+            subscription_price=None,
+            announcement_date=None,
+            notes=None,
+            applied=True,
+            prices_adjusted=True,
+            price_adjustment_factor=Decimal("0.25"),
+        ),
+    ]
+
+    assert adjusted_market_price(Decimal("80"), date(2026, 5, 1), actions) == Decimal("10.00")
+    assert adjusted_market_price(Decimal("80"), date(2026, 5, 10), actions) == Decimal("20.00")
+    assert adjusted_market_price(Decimal("80"), date(2026, 6, 5), actions) == Decimal("80")
