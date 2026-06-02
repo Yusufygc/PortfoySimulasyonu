@@ -6,6 +6,59 @@
 
 ---
 
+## [2026-06-03] duzeltme | Analiz aktif kapsam ve nakit dahil toplam deger
+
+- Analiz kaynak/filtresi net acik pozisyon kapsamindan uretilir; tamamen satilmis BORSK benzeri hisseler otomatik filtre, holdings genisletmesi ve fiyat uyarilarindan cikarildi.
+- Portfoy zaman serisi kapatilmis trade'leri cash replay icin korur; satis nakdi toplam degerde kalir, fiyat uyarilari yalniz analiz araliginda degerleme gereken hisseler icin uretilir.
+- Dashboard toplam deger karti nakit + acik pozisyon piyasa degeri sozlesmesine cekildi; stale model portfoy secimi dashboard'a normalize edilir.
+- Dogrulama: hedefli application/UI testleri -> **182 passed**; `tests -q` -> **369 passed**.
+- Baglantili sayfalar: [service_analysis.md](service_analysis.md), [service_portfolio_and_market.md](service_portfolio_and_market.md)
+
+## [2026-06-02] guncelleme | Model portfoy tutar alani ve dialog standardi
+
+- Model portfoy al/sat dialoguna readonly `Tutar = Lot x Fiyat` alani eklendi; fiyat lookup, lot ve fiyat degisimleri tutari canli gunceller.
+- `configure_dialog_behavior(...)` helper'i ile ozel `QDialog` pencerelerinde `?` context-help butonu kapatildi ve Enter/Return primary aksiyona baglandi.
+- `DateRangeDialog` eksik buton/layout wiring'i minimal onarildi.
+- Dogrulama: widget hedefli testler -> **12 passed**; `tests/ui -q` -> **107 passed**; `tests -q` -> **363 passed**.
+- Baglantili sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-02] duzeltme | Dashboard aktif fiyat kapsami
+
+- Dashboard fiyat event handler'i `portfolio.total_cost` metodunu formatlamaya gonderdigi icin TypeError uretiyordu; summary hesaplari aktif pozisyonlardan yapilacak sekilde duzeltildi.
+- Fiyat guncelleme ve Fiyat Verisi Yonetimi varsayilan kapsami net acik pozisyonlara cekildi; tamamen satilmis ALTNY gibi hisseler otomatik/toplu scope disinda kalir.
+- Dogrulama: hedefli application/UI testleri -> **21 passed**; `tests/ui -q` -> **102 passed**; `tests -q` -> **358 passed**.
+- Baglantili sayfa: [service_portfolio_and_market.md](service_portfolio_and_market.md)
+
+## [2026-06-02] duzeltme | KAP MKK public fallback ve 404 degrade
+
+- KAP/MKK aday provider'i calismayan `disclosureQuery` endpoint'ine bagimli kalmayacak sekilde public liste/detail fallback akisi ve typed unavailable hatasi ile guncellendi.
+- Discovery result `errors` ve `source_unavailable` alanlariyla kaynak okunamama durumunu exception path'e dusmeden UI'a tasir.
+- Startup discovery sessiz kalir; manuel `KAP/MKK Yenile` kullaniciya kisa warning gosterir.
+- Dogrulama: hedefli provider/application/UI testleri -> **20 passed**; `tests -q` -> **354 passed**.
+- Baglantili sayfa: [service_corporate_actions.md](service_corporate_actions.md)
+
+## [2026-06-02] duzeltme | Comparison Lab Plotly WebEngine render
+
+- QWebEngine eski Chromium motorunda Plotly `:focus-visible` insertRule hatasi grafiklerin bos kalmasina ve `Plotly is not defined` hatasina yol aciyordu.
+- Comparison Lab Plotly HTML uretimi `plotly_html.py` helper'ina tasindi; shared Plotly JS artik insertRule patch'iyle birlikte temp dosyaya yazilir.
+- Inline fallback ve regression testleri eklendi; CDN/canli network bagimliligi yoktur.
+- Dogrulama: `tests/ui -q` -> **99 passed**; `tests -q` -> **344 passed**.
+- Baglantili sayfa: [comparison_lab.md](comparison_lab.md)
+
+## [2026-06-02] ekle | Bedelli bedelsiz KAP MKK aday otomasyonu
+
+- Bedelli/bedelsiz sermaye artirimlari icin `CorporateActionCandidate` domain modeli, candidate repository portu ve `corporate_action_candidates` ORM tablosu eklendi.
+- KAP/MKK provider parser, discovery servisi ve candidate review servisi mevcut `CorporateActionService` uygulama hattina baglandi.
+- Ayarlar sayfasina Kurumsal Aksiyonlar sekmesi eklendi; aday listeleme, yenileme, duzenleme, yoksayma, kaynak acma ve onayla-uygula akisi saglandi.
+- Startup icin sessiz/gunde bir kez discovery worker'i eklendi; default test suite canlı ağa bağlı kalmaz.
+- Baglantili sayfa: [service_corporate_actions.md](service_corporate_actions.md)
+
+## [2026-06-02] duzeltme | MERKO bedelsiz sonrasi gecmis fiyat duzeltmesi
+
+- Sermaye artirimlari icin `daily_prices` gecmisini in-place normalize eden fiyat duzeltme mekanizmasi eklendi.
+- MERKO.IS %638,33834 bedelsiz artirimi idempotent script ve DB adjustment alanlariyla onarilabilir hale getirildi.
+- Baglantili sayfa: [service_corporate_actions.md](service_corporate_actions.md)
+
 ## [2026-06-02] guncelleme | Faz 6 production guvenlik build ve operasyon
 
 - DB pool ayarlari `DB_POOL_RECYCLE_SECONDS` ve `DB_POOL_PRE_PING` env anahtarlariyla yonetilebilir hale getirildi; varsayilanlar eski davranisi korur.
