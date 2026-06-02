@@ -54,3 +54,15 @@ graph TD
 - Repository ve market-data adapter taramasında kontrolsüz `except Exception` kalmadı; beklenmeyen programlama hataları artık sessizce yutulmaz.
 - `ScrapedBenchmarkProvider._request_json` invalid JSON durumunu `MarketDataUnavailableError` olarak sarar; TCMB mevduat oranı akışı EVDS erişim hatasında manuel fallback sözleşmesini korur.
 - YFinance fiyat lookup ve optimizasyon adapter'ları network/veri hatalarında sırasıyla `None` veya anlamlı hata sonucu üretir; canlı network testleri default pytest koşumuna bağımlı değildir.
+
+## Aktif Fiyat Kapsami Notu (2026-06-02)
+
+- Dashboard fiyat guncelleme ve Ayarlar > Fiyat Verisi Yonetimi varsayilan kapsami yalniz net acik pozisyonlardir.
+- Gecmiste alinip tamamen satilmis hisseler fiyat guncelleme, veri sagligi ve otomatik eksik fiyat tamamlama kapsamindan cikarilir; eski fiyat kayitlari silinmez.
+- Model portfoy fiyat sagligi da ayni event-sourced net pozisyon kuralini kullanir; manuel `update_stock_range(stock_id, ...)` belirli hisse icin calismaya devam eder.
+
+## Toplam Deger Kapsami Notu (2026-06-03)
+
+- Dashboard ve analiz toplam portfoy degeri kullanici varligini temsil eder: nakit bakiye + acik pozisyon piyasa degeri.
+- Pozisyon tablolari acik pozisyonlardan uretilir; tamamen kapanmis hisseler tablo, otomatik fiyat guncelleme ve analiz filtre kapsaminda tekrar gosterilmez.
+- Gecmis trade kayitlari ve fiyatlar korunur; satis nakdi toplam deger serisine yansimaya devam eder.
