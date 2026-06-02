@@ -9,6 +9,7 @@ from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.application.services.portfolio.price_update_service import PriceUpdateService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
+from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
 
 
 @dataclass
@@ -39,8 +40,9 @@ class PortfolioUpdateCoordinator:
         """
         today = date.today()
 
-        # 1) Portföyde trade'i olan tüm hisseleri bul
-        stock_ids = self.portfolio_repo.get_all_stock_ids_in_portfolio()
+        # 1) Net açık pozisyonu olan hisseleri bul
+        portfolio = build_portfolio_safely(self.portfolio_repo.get_all_trades()).portfolio
+        stock_ids = sorted(portfolio.active_positions)
 
         # 2) Bu id'lerin ticker map'ini al
         stock_ticker_map = self.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
