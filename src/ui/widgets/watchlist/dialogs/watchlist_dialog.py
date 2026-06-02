@@ -2,6 +2,8 @@ from typing import Optional, Tuple
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout
 from PyQt5.QtCore import Qt
 
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+
 class WatchlistDialog(QDialog):
     """Liste oluşturma ve düzenleme diyaloğu."""
 
@@ -22,6 +24,7 @@ class WatchlistDialog(QDialog):
         self.desc_input.setProperty("cssClass", "tradeInputNormal")
 
         self._init_ui()
+        configure_dialog_behavior(self, self.btn_confirm, self.accept)
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -48,13 +51,13 @@ class WatchlistDialog(QDialog):
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setProperty("cssClass", "secondaryButton")
 
-        btn_confirm = QPushButton("Kaydet")
-        btn_confirm.clicked.connect(self.accept)
-        btn_confirm.setProperty("cssClass", "primaryButton")
-        btn_confirm.setDefault(True)
+        self.btn_confirm = QPushButton("Kaydet")
+        self.btn_confirm.clicked.connect(self.accept)
+        self.btn_confirm.setProperty("cssClass", "primaryButton")
+        self.btn_confirm.setDefault(True)
 
         btn_layout.addWidget(btn_cancel)
-        btn_layout.addWidget(btn_confirm)
+        btn_layout.addWidget(self.btn_confirm)
         layout.addLayout(btn_layout)
 
     def get_data(self) -> Optional[Tuple[str, str]]:
