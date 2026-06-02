@@ -1,0 +1,7 @@
+ekle: Diyaloglar için Enter tuşu davranışını yöneten filtre eklendi
+
+Bu yeni sınıf, PyQt5 QDialog pencerelerinde Enter tuşuna basıldığında özel bir davranış sağlar. Odaklanmış widget'ın türüne göre Enter tuşu eylemini engeller veya özel bir işleyiciyi tetikler.
+- QTextEdit, QPlainTextEdit, açık QComboBox veya QDateEdit takvimi gibi odaklanmış widget'lar için Enter tuşu eylemini engeller.
+- Belirtilen bir işleyiciyi çağırır veya birincil düğmeye tıklar.
+
+Etkilenen modüller: src/ui/widgets/dialog_behavior.py
