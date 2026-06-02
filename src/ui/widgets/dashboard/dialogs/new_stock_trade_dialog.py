@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 )
 from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
 SideLiteral = Literal["BUY", "SELL"]
 
@@ -41,7 +42,7 @@ class NewStockTradeDialog(QDialog):
         self.setWindowTitle("Yeni İşlem Sihirbazı")
         self.setMinimumWidth(500)
         self.setFixedHeight(550)
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        configure_dialog_behavior(self, self.btn_next, self._on_next_clicked)
         # Koyu tema arka planı
         self.setProperty("cssClass", "dialogContainer")
 
