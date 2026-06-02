@@ -13,6 +13,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+
 class CapitalDialog(QDialog):
     """Sermaye ekleme/çekme diyaloğu."""
 
@@ -27,6 +29,7 @@ class CapitalDialog(QDialog):
         self.setProperty("cssClass", "dialogContainer")
         
         self._init_ui()
+        configure_dialog_behavior(self, self.btn_confirm, self.accept)
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -66,13 +69,13 @@ class CapitalDialog(QDialog):
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         
-        btn_confirm = QPushButton("Onayla")
-        btn_confirm.clicked.connect(self.accept)
-        btn_confirm.setProperty("cssClass", "tradeConfirmBuyBtn")
-        btn_confirm.setDefault(True)
+        self.btn_confirm = QPushButton("Onayla")
+        self.btn_confirm.clicked.connect(self.accept)
+        self.btn_confirm.setProperty("cssClass", "tradeConfirmBuyBtn")
+        self.btn_confirm.setDefault(True)
         
         btn_layout.addWidget(btn_cancel)
-        btn_layout.addWidget(btn_confirm)
+        btn_layout.addWidget(self.btn_confirm)
         layout.addLayout(btn_layout)
 
     def get_result(self) -> Optional[Dict]:
