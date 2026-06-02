@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.domain.models.stock import Stock
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
 
 @dataclass
@@ -37,7 +38,7 @@ class EditStockDialog(QDialog):
         self._init_ui()
         self._connect_signals()
 
-        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        configure_dialog_behavior(self, self.btn_ok, self.accept)
 
     def _init_ui(self):
         self.setWindowTitle("Hisseyi Düzenle")
