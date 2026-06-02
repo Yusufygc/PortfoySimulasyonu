@@ -191,6 +191,40 @@ class ActionTypeEnum(str, enum.Enum):
     BEDELLI = "BEDELLI"
     BEDELSIZ = "BEDELSIZ"
 
+class ORMCorporateActionCandidate(Base):
+    __tablename__ = "corporate_action_candidates"
+
+    id                   = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    ticker               = Column(String(20), nullable=False)
+    stock_id             = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
+    source               = Column(String(30), nullable=False)
+    source_disclosure_id = Column(String(100), nullable=False)
+    source_url           = Column(String(500), nullable=True)
+    action_type          = Column(Enum(ActionTypeEnum), nullable=False)
+    status               = Column(String(30), nullable=False, default="DISCOVERED", server_default="DISCOVERED")
+    ratio                = Column(Numeric(12, 8), nullable=True)
+    subscription_price   = Column(Numeric(18, 4), nullable=True)
+    announcement_date    = Column(Date, nullable=True)
+    ex_date              = Column(Date, nullable=True)
+    confidence           = Column(Numeric(5, 4), nullable=False, default=0, server_default="0")
+    raw_payload_json     = Column(JSON, nullable=True)
+    parse_notes          = Column(String(500), nullable=True)
+    created_at           = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at           = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "source",
+            "source_disclosure_id",
+            "action_type",
+            "ticker",
+            name="uq_corp_action_candidate_source",
+        ),
+        Index("idx_corp_action_candidates_ticker_status_exdate", "ticker", "status", "ex_date"),
+    )
+
+    stock = relationship("ORMStock")
+
 class ORMCorporateAction(Base):
     """
     Bedelli / bedelsiz sermaye artırımı olaylarını saklar.
@@ -202,12 +236,16 @@ class ORMCorporateAction(Base):
     stock_id           = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
     action_type        = Column(Enum(ActionTypeEnum), nullable=False)
     ex_date            = Column(Date, nullable=False)
-    ratio              = Column(Numeric(10, 6), nullable=False)
+    ratio              = Column(Numeric(12, 8), nullable=False)
     subscription_price = Column(Numeric(18, 4), nullable=True)
     announcement_date  = Column(Date, nullable=True)
     notes              = Column(String(500), nullable=True)
     applied            = Column(Boolean, nullable=False, default=False, server_default="0")
     applied_at         = Column(DateTime, nullable=True)
+    prices_adjusted    = Column(Boolean, nullable=False, default=False, server_default="0")
+    prices_adjusted_at = Column(DateTime, nullable=True)
+    price_adjustment_factor = Column(Numeric(18, 10), nullable=True)
+    price_adjustment_count  = Column(Integer, nullable=False, default=0, server_default="0")
     created_at         = Column(DateTime, nullable=False, server_default=func.now())
 
     __table_args__ = (
