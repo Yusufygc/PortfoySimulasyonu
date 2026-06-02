@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 
 from src.application.services.analysis import AnalysisFilterState, AnalysisService
+from src.domain.models.cash_movement import CashMovement
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade
@@ -49,6 +50,14 @@ class FakeStockRepo:
 
     def get_ticker_map_for_stock_ids(self, stock_ids):
         return {stock.id: stock.ticker for stock in self._stocks if stock.id in stock_ids}
+
+
+class FakeCashMovementRepo:
+    def __init__(self, movements):
+        self._movements = movements
+
+    def get_all_movements(self):
+        return list(self._movements)
 
 
 class FakeMarketDataClient:
@@ -180,6 +189,105 @@ def test_missing_price_data_creates_warning():
     risk_view = service.get_allocation_risk_view(filter_state)
 
     assert any("AKBNK" in warning for warning in risk_view.warnings)
+
+
+def test_sold_dashboard_stock_is_not_exposed_as_active_analysis_stock():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("10")),
+        Trade.create_sell(stock_id=1, trade_date=date(2026, 1, 2), quantity=10, price=Decimal("11")),
+        Trade.create_buy(stock_id=2, trade_date=date(2026, 1, 3), quantity=5, price=Decimal("20")),
+    ]
+    service = AnalysisService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo({2: {date(2026, 1, 3): Decimal("21")}}),
+        stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS"), Stock(id=2, ticker="AKBNK.IS")]),
+        market_data_client=FakeMarketDataClient({}),
+    )
+
+    stock_map = service.get_stock_map_for_source("dashboard")
+
+    assert stock_map == {2: "AKBNK.IS"}
+
+
+def test_sold_stock_without_prices_does_not_create_analysis_warning():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("10")),
+        Trade.create_sell(stock_id=1, trade_date=date(2026, 1, 2), quantity=10, price=Decimal("11")),
+        Trade.create_buy(stock_id=2, trade_date=date(2026, 1, 3), quantity=5, price=Decimal("20")),
+    ]
+    service = AnalysisService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo({2: {date(2026, 1, 3): Decimal("21")}}),
+        stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS"), Stock(id=2, ticker="AKBNK.IS")]),
+        market_data_client=FakeMarketDataClient({}),
+    )
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 3),
+        end_date=date(2026, 1, 4),
+        selected_stock_ids=[],
+        selected_benchmarks=[],
+        portfolio_source="dashboard",
+    )
+
+    payload = service.get_page_payload(filter_state)
+
+    assert not any("BORSK" in warning for warning in payload["overview"].warnings)
+    assert payload["overview"].largest_position_label == "AKBNK.IS"
+
+
+def test_dashboard_analysis_total_value_keeps_cash_from_closed_trade():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("10")),
+        Trade.create_sell(stock_id=1, trade_date=date(2026, 1, 2), quantity=10, price=Decimal("11")),
+    ]
+    service = AnalysisService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo({}),
+        stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS")]),
+        market_data_client=FakeMarketDataClient({}),
+        cash_movement_repo=FakeCashMovementRepo(
+            [CashMovement.create_deposit(amount=Decimal("100"), movement_date=date(2026, 1, 1))]
+        ),
+    )
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_stock_ids=[],
+        selected_benchmarks=[],
+        portfolio_source="dashboard",
+    )
+
+    overview = service.get_overview(filter_state)
+
+    assert overview.total_value == Decimal("110")
+
+
+def test_stock_sold_inside_analysis_range_is_valued_until_closed():
+    trades = [
+        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("10")),
+        Trade.create_sell(stock_id=1, trade_date=date(2026, 1, 3), quantity=10, price=Decimal("12")),
+    ]
+    service = AnalysisService(
+        portfolio_repo=FakePortfolioRepo(trades),
+        price_repo=FakePriceRepo({1: {date(2026, 1, 2): Decimal("11")}}),
+        stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS")]),
+        market_data_client=FakeMarketDataClient({}),
+        cash_movement_repo=FakeCashMovementRepo(
+            [CashMovement.create_deposit(amount=Decimal("100"), movement_date=date(2026, 1, 1))]
+        ),
+    )
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_stock_ids=[],
+        selected_benchmarks=[],
+        portfolio_source="dashboard",
+    )
+
+    overview = service.get_overview(filter_state)
+
+    assert overview.total_value == Decimal("120")
+    assert not any("BORSK" in warning for warning in overview.warnings)
 
 
 def test_market_benchmark_falls_back_to_secondary_ticker():
@@ -415,3 +523,67 @@ def test_comparison_view_with_other_portfolios(analysis_service):
     assert p4_series.code == "model:4"
     assert p4_series.label == "Model Portfoy 4"
     assert len(p4_series.points) == 3
+
+
+def test_closed_model_position_is_not_exposed_as_active_analysis_stock(analysis_service):
+    from src.domain.models.model_portfolio import ModelTradeSide
+
+    class FakeModelPortfolio:
+        def __init__(self, id, name):
+            self.id = id
+            self.name = name
+
+    class FakeModelTrade:
+        def __init__(self, stock_id, trade_date, quantity, price, side):
+            self.stock_id = stock_id
+            self.trade_date = trade_date
+            self.quantity = quantity
+            self.price = price
+            self.side = side
+            self.trade_time = None
+
+    class FakeModelPortfolioService:
+        def get_all_portfolios(self):
+            return [FakeModelPortfolio(4, "Model Portfoy 4")]
+
+        def get_positions(self, portfolio_id):
+            return {1: 10}
+
+        def get_portfolio_trades(self, portfolio_id):
+            return [
+                FakeModelTrade(1, date(2026, 1, 1), 10, Decimal("100"), ModelTradeSide.BUY),
+                FakeModelTrade(2, date(2026, 1, 1), 5, Decimal("20"), ModelTradeSide.BUY),
+                FakeModelTrade(2, date(2026, 1, 2), 5, Decimal("22"), ModelTradeSide.SELL),
+            ]
+
+    analysis_service._source_resolver._model_portfolio_service = FakeModelPortfolioService()
+
+    stock_map = analysis_service.get_stock_map_for_source("model:4")
+
+    assert stock_map == {1: "AKBNK"}
+
+
+def test_stale_model_source_is_normalized_without_duplicate_comparison(analysis_service):
+    class FakeModelPortfolioService:
+        def get_all_portfolios(self):
+            return []
+
+        def get_portfolio_trades(self, portfolio_id):
+            raise AssertionError("stale model trades should not be loaded")
+
+    analysis_service._source_resolver._model_portfolio_service = FakeModelPortfolioService()
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_stock_ids=[],
+        selected_benchmarks=[],
+        portfolio_source="model:99",
+        comparison_portfolio_sources=["model:99"],
+    )
+
+    comparison = analysis_service.get_comparison_view(filter_state)
+    overview = analysis_service.get_overview(filter_state)
+
+    assert comparison.current_portfolio_label == "Ana Portfoy"
+    assert comparison.comparison_portfolios == []
+    assert overview.portfolio_label == "Ana Portfoy"
