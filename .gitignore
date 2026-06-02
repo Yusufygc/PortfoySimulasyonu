@@ -1,10 +1,12 @@
 *.sql
+!scripts/alter_corporate_actions_price_adjustment.sql
 *.xlsx
 .vscode
 .claude
 CLAUDE.md
 RULES.md
 auto_commit.py
+REFACTOR.md
 
 /Eklenebilirler.txt
 /Ai_sayfasi.md
