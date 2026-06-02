@@ -4,8 +4,6 @@ import logging
 from datetime import date
 from typing import List, Optional
 
-logger = logging.getLogger(__name__)
-
 from PyQt5.QtCore import QSettings, QThreadPool, QTimer, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
@@ -20,12 +18,14 @@ from PyQt5.QtWidgets import (
 
 from src.ui.navigation.page_factory import PageFactory
 from src.ui.shared.price_event_publisher import publish_prices_updated
-from src.ui.widgets.shared import AnimatedButton
-from src.ui.widgets.shared import Toast
+from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.worker import Worker
 
 
+logger = logging.getLogger(__name__)
+
 AUTO_BACKFILL_SETTINGS_KEY = "settings/last_auto_price_backfill_at"
+AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY = "settings/last_auto_corporate_action_discovery_at"
 
 
 class MainWindow(QMainWindow):
@@ -61,6 +61,7 @@ class MainWindow(QMainWindow):
         self._init_ui()
         self._goto_page(self.PAGE_DASHBOARD)
         QTimer.singleShot(0, self._start_auto_price_backfill_once)
+        QTimer.singleShot(0, self._start_auto_corporate_action_discovery_once)
 
     def _init_ui(self):
         self.central_widget = QWidget()
@@ -83,7 +84,6 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.addWidget(lbl_app_title)
 
         self._add_separator()
-
         self.btn_dashboard = self._create_nav_button("Dashboard", self.PAGE_DASHBOARD, "layout-dashboard")
         self.btn_watchlist = self._create_nav_button("Listelerim", self.PAGE_WATCHLIST, "list")
         self.btn_model_portfolio = self._create_nav_button("Model Portföyler", self.PAGE_MODEL_PORTFOLIO, "wallet")
@@ -94,7 +94,7 @@ class MainWindow(QMainWindow):
         self.btn_risk_profile = self._create_nav_button("Risk Profili", self.PAGE_RISK_PROFILE, "shield-check")
         self.btn_ai_page = self._create_nav_button("AI Asistan", self.PAGE_AI_PAGE, "bot")
         self.btn_settings = self._create_nav_button("Ayarlar", self.PAGE_SETTINGS, "save")
- 
+
         for button in (
             self.btn_dashboard,
             self.btn_watchlist,
@@ -112,14 +112,12 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.addStretch()
         self._add_separator()
 
-
         self.stacked_widget = QStackedWidget()
         self.pages = {}
         for _ in range(self.PAGE_COUNT):
             self.stacked_widget.addWidget(QWidget())
 
         self._instantiate_page(self.PAGE_DASHBOARD)
-
         self.main_layout.addWidget(self.sidebar)
         self.main_layout.addWidget(self.stacked_widget, 1)
 
@@ -227,7 +225,7 @@ class MainWindow(QMainWindow):
         }
 
         for page_idx, (btn, icon_name) in nav_buttons.items():
-            is_active = (page_idx == active_page)
+            is_active = page_idx == active_page
             btn.setChecked(is_active)
             color = "@COLOR_TEXT_WHITE" if is_active else "@COLOR_TEXT_SECONDARY"
             btn.setIconName(icon_name, color=color)
@@ -261,3 +259,29 @@ class MainWindow(QMainWindow):
         self._settings.setValue(AUTO_BACKFILL_SETTINGS_KEY, date.today().isoformat())
         self._settings.sync()
         Toast.warning(self, f"Otomatik veri güncelleme çalıştırılamadı: {err_tuple[1]}")
+
+    def _start_auto_corporate_action_discovery_once(self) -> None:
+        service = getattr(self.container, "corporate_action_discovery_service", None)
+        if service is None:
+            return
+        today = date.today()
+        last_run = self._settings.value(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, "", type=str)
+        if last_run == today.isoformat():
+            return
+
+        worker = Worker(service.discover)
+        worker.signals.result.connect(self._on_auto_corporate_action_discovery_success)
+        worker.signals.error.connect(self._on_auto_corporate_action_discovery_error)
+        self._threadpool.start(worker)
+
+    def _on_auto_corporate_action_discovery_success(self, result) -> None:
+        self._settings.setValue(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, date.today().isoformat())
+        self._settings.sync()
+        saved_count = getattr(result, "saved_count", 0)
+        if saved_count > 0:
+            Toast.success(self, f"Kurumsal aksiyon adayları bulundu: {saved_count} kayıt.")
+
+    def _on_auto_corporate_action_discovery_error(self, err_tuple) -> None:
+        self._settings.setValue(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, date.today().isoformat())
+        self._settings.sync()
+        logger.warning("Auto corporate action discovery failed: %s", err_tuple[1])
