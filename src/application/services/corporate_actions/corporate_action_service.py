@@ -23,6 +23,9 @@ from src.domain.models.position import Position
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.application.services.corporate_actions.price_adjustment_service import (
+    CorporateActionPriceAdjustmentService,
+)
 
 
 @dataclass
@@ -43,6 +46,8 @@ class CorporateActionResult:
     capital_spent: Decimal                    # Bedelli için ödenen tutar
 
     description: str
+    price_adjustment_factor: Optional[Decimal] = None
+    price_adjustment_count: int = 0
 
 
 def _bedelsiz_description(
@@ -101,6 +106,8 @@ def _build_action_result(
     theoretical_price: Optional[Decimal],
     capital_spent: Decimal,
     description: str,
+    price_adjustment_factor: Optional[Decimal] = None,
+    price_adjustment_count: int = 0,
 ) -> CorporateActionResult:
     return CorporateActionResult(
         action_id=action.id,
@@ -114,6 +121,8 @@ def _build_action_result(
         theoretical_ex_price=theoretical_price,
         capital_spent=capital_spent,
         description=description,
+        price_adjustment_factor=price_adjustment_factor,
+        price_adjustment_count=price_adjustment_count,
     )
 
 
@@ -130,9 +139,11 @@ class CorporateActionService:
         self,
         action_repo: ICorporateActionRepository,
         portfolio_repo: IPortfolioRepository,
+        price_adjustment_service: CorporateActionPriceAdjustmentService | None = None,
     ) -> None:
         self._action_repo = action_repo
         self._portfolio_repo = portfolio_repo
+        self._price_adjustment_service = price_adjustment_service
 
     # ══════════════════════════════════════════════════════════
     #  KAYIT (REGISTRATION)
@@ -159,6 +170,7 @@ class CorporateActionService:
             announcement_date=announcement_date,
             notes=notes,
         )
+        self._ensure_not_registered(action)
         return self._action_repo.insert(action)
 
     def register_bedelli(
@@ -184,6 +196,7 @@ class CorporateActionService:
             announcement_date=announcement_date,
             notes=notes,
         )
+        self._ensure_not_registered(action)
         return self._action_repo.insert(action)
 
     # ══════════════════════════════════════════════════════════
@@ -201,6 +214,15 @@ class CorporateActionService:
 
     def get_pending_by_stock(self, stock_id: int) -> List[CorporateAction]:
         return self._action_repo.get_pending_by_stock(stock_id)
+
+    def _ensure_not_registered(self, candidate: CorporateAction) -> None:
+        for existing in self._action_repo.get_by_stock(candidate.stock_id):
+            if _same_registration(existing, candidate):
+                raise ValueError(
+                    "Ayni hisse, islem tipi ve ex-date icin kurumsal islem zaten kayitli: "
+                    f"id={existing.id}, stock_id={existing.stock_id}, "
+                    f"type={existing.action_type.value}, ex_date={existing.ex_date}"
+                )
 
     # ══════════════════════════════════════════════════════════
     #  UYGULAMA (APPLICATION)
@@ -251,7 +273,35 @@ class CorporateActionService:
             result = self._apply_bedelli(action, position, new_shares, theoretical)
 
         self._action_repo.mark_applied(action_id)
-        return result
+        return self._with_price_adjustment(result, action)
+
+    def adjust_prices_for_action(self, action_id: int):
+        if self._price_adjustment_service is None:
+            raise ValueError("Fiyat gecmisi duzeltme servisi yapilandirilmamis.")
+        return self._price_adjustment_service.adjust_prices_for_action(action_id)
+
+    def _with_price_adjustment(
+        self,
+        result: CorporateActionResult,
+        action: CorporateAction,
+    ) -> CorporateActionResult:
+        if self._price_adjustment_service is None:
+            return result
+
+        adjustment = self._price_adjustment_service.adjust_prices_for_applied_action(action)
+        return _build_action_result(
+            action=action,
+            shares_before=result.shares_before,
+            new_shares=result.new_shares,
+            shares_after=result.shares_after,
+            avg_cost_before=result.avg_cost_before,
+            avg_cost_after=result.avg_cost_after,
+            theoretical_price=result.theoretical_ex_price,
+            capital_spent=result.capital_spent,
+            description=result.description,
+            price_adjustment_factor=adjustment.factor,
+            price_adjustment_count=adjustment.adjusted_count,
+        )
 
     # ──────────────── İç Uygulama Metotları ────────────────
 
@@ -360,3 +410,11 @@ class CorporateActionService:
         if action.applied:
             raise ValueError("Uygulanmış bir kurumsal işlem silinemez.")
         self._action_repo.delete(action_id)
+
+
+def _same_registration(left: CorporateAction, right: CorporateAction) -> bool:
+    return (
+        left.stock_id == right.stock_id
+        and left.action_type == right.action_type
+        and left.ex_date == right.ex_date
+    )
