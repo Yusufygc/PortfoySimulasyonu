@@ -1,13 +1,21 @@
 import sys
+from PyQt5.QtCore import QCoreApplication, Qt
 from PyQt5.QtWidgets import QApplication
 
 from src.infrastructure.logging.logger_setup import setup_logger, setup_global_exception_handler
-from src.application.container import AppContainer
 
-from src.ui.theme_manager import ThemeManager
-from src.ui.main_window import MainWindow
+
+def configure_qt_application_attributes():
+    QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
+
 
 def main():
+    configure_qt_application_attributes()
+
+    from src.application.container import AppContainer
+    from src.ui.theme_manager import ThemeManager
+    from src.ui.main_window import MainWindow
+
     logger = setup_logger()
     setup_global_exception_handler()
     logger.info("Uygulama başlatılıyor...")
