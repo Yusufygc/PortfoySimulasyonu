@@ -61,6 +61,8 @@ class AnalysisOverviewDTO:
     insights: List[str]
     warnings: List[str]
     portfolio_label: str
+    currency_mode: str = "TL"
+
 
 
 @dataclass(frozen=True)
@@ -98,3 +100,6 @@ class AllocationRiskDTO:
     max_drawdown_pct: Optional[float]
     concentration_label: str
     warnings: List[str]
+    sharpe_ratio: Optional[float] = None
+    beta: Optional[float] = None
+    alpha: Optional[float] = None
