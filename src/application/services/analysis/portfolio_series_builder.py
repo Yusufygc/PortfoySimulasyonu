@@ -73,10 +73,10 @@ class PortfolioSeriesBuilder:
         end_date: date,
         portfolio: Portfolio,
         trade_stock_ids: Sequence[int] | None = None,
-    ) -> tuple[Dict[date, Decimal], Dict[int, Decimal], List[str]]:
+    ) -> tuple[Dict[date, Decimal], Dict[date, Decimal], Dict[int, Decimal], List[str]]:
         trade_scope = sorted(set(trade_stock_ids or stock_ids))
         if not stock_ids and not trade_scope:
-            return {}, {}, []
+            return {}, {}, {}, []
 
         prices_by_stock, last_prices, warnings = self._init_prices_and_warnings(
             stock_ids, ticker_map, start_date, end_date
@@ -90,7 +90,7 @@ class PortfolioSeriesBuilder:
             trades, cash_movements, trade_scope, start_date, end_date
         )
 
-        portfolio_series = self._run_simulation_loop(
+        portfolio_series, twr_series = self._run_simulation_loop(
             start_date,
             end_date,
             has_cash_tracking,
@@ -101,13 +101,15 @@ class PortfolioSeriesBuilder:
             prices_by_stock,
             last_prices,
             stock_ids,
+            warnings,
+            ticker_map,
         )
 
         position_values_end = self._calc_ending_position_values(
             portfolio, last_prices, stock_ids
         )
 
-        return portfolio_series, position_values_end, warnings
+        return portfolio_series, twr_series, position_values_end, warnings
 
     def _init_prices_and_warnings(
         self,
@@ -128,8 +130,6 @@ class PortfolioSeriesBuilder:
         for stock_id in stock_ids:
             previous_price = self._price_repo.get_last_price_before(stock_id, start_date)
             last_prices[stock_id] = previous_price.close_price if previous_price else None
-            if not prices_by_stock[stock_id]:
-                warnings.append(f"{ticker_map.get(stock_id, str(stock_id))} icin tarih araliginda fiyat verisi bulunamadi.")
         return prices_by_stock, last_prices, warnings
 
     def _calc_initial_cash_and_positions(
@@ -156,11 +156,15 @@ class PortfolioSeriesBuilder:
                     current_cash += cm.amount
                 elif cm.type == CashMovementType.WITHDRAW:
                     current_cash -= cm.amount
+                    if current_cash < 0:
+                        current_cash = Decimal("0")
 
             for t in trades_before:
                 trade_value = t.quantity * t.price
                 if t.side.name == "BUY":
                     current_cash -= trade_value
+                    if current_cash < 0:
+                        current_cash = Decimal("0")
                 elif t.side.name == "SELL":
                     current_cash += trade_value
 
@@ -200,17 +204,31 @@ class PortfolioSeriesBuilder:
         prices_by_stock: Dict[int, Dict[date, Decimal]],
         last_prices: Dict[int, Decimal | None],
         stock_ids: Sequence[int],
-    ) -> Dict[date, Decimal]:
+        warnings: List[str] = None,
+        ticker_map: Dict[int, str] = None,
+    ) -> tuple[Dict[date, Decimal], Dict[date, Decimal]]:
         portfolio_series: Dict[date, Decimal] = {}
+        twr_series: Dict[date, Decimal] = {}
         current_day = start_date
+        warned_stocks = set()
+        
+        twr_index = Decimal("100")
+        previous_total_value: Decimal | None = None
+        
         while current_day <= end_date:
+            daily_net_cash_flow = Decimal("0")
+            
             if has_cash_tracking:
                 # Gunluk nakit hareketlerini isle
                 for cm in sorted(cash_by_date.get(current_day, []), key=lambda item: item.movement_time or time.min):
                     if cm.type == CashMovementType.DEPOSIT:
                         current_cash += cm.amount
+                        daily_net_cash_flow += cm.amount
                     elif cm.type == CashMovementType.WITHDRAW:
                         current_cash -= cm.amount
+                        daily_net_cash_flow -= cm.amount
+                        if current_cash < 0:
+                            current_cash = Decimal("0")
 
                 # Gunluk hisse islemlerini isle
                 for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
@@ -218,12 +236,19 @@ class PortfolioSeriesBuilder:
                     trade_value = trade.quantity * trade.price
                     if trade.side.name == "BUY":
                         current_cash -= trade_value
+                        if current_cash < 0:
+                            current_cash = Decimal("0")
                     elif trade.side.name == "SELL":
                         current_cash += trade_value
             else:
                 # Sadece hisse pozisyonlarini guncelle, nakit 0 kalir
                 for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
                     current_positions[trade.stock_id].apply_trade(trade)
+                    trade_value = trade.quantity * trade.price
+                    if trade.side.name == "BUY":
+                        daily_net_cash_flow += trade_value
+                    elif trade.side.name == "SELL":
+                        daily_net_cash_flow -= trade_value
 
             total_value = current_cash
             for stock_id in stock_ids:
@@ -232,11 +257,26 @@ class PortfolioSeriesBuilder:
                     last_prices[stock_id] = day_price
                 price = last_prices[stock_id]
                 if price is None:
+                    if current_positions[stock_id].total_quantity > 0:
+                        if stock_id not in warned_stocks and warnings is not None and ticker_map is not None:
+                            warnings.append(f"{ticker_map.get(stock_id, str(stock_id))} icin tarih araliginda fiyat verisi bulunamadi.")
+                            warned_stocks.add(stock_id)
                     continue
                 total_value += current_positions[stock_id].market_value(price)
             portfolio_series[current_day] = total_value
+            
+            if previous_total_value is None:
+                twr_series[current_day] = twr_index
+            else:
+                base_value = previous_total_value + daily_net_cash_flow
+                if base_value > 0:
+                    daily_return = (total_value - base_value) / base_value
+                    twr_index = twr_index * (Decimal("1") + daily_return)
+                twr_series[current_day] = twr_index
+                
+            previous_total_value = total_value
             current_day += timedelta(days=1)
-        return portfolio_series
+        return portfolio_series, twr_series
 
     def _calc_ending_position_values(
         self,
