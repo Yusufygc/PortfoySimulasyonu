@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QTableWidgetItem
 
 from src.application.services.analysis.comparison_service import ComparisonService
 from src.ui.pages.comparison.chart_factory import ComparisonChartFactory
-from src.ui.pages.analysis.chart_builder import patch_plotly_html
+from src.ui.pages.comparison.utils.plotly_html import build_plotly_html, ensure_patched_plotly_js
 
 if TYPE_CHECKING:
     from src.ui.pages.comparison.comparison_page import ComparisonPage
@@ -260,25 +260,13 @@ class ChartRenderer:
         """Plotly Figure'ı geçici HTML dosyasına yazar ve view'a yükler."""
         page = self.page
 
-        if not hasattr(page, "shared_plotly_path") or not os.path.exists(page.shared_plotly_path):
-            page.shared_plotly_path = os.path.join(tempfile.gettempdir(), "plotly-shared.min.js")
-            if not os.path.exists(page.shared_plotly_path):
-                try:
-                    import plotly
-                    with open(page.shared_plotly_path, "w", encoding="utf-8") as f:
-                        f.write(plotly.offline.get_plotlyjs())
-                except Exception as exc:
-                    logger.error("Failed to write shared plotly.js: %s", exc)
-
-        html = fig.to_html(include_plotlyjs=False)
-        html = patch_plotly_html(html)
-
-        shared_js_url = QUrl.fromLocalFile(page.shared_plotly_path).toString()
-        script_tag = f'<script type="text/javascript" src="{shared_js_url}"></script>'
-        if "<head>" in html:
-            html = html.replace("<head>", f"<head>\n{script_tag}", 1)
-        else:
-            html = f"{script_tag}\n{html}"
+        try:
+            page.shared_plotly_path = ensure_patched_plotly_js()
+            shared_js_url = QUrl.fromLocalFile(page.shared_plotly_path).toString()
+            html = build_plotly_html(fig, shared_js_url)
+        except Exception as exc:
+            logger.error("Failed to prepare patched Plotly JS, using inline fallback: %s", exc)
+            html = build_plotly_html(fig, None)
 
         tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
         tmp.write(html)
