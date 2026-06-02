@@ -17,6 +17,8 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 
+from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+
 
 class DateRangeDialog(QDialog):
     """
@@ -83,11 +85,22 @@ class DateRangeDialog(QDialog):
         lbl_end.setProperty("cssClass", "formLabel")
         form.addRow(lbl_end, self.end_edit)
 
+        main_layout.addLayout(form)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        self.btn_cancel = QPushButton("Iptal")
+        self.btn_cancel.setProperty("cssClass", "secondaryButton")
+        self.btn_ok = QPushButton("Tamam")
+        self.btn_ok.setProperty("cssClass", "primaryButton")
+        btn_layout.addWidget(self.btn_cancel)
+        btn_layout.addWidget(self.btn_ok)
         main_layout.addLayout(btn_layout)
 
         # Sinyaller
         self.btn_ok.clicked.connect(self._on_accept_clicked)
         self.btn_cancel.clicked.connect(self.reject)
+        configure_dialog_behavior(self, self.btn_ok, self._on_accept_clicked)
 
     # ---- public API -------------------------------------------------
 
