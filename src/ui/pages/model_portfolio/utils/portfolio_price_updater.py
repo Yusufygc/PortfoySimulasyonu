@@ -1,10 +1,8 @@
 # src/ui/pages/model_portfolio/utils/portfolio_price_updater.py
 
 import logging
-from datetime import date
 from decimal import Decimal
 from typing import Dict
-from src.domain.models.daily_price import DailyPrice
 from src.ui.shared.price_event_publisher import publish_prices_updated
 from src.ui.widgets.shared import Toast
 
@@ -24,7 +22,6 @@ class PortfolioPriceUpdater:
 
         positions = self.page.model_portfolio_service.get_positions_with_details(self.page.current_portfolio_id)
         updated_count = 0
-        prices_to_save = []
         event_prices: Dict[int, Decimal] = {}
 
         for pos in positions:
@@ -33,21 +30,9 @@ class PortfolioPriceUpdater:
                 if result:
                     self.page.current_price_map[pos["stock_id"]] = result.price
                     event_prices[pos["stock_id"]] = result.price
-                    prices_to_save.append(
-                        DailyPrice(
-                            id=None,
-                            stock_id=pos["stock_id"],
-                            price_date=self._price_date_for_lookup_result(result),
-                            close_price=result.price,
-                            source=result.source,
-                        )
-                    )
                     updated_count += 1
             except Exception as exc:
                 logger.error("Fiyat alınamadı: %s - %s", pos["ticker"], exc)
-
-        if prices_to_save:
-            self.page.price_repo.upsert_daily_prices_bulk(prices_to_save)
 
         publish_prices_updated(getattr(self.page.container, "event_bus", None), event_prices)
 
@@ -68,8 +53,3 @@ class PortfolioPriceUpdater:
             detail=f"{updated_count} hisse için fiyat güncellendi.",
         )
 
-    @staticmethod
-    def _price_date_for_lookup_result(result) -> date:
-        if getattr(result, "source", "") == "last_close" and getattr(result, "as_of", None):
-            return result.as_of.date()
-        return date.today()
