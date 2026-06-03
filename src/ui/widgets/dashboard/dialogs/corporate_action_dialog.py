@@ -60,6 +60,7 @@ class CorporateActionDialog(QDialog):
         parent=None,
     ):
         super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self._ticker = ticker
         self._display_ticker = display_ticker(ticker)
         self._stock_id = stock_id
