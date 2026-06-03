@@ -59,6 +59,13 @@ QLabel[cssClass="actionListLabel"] {
     font-size: 15px;
 }
 
+QLabel[cssClass="actionListSecondaryLabel"] {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    color: @COLOR_TEXT_MUTED;
+}
+
 QToolButton[cssClass="actionListMenuBtn"] {
     background: transparent;
     border: none;
