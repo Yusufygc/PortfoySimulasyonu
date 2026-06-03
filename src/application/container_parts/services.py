@@ -41,6 +41,7 @@ class ServiceSet:
     trade_entry_service: TradeEntryService
     price_update_service: PriceUpdateService
     price_data_health_service: object
+    live_price_refresh_service: object
     return_calc_service: ReturnCalcService
     model_portfolio_service: ModelPortfolioService
     analysis_service: AnalysisService
@@ -167,6 +168,7 @@ def _build_feature_services(
     market_clients: MarketClientSet,
     foundation: dict,
 ) -> dict:
+    from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
     from src.application.services.market.price_data_health_service import PriceDataHealthService
 
     model_portfolio_service = foundation["model_portfolio_service"]
@@ -180,15 +182,22 @@ def _build_feature_services(
         price_adjustment_service=corporate_action_price_adjustment_service,
     )
 
+    price_data_health_service = PriceDataHealthService(
+        stock_repo=repositories.stock_repo,
+        price_repo=repositories.price_repo,
+        market_data_client=market_clients.market_client,
+        portfolio_repo=repositories.portfolio_repo,
+        model_portfolio_repo=repositories.model_portfolio_repo,
+        corporate_action_repo=repositories.corporate_action_repo,
+        holiday_provider=BistHolidayProvider(),
+    )
+
     return {
-        "price_data_health_service": PriceDataHealthService(
+        "price_data_health_service": price_data_health_service,
+        "live_price_refresh_service": LivePriceRefreshService(
             stock_repo=repositories.stock_repo,
-            price_repo=repositories.price_repo,
-            market_data_client=market_clients.market_client,
-            portfolio_repo=repositories.portfolio_repo,
-            model_portfolio_repo=repositories.model_portfolio_repo,
-            corporate_action_repo=repositories.corporate_action_repo,
-            holiday_provider=BistHolidayProvider(),
+            price_lookup_service=market_clients.price_lookup_service,
+            price_data_health_service=price_data_health_service,
         ),
         "analysis_service": AnalysisService(
             portfolio_repo=repositories.portfolio_repo,
