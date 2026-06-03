@@ -339,6 +339,139 @@ def test_model_portfolio_stocks_are_scanned_and_stored_like_dashboard_stocks():
     assert market_client.requests == [("BBB.IS", date(2026, 1, 2), date(2026, 1, 2))]
 
 
+def test_dashboard_scope_excludes_model_portfolio_positions():
+    model_trade = ModelPortfolioTrade.create_buy(
+        portfolio_id=4,
+        stock_id=2,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("20"),
+    )
+    service, _, _ = make_service(
+        {
+            1: {date(2026, 1, 2): Decimal("10")},
+            2: {date(2026, 1, 2): Decimal("20")},
+        },
+        trades=[
+            Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10")),
+        ],
+        model_trades_by_portfolio={4: [model_trade]},
+    )
+
+    report = service.analyze(date(2026, 1, 2), date(2026, 1, 5), scope="dashboard")
+
+    assert [row.stock_id for row in report.rows] == [1]
+
+
+def test_active_stock_ids_uses_same_scope_rules_as_health_analysis():
+    model_trade = ModelPortfolioTrade.create_buy(
+        portfolio_id=4,
+        stock_id=2,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("20"),
+    )
+    service, _, _ = make_service(
+        {1: {}, 2: {}},
+        trades=[
+            Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10")),
+        ],
+        model_trades_by_portfolio={4: [model_trade]},
+    )
+
+    assert service.active_stock_ids() == {1, 2}
+    assert service.active_stock_ids("dashboard") == {1}
+    assert service.active_stock_ids("model:4") == {2}
+
+
+def test_model_scope_scans_only_selected_model_portfolio():
+    model_4_trade = ModelPortfolioTrade.create_buy(
+        portfolio_id=4,
+        stock_id=1,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("10"),
+    )
+    model_5_trade = ModelPortfolioTrade.create_buy(
+        portfolio_id=5,
+        stock_id=2,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("20"),
+    )
+    service, _, _ = make_service(
+        {1: {date(2026, 1, 2): Decimal("10")}, 2: {}},
+        {"AAA.IS": {date(2026, 1, 5): Decimal("12")}, "BBB.IS": {date(2026, 1, 5): Decimal("22")}},
+        trades=[
+            Trade.create_buy(stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20")),
+        ],
+        model_trades_by_portfolio={4: [model_4_trade], 5: [model_5_trade]},
+    )
+
+    report = service.analyze(date(2026, 1, 2), date(2026, 1, 5), scope="model:4")
+
+    assert [row.stock_id for row in report.rows] == [1]
+
+
+def test_update_missing_prices_uses_selected_model_scope_rows():
+    model_4_trades = [
+        ModelPortfolioTrade.create_buy(
+            portfolio_id=4,
+            stock_id=1,
+            trade_date=date(2026, 1, 2),
+            quantity=1,
+            price=Decimal("10"),
+        ),
+        ModelPortfolioTrade.create_buy(
+            portfolio_id=4,
+            stock_id=2,
+            trade_date=date(2026, 1, 2),
+            quantity=1,
+            price=Decimal("20"),
+        ),
+    ]
+    service, price_repo, market_client = make_service(
+        {
+            1: {date(2026, 1, 2): Decimal("10"), date(2026, 1, 5): Decimal("11")},
+            2: {date(2026, 1, 2): Decimal("20")},
+        },
+        {"BBB.IS": {date(2026, 1, 5): Decimal("22")}},
+        trades=[],
+        model_trades_by_portfolio={4: model_4_trades},
+    )
+
+    result = service.update_missing_prices(date(2026, 1, 2), date(2026, 1, 5), scope="model:4")
+
+    assert result.updated_count == 1
+    assert price_repo.prices_by_stock[2][date(2026, 1, 5)] == Decimal("22")
+    assert market_client.requests == [("BBB.IS", date(2026, 1, 5), date(2026, 1, 5))]
+
+
+def test_scope_minimum_start_date_uses_selected_portfolio_first_trade():
+    dashboard_trade = Trade.create_buy(
+        stock_id=1,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("10"),
+    )
+    model_trade = ModelPortfolioTrade.create_buy(
+        portfolio_id=4,
+        stock_id=1,
+        trade_date=date(2026, 3, 2),
+        quantity=1,
+        price=Decimal("12"),
+    )
+    service, _, _ = make_service(
+        {1: {}, 2: {}},
+        trades=[dashboard_trade],
+        model_trades_by_portfolio={4: [model_trade]},
+    )
+
+    assert service.minimum_start_date() == date(2026, 1, 2)
+    assert service.minimum_start_date("dashboard") == date(2026, 1, 2)
+    assert service.minimum_start_date("model:4") == date(2026, 3, 2)
+
+
 def test_closed_model_portfolio_position_is_not_scanned_by_default():
     open_model_trade = ModelPortfolioTrade.create_buy(
         portfolio_id=4,
