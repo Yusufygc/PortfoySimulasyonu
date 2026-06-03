@@ -12,7 +12,7 @@ from src.ui.formatters import display_ticker
 from src.ui.widgets.shared import MetricCard
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 import pandas as pd
 from .chart_builder import build_performance_line_chart_v2, patch_plotly_html
 
@@ -85,7 +85,7 @@ class AnalysisComparisonSection(QWidget):
         self.metrics_scroll.setWidget(self.metrics_container)
         layout.addWidget(self.metrics_scroll)
 
-        self.chart_engine = QWebEngineView()
+        self.chart_engine = SilentWebEngineView()
         self.chart_engine.setMinimumHeight(500)
         self.chart_engine.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(self.chart_engine)
