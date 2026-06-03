@@ -93,3 +93,7 @@ class ModelPortfolioSnapshotService:
 
     def get_trade_count(self, portfolio_id: int) -> int:
         return self._portfolio_repo.count_trades_by_portfolio_id(portfolio_id)
+
+    def get_active_position_count(self, portfolio_id: int) -> int:
+        positions = self._trade_service.get_positions(portfolio_id)
+        return sum(1 for qty in positions.values() if qty > 0)
