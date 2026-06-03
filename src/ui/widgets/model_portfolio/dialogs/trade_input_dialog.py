@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class TradeInputDialog(QDialog):
     def __init__(self, side: str, price_lookup_func=None, parent=None):
         super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.side = side
         self.price_lookup_func = price_lookup_func
         self.setWindowTitle("Hisse Al" if side == "BUY" else "Hisse Sat")
