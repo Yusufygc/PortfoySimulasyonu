@@ -43,7 +43,7 @@ class AnalysisBundleBuilder:
             filter_state.start_date,
             filter_state.end_date,
         )
-        trade_stock_ids = display_stock_ids if filter_state.selected_stock_ids else sorted({trade.stock_id for trade in scoped_trades})
+        trade_stock_ids = display_stock_ids if filter_state.selected_stock_ids else None
         ticker_map = self._series_builder.get_ticker_map(sorted(set(display_stock_ids) | set(valuation_stock_ids)))
         build_result = build_portfolio_safely(
             [trade for trade in scoped_trades if not trade_stock_ids or trade.stock_id in trade_stock_ids]

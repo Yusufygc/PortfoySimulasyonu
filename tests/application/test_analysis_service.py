@@ -269,7 +269,7 @@ def test_stock_sold_inside_analysis_range_is_valued_until_closed():
     ]
     service = AnalysisService(
         portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({1: {date(2026, 1, 2): Decimal("11")}}),
+        price_repo=FakePriceRepo({1: {date(2026, 1, 1): Decimal("10"), date(2026, 1, 2): Decimal("11"), date(2026, 1, 3): Decimal("12")}}),
         stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS")]),
         market_data_client=FakeMarketDataClient({}),
         cash_movement_repo=FakeCashMovementRepo(

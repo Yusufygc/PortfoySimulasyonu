@@ -74,7 +74,7 @@ class PortfolioSeriesBuilder:
         portfolio: Portfolio,
         trade_stock_ids: Sequence[int] | None = None,
     ) -> tuple[Dict[date, Decimal], Dict[date, Decimal], Dict[int, Decimal], List[str]]:
-        trade_scope = sorted(set(trade_stock_ids or stock_ids))
+        trade_scope = sorted(set(trade_stock_ids if trade_stock_ids is not None else {t.stock_id for t in trades}))
         if not stock_ids and not trade_scope:
             return {}, {}, {}, []
 
@@ -237,7 +237,9 @@ class PortfolioSeriesBuilder:
 
                 # Gunluk hisse islemlerini isle
                 for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
-                    current_positions[trade.stock_id].apply_trade(trade)
+                    if trade.stock_id in current_positions:
+
+                        current_positions[trade.stock_id].apply_trade(trade)
                     trade_value = trade.quantity * trade.price
                     if trade.side.name == "BUY":
                         current_cash -= trade_value
@@ -248,7 +250,9 @@ class PortfolioSeriesBuilder:
             else:
                 # Sadece hisse pozisyonlarini guncelle, nakit 0 kalir
                 for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
-                    current_positions[trade.stock_id].apply_trade(trade)
+                    if trade.stock_id in current_positions:
+
+                        current_positions[trade.stock_id].apply_trade(trade)
                     trade_value = trade.quantity * trade.price
                     if trade.side.name == "BUY":
                         daily_net_cash_flow += trade_value
