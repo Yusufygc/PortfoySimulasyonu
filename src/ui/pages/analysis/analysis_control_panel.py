@@ -54,13 +54,13 @@ class AnalysisControlPanel(QFrame):
         self.combo_currency.currentIndexChanged.connect(self.filter_changed.emit)
         layout.addWidget(self._wrap_field("Para Birimi", self.combo_currency, "Analiz verilerini hesaplama birimi."))
 
-        self.stock_combo = CheckableComboBox("Hisse se\u00e7in")
+        self.stock_combo = CheckableComboBox("Hisse seçin")
         self.stock_combo.selection_changed.connect(self.filter_changed.emit)
         layout.addWidget(
             self._wrap_field(
                 "Hisse Filtresi",
                 self.stock_combo,
-                "Se\u00e7ilen hisseler t\u00fcm analiz kapsam\u0131n\u0131 filtreler.",
+                "Not: Hisse seçildiğinde portföydeki nakit hareketleri hariç tutulur; yalnızca hisselerin performansı ölçülür.",
             )
         )
 
@@ -71,6 +71,7 @@ class AnalysisControlPanel(QFrame):
         self.date_start.setCalendarPopup(True)
         self.date_start.setProperty("cssClass", "tradeInputNormal")
         self.date_start.setMinimumHeight(45)
+        self.date_start.setMinimumWidth(110)
         self.date_start.setDate(QDate.currentDate().addMonths(-3))
         self.date_start.dateChanged.connect(self.filter_changed.emit)
 
@@ -78,6 +79,7 @@ class AnalysisControlPanel(QFrame):
         self.date_end.setCalendarPopup(True)
         self.date_end.setProperty("cssClass", "tradeInputNormal")
         self.date_end.setMinimumHeight(45)
+        self.date_end.setMinimumWidth(110)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
 
