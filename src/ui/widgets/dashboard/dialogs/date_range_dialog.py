@@ -38,6 +38,7 @@ class DateRangeDialog(QDialog):
         title: str = "Tarih Aralığı Seç",
     ) -> None:
         super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setWindowTitle(title)
         self.setModal(True)
         self.setMinimumWidth(360)
