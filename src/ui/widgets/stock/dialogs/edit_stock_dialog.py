@@ -26,6 +26,14 @@ class EditStockResult:
     name: Optional[str]
 
 
+
+
+@dataclass
+class EditStockResult:
+    ticker: str
+    name: Optional[str]
+
+
 class EditStockDialog(QDialog):
     """
     Seçili hissenin ticker ve adını düzenlemek için kullanılan dialog.
@@ -34,13 +42,12 @@ class EditStockDialog(QDialog):
 
     def __init__(self, stock: Stock, parent=None):
         super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self._stock = stock
         self._init_ui()
         self._connect_signals()
 
         configure_dialog_behavior(self, self.btn_ok, self.accept)
-
-    def _init_ui(self):
         self.setWindowTitle("Hisseyi Düzenle")
         self.setMinimumWidth(420)
 
