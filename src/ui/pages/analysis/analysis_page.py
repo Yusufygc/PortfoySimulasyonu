@@ -71,6 +71,12 @@ class AnalysisPage(BasePage):
         header_layout.addLayout(title_col)
         header_layout.addStretch()
 
+        self.btn_toggle_panel = AnimatedButton("Filtreleri Gizle")
+        self.btn_toggle_panel.setProperty("cssClass", "secondaryButton")
+        self.btn_toggle_panel.setIconName("layers", color="@COLOR_TEXT_SECONDARY", size=18)
+        self.btn_toggle_panel.clicked.connect(self._toggle_control_panel)
+        header_layout.addWidget(self.btn_toggle_panel)
+
         self.btn_refresh = AnimatedButton("Analizi Yenile")
         self.btn_refresh.setProperty("cssClass", "primaryButton")
         self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=18)
@@ -153,8 +159,22 @@ class AnalysisPage(BasePage):
         scroll.setWidget(content)
         return scroll
 
+    def _toggle_control_panel(self):
+        is_visible = self.control_panel_column.isVisible()
+        self.control_panel_column.setVisible(not is_visible)
+        if is_visible:
+            self.btn_toggle_panel.setText("Filtreleri Göster")
+        else:
+            self.btn_toggle_panel.setText("Filtreleri Gizle")
+
     def on_page_enter(self):
-        self.refresh_data()
+        self._load_static_options()
+        self._sync_source_context()
+        if getattr(self, '_is_first_load', True):
+            self.control_panel.reset_to_earliest_date()
+            self._is_first_load = False
+        else:
+            self._request_refresh()
 
     def refresh_data(self):
         self._load_static_options()
