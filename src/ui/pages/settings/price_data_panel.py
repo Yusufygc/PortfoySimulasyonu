@@ -7,6 +7,7 @@ from PyQt5.QtCore import QDate, QSize, Qt, QThreadPool
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
+    QComboBox,
     QDateEdit,
     QFrame,
     QGridLayout,
@@ -29,6 +30,7 @@ from src.ui.widgets.shared import AnimatedButton, Toast
 
 from src.ui.pages.settings.utils.price_data_actions import PriceDataActions
 from src.ui.pages.settings.utils.price_data_report import PriceDataReportRenderer
+from src.ui.pages.settings.utils.price_data_scope import populate_scope_combo
 
 
 class PriceDataPanel(QWidget):
@@ -108,6 +110,11 @@ class PriceDataPanel(QWidget):
         filter_row = QHBoxLayout()
         filter_row.setSpacing(10)
 
+        self.combo_portfolio_scope = QComboBox()
+        self.combo_portfolio_scope.setProperty("cssClass", "tradeInputNormal")
+        self.combo_portfolio_scope.setMinimumHeight(36)
+        self._populate_portfolio_scope_combo()
+
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
         self.date_start.setProperty("cssClass", "tradeInputNormal")
@@ -120,6 +127,9 @@ class PriceDataPanel(QWidget):
         self.date_end.setMinimumHeight(36)
         self.date_end.setDate(QDate.currentDate())
 
+        self.combo_portfolio_scope.currentIndexChanged.connect(self._on_scope_changed)
+        filter_row.addWidget(QLabel("Portföy"))
+        filter_row.addWidget(self.combo_portfolio_scope)
         filter_row.addWidget(QLabel("Başlangıç"))
         filter_row.addWidget(self.date_start)
         filter_row.addWidget(QLabel("Bitiş"))
@@ -242,25 +252,41 @@ class PriceDataPanel(QWidget):
     # Durum ve Proxy Metodları (Testler ve UI State İçin)
     # ------------------------------------------------------------------
 
+    def _populate_portfolio_scope_combo(self) -> None:
+        populate_scope_combo(self.combo_portfolio_scope, self.price_data_health_service)
+
+    def _selected_scope(self) -> str:
+        if not hasattr(self, "combo_portfolio_scope"):
+            return "all_active"
+        return self.combo_portfolio_scope.currentData() or "all_active"
+
+    def _on_scope_changed(self) -> None:
+        self._apply_minimum_start_date()
+        self._report_renderer.clear_report()
+
     def _apply_minimum_start_date(self) -> None:
         default_date = QDate.currentDate().addDays(-90)
+        self.date_start.setMinimumDate(QDate(1900, 1, 1))
         if self.price_data_health_service is None:
             self.date_start.setDate(default_date)
             return
 
-        minimum_start = self.price_data_health_service.minimum_start_date()
+        minimum_start = self.price_data_health_service.minimum_start_date(self._selected_scope())
         if minimum_start is None:
             self.date_start.setDate(default_date)
             return
 
         minimum_qdate = QDate(minimum_start.year, minimum_start.month, minimum_start.day)
         self.date_start.setMinimumDate(minimum_qdate)
-        self.date_start.setDate(minimum_qdate if default_date < minimum_qdate else default_date)
+        self.date_start.setDate(minimum_qdate)
 
     def _date_range(self) -> tuple[date, date]:
         start_date = self.date_start.date().toPyDate()
         end_date = self.date_end.date().toPyDate()
-        minimum_start = self.price_data_health_service.minimum_start_date() if self.price_data_health_service else None
+        minimum_start = (
+            self.price_data_health_service.minimum_start_date(self._selected_scope())
+            if self.price_data_health_service else None
+        )
         if minimum_start and start_date < minimum_start:
             start_date = minimum_start
             self.date_start.setDate(QDate(minimum_start.year, minimum_start.month, minimum_start.day))
@@ -286,6 +312,7 @@ class PriceDataPanel(QWidget):
     def _set_price_data_controls_enabled(self, enabled: bool) -> None:
         for button in self._price_data_buttons:
             button.setEnabled(enabled)
+        self.combo_portfolio_scope.setEnabled(enabled)
         self.date_start.setEnabled(enabled)
         self.date_end.setEnabled(enabled)
         self.chk_problem_only.setEnabled(enabled)
