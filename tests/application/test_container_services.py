@@ -24,6 +24,7 @@ def _fake_market_clients():
         evds_client=object(),
         market_client=object(),
         optimization_market_data_provider=object(),
+        price_lookup_service=object(),
         trading_calendar=object(),
     )
 
@@ -40,3 +41,4 @@ def test_build_services_wires_corporate_action_services():
         services.corporate_action_candidate_review_service._corporate_action_service
         is services.corporate_action_service
     )
+    assert services.live_price_refresh_service._price_data_health_service is services.price_data_health_service
