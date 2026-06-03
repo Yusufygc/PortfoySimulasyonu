@@ -35,6 +35,7 @@ class TradeDialog(QDialog):
         lot_size: int = 1,
     ):
         super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.stock_id = stock_id
         self.ticker = ticker
         self.price_lookup_func = price_lookup_func
