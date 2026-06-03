@@ -194,6 +194,6 @@ class AnalysisOverviewSection(QWidget):
                 current="Portföy",
                 optimal=dto.worst_contributor_label,
                 delta=dto.worst_contributor_pct or 0.0,
-                positive_is_good=False,
+                positive_is_good=True,
             )
         self.lbl_insights.setText("\n".join(dto.insights))
