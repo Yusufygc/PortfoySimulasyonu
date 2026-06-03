@@ -6,7 +6,11 @@ import pytest
 pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 
-from src.application.services.market.price_data_health_service import PriceDataHealthReport, StockPriceHealthRow
+from src.application.services.market.price_data_health_service import (
+    PriceDataHealthReport,
+    PriceDataScopeOption,
+    StockPriceHealthRow,
+)
 from src.ui.pages.settings import (
     AppearancePanel,
     CorporateActionCandidatesPanel,
@@ -14,6 +18,10 @@ from src.ui.pages.settings import (
     ResetPanel,
 )
 from src.ui.pages.settings_page import SettingsPage
+from src.ui.shared.live_price_refresh_controller import (
+    LIVE_PRICE_REFRESH_ENABLED_KEY,
+    LIVE_PRICE_REFRESH_INTERVAL_KEY,
+)
 
 
 app = QApplication.instance()
@@ -27,8 +35,40 @@ class DummyResetService:
 
 
 class DummyPriceDataHealthService:
-    def minimum_start_date(self):
-        return date(2026, 1, 10)
+    def minimum_start_date(self, scope=None):
+        return {
+            "all_active": date(2026, 1, 10),
+            "dashboard": date(2026, 1, 15),
+            "model:4": date(2026, 2, 1),
+        }.get(scope or "all_active")
+
+    def portfolio_scope_options(self):
+        return [
+            PriceDataScopeOption("all_active", "Tüm aktif portföyler"),
+            PriceDataScopeOption("dashboard", "Ana Portföy"),
+            PriceDataScopeOption("model:4", "Model Portföy: Büyüme"),
+        ]
+
+    def analyze(self, start_date, end_date, scope=None):
+        return None
+
+    def update_missing_prices(self, start_date, end_date, stock_ids=None, scope=None):
+        return None
+
+
+class DummySettings:
+    def __init__(self, organization=None, application=None):
+        self.values = {}
+        self.synced = False
+
+    def value(self, key, default=None):
+        return self.values.get(key, default)
+
+    def setValue(self, key, value):
+        self.values[key] = value
+
+    def sync(self):
+        self.synced = True
 
 
 class DummyContainer:
@@ -40,7 +80,9 @@ class DummyContainer:
     stock_repo = None
 
 
-def test_settings_page_renders_price_data_management_section():
+def test_settings_page_renders_price_data_management_section(monkeypatch):
+    monkeypatch.setattr("src.ui.pages.settings_page.QSettings", DummySettings)
+
     page = SettingsPage(container=DummyContainer())
 
     assert page.tabs.count() == 4
@@ -52,7 +94,13 @@ def test_settings_page_renders_price_data_management_section():
     assert page.btn_update_missing.text().strip().startswith("Toplu Eksikleri")
     assert page.health_table.columnCount() == 6
     assert page.health_table.horizontalHeaderItem(0).text() == "Hisse"
+    assert page.combo_portfolio_scope.currentData() == "all_active"
+    assert page.combo_portfolio_scope.itemText(0) == "Tüm aktif portföyler"
+    assert page.combo_portfolio_scope.itemText(2) == "Model Portföy: Büyüme"
     assert page.date_start.minimumDate().toPyDate() == date(2026, 1, 10)
+    assert page.chk_live_price_refresh.text() == "Otomatik fiyat yenileme"
+    assert page.chk_live_price_refresh.isChecked()
+    assert page.combo_live_price_refresh_interval.currentData() == 15
 
 
 def test_settings_page_keeps_proxy_surface():
@@ -60,7 +108,23 @@ def test_settings_page_keeps_proxy_surface():
 
     assert page.btn_analyze is page.price_data_tab.btn_analyze
     assert page.health_table is page.price_data_tab.health_table
+    assert page.combo_portfolio_scope is page.price_data_tab.combo_portfolio_scope
     assert page.date_start is page.price_data_tab.date_start
+
+
+def test_settings_page_live_price_refresh_controls_persist_without_restart(monkeypatch):
+    settings = DummySettings()
+    monkeypatch.setattr("src.ui.pages.settings_page.QSettings", lambda *args: settings)
+    page = SettingsPage(container=DummyContainer())
+
+    page.chk_live_price_refresh.setChecked(False)
+    page.combo_live_price_refresh_interval.setCurrentIndex(
+        page.combo_live_price_refresh_interval.findData(30)
+    )
+
+    assert settings.values[LIVE_PRICE_REFRESH_ENABLED_KEY] is False
+    assert settings.values[LIVE_PRICE_REFRESH_INTERVAL_KEY] == 30
+    assert settings.synced is True
 
 
 def test_settings_panels_render_smoke():
@@ -134,3 +198,45 @@ def test_report_without_known_holidays_backwards_compatible():
     )
     assert report.known_holiday_count == 0
     assert report.total_excluded_holiday_count == 0
+
+
+def test_price_data_scope_change_updates_start_date_and_clears_report():
+    page = SettingsPage(container=DummyContainer())
+    page.detail_text.setText("Eski analiz")
+    page._current_report = PriceDataHealthReport(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 5),
+        total_stock_count=0,
+        expected_business_days=[],
+        weekend_days=[],
+        empty_weekdays=[],
+        holiday_candidate_dates=[],
+        rows=[],
+        latest_price_date=None,
+    )
+
+    page.combo_portfolio_scope.setCurrentIndex(page.combo_portfolio_scope.findData("model:4"))
+
+    assert page.date_start.minimumDate().toPyDate() == date(2026, 2, 1)
+    assert page._current_report is None
+    assert page.detail_text.toPlainText() == "Analiz sonucu bekleniyor."
+
+
+def test_price_data_actions_pass_selected_scope_to_workers():
+    page = SettingsPage(container=DummyContainer())
+    page.combo_portfolio_scope.setCurrentIndex(page.combo_portfolio_scope.findData("model:4"))
+    calls = []
+
+    def fake_run_worker(fn, success_slot, busy_text, *args):
+        calls.append((fn.__name__, args))
+
+    page.price_data_tab._actions._run_worker = fake_run_worker
+
+    page.price_data_tab._actions.analyze()
+    page.price_data_tab._actions.update_missing()
+
+    assert calls[0] == ("analyze", (date(2026, 2, 1), page.date_end.date().toPyDate(), "model:4"))
+    assert calls[1] == (
+        "update_missing_prices",
+        (date(2026, 2, 1), page.date_end.date().toPyDate(), None, "model:4"),
+    )
