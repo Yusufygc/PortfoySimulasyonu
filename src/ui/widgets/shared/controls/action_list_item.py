@@ -13,7 +13,7 @@ class ActionListItem(QWidget):
     edit_requested = pyqtSignal()
     delete_requested = pyqtSignal()
 
-    def __init__(self, text: str, draggable: bool = False, parent=None):
+    def __init__(self, text: str, secondary_text: str = None, draggable: bool = False, parent=None):
         super().__init__(parent)
         self.setObjectName("actionListItem")
         self.setAttribute(Qt.WA_StyledBackground, False)
@@ -34,8 +34,16 @@ class ActionListItem(QWidget):
         self.label.setTextInteractionFlags(Qt.NoTextInteraction)
         self.label.setAutoFillBackground(False)
         self.label.setProperty("cssClass", "actionListLabel")
-        # Stil QSS'te: shared/lists.qss QLabel[cssClass="actionListLabel"]
-        layout.addWidget(self.label, 1)
+        layout.addWidget(self.label)
+
+        if secondary_text:
+            layout.addStretch()
+            self.secondary_label = QLabel(secondary_text)
+            self.secondary_label.setTextInteractionFlags(Qt.NoTextInteraction)
+            self.secondary_label.setProperty("cssClass", "actionListSecondaryLabel")
+            layout.addWidget(self.secondary_label)
+        else:
+            layout.addStretch()
 
         self.menu_button = QToolButton()
         self.menu_button.setIconSize(QSize(20, 20))
