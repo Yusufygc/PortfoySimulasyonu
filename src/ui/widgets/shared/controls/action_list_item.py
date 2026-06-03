@@ -30,20 +30,21 @@ class ActionListItem(QWidget):
             self.drag_handle.setCursor(Qt.OpenHandCursor)
             layout.addWidget(self.drag_handle, 0, Qt.AlignVCenter)
 
-        self.label = QLabel(text)
+        from src.ui.widgets.shared.controls.elided_label import ElidedLabel
+        self.label = ElidedLabel(text)
         self.label.setTextInteractionFlags(Qt.NoTextInteraction)
         self.label.setAutoFillBackground(False)
         self.label.setProperty("cssClass", "actionListLabel")
-        layout.addWidget(self.label)
-
         if secondary_text:
-            layout.addStretch()
             self.secondary_label = QLabel(secondary_text)
             self.secondary_label.setTextInteractionFlags(Qt.NoTextInteraction)
             self.secondary_label.setProperty("cssClass", "actionListSecondaryLabel")
+            self.secondary_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.secondary_label.setMinimumWidth(70)
+            layout.addWidget(self.label, 1)  # Label gets the stretch
             layout.addWidget(self.secondary_label)
         else:
-            layout.addStretch()
+            layout.addWidget(self.label, 1)
 
         self.menu_button = QToolButton()
         self.menu_button.setIconSize(QSize(20, 20))
