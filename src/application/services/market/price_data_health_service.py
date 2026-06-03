@@ -18,6 +18,10 @@ from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
 from src.application.services.corporate_actions.price_adjustment_service import adjusted_market_price
 
+PRICE_SCOPE_ALL_ACTIVE = "all_active"
+PRICE_SCOPE_DASHBOARD = "dashboard"
+PRICE_SCOPE_MODEL_PREFIX = "model:"
+
 
 class MarketHolidayProvider(Protocol):
     def get_holidays(self, start_date: date, end_date: date) -> Set[date]:
@@ -100,6 +104,36 @@ class PriceDataUpdateResult:
     prices: Dict[int, Decimal] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class PriceDataScopeOption:
+    value: str
+    label: str
+
+
+def _normalize_scope(scope: str | None) -> str:
+    return scope or PRICE_SCOPE_ALL_ACTIVE
+
+
+def _model_scope_id(scope: str | None) -> int | None:
+    normalized = _normalize_scope(scope)
+    if not normalized.startswith(PRICE_SCOPE_MODEL_PREFIX):
+        return None
+    try:
+        return int(normalized.removeprefix(PRICE_SCOPE_MODEL_PREFIX))
+    except ValueError:
+        return None
+
+
+def _includes_dashboard(scope: str | None) -> bool:
+    normalized = _normalize_scope(scope)
+    return normalized in (PRICE_SCOPE_ALL_ACTIVE, PRICE_SCOPE_DASHBOARD)
+
+
+def _includes_models(scope: str | None) -> bool:
+    normalized = _normalize_scope(scope)
+    return normalized == PRICE_SCOPE_ALL_ACTIVE or _model_scope_id(normalized) is not None
+
+
 def _validate_range(start_date: date, end_date: date) -> None:
     if start_date > end_date:
         raise ValueError("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
@@ -168,12 +202,30 @@ class PriceScopeResolver:
         self._portfolio_repo = portfolio_repo
         self._model_portfolio_repo = model_portfolio_repo
 
-    def first_trade_dates_by_stock(self) -> Dict[int, date]:
+    def scope_options(self) -> List[PriceDataScopeOption]:
+        options = [
+            PriceDataScopeOption(PRICE_SCOPE_ALL_ACTIVE, "Tüm aktif portföyler"),
+            PriceDataScopeOption(PRICE_SCOPE_DASHBOARD, "Ana Portföy"),
+        ]
+        if self._model_portfolio_repo is None:
+            return options
+        for portfolio in self._model_portfolio_repo.get_all_model_portfolios():
+            if portfolio.id is None:
+                continue
+            options.append(
+                PriceDataScopeOption(
+                    f"{PRICE_SCOPE_MODEL_PREFIX}{portfolio.id}",
+                    f"Model Portföy: {portfolio.name}",
+                )
+            )
+        return options
+
+    def first_trade_dates_by_stock(self, scope: str | None = None) -> Dict[int, date]:
         if self._portfolio_repo is None and self._model_portfolio_repo is None:
             return {}
-        active_stock_ids = self.active_stock_ids()
+        active_stock_ids = self.active_stock_ids(scope)
         result: Dict[int, date] = {}
-        for trade in self.price_scope_trades():
+        for trade in self.price_scope_trades(scope):
             if trade.stock_id not in active_stock_ids:
                 continue
             current = result.get(trade.stock_id)
@@ -181,43 +233,53 @@ class PriceScopeResolver:
                 result[trade.stock_id] = trade.trade_date
         return result
 
-    def stocks_in_scope(self, first_trade_dates: Dict[int, date]) -> List[Stock]:
+    def stocks_in_scope(self, first_trade_dates: Dict[int, date], scope: str | None = None) -> List[Stock]:
         stocks = self._stock_repo.get_all_stocks()
         if self._portfolio_repo is None and self._model_portfolio_repo is None:
             return stocks
-        active_stock_ids = self.active_stock_ids()
+        active_stock_ids = self.active_stock_ids(scope)
         return [stock for stock in stocks if stock.id in active_stock_ids]
 
-    def active_stock_ids(self) -> set[int]:
+    def active_stock_ids(self, scope: str | None = None) -> set[int]:
         if self._portfolio_repo is None and self._model_portfolio_repo is None:
             return set()
 
         stock_ids: set[int] = set()
-        if self._portfolio_repo is not None:
+        if self._portfolio_repo is not None and _includes_dashboard(scope):
             portfolio = build_portfolio_safely(self._portfolio_repo.get_all_trades()).portfolio
             stock_ids.update(portfolio.active_positions)
 
-        if self._model_portfolio_repo is not None:
-            for portfolio in self._model_portfolio_repo.get_all_model_portfolios():
-                if portfolio.id is None:
-                    continue
+        if self._model_portfolio_repo is not None and _includes_models(scope):
+            for portfolio_id in self._model_portfolio_ids(scope):
                 stock_ids.update(
                     _open_stock_ids_from_trade_like(
-                        self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio.id)
+                        self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
                     )
                 )
 
         return stock_ids
 
-    def price_scope_trades(self):
-        if self._portfolio_repo is not None:
+    def price_scope_trades(self, scope: str | None = None):
+        if self._portfolio_repo is not None and _includes_dashboard(scope):
             yield from self._portfolio_repo.get_all_trades()
-        if self._model_portfolio_repo is None:
+        if self._model_portfolio_repo is None or not _includes_models(scope):
             return
-        for portfolio in self._model_portfolio_repo.get_all_model_portfolios():
-            if portfolio.id is None:
-                continue
-            yield from self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio.id)
+        for portfolio_id in self._model_portfolio_ids(scope):
+            yield from self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
+
+    def _model_portfolio_ids(self, scope: str | None = None) -> List[int]:
+        if self._model_portfolio_repo is None:
+            return []
+        selected_id = _model_scope_id(scope)
+        if selected_id is not None:
+            return [selected_id]
+        if _normalize_scope(scope) != PRICE_SCOPE_ALL_ACTIVE:
+            return []
+        return [
+            portfolio.id
+            for portfolio in self._model_portfolio_repo.get_all_model_portfolios()
+            if portfolio.id is not None
+        ]
 
 
 def _open_stock_ids_from_trade_like(trades) -> set[int]:
@@ -250,10 +312,10 @@ class PriceHealthAnalyzer:
         self._scope_resolver = scope_resolver
         self._holiday_provider = holiday_provider
 
-    def analyze(self, start_date: date, end_date: date) -> PriceDataHealthReport:
+    def analyze(self, start_date: date, end_date: date, scope: str | None = None) -> PriceDataHealthReport:
         _validate_range(start_date, end_date)
-        first_trade_dates = self._scope_resolver.first_trade_dates_by_stock()
-        stocks = self._scope_resolver.stocks_in_scope(first_trade_dates)
+        first_trade_dates = self._scope_resolver.first_trade_dates_by_stock(scope)
+        stocks = self._scope_resolver.stocks_in_scope(first_trade_dates, scope)
         stock_ids = [stock.id for stock in stocks if stock.id is not None]
 
         known_holidays = self._holiday_provider.get_holidays(start_date, end_date)
@@ -389,8 +451,9 @@ class PriceHealthUpdater:
         start_date: date,
         end_date: date,
         stock_ids: Sequence[int] | None = None,
+        scope: str | None = None,
     ) -> PriceDataUpdateResult:
-        report = self._analyzer.analyze(start_date, end_date)
+        report = self._analyzer.analyze(start_date, end_date, scope)
         selected_ids = set(stock_ids or [])
         rows = [row for row in report.rows if not selected_ids or row.stock_id in selected_ids]
         stocks_by_id = {stock.id: stock for stock in self._stock_repo.get_all_stocks() if stock.id is not None}
@@ -445,10 +508,12 @@ class PriceHealthUpdater:
             prices=result.prices,
         )
 
-    def update_from_latest_to_today(self, today: date | None = None) -> PriceDataUpdateResult:
+    def update_from_latest_to_today(self, today: date | None = None, scope: str | None = None) -> PriceDataUpdateResult:
         today = today or date.today()
-        first_trade_dates = self._scope_resolver.first_trade_dates_by_stock()
-        stocks = [stock for stock in self._scope_resolver.stocks_in_scope(first_trade_dates) if stock.id is not None]
+        first_trade_dates = self._scope_resolver.first_trade_dates_by_stock(scope)
+        stocks = [
+            stock for stock in self._scope_resolver.stocks_in_scope(first_trade_dates, scope) if stock.id is not None
+        ]
         latest_dates = self._price_repo.get_latest_price_dates([stock.id for stock in stocks if stock.id is not None])
         updated_count = 0
         errors: List[str] = []
@@ -457,7 +522,7 @@ class PriceHealthUpdater:
         for stock in stocks:
             assert stock.id is not None
             latest_date = latest_dates.get(stock.id)
-            start_date = latest_date + timedelta(days=1) if latest_date else self._default_start_date_func(today)
+            start_date = latest_date + timedelta(days=1) if latest_date else self._default_start_date_func(today, scope)
             if stock.id in first_trade_dates:
                 start_date = max(start_date, first_trade_dates[stock.id])
             if start_date > today:
@@ -635,32 +700,39 @@ class PriceDataHealthService:
             corporate_action_repo=corporate_action_repo,
         )
 
-    def default_start_date(self, today: date | None = None) -> date:
+    def portfolio_scope_options(self) -> List[PriceDataScopeOption]:
+        return self._scope_resolver.scope_options()
+
+    def active_stock_ids(self, scope: str | None = None) -> set[int]:
+        return self._scope_resolver.active_stock_ids(scope)
+
+    def default_start_date(self, today: date | None = None, scope: str | None = None) -> date:
         today = today or date.today()
         candidate = today - timedelta(days=self._default_lookback_days)
-        minimum = self.minimum_start_date()
+        minimum = self.minimum_start_date(scope)
         return max(candidate, minimum) if minimum else candidate
 
-    def minimum_start_date(self) -> date | None:
-        first_dates = self._scope_resolver.first_trade_dates_by_stock()
+    def minimum_start_date(self, scope: str | None = None) -> date | None:
+        first_dates = self._scope_resolver.first_trade_dates_by_stock(scope)
         return min(first_dates.values(), default=None)
 
-    def analyze(self, start_date: date, end_date: date) -> PriceDataHealthReport:
-        return self._analyzer.analyze(start_date, end_date)
+    def analyze(self, start_date: date, end_date: date, scope: str | None = None) -> PriceDataHealthReport:
+        return self._analyzer.analyze(start_date, end_date, scope)
 
     def update_missing_prices(
         self,
         start_date: date,
         end_date: date,
         stock_ids: Sequence[int] | None = None,
+        scope: str | None = None,
     ) -> PriceDataUpdateResult:
-        return self._updater.update_missing_prices(start_date, end_date, stock_ids)
+        return self._updater.update_missing_prices(start_date, end_date, stock_ids, scope)
 
     def update_stock_range(self, stock_id: int, start_date: date, end_date: date) -> PriceDataUpdateResult:
         return self._updater.update_stock_range(stock_id, start_date, end_date)
 
-    def update_from_latest_to_today(self, today: date | None = None) -> PriceDataUpdateResult:
-        return self._updater.update_from_latest_to_today(today)
+    def update_from_latest_to_today(self, today: date | None = None, scope: str | None = None) -> PriceDataUpdateResult:
+        return self._updater.update_from_latest_to_today(today, scope)
 
     def delete_range(self, start_date: date, end_date: date) -> int:
         _validate_range(start_date, end_date)
