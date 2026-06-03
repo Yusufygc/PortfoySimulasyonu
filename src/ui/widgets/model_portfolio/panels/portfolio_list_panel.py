@@ -59,13 +59,14 @@ class PortfolioListPanel(QFrame):
         self._list.clear()
         for portfolio in portfolios:
             count = trade_count_func(portfolio.id) if trade_count_func else ""
-            label = f"{portfolio.name} ({count} işlem)" if count != "" else portfolio.name
+            label = portfolio.name
+            secondary = f"({count} hisse)" if count != "" else None
             item = QListWidgetItem()
             item.setData(Qt.UserRole, portfolio)
             item.setSizeHint(QSize(0, 44))
             self._list.addItem(item)
 
-            row = ActionListItem(label, draggable=True)
+            row = ActionListItem(label, secondary_text=secondary, draggable=True)
             row.selected.connect(lambda portfolio=portfolio, item=item: self._select_item(item, portfolio))
             row.edit_requested.connect(
                 lambda portfolio=portfolio, item=item: self._emit_item_action(item, portfolio, self.edit_requested)
