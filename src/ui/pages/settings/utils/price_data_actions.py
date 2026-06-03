@@ -27,12 +27,14 @@ class PriceDataActions:
             Toast.warning(panel, "Fiyat verisi yönetim servisi kullanılamıyor.")
             return
         start_date, end_date = panel._date_range()
+        scope = panel._selected_scope()
         self._run_worker(
             panel.price_data_health_service.analyze,
             self._on_analyze_success,
             "Veri sağlığı analiz ediliyor...",
             start_date,
             end_date,
+            scope,
         )
 
     def update_missing(self) -> None:
@@ -40,12 +42,15 @@ class PriceDataActions:
         if panel.price_data_health_service is None:
             return
         start_date, end_date = panel._date_range()
+        scope = panel._selected_scope()
         self._run_worker(
             panel.price_data_health_service.update_missing_prices,
             self._on_update_success,
             "Eksik fiyatlar güncelleniyor...",
             start_date,
             end_date,
+            None,
+            scope,
         )
 
     def update_selected(self) -> None:
@@ -74,6 +79,8 @@ class PriceDataActions:
             panel.price_data_health_service.update_from_latest_to_today,
             self._on_update_success,
             "Son güncel günden bugüne eksikler tamamlanıyor...",
+            None,
+            panel._selected_scope(),
         )
 
     def delete_range(self) -> None:
