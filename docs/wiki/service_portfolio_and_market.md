@@ -61,6 +61,20 @@ graph TD
 - Gecmiste alinip tamamen satilmis hisseler fiyat guncelleme, veri sagligi ve otomatik eksik fiyat tamamlama kapsamindan cikarilir; eski fiyat kayitlari silinmez.
 - Model portfoy fiyat sagligi da ayni event-sourced net pozisyon kuralini kullanir; manuel `update_stock_range(stock_id, ...)` belirli hisse icin calismaya devam eder.
 
+## Portfoy Bazli Fiyat Kapsami Notu (2026-06-03)
+
+- Ayarlar > Fiyat Verisi Yonetimi ekrani portfoy kapsam secimi destekler: `Tüm aktif portföyler`, `Ana Portföy` ve her model portfoy icin `Model Portföy: <ad>`.
+- Secili kapsam `PriceDataHealthService` public metodlarina opsiyonel scope olarak tasinir; parametre verilmezse eski `all_active` davranisi korunur.
+- Baslangic tarihi secili kapsamda acik pozisyonu bulunan hisselerin ilk islem tarihine set edilir; eksik veri hesabi her hisse icin kendi ilk islem tarihinden itibaren yapilir.
+- Fiyat kayitlari `daily_prices` tablosunda ortak kalir; kapsam secimi yalniz analiz, toplu eksik tamamlama ve son gunden bugune guncelleme taramasini daraltir.
+
+## Otomatik Canli Fiyat Yenileme Notu (2026-06-03)
+
+- Uygulamada iki fiyat akisi ayridir: `PriceDataHealthService` kapanis/backfill verisini `daily_prices` tablosuna yazar, `LivePriceRefreshService` intraday/guncel fiyatlari yalniz EventBus payload'u olarak yayar.
+- `LivePriceRefreshService` varsayilan `all_active` kapsaminda ana portfoy + model portfoy acik pozisyon hisselerini `PriceDataHealthService.active_stock_ids(...)` yardimcisiyla cozer; kapsam kuralini duplicate etmez.
+- Intraday yenileme `PriceLookupService.lookup_price_for_ticker(...)` kullanir, tekil ticker hatalarini result `errors` listesinde toplar ve diger hisselerin yenilenmesini engellemez.
+- Model portfoy manuel fiyat yenileme de `daily_prices` yazmaz; guncel fiyatlar bellek `current_price_map` ve `prices_updated` eventi uzerinden ekranlara yansir.
+
 ## Toplam Deger Kapsami Notu (2026-06-03)
 
 - Dashboard ve analiz toplam portfoy degeri kullanici varligini temsil eder: nakit bakiye + acik pozisyon piyasa degeri.
