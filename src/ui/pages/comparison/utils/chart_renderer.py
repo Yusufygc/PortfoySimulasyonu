@@ -11,7 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QBrush, QColor
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 from PyQt5.QtWidgets import QTableWidgetItem
 
 from src.application.services.analysis.comparison_service import ComparisonService
@@ -256,7 +256,7 @@ class ChartRenderer:
     # Plotly HTML yükleme
     # ------------------------------------------------------------------
 
-    def _load_plotly_to_view(self, view: QWebEngineView, fig: go.Figure) -> None:
+    def _load_plotly_to_view(self, view: SilentWebEngineView, fig: go.Figure) -> None:
         """Plotly Figure'ı geçici HTML dosyasına yazar ve view'a yükler."""
         page = self.page
 
