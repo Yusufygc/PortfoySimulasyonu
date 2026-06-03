@@ -22,6 +22,9 @@ class DummyModelPortfolioService:
     def get_positions_with_details(self, portfolio_id):
         return [{"stock_id": 2, "ticker": "BBB.IS"}]
 
+    def get_positions(self, portfolio_id):
+        return {2: SimpleNamespace(quantity=Decimal("1"))}
+
 
 class DummyPriceRepo:
     def __init__(self):
@@ -145,7 +148,7 @@ def test_model_portfolio_export_today_uses_history_report(tmp_path, monkeypatch)
     assert export_service.calls[0][0:4] == (8, date(2026, 1, 2), date(2026, 5, 26), file_path)
 
 
-def test_model_portfolio_refresh_persists_prices_to_daily_prices():
+def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
     price_repo = DummyPriceRepo()
     event_signal = DummyEventSignal()
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
@@ -166,7 +169,25 @@ def test_model_portfolio_refresh_persists_prices_to_daily_prices():
     ModelPortfolioPage._on_refresh_prices(page)
 
     assert page.current_price_map == {2: Decimal("22.50")}
-    assert len(price_repo.saved_prices) == 1
-    assert price_repo.saved_prices[0].stock_id == 2
-    assert price_repo.saved_prices[0].close_price == Decimal("22.50")
+    assert price_repo.saved_prices == []
     assert event_signal.emitted == [{2: Decimal("22.50")}]
+
+
+def test_model_portfolio_prices_updated_event_updates_selected_portfolio_prices():
+    page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+    page.current_portfolio_id = 4
+    page.model_portfolio_service = DummyModelPortfolioService()
+    page.current_price_map = {2: Decimal("21.00")}
+    calls = []
+    page._update_view = lambda: calls.append("updated")
+
+    ModelPortfolioPage._on_prices_updated_event(
+        page,
+        {
+            2: Decimal("22.75"),
+            99: Decimal("99.99"),
+        },
+    )
+
+    assert page.current_price_map == {2: Decimal("22.75")}
+    assert calls == ["updated"]
