@@ -12,7 +12,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 
 if TYPE_CHECKING:
     from src.ui.pages.comparison.comparison_page import ComparisonPage
@@ -39,7 +39,7 @@ class ChartViewManager:
     # Wheel filter kurulumu
     # ------------------------------------------------------------------
 
-    def install_filters_on_children(self, view: QWebEngineView) -> None:
+    def install_filters_on_children(self, view: SilentWebEngineView) -> None:
         """View ve tüm alt widget'larına wheel filtresi kurar."""
         if not hasattr(self.page, "wheel_redirect_filter"):
             return
@@ -65,7 +65,7 @@ class ChartViewManager:
             return
         self.get_or_create_view(name)
 
-    def get_or_create_view(self, name: str) -> QWebEngineView:
+    def get_or_create_view(self, name: str) -> SilentWebEngineView:
         """
         İsimlendirilmiş bir QWebEngineView döner; yoksa oluşturur ve
         sayfanın ilgili layout'una ekler.
@@ -75,7 +75,7 @@ class ChartViewManager:
         if view is not None:
             return view
 
-        view = QWebEngineView()
+        view = SilentWebEngineView()
         view.setMinimumHeight(600)
 
         # Wheel filtresi bağla
