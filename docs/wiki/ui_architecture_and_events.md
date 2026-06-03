@@ -35,6 +35,12 @@ Farklı ekranların birbirini doğrudan bilmeden haberleşmesini sağlamak için
 - UI katmanında fiyat güncelleme yayını `src/ui/shared/price_event_publisher.py` içindeki `publish_prices_updated(event_bus, prices)` helper'ı üzerinden yapılır.
 - Helper boş payload'u yayınlamaz; dolu payload'u kopyalayarak emit eder ve Decimal fiyat değerlerini dönüştürmez.
 
+### Otomatik Canli Fiyat Yenileme
+
+- `LivePriceRefreshController`, MainWindow icinde uygulama geneli intraday fiyat yenileme timer'ini yonetir; isleri ortak `Worker + QThreadPool` ile arka planda calistirir.
+- Otomatik yenileme BIST islem gunlerinde, acikken ve baska yenileme worker'i kosmuyorken baslar; basarili sonuc `prices_updated` olarak yayilir.
+- Periyodik intraday hatalarinda tekil ticker hatalari loglanir, kullanici toast ile rahatsiz edilmez; ard arda genel hata birikirse kisa warning gosterilir.
+
 ## 3. Tema ve Design Tokens (Tasarım Değişkenleri)
 
 `ThemeManager` ve `tokens.py` kullanılarak gelişmiş ve modüler bir QSS mimarisi kurgulanmıştır:
