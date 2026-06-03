@@ -6,6 +6,23 @@
 
 ---
 
+## [2026-06-03] guncelleme | Uygulama geneli otomatik canli fiyat yenileme
+
+- `LivePriceRefreshService` eklendi; ana + model portfoy acik pozisyon kapsamindaki hisseler icin intraday/guncel fiyatlari `PriceLookupService` ile ceker ve `daily_prices` tablosuna yazmaz.
+- `LivePriceRefreshController` MainWindow'a baglandi; otomatik yenileme varsayilan acik, 15 dk aralikli, BIST islem gunu kontrollu ve `Worker + QThreadPool` ile arka planda calisir.
+- Ayarlar sayfasina `Otomatik fiyat yenileme` toggle'i ve 5/15/30/60 dk aralik secimi eklendi; degisiklik restart gerektirmeden timer'a uygulanir.
+- Model portfoy sayfasi `prices_updated` eventini dinler; manuel model portfoy fiyat yenileme de artik intraday fiyati veritabanina yazmadan bellek/EventBus uzerinden gunceller.
+- Dogrulama: hedefli application/UI testleri -> **42 passed**; refactor guard -> **4 passed**; `tests` -> **387 passed**.
+- Baglantili sayfalar: [service_portfolio_and_market.md](service_portfolio_and_market.md), [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-03] guncelleme | Portfoy bazli fiyat verisi kapsami
+
+- Ayarlar > Fiyat Verisi Yonetimi icin portfoy combobox kapsami eklendi: tum aktif portfoyler, ana portfoy ve model portfoy secenekleri desteklenir.
+- `PriceDataHealthService` analiz, toplu eksik tamamlama ve son gunden bugune guncelleme akislari opsiyonel scope parametresiyle calisir; eski cagrisiz davranis `all_active` kalir.
+- Baslangic tarihi secili kapsamdaki ilk acik pozisyon islem tarihine set edilir; `daily_prices` ortak veri kaynagi olarak korunur.
+- Dogrulama: hedefli application/UI testleri -> **23 passed**; `tests` -> **374 passed**.
+- Baglantili sayfa: [service_portfolio_and_market.md](service_portfolio_and_market.md)
+
 ## [2026-06-03] duzeltme | Analiz aktif kapsam ve nakit dahil toplam deger
 
 - Analiz kaynak/filtresi net acik pozisyon kapsamindan uretilir; tamamen satilmis BORSK benzeri hisseler otomatik filtre, holdings genisletmesi ve fiyat uyarilarindan cikarildi.
