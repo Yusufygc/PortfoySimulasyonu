@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 
 from src.ui.pages.base_page import BasePage
 from src.ui.pages.comparison.widgets.ribbon_bar import ComparisonRibbonBar
@@ -119,23 +119,23 @@ class ComparisonPage(BasePage):
     # ------------------------------------------------------------------
 
     @property
-    def main_chart_view(self) -> QWebEngineView:
+    def main_chart_view(self) -> SilentWebEngineView:
         return self._view_manager.get_or_create_view("main")
 
     @property
-    def drawdown_chart_view(self) -> QWebEngineView:
+    def drawdown_chart_view(self) -> SilentWebEngineView:
         return self._view_manager.get_or_create_view("drawdown")
 
     @property
-    def periodic_chart_view(self) -> QWebEngineView:
+    def periodic_chart_view(self) -> SilentWebEngineView:
         return self._view_manager.get_or_create_view("periodic")
 
     @property
-    def scatter_chart_view(self) -> QWebEngineView:
+    def scatter_chart_view(self) -> SilentWebEngineView:
         return self._view_manager.get_or_create_view("scatter")
 
     @property
-    def treemap_chart_view(self) -> QWebEngineView:
+    def treemap_chart_view(self) -> SilentWebEngineView:
         return self._view_manager.get_or_create_view("treemap")
 
     # ------------------------------------------------------------------
