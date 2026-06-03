@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.ui.navigation.page_factory import PageFactory
+from src.ui.shared.live_price_refresh_controller import LivePriceRefreshController
 from src.ui.shared.price_event_publisher import publish_prices_updated
 from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.worker import Worker
@@ -54,6 +55,12 @@ class MainWindow(QMainWindow):
         )
         self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
         self._threadpool = QThreadPool()
+        self._live_price_refresh_controller = LivePriceRefreshController(
+            parent=self,
+            container=container,
+            settings=self._settings,
+            threadpool=self._threadpool,
+        )
         self.setWindowTitle("Portföy Simülasyonu")
         self.setWindowIcon(QIcon("icons/portfoy-simulasyonu.ico"))
         self.resize(1300, 800)
@@ -61,6 +68,7 @@ class MainWindow(QMainWindow):
         self._init_ui()
         self._goto_page(self.PAGE_DASHBOARD)
         QTimer.singleShot(0, self._start_auto_price_backfill_once)
+        self._live_price_refresh_controller.start()
         QTimer.singleShot(0, self._start_auto_corporate_action_discovery_once)
 
     def _init_ui(self):
@@ -256,9 +264,10 @@ class MainWindow(QMainWindow):
             Toast.warning(self, f"Otomatik veri güncelleme tamamlandı, {error_count} hata oluştu.")
 
     def _on_auto_price_backfill_error(self, err_tuple) -> None:
-        self._settings.setValue(AUTO_BACKFILL_SETTINGS_KEY, date.today().isoformat())
-        self._settings.sync()
         Toast.warning(self, f"Otomatik veri güncelleme çalıştırılamadı: {err_tuple[1]}")
+
+    def reload_live_price_refresh_settings(self) -> None:
+        self._live_price_refresh_controller.reload_settings()
 
     def _start_auto_corporate_action_discovery_once(self) -> None:
         service = getattr(self.container, "corporate_action_discovery_service", None)
