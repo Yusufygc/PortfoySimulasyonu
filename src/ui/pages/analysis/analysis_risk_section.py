@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtCore import QTimer
 
 
 from src.application.services.analysis import AllocationRiskDTO
 from src.ui.widgets.shared import InfoCard
 
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 from .chart_builder import build_pie_chart, patch_plotly_html
 
 
@@ -30,20 +31,20 @@ class AnalysisRiskSection(QWidget):
         cards_row = QHBoxLayout()
         cards_row.setSpacing(15)
         self.card_top_three = InfoCard("İlk 3 Pozisyon", "—", icon_name="layers")
-        self.card_volatility = InfoCard("Volatilite", "—", icon_name="line-chart")
-        self.card_drawdown = InfoCard("Maks. Drawdown", "—", icon_name="trending-down")
-        self.card_concentration = InfoCard("Konsantrasyon", "—", icon_name="shield-check")
+        self.card_volatility = InfoCard("Fiyat Dalgalanması (Risk)", "—", icon_name="line-chart")
+        self.card_drawdown = InfoCard("Maksimum Düşüş (Kayıp)", "—", icon_name="trending-down")
+        self.card_concentration = InfoCard("Çeşitlendirme Dağılımı", "—", icon_name="shield-check")
         for card in [self.card_top_three, self.card_volatility, self.card_drawdown, self.card_concentration]:
             cards_row.addWidget(card, 1)
         layout.addLayout(cards_row)
 
         cards_row2 = QHBoxLayout()
         cards_row2.setSpacing(15)
-        self.card_sharpe = InfoCard("Sharpe Oranı", "—", icon_name="bar-chart-2")
+        self.card_sharpe = InfoCard("Risk Başına Getiri (Sharpe)", "—", icon_name="activity")
         self.card_sharpe.setToolTip("Alınan 1 birim riske karşılık ne kadar ekstra getiri sağlandığını gösterir (>1 iyidir).")
-        self.card_beta = InfoCard("Beta (BIST100)", "—", icon_name="target")
+        self.card_beta = InfoCard("BIST100'e Tepkisi (Beta)", "—", icon_name="crosshair")
         self.card_beta.setToolTip("Portföyün BIST100'e karşı duyarlılığı (1 = endeksle aynı).")
-        self.card_alpha = InfoCard("Alpha", "—", icon_name="star")
+        self.card_alpha = InfoCard("Ekstra Başarı (Alpha)", "—", icon_name="star")
         self.card_alpha.setToolTip("Endeks getirisinden bağımsız olarak yaratılan ekstra değer.")
         for card in [self.card_sharpe, self.card_beta, self.card_alpha]:
             cards_row2.addWidget(card, 1)
@@ -53,8 +54,8 @@ class AnalysisRiskSection(QWidget):
 
         charts_row = QHBoxLayout()
         charts_row.setSpacing(15)
-        self.cost_chart = QWebEngineView()
-        self.value_chart = QWebEngineView()
+        self.cost_chart = SilentWebEngineView()
+        self.value_chart = SilentWebEngineView()
         self.cost_chart.setMinimumHeight(400)
         self.value_chart.setMinimumHeight(400)
         charts_row.addWidget(self.cost_chart, 1)
@@ -69,8 +70,14 @@ class AnalysisRiskSection(QWidget):
 
     def set_data(self, dto: AllocationRiskDTO) -> None:
         if dto.warnings:
-            self.warning_banner.setText(" | ".join(dto.warnings))
-            self.warning_banner.show()
+            new_warnings = [w for w in dto.warnings if w not in getattr(self, '_shown_warnings', set())]
+            if new_warnings:
+                self.warning_banner.setText(" | ".join(new_warnings))
+                self.warning_banner.show()
+                if not hasattr(self, '_shown_warnings'):
+                    self._shown_warnings = set()
+                self._shown_warnings.update(new_warnings)
+                QTimer.singleShot(10000, self.warning_banner.hide)
         else:
             self.warning_banner.hide()
 
