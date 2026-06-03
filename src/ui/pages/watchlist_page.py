@@ -186,12 +186,13 @@ class WatchlistPage(BasePage):
 
         for wl in watchlists:
             count = self.watchlist_service.get_watchlist_item_count(wl.id)
-            label = f"{wl.name} ({count})"
+            label = wl.name
+            secondary = f"({count} hisse)"
             item = QListWidgetItem()
             item.setData(Qt.UserRole, wl)
             item.setSizeHint(QSize(0, 44))
             self.list_widget.addItem(item)
-            row = ActionListItem(label, draggable=True)
+            row = ActionListItem(label, secondary_text=secondary, draggable=True)
             row.selected.connect(lambda wl=wl, item=item: self._select_watchlist_item(item, wl))
             row.edit_requested.connect(lambda wl=wl, item=item: self._run_watchlist_action(item, wl, self._on_edit_list))
             row.delete_requested.connect(lambda wl=wl, item=item: self._run_watchlist_action(item, wl, self._on_delete_list))
