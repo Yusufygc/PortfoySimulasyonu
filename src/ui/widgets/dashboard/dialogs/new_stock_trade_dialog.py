@@ -27,6 +27,7 @@ class NewStockTradeDialog(QDialog):
     """
     def __init__(self, parent=None, price_lookup_func=None, lot_size: int = 1):
         super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.price_lookup_func = price_lookup_func
         self.lot_size = lot_size
         self.current_price: Optional[Decimal] = None
