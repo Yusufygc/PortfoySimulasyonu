@@ -217,10 +217,230 @@ Bu bölüm, aynı tür üretim hatalarının ve kontrolsüz büyüyen sınıf/me
 ---
 
 
-## 5. Kapsam Dışı
+## 5. GitHub, Git CLI ve Genel Operasyon Kuralları
+
+Bu bölüm, projedeki Git/GitHub kullanımı, branch yönetimi, CI/CD akışı ve günlük geliştirme operasyonlarını standartlaştırır.
+
+### 5.1 Branch Stratejisi
+
+| Branch | Amaç | Koruma |
+|--------|-------|--------|
+| `main` | Kararlı sürüm. Doğrudan commit **yasak**. | PR + CI yeşil zorunlu |
+| `Refactor` | Aktif geliştirme branch'i. Günlük çalışma burada yapılır. | CI yeşil önerilir |
+| Özellik branch'leri | Büyük özellik/deney için açılır, bitince silinir. | — |
+
+**Kurallar:**
+- `main`'e doğrudan `git push` yapılmaz. Her zaman PR üzerinden merge edilir.
+- Feature branch isimlendirme: `kebab-case` veya `PascalCase` (örn. `AnalizSayfasi`, `UIupdate`).
+- Tamamlanmış ve merge edilmiş remote branch'ler silinir: `git push origin --delete <branch>`.
+- Yerel branch temizliği: `git fetch --prune` ile ölü remote referansları düzenli temizlenir.
+
+### 5.2 Git CLI Standartları
+
+#### Temel İş Akışı
+
+```bash
+# 1. Güncel branch'i çek
+git pull --rebase origin Refactor
+
+# 2. Değişiklikleri stage et (ilgili dosyaları seç, toplu değil)
+git add <ilgili_dosyalar>
+
+# 3. Commit at (RULES.md §2 formatında)
+git commit -m "fiil: Başlık (72 karakter)
+
+Gövde açıklaması.
+
+Etkilenen modüller: src/..."
+
+# 4. Push et
+git push origin Refactor
+```
+
+#### Kesinlikle Yapılmaması Gerekenler
+
+| Yasak | Neden |
+|-------|-------|
+| `git add .` veya `git add -A` | İlgisiz/geçici dosyalar (debug_test.py, __pycache__ vb.) commit'e girer |
+| `git push --force` (main'e) | Takım geçmişi bozulur, CI güvensizleşir |
+| `git commit --amend` (push'lanmış commit) | Remote geçmişi bozar |
+| `git merge` (main → feature, gereksiz yere) | Geçmiş karmaşıklaşır; `rebase` tercih edilir |
+| Büyük binary dosyaları commit'lemek | Repo şişer; `.gitignore`'da engellenmelidir |
+
+#### Faydalı Komutlar
+
+```bash
+# Branch arasındaki farkı gör
+git log --oneline main..Refactor
+
+# Son commit'i incele
+git show HEAD
+
+# Staged değişiklikleri gör
+git diff --staged
+
+# Belirli dosyanın geçmişi
+git log --follow -p <dosya>
+
+# Ölü remote branch referanslarını temizle
+git fetch --prune
+
+# Worktree listele
+git worktree list
+```
+
+### 5.3 Commit Hijyeni
+
+- Her commit **tek bir mantıksal değişikliği** kapsar. Birden fazla bağımsız düzeltme aynı commit'e konmaz.
+- Commit'lemeden **önce** ilgili testler çalıştırılır (bkz. §4.2).
+- Geçici dosyalar (`debug_test.py`, `temp_*.py`, `*.pyc`) commit'e dahil edilmez.
+- `.env`, veritabanı şifreleri, API anahtarları **asla** commit'lenmez (`.gitignore`'da engellidir).
+- Commit mesajları RULES.md §2 formatına uyar; İngilizce commit mesajı **kabul edilmez**.
+
+### 5.4 Pull Request (PR) Kuralları
+
+#### PR Açma
+
+```bash
+# GitHub CLI ile PR aç
+gh pr create --base main --head Refactor --title "PR başlığı" --body "Açıklama"
+```
+
+#### PR Şablonu
+
+PR açıklama gövdesi aşağıdaki yapıyı takip eder:
+
+```markdown
+## Ne Yapıldı
+- Madde 1
+- Madde 2
+
+## Neden Yapıldı
+- Kısa gerekçe
+
+## Test
+- [ ] Tüm testler geçiyor (`python -m pytest tests`)
+- [ ] CI yeşil
+- [ ] Manuel doğrulama yapıldı (gerekiyorsa)
+
+## Etkilenen Modüller
+- src/...
+- tests/...
+```
+
+#### PR Merge Kuralları
+
+- CI (GitHub Actions) **yeşil** olmadan merge yapılmaz.
+- Squash merge tercih edilir: `gh pr merge --squash`.
+- Merge sonrası feature branch silinir.
+
+### 5.5 GitHub Actions / CI Kuralları
+
+CI workflow dosyası: [`.github/workflows/tests.yml`](.github/workflows/tests.yml)
+
+#### CI Pipeline Akışı
+
+```
+Push/PR → Checkout → Python 3.11 Kurulum → pip install -r requirements.txt → pip check → pytest --collect-only → pytest tests
+```
+
+#### CI Kırmızı Olduğunda
+
+1. **Kök neden belirlenir:** Hata çıktısı okunur (collection error ≠ test failure).
+2. **Yerel ortamda tekrarlanır:** `python -m pytest --collect-only -q` + `python -m pytest tests`.
+3. **Düzeltme yapılır ve push'lanır.**
+4. CI tekrar yeşil olana kadar yeni özellik commit'lenmez (acil durum hariç).
+
+#### Bağımlılık Güvenliği
+
+- `requirements.txt`'e eklenen her paket **pinli sürümle** (örn. `plotly==6.7.0`) kaydedilir.
+- Yeni bir `import` eklendiğinde, ilgili paketin `requirements.txt`'te olup olmadığı kontrol edilir.
+- Top-level import'lar CI'da çalışmayan bir paket kullanıyorsa, ya `requirements.txt`'e eklenir ya da import lazy yapılır.
+- `pip check` adımı bağımlılık çakışmalarını yakalar; bu adım kırmızıysa bağımlılık sürümleri uyumlanır.
+
+### 5.6 .gitignore Yönetimi
+
+Mevcut `.gitignore` dosyasındaki proje-özel kurallar:
+
+| Pattern | Neden |
+|---------|-------|
+| `CLAUDE.md`, `RULES.md` | Ajan konfigürasyonu, her branch'te farklı olabilir |
+| `.env` | Veritabanı şifreleri ve API anahtarları |
+| `backups/` | Yerel yedekler |
+| `*.sql` (istisna: scripts/) | Yerel veritabanı dump'ları |
+| `*.xlsx` | Oluşturulan Excel raporları |
+| `logs/` | Uygulama log dosyaları |
+| `__pycache__/`, `*.py[codz]` | Python bytecode |
+| `.icon_cache/` | Tema ikonları önbelleği |
+
+**Kurallar:**
+- Yeni bir dosya türü veya dizin kalıcı olarak takipten çıkarılacaksa `.gitignore`'a eklenir ve commit mesajında belirtilir.
+- `.gitignore`'dan çıkartılan dosyalar (ör. `!scripts/*.sql`) açıkça yorum satırı ile belgelenir.
+- Geçici dosyalar (test script'leri, debug çıktıları) `.gitignore`'a değil, silme alışkanlığına dayanır.
+
+### 5.7 Release ve Tag Kuralları
+
+```bash
+# Sürüm etiketi oluştur (semantic versioning)
+git tag -a v1.2.0 -m "v1.2.0: Kurumsal aksiyon ve analiz iyileştirmeleri"
+
+# Tag'i push et
+git push origin v1.2.0
+```
+
+- Tag formatı: `v<major>.<minor>.<patch>` (Semantic Versioning).
+- Tag mesajı Türkçe, değişikliklerin kısa özetini içerir.
+- Tag yalnızca `main` branch üzerinde atılır.
+
+### 5.8 Genel Operasyon Kuralları
+
+#### Ortam Yönetimi
+
+| Ortam | Python | Amaç |
+|-------|--------|------|
+| Fintech (conda) | 3.11.x | Geliştirme ve çalıştırma |
+| GitHub Actions | 3.11.x | CI/CD |
+
+- Yerel geliştirme komutu: `C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests`
+- CI komutu: `python -m pytest tests -q`
+- İki ortam arasındaki paket uyumsuzlukları `requirements.txt` pinleriyle önlenir.
+
+#### Veritabanı Güvenliği
+
+- Canlı veritabanına yönelik migration script'leri `scripts/` altında tutulur.
+- `ALTER TABLE` veya `DROP` içeren script'ler yedek alınmadan çalıştırılmaz.
+- ORM şema değişiklikleri ilk olarak yerel ortamda test edilir, ardından production'a uygulanır.
+
+#### Dosya ve Dizin Konvansiyonları
+
+| Konum | İçerik |
+|-------|--------|
+| `src/domain/` | Saf domain modelleri, dış bağımlılık yasak |
+| `src/application/services/` | İş mantığı servisleri |
+| `src/infrastructure/` | DB, API adaptörleri |
+| `src/ui/` | PyQt5 sayfalar ve widget'lar |
+| `tests/` | Mirror yapı: `tests/domain/`, `tests/application/`, `tests/ui/` |
+| `scripts/` | Tek seferlik migration ve bakım script'leri |
+| `docs/wiki/` | Kalıcı bilgi tabanı (bkz. §1) |
+| `.github/workflows/` | CI/CD pipeline tanımları |
+
+#### LLM/Ajan İçin Özel Kurallar
+
+- Ajan, push yapmadan önce **mutlaka** `git status` çalıştırarak beklenmeyen dosya olmadığını doğrular.
+- Ajan, commit sonrası push yapmadan önce ilgili test setini çalıştırır.
+- Ajan, `git add .` kullanmaz; her zaman dosya isimlerini açıkça belirtir.
+- Ajan, PowerShell ortamında `&&` operatörü kullanmaz; komutları ayrı ayrı çalıştırır.
+- Ajan, `.gitignore`'da listelenen dosyaları (CLAUDE.md, RULES.md, .env vb.) commit'lemez.
+- Ajan, geçici debug/test dosyalarını (debug_test.py vb.) işi bitince siler.
+
+---
+
+
+## 6. Kapsam Dışı
 
 Bu kurallar aşağıdakiler için geçerli **değildir**:
 
 - Küçük kod düzeltmeleri (yazım hatası, tek satır fix)
 - Test çalıştırma çıktıları
 - Geçici araştırma sohbetleri (wiki'ye işlenmedikçe)
+
