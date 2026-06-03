@@ -33,6 +33,7 @@ from src.ui.widgets.shared import AnimatedButton, Toast
 class CorporateActionCandidatesPanel(QWidget):
     def __init__(self, container, parent=None) -> None:
         super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.container = container
         self.discovery_service = getattr(container, "corporate_action_discovery_service", None)
         self.review_service = getattr(container, "corporate_action_candidate_review_service", None)
