@@ -83,7 +83,7 @@ class PortfolioSeriesBuilder:
         )
 
         current_positions, current_cash, has_cash_tracking = self._calc_initial_cash_and_positions(
-            trades, cash_movements, trade_scope, start_date
+            trades, cash_movements, trade_scope, start_date, trade_stock_ids
         )
 
         trades_by_date, cash_by_date = self._group_events_by_date(
@@ -138,6 +138,7 @@ class PortfolioSeriesBuilder:
         cash_movements: List[CashMovement],
         stock_ids: Sequence[int],
         start_date: date,
+        trade_stock_ids: Sequence[int] | None = None,
     ) -> tuple[Dict[int, Position], Decimal, bool]:
         trades_before = [trade for trade in trades if trade.trade_date < start_date and trade.stock_id in stock_ids]
         cash_before = [cm for cm in cash_movements if cm.movement_date < start_date]
@@ -147,7 +148,11 @@ class PortfolioSeriesBuilder:
             for stock_id in stock_ids
         }
 
-        has_cash_tracking = len(cash_movements) > 0 or len(cash_before) > 0
+        if trade_stock_ids is not None:
+            has_cash_tracking = False
+        else:
+            has_cash_tracking = len(cash_movements) > 0 or len(cash_before) > 0
+            
         current_cash = Decimal("0")
 
         if has_cash_tracking:
