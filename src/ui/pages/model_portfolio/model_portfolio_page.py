@@ -73,7 +73,7 @@ class ModelPortfolioPage(BasePage):
         portfolios = self.model_portfolio_service.get_all_portfolios()
         self.list_panel.refresh(
             portfolios,
-            trade_count_func=self.model_portfolio_service.get_trade_count,
+            trade_count_func=self.model_portfolio_service.get_active_position_count,
         )
         if "settings_manager" not in self.__dict__:
             self.settings_manager = PortfolioSettingsManager()
