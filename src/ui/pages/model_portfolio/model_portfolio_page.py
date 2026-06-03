@@ -48,6 +48,9 @@ class ModelPortfolioPage(BasePage):
         self._ui_builder = ModelPortfolioUIBuilder(self)
         self._ui_builder.build_ui()
         self._connect_signals()
+        event_bus = getattr(self.container, "event_bus", None)
+        if event_bus:
+            event_bus.prices_updated.connect(self._on_prices_updated_event)
 
     def _connect_signals(self) -> None:
         self.list_panel.portfolio_selected.connect(self._on_portfolio_selected)
@@ -176,6 +179,20 @@ class ModelPortfolioPage(BasePage):
         if "price_updater" not in self.__dict__:
             self.price_updater = PortfolioPriceUpdater(self)
         self.price_updater.refresh_prices()
+
+    def _on_prices_updated_event(self, prices: Dict[int, Decimal]) -> None:
+        if self.current_portfolio_id is None or not prices:
+            return
+        positions = self.model_portfolio_service.get_positions(self.current_portfolio_id)
+        relevant_prices = {
+            stock_id: price
+            for stock_id, price in prices.items()
+            if stock_id in positions
+        }
+        if not relevant_prices:
+            return
+        self.current_price_map.update(relevant_prices)
+        self._update_view()
 
     def record_last_update_time(self, updated_at=None):
         if self.current_portfolio_id is None:
