@@ -19,6 +19,20 @@ class PriceDataReportRenderer:
     def __init__(self, panel: PriceDataPanel) -> None:
         self.panel = panel
 
+    def clear_report(self) -> None:
+        panel = self.panel
+        panel._current_report = None
+        panel.health_table.setRowCount(0)
+        for label in (
+            panel.lbl_stock_count,
+            panel.lbl_missing_count,
+            panel.lbl_holiday_count,
+            panel.lbl_holiday_candidate_count,
+            panel.lbl_latest_date,
+        ):
+            label.metric_label.setText("-")
+        panel.detail_text.setText("Analiz sonucu bekleniyor.")
+
     def apply_report(self, report: PriceDataHealthReport) -> None:
         """Raporu özet kartlara, tabloya ve detay paneline uygular."""
         panel = self.panel
