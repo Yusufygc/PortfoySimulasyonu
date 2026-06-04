@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-04] güncelleme | YFinance Fiyat Uyumsuzluğu Düzeltmesi ve Kurallar Güncellemesi
+
+- Yahoo Finance'in split ex-date kayması ve double-adjustment sorununu çözen dinamik kırılma noktası analizi (transition-aware) fiyat düzeltme altyapısı uygulandı.
+- DB'deki daily_prices ve indirilen fiyat serileri dinamik geçiş tarihine göre kontrollü güncellenecek şekilde revize edildi.
+- RULES.md dosyasına, geçici/debug/test dosyalarının işi bitince kullanıcı onayıyla repodan silinmesine dair yeni kural eklendi. Ana dizindeki geçici test scriptleri temizlendi.
+- Etkilenen dosyalar: `src/application/services/corporate_actions/price_adjustment_service.py`, `src/application/services/simulation/backfill_service.py`, `src/application/services/market/price_data_health_service.py`, `RULES.md`
+- Bağlantılı sayfalar: [RULES.md](../../RULES.md), [service_corporate_actions.md](service_corporate_actions.md)
+
 ## [2026-06-04] güncelleme | Sermaye Artırımı ve Düzeltme Entegrasyonu
 
 - Kurumsal işlemler sonrasında oluşan maliyet/adet uyuşmazlıklarını geçmişe yönelik denetim izli düzeltme (Retroactive Adjustment with Audit Trail) mimarisiyle çözüldü.
