@@ -66,6 +66,7 @@ class ModelPortfolioUIBuilder:
         layout.setSpacing(15)
 
         header = QHBoxLayout()
+        self.page._portfolio_header_layout = header
         self.page.lbl_portfolio_name = QLabel(L10N.BIR_PORTFOY_SECIN)
         self.page.lbl_portfolio_name.setProperty("cssClass", "panelTitleLarge")
         header.addWidget(self.page.lbl_portfolio_name)
@@ -81,25 +82,25 @@ class ModelPortfolioUIBuilder:
         self.page.btn_refresh.setEnabled(False)
         header.addWidget(self.page.btn_refresh)
 
+        self.page.btn_capital = AnimatedButton(L10N.SERMAYE_YONETIMI)
+        self.page.btn_capital.setIconName("wallet", color="@COLOR_TEXT_WHITE")
+        self.page.btn_capital.setProperty("cssClass", "capitalButton")
+        self.page.btn_capital.setEnabled(False)
+        header.addWidget(self.page.btn_capital)
+
         self.page.btn_report = AnimatedButton(L10N.RAPOR_AL)
         self.page.btn_report.setIconName(L10N.FILETEXT, color="@COLOR_TEXT_PRIMARY")
         self.page.btn_report.setProperty("cssClass", "reportButton")
         self.page.btn_report.setEnabled(False)
         self.page._report_menu = QMenu(self.page.btn_report)
-        
+
         self.page._report_today_action = QAction("Bugün", self.page)
         self.page._report_range_action = QAction(L10N.TARIH_ARALIGI, self.page)
-        
+
         self.page._report_menu.addAction(self.page._report_today_action)
         self.page._report_menu.addAction(self.page._report_range_action)
         self.page.btn_report.setMenu(self.page._report_menu)
         header.addWidget(self.page.btn_report)
-
-        self.page.btn_capital = AnimatedButton(L10N.SERMAYE_YONETIMI)
-        self.page.btn_capital.setIconName("wallet", color="@COLOR_TEXT_PRIMARY")
-        self.page.btn_capital.setProperty("cssClass", "reportButton")
-        self.page.btn_capital.setEnabled(False)
-        header.addWidget(self.page.btn_capital)
         layout.addLayout(header)
 
         cards_row = QHBoxLayout()
