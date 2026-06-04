@@ -80,3 +80,10 @@ graph TD
 - Dashboard ve analiz toplam portfoy degeri kullanici varligini temsil eder: nakit bakiye + acik pozisyon piyasa degeri.
 - Pozisyon tablolari acik pozisyonlardan uretilir; tamamen kapanmis hisseler tablo, otomatik fiyat guncelleme ve analiz filtre kapsaminda tekrar gosterilmez.
 - Gecmis trade kayitlari ve fiyatlar korunur; satis nakdi toplam deger serisine yansimaya devam eder.
+
+## Model Portfoy Sermaye Hareketleri Notu (2026-06-03)
+
+- Model portfoylerde baslangic sermayesi korunur; sonradan eklenen/cekilen sermaye `model_portfolio_cash_movements` tablosunda tarih-saatli hareket olarak tutulur.
+- Model portfoy trade simulasyonu trade ve sermaye hareketlerini ayni timeline'da isler; ayni tarih/saatte sermaye hareketi trade'den once uygulanir.
+- Alim nakit kontrolu ve sermaye cekme kontrolu timeline'daki mevcut nakde gore yapilir; gecmise donuk hareket sonraki trade akisini gecersiz kiliyorsa reddedilir.
+- Model portfoy K/Z hesabi `toplam deger - net sermaye` seklindedir; sermaye eklemek kar, sermaye cekmek zarar sayilmaz.
