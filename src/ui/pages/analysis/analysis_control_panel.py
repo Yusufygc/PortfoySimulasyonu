@@ -30,8 +30,8 @@ class AnalysisControlPanel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setProperty("cssClass", "panelFramePadded")
-        self.setMinimumWidth(320)
-        self.setMaximumWidth(360)
+        self.setMinimumWidth(360)
+        self.setMaximumWidth(400)
         self.setMinimumHeight(0)
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         self._earliest_date = date.today() - timedelta(days=365)
@@ -65,22 +65,21 @@ class AnalysisControlPanel(QFrame):
             )
         )
 
-        dates_row = QHBoxLayout()
-        dates_row.setSpacing(10)
-
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
-        self.date_start.setProperty("cssClass", "tradeInputNormal")
+        self.date_start.setProperty("cssClass", "analysisDateInput")
         self.date_start.setMinimumHeight(45)
-        self.date_start.setMinimumWidth(110)
+        self.date_start.setMinimumWidth(125)
+        self.date_start.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.date_start.setDate(QDate.currentDate().addMonths(-3))
         self.date_start.dateChanged.connect(self.filter_changed.emit)
 
         self.date_end = QDateEdit()
         self.date_end.setCalendarPopup(True)
-        self.date_end.setProperty("cssClass", "tradeInputNormal")
+        self.date_end.setProperty("cssClass", "analysisDateInput")
         self.date_end.setMinimumHeight(45)
-        self.date_end.setMinimumWidth(110)
+        self.date_end.setMinimumWidth(125)
+        self.date_end.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
 
@@ -97,6 +96,7 @@ class AnalysisControlPanel(QFrame):
 
         pickers_layout = QHBoxLayout()
         pickers_layout.setSpacing(6)
+        pickers_layout.setContentsMargins(0, 0, 0, 0)
         pickers_layout.addWidget(self.date_start, 1)
         
         lbl_to = QLabel("—")
