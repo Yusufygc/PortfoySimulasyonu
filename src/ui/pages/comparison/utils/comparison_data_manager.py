@@ -71,8 +71,8 @@ class ComparisonDataManager:
         if portfolio_code is None:
             if page.last_global_df is not None:
                 mode = page.ribbon_bar.selected_mode()
-                if chart_key == "main_chart":
-                    page._renderer.render_main_chart(page.last_global_df)
+                if chart_key == "main_chart" or chart_key == "main":
+                    page._renderer.render_single_chart_async("main", page.last_global_df)
                 else:
                     df_metrics = page.last_global_df
                     if mode == "Rasyo Modu":
@@ -87,7 +87,7 @@ class ComparisonDataManager:
                             df_metrics = pd.DataFrame(
                                 {f"{num_col} / {den_col}": ratio_series}
                             )
-                    page._renderer.render_single_chart(chart_key, df_metrics)
+                    page._renderer.render_single_chart_async(chart_key, df_metrics)
         else:
             self._request_override_refresh(chart_key, portfolio_code)
 
@@ -145,8 +145,8 @@ class ComparisonDataManager:
         aligned_df = ComparisonService.align_financial_series(series_dict)
         mode = page.ribbon_bar.selected_mode()
 
-        if chart_key == "main_chart":
-            page._renderer.render_main_chart(aligned_df)
+        if chart_key == "main_chart" or chart_key == "main":
+            page._renderer.render_single_chart_async("main", aligned_df)
         else:
             df_metrics = aligned_df
             if mode == "Rasyo Modu":
@@ -158,7 +158,7 @@ class ComparisonDataManager:
                         aligned_df[num_col], aligned_df[den_col]
                     )
                     df_metrics = pd.DataFrame({f"{num_col} / {den_col}": ratio_series})
-            page._renderer.render_single_chart(chart_key, df_metrics)
+            page._renderer.render_single_chart_async(chart_key, df_metrics)
 
     # ------------------------------------------------------------------
     # Tarih doğrulama
@@ -234,7 +234,7 @@ class ComparisonDataManager:
 
         aligned_df = ComparisonService.align_financial_series(series_dict)
         page.last_global_df = aligned_df
-        page._renderer.render_charts(aligned_df)
+        page._renderer.trigger_visible_charts_render(aligned_df)
         page._last_loaded_assets = page.ribbon_bar.selected_assets()
         page._last_loaded_dates = page.ribbon_bar.date_range()
 
