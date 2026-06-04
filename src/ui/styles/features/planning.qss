@@ -42,6 +42,25 @@ QPushButton[cssClass="iconButton"]:hover {
     background-color: @COLOR_BG_ELEVATED;
 }
 
+QPushButton[cssClass="pinIconButton"] {
+    background: transparent;
+    border: none;
+    border-radius: @RADIUS_SM;
+    padding: 3px;
+}
+QPushButton[cssClass="pinIconButton"]:hover {
+    background-color: @COLOR_BG_ELEVATED;
+}
+QPushButton[cssClass="pinIconButtonActive"] {
+    background-color: rgba(59, 130, 246, 0.12);
+    border: none;
+    border-radius: @RADIUS_SM;
+    padding: 3px;
+}
+QPushButton[cssClass="pinIconButtonActive"]:hover {
+    background-color: rgba(59, 130, 246, 0.18);
+}
+
 QPushButton[cssClass="dangerIconButton"] {
     background: transparent;
     border: none;
