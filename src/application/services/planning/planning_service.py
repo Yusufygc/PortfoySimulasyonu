@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from src.domain.models.budget import Budget
+from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
 from src.domain.models.financial_goal import FinancialGoal, GoalStatus
 from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
 
@@ -78,6 +78,45 @@ class PlanningService:
     def delete_budget(self, budget_id: int) -> None:
         """Bütçe kaydını siler."""
         self._repo.delete_budget(budget_id)
+
+    def get_pinned_budget_items(self) -> List[BudgetPinnedItem]:
+        """Tekrarlanan bütçe kalemi şablonlarını döner."""
+        return self._repo.get_pinned_budget_items()
+
+    def pin_budget_item(self, item_type: str, name: str, amount: float) -> BudgetPinnedItem:
+        """Gelir/gider kalemini sonraki boş aylar için şablon olarak kaydeder."""
+        pinned_item = BudgetPinnedItem(
+            id=None,
+            item_type=item_type,
+            name=name,
+            default_amount=_to_decimal(amount),
+        )
+        return self._repo.upsert_pinned_budget_item(pinned_item)
+
+    def unpin_budget_item(self, item_type: str, name: str) -> None:
+        """Gelir/gider kalemi şablonunu kaldırır."""
+        BudgetPinnedItem(id=None, item_type=item_type, name=name, default_amount=Decimal("0"))
+        self._repo.delete_pinned_budget_item(item_type, name.strip())
+
+    def get_budget_draft_from_pinned_items(self, month: str) -> Budget:
+        """Kayıtlı bütçesi olmayan aylar için pinli kalemlerden taslak bütçe üretir."""
+        if not month or len(month) != 7:
+            raise ValueError("Ay formatı 'YYYY-MM' olmalıdır.")
+        return Budget(
+            id=None,
+            month=month,
+            savings_target=Decimal("0"),
+            items=[
+                BudgetItem(
+                    id=None,
+                    budget_id=None,
+                    item_type=item.item_type,
+                    name=item.name,
+                    amount=item.default_amount,
+                )
+                for item in self._repo.get_pinned_budget_items()
+            ],
+        )
 
     # ==================== Hedef Takibi ==================== #
 
