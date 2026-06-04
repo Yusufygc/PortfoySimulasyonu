@@ -14,9 +14,11 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QPushButton,
     QRadioButton,
+    QScrollArea,
     QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
+    QWidget,
 )
 
 from .base_page import BasePage
@@ -56,6 +58,16 @@ class RiskProfilePage(BasePage):
         self._init_ui()
 
     def _init_ui(self):
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.NoFrame)
+
+        self.scroll_content = QWidget()
+        self.scroll_content.setObjectName("scroll_content")
+        self.scroll_layout = QVBoxLayout(self.scroll_content)
+        self.scroll_layout.setContentsMargins(25, 25, 25, 25)
+        self.scroll_layout.setSpacing(20)
+
         header = QHBoxLayout()
         header.setSpacing(10)
 
@@ -66,17 +78,21 @@ class RiskProfilePage(BasePage):
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
-        self.main_layout.addLayout(header)
+        self.scroll_layout.addLayout(header)
 
         lbl_desc = QLabel(
             "Finansal durum, hedef, risk toleransi ve tecrube yanitlarinizla profesyonel risk profilinizi hesaplayin."
         )
         lbl_desc.setWordWrap(True)
         lbl_desc.setProperty("cssClass", "pageDescription")
-        self.main_layout.addWidget(lbl_desc)
+        self.scroll_layout.addWidget(lbl_desc)
 
         self._build_profile_card()
         self._build_survey()
+        
+        self.scroll_layout.addStretch()
+        self.scroll.setWidget(self.scroll_content)
+        self.main_layout.addWidget(self.scroll)
 
     def _build_profile_card(self):
         self.profile_card = QFrame()
@@ -150,7 +166,7 @@ class RiskProfilePage(BasePage):
         card_layout.addWidget(notes_block)
 
         self.profile_card.setVisible(False)
-        self.main_layout.addWidget(self.profile_card)
+        self.scroll_layout.addWidget(self.profile_card)
 
     @staticmethod
     def _create_dimension_metric(title: str) -> tuple[QFrame, QLabel]:
@@ -228,7 +244,7 @@ class RiskProfilePage(BasePage):
         btn_layout.addWidget(self.btn_calculate)
         survey_layout.addLayout(btn_layout)
 
-        self.main_layout.addWidget(self.survey_frame, 1)
+        self.scroll_layout.addWidget(self.survey_frame)
         self._update_section_nav()
 
     @staticmethod
