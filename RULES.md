@@ -294,6 +294,7 @@ git worktree list
 - Her commit **tek bir mantıksal değişikliği** kapsar. Birden fazla bağımsız düzeltme aynı commit'e konmaz.
 - Commit'lemeden **önce** ilgili testler çalıştırılır (bkz. §4.2).
 - Geçici dosyalar (`debug_test.py`, `temp_*.py`, `*.pyc`) commit'e dahil edilmez.
+- Ajan/LLM tarafından geçici/debug/test amaçlı oluşturulan dosyaların işi bittiğinde kullanıcıya silinip silinmeyeceği sorulmalı, onay alındıktan sonra bu geçici dosyalar repodan temizlenmelidir.
 - `.env`, veritabanı şifreleri, API anahtarları **asla** commit'lenmez (`.gitignore`'da engellidir).
 - Commit mesajları RULES.md §2 formatına uyar; İngilizce commit mesajı **kabul edilmez**.
 
