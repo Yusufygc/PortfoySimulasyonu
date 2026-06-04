@@ -58,7 +58,31 @@ def generate_gemini_response(messages: list[ChatMessage]) -> str:
 
     try:
         client = genai.Client(api_key=api_key)
-        config = types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT)
+        
+        # Configure safety settings to block harmful/unsafe content
+        safety_settings = [
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            ),
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            ),
+        ]
+        
+        config = types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            safety_settings=safety_settings
+        )
         history = []
 
         for msg in recent_messages[:-1]:
@@ -66,6 +90,9 @@ def generate_gemini_response(messages: list[ChatMessage]) -> str:
             content = msg.content
             if msg.role == MessageRole.SYSTEM:
                 content = "[SİSTEM AKTARIMI]\n" + content
+            elif msg.role == MessageRole.USER:
+                from src.ui.pages.ai_page.core.safety_guard import wrap_user_message
+                content = wrap_user_message(content)
             history.append(types.Content(role=role, parts=[types.Part.from_text(text=content)]))
 
         chat = client.chats.create(
@@ -78,6 +105,9 @@ def generate_gemini_response(messages: list[ChatMessage]) -> str:
         last_content = last_msg.content
         if last_msg.role == MessageRole.SYSTEM:
             last_content = "[SİSTEM AKTARIMI]\n" + last_content
+        elif last_msg.role == MessageRole.USER:
+            from src.ui.pages.ai_page.core.safety_guard import wrap_user_message
+            last_content = wrap_user_message(last_content)
 
         response = chat.send_message(last_content)
         return response.text
