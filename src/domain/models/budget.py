@@ -34,6 +34,28 @@ class BudgetItem:
 
 
 @dataclass
+class BudgetPinnedItem:
+    """Reusable income or expense item template for future monthly budgets."""
+
+    id: Optional[int]
+    item_type: str
+    name: str
+    default_amount: Decimal = Decimal("0")
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    def __post_init__(self) -> None:
+        if self.item_type not in VALID_BUDGET_ITEM_TYPES:
+            raise ValueError(f"Unknown budget item type: {self.item_type}")
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValueError("Budget pinned item name cannot be empty")
+        self.default_amount = _to_decimal(self.default_amount)
+        if self.default_amount < 0:
+            raise ValueError("Budget pinned item amount cannot be negative")
+
+
+@dataclass
 class Budget:
     """Domain model for a monthly budget and its dynamic items."""
 
