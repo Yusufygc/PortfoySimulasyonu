@@ -25,7 +25,7 @@ Modüler LLM Wiki prensibi gereği, detaylı teknik dokümantasyonlar alt belgel
 | **Kurumsal Aksiyonlar** | [service_corporate_actions.md](service_corporate_actions.md) | Temettü, Bedelli/Bedelsiz sermaye artırımı hesapları ve maliyet güncellemeleri. |
 | **İzleme Listesi** | [service_watchlist.md](service_watchlist.md) | Ana portföy dışında izlenen hisseler ve hedef fiyat takibi. |
 | **Analiz ve Benchmark** | [service_analysis.md](service_analysis.md) | Rasyolar, risk metrikleri hesaplamaları, getiri karşılaştırmaları ve fallback kaynaklar. |
-| **Planlama ve Optimizasyon**| [service_planning_optimization.md](service_planning_optimization.md)| Markowitz MPT, SciPy Optimizasyonu, Ledoit-Wolf stabilizasyonu ve Risk Profilleme. |
+| **Planlama ve Optimizasyon**| [service_planning_optimization.md](service_planning_optimization.md)| Markowitz MPT, bütçe/pinli gelir-gider şablonları, Ledoit-Wolf stabilizasyonu ve Risk Profilleme. |
 | **Tarihsel Simülasyon** | [service_simulation.md](service_simulation.md) | Geçmiş portföy işlemlerinin (Backtest) gün gün baştan oynatılması ve snapshot üretimi. |
 | **Raporlama (Excel)** | [service_reporting_and_export.md](service_reporting_and_export.md) | OpenPyXL tabanlı tarih normalizasyonlu Excel dışa aktarım motoru. |
 | **Veritabanı (DB) ve ORM** | [database_schema_and_orm.md](database_schema_and_orm.md) | SQLAlchemy modelleri, repository pattern'i, veritabanı şeması ve migration stratejisi. |
