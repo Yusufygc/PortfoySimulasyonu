@@ -1,6 +1,7 @@
 # src/ui/widgets/stock/dialogs/trade_dialog.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date, time
 from decimal import Decimal
@@ -57,7 +58,7 @@ class TradeDialog(QDialog):
             self._fetch_initial_price()
 
     def _init_ui(self):
-        self.setWindowTitle("İşlem Ekle")
+        self.setWindowTitle(L10N.ISLEM_EKLE)
         self.setMinimumWidth(450)
         # Koyu Tema Arka Planı
         self.setProperty("cssClass", "dialogContainer")
@@ -78,7 +79,7 @@ class TradeDialog(QDialog):
         self.lbl_ticker = QLabel(display_ticker(self.ticker) if self.ticker else f"ID: {self.stock_id}")
         self.lbl_ticker.setProperty("cssClass", "dialogHeaderTitleLarge")
         
-        self.lbl_price_info = QLabel("Fiyat Yükleniyor...")
+        self.lbl_price_info = QLabel(L10N.FIYAT_YUKLENIYOR)
         self.lbl_price_info.setProperty("cssClass", "dialogSubtitle")
         
         h_layout.addWidget(self.lbl_ticker)
@@ -110,7 +111,7 @@ class TradeDialog(QDialog):
         side_layout.addWidget(self.radio_buy)
         side_layout.addWidget(self.radio_sell)
         
-        lbl_side = QLabel("İşlem:")
+        lbl_side = QLabel(L10N.ISLEM)
         lbl_side.setProperty("cssClass", "formLabel")
         form_layout.addRow(lbl_side, side_container)
 
@@ -133,7 +134,7 @@ class TradeDialog(QDialog):
         dt_layout.addWidget(self.date_edit)
         dt_layout.addWidget(self.time_edit)
         
-        lbl_date = QLabel("Zaman:")
+        lbl_date = QLabel(L10N.ZAMAN)
         lbl_date.setProperty("cssClass", "formLabel")
         form_layout.addRow(lbl_date, dt_container)
 
@@ -148,14 +149,14 @@ class TradeDialog(QDialog):
         self.edit_price.setProperty("cssClass", "tradeInputNormal")
         
         self.edit_amount = QLineEdit()
-        self.edit_amount.setPlaceholderText("Toplam Tutar")
+        self.edit_amount.setPlaceholderText(L10N.TOPLAM_TUTAR)
         self.edit_amount.setProperty("cssClass", "tradeInputNormal")
 
-        lbl_lot = QLabel("Adet (Lot):")
+        lbl_lot = QLabel(L10N.ADET_LOT)
         lbl_lot.setProperty("cssClass", "formLabel")
-        lbl_price = QLabel("Birim Fiyat:")
+        lbl_price = QLabel(L10N.BIRIM_FIYAT)
         lbl_price.setProperty("cssClass", "formLabel")
-        lbl_total = QLabel("Toplam:")
+        lbl_total = QLabel(L10N.TOPLAM)
         lbl_total.setProperty("cssClass", "formLabel")
 
         form_layout.addRow(lbl_lot, self.spin_quantity)
@@ -172,11 +173,11 @@ class TradeDialog(QDialog):
         f_layout = QHBoxLayout(footer)
         f_layout.setContentsMargins(20, 10, 20, 10)
 
-        self.btn_edit_stock = QPushButton("Hisse Bilgisini Düzenle")
+        self.btn_edit_stock = QPushButton(L10N.HISSE_BILGISINI_DUZENLE)
         self.btn_edit_stock.setCursor(Qt.PointingHandCursor)
         self.btn_edit_stock.setProperty("cssClass", "linkButton")
 
-        self.btn_save = QPushButton("Kaydet")
+        self.btn_save = QPushButton(L10N.SAVE)
         self.btn_save.setCursor(Qt.PointingHandCursor)
         self.btn_save.setProperty("cssClass", "primaryButton")
 
@@ -201,7 +202,7 @@ class TradeDialog(QDialog):
     def _fetch_initial_price(self):
         if not self.price_lookup_func or not self.ticker: return
         
-        self.lbl_price_info.setText("⏳ Yükleniyor...")
+        self.lbl_price_info.setText(L10N.YUKLENIYOR)
         self.btn_save.setEnabled(False)
 
         worker = Worker(self.price_lookup_func, self.ticker)
@@ -216,11 +217,11 @@ class TradeDialog(QDialog):
             if not self.edit_price.text():
                 self.edit_price.setText(str(res.price))
         else:
-            self.lbl_price_info.setText("Fiyat verisi alınamadı.")
+            self.lbl_price_info.setText(L10N.FIYAT_VERISI_ALINAMADI)
         self.btn_save.setEnabled(True)
 
     def _on_price_error(self, err_tuple):
-        self.lbl_price_info.setText("Ağ Hatası")
+        self.lbl_price_info.setText(L10N.AG_HATASI)
         self.btn_save.setEnabled(True)
 
     # --- HESAPLAMA MANTIĞI ---
@@ -268,9 +269,9 @@ class TradeDialog(QDialog):
         # Validasyon
         try:
             p = float(self.edit_price.text().replace(",", ".") or 0)
-            if p <= 0: raise ValueError("Fiyat 0 olamaz")
+            if p <= 0: raise ValueError(L10N.FIYAT_0_OLAMAZ)
         except (ValueError, TypeError):
-            QMessageBox.warning(self, "Hata", "Geçersiz fiyat.")
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERSIZ_FIYAT)
             return
             
         self._mode = "trade"

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from decimal import Decimal
@@ -29,7 +30,7 @@ class TradeInputDialog(QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.side = side
         self.price_lookup_func = price_lookup_func
-        self.setWindowTitle("Hisse Al" if side == "BUY" else "Hisse Sat")
+        self.setWindowTitle(L10N.HISSE_AL_1 if side == "BUY" else L10N.HISSE_SAT_1)
         self.setFixedSize(450, 425)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
@@ -46,7 +47,7 @@ class TradeInputDialog(QDialog):
         form.setLabelAlignment(Qt.AlignLeft)
 
         self.txt_ticker = QLineEdit()
-        self.txt_ticker.setPlaceholderText("Örn: ASELS")
+        self.txt_ticker.setPlaceholderText(L10N.ORN_ASELS)
         self.txt_ticker.setMinimumHeight(45)
         self.txt_ticker.returnPressed.connect(self._on_lookup)
         form.addRow("Ticker:", self.txt_ticker)
@@ -67,26 +68,26 @@ class TradeInputDialog(QDialog):
         self.spin_price.valueChanged.connect(self._update_amount)
         price_row.addWidget(self.spin_price)
 
-        btn_lookup = QPushButton("Fiyat Al")
+        btn_lookup = QPushButton(L10N.FIYAT_AL)
         btn_lookup.setCursor(Qt.PointingHandCursor)
         btn_lookup.setProperty("cssClass", "primaryButton")
         btn_lookup.setMinimumHeight(45)
         btn_lookup.clicked.connect(self._on_lookup)
         price_row.addWidget(btn_lookup)
-        form.addRow("Fiyat:", price_row)
+        form.addRow(L10N.FIYAT_1, price_row)
 
         self.edit_amount = QLineEdit()
         self.edit_amount.setReadOnly(True)
         self.edit_amount.setMinimumHeight(45)
         self.edit_amount.setProperty("cssClass", "tradeInputNormal")
-        form.addRow("Tutar:", self.edit_amount)
+        form.addRow(L10N.TUTAR_1, self.edit_amount)
         self.spin_qty.valueChanged.connect(self._update_amount)
         self._update_amount()
 
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setMinimumHeight(45)
-        form.addRow("Tarih:", self.date_edit)
+        form.addRow(L10N.TARIH_1, self.date_edit)
 
         self.time_edit = QTimeEdit(QTime.currentTime())
         self.time_edit.setDisplayFormat("HH:mm")
@@ -98,12 +99,12 @@ class TradeInputDialog(QDialog):
 
         button_row = QHBoxLayout()
         button_row.addStretch()
-        btn_cancel = QPushButton("İptal")
+        btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.setMinimumHeight(40)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
 
-        self.btn_action = QPushButton("Al" if self.side == "BUY" else "Sat")
+        self.btn_action = QPushButton(L10N.AL if self.side == "BUY" else L10N.SAT)
         self.btn_action.setMinimumHeight(40)
         self.btn_action.setProperty("cssClass", "successButton" if self.side == "BUY" else "dangerButton")
         self.btn_action.clicked.connect(self.accept)

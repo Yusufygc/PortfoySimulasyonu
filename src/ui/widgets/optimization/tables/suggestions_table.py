@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/widgets/optimization/tables/suggestions_table.py
 """
 SuggestionsTable — Optimizasyon Öneri Tablosu Widget'ı
@@ -17,7 +18,7 @@ from src.ui.formatters import display_ticker
 class SuggestionsTable(QTableWidget):
     """Optimizasyon sonucu öneri tablosu."""
 
-    _COLUMNS = ["Hisse", "Mevcut %", "Optimal %", "Fark", "Öneri"]
+    _COLUMNS = ["Hisse", L10N.MEVCUT, L10N.OPTIMAL, "Fark", "Öneri"]
 
     def __init__(self, parent=None):
         super().__init__(parent)

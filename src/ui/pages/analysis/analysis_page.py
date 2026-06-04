@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from datetime import date, timedelta
@@ -33,7 +34,7 @@ class AnalysisPage(BasePage):
     def __init__(self, container, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Analiz"
+        self.page_title = L10N.ANALIZ
         self.analysis_service = container.analysis_service
         self.threadpool = QThreadPool()
         self._request_seq = 0
@@ -71,13 +72,13 @@ class AnalysisPage(BasePage):
         header_layout.addLayout(title_col)
         header_layout.addStretch()
 
-        self.btn_toggle_panel = AnimatedButton("Filtreleri Gizle")
+        self.btn_toggle_panel = AnimatedButton(L10N.FILTRELERI_GIZLE)
         self.btn_toggle_panel.setProperty("cssClass", "secondaryButton")
         self.btn_toggle_panel.setIconName("layers", color="@COLOR_TEXT_SECONDARY", size=18)
         self.btn_toggle_panel.clicked.connect(self._toggle_control_panel)
         header_layout.addWidget(self.btn_toggle_panel)
 
-        self.btn_refresh = AnimatedButton("Analizi Yenile")
+        self.btn_refresh = AnimatedButton(L10N.ANALIZI_YENILE)
         self.btn_refresh.setProperty("cssClass", "primaryButton")
         self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=18)
         self.btn_refresh.clicked.connect(self.refresh_data)
@@ -163,9 +164,9 @@ class AnalysisPage(BasePage):
         is_visible = self.control_panel_column.isVisible()
         self.control_panel_column.setVisible(not is_visible)
         if is_visible:
-            self.btn_toggle_panel.setText("Filtreleri Göster")
+            self.btn_toggle_panel.setText(L10N.FILTRELERI_GOSTER)
         else:
-            self.btn_toggle_panel.setText("Filtreleri Gizle")
+            self.btn_toggle_panel.setText(L10N.FILTRELERI_GIZLE)
 
     def on_page_enter(self):
         self._load_static_options()
@@ -251,8 +252,8 @@ class AnalysisPage(BasePage):
     def _set_loading(self, loading: bool) -> None:
         self.btn_refresh.setEnabled(not loading)
         if loading:
-            self.btn_refresh.setText(" Analiz Hesaplanıyor...")
+            self.btn_refresh.setText(L10N.ANALIZ_HESAPLANIYOR)
             self.btn_refresh.setIconName("refresh-cw", color="@BUTTON_DISABLED_TEXT", size=18)
         else:
-            self.btn_refresh.setText(" Analizi Yenile")
+            self.btn_refresh.setText(L10N.ANALIZI_YENILE_1)
             self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=18)

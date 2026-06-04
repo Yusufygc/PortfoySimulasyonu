@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from PyQt5.QtCore import pyqtSignal
 from src.ui.pages.ai_page.core.models import AnalysisResult
@@ -7,7 +8,7 @@ class SendToChatButton(AnimatedButton):
     send_requested = pyqtSignal(AnalysisResult)
 
     def __init__(self):
-        super().__init__("Detaylı Yorumlat (Chatbota Gönder)")
+        super().__init__(L10N.DETAYLI_YORUMLAT_CHATBOTA_GONDER)
         self._init_ui()
         self.current_result: AnalysisResult | None = None
         self.clicked.connect(self._on_click)

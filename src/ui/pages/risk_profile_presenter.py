@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from typing import Dict
@@ -31,10 +32,10 @@ class RiskProfilePresenter:
             self.view.show_calculation_success(profile)
         except DatabaseSchemaError:
             error_msg = (
-                "Risk profili kaydedilemedi: veritabani semasi guncel degil. "
+                L10N.RISK_PROFILI_KAYDEDILEMEDI_VERITABANI_SEMASI +
                 "scripts/alter_risk_profile_professional.sql dosyasini uygulayin."
             )
             Toast.error(self.view, error_msg)
         except Exception as exc:
             logger.error(f"Profil hesaplanirken hata: {exc}")
-            Toast.error(self.view, "Profil hesaplanamadi. Lutfen yanitlari kontrol edip tekrar deneyin.")
+            Toast.error(self.view, L10N.PROFIL_HESAPLANAMADI_LUTFEN_YANITLARI_KONTROL)

@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from datetime import datetime
 
 from PyQt5.QtCore import QThreadPool, QPropertyAnimation, QParallelAnimationGroup, QEasingCurve, QRect
@@ -50,10 +51,10 @@ class ChatbotPanel(QWidget):
         lbl_icon = QLabel()
         lbl_icon.setPixmap(IconManager.get_icon("bot", color="@COLOR_PRIMARY").pixmap(24, 24))
         
-        lbl_title = QLabel("AI Finans Asistanı")
+        lbl_title = QLabel(L10N.AI_FINANS_ASISTANI)
         lbl_title.setProperty("cssClass", "dialogHeaderTitleLarge")
 
-        btn_clear = AnimatedButton("Sohbeti Temizle")
+        btn_clear = AnimatedButton(L10N.SOHBETI_TEMIZLE)
         btn_clear.setIconName("trash-2", color="@COLOR_DANGER", size=24)
         btn_clear.setProperty("cssClass", "outlineDangerBtn")
         btn_clear.clicked.connect(self.clear_chat)
@@ -103,7 +104,7 @@ class ChatbotPanel(QWidget):
 
     def clear_chat(self):
         self._cancel_pending_ai()
-        self._set_messages([ChatMessage(MessageRole.AI, "Sohbet geçmişi temizlendi. Size nasıl yardımcı olabilirim?")])
+        self._set_messages([ChatMessage(MessageRole.AI, L10N.SOHBET_GECMISI_TEMIZLENDI_SIZE_NASIL)])
         self._persist_active_session()
 
     def send_user_message(self, text: str):
@@ -263,7 +264,7 @@ Lütfen bu analizi değerlendir:
 
     @staticmethod
     def _build_analysis_display_summary(result: AnalysisResult) -> str:
-        horizon = f"{result.horizon_days} günlük" if result.horizon_days else "Horizon sonu"
+        horizon = f"{result.horizon_days} günlük" if result.horizon_days else L10N.HORIZON_SONU_1
         return_text = f"{result.weekly_expected_return * 100:.2f}%" if result.weekly_expected_return is not None else "-"
         xai_state = "mevcut" if result.xai_available else "yok"
         xai_detail = ""

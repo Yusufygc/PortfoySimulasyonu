@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
 from PyQt5.QtCore import Qt
 from src.ui.pages.ai_page.core.models import ModelOutlook
@@ -21,7 +22,7 @@ class SignalCard(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         lbl_icon = QLabel()
         lbl_icon.setPixmap(IconManager.get_icon("target", color="@COLOR_PRIMARY").pixmap(20, 20))
-        title = QLabel("YÖN BEKLENTİSİ")
+        title = QLabel(L10N.YON_BEKLENTISI)
         title.setProperty("cssClass", "cardLabel")
         header_layout.addWidget(lbl_icon)
         header_layout.addWidget(title)
@@ -36,7 +37,7 @@ class SignalCard(QWidget):
         layout.addWidget(self.lbl_signal)
 
         strength_layout = QHBoxLayout()
-        lbl_strength = QLabel("Model beklenti gücü: ")
+        lbl_strength = QLabel(L10N.MODEL_BEKLENTI_GUCU)
         lbl_strength.setProperty("cssClass", "aiStrongMetaText")
         strength_layout.addWidget(lbl_strength)
         self.progress_strength = QProgressBar()

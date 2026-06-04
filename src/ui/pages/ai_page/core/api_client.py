@@ -9,6 +9,7 @@ Kullanım:
 """
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from typing import Any, Dict, List, Optional
@@ -111,9 +112,9 @@ class AICoreFastAPIClient:
             else:
                 logger.debug("AI_Core connection failed: url=%s", url)
             raise APIConnectionError(
-                f"AI_Core sunucusuna bağlanılamadı ({url}). "
-                "Sunucunun çalıştığından emin olun: "
-                "uvicorn src.api.main:app --port 8000"
+                f"AI_Core sunucusuna bağlanılamadı ({url}). " +
+                L10N.SUNUCUNUN_CALISTIGINDAN_EMIN_OLUN +
+                L10N.UVICORN_SRCAPIMAINAPP_PORT_8000
             ) from exc
         except requests.Timeout as exc:
             if self._log_connection_errors:
@@ -138,4 +139,4 @@ class AICoreFastAPIClient:
             return resp.json()
         except ValueError as exc:
             logger.error("AI_Core returned invalid JSON: url=%s", url, exc_info=True)
-            raise APIResponseError(resp.status_code, "Invalid JSON response") from exc
+            raise APIResponseError(resp.status_code, L10N.INVALID_JSON_RESPONSE) from exc

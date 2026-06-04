@@ -204,6 +204,7 @@ Bu bölüm, aynı tür üretim hatalarının ve kontrolsüz büyüyen sınıf/me
 - `except Exception` ancak hata loglandığında, kullanıcıya anlamlı sonuç döndürüldüğünde ve ilgili davranış testle kapatıldığında kabul edilir.
 - PyQt global `QApplication` ayarları canlı widget varken yeniden uygulanmaz. Tema değişiminde QSS güvenli kabul edilir; font ve global state değişimi kontrollü yapılır.
 - Her production bug fix önce kırmızı testi kanıtlar, sonra fix ve tam test koşumu ile kapanır.
+- Kullanıcıya gösterilen arayüz metinlerinde Türkçe karakterlerin doğru kullanımı zorunludur. Arayüz dosyalarındaki sabit metinler doğrudan koda gömülmemeli, `src/ui/shared/locale_tr.py` (`L10N` sınıfı) altından çağrılmalıdır.
 
 ### 4.2 Test ve Bağımlılık Kapıları
 

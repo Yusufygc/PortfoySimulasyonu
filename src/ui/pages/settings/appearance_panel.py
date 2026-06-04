@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
@@ -24,12 +25,12 @@ class AppearancePanel(QWidget):
         card_layout.setContentsMargins(20, 20, 20, 20)
         card_layout.setSpacing(16)
 
-        title = QLabel("Tema Seçimi")
+        title = QLabel(L10N.TEMA_SECIMI)
         title.setProperty("cssClass", "panelTitle")
         card_layout.addWidget(title)
 
         desc = QLabel(
-            "Uygulamanın renk temasını seçin. Değişiklik anında uygulanır ve bir sonraki açılışta da korunur."
+            L10N.UYGULAMANIN_RENK_TEMASINI_SECIN_DEGISIKLIK
         )
         desc.setWordWrap(True)
         desc.setProperty("cssClass", "pageDescription")

@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/widgets/planning/panels/budget_form_panel.py
 """
 BudgetFormPanel — Dinamik Bütçe Formu Panel Widget'ı
@@ -44,7 +45,7 @@ class BudgetFormPanel(QFrame):
         main.setSpacing(0)
 
         income_col, self._income_layout = self._build_item_column(
-            title="Gelirler",
+            title=L10N.GELIRLER,
             icon="banknote",
             icon_color="@COLOR_SUCCESS",
             header_css="successHeader",
@@ -55,7 +56,7 @@ class BudgetFormPanel(QFrame):
         )
 
         expense_col, self._expense_layout = self._build_item_column(
-            title="Giderler",
+            title=L10N.GIDERLER,
             icon="shopping-cart",
             icon_color="@COLOR_DANGER",
             header_css="dangerHeader",
@@ -136,7 +137,7 @@ class BudgetFormPanel(QFrame):
         vbox.setAlignment(Qt.AlignTop)
         vbox.setSpacing(8)
 
-        lbl_target = QLabel("Aylık Tasarruf Hedefi")
+        lbl_target = QLabel(L10N.AYLIK_TASARRUF_HEDEFI)
         lbl_target.setProperty("cssClass", "inputLabel")
 
         self.spin_target = QDoubleSpinBox()
@@ -147,7 +148,7 @@ class BudgetFormPanel(QFrame):
         self.spin_target.setSuffix("TL")
         self.spin_target.setMinimumHeight(32)
         self.spin_target.setSpecialValueText(" ")
-        self.spin_target.lineEdit().setPlaceholderText("0,00 TL")
+        self.spin_target.lineEdit().setPlaceholderText(L10N.K_000_TL)
         self.spin_target.setProperty("cssClass", "customDoubleSpinBox")
         self.spin_target.valueChanged.connect(self._refresh_summary)
 
@@ -155,10 +156,10 @@ class BudgetFormPanel(QFrame):
         sep.setFrameShape(QFrame.HLine)
         sep.setProperty("cssClass", "horizontalSeparator")
 
-        self.card_income  = InfoCard("Toplam Gelir",  "₺ 0,00", icon_name="trending-up")
-        self.card_expense = InfoCard("Toplam Gider",  "₺ 0,00", icon_name="trending-down")
-        self.card_net     = InfoCard("Net Kalan",     "₺ 0,00", icon_name="banknote")
-        self.card_goal    = InfoCard("Hedef Durumu",  "—",       icon_name="target")
+        self.card_income  = InfoCard(L10N.TOPLAM_GELIR,  "₺ 0,00", icon_name="trending-up")
+        self.card_expense = InfoCard(L10N.TOPLAM_GIDER,  "₺ 0,00", icon_name="trending-down")
+        self.card_net     = InfoCard(L10N.NET_KALAN,     "₺ 0,00", icon_name="banknote")
+        self.card_goal    = InfoCard(L10N.HEDEF_DURUMU,  "—",       icon_name="target")
 
         self.card_income.set_value_state("positive")
         self.card_expense.set_value_state("negative")
@@ -245,16 +246,16 @@ class BudgetFormPanel(QFrame):
         self.card_net.set_value_state("positive" if net >= 0 else "negative")
 
         if target <= 0:
-            self.card_goal.set_value("Hedef belirlenmedi")
+            self.card_goal.set_value(L10N.HEDEF_BELIRLENMEDI)
             self.card_goal.set_value_state("neutral")
         elif net >= target:
-            self.card_goal.set_value("✅ Hedefe ulaşılıyor")
+            self.card_goal.set_value(L10N.HEDEFE_ULASILIYOR)
             self.card_goal.set_value_state("positive")
         elif net >= 0:
-            self.card_goal.set_value("📉 Hedefin altında")
+            self.card_goal.set_value(L10N.HEDEFIN_ALTINDA)
             self.card_goal.set_value_state("negative")
         else:
-            self.card_goal.set_value("⚠️ Açık var")
+            self.card_goal.set_value(L10N.ACIK_VAR)
             self.card_goal.set_value_state("negative")
 
     def _add_row(self, name: str, amount: float, item_type: str, emit: bool = True) -> BudgetItemRow:

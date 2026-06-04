@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from typing import TYPE_CHECKING
 
@@ -24,14 +25,14 @@ class PriceDataActions:
     def analyze(self) -> None:
         panel = self.panel
         if panel.price_data_health_service is None:
-            Toast.warning(panel, "Fiyat verisi yönetim servisi kullanılamıyor.")
+            Toast.warning(panel, L10N.FIYAT_VERISI_YONETIM_SERVISI_KULLANILAMIYOR)
             return
         start_date, end_date = panel._date_range()
         scope = panel._selected_scope()
         self._run_worker(
             panel.price_data_health_service.analyze,
             self._on_analyze_success,
-            "Veri sağlığı analiz ediliyor...",
+            L10N.VERI_SAGLIGI_ANALIZ_EDILIYOR,
             start_date,
             end_date,
             scope,
@@ -46,7 +47,7 @@ class PriceDataActions:
         self._run_worker(
             panel.price_data_health_service.update_missing_prices,
             self._on_update_success,
-            "Eksik fiyatlar güncelleniyor...",
+            L10N.EKSIK_FIYATLAR_GUNCELLENIYOR,
             start_date,
             end_date,
             None,
@@ -59,13 +60,13 @@ class PriceDataActions:
             return
         stock_id = panel._selected_stock_id()
         if stock_id is None:
-            Toast.warning(panel, "Önce tablodan bir hisse seçin.")
+            Toast.warning(panel, L10N.ONCE_TABLODAN_BIR_HISSE_SECIN)
             return
         start_date, end_date = panel._date_range()
         self._run_worker(
             panel.price_data_health_service.update_stock_range,
             self._on_update_success,
-            "Seçili hisse güncelleniyor...",
+            L10N.SECILI_HISSE_GUNCELLENIYOR,
             stock_id,
             start_date,
             end_date,
@@ -78,7 +79,7 @@ class PriceDataActions:
         self._run_worker(
             panel.price_data_health_service.update_from_latest_to_today,
             self._on_update_success,
-            "Son güncel günden bugüne eksikler tamamlanıyor...",
+            L10N.SON_GUNCEL_GUNDEN_BUGUNE_EKSIKLER,
             None,
             panel._selected_scope(),
         )
@@ -90,7 +91,7 @@ class PriceDataActions:
         start_date, end_date = panel._date_range()
         reply = QMessageBox.question(
             panel,
-            "Fiyat Verisini Sil",
+            L10N.FIYAT_VERISINI_SIL,
             f"{start_date:%d.%m.%Y} - {end_date:%d.%m.%Y} aralığındaki fiyat kayıtları silinecek. Emin misiniz?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
@@ -100,7 +101,7 @@ class PriceDataActions:
         self._run_worker(
             panel.price_data_health_service.delete_range,
             self._on_delete_success,
-            "Fiyat kayıtları siliniyor...",
+            L10N.FIYAT_KAYITLARI_SILINIYOR,
             start_date,
             end_date,
         )
@@ -108,12 +109,12 @@ class PriceDataActions:
     def copy_report(self) -> None:
         panel = self.panel
         if panel._current_report is None:
-            Toast.warning(panel, "Kopyalanacak analiz raporu yok.")
+            Toast.warning(panel, L10N.KOPYALANACAK_ANALIZ_RAPORU_YOK)
             return
         QApplication.clipboard().setText(
             panel._report_renderer.format_report_text(panel._current_report)
         )
-        Toast.success(panel, "Veri sağlığı raporu panoya kopyalandı.")
+        Toast.success(panel, L10N.VERI_SAGLIGI_RAPORU_PANOYA_KOPYALANDI)
 
     def _run_worker(self, fn, success_slot, busy_text: str, *args) -> None:
         panel = self.panel
@@ -138,7 +139,7 @@ class PriceDataActions:
                 f"{result.skipped_holiday_count} tatil adayı atlandı.",
             )
         else:
-            Toast.warning(panel, "Güncellenecek fiyat kaydı bulunamadı.")
+            Toast.warning(panel, L10N.GUNCELLENECEK_FIYAT_KAYDI_BULUNAMADI)
             if result.errors:
                 panel.detail_text.setText("Hata detayları:\n" + "\n".join(result.errors[:30]))
             return
@@ -151,4 +152,4 @@ class PriceDataActions:
         self.analyze()
 
     def _on_worker_error(self, err_tuple) -> None:
-        QMessageBox.critical(self.panel, "Hata", f"Hata:\n{err_tuple[1]}")
+        QMessageBox.critical(self.panel, L10N.ERROR, f"Hata:\n{err_tuple[1]}")

@@ -1,6 +1,7 @@
 # src/ui/pages/comparison/utils/chart_renderer.py
 """Karşılaştırma sayfasındaki tüm grafik ve tablo render işlemleri."""
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 import os
@@ -70,7 +71,7 @@ class ChartRenderer:
             
         page = self.page
         mode = page.ribbon_bar.selected_mode()
-        df_metrics = df if mode == "Rasyo Modu" else df
+        df_metrics = df if mode == L10N.RASYO_MODU else df
         
         # Summary table anında render edilebilir (hafif)
         if not page.chart_overrides.get("summary_table"):
@@ -95,7 +96,7 @@ class ChartRenderer:
             
         page = self.page
         mode = page.ribbon_bar.selected_mode()
-        ratio_assets = page.ribbon_bar.ratio_assets() if mode == "Rasyo Modu" else None
+        ratio_assets = page.ribbon_bar.ratio_assets() if mode == L10N.RASYO_MODU else None
         code_to_label = getattr(page, "code_to_label", {}).copy()
         
         worker = Worker(
@@ -108,7 +109,7 @@ class ChartRenderer:
 
     def _generate_html_in_background(self, chart_key: str, df: pd.DataFrame, mode: str, ratio_assets: tuple | None, code_to_label: dict) -> tuple[str, str] | None:
         """Arka planda çalışacak fonksiyon."""
-        df_metrics = df if mode == "Rasyo Modu" else df
+        df_metrics = df if mode == L10N.RASYO_MODU else df
         fig = None
 
         if chart_key == "main":
@@ -122,7 +123,7 @@ class ChartRenderer:
         elif chart_key == "scatter":
             metrics = ComparisonService.calculate_risk_return_metrics(df_metrics)
             scatter_data = [
-                {"Volatilite %": m["annual_volatility_pct"], "Getiri %": m["total_return_pct"], "Varlık": name}
+                {L10N.VOLATILITE: m["annual_volatility_pct"], L10N.GETIRI: m["total_return_pct"], "Varlık": name}
                 for name, m in metrics.items()
             ]
             df_scatter = pd.DataFrame(scatter_data).set_index("Varlık")
@@ -131,7 +132,7 @@ class ChartRenderer:
             metrics = ComparisonService.calculate_risk_return_metrics(df_metrics)
             weights = [max(abs(m["total_return_pct"]), 1.0) for m in metrics.values()]
             df_weights = pd.DataFrame(
-                {"Varlık Ağırlığı %": weights, "Getiri %": [m["total_return_pct"] for m in metrics.values()]},
+                {L10N.VARLIK_AGIRLIGI: weights, L10N.GETIRI: [m["total_return_pct"] for m in metrics.values()]},
                 index=df.columns,
             )
             fig = ComparisonChartFactory.build_treemap(df_weights)
@@ -223,7 +224,7 @@ class ChartRenderer:
                     return col
             return df.columns[0] if not df.empty else None
 
-        if mode == "Normalize (Baz 100)":
+        if mode == L10N.NORMALIZE_BAZ_100:
             df_norm = df.copy()
             for col in df_norm.columns:
                 base_val = df_norm[col].iloc[0]
@@ -234,9 +235,9 @@ class ChartRenderer:
                     x=df_norm.index, y=df_norm[col], name=col,
                     line=dict(width=2, color=_COLORS[i % len(_COLORS)])
                 ))
-            ComparisonChartFactory._apply_theme_layout(fig, "Normalize Performans Kıyaslaması (Baz 100)")
+            ComparisonChartFactory._apply_theme_layout(fig, L10N.NORMALIZE_PERFORMANS_KIYASLAMASI_BAZ_100)
 
-        elif mode == "Rasyo Modu":
+        elif mode == L10N.RASYO_MODU:
             if ratio_assets:
                 num_code, den_code = ratio_assets
                 num_col = find_col(num_code)
@@ -271,7 +272,7 @@ class ChartRenderer:
                 x=df_ret.index, y=df_ret[col], name=col,
                 line=dict(width=2, color=_COLORS[i % len(_COLORS)])
             ))
-        ComparisonChartFactory._apply_theme_layout(fig, "Kümülatif Performans Getirisi (%)")
+        ComparisonChartFactory._apply_theme_layout(fig, L10N.KUMULATIF_PERFORMANS_GETIRISI)
 
     # ------------------------------------------------------------------
     # Özet tablo (Senkron, hızlı olduğu için UI thread'de kalabilir)

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date
 from decimal import Decimal
@@ -54,20 +55,20 @@ class CorporateActionCandidatesPanel(QWidget):
         layout.setSpacing(14)
 
         title_row = QHBoxLayout()
-        title = QLabel("Kurumsal Aksiyon Takip")
+        title = QLabel(L10N.KURUMSAL_AKSIYON_TAKIP)
         title.setProperty("cssClass", "panelTitle")
         title_row.addWidget(title)
         title_row.addStretch()
 
         self.btn_refresh_remote = self._action_button(" KAP/MKK Yenile", "refresh-cw", self.discover)
-        self.btn_refresh_list = self._action_button(" Listeyi Yenile", "list", self.refresh_list)
+        self.btn_refresh_list = self._action_button(L10N.LISTEYI_YENILE, "list", self.refresh_list)
         title_row.addWidget(self.btn_refresh_remote)
         title_row.addWidget(self.btn_refresh_list)
         layout.addLayout(title_row)
 
         desc = QLabel(
-            "Bedelli ve bedelsiz sermaye artırımı bildirimleri önce aday olarak listelenir. "
-            "Portföy ve fiyat düzeltmesi yalnızca kullanıcı onayından sonra uygulanır."
+            L10N.BEDELLI_VE_BEDELSIZ_SERMAYE_ARTIRIMI +
+            L10N.PORTFOY_VE_FIYAT_DUZELTMESI_YALNIZCA
         )
         desc.setWordWrap(True)
         desc.setProperty("cssClass", "pageDescription")
@@ -89,10 +90,10 @@ class CorporateActionCandidatesPanel(QWidget):
         layout.addWidget(self.table, 1)
 
         action_row = QHBoxLayout()
-        self.btn_apply = self._action_button(" Onayla ve Uygula", "plus-circle", self.apply_selected)
-        self.btn_edit = self._action_button(" Duzenle", "pencil", self.edit_selected)
-        self.btn_ignore = self._action_button(" Yoksay", "trash-2", self.ignore_selected, "dangerTextButton", "@COLOR_DANGER")
-        self.btn_open_source = self._action_button(" Kaynagi Ac", "arrow-right", self.open_selected_source)
+        self.btn_apply = self._action_button(L10N.ONAYLA_VE_UYGULA, L10N.PLUSCIRCLE, self.apply_selected)
+        self.btn_edit = self._action_button(L10N.DUZENLE, "pencil", self.edit_selected)
+        self.btn_ignore = self._action_button(L10N.YOKSAY, "trash-2", self.ignore_selected, L10N.DANGERTEXTBUTTON, "@COLOR_DANGER")
+        self.btn_open_source = self._action_button(L10N.KAYNAGI_AC, "arrow-right", self.open_selected_source)
         for button in (self.btn_apply, self.btn_edit, self.btn_ignore, self.btn_open_source):
             action_row.addWidget(button)
         action_row.addStretch()
@@ -107,7 +108,7 @@ class CorporateActionCandidatesPanel(QWidget):
         root_layout.addWidget(card)
         if self.discovery_service is None or self.review_service is None:
             self._set_controls_enabled(False)
-            self.detail_text.setText("Kurumsal aksiyon aday servisleri kullanilamiyor.")
+            self.detail_text.setText(L10N.KURUMSAL_AKSIYON_ADAY_SERVISLERI_KULLANILAMIYOR)
         else:
             self._on_selection_changed()
 
@@ -149,8 +150,8 @@ class CorporateActionCandidatesPanel(QWidget):
         except Exception as exc:
             self.table.setRowCount(0)
             self.detail_text.setText(
-                "Kurumsal aksiyon aday tablosu okunamadi. "
-                "Mevcut DB için scripts/apply_corporate_action_candidate_schema.py çalıştırılmalıdır.\n"
+                L10N.KURUMSAL_AKSIYON_ADAY_TABLOSU_OKUNAMADI +
+                "Mevcut DB için scripts/apply_corporate_action_candidate_schema.py çalıştırılmalıdır.\n" +
                 f"Hata: {exc}"
             )
             return
@@ -177,7 +178,7 @@ class CorporateActionCandidatesPanel(QWidget):
         if candidate is None or candidate.id is None:
             return
         self.review_service.ignore(candidate.id)
-        Toast.success(self, "Aday yoksayıldı.")
+        Toast.success(self, L10N.ADAY_YOKSAYILDI)
         self.refresh_list()
 
     def edit_selected(self) -> None:
@@ -190,7 +191,7 @@ class CorporateActionCandidatesPanel(QWidget):
         updated = dialog.to_candidate()
         try:
             self.review_service.update_candidate(updated)
-            Toast.success(self, "Aday güncellendi.")
+            Toast.success(self, L10N.ADAY_GUNCELLENDI)
             self.refresh_list()
         except Exception as exc:
             Toast.warning(self, f"Aday güncellenemedi: {exc}")
@@ -230,12 +231,12 @@ class CorporateActionCandidatesPanel(QWidget):
     def _on_selection_changed(self) -> None:
         candidate = self._selected_candidate()
         has_selection = candidate is not None
-        self.btn_apply.setEnabled(has_selection and candidate.status.value in ("READY", "APPROVED"))
+        self.btn_apply.setEnabled(has_selection and candidate.status.value in ("READY", L10N.APPROVED))
         self.btn_edit.setEnabled(has_selection)
         self.btn_ignore.setEnabled(has_selection)
         self.btn_open_source.setEnabled(has_selection and bool(candidate.source_url))
         if candidate is None:
-            self.detail_text.setText("Aday secilmedi.")
+            self.detail_text.setText(L10N.ADAY_SECILMEDI)
             return
         self.detail_text.setText(_candidate_detail(candidate))
 
@@ -257,7 +258,7 @@ class CorporateActionCandidateEditDialog(QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self._candidate = candidate
         self._stock_repo = stock_repo
-        self.setWindowTitle("Kurumsal Aksiyon Adayi")
+        self.setWindowTitle(L10N.KURUMSAL_AKSIYON_ADAYI)
         self.setMinimumWidth(420)
         self._init_ui()
         configure_dialog_behavior(self, self.btn_save, self.accept)
@@ -294,16 +295,16 @@ class CorporateActionCandidateEditDialog(QDialog):
         form.addRow("Hisse:", self.ticker_edit)
         form.addRow("Tip:", self.type_combo)
         form.addRow("Oran:", self.ratio_spin)
-        form.addRow("Kullanim fiyati:", self.sub_price_spin)
+        form.addRow(L10N.KULLANIM_FIYATI, self.sub_price_spin)
         form.addRow("Ex-date:", self.ex_date_edit)
-        form.addRow("Not:", self.notes_edit)
+        form.addRow(L10N.NOT, self.notes_edit)
         layout.addLayout(form)
 
         button_row = QHBoxLayout()
         button_row.addStretch()
-        cancel = QPushButton("Iptal")
+        cancel = QPushButton(L10N.IPTAL)
         cancel.clicked.connect(self.reject)
-        self.btn_save = QPushButton("Kaydet")
+        self.btn_save = QPushButton(L10N.SAVE)
         self.btn_save.clicked.connect(self.accept)
         self.btn_save.setDefault(True)
         button_row.addWidget(cancel)

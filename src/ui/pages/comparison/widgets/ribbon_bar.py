@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 from datetime import date, timedelta
 from PyQt5.QtCore import QDate, pyqtSignal, Qt
 from PyQt5.QtWidgets import (
@@ -34,17 +35,17 @@ class ComparisonRibbonBar(QFrame):
         controls_layout.setSpacing(15)
         
         # Multi-Asset Selector
-        controls_layout.addWidget(QLabel("Kıyaslanacak Varlıklar:"))
-        self.compare_combo = CheckableComboBox("Varlık seçin")
+        controls_layout.addWidget(QLabel(L10N.KIYASLANACAK_VARLIKLAR))
+        self.compare_combo = CheckableComboBox(L10N.VARLIK_SECIN)
         self.compare_combo.setMinimumWidth(220)
         self.compare_combo.selection_changed.connect(self.filter_changed.emit)
         controls_layout.addWidget(self.compare_combo)
         
         # Grafik Modu
-        controls_layout.addWidget(QLabel("Grafik Modu:"))
+        controls_layout.addWidget(QLabel(L10N.GRAFIK_MODU_1))
         self.combo_mode = QComboBox()
         self.combo_mode.setProperty("cssClass", "customComboBox")
-        self.combo_mode.addItems(["Normal", "Normalize (Baz 100)", "Rasyo Modu"])
+        self.combo_mode.addItems(["Normal", L10N.NORMALIZE_BAZ_100, L10N.RASYO_MODU])
         self.combo_mode.setMinimumWidth(160)
         self.combo_mode.currentIndexChanged.connect(self._on_mode_changed)
         controls_layout.addWidget(self.combo_mode)
@@ -65,10 +66,10 @@ class ComparisonRibbonBar(QFrame):
         self.combo_den.setMinimumWidth(120)
         self.combo_den.currentIndexChanged.connect(self.filter_changed.emit)
         
-        ratio_layout.addWidget(QLabel("Pay:"))
+        ratio_layout.addWidget(QLabel(L10N.PAY))
         ratio_layout.addWidget(self.combo_num)
         ratio_layout.addWidget(QLabel("/"))
-        ratio_layout.addWidget(QLabel("Payda:"))
+        ratio_layout.addWidget(QLabel(L10N.PAYDA))
         ratio_layout.addWidget(self.combo_den)
         
         self.ratio_widget.setVisible(False)
@@ -76,7 +77,7 @@ class ComparisonRibbonBar(QFrame):
         
         # Tarih Seçiciler
         controls_layout.addStretch()
-        controls_layout.addWidget(QLabel("Tarih Aralığı:"))
+        controls_layout.addWidget(QLabel(L10N.TARIH_ARALIGI_1))
         
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date, timedelta
 from typing import Dict, List
@@ -49,18 +50,18 @@ class AnalysisControlPanel(QFrame):
         self.combo_portfolio.currentIndexChanged.connect(self._on_source_changed)
         layout.addWidget(self._wrap_field("Portf\u00f6y", self.combo_portfolio))
 
-        self.combo_currency = self._create_combo_box("Para Birimi")
-        self.combo_currency.addItems(["TL", "USD", "REAL (TÜFE Düzeltilmiş)"])
+        self.combo_currency = self._create_combo_box(L10N.PARA_BIRIMI)
+        self.combo_currency.addItems(["TL", "USD", L10N.REAL_TUFE_DUZELTILMIS])
         self.combo_currency.currentIndexChanged.connect(self.filter_changed.emit)
-        layout.addWidget(self._wrap_field("Para Birimi", self.combo_currency, "Analiz verilerini hesaplama birimi."))
+        layout.addWidget(self._wrap_field(L10N.PARA_BIRIMI, self.combo_currency, L10N.ANALIZ_VERILERINI_HESAPLAMA_BIRIMI))
 
-        self.stock_combo = CheckableComboBox("Hisse seçin")
+        self.stock_combo = CheckableComboBox(L10N.HISSE_SECIN)
         self.stock_combo.selection_changed.connect(self.filter_changed.emit)
         layout.addWidget(
             self._wrap_field(
-                "Hisse Filtresi",
+                L10N.HISSE_FILTRESI,
                 self.stock_combo,
-                "Not: Hisse seçildiğinde portföydeki nakit hareketleri hariç tutulur; yalnızca hisselerin performansı ölçülür.",
+                L10N.NOT_HISSE_SECILDIGINDE_PORTFOYDEKI_NAKIT,
             )
         )
 
@@ -90,7 +91,7 @@ class AnalysisControlPanel(QFrame):
         dates_layout.setContentsMargins(15, 15, 15, 15)
         dates_layout.setSpacing(10)
 
-        dates_title = QLabel("Tarih Aralığı")
+        dates_title = QLabel(L10N.TARIH_ARALIGI)
         dates_title.setProperty("cssClass", "panelTitle")
         dates_layout.addWidget(dates_title)
 
@@ -115,7 +116,7 @@ class AnalysisControlPanel(QFrame):
             button.clicked.connect(lambda _, d=days: self._set_quick_date(d))
             quick_row.addWidget(button)
 
-        btn_all = QPushButton("Tümü")
+        btn_all = QPushButton(L10N.TUMU)
         btn_all.setProperty("cssClass", "quickDateBtn")
         btn_all.clicked.connect(self._set_all_time)
         quick_row.addWidget(btn_all)
@@ -124,7 +125,7 @@ class AnalysisControlPanel(QFrame):
 
         self.combo_benchmark = self._create_combo_box("Benchmark")
         self.combo_benchmark.currentIndexChanged.connect(self.filter_changed.emit)
-        layout.addWidget(self._wrap_field("Kıyaslama Endeksi", self.combo_benchmark, "Genel Bakışta fark hesabı için birincil kıyaslama endeksi."))
+        layout.addWidget(self._wrap_field(L10N.KIYASLAMA_ENDEKSI, self.combo_benchmark, L10N.GENEL_BAKISTA_FARK_HESABI_ICIN))
         layout.addStretch()
 
     def _create_combo_box(self, _placeholder: str) -> QComboBox:

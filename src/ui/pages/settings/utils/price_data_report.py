@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from typing import TYPE_CHECKING
 
@@ -31,7 +32,7 @@ class PriceDataReportRenderer:
             panel.lbl_latest_date,
         ):
             label.metric_label.setText("-")
-        panel.detail_text.setText("Analiz sonucu bekleniyor.")
+        panel.detail_text.setText(L10N.ANALIZ_SONUCU_BEKLENIYOR)
 
     def apply_report(self, report: PriceDataHealthReport) -> None:
         """Raporu özet kartlara, tabloya ve detay paneline uygular."""
@@ -100,17 +101,17 @@ class PriceDataReportRenderer:
         if row is None:
             return
 
-        missing_text = ", ".join(d.strftime("%d.%m.%Y") for d in row.missing_dates[:80])
+        missing_text = ", ".join(d.strftime(L10N.DMY) for d in row.missing_dates[:80])
         if row.missing_count > 80:
             missing_text += f"<br>... +{row.missing_count - 80} gün"
         if not missing_text:
             missing_text = "<span style='color: #94a3b8;'>Eksik gün yok.</span>"
 
-        known_text = ", ".join(d.strftime("%d.%m.%Y") for d in panel._current_report.known_holiday_dates[:60])
+        known_text = ", ".join(d.strftime(L10N.DMY) for d in panel._current_report.known_holiday_dates[:60])
         if not known_text:
             known_text = "<span style='color: #94a3b8;'>Bu aralıkta kayıtlı tatil yok.</span>"
 
-        candidate_text = ", ".join(d.strftime("%d.%m.%Y") for d in panel._current_report.holiday_candidate_dates[:60])
+        candidate_text = ", ".join(d.strftime(L10N.DMY) for d in panel._current_report.holiday_candidate_dates[:60])
         if not candidate_text:
             candidate_text = "<span style='color: #94a3b8;'>Tatil adayı yok.</span>"
 

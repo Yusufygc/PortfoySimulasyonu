@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QLabel,
@@ -29,7 +30,7 @@ class XAICard(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         lbl_icon = QLabel()
         lbl_icon.setPixmap(IconManager.get_icon("search", color="@COLOR_PRIMARY").pixmap(20, 20))
-        title = QLabel("MODEL AÇIKLAMASI (XAI)")
+        title = QLabel(L10N.MODEL_ACIKLAMASI_XAI)
         title.setProperty("cssClass", "cardLabel")
         self.lbl_method = QLabel("")
         self.lbl_method.setProperty("cssClass", "aiMetaText")
@@ -40,7 +41,7 @@ class XAICard(QWidget):
         header_layout.addWidget(self.lbl_method)
         layout.addLayout(header_layout)
 
-        self.lbl_unavailable = QLabel("XAI verisi mevcut değil")
+        self.lbl_unavailable = QLabel(L10N.XAI_VERISI_MEVCUT_DEGIL)
         self.lbl_unavailable.setAlignment(Qt.AlignCenter)
         self.lbl_unavailable.setProperty("cssClass", "aiHintText")
         self.lbl_unavailable.setVisible(False)
@@ -51,7 +52,7 @@ class XAICard(QWidget):
         pos_layout.setContentsMargins(0, 0, 0, 0)
         pos_icon = QLabel()
         pos_icon.setPixmap(IconManager.get_icon("trending-up", color="@COLOR_SUCCESS").pixmap(18, 18))
-        pos_text = QLabel("Fiyatı Yukarı Çeken Faktörler")
+        pos_text = QLabel(L10N.FIYATI_YUKARI_CEKEN_FAKTORLER)
         pos_text.setProperty("cssClass", "xaiSectionTitle")
         pos_layout.addWidget(pos_icon)
         pos_layout.addWidget(pos_text)
@@ -72,7 +73,7 @@ class XAICard(QWidget):
         neg_layout.setContentsMargins(0, 0, 0, 0)
         neg_icon = QLabel()
         neg_icon.setPixmap(IconManager.get_icon("trending-down", color="@COLOR_DANGER").pixmap(18, 18))
-        neg_text = QLabel("Fiyata Aşağı Baskı Yapan Faktörler")
+        neg_text = QLabel(L10N.FIYATA_ASAGI_BASKI_YAPAN_FAKTORLER)
         neg_text.setProperty("cssClass", "xaiSectionTitle")
         neg_layout.addWidget(neg_icon)
         neg_layout.addWidget(neg_text)
@@ -124,7 +125,7 @@ class XAICard(QWidget):
             self.lbl_unavailable.setVisible(True)
             self.lbl_pos_title.setVisible(False)
             self.lbl_neg_title.setVisible(False)
-            self.txt_explanation.setText(text or "Bu model için XAI açıklanabilirlik verisi üretilmemiş.")
+            self.txt_explanation.setText(text or L10N.BU_MODEL_ICIN_XAI_ACIKLANABILIRLIK)
             self._set_caveat(xai_caveat)
             return
 
@@ -269,7 +270,7 @@ class XAICard(QWidget):
             "regime": "Rejim",
             "lag": "Gecikmeli",
             "signal": "Model faktörü",
-            "Sinyal karari": "Model faktörü",
+            L10N.SINYAL_KARARI: "Model faktörü",
             "model_summary": "Model Özeti",
             "other": "Diğer",
         }

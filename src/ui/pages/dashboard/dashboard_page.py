@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 import logging
 from decimal import Decimal
 
@@ -31,7 +32,7 @@ class DashboardPage(BasePage):
     ):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Dashboard"
+        self.page_title = L10N.DASHBOARD
 
         self.portfolio_service = container.portfolio_service
         self.cash_movement_service = container.cash_movement_service
@@ -82,13 +83,13 @@ class DashboardPage(BasePage):
         )
         title_row.addWidget(icon_label)
 
-        title_label = QLabel("Dashboard")
+        title_label = QLabel(L10N.DASHBOARD)
         title_label.setProperty("cssClass", "pageTitle")
         title_row.addWidget(title_label)
         title_row.addStretch()
         title_layout.addLayout(title_row)
 
-        description_label = QLabel("Portföyünüzün özetini, raporlarını ve güncelleme aksiyonlarını tek yerden yönetin.")
+        description_label = QLabel(L10N.PORTFOYUNUZUN_OZETINI_RAPORLARINI_VE_GUNCELLEME)
         description_label.setProperty("cssClass", "pageDescription")
         description_label.setWordWrap(True)
         title_layout.addWidget(description_label)
@@ -101,12 +102,12 @@ class DashboardPage(BasePage):
         primary_actions_layout = QHBoxLayout()
         primary_actions_layout.setSpacing(10)
 
-        self.btn_new_trade = AnimatedButton(" Yeni İşlem")
+        self.btn_new_trade = AnimatedButton(L10N.YENI_ISLEM)
         self.btn_new_trade.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_new_trade.setProperty("cssClass", "primaryButton")
         self.btn_new_trade.clicked.connect(self._actions.on_new_trade)
 
-        self.btn_update_prices = AnimatedButton(" Fiyatları Güncelle")
+        self.btn_update_prices = AnimatedButton(L10N.FIYATLARI_GUNCELLE)
         self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE")
         self.btn_update_prices.setProperty("cssClass", "updatePricesBtn")
         self.btn_update_prices.clicked.connect(self._actions.on_update_prices)
@@ -114,18 +115,18 @@ class DashboardPage(BasePage):
         self.lbl_last_update = QLabel("")
         self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
 
-        self.btn_capital = AnimatedButton(" Sermaye Yönetimi")
+        self.btn_capital = AnimatedButton(L10N.SERMAYE_YONETIMI)
         self.btn_capital.setIconName("coins", color="@COLOR_TEXT_WHITE")
         self.btn_capital.clicked.connect(self._actions.on_capital_management)
         self.btn_capital.setProperty("cssClass", "capitalButton")
 
-        self.btn_report = AnimatedButton(" Rapor Al")
-        self.btn_report.setIconName("file-text", color="@COLOR_TEXT_PRIMARY")
+        self.btn_report = AnimatedButton(L10N.RAPOR_AL)
+        self.btn_report.setIconName(L10N.FILETEXT, color="@COLOR_TEXT_PRIMARY")
         self.btn_report.setProperty("cssClass", "reportButton")
         self._report_menu = QMenu(self.btn_report)
         self._report_today_action = QAction("Bugün", self)
         self._report_today_action.triggered.connect(self._actions.on_export_today)
-        self._report_range_action = QAction("Tarih Aralığı", self)
+        self._report_range_action = QAction(L10N.TARIH_ARALIGI, self)
         self._report_range_action.triggered.connect(self._actions.on_export_range)
         self._report_menu.addAction(self._report_today_action)
         self._report_menu.addAction(self._report_range_action)

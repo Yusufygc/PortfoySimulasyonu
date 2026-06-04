@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtCore import QObject, QEvent, QCoreApplication, Qt, QSize
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QAction, QWidget
 from src.ui.core.icon_manager import IconManager
@@ -16,7 +17,7 @@ class WheelRedirectFilter(QObject):
 
 
 class ChartPlaceholder(QFrame):
-    def __init__(self, text="Grafik hazırlanıyor...", parent=None):
+    def __init__(self, text=L10N.GRAFIK_HAZIRLANIYOR, parent=None):
         super().__init__(parent)
         self.setProperty("cssClass", "comparisonChartPlaceholder")
         layout = QVBoxLayout(self)
@@ -85,7 +86,7 @@ class ChartPanel(QFrame):
         self.inspect_btn.setMinimumHeight(32)
         inspect_icon = IconManager.get_icon("layers", color="#38bdf8", size=QSize(16, 16))
         self.inspect_btn.setIcon(inspect_icon)
-        self.inspect_btn.setText("Portföy İçeriğini Kıyasla")
+        self.inspect_btn.setText(L10N.PORTFOY_ICERIGINI_KIYASLA)
         self.inspect_btn.setProperty("cssClass", "comparisonInspectButton")
         header_layout.addWidget(self.inspect_btn)
         layout.addLayout(header_layout)
@@ -104,7 +105,7 @@ class ChartPanel(QFrame):
         self.actions = []
         
         # 1. Add "Küresel Seçime Dön" action
-        global_action = QAction(IconManager.get_icon("refresh-cw", color="#ef4444", size=QSize(16, 16)), "Küresel Seçime Dön", self)
+        global_action = QAction(IconManager.get_icon("refresh-cw", color="#ef4444", size=QSize(16, 16)), L10N.KURESEL_SECIME_DON, self)
         global_action.setCheckable(True)
         global_action.setChecked(current_override is None)
         global_action.triggered.connect(lambda checked: on_portfolio_selected(None))

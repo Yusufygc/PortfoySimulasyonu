@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/widgets/planning/panels/goals_panel.py
 """
 GoalsPanel — Finansal Hedef Takip Paneli Widget'ı
@@ -31,7 +32,7 @@ class GoalsPanel(QWidget):
     delete_requested     = pyqtSignal(int, str)   # goal_id, goal_name
     analyze_requested    = pyqtSignal()
 
-    _COLUMNS = ["Hedef", "Hedef Tutar", "Biriken", "Kalan Ay", "Aylık Gereken", "İlerleme", "Durum"]
+    _COLUMNS = ["Hedef", L10N.HEDEF_TUTAR_1, "Biriken", L10N.KALAN_AY, L10N.AYLIK_GEREKEN, "İlerleme", "Durum"]
     _STATUS_TR = {
         "ACTIVE":    "AKTİF",
         "COMPLETED": "TAMAMLANDI",
@@ -52,19 +53,19 @@ class GoalsPanel(QWidget):
         # Buton satırı
         btn_row = QHBoxLayout()
 
-        self._btn_add = AnimatedButton(" Yeni Hedef")
+        self._btn_add = AnimatedButton(L10N.YENI_HEDEF_1)
         self._btn_add.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self._btn_add.setMinimumHeight(38)
         self._btn_add.setProperty("cssClass", "primaryButton")
         self._btn_add.clicked.connect(self.add_requested)
 
-        self._btn_contribute = AnimatedButton(" Katkı Ekle")
+        self._btn_contribute = AnimatedButton(L10N.KATKI_EKLE)
         self._btn_contribute.setIconName("wallet", color="@COLOR_TEXT_PRIMARY")
         self._btn_contribute.setMinimumHeight(38)
         self._btn_contribute.setProperty("cssClass", "secondaryButton")
         self._btn_contribute.clicked.connect(self._emit_contribute)
 
-        self._btn_delete = AnimatedButton(" Sil")
+        self._btn_delete = AnimatedButton(L10N.SIL)
         self._btn_delete.setIconName("trash-2", color="@COLOR_TEXT_WHITE")
         self._btn_delete.setMinimumHeight(38)
         self._btn_delete.setProperty("cssClass", "dangerButton")
@@ -75,7 +76,7 @@ class GoalsPanel(QWidget):
         btn_row.addWidget(self._btn_delete)
         btn_row.addStretch()
 
-        self._btn_analyze = AnimatedButton(" Fizibilite Analizi")
+        self._btn_analyze = AnimatedButton(L10N.FIZIBILITE_ANALIZI)
         self._btn_analyze.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
         self._btn_analyze.setMinimumHeight(38)
         self._btn_analyze.setProperty("cssClass", "purpleButton")
@@ -88,9 +89,9 @@ class GoalsPanel(QWidget):
         self._feasibility_frame.setProperty("cssClass", "panelFrameBordered")
         feas_row = QHBoxLayout(self._feasibility_frame)
         feas_row.setContentsMargins(18, 12, 18, 12)
-        self._lbl_power  = QLabel("Aylık Tasarruf Gücü: —")
+        self._lbl_power  = QLabel(L10N.AYLIK_TASARRUF_GUCU)
         self._lbl_power.setProperty("cssClass", "feasibilityText")
-        self._lbl_need   = QLabel("Toplam Aylık İhtiyaç: —")
+        self._lbl_need   = QLabel(L10N.TOPLAM_AYLIK_IHTIYAC)
         self._lbl_need.setProperty("cssClass", "feasibilityText")
         self._lbl_status = QLabel("")
         self._lbl_status.setProperty("cssClass", "feasibilityStatus")
@@ -197,7 +198,7 @@ class GoalsPanel(QWidget):
         if goal_id is not None:
             self.contribute_requested.emit(goal_id, goal_name)
         else:
-            Toast.warning(self, "Lütfen önce hedef seçiniz", position="top")
+            Toast.warning(self, L10N.LUTFEN_ONCE_HEDEF_SECINIZ, position="top")
 
     def _emit_delete(self) -> None:
         goal_id, goal_name = self.current_goal()

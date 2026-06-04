@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QSizePolicy, QVBoxLayout
@@ -33,12 +34,12 @@ class PortfolioListPanel(QFrame):
         img = IconLabel("layers", color="@COLOR_TEXT_BRIGHT", size=18)
         lbl_row.addWidget(img)
 
-        lbl = QLabel("Portföylerim")
+        lbl = QLabel(L10N.PORTFOYLERIM)
         lbl.setProperty("cssClass", "tableTitle")
         lbl_row.addWidget(lbl)
         lbl_row.addStretch()
 
-        self._btn_new = AnimatedButton(" Yeni")
+        self._btn_new = AnimatedButton(L10N.YENI)
         self._btn_new.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self._btn_new.setProperty("cssClass", "modelPortfolioNewButton")
         self._btn_new.clicked.connect(self.new_requested)

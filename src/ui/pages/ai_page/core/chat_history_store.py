@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 import json
 from datetime import datetime
 from uuid import uuid4
@@ -9,8 +10,8 @@ from src.ui.pages.ai_page.core.models import ChatMessage, ChatSession, MessageRo
 
 SESSIONS_KEY = "ai_chat/sessions"
 LAST_ACTIVE_SESSION_KEY = "ai_chat/last_active_session_id"
-WELCOME_MESSAGE = "Merhaba! Finans, piyasa analizi ve portföy yönetimi hakkında size nasıl yardımcı olabilirim?"
-EMPTY_CHAT_TITLE = "Yeni sohbet"
+WELCOME_MESSAGE = L10N.MERHABA_FINANS_PIYASA_ANALIZI_VE
+EMPTY_CHAT_TITLE = L10N.YENI_SOHBET
 MAX_TITLE_LENGTH = 48
 
 

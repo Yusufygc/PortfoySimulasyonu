@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date
 
@@ -14,14 +15,14 @@ class DashboardExportActions:
     def on_export_today(self) -> None:
         first_date = self._page.portfolio_service.get_first_trade_date()
         if first_date is None:
-            QMessageBox.information(self._page, "Bilgi", "Herhangi bir işlem bulunamadı.")
+            QMessageBox.information(self._page, L10N.INFO, L10N.HERHANGI_BIR_ISLEM_BULUNAMADI)
             return
 
         file_path, _ = QFileDialog.getSaveFileName(
             self._page,
-            "Excel Dosyası Seç",
+            L10N.EXCEL_DOSYASI_SEC,
             "portfoy_takip.xlsx",
-            "Excel Dosyaları (*.xlsx)",
+            L10N.EXCEL_DOSYALARI_XLSX,
         )
         if not file_path:
             return
@@ -33,14 +34,14 @@ class DashboardExportActions:
                 file_path=file_path,
                 mode=ExportMode.OVERWRITE,
             )
-            QMessageBox.information(self._page, "Başarılı", "Excel aktarımı tamamlandı.")
+            QMessageBox.information(self._page, L10N.SUCCESS, L10N.EXCEL_AKTARIMI_TAMAMLANDI)
         except Exception as exc:
-            QMessageBox.critical(self._page, "Hata", f"Excel hatası: {exc}")
+            QMessageBox.critical(self._page, L10N.ERROR, f"Excel hatası: {exc}")
 
     def on_export_range(self) -> None:
         first_date = self._page.portfolio_service.get_first_trade_date()
         if first_date is None:
-            QMessageBox.information(self._page, "Bilgi", "İşlem bulunamadı.")
+            QMessageBox.information(self._page, L10N.INFO, L10N.ISLEM_BULUNAMADI)
             return
 
         dialog = self._page.date_range_dialog_cls(self._page, min_date=first_date, max_date=date.today())
@@ -54,9 +55,9 @@ class DashboardExportActions:
 
         file_path, _ = QFileDialog.getSaveFileName(
             self._page,
-            "Excel Seç",
+            L10N.EXCEL_SEC,
             "portfoy_takip.xlsx",
-            "Excel Dosyaları (*.xlsx)",
+            L10N.EXCEL_DOSYALARI_XLSX,
         )
         if not file_path:
             return
@@ -68,6 +69,6 @@ class DashboardExportActions:
                 file_path=file_path,
                 mode=ExportMode.OVERWRITE,
             )
-            QMessageBox.information(self._page, "Başarılı", "Excel aktarımı tamamlandı.")
+            QMessageBox.information(self._page, L10N.SUCCESS, L10N.EXCEL_AKTARIMI_TAMAMLANDI)
         except Exception as exc:
-            QMessageBox.critical(self._page, "Hata", f"Hata: {exc}")
+            QMessageBox.critical(self._page, L10N.ERROR, f"Hata: {exc}")

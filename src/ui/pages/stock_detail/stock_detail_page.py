@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 import logging
 from datetime import time as dt_time
 from decimal import Decimal
@@ -39,7 +40,7 @@ class StockDetailPage(BasePage):
     ):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Hisse Detayı"
+        self.page_title = L10N.HISSE_DETAYI
         self.portfolio_service = container.portfolio_service
         self.stock_repo = container.stock_repo
         self.trade_entry_service = container.trade_entry_service
@@ -64,12 +65,12 @@ class StockDetailPage(BasePage):
         breadcrumb_row.setSpacing(10)
         
         from src.ui.widgets.shared.controls.animated_button import AnimatedButton
-        self.btn_back = AnimatedButton(" Geri")
+        self.btn_back = AnimatedButton(L10N.GERI)
         self.btn_back.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY", size=16)
         self.btn_back.setProperty("cssClass", "secondaryButton")
         self.btn_back.clicked.connect(self.navigate_back.emit)
         
-        self.lbl_breadcrumb = QLabel("Portföy > ...")
+        self.lbl_breadcrumb = QLabel(L10N.PORTFOY_1)
         self.lbl_breadcrumb.setProperty("cssClass", "breadcrumbText")
         
         breadcrumb_row.addWidget(self.btn_back)
@@ -83,9 +84,9 @@ class StockDetailPage(BasePage):
 
         self.lbl_ticker = QLabel("TICKER")
         self.lbl_ticker.setProperty("cssClass", "stockTitleLarge")
-        self.lbl_name = QLabel("Hisse Adı")
+        self.lbl_name = QLabel(L10N.HISSE_ADI)
         self.lbl_name.setProperty("cssClass", "stockSubtitle")
-        self.lbl_price = QLabel("TL 0.00")
+        self.lbl_price = QLabel(L10N.TL_000)
         self.lbl_price.setProperty("cssClass", "stockPriceCurrent")
 
         title_row.addWidget(self.lbl_ticker)
@@ -93,7 +94,7 @@ class StockDetailPage(BasePage):
         title_row.addStretch()
 
         price_container = QVBoxLayout()
-        price_label_caption = QLabel("Güncel Fiyat")
+        price_label_caption = QLabel(L10N.GUNCEL_FIYAT)
         price_label_caption.setAlignment(Qt.AlignRight)
         price_label_caption.setProperty("cssClass", "stockPriceCaption")
         price_container.addWidget(price_label_caption)
@@ -123,13 +124,13 @@ class StockDetailPage(BasePage):
         self.stats_panel = StockStatsPanel()
         left_layout.addWidget(self.stats_panel)
 
-        lbl_history = QLabel("İşlem Geçmişi")
+        lbl_history = QLabel(L10N.ISLEM_GECMISI)
         lbl_history.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_history)
 
         self.history_table = QTableWidget()
         self.history_table.setColumnCount(5)
-        self.history_table.setHorizontalHeaderLabels(["Tarih", "İşlem", "Adet", "Fiyat", "Tutar"])
+        self.history_table.setHorizontalHeaderLabels([L10N.TARIH, "İşlem", L10N.ADET, L10N.FIYAT, L10N.TUTAR])
         self.history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.history_table.setSelectionMode(QTableWidget.NoSelection)
         self.history_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -141,13 +142,13 @@ class StockDetailPage(BasePage):
         self.history_table.verticalHeader().setVisible(False)
         left_layout.addWidget(self.history_table, 2)
 
-        lbl_corp_actions = QLabel("Uygulanan Sermaye Artırımları")
+        lbl_corp_actions = QLabel(L10N.UYGULANAN_SERMAYE_ARTIRIMLARI)
         lbl_corp_actions.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_corp_actions)
 
         self.corp_actions_table = QTableWidget()
         self.corp_actions_table.setColumnCount(3)
-        self.corp_actions_table.setHorizontalHeaderLabels(["Tarih", "İşlem Türü", "Artırım Oranı"])
+        self.corp_actions_table.setHorizontalHeaderLabels([L10N.TARIH, L10N.ISLEM_TURU, L10N.ARTIRIM_ORANI])
         self.corp_actions_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.corp_actions_table.setSelectionMode(QTableWidget.NoSelection)
         self.corp_actions_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -189,7 +190,7 @@ class StockDetailPage(BasePage):
         self._detail_context = context or {}
         display = display_ticker(ticker)
         self.lbl_ticker.setText(display)
-        breadcrumb_root = "MODEL PORTFÖY" if self._is_model_context() else "PORTFÖY"
+        breadcrumb_root = L10N.MODEL_PORTFOY if self._is_model_context() else L10N.PORTFOY_2
         self.lbl_breadcrumb.setText(f"{breadcrumb_root} > {display}")
 
         if stock_id:

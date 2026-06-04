@@ -1,6 +1,7 @@
 # src/ui/pages/comparison/comparison_page.py
 """Karşılaştırma Laboratuvarı sayfası — orkestrasyon ve yaşam döngüsü."""
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from PyQt5.QtCore import Qt
@@ -39,7 +40,7 @@ class ComparisonPage(BasePage):
     def __init__(self, container, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Karşılaştırma Laboratuvarı"
+        self.page_title = L10N.KARSILASTIRMA_LABORATUVARI
         self.analysis_service = container.analysis_service
 
         # Paylaşılan durum
@@ -73,12 +74,12 @@ class ComparisonPage(BasePage):
         header = QHBoxLayout()
         title_col = QVBoxLayout()
         title_col.setSpacing(4)
-        lbl_title = QLabel("Karşılaştırma Laboratuvarı")
+        lbl_title = QLabel(L10N.KARSILASTIRMA_LABORATUVARI)
         lbl_title.setProperty("cssClass", "pageTitle")
         title_col.addWidget(lbl_title)
         lbl_desc = QLabel(
-            "Varlıkları, benchmarkları ve portföyleri rasyo, "
-            "drawdown ve risk-getiri bazında kıyaslayın."
+            L10N.VARLIKLARI_BENCHMARKLARI_VE_PORTFOYLERI_RASYO +
+            L10N.DRAWDOWN_VE_RISKGETIRI_BAZINDA_KIYASLAYIN
         )
         lbl_desc.setProperty("cssClass", "pageDescription")
         title_col.addWidget(lbl_desc)

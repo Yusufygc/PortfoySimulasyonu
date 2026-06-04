@@ -1,8 +1,9 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtWidgets import QComboBox
 
-FALLBACK_SCOPE_OPTIONS = [("all_active", "Tüm aktif portföyler"), ("dashboard", "Ana Portföy")]
+FALLBACK_SCOPE_OPTIONS = [("all_active", L10N.TUM_AKTIF_PORTFOYLER), ("dashboard", L10N.ANA_PORTFOY)]
 
 
 def populate_scope_combo(combo: QComboBox, price_data_health_service) -> None:

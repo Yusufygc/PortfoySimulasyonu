@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from typing import Optional, Dict
 from decimal import Decimal
 
@@ -25,7 +26,7 @@ class CapitalDialog(QDialog):
         super().__init__(parent)
         self.current_capital = current_capital
         
-        self.setWindowTitle("Sermaye Yönetimi")
+        self.setWindowTitle(L10N.SERMAYE_YONETIMI_1)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.resize(350, 300)
         self.setModal(True)
@@ -48,7 +49,7 @@ class CapitalDialog(QDialog):
         
         # İşlem türü
         self.combo_action = QComboBox()
-        self.combo_action.addItems(["Sermaye Ekle", "Sermaye Çek"])
+        self.combo_action.addItems([L10N.SERMAYE_EKLE, L10N.SERMAYE_CEK])
         self.combo_action.setProperty("cssClass", "tradeInputNormal")
         form.addRow("İşlem:", self.combo_action)
         
@@ -60,13 +61,13 @@ class CapitalDialog(QDialog):
         self.spin_amount.setGroupSeparatorShown(True)
         self.spin_amount.setSuffix(" TL")
         self.spin_amount.setProperty("cssClass", "tradeInputNormal")
-        form.addRow("Tutar:", self.spin_amount)
+        form.addRow(L10N.TUTAR_1, self.spin_amount)
         
         # Tarih
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setProperty("cssClass", "tradeInputNormal")
-        form.addRow("Tarih:", self.date_edit)
+        form.addRow(L10N.TARIH_1, self.date_edit)
         
         # Saat
         self.time_edit = QTimeEdit(QTime.currentTime())
@@ -75,9 +76,9 @@ class CapitalDialog(QDialog):
         
         # Not
         self.txt_notes = QLineEdit()
-        self.txt_notes.setPlaceholderText("Opsiyonel")
+        self.txt_notes.setPlaceholderText(L10N.OPSIYONEL)
         self.txt_notes.setProperty("cssClass", "tradeInputNormal")
-        form.addRow("Not:", self.txt_notes)
+        form.addRow(L10N.NOT, self.txt_notes)
         
         layout.addLayout(form)
         
@@ -85,11 +86,11 @@ class CapitalDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         
-        btn_cancel = QPushButton("İptal")
+        btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         
-        self.btn_confirm = QPushButton("Onayla")
+        self.btn_confirm = QPushButton(L10N.ONAYLA)
         self.btn_confirm.clicked.connect(self.accept)
         self.btn_confirm.setProperty("cssClass", "tradeConfirmBuyBtn")
         self.btn_confirm.setDefault(True)

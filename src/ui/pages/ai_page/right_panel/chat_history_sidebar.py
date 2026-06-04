@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
@@ -26,14 +27,14 @@ class ChatHistorySidebar(QFrame):
         layout.setSpacing(12)
 
         header = QHBoxLayout()
-        title = QLabel("Sohbetler")
+        title = QLabel(L10N.SOHBETLER)
         title.setProperty("cssClass", "aiHistoryHeader")
 
         header.addWidget(title)
         header.addStretch()
         layout.addLayout(header)
 
-        self.btn_new = AnimatedButton("Yeni Sohbet")
+        self.btn_new = AnimatedButton(L10N.YENI_SOHBET_1)
         self.btn_new.setIconName("plus", color="@COLOR_BG_BASE", size=18)
         self.btn_new.setProperty("cssClass", "aiHistoryNewButton")
         self.btn_new.clicked.connect(self.new_session_requested.emit)
@@ -52,7 +53,7 @@ class ChatHistorySidebar(QFrame):
         self.scroll_area.setWidget(self.content)
         layout.addWidget(self.scroll_area, 1)
 
-        self.empty_label = QLabel("Henüz kayıtlı sohbet yok.")
+        self.empty_label = QLabel(L10N.HENUZ_KAYITLI_SOHBET_YOK)
         self.empty_label.setWordWrap(True)
         self.empty_label.setAlignment(Qt.AlignCenter)
         self.empty_label.setProperty("cssClass", "aiHistoryEmpty")
@@ -76,7 +77,7 @@ class ChatHistorySidebar(QFrame):
             if child.widget():
                 child.widget().deleteLater()
         self._rows.clear()
-        self.empty_label = QLabel("Henüz kayıtlı sohbet yok.")
+        self.empty_label = QLabel(L10N.HENUZ_KAYITLI_SOHBET_YOK)
         self.empty_label.setWordWrap(True)
         self.empty_label.setAlignment(Qt.AlignCenter)
         self.empty_label.setProperty("cssClass", "aiHistoryEmpty")
@@ -101,7 +102,7 @@ class _ChatHistoryRow(QFrame):
         row.setSpacing(8)
 
         icon = QLabel()
-        icon.setPixmap(IconManager.get_icon("message-square", color="@COLOR_PRIMARY").pixmap(16, 16))
+        icon.setPixmap(IconManager.get_icon(L10N.MESSAGESQUARE, color="@COLOR_PRIMARY").pixmap(16, 16))
         icon.setFixedWidth(18)
 
         text_col = QVBoxLayout()
@@ -112,7 +113,7 @@ class _ChatHistoryRow(QFrame):
         title.setWordWrap(True)
         title.setProperty("cssClass", "aiHistoryRowTitle")
 
-        meta = QLabel(self.session.updated_at.strftime("%d.%m %H:%M"))
+        meta = QLabel(self.session.updated_at.strftime(L10N.DM_HM))
         meta.setProperty("cssClass", "aiHistoryRowMeta")
 
         text_col.addWidget(title)

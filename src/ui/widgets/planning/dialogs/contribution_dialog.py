@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -29,7 +30,7 @@ class ContributionDialog(QDialog):
         layout.setSpacing(15)
         layout.setContentsMargins(25, 25, 25, 25)
 
-        lbl = QLabel("Eklenecek Tutar:")
+        lbl = QLabel(L10N.EKLENECEK_TUTAR)
         lbl.setProperty("cssClass", "dialogHeaderTitle")
         layout.addWidget(lbl)
 
@@ -46,10 +47,10 @@ class ContributionDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        btn_cancel = QPushButton("İptal")
+        btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
-        self.btn_save = QPushButton("Ekle")
+        self.btn_save = QPushButton(L10N.EKLE)
         self.btn_save.setProperty("cssClass", "primaryButton")
         self.btn_save.clicked.connect(self.accept)
         self.btn_save.setDefault(True)

@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from config.settings_loader import load_ai_settings
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole
 
@@ -52,11 +53,11 @@ def generate_gemini_response(messages: list[ChatMessage]) -> str:
     genai, types = _load_gemini_sdk()
     api_key = load_ai_settings().gemini_api_key
     if not api_key:
-        raise RuntimeError("Yapay zeka anahtarı bulunamadı. Lütfen ayarlardan ekleyin.")
+        raise RuntimeError(L10N.YAPAY_ZEKA_ANAHTARI_BULUNAMADI_LUTFEN)
 
     recent_messages = messages[-20:]
     if not recent_messages:
-        raise RuntimeError("Gemini isteği için mesaj bulunamadı.")
+        raise RuntimeError(L10N.GEMINI_ISTEGI_ICIN_MESAJ_BULUNAMADI)
 
     try:
         client = genai.Client(api_key=api_key)

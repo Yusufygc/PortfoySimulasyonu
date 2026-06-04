@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
 from PyQt5.QtCore import Qt
 
@@ -14,13 +15,13 @@ class StatusBanner(QWidget):
 
     # ── analysis_status → (emoji, metin, css state) eşlemesi ─────────
     _STATUS_MAP = {
-        "ok":               ("✅", "Analiz başarılı — veriler güncel.", "success"),
-        "stale_data":       ("⏳", "Dikkat: Piyasa verisi eski. Tahminler güncel olmayabilir.", "warning"),
-        "no_model":         ("❌", "Bu hisse için kayıtlı model bulunamadı.", "error"),
-        "no_forecast":      ("📭", "Model mevcut ama tahmin üretilmemiş.", "warning"),
-        "low_confidence":   ("⚠️", "Sonuç mevcut ancak güven düzeyi düşük.", "warning"),
-        "xai_unavailable":  ("🔍", "Tahmin mevcut ama açıklanabilirlik (XAI) verisi yok.", "warning"),
-        "error":            ("💥", "Beklenmeyen bir hata oluştu.", "error"),
+        "ok":               ("✅", L10N.ANALIZ_BASARILI_VERILER_GUNCEL, "success"),
+        "stale_data":       ("⏳", L10N.DIKKAT_PIYASA_VERISI_ESKI_TAHMINLER, "warning"),
+        "no_model":         ("❌", L10N.BU_HISSE_ICIN_KAYITLI_MODEL, "error"),
+        "no_forecast":      ("📭", L10N.MODEL_MEVCUT_AMA_TAHMIN_URETILMEMIS, "warning"),
+        "low_confidence":   ("⚠️", L10N.SONUC_MEVCUT_ANCAK_GUVEN_DUZEYI, "warning"),
+        "xai_unavailable":  ("🔍", L10N.TAHMIN_MEVCUT_AMA_ACIKLANABILIRLIK_XAI, "warning"),
+        "error":            ("💥", L10N.BEKLENMEYEN_BIR_HATA_OLUSTU, "error"),
     }
 
     def __init__(self) -> None:
@@ -50,15 +51,15 @@ class StatusBanner(QWidget):
 
     def show_connecting(self) -> None:
         """Bağlantı denenirken nötr/bekleme banner'ı gösterir."""
-        self._apply("⏳", "Yapay Zeka motoruna bağlanılıyor, lütfen bekleyin...", "warning")
+        self._apply("⏳", L10N.YAPAY_ZEKA_MOTORUNA_BAGLANILIYOR_LUTFEN, "warning")
 
     def show_api_connected(self) -> None:
         """API başarıyla bağlandığında yeşil banner gösterir."""
-        self._apply("✓", "AI_Core modeli bağlı", "success")
+        self._apply("✓", L10N.AI_CORE_MODELI_BAGLI, "success")
 
     def show_mock_mode(self) -> None:
         """MockAdapter etkinken sarı uyarı gösterir."""
-        self._apply("⚠", "Model henüz bağlı değil — Demo verileri gösteriliyor", "warning")
+        self._apply("⚠", L10N.MODEL_HENUZ_BAGLI_DEGIL_DEMO, "warning")
 
     # ─── Analiz Durumu ─────────────────────────────────────────────────
 

@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 import re
 
 from PyQt5.QtCore import Qt
@@ -14,23 +15,7 @@ from PyQt5.QtWidgets import (
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole
 
 
-AI_DOCUMENT_STYLE = """
-p {
-    margin-top: 0px;
-    margin-bottom: 12px;
-    line-height: 135%;
-}
-strong {
-    font-weight: 700;
-}
-ul, ol {
-    margin-top: 6px;
-    margin-bottom: 12px;
-}
-li {
-    margin-bottom: 5px;
-}
-"""
+AI_DOCUMENT_STYLE = L10N.P_MARGINTOP_0PX_MARGINBOTTOM_12PX
 
 _LIST_ITEM_RE = re.compile(r"^(\s*[-*+]\s+|\s*[\u2022]\s+|\s*\d+[\.)]\s+)")
 

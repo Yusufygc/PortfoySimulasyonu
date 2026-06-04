@@ -1,6 +1,7 @@
 # src/ui/pages/optimization_page.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtWidgets import (
     QHBoxLayout,
@@ -38,7 +39,7 @@ class OptimizationPage(BasePage):
     def __init__(self, container, price_lookup_func=None, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Portföy Optimizasyonu"
+        self.page_title = L10N.PORTFOY_OPTIMIZASYONU
         self._optimization_service = container.optimization_service
         self._price_lookup_func = price_lookup_func
         self._threadpool = QThreadPool.globalInstance()
@@ -73,15 +74,15 @@ class OptimizationPage(BasePage):
         self.lbl_title_icon = IconLabel("zap", color="@COLOR_ACCENT", size=28)
         header.addWidget(self.lbl_title_icon)
         
-        lbl_title = QLabel("Portföy Optimizasyonu")
+        lbl_title = QLabel(L10N.PORTFOY_OPTIMIZASYONU)
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
         self.scroll_layout.addLayout(header)
 
         lbl_desc = QLabel(
-            "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n"
-            "maksimize eden optimal portföy ağırlıklarını hesaplar."
+            "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n" +
+            L10N.MAKSIMIZE_EDEN_OPTIMAL_PORTFOY_AGIRLIKLARINI
         )
         lbl_desc.setProperty("cssClass", "pageDescription")
         self.scroll_layout.addWidget(lbl_desc)
@@ -106,15 +107,15 @@ class OptimizationPage(BasePage):
         self.lbl_title_icon = IconLabel("zap", color="@COLOR_ACCENT", size=28)
         header.addWidget(self.lbl_title_icon)
         
-        lbl_title = QLabel("Portföy Optimizasyonu")
+        lbl_title = QLabel(L10N.PORTFOY_OPTIMIZASYONU)
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
         self.scroll_layout.addLayout(header)
 
         lbl_desc = QLabel(
-            "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n"
-            "maksimize eden optimal portföy ağırlıklarını hesaplar."
+            "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n" +
+            L10N.MAKSIMIZE_EDEN_OPTIMAL_PORTFOY_AGIRLIKLARINI
         )
         lbl_desc.setProperty("cssClass", "pageDescription")
         self.scroll_layout.addWidget(lbl_desc)
@@ -150,7 +151,7 @@ class OptimizationPage(BasePage):
         self.lbl_sug_icon.setVisible(False)
         suggestions_header.addWidget(self.lbl_sug_icon)
 
-        self.lbl_suggestions = QLabel("Önerilen Dağılım")
+        self.lbl_suggestions = QLabel(L10N.ONERILEN_DAGILIM)
         self.lbl_suggestions.setProperty("cssClass", "tableTitle")
         self.lbl_suggestions.setVisible(False)
         suggestions_header.addWidget(self.lbl_suggestions)
@@ -162,8 +163,8 @@ class OptimizationPage(BasePage):
         self.scroll_layout.addWidget(self.suggestions_table)
 
         self.lbl_disclaimer = QLabel(
-            "Optimizasyon son 2 yıllık geçmiş veriye dayalıdır; geleceği garanti etmez. "
-            "Tek hisse maksimum ağırlığı %40 ile sınırlandırılmıştır."
+            L10N.OPTIMIZASYON_SON_2_YILLIK_GECMIS +
+            L10N.TEK_HISSE_MAKSIMUM_AGIRLIGI_40
         )
         self.lbl_disclaimer.setProperty("cssClass", "disclaimerText")
         self.lbl_disclaimer.setAlignment(Qt.AlignLeft)
@@ -171,7 +172,7 @@ class OptimizationPage(BasePage):
         self.scroll_layout.addWidget(self.lbl_disclaimer)
 
         # Boş durum
-        self.lbl_empty = QLabel("Bir portföy kaynağı seçin ve 'Optimize Et' butonuna tıklayın.")
+        self.lbl_empty = QLabel(L10N.BIR_PORTFOY_KAYNAGI_SECIN_VE)
         self.lbl_empty.setProperty("cssClass", "emptyStateText")
         self.lbl_empty.setAlignment(Qt.AlignCenter)
         self.scroll_layout.addWidget(self.lbl_empty)
@@ -189,7 +190,7 @@ class OptimizationPage(BasePage):
         layout.setContentsMargins(15, 12, 15, 12)
         layout.setSpacing(15)
 
-        lbl = QLabel("Kaynak:")
+        lbl = QLabel(L10N.KAYNAK)
         lbl.setProperty("cssClass", "panelTitle")
         layout.addWidget(lbl)
 
@@ -200,7 +201,7 @@ class OptimizationPage(BasePage):
         layout.addWidget(self.combo_source)
         layout.addStretch()
 
-        self.btn_optimize = AnimatedButton("Optimize Et")
+        self.btn_optimize = AnimatedButton(L10N.OPTIMIZE_ET)
         self.btn_optimize.setIconName("zap", color="@COLOR_TEXT_WHITE", size=18)
         self.btn_optimize.setMinimumHeight(42)
         self.btn_optimize.setMinimumWidth(160)
@@ -217,9 +218,9 @@ class OptimizationPage(BasePage):
         metrics_layout.setContentsMargins(0, 0, 0, 0)
         metrics_layout.setSpacing(15)
 
-        self.card_return = MetricCard("Beklenen Yıllık Getiri", icon_name="trending-up")
-        self.card_risk   = MetricCard("Risk (Volatilite)", icon_name="trending-down")
-        self.card_sharpe = MetricCard("Risk-Getiri Performansı (Sharpe Oranı)", icon_name="star")
+        self.card_return = MetricCard(L10N.BEKLENEN_YILLIK_GETIRI, icon_name="trending-up")
+        self.card_risk   = MetricCard(L10N.RISK_VOLATILITE, icon_name="trending-down")
+        self.card_sharpe = MetricCard(L10N.RISKGETIRI_PERFORMANSI_SHARPE_ORANI, icon_name="star")
 
         metrics_layout.addWidget(self.card_return)
         metrics_layout.addWidget(self.card_risk)
@@ -240,7 +241,7 @@ class OptimizationPage(BasePage):
 
     def _load_sources(self):
         self.combo_source.clear()
-        self.combo_source.addItem(IconManager.get_icon("layout-dashboard", color="@COLOR_TEXT_PRIMARY", size=QSize(16, 16)), "Dashboard Portföyü", self.SOURCE_DASHBOARD)
+        self.combo_source.addItem(IconManager.get_icon("layout-dashboard", color="@COLOR_TEXT_PRIMARY", size=QSize(16, 16)), L10N.DASHBOARD_PORTFOYU, self.SOURCE_DASHBOARD)
         try:
             self._model_portfolios = self._optimization_service.get_model_portfolios()
             for mp in self._model_portfolios:
@@ -255,7 +256,7 @@ class OptimizationPage(BasePage):
     def _on_optimize(self):
         source_data = self.combo_source.currentData()
         if source_data is None:
-            Toast.warning(self, "Lütfen bir portföy kaynağı seçin.")
+            Toast.warning(self, L10N.LUTFEN_BIR_PORTFOY_KAYNAGI_SECIN)
             return
 
         self._optimization_request_id += 1
@@ -293,7 +294,7 @@ class OptimizationPage(BasePage):
 
     def _set_loading(self, loading: bool):
         self.btn_optimize.setEnabled(not loading)
-        self.btn_optimize.setText("Hesaplanıyor..." if loading else "Optimize Et")
+        self.btn_optimize.setText(L10N.HESAPLANIYOR if loading else L10N.OPTIMIZE_ET)
         self.progress_bar.setVisible(loading)
 
     # ------------------------------------------------------------------

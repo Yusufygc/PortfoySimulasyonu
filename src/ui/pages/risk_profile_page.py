@@ -1,6 +1,7 @@
 # src/ui/pages/risk_profile_page.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from typing import Dict, Optional
 
@@ -32,10 +33,10 @@ from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 
 SECTION_ICONS = {
-    "Finansal Durum": "wallet",
-    "Yatirim Hedefi": "target",
-    "Risk Toleransi": "trending-down",
-    "Bilgi ve Tecrube": "line-chart",
+    L10N.FINANSAL_DURUM: "wallet",
+    L10N.YATIRIM_HEDEFI: "target",
+    L10N.RISK_TOLERANSI: "trending-down",
+    L10N.BILGI_VE_TECRUBE: "line-chart",
 }
 
 
@@ -45,7 +46,7 @@ class RiskProfilePage(BasePage):
     def __init__(self, container, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Risk Profili"
+        self.page_title = L10N.RISK_PROFILI
         self.presenter = RiskProfilePresenter(self, container.risk_profile_service)
         self.questionnaire_sections = list(container.risk_profile_service.get_questionnaire())
         self.questionnaire_items = [
@@ -74,14 +75,14 @@ class RiskProfilePage(BasePage):
         icon_lbl = IconLabel("shield-check", color="@COLOR_ACCENT", size=28)
         header.addWidget(icon_lbl)
 
-        lbl_title = QLabel("Risk Profil Analizi")
+        lbl_title = QLabel(L10N.RISK_PROFIL_ANALIZI)
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
         self.scroll_layout.addLayout(header)
 
         lbl_desc = QLabel(
-            "Finansal durum, hedef, risk toleransi ve tecrube yanitlarinizla profesyonel risk profilinizi hesaplayin."
+            L10N.FINANSAL_DURUM_HEDEF_RISK_TOLERANSI
         )
         lbl_desc.setWordWrap(True)
         lbl_desc.setProperty("cssClass", "pageDescription")
@@ -106,9 +107,9 @@ class RiskProfilePage(BasePage):
 
         score_col = QVBoxLayout()
         score_col.setSpacing(4)
-        self.lbl_profile_header = QLabel("Mevcut Profiliniz")
+        self.lbl_profile_header = QLabel(L10N.MEVCUT_PROFILINIZ)
         self.lbl_profile_header.setProperty("cssClass", "profileHeader")
-        self.lbl_score = QLabel("Puan: -")
+        self.lbl_score = QLabel(L10N.PUAN)
         self.lbl_score.setProperty("cssClass", "profileScore")
         score_col.addWidget(self.lbl_profile_header)
         score_col.addWidget(self.lbl_score)
@@ -141,7 +142,7 @@ class RiskProfilePage(BasePage):
         allocation_layout = QVBoxLayout(allocation_block)
         allocation_layout.setContentsMargins(12, 8, 12, 9)
         allocation_layout.setSpacing(4)
-        allocation_title = QLabel("Örnek Dağılım")
+        allocation_title = QLabel(L10N.ORNEK_DAGILIM)
         allocation_title.setProperty("cssClass", "profileInfoTitle")
         allocation_layout.addWidget(allocation_title)
         self.lbl_allocation = QLabel("")
@@ -156,7 +157,7 @@ class RiskProfilePage(BasePage):
         notes_layout = QVBoxLayout(notes_block)
         notes_layout.setContentsMargins(12, 8, 12, 9)
         notes_layout.setSpacing(4)
-        notes_title = QLabel("Uygunluk Notlari")
+        notes_title = QLabel(L10N.UYGUNLUK_NOTLARI)
         notes_title.setProperty("cssClass", "profileInfoTitle")
         notes_layout.addWidget(notes_title)
         self.lbl_notes = QLabel("")
@@ -197,7 +198,7 @@ class RiskProfilePage(BasePage):
         img_survey = IconLabel("clipboard-list", color="@COLOR_TEXT_SECONDARY", size=22)
         survey_header.addWidget(img_survey)
 
-        lbl_survey_title = QLabel("Risk Profili Anketi")
+        lbl_survey_title = QLabel(L10N.RISK_PROFILI_ANKETI)
         lbl_survey_title.setProperty("cssClass", "surveyTitle")
         survey_header.addWidget(lbl_survey_title)
         survey_header.addStretch()
@@ -215,7 +216,7 @@ class RiskProfilePage(BasePage):
 
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
-        self.btn_previous = AnimatedButton("Geri")
+        self.btn_previous = AnimatedButton(L10N.BACK)
         self.btn_previous.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY", size=18)
         self.btn_previous.setCursor(Qt.PointingHandCursor)
         self.btn_previous.setMinimumHeight(42)
@@ -225,7 +226,7 @@ class RiskProfilePage(BasePage):
 
         btn_layout.addStretch()
 
-        self.btn_next = AnimatedButton("Devam")
+        self.btn_next = AnimatedButton(L10N.NEXT)
         self.btn_next.setIconName("arrow-right", color="@COLOR_TEXT_WHITE", size=18)
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setMinimumHeight(42)
@@ -234,7 +235,7 @@ class RiskProfilePage(BasePage):
         self.btn_next.clicked.connect(self._on_next_section)
         btn_layout.addWidget(self.btn_next)
 
-        self.btn_calculate = AnimatedButton("Profili Hesapla")
+        self.btn_calculate = AnimatedButton(L10N.PROFILI_HESAPLA)
         self.btn_calculate.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=20)
         self.btn_calculate.setCursor(Qt.PointingHandCursor)
         self.btn_calculate.setMinimumHeight(42)
@@ -314,7 +315,7 @@ class RiskProfilePage(BasePage):
     def _current_question_is_complete(self) -> bool:
         _section_title, question = self.questionnaire_items[self.current_question_index]
         if self.answer_groups[question.id].checkedButton() is None:
-            Toast.warning(self, "Devam etmek icin bu soruyu cevaplayin.")
+            Toast.warning(self, L10N.DEVAM_ETMEK_ICIN_BU_SORUYU)
             return False
         return True
 
@@ -352,7 +353,7 @@ class RiskProfilePage(BasePage):
             answers[question_id] = checked.property("optionValue")
 
         if missing:
-            Toast.warning(self, "Lutfen tum anket sorularini cevaplayin.")
+            Toast.warning(self, L10N.LUTFEN_TUM_ANKET_SORULARINI_CEVAPLAYIN)
             return None
         return answers
 
@@ -366,7 +367,7 @@ class RiskProfilePage(BasePage):
         display_name = RiskFormatter.get_display_name(profile.risk_label)
         QMessageBox.information(
             self,
-            "Profil Hesaplandi",
+            L10N.PROFIL_HESAPLANDI,
             f"Risk Skorunuz: {profile.risk_score}/100\n"
             f"Profiliniz: {display_name}\n\n"
             f"{profile.description}",
@@ -405,7 +406,7 @@ class RiskProfilePage(BasePage):
         visible_notes = [
             note
             for note in profile.suitability_notes
-            if "Veritabani eski semada" not in note
+            if L10N.VERITABANI_ESKI_SEMADA not in note
         ]
         self.lbl_notes.setText("\n".join(visible_notes))
         self.notes_block.setVisible(bool(visible_notes))

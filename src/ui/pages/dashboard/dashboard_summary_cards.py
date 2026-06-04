@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/pages/dashboard/dashboard_summary_cards.py
 
 from PyQt5.QtGui import QColor
@@ -23,9 +24,9 @@ class DashboardSummaryCards(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(20)
 
-        self.card_total, self.lbl_total_value, self.lbl_total_context = self._create_card("TOPLAM PORTFÖY DEĞERİ", "₺ 0.00", "total")
-        self.card_cost, self.lbl_total_cost, _ = self._create_card("TOPLAM MALİYET", "₺ 0.00", "cost")
-        self.card_capital, self.lbl_capital, _ = self._create_card("NAKİT SERMAYE", "₺ 0.00", "capital")
+        self.card_total, self.lbl_total_value, self.lbl_total_context = self._create_card(L10N.TOPLAM_PORTFOY_DEGERI_1, "₺ 0.00", "total")
+        self.card_cost, self.lbl_total_cost, _ = self._create_card(L10N.TOPLAM_MALIYET, "₺ 0.00", "cost")
+        self.card_capital, self.lbl_capital, _ = self._create_card(L10N.NAKIT_SERMAYE, "₺ 0.00", "capital")
         
         self.card_returns, self.lbl_weekly_return, self.lbl_monthly_return = self._create_returns_card()
 
@@ -69,7 +70,7 @@ class DashboardSummaryCards(QWidget):
         lay = QVBoxLayout(card)
         lay.setContentsMargins(20, 15, 20, 15)
         
-        lbl_title = QLabel("DÖNEMSEL GETİRİLER")
+        lbl_title = QLabel(L10N.DONEMSEL_GETIRILER)
         lbl_title.setProperty("cssClass", "summaryCardTitle")
         lay.addWidget(lbl_title)
         
@@ -77,7 +78,7 @@ class DashboardSummaryCards(QWidget):
         returns_lay.setSpacing(5)
         
         weekly_lay = QHBoxLayout()
-        lbl_wk_title = QLabel("Haftalık:")
+        lbl_wk_title = QLabel(L10N.HAFTALIK)
         lbl_wk_title.setProperty("cssClass", "summaryCardSubTitle")
         lbl_wk_value = QLabel("-")
         lbl_wk_value.setProperty("cssClass", "summaryCardValueSmall")
@@ -86,7 +87,7 @@ class DashboardSummaryCards(QWidget):
         weekly_lay.addStretch()
         
         monthly_lay = QHBoxLayout()
-        lbl_mo_title = QLabel("Aylık:")
+        lbl_mo_title = QLabel(L10N.AYLIK)
         lbl_mo_title.setProperty("cssClass", "summaryCardSubTitle")
         lbl_mo_value = QLabel("-")
         lbl_mo_value.setProperty("cssClass", "summaryCardValueSmall")

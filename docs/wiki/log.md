@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-04] güncelleme | Arayüz Türkçe Karakter Düzeltmesi ve L10N Altyapısı
+
+- Arayüzdeki (Frontend/UI) tüm kullanıcı metinlerinin Türkçe karakter kullanım hataları giderildi.
+- Gelecekte arayüz metinlerinin yönetimini kolaylaştırmak amacıyla merkezi lokalizasyon yapısı (`locale_tr.py`) kurularak tüm metinler `L10N` sınıfına taşındı.
+- Arayüz dosyalarını otomatik olarak tarayıp kullanıcıya dönük metinleri dönüştüren `scripts/migrate_ui_strings.py` aracı geliştirildi.
+- Kodlama standartlarına UI metinlerinde Türkçe karakterlerin doğru kullanımını ve `L10N` yapısını zorunlu kılan kurallar eklendi.
+- Etkilenen dosyalar: `src/ui/**/*.py`, `src/ui/shared/locale_tr.py`, `scripts/migrate_ui_strings.py`, `RULES.md`, `CLAUDE.md`
+- Bağlantılı sayfalar: [RULES.md](../../RULES.md), [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
 ## [2026-06-04] güncelleme | AI Asistanı Sidebar ve Arayüz Güncellemesi
 
 - AI Finans Asistanı sayfasındaki "Sohbetler" butonu ve sidebar içindeki "Kapat" butonu kaldırıldı.

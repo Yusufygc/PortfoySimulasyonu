@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from decimal import Decimal
@@ -36,20 +37,20 @@ class DashboardActions:
         amount = result["amount"]
         m_date = result.get("movement_date")
         m_time = result.get("movement_time")
-        notes = result.get("notes") or ("Sermaye ekleme" if action == "deposit" else "Sermaye çekme")
+        notes = result.get("notes") or (L10N.SERMAYE_EKLEME if action == "deposit" else L10N.SERMAYE_CEKME)
         try:
             if action == "deposit":
                 self._page.cash_movement_service.add_deposit(
                     amount, movement_date=m_date, movement_time=m_time, notes=notes
                 )
-                QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye eklendi.")
+                QMessageBox.information(self._page, L10N.SUCCESS, f"{amount:,.2f} TL sermaye eklendi.")
             else:
                 self._page.cash_movement_service.add_withdraw(
                     amount, movement_date=m_date, movement_time=m_time, notes=notes
                 )
-                QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye çekildi.")
+                QMessageBox.information(self._page, L10N.SUCCESS, f"{amount:,.2f} TL sermaye çekildi.")
         except ValueError as exc:
-            QMessageBox.warning(self._page, "Uyarı", str(exc))
+            QMessageBox.warning(self._page, L10N.WARNING, str(exc))
             return
 
         self._presenter.load_capital()
@@ -86,12 +87,12 @@ class DashboardActions:
             )
             self._presenter.load_capital()
             self._presenter.refresh_data()
-            QMessageBox.information(self._page, "Başarılı", "İşlem başarıyla eklendi.")
+            QMessageBox.information(self._page, L10N.SUCCESS, L10N.ISLEM_BASARIYLA_EKLENDI)
             self._page._last_trade_result = result
         except ValueError as exc:
-            QMessageBox.warning(self._page, "Geçersiz İşlem", str(exc))
+            QMessageBox.warning(self._page, L10N.GECERSIZ_ISLEM, str(exc))
         except Exception as exc:
-            QMessageBox.critical(self._page, "Hata", f"İşlem kaydedilemedi: {exc}")
+            QMessageBox.critical(self._page, L10N.ERROR, f"İşlem kaydedilemedi: {exc}")
 
     def on_update_prices(self) -> None:
         self._page.btn_update_prices.setEnabled(False)
@@ -113,7 +114,7 @@ class DashboardActions:
         if timer and timer.isActive():
             timer.stop()
         self._page.btn_update_prices.setEnabled(True)
-        self._page.btn_update_prices.setText(" Fiyatları Güncelle")
+        self._page.btn_update_prices.setText(L10N.FIYATLARI_GUNCELLE)
 
     def on_update_prices_success(self, result) -> None:
         price_update_result, _snapshot = result
@@ -123,7 +124,7 @@ class DashboardActions:
             skipped_reason = getattr(price_update_result, "skipped_reason", None)
             Toast.warning(
                 self._page,
-                skipped_reason or "Güncellenecek fiyat bulunamadı.",
+                skipped_reason or L10N.GUNCELLENECEK_FIYAT_BULUNAMADI,
                 duration_ms=4000,
                 position="top",
             )
@@ -136,7 +137,7 @@ class DashboardActions:
         )
 
     def on_update_prices_error(self, err_tuple) -> None:
-        QMessageBox.critical(self._page, "Hata", f"Hata:\n{err_tuple[1]}")
+        QMessageBox.critical(self._page, L10N.ERROR, f"Hata:\n{err_tuple[1]}")
 
     def on_export_today(self) -> None:
         self._export_actions.on_export_today()
@@ -150,8 +151,8 @@ class DashboardActions:
     def on_reset(self) -> None:
         reply = QMessageBox.question(
             self._page,
-            "Portföyü Sıfırla",
-            "TÜM veriler silinecek. Emin misiniz?",
+            L10N.PORTFOYU_SIFIRLA,
+            L10N.TUM_VERILER_SILINECEK_EMIN_MISINIZ,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -163,6 +164,6 @@ class DashboardActions:
             self._page._capital = Decimal("0")
             self._presenter.refresh_data()
             self._page.summary_cards.update_returns(None, None)
-            QMessageBox.information(self._page, "Tamamlandı", "Başarıyla sıfırlandı.")
+            QMessageBox.information(self._page, L10N.TAMAMLANDI, L10N.BASARIYLA_SIFIRLANDI)
         except Exception as exc:
-            QMessageBox.critical(self._page, "Hata", f"Hata: {exc}")
+            QMessageBox.critical(self._page, L10N.ERROR, f"Hata: {exc}")

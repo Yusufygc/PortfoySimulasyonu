@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
 from PyQt5.QtCore import Qt
 from src.ui.core.icon_manager import IconManager
@@ -30,7 +31,7 @@ class PredictionCard(QWidget):
 
         # Hisse & Model bilgisi
         info_layout = QHBoxLayout()
-        self.lbl_ticker = QLabel("Hisse: -")
+        self.lbl_ticker = QLabel(L10N.HISSE)
         self.lbl_ticker.setProperty("cssClass", "aiPrimaryText")
         self.lbl_model = QLabel("")
         self.lbl_model.setProperty("cssClass", "aiMetaText")
@@ -42,7 +43,7 @@ class PredictionCard(QWidget):
 
         # Fiyatlar
         price_layout = QHBoxLayout()
-        self.lbl_price = QLabel("Tahmini Fiyat: -")
+        self.lbl_price = QLabel(L10N.TAHMINI_FIYAT)
         self.lbl_price.setProperty("cssClass", "priceValueLargeCyan")
         self.lbl_last_close = QLabel("")
         self.lbl_last_close.setProperty("cssClass", "aiMetaText")
@@ -70,7 +71,7 @@ class PredictionCard(QWidget):
 
         # Güven barı
         conf_layout = QHBoxLayout()
-        lbl_conf = QLabel("Güven: ")
+        lbl_conf = QLabel(L10N.GUVEN)
         lbl_conf.setProperty("cssClass", "aiStrongMetaText")
         conf_layout.addWidget(lbl_conf)
         self.progress_conf = QProgressBar()
@@ -103,7 +104,7 @@ class PredictionCard(QWidget):
         if predicted_price is not None:
             self.lbl_price.setText(f"Tahmini Fiyat: ₺{predicted_price:.2f}")
         else:
-            self.lbl_price.setText("Tahmini Fiyat: —")
+            self.lbl_price.setText(L10N.TAHMINI_FIYAT_1)
 
         self.progress_conf.setValue(int(confidence * 100))
 
@@ -140,12 +141,12 @@ class PredictionCard(QWidget):
         if weekly_expected_return is not None:
             pct = weekly_expected_return * 100
             sign = "+" if pct >= 0 else ""
-            horizon_label = f"{horizon_days} Günlük" if horizon_days is not None else "Horizon Sonu"
+            horizon_label = f"{horizon_days} Günlük" if horizon_days is not None else L10N.HORIZON_SONU
             self.lbl_return.setText(f"{horizon_label} Bileşik Getiri: {sign}{pct:.2f}%")
 
     def reset(self):
-        self.lbl_ticker.setText("Hisse: -")
-        self.lbl_price.setText("Tahmini Fiyat: -")
+        self.lbl_ticker.setText(L10N.HISSE)
+        self.lbl_price.setText(L10N.TAHMINI_FIYAT)
         self.lbl_model.setText("")
         self.lbl_last_close.setText("")
         self.lbl_trend.setText("")

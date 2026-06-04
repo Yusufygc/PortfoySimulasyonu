@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtCore import QSize
 from PyQt5.QtCore import QSettings
@@ -25,7 +26,7 @@ class SettingsPage(BasePage):
     def __init__(self, container, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Ayarlar"
+        self.page_title = L10N.SETTINGS
         self.reset_service = container.reset_service
         self.price_data_health_service = getattr(container, "price_data_health_service", None)
         self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
@@ -42,14 +43,14 @@ class SettingsPage(BasePage):
         )
         header.addWidget(icon_label)
 
-        title_label = QLabel("Ayarlar")
+        title_label = QLabel(L10N.SETTINGS)
         title_label.setProperty("cssClass", "pageTitle")
         header.addWidget(title_label)
         header.addStretch()
         self.main_layout.addLayout(header)
 
         description = QLabel(
-            "Uygulama genel aksiyonlarını, veri sağlığını ve sistem seviyesindeki işlemleri buradan yönetin."
+            L10N.UYGULAMA_GENEL_AKSIYONLARINI_VERI_SAGLIGINI
         )
         description.setWordWrap(True)
         description.setProperty("cssClass", "pageDescription")
@@ -65,10 +66,10 @@ class SettingsPage(BasePage):
         self.price_data_tab = PriceDataPanel(self.container, self.price_data_health_service, self)
         self.corporate_action_candidates_tab = CorporateActionCandidatesPanel(self.container, self)
 
-        self.tabs.addTab(self.home_tab, "Ana Sayfa")
+        self.tabs.addTab(self.home_tab, L10N.ANA_SAYFA)
         self.tabs.addTab(self.appearance_tab, "Görünüm")
-        self.tabs.addTab(self.price_data_tab, "Fiyat Verisi Yönetimi")
-        self.tabs.addTab(self.corporate_action_candidates_tab, "Kurumsal Aksiyonlar")
+        self.tabs.addTab(self.price_data_tab, L10N.FIYAT_VERISI_YONETIMI)
+        self.tabs.addTab(self.corporate_action_candidates_tab, L10N.KURUMSAL_AKSIYONLAR)
 
         self.tabs.currentChanged.connect(self._update_tab_icons)
         self._update_tab_icons()
@@ -78,7 +79,7 @@ class SettingsPage(BasePage):
         row = QHBoxLayout()
         row.setSpacing(10)
 
-        self.chk_live_price_refresh = QCheckBox("Otomatik fiyat yenileme")
+        self.chk_live_price_refresh = QCheckBox(L10N.OTOMATIK_FIYAT_YENILEME)
         self.chk_live_price_refresh.setChecked(self._live_price_refresh_enabled())
         self.chk_live_price_refresh.stateChanged.connect(self._on_live_price_refresh_settings_changed)
 
@@ -94,7 +95,7 @@ class SettingsPage(BasePage):
         )
 
         row.addWidget(self.chk_live_price_refresh)
-        row.addWidget(QLabel("Aralık"))
+        row.addWidget(QLabel(L10N.ARALIK))
         row.addWidget(self.combo_live_price_refresh_interval)
         row.addStretch()
         return row

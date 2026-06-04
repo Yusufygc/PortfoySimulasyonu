@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/widgets/model_portfolio/tables/positions_table.py
 """
 PositionsTable — Pozisyon Tablosu Widget'ı
@@ -18,8 +19,8 @@ class PositionsTable(QTableWidget):
     """Portföy pozisyonlarını gösteren tablo bileşeni."""
 
     row_double_clicked = pyqtSignal(dict)
-    _COLUMNS = ["Hisse", "Lot", "Ort. Maliyet", "Güncel", "Değer", "K/Z"]
-    _DETAIL_TOOLTIP = "Hisse detaylarını görmek için çift tıkla"
+    _COLUMNS = ["Hisse", "Lot", L10N.ORT_MALIYET, "Güncel", "Değer", "K/Z"]
+    _DETAIL_TOOLTIP = L10N.HISSE_DETAYLARINI_GORMEK_ICIN_CIFT
 
     def __init__(self, parent=None):
         super().__init__(parent)

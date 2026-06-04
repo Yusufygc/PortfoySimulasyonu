@@ -1,6 +1,7 @@
 # src/ui/pages/model_portfolio/model_portfolio_page.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from datetime import datetime
@@ -29,7 +30,7 @@ class ModelPortfolioPage(BasePage):
     def __init__(self, container, price_lookup_func=None, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Model Portföyler"
+        self.page_title = L10N.MODEL_PORTFOYLER
         self.model_portfolio_service = container.model_portfolio_service
         self.model_portfolio_excel_export_service = container.model_portfolio_excel_export_service
         self.price_repo = container.price_repo
@@ -124,7 +125,7 @@ class ModelPortfolioPage(BasePage):
 
         profit_loss = round(summary["profit_loss"], 2)
         if profit_loss == 0:
-            self.card_pl.set_value("TL 0.00")
+            self.card_pl.set_value(L10N.TL_000)
             self.card_pl.set_value_state("neutral")
         else:
             self.card_pl.set_value(f"TL {profit_loss:+,.2f}")
@@ -141,7 +142,7 @@ class ModelPortfolioPage(BasePage):
         self.btn_sell.setEnabled(bool(positions))
 
     def _clear_right_panel(self):
-        self.lbl_portfolio_name.setText("Bir portföy seçin")
+        self.lbl_portfolio_name.setText(L10N.BIR_PORTFOY_SECIN)
         self.lbl_last_update.setText("")
         self.positions_table.setRowCount(0)
         self.positions_stack.setCurrentWidget(self.positions_table)
