@@ -3,7 +3,7 @@ import sys
 pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 
-from src.ui.pages.ai_page.core.safety_guard import validate_user_input, wrap_user_message, MAX_CHAR_LIMIT
+from src.ui.pages.ai_page.core.safety_guard import validate_user_input, wrap_user_message, MAX_CHAR_LIMIT, load_safety_patterns
 from src.ui.pages.ai_page.right_panel.chatbot_panel import ChatbotPanel
 from src.ui.pages.ai_page.right_panel.chat_input_bar import ChatInputBar
 from src.ui.pages.ai_page.core.models import MessageRole, ChatMessage
@@ -11,6 +11,13 @@ from src.ui.pages.ai_page.core.models import MessageRole, ChatMessage
 app = QApplication.instance()
 if app is None:
     app = QApplication(sys.argv)
+
+def test_load_safety_patterns():
+    """safety_patterns.txt dosyasının başarıyla yüklendiğini veya fallback kullanıldığını doğrula."""
+    patterns = load_safety_patterns()
+    assert len(patterns) > 0
+    # En azından kod yaz kalıbı veya ignore instructions kalıbı olmalı
+    assert any("ignore" in p for p in patterns) or any("kod" in p for p in patterns)
 
 def test_validate_user_input_safe():
     """Güvenli girdilerin başarıyla doğrulandığını doğrula."""
@@ -43,6 +50,36 @@ def test_validate_user_input_jailbreak_patterns():
         is_safe, err_msg = validate_user_input(bad_input)
         assert is_safe is False
         assert "güvenlik uyarısı" in err_msg.lower()
+
+def test_validate_user_input_code_patterns():
+    """Yazılım/kodlama taleplerinin yerelde engellendiğini doğrula."""
+    code_inputs = [
+        "python kodu yaz",
+        "HTML butonu oluştur",
+        "def calculate_rsi(prices):",
+        "class Portfolio:",
+        "bana javascript scripti yaz",
+        "yazılım geliştirme yap",
+    ]
+    for bad_input in code_inputs:
+        is_safe, err_msg = validate_user_input(bad_input)
+        assert is_safe is False
+        assert "güvenlik uyarısı" in err_msg.lower()
+        assert "kapsam dışı" in err_msg.lower() or "kod" in err_msg.lower()
+
+def test_validate_user_input_allowed_finance_terms():
+    """Temel analiz, teknik analiz, takas analizi ve indikatörlerin engellenmediğini doğrula."""
+    good_inputs = [
+        "Temel analiz verilerine göre GARAN nasıl?",
+        "Teknik analiz indikatörleri RSI ve MACD neyi gösteriyor?",
+        "Takas analizi raporunu yorumlar mısın?",
+        "Bu hissenin bilançosunu temel analiz açısından incele.",
+        "EMA ve SMA indikatörleri arasındaki fark nedir?",
+    ]
+    for good_input in good_inputs:
+        is_safe, err_msg = validate_user_input(good_input)
+        assert is_safe is True
+        assert err_msg == ""
 
 def test_wrap_user_message():
     """wrap_user_message işlevinin girdiyi düzgün etiketlediğini doğrula."""
