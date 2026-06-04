@@ -610,12 +610,13 @@ class PriceHealthUpdater:
         prices_to_save: List[DailyPrice] = []
         last_price: Decimal | None = None
         actions = self._actions_for_stock(stock.id)
-        for point_date, close_price in sorted(series.items()):
+        from src.application.services.corporate_actions.price_adjustment_service import adjust_downloaded_series
+        adjusted_series = adjust_downloaded_series(series, actions)
+        for point_date, close_price in sorted(adjusted_series.items()):
             if allowed_dates is not None and point_date not in allowed_dates:
                 continue
-            adjusted_price = adjusted_market_price(close_price, point_date, actions)
-            prices_to_save.append(DailyPrice(id=None, stock_id=stock.id, price_date=point_date, close_price=adjusted_price))
-            last_price = adjusted_price
+            prices_to_save.append(DailyPrice(id=None, stock_id=stock.id, price_date=point_date, close_price=close_price))
+            last_price = close_price
         return prices_to_save, last_price
 
     def _actions_for_stock(self, stock_id: int | None):
@@ -633,25 +634,32 @@ class PriceHealthUpdater:
             return PriceDataUpdateResult(scanned_stock_count=0, updated_count=0)
 
         errors = list(base_errors or [])
-        prices_to_save: List[DailyPrice] = []
-        last_price: Decimal | None = None
-        actions = self._actions_for_stock(stock.id)
+        downloaded_series: Dict[date, Decimal] = {}
         for point_date in dates:
             try:
                 close_price = self._market_data_client.get_closing_price(stock.id, stock.ticker, point_date)
             except Exception as exc:
                 errors.append(f"{stock.ticker} {point_date:%d.%m.%Y}: {exc}")
                 continue
-            adjusted_price = adjusted_market_price(close_price, point_date, actions)
+            val = close_price if isinstance(close_price, Decimal) else Decimal(str(close_price))
+            downloaded_series[point_date] = val
+
+        actions = self._actions_for_stock(stock.id)
+        from src.application.services.corporate_actions.price_adjustment_service import adjust_downloaded_series
+        adjusted_series = adjust_downloaded_series(downloaded_series, actions)
+
+        prices_to_save: List[DailyPrice] = []
+        last_price: Decimal | None = None
+        for point_date, close_price in sorted(adjusted_series.items()):
             prices_to_save.append(
                 DailyPrice(
                     id=None,
                     stock_id=stock.id,
                     price_date=point_date,
-                    close_price=adjusted_price,
+                    close_price=close_price,
                 )
             )
-            last_price = adjusted_price
+            last_price = close_price
 
         if prices_to_save:
             self._price_repo.upsert_daily_prices_bulk(prices_to_save)
@@ -662,6 +670,7 @@ class PriceHealthUpdater:
             errors=errors,
             prices={stock.id: last_price} if last_price is not None else {},
         )
+
 
 
 class PriceDataHealthService:
