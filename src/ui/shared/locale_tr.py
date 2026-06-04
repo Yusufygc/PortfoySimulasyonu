@@ -159,6 +159,7 @@ class L10N:
     FIYATI_YUKARI_CEKEN_FAKTORLER = "Fiyatı Yukarı Çeken Faktörler"
     FIYATLARI_DAHA_SONRA_MANUEL_OLARAK = "Fiyatları daha sonra manuel olarak 'Fiyatları Güncelle' butonuyla yenileyebilirsiniz."
     FIYATLARI_GUNCELLE = " Fiyatları Güncelle"
+    FIYATLAR_GUNCELLENIYOR = "Fiyatlar güncelleniyor..."
     FIYAT_0_OLAMAZ = "Fiyat 0 olamaz"
     FIYAT_1 = "Fiyat:"
     FIYAT_AL = "Fiyat Al"
