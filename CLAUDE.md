@@ -6,21 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Oturum Başlangıcı
 
-Her ajan/LLM oturumu, kod veya plan üretmeden önce proje kökündeki `AGENTS.md` ve `CLAUDE.md` dosyalarını okur. Ardından commit, wiki ve test kuralları için `RULES.md` takip edilir.
+Her ajan/LLM oturumu, kod veya plan üretmeden önce proje kökündeki `AGENTS.md` ve `CLAUDE.md` dosyalarını okur. Ardından wiki kuralları için `RULES.md`, commit ve süreç kuralları için `GOVERNANCE.md`, kod kalitesi ve test kapıları için `ARCHITECTURE_GATES.md` takip edilir.
 
 ---
 
 ## Kurallar ve Wiki
 
-Bu projedeki tüm **commit kuralları**, **wiki güncelleme protokolü** ve **LLM Wiki operasyon akışı** için bkz:
+Bu projedeki tüm kurallar, süreçler ve yönergeler için bkz:
 
-→ **[RULES.md](RULES.md)**
+- **Wiki ve LLM Protokolü**: → [RULES.md](RULES.md)
+- **Commit ve Git Süreç Yönetimi**: → [GOVERNANCE.md](GOVERNANCE.md)
+- **Kod Kalitesi ve Teknik Standartlar**: → [ARCHITECTURE_GATES.md](ARCHITECTURE_GATES.md)
 
 Özet:
 - Her oturumda `docs/wiki/index.md` önce okunur.
 - Mimari karar, yeni özellik veya önemli hata çözümü → ilgili wiki sayfası güncellenir + `log.md`'ye eklenir.
 - Tüm commit mesajları Türkçe, detaylı gövde ile yazılır (`güncelle:`, `ekle:`, `düzelt:` vb.).
-- Büyük sınıf/fonksiyon eşiklerinde refactor zorunluluğu ve tam test koşumu için `RULES.md` içindeki kalite kapıları takip edilir.
+- Büyük sınıf/fonksiyon eşiklerinde refactor zorunluluğu ve tam test koşumu için `ARCHITECTURE_GATES.md` içindeki kalite kapıları takip edilir.
 - Arayüzdeki (UI) tüm kullanıcı metinlerinde doğru Türkçe karakterler kullanılmalı ve bu metinler `src/ui/shared/locale_tr.py` (`L10N`) içinde yönetilmelidir.
 
 ---
