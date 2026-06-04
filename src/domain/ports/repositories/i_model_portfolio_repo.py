@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade
+from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade
 
 
 class IModelPortfolioRepository(ABC):
@@ -88,4 +88,14 @@ class IModelPortfolioRepository(ABC):
     @abstractmethod
     def delete_all_trades_by_portfolio_id(self, portfolio_id: int) -> None:
         """Belirli bir portföye ait tüm trade'leri siler."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_cash_movements_by_portfolio_id(self, portfolio_id: int) -> List[ModelPortfolioCashMovement]:
+        """Return all capital movements for a model portfolio."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def insert_cash_movement(self, movement: ModelPortfolioCashMovement) -> ModelPortfolioCashMovement:
+        """Insert a model portfolio capital movement."""
         raise NotImplementedError
