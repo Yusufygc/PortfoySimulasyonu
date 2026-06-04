@@ -1,0 +1,50 @@
+# safety_patterns.txt
+# En yaygın İngilizce ve Türkçe jailbreak / prompt injection / kod yazma kalıpları
+# Her satır bir regex kalıbıdır. Satır başındaki '#' karakterleri açıklama satırı olarak değerlendirilir.
+# Boş satırlar yoksayılır.
+
+# --- İngilizce Prompt Injection / Jailbreak Kalıpları ---
+ignore\s+(?:previous|above|all|system)\s+instructions
+forget\s+(?:previous|above|all|system)\s+instructions
+you\s+are\s+now\s+a
+roleplay\s+as
+bypass\s+restrictions
+jailbreak
+system\s+prompt
+ignore\s+rules
+override\s+rules
+respond\s+as\s+a
+
+# --- Türkçe Prompt Injection / Jailbreak Kalıpları ---
+sistem\s+talimatlarını\s+yoksay
+sistem\s+talimatını\s+yoksay
+talimatları\s+unut
+kuralları\s+unut
+tüm\s+kuralları\s+yoksay
+sen\s+artık\s+bir
+rolünü\s+değiştir
+asistan\s+rolünü\s+bırak
+yatırım\s+tavsiyesi\s+ver
+al\s+sat\s+sinyali\s+ver
+tavsiye\s+et
+
+# --- Programlama / Yazılım Dili Kalıpları ---
+# (Finans dışı yazılım dillerini doğrudan kelime bazlı engelleyelim)
+python
+javascript
+\bhtml\b
+\bcss\b
+\bsql\b
+
+# --- Kod / Yazılım Talebi Kalıpları ---
+kod\s+yaz
+kodlama
+script\w*\s+yaz
+script\s+oluştur
+yazılım\s+geliştir
+yazılım\s+kodu
+programlama\s+dili
+create\s+a\s+class
+define\s+a\s+function
+def\s+\w+\(
+class\s+\w+
