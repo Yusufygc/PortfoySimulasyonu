@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QFrame,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -77,6 +78,8 @@ class CorporateActionCandidatesPanel(QWidget):
         self.table.setHorizontalHeaderLabels(
             ["Hisse", "Tip", "Durum", "Oran", "Kullanim", "Ex-Date", "Guven", "Kaynak"]
         )
+        self.table.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
