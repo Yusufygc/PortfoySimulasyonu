@@ -201,14 +201,14 @@ class TestApplyBedelsiz:
         result = service.apply_action(action_id=1)
         assert result.capital_spent == Decimal("0")
 
-    def test_synthetic_trade_has_zero_price(self, service, mock_action_repo, mock_portfolio_repo):
+    def test_original_trade_is_adjusted(self, service, mock_action_repo, mock_portfolio_repo):
         self._setup(mock_action_repo, mock_portfolio_repo)
         service.apply_action(action_id=1)
 
-        inserted = mock_portfolio_repo.insert_trade.call_args[0][0]
-        assert inserted.price == Decimal("0")
-        assert inserted.quantity == 50
-        assert inserted.side == TradeSide.BUY
+        assert mock_portfolio_repo.update_trade.call_count == 1
+        updated = mock_portfolio_repo.update_trade.call_args[0][0]
+        assert updated.quantity == 150
+        assert abs(updated.price - Decimal("6.6667")) < Decimal("0.001")
 
     def test_mark_applied_called(self, service, mock_action_repo, mock_portfolio_repo):
         self._setup(mock_action_repo, mock_portfolio_repo)
@@ -216,11 +216,11 @@ class TestApplyBedelsiz:
 
         mock_action_repo.mark_applied.assert_called_once_with(1)
 
-    def test_insert_failure_does_not_mark_action_applied(self, service, mock_action_repo, mock_portfolio_repo):
+    def test_update_failure_does_not_mark_action_applied(self, service, mock_action_repo, mock_portfolio_repo):
         self._setup(mock_action_repo, mock_portfolio_repo)
-        mock_portfolio_repo.insert_trade.side_effect = RuntimeError("insert failed")
+        mock_portfolio_repo.update_trade.side_effect = RuntimeError("update failed")
 
-        with pytest.raises(RuntimeError, match="insert failed"):
+        with pytest.raises(RuntimeError, match="update failed"):
             service.apply_action(action_id=1)
 
         mock_action_repo.mark_applied.assert_not_called()
@@ -299,13 +299,14 @@ class TestApplyBedelli:
         expected_avg = Decimal("10100") / Decimal("600")
         assert abs(result.avg_cost_after - expected_avg) < Decimal("0.001")
 
-    def test_synthetic_trade_at_subscription_price(self, service, mock_action_repo, mock_portfolio_repo):
+    def test_original_trade_is_updated(self, service, mock_action_repo, mock_portfolio_repo):
         self._setup(mock_action_repo, mock_portfolio_repo)
         service.apply_action(action_id=2)
 
-        inserted = mock_portfolio_repo.insert_trade.call_args[0][0]
-        assert inserted.price == Decimal("1.00")
-        assert inserted.quantity == 100
+        assert mock_portfolio_repo.update_trade.call_count == 1
+        updated = mock_portfolio_repo.update_trade.call_args[0][0]
+        assert updated.quantity == 500
+        assert updated.price == Decimal("20.0000")
 
     def test_theoretical_price_bedelli(self, service, mock_action_repo, mock_portfolio_repo):
         self._setup(mock_action_repo, mock_portfolio_repo)
@@ -383,14 +384,13 @@ def test_bedelli_price_adjustment_factor_uses_previous_close_and_subscription_pr
     assert abs(factor - (Decimal("20.20") / Decimal("24.00"))) < Decimal("0.0000000001")
 
 
-def test_apply_action_adjusts_historical_prices_after_synthetic_trade(
+def test_apply_action_adjusts_historical_prices(
     mock_action_repo,
     mock_portfolio_repo,
 ):
     action = _make_action(12, 10, ActionType.BEDELSIZ, "0.50")
     mock_action_repo.get_by_id.return_value = action
     mock_portfolio_repo.get_trades_by_stock.return_value = [_make_buy_trade(10, 100, 10)]
-    mock_portfolio_repo.insert_trade.return_value = MagicMock()
     price_repo = MagicMock()
     price_repo.adjust_prices_before_date.return_value = 3
     adjustment_service = CorporateActionPriceAdjustmentService(mock_action_repo, price_repo)
@@ -402,7 +402,7 @@ def test_apply_action_adjusts_historical_prices_after_synthetic_trade(
 
     result = service.apply_action(12)
 
-    mock_portfolio_repo.insert_trade.assert_called_once()
+    mock_portfolio_repo.update_trade.assert_called_once()
     mock_action_repo.mark_applied.assert_called_once_with(12)
     price_repo.adjust_prices_before_date.assert_called_once_with(
         stock_id=10,
@@ -417,14 +417,14 @@ def test_apply_action_adjusts_historical_prices_after_synthetic_trade(
     assert result.price_adjustment_count == 3
 
 
-def test_apply_action_does_not_adjust_prices_when_trade_insert_fails(
+def test_apply_action_does_not_adjust_prices_when_trade_update_fails(
     mock_action_repo,
     mock_portfolio_repo,
 ):
     action = _make_action(13, 10, ActionType.BEDELSIZ, "0.50")
     mock_action_repo.get_by_id.return_value = action
     mock_portfolio_repo.get_trades_by_stock.return_value = [_make_buy_trade(10, 100, 10)]
-    mock_portfolio_repo.insert_trade.side_effect = RuntimeError("insert failed")
+    mock_portfolio_repo.update_trade.side_effect = RuntimeError("update failed")
     price_repo = MagicMock()
     service = CorporateActionService(
         action_repo=mock_action_repo,
@@ -432,7 +432,7 @@ def test_apply_action_does_not_adjust_prices_when_trade_insert_fails(
         price_adjustment_service=CorporateActionPriceAdjustmentService(mock_action_repo, price_repo),
     )
 
-    with pytest.raises(RuntimeError, match="insert failed"):
+    with pytest.raises(RuntimeError, match="update failed"):
         service.apply_action(13)
 
     price_repo.adjust_prices_before_date.assert_not_called()
