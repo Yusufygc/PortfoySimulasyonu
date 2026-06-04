@@ -73,3 +73,9 @@ Bütün ekranlar `main_window.py` üzerinde barınır. Ancak kod kalabalığın�
 - Uygulama `QDialog` pencereleri `src/ui/widgets/dialog_behavior.py` icindeki `configure_dialog_behavior(...)` helper'i ile `?` context-help butonunu kapatir.
 - Ayni helper Enter/Return tusunu primary aksiyona baglar; `Esc` iptal davranisini, cok satirli metin alanlari ve acik popup girisleri kendi davranisini korur.
 - Model portfoy al/sat dialogu lot ve fiyat degisimlerinde readonly `Tutar` alanini canli hesaplar; dialog sonucu ve servis API'si degismez.
+
+## Model Portfoy UI State Notu (2026-06-03)
+
+- Model portfoy sayfasi acildiginda son secim bulunamazsa listedeki ilk portfoy otomatik secilir; liste bos ise sag panel temizlenir ve islem butonlari pasif kalir.
+- Secili portfoyde acik pozisyon yoksa `Hisse Sat` pasif kalir; `Hisse Al`, `Fiyat Guncelle`, `Rapor Al` ve `Sermaye Yonetimi` secili portfoy kapsaminda aktif olur.
+- `Sermaye Yonetimi` dialogu tarih, saat, tutar, islem tipi ve not alanlariyla model portfoy sermaye hareketi olusturur.
