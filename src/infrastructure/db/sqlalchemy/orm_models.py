@@ -44,6 +44,8 @@ class ORMTrade(Base):
     side = Column(Enum(TradeSideEnum), nullable=False)
     quantity = Column(BIGINT(unsigned=True), nullable=False)
     price = Column(Numeric(18, 4), nullable=False)
+    original_quantity = Column(BIGINT(unsigned=True), nullable=False)
+    original_price = Column(Numeric(18, 4), nullable=False)
     total_amount = Column(Numeric(18, 4), Computed("quantity * price", persisted=True))
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -128,6 +130,11 @@ class ORMModelPortfolio(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     trades = relationship("ORMModelPortfolioTrade", back_populates="model_portfolio", cascade="all, delete")
+    cash_movements = relationship(
+        "ORMModelPortfolioCashMovement",
+        back_populates="model_portfolio",
+        cascade="all, delete",
+    )
 
 class ORMModelPortfolioTrade(Base):
     __tablename__ = "model_portfolio_trades"
@@ -149,6 +156,25 @@ class ORMModelPortfolioTrade(Base):
 
     model_portfolio = relationship("ORMModelPortfolio", back_populates="trades")
     stock = relationship("ORMStock")
+
+
+class ORMModelPortfolioCashMovement(Base):
+    __tablename__ = "model_portfolio_cash_movements"
+
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    portfolio_id = Column(Integer, ForeignKey("model_portfolios.id", ondelete="CASCADE"), nullable=False)
+    movement_date = Column(Date, nullable=False)
+    movement_time = Column(Time, nullable=True)
+    type = Column(Enum(CashMovementTypeEnum), nullable=False)
+    amount = Column(Numeric(18, 4), nullable=False)
+    notes = Column(String(255))
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_model_portfolio_cash_movements_portfolio_date", "portfolio_id", "movement_date", "movement_time"),
+    )
+
+    model_portfolio = relationship("ORMModelPortfolio", back_populates="cash_movements")
 
 class ORMBudget(Base):
     __tablename__ = "budgets"
@@ -173,6 +199,22 @@ class ORMBudgetItem(Base):
     amount = Column(Numeric(18, 2), default=0)
 
     budget = relationship("ORMBudget", back_populates="items")
+
+
+class ORMBudgetPinnedItem(Base):
+    __tablename__ = "budget_pinned_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    item_type = Column(String(10), nullable=False)   # 'income' | 'expense'
+    name = Column(String(100), nullable=False)
+    default_amount = Column(Numeric(18, 2), default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("item_type", "name", name="uq_budget_pinned_item_type_name"),
+    )
+
 
 class ORMFinancialGoal(Base):
     __tablename__ = "financial_goals"
@@ -270,3 +312,24 @@ class ORMRiskProfile(Base):
     recommended_allocation_json = Column(JSON, nullable=True)
     suitability_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+
+
+class ORMTradeAdjustment(Base):
+    __tablename__ = "trade_adjustments"
+
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    trade_id = Column(BIGINT(unsigned=True), ForeignKey("trades.id", ondelete="CASCADE"), nullable=False)
+    corporate_action_id = Column(BIGINT(unsigned=True), ForeignKey("corporate_actions.id", ondelete="RESTRICT"), nullable=False)
+    factor = Column(Numeric(18, 10), nullable=False)
+    pre_quantity = Column(BIGINT(unsigned=True), nullable=False)
+    post_quantity = Column(BIGINT(unsigned=True), nullable=False)
+    pre_price = Column(Numeric(18, 4), nullable=False)
+    post_price = Column(Numeric(18, 4), nullable=False)
+    applied_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_trade_adjustments_trade", "trade_id"),
+    )
+
+    trade = relationship("ORMTrade")
+    corporate_action = relationship("ORMCorporateAction")
