@@ -14,25 +14,25 @@
 QWidget#toastContainer[toastKind="success"] {
     background-color: @TOAST_SUCCESS_BG;
     border: 1px solid @TOAST_SUCCESS_BORDER;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 QWidget#toastContainer[toastKind="error"] {
     background-color: @TOAST_ERROR_BG;
     border: 1px solid @TOAST_ERROR_BORDER;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 QWidget#toastContainer[toastKind="warning"] {
     background-color: @TOAST_WARNING_BG;
     border: 1px solid @TOAST_WARNING_BORDER;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 QWidget#toastContainer[toastKind="info"] {
     background-color: @TOAST_INFO_BG;
     border: 1px solid @TOAST_INFO_BORDER;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 /* -------------------------------------------------------
@@ -41,26 +41,26 @@ QWidget#toastContainer[toastKind="info"] {
 
 QLabel[cssClass="toastIcon"] {
     background: transparent;
-    font-size: 20px;
     border: none;
 }
 
 QLabel[cssClass="toastMessage"] {
     background: transparent;
     color: @TOAST_TEXT;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     border: none;
 }
 
 QPushButton[cssClass="toastClose"] {
     background: transparent;
     color: @COLOR_TEXT_SECONDARY;
-    font-size: 20px;
+    font-size: 18px;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
 }
 
 QPushButton[cssClass="toastClose"]:hover {
+    background-color: @COLOR_CARD_SURFACE;
     color: @COLOR_TEXT_PRIMARY;
 }
