@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QTextEdit
 from PyQt5.QtCore import pyqtSignal, Qt
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
+from src.ui.pages.ai_page.core.safety_guard import MAX_CHAR_LIMIT
 
 
 class ChatInputBar(QWidget):
@@ -19,9 +20,10 @@ class ChatInputBar(QWidget):
         layout.setSpacing(8)
 
         self.text_edit = QTextEdit()
-        self.text_edit.setPlaceholderText("Mesajınızı yazın... (Göndermek için Shift+Enter)")
+        self.text_edit.setPlaceholderText(f"Mesajınızı yazın... (En fazla {MAX_CHAR_LIMIT} karakter, Göndermek için Shift+Enter)")
         self.text_edit.setFixedHeight(60)
         self.text_edit.setProperty("cssClass", "aiInput")
+        self.text_edit.textChanged.connect(self._on_text_changed)
 
         self.btn_send = AnimatedButton("Gönder")
         self.btn_send.setFixedHeight(60)
@@ -39,6 +41,17 @@ class ChatInputBar(QWidget):
             self.send_requested.emit(text)
             self.text_edit.clear()
 
+    def _on_text_changed(self):
+        text = self.text_edit.toPlainText()
+        if len(text) > MAX_CHAR_LIMIT:
+            self.text_edit.blockSignals(True)
+            cursor = self.text_edit.textCursor()
+            pos = cursor.position()
+            self.text_edit.setPlainText(text[:MAX_CHAR_LIMIT])
+            cursor.setPosition(min(pos, MAX_CHAR_LIMIT))
+            self.text_edit.setTextCursor(cursor)
+            self.text_edit.blockSignals(False)
+
     def keyPressEvent(self, event):
         # Shift+Enter ile gönderim
         if event.key() == Qt.Key_Return and event.modifiers() == Qt.ShiftModifier:
@@ -52,6 +65,6 @@ class ChatInputBar(QWidget):
             self.text_edit.setPlaceholderText("Yanıt bekleniyor...")
             self.text_edit.setEnabled(False)
         else:
-            self.text_edit.setPlaceholderText("Mesajınızı yazın... (Göndermek için Shift+Enter)")
+            self.text_edit.setPlaceholderText(f"Mesajınızı yazın... (En fazla {MAX_CHAR_LIMIT} karakter, Göndermek için Shift+Enter)")
             self.text_edit.setEnabled(True)
             self.text_edit.setFocus()
