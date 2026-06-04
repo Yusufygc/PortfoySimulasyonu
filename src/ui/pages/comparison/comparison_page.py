@@ -110,9 +110,16 @@ class ComparisonPage(BasePage):
         self.scroll_area.setWidget(scroll_content)
         layout.addWidget(self.scroll_area, 1)
 
-        # Wheel filtresi + kademeli view başlatma
+        # Wheel filtresi
         self.wheel_redirect_filter = WheelRedirectFilter(self.scroll_area)
-        self._view_manager.schedule_staggered_init()
+        
+        # Scroll olayını dinle ve görünürlüğe göre lazy yükleme yap
+        scroll_bar = self.scroll_area.verticalScrollBar()
+        scroll_bar.valueChanged.connect(lambda: self._view_manager.check_viewport_visibility())
+        
+        # İlk görünürlük kontrolünü biraz gecikmeli yap (UI layout oturduktan sonra)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(100, lambda: self._view_manager.check_viewport_visibility())
 
     # ------------------------------------------------------------------
     # WebEngine view properties (lazy)
