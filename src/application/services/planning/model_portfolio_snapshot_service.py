@@ -23,6 +23,7 @@ class ModelPortfolioSnapshotService:
             raise ValueError(f"Portfoy bulunamadi: {portfolio_id}")
 
         remaining_cash = self._trade_service.get_remaining_cash(portfolio_id)
+        net_capital = self._trade_service.get_invested_capital(portfolio_id)
         positions = self._trade_service.get_positions(portfolio_id)
 
         positions_value = Decimal("0")
@@ -32,10 +33,11 @@ class ModelPortfolioSnapshotService:
                     positions_value += price_map[stock_id] * Decimal(quantity)
 
         total_value = remaining_cash + positions_value
-        profit_loss = total_value - portfolio.initial_cash
-        profit_loss_pct = (profit_loss / portfolio.initial_cash * 100) if portfolio.initial_cash > 0 else Decimal("0")
+        profit_loss = total_value - net_capital
+        profit_loss_pct = (profit_loss / net_capital * 100) if net_capital > 0 else Decimal("0")
         return {
             "initial_cash": portfolio.initial_cash,
+            "net_capital": net_capital,
             "remaining_cash": remaining_cash,
             "positions_value": positions_value,
             "total_value": total_value,
