@@ -186,7 +186,14 @@ class ModelPortfolioPage(BasePage):
     def _on_refresh_prices(self):
         if "price_updater" not in self.__dict__:
             self.price_updater = PortfolioPriceUpdater(self)
-        self.price_updater.refresh_prices()
+        was_enabled = self.btn_refresh.isEnabled()
+        self.btn_refresh.setEnabled(False)
+        self.btn_refresh.setText(L10N.FIYATLAR_GUNCELLENIYOR)
+        try:
+            self.price_updater.refresh_prices()
+        finally:
+            self.btn_refresh.setText(L10N.FIYAT_GUNCELLE)
+            self.btn_refresh.setEnabled(was_enabled)
 
     def _on_prices_updated_event(self, prices: Dict[int, Decimal]) -> None:
         if self.current_portfolio_id is None or not prices:
