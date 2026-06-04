@@ -122,3 +122,12 @@ class ChatMessage:
     content: str
     display_content: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class ChatSession:
+    id: str
+    title: str
+    messages: list[ChatMessage] = field(default_factory=list)
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
