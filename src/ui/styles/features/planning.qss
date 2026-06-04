@@ -95,3 +95,31 @@ QTableWidget[cssClass="goalsTable"] QHeaderView::section {
     border-bottom: 2px solid @COLOR_PRIMARY;
     text-transform: uppercase;
 }
+
+QPushButton[cssClass="tableActionButtonContrib"] {
+    background-color: @COLOR_BG_BASE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_SM;
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_XS;
+    font-weight: 500;
+    padding: 0px 8px;
+    height: 26px;
+}
+QPushButton[cssClass="tableActionButtonContrib"]:hover {
+    background-color: @COLOR_BG_ELEVATED;
+}
+
+QPushButton[cssClass="tableActionButtonDelete"] {
+    background-color: @COLOR_DANGER;
+    border: none;
+    border-radius: @RADIUS_SM;
+    color: @COLOR_TEXT_WHITE;
+    font-size: @FONT_XS;
+    font-weight: 500;
+    padding: 0px 8px;
+    height: 26px;
+}
+QPushButton[cssClass="tableActionButtonDelete"]:hover {
+    background-color: @COLOR_DANGER_DARK;
+}
