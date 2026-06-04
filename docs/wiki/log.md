@@ -5,6 +5,41 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-04] güncelleme | Sermaye Artırımı ve Düzeltme Entegrasyonu
+
+- Kurumsal işlemler sonrasında oluşan maliyet/adet uyuşmazlıklarını geçmişe yönelik denetim izli düzeltme (Retroactive Adjustment with Audit Trail) mimarisiyle çözüldü.
+- `trades` tablosuna `original_quantity` ve `original_price` kolonları eklendi.
+- `trade_adjustments` tablosu oluşturuldu ve SQLAlchemy modelleri güncellendi.
+- `CorporateActionService` sentetik trade ekleme yerine geçmiş işlemleri retroactive olarak bölünecek şekilde güncellendi ve `trade_adjustments` tablosuna denetim izi yazıldı.
+- Seçili Hisse Detay UI sayfasına "Uygulanan Sermaye Artırımları" tablosu yerleştirildi ve işlem geçmişi tablosunda orijinal alım değerlerinin gösterilmesi sağlandı.
+- Etkilenen dosyalar: `src/application/services/corporate_actions/corporate_action_service.py`, `src/ui/pages/stock_detail/stock_detail_page.py`, `src/infrastructure/db/sqlalchemy/orm_models.py`, `src/application/container_parts/services.py`, `tests/application/test_corporate_action_service.py`, `tests/ui/test_refactor_guards.py`
+- Bağlantılı sayfalar: [database_schema_and_orm.md](database_schema_and_orm.md), [service_corporate_actions.md](service_corporate_actions.md)
+
+## [2026-06-04] yeni-sayfa | Kapsamli manuel test yonergesi
+
+- Uygulamanin tum ana sayfalari ve kritik capraz akislar icin `docs/wiki/manual_testing_guide.md` eklendi.
+- Rehber; ortam hazirligi, minimum test verisi, sayfa bazli manuel senaryolar, negatif testler, capraz akislar ve surum oncesi smoke checklist bolumlerini kapsar.
+- Her manuel test maddesi icin ID, on kosul, adimlar, beklenen sonuc, kanit ve temizlik/not formati standardize edildi.
+- Uygulama kodu degismedi; calisma yalnizca dokumantasyon ve wiki katalog/log guncellemesidir.
+- Baglantili sayfa: [manual_testing_guide.md](manual_testing_guide.md)
+
+## [2026-06-03] guncelleme | Butce kalemi pinleme
+
+- Finansal Planlama > Butce Yonetimi icin tekrar eden gelir/gider kalemleri `budget_pinned_items` tablosunda baslik + varsayilan tutar olarak saklanacak sekilde eklendi.
+- Bos ay acildiginda pinli kalemlerden otomatik butce taslagi uretilir; kayitli aylarin `budget_items` icerigi sessizce degistirilmez.
+- UI tarafinda butce satiri bileseni ayrildi ve gelir/gider satirlarina bookmark tabanli pin/unpin aksiyonu eklendi.
+- Dogrulama: hedefli domain/application/infrastructure/UI testleri -> **23 passed**; tam `tests -q` kosumu -> **405 passed, 1 failed** (`ChartRenderer._load_plotly_to_view` eksikligi, pinleme disi comparison modulu); pytest cache yazma izni uyarisi test sonucunu etkilemedi.
+- Baglantili sayfalar: [database_schema_and_orm.md](database_schema_and_orm.md), [architecture.md](architecture.md)
+
+## [2026-06-03] guncelleme | Model portfoy sermaye yonetimi ve secim state'i
+
+- Model portfoy sayfasi son secim gecersizse ilk portfoyu otomatik secer; portfoy yoksa sag panel temizlenir ve tum islem butonlari pasif kalir.
+- `model_portfolio_cash_movements` sermaye hareketi modeli, ORM tablosu, repository metodlari ve mevcut DB icin idempotent schema script'i eklendi.
+- Model portfoy trade simulasyonu sermaye hareketlerini trade timeline'i ile birlikte isler; ayni tarih/saatte sermaye hareketi trade'den once uygulanir.
+- K/Z hesabi net sermaye bazina cekildi; sermaye eklemek kar, sermaye cekmek zarar sayilmaz.
+- Model portfoy UI'ina tarih/saatli `Sermaye Yonetimi` dialogu eklendi; pozisyonsuz portfoyde `Hisse Sat` pasif kalir.
+- Dogrulama: hedefli application/UI/domain/infrastructure testleri -> **33 passed**; refactor guard -> **4 passed**; `tests` -> **398 passed**.
+- Baglantili sayfalar: [service_portfolio_and_market.md](service_portfolio_and_market.md), [ui_architecture_and_events.md](ui_architecture_and_events.md)
 
 ## [2026-06-03] guncelleme | Uygulama geneli otomatik canli fiyat yenileme
 
