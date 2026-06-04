@@ -26,6 +26,8 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             side=TradeSide(orm.side.value),  # Enum'dan string eşleştirmesi
             quantity=orm.quantity,
             price=orm.price,
+            original_quantity=orm.original_quantity,
+            original_price=orm.original_price,
         )
 
     def _to_orm(self, domain: Trade) -> ORMTrade:
@@ -37,6 +39,8 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             side=domain.side.value,
             quantity=domain.quantity,
             price=domain.price,
+            original_quantity=domain.original_quantity,
+            original_price=domain.original_price,
         )
 
     # ---------- READ ---------- #
@@ -99,6 +103,8 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             orm_obj.side = trade.side.value
             orm_obj.quantity = trade.quantity
             orm_obj.price = trade.price
+            orm_obj.original_quantity = trade.original_quantity
+            orm_obj.original_price = trade.original_price
             commit_or_rollback(session)
 
     def delete_trade(self, trade_id: int) -> None:
