@@ -131,17 +131,20 @@ class BackfillService:
             if self._corporate_action_repo is not None
             else []
         )
+        from src.application.services.corporate_actions.price_adjustment_service import adjust_downloaded_series
+        adjusted_series = adjust_downloaded_series(series, actions)
         prices = [
             DailyPrice(
                 id=None,
                 stock_id=stock_id,
                 price_date=price_date,
-                close_price=adjusted_market_price(self._to_decimal(close_price), price_date, actions),
+                close_price=close_price,
             )
-            for price_date, close_price in sorted(series.items())
+            for price_date, close_price in sorted(adjusted_series.items())
             if start_date <= price_date <= end_date
         ]
         return prices
+
 
     @staticmethod
     def _to_decimal(value: Decimal | int | float | str) -> Decimal:
