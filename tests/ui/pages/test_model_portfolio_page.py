@@ -6,10 +6,11 @@ from types import SimpleNamespace
 import pytest
 
 pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QDialog
 
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
+from src.ui.pages.model_portfolio.utils.model_portfolio_actions import ModelPortfolioActions
 from src.ui.widgets.model_portfolio.panels.portfolio_list_panel import PortfolioListPanel
 
 
@@ -43,9 +44,19 @@ class DummyEventSignal:
 
 
 class EmptyModelPortfolioService:
+    def __init__(self):
+        self.portfolios = []
+
+    def get_all_portfolios(self):
+        return list(self.portfolios)
+
+    def get_active_position_count(self, portfolio_id):
+        return 0
+
     def get_portfolio_summary(self, portfolio_id, price_map):
         return {
             "initial_cash": Decimal("1000000"),
+            "net_capital": Decimal("1000000"),
             "remaining_cash": Decimal("1000000"),
             "total_value": Decimal("1000000"),
             "profit_loss": Decimal("0"),
@@ -87,6 +98,7 @@ def test_model_portfolio_page_moves_trade_buttons_to_positions_header_and_shows_
     assert page._positions_header_layout.indexOf(page.btn_buy) >= 0
     assert page._positions_header_layout.indexOf(page.btn_sell) >= 0
     assert not page.btn_report.isEnabled()
+    assert not page.btn_capital.isEnabled()
     assert [action.text() for action in page.btn_report.menu().actions()] == ["Bugün", "Tarih Aralığı"]
     assert not page.btn_buy.isEnabled()
     assert not page.btn_sell.isEnabled()
@@ -96,10 +108,111 @@ def test_model_portfolio_page_moves_trade_buttons_to_positions_header_and_shows_
 
     assert page.positions_stack.currentWidget() is page.empty_positions_state
     assert page.btn_buy.isEnabled()
-    assert page.btn_sell.isEnabled()
+    assert not page.btn_sell.isEnabled()
     assert page.btn_report.isEnabled()
+    assert page.btn_capital.isEnabled()
     assert page.btn_empty_buy.isEnabled()
     assert page.btn_empty_buy.property("cssClass") == "successButton"
+
+
+def test_model_portfolio_page_selects_first_portfolio_when_saved_selection_is_missing():
+    service = EmptyModelPortfolioService()
+    service.portfolios = [
+        ModelPortfolio(id=7, name="ilk portföy"),
+        ModelPortfolio(id=8, name="ikinci portföy"),
+    ]
+    page = ModelPortfolioPage(
+        container=SimpleNamespace(
+            model_portfolio_service=service,
+            price_repo=SimpleNamespace(),
+            model_portfolio_excel_export_service=DummyModelPortfolioExcelExportService(),
+        )
+    )
+    page.current_portfolio_id = 999
+
+    page._load_portfolios()
+
+    assert page.current_portfolio_id == 7
+    assert page.lbl_portfolio_name.text() == "ilk portföy"
+    assert page.btn_buy.isEnabled()
+    assert not page.btn_sell.isEnabled()
+    assert page.btn_capital.isEnabled()
+
+
+def test_model_portfolio_page_clears_right_panel_when_no_portfolios():
+    page = ModelPortfolioPage(
+        container=SimpleNamespace(
+            model_portfolio_service=EmptyModelPortfolioService(),
+            price_repo=SimpleNamespace(),
+            model_portfolio_excel_export_service=DummyModelPortfolioExcelExportService(),
+        )
+    )
+    page.current_portfolio_id = 7
+
+    page._load_portfolios()
+
+    assert page.current_portfolio_id is None
+    assert not page.btn_buy.isEnabled()
+    assert not page.btn_sell.isEnabled()
+    assert not page.btn_refresh.isEnabled()
+    assert not page.btn_report.isEnabled()
+    assert not page.btn_capital.isEnabled()
+
+
+def test_model_portfolio_capital_action_passes_dialog_result_to_service(monkeypatch):
+    calls = []
+
+    class FakeDialog:
+        def __init__(self, current_cash, net_capital, parent=None):
+            calls.append(("dialog", current_cash, net_capital))
+
+        def exec_(self):
+            return QDialog.Accepted
+
+        def get_result(self):
+            return {
+                "movement_type": "DEPOSIT",
+                "amount": Decimal("500"),
+                "movement_date": date(2026, 1, 3),
+                "movement_time": datetime(2026, 1, 3, 10, 0).time(),
+                "notes": "test",
+            }
+
+    class FakeService:
+        def get_portfolio_summary(self, portfolio_id, price_map):
+            return {
+                "remaining_cash": Decimal("1000"),
+                "net_capital": Decimal("1200"),
+            }
+
+        def add_capital_movement(self, **kwargs):
+            calls.append(("service", kwargs))
+
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.utils.model_portfolio_actions.CapitalMovementDialog",
+        FakeDialog,
+    )
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.utils.model_portfolio_actions.Toast.success",
+        lambda *args, **kwargs: None,
+    )
+    page = SimpleNamespace(
+        current_portfolio_id=4,
+        current_price_map={},
+        model_portfolio_service=FakeService(),
+        _load_portfolios=lambda: calls.append(("load",)),
+        _update_view=lambda: calls.append(("update",)),
+    )
+
+    ModelPortfolioActions(page).on_capital_movement()
+
+    assert calls[0] == ("dialog", Decimal("1000"), Decimal("1200"))
+    assert calls[1][0] == "service"
+    assert calls[1][1]["portfolio_id"] == 4
+    assert calls[1][1]["movement_type"] == "DEPOSIT"
+    assert calls[1][1]["amount"] == Decimal("500")
+    assert ("load",) in calls
+    assert ("update",) in calls
 
 
 def test_model_portfolio_position_double_click_opens_stock_detail():
