@@ -3,11 +3,11 @@
 from datetime import date
 from decimal import Decimal
 from typing import List, Optional
-from src.domain.models.budget import Budget, BudgetItem
+from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
 from src.domain.models.financial_goal import FinancialGoal
 from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
-from src.infrastructure.db.sqlalchemy.orm_models import ORMBudget, ORMBudgetItem, ORMFinancialGoal
+from src.infrastructure.db.sqlalchemy.orm_models import ORMBudget, ORMBudgetItem, ORMBudgetPinnedItem, ORMFinancialGoal
 from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback, commit_refresh_or_rollback
 
 class SQLAlchemyPlanningRepository(IPlanningRepository):
@@ -19,6 +19,7 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
         self._provider = db_provider
         ORMBudget.__table__.create(bind=self._provider._engine, checkfirst=True)
         ORMBudgetItem.__table__.create(bind=self._provider._engine, checkfirst=True)
+        ORMBudgetPinnedItem.__table__.create(bind=self._provider._engine, checkfirst=True)
         ORMFinancialGoal.__table__.create(bind=self._provider._engine, checkfirst=True)
 
     # ==================== Row → Domain Mappers ==================== #
@@ -38,6 +39,16 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
             month=orm.month,
             savings_target=Decimal(str(orm.savings_target)),
             items=items,
+            created_at=orm.created_at,
+            updated_at=orm.updated_at,
+        )
+
+    def _to_domain_pinned_item(self, orm: ORMBudgetPinnedItem) -> BudgetPinnedItem:
+        return BudgetPinnedItem(
+            id=orm.id,
+            item_type=orm.item_type,
+            name=orm.name,
+            default_amount=Decimal(str(orm.default_amount)),
             created_at=orm.created_at,
             updated_at=orm.updated_at,
         )
@@ -104,6 +115,48 @@ class SQLAlchemyPlanningRepository(IPlanningRepository):
     def delete_budget(self, budget_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMBudget).filter_by(id=budget_id).first()
+            if orm_obj:
+                session.delete(orm_obj)
+                commit_or_rollback(session)
+
+    def get_pinned_budget_items(self) -> List[BudgetPinnedItem]:
+        with self._provider.get_session() as session:
+            rows = (
+                session.query(ORMBudgetPinnedItem)
+                .order_by(ORMBudgetPinnedItem.item_type.asc(), ORMBudgetPinnedItem.name.asc())
+                .all()
+            )
+            return [self._to_domain_pinned_item(row) for row in rows]
+
+    def upsert_pinned_budget_item(self, item: BudgetPinnedItem) -> BudgetPinnedItem:
+        with self._provider.get_session() as session:
+            orm_obj = (
+                session.query(ORMBudgetPinnedItem)
+                .filter_by(item_type=item.item_type, name=item.name)
+                .first()
+            )
+            if orm_obj is None:
+                orm_obj = ORMBudgetPinnedItem(
+                    item_type=item.item_type,
+                    name=item.name,
+                    default_amount=item.default_amount,
+                )
+                session.add(orm_obj)
+                session.flush()
+            else:
+                orm_obj.default_amount = item.default_amount
+
+            commit_or_rollback(session)
+            session.refresh(orm_obj)
+            return self._to_domain_pinned_item(orm_obj)
+
+    def delete_pinned_budget_item(self, item_type: str, name: str) -> None:
+        with self._provider.get_session() as session:
+            orm_obj = (
+                session.query(ORMBudgetPinnedItem)
+                .filter_by(item_type=item_type, name=name.strip())
+                .first()
+            )
             if orm_obj:
                 session.delete(orm_obj)
                 commit_or_rollback(session)
