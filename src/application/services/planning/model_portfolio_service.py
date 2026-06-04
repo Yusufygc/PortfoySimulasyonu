@@ -80,6 +80,15 @@ class ModelPortfolioService:
     def get_remaining_cash(self, *args, **kwargs):
         return self._trade.get_remaining_cash(*args, **kwargs)
 
+    def add_capital_movement(self, *args, **kwargs):
+        return self._trade.add_capital_movement(*args, **kwargs)
+
+    def get_capital_movements(self, *args, **kwargs):
+        return self._trade.get_capital_movements(*args, **kwargs)
+
+    def get_invested_capital(self, *args, **kwargs):
+        return self._trade.get_invested_capital(*args, **kwargs)
+
     def get_position_quantity_as_of(self, *args, **kwargs):
         return self._trade.get_position_quantity_as_of(*args, **kwargs)
 
