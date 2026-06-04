@@ -165,12 +165,12 @@ class GoalsPanel(QWidget):
             action_layout.setSpacing(8)
             action_layout.setAlignment(Qt.AlignCenter)
 
-            btn_contrib = QPushButton(" Katkı Ekle")
+            btn_contrib = QPushButton(" Ekle")
             btn_contrib.setProperty("cssClass", "secondaryButton")
             btn_contrib.setMinimumHeight(28)
             btn_contrib.setMaximumHeight(28)
             btn_contrib.setCursor(Qt.PointingHandCursor)
-            btn_contrib.setIcon(IconManager.get_icon("wallet", color="@COLOR_TEXT_PRIMARY"))
+            btn_contrib.setIcon(IconManager.get_icon("plus", color="@COLOR_TEXT_PRIMARY"))
 
             btn_delete = QPushButton(" Sil")
             btn_delete.setProperty("cssClass", "dangerButton")
