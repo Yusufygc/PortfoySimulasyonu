@@ -5,7 +5,12 @@ import pytest
 
 from src.domain.models.cash_movement import CashMovement, CashMovementType
 from src.domain.models.corporate_action import ActionType, CorporateAction
-from src.domain.models.model_portfolio import ModelPortfolioTrade, ModelTradeSide
+from src.domain.models.model_portfolio import (
+    ModelPortfolioCashMovement,
+    ModelPortfolioCashMovementType,
+    ModelPortfolioTrade,
+    ModelTradeSide,
+)
 from src.domain.models.trade import Trade, TradeSide
 
 
@@ -93,6 +98,29 @@ def test_model_portfolio_trade_constructor_rejects_invalid_values():
     )
 
     assert trade.side == ModelTradeSide.SELL
+
+
+def test_model_portfolio_cash_movement_constructor_rejects_invalid_values():
+    with pytest.raises(ValueError, match="positive"):
+        ModelPortfolioCashMovement(
+            id=None,
+            portfolio_id=1,
+            movement_date=date(2026, 1, 1),
+            movement_time=None,
+            type=ModelPortfolioCashMovementType.DEPOSIT,
+            amount=Decimal("0"),
+        )
+
+    movement = ModelPortfolioCashMovement(
+        id=None,
+        portfolio_id=1,
+        movement_date=date(2026, 1, 1),
+        movement_time=None,
+        type="WITHDRAW",
+        amount=Decimal("1"),
+    )
+
+    assert movement.type == ModelPortfolioCashMovementType.WITHDRAW
 
 
 def test_corporate_action_constructor_rejects_invalid_values():
