@@ -57,6 +57,49 @@ QPushButton[cssClass="quickDateBtn"]:hover {
     background-color: @COLOR_PRIMARY; border-color: @COLOR_PRIMARY;
 }
 
+QDateEdit[cssClass="analysisDateInput"] {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
+    padding: 7px 28px 7px 9px;
+    font-size: @FONT_MD;
+    min-height: 24px;
+}
+QDateEdit[cssClass="analysisDateInput"]:focus {
+    border: 1px solid @COLOR_PRIMARY;
+}
+QDateEdit[cssClass="analysisDateInput"]::drop-down {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 24px;
+    border-left: 1px solid @COLOR_BORDER;
+    background: transparent;
+}
+QDateEdit[cssClass="analysisDateInput"]::down-arrow {
+    image: url(@ICON_CHEVRON_DOWN);
+    width: 16px;
+    height: 16px;
+}
+QDateEdit[cssClass="analysisDateInput"]::up-button,
+QDateEdit[cssClass="analysisDateInput"]::down-button {
+    width: 16px;
+    border: none;
+    background: transparent;
+}
+QDateEdit[cssClass="analysisDateInput"]::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    margin: 5px 6px 0px 0px;
+}
+QDateEdit[cssClass="analysisDateInput"]::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    margin: 0px 6px 5px 0px;
+}
+QDateEdit[cssClass="analysisDateInput"]::up-arrow { image: url(@ICON_CHEVRON_UP); }
+QDateEdit[cssClass="analysisDateInput"]::down-arrow { image: url(@ICON_CHEVRON_DOWN); }
+
 QPushButton[cssClass="benchmarkChip"] {
     background-color: @COLOR_BG_SURFACE;
     color: @COLOR_TEXT_PRIMARY;
