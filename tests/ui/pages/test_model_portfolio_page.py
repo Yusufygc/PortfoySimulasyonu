@@ -6,11 +6,12 @@ from types import SimpleNamespace
 import pytest
 
 pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QApplication, QDialog
+from PyQt5.QtWidgets import QApplication, QDialog, QPushButton
 
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
 from src.ui.pages.model_portfolio.utils.model_portfolio_actions import ModelPortfolioActions
+from src.ui.widgets.shared import ActionListItem
 from src.ui.widgets.model_portfolio.panels.portfolio_list_panel import PortfolioListPanel
 
 
@@ -85,6 +86,63 @@ def test_model_portfolio_list_panel_header_new_button_and_selection_class():
     assert panel._list.property("cssClass") == "modelPortfolioList"
 
 
+def test_action_list_item_elides_secondary_text_and_keeps_menu_fixed():
+    row = ActionListItem(
+        "portföy-4",
+        secondary_text="(8 hisse)",
+        draggable=True,
+    )
+
+    assert row.label is not None
+    assert row.secondary_label is not None
+    assert row.menu_button.width() == 28
+    assert row.menu_button.minimumWidth() == 28
+    assert row.menu_button.maximumWidth() == 28
+    assert row._layout.spacing() == 6
+
+    label_metrics = row.label.fontMetrics()
+    metrics = row.secondary_label.fontMetrics()
+    primary_full_width = label_metrics.horizontalAdvance("portföy-4")
+    secondary_full_width = metrics.horizontalAdvance("(8 hisse)")
+    secondary_short_width = metrics.horizontalAdvance("(8 h.)")
+    secondary_compact_width = max(34, secondary_short_width)
+    assert row.label.minimumSizeHint().width() <= 18
+    assert row.secondary_label.minimumSizeHint().width() == 34
+
+    margins = row._layout.contentsMargins()
+    fixed_row_width = (
+        margins.left()
+        + margins.right()
+        + row.drag_handle.width()
+        + row.menu_button.width()
+        + row._layout.spacing() * (row._layout.count() - 1)
+    )
+
+    row.resize(fixed_row_width + primary_full_width + secondary_full_width + 8, 44)
+    row.show()
+    app.processEvents()
+    row._layout.activate()
+
+    assert row.secondary_label.width() == secondary_full_width
+    assert row.secondary_label.elided_text_for_width(row.secondary_label.width()) == "(8 hisse)"
+
+    row.resize(fixed_row_width + primary_full_width + secondary_short_width + 2, 44)
+    app.processEvents()
+    row._layout.activate()
+
+    assert row.label.elided_text_for_width(row.label.width()) == "portföy-4"
+    assert row.secondary_label.width() == secondary_compact_width
+    assert row.secondary_label.elided_text_for_width(row.secondary_label.width()) == "(8 h.)"
+
+    row.resize(96, 44)
+    app.processEvents()
+    row._layout.activate()
+
+    assert row.menu_button.width() == 28
+    assert row.secondary_label.width() == secondary_compact_width
+    assert row.secondary_label.geometry().right() < row.menu_button.geometry().left()
+
+
 def test_model_portfolio_page_moves_trade_buttons_to_positions_header_and_shows_empty_state():
     export_service = DummyModelPortfolioExcelExportService()
     page = ModelPortfolioPage(
@@ -97,6 +155,9 @@ def test_model_portfolio_page_moves_trade_buttons_to_positions_header_and_shows_
 
     assert page._positions_header_layout.indexOf(page.btn_buy) >= 0
     assert page._positions_header_layout.indexOf(page.btn_sell) >= 0
+    assert page.btn_capital.property("cssClass") == "capitalButton"
+    assert page.btn_report.property("cssClass") == "reportButton"
+    assert page._portfolio_header_layout.indexOf(page.btn_capital) < page._portfolio_header_layout.indexOf(page.btn_report)
     assert not page.btn_report.isEnabled()
     assert not page.btn_capital.isEnabled()
     assert [action.text() for action in page.btn_report.menu().actions()] == ["Bugün", "Tarih Aralığı"]
@@ -270,6 +331,7 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
     page.price_repo = price_repo
     page.current_price_map = {}
     page.container = SimpleNamespace(event_bus=SimpleNamespace(prices_updated=event_signal))
+    page.btn_refresh = QPushButton(" Fiyat Güncelle")
     page.price_lookup_func = lambda ticker: SimpleNamespace(
         price=Decimal("22.50"),
         as_of=datetime(2026, 4, 28, 12, 0),
@@ -284,6 +346,36 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
     assert page.current_price_map == {2: Decimal("22.50")}
     assert price_repo.saved_prices == []
     assert event_signal.emitted == [{2: Decimal("22.50")}]
+
+
+def test_model_portfolio_refresh_button_shows_updating_text_during_refresh():
+    event_signal = DummyEventSignal()
+    page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+    page.current_portfolio_id = 4
+    page.model_portfolio_service = DummyModelPortfolioService()
+    page.current_price_map = {}
+    page.container = SimpleNamespace(event_bus=SimpleNamespace(prices_updated=event_signal))
+    page.btn_refresh = QPushButton(" Fiyat Güncelle")
+    page._update_view = lambda: None
+    page.record_last_update_time = lambda: None
+    page.show_last_update_toast_once = lambda **kwargs: None
+
+    def lookup_price(ticker):
+        assert page.btn_refresh.text() == "Fiyatlar güncelleniyor..."
+        assert not page.btn_refresh.isEnabled()
+        return SimpleNamespace(
+            price=Decimal("22.50"),
+            as_of=datetime(2026, 4, 28, 12, 0),
+            source="intraday",
+        )
+
+    page.price_lookup_func = lookup_price
+
+    ModelPortfolioPage._on_refresh_prices(page)
+
+    assert page.btn_refresh.text() == " Fiyat Güncelle"
+    assert page.btn_refresh.isEnabled()
+    assert page.current_price_map == {2: Decimal("22.50")}
 
 
 def test_model_portfolio_prices_updated_event_updates_selected_portfolio_prices():
