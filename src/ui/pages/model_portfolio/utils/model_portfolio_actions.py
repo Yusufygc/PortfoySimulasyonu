@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QDialog, QMessageBox
 
 from src.ui.formatters import display_ticker
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
-from src.ui.widgets.model_portfolio import PortfolioInputDialog, TradeInputDialog
+from src.ui.widgets.model_portfolio import CapitalMovementDialog, PortfolioInputDialog, TradeInputDialog
 from src.ui.widgets.shared import Toast
 
 if TYPE_CHECKING:
@@ -92,6 +92,37 @@ class ModelPortfolioActions:
             self.page.model_portfolio_service.reorder_portfolios(ordered_ids)
         except Exception as exc:
             Toast.error(self.page, f"Sıralama güncellenemedi: {exc}")
+
+    def on_capital_movement(self) -> None:
+        if self.page.current_portfolio_id is None:
+            return
+        summary = self.page.model_portfolio_service.get_portfolio_summary(
+            self.page.current_portfolio_id,
+            self.page.current_price_map,
+        )
+        dialog = CapitalMovementDialog(
+            current_cash=summary["remaining_cash"],
+            net_capital=summary["net_capital"],
+            parent=self.page,
+        )
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        result = dialog.get_result()
+        if not result:
+            return
+        try:
+            self.page.model_portfolio_service.add_capital_movement(
+                portfolio_id=self.page.current_portfolio_id,
+                **result,
+            )
+            self.page._load_portfolios()
+            self.page._update_view()
+            action = "eklendi" if result["movement_type"] == "DEPOSIT" else "cekildi"
+            Toast.success(self.page, f"Sermaye hareketi kaydedildi: {result['amount']:,.2f} TL {action}.")
+        except ValueError as exc:
+            Toast.warning(self.page, str(exc))
+        except Exception as exc:
+            Toast.error(self.page, f"Sermaye hareketi kaydedilemedi: {exc}")
 
     def on_trade(self, side: str) -> None:
         if self.page.current_portfolio_id is None:
