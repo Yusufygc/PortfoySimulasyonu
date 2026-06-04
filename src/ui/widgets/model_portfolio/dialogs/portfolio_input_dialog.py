@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from decimal import Decimal
 from typing import Optional
@@ -14,7 +15,7 @@ class PortfolioInputDialog(QDialog):
         super().__init__(parent)
         self.portfolio = portfolio
         self.is_edit = portfolio is not None
-        self.setWindowTitle("Portföy Düzenle" if self.is_edit else "Yeni Portföy")
+        self.setWindowTitle(L10N.PORTFOY_DUZENLE if self.is_edit else L10N.YENI_PORTFOY)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.resize(400, 200)
         self.setModal(True)
@@ -45,10 +46,10 @@ class PortfolioInputDialog(QDialog):
 
         button_row = QHBoxLayout()
         button_row.addStretch()
-        btn_cancel = QPushButton("İptal")
+        btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
-        self.btn_save = QPushButton("Kaydet")
+        self.btn_save = QPushButton(L10N.SAVE)
         self.btn_save.setProperty("cssClass", "successButton")
         self.btn_save.clicked.connect(self.accept)
         self.btn_save.setDefault(True)

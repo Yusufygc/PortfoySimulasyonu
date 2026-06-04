@@ -1,6 +1,7 @@
 # src/ui/pages/watchlist_page.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from typing import Optional
 
@@ -40,7 +41,7 @@ class WatchlistPage(BasePage):
     def __init__(self, container, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Takip Listeleri"
+        self.page_title = L10N.TAKIP_LISTELERI
         self.watchlist_service = container.watchlist_service
         self.current_watchlist_id: Optional[int] = None
         
@@ -54,13 +55,13 @@ class WatchlistPage(BasePage):
         icon_lbl = IconLabel("clipboard-list", color="@COLOR_ACCENT", size=28)
         header_layout.addWidget(icon_lbl)
         
-        lbl_title = QLabel("Takip Listeleri")
+        lbl_title = QLabel(L10N.TAKIP_LISTELERI)
         lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         self.main_layout.addLayout(header_layout)
 
-        lbl_desc = QLabel("Hisse senetlerini listeler halinde organize edin ve takip edin.")
+        lbl_desc = QLabel(L10N.HISSE_SENETLERINI_LISTELER_HALINDE_ORGANIZE)
         lbl_desc.setWordWrap(True)
         lbl_desc.setProperty("cssClass", "pageDescription")
         self.main_layout.addWidget(lbl_desc)
@@ -82,12 +83,12 @@ class WatchlistPage(BasePage):
         img = IconLabel("bookmark", color="@COLOR_TEXT_BRIGHT", size=18)
         lbl_row.addWidget(img)
         
-        lbl_lists = QLabel("Listelerim")
+        lbl_lists = QLabel(L10N.LISTELERIM)
         lbl_lists.setProperty("cssClass", "tableTitle")
         lbl_row.addWidget(lbl_lists)
         lbl_row.addStretch()
 
-        self.btn_new = AnimatedButton(" Yeni")
+        self.btn_new = AnimatedButton(L10N.YENI)
         self.btn_new.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_new.setProperty("cssClass", "watchlistNewButton")
         self.btn_new.clicked.connect(self._on_new_list)
@@ -104,12 +105,12 @@ class WatchlistPage(BasePage):
         self.list_widget.itemClicked.connect(self._on_list_selected)
         left_layout.addWidget(self.list_widget)
 
-        self.btn_edit = AnimatedButton(" Düzenle")
+        self.btn_edit = AnimatedButton(L10N.DUZENLE)
         self.btn_edit.setIconName("pencil", color="@COLOR_TEXT_PRIMARY")
         self.btn_edit.setProperty("cssClass", "secondaryButton")
         self.btn_edit.setEnabled(False)
 
-        self.btn_delete = AnimatedButton(" Sil")
+        self.btn_delete = AnimatedButton(L10N.SIL)
         self.btn_delete.setIconName("trash-2", color="@COLOR_DANGER")
         self.btn_delete.setEnabled(False)
         self.btn_delete.setProperty("cssClass", "dangerOutlineButton")
@@ -126,11 +127,11 @@ class WatchlistPage(BasePage):
         detail_header_layout = QHBoxLayout()
         detail_header_layout.setSpacing(12)
 
-        self.lbl_list_name = QLabel("Bir liste seçin")
+        self.lbl_list_name = QLabel(L10N.BIR_LISTE_SECIN)
         self.lbl_list_name.setProperty("cssClass", "panelTitleLarge")
         detail_header_layout.addWidget(self.lbl_list_name, 1)
 
-        self.btn_add_stock = AnimatedButton(" Hisse Ekle")
+        self.btn_add_stock = AnimatedButton(L10N.HISSE_EKLE)
         self.btn_add_stock.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_add_stock.clicked.connect(self._on_add_stock)
         self.btn_add_stock.setEnabled(False)
@@ -148,7 +149,7 @@ class WatchlistPage(BasePage):
         # Hisse tablosu
         self.stock_table = QTableWidget()
         self.stock_table.setColumnCount(3)
-        self.stock_table.setHorizontalHeaderLabels(["Hisse Adı", "Not", ""])
+        self.stock_table.setHorizontalHeaderLabels([L10N.HISSE_ADI, "Not", ""])
         self.stock_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.stock_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.stock_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
@@ -275,12 +276,12 @@ class WatchlistPage(BasePage):
         icon = IconLabel("plus", color="@COLOR_TEXT_MUTED", size=28)
         layout.addWidget(icon, 0, Qt.AlignCenter)
 
-        label = QLabel("Bu listede henüz hisse yok")
+        label = QLabel(L10N.BU_LISTEDE_HENUZ_HISSE_YOK)
         label.setProperty("cssClass", "watchlistEmptyTitle")
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
 
-        btn_empty_add = AnimatedButton(" Hisse Ekle")
+        btn_empty_add = AnimatedButton(L10N.HISSE_EKLE)
         btn_empty_add.setIconName("plus", color="@COLOR_TEXT_WHITE")
         btn_empty_add.setProperty("cssClass", "primaryButton")
         btn_empty_add.clicked.connect(self._on_add_stock)
@@ -299,7 +300,7 @@ class WatchlistPage(BasePage):
         return item
 
     def _on_new_list(self):
-        result = WatchlistDialog.get_watchlist_data(self, "Yeni Liste")
+        result = WatchlistDialog.get_watchlist_data(self, L10N.YENI_LISTE)
         if not result:
             return
             
@@ -322,7 +323,7 @@ class WatchlistPage(BasePage):
 
         watchlist: Watchlist = current_item.data(Qt.UserRole)
 
-        result = WatchlistDialog.get_watchlist_data(self, "Liste Düzenle", watchlist.name, watchlist.description or "")
+        result = WatchlistDialog.get_watchlist_data(self, L10N.LISTE_DUZENLE, watchlist.name, watchlist.description or "")
         if not result:
             return
             
@@ -334,7 +335,7 @@ class WatchlistPage(BasePage):
             )
             self._load_watchlists()
             self.lbl_list_name.setText(name.strip())
-            Toast.success(self, "Liste güncellendi.")
+            Toast.success(self, L10N.LISTE_GUNCELLENDI)
         except Exception as e:
             Toast.error(self, f"Liste güncellenemedi: {e}")
 
@@ -343,7 +344,7 @@ class WatchlistPage(BasePage):
             return
 
         reply = QMessageBox.question(
-            self, "Liste Sil", "Bu listeyi silmek istediğinizden emin misiniz?",
+            self, L10N.LISTE_SIL, L10N.BU_LISTEYI_SILMEK_ISTEDIGINIZDEN_EMIN,
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
 
@@ -355,12 +356,12 @@ class WatchlistPage(BasePage):
             self.current_watchlist_id = None
             self._load_watchlists()
             self._clear_right_panel()
-            Toast.success(self, "Liste silindi.")
+            Toast.success(self, L10N.LISTE_SILINDI)
         except Exception as e:
             Toast.error(self, f"Liste silinemedi: {e}")
 
     def _clear_right_panel(self):
-        self.lbl_list_name.setText("Bir liste seçin")
+        self.lbl_list_name.setText(L10N.BIR_LISTE_SECIN)
         self.lbl_list_desc.setText("")
         self.stock_table.setRowCount(0)
         self.content_stack.setCurrentWidget(self.stock_table)
@@ -395,7 +396,7 @@ class WatchlistPage(BasePage):
             return
 
         reply = QMessageBox.question(
-            self, "Hisse Çıkar", "Bu hisseyi listeden çıkarmak istediğinizden emin misiniz?",
+            self, L10N.HISSE_CIKAR, L10N.BU_HISSEYI_LISTEDEN_CIKARMAK_ISTEDIGINIZDEN,
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
 
@@ -407,4 +408,4 @@ class WatchlistPage(BasePage):
             self._load_stocks()
             self._load_watchlists()
         except Exception as e:
-            QMessageBox.critical(self, "Hata", f"Hisse çıkarılamadı: {e}")
+            QMessageBox.critical(self, L10N.ERROR, f"Hisse çıkarılamadı: {e}")

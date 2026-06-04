@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from decimal import Decimal
 from typing import Optional
@@ -26,7 +27,7 @@ class CapitalMovementDialog(QDialog):
         super().__init__(parent)
         self.current_cash = current_cash
         self.net_capital = net_capital
-        self.setWindowTitle("Sermaye Yönetimi")
+        self.setWindowTitle(L10N.SERMAYE_YONETIMI_1)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
@@ -47,8 +48,8 @@ class CapitalMovementDialog(QDialog):
         form.setSpacing(12)
 
         self.combo_action = QComboBox()
-        self.combo_action.addItem("Sermaye Ekle", "DEPOSIT")
-        self.combo_action.addItem("Sermaye Çek", "WITHDRAW")
+        self.combo_action.addItem(L10N.SERMAYE_EKLE, "DEPOSIT")
+        self.combo_action.addItem(L10N.SERMAYE_CEK, "WITHDRAW")
         self.combo_action.setProperty("cssClass", "tradeInputNormal")
         form.addRow("İşlem:", self.combo_action)
 
@@ -59,12 +60,12 @@ class CapitalMovementDialog(QDialog):
         self.spin_amount.setSuffix(" TL")
         self.spin_amount.setValue(10_000)
         self.spin_amount.setProperty("cssClass", "tradeInputNormal")
-        form.addRow("Tutar:", self.spin_amount)
+        form.addRow(L10N.TUTAR_1, self.spin_amount)
 
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setProperty("cssClass", "tradeInputNormal")
-        form.addRow("Tarih:", self.date_edit)
+        form.addRow(L10N.TARIH_1, self.date_edit)
 
         self.time_edit = QTimeEdit(QTime.currentTime())
         self.time_edit.setDisplayFormat("HH:mm")
@@ -72,19 +73,19 @@ class CapitalMovementDialog(QDialog):
         form.addRow("Saat:", self.time_edit)
 
         self.txt_notes = QLineEdit()
-        self.txt_notes.setPlaceholderText("Opsiyonel")
+        self.txt_notes.setPlaceholderText(L10N.OPSIYONEL)
         self.txt_notes.setProperty("cssClass", "tradeInputNormal")
-        form.addRow("Not:", self.txt_notes)
+        form.addRow(L10N.NOT, self.txt_notes)
 
         layout.addLayout(form)
 
         button_row = QHBoxLayout()
         button_row.addStretch()
-        btn_cancel = QPushButton("İptal")
+        btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
 
-        self.btn_confirm = QPushButton("Kaydet")
+        self.btn_confirm = QPushButton(L10N.SAVE)
         self.btn_confirm.setProperty("cssClass", "successButton")
         self.btn_confirm.clicked.connect(self.accept)
         self.btn_confirm.setDefault(True)

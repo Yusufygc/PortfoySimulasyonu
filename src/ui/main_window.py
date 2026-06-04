@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from datetime import date
@@ -61,7 +62,7 @@ class MainWindow(QMainWindow):
             settings=self._settings,
             threadpool=self._threadpool,
         )
-        self.setWindowTitle("Portföy Simülasyonu")
+        self.setWindowTitle(L10N.APP_TITLE)
         self.setWindowIcon(QIcon("icons/portfoy-simulasyonu.ico"))
         self.resize(1300, 800)
 
@@ -92,16 +93,16 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.addWidget(lbl_app_title)
 
         self._add_separator()
-        self.btn_dashboard = self._create_nav_button("Dashboard", self.PAGE_DASHBOARD, "layout-dashboard")
-        self.btn_watchlist = self._create_nav_button("Listelerim", self.PAGE_WATCHLIST, "list")
-        self.btn_model_portfolio = self._create_nav_button("Model Portföyler", self.PAGE_MODEL_PORTFOLIO, "wallet")
-        self.btn_analysis = self._create_nav_button("Analiz", self.PAGE_ANALYSIS, "trending-up")
-        self.btn_comparison = self._create_nav_button("Karşılaştırma", self.PAGE_COMPARISON, "bar-chart-2")
-        self.btn_optimization = self._create_nav_button("Optimizasyon", self.PAGE_OPTIMIZATION, "zap")
-        self.btn_planning = self._create_nav_button("Finansal Planlama", self.PAGE_PLANNING, "save")
-        self.btn_risk_profile = self._create_nav_button("Risk Profili", self.PAGE_RISK_PROFILE, "shield-check")
-        self.btn_ai_page = self._create_nav_button("AI Asistan", self.PAGE_AI_PAGE, "bot")
-        self.btn_settings = self._create_nav_button("Ayarlar", self.PAGE_SETTINGS, "save")
+        self.btn_dashboard = self._create_nav_button(L10N.DASHBOARD, self.PAGE_DASHBOARD, "layout-dashboard")
+        self.btn_watchlist = self._create_nav_button(L10N.LISTELERIM, self.PAGE_WATCHLIST, "list")
+        self.btn_model_portfolio = self._create_nav_button(L10N.MODEL_PORTFOYLER, self.PAGE_MODEL_PORTFOLIO, "wallet")
+        self.btn_analysis = self._create_nav_button(L10N.ANALIZ, self.PAGE_ANALYSIS, "trending-up")
+        self.btn_comparison = self._create_nav_button(L10N.KARSILASTIRMA, self.PAGE_COMPARISON, L10N.BARCHART2)
+        self.btn_optimization = self._create_nav_button(L10N.OPTIMIZASYON, self.PAGE_OPTIMIZATION, "zap")
+        self.btn_planning = self._create_nav_button(L10N.FINANSAL_PLANLAMA, self.PAGE_PLANNING, "save")
+        self.btn_risk_profile = self._create_nav_button(L10N.RISK_PROFILI, self.PAGE_RISK_PROFILE, "shield-check")
+        self.btn_ai_page = self._create_nav_button(L10N.AI_ASISTAN, self.PAGE_AI_PAGE, "bot")
+        self.btn_settings = self._create_nav_button(L10N.SETTINGS, self.PAGE_SETTINGS, "save")
 
         for button in (
             self.btn_dashboard,
@@ -151,7 +152,7 @@ class MainWindow(QMainWindow):
         page = self._page_factory.create(page_index)
         if page is None:
             logger.error("PageFactory returned None for page_index=%d", page_index)
-            Toast.error(self, "Sayfa yüklenemedi. Uygulama durumu kontrol edin.")
+            Toast.error(self, L10N.SAYFA_YUKLENEMEDI_UYGULAMA_DURUMU_KONTROL)
             return
 
         if hasattr(page, "navigate_back"):
@@ -224,7 +225,7 @@ class MainWindow(QMainWindow):
             self.PAGE_WATCHLIST: (self.btn_watchlist, "list"),
             self.PAGE_MODEL_PORTFOLIO: (self.btn_model_portfolio, "wallet"),
             self.PAGE_ANALYSIS: (self.btn_analysis, "trending-up"),
-            self.PAGE_COMPARISON: (self.btn_comparison, "bar-chart-2"),
+            self.PAGE_COMPARISON: (self.btn_comparison, L10N.BARCHART2),
             self.PAGE_OPTIMIZATION: (self.btn_optimization, "zap"),
             self.PAGE_PLANNING: (self.btn_planning, "save"),
             self.PAGE_RISK_PROFILE: (self.btn_risk_profile, "shield-check"),

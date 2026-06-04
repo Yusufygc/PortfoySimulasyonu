@@ -1,6 +1,7 @@
 # src/ui/pages/planning_page.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import datetime
 
@@ -27,7 +28,7 @@ class PlanningPage(BasePage):
     def __init__(self, container, parent=None):
         super().__init__(parent)
         self.container = container
-        self.page_title = "Finansal Planlama"
+        self.page_title = L10N.FINANSAL_PLANLAMA
         self._service = container.planning_service
         self._pinned_budget_items = []
         self._init_ui()
@@ -43,13 +44,13 @@ class PlanningPage(BasePage):
         icon_lbl = IconLabel("wallet", color="@COLOR_ACCENT", size=28)
         header.addWidget(icon_lbl)
         
-        lbl_title = QLabel("Finansal Planlama")
+        lbl_title = QLabel(L10N.FINANSAL_PLANLAMA)
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
         self.main_layout.addLayout(header)
 
-        lbl_desc = QLabel("Finansal durumunuzu analiz edin, bütçenizi yönetin ve hedeflerinizi takip edin.")
+        lbl_desc = QLabel(L10N.FINANSAL_DURUMUNUZU_ANALIZ_EDIN_BUTCENIZI)
         lbl_desc.setWordWrap(True)
         lbl_desc.setProperty("cssClass", "pageDescription")
         self.main_layout.addWidget(lbl_desc)
@@ -59,12 +60,12 @@ class PlanningPage(BasePage):
 
         # Sekme 1: Bütçe
         budget_tab = QWidget()
-        self.tab_widget.addTab(budget_tab, "Bütçe Yönetimi")
+        self.tab_widget.addTab(budget_tab, L10N.BUTCE_YONETIMI)
         self._build_budget_tab(budget_tab)
 
         # Sekme 2: Hedefler
         goals_tab = QWidget()
-        self.tab_widget.addTab(goals_tab, "Hedef Takibi")
+        self.tab_widget.addTab(goals_tab, L10N.HEDEF_TAKIBI)
         self._build_goals_tab(goals_tab)
 
         self.tab_widget.currentChanged.connect(self._update_tab_icons)
@@ -91,7 +92,7 @@ class PlanningPage(BasePage):
         icon_month = IconLabel("calendar", color="@COLOR_PRIMARY", size=18)
         top_row.addWidget(icon_month)
         
-        lbl_month = QLabel("Ay:")
+        lbl_month = QLabel(L10N.AY)
         lbl_month.setProperty("cssClass", "panelTitle")
         top_row.addWidget(lbl_month)
 
@@ -104,7 +105,7 @@ class PlanningPage(BasePage):
         top_row.addWidget(self.combo_month)
         top_row.addStretch()
 
-        btn_save = AnimatedButton("Bütçeyi Kaydet")
+        btn_save = AnimatedButton(L10N.BUTCEYI_KAYDET)
         btn_save.setIconName("save", color="@COLOR_TEXT_WHITE", size=16)
         btn_save.setMinimumHeight(38)
         btn_save.setProperty("cssClass", "primaryButton")
@@ -242,7 +243,7 @@ class PlanningPage(BasePage):
         if goal_id is None:
             return
         reply = QMessageBox.question(
-            self, "Hedef Sil",
+            self, L10N.HEDEF_SIL,
             f"'{goal_name}' hedefini silmek istediğinizden emin misiniz?",
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
         )
@@ -251,7 +252,7 @@ class PlanningPage(BasePage):
         try:
             self._service.delete_goal(goal_id)
             self._load_goals()
-            Toast.success(self, "Hedef silindi.")
+            Toast.success(self, L10N.HEDEF_SILINDI)
         except Exception as e:
             Toast.error(self, f"Hedef silinemedi: {e}")
 
@@ -262,7 +263,7 @@ class PlanningPage(BasePage):
             Toast.error(self, f"Analiz yapılamadı: {e}")
             return
         if "monthly_power" not in result:
-            Toast.info(self, result.get("message", "Veri yok."))
+            Toast.info(self, result.get("message", L10N.VERI_YOK))
             return
         self.goals_panel.show_feasibility(result)
         self._load_goals()

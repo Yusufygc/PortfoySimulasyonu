@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/pages/model_portfolio/utils/portfolio_exporter.py
 
 import logging
@@ -18,7 +19,7 @@ class PortfolioExporter:
             return
         first_date = self.page.model_portfolio_service.get_first_trade_date(self.page.current_portfolio_id)
         if first_date is None:
-            QMessageBox.information(self.page, "Bilgi", "Bu model portföyde işlem bulunamadı.")
+            QMessageBox.information(self.page, L10N.INFO, L10N.BU_MODEL_PORTFOYDE_ISLEM_BULUNAMADI)
             return
         self._export_model_portfolio_history(first_date, date.today())
 
@@ -27,7 +28,7 @@ class PortfolioExporter:
             return
         first_date = self.page.model_portfolio_service.get_first_trade_date(self.page.current_portfolio_id)
         if first_date is None:
-            QMessageBox.information(self.page, "Bilgi", "Bu model portföyde işlem bulunamadı.")
+            QMessageBox.information(self.page, L10N.INFO, L10N.BU_MODEL_PORTFOYDE_ISLEM_BULUNAMADI)
             return
 
         dialog = self.page.date_range_dialog_cls(self.page, min_date=first_date, max_date=date.today())
@@ -47,9 +48,9 @@ class PortfolioExporter:
         default_name = f"model_portfoy_{self._safe_file_stem(portfolio_name)}.xlsx"
         file_path, _ = QFileDialog.getSaveFileName(
             self.page,
-            "Model Portföy Raporu",
+            L10N.MODEL_PORTFOY_RAPORU,
             default_name,
-            "Excel Dosyaları (*.xlsx)",
+            L10N.EXCEL_DOSYALARI_XLSX,
         )
         if not file_path:
             return
@@ -62,9 +63,9 @@ class PortfolioExporter:
                 file_path=file_path,
                 mode=ExportMode.OVERWRITE,
             )
-            QMessageBox.information(self.page, "Başarılı", "Model portföy Excel raporu oluşturuldu.")
+            QMessageBox.information(self.page, L10N.SUCCESS, L10N.MODEL_PORTFOY_EXCEL_RAPORU_OLUSTURULDU)
         except Exception as exc:
-            QMessageBox.critical(self.page, "Hata", f"Excel raporu oluşturulamadı: {exc}")
+            QMessageBox.critical(self.page, L10N.ERROR, f"Excel raporu oluşturulamadı: {exc}")
 
     @staticmethod
     def _safe_file_stem(value: str) -> str:

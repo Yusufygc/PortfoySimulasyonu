@@ -1,6 +1,7 @@
 # src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date, time
 from decimal import Decimal
@@ -40,7 +41,7 @@ class NewStockTradeDialog(QDialog):
         self._connect_signals()
         
         # Pencere ayarları
-        self.setWindowTitle("Yeni İşlem Sihirbazı")
+        self.setWindowTitle(L10N.YENI_ISLEM_SIHIRBAZI)
         self.setMinimumWidth(500)
         self.setFixedHeight(550)
         configure_dialog_behavior(self, self.btn_next, self._on_next_clicked)
@@ -64,7 +65,7 @@ class NewStockTradeDialog(QDialog):
         header_layout = QHBoxLayout(header_frame)
         header_layout.setContentsMargins(20, 0, 20, 0)
         
-        self.lbl_step_title = QLabel("ADIM 1: Hisse Seçimi")
+        self.lbl_step_title = QLabel(L10N.ADIM_1_HISSE_SECIMI)
         self.lbl_step_title.setProperty("cssClass", "dialogHeaderTitle")
         
         self.lbl_step_indicator = QLabel("1 / 2")
@@ -97,16 +98,16 @@ class NewStockTradeDialog(QDialog):
         footer_layout = QHBoxLayout(footer_frame)
         footer_layout.setContentsMargins(20, 10, 20, 10)
 
-        self.btn_cancel = QPushButton("İptal")
+        self.btn_cancel = QPushButton(L10N.CANCEL)
         self.btn_cancel.setCursor(Qt.PointingHandCursor)
         self.btn_cancel.setProperty("cssClass", "linkButton")
         
-        self.btn_back = QPushButton("Geri")
+        self.btn_back = QPushButton(L10N.BACK)
         self.btn_back.setCursor(Qt.PointingHandCursor)
         self.btn_back.setVisible(False) # İlk sayfada gizli
         self.btn_back.setProperty("cssClass", "secondaryButton")
 
-        self.btn_next = QPushButton("Devam Et") # Sayfa 1'de Devam, Sayfa 2'de Kaydet olacak
+        self.btn_next = QPushButton(L10N.DEVAM_ET) # Sayfa 1'de Devam, Sayfa 2'de Kaydet olacak
         self.btn_next.setCursor(Qt.PointingHandCursor)
         self.btn_next.setProperty("cssClass", "primaryButton")
         self.btn_next.setDefault(True)
@@ -136,16 +137,16 @@ class NewStockTradeDialog(QDialog):
         form.setVerticalSpacing(20)
         
         self.line_ticker = QLineEdit()
-        self.line_ticker.setPlaceholderText("Örn: ASELS, THYAO")
+        self.line_ticker.setPlaceholderText(L10N.ORN_ASELS_THYAO)
         self.line_ticker.setProperty("cssClass", "tradeInputBold")
         
-        self.lbl_company_name = QLabel("Hisse kodu girildiğinde otomatik alınacak")
+        self.lbl_company_name = QLabel(L10N.HISSE_KODU_GIRILDIGINDE_OTOMATIK_ALINACAK)
         self.lbl_company_name.setProperty("cssClass", "dialogSubtitle")
         self.lbl_company_name.setWordWrap(True)
 
-        lbl_ticker = QLabel("Hisse Kodu:")
+        lbl_ticker = QLabel(L10N.HISSE_KODU)
         lbl_ticker.setProperty("cssClass", "formLabel")
-        lbl_name = QLabel("Şirket Adı:")
+        lbl_name = QLabel(L10N.SIRKET_ADI)
         lbl_name.setProperty("cssClass", "formLabel")
 
         form.addRow(lbl_ticker, self.line_ticker)
@@ -160,7 +161,7 @@ class NewStockTradeDialog(QDialog):
         pi_layout = QVBoxLayout(self.price_info_frame)
         pi_layout.setContentsMargins(20, 15, 20, 15)
         
-        lbl_info_title = QLabel("GÜNCEL PİYASA FİYATI")
+        lbl_info_title = QLabel(L10N.GUNCEL_PIYASA_FIYATI)
         lbl_info_title.setProperty("cssClass", "infoTitle")
         
         self.lbl_fetched_price = QLabel("-")
@@ -214,9 +215,9 @@ class NewStockTradeDialog(QDialog):
         
         self._normalize_initial_datetime() # Haftasonu kontrolü
 
-        lbl_date = QLabel("Tarih:")
+        lbl_date = QLabel(L10N.TARIH_1)
         lbl_date.setProperty("cssClass", "formLabel")
-        lbl_time = QLabel("Saat:")
+        lbl_time = QLabel(L10N.SAAT)
         lbl_time.setProperty("cssClass", "formLabel")
 
         form.addRow(lbl_date, self.date_edit)
@@ -224,8 +225,8 @@ class NewStockTradeDialog(QDialog):
 
         # İşlem Yönü
         side_layout = QHBoxLayout()
-        self.radio_buy = QRadioButton("ALIŞ (Buy)")
-        self.radio_sell = QRadioButton("SATIŞ (Sell)")
+        self.radio_buy = QRadioButton(L10N.ALIS_BUY)
+        self.radio_sell = QRadioButton(L10N.SATIS_SELL)
         self.radio_buy.setChecked(True)
         
         self.radio_buy.setProperty("cssClass", "tradeRadioBuy")
@@ -234,7 +235,7 @@ class NewStockTradeDialog(QDialog):
         side_layout.addWidget(self.radio_buy)
         side_layout.addWidget(self.radio_sell)
         
-        lbl_side = QLabel("İşlem Yönü:")
+        lbl_side = QLabel(L10N.ISLEM_YONU)
         lbl_side.setProperty("cssClass", "formLabel")
         form.addRow(lbl_side, side_layout)
 
@@ -250,15 +251,15 @@ class NewStockTradeDialog(QDialog):
         self.edit_price.setReadOnly(True)
         
         self.edit_amount = QLineEdit()
-        self.edit_amount.setPlaceholderText("Toplam Tutar")
+        self.edit_amount.setPlaceholderText(L10N.TOPLAM_TUTAR)
         self.edit_amount.setProperty("cssClass", "tradeInputNormal")
         self.edit_amount.setReadOnly(True)
 
-        lbl_lot = QLabel("Lot Adedi:")
+        lbl_lot = QLabel(L10N.LOT_ADEDI)
         lbl_lot.setProperty("cssClass", "formLabel")
-        lbl_price = QLabel("Birim Fiyat:")
+        lbl_price = QLabel(L10N.BIRIM_FIYAT)
         lbl_price.setProperty("cssClass", "formLabel")
-        lbl_total = QLabel("Toplam Tutar:")
+        lbl_total = QLabel(L10N.TOPLAM_TUTAR_1)
         lbl_total.setProperty("cssClass", "formLabel")
 
         form.addRow(lbl_lot, self.spin_quantity)
@@ -302,16 +303,16 @@ class NewStockTradeDialog(QDialog):
         # Sayfa 2'den 1'e dönüş
         self.stack.setCurrentIndex(0)
         self.btn_back.setVisible(False)
-        self.btn_next.setText("Devam Et")
-        self.lbl_step_title.setText("ADIM 1: Hisse Seçimi")
+        self.btn_next.setText(L10N.DEVAM_ET)
+        self.lbl_step_title.setText(L10N.ADIM_1_HISSE_SECIMI)
         self.lbl_step_indicator.setText("1 / 2")
 
     def _go_to_page2(self):
         # Sayfa 2'ye geçiş ayarları
         self.stack.setCurrentIndex(1)
         self.btn_back.setVisible(True)
-        self.btn_next.setText("Kaydet ve Bitir")
-        self.lbl_step_title.setText("ADIM 2: İşlem Detayları")
+        self.btn_next.setText(L10N.KAYDET_VE_BITIR)
+        self.lbl_step_title.setText(L10N.ADIM_2_ISLEM_DETAYLARI)
         self.lbl_step_indicator.setText("2 / 2")
         
         # Ticker'ı başlığa yaz
@@ -332,7 +333,7 @@ class NewStockTradeDialog(QDialog):
     def _validate_page1(self) -> bool:
         ticker = self.line_ticker.text().strip()
         if not ticker:
-            QMessageBox.warning(self, "Hata", "Lütfen bir hisse kodu (Ticker) giriniz.")
+            QMessageBox.warning(self, L10N.ERROR, L10N.LUTFEN_BIR_HISSE_KODU_TICKER)
             return False
         
         # Fiyat sorgusu yapılmamışsa zorla yapalım
@@ -341,8 +342,8 @@ class NewStockTradeDialog(QDialog):
             # Eğer hala yoksa (bulunamadıysa)
             if self.current_price is None:
                 # Kullanıcıya sor: Fiyatsız devam etsin mi?
-                res = QMessageBox.question(self, "Fiyat Bulunamadı", 
-                                           "Bu hisse için güncel fiyat çekilemedi. Yine de devam etmek ister misiniz?",
+                res = QMessageBox.question(self, L10N.FIYAT_BULUNAMADI, 
+                                           L10N.BU_HISSE_ICIN_GUNCEL_FIYAT,
                                            QMessageBox.Yes | QMessageBox.No)
                 if res == QMessageBox.No:
                     return False
@@ -355,12 +356,12 @@ class NewStockTradeDialog(QDialog):
             price = float(p_text) if p_text else 0.0
             if price <= 0: raise ValueError
         except (ValueError, TypeError):
-            QMessageBox.warning(self, "Hata", "Geçerli bir fiyat giriniz.")
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERLI_BIR_FIYAT_GIRINIZ)
             return False
             
         # Tarih Gelecek Kontrolü
         if self.date_edit.date() > QDate.currentDate():
-            QMessageBox.warning(self, "Hata", "Gelecek tarihli işlem girilemez.")
+            QMessageBox.warning(self, L10N.ERROR, L10N.GELECEK_TARIHLI_ISLEM_GIRILEMEZ)
             return False
             
         return True
@@ -397,8 +398,8 @@ class NewStockTradeDialog(QDialog):
             return
 
         self.btn_next.setEnabled(False)
-        self.btn_next.setText("⏳ Bekleniyor...")
-        self.lbl_fetched_price.setText("⏳ Yükleniyor...")
+        self.btn_next.setText(L10N.BEKLENIYOR)
+        self.lbl_fetched_price.setText(L10N.YUKLENIYOR)
         self.lbl_fetched_source.setText("")
         self.price_info_frame.show()
 
@@ -415,7 +416,7 @@ class NewStockTradeDialog(QDialog):
             self.fetched_stock_name = getattr(result, "company_name", None) or normalized_ticker
             self.lbl_company_name.setText(self.fetched_stock_name)
             source_text = (
-                "Anlık Veri (15dk gecikmeli olabilir)"
+                L10N.ANLIK_VERI_15DK_GECIKMELI_OLABILIR
                 if result.source == "intraday"
                 else f"Son Kapanış ({result.as_of.strftime('%d.%m.%Y')})"
             )
@@ -423,21 +424,21 @@ class NewStockTradeDialog(QDialog):
         else:
             self.current_price = None
             self.fetched_stock_name = None
-            self.lbl_company_name.setText("Şirket adı alınamadı")
+            self.lbl_company_name.setText(L10N.SIRKET_ADI_ALINAMADI)
             self.lbl_fetched_price.setText("-")
-            self.lbl_fetched_source.setText("Fiyat Bilgisi Bulunamadı")
+            self.lbl_fetched_source.setText(L10N.FIYAT_BILGISI_BULUNAMADI)
             
         self.btn_next.setEnabled(True)
-        self.btn_next.setText("Devam Et")
+        self.btn_next.setText(L10N.DEVAM_ET)
 
     def _on_price_error(self, err_tuple):
         self.current_price = None
         self.fetched_stock_name = None
-        self.lbl_company_name.setText("Şirket adı alınamadı")
+        self.lbl_company_name.setText(L10N.SIRKET_ADI_ALINAMADI)
         self.lbl_fetched_price.setText("-")
-        self.lbl_fetched_source.setText("Ağ Hatası")
+        self.lbl_fetched_source.setText(L10N.AG_HATASI)
         self.btn_next.setEnabled(True)
-        self.btn_next.setText("Devam Et")
+        self.btn_next.setText(L10N.DEVAM_ET)
 
     def _normalized_ticker(self) -> str:
         ticker = self.line_ticker.text().strip().upper()

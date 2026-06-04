@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from PyQt5.QtCore import QTimer
@@ -30,22 +31,22 @@ class AnalysisRiskSection(QWidget):
 
         cards_row = QHBoxLayout()
         cards_row.setSpacing(15)
-        self.card_top_three = InfoCard("İlk 3 Pozisyon", "—", icon_name="layers")
-        self.card_volatility = InfoCard("Fiyat Dalgalanması (Risk)", "—", icon_name="line-chart")
-        self.card_drawdown = InfoCard("Maksimum Düşüş (Kayıp)", "—", icon_name="trending-down")
-        self.card_concentration = InfoCard("Çeşitlendirme Dağılımı", "—", icon_name="shield-check")
+        self.card_top_three = InfoCard(L10N.ILK_3_POZISYON, "—", icon_name="layers")
+        self.card_volatility = InfoCard(L10N.FIYAT_DALGALANMASI_RISK, "—", icon_name="line-chart")
+        self.card_drawdown = InfoCard(L10N.MAKSIMUM_DUSUS_KAYIP, "—", icon_name="trending-down")
+        self.card_concentration = InfoCard(L10N.CESITLENDIRME_DAGILIMI, "—", icon_name="shield-check")
         for card in [self.card_top_three, self.card_volatility, self.card_drawdown, self.card_concentration]:
             cards_row.addWidget(card, 1)
         layout.addLayout(cards_row)
 
         cards_row2 = QHBoxLayout()
         cards_row2.setSpacing(15)
-        self.card_sharpe = InfoCard("Risk Başına Getiri (Sharpe)", "—", icon_name="activity")
-        self.card_sharpe.setToolTip("Alınan 1 birim riske karşılık ne kadar ekstra getiri sağlandığını gösterir (>1 iyidir).")
-        self.card_beta = InfoCard("BIST100'e Tepkisi (Beta)", "—", icon_name="crosshair")
-        self.card_beta.setToolTip("Portföyün BIST100'e karşı duyarlılığı (1 = endeksle aynı).")
-        self.card_alpha = InfoCard("Ekstra Başarı (Alpha)", "—", icon_name="star")
-        self.card_alpha.setToolTip("Endeks getirisinden bağımsız olarak yaratılan ekstra değer.")
+        self.card_sharpe = InfoCard(L10N.RISK_BASINA_GETIRI_SHARPE, "—", icon_name="activity")
+        self.card_sharpe.setToolTip(L10N.ALINAN_1_BIRIM_RISKE_KARSILIK)
+        self.card_beta = InfoCard(L10N.BIST100E_TEPKISI_BETA, "—", icon_name="crosshair")
+        self.card_beta.setToolTip(L10N.PORTFOYUN_BIST100E_KARSI_DUYARLILIGI_1)
+        self.card_alpha = InfoCard(L10N.EKSTRA_BASARI_ALPHA, "—", icon_name="star")
+        self.card_alpha.setToolTip(L10N.ENDEKS_GETIRISINDEN_BAGIMSIZ_OLARAK_YARATILAN)
         for card in [self.card_sharpe, self.card_beta, self.card_alpha]:
             cards_row2.addWidget(card, 1)
         # Empty space to balance 4 cards vs 3 cards row
@@ -96,7 +97,7 @@ class AnalysisRiskSection(QWidget):
         import tempfile
 
         if cost_breakdown:
-            fig1 = build_pie_chart("Maliyet Bazlı Dağılım", cost_breakdown)
+            fig1 = build_pie_chart(L10N.MALIYET_BAZLI_DAGILIM, cost_breakdown)
             html1 = fig1.to_html(include_plotlyjs=True)
             html1 = patch_plotly_html(html1)
             if not hasattr(self, "_cost_temp_file") or self._cost_temp_file is None:
@@ -110,7 +111,7 @@ class AnalysisRiskSection(QWidget):
             self.cost_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Maliyet verisi yok</div>")
             
         if current_breakdown:
-            fig2 = build_pie_chart("Güncel Değer Dağılımı", current_breakdown)
+            fig2 = build_pie_chart(L10N.GUNCEL_DEGER_DAGILIMI, current_breakdown)
             html2 = fig2.to_html(include_plotlyjs=True)
             html2 = patch_plotly_html(html2)
             if not hasattr(self, "_val_temp_file") or self._val_temp_file is None:

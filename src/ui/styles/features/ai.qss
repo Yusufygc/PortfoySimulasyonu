@@ -19,12 +19,65 @@ QPushButton[cssClass="aiPrimaryBtn"] {
 QPushButton[cssClass="aiPrimaryBtn"]:hover { background-color: @COLOR_ACCENT_HOVER; }
 QPushButton[cssClass="aiPrimaryBtn"]:disabled { background-color: @COLOR_BORDER; color: @COLOR_TEXT_SECONDARY; }
 
+QPushButton[cssClass="aiSendBtn"] {
+    background-color: @COLOR_ACCENT; color: @COLOR_BG_BASE;
+    font-weight: bold; padding: 8px 10px; border-radius: @RADIUS_MD; font-size: @FONT_BASE;
+}
+QPushButton[cssClass="aiSendBtn"]:hover { background-color: @COLOR_ACCENT_HOVER; }
+QPushButton[cssClass="aiSendBtn"]:disabled { background-color: @COLOR_BORDER; color: @COLOR_TEXT_SECONDARY; }
+
+QPushButton[cssClass="aiHistoryToggleButton"] {
+    background-color: @COLOR_BG_SURFACE;
+    color: @COLOR_TEXT_PRIMARY;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
+    padding: 7px 12px;
+    font-weight: bold;
+    font-size: @FONT_BASE;
+}
+QPushButton[cssClass="aiHistoryToggleButton"]:hover {
+    border: 1px solid @COLOR_PRIMARY;
+    background-color: @COLOR_ITEM_HOVER_BG;
+}
+
+QPushButton[cssClass="aiHistoryNewButton"] {
+    background-color: @COLOR_ACCENT;
+    color: @COLOR_BG_BASE;
+    border: none;
+    border-radius: @RADIUS_MD;
+    padding: 9px 12px;
+    font-weight: bold;
+    font-size: @FONT_BASE;
+}
+QPushButton[cssClass="aiHistoryNewButton"]:hover {
+    background-color: @COLOR_ACCENT_HOVER;
+}
+
+QPushButton[cssClass="aiHistoryIconButton"] {
+    background-color: transparent;
+    color: @COLOR_TEXT_SECONDARY;
+    border: none;
+    border-radius: @RADIUS_SM;
+}
+QPushButton[cssClass="aiHistoryIconButton"]:hover {
+    background-color: @COLOR_ITEM_HOVER_BG;
+}
+
 QLineEdit[cssClass="aiInput"], QTextEdit[cssClass="aiInput"] {
     background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
     padding: @SPACE_LG; border: 1px solid @COLOR_BORDER;
     border-radius: @RADIUS_MD; font-size: @FONT_MD;
 }
 QLineEdit[cssClass="aiInput"]:focus, QTextEdit[cssClass="aiInput"]:focus {
+    border: 1px solid @COLOR_ACCENT;
+}
+
+QTextEdit[cssClass="aiChatInput"] {
+    background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
+    padding: 8px 12px; border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD; font-size: @FONT_MD;
+}
+QTextEdit[cssClass="aiChatInput"]:focus {
     border: 1px solid @COLOR_ACCENT;
 }
 

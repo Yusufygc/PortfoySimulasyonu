@@ -1,6 +1,7 @@
 # src/ui/pages/model_portfolio/utils/model_portfolio_actions.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from typing import TYPE_CHECKING
 
@@ -56,7 +57,7 @@ class ModelPortfolioActions:
             self.page._load_portfolios()
             self.page.lbl_portfolio_name.setText(result["name"])
             self.page._update_view()
-            Toast.success(self.page, "Portföy güncellendi.")
+            Toast.success(self.page, L10N.PORTFOY_GUNCELLENDI)
         except Exception as exc:
             Toast.error(self.page, f"Portföy güncellenemedi: {exc}")
 
@@ -65,8 +66,8 @@ class ModelPortfolioActions:
             return
         reply = QMessageBox.question(
             self.page,
-            "Portföy Sil",
-            "Bu portföyü silmek istediğinizden emin misiniz?",
+            L10N.PORTFOY_SIL,
+            L10N.BU_PORTFOYU_SILMEK_ISTEDIGINIZDEN_EMIN,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -83,7 +84,7 @@ class ModelPortfolioActions:
             self.page._last_update_toast_shown_for = None
             self.page._load_portfolios()
             self.page._clear_right_panel()
-            Toast.success(self.page, "Portföy silindi.")
+            Toast.success(self.page, L10N.PORTFOY_SILINDI)
         except Exception as exc:
             Toast.error(self.page, f"Portföy silinemedi: {exc}")
 
@@ -117,7 +118,7 @@ class ModelPortfolioActions:
             )
             self.page._load_portfolios()
             self.page._update_view()
-            action = "eklendi" if result["movement_type"] == "DEPOSIT" else "cekildi"
+            action = L10N.EKLENDI if result["movement_type"] == "DEPOSIT" else "cekildi"
             Toast.success(self.page, f"Sermaye hareketi kaydedildi: {result['amount']:,.2f} TL {action}.")
         except ValueError as exc:
             Toast.warning(self.page, str(exc))

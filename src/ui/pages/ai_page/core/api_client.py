@@ -9,6 +9,7 @@ Kullanım:
 """
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from typing import Any, Dict, List, Optional
@@ -45,10 +46,12 @@ class AICoreFastAPIClient:
         self,
         base_url: Optional[str] = None,
         timeout: int = _DEFAULT_TIMEOUT,
+        log_connection_errors: bool = True,
     ) -> None:
         raw_url = base_url or load_ai_settings().core_api_url
         self.base_url = raw_url.rstrip("/")
         self.timeout = timeout
+        self._log_connection_errors = log_connection_errors
         self._session = requests.Session()
 
     # ─────────────────────────────────────────────────────────────────────
@@ -65,7 +68,7 @@ class AICoreFastAPIClient:
             resp = self._get("/health")
             return resp.get("status") in ("ok", "degraded")
         except Exception:
-            logger.debug("AI_Core health check başarısız", exc_info=True)
+            logger.debug("AI_Core health check ba?ar?s?z")
             return False
 
     def get_analysis(self, symbol: str) -> Dict[str, Any]:
@@ -104,14 +107,20 @@ class AICoreFastAPIClient:
         try:
             resp = self._session.get(url, params=params, timeout=self.timeout)
         except requests.ConnectionError as exc:
-            logger.warning("AI_Core connection failed: url=%s", url, exc_info=True)
+            if self._log_connection_errors:
+                logger.warning("AI_Core connection failed: url=%s", url, exc_info=True)
+            else:
+                logger.debug("AI_Core connection failed: url=%s", url)
             raise APIConnectionError(
-                f"AI_Core sunucusuna bağlanılamadı ({url}). "
-                "Sunucunun çalıştığından emin olun: "
-                "uvicorn src.api.main:app --port 8000"
+                f"AI_Core sunucusuna bağlanılamadı ({url}). " +
+                L10N.SUNUCUNUN_CALISTIGINDAN_EMIN_OLUN +
+                L10N.UVICORN_SRCAPIMAINAPP_PORT_8000
             ) from exc
         except requests.Timeout as exc:
-            logger.warning("AI_Core request timed out: url=%s timeout=%s", url, self.timeout, exc_info=True)
+            if self._log_connection_errors:
+                logger.warning("AI_Core request timed out: url=%s timeout=%s", url, self.timeout, exc_info=True)
+            else:
+                logger.debug("AI_Core request timed out: url=%s timeout=%s", url, self.timeout)
             raise APIConnectionError(
                 f"AI_Core isteği zaman aşımına uğradı ({self.timeout}s): {url}"
             ) from exc
@@ -130,4 +139,4 @@ class AICoreFastAPIClient:
             return resp.json()
         except ValueError as exc:
             logger.error("AI_Core returned invalid JSON: url=%s", url, exc_info=True)
-            raise APIResponseError(resp.status_code, "Invalid JSON response") from exc
+            raise APIResponseError(resp.status_code, L10N.INVALID_JSON_RESPONSE) from exc

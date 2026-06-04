@@ -1,6 +1,7 @@
 # src/ui/pages/comparison/utils/comparison_data_manager.py
 """Karşılaştırma sayfasının veri ve filtre yönetimi."""
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from typing import TYPE_CHECKING
@@ -75,7 +76,7 @@ class ComparisonDataManager:
                     page._renderer.render_single_chart_async("main", page.last_global_df)
                 else:
                     df_metrics = page.last_global_df
-                    if mode == "Rasyo Modu":
+                    if mode == L10N.RASYO_MODU:
                         num_code, den_code = page.ribbon_bar.ratio_assets()
                         num_col = self.find_column_by_code(page.last_global_df, num_code)
                         den_col = self.find_column_by_code(page.last_global_df, den_code)
@@ -149,7 +150,7 @@ class ComparisonDataManager:
             page._renderer.render_single_chart_async("main", aligned_df)
         else:
             df_metrics = aligned_df
-            if mode == "Rasyo Modu":
+            if mode == L10N.RASYO_MODU:
                 num_code, den_code = page.ribbon_bar.ratio_assets()
                 num_col = self.find_column_by_code(aligned_df, num_code)
                 den_col = self.find_column_by_code(aligned_df, den_code)
@@ -179,7 +180,7 @@ class ComparisonDataManager:
         selected_codes = page.ribbon_bar.selected_assets()
 
         if not selected_codes:
-            page._renderer.render_empty_state("Lütfen kıyaslanacak varlıkları seçin.")
+            page._renderer.render_empty_state(L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN)
             return
 
         new_selected_codes, has_holdings_trigger = self._filter_state_builder.expand_holdings(selected_codes)
@@ -199,7 +200,7 @@ class ComparisonDataManager:
 
         warnings = self.check_date_warnings()
         if warnings:
-            warning_text = "<b>⚠️ Dikkat:</b><br>" + "<br>".join([f"• {w}" for w in warnings])
+            warning_text = "<b>⚠️ Dikkat:</b><br>" + L10N.BR.join([f"• {w}" for w in warnings])
             page.warning_label.setText(warning_text)
             page.warning_panel.setVisible(True)
         else:
@@ -229,7 +230,7 @@ class ComparisonDataManager:
         series_dict, page.code_to_label = ComparisonSeriesBuilder.build_global_series(dto, selected_sids)
 
         if not series_dict:
-            page._renderer.render_empty_state("Seçilen filtreler için veri bulunamadı.")
+            page._renderer.render_empty_state(L10N.SECILEN_FILTRELER_ICIN_VERI_BULUNAMADI)
             return
 
         aligned_df = ComparisonService.align_financial_series(series_dict)

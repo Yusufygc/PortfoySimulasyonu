@@ -79,3 +79,12 @@ Bütün ekranlar `main_window.py` üzerinde barınır. Ancak kod kalabalığın�
 - Model portfoy sayfasi acildiginda son secim bulunamazsa listedeki ilk portfoy otomatik secilir; liste bos ise sag panel temizlenir ve islem butonlari pasif kalir.
 - Secili portfoyde acik pozisyon yoksa `Hisse Sat` pasif kalir; `Hisse Al`, `Fiyat Guncelle`, `Rapor Al` ve `Sermaye Yonetimi` secili portfoy kapsaminda aktif olur.
 - `Sermaye Yonetimi` dialogu tarih, saat, tutar, islem tipi ve not alanlariyla model portfoy sermaye hareketi olusturur.
+
+## AI Asistanı Sidebar ve Arayüz Güncellemesi (2026-06-04)
+
+- AI Finans Asistanı sayfasındaki "Sohbetler" butonu kaldırılmış ve yüzen (`floating`) bir sidebar aç/kapat ikon butonu (`btn_toggle_sidebar`) eklenmiştir.
+- Sidebar uzunluğu chat panelinin sol/üst köşesinden (`x=0, y=0`) tam yükseklikte (`self.height()`) başlayacak şekilde hizalanmıştır.
+- Aç/kapat ikon butonu ve sidebar, `QParallelAnimationGroup` ve `QPropertyAnimation` (`geometry` özelliği) kullanılarak 250 ms süreyle smooth bir geçişle eş zamanlı olarak hareket ettirilir.
+- Sidebar kapalıyken buton chat panelinin sol üst köşesinde (`x=20, y=14`) "Merhaba" mesajının üstünde yer alır; sidebar açıldığında ise başlıklar arası çakışmayı önlemek için otomatik olarak sidebar'ın sağ üst köşesine (`x=sidebar_width - 46, y=14`) kayar.
+- Sidebar içindeki eski "Kapat" butonu kaldırılmış, kapatma işlemi de bu hareketli ikon butonuyla birleştirilmiştir.
+- Uygulama başlangıcında son aktif sohbetin otomatik olarak açılması yerine, her zaman yeni ve temiz bir sohbet oturumu açılması sağlanmıştır.

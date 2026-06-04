@@ -104,7 +104,11 @@ class ModelPanel(QWidget):
     def probe_connection(self) -> bool:
         """WORKER THREAD'de çalışır — yalnızca ağ I/O, UI'a DOKUNMAZ."""
         base_url = load_ai_settings().core_api_url
-        probe = AICoreFastAPIClient(base_url=base_url)
+        probe = AICoreFastAPIClient(
+            base_url=base_url,
+            timeout=2,
+            log_connection_errors=False,
+        )
         return probe.health_check()
 
     def apply_connection_result(self, ok: bool) -> None:

@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/pages/dashboard/dashboard_portfolio_table.py
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableView, QHeaderView, QTableWidget, QTableWidgetItem, QMenu, QAction
@@ -68,8 +69,8 @@ class DashboardPortfolioTable(QWidget):
         menu = QMenu(self.table_view)
         menu.setProperty("cssClass", "contextMenu")
 
-        act_bedelsiz = QAction("📈  Bedelsiz Sermaye Artırımı", self)
-        act_bedelli  = QAction("💰  Bedelli Sermaye Artırımı (Rüçhan Hakkı)", self)
+        act_bedelsiz = QAction(L10N.BEDELSIZ_SERMAYE_ARTIRIMI, self)
+        act_bedelli  = QAction(L10N.BEDELLI_SERMAYE_ARTIRIMI_RUCHAN_HAKKI, self)
 
         act_bedelsiz.triggered.connect(lambda: self.corporate_action_requested.emit(row, "BEDELSIZ"))
         act_bedelli.triggered.connect(lambda: self.corporate_action_requested.emit(row, "BEDELLI"))

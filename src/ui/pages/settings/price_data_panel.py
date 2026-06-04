@@ -1,5 +1,6 @@
 # src/ui/pages/settings/price_data_panel.py
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date
 
@@ -63,18 +64,18 @@ class PriceDataPanel(QWidget):
         layout.setSpacing(14)
 
         title_row = QHBoxLayout()
-        title = QLabel("Fiyat Verisi Yönetimi")
+        title = QLabel(L10N.FIYAT_VERISI_YONETIMI)
         title.setProperty("cssClass", "panelTitle")
         title_row.addWidget(title)
         title_row.addStretch()
 
-        self.chk_problem_only = QCheckBox("Sadece sorunlu hisseler")
+        self.chk_problem_only = QCheckBox(L10N.SADECE_SORUNLU_HISSELER)
         self.chk_problem_only.stateChanged.connect(self._report_renderer.populate_health_table)
         title_row.addWidget(self.chk_problem_only)
         layout.addLayout(title_row)
 
         desc = QLabel(
-            "Kayıtlı hisselerin günlük fiyat verisini analiz eder; eksik kayıtları, hafta sonlarını "
+            L10N.KAYITLI_HISSELERIN_GUNLUK_FIYAT_VERISINI +
             "ve tüm piyasada boş kalan tatil/kapalı gün adaylarını ayırır."
         )
         desc.setWordWrap(True)
@@ -89,16 +90,16 @@ class PriceDataPanel(QWidget):
         root_layout.addWidget(card)
         if self.price_data_health_service is None:
             self._set_price_data_controls_enabled(False)
-            self.detail_text.setText("Fiyat verisi yönetim servisi kullanılamıyor.")
+            self.detail_text.setText(L10N.FIYAT_VERISI_YONETIM_SERVISI_KULLANILAMIYOR)
 
     def _build_summary_grid(self) -> QGridLayout:
         summary_grid = QGridLayout()
         summary_grid.setSpacing(10)
-        self.lbl_stock_count = self._summary_label("Hisse", "-", "list")
-        self.lbl_missing_count = self._summary_label("Eksik Gün", "-", "alert-triangle")
-        self.lbl_holiday_count = self._summary_label("Bilinen Tatil", "-", "calendar")
-        self.lbl_holiday_candidate_count = self._summary_label("Tatil Adayı", "-", "clock")
-        self.lbl_latest_date = self._summary_label("Son Güncel Tarih", "-", "history")
+        self.lbl_stock_count = self._summary_label(L10N.HISSE_1, "-", "list")
+        self.lbl_missing_count = self._summary_label(L10N.EKSIK_GUN, "-", L10N.ALERTTRIANGLE)
+        self.lbl_holiday_count = self._summary_label(L10N.BILINEN_TATIL, "-", "calendar")
+        self.lbl_holiday_candidate_count = self._summary_label(L10N.TATIL_ADAYI, "-", "clock")
+        self.lbl_latest_date = self._summary_label(L10N.SON_GUNCEL_TARIH, "-", "history")
         summary_grid.addWidget(self.lbl_stock_count, 0, 0)
         summary_grid.addWidget(self.lbl_missing_count, 0, 1)
         summary_grid.addWidget(self.lbl_holiday_count, 0, 2)
@@ -128,11 +129,11 @@ class PriceDataPanel(QWidget):
         self.date_end.setDate(QDate.currentDate())
 
         self.combo_portfolio_scope.currentIndexChanged.connect(self._on_scope_changed)
-        filter_row.addWidget(QLabel("Portföy"))
+        filter_row.addWidget(QLabel(L10N.PORTFOY))
         filter_row.addWidget(self.combo_portfolio_scope)
-        filter_row.addWidget(QLabel("Başlangıç"))
+        filter_row.addWidget(QLabel(L10N.BASLANGIC))
         filter_row.addWidget(self.date_start)
-        filter_row.addWidget(QLabel("Bitiş"))
+        filter_row.addWidget(QLabel(L10N.BITIS))
         filter_row.addWidget(self.date_end)
         filter_row.addStretch()
         return filter_row
@@ -141,21 +142,21 @@ class PriceDataPanel(QWidget):
         action_row = QHBoxLayout()
         action_row.setSpacing(10)
 
-        self.btn_analyze = self._action_button(" Analiz Et", "search", self._actions.analyze)
+        self.btn_analyze = self._action_button(L10N.ANALIZ_ET_1, "search", self._actions.analyze)
         self.btn_update_missing = self._action_button(
-            " Toplu Eksikleri Güncelle", "refresh-cw", self._actions.update_missing
+            L10N.TOPLU_EKSIKLERI_GUNCELLE, "refresh-cw", self._actions.update_missing
         )
         self.btn_update_selected = self._action_button(
-            " Seçili Hisseyi Güncelle", "refresh-cw", self._actions.update_selected
+            L10N.SECILI_HISSEYI_GUNCELLE, "refresh-cw", self._actions.update_selected
         )
         self.btn_update_latest = self._action_button(
-            " Son Günden Bugüne Güncelle", "calendar", self._actions.update_from_latest
+            L10N.SON_GUNDEN_BUGUNE_GUNCELLE, "calendar", self._actions.update_from_latest
         )
         self.btn_delete_range = self._action_button(
-            " Aralığı Sil", "trash-2", self._actions.delete_range, "dangerTextButton", "@COLOR_DANGER"
+            L10N.ARALIGI_SIL, "trash-2", self._actions.delete_range, "dangerTextButton", "@COLOR_DANGER"
         )
         self.btn_copy_report = self._action_button(
-            " Raporu Kopyala", "file-text", self._actions.copy_report
+            L10N.RAPORU_KOPYALA, L10N.FILETEXT, self._actions.copy_report
         )
 
         for button in self._price_data_buttons:
@@ -170,7 +171,7 @@ class PriceDataPanel(QWidget):
         self.health_table = QTableWidget()
         self.health_table.setColumnCount(6)
         self.health_table.setHorizontalHeaderLabels(
-            ["Hisse", "Son Veri", "Eksik Gün", "Durum", "İlk Eksik", "Son Eksik"]
+            ["Hisse", L10N.SON_VERI, L10N.EKSIK_GUN, "Durum", L10N.ILK_EKSIK, L10N.SON_EKSIK]
         )
         self.health_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.health_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -190,7 +191,7 @@ class PriceDataPanel(QWidget):
         self.detail_text.setReadOnly(True)
         self.detail_text.setMinimumWidth(280)
         self.detail_text.setProperty("cssClass", "plainTextPanel")
-        self.detail_text.setText("Analiz sonucu bekleniyor.")
+        self.detail_text.setText(L10N.ANALIZ_SONUCU_BEKLENIYOR)
         content_row.addWidget(self.detail_text, 1)
         return content_row
 

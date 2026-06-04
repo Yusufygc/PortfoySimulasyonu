@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/pages/stock_detail/trade_form_panel.py
 
 from PyQt5.QtWidgets import (
@@ -28,7 +29,7 @@ class TradeFormPanel(QFrame):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
         
-        lbl_trade_title = QLabel("Hızlı İşlem")
+        lbl_trade_title = QLabel(L10N.HIZLI_ISLEM)
         lbl_trade_title.setProperty("cssClass", "panelTitleLarge")
         layout.addWidget(lbl_trade_title)
         
@@ -56,14 +57,14 @@ class TradeFormPanel(QFrame):
         side_layout.addWidget(self.btn_buy_mode)
         side_layout.addWidget(self.btn_sell_mode)
         
-        form.addRow("İşlem Yönü:", side_layout)
+        form.addRow(L10N.ISLEM_YONU, side_layout)
         
         # Adet
         self.spin_qty = QSpinBox()
         self.spin_qty.setRange(1, 1_000_000)
         self.spin_qty.setValue(1)
         self.spin_qty.setProperty("cssClass", "tradeInputLarge")
-        form.addRow("Adet (Lot):", self.spin_qty)
+        form.addRow(L10N.ADET_LOT, self.spin_qty)
         
         # Fiyat
         self.spin_price = QDoubleSpinBox()
@@ -73,14 +74,14 @@ class TradeFormPanel(QFrame):
         self.spin_price.setProperty("cssClass", "tradeInputLarge")
         self.spin_price.setReadOnly(True)
         self.spin_price.setButtonSymbols(QDoubleSpinBox.NoButtons)
-        form.addRow("Fiyat:", self.spin_price)
+        form.addRow(L10N.FIYAT_1, self.spin_price)
         
         # Tarih
         self.date_edit = QDateEdit()
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setDate(QDate.currentDate())
         self.date_edit.setProperty("cssClass", "tradeInputNormal")
-        form.addRow("Tarih:", self.date_edit)
+        form.addRow(L10N.TARIH_1, self.date_edit)
 
         self.time_edit = QTimeEdit()
         self.time_edit.setDisplayFormat("HH:mm")
@@ -92,7 +93,7 @@ class TradeFormPanel(QFrame):
         
         # Toplam Tutar Alanı
         total_layout = QHBoxLayout()
-        self.lbl_total_amount = QLabel("Toplam: ₺ 0.00")
+        self.lbl_total_amount = QLabel(L10N.TOPLAM_000)
         self.lbl_total_amount.setProperty("cssClass", "totalAmountText")
         self.lbl_total_amount.setAlignment(Qt.AlignCenter)
         total_layout.addWidget(self.lbl_total_amount)
@@ -104,7 +105,7 @@ class TradeFormPanel(QFrame):
         self.impact_card.setVisible(False)
 
         # Ana Aksiyon Butonu
-        self.btn_trade = QPushButton("ALIM EMRİNİ ONAYLA")
+        self.btn_trade = QPushButton(L10N.ALIM_EMRINI_ONAYLA)
         self.btn_trade.setFixedHeight(45)
         layout.addWidget(self.btn_trade)
         layout.addStretch()
@@ -126,7 +127,7 @@ class TradeFormPanel(QFrame):
         lay.setSpacing(8)
         lay.setContentsMargins(15, 12, 15, 12)
         
-        title = QLabel("İŞLEM ETKİSİ (Tahmini)")
+        title = QLabel(L10N.ISLEM_ETKISI_TAHMINI)
         title.setProperty("cssClass", "impactCardTitle")
         lay.addWidget(title)
         
@@ -147,10 +148,10 @@ class TradeFormPanel(QFrame):
         
         if is_buy:
             self.btn_trade.setProperty("cssClass", "tradeConfirmBuyBtn")
-            self.btn_trade.setText("ALIM EMRİNİ ONAYLA")
+            self.btn_trade.setText(L10N.ALIM_EMRINI_ONAYLA)
         else:
             self.btn_trade.setProperty("cssClass", "tradeConfirmSellBtn")
-            self.btn_trade.setText("SATIŞ EMRİNİ ONAYLA")
+            self.btn_trade.setText(L10N.SATIS_EMRINI_ONAYLA)
         
         self.btn_trade.style().unpolish(self.btn_trade)
         self.btn_trade.style().polish(self.btn_trade)
@@ -199,28 +200,28 @@ class TradeFormPanel(QFrame):
             total_new_qty = current_qty + qty
             new_avg_cost = (total_current_cost + new_cost) / total_new_qty if total_new_qty > 0 else 0
             
-            self._add_impact_row("Yeni Ort. Maliyet", f"₺ {new_avg_cost:,.2f}",
+            self._add_impact_row(L10N.YENI_ORT_MALIYET, f"₺ {new_avg_cost:,.2f}",
                                state="balanced" if new_avg_cost != current_avg else "neutral")
-            self._add_impact_row("Yeni Toplam Lot", f"{total_new_qty} (+{qty})")
-            self._add_impact_row("İşlem Tutarı", f"₺ {new_cost:,.2f}")
+            self._add_impact_row(L10N.YENI_TOPLAM_LOT, f"{total_new_qty} (+{qty})")
+            self._add_impact_row(L10N.ISLEM_TUTARI, f"₺ {new_cost:,.2f}")
             if cash_balance is not None:
                 remaining_cash = cash_balance - new_cost
                 if remaining_cash < 0:
-                    self._add_impact_row("Kalan Nakit", "₺ 0.00", state="negative")
-                    self._add_impact_row("Uyarı", "Yetersiz Nakit", state="negative")
+                    self._add_impact_row(L10N.KALAN_NAKIT, "₺ 0.00", state="negative")
+                    self._add_impact_row("Uyarı", L10N.YETERSIZ_NAKIT, state="negative")
                 else:
-                    self._add_impact_row("Kalan Nakit", f"₺ {remaining_cash:,.2f}", state="neutral")
+                    self._add_impact_row(L10N.KALAN_NAKIT, f"₺ {remaining_cash:,.2f}", state="neutral")
         else:
             if qty > current_qty:
-                self._add_impact_row("Uyarı", "Yetersiz Bakiye", state="negative")
+                self._add_impact_row("Uyarı", L10N.YETERSIZ_BAKIYE, state="negative")
             else:
                 realized_pl = (price - current_avg) * qty
                 remaining_qty = current_qty - qty
                 pl_state = "positive" if realized_pl >= 0 else "negative"
                 prefix = "+" if realized_pl >= 0 else ""
                 self._add_impact_row("Tahmini K/Z", f"{prefix}₺ {realized_pl:,.2f}", state=pl_state)
-                self._add_impact_row("Kalan Lot", f"{remaining_qty}")
-                self._add_impact_row("Ort. Maliyet", f"₺ {current_avg:,.2f}")
+                self._add_impact_row(L10N.KALAN_LOT, f"{remaining_qty}")
+                self._add_impact_row(L10N.ORT_MALIYET, f"₺ {current_avg:,.2f}")
 
         self.impact_card.setVisible(True)
 
@@ -242,21 +243,21 @@ class TradeFormPanel(QFrame):
             total_new_qty = current_qty + qty
             new_avg_cost = (total_current_cost + new_cost) / Decimal(total_new_qty) if total_new_qty > 0 else Decimal("0")
 
-            self._add_impact_row("Yeni Ort. Maliyet", f"₺ {new_avg_cost:,.2f}",
+            self._add_impact_row(L10N.YENI_ORT_MALIYET, f"₺ {new_avg_cost:,.2f}",
                                  state="balanced" if new_avg_cost != current_avg else "neutral")
-            self._add_impact_row("Yeni Toplam Lot", f"{total_new_qty} (+{qty})")
-            self._add_impact_row("İşlem Tutarı", f"₺ {new_cost:,.2f}")
+            self._add_impact_row(L10N.YENI_TOPLAM_LOT, f"{total_new_qty} (+{qty})")
+            self._add_impact_row(L10N.ISLEM_TUTARI, f"₺ {new_cost:,.2f}")
         else:
             if qty > current_qty:
-                self._add_impact_row("Uyarı", "Yetersiz Pozisyon", state="negative")
+                self._add_impact_row("Uyarı", L10N.YETERSIZ_POZISYON, state="negative")
             else:
                 realized_pl = (price - current_avg) * Decimal(qty)
                 remaining_qty = current_qty - qty
                 pl_state = "positive" if realized_pl >= 0 else "negative"
                 prefix = "+" if realized_pl >= 0 else ""
                 self._add_impact_row("Tahmini K/Z", f"{prefix}₺ {realized_pl:,.2f}", state=pl_state)
-                self._add_impact_row("Kalan Lot", f"{remaining_qty}")
-                self._add_impact_row("Ort. Maliyet", f"₺ {current_avg:,.2f}")
+                self._add_impact_row(L10N.KALAN_LOT, f"{remaining_qty}")
+                self._add_impact_row(L10N.ORT_MALIYET, f"₺ {current_avg:,.2f}")
 
         self.impact_card.setVisible(True)
 

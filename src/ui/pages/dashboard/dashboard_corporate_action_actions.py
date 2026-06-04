@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date, timedelta
 
@@ -28,7 +29,7 @@ class DashboardCorporateActionActions:
 
         stock = self._page.stock_repo.get_stock_by_id(position.stock_id)
         if stock is None:
-            QMessageBox.warning(self._page, "Hata", "Hisse bilgisi bulunamadı.")
+            QMessageBox.warning(self._page, L10N.ERROR, L10N.HISSE_BILGISI_BULUNAMADI)
             return
 
         ticker = stock.ticker
@@ -68,7 +69,7 @@ class DashboardCorporateActionActions:
                     notes=result_data.get("notes"),
                 )
         except Exception as exc:
-            QMessageBox.critical(self._page, "Kayıt Hatası", str(exc))
+            QMessageBox.critical(self._page, L10N.KAYIT_HATASI, str(exc))
             return
 
         try:
@@ -77,7 +78,7 @@ class DashboardCorporateActionActions:
                 current_price=current_price,
             )
         except Exception as exc:
-            QMessageBox.critical(self._page, "Uygulama Hatası", str(exc))
+            QMessageBox.critical(self._page, L10N.UYGULAMA_HATASI, str(exc))
             return
 
         self._refresh_prices_after_corporate_action(
@@ -133,10 +134,10 @@ class DashboardCorporateActionActions:
             type_label = "Bedelsiz" if ca_result_ref.action_type == ActionType.BEDELSIZ else "Bedelli"
             QMessageBox.warning(
                 self._page,
-                "Fiyat Güncelleme Uyarısı",
-                f"{type_label} sermaye artırımı uygulandı, ancak geçmiş fiyatlar "
-                f"güncellenirken hata oluştu:\n{err_tuple[1]}\n\n"
-                "Fiyatları daha sonra manuel olarak 'Fiyatları Güncelle' butonuyla yenileyebilirsiniz.",
+                L10N.FIYAT_GUNCELLEME_UYARISI,
+                f"{type_label} sermaye artırımı uygulandı, ancak geçmiş fiyatlar " +
+                f"güncellenirken hata oluştu:\n{err_tuple[1]}\n\n" +
+                L10N.FIYATLARI_DAHA_SONRA_MANUEL_OLARAK,
             )
 
         worker = Worker(_do_backfill)

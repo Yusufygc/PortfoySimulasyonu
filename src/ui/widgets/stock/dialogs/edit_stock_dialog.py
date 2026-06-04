@@ -1,6 +1,7 @@
 # src/ui/widgets/stock/dialogs/edit_stock_dialog.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from dataclasses import dataclass
 from typing import Optional
@@ -41,19 +42,19 @@ class EditStockDialog(QDialog):
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
 
     def _init_ui(self):
-        self.setWindowTitle("Hisseyi Düzenle")
+        self.setWindowTitle(L10N.HISSEYI_DUZENLE)
         self.setMinimumWidth(420)
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(18, 18, 18, 18)
         main_layout.setSpacing(12)
 
-        title = QLabel("Hisse bilgilerini düzenleyebilirsiniz.")
+        title = QLabel(L10N.HISSE_BILGILERINI_DUZENLEYEBILIRSINIZ)
         title.setObjectName("summaryLabel")
         main_layout.addWidget(title)
 
-        sub = QLabel("Ticker değiştirirken BIST için sadece kod yazmanız yeterli (örn: ASELS). "
-                     "Sistem otomatik .IS ekleyecek.")
+        sub = QLabel(L10N.TICKER_DEGISTIRIRKEN_BIST_ICIN_SADECE +
+                     L10N.SISTEM_OTOMATIK_IS_EKLEYECEK)
         sub.setWordWrap(True)
         main_layout.addWidget(sub)
 
@@ -71,16 +72,16 @@ class EditStockDialog(QDialog):
         self.edit_name = QLineEdit(self._stock.name or "")
 
         form.addRow("Ticker:", self.edit_ticker)
-        form.addRow("Hisse Adı:", self.edit_name)
+        form.addRow(L10N.HISSE_ADI_1, self.edit_name)
 
         main_layout.addLayout(form)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        self.btn_ok = QPushButton("Kaydet")
+        self.btn_ok = QPushButton(L10N.SAVE)
         self.btn_ok.setObjectName("primaryButton")
-        self.btn_cancel = QPushButton("İptal")
+        self.btn_cancel = QPushButton(L10N.CANCEL)
 
         btn_layout.addWidget(self.btn_ok)
         btn_layout.addWidget(self.btn_cancel)
@@ -99,7 +100,7 @@ class EditStockDialog(QDialog):
         name = self.edit_name.text().strip() or None
 
         if not ticker:
-            raise ValueError("Ticker boş olamaz.")
+            raise ValueError(L10N.TICKER_BOS_OLAMAZ)
 
         # BIST için .IS ekle (eğer yoksa)
         if "." not in ticker:

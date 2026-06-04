@@ -7,6 +7,7 @@ böylece ComparisonPage sınıfı yalnızca orkestrasyon ve yaşam döngüsü
 sorumluluğunu üstlenir.
 """
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -77,16 +78,16 @@ class ComparisonUIBuilder:
     def build_main_chart_panel(self, layout: QVBoxLayout) -> None:
         page = self.page
         page.main_info_card = ChartInfoCard(
-            "Ana Performans Kıyaslama Grafiği",
-            "Seçilen varlıkların, benchmarkların veya portföylerin kümülatif getiri "
-            "gelişimini ya da birbirlerine oranlarını (rasyosunu) zaman serisi olarak gösterir.",
-            "'Kümülatif' veya 'Normalize' modda çizgilerin yukarı eğimi getiriyi, "
+            L10N.ANA_PERFORMANS_KIYASLAMA_GRAFIGI,
+            L10N.SECILEN_VARLIKLARIN_BENCHMARKLARIN_VEYA_PORTFOYLERIN +
+            L10N.GELISIMINI_YA_DA_BIRBIRLERINE_ORANLARINI,
+            L10N.KUMULATIF_VEYA_NORMALIZE_MODDA_CIZGILERIN +
             "dalgalanmalar ise oynaklığı temsil eder. 'Rasyo Modu'nda Pay/Payda göreli gücü izlenir.",
         )
         layout.addWidget(page.main_info_card)
-        self._make_chart_slot("main", "Performans grafiği yükleniyor...", layout)
+        self._make_chart_slot("main", L10N.PERFORMANS_GRAFIGI_YUKLENIYOR, layout)
         page.main_chart_panel = ChartPanel(
-            "Kümülatif Getiri ve Performans Kıyaslaması",
+            L10N.KUMULATIF_GETIRI_VE_PERFORMANS_KIYASLAMASI,
             page.main_chart_container, "line-chart",
         )
         layout.addWidget(page.main_chart_panel)
@@ -94,16 +95,16 @@ class ComparisonUIBuilder:
     def build_summary_table_panel(self, layout: QVBoxLayout) -> None:
         page = self.page
         page.summary_info_card = ChartInfoCard(
-            "Dönem Sonu Getiri Özeti Tablosu",
-            "Seçilen tarih aralığında varlıkların başlangıç değerlerini, dönem sonu "
-            "değerlerini ve toplam net getiri yüzdelerini tablo halinde listeler.",
-            "Yeşil satırlar pozitif getiri, kırmızı satırlar negatif getiri anlamına gelir.",
+            L10N.DONEM_SONU_GETIRI_OZETI_TABLOSU,
+            L10N.SECILEN_TARIH_ARALIGINDA_VARLIKLARIN_BASLANGIC +
+            L10N.DEGERLERINI_VE_TOPLAM_NET_GETIRI,
+            L10N.YESIL_SATIRLAR_POZITIF_GETIRI_KIRMIZI,
         )
         layout.addWidget(page.summary_info_card)
         page.summary_table = QTableWidget()
         page.summary_table.setColumnCount(4)
         page.summary_table.setHorizontalHeaderLabels(
-            ["Varlık Adı", "Başlangıç Değeri", "Dönem Sonu Değeri", "Toplam Getiri %"]
+            [L10N.VARLIK_ADI, L10N.BASLANGIC_DEGERI, L10N.DONEM_SONU_DEGERI, L10N.TOPLAM_GETIRI]
         )
         page.summary_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         page.summary_table.verticalHeader().setVisible(False)
@@ -116,22 +117,22 @@ class ComparisonUIBuilder:
         page.summary_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         page.summary_table.setProperty("cssClass", "summaryTable")
         page.summary_table_panel = ChartPanel(
-            "Dönem Sonu Getiri Özeti Tablosu", page.summary_table, "clipboard-list"
+            L10N.DONEM_SONU_GETIRI_OZETI_TABLOSU, page.summary_table, "clipboard-list"
         )
         layout.addWidget(page.summary_table_panel)
 
     def build_drawdown_chart_panel(self, layout: QVBoxLayout) -> None:
         page = self.page
         page.drawdown_info_card = ChartInfoCard(
-            "Maksimum Drawdown (Değer Kaybı) Grafiği",
-            "Varlıkların tarihsel olarak zirve noktalarından yaşadıkları en büyük "
-            "yüzde düşüşleri dikey eksende gösterir.",
-            "Aşağıya sarkan derin çukurlar yüksek kayıp riskini ve uzun toparlanma süresini gösterir.",
+            L10N.MAKSIMUM_DRAWDOWN_DEGER_KAYBI_GRAFIGI,
+            L10N.VARLIKLARIN_TARIHSEL_OLARAK_ZIRVE_NOKTALARINDAN +
+            L10N.YUZDE_DUSUSLERI_DIKEY_EKSENDE_GOSTERIR,
+            L10N.ASAGIYA_SARKAN_DERIN_CUKURLAR_YUKSEK,
         )
         layout.addWidget(page.drawdown_info_card)
-        self._make_chart_slot("drawdown", "Drawdown grafiği yükleniyor...", layout)
+        self._make_chart_slot("drawdown", L10N.DRAWDOWN_GRAFIGI_YUKLENIYOR, layout)
         page.drawdown_chart_panel = ChartPanel(
-            "Maksimum Değer Kaybı (Drawdown) Analizi",
+            L10N.MAKSIMUM_DEGER_KAYBI_DRAWDOWN_ANALIZI,
             page.drawdown_chart_container, "trending-down",
         )
         layout.addWidget(page.drawdown_chart_panel)
@@ -139,15 +140,15 @@ class ComparisonUIBuilder:
     def build_periodic_chart_panel(self, layout: QVBoxLayout) -> None:
         page = self.page
         page.periodic_info_card = ChartInfoCard(
-            "Dönemsel Getiri Karşılaştırması Grafiği",
-            "Seçilen varlıkların aylık bazda elde ettikleri net yüzde getirilerini sütun "
-            "grafik olarak kıyaslar.",
-            "Hangi aylarda zıt yönlü hareket ettiğini görerek çeşitlendirme fırsatları yakalanabilir.",
+            L10N.DONEMSEL_GETIRI_KARSILASTIRMASI_GRAFIGI,
+            L10N.SECILEN_VARLIKLARIN_AYLIK_BAZDA_ELDE +
+            L10N.GRAFIK_OLARAK_KIYASLAR,
+            L10N.HANGI_AYLARDA_ZIT_YONLU_HAREKET,
         )
         layout.addWidget(page.periodic_info_card)
-        self._make_chart_slot("periodic", "Dönemsel getiri grafiği yükleniyor...", layout)
+        self._make_chart_slot("periodic", L10N.DONEMSEL_GETIRI_GRAFIGI_YUKLENIYOR, layout)
         page.periodic_chart_panel = ChartPanel(
-            "Dönemsel Getiri Karşılaştırması",
+            L10N.DONEMSEL_GETIRI_KARSILASTIRMASI_1,
             page.periodic_chart_container, "bar-chart-2",
         )
         layout.addWidget(page.periodic_chart_panel)
@@ -155,15 +156,15 @@ class ComparisonUIBuilder:
     def build_scatter_chart_panel(self, layout: QVBoxLayout) -> None:
         page = self.page
         page.scatter_info_card = ChartInfoCard(
-            "Risk-Getiri Dağılımı (Saçılım) Grafiği",
-            "Varlıkların yıllıklandırılmış oynaklığını yatay eksende, toplam dönem "
-            "getirisini ise dikey eksende kıyaslar.",
-            "Sol-üst: Düşük Risk, Yüksek Getiri (verimli). Sağ-alt: Yüksek Risk, Düşük Getiri.",
+            L10N.RISKGETIRI_DAGILIMI_SACILIM_GRAFIGI,
+            L10N.VARLIKLARIN_YILLIKLANDIRILMIS_OYNAKLIGINI_YATAY_EKSENDE +
+            L10N.GETIRISINI_ISE_DIKEY_EKSENDE_KIYASLAR,
+            L10N.SOLUST_DUSUK_RISK_YUKSEK_GETIRI,
         )
         layout.addWidget(page.scatter_info_card)
-        self._make_chart_slot("scatter", "Risk-getiri grafiği yükleniyor...", layout)
+        self._make_chart_slot("scatter", L10N.RISKGETIRI_GRAFIGI_YUKLENIYOR, layout)
         page.scatter_chart_panel = ChartPanel(
-            "Risk-Getiri Dağılımı (Saçılım)",
+            L10N.RISKGETIRI_DAGILIMI_SACILIM,
             page.scatter_chart_container, "target",
         )
         layout.addWidget(page.scatter_chart_panel)
@@ -171,15 +172,15 @@ class ComparisonUIBuilder:
     def build_treemap_chart_panel(self, layout: QVBoxLayout) -> None:
         page = self.page
         page.treemap_info_card = ChartInfoCard(
-            "Treemap (Getiri Katkı Haritası) Grafiği",
-            "Varlıkların getiri büyüklüklerini (kutunun alanı) ve yönlerini (renk) "
-            "tek bir ısı haritasında gösterir.",
-            "Koyu yeşil: en yüksek getiri. Koyu kırmızı: en yüksek kayıp.",
+            L10N.TREEMAP_GETIRI_KATKI_HARITASI_GRAFIGI,
+            L10N.VARLIKLARIN_GETIRI_BUYUKLUKLERINI_KUTUNUN_ALANI +
+            L10N.TEK_BIR_ISI_HARITASINDA_GOSTERIR,
+            L10N.KOYU_YESIL_EN_YUKSEK_GETIRI,
         )
         layout.addWidget(page.treemap_info_card)
-        self._make_chart_slot("treemap", "Getiri katkı haritası yükleniyor...", layout)
+        self._make_chart_slot("treemap", L10N.GETIRI_KATKI_HARITASI_YUKLENIYOR, layout)
         page.treemap_chart_panel = ChartPanel(
-            "Getiri Katkı Haritası (Treemap)",
+            L10N.GETIRI_KATKI_HARITASI_TREEMAP,
             page.treemap_chart_container, "layers",
         )
         layout.addWidget(page.treemap_chart_panel)

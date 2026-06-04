@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/widgets/shared/cards/metric_card.py
 """
 MetricCard — Mevcut vs Optimal Karşılaştırma Kartı
@@ -49,7 +50,7 @@ class MetricCard(QFrame):
 
         # Mevcut değer satırı
         row_current = QHBoxLayout()
-        lbl_curr_label = QLabel("Mevcut:")
+        lbl_curr_label = QLabel(L10N.MEVCUT_1)
         lbl_curr_label.setProperty("cssClass", "infoCardDetail")
         self._lbl_current = QLabel("—")
         self._lbl_current.setProperty("cssClass", "infoCardValueSmall")
@@ -61,7 +62,7 @@ class MetricCard(QFrame):
 
         # Optimal değer satırı
         row_optimal = QHBoxLayout()
-        lbl_opt_label = QLabel("Optimal:")
+        lbl_opt_label = QLabel(L10N.OPTIMAL_1)
         lbl_opt_label.setProperty("cssClass", "infoCardDetail")
         self._lbl_optimal = QLabel("—")
         self._lbl_optimal.setProperty("cssClass", "infoCardValueSmall")

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from decimal import Decimal
 
@@ -53,8 +54,8 @@ class StockTradeSubmitter:
                 not is_buy
                 and page.portfolio_service.get_position_quantity_as_of(page.current_stock_id) <= 0
             )
-            message = "Pozisyon kapandı. Dashboard'a dönülüyor." if position_closed else "İşlem başarıyla kaydedildi."
-            QMessageBox.information(page, "Başarılı", message)
+            message = L10N.POZISYON_KAPANDI_DASHBOARDA_DONULUYOR if position_closed else L10N.ISLEM_BASARIYLA_KAYDEDILDI
+            QMessageBox.information(page, L10N.SUCCESS, message)
             page.refresh_data()
             page.trade_form.update_impact_preview(page.portfolio_service, page.current_stock_id)
             if position_closed:
@@ -62,15 +63,15 @@ class StockTradeSubmitter:
                 if hasattr(main_window, "show_dashboard"):
                     main_window.show_dashboard()
         except ValueError as exc:
-            QMessageBox.warning(page, "Geçersiz İşlem", str(exc))
+            QMessageBox.warning(page, L10N.GECERSIZ_ISLEM, str(exc))
         except Exception as exc:
-            QMessageBox.critical(page, "Hata", f"İşlem hatası: {exc}")
+            QMessageBox.critical(page, L10N.ERROR, f"İşlem hatası: {exc}")
 
     def _submit_model_trade(self, is_buy: bool, qty: int, price: float, trade_date, trade_time) -> None:
         page = self.page
         portfolio_id = page._model_portfolio_id()
         if not portfolio_id or not page.model_portfolio_service:
-            QMessageBox.critical(page, "Hata", "Model portföy bağlamı bulunamadı.")
+            QMessageBox.critical(page, L10N.ERROR, L10N.MODEL_PORTFOY_BAGLAMI_BULUNAMADI)
             return
 
         side = "BUY" if is_buy else "SELL"
@@ -93,11 +94,11 @@ class StockTradeSubmitter:
                     page.current_stock_id,
                 ) <= 0
             message = (
-                "Pozisyon kapandı. Model portföy sayfasına dönülüyor."
+                L10N.POZISYON_KAPANDI_MODEL_PORTFOY_SAYFASINA
                 if position_closed
-                else "Model portföy işlemi başarıyla kaydedildi."
+                else L10N.MODEL_PORTFOY_ISLEMI_BASARIYLA_KAYDEDILDI
             )
-            QMessageBox.information(page, "Başarılı", message)
+            QMessageBox.information(page, L10N.SUCCESS, message)
             page.refresh_data()
             page._trigger_impact_update()
             if position_closed:
@@ -105,6 +106,6 @@ class StockTradeSubmitter:
                 if hasattr(main_window, "show_model_portfolios"):
                     main_window.show_model_portfolios()
         except ValueError as exc:
-            QMessageBox.warning(page, "Geçersiz İşlem", str(exc))
+            QMessageBox.warning(page, L10N.GECERSIZ_ISLEM, str(exc))
         except Exception as exc:
-            QMessageBox.critical(page, "Hata", f"Model portföy işlem hatası: {exc}")
+            QMessageBox.critical(page, L10N.ERROR, f"Model portföy işlem hatası: {exc}")

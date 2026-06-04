@@ -8,6 +8,7 @@ AI Model arayüzü ve adaptörleri.
 """
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 import random
@@ -238,7 +239,7 @@ class MockAdapter(AIModelInterface):
             predicted_price=round(price, 2),
             confidence=round(conf, 2),
             confidence_label=conf_label,
-            confidence_reasons=["Demo: Gerçek model bağlı değil"],
+            confidence_reasons=[L10N.DEMO_GERCEK_MODEL_BAGLI_DEGIL],
             outlook=outlook,
             outlook_strength=round(strength, 2),
             last_close=round(price * random.uniform(0.95, 1.05), 2),
@@ -254,21 +255,21 @@ class MockAdapter(AIModelInterface):
             composite_score=round(random.uniform(30, 80), 1),
             sharpe=round(random.uniform(-0.5, 1.5), 2),
             xai_available=True,
-            xai_method="Demo SHAP",
+            xai_method=L10N.DEMO_SHAP,
             xai_features={
                 "RSI": round(random.uniform(0.1, 0.9), 2),
                 "MACD": round(random.uniform(0.1, 0.9), 2),
                 "Hacim": round(random.uniform(0.1, 0.9), 2),
             },
             xai_positive_reasons=[
-                XaiFactorItem("RSI_14", "RSI (14 gün)", round(random.uniform(0.1, 0.5), 3), "positive"),
+                XaiFactorItem("RSI_14", L10N.RSI_14_GUN, round(random.uniform(0.1, 0.5), 3), "positive"),
             ],
             xai_negative_reasons=[
-                XaiFactorItem("vol_20d", "Volatilite (20 gün)", round(random.uniform(0.1, 0.3), 3), "negative"),
+                XaiFactorItem("vol_20d", L10N.VOLATILITE_20_GUN, round(random.uniform(0.1, 0.3), 3), "negative"),
             ],
-            xai_text="Demo: Bu hisse için teknik göstergeler karışık bir tablo çiziyor.",
-            xai_caveat="Demo verisi — gerçek model bağlandığında güncellenecek.",
-            disclaimer="Bu çıktı demo amaçlıdır, yatırım tavsiyesi değildir.",
+            xai_text=L10N.DEMO_BU_HISSE_ICIN_TEKNIK,
+            xai_caveat=L10N.DEMO_VERISI_GERCEK_MODEL_BAGLANDIGINDA,
+            disclaimer=L10N.BU_CIKTI_DEMO_AMACLIDIR_YATIRIM,
         )
 
     def is_available(self) -> bool:

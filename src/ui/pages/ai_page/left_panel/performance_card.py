@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar, QGridLayout
 from PyQt5.QtCore import Qt
 from src.ui.core.icon_manager import IconManager
@@ -76,7 +77,7 @@ class PerformanceCard(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         lbl_icon = QLabel()
         lbl_icon.setPixmap(IconManager.get_icon("bar-chart-2", color="@COLOR_PRIMARY").pixmap(20, 20))
-        title = QLabel("MODEL PERFORMANSI")
+        title = QLabel(L10N.MODEL_PERFORMANSI)
         title.setProperty("cssClass", "cardLabel")
         header_layout.addWidget(lbl_icon)
         header_layout.addWidget(title)
@@ -130,7 +131,7 @@ class PerformanceCard(QWidget):
             self._bars[key] = (lbl_name, bar, lbl_value)
 
         # Açıklama alt etiketi
-        self.lbl_hint = QLabel("ℹ Metrik adlarının üzerine gelerek açıklamasını görebilirsiniz")
+        self.lbl_hint = QLabel(L10N.METRIK_ADLARININ_UZERINE_GELEREK_ACIKLAMASINI)
         self.lbl_hint.setProperty("cssClass", "aiHintText")
         self.lbl_hint.setWordWrap(True)
         layout.addWidget(self.lbl_hint)

@@ -1,6 +1,7 @@
 # src/ui/pages/stock_detail/stock_chart_widget.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from datetime import date, datetime, time, timedelta
@@ -59,14 +60,14 @@ class StockChartWidget(QFrame):
         self._reference_legend = None
 
         self._configure_plot_item()
-        self.draw_empty_chart("Grafik verisi bekleniyor")
+        self.draw_empty_chart(L10N.GRAFIK_VERISI_BEKLENIYOR)
 
     def _configure_plot_item(self) -> None:
         plot_item = self.plot_widget.getPlotItem()
         plot_item.showGrid(x=True, y=True, alpha=0.14)
         plot_item.setMenuEnabled(False)
         plot_item.hideButtons()
-        plot_item.setLabel("bottom", "Tarih", color=TEXT_SECONDARY)
+        plot_item.setLabel("bottom", L10N.TARIH, color=TEXT_SECONDARY)
         plot_item.setLabel("left", "", color=TEXT_SECONDARY)
         plot_item.setContentsMargins(8, 8, 12, 8)
         for axis_name in ("left", "bottom"):
@@ -81,7 +82,7 @@ class StockChartWidget(QFrame):
         self.plot_widget.clear()
         self._clear_reference_legend()
         self._configure_plot_item()
-        self.plot_widget.getPlotItem().setTitle(message, color=TEXT_SECONDARY, size="13pt")
+        self.plot_widget.getPlotItem().setTitle(message, color=TEXT_SECONDARY, size=L10N.K_13PT)
         self.plot_widget.enableAutoRange()
 
     def draw_chart(
@@ -94,10 +95,10 @@ class StockChartWidget(QFrame):
         average_cost=None,
     ):
         if not current_ticker:
-            self.draw_empty_chart("Grafik verisi bekleniyor")
+            self.draw_empty_chart(L10N.GRAFIK_VERISI_BEKLENIYOR)
             return
 
-        self.draw_empty_chart("Veri yükleniyor…")
+        self.draw_empty_chart(L10N.VERI_YUKLENIYOR)
 
         def _fetch():
             end_date = date.today()
@@ -131,7 +132,7 @@ class StockChartWidget(QFrame):
         worker.signals.result.connect(
             lambda result: self._render_chart(result[0], result[1], current_price, current_ticker)
         )
-        worker.signals.error.connect(lambda _err: self.draw_empty_chart("Grafik yüklenemedi"))
+        worker.signals.error.connect(lambda _err: self.draw_empty_chart(L10N.GRAFIK_YUKLENEMEDI))
         QThreadPool.globalInstance().start(worker)
 
     def _render_chart(
@@ -143,7 +144,7 @@ class StockChartWidget(QFrame):
     ) -> None:
         try:
             if not points:
-                self.draw_empty_chart("Veri bulunamadı")
+                self.draw_empty_chart(L10N.VERI_BULUNAMADI)
                 return
 
             self.plot_widget.clear()
@@ -164,7 +165,7 @@ class StockChartWidget(QFrame):
                 y_values,
                 pen=pg.mkPen(LINE_BLUE, width=3),
                 symbol=None,
-                name="Fiyat",
+                name=L10N.FIYAT,
             )
             baseline = min(y_values)
             baseline_curve = pg.PlotDataItem(x_values, [baseline] * len(x_values), pen=pg.mkPen(None))
@@ -178,7 +179,7 @@ class StockChartWidget(QFrame):
             self.plot_widget.setYRange(max(0, ymin - padding), ymax + padding, padding=0)
 
             if avg_cost is not None:
-                self._add_reference_line(avg_cost, "Ort. Maliyet", LINE_AVG_COST, Qt.DashLine)
+                self._add_reference_line(avg_cost, L10N.ORT_MALIYET, LINE_AVG_COST, Qt.DashLine)
 
             if current_price:
                 self._add_reference_line(
@@ -191,7 +192,7 @@ class StockChartWidget(QFrame):
             self.plot_widget.enableAutoRange(axis=pg.ViewBox.XAxis)
         except Exception as exc:
             logger.error("Grafik render hatası: %s", exc)
-            self.draw_empty_chart("Grafik yüklenemedi")
+            self.draw_empty_chart(L10N.GRAFIK_YUKLENEMEDI)
 
     def _add_reference_line(self, value: float, label: str, color: str, style: Qt.PenStyle) -> None:
         pen = pg.mkPen(color, width=1.4, style=style)

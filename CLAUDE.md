@@ -21,6 +21,7 @@ Bu projedeki tüm **commit kuralları**, **wiki güncelleme protokolü** ve **LL
 - Mimari karar, yeni özellik veya önemli hata çözümü → ilgili wiki sayfası güncellenir + `log.md`'ye eklenir.
 - Tüm commit mesajları Türkçe, detaylı gövde ile yazılır (`güncelle:`, `ekle:`, `düzelt:` vb.).
 - Büyük sınıf/fonksiyon eşiklerinde refactor zorunluluğu ve tam test koşumu için `RULES.md` içindeki kalite kapıları takip edilir.
+- Arayüzdeki (UI) tüm kullanıcı metinlerinde doğru Türkçe karakterler kullanılmalı ve bu metinler `src/ui/shared/locale_tr.py` (`L10N`) içinde yönetilmelidir.
 
 ---
 

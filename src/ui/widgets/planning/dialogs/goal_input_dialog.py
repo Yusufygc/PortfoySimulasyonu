@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -19,7 +20,7 @@ class GoalInputDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Yeni Hedef")
+        self.setWindowTitle(L10N.YENI_HEDEF)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setFixedSize(420, 320)  # Slightly larger to fit validation error label
         self.setModal(True)
@@ -37,9 +38,9 @@ class GoalInputDialog(QDialog):
         form.setSpacing(12)
 
         self.txt_name = QLineEdit()
-        self.txt_name.setPlaceholderText("Örn: Araba, Ev, Tatil...")
+        self.txt_name.setPlaceholderText(L10N.ORN_ARABA_EV_TATIL)
         self.txt_name.setProperty("cssClass", "tradeInputNormal")
-        lbl_name = QLabel("Hedef Adı:")
+        lbl_name = QLabel(L10N.HEDEF_ADI)
         lbl_name.setProperty("cssClass", "formLabel")
         form.addRow(lbl_name, self.txt_name)
 
@@ -50,7 +51,7 @@ class GoalInputDialog(QDialog):
         self.spin_amount.setGroupSeparatorShown(True)
         self.spin_amount.setValue(50000)
         self.spin_amount.setProperty("cssClass", "tradeInputNormal")
-        lbl_amount = QLabel("Hedef Tutar:")
+        lbl_amount = QLabel(L10N.HEDEF_TUTAR)
         lbl_amount.setProperty("cssClass", "formLabel")
         form.addRow(lbl_amount, self.spin_amount)
 
@@ -60,7 +61,7 @@ class GoalInputDialog(QDialog):
         if self.date_deadline.calendarWidget():
             self.date_deadline.calendarWidget().setMinimumDate(QDate.currentDate())
         self.date_deadline.setProperty("cssClass", "tradeInputNormal")
-        lbl_date = QLabel("Hedef Tarih:")
+        lbl_date = QLabel(L10N.HEDEF_TARIH)
         lbl_date.setProperty("cssClass", "formLabel")
         form.addRow(lbl_date, self.date_deadline)
 
@@ -73,7 +74,7 @@ class GoalInputDialog(QDialog):
         self.combo_priority.addItems(["Düşük", "Orta", "Yüksek"])
         self.combo_priority.setCurrentIndex(1)
         self.combo_priority.setProperty("cssClass", "tradeInputNormal")
-        lbl_prio = QLabel("Öncelik:")
+        lbl_prio = QLabel(L10N.ONCELIK)
         lbl_prio.setProperty("cssClass", "formLabel")
         form.addRow(lbl_prio, self.combo_priority)
 
@@ -82,10 +83,10 @@ class GoalInputDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        btn_cancel = QPushButton("İptal")
+        btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
-        self.btn_save = QPushButton("Ekle")
+        self.btn_save = QPushButton(L10N.EKLE)
         self.btn_save.setProperty("cssClass", "tradeConfirmBuyBtn")
         self.btn_save.clicked.connect(self.accept)
         self.btn_save.setDefault(True)

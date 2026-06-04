@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QDoubleSpinBox, QFrame, QHBoxLayout, QLineEdit
@@ -22,7 +23,7 @@ class BudgetItemRow(QFrame):
         layout.setSpacing(6)
 
         self.name_edit = QLineEdit(name)
-        self.name_edit.setPlaceholderText("Kalem adi...")
+        self.name_edit.setPlaceholderText(L10N.KALEM_ADI)
         self.name_edit.setMinimumWidth(110)
         self.name_edit.setMinimumHeight(30)
         self.name_edit.textChanged.connect(self.changed)
@@ -82,7 +83,7 @@ class BudgetItemRow(QFrame):
             color="@COLOR_PRIMARY" if pinned else "@COLOR_TEXT_SECONDARY",
             size=13,
         )
-        self.btn_pin.setToolTip("Pini kaldir" if pinned else "Pinle")
+        self.btn_pin.setToolTip(L10N.PINI_KALDIR if pinned else L10N.PINLE)
         self.btn_pin.style().unpolish(self.btn_pin)
         self.btn_pin.style().polish(self.btn_pin)
 

@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/pages/model_portfolio/utils/portfolio_price_updater.py
 
 import logging
@@ -17,7 +18,7 @@ class PortfolioPriceUpdater:
         if self.page.current_portfolio_id is None:
             return
         if not self.page.price_lookup_func:
-            Toast.warning(self.page, "Fiyat sorgulama fonksiyonu mevcut değil.")
+            Toast.warning(self.page, L10N.FIYAT_SORGULAMA_FONKSIYONU_MEVCUT_DEGIL)
             return
 
         positions = self.page.model_portfolio_service.get_positions_with_details(self.page.current_portfolio_id)
@@ -41,7 +42,7 @@ class PortfolioPriceUpdater:
         if updated_count <= 0:
             Toast.warning(
                 self.page,
-                "Güncellenecek fiyat bulunamadı.",
+                L10N.GUNCELLENECEK_FIYAT_BULUNAMADI,
                 duration_ms=self.page.LAST_UPDATE_TOAST_DURATION_MS,
                 position="top",
             )

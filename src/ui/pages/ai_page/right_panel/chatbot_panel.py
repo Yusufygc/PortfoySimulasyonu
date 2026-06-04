@@ -1,8 +1,11 @@
-from PyQt5.QtCore import QThreadPool
+from src.ui.shared.locale_tr import L10N
+from datetime import datetime
+
+from PyQt5.QtCore import QThreadPool, QPropertyAnimation, QParallelAnimationGroup, QEasingCurve, QRect
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 
-from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole, AnalysisResult
-from src.ui.pages.ai_page.core.gemini_service import generate_gemini_response
+from src.ui.pages.ai_page.core.chat_history_store import ChatHistoryStore
+from src.ui.pages.ai_page.core.models import ChatMessage, ChatSession, MessageRole, AnalysisResult
 from src.ui.pages.ai_page.core.safety_guard import validate_user_input
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
@@ -10,18 +13,30 @@ from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
 from .conversation_view import ConversationView
 from .chat_input_bar import ChatInputBar
+from .chat_history_sidebar import ChatHistorySidebar
+
+
+def _generate_gemini_response_lazy(messages: list[ChatMessage]) -> str:
+    from src.ui.pages.ai_page.core.gemini_service import generate_gemini_response
+
+    return generate_gemini_response(messages)
 
 
 class ChatbotPanel(QWidget):
     """Sağ Panel (Chatbot Paneli) Ana Kapsayıcısı."""
 
-    def __init__(self):
+    def __init__(self, history_store: ChatHistoryStore | None = None):
         super().__init__()
+        self.history_store = history_store or ChatHistoryStore()
+        self.sessions: list[ChatSession] = self.history_store.load_sessions()
+        self.active_session_id = None
         self.messages: list[ChatMessage] = []
         self._threadpool = QThreadPool.globalInstance()
         self._request_seq = 0
         self.worker = None
         self._init_ui()
+        self._load_initial_session()
+        self._position_history_sidebar()
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -30,16 +45,24 @@ class ChatbotPanel(QWidget):
 
         header_layout = QHBoxLayout()
         
+        # Add spacing to avoid overlap with the toggle sidebar button (which sits at x=20, y=14)
+        header_layout.addSpacing(44)
+        
         lbl_icon = QLabel()
         lbl_icon.setPixmap(IconManager.get_icon("bot", color="@COLOR_PRIMARY").pixmap(24, 24))
         
-        lbl_title = QLabel("AI Finans Asistanı")
+        lbl_title = QLabel(L10N.AI_FINANS_ASISTANI)
         lbl_title.setProperty("cssClass", "dialogHeaderTitleLarge")
 
-        btn_clear = AnimatedButton("Sohbeti Temizle")
+        btn_clear = AnimatedButton(L10N.SOHBETI_TEMIZLE)
         btn_clear.setIconName("trash-2", color="@COLOR_DANGER", size=24)
         btn_clear.setProperty("cssClass", "outlineDangerBtn")
         btn_clear.clicked.connect(self.clear_chat)
+
+        self.btn_toggle_sidebar = AnimatedButton("", self)
+        self.btn_toggle_sidebar.setIconName("sidebar", color="@COLOR_PRIMARY", size=20)
+        self.btn_toggle_sidebar.setProperty("cssClass", "aiHistoryIconButton")
+        self.btn_toggle_sidebar.clicked.connect(self.toggle_history_sidebar)
 
         header_layout.addWidget(lbl_icon)
         header_layout.addWidget(lbl_title)
@@ -54,23 +77,38 @@ class ChatbotPanel(QWidget):
         self.input_bar.send_requested.connect(self.send_user_message)
         layout.addWidget(self.input_bar)
 
-        self.add_message(
-            ChatMessage(
-                MessageRole.AI,
-                "Merhaba! Borsa İstanbul ve portföy yönetimi hakkında size nasıl yardımcı olabilirim?",
-            )
-        )
+        self.history_sidebar = ChatHistorySidebar(self)
+        self.history_sidebar.session_selected.connect(self.load_session)
+        self.history_sidebar.session_deleted.connect(self.delete_session)
+        self.history_sidebar.new_session_requested.connect(self.start_new_session)
+        self.history_sidebar.close_requested.connect(self.history_sidebar.hide)
 
-    def add_message(self, msg: ChatMessage):
+    def _load_initial_session(self) -> None:
+        if self.active_session_id:
+            session = self._session_by_id(self.active_session_id)
+            if session is not None:
+                self._set_messages(session.messages)
+                self.history_store.set_last_active_session_id(session.id)
+                self._refresh_history_sidebar()
+                return
+        self.active_session_id = None
+        self._set_messages(self.history_store.default_messages())
+        self.history_store.set_last_active_session_id(None)
+        self._refresh_history_sidebar()
+
+    def add_message(self, msg: ChatMessage, persist: bool = True):
         self.messages.append(msg)
         self.conversation_view.add_message(msg)
+        if persist:
+            self._persist_active_session()
 
     def clear_chat(self):
-        self.messages.clear()
-        self.conversation_view.clear_messages()
-        self.add_message(ChatMessage(MessageRole.AI, "Sohbet geçmişi temizlendi. Size nasıl yardımcı olabilirim?"))
+        self._cancel_pending_ai()
+        self._set_messages([ChatMessage(MessageRole.AI, L10N.SOHBET_GECMISI_TEMIZLENDI_SIZE_NASIL)])
+        self._persist_active_session()
 
     def send_user_message(self, text: str):
+        self._ensure_active_session(text)
         is_safe, error_msg = validate_user_input(text)
         if not is_safe:
             user_msg = ChatMessage(MessageRole.USER, text)
@@ -86,6 +124,7 @@ class ChatbotPanel(QWidget):
 
     def receive_system_message(self, result: AnalysisResult):
         """Sol panelden gelen analiz sonucunu yapılandırılmış prompt olarak Gemini'ye gönderir."""
+        self._ensure_active_session(f"{display_ticker(result.ticker)} analizi")
         pos_factors = self._format_positive_factors(result)
         neg_factors = self._format_negative_factors(result)
         features_formatted = self._format_fallback_features(result, pos_factors, neg_factors)
@@ -128,7 +167,7 @@ class ChatbotPanel(QWidget):
         neg_factors: str,
         features_formatted: str,
     ) -> str:
-        return f"""[OTOMATİK ANALİZ AKTARIMI — API Payload]
+        return f"""[OTOMATİK ANALİZ AKTARIMI - Analiz Özeti]
 
 Hisse: {display_ticker(result.ticker)}
 Analiz Durumu: {result.analysis_status}
@@ -185,7 +224,8 @@ Lütfen bu analizi değerlendir:
 4. En önemli riskleri kısa maddelerle yaz.
 5. En sonda mutlaka "Gündelik Özet" başlığı aç ve teknik olmayan 2-3 cümleyle anlat.
 6. Cevap rapor gibi uzun olmasın; okunabilir, kullanıcıya dönük ve sade olsun.
-7. ### başlık, tablo ve uzun yıldızlı liste kullanma; başlıkları düz metin olarak yaz.
+7. ### başlık, tablo ve uzun yıldızlı liste kullanma; başlıkları **Başlık** biçiminde kalın Markdown satırı olarak yaz.
+8. Yeni paragrafa geçerken bir boş satır bırak.
 """
         msg = ChatMessage(
             MessageRole.SYSTEM,
@@ -224,7 +264,7 @@ Lütfen bu analizi değerlendir:
 
     @staticmethod
     def _build_analysis_display_summary(result: AnalysisResult) -> str:
-        horizon = f"{result.horizon_days} günlük" if result.horizon_days else "Horizon sonu"
+        horizon = f"{result.horizon_days} günlük" if result.horizon_days else L10N.HORIZON_SONU_1
         return_text = f"{result.weekly_expected_return * 100:.2f}%" if result.weekly_expected_return is not None else "-"
         xai_state = "mevcut" if result.xai_available else "yok"
         xai_detail = ""
@@ -246,7 +286,7 @@ Lütfen bu analizi değerlendir:
         self._request_seq += 1
         request_id = self._request_seq
         self.input_bar.set_loading(True)
-        self.worker = Worker(generate_gemini_response, list(self.messages))
+        self.worker = Worker(_generate_gemini_response_lazy, list(self.messages))
         self.worker.signals.result.connect(lambda text, rid=request_id: self._on_ai_response(rid, text))
         self.worker.signals.error.connect(lambda err, rid=request_id: self._on_error(rid, err))
         self.worker.signals.finished.connect(lambda rid=request_id: self._on_ai_finished(rid))
@@ -267,3 +307,170 @@ Lütfen bu analizi değerlendir:
     def _on_ai_finished(self, request_id: int):
         if request_id == self._request_seq:
             self.input_bar.set_loading(False)
+
+    def toggle_history_sidebar(self) -> None:
+        if not hasattr(self, "history_sidebar"):
+            return
+            
+        sidebar_width = max(260, min(self.width() - 48, 320))
+        sidebar_height = self.height()
+        
+        # Stop any running animation and disconnect old signals to avoid accumulation
+        if hasattr(self, "_anim_group"):
+            self._anim_group.stop()
+            try:
+                self._anim_group.finished.disconnect()
+            except TypeError:
+                pass
+        else:
+            self._anim_group = QParallelAnimationGroup(self)
+            
+        # Re-create/update animations
+        self._anim_group.clear()
+        
+        sidebar_anim = QPropertyAnimation(self.history_sidebar, b"geometry", self)
+        sidebar_anim.setDuration(250)
+        sidebar_anim.setEasingCurve(QEasingCurve.OutCubic)
+        
+        button_anim = QPropertyAnimation(self.btn_toggle_sidebar, b"geometry", self)
+        button_anim.setDuration(250)
+        button_anim.setEasingCurve(QEasingCurve.OutCubic)
+        
+        self._anim_group.addAnimation(sidebar_anim)
+        self._anim_group.addAnimation(button_anim)
+        
+        # Determine target state based on visibility and position
+        is_currently_open = self.history_sidebar.isVisible() and self.history_sidebar.x() == 0
+        
+        if is_currently_open:
+            # Closing anim
+            sidebar_anim.setStartValue(QRect(0, 0, sidebar_width, sidebar_height))
+            sidebar_anim.setEndValue(QRect(-sidebar_width, 0, sidebar_width, sidebar_height))
+            
+            button_anim.setStartValue(QRect(sidebar_width - 32 - 14, 14, 32, 32))
+            button_anim.setEndValue(QRect(20, 14, 32, 32))
+            
+            self._anim_group.finished.connect(self._on_close_anim_finished)
+            self._anim_group.start()
+        else:
+            # Opening anim
+            self._refresh_history_sidebar()
+            self.history_sidebar.show()
+            self.history_sidebar.raise_()
+            self.btn_toggle_sidebar.raise_()
+            
+            sidebar_anim.setStartValue(QRect(-sidebar_width, 0, sidebar_width, sidebar_height))
+            sidebar_anim.setEndValue(QRect(0, 0, sidebar_width, sidebar_height))
+            
+            button_anim.setStartValue(QRect(20, 14, 32, 32))
+            button_anim.setEndValue(QRect(sidebar_width - 32 - 14, 14, 32, 32))
+            
+            self._anim_group.start()
+
+    def _on_close_anim_finished(self) -> None:
+        self.history_sidebar.hide()
+        self._position_history_sidebar()
+
+    def start_new_session(self) -> None:
+        self._cancel_pending_ai()
+        self.active_session_id = None
+        self.history_store.set_last_active_session_id(None)
+        self._set_messages(self.history_store.default_messages())
+        self._refresh_history_sidebar()
+
+    def load_session(self, session_id: str) -> None:
+        session = self._session_by_id(session_id)
+        if session is None:
+            return
+        self._cancel_pending_ai()
+        self.active_session_id = session.id
+        self.history_store.set_last_active_session_id(session.id)
+        self._set_messages(session.messages)
+        self._refresh_history_sidebar()
+        if self.history_sidebar.isVisible():
+            self.toggle_history_sidebar()
+        else:
+            self._position_history_sidebar()
+
+    def delete_session(self, session_id: str) -> None:
+        self.sessions = [session for session in self.sessions if session.id != session_id]
+        self.history_store.save_sessions(self.sessions)
+        if self.active_session_id == session_id:
+            self.start_new_session()
+        else:
+            self._refresh_history_sidebar()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._position_history_sidebar()
+
+    def _resolve_initial_session_id(self) -> str | None:
+        # Her açılışta yeni sohbet otomatik başlasın, eski sohbet açık gelmesin
+        return None
+
+    def _ensure_active_session(self, title_seed: str | None = None) -> None:
+        if self.active_session_id and self._session_by_id(self.active_session_id) is not None:
+            return
+        title = self.history_store.title_from_message(title_seed or "")
+        session = self.history_store.create_session(messages=self.messages, title=title)
+        self.sessions.append(session)
+        self.active_session_id = session.id
+        self.history_store.set_last_active_session_id(session.id)
+
+    def _persist_active_session(self) -> None:
+        if not self.active_session_id:
+            return
+        session = self._session_by_id(self.active_session_id)
+        if session is None:
+            return
+        session.messages = list(self.messages)
+        session.updated_at = datetime.now()
+        self.history_store.save_sessions(self.sessions)
+        self.history_store.set_last_active_session_id(session.id)
+        self._refresh_history_sidebar()
+
+    def _set_messages(self, messages: list[ChatMessage]) -> None:
+        self.messages = list(messages)
+        self.conversation_view.clear_messages()
+        for message in self.messages:
+            self.conversation_view.add_message(message)
+
+    def _session_by_id(self, session_id: str | None) -> ChatSession | None:
+        if not session_id:
+            return None
+        for session in self.sessions:
+            if session.id == session_id:
+                return session
+        return None
+
+    def _refresh_history_sidebar(self) -> None:
+        if hasattr(self, "history_sidebar"):
+            self.history_sidebar.refresh(self.sessions, self.active_session_id)
+
+    def _cancel_pending_ai(self) -> None:
+        self._request_seq += 1
+        self.input_bar.set_loading(False)
+
+    def _position_history_sidebar(self) -> None:
+        if not hasattr(self, "history_sidebar"):
+            return
+        # If animation is running, do not force geometries to prevent layout flickering
+        if hasattr(self, "_anim_group") and self._anim_group.state() == QParallelAnimationGroup.Running:
+            return
+            
+        sidebar_width = max(260, min(self.width() - 48, 320))
+        sidebar_height = self.height()
+        
+        if self.history_sidebar.isVisible():
+            self.history_sidebar.setGeometry(0, 0, sidebar_width, sidebar_height)
+            if hasattr(self, "btn_toggle_sidebar"):
+                self.btn_toggle_sidebar.setGeometry(sidebar_width - 32 - 14, 14, 32, 32)
+                self.btn_toggle_sidebar.raise_()
+            self.history_sidebar.raise_()
+            if hasattr(self, "btn_toggle_sidebar"):
+                self.btn_toggle_sidebar.raise_()
+        else:
+            self.history_sidebar.setGeometry(-sidebar_width, 0, sidebar_width, sidebar_height)
+            if hasattr(self, "btn_toggle_sidebar"):
+                self.btn_toggle_sidebar.setGeometry(20, 14, 32, 32)
+                self.btn_toggle_sidebar.raise_()

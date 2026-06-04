@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 import logging
 from datetime import date
@@ -16,11 +17,11 @@ class ComparisonWarningBuilder:
         start_date, end_date = self.page.ribbon_bar.date_range()
 
         if start_date > end_date:
-            warnings.append("Başlangıç tarihi bitiş tarihinden sonra olamaz.")
+            warnings.append(L10N.BASLANGIC_TARIHI_BITIS_TARIHINDEN_SONRA)
             return warnings
 
         if end_date > date.today():
-            warnings.append("Bitiş tarihi bugünden ileri bir tarih olamaz.")
+            warnings.append(L10N.BITIS_TARIHI_BUGUNDEN_ILERI_BIR)
 
         selected_codes = self.page.ribbon_bar.selected_assets()
         for code in selected_codes:
@@ -31,18 +32,18 @@ class ComparisonWarningBuilder:
                 if first_trade_dt and start_date < first_trade_dt:
                     label = getattr(self.page, "_asset_labels", {}).get(code, code)
                     warnings.append(
-                        f"Seçilen başlangıç tarihi ({start_date.strftime('%d.%m.%Y')}), "
-                        f"<b>{label}</b> varlığının ilk işlem tarihinden "
-                        f"({first_trade_dt.strftime('%d.%m.%Y')}) öncedir. "
-                        "Bu dönemde portföy değeri 0 veya sabit nakit olarak "
-                        "görüneceğinden kıyaslama yanıltıcı olabilir."
+                        f"Seçilen başlangıç tarihi ({start_date.strftime('%d.%m.%Y')}), " +
+                        f"<b>{label}</b> varlığının ilk işlem tarihinden " +
+                        f"({first_trade_dt.strftime('%d.%m.%Y')}) öncedir. " +
+                        L10N.BU_DONEMDE_PORTFOY_DEGERI_0 +
+                        L10N.GORUNECEGINDEN_KIYASLAMA_YANILTICI_OLABILIR
                     )
             except Exception as exc:
                 logger.debug("Failed to get first trade date for %s: %s", code, exc)
 
         if (end_date - start_date).days < 7:
             warnings.append(
-                "Seçilen tarih aralığı çok kısa (7 günden az). "
-                "Yıllıklandırılmış volatilite ve drawdown hesaplamaları kararsız olabilir."
+                L10N.SECILEN_TARIH_ARALIGI_COK_KISA +
+                L10N.YILLIKLANDIRILMIS_VOLATILITE_VE_DRAWDOWN_HESAPLAMALARI
             )
         return warnings

@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLineEdit
 from PyQt5.QtCore import pyqtSignal
 from src.ui.core.icon_manager import IconManager
@@ -16,13 +17,13 @@ class TickerInputBar(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("Hisse Kodu (Örn: THYAO)")
+        self.input_field.setPlaceholderText(L10N.HISSE_KODU_ORN_THYAO)
         self.input_field.setProperty("cssClass", "aiInput")
         self.input_field.addAction(IconManager.get_icon("search", color="@COLOR_TEXT_SECONDARY"), QLineEdit.LeadingPosition)
         self.input_field.returnPressed.connect(self._on_analyze)
         self.input_field.textChanged.connect(self._on_text_changed)
 
-        self.btn_analyze = AnimatedButton("Analiz Et")
+        self.btn_analyze = AnimatedButton(L10N.ANALIZ_ET)
         self.btn_analyze.setEnabled(False)
         self.btn_analyze.setProperty("cssClass", "aiPrimaryBtn")
         self.btn_analyze.setIconName("zap", color="@COLOR_TEXT_WHITE")

@@ -11,6 +11,7 @@ Kullanıcı:
 """
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from decimal import Decimal
 from typing import Optional, Dict, Any
@@ -109,22 +110,22 @@ class CorporateActionDialog(QDialog):
 
         price_txt = f"{self._current_price:,.4f} TL" if self._current_price else "—"
         info_layout.addLayout(_info_col("Hisse", self._display_ticker))
-        info_layout.addLayout(_info_col("Mevcut Lot", f"{self._current_qty:,}"))
-        info_layout.addLayout(_info_col("Ort. Maliyet", f"{self._avg_cost:,.4f} TL"))
-        info_layout.addLayout(_info_col("Güncel Fiyat", price_txt))
+        info_layout.addLayout(_info_col(L10N.MEVCUT_LOT, f"{self._current_qty:,}"))
+        info_layout.addLayout(_info_col(L10N.ORT_MALIYET, f"{self._avg_cost:,.4f} TL"))
+        info_layout.addLayout(_info_col(L10N.GUNCEL_FIYAT, price_txt))
         info_layout.addStretch()
         layout.addWidget(info_frame)
 
         # ── Giriş Formu ─────────────────────────────────────
-        form_group = QGroupBox("İşlem Parametreleri")
+        form_group = QGroupBox(L10N.ISLEM_PARAMETRELERI)
         form_layout = QFormLayout(form_group)
         form_layout.setSpacing(10)
         form_layout.setContentsMargins(12, 14, 12, 12)
 
         # İşlem türü
         type_layout = QHBoxLayout()
-        self._radio_bedelsiz = QRadioButton("Bedelsiz")
-        self._radio_bedelli = QRadioButton("Bedelli")
+        self._radio_bedelsiz = QRadioButton(L10N.BEDELSIZ)
+        self._radio_bedelli = QRadioButton(L10N.BEDELLI)
         self._radio_bedelsiz.setChecked(True)
         self._type_group = QButtonGroup(self)
         self._type_group.addButton(self._radio_bedelsiz, 0)
@@ -133,7 +134,7 @@ class CorporateActionDialog(QDialog):
         type_layout.addWidget(self._radio_bedelsiz)
         type_layout.addWidget(self._radio_bedelli)
         type_layout.addStretch()
-        form_layout.addRow("İşlem Türü:", type_layout)
+        form_layout.addRow(L10N.ISLEM_TURU_1, type_layout)
 
         # Artırım oranı (%)
         self._spin_ratio = QDoubleSpinBox()
@@ -143,17 +144,17 @@ class CorporateActionDialog(QDialog):
         self._spin_ratio.setSuffix("  %")
         self._spin_ratio.setProperty("cssClass", "tradeInputNormal")
         self._spin_ratio.valueChanged.connect(self._update_preview)
-        form_layout.addRow("Artırım Oranı:", self._spin_ratio)
+        form_layout.addRow(L10N.ARTIRIM_ORANI_1, self._spin_ratio)
 
         # Ex-date
         self._date_ex = QDateEdit(QDate.currentDate())
         self._date_ex.setCalendarPopup(True)
         self._date_ex.setDisplayFormat("dd.MM.yyyy")
         self._date_ex.setProperty("cssClass", "tradeInputNormal")
-        form_layout.addRow("Ex-Date (Baz Fiyat Günü):", self._date_ex)
+        form_layout.addRow(L10N.EXDATE_BAZ_FIYAT_GUNU, self._date_ex)
 
         # ── Bedelli alanları (gizli/görünür) ────────────────
-        self._lbl_sub_price = QLabel("Kullanım Fiyatı (Rüçhan):")
+        self._lbl_sub_price = QLabel(L10N.KULLANIM_FIYATI_RUCHAN)
         self._spin_sub_price = QDoubleSpinBox()
         self._spin_sub_price.setRange(0.0001, 10000.0)
         self._spin_sub_price.setValue(1.00)
@@ -165,14 +166,14 @@ class CorporateActionDialog(QDialog):
 
         # Not (opsiyonel)
         self._edit_notes = QLineEdit()
-        self._edit_notes.setPlaceholderText("Opsiyonel açıklama...")
+        self._edit_notes.setPlaceholderText(L10N.OPSIYONEL_ACIKLAMA)
         self._edit_notes.setProperty("cssClass", "tradeInputNormal")
-        form_layout.addRow("Not:", self._edit_notes)
+        form_layout.addRow(L10N.NOT, self._edit_notes)
 
         layout.addWidget(form_group)
 
         # ── Ön İzleme ────────────────────────────────────────
-        preview_group = QGroupBox("Ön İzleme")
+        preview_group = QGroupBox(L10N.ON_IZLEME)
         preview_layout = QFormLayout(preview_group)
         preview_layout.setSpacing(8)
         preview_layout.setContentsMargins(12, 14, 12, 12)
@@ -187,15 +188,15 @@ class CorporateActionDialog(QDialog):
                     self._lbl_new_avg, self._lbl_capital_spent, self._lbl_theoretical):
             lbl.setProperty("cssClass", "dialogFieldValue")
 
-        preview_layout.addRow("Yeni Hisse Adedi:", self._lbl_new_shares)
-        preview_layout.addRow("Toplam Lot:", self._lbl_total_qty)
-        preview_layout.addRow("Yeni Ort. Maliyet:", self._lbl_new_avg)
+        preview_layout.addRow(L10N.YENI_HISSE_ADEDI, self._lbl_new_shares)
+        preview_layout.addRow(L10N.TOPLAM_LOT_1, self._lbl_total_qty)
+        preview_layout.addRow(L10N.YENI_ORT_MALIYET_1, self._lbl_new_avg)
 
-        self._row_capital_lbl = QLabel("Sermaye Kullanımı:")
+        self._row_capital_lbl = QLabel(L10N.SERMAYE_KULLANIMI)
         self._row_capital_lbl.setProperty("cssClass", "dialogFieldLabel")
         preview_layout.addRow(self._row_capital_lbl, self._lbl_capital_spent)
 
-        preview_layout.addRow("Teorik Baz Fiyat:", self._lbl_theoretical)
+        preview_layout.addRow(L10N.TEORIK_BAZ_FIYAT, self._lbl_theoretical)
         layout.addWidget(preview_group)
 
         # Tüm widget'lar tanımlandıktan sonra başlangıç görünürlüğünü ayarla
@@ -203,8 +204,8 @@ class CorporateActionDialog(QDialog):
 
         # ── Bilgi notu ────────────────────────────────────────
         note = QLabel(
-            "ℹ  Uygulama sonrası geçmiş fiyatlar YFinance'den yeniden indirilir "
-            "(retroaktif düzeltme). Bu işlem birkaç saniye sürebilir."
+            L10N.UYGULAMA_SONRASI_GECMIS_FIYATLAR_YFINANCEDEN +
+            L10N.RETROAKTIF_DUZELTME_BU_ISLEM_BIRKAC
         )
         note.setWordWrap(True)
         note.setProperty("cssClass", "pageDescription")
@@ -214,11 +215,11 @@ class CorporateActionDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        btn_cancel = QPushButton("İptal")
+        btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setProperty("cssClass", "secondaryButton")
 
-        self._btn_confirm = QPushButton("Uygula")
+        self._btn_confirm = QPushButton(L10N.UYGULA)
         self._btn_confirm.clicked.connect(self.accept)
         self._btn_confirm.setProperty("cssClass", "tradeConfirmBuyBtn")
         self._btn_confirm.setDefault(True)
@@ -280,12 +281,12 @@ class CorporateActionDialog(QDialog):
                 theoretical = p / (Decimal("1") + ratio)
             self._lbl_theoretical.setText(f"{theoretical:,.4f} TL")
         else:
-            self._lbl_theoretical.setText("— (fiyat verisi yok)")
+            self._lbl_theoretical.setText(L10N.FIYAT_VERISI_YOK)
 
         # Yeterli lot yoksa butonu devre dışı bırak
         self._btn_confirm.setEnabled(new_shares > 0)
         if new_shares <= 0:
-            self._lbl_new_shares.setText("Uyarı: Mevcut lot yetersiz (0 yeni hisse)")
+            self._lbl_new_shares.setText(L10N.UYARI_MEVCUT_LOT_YETERSIZ_0)
 
     # ══════════════════════════════════════════════════════════
     #  SONUÇ

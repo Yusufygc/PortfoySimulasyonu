@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 from typing import Optional, Tuple
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout
 from PyQt5.QtCore import Qt
@@ -16,11 +17,11 @@ class WatchlistDialog(QDialog):
         self.setProperty("cssClass", "dialogContainer")
 
         self.name_input = QLineEdit(name)
-        self.name_input.setPlaceholderText("Liste adı")
+        self.name_input.setPlaceholderText(L10N.LISTE_ADI)
         self.name_input.setProperty("cssClass", "tradeInputNormal")
 
         self.desc_input = QLineEdit(description)
-        self.desc_input.setPlaceholderText("Açıklama (opsiyonel)")
+        self.desc_input.setPlaceholderText(L10N.ACIKLAMA_OPSIYONEL)
         self.desc_input.setProperty("cssClass", "tradeInputNormal")
 
         self._init_ui()
@@ -33,11 +34,11 @@ class WatchlistDialog(QDialog):
         form = QFormLayout()
         form.setSpacing(10)
         
-        lbl_name = QLabel("Liste Adı:")
+        lbl_name = QLabel(L10N.LISTE_ADI_1)
         lbl_name.setProperty("cssClass", "formLabel")
         form.addRow(lbl_name, self.name_input)
 
-        lbl_desc = QLabel("Açıklama:")
+        lbl_desc = QLabel(L10N.ACIKLAMA)
         lbl_desc.setProperty("cssClass", "formLabel")
         form.addRow(lbl_desc, self.desc_input)
 
@@ -47,11 +48,11 @@ class WatchlistDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        btn_cancel = QPushButton("İptal")
+        btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setProperty("cssClass", "secondaryButton")
 
-        self.btn_confirm = QPushButton("Kaydet")
+        self.btn_confirm = QPushButton(L10N.SAVE)
         self.btn_confirm.clicked.connect(self.accept)
         self.btn_confirm.setProperty("cssClass", "primaryButton")
         self.btn_confirm.setDefault(True)

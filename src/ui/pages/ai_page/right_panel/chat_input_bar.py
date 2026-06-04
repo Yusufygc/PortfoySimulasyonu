@@ -1,12 +1,29 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QTextEdit
-from PyQt5.QtCore import pyqtSignal, Qt
-from src.ui.core.icon_manager import IconManager
-from src.ui.widgets.shared.controls.animated_button import AnimatedButton
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QTextEdit, QWidget
+
 from src.ui.pages.ai_page.core.safety_guard import MAX_CHAR_LIMIT
+from src.ui.widgets.shared.controls.animated_button import AnimatedButton
+
+
+CHAT_PLACEHOLDER = "Mesaj\u0131n\u0131z\u0131 yaz\u0131n... Shift+Enter ile g\u00f6nder"
+CHAT_INPUT_TOOLTIP = f"En fazla {MAX_CHAR_LIMIT} karakter"
+
+
+class ChatTextEdit(QTextEdit):
+    send_requested = pyqtSignal()
+
+    def keyPressEvent(self, event):
+        is_enter = event.key() in (Qt.Key_Return, Qt.Key_Enter)
+        has_shift = bool(event.modifiers() & Qt.ShiftModifier)
+        if is_enter and has_shift:
+            self.send_requested.emit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
 
 class ChatInputBar(QWidget):
-    """Sohbet mesajı giriş alanı."""
+    """Sohbet mesaji giris alani."""
 
     send_requested = pyqtSignal(str)
 
@@ -19,16 +36,19 @@ class ChatInputBar(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
-        self.text_edit = QTextEdit()
-        self.text_edit.setPlaceholderText(f"Mesajınızı yazın... (En fazla {MAX_CHAR_LIMIT} karakter, Göndermek için Shift+Enter)")
-        self.text_edit.setFixedHeight(60)
-        self.text_edit.setProperty("cssClass", "aiInput")
+        self.text_edit = ChatTextEdit()
+        self.text_edit.setPlaceholderText(CHAT_PLACEHOLDER)
+        self.text_edit.setToolTip(CHAT_INPUT_TOOLTIP)
+        self.text_edit.setFixedHeight(72)
+        self.text_edit.setProperty("cssClass", "aiChatInput")
         self.text_edit.textChanged.connect(self._on_text_changed)
+        self.text_edit.send_requested.connect(self._on_send)
 
-        self.btn_send = AnimatedButton("Gönder")
-        self.btn_send.setFixedHeight(60)
-        self.btn_send.setFixedWidth(88)
-        self.btn_send.setProperty("cssClass", "aiPrimaryBtn")
+        self.btn_send = AnimatedButton("G\u00f6nder")
+        self.btn_send.setFixedHeight(72)
+        self.btn_send.setFixedWidth(104)
+        self.btn_send.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.btn_send.setProperty("cssClass", "aiSendBtn")
         self.btn_send.setIconName("send", color="@COLOR_TEXT_WHITE")
         self.btn_send.clicked.connect(self._on_send)
 
@@ -52,19 +72,13 @@ class ChatInputBar(QWidget):
             self.text_edit.setTextCursor(cursor)
             self.text_edit.blockSignals(False)
 
-    def keyPressEvent(self, event):
-        # Shift+Enter ile gönderim
-        if event.key() == Qt.Key_Return and event.modifiers() == Qt.ShiftModifier:
-            self._on_send()
-        else:
-            super().keyPressEvent(event)
-
     def set_loading(self, is_loading: bool):
         self.btn_send.setEnabled(not is_loading)
         if is_loading:
-            self.text_edit.setPlaceholderText("Yanıt bekleniyor...")
+            self.text_edit.setPlaceholderText("Yan\u0131t bekleniyor...")
             self.text_edit.setEnabled(False)
         else:
-            self.text_edit.setPlaceholderText(f"Mesajınızı yazın... (En fazla {MAX_CHAR_LIMIT} karakter, Göndermek için Shift+Enter)")
+            self.text_edit.setPlaceholderText(CHAT_PLACEHOLDER)
+            self.text_edit.setToolTip(CHAT_INPUT_TOOLTIP)
             self.text_edit.setEnabled(True)
             self.text_edit.setFocus()

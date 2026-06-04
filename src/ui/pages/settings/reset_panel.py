@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget
 
@@ -22,13 +23,13 @@ class ResetPanel(QWidget):
         reset_layout.setContentsMargins(20, 20, 20, 20)
         reset_layout.setSpacing(12)
 
-        reset_title = QLabel("Sistem Sıfırlama")
+        reset_title = QLabel(L10N.SISTEM_SIFIRLAMA)
         reset_title.setProperty("cssClass", "panelTitle")
         reset_layout.addWidget(reset_title)
 
         reset_text = QLabel(
-            "Tüm portföy, fiyat ve hisse verilerini siler. "
-            "Bu işlem geri alınmaz."
+            L10N.TUM_PORTFOY_FIYAT_VE_HISSE +
+            L10N.BU_ISLEM_GERI_ALINMAZ
         )
         reset_text.setWordWrap(True)
         reset_text.setProperty("cssClass", "pageDescription")
@@ -37,7 +38,7 @@ class ResetPanel(QWidget):
         action_row = QHBoxLayout()
         action_row.addStretch()
 
-        self.btn_reset = AnimatedButton(" Sistemi Sıfırla")
+        self.btn_reset = AnimatedButton(L10N.SISTEMI_SIFIRLA)
         self.btn_reset.setIconName("trash-2", color="@COLOR_DANGER")
         self.btn_reset.setProperty("cssClass", "dangerTextButton")
         self.btn_reset.clicked.connect(self._on_reset)
@@ -50,8 +51,8 @@ class ResetPanel(QWidget):
     def _on_reset(self) -> None:
         reply = QMessageBox.question(
             self,
-            "Portföyü Sıfırla",
-            "TÜM veriler silinecek. Emin misiniz?",
+            L10N.PORTFOYU_SIFIRLA,
+            L10N.TUM_VERILER_SILINECEK_EMIN_MISINIZ,
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -60,6 +61,6 @@ class ResetPanel(QWidget):
 
         try:
             self.reset_service.reset_all()
-            Toast.success(self, "Sistem başarıyla sıfırlandı.")
+            Toast.success(self, L10N.SISTEM_BASARIYLA_SIFIRLANDI)
         except Exception as exc:
             Toast.error(self, f"Sistem sıfırlanamadı: {exc}")

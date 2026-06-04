@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date
 from decimal import Decimal
@@ -44,22 +45,22 @@ class AnalysisComparisonSection(QWidget):
         top_layout.setContentsMargins(15, 15, 15, 15)
         top_layout.setSpacing(12)
 
-        lbl_mode = QLabel("Grafik Modu")
+        lbl_mode = QLabel(L10N.GRAFIK_MODU)
         lbl_mode.setProperty("cssClass", "panelTitle")
         top_layout.addWidget(lbl_mode)
 
         self.combo_mode = QComboBox()
         self.combo_mode.setProperty("cssClass", "customComboBox")
-        self.combo_mode.addItem("Portföy vs Benchmark", self.MODE_PORTFOLIO)
-        self.combo_mode.addItem("Portföyler Arası", self.MODE_PORTFOLIOS)
-        self.combo_mode.addItem("Hisseler vs Portföy", self.MODE_STOCKS)
-        self.combo_mode.addItem("Hisseler Arası", self.MODE_STOCKS_ONLY)
-        self.combo_mode.addItem("Göreli Fark", self.MODE_RELATIVE)
+        self.combo_mode.addItem(L10N.PORTFOY_VS_BENCHMARK, self.MODE_PORTFOLIO)
+        self.combo_mode.addItem(L10N.PORTFOYLER_ARASI, self.MODE_PORTFOLIOS)
+        self.combo_mode.addItem(L10N.HISSELER_VS_PORTFOY, self.MODE_STOCKS)
+        self.combo_mode.addItem(L10N.HISSELER_ARASI, self.MODE_STOCKS_ONLY)
+        self.combo_mode.addItem(L10N.GORELI_FARK, self.MODE_RELATIVE)
         self.combo_mode.currentIndexChanged.connect(self._redraw_chart)
         top_layout.addWidget(self.combo_mode)
         top_layout.addStretch()
 
-        self.btn_save = AnimatedButton("Grafiği Kaydet")
+        self.btn_save = AnimatedButton(L10N.GRAFIGI_KAYDET)
         self.btn_save.setProperty("cssClass", "secondaryButton")
         self.btn_save.setIconName("save", color="@COLOR_TEXT_PRIMARY", size=24)
         self.btn_save.clicked.connect(self._save_chart)
@@ -151,7 +152,7 @@ class AnalysisComparisonSection(QWidget):
                 portfolio_series=p_series,
                 benchmark_series=b_df,
                 currency_label=currency_label,
-                title="Portföy ve Benchmark Karşılaştırması",
+                title=L10N.PORTFOY_VE_BENCHMARK_KARSILASTIRMASI,
             )
             self._set_fig_to_view(fig)
             
@@ -165,7 +166,7 @@ class AnalysisComparisonSection(QWidget):
                 portfolio_series=p_series,
                 benchmark_series=b_df,
                 currency_label=currency_label,
-                title="Portföyler Arası Karşılaştırma",
+                title=L10N.PORTFOYLER_ARASI_KARSILASTIRMA,
             )
             self._set_fig_to_view(fig)
             
@@ -179,7 +180,7 @@ class AnalysisComparisonSection(QWidget):
                 portfolio_series=p_series,
                 benchmark_series=b_df,
                 currency_label=currency_label,
-                title="Seçili Hisseler ve Portföy",
+                title=L10N.SECILI_HISSELER_VE_PORTFOY,
             )
             self._set_fig_to_view(fig)
             
@@ -196,7 +197,7 @@ class AnalysisComparisonSection(QWidget):
                 portfolio_series=None,
                 benchmark_series=b_df,
                 currency_label=currency_label,
-                title="Seçili Hisseler Karşılaştırması",
+                title=L10N.SECILI_HISSELER_KARSILASTIRMASI,
             )
             self._set_fig_to_view(fig)
             
@@ -217,11 +218,11 @@ class AnalysisComparisonSection(QWidget):
             fig = build_performance_line_chart_v2(
                 portfolio_series=None,
                 benchmark_series=b_df,
-                currency_label="Fark (%)",
-                title="Göreli Fark Karşılaştırması",
+                currency_label=L10N.FARK,
+                title=L10N.GORELI_FARK_KARSILASTIRMASI,
             )
             # Override baseline since it's gap
-            fig.update_yaxes(title_text="Fark (%)")
+            fig.update_yaxes(title_text=L10N.FARK)
             self._set_fig_to_view(fig)
 
     def _set_fig_to_view(self, fig):
@@ -261,9 +262,9 @@ class AnalysisComparisonSection(QWidget):
     def _save_chart(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Grafiği Kaydet",
+            L10N.GRAFIGI_KAYDET,
             "analiz_karsilastirma.png",
-            "PNG Dosyası (*.png);;PDF Dosyası (*.pdf);;SVG Dosyası (*.svg)",
+            L10N.PNG_DOSYASI_PNGPDF_DOSYASI_PDFSVG,
         )
         if file_path:
             # QWebEngineView save functionality requires calling page().printToPdf or snapshot.

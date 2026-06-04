@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
@@ -37,11 +38,11 @@ class AnalysisOverviewSection(QWidget):
         cards_grid.setHorizontalSpacing(15)
         cards_grid.setVerticalSpacing(15)
 
-        self.card_total = InfoCard("Toplam Portföy Değeri", "₺ 0", icon_name="wallet")
-        self.card_return = InfoCard("Dönem Getirisi", "—", icon_name="trending-up")
-        self.card_gap = InfoCard("Benchmark Farkı", "—", icon_name="scale")
-        self.card_position = InfoCard("En Büyük Pozisyon", "—", icon_name="layers")
-        self.card_drawdown = InfoCard("Maks. Drawdown", "—", icon_name="trending-down")
+        self.card_total = InfoCard(L10N.TOPLAM_PORTFOY_DEGERI, "₺ 0", icon_name="wallet")
+        self.card_return = InfoCard(L10N.DONEM_GETIRISI, "—", icon_name="trending-up")
+        self.card_gap = InfoCard(L10N.BENCHMARK_FARKI, "—", icon_name="scale")
+        self.card_position = InfoCard(L10N.EN_BUYUK_POZISYON, "—", icon_name="layers")
+        self.card_drawdown = InfoCard(L10N.MAKS_DRAWDOWN, "—", icon_name="trending-down")
 
         overview_cards = [self.card_total, self.card_return, self.card_gap, self.card_position, self.card_drawdown]
         for idx, card in enumerate(overview_cards):
@@ -53,8 +54,8 @@ class AnalysisOverviewSection(QWidget):
         detail_row = QHBoxLayout()
         detail_row.setSpacing(15)
 
-        self.metric_best = MetricCard("En İyi Katkı", icon_name="star")
-        self.metric_worst = MetricCard("En Zayıf Katkı", icon_name="alert-triangle")
+        self.metric_best = MetricCard(L10N.EN_IYI_KATKI, icon_name="star")
+        self.metric_worst = MetricCard(L10N.EN_ZAYIF_KATKI, icon_name="alert-triangle")
         detail_row.addWidget(self.metric_best, 1)
         detail_row.addWidget(self.metric_worst, 1)
         layout.addLayout(detail_row)
@@ -65,11 +66,11 @@ class AnalysisOverviewSection(QWidget):
         insight_layout.setContentsMargins(15, 15, 15, 15)
         insight_layout.setSpacing(10)
 
-        lbl_title = QLabel("Öne Çıkan İçgörüler")
+        lbl_title = QLabel(L10N.ONE_CIKAN_ICGORULER)
         lbl_title.setProperty("cssClass", "tableTitle")
         insight_layout.addWidget(lbl_title)
 
-        self.lbl_insights = QLabel("Analiz bekleniyor.")
+        self.lbl_insights = QLabel(L10N.ANALIZ_BEKLENIYOR)
         self.lbl_insights.setWordWrap(True)
         self.lbl_insights.setProperty("cssClass", "pageDescription")
         insight_layout.addWidget(self.lbl_insights)
@@ -107,11 +108,11 @@ class AnalysisOverviewSection(QWidget):
         cards_grid.setHorizontalSpacing(15)
         cards_grid.setVerticalSpacing(15)
 
-        self.card_total = InfoCard("Toplam Portföy Değeri", "₺ 0", icon_name="wallet")
-        self.card_return = InfoCard("Dönem Getirisi", "—", icon_name="trending-up")
-        self.card_gap = InfoCard("Benchmark Farkı", "—", icon_name="scale")
-        self.card_position = InfoCard("En Büyük Pozisyon", "—", icon_name="layers")
-        self.card_drawdown = InfoCard("Maks. Drawdown", "—", icon_name="trending-down")
+        self.card_total = InfoCard(L10N.TOPLAM_PORTFOY_DEGERI, "₺ 0", icon_name="wallet")
+        self.card_return = InfoCard(L10N.DONEM_GETIRISI, "—", icon_name="trending-up")
+        self.card_gap = InfoCard(L10N.BENCHMARK_FARKI, "—", icon_name="scale")
+        self.card_position = InfoCard(L10N.EN_BUYUK_POZISYON, "—", icon_name="layers")
+        self.card_drawdown = InfoCard(L10N.MAKS_DRAWDOWN, "—", icon_name="trending-down")
 
         overview_cards = [self.card_total, self.card_return, self.card_gap, self.card_position, self.card_drawdown]
         for idx, card in enumerate(overview_cards):
@@ -123,8 +124,8 @@ class AnalysisOverviewSection(QWidget):
         detail_row = QHBoxLayout()
         detail_row.setSpacing(15)
 
-        self.metric_best = MetricCard("En İyi Katkı", icon_name="star")
-        self.metric_worst = MetricCard("En Zayıf Katkı", icon_name="alert-triangle")
+        self.metric_best = MetricCard(L10N.EN_IYI_KATKI, icon_name="star")
+        self.metric_worst = MetricCard(L10N.EN_ZAYIF_KATKI, icon_name="alert-triangle")
         detail_row.addWidget(self.metric_best, 1)
         detail_row.addWidget(self.metric_worst, 1)
         layout.addLayout(detail_row)
@@ -135,11 +136,11 @@ class AnalysisOverviewSection(QWidget):
         insight_layout.setContentsMargins(15, 15, 15, 15)
         insight_layout.setSpacing(10)
 
-        lbl_title = QLabel("Öne Çıkan İçgörüler")
+        lbl_title = QLabel(L10N.ONE_CIKAN_ICGORULER)
         lbl_title.setProperty("cssClass", "tableTitle")
         insight_layout.addWidget(lbl_title)
 
-        self.lbl_insights = QLabel("Analiz bekleniyor.")
+        self.lbl_insights = QLabel(L10N.ANALIZ_BEKLENIYOR)
         self.lbl_insights.setWordWrap(True)
         self.lbl_insights.setProperty("cssClass", "pageDescription")
         insight_layout.addWidget(self.lbl_insights)
@@ -166,7 +167,7 @@ class AnalysisOverviewSection(QWidget):
 
         currency_symbol = "$" if dto.currency_mode == "USD" else "₺"
         if dto.currency_mode == "REAL":
-            currency_symbol = "₺ (Reel)"
+            currency_symbol = L10N.REEL
         self.card_total.set_value(f"{currency_symbol} {float(dto.total_value):,.2f}")
         self.card_return.set_value(_fmt_pct(dto.period_return_pct))
         self.card_gap.set_title(f"{dto.benchmark_label} Farkı")

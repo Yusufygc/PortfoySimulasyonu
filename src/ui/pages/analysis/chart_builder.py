@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -53,7 +54,7 @@ def build_performance_line_chart_v2(
     portfolio_series,
     benchmark_series: pd.DataFrame,
     currency_label: str,
-    title: str = "Portföy vs Benchmark",
+    title: str = L10N.PORTFOY_VS_BENCHMARK,
 ) -> go.Figure:
     """
     İyileştirilmiş performans grafiği:
@@ -79,9 +80,9 @@ def build_performance_line_chart_v2(
             opacity=0.75,
             legendgroup=col,
             hovertemplate=(
-                f"<b>{col}</b><br>"
-                "Tarih: %{customdata[0]}<br>"
-                f"Değer: %{{y:.1f}} ({currency_label})<br>"
+                f"<b>{col}</b><br>" +
+                L10N.TARIH_CUSTOMDATA0BR +
+                f"Değer: %{{y:.1f}} ({currency_label})<br>" +
                 "Başlangıçtan: %{customdata[1]:+.2f}%<extra></extra>"
             ),
             customdata=customdata,
@@ -101,9 +102,9 @@ def build_performance_line_chart_v2(
             opacity=1.0,
             legendgroup="Portföy",
             hovertemplate=(
-                "<b>Portföy</b><br>"
-                "Tarih: %{customdata[0]}<br>"
-                f"Değer: %{{y:.1f}} ({currency_label})<br>"
+                "<b>Portföy</b><br>" +
+                L10N.TARIH_CUSTOMDATA0BR +
+                f"Değer: %{{y:.1f}} ({currency_label})<br>" +
                 "Başlangıçtan: %{customdata[1]:+.2f}%<extra></extra>"
             ),
             customdata=customdata,
@@ -112,15 +113,15 @@ def build_performance_line_chart_v2(
     fig.add_hline(
         y=100,
         line=dict(color="#6c7086", width=1, dash="dot"),
-        annotation_text="Başlangıç (100)",
-        annotation_position="bottom right",
+        annotation_text=L10N.BASLANGIC_100,
+        annotation_position=L10N.BOTTOM_RIGHT,
         annotation_font=dict(size=10, color="#6c7086"),
     )
 
     fig.update_layout(
         title=dict(text=title, font=dict(size=16)),
         xaxis=dict(
-            title="Tarih",
+            title=L10N.TARIH,
             rangeselector=dict(
                 buttons=[
                     dict(count=1, label="1A", step="month", stepmode="backward"),
@@ -138,7 +139,7 @@ def build_performance_line_chart_v2(
             type="date",
         ),
         yaxis_title=f"Normalize Getiri (Başlangıç=100, {currency_label})",
-        hovermode="x unified",
+        hovermode=L10N.X_UNIFIED,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         template="plotly_dark",
         height=580,
@@ -153,7 +154,7 @@ def build_performance_line_chart_v2(
 def build_pie_chart(title: str, breakdown: list) -> go.Figure:
     labels = [b[0] for b in breakdown]
     values = [b[1] for b in breakdown]
-    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.4, textinfo='label+percent')])
+    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.4, textinfo=L10N.LABELPERCENT)])
     fig.update_layout(
         title=dict(text=title, font=dict(size=16)),
         template="plotly_dark",

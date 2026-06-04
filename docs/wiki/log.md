@@ -14,6 +14,23 @@
 - Etkilenen dosyalar: `src/ui/widgets/planning/dialogs/goal_input_dialog.py`, `src/ui/widgets/planning/panels/goals_panel.py`, `src/ui/pages/planning_page.py`, `src/ui/styles/shared/forms.qss`
 - Bağlantılı sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
 
+## [2026-06-04] güncelleme | Arayüz Türkçe Karakter Düzeltmesi ve L10N Altyapısı
+
+- Arayüzdeki (Frontend/UI) tüm kullanıcı metinlerinin Türkçe karakter kullanım hataları giderildi.
+- Gelecekte arayüz metinlerinin yönetimini kolaylaştırmak amacıyla merkezi lokalizasyon yapısı (`locale_tr.py`) kurularak tüm metinler `L10N` sınıfına taşındı.
+- Arayüz dosyalarını otomatik olarak tarayıp kullanıcıya dönük metinleri dönüştüren `scripts/migrate_ui_strings.py` aracı geliştirildi.
+- Kodlama standartlarına UI metinlerinde Türkçe karakterlerin doğru kullanımını ve `L10N` yapısını zorunlu kılan kurallar eklendi.
+- Etkilenen dosyalar: `src/ui/**/*.py`, `src/ui/shared/locale_tr.py`, `scripts/migrate_ui_strings.py`, `RULES.md`, `CLAUDE.md`
+- Bağlantılı sayfalar: [RULES.md](../../RULES.md), [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-04] güncelleme | AI Asistanı Sidebar ve Arayüz Güncellemesi
+
+- AI Finans Asistanı sayfasındaki "Sohbetler" butonu ve sidebar içindeki "Kapat" butonu kaldırıldı.
+- Sidebar uzunluğu chat panelinin sol/üst köşesinden (`x=0, y=0`) başlayıp tam yükseklik (`self.height()`) kaplayacak şekilde güncellendi.
+- `QParallelAnimationGroup` ve `QPropertyAnimation` ile hem sidebar hem de yeni `btn_toggle_sidebar` butonu 250 ms süreyle smooth bir şekilde eş zamanlı kayacak şekilde animasyonlandırıldı. Buton, sidebar kapalıyken `x=20, y=14` konumunda "Merhaba" mesajının üstünde durur, açılırken ise sidebar'ın sağ üst köşesine (`x=sidebar_width - 46, y=14`) taşınır.
+- Etkilenen dosyalar: `src/ui/assets/icons/sidebar.svg`, `src/ui/pages/ai_page/right_panel/chatbot_panel.py`, `src/ui/pages/ai_page/right_panel/chat_history_sidebar.py`, `tests/ui/pages/ai_page/test_ai_page_right_panel.py`
+- Bağlantılı sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
 ## [2026-06-04] güncelleme | YFinance Fiyat Uyumsuzluğu Düzeltmesi ve Kurallar Güncellemesi
 
 - Yahoo Finance'in split ex-date kayması ve double-adjustment sorununu çözen dinamik kırılma noktası analizi (transition-aware) fiyat düzeltme altyapısı uygulandı.

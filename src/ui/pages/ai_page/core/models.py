@@ -1,18 +1,19 @@
+from src.ui.shared.locale_tr import L10N
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
 
 DEFAULT_INVESTMENT_DISCLAIMER = (
-    "Bu çıktı kişisel yatırım tavsiyesi değildir. "
-    "Model geçmiş verilerden üretilmiş analitik bir tahmin sunar; "
-    "nihai karar kullanıcıya aittir."
+    L10N.BU_CIKTI_KISISEL_YATIRIM_TAVSIYESI +
+    L10N.MODEL_GECMIS_VERILERDEN_URETILMIS_ANALITIK +
+    L10N.NIHAI_KARAR_KULLANICIYA_AITTIR
 )
 
 
 class ModelOutlook(Enum):
-    UP = "Yükseliş eğilimi"
-    DOWN = "Düşüş eğilimi"
+    UP = L10N.YUKSELIS_EGILIMI
+    DOWN = L10N.DUSUS_EGILIMI
     NEUTRAL = "Yatay/Nötr görünüm"
 
 
@@ -122,3 +123,12 @@ class ChatMessage:
     content: str
     display_content: str | None = None
     timestamp: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class ChatSession:
+    id: str
+    title: str
+    messages: list[ChatMessage] = field(default_factory=list)
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)

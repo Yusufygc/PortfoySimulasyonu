@@ -1,6 +1,7 @@
 # src/ui/widgets/dashboard/dialogs/date_range_dialog.py
 
 from __future__ import annotations
+from src.ui.shared.locale_tr import L10N
 
 from datetime import date
 from typing import Optional, Tuple
@@ -35,7 +36,7 @@ class DateRangeDialog(QDialog):
         parent=None,
         min_date: Optional[date] = None,
         max_date: Optional[date] = None,
-        title: str = "Tarih Aralığı Seç",
+        title: str = L10N.TARIH_ARALIGI_SEC,
     ) -> None:
         super().__init__(parent)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -52,7 +53,7 @@ class DateRangeDialog(QDialog):
         main_layout.setContentsMargins(18, 18, 18, 18)
         main_layout.setSpacing(12)
 
-        header = QLabel("Excel’e aktarım için tarih aralığını seçin.")
+        header = QLabel(L10N.EXCELE_AKTARIM_ICIN_TARIH_ARALIGINI)
         header.setProperty("cssClass", "dialogSubtitle")
         header.setWordWrap(True)
         main_layout.addWidget(header)
@@ -78,11 +79,11 @@ class DateRangeDialog(QDialog):
         self.end_edit.setDate(self._max_qdate if self._max_qdate.isValid() else today_q)
         self.end_edit.setProperty("cssClass", "tradeInputNormal")
 
-        lbl_start = QLabel("Başlangıç:")
+        lbl_start = QLabel(L10N.BASLANGIC_1)
         lbl_start.setProperty("cssClass", "formLabel")
         form.addRow(lbl_start, self.start_edit)
         
-        lbl_end = QLabel("Bitiş:")
+        lbl_end = QLabel(L10N.BITIS_1)
         lbl_end.setProperty("cssClass", "formLabel")
         form.addRow(lbl_end, self.end_edit)
 
@@ -90,9 +91,9 @@ class DateRangeDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        self.btn_cancel = QPushButton("Iptal")
+        self.btn_cancel = QPushButton(L10N.IPTAL)
         self.btn_cancel.setProperty("cssClass", "secondaryButton")
-        self.btn_ok = QPushButton("Tamam")
+        self.btn_ok = QPushButton(L10N.TAMAM)
         self.btn_ok.setProperty("cssClass", "primaryButton")
         btn_layout.addWidget(self.btn_cancel)
         btn_layout.addWidget(self.btn_ok)
@@ -118,7 +119,7 @@ class DateRangeDialog(QDialog):
         parent=None,
         min_date: Optional[date] = None,
         max_date: Optional[date] = None,
-        title: str = "Tarih Aralığı Seç",
+        title: str = L10N.TARIH_ARALIGI_SEC,
     ) -> Optional[Tuple[date, date]]:
         """
         Kullanımı kolaylaştırmak için helper:
@@ -142,7 +143,7 @@ class DateRangeDialog(QDialog):
         e = self.end_edit.date()
 
         if s > e:
-            QMessageBox.warning(self, "Geçersiz Aralık", "Başlangıç tarihi bitiş tarihinden büyük olamaz.")
+            QMessageBox.warning(self, L10N.GECERSIZ_ARALIK, L10N.BASLANGIC_TARIHI_BITIS_TARIHINDEN_BUYUK)
             return
 
         self.accept()

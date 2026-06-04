@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/pages/stock_detail/stock_stats_panel.py
 
 from PyQt5.QtWidgets import QWidget, QHBoxLayout
@@ -18,27 +19,27 @@ class StockStatsPanel(QWidget):
         
         # Hero Metric: Toplam Değer
         self.card_total_val, self.lbl_total_val = CardFactory.create_stat_card(
-            "TOPLAM DEĞER",
+            L10N.TOPLAM_DEGER,
             "₺ 0.00",
             icon_name="wallet",
             icon_color="@COLOR_PRIMARY",
             is_hero=True,
         )
         self.card_pl, self.lbl_pl = CardFactory.create_stat_card(
-            "KAR / ZARAR",
+            L10N.KR_ZARAR,
             "₺ 0.00",
             is_colored=True,
             icon_name="line-chart",
             icon_color="@COLOR_TEXT_SECONDARY",
         )
         self.card_avg_cost, self.lbl_avg_cost = CardFactory.create_stat_card(
-            "ORT. MALİYET",
+            L10N.ORT_MALIYET_1,
             "₺ 0.00",
             icon_name="tag",
             icon_color="@COLOR_WARNING",
         )
         self.card_total_qty, self.lbl_total_qty = CardFactory.create_stat_card(
-            "TOPLAM LOT",
+            L10N.TOPLAM_LOT,
             "0",
             icon_name="package",
             icon_color="@COLOR_TEXT_SECONDARY",
