@@ -179,6 +179,7 @@ def _build_feature_services(
     corporate_action_service = CorporateActionService(
         action_repo=repositories.corporate_action_repo,
         portfolio_repo=repositories.portfolio_repo,
+        trade_adjustment_repo=getattr(repositories, "trade_adjustment_repo", None),
         price_adjustment_service=corporate_action_price_adjustment_service,
     )
 
