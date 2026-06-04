@@ -3,6 +3,7 @@ import sys
 pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 
+from src.ui.pages.ai_page.core.chat_history_store import ChatHistoryStore
 from src.ui.pages.ai_page.core.safety_guard import validate_user_input, wrap_user_message, MAX_CHAR_LIMIT, load_safety_patterns
 from src.ui.pages.ai_page.right_panel.chatbot_panel import ChatbotPanel
 from src.ui.pages.ai_page.right_panel.chat_input_bar import ChatInputBar
@@ -11,6 +12,30 @@ from src.ui.pages.ai_page.core.models import MessageRole, ChatMessage
 app = QApplication.instance()
 if app is None:
     app = QApplication(sys.argv)
+
+
+class MemorySettings:
+    def __init__(self):
+        self.values = {}
+
+    def value(self, key, default=None, type=None):
+        value = self.values.get(key, default)
+        if type is not None and value is not None:
+            try:
+                return type(value)
+            except (TypeError, ValueError):
+                return default
+        return value
+
+    def setValue(self, key, value):
+        self.values[key] = value
+
+    def remove(self, key):
+        self.values.pop(key, None)
+
+    def sync(self):
+        pass
+
 
 def test_load_safety_patterns():
     """safety_patterns.txt dosyasının başarıyla yüklendiğini veya fallback kullanıldığını doğrula."""
@@ -88,7 +113,7 @@ def test_wrap_user_message():
 
 def test_chatbot_panel_blocks_unsafe_messages():
     """Güvenli olmayan girdilerin chatbot panelinde engellendiğini doğrula."""
-    panel = ChatbotPanel()
+    panel = ChatbotPanel(history_store=ChatHistoryStore(MemorySettings()))
     
     # AI çağrılarını mock'la
     ai_triggered = False
