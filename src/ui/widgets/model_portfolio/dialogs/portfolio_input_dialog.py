@@ -32,13 +32,14 @@ class PortfolioInputDialog(QDialog):
         self.txt_desc = QLineEdit((self.portfolio.description or "") if self.is_edit else "")
         form.addRow("Açıklama:", self.txt_desc)
 
-        self.spin_cash = QDoubleSpinBox()
-        self.spin_cash.setRange(1000, 100_000_000)
-        self.spin_cash.setDecimals(2)
-        self.spin_cash.setSuffix(" TL")
-        self.spin_cash.setGroupSeparatorShown(True)
-        self.spin_cash.setValue(float(self.portfolio.initial_cash) if self.is_edit else 100_000)
-        form.addRow("Sermaye:", self.spin_cash)
+        if not self.is_edit:
+            self.spin_cash = QDoubleSpinBox()
+            self.spin_cash.setRange(1000, 100_000_000)
+            self.spin_cash.setDecimals(2)
+            self.spin_cash.setSuffix(" TL")
+            self.spin_cash.setGroupSeparatorShown(True)
+            self.spin_cash.setValue(100_000)
+            form.addRow("Sermaye:", self.spin_cash)
 
         layout.addLayout(form)
 
@@ -62,5 +63,5 @@ class PortfolioInputDialog(QDialog):
         return {
             "name": name,
             "description": self.txt_desc.text().strip() or None,
-            "initial_cash": Decimal(str(self.spin_cash.value())),
+            "initial_cash": Decimal(str(self.spin_cash.value())) if not self.is_edit else None,
         }
