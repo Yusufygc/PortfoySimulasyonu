@@ -26,6 +26,8 @@ class Trade:
     side: TradeSide
     quantity: int          # lot sayısı
     price: Decimal         # birim fiyat
+    original_quantity: Optional[int] = None
+    original_price: Optional[Decimal] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.side, TradeSide):
@@ -33,6 +35,11 @@ class Trade:
                 object.__setattr__(self, "side", TradeSide(self.side))
             except ValueError as exc:
                 raise ValueError(f"Unknown trade side: {self.side}") from exc
+
+        if self.original_quantity is None:
+            object.__setattr__(self, "original_quantity", self.quantity)
+        if self.original_price is None:
+            object.__setattr__(self, "original_price", self.price)
 
         if self.quantity <= 0:
             raise ValueError("Quantity must be positive")
