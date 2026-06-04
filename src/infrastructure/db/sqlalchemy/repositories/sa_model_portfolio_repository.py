@@ -4,10 +4,20 @@ from datetime import date, time
 from decimal import Decimal
 from typing import List, Optional
 
-from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade, ModelTradeSide
+from src.domain.models.model_portfolio import (
+    ModelPortfolio,
+    ModelPortfolioCashMovement,
+    ModelPortfolioCashMovementType,
+    ModelPortfolioTrade,
+    ModelTradeSide,
+)
 from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
-from src.infrastructure.db.sqlalchemy.orm_models import ORMModelPortfolio, ORMModelPortfolioTrade
+from src.infrastructure.db.sqlalchemy.orm_models import (
+    ORMModelPortfolio,
+    ORMModelPortfolioCashMovement,
+    ORMModelPortfolioTrade,
+)
 from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback, commit_refresh_or_rollback
 
 class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
@@ -75,6 +85,33 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
             created_at=domain.created_at,
         )
 
+    def _to_domain_cash_movement(self, orm: ORMModelPortfolioCashMovement) -> ModelPortfolioCashMovement:
+        amount = orm.amount
+        if not isinstance(amount, Decimal):
+            amount = Decimal(str(amount))
+        return ModelPortfolioCashMovement(
+            id=orm.id,
+            portfolio_id=orm.portfolio_id,
+            movement_date=orm.movement_date,
+            movement_time=orm.movement_time,
+            type=ModelPortfolioCashMovementType(getattr(orm.type, "value", orm.type)),
+            amount=amount,
+            notes=orm.notes,
+            created_at=orm.created_at,
+        )
+
+    def _to_orm_cash_movement(self, domain: ModelPortfolioCashMovement) -> ORMModelPortfolioCashMovement:
+        return ORMModelPortfolioCashMovement(
+            id=domain.id,
+            portfolio_id=domain.portfolio_id,
+            movement_date=domain.movement_date,
+            movement_time=domain.movement_time,
+            type=domain.type.value,
+            amount=domain.amount,
+            notes=domain.notes,
+            created_at=domain.created_at,
+        )
+
     # ---------- ModelPortfolio READ operasyonları ---------- #
     def get_all_model_portfolios(self) -> List[ModelPortfolio]:
         with self._provider.get_session() as session:
@@ -122,6 +159,7 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
 
     def delete_all_model_portfolios(self) -> None:
         with self._provider.get_session() as session:
+            session.query(ORMModelPortfolioCashMovement).delete()
             session.query(ORMModelPortfolioTrade).delete()
             session.query(ORMModelPortfolio).delete()
             commit_or_rollback(session)
@@ -163,3 +201,22 @@ class SQLAlchemyModelPortfolioRepository(IModelPortfolioRepository):
         with self._provider.get_session() as session:
             session.query(ORMModelPortfolioTrade).filter_by(portfolio_id=portfolio_id).delete()
             commit_or_rollback(session)
+
+    def get_cash_movements_by_portfolio_id(self, portfolio_id: int) -> List[ModelPortfolioCashMovement]:
+        with self._provider.get_session() as session:
+            rows = session.query(ORMModelPortfolioCashMovement)\
+                .filter_by(portfolio_id=portfolio_id)\
+                .order_by(
+                    ORMModelPortfolioCashMovement.movement_date,
+                    ORMModelPortfolioCashMovement.movement_time,
+                    ORMModelPortfolioCashMovement.id,
+                )\
+                .all()
+            return [self._to_domain_cash_movement(row) for row in rows]
+
+    def insert_cash_movement(self, movement: ModelPortfolioCashMovement) -> ModelPortfolioCashMovement:
+        with self._provider.get_session() as session:
+            orm_obj = self._to_orm_cash_movement(movement)
+            session.add(orm_obj)
+            commit_refresh_or_rollback(session, orm_obj)
+            return self._to_domain_cash_movement(orm_obj)
