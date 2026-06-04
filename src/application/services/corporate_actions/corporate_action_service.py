@@ -14,15 +14,17 @@ Akış:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import List, Optional
 
 from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.models.position import Position
 from src.domain.models.trade import Trade, TradeSide
+from src.domain.models.trade_adjustment import TradeAdjustment
 from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.ports.repositories.i_trade_adjustment_repo import ITradeAdjustmentRepository
 from src.application.services.corporate_actions.price_adjustment_service import (
     CorporateActionPriceAdjustmentService,
 )
@@ -139,10 +141,12 @@ class CorporateActionService:
         self,
         action_repo: ICorporateActionRepository,
         portfolio_repo: IPortfolioRepository,
+        trade_adjustment_repo: ITradeAdjustmentRepository | None = None,
         price_adjustment_service: CorporateActionPriceAdjustmentService | None = None,
     ) -> None:
         self._action_repo = action_repo
         self._portfolio_repo = portfolio_repo
+        self._trade_adjustment_repo = trade_adjustment_repo
         self._price_adjustment_service = price_adjustment_service
 
     # ══════════════════════════════════════════════════════════
@@ -314,27 +318,49 @@ class CorporateActionService:
     ) -> CorporateActionResult:
         """
         Bedelsiz artırım uygulama:
-        Portföydeki toplam maliyet sabit kalır; hisse adedi artar; ortalama maliyet düşer.
-
-        Sentetik BUY işlemi fiyat=0 TL ile eklenir.
-        Trade dataclass fabrika metodu price>0 zorlar, bu yüzden Trade'i
-        doğrudan oluştururuz (iç domain nesnesi, validation bypass gerekli değil —
-        bedelsiz sermaye artırımı gerçek bir para hareketi değildir).
+        Retroactive düzeltme modeli: Geçmiş işlemleri bölünme oranında ayarlar.
         """
         avg_cost_before = position.average_cost
         shares_before = position.total_quantity
-
-        # Fiyat=0 sentetik BUY: toplam_maliyet değişmez
-        synthetic_trade = Trade(
-            id=None,
-            stock_id=action.stock_id,
-            trade_date=action.ex_date,
-            trade_time=None,
-            side=TradeSide.BUY,
-            quantity=new_shares,
-            price=Decimal("0"),
-        )
-        self._portfolio_repo.insert_trade(synthetic_trade)
+        
+        factor = Decimal("1") / (Decimal("1") + action.ratio)
+        
+        # ex-date öncesi tüm işlemleri güncelle
+        trades = self._portfolio_repo.get_trades_by_stock(action.stock_id)
+        trades_before = [t for t in trades if t.trade_date < action.ex_date]
+        
+        for trade in trades_before:
+            post_qty = int(trade.quantity * (Decimal("1") + action.ratio))
+            post_price = (trade.price * factor).quantize(Decimal("1.0000"))
+            
+            # Günlük logunu kaydet
+            if self._trade_adjustment_repo is not None:
+                adjustment = TradeAdjustment(
+                    id=None,
+                    trade_id=trade.id,
+                    corporate_action_id=action.id,
+                    factor=factor,
+                    pre_quantity=trade.quantity,
+                    post_quantity=post_qty,
+                    pre_price=trade.price,
+                    post_price=post_price,
+                    applied_at=datetime.now()
+                )
+                self._trade_adjustment_repo.insert(adjustment)
+            
+            # İşlemi güncelle
+            updated_trade = Trade(
+                id=trade.id,
+                stock_id=trade.stock_id,
+                trade_date=trade.trade_date,
+                trade_time=trade.trade_time,
+                side=trade.side,
+                quantity=post_qty,
+                price=post_price,
+                original_quantity=trade.original_quantity,
+                original_price=trade.original_price,
+            )
+            self._portfolio_repo.update_trade(updated_trade)
 
         # Yeni ortalama maliyet: aynı toplam maliyet / daha fazla hisse
         new_qty = shares_before + new_shares
@@ -362,23 +388,52 @@ class CorporateActionService:
         theoretical_price: Optional[Decimal],
     ) -> CorporateActionResult:
         """
-        Bedelli artırım (rüçhan hakkı kullanımı):
-        Hissedar subscription_price fiyatından yeni pay satın alır.
-        Bu, portföy sermayesinden düşülür (sentetik BUY ile otomatik yansır).
+        Bedelli artırım uygulama:
+        Retroactive düzeltme modeli: Geçmiş işlemleri bölünme oranında ayarlar.
         """
         avg_cost_before = position.average_cost
         shares_before = position.total_quantity
         sub_price = action.subscription_price
         capital_spent = sub_price * Decimal(str(new_shares))
+        
+        factor = self._price_adjustment_service._factor_for_action(action) if self._price_adjustment_service else Decimal("1")
 
-        # Rüçhan hakkı kullanım fiyatından BUY → sermayeden düşer
-        synthetic_trade = Trade.create_buy(
-            stock_id=action.stock_id,
-            trade_date=action.ex_date,
-            quantity=new_shares,
-            price=sub_price,
-        )
-        self._portfolio_repo.insert_trade(synthetic_trade)
+        # ex-date öncesi tüm işlemleri güncelle
+        trades = self._portfolio_repo.get_trades_by_stock(action.stock_id)
+        trades_before = [t for t in trades if t.trade_date < action.ex_date]
+        
+        for trade in trades_before:
+            post_qty = int(trade.quantity / factor)
+            post_price = (trade.price * factor).quantize(Decimal("1.0000"))
+            
+            # Günlük logunu kaydet
+            if self._trade_adjustment_repo is not None:
+                adjustment = TradeAdjustment(
+                    id=None,
+                    trade_id=trade.id,
+                    corporate_action_id=action.id,
+                    factor=factor,
+                    pre_quantity=trade.quantity,
+                    post_quantity=post_qty,
+                    pre_price=trade.price,
+                    post_price=post_price,
+                    applied_at=datetime.now()
+                )
+                self._trade_adjustment_repo.insert(adjustment)
+            
+            # İşlemi güncelle
+            updated_trade = Trade(
+                id=trade.id,
+                stock_id=trade.stock_id,
+                trade_date=trade.trade_date,
+                trade_time=trade.trade_time,
+                side=trade.side,
+                quantity=post_qty,
+                price=post_price,
+                original_quantity=trade.original_quantity,
+                original_price=trade.original_price,
+            )
+            self._portfolio_repo.update_trade(updated_trade)
 
         new_qty = shares_before + new_shares
         new_total_cost = position.total_cost + capital_spent
