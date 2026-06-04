@@ -23,6 +23,8 @@ Aşağıda SQLAlchemy Declarative Base ile oluşturulan ana tablolar listelenmi�
 | `risk_profiles` | Risk anketindeki kullanıcı yanıtlarını ve finansal profilleri barındırır. |
 | `corporate_actions` | Temettü veya bölünme gibi işlemleri tutar. |
 | `budgets` | Tasarruf ve hedef bütçelerini tanımlar. |
+| `budget_items` | Aylık bütçeye bağlı gelir/gider kalemlerini tutar. |
+| `budget_pinned_items` | Boş aylara otomatik taşınan tekrar eden gelir/gider başlıklarını ve varsayılan tutarlarını saklar. |
 | `watchlists` | Kullanıcının ana portföyde olmadığı halde takip etmek istediği hisse listeleridir. |
 
 ## 3. İlklendirme ve Migration
@@ -35,3 +37,16 @@ Aşağıda SQLAlchemy Declarative Base ile oluşturulan ana tablolar listelenmi�
 - Repository tarafında kontrolsüz `except Exception` kullanılmıyor; DB transaction rollback davranışı `SQLAlchemyError` ailesiyle sınırlandı.
 - `SQLAlchemyModelPortfolioRepository` içindeki ulaşılamayan ORM mapper kodu gerçek `_to_orm_portfolio` metoduna taşındı ve regression testi eklendi.
 - `SQLAlchemyRiskProfileRepository` legacy schema fallback'i bilinçli istisna olarak korunur; raw SQL yalnız eski `risk_profiles` şeması uyumluluğu için kullanılır.
+
+## Bütçe Pinleme Notu (2026-06-03)
+
+- `budget_pinned_items`, `item_type + name` benzersizliğiyle tekrar eden gelir/gider şablonlarını saklar.
+- Aylık kayıtlar yine `budgets` ve `budget_items` üzerinde kalır; pinli şablonlar yalnız bütçesi olmayan aylar için form taslağı üretir.
+- Repository başlangıcında tablo `checkfirst=True` ile oluşturulur; mevcut bütçe kayıtları migrate edilmez veya değiştirilmez.
+
+## Kurumsal İşlemler ve İşlem Düzeltme Notu (2026-06-04)
+
+- `trades` tablosuna `original_quantity` ve `original_price` kolonları eklendi.
+- Kurumsal işlemler uygulandığında düzeltme geçmişini (factor, pre_quantity, post_quantity, pre_price, post_price) denetim izli olarak saklayan `trade_adjustments` tablosu oluşturuldu.
+- Düzeltilen işlemler için `trades.quantity` ve `trades.price` kolonları bölünmüş değerleri tutarken, orijinal işlem bilgileri `trades.original_quantity` ve `trades.original_price` kolonlarında salt-okunur şekilde korunur.
+
