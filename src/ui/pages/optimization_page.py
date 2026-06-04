@@ -91,6 +91,39 @@ class OptimizationPage(BasePage):
 
         # Progress bar
         self.progress_bar = QProgressBar()
+        # KOYMA. Qt'de parent'a verilen selector'suz stylesheet kuralı tüm
+        # alt widget'lara yayılır ve QSS buton arka planlarını ezer (buton
+        # beyaz görünür). Bunun yerine objectName ile QSS'teki
+        # `QWidget#scroll_content` kuralı kullanılır.
+        self.scroll_content = QWidget()
+        self.scroll_content.setObjectName("scroll_content")
+        self.scroll_layout = QVBoxLayout(self.scroll_content)
+        self.scroll_layout.setContentsMargins(25, 25, 25, 25)
+        self.scroll_layout.setSpacing(20)
+        
+        # Başlık
+        header = QHBoxLayout()
+        self.lbl_title_icon = IconLabel("zap", color="@COLOR_ACCENT", size=28)
+        header.addWidget(self.lbl_title_icon)
+        
+        lbl_title = QLabel("Portföy Optimizasyonu")
+        lbl_title.setProperty("cssClass", "pageTitle")
+        header.addWidget(lbl_title)
+        header.addStretch()
+        self.scroll_layout.addLayout(header)
+
+        lbl_desc = QLabel(
+            "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n"
+            "maksimize eden optimal portföy ağırlıklarını hesaplar."
+        )
+        lbl_desc.setProperty("cssClass", "pageDescription")
+        self.scroll_layout.addWidget(lbl_desc)
+
+        # Kaynak seçimi paneli
+        self.scroll_layout.addWidget(self._build_source_panel())
+
+        # Progress bar
+        self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.setMaximumHeight(4)
         self.progress_bar.setProperty("cssClass", "optimizationProgressBar")
@@ -99,6 +132,15 @@ class OptimizationPage(BasePage):
 
         # Metrik kartları
         self.scroll_layout.addWidget(self._build_metrics_panel())
+
+        # Metrikler için açıklama
+        self.lbl_metrics_info = QLabel(
+            "<b>Mevcut:</b> Portföyünüzün şu anki durumu &nbsp;|&nbsp; <b>Optimal:</b> Aynı risk seviyesinde veya daha düşük riskle ulaşılabilecek en iyi durum"
+        )
+        self.lbl_metrics_info.setProperty("cssClass", "disclaimerText")
+        self.lbl_metrics_info.setAlignment(Qt.AlignCenter)
+        self.lbl_metrics_info.setVisible(False)
+        self.scroll_layout.addWidget(self.lbl_metrics_info)
 
         # Öneriler başlığı + tablo
         suggestions_header = QHBoxLayout()
@@ -177,7 +219,7 @@ class OptimizationPage(BasePage):
 
         self.card_return = MetricCard("Beklenen Yıllık Getiri", icon_name="trending-up")
         self.card_risk   = MetricCard("Risk (Volatilite)", icon_name="trending-down")
-        self.card_sharpe = MetricCard("Sharpe Oranı", icon_name="star")
+        self.card_sharpe = MetricCard("Risk-Getiri Performansı (Sharpe Oranı)", icon_name="star")
 
         metrics_layout.addWidget(self.card_return)
         metrics_layout.addWidget(self.card_risk)
@@ -261,6 +303,7 @@ class OptimizationPage(BasePage):
     def _display_result(self, result: OptimizationResult):
         self.lbl_empty.setVisible(False)
         self.metrics_frame.setVisible(True)
+        self.lbl_metrics_info.setVisible(True)
         self.lbl_suggestions.setVisible(True)
         self.lbl_sug_icon.setVisible(True)
         self.suggestions_table.setVisible(True)
