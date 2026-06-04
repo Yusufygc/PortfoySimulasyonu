@@ -29,6 +29,19 @@ QFrame[cssClass="chatBubble"][cssState="system"] {
     border: 1px solid @COLOR_PURPLE_BRIGHT;
 }
 
+QFrame[cssClass="aiChatAnswer"] {
+    background-color: transparent;
+    border: none;
+}
+
+QTextBrowser[cssClass="aiChatAnswerText"] {
+    background-color: transparent;
+    border: none;
+    color: @COLOR_TEXT_BODY;
+    font-size: @FONT_MD;
+    padding: 0px;
+}
+
 QLabel[cssClass="chatContent"][cssState="user"]   { color: @COLOR_TEXT_PRIMARY; font-size: @FONT_MD; }
 QLabel[cssClass="chatContent"][cssState="ai"]     { color: @COLOR_TEXT_BODY; font-size: @FONT_MD; }
 QLabel[cssClass="chatContent"][cssState="system"] { color: @COLOR_TEXT_BODY; font-size: @FONT_MD; }
@@ -38,3 +51,49 @@ QLabel[cssClass="chatTime"][cssState="ai"]     { color: @COLOR_TEXT_MUTED; font-
 QLabel[cssClass="chatTime"][cssState="system"] { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_XS; }
 
 QLabel[cssClass="systemChatHeader"] { color: @COLOR_PURPLE_BRIGHT; font-weight: bold; font-size: @FONT_BASE; }
+
+QFrame[cssClass="aiHistorySidebar"] {
+    background-color: @COLOR_BG_SURFACE;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_LG;
+}
+
+QLabel[cssClass="aiHistoryHeader"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_LG;
+    font-weight: bold;
+}
+
+QScrollArea[cssClass="aiHistoryScroll"] {
+    background-color: transparent;
+    border: none;
+}
+
+QFrame[cssClass="aiHistoryRow"] {
+    background-color: transparent;
+    border: 1px solid @COLOR_BORDER;
+    border-radius: @RADIUS_MD;
+}
+QFrame[cssClass="aiHistoryRow"]:hover {
+    background-color: @COLOR_ITEM_HOVER_BG;
+    border: 1px solid @COLOR_PRIMARY;
+}
+QFrame[cssClass="aiHistoryRow"][selected="true"] {
+    background-color: @COLOR_BUBBLE_USER;
+    border: 1px solid @COLOR_PRIMARY;
+}
+
+QLabel[cssClass="aiHistoryRowTitle"] {
+    color: @COLOR_TEXT_PRIMARY;
+    font-size: @FONT_BASE;
+    font-weight: bold;
+}
+QLabel[cssClass="aiHistoryRowMeta"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_XS;
+}
+QLabel[cssClass="aiHistoryEmpty"] {
+    color: @COLOR_TEXT_SECONDARY;
+    font-size: @FONT_BASE;
+    padding: 24px;
+}
