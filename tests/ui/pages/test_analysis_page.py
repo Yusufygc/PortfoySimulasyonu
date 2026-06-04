@@ -75,7 +75,8 @@ def test_analysis_page_keeps_filter_panel_in_a_full_height_right_column():
     assert page.control_panel_scroll.sizePolicy().verticalPolicy() == QSizePolicy.Expanding
     assert page.control_panel.sizePolicy().verticalPolicy() == QSizePolicy.Expanding
     assert page.btn_refresh.parentWidget() is not page
-    assert page.control_panel.minimumWidth() == 320
+    assert page.control_panel.minimumWidth() == 360
+    assert page.control_panel.maximumWidth() == 400
     assert tab_bar.expanding() is True
     assert tab_bar.usesScrollButtons() is False
     assert tab_bar.elideMode() == Qt.ElideNone
@@ -137,6 +138,42 @@ def test_control_panel_places_stock_filter_below_currency():
 
     assert stock_layout.itemAt(stock_layout.count() - 1).widget() is panel.stock_combo
     assert stock_layout.itemAt(0).widget().text() == "Hisse Filtresi"
+
+
+def test_control_panel_date_inputs_fit_inside_filter_card():
+    panel = AnalysisControlPanel()
+    layout = panel.layout()
+    dates_frame = layout.itemAt(4).widget()
+    dates_layout = dates_frame.layout()
+    pickers_layout = dates_layout.itemAt(1).layout()
+    separator = pickers_layout.itemAt(1).widget()
+
+    assert panel.date_start.property("cssClass") == "analysisDateInput"
+    assert panel.date_end.property("cssClass") == "analysisDateInput"
+    assert panel.date_start.minimumWidth() >= 125
+    assert panel.date_end.minimumWidth() >= 125
+    assert panel.date_start.sizePolicy().horizontalPolicy() == QSizePolicy.Expanding
+    assert panel.date_end.sizePolicy().horizontalPolicy() == QSizePolicy.Expanding
+    assert pickers_layout.spacing() == 6
+    assert pickers_layout.getContentsMargins() == (0, 0, 0, 0)
+
+    panel_margins = layout.getContentsMargins()
+    date_card_margins = dates_layout.getContentsMargins()
+    available_width = (
+        panel.minimumWidth()
+        - panel_margins[0]
+        - panel_margins[2]
+        - date_card_margins[0]
+        - date_card_margins[2]
+    )
+    required_width = (
+        panel.date_start.minimumWidth()
+        + panel.date_end.minimumWidth()
+        + separator.sizeHint().width()
+        + (pickers_layout.spacing() * 2)
+    )
+
+    assert required_width <= available_width
 
 
 def test_control_panel_populates_stock_items():
