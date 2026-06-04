@@ -42,6 +42,7 @@ Comparison Lab geliştirme sürecinde takip edilen teknik şartnameler ve uygula
 |-------|------|
 | [database_maintenance_and_scripts.md](database_maintenance_and_scripts.md) | DB Bütünlük onarımı, geçersiz trade temizliği, scriptler (purge vb.) |
 | [testing_strategy.md](testing_strategy.md) | Birim/Servis ve PyQt testlerinin (pytest) mimarisi ve fixture yapısı |
+| [manual_testing_guide.md](manual_testing_guide.md) | Uygulama sayfaları ve kritik akışlar için kapsamlı manuel test yönergesi |
 | [project_build_and_deployment.md](project_build_and_deployment.md) | Nuitka ile derleme (.exe), CI commit kancaları ve pip pinleme |
 | [log.md](log.md) | Kronolojik, yalnızca ekleme yapılan wiki güncelleme ve commit kaydı |
 | [Plans.md](Plans.md) | Gelecek geliştirmeler, teknik borç notları ve code review ihtiyaçları |
