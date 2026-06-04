@@ -93,11 +93,17 @@ class ModelPortfolioUIBuilder:
         self.page._report_menu.addAction(self.page._report_range_action)
         self.page.btn_report.setMenu(self.page._report_menu)
         header.addWidget(self.page.btn_report)
+
+        self.page.btn_capital = AnimatedButton(" Sermaye Yönetimi")
+        self.page.btn_capital.setIconName("wallet", color="@COLOR_TEXT_PRIMARY")
+        self.page.btn_capital.setProperty("cssClass", "reportButton")
+        self.page.btn_capital.setEnabled(False)
+        header.addWidget(self.page.btn_capital)
         layout.addLayout(header)
 
         cards_row = QHBoxLayout()
         cards_row.setSpacing(15)
-        self.page.card_initial = InfoCard("Başlangıç", "TL 0", icon_name="wallet")
+        self.page.card_initial = InfoCard("Net Sermaye", "TL 0", icon_name="wallet")
         self.page.card_cash = InfoCard("Nakit", "TL 0", icon_name="coins")
         self.page.card_value = InfoCard("Değer", "TL 0", icon_name="bar-chart-2")
         self.page.card_pl = InfoCard("K/Z", "TL 0", icon_name="target")
