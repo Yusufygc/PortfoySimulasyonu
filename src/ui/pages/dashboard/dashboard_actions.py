@@ -34,12 +34,19 @@ class DashboardActions:
 
         action = result["action"]
         amount = result["amount"]
+        m_date = result.get("movement_date")
+        m_time = result.get("movement_time")
+        notes = result.get("notes") or ("Sermaye ekleme" if action == "deposit" else "Sermaye çekme")
         try:
             if action == "deposit":
-                self._page.cash_movement_service.add_deposit(amount, notes="Sermaye ekleme")
+                self._page.cash_movement_service.add_deposit(
+                    amount, movement_date=m_date, movement_time=m_time, notes=notes
+                )
                 QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye eklendi.")
             else:
-                self._page.cash_movement_service.add_withdraw(amount, notes="Sermaye çekme")
+                self._page.cash_movement_service.add_withdraw(
+                    amount, movement_date=m_date, movement_time=m_time, notes=notes
+                )
                 QMessageBox.information(self._page, "Başarılı", f"{amount:,.2f} TL sermaye çekildi.")
         except ValueError as exc:
             QMessageBox.warning(self._page, "Uyarı", str(exc))
