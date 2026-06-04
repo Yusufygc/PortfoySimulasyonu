@@ -1,9 +1,9 @@
-from datetime import date
+from datetime import date, time
 from decimal import Decimal
 
 from src.application.services.portfolio.trade_entry_service import TradeEntryService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
-from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade
+from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade
 from src.domain.models.stock import Stock
 from src.domain.models.trade import TradeSide
 
@@ -31,6 +31,7 @@ class FakeModelPortfolioRepo:
                 ),
             ]
         }
+        self.cash_movements = {1: []}
 
     def get_all_model_portfolios(self):
         return list(self.portfolios.values())
@@ -60,6 +61,22 @@ class FakeModelPortfolioRepo:
 
     def delete_trade(self, trade_id):
         return None
+
+    def get_cash_movements_by_portfolio_id(self, portfolio_id):
+        return list(self.cash_movements.get(portfolio_id, []))
+
+    def insert_cash_movement(self, movement):
+        saved = ModelPortfolioCashMovement(
+            id=len(self.cash_movements.get(movement.portfolio_id, [])) + 1,
+            portfolio_id=movement.portfolio_id,
+            movement_date=movement.movement_date,
+            movement_time=movement.movement_time,
+            type=movement.type,
+            amount=movement.amount,
+            notes=movement.notes,
+        )
+        self.cash_movements.setdefault(movement.portfolio_id, []).append(saved)
+        return saved
 
 
 class FakeStockRepo:
@@ -93,6 +110,7 @@ def test_model_portfolio_service_computes_remaining_cash_and_summary():
     assert summary["positions_value"] == Decimal("96")
     assert summary["total_value"] == Decimal("1026")
     assert summary["profit_loss"] == Decimal("26")
+    assert summary["net_capital"] == Decimal("1000")
 
 
 def test_model_portfolio_service_returns_positions_with_details():
@@ -189,3 +207,113 @@ def test_model_portfolio_rejects_sell_for_missing_stock_without_creating_stock()
         raise AssertionError("Expected missing stock error")
 
     assert set(stock_repo.stocks) == before_ids
+
+
+def test_model_portfolio_capital_deposit_increases_cash_without_profit():
+    service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
+
+    movement = service.add_capital_movement(
+        portfolio_id=1,
+        movement_type="DEPOSIT",
+        amount=Decimal("500"),
+        movement_date=date(2026, 1, 3),
+        movement_time=time(10, 0),
+    )
+    summary = service.get_portfolio_summary(1, price_map={10: Decimal("12")})
+
+    assert movement.amount == Decimal("500")
+    assert service.get_remaining_cash(1) == Decimal("1430")
+    assert summary["net_capital"] == Decimal("1500")
+    assert summary["total_value"] == Decimal("1526")
+    assert summary["profit_loss"] == Decimal("26")
+
+
+def test_model_portfolio_capital_withdraw_reduces_cash_and_net_capital():
+    service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
+
+    service.add_capital_movement(
+        portfolio_id=1,
+        movement_type="WITHDRAW",
+        amount=Decimal("100"),
+        movement_date=date(2026, 1, 3),
+        movement_time=time(10, 0),
+    )
+    summary = service.get_portfolio_summary(1, price_map={10: Decimal("12")})
+
+    assert service.get_remaining_cash(1) == Decimal("830")
+    assert summary["net_capital"] == Decimal("900")
+    assert summary["profit_loss"] == Decimal("26")
+
+
+def test_model_portfolio_rejects_withdraw_above_cash():
+    service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
+
+    try:
+        service.add_capital_movement(
+            portfolio_id=1,
+            movement_type="WITHDRAW",
+            amount=Decimal("5000"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(10, 0),
+        )
+    except ValueError as exc:
+        assert "Yetersiz nakit" in str(exc)
+    else:
+        raise AssertionError("Expected insufficient cash error")
+
+
+def test_model_portfolio_deposit_allows_larger_later_buy():
+    service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
+
+    service.add_capital_movement(
+        portfolio_id=1,
+        movement_type="DEPOSIT",
+        amount=Decimal("1000"),
+        movement_date=date(2026, 1, 3),
+        movement_time=time(9, 0),
+    )
+    trade = service.add_trade_by_ticker(
+        portfolio_id=1,
+        ticker="ASELS",
+        side="BUY",
+        quantity=100,
+        price=Decimal("10"),
+        trade_date=date(2026, 1, 3),
+        trade_time=time(10, 0),
+    )
+
+    assert trade.quantity == 100
+    assert service.get_remaining_cash(1) == Decimal("-70") + Decimal("1000")
+
+
+def test_model_portfolio_rejects_retroactive_withdraw_that_breaks_later_buy():
+    service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
+    service.add_capital_movement(
+        portfolio_id=1,
+        movement_type="DEPOSIT",
+        amount=Decimal("1000"),
+        movement_date=date(2026, 1, 3),
+        movement_time=time(9, 0),
+    )
+    service.add_trade_by_ticker(
+        portfolio_id=1,
+        ticker="ASELS",
+        side="BUY",
+        quantity=100,
+        price=Decimal("10"),
+        trade_date=date(2026, 1, 3),
+        trade_time=time(10, 0),
+    )
+
+    try:
+        service.add_capital_movement(
+            portfolio_id=1,
+            movement_type="WITHDRAW",
+            amount=Decimal("950"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(9, 30),
+        )
+    except ValueError as exc:
+        assert "sonraki model portf" in str(exc)
+    else:
+        raise AssertionError("Expected retroactive cash movement error")
