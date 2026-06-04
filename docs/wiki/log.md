@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-04] güncelleme | AI Asistanı Sidebar ve Arayüz Güncellemesi
+
+- AI Finans Asistanı sayfasındaki "Sohbetler" butonu ve sidebar içindeki "Kapat" butonu kaldırıldı.
+- Sidebar uzunluğu chat panelinin sol/üst köşesinden (`x=0, y=0`) başlayıp tam yükseklik (`self.height()`) kaplayacak şekilde güncellendi.
+- `QParallelAnimationGroup` ve `QPropertyAnimation` ile hem sidebar hem de yeni `btn_toggle_sidebar` butonu 250 ms süreyle smooth bir şekilde eş zamanlı kayacak şekilde animasyonlandırıldı. Buton, sidebar kapalıyken `x=20, y=14` konumunda "Merhaba" mesajının üstünde durur, açılırken ise sidebar'ın sağ üst köşesine (`x=sidebar_width - 46, y=14`) taşınır.
+- Etkilenen dosyalar: `src/ui/assets/icons/sidebar.svg`, `src/ui/pages/ai_page/right_panel/chatbot_panel.py`, `src/ui/pages/ai_page/right_panel/chat_history_sidebar.py`, `tests/ui/pages/ai_page/test_ai_page_right_panel.py`
+- Bağlantılı sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
 ## [2026-06-04] güncelleme | YFinance Fiyat Uyumsuzluğu Düzeltmesi ve Kurallar Güncellemesi
 
 - Yahoo Finance'in split ex-date kayması ve double-adjustment sorununu çözen dinamik kırılma noktası analizi (transition-aware) fiyat düzeltme altyapısı uygulandı.
