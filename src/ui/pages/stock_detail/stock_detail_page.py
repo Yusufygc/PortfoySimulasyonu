@@ -141,6 +141,24 @@ class StockDetailPage(BasePage):
         self.history_table.verticalHeader().setVisible(False)
         left_layout.addWidget(self.history_table, 2)
 
+        lbl_corp_actions = QLabel("Uygulanan Sermaye Artırımları")
+        lbl_corp_actions.setProperty("cssClass", "panelTitle")
+        left_layout.addWidget(lbl_corp_actions)
+
+        self.corp_actions_table = QTableWidget()
+        self.corp_actions_table.setColumnCount(3)
+        self.corp_actions_table.setHorizontalHeaderLabels(["Tarih", "İşlem Türü", "Artırım Oranı"])
+        self.corp_actions_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.corp_actions_table.setSelectionMode(QTableWidget.NoSelection)
+        self.corp_actions_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.corp_actions_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.corp_actions_table.setFocusPolicy(Qt.NoFocus)
+        self.corp_actions_table.setShowGrid(False)
+        self.corp_actions_table.setAlternatingRowColors(True)
+        self.corp_actions_table.setProperty("cssClass", "stockHistoryTable")
+        self.corp_actions_table.verticalHeader().setVisible(False)
+        left_layout.addWidget(self.corp_actions_table, 1)
+
         self.trade_form = TradeFormPanel()
         self.trade_form.trade_submitted.connect(self._on_submit_trade)
         self.trade_form.spin_qty.valueChanged.connect(self._trigger_impact_update)
@@ -206,6 +224,7 @@ class StockDetailPage(BasePage):
         else:
             self.stats_panel.update_stats(self.portfolio_service, self.current_stock_id, self.current_price)
         self._load_history()
+        self._load_corp_actions()
 
     def _update_price_info(self):
         if not self.current_ticker or not self.price_lookup_func:
@@ -250,9 +269,15 @@ class StockDetailPage(BasePage):
             type_color = QColor("#10b981" if is_buy else "#ef4444")
             type_item = self._history_item(type_str, type_color)
             self.history_table.setItem(row_index, 1, type_item)
-            self.history_table.setItem(row_index, 2, self._history_item(str(trade.quantity)))
-            self.history_table.setItem(row_index, 3, self._history_item(f"TL {trade.price:,.2f}"))
-            self.history_table.setItem(row_index, 4, self._history_item(f"TL {trade.total_amount:,.2f}"))
+            
+            # Use original trade quantity/price for history display in UI
+            qty = getattr(trade, "original_quantity", trade.quantity)
+            price = getattr(trade, "original_price", trade.price)
+            total = price * Decimal(qty)
+
+            self.history_table.setItem(row_index, 2, self._history_item(str(qty)))
+            self.history_table.setItem(row_index, 3, self._history_item(f"TL {price:,.2f}"))
+            self.history_table.setItem(row_index, 4, self._history_item(f"TL {total:,.2f}"))
 
     @staticmethod
     def _history_item(text: str, foreground: Optional[QColor] = None) -> QTableWidgetItem:
@@ -262,6 +287,34 @@ class StockDetailPage(BasePage):
         if foreground is not None:
             item.setForeground(foreground)
         return item
+
+    def _load_corp_actions(self):
+        if not self.current_stock_id or self._is_model_context():
+            self.corp_actions_table.setRowCount(0)
+            return
+
+        corporate_action_service = getattr(self.container, "corporate_action_service", None)
+        if not corporate_action_service:
+            self.corp_actions_table.setRowCount(0)
+            return
+
+        try:
+            # Sadece uygulanmis aksiyonlari listele
+            actions = [
+                a for a in corporate_action_service.get_by_stock(self.current_stock_id)
+                if a.applied
+            ]
+            actions.sort(key=lambda a: a.ex_date, reverse=True)
+            
+            self.corp_actions_table.setRowCount(len(actions))
+            for row_index, action in enumerate(actions):
+                self.corp_actions_table.setItem(row_index, 0, self._history_item(action.ex_date.strftime("%d.%m.%Y")))
+                type_str = "BEDELSIZ" if action.action_type == "BEDELSIZ" else "BEDELLI"
+                self.corp_actions_table.setItem(row_index, 1, self._history_item(type_str))
+                self.corp_actions_table.setItem(row_index, 2, self._history_item(f"%{action.ratio_percent:.0f}"))
+        except Exception as exc:
+            logger.error("Kurumsal islemleri yukleme hatasi: %s", exc)
+            self.corp_actions_table.setRowCount(0)
 
     def _on_submit_trade(self, is_buy: bool, qty: int, price: float, date_sel: QDate, time_sel: QTime | None = None):
         self._trade_submitter.submit(is_buy, qty, price, date_sel, time_sel)
