@@ -63,6 +63,7 @@ class ModelPortfolioPage(BasePage):
         self.btn_sell.clicked.connect(lambda: self._actions.on_trade("SELL"))
         self.btn_empty_buy.clicked.connect(lambda: self._actions.on_trade("BUY"))
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
+        self.btn_capital.clicked.connect(self._actions.on_capital_movement)
         
         self.positions_table.row_double_clicked.connect(self._on_position_double_clicked)
 
@@ -78,12 +79,17 @@ class ModelPortfolioPage(BasePage):
             portfolios,
             trade_count_func=self.model_portfolio_service.get_active_position_count,
         )
+        if not portfolios:
+            self.current_portfolio_id = None
+            self.current_price_map = {}
+            self._clear_right_panel()
+            return
         if "settings_manager" not in self.__dict__:
             self.settings_manager = PortfolioSettingsManager()
         selected_id = self.current_portfolio_id or self.settings_manager.get_last_selected_portfolio_id()
-        if selected_id is None:
-            return
-        selected_portfolio = self.list_panel.select_portfolio_by_id(selected_id)
+        selected_portfolio = self.list_panel.select_portfolio_by_id(selected_id) if selected_id is not None else None
+        if selected_portfolio is None:
+            selected_portfolio = self.list_panel.select_portfolio_by_id(portfolios[0].id)
         if selected_portfolio:
             self._set_current_portfolio(selected_portfolio, show_toast=True)
 
@@ -98,7 +104,7 @@ class ModelPortfolioPage(BasePage):
         self.current_price_map = self.settings_manager.load_saved_price_map(portfolio.id)
         self._sync_last_update_label()
         self.lbl_portfolio_name.setText(portfolio.name)
-        for button in (self.btn_buy, self.btn_sell, self.btn_refresh, self.btn_report, self.btn_empty_buy):
+        for button in (self.btn_buy, self.btn_refresh, self.btn_report, self.btn_capital, self.btn_empty_buy):
             button.setEnabled(True)
         self._update_view()
         if show_toast:
@@ -112,7 +118,7 @@ class ModelPortfolioPage(BasePage):
             self.current_portfolio_id,
             self.current_price_map,
         )
-        self.card_initial.set_value(f"TL {summary['initial_cash']:,.2f}")
+        self.card_initial.set_value(f"TL {summary.get('net_capital', summary['initial_cash']):,.2f}")
         self.card_cash.set_value(f"TL {summary['remaining_cash']:,.2f}")
         self.card_value.set_value(f"TL {summary['total_value']:,.2f}")
 
@@ -132,13 +138,14 @@ class ModelPortfolioPage(BasePage):
         self.positions_stack.setCurrentWidget(
             self.empty_positions_state if not positions else self.positions_table
         )
+        self.btn_sell.setEnabled(bool(positions))
 
     def _clear_right_panel(self):
         self.lbl_portfolio_name.setText("Bir portföy seçin")
         self.lbl_last_update.setText("")
         self.positions_table.setRowCount(0)
         self.positions_stack.setCurrentWidget(self.positions_table)
-        for button in (self.btn_buy, self.btn_sell, self.btn_refresh, self.btn_report, self.btn_empty_buy):
+        for button in (self.btn_buy, self.btn_sell, self.btn_refresh, self.btn_report, self.btn_capital, self.btn_empty_buy):
             button.setEnabled(False)
         for card in (self.card_initial, self.card_cash, self.card_value, self.card_pl):
             card.set_value("TL 0")
