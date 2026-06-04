@@ -101,19 +101,57 @@ class ChartViewManager:
         return view
 
     # ------------------------------------------------------------------
-    # Tüm view'ları kademeli (staggered) başlat
+    # Viewport Visibility Kontrolü
     # ------------------------------------------------------------------
 
-    def schedule_staggered_init(self) -> None:
+    def check_viewport_visibility(self) -> None:
         """
-        Uygulama başlangıcında UI donmalarını önlemek için
-        her view'u 150 ms aralıkla başlatır.
+        ScrollArea içerisindeki grafik panellerinin görünürlüğünü kontrol eder.
+        Viewport içine giren panellerin QWebEngineView nesnelerini tembel olarak oluşturur
+        ve eğer veri hazırsa asenkron render işlemini tetikler.
         """
-        from PyQt5.QtCore import QTimer
-        delays = {"main": 150, "drawdown": 300, "periodic": 450,
-                  "scatter": 600, "treemap": 750}
-        for name, delay in delays.items():
-            QTimer.singleShot(
-                delay,
-                lambda n=name: self.lazy_init_view_safe(n)
-            )
+        import sip
+        try:
+            if sip.isdeleted(self.page) or not hasattr(self.page, "scroll_area"):
+                return
+        except Exception:
+            return
+
+        scroll_area = self.page.scroll_area
+        vbar = scroll_area.verticalScrollBar()
+        if not vbar:
+            return
+            
+        scroll_y = vbar.value()
+        viewport = scroll_area.viewport()
+        if not viewport:
+            return
+            
+        viewport_height = viewport.height()
+
+        for name in _CHART_NAMES:
+            # Zaten oluşturulmuşsa atla
+            if getattr(self.page, f"_{name}_chart_view", None) is not None:
+                continue
+
+            container = getattr(self.page, f"{name}_chart_container", None)
+            if not container:
+                continue
+
+            from PyQt5.QtCore import QPoint
+            scroll_widget = scroll_area.widget()
+            if not scroll_widget:
+                continue
+                
+            pos = container.mapTo(scroll_widget, QPoint(0, 0))
+            top = pos.y()
+            bottom = top + container.height()
+
+            # Viewport ile kesişiyorsa (300px tolerans ile) oluştur
+            if bottom >= scroll_y - 300 and top <= scroll_y + viewport_height + 300:
+                self.get_or_create_view(name)
+                # Veri hazırsa render işlemini tetikle
+                df = getattr(self.page, "last_global_df", None)
+                if df is not None and not df.empty and hasattr(self.page, "_renderer"):
+                    if hasattr(self.page._renderer, "render_single_chart_async"):
+                        self.page._renderer.render_single_chart_async(name, df)
