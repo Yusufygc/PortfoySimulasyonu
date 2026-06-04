@@ -20,11 +20,13 @@ Mimari Notlar:
 """
 from __future__ import annotations
 
+import re
 from typing import ClassVar, List, Literal, Tuple
 
 from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton
-from PyQt5.QtCore import QEvent, Qt, QTimer, QPropertyAnimation, QEasingCurve, QPoint, pyqtProperty
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtCore import QEvent, Qt, QTimer, QPropertyAnimation, QEasingCurve
+
+from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 ToastType = Literal["success", "error", "warning", "info"]
 ToastPosition = Literal["top", "bottom"]
@@ -35,18 +37,36 @@ ToastPosition = Literal["top", "bottom"]
 _STYLE: dict[str, dict] = {
     # Renk/border artık QSS'te (shared/feedback.qss — @TOAST_* token'ları).
     # Her iki tema için ayrı değerler ThemeManager tarafından çözülür.
-    "success": {"icon": "✅"},
-    "error":   {"icon": "❌"},
-    "warning": {"icon": "⚠️"},
-    "info":    {"icon": "ℹ️"},
+    "success": {"icon_name": "shield-check", "icon_color": "@TOAST_SUCCESS_BORDER"},
+    "error":   {"icon_name": "alert-triangle", "icon_color": "@TOAST_ERROR_BORDER"},
+    "warning": {"icon_name": "alert-triangle", "icon_color": "@TOAST_WARNING_BORDER"},
+    "info":    {"icon_name": "info", "icon_color": "@TOAST_INFO_BORDER"},
 }
 
 _MARGIN   = 18   # Kenardan boşluk (px)
-_SPACING  = 10   # Toastlar arası boşluk (px)
+_SPACING  = 8    # Toastlar arası boşluk (px)
 _DURATION = 3500 # Görünme süresi (ms)
 _FADE_MS  = 300  # Fade animasyon süresi (ms)
 _MIN_W    = 460  # Minimum genişlik (px)
 _MAX_W    = 620  # Maksimum genişlik (px)
+
+_EMOJI_RANGES = (
+    (0x1F000, 0x1FAFF),  # emoji blocks, symbols, pictographs
+    (0x2600, 0x27BF),    # miscellaneous symbols and dingbats
+)
+_EMOJI_SYMBOL_CODEPOINTS = {
+    0x00A9,
+    0x00AE,
+    0x203C,
+    0x2049,
+    0x2122,
+    0x2139,
+    0x3030,
+    0x303D,
+    0x3297,
+    0x3299,
+}
+_EMOJI_JOINERS_AND_SELECTORS = {0x200D, 0x20E3, 0xFE0E, 0xFE0F}
 
 
 class _ToastWidget(QWidget):
@@ -76,7 +96,7 @@ class _ToastWidget(QWidget):
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowOpacity(0.0)
 
-        self._build_ui(message, kind)
+        self._build_ui(_strip_emoji(message), kind)
         self._install_parent_filters()
         self._register()
         self._reposition_all()
@@ -111,12 +131,17 @@ class _ToastWidget(QWidget):
         container.setProperty("toastKind", kind)
 
         row = QHBoxLayout(container)
-        row.setContentsMargins(18, 14, 14, 14)
-        row.setSpacing(14)
+        row.setContentsMargins(16, 12, 12, 12)
+        row.setSpacing(12)
 
-        lbl_icon = QLabel(cfg["icon"])
+        lbl_icon = IconLabel(
+            cfg["icon_name"],
+            color=cfg["icon_color"],
+            size=20,
+        )
         lbl_icon.setProperty("cssClass", "toastIcon")
-        lbl_icon.setFixedWidth(26)
+        lbl_icon.setFixedSize(24, 24)
+        lbl_icon.setAlignment(Qt.AlignCenter)
 
         lbl_msg = QLabel(message)
         lbl_msg.setWordWrap(True)
@@ -302,3 +327,16 @@ def _root(widget: QWidget) -> QWidget:
     while w.parent() is not None:
         w = w.parent()
     return w
+
+
+def _strip_emoji(message: str) -> str:
+    """Toast mesajını emoji karakterlerinden arındırır."""
+    cleaned = "".join(ch for ch in str(message) if not _is_emoji_char(ch))
+    return re.sub(r"\s{2,}", " ", cleaned).strip()
+
+
+def _is_emoji_char(char: str) -> bool:
+    codepoint = ord(char)
+    if codepoint in _EMOJI_JOINERS_AND_SELECTORS or codepoint in _EMOJI_SYMBOL_CODEPOINTS:
+        return True
+    return any(start <= codepoint <= end for start, end in _EMOJI_RANGES)
