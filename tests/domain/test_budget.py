@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from src.domain.models.budget import Budget, BudgetItem
+from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
 
 
 def test_budget_amounts_are_normalized_to_decimal():
@@ -31,6 +31,27 @@ def test_budget_rejects_invalid_item_type_and_negative_amounts():
 
     with pytest.raises(ValueError, match="Savings target"):
         Budget(id=None, month="2026-01", savings_target=-1)
+
+
+def test_budget_pinned_item_validates_type_name_and_amount():
+    pinned = BudgetPinnedItem(
+        id=None,
+        item_type="income",
+        name=" Salary ",
+        default_amount=3000.25,
+    )
+
+    assert pinned.name == "Salary"
+    assert pinned.default_amount == Decimal("3000.25")
+
+    with pytest.raises(ValueError, match="Unknown budget item type"):
+        BudgetPinnedItem(id=None, item_type="other", name="Invalid", default_amount=1)
+
+    with pytest.raises(ValueError, match="name cannot be empty"):
+        BudgetPinnedItem(id=None, item_type="income", name=" ", default_amount=1)
+
+    with pytest.raises(ValueError, match="cannot be negative"):
+        BudgetPinnedItem(id=None, item_type="expense", name="Rent", default_amount=-1)
 
 
 def test_budget_status_message_uses_decimal_comparisons():
