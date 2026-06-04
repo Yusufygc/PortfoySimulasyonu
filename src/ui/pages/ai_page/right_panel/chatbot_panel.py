@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 
 from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole, AnalysisResult
 from src.ui.pages.ai_page.core.gemini_service import generate_gemini_response
+from src.ui.pages.ai_page.core.safety_guard import validate_user_input
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from src.ui.formatters import display_ticker
@@ -70,6 +71,15 @@ class ChatbotPanel(QWidget):
         self.add_message(ChatMessage(MessageRole.AI, "Sohbet geçmişi temizlendi. Size nasıl yardımcı olabilirim?"))
 
     def send_user_message(self, text: str):
+        is_safe, error_msg = validate_user_input(text)
+        if not is_safe:
+            user_msg = ChatMessage(MessageRole.USER, text)
+            self.add_message(user_msg)
+            
+            system_msg = ChatMessage(MessageRole.SYSTEM, error_msg)
+            self.add_message(system_msg)
+            return
+
         msg = ChatMessage(MessageRole.USER, text)
         self.add_message(msg)
         self._trigger_ai()
