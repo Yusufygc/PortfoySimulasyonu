@@ -10,8 +10,11 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QPushButton,
+    QDateEdit,
+    QTimeEdit,
+    QLineEdit,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDate, QTime
 
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
@@ -24,7 +27,7 @@ class CapitalDialog(QDialog):
         
         self.setWindowTitle("Sermaye Yönetimi")
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-        self.resize(350, 200)
+        self.resize(350, 300)
         self.setModal(True)
         self.setProperty("cssClass", "dialogContainer")
         
@@ -59,6 +62,23 @@ class CapitalDialog(QDialog):
         self.spin_amount.setProperty("cssClass", "tradeInputNormal")
         form.addRow("Tutar:", self.spin_amount)
         
+        # Tarih
+        self.date_edit = QDateEdit(QDate.currentDate())
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setProperty("cssClass", "tradeInputNormal")
+        form.addRow("Tarih:", self.date_edit)
+        
+        # Saat
+        self.time_edit = QTimeEdit(QTime.currentTime())
+        self.time_edit.setProperty("cssClass", "tradeInputNormal")
+        form.addRow("Saat:", self.time_edit)
+        
+        # Not
+        self.txt_notes = QLineEdit()
+        self.txt_notes.setPlaceholderText("Opsiyonel")
+        self.txt_notes.setProperty("cssClass", "tradeInputNormal")
+        form.addRow("Not:", self.txt_notes)
+        
         layout.addLayout(form)
         
         # Butonlar
@@ -88,4 +108,7 @@ class CapitalDialog(QDialog):
         return {
             "action": action,
             "amount": amount,
+            "movement_date": self.date_edit.date().toPyDate(),
+            "movement_time": self.time_edit.time().toPyTime(),
+            "notes": self.txt_notes.text().strip() or None,
         }
