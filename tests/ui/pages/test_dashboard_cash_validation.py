@@ -24,19 +24,25 @@ class AcceptedCapitalDialog:
         return QDialog.Accepted
 
     def get_result(self):
-        return {"action": "deposit", "amount": Decimal("1000")}
+        return {
+            "action": "deposit",
+            "amount": Decimal("1000"),
+            "movement_date": None,
+            "movement_time": None,
+            "notes": None
+        }
 
 
 def test_dashboard_capital_management_writes_cash_movement(monkeypatch):
     calls = []
     presenter = SimpleNamespace(load_capital=lambda: calls.append("load"), refresh_data=lambda: calls.append("refresh"))
-    cash_service = SimpleNamespace(add_deposit=lambda amount, notes=None: calls.append(("deposit", amount, notes)))
+    cash_service = SimpleNamespace(add_deposit=lambda amount, movement_date=None, movement_time=None, notes=None: calls.append(("deposit", amount, movement_date, movement_time, notes)))
     page = SimpleNamespace(_capital=Decimal("0"), capital_dialog_cls=AcceptedCapitalDialog, cash_movement_service=cash_service)
     monkeypatch.setattr("src.ui.pages.dashboard.dashboard_actions.QMessageBox.information", lambda *args, **kwargs: None)
 
     DashboardActions(page, presenter).on_capital_management()
 
-    assert calls == [("deposit", Decimal("1000"), "Sermaye ekleme"), "load", "refresh"]
+    assert calls == [("deposit", Decimal("1000"), None, None, "Sermaye ekleme"), "load", "refresh"]
 
 
 def test_dashboard_new_trade_shows_warning_for_invalid_trade(monkeypatch):
