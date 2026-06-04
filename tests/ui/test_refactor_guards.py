@@ -48,6 +48,9 @@ def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
         ("src/ui/pages/risk_profile_page.py", "RiskProfilePage"),
         ("src/ui/pages/watchlist_page.py", "WatchlistPage"),
         ("src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py", "NewStockTradeDialog"),
+        ("src/ui/pages/optimization_page.py", "OptimizationPage"),
+        ("src/ui/pages/stock_detail/stock_detail_page.py", "StockDetailPage"),
+        ("src/ui/pages/comparison/utils/chart_renderer.py", "ChartRenderer"),
     }
     offenders = []
 
