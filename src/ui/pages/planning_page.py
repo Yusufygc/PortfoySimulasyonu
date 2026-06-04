@@ -29,6 +29,7 @@ class PlanningPage(BasePage):
         self.container = container
         self.page_title = "Finansal Planlama"
         self._service = container.planning_service
+        self._pinned_budget_items = []
         self._init_ui()
 
     # ------------------------------------------------------------------
@@ -120,6 +121,7 @@ class PlanningPage(BasePage):
 
         # Form paneli (BudgetFormPanel widget'ı)
         self.budget_form = BudgetFormPanel()
+        self.budget_form.pin_toggle_requested.connect(self._on_budget_pin_toggled)
         layout.addWidget(self.budget_form, stretch=1)
 
     def _build_goals_tab(self, tab: QWidget) -> None:
@@ -157,12 +159,13 @@ class PlanningPage(BasePage):
         month = self.combo_month.currentData()
         if not month:
             return
+        self._load_pinned_budget_items()
         budget = self._service.get_budget_for_month(month)
         if budget:
             self.budget_form.load(budget)
             self._update_budget_cards(budget)
         else:
-            self.budget_form.reset()
+            self.budget_form.load(self._service.get_budget_draft_from_pinned_items(month))
             self._reset_budget_cards()
 
     def _on_save_budget(self) -> None:
@@ -183,6 +186,23 @@ class PlanningPage(BasePage):
 
     def _reset_budget_cards(self) -> None:
         self.lbl_budget_status.setVisible(False)
+
+    def _load_pinned_budget_items(self) -> None:
+        self._pinned_budget_items = self._service.get_pinned_budget_items()
+        self.budget_form.set_pinned_items(self._pinned_budget_items)
+
+    def _on_budget_pin_toggled(self, item_type: str, name: str, amount: float, pinned: bool) -> None:
+        try:
+            if pinned:
+                self._service.pin_budget_item(item_type, name, amount)
+                Toast.success(self, f"'{name}' pinlendi.")
+            else:
+                self._service.unpin_budget_item(item_type, name)
+                Toast.success(self, f"'{name}' pini kaldırıldı.")
+            self._load_pinned_budget_items()
+        except Exception as e:
+            self.budget_form.set_pinned_items(self._pinned_budget_items)
+            Toast.error(self, f"Pin işlemi başarısız: {e}")
 
     # ------------------------------------------------------------------
     # Hedef Event Handler'ları
