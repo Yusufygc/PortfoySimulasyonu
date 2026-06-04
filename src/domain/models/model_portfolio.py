@@ -13,6 +13,11 @@ class ModelTradeSide(str, Enum):
     SELL = "SELL"
 
 
+class ModelPortfolioCashMovementType(str, Enum):
+    DEPOSIT = "DEPOSIT"
+    WITHDRAW = "WITHDRAW"
+
+
 @dataclass(frozen=True)
 class ModelPortfolio:
     """
@@ -122,4 +127,63 @@ class ModelPortfolioTrade:
             side=ModelTradeSide.SELL,
             quantity=quantity,
             price=price,
+        )
+
+
+@dataclass(frozen=True)
+class ModelPortfolioCashMovement:
+    id: Optional[int]
+    portfolio_id: int
+    movement_date: date
+    movement_time: Optional[time]
+    type: ModelPortfolioCashMovementType
+    amount: Decimal
+    notes: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.type, ModelPortfolioCashMovementType):
+            try:
+                object.__setattr__(self, "type", ModelPortfolioCashMovementType(self.type))
+            except ValueError as exc:
+                raise ValueError(f"Unknown model portfolio cash movement type: {self.type}") from exc
+        if self.amount <= 0:
+            raise ValueError("Cash movement amount must be positive")
+
+    @classmethod
+    def create_deposit(
+        cls,
+        portfolio_id: int,
+        amount: Decimal,
+        movement_date: date,
+        movement_time: Optional[time] = None,
+        notes: Optional[str] = None,
+    ) -> "ModelPortfolioCashMovement":
+        return cls(
+            id=None,
+            portfolio_id=portfolio_id,
+            movement_date=movement_date,
+            movement_time=movement_time,
+            type=ModelPortfolioCashMovementType.DEPOSIT,
+            amount=amount,
+            notes=notes,
+        )
+
+    @classmethod
+    def create_withdraw(
+        cls,
+        portfolio_id: int,
+        amount: Decimal,
+        movement_date: date,
+        movement_time: Optional[time] = None,
+        notes: Optional[str] = None,
+    ) -> "ModelPortfolioCashMovement":
+        return cls(
+            id=None,
+            portfolio_id=portfolio_id,
+            movement_date=movement_date,
+            movement_time=movement_time,
+            type=ModelPortfolioCashMovementType.WITHDRAW,
+            amount=amount,
+            notes=notes,
         )
