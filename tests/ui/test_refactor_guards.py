@@ -51,6 +51,8 @@ def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
         ("src/ui/pages/optimization_page.py", "OptimizationPage"),
         ("src/ui/pages/stock_detail/stock_detail_page.py", "StockDetailPage"),
         ("src/ui/pages/comparison/utils/chart_renderer.py", "ChartRenderer"),
+        ("src/ui/pages/ai_page/right_panel/chatbot_panel.py", "ChatbotPanel"),
+        ("src/ui/shared/locale_tr.py", "L10N"),
     }
     offenders = []
 

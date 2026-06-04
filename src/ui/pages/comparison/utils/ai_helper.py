@@ -1,3 +1,4 @@
+from src.ui.shared.locale_tr import L10N
 # src/ui/pages/comparison/utils/ai_helper.py
 """AI yorum paneli widget kurulumu ve Gemini worker yönetimi."""
 
@@ -53,7 +54,7 @@ class AICommentaryHelper:
         icon_lbl.setPixmap(
             IconManager.get_icon("bot", color="#38bdf8", size=QSize(28, 28)).pixmap(28, 28)
         )
-        title_lbl = QLabel("Yapay Zeka Rapor ve Analiz Asistanı")
+        title_lbl = QLabel(L10N.YAPAY_ZEKA_RAPOR_VE_ANALIZ)
         title_lbl.setProperty("cssClass", "comparisonAiTitle")
         title_row.addWidget(icon_lbl)
         title_row.addWidget(title_lbl)
@@ -62,16 +63,16 @@ class AICommentaryHelper:
 
         # Açıklama
         desc = QLabel(
-            "Karşılaştırma ekranında seçilen tüm varlıkların ve hesaplanan metriklerin "
-            "(getiri, volatilite, drawdown) Gemini yapay zeka modeli ile kapsamlı bir "
-            "şekilde yorumlanmasını sağlamak için aşağıdaki butona tıklayın."
+            L10N.KARSILASTIRMA_EKRANINDA_SECILEN_TUM_VARLIKLARIN +
+            L10N.GETIRI_VOLATILITE_DRAWDOWN_GEMINI_YAPAY +
+            L10N.SEKILDE_YORUMLANMASINI_SAGLAMAK_ICIN_ASAGIDAKI
         )
         desc.setWordWrap(True)
         desc.setProperty("cssClass", "comparisonAiDescription")
         layout.addWidget(desc)
 
         # Buton
-        page.ai_btn = QPushButton("Yapay Zeka Yorumu Oluştur")
+        page.ai_btn = QPushButton(L10N.YAPAY_ZEKA_YORUMU_OLUSTUR)
         page.ai_btn.setMinimumHeight(38)
         page.ai_btn.setMinimumWidth(200)
         page.ai_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -124,7 +125,7 @@ class AICommentaryHelper:
         if not table_rows:
             QMessageBox.warning(
                 self.page, "Uyarı",
-                "Analiz edilecek veri bulunamadı. Lütfen varlıkları seçip grafikleri güncelleyin."
+                L10N.ANALIZ_EDILECEK_VERI_BULUNAMADI_LUTFEN
             )
             return
 
@@ -141,13 +142,13 @@ class AICommentaryHelper:
             "Bir finansal analist olarak, bu karşılaştırmayı detaylı ve profesyonelce yorumla:\n"
             "1. Dönemin en başarılı varlığı hangisidir ve neden öne çıkmıştır?\n"
             "2. Drawdown ve volatilite açısından en riskli ve en güvenli varlık hangisidir?\n"
-            "3. Portföy çeşitlendirmesi için 2-3 pratik öneride bulun.\n\n"
-            "Not: Yatırım tavsiyesi vermeden, veriye sadık kalarak, sade ve anlaşılır Türkçe ile kısa paragraflar halinde yaz."
+            "3. Portföy çeşitlendirmesi için 2-3 pratik öneride bulun.\n\n" +
+            L10N.NOT_YATIRIM_TAVSIYESI_VERMEDEN_VERIYE
         )
 
         system_msg = ChatMessage(
             role=MessageRole.SYSTEM,
-            content="Sen profesyonel bir BIST ve küresel piyasalar portföy analiz asistanısın."
+            content=L10N.SEN_PROFESYONEL_BIR_BIST_VE
         )
         user_msg = ChatMessage(role=MessageRole.USER, content=prompt)
 
@@ -155,9 +156,9 @@ class AICommentaryHelper:
         scroll_pos = scroll_bar.value()
 
         self.page.ai_btn.setEnabled(False)
-        self.page.ai_btn.setText("Yapay Zeka Analiz Ediyor...")
+        self.page.ai_btn.setText(L10N.YAPAY_ZEKA_ANALIZ_EDIYOR)
         self.page.ai_progress.setVisible(True)
-        self.page.ai_browser.setMarkdown("*Analiz hazırlanıyor, lütfen bekleyin...*")
+        self.page.ai_browser.setMarkdown(L10N.ANALIZ_HAZIRLANIYOR_LUTFEN_BEKLEYIN)
         self.page.ai_browser.setVisible(True)
 
         QCoreApplication.processEvents()
@@ -180,7 +181,7 @@ class AICommentaryHelper:
         scroll_bar = self.page.scroll_area.verticalScrollBar()
         scroll_pos = scroll_bar.value()
         self.page.ai_btn.setEnabled(True)
-        self.page.ai_btn.setText("Yapay Zeka Yorumu Oluştur")
+        self.page.ai_btn.setText(L10N.YAPAY_ZEKA_YORUMU_OLUSTUR)
         self.page.ai_progress.setVisible(False)
         try:
             self.page.ai_browser.setMarkdown(response_text)
@@ -196,7 +197,7 @@ class AICommentaryHelper:
         scroll_bar = self.page.scroll_area.verticalScrollBar()
         scroll_pos = scroll_bar.value()
         self.page.ai_btn.setEnabled(True)
-        self.page.ai_btn.setText("Yapay Zeka Yorumu Oluştur")
+        self.page.ai_btn.setText(L10N.YAPAY_ZEKA_YORUMU_OLUSTUR)
         self.page.ai_progress.setVisible(False)
         error_html = (
             f"<div style='color: #ef4444; font-weight: bold;'>Yapay Zeka Hatasi:</div>"
