@@ -32,7 +32,7 @@ def test_risk_profile_display_values_are_mapped():
     )
 
     assert "Uzun Vade" in profile.horizon_display
-    assert "Daha Cok" in profile.reaction_display
+    assert "Daha Çok" in profile.reaction_display
 
 
 @pytest.mark.parametrize(

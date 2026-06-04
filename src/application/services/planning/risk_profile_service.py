@@ -41,8 +41,8 @@ class RiskQuestionSection:
 
 DIMENSION_LABELS = {
     "capacity": "Risk Kapasitesi",
-    "tolerance": "Risk Toleransi",
-    "knowledge": "Bilgi ve Tecrube",
+    "tolerance": "Risk Toleransı",
+    "knowledge": "Bilgi ve Tecrübe",
     "goals": "Hedef ve Likidite",
 }
 
@@ -64,10 +64,10 @@ QUESTIONNAIRE_SECTIONS: tuple[RiskQuestionSection, ...] = (
         (
             RiskQuestion(
                 "age",
-                "Yas araliginiz nedir?",
+                "Yaş aralığınız nedir?",
                 "capacity",
                 _opts(
-                    ("60_plus", "60 ve uzeri", 1),
+                    ("60_plus", "60 ve üzeri", 1),
                     ("50_59", "50-59", 2),
                     ("35_49", "35-49", 3),
                     ("25_34", "25-34", 4),
@@ -76,131 +76,131 @@ QUESTIONNAIRE_SECTIONS: tuple[RiskQuestionSection, ...] = (
             ),
             RiskQuestion(
                 "income_stability",
-                "Geliriniz ne kadar istikrarli?",
+                "Geliriniz ne kadar istikrarlı?",
                 "capacity",
                 _opts(
-                    ("unstable", "Duzenli gelirim yok", 0),
-                    ("variable", "Gelirim belirgin dalgalaniyor", 2),
-                    ("mostly_stable", "Genelde duzenli", 4),
-                    ("stable", "Cok duzenli ve ongorulebilir", 5),
+                    ("unstable", "Düzenli gelirim yok", 0),
+                    ("variable", "Gelirim belirgin dalgalanıyor", 2),
+                    ("mostly_stable", "Genelde düzenli", 4),
+                    ("stable", "Çok düzenli ve öngörülebilir", 5),
                 ),
             ),
             RiskQuestion(
                 "emergency_fund",
-                "Acil durum fonunuz kac aylik giderinizi karsilar?",
+                "Acil durum fonunuz kaç aylık giderinizi karşılar?",
                 "capacity",
                 _opts(
                     ("none", "Yok", 0),
                     ("lt_1", "1 aydan az", 1),
                     ("1_3", "1-3 ay", 3),
                     ("3_6", "3-6 ay", 4),
-                    ("6_plus", "6 ay ve uzeri", 5),
+                    ("6_plus", "6 ay ve üzeri", 5),
                 ),
             ),
             RiskQuestion(
                 "debt_load",
-                "Aylik borc/gelir yukunuz hangi seviyede?",
+                "Aylık borç/gelir yükünüz hangi seviyede?",
                 "capacity",
                 _opts(
-                    ("high", "%50 uzeri", 0),
+                    ("high", "%50 üzeri", 0),
                     ("medium_high", "%30-50", 2),
                     ("medium", "%10-30", 4),
-                    ("low", "%10 alti veya yok", 5),
+                    ("low", "%10 altı veya yok", 5),
                 ),
             ),
         ),
     ),
     RiskQuestionSection(
-        "Yatirim Hedefi",
+        "Yatırım Hedefi",
         (
             RiskQuestion(
                 "horizon",
-                "Bu yatirimlari genel olarak ne kadar sure tutmayi planliyorsunuz?",
+                "Bu yatırımları genel olarak ne kadar süre tutmayı planlıyorsunuz?",
                 "goals",
                 _opts(
                     ("short", "0-12 ay", 1),
-                    ("medium", "1-3 yil", 3),
-                    ("long", "3-7 yil", 4),
-                    ("very_long", "7 yil ve uzeri", 5),
+                    ("medium", "1-3 yıl", 3),
+                    ("long", "3-7 yıl", 4),
+                    ("very_long", "7 yıl ve üzeri", 5),
                 ),
             ),
             RiskQuestion(
                 "liquidity_need",
-                "Yatirdiginiz paraya yakin zamanda ihtiyaciniz olabilir mi?",
+                "Yatırdığınız paraya yakın zamanda ihtiyacınız olabilir mi?",
                 "goals",
                 _opts(
-                    ("very_high", "Evet, her an ihtiyac olabilir", 0),
-                    ("high", "1 yil icinde ihtiyac olabilir", 2),
-                    ("medium", "Bir kismina ihtiyac olabilir", 3),
-                    ("low", "Buyuk olasilikla ihtiyac olmaz", 5),
+                    ("very_high", "Evet, her an ihtiyaç olabilir", 0),
+                    ("high", "1 yıl içinde ihtiyaç olabilir", 2),
+                    ("medium", "Bir kısmına ihtiyaç olabilir", 3),
+                    ("low", "Büyük olasılıkla ihtiyaç olmaz", 5),
                 ),
             ),
             RiskQuestion(
                 "investment_goal",
-                "Ana yatirim hedefiniz hangisine daha yakin?",
+                "Ana yatırım hedefiniz hangisine daha yakın?",
                 "goals",
                 _opts(
                     ("capital_preservation", "Sermayeyi korumak", 1),
-                    ("income", "Duzenli gelir elde etmek", 2),
-                    ("balanced_growth", "Dengeli buyume", 3),
-                    ("growth", "Uzun vadeli buyume", 4),
-                    ("high_growth", "Yuksek buyume potansiyeli", 5),
+                    ("income", "Düzenli gelir elde etmek", 2),
+                    ("balanced_growth", "Dengeli büyüme", 3),
+                    ("growth", "Uzun vadeli büyüme", 4),
+                    ("high_growth", "Yüksek büyüme potansiyeli", 5),
                 ),
             ),
             RiskQuestion(
                 "monthly_contribution",
-                "Portfoye duzenli katkida bulunma imkaniniz nedir?",
+                "Portföye düzenli katkıda bulunma imkanınız nedir?",
                 "capacity",
                 _opts(
-                    ("none", "Katki yapamam", 1),
-                    ("occasional", "Ara sira yapabilirim", 2),
-                    ("regular_small", "Duzenli kucuk katkilar", 4),
-                    ("regular_high", "Duzenli ve guclu katkilar", 5),
+                    ("none", "Katkı yapamam", 1),
+                    ("occasional", "Ara sıra yapabilirim", 2),
+                    ("regular_small", "Düzenli küçük katkılar", 4),
+                    ("regular_high", "Düzenli ve güçlü katkılar", 5),
                 ),
             ),
         ),
     ),
     RiskQuestionSection(
-        "Risk Toleransi",
+        "Risk Toleransı",
         (
             RiskQuestion(
                 "loss_10",
-                "Portfoyunuz kisa surede %10 duserse ne yaparsiniz?",
+                "Portföyünüz kısa sürede %10 düşerse ne yaparsınız?",
                 "tolerance",
                 _opts(
-                    ("sell", "Satar ve riski azaltirim", 0),
-                    ("reduce", "Bir kismini azaltirim", 2),
+                    ("sell", "Satar ve riski azaltırım", 0),
+                    ("reduce", "Bir kısmını azaltırım", 2),
                     ("hold", "Beklerim", 4),
-                    ("buy_more", "Ek alim yaparim", 5),
+                    ("buy_more", "Ek alım yaparım", 5),
                 ),
             ),
             RiskQuestion(
                 "loss_20",
-                "Portfoyunuz bir ayda %20 duserse tepkiniz ne olur?",
+                "Portföyünüz bir ayda %20 düşerse tepkiniz ne olur?",
                 "tolerance",
                 _opts(
-                    ("sell", "Hemen satarim", 0),
-                    ("reduce", "Pozisyon azaltirim", 1),
-                    ("hold", "Planima sadik kalirim", 4),
-                    ("buy_more", "Firsat olarak gorurum", 5),
+                    ("sell", "Hemen satarım", 0),
+                    ("reduce", "Pozisyon azaltırım", 1),
+                    ("hold", "Planıma sadık kalırım", 4),
+                    ("buy_more", "Fırsat olarak görürüm", 5),
                 ),
             ),
             RiskQuestion(
                 "loss_35",
-                "Cok stresli piyasada %35 dusus yasanirsa hangi secenek size daha yakin?",
+                "Çok stresli piyasada %35 düşüş yaşanırsa hangi seçenek size daha yakın?",
                 "tolerance",
                 _opts(
-                    ("exit", "Piyasadan cikarim", 0),
-                    ("protect", "Riski sert sekilde azaltirim", 1),
-                    ("rebalance", "Dengeleme yaparim", 3),
+                    ("exit", "Piyasadan çıkarım", 0),
+                    ("protect", "Riski sert şekilde azaltırım", 1),
+                    ("rebalance", "Dengeleme yaparım", 3),
                     ("stay", "Uzun vadeli plana devam ederim", 4),
-                    ("increase", "Kademeli alimlari artiririm", 5),
+                    ("increase", "Kademeli alımları artırırım", 5),
                 ),
             ),
         ),
     ),
     RiskQuestionSection(
-        "Bilgi ve Tecrube",
+        "Bilgi ve Tecrübe",
         (
             RiskQuestion(
                 "stock_experience",
@@ -209,41 +209,41 @@ QUESTIONNAIRE_SECTIONS: tuple[RiskQuestionSection, ...] = (
                 _opts(
                     ("none", "Yok", 0),
                     ("basic", "Temel seviyede", 2),
-                    ("moderate", "Birkaç yildir islem yapiyorum", 4),
-                    ("advanced", "Ileri seviyede takip ediyorum", 5),
+                    ("moderate", "Birkaç yıldır işlem yapıyorum", 4),
+                    ("advanced", "İleri seviyede takip ediyorum", 5),
                 ),
             ),
             RiskQuestion(
                 "fund_bond_fx_experience",
-                "Fon, tahvil/bono, doviz veya altin urunlerinde deneyiminiz nedir?",
+                "Fon, tahvil/bono, döviz veya altın ürünlerinde deneyiminiz nedir?",
                 "knowledge",
                 _opts(
                     ("none", "Yok", 0),
                     ("basic", "Az", 2),
                     ("moderate", "Orta", 4),
-                    ("advanced", "Yuksek", 5),
+                    ("advanced", "Yüksek", 5),
                 ),
             ),
             RiskQuestion(
                 "derivative_experience",
-                "Kaldiracli/turev urunleri ne kadar taniyorsunuz?",
+                "Kaldıraçlı/türev ürünleri ne kadar tanıyorsunuz?",
                 "knowledge",
                 _opts(
-                    ("none", "Tanimiyorum", 0),
+                    ("none", "Tanımıyorum", 0),
                     ("aware", "Sadece genel bilgim var", 1),
-                    ("limited", "Sinirli deneyimim var", 3),
-                    ("experienced", "Risklerini bilerek kullandim", 5),
+                    ("limited", "Sınırlı deneyimim var", 3),
+                    ("experienced", "Risklerini bilerek kullandım", 5),
                 ),
             ),
             RiskQuestion(
                 "concentration_preference",
-                "Portfoy yogunlasmasi konusunda tercihiniz nedir?",
+                "Portföy yoğunlaşması konusunda tercihiniz nedir?",
                 "tolerance",
                 _opts(
-                    ("very_diversified", "Cok cesitlendirilmis portfoy", 1),
-                    ("diversified", "Dengeli cesitlendirme", 3),
-                    ("focused", "Sinirli sayida guclu fikir", 4),
-                    ("concentrated", "Yuksek yogunlasma kabul ederim", 5),
+                    ("very_diversified", "Çok çeşitlendirilmiş portföy", 1),
+                    ("diversified", "Dengeli çeşitlendirme", 3),
+                    ("focused", "Sınırlı sayıda güçlü fikir", 4),
+                    ("concentrated", "Yüksek yoğunlaşma kabul ederim", 5),
                 ),
             ),
         ),
@@ -350,7 +350,7 @@ class RiskProfileService:
 
         missing = [question_id for question_id in valid_values if question_id not in answer_map]
         if missing:
-            raise ValueError(f"Eksik anket yanitlari: {', '.join(missing)}")
+            raise ValueError(f"Eksik anket yanıtları: {', '.join(missing)}")
 
         invalid = [
             question_id
@@ -358,7 +358,7 @@ class RiskProfileService:
             if question_id in valid_values and value not in valid_values[question_id]
         ]
         if invalid:
-            raise ValueError(f"Gecersiz anket yanitlari: {', '.join(invalid)}")
+            raise ValueError(f"Geçersiz anket yanıtları: {', '.join(invalid)}")
 
         return {question_id: answer_map[question_id] for question_id in valid_values}
 
@@ -386,21 +386,21 @@ class RiskProfileService:
         answers: Mapping[str, str],
     ) -> tuple[int, List[str]]:
         notes: List[str] = [
-            "Bu sonuc yatirim tavsiyesi degil, risk profiline uygun genel dagilim ornegidir."
+            "Bu sonuç yatırım tavsiyesi değil, risk profiline uygun genel dağılım örneğidir."
         ]
         adjusted = score
 
         if dimension_scores["tolerance"] >= 75 and dimension_scores["capacity"] < 45:
             adjusted -= 10
-            notes.append("Risk alma isteginiz yuksek olsa da finansal kapasite skorunuz sinirlayici gorunuyor.")
+            notes.append("Risk alma isteğiniz yüksek olsa da finansal kapasite skorunuz sınırlayıcı görünüyor.")
 
         if answers["horizon"] == "short" and dimension_scores["tolerance"] >= 70:
             adjusted -= 8
-            notes.append("Kisa yatirim vadesi yuksek riskli varlik agirligini sinirlandirir.")
+            notes.append("Kısa yatırım vadesi yüksek riskli varlık ağırlığını sınırlandırır.")
 
         if dimension_scores["knowledge"] < 35 and (score >= 65 or dimension_scores["tolerance"] >= 70):
             adjusted -= 10
-            notes.append("Bilgi/tecrube skoru dusuk oldugu icin riskin kademeli artirilmasi daha uygundur.")
+            notes.append("Bilgi/tecrübe skoru düşük olduğu için riskin kademeli artırılması daha uygundur.")
 
         return max(0, min(100, round(adjusted))), notes
 

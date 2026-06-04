@@ -35,27 +35,27 @@ class Reaction:
 
 PROFILE_INFO = {
     RiskLabel.COK_MUHAFAZAKAR: {
-        "description": "Sermaye koruma ve likidite onceliklidir. Dalgalanmasi dusuk, kademeli yatirim yaklasimi uygundur.",
+        "description": "Sermaye koruma ve likidite önceliklidir. Dalgalanması düşük, kademeli yatırım yaklaşımı uygundur.",
         "max_volatility": 1.0,
         "allocation": {"Nakit": 25, "Tahvil/Bono": 45, "Fon": 20, "Hisse": 10, "Alternatif": 0},
     },
     RiskLabel.MUHAFAZAKAR: {
-        "description": "Sinirli dalgalanma kabul edilir; ana hedef varligi korurken olculu getiri aramaktir.",
+        "description": "Sınırlı dalgalanma kabul edilir; ana hedef varlığı korurken ölçülü getiri aramaktır.",
         "max_volatility": 1.5,
         "allocation": {"Nakit": 15, "Tahvil/Bono": 40, "Fon": 25, "Hisse": 20, "Alternatif": 0},
     },
     RiskLabel.DENGELI: {
-        "description": "Getiri ve risk dengesi on plandadir. Cesitlendirilmis, orta vadeli portfoy yapisi uygundur.",
+        "description": "Getiri ve risk dengesi ön plandadır. Çeşitlendirilmiş, orta vadeli portföy yapısı uygundur.",
         "max_volatility": 2.5,
         "allocation": {"Nakit": 10, "Tahvil/Bono": 25, "Fon": 30, "Hisse": 30, "Alternatif": 5},
     },
     RiskLabel.BUYUME_ODAKLI: {
-        "description": "Uzun vadeli buyume icin yuksek oynaklik tolere edilebilir; hisse ve fon agirligi artabilir.",
+        "description": "Uzun vadeli büyüme için yüksek oynaklık tolere edilebilir; hisse ve fon ağırlığı artabilir.",
         "max_volatility": 3.5,
         "allocation": {"Nakit": 5, "Tahvil/Bono": 15, "Fon": 30, "Hisse": 45, "Alternatif": 5},
     },
     RiskLabel.AGRESIF: {
-        "description": "Yuksek getiri hedefiyle belirgin fiyat dalgalanmalari kabul edilir; disiplinli risk limiti kritik hale gelir.",
+        "description": "Yüksek getiri hedefiyle belirgin fiyat dalgalanmaları kabul edilir; disiplinli risk limiti kritik hale gelir.",
         "max_volatility": 5.0,
         "allocation": {"Nakit": 5, "Tahvil/Bono": 5, "Fon": 25, "Hisse": 55, "Alternatif": 10},
     },
@@ -118,17 +118,17 @@ class RiskProfile:
     @property
     def horizon_display(self) -> str:
         mapping = {
-            Horizon.SHORT: "Kisa Vade (< 1 Ay)",
+            Horizon.SHORT: "Kısa Vade (< 1 Ay)",
             Horizon.MEDIUM: "Orta Vade (1-12 Ay)",
-            Horizon.LONG: "Uzun Vade (> 1 Yil)",
+            Horizon.LONG: "Uzun Vade (> 1 Yıl)",
         }
         return mapping.get(self.horizon, self.horizon)
 
     @property
     def reaction_display(self) -> str:
         mapping = {
-            Reaction.SELL: "Satarim (Korumaci)",
-            Reaction.HOLD: "Beklerim (Sabirli)",
-            Reaction.BUY_MORE: "Daha Cok Alirim (Cesur)",
+            Reaction.SELL: "Satarım (Korumacı)",
+            Reaction.HOLD: "Beklerim (Sabırlı)",
+            Reaction.BUY_MORE: "Daha Çok Alırım (Cesur)",
         }
         return mapping.get(self.reaction, self.reaction)

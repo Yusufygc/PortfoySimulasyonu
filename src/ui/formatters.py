@@ -13,7 +13,7 @@ class RiskFormatter:
     
     _UI_PROPS = {
         RiskLabel.COK_MUHAFAZAKAR: {
-            "display_name": "Cok Muhafazakar",
+            "display_name": "Çok Muhafazakar",
             "color": "#10b981", 
             "emoji": "🛡️", 
             "state": "conservative"
@@ -31,7 +31,7 @@ class RiskFormatter:
             "state": "balanced"
         },
         RiskLabel.BUYUME_ODAKLI: {
-            "display_name": "Buyume Odakli",
+            "display_name": "Büyüme Odaklı",
             "color": "#0ea5e9", 
             "emoji": "📈", 
             "state": "growth"

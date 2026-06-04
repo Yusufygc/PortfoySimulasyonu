@@ -69,8 +69,8 @@ def test_consistency_checks_reduce_score_and_add_notes():
 
     assert profile.risk_score < 80
     assert any("finansal kapasite" in note for note in profile.suitability_notes)
-    assert any("Kisa yatirim vadesi" in note for note in profile.suitability_notes)
-    assert any("Bilgi/tecrube" in note for note in profile.suitability_notes)
+    assert any("Kısa yatırım vadesi" in note for note in profile.suitability_notes)
+    assert any("Bilgi/tecrübe" in note for note in profile.suitability_notes)
 
 
 def test_missing_or_invalid_answers_raise_value_error():
@@ -78,13 +78,13 @@ def test_missing_or_invalid_answers_raise_value_error():
     answers = _answers_for_target(service, 3)
     answers.pop("age")
 
-    with pytest.raises(ValueError, match="Eksik anket yanitlari"):
+    with pytest.raises(ValueError, match="Eksik anket yanıtları"):
         service.calculate_and_save_profile(answers)
 
     answers = _answers_for_target(service, 3)
     answers["age"] = "not-valid"
 
-    with pytest.raises(ValueError, match="Gecersiz anket yanitlari"):
+    with pytest.raises(ValueError, match="Geçersiz anket yanıtları"):
         service.calculate_and_save_profile(answers)
 
 
