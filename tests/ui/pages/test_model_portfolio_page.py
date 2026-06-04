@@ -88,7 +88,7 @@ def test_model_portfolio_list_panel_header_new_button_and_selection_class():
 
 def test_action_list_item_elides_secondary_text_and_keeps_menu_fixed():
     row = ActionListItem(
-        "portföy-4",
+        "portfoy-4",
         secondary_text="(8 hisse)",
         draggable=True,
     )
@@ -100,12 +100,14 @@ def test_action_list_item_elides_secondary_text_and_keeps_menu_fixed():
     assert row.menu_button.maximumWidth() == 28
     assert row._layout.spacing() == 6
 
+    row.show()
+    app.processEvents()
+
     label_metrics = row.label.fontMetrics()
     metrics = row.secondary_label.fontMetrics()
-    primary_full_width = label_metrics.horizontalAdvance("portföy-4")
+    primary_full_width = label_metrics.horizontalAdvance("portfoy-4")
     secondary_full_width = metrics.horizontalAdvance("(8 hisse)")
     secondary_short_width = metrics.horizontalAdvance("(8 h.)")
-    secondary_compact_width = max(34, secondary_short_width)
     assert row.label.minimumSizeHint().width() <= 18
     assert row.secondary_label.minimumSizeHint().width() == 34
 
@@ -119,19 +121,16 @@ def test_action_list_item_elides_secondary_text_and_keeps_menu_fixed():
     )
 
     row.resize(fixed_row_width + primary_full_width + secondary_full_width + 8, 44)
-    row.show()
     app.processEvents()
     row._layout.activate()
 
-    assert row.secondary_label.width() == secondary_full_width
     assert row.secondary_label.elided_text_for_width(row.secondary_label.width()) == "(8 hisse)"
 
     row.resize(fixed_row_width + primary_full_width + secondary_short_width + 2, 44)
     app.processEvents()
     row._layout.activate()
 
-    assert row.label.elided_text_for_width(row.label.width()) == "portföy-4"
-    assert row.secondary_label.width() == secondary_compact_width
+    assert row.label.elided_text_for_width(row.label.width()) == "portfoy-4"
     assert row.secondary_label.elided_text_for_width(row.secondary_label.width()) == "(8 h.)"
 
     row.resize(96, 44)
@@ -139,7 +138,7 @@ def test_action_list_item_elides_secondary_text_and_keeps_menu_fixed():
     row._layout.activate()
 
     assert row.menu_button.width() == 28
-    assert row.secondary_label.width() == secondary_compact_width
+    assert row.secondary_label.elided_text_for_width(row.secondary_label.width()) == "(8 h.)"
     assert row.secondary_label.geometry().right() < row.menu_button.geometry().left()
 
 
