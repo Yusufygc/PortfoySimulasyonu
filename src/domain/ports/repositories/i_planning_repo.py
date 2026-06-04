@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from src.domain.models.budget import Budget
+from src.domain.models.budget import Budget, BudgetPinnedItem
 from src.domain.models.financial_goal import FinancialGoal
 
 
@@ -56,6 +56,21 @@ class IPlanningRepository(ABC):
     @abstractmethod
     def delete_budget(self, budget_id: int) -> None:
         """Bütçe kaydını siler."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_pinned_budget_items(self) -> List[BudgetPinnedItem]:
+        """Tekrarlanan bütçe kalemi şablonlarını döner."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def upsert_pinned_budget_item(self, item: BudgetPinnedItem) -> BudgetPinnedItem:
+        """Pinli bütçe kalemini oluşturur veya varsayılan tutarını günceller."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_pinned_budget_item(self, item_type: str, name: str) -> None:
+        """Pinli bütçe kalemini tür ve başlığa göre siler."""
         raise NotImplementedError
 
     # ==================== FinancialGoal İşlemleri ==================== #
