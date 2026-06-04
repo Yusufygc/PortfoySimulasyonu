@@ -21,10 +21,10 @@ class GoalInputDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Yeni Hedef")
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-        self.setFixedSize(420, 300)
+        self.setFixedSize(420, 320)  # Slightly larger to fit validation error label
         self.setModal(True)
         self._init_ui()
-        configure_dialog_behavior(self, self.btn_save, self.accept)
+        configure_dialog_behavior(self, self.btn_save)
 
     def _init_ui(self):
         self.setProperty("cssClass", "dialogContainer")
@@ -57,10 +57,17 @@ class GoalInputDialog(QDialog):
         self.date_deadline = QDateEdit()
         self.date_deadline.setDate(QDate.currentDate().addMonths(12))
         self.date_deadline.setCalendarPopup(True)
+        if self.date_deadline.calendarWidget():
+            self.date_deadline.calendarWidget().setMinimumDate(QDate.currentDate())
         self.date_deadline.setProperty("cssClass", "tradeInputNormal")
         lbl_date = QLabel("Hedef Tarih:")
         lbl_date.setProperty("cssClass", "formLabel")
         form.addRow(lbl_date, self.date_deadline)
+
+        self.lbl_error = QLabel()
+        self.lbl_error.setProperty("cssClass", "validationErrorLabel")
+        self.lbl_error.setVisible(False)
+        form.addRow("", self.lbl_error)
 
         self.combo_priority = QComboBox()
         self.combo_priority.addItems(["Düşük", "Orta", "Yüksek"])
@@ -85,6 +92,37 @@ class GoalInputDialog(QDialog):
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(self.btn_save)
         layout.addLayout(btn_layout)
+
+        # Connect validation signals
+        self.txt_name.textChanged.connect(self._validate_inputs)
+        self.date_deadline.dateChanged.connect(self._validate_inputs)
+        self._validate_inputs()
+
+    def _validate_inputs(self):
+        name = self.txt_name.text().strip()
+        date_val = self.date_deadline.date()
+        today = QDate.currentDate()
+
+        is_valid = True
+        error_msg = ""
+
+        if not name:
+            is_valid = False
+        elif date_val < today:
+            is_valid = False
+            error_msg = "Hedef tarih bugünden önce olamaz!"
+
+        self.lbl_error.setText(error_msg)
+        self.lbl_error.setVisible(bool(error_msg))
+        self.btn_save.setEnabled(is_valid)
+
+    def accept(self):
+        name = self.txt_name.text().strip()
+        date_val = self.date_deadline.date()
+        today = QDate.currentDate()
+        if not name or date_val < today:
+            return
+        super().accept()
 
     def get_result(self):
         name = self.txt_name.text().strip()

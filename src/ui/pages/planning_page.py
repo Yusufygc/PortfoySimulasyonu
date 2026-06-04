@@ -224,7 +224,6 @@ class PlanningPage(BasePage):
 
     def _on_contribute(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
-            Toast.warning(self, "Lütfen bir hedef seçin.")
             return
         dialog = ContributionDialog(goal_name, self)
         if dialog.exec_() != QDialog.Accepted:
@@ -241,7 +240,6 @@ class PlanningPage(BasePage):
 
     def _on_delete_goal(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
-            Toast.warning(self, "Lütfen bir hedef seçin.")
             return
         reply = QMessageBox.question(
             self, "Hedef Sil",

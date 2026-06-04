@@ -100,3 +100,9 @@ QLabel[cssClass="warningLabelBg"] {
 QLabel[cssClass="formLabelBold"] {
     color: @FORM_LABEL_TEXT; font-weight: bold; font-size: @FONT_BASE;
 }
+
+QLabel[cssClass="validationErrorLabel"] {
+    color: @COLOR_DANGER;
+    font-size: @FONT_XS;
+    font-weight: 500;
+}

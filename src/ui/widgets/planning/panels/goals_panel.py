@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
 from src.ui.widgets.shared import AnimatedButton, Toast
+from src.ui.core.icon_manager import IconManager
 
 
 class GoalsPanel(QWidget):
@@ -31,7 +32,7 @@ class GoalsPanel(QWidget):
     delete_requested     = pyqtSignal(int, str)   # goal_id, goal_name
     analyze_requested    = pyqtSignal()
 
-    _COLUMNS = ["Hedef", "Hedef Tutar", "Biriken", "Kalan Ay", "Aylık Gereken", "İlerleme", "Durum"]
+    _COLUMNS = ["Hedef", "Hedef Tutar", "Biriken", "Kalan Ay", "Aylık Gereken", "İlerleme", "Durum", "İşlemler"]
     _STATUS_TR = {
         "ACTIVE":    "AKTİF",
         "COMPLETED": "TAMAMLANDI",
@@ -58,21 +59,7 @@ class GoalsPanel(QWidget):
         self._btn_add.setProperty("cssClass", "primaryButton")
         self._btn_add.clicked.connect(self.add_requested)
 
-        self._btn_contribute = AnimatedButton(" Katkı Ekle")
-        self._btn_contribute.setIconName("wallet", color="@COLOR_TEXT_PRIMARY")
-        self._btn_contribute.setMinimumHeight(38)
-        self._btn_contribute.setProperty("cssClass", "secondaryButton")
-        self._btn_contribute.clicked.connect(self._emit_contribute)
-
-        self._btn_delete = AnimatedButton(" Sil")
-        self._btn_delete.setIconName("trash-2", color="@COLOR_TEXT_WHITE")
-        self._btn_delete.setMinimumHeight(38)
-        self._btn_delete.setProperty("cssClass", "dangerButton")
-        self._btn_delete.clicked.connect(self._emit_delete)
-
         btn_row.addWidget(self._btn_add)
-        btn_row.addWidget(self._btn_contribute)
-        btn_row.addWidget(self._btn_delete)
         btn_row.addStretch()
 
         self._btn_analyze = AnimatedButton(" Fizibilite Analizi")
@@ -109,9 +96,12 @@ class GoalsPanel(QWidget):
             self._table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
         hh = self._table.horizontalHeader()
         for col in range(len(self._COLUMNS)):
-            hh.setSectionResizeMode(col, QHeaderView.Stretch)
-        hh.setStretchLastSection(True)
-        hh.setDefaultAlignment(Qt.AlignCenter)
+            if col == 7:  # İşlemler
+                hh.setSectionResizeMode(col, QHeaderView.Fixed)
+                self._table.setColumnWidth(col, 200)
+            else:
+                hh.setSectionResizeMode(col, QHeaderView.Stretch)
+        hh.setStretchLastSection(False)
         self._table.setSelectionBehavior(QTableWidget.SelectRows)
         self._table.setAlternatingRowColors(True)
         self._table.setShowGrid(True)
@@ -168,6 +158,37 @@ class GoalsPanel(QWidget):
                 s_item.setForeground(QColor("#ef4444"))
             self._table.setItem(i, 6, s_item)
 
+            # İşlemler sütunu için butonlar (Katkı Ekle ve Sil)
+            action_widget = QWidget()
+            action_layout = QHBoxLayout(action_widget)
+            action_layout.setContentsMargins(4, 2, 4, 2)
+            action_layout.setSpacing(8)
+            action_layout.setAlignment(Qt.AlignCenter)
+
+            btn_contrib = QPushButton(" Katkı Ekle")
+            btn_contrib.setProperty("cssClass", "secondaryButton")
+            btn_contrib.setMinimumHeight(28)
+            btn_contrib.setMaximumHeight(28)
+            btn_contrib.setCursor(Qt.PointingHandCursor)
+            btn_contrib.setIcon(IconManager.get_icon("wallet", color="@COLOR_TEXT_PRIMARY"))
+
+            btn_delete = QPushButton(" Sil")
+            btn_delete.setProperty("cssClass", "dangerButton")
+            btn_delete.setMinimumHeight(28)
+            btn_delete.setMaximumHeight(28)
+            btn_delete.setCursor(Qt.PointingHandCursor)
+            btn_delete.setIcon(IconManager.get_icon("trash-2", color="@COLOR_TEXT_WHITE"))
+
+            # Sinyal bağlantıları (default arguments binding ile güvenli ID aktarımı)
+            g_id = goal.id
+            g_name = goal.name
+            btn_contrib.clicked.connect(lambda _, gid=g_id, gname=g_name: self.contribute_requested.emit(gid, gname))
+            btn_delete.clicked.connect(lambda _, gid=g_id, gname=g_name: self.delete_requested.emit(gid, gname))
+
+            action_layout.addWidget(btn_contrib)
+            action_layout.addWidget(btn_delete)
+            self._table.setCellWidget(i, 7, action_widget)
+
     def show_feasibility(self, result: dict) -> None:
         """Fizibilite analizini gösterir. cssState ile renk yönetimi."""
         self._feasibility_frame.setVisible(True)
@@ -191,18 +212,6 @@ class GoalsPanel(QWidget):
     # ------------------------------------------------------------------
     # İç Sinyal Yönlendirme
     # ------------------------------------------------------------------
-
-    def _emit_contribute(self) -> None:
-        goal_id, goal_name = self.current_goal()
-        if goal_id is not None:
-            self.contribute_requested.emit(goal_id, goal_name)
-        else:
-            Toast.warning(self, "Lütfen önce hedef seçiniz", position="top")
-
-    def _emit_delete(self) -> None:
-        goal_id, goal_name = self.current_goal()
-        if goal_id is not None:
-            self.delete_requested.emit(goal_id, goal_name)
 
     # ------------------------------------------------------------------
     # Yardımcılar

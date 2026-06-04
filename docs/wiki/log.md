@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-04] güncelleme | Hedef Validasyonu ve Tablo İçi Aksiyonlar
+
+- "Yeni Hedef" diyaloğunda geçmiş tarihlerin seçilmesi takvim üzerinde kısıtlandı; elle girilirse dinamik validasyon etiketi gösterilip "Ekle" butonu pasifleştirildi.
+- Hedef Takibi tablosunun üstündeki global "Katkı Ekle" ve "Sil" butonları kaldırılarak her satırın "İşlemler" sütununa modern, ikonlu iki buton (Katkı Ekle, Sil) olarak yerleştirildi.
+- Seçili satır olmaması uyarı toast bildirimleri gereksizleştiği için kaldırıldı.
+- Inline `setStyleSheet` kullanımı engellenerek QSS tabanlı `@COLOR_DANGER` ve `@FONT_XS` uyumlu `validationErrorLabel` stili forms.qss'e eklendi.
+- Etkilenen dosyalar: `src/ui/widgets/planning/dialogs/goal_input_dialog.py`, `src/ui/widgets/planning/panels/goals_panel.py`, `src/ui/pages/planning_page.py`, `src/ui/styles/shared/forms.qss`
+- Bağlantılı sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
 ## [2026-06-04] güncelleme | YFinance Fiyat Uyumsuzluğu Düzeltmesi ve Kurallar Güncellemesi
 
 - Yahoo Finance'in split ex-date kayması ve double-adjustment sorununu çözen dinamik kırılma noktası analizi (transition-aware) fiyat düzeltme altyapısı uygulandı.
