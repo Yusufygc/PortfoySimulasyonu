@@ -48,7 +48,15 @@ class MessageBubble(QWidget):
         elif self.message.role == MessageRole.SYSTEM:
             self._width_ratio = 0.94
             self._apply_role_style("system", lbl_time)
-            lbl_header = QLabel("Otomatik Analiz Aktarımı")
+            
+            header_text = "Otomatik Analiz Aktarımı"
+            content_lower = self.message.content.lower()
+            if self.message.content.startswith("SİSTEM HATASI"):
+                header_text = "Sistem Hatası"
+            elif self.message.content.startswith("Güvenlik Uyarısı") or "güvenlik uyarısı" in content_lower:
+                header_text = "Güvenlik Uyarısı"
+                
+            lbl_header = QLabel(header_text)
             lbl_header.setProperty("cssClass", "systemChatHeader")
             bubble_layout.addWidget(lbl_header)
             main_layout.addWidget(self.bubble)
