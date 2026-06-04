@@ -13,79 +13,28 @@ Kullanım:
 """
 from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDoubleSpinBox,
-    QLineEdit, QScrollArea, QWidget, QSizePolicy,
+    QScrollArea, QWidget, QSizePolicy,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QLocale, pyqtSignal
 
-from src.domain.models.budget import Budget, BudgetItem
+from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
 from src.ui.widgets.shared import AnimatedButton, InfoCard
 from src.ui.widgets.shared.controls.icon_label import IconLabel
-
-
-class _BudgetItemRow(QFrame):
-    """Tek bir bütçe kalemi satırı: ad, tutar, düzenle, sil."""
-
-    changed = pyqtSignal()
-    delete_requested = pyqtSignal(object)   # self referansı
-
-    def __init__(self, name: str = "", amount: float = 0.0, parent=None):
-        super().__init__(parent)
-        self.setProperty("cssClass", "budgetItemRow")
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 5, 8, 5)
-        layout.setSpacing(6)
-
-        self.name_edit = QLineEdit(name)
-        self.name_edit.setPlaceholderText("Kalem adı...")
-        self.name_edit.setMinimumWidth(110)
-        self.name_edit.setMinimumHeight(30)
-        self.name_edit.textChanged.connect(self.changed)
-
-        self.amount_spin = QDoubleSpinBox()
-        self.amount_spin.setRange(0, 10_000_000)
-        self.amount_spin.setDecimals(2)
-        self.amount_spin.setSuffix(" TL")
-        self.amount_spin.setValue(amount)
-        self.amount_spin.setMinimumWidth(120)
-        self.amount_spin.setMaximumWidth(180)
-        self.amount_spin.setMinimumHeight(30)
-        self.amount_spin.setProperty("cssClass", "customDoubleSpinBox")
-        self.amount_spin.valueChanged.connect(self.changed)
-
-        btn_edit = AnimatedButton()
-        btn_edit.setIconName("pencil", color="@COLOR_TEXT_SECONDARY", size=13)
-        btn_edit.setFixedSize(28, 28)
-        btn_edit.setProperty("cssClass", "iconButton")
-        btn_edit.clicked.connect(lambda: self.name_edit.setFocus())
-
-        btn_delete = AnimatedButton()
-        btn_delete.setIconName("trash-2", color="@COLOR_DANGER", size=13)
-        btn_delete.setFixedSize(28, 28)
-        btn_delete.setProperty("cssClass", "dangerIconButton")
-        btn_delete.clicked.connect(lambda: self.delete_requested.emit(self))
-
-        layout.addWidget(self.name_edit, stretch=1)
-        layout.addWidget(self.amount_spin)
-        layout.addWidget(btn_edit)
-        layout.addWidget(btn_delete)
-
-    def get_name(self) -> str:
-        return self.name_edit.text().strip()
-
-    def get_amount(self) -> float:
-        return self.amount_spin.value()
+from src.ui.widgets.planning.panels.budget_item_row import BudgetItemRow
 
 
 class BudgetFormPanel(QFrame):
     """3-kolonlu dinamik bütçe formu: Gelirler | Giderler | Özet."""
 
+    pin_toggle_requested = pyqtSignal(str, str, float, bool)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setProperty("cssClass", "panelFrame")
 
-        self._income_rows: list[_BudgetItemRow] = []
-        self._expense_rows: list[_BudgetItemRow] = []
+        self._income_rows: list[BudgetItemRow] = []
+        self._expense_rows: list[BudgetItemRow] = []
+        self._pinned_item_keys: set[tuple[str, str]] = set()
 
         self._init_ui()
 
@@ -123,10 +72,6 @@ class BudgetFormPanel(QFrame):
         main.addWidget(expense_col, stretch=2)
         main.addWidget(self._make_vsep())
         main.addWidget(summary_col, stretch=1)
-
-    # ------------------------------------------------------------------
-    # Kolon oluşturucular
-    # ------------------------------------------------------------------
 
     def _build_item_column(
         self,
@@ -197,7 +142,9 @@ class BudgetFormPanel(QFrame):
         self.spin_target = QDoubleSpinBox()
         self.spin_target.setRange(0, 10_000_000)
         self.spin_target.setDecimals(2)
-        self.spin_target.setSuffix(" TL")
+        self.spin_target.setLocale(QLocale(QLocale.Turkish, QLocale.Turkey))
+        self.spin_target.setGroupSeparatorShown(True)
+        self.spin_target.setSuffix("TL")
         self.spin_target.setMinimumHeight(32)
         self.spin_target.setSpecialValueText(" ")
         self.spin_target.lineEdit().setPlaceholderText("0,00 TL")
@@ -233,9 +180,16 @@ class BudgetFormPanel(QFrame):
         sep.setProperty("cssClass", "verticalSeparator")
         return sep
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
+    def set_pinned_items(self, pinned_items: list[BudgetPinnedItem]) -> None:
+        """Pinli kalem listesini alır ve mevcut satır ikonlarını günceller."""
+        self._pinned_item_keys = {
+            self._pin_key(item.item_type, item.name)
+            for item in pinned_items
+        }
+        for row in self._income_rows:
+            row.set_pinned(self._is_pinned("income", row.get_name()))
+        for row in self._expense_rows:
+            row.set_pinned(self._is_pinned("expense", row.get_name()))
 
     def load(self, budget: Budget) -> None:
         """Kaydedilmiş bütçenin kalemlerini forma yükler."""
@@ -279,10 +233,6 @@ class BudgetFormPanel(QFrame):
             items=items,
         )
 
-    # ------------------------------------------------------------------
-    # Özet yenileme
-    # ------------------------------------------------------------------
-
     def _refresh_summary(self) -> None:
         income  = sum(r.get_amount() for r in self._income_rows)
         expense = sum(r.get_amount() for r in self._expense_rows)
@@ -307,14 +257,11 @@ class BudgetFormPanel(QFrame):
             self.card_goal.set_value("⚠️ Açık var")
             self.card_goal.set_value_state("negative")
 
-    # ------------------------------------------------------------------
-    # İç yardımcılar
-    # ------------------------------------------------------------------
-
-    def _add_row(self, name: str, amount: float, item_type: str, emit: bool = True) -> _BudgetItemRow:
-        row = _BudgetItemRow(name, amount)
-        row.changed.connect(self._refresh_summary)
+    def _add_row(self, name: str, amount: float, item_type: str, emit: bool = True) -> BudgetItemRow:
+        row = BudgetItemRow(name, amount, pinned=self._is_pinned(item_type, name))
+        row.changed.connect(lambda: self._on_row_changed(row, item_type))
         row.delete_requested.connect(self._on_delete_row)
+        row.pin_toggled.connect(lambda pinned: self._on_pin_toggled(row, item_type, pinned))
 
         if item_type == "income":
             self._income_rows.append(row)
@@ -328,7 +275,18 @@ class BudgetFormPanel(QFrame):
             row.name_edit.setFocus()
         return row
 
-    def _on_delete_row(self, row: _BudgetItemRow) -> None:
+    def _on_row_changed(self, row: BudgetItemRow, item_type: str) -> None:
+        row.set_pinned(self._is_pinned(item_type, row.get_name()))
+        self._refresh_summary()
+
+    def _on_pin_toggled(self, row: BudgetItemRow, item_type: str, pinned: bool) -> None:
+        name = row.get_name()
+        if not name:
+            name = "Gelir" if item_type == "income" else "Gider"
+            row.set_name(name)
+        self.pin_toggle_requested.emit(item_type, name, row.get_amount(), pinned)
+
+    def _on_delete_row(self, row: BudgetItemRow) -> None:
         if row in self._income_rows:
             self._income_rows.remove(row)
             self._income_layout.removeWidget(row)
@@ -343,3 +301,10 @@ class BudgetFormPanel(QFrame):
             layout.removeWidget(row)
             row.deleteLater()
         rows.clear()
+
+    def _is_pinned(self, item_type: str, name: str) -> bool:
+        return self._pin_key(item_type, name) in self._pinned_item_keys
+
+    @staticmethod
+    def _pin_key(item_type: str, name: str) -> tuple[str, str]:
+        return item_type, name.strip().casefold()
