@@ -33,6 +33,9 @@ class NewStockTradeDialog(QDialog):
         self.lot_size = lot_size
         self.current_price: Optional[Decimal] = None
         self.fetched_stock_name: Optional[str] = None
+        self._price_lookup_in_flight = False
+        self._last_lookup_ticker: Optional[str] = None
+        self._last_lookup_succeeded = False
         
         self._updating_amount = False
         self._updating_quantity = False
@@ -335,19 +338,30 @@ class NewStockTradeDialog(QDialog):
         if not ticker:
             QMessageBox.warning(self, L10N.ERROR, L10N.LUTFEN_BIR_HISSE_KODU_TICKER)
             return False
-        
-        # Fiyat sorgusu yapılmamışsa zorla yapalım
-        if self.current_price is None:
+
+        current_ticker = self._normalized_ticker()
+        if self._has_successful_lookup_for_ticker(current_ticker):
+            return True
+
+        if self._price_lookup_in_flight and self._last_lookup_ticker == current_ticker:
+            return False
+
+        if self.price_lookup_func and self._last_lookup_ticker != current_ticker:
             self._on_ticker_edited()
-            # Eğer hala yoksa (bulunamadıysa)
-            if self.current_price is None:
-                # Kullanıcıya sor: Fiyatsız devam etsin mi?
-                res = QMessageBox.question(self, L10N.FIYAT_BULUNAMADI, 
-                                           L10N.BU_HISSE_ICIN_GUNCEL_FIYAT,
-                                           QMessageBox.Yes | QMessageBox.No)
-                if res == QMessageBox.No:
-                    return False
-        return True
+            return False
+
+        if self.price_lookup_func and self._last_lookup_ticker == current_ticker and not self._last_lookup_succeeded:
+            res = QMessageBox.question(
+                self,
+                L10N.FIYAT_BULUNAMADI,
+                L10N.BU_HISSE_ICIN_GUNCEL_FIYAT,
+                QMessageBox.Yes | QMessageBox.No,
+            )
+            if res == QMessageBox.No:
+                return False
+            return True
+
+        return self.current_price is not None
 
     def _validate_page2(self) -> bool:
         # Fiyat ve Lot kontrolü
@@ -397,6 +411,13 @@ class NewStockTradeDialog(QDialog):
         if not ticker or not self.price_lookup_func:
             return
 
+        normalized_ticker = self._normalize_ticker_value(ticker)
+        if self._price_lookup_in_flight and normalized_ticker == self._last_lookup_ticker:
+            return
+        if self._has_successful_lookup_for_ticker(normalized_ticker):
+            return
+
+        self._begin_lookup(normalized_ticker)
         self.btn_next.setEnabled(False)
         self.btn_next.setText(L10N.BEKLENIYOR)
         self.lbl_fetched_price.setText(L10N.YUKLENIYOR)
@@ -404,17 +425,27 @@ class NewStockTradeDialog(QDialog):
         self.price_info_frame.show()
 
         worker = Worker(self.price_lookup_func, ticker)
-        worker.signals.result.connect(self._on_price_fetched)
-        worker.signals.error.connect(self._on_price_error)
+        worker.signals.result.connect(
+            lambda result, requested_ticker=normalized_ticker: self._on_price_fetched(result, requested_ticker)
+        )
+        worker.signals.error.connect(
+            lambda err_tuple, requested_ticker=normalized_ticker: self._on_price_error(err_tuple, requested_ticker)
+        )
         QThreadPool.globalInstance().start(worker)
 
-    def _on_price_fetched(self, result):
+    def _on_price_fetched(self, result, requested_ticker: Optional[str] = None):
+        if requested_ticker is not None and requested_ticker != self._last_lookup_ticker:
+            return
+
+        self._price_lookup_in_flight = False
         if result:
             self.current_price = result.price
             self.lbl_fetched_price.setText(f"₺ {result.price:,.2f}")
             normalized_ticker = getattr(result, "normalized_ticker", None) or self._normalized_ticker()
             self.fetched_stock_name = getattr(result, "company_name", None) or normalized_ticker
             self.lbl_company_name.setText(self.fetched_stock_name)
+            self._last_lookup_ticker = normalized_ticker
+            self._last_lookup_succeeded = True
             source_text = (
                 L10N.ANLIK_VERI_15DK_GECIKMELI_OLABILIR
                 if result.source == "intraday"
@@ -422,8 +453,7 @@ class NewStockTradeDialog(QDialog):
             )
             self.lbl_fetched_source.setText(source_text)
         else:
-            self.current_price = None
-            self.fetched_stock_name = None
+            self._last_lookup_succeeded = False
             self.lbl_company_name.setText(L10N.SIRKET_ADI_ALINAMADI)
             self.lbl_fetched_price.setText("-")
             self.lbl_fetched_source.setText(L10N.FIYAT_BILGISI_BULUNAMADI)
@@ -431,9 +461,12 @@ class NewStockTradeDialog(QDialog):
         self.btn_next.setEnabled(True)
         self.btn_next.setText(L10N.DEVAM_ET)
 
-    def _on_price_error(self, err_tuple):
-        self.current_price = None
-        self.fetched_stock_name = None
+    def _on_price_error(self, err_tuple, requested_ticker: Optional[str] = None):
+        if requested_ticker is not None and requested_ticker != self._last_lookup_ticker:
+            return
+
+        self._price_lookup_in_flight = False
+        self._last_lookup_succeeded = False
         self.lbl_company_name.setText(L10N.SIRKET_ADI_ALINAMADI)
         self.lbl_fetched_price.setText("-")
         self.lbl_fetched_source.setText(L10N.AG_HATASI)
@@ -441,10 +474,31 @@ class NewStockTradeDialog(QDialog):
         self.btn_next.setText(L10N.DEVAM_ET)
 
     def _normalized_ticker(self) -> str:
-        ticker = self.line_ticker.text().strip().upper()
-        if ticker and "." not in ticker:
-            ticker += ".IS"
-        return ticker
+        return self._normalize_ticker_value(self.line_ticker.text())
+
+    @staticmethod
+    def _normalize_ticker_value(ticker: str) -> str:
+        normalized = (ticker or "").strip().upper()
+        if normalized and "." not in normalized:
+            normalized += ".IS"
+        return normalized
+
+    def _begin_lookup(self, normalized_ticker: str) -> None:
+        self._price_lookup_in_flight = True
+        self._last_lookup_ticker = normalized_ticker
+        self._last_lookup_succeeded = False
+        self.current_price = None
+        self.fetched_stock_name = None
+        self.lbl_company_name.setText(L10N.HISSE_KODU_GIRILDIGINDE_OTOMATIK_ALINACAK)
+        self.edit_price.clear()
+        self.edit_amount.clear()
+
+    def _has_successful_lookup_for_ticker(self, normalized_ticker: str) -> bool:
+        return (
+            normalized_ticker == self._last_lookup_ticker
+            and self._last_lookup_succeeded
+            and self.current_price is not None
+        )
 
     def _on_quantity_changed(self, val):
         if self._updating_amount: return
