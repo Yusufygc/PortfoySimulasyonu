@@ -9,6 +9,7 @@ from decimal import Decimal
 
 from src.domain.models.position import Position
 from src.ui.formatters import display_ticker
+from src.ui.shared.locale_tr import L10N
 
 
 class PortfolioTableModel(QAbstractTableModel):
@@ -29,6 +30,7 @@ class PortfolioTableModel(QAbstractTableModel):
         positions: List[Position],
         price_map: Dict[int, Decimal],
         ticker_map: Dict[int, str],
+        previous_close_map: Dict[int, Decimal] | None = None,
         event_bus=None,
         parent=None,
     ):
@@ -36,18 +38,20 @@ class PortfolioTableModel(QAbstractTableModel):
         self._positions = positions
         self._price_map = price_map
         self._ticker_map = ticker_map  # { stock_id: "ASELS.IS" ... }
+        self._previous_close_map = previous_close_map or {}
         self._event_bus = event_bus
-        
+
         self._headers = [
-            "Hisse",
-            "Güncel Fiyat",
-            "Değişim %",
-            "Lot",
-            "Ort. Maliyet",
-            "Piyasa Değeri",
-            "Kar/Zarar",
+            L10N.HISSE_BASLIK,
+            L10N.MALIYET_FIYATI,
+            L10N.GUNCEL_FIYAT,
+            L10N.GUNLUK_DEGISIM_YUZDESI,
+            L10N.LOT_SAYISI,
+            L10N.PIYASA_DEGERI,
+            L10N.TOPLAM_DEGISIM_YUZDESI,
+            L10N.KAR_ZARAR_MIKTARI,
         ]
-        
+
         if self._event_bus:
             self._event_bus.prices_updated.connect(self._on_prices_updated)
 
@@ -105,27 +109,25 @@ class PortfolioTableModel(QAbstractTableModel):
         if col == 0:  # HISSE
             ticker = self._ticker_map.get(stock_id)
             return display_ticker(ticker) if ticker is not None else str(stock_id)
-        if col == 1:  # GÜNCEL FİYAT
-            return f"{current_price:,.2f}" if current_price is not None else "-"
-        if col == 2:  # DEĞİŞİM%
-            if current_price is None:
-                return "-"
-            avg = position.average_cost
-            if avg and avg > 0:
-                pct = ((current_price - avg) / avg) * 100
-                return f"%{pct:+.2f}"
-            return "-"
-        if col == 3:  # LOT
-            return f"{position.total_quantity:,}"
-        if col == 4:  # ORT. MALİYET
+        if col == 1:  # MALIYET FIYATI
             avg = position.average_cost
             return f"{avg:,.2f}" if avg is not None else "-"
-        if col == 5:  # PİYASA DEĞERİ
+        if col == 2:  # GUNCEL FIYAT
+            return f"{current_price:,.2f}" if current_price is not None else "-"
+        if col == 3:  # GUNLUK DEGISIM %
+            change_pct = self._daily_change_pct(stock_id, current_price)
+            return f"%{change_pct:+.2f}" if change_pct is not None else "-"
+        if col == 4:  # LOT
+            return f"{position.total_quantity:,}"
+        if col == 5:  # PIYASA DEGERI
             if current_price is None:
                 return "-"
             mv = position.market_value(current_price)
             return f"{mv:,.2f}"
-        if col == 6:  # KAR/ZARAR
+        if col == 6:  # TOPLAM DEGISIM %
+            change_pct = self._total_change_pct(position, current_price)
+            return f"%{change_pct:+.2f}" if change_pct is not None else "-"
+        if col == 7:  # KAR/ZARAR
             if current_price is None:
                 return "-"
             u_pl = position.unrealized_pl(current_price)
@@ -137,19 +139,25 @@ class PortfolioTableModel(QAbstractTableModel):
             return QColor("#666666")
 
         if current_price is not None:
-            # 6. Kolon: Gerç. Olmayan K/Z
-            if col == 6:
+            # Kar/Zarar kolonu
+            if col == 7:
                 pl = position.unrealized_pl(current_price)
                 if pl > 0:
                     return QColor("#22c55e")  # Yeşil
                 if pl < 0:
                     return QColor("#ef4444")  # Kırmızı
 
-            # 2. Kolon: Değişim %
-            if col == 2:
-                avg = position.average_cost
-                if avg and avg > 0:
-                    change_pct = ((current_price - avg) / avg) * 100
+            if col == 3:
+                change_pct = self._daily_change_pct(position.stock_id, current_price)
+                if change_pct is not None:
+                    if change_pct > 0:
+                        return QColor("#22c55e")
+                    if change_pct < 0:
+                        return QColor("#ef4444")
+
+            if col == 6:
+                change_pct = self._total_change_pct(position, current_price)
+                if change_pct is not None:
                     if change_pct > 0:
                         return QColor("#22c55e")
                     if change_pct < 0:
@@ -161,16 +169,22 @@ class PortfolioTableModel(QAbstractTableModel):
         if current_price is None:
             return QVariant()
 
-        if col == 6:
+        if col == 7:
             pl = position.unrealized_pl(current_price)
             if pl > 0:
                 return QColor(16, 185, 129, 20)
             if pl < 0:
                 return QColor(239, 68, 68, 20)
-        elif col == 2:
-            avg = position.average_cost
-            if avg and avg > 0:
-                change_pct = ((current_price - avg) / avg) * 100
+        elif col == 3:
+            change_pct = self._daily_change_pct(position.stock_id, current_price)
+            if change_pct is not None:
+                if change_pct > 0:
+                    return QColor(16, 185, 129, 20)
+                if change_pct < 0:
+                    return QColor(239, 68, 68, 20)
+        elif col == 6:
+            change_pct = self._total_change_pct(position, current_price)
+            if change_pct is not None:
                 if change_pct > 0:
                     return QColor(16, 185, 129, 20)
                 if change_pct < 0:
@@ -191,11 +205,13 @@ class PortfolioTableModel(QAbstractTableModel):
         positions: List[Position],
         price_map: Dict[int, Decimal],
         ticker_map: Dict[int, str],
+        previous_close_map: Dict[int, Decimal],
     ):
         self.beginResetModel()
         self._positions = positions
         self._price_map = price_map
         self._ticker_map = ticker_map
+        self._previous_close_map = previous_close_map
         self.endResetModel()
 
     def get_position(self, row: int) -> Position:
@@ -210,17 +226,34 @@ class PortfolioTableModel(QAbstractTableModel):
         """EventBus'tan gelen anlık fiyat güncellemesi. Sadece değişen hücreleri/satırları render eder."""
         if not new_prices:
             return
-            
+
         self._price_map.update(new_prices)
-        
+
         changed_rows = []
         for row, pos in enumerate(self._positions):
             if pos.stock_id in new_prices:
                 changed_rows.append(row)
-                
+
         for row in changed_rows:
-            top_left = self.index(row, 1)  # 1: Güncel Fiyat kolonu
-            bottom_right = self.index(row, 6)  # 6: Kar/Zarar kolonu
+            top_left = self.index(row, 2)  # 2: Güncel Fiyat kolonu
+            bottom_right = self.index(row, 7)  # 7: Kar/Zarar kolonu
             self.dataChanged.emit(top_left, bottom_right, [Qt.DisplayRole, Qt.ForegroundRole, Qt.BackgroundRole])
+
+    def _daily_change_pct(self, stock_id: int, current_price: Decimal | None) -> Decimal | None:
+        if current_price is None:
+            return None
+        previous_close = self._previous_close_map.get(stock_id)
+        if previous_close is None or previous_close <= 0:
+            return None
+        return ((current_price - previous_close) / previous_close) * 100
+
+    @staticmethod
+    def _total_change_pct(position: Position, current_price: Decimal | None) -> Decimal | None:
+        if current_price is None:
+            return None
+        avg = position.average_cost
+        if avg is None or avg <= 0:
+            return None
+        return ((current_price - avg) / avg) * 100
 
 
