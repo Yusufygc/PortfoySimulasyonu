@@ -5,8 +5,9 @@ import pytest
 import plotly.graph_objects as go
 
 pytest.importorskip("PyQt5")
+from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView  # Must be imported before QApplication
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QGridLayout, QSizePolicy
 
 app = QApplication.instance()
 if app is None:
@@ -14,6 +15,7 @@ if app is None:
 
 from src.ui.pages.comparison.comparison_page import ComparisonPage
 from src.ui.pages.comparison.widgets.ribbon_bar import ComparisonRibbonBar
+from src.ui.shared.locale_tr import L10N
 
 class MockContainer:
     def __init__(self):
@@ -88,6 +90,57 @@ def test_table_height_adjustment():
     # Assert
     assert page.summary_table.minimumHeight() > 0
     assert page.summary_table.maximumHeight() == page.summary_table.minimumHeight()
+
+
+def test_ribbon_ratio_controls_move_to_second_grid_row():
+    ribbon = ComparisonRibbonBar()
+
+    assert isinstance(ribbon.controls_layout, QGridLayout)
+    assert ribbon.ratio_widget.isHidden() is True
+
+    ribbon.combo_mode.setCurrentText(L10N.RASYO_MODU)
+    ratio_index = ribbon.controls_layout.indexOf(ribbon.ratio_widget)
+    row, column, row_span, column_span = ribbon.controls_layout.getItemPosition(ratio_index)
+
+    assert ribbon.ratio_widget.isHidden() is False
+    assert (row, column, row_span) == (1, 0, 1)
+    assert column_span >= 8
+    assert ribbon.combo_num.minimumWidth() >= 220
+    assert ribbon.combo_den.minimumWidth() >= 220
+    assert ribbon.combo_num.sizePolicy().horizontalPolicy() == QSizePolicy.Expanding
+    assert ribbon.combo_den.sizePolicy().horizontalPolicy() == QSizePolicy.Expanding
+
+
+def test_main_info_card_updates_with_graph_mode():
+    page = ComparisonPage(MockContainer())
+
+    page.ribbon_bar.combo_mode.setCurrentText(L10N.RASYO_MODU)
+    ratio_text = page.main_info_card.label.text()
+    assert "göreli gücünü" in ratio_text
+    assert "Pay kısmındaki varlığın" in ratio_text
+    assert page.main_info_card.property("cssState") == "ratio"
+
+    page.ribbon_bar.combo_mode.setCurrentText(L10N.NORMALIZE_BAZ_100)
+    normal_text = page.main_info_card.label.text()
+    assert "kümülatif getiri gelişimini" in normal_text
+    assert "Normalize modda" in normal_text
+    assert page.main_info_card.property("cssState") == "normal"
+
+
+def test_ai_browser_expands_to_content_without_internal_scroll():
+    page = ComparisonPage(MockContainer())
+    browser = page.ai_browser
+    initial_height = browser.minimumHeight()
+
+    long_markdown = "\n\n".join([f"Paragraf {idx}: uzun analiz metni." for idx in range(80)])
+    browser.setMarkdown(long_markdown)
+    page.ai_helper._fit_ai_browser_to_content()
+
+    assert browser.verticalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert browser.horizontalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert browser.sizePolicy().horizontalPolicy() == QSizePolicy.Preferred
+    assert browser.sizePolicy().verticalPolicy() == QSizePolicy.Expanding
+    assert browser.minimumHeight() > initial_height
 
 def test_check_date_warnings(monkeypatch, fixed_today):
     from datetime import date, timedelta
