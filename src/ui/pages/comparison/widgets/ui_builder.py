@@ -79,10 +79,8 @@ class ComparisonUIBuilder:
         page = self.page
         page.main_info_card = ChartInfoCard(
             L10N.ANA_PERFORMANS_KIYASLAMA_GRAFIGI,
-            L10N.SECILEN_VARLIKLARIN_BENCHMARKLARIN_VEYA_PORTFOYLERIN +
-            L10N.GELISIMINI_YA_DA_BIRBIRLERINE_ORANLARINI,
-            L10N.KUMULATIF_VEYA_NORMALIZE_MODDA_CIZGILERIN +
-            "dalgalanmalar ise oynaklığı temsil eder. 'Rasyo Modu'nda Pay/Payda göreli gücü izlenir.",
+            L10N.ANA_PERFORMANS_NORMAL_NEDIR,
+            L10N.ANA_PERFORMANS_NORMAL_YORUM,
         )
         layout.addWidget(page.main_info_card)
         self._make_chart_slot("main", L10N.PERFORMANS_GRAFIGI_YUKLENIYOR, layout)
