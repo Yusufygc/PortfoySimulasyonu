@@ -219,6 +219,67 @@ def test_model_portfolio_page_clears_right_panel_when_no_portfolios():
     assert not page.btn_capital.isEnabled()
 
 
+def test_model_portfolio_update_view_passes_previous_close_map(monkeypatch):
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.model_portfolio_page.date",
+        SimpleNamespace(today=lambda: date(2026, 6, 5)),
+    )
+    calls = []
+
+    class FakeService:
+        def get_portfolio_summary(self, portfolio_id, price_map):
+            return {
+                "initial_cash": Decimal("1000"),
+                "net_capital": Decimal("1000"),
+                "remaining_cash": Decimal("100"),
+                "total_value": Decimal("1200"),
+                "profit_loss": Decimal("200"),
+            }
+
+        def get_positions_with_details(self, portfolio_id, price_map):
+            return [
+                {
+                    "stock_id": 2,
+                    "ticker": "ASELS.IS",
+                    "quantity": 10,
+                    "avg_cost": Decimal("20"),
+                    "total_cost": Decimal("200"),
+                    "current_price": Decimal("25"),
+                }
+            ]
+
+    class FakePriceRepo:
+        def get_last_price_before(self, stock_id, point_date):
+            calls.append(("previous_close", stock_id, point_date))
+            return SimpleNamespace(close_price=Decimal("24"))
+
+    class FakePositionsTable:
+        def populate(self, positions, previous_close_map=None):
+            calls.append(("populate", positions, previous_close_map))
+
+    card = SimpleNamespace(set_value=lambda *_args: None, set_value_state=lambda *_args: None)
+    page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+    page.current_portfolio_id = 7
+    page.current_price_map = {2: Decimal("25")}
+    page.model_portfolio_service = FakeService()
+    page.price_repo = FakePriceRepo()
+    page.card_initial = card
+    page.card_cash = card
+    page.card_value = card
+    page.card_pl = card
+    page.positions_table = FakePositionsTable()
+    page.positions_stack = SimpleNamespace(setCurrentWidget=lambda widget: calls.append(("stack", widget)))
+    page.empty_positions_state = object()
+    page.btn_sell = SimpleNamespace(setEnabled=lambda enabled: calls.append(("sell_enabled", enabled)))
+
+    ModelPortfolioPage._update_view(page)
+
+    assert ("previous_close", 2, date(2026, 6, 4)) in calls
+    populate_call = next(call for call in calls if call[0] == "populate")
+    assert populate_call[2] == {2: Decimal("24")}
+    assert ("sell_enabled", True) in calls
+
+
 def test_model_portfolio_capital_action_passes_dialog_result_to_service(monkeypatch):
     calls = []
 
@@ -347,8 +408,9 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
     assert event_signal.emitted == [{2: Decimal("22.50")}]
 
 
-def test_model_portfolio_refresh_button_shows_updating_text_during_refresh():
+def test_model_portfolio_refresh_button_shows_updating_text_during_refresh(monkeypatch):
     event_signal = DummyEventSignal()
+    process_events_calls = []
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
     page.current_portfolio_id = 4
     page.model_portfolio_service = DummyModelPortfolioService()
@@ -359,7 +421,13 @@ def test_model_portfolio_refresh_button_shows_updating_text_during_refresh():
     page.record_last_update_time = lambda: None
     page.show_last_update_toast_once = lambda **kwargs: None
 
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.model_portfolio_page.QApplication.processEvents",
+        lambda: process_events_calls.append("processed"),
+    )
+
     def lookup_price(ticker):
+        assert process_events_calls == ["processed"]
         assert page.btn_refresh.text() == "Fiyatlar güncelleniyor..."
         assert not page.btn_refresh.isEnabled()
         return SimpleNamespace(

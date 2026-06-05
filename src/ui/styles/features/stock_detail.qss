@@ -88,3 +88,12 @@ QTableWidget[cssClass="stockHistoryTable"] QHeaderView::section {
     font-size: @FONT_TABLE_HEADER;
 }
 
+QScrollArea[cssClass="stockDetailScroll"] {
+    background: transparent;
+    border: none;
+}
+QScrollArea[cssClass="stockDetailScroll"] > QWidget > QWidget {
+    background: transparent;
+}
+
+

@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.ui.navigation.page_factory import PageFactory
+from src.ui.pages.model_portfolio.utils.portfolio_price_event_persister import ModelPortfolioPriceEventPersister
 from src.ui.shared.live_price_refresh_controller import LivePriceRefreshController
 from src.ui.shared.price_event_publisher import publish_prices_updated
 from src.ui.widgets.shared import AnimatedButton, Toast
@@ -62,6 +63,7 @@ class MainWindow(QMainWindow):
             settings=self._settings,
             threadpool=self._threadpool,
         )
+        self._connect_model_portfolio_price_persister()
         self.setWindowTitle(L10N.APP_TITLE)
         self.setWindowIcon(QIcon("icons/portfoy-simulasyonu.ico"))
         self.resize(1300, 800)
@@ -129,6 +131,14 @@ class MainWindow(QMainWindow):
         self._instantiate_page(self.PAGE_DASHBOARD)
         self.main_layout.addWidget(self.sidebar)
         self.main_layout.addWidget(self.stacked_widget, 1)
+
+    def _connect_model_portfolio_price_persister(self) -> None:
+        event_bus = getattr(self.container, "event_bus", None)
+        service = getattr(self.container, "model_portfolio_service", None)
+        if event_bus is None or service is None:
+            return
+        self._model_portfolio_price_event_persister = ModelPortfolioPriceEventPersister(service)
+        event_bus.prices_updated.connect(self._model_portfolio_price_event_persister.on_prices_updated)
 
     def _create_nav_button(self, text: str, page_index: int, icon_name: str = "") -> AnimatedButton:
         button = AnimatedButton(f" {text}")

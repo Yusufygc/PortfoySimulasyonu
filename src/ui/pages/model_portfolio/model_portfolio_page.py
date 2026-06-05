@@ -4,11 +4,12 @@ from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
 import logging
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QApplication
 
 from src.ui.pages.base_page import BasePage
 from src.domain.models.model_portfolio import ModelPortfolio
@@ -135,11 +136,28 @@ class ModelPortfolioPage(BasePage):
             self.current_portfolio_id,
             self.current_price_map,
         )
-        self.positions_table.populate(positions)
+        previous_close_map = self._build_previous_close_map(positions, date.today())
+        self.positions_table.populate(positions, previous_close_map=previous_close_map)
         self.positions_stack.setCurrentWidget(
             self.empty_positions_state if not positions else self.positions_table
         )
         self.btn_sell.setEnabled(bool(positions))
+
+    def _build_previous_close_map(self, positions: List[dict], today: date) -> Dict[int, Decimal]:
+        get_last_price_before = getattr(self.price_repo, "get_last_price_before", None)
+        if get_last_price_before is None:
+            return {}
+
+        previous_close_map: Dict[int, Decimal] = {}
+        reference_date = today - timedelta(days=1)
+        for position in positions:
+            stock_id = position.get("stock_id")
+            if stock_id is None:
+                continue
+            daily_price = get_last_price_before(stock_id, reference_date)
+            if daily_price is not None:
+                previous_close_map[stock_id] = daily_price.close_price
+        return previous_close_map
 
     def _clear_right_panel(self):
         self.lbl_portfolio_name.setText(L10N.BIR_PORTFOY_SECIN)
@@ -189,6 +207,7 @@ class ModelPortfolioPage(BasePage):
         was_enabled = self.btn_refresh.isEnabled()
         self.btn_refresh.setEnabled(False)
         self.btn_refresh.setText(L10N.FIYATLAR_GUNCELLENIYOR)
+        QApplication.processEvents()
         try:
             self.price_updater.refresh_prices()
         finally:

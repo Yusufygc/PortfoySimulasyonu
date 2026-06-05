@@ -16,6 +16,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QHeaderView,
+    QScrollArea,
+    QSizePolicy,
 )
 
 from src.domain.models.model_portfolio import ModelTradeSide
@@ -57,6 +59,21 @@ class StockDetailPage(BasePage):
         self._init_ui()
 
     def _init_ui(self):
+        # Create a scroll area for the left side content
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setProperty("cssClass", "stockDetailScroll")
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.NoFrame)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        # Create left content container widget
+        left_content_widget = QWidget()
+        left_layout = QVBoxLayout(left_content_widget)
+        left_layout.setContentsMargins(0, 0, 10, 0)
+        left_layout.setSpacing(15)
+
+        # 1. Başlık (Breadcrumb ve Başlık satırı)
         top_layout = QVBoxLayout()
         top_layout.setSpacing(0)
         top_layout.setContentsMargins(0, 0, 0, 10)
@@ -102,28 +119,24 @@ class StockDetailPage(BasePage):
         title_row.addLayout(price_container)
 
         top_layout.addLayout(title_row)
-        self.main_layout.addLayout(top_layout)
+        left_layout.addLayout(top_layout)
 
+        # 2. Divider line
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
         line.setProperty("cssClass", "horizontalDivider")
-        self.main_layout.addWidget(line)
+        left_layout.addWidget(line)
 
-        content_layout = QHBoxLayout()
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(10)
-
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(0, 0, 10, 0)
-        left_layout.setSpacing(15)
-
+        # 3. Grafik
         self.chart_widget = StockChartWidget()
-        left_layout.addWidget(self.chart_widget, 3)
+        self.chart_widget.setMinimumHeight(400)
+        left_layout.addWidget(self.chart_widget)
 
+        # 4. Özet Kartları
         self.stats_panel = StockStatsPanel()
         left_layout.addWidget(self.stats_panel)
 
+        # 5. İşlem Geçmişi Tablosu
         lbl_history = QLabel(L10N.ISLEM_GECMISI)
         lbl_history.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_history)
@@ -140,8 +153,11 @@ class StockDetailPage(BasePage):
         self.history_table.setAlternatingRowColors(True)
         self.history_table.setProperty("cssClass", "stockHistoryTable")
         self.history_table.verticalHeader().setVisible(False)
-        left_layout.addWidget(self.history_table, 2)
+        self.history_table.setMinimumHeight(150)
+        self.history_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        left_layout.addWidget(self.history_table)
 
+        # 6. Sermaye Tablosu
         lbl_corp_actions = QLabel(L10N.UYGULANAN_SERMAYE_ARTIRIMLARI)
         lbl_corp_actions.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_corp_actions)
@@ -158,8 +174,14 @@ class StockDetailPage(BasePage):
         self.corp_actions_table.setAlternatingRowColors(True)
         self.corp_actions_table.setProperty("cssClass", "stockHistoryTable")
         self.corp_actions_table.verticalHeader().setVisible(False)
-        left_layout.addWidget(self.corp_actions_table, 1)
+        self.corp_actions_table.setMinimumHeight(150)
+        self.corp_actions_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        left_layout.addWidget(self.corp_actions_table)
 
+        # Set the scroll area content widget
+        self.scroll_area.setWidget(left_content_widget)
+
+        # Right sidebar (trade form)
         self.trade_form = TradeFormPanel()
         self.trade_form.trade_submitted.connect(self._on_submit_trade)
         self.trade_form.spin_qty.valueChanged.connect(self._trigger_impact_update)
@@ -168,7 +190,12 @@ class StockDetailPage(BasePage):
         self.trade_form.time_edit.timeChanged.connect(self._trigger_impact_update)
         self.trade_form.btn_buy_mode.toggled.connect(self._trigger_impact_update)
 
-        content_layout.addWidget(left_panel, 1)
+        # Main horizontal content layout
+        content_layout = QHBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(10)
+
+        content_layout.addWidget(self.scroll_area, 1)
         content_layout.addWidget(self.trade_form, 0)
         self.main_layout.addLayout(content_layout, 1)
 
