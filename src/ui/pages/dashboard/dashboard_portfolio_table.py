@@ -48,7 +48,7 @@ class DashboardPortfolioTable(QWidget):
         layout.addWidget(self.table_view)
 
         # TOPLAM Özet Satırı
-        self.table_summary = QTableWidget(1, 7)
+        self.table_summary = QTableWidget(1, 8)
         self.table_summary.horizontalHeader().setVisible(False)
         self.table_summary.verticalHeader().setVisible(False)
         self.table_summary.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -85,13 +85,13 @@ class DashboardPortfolioTable(QWidget):
 
     def update_summary_row(self, total_value: Decimal, profit_loss: Decimal):
         """Alt kısımdaki toplam özet satırını günceller."""
-        for col in range(7):
+        for col in range(8):
             item = QTableWidgetItem("")
             item.setFlags(Qt.ItemIsEnabled)
             item.setTextAlignment(Qt.AlignCenter)
             self.table_summary.setItem(0, col, item)
             
-        item_title = QTableWidgetItem("TOPLAM")
+        item_title = QTableWidgetItem(L10N.TOPLAM_SATIRI)
         item_title.setFlags(Qt.ItemIsEnabled)
         item_title.setTextAlignment(Qt.AlignCenter)
         self.table_summary.setItem(0, 0, item_title)
@@ -112,4 +112,4 @@ class DashboardPortfolioTable(QWidget):
         else:
             item_pl.setForeground(QColor("#f1f5f9"))
             
-        self.table_summary.setItem(0, 6, item_pl)
+        self.table_summary.setItem(0, 7, item_pl)
