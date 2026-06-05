@@ -36,27 +36,41 @@ class ChartInfoCard(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 16, 20, 16)
         layout.setSpacing(10)
-        
-        icon_path = IconManager.get_icon_path("info", color="#00ffff")
-        
-        html_content = f"""
-        <div style="font-family: 'Segoe UI', sans-serif; line-height: 1.5; padding: 5px;">
-            <b style="color: #00ffff; font-size: 19px; text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);">
-                <img src="file:///{icon_path}" width="22" height="22" style="vertical-align: middle; margin-right: 8px;" />
-                {title}
-            </b>
-            <p style="margin: 12px 0 0 0; color: #ffffff; font-size: 17px;">
-                <b style="color: #fbbf24;">Nedir:</b> {nedir}
-            </p>
-            <p style="margin: 8px 0 0 0; color: #ffffff; font-size: 17px;">
-                <b style="color: #fbbf24;">Nasıl Yorumlanır:</b> {yorum}
-            </p>
-        </div>
-        """
-        self.label = QLabel(html_content)
+
+        self._icon_path = IconManager.get_icon_path("info", color="#00ffff")
+        self.label = QLabel()
         self.label.setWordWrap(True)
         self.label.setTextFormat(Qt.RichText)
         layout.addWidget(self.label)
+        self.update_content(title, nedir, yorum)
+
+    def update_content(
+        self,
+        title: str,
+        nedir: str,
+        yorum: str,
+        mode_state: str | None = None,
+    ) -> None:
+        """Kart metnini grafik modu değişiminde yeniden oluşturur."""
+        self.setProperty("cssState", mode_state or "")
+        html_content = f"""
+        <div style="font-family: 'Segoe UI', sans-serif; line-height: 1.5; padding: 5px;">
+            <b style="color: #00ffff; font-size: 19px; text-shadow: 0 0 10px rgba(0, 255, 255, 0.4);">
+                <img src="file:///{self._icon_path}" width="22" height="22" style="vertical-align: middle; margin-right: 8px;" />
+                {title}
+            </b>
+            <p style="margin: 12px 0 0 0; color: #ffffff; font-size: 17px;">
+                <b style="color: #fbbf24;">{L10N.NEDIR}:</b> {nedir}
+            </p>
+            <p style="margin: 8px 0 0 0; color: #ffffff; font-size: 17px;">
+                <b style="color: #fbbf24;">{L10N.NASIL_YORUMLANIR}:</b> {yorum}
+            </p>
+        </div>
+        """
+        self.label.setText(html_content)
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
 
 
 class ChartPanel(QFrame):
