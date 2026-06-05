@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QDateEdit,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -31,39 +32,46 @@ class ComparisonRibbonBar(QFrame):
         main_layout.setSpacing(10)
         
         # Üst şerit - Kontroller
-        controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(15)
+        self.controls_layout = QGridLayout()
+        self.controls_layout.setHorizontalSpacing(14)
+        self.controls_layout.setVerticalSpacing(10)
+        self.controls_layout.setColumnStretch(1, 2)
+        self.controls_layout.setColumnStretch(3, 1)
+        self.controls_layout.setColumnStretch(7, 1)
         
         # Multi-Asset Selector
-        controls_layout.addWidget(QLabel(L10N.KIYASLANACAK_VARLIKLAR))
+        self.controls_layout.addWidget(QLabel(L10N.KIYASLANACAK_VARLIKLAR), 0, 0)
         self.compare_combo = CheckableComboBox(L10N.VARLIK_SECIN)
         self.compare_combo.setMinimumWidth(220)
         self.compare_combo.selection_changed.connect(self.filter_changed.emit)
-        controls_layout.addWidget(self.compare_combo)
+        self.controls_layout.addWidget(self.compare_combo, 0, 1)
         
         # Grafik Modu
-        controls_layout.addWidget(QLabel(L10N.GRAFIK_MODU_1))
+        self.controls_layout.addWidget(QLabel(L10N.GRAFIK_MODU_1), 0, 2)
         self.combo_mode = QComboBox()
         self.combo_mode.setProperty("cssClass", "customComboBox")
         self.combo_mode.addItems(["Normal", L10N.NORMALIZE_BAZ_100, L10N.RASYO_MODU])
         self.combo_mode.setMinimumWidth(160)
         self.combo_mode.currentIndexChanged.connect(self._on_mode_changed)
-        controls_layout.addWidget(self.combo_mode)
+        self.controls_layout.addWidget(self.combo_mode, 0, 3)
         
         # Rasyo Seçiciler (Pay / Payda)
         self.ratio_widget = QWidget()
+        self.ratio_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         ratio_layout = QHBoxLayout(self.ratio_widget)
         ratio_layout.setContentsMargins(0, 0, 0, 0)
-        ratio_layout.setSpacing(6)
+        ratio_layout.setSpacing(8)
         
         self.combo_num = QComboBox()
         self.combo_num.setProperty("cssClass", "customComboBox")
-        self.combo_num.setMinimumWidth(120)
+        self.combo_num.setMinimumWidth(220)
+        self.combo_num.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.combo_num.currentIndexChanged.connect(self.filter_changed.emit)
         
         self.combo_den = QComboBox()
         self.combo_den.setProperty("cssClass", "customComboBox")
-        self.combo_den.setMinimumWidth(120)
+        self.combo_den.setMinimumWidth(220)
+        self.combo_den.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.combo_den.currentIndexChanged.connect(self.filter_changed.emit)
         
         ratio_layout.addWidget(QLabel(L10N.PAY))
@@ -71,13 +79,13 @@ class ComparisonRibbonBar(QFrame):
         ratio_layout.addWidget(QLabel("/"))
         ratio_layout.addWidget(QLabel(L10N.PAYDA))
         ratio_layout.addWidget(self.combo_den)
+        ratio_layout.addStretch(1)
         
         self.ratio_widget.setVisible(False)
-        controls_layout.addWidget(self.ratio_widget)
+        self.controls_layout.addWidget(self.ratio_widget, 1, 0, 1, 8)
         
         # Tarih Seçiciler
-        controls_layout.addStretch()
-        controls_layout.addWidget(QLabel(L10N.TARIH_ARALIGI_1))
+        self.controls_layout.addWidget(QLabel(L10N.TARIH_ARALIGI_1), 0, 4)
         
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
@@ -85,9 +93,9 @@ class ComparisonRibbonBar(QFrame):
         self.date_start.setMinimumHeight(36)
         self.date_start.setDate(QDate.currentDate().addMonths(-3))
         self.date_start.dateChanged.connect(self.filter_changed.emit)
-        controls_layout.addWidget(self.date_start)
+        self.controls_layout.addWidget(self.date_start, 0, 5)
         
-        controls_layout.addWidget(QLabel("—"))
+        self.controls_layout.addWidget(QLabel("—"), 0, 6)
         
         self.date_end = QDateEdit()
         self.date_end.setCalendarPopup(True)
@@ -95,9 +103,9 @@ class ComparisonRibbonBar(QFrame):
         self.date_end.setMinimumHeight(36)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
-        controls_layout.addWidget(self.date_end)
+        self.controls_layout.addWidget(self.date_end, 0, 7)
         
-        main_layout.addLayout(controls_layout)
+        main_layout.addLayout(self.controls_layout)
         
         # Alt şerit - TradingView Zaman Butonları
         buttons_layout = QHBoxLayout()
