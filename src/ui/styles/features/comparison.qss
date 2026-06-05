@@ -2,6 +2,11 @@ QLabel[cssClass="dateSeparatorLabel"] {
     color: @COLOR_TEXT_SECONDARY;
 }
 
+QWidget[cssClass="comparisonFilterBlock"],
+QWidget[cssClass="comparisonFilterBlock"] QLabel {
+    background-color: transparent;
+}
+
 QFrame[cssClass="comparisonWarningPanel"] {
     background-color: #2d1616;
     border: 1px solid #7f1d1d;
