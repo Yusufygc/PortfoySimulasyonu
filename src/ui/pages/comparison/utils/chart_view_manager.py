@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from PyQt5.QtWidgets import QWidget
 from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
+from src.ui.shared.locale_tr import L10N
 
 if TYPE_CHECKING:
     from src.ui.pages.comparison.comparison_page import ComparisonPage
@@ -21,6 +22,14 @@ logger = logging.getLogger(__name__)
 
 # Grafik adları → layout/placeholder attribute isimleri için sabit liste
 _CHART_NAMES = ("main", "drawdown", "periodic", "scatter", "treemap")
+
+
+def _is_qobject_deleted(obj) -> bool:
+    try:
+        import sip
+        return sip.isdeleted(obj)
+    except Exception:
+        return False
 
 
 class ChartViewManager:
@@ -59,7 +68,7 @@ class ChartViewManager:
         """sip.isdeleted kontrolüyle güvenli tembel başlatma."""
         import sip
         try:
-            if sip.isdeleted(self.page):
+            if sip.isdeleted(self.page) or not self._page_is_active():
                 return
         except Exception:
             return
@@ -73,7 +82,9 @@ class ChartViewManager:
         attr_name = f"_{name}_chart_view"
         view = getattr(self.page, attr_name, None)
         if view is not None:
-            return view
+            if not _is_qobject_deleted(view):
+                return view
+            setattr(self.page, attr_name, None)
 
         view = SilentWebEngineView()
         view.setMinimumHeight(600)
@@ -98,6 +109,7 @@ class ChartViewManager:
             layout.addWidget(view)
 
         setattr(self.page, attr_name, view)
+        self._apply_empty_state_if_needed(view)
         return view
 
     # ------------------------------------------------------------------
@@ -112,7 +124,11 @@ class ChartViewManager:
         """
         import sip
         try:
-            if sip.isdeleted(self.page) or not hasattr(self.page, "scroll_area"):
+            if (
+                sip.isdeleted(self.page)
+                or not self._page_is_active()
+                or not hasattr(self.page, "scroll_area")
+            ):
                 return
         except Exception:
             return
@@ -128,10 +144,16 @@ class ChartViewManager:
             return
             
         viewport_height = viewport.height()
+        df = getattr(self.page, "last_global_df", None)
+        has_renderable_data = df is not None and not df.empty
+        if not has_renderable_data:
+            self._update_placeholders_for_empty_state()
+            return
 
         for name in _CHART_NAMES:
             # Zaten oluşturulmuşsa atla
-            if getattr(self.page, f"_{name}_chart_view", None) is not None:
+            existing_view = getattr(self.page, f"_{name}_chart_view", None)
+            if existing_view is not None and not _is_qobject_deleted(existing_view):
                 continue
 
             container = getattr(self.page, f"{name}_chart_container", None)
@@ -151,7 +173,30 @@ class ChartViewManager:
             if bottom >= scroll_y - 300 and top <= scroll_y + viewport_height + 300:
                 self.get_or_create_view(name)
                 # Veri hazırsa render işlemini tetikle
-                df = getattr(self.page, "last_global_df", None)
-                if df is not None and not df.empty and hasattr(self.page, "_renderer"):
+                if hasattr(self.page, "_renderer"):
                     if hasattr(self.page._renderer, "render_single_chart_async"):
                         self.page._renderer.render_single_chart_async(name, df)
+
+    def _page_is_active(self) -> bool:
+        return getattr(self.page, "_comparison_page_active", True) is not False
+
+    def _update_placeholders_for_empty_state(self) -> None:
+        message = (
+            getattr(self.page, "_comparison_empty_message", None)
+            or L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN
+        )
+        for name in _CHART_NAMES:
+            placeholder = getattr(self.page, f"{name}_chart_placeholder", None)
+            if placeholder and not _is_qobject_deleted(placeholder):
+                placeholder.label.setText(message)
+
+    def _apply_empty_state_if_needed(self, view: SilentWebEngineView) -> None:
+        df = getattr(self.page, "last_global_df", None)
+        message = (
+            getattr(self.page, "_comparison_empty_message", None)
+            or L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN
+        )
+        if df is not None and not df.empty:
+            return
+        from src.ui.pages.comparison.utils.chart_renderer import _EMPTY_HTML
+        view.setHtml(_EMPTY_HTML.format(message=message))
