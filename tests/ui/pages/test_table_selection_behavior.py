@@ -13,6 +13,7 @@ from src.domain.models.position import Position
 from src.ui.pages.dashboard.dashboard_portfolio_table import DashboardPortfolioTable
 from src.ui.pages.watchlist_page import WatchlistPage
 from src.ui.portfolio_table_model import PortfolioTableModel
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.model_portfolio.tables.positions_table import PositionsTable
 from src.ui.widgets.optimization.tables.suggestions_table import SuggestionsTable
 
@@ -167,6 +168,10 @@ def test_dashboard_summary_items_are_not_selectable():
     widget.update_summary_row(Decimal("1000"), Decimal("50"))
 
     assert widget.table_summary.selectionMode() == QTableWidget.NoSelection
+    assert widget.table_summary.columnCount() == 8
+    assert widget.table_summary.item(0, 0).text() == L10N.TOPLAM_SATIRI
+    assert widget.table_summary.item(0, 5).text() == "1,000.00"
+    assert widget.table_summary.item(0, 7).text() == "+50.00"
     for column in range(widget.table_summary.columnCount()):
         item = widget.table_summary.item(0, column)
         assert item.flags() == Qt.ItemIsEnabled
@@ -178,10 +183,11 @@ def test_dashboard_main_table_does_not_select_rows_but_keeps_double_click_surfac
         positions=[Position(stock_id=1, total_quantity=10, total_cost=Decimal("100"))],
         price_map={1: Decimal("12")},
         ticker_map={1: "ASELS.IS"},
+        previous_close_map={1: Decimal("11")},
     )
 
     widget.set_model(model)
-    index = model.index(0, 6)
+    index = model.index(0, 7)
 
     assert widget.table_view.selectionMode() == QTableView.NoSelection
     assert widget.table_view.focusPolicy() == Qt.NoFocus
