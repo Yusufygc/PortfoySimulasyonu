@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Dict, List
 
@@ -36,18 +36,20 @@ class DashboardPresenter:
         price_map: Dict[int, Decimal] = snapshot.price_map if snapshot else {}
         stock_ids = [position.stock_id for position in positions]
         ticker_map = self._page.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
+        previous_close_map = self._build_previous_close_map(stock_ids, today)
 
         if self._page.portfolio_model is None:
             self._page.portfolio_model = PortfolioTableModel(
                 positions,
                 price_map,
                 ticker_map,
+                previous_close_map=previous_close_map,
                 event_bus=self._page.container.event_bus,
                 parent=self._page,
             )
             self._page.portfolio_table_widget.set_model(self._page.portfolio_model)
         else:
-            self._page.portfolio_model.update_data(positions, price_map, ticker_map)
+            self._page.portfolio_model.update_data(positions, price_map, ticker_map, previous_close_map)
 
         positions_value = snapshot.total_value if snapshot else Decimal("0")
         total_value = positions_value + self._page._capital
@@ -108,6 +110,16 @@ class DashboardPresenter:
                 self._page.record_last_update_time()
             except RuntimeError:
                 pass
+
+    def _build_previous_close_map(self, stock_ids: List[int], today: date) -> Dict[int, Decimal]:
+        previous_close_map: Dict[int, Decimal] = {}
+        reference_date = today - timedelta(days=1)
+        for stock_id in stock_ids:
+            daily_price = self._page.price_repo.get_last_price_before(stock_id, reference_date)
+            if daily_price is None or daily_price.close_price is None:
+                continue
+            previous_close_map[stock_id] = daily_price.close_price
+        return previous_close_map
 
     def update_returns(self) -> None:
         today = date.today()
