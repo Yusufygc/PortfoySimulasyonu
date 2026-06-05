@@ -56,12 +56,10 @@ class SettingsPage(BasePage):
         description.setProperty("cssClass", "pageDescription")
         self.main_layout.addWidget(description)
 
-        self.main_layout.addLayout(self._build_live_price_refresh_controls())
-
         self.tabs = QTabWidget()
         self.tabs.setProperty("cssClass", "mainTabWidget")
 
-        self.home_tab = ResetPanel(self.reset_service, self)
+        self.home_tab = ResetPanel(self.reset_service, self._settings, self)
         self.appearance_tab = AppearancePanel(self)
         self.price_data_tab = PriceDataPanel(self.container, self.price_data_health_service, self)
         self.corporate_action_candidates_tab = CorporateActionCandidatesPanel(self.container, self)
@@ -74,64 +72,6 @@ class SettingsPage(BasePage):
         self.tabs.currentChanged.connect(self._update_tab_icons)
         self._update_tab_icons()
         self.main_layout.addWidget(self.tabs, 1)
-
-    def _build_live_price_refresh_controls(self) -> QHBoxLayout:
-        row = QHBoxLayout()
-        row.setSpacing(10)
-
-        self.chk_live_price_refresh = QCheckBox(L10N.OTOMATIK_FIYAT_YENILEME)
-        self.chk_live_price_refresh.setChecked(self._live_price_refresh_enabled())
-        self.chk_live_price_refresh.stateChanged.connect(self._on_live_price_refresh_settings_changed)
-
-        self.combo_live_price_refresh_interval = QComboBox()
-        self.combo_live_price_refresh_interval.setProperty("cssClass", "tradeInputNormal")
-        current_interval = self._live_price_refresh_interval()
-        for minutes in LIVE_PRICE_REFRESH_INTERVAL_OPTIONS:
-            self.combo_live_price_refresh_interval.addItem(f"{minutes} dk", minutes)
-        selected_index = self.combo_live_price_refresh_interval.findData(current_interval)
-        self.combo_live_price_refresh_interval.setCurrentIndex(max(0, selected_index))
-        self.combo_live_price_refresh_interval.currentIndexChanged.connect(
-            self._on_live_price_refresh_settings_changed
-        )
-
-        row.addWidget(self.chk_live_price_refresh)
-        row.addWidget(QLabel(L10N.ARALIK))
-        row.addWidget(self.combo_live_price_refresh_interval)
-        row.addStretch()
-        return row
-
-    def _live_price_refresh_enabled(self) -> bool:
-        value = self._settings.value(
-            LIVE_PRICE_REFRESH_ENABLED_KEY,
-            DEFAULT_LIVE_PRICE_REFRESH_ENABLED,
-        )
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.strip().lower() not in {"0", "false", "hayir", "hayır", "no", "off"}
-        return bool(value)
-
-    def _live_price_refresh_interval(self) -> int:
-        value = self._settings.value(
-            LIVE_PRICE_REFRESH_INTERVAL_KEY,
-            DEFAULT_LIVE_PRICE_REFRESH_INTERVAL_MINUTES,
-        )
-        try:
-            minutes = int(value)
-        except (TypeError, ValueError):
-            minutes = DEFAULT_LIVE_PRICE_REFRESH_INTERVAL_MINUTES
-        return minutes if minutes in LIVE_PRICE_REFRESH_INTERVAL_OPTIONS else DEFAULT_LIVE_PRICE_REFRESH_INTERVAL_MINUTES
-
-    def _on_live_price_refresh_settings_changed(self) -> None:
-        self._settings.setValue(LIVE_PRICE_REFRESH_ENABLED_KEY, self.chk_live_price_refresh.isChecked())
-        self._settings.setValue(
-            LIVE_PRICE_REFRESH_INTERVAL_KEY,
-            self.combo_live_price_refresh_interval.currentData() or DEFAULT_LIVE_PRICE_REFRESH_INTERVAL_MINUTES,
-        )
-        self._settings.sync()
-        window = self.window()
-        if hasattr(window, "reload_live_price_refresh_settings"):
-            window.reload_live_price_refresh_settings()
 
     def _update_tab_icons(self, index: int = -1) -> None:
         idx = self.tabs.currentIndex() if index == -1 else index
@@ -175,6 +115,8 @@ class SettingsPage(BasePage):
             setattr(self, name, getattr(self.price_data_tab, name))
 
         self.btn_reset = self.home_tab.btn_reset
+        self.chk_live_price_refresh = self.home_tab.chk_live_price_refresh
+        self.combo_live_price_refresh_interval = self.home_tab.combo_live_price_refresh_interval
 
     @property
     def _current_report(self):

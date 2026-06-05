@@ -3,7 +3,31 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 
+
+DATE_AXIS_TICKFORMAT = "%d.%m.%Y"
+MONTH_AXIS_TICKFORMAT = "%m.%Y"
+
+
 class ComparisonChartFactory:
+    @staticmethod
+    def _date_value_hover_template(value_label: str = L10N.DEGER) -> str:
+        return (
+            f"{L10N.TARIH}: %{{x|{DATE_AXIS_TICKFORMAT}}}<br>"
+            f"{value_label}: %{{y:.2f}}<extra>%{{fullData.name}}</extra>"
+        )
+
+    @staticmethod
+    def _period_value_hover_template(value_label: str = L10N.GETIRI) -> str:
+        return (
+            f"{L10N.DONEM}: %{{x|{MONTH_AXIS_TICKFORMAT}}}<br>"
+            f"{value_label}: %{{y:.2f}}<extra>%{{fullData.name}}</extra>"
+        )
+
+    @staticmethod
+    def _apply_date_axis_format(fig: go.Figure, tickformat: str = DATE_AXIS_TICKFORMAT) -> go.Figure:
+        fig.update_xaxes(tickformat=tickformat)
+        return fig
+
     @staticmethod
     def _apply_theme_layout(fig: go.Figure, title: str, theme_colors: dict = None) -> go.Figure:
         """Tüm grafiklere aktif temaya uygun layout standartlarını uygular."""
@@ -102,31 +126,31 @@ class ComparisonChartFactory:
                 name=col,
                 fill='tozeroy' if i == 0 else None,
                 fillcolor=L10N.RGBA239_68_68_008 if i == 0 else None,
-                line=dict(width=2, color=color)
+                line=dict(width=2, color=color),
+                hovertemplate=ComparisonChartFactory._date_value_hover_template()
             ))
             
-        return ComparisonChartFactory._apply_theme_layout(fig, L10N.MAKSIMUM_DRAWDOWN_ANALIZI, theme_colors)
+        fig = ComparisonChartFactory._apply_theme_layout(fig, L10N.MAKSIMUM_DRAWDOWN_ANALIZI, theme_colors)
+        return ComparisonChartFactory._apply_date_axis_format(fig)
 
     @staticmethod
     def build_period_bar_chart(df_periodic: pd.DataFrame, theme_colors: dict = None) -> go.Figure:
         fig = go.Figure()
         colors_palette = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4"]
         
-        x_labels = df_periodic.index
-        if isinstance(df_periodic.index, pd.DatetimeIndex):
-            x_labels = df_periodic.index.strftime("%Y-%m")
-            
         for i, col in enumerate(df_periodic.columns):
             color = colors_palette[i % len(colors_palette)]
             fig.add_trace(go.Bar(
-                x=x_labels,
+                x=df_periodic.index,
                 y=df_periodic[col],
                 name=col,
-                marker_color=color
+                marker_color=color,
+                hovertemplate=ComparisonChartFactory._period_value_hover_template()
             ))
             
         fig.update_layout(barmode='group')
-        return ComparisonChartFactory._apply_theme_layout(fig, L10N.DONEMSEL_GETIRI_KARSILASTIRMASI, theme_colors)
+        fig = ComparisonChartFactory._apply_theme_layout(fig, L10N.DONEMSEL_GETIRI_KARSILASTIRMASI, theme_colors)
+        return ComparisonChartFactory._apply_date_axis_format(fig, MONTH_AXIS_TICKFORMAT)
 
     @staticmethod
     def build_risk_return_scatter(df_risk_return: pd.DataFrame, theme_colors: dict = None) -> go.Figure:
@@ -142,7 +166,11 @@ class ComparisonChartFactory:
                 name=name,
                 text=[name],
                 textposition=L10N.TOP_CENTER,
-                marker=dict(size=14, color=color)
+                marker=dict(size=14, color=color),
+                hovertemplate=(
+                    f"{L10N.VOLATILITE}: %{{x:.2f}}<br>"
+                    f"{L10N.GETIRI}: %{{y:.2f}}<extra>%{{fullData.name}}</extra>"
+                )
             ))
             
         fig = ComparisonChartFactory._apply_theme_layout(fig, L10N.RISKGETIRI_DAGILIMI, theme_colors)
@@ -161,10 +189,16 @@ class ComparisonChartFactory:
             labels=df_portfolio_weights.index.tolist(),
             parents=[""] * len(df_portfolio_weights),
             values=df_portfolio_weights[L10N.VARLIK_AGIRLIGI].tolist(),
+            customdata=df_portfolio_weights[L10N.GETIRI].tolist(),
             marker=dict(
                 colors=df_portfolio_weights[L10N.GETIRI].tolist(),
                 colorscale='RdYlGn',
                 showscale=True
+            ),
+            hovertemplate=(
+                "<b>%{label}</b><br>"
+                f"{L10N.VARLIK_AGIRLIGI}: %{{value:.2f}}<br>"
+                f"{L10N.GETIRI}: %{{customdata:.2f}}<extra></extra>"
             )
         ))
         

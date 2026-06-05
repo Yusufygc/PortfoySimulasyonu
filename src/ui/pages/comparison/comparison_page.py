@@ -48,6 +48,8 @@ class ComparisonPage(BasePage):
         self._temp_files: list[str] = []
         self.chart_overrides: dict[str, str | None] = {}
         self.last_global_df = None
+        self._comparison_empty_message: str | None = None
+        self._comparison_page_active = True
         self.code_to_label: dict[str, str] = {}
 
         # Helper'lar
@@ -101,6 +103,8 @@ class ComparisonPage(BasePage):
         scroll_layout.setSpacing(20)
 
         self._ui_builder.build_all_chart_panels(scroll_layout)
+        self.ribbon_bar.combo_mode.currentTextChanged.connect(self._update_main_info_card)
+        self._update_main_info_card(self.ribbon_bar.selected_mode())
         scroll_layout.addWidget(self.ai_helper.build_panel())
 
         self.scroll_area = QScrollArea()
@@ -151,10 +155,38 @@ class ComparisonPage(BasePage):
     # ------------------------------------------------------------------
 
     def on_page_enter(self) -> None:
+        self._comparison_page_active = True
         self._data_manager.on_page_enter()
 
     def _request_refresh(self) -> None:
         self._data_manager.request_refresh()
+
+    def _update_main_info_card(self, mode: str) -> None:
+        """Grafik modu değiştiğinde ana grafik bilgi kartını günceller."""
+        if not hasattr(self, "main_info_card"):
+            return
+        if mode == L10N.RASYO_MODU:
+            self.main_info_card.update_content(
+                L10N.ANA_PERFORMANS_KIYASLAMA_GRAFIGI,
+                L10N.ANA_PERFORMANS_RASYO_NEDIR,
+                L10N.ANA_PERFORMANS_RASYO_YORUM,
+                "ratio",
+            )
+            return
+        if mode == L10N.NORMALIZE_BAZ_100:
+            self.main_info_card.update_content(
+                L10N.ANA_PERFORMANS_KIYASLAMA_GRAFIGI,
+                L10N.ANA_PERFORMANS_NORMALIZE_NEDIR,
+                L10N.ANA_PERFORMANS_NORMALIZE_YORUM,
+                "normal",
+            )
+            return
+        self.main_info_card.update_content(
+            L10N.ANA_PERFORMANS_KIYASLAMA_GRAFIGI,
+            L10N.ANA_PERFORMANS_NORMAL_NEDIR,
+            L10N.ANA_PERFORMANS_NORMAL_YORUM,
+            "normal",
+        )
 
     def handle_chart_portfolio_selected(
         self, chart_key: str, portfolio_code: str | None
@@ -178,6 +210,9 @@ class ComparisonPage(BasePage):
 
     def on_page_leave(self) -> None:
         import os
+        self._comparison_page_active = False
+        if hasattr(self, "_renderer"):
+            self._renderer.cleanup()
         if hasattr(self, "_view_temp_files"):
             for path in list(self._view_temp_files.values()):
                 try:

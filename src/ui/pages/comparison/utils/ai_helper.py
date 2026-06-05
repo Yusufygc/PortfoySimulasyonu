@@ -96,9 +96,13 @@ class AICommentaryHelper:
         page.ai_browser.setReadOnly(True)
         page.ai_browser.setOpenExternalLinks(True)
         page.ai_browser.setProperty("cssClass", "comparisonAiBrowser")
-        page.ai_browser.setMinimumHeight(400)
+        page.ai_browser.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        page.ai_browser.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        page.ai_browser.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        page.ai_browser.setMinimumHeight(0)
         page.ai_browser.setVisible(False)
         page.ai_browser.setFocusPolicy(Qt.NoFocus)
+        page.ai_browser.document().contentsChanged.connect(self._fit_ai_browser_to_content)
         layout.addWidget(page.ai_browser)
 
         page.ai_panel = panel
@@ -160,6 +164,7 @@ class AICommentaryHelper:
         self.page.ai_progress.setVisible(True)
         self.page.ai_browser.setMarkdown(L10N.ANALIZ_HAZIRLANIYOR_LUTFEN_BEKLEYIN)
         self.page.ai_browser.setVisible(True)
+        self._fit_ai_browser_to_content()
 
         QCoreApplication.processEvents()
         scroll_bar.setValue(scroll_pos)
@@ -188,6 +193,7 @@ class AICommentaryHelper:
         except Exception:
             self.page.ai_browser.setPlainText(response_text)
         self.page.ai_browser.setVisible(True)
+        self._fit_ai_browser_to_content()
         QCoreApplication.processEvents()
         scroll_bar.setValue(scroll_pos)
 
@@ -205,8 +211,20 @@ class AICommentaryHelper:
         )
         self.page.ai_browser.setHtml(error_html)
         self.page.ai_browser.setVisible(True)
+        self._fit_ai_browser_to_content()
         QCoreApplication.processEvents()
         scroll_bar.setValue(scroll_pos)
+
+    def _fit_ai_browser_to_content(self) -> None:
+        """QTextBrowser içeriğini kendi içinde scroll üretmeden sayfa akışına yayar."""
+        browser = getattr(self.page, "ai_browser", None)
+        if browser is None:
+            return
+        viewport_width = max(320, browser.viewport().width())
+        browser.document().setTextWidth(viewport_width)
+        content_height = int(browser.document().size().height())
+        browser.setMinimumHeight(max(120, content_height + 56))
+        browser.updateGeometry()
 
     def cleanup(self) -> None:
         """Sayfa kapanırken bekleyen worker sonucunu geçersiz kılar."""

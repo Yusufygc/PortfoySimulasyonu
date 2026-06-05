@@ -124,14 +124,14 @@ def test_live_price_refresh_running_guard_prevents_overlapping_workers():
     parent.deleteLater()
 
 
-def test_live_price_refresh_uses_configured_interval():
+def test_live_price_refresh_always_uses_15_minutes_regardless_of_settings():
     settings = DummySettings({LIVE_PRICE_REFRESH_INTERVAL_KEY: 30})
     controller, parent, _, _ = make_controller(settings=settings)
 
     controller.reload_settings()
 
-    assert controller.interval_minutes() == 30
-    assert controller._timer.interval() == 30 * 60_000
+    assert controller.interval_minutes() == 15
+    assert controller._timer.interval() == 15 * 60_000
     parent.deleteLater()
 
 

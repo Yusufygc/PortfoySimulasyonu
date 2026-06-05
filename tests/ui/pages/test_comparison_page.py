@@ -1,12 +1,15 @@
 import sys
+from datetime import date
 from pathlib import Path
 
+import pandas as pd
 import pytest
 import plotly.graph_objects as go
 
 pytest.importorskip("PyQt5")
+from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView  # Must be imported before QApplication
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QSizePolicy
 
 app = QApplication.instance()
 if app is None:
@@ -14,6 +17,7 @@ if app is None:
 
 from src.ui.pages.comparison.comparison_page import ComparisonPage
 from src.ui.pages.comparison.widgets.ribbon_bar import ComparisonRibbonBar
+from src.ui.shared.locale_tr import L10N
 
 class MockContainer:
     def __init__(self):
@@ -46,10 +50,86 @@ def test_comparison_page_init():
     assert page.page_title == "Karşılaştırma Laboratuvarı"
     assert page.ribbon_bar is not None
     assert isinstance(page.ribbon_bar, ComparisonRibbonBar)
-    assert page.main_chart_view is not None
+    assert page._main_chart_view is None
+    assert page.main_chart_placeholder is not None
     assert page.summary_table is not None
     from PyQt5.QtWidgets import QTableWidget
     assert isinstance(page.summary_table, QTableWidget)
+
+
+def test_empty_comparison_does_not_create_blank_webengine_view():
+    page = ComparisonPage(MockContainer())
+
+    page._data_manager.request_refresh()
+    page._view_manager.check_viewport_visibility()
+
+    assert page._main_chart_view is None
+    assert page.last_global_df is None
+    assert page.main_chart_placeholder.label.text() == L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN
+
+
+def test_empty_state_updates_existing_view_with_dark_html():
+    page = ComparisonPage(MockContainer())
+
+    class FakeView:
+        def __init__(self):
+            self.html = ""
+
+        def setHtml(self, html):
+            self.html = html
+
+    fake_view = FakeView()
+    page._main_chart_view = fake_view
+
+    page._renderer.render_empty_state(L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN)
+
+    assert "background-color:#0f172a" in fake_view.html
+    assert L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN in fake_view.html
+
+
+def test_data_ready_clears_empty_state_and_triggers_render(monkeypatch):
+    from src.ui.pages.comparison.utils import comparison_data_manager
+
+    page = ComparisonPage(MockContainer())
+    df = pd.DataFrame(
+        {"Ana Portfoy": [100.0, 102.0]},
+        index=pd.to_datetime(["2026-06-01", "2026-06-02"]),
+    )
+    rendered = []
+
+    monkeypatch.setattr(
+        comparison_data_manager.ComparisonSeriesBuilder,
+        "build_global_series",
+        staticmethod(lambda dto, selected_sids: ({"Ana Portfoy": df["Ana Portfoy"]}, {})),
+    )
+    monkeypatch.setattr(
+        comparison_data_manager.ComparisonService,
+        "align_financial_series",
+        staticmethod(lambda series_dict: df),
+    )
+    monkeypatch.setattr(page._renderer, "trigger_visible_charts_render", lambda data: rendered.append(data))
+
+    page._comparison_empty_message = L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN
+    page._request_seq = 1
+    page._data_manager._on_data_ready(1, object())
+
+    assert page._comparison_empty_message is None
+    assert page.last_global_df is df
+    assert rendered == [df]
+
+
+def test_chart_renderer_cleanup_stops_pending_loads(tmp_path):
+    page = ComparisonPage(MockContainer())
+    temp_file = tmp_path / "queued.html"
+    temp_file.write_text("<html></html>", encoding="utf-8")
+    page._renderer._load_queue.append((object(), str(temp_file)))
+    page._renderer._load_timer.start(1000)
+
+    page._renderer.cleanup()
+
+    assert not page._renderer._load_timer.isActive()
+    assert page._renderer._load_queue == []
+    assert not temp_file.exists()
 
 def test_wheel_redirect_filter():
     # Arrange
@@ -88,6 +168,116 @@ def test_table_height_adjustment():
     # Assert
     assert page.summary_table.minimumHeight() > 0
     assert page.summary_table.maximumHeight() == page.summary_table.minimumHeight()
+
+
+def test_ribbon_uses_left_right_block_layout():
+    ribbon = ComparisonRibbonBar()
+
+    assert isinstance(ribbon.controls_layout, QHBoxLayout)
+    assert isinstance(ribbon.left_grid, QGridLayout)
+    assert ribbon.controls_layout.indexOf(ribbon.left_container) >= 0
+    assert ribbon.controls_layout.indexOf(ribbon.right_container) >= 0
+    assert ribbon.left_container.property("cssClass") == "comparisonFilterBlock"
+    assert ribbon.right_container.property("cssClass") == "comparisonFilterBlock"
+    assert ribbon.ratio_label.isHidden() is True
+    assert ribbon.combo_num.isHidden() is True
+    assert ribbon.ratio_den_label.isHidden() is True
+    assert ribbon.combo_den.isHidden() is True
+
+    assert ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.compare_combo))[:2] == (0, 1)
+    assert ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_num))[:2] == (1, 1)
+    assert ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_mode))[:2] == (0, 3)
+    assert ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_den))[:2] == (1, 3)
+
+    ribbon.combo_mode.setCurrentText(L10N.RASYO_MODU)
+
+    assert ribbon.ratio_label.isHidden() is False
+    assert ribbon.combo_num.isHidden() is False
+    assert ribbon.ratio_den_label.isHidden() is False
+    assert ribbon.combo_den.isHidden() is False
+    assert ribbon.date_row.indexOf(ribbon.date_start) >= 0
+    assert ribbon.date_row.indexOf(ribbon.date_end) >= 0
+    assert ribbon.right_vbox.indexOf(ribbon.date_row) >= 0
+    assert ribbon.right_vbox.indexOf(ribbon.time_buttons_layout) >= 0
+    for label, button in ribbon.time_buttons.items():
+        assert label in {"1A", "3A", "6A", "1Y", "YBB", "Tümü"}
+        assert ribbon.time_buttons_layout.indexOf(button) >= 0
+    assert ribbon.combo_num.minimumWidth() >= 220
+    assert ribbon.combo_den.minimumWidth() >= 220
+    assert ribbon.combo_num.sizePolicy().horizontalPolicy() == QSizePolicy.Expanding
+    assert ribbon.combo_den.sizePolicy().horizontalPolicy() == QSizePolicy.Expanding
+
+    positions_after_ratio = {
+        "num": ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_num))[:2],
+        "den": ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_den))[:2],
+    }
+    ribbon.combo_mode.setCurrentText("Normal")
+    ribbon.combo_mode.setCurrentText(L10N.RASYO_MODU)
+    assert positions_after_ratio == {
+        "num": ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_num))[:2],
+        "den": ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_den))[:2],
+    }
+
+
+def test_main_info_card_updates_with_graph_mode():
+    page = ComparisonPage(MockContainer())
+
+    page.ribbon_bar.combo_mode.setCurrentText("Normal")
+    normal_text = page.main_info_card.label.text()
+    assert "Grafik Modu yalnızca bu ana performans grafiğinin çizim mantığını değiştirir" in normal_text
+    assert "kümülatif getiri gelişimini" in normal_text
+    assert page.main_info_card.property("cssState") == "normal"
+
+    page.ribbon_bar.combo_mode.setCurrentText(L10N.RASYO_MODU)
+    ratio_text = page.main_info_card.label.text()
+    assert "göreli gücünü" in ratio_text
+    assert "Pay kısmındaki varlığın" in ratio_text
+    assert "yalnızca bu ana performans grafiğinde geçerlidir" in ratio_text
+    assert page.main_info_card.property("cssState") == "ratio"
+
+    page.ribbon_bar.combo_mode.setCurrentText(L10N.NORMALIZE_BAZ_100)
+    normalize_text = page.main_info_card.label.text()
+    assert "başlangıç değerlerini 100'e eşitleyerek göreli performans gelişimini" in normalize_text
+    assert "göreli güç ve sapma daha net kıyaslanır" in normalize_text
+    assert "Grafik Modu yalnızca bu ana performans grafiğinin çizim mantığını değiştirir" in normalize_text
+    assert page.main_info_card.property("cssState") == "normal"
+
+
+def test_sub_chart_info_cards_state_scope_is_static_across_mode_changes():
+    page = ComparisonPage(MockContainer())
+
+    drawdown_text = page.drawdown_info_card.label.text()
+    periodic_text = page.periodic_info_card.label.text()
+    scatter_text = page.scatter_info_card.label.text()
+    treemap_text = page.treemap_info_card.label.text()
+
+    assert "Grafik Modu bu grafiği değiştirmez" in drawdown_text
+    assert "Grafik Modu bu grafiği değiştirmez" in periodic_text
+    assert "Grafik Modu bu grafiği değiştirmez" in scatter_text
+    assert "Grafik Modu bu grafiği değiştirmez" in treemap_text
+
+    page.ribbon_bar.combo_mode.setCurrentText(L10N.RASYO_MODU)
+
+    assert page.drawdown_info_card.label.text() == drawdown_text
+    assert page.periodic_info_card.label.text() == periodic_text
+    assert page.scatter_info_card.label.text() == scatter_text
+    assert page.treemap_info_card.label.text() == treemap_text
+
+
+def test_ai_browser_expands_to_content_without_internal_scroll():
+    page = ComparisonPage(MockContainer())
+    browser = page.ai_browser
+    initial_height = browser.minimumHeight()
+
+    long_markdown = "\n\n".join([f"Paragraf {idx}: uzun analiz metni." for idx in range(80)])
+    browser.setMarkdown(long_markdown)
+    page.ai_helper._fit_ai_browser_to_content()
+
+    assert browser.verticalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert browser.horizontalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert browser.sizePolicy().horizontalPolicy() == QSizePolicy.Preferred
+    assert browser.sizePolicy().verticalPolicy() == QSizePolicy.Expanding
+    assert browser.minimumHeight() > initial_height
 
 def test_check_date_warnings(monkeypatch, fixed_today):
     from datetime import date, timedelta
@@ -233,5 +423,67 @@ def test_chart_renderer_writes_plotly_html_and_loads_local_file(tmp_path, monkey
     assert Path(page._view_temp_files[view]) == Path(loaded_path)
 
 
+def test_chart_renderer_main_fig_uses_date_and_decimal_hover_format():
+    from types import SimpleNamespace
+    from src.ui.pages.comparison.utils import chart_renderer
+
+    df = pd.DataFrame(
+        {"Portföy": [100.0, 104.307363]},
+        index=pd.to_datetime(["2026-06-01", "2026-06-02"]),
+    )
+    renderer = chart_renderer.ChartRenderer(SimpleNamespace())
+
+    fig = renderer._build_main_fig(df, "Normal", None, {})
+
+    assert fig.layout.xaxis.tickformat == "%d.%m.%Y"
+    assert "%{x|%d.%m.%Y}" in fig.data[0].hovertemplate
+    assert "%{y:.2f}" in fig.data[0].hovertemplate
 
 
+def test_chart_renderer_builds_contextual_download_filename():
+    from types import SimpleNamespace
+    from src.ui.pages.comparison.utils import chart_renderer
+
+    page = SimpleNamespace(
+        ribbon_bar=SimpleNamespace(),
+        _asset_labels={"dashboard": "Ana Portföy", "xu100": "BIST 100"},
+    )
+    renderer = chart_renderer.ChartRenderer(page)
+
+    filename = renderer._build_download_filename(
+        chart_key="main",
+        mode="Normal",
+        selected_assets=["dashboard", "xu100"],
+        ratio_assets=None,
+        start_date=date(2026, 3, 8),
+        end_date=date(2026, 6, 5),
+        code_to_label={},
+        asset_labels=page._asset_labels,
+    )
+
+    assert filename == "ana_portfoy_bist_100_ana_performans_normal_08.03.2026_05.06.2026"
+
+
+def test_chart_renderer_ratio_mode_uses_pay_and_payda_in_download_filename():
+    from types import SimpleNamespace
+    from src.ui.pages.comparison.utils import chart_renderer
+    from src.ui.shared.locale_tr import L10N
+
+    page = SimpleNamespace(
+        ribbon_bar=SimpleNamespace(),
+        _asset_labels={"portfolio:4": "Portföy 4", "dashboard": "Ana Portföy"},
+    )
+    renderer = chart_renderer.ChartRenderer(page)
+
+    filename = renderer._build_download_filename(
+        chart_key="main",
+        mode=L10N.RASYO_MODU,
+        selected_assets=["dashboard", "portfolio:4", "xu100"],
+        ratio_assets=("portfolio:4", "dashboard"),
+        start_date=date(2026, 3, 8),
+        end_date=date(2026, 6, 5),
+        code_to_label={},
+        asset_labels=page._asset_labels,
+    )
+
+    assert filename == "portfoy_4_ana_portfoy_ana_performans_rasyo_modu_08.03.2026_05.06.2026"

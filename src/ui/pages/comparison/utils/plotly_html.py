@@ -51,13 +51,23 @@ def ensure_patched_plotly_js(directory: str | Path | None = None) -> str:
     return str(target)
 
 
-def build_plotly_html(fig: go.Figure, plotly_js_url: str | None) -> str:
+def build_plotly_html(
+    fig: go.Figure,
+    plotly_js_url: str | None,
+    download_filename: str | None = None,
+) -> str:
+    config = {
+        "toImageButtonOptions": {
+            "format": "png",
+            "filename": download_filename or "newplot",
+        }
+    }
     if plotly_js_url:
-        html = fig.to_html(include_plotlyjs=False, full_html=True)
+        html = fig.to_html(include_plotlyjs=False, full_html=True, config=config)
         script_tag = f'<script type="text/javascript" src="{plotly_js_url}"></script>'
         return _inject_first_head_script(html, script_tag)
 
-    return patch_plotly_html(fig.to_html(include_plotlyjs=True, full_html=True))
+    return patch_plotly_html(fig.to_html(include_plotlyjs=True, full_html=True, config=config))
 
 
 def _inject_first_head_script(html: str, script_tag: str) -> str:

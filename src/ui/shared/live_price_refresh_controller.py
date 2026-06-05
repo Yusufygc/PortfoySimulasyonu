@@ -56,15 +56,7 @@ class LivePriceRefreshController:
         )
 
     def interval_minutes(self) -> int:
-        value = self._settings.value(
-            LIVE_PRICE_REFRESH_INTERVAL_KEY,
-            DEFAULT_LIVE_PRICE_REFRESH_INTERVAL_MINUTES,
-        )
-        try:
-            minutes = int(value)
-        except (TypeError, ValueError):
-            minutes = DEFAULT_LIVE_PRICE_REFRESH_INTERVAL_MINUTES
-        return minutes if minutes in LIVE_PRICE_REFRESH_INTERVAL_OPTIONS else DEFAULT_LIVE_PRICE_REFRESH_INTERVAL_MINUTES
+        return 15
 
     def run_once(self) -> None:
         if self._running or not self.enabled() or not self._is_bist_trading_day():

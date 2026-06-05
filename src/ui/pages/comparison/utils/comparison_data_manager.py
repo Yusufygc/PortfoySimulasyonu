@@ -23,6 +23,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _is_page_unavailable(page) -> bool:
+    if getattr(page, "_comparison_page_active", True) is False:
+        return True
+    try:
+        import sip
+        return sip.isdeleted(page)
+    except Exception:
+        return False
+
+
 class ComparisonDataManager:
     """
     Varlık listelerini yükler, tarih uyarılarını üretir,
@@ -95,6 +105,8 @@ class ComparisonDataManager:
     def _request_override_refresh(self, chart_key: str, portfolio_code: str) -> None:
         """Belirli bir grafik için özel veri çeker."""
         page = self.page
+        if _is_page_unavailable(page):
+            return
         start_date, end_date = page.ribbon_bar.date_range()
         try:
             stock_map = self.analysis_service.get_stock_map_for_source(portfolio_code)
@@ -130,6 +142,8 @@ class ComparisonDataManager:
     ) -> None:
         """Override veri isteği tamamlandığında çağrılır."""
         page = self.page
+        if _is_page_unavailable(page):
+            return
         if page.chart_overrides.get(chart_key) != portfolio_code:
             return
 
@@ -176,10 +190,14 @@ class ComparisonDataManager:
     def request_refresh(self) -> None:
         """Ribbon filtrelere göre tüm grafikleri yeniler."""
         page = self.page
+        if _is_page_unavailable(page):
+            return
         start_date, end_date = page.ribbon_bar.date_range()
         selected_codes = page.ribbon_bar.selected_assets()
 
         if not selected_codes:
+            page._request_seq += 1
+            page.chart_overrides.clear()
             page._renderer.render_empty_state(L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN)
             return
 
@@ -223,6 +241,8 @@ class ComparisonDataManager:
     def _on_data_ready(self, request_id: int, dto) -> None:
         """Worker sonucu döndüğünde grafikleri render eder."""
         page = self.page
+        if _is_page_unavailable(page):
+            return
         if request_id != page._request_seq:
             return
 
@@ -234,6 +254,7 @@ class ComparisonDataManager:
             return
 
         aligned_df = ComparisonService.align_financial_series(series_dict)
+        page._comparison_empty_message = None
         page.last_global_df = aligned_df
         page._renderer.trigger_visible_charts_render(aligned_df)
         page._last_loaded_assets = page.ribbon_bar.selected_assets()
@@ -242,6 +263,8 @@ class ComparisonDataManager:
     def _on_data_error(self, request_id: int, err_tuple) -> None:
         """Worker hata döndürdüğünde boş durum gösterir."""
         page = self.page
+        if _is_page_unavailable(page):
+            return
         if request_id != page._request_seq:
             return
         page._renderer.render_empty_state(f"Veri yükleme hatası: {err_tuple[1]}")

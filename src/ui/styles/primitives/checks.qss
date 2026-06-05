@@ -24,6 +24,7 @@ QRadioButton::indicator:checked {
 QCheckBox::indicator:checked {
     background-color: @COLOR_PRIMARY;
     border: 1px solid @COLOR_PRIMARY;
+    image: url(src/ui/assets/icons/check_white.svg);
 }
 QRadioButton:disabled, QCheckBox:disabled {
     color: @COLOR_TEXT_MUTED;

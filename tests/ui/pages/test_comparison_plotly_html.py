@@ -35,3 +35,11 @@ def test_plotly_html_inline_fallback_injects_css_patch_before_plotly():
     assert "CSSStyleSheet.prototype.insertRule" in html
     assert html.index("CSSStyleSheet.prototype.insertRule") < html.index("plotly.js")
     assert "Plotly.newPlot" in html
+
+
+def test_plotly_html_embeds_custom_download_filename():
+    fig = go.Figure(data=[go.Scatter(x=[1, 2], y=[3, 4])])
+
+    html = build_plotly_html(fig, None, "ana_portfoy_drawdown_normal_01.01.2026_05.06.2026")
+
+    assert '"filename": "ana_portfoy_drawdown_normal_01.01.2026_05.06.2026"' in html

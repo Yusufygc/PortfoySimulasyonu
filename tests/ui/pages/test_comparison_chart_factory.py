@@ -34,6 +34,9 @@ def test_build_drawdown_chart():
     assert isinstance(fig, go.Figure)
     assert len(fig.data) == 1
     assert fig.data[0].fill == "tozeroy"
+    assert "%{x|%d.%m.%Y}" in fig.data[0].hovertemplate
+    assert "%{y:.2f}" in fig.data[0].hovertemplate
+    assert fig.layout.xaxis.tickformat == "%d.%m.%Y"
 
 def test_build_period_bar_chart():
     # Arrange
@@ -49,6 +52,11 @@ def test_build_period_bar_chart():
     assert isinstance(fig, go.Figure)
     assert len(fig.data) == 1
     assert fig.layout.barmode == "group"
+    assert not isinstance(fig.data[0].x[0], str)
+    assert pd.to_datetime(fig.data[0].x[0]) == dates[0]
+    assert "%{x|%m.%Y}" in fig.data[0].hovertemplate
+    assert "%{y:.2f}" in fig.data[0].hovertemplate
+    assert fig.layout.xaxis.tickformat == "%m.%Y"
 
 def test_build_risk_return_scatter():
     # Arrange
@@ -63,6 +71,8 @@ def test_build_risk_return_scatter():
     # Assert
     assert isinstance(fig, go.Figure)
     assert len(fig.data) == 2
+    assert "%{x:.2f}" in fig.data[0].hovertemplate
+    assert "%{y:.2f}" in fig.data[0].hovertemplate
 
 def test_build_treemap():
     # Arrange
@@ -78,3 +88,6 @@ def test_build_treemap():
     assert isinstance(fig, go.Figure)
     assert len(fig.data) == 1
     assert isinstance(fig.data[0], go.Treemap)
+    assert "%{value:.2f}" in fig.data[0].hovertemplate
+    assert "%{customdata:.2f}" in fig.data[0].hovertemplate
+    assert list(fig.data[0].customdata) == [12.0, -2.5]
