@@ -125,7 +125,7 @@ class ComparisonUIBuilder:
             L10N.MAKSIMUM_DRAWDOWN_DEGER_KAYBI_GRAFIGI,
             L10N.VARLIKLARIN_TARIHSEL_OLARAK_ZIRVE_NOKTALARINDAN +
             L10N.YUZDE_DUSUSLERI_DIKEY_EKSENDE_GOSTERIR,
-            L10N.ASAGIYA_SARKAN_DERIN_CUKURLAR_YUKSEK,
+            L10N.ASAGIYA_SARKAN_DERIN_CUKURLAR_YUKSEK + " " + L10N.MAKSIMUM_DRAWDOWN_GRAFIK_MODU_NOTU,
         )
         layout.addWidget(page.drawdown_info_card)
         self._make_chart_slot("drawdown", L10N.DRAWDOWN_GRAFIGI_YUKLENIYOR, layout)
@@ -141,7 +141,7 @@ class ComparisonUIBuilder:
             L10N.DONEMSEL_GETIRI_KARSILASTIRMASI_GRAFIGI,
             L10N.SECILEN_VARLIKLARIN_AYLIK_BAZDA_ELDE +
             L10N.GRAFIK_OLARAK_KIYASLAR,
-            L10N.HANGI_AYLARDA_ZIT_YONLU_HAREKET,
+            L10N.HANGI_AYLARDA_ZIT_YONLU_HAREKET + " " + L10N.DONEMSEL_GETIRI_GRAFIK_MODU_NOTU,
         )
         layout.addWidget(page.periodic_info_card)
         self._make_chart_slot("periodic", L10N.DONEMSEL_GETIRI_GRAFIGI_YUKLENIYOR, layout)
@@ -157,7 +157,7 @@ class ComparisonUIBuilder:
             L10N.RISKGETIRI_DAGILIMI_SACILIM_GRAFIGI,
             L10N.VARLIKLARIN_YILLIKLANDIRILMIS_OYNAKLIGINI_YATAY_EKSENDE +
             L10N.GETIRISINI_ISE_DIKEY_EKSENDE_KIYASLAR,
-            L10N.SOLUST_DUSUK_RISK_YUKSEK_GETIRI,
+            L10N.SOLUST_DUSUK_RISK_YUKSEK_GETIRI + " " + L10N.RISKGETIRI_GRAFIK_MODU_NOTU,
         )
         layout.addWidget(page.scatter_info_card)
         self._make_chart_slot("scatter", L10N.RISKGETIRI_GRAFIGI_YUKLENIYOR, layout)
@@ -173,7 +173,7 @@ class ComparisonUIBuilder:
             L10N.TREEMAP_GETIRI_KATKI_HARITASI_GRAFIGI,
             L10N.VARLIKLARIN_GETIRI_BUYUKLUKLERINI_KUTUNUN_ALANI +
             L10N.TEK_BIR_ISI_HARITASINDA_GOSTERIR,
-            L10N.KOYU_YESIL_EN_YUKSEK_GETIRI,
+            L10N.KOYU_YESIL_EN_YUKSEK_GETIRI + " " + L10N.TREEMAP_GRAFIK_MODU_NOTU,
         )
         layout.addWidget(page.treemap_info_card)
         self._make_chart_slot("treemap", L10N.GETIRI_KATKI_HARITASI_YUKLENIYOR, layout)
