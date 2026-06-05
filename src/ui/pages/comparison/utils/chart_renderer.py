@@ -5,7 +5,9 @@ from src.ui.shared.locale_tr import L10N
 
 import logging
 import os
+import re
 import tempfile
+import unicodedata
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -49,6 +51,25 @@ _KEY_MAP = {
     "treemap": "treemap"
 }
 
+_DOWNLOAD_CHART_LABELS = {
+    "main": "ana_performans",
+    "drawdown": "drawdown",
+    "periodic": "donemsel_getiri",
+    "scatter": "risk_getiri",
+    "treemap": "treemap",
+}
+
+_CHART_NAMES = ("main", "drawdown", "periodic", "scatter", "treemap")
+
+
+def _is_qobject_deleted(obj) -> bool:
+    try:
+        import sip
+        return sip.isdeleted(obj)
+    except Exception:
+        return False
+
+
 class ChartRenderer:
     """Plotly grafiklerini, QTableWidget içeriğini ve boş durumu yönetir."""
 
@@ -66,6 +87,8 @@ class ChartRenderer:
 
     def trigger_visible_charts_render(self, df: pd.DataFrame) -> None:
         """Veri değiştiğinde halihazırda oluşturulmuş tüm WebEngineView'ları günceller."""
+        if not self._page_is_available():
+            return
         if df.empty:
             return
             
@@ -78,8 +101,9 @@ class ChartRenderer:
             self.render_summary_table(df_metrics)
             
         # Mevcut olan WebEngineView'lar için asenkron render başlat
-        for name in ["main", "drawdown", "periodic", "scatter", "treemap"]:
-            if getattr(page, f"_{name}_chart_view", None) is not None:
+        for name in _CHART_NAMES:
+            view = getattr(page, f"_{name}_chart_view", None)
+            if view is not None and not _is_qobject_deleted(view):
                 if not page.chart_overrides.get(f"{name}_chart"):
                     self.render_single_chart_async(name, df)
         
@@ -92,22 +116,46 @@ class ChartRenderer:
         if df.empty:
             return
             
+        if not self._page_is_available():
+            return
+
         mapped_key = _KEY_MAP.get(chart_key, chart_key)
             
         page = self.page
         mode = page.ribbon_bar.selected_mode()
+        selected_assets = page.ribbon_bar.selected_assets()
+        start_date, end_date = page.ribbon_bar.date_range()
         ratio_assets = page.ribbon_bar.ratio_assets() if mode == L10N.RASYO_MODU else None
         code_to_label = getattr(page, "code_to_label", {}).copy()
+        asset_labels = getattr(page, "_asset_labels", {}).copy()
+        download_filename = self._build_download_filename(
+            chart_key=mapped_key,
+            mode=mode,
+            selected_assets=selected_assets,
+            ratio_assets=ratio_assets,
+            start_date=start_date,
+            end_date=end_date,
+            code_to_label=code_to_label,
+            asset_labels=asset_labels,
+        )
         
         worker = Worker(
             self._generate_html_in_background, 
-            mapped_key, df.copy(), mode, ratio_assets, code_to_label
+            mapped_key, df.copy(), mode, ratio_assets, code_to_label, download_filename
         )
         worker.signals.result.connect(self._on_html_ready)
         worker.signals.error.connect(lambda err: logger.error(f"Render error for {mapped_key}: {err}"))
         self.threadpool.start(worker)
 
-    def _generate_html_in_background(self, chart_key: str, df: pd.DataFrame, mode: str, ratio_assets: tuple | None, code_to_label: dict) -> tuple[str, str] | None:
+    def _generate_html_in_background(
+        self,
+        chart_key: str,
+        df: pd.DataFrame,
+        mode: str,
+        ratio_assets: tuple | None,
+        code_to_label: dict,
+        download_filename: str,
+    ) -> tuple[str, str] | None:
         """Arka planda çalışacak fonksiyon."""
         df_metrics = df if mode == L10N.RASYO_MODU else df
         fig = None
@@ -144,10 +192,10 @@ class ChartRenderer:
         try:
             shared_plotly_path = ensure_patched_plotly_js()
             shared_js_url = QUrl.fromLocalFile(shared_plotly_path).toString()
-            html = build_plotly_html(fig, shared_js_url)
+            html = build_plotly_html(fig, shared_js_url, download_filename)
         except Exception as exc:
             logger.error("Failed to prepare patched Plotly JS: %s", exc)
-            html = build_plotly_html(fig, None)
+            html = build_plotly_html(fig, None, download_filename)
 
         tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
         tmp.write(html)
@@ -157,12 +205,17 @@ class ChartRenderer:
 
     def _on_html_ready(self, result: tuple[str, str] | None) -> None:
         """Worker bittiğinde ana thread üzerinden Chromium'u besler (Kuyruk ile)."""
+        if not self._page_is_available():
+            if result:
+                self._remove_temp_file(result[1])
+            return
         if not result:
             return
         chart_key, temp_file_path = result
         view_attr = f"_{chart_key}_chart_view"
         view = getattr(self.page, view_attr, None)
-        if not view:
+        if not view or _is_qobject_deleted(view):
+            self._remove_temp_file(temp_file_path)
             return
 
         self._load_queue.append((view, temp_file_path))
@@ -171,10 +224,18 @@ class ChartRenderer:
 
     def _process_load_queue(self) -> None:
         """Sıradaki WebEngineView'a HTML dosyasını yükler."""
+        if not self._page_is_available():
+            self._clear_load_queue()
+            return
         if not self._load_queue:
             return
             
         view, temp_file_path = self._load_queue.pop(0)
+        if _is_qobject_deleted(view):
+            self._remove_temp_file(temp_file_path)
+            if self._load_queue:
+                self._load_timer.start(250)
+            return
         
         if not hasattr(self.page, "_view_temp_files"):
             self.page._view_temp_files = {}
@@ -233,7 +294,8 @@ class ChartRenderer:
             for i, col in enumerate(df_norm.columns):
                 fig.add_trace(go.Scatter(
                     x=df_norm.index, y=df_norm[col], name=col,
-                    line=dict(width=2, color=_COLORS[i % len(_COLORS)])
+                    line=dict(width=2, color=_COLORS[i % len(_COLORS)]),
+                    hovertemplate=ComparisonChartFactory._date_value_hover_template()
                 ))
             ComparisonChartFactory._apply_theme_layout(fig, L10N.NORMALIZE_PERFORMANS_KIYASLAMASI_BAZ_100)
 
@@ -247,7 +309,9 @@ class ChartRenderer:
                     ratio_name = f"{num_col} / {den_col}"
                     fig.add_trace(go.Scatter(
                         x=ratio_series.index, y=ratio_series.values,
-                        name=ratio_name, line=dict(width=2, color="#00D4FF")
+                        name=ratio_name,
+                        line=dict(width=2, color="#00D4FF"),
+                        hovertemplate=ComparisonChartFactory._date_value_hover_template()
                     ))
                     ComparisonChartFactory._apply_theme_layout(fig, f"Rasyo Gösterimi: {ratio_name}")
                 else:
@@ -256,7 +320,8 @@ class ChartRenderer:
                 self._fallback_cumulative(df, fig)
         else:
             self._fallback_cumulative(df, fig)
-            
+
+        ComparisonChartFactory._apply_date_axis_format(fig)
         return fig
         
     def _fallback_cumulative(self, df: pd.DataFrame, fig: go.Figure) -> None:
@@ -270,9 +335,71 @@ class ChartRenderer:
         for i, col in enumerate(df_ret.columns):
             fig.add_trace(go.Scatter(
                 x=df_ret.index, y=df_ret[col], name=col,
-                line=dict(width=2, color=_COLORS[i % len(_COLORS)])
+                line=dict(width=2, color=_COLORS[i % len(_COLORS)]),
+                hovertemplate=ComparisonChartFactory._date_value_hover_template()
             ))
         ComparisonChartFactory._apply_theme_layout(fig, L10N.KUMULATIF_PERFORMANS_GETIRISI)
+
+    def _build_download_filename(
+        self,
+        chart_key: str,
+        mode: str,
+        selected_assets: list[str],
+        ratio_assets: tuple[str, str] | None,
+        start_date,
+        end_date,
+        code_to_label: dict[str, str],
+        asset_labels: dict[str, str],
+    ) -> str:
+        asset_part = self._build_asset_filename_part(
+            selected_assets=selected_assets,
+            mode=mode,
+            ratio_assets=ratio_assets,
+            code_to_label=code_to_label,
+            asset_labels=asset_labels,
+        )
+        chart_part = _DOWNLOAD_CHART_LABELS.get(chart_key, self._slugify(chart_key))
+        mode_part = self._slugify(mode)
+        start_part = start_date.strftime("%d.%m.%Y")
+        end_part = end_date.strftime("%d.%m.%Y")
+        return f"{asset_part}_{chart_part}_{mode_part}_{start_part}_{end_part}"
+
+    def _build_asset_filename_part(
+        self,
+        selected_assets: list[str],
+        mode: str,
+        ratio_assets: tuple[str, str] | None,
+        code_to_label: dict[str, str],
+        asset_labels: dict[str, str],
+    ) -> str:
+        labels: list[str]
+        if mode == L10N.RASYO_MODU and ratio_assets:
+            labels = [
+                self._resolve_asset_label(code, code_to_label, asset_labels)
+                for code in ratio_assets
+                if code
+            ]
+        else:
+            labels = [
+                self._resolve_asset_label(code, code_to_label, asset_labels)
+                for code in selected_assets
+                if code
+            ]
+
+        slugs = [self._slugify(label) for label in labels if label]
+        slugs = [slug for slug in slugs if slug]
+        return "_".join(slugs) if slugs else "varlik"
+
+    @staticmethod
+    def _resolve_asset_label(code: str, code_to_label: dict[str, str], asset_labels: dict[str, str]) -> str:
+        return code_to_label.get(code) or asset_labels.get(code) or code
+
+    @staticmethod
+    def _slugify(value: str) -> str:
+        normalized = unicodedata.normalize("NFKD", value or "")
+        ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+        cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_text.lower()).strip("_")
+        return re.sub(r"_+", "_", cleaned)
 
     # ------------------------------------------------------------------
     # Özet tablo (Senkron, hızlı olduğu için UI thread'de kalabilir)
@@ -332,18 +459,24 @@ class ChartRenderer:
 
     def render_empty_state(self, message: str) -> None:
         page = self.page
+        page._comparison_empty_message = message
+        page.last_global_df = None
         empty_html = _EMPTY_HTML.format(message=message)
-        if getattr(page, "_main_chart_view", None):
-            page.main_chart_view.setHtml(empty_html)
         page.summary_table.setRowCount(0)
         
-        for name in ["drawdown", "periodic", "scatter", "treemap"]:
+        for name in _CHART_NAMES:
             view = getattr(page, f"_{name}_chart_view", None)
-            if view:
+            if view and not _is_qobject_deleted(view):
                 view.setHtml(empty_html)
+                continue
+            placeholder = getattr(page, f"{name}_chart_placeholder", None)
+            if placeholder and not _is_qobject_deleted(placeholder):
+                placeholder.label.setText(message)
 
     def _load_plotly_to_view(self, view: SilentWebEngineView, fig: go.Figure) -> None:
         """Plotly Figure'ı geçici HTML dosyasına yazar ve view'a yükler."""
+        if not self._page_is_available() or _is_qobject_deleted(view):
+            return
         page = self.page
 
         try:
@@ -368,4 +501,29 @@ class ChartRenderer:
                 pass
         page._view_temp_files[view] = tmp.name
         view.load(QUrl.fromLocalFile(tmp.name))
+
+    def cleanup(self) -> None:
+        """Cancel pending WebEngine load jobs before page teardown."""
+        if self._load_timer.isActive():
+            self._load_timer.stop()
+        self._clear_load_queue()
+
+    def _clear_load_queue(self) -> None:
+        while self._load_queue:
+            _, temp_file_path = self._load_queue.pop(0)
+            self._remove_temp_file(temp_file_path)
+
+    @staticmethod
+    def _remove_temp_file(path: str) -> None:
+        try:
+            if path and os.path.exists(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+    def _page_is_available(self) -> bool:
+        page = self.page
+        if getattr(page, "_comparison_page_active", True) is False:
+            return False
+        return not _is_qobject_deleted(page)
 
