@@ -29,8 +29,8 @@ class InfoCard(QFrame):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 12, 15, 12)
-        layout.setSpacing(5)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(8)
 
         title_row = QHBoxLayout()
         title_row.setSpacing(8)
@@ -76,6 +76,9 @@ class InfoCard(QFrame):
     def set_value(self, text: str) -> None:
         """Kart değerini günceller."""
         self._lbl_value.setText(text)
+        self._lbl_value.setProperty("cssClass", "infoCardValue")
+        self._lbl_value.style().unpolish(self._lbl_value)
+        self._lbl_value.style().polish(self._lbl_value)
 
     def set_value_state(self, state: str) -> None:
         """

@@ -56,7 +56,7 @@ QLabel[cssClass="statCardValue"][cssState="neutral"]   { color: @COLOR_TEXT_PRIM
 /* -------------------------------------------------------
    infoCard etiket stilleri
 ------------------------------------------------------- */
-QLabel[cssClass="infoCardTitle"]  { color: @COLOR_TEXT_BRIGHT;   font-size: @FONT_MD;  font-weight: bold; border: none; }
+QLabel[cssClass="infoCardTitle"]  { color: @COLOR_TEXT_BRIGHT;   font-size: @FONT_LG;  font-weight: bold; border: none; }
 QLabel[cssClass="infoCardValue"]  { color: @COLOR_TEXT_PRIMARY;  font-size: @FONT_3XL; font-weight: bold; border: none; }
 QLabel[cssClass="infoCardDetail"] { color: @COLOR_TEXT_SECONDARY; font-size: @FONT_MD; border: none; }
 
@@ -73,6 +73,9 @@ QLabel[cssClass="feasibilityStatus"] { font-size: @FONT_XL; font-weight: bold; b
 QLabel[cssClass="infoCardValue"][cssState="positive"] { color: @COLOR_SUCCESS; }
 QLabel[cssClass="infoCardValue"][cssState="negative"] { color: @COLOR_DANGER; }
 QLabel[cssClass="infoCardValue"][cssState="neutral"]  { color: @COLOR_TEXT_PRIMARY; }
+QLabel[cssClass="infoCardValueSmall"][cssState="positive"] { color: @COLOR_SUCCESS; }
+QLabel[cssClass="infoCardValueSmall"][cssState="negative"] { color: @COLOR_DANGER; }
+QLabel[cssClass="infoCardValueSmall"][cssState="neutral"]  { color: @COLOR_TEXT_PRIMARY; }
 
 QLabel[cssClass="infoCardDelta"][cssState="positive"] { color: @COLOR_SUCCESS; }
 QLabel[cssClass="infoCardDelta"][cssState="negative"] { color: @COLOR_DANGER; }

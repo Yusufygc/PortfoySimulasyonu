@@ -1,7 +1,7 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget, QGridLayout
 from PyQt5.QtCore import QTimer
 
 
@@ -29,29 +29,35 @@ class AnalysisRiskSection(QWidget):
         self.warning_banner.hide()
         layout.addWidget(self.warning_banner)
 
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(15)
+        cards_grid = QGridLayout()
+        cards_grid.setHorizontalSpacing(15)
+        cards_grid.setVerticalSpacing(15)
+
         self.card_top_three = InfoCard(L10N.ILK_3_POZISYON, "—", icon_name="layers")
         self.card_volatility = InfoCard(L10N.FIYAT_DALGALANMASI_RISK, "—", icon_name="line-chart")
         self.card_drawdown = InfoCard(L10N.MAKSIMUM_DUSUS_KAYIP, "—", icon_name="trending-down")
         self.card_concentration = InfoCard(L10N.CESITLENDIRME_DAGILIMI, "—", icon_name="shield-check")
-        for card in [self.card_top_three, self.card_volatility, self.card_drawdown, self.card_concentration]:
-            cards_row.addWidget(card, 1)
-        layout.addLayout(cards_row)
 
-        cards_row2 = QHBoxLayout()
-        cards_row2.setSpacing(15)
         self.card_sharpe = InfoCard(L10N.RISK_BASINA_GETIRI_SHARPE, "—", icon_name="activity")
         self.card_sharpe.setToolTip(L10N.ALINAN_1_BIRIM_RISKE_KARSILIK)
         self.card_beta = InfoCard(L10N.BIST100E_TEPKISI_BETA, "—", icon_name="crosshair")
         self.card_beta.setToolTip(L10N.PORTFOYUN_BIST100E_KARSI_DUYARLILIGI_1)
         self.card_alpha = InfoCard(L10N.EKSTRA_BASARI_ALPHA, "—", icon_name="star")
         self.card_alpha.setToolTip(L10N.ENDEKS_GETIRISINDEN_BAGIMSIZ_OLARAK_YARATILAN)
-        for card in [self.card_sharpe, self.card_beta, self.card_alpha]:
-            cards_row2.addWidget(card, 1)
-        # Empty space to balance 4 cards vs 3 cards row
-        cards_row2.addStretch(1)
-        layout.addLayout(cards_row2)
+
+        cards_grid.addWidget(self.card_top_three, 0, 0)
+        cards_grid.addWidget(self.card_volatility, 0, 1)
+        cards_grid.addWidget(self.card_drawdown, 0, 2)
+        cards_grid.addWidget(self.card_concentration, 0, 3)
+
+        cards_grid.addWidget(self.card_sharpe, 1, 0)
+        cards_grid.addWidget(self.card_beta, 1, 1)
+        cards_grid.addWidget(self.card_alpha, 1, 2)
+
+        for col in range(4):
+            cards_grid.setColumnStretch(col, 1)
+
+        layout.addLayout(cards_grid)
 
         charts_row = QHBoxLayout()
         charts_row.setSpacing(15)

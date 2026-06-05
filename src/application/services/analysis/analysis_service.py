@@ -118,10 +118,10 @@ class AnalysisService:
 
         insights = [
             build_benchmark_insight(primary_benchmark.label if primary_benchmark else "benchmark", benchmark_gap),
-            f"Risk yogunlugu: {concentration_label}",
+            f"Risk yoğunluğu: {concentration_label}",
         ]
         if best and best["label"] != "-":
-            insights.append(f"En guclu performans: {best['label']} (%{best['return_pct']:+.2f})")
+            insights.append(f"En güçlü performans: {best['label']} (%{best['return_pct']:+.2f})")
 
         return AnalysisOverviewDTO(
             total_value=bundle["end_total_value"],

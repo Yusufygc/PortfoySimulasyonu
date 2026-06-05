@@ -120,18 +120,18 @@ def get_concentration_label(top_three_weight_pct: Optional[float]) -> str:
     if top_three_weight_pct is None:
         return "Veri Yok"
     if top_three_weight_pct >= 75:
-        return "Yuksek"
+        return "Yüksek"
     if top_three_weight_pct >= 50:
         return "Orta"
-    return "Dusuk"
+    return "Düşük"
 
 
 def build_benchmark_insight(benchmark_label: str, gap: Optional[float]) -> str:
     if gap is None:
-        return f"{benchmark_label} kiyasi icin yeterli veri yok."
+        return f"{benchmark_label} kıyası için yeterli veri yok."
     if gap >= 0:
-        return f"Portfoy {benchmark_label} kiyasinin %{gap:.2f} uzerinde."
-    return f"Portfoy {benchmark_label} kiyasinin %{abs(gap):.2f} gerisinde."
+        return f"Portföy {benchmark_label} kıyasının %{gap:.2f} üzerinde."
+    return f"Portföy {benchmark_label} kıyasının %{abs(gap):.2f} gerisinde."
 
 
 def compute_position_snapshot(
@@ -157,9 +157,11 @@ def compute_position_snapshot(
         return_pct = None
         if position.total_cost > 0:
             return_pct = float(((current_value - position.total_cost) / position.total_cost) * Decimal("100"))
+        raw_label = ticker_map.get(stock_id, str(stock_id))
+        clean_label = raw_label[:-3] if raw_label.upper().endswith(".IS") else raw_label
         items.append(
             {
-                "label": ticker_map.get(stock_id, str(stock_id)),
+                "label": clean_label,
                 "current_value": current_value,
                 "cost_value": position.total_cost,
                 "weight": weight,

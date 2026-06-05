@@ -232,7 +232,7 @@ def test_sold_stock_without_prices_does_not_create_analysis_warning():
     payload = service.get_page_payload(filter_state)
 
     assert not any("BORSK" in warning for warning in payload["overview"].warnings)
-    assert payload["overview"].largest_position_label == "AKBNK.IS"
+    assert payload["overview"].largest_position_label == "AKBNK"
 
 
 def test_dashboard_analysis_total_value_keeps_cash_from_closed_trade():
