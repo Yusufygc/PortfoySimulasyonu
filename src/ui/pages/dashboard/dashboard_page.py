@@ -39,6 +39,7 @@ class DashboardPage(BasePage):
         self.return_calc_service = container.return_calc_service
         self.update_coordinator = container.update_coordinator
         self.stock_repo = container.stock_repo
+        self.price_repo = container.price_repo
         self.reset_service = container.reset_service
         self.market_client = container.market_client
         self.market_session_service = getattr(container, "bist_market_session_service", None)
