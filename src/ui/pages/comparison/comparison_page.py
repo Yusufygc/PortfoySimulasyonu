@@ -101,6 +101,8 @@ class ComparisonPage(BasePage):
         scroll_layout.setSpacing(20)
 
         self._ui_builder.build_all_chart_panels(scroll_layout)
+        self.ribbon_bar.combo_mode.currentTextChanged.connect(self._update_main_info_card)
+        self._update_main_info_card(self.ribbon_bar.selected_mode())
         scroll_layout.addWidget(self.ai_helper.build_panel())
 
         self.scroll_area = QScrollArea()
@@ -155,6 +157,25 @@ class ComparisonPage(BasePage):
 
     def _request_refresh(self) -> None:
         self._data_manager.request_refresh()
+
+    def _update_main_info_card(self, mode: str) -> None:
+        """Grafik modu değiştiğinde ana grafik bilgi kartını günceller."""
+        if not hasattr(self, "main_info_card"):
+            return
+        if mode == L10N.RASYO_MODU:
+            self.main_info_card.update_content(
+                L10N.ANA_PERFORMANS_KIYASLAMA_GRAFIGI,
+                L10N.ANA_PERFORMANS_RASYO_NEDIR,
+                L10N.ANA_PERFORMANS_RASYO_YORUM,
+                "ratio",
+            )
+            return
+        self.main_info_card.update_content(
+            L10N.ANA_PERFORMANS_KIYASLAMA_GRAFIGI,
+            L10N.ANA_PERFORMANS_NORMAL_NEDIR,
+            L10N.ANA_PERFORMANS_NORMAL_YORUM,
+            "normal",
+        )
 
     def handle_chart_portfolio_selected(
         self, chart_key: str, portfolio_code: str | None
