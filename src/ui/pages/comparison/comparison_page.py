@@ -48,6 +48,8 @@ class ComparisonPage(BasePage):
         self._temp_files: list[str] = []
         self.chart_overrides: dict[str, str | None] = {}
         self.last_global_df = None
+        self._comparison_empty_message: str | None = None
+        self._comparison_page_active = True
         self.code_to_label: dict[str, str] = {}
 
         # Helper'lar
@@ -153,6 +155,7 @@ class ComparisonPage(BasePage):
     # ------------------------------------------------------------------
 
     def on_page_enter(self) -> None:
+        self._comparison_page_active = True
         self._data_manager.on_page_enter()
 
     def _request_refresh(self) -> None:
@@ -168,6 +171,14 @@ class ComparisonPage(BasePage):
                 L10N.ANA_PERFORMANS_RASYO_NEDIR,
                 L10N.ANA_PERFORMANS_RASYO_YORUM,
                 "ratio",
+            )
+            return
+        if mode == L10N.NORMALIZE_BAZ_100:
+            self.main_info_card.update_content(
+                L10N.ANA_PERFORMANS_KIYASLAMA_GRAFIGI,
+                L10N.ANA_PERFORMANS_NORMALIZE_NEDIR,
+                L10N.ANA_PERFORMANS_NORMALIZE_YORUM,
+                "normal",
             )
             return
         self.main_info_card.update_content(
@@ -199,6 +210,9 @@ class ComparisonPage(BasePage):
 
     def on_page_leave(self) -> None:
         import os
+        self._comparison_page_active = False
+        if hasattr(self, "_renderer"):
+            self._renderer.cleanup()
         if hasattr(self, "_view_temp_files"):
             for path in list(self._view_temp_files.values()):
                 try:
