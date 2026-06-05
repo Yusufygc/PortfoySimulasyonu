@@ -32,6 +32,11 @@ QFrame[cssClass="comparisonChartInfoCard"] {
     border-radius: 8px;
 }
 
+QFrame[cssClass="comparisonChartInfoCard"][cssState="ratio"] {
+    background-color: #12313d;
+    border: 1px solid #06b6d4;
+}
+
 QFrame[cssClass="comparisonChartPanel"],
 QFrame[cssClass="comparisonAiPanel"] {
     background-color: #0f172a;
