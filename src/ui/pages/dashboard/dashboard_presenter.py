@@ -103,6 +103,11 @@ class DashboardPresenter:
         )
         self._page.summary_cards.update_base_metrics(total_value, total_cost, self._page._capital, profit_loss)
         self._page.portfolio_table_widget.update_summary_row(total_value, profit_loss)
+        if new_prices and hasattr(self._page, "record_last_update_time"):
+            try:
+                self._page.record_last_update_time()
+            except RuntimeError:
+                pass
 
     def update_returns(self) -> None:
         today = date.today()
