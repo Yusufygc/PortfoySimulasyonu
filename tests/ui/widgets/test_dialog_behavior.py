@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
+import threading
 
 import pytest
 
 pytest.importorskip("PyQt5")
 from PyQt5.QtCore import Qt
 from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QMessageBox
 
 from src.domain.models.corporate_action import ActionType
 from src.domain.models.corporate_action_candidate import CorporateActionCandidate, CorporateActionCandidateStatus
@@ -93,6 +95,65 @@ def test_dashboard_trade_wizard_enter_moves_forward_then_accepts(qapp):
     qapp.processEvents()
 
     assert dialog.result() == QDialog.Accepted
+
+
+def test_dashboard_trade_wizard_enter_waits_for_lookup_before_advancing(qapp, monkeypatch):
+    lookup_started = threading.Event()
+    release_lookup = threading.Event()
+    prompts = []
+
+    def lookup(_ticker):
+        lookup_started.set()
+        release_lookup.wait(timeout=1)
+        return SimpleNamespace(
+            price=Decimal("12.34"),
+            source="intraday",
+            company_name="ASELSAN",
+            normalized_ticker="ASELS.IS",
+            as_of=datetime(2026, 6, 5, tzinfo=timezone.utc),
+        )
+
+    def fake_question(*args, **kwargs):
+        prompts.append((args, kwargs))
+        return QMessageBox.No
+
+    monkeypatch.setattr(QMessageBox, "question", fake_question)
+
+    dialog = NewStockTradeDialog(price_lookup_func=lookup)
+    dialog.line_ticker.setText("ASELS")
+    dialog.line_ticker.setFocus()
+    dialog.show()
+    qapp.processEvents()
+
+    QTest.keyClick(dialog.line_ticker, Qt.Key_Return)
+
+    for _ in range(20):
+        qapp.processEvents()
+        if lookup_started.is_set():
+            break
+
+    assert lookup_started.is_set()
+    assert dialog.stack.currentIndex() == 0
+    assert dialog.result() == 0
+    assert dialog.btn_next.isEnabled() is False
+    assert dialog._price_lookup_in_flight is True
+    assert prompts == []
+
+    release_lookup.set()
+    for _ in range(50):
+        qapp.processEvents()
+        if dialog.current_price == Decimal("12.34"):
+            break
+
+    assert dialog.current_price == Decimal("12.34")
+    assert dialog._price_lookup_in_flight is False
+    assert dialog.btn_next.isEnabled() is True
+    assert prompts == []
+
+    QTest.keyClick(dialog.line_ticker, Qt.Key_Return)
+    qapp.processEvents()
+
+    assert dialog.stack.currentIndex() == 1
 
 
 def test_custom_dialogs_hide_context_help_button(qapp):
