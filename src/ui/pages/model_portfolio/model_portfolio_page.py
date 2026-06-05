@@ -208,6 +208,10 @@ class ModelPortfolioPage(BasePage):
             return
         self.current_price_map.update(relevant_prices)
         self._update_view()
+        try:
+            self.record_last_update_time()
+        except RuntimeError:
+            pass
 
     def record_last_update_time(self, updated_at=None):
         if self.current_portfolio_id is None:
