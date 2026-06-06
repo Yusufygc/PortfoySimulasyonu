@@ -16,7 +16,7 @@ class ContributionDialog(QDialog):
 
     def __init__(self, goal_name: str, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"Katkı Ekle — {goal_name}")
+        self.setWindowTitle(L10N.KATKI_EKLE_BASLIK_TMPL.format(goal=goal_name))
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setFixedSize(350, 180)
         self.setModal(True)

@@ -65,7 +65,7 @@ class StockTradeSubmitter:
         except ValueError as exc:
             QMessageBox.warning(page, L10N.GECERSIZ_ISLEM, str(exc))
         except Exception as exc:
-            QMessageBox.critical(page, L10N.ERROR, f"İşlem hatası: {exc}")
+            QMessageBox.critical(page, L10N.ERROR, L10N.ISLEM_HATASI_TMPL.format(exc=exc))
 
     def _submit_model_trade(self, is_buy: bool, qty: int, price: float, trade_date, trade_time) -> None:
         page = self.page
@@ -108,4 +108,4 @@ class StockTradeSubmitter:
         except ValueError as exc:
             QMessageBox.warning(page, L10N.GECERSIZ_ISLEM, str(exc))
         except Exception as exc:
-            QMessageBox.critical(page, L10N.ERROR, f"Model portföy işlem hatası: {exc}")
+            QMessageBox.critical(page, L10N.ERROR, L10N.MODEL_PORTFOY_ISLEM_HATASI_TMPL.format(exc=exc))

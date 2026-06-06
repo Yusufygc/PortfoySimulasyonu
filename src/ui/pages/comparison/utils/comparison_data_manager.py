@@ -267,7 +267,7 @@ class ComparisonDataManager:
             return
         if request_id != page._request_seq:
             return
-        page._renderer.render_empty_state(f"Veri yükleme hatası: {err_tuple[1]}")
+        page._renderer.render_empty_state(L10N.VERI_YUKLEME_HATASI_TMPL.format(exc=err_tuple[1]))
 
     # ------------------------------------------------------------------
     # Yardımcı

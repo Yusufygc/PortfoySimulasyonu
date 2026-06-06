@@ -36,7 +36,7 @@ class DashboardExportActions:
             )
             QMessageBox.information(self._page, L10N.SUCCESS, L10N.EXCEL_AKTARIMI_TAMAMLANDI)
         except Exception as exc:
-            QMessageBox.critical(self._page, L10N.ERROR, f"Excel hatası: {exc}")
+            QMessageBox.critical(self._page, L10N.ERROR, L10N.EXCEL_HATASI_TMPL.format(exc=exc))
 
     def on_export_range(self) -> None:
         first_date = self._page.portfolio_service.get_first_trade_date()
@@ -71,4 +71,4 @@ class DashboardExportActions:
             )
             QMessageBox.information(self._page, L10N.SUCCESS, L10N.EXCEL_AKTARIMI_TAMAMLANDI)
         except Exception as exc:
-            QMessageBox.critical(self._page, L10N.ERROR, f"Hata: {exc}")
+            QMessageBox.critical(self._page, L10N.ERROR, L10N.HATA_TEK_SATIR_TMPL.format(exc=exc))

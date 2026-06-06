@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared import Toast
 
 LAST_UPDATE_TOAST_DURATION_MS = 4000
@@ -60,4 +61,4 @@ class LastUpdateDisplayMixin:
 
     @staticmethod
     def _format_last_update_message(updated_at: datetime) -> str:
-        return f"Son güncelleme: {updated_at.strftime('%d.%m.%Y %H:%M')} (15dk gecikmeli)"
+        return L10N.SON_GUNCELLEME_TMPL.format(ts=updated_at.strftime('%d.%m.%Y %H:%M'))

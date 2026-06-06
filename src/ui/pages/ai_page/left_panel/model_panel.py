@@ -6,6 +6,7 @@ from PyQt5.QtCore import QThreadPool, pyqtSignal, Qt
 from src.application.services.ai.ai_analysis_service import AiAnalysisService
 from src.domain.models.ai_analysis import AnalysisResult
 from src.ui.pages.ai_page.labels import DEFAULT_INVESTMENT_DISCLAIMER
+from src.ui.shared.locale_tr import L10N
 from .ticker_input_bar import TickerInputBar
 from .status_banner import StatusBanner
 from .prediction_card import PredictionCard
@@ -200,7 +201,7 @@ class ModelPanel(QWidget):
 
     def _on_error(self, err: str):
         self._set_disclaimer(DEFAULT_INVESTMENT_DISCLAIMER)
-        self.status_banner.show_error(f"Analiz hatası: {err}")
+        self.status_banner.show_error(L10N.ANALIZ_HATASI_TMPL.format(exc=err))
         if self._service.live_available:
             self._service.mark_unavailable()
             self.connection_dropped.emit()

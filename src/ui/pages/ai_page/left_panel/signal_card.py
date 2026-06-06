@@ -85,8 +85,8 @@ class SignalCard(QWidget):
         # Trend bilgisi
         if trend_label:
             tl_lower = trend_label.lower()
-            trend_map = {"up": "Yükseliş trendi", "down": "Düşüş trendi", "neutral": "Yatay seyir", "flat": "Yatay seyir"}
-            self.lbl_trend_info.setText(f"Trend: {trend_map.get(tl_lower, trend_label)}")
+            trend_map = {"up": L10N.TREND_YUKSELIS_TRENDI, "down": L10N.TREND_DUSUS_TRENDI, "neutral": L10N.TREND_YATAY_SEYIR, "flat": L10N.TREND_YATAY_SEYIR}
+            self.lbl_trend_info.setText(L10N.TREND_TMPL.format(trend=trend_map.get(tl_lower, trend_label)))
 
         # Güven uyarıları
         if confidence_warnings:

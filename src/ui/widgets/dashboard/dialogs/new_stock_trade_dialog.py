@@ -455,7 +455,7 @@ class NewStockTradeDialog(QDialog):
             source_text = (
                 L10N.ANLIK_VERI_15DK_GECIKMELI_OLABILIR
                 if result.source == "intraday"
-                else f"Son Kapanış ({result.as_of.strftime('%d.%m.%Y')})"
+                else L10N.SON_KAPANIS_TARIH_TMPL.format(date=result.as_of.strftime('%d.%m.%Y'))
             )
             self.lbl_fetched_source.setText(source_text)
         else:

@@ -213,8 +213,8 @@ class GoalsPanel(QWidget):
     def show_feasibility(self, result: dict) -> None:
         """Fizibilite analizini gösterir. cssState ile renk yönetimi."""
         self._feasibility_frame.setVisible(True)
-        self._lbl_power.setText(f"Aylık Tasarruf Gücü: ₺ {result['monthly_power']:,.2f}")
-        self._lbl_need.setText(f"Toplam Aylık İhtiyaç: ₺ {result['total_monthly_need']:,.2f}")
+        self._lbl_power.setText(L10N.AYLIK_TASARRUF_GUCU_TMPL.format(value=f"{result['monthly_power']:,.2f}"))
+        self._lbl_need.setText(L10N.TOPLAM_AYLIK_IHTIYAC_TMPL.format(value=f"{result['total_monthly_need']:,.2f}"))
         status = result["status"]
         self._lbl_status.setText(status)
         state = "positive" if status == "BAŞARILI" else "negative"

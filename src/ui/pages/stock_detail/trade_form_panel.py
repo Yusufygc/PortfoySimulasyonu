@@ -164,7 +164,7 @@ class TradeFormPanel(QFrame):
         qty = self.spin_qty.value()
         price = self.spin_price.value()
         total = Decimal(str(qty)) * Decimal(str(price))
-        self.lbl_total_amount.setText(f"Toplam: ₺ {total:,.2f}")
+        self.lbl_total_amount.setText(L10N.TOPLAM_TUTAR_TMPL.format(value=f"{total:,.2f}"))
         self.impact_preview_request()
 
     def impact_preview_request(self):

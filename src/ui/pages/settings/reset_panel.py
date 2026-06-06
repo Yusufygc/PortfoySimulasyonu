@@ -195,4 +195,4 @@ class ResetPanel(QWidget):
             self.reset_service.reset_all()
             Toast.success(self, L10N.SISTEM_BASARIYLA_SIFIRLANDI)
         except Exception as exc:
-            Toast.error(self, f"Sistem sıfırlanamadı: {exc}")
+            Toast.error(self, L10N.SISTEM_SIFIRLANAMADI_TMPL.format(exc=exc))

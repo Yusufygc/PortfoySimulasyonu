@@ -119,25 +119,27 @@ class DashboardCorporateActionActions:
         def _on_success(updated_count: int):
             self._presenter.refresh_data()
             self._presenter.update_returns()
-            type_label = "Bedelsiz" if ca_result_ref.action_type == ActionType.BEDELSIZ else "Bedelli"
+            type_label = L10N.BEDELSIZ if ca_result_ref.action_type == ActionType.BEDELSIZ else L10N.BEDELLI
             Toast.info(
                 self._page,
-                f"{type_label} sermaye artırımı uygulandı. "
-                f"{ca_result_ref.shares_before} lot → {ca_result_ref.shares_after} lot | "
-                f"Fiyat geçmişi güncellendi ({updated_count} kayıt).",
+                L10N.SERMAYE_ARTIRIMI_UYGULANDI_TMPL.format(
+                    type=type_label,
+                    before=ca_result_ref.shares_before,
+                    after=ca_result_ref.shares_after,
+                    count=updated_count,
+                ),
                 duration_ms=6000,
                 position="top",
             )
 
         def _on_error(err_tuple):
             self._presenter.refresh_data()
-            type_label = "Bedelsiz" if ca_result_ref.action_type == ActionType.BEDELSIZ else "Bedelli"
+            type_label = L10N.BEDELSIZ if ca_result_ref.action_type == ActionType.BEDELSIZ else L10N.BEDELLI
             QMessageBox.warning(
                 self._page,
                 L10N.FIYAT_GUNCELLEME_UYARISI,
-                f"{type_label} sermaye artırımı uygulandı, ancak geçmiş fiyatlar " +
-                f"güncellenirken hata oluştu:\n{err_tuple[1]}\n\n" +
-                L10N.FIYATLARI_DAHA_SONRA_MANUEL_OLARAK,
+                L10N.SERMAYE_ARTIRIMI_FIYAT_HATASI_TMPL.format(type=type_label, exc=err_tuple[1])
+                + L10N.FIYATLARI_DAHA_SONRA_MANUEL_OLARAK,
             )
 
         worker = Worker(_do_backfill)

@@ -99,10 +99,10 @@ class PredictionCard(QWidget):
         horizon_days: int | None = None,
         weekly_expected_return: float | None = None,
     ):
-        self.lbl_ticker.setText(f"Hisse: {display_ticker(ticker)}")
+        self.lbl_ticker.setText(L10N.HISSE_TMPL.format(ticker=display_ticker(ticker)))
 
         if predicted_price is not None:
-            self.lbl_price.setText(f"Tahmini Fiyat: ₺{predicted_price:.2f}")
+            self.lbl_price.setText(L10N.TAHMINI_FIYAT_TMPL.format(price=f"{predicted_price:.2f}"))
         else:
             self.lbl_price.setText(L10N.TAHMINI_FIYAT_1)
 
@@ -118,14 +118,14 @@ class PredictionCard(QWidget):
 
         # Model adı
         if model_name:
-            self.lbl_model.setText(f"Model: {model_name}")
+            self.lbl_model.setText(L10N.MODEL_TMPL.format(name=model_name))
 
         # Son kapanış
         if last_close is not None:
-            self.lbl_last_close.setText(f"Son Kapanış: ₺{last_close:.2f}")
+            self.lbl_last_close.setText(L10N.SON_KAPANIS_FIYAT_TMPL.format(price=f"{last_close:.2f}"))
 
         # Trend
-        trend_map = {"up": "📈 Yükseliş", "down": "📉 Düşüş", "neutral": "➡ Yatay", "flat": "➡ Yatay"}
+        trend_map = {"up": L10N.TREND_YUKSELIS, "down": L10N.TREND_DUSUS, "neutral": L10N.TREND_YATAY, "flat": L10N.TREND_YATAY}
         if trend_label:
             tl_lower = trend_label.lower()
             self.lbl_trend.setText(trend_map.get(tl_lower, trend_label))
@@ -135,14 +135,14 @@ class PredictionCard(QWidget):
 
         # Horizon
         if horizon_days is not None:
-            self.lbl_horizon.setText(f"{horizon_days} günlük tahmin")
+            self.lbl_horizon.setText(L10N.GUNLUK_TAHMIN_TMPL.format(days=horizon_days))
 
         # Horizon sonundaki bileşik beklenen getiri
         if weekly_expected_return is not None:
             pct = weekly_expected_return * 100
             sign = "+" if pct >= 0 else ""
             horizon_label = f"{horizon_days} Günlük" if horizon_days is not None else L10N.HORIZON_SONU
-            self.lbl_return.setText(f"{horizon_label} Bileşik Getiri: {sign}{pct:.2f}%")
+            self.lbl_return.setText(L10N.BILESIK_GETIRI_TMPL.format(label=horizon_label, value=f"{sign}{pct:.2f}%"))
 
     def reset(self):
         self.lbl_ticker.setText(L10N.HISSE)

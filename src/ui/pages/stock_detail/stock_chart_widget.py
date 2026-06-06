@@ -185,7 +185,7 @@ class StockChartWidget(QFrame):
             if current_price:
                 self._add_reference_line(
                     float(current_price),
-                    f"Güncel: {float(current_price):.2f}",
+                    L10N.GUNCEL_DEGER_TMPL.format(value=f"{float(current_price):.2f}"),
                     LINE_CURRENT,
                     Qt.SolidLine,
                 )

@@ -171,7 +171,7 @@ class CorporateActionCandidatesPanel(QWidget):
             Toast.success(self, result.result.description)
             self.refresh_list()
         except Exception as exc:
-            Toast.warning(self, f"Aday uygulanamadi: {exc}")
+            Toast.warning(self, L10N.ADAY_UYGULANAMADI_TMPL.format(exc=exc))
             self.refresh_list()
 
     def ignore_selected(self) -> None:

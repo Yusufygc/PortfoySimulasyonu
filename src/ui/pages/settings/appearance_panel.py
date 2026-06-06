@@ -140,7 +140,7 @@ class AppearancePanel(QWidget):
         ThemeManager.switch_theme(theme_id)
         self._refresh_theme_selection()
         display = THEME_REGISTRY.get(theme_id, {}).get("display_name", theme_id)
-        Toast.success(self, f"Tema değiştirildi: {display}")
+        Toast.success(self, L10N.TEMA_DEGISTIRILDI_TMPL.format(display=display))
 
     def _refresh_theme_selection(self) -> None:
         """Seçili tema kartını QSS property'leri ile günceller.
@@ -160,7 +160,7 @@ class AppearancePanel(QWidget):
             stat = refs["status"]
 
             radio.setText("●" if selected else "○")
-            stat.setText("Aktif" if selected else "")
+            stat.setText(L10N.AKTIF if selected else "")
 
             for w in (card, radio, name, stat):
                 w.setProperty("selected", selected_str)

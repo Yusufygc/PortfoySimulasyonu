@@ -336,7 +336,7 @@ class RiskProfilePage(BasePage):
     def _update_section_nav(self):
         total = len(self.questionnaire_items)
         self.step_stack.setCurrentIndex(self.current_question_index)
-        self.lbl_step.setText(f"Soru {self.current_question_index + 1} / {total}")
+        self.lbl_step.setText(L10N.SORU_TMPL.format(current=self.current_question_index + 1, total=total))
         self.btn_previous.setEnabled(self.current_question_index > 0)
         is_last = self.current_question_index == total - 1
         self.btn_next.setVisible(not is_last)
@@ -381,7 +381,7 @@ class RiskProfilePage(BasePage):
         self.profile_card.style().unpolish(self.profile_card)
         self.profile_card.style().polish(self.profile_card)
 
-        self.lbl_score.setText(f"Puan: {profile.risk_score} / 100")
+        self.lbl_score.setText(L10N.PUAN_TMPL.format(score=profile.risk_score))
         display_name = RiskFormatter.get_display_name(profile.risk_label)
         self.lbl_label.setText(display_name)
         self.lbl_label.setProperty("cssState", color_state)

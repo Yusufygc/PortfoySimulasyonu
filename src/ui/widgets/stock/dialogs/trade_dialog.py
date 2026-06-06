@@ -221,7 +221,7 @@ class TradeDialog(QDialog):
     def _on_price_fetched(self, res):
         if res:
             self.current_price = res.price
-            self.lbl_price_info.setText(f"Güncel: ₺ {res.price:,.2f} ({'Anlık' if res.source=='intraday' else 'Kapanış'})")
+            self.lbl_price_info.setText(L10N.GUNCEL_FIYAT_KAYNAK_TMPL.format(price=f"{res.price:,.2f}", source=(L10N.ANLIK if res.source == 'intraday' else L10N.KAPANIS)))
             if self.edit_price.value() <= 0:
                 self.edit_price.setValue(float(res.price))
         else:

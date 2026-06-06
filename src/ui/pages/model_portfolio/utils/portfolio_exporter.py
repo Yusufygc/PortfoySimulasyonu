@@ -68,7 +68,7 @@ class PortfolioExporter:
             )
             QMessageBox.information(self.page, L10N.SUCCESS, L10N.MODEL_PORTFOY_EXCEL_RAPORU_OLUSTURULDU)
         except Exception as exc:
-            QMessageBox.critical(self.page, L10N.ERROR, f"Excel raporu oluşturulamadı: {exc}")
+            QMessageBox.critical(self.page, L10N.ERROR, L10N.EXCEL_RAPORU_OLUSTURULAMADI_TMPL.format(exc=exc))
 
     def _has_missing_history_prices(self, start_date: date, end_date: date) -> bool:
         health_service = getattr(self.page, "price_data_health_service", None)

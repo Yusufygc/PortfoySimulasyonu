@@ -97,7 +97,7 @@ class LivePriceRefreshController:
         self._consecutive_errors += 1
         logger.warning("Live price refresh failed: %s", err_tuple[1])
         if self._consecutive_errors >= 3:
-            Toast.warning(self._parent, f"Otomatik fiyat yenileme calistirilamadi: {err_tuple[1]}")
+            Toast.warning(self._parent, L10N.OTOMATIK_FIYAT_YENILEME_CALISTIRILAMADI_TMPL.format(exc=err_tuple[1]))
             self._consecutive_errors = 0
 
     def _on_finished(self) -> None:

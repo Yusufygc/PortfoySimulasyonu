@@ -116,7 +116,7 @@ class XAICard(QWidget):
         xai_caveat: str = "",
     ):
         """Kartı API verileriyle günceller."""
-        self.lbl_method.setText(f"Yöntem: {xai_method}" if xai_method else "")
+        self.lbl_method.setText(L10N.YONTEM_TMPL.format(method=xai_method) if xai_method else "")
         self._clear_layout(self.positive_layout)
         self._clear_layout(self.negative_layout)
         self._clear_layout(self.features_layout)
