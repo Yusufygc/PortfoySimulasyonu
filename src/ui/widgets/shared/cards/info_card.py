@@ -24,6 +24,7 @@ class InfoCard(QFrame):
 
     def __init__(self, title: str = "", value: str = "—", icon_name: str = "", parent=None):
         super().__init__(parent)
+        self._value_min_lines = 1
         self.setProperty("cssClass", "infoCard")
         self.setMinimumWidth(0)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
@@ -79,6 +80,7 @@ class InfoCard(QFrame):
         self._lbl_value.setProperty("cssClass", "infoCardValue")
         self._lbl_value.style().unpolish(self._lbl_value)
         self._lbl_value.style().polish(self._lbl_value)
+        self._refresh_value_min_height()
 
     def set_value_state(self, state: str) -> None:
         """
@@ -92,7 +94,28 @@ class InfoCard(QFrame):
         self._lbl_value.setProperty("cssState", state)
         self._lbl_value.style().unpolish(self._lbl_value)
         self._lbl_value.style().polish(self._lbl_value)
+        self._refresh_value_min_height()
+
+    def set_value_min_lines(self, min_lines: int) -> None:
+        """
+        Dar kartlarda sarilan deger metni icin minimum satir yuksekligi ayarlar.
+        Renkler QSS cssState uzerinden kalir; bu metod yalnizca yerlesimi etkiler.
+        """
+        self._value_min_lines = max(1, min_lines)
+        self._lbl_value.setWordWrap(True)
+        self._lbl_value.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self._lbl_value.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self._refresh_value_min_height()
 
     def get_value_label(self) -> QLabel:
         """Ham QLabel referansını döner (geriye dönük uyumluluk için)."""
         return self._lbl_value
+
+    def _refresh_value_min_height(self) -> None:
+        if self._value_min_lines <= 1:
+            return
+
+        line_height = self._lbl_value.fontMetrics().lineSpacing()
+        self._lbl_value.setMinimumHeight(line_height * self._value_min_lines)
+        self.updateGeometry()
