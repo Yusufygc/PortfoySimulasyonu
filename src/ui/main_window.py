@@ -1,6 +1,7 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
+import os
 import logging
 from datetime import date, timedelta
 from typing import List, Optional
@@ -74,7 +75,8 @@ class MainWindow(QMainWindow):
         )
         self._auto_price_backfill_target_date = None
         self._connect_model_portfolio_price_persister()
-        self.setWindowTitle(L10N.APP_TITLE)
+        env = os.getenv("PORTFOYSIM_ENV", "").upper()
+        self.setWindowTitle(f"{L10N.APP_TITLE} [{env} ORTAMI]" if env else L10N.APP_TITLE)
         self.setWindowIcon(QIcon("icons/portfoy-simulasyonu.ico"))
         self.resize(MAIN_WINDOW_INITIAL_WIDTH, MAIN_WINDOW_INITIAL_HEIGHT)
 
@@ -103,6 +105,13 @@ class MainWindow(QMainWindow):
         lbl_app_title.setProperty("cssClass", "appTitle")
         lbl_app_title.setAlignment(Qt.AlignCenter)
         self.sidebar_layout.addWidget(lbl_app_title)
+
+        env = os.getenv("PORTFOYSIM_ENV", "").upper()
+        if env:
+            lbl = QLabel(f"{env} ORTAMI")
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setStyleSheet("color:#FF9800;font-weight:bold;background-color:#3E2723;border:1px solid #FF9800;border-radius:4px;padding:4px;margin:5px 0;")
+            self.sidebar_layout.addWidget(lbl)
 
         self._add_separator()
         self.btn_dashboard = self._create_nav_button(L10N.DASHBOARD, self.PAGE_DASHBOARD, "layout-dashboard")
