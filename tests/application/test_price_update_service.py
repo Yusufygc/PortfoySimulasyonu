@@ -46,3 +46,13 @@ def test_update_closing_prices_saves_open_day_prices():
     assert result.prices == {1: Decimal("12.34")}
     assert result.skipped_reason is None
     price_repo.upsert_daily_prices_bulk.assert_called_once()
+
+
+def test_last_completed_trading_day_skips_today_and_closed_days():
+    service = PriceUpdateService(
+        price_repo=MagicMock(),
+        market_data_client=MagicMock(),
+        trading_calendar=BistTradingCalendarProvider(),
+    )
+
+    assert service.last_completed_trading_day(date(2026, 6, 8)) == date(2026, 6, 5)
