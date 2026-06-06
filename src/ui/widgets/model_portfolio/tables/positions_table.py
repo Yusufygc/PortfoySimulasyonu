@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -14,6 +14,7 @@ class PositionsTable(QTableWidget):
     """Model portfoy pozisyonlarini dashboard kolon duzeniyle gosteren tablo."""
 
     MIN_SECTION_WIDTH = 95
+    DISPLAY_PRECISION = Decimal("0.01")
     POSITIVE_COLOR = QColor("#22c55e")
     NEGATIVE_COLOR = QColor("#ef4444")
     MUTED_COLOR = QColor("#666666")
@@ -165,11 +166,12 @@ class PositionsTable(QTableWidget):
 
     @classmethod
     def _signed_color(cls, value: Decimal | None) -> QColor | None:
-        if value is None:
+        normalized = cls._normalize_display_value(value)
+        if normalized is None:
             return None
-        if value > 0:
+        if normalized > 0:
             return cls.POSITIVE_COLOR
-        if value < 0:
+        if normalized < 0:
             return cls.NEGATIVE_COLOR
         return None
 
@@ -213,8 +215,27 @@ class PositionsTable(QTableWidget):
 
     @staticmethod
     def _format_signed_decimal(value: Decimal | None) -> str:
-        return f"{value:+,.2f}" if value is not None else "-"
+        normalized = PositionsTable._normalize_display_value(value)
+        if normalized is None:
+            return "-"
+        if normalized == 0:
+            return "0.00"
+        return f"{normalized:+,.2f}"
 
     @staticmethod
     def _format_pct(value: Decimal | None) -> str:
-        return f"%{value:+.2f}" if value is not None else "-"
+        normalized = PositionsTable._normalize_display_value(value)
+        if normalized is None:
+            return "-"
+        if normalized == 0:
+            return "%0.00"
+        return f"%{normalized:+.2f}"
+
+    @classmethod
+    def _normalize_display_value(cls, value: Decimal | None) -> Decimal | None:
+        if value is None:
+            return None
+        normalized = value.quantize(cls.DISPLAY_PRECISION, rounding=ROUND_HALF_UP)
+        if normalized == 0:
+            return Decimal("0").quantize(cls.DISPLAY_PRECISION)
+        return normalized
