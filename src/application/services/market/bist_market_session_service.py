@@ -17,7 +17,7 @@ class MarketSessionStatus:
 
 
 class BistMarketSessionService:
-    """BIST equity-market session check used for trade-entry warnings."""
+    """BIST equity-market session check used for trade-entry guards."""
 
     FULL_DAY_OPEN = time(10, 0)
     FULL_DAY_CLOSE = time(18, 10)
@@ -35,7 +35,7 @@ class BistMarketSessionService:
                 reason="closed_day",
                 message=(
                     f"{trade_date.strftime('%d.%m.%Y')} BIST icin islem gunu degil. "
-                    "Bu islemi manuel kayit olarak ekleyebilirsiniz."
+                    "Lutfen islemin gerceklestigi acik piyasa tarihini secin."
                 ),
             )
 
