@@ -41,6 +41,7 @@ class EditStockInWatchlistDialog(QDialog):
         form.setVerticalSpacing(12)
 
         self.notes_edit = QLineEdit()
+        self.notes_edit.setMaxLength(100)
         if current_notes:
             self.notes_edit.setText(current_notes)
         self.notes_edit.setPlaceholderText(L10N.OPSIYONEL)

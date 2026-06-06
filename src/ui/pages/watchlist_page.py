@@ -38,9 +38,10 @@ class WatchlistPage(BasePage):
     Watchlist CRUD ve hisse yönetimi.
     """
 
-    def __init__(self, container, parent=None):
+    def __init__(self, container, price_lookup_func=None, parent=None):
         super().__init__(parent)
         self.container = container
+        self.price_lookup_func = price_lookup_func
         self.page_title = L10N.TAKIP_LISTELERI
         self.watchlist_service = container.watchlist_service
         self.current_watchlist_id: Optional[int] = None
@@ -242,7 +243,9 @@ class WatchlistPage(BasePage):
             return
 
         stocks = self.watchlist_service.get_watchlist_stocks(self.current_watchlist_id)
-        self.content_stack.setCurrentWidget(self.empty_state if not stocks else self.stock_table)
+        is_empty = not bool(stocks)
+        self.content_stack.setCurrentWidget(self.empty_state if is_empty else self.stock_table)
+        self.btn_add_stock.setVisible(not is_empty)
         
         for i, stock_data in enumerate(stocks):
             self.stock_table.insertRow(i)
@@ -389,7 +392,7 @@ class WatchlistPage(BasePage):
         self.content_stack.setCurrentWidget(self.stock_table)
         self.btn_edit.setEnabled(False)
         self.btn_delete.setEnabled(False)
-        self.btn_add_stock.setEnabled(False)
+        self.btn_add_stock.setVisible(False)
         self.btn_empty_add_stock.setEnabled(False)
 
     def _on_add_stock(self):
@@ -401,6 +404,32 @@ class WatchlistPage(BasePage):
             return
         ticker, notes = result
 
+        if self.price_lookup_func:
+            from src.ui.worker import Worker
+            from PyQt5.QtCore import QThreadPool
+
+            self.setEnabled(False)
+
+            worker = Worker(self.price_lookup_func, ticker)
+
+            def handle_success(price_result):
+                self.setEnabled(True)
+                if price_result:
+                    self._finish_add_stock(ticker, notes)
+                else:
+                    Toast.error(self, f"Geçersiz hisse kodu: {ticker}")
+
+            def handle_error(error):
+                self.setEnabled(True)
+                Toast.error(self, f"Geçersiz hisse kodu: {ticker}")
+
+            worker.signals.result.connect(handle_success)
+            worker.signals.error.connect(handle_error)
+            QThreadPool.globalInstance().start(worker)
+        else:
+            self._finish_add_stock(ticker, notes)
+
+    def _finish_add_stock(self, ticker: str, notes: Optional[str]):
         try:
             self.watchlist_service.add_stock_by_ticker(
                 self.current_watchlist_id, ticker, notes

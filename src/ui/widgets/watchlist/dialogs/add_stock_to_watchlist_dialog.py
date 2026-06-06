@@ -44,11 +44,13 @@ class AddStockToWatchlistDialog(QDialog):
         form.setVerticalSpacing(12)
 
         self.ticker_edit = QLineEdit()
+        self.ticker_edit.setMaxLength(15)
         self.ticker_edit.setPlaceholderText(L10N.ORN_ASELS_VEYA_ASELSIS)
         self.ticker_edit.setProperty("cssClass", "tradeInputNormal")
         self.ticker_edit.setClearButtonEnabled(True)
 
         self.notes_edit = QLineEdit()
+        self.notes_edit.setMaxLength(100)
         self.notes_edit.setPlaceholderText(L10N.OPSIYONEL)
         self.notes_edit.setProperty("cssClass", "tradeInputNormal")
         self.notes_edit.setClearButtonEnabled(True)

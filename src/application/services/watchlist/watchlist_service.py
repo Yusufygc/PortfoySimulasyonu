@@ -49,6 +49,10 @@ class WatchlistService:
         if not name or not name.strip():
             raise ValueError("Watchlist adı boş olamaz")
 
+        name = name.strip()
+        if any(w.name.lower() == name.lower() for w in self.get_all_watchlists()):
+            raise ValueError("Bu isimde bir liste zaten var.")
+
         watchlist = Watchlist(
             id=None,
             name=name.strip(),
@@ -72,6 +76,10 @@ class WatchlistService:
         """
         if not name or not name.strip():
             raise ValueError("Watchlist adı boş olamaz")
+
+        name = name.strip()
+        if any(w.name.lower() == name.lower() and w.id != watchlist_id for w in self.get_all_watchlists()):
+            raise ValueError("Bu isimde bir liste zaten var.")
 
         existing = self._watchlist_repo.get_watchlist_by_id(watchlist_id)
         if existing is None:
@@ -215,6 +223,9 @@ class WatchlistService:
             raise ValueError("Ticker boş olamaz")
 
         ticker = ticker.strip().upper()
+        if len(ticker) > 15:
+            raise ValueError("Hisse kodu 15 karakterden uzun olamaz.")
+
         if "." not in ticker:
             ticker = ticker + ".IS"
 
