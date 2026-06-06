@@ -75,6 +75,12 @@ graph TD
 - Intraday yenileme `PriceLookupService.lookup_price_for_ticker(...)` kullanir, tekil ticker hatalarini result `errors` listesinde toplar ve diger hisselerin yenilenmesini engellemez.
 - Model portfoy manuel fiyat yenileme de `daily_prices` yazmaz; guncel fiyatlar bellek `current_price_map` ve `prices_updated` eventi uzerinden ekranlara yansir.
 
+## Model Portfoy Fiyat Sagligi Notu (2026-06-06)
+
+- `dashboard` ve `model:<id>` gibi dar fiyat sagligi kapsamlarinda tum secili hisseler ayni is gununde eksikse, bu gun artik otomatik tatil adayi sayilmaz.
+- Ayni tarihte baska aktif portfoy kapsaminda DB fiyat kaydi varsa dar kapsamdaki bos gun eksik veri olarak raporlanir; yalniz tum aktif evren bos ise heuristik tatil adayi korunur.
+- Bu ayrim, model portfoy ekranindaki canli/QSettings fiyatlari ile tarihsel `daily_prices` kapanis verisini karistirmadan eksik DB kapanislarini gorunur tutar.
+
 ## Toplam Deger Kapsami Notu (2026-06-03)
 
 - Dashboard ve analiz toplam portfoy degeri kullanici varligini temsil eder: nakit bakiye + acik pozisyon piyasa degeri.
