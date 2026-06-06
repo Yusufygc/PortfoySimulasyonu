@@ -127,7 +127,7 @@ class DashboardPage(BasePage, LastUpdateDisplayMixin):
         self.btn_report.setIconName(L10N.FILETEXT, color="@COLOR_TEXT_PRIMARY")
         self.btn_report.setProperty("cssClass", "reportButton")
         self._report_menu = QMenu(self.btn_report)
-        self._report_today_action = QAction("Bug├╝n", self)
+        self._report_today_action = QAction("Bugün", self)
         self._report_today_action.triggered.connect(self._actions.on_export_today)
         self._report_range_action = QAction(L10N.TARIH_ARALIGI, self)
         self._report_range_action.triggered.connect(self._actions.on_export_range)
@@ -164,7 +164,7 @@ class DashboardPage(BasePage, LastUpdateDisplayMixin):
         self._presenter.load_capital()
         self.refresh_data()
 
-        # Kay─▒tl─▒ son de─şeri an─▒nda g├Âster; sonra DB'den taze hesapla
+        # Kayıtlı son değeri anında göster; sonra DB'den taze hesapla
         weekly_saved, monthly_saved = self._load_saved_returns()
         if weekly_saved is not None or monthly_saved is not None:
             self.summary_cards.update_returns(weekly_saved, monthly_saved)
