@@ -119,6 +119,15 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
             commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain_item(orm_obj)
 
+    def update_item_in_watchlist(self, item: WatchlistItem) -> None:
+        if item.id is None:
+            raise ValueError("WatchlistItem id is required for update")
+        with self._provider.get_session() as session:
+            orm_obj = session.query(ORMWatchlistItem).filter_by(id=item.id).first()
+            if orm_obj:
+                orm_obj.notes = item.notes
+                commit_or_rollback(session)
+
     def remove_item_from_watchlist(self, item_id: int) -> None:
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMWatchlistItem).filter_by(id=item_id).first()
