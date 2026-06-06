@@ -115,6 +115,47 @@ def test_refresh_data_builds_previous_close_map_and_sets_table_model(qapp, monke
     assert table.summary == (Decimal("150"), Decimal("20"))
 
 
+def test_refresh_data_prefers_latest_price_for_current_valuation(qapp, monkeypatch):
+    portfolio = Portfolio.from_trades([Trade.create_buy(1, date(2026, 1, 1), 10, Decimal("10"))])
+    summary_cards = SummaryCardsSpy()
+    table = PortfolioTableSpy()
+    page = QWidget()
+    page.portfolio_model = None
+    page.portfolio_service = SimpleNamespace(
+        get_current_portfolio=lambda: portfolio,
+        get_cash_balance=lambda: Decimal("30"),
+        get_portfolio_health=lambda: SimpleNamespace(invalid_trades=[]),
+    )
+    page.return_calc_service = SimpleNamespace(
+        compute_portfolio_value_on=lambda _today: SimpleNamespace(
+            price_map={1: Decimal("12")},
+            total_value=Decimal("120"),
+            total_unrealized_pl=Decimal("20"),
+        )
+    )
+    page.latest_price_repo = SimpleNamespace(get_latest_price_map=lambda stock_ids: {1: Decimal("13")})
+    page.stock_repo = SimpleNamespace(get_ticker_map_for_stock_ids=lambda ids: {1: "ASELS.IS"} if ids else {})
+    page.price_repo = SimpleNamespace(get_last_price_before=lambda *_args, **_kwargs: None)
+    page.summary_cards = summary_cards
+    page.portfolio_table_widget = table
+    page.container = SimpleNamespace(event_bus=SimpleNamespace(prices_updated=DummySignal()))
+    page._capital = Decimal("0")
+    page._is_refreshing = False
+    page._last_invalid_trade_warning_count = 0
+    monkeypatch.setattr("src.ui.pages.dashboard.dashboard_presenter.date", SimpleNamespace(today=lambda: date(2026, 6, 5)))
+
+    DashboardPresenter(page).refresh_data()
+
+    assert page.portfolio_model._price_map == {1: Decimal("13")}
+    assert summary_cards.base_metrics == (
+        Decimal("160"),
+        Decimal("100"),
+        Decimal("30"),
+        Decimal("30"),
+    )
+    assert table.summary == (Decimal("160"), Decimal("30"))
+
+
 def test_refresh_data_leaves_daily_change_empty_without_previous_close(qapp, monkeypatch):
     portfolio = Portfolio.from_trades([Trade.create_buy(1, date(2026, 1, 1), 10, Decimal("10"))])
     table = PortfolioTableSpy()
