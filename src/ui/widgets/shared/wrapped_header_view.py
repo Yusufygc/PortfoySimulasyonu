@@ -1,6 +1,8 @@
 from PyQt5.QtCore import QRect, QSize, Qt
-from PyQt5.QtGui import QColor, QPainter
+from PyQt5.QtGui import QColor, QPainter, QPalette
 from PyQt5.QtWidgets import QHeaderView, QStyle, QStyleOptionHeader
+
+import src.ui.styles.tokens as theme_tokens
 
 
 class WrappedHeaderView(QHeaderView):
@@ -9,7 +11,7 @@ class WrappedHeaderView(QHeaderView):
     H_PADDING = 8
     V_PADDING = 6
     MIN_HEIGHT = 52
-    HEADER_TEXT_COLOR = QColor("#020617")
+    FALLBACK_HEADER_TEXT_COLOR = QColor("#020617")
 
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
@@ -72,9 +74,35 @@ class WrappedHeaderView(QHeaderView):
         text = str(self.model().headerData(logical_index, self.orientation(), Qt.DisplayRole) or "")
         text_rect = rect.adjusted(self.H_PADDING, self.V_PADDING, -self.H_PADDING, -self.V_PADDING)
         painter.setFont(self.font())
-        painter.setPen(self.HEADER_TEXT_COLOR)
+        painter.setPen(self.header_text_color())
         painter.drawText(text_rect, Qt.AlignCenter | Qt.TextWordWrap, text)
         painter.restore()
+
+    def header_text_color(self) -> QColor:
+        token_color = self._theme_header_text_color()
+        if token_color is not None:
+            return token_color
+
+        option = QStyleOptionHeader()
+        self.initStyleOption(option)
+        for role in (QPalette.ButtonText, QPalette.WindowText, QPalette.Text):
+            color = option.palette.color(role)
+            if color.isValid():
+                return color
+        return self.FALLBACK_HEADER_TEXT_COLOR
+
+    @staticmethod
+    def _theme_header_text_color() -> QColor | None:
+        # QHeaderView::section styles are not reliably reflected into the palette
+        # when the text is custom-painted, so use the active theme token directly.
+        color_name = (
+            theme_tokens.DEFAULT_THEME.get("TABLE_HEADER_TEXT")
+            or theme_tokens.DEFAULT_THEME.get("COLOR_TEXT_PRIMARY")
+        )
+        if not color_name:
+            return None
+        color = QColor(color_name)
+        return color if color.isValid() else None
 
     def _position_for_section(self, logical_index: int):
         if self.count() == 1:
