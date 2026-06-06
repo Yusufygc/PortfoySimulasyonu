@@ -1,15 +1,14 @@
-from src.ui.shared.locale_tr import L10N
+from __future__ import annotations
 # src/ui/pages/model_portfolio/utils/portfolio_price_updater.py
 
 import logging
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Dict
-from src.domain.models.latest_price import LatestPrice
-from src.ui.shared.price_event_publisher import publish_prices_updated
-from src.ui.widgets.shared import Toast
+from typing import Dict, Tuple
 
-logger = logging.getLogger(__name__)
+from src.domain.models.latest_price import LatestPrice
+from src.ui.shared.locale_tr import L10N
+from src.ui.shared.price_event_publisher import publish_prices_updated
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +17,9 @@ class PortfolioPriceUpdater:
     def __init__(self, page) -> None:
         self.page = page
 
-    def refresh_prices(self) -> int:
+    def refresh_prices(self) -> Tuple[int, Dict[int, Decimal]]:
         if self.page.current_portfolio_id is None:
-            return 0
+            return 0, {}
         if not self.page.price_lookup_func:
             raise ValueError(L10N.FIYAT_SORGULAMA_FONKSIYONU_MEVCUT_DEGIL)
 

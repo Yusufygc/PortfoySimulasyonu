@@ -1,4 +1,5 @@
-from src.ui.shared.locale_tr import L10N
+from __future__ import annotations
+
 import logging
 from decimal import Decimal
 
@@ -8,6 +9,7 @@ from PyQt5.QtWidgets import QAction, QHBoxLayout, QLabel, QMenu, QVBoxLayout
 from src.ui.pages.base_page import BasePage
 from src.ui.shared.last_update_mixin import LastUpdateDisplayMixin
 from src.ui.core.icon_manager import IconManager
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.dashboard import CapitalDialog, DateRangeDialog, NewStockTradeDialog
 from src.ui.widgets.shared import AnimatedButton, Toast
 
@@ -21,7 +23,6 @@ logger = logging.getLogger(__name__)
 LAST_UPDATE_SETTINGS_KEY    = "dashboard/last_price_update_at"
 WEEKLY_RETURN_SETTINGS_KEY  = "dashboard/weekly_return_pct"
 MONTHLY_RETURN_SETTINGS_KEY = "dashboard/monthly_return_pct"
-LAST_UPDATE_TOAST_DURATION_MS = 4000
 
 
 class DashboardPage(BasePage, LastUpdateDisplayMixin):

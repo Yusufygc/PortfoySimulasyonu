@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 from datetime import date
 from decimal import Decimal
 from typing import Dict, Iterable
+
 
 def build_previous_close_map(price_repo, stock_ids: Iterable[int], reference_date: date) -> Dict[int, Decimal]:
     """

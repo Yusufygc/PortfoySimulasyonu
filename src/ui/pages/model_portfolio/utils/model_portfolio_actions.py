@@ -78,9 +78,6 @@ class ModelPortfolioActions:
             return
         try:
             self.page.model_portfolio_service.delete_portfolio(self.page.current_portfolio_id)
-            if "settings_manager" not in self.page.__dict__:
-                from src.ui.pages.model_portfolio.utils.portfolio_settings import PortfolioSettingsManager
-                self.page.settings_manager = PortfolioSettingsManager()
             self.page.settings_manager.remove_portfolio_settings(self.page.current_portfolio_id)
             self.page.current_portfolio_id = None
             self.page.current_price_map = {}

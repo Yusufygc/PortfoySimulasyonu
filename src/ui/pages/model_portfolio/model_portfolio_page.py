@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 
 class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
+    LAST_UPDATE_TOAST_DURATION_MS = 4000
+
     def __init__(self, container, price_lookup_func=None, parent=None):
         super().__init__(parent)
         self.container = container
@@ -114,6 +116,11 @@ class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
         self._presenter.update_view()
         if show_toast:
             QTimer.singleShot(0, self.show_last_update_toast_once)
+
+    def _update_view(self) -> None:
+        """Presenter'a delege edilen görünüm güncelleme proxy metodu."""
+        self._presenter.update_view()
+
     def _clear_right_panel(self):
         self.lbl_portfolio_name.setText(L10N.BIR_PORTFOY_SECIN)
         self.lbl_last_update.setText("")
