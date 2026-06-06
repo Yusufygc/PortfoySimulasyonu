@@ -43,10 +43,19 @@ class ExcelReportBuilder:
         stock_summary_df = self.data_preparer.build_stock_summary_df(daily_positions)
         dashboard_df = self.data_preparer.build_dashboard_df(daily_snapshots, daily_positions)
 
-        if not file_path.exists() or mode == ExportMode.OVERWRITE:
-            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)
-        else:
-            self._append_to_existing_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)
+        if file_path.exists() and mode != ExportMode.OVERWRITE:
+            merged = self.append_merger.merge_existing(
+                file_path=file_path,
+                summary_df=summary_df,
+                detail_df=detail_df,
+                stock_summary_df=stock_summary_df,
+            )
+            if merged is not None:
+                summary_df = merged.summary_df
+                detail_df = merged.detail_df
+                stock_summary_df = merged.stock_summary_df
+
+        self._write_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)
 
     # ────── Backward Compatibility Wrappers for Tests/Internal Calls ──────
     def _build_summary_df(self, snapshots):
@@ -64,7 +73,7 @@ class ExcelReportBuilder:
     def _fmt_tr_money(self, val):
         return self.data_preparer._fmt_tr_money(val)
 
-    def _write_fresh_excel(
+    def _write_excel(
         self,
         file_path: Path,
         summary_df: pd.DataFrame,
@@ -83,10 +92,12 @@ class ExcelReportBuilder:
                 self.formatter.apply_formatting(writer, SheetName.SUMMARY,       summary_df)
                 self.formatter.apply_formatting(writer, SheetName.DAILY_DETAIL,  detail_df)
                 self.formatter.apply_formatting(writer, SheetName.STOCK_SUMMARY, stock_summary_df)
+                
                 self.layout_manager.style_dashboard_kpi(writer.sheets[SheetName.DASHBOARD], dashboard_df)
                 self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.SUMMARY],       "Portföy Özeti",     len(summary_df.columns))
                 self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.DAILY_DETAIL],  "Günlük Detaylar",   len(detail_df.columns))
                 self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.STOCK_SUMMARY], "Hisse Özeti",       len(stock_summary_df.columns))
+                
                 self.layout_manager.post_process_sheets(writer.book)
         except PermissionError:
             raise PermissionError(
@@ -94,42 +105,3 @@ class ExcelReportBuilder:
                 "Dosya açık olabilir. Lütfen kapatıp tekrar deneyin."
             )
 
-    def _append_to_existing_excel(
-        self,
-        file_path: Path,
-        summary_df: pd.DataFrame,
-        detail_df: pd.DataFrame,
-        stock_summary_df: pd.DataFrame,
-        dashboard_df: pd.DataFrame,
-    ) -> None:
-        merged = self.append_merger.merge_existing(
-            file_path=file_path,
-            summary_df=summary_df,
-            detail_df=detail_df,
-            stock_summary_df=stock_summary_df,
-        )
-        if merged is None:
-            self._write_fresh_excel(file_path, summary_df, detail_df, stock_summary_df, dashboard_df)
-            return
-
-        try:
-            with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
-                dashboard_df.to_excel(writer,       sheet_name=SheetName.DASHBOARD,     index=False)
-                merged.summary_df.to_excel(writer,  sheet_name=SheetName.SUMMARY,       index=False)
-                merged.detail_df.to_excel(writer,   sheet_name=SheetName.DAILY_DETAIL,  index=False)
-                merged.stock_summary_df.to_excel(writer, sheet_name=SheetName.STOCK_SUMMARY, index=False)
-
-                self.formatter.apply_formatting(writer, SheetName.DASHBOARD,     dashboard_df)
-                self.formatter.apply_formatting(writer, SheetName.SUMMARY,       merged.summary_df)
-                self.formatter.apply_formatting(writer, SheetName.DAILY_DETAIL,  merged.detail_df)
-                self.formatter.apply_formatting(writer, SheetName.STOCK_SUMMARY, merged.stock_summary_df)
-                self.layout_manager.style_dashboard_kpi(writer.sheets[SheetName.DASHBOARD], dashboard_df)
-                self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.SUMMARY],       "Portföy Özeti",     len(merged.summary_df.columns))
-                self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.DAILY_DETAIL],  "Günlük Detaylar",   len(merged.detail_df.columns))
-                self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.STOCK_SUMMARY], "Hisse Özeti",       len(merged.stock_summary_df.columns))
-                self.layout_manager.post_process_sheets(writer.book)
-        except PermissionError:
-            raise PermissionError(
-                f"Dosyaya yazılamadı: {file_path}\n"
-                "Dosya açık olabilir. Lütfen kapatıp tekrar deneyin."
-            )
