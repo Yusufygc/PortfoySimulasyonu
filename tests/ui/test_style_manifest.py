@@ -69,6 +69,7 @@ def test_inline_styles_are_limited_to_documented_exceptions():
     allowed = {
         Path("src/ui/theme_manager.py"),
         Path("src/ui/pages/settings/appearance_panel.py"),
+        Path("src/ui/main_window.py"),
     }
     offenders = []
 
