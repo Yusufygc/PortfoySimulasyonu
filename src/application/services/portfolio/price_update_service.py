@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Dict
 
@@ -58,7 +58,7 @@ class PriceUpdateService:
         Verilen tarihte, verilen hisseler için kapanış fiyatlarını günceller.
 
         Parametreler:
-            price_date: Gün sonu tarihi (ör: date.today())
+            price_date: Kapanmış işlem günü tarihi
             stock_ticker_map: { stock_id: 'AKBNK.IS', ... }
 
         Dönüş:
@@ -85,6 +85,12 @@ class PriceUpdateService:
             updated_count=len(prices_map),
             prices=prices_map,
         )
+
+    def last_completed_trading_day(self, today: date) -> date:
+        candidate = today - timedelta(days=1)
+        while not self._trading_calendar.is_trading_day(candidate):
+            candidate -= timedelta(days=1)
+        return candidate
 
     def _fetch_closing_prices(self, price_date: date, stock_ticker_map: Dict[int, str]) -> Dict[int, Decimal]:
         stock_ids = list(stock_ticker_map.keys())
