@@ -28,6 +28,16 @@ def test_closed_holiday_is_warning_not_open():
 
     assert not status.is_open
     assert status.reason == "closed_day"
+    assert "manuel" not in status.message.lower()
+
+
+def test_weekend_is_not_open():
+    service = _service()
+
+    status = service.status_for(date(2026, 6, 6), time(11, 0))
+
+    assert not status.is_open
+    assert status.reason == "closed_day"
 
 
 def test_full_day_session_bounds():
