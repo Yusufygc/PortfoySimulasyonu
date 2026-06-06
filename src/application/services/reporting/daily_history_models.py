@@ -26,8 +26,6 @@ class SheetName:
     SUMMARY       = "Portföy Özeti"
     DAILY_DETAIL  = "Günlük Detaylar"
     STOCK_SUMMARY = "Hisse Özeti"
-    CHARTS        = "Grafikler"
-    CHART_DATA    = "Grafik Verileri"
 
 @dataclass
 class DailyPosition:
