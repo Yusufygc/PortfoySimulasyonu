@@ -3,14 +3,9 @@ import logging
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
 from PyQt5.QtCore import QThreadPool, pyqtSignal, Qt
 
-from config.settings_loader import load_ai_settings
-from src.ui.pages.ai_page.core.models import AnalysisResult, DEFAULT_INVESTMENT_DISCLAIMER
-from src.ui.pages.ai_page.core.model_interface import (
-    AIModelInterface,
-    FastAPIAdapter,
-    MockAdapter,
-)
-from src.ui.pages.ai_page.core.api_client import AICoreFastAPIClient
+from src.application.services.ai.ai_analysis_service import AiAnalysisService
+from src.domain.models.ai_analysis import AnalysisResult
+from src.ui.pages.ai_page.labels import DEFAULT_INVESTMENT_DISCLAIMER
 from .ticker_input_bar import TickerInputBar
 from .status_banner import StatusBanner
 from .prediction_card import PredictionCard
@@ -28,20 +23,13 @@ class ModelPanel(QWidget):
     send_to_chat_requested = pyqtSignal(AnalysisResult)
     connection_dropped = pyqtSignal()  # FastAPIAdapter aktifken analiz hatası → re-probe için
 
-    def __init__(self):
+    def __init__(self, analysis_service: AiAnalysisService):
         super().__init__()
+        self._service = analysis_service
         self._threadpool = QThreadPool.globalInstance()
         self._analysis_request_id = 0
         self.worker = None
-        self._setup_adapter()
         self._init_ui()
-
-    def _setup_adapter(self):
-        """Client kur; bağlantı kontrolü async yapılır (on_page_enter / AIPage Worker)."""
-        base_url = load_ai_settings().core_api_url
-        self._client = AICoreFastAPIClient(base_url=base_url)
-        self.adapter = MockAdapter()   # bağlantı doğrulanana kadar güvenli varsayılan
-        self._api_connected = False
 
     def _init_ui(self):
         # Ana layout — scroll destekli
@@ -103,27 +91,17 @@ class ModelPanel(QWidget):
 
     def probe_connection(self) -> bool:
         """WORKER THREAD'de çalışır — yalnızca ağ I/O, UI'a DOKUNMAZ."""
-        base_url = load_ai_settings().core_api_url
-        probe = AICoreFastAPIClient(
-            base_url=base_url,
-            timeout=2,
-            log_connection_errors=False,
-        )
-        return probe.health_check()
+        return self._service.probe()
 
     def apply_connection_result(self, ok: bool) -> None:
-        """MAIN THREAD (Qt sinyal üzerinden): adapter + banner günceller."""
+        """MAIN THREAD (Qt sinyal üzerinden): banner günceller."""
         self.input_bar.btn_analyze.setEnabled(True)
         if ok:
-            self.adapter = FastAPIAdapter(self._client)
-            self._api_connected = True
             self.status_banner.show_api_connected()
             logger.info("AI_Core FastAPI bağlantısı başarılı (async probe)")
         else:
-            self.adapter = MockAdapter()
-            self._api_connected = False
             self.status_banner.show_mock_mode()
-            logger.warning("AI_Core erişilemedi (async probe), MockAdapter kullanılıyor")
+            logger.warning("AI_Core erişilemedi (async probe), demo sağlayıcı kullanılıyor")
 
     def _start_analysis(self, ticker: str):
         self._analysis_request_id += 1
@@ -137,11 +115,10 @@ class ModelPanel(QWidget):
         self._set_disclaimer(DEFAULT_INVESTMENT_DISCLAIMER)
 
         # Analiz durumu banner'ını sıfırla
-        if self._api_connected:
+        if self._service.live_available:
             self.status_banner.show_api_connected()
 
-        adapter = self.adapter
-        self.worker = Worker(adapter.analyze, ticker)
+        self.worker = Worker(self._service.analyze, ticker)
         self.worker.signals.result.connect(lambda result, rid=request_id: self._on_worker_result(rid, result))
         self.worker.signals.error.connect(lambda err, rid=request_id: self._on_worker_error(rid, err))
         self.worker.signals.finished.connect(lambda rid=request_id: self._on_worker_finished(rid))
@@ -224,9 +201,8 @@ class ModelPanel(QWidget):
     def _on_error(self, err: str):
         self._set_disclaimer(DEFAULT_INVESTMENT_DISCLAIMER)
         self.status_banner.show_error(f"Analiz hatası: {err}")
-        if self._api_connected:
-            self._api_connected = False
-            self.adapter = MockAdapter()
+        if self._service.live_available:
+            self._service.mark_unavailable()
             self.connection_dropped.emit()
 
     def _set_disclaimer(self, disclaimer: str | None):

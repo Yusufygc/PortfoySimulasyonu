@@ -23,6 +23,7 @@ def test_global_event_bus_emits_price_payload():
 def test_container_uses_default_global_event_bus(monkeypatch):
     class DummySettings:
         db = object()
+        ai = object()
 
     class DummyEngineProvider:
         def __init__(self, db_config):
@@ -36,6 +37,7 @@ def test_container_uses_default_global_event_bus(monkeypatch):
         "src.application.container.build_services",
         lambda repositories, market_clients, event_bus: object(),
     )
+    monkeypatch.setattr("src.application.container.build_ai", lambda _ai: object())
     monkeypatch.setattr("src.application.container.fields", lambda _group: [])
 
     container = AppContainer()

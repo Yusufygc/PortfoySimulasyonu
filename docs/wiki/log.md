@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-06] refaktor | AI katmani ve grafik veri erisimi temiz mimariye tasindi
+
+- UI icindeki backend sizintisi giderildi: `src/ui/pages/ai_page/core/` (HTTP istemci, Gemini SDK, QSettings sohbet deposu, is kurallari) kaldirildi ve katmanlara dagitildi.
+- Domain: `src/domain/models/ai_analysis.py` (saf modeller, `ModelOutlook` semantik) + portlar `src/domain/ports/services/i_ai_analysis_provider.py`, `i_ai_chat_provider.py`, `src/domain/ports/repositories/i_chat_history_repo.py`.
+- Infrastructure: `src/infrastructure/ai/` (ai_core_fastapi_client, gemini_chat_provider, mock_ai_analysis_provider, qsettings_chat_history_repo).
+- Application: `src/application/services/ai/` (ai_analysis_service, ai_chat_service, safety_guard) + DI `src/application/container_parts/ai.py` -> `container.ai_analysis_service / ai_chat_service / chat_history_repo`.
+- UI: `src/ui/pages/ai_page/labels.py` (L10N etiket/disclaimer, `outlook_label`), `src/ui/pages/ai_page/right_panel/chat_session_manager.py`. Paneller servisleri DI ile tuketir.
+- `StockChartWidget` yfinance'i dogrudan cagirmaz; `container.market_client.get_price_series` provider'i kullanilir.
+- Guard: `tests/ui/test_refactor_guards.py` -> `src/ui` altinda `requests`/`yfinance`/`google` importu ve `ai_page/core` klasoru yasak. Tam suite 505 gecti.
+- Baglantili sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md), [architecture.md](architecture.md)
+
 ## [2026-06-06] duzeltme | Kapali piyasa seansinda islem kaydi blokaji
 
 - Hisse al/sat kayitlari icin BIST acik seans kontrolu onayla gecilebilir uyari olmaktan cikarildi; kapali gun/saatte kayit kesin olarak durdurulur.

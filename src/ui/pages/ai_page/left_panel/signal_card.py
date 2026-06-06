@@ -1,7 +1,8 @@
 from src.ui.shared.locale_tr import L10N
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
 from PyQt5.QtCore import Qt
-from src.ui.pages.ai_page.core.models import ModelOutlook
+from src.domain.models.ai_analysis import ModelOutlook
+from src.ui.pages.ai_page.labels import outlook_label
 from src.ui.core.icon_manager import IconManager
 
 
@@ -75,7 +76,7 @@ class SignalCard(QWidget):
         }
         state = state_map.get(outlook, "neutral")
 
-        self.lbl_signal.setText(outlook.value)
+        self.lbl_signal.setText(outlook_label(outlook))
         self.lbl_signal.setProperty("cssState", state)
         self.lbl_signal.style().unpolish(self.lbl_signal)
         self.lbl_signal.style().polish(self.lbl_signal)

@@ -95,6 +95,17 @@ Bütün ekranlar `main_window.py` üzerinde barınır. Ancak kod kalabalığın�
 - Secili portfoyde acik pozisyon yoksa `Hisse Sat` pasif kalir; `Hisse Al`, `Fiyat Guncelle`, `Rapor Al` ve `Sermaye Yonetimi` secili portfoy kapsaminda aktif olur.
 - `Sermaye Yonetimi` dialogu tarih, saat, tutar, islem tipi ve not alanlariyla model portfoy sermaye hareketi olusturur.
 
+## AI Katmanı Temiz Mimariye Taşındı (2026-06-06)
+
+- Eski `src/ui/pages/ai_page/core/` klasörü (HTTP istemci, Gemini SDK, QSettings sohbet deposu, iş kuralları) UI katmanından çıkarıldı ve kaldırıldı; bu kod doğru katmanlara dağıtıldı:
+  - **Domain:** `src/domain/models/ai_analysis.py` (saf modeller, L10N içermez; `ModelOutlook` değerleri `up/down/neutral` semantik) + portlar `src/domain/ports/services/i_ai_analysis_provider.py`, `i_ai_chat_provider.py`, `src/domain/ports/repositories/i_chat_history_repo.py`.
+  - **Infrastructure:** `src/infrastructure/ai/` — `ai_core_fastapi_client.py` (`requests` + `FastAPIAnalysisProvider` + `_parse_api_response`), `gemini_chat_provider.py` (`google.genai`), `mock_ai_analysis_provider.py`, `qsettings_chat_history_repo.py`.
+  - **Application:** `src/application/services/ai/` — `ai_analysis_service.py` (canlı/demo fallback), `ai_chat_service.py` (`SYSTEM_PROMPT` + güvenlik sarmalama + rol eşleme), `safety_guard.py`.
+  - **UI:** kullanıcıya dönük Türkçe etiket/disclaimer `src/ui/pages/ai_page/labels.py` (`outlook_label`), sohbet oturum yönetimi `src/ui/pages/ai_page/right_panel/chat_session_manager.py`.
+- DI: `container.ai_analysis_service`, `container.ai_chat_service`, `container.chat_history_repo`. `AIPage` servisleri panellere enjekte eder; tekrarlı `load_ai_settings()` çağrıları kaldırıldı (ayar tek noktada).
+- `StockChartWidget` artık `yfinance`'i doğrudan çağırmaz; DB serisi boşken `container.market_client.get_price_series` provider'ı kullanılır (`set_price_series_provider`).
+- Regresyon kapısı: `tests/ui/test_refactor_guards.py` — `src/ui` altında `requests`/`yfinance`/`google` importu ve `ai_page/core` klasörü yasak.
+
 ## AI Asistanı Sidebar ve Arayüz Güncellemesi (2026-06-04)
 
 - AI Finans Asistanı sayfasındaki "Sohbetler" butonu kaldırılmış ve yüzen (`floating`) bir sidebar aç/kapat ikon butonu (`btn_toggle_sidebar`) eklenmiştir.

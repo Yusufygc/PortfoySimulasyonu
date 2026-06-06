@@ -16,10 +16,15 @@ from src.ui.pages.ai_page.right_panel.chat_input_bar import (
 )
 from src.ui.pages.ai_page.right_panel.chatbot_panel import ChatbotPanel
 from src.ui.pages.ai_page.right_panel.message_bubble import MessageBubble, normalize_ai_markdown
-from src.ui.pages.ai_page.core.chat_history_store import ChatHistoryStore, LAST_ACTIVE_SESSION_KEY, SESSIONS_KEY
-from src.ui.pages.ai_page.core.models import ChatMessage, ChatSession, MessageRole, AnalysisResult, ModelOutlook, XaiFactorItem
-from src.ui.pages.ai_page.core.model_interface import _parse_api_response
-from src.ui.pages.ai_page.core.gemini_service import SYSTEM_PROMPT
+from src.ui.pages.ai_page.right_panel.chat_session_manager import ChatSessionManager
+from src.application.services.ai.ai_chat_service import SYSTEM_PROMPT
+from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole, AnalysisResult, ModelOutlook, XaiFactorItem
+from src.infrastructure.ai.ai_core_fastapi_client import _parse_api_response
+from src.infrastructure.ai.qsettings_chat_history_repo import (
+    QSettingsChatHistoryRepository,
+    LAST_ACTIVE_SESSION_KEY,
+    SESSIONS_KEY,
+)
 from src.ui.pages.ai_page.ai_page import AIPage
 
 app = QApplication.instance()
@@ -52,7 +57,7 @@ class MemorySettings:
 
 
 def make_history_store(values=None):
-    return ChatHistoryStore(MemorySettings(values))
+    return ChatSessionManager(QSettingsChatHistoryRepository(MemorySettings(values)))
 
 
 def test_chat_input_bar():
@@ -118,7 +123,7 @@ def test_chat_history_store_handles_empty_invalid_and_valid_json():
         updated_at=datetime(2026, 6, 4, 12, 1),
     )
     settings = MemorySettings()
-    store = ChatHistoryStore(settings)
+    store = QSettingsChatHistoryRepository(settings)
     store.save_sessions([session])
     store.set_last_active_session_id("s1")
 
@@ -143,7 +148,7 @@ def test_chatbot_creates_session_from_first_user_message_and_persists():
     assert panel.sessions[0].title == "Bilançoda kritik başlıklar nedir?"
     assert [msg.role for msg in panel.sessions[0].messages] == [MessageRole.AI, MessageRole.USER]
 
-    saved = json.loads(store._settings.values[SESSIONS_KEY])
+    saved = json.loads(store.repo._settings.values[SESSIONS_KEY])
     assert saved[0]["title"] == "Bilançoda kritik başlıklar nedir?"
     assert saved[0]["messages"][-1]["content"] == "Bilançoda kritik başlıklar nedir?"
 
@@ -290,8 +295,8 @@ def test_message_bubble_uses_display_content_for_visual_text():
 def test_panel_integration(monkeypatch):
     """Paneller arası analiz aktarımını test et."""
     monkeypatch.setattr(
-        "src.ui.pages.ai_page.right_panel.chatbot_panel.ChatHistoryStore",
-        lambda: make_history_store(),
+        "src.ui.pages.ai_page.ai_page.QSettingsChatHistoryRepository",
+        lambda: QSettingsChatHistoryRepository(MemorySettings()),
     )
     page = AIPage()
 

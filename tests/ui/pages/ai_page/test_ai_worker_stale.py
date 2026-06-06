@@ -5,8 +5,9 @@ import pytest
 pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 
-from src.ui.pages.ai_page.core.chat_history_store import ChatHistoryStore
-from src.ui.pages.ai_page.core.models import MessageRole
+from src.domain.models.ai_analysis import MessageRole
+from src.infrastructure.ai.qsettings_chat_history_repo import QSettingsChatHistoryRepository
+from src.ui.pages.ai_page.right_panel.chat_session_manager import ChatSessionManager
 from src.ui.pages.ai_page.right_panel.chatbot_panel import ChatbotPanel
 
 
@@ -39,7 +40,9 @@ class MemorySettings:
 
 
 def make_panel():
-    return ChatbotPanel(history_store=ChatHistoryStore(MemorySettings()))
+    return ChatbotPanel(
+        history_store=ChatSessionManager(QSettingsChatHistoryRepository(MemorySettings()))
+    )
 
 
 def test_chatbot_ignores_stale_ai_response():

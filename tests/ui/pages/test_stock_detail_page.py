@@ -3,7 +3,6 @@ from datetime import date, time
 from decimal import Decimal
 from types import SimpleNamespace
 
-import pandas as pd
 import pytest
 
 pytest.importorskip("PyQt5")
@@ -228,16 +227,14 @@ def test_stock_chart_draws_empty_state_and_disables_date_si_prefix():
     assert chart.plot_widget.getPlotItem().titleLabel.text == "Veri bulunamadı"
 
 
-def test_stock_chart_draws_price_series_with_pyqtgraph(monkeypatch, drain_qt_events):
+def test_stock_chart_draws_price_series_with_pyqtgraph(drain_qt_events):
     chart = StockChartWidget()
-    data = pd.DataFrame(
-        {"Close": [Decimal("7.50"), Decimal("7.80"), Decimal("7.96")]},
-        index=pd.to_datetime(["2026-05-22", "2026-05-25", "2026-05-26"]),
-    )
-    monkeypatch.setattr(
-        "src.ui.pages.stock_detail.stock_chart_widget.yf.download",
-        lambda *args, **kwargs: data,
-    )
+    series = {
+        date(2026, 5, 22): Decimal("7.50"),
+        date(2026, 5, 25): Decimal("7.80"),
+        date(2026, 5, 26): Decimal("7.96"),
+    }
+    chart.set_price_series_provider(lambda ticker, start, end: series)
 
     chart.draw_chart("OBAMS", 1, Decimal("7.96"), DummyPortfolioService())
     chart.draw_chart("OBAMS", 1, Decimal("7.96"), DummyPortfolioService())
@@ -350,7 +347,7 @@ def test_stock_detail_submit_blocks_closed_market_session(monkeypatch):
     assert "BIST" in warnings[0]
 
 
-def test_stock_chart_uses_db_series_before_yfinance(monkeypatch, drain_qt_events):
+def test_stock_chart_uses_db_series_before_provider(drain_qt_events):
     chart = StockChartWidget()
     price_repo = SimpleNamespace(
         get_price_series=lambda *args: [
@@ -358,12 +355,33 @@ def test_stock_chart_uses_db_series_before_yfinance(monkeypatch, drain_qt_events
             SimpleNamespace(price_date=date(2026, 5, 25), close_price=Decimal("11")),
         ]
     )
-    monkeypatch.setattr(
-        "src.ui.pages.stock_detail.stock_chart_widget.yf.download",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("yfinance should not be called")),
+    chart.set_price_series_provider(
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called")),
     )
 
     chart.draw_chart("SMRTG.IS", 1, Decimal("11"), None, price_repo=price_repo, average_cost=Decimal("9"))
     drain_qt_events()
 
     assert len(chart.plot_widget.listDataItems()) >= 1
+
+
+def test_stock_chart_falls_back_to_provider_when_db_empty(drain_qt_events):
+    chart = StockChartWidget()
+    calls = []
+
+    def provider(ticker, start, end):
+        calls.append(ticker)
+        return {date(2026, 5, 25): Decimal("11")}
+
+    chart.set_price_series_provider(provider)
+    chart.draw_chart("SMRTG", 1, Decimal("11"), None, price_repo=None)
+    drain_qt_events()
+
+    assert calls == ["SMRTG.IS"]  # UI .IS normalizasyonunu korur
+    assert len(chart.plot_widget.listDataItems()) >= 1
+
+
+def test_stock_chart_widget_does_not_import_yfinance():
+    import src.ui.pages.stock_detail.stock_chart_widget as chart_module
+
+    assert not hasattr(chart_module, "yf")

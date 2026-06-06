@@ -1,7 +1,7 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QTextEdit, QWidget
 
-from src.ui.pages.ai_page.core.safety_guard import MAX_CHAR_LIMIT
+from src.application.services.ai.safety_guard import MAX_CHAR_LIMIT
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 

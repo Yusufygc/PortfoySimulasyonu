@@ -1,57 +1,145 @@
 # -*- coding: utf-8 -*-
-"""
-AI Model arayüzü ve adaptörleri.
+"""AI_Core (ts_forecasting_lab) FastAPI servisi ile haberleşen HTTP istemcisi
+ve bu istemciyi `IAIAnalysisProvider` portuna bağlayan adapter.
 
-- AIModelInterface: abstract temel sınıf.
-- FastAPIAdapter: AI_Core FastAPI servisinden gerçek analiz verisini çeker.
-- MockAdapter: API erişilemez olduğunda demo veriler üretir.
+Kullanıcıya gösterilecek hata metinleri burada sade tutulur; UI katmanı
+gerekirse bunları L10N ile zenginleştirebilir. Bu modül UI'a bağımlı değildir.
 """
 
 from __future__ import annotations
-from src.ui.shared.locale_tr import L10N
 
 import logging
-import random
-from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
-from src.ui.pages.ai_page.core.models import (
+import requests
+
+from src.domain.models.ai_analysis import (
     AnalysisResult,
-    DEFAULT_INVESTMENT_DISCLAIMER,
     ForecastPoint,
     ModelOutlook,
     XaiFactorItem,
 )
+from src.domain.ports.services.i_ai_analysis_provider import IAIAnalysisProvider
 
 logger = logging.getLogger(__name__)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Abstract arayüz
-# ─────────────────────────────────────────────────────────────────────────────
-
-class AIModelInterface(ABC):
-    @abstractmethod
-    def analyze(self, ticker: str) -> AnalysisResult:
-        """Senkron çağrı. UI Worker içinde çalıştırılacak."""
-        pass
-
-    @abstractmethod
-    def is_available(self) -> bool:
-        """Model/process erişilebilir mi? UI banner için."""
-        pass
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# FastAPI Adapter
-# ─────────────────────────────────────────────────────────────────────────────
+_DEFAULT_BASE_URL = "http://localhost:8000"
+_DEFAULT_TIMEOUT = 15  # saniye
 
 # Güven etiketi → sayısal değer eşleme
 _CONFIDENCE_MAP = {"low": 0.25, "medium": 0.60, "high": 0.85}
 
 
+class APIConnectionError(Exception):
+    """FastAPI sunucusuna bağlanılamadığında fırlatılır."""
+
+
+class APIResponseError(Exception):
+    """Sunucu başarısız HTTP durum kodu döndürdüğünde fırlatılır."""
+
+    def __init__(self, status_code: int, detail: str = ""):
+        self.status_code = status_code
+        self.detail = detail
+        super().__init__(f"HTTP {status_code}: {detail}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HTTP istemci
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class AICoreFastAPIClient:
+    """ts_forecasting_lab FastAPI servisiyle haberleşen HTTP istemcisi."""
+
+    def __init__(
+        self,
+        base_url: Optional[str] = None,
+        timeout: int = _DEFAULT_TIMEOUT,
+        log_connection_errors: bool = True,
+    ) -> None:
+        raw_url = base_url or _DEFAULT_BASE_URL
+        self.base_url = raw_url.rstrip("/")
+        self.timeout = timeout
+        self._log_connection_errors = log_connection_errors
+        self._session = requests.Session()
+
+    def health_check(self) -> bool:
+        """GET /health — servis erişilebilir mi?
+
+        Bağlantı/sunucu hatalarında False döner; istisnayı yutarak UI
+        tarafında fallback mekanizmasına izin verir.
+        """
+        try:
+            resp = self._get("/health")
+            return resp.get("status") in ("ok", "degraded")
+        except Exception:
+            logger.debug("AI_Core health check başarısız")
+            return False
+
+    def get_analysis(self, symbol: str) -> Dict[str, Any]:
+        """GET /analysis/{symbol} — tam analiz payload'unu döner."""
+        return self._get(f"/analysis/{symbol.upper()}")
+
+    def get_symbols(self) -> List[str]:
+        """GET /symbols — kayıtlı hisse kodlarını döner."""
+        data = self._get("/symbols")
+        return data.get("symbols", [])
+
+    def get_best_model(self, symbol: str) -> Dict[str, Any]:
+        """GET /best-model/{symbol} — en iyi model bilgisini döner."""
+        return self._get(f"/best-model/{symbol.upper()}")
+
+    def get_leaderboard(self, top_n: int = 20) -> Dict[str, Any]:
+        """GET /leaderboard — hisseler arası lider tablosu."""
+        return self._get("/leaderboard", params={"top_n": top_n})
+
+    def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """GET isteği gönderir; hata yönetimini merkezleştirir."""
+        url = f"{self.base_url}{path}"
+        try:
+            resp = self._session.get(url, params=params, timeout=self.timeout)
+        except requests.ConnectionError as exc:
+            if self._log_connection_errors:
+                logger.warning("AI_Core connection failed: url=%s", url, exc_info=True)
+            else:
+                logger.debug("AI_Core connection failed: url=%s", url)
+            raise APIConnectionError(
+                f"AI_Core sunucusuna bağlanılamadı ({url}). "
+                "Sunucunun çalıştığından emin olun."
+            ) from exc
+        except requests.Timeout as exc:
+            if self._log_connection_errors:
+                logger.warning("AI_Core request timed out: url=%s timeout=%s", url, self.timeout, exc_info=True)
+            else:
+                logger.debug("AI_Core request timed out: url=%s timeout=%s", url, self.timeout)
+            raise APIConnectionError(
+                f"AI_Core isteği zaman aşımına uğradı ({self.timeout}s): {url}"
+            ) from exc
+
+        if resp.status_code >= 400:
+            detail = ""
+            try:
+                body = resp.json()
+                detail = body.get("detail", str(body))
+            except Exception:
+                detail = resp.text[:200]
+            logger.error("AI_Core response error: url=%s status_code=%s detail=%s", url, resp.status_code, detail)
+            raise APIResponseError(resp.status_code, detail)
+
+        try:
+            return resp.json()
+        except ValueError as exc:
+            logger.error("AI_Core returned invalid JSON: url=%s", url, exc_info=True)
+            raise APIResponseError(resp.status_code, "Geçersiz JSON yanıtı") from exc
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Payload → domain dönüşümü
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 def _parse_xai_factor(raw: Dict[str, Any], default_direction: str) -> XaiFactorItem:
-    """API XAI faktörünü UI modeline geriye uyumlu biçimde taşır."""
+    """API XAI faktörünü domain modeline geriye uyumlu biçimde taşır."""
     contribution = raw.get("contribution")
     try:
         contribution = None if contribution is None else float(contribution)
@@ -89,8 +177,6 @@ def _outlook_from_trend_label(trend_label: str | None) -> ModelOutlook:
 
 def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
     """FastAPI /analysis/{symbol} JSON yanıtını AnalysisResult'a dönüştürür."""
-
-    # ── Blokları çıkar ───────────────────────────────────────────────────
     data_block = data.get("data", {})
     model_block = data.get("model", {})
     forecast_block = data.get("forecast", {})
@@ -98,11 +184,9 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
     conf_block = data.get("confidence", {})
     xai_block = data.get("xai", {})
 
-    # ── Güven ────────────────────────────────────────────────────────────
     conf_label = conf_block.get("label", "low")
     conf_numeric = _CONFIDENCE_MAP.get(conf_label, 0.25)
 
-    # ── Forecast noktaları ───────────────────────────────────────────────
     raw_points = forecast_block.get("points", [])
     forecast_points = [
         ForecastPoint(
@@ -114,18 +198,15 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         for p in raw_points
     ]
 
-    # ── Tahmini fiyat (son noktanın bounded_predicted_close'u) ───────────
     predicted_price = None
     if forecast_points:
         predicted_price = forecast_points[-1].bounded_predicted_close
 
-    # ── Yön beklentisi (emir dili değil, analitik görünüm) ─
     trend_label = forecast_block.get("trend_label")
     trend_norm = str(trend_label or "").strip().lower()
     outlook = _outlook_from_trend_label(trend_label)
     outlook_strength = min(abs(forecast_block.get("weekly_expected_return", 0) or 0) * 10, 1.0)
 
-    # ── XAI ──────────────────────────────────────────────────────────────
     xai_pos = [
         _parse_xai_factor(f, "positive")
         for f in xai_block.get("top_positive_reasons", [])
@@ -135,13 +216,11 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         for f in xai_block.get("top_negative_reasons", [])
     ]
 
-    # Eski uyumluluk: xai_features dict (feature_name → importance)
     xai_features: Dict[str, float] = {}
     for item in xai_pos + xai_neg:
         label = item.human_label or item.feature_name
         xai_features[label] = item.importance
 
-    # XAI metin özeti oluştur
     xai_text = ""
     if xai_pos or xai_neg:
         parts = []
@@ -191,21 +270,22 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         xai_text=xai_text,
         xai_caveat=xai_block.get("caveat", ""),
         xai_model_family_caveat=xai_block.get("model_family_caveat", ""),
-        disclaimer=data.get("disclaimer") or DEFAULT_INVESTMENT_DISCLAIMER,
+        disclaimer=data.get("disclaimer") or "",
         raw_output=data,
         generated_at=data.get("generated_at", ""),
     )
 
 
-class FastAPIAdapter(AIModelInterface):
-    """
-    AI_Core FastAPI servisinden gerçek model analiz verisini çeker.
-    analyze() metodu UI Worker içinde çağrılır — UI donmaz.
-    """
+# ─────────────────────────────────────────────────────────────────────────────
+# Provider adapter
+# ─────────────────────────────────────────────────────────────────────────────
 
-    def __init__(self, client) -> None:
-        from src.ui.pages.ai_page.core.api_client import AICoreFastAPIClient
-        self._client: AICoreFastAPIClient = client
+
+class FastAPIAnalysisProvider(IAIAnalysisProvider):
+    """AI_Core FastAPI servisinden gerçek model analiz verisini çeker."""
+
+    def __init__(self, client: AICoreFastAPIClient) -> None:
+        self._client = client
 
     def analyze(self, ticker: str) -> AnalysisResult:
         raw = self._client.get_analysis(ticker)
@@ -213,64 +293,3 @@ class FastAPIAdapter(AIModelInterface):
 
     def is_available(self) -> bool:
         return self._client.health_check()
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Mock Adapter (fallback / demo)
-# ─────────────────────────────────────────────────────────────────────────────
-
-class MockAdapter(AIModelInterface):
-    """
-    Gerçek model hazır olana kadar veya API erişilemezken kullanılacak.
-    Gerçekçi rastgele veri üretir.
-    is_available() → False döner → UI'da sarı uyarı gösterir.
-    """
-    def analyze(self, ticker: str) -> AnalysisResult:
-        price = random.uniform(10.0, 500.0)
-        conf_label = random.choice(["low", "medium", "high"])
-        conf = _CONFIDENCE_MAP[conf_label]
-        trend_label = random.choice(["up", "down", "neutral"])
-        outlook = _outlook_from_trend_label(trend_label)
-        strength = random.uniform(0.4, 0.9)
-
-        return AnalysisResult(
-            ticker=ticker,
-            analysis_status="ok",
-            predicted_price=round(price, 2),
-            confidence=round(conf, 2),
-            confidence_label=conf_label,
-            confidence_reasons=[L10N.DEMO_GERCEK_MODEL_BAGLI_DEGIL],
-            outlook=outlook,
-            outlook_strength=round(strength, 2),
-            last_close=round(price * random.uniform(0.95, 1.05), 2),
-            data_freshness="fresh",
-            model_name="MockModel",
-            model_family="demo",
-            trend_label=trend_label,
-            horizon_days=5,
-            weekly_expected_return=round(random.uniform(-0.05, 0.08), 4),
-            rmse=round(random.uniform(0.5, 3.0), 2),
-            mae=round(random.uniform(0.3, 2.0), 2),
-            directional_accuracy=round(random.uniform(45, 70), 1),
-            composite_score=round(random.uniform(30, 80), 1),
-            sharpe=round(random.uniform(-0.5, 1.5), 2),
-            xai_available=True,
-            xai_method=L10N.DEMO_SHAP,
-            xai_features={
-                "RSI": round(random.uniform(0.1, 0.9), 2),
-                "MACD": round(random.uniform(0.1, 0.9), 2),
-                "Hacim": round(random.uniform(0.1, 0.9), 2),
-            },
-            xai_positive_reasons=[
-                XaiFactorItem("RSI_14", L10N.RSI_14_GUN, round(random.uniform(0.1, 0.5), 3), "positive"),
-            ],
-            xai_negative_reasons=[
-                XaiFactorItem("vol_20d", L10N.VOLATILITE_20_GUN, round(random.uniform(0.1, 0.3), 3), "negative"),
-            ],
-            xai_text=L10N.DEMO_BU_HISSE_ICIN_TEKNIK,
-            xai_caveat=L10N.DEMO_VERISI_GERCEK_MODEL_BAGLANDIGINDA,
-            disclaimer=L10N.BU_CIKTI_DEMO_AMACLIDIR_YATIRIM,
-        )
-
-    def is_available(self) -> bool:
-        return False

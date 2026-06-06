@@ -53,7 +53,7 @@ class ComparisonPage(BasePage):
         self.code_to_label: dict[str, str] = {}
 
         # Helper'lar
-        self.ai_helper = AICommentaryHelper(self)
+        self.ai_helper = AICommentaryHelper(self, container.ai_chat_service)
         self._ui_builder = ComparisonUIBuilder(self)
         self._view_manager = ChartViewManager(self)
         self._data_manager = ComparisonDataManager(self, self.analysis_service)

@@ -4,30 +4,29 @@ from datetime import datetime
 from PyQt5.QtCore import QThreadPool, QPropertyAnimation, QParallelAnimationGroup, QEasingCurve, QRect
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 
-from src.ui.pages.ai_page.core.chat_history_store import ChatHistoryStore
-from src.ui.pages.ai_page.core.models import ChatMessage, ChatSession, MessageRole, AnalysisResult
-from src.ui.pages.ai_page.core.safety_guard import validate_user_input
+from src.application.services.ai.ai_chat_service import AiChatService
+from src.application.services.ai.safety_guard import validate_user_input
+from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole, AnalysisResult
+from src.infrastructure.ai.gemini_chat_provider import GeminiChatProvider
+from src.infrastructure.ai.qsettings_chat_history_repo import QSettingsChatHistoryRepository
 from src.ui.core.icon_manager import IconManager
+from src.ui.pages.ai_page.labels import outlook_label
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
+from .chat_session_manager import ChatSessionManager
 from .conversation_view import ConversationView
 from .chat_input_bar import ChatInputBar
 from .chat_history_sidebar import ChatHistorySidebar
 
 
-def _generate_gemini_response_lazy(messages: list[ChatMessage]) -> str:
-    from src.ui.pages.ai_page.core.gemini_service import generate_gemini_response
-
-    return generate_gemini_response(messages)
-
-
 class ChatbotPanel(QWidget):
     """Sağ Panel (Chatbot Paneli) Ana Kapsayıcısı."""
 
-    def __init__(self, history_store: ChatHistoryStore | None = None):
+    def __init__(self, history_store: ChatSessionManager | None = None, chat_service: AiChatService | None = None):
         super().__init__()
-        self.history_store = history_store or ChatHistoryStore()
+        self.history_store = history_store or ChatSessionManager(QSettingsChatHistoryRepository())
+        self._chat_service = chat_service or AiChatService(GeminiChatProvider(api_key=None))
         self.sessions: list[ChatSession] = self.history_store.load_sessions()
         self.active_session_id = None
         self.messages: list[ChatMessage] = []
@@ -186,7 +185,7 @@ Eğitim Tarihi: {result.trained_at or '-'}
 
 ── TAHMİN ──
 Trend: {result.trend_label or '-'}
-Yön Beklentisi: {result.outlook.value}
+Yön Beklentisi: {outlook_label(result.outlook)}
 Tahmin Horizonu: {result.horizon_days or '-'} gün
 Tahmini Fiyat: ₺{result.predicted_price or '-'}
 {f'{result.horizon_days} Günlük' if result.horizon_days else 'Horizon Sonu'} Bileşik Beklenen Getiri: {f'{result.weekly_expected_return*100:.2f}%' if result.weekly_expected_return is not None else '-'}
@@ -276,7 +275,7 @@ Lütfen bu analizi değerlendir:
             xai_detail = f"\nAna XAI faktörü: {factor_name}{group_text}"
         return (
             f"{display_ticker(result.ticker)} analizi chat'e gönderildi.\n"
-            f"Model: {result.model_name or '-'} · Yön beklentisi: {result.outlook.value} · "
+            f"Model: {result.model_name or '-'} · Yön beklentisi: {outlook_label(result.outlook)} · "
             f"{horizon} bileşik getiri: {return_text}\n"
             f"Güven: {result.confidence_label or '-'} · XAI: {xai_state}"
             f"{xai_detail}"
@@ -286,7 +285,7 @@ Lütfen bu analizi değerlendir:
         self._request_seq += 1
         request_id = self._request_seq
         self.input_bar.set_loading(True)
-        self.worker = Worker(_generate_gemini_response_lazy, list(self.messages))
+        self.worker = Worker(self._chat_service.generate, list(self.messages))
         self.worker.signals.result.connect(lambda text, rid=request_id: self._on_ai_response(rid, text))
         self.worker.signals.error.connect(lambda err, rid=request_id: self._on_error(rid, err))
         self.worker.signals.finished.connect(lambda rid=request_id: self._on_ai_finished(rid))

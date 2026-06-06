@@ -48,6 +48,7 @@ class StockDetailPage(BasePage):
         self.trade_entry_service = container.trade_entry_service
         self.model_portfolio_service = getattr(container, "model_portfolio_service", None)
         self.price_repo = getattr(container, "price_repo", None)
+        self.market_client = getattr(container, "market_client", None)
         self.market_session_service = getattr(container, "bist_market_session_service", None)
         self.price_lookup_func = price_lookup_func
 
@@ -130,6 +131,8 @@ class StockDetailPage(BasePage):
         # 3. Grafik
         self.chart_widget = StockChartWidget()
         self.chart_widget.setMinimumHeight(400)
+        if self.market_client is not None:
+            self.chart_widget.set_price_series_provider(self.market_client.get_price_series)
         left_layout.addWidget(self.chart_widget)
 
         # 4. Özet Kartları

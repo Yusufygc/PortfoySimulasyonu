@@ -78,6 +78,41 @@ def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
     assert not offenders, f"UI class threshold exceeded without whitelist: {offenders}"
 
 
+def test_ui_does_not_import_backend_clients_or_sdks():
+    """UI katmanı dış servis/SDK'leri doğrudan import etmez.
+
+    HTTP istemci (requests), Gemini SDK (google.genai) ve piyasa verisi
+    (yfinance) yalnızca infrastructure katmanında bulunur; UI bunları DI ile
+    enjekte edilen servis/sağlayıcılar üzerinden kullanır.
+    """
+    forbidden_roots = {"requests", "yfinance", "google"}
+    offenders = []
+
+    for path in (ROOT / "src" / "ui").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    root = alias.name.split(".")[0]
+                    if root in forbidden_roots:
+                        offenders.append(f"{_src_rel(path)} imports {alias.name}")
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                root = node.module.split(".")[0]
+                if root in forbidden_roots:
+                    offenders.append(f"{_src_rel(path)} imports from {node.module}")
+
+    assert not offenders, f"UI must not import backend clients/SDKs directly: {offenders}"
+
+
+def test_ai_page_core_backend_module_is_removed():
+    """ai_page/core/ backend sızıntısı kalıcı olarak kaldırıldı; geri gelmemeli."""
+    legacy_dir = ROOT / "src" / "ui" / "pages" / "ai_page" / "core"
+    assert not legacy_dir.exists(), (
+        "src/ui/pages/ai_page/core kaldırıldı; backend kodu domain/application/"
+        "infrastructure katmanlarında olmalı."
+    )
+
+
 def test_automated_tests_do_not_call_live_network_helpers_directly():
     allowed_manual = {
         Path("tests/infrastructure/market_data/test_benchmark_fetch_manual.py"),

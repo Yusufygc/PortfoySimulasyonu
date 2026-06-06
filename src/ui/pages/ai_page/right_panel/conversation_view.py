@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QScrollArea, QWidget, QVBoxLayout
 from PyQt5.QtCore import Qt, QTimer
 from .message_bubble import MessageBubble
-from src.ui.pages.ai_page.core.models import ChatMessage
+from src.domain.models.ai_analysis import ChatMessage
 
 class ConversationView(QScrollArea):
     """Kaydırılabilir sohbet alanı"""

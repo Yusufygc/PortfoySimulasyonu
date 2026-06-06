@@ -3,11 +3,12 @@ import sys
 pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication
 
-from src.ui.pages.ai_page.core.chat_history_store import ChatHistoryStore
-from src.ui.pages.ai_page.core.safety_guard import validate_user_input, wrap_user_message, MAX_CHAR_LIMIT, load_safety_patterns
+from src.application.services.ai.safety_guard import validate_user_input, wrap_user_message, MAX_CHAR_LIMIT, load_safety_patterns
+from src.domain.models.ai_analysis import MessageRole, ChatMessage
+from src.infrastructure.ai.qsettings_chat_history_repo import QSettingsChatHistoryRepository
+from src.ui.pages.ai_page.right_panel.chat_session_manager import ChatSessionManager
 from src.ui.pages.ai_page.right_panel.chatbot_panel import ChatbotPanel
 from src.ui.pages.ai_page.right_panel.chat_input_bar import ChatInputBar
-from src.ui.pages.ai_page.core.models import MessageRole, ChatMessage
 
 app = QApplication.instance()
 if app is None:
@@ -113,7 +114,9 @@ def test_wrap_user_message():
 
 def test_chatbot_panel_blocks_unsafe_messages():
     """Güvenli olmayan girdilerin chatbot panelinde engellendiğini doğrula."""
-    panel = ChatbotPanel(history_store=ChatHistoryStore(MemorySettings()))
+    panel = ChatbotPanel(
+        history_store=ChatSessionManager(QSettingsChatHistoryRepository(MemorySettings()))
+    )
     
     # AI çağrılarını mock'la
     ai_triggered = False

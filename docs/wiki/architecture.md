@@ -39,6 +39,8 @@ Modüler LLM Wiki prensibi gereği, detaylı teknik dokümantasyonlar alt belgel
 
 `AppContainer`, repository, market/client ve servis wiring sorumluluklarını `src/application/container_parts/` altındaki küçük factory modüllerine devreden ince bir facade olarak çalışır. Ortam değişkenleri `config/settings_loader.py` içindeki `AppSettings`, `AISettings` ve `MarketSettings` yapılarıyla merkezi olarak doğrulanır. Gerçek `.env` dosyası dağıtım çıktısına gömülmez; runtime sırasında uygulamanın bulunduğu dizinden okunur.
 
+AI (yapay zeka) bileşenleri de bu omurgaya bağlıdır: `container_parts/ai.py` → `build_ai(AISettings)` ile `container.ai_analysis_service`, `container.ai_chat_service` ve `container.chat_history_repo` üretilir. AI analiz/sohbet **portları** `src/domain/ports/`, saf modelleri `src/domain/models/ai_analysis.py`, dış adaptörleri (FastAPI HTTP istemci, Gemini SDK, QSettings sohbet deposu) `src/infrastructure/ai/`, iş servisleri `src/application/services/ai/` altındadır. UI yalnız enjekte edilen servisleri tüketir; HTTP/SDK/yfinance gibi dış istemciler artık UI katmanında bulunmaz (regresyon `tests/ui/test_refactor_guards.py` ile kilitlenir).
+
 ---
 
 ## 🛠️ Kalite Standartları ve Kalite Kapıları

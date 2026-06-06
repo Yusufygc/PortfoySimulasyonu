@@ -6,7 +6,7 @@ from src.ui.pages.ai_page.left_panel.ticker_input_bar import TickerInputBar
 from src.ui.pages.ai_page.left_panel.prediction_card import PredictionCard
 from src.ui.pages.ai_page.left_panel.signal_card import SignalCard
 from src.ui.pages.ai_page.left_panel.xai_card import XAICard
-from src.ui.pages.ai_page.core.models import ModelOutlook, XaiFactorItem
+from src.domain.models.ai_analysis import ModelOutlook, XaiFactorItem
 
 app = QApplication.instance()
 if app is None:

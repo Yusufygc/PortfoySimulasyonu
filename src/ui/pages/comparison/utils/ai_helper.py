@@ -10,23 +10,18 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtWidgets import QMessageBox
 
-from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole
+from src.domain.models.ai_analysis import ChatMessage, MessageRole
 from src.ui.worker import Worker
 
 logger = logging.getLogger(__name__)
 
 
-def _generate_gemini_response_lazy(messages: list[ChatMessage]) -> str:
-    from src.ui.pages.ai_page.core.gemini_service import generate_gemini_response
-
-    return generate_gemini_response(messages)
-
-
 class AICommentaryHelper:
     """AI yorum paneli widget'larını oluşturur ve Gemini Worker'ı yönetir."""
 
-    def __init__(self, page) -> None:
+    def __init__(self, page, chat_service) -> None:
         self.page = page
+        self._chat_service = chat_service
         self.ai_worker = None
         self._threadpool = QThreadPool.globalInstance()
         self._request_seq = 0
@@ -171,7 +166,7 @@ class AICommentaryHelper:
 
         self._request_seq += 1
         request_id = self._request_seq
-        self.ai_worker = Worker(_generate_gemini_response_lazy, [system_msg, user_msg])
+        self.ai_worker = Worker(self._chat_service.generate, [system_msg, user_msg])
         self.ai_worker.signals.result.connect(
             lambda response, rid=request_id: self._on_ai_response_ready(rid, response)
         )

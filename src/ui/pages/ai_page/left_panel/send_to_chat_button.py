@@ -1,7 +1,7 @@
 from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 from PyQt5.QtCore import pyqtSignal
-from src.ui.pages.ai_page.core.models import AnalysisResult
+from src.domain.models.ai_analysis import AnalysisResult
 
 class SendToChatButton(AnimatedButton):
     """Analiz sonucunu sağ panele (chat) gönderme butonu"""

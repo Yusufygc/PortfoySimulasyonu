@@ -1,6 +1,7 @@
 import sys
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -38,6 +39,7 @@ class MockContainer:
             def get_comparison_view(self, filter_state):
                 return None
         self.analysis_service = MockAnalysisService()
+        self.ai_chat_service = SimpleNamespace(generate=lambda messages: "")
 
 def test_comparison_page_init():
     # Arrange
@@ -303,7 +305,8 @@ def test_check_date_warnings(monkeypatch, fixed_today):
                 def get_comparison_view(self, filter_state):
                     return None
             self.analysis_service = MockAnalysisService()
-            
+            self.ai_chat_service = SimpleNamespace(generate=lambda messages: "")
+
     container = MockContainerForWarnings()
     page = ComparisonPage(container)
     

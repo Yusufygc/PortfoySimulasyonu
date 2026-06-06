@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import fields
 
 from config.settings_loader import AppSettings, load_app_settings
-from src.application.container_parts import build_market_clients, build_repositories, build_services
+from src.application.container_parts import build_ai, build_market_clients, build_repositories, build_services
 from src.application.events import GlobalEventBus
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 
@@ -33,6 +33,9 @@ class AppContainer:
             event_bus=self.event_bus,
         )
         self._expose_dataclass_fields(self.services)
+
+        self.ai = build_ai(self.settings.ai)
+        self._expose_dataclass_fields(self.ai)
 
     def _expose_dataclass_fields(self, group) -> None:
         for field in fields(group):

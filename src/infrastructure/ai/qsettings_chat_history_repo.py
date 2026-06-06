@@ -1,21 +1,25 @@
-from src.ui.shared.locale_tr import L10N
+# -*- coding: utf-8 -*-
+"""Sohbet geçmişini QSettings üzerinde saklayan kalıcılık adaptörü.
+
+`IChatHistoryRepository` portunu uygular. Depolama detayı (QSettings + JSON)
+bu katmanda kalır; UI yalnızca port üzerinden erişir.
+"""
+
+from __future__ import annotations
+
 import json
 from datetime import datetime
-from uuid import uuid4
 
 from PyQt5.QtCore import QSettings
 
-from src.ui.pages.ai_page.core.models import ChatMessage, ChatSession, MessageRole
-
+from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
+from src.domain.ports.repositories.i_chat_history_repo import IChatHistoryRepository
 
 SESSIONS_KEY = "ai_chat/sessions"
 LAST_ACTIVE_SESSION_KEY = "ai_chat/last_active_session_id"
-WELCOME_MESSAGE = L10N.MERHABA_FINANS_PIYASA_ANALIZI_VE
-EMPTY_CHAT_TITLE = L10N.YENI_SOHBET
-MAX_TITLE_LENGTH = 48
 
 
-class ChatHistoryStore:
+class QSettingsChatHistoryRepository(IChatHistoryRepository):
     def __init__(self, settings: QSettings | None = None) -> None:
         self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
 
@@ -52,28 +56,7 @@ class ChatHistoryStore:
             self._settings.remove(LAST_ACTIVE_SESSION_KEY)
         self._settings.sync()
 
-    def create_session(self, messages: list[ChatMessage] | None = None, title: str = EMPTY_CHAT_TITLE) -> ChatSession:
-        now = datetime.now()
-        return ChatSession(
-            id=uuid4().hex,
-            title=title,
-            messages=list(messages or []),
-            created_at=now,
-            updated_at=now,
-        )
-
-    @staticmethod
-    def default_messages() -> list[ChatMessage]:
-        return [ChatMessage(MessageRole.AI, WELCOME_MESSAGE)]
-
-    @staticmethod
-    def title_from_message(text: str) -> str:
-        compact = " ".join(text.strip().split())
-        if not compact:
-            return EMPTY_CHAT_TITLE
-        if len(compact) <= MAX_TITLE_LENGTH:
-            return compact
-        return compact[: MAX_TITLE_LENGTH - 1].rstrip() + "…"
+    # ── Serileştirme ─────────────────────────────────────────────────────
 
     @staticmethod
     def _session_to_dict(session: ChatSession) -> dict:
@@ -82,7 +65,10 @@ class ChatHistoryStore:
             "title": session.title,
             "created_at": session.created_at.isoformat(timespec="seconds"),
             "updated_at": session.updated_at.isoformat(timespec="seconds"),
-            "messages": [ChatHistoryStore._message_to_dict(message) for message in session.messages],
+            "messages": [
+                QSettingsChatHistoryRepository._message_to_dict(message)
+                for message in session.messages
+            ],
         }
 
     @staticmethod
@@ -103,12 +89,12 @@ class ChatHistoryStore:
             return None
         messages = []
         for item in data.get("messages") or []:
-            message = ChatHistoryStore._message_from_dict(item)
+            message = QSettingsChatHistoryRepository._message_from_dict(item)
             if message is not None:
                 messages.append(message)
         return ChatSession(
             id=session_id,
-            title=str(data.get("title") or EMPTY_CHAT_TITLE),
+            title=str(data.get("title") or ""),
             messages=messages,
             created_at=_parse_datetime(data.get("created_at")),
             updated_at=_parse_datetime(data.get("updated_at")),

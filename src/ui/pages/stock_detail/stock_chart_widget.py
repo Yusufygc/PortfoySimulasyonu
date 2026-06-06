@@ -7,7 +7,6 @@ import logging
 from datetime import date, datetime, time, timedelta
 
 import pyqtgraph as pg
-import yfinance as yf
 from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtWidgets import QFrame, QSizePolicy, QVBoxLayout
 
@@ -44,7 +43,16 @@ class StockChartWidget(QFrame):
         self.setProperty("cssClass", "chartWidget")
         self.setMinimumHeight(320)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._price_series_provider = None
         self._init_ui()
+
+    def set_price_series_provider(self, provider) -> None:
+        """DB serisi boşken kullanılacak fiyat serisi sağlayıcısını enjekte eder.
+
+        UI doğrudan piyasaya (yfinance) gitmez; sağlayıcı container'daki
+        market client'tan gelir: ``(ticker, start, end) -> dict[date, Decimal]``.
+        """
+        self._price_series_provider = provider
 
     def _init_ui(self):
         pg.setConfigOptions(antialias=True, background=BG_BASE, foreground=TEXT_SECONDARY)
@@ -105,21 +113,14 @@ class StockChartWidget(QFrame):
             start_date = end_date - timedelta(days=180)
 
             points = self._db_series_to_points(price_repo, current_stock_id, start_date, end_date)
-            if not points:
+            if not points and self._price_series_provider is not None:
                 yf_ticker = current_ticker if "." in current_ticker else f"{current_ticker}.IS"
-                data = yf.download(
-                    yf_ticker,
-                    start=start_date,
-                    end=end_date + timedelta(days=1),
-                    progress=False,
-                    auto_adjust=False,
-                )
-                if data is not None and not data.empty:
-                    close_col = "Close" if "Close" in data.columns else data.columns[0]
-                    close_data = data[close_col]
-                    if hasattr(close_data, "values") and len(close_data.shape) > 1:
-                        close_data = close_data.iloc[:, 0]
-                    points = self._series_to_points(close_data)
+                try:
+                    series = self._price_series_provider(yf_ticker, start_date, end_date)
+                except Exception as exc:
+                    logger.warning("Piyasa fiyat serisi okunamadı: %s", exc)
+                    series = None
+                points = self._provider_series_to_points(series)
 
             avg_cost = (
                 float(average_cost)
@@ -236,9 +237,10 @@ class StockChartWidget(QFrame):
         return float(pos.average_cost)
 
     @staticmethod
-    def _series_to_points(close_data) -> list[tuple[float, float]]:
+    def _provider_series_to_points(series) -> list[tuple[float, float]]:
+        """Market client serisini (``dict[date, Decimal]``) grafik noktalarına çevirir."""
         points: list[tuple[float, float]] = []
-        for index_value, raw_value in close_data.dropna().items():
+        for index_value, raw_value in (series or {}).items():
             try:
                 value = float(raw_value)
             except (TypeError, ValueError):
@@ -246,9 +248,7 @@ class StockChartWidget(QFrame):
             if not value:
                 continue
 
-            if hasattr(index_value, "to_pydatetime"):
-                dt = index_value.to_pydatetime()
-            elif isinstance(index_value, datetime):
+            if isinstance(index_value, datetime):
                 dt = index_value
             elif isinstance(index_value, date):
                 dt = datetime.combine(index_value, time.min)

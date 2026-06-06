@@ -1,31 +1,40 @@
-from src.ui.shared.locale_tr import L10N
+"""AI analiz ve sohbet alanına ait saf domain modelleri.
+
+Bu modül hiçbir dış bağımlılık (PyQt, requests, SDK, L10N) içermez.
+Kullanıcıya gösterilecek Türkçe etiketler UI katmanında
+(`src/ui/pages/ai_page/labels.py`) üretilir; burada yalnızca anlamsal
+(semantic) değerler tutulur.
+"""
+
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
 
-DEFAULT_INVESTMENT_DISCLAIMER = (
-    L10N.BU_CIKTI_KISISEL_YATIRIM_TAVSIYESI +
-    L10N.MODEL_GECMIS_VERILERDEN_URETILMIS_ANALITIK +
-    L10N.NIHAI_KARAR_KULLANICIYA_AITTIR
-)
-
-
 class ModelOutlook(Enum):
-    UP = L10N.YUKSELIS_EGILIMI
-    DOWN = L10N.DUSUS_EGILIMI
-    NEUTRAL = "Yatay/Nötr görünüm"
+    """Model yön beklentisi — emir dili değil, analitik görünüm.
+
+    Değerler anlamsaldır; kullanıcıya dönük Türkçe etiket için
+    `src/ui/pages/ai_page/labels.py::outlook_label` kullanılır.
+    """
+
+    UP = "up"
+    DOWN = "down"
+    NEUTRAL = "neutral"
 
 
 class MessageRole(Enum):
-    USER   = "user"
-    AI     = "ai"
+    USER = "user"
+    AI = "ai"
     SYSTEM = "system"
 
 
 @dataclass
 class ForecastPoint:
     """Tek bir tahmin noktası (gün bazlı)."""
+
     target_date: str
     horizon_index: int
     bounded_predicted_close: float | None = None
@@ -35,10 +44,11 @@ class ForecastPoint:
 @dataclass
 class XaiFactorItem:
     """XAI'dan gelen tek bir özellik/faktör."""
+
     feature_name: str
     human_label: str
     importance: float
-    direction: str          # "positive" veya "negative"
+    direction: str  # "positive" veya "negative"
     feature_group: str | None = None
     reason: str | None = None
     method: str | None = None
@@ -48,32 +58,33 @@ class XaiFactorItem:
 
 @dataclass
 class AnalysisResult:
-    """
-    FastAPI /analysis/{symbol} endpoint'inden dönen zengin analiz payload'u.
+    """FastAPI /analysis/{symbol} endpoint'inden dönen zengin analiz payload'u.
 
-    Eski MockAdapter uyumluluğu korunur; eklenen alanların tümü
-    varsayılan değerlere sahiptir.
+    Eklenen alanların tümü varsayılan değerlere sahiptir; eski demo/mock
+    uyumluluğu korunur. `disclaimer` varsayılanı boştur — kullanıcıya dönük
+    varsayılan metin UI katmanında doldurulur.
     """
+
     ticker: str
 
     # ── Analiz durumu ────────────────────────────────────────────────────
-    analysis_status: str = "ok"                     # ok, stale_data, no_model, no_forecast, low_confidence, xai_unavailable, error
+    analysis_status: str = "ok"  # ok, stale_data, no_model, no_forecast, low_confidence, xai_unavailable, error
 
     # ── Tahmin ───────────────────────────────────────────────────────────
-    predicted_price: float | None = None            # forecast.points[-1].bounded_predicted_close
-    confidence: float = 0.0                         # 0.0 – 1.0 (label'dan türetilir)
-    confidence_label: str = "low"                   # "low", "medium", "high"
+    predicted_price: float | None = None
+    confidence: float = 0.0  # 0.0 – 1.0
+    confidence_label: str = "low"  # "low", "medium", "high"
     confidence_reasons: list[str] = field(default_factory=list)
     confidence_warnings: list[str] = field(default_factory=list)
 
-    # ── Yön beklentisi (trend_label'dan türetilen kullanıcı-facing görünüm) ──
+    # ── Yön beklentisi ───────────────────────────────────────────────────
     outlook: ModelOutlook = ModelOutlook.NEUTRAL
-    outlook_strength: float = 0.0                   # 0.0 – 1.0
+    outlook_strength: float = 0.0  # 0.0 – 1.0
 
     # ── Veri bilgisi ─────────────────────────────────────────────────────
     last_close: float | None = None
     last_observed_date: str | None = None
-    data_freshness: str = "unknown"                 # "fresh", "stale_data", "unknown"
+    data_freshness: str = "unknown"  # "fresh", "stale_data", "unknown"
     staleness_days: int = 0
 
     # ── Model bilgisi ────────────────────────────────────────────────────
@@ -84,7 +95,7 @@ class AnalysisResult:
     eligibility_status: str = "eligible"
 
     # ── Forecast ─────────────────────────────────────────────────────────
-    trend_label: str | None = None                  # "up", "down", "neutral"
+    trend_label: str | None = None  # "up", "down", "neutral"
     horizon_days: int | None = None
     weekly_expected_return: float | None = None
     forecast_points: list[ForecastPoint] = field(default_factory=list)

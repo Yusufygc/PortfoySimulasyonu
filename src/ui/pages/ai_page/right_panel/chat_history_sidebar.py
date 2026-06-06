@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
 from src.ui.core.icon_manager import IconManager
-from src.ui.pages.ai_page.core.models import ChatSession
+from src.domain.models.ai_analysis import ChatSession
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 

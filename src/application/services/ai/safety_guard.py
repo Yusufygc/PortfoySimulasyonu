@@ -1,7 +1,11 @@
-# src/ui/pages/ai_page/core/safety_guard.py
+# -*- coding: utf-8 -*-
+"""Yapay zeka asistanı sohbet girdisi için güvenlik süzgeci.
+
+Prompt injection ve kapsam dışı (kod/yazılım) talepleri ile karakter sınırını
+denetler. UI'a bağımlı değildir; hata metinleri sade Türkçedir.
 """
-Yapay zeka asistanı sohbet girdisi için güvenlik süzgeci (Prompt Injection & Kapsam Filtresi).
-"""
+
+from __future__ import annotations
 
 import os
 import re
@@ -20,23 +24,23 @@ FALLBACK_PATTERNS = [
     r"ignore\s+rules",
     r"override\s+rules",
     r"respond\s+as\s+a",
-    
+
     # Turkish patterns
-    r"sistem\s+talimatlar\u0131n\u0131\s+yoksay",
-    r"sistem\s+talimat\u0131n\u0131\s+yoksay",
-    r"talimatlar\u0131\s+unut",
-    r"kurallar\u0131\s+unut",
-    r"t\u00fcm\s+kurallar\u0131\s+yoksay",
-    r"sen\s+art\u0131k\s+bir",
-    r"rol\u00fcn\u00fc\s+de\u011fi\u015ftir",
-    r"asistan\s+rol\u00fcn\u00fc\s+b\u0131rak",
-    r"yat\u0131r\u0131m\s+tavsiyesi\s+ver",
+    r"sistem\s+talimatlarını\s+yoksay",
+    r"sistem\s+talimatını\s+yoksay",
+    r"talimatları\s+unut",
+    r"kuralları\s+unut",
+    r"tüm\s+kuralları\s+yoksay",
+    r"sen\s+artık\s+bir",
+    r"rolünü\s+değiştir",
+    r"asistan\s+rolünü\s+bırak",
+    r"yatırım\s+tavsiyesi\s+ver",
     r"al\s+sat\s+sinyali\s+ver",
     r"tavsiye\s+et",
 
     # Programming fallback patterns
     r"kod\s+yaz",
-    r"script\s+olu\u015ftur",
+    r"script\s+oluştur",
     r"script\s+yaz",
     r"python\s+kodu",
     r"javascript\s+kodu",
@@ -46,25 +50,27 @@ FALLBACK_PATTERNS = [
     r"class\s+\w+",
 ]
 
+
 def load_safety_patterns() -> list[str]:
-    """
-    config/safety_patterns.txt dosyasını okuyup kalıpları döndürür.
+    """config/safety_patterns.txt dosyasını okuyup kalıpları döndürür.
+
     Bulamazsa veya hata oluşursa gömülü FALLBACK_PATTERNS listesini döner.
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # safety_guard.py is at: src/ui/pages/ai_page/core/safety_guard.py
-    # safety_patterns.txt is at: config/safety_patterns.txt
-    patterns_path = os.path.abspath(os.path.join(current_dir, "../../../../../config/safety_patterns.txt"))
-    
+    # Bu dosya: src/application/services/ai/safety_guard.py
+    # Hedef:     config/safety_patterns.txt
+    patterns_path = os.path.abspath(
+        os.path.join(current_dir, "../../../../config/safety_patterns.txt")
+    )
+
     if not os.path.exists(patterns_path):
-        # Proje yapısına göre ikincil arama (örn: test ortamı)
+        # İkincil arama (test ortamı vb.)
         patterns_path = os.path.join(current_dir, "safety_patterns.txt")
 
     if not os.path.exists(patterns_path):
-        # config dizini altında direkt arama
-        proj_root = os.path.abspath(os.path.join(current_dir, "../../../../../"))
+        proj_root = os.path.abspath(os.path.join(current_dir, "../../../../"))
         patterns_path = os.path.join(proj_root, "config", "safety_patterns.txt")
-        
+
     patterns = []
     if os.path.exists(patterns_path):
         try:
@@ -75,10 +81,11 @@ def load_safety_patterns() -> list[str]:
                         patterns.append(line)
         except Exception:
             pass
-            
+
     if not patterns:
         return FALLBACK_PATTERNS
     return patterns
+
 
 # Güvenlik kalıplarını yükle ve derle (büyük/küçük harf duyarsız)
 INJECTION_PATTERNS = load_safety_patterns()
@@ -87,29 +94,25 @@ _INJECTION_RE = re.compile("|".join(INJECTION_PATTERNS), re.IGNORECASE)
 # Maksimum karakter sınırı
 MAX_CHAR_LIMIT = 750
 
+
 def validate_user_input(text: str) -> Tuple[bool, str]:
-    """
-    Kullanıcı girdisini prompt enjeksiyonu, kapsam dışı kod talepleri ve karakter sınırı açısından doğrular.
-    
+    """Kullanıcı girdisini enjeksiyon, kapsam dışı kod talebi ve uzunluk için doğrular.
+
     Returns:
-        (is_safe, error_message): Girdi güvenliyse (True, ""), riskliyse (False, Hata_Mesajı).
+        (is_safe, error_message): Güvenliyse (True, ""), riskliyse (False, mesaj).
     """
     if not text or not text.strip():
         return True, ""
 
-    # 1. Uzunluk kontrolü (aşırı uzun jailbreak payload'larını engeller)
     if len(text) > MAX_CHAR_LIMIT:
         return False, f"Güvenlik Uyarısı: Girdiğiniz mesaj çok uzun (en fazla {MAX_CHAR_LIMIT} karakter olmalıdır)."
 
-    # 2. Kalıp eşleşme kontrolü (Prompt injection ve kodlama kalıplarını arar)
     if _INJECTION_RE.search(text):
         return False, "Güvenlik Uyarısı: Girdiğiniz mesaj sistem talimatlarını değiştirme, enjeksiyon veya kapsam dışı konu (yazılım/kod talebi vb.) riski taşıdığı için engellenmiştir."
 
     return True, ""
 
+
 def wrap_user_message(text: str) -> str:
-    """
-    Kullanıcı girdisini yapısal sınırlar içerisine alarak Gemini'nin 
-    veri ile talimat ayrımını netleştirmesini sağlar.
-    """
+    """Kullanıcı girdisini yapısal sınırlar içine alır (veri/talimat ayrımı)."""
     return f"[USER INPUT START]\n{text}\n[USER INPUT END]"

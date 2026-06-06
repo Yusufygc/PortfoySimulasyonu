@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from src.ui.pages.ai_page.core.models import ChatMessage, MessageRole
+from src.domain.models.ai_analysis import ChatMessage, MessageRole
 
 
 AI_DOCUMENT_STYLE = L10N.P_MARGINTOP_0PX_MARGINBOTTOM_12PX
