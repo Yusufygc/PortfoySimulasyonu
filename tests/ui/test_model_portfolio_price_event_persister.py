@@ -33,6 +33,7 @@ class FakeSettingsManager:
             5: {3: Decimal("29.00")},
         }
         self.saved = []
+        self.saved_times = []
 
     def load_saved_price_map(self, portfolio_id):
         return dict(self.maps.get(portfolio_id, {}))
@@ -41,8 +42,11 @@ class FakeSettingsManager:
         self.maps[portfolio_id] = dict(price_map)
         self.saved.append((portfolio_id, dict(price_map), updated_at))
 
+    def save_portfolio_last_update_time(self, portfolio_id, updated_at):
+        self.saved_times.append((portfolio_id, updated_at))
 
-def test_model_portfolio_price_event_persister_merges_prices_for_all_affected_portfolios():
+
+def test_model_portfolio_price_event_persister_records_update_time_for_affected_portfolios():
     updated_at = datetime(2026, 6, 5, 18, 30)
     settings = FakeSettingsManager()
     persister = ModelPortfolioPriceEventPersister(
@@ -60,12 +64,12 @@ def test_model_portfolio_price_event_persister_merges_prices_for_all_affected_po
     )
 
     assert updated_count == 2
-    assert settings.maps[4] == {1: Decimal("9.50"), 2: Decimal("22.75")}
-    assert settings.maps[5] == {2: Decimal("22.75"), 3: Decimal("31.40")}
-    assert settings.saved == [
-        (4, {1: Decimal("9.50"), 2: Decimal("22.75")}, updated_at),
-        (5, {2: Decimal("22.75"), 3: Decimal("31.40")}, updated_at),
-    ]
+    assert settings.maps == {
+        4: {1: Decimal("9.50")},
+        5: {3: Decimal("29.00")},
+    }
+    assert settings.saved == []
+    assert settings.saved_times == [(4, updated_at), (5, updated_at)]
 
 
 def test_model_portfolio_price_event_persister_skips_unrelated_prices():
