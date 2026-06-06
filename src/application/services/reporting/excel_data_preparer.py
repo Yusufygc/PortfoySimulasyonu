@@ -231,37 +231,6 @@ class ExcelDataPreparer:
             df = df.sort_values("Tarih").reset_index(drop=True)
         return df
 
-    def build_chart_data_df(self, summary_df: pd.DataFrame) -> pd.DataFrame:
-        if summary_df.empty:
-            return pd.DataFrame()
-
-        base_cols = ["Tarih", "Portföy Değeri (TL)", "Günlük Getiri (%)", "Toplam Getiri (%)"]
-        chart_df = summary_df[[c for c in base_cols if c in summary_df.columns]].copy()
-        daily_return = pd.to_numeric(chart_df["Günlük Getiri (%)"], errors="coerce")
-        chart_df["Pozitif Günlük Getiri (%)"] = daily_return.where(daily_return >= 0)
-        chart_df["Negatif Günlük Getiri (%)"] = daily_return.where(daily_return < 0)
-
-        value = pd.to_numeric(chart_df["Portföy Değeri (TL)"], errors="coerce")
-        running_peak = value.cummax()
-        drawdown = (value - running_peak) / running_peak.where(running_peak != 0)
-        chart_df["Drawdown (%)"] = drawdown.where(drawdown.notna(), 0).clip(upper=0)
-
-        cost_basis_col = "Toplam Maliyet (TL)"
-        if cost_basis_col in summary_df.columns:
-            chart_df[cost_basis_col] = pd.to_numeric(summary_df[cost_basis_col], errors="coerce")
-        else:
-            chart_df[cost_basis_col] = None
-
-        return chart_df[[
-            "Tarih",
-            "Portföy Değeri (TL)",
-            "Pozitif Günlük Getiri (%)",
-            "Negatif Günlük Getiri (%)",
-            "Toplam Getiri (%)",
-            "Drawdown (%)",
-            cost_basis_col,
-        ]]
-
     def dashboard_stats(self, summary_df: pd.DataFrame, stock_summary_df: pd.DataFrame) -> dict:
         return self._dashboard_stats_calculator.dashboard_stats(summary_df, stock_summary_df)
 
