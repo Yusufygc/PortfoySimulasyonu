@@ -9,7 +9,6 @@ from PyQt5.QtCore import QDate, QTime, Qt
 from PyQt5.QtWidgets import (
     QDateEdit,
     QDialog,
-    QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
     QLineEdit,
@@ -19,6 +18,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
+from src.ui.widgets.shared import CurrencySpinBox
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ class TradeInputDialog(QDialog):
         form.addRow("Lot:", self.spin_qty)
 
         price_row = QHBoxLayout()
-        self.spin_price = QDoubleSpinBox()
+        self.spin_price = CurrencySpinBox()
         self.spin_price.setRange(0.01, 100_000)
         self.spin_price.setDecimals(2)
         self.spin_price.setSuffix(" TL")
@@ -128,7 +128,7 @@ class TradeInputDialog(QDialog):
             logger.warning("Fiyat sorgulama başarısız (%s): %s", ticker, exc)
 
     def _update_amount(self):
-        amount = Decimal(self.spin_qty.value()) * Decimal(str(self.spin_price.value()))
+        amount = Decimal(self.spin_qty.value()) * self.spin_price.decimal_value()
         self.edit_amount.setText(f"{amount:,.2f} TL")
 
     def _on_enter_pressed(self):
@@ -144,7 +144,7 @@ class TradeInputDialog(QDialog):
         return {
             "ticker": ticker.upper(),
             "quantity": self.spin_qty.value(),
-            "price": Decimal(str(self.spin_price.value())),
+            "price": self.spin_price.decimal_value(),
             "trade_date": self.date_edit.date().toPyDate(),
             "trade_time": self.time_edit.time().toPyTime(),
         }
