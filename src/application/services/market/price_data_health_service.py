@@ -330,7 +330,12 @@ class PriceHealthAnalyzer:
             business_days=business_days,
             presence_map=presence_map,
         )
-        holiday_candidates = list(empty_weekdays)
+        holiday_candidates = self._holiday_candidates_for_scope(
+            scope=scope,
+            empty_weekdays=empty_weekdays,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
         return PriceDataHealthReport(
             start_date=start_date,
@@ -366,6 +371,43 @@ class PriceHealthAnalyzer:
             if active_ids and not any(point_date in presence_map.get(stock_id, set()) for stock_id in active_ids):
                 empty_weekdays.append(point_date)
         return empty_weekdays
+
+    def _holiday_candidates_for_scope(
+        self,
+        scope: str | None,
+        empty_weekdays: Sequence[date],
+        start_date: date,
+        end_date: date,
+    ) -> List[date]:
+        if not empty_weekdays or _normalize_scope(scope) == PRICE_SCOPE_ALL_ACTIVE:
+            return list(empty_weekdays)
+
+        all_active_ids = sorted(self._scope_resolver.active_stock_ids(PRICE_SCOPE_ALL_ACTIVE))
+        if not all_active_ids:
+            return list(empty_weekdays)
+
+        all_first_trade_dates = self._scope_resolver.first_trade_dates_by_stock(PRICE_SCOPE_ALL_ACTIVE)
+        all_presence_map = self._price_repo.get_price_presence_map(all_active_ids, start_date, end_date)
+        return [
+            point_date
+            for point_date in empty_weekdays
+            if not self._has_market_price_on_date(
+                point_date=point_date,
+                stock_ids=all_active_ids,
+                first_trade_dates=all_first_trade_dates,
+                presence_map=all_presence_map,
+            )
+        ]
+
+    def _has_market_price_on_date(
+        self,
+        point_date: date,
+        stock_ids: Sequence[int],
+        first_trade_dates: Dict[int, date],
+        presence_map: Dict[int, Set[date]],
+    ) -> bool:
+        active_ids = _active_stock_ids_for_date(stock_ids, first_trade_dates, point_date)
+        return any(point_date in presence_map.get(stock_id, set()) for stock_id in active_ids)
 
     def _build_rows(
         self,
