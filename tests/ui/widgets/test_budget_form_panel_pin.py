@@ -49,7 +49,7 @@ def test_budget_form_panel_formats_savings_target_with_turkish_grouping(qapp):
 
     panel.spin_target.setValue(300000)
 
-    assert panel.spin_target.text() == "300.000,00TL"
+    assert panel.spin_target.text() == "300.000,00 TL"
     assert panel.spin_target.value() == 300000.0
 
 
