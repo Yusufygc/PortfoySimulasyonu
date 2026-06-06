@@ -35,6 +35,7 @@ from PyQt5.QtWidgets import (
 
 from src.ui.formatters import display_ticker
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+from src.ui.widgets.shared import CurrencySpinBox
 
 
 class CorporateActionDialog(QDialog):
@@ -155,7 +156,7 @@ class CorporateActionDialog(QDialog):
 
         # ── Bedelli alanları (gizli/görünür) ────────────────
         self._lbl_sub_price = QLabel(L10N.KULLANIM_FIYATI_RUCHAN)
-        self._spin_sub_price = QDoubleSpinBox()
+        self._spin_sub_price = CurrencySpinBox()
         self._spin_sub_price.setRange(0.0001, 10000.0)
         self._spin_sub_price.setValue(1.00)
         self._spin_sub_price.setDecimals(4)
@@ -259,7 +260,7 @@ class CorporateActionDialog(QDialog):
 
         if total_qty > 0:
             if is_bedelli:
-                sub_price = Decimal(str(self._spin_sub_price.value()))
+                sub_price = self._spin_sub_price.decimal_value()
                 capital_spent = sub_price * Decimal(str(new_shares))
                 new_total_cost = self._total_cost + capital_spent
                 new_avg = new_total_cost / Decimal(str(total_qty))
@@ -275,7 +276,7 @@ class CorporateActionDialog(QDialog):
         if self._current_price:
             p = self._current_price
             if is_bedelli:
-                sub_price = Decimal(str(self._spin_sub_price.value()))
+                sub_price = self._spin_sub_price.decimal_value()
                 theoretical = (p + ratio * sub_price) / (Decimal("1") + ratio)
             else:
                 theoretical = p / (Decimal("1") + ratio)
@@ -315,6 +316,6 @@ class CorporateActionDialog(QDialog):
         }
 
         if is_bedelli:
-            result["subscription_price"] = Decimal(str(self._spin_sub_price.value()))
+            result["subscription_price"] = self._spin_sub_price.decimal_value()
 
         return result
