@@ -42,6 +42,14 @@ class FakePriceDataHealthService:
         return set(self._active_ids_by_scope.get(scope, self._active_ids_by_scope.get("all_active", set())))
 
 
+class FakeLatestPriceRepo:
+    def __init__(self):
+        self.saved = []
+
+    def upsert_latest_prices(self, prices):
+        self.saved.append(list(prices))
+
+
 def _lookup_result(price):
     return PriceLookupResult(
         price=Decimal(price),
@@ -54,16 +62,18 @@ def make_service(active_ids_by_scope, lookup_results):
     stock_repo = FakeStockRepo()
     lookup_service = FakePriceLookupService(lookup_results)
     health_service = FakePriceDataHealthService(active_ids_by_scope)
+    latest_price_repo = FakeLatestPriceRepo()
     service = LivePriceRefreshService(
         stock_repo=stock_repo,
         price_lookup_service=lookup_service,
         price_data_health_service=health_service,
+        latest_price_repo=latest_price_repo,
     )
-    return service, stock_repo, lookup_service, health_service
+    return service, stock_repo, lookup_service, health_service, latest_price_repo
 
 
 def test_live_price_refresh_scans_all_active_open_positions_only():
-    service, stock_repo, lookup_service, health_service = make_service(
+    service, stock_repo, lookup_service, health_service, latest_price_repo = make_service(
         {"all_active": {1, 3}},
         {"AAA.IS": _lookup_result("10.50"), "CCC.IS": _lookup_result("30.25")},
     )
@@ -76,10 +86,15 @@ def test_live_price_refresh_scans_all_active_open_positions_only():
     assert result.scanned_count == 2
     assert result.updated_count == 2
     assert result.prices == {1: Decimal("10.50"), 3: Decimal("30.25")}
+    saved_prices = latest_price_repo.saved[0]
+    assert [(item.stock_id, item.price, item.source, item.provider) for item in saved_prices] == [
+        (1, Decimal("10.50"), "intraday", "price_lookup"),
+        (3, Decimal("30.25"), "intraday", "price_lookup"),
+    ]
 
 
 def test_live_price_refresh_honors_selected_scope_from_shared_resolver():
-    service, _, lookup_service, health_service = make_service(
+    service, _, lookup_service, health_service, _ = make_service(
         {
             "all_active": {1, 2, 3},
             "dashboard": {1},
@@ -96,7 +111,7 @@ def test_live_price_refresh_honors_selected_scope_from_shared_resolver():
 
 
 def test_live_price_refresh_continues_when_lookup_returns_empty_or_errors():
-    service, _, lookup_service, _ = make_service(
+    service, _, lookup_service, _, latest_price_repo = make_service(
         {"all_active": {1, 2, 3}},
         {
             "AAA.IS": _lookup_result("10"),
@@ -114,6 +129,7 @@ def test_live_price_refresh_continues_when_lookup_returns_empty_or_errors():
     assert len(result.errors) == 2
     assert any("BBB.IS" in error for error in result.errors)
     assert any("CCC.IS" in error for error in result.errors)
+    assert [item.stock_id for item in latest_price_repo.saved[0]] == [1]
 
 
 def test_live_price_refresh_has_no_daily_price_repo_dependency():
