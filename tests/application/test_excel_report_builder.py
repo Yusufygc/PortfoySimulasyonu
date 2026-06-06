@@ -158,14 +158,10 @@ def test_toplam_rows_not_duplicated_in_append_mode(tmp_path):
     snapshots = [_snap()]
 
     # İlk yazma (fresh)
-    detail_df    = builder._build_detail_df(positions, snapshots)
-    summary_df   = builder._build_summary_df(snapshots)
-    stock_df     = builder._build_stock_summary_df(positions)
-    dashboard_df = builder._build_dashboard_df(snapshots, positions)
-    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+    builder.build_and_save(file_path, positions, snapshots, ExportMode.OVERWRITE)
 
     # İkinci yazma (append — aynı veri)
-    builder._append_to_existing_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+    builder.build_and_save(file_path, positions, snapshots, ExportMode.APPEND)
 
     result = pd.read_excel(file_path, sheet_name="Günlük Detaylar", header=1)
     toplam_count = result["Hisse"].str.contains("GÜNLÜK TOPLAM", na=False).sum()
@@ -174,12 +170,12 @@ def test_toplam_rows_not_duplicated_in_append_mode(tmp_path):
 
 # ────── TASARIM 2: _fmt_tr_money(None) → "—" ────────────────────────────────
 
-def test_fresh_excel_contains_only_reporting_sheets(tmp_path):
+def test_excel_contains_only_reporting_sheets(tmp_path):
     builder = _builder()
     file_path = tmp_path / "reporting_sheets.xlsx"
     summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
 
-    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+    builder._write_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
 
     wb = openpyxl.load_workbook(file_path)
     assert wb.sheetnames == [
@@ -196,7 +192,7 @@ def test_dashboard_freeze_pane_xml_is_excel_compatible(tmp_path):
     file_path = tmp_path / "dashboard_panes.xlsx"
     summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
 
-    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+    builder._write_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
 
     with zipfile.ZipFile(file_path) as workbook_zip:
         sheet_xml = workbook_zip.read("xl/worksheets/sheet1.xml").decode("utf-8")
@@ -211,7 +207,7 @@ def test_dashboard_contains_only_metric_table(tmp_path):
     file_path = tmp_path / "dashboard_plain.xlsx"
     summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
 
-    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
+    builder._write_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
 
     wb = openpyxl.load_workbook(file_path)
     ws = wb[SheetName.DASHBOARD]
@@ -224,22 +220,7 @@ def test_dashboard_contains_only_metric_table(tmp_path):
     assert len(ws._charts) == 0
 
 
-def test_append_excel_keeps_chart_sheets_removed(tmp_path):
-    builder = _builder()
-    file_path = tmp_path / "append_without_chart_sheets.xlsx"
-    summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
 
-    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
-    builder._append_to_existing_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
-
-    wb = openpyxl.load_workbook(file_path)
-    assert wb.sheetnames == [
-        SheetName.DASHBOARD,
-        SheetName.SUMMARY,
-        SheetName.DAILY_DETAIL,
-        SheetName.STOCK_SUMMARY,
-    ]
-    assert len(wb[SheetName.DASHBOARD]._charts) == 0
 
 
 def test_empty_source_data_still_writes_without_chart_sheets(tmp_path):
@@ -247,7 +228,7 @@ def test_empty_source_data_still_writes_without_chart_sheets(tmp_path):
     file_path = tmp_path / "empty_reporting_sheets.xlsx"
     dashboard_df = pd.DataFrame([{"Metrik": "Toplam", "Deger": "0"}])
 
-    builder._write_fresh_excel(
+    builder._write_excel(
         file_path,
         pd.DataFrame(),
         pd.DataFrame(),
