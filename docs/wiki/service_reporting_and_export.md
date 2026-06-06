@@ -40,11 +40,17 @@ sequenceDiagram
 
 - `ExcelReportBuilder._append_to_existing_excel` içindeki silent `except Exception: pass` kaldırıldı.
 - Dosya yoksa fresh write yapılır; permission hataları kullanıcıya açık mesajla yükseltilir; corrupt workbook okuma hatasında mevcut backup + yeniden oluşturma davranışı korunur.
-- Büyük reporting sınıfları için daha ileri parçalara ayırma adayı devam eder: append/dedup mantığı `ExcelAppendMerger`, dashboard stats ayrı calculator, chart construction helper'ları.
+- Büyük reporting sınıfları için daha ileri parçalara ayırma adayı devam eder: append/dedup mantığı `ExcelAppendMerger`, dashboard stats ayrı calculator.
 
 ## Faz 2D Notu (2026-06-02)
 
 - Append/dedup/backup davranışı `ExcelAppendMerger` sınıfına taşındı; `ExcelReportBuilder` writer orchestration ve formatting akışını yönetir.
 - Dashboard KPI metinleri ve top holding hesapları `ExcelDashboardStatsCalculator` içinde tutulur.
-- Chart construction `ExcelChartFactory` tarafından yapılır; `ExcelChartBuilder` sheet layout, başlıklar ve chart yerleşimiyle sınırlıdır.
-- Excel sheet kolonları ve dışa aktarım public davranışı değişmedi.
+- Excel dışa aktarım artık dört çalışma sayfası üretir: `Özet Panel`, `Portföy Özeti`, `Günlük Detaylar`, `Hisse Özeti`.
+- Grafik odaklı `Grafikler` ve `Grafik Verileri` sayfaları kaldırıldı; workbook sözleşmesi sadeleştirildi.
+
+## Model Portfoy Rapor Fiyat Sozlesmesi (2026-06-06)
+
+- Model portfoy Excel raporlari tarihsel rapordur ve degerleme icin yalniz `daily_prices` kapanis verisini kullanir; ekranin canli `current_price_map` degerleri rapora overlay edilmez.
+- UI export akisi rapor uretmeden once secili `model:<id>` kapsaminda `PriceDataHealthService.analyze(...)` calistirir. Eksik kapanis fiyati varsa dosya secme ve Excel export cagrisi baslamadan kullaniciya hisse/tarih listesi gosterilir.
+- Bu kapi, model portfoy ekraninda gorunen gecikmeli/canli fiyat ile Excel raporundaki DB kapanis fiyati arasinda sessiz uyumsuzluk olusmasini engeller.
