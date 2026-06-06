@@ -1,5 +1,6 @@
 import sys
 from datetime import date
+from types import SimpleNamespace
 
 import pytest
 
@@ -55,6 +56,9 @@ class DummyPriceDataHealthService:
     def update_missing_prices(self, start_date, end_date, stock_ids=None, scope=None):
         return None
 
+    def update_from_latest_to_today(self, today=None, scope=None):
+        return None
+
 
 class DummySettings:
     def __init__(self, organization=None, application=None):
@@ -78,6 +82,11 @@ class DummyContainer:
     corporate_action_discovery_service = None
     corporate_action_candidate_review_service = None
     stock_repo = None
+
+    class trading_calendar:
+        @staticmethod
+        def is_trading_day(day):
+            return day.weekday() < 5
 
 
 def test_settings_page_renders_price_data_management_section(monkeypatch):
@@ -240,3 +249,22 @@ def test_price_data_actions_pass_selected_scope_to_workers():
         "update_missing_prices",
         (date(2026, 2, 1), page.date_end.date().toPyDate(), None, "model:4"),
     )
+
+
+def test_price_data_actions_update_from_latest_uses_last_completed_trading_day(monkeypatch):
+    monkeypatch.setattr(
+        "src.ui.pages.settings.utils.price_data_actions.date",
+        SimpleNamespace(today=lambda: date(2026, 6, 8)),
+    )
+    page = SettingsPage(container=DummyContainer())
+    page.combo_portfolio_scope.setCurrentIndex(page.combo_portfolio_scope.findData("model:4"))
+    calls = []
+
+    def fake_run_worker(fn, success_slot, busy_text, *args):
+        calls.append((fn.__name__, args))
+
+    page.price_data_tab._actions._run_worker = fake_run_worker
+
+    page.price_data_tab._actions.update_from_latest()
+
+    assert calls == [("update_from_latest_to_today", (date(2026, 6, 5), "model:4"))]
