@@ -70,10 +70,18 @@ graph TD
 
 ## Otomatik Canli Fiyat Yenileme Notu (2026-06-03)
 
-- Uygulamada iki fiyat akisi ayridir: `PriceDataHealthService` kapanis/backfill verisini `daily_prices` tablosuna yazar, `LivePriceRefreshService` intraday/guncel fiyatlari yalniz EventBus payload'u olarak yayar.
+- Uygulamada iki fiyat akisi ayridir: `PriceDataHealthService`, `PriceUpdateService` ve `BackfillService` kapanis/backfill verisini `daily_prices` tablosuna yazar; `LivePriceRefreshService` intraday/guncel fiyatlari `latest_prices` tablosuna upsert eder ve ayni payload'u EventBus ile UI'a yayar.
 - `LivePriceRefreshService` varsayilan `all_active` kapsaminda ana portfoy + model portfoy acik pozisyon hisselerini `PriceDataHealthService.active_stock_ids(...)` yardimcisiyla cozer; kapsam kuralini duplicate etmez.
 - Intraday yenileme `PriceLookupService.lookup_price_for_ticker(...)` kullanir, tekil ticker hatalarini result `errors` listesinde toplar ve diger hisselerin yenilenmesini engellemez.
-- Model portfoy manuel fiyat yenileme de `daily_prices` yazmaz; guncel fiyatlar bellek `current_price_map` ve `prices_updated` eventi uzerinden ekranlara yansir.
+- Model portfoy manuel fiyat yenileme de `daily_prices` yazmaz; guncel fiyatlar `latest_prices`, bellek `current_price_map` ve `prices_updated` eventi uzerinden ekranlara yansir.
+
+## Latest ve Kapanis Fiyat Ayrimi Notu (2026-06-06)
+
+- `daily_prices` yalniz kapanmis islem gunlerinin tarihsel kapanis verisidir; rapor, backtest, fiyat sagligi, analiz ve tarihsel performans bu tabloyu tek kaynak kabul eder.
+- `latest_prices` restart sonrasi korunabilen intraday/latest fiyat cache'idir; satir basina tek `stock_id` tutulur ve `price`, `as_of`, `source`, `provider`, `fetched_at`, `updated_at` alanlariyla son canli veriyi saklar.
+- Dashboard ve Model Portfoy ekran degerlemelerinde oncelik EventBus ile gelen canli fiyat, sonra `latest_prices`, en sonda son `daily_prices` kapanisidir; bu UI sozlesmesi tarihsel rapor sozlesmesini degistirmez.
+- Uygulama acilisindaki otomatik backfill ve Dashboard manuel kapanis guncellemesi bugunu kapanis kabul etmez; hedef tarih her zaman son tamamlanmis islem gunudur.
+- Ayarlar > Fiyat Verisi Yonetimi tarihsel kapanis verisi yonetir; "son gunden bugune" aksiyonu da bugune degil son tamamlanmis islem gunune kadar `daily_prices` tamamlar.
 
 ## Model Portfoy Fiyat Sagligi Notu (2026-06-06)
 
