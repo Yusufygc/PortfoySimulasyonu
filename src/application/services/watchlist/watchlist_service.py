@@ -242,6 +242,39 @@ class WatchlistService:
         """
         self._watchlist_repo.remove_stock_from_watchlist(watchlist_id, stock_id)
 
+    def update_watchlist_item_notes(
+        self,
+        watchlist_id: int,
+        stock_id: int,
+        notes: Optional[str] = None,
+    ) -> None:
+        """
+        Watchlist içindeki bir hissenin notunu günceller.
+        
+        Args:
+            watchlist_id: Watchlist id
+            stock_id: Stock id
+            notes: Yeni not
+        """
+        items = self._watchlist_repo.get_items_by_watchlist_id(watchlist_id)
+        target_item = None
+        for item in items:
+            if item.stock_id == stock_id:
+                target_item = item
+                break
+
+        if not target_item:
+            raise ValueError("Takip listesi veya hisse bulunamadı")
+
+        updated_item = WatchlistItem(
+            id=target_item.id,
+            watchlist_id=watchlist_id,
+            stock_id=stock_id,
+            notes=notes.strip() if notes else None,
+            added_at=target_item.added_at,
+        )
+        self._watchlist_repo.update_item_in_watchlist(updated_item)
+
     def get_watchlist_item_count(self, watchlist_id: int) -> int:
         """Watchlist'teki hisse sayısını döner."""
         items = self._watchlist_repo.get_items_by_watchlist_id(watchlist_id)
