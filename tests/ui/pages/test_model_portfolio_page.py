@@ -39,6 +39,22 @@ class DummyPriceRepo:
         self.saved_prices.extend(prices)
 
 
+class DummyLatestPriceRepo:
+    def __init__(self, price_map=None):
+        self.price_map = dict(price_map or {})
+        self.saved_prices = []
+
+    def get_latest_price_map(self, stock_ids):
+        return {
+            stock_id: self.price_map[stock_id]
+            for stock_id in stock_ids
+            if stock_id in self.price_map
+        }
+
+    def upsert_latest_prices(self, prices):
+        self.saved_prices.extend(list(prices))
+
+
 class DummyEventSignal:
     def __init__(self):
         self.emitted = []
@@ -281,6 +297,27 @@ def test_model_portfolio_update_view_passes_previous_close_map(monkeypatch):
     populate_call = next(call for call in calls if call[0] == "populate")
     assert populate_call[2] == {2: Decimal("24")}
     assert ("sell_enabled", True) in calls
+
+
+def test_model_portfolio_load_current_price_map_prefers_latest_then_daily(monkeypatch):
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.model_portfolio_page.date",
+        SimpleNamespace(today=lambda: date(2026, 6, 5)),
+    )
+    page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+    page.model_portfolio_service = SimpleNamespace(get_positions=lambda portfolio_id: {2: object(), 3: object()})
+    page.latest_price_repo = DummyLatestPriceRepo({2: Decimal("22.50")})
+    page.price_repo = SimpleNamespace(
+        get_last_price_before=lambda stock_id, point_date: (
+            SimpleNamespace(close_price=Decimal("31.40"))
+            if stock_id == 3 and point_date == date(2026, 6, 5)
+            else None
+        )
+    )
+
+    price_map = ModelPortfolioPage._load_current_price_map(page, 4)
+
+    assert price_map == {2: Decimal("22.50"), 3: Decimal("31.40")}
 
 
 def test_info_card_keeps_large_value_class_for_long_text_and_state_changes():
@@ -553,11 +590,13 @@ def test_model_portfolio_report_menu_range_action_triggers_exporter():
 
 def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
     price_repo = DummyPriceRepo()
+    latest_price_repo = DummyLatestPriceRepo()
     event_signal = DummyEventSignal()
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
     page.current_portfolio_id = 4
     page.model_portfolio_service = DummyModelPortfolioService()
     page.price_repo = price_repo
+    page.latest_price_repo = latest_price_repo
     page.current_price_map = {}
     page.container = SimpleNamespace(event_bus=SimpleNamespace(prices_updated=event_signal))
     page.btn_refresh = QPushButton(" Fiyat Güncelle")
@@ -574,6 +613,9 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
 
     assert page.current_price_map == {2: Decimal("22.50")}
     assert price_repo.saved_prices == []
+    assert [(item.stock_id, item.price, item.source) for item in latest_price_repo.saved_prices] == [
+        (2, Decimal("22.50"), "intraday")
+    ]
     assert event_signal.emitted == [{2: Decimal("22.50")}]
 
 
