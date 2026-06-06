@@ -289,14 +289,13 @@ class StockChartWidget(QFrame):
             date_text = "-"
         price_text = _format_tr_currency(snap_y).replace("₺ ", "")  # tek ₺ tooltip içinde
         self._cursor_label.setText(L10N.GRAFIK_TOOLTIP_TMPL.format(date=date_text, price=price_text))
-        # Sağ kenara yakınsa etiketi sola al, yoksa sağa
+        # Etiketi her zaman ViewBox'ın üst-orta veya üst-sağ kısmında sabit tut (Plotly 'x unified' benzeri)
         view_range = view_box.viewRange()
         x_min, x_max = view_range[0]
-        if snap_x > x_min + (x_max - x_min) * 0.7:
-            self._cursor_label.setAnchor((1, 1))
-        else:
-            self._cursor_label.setAnchor((0, 1))
-        self._cursor_label.setPos(QPointF(snap_x, snap_y))
+        y_min, y_max = view_range[1]
+        
+        self._cursor_label.setAnchor((1, 0))  # Sağ-Üst hizalama
+        self._cursor_label.setPos(QPointF(x_max, y_max))
 
     def _set_crosshair_visible(self, visible: bool) -> None:
         for item in (self._cursor_vline, self._cursor_hline, self._cursor_label):
@@ -327,10 +326,8 @@ class StockChartWidget(QFrame):
 
     def _add_reference_legend_item(self, label: str, pen) -> None:
         if self._reference_legend is None:
-            # offset (14, 44): sol kenardan 14, üstten 44px — başlık satırının (~36px)
-            # hemen altına gelir; başlık/X-ekseni tick'leri ile çakışmaz.
             self._reference_legend = pg.LegendItem(
-                offset=(14, 44),
+                offset=(70, 44),  # Y ekseninden (sol kenar) uzaklaştırmak için 14 -> 70 yapıldı
                 brush=pg.mkBrush(15, 23, 42, 220),
                 pen=pg.mkPen(BORDER),
                 labelTextColor=TEXT_PRIMARY,
