@@ -4,9 +4,9 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QDoubleSpinBox,
     QPushButton
 )
+from src.ui.widgets.shared import InstantDoubleSpinBox
 from PyQt5.QtCore import Qt
 
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
@@ -34,7 +34,7 @@ class ContributionDialog(QDialog):
         lbl.setProperty("cssClass", "dialogHeaderTitle")
         layout.addWidget(lbl)
 
-        self.spin_amount = QDoubleSpinBox()
+        self.spin_amount = InstantDoubleSpinBox()
         self.spin_amount.setRange(0.01, 100_000_000)
         self.spin_amount.setDecimals(2)
         self.spin_amount.setSuffix(" TL")
