@@ -34,6 +34,7 @@ class ModelPortfolioPage(BasePage):
         self.page_title = L10N.MODEL_PORTFOYLER
         self.model_portfolio_service = container.model_portfolio_service
         self.model_portfolio_excel_export_service = container.model_portfolio_excel_export_service
+        self.price_data_health_service = getattr(container, "price_data_health_service", None)
         self.price_repo = container.price_repo
         self.market_session_service = getattr(container, "bist_market_session_service", None)
         self.price_lookup_func = price_lookup_func
@@ -66,6 +67,8 @@ class ModelPortfolioPage(BasePage):
         self.btn_empty_buy.clicked.connect(lambda: self._actions.on_trade("BUY"))
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
         self.btn_capital.clicked.connect(self._actions.on_capital_movement)
+        self._report_today_action.triggered.connect(self._on_export_today)
+        self._report_range_action.triggered.connect(self._on_export_range)
         
         self.positions_table.row_double_clicked.connect(self._on_position_double_clicked)
 
