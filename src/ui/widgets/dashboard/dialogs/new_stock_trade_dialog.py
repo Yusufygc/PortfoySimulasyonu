@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+from src.ui.widgets.shared import CurrencySpinBox
 
 SideLiteral = Literal["BUY", "SELL"]
 
@@ -248,13 +249,19 @@ class NewStockTradeDialog(QDialog):
         self.spin_quantity.setValue(1)
         self.spin_quantity.setProperty("cssClass", "tradeInputNormal")
 
-        self.edit_price = QLineEdit()
-        self.edit_price.setPlaceholderText("0.00")
+        self.edit_price = CurrencySpinBox()
+        self.edit_price.setRange(0, 1_000_000)
+        self.edit_price.setDecimals(2)
+        self.edit_price.setSuffix(" TL")
+        self.edit_price.lineEdit().setPlaceholderText("0.00")
         self.edit_price.setProperty("cssClass", "tradeInputNormal")
         self.edit_price.setReadOnly(True)
         
-        self.edit_amount = QLineEdit()
-        self.edit_amount.setPlaceholderText(L10N.TOPLAM_TUTAR)
+        self.edit_amount = CurrencySpinBox()
+        self.edit_amount.setRange(0, 1_000_000_000)
+        self.edit_amount.setDecimals(2)
+        self.edit_amount.setSuffix(" TL")
+        self.edit_amount.lineEdit().setPlaceholderText(L10N.TOPLAM_TUTAR)
         self.edit_amount.setProperty("cssClass", "tradeInputNormal")
         self.edit_amount.setReadOnly(True)
 
@@ -282,7 +289,7 @@ class NewStockTradeDialog(QDialog):
         
         # Hesaplamalar
         self.spin_quantity.valueChanged.connect(self._on_quantity_changed)
-        self.edit_amount.textChanged.connect(self._on_amount_changed)
+        self.edit_amount.valueChanged.connect(self._on_amount_changed)
         
         # Tarih kontrolleri
         self.date_edit.dateChanged.connect(self._on_date_changed)
@@ -326,10 +333,10 @@ class NewStockTradeDialog(QDialog):
         self.lbl_summary_name.setText(name)
         
         # Fiyatı aktar (Eğer henüz girilmediyse)
-        if self.current_price and not self.edit_price.text():
-            self.edit_price.setText(f"{self.current_price:.2f}")
+        if self.current_price and self.edit_price.value() <= 0:
+            self.edit_price.setValue(float(self.current_price))
             # Lot 1 olduğu için tutarı da güncelle
-            self.edit_amount.setText(f"{self.current_price:.2f}")
+            self.edit_amount.setValue(float(self.current_price))
 
     # --- VALIDASYONLAR ---
 
@@ -366,8 +373,7 @@ class NewStockTradeDialog(QDialog):
     def _validate_page2(self) -> bool:
         # Fiyat ve Lot kontrolü
         try:
-            p_text = self.edit_price.text().replace(",", ".")
-            price = float(p_text) if p_text else 0.0
+            price = self.edit_price.value()
             if price <= 0: raise ValueError
         except (ValueError, TypeError):
             QMessageBox.warning(self, L10N.ERROR, L10N.GECERLI_BIR_FIYAT_GIRINIZ)
@@ -390,7 +396,7 @@ class NewStockTradeDialog(QDialog):
         ticker = self._normalized_ticker()
         
         try:
-            price = Decimal(self.edit_price.text().replace(",", "."))
+            price = self.edit_price.decimal_value()
         except (ValueError, Exception):
             price = Decimal("0")
 
@@ -502,23 +508,21 @@ class NewStockTradeDialog(QDialog):
 
     def _on_quantity_changed(self, val):
         if self._updating_amount: return
-        p_text = self.edit_price.text().replace(",", ".")
-        if not p_text: return
+        if self.edit_price.value() <= 0: return
         try:
-            price = float(p_text)
+            price = self.edit_price.value()
             total = val * price
             self._updating_quantity = True
-            self.edit_amount.setText(f"{total:.2f}")
+            self.edit_amount.setValue(total)
             self._updating_quantity = False
         except (ValueError, TypeError): pass
 
-    def _on_amount_changed(self, text):
+    def _on_amount_changed(self, amount):
         if self._updating_quantity: return
-        p_text = self.edit_price.text().replace(",", ".")
-        if not p_text: return
+        if self.edit_price.value() <= 0: return
         try:
-            price = float(p_text)
-            amount = float(text.replace(",", "."))
+            price = self.edit_price.value()
+            amount = float(amount or 0)
             if price > 0:
                 qty = int(amount / price)
                 self._updating_amount = True
