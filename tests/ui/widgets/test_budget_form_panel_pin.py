@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.planning.panels.budget_form_panel import BudgetFormPanel
 
 
@@ -50,3 +51,15 @@ def test_budget_form_panel_formats_savings_target_with_turkish_grouping(qapp):
 
     assert panel.spin_target.text() == "300.000,00TL"
     assert panel.spin_target.value() == 300000.0
+
+
+def test_budget_form_panel_goal_status_card_reserves_wrapped_value_height(qapp):
+    panel = BudgetFormPanel()
+
+    panel.card_goal.set_value(L10N.HEDEFE_ULASILIYOR)
+    panel.card_goal.set_value_state("positive")
+
+    value_label = panel.card_goal.get_value_label()
+    assert value_label.wordWrap()
+    assert value_label.property("cssState") == "positive"
+    assert value_label.minimumHeight() >= value_label.fontMetrics().lineSpacing() * 2
