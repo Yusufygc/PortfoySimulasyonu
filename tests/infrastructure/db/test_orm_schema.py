@@ -2,6 +2,7 @@ from src.infrastructure.db.sqlalchemy.orm_models import (
     ORMCorporateAction,
     ORMCorporateActionCandidate,
     ORMDailyPrice,
+    ORMLatestPrice,
     ORMBudgetPinnedItem,
     ORMModelPortfolioCashMovement,
     ORMStock,
@@ -15,6 +16,18 @@ def constraint_names(model) -> set[str]:
 
 def test_daily_prices_declares_upsert_unique_constraint():
     assert "uq_daily_price" in constraint_names(ORMDailyPrice)
+
+
+def test_latest_prices_declares_stock_unique_constraint():
+    columns = ORMLatestPrice.__table__.columns
+    index_names = {index.name for index in ORMLatestPrice.__table__.indexes}
+
+    assert "stock_id" in columns
+    assert "price" in columns
+    assert "as_of" in columns
+    assert "fetched_at" in columns
+    assert "uq_latest_prices_stock" in constraint_names(ORMLatestPrice)
+    assert "idx_latest_prices_as_of" in index_names
 
 
 def test_watchlist_items_declares_duplicate_guard_constraint():
