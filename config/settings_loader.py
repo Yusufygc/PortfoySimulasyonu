@@ -36,15 +36,17 @@ class AppSettings:
 
 
 def _env_file_path() -> Path:
+    env_name = os.getenv("PORTFOYSIM_ENV", "").lower()
+    filename = f".env.{env_name}" if env_name else ".env"
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent / ".env"
-    return Path(__file__).resolve().parents[1] / ".env"
+        return Path(sys.executable).resolve().parent / filename
+    return Path(__file__).resolve().parents[1] / filename
 
 
 def _load_project_env() -> None:
     env_path = _env_file_path()
     if env_path.exists():
-        load_dotenv(env_path, override=False)
+        load_dotenv(env_path, override=True)
 
 
 def _required_env(name: str) -> str:
