@@ -29,7 +29,7 @@ class AnalysisControlPanel(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setProperty("cssClass", "panelFramePadded")
+        self.setProperty("cssClass", "panelFrame")
         self.setMinimumWidth(360)
         self.setMaximumWidth(400)
         self.setMinimumHeight(0)
@@ -132,7 +132,7 @@ class AnalysisControlPanel(QFrame):
         combo = QComboBox()
         combo.setProperty("cssClass", "customComboBox")
         combo.setMinimumHeight(38)
-        combo.setSizeAdjustPolicy(QComboBox.AdjustToContentsOnFirstShow)
+        combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLength)
         return combo
 
     def _wrap_field(self, title: str, widget, description: str | None = None) -> QFrame:
