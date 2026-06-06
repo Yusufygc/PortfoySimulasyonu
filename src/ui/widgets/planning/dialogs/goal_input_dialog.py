@@ -6,11 +6,11 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QLabel,
     QLineEdit,
-    QDoubleSpinBox,
     QDateEdit,
     QComboBox,
     QPushButton
 )
+from src.ui.widgets.shared import InstantDoubleSpinBox
 from PyQt5.QtCore import QDate, Qt
 
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
@@ -44,7 +44,7 @@ class GoalInputDialog(QDialog):
         lbl_name.setProperty("cssClass", "formLabel")
         form.addRow(lbl_name, self.txt_name)
 
-        self.spin_amount = QDoubleSpinBox()
+        self.spin_amount = InstantDoubleSpinBox()
         self.spin_amount.setRange(1, 100_000_000)
         self.spin_amount.setDecimals(2)
         self.spin_amount.setSuffix(" TL")
@@ -124,6 +124,20 @@ class GoalInputDialog(QDialog):
         if not name or date_val < today:
             return
         super().accept()
+
+    def load_goal(self, goal) -> None:
+        self.setWindowTitle("Hedefi Düzenle")
+        self.txt_name.setText(goal.name)
+        self.spin_amount.setValue(float(goal.target_amount))
+        if goal.deadline:
+            self.date_deadline.setDate(goal.deadline)
+        priority_map_reverse = {
+            "LOW": 0,
+            "MEDIUM": 1,
+            "HIGH": 2
+        }
+        self.combo_priority.setCurrentIndex(priority_map_reverse.get(goal.priority, 1))
+        self.btn_save.setText(L10N.SAVE)
 
     def get_result(self):
         name = self.txt_name.text().strip()
