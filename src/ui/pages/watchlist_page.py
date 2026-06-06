@@ -28,7 +28,7 @@ from src.ui.widgets.shared.controls.icon_label import IconLabel
 from .base_page import BasePage
 from src.domain.models.watchlist import Watchlist
 from src.ui.widgets.shared import ActionListItem, AnimatedButton, Toast
-from src.ui.widgets.watchlist.dialogs.add_stock_to_watchlist_dialog import AddStockToWatchlistDialog
+from src.ui.widgets.watchlist.dialogs import AddStockToWatchlistDialog, EditStockInWatchlistDialog
 from src.ui.widgets.watchlist.dialogs.watchlist_dialog import WatchlistDialog
 
 
@@ -152,14 +152,15 @@ class WatchlistPage(BasePage):
         self.stock_table.setHorizontalHeaderLabels([L10N.HISSE_ADI, "Not", ""])
         self.stock_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.stock_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.stock_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.stock_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+        self.stock_table.setColumnWidth(2, 100)
         self.stock_table.setSelectionMode(QTableWidget.NoSelection)
         self.stock_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.stock_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.stock_table.setAlternatingRowColors(True)
         self.stock_table.setShowGrid(False)
         self.stock_table.setFocusPolicy(Qt.NoFocus)
-        self.stock_table.setWordWrap(False)
+        self.stock_table.setWordWrap(True)
         self.stock_table.setProperty("cssClass", "watchlistTable")
         self.stock_table.horizontalHeader().setHighlightSections(False)
         self.stock_table.verticalHeader().setDefaultSectionSize(42)
@@ -256,14 +257,35 @@ class WatchlistPage(BasePage):
             notes_item = self._readonly_table_item(notes)
             self.stock_table.setItem(i, 1, notes_item)
             
+            # Eylem butonları için layout
+            actions_widget = QWidget()
+            actions_widget.setProperty("cssClass", "tableActionContainer")
+            actions_layout = QHBoxLayout(actions_widget)
+            actions_layout.setContentsMargins(4, 0, 4, 0)
+            actions_layout.setSpacing(6)
+            
+            btn_edit = AnimatedButton("")
+            btn_edit.setIconName("pencil", color="@COLOR_TEXT_PRIMARY")
+            btn_edit.setFixedWidth(32)
+            btn_edit.setProperty("cssClass", "textButton")
+            btn_edit.clicked.connect(
+                lambda checked, sd=stock_data: self._on_edit_stock(sd)
+            )
+            
             btn_remove = AnimatedButton("")
             btn_remove.setIconName("trash-2", color="@COLOR_DANGER")
-            btn_remove.setFixedWidth(40)
+            btn_remove.setFixedWidth(32)
             btn_remove.setProperty("cssClass", "dangerTextButton")
             btn_remove.clicked.connect(
                 lambda checked, sid=stock_data["stock"].id: self._on_remove_stock(sid)
             )
-            self.stock_table.setCellWidget(i, 2, btn_remove)
+            
+            actions_layout.addWidget(btn_edit)
+            actions_layout.addWidget(btn_remove)
+            actions_layout.setAlignment(Qt.AlignCenter)
+            self.stock_table.setCellWidget(i, 2, actions_widget)
+
+        self.stock_table.resizeRowsToContents()
 
     def _create_empty_state(self) -> QWidget:
         empty = QFrame()
@@ -390,6 +412,32 @@ class WatchlistPage(BasePage):
             Toast.warning(self, str(e))
         except Exception as e:
             Toast.error(self, f"Hisse eklenemedi: {e}")
+
+    def _on_edit_stock(self, stock_data: dict):
+        if self.current_watchlist_id is None:
+            return
+
+        ticker = stock_data["ticker"]
+        current_notes = stock_data["item"].notes or ""
+
+        ok, new_notes = EditStockInWatchlistDialog.get_notes_input(
+            ticker=display_ticker(ticker),
+            current_notes=current_notes,
+            parent=self
+        )
+        if not ok:
+            return
+
+        try:
+            self.watchlist_service.update_watchlist_item_notes(
+                self.current_watchlist_id,
+                stock_data["stock"].id,
+                new_notes
+            )
+            self._load_stocks()
+            Toast.success(self, L10N.HISSE_NOTU_GUNCELLENDI)
+        except Exception as e:
+            Toast.error(self, f"Hisse güncellenemedi: {e}")
 
     def _on_remove_stock(self, stock_id: int):
         if self.current_watchlist_id is None:
