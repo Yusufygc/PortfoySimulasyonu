@@ -28,6 +28,13 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef:
     raise AssertionError(f"{name} function not found")
 
 
+def _class(tree: ast.Module, name: str) -> ast.ClassDef:
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == name:
+            return node
+    raise AssertionError(f"{name} class not found")
+
+
 def test_app_sets_qt_webengine_attribute_before_qapplication():
     tree = ast.parse((ROOT / "app.py").read_text(encoding="utf-8"))
     main_func = _function(tree, "main")
@@ -63,3 +70,36 @@ def test_qt_attribute_helper_enables_shared_opengl_contexts():
         for call in calls
         if call.args
     )
+
+
+def test_main_window_initial_size_matches_analysis_layout_contract():
+    tree = ast.parse((ROOT / "src" / "ui" / "main_window.py").read_text(encoding="utf-8"))
+    assignments = {
+        node.targets[0].id: node.value.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id in {"MAIN_WINDOW_INITIAL_WIDTH", "MAIN_WINDOW_INITIAL_HEIGHT"}
+        and isinstance(node.value, ast.Constant)
+    }
+    init_func = next(
+        node for node in _class(tree, "MainWindow").body
+        if isinstance(node, ast.FunctionDef) and node.name == "__init__"
+    )
+    resize_calls = [
+        node
+        for node in ast.walk(init_func)
+        if isinstance(node, ast.Call)
+        and _call_name(node) == "self.resize"
+    ]
+
+    assert assignments == {
+        "MAIN_WINDOW_INITIAL_WIDTH": 1400,
+        "MAIN_WINDOW_INITIAL_HEIGHT": 900,
+    }
+    assert len(resize_calls) == 1
+    assert [arg.id for arg in resize_calls[0].args] == [
+        "MAIN_WINDOW_INITIAL_WIDTH",
+        "MAIN_WINDOW_INITIAL_HEIGHT",
+    ]
