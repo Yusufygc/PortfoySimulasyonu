@@ -5,8 +5,9 @@ from decimal import Decimal
 from typing import Optional
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QDoubleSpinBox, QFormLayout, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout
+from PyQt5.QtWidgets import QDialog, QFormLayout, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout
 
+from src.ui.widgets.shared import CurrencySpinBox
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
 
@@ -34,7 +35,7 @@ class PortfolioInputDialog(QDialog):
         form.addRow("Açıklama:", self.txt_desc)
 
         if not self.is_edit:
-            self.spin_cash = QDoubleSpinBox()
+            self.spin_cash = CurrencySpinBox()
             self.spin_cash.setRange(1000, 100_000_000)
             self.spin_cash.setDecimals(2)
             self.spin_cash.setSuffix(" TL")
@@ -64,5 +65,5 @@ class PortfolioInputDialog(QDialog):
         return {
             "name": name,
             "description": self.txt_desc.text().strip() or None,
-            "initial_cash": Decimal(str(self.spin_cash.value())) if not self.is_edit else None,
+            "initial_cash": self.spin_cash.decimal_value() if not self.is_edit else None,
         }
