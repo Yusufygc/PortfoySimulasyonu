@@ -199,6 +199,7 @@ def _build_feature_services(
             stock_repo=repositories.stock_repo,
             price_lookup_service=market_clients.price_lookup_service,
             price_data_health_service=price_data_health_service,
+            latest_price_repo=repositories.latest_price_repo,
         ),
         "analysis_service": AnalysisService(
             portfolio_repo=repositories.portfolio_repo,
