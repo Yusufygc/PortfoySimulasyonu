@@ -6,6 +6,7 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Dict, Optional
 
+from src.application.services.market.trade_session_guard import ensure_trade_session_open
 from src.domain.models.model_portfolio import (
     ModelPortfolioCashMovement,
     ModelPortfolioCashMovementType,
@@ -166,9 +167,10 @@ class ModelPortfolioTradeSimulator:
 
 
 class ModelPortfolioTradeService:
-    def __init__(self, portfolio_repo, stock_repo) -> None:
+    def __init__(self, portfolio_repo, stock_repo, market_session_service=None) -> None:
         self._portfolio_repo = portfolio_repo
         self._stock_repo = stock_repo
+        self._market_session_service = market_session_service
         self._simulator = ModelPortfolioTradeSimulator()
 
     def get_portfolio_trades(self, portfolio_id: int):
@@ -204,6 +206,7 @@ class ModelPortfolioTradeService:
             quantity=quantity,
             price=price,
         )
+        ensure_trade_session_open(self._market_session_service, trade_date, trade_time)
 
         trades_at = self._filter_trades_until(all_trades, as_of=(trade_date, trade_time))
         movements_at = self._filter_movements_until(all_movements, as_of=(trade_date, trade_time))
@@ -337,6 +340,7 @@ class ModelPortfolioTradeService:
             raise ValueError("Lot adedi pozitif olmalidir.")
         if price <= 0:
             raise ValueError("Fiyat pozitif olmalidir.")
+        ensure_trade_session_open(self._market_session_service, trade_date, trade_time)
         stock = self._stock_repo.get_stock_by_ticker(normalized_ticker)
         if stock is None:
             if trade_side != ModelTradeSide.BUY:
