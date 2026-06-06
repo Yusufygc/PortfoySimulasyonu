@@ -5,6 +5,7 @@ import logging
 from datetime import date
 from PyQt5.QtWidgets import QMessageBox, QFileDialog, QDialog
 
+from src.application.services.market.price_data_health_service import PRICE_SCOPE_MODEL_PREFIX
 from src.application.services.reporting.daily_history_models import ExportMode
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,8 @@ class PortfolioExporter:
     def _export_model_portfolio_history(self, start_date: date, end_date: date) -> None:
         if self.page.current_portfolio_id is None:
             return
+        if self._has_missing_history_prices(start_date, end_date):
+            return
         portfolio = self.page.list_panel.current_portfolio()
         portfolio_name = portfolio.name if portfolio else self.page.lbl_portfolio_name.text()
         default_name = f"model_portfoy_{self._safe_file_stem(portfolio_name)}.xlsx"
@@ -66,6 +69,39 @@ class PortfolioExporter:
             QMessageBox.information(self.page, L10N.SUCCESS, L10N.MODEL_PORTFOY_EXCEL_RAPORU_OLUSTURULDU)
         except Exception as exc:
             QMessageBox.critical(self.page, L10N.ERROR, f"Excel raporu oluşturulamadı: {exc}")
+
+    def _has_missing_history_prices(self, start_date: date, end_date: date) -> bool:
+        health_service = getattr(self.page, "price_data_health_service", None)
+        if health_service is None or self.page.current_portfolio_id is None:
+            return False
+
+        scope = f"{PRICE_SCOPE_MODEL_PREFIX}{self.page.current_portfolio_id}"
+        report = health_service.analyze(start_date, end_date, scope=scope)
+        if report.total_missing_count == 0:
+            return False
+
+        QMessageBox.warning(
+            self.page,
+            L10N.MODEL_PORTFOY_RAPORU_EKSIK_FIYAT_BASLIK,
+            self._format_missing_price_message(report),
+        )
+        return True
+
+    def _format_missing_price_message(self, report) -> str:
+        details = []
+        missing_rows = [row for row in report.rows if row.missing_dates]
+        for row in missing_rows[:8]:
+            dates = ", ".join(point_date.strftime(L10N.DMY) for point_date in row.missing_dates[:5])
+            if row.missing_count > 5:
+                dates += f", ... +{row.missing_count - 5} gün"
+            details.append(f"- {row.ticker}: {dates}")
+        if len(missing_rows) > 8:
+            details.append(f"- ... +{len(missing_rows) - 8} hisse")
+
+        return (
+            f"{L10N.MODEL_PORTFOY_RAPORU_EKSIK_FIYAT_UYARISI}\n\n"
+            + "\n".join(details)
+        )
 
     @staticmethod
     def _safe_file_stem(value: str) -> str:
