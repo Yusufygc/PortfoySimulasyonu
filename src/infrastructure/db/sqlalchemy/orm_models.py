@@ -90,6 +90,27 @@ class ORMDailyPrice(Base):
 
     stock = relationship("ORMStock", back_populates="daily_prices")
 
+
+class ORMLatestPrice(Base):
+    __tablename__ = "latest_prices"
+
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    stock_id = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    price = Column(Numeric(18, 4), nullable=False)
+    as_of = Column(DateTime, nullable=False)
+    source = Column(String(50), nullable=False)
+    provider = Column(String(50), nullable=False)
+    fetched_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("stock_id", name="uq_latest_prices_stock"),
+        Index("idx_latest_prices_as_of", "as_of"),
+    )
+
+    stock = relationship("ORMStock")
+
+
 class ORMWatchlist(Base):
     __tablename__ = "watchlists"
 
