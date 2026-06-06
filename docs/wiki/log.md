@@ -5,6 +5,43 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-06] güncelleme | Dashboard Özet Kartları ve Güncelleme Bilgisi Görsel İyileştirmesi
+
+- Hem **Dashboard** hem de **Model Portföyler** sayfalarında yer alan "Son güncelleme" (`lbl_last_update`) etiketleri, `lastUpdateLabel` CSS sınıfı üzerinden ortaklaşa biçimlendirilecek şekilde standartlaştırıldı.
+- `lastUpdateLabel` sınıfının stili [dashboard.qss](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/styles/features/dashboard.qss) dosyasında güncellenerek; yazı boyutu büyütüldü (`@FONT_MD`, 15px) ve rengi parlak cyan/vurgu rengi (`@COLOR_ACCENT`) olarak ayarlandı.
+- Model Portföyler sayfasındaki butonlar ve altındaki güncelleme bilgisi etiketi `QVBoxLayout` sarmalayıcısı ile üst başlık (`header`) hizasına yerleştirildi.
+- Dashboard sayfasındaki tüm özet kartlarının (Toplam Portföy Değeri, Toplam Maliyet, Nakit Sermaye, Dönemsel Getiriler) arka plan renk ve kenarlık tasarımları, mavi tonlu "Toplam Portföy Değeri" (`cardType="total"`) kartının tasarımıyla (`@COLOR_CARD_GRADIENT_TOTAL` ve `@CARD_TOTAL_BORDER` kullanılarak) birleştirilerek ortaklaştırıldı.
+- Özet kartı başlıklarının (`summaryCardTitle`) yazı boyutu büyütüldü (`@FONT_BASE`, 14px), yazı fontu `bold` yapıldı ve renkleri tema geçişlerine duyarlı, parlak `@COLOR_TEXT_BRIGHT` tokenına bağlandı.
+- Etkilenen dosyalar: `src/ui/pages/model_portfolio/utils/model_portfolio_ui_builder.py`, `src/ui/styles/features/dashboard.qss`, `src/ui/styles/features/model_portfolio.qss`, `tests/ui/pages/test_model_portfolio_page.py`
+- Bağlantılı sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-06] güncelleme | Takip Listesinde Hisse Düzenleme Mekanizması
+
+- Takip listesindeki ("Listelerim") hisselerin notlarını düzenlemeyi sağlayan kalem (`pencil`) butonu silme butonunun soluna yerleştirildi.
+- Hissenin notlarını güncellemek için modern `EditStockInWatchlistDialog` dialog penceresi oluşturuldu.
+- Butonların üst üste binmesini önlemek amacıyla eylem sütunu 100px sabit genişliğe alındı ve butonlar yatayda orantılı hizalandı.
+- Tabloda kelime kaydırma (word wrap) aktif edilerek uzun notların eylem butonlarını ezmeden alt satıra geçmesi ve satır yüksekliklerinin içeriğe göre otomatik uyum sağlaması (`resizeRowsToContents()`) sağlandı.
+- Clean Architecture katmanlarında (Domain, Application, Infrastructure) `update_item_in_watchlist` ve `update_watchlist_item_notes` metodları eklenerek veri akışı ve kalıcılık sağlandı.
+- Arayüzdeki yeni metinler `L10N` sınıfına (`locale_tr.py`) eklenerek Türkçe lokalizasyon standartları korundu.
+- Etkilenen dosyalar: `src/domain/ports/repositories/i_watchlist_repo.py`, `src/infrastructure/db/sqlalchemy/repositories/sa_watchlist_repository.py`, `src/application/services/watchlist/watchlist_service.py`, `src/ui/shared/locale_tr.py`, `src/ui/widgets/watchlist/dialogs/edit_stock_in_watchlist_dialog.py`, `src/ui/widgets/watchlist/dialogs/__init__.py`, `src/ui/pages/watchlist_page.py`
+- Bağlantılı sayfa: [service_watchlist.md](service_watchlist.md)
+
+## [2026-06-06] guncelleme | Model portfoy rapor fiyat sagligi kapisi
+
+- Model portfoy raporlari icin tarihsel `daily_prices` kapanis verisi sozlesmesi netlestirildi; canli ekran fiyatlari Excel raporuna karistirilmiyor.
+- Dar fiyat sagligi kapsamlarinda tum secili hisseler ayni is gununde eksikse, baska aktif kapsamda fiyat varsa gun artik tatil adayi olarak gizlenmiyor ve eksik veri sayiliyor.
+- Model portfoy export akisi eksik kapanis fiyati varken dosya secme ve Excel uretimini baslatmadan kullaniciya hisse/tarih listesi gosterir.
+- Etkilenen dosyalar: `src/application/services/market/price_data_health_service.py`, `src/ui/pages/model_portfolio/`, `docs/wiki/service_portfolio_and_market.md`, `docs/wiki/service_reporting_and_export.md`
+- Baglantili sayfalar: [service_portfolio_and_market.md](service_portfolio_and_market.md), [service_reporting_and_export.md](service_reporting_and_export.md)
+
+## [2026-06-05] guncelleme | Excel raporlarindan grafik sayfalari kaldirildi
+
+- Excel history export workbook sozlesmesi sadeleştirildi; `Grafikler` ve gizli `Grafik Verileri` sayfalari tamamen kaldirildi.
+- Reporting katmanindaki chart builder/factory bagimliligi, chart data hazirlama yardimcilari ve bu sayfalara ozel test beklentileri temizlendi.
+- Dogrulama: hedefli `tests/application/test_excel_report_builder.py` ve `tests/application/test_model_portfolio_excel_export_service.py`, ardindan tam `tests` kosumu planlandi.
+- Etkilenen dosyalar: `src/application/services/reporting/`, `tests/application/test_excel_report_builder.py`, `docs/wiki/service_reporting_and_export.md`
+- Baglantili sayfalar: [service_reporting_and_export.md](service_reporting_and_export.md), [architecture.md](architecture.md)
+
 ## [2026-06-04] güncelleme | Hedef Validasyonu ve Tablo İçi Aksiyonlar
 
 - "Yeni Hedef" diyaloğunda geçmiş tarihlerin seçilmesi takvim üzerinde kısıtlandı; elle girilirse dinamik validasyon etiketi gösterilip "Ekle" butonu pasifleştirildi.
