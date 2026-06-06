@@ -2,9 +2,9 @@ from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QDoubleSpinBox, QFrame, QHBoxLayout, QLineEdit
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLineEdit
 
-from src.ui.widgets.shared import AnimatedButton
+from src.ui.widgets.shared import AnimatedButton, CurrencySpinBox
 
 
 class BudgetItemRow(QFrame):
@@ -28,7 +28,7 @@ class BudgetItemRow(QFrame):
         self.name_edit.setMinimumHeight(30)
         self.name_edit.textChanged.connect(self.changed)
 
-        self.amount_spin = QDoubleSpinBox()
+        self.amount_spin = CurrencySpinBox()
         self.amount_spin.setRange(0, 10_000_000)
         self.amount_spin.setDecimals(2)
         self.amount_spin.setSuffix(" TL")
