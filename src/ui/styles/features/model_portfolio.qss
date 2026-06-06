@@ -78,3 +78,5 @@ QTableWidget[cssClass="modelPositionsTable"] QHeaderView::section {
     font-size: @FONT_MD;
     font-weight: bold;
 }
+
+
