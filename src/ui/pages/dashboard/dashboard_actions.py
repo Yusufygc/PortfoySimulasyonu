@@ -133,7 +133,7 @@ class DashboardActions:
         self._page.record_last_update_time()
         self._page.show_last_update_toast_once(
             force=True,
-            detail=f"{price_update_result.updated_count} hisse güncellendi.",
+            detail=f"{price_update_result.updated_count} hisse için tarihsel kapanış verisi güncellendi.",
         )
 
     def on_update_prices_error(self, err_tuple) -> None:
