@@ -95,7 +95,7 @@ def test_main_window_initial_size_matches_analysis_layout_contract():
     ]
 
     assert assignments == {
-        "MAIN_WINDOW_INITIAL_WIDTH": 1400,
+        "MAIN_WINDOW_INITIAL_WIDTH": 1600,
         "MAIN_WINDOW_INITIAL_HEIGHT": 900,
     }
     assert len(resize_calls) == 1
