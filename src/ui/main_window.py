@@ -2,7 +2,7 @@ from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
 import logging
-from datetime import date
+from datetime import date, timedelta
 from typing import List, Optional
 
 from PyQt5.QtCore import QSettings, QThreadPool, QTimer, Qt
@@ -29,6 +29,15 @@ logger = logging.getLogger(__name__)
 
 AUTO_BACKFILL_SETTINGS_KEY = "settings/last_auto_price_backfill_at"
 AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY = "settings/last_auto_corporate_action_discovery_at"
+MAIN_WINDOW_INITIAL_WIDTH = 1600
+MAIN_WINDOW_INITIAL_HEIGHT = 900
+
+
+def last_completed_trading_day(today: date, trading_calendar) -> date:
+    candidate = today - timedelta(days=1)
+    while trading_calendar is not None and not trading_calendar.is_trading_day(candidate):
+        candidate -= timedelta(days=1)
+    return candidate
 
 
 class MainWindow(QMainWindow):
@@ -63,10 +72,11 @@ class MainWindow(QMainWindow):
             settings=self._settings,
             threadpool=self._threadpool,
         )
+        self._auto_price_backfill_target_date = None
         self._connect_model_portfolio_price_persister()
         self.setWindowTitle(L10N.APP_TITLE)
         self.setWindowIcon(QIcon("icons/portfoy-simulasyonu.ico"))
-        self.resize(1300, 800)
+        self.resize(MAIN_WINDOW_INITIAL_WIDTH, MAIN_WINDOW_INITIAL_HEIGHT)
 
         self._init_ui()
         self._goto_page(self.PAGE_DASHBOARD)
@@ -253,18 +263,26 @@ class MainWindow(QMainWindow):
         service = getattr(self.container, "price_data_health_service", None)
         if service is None:
             return
-        today = date.today()
+        target_date = last_completed_trading_day(
+            date.today(),
+            getattr(self.container, "trading_calendar", None),
+        )
         last_run = self._settings.value(AUTO_BACKFILL_SETTINGS_KEY, "", type=str)
-        if last_run == today.isoformat():
+        if last_run == target_date.isoformat():
             return
 
-        worker = Worker(service.update_from_latest_to_today, today)
+        self._auto_price_backfill_target_date = target_date
+        worker = Worker(service.update_from_latest_to_today, target_date)
         worker.signals.result.connect(self._on_auto_price_backfill_success)
         worker.signals.error.connect(self._on_auto_price_backfill_error)
         self._threadpool.start(worker)
 
     def _on_auto_price_backfill_success(self, result) -> None:
-        self._settings.setValue(AUTO_BACKFILL_SETTINGS_KEY, date.today().isoformat())
+        target_date = self._auto_price_backfill_target_date or last_completed_trading_day(
+            date.today(),
+            getattr(self.container, "trading_calendar", None),
+        )
+        self._settings.setValue(AUTO_BACKFILL_SETTINGS_KEY, target_date.isoformat())
         self._settings.sync()
         publish_prices_updated(getattr(self.container, "event_bus", None), getattr(result, "prices", None))
         updated_count = getattr(result, "updated_count", 0)
