@@ -1,6 +1,7 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
+from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
 from PyQt5.QtWidgets import QApplication, QMessageBox
@@ -76,11 +77,12 @@ class PriceDataActions:
         panel = self.panel
         if panel.price_data_health_service is None:
             return
+        target_date = self._last_completed_trading_day(date.today())
         self._run_worker(
             panel.price_data_health_service.update_from_latest_to_today,
             self._on_update_success,
             L10N.SON_GUNCEL_GUNDEN_BUGUNE_EKSIKLER,
-            None,
+            target_date,
             panel._selected_scope(),
         )
 
@@ -124,6 +126,13 @@ class PriceDataActions:
         worker.signals.error.connect(self._on_worker_error)
         worker.signals.finished.connect(lambda: panel._set_busy(False))
         panel.threadpool.start(worker)
+
+    def _last_completed_trading_day(self, today: date) -> date:
+        candidate = today - timedelta(days=1)
+        calendar = getattr(getattr(self.panel, "container", None), "trading_calendar", None)
+        while calendar is not None and not calendar.is_trading_day(candidate):
+            candidate -= timedelta(days=1)
+        return candidate
 
     def _on_analyze_success(self, report: PriceDataHealthReport) -> None:
         self.panel._apply_report(report)
