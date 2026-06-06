@@ -8,10 +8,13 @@ import pytest
 pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication, QDialog, QPushButton
 
+from src.application.services.market.price_data_health_service import PriceDataHealthReport, StockPriceHealthRow
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
 from src.ui.pages.model_portfolio.utils.model_portfolio_actions import ModelPortfolioActions
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared import ActionListItem
+from src.ui.widgets.shared.cards.info_card import InfoCard
 from src.ui.widgets.model_portfolio.panels.portfolio_list_panel import PortfolioListPanel
 
 
@@ -156,7 +159,7 @@ def test_model_portfolio_page_moves_trade_buttons_to_positions_header_and_shows_
     assert page._positions_header_layout.indexOf(page.btn_sell) >= 0
     assert page.btn_capital.property("cssClass") == "capitalButton"
     assert page.btn_report.property("cssClass") == "reportButton"
-    assert page._portfolio_header_layout.indexOf(page.btn_capital) < page._portfolio_header_layout.indexOf(page.btn_report)
+    assert page._buttons_layout.indexOf(page.btn_capital) < page._buttons_layout.indexOf(page.btn_report)
     assert not page.btn_report.isEnabled()
     assert not page.btn_capital.isEnabled()
     assert [action.text() for action in page.btn_report.menu().actions()] == ["Bugün", "Tarih Aralığı"]
@@ -280,6 +283,75 @@ def test_model_portfolio_update_view_passes_previous_close_map(monkeypatch):
     assert ("sell_enabled", True) in calls
 
 
+def test_info_card_keeps_large_value_class_for_long_text_and_state_changes():
+    card = InfoCard("K/Z", "TL 0")
+
+    card.set_value("TL +42,082.82")
+    card.set_value_state("positive")
+
+    value_label = card.get_value_label()
+    assert value_label.property("cssClass") == "infoCardValue"
+    assert value_label.property("cssState") == "positive"
+
+
+def test_model_portfolio_update_view_sets_profit_loss_card_state_for_positive_and_zero():
+    class FakeService:
+        def __init__(self, profit_loss):
+            self._profit_loss = profit_loss
+
+        def get_portfolio_summary(self, portfolio_id, price_map):
+            return {
+                "initial_cash": Decimal("1000"),
+                "net_capital": Decimal("1000"),
+                "remaining_cash": Decimal("100"),
+                "total_value": Decimal("1200"),
+                "profit_loss": self._profit_loss,
+            }
+
+        def get_positions_with_details(self, portfolio_id, price_map):
+            return []
+
+    class RecordingCard:
+        def __init__(self):
+            self.values = []
+            self.states = []
+
+        def set_value(self, value):
+            self.values.append(value)
+
+        def set_value_state(self, state):
+            self.states.append(state)
+
+    def build_page(profit_loss):
+        neutral_card = SimpleNamespace(set_value=lambda *_args: None, set_value_state=lambda *_args: None)
+        pl_card = RecordingCard()
+        page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+        page.current_portfolio_id = 7
+        page.current_price_map = {}
+        page.model_portfolio_service = FakeService(profit_loss)
+        page.price_repo = SimpleNamespace()
+        page.card_initial = neutral_card
+        page.card_cash = neutral_card
+        page.card_value = neutral_card
+        page.card_pl = pl_card
+        page.positions_table = SimpleNamespace(populate=lambda positions, previous_close_map=None: None)
+        page.positions_stack = SimpleNamespace(setCurrentWidget=lambda widget: None)
+        page.empty_positions_state = object()
+        page.btn_sell = SimpleNamespace(setEnabled=lambda enabled: None)
+        return page, pl_card
+
+    positive_page, positive_card = build_page(Decimal("200"))
+    zero_page, zero_card = build_page(Decimal("0"))
+
+    ModelPortfolioPage._update_view(positive_page)
+    ModelPortfolioPage._update_view(zero_page)
+
+    assert positive_card.values[-1] == "TL +200.00"
+    assert positive_card.states[-1] == "positive"
+    assert zero_card.values[-1] == L10N.TL_000
+    assert zero_card.states[-1] == "neutral"
+
+
 def test_model_portfolio_capital_action_passes_dialog_result_to_service(monkeypatch):
     calls = []
 
@@ -364,6 +436,7 @@ def test_model_portfolio_export_today_uses_history_report(tmp_path, monkeypatch)
     page.list_panel = SimpleNamespace(current_portfolio=lambda: ModelPortfolio(id=8, name="deneme portföy"))
     page.model_portfolio_excel_export_service = export_service
     page.model_portfolio_service = SimpleNamespace(get_first_trade_date=lambda portfolio_id: date(2026, 1, 2))
+    page.price_data_health_service = None
 
     file_path = str(tmp_path / "model.xlsx")
     monkeypatch.setattr(
@@ -380,6 +453,102 @@ def test_model_portfolio_export_today_uses_history_report(tmp_path, monkeypatch)
     ModelPortfolioPage._on_export_today(page)
 
     assert export_service.calls[0][0:4] == (8, date(2026, 1, 2), date(2026, 5, 26), file_path)
+
+
+def test_model_portfolio_export_today_blocks_when_history_prices_are_missing(monkeypatch):
+    export_service = DummyModelPortfolioExcelExportService()
+    warnings = []
+    save_dialog_calls = []
+    missing_report = PriceDataHealthReport(
+        start_date=date(2026, 1, 2),
+        end_date=date(2026, 6, 5),
+        total_stock_count=1,
+        expected_business_days=[date(2026, 6, 5)],
+        weekend_days=[],
+        empty_weekdays=[],
+        holiday_candidate_dates=[],
+        rows=[
+            StockPriceHealthRow(
+                stock_id=2,
+                ticker="SMRTG.IS",
+                last_price_date=date(2026, 6, 4),
+                missing_dates=[date(2026, 6, 5)],
+                first_missing_date=date(2026, 6, 5),
+                last_missing_date=date(2026, 6, 5),
+                status="Eksik Var",
+                first_trade_date=date(2026, 1, 2),
+            )
+        ],
+        latest_price_date=date(2026, 6, 4),
+    )
+    page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+    page.current_portfolio_id = 4
+    page.lbl_portfolio_name = SimpleNamespace(text=lambda: "portföy-4")
+    page.list_panel = SimpleNamespace(current_portfolio=lambda: ModelPortfolio(id=4, name="portföy-4"))
+    page.model_portfolio_excel_export_service = export_service
+    page.model_portfolio_service = SimpleNamespace(get_first_trade_date=lambda portfolio_id: date(2026, 1, 2))
+    page.price_data_health_service = SimpleNamespace(
+        analyze=lambda start_date, end_date, scope=None: missing_report
+    )
+
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.utils.portfolio_exporter.date",
+        SimpleNamespace(today=lambda: date(2026, 6, 5)),
+    )
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.utils.portfolio_exporter.QFileDialog.getSaveFileName",
+        lambda *args, **kwargs: save_dialog_calls.append(args) or ("model.xlsx", "Excel Dosyaları (*.xlsx)"),
+    )
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.utils.portfolio_exporter.QMessageBox.warning",
+        lambda *args, **kwargs: warnings.append(args),
+    )
+
+    ModelPortfolioPage._on_export_today(page)
+
+    assert export_service.calls == []
+    assert save_dialog_calls == []
+    assert warnings
+    assert "SMRTG.IS" in warnings[0][2]
+    assert "05.06.2026" in warnings[0][2]
+
+
+def test_model_portfolio_report_menu_today_action_triggers_exporter():
+    page = ModelPortfolioPage(
+        container=SimpleNamespace(
+            model_portfolio_service=EmptyModelPortfolioService(),
+            price_repo=SimpleNamespace(),
+            model_portfolio_excel_export_service=DummyModelPortfolioExcelExportService(),
+        )
+    )
+    calls = []
+    page.exporter = SimpleNamespace(
+        export_today=lambda: calls.append("today"),
+        export_range=lambda: calls.append("range"),
+    )
+
+    page._report_today_action.trigger()
+
+    assert calls == ["today"]
+
+
+def test_model_portfolio_report_menu_range_action_triggers_exporter():
+    page = ModelPortfolioPage(
+        container=SimpleNamespace(
+            model_portfolio_service=EmptyModelPortfolioService(),
+            price_repo=SimpleNamespace(),
+            model_portfolio_excel_export_service=DummyModelPortfolioExcelExportService(),
+        )
+    )
+    calls = []
+    page.exporter = SimpleNamespace(
+        export_today=lambda: calls.append("today"),
+        export_range=lambda: calls.append("range"),
+    )
+
+    page._report_range_action.trigger()
+
+    assert calls == ["range"]
 
 
 def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
