@@ -77,17 +77,28 @@ QTableWidget[cssClass="watchlistTable"] QHeaderView::section {
     font-weight: bold;
 }
 
+QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="textButton"] {
+    background-color: transparent;
+    color: @COLOR_TEXT_PRIMARY;
+    border: none;
+    border-radius: @RADIUS_MD;
+    padding: 4px;
+}
+
+QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="textButton"]:hover {
+    background-color: @COLOR_BG_BASE;
+}
+
 QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="dangerTextButton"],
 QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="dangerTextBtn"] {
-    background-color: rgba(239, 68, 68, 0.08);
+    background-color: transparent;
     color: @COLOR_DANGER;
-    border: 1px solid rgba(239, 68, 68, 0.22);
+    border: none;
     border-radius: @RADIUS_MD;
     padding: 4px;
 }
 
 QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="dangerTextButton"]:hover,
 QTableWidget[cssClass="watchlistTable"] QPushButton[cssClass="dangerTextBtn"]:hover {
-    background-color: rgba(239, 68, 68, 0.18);
-    border-color: @COLOR_DANGER;
+    background-color: rgba(239, 68, 68, 0.12);
 }
