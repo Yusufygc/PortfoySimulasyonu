@@ -214,7 +214,7 @@ class WatchlistPage(BasePage):
         try:
             self.watchlist_service.reorder_watchlists(ordered_ids)
         except Exception as e:
-            Toast.error(self, f"Sıralama kaydedilemedi: {e}")
+            Toast.error(self, L10N.SIRALAMA_GUNCELLENEMEDI_TMPL.format(exc=e))
 
     def _select_watchlist_item(self, item: QListWidgetItem, watchlist: Watchlist) -> None:
         self.list_widget.setCurrentItem(item)
@@ -331,9 +331,9 @@ class WatchlistPage(BasePage):
         try:
             self.watchlist_service.create_watchlist(name, desc if desc else None)
             self._load_watchlists()
-            Toast.success(self, f"'{name}' listesi oluşturuldu.")
+            Toast.success(self, L10N.LISTE_OLUSTURULDU_TMPL.format(name=name))
         except Exception as e:
-            Toast.error(self, f"Liste oluşturulamadı: {e}")
+            Toast.error(self, L10N.LISTE_OLUSTURULAMADI_TMPL.format(exc=e))
 
     def _on_edit_list(self):
         if self.current_watchlist_id is None:
@@ -359,7 +359,7 @@ class WatchlistPage(BasePage):
             self.lbl_list_name.setText(name.strip())
             Toast.success(self, L10N.LISTE_GUNCELLENDI)
         except Exception as e:
-            Toast.error(self, f"Liste güncellenemedi: {e}")
+            Toast.error(self, L10N.LISTE_GUNCELLENEMEDI_TMPL.format(exc=e))
 
     def _on_delete_list(self):
         if self.current_watchlist_id is None:
@@ -380,7 +380,7 @@ class WatchlistPage(BasePage):
             self._clear_right_panel()
             Toast.success(self, L10N.LISTE_SILINDI)
         except Exception as e:
-            Toast.error(self, f"Liste silinemedi: {e}")
+            Toast.error(self, L10N.LISTE_SILINEMEDI_TMPL.format(exc=e))
 
     def _clear_right_panel(self):
         self.lbl_list_name.setText(L10N.BIR_LISTE_SECIN)
@@ -407,11 +407,11 @@ class WatchlistPage(BasePage):
             )
             self._load_stocks()
             self._load_watchlists()
-            Toast.success(self, f"'{display_ticker(ticker.upper())}' listeye eklendi.")
+            Toast.success(self, L10N.HISSE_EKLENDI_TMPL.format(ticker=display_ticker(ticker.upper())))
         except ValueError as e:
             Toast.warning(self, str(e))
         except Exception as e:
-            Toast.error(self, f"Hisse eklenemedi: {e}")
+            Toast.error(self, L10N.HISSE_EKLENEMEDI_TMPL.format(exc=e))
 
     def _on_edit_stock(self, stock_data: dict):
         if self.current_watchlist_id is None:
@@ -437,7 +437,7 @@ class WatchlistPage(BasePage):
             self._load_stocks()
             Toast.success(self, L10N.HISSE_NOTU_GUNCELLENDI)
         except Exception as e:
-            Toast.error(self, f"Hisse güncellenemedi: {e}")
+            Toast.error(self, L10N.HISSE_GUNCELLENEMEDI_TMPL.format(exc=e))
 
     def _on_remove_stock(self, stock_id: int):
         if self.current_watchlist_id is None:
@@ -456,4 +456,4 @@ class WatchlistPage(BasePage):
             self._load_stocks()
             self._load_watchlists()
         except Exception as e:
-            QMessageBox.critical(self, L10N.ERROR, f"Hisse çıkarılamadı: {e}")
+            QMessageBox.critical(self, L10N.ERROR, L10N.HISSE_CIKARILAMADI_TMPL.format(exc=e))

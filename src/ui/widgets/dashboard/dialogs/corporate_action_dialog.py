@@ -71,7 +71,7 @@ class CorporateActionDialog(QDialog):
         self._total_cost = total_cost
         self._current_price = current_price
 
-        self.setWindowTitle(f"Sermaye Artırımı — {self._display_ticker}")
+        self.setWindowTitle(L10N.SERMAYE_ARTIRIMI_TMPL.format(ticker=self._display_ticker))
         self.setMinimumWidth(440)
         self.setModal(True)
         self.setProperty("cssClass", "dialogContainer")
@@ -90,7 +90,7 @@ class CorporateActionDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
 
         # ── Başlık / Hisse Bilgisi ──────────────────────────
-        title = QLabel(f"Sermaye Artırımı")
+        title = QLabel(L10N.SERMAYE_ARTIRIMI)
         title.setProperty("cssClass", "dialogHeaderTitle")
         layout.addWidget(title)
 

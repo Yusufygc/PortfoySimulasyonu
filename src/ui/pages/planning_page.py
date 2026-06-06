@@ -179,9 +179,9 @@ class PlanningPage(BasePage):
             budget = self.budget_form.get_budget(month)
             saved = self._service.save_budget(budget)
             self._update_budget_cards(saved)
-            Toast.success(self, f"{month} bütçesi kaydedildi!")
+            Toast.success(self, L10N.BUTCE_KAYDEDILDI_TMPL.format(month=month))
         except Exception as e:
-            Toast.error(self, f"Bütçe kaydedilemedi: {e}")
+            Toast.error(self, L10N.BUTCE_KAYDEDILEMEDI_TMPL.format(exc=e))
 
     def _update_budget_cards(self, budget=None) -> None:
         if budget:
@@ -194,15 +194,15 @@ class PlanningPage(BasePage):
         try:
             if pinned:
                 self._service.pin_budget_item(item_type, name, amount)
-                Toast.success(self, f"'{name}' pinlendi.")
+                Toast.success(self, L10N.PINLENDI_TMPL.format(name=name))
             else:
                 self._service.unpin_budget_item(item_type, name)
-                Toast.success(f"'{name}' pini kaldırıldı.")
+                Toast.success(L10N.PINI_KALDIRILDI_TMPL.format(name=name))
             self._pinned_budget_items = self._service.get_pinned_budget_items()
             self.budget_form.set_pinned_items(self._pinned_budget_items)
         except Exception as e:
             self.budget_form.set_pinned_items(self._pinned_budget_items)
-            Toast.error(self, f"Pin işlemi başarısız: {e}")
+            Toast.error(self, L10N.PIN_ISLEMI_BASARISIZ_TMPL.format(exc=e))
 
     # ------------------------------------------------------------------
     # Hedef Event Handler'ları
@@ -218,9 +218,9 @@ class PlanningPage(BasePage):
         try:
             self._service.add_goal(**result)
             self._load_goals()
-            Toast.success(self, f"'{result['name']}' hedefi eklendi!")
+            Toast.success(self, L10N.HEDEF_EKLENDI_TMPL.format(name=result['name']))
         except Exception as e:
-            Toast.error(self, f"Hedef eklenemedi: {e}")
+            Toast.error(self, L10N.HEDEF_EKLENEMEDI_TMPL.format(exc=e))
 
     def _on_edit_goal(self, goal_id: int) -> None:
         if goal_id is None:
@@ -244,9 +244,9 @@ class PlanningPage(BasePage):
                 priority=result["priority"],
             )
             self._load_goals()
-            Toast.success(self, f"'{result['name']}' hedefi güncellendi!")
+            Toast.success(self, L10N.HEDEF_GUNCELLENDI_TMPL.format(name=result['name']))
         except Exception as e:
-            Toast.error(self, f"Hedef güncellenemedi: {e}")
+            Toast.error(self, L10N.HEDEF_GUNCELLENEMEDI_TMPL.format(exc=e))
 
     def _on_contribute(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
@@ -260,16 +260,16 @@ class PlanningPage(BasePage):
         try:
             self._service.add_contribution(goal_id, amount)
             self._load_goals()
-            Toast.success(self, f"₺ {amount:,.2f} katkı eklendi!")
+            Toast.success(self, L10N.KATKI_EKLENDI_TMPL.format(amount=f"{amount:,.2f}"))
         except Exception as e:
-            Toast.error(self, f"Katkı eklenemedi: {e}")
+            Toast.error(self, L10N.KATKI_EKLENEMEDI_TMPL.format(exc=e))
 
     def _on_delete_goal(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
             return
         reply = QMessageBox.question(
             self, L10N.HEDEF_SIL,
-            f"'{goal_name}' hedefini silmek istediğinizden emin misiniz?",
+            L10N.HEDEF_SIL_ONAY_TMPL.format(name=goal_name),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
         )
         if reply != QMessageBox.Yes:
@@ -279,13 +279,13 @@ class PlanningPage(BasePage):
             self._load_goals()
             Toast.success(self, L10N.HEDEF_SILINDI)
         except Exception as e:
-            Toast.error(self, f"Hedef silinemedi: {e}")
+            Toast.error(self, L10N.HEDEF_SILINEMEDI_TMPL.format(exc=e))
 
     def _on_analyze(self) -> None:
         try:
             result = self._service.analyze_feasibility()
         except Exception as e:
-            Toast.error(self, f"Analiz yapılamadı: {e}")
+            Toast.error(self, L10N.ANALIZ_YAPILAMADI_TMPL.format(exc=e))
             return
         if "monthly_power" not in result:
             Toast.info(self, result.get("message", L10N.VERI_YOK))

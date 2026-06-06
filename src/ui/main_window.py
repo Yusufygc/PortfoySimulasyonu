@@ -101,7 +101,7 @@ class MainWindow(QMainWindow):
         self.sidebar_layout.setContentsMargins(15, 25, 15, 25)
         self.sidebar_layout.setSpacing(10)
 
-        lbl_app_title = QLabel("Portföy\nSimülasyonu")
+        lbl_app_title = QLabel(L10N.SIDEBAR_PORTFOY_SIMULASYONU)
         lbl_app_title.setProperty("cssClass", "appTitle")
         lbl_app_title.setAlignment(Qt.AlignCenter)
         self.sidebar_layout.addWidget(lbl_app_title)
@@ -297,12 +297,12 @@ class MainWindow(QMainWindow):
         updated_count = getattr(result, "updated_count", 0)
         error_count = len(getattr(result, "errors", []) or [])
         if updated_count > 0:
-            Toast.success(self, f"Otomatik veri güncelleme tamamlandı: {updated_count} fiyat kaydı eklendi.")
+            Toast.success(self, L10N.OTOMATIK_VERI_GUNCELLEME_TAMAMLANDI_TMPL.format(count=updated_count))
         elif error_count:
-            Toast.warning(self, f"Otomatik veri güncelleme tamamlandı, {error_count} hata oluştu.")
+            Toast.warning(self, L10N.OTOMATIK_VERI_GUNCELLEME_HATA_TMPL.format(count=error_count))
 
     def _on_auto_price_backfill_error(self, err_tuple) -> None:
-        Toast.warning(self, f"Otomatik veri güncelleme çalıştırılamadı: {err_tuple[1]}")
+        Toast.warning(self, L10N.OTOMATIK_VERI_GUNCELLEME_CALISTIRILAMADI_TMPL.format(exc=err_tuple[1]))
 
     def reload_live_price_refresh_settings(self) -> None:
         self._live_price_refresh_controller.reload_settings()
@@ -326,7 +326,7 @@ class MainWindow(QMainWindow):
         self._settings.sync()
         saved_count = getattr(result, "saved_count", 0)
         if saved_count > 0:
-            Toast.success(self, f"Kurumsal aksiyon adayları bulundu: {saved_count} kayıt.")
+            Toast.success(self, L10N.KURUMSAL_AKSIYON_ADAYLARI_BULUNDU_TMPL.format(count=saved_count))
 
     def _on_auto_corporate_action_discovery_error(self, err_tuple) -> None:
         self._settings.setValue(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, date.today().isoformat())

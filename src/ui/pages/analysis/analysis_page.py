@@ -61,11 +61,11 @@ class AnalysisPage(BasePage):
         title_col = QVBoxLayout()
         title_col.setSpacing(4)
 
-        lbl_title = QLabel("Analiz ve Kar\u015f\u0131la\u015ft\u0131rma")
+        lbl_title = QLabel(L10N.ANALIZ_VE_KARSILASTIRMA)
         lbl_title.setProperty("cssClass", "pageTitle")
         title_col.addWidget(lbl_title)
 
-        lbl_desc = QLabel("Portf\u00f6y, benchmark ve risk g\u00f6r\u00fcn\u00fcm\u00fcn\u00fc tek ak\u0131\u015fta inceleyin.")
+        lbl_desc = QLabel(L10N.PORTFOY_BENCHMARK_RISK_TEK_AKIS)
         lbl_desc.setProperty("cssClass", "pageDescription")
         title_col.addWidget(lbl_desc)
 
@@ -102,8 +102,8 @@ class AnalysisPage(BasePage):
 
         self.overview_section = AnalysisOverviewSection()
         self.risk_section = AnalysisRiskSection()
-        self.tabs.addTab(self._wrap_scroll(self.overview_section), "Genel Bak\u0131\u015f")
-        self.tabs.addTab(self._wrap_scroll(self.risk_section), "Da\u011f\u0131l\u0131m & Risk")
+        self.tabs.addTab(self._wrap_scroll(self.overview_section), L10N.GENEL_BAKIS)
+        self.tabs.addTab(self._wrap_scroll(self.risk_section), L10N.DAGILIM_VE_RISK)
         left_layout.addWidget(self.tabs, 1)
         content_layout.addWidget(left_container, 1)
 

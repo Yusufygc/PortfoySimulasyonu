@@ -65,7 +65,7 @@ class SettingsPage(BasePage):
         self.corporate_action_candidates_tab = CorporateActionCandidatesPanel(self.container, self)
 
         self.tabs.addTab(self.home_tab, L10N.ANA_SAYFA)
-        self.tabs.addTab(self.appearance_tab, "Görünüm")
+        self.tabs.addTab(self.appearance_tab, L10N.GORUNUM)
         self.tabs.addTab(self.price_data_tab, L10N.FIYAT_VERISI_YONETIMI)
         self.tabs.addTab(self.corporate_action_candidates_tab, L10N.KURUMSAL_AKSIYONLAR)
 

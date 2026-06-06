@@ -102,7 +102,7 @@ class BudgetFormPanel(QFrame):
         btn_add = AnimatedButton()
         btn_add.setIconName(btn_icon, color=btn_icon_color, size=16)
         btn_add.setFixedSize(32, 32)
-        btn_add.setToolTip("Ekle")
+        btn_add.setToolTip(L10N.EKLE)
         btn_add.setProperty("cssClass", btn_css)
         btn_add.clicked.connect(on_add)
 

@@ -81,7 +81,7 @@ class OptimizationPage(BasePage):
         self.scroll_layout.addLayout(header)
 
         lbl_desc = QLabel(
-            "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n" +
+            L10N.OPTIMIZASYON_MARKOWITZ_ACIKLAMA +
             L10N.MAKSIMIZE_EDEN_OPTIMAL_PORTFOY_AGIRLIKLARINI
         )
         lbl_desc.setProperty("cssClass", "pageDescription")
@@ -114,7 +114,7 @@ class OptimizationPage(BasePage):
         self.scroll_layout.addLayout(header)
 
         lbl_desc = QLabel(
-            "Markowitz Modern Portföy Teorisi kullanarak Sharpe Oranını\n" +
+            L10N.OPTIMIZASYON_MARKOWITZ_ACIKLAMA +
             L10N.MAKSIMIZE_EDEN_OPTIMAL_PORTFOY_AGIRLIKLARINI
         )
         lbl_desc.setProperty("cssClass", "pageDescription")
@@ -136,7 +136,7 @@ class OptimizationPage(BasePage):
 
         # Metrikler için açıklama
         self.lbl_metrics_info = QLabel(
-            "<b>Mevcut:</b> Portföyünüzün şu anki durumu &nbsp;|&nbsp; <b>Optimal:</b> Aynı risk seviyesinde veya daha düşük riskle ulaşılabilecek en iyi durum"
+            L10N.OPTIMIZASYON_METRIK_ACIKLAMA
         )
         self.lbl_metrics_info.setProperty("cssClass", "disclaimerText")
         self.lbl_metrics_info.setAlignment(Qt.AlignCenter)

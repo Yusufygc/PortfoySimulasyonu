@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QTextEdit, QWidget
 
 from src.application.services.ai.safety_guard import MAX_CHAR_LIMIT
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
+from src.ui.shared.locale_tr import L10N
 
 
 CHAT_PLACEHOLDER = "Mesaj\u0131n\u0131z\u0131 yaz\u0131n... Shift+Enter ile g\u00f6nder"
@@ -44,7 +45,7 @@ class ChatInputBar(QWidget):
         self.text_edit.textChanged.connect(self._on_text_changed)
         self.text_edit.send_requested.connect(self._on_send)
 
-        self.btn_send = AnimatedButton("G\u00f6nder")
+        self.btn_send = AnimatedButton(L10N.GONDER)
         self.btn_send.setFixedHeight(72)
         self.btn_send.setFixedWidth(104)
         self.btn_send.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -75,7 +76,7 @@ class ChatInputBar(QWidget):
     def set_loading(self, is_loading: bool):
         self.btn_send.setEnabled(not is_loading)
         if is_loading:
-            self.text_edit.setPlaceholderText("Yan\u0131t bekleniyor...")
+            self.text_edit.setPlaceholderText(L10N.YANIT_BEKLENIYOR)
             self.text_edit.setEnabled(False)
         else:
             self.text_edit.setPlaceholderText(CHAT_PLACEHOLDER)

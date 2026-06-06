@@ -42,7 +42,7 @@ class AnalysisControlPanel(QFrame):
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(12)
 
-        title = QLabel("Filtre ve Se\u00e7im")
+        title = QLabel(L10N.FILTRE_VE_SECIM)
         title.setProperty("cssClass", "panelTitleLarge")
         layout.addWidget(title)
 

@@ -178,7 +178,7 @@ class GoalsPanel(QWidget):
             btn_edit.setCursor(Qt.PointingHandCursor)
             btn_edit.setIcon(IconManager.get_icon("pencil", color="@COLOR_PRIMARY"))
             btn_edit.setIconSize(QSize(16, 16))
-            btn_edit.setToolTip("Hedefi Düzenle")
+            btn_edit.setToolTip(L10N.HEDEFI_DUZENLE)
 
             btn_contrib = QPushButton()
             btn_contrib.setProperty("cssClass", "tableActionButtonContrib")
@@ -187,7 +187,7 @@ class GoalsPanel(QWidget):
             btn_contrib.setCursor(Qt.PointingHandCursor)
             btn_contrib.setIcon(IconManager.get_icon("plus", color="@COLOR_PRIMARY"))
             btn_contrib.setIconSize(QSize(16, 16))
-            btn_contrib.setToolTip("Katkı Ekle")
+            btn_contrib.setToolTip(L10N.KATKI_EKLE_1)
 
             btn_delete = QPushButton()
             btn_delete.setProperty("cssClass", "tableActionButtonDelete")
@@ -196,7 +196,7 @@ class GoalsPanel(QWidget):
             btn_delete.setCursor(Qt.PointingHandCursor)
             btn_delete.setIcon(IconManager.get_icon("trash-2", color="@COLOR_TEXT_WHITE"))
             btn_delete.setIconSize(QSize(16, 16))
-            btn_delete.setToolTip("Hedefi Sil")
+            btn_delete.setToolTip(L10N.HEDEFI_SIL)
 
             # Sinyal bağlantıları (default arguments binding ile güvenli ID aktarımı)
             g_id = goal.id

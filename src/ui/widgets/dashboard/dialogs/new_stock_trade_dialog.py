@@ -131,7 +131,7 @@ class NewStockTradeDialog(QDialog):
         layout.setSpacing(20)
 
         # Açıklama
-        info = QLabel("İşlem yapmak istediğiniz hisse kodunu (Ticker) giriniz.\nBIST hisseleri için .IS uzantısı otomatik eklenecektir.")
+        info = QLabel(L10N.ISLEM_KODU_GIRINIZ_BIST_IS_UZANTISI)
         info.setProperty("cssClass", "dialogSubtitle")
         info.setWordWrap(True)
         layout.addWidget(info)

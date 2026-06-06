@@ -113,6 +113,52 @@ def test_ai_page_core_backend_module_is_removed():
     )
 
 
+def test_ui_user_facing_text_uses_l10n_not_hardcoded_literals():
+    """Kullanıcıya dönük metinler koda gömülmez; L10N üzerinden gelir.
+
+    AST ile kullanıcıya dönük setter/constructor çağrılarındaki düz string
+    literal argümanları taranır; Türkçe harf içeren literal bulunmamalı.
+    f-string (JoinedStr) ve L10N.* erişimleri doğal olarak hariçtir.
+    """
+    turkish_chars = set("çğıöşüÇĞİÖŞÜ")
+    ui_text_callables = {
+        "QLabel", "QPushButton", "AnimatedButton", "QRadioButton", "QCheckBox",
+        "QGroupBox", "QToolButton", "setText", "setPlaceholderText",
+        "setWindowTitle", "setToolTip", "setTitle", "addTab", "setTabText",
+        "setStatusTip", "setWhatsThis",
+    }
+    # Kaçınılmaz/bilinçli istisnalar (dosya yolu, gerekçe ile)
+    allowed = set()
+
+    def call_name(func) -> str:
+        if isinstance(func, ast.Name):
+            return func.id
+        if isinstance(func, ast.Attribute):
+            return func.attr
+        return ""
+
+    offenders = []
+    for path in (ROOT / "src" / "ui").rglob("*.py"):
+        rel = _src_rel(path)
+        if rel in allowed:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if call_name(node.func) not in ui_text_callables:
+                continue
+            for arg in node.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    if any(ch in turkish_chars for ch in arg.value):
+                        offenders.append(f"{rel}:{node.lineno}: {arg.value!r}")
+
+    assert not offenders, (
+        "Kullanıcıya dönük metinler L10N'e taşınmalı (hardcoded literal):\n"
+        + "\n".join(offenders)
+    )
+
+
 def test_automated_tests_do_not_call_live_network_helpers_directly():
     allowed_manual = {
         Path("tests/infrastructure/market_data/test_benchmark_fetch_manual.py"),

@@ -48,8 +48,7 @@ class ResetPanel(QWidget):
 
         # Açıklama
         refresh_desc = QLabel(
-            "Portföyünüzdeki aktif hisse senetlerinin anlık fiyatlarını 15 dakikada bir "
-            "arka planda otomatik olarak günceller ve arayüzü taze tutar."
+            L10N.OTOMATIK_VERI_GUNCELLEME_ACIKLAMA
         )
         refresh_desc.setWordWrap(True)
         refresh_desc.setProperty("cssClass", "pageDescription")

@@ -43,12 +43,12 @@ class DashboardActions:
                 self._page.cash_movement_service.add_deposit(
                     amount, movement_date=m_date, movement_time=m_time, notes=notes
                 )
-                QMessageBox.information(self._page, L10N.SUCCESS, f"{amount:,.2f} TL sermaye eklendi.")
+                QMessageBox.information(self._page, L10N.SUCCESS, L10N.SERMAYE_EKLENDI_TMPL.format(amount=f"{amount:,.2f}"))
             else:
                 self._page.cash_movement_service.add_withdraw(
                     amount, movement_date=m_date, movement_time=m_time, notes=notes
                 )
-                QMessageBox.information(self._page, L10N.SUCCESS, f"{amount:,.2f} TL sermaye çekildi.")
+                QMessageBox.information(self._page, L10N.SUCCESS, L10N.SERMAYE_CEKILDI_TMPL.format(amount=f"{amount:,.2f}"))
         except ValueError as exc:
             QMessageBox.warning(self._page, L10N.WARNING, str(exc))
             return
@@ -92,11 +92,11 @@ class DashboardActions:
         except ValueError as exc:
             QMessageBox.warning(self._page, L10N.GECERSIZ_ISLEM, str(exc))
         except Exception as exc:
-            QMessageBox.critical(self._page, L10N.ERROR, f"İşlem kaydedilemedi: {exc}")
+            QMessageBox.critical(self._page, L10N.ERROR, L10N.ISLEM_KAYDEDILEMEDI_TMPL.format(exc=exc))
 
     def on_update_prices(self) -> None:
         self._page.btn_update_prices.setEnabled(False)
-        self._page.btn_update_prices.setText("Güncelleniyor...")
+        self._page.btn_update_prices.setText(L10N.GUNCELLENIYOR)
 
         self._update_timeout_timer = QTimer(self._page)
         self._update_timeout_timer.setSingleShot(True)
@@ -133,11 +133,11 @@ class DashboardActions:
         self._page.record_last_update_time()
         self._page.show_last_update_toast_once(
             force=True,
-            detail=f"{price_update_result.updated_count} hisse için tarihsel kapanış verisi güncellendi.",
+            detail=L10N.HISSE_TARIHSEL_KAPANIS_VERISI_GUNCELLENDI_TMPL.format(count=price_update_result.updated_count),
         )
 
     def on_update_prices_error(self, err_tuple) -> None:
-        QMessageBox.critical(self._page, L10N.ERROR, f"Hata:\n{err_tuple[1]}")
+        QMessageBox.critical(self._page, L10N.ERROR, L10N.HATA_DETAYLARI_TMPL.format(exc=err_tuple[1]))
 
     def on_export_today(self) -> None:
         self._export_actions.on_export_today()
@@ -166,4 +166,4 @@ class DashboardActions:
             self._page.summary_cards.update_returns(None, None)
             QMessageBox.information(self._page, L10N.TAMAMLANDI, L10N.BASARIYLA_SIFIRLANDI)
         except Exception as exc:
-            QMessageBox.critical(self._page, L10N.ERROR, f"Hata: {exc}")
+            QMessageBox.critical(self._page, L10N.ERROR, L10N.HATA_TEK_SATIR_TMPL.format(exc=exc))

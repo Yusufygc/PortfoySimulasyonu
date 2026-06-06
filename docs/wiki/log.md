@@ -707,3 +707,13 @@ Detay için: `git log --oneline`
 - Etkilenen dosyalar: `src/domain/models/position.py`, `src/domain/models/financial_goal.py`, `src/domain/models/trade.py`, `src/domain/models/cash_movement.py`, `src/domain/models/model_portfolio.py`, `src/domain/models/corporate_action.py`, `src/domain/models/budget.py`, `src/domain/models/risk_profile.py`, `src/application/services/planning/planning_service.py`, `src/infrastructure/db/sqlalchemy/repositories/sa_planning_repository.py`, `src/ui/widgets/planning/panels/budget_form_panel.py`, `tests/domain/`, `tests/application/test_planning_service_budget.py`
 
 ---
+
+## [2026-06-06] refactor | P0: AI Core tasinmasi & P1: L10N Hardcoded-String Temizligi
+
+- AI modulu yfinance UI'dan tamamen bagimsizlastirildi ve core modullerine tasindi.
+- Kullaniciya gosterilen UI metinleri (duz stringler ve f-stringler) tespit edilerek L10N (locale_tr.py) yapisina baglandi.
+- Sadece "t {price:,.2f}" gibi saf para/sayi formatlari dokunulmadan korundu.
+- RULES.md kural seti Python sanal ortam kullanimi yonergeleri ile guncellendi.
+- test_ui_user_facing_text_uses_l10n_not_hardcoded_literals ve diger UI test guardlari (toplam 7 adet) basariyla gecti.
+- Etkilenen dosyalar: RULES.md, src/ui/shared/locale_tr.py, src/ui/main_window.py ve bircok UI widget/sayfa modulu.
+

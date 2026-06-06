@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, QEvent, QSize, pyqtSignal
 from PyQt5.QtWidgets import QAction, QHBoxLayout, QMenu, QSizePolicy, QToolButton, QWidget
 
 from src.ui.core.icon_manager import IconManager
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared.controls.elided_label import ElidedLabel
 
 
@@ -65,13 +66,13 @@ class ActionListItem(QWidget):
         self.menu_button.setFixedSize(28, 28)
         self.menu_button.setCursor(Qt.PointingHandCursor)
         self.menu_button.setPopupMode(QToolButton.InstantPopup)
-        self.menu_button.setToolTip("İşlemler")
+        self.menu_button.setToolTip(L10N.ISLEMLER)
         self.menu_button.setProperty("cssClass", "actionListMenuBtn")
         # Stil QSS'te: shared/lists.qss QToolButton[cssClass="actionListMenuBtn"]
         self._refresh_menu_icon()
 
-        self._action_edit = QAction("Düzenle", self)
-        self._action_delete = QAction("Sil", self)
+        self._action_edit = QAction(L10N.EDIT, self)
+        self._action_delete = QAction(L10N.DELETE, self)
         self._action_edit.triggered.connect(lambda checked=False: self.edit_requested.emit())
         self._action_delete.triggered.connect(lambda checked=False: self.delete_requested.emit())
         self._refresh_action_icons()

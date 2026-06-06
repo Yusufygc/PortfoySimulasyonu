@@ -37,9 +37,9 @@ class ModelPortfolioActions:
             if portfolio and portfolio.id is not None:
                 self.page.current_portfolio_id = portfolio.id
             self.page._load_portfolios()
-            Toast.success(self.page, f"'{result['name']}' portföyü oluşturuldu.")
+            Toast.success(self.page, L10N.PORTFOY_OLUSTURULDU_TMPL.format(name=result['name']))
         except Exception as exc:
-            Toast.error(self.page, f"Portföy oluşturulamadı: {exc}")
+            Toast.error(self.page, L10N.PORTFOY_OLUSTURULAMADI_TMPL.format(exc=exc))
 
     def on_edit_portfolio(self) -> None:
         if self.page.current_portfolio_id is None:
@@ -62,7 +62,7 @@ class ModelPortfolioActions:
             self.page._update_view()
             Toast.success(self.page, L10N.PORTFOY_GUNCELLENDI)
         except Exception as exc:
-            Toast.error(self.page, f"Portföy güncellenemedi: {exc}")
+            Toast.error(self.page, L10N.PORTFOY_GUNCELLENEMEDI_TMPL.format(exc=exc))
 
     def on_delete_portfolio(self) -> None:
         if self.page.current_portfolio_id is None:
@@ -86,13 +86,13 @@ class ModelPortfolioActions:
             self.page._clear_right_panel()
             Toast.success(self.page, L10N.PORTFOY_SILINDI)
         except Exception as exc:
-            Toast.error(self.page, f"Portföy silinemedi: {exc}")
+            Toast.error(self.page, L10N.PORTFOY_SILINEMEDI_TMPL.format(exc=exc))
 
     def on_portfolios_reordered(self, ordered_ids: list[int]) -> None:
         try:
             self.page.model_portfolio_service.reorder_portfolios(ordered_ids)
         except Exception as exc:
-            Toast.error(self.page, f"Sıralama güncellenemedi: {exc}")
+            Toast.error(self.page, L10N.SIRALAMA_GUNCELLENEMEDI_TMPL.format(exc=exc))
 
     def on_capital_movement(self) -> None:
         if self.page.current_portfolio_id is None:
@@ -118,12 +118,12 @@ class ModelPortfolioActions:
             )
             self.page._load_portfolios()
             self.page._update_view()
-            action = L10N.EKLENDI if result["movement_type"] == "DEPOSIT" else "cekildi"
-            Toast.success(self.page, f"Sermaye hareketi kaydedildi: {result['amount']:,.2f} TL {action}.")
+            action = L10N.EKLENDI if result["movement_type"] == "DEPOSIT" else L10N.CEKILDI
+            Toast.success(self.page, L10N.SERMAYE_HAREKETI_KAYDEDILDI_TMPL.format(amount=f"{result['amount']:,.2f}", action=action))
         except ValueError as exc:
             Toast.warning(self.page, str(exc))
         except Exception as exc:
-            Toast.error(self.page, f"Sermaye hareketi kaydedilemedi: {exc}")
+            Toast.error(self.page, L10N.SERMAYE_HAREKETI_KAYDEDILEMEDI_TMPL.format(exc=exc))
 
     def on_trade(self, side: str) -> None:
         if self.page.current_portfolio_id is None:
@@ -153,12 +153,12 @@ class ModelPortfolioActions:
             )
             self.page._load_portfolios()
             self.page._update_view()
-            action = "alındı" if side == "BUY" else "satıldı"
-            Toast.success(self.page, f"{result['quantity']} lot {display_ticker(result['ticker'])} {action}.")
+            action = L10N.ALINDI if side == "BUY" else L10N.SATILDI
+            Toast.success(self.page, L10N.ISLEM_GERCEKLESTI_TMPL.format(qty=result['quantity'], ticker=display_ticker(result['ticker']), action=action))
         except ValueError as exc:
             Toast.warning(self.page, str(exc))
         except Exception as exc:
-            Toast.error(self.page, f"İşlem gerçekleştirilemedi: {exc}")
+            Toast.error(self.page, L10N.ISLEM_GERCEKLESTIRILEMEDI_TMPL.format(exc=exc))
 
     def on_update_prices(self) -> None:
         self._update_timeout_timer = QTimer(self.page)
@@ -199,8 +199,8 @@ class ModelPortfolioActions:
         self.page.record_last_update_time()
         self.page.show_last_update_toast_once(
             force=True,
-            detail=f"{updated_count} hisse için fiyat güncellendi.",
+            detail=L10N.HISSE_FIYAT_GUNCELLENDI_TMPL.format(count=updated_count),
         )
 
     def _on_update_prices_error(self, err_tuple) -> None:
-        Toast.error(self.page, f"Fiyat güncelleme hatası: {err_tuple[1]}")
+        Toast.error(self.page, L10N.FIYAT_GUNCELLEME_HATASI_TMPL.format(exc=err_tuple[1]))

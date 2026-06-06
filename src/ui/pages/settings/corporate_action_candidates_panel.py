@@ -136,10 +136,10 @@ class CorporateActionCandidatesPanel(QWidget):
             if getattr(result, "source_unavailable", False):
                 Toast.warning(self, _discovery_error_message(result))
             else:
-                Toast.success(self, f"Kurumsal aksiyon taraması tamamlandı: {result.saved_count} aday.")
+                Toast.success(self, L10N.KURUMSAL_AKSIYON_TARAMASI_TAMAMLANDI_TMPL.format(count=result.saved_count))
             self.refresh_list()
         except Exception as exc:
-            Toast.warning(self, f"Kurumsal aksiyon taraması çalıştırılamadı: {exc}")
+            Toast.error(self, L10N.KURUMSAL_AKSIYON_TARAMASI_CALISTIRILAMADI_TMPL.format(exc=exc))
         finally:
             self._set_controls_enabled(True)
 
@@ -195,7 +195,7 @@ class CorporateActionCandidatesPanel(QWidget):
             Toast.success(self, L10N.ADAY_GUNCELLENDI)
             self.refresh_list()
         except Exception as exc:
-            Toast.warning(self, f"Aday güncellenemedi: {exc}")
+            Toast.error(self, L10N.ADAY_GUNCELLENEMEDI_TMPL.format(exc=exc))
 
     def open_selected_source(self) -> None:
         candidate = self._selected_candidate()

@@ -22,7 +22,7 @@ class PredictionCard(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         lbl_icon = QLabel()
         lbl_icon.setPixmap(IconManager.get_icon("trending-up", color="@COLOR_PRIMARY").pixmap(20, 20))
-        title = QLabel("TAHMİN")
+        title = QLabel(L10N.TAHMIN)
         title.setProperty("cssClass", "cardLabel")
         header_layout.addWidget(lbl_icon)
         header_layout.addWidget(title)

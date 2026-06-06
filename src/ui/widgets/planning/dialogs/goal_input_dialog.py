@@ -111,7 +111,7 @@ class GoalInputDialog(QDialog):
             is_valid = False
         elif date_val < today:
             is_valid = False
-            error_msg = "Hedef tarih bugünden önce olamaz!"
+            error_msg = L10N.HEDEF_TARIH_BUGUNDEN_ONCE_OLAMAZ
 
         self.lbl_error.setText(error_msg)
         self.lbl_error.setVisible(bool(error_msg))
@@ -126,7 +126,7 @@ class GoalInputDialog(QDialog):
         super().accept()
 
     def load_goal(self, goal) -> None:
-        self.setWindowTitle("Hedefi Düzenle")
+        self.setWindowTitle(L10N.HEDEFI_DUZENLE)
         self.txt_name.setText(goal.name)
         self.spin_amount.setValue(float(goal.target_amount))
         if goal.deadline:

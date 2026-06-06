@@ -102,8 +102,8 @@ class TradeDialog(QDialog):
         side_layout = QHBoxLayout(side_container)
         side_layout.setContentsMargins(0, 0, 0, 0)
         
-        self.radio_buy = QRadioButton("ALIŞ")
-        self.radio_sell = QRadioButton("SATIŞ")
+        self.radio_buy = QRadioButton(L10N.ALIS)
+        self.radio_sell = QRadioButton(L10N.SATIS)
         self.radio_buy.setChecked(True)
         
         self.radio_buy.setProperty("cssClass", "tradeRadioBuy")

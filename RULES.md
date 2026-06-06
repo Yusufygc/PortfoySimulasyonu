@@ -10,6 +10,10 @@ Her ajan/LLM oturumu, kod veya plan üretmeden önce proje kökündeki `AGENTS.m
 
 Dosyalar arasında çelişki olursa en dar kapsamlı ve kullanıcıya en yakın talimat uygulanır; güvenlik, commit ve wiki kuralları için bu dosyadaki bağlayıcı hükümler korunur.
 
+### 0.1 Python Ortamı Kullanımı
+
+Tüm python komutları (test çalıştırma, script yürütme vb.) için **KESİNLİKLE** `C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe` yolu kullanılarak `Fintech` conda ortamı üzerinden işlem yapılmalıdır. Base python veya sadece `python` komutu kullanılmamalıdır.
+
 ---
 
 ## 1. Wiki Güncelleme Kuralları

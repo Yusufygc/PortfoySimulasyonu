@@ -94,7 +94,7 @@ class PriceDataActions:
         reply = QMessageBox.question(
             panel,
             L10N.FIYAT_VERISINI_SIL,
-            f"{start_date:%d.%m.%Y} - {end_date:%d.%m.%Y} aralığındaki fiyat kayıtları silinecek. Emin misiniz?",
+            L10N.FIYAT_KAYITLARI_SILINECEK_ONAY_TMPL.format(start=start_date.strftime('%d.%m.%Y'), end=end_date.strftime('%d.%m.%Y')),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -136,7 +136,7 @@ class PriceDataActions:
 
     def _on_analyze_success(self, report: PriceDataHealthReport) -> None:
         self.panel._apply_report(report)
-        Toast.success(self.panel, f"Analiz tamamlandı: {report.health_label}.")
+        Toast.success(self.panel, L10N.ANALIZ_TAMAMLANDI_TMPL.format(label=report.health_label))
 
     def _on_update_success(self, result: PriceDataUpdateResult) -> None:
         panel = self.panel
@@ -144,21 +144,20 @@ class PriceDataActions:
         if result.updated_count:
             Toast.success(
                 panel,
-                f"{result.updated_count} fiyat kaydı tamamlandı, "
-                f"{result.skipped_holiday_count} tatil adayı atlandı.",
+                L10N.FIYAT_KAYDI_TAMAMLANDI_TMPL.format(updated=result.updated_count, skipped=result.skipped_holiday_count),
             )
         else:
             Toast.warning(panel, L10N.GUNCELLENECEK_FIYAT_KAYDI_BULUNAMADI)
             if result.errors:
-                panel.detail_text.setText("Hata detayları:\n" + "\n".join(result.errors[:30]))
+                panel.detail_text.setText(L10N.HATA_DETAYLARI + "\n" + "\n".join(result.errors[:30]))
             return
         if result.errors:
-            Toast.warning(panel, f"{len(result.errors)} veri kaynağı uyarısı oluştu.")
+            Toast.warning(panel, L10N.VERI_KAYNAGI_UYARISI_TMPL.format(count=len(result.errors)))
         self.analyze()
 
     def _on_delete_success(self, deleted_count: int) -> None:
-        Toast.success(self.panel, f"{deleted_count} fiyat kaydı silindi.")
+        Toast.success(self.panel, L10N.FIYAT_KAYDI_SILINDI_TMPL.format(count=deleted_count))
         self.analyze()
 
     def _on_worker_error(self, err_tuple) -> None:
-        QMessageBox.critical(self.panel, L10N.ERROR, f"Hata:\n{err_tuple[1]}")
+        QMessageBox.critical(self.panel, L10N.ERROR, L10N.HATA_DETAYLARI_TMPL.format(exc=err_tuple[1]))

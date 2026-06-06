@@ -43,12 +43,12 @@ class TradeFormPanel(QFrame):
         side_layout = QHBoxLayout()
         side_layout.setSpacing(0)
         
-        self.btn_buy_mode = QPushButton("ALIM")
+        self.btn_buy_mode = QPushButton(L10N.ALIM)
         self.btn_buy_mode.setCheckable(True)
         self.btn_buy_mode.setChecked(True)
         self.btn_buy_mode.setProperty("cssClass", "tradeModeBtnLeft")
         
-        self.btn_sell_mode = QPushButton("SATIŞ")
+        self.btn_sell_mode = QPushButton(L10N.SATIS)
         self.btn_sell_mode.setCheckable(True)
         self.btn_sell_mode.setProperty("cssClass", "tradeModeBtnRight")
         
