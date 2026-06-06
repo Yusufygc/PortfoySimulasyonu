@@ -19,6 +19,7 @@ Aşağıda SQLAlchemy Declarative Base ile oluşturulan ana tablolar listelenmi�
 | `stocks` | Hisselerin (Varlıkların) ana kimlik bilgilerini (Ticker, İsim, Para Birimi) tutar. |
 | `trades` | Alım/Satım işlemleri. Miktar, fiyat, tarih ve varlık referansını içerir. |
 | `daily_prices` | Zaman serisi fiyatları. Hissenin günlük kapanış değerini tutar. |
+| `latest_prices` | Hisse başına tek satır intraday/latest fiyat cache'i. UI güncel değerlemeleri içindir; tarihsel rapor ve backtest kaynağı değildir. |
 | `model_portfolios` | Gerçek portföy dışında, sanal (test) amaçlı hedef ağırlıkları saklar. |
 | `risk_profiles` | Risk anketindeki kullanıcı yanıtlarını ve finansal profilleri barındırır. |
 | `corporate_actions` | Temettü veya bölünme gibi işlemleri tutar. |
@@ -49,4 +50,11 @@ Aşağıda SQLAlchemy Declarative Base ile oluşturulan ana tablolar listelenmi�
 - `trades` tablosuna `original_quantity` ve `original_price` kolonları eklendi.
 - Kurumsal işlemler uygulandığında düzeltme geçmişini (factor, pre_quantity, post_quantity, pre_price, post_price) denetim izli olarak saklayan `trade_adjustments` tablosu oluşturuldu.
 - Düzeltilen işlemler için `trades.quantity` ve `trades.price` kolonları bölünmüş değerleri tutarken, orijinal işlem bilgileri `trades.original_quantity` ve `trades.original_price` kolonlarında salt-okunur şekilde korunur.
+
+## Latest Fiyat Cache Notu (2026-06-06)
+
+- `latest_prices` tablosu `stock_id` üzerinde unique constraint ve `stocks.id` FK ile tanımlanır; bir hisse için yalnız son canlı/latest fiyat saklanır.
+- Alanlar: `price`, `as_of`, `source`, `provider`, `fetched_at`, `updated_at`. `updated_at` upsert sırasında DB tarafında yenilenir.
+- `SQLAlchemyLatestPriceRepository`, `ILatestPriceRepository` portunu uygular ve 15 dakikalık canlı yenileme ile model portföy manuel fiyat güncellemelerinin kalıcı cache yazma yoludur.
+- Migration için `scripts/apply_latest_prices_schema.py` vardır; mevcut `daily_prices` kapanış verisi migrate edilmez veya değiştirilmez.
 
