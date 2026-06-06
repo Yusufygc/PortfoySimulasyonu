@@ -97,3 +97,9 @@ QTableWidget[cssClass="goalsTable"]::item:selected {
 QTableWidget[cssClass="goalsTable"]::item:hover {
     background-color: @COLOR_BG_SURFACE;
 }
+
+QWidget[cssClass="tableActionContainer"] {
+    background: transparent;
+    background-color: transparent;
+    border: none;
+}
