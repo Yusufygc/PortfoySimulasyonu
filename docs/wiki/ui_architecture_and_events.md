@@ -75,6 +75,20 @@ Bütün ekranlar `main_window.py` üzerinde barınır. Ancak kod kalabalığın�
 - Ayni helper Enter/Return tusunu primary aksiyona baglar; `Esc` iptal davranisini, cok satirli metin alanlari ve acik popup girisleri kendi davranisini korur.
 - Model portfoy al/sat dialogu lot ve fiyat degisimlerinde readonly `Tutar` alanini canli hesaplar; dialog sonucu ve servis API'si degismez.
 
+## Finansal Input Standardi (2026-06-06)
+
+- TL tutar/fiyat girisleri ortak `CurrencySpinBox` bilesenini kullanir; ticker, not, isim, oran ve lot alanlari bu kapsama dahil degildir.
+- Finansal input focus aldiginda `TL` suffix'ini gizler ve binlik ayraclari canli uygular (`1.234,56`); focus disinda Turkce gorunumle formatlanir (`1.234,56 TL`).
+- Hesaplama ve servis sonucunda formatli metin parse edilmez; raw deger `value()` veya Decimal icin `decimal_value()` uzerinden okunur.
+- Eski `InstantDoubleSpinBox` adi geriye uyumlu olarak `CurrencySpinBox` davranisina baglanmistir.
+
+## Islem Tarihi / Piyasa Seansi Guard (2026-06-06)
+
+- Hisse al/sat kaydi icin secilen tarih ve saat BIST acik seansina denk gelmek zorundadir; hafta sonu, BIST tatili, yarim gun kapanis sonrasi ve normal seans disi saatler kesin blokajdir.
+- UI helper'i kapali seansta artik `Yes/No` onayi sormaz; kullaniciya yonlendirici uyari gosterir ve kayit akisina devam etmez.
+- `TradeEntryService` ve `ModelPortfolioTradeService` production container'da `BistMarketSessionService` ile guard edilir; UI kontrolu atlansa bile kapali seans trade kaydi olusmaz.
+- Sermaye/nakit hareketleri bu kurala dahil degildir; kural yalniz hisse al/sat islemleri icindir.
+
 ## Model Portfoy UI State Notu (2026-06-03)
 
 - Model portfoy sayfasi acildiginda son secim bulunamazsa listedeki ilk portfoy otomatik secilir; liste bos ise sag panel temizlenir ve islem butonlari pasif kalir.
