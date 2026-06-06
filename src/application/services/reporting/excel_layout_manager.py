@@ -1,7 +1,7 @@
 # src/application/services/reporting/excel_layout_manager.py
 
 import pandas as pd
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.styles.colors import Color
 from openpyxl.utils import get_column_letter
 
@@ -16,11 +16,9 @@ class ExcelLayoutManager:
 
     _TAB_COLORS = {
         SheetName.DASHBOARD:     "FF0D2B6E",
-        SheetName.CHARTS:        "FFF9A825",
         SheetName.SUMMARY:       "FF00897B",
         SheetName.DAILY_DETAIL:  "FF455A64",
         SheetName.STOCK_SUMMARY: "FF1565C0",
-        SheetName.CHART_DATA:    "FF90A4AE",
     }
 
     def post_process_sheets(self, workbook) -> None:
@@ -28,15 +26,14 @@ class ExcelLayoutManager:
             if sheet_name in workbook.sheetnames:
                 ws = workbook[sheet_name]
                 ws.sheet_properties.tabColor = Color(rgb=argb)
-                if sheet_name != SheetName.CHART_DATA:
-                    ws.page_setup.orientation = "landscape"
-                    ws.page_setup.fitToPage = True
-                    ws.page_setup.fitToWidth = 1
-                    ws.page_setup.fitToHeight = 0
-                    ws.oddFooter.center.text = (
-                        "&İ Gizli — Yalnızca İç Kullanım &İ"
-                        "        &Sayfa &S / &N"
-                    )
+                ws.page_setup.orientation = "landscape"
+                ws.page_setup.fitToPage = True
+                ws.page_setup.fitToWidth = 1
+                ws.page_setup.fitToHeight = 0
+                ws.oddFooter.center.text = (
+                    "&İ Gizli — Yalnızca İç Kullanım &İ"
+                    "        &Sayfa &S / &N"
+                )
 
     def style_dashboard_kpi(self, worksheet, dashboard_df: pd.DataFrame) -> None:
         if dashboard_df.empty:
@@ -106,71 +103,3 @@ class ExcelLayoutManager:
             worksheet.row_dimensions[row].height = 22
         worksheet.auto_filter.ref = f"A4:B{worksheet.max_row}"
 
-    def write_dashboard_summaries(
-        self,
-        worksheet,
-        summary_df: pd.DataFrame,
-        stock_summary_df: pd.DataFrame,
-    ) -> None:
-        stats = self.data_preparer.dashboard_stats(summary_df, stock_summary_df)
-        self._section_title(worksheet, "D4:K4", "Dönem ve Performans Özeti")
-        for row_idx, (label, value) in enumerate(stats["rows"], start=5):
-            worksheet.cell(row=row_idx, column=4, value=label)
-            worksheet.cell(row=row_idx, column=5, value=value)
-        self._style_label_value_range(worksheet, 5, 11, 4, 5)
-
-        self._section_title(worksheet, "N4:W4", "Grafiklerden Çıkan Sonuç")
-        narratives = [
-            stats["portfolio_sentence"],
-            stats["return_sentence"],
-            stats["allocation_sentence"],
-            f"Grafiklerde tarih eksen {stats['period']} dönemini kapsar; yoğun günler metin özetinde net tarihlerle açıklanır.",
-        ]
-        for row_idx, text in enumerate(narratives, start=5):
-            worksheet.merge_cells(start_row=row_idx, start_column=14, end_row=row_idx, end_column=23)
-            cell = worksheet.cell(row=row_idx, column=14, value=text)
-            cell.alignment = Alignment(wrap_text=True, vertical="top")
-            cell.font = Font(color="333333", size=10)
-            worksheet.row_dimensions[row_idx].height = 34
-
-        self._section_title(worksheet, "A13:C13", "Hisse Ağırlığı İlk 3")
-        headers = ["Hisse", "Değer", "Ağırlık"]
-        for col_offset, header in enumerate(headers, start=1):
-            worksheet.cell(row=14, column=col_offset, value=header)
-        for row_offset, holding in enumerate(stats["top_holdings"], start=15):
-            worksheet.cell(row=row_offset, column=1, value=holding["ticker"])
-            worksheet.cell(row=row_offset, column=2, value=self.data_preparer._fmt_tl(holding["value"]))
-            worksheet.cell(row=row_offset, column=3, value=self.data_preparer._fmt_pct_value(holding["weight"]))
-        self._style_table_range(worksheet, 14, 18, 1, 3)
-
-    def _section_title(self, worksheet, cell_range: str, title: str) -> None:
-        worksheet.merge_cells(cell_range)
-        cell = worksheet[cell_range.split(":")[0]]
-        cell.value = title
-        cell.fill = PatternFill(start_color="D9EAF7", end_color="D9EAF7", fill_type="solid")
-        cell.font = Font(bold=True, color="1F4E78", size=11)
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-
-    def _style_label_value_range(self, worksheet, min_row: int, max_row: int, min_col: int, max_col: int) -> None:
-        for row in range(min_row, max_row + 1):
-            for col in range(min_col, max_col + 1):
-                cell = worksheet.cell(row=row, column=col)
-                cell.alignment = Alignment(wrap_text=True, vertical="center")
-                cell.border = self._thin_border()
-                if col == min_col:
-                    cell.font = Font(bold=True, color="444444")
-
-    def _style_table_range(self, worksheet, min_row: int, max_row: int, min_col: int, max_col: int) -> None:
-        for row in range(min_row, max_row + 1):
-            for col in range(min_col, max_col + 1):
-                cell = worksheet.cell(row=row, column=col)
-                cell.alignment = Alignment(wrap_text=True, vertical="center")
-                cell.border = self._thin_border()
-                if row == min_row:
-                    cell.fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-                    cell.font = Font(bold=True, color="FFFFFF", size=10)
-
-    @staticmethod
-    def _thin_border() -> Border:
-        side = Side(style="thin", color="D9E2F3")
-        return Border(left=side, right=side, top=side, bottom=side)
