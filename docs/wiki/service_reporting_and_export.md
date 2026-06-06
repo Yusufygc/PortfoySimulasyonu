@@ -52,5 +52,6 @@ sequenceDiagram
 ## Model Portfoy Rapor Fiyat Sozlesmesi (2026-06-06)
 
 - Model portfoy Excel raporlari tarihsel rapordur ve degerleme icin yalniz `daily_prices` kapanis verisini kullanir; ekranin canli `current_price_map` degerleri rapora overlay edilmez.
+- `latest_prices` intraday cache'i Excel rapor, backtest veya gecmis performans hesaplarina kaynak olmaz; canli UI ile tarihsel rapor arasindaki fark bilincli olarak korunur.
 - UI export akisi rapor uretmeden once secili `model:<id>` kapsaminda `PriceDataHealthService.analyze(...)` calistirir. Eksik kapanis fiyati varsa dosya secme ve Excel export cagrisi baslamadan kullaniciya hisse/tarih listesi gosterilir.
 - Bu kapi, model portfoy ekraninda gorunen gecikmeli/canli fiyat ile Excel raporundaki DB kapanis fiyati arasinda sessiz uyumsuzluk olusmasini engeller.
