@@ -17,9 +17,10 @@ class ModelPortfolioService:
         self,
         model_portfolio_repo,
         stock_repo,
+        market_session_service=None,
     ) -> None:
         self._admin = ModelPortfolioAdminService(model_portfolio_repo)
-        self._trade = ModelPortfolioTradeService(model_portfolio_repo, stock_repo)
+        self._trade = ModelPortfolioTradeService(model_portfolio_repo, stock_repo, market_session_service)
         self._snapshot = ModelPortfolioSnapshotService(model_portfolio_repo, stock_repo, self._trade)
 
     def get_all_portfolios(self):
