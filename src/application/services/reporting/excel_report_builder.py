@@ -15,7 +15,6 @@ from src.application.services.reporting.daily_history_models import (
     SheetName,
 )
 from src.application.services.reporting.excel_data_preparer import ExcelDataPreparer
-from src.application.services.reporting.excel_chart_builder import ExcelChartBuilder
 from src.application.services.reporting.excel_layout_manager import ExcelLayoutManager
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,6 @@ class ExcelReportBuilder:
         self.formatter = formatter
         self.data_preparer = ExcelDataPreparer()
         self.append_merger = ExcelAppendMerger(self.data_preparer)
-        self.chart_builder = ExcelChartBuilder(self.data_preparer)
         self.layout_manager = ExcelLayoutManager(self.data_preparer)
 
     @staticmethod
@@ -63,9 +61,6 @@ class ExcelReportBuilder:
     def _build_dashboard_df(self, snapshots, positions):
         return self.data_preparer.build_dashboard_df(snapshots, positions)
 
-    def _build_chart_data_df(self, summary_df):
-        return self.data_preparer.build_chart_data_df(summary_df)
-
     def _fmt_tr_money(self, val):
         return self.data_preparer._fmt_tr_money(val)
 
@@ -79,21 +74,15 @@ class ExcelReportBuilder:
     ) -> None:
         try:
             with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
-                chart_data_df = self.data_preparer.build_chart_data_df(summary_df)
                 dashboard_df.to_excel(writer,     sheet_name=SheetName.DASHBOARD,     index=False)
                 summary_df.to_excel(writer,       sheet_name=SheetName.SUMMARY,       index=False)
                 detail_df.to_excel(writer,        sheet_name=SheetName.DAILY_DETAIL,  index=False)
                 stock_summary_df.to_excel(writer, sheet_name=SheetName.STOCK_SUMMARY, index=False)
-                pd.DataFrame().to_excel(writer,   sheet_name=SheetName.CHARTS,        index=False)
-                chart_data_df.to_excel(writer,    sheet_name=SheetName.CHART_DATA,    index=False)
-                writer.sheets[SheetName.CHART_DATA].sheet_state = "hidden"
 
                 self.formatter.apply_formatting(writer, SheetName.DASHBOARD,     dashboard_df)
                 self.formatter.apply_formatting(writer, SheetName.SUMMARY,       summary_df)
                 self.formatter.apply_formatting(writer, SheetName.DAILY_DETAIL,  detail_df)
                 self.formatter.apply_formatting(writer, SheetName.STOCK_SUMMARY, stock_summary_df)
-                
-                self.chart_builder.add_charts_sheet(writer, summary_df, stock_summary_df)
                 self.layout_manager.style_dashboard_kpi(writer.sheets[SheetName.DASHBOARD], dashboard_df)
                 self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.SUMMARY],       "Portföy Özeti",     len(summary_df.columns))
                 self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.DAILY_DETAIL],  "Günlük Detaylar",   len(detail_df.columns))
@@ -125,21 +114,15 @@ class ExcelReportBuilder:
 
         try:
             with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
-                chart_data_df = self.data_preparer.build_chart_data_df(merged.summary_df)
                 dashboard_df.to_excel(writer,       sheet_name=SheetName.DASHBOARD,     index=False)
                 merged.summary_df.to_excel(writer,  sheet_name=SheetName.SUMMARY,       index=False)
                 merged.detail_df.to_excel(writer,   sheet_name=SheetName.DAILY_DETAIL,  index=False)
                 merged.stock_summary_df.to_excel(writer, sheet_name=SheetName.STOCK_SUMMARY, index=False)
-                pd.DataFrame().to_excel(writer,     sheet_name=SheetName.CHARTS,        index=False)
-                chart_data_df.to_excel(writer,      sheet_name=SheetName.CHART_DATA,    index=False)
-                writer.sheets[SheetName.CHART_DATA].sheet_state = "hidden"
 
                 self.formatter.apply_formatting(writer, SheetName.DASHBOARD,     dashboard_df)
                 self.formatter.apply_formatting(writer, SheetName.SUMMARY,       merged.summary_df)
                 self.formatter.apply_formatting(writer, SheetName.DAILY_DETAIL,  merged.detail_df)
                 self.formatter.apply_formatting(writer, SheetName.STOCK_SUMMARY, merged.stock_summary_df)
-                
-                self.chart_builder.add_charts_sheet(writer, merged.summary_df, merged.stock_summary_df)
                 self.layout_manager.style_dashboard_kpi(writer.sheets[SheetName.DASHBOARD], dashboard_df)
                 self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.SUMMARY],       "Portföy Özeti",     len(merged.summary_df.columns))
                 self.layout_manager.add_banner_to_data_sheet(writer.sheets[SheetName.DAILY_DETAIL],  "Günlük Detaylar",   len(merged.detail_df.columns))
