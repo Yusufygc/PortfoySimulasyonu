@@ -111,22 +111,19 @@ class AnalysisPage(BasePage):
         self.control_panel.filter_changed.connect(self._request_refresh)
         self.control_panel.source_changed.connect(self._on_source_changed)
 
-        panel_min_width = self.control_panel.minimumWidth() + 20
-        panel_max_width = self.control_panel.maximumWidth() + 20
+        PANEL_WIDTH = 420
 
         self.control_panel_scroll = QScrollArea()
         self.control_panel_scroll.setWidgetResizable(True)
         self.control_panel_scroll.setFrameShape(QFrame.NoFrame)
         self.control_panel_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.control_panel_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.control_panel_scroll.setMinimumWidth(panel_min_width)
-        self.control_panel_scroll.setMaximumWidth(panel_max_width)
+        self.control_panel_scroll.setFixedWidth(PANEL_WIDTH)
         self.control_panel_scroll.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         self.control_panel_scroll.setWidget(self.control_panel)
 
         self.control_panel_column = QWidget()
-        self.control_panel_column.setMinimumWidth(panel_min_width)
-        self.control_panel_column.setMaximumWidth(panel_max_width)
+        self.control_panel_column.setFixedWidth(PANEL_WIDTH)
         self.control_panel_column.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
 
         panel_layout = QVBoxLayout(self.control_panel_column)
@@ -169,13 +166,14 @@ class AnalysisPage(BasePage):
             self.btn_toggle_panel.setText(L10N.FILTRELERI_GIZLE)
 
     def on_page_enter(self):
+        self.control_panel.blockSignals(True)
         self._load_static_options()
         self._sync_source_context()
         if getattr(self, '_is_first_load', True):
             self.control_panel.reset_to_earliest_date()
             self._is_first_load = False
-        else:
-            self._request_refresh()
+        self.control_panel.blockSignals(False)
+        self._request_refresh()
 
     def refresh_data(self):
         self._load_static_options()
