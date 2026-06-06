@@ -16,6 +16,7 @@ def _fake_repositories():
         risk_profile_repo=object(),
         stock_repo=object(),
         watchlist_repo=object(),
+        latest_price_repo=object(),
     )
 
 
@@ -42,3 +43,4 @@ def test_build_services_wires_corporate_action_services():
         is services.corporate_action_service
     )
     assert services.live_price_refresh_service._price_data_health_service is services.price_data_health_service
+    assert services.live_price_refresh_service._latest_price_repo is not None
