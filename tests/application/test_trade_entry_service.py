@@ -1,5 +1,8 @@
 from datetime import date, time
 from decimal import Decimal
+from types import SimpleNamespace
+
+import pytest
 
 from src.application.services.portfolio.trade_entry_service import TradeEntryService
 from src.application.services.portfolio.portfolio_service import PortfolioService
@@ -77,6 +80,11 @@ class FakeCashMovementRepo:
         return [movement for movement in self.movements if movement.movement_date <= movement_date]
 
 
+class FakeClosedMarketSessionService:
+    def status_for(self, trade_date, trade_time=None):
+        return SimpleNamespace(is_open=False, message="Kapali")
+
+
 def test_submit_trade_creates_missing_stock_and_buy_trade():
     stock_repo = FakeStockRepo()
     portfolio_service = FakePortfolioService()
@@ -97,6 +105,28 @@ def test_submit_trade_creates_missing_stock_and_buy_trade():
     assert stock_repo.get_stock_by_ticker("ASELS.IS").name == "ASELSAN"
     assert portfolio_service.saved_trades[0].stock_id == 1
     assert portfolio_service.saved_trades[0].side == TradeSide.BUY
+
+
+def test_submit_trade_rejects_closed_market_session_before_saving():
+    stock_repo = FakeStockRepo()
+    portfolio_service = FakePortfolioService()
+    service = TradeEntryService(
+        stock_repo=stock_repo,
+        portfolio_service=portfolio_service,
+        market_session_service=FakeClosedMarketSessionService(),
+    )
+
+    with pytest.raises(ValueError, match="BIST"):
+        service.submit_trade(
+            ticker="asels",
+            side=TradeSide.BUY,
+            quantity=10,
+            price=Decimal("12.5"),
+            trade_date=date(2026, 6, 6),
+            trade_time=time(11, 0),
+        )
+
+    assert portfolio_service.saved_trades == []
 
 
 def test_submit_trade_reuses_existing_stock_by_id():
