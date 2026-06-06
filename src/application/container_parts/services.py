@@ -99,6 +99,7 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
     trade_entry_service = TradeEntryService(
         stock_repo=repositories.stock_repo,
         portfolio_service=portfolio_service,
+        market_session_service=market_clients.bist_market_session_service,
     )
     price_update_service = PriceUpdateService(
         repositories.price_repo,
@@ -109,6 +110,7 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
     model_portfolio_service = ModelPortfolioService(
         model_portfolio_repo=repositories.model_portfolio_repo,
         stock_repo=repositories.stock_repo,
+        market_session_service=market_clients.bist_market_session_service,
     )
 
     return {
