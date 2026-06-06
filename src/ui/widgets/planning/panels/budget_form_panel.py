@@ -19,9 +19,10 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QLocale, pyqtSignal
 
 from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
-from src.ui.widgets.shared import AnimatedButton, InfoCard
+from src.ui.widgets.shared import AnimatedButton, InfoCard, InstantDoubleSpinBox
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.planning.panels.budget_item_row import BudgetItemRow
+
 
 
 class BudgetFormPanel(QFrame):
@@ -49,7 +50,7 @@ class BudgetFormPanel(QFrame):
             icon="banknote",
             icon_color="@COLOR_SUCCESS",
             header_css="successHeader",
-            btn_css="primaryButton",
+            btn_css="successButton",
             btn_icon="plus",
             btn_icon_color="@COLOR_TEXT_WHITE",
             on_add=lambda: self._add_row("", 0.0, "income"),
@@ -140,7 +141,7 @@ class BudgetFormPanel(QFrame):
         lbl_target = QLabel(L10N.AYLIK_TASARRUF_HEDEFI)
         lbl_target.setProperty("cssClass", "inputLabel")
 
-        self.spin_target = QDoubleSpinBox()
+        self.spin_target = InstantDoubleSpinBox()
         self.spin_target.setRange(0, 10_000_000)
         self.spin_target.setDecimals(2)
         self.spin_target.setLocale(QLocale(QLocale.Turkish, QLocale.Turkey))
