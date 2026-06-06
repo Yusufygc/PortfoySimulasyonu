@@ -97,29 +97,38 @@ QTableWidget[cssClass="goalsTable"] QHeaderView::section {
 }
 
 QPushButton[cssClass="tableActionButtonContrib"] {
-    background-color: @COLOR_BG_BASE;
-    border: 1px solid @COLOR_BORDER;
+    background-color: transparent;
+    border: none;
     border-radius: @RADIUS_SM;
-    color: @COLOR_TEXT_PRIMARY;
-    font-size: @FONT_XS;
-    font-weight: 500;
-    padding: 0px 8px;
+    padding: 0px;
+    width: 26px;
     height: 26px;
 }
 QPushButton[cssClass="tableActionButtonContrib"]:hover {
-    background-color: @COLOR_BG_ELEVATED;
+    background-color: @COLOR_BG_BASE;
+}
+
+QPushButton[cssClass="tableActionButtonEdit"] {
+    background-color: transparent;
+    border: none;
+    border-radius: @RADIUS_SM;
+    padding: 0px;
+    width: 26px;
+    height: 26px;
+}
+QPushButton[cssClass="tableActionButtonEdit"]:hover {
+    background-color: @COLOR_BG_BASE;
 }
 
 QPushButton[cssClass="tableActionButtonDelete"] {
     background-color: @COLOR_DANGER;
     border: none;
     border-radius: @RADIUS_SM;
-    color: @COLOR_TEXT_WHITE;
-    font-size: @FONT_XS;
-    font-weight: 500;
-    padding: 0px 8px;
+    padding: 0px;
+    width: 26px;
     height: 26px;
 }
 QPushButton[cssClass="tableActionButtonDelete"]:hover {
     background-color: @COLOR_DANGER_DARK;
 }
+
