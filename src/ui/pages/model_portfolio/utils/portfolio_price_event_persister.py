@@ -45,13 +45,7 @@ class ModelPortfolioPriceEventPersister:
             if not relevant_prices:
                 continue
 
-            saved_price_map = self._settings_manager.load_saved_price_map(portfolio_id)
-            saved_price_map.update(relevant_prices)
-            self._settings_manager.save_portfolio_prices_and_time(
-                portfolio_id,
-                saved_price_map,
-                updated_at,
-            )
+            self._settings_manager.save_portfolio_last_update_time(portfolio_id, updated_at)
             updated_portfolios += 1
 
         return updated_portfolios
