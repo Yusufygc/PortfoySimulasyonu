@@ -168,7 +168,7 @@ def test_submit_trade_rejects_buy_when_cash_is_insufficient():
             trade_date=date(2026, 1, 2),
         )
     except ValueError as exc:
-        assert "Yetersiz nakit" in str(exc)
+        assert "yeterli sermayeniz yoktu" in str(exc)
     else:
         raise AssertionError("Expected insufficient cash error")
 
@@ -224,7 +224,7 @@ def test_submit_trade_rejects_sell_above_available_lot():
             trade_date=date(2026, 1, 3),
         )
     except ValueError as exc:
-        assert "Yetersiz pozisyon" in str(exc)
+        assert "yeterli pozisyonunuz yoktu" in str(exc)
     else:
         raise AssertionError("Expected insufficient position error")
 

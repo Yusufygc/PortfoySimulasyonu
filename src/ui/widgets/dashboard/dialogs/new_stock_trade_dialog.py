@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
     QLabel, QLineEdit, QRadioButton, QSpinBox, 
     QDateEdit, QTimeEdit, QPushButton, QMessageBox, 
-    QStackedWidget, QWidget, QFrame
+    QStackedWidget, QWidget, QFrame, QButtonGroup
 )
 from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
@@ -229,15 +229,23 @@ class NewStockTradeDialog(QDialog):
 
         # İşlem Yönü
         side_layout = QHBoxLayout()
-        self.radio_buy = QRadioButton(L10N.ALIS_BUY)
-        self.radio_sell = QRadioButton(L10N.SATIS_SELL)
-        self.radio_buy.setChecked(True)
+        side_layout.setSpacing(0)
         
-        self.radio_buy.setProperty("cssClass", "tradeRadioBuy")
-        self.radio_sell.setProperty("cssClass", "tradeRadioSell")
+        self.btn_buy_mode = QPushButton(L10N.ALIS_BUY)
+        self.btn_buy_mode.setCheckable(True)
+        self.btn_buy_mode.setChecked(True)
+        self.btn_buy_mode.setProperty("cssClass", "tradeModeBtnLeft")
         
-        side_layout.addWidget(self.radio_buy)
-        side_layout.addWidget(self.radio_sell)
+        self.btn_sell_mode = QPushButton(L10N.SATIS_SELL)
+        self.btn_sell_mode.setCheckable(True)
+        self.btn_sell_mode.setProperty("cssClass", "tradeModeBtnRight")
+        
+        self.mode_group = QButtonGroup(self)
+        self.mode_group.addButton(self.btn_buy_mode)
+        self.mode_group.addButton(self.btn_sell_mode)
+        
+        side_layout.addWidget(self.btn_buy_mode)
+        side_layout.addWidget(self.btn_sell_mode)
         
         lbl_side = QLabel(L10N.ISLEM_YONU)
         lbl_side.setProperty("cssClass", "formLabel")
@@ -255,7 +263,6 @@ class NewStockTradeDialog(QDialog):
         self.edit_price.setSuffix(" TL")
         self.edit_price.lineEdit().setPlaceholderText("0.00")
         self.edit_price.setProperty("cssClass", "tradeInputNormal")
-        self.edit_price.setReadOnly(True)
         
         self.edit_amount = CurrencySpinBox()
         self.edit_amount.setRange(0, 1_000_000_000)
@@ -264,6 +271,7 @@ class NewStockTradeDialog(QDialog):
         self.edit_amount.lineEdit().setPlaceholderText(L10N.TOPLAM_TUTAR)
         self.edit_amount.setProperty("cssClass", "tradeInputNormal")
         self.edit_amount.setReadOnly(True)
+        self.edit_amount.setButtonSymbols(CurrencySpinBox.NoButtons)
 
         lbl_lot = QLabel(L10N.LOT_ADEDI)
         lbl_lot.setProperty("cssClass", "formLabel")
@@ -405,7 +413,7 @@ class NewStockTradeDialog(QDialog):
             "name": self.fetched_stock_name or ticker,
             "trade_date": self.date_edit.date().toPyDate(),
             "trade_time": self.time_edit.time().toPyTime(),
-            "side": "BUY" if self.radio_buy.isChecked() else "SELL",
+            "side": "BUY" if self.btn_buy_mode.isChecked() else "SELL",
             "quantity": self.spin_quantity.value(),
             "price": price
         }

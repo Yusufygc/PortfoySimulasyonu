@@ -81,8 +81,10 @@ class TradeEntryService:
             total_amount = Decimal(quantity) * price
             cash_balance = self._portfolio_service.get_cash_balance(as_of=(trade_date, trade_time))
             if total_amount > cash_balance:
+                date_str = trade_date.strftime("%d.%m.%Y")
                 raise ValueError(
-                    f"Yetersiz nakit. Gerekli: {total_amount:.2f} TL, Mevcut: {cash_balance:.2f} TL"
+                    f"Bu işlemi gerçekleştirmek istediğiniz tarihte ({date_str}) yeterli sermayeniz yoktu.\n\n"
+                    f"Gerekli: {total_amount:,.2f} TL, Mevcut: {cash_balance:,.2f} TL"
                 )
         stock = self.ensure_stock(
             ticker=ticker,

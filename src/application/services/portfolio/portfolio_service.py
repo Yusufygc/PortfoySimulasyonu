@@ -96,8 +96,10 @@ class PortfolioService:
             as_of=as_of,
         )
         if trade.quantity > available_quantity:
+            date_str = trade.trade_date.strftime("%d.%m.%Y")
             raise ValueError(
-                f"Yetersiz pozisyon. Satmak istediğiniz: {trade.quantity}, Mevcut: {available_quantity}"
+                f"Bu işlemi gerçekleştirmek istediğiniz tarihte ({date_str}) yeterli pozisyonunuz yoktu.\n\n"
+                f"Satmak istediğiniz: {trade.quantity}, Mevcut: {available_quantity}"
             )
         PortfolioTimelineValidator.validate_candidate_timeline(
             candidate=trade,
