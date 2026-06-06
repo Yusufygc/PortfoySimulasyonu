@@ -19,7 +19,7 @@ Watchlist verisi, `analysis` ekranında (özellikle Comparison Lab tarafında) b
 
 ## 3. UI Entegrasyonu
 
-Dashboard veya ayrı bir İzleme Listesi sekmesi üzerinden `WatchlistService` çağrılarak hisseler eklenir/çıkarılır. Fiyat sağlığı (Price Health) paneli, kullanıcının Watchlist'inde olan hisseleri de dikkate alarak YFinance API üzerinden eksik gün tamamlaması yapar. 
+Ana Sayfa veya ayrı bir İzleme Listesi sekmesi üzerinden `WatchlistService` çağrılarak hisseler eklenir/çıkarılır. Fiyat sağlığı (Price Health) paneli, kullanıcının Watchlist'inde olan hisseleri de dikkate alarak YFinance API üzerinden eksik gün tamamlaması yapar. 
 Yani Watchlist'e eklenen bir hissenin geçmiş verisi arka planda sistem tarafından otomatik çekilmeye başlanır.
 
 Ayrıca, liste içerisindeki her bir hissenin eylem sütununda (silme butonunun solunda) yer alan kalem ikonu üzerinden hisse notları `EditStockInWatchlistDialog` penceresi aracılığıyla düzenlenebilir.
