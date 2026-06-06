@@ -161,6 +161,7 @@ class BudgetFormPanel(QFrame):
         self.card_expense = InfoCard(L10N.TOPLAM_GIDER,  "₺ 0,00", icon_name="trending-down")
         self.card_net     = InfoCard(L10N.NET_KALAN,     "₺ 0,00", icon_name="banknote")
         self.card_goal    = InfoCard(L10N.HEDEF_DURUMU,  "—",       icon_name="target")
+        self.card_goal.set_value_min_lines(2)
 
         self.card_income.set_value_state("positive")
         self.card_expense.set_value_state("negative")
