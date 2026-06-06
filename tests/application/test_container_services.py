@@ -27,6 +27,7 @@ def _fake_market_clients():
         optimization_market_data_provider=object(),
         price_lookup_service=object(),
         trading_calendar=object(),
+        bist_market_session_service=object(),
     )
 
 
