@@ -127,7 +127,7 @@ Temizlik: Test ayı ve pinli kalemler test sonunda silindi.
   1. Portföy tablosunda her satırda ticker, adet, maliyet, güncel fiyat ve kar/zarar alanlarını kontrol et.
   2. Bir satıra çift tıkla.
   3. Hisse Detayı sayfasının doğru hisseyle açıldığını doğrula.
-  4. Geri butonuyla Dashboard'a dön.
+  4. Geri butonuyla Ana Sayfa'ya dön.
 - **Beklenen sonuç:** Çift tıklanan ticker detay sayfasında aynıdır; geri dönüş önceki sayfayı bozmadan çalışır.
 - **Kanıt:** Ticker eşleşmesini gösteren ekran görüntüsü.
 
@@ -315,13 +315,13 @@ Temizlik: Test ayı ve pinli kalemler test sonunda silindi.
 
 ## 7. Hisse Detayı
 
-### SD-001 | Dashboard bağlamından detay
+### SD-001 | Ana Sayfa bağlamından detay
 
 - **Adımlar:**
-  1. Dashboard tablosundan bir hisseye çift tıkla.
+  1. Ana Sayfa tablosundan bir hisseye çift tıkla.
   2. Fiyat, grafik, istatistik ve işlem geçmişini kontrol et.
   3. Geri butonunu kullan.
-- **Beklenen sonuç:** Detay sayfası ana portföy bağlamında doğru veriyi gösterir; geri dönüş Dashboard'a döner.
+- **Beklenen sonuç:** Detay sayfası ana portföy bağlamında doğru veriyi gösterir; geri dönüş Ana Sayfa'ya döner.
 - **Kanıt:** Ticker ve işlem geçmişi ekranı.
 
 ### SD-002 | Model portföy bağlamından detay
@@ -722,7 +722,7 @@ Temizlik: Test ayı ve pinli kalemler test sonunda silindi.
 ### XFLOW-001 | Fiyat güncelleme event yayılımı
 
 - **Adımlar:**
-  1. Dashboard'da fiyat güncelle.
+  1. Ana Sayfa'da fiyat güncelle.
   2. Model Portföyler, Analiz, Karşılaştırma ve Hisse Detayı sayfalarına geç.
   3. Güncel fiyatların veya ilgili uyarıların yansımasını kontrol et.
 - **Beklenen sonuç:** Fiyat event'i stale veri bırakmaz; sayfalar kendi veri sözleşmesine göre yenilenir.
@@ -731,7 +731,7 @@ Temizlik: Test ayı ve pinli kalemler test sonunda silindi.
 ### XFLOW-002 | Export dosyaları
 
 - **Adımlar:**
-  1. Dashboard ve Model Portföyler raporlarını üret.
+  1. Ana Sayfa ve Model Portföyler raporlarını üret.
   2. Excel dosyalarını aç.
   3. Başlıklar, tarih aralığı, sayısal formatlar ve boş satırları kontrol et.
 - **Beklenen sonuç:** Dosyalar bozuk değildir; rapor kapsamı seçime uygundur.
@@ -766,13 +766,13 @@ Temizlik: Test ayı ve pinli kalemler test sonunda silindi.
 
 ### NEG-002 | Geçersiz tarih aralıkları
 
-- **Adımlar:** Dashboard rapor, Analiz, Karşılaştırma, Ayarlar fiyat verisi ve Finansal Planlama dialoglarında başlangıç tarihini bitişten sonraya al.
+- **Adımlar:** Ana Sayfa raporu, Analiz, Karşılaştırma, Ayarlar fiyat verisi ve Finansal Planlama dialoglarında başlangıç tarihini bitişten sonraya al.
 - **Beklenen sonuç:** İşlem çalışmaz; kullanıcıya net uyarı verilir.
 - **Kanıt:** Uyarı mesajları.
 
 ### NEG-003 | Yetersiz nakit veya pozisyon
 
-- **Adımlar:** Dashboard, Hisse Detayı ve Model Portföyler içinde bakiyeden fazla alış veya elde olmayan lot satışı dene.
+- **Adımlar:** Ana Sayfa, Hisse Detayı ve Model Portföyler içinde bakiyeden fazla alış veya elde olmayan lot satışı dene.
 - **Beklenen sonuç:** Geçersiz işlem yazılmaz; uyarı verilir.
 - **Kanıt:** Uyarı ve işlem geçmişinin değişmediği notu.
 
@@ -796,7 +796,7 @@ Tam manuel test yapılamadığında en az şu hızlı kontrol çalıştırılmal
 
 - [ ] Uygulama `python app.py` ile açılıyor, logda kritik exception yok.
 - [ ] Tüm ana sayfalara gidilebiliyor.
-- [ ] Dashboard portföy kartları ve tablo görünüyor.
+- [ ] Ana Sayfa portföy kartları ve tablo görünüyor.
 - [ ] Yeni alış işlemi eklenebiliyor.
 - [ ] Sermaye yatırma/çekme çalışıyor.
 - [ ] Watchlist oluşturma ve hisse ekleme çalışıyor.
