@@ -5,6 +5,38 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-06] duzeltme | Kapali piyasa seansinda islem kaydi blokaji
+
+- Hisse al/sat kayitlari icin BIST acik seans kontrolu onayla gecilebilir uyari olmaktan cikarildi; kapali gun/saatte kayit kesin olarak durdurulur.
+- UI helper'i `QMessageBox.question` yerine bloklayici warning gosterir; Dashboard, Model Portfoy ve Stock Detail trade akislarinda servis cagrisi yapilmaz.
+- `TradeEntryService` ve `ModelPortfolioTradeService` production container'da `BistMarketSessionService` ile guard edilir; UI atlanirsa da kapali seans trade kaydi olusmaz.
+- Etkilenen dosyalar: `src/application/services/market/`, `src/application/services/portfolio/trade_entry_service.py`, `src/application/services/planning/model_portfolio_trade_service.py`, `src/ui/shared/market_session_confirm.py`, `tests/application/`, `tests/ui/`
+- Baglantili sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-06] yeni-sayfa | Test ortamı veritabanı ve güvenli çalışma altyapısı
+
+- Geliştiricilerin sistemi canlı verileri riske atmadan zorlayabilmeleri için `PORTFOYSIM_ENV=test` ortam değişkeniyle `.env.test` yapılandırmasını yükleyen dinamik ortam yönetimi eklendi.
+- Canlı verileri test veritabanına yapısı ve verileriyle (Foreign Key kontrollerini geçici kapatarak ve chunk'lar halinde) kopyalayan `scripts/replicate_db.py` betiği oluşturuldu.
+- Test ortamında çalışıldığında kullanıcının bunu fark etmesi için MainWindow pencere başlığına `[TEST ORTAMI]` ibaresi ve sidebar menüsüne turuncu renkli `TEST ORTAMI` etiketi (badge) entegre edildi.
+- Test kapsamları için `test_settings_loader.py` genişletildi, `test_replicate_db.py` ve `test_main_window_env.py` yazıldı; `test_style_manifest.py` whitelisting yapılarak kalite kapıları korundu.
+- Etkilenen dosyalar: `config/settings_loader.py`, `src/ui/main_window.py`, `scripts/replicate_db.py`, `tests/infrastructure/test_settings_loader.py`, `tests/infrastructure/db/test_replicate_db.py`, `tests/ui/test_main_window_env.py`, `tests/ui/test_style_manifest.py`, `docs/wiki/database_maintenance_and_scripts.md`
+- Bağlantılı sayfa: [database_maintenance_and_scripts.md](database_maintenance_and_scripts.md)
+
+## [2026-06-06] guncelleme | Finansal inputlarda canli binlik ayraci
+
+- `CurrencySpinBox` edit modunda `TL` suffix'ini gizlemeye devam ederken binlik ayraclarini anlik uygulayacak sekilde guncellendi.
+- Nokta/virgul ondalik gecisinde cursor pozisyonu korunarak sonraki rakamlar dogru ondalik kisma yazilir.
+- Etkilenen dosyalar: `src/ui/widgets/shared/controls/currency_spin_box.py`, `tests/ui/widgets/test_currency_spin_box.py`, `docs/wiki/ui_architecture_and_events.md`
+- Baglantili sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-06] guncelleme | Finansal input formatlama standardi eklendi
+
+- TL tutar/fiyat girisleri icin ortak `CurrencySpinBox` bileseni eklendi; focus sirasinda ham sayi, focus disinda `1.234,56 TL` gorunumu standardize edildi.
+- Eski `InstantDoubleSpinBox` her tus vurusunda formatlama yapan teknik borctan arindirilarak yeni finansal input standardina baglandi.
+- Finansal hesaplamalarda formatli metin parse etmek yerine `value()` ve `decimal_value()` raw degerleri kullanilacak sekilde dialog ve panel kullanimlari guncellendi.
+- Etkilenen dosyalar: `src/ui/widgets/shared/controls/`, `src/ui/widgets/**/dialogs/`, `src/ui/widgets/planning/`, `src/ui/pages/stock_detail/`, `tests/ui/widgets/`
+- Baglantili sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
 ## [2026-06-06] duzeltme | Finansal Planlama hedef durumu karti dinamik satir yuksekligi
 
 - Finansal Planlama ozetindeki `Hedef Durumu` karti dar pencere genisliginde iki satira kirilan durum metni icin minimum deger yuksekligi ayiracak sekilde guncellendi.
