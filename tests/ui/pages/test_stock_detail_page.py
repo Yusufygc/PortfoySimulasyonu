@@ -1,5 +1,5 @@
 import sys
-from datetime import date
+from datetime import date, time
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -317,6 +317,37 @@ def test_stock_detail_real_submit_warns_when_trade_validation_fails(monkeypatch)
     page._on_submit_trade(False, 999, 10.0, SimpleNamespace(toPyDate=lambda: date(2026, 5, 26)))
 
     assert warnings == ["Yetersiz pozisyon"]
+
+
+def test_stock_detail_submit_blocks_closed_market_session(monkeypatch):
+    page = _stock_detail_page()
+    page.current_ticker = "ASELS.IS"
+    page.current_stock_id = 1
+    page.market_session_service = SimpleNamespace(
+        status_for=lambda trade_date, trade_time=None: SimpleNamespace(
+            is_open=False,
+            message="Kapali seans",
+        )
+    )
+    calls = []
+    page.trade_entry_service = SimpleNamespace(submit_trade=lambda **kwargs: calls.append(kwargs))
+    warnings = []
+    monkeypatch.setattr(
+        "src.ui.pages.stock_detail.stock_detail_page.QMessageBox.warning",
+        lambda *args, **kwargs: warnings.append(args[2]),
+    )
+
+    page._on_submit_trade(
+        True,
+        2,
+        11.75,
+        SimpleNamespace(toPyDate=lambda: date(2026, 6, 6)),
+        SimpleNamespace(toPyTime=lambda: time(11, 0)),
+    )
+
+    assert calls == []
+    assert warnings
+    assert "BIST" in warnings[0]
 
 
 def test_stock_chart_uses_db_series_before_yfinance(monkeypatch, drain_qt_events):
