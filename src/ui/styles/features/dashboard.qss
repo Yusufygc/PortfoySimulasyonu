@@ -4,9 +4,9 @@
 ======================================================= */
 
 QLabel[cssClass="summaryCardTitle"] {
-    color: @COLOR_TEXT_SECONDARY;
-    font-size: @FONT_SM;
-    font-weight: 700;
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: @FONT_BASE;
+    font-weight: bold;
     padding-bottom: @SPACE_XS;
 }
 
@@ -51,10 +51,9 @@ QLabel[cssClass="summaryCardValueSmall"][state="negative"] { color: @COLOR_DANGE
 QLabel[cssClass="summaryCardValueSmall"][state="neutral"]  { color: @COLOR_TEXT_PRIMARY; }
 
 QLabel[cssClass="lastUpdateLabel"] {
-    color: @COLOR_TEXT_MUTED;
-    font-size: @FONT_SM;
-    margin-left: @SPACE_XS;
-    padding-top: @SPACE_XS;
+    color: @COLOR_ACCENT;
+    font-size: @FONT_MD;
+    font-weight: 500;
 }
 
 QFrame[cssClass="summaryCard"] {
@@ -62,21 +61,12 @@ QFrame[cssClass="summaryCard"] {
     border: 1px solid @COLOR_BORDER_SUBTLE;
     border-radius: @RADIUS_CARD;
 }
-QFrame[cssClass="summaryCard"][cardType="total"] {
+QFrame[cssClass="summaryCard"][cardType="total"],
+QFrame[cssClass="summaryCard"][cardType="cost"],
+QFrame[cssClass="summaryCard"][cardType="capital"],
+QFrame[cssClass="summaryCard"][cardType="returns"] {
     background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 @COLOR_CARD_SURFACE, stop:1 @COLOR_CARD_GRADIENT_TOTAL);
     border: 1px solid @CARD_TOTAL_BORDER;
-}
-QFrame[cssClass="summaryCard"][cardType="cost"] {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 @COLOR_CARD_SURFACE, stop:1 @COLOR_CARD_GRADIENT_COST);
-    border: 1px solid @CARD_COST_BORDER;
-}
-QFrame[cssClass="summaryCard"][cardType="capital"] {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 @COLOR_CARD_SURFACE, stop:1 @COLOR_CARD_GRADIENT_CAPITAL);
-    border: 1px solid @CARD_CAPITAL_BORDER;
-}
-QFrame[cssClass="summaryCard"][cardType="returns"] {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 @COLOR_CARD_SURFACE, stop:1 @COLOR_CARD_GRADIENT_RETURNS);
-    border: 1px solid @CARD_RETURNS_BORDER;
 }
 
 QTableView {
