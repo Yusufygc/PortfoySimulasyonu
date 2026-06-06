@@ -14,8 +14,10 @@ from src.ui.pages.dashboard.dashboard_portfolio_table import DashboardPortfolioT
 from src.ui.pages.watchlist_page import WatchlistPage
 from src.ui.portfolio_table_model import PortfolioTableModel
 from src.ui.shared.locale_tr import L10N
+from src.ui.styles import tokens as theme_tokens
 from src.ui.widgets.model_portfolio.tables.positions_table import PositionsTable
 from src.ui.widgets.optimization.tables.suggestions_table import SuggestionsTable
+from src.ui.widgets.planning.panels.goals_panel import GoalsPanel
 from src.ui.widgets.shared.wrapped_header_view import WrappedHeaderView
 
 
@@ -133,6 +135,42 @@ def test_model_positions_table_displays_dashboard_matching_metrics():
     assert table.item(0, 7).foreground().color().name() == "#22c55e"
 
 
+def test_model_positions_table_normalizes_zeroish_changes_and_profit_loss_to_neutral():
+    table = PositionsTable()
+    table.populate(
+        [
+            {
+                "stock_id": 1,
+                "ticker": "ASELS.IS",
+                "quantity": 1,
+                "avg_cost": Decimal("100"),
+                "total_cost": Decimal("100"),
+                "current_price": Decimal("100.00004"),
+            },
+            {
+                "stock_id": 2,
+                "ticker": "FROTO.IS",
+                "quantity": 1,
+                "avg_cost": Decimal("100"),
+                "total_cost": Decimal("100"),
+                "current_price": Decimal("99.99996"),
+            },
+        ],
+        previous_close_map={
+            1: Decimal("100"),
+            2: Decimal("100"),
+        },
+    )
+
+    for row in range(table.rowCount()):
+        assert table.item(row, 3).text() == "%0.00"
+        assert table.item(row, 6).text() == "%0.00"
+        assert table.item(row, 7).text() == "0.00"
+        assert table.item(row, 3).data(Qt.ForegroundRole) is None
+        assert table.item(row, 6).data(Qt.ForegroundRole) is None
+        assert table.item(row, 7).data(Qt.ForegroundRole) is None
+
+
 def test_model_positions_table_uses_dash_for_missing_price_and_previous_close():
     table = PositionsTable()
     table.populate(
@@ -181,7 +219,7 @@ def test_model_positions_table_uses_responsive_stretch_columns():
     assert isinstance(header, WrappedHeaderView)
     assert header.minimumSectionSize() == 95
     assert header.font().bold() is True
-    assert header.HEADER_TEXT_COLOR.name() == "#020617"
+    assert header.header_text_color().name() == theme_tokens.DEFAULT_THEME["TABLE_HEADER_TEXT"]
     assert table.horizontalScrollBarPolicy() == Qt.ScrollBarAsNeeded
     for column in range(table.columnCount()):
         assert header.sectionResizeMode(column) == QHeaderView.Stretch
@@ -325,10 +363,37 @@ def test_dashboard_table_uses_wrapped_header_min_width_and_all_stretch_modes():
     assert header.minimumSectionSize() == 95
     assert header.minimumHeight() >= 48
     assert header.font().bold() is True
-    assert header.HEADER_TEXT_COLOR.name() == "#020617"
+    assert header.header_text_color().name() == theme_tokens.DEFAULT_THEME["TABLE_HEADER_TEXT"]
     for column in range(model.columnCount()):
         assert header.sectionResizeMode(column) == header.Stretch
         assert header.sectionSize(column) >= 95
+
+
+def test_wrapped_header_updates_color_with_active_theme_tokens(monkeypatch):
+    table = PositionsTable()
+    header = table.horizontalHeader()
+
+    monkeypatch.setattr(theme_tokens, "DEFAULT_THEME", dict(theme_tokens.DARK_THEME))
+    assert header.header_text_color().name() == theme_tokens.DARK_THEME["TABLE_HEADER_TEXT"]
+
+    monkeypatch.setattr(theme_tokens, "DEFAULT_THEME", dict(theme_tokens.LIGHT_THEME))
+    assert header.header_text_color().name() == theme_tokens.LIGHT_THEME["TABLE_HEADER_TEXT"]
+
+
+def test_dashboard_and_goals_headers_follow_dark_theme_tokens(monkeypatch):
+    monkeypatch.setattr(theme_tokens, "DEFAULT_THEME", dict(theme_tokens.DARK_THEME))
+
+    dashboard = DashboardPortfolioTable()
+    dashboard.set_model(_dashboard_model())
+    goals_panel = GoalsPanel()
+
+    dashboard_header = dashboard.table_view.horizontalHeader()
+    goals_header = goals_panel._table.horizontalHeader()
+
+    assert isinstance(dashboard_header, WrappedHeaderView)
+    assert isinstance(goals_header, WrappedHeaderView)
+    assert dashboard_header.header_text_color().name() == theme_tokens.DARK_THEME["TABLE_HEADER_TEXT"]
+    assert goals_header.header_text_color().name() == theme_tokens.DARK_THEME["TABLE_HEADER_TEXT"]
 
 
 def test_dashboard_table_stretches_to_fill_wide_viewport_and_scrolls_when_narrow():
