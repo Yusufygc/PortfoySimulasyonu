@@ -5,6 +5,7 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Optional
 
+from src.application.services.market.trade_session_guard import ensure_trade_session_open
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
 
@@ -17,9 +18,10 @@ class TradeEntryResult:
 
 
 class TradeEntryService:
-    def __init__(self, stock_repo, portfolio_service) -> None:
+    def __init__(self, stock_repo, portfolio_service, market_session_service=None) -> None:
         self._stock_repo = stock_repo
         self._portfolio_service = portfolio_service
+        self._market_session_service = market_session_service
 
     @staticmethod
     def normalize_ticker(ticker: str) -> str:
@@ -74,6 +76,7 @@ class TradeEntryService:
             raise ValueError("Lot adedi pozitif olmalıdır.")
         if price <= 0:
             raise ValueError("Fiyat pozitif olmalıdır.")
+        ensure_trade_session_open(self._market_session_service, trade_date, trade_time)
         if trade_side == TradeSide.BUY:
             total_amount = Decimal(quantity) * price
             cash_balance = self._portfolio_service.get_cash_balance(as_of=(trade_date, trade_time))
