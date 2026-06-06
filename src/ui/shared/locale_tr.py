@@ -408,6 +408,8 @@ class L10N:
     PAY = "Pay:"
     PAYDA = "Payda:"
     PIYASA_DEGERI = "Piyasa Değeri"
+    PIYASA_KAPALI = "Piyasa Kapalı"
+    PIYASA_SEANSI_DISINDA_ISLEM_UYARISI = "Seçilen tarih/saat BIST işlem seansı dışında. Lütfen işlemin gerçekleştiği açık piyasa tarih ve saatini seçin."
     PERFORMANS_GRAFIGI_YUKLENIYOR = "Performans grafiği yükleniyor..."
     PINI_KALDIR = "Pini kaldir"
     PINLE = "Pinle"
