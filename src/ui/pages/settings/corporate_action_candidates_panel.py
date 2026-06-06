@@ -29,6 +29,7 @@ from PyQt5.QtWidgets import (
 from src.domain.models.corporate_action import ActionType
 from src.domain.models.corporate_action_candidate import CorporateActionCandidate
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+from src.ui.widgets.shared import CurrencySpinBox
 from src.ui.widgets.shared import AnimatedButton, Toast
 
 
@@ -278,7 +279,7 @@ class CorporateActionCandidateEditDialog(QDialog):
         self.ratio_spin.setSuffix(" %")
         self.ratio_spin.setValue(float((self._candidate.ratio or Decimal("0")) * Decimal("100")))
 
-        self.sub_price_spin = QDoubleSpinBox()
+        self.sub_price_spin = CurrencySpinBox()
         self.sub_price_spin.setRange(0, 100000)
         self.sub_price_spin.setDecimals(4)
         self.sub_price_spin.setSuffix(" TL")
@@ -316,7 +317,7 @@ class CorporateActionCandidateEditDialog(QDialog):
         stock = self._stock_repo.get_stock_by_ticker(ticker) if self._stock_repo is not None else None
         action_type = ActionType(self.type_combo.currentText())
         ratio = Decimal(str(self.ratio_spin.value())) / Decimal("100")
-        sub_price = Decimal(str(self.sub_price_spin.value()))
+        sub_price = self.sub_price_spin.decimal_value()
         qdate = self.ex_date_edit.date()
         return CorporateActionCandidate(
             id=self._candidate.id,
