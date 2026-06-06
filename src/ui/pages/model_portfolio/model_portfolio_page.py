@@ -35,6 +35,7 @@ class ModelPortfolioPage(BasePage):
         self.model_portfolio_service = container.model_portfolio_service
         self.model_portfolio_excel_export_service = container.model_portfolio_excel_export_service
         self.price_data_health_service = getattr(container, "price_data_health_service", None)
+        self.latest_price_repo = getattr(container, "latest_price_repo", None)
         self.price_repo = container.price_repo
         self.market_session_service = getattr(container, "bist_market_session_service", None)
         self.price_lookup_func = price_lookup_func
@@ -106,7 +107,7 @@ class ModelPortfolioPage(BasePage):
         if "settings_manager" not in self.__dict__:
             self.settings_manager = PortfolioSettingsManager()
         self.settings_manager.set_last_selected_portfolio_id(portfolio.id)
-        self.current_price_map = self.settings_manager.load_saved_price_map(portfolio.id)
+        self.current_price_map = self._load_current_price_map(portfolio.id)
         self._sync_last_update_label()
         self.lbl_portfolio_name.setText(portfolio.name)
         for button in (self.btn_buy, self.btn_refresh, self.btn_report, self.btn_capital, self.btn_empty_buy):
@@ -161,6 +162,25 @@ class ModelPortfolioPage(BasePage):
             if daily_price is not None:
                 previous_close_map[stock_id] = daily_price.close_price
         return previous_close_map
+
+    def _load_current_price_map(self, portfolio_id: int) -> Dict[int, Decimal]:
+        get_positions = getattr(self.model_portfolio_service, "get_positions", None)
+        if get_positions is None:
+            return {}
+        positions = get_positions(portfolio_id)
+        stock_ids = sorted(positions)
+        price_map: Dict[int, Decimal] = {}
+
+        latest_price_repo = getattr(self, "latest_price_repo", None)
+        if latest_price_repo is not None:
+            price_map.update(latest_price_repo.get_latest_price_map(stock_ids))
+
+        missing_ids = [stock_id for stock_id in stock_ids if stock_id not in price_map]
+        for stock_id in missing_ids:
+            daily_price = self.price_repo.get_last_price_before(stock_id, date.today())
+            if daily_price is not None:
+                price_map[stock_id] = daily_price.close_price
+        return price_map
 
     def _clear_right_panel(self):
         self.lbl_portfolio_name.setText(L10N.BIR_PORTFOY_SECIN)
@@ -242,11 +262,7 @@ class ModelPortfolioPage(BasePage):
         updated_at = updated_at or datetime.now()
         if "settings_manager" not in self.__dict__:
             self.settings_manager = PortfolioSettingsManager()
-        self.settings_manager.save_portfolio_prices_and_time(
-            self.current_portfolio_id,
-            self.current_price_map,
-            updated_at
-        )
+        self.settings_manager.save_portfolio_last_update_time(self.current_portfolio_id, updated_at)
         self._last_update_toast_shown_for = None
         self._sync_last_update_label(updated_at)
         return updated_at
