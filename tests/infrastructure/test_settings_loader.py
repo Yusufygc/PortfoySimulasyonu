@@ -149,3 +149,33 @@ def test_load_market_settings_rejects_invalid_decimal(monkeypatch, tmp_path):
 
     with pytest.raises(settings_loader.SettingsError, match="TCMB_DEPOSIT_RATE_FALLBACK"):
         settings_loader.load_market_settings()
+
+
+def test_load_settings_dynamic_env_file(monkeypatch, tmp_path):
+    default_env = tmp_path / ".env"
+    default_env.write_text("DB_HOST=prod-host\nDB_PORT=3306\nDB_USER=user\nDB_PASSWORD=pwd\nDB_NAME=prod-db\nPOOL_NAME=p\nPOOL_SIZE=5", encoding="utf-8")
+    
+    test_env = tmp_path / ".env.test"
+    test_env.write_text("DB_HOST=test-host\nDB_PORT=3306\nDB_USER=user\nDB_PASSWORD=pwd\nDB_NAME=test-db\nPOOL_NAME=p\nPOOL_SIZE=5", encoding="utf-8")
+
+    def dummy_env_file_path():
+        import os
+        env_name = os.getenv("PORTFOYSIM_ENV", "").lower()
+        filename = f".env.{env_name}" if env_name else ".env"
+        return tmp_path / filename
+
+    monkeypatch.setattr(settings_loader, "_env_file_path", dummy_env_file_path)
+
+    # First load without PORTFOYSIM_ENV
+    _clear_required_env(monkeypatch)
+    monkeypatch.delenv("PORTFOYSIM_ENV", raising=False)
+    config = settings_loader.load_settings()
+    assert config.database == "prod-db"
+    assert config.host == "prod-host"
+
+    # Second load with PORTFOYSIM_ENV=test
+    _clear_required_env(monkeypatch)
+    monkeypatch.setenv("PORTFOYSIM_ENV", "test")
+    config = settings_loader.load_settings()
+    assert config.database == "test-db"
+    assert config.host == "test-host"
