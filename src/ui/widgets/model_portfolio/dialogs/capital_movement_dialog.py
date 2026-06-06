@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
-    QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -19,6 +18,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
+from src.ui.widgets.shared import CurrencySpinBox
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
 
@@ -53,7 +53,7 @@ class CapitalMovementDialog(QDialog):
         self.combo_action.setProperty("cssClass", "tradeInputNormal")
         form.addRow("İşlem:", self.combo_action)
 
-        self.spin_amount = QDoubleSpinBox()
+        self.spin_amount = CurrencySpinBox()
         self.spin_amount.setRange(0.01, 100_000_000)
         self.spin_amount.setDecimals(2)
         self.spin_amount.setGroupSeparatorShown(True)
@@ -95,7 +95,7 @@ class CapitalMovementDialog(QDialog):
         layout.addLayout(button_row)
 
     def get_result(self) -> Optional[dict]:
-        amount = Decimal(str(self.spin_amount.value()))
+        amount = self.spin_amount.decimal_value()
         if amount <= 0:
             return None
         return {
