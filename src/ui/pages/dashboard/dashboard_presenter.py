@@ -33,8 +33,9 @@ class DashboardPresenter:
 
         all_positions: List[Position] = list(portfolio.positions.values())
         positions: List[Position] = [position for position in all_positions if position.total_quantity != 0]
-        price_map: Dict[int, Decimal] = snapshot.price_map if snapshot else {}
         stock_ids = [position.stock_id for position in positions]
+        price_map: Dict[int, Decimal] = dict(snapshot.price_map if snapshot else {})
+        price_map.update(self._latest_price_map(stock_ids))
         ticker_map = self._page.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
         previous_close_map = self._build_previous_close_map(stock_ids, today)
 
@@ -51,10 +52,24 @@ class DashboardPresenter:
         else:
             self._page.portfolio_model.update_data(positions, price_map, ticker_map, previous_close_map)
 
-        positions_value = snapshot.total_value if snapshot else Decimal("0")
+        positions_value = sum(
+            (
+                position.market_value(price_map[position.stock_id])
+                for position in positions
+                if position.stock_id in price_map
+            ),
+            Decimal("0"),
+        )
         total_value = positions_value + self._page._capital
         total_cost = sum(position.total_cost for position in positions)
-        profit_loss = snapshot.total_unrealized_pl if snapshot else Decimal("0")
+        profit_loss = sum(
+            (
+                position.unrealized_pl(price_map[position.stock_id])
+                for position in positions
+                if position.stock_id in price_map
+            ),
+            Decimal("0"),
+        )
 
         self._page.summary_cards.update_base_metrics(total_value, total_cost, self._page._capital, profit_loss)
         self._page.portfolio_table_widget.update_summary_row(total_value, profit_loss)
@@ -120,6 +135,12 @@ class DashboardPresenter:
                 continue
             previous_close_map[stock_id] = daily_price.close_price
         return previous_close_map
+
+    def _latest_price_map(self, stock_ids: List[int]) -> Dict[int, Decimal]:
+        latest_price_repo = getattr(self._page, "latest_price_repo", None)
+        if latest_price_repo is None:
+            return {}
+        return latest_price_repo.get_latest_price_map(stock_ids)
 
     def update_returns(self) -> None:
         today = date.today()
