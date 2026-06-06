@@ -1,5 +1,5 @@
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -443,6 +443,62 @@ def test_model_portfolio_capital_action_passes_dialog_result_to_service(monkeypa
     assert calls[1][1]["amount"] == Decimal("500")
     assert ("load",) in calls
     assert ("update",) in calls
+
+
+def test_model_portfolio_trade_action_blocks_closed_market_session(monkeypatch):
+    warnings = []
+
+    class FakeDialog:
+        def __init__(self, side, price_lookup_func, parent=None):
+            pass
+
+        def exec_(self):
+            return QDialog.Accepted
+
+        def get_result(self):
+            return {
+                "ticker": "ASELS",
+                "quantity": 1,
+                "price": Decimal("10"),
+                "trade_date": date(2026, 6, 6),
+                "trade_time": time(11, 0),
+            }
+
+    class FakeService:
+        def __init__(self):
+            self.calls = []
+
+        def add_trade_by_ticker(self, **kwargs):
+            self.calls.append(kwargs)
+
+    service = FakeService()
+    page = SimpleNamespace(
+        current_portfolio_id=4,
+        price_lookup_func=None,
+        market_session_service=SimpleNamespace(
+            status_for=lambda trade_date, trade_time=None: SimpleNamespace(
+                is_open=False,
+                message="Kapali seans",
+            )
+        ),
+        model_portfolio_service=service,
+        _load_portfolios=lambda: None,
+        _update_view=lambda: None,
+    )
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.utils.model_portfolio_actions.TradeInputDialog",
+        FakeDialog,
+    )
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.utils.model_portfolio_actions.QMessageBox.warning",
+        lambda *args, **kwargs: warnings.append(args[2]),
+    )
+
+    ModelPortfolioActions(page).on_trade("BUY")
+
+    assert service.calls == []
+    assert warnings
+    assert "BIST" in warnings[0]
 
 
 def test_model_portfolio_position_double_click_opens_stock_detail():
