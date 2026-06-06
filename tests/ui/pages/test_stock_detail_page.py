@@ -241,7 +241,7 @@ def test_stock_chart_draws_price_series_with_pyqtgraph(drain_qt_events):
     drain_qt_events()
 
     assert len(chart.plot_widget.listDataItems()) >= 1
-    assert chart.plot_widget.getPlotItem().titleLabel.text == "OBAMS - Fiyat Geçmişi"
+    assert chart.plot_widget.getPlotItem().titleLabel.text == "OBAMS — Fiyat Geçmişi"
     assert chart._reference_legend is not None
     assert len(chart._reference_legend.items) == 2
 
@@ -385,3 +385,59 @@ def test_stock_chart_widget_does_not_import_yfinance():
     import src.ui.pages.stock_detail.stock_chart_widget as chart_module
 
     assert not hasattr(chart_module, "yf")
+
+
+def test_stock_chart_date_axis_uses_turkish_months():
+    from datetime import datetime
+    from src.ui.pages.stock_detail.stock_chart_widget import DateAxisItem
+
+    axis = DateAxisItem(orientation="bottom")
+    ts = datetime(2026, 1, 15).timestamp()
+
+    labels = axis.tickStrings([ts], 1, 1)
+
+    assert labels == ["15 Oca"]
+
+
+def test_stock_chart_currency_axis_formats_with_tl_symbol():
+    from src.ui.pages.stock_detail.stock_chart_widget import CurrencyAxisItem
+
+    axis = CurrencyAxisItem(orientation="left")
+
+    labels = axis.tickStrings([1234.56], 1, 1)
+
+    assert labels == ["₺ 1.234,56"]
+
+
+def test_stock_chart_crosshair_snaps_to_nearest_point():
+    from src.ui.pages.stock_detail.stock_chart_widget import StockChartWidget
+
+    chart = StockChartWidget()
+    chart._chart_points = [(100.0, 10.0), (200.0, 20.0), (300.0, 30.0)]
+
+    # 240 → 200 (40) ile 300 (60) arasından 200'e daha yakın
+    snap = chart._nearest_point(240.0)
+
+    assert snap == (200.0, 20.0)
+
+
+def test_stock_chart_reference_legend_offset_avoids_title_overlap():
+    """Reference legend başlık satırının altında konumlanır (Y >= 40)."""
+    from decimal import Decimal
+    from datetime import date
+    from src.ui.pages.stock_detail.stock_chart_widget import StockChartWidget
+
+    chart = StockChartWidget()
+    series = {date(2026, 5, 22): Decimal("7.50"), date(2026, 5, 25): Decimal("7.80")}
+    chart.set_price_series_provider(lambda *_: series)
+    chart.draw_chart("OBAMS", 1, Decimal("7.80"), DummyPortfolioService())
+
+    # Worker async; offset doğrudan kaynaktan teyit edilebilir
+    chart._add_reference_legend_item("test", None)
+    legend = chart._reference_legend
+    # pg.LegendItem offset (14, 44) → __init__'te _offset attribute olarak saklanır
+    offset = getattr(legend, "_offset", None) or getattr(legend, "offset", None)
+    # offset tuple veya callable olabilir; tuple kabulü
+    if callable(offset):
+        offset = offset()
+    assert offset[1] >= 40, f"Legend Y-offset başlığın altında olmalı, oldu: {offset}"

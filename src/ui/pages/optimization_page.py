@@ -1,7 +1,11 @@
 # src/ui/pages/optimization_page.py
 
 from __future__ import annotations
+import logging
+
 from src.ui.shared.locale_tr import L10N
+
+logger = logging.getLogger(__name__)
 
 from PyQt5.QtWidgets import (
     QHBoxLayout,
@@ -246,8 +250,10 @@ class OptimizationPage(BasePage):
             self._model_portfolios = self._optimization_service.get_model_portfolios()
             for mp in self._model_portfolios:
                 self.combo_source.addItem(IconManager.get_icon("wallet", color="@COLOR_TEXT_PRIMARY", size=QSize(16, 16)), mp.name, f"{self.SOURCE_MODEL}:{mp.id}")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Model portföy listesi yüklenemedi: %s", exc)
+            self._model_portfolios = []
+            self.combo_source.addItem(L10N.MODEL_PORTFOY_YOK)
 
     # ------------------------------------------------------------------
     # Optimizasyon İşlemi

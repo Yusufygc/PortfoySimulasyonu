@@ -744,6 +744,11 @@ li {
     TREND_YUKSELIS_TRENDI = "Yükseliş trendi"
     TREND_DUSUS_TRENDI = "Düşüş trendi"
     TREND_YATAY_SEYIR = "Yatay seyir"
+    # --- P2 grafik UX (2026-06-06) ---
+    AYLAR_KISA = ("Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara")
+    FIYAT_GECMISI_TMPL = "{ticker} — Fiyat Geçmişi"
+    GRAFIK_TOOLTIP_TMPL = "{date}  ·  ₺ {price}"
+    MODEL_PORTFOY_YOK = "Model portföy bulunamadı"
     SERMAYE_ARTIRIMI_UYGULANDI_TMPL = "{type} sermaye artırımı uygulandı. {before} lot → {after} lot | Fiyat geçmişi güncellendi ({count} kayıt)."
     SERMAYE_ARTIRIMI_FIYAT_HATASI_TMPL = "{type} sermaye artırımı uygulandı, ancak geçmiş fiyatlar güncellenirken hata oluştu:\n{exc}\n\n"
     HEDEFI_SIL = "Hedefi Sil"

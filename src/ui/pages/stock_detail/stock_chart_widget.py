@@ -3,11 +3,12 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
+import bisect
 import logging
 from datetime import date, datetime, time, timedelta
 
 import pyqtgraph as pg
-from PyQt5.QtCore import Qt, QThreadPool
+from PyQt5.QtCore import Qt, QPointF, QThreadPool
 from PyQt5.QtWidgets import QFrame, QSizePolicy, QVBoxLayout
 
 from src.ui.formatters import display_ticker
@@ -22,15 +23,47 @@ TEXT_SECONDARY = "#94a3b8"
 LINE_BLUE = "#3b82f6"
 LINE_CURRENT = "#10b981"
 LINE_AVG_COST = "#f59e0b"
+CROSSHAIR_COLOR = "#64748b"
+
+
+def _format_date_tr(dt: datetime, with_year: bool = False) -> str:
+    """Türkçe ay kısaltmasıyla tarih formatı: '15 Oca' veya '15 Oca 2026'."""
+    month = L10N.AYLAR_KISA[dt.month - 1]
+    if with_year:
+        return f"{dt.day:02d} {month} {dt.year}"
+    return f"{dt.day:02d} {month}"
+
+
+def _format_tr_currency(value: float) -> str:
+    """TR locale para formatı: ``₺ 1.234,56``."""
+    text = f"{value:,.2f}"  # "1,234.56"
+    int_part, dec_part = text.split(".")
+    int_part = int_part.replace(",", ".")
+    return f"₺ {int_part},{dec_part}"
 
 
 class DateAxisItem(pg.AxisItem):
+    """Tarih ekseni — Türkçe ay kısaltmalarıyla tick yazar."""
+
     def tickStrings(self, values, scale, spacing):  # noqa: N802 - pyqtgraph API
         labels = []
         for value in values:
             try:
-                labels.append(datetime.fromtimestamp(value).strftime("%d %b"))
+                labels.append(_format_date_tr(datetime.fromtimestamp(value)))
             except (OSError, OverflowError, ValueError):
+                labels.append("")
+        return labels
+
+
+class CurrencyAxisItem(pg.AxisItem):
+    """Sol eksen — değerleri ``₺ 1.234,56`` biçiminde gösterir."""
+
+    def tickStrings(self, values, scale, spacing):  # noqa: N802 - pyqtgraph API
+        labels = []
+        for value in values:
+            try:
+                labels.append(_format_tr_currency(float(value)))
+            except (TypeError, ValueError):
                 labels.append("")
         return labels
 
@@ -44,6 +77,7 @@ class StockChartWidget(QFrame):
         self.setMinimumHeight(320)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self._price_series_provider = None
+        self._chart_points: list[tuple[float, float]] = []
         self._init_ui()
 
     def set_price_series_provider(self, provider) -> None:
@@ -60,7 +94,10 @@ class StockChartWidget(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.plot_widget = pg.PlotWidget(axisItems={"bottom": DateAxisItem(orientation="bottom")})
+        self.plot_widget = pg.PlotWidget(axisItems={
+            "bottom": DateAxisItem(orientation="bottom"),
+            "left": CurrencyAxisItem(orientation="left"),
+        })
         self.plot_widget.setBackground(BG_BASE)
         self.plot_widget.setMinimumHeight(320)
         self.plot_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -68,6 +105,7 @@ class StockChartWidget(QFrame):
         self._reference_legend = None
 
         self._configure_plot_item()
+        self._install_crosshair()
         self.draw_empty_chart(L10N.GRAFIK_VERISI_BEKLENIYOR)
 
     def _configure_plot_item(self) -> None:
@@ -86,10 +124,39 @@ class StockChartWidget(QFrame):
             if hasattr(axis, "enableAutoSIPrefix"):
                 axis.enableAutoSIPrefix(False)
 
+    def _install_crosshair(self) -> None:
+        """Mouse-over crosshair (vLine/hLine) + tarih·fiyat tooltip etiketi."""
+        plot_item = self.plot_widget.getPlotItem()
+        pen = pg.mkPen(CROSSHAIR_COLOR, width=1, style=Qt.DashLine)
+
+        self._cursor_vline = pg.InfiniteLine(angle=90, movable=False, pen=pen)
+        self._cursor_hline = pg.InfiniteLine(angle=0, movable=False, pen=pen)
+        self._cursor_vline.setVisible(False)
+        self._cursor_hline.setVisible(False)
+        plot_item.addItem(self._cursor_vline, ignoreBounds=True)
+        plot_item.addItem(self._cursor_hline, ignoreBounds=True)
+
+        self._cursor_label = pg.TextItem(
+            text="",
+            color=TEXT_PRIMARY,
+            anchor=(0, 1),
+            fill=pg.mkBrush(15, 23, 42, 230),
+            border=pg.mkPen(BORDER),
+        )
+        self._cursor_label.setVisible(False)
+        plot_item.addItem(self._cursor_label, ignoreBounds=True)
+
+        scene = self.plot_widget.scene()
+        self._mouse_proxy = pg.SignalProxy(
+            scene.sigMouseMoved, rateLimit=60, slot=self._on_mouse_moved
+        )
+
     def draw_empty_chart(self, message: str) -> None:
         self.plot_widget.clear()
+        self._chart_points = []
         self._clear_reference_legend()
         self._configure_plot_item()
+        self._install_crosshair()  # plot_widget.clear() crosshair item'larını da temizler
         self.plot_widget.getPlotItem().setTitle(message, color=TEXT_SECONDARY, size=L10N.K_13PT)
         self.plot_widget.enableAutoRange()
 
@@ -151,15 +218,19 @@ class StockChartWidget(QFrame):
             self.plot_widget.clear()
             self._clear_reference_legend()
             self._configure_plot_item()
+            self._install_crosshair()
             plot_item = self.plot_widget.getPlotItem()
             plot_item.setTitle(
-                f"{display_ticker(current_ticker)} - Fiyat Geçmişi",
+                L10N.FIYAT_GECMISI_TMPL.format(ticker=display_ticker(current_ticker)),
                 color=TEXT_PRIMARY,
                 size="15pt",
             )
 
-            x_values = [point[0] for point in points]
-            y_values = [point[1] for point in points]
+            # Crosshair snap için noktaları sakla (x'e göre sıralı varsay)
+            self._chart_points = sorted(points, key=lambda p: p[0])
+
+            x_values = [point[0] for point in self._chart_points]
+            y_values = [point[1] for point in self._chart_points]
 
             curve = self.plot_widget.plot(
                 x_values,
@@ -195,6 +266,54 @@ class StockChartWidget(QFrame):
             logger.error("Grafik render hatası: %s", exc)
             self.draw_empty_chart(L10N.GRAFIK_YUKLENEMEDI)
 
+    def _on_mouse_moved(self, event) -> None:
+        """Crosshair'ı en yakın gerçek noktaya snap eder ve tooltip günceller."""
+        if not self._chart_points:
+            self._set_crosshair_visible(False)
+            return
+        pos = event[0] if isinstance(event, tuple) else event
+        plot_item = self.plot_widget.getPlotItem()
+        view_box = plot_item.vb
+        if not plot_item.sceneBoundingRect().contains(pos):
+            self._set_crosshair_visible(False)
+            return
+        scene_point = view_box.mapSceneToView(pos)
+        snap_x, snap_y = self._nearest_point(scene_point.x())
+        self._cursor_vline.setPos(snap_x)
+        self._cursor_hline.setPos(snap_y)
+        self._set_crosshair_visible(True)
+        try:
+            dt = datetime.fromtimestamp(snap_x)
+            date_text = _format_date_tr(dt, with_year=True)
+        except (OSError, OverflowError, ValueError):
+            date_text = "-"
+        price_text = _format_tr_currency(snap_y).replace("₺ ", "")  # tek ₺ tooltip içinde
+        self._cursor_label.setText(L10N.GRAFIK_TOOLTIP_TMPL.format(date=date_text, price=price_text))
+        # Sağ kenara yakınsa etiketi sola al, yoksa sağa
+        view_range = view_box.viewRange()
+        x_min, x_max = view_range[0]
+        if snap_x > x_min + (x_max - x_min) * 0.7:
+            self._cursor_label.setAnchor((1, 1))
+        else:
+            self._cursor_label.setAnchor((0, 1))
+        self._cursor_label.setPos(QPointF(snap_x, snap_y))
+
+    def _set_crosshair_visible(self, visible: bool) -> None:
+        for item in (self._cursor_vline, self._cursor_hline, self._cursor_label):
+            item.setVisible(visible)
+
+    def _nearest_point(self, x: float) -> tuple[float, float]:
+        """``_chart_points`` içinde x'e en yakın (x, y) noktasını döner."""
+        xs = [p[0] for p in self._chart_points]
+        idx = bisect.bisect_left(xs, x)
+        if idx <= 0:
+            return self._chart_points[0]
+        if idx >= len(xs):
+            return self._chart_points[-1]
+        before = self._chart_points[idx - 1]
+        after = self._chart_points[idx]
+        return before if abs(x - before[0]) <= abs(after[0] - x) else after
+
     def _add_reference_line(self, value: float, label: str, color: str, style: Qt.PenStyle) -> None:
         pen = pg.mkPen(color, width=1.4, style=style)
         line = pg.InfiniteLine(
@@ -208,8 +327,10 @@ class StockChartWidget(QFrame):
 
     def _add_reference_legend_item(self, label: str, pen) -> None:
         if self._reference_legend is None:
+            # offset (14, 44): sol kenardan 14, üstten 44px — başlık satırının (~36px)
+            # hemen altına gelir; başlık/X-ekseni tick'leri ile çakışmaz.
             self._reference_legend = pg.LegendItem(
-                offset=(14, 14),
+                offset=(14, 44),
                 brush=pg.mkBrush(15, 23, 42, 220),
                 pen=pg.mkPen(BORDER),
                 labelTextColor=TEXT_PRIMARY,

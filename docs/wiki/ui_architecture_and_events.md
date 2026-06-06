@@ -95,6 +95,17 @@ Bütün ekranlar `main_window.py` üzerinde barınır. Ancak kod kalabalığın�
 - Secili portfoyde acik pozisyon yoksa `Hisse Sat` pasif kalir; `Hisse Al`, `Fiyat Guncelle`, `Rapor Al` ve `Sermaye Yonetimi` secili portfoy kapsaminda aktif olur.
 - `Sermaye Yonetimi` dialogu tarih, saat, tutar, islem tipi ve not alanlariyla model portfoy sermaye hareketi olusturur.
 
+## Stock Detail Grafik UX Geliştirmesi (2026-06-06)
+
+- `StockChartWidget` `pyqtgraph` tabanlı, artık tamamen Türkçe lokal:
+  - **X-ekseni TR ay**: `DateAxisItem.tickStrings` `L10N.AYLAR_KISA` ile `"15 Oca"` üretir (`%d %b` → "Jan" kalktı). `locale.setlocale` bağımlılığı yok; deterministik map.
+  - **Y-ekseni `₺` formatı**: yeni `CurrencyAxisItem` Türkçe binlik/ondalık (`₺ 1.234,56`).
+  - **Crosshair + tooltip**: `pg.SignalProxy(scene.sigMouseMoved, rateLimit=60)` ile `vLine/hLine` ve `TextItem` etiketi. Fare gerçek noktalara `bisect` ile snap'lenir. Etiket `L10N.GRAFIK_TOOLTIP_TMPL` (`"15 Oca 2026  ·  ₺ 125,40"`). Viewport sağ kenarında otomatik sol-anchor.
+  - **Reference legend konumu**: `pg.LegendItem(offset=(14, 44))` — başlık satırının altına çekildi; başlık/eksen tick'leri ile çakışma yok.
+  - **Başlık L10N**: `L10N.FIYAT_GECMISI_TMPL = "{ticker} — Fiyat Geçmişi"` (em-dash).
+- Mimari kural: UI doğrudan `yfinance` çağırmaz; DB serisi boşsa enjekte edilen `market_client.get_price_series` provider'ı kullanılır (P0'dan korunmuş).
+- `optimization_page.py` `_load_sources` artık sessiz `except Exception: pass` yerine `logger.warning` + combo'ya `L10N.MODEL_PORTFOY_YOK` placeholder ekler.
+
 ## AI Katmanı Temiz Mimariye Taşındı (2026-06-06)
 
 - Eski `src/ui/pages/ai_page/core/` klasörü (HTTP istemci, Gemini SDK, QSettings sohbet deposu, iş kuralları) UI katmanından çıkarıldı ve kaldırıldı; bu kod doğru katmanlara dağıtıldı:

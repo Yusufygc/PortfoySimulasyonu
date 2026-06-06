@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-06] iyilestirme | Stock Detail grafik UX (TR aylar, crosshair, sembol Y-ekseni)
+
+- `StockChartWidget` (`pyqtgraph`) tamamen Turkce lokal: X-ekseni TR ay kisaltmalari (`"15 Oca"`), Y-ekseni `₺ 1.234,56` formati.
+- Mouse-over crosshair (`vLine/hLine`) + tarih+fiyat tooltip (`SignalProxy.sigMouseMoved`, bisect ile en yakin noktaya snap).
+- Reference legend offset `(14, 44)`: basligin altina cekildi, basliki/eksen tick'leriyle cakismaz.
+- Baslik L10N: `FIYAT_GECMISI_TMPL` (em-dash `—`).
+- `optimization_page._load_sources` sessiz `except Exception: pass` -> `logger.warning` + combo placeholder `MODEL_PORTFOY_YOK`.
+- Etkilenen dosyalar: `src/ui/pages/stock_detail/stock_chart_widget.py`, `src/ui/shared/locale_tr.py`, `src/ui/pages/optimization_page.py`, `tests/ui/pages/test_stock_detail_page.py`, `tests/ui/test_refactor_guards.py`, `docs/wiki/ui_architecture_and_events.md`
+- Tam suite 510 gecti.
+- Baglantili sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
 ## [2026-06-06] refaktor | AI katmani ve grafik veri erisimi temiz mimariye tasindi
 
 - UI icindeki backend sizintisi giderildi: `src/ui/pages/ai_page/core/` (HTTP istemci, Gemini SDK, QSettings sohbet deposu, is kurallari) kaldirildi ve katmanlara dagitildi.
