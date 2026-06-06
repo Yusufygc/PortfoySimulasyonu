@@ -48,6 +48,9 @@ class PortfolioSettingsManager:
             self._price_map_settings_key(portfolio_id),
             self._serialize_price_map(price_map),
         )
+        self.save_portfolio_last_update_time(portfolio_id, updated_at)
+
+    def save_portfolio_last_update_time(self, portfolio_id: int, updated_at: datetime) -> None:
         self._settings.setValue(
             self._last_update_settings_key(portfolio_id),
             updated_at.isoformat(timespec="seconds"),
