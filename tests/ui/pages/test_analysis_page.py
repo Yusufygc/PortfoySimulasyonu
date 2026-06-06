@@ -69,8 +69,8 @@ def test_analysis_page_keeps_filter_panel_in_a_full_height_right_column():
     assert page.control_panel_scroll.widget() is page.control_panel
     assert page.control_panel_scroll.widgetResizable() is True
     assert page.control_panel_scroll.horizontalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
-    assert page.control_panel_scroll.minimumWidth() == page.control_panel.minimumWidth() + 20
-    assert page.control_panel_scroll.maximumWidth() == page.control_panel.maximumWidth() + 20
+    assert page.control_panel_scroll.minimumWidth() == 420
+    assert page.control_panel_scroll.maximumWidth() == 420
     assert page.control_panel_column.layout().itemAt(0).widget() is page.control_panel_scroll
     assert page.control_panel_scroll.sizePolicy().verticalPolicy() == QSizePolicy.Expanding
     assert page.control_panel.sizePolicy().verticalPolicy() == QSizePolicy.Expanding
