@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+from src.ui.widgets.shared import CurrencySpinBox
 
 # Tür tanımları
 SideLiteral = Literal["BUY", "SELL"]
@@ -144,12 +145,18 @@ class TradeDialog(QDialog):
         self.spin_quantity.setValue(1)
         self.spin_quantity.setProperty("cssClass", "tradeInputNormal")
         
-        self.edit_price = QLineEdit()
-        self.edit_price.setPlaceholderText("0.00")
+        self.edit_price = CurrencySpinBox()
+        self.edit_price.setRange(0, 1_000_000)
+        self.edit_price.setDecimals(2)
+        self.edit_price.setSuffix(" TL")
+        self.edit_price.lineEdit().setPlaceholderText("0.00")
         self.edit_price.setProperty("cssClass", "tradeInputNormal")
         
-        self.edit_amount = QLineEdit()
-        self.edit_amount.setPlaceholderText(L10N.TOPLAM_TUTAR)
+        self.edit_amount = CurrencySpinBox()
+        self.edit_amount.setRange(0, 1_000_000_000)
+        self.edit_amount.setDecimals(2)
+        self.edit_amount.setSuffix(" TL")
+        self.edit_amount.lineEdit().setPlaceholderText(L10N.TOPLAM_TUTAR)
         self.edit_amount.setProperty("cssClass", "tradeInputNormal")
 
         lbl_lot = QLabel(L10N.ADET_LOT)
@@ -193,7 +200,8 @@ class TradeDialog(QDialog):
         
         # Hesaplamalar
         self.spin_quantity.valueChanged.connect(self._on_quantity_changed)
-        self.edit_amount.textChanged.connect(self._on_amount_changed)
+        self.edit_price.valueChanged.connect(lambda _value: self._on_quantity_changed(self.spin_quantity.value()))
+        self.edit_amount.valueChanged.connect(self._on_amount_changed)
         
         # Tarih kontrol
         self.date_edit.dateChanged.connect(self._on_date_changed)
@@ -214,8 +222,8 @@ class TradeDialog(QDialog):
         if res:
             self.current_price = res.price
             self.lbl_price_info.setText(f"Güncel: ₺ {res.price:,.2f} ({'Anlık' if res.source=='intraday' else 'Kapanış'})")
-            if not self.edit_price.text():
-                self.edit_price.setText(str(res.price))
+            if self.edit_price.value() <= 0:
+                self.edit_price.setValue(float(res.price))
         else:
             self.lbl_price_info.setText(L10N.FIYAT_VERISI_ALINAMADI)
         self.btn_save.setEnabled(True)
@@ -228,17 +236,17 @@ class TradeDialog(QDialog):
     def _on_quantity_changed(self, val):
         if self._updating_amount: return
         try:
-            p = float(self.edit_price.text().replace(",", ".") or 0)
+            p = self.edit_price.value()
             self._updating_quantity = True
-            self.edit_amount.setText(f"{val * p:.2f}")
+            self.edit_amount.setValue(val * p)
             self._updating_quantity = False
         except (ValueError, TypeError): pass
 
-    def _on_amount_changed(self, text):
+    def _on_amount_changed(self, amount):
         if self._updating_quantity: return
         try:
-            p = float(self.edit_price.text().replace(",", ".") or 0)
-            amt = float(text.replace(",", ".") or 0)
+            p = self.edit_price.value()
+            amt = float(amount or 0)
             if p > 0:
                 self._updating_amount = True
                 self.spin_quantity.setValue(int(amt / p))
@@ -249,8 +257,6 @@ class TradeDialog(QDialog):
     def _normalize_trade_date(self, qdate: QDate):
         now = QDate.currentDate()
         if qdate > now: self.date_edit.setDate(now)
-        elif qdate.dayOfWeek() > 5: # Haftasonu
-            self.date_edit.setDate(qdate.addDays(-(qdate.dayOfWeek() - 5)))
 
     def _on_date_changed(self, date):
         self._normalize_trade_date(date)
@@ -268,7 +274,7 @@ class TradeDialog(QDialog):
     def _on_ok_clicked(self):
         # Validasyon
         try:
-            p = float(self.edit_price.text().replace(",", ".") or 0)
+            p = self.edit_price.value()
             if p <= 0: raise ValueError(L10N.FIYAT_0_OLAMAZ)
         except (ValueError, TypeError):
             QMessageBox.warning(self, L10N.ERROR, L10N.GECERSIZ_FIYAT)
@@ -286,7 +292,7 @@ class TradeDialog(QDialog):
             return None
             
         try:
-            price = Decimal(self.edit_price.text().replace(",", "."))
+            price = self.edit_price.decimal_value()
         except (ValueError, Exception): price = Decimal("0")
 
         return {
