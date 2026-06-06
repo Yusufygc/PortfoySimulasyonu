@@ -1,4 +1,5 @@
 import sys
+from datetime import date, time
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -77,6 +78,48 @@ def test_dashboard_new_trade_shows_warning_for_invalid_trade(monkeypatch):
     DashboardActions(page, presenter).on_new_trade()
 
     assert warnings == ["Yetersiz nakit"]
+
+
+def test_dashboard_new_trade_blocks_closed_market_session(monkeypatch):
+    warnings = []
+    submit_calls = []
+    presenter = SimpleNamespace(load_capital=lambda: None, refresh_data=lambda: None)
+    trade_service = SimpleNamespace(submit_trade=lambda **kwargs: submit_calls.append(kwargs))
+    dialog = SimpleNamespace(
+        exec_=lambda: QDialog.Accepted,
+        get_result=lambda: {
+            "ticker": "ASELS",
+            "name": "ASELS",
+            "side": "BUY",
+            "quantity": 10,
+            "price": Decimal("10"),
+            "trade_date": date(2026, 6, 6),
+            "trade_time": time(11, 0),
+        },
+    )
+    market_session_service = SimpleNamespace(
+        status_for=lambda trade_date, trade_time=None: SimpleNamespace(
+            is_open=False,
+            message="Kapali seans",
+        )
+    )
+    page = SimpleNamespace(
+        new_trade_dialog_cls=lambda **kwargs: dialog,
+        price_lookup_func=None,
+        trade_entry_service=trade_service,
+        market_session_service=market_session_service,
+        _last_trade_result=None,
+    )
+    monkeypatch.setattr(
+        "src.ui.pages.dashboard.dashboard_actions.QMessageBox.warning",
+        lambda *args, **kwargs: warnings.append(args[2]),
+    )
+
+    DashboardActions(page, presenter).on_new_trade()
+
+    assert submit_calls == []
+    assert warnings
+    assert "BIST" in warnings[0]
 
 
 def test_dashboard_cash_card_never_displays_negative_cash():
