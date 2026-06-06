@@ -3,11 +3,13 @@ from src.ui.shared.locale_tr import L10N
 
 from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
-    QPushButton, QFormLayout, QDoubleSpinBox, 
+    QPushButton, QFormLayout,
     QSpinBox, QDateEdit, QTimeEdit, QButtonGroup, QSizePolicy
 )
 from PyQt5.QtCore import Qt, QDate, QTime, pyqtSignal
 from decimal import Decimal
+
+from src.ui.widgets.shared import CurrencySpinBox
 
 class TradeFormPanel(QFrame):
     """Sağ paneldeki Alım/Satım işlemlerini yöneten form bileşeni."""
@@ -67,13 +69,13 @@ class TradeFormPanel(QFrame):
         form.addRow(L10N.ADET_LOT, self.spin_qty)
         
         # Fiyat
-        self.spin_price = QDoubleSpinBox()
+        self.spin_price = CurrencySpinBox()
         self.spin_price.setRange(0.01, 1_000_000)
         self.spin_price.setDecimals(2)
-        self.spin_price.setSuffix(" ₺")
+        self.spin_price.setSuffix(" TL")
         self.spin_price.setProperty("cssClass", "tradeInputLarge")
         self.spin_price.setReadOnly(True)
-        self.spin_price.setButtonSymbols(QDoubleSpinBox.NoButtons)
+        self.spin_price.setButtonSymbols(CurrencySpinBox.NoButtons)
         form.addRow(L10N.FIYAT_1, self.spin_price)
         
         # Tarih
@@ -182,7 +184,7 @@ class TradeFormPanel(QFrame):
             
         is_buy = self.btn_buy_mode.isChecked()
         qty = int(self.spin_qty.value())
-        price = Decimal(str(self.spin_price.value()))
+        price = self.spin_price.decimal_value()
         
         current_qty = 0
         current_avg = Decimal("0")
@@ -233,7 +235,7 @@ class TradeFormPanel(QFrame):
 
         is_buy = self.btn_buy_mode.isChecked()
         qty = int(self.spin_qty.value())
-        price = Decimal(str(self.spin_price.value()))
+        price = self.spin_price.decimal_value()
         current_qty = int(current_qty or 0)
         current_avg = current_avg or Decimal("0")
 
