@@ -76,6 +76,11 @@ class IWatchlistRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def update_item_in_watchlist(self, item: WatchlistItem) -> None:
+        """Watchlist içindeki bir hisse kaydını (not vb.) günceller."""
+        raise NotImplementedError
+
+    @abstractmethod
     def remove_item_from_watchlist(self, item_id: int) -> None:
         """Watchlist'ten bir hisseyi çıkarır."""
         raise NotImplementedError
