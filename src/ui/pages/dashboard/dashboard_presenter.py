@@ -1,4 +1,5 @@
 from __future__ import annotations
+from __future__ import annotations
 
 import logging
 from datetime import date, timedelta
@@ -9,6 +10,7 @@ from src.domain.models.portfolio import Portfolio
 from src.domain.models.position import Position
 from src.ui.portfolio_table_model import PortfolioTableModel
 from src.ui.widgets.shared import Toast
+from src.ui.shared.price_utils import build_previous_close_map
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ class DashboardPresenter:
         price_map: Dict[int, Decimal] = dict(snapshot.price_map if snapshot else {})
         price_map.update(self._latest_price_map(stock_ids))
         ticker_map = self._page.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
-        previous_close_map = self._build_previous_close_map(stock_ids, today)
+        previous_close_map = build_previous_close_map(self._page.price_repo, stock_ids, today - timedelta(days=1))
 
         if self._page.portfolio_model is None:
             self._page.portfolio_model = PortfolioTableModel(
@@ -125,16 +127,6 @@ class DashboardPresenter:
                 self._page.record_last_update_time()
             except RuntimeError:
                 pass
-
-    def _build_previous_close_map(self, stock_ids: List[int], today: date) -> Dict[int, Decimal]:
-        previous_close_map: Dict[int, Decimal] = {}
-        reference_date = today - timedelta(days=1)
-        for stock_id in stock_ids:
-            daily_price = self._page.price_repo.get_last_price_before(stock_id, reference_date)
-            if daily_price is None or daily_price.close_price is None:
-                continue
-            previous_close_map[stock_id] = daily_price.close_price
-        return previous_close_map
 
     def _latest_price_map(self, stock_ids: List[int]) -> Dict[int, Decimal]:
         latest_price_repo = getattr(self._page, "latest_price_repo", None)

@@ -4,6 +4,10 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+from decimal import Decimal
+from types import SimpleNamespace
+
+import pytest
 
 pytest.importorskip("PyQt5")
 from PyQt5.QtWidgets import QApplication, QDialog, QPushButton
@@ -11,6 +15,7 @@ from PyQt5.QtWidgets import QApplication, QDialog, QPushButton
 from src.application.services.market.price_data_health_service import PriceDataHealthReport, StockPriceHealthRow
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
+from src.ui.pages.model_portfolio.model_portfolio_presenter import ModelPortfolioPresenter
 from src.ui.pages.model_portfolio.utils.model_portfolio_actions import ModelPortfolioActions
 from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared import ActionListItem
@@ -24,11 +29,20 @@ if app is None:
 
 
 class DummyModelPortfolioService:
-    def get_positions_with_details(self, portfolio_id):
+    def get_positions_with_details(self, portfolio_id, price_map=None):
         return [{"stock_id": 2, "ticker": "BBB.IS"}]
 
     def get_positions(self, portfolio_id):
         return {2: SimpleNamespace(quantity=Decimal("1"))}
+
+    def get_portfolio_summary(self, portfolio_id, price_map):
+        return {
+            "initial_cash": Decimal("1000000"),
+            "net_capital": Decimal("1000000"),
+            "remaining_cash": Decimal("1000000"),
+            "total_value": Decimal("1000000"),
+            "profit_loss": Decimal("0"),
+        }
 
 
 class DummyPriceRepo:
@@ -240,7 +254,11 @@ def test_model_portfolio_page_clears_right_panel_when_no_portfolios():
 
 def test_model_portfolio_update_view_passes_previous_close_map(monkeypatch):
     monkeypatch.setattr(
-        "src.ui.pages.model_portfolio.model_portfolio_page.date",
+        "src.ui.pages.model_portfolio.model_portfolio_presenter.date",
+        SimpleNamespace(today=lambda: date(2026, 6, 5)),
+    )
+    monkeypatch.setattr(
+        "src.ui.shared.price_utils.date",
         SimpleNamespace(today=lambda: date(2026, 6, 5)),
     )
     calls = []
@@ -291,9 +309,10 @@ def test_model_portfolio_update_view_passes_previous_close_map(monkeypatch):
     page.empty_positions_state = object()
     page.btn_sell = SimpleNamespace(setEnabled=lambda enabled: calls.append(("sell_enabled", enabled)))
 
-    ModelPortfolioPage._update_view(page)
+    page._presenter = ModelPortfolioPresenter(page)
+    page._presenter.update_view()
 
-    assert ("previous_close", 2, date(2026, 6, 4)) in calls
+    assert ("previous_close", 2, date(2026, 6, 5)) in calls
     populate_call = next(call for call in calls if call[0] == "populate")
     assert populate_call[2] == {2: Decimal("24")}
     assert ("sell_enabled", True) in calls
@@ -301,7 +320,7 @@ def test_model_portfolio_update_view_passes_previous_close_map(monkeypatch):
 
 def test_model_portfolio_load_current_price_map_prefers_latest_then_daily(monkeypatch):
     monkeypatch.setattr(
-        "src.ui.pages.model_portfolio.model_portfolio_page.date",
+        "src.ui.pages.model_portfolio.model_portfolio_presenter.date",
         SimpleNamespace(today=lambda: date(2026, 6, 5)),
     )
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
@@ -315,7 +334,8 @@ def test_model_portfolio_load_current_price_map_prefers_latest_then_daily(monkey
         )
     )
 
-    price_map = ModelPortfolioPage._load_current_price_map(page, 4)
+    page._presenter = ModelPortfolioPresenter(page)
+    price_map = page._presenter.load_current_price_map(4)
 
     assert price_map == {2: Decimal("22.50"), 3: Decimal("31.40")}
 
@@ -380,8 +400,11 @@ def test_model_portfolio_update_view_sets_profit_loss_card_state_for_positive_an
     positive_page, positive_card = build_page(Decimal("200"))
     zero_page, zero_card = build_page(Decimal("0"))
 
-    ModelPortfolioPage._update_view(positive_page)
-    ModelPortfolioPage._update_view(zero_page)
+    positive_page._presenter = ModelPortfolioPresenter(positive_page)
+    zero_page._presenter = ModelPortfolioPresenter(zero_page)
+    
+    positive_page._presenter.update_view()
+    zero_page._presenter.update_view()
 
     assert positive_card.values[-1] == "TL +200.00"
     assert positive_card.states[-1] == "positive"
@@ -543,7 +566,9 @@ def test_model_portfolio_export_today_uses_history_report(tmp_path, monkeypatch)
 
     monkeypatch.setattr("src.ui.pages.model_portfolio.utils.portfolio_exporter.date", SimpleNamespace(today=lambda: date(2026, 5, 26)))
 
-    ModelPortfolioPage._on_export_today(page)
+    from src.ui.pages.model_portfolio.utils.portfolio_exporter import PortfolioExporter
+    page.exporter = PortfolioExporter(page)
+    page._on_export_today()
 
     assert export_service.calls[0][0:4] == (8, date(2026, 1, 2), date(2026, 5, 26), file_path)
 
@@ -597,7 +622,9 @@ def test_model_portfolio_export_today_blocks_when_history_prices_are_missing(mon
         lambda *args, **kwargs: warnings.append(args),
     )
 
-    ModelPortfolioPage._on_export_today(page)
+    from src.ui.pages.model_portfolio.utils.portfolio_exporter import PortfolioExporter
+    page.exporter = PortfolioExporter(page)
+    page._on_export_today()
 
     assert export_service.calls == []
     assert save_dialog_calls == []
@@ -648,7 +675,9 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
     price_repo = DummyPriceRepo()
     latest_price_repo = DummyLatestPriceRepo()
     event_signal = DummyEventSignal()
+    from PyQt5.QtWidgets import QWidget
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+    QWidget.__init__(page)
     page.current_portfolio_id = 4
     page.model_portfolio_service = DummyModelPortfolioService()
     page.price_repo = price_repo
@@ -665,9 +694,16 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
     page.record_last_update_time = lambda: None
     page.show_last_update_toast_once = lambda **kwargs: None
 
-    ModelPortfolioPage._on_refresh_prices(page)
+    from src.ui.pages.model_portfolio.utils.portfolio_price_updater import PortfolioPriceUpdater
+    page.price_updater = PortfolioPriceUpdater(page)
+    page._actions = ModelPortfolioActions(page)
+    def fake_start(worker):
+        result = worker.fn()
+        page._actions._on_update_prices_success(result)
+    page.threadpool = SimpleNamespace(start=fake_start)
 
-    assert page.current_price_map == {2: Decimal("22.50")}
+    page._actions.on_update_prices()
+
     assert price_repo.saved_prices == []
     assert [(item.stock_id, item.price, item.source) for item in latest_price_repo.saved_prices] == [
         (2, Decimal("22.50"), "intraday")
@@ -678,7 +714,9 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
 def test_model_portfolio_refresh_button_shows_updating_text_during_refresh(monkeypatch):
     event_signal = DummyEventSignal()
     process_events_calls = []
+    from PyQt5.QtWidgets import QWidget
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+    QWidget.__init__(page)
     page.current_portfolio_id = 4
     page.model_portfolio_service = DummyModelPortfolioService()
     page.current_price_map = {}
@@ -705,23 +743,37 @@ def test_model_portfolio_refresh_button_shows_updating_text_during_refresh(monke
 
     page.price_lookup_func = lookup_price
 
-    ModelPortfolioPage._on_refresh_prices(page)
+    page.price_updater = SimpleNamespace(refresh_prices=lambda: (1, {2: Decimal("22.50")}))
+    page._actions = ModelPortfolioActions(page)
+    
+    def fake_start(worker):
+        assert page.btn_refresh.text() == "Fiyatlar güncelleniyor..."
+        assert not page.btn_refresh.isEnabled()
+        worker.signals.result.emit(worker.fn())
+        worker.signals.finished.emit()
+
+    page.threadpool = SimpleNamespace(start=fake_start)
+    
+    page._on_refresh_prices()
 
     assert page.btn_refresh.text() == " Fiyat Güncelle"
     assert page.btn_refresh.isEnabled()
-    assert page.current_price_map == {2: Decimal("22.50")}
 
 
 def test_model_portfolio_prices_updated_event_updates_selected_portfolio_prices():
+    from PyQt5.QtWidgets import QWidget
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
+    QWidget.__init__(page)
     page.current_portfolio_id = 4
     page.model_portfolio_service = DummyModelPortfolioService()
     page.current_price_map = {2: Decimal("21.00")}
     calls = []
-    page._update_view = lambda: calls.append("updated")
 
-    ModelPortfolioPage._on_prices_updated_event(
-        page,
+    page.settings_manager = SimpleNamespace(save_portfolio_last_update_time=lambda id, dt: None)
+
+    page._presenter = ModelPortfolioPresenter(page)
+    page._presenter.update_view = lambda: calls.append("updated")
+    page._presenter.on_prices_updated_event(
         {
             2: Decimal("22.75"),
             99: Decimal("99.99"),

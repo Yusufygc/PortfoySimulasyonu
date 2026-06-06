@@ -11,6 +11,9 @@ from src.ui.formatters import display_ticker
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
 from src.ui.widgets.model_portfolio import CapitalMovementDialog, PortfolioInputDialog, TradeInputDialog
 from src.ui.widgets.shared import Toast
+from src.ui.worker import Worker
+from src.ui.shared.price_event_publisher import publish_prices_updated
+from PyQt5.QtCore import QTimer
 
 if TYPE_CHECKING:
     from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
@@ -159,3 +162,48 @@ class ModelPortfolioActions:
             Toast.warning(self.page, str(exc))
         except Exception as exc:
             Toast.error(self.page, f"İşlem gerçekleştirilemedi: {exc}")
+
+    def on_update_prices(self) -> None:
+        self._update_timeout_timer = QTimer(self.page)
+        self._update_timeout_timer.setSingleShot(True)
+        self._update_timeout_timer.timeout.connect(self._finish_update_prices)
+        self._update_timeout_timer.start(120_000)
+
+        worker = Worker(self.page.price_updater.refresh_prices)
+        worker.signals.result.connect(self._on_update_prices_success)
+        worker.signals.error.connect(self._on_update_prices_error)
+        worker.signals.finished.connect(self._finish_update_prices)
+        self.page.threadpool.start(worker)
+
+    def _finish_update_prices(self) -> None:
+        timer = getattr(self, "_update_timeout_timer", None)
+        if timer and timer.isActive():
+            timer.stop()
+        self.page.btn_refresh.setEnabled(True)
+        self.page.btn_refresh.setText(L10N.FIYAT_GUNCELLE)
+
+    def _on_update_prices_success(self, result) -> None:
+        updated_count, event_prices = result
+        
+        if event_prices:
+            publish_prices_updated(getattr(self.page.container, "event_bus", None), event_prices)
+            
+        self.page._update_view()
+
+        if updated_count <= 0:
+            Toast.warning(
+                self.page,
+                L10N.GUNCELLENECEK_FIYAT_BULUNAMADI,
+                duration_ms=self.page.LAST_UPDATE_TOAST_DURATION_MS,
+                position="top",
+            )
+            return
+
+        self.page.record_last_update_time()
+        self.page.show_last_update_toast_once(
+            force=True,
+            detail=f"{updated_count} hisse için fiyat güncellendi.",
+        )
+
+    def _on_update_prices_error(self, err_tuple) -> None:
+        Toast.error(self.page, f"Fiyat güncelleme hatası: {err_tuple[1]}")

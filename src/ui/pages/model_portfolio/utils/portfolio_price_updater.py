@@ -11,17 +11,18 @@ from src.ui.widgets.shared import Toast
 
 logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+
 
 class PortfolioPriceUpdater:
     def __init__(self, page) -> None:
         self.page = page
 
-    def refresh_prices(self) -> None:
+    def refresh_prices(self) -> int:
         if self.page.current_portfolio_id is None:
-            return
+            return 0
         if not self.page.price_lookup_func:
-            Toast.warning(self.page, L10N.FIYAT_SORGULAMA_FONKSIYONU_MEVCUT_DEGIL)
-            return
+            raise ValueError(L10N.FIYAT_SORGULAMA_FONKSIYONU_MEVCUT_DEGIL)
 
         positions = self.page.model_portfolio_service.get_positions_with_details(self.page.current_portfolio_id)
         updated_count = 0
@@ -49,26 +50,9 @@ class PortfolioPriceUpdater:
             except Exception as exc:
                 logger.error("Fiyat alınamadı: %s - %s", pos["ticker"], exc)
 
-        latest_price_repo = self.page.__dict__.get("latest_price_repo")
-        if latest_price_repo is not None:
-            latest_price_repo.upsert_latest_prices(latest_prices)
+        if updated_count > 0:
+            latest_price_repo = self.page.__dict__.get("latest_price_repo")
+            if latest_price_repo is not None:
+                latest_price_repo.upsert_latest_prices(latest_prices)
 
-        publish_prices_updated(getattr(self.page.container, "event_bus", None), event_prices)
-
-        self.page._update_view()
-
-        if updated_count <= 0:
-            Toast.warning(
-                self.page,
-                L10N.GUNCELLENECEK_FIYAT_BULUNAMADI,
-                duration_ms=self.page.LAST_UPDATE_TOAST_DURATION_MS,
-                position="top",
-            )
-            return
-
-        self.page.record_last_update_time()
-        self.page.show_last_update_toast_once(
-            force=True,
-            detail=f"{updated_count} hisse için fiyat güncellendi.",
-        )
-
+        return updated_count, event_prices

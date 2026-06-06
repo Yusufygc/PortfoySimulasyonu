@@ -8,10 +8,11 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, Optional, List
 
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QThreadPool
 from PyQt5.QtWidgets import QApplication
 
 from src.ui.pages.base_page import BasePage
+from src.ui.shared.last_update_mixin import LastUpdateDisplayMixin
 from src.domain.models.model_portfolio import ModelPortfolio
 from src.ui.widgets.dashboard import DateRangeDialog
 from src.ui.widgets.shared import Toast
@@ -21,13 +22,12 @@ from src.ui.pages.model_portfolio.utils.portfolio_exporter import PortfolioExpor
 from src.ui.pages.model_portfolio.utils.portfolio_price_updater import PortfolioPriceUpdater
 from src.ui.pages.model_portfolio.utils.model_portfolio_ui_builder import ModelPortfolioUIBuilder
 from src.ui.pages.model_portfolio.utils.model_portfolio_actions import ModelPortfolioActions
+from src.ui.pages.model_portfolio.model_portfolio_presenter import ModelPortfolioPresenter
 
 logger = logging.getLogger(__name__)
 
 
-class ModelPortfolioPage(BasePage):
-    LAST_UPDATE_TOAST_DURATION_MS = 4000
-
+class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
     def __init__(self, container, price_lookup_func=None, parent=None):
         super().__init__(parent)
         self.container = container
@@ -43,18 +43,20 @@ class ModelPortfolioPage(BasePage):
         self.current_portfolio_id: Optional[int] = None
         self.current_price_map: Dict[int, Decimal] = {}
         self._last_update_toast_shown_for = None
+        self.threadpool = QThreadPool()
 
         self.settings_manager = PortfolioSettingsManager()
         self.exporter = PortfolioExporter(self)
         self.price_updater = PortfolioPriceUpdater(self)
         
         self._actions = ModelPortfolioActions(self)
+        self._presenter = ModelPortfolioPresenter(self)
         self._ui_builder = ModelPortfolioUIBuilder(self)
         self._ui_builder.build_ui()
         self._connect_signals()
         event_bus = getattr(self.container, "event_bus", None)
         if event_bus:
-            event_bus.prices_updated.connect(self._on_prices_updated_event)
+            event_bus.prices_updated.connect(self._presenter.on_prices_updated_event)
 
     def _connect_signals(self) -> None:
         self.list_panel.portfolio_selected.connect(self._on_portfolio_selected)
@@ -90,8 +92,7 @@ class ModelPortfolioPage(BasePage):
             self.current_price_map = {}
             self._clear_right_panel()
             return
-        if "settings_manager" not in self.__dict__:
-            self.settings_manager = PortfolioSettingsManager()
+            
         selected_id = self.current_portfolio_id or self.settings_manager.get_last_selected_portfolio_id()
         selected_portfolio = self.list_panel.select_portfolio_by_id(selected_id) if selected_id is not None else None
         if selected_portfolio is None:
@@ -104,84 +105,15 @@ class ModelPortfolioPage(BasePage):
 
     def _set_current_portfolio(self, portfolio: ModelPortfolio, show_toast: bool = False) -> None:
         self.current_portfolio_id = portfolio.id
-        if "settings_manager" not in self.__dict__:
-            self.settings_manager = PortfolioSettingsManager()
         self.settings_manager.set_last_selected_portfolio_id(portfolio.id)
-        self.current_price_map = self._load_current_price_map(portfolio.id)
+        self.current_price_map = self._presenter.load_current_price_map(portfolio.id)
         self._sync_last_update_label()
         self.lbl_portfolio_name.setText(portfolio.name)
         for button in (self.btn_buy, self.btn_refresh, self.btn_report, self.btn_capital, self.btn_empty_buy):
             button.setEnabled(True)
-        self._update_view()
+        self._presenter.update_view()
         if show_toast:
             QTimer.singleShot(0, self.show_last_update_toast_once)
-
-    def _update_view(self):
-        if self.current_portfolio_id is None:
-            return
-
-        summary = self.model_portfolio_service.get_portfolio_summary(
-            self.current_portfolio_id,
-            self.current_price_map,
-        )
-        self.card_initial.set_value(f"TL {summary.get('net_capital', summary['initial_cash']):,.2f}")
-        self.card_cash.set_value(f"TL {summary['remaining_cash']:,.2f}")
-        self.card_value.set_value(f"TL {summary['total_value']:,.2f}")
-
-        profit_loss = round(summary["profit_loss"], 2)
-        if profit_loss == 0:
-            self.card_pl.set_value(L10N.TL_000)
-            self.card_pl.set_value_state("neutral")
-        else:
-            self.card_pl.set_value(f"TL {profit_loss:+,.2f}")
-            self.card_pl.set_value_state("positive" if profit_loss > 0 else "negative")
-
-        positions = self.model_portfolio_service.get_positions_with_details(
-            self.current_portfolio_id,
-            self.current_price_map,
-        )
-        previous_close_map = self._build_previous_close_map(positions, date.today())
-        self.positions_table.populate(positions, previous_close_map=previous_close_map)
-        self.positions_stack.setCurrentWidget(
-            self.empty_positions_state if not positions else self.positions_table
-        )
-        self.btn_sell.setEnabled(bool(positions))
-
-    def _build_previous_close_map(self, positions: List[dict], today: date) -> Dict[int, Decimal]:
-        get_last_price_before = getattr(self.price_repo, "get_last_price_before", None)
-        if get_last_price_before is None:
-            return {}
-
-        previous_close_map: Dict[int, Decimal] = {}
-        reference_date = today - timedelta(days=1)
-        for position in positions:
-            stock_id = position.get("stock_id")
-            if stock_id is None:
-                continue
-            daily_price = get_last_price_before(stock_id, reference_date)
-            if daily_price is not None:
-                previous_close_map[stock_id] = daily_price.close_price
-        return previous_close_map
-
-    def _load_current_price_map(self, portfolio_id: int) -> Dict[int, Decimal]:
-        get_positions = getattr(self.model_portfolio_service, "get_positions", None)
-        if get_positions is None:
-            return {}
-        positions = get_positions(portfolio_id)
-        stock_ids = sorted(positions)
-        price_map: Dict[int, Decimal] = {}
-
-        latest_price_repo = getattr(self, "latest_price_repo", None)
-        if latest_price_repo is not None:
-            price_map.update(latest_price_repo.get_latest_price_map(stock_ids))
-
-        missing_ids = [stock_id for stock_id in stock_ids if stock_id not in price_map]
-        for stock_id in missing_ids:
-            daily_price = self.price_repo.get_last_price_before(stock_id, date.today())
-            if daily_price is not None:
-                price_map[stock_id] = daily_price.close_price
-        return price_map
-
     def _clear_right_panel(self):
         self.lbl_portfolio_name.setText(L10N.BIR_PORTFOY_SECIN)
         self.lbl_last_update.setText("")
@@ -215,93 +147,26 @@ class ModelPortfolioPage(BasePage):
             )
 
     def _on_export_today(self) -> None:
-        if "exporter" not in self.__dict__:
-            self.exporter = PortfolioExporter(self)
         self.exporter.export_today()
 
     def _on_export_range(self) -> None:
-        if "exporter" not in self.__dict__:
-            self.exporter = PortfolioExporter(self)
         self.exporter.export_range()
 
     def _on_refresh_prices(self):
-        if "price_updater" not in self.__dict__:
-            self.price_updater = PortfolioPriceUpdater(self)
         was_enabled = self.btn_refresh.isEnabled()
         self.btn_refresh.setEnabled(False)
         self.btn_refresh.setText(L10N.FIYATLAR_GUNCELLENIYOR)
-        QApplication.processEvents()
-        try:
-            self.price_updater.refresh_prices()
-        finally:
-            self.btn_refresh.setText(L10N.FIYAT_GUNCELLE)
-            self.btn_refresh.setEnabled(was_enabled)
+        # We will dispatch to async worker via actions
+        self._actions.on_update_prices()
 
-    def _on_prices_updated_event(self, prices: Dict[int, Decimal]) -> None:
-        if self.current_portfolio_id is None or not prices:
-            return
-        positions = self.model_portfolio_service.get_positions(self.current_portfolio_id)
-        relevant_prices = {
-            stock_id: price
-            for stock_id, price in prices.items()
-            if stock_id in positions
-        }
-        if not relevant_prices:
-            return
-        self.current_price_map.update(relevant_prices)
-        self._update_view()
-        try:
-            self.record_last_update_time()
-        except RuntimeError:
-            pass
+    def _get_last_update_context_id(self) -> str:
+        return str(self.current_portfolio_id) if self.current_portfolio_id is not None else ""
 
-    def record_last_update_time(self, updated_at=None):
+    def _get_last_update_time(self):
         if self.current_portfolio_id is None:
             return None
+        return self.settings_manager.get_last_update_time(self.current_portfolio_id)
 
-        updated_at = updated_at or datetime.now()
-        if "settings_manager" not in self.__dict__:
-            self.settings_manager = PortfolioSettingsManager()
-        self.settings_manager.save_portfolio_last_update_time(self.current_portfolio_id, updated_at)
-        self._last_update_toast_shown_for = None
-        self._sync_last_update_label(updated_at)
-        return updated_at
-
-    def show_last_update_toast_once(self, force: bool = False, detail: str | None = None) -> None:
-        if self.current_portfolio_id is None:
-            return
-        if "settings_manager" not in self.__dict__:
-            self.settings_manager = PortfolioSettingsManager()
-        updated_at = self.settings_manager.get_last_update_time(self.current_portfolio_id)
-        if updated_at is None:
-            return
-
-        value = f"{self.current_portfolio_id}:{updated_at.isoformat(timespec='seconds')}"
-        if not force and self._last_update_toast_shown_for == value:
-            return
-
-        message = self._format_last_update_message(updated_at)
-        if detail:
-            message = f"{message} - {detail}"
-        Toast.info(
-            self,
-            message,
-            duration_ms=self.LAST_UPDATE_TOAST_DURATION_MS,
-            position="top",
-        )
-        self._last_update_toast_shown_for = value
-
-    def _sync_last_update_label(self, updated_at=None) -> None:
-        if self.current_portfolio_id is None:
-            self.lbl_last_update.setText("")
-            return
-        if "settings_manager" not in self.__dict__:
-            self.settings_manager = PortfolioSettingsManager()
-        updated_at = updated_at or self.settings_manager.get_last_update_time(self.current_portfolio_id)
-        self.lbl_last_update.setText(
-            self._format_last_update_message(updated_at) if updated_at else ""
-        )
-
-    @staticmethod
-    def _format_last_update_message(updated_at) -> str:
-        return f"Son güncelleme: {updated_at.strftime('%d.%m.%Y %H:%M')} (15dk gecikmeli)"
+    def _save_last_update_time(self, updated_at):
+        if self.current_portfolio_id is not None:
+            self.settings_manager.save_portfolio_last_update_time(self.current_portfolio_id, updated_at)
