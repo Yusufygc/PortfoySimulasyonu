@@ -19,7 +19,7 @@ class PortfolioUpdateCoordinator:
 
     - Portföyde hangi stock_id'ler var?
     - Bu id'lerin ticker'ları ne?
-    - Gün sonu fiyatlarını çek ve DB'ye yaz
+    - Son tamamlanmış işlem günü kapanış fiyatlarını çek ve DB'ye yaz
     - Son durumda portföyün toplam değeri ve getirisi ne?
 
     gibi işleri tek noktadan yönetir.
@@ -33,12 +33,13 @@ class PortfolioUpdateCoordinator:
 
     def update_today_prices_and_get_snapshot(self):
         """
-        Bugünün kapanış fiyatlarını günceller ve gün sonu portföy snapshot'ını döner.
+        Son tamamlanmış işlem gününün kapanış fiyatlarını günceller ve
+        aynı tarih için portföy snapshot'ını döner.
 
         Dönüş:
           (price_update_result, portfolio_snapshot)
         """
-        today = date.today()
+        price_date = self.price_update_service.last_completed_trading_day(date.today())
 
         # 1) Net açık pozisyonu olan hisseleri bul
         portfolio = build_portfolio_safely(self.portfolio_repo.get_all_trades()).portfolio
@@ -47,9 +48,9 @@ class PortfolioUpdateCoordinator:
         # 2) Bu id'lerin ticker map'ini al
         stock_ticker_map = self.stock_repo.get_ticker_map_for_stock_ids(stock_ids)
 
-        # 3) Gün sonu fiyatları güncelle (yfinance → DB)
+        # 3) Son kapanmış işlem günü fiyatlarını güncelle (yfinance -> DB)
         price_update_result = self.price_update_service.update_closing_prices_for_stocks(
-            price_date=today,
+            price_date=price_date,
             stock_ticker_map=stock_ticker_map,
         )
 
@@ -57,7 +58,7 @@ class PortfolioUpdateCoordinator:
         if self.event_bus and hasattr(price_update_result, "prices"):
             self.event_bus.prices_updated.emit(price_update_result.prices)
 
-        # 4) Güncel portföy değerini hesapla
-        portfolio_snapshot = self.return_calc_service.compute_portfolio_value_on(today)
+        # 4) Aynı kapanış tarihi için portföy değerini hesapla
+        portfolio_snapshot = self.return_calc_service.compute_portfolio_value_on(price_date)
 
         return price_update_result, portfolio_snapshot
