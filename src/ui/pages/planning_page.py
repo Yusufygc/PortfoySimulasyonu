@@ -132,6 +132,7 @@ class PlanningPage(BasePage):
 
         self.goals_panel = GoalsPanel()
         self.goals_panel.add_requested.connect(self._on_add_goal)
+        self.goals_panel.edit_requested.connect(self._on_edit_goal)
         self.goals_panel.contribute_requested.connect(self._on_contribute)
         self.goals_panel.delete_requested.connect(self._on_delete_goal)
         self.goals_panel.analyze_requested.connect(self._on_analyze)
@@ -160,14 +161,15 @@ class PlanningPage(BasePage):
         month = self.combo_month.currentData()
         if not month:
             return
-        self._load_pinned_budget_items()
+        self._pinned_budget_items = self._service.get_pinned_budget_items()
+        self.budget_form.set_pinned_items(self._pinned_budget_items)
         budget = self._service.get_budget_for_month(month)
         if budget:
             self.budget_form.load(budget)
             self._update_budget_cards(budget)
         else:
             self.budget_form.load(self._service.get_budget_draft_from_pinned_items(month))
-            self._reset_budget_cards()
+            self._update_budget_cards(None)
 
     def _on_save_budget(self) -> None:
         month = self.combo_month.currentData()
@@ -181,16 +183,12 @@ class PlanningPage(BasePage):
         except Exception as e:
             Toast.error(self, f"Bütçe kaydedilemedi: {e}")
 
-    def _update_budget_cards(self, budget) -> None:
-        self.lbl_budget_status.setText(budget.status_message)
-        self.lbl_budget_status.setVisible(True)
-
-    def _reset_budget_cards(self) -> None:
-        self.lbl_budget_status.setVisible(False)
-
-    def _load_pinned_budget_items(self) -> None:
-        self._pinned_budget_items = self._service.get_pinned_budget_items()
-        self.budget_form.set_pinned_items(self._pinned_budget_items)
+    def _update_budget_cards(self, budget=None) -> None:
+        if budget:
+            self.lbl_budget_status.setText(budget.status_message)
+            self.lbl_budget_status.setVisible(True)
+        else:
+            self.lbl_budget_status.setVisible(False)
 
     def _on_budget_pin_toggled(self, item_type: str, name: str, amount: float, pinned: bool) -> None:
         try:
@@ -199,8 +197,9 @@ class PlanningPage(BasePage):
                 Toast.success(self, f"'{name}' pinlendi.")
             else:
                 self._service.unpin_budget_item(item_type, name)
-                Toast.success(self, f"'{name}' pini kaldırıldı.")
-            self._load_pinned_budget_items()
+                Toast.success(f"'{name}' pini kaldırıldı.")
+            self._pinned_budget_items = self._service.get_pinned_budget_items()
+            self.budget_form.set_pinned_items(self._pinned_budget_items)
         except Exception as e:
             self.budget_form.set_pinned_items(self._pinned_budget_items)
             Toast.error(self, f"Pin işlemi başarısız: {e}")
@@ -222,6 +221,32 @@ class PlanningPage(BasePage):
             Toast.success(self, f"'{result['name']}' hedefi eklendi!")
         except Exception as e:
             Toast.error(self, f"Hedef eklenemedi: {e}")
+
+    def _on_edit_goal(self, goal_id: int) -> None:
+        if goal_id is None:
+            return
+        goal = next((g for g in self._service.get_all_goals() if g.id == goal_id), None)
+        if not goal:
+            return
+        dialog = GoalInputDialog(self)
+        dialog.load_goal(goal)
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        result = dialog.get_result()
+        if not result:
+            return
+        try:
+            self._service.update_goal(
+                goal_id=goal_id,
+                name=result["name"],
+                target_amount=result["target_amount"],
+                deadline=result["deadline"],
+                priority=result["priority"],
+            )
+            self._load_goals()
+            Toast.success(self, f"'{result['name']}' hedefi güncellendi!")
+        except Exception as e:
+            Toast.error(self, f"Hedef güncellenemedi: {e}")
 
     def _on_contribute(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
@@ -280,8 +305,7 @@ class PlanningPage(BasePage):
     # ------------------------------------------------------------------
 
     def on_page_enter(self):
-        self._on_month_changed()
-        self._load_goals()
+        self.refresh_data()
 
     def changeEvent(self, event):
         from PyQt5.QtCore import QEvent
@@ -292,3 +316,4 @@ class PlanningPage(BasePage):
     def refresh_data(self):
         self._on_month_changed()
         self._load_goals()
+
