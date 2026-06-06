@@ -79,11 +79,6 @@ def _builder() -> ExcelReportBuilder:
     return ExcelReportBuilder(formatter=MagicMock())
 
 
-def _chart_count(file_path, sheet_name: str = SheetName.CHARTS) -> int:
-    wb = openpyxl.load_workbook(file_path)
-    return len(wb[sheet_name]._charts)
-
-
 def _sample_report_frames(builder: ExcelReportBuilder):
     positions = [
         _pos(
@@ -179,18 +174,21 @@ def test_toplam_rows_not_duplicated_in_append_mode(tmp_path):
 
 # ────── TASARIM 2: _fmt_tr_money(None) → "—" ────────────────────────────────
 
-def test_fresh_excel_keeps_dashboard_plain_and_adds_charts_sheet(tmp_path):
+def test_fresh_excel_contains_only_reporting_sheets(tmp_path):
     builder = _builder()
-    file_path = tmp_path / "charts.xlsx"
+    file_path = tmp_path / "reporting_sheets.xlsx"
     summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
 
     builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
 
     wb = openpyxl.load_workbook(file_path)
-    assert SheetName.CHARTS in wb.sheetnames
-    assert wb[SheetName.CHARTS].sheet_state == "visible"
+    assert wb.sheetnames == [
+        SheetName.DASHBOARD,
+        SheetName.SUMMARY,
+        SheetName.DAILY_DETAIL,
+        SheetName.STOCK_SUMMARY,
+    ]
     assert len(wb[SheetName.DASHBOARD]._charts) == 0
-    assert len(wb[SheetName.CHARTS]._charts) == 4
 
 
 def test_dashboard_freeze_pane_xml_is_excel_compatible(tmp_path):
@@ -226,44 +224,27 @@ def test_dashboard_contains_only_metric_table(tmp_path):
     assert len(ws._charts) == 0
 
 
-def test_chart_data_sheet_is_hidden_and_supports_positive_negative_returns(tmp_path):
+def test_append_excel_keeps_chart_sheets_removed(tmp_path):
     builder = _builder()
-    file_path = tmp_path / "chart_data.xlsx"
-    summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
-
-    builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
-
-    wb = openpyxl.load_workbook(file_path)
-    ws = wb[SheetName.CHART_DATA]
-
-    assert ws.sheet_state == "hidden"
-    assert wb[SheetName.CHARTS].sheet_state == "visible"
-    assert [ws.cell(row=1, column=col).value for col in range(1, 6)] == [
-        "Tarih",
-        "Portföy Değeri (TL)",
-        "Pozitif Günlük Getiri (%)",
-        "Negatif Günlük Getiri (%)",
-        "Toplam Getiri (%)",
-    ]
-    assert ws["C3"].value == pytest.approx(0.05)
-    assert ws["D3"].value is None
-
-
-def test_append_excel_recreates_charts_sheet_without_duplicates(tmp_path):
-    builder = _builder()
-    file_path = tmp_path / "append_charts.xlsx"
+    file_path = tmp_path / "append_without_chart_sheets.xlsx"
     summary_df, detail_df, stock_df, dashboard_df = _sample_report_frames(builder)
 
     builder._write_fresh_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
     builder._append_to_existing_excel(file_path, summary_df, detail_df, stock_df, dashboard_df)
 
-    assert _chart_count(file_path, SheetName.DASHBOARD) == 0
-    assert _chart_count(file_path, SheetName.CHARTS) == 4
+    wb = openpyxl.load_workbook(file_path)
+    assert wb.sheetnames == [
+        SheetName.DASHBOARD,
+        SheetName.SUMMARY,
+        SheetName.DAILY_DETAIL,
+        SheetName.STOCK_SUMMARY,
+    ]
+    assert len(wb[SheetName.DASHBOARD]._charts) == 0
 
 
-def test_charts_sheet_skips_empty_source_data(tmp_path):
+def test_empty_source_data_still_writes_without_chart_sheets(tmp_path):
     builder = _builder()
-    file_path = tmp_path / "empty_charts.xlsx"
+    file_path = tmp_path / "empty_reporting_sheets.xlsx"
     dashboard_df = pd.DataFrame([{"Metrik": "Toplam", "Deger": "0"}])
 
     builder._write_fresh_excel(
@@ -274,8 +255,14 @@ def test_charts_sheet_skips_empty_source_data(tmp_path):
         dashboard_df,
     )
 
-    assert _chart_count(file_path, SheetName.DASHBOARD) == 0
-    assert _chart_count(file_path, SheetName.CHARTS) == 0
+    wb = openpyxl.load_workbook(file_path)
+    assert wb.sheetnames == [
+        SheetName.DASHBOARD,
+        SheetName.SUMMARY,
+        SheetName.DAILY_DETAIL,
+        SheetName.STOCK_SUMMARY,
+    ]
+    assert len(wb[SheetName.DASHBOARD]._charts) == 0
 
 
 def test_dashboard_df_uses_latest_open_snapshot():
