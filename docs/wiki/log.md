@@ -5,6 +5,36 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-06] duzeltme | Finansal Planlama hedef durumu karti dinamik satir yuksekligi
+
+- Finansal Planlama ozetindeki `Hedef Durumu` karti dar pencere genisliginde iki satira kirilan durum metni icin minimum deger yuksekligi ayiracak sekilde guncellendi.
+- Kart renkleri mevcut `cssState` ve tema QSS token'lariyla korunur; Python tarafinda renk hardcode'u eklenmedi.
+- Etkilenen dosyalar: `src/ui/widgets/shared/cards/info_card.py`, `src/ui/widgets/planning/panels/budget_form_panel.py`, `tests/ui/widgets/test_budget_form_panel_pin.py`
+- Baglantili sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-06] guncelleme | Baslangic pencere boyutu analiz genisligine hizalandi
+
+- Ana pencere baslangic boyutu `1400x900` merkezi sabitleriyle tanimlandi; Analiz sayfasi genislik sozlesmesiyle uyumlu hale getirildi.
+- Sayfa bazli resize, minimum size veya fullscreen davranisi eklenmedi.
+- Etkilenen dosyalar: `src/ui/main_window.py`, `tests/ui/test_app_startup.py`
+- Baglantili sayfa: [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-06] guncelleme | Dashboard gorunen adi Ana Sayfa yapildi
+
+- Dashboard teknik kimligi ve `dashboard` scope anahtari korunarak kullaniciya gorunen sayfa adi `Ana Sayfa` olarak guncellendi.
+- Optimizasyon ve ilgili UI metinlerinde `Dashboard Portfoyu` yerine `Ana Portfoy` kullanilacak sekilde merkezi L10N sabitleri degistirildi.
+- Manuel test kilavuzundaki kullanici gorunen Dashboard ifadeleri Ana Sayfa diline cekildi.
+- Etkilenen dosyalar: `src/ui/shared/locale_tr.py`, `tests/ui/test_formatters.py`, `docs/wiki/manual_testing_guide.md`, `docs/wiki/service_watchlist.md`, `docs/wiki/ui_architecture_and_events.md`
+- Baglantili sayfalar: [manual_testing_guide.md](manual_testing_guide.md), [ui_architecture_and_events.md](ui_architecture_and_events.md)
+
+## [2026-06-06] guncelleme | Canli fiyat ve kapanis fiyat akisi ayrildi
+
+- Intraday/latest fiyatlar icin `latest_prices` tablosu, domain modeli ve SQLAlchemy repository eklendi; 15 dakikalik canli yenileme ve model portfoy manuel fiyat yenileme artik bu cache'e upsert ediyor.
+- `daily_prices` yalniz kapanmis islem gunu kapanis verisi olarak sinirlandi; uygulama acilisi, Dashboard manuel kapanis guncellemesi ve Ayarlar "son gunden bugune" akisi bugun yerine son tamamlanmis islem gununu hedefler.
+- Dashboard ve Model Portfoy ekran degerlemeleri `latest_prices` fallback'ini kullanirken Excel rapor, backtest ve fiyat sagligi `daily_prices` sozlesmesini korur.
+- Etkilenen dosyalar: `src/domain/`, `src/application/services/market/`, `src/application/services/portfolio/`, `src/infrastructure/db/sqlalchemy/`, `src/ui/`, `scripts/apply_latest_prices_schema.py`, `tests/`
+- Baglantili sayfalar: [service_portfolio_and_market.md](service_portfolio_and_market.md), [database_schema_and_orm.md](database_schema_and_orm.md), [ui_architecture_and_events.md](ui_architecture_and_events.md), [service_reporting_and_export.md](service_reporting_and_export.md)
+
 ## [2026-06-06] güncelleme | Dashboard Özet Kartları ve Güncelleme Bilgisi Görsel İyileştirmesi
 
 - Hem **Dashboard** hem de **Model Portföyler** sayfalarında yer alan "Son güncelleme" (`lbl_last_update`) etiketleri, `lastUpdateLabel` CSS sınıfı üzerinden ortaklaşa biçimlendirilecek şekilde standartlaştırıldı.
