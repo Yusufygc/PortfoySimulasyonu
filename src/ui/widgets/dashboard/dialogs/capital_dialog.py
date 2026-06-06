@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (
     QLabel,
     QFormLayout,
     QComboBox,
-    QDoubleSpinBox,
     QPushButton,
     QDateEdit,
     QTimeEdit,
@@ -17,6 +16,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QDate, QTime
 
+from src.ui.widgets.shared import CurrencySpinBox
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
 class CapitalDialog(QDialog):
@@ -54,7 +54,7 @@ class CapitalDialog(QDialog):
         form.addRow("İşlem:", self.combo_action)
         
         # Tutar
-        self.spin_amount = QDoubleSpinBox()
+        self.spin_amount = CurrencySpinBox()
         self.spin_amount.setRange(0.01, 100000000)
         self.spin_amount.setValue(10000)
         self.spin_amount.setDecimals(2)
@@ -101,7 +101,7 @@ class CapitalDialog(QDialog):
 
     def get_result(self) -> Optional[Dict]:
         action = "deposit" if self.combo_action.currentIndex() == 0 else "withdraw"
-        amount = Decimal(str(self.spin_amount.value()))
+        amount = self.spin_amount.decimal_value()
         
         if amount <= 0:
             return None
