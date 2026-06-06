@@ -26,7 +26,7 @@ Masaüstü uygulamalarında, API istekleri veya yoğun hesaplamalar Ana Thread'i
 Farklı ekranların birbirini doğrudan bilmeden haberleşmesini sağlamak için `container.event_bus` kullanılır. Bu, modüllerin (coupling) sıkı bağlanmasını önler.
 
 - Örneğin fiyat sağlığı ekranında fiyatlar güncellendiğinde, arka plandaki servis `event_bus.prices_updated.emit()` sinyalini yayar.
-- Hem Portföy Dashboard'u hem de Analiz Ekranı bu sinyali dinler ve eğer güncellenen hisse kendi listelerindeyse UI grafiklerini otomatik olarak yeniler.
+- Hem Ana Sayfa (Dashboard teknik modülü) hem de Analiz Ekranı bu sinyali dinler ve eğer güncellenen hisse kendi listelerindeyse UI grafiklerini otomatik olarak yeniler.
 
 ### Fiyat Güncelleme Olayı
 
@@ -38,8 +38,9 @@ Farklı ekranların birbirini doğrudan bilmeden haberleşmesini sağlamak için
 ### Otomatik Canli Fiyat Yenileme
 
 - `LivePriceRefreshController`, MainWindow icinde uygulama geneli intraday fiyat yenileme timer'ini yonetir; isleri ortak `Worker + QThreadPool` ile arka planda calistirir.
-- Otomatik yenileme BIST islem gunlerinde, acikken ve baska yenileme worker'i kosmuyorken baslar; basarili sonuc `prices_updated` olarak yayilir.
+- Otomatik yenileme BIST islem gunlerinde, acikken ve baska yenileme worker'i kosmuyorken baslar; basarili sonuc once `latest_prices` cache'ine yazilir, sonra `prices_updated` olarak yayilir.
 - Periyodik intraday hatalarinda tekil ticker hatalari loglanir, kullanici toast ile rahatsiz edilmez; ard arda genel hata birikirse kisa warning gosterilir.
+- `prices_updated` UI degerlemesi icin anlik kaynaktir; tarihsel rapor, backtest ve fiyat sagligi `daily_prices` kapanis sozlesmesini kullanmaya devam eder.
 
 ## 3. Tema ve Design Tokens (Tasarım Değişkenleri)
 
