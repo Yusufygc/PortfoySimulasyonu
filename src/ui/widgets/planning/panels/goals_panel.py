@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QSizePolicy
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QColor
 from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.core.icon_manager import IconManager
@@ -32,6 +32,7 @@ class GoalsPanel(QWidget):
     contribute_requested = pyqtSignal(int, str)   # goal_id, goal_name
     delete_requested     = pyqtSignal(int, str)   # goal_id, goal_name
     analyze_requested    = pyqtSignal()
+    edit_requested       = pyqtSignal(int)        # goal_id
 
     _COLUMNS = ["Hedef", L10N.HEDEF_TUTAR_1, "Biriken", L10N.KALAN_AY, L10N.AYLIK_GEREKEN, "İlerleme", "Durum", L10N.ISLEMLER]
     _STATUS_TR = {
@@ -90,16 +91,19 @@ class GoalsPanel(QWidget):
         layout.addWidget(self._feasibility_frame)
 
         # Hedefler tablosu
+        from src.ui.widgets.shared.wrapped_header_view import WrappedHeaderView
         self._table = QTableWidget()
         self._table.setColumnCount(len(self._COLUMNS))
+        self._table.setHorizontalHeader(WrappedHeaderView(Qt.Horizontal, self._table))
         self._table.setHorizontalHeaderLabels(self._COLUMNS)
         for col in range(len(self._COLUMNS)):
             self._table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
         hh = self._table.horizontalHeader()
+        hh.setMinimumSectionSize(85)
         for col in range(len(self._COLUMNS)):
             if col == 7:  # İşlemler
                 hh.setSectionResizeMode(col, QHeaderView.Fixed)
-                self._table.setColumnWidth(col, 200)
+                self._table.setColumnWidth(col, 120)
             else:
                 hh.setSectionResizeMode(col, QHeaderView.Stretch)
         hh.setStretchLastSection(False)
@@ -107,7 +111,7 @@ class GoalsPanel(QWidget):
         self._table.setAlternatingRowColors(True)
         self._table.setShowGrid(True)
         self._table.verticalHeader().setVisible(False)
-        self._table.verticalHeader().setDefaultSectionSize(40)
+        self._table.verticalHeader().setDefaultSectionSize(48)
         self._table.setEditTriggers(QTableWidget.NoEditTriggers)
         self._table.setProperty("cssClass", "goalsTable")
         layout.addWidget(self._table)
@@ -159,33 +163,49 @@ class GoalsPanel(QWidget):
                 s_item.setForeground(QColor("#ef4444"))
             self._table.setItem(i, 6, s_item)
 
-            # İşlemler sütunu için butonlar (Katkı Ekle ve Sil)
+            # İşlemler sütunu için butonlar (Düzenle, Katkı Ekle ve Sil)
             action_widget = QWidget()
+            action_widget.setProperty("cssClass", "tableActionContainer")
             action_layout = QHBoxLayout(action_widget)
             action_layout.setContentsMargins(8, 0, 8, 0)
             action_layout.setSpacing(6)
             action_layout.setAlignment(Qt.AlignCenter)
 
-            btn_contrib = QPushButton(" Ekle")
-            btn_contrib.setProperty("cssClass", "tableActionButtonContrib")
-            btn_contrib.setMinimumHeight(26)
-            btn_contrib.setMaximumHeight(26)
-            btn_contrib.setCursor(Qt.PointingHandCursor)
-            btn_contrib.setIcon(IconManager.get_icon("plus", color="@COLOR_TEXT_PRIMARY"))
+            btn_edit = QPushButton()
+            btn_edit.setProperty("cssClass", "tableActionButtonEdit")
+            btn_edit.setMinimumSize(26, 26)
+            btn_edit.setMaximumSize(26, 26)
+            btn_edit.setCursor(Qt.PointingHandCursor)
+            btn_edit.setIcon(IconManager.get_icon("pencil", color="@COLOR_PRIMARY"))
+            btn_edit.setIconSize(QSize(16, 16))
+            btn_edit.setToolTip("Hedefi Düzenle")
 
-            btn_delete = QPushButton(" Sil")
+            btn_contrib = QPushButton()
+            btn_contrib.setProperty("cssClass", "tableActionButtonContrib")
+            btn_contrib.setMinimumSize(26, 26)
+            btn_contrib.setMaximumSize(26, 26)
+            btn_contrib.setCursor(Qt.PointingHandCursor)
+            btn_contrib.setIcon(IconManager.get_icon("plus", color="@COLOR_PRIMARY"))
+            btn_contrib.setIconSize(QSize(16, 16))
+            btn_contrib.setToolTip("Katkı Ekle")
+
+            btn_delete = QPushButton()
             btn_delete.setProperty("cssClass", "tableActionButtonDelete")
-            btn_delete.setMinimumHeight(26)
-            btn_delete.setMaximumHeight(26)
+            btn_delete.setMinimumSize(26, 26)
+            btn_delete.setMaximumSize(26, 26)
             btn_delete.setCursor(Qt.PointingHandCursor)
             btn_delete.setIcon(IconManager.get_icon("trash-2", color="@COLOR_TEXT_WHITE"))
+            btn_delete.setIconSize(QSize(16, 16))
+            btn_delete.setToolTip("Hedefi Sil")
 
             # Sinyal bağlantıları (default arguments binding ile güvenli ID aktarımı)
             g_id = goal.id
             g_name = goal.name
+            btn_edit.clicked.connect(lambda _, gid=g_id: self.edit_requested.emit(gid))
             btn_contrib.clicked.connect(lambda _, gid=g_id, gname=g_name: self.contribute_requested.emit(gid, gname))
             btn_delete.clicked.connect(lambda _, gid=g_id, gname=g_name: self.delete_requested.emit(gid, gname))
 
+            action_layout.addWidget(btn_edit)
             action_layout.addWidget(btn_contrib)
             action_layout.addWidget(btn_delete)
             self._table.setCellWidget(i, 7, action_widget)
