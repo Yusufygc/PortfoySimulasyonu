@@ -138,6 +138,7 @@ class GoalInputDialog(QDialog):
         }
         self.combo_priority.setCurrentIndex(priority_map_reverse.get(goal.priority, 1))
         self.btn_save.setText(L10N.SAVE)
+        self._validate_inputs()
 
     def get_result(self):
         name = self.txt_name.text().strip()
