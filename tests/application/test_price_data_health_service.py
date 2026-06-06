@@ -175,6 +175,37 @@ def test_empty_weekday_for_all_stocks_is_holiday_candidate_not_stock_missing():
     assert report.total_missing_count == 0
 
 
+def test_model_scope_all_missing_weekday_stays_missing_when_dashboard_has_prices():
+    dashboard_trade = Trade.create_buy(
+        stock_id=1,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("10"),
+    )
+    model_trade = ModelPortfolioTrade.create_buy(
+        portfolio_id=4,
+        stock_id=2,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("20"),
+    )
+    service, _, _ = make_service(
+        {
+            1: {date(2026, 1, 2): Decimal("10"), date(2026, 1, 5): Decimal("11")},
+            2: {date(2026, 1, 2): Decimal("20")},
+        },
+        trades=[dashboard_trade],
+        model_trades_by_portfolio={4: [model_trade]},
+    )
+
+    report = service.analyze(date(2026, 1, 2), date(2026, 1, 5), scope="model:4")
+
+    row = next(item for item in report.rows if item.stock_id == 2)
+    assert report.holiday_candidate_dates == []
+    assert row.missing_dates == [date(2026, 1, 5)]
+    assert report.total_missing_count == 1
+
+
 def test_partial_weekday_gap_is_stock_level_missing_data():
     service, _, _ = make_service(
         {
