@@ -1,5 +1,8 @@
 from datetime import date, time
 from decimal import Decimal
+from types import SimpleNamespace
+
+import pytest
 
 from src.application.services.portfolio.trade_entry_service import TradeEntryService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
@@ -100,6 +103,11 @@ class FakeStockRepo:
         return saved
 
 
+class FakeClosedMarketSessionService:
+    def status_for(self, trade_date, trade_time=None):
+        return SimpleNamespace(is_open=False, message="Kapali")
+
+
 def test_model_portfolio_service_computes_remaining_cash_and_summary():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
 
@@ -123,6 +131,28 @@ def test_model_portfolio_service_returns_positions_with_details():
     assert positions[0]["quantity"] == 8
     assert positions[0]["current_value"] == Decimal("96")
     assert positions[0]["profit_loss"] == Decimal("16")
+
+
+def test_model_portfolio_rejects_closed_market_session_before_saving_trade():
+    repo = FakeModelPortfolioRepo()
+    service = ModelPortfolioService(
+        repo,
+        FakeStockRepo(),
+        market_session_service=FakeClosedMarketSessionService(),
+    )
+
+    with pytest.raises(ValueError, match="BIST"):
+        service.add_trade_by_ticker(
+            portfolio_id=1,
+            ticker="ASELS",
+            side="BUY",
+            quantity=1,
+            price=Decimal("10"),
+            trade_date=date(2026, 6, 6),
+            trade_time=time(11, 0),
+        )
+
+    assert len(repo.trades[1]) == 2
 
 
 class FakePortfolioService:
