@@ -1,7 +1,8 @@
 from __future__ import annotations
+from src.ui.shared.confirm_dialog import ask_confirm
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QMessageBox, QVBoxLayout, QWidget, QCheckBox, QComboBox
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget, QCheckBox, QComboBox
 from PyQt5.QtCore import QSize
 
 from src.ui.widgets.shared import AnimatedButton, Toast
@@ -181,14 +182,11 @@ class ResetPanel(QWidget):
             window.reload_live_price_refresh_settings()
 
     def _on_reset(self) -> None:
-        reply = QMessageBox.question(
+        if not ask_confirm(
             self,
             L10N.PORTFOYU_SIFIRLA,
             L10N.TUM_VERILER_SILINECEK_EMIN_MISINIZ,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
+        ):
             return
 
         try:
