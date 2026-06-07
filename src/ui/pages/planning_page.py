@@ -1,13 +1,14 @@
 # src/ui/pages/planning_page.py
 
 from __future__ import annotations
+from src.ui.shared.confirm_dialog import ask_confirm
 from src.ui.shared.locale_tr import L10N
 
 from datetime import datetime
 
 from PyQt5.QtWidgets import (
     QHBoxLayout, QPushButton, QLabel,
-    QTabWidget, QWidget, QComboBox, QMessageBox, QDialog,
+    QTabWidget, QWidget, QComboBox, QDialog,
 )
 from PyQt5.QtCore import Qt, QSize
 
@@ -267,12 +268,11 @@ class PlanningPage(BasePage):
     def _on_delete_goal(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
             return
-        reply = QMessageBox.question(
-            self, L10N.HEDEF_SIL,
+        if not ask_confirm(
+            self,
+            L10N.HEDEF_SIL,
             L10N.HEDEF_SIL_ONAY_TMPL.format(name=goal_name),
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
+        ):
             return
         try:
             self._service.delete_goal(goal_id)
