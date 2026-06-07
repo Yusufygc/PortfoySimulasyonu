@@ -8,6 +8,12 @@ from src.ui.formatters import display_ticker
 class PredictionCard(QWidget):
     """Tahmin sonuçlarını gösteren kart — zengin API verileri destekler."""
 
+    _INTERVAL_METHOD_TR = {
+        "residual_b2": "%80 güven",
+        "conformal": "%90 güven (conformal)",
+        "quantile_model": "quantile model",
+    }
+
     def __init__(self):
         super().__init__()
         self._init_ui()
@@ -52,6 +58,13 @@ class PredictionCard(QWidget):
         price_layout.addStretch()
         price_layout.addWidget(self.lbl_last_close)
         layout.addLayout(price_layout)
+
+        # Olasılıksal tahmin aralığı (p10–p90). Boşsa gizli.
+        self.lbl_interval = QLabel("")
+        self.lbl_interval.setProperty("cssClass", "aiMetaText")
+        self.lbl_interval.setWordWrap(True)
+        self.lbl_interval.setVisible(False)
+        layout.addWidget(self.lbl_interval)
 
         # Trend & Horizon
         trend_layout = QHBoxLayout()
@@ -98,6 +111,9 @@ class PredictionCard(QWidget):
         trend_label: str | None = None,
         horizon_days: int | None = None,
         weekly_expected_return: float | None = None,
+        predicted_price_low: float | None = None,
+        predicted_price_high: float | None = None,
+        interval_method: str | None = None,
     ):
         self.lbl_ticker.setText(L10N.HISSE_TMPL.format(ticker=display_ticker(ticker)))
 
@@ -105,6 +121,29 @@ class PredictionCard(QWidget):
             self.lbl_price.setText(L10N.TAHMINI_FIYAT_TMPL.format(price=f"{predicted_price:.2f}"))
         else:
             self.lbl_price.setText(L10N.TAHMINI_FIYAT_1)
+
+        # Olasılıksal aralık (p10–p90). İki sınır da varsa göster, yoksa gizle.
+        if predicted_price_low is not None and predicted_price_high is not None:
+            method_text = self._INTERVAL_METHOD_TR.get(interval_method or "", "")
+            if method_text:
+                self.lbl_interval.setText(
+                    L10N.TAHMIN_ARALIGI_YONTEM_TMPL.format(
+                        low=f"{predicted_price_low:.2f}",
+                        high=f"{predicted_price_high:.2f}",
+                        method=method_text,
+                    )
+                )
+            else:
+                self.lbl_interval.setText(
+                    L10N.TAHMIN_ARALIGI_TMPL.format(
+                        low=f"{predicted_price_low:.2f}",
+                        high=f"{predicted_price_high:.2f}",
+                    )
+                )
+            self.lbl_interval.setVisible(True)
+        else:
+            self.lbl_interval.clear()
+            self.lbl_interval.setVisible(False)
 
         self.progress_conf.setValue(int(confidence * 100))
 
@@ -149,6 +188,8 @@ class PredictionCard(QWidget):
         self.lbl_price.setText(L10N.TAHMINI_FIYAT)
         self.lbl_model.setText("")
         self.lbl_last_close.setText("")
+        self.lbl_interval.clear()
+        self.lbl_interval.setVisible(False)
         self.lbl_trend.setText("")
         self.lbl_horizon.setText("")
         self.lbl_return.setText("")

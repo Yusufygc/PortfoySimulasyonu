@@ -39,6 +39,14 @@ class ForecastPoint:
     horizon_index: int
     bounded_predicted_close: float | None = None
     predicted_return: float | None = None
+    # Olasılıksal aralık (B2 residual / C conformal). Yoksa None (geriye uyumlu).
+    p10_close: float | None = None
+    p50_close: float | None = None
+    p90_close: float | None = None
+    predicted_return_p10: float | None = None
+    predicted_return_p50: float | None = None
+    predicted_return_p90: float | None = None
+    interval_method: str | None = None  # quantile_model | residual_b2 | conformal
 
 
 @dataclass
@@ -54,6 +62,40 @@ class XaiFactorItem:
     method: str | None = None
     contribution: float | None = None
     approximate: bool | None = None
+
+
+@dataclass
+class PeerInfo:
+    """Kol-B (pooled global model) cross-sectional akran çıktısı.
+
+    Kaynak: AI_Core `/analysis/{symbol}` yanıtının `peer` bloğu (nightly batch →
+    PeerStore). Mutlak forecast'tan ayrı, akran-göreli (cross-sectional) bakış.
+    Tüm alanlar opsiyonel — peer yoksa `available=False`.
+    """
+
+    available: bool = False
+    as_of_date: str | None = None
+    peer_score: float | None = None       # -1..1 merkezli cross-sectional sıra
+    peer_percentile: float | None = None  # 0..100
+    peer_label: str | None = None         # outperform | inline | underperform | unknown
+    universe_size: int | None = None
+    segment_liq: str | None = None
+    segment_vol: str | None = None
+    segment_sector: str | None = None
+    segment_icir: float | None = None
+    confidence_label: str | None = None   # low | medium | high
+    confidence_reasons: list[str] = field(default_factory=list)
+    confidence_warnings: list[str] = field(default_factory=list)
+    # Kalibre akran-rank → mutlak trend eğilimi (olasılıksal)
+    trend_label: str | None = None             # yukarı | yatay | aşağı | belirsiz
+    trend_prob_up: float | None = None         # P(h-gün getiri > 0)
+    trend_expected_return: float | None = None  # ort. h-gün log-getiri
+    # Kol-B XAI — pooled modelin per-symbol sıra sürücüleri (SHAP)
+    xai_available: bool = False
+    xai_method: str = ""
+    xai_caveat: str = ""
+    xai_top_positive: list["XaiFactorItem"] = field(default_factory=list)
+    xai_top_negative: list["XaiFactorItem"] = field(default_factory=list)
 
 
 @dataclass
@@ -100,6 +142,11 @@ class AnalysisResult:
     weekly_expected_return: float | None = None
     forecast_points: list[ForecastPoint] = field(default_factory=list)
 
+    # ── Olasılıksal tahmin aralığı (horizon sonu p10/p90) ────────────────
+    predicted_price_low: float | None = None   # son nokta p10_close
+    predicted_price_high: float | None = None  # son nokta p90_close
+    interval_method: str | None = None         # quantile_model | residual_b2 | conformal
+
     # ── Performans ───────────────────────────────────────────────────────
     rmse: float | None = None
     mae: float | None = None
@@ -118,6 +165,9 @@ class AnalysisResult:
     xai_text: str = ""
     xai_caveat: str = ""
     xai_model_family_caveat: str = ""
+
+    # ── Kol-B akran (cross-sectional) ────────────────────────────────────
+    peer: "PeerInfo | None" = None
 
     # ── Uyarı ────────────────────────────────────────────────────────────
     disclaimer: str = ""

@@ -12,6 +12,7 @@ from .status_banner import StatusBanner
 from .prediction_card import PredictionCard
 from .signal_card import SignalCard
 from .xai_card import XAICard
+from .peer_card import PeerCard
 from .performance_card import PerformanceCard
 from .send_to_chat_button import SendToChatButton
 from src.ui.worker import Worker
@@ -59,11 +60,13 @@ class ModelPanel(QWidget):
         # 3. Kartlar
         self.prediction_card = PredictionCard()
         self.signal_card = SignalCard()
+        self.peer_card = PeerCard()
         self.performance_card = PerformanceCard()
         self.xai_card = XAICard()
 
         layout.addWidget(self.prediction_card)
         layout.addWidget(self.signal_card)
+        layout.addWidget(self.peer_card)
         layout.addWidget(self.performance_card)
         layout.addWidget(self.xai_card)
 
@@ -110,6 +113,7 @@ class ModelPanel(QWidget):
         self.input_bar.btn_analyze.setEnabled(False)
         self.prediction_card.reset()
         self.signal_card.reset()
+        self.peer_card.reset()
         self.performance_card.reset()
         self.xai_card.reset()
         self.btn_send_chat.reset()
@@ -167,6 +171,9 @@ class ModelPanel(QWidget):
             trend_label=result.trend_label,
             horizon_days=result.horizon_days,
             weekly_expected_return=result.weekly_expected_return,
+            predicted_price_low=result.predicted_price_low,
+            predicted_price_high=result.predicted_price_high,
+            interval_method=result.interval_method,
         )
 
         self.signal_card.update_data(
@@ -175,6 +182,8 @@ class ModelPanel(QWidget):
             trend_label=result.trend_label,
             confidence_warnings=result.confidence_warnings,
         )
+
+        self.peer_card.update_data(result.peer)
 
         self.performance_card.update_data(
             composite_score=result.composite_score,

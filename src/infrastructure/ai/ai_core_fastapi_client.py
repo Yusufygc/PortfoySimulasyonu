@@ -17,6 +17,7 @@ from src.domain.models.ai_analysis import (
     AnalysisResult,
     ForecastPoint,
     ModelOutlook,
+    PeerInfo,
     XaiFactorItem,
 )
 from src.domain.ports.services.i_ai_analysis_provider import IAIAnalysisProvider
@@ -166,6 +167,50 @@ def _xai_factor_summary(item: XaiFactorItem) -> str:
     return f"{name}{group}{reason}"
 
 
+def _parse_peer(block: Optional[Dict[str, Any]]) -> Optional[PeerInfo]:
+    """API `peer` bloğunu PeerInfo'ya taşır. Blok yok/boş ise None."""
+    if not block:
+        return None
+
+    def _f(key: str) -> Optional[float]:
+        val = block.get(key)
+        try:
+            return None if val is None else float(val)
+        except (TypeError, ValueError):
+            return None
+
+    xai_pos = [_parse_xai_factor(f, "positive") for f in block.get("xai_top_positive", [])]
+    xai_neg = [_parse_xai_factor(f, "negative") for f in block.get("xai_top_negative", [])]
+    universe = block.get("universe_size")
+    try:
+        universe = None if universe is None else int(universe)
+    except (TypeError, ValueError):
+        universe = None
+    return PeerInfo(
+        available=bool(block.get("available", False)),
+        as_of_date=block.get("as_of_date"),
+        peer_score=_f("peer_score"),
+        peer_percentile=_f("peer_percentile"),
+        peer_label=block.get("peer_label"),
+        universe_size=universe,
+        segment_liq=block.get("segment_liq"),
+        segment_vol=block.get("segment_vol"),
+        segment_sector=block.get("segment_sector"),
+        segment_icir=_f("segment_icir"),
+        confidence_label=block.get("confidence_label"),
+        confidence_reasons=list(block.get("confidence_reasons", []) or []),
+        confidence_warnings=list(block.get("confidence_warnings", []) or []),
+        trend_label=block.get("trend_label"),
+        trend_prob_up=_f("trend_prob_up"),
+        trend_expected_return=_f("trend_expected_return"),
+        xai_available=bool(block.get("xai_available", False)),
+        xai_method=block.get("xai_method", "") or "",
+        xai_caveat=block.get("xai_caveat", "") or "",
+        xai_top_positive=xai_pos,
+        xai_top_negative=xai_neg,
+    )
+
+
 def _outlook_from_trend_label(trend_label: str | None) -> ModelOutlook:
     trend_norm = str(trend_label or "").strip().lower()
     if trend_norm == "up":
@@ -187,6 +232,8 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
     conf_label = conf_block.get("label", "low")
     conf_numeric = _CONFIDENCE_MAP.get(conf_label, 0.25)
 
+    peer_info = _parse_peer(data.get("peer"))
+
     raw_points = forecast_block.get("points", [])
     forecast_points = [
         ForecastPoint(
@@ -194,13 +241,27 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
             horizon_index=int(p.get("horizon_index", 0)),
             bounded_predicted_close=p.get("bounded_predicted_close"),
             predicted_return=p.get("predicted_return"),
+            p10_close=p.get("p10_close"),
+            p50_close=p.get("p50_close"),
+            p90_close=p.get("p90_close"),
+            predicted_return_p10=p.get("predicted_return_p10"),
+            predicted_return_p50=p.get("predicted_return_p50"),
+            predicted_return_p90=p.get("predicted_return_p90"),
+            interval_method=p.get("interval_method"),
         )
         for p in raw_points
     ]
 
     predicted_price = None
+    predicted_price_low = None
+    predicted_price_high = None
+    interval_method = None
     if forecast_points:
-        predicted_price = forecast_points[-1].bounded_predicted_close
+        last_point = forecast_points[-1]
+        predicted_price = last_point.bounded_predicted_close
+        predicted_price_low = last_point.p10_close
+        predicted_price_high = last_point.p90_close
+        interval_method = last_point.interval_method
 
     trend_label = forecast_block.get("trend_label")
     trend_norm = str(trend_label or "").strip().lower()
@@ -255,6 +316,10 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         horizon_days=forecast_block.get("horizon_days"),
         weekly_expected_return=forecast_block.get("weekly_expected_return"),
         forecast_points=forecast_points,
+        predicted_price_low=predicted_price_low,
+        predicted_price_high=predicted_price_high,
+        interval_method=interval_method,
+        peer=peer_info,
         rmse=perf_block.get("rmse"),
         mae=perf_block.get("mae"),
         directional_accuracy=perf_block.get("directional_accuracy"),
