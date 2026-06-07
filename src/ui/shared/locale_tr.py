@@ -753,6 +753,7 @@ li {
     PEER_SEGMENT_TMPL = "Likidite: {liq} · Volatilite: {vol} · Sektör: {sector}"
     PEER_TREND_TMPL = "Eğilim: {trend} · P(artış)=%{prob} · beklenen {label}: {ret}"
     PEER_GUVEN_TMPL = "Akran güveni: {label}"
+    PEER_POOLED_TAHMIN_TMPL = "Pooled {horizon}g tahmin: ₺{p50} (₺{low}–₺{high})"
     PEER_XAI_BASLIK = "Sıra sürücüleri (Kol-B)"
     PEER_XAI_YUKARI = "Sırayı yukarı itenler"
     PEER_XAI_ASAGI = "Sırayı aşağı itenler"

@@ -80,6 +80,11 @@ class PeerCard(QWidget):
         self.lbl_trend.setWordWrap(True)
         layout.addWidget(self.lbl_trend)
 
+        self.lbl_pooled_price = QLabel("")
+        self.lbl_pooled_price.setProperty("cssClass", "aiStrongMetaText")
+        self.lbl_pooled_price.setWordWrap(True)
+        layout.addWidget(self.lbl_pooled_price)
+
         self.lbl_confidence = QLabel("")
         self.lbl_confidence.setProperty("cssClass", "aiMetaText")
         layout.addWidget(self.lbl_confidence)
@@ -160,6 +165,26 @@ class PeerCard(QWidget):
         else:
             self.lbl_trend.setVisible(False)
 
+        # Kol-B pooled fiyat bandı
+        if (getattr(peer, "kolb_price_p50", None) is not None and
+            getattr(peer, "kolb_price_low", None) is not None and
+            getattr(peer, "kolb_price_high", None) is not None):
+            p50_val = f"{peer.kolb_price_p50:.2f}"
+            low_val = f"{peer.kolb_price_low:.2f}"
+            high_val = f"{peer.kolb_price_high:.2f}"
+            horizon_val = peer.kolb_horizon_days or 5
+            self.lbl_pooled_price.setText(
+                L10N.PEER_POOLED_TAHMIN_TMPL.format(
+                    horizon=horizon_val,
+                    p50=p50_val,
+                    low=low_val,
+                    high=high_val
+                )
+            )
+            self.lbl_pooled_price.setVisible(True)
+        else:
+            self.lbl_pooled_price.setVisible(False)
+
         if peer.confidence_label:
             conf_tr = self._CONF_TR.get(str(peer.confidence_label), peer.confidence_label)
             self.lbl_confidence.setText(L10N.PEER_GUVEN_TMPL.format(label=conf_tr))
@@ -192,6 +217,8 @@ class PeerCard(QWidget):
         self.lbl_universe.setText("")
         self.lbl_segment.setText("")
         self.lbl_trend.setText("")
+        self.lbl_pooled_price.setText("")
+        self.lbl_pooled_price.setVisible(False)
         self.lbl_confidence.setText("")
         self.lbl_as_of.setText("")
         self.lbl_caveat.setVisible(False)

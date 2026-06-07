@@ -83,3 +83,71 @@ def test_xai_card_renders_factor_details():
     assert any("Teknik" in text for text in labels)
     assert any("momentum" in text for text in labels)
     assert any("katkı" in text for text in labels)
+
+
+def test_peer_card_without_pooled_price():
+    """PeerCard updates with basic peer info but hides pooled price if missing."""
+    from src.ui.pages.ai_page.left_panel.peer_card import PeerCard
+    from src.domain.models.ai_analysis import PeerInfo
+
+    card = PeerCard()
+    peer = PeerInfo(
+        available=True,
+        as_of_date="2026-06-08",
+        peer_percentile=92.0,
+        peer_label="outperform",
+        universe_size=100,
+        segment_liq="High",
+        segment_vol="Medium",
+        segment_sector="Finans",
+        trend_label="Yükseliş",
+        trend_prob_up=0.55,
+        trend_expected_return=0.015,
+        confidence_label="high",
+        xai_available=False
+    )
+    card.update_data(peer)
+    assert card.isVisible() is True
+    assert "92" in card.lbl_rank.text()
+    assert card.lbl_pooled_price.isVisible() is False
+
+
+def test_peer_card_with_pooled_price():
+    """PeerCard updates and shows pooled price when all Kol-B fields are present."""
+    from src.ui.pages.ai_page.left_panel.peer_card import PeerCard
+    from src.domain.models.ai_analysis import PeerInfo
+
+    card = PeerCard()
+    peer = PeerInfo(
+        available=True,
+        as_of_date="2026-06-08",
+        peer_percentile=92.0,
+        peer_label="outperform",
+        universe_size=100,
+        segment_liq="High",
+        segment_vol="Medium",
+        segment_sector="Finans",
+        trend_label="Yükseliş",
+        trend_prob_up=0.55,
+        trend_expected_return=0.015,
+        confidence_label="high",
+        kolb_price_p50=105.50,
+        kolb_price_low=98.20,
+        kolb_price_high=112.80,
+        kolb_horizon_days=5,
+        kolb_band_level=0.8,
+        xai_available=False
+    )
+    card.update_data(peer)
+    assert card.isVisible() is True
+    assert "92" in card.lbl_rank.text()
+    assert card.lbl_pooled_price.isVisible() is True
+    assert "105.50" in card.lbl_pooled_price.text()
+    assert "98.20" in card.lbl_pooled_price.text()
+    assert "112.80" in card.lbl_pooled_price.text()
+    assert "5g" in card.lbl_pooled_price.text()
+
+    card.reset()
+    assert card.lbl_pooled_price.isVisible() is False
+    assert card.isVisible() is False
+

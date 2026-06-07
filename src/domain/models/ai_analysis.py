@@ -90,6 +90,12 @@ class PeerInfo:
     trend_label: str | None = None             # yukarı | yatay | aşağı | belirsiz
     trend_prob_up: float | None = None         # P(h-gün getiri > 0)
     trend_expected_return: float | None = None  # ort. h-gün log-getiri
+    # Kol-B pooled fiyat bandı
+    kolb_price_p50: float | None = None
+    kolb_price_low: float | None = None
+    kolb_price_high: float | None = None
+    kolb_horizon_days: int | None = None
+    kolb_band_level: float | None = None
     # Kol-B XAI — pooled modelin per-symbol sıra sürücüleri (SHAP)
     xai_available: bool = False
     xai_method: str = ""

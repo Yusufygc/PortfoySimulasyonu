@@ -186,6 +186,11 @@ def _parse_peer(block: Optional[Dict[str, Any]]) -> Optional[PeerInfo]:
         universe = None if universe is None else int(universe)
     except (TypeError, ValueError):
         universe = None
+    horizon = block.get("kolb_horizon_days")
+    try:
+        horizon = None if horizon is None else int(horizon)
+    except (TypeError, ValueError):
+        horizon = None
     return PeerInfo(
         available=bool(block.get("available", False)),
         as_of_date=block.get("as_of_date"),
@@ -203,6 +208,11 @@ def _parse_peer(block: Optional[Dict[str, Any]]) -> Optional[PeerInfo]:
         trend_label=block.get("trend_label"),
         trend_prob_up=_f("trend_prob_up"),
         trend_expected_return=_f("trend_expected_return"),
+        kolb_price_p50=_f("kolb_price_p50"),
+        kolb_price_low=_f("kolb_price_low"),
+        kolb_price_high=_f("kolb_price_high"),
+        kolb_horizon_days=horizon,
+        kolb_band_level=_f("kolb_band_level"),
         xai_available=bool(block.get("xai_available", False)),
         xai_method=block.get("xai_method", "") or "",
         xai_caveat=block.get("xai_caveat", "") or "",
