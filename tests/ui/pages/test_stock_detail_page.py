@@ -441,3 +441,79 @@ def test_stock_chart_reference_legend_offset_avoids_title_overlap():
     if callable(offset):
         offset = offset()
     assert offset[1] >= 40, f"Legend Y-offset başlığın altında olmalı, oldu: {offset}"
+
+
+def test_stock_detail_page_async_price_lookup_success(drain_qt_events):
+    lookup_calls = []
+
+    class DummyResult:
+        def __init__(self, price):
+            self.price = Decimal(str(price))
+
+    def lookup_price(ticker):
+        lookup_calls.append(ticker)
+        return DummyResult(55.50)
+
+    container = SimpleNamespace(
+        portfolio_service=DummyPortfolioService([]),
+        stock_repo=DummyStockRepo(),
+        trade_entry_service=SimpleNamespace(),
+        model_portfolio_service=DummyModelPortfolioService(),
+        price_repo=SimpleNamespace(get_price_series=lambda *args, **kwargs: []),
+    )
+    page = StockDetailPage(container=container, price_lookup_func=lookup_price)
+    page.current_ticker = "ASELS.IS"
+    page.current_stock_id = 1
+
+    page.chart_widget.draw_chart = lambda *args, **kwargs: None
+
+    # Trigger set_stock
+    page.set_stock("ASELS.IS", stock_id=1)
+
+    # The price label should initially show "Fiyat Yükleniyor..."
+    assert page.lbl_price.text() == "Fiyat Yükleniyor..."
+
+    # Process events to let worker run
+    drain_qt_events()
+
+    # Check that lookup_price was called and UI is updated
+    assert "ASELS.IS" in lookup_calls
+    assert page.current_price == Decimal("55.50")
+    assert page.lbl_price.text() == "TL 55.50"
+
+
+def test_stock_detail_page_async_price_lookup_race_condition(drain_qt_events):
+    import time as py_time
+
+    class DummyResult:
+        def __init__(self, price):
+            self.price = Decimal(str(price))
+
+    def lookup_price(ticker):
+        if ticker == "SLOW.IS":
+            py_time.sleep(0.1)  # Simulate slow lookup
+            return DummyResult(100.0)
+        return DummyResult(200.0)
+
+    container = SimpleNamespace(
+        portfolio_service=DummyPortfolioService([]),
+        stock_repo=DummyStockRepo(),
+        trade_entry_service=SimpleNamespace(),
+        model_portfolio_service=DummyModelPortfolioService(),
+        price_repo=SimpleNamespace(get_price_series=lambda *args, **kwargs: []),
+    )
+    page = StockDetailPage(container=container, price_lookup_func=lookup_price)
+    page.chart_widget.draw_chart = lambda *args, **kwargs: None
+
+    # Set slow stock first
+    page.set_stock("SLOW.IS", stock_id=1)
+
+    # Immediately switch to FAST.IS
+    page.set_stock("FAST.IS", stock_id=2)
+
+    drain_qt_events()
+
+    # The final stock price should be 200.0, and slow stock's 100.0 should be ignored
+    assert page.current_ticker == "FAST.IS"
+    assert page.current_price == Decimal("200.0")
+    assert page.lbl_price.text() == "TL 200.00"

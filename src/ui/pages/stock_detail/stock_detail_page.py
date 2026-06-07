@@ -4,8 +4,9 @@ from datetime import time as dt_time
 from decimal import Decimal
 from typing import Optional
 
-from PyQt5.QtCore import QDate, QTime, Qt
+from PyQt5.QtCore import QDate, QTime, Qt, QThreadPool
 from PyQt5.QtGui import QColor
+from src.ui.worker import Worker
 from PyQt5.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -228,9 +229,13 @@ class StockDetailPage(BasePage):
             if stock:
                 self.lbl_name.setText(stock.name or "")
 
+        # Initial UI states during loading
+        self.current_price = None
+        self.lbl_price.setText(L10N.FIYAT_YUKLENIYOR)
+        self.chart_widget.draw_empty_chart(L10N.YUKLENIYOR)
+        self.stats_panel.clear_stats()
+
         self._update_price_info()
-        self.refresh_data()
-        self._trigger_impact_update()
 
     def refresh_data(self):
         if not self.current_ticker:
@@ -259,15 +264,46 @@ class StockDetailPage(BasePage):
 
     def _update_price_info(self):
         if not self.current_ticker or not self.price_lookup_func:
+            # If no ticker or lookup function, refresh with empty state/fallback directly
+            self.refresh_data()
+            self._trigger_impact_update()
             return
-        try:
-            result = self.price_lookup_func(self.current_ticker)
+
+        ticker = self.current_ticker
+
+        def _fetch_price():
+            return self.price_lookup_func(ticker)
+
+        worker = Worker(_fetch_price)
+
+        def on_result(result):
+            # Check for ticker mismatch to avoid race condition
+            if ticker != self.current_ticker:
+                logger.info("Fiyat yukleme sonucu yoksayildi, ticker degisti: %s -> %s", ticker, self.current_ticker)
+                return
             if result:
                 self.current_price = result.price
                 self.lbl_price.setText(f"TL {self.current_price:,.2f}")
                 self.trade_form.set_price(float(self.current_price))
-        except Exception as exc:
-            logger.error("Fiyat hatasi: %s", exc)
+            else:
+                self.current_price = None
+                self.lbl_price.setText("TL -")
+            self.refresh_data()
+            self._trigger_impact_update()
+
+        def on_error(exc_info):
+            if ticker != self.current_ticker:
+                return
+            logger.error("Asenkron fiyat yukleme hatasi (%s): %s", ticker, exc_info)
+            self.current_price = None
+            self.lbl_price.setText("TL -")
+            self.refresh_data()
+            self._trigger_impact_update()
+
+        worker.signals.result.connect(on_result)
+        worker.signals.error.connect(on_error)
+
+        QThreadPool.globalInstance().start(worker)
 
     def _load_history(self):
         if not self.current_stock_id:
