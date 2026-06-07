@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.confirm_dialog import ask_confirm
 from src.ui.shared.locale_tr import L10N
 
 import logging
@@ -149,14 +150,11 @@ class DashboardActions:
         self._corporate_action_actions.on_corporate_action(row, action_type_str)
 
     def on_reset(self) -> None:
-        reply = QMessageBox.question(
+        if not ask_confirm(
             self._page,
             L10N.PORTFOYU_SIFIRLA,
             L10N.TUM_VERILER_SILINECEK_EMIN_MISINIZ,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
+        ):
             return
 
         try:
