@@ -67,9 +67,8 @@ class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
         self.list_panel.delete_requested.connect(self._actions.on_delete_portfolio)
         self.list_panel.reordered.connect(self._actions.on_portfolios_reordered)
         
-        self.btn_buy.clicked.connect(lambda: self._actions.on_trade("BUY"))
-        self.btn_sell.clicked.connect(lambda: self._actions.on_trade("SELL"))
-        self.btn_empty_buy.clicked.connect(lambda: self._actions.on_trade("BUY"))
+        self.btn_new_trade.clicked.connect(self._actions.on_trade)
+        self.btn_empty_trade.clicked.connect(self._actions.on_trade)
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
         self.btn_capital.clicked.connect(self._actions.on_capital_movement)
         self._report_today_action.triggered.connect(self._on_export_today)
@@ -111,8 +110,9 @@ class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
         self.current_price_map = self._presenter.load_current_price_map(portfolio.id)
         self._sync_last_update_label()
         self.lbl_portfolio_name.setText(portfolio.name)
-        for button in (self.btn_buy, self.btn_refresh, self.btn_report, self.btn_capital, self.btn_empty_buy):
+        for button in (self.btn_new_trade, self.btn_refresh, self.btn_report, self.btn_capital):
             button.setEnabled(True)
+        self.btn_empty_trade.setEnabled(True)
         self._presenter.update_view()
         if show_toast:
             QTimer.singleShot(0, self.show_last_update_toast_once)
@@ -126,7 +126,7 @@ class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
         self.lbl_last_update.setText("")
         self.positions_table.setRowCount(0)
         self.positions_stack.setCurrentWidget(self.positions_table)
-        for button in (self.btn_buy, self.btn_sell, self.btn_refresh, self.btn_report, self.btn_capital, self.btn_empty_buy):
+        for button in (self.btn_new_trade, self.btn_refresh, self.btn_report, self.btn_capital, self.btn_empty_trade):
             button.setEnabled(False)
         for card in (self.card_initial, self.card_cash, self.card_value, self.card_pl):
             card.set_value("TL 0")

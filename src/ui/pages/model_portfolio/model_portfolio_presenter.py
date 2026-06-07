@@ -49,7 +49,6 @@ class ModelPortfolioPresenter:
         self._page.positions_stack.setCurrentWidget(
             self._page.empty_positions_state if not positions else self._page.positions_table
         )
-        self._page.btn_sell.setEnabled(bool(positions))
 
     def load_current_price_map(self, portfolio_id: int) -> Dict[int, Decimal]:
         get_positions = getattr(self._page.model_portfolio_service, "get_positions", None)

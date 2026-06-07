@@ -175,7 +175,7 @@ def test_action_list_item_elides_secondary_text_and_keeps_menu_fixed():
     assert row.secondary_label.geometry().right() < row.menu_button.geometry().left()
 
 
-def test_model_portfolio_page_moves_trade_buttons_to_positions_header_and_shows_empty_state():
+def test_model_portfolio_page_moves_trade_buttons_to_toolbar_and_shows_empty_state():
     export_service = DummyModelPortfolioExcelExportService()
     page = ModelPortfolioPage(
         container=SimpleNamespace(
@@ -185,27 +185,25 @@ def test_model_portfolio_page_moves_trade_buttons_to_positions_header_and_shows_
         )
     )
 
-    assert page._positions_header_layout.indexOf(page.btn_buy) >= 0
-    assert page._positions_header_layout.indexOf(page.btn_sell) >= 0
+    assert page._buttons_layout.indexOf(page.btn_new_trade) >= 0
+    assert page._buttons_layout.indexOf(page.btn_refresh) >= 0
     assert page.btn_capital.property("cssClass") == "capitalButton"
     assert page.btn_report.property("cssClass") == "reportButton"
     assert page._buttons_layout.indexOf(page.btn_capital) < page._buttons_layout.indexOf(page.btn_report)
     assert not page.btn_report.isEnabled()
     assert not page.btn_capital.isEnabled()
     assert [action.text() for action in page.btn_report.menu().actions()] == ["Bugün", "Tarih Aralığı"]
-    assert not page.btn_buy.isEnabled()
-    assert not page.btn_sell.isEnabled()
-    assert not page.btn_empty_buy.isEnabled()
+    assert not page.btn_new_trade.isEnabled()
+    assert not page.btn_empty_trade.isEnabled()
 
     page._set_current_portfolio(ModelPortfolio(id=7, name="boş portföy"))
 
     assert page.positions_stack.currentWidget() is page.empty_positions_state
-    assert page.btn_buy.isEnabled()
-    assert not page.btn_sell.isEnabled()
+    assert page.btn_new_trade.isEnabled()
     assert page.btn_report.isEnabled()
     assert page.btn_capital.isEnabled()
-    assert page.btn_empty_buy.isEnabled()
-    assert page.btn_empty_buy.property("cssClass") == "successButton"
+    assert page.btn_empty_trade.isEnabled()
+    assert page.btn_empty_trade.property("cssClass") == "primaryButton"
 
 
 def test_model_portfolio_page_selects_first_portfolio_when_saved_selection_is_missing():
@@ -227,8 +225,7 @@ def test_model_portfolio_page_selects_first_portfolio_when_saved_selection_is_mi
 
     assert page.current_portfolio_id == 7
     assert page.lbl_portfolio_name.text() == "ilk portföy"
-    assert page.btn_buy.isEnabled()
-    assert not page.btn_sell.isEnabled()
+    assert page.btn_new_trade.isEnabled()
     assert page.btn_capital.isEnabled()
 
 
@@ -245,8 +242,7 @@ def test_model_portfolio_page_clears_right_panel_when_no_portfolios():
     page._load_portfolios()
 
     assert page.current_portfolio_id is None
-    assert not page.btn_buy.isEnabled()
-    assert not page.btn_sell.isEnabled()
+    assert not page.btn_new_trade.isEnabled()
     assert not page.btn_refresh.isEnabled()
     assert not page.btn_report.isEnabled()
     assert not page.btn_capital.isEnabled()
@@ -307,7 +303,6 @@ def test_model_portfolio_update_view_passes_previous_close_map(monkeypatch):
     page.positions_table = FakePositionsTable()
     page.positions_stack = SimpleNamespace(setCurrentWidget=lambda widget: calls.append(("stack", widget)))
     page.empty_positions_state = object()
-    page.btn_sell = SimpleNamespace(setEnabled=lambda enabled: calls.append(("sell_enabled", enabled)))
 
     page._presenter = ModelPortfolioPresenter(page)
     page._presenter.update_view()
@@ -315,7 +310,6 @@ def test_model_portfolio_update_view_passes_previous_close_map(monkeypatch):
     assert ("previous_close", 2, date(2026, 6, 5)) in calls
     populate_call = next(call for call in calls if call[0] == "populate")
     assert populate_call[2] == {2: Decimal("24")}
-    assert ("sell_enabled", True) in calls
 
 
 def test_model_portfolio_load_current_price_map_prefers_latest_then_daily(monkeypatch):
@@ -394,7 +388,6 @@ def test_model_portfolio_update_view_sets_profit_loss_card_state_for_positive_an
         page.positions_table = SimpleNamespace(populate=lambda positions, previous_close_map=None: None)
         page.positions_stack = SimpleNamespace(setCurrentWidget=lambda widget: None)
         page.empty_positions_state = object()
-        page.btn_sell = SimpleNamespace(setEnabled=lambda enabled: None)
         return page, pl_card
 
     positive_page, positive_card = build_page(Decimal("200"))
@@ -517,7 +510,7 @@ def test_model_portfolio_trade_action_blocks_closed_market_session(monkeypatch):
         lambda *args, **kwargs: warnings.append(args[2]),
     )
 
-    ModelPortfolioActions(page).on_trade("BUY")
+    ModelPortfolioActions(page).on_trade()
 
     assert service.calls == []
     assert warnings

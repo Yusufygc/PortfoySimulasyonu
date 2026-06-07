@@ -59,6 +59,12 @@ class ModelPortfolioUIBuilder:
         self.page.btn_refresh.setEnabled(False)
         buttons_layout.addWidget(self.page.btn_refresh)
 
+        self.page.btn_new_trade = AnimatedButton(L10N.YENI_ISLEM)
+        self.page.btn_new_trade.setIconName("plus", color="@COLOR_TEXT_WHITE")
+        self.page.btn_new_trade.setProperty("cssClass", "primaryButton")
+        self.page.btn_new_trade.setEnabled(False)
+        buttons_layout.addWidget(self.page.btn_new_trade)
+
         self.page.btn_capital = AnimatedButton(L10N.SERMAYE_YONETIMI)
         self.page.btn_capital.setIconName("wallet", color="@COLOR_TEXT_WHITE")
         self.page.btn_capital.setProperty("cssClass", "capitalButton")
@@ -135,19 +141,6 @@ class ModelPortfolioUIBuilder:
         self.page.label_positions.setProperty("cssClass", "modelPositionsTitle")
         positions_header.addWidget(self.page.label_positions)
         positions_header.addStretch()
-
-        self.page.btn_buy = AnimatedButton(L10N.HISSE_AL)
-        self.page.btn_buy.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
-        self.page.btn_buy.setEnabled(False)
-        self.page.btn_buy.setProperty("cssClass", "successButton")
-
-        self.page.btn_sell = AnimatedButton(L10N.HISSE_SAT)
-        self.page.btn_sell.setIconName("trending-down", color="@COLOR_TEXT_WHITE")
-        self.page.btn_sell.setEnabled(False)
-        self.page.btn_sell.setProperty("cssClass", "dangerButton")
-
-        positions_header.addWidget(self.page.btn_buy)
-        positions_header.addWidget(self.page.btn_sell)
         self.page._positions_header_layout = positions_header
         layout.addLayout(positions_header)
 
@@ -175,11 +168,11 @@ class ModelPortfolioUIBuilder:
         label.setAlignment(Qt.AlignCenter)
         layout.addWidget(label)
 
-        self.page.btn_empty_buy = AnimatedButton(L10N.HISSE_AL)
-        self.page.btn_empty_buy.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
-        self.page.btn_empty_buy.setProperty("cssClass", "successButton")
-        self.page.btn_empty_buy.setEnabled(False)
-        layout.addWidget(self.page.btn_empty_buy, 0, Qt.AlignCenter)
+        self.page.btn_empty_trade = AnimatedButton(L10N.YENI_ISLEM)
+        self.page.btn_empty_trade.setIconName("plus", color="@COLOR_TEXT_WHITE")
+        self.page.btn_empty_trade.setProperty("cssClass", "primaryButton")
+        self.page.btn_empty_trade.setEnabled(False)
+        layout.addWidget(self.page.btn_empty_trade, 0, Qt.AlignCenter)
 
         layout.addStretch()
         return empty

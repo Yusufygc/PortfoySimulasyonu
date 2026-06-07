@@ -267,6 +267,7 @@ class L10N:
     HISSE_SECIN = "Hisse seçin"
     HISSE_SENETLERINI_LISTELER_HALINDE_ORGANIZE = "Hisse senetlerini listeler halinde organize edin ve takip edin."
     HIZLI_ISLEM = "Hızlı İşlem"
+    HISSE_ISLEM = "Hisse İşlemi"
     HORIZON_SONU = "Horizon Sonu"
     HORIZON_SONU_1 = "Horizon sonu"
     ILK_3_POZISYON = "İlk 3 Pozisyon"

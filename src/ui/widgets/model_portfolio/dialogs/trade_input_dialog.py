@@ -16,6 +16,8 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QTimeEdit,
     QVBoxLayout,
+    QButtonGroup,
+    QRadioButton,
 )
 
 from src.ui.widgets.shared import CurrencySpinBox
@@ -25,13 +27,13 @@ logger = logging.getLogger(__name__)
 
 
 class TradeInputDialog(QDialog):
-    def __init__(self, side: str, price_lookup_func=None, parent=None):
+    def __init__(self, side: Optional[str] = None, price_lookup_func=None, parent=None):
         super().__init__(parent)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.side = side
         self.price_lookup_func = price_lookup_func
-        self.setWindowTitle(L10N.HISSE_AL_1 if side == "BUY" else L10N.HISSE_SAT_1)
-        self.setFixedSize(450, 425)
+        self.setWindowTitle(L10N.HISSE_ISLEM)
+        self.setFixedSize(450, 475)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
         self._init_ui()
@@ -45,6 +47,18 @@ class TradeInputDialog(QDialog):
         form = QFormLayout()
         form.setSpacing(15)
         form.setLabelAlignment(Qt.AlignLeft)
+
+        if self.side is None:
+            self.radio_group = QButtonGroup(self)
+            radio_layout = QHBoxLayout()
+            self.radio_buy = QRadioButton(L10N.AL)
+            self.radio_sell = QRadioButton(L10N.SAT)
+            self.radio_buy.setChecked(True)
+            self.radio_group.addButton(self.radio_buy, 1)
+            self.radio_group.addButton(self.radio_sell, 2)
+            radio_layout.addWidget(self.radio_buy)
+            radio_layout.addWidget(self.radio_sell)
+            form.addRow("İşlem:", radio_layout)
 
         self.txt_ticker = QLineEdit()
         self.txt_ticker.setPlaceholderText(L10N.ORN_ASELS)
@@ -104,9 +118,9 @@ class TradeInputDialog(QDialog):
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
 
-        self.btn_action = QPushButton(L10N.AL if self.side == "BUY" else L10N.SAT)
+        self.btn_action = QPushButton(L10N.ONAYLA)
         self.btn_action.setMinimumHeight(40)
-        self.btn_action.setProperty("cssClass", "successButton" if self.side == "BUY" else "dangerButton")
+        self.btn_action.setProperty("cssClass", "successButton")
         self.btn_action.clicked.connect(self.accept)
         self.btn_action.setDefault(True)
 
@@ -141,7 +155,13 @@ class TradeInputDialog(QDialog):
         ticker = self.txt_ticker.text().strip()
         if not ticker:
             return None
+        
+        side = self.side
+        if side is None:
+            side = "BUY" if self.radio_buy.isChecked() else "SELL"
+
         return {
+            "side": side,
             "ticker": ticker.upper(),
             "quantity": self.spin_qty.value(),
             "price": self.spin_price.decimal_value(),

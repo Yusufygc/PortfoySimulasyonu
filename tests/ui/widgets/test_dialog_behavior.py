@@ -48,7 +48,7 @@ def test_model_trade_dialog_shows_readonly_amount_and_keeps_result_shape(qapp):
     dialog.accept()
     result = dialog.get_result()
 
-    assert set(result) == {"ticker", "quantity", "price", "trade_date", "trade_time"}
+    assert set(result) == {"ticker", "quantity", "price", "trade_date", "trade_time", "side"}
     assert result["ticker"] == "ASELS"
     assert result["quantity"] == 3
     assert result["price"] == Decimal("12.34")
