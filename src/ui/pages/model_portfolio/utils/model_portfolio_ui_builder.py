@@ -53,17 +53,17 @@ class ModelPortfolioUIBuilder:
         buttons_layout.setContentsMargins(0, 0, 0, 0)
         self.page._buttons_layout = buttons_layout
 
-        self.page.btn_refresh = AnimatedButton(L10N.FIYAT_GUNCELLE)
-        self.page.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE")
-        self.page.btn_refresh.setProperty("cssClass", "updatePricesBtn")
-        self.page.btn_refresh.setEnabled(False)
-        buttons_layout.addWidget(self.page.btn_refresh)
-
         self.page.btn_new_trade = AnimatedButton(L10N.YENI_ISLEM)
         self.page.btn_new_trade.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.page.btn_new_trade.setProperty("cssClass", "primaryButton")
         self.page.btn_new_trade.setEnabled(False)
         buttons_layout.addWidget(self.page.btn_new_trade)
+
+        self.page.btn_refresh = AnimatedButton(L10N.FIYAT_GUNCELLE)
+        self.page.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE")
+        self.page.btn_refresh.setProperty("cssClass", "updatePricesBtn")
+        self.page.btn_refresh.setEnabled(False)
+        buttons_layout.addWidget(self.page.btn_refresh)
 
         self.page.btn_capital = AnimatedButton(L10N.SERMAYE_YONETIMI)
         self.page.btn_capital.setIconName("wallet", color="@COLOR_TEXT_WHITE")

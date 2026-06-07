@@ -67,8 +67,8 @@ class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
         self.list_panel.delete_requested.connect(self._actions.on_delete_portfolio)
         self.list_panel.reordered.connect(self._actions.on_portfolios_reordered)
         
-        self.btn_new_trade.clicked.connect(self._actions.on_trade)
-        self.btn_empty_trade.clicked.connect(self._actions.on_trade)
+        self.btn_new_trade.clicked.connect(lambda: self._actions.on_trade())
+        self.btn_empty_trade.clicked.connect(lambda: self._actions.on_trade())
         self.btn_refresh.clicked.connect(self._on_refresh_prices)
         self.btn_capital.clicked.connect(self._actions.on_capital_movement)
         self._report_today_action.triggered.connect(self._on_export_today)
