@@ -1,6 +1,7 @@
 # src/ui/pages/watchlist_page.py
 
 from __future__ import annotations
+from src.ui.shared.confirm_dialog import ask_confirm
 from src.ui.shared.locale_tr import L10N
 
 from typing import Optional
@@ -368,12 +369,7 @@ class WatchlistPage(BasePage):
         if self.current_watchlist_id is None:
             return
 
-        reply = QMessageBox.question(
-            self, L10N.LISTE_SIL, L10N.BU_LISTEYI_SILMEK_ISTEDIGINIZDEN_EMIN,
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-        )
-
-        if reply != QMessageBox.Yes:
+        if not ask_confirm(self, L10N.LISTE_SIL, L10N.BU_LISTEYI_SILMEK_ISTEDIGINIZDEN_EMIN):
             return
 
         try:
@@ -472,12 +468,7 @@ class WatchlistPage(BasePage):
         if self.current_watchlist_id is None:
             return
 
-        reply = QMessageBox.question(
-            self, L10N.HISSE_CIKAR, L10N.BU_HISSEYI_LISTEDEN_CIKARMAK_ISTEDIGINIZDEN,
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-        )
-
-        if reply != QMessageBox.Yes:
+        if not ask_confirm(self, L10N.HISSE_CIKAR, L10N.BU_HISSEYI_LISTEDEN_CIKARMAK_ISTEDIGINIZDEN):
             return
 
         try:
