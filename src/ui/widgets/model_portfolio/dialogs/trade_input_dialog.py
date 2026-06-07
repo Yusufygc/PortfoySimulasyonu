@@ -101,12 +101,14 @@ class TradeInputDialog(QDialog):
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setMinimumHeight(45)
+        self.date_edit.setProperty("cssClass", "tradeInputNormal")
         form.addRow(L10N.TARIH_1, self.date_edit)
 
         self.time_edit = QTimeEdit(QTime.currentTime())
         self.time_edit.setDisplayFormat("HH:mm")
         self.time_edit.setMinimumHeight(45)
-        form.addRow("Saat:", self.time_edit)
+        self.time_edit.setProperty("cssClass", "tradeInputNormal")
+        form.addRow(L10N.SAAT, self.time_edit)
 
         layout.addLayout(form)
         layout.addStretch()

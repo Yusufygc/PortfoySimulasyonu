@@ -12,7 +12,8 @@ QDialog[cssClass="tradeDialog"] QLabel {
 QDialog[cssClass="tradeDialog"] QLineEdit,
 QDialog[cssClass="tradeDialog"] QSpinBox,
 QDialog[cssClass="tradeDialog"] QDoubleSpinBox,
-QDialog[cssClass="tradeDialog"] QDateEdit {
+QDialog[cssClass="tradeDialog"] QDateEdit,
+QDialog[cssClass="tradeDialog"] QTimeEdit {
     background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
     border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_LG;
     padding: @SPACE_LG; font-size: @FONT_XL; min-height: 25px;
@@ -20,7 +21,8 @@ QDialog[cssClass="tradeDialog"] QDateEdit {
 QDialog[cssClass="tradeDialog"] QLineEdit:focus,
 QDialog[cssClass="tradeDialog"] QSpinBox:focus,
 QDialog[cssClass="tradeDialog"] QDoubleSpinBox:focus,
-QDialog[cssClass="tradeDialog"] QDateEdit:focus {
+QDialog[cssClass="tradeDialog"] QDateEdit:focus,
+QDialog[cssClass="tradeDialog"] QTimeEdit:focus {
     border: 1px solid @COLOR_PRIMARY; background-color: @COLOR_BORDER;
 }
 QDialog[cssClass="tradeDialog"] QSpinBox::up-button,
@@ -39,11 +41,15 @@ QDialog[cssClass="tradeDialog"] QDoubleSpinBox::down-button {
     image: url(@ICON_CHEVRON_DOWN); 
 }
 QDialog[cssClass="tradeDialog"] QDateEdit::up-button,
-QDialog[cssClass="tradeDialog"] QDateEdit::down-button {
+QDialog[cssClass="tradeDialog"] QDateEdit::down-button,
+QDialog[cssClass="tradeDialog"] QTimeEdit::up-button,
+QDialog[cssClass="tradeDialog"] QTimeEdit::down-button {
     width: 12px; background-color: @COLOR_BORDER; border: none; border-radius: 2px; margin: 2px;
 }
 QDialog[cssClass="tradeDialog"] QDateEdit::up-button { image: url(@ICON_CHEVRON_UP); }
 QDialog[cssClass="tradeDialog"] QDateEdit::down-button { image: url(@ICON_CHEVRON_DOWN); }
+QDialog[cssClass="tradeDialog"] QTimeEdit::up-button { image: url(@ICON_CHEVRON_UP); }
+QDialog[cssClass="tradeDialog"] QTimeEdit::down-button { image: url(@ICON_CHEVRON_DOWN); }
 QDialog[cssClass="tradeDialog"] QSpinBox::up-button:hover,
 QDialog[cssClass="tradeDialog"] QSpinBox::down-button:hover,
 QDialog[cssClass="tradeDialog"] QDoubleSpinBox::up-button:hover,
@@ -60,17 +66,21 @@ QLineEdit[cssClass="tradeInputNormal"],
 QSpinBox[cssClass="tradeInputNormal"],
 QDoubleSpinBox[cssClass="tradeInputNormal"],
 QDateEdit[cssClass="tradeInputNormal"],
+QTimeEdit[cssClass="tradeInputNormal"],
 QComboBox[cssClass="tradeInputNormal"] {
     background-color: @COLOR_BG_SURFACE; color: @COLOR_TEXT_PRIMARY;
     border: 1px solid @COLOR_BORDER; border-radius: @RADIUS_MD;
     padding: @SPACE_MD; font-size: @FONT_MD;
 }
-QDateEdit[cssClass="tradeInputNormal"] {
+QDateEdit[cssClass="tradeInputNormal"],
+QTimeEdit[cssClass="tradeInputNormal"] {
     padding: 7px 30px 7px 8px;
     min-height: 24px;
 }
 QDateEdit[cssClass="tradeInputNormal"]::up-button,
 QDateEdit[cssClass="tradeInputNormal"]::down-button,
+QTimeEdit[cssClass="tradeInputNormal"]::up-button,
+QTimeEdit[cssClass="tradeInputNormal"]::down-button,
 QSpinBox[cssClass="tradeInputNormal"]::up-button,
 QSpinBox[cssClass="tradeInputNormal"]::down-button,
 QDoubleSpinBox[cssClass="tradeInputNormal"]::up-button,
@@ -80,6 +90,7 @@ QDoubleSpinBox[cssClass="tradeInputNormal"]::down-button {
     background: transparent;
 }
 QDateEdit[cssClass="tradeInputNormal"]::up-button,
+QTimeEdit[cssClass="tradeInputNormal"]::up-button,
 QSpinBox[cssClass="tradeInputNormal"]::up-button,
 QDoubleSpinBox[cssClass="tradeInputNormal"]::up-button {
     subcontrol-origin: border;
@@ -87,6 +98,7 @@ QDoubleSpinBox[cssClass="tradeInputNormal"]::up-button {
     margin: 5px 6px 0px 0px;
 }
 QDateEdit[cssClass="tradeInputNormal"]::down-button,
+QTimeEdit[cssClass="tradeInputNormal"]::down-button,
 QSpinBox[cssClass="tradeInputNormal"]::down-button,
 QDoubleSpinBox[cssClass="tradeInputNormal"]::down-button {
     subcontrol-origin: border;
@@ -94,11 +106,24 @@ QDoubleSpinBox[cssClass="tradeInputNormal"]::down-button {
     margin: 0px 6px 5px 0px;
 }
 QDateEdit[cssClass="tradeInputNormal"]::up-arrow,
+QTimeEdit[cssClass="tradeInputNormal"]::up-arrow,
 QSpinBox[cssClass="tradeInputNormal"]::up-arrow,
-QDoubleSpinBox[cssClass="tradeInputNormal"]::up-arrow { image: url(@ICON_CHEVRON_UP); }
+QDoubleSpinBox[cssClass="tradeInputNormal"]::up-arrow { image: url(@ICON_CHEVRON_UP); width: 12px; height: 12px; }
 QDateEdit[cssClass="tradeInputNormal"]::down-arrow,
+QTimeEdit[cssClass="tradeInputNormal"]::down-arrow,
 QSpinBox[cssClass="tradeInputNormal"]::down-arrow,
-QDoubleSpinBox[cssClass="tradeInputNormal"]::down-arrow { image: url(@ICON_CHEVRON_DOWN); }
+QDoubleSpinBox[cssClass="tradeInputNormal"]::down-arrow { image: url(@ICON_CHEVRON_DOWN); width: 12px; height: 12px; }
+QDateEdit[cssClass="tradeInputNormal"]::up-button:hover,
+QTimeEdit[cssClass="tradeInputNormal"]::up-button:hover,
+QSpinBox[cssClass="tradeInputNormal"]::up-button:hover,
+QDoubleSpinBox[cssClass="tradeInputNormal"]::up-button:hover,
+QDateEdit[cssClass="tradeInputNormal"]::down-button:hover,
+QTimeEdit[cssClass="tradeInputNormal"]::down-button:hover,
+QSpinBox[cssClass="tradeInputNormal"]::down-button:hover,
+QDoubleSpinBox[cssClass="tradeInputNormal"]::down-button:hover {
+    background-color: @COLOR_BG_OVERLAY;
+    border-radius: 2px;
+}
 
 QComboBox[cssClass="tradeInputNormal"]::drop-down {
     subcontrol-origin: padding;
@@ -114,7 +139,8 @@ QComboBox[cssClass="tradeInputNormal"]::down-arrow {
 QLineEdit[cssClass="tradeInputNormal"]:focus,
 QSpinBox[cssClass="tradeInputNormal"]:focus,
 QDoubleSpinBox[cssClass="tradeInputNormal"]:focus,
-QDateEdit[cssClass="tradeInputNormal"]:focus {
+QDateEdit[cssClass="tradeInputNormal"]:focus,
+QTimeEdit[cssClass="tradeInputNormal"]:focus {
     border: 1px solid @COLOR_PRIMARY;
 }
 

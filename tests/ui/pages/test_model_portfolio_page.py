@@ -465,8 +465,9 @@ def test_model_portfolio_trade_action_blocks_closed_market_session(monkeypatch):
     warnings = []
 
     class FakeDialog:
-        def __init__(self, side, price_lookup_func, parent=None):
-            pass
+        def __init__(self, parent=None, price_lookup_func=None, lot_size=1):
+            self.btn_buy_mode = SimpleNamespace(setChecked=lambda val: None)
+            self.btn_sell_mode = SimpleNamespace(setChecked=lambda val: None)
 
         def exec_(self):
             return QDialog.Accepted
@@ -478,6 +479,7 @@ def test_model_portfolio_trade_action_blocks_closed_market_session(monkeypatch):
                 "price": Decimal("10"),
                 "trade_date": date(2026, 6, 6),
                 "trade_time": time(11, 0),
+                "side": "BUY",
             }
 
     class FakeService:
@@ -502,7 +504,7 @@ def test_model_portfolio_trade_action_blocks_closed_market_session(monkeypatch):
         _update_view=lambda: None,
     )
     monkeypatch.setattr(
-        "src.ui.pages.model_portfolio.utils.model_portfolio_actions.TradeInputDialog",
+        "src.ui.pages.model_portfolio.utils.model_portfolio_actions.NewStockTradeDialog",
         FakeDialog,
     )
     monkeypatch.setattr(

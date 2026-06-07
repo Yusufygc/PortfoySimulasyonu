@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QDialog, QMessageBox
 from src.ui.formatters import display_ticker
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
 from src.ui.widgets.model_portfolio import CapitalMovementDialog, PortfolioInputDialog, TradeInputDialog
+from src.ui.widgets.dashboard import NewStockTradeDialog
 from src.ui.widgets.shared import Toast
 from src.ui.worker import Worker
 from src.ui.shared.price_event_publisher import publish_prices_updated
@@ -128,13 +129,21 @@ class ModelPortfolioActions:
     def on_trade(self, side: str | None = None) -> None:
         if self.page.current_portfolio_id is None:
             return
-        dialog = TradeInputDialog(side, self.page.price_lookup_func, self.page)
+        dialog = NewStockTradeDialog(
+            parent=self.page,
+            price_lookup_func=self.page.price_lookup_func,
+            lot_size=1,
+        )
+        if side == "BUY":
+            dialog.btn_buy_mode.setChecked(True)
+        elif side == "SELL":
+            dialog.btn_sell_mode.setChecked(True)
+
         if dialog.exec_() != QDialog.Accepted:
             return
         result = dialog.get_result()
         if not result:
             return
-        # side bilgisi diyalog içinden (toggle) veya parametreden gelir
         effective_side = result.get("side") or side or "BUY"
         if not confirm_market_session_if_needed(
             self.page,
