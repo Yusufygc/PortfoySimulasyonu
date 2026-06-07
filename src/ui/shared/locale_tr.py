@@ -761,3 +761,5 @@ li {
     SIDEBAR_PORTFOY_SIMULASYONU = "Portföy\nSimülasyonu"
     TAHMIN = "TAHMİN"
     YANIT_BEKLENIYOR = "Yanıt bekleniyor..."
+    EVET = "Evet"
+    HAYIR = "Hayır"
