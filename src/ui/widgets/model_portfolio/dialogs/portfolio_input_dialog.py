@@ -29,6 +29,7 @@ class PortfolioInputDialog(QDialog):
         form = QFormLayout()
 
         self.txt_name = QLineEdit(self.portfolio.name if self.is_edit else "")
+        self.txt_name.setMaxLength(20)
         form.addRow("Adı:", self.txt_name)
 
         self.txt_desc = QLineEdit((self.portfolio.description or "") if self.is_edit else "")

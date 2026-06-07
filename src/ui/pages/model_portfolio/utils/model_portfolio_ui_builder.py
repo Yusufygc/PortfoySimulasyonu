@@ -124,6 +124,11 @@ class ModelPortfolioUIBuilder:
         header.addStretch()
         layout.addLayout(header)
 
+        self.page.lbl_portfolio_desc = QLabel("")
+        self.page.lbl_portfolio_desc.setProperty("cssClass", "panelDescription")
+        self.page.lbl_portfolio_desc.setWordWrap(True)
+        layout.addWidget(self.page.lbl_portfolio_desc)
+
         cards_row = QHBoxLayout()
         cards_row.setSpacing(15)
         self.page.card_initial = InfoCard(L10N.NET_SERMAYE, "TL 0", icon_name="wallet")

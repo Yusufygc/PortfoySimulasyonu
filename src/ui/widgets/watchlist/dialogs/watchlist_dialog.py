@@ -17,7 +17,7 @@ class WatchlistDialog(QDialog):
         self.setProperty("cssClass", "dialogContainer")
 
         self.name_input = QLineEdit(name)
-        self.name_input.setMaxLength(50)
+        self.name_input.setMaxLength(20)
         self.name_input.setPlaceholderText(L10N.LISTE_ADI)
         self.name_input.setProperty("cssClass", "tradeInputNormal")
 

@@ -110,6 +110,7 @@ class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
         self.current_price_map = self._presenter.load_current_price_map(portfolio.id)
         self._sync_last_update_label()
         self.lbl_portfolio_name.setText(portfolio.name)
+        self.lbl_portfolio_desc.setText(portfolio.description or "")
         for button in (self.btn_new_trade, self.btn_refresh, self.btn_report, self.btn_capital):
             button.setEnabled(True)
         self.btn_empty_trade.setEnabled(True)
@@ -123,6 +124,7 @@ class ModelPortfolioPage(BasePage, LastUpdateDisplayMixin):
 
     def _clear_right_panel(self):
         self.lbl_portfolio_name.setText(L10N.BIR_PORTFOY_SECIN)
+        self.lbl_portfolio_desc.setText("")
         self.lbl_last_update.setText("")
         self.positions_table.setRowCount(0)
         self.positions_stack.setCurrentWidget(self.positions_table)

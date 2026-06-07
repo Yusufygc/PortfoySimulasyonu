@@ -361,6 +361,7 @@ class WatchlistPage(BasePage):
             )
             self._load_watchlists()
             self.lbl_list_name.setText(name.strip())
+            self.lbl_list_desc.setText(desc.strip() if desc else "")
             Toast.success(self, L10N.LISTE_GUNCELLENDI)
         except Exception as e:
             Toast.error(self, L10N.LISTE_GUNCELLENEMEDI_TMPL.format(exc=e))

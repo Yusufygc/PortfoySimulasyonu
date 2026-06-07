@@ -61,6 +61,7 @@ class ModelPortfolioActions:
             )
             self.page._load_portfolios()
             self.page.lbl_portfolio_name.setText(result["name"])
+            self.page.lbl_portfolio_desc.setText(result["description"] or "")
             self.page._update_view()
             Toast.success(self.page, L10N.PORTFOY_GUNCELLENDI)
         except Exception as exc:
