@@ -142,6 +142,8 @@ def build_performance_line_chart_v2(
         hovermode=L10N.X_UNIFIED,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         height=580,
     )
     all_dates = benchmark_series.index
@@ -158,6 +160,8 @@ def build_pie_chart(title: str, breakdown: list) -> go.Figure:
     fig.update_layout(
         title=dict(text=title, font=dict(size=16)),
         template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
         height=400,
         margin=dict(t=50, b=20, l=20, r=20),
     )
@@ -169,8 +173,22 @@ def patch_plotly_html(html: str) -> str:
     Older Chromium engine in QWebEngine throws Uncaught SyntaxError when CSSStyleSheet.insertRule
     tries to parse newer CSS rules such as ':focus-visible'. This function patches the HTML output
     by overriding CSSStyleSheet.prototype.insertRule with a try-catch block before Plotly loads.
+    Also injects CSS to make the document background transparent.
     """
-    patch_script = """
+    transparent_css = """
+    <style type="text/css">
+        html, body {
+            background-color: transparent !important;
+            margin: 0px !important;
+            padding: 0px !important;
+            overflow: hidden !important;
+        }
+        .plotly-graph-div {
+            background-color: transparent !important;
+        }
+    </style>
+    """
+    patch_script = transparent_css + """
     <script type="text/javascript">
     (function() {
         try {

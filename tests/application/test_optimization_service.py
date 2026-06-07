@@ -112,3 +112,60 @@ def test_optimization_metrics_guard_zero_volatility():
     assert metrics.expected_return == pytest.approx(0.15)
     assert metrics.volatility == 0.0
     assert metrics.sharpe_ratio == 0.0
+
+
+class PartialMarketDataProvider(FakeMarketDataProvider):
+    def get_historical_prices(self, tickers, days):
+        self.history_requests.append((list(tickers), days))
+        index = pd.date_range("2026-01-01", periods=80, freq="D")
+        valid_tickers = [t for t in tickers if t != "CCC.IS"]
+        return pd.DataFrame(
+            {t: np.linspace(100, 110, len(index)) for t in valid_tickers},
+            index=index,
+        )
+
+    def get_last_price(self, ticker):
+        self.last_price_requests.append(ticker)
+        return {"AAA.IS": 100.0, "BBB.IS": 110.0, "CCC.IS": 50.0}[ticker]
+
+
+class FakeThreeStockRepo:
+    def get_stocks_by_ids(self, stock_ids):
+        tickers = {1: "AAA.IS", 2: "BBB.IS", 3: "CCC.IS"}
+        return [SimpleNamespace(id=stock_id, ticker=tickers[stock_id]) for stock_id in stock_ids]
+
+
+class FakeThreeStockPortfolioService:
+    def get_current_portfolio(self):
+        positions = {
+            1: SimpleNamespace(total_quantity=10, average_cost=100.0), # AAA.IS: value 10 * 100 = 1000
+            2: SimpleNamespace(total_quantity=10, average_cost=110.0), # BBB.IS: value 10 * 110 = 1100
+            3: SimpleNamespace(total_quantity=10, average_cost=50.0),  # CCC.IS: value 10 * 50 = 500 (Invalid/Insufficient)
+        }
+        return SimpleNamespace(positions=positions, active_positions=positions)
+
+
+def test_optimization_graceful_handling_invalid_tickers():
+    provider = PartialMarketDataProvider()
+    service = OptimizationService(
+        portfolio_service=FakeThreeStockPortfolioService(),
+        model_portfolio_service=FakeModelPortfolioService(),
+        stock_repo=FakeThreeStockRepo(),
+        market_data_provider=provider,
+        policy=OptimizationPolicy(risk_free_rate=0.01, max_single_weight=0.70),
+    )
+
+    result = service.optimize_dashboard_portfolio()
+
+    # CCC.IS should be treated as invalid and set as TUT
+    # Check suggestions list
+    sug_map = {s.symbol: s for s in result.suggestions}
+    assert "CCC.IS" in sug_map
+    assert sug_map["CCC.IS"].action == "TUT"
+    assert sug_map["CCC.IS"].optimal_weight == sug_map["CCC.IS"].current_weight
+    assert sug_map["CCC.IS"].change == 0.0
+
+    # AAA.IS and BBB.IS should be optimized and their optimal weights + CCC.IS current weight should sum to 100%
+    total_opt_w = sum(s.optimal_weight for s in result.suggestions)
+    assert total_opt_w == pytest.approx(100.0)
+

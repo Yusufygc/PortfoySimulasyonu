@@ -213,3 +213,20 @@ def test_enter_triggers_primary_actions_for_representative_dialogs(qapp):
 
     assert capital.result() == QDialog.Accepted
     assert portfolio.result() == QDialog.Accepted
+
+
+def test_watchlist_dialog_validation_prevents_empty_name(qapp, monkeypatch):
+    dialog = WatchlistDialog("Liste")
+    dialog.name_input.setText("")
+
+    warnings = []
+    monkeypatch.setattr("src.ui.widgets.shared.feedback.toast.Toast.warning", lambda parent, msg: warnings.append(msg))
+
+    dialog.accept()
+    assert dialog.result() != QDialog.Accepted
+    assert len(warnings) == 1
+    assert "boş olamaz" in warnings[0].lower()
+
+    dialog.name_input.setText("Yeni Liste")
+    dialog.accept()
+    assert dialog.result() == QDialog.Accepted

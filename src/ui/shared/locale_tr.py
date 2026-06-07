@@ -327,6 +327,7 @@ class L10N:
     LISTEYI_YENILE = " Listeyi Yenile"
     LISTE_ADI = "Liste adı"
     LISTE_ADI_1 = "Liste Adı:"
+    LISTE_ADI_BOS_OLAMAZ = "Liste adı boş olamaz."
     LISTE_DUZENLE = "Liste Düzenle"
     LISTE_GUNCELLENDI = "Liste güncellendi."
     LISTE_SIL = "Liste Sil"

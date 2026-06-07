@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from PyQt5.QtCore import QDir, QStandardPaths
+from PyQt5.QtCore import QDir, QStandardPaths, Qt
+from PyQt5.QtGui import QColor
 from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 
 class SilentWebEnginePage(QWebEnginePage):
@@ -26,6 +27,7 @@ class SilentWebEngineView(QWebEngineView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setPage(SilentWebEnginePage(self))
+        self.page().setBackgroundColor(QColor(0, 0, 0, 0))
         self._ensure_download_handler()
 
     def _ensure_download_handler(self) -> None:

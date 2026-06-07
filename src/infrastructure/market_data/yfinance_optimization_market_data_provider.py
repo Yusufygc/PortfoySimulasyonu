@@ -30,7 +30,12 @@ class YFinanceOptimizationMarketDataProvider:
         else:
             close_df = df[["Close"]].rename(columns={"Close": tickers[0]})
 
-        return close_df.dropna()
+        # En az 60 gunluk gecerli verisi olan kolonları (hisseleri) koru
+        valid_cols = [col for col in close_df.columns if close_df[col].notna().sum() >= 60]
+        if not valid_cols:
+            return pd.DataFrame()
+
+        return close_df[valid_cols].dropna()
 
     def get_last_price(self, ticker: str) -> Optional[float]:
         try:

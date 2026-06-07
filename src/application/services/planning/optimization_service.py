@@ -91,7 +91,17 @@ class OptimizationService:
         current_weights: np.ndarray,
     ) -> OptimizationResult:
         price_df = self._get_historical_prices(tickers, days=504)
-        if price_df.empty or len(price_df) < 60:
+        
+        # Geçerli ve geçersiz hisseleri tespit et
+        valid_tickers = list(price_df.columns) if not price_df.empty else []
+        invalid_tickers = [t for t in tickers if t not in valid_tickers]
+
+        if len(valid_tickers) < 2 or price_df.empty or len(price_df) < 60:
+            if invalid_tickers:
+                raise ValueError(
+                    f"Optimizasyon için yeterli fiyat geçmişi olan en az 2 hisse bulunmalıdır.\n"
+                    f"Geçersiz veya yetersiz verisi olan hisseler: {', '.join(invalid_tickers)}"
+                )
             raise ValueError("Yeterli fiyat gecmisi bulunamadi (en az 60 gun gerekli).")
 
         log_returns = np.log(price_df / price_df.shift(1)).replace([np.inf, -np.inf], np.nan).dropna()
@@ -107,7 +117,16 @@ class OptimizationService:
             columns=log_returns.columns,
         )
 
-        num_assets = len(tickers)
+        num_assets = len(valid_tickers)
+        
+        # Geçersiz/yetersiz hisselerin toplam mevcut ağırlığı
+        invalid_indices = [tickers.index(t) for t in invalid_tickers]
+        invalid_sum = float(np.sum(current_weights[invalid_indices])) if invalid_tickers else 0.0
+        
+        # Geçerli hisseler için kalan pay (1 - invalid_sum)
+        remaining_weight = max(0.0, 1.0 - invalid_sum)
+
+        # Alt portföyü 1.0 üzerinden optimize et, sonra kalan payla ölçekle
         initial_weights = np.array([1.0 / num_assets] * num_assets)
         constraints = {"type": "eq", "fun": lambda w: np.sum(w) - 1}
         max_w = max(self._policy.max_single_weight, 1.0 / num_assets)
@@ -125,10 +144,55 @@ class OptimizationService:
         if not result.success:
             raise ValueError("Optimizasyon hesaplanamadi. Lutfen tekrar deneyin.")
 
-        optimal_weights = result.x
-        current_metrics = self._calculate_metrics(current_weights, mean_returns.values, cov_matrix.values)
-        optimized_metrics = self._calculate_metrics(optimal_weights, mean_returns.values, cov_matrix.values)
-        suggestions = self._build_suggestions(tickers, current_weights, optimal_weights)
+        optimal_valid_weights = result.x
+        optimal_weights_scaled = optimal_valid_weights * remaining_weight
+
+        # Metrik hesaplaması
+        valid_indices = [tickers.index(t) for t in valid_tickers]
+        current_valid_weights = current_weights[valid_indices]
+        
+        current_metrics = self._calculate_metrics(current_valid_weights, mean_returns.values, cov_matrix.values)
+        optimized_metrics = self._calculate_metrics(optimal_weights_scaled, mean_returns.values, cov_matrix.values)
+        
+        # Önerileri oluştur
+        suggestions = []
+        for i, ticker in enumerate(valid_tickers):
+            curr_idx = tickers.index(ticker)
+            curr_w = current_weights[curr_idx] * 100
+            opt_w = optimal_weights_scaled[i] * 100
+            diff = opt_w - curr_w
+            
+            if diff > 1.0:
+                action = "EKLE"
+            elif diff < -1.0:
+                action = "AZALT"
+            else:
+                action = "TUT"
+                
+            suggestions.append(
+                OptimizationSuggestion(
+                    symbol=ticker,
+                    current_weight=curr_w,
+                    optimal_weight=opt_w,
+                    change=diff,
+                    action=action,
+                )
+            )
+
+        for ticker in invalid_tickers:
+            curr_idx = tickers.index(ticker)
+            curr_w = current_weights[curr_idx] * 100
+            suggestions.append(
+                OptimizationSuggestion(
+                    symbol=ticker,
+                    current_weight=curr_w,
+                    optimal_weight=curr_w,
+                    change=0.0,
+                    action="TUT",
+                )
+            )
+            
+        suggestions.sort(key=lambda s: s.optimal_weight, reverse=True)
 
         return OptimizationResult(
             current_metrics=current_metrics,

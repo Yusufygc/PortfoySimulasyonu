@@ -65,7 +65,7 @@ def build_plotly_html(
     if plotly_js_url:
         html = fig.to_html(include_plotlyjs=False, full_html=True, config=config)
         script_tag = f'<script type="text/javascript" src="{plotly_js_url}"></script>'
-        return _inject_first_head_script(html, script_tag)
+        return patch_plotly_html(_inject_first_head_script(html, script_tag))
 
     return patch_plotly_html(fig.to_html(include_plotlyjs=True, full_html=True, config=config))
 

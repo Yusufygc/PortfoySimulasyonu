@@ -63,6 +63,13 @@ class WatchlistDialog(QDialog):
         btn_layout.addWidget(self.btn_confirm)
         layout.addLayout(btn_layout)
 
+    def accept(self):
+        if not self.name_input.text().strip():
+            from src.ui.widgets.shared.feedback.toast import Toast
+            Toast.warning(self, L10N.LISTE_ADI_BOS_OLAMAZ)
+            return
+        super().accept()
+
     def get_data(self) -> Optional[Tuple[str, str]]:
         if not self.name_input.text().strip():
             return None

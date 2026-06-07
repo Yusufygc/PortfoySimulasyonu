@@ -96,39 +96,6 @@ class OptimizationPage(BasePage):
 
         # Progress bar
         self.progress_bar = QProgressBar()
-        # KOYMA. Qt'de parent'a verilen selector'suz stylesheet kuralı tüm
-        # alt widget'lara yayılır ve QSS buton arka planlarını ezer (buton
-        # beyaz görünür). Bunun yerine objectName ile QSS'teki
-        # `QWidget#scroll_content` kuralı kullanılır.
-        self.scroll_content = QWidget()
-        self.scroll_content.setObjectName("scroll_content")
-        self.scroll_layout = QVBoxLayout(self.scroll_content)
-        self.scroll_layout.setContentsMargins(25, 25, 25, 25)
-        self.scroll_layout.setSpacing(20)
-        
-        # Başlık
-        header = QHBoxLayout()
-        self.lbl_title_icon = IconLabel("zap", color="@COLOR_ACCENT", size=28)
-        header.addWidget(self.lbl_title_icon)
-        
-        lbl_title = QLabel(L10N.PORTFOY_OPTIMIZASYONU)
-        lbl_title.setProperty("cssClass", "pageTitle")
-        header.addWidget(lbl_title)
-        header.addStretch()
-        self.scroll_layout.addLayout(header)
-
-        lbl_desc = QLabel(
-            L10N.OPTIMIZASYON_MARKOWITZ_ACIKLAMA +
-            L10N.MAKSIMIZE_EDEN_OPTIMAL_PORTFOY_AGIRLIKLARINI
-        )
-        lbl_desc.setProperty("cssClass", "pageDescription")
-        self.scroll_layout.addWidget(lbl_desc)
-
-        # Kaynak seçimi paneli
-        self.scroll_layout.addWidget(self._build_source_panel())
-
-        # Progress bar
-        self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.setMaximumHeight(4)
         self.progress_bar.setProperty("cssClass", "optimizationProgressBar")
@@ -138,12 +105,18 @@ class OptimizationPage(BasePage):
         # Metrik kartları
         self.scroll_layout.addWidget(self._build_metrics_panel())
 
-        # Metrikler için açıklama
-        self.lbl_metrics_info = QLabel(
-            L10N.OPTIMIZASYON_METRIK_ACIKLAMA
+        # Birleştirilmiş Bilgilendirme Kutusu
+        self.lbl_metrics_info = QLabel()
+        self.lbl_metrics_info.setTextFormat(Qt.RichText)
+        self.lbl_metrics_info.setText(
+            L10N.OPTIMIZASYON_METRIK_ACIKLAMA +
+            "<br><br>" +
+            L10N.OPTIMIZASYON_SON_2_YILLIK_GECMIS +
+            L10N.TEK_HISSE_MAKSIMUM_AGIRLIGI_40
         )
         self.lbl_metrics_info.setProperty("cssClass", "disclaimerText")
-        self.lbl_metrics_info.setAlignment(Qt.AlignCenter)
+        self.lbl_metrics_info.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.lbl_metrics_info.setWordWrap(True)
         self.lbl_metrics_info.setVisible(False)
         self.scroll_layout.addWidget(self.lbl_metrics_info)
 
@@ -165,15 +138,6 @@ class OptimizationPage(BasePage):
         self.suggestions_table = SuggestionsTable()
         self.suggestions_table.setVisible(False)
         self.scroll_layout.addWidget(self.suggestions_table)
-
-        self.lbl_disclaimer = QLabel(
-            L10N.OPTIMIZASYON_SON_2_YILLIK_GECMIS +
-            L10N.TEK_HISSE_MAKSIMUM_AGIRLIGI_40
-        )
-        self.lbl_disclaimer.setProperty("cssClass", "disclaimerText")
-        self.lbl_disclaimer.setAlignment(Qt.AlignLeft)
-        self.lbl_disclaimer.setVisible(False)
-        self.scroll_layout.addWidget(self.lbl_disclaimer)
 
         # Boş durum
         self.lbl_empty = QLabel(L10N.BIR_PORTFOY_KAYNAGI_SECIN_VE)
@@ -314,7 +278,6 @@ class OptimizationPage(BasePage):
         self.lbl_suggestions.setVisible(True)
         self.lbl_sug_icon.setVisible(True)
         self.suggestions_table.setVisible(True)
-        self.lbl_disclaimer.setVisible(True)
 
         curr = result.current_metrics
         opt  = result.optimized_metrics
