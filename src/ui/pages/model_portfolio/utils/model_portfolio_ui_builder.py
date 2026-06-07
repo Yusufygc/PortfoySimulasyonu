@@ -60,13 +60,13 @@ class ModelPortfolioUIBuilder:
         buttons_layout.addWidget(self.page.btn_new_trade)
 
         self.page.btn_refresh = AnimatedButton(L10N.FIYAT_GUNCELLE)
-        self.page.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE")
+        self.page.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
         self.page.btn_refresh.setProperty("cssClass", "updatePricesBtn")
         self.page.btn_refresh.setEnabled(False)
         buttons_layout.addWidget(self.page.btn_refresh)
 
         self.page.btn_capital = AnimatedButton(L10N.SERMAYE_YONETIMI)
-        self.page.btn_capital.setIconName("wallet", color="@COLOR_TEXT_WHITE")
+        self.page.btn_capital.setIconName("wallet", color="@COLOR_TEXT_PRIMARY")
         self.page.btn_capital.setProperty("cssClass", "capitalButton")
         self.page.btn_capital.setEnabled(False)
         buttons_layout.addWidget(self.page.btn_capital)

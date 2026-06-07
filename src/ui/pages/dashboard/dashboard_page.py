@@ -112,7 +112,7 @@ class DashboardPage(BasePage, LastUpdateDisplayMixin):
         self.btn_new_trade.clicked.connect(self._actions.on_new_trade)
 
         self.btn_update_prices = AnimatedButton(L10N.FIYATLARI_GUNCELLE)
-        self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE")
+        self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
         self.btn_update_prices.setProperty("cssClass", "updatePricesBtn")
         self.btn_update_prices.clicked.connect(self._actions.on_update_prices)
 
@@ -120,7 +120,7 @@ class DashboardPage(BasePage, LastUpdateDisplayMixin):
         self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
 
         self.btn_capital = AnimatedButton(L10N.SERMAYE_YONETIMI)
-        self.btn_capital.setIconName("coins", color="@COLOR_TEXT_WHITE")
+        self.btn_capital.setIconName("coins", color="@COLOR_TEXT_PRIMARY")
         self.btn_capital.clicked.connect(self._actions.on_capital_management)
         self.btn_capital.setProperty("cssClass", "capitalButton")
 
