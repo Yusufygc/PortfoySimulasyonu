@@ -1,11 +1,12 @@
 # src/ui/pages/model_portfolio/utils/model_portfolio_actions.py
 
 from __future__ import annotations
+from src.ui.shared.confirm_dialog import ask_confirm
 from src.ui.shared.locale_tr import L10N
 
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt5.QtWidgets import QDialog, QMessageBox  # noqa: F401 (test monkeypatches QMessageBox here)
 
 from src.ui.formatters import display_ticker
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
@@ -68,14 +69,11 @@ class ModelPortfolioActions:
     def on_delete_portfolio(self) -> None:
         if self.page.current_portfolio_id is None:
             return
-        reply = QMessageBox.question(
+        if not ask_confirm(
             self.page,
             L10N.PORTFOY_SIL,
             L10N.BU_PORTFOYU_SILMEK_ISTEDIGINIZDEN_EMIN,
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
+        ):
             return
         try:
             self.page.model_portfolio_service.delete_portfolio(self.page.current_portfolio_id)
