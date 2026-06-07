@@ -14,6 +14,7 @@ from src.domain.models.model_portfolio import (
     ModelTradeSide,
 )
 from src.domain.models.stock import Stock
+from src.domain.constants.bist_tickers import is_valid_bist_ticker
 
 
 @dataclass(frozen=True)
@@ -327,6 +328,7 @@ class ModelPortfolioTradeService:
         price: Decimal,
         trade_date: date,
         trade_time: Optional[time] = None,
+        name: Optional[str] = None,
     ) -> ModelPortfolioTrade:
         if not ticker or not ticker.strip():
             raise ValueError("Ticker bos olamaz")
@@ -345,8 +347,15 @@ class ModelPortfolioTradeService:
         if stock is None:
             if trade_side != ModelTradeSide.BUY:
                 raise ValueError(f"Hisse bulunamadi: {normalized_ticker}")
+            if not is_valid_bist_ticker(normalized_ticker, name):
+                raise ValueError(f"Geçersiz hisse kodu: {normalized_ticker}")
             stock = self._stock_repo.insert_stock(
-                Stock(id=None, ticker=normalized_ticker, name=normalized_ticker, currency_code="TRY")
+                Stock(
+                    id=None,
+                    ticker=normalized_ticker,
+                    name=(name or normalized_ticker).strip() or normalized_ticker,
+                    currency_code="TRY",
+                )
             )
 
         return self.add_trade(

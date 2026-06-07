@@ -8,6 +8,7 @@ from typing import Optional
 from src.application.services.market.trade_session_guard import ensure_trade_session_open
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
+from src.domain.constants.bist_tickers import is_valid_bist_ticker
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,9 @@ class TradeEntryService:
 
         if not create_if_missing:
             raise ValueError(f"Hisse bulunamadı: {normalized_ticker}")
+
+        if not is_valid_bist_ticker(normalized_ticker, name):
+            raise ValueError(f"Geçersiz hisse kodu: {normalized_ticker}")
 
         new_stock = Stock(
             id=None,

@@ -18,6 +18,7 @@ from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 from src.ui.widgets.shared import CurrencySpinBox
+from src.domain.constants.bist_tickers import is_valid_bist_ticker
 
 SideLiteral = Literal["BUY", "SELL"]
 
@@ -355,6 +356,13 @@ class NewStockTradeDialog(QDialog):
             return False
 
         current_ticker = self._normalized_ticker()
+        
+        # Lokal veya Çevrimiçi olarak hisse geçerli mi kontrol et
+        if not is_valid_bist_ticker(current_ticker, self.fetched_stock_name):
+            if not self._price_lookup_in_flight and self._last_lookup_ticker == current_ticker:
+                QMessageBox.warning(self, L10N.ERROR, L10N.GECERSIZ_HISSE_KODU)
+                return False
+
         if self._has_successful_lookup_for_ticker(current_ticker):
             return True
 

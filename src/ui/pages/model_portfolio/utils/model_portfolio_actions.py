@@ -159,6 +159,7 @@ class ModelPortfolioActions:
                 price=result["price"],
                 trade_date=result["trade_date"],
                 trade_time=result["trade_time"],
+                name=result.get("name"),
             )
             self.page._load_portfolios()
             self.page._update_view()

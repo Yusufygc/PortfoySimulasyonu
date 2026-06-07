@@ -189,6 +189,7 @@ class L10N:
     GECERLI_BIR_FIYAT_GIRINIZ = "Geçerli bir fiyat giriniz."
     GECERSIZ_ARALIK = "Geçersiz Aralık"
     GECERSIZ_FIYAT = "Geçersiz fiyat."
+    GECERSIZ_HISSE_KODU = "Geçersiz hisse kodu. Girilen kod BIST listesinde bulunamadı ve doğrulanamadı."
     GECERSIZ_ISLEM = "Geçersiz İşlem"
     GELECEK_TARIHLI_ISLEM_GIRILEMEZ = "Gelecek tarihli işlem girilemez."
     GELIRLER = "Gelirler"
