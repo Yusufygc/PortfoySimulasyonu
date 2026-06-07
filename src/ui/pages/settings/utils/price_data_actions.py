@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.ui.shared.confirm_dialog import ask_confirm
 from src.ui.shared.locale_tr import L10N
 
 from datetime import date, timedelta
@@ -91,14 +92,11 @@ class PriceDataActions:
         if panel.price_data_health_service is None:
             return
         start_date, end_date = panel._date_range()
-        reply = QMessageBox.question(
+        if not ask_confirm(
             panel,
             L10N.FIYAT_VERISINI_SIL,
             L10N.FIYAT_KAYITLARI_SILINECEK_ONAY_TMPL.format(start=start_date.strftime('%d.%m.%Y'), end=end_date.strftime('%d.%m.%Y')),
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if reply != QMessageBox.Yes:
+        ):
             return
         self._run_worker(
             panel.price_data_health_service.delete_range,
