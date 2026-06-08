@@ -350,8 +350,8 @@ def test_panel_integration(monkeypatch):
     assert "RSI momentum" in last_msg.content
     assert "grup: technical" in last_msg.content
     assert "Ana XAI faktörü: RSI 14" in last_msg.display_content
-    assert "Yön beklentisi: Yükseliş eğilimi" in last_msg.display_content
-    assert "Yön Beklentisi: Yükseliş eğilimi" in last_msg.content
+    assert "Yön beklentisi: Yükseliş Eğilimi" in last_msg.display_content
+    assert "Yön Beklentisi: Yükseliş Eğilimi" in last_msg.content
     assert "Sinyal:" not in last_msg.display_content
     assert "Sinyal:" not in last_msg.content
     assert not re.search(r"\b(AL|SAT|TUT)\b", last_msg.display_content)

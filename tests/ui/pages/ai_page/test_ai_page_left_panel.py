@@ -45,7 +45,7 @@ def test_signal_card():
     card = SignalCard()
     
     card.update_data(ModelOutlook.UP, 0.9)
-    assert card.lbl_signal.text() == "Yükseliş eğilimi"
+    assert card.lbl_signal.text() == "Yükseliş Eğilimi"
     assert card.progress_strength.value() == 90
     
     card.reset()
@@ -80,9 +80,8 @@ def test_xai_card_renders_factor_details():
 
     labels = [label.text() for label in card.findChildren(QLabel)]
     assert any("RSI 14" in text for text in labels)
-    assert any("Teknik" in text for text in labels)
+    assert any("Grafik" in text for text in labels)
     assert any("momentum" in text for text in labels)
-    assert any("katkı" in text for text in labels)
 
 
 def test_peer_card_without_pooled_price():

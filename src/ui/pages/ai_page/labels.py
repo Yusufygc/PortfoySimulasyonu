@@ -22,7 +22,7 @@ EMPTY_CHAT_TITLE = L10N.YENI_SOHBET
 _OUTLOOK_LABELS = {
     ModelOutlook.UP: L10N.YUKSELIS_EGILIMI,
     ModelOutlook.DOWN: L10N.DUSUS_EGILIMI,
-    ModelOutlook.NEUTRAL: "Yatay/Nötr görünüm",
+    ModelOutlook.NEUTRAL: L10N.YATAY_NOTR_GORUNUM,
 }
 
 

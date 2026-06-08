@@ -9,9 +9,9 @@ class PredictionCard(QWidget):
     """Tahmin sonuçlarını gösteren kart — zengin API verileri destekler."""
 
     _INTERVAL_METHOD_TR = {
-        "residual_b2": "%80 güven",
-        "conformal": "%90 güven (conformal)",
-        "quantile_model": "quantile model",
+        "residual_b2": "Geçmiş Sapmalara Göre (%80 Olasılık)",
+        "conformal": "Hata Analizine Göre (%90 Olasılık)",
+        "quantile_model": "Olasılık Modeli",
     }
 
     def __init__(self):

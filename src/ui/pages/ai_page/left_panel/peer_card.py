@@ -17,9 +17,9 @@ class PeerCard(QWidget):
     """
 
     _PEER_LABEL_TR = {
-        "outperform": "Akrandan iyi",
-        "inline": "Akranla uyumlu",
-        "underperform": "Akrandan zayıf",
+        "outperform": "Benzerlerinden Daha Güçlü",
+        "inline": "Sektörle Benzer / Dengeli",
+        "underperform": "Benzerlerinden Daha Zayıf",
         "unknown": "Belirsiz",
     }
     _CONF_TR = {"high": "Yüksek", "medium": "Orta", "low": "Düşük"}
@@ -141,9 +141,9 @@ class PeerCard(QWidget):
         if peer.segment_liq or peer.segment_vol or peer.segment_sector:
             self.lbl_segment.setText(
                 L10N.PEER_SEGMENT_TMPL.format(
-                    liq=peer.segment_liq or "-",
-                    vol=peer.segment_vol or "-",
-                    sector=peer.segment_sector or "-",
+                    liq=self._format_quantile(peer.segment_liq),
+                    vol=self._format_quantile(peer.segment_vol),
+                    sector=self._format_sector(peer.segment_sector),
                 )
             )
             self.lbl_segment.setVisible(True)
@@ -249,3 +249,39 @@ class PeerCard(QWidget):
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+
+    @staticmethod
+    def _format_quantile(q: str | None) -> str:
+        if not q:
+            return "-"
+        q_upper = q.upper().strip()
+        mapping = {
+            "Q1": "Çok Düşük",
+            "Q2": "Düşük",
+            "Q3": "Orta",
+            "Q4": "Yüksek",
+            "Q5": "Çok Yüksek",
+            "HIGH": "Yüksek",
+            "MEDIUM": "Orta",
+            "LOW": "Düşük"
+        }
+        return mapping.get(q_upper, q)
+
+    @staticmethod
+    def _format_sector(sector: str | None) -> str:
+        if not sector:
+            return "-"
+        sector_map = {
+            "Basic Materials": "Hammadde / Temel Malzemeler",
+            "Industrials": "Sanayi",
+            "Financials": "Finans",
+            "Technology": "Teknoloji",
+            "Consumer Cyclical": "Döngüsel Tüketim",
+            "Consumer Defensive": "Temel Tüketim",
+            "Healthcare": "Sağlık",
+            "Utilities": "Altyapı / Hizmetler",
+            "Energy": "Enerji",
+            "Real Estate": "Gayrimenkul",
+            "Communication Services": "İletişim Hizmetleri",
+        }
+        return sector_map.get(sector, sector)

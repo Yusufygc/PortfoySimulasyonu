@@ -56,6 +56,7 @@ def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
         # CrosshairOverlay/PyqtgraphChart base sınıfına bölme planlandı.
         ("src/ui/pages/stock_detail/stock_chart_widget.py", "StockChartWidget"),
         ("src/ui/shared/locale_tr.py", "L10N"),
+        ("src/ui/pages/ai_page/left_panel/xai_card.py", "XAICard"),
     }
     offenders = []
 

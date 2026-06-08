@@ -116,7 +116,8 @@ class XAICard(QWidget):
         xai_caveat: str = "",
     ):
         """Kartı API verileriyle günceller."""
-        self.lbl_method.setText(L10N.YONTEM_TMPL.format(method=xai_method) if xai_method else "")
+        friendly_method = self._friendly_method(xai_method)
+        self.lbl_method.setText(L10N.YONTEM_TMPL.format(method=friendly_method) if friendly_method else "")
         self._clear_layout(self.positive_layout)
         self._clear_layout(self.negative_layout)
         self._clear_layout(self.features_layout)
@@ -125,8 +126,8 @@ class XAICard(QWidget):
             self.lbl_unavailable.setVisible(True)
             self.lbl_pos_title.setVisible(False)
             self.lbl_neg_title.setVisible(False)
-            self.txt_explanation.setText(text or L10N.BU_MODEL_ICIN_XAI_ACIKLANABILIRLIK)
-            self._set_caveat(xai_caveat)
+            self.txt_explanation.setText(self._clean_text(text) or L10N.BU_MODEL_ICIN_XAI_ACIKLANABILIRLIK)
+            self._set_caveat(self._clean_text(xai_caveat))
             return
 
         self.lbl_unavailable.setVisible(False)
@@ -155,8 +156,8 @@ class XAICard(QWidget):
                     "neutral",
                 ))
 
-        self.txt_explanation.setText(text)
-        self._set_caveat(xai_caveat)
+        self.txt_explanation.setText(self._clean_text(text))
+        self._set_caveat(self._clean_text(xai_caveat))
 
     def reset(self):
         self._clear_layout(self.positive_layout)
@@ -242,37 +243,25 @@ class XAICard(QWidget):
 
     @staticmethod
     def _details_text(reason: str, method: str, contribution, approximate) -> str:
-        parts = []
         if reason:
-            parts.append(reason)
-        method_parts = []
-        if method:
-            method_parts.append(f"yöntem: {method}")
-        try:
-            if contribution is not None:
-                method_parts.append(f"katkı: {float(contribution):+.4f}")
-        except (TypeError, ValueError):
-            pass
-        if approximate is True:
-            method_parts.append("yaklaşık")
-        if method_parts:
-            parts.append(" · ".join(method_parts))
-        return "\n".join(parts)
+            friendly_reason = reason.replace("volatilite", "dalgalanma").replace("esigi", "sınırı").replace("eşiği", "sınırı")
+            return friendly_reason
+        return ""
 
     @staticmethod
     def _group_label(group: str | None) -> str:
         labels = {
-            "technical": "Teknik",
-            "macro": "Makro",
-            "market_relative": "Endeks",
-            "volume": "Hacim",
-            "volatility": "Volatilite",
-            "regime": "Rejim",
-            "lag": "Gecikmeli",
-            "signal": "Model faktörü",
-            L10N.SINYAL_KARARI: "Model faktörü",
-            "model_summary": "Model Özeti",
-            "other": "Diğer",
+            "technical": "Grafik ve Fiyat Eğilimleri",
+            "macro": "Genel Ekonomik Göstergeler (Dolar, Faiz vb.)",
+            "market_relative": "Borsa Endeksi ile İlişki",
+            "volume": "İşlem Hacmi (Yatırımcı İlgisi)",
+            "volatility": "Dalgalanma Riski",
+            "regime": "Piyasa Dönemi ve Rejimi",
+            "lag": "Geçmiş Fiyat Seviyeleri",
+            "signal": "Yapay Zeka Karar Kuralı",
+            L10N.SINYAL_KARARI: "Yapay Zeka Karar Kuralı",
+            "model_summary": "Yapay Zeka Genel Eğilimi",
+            "other": "Diğer Faktörler",
         }
         if not group:
             return ""
@@ -281,9 +270,9 @@ class XAICard(QWidget):
     @staticmethod
     def _method_label(method: str | None) -> str:
         labels = {
-            "rule_based": "kural bazlı özet",
-            "signal_rules": "model faktör kuralları",
-            "sequence": "sekans katkısı",
+            "rule_based": "Kural Tabanlı Analiz",
+            "signal_rules": "Tahmin Kuralları",
+            "sequence": "Zaman Serisi Analizi",
         }
         if not method:
             return ""
@@ -308,3 +297,65 @@ class XAICard(QWidget):
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
+
+    @staticmethod
+    def _friendly_method(method: str | None) -> str:
+        if not method:
+            return ""
+        m_lower = method.lower().replace("\n", " ").strip()
+        if "shap" in m_lower or "treeexplainer" in m_lower:
+            return "Yapay Zeka Karar Analizi"
+        if "feature importance" in m_lower:
+            return "Gösterge Ağırlık Analizi"
+        if "demo" in m_lower:
+            return "Demo Analiz"
+        return method
+
+    @staticmethod
+    def _clean_text(text: str) -> str:
+        if not text:
+            return ""
+        import re
+        # 1. Remove bracketed technical keys like [model_summary] or [Sinyal karari]
+        text = re.sub(r'\s*\[[^\]]+\]', '', text)
+
+        # 2. Fix Turkish character replacements from raw data and simplify terms
+        replacements = {
+            "walk-forward": "tarihsel test",
+            "volatilite": "dalgalanma",
+            "Volatilite": "Dalgalanma",
+            "esigi": "sınırı",
+            "eşiği": "sınırı",
+            "esiginin": "sınırının",
+            "eşiğinin": "sınırının",
+            "cikis": "çıkış",
+            "çıkış": "çıkış",
+            "cikildi": "çıkıldı",
+            "al sinyali": "alım kararı",
+            "sat sinyali": "satım kararı",
+            "giris": "giriş",
+            "nakitte bekleme": "nakit koruma",
+            "tahmini fiyat": "beklenen fiyat",
+            "Tahmini fiyat": "Beklenen fiyat",
+            "XAI, modelin tahmininde öne çıkan değişkenleri gösterir; nedensellik kanıtı değildir.":
+                "Bu liste, yapay zekanın tahmin yaparken en çok önem verdiği nedenleri gösterir; kesin bir sebep-sonuç ilişkisi anlamına gelmez."
+        }
+        for k, v in replacements.items():
+            text = text.replace(k, v)
+
+        # 3. Format float numbers dynamically (e.g. 26.8850 -> 26.89)
+        def format_match(match):
+            val_str = match.group(0)
+            try:
+                val = float(val_str)
+                if abs(val) < 0.1 and val != 0.0:
+                    return f"%{val*100:+.2f}"
+                return f"{val:.2f}"
+            except ValueError:
+                return val_str
+
+        text = re.sub(r'-?\d+\.\d{3,}', format_match, text)
+
+        # Double periods cleanup
+        text = text.replace("..", ".").replace(" .", ".")
+        return text
