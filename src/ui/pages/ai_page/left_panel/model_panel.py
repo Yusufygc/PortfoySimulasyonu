@@ -1,6 +1,6 @@
 import logging
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QTabWidget
 from PyQt5.QtCore import QThreadPool, pyqtSignal, Qt
 
 from src.application.services.ai.ai_analysis_service import AiAnalysisService
@@ -57,18 +57,42 @@ class ModelPanel(QWidget):
         self.input_bar.analyze_requested.connect(self._start_analysis)
         layout.addWidget(self.input_bar)
 
-        # 3. Kartlar
+        # 3. Kartlar ve Sekmeler (Tabs)
         self.prediction_card = PredictionCard()
         self.signal_card = SignalCard()
         self.peer_card = PeerCard()
         self.performance_card = PerformanceCard()
         self.xai_card = XAICard()
 
-        layout.addWidget(self.prediction_card)
-        layout.addWidget(self.signal_card)
-        layout.addWidget(self.peer_card)
-        layout.addWidget(self.performance_card)
-        layout.addWidget(self.xai_card)
+        self.tabs = QTabWidget()
+
+        # Tab 1: Genel Görünüm
+        tab_outlook = QWidget()
+        layout_outlook = QVBoxLayout(tab_outlook)
+        layout_outlook.setContentsMargins(8, 8, 8, 8)
+        layout_outlook.setSpacing(10)
+        layout_outlook.addWidget(self.prediction_card)
+        layout_outlook.addWidget(self.signal_card)
+        layout_outlook.addWidget(self.peer_card)
+        self.tabs.addTab(tab_outlook, L10N.TAB_GENEL_GORUNUM)
+
+        # Tab 2: Model Performansı
+        tab_perf = QWidget()
+        layout_perf = QVBoxLayout(tab_perf)
+        layout_perf.setContentsMargins(8, 8, 8, 8)
+        layout_perf.setSpacing(10)
+        layout_perf.addWidget(self.performance_card)
+        self.tabs.addTab(tab_perf, L10N.TAB_MODEL_PERFORMANSI)
+
+        # Tab 3: Karar Faktörleri (XAI)
+        tab_xai = QWidget()
+        layout_xai = QVBoxLayout(tab_xai)
+        layout_xai.setContentsMargins(8, 8, 8, 8)
+        layout_xai.setSpacing(10)
+        layout_xai.addWidget(self.xai_card)
+        self.tabs.addTab(tab_xai, L10N.TAB_KARAR_FAKTORLERI)
+
+        layout.addWidget(self.tabs)
 
         # 4. Yatırım tavsiyesi uyarısı
         self.lbl_disclaimer = QLabel(DEFAULT_INVESTMENT_DISCLAIMER)
@@ -117,6 +141,7 @@ class ModelPanel(QWidget):
         self.performance_card.reset()
         self.xai_card.reset()
         self.btn_send_chat.reset()
+        self.tabs.setCurrentIndex(0)
         self._set_disclaimer(DEFAULT_INVESTMENT_DISCLAIMER)
 
         # Analiz durumu banner'ını sıfırla

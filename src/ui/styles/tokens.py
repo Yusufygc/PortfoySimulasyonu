@@ -362,7 +362,7 @@ LIGHT_THEME: dict[str, str] = {
     "CARD_BG_ALT": "#eef4ff",
     "CARD_BORDER": "#dbe3ef",
     "TABLE_BG": "#ffffff",
-    "TABLE_ALT_BG": "#f1f5f9",
+    "TABLE_ALT_BG": "#f8f9fa",
     "TABLE_HEADER_BG": "#ffffff",
     "TABLE_TEXT": "#0f172a",
     "TABLE_HEADER_TEXT": "#020617",
