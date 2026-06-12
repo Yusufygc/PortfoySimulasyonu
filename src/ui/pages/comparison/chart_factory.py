@@ -43,8 +43,8 @@ class ComparisonChartFactory:
             
         fig.update_layout(
             title={"text": title, "font": {"size": 16, "color": theme_colors.get("text", L10N.F1F5F9)}},
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor=theme_colors.get("paper_bg", "#111827"),
+            plot_bgcolor=theme_colors.get("plot_bg", "#0f172a"),
             font={"family": "Segoe UI, Arial", "color": theme_colors.get("text", L10N.F1F5F9)},
             margin={"l": 40, "r": 40, "t": 60, "b": 40},
             xaxis={

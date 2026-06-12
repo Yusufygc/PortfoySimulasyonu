@@ -102,8 +102,14 @@ class AnalysisRiskSection(QWidget):
         from PyQt5.QtCore import QUrl
         import tempfile
 
+        from PyQt5.QtWidgets import QApplication
+        from PyQt5.QtGui import QPalette
+        palette = QApplication.instance().palette()
+        is_light = palette.color(QPalette.Window).lightness() > 128
+        text_color = "#1e293b" if is_light else "#f1f5f9"
+
         if cost_breakdown:
-            fig1 = build_pie_chart(L10N.MALIYET_BAZLI_DAGILIM, cost_breakdown)
+            fig1 = build_pie_chart(L10N.MALIYET_BAZLI_DAGILIM, cost_breakdown, text_color=text_color)
             html1 = fig1.to_html(include_plotlyjs=True)
             html1 = patch_plotly_html(html1)
             if not hasattr(self, "_cost_temp_file") or self._cost_temp_file is None:
@@ -115,9 +121,9 @@ class AnalysisRiskSection(QWidget):
             self.cost_chart.load(QUrl.fromLocalFile(self._cost_temp_file))
         else:
             self.cost_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Maliyet verisi yok</div>")
-            
+
         if current_breakdown:
-            fig2 = build_pie_chart(L10N.GUNCEL_DEGER_DAGILIMI, current_breakdown)
+            fig2 = build_pie_chart(L10N.GUNCEL_DEGER_DAGILIMI, current_breakdown, text_color=text_color)
             html2 = fig2.to_html(include_plotlyjs=True)
             html2 = patch_plotly_html(html2)
             if not hasattr(self, "_val_temp_file") or self._val_temp_file is None:

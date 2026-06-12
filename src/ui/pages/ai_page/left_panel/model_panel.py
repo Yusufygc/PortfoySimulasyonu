@@ -236,7 +236,10 @@ class ModelPanel(QWidget):
     def _on_error(self, err: str):
         self._set_disclaimer(DEFAULT_INVESTMENT_DISCLAIMER)
         self.status_banner.show_error(L10N.ANALIZ_HATASI_TMPL.format(exc=err))
-        if self._service.live_available:
+        
+        # Zaman aşımı (timeout) durumunda mock modele düşülmesin, canlı bağlantı aktif kalsın.
+        is_timeout = any(x in err.lower() for x in ["zaman aşımı", "timeout", "timed out"])
+        if not is_timeout and self._service.live_available:
             self._service.mark_unavailable()
             self.connection_dropped.emit()
 

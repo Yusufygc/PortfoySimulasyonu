@@ -201,6 +201,13 @@ class ComparisonDataManager:
             page._renderer.render_empty_state(L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN)
             return
 
+        mode = page.ribbon_bar.selected_mode()
+        if mode == L10N.RASYO_MODU:
+            num_code, den_code = page.ribbon_bar.ratio_assets()
+            for extra_code in (num_code, den_code):
+                if extra_code and extra_code not in selected_codes:
+                    selected_codes = list(selected_codes) + [extra_code]
+
         new_selected_codes, has_holdings_trigger = self._filter_state_builder.expand_holdings(selected_codes)
 
         if has_holdings_trigger:

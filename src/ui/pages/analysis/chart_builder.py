@@ -153,17 +153,19 @@ def build_performance_line_chart_v2(
     return fig
 
 
-def build_pie_chart(title: str, breakdown: list) -> go.Figure:
+def build_pie_chart(title: str, breakdown: list, text_color: str = "#f1f5f9") -> go.Figure:
     labels = [b[0] for b in breakdown]
     values = [b[1] for b in breakdown]
     fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.4, textinfo=L10N.LABELPERCENT)])
     fig.update_layout(
-        title=dict(text=title, font=dict(size=16)),
+        title=dict(text=title, font=dict(size=16, color=text_color)),
         template="plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         height=400,
         margin=dict(t=50, b=20, l=20, r=20),
+        legend=dict(font=dict(color=text_color)),
+        font=dict(color=text_color),
     )
     return fig
 
