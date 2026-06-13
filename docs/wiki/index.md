@@ -18,6 +18,8 @@
 | [service_simulation.md](service_simulation.md) | Tarihsel backtest (simülasyon) altyapısı, snapshot üretimi ve uç vakalar |
 | [ui_architecture_and_events.md](ui_architecture_and_events.md) | PySide6 arayüz mimarisi, Qt compat katmanı, Worker yapıları, Global Event Bus ve QSS Tema Yöneticisi |
 | [pyside6_migration_analysis.md](pyside6_migration_analysis.md) | PyQt5 tabanlı masaüstü uygulamasını PySide6'ya taşımak için modüler analiz, risk matrisi ve faz planı |
+| [code_quality_guardrails.md](code_quality_guardrails.md) | Sağlık raporu sonrası ölçüm script'i, eşikler, istisna protokolü ve refactor guardrail'leri |
+| [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Yorum, boş satır ve docstring ayrıştırmalı kod kalitesi baseline raporu |
 | [comparison_lab.md](comparison_lab.md) | Karşılaştırma Laboratuvarı mimarisi, görsel bileşenleri, veri entegrasyonu ve Gemini AI asistan yapısı |
 | [service_reporting_and_export.md](service_reporting_and_export.md) | OpenPyXL Excel formatter ve dışa aktarım raporlaması |
 | [service_corporate_actions.md](service_corporate_actions.md) | Temettü, bölünme işlemleri ve portföy maliyetine etkileri |
@@ -75,4 +77,4 @@ Yeni bir wiki sayfası veya teknik doküman eklendiğinde:
 
 ---
 
-*Son güncelleme: 2026-06-12 — PySide6 göçü, Qt compat katmanı ve UI test stratejisi dizine işlendi.*
+*Son güncelleme: 2026-06-13 — Kod kalitesi guardrail rehberi ve baseline raporu dizine işlendi.*

@@ -8,6 +8,12 @@ Bu dosya, Portföy Simülasyonu projesindeki gelecek geliştirme planlarını, t
 
 ## 🛠️ Yakın Vadeli Kod İncelemeleri (Code Review Needs)
 
+### 0. Sağlık Raporu Tabanlı Refactor ve Kalite Kapıları
+* **Mevcut Durum**: [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) ile yorum, boş satır ve docstring ayrıştırmalı başlangıç metriği üretildi; sağlık HTML'i artık tek karar kaynağı değil.
+* **Sorun/Risk**: Büyük application servisleri ve UI page/widget sınıfları yeni özellik eklerken sorumluluk karışmasına ve regresyon riskine yol açabilir.
+* **Geliştirme Planı**: Önce application servis facade'ları, ardından UI page/component ayrımı ve en son doğrulanmış dependency temizliği yapılacak. Her dilimden önce `scripts/measure_code_quality.py`, sonra hedefli testler ve tam `pytest tests -q` çalıştırılacak.
+* **Bağlantılı Rehber**: [code_quality_guardrails.md](code_quality_guardrails.md)
+
 ### 1. Seans Kapalıyken Otomatik Güncelleme Davranışı
 * **Mevcut Durum**: [bist_market_session_service.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/application/services/market/bist_market_session_service.py) seans durumunu (açık, kapalı, tatil) doğru tespit edebiliyor.
 * **Sorun/Risk**: Arayüzdeki otomatik fiyat güncelleme zamanlayıcısı seans dışı saatlerde veya resmi tatillerde çalışmaya devam ederek harici API'lere (YFinance, EVDS) gereksiz yük bindirmektedir.

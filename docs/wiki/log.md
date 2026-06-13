@@ -5,6 +5,21 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-13] yeni-sayfa | Kod kalitesi guardrail rehberi
+
+- Sağlık raporu sonrası kalıcı eşikler, istisna protokolü, UI page/component standardı ve application service facade standardı belgelendi.
+- Yeni ölçüm çıktıları ve refactor öncesi kontrol akışı rehbere bağlandı.
+- Etkilenen dosyalar: `docs/wiki/code_quality_guardrails.md`, `docs/wiki/index.md`, `docs/wiki/architecture.md`, `docs/wiki/testing_strategy.md`, `docs/wiki/Plans.md`.
+- Bağlantılı sayfa: [code_quality_guardrails.md](code_quality_guardrails.md)
+
+## [2026-06-13] guncelleme | Sağlık raporu ölçüm baseline'ı
+
+- `scripts/measure_code_quality.py` ile yorum, boş satır ve docstring ayrıştırmalı kod kalitesi ölçümü üretildi.
+- Baseline JSON ve Markdown raporları `code_quality_baseline_2026-06-13` adıyla wiki'ye kaydedildi.
+- Sağlık HTML'i tek karar kaynağı olmaktan çıkarıldı; HTML path'leri yeni ölçüm raporuyla crosswalk edildi.
+- Etkilenen dosyalar: `scripts/measure_code_quality.py`, `tests/test_code_quality_measurement.py`, `docs/wiki/code_quality_baseline_2026-06-13.md`, `docs/wiki/code_quality_baseline_2026-06-13.json`.
+- Bağlantılı sayfa: [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md)
+
 ## [2026-06-13] duzeltme | Toast kapatma ikonu ve tema kontrasti
 
 - Toast kapatma kontrolu metin tabanli `x` yerine IconManager uzerinden uretilen tema-duyarli SVG `x` ikonuna tasindi.

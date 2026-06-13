@@ -59,7 +59,8 @@ Kalite guard'ları `tests/ui/test_refactor_guards.py` altındadır:
 
 - `src/ui` içinde özel `QThread` sınıfı veya importu yoktur.
 - UI fiyat event yayını doğrudan `prices_updated.emit` ile değil `publish_prices_updated` helper'ı ile yapılır.
-- UI büyük sınıf eşiği için yalnız belgelenmiş Faz 5 istisnaları kabul edilir: `RiskProfilePage`, `WatchlistPage`, `NewStockTradeDialog`.
+- UI büyük sınıf eşiği için yalnız belgelenmiş geçici istisnalar kabul edilir. Sağlık raporu sonrası güncel liste `tests/ui/test_refactor_guards.py` ve [code_quality_guardrails.md](code_quality_guardrails.md) üzerinden izlenir.
+- Kod kalitesi baseline guard'ı `scripts/measure_code_quality.py` ile üretilir; [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) yorum, boş satır ve docstring ayrıştırmalı başlangıç metriğidir.
 - Otomatik testler canlı HTTP helper'larını doğrudan çağıramaz; canlı kontroller manuel/network marker'ı ister.
 
 Faz 5 baseline: `pytest --collect-only -q` -> **305 collected**; `tests/ui -q` -> **91 passed**; `tests/domain tests/application tests/infrastructure -q` -> **214 passed**. `.pytest_cache` permission warning ortam kaynaklı bilinen uyarıdır.

@@ -45,3 +45,5 @@ AI (yapay zeka) bileşenleri de bu omurgaya bağlıdır: `container_parts/ai.py`
 
 ## 🛠️ Kalite Standartları ve Kalite Kapıları
 Kod tabanının bütünlüğünü korumak adına tüm refaktör, özellik ekleme veya bug-fix süreçlerinde [RULES.md](../../RULES.md) içinde tanımlı kalite kuralları zorunlu olarak uygulanır. Geliştirmeler sonrası test komutları düzenli çalıştırılmalıdır.
+
+Sağlık raporu sonrası kalıcı ölçüm ve refactor kararları [code_quality_guardrails.md](code_quality_guardrails.md) içinde tanımlanır; güncel başlangıç metriği [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) raporudur. Yeni özellik eklenmeden önce ölçüm script'i çalıştırılır ve production dosyalarında yeni eşik ihlali bırakılmaz.
