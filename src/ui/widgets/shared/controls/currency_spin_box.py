@@ -16,6 +16,49 @@ def _normalize_suffix(suffix: str) -> str:
     return f" {clean}" if not clean.startswith(" ") else clean
 
 
+def _normalize_numeric_text(text: str) -> str:
+    clean = (text or "").replace(" ", "")
+    if clean.count("-") > 1 or ("-" in clean and not clean.startswith("-")):
+        raise ValueError("invalid numeric input")
+
+    sign = ""
+    if clean.startswith("-"):
+        sign = "-"
+        clean = clean[1:]
+    if not clean:
+        return sign
+    if re.search(r"[^0-9.,]", clean):
+        raise ValueError("invalid numeric input")
+
+    comma_count = clean.count(",")
+    dot_count = clean.count(".")
+    if comma_count and dot_count:
+        last_comma = clean.rfind(",")
+        last_dot = clean.rfind(".")
+        decimal_sep = "," if last_comma > last_dot else "."
+        group_sep = "." if decimal_sep == "," else ","
+        clean = clean.replace(group_sep, "").replace(decimal_sep, ".")
+    elif comma_count:
+        if comma_count > 1:
+            raise ValueError("invalid numeric input")
+        clean = clean.replace(",", ".")
+    elif dot_count:
+        if dot_count > 1:
+            parts = clean.split(".")
+            if not all(part.isdigit() for part in parts) or not all(len(part) == 3 for part in parts[1:]):
+                raise ValueError("invalid numeric input")
+            clean = "".join(parts)
+        else:
+            whole, fraction = clean.split(".", 1)
+            if fraction == "":
+                clean = f"{whole}."
+            elif len(fraction) == 3 and 1 <= len(whole) <= 3:
+                clean = whole + fraction
+            else:
+                clean = f"{whole}.{fraction}"
+    return sign + clean
+
+
 class CurrencySpinBox(QDoubleSpinBox):
     """Financial input that edits raw numbers and displays formatted TRY values on blur."""
 
@@ -34,15 +77,12 @@ class CurrencySpinBox(QDoubleSpinBox):
     def setSuffix(self, suffix: str) -> None:  # noqa: N802 - Qt API
         self._display_suffix = _normalize_suffix(suffix)
         super().setSuffix("")
-        self._refresh_text()
+        self._set_line_text(self.textFromValue(self.value()), track=False)
 
     def setValue(self, value: float) -> None:  # noqa: N802 - Qt API
         self._last_user_text = ""
         super().setValue(value)
         self._focus_value = self.value()
-
-    def suffix(self) -> str:
-        return self._display_suffix
 
     def decimal_value(self) -> Decimal:
         return Decimal(str(self.value()))
@@ -50,11 +90,11 @@ class CurrencySpinBox(QDoubleSpinBox):
     get_raw_value = decimal_value
 
     def input_decimal_value(self) -> Decimal:
-        return self._strict_decimal_from_text(self._candidate_input_text())
+        return self._strict_decimal_from_text(self._last_user_text if self._last_user_text else self.lineEdit().text())
 
     def has_valid_input(self, require_positive: bool = False) -> bool:
         try:
-            value = self.input_decimal_value()
+            value = self._strict_decimal_from_text(self._last_user_text if self._last_user_text else self.lineEdit().text())
         except (InvalidOperation, ValueError):
             return False
         if require_positive and value <= 0:
@@ -67,7 +107,7 @@ class CurrencySpinBox(QDoubleSpinBox):
             return
         self._last_user_text = text
         self.setValue(self.valueFromText(text))
-        self._refresh_text()
+        self._set_line_text(self.textFromValue(self.value()), track=False)
 
     def clear(self) -> None:
         self.setValue(self.minimum())
@@ -77,7 +117,8 @@ class CurrencySpinBox(QDoubleSpinBox):
     def textFromValue(self, value: float) -> str:  # noqa: N802 - Qt API
         if self._editing:
             return self._format_edit(value)
-        return self._format_display(value)
+        number = f"{value:,.{self.decimals()}f}".replace(",", "_").replace(".", ",").replace("_", ".")
+        return f"{number}{self._display_suffix}"
 
     def valueFromText(self, text: str) -> float:  # noqa: N802 - Qt API
         try:
@@ -97,7 +138,7 @@ class CurrencySpinBox(QDoubleSpinBox):
         if raw.count("-") > 1 or ("-" in raw and not raw.lstrip().startswith("-")):
             return QValidator.Invalid, text, pos
         try:
-            clean = self._normalize_numeric_text(raw)
+            clean = _normalize_numeric_text(raw)
             Decimal(clean)
         except (InvalidOperation, ValueError):
             return QValidator.Invalid, text, pos
@@ -117,19 +158,16 @@ class CurrencySpinBox(QDoubleSpinBox):
 
     def focusOutEvent(self, event) -> None:  # noqa: N802 - Qt API
         if self.has_valid_input():
-            self.setValue(self.valueFromText(self._candidate_input_text()))
+            self.setValue(self.valueFromText(self._last_user_text if self._last_user_text else self.lineEdit().text()))
             self._last_user_text = ""
             self._editing = False
             super().focusOutEvent(event)
-            self._refresh_text()
+            self._set_line_text(self.textFromValue(self.value()), track=False)
             return
         self._editing = False
         super().setValue(self._focus_value)
-        self._refresh_text()
-        event.accept()
-
-    def _refresh_text(self) -> None:
         self._set_line_text(self.textFromValue(self.value()), track=False)
+        event.accept()
 
     def _remember_user_text(self, text: str) -> None:
         if self._suppress_text_tracking:
@@ -141,9 +179,6 @@ class CurrencySpinBox(QDoubleSpinBox):
         self._suppress_text_tracking = not track
         self.lineEdit().setText(text)
         self._suppress_text_tracking = previous
-
-    def _candidate_input_text(self) -> str:
-        return self._last_user_text if self._last_user_text else self.lineEdit().text()
 
     def _keep_cursor_inside_number(self, _old_pos: int, new_pos: int) -> None:
         if self._editing or not self._display_suffix:
@@ -164,16 +199,6 @@ class CurrencySpinBox(QDoubleSpinBox):
             text = text.rstrip("0").rstrip(",")
         return text
 
-    def _format_display(self, value: float) -> str:
-        number = f"{value:,.{self.decimals()}f}".replace(",", "_").replace(".", ",").replace("_", ".")
-        return f"{number}{self._display_suffix}"
-
-    def _decimal_from_text(self, text: str) -> Decimal:
-        clean = self._clean_edit_text(text)
-        if clean in {"", "-", ".", "-."}:
-            return Decimal("0")
-        return Decimal(clean)
-
     def _strict_decimal_from_text(self, text: str) -> Decimal:
         raw = self._strip_currency_text(text)
         if not raw:
@@ -182,17 +207,10 @@ class CurrencySpinBox(QDoubleSpinBox):
             raise ValueError("invalid numeric input")
         if raw.count("-") > 1 or ("-" in raw and not raw.lstrip().startswith("-")):
             raise ValueError("invalid numeric input")
-        clean = self._normalize_numeric_text(raw)
+        clean = _normalize_numeric_text(raw)
         if clean in {"", "-", ".", "-."}:
             raise ValueError("invalid numeric input")
         return Decimal(clean)
-
-    def _clean_edit_text(self, text: str) -> str:
-        raw = self._strip_currency_text(text)
-        try:
-            return self._normalize_numeric_text(raw)
-        except ValueError:
-            return ""
 
     def _strip_currency_text(self, text: str) -> str:
         clean = (text or "").strip()
@@ -208,48 +226,3 @@ class CurrencySpinBox(QDoubleSpinBox):
             .strip()
         )
 
-    def _normalize_numeric_text(self, text: str) -> str:
-        clean = (text or "").replace(" ", "")
-        if clean.count("-") > 1 or ("-" in clean and not clean.startswith("-")):
-            raise ValueError("invalid numeric input")
-
-        sign = ""
-        if clean.startswith("-"):
-            sign = "-"
-            clean = clean[1:]
-        if not clean:
-            return sign
-        if re.search(r"[^0-9.,]", clean):
-            raise ValueError("invalid numeric input")
-
-        comma_count = clean.count(",")
-        dot_count = clean.count(".")
-        if comma_count and dot_count:
-            last_comma = clean.rfind(",")
-            last_dot = clean.rfind(".")
-            decimal_sep = "," if last_comma > last_dot else "."
-            group_sep = "." if decimal_sep == "," else ","
-            clean = clean.replace(group_sep, "").replace(decimal_sep, ".")
-        elif comma_count:
-            if comma_count > 1:
-                raise ValueError("invalid numeric input")
-            clean = clean.replace(",", ".")
-        elif dot_count:
-            if dot_count > 1:
-                parts = clean.split(".")
-                if not all(part.isdigit() for part in parts) or not all(len(part) == 3 for part in parts[1:]):
-                    raise ValueError("invalid numeric input")
-                clean = "".join(parts)
-            else:
-                whole, fraction = clean.split(".", 1)
-                if fraction == "":
-                    clean = f"{whole}."
-                elif len(fraction) == 3 and 1 <= len(whole) <= 3:
-                    clean = whole + fraction
-                else:
-                    clean = f"{whole}.{fraction}"
-        return sign + clean
-
-    @staticmethod
-    def _normalize_suffix(suffix: str) -> str:
-        return _normalize_suffix(suffix)

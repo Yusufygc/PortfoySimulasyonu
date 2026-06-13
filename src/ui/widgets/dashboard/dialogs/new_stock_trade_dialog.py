@@ -220,7 +220,8 @@ class NewStockTradeDialog(QDialog):
         self.time_edit.setDisplayFormat("HH:mm")
         self.time_edit.setProperty("cssClass", "tradeInputNormal")
         
-        self._normalize_initial_datetime() # Haftasonu kontrolü
+        self.date_edit.setDate(QDate.currentDate())
+        self.time_edit.setTime(QTime.currentTime())
 
         lbl_date = QLabel(L10N.TARIH_1)
         lbl_date.setProperty("cssClass", "formLabel")
@@ -304,7 +305,6 @@ class NewStockTradeDialog(QDialog):
         
         # Tarih kontrolleri
         self.date_edit.dateChanged.connect(self._on_date_changed)
-        self.time_edit.timeChanged.connect(self._on_time_changed)
 
     # --- SİHİRBAZ MANTIĞI ---
 
@@ -443,7 +443,7 @@ class NewStockTradeDialog(QDialog):
             self._price_lookup_in_flight = False
             return
 
-        normalized_ticker = self._normalize_ticker_value(ticker)
+        normalized_ticker = normalize_ticker_input(ticker)
         if self._price_lookup_in_flight and normalized_ticker == self._last_lookup_ticker:
             return
         if self._has_successful_lookup_for_ticker(normalized_ticker):
@@ -506,11 +506,7 @@ class NewStockTradeDialog(QDialog):
         self.btn_next.setText(L10N.DEVAM_ET)
 
     def _normalized_ticker(self) -> str:
-        return self._normalize_ticker_value(self.line_ticker.text())
-
-    @staticmethod
-    def _normalize_ticker_value(ticker: str) -> str:
-        return normalize_ticker_input(ticker)
+        return normalize_ticker_input(self.line_ticker.text())
 
     def _begin_lookup(self, normalized_ticker: str) -> None:
         self._price_lookup_in_flight = True
@@ -553,15 +549,6 @@ class NewStockTradeDialog(QDialog):
                 self._updating_amount = False
         except (ValueError, TypeError): pass
 
-    def _normalize_initial_datetime(self):
-        now = QDate.currentDate()
-        self.date_edit.setDate(now)
-        self.time_edit.setTime(QTime.currentTime())
-
     def _on_date_changed(self, date):
-        # Gelecek tarih kontrolü
         if date > QDate.currentDate():
             self.date_edit.setDate(QDate.currentDate())
-    
-    def _on_time_changed(self, time):
-        return
