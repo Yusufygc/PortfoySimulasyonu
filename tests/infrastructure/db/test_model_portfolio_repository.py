@@ -3,12 +3,13 @@ from decimal import Decimal
 
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement
 from src.infrastructure.db.sqlalchemy.repositories.sa_model_portfolio_repository import (
-    SQLAlchemyModelPortfolioRepository,
+    _to_domain_cash_movement,
+    _to_orm_cash_movement,
+    _to_orm_portfolio,
 )
 
 
 def test_model_portfolio_repository_maps_domain_to_orm():
-    repo = SQLAlchemyModelPortfolioRepository.__new__(SQLAlchemyModelPortfolioRepository)
     portfolio = ModelPortfolio(
         id=3,
         name="Model",
@@ -17,7 +18,7 @@ def test_model_portfolio_repository_maps_domain_to_orm():
         sort_order=2,
     )
 
-    orm = repo._to_orm_portfolio(portfolio)
+    orm = _to_orm_portfolio(portfolio)
 
     assert orm.id == 3
     assert orm.name == "Model"
@@ -27,7 +28,6 @@ def test_model_portfolio_repository_maps_domain_to_orm():
 
 
 def test_model_portfolio_repository_maps_cash_movement_domain_to_orm():
-    repo = SQLAlchemyModelPortfolioRepository.__new__(SQLAlchemyModelPortfolioRepository)
     movement = ModelPortfolioCashMovement.create_deposit(
         portfolio_id=3,
         amount=Decimal("5000.00"),
@@ -36,8 +36,8 @@ def test_model_portfolio_repository_maps_cash_movement_domain_to_orm():
         notes="ek sermaye",
     )
 
-    orm = repo._to_orm_cash_movement(movement)
-    domain = repo._to_domain_cash_movement(orm)
+    orm = _to_orm_cash_movement(movement)
+    domain = _to_domain_cash_movement(orm)
 
     assert orm.portfolio_id == 3
     assert orm.type == "DEPOSIT"

@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `d4f2db1`
+- Git commit: `5afffad`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3287
-- Effective code lines: 44151
-- Ihlalli sinif: 8
-- Ihlalli fonksiyon/metot: 140
+- Fonksiyon/metot: 3311
+- Effective code lines: 44145
+- Ihlalli sinif: 6
+- Ihlalli fonksiyon/metot: 134
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31299 | 1 |
+| src | 329 | 31293 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -54,28 +54,17 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | ChatbotPanel | 374 | 31 | class_effective_lines, class_methods |
 | src/ui/pages/stock_detail/stock_detail_page.py | StockDetailPage | 374 | 20 | class_effective_lines |
 | src/ui/pages/watchlist_page.py | WatchlistPage | 309 | 20 | class_effective_lines |
-| src/ui/pages/settings/price_data_panel.py | PriceDataPanel | 260 | 22 | class_methods |
 | src/ui/widgets/shared/controls/currency_spin_box.py | CurrencySpinBox | 203 | 27 | class_methods |
-| src/infrastructure/db/sqlalchemy/repositories/sa_model_portfolio_repository.py | SQLAlchemyModelPortfolioRepository | 168 | 22 | class_methods |
 
 ## Fonksiyon/Metot Ihlalleri
 
 | Dosya | Fonksiyon | Effective satir | Parametre | Complexity | Ihlal |
 |---|---|---:|---:|---:|---|
 | scripts/migrate_ui_strings.py | main | 116 | 0 | 37 | function_effective_lines, function_complexity |
-| src/ui/pages/analysis/analysis_comparison_section.py | _redraw_chart | 81 | 0 | 23 | function_effective_lines, function_complexity |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | _init_page2 | 78 | 0 | 1 | function_effective_lines |
-| src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 77 | 12 | 28 | function_effective_lines, function_effective_params, function_complexity |
-| src/ui/pages/analysis/analysis_page.py | _init_ui | 76 | 0 | 1 | function_effective_lines |
-| src/ui/pages/analysis/analysis_control_panel.py | _init_ui | 75 | 0 | 2 | function_effective_lines |
 | scripts/apply_trade_adjustments_schema.py | main | 70 | 0 | 6 | function_effective_lines |
-| src/ui/pages/ai_page/left_panel/prediction_card.py | _init_ui | 70 | 0 | 1 | function_effective_lines |
-| src/application/services/analysis/analysis_bundle_builder.py | build | 69 | 1 | 12 | function_effective_lines, function_complexity |
-| src/ui/pages/stock_detail/trade_form_panel.py | _init_ui | 69 | 0 | 1 | function_effective_lines |
 | src/application/container_parts/services.py | _build_feature_services | 66 | 3 | 1 | function_effective_lines |
-| src/ui/pages/ai_page/left_panel/prediction_card.py | update_data | 66 | 12 | 15 | function_effective_lines, function_effective_params, function_complexity |
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | _build_prompt_template | 65 | 4 | 27 | function_effective_lines, function_complexity |
-| src/ui/pages/optimization_page.py | _init_ui | 65 | 0 | 1 | function_effective_lines |
 | scripts/replicate_db.py | main | 64 | 0 | 13 | function_effective_lines, function_complexity |
 | src/ui/pages/ai_page/left_panel/peer_card.py | _init_ui | 63 | 0 | 1 | function_effective_lines |
 | src/ui/pages/settings/appearance_panel.py | _build_theme_card | 62 | 2 | 2 | function_effective_lines |
@@ -92,6 +81,15 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/model_portfolio/utils/model_portfolio_ui_builder.py | build_ui | 58 | 0 | 1 | function_effective_lines |
 | src/ui/pages/comparison/utils/ai_helper.py | build_panel | 57 | 0 | 1 | function_effective_lines |
 | src/application/services/corporate_actions/corporate_action_service.py | _apply_bedelsiz | 55 | 4 | 6 | function_effective_lines |
+| src/application/services/corporate_actions/price_adjustment_service.py | adjust_prices_for_applied_action | 55 | 1 | 20 | function_effective_lines, function_complexity |
+| src/ui/main_window.py | _init_ui | 55 | 0 | 4 | function_effective_lines |
+| src/ui/pages/ai_page/left_panel/model_panel.py | _init_ui | 55 | 0 | 2 | function_effective_lines |
+| src/ui/pages/ai_page/left_panel/model_panel.py | _on_result_ready | 55 | 1 | 4 | function_effective_lines |
+| src/ui/widgets/stock/dialogs/trade_dialog.py | _build_trade_inputs | 55 | 1 | 1 | function_effective_lines |
+| tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_export_today_blocks_when_history_prices_are_missing | 55 | 1 | 2 | function_effective_lines |
+| tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_update_view_passes_previous_close_map | 55 | 1 | 3 | function_effective_lines |
+| src/ui/pages/ai_page/left_panel/xai_card.py | _make_factor_row | 54 | 2 | 8 | function_effective_lines |
+| src/ui/pages/analysis/analysis_comparison_section.py | __init__ | 53 | 1 | 1 | function_effective_lines |
 
 ## Saglik Raporu Crosswalk
 
