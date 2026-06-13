@@ -89,16 +89,23 @@ class CorporateActionDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(14)
         layout.setContentsMargins(20, 20, 20, 20)
+        self._build_info_section(layout)
+        layout.addWidget(self._build_form_group())
+        layout.addWidget(self._build_preview_group())
+        self._set_bedelli_fields_visible(False)
+        note = QLabel(
+            L10N.UYGULAMA_SONRASI_GECMIS_FIYATLAR_YFINANCEDEN +
+            L10N.RETROAKTIF_DUZELTME_BU_ISLEM_BIRKAC
+        )
+        note.setWordWrap(True)
+        note.setProperty("cssClass", "pageDescription")
+        layout.addWidget(note)
+        layout.addLayout(self._build_button_row())
 
-        # ── Başlık / Hisse Bilgisi ──────────────────────────
+    def _build_info_section(self, layout: QVBoxLayout) -> None:
         title = QLabel(L10N.SERMAYE_ARTIRIMI)
         title.setProperty("cssClass", "dialogHeaderTitle")
         layout.addWidget(title)
-
-        info_frame = QFrame()
-        info_frame.setProperty("cssClass", "dialogInfoFrame")
-        info_layout = QHBoxLayout(info_frame)
-        info_layout.setSpacing(24)
 
         def _info_col(lbl_text, val_text):
             col = QVBoxLayout()
@@ -110,6 +117,10 @@ class CorporateActionDialog(QDialog):
             col.addWidget(val)
             return col
 
+        info_frame = QFrame()
+        info_frame.setProperty("cssClass", "dialogInfoFrame")
+        info_layout = QHBoxLayout(info_frame)
+        info_layout.setSpacing(24)
         price_txt = f"{self._current_price:,.4f} TL" if self._current_price else "—"
         info_layout.addLayout(_info_col("Hisse", self._display_ticker))
         info_layout.addLayout(_info_col(L10N.MEVCUT_LOT, f"{self._current_qty:,}"))
@@ -118,13 +129,12 @@ class CorporateActionDialog(QDialog):
         info_layout.addStretch()
         layout.addWidget(info_frame)
 
-        # ── Giriş Formu ─────────────────────────────────────
+    def _build_form_group(self) -> QGroupBox:
         form_group = QGroupBox(L10N.ISLEM_PARAMETRELERI)
         form_layout = QFormLayout(form_group)
         form_layout.setSpacing(10)
         form_layout.setContentsMargins(12, 14, 12, 12)
 
-        # İşlem türü
         type_layout = QHBoxLayout()
         self._radio_bedelsiz = QRadioButton(L10N.BEDELSIZ)
         self._radio_bedelli = QRadioButton(L10N.BEDELLI)
@@ -138,7 +148,6 @@ class CorporateActionDialog(QDialog):
         type_layout.addStretch()
         form_layout.addRow(L10N.ISLEM_TURU_1, type_layout)
 
-        # Artırım oranı (%)
         self._spin_ratio = QDoubleSpinBox()
         self._spin_ratio.setRange(0.01, 10000.0)
         self._spin_ratio.setValue(50.0)
@@ -148,14 +157,12 @@ class CorporateActionDialog(QDialog):
         self._spin_ratio.valueChanged.connect(self._update_preview)
         form_layout.addRow(L10N.ARTIRIM_ORANI_1, self._spin_ratio)
 
-        # Ex-date
         self._date_ex = QDateEdit(QDate.currentDate())
         self._date_ex.setCalendarPopup(True)
         self._date_ex.setDisplayFormat("dd.MM.yyyy")
         self._date_ex.setProperty("cssClass", "tradeInputNormal")
         form_layout.addRow(L10N.EXDATE_BAZ_FIYAT_GUNU, self._date_ex)
 
-        # ── Bedelli alanları (gizli/görünür) ────────────────
         self._lbl_sub_price = QLabel(L10N.KULLANIM_FIYATI_RUCHAN)
         self._spin_sub_price = CurrencySpinBox()
         self._spin_sub_price.setRange(0.0001, 10000.0)
@@ -166,15 +173,13 @@ class CorporateActionDialog(QDialog):
         self._spin_sub_price.valueChanged.connect(self._update_preview)
         form_layout.addRow(self._lbl_sub_price, self._spin_sub_price)
 
-        # Not (opsiyonel)
         self._edit_notes = QLineEdit()
         self._edit_notes.setPlaceholderText(L10N.OPSIYONEL_ACIKLAMA)
         self._edit_notes.setProperty("cssClass", "tradeInputNormal")
         form_layout.addRow(L10N.NOT, self._edit_notes)
+        return form_group
 
-        layout.addWidget(form_group)
-
-        # ── Ön İzleme ────────────────────────────────────────
+    def _build_preview_group(self) -> QGroupBox:
         preview_group = QGroupBox(L10N.ON_IZLEME)
         preview_layout = QFormLayout(preview_group)
         preview_layout.setSpacing(8)
@@ -185,7 +190,6 @@ class CorporateActionDialog(QDialog):
         self._lbl_new_avg = QLabel("—")
         self._lbl_capital_spent = QLabel("—")
         self._lbl_theoretical = QLabel("—")
-
         for lbl in (self._lbl_new_shares, self._lbl_total_qty,
                     self._lbl_new_avg, self._lbl_capital_spent, self._lbl_theoretical):
             lbl.setProperty("cssClass", "dialogFieldValue")
@@ -193,42 +197,25 @@ class CorporateActionDialog(QDialog):
         preview_layout.addRow(L10N.YENI_HISSE_ADEDI, self._lbl_new_shares)
         preview_layout.addRow(L10N.TOPLAM_LOT_1, self._lbl_total_qty)
         preview_layout.addRow(L10N.YENI_ORT_MALIYET_1, self._lbl_new_avg)
-
         self._row_capital_lbl = QLabel(L10N.SERMAYE_KULLANIMI)
         self._row_capital_lbl.setProperty("cssClass", "dialogFieldLabel")
         preview_layout.addRow(self._row_capital_lbl, self._lbl_capital_spent)
-
         preview_layout.addRow(L10N.TEORIK_BAZ_FIYAT, self._lbl_theoretical)
-        layout.addWidget(preview_group)
+        return preview_group
 
-        # Tüm widget'lar tanımlandıktan sonra başlangıç görünürlüğünü ayarla
-        self._set_bedelli_fields_visible(False)
-
-        # ── Bilgi notu ────────────────────────────────────────
-        note = QLabel(
-            L10N.UYGULAMA_SONRASI_GECMIS_FIYATLAR_YFINANCEDEN +
-            L10N.RETROAKTIF_DUZELTME_BU_ISLEM_BIRKAC
-        )
-        note.setWordWrap(True)
-        note.setProperty("cssClass", "pageDescription")
-        layout.addWidget(note)
-
-        # ── Butonlar ──────────────────────────────────────────
+    def _build_button_row(self) -> QHBoxLayout:
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-
         btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setProperty("cssClass", "secondaryButton")
-
         self._btn_confirm = QPushButton(L10N.UYGULA)
         self._btn_confirm.clicked.connect(self.accept)
         self._btn_confirm.setProperty("cssClass", "tradeConfirmBuyBtn")
         self._btn_confirm.setDefault(True)
-
         btn_layout.addWidget(btn_cancel)
         btn_layout.addWidget(self._btn_confirm)
-        layout.addLayout(btn_layout)
+        return btn_layout
 
     # ══════════════════════════════════════════════════════════
     #  EVENT HANDLERS

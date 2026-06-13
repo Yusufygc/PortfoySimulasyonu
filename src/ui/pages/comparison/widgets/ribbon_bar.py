@@ -32,32 +32,34 @@ class ComparisonRibbonBar(QFrame):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(12, 12, 12, 12)
         main_layout.setSpacing(0)
-        
         self.controls_layout = QHBoxLayout()
         self.controls_layout.setSpacing(18)
         self.controls_layout.setContentsMargins(0, 0, 0, 0)
+        self.left_container = self._build_left_container()
+        self.right_container = self._build_right_container()
+        self.controls_layout.addWidget(self.left_container, 0, Qt.AlignTop | Qt.AlignLeft)
+        self.controls_layout.addStretch(1)
+        self.controls_layout.addWidget(self.right_container, 0, Qt.AlignTop | Qt.AlignRight)
+        main_layout.addLayout(self.controls_layout)
 
-        self.left_container = QWidget()
-        self.left_container.setProperty("cssClass", "comparisonFilterBlock")
-        self.left_container.setAttribute(Qt.WA_StyledBackground, True)
-        self.left_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-        self.ratio_widget = self.left_container
-        self.left_grid = QGridLayout(self.left_container)
+    def _build_left_container(self) -> QWidget:
+        container = QWidget()
+        container.setProperty("cssClass", "comparisonFilterBlock")
+        container.setAttribute(Qt.WA_StyledBackground, True)
+        container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        self.ratio_widget = container
+        self.left_grid = QGridLayout(container)
         self.left_grid.setContentsMargins(0, 0, 0, 0)
         self.left_grid.setHorizontalSpacing(10)
         self.left_grid.setVerticalSpacing(6)
         self.left_grid.setColumnStretch(1, 1)
         self.left_grid.setColumnStretch(3, 1)
-
-        # Multi-Asset Selector
         self.compare_label = QLabel(L10N.KIYASLANACAK_VARLIKLAR)
         self.left_grid.addWidget(self.compare_label, 0, 0, Qt.AlignRight)
         self.compare_combo = CheckableComboBox(L10N.VARLIK_SECIN)
         self.compare_combo.setMinimumWidth(220)
         self.compare_combo.selection_changed.connect(self.filter_changed.emit)
         self.left_grid.addWidget(self.compare_combo, 0, 1)
-
-        # Grafik Modu
         self.mode_label = QLabel(L10N.GRAFIK_MODU_1)
         self.left_grid.addWidget(self.mode_label, 0, 2, Qt.AlignRight)
         self.combo_mode = QComboBox()
@@ -66,21 +68,16 @@ class ComparisonRibbonBar(QFrame):
         self.combo_mode.setMinimumWidth(160)
         self.combo_mode.currentIndexChanged.connect(self._on_mode_changed)
         self.left_grid.addWidget(self.combo_mode, 0, 3)
-
-        # Rasyo Seçiciler (Pay / Payda)
         self.ratio_label = QLabel(L10N.PAY)
         self.left_grid.addWidget(self.ratio_label, 1, 0, Qt.AlignRight)
-
         self.combo_num = QComboBox()
         self.combo_num.setProperty("cssClass", "customComboBox")
         self.combo_num.setMinimumWidth(220)
         self.combo_num.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.combo_num.currentIndexChanged.connect(self.filter_changed.emit)
         self.left_grid.addWidget(self.combo_num, 1, 1)
-
         self.ratio_den_label = QLabel(f"/ {L10N.PAYDA}")
         self.left_grid.addWidget(self.ratio_den_label, 1, 2, Qt.AlignRight)
-
         self.combo_den = QComboBox()
         self.combo_den.setProperty("cssClass", "customComboBox")
         self.combo_den.setMinimumWidth(220)
@@ -88,21 +85,27 @@ class ComparisonRibbonBar(QFrame):
         self.combo_den.currentIndexChanged.connect(self.filter_changed.emit)
         self.left_grid.addWidget(self.combo_den, 1, 3)
         self._set_ratio_controls_visible(False)
+        return container
 
-        self.right_container = QWidget()
-        self.right_container.setProperty("cssClass", "comparisonFilterBlock")
-        self.right_container.setAttribute(Qt.WA_StyledBackground, True)
-        self.right_container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-        self.right_vbox = QVBoxLayout(self.right_container)
+    def _build_right_container(self) -> QWidget:
+        container = QWidget()
+        container.setProperty("cssClass", "comparisonFilterBlock")
+        container.setAttribute(Qt.WA_StyledBackground, True)
+        container.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        self.right_vbox = QVBoxLayout(container)
         self.right_vbox.setContentsMargins(0, 0, 0, 0)
         self.right_vbox.setSpacing(6)
-        
-        # Tarih Seçiciler
-        self.date_row = QHBoxLayout()
-        self.date_row.setSpacing(10)
-        self.date_row.setContentsMargins(0, 0, 0, 0)
-        self.date_row.addWidget(QLabel(L10N.TARIH_ARALIGI_1))
-        
+        self.date_row = self._build_date_row()
+        self.right_vbox.addLayout(self.date_row)
+        self.time_buttons_layout = self._build_time_buttons_layout()
+        self.right_vbox.addLayout(self.time_buttons_layout)
+        return container
+
+    def _build_date_row(self) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(10)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(QLabel(L10N.TARIH_ARALIGI_1))
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
         self.date_start.setDisplayFormat("dd.MM.yyyy")
@@ -111,10 +114,8 @@ class ComparisonRibbonBar(QFrame):
         self.date_start.setFixedWidth(self._DATE_EDIT_WIDTH)
         self.date_start.setDate(QDate.currentDate().addMonths(-3))
         self.date_start.dateChanged.connect(self.filter_changed.emit)
-        self.date_row.addWidget(self.date_start)
-        
-        self.date_row.addWidget(QLabel("—"))
-        
+        row.addWidget(self.date_start)
+        row.addWidget(QLabel("—"))
         self.date_end = QDateEdit()
         self.date_end.setCalendarPopup(True)
         self.date_end.setDisplayFormat("dd.MM.yyyy")
@@ -123,14 +124,13 @@ class ComparisonRibbonBar(QFrame):
         self.date_end.setFixedWidth(self._DATE_EDIT_WIDTH)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
-        self.date_row.addWidget(self.date_end)
-        self.right_vbox.addLayout(self.date_row)
-        
-        # Alt şerit - TradingView Zaman Butonları
-        self.time_buttons_layout = QHBoxLayout()
-        self.time_buttons_layout.setSpacing(8)
-        self.time_buttons_layout.setContentsMargins(0, 0, 0, 0)
-        
+        row.addWidget(self.date_end)
+        return row
+
+    def _build_time_buttons_layout(self) -> QHBoxLayout:
+        layout = QHBoxLayout()
+        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.time_buttons = {}
         periods = [
             ("1A", timedelta(days=30)),
@@ -140,22 +140,15 @@ class ComparisonRibbonBar(QFrame):
             ("YBB", None),
             ("Tümü", None),
         ]
-        
         for label, delta in periods:
             btn = QPushButton(label)
             btn.setProperty("cssClass", "secondaryButton")
             btn.setMinimumHeight(28)
             btn.setMinimumWidth(50)
             btn.clicked.connect(lambda checked, l=label, d=delta: self._on_time_button_clicked(l, d))
-            self.time_buttons_layout.addWidget(btn)
+            layout.addWidget(btn)
             self.time_buttons[label] = btn
-
-        self.right_vbox.addLayout(self.time_buttons_layout)
-
-        self.controls_layout.addWidget(self.left_container, 0, Qt.AlignTop | Qt.AlignLeft)
-        self.controls_layout.addStretch(1)
-        self.controls_layout.addWidget(self.right_container, 0, Qt.AlignTop | Qt.AlignRight)
-        main_layout.addLayout(self.controls_layout)
+        return layout
         
     def _on_mode_changed(self, index: int) -> None:
         # 2 is Rasyo Modu
