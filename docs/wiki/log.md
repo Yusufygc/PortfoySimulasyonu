@@ -5,6 +5,26 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-14] refaktor | UI sınıf ihlalleri giderildi; violating_classes=4→1
+
+- `WatchlistPage._load_stocks` içindeki aksiyon buton bloğu `_make_stock_action_cell()` modül fonksiyonuna taşındı.
+- `NewStockTradeDialog._init_page1` ve `_init_page2` widget oluşturma bloklarının tamamı `_build_page1_widgets()` ve `_build_page2_widgets()` modül fonksiyonlarına taşındı.
+- `StockDetailPage._build_left_scroll_area`, `_build_history_table`, `_build_corp_actions_table` modül düzeyine taşındı; `_build_header` içeriği `_build_header_widgets(back_cb)` modül fonksiyonuna çıkarıldı.
+- Önceki oturumda: `SAModelPortfolioRepository`, `CurrencySpinBox`, `NewStockTradeDialog`, `ChatbotPanel` sınıf metod sayısı ve satır eşikleri düşürüldü.
+- Baseline güncellendi: **sınıf ihlali 4→1** (`L10N` belgeli istisna); fonksiyon/metot ihlali `134`.
+- Doğrulama: `tests -q` → 612/612 passed.
+- Etkilenen dosyalar: `src/ui/pages/watchlist_page.py`, `src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py`, `src/ui/pages/stock_detail/stock_detail_page.py`, `docs/wiki/code_quality_baseline_2026-06-13.md`, `docs/wiki/refactor_handoff_2026-06-13.md`.
+- Bağlantılı sayfa: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
+
+## [2026-06-13] refaktor | Application Faz 1 servis eşik azaltımı
+
+- `ModelPortfolioService` public facade API'si korunarak method-count ihlali kaldırıldı.
+- `OptimizationService._optimize` fiyat geçmişi doğrulama, return model, ağırlık optimizasyonu ve öneri üretimi helper'larına ayrıldı; `_optimize` eşik altına indirildi.
+- Baseline yeniden üretildi: sınıf ihlali `9`, fonksiyon/metot ihlali `153`, sağlık raporu crosswalk `84/84`.
+- Doğrulama: hedefli application testleri geçti; final test kapısı commit öncesi çalıştırılacak.
+- Etkilenen dosyalar: `src/application/services/planning/model_portfolio_service.py`, `src/application/services/planning/optimization_service.py`, `docs/wiki/code_quality_baseline_2026-06-13.md`, `docs/wiki/code_quality_baseline_2026-06-13.json`, `docs/wiki/refactor_handoff_2026-06-13.md`.
+- Bağlantılı sayfa: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
+
 ## [2026-06-13] yeni-sayfa | Refactor handoff ve devam notu
 
 - Sağlık baseline refactorunun amacı, tamamlanan commitleri, kalan fazları, dirty worktree uyarılarını ve devam komutlarını tek sayfada toplandı.
