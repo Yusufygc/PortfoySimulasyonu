@@ -11,7 +11,7 @@ from src.qt_compat.qtwidgets import QApplication, QHeaderView, QTableView, QTabl
 from src.domain.models.watchlist import Watchlist
 from src.domain.models.position import Position
 from src.ui.pages.dashboard.dashboard_portfolio_table import DashboardPortfolioTable
-from src.ui.pages.watchlist_page import WatchlistPage
+from src.ui.pages.watchlist_page import WatchlistPage, _make_readonly_table_item
 from src.ui.portfolio_table_model import PortfolioTableModel
 from src.ui.shared.locale_tr import L10N
 from src.ui.styles import tokens as theme_tokens
@@ -261,7 +261,7 @@ def test_watchlist_stock_table_is_passive():
     page = WatchlistPage(container=container)
 
     _assert_passive_table(page.stock_table)
-    item = page._readonly_table_item("ASELS")
+    item = _make_readonly_table_item("ASELS")
     assert item.flags() == Qt.ItemIsEnabled
 
 

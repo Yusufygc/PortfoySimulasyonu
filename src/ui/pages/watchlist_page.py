@@ -33,6 +33,58 @@ from src.ui.widgets.watchlist.dialogs import AddStockToWatchlistDialog, EditStoc
 from src.ui.widgets.watchlist.dialogs.watchlist_dialog import WatchlistDialog
 
 
+def _make_watchlist_stock_table() -> QTableWidget:
+    table = QTableWidget()
+    table.setColumnCount(3)
+    table.setHorizontalHeaderLabels([L10N.HISSE_ADI, "Not", ""])
+    table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+    table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+    table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+    table.setColumnWidth(2, 100)
+    table.setSelectionMode(QTableWidget.NoSelection)
+    table.setSelectionBehavior(QTableWidget.SelectRows)
+    table.setEditTriggers(QTableWidget.NoEditTriggers)
+    table.setAlternatingRowColors(True)
+    table.setShowGrid(False)
+    table.setFocusPolicy(Qt.NoFocus)
+    table.setWordWrap(True)
+    table.setProperty("cssClass", "watchlistTable")
+    table.horizontalHeader().setHighlightSections(False)
+    table.verticalHeader().setDefaultSectionSize(42)
+    table.verticalHeader().setVisible(False)
+    return table
+
+
+def _make_readonly_table_item(text: str, align_center: bool = False) -> QTableWidgetItem:
+    item = QTableWidgetItem(text)
+    item.setFlags(Qt.ItemIsEnabled)
+    if align_center:
+        item.setTextAlignment(Qt.AlignCenter)
+    return item
+
+
+def _make_watchlist_empty_state(add_callback) -> tuple[QFrame, AnimatedButton]:
+    empty = QFrame()
+    empty.setProperty("cssClass", "watchlistEmptyState")
+    layout = QVBoxLayout(empty)
+    layout.setContentsMargins(24, 24, 24, 24)
+    layout.setSpacing(14)
+    layout.addStretch()
+    icon = IconLabel("plus", color="@COLOR_TEXT_MUTED", size=28)
+    layout.addWidget(icon, 0, Qt.AlignCenter)
+    label = QLabel(L10N.BU_LISTEDE_HENUZ_HISSE_YOK)
+    label.setProperty("cssClass", "watchlistEmptyTitle")
+    label.setAlignment(Qt.AlignCenter)
+    layout.addWidget(label)
+    btn = AnimatedButton(L10N.HISSE_EKLE)
+    btn.setIconName("plus", color="@COLOR_TEXT_WHITE")
+    btn.setProperty("cssClass", "primaryButton")
+    btn.clicked.connect(add_callback)
+    layout.addWidget(btn, 0, Qt.AlignCenter)
+    layout.addStretch()
+    return empty, btn
+
+
 class WatchlistPage(BasePage):
     """
     Takip Listeleri sayfası.
@@ -50,18 +102,9 @@ class WatchlistPage(BasePage):
         self._init_ui()
 
     def _init_ui(self):
-        self._build_page_header()
-        content_layout = QHBoxLayout()
-        content_layout.setSpacing(20)
-        content_layout.addWidget(self._build_left_panel())
-        content_layout.addWidget(self._build_right_panel(), 1)
-        self.main_layout.addLayout(content_layout)
-
-    def _build_page_header(self) -> None:
         header_layout = QHBoxLayout()
         header_layout.setSpacing(10)
-        icon_lbl = IconLabel("clipboard-list", color="@COLOR_ACCENT", size=28)
-        header_layout.addWidget(icon_lbl)
+        header_layout.addWidget(IconLabel("clipboard-list", color="@COLOR_ACCENT", size=28))
         lbl_title = QLabel(L10N.TAKIP_LISTELERI)
         lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
@@ -71,6 +114,11 @@ class WatchlistPage(BasePage):
         lbl_desc.setWordWrap(True)
         lbl_desc.setProperty("cssClass", "pageDescription")
         self.main_layout.addWidget(lbl_desc)
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(20)
+        content_layout.addWidget(self._build_left_panel())
+        content_layout.addWidget(self._build_right_panel(), 1)
+        self.main_layout.addLayout(content_layout)
 
     def _build_left_panel(self) -> QFrame:
         left_panel = QFrame()
@@ -141,34 +189,13 @@ class WatchlistPage(BasePage):
         self.lbl_list_desc.setWordWrap(True)
         right_layout.addWidget(self.lbl_list_desc)
 
-        self.stock_table = self._build_stock_table()
-        self.empty_state = self._create_empty_state()
+        self.stock_table = _make_watchlist_stock_table()
+        self.empty_state, self.btn_empty_add_stock = _make_watchlist_empty_state(self._on_add_stock)
         self.content_stack = QStackedWidget()
         self.content_stack.addWidget(self.stock_table)
         self.content_stack.addWidget(self.empty_state)
         right_layout.addWidget(self.content_stack, 1)
         return right_panel
-
-    def _build_stock_table(self) -> QTableWidget:
-        table = QTableWidget()
-        table.setColumnCount(3)
-        table.setHorizontalHeaderLabels([L10N.HISSE_ADI, "Not", ""])
-        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
-        table.setColumnWidth(2, 100)
-        table.setSelectionMode(QTableWidget.NoSelection)
-        table.setSelectionBehavior(QTableWidget.SelectRows)
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
-        table.setAlternatingRowColors(True)
-        table.setShowGrid(False)
-        table.setFocusPolicy(Qt.NoFocus)
-        table.setWordWrap(True)
-        table.setProperty("cssClass", "watchlistTable")
-        table.horizontalHeader().setHighlightSections(False)
-        table.verticalHeader().setDefaultSectionSize(42)
-        table.verticalHeader().setVisible(False)
-        return table
 
     def on_page_enter(self):
         self.refresh_data()
@@ -245,12 +272,12 @@ class WatchlistPage(BasePage):
             
             # Ticker kolonu kalktı, veriyi Hisse Adı kolonuna gömüyoruz
             name_text = display_ticker(stock_data["name"] or stock_data["ticker"])
-            name_item = self._readonly_table_item(name_text, align_center=True)
+            name_item = _make_readonly_table_item(name_text, align_center=True)
             name_item.setData(Qt.UserRole, stock_data) # Veriyi burada saklıyoruz
             self.stock_table.setItem(i, 0, name_item)
             
             notes = stock_data["item"].notes or ""
-            notes_item = self._readonly_table_item(notes)
+            notes_item = _make_readonly_table_item(notes)
             self.stock_table.setItem(i, 1, notes_item)
             
             # Eylem butonları için layout
@@ -282,40 +309,6 @@ class WatchlistPage(BasePage):
             self.stock_table.setCellWidget(i, 2, actions_widget)
 
         self.stock_table.resizeRowsToContents()
-
-    def _create_empty_state(self) -> QWidget:
-        empty = QFrame()
-        empty.setProperty("cssClass", "watchlistEmptyState")
-        layout = QVBoxLayout(empty)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(14)
-        layout.addStretch()
-
-        icon = IconLabel("plus", color="@COLOR_TEXT_MUTED", size=28)
-        layout.addWidget(icon, 0, Qt.AlignCenter)
-
-        label = QLabel(L10N.BU_LISTEDE_HENUZ_HISSE_YOK)
-        label.setProperty("cssClass", "watchlistEmptyTitle")
-        label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
-
-        btn_empty_add = AnimatedButton(L10N.HISSE_EKLE)
-        btn_empty_add.setIconName("plus", color="@COLOR_TEXT_WHITE")
-        btn_empty_add.setProperty("cssClass", "primaryButton")
-        btn_empty_add.clicked.connect(self._on_add_stock)
-        self.btn_empty_add_stock = btn_empty_add
-        layout.addWidget(btn_empty_add, 0, Qt.AlignCenter)
-
-        layout.addStretch()
-        return empty
-
-    @staticmethod
-    def _readonly_table_item(text: str, align_center: bool = False) -> QTableWidgetItem:
-        item = QTableWidgetItem(text)
-        item.setFlags(Qt.ItemIsEnabled)
-        if align_center:
-            item.setTextAlignment(Qt.AlignCenter)
-        return item
 
     def _on_new_list(self):
         result = WatchlistDialog.get_watchlist_data(self, L10N.YENI_LISTE)

@@ -34,6 +34,15 @@ from .trade_form_panel import TradeFormPanel
 logger = logging.getLogger(__name__)
 
 
+def _make_history_item(text: str, foreground: Optional[QColor] = None) -> QTableWidgetItem:
+    item = QTableWidgetItem(text)
+    item.setFlags(Qt.ItemIsEnabled)
+    item.setTextAlignment(Qt.AlignCenter)
+    if foreground is not None:
+        item.setForeground(foreground)
+    return item
+
+
 class StockDetailPage(BasePage):
     _LEFT_SCROLL_MIN_WIDTH = 620
     _LEFT_CONTENT_MIN_WIDTH = 875
@@ -359,11 +368,11 @@ class StockDetailPage(BasePage):
 
         self.history_table.setRowCount(len(trades))
         for row_index, trade in enumerate(trades):
-            self.history_table.setItem(row_index, 0, self._history_item(trade.trade_date.strftime("%d.%m.%Y")))
+            self.history_table.setItem(row_index, 0, _make_history_item(trade.trade_date.strftime("%d.%m.%Y")))
             is_buy = trade.side in (TradeSide.BUY, ModelTradeSide.BUY)
             type_str = "ALIM" if is_buy else "SATIM"
             type_color = QColor("#10b981" if is_buy else "#ef4444")
-            type_item = self._history_item(type_str, type_color)
+            type_item = _make_history_item(type_str, type_color)
             self.history_table.setItem(row_index, 1, type_item)
             
             # Use original trade quantity/price for history display in UI
@@ -371,9 +380,9 @@ class StockDetailPage(BasePage):
             price = getattr(trade, "original_price", trade.price)
             total = price * Decimal(qty)
 
-            self.history_table.setItem(row_index, 2, self._history_item(str(qty)))
-            self.history_table.setItem(row_index, 3, self._history_item(f"TL {price:,.2f}"))
-            self.history_table.setItem(row_index, 4, self._history_item(f"TL {total:,.2f}"))
+            self.history_table.setItem(row_index, 2, _make_history_item(str(qty)))
+            self.history_table.setItem(row_index, 3, _make_history_item(f"TL {price:,.2f}"))
+            self.history_table.setItem(row_index, 4, _make_history_item(f"TL {total:,.2f}"))
         self._update_history_table_height()
 
     def _update_history_table_height(self) -> None:
@@ -397,15 +406,6 @@ class StockDetailPage(BasePage):
         self.history_table.setFixedHeight(table_height)
         self.history_table.updateGeometry()
 
-    @staticmethod
-    def _history_item(text: str, foreground: Optional[QColor] = None) -> QTableWidgetItem:
-        item = QTableWidgetItem(text)
-        item.setFlags(Qt.ItemIsEnabled)
-        item.setTextAlignment(Qt.AlignCenter)
-        if foreground is not None:
-            item.setForeground(foreground)
-        return item
-
     def _load_corp_actions(self):
         if not self.current_stock_id or self._is_model_context():
             self.corp_actions_table.setRowCount(0)
@@ -426,10 +426,10 @@ class StockDetailPage(BasePage):
             
             self.corp_actions_table.setRowCount(len(actions))
             for row_index, action in enumerate(actions):
-                self.corp_actions_table.setItem(row_index, 0, self._history_item(action.ex_date.strftime("%d.%m.%Y")))
+                self.corp_actions_table.setItem(row_index, 0, _make_history_item(action.ex_date.strftime("%d.%m.%Y")))
                 type_str = "BEDELSIZ" if action.action_type == "BEDELSIZ" else "BEDELLI"
-                self.corp_actions_table.setItem(row_index, 1, self._history_item(type_str))
-                self.corp_actions_table.setItem(row_index, 2, self._history_item(f"%{action.ratio_percent:.0f}"))
+                self.corp_actions_table.setItem(row_index, 1, _make_history_item(type_str))
+                self.corp_actions_table.setItem(row_index, 2, _make_history_item(f"%{action.ratio_percent:.0f}"))
         except Exception as exc:
             logger.error("Kurumsal islemleri yukleme hatasi: %s", exc)
             self.corp_actions_table.setRowCount(0)

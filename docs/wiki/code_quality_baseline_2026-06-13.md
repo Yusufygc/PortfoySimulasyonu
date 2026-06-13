@@ -7,11 +7,11 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `b9dd891`
+- Git commit: `c94d0e7`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3250
-- Effective code lines: 44124
+- Fonksiyon/metot: 3249
+- Effective code lines: 44118
 - Ihlalli sinif: 8
 - Ihlalli fonksiyon/metot: 150
 - Saglik raporu eslesen dosya: 84/84
@@ -20,7 +20,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31272 | 1 |
+| src | 329 | 31266 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -40,10 +40,10 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/ui/pages/test_comparison_page.py | tests | 443 | 10 | 22 | 26 | ok |
 | src/ui/pages/comparison/utils/chart_renderer.py | src | 416 | 1 | 19 | 5 | ok |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 415 | 1 | 23 | 0 | ok |
-| src/ui/pages/stock_detail/stock_detail_page.py | src | 412 | 1 | 21 | 3 | violation |
+| src/ui/pages/stock_detail/stock_detail_page.py | src | 411 | 1 | 20 | 4 | violation |
 | src/application/services/planning/risk_profile_service.py | src | 397 | 4 | 15 | 1 | ok |
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | src | 392 | 1 | 31 | 0 | ok |
-| src/ui/pages/watchlist_page.py | src | 388 | 1 | 24 | 2 | ok |
+| src/ui/pages/watchlist_page.py | src | 383 | 1 | 20 | 5 | ok |
 
 ## Sinif Ihlalleri
 
@@ -51,9 +51,9 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 |---|---|---:|---:|---|
 | src/ui/shared/locale_tr.py | L10N | 797 | 0 | class_effective_lines |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | NewStockTradeDialog | 396 | 23 | class_effective_lines, class_methods |
-| src/ui/pages/stock_detail/stock_detail_page.py | StockDetailPage | 382 | 21 | class_effective_lines, class_methods |
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | ChatbotPanel | 374 | 31 | class_effective_lines, class_methods |
-| src/ui/pages/watchlist_page.py | WatchlistPage | 360 | 24 | class_effective_lines, class_methods |
+| src/ui/pages/stock_detail/stock_detail_page.py | StockDetailPage | 374 | 20 | class_effective_lines |
+| src/ui/pages/watchlist_page.py | WatchlistPage | 309 | 20 | class_effective_lines |
 | src/ui/pages/settings/price_data_panel.py | PriceDataPanel | 260 | 22 | class_methods |
 | src/ui/widgets/shared/controls/currency_spin_box.py | CurrencySpinBox | 203 | 27 | class_methods |
 | src/infrastructure/db/sqlalchemy/repositories/sa_model_portfolio_repository.py | SQLAlchemyModelPortfolioRepository | 168 | 22 | class_methods |
