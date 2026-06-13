@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `d810e41`
+- Git commit: `af8332b`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3257
-- Effective code lines: 44138
+- Fonksiyon/metot: 3264
+- Effective code lines: 44144
 - Ihlalli sinif: 8
-- Ihlalli fonksiyon/metot: 148
+- Ihlalli fonksiyon/metot: 147
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31286 | 1 |
+| src | 329 | 31292 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -64,10 +64,8 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 |---|---|---:|---:|---:|---|
 | scripts/migrate_ui_strings.py | main | 116 | 0 | 37 | function_effective_lines, function_complexity |
 | src/infrastructure/ai/ai_core_fastapi_client.py | _parse_api_response | 109 | 1 | 15 | function_effective_lines, function_complexity |
-| src/ui/widgets/stock/dialogs/trade_dialog.py | _init_ui | 96 | 0 | 2 | function_effective_lines |
 | src/ui/pages/ai_page/left_panel/peer_card.py | update_data | 91 | 1 | 28 | function_effective_lines, function_complexity |
 | src/ui/pages/analysis/chart_builder.py | build_performance_line_chart_v2 | 90 | 4 | 6 | function_effective_lines |
-| src/ui/pages/settings/reset_panel.py | _init_ui | 87 | 0 | 2 | function_effective_lines |
 | src/ui/widgets/planning/panels/goals_panel.py | load | 87 | 1 | 9 | function_effective_lines |
 | src/application/container_parts/services.py | _build_feature_services | 85 | 3 | 1 | function_effective_lines |
 | src/ui/pages/analysis/analysis_comparison_section.py | _redraw_chart | 81 | 0 | 23 | function_effective_lines, function_complexity |
@@ -92,6 +90,8 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/ui/pages/ai_page/test_ai_page_right_panel.py | test_panel_integration | 62 | 1 | 1 | function_effective_lines |
 | tests/ui/pages/test_table_selection_behavior.py | test_model_positions_table_is_passive_and_preserves_colored_profit_loss | 61 | 0 | 4 | function_effective_lines |
 | src/ui/pages/dashboard/dashboard_corporate_action_actions.py | on_corporate_action | 60 | 2 | 10 | function_effective_lines |
+| src/ui/pages/settings/corporate_action_candidates_panel.py | _init_ui | 60 | 0 | 4 | function_effective_lines |
+| src/ui/widgets/planning/panels/goals_panel.py | _init_ui | 60 | 0 | 4 | function_effective_lines |
 
 ## Saglik Raporu Crosswalk
 

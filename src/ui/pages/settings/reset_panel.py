@@ -21,58 +21,46 @@ class ResetPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(18)
+        layout.addWidget(self._build_refresh_card())
+        layout.addWidget(self._build_reset_card())
+        layout.addStretch()
 
-        # ----------------------------------------------------
-        # 1. Otomatik Fiyat Yenileme Kartı
-        # ----------------------------------------------------
-        refresh_card = QFrame()
-        refresh_card.setProperty("cssClass", "panelFramePadded")
-        refresh_layout = QVBoxLayout(refresh_card)
-        refresh_layout.setContentsMargins(20, 20, 20, 20)
-        refresh_layout.setSpacing(12)
-
-        # Başlık ve İkon Satırı
+    def _build_refresh_card(self) -> QFrame:
+        card = QFrame()
+        card.setProperty("cssClass", "panelFramePadded")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setSpacing(12)
         header_row = QHBoxLayout()
         header_row.setSpacing(8)
-
         icon_label = QLabel()
         icon_label.setPixmap(
             IconManager.get_icon("refresh-cw", color="@COLOR_ACCENT", size=QSize(20, 20)).pixmap(20, 20)
         )
         header_row.addWidget(icon_label)
-
         refresh_title = QLabel(L10N.OTOMATIK_FIYAT_YENILEME)
         refresh_title.setProperty("cssClass", "panelTitle")
         header_row.addWidget(refresh_title)
         header_row.addStretch()
-        refresh_layout.addLayout(header_row)
-
-        # Açıklama
-        refresh_desc = QLabel(
-            L10N.OTOMATIK_VERI_GUNCELLEME_ACIKLAMA
-        )
+        card_layout.addLayout(header_row)
+        refresh_desc = QLabel(L10N.OTOMATIK_VERI_GUNCELLEME_ACIKLAMA)
         refresh_desc.setWordWrap(True)
         refresh_desc.setProperty("cssClass", "pageDescription")
-        refresh_layout.addWidget(refresh_desc)
+        card_layout.addWidget(refresh_desc)
+        card_layout.addLayout(self._build_refresh_control_row())
+        return card
 
-        # Seçenekler Satırı
+    def _build_refresh_control_row(self) -> QHBoxLayout:
+        from src.ui.shared.live_price_refresh_controller import (
+            LIVE_PRICE_REFRESH_INTERVAL_OPTIONS,
+        )
         control_row = QHBoxLayout()
         control_row.setSpacing(10)
-
         self.chk_live_price_refresh = QCheckBox(L10N.OTOMATIK_FIYAT_YENILEME)
         self.chk_live_price_refresh.setChecked(self._live_price_refresh_enabled())
         self.chk_live_price_refresh.stateChanged.connect(self._on_live_price_refresh_settings_changed)
-
         control_row.addStretch()
         control_row.addWidget(self.chk_live_price_refresh)
-
-        # Gizli combobox (Testler için)
-        from src.ui.shared.live_price_refresh_controller import (
-            DEFAULT_LIVE_PRICE_REFRESH_INTERVAL_MINUTES,
-            LIVE_PRICE_REFRESH_INTERVAL_OPTIONS,
-            LIVE_PRICE_REFRESH_ENABLED_KEY,
-            LIVE_PRICE_REFRESH_INTERVAL_KEY,
-        )
         self.combo_live_price_refresh_interval = QComboBox()
         self.combo_live_price_refresh_interval.setVisible(False)
         current_interval = self._live_price_refresh_interval()
@@ -84,55 +72,39 @@ class ResetPanel(QWidget):
             self._on_live_price_refresh_settings_changed
         )
         control_row.addWidget(self.combo_live_price_refresh_interval)
-        refresh_layout.addLayout(control_row)
+        return control_row
 
-        layout.addWidget(refresh_card)
-
-        # ----------------------------------------------------
-        # 2. Sistem Sıfırlama Kartı
-        # ----------------------------------------------------
-        reset_card = QFrame()
-        reset_card.setProperty("cssClass", "panelFramePadded")
-        reset_layout = QVBoxLayout(reset_card)
-        reset_layout.setContentsMargins(20, 20, 20, 20)
-        reset_layout.setSpacing(12)
-
-        # Başlık ve İkon Satırı
+    def _build_reset_card(self) -> QFrame:
+        card = QFrame()
+        card.setProperty("cssClass", "panelFramePadded")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setSpacing(12)
         reset_header = QHBoxLayout()
         reset_header.setSpacing(8)
-
         reset_icon_label = QLabel()
         reset_icon_label.setPixmap(
             IconManager.get_icon("trash-2", color="@COLOR_DANGER", size=QSize(20, 20)).pixmap(20, 20)
         )
         reset_header.addWidget(reset_icon_label)
-
         reset_title = QLabel(L10N.SISTEM_SIFIRLAMA)
         reset_title.setProperty("cssClass", "panelTitle")
         reset_header.addWidget(reset_title)
         reset_header.addStretch()
-        reset_layout.addLayout(reset_header)
-
-        reset_text = QLabel(
-            L10N.TUM_PORTFOY_FIYAT_VE_HISSE +
-            L10N.BU_ISLEM_GERI_ALINMAZ
-        )
+        card_layout.addLayout(reset_header)
+        reset_text = QLabel(L10N.TUM_PORTFOY_FIYAT_VE_HISSE + L10N.BU_ISLEM_GERI_ALINMAZ)
         reset_text.setWordWrap(True)
         reset_text.setProperty("cssClass", "pageDescription")
-        reset_layout.addWidget(reset_text)
-
+        card_layout.addWidget(reset_text)
         action_row = QHBoxLayout()
         action_row.addStretch()
-
         self.btn_reset = AnimatedButton(L10N.SISTEMI_SIFIRLA)
         self.btn_reset.setIconName("trash-2", color="@COLOR_DANGER")
         self.btn_reset.setProperty("cssClass", "dangerTextButton")
         self.btn_reset.clicked.connect(self._on_reset)
         action_row.addWidget(self.btn_reset)
-
-        reset_layout.addLayout(action_row)
-        layout.addWidget(reset_card)
-        layout.addStretch()
+        card_layout.addLayout(action_row)
+        return card
 
     def _live_price_refresh_enabled(self) -> bool:
         from src.ui.shared.live_price_refresh_controller import (

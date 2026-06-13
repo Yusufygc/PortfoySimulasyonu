@@ -62,138 +62,113 @@ class TradeDialog(QDialog):
     def _init_ui(self):
         self.setWindowTitle(L10N.ISLEM_EKLE)
         self.setMinimumWidth(450)
-        # Koyu Tema Arka Planı
         self.setProperty("cssClass", "dialogContainer")
-
-        # Ana Layout
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        layout.addWidget(self._build_header_frame())
+        layout.addWidget(self._build_form_widget())
+        layout.addStretch()
+        layout.addWidget(self._build_footer_frame())
 
-        # --- HEADER (Üst Bilgi) ---
+    def _build_header_frame(self) -> QFrame:
         header = QFrame()
         header.setProperty("cssClass", "dialogHeaderFrame")
         header.setFixedHeight(75)
         h_layout = QVBoxLayout(header)
         h_layout.setContentsMargins(20, 10, 20, 10)
         h_layout.setSpacing(5)
-        
         self.lbl_ticker = QLabel(display_ticker(self.ticker) if self.ticker else f"ID: {self.stock_id}")
         self.lbl_ticker.setProperty("cssClass", "dialogHeaderTitleLarge")
-        
         self.lbl_price_info = QLabel(L10N.FIYAT_YUKLENIYOR)
         self.lbl_price_info.setProperty("cssClass", "dialogSubtitle")
-        
         h_layout.addWidget(self.lbl_ticker)
         h_layout.addWidget(self.lbl_price_info)
-        
-        layout.addWidget(header)
+        return header
 
-        # --- FORM ALANI ---
+    def _build_form_widget(self) -> QWidget:
         form_widget = QWidget()
         form_layout = QFormLayout(form_widget)
         form_layout.setContentsMargins(30, 30, 30, 30)
         form_layout.setSpacing(15)
         form_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._build_trade_inputs(form_layout)
+        return form_widget
 
-
-
-        # 1. İşlem Yönü
+    def _build_trade_inputs(self, form_layout: QFormLayout) -> None:
         side_container = QWidget()
         side_layout = QHBoxLayout(side_container)
         side_layout.setContentsMargins(0, 0, 0, 0)
-        
         self.radio_buy = QRadioButton(L10N.ALIS)
         self.radio_sell = QRadioButton(L10N.SATIS)
         self.radio_buy.setChecked(True)
-        
         self.radio_buy.setProperty("cssClass", "tradeRadioBuy")
         self.radio_sell.setProperty("cssClass", "tradeRadioSell")
-        
         side_layout.addWidget(self.radio_buy)
         side_layout.addWidget(self.radio_sell)
-        
         lbl_side = QLabel(L10N.ISLEM)
         lbl_side.setProperty("cssClass", "formLabel")
         form_layout.addRow(lbl_side, side_container)
 
-        # 2. Tarih / Saat
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setProperty("cssClass", "tradeInputNormal")
         self.time_edit = QTimeEdit(QTime.currentTime())
         self.time_edit.setDisplayFormat("HH:mm")
         self.time_edit.setProperty("cssClass", "tradeInputNormal")
-        
-        # Tarih normalizasyonu
         self._normalize_trade_date(QDate.currentDate())
-        
-        # Yan yana koyalım
         dt_container = QWidget()
         dt_layout = QHBoxLayout(dt_container)
         dt_layout.setContentsMargins(0, 0, 0, 0)
         dt_layout.setSpacing(10)
         dt_layout.addWidget(self.date_edit)
         dt_layout.addWidget(self.time_edit)
-        
         lbl_date = QLabel(L10N.ZAMAN)
         lbl_date.setProperty("cssClass", "formLabel")
         form_layout.addRow(lbl_date, dt_container)
 
-        # 3. Lot / Fiyat / Tutar
         self.spin_quantity = QSpinBox()
         self.spin_quantity.setRange(1, 10_000_000)
         self.spin_quantity.setValue(1)
         self.spin_quantity.setProperty("cssClass", "tradeInputNormal")
-        
         self.edit_price = CurrencySpinBox()
         self.edit_price.setRange(0, 1_000_000)
         self.edit_price.setDecimals(2)
         self.edit_price.setSuffix(" TL")
         self.edit_price.lineEdit().setPlaceholderText("0.00")
         self.edit_price.setProperty("cssClass", "tradeInputNormal")
-        
         self.edit_amount = CurrencySpinBox()
         self.edit_amount.setRange(0, 1_000_000_000)
         self.edit_amount.setDecimals(2)
         self.edit_amount.setSuffix(" TL")
         self.edit_amount.lineEdit().setPlaceholderText(L10N.TOPLAM_TUTAR)
         self.edit_amount.setProperty("cssClass", "tradeInputNormal")
-
         lbl_lot = QLabel(L10N.ADET_LOT)
         lbl_lot.setProperty("cssClass", "formLabel")
         lbl_price = QLabel(L10N.BIRIM_FIYAT)
         lbl_price.setProperty("cssClass", "formLabel")
         lbl_total = QLabel(L10N.TOPLAM)
         lbl_total.setProperty("cssClass", "formLabel")
-
         form_layout.addRow(lbl_lot, self.spin_quantity)
         form_layout.addRow(lbl_price, self.edit_price)
         form_layout.addRow(lbl_total, self.edit_amount)
 
-        layout.addWidget(form_widget)
-        layout.addStretch()
-
-        # --- FOOTER (Butonlar) ---
+    def _build_footer_frame(self) -> QFrame:
         footer = QFrame()
         footer.setProperty("cssClass", "dialogFooterFrame")
         footer.setFixedHeight(70)
         f_layout = QHBoxLayout(footer)
         f_layout.setContentsMargins(20, 10, 20, 10)
-
         self.btn_edit_stock = QPushButton(L10N.HISSE_BILGISINI_DUZENLE)
         self.btn_edit_stock.setCursor(Qt.PointingHandCursor)
         self.btn_edit_stock.setProperty("cssClass", "linkButton")
-
         self.btn_save = QPushButton(L10N.SAVE)
         self.btn_save.setCursor(Qt.PointingHandCursor)
         self.btn_save.setProperty("cssClass", "primaryButton")
-
         f_layout.addWidget(self.btn_edit_stock)
         f_layout.addStretch()
         f_layout.addWidget(self.btn_save)
-
-        layout.addWidget(footer)
+        return footer
 
     def _connect_signals(self):
         self.btn_save.clicked.connect(self._on_ok_clicked)
