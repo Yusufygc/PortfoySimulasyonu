@@ -7,12 +7,12 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `604314c`
+- Git commit: `47dbf3b`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3296
-- Effective code lines: 44071
-- Ihlalli sinif: 4
+- Fonksiyon/metot: 3300
+- Effective code lines: 44095
+- Ihlalli sinif: 1
 - Ihlalli fonksiyon/metot: 134
 - Saglik raporu eslesen dosya: 84/84
 
@@ -20,7 +20,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31219 | 1 |
+| src | 329 | 31243 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -38,11 +38,11 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/application/test_analysis_service.py | tests | 504 | 12 | 23 | 19 | ok |
 | tests/ui/pages/test_stock_detail_page.py | tests | 455 | 5 | 10 | 33 | ok |
 | tests/ui/pages/test_comparison_page.py | tests | 443 | 10 | 22 | 26 | ok |
+| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 423 | 1 | 20 | 2 | ok |
+| src/ui/pages/stock_detail/stock_detail_page.py | src | 417 | 1 | 17 | 8 | violation |
 | src/ui/pages/comparison/utils/chart_renderer.py | src | 416 | 1 | 19 | 5 | ok |
-| src/ui/pages/stock_detail/stock_detail_page.py | src | 411 | 1 | 20 | 4 | violation |
-| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 406 | 1 | 20 | 0 | ok |
 | src/application/services/planning/risk_profile_service.py | src | 397 | 4 | 15 | 1 | ok |
-| src/ui/pages/watchlist_page.py | src | 383 | 1 | 20 | 5 | ok |
+| src/ui/pages/watchlist_page.py | src | 384 | 1 | 20 | 6 | ok |
 | scripts/migrate_ui_strings.py | scripts | 372 | 0 | 0 | 10 | ok |
 
 ## Sinif Ihlalleri
@@ -50,16 +50,13 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | Dosya | Sinif | Effective satir | Metot | Ihlal |
 |---|---|---:|---:|---|
 | src/ui/shared/locale_tr.py | L10N | 797 | 0 | class_effective_lines |
-| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | NewStockTradeDialog | 387 | 20 | class_effective_lines |
-| src/ui/pages/stock_detail/stock_detail_page.py | StockDetailPage | 374 | 20 | class_effective_lines |
-| src/ui/pages/watchlist_page.py | WatchlistPage | 309 | 20 | class_effective_lines |
 
 ## Fonksiyon/Metot Ihlalleri
 
 | Dosya | Fonksiyon | Effective satir | Parametre | Complexity | Ihlal |
 |---|---|---:|---:|---:|---|
 | scripts/migrate_ui_strings.py | main | 116 | 0 | 37 | function_effective_lines, function_complexity |
-| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | _init_page2 | 79 | 0 | 1 | function_effective_lines |
+| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | _build_page2_widgets | 83 | 2 | 1 | function_effective_lines |
 | scripts/apply_trade_adjustments_schema.py | main | 70 | 0 | 6 | function_effective_lines |
 | src/application/container_parts/services.py | _build_feature_services | 66 | 3 | 1 | function_effective_lines |
 | scripts/replicate_db.py | main | 64 | 0 | 13 | function_effective_lines, function_complexity |

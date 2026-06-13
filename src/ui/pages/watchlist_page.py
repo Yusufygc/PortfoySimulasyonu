@@ -63,6 +63,28 @@ def _make_readonly_table_item(text: str, align_center: bool = False) -> QTableWi
     return item
 
 
+def _make_stock_action_cell(edit_cb, remove_cb) -> QWidget:
+    actions_widget = QWidget()
+    actions_widget.setProperty("cssClass", "tableActionContainer")
+    actions_layout = QHBoxLayout(actions_widget)
+    actions_layout.setContentsMargins(4, 0, 4, 0)
+    actions_layout.setSpacing(6)
+    btn_edit = AnimatedButton("")
+    btn_edit.setIconName("pencil", color="@COLOR_TEXT_PRIMARY")
+    btn_edit.setFixedWidth(32)
+    btn_edit.setProperty("cssClass", "textButton")
+    btn_edit.clicked.connect(edit_cb)
+    btn_remove = AnimatedButton("")
+    btn_remove.setIconName("trash-2", color="@COLOR_DANGER")
+    btn_remove.setFixedWidth(32)
+    btn_remove.setProperty("cssClass", "dangerTextButton")
+    btn_remove.clicked.connect(remove_cb)
+    actions_layout.addWidget(btn_edit)
+    actions_layout.addWidget(btn_remove)
+    actions_layout.setAlignment(Qt.AlignCenter)
+    return actions_widget
+
+
 def _make_watchlist_empty_state(add_callback) -> tuple[QFrame, AnimatedButton]:
     empty = QFrame()
     empty.setProperty("cssClass", "watchlistEmptyState")
@@ -280,33 +302,10 @@ class WatchlistPage(BasePage):
             notes_item = _make_readonly_table_item(notes)
             self.stock_table.setItem(i, 1, notes_item)
             
-            # Eylem butonları için layout
-            actions_widget = QWidget()
-            actions_widget.setProperty("cssClass", "tableActionContainer")
-            actions_layout = QHBoxLayout(actions_widget)
-            actions_layout.setContentsMargins(4, 0, 4, 0)
-            actions_layout.setSpacing(6)
-            
-            btn_edit = AnimatedButton("")
-            btn_edit.setIconName("pencil", color="@COLOR_TEXT_PRIMARY")
-            btn_edit.setFixedWidth(32)
-            btn_edit.setProperty("cssClass", "textButton")
-            btn_edit.clicked.connect(
-                lambda checked, sd=stock_data: self._on_edit_stock(sd)
-            )
-            
-            btn_remove = AnimatedButton("")
-            btn_remove.setIconName("trash-2", color="@COLOR_DANGER")
-            btn_remove.setFixedWidth(32)
-            btn_remove.setProperty("cssClass", "dangerTextButton")
-            btn_remove.clicked.connect(
-                lambda checked, sid=stock_data["stock"].id: self._on_remove_stock(sid)
-            )
-            
-            actions_layout.addWidget(btn_edit)
-            actions_layout.addWidget(btn_remove)
-            actions_layout.setAlignment(Qt.AlignCenter)
-            self.stock_table.setCellWidget(i, 2, actions_widget)
+            self.stock_table.setCellWidget(i, 2, _make_stock_action_cell(
+                lambda checked, sd=stock_data: self._on_edit_stock(sd),
+                lambda checked, sid=stock_data["stock"].id: self._on_remove_stock(sid),
+            ))
 
         self.stock_table.resizeRowsToContents()
 

@@ -43,6 +43,104 @@ def _make_history_item(text: str, foreground: Optional[QColor] = None) -> QTable
     return item
 
 
+def _build_left_scroll_area(min_width: int) -> QScrollArea:
+    scroll = QScrollArea()
+    scroll.setProperty("cssClass", "stockDetailScroll")
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QFrame.NoFrame)
+    scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    scroll.setMinimumWidth(min_width)
+    scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    return scroll
+
+
+def _build_history_table() -> QTableWidget:
+    table = QTableWidget()
+    table.setColumnCount(5)
+    table.setHorizontalHeaderLabels([L10N.TARIH, "İşlem", L10N.ADET, L10N.FIYAT, L10N.TUTAR])
+    table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    table.setSelectionMode(QTableWidget.NoSelection)
+    table.setSelectionBehavior(QTableWidget.SelectRows)
+    table.setEditTriggers(QTableWidget.NoEditTriggers)
+    table.setFocusPolicy(Qt.NoFocus)
+    table.setShowGrid(False)
+    table.setAlternatingRowColors(True)
+    table.setProperty("cssClass", "stockHistoryTable")
+    table.verticalHeader().setVisible(False)
+    table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    table.setMinimumHeight(150)
+    table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    return table
+
+
+def _build_corp_actions_table() -> QTableWidget:
+    table = QTableWidget()
+    table.setColumnCount(3)
+    table.setHorizontalHeaderLabels([L10N.TARIH, L10N.ISLEM_TURU, L10N.ARTIRIM_ORANI])
+    table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    table.setSelectionMode(QTableWidget.NoSelection)
+    table.setSelectionBehavior(QTableWidget.SelectRows)
+    table.setEditTriggers(QTableWidget.NoEditTriggers)
+    table.setFocusPolicy(Qt.NoFocus)
+    table.setShowGrid(False)
+    table.setAlternatingRowColors(True)
+    table.setProperty("cssClass", "stockHistoryTable")
+    table.verticalHeader().setVisible(False)
+    table.setMinimumHeight(150)
+    table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    return table
+
+
+def _build_header_widgets(back_cb):
+    from src.ui.widgets.shared.controls.animated_button import AnimatedButton
+
+    top_layout = QVBoxLayout()
+    top_layout.setSpacing(0)
+    top_layout.setContentsMargins(0, 0, 0, 10)
+
+    breadcrumb_row = QHBoxLayout()
+    breadcrumb_row.setSpacing(10)
+
+    btn_back = AnimatedButton(L10N.GERI)
+    btn_back.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY", size=16)
+    btn_back.setProperty("cssClass", "secondaryButton")
+    btn_back.clicked.connect(back_cb)
+
+    lbl_breadcrumb = QLabel(L10N.PORTFOY_1)
+    lbl_breadcrumb.setProperty("cssClass", "breadcrumbText")
+
+    breadcrumb_row.addWidget(btn_back)
+    breadcrumb_row.addWidget(lbl_breadcrumb)
+    breadcrumb_row.addStretch()
+    top_layout.addLayout(breadcrumb_row)
+
+    title_row = QHBoxLayout()
+    title_row.setSpacing(15)
+
+    lbl_ticker = QLabel("TICKER")
+    lbl_ticker.setProperty("cssClass", "stockTitleLarge")
+    lbl_name = QLabel(L10N.HISSE_ADI)
+    lbl_name.setProperty("cssClass", "stockSubtitle")
+    lbl_price = QLabel(L10N.TL_000)
+    lbl_price.setProperty("cssClass", "stockPriceCurrent")
+
+    title_row.addWidget(lbl_ticker)
+    title_row.addWidget(lbl_name)
+    title_row.addStretch()
+
+    price_container = QVBoxLayout()
+    price_label_caption = QLabel(L10N.GUNCEL_FIYAT)
+    price_label_caption.setAlignment(Qt.AlignRight)
+    price_label_caption.setProperty("cssClass", "stockPriceCaption")
+    price_container.addWidget(price_label_caption)
+    price_container.addWidget(lbl_price)
+    title_row.addLayout(price_container)
+
+    top_layout.addLayout(title_row)
+    return btn_back, lbl_breadcrumb, lbl_ticker, lbl_name, lbl_price, top_layout
+
+
 class StockDetailPage(BasePage):
     _LEFT_SCROLL_MIN_WIDTH = 620
     _LEFT_CONTENT_MIN_WIDTH = 875
@@ -74,7 +172,7 @@ class StockDetailPage(BasePage):
         self._init_ui()
 
     def _init_ui(self):
-        self.scroll_area = self._build_left_scroll_area()
+        self.scroll_area = _build_left_scroll_area(self._LEFT_SCROLL_MIN_WIDTH)
 
         left_content_widget = QWidget()
         left_content_widget.setMinimumWidth(self._LEFT_CONTENT_MIN_WIDTH)
@@ -101,110 +199,24 @@ class StockDetailPage(BasePage):
         lbl_history = QLabel(L10N.ISLEM_GECMISI)
         lbl_history.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_history)
-        self.history_table = self._build_history_table()
+        self.history_table = _build_history_table()
         left_layout.addWidget(self.history_table)
 
         lbl_corp_actions = QLabel(L10N.UYGULANAN_SERMAYE_ARTIRIMLARI)
         lbl_corp_actions.setProperty("cssClass", "panelTitle")
         left_layout.addWidget(lbl_corp_actions)
-        self.corp_actions_table = self._build_corp_actions_table()
+        self.corp_actions_table = _build_corp_actions_table()
         left_layout.addWidget(self.corp_actions_table)
 
         self.scroll_area.setWidget(left_content_widget)
         self.main_layout.addWidget(self._build_content_wrapper(), 1)
 
-    def _build_left_scroll_area(self) -> QScrollArea:
-        scroll = QScrollArea()
-        scroll.setProperty("cssClass", "stockDetailScroll")
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setMinimumWidth(self._LEFT_SCROLL_MIN_WIDTH)
-        scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        return scroll
-
     def _build_header(self, left_layout: QVBoxLayout) -> None:
-        top_layout = QVBoxLayout()
-        top_layout.setSpacing(0)
-        top_layout.setContentsMargins(0, 0, 0, 10)
-
-        breadcrumb_row = QHBoxLayout()
-        breadcrumb_row.setSpacing(10)
-
-        from src.ui.widgets.shared.controls.animated_button import AnimatedButton
-        self.btn_back = AnimatedButton(L10N.GERI)
-        self.btn_back.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY", size=16)
-        self.btn_back.setProperty("cssClass", "secondaryButton")
-        self.btn_back.clicked.connect(self.navigate_back.emit)
-
-        self.lbl_breadcrumb = QLabel(L10N.PORTFOY_1)
-        self.lbl_breadcrumb.setProperty("cssClass", "breadcrumbText")
-
-        breadcrumb_row.addWidget(self.btn_back)
-        breadcrumb_row.addWidget(self.lbl_breadcrumb)
-        breadcrumb_row.addStretch()
-        top_layout.addLayout(breadcrumb_row)
-
-        title_row = QHBoxLayout()
-        title_row.setSpacing(15)
-
-        self.lbl_ticker = QLabel("TICKER")
-        self.lbl_ticker.setProperty("cssClass", "stockTitleLarge")
-        self.lbl_name = QLabel(L10N.HISSE_ADI)
-        self.lbl_name.setProperty("cssClass", "stockSubtitle")
-        self.lbl_price = QLabel(L10N.TL_000)
-        self.lbl_price.setProperty("cssClass", "stockPriceCurrent")
-
-        title_row.addWidget(self.lbl_ticker)
-        title_row.addWidget(self.lbl_name)
-        title_row.addStretch()
-
-        price_container = QVBoxLayout()
-        price_label_caption = QLabel(L10N.GUNCEL_FIYAT)
-        price_label_caption.setAlignment(Qt.AlignRight)
-        price_label_caption.setProperty("cssClass", "stockPriceCaption")
-        price_container.addWidget(price_label_caption)
-        price_container.addWidget(self.lbl_price)
-        title_row.addLayout(price_container)
-
-        top_layout.addLayout(title_row)
+        (
+            self.btn_back, self.lbl_breadcrumb,
+            self.lbl_ticker, self.lbl_name, self.lbl_price, top_layout,
+        ) = _build_header_widgets(self.navigate_back.emit)
         left_layout.addLayout(top_layout)
-
-    def _build_history_table(self) -> QTableWidget:
-        table = QTableWidget()
-        table.setColumnCount(5)
-        table.setHorizontalHeaderLabels([L10N.TARIH, "İşlem", L10N.ADET, L10N.FIYAT, L10N.TUTAR])
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        table.setSelectionMode(QTableWidget.NoSelection)
-        table.setSelectionBehavior(QTableWidget.SelectRows)
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
-        table.setFocusPolicy(Qt.NoFocus)
-        table.setShowGrid(False)
-        table.setAlternatingRowColors(True)
-        table.setProperty("cssClass", "stockHistoryTable")
-        table.verticalHeader().setVisible(False)
-        table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        table.setMinimumHeight(150)
-        table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        return table
-
-    def _build_corp_actions_table(self) -> QTableWidget:
-        table = QTableWidget()
-        table.setColumnCount(3)
-        table.setHorizontalHeaderLabels([L10N.TARIH, L10N.ISLEM_TURU, L10N.ARTIRIM_ORANI])
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        table.setSelectionMode(QTableWidget.NoSelection)
-        table.setSelectionBehavior(QTableWidget.SelectRows)
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
-        table.setFocusPolicy(Qt.NoFocus)
-        table.setShowGrid(False)
-        table.setAlternatingRowColors(True)
-        table.setProperty("cssClass", "stockHistoryTable")
-        table.verticalHeader().setVisible(False)
-        table.setMinimumHeight(150)
-        table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        return table
 
     def _build_content_wrapper(self) -> QScrollArea:
         self.trade_form = TradeFormPanel()

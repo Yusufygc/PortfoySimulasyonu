@@ -23,6 +23,167 @@ from src.domain.constants.bist_tickers import is_valid_bist_ticker
 
 SideLiteral = Literal["BUY", "SELL"]
 
+
+def _build_page1_widgets(page1_widget):
+    layout = QVBoxLayout(page1_widget)
+    layout.setContentsMargins(40, 40, 40, 40)
+    layout.setSpacing(20)
+
+    info = QLabel(L10N.ISLEM_KODU_GIRINIZ_BIST_IS_UZANTISI)
+    info.setProperty("cssClass", "dialogSubtitle")
+    info.setWordWrap(True)
+    layout.addWidget(info)
+
+    form = QFormLayout()
+    form.setVerticalSpacing(20)
+
+    line_ticker = QLineEdit()
+    line_ticker.setPlaceholderText(L10N.ORN_ASELS_THYAO)
+    line_ticker.setProperty("cssClass", "tradeInputBold")
+
+    lbl_company_name = QLabel(L10N.HISSE_KODU_GIRILDIGINDE_OTOMATIK_ALINACAK)
+    lbl_company_name.setProperty("cssClass", "dialogSubtitle")
+    lbl_company_name.setWordWrap(True)
+
+    lbl_ticker = QLabel(L10N.HISSE_KODU)
+    lbl_ticker.setProperty("cssClass", "formLabel")
+    lbl_name = QLabel(L10N.SIRKET_ADI)
+    lbl_name.setProperty("cssClass", "formLabel")
+
+    form.addRow(lbl_ticker, line_ticker)
+    form.addRow(lbl_name, lbl_company_name)
+    layout.addLayout(form)
+
+    price_info_frame = QFrame()
+    price_info_frame.setProperty("cssClass", "infoFrame")
+    price_info_frame.hide()
+
+    pi_layout = QVBoxLayout(price_info_frame)
+    pi_layout.setContentsMargins(20, 15, 20, 15)
+
+    lbl_info_title = QLabel(L10N.GUNCEL_PIYASA_FIYATI)
+    lbl_info_title.setProperty("cssClass", "infoTitle")
+
+    lbl_fetched_price = QLabel("-")
+    lbl_fetched_price.setProperty("cssClass", "priceLarge")
+
+    lbl_fetched_source = QLabel("-")
+    lbl_fetched_source.setProperty("cssClass", "successText")
+
+    pi_layout.addWidget(lbl_info_title)
+    pi_layout.addWidget(lbl_fetched_price)
+    pi_layout.addWidget(lbl_fetched_source)
+
+    layout.addWidget(price_info_frame)
+    layout.addStretch()
+
+    return line_ticker, lbl_company_name, price_info_frame, lbl_fetched_price, lbl_fetched_source
+
+
+def _build_page2_widgets(page2_widget, mode_group_parent):
+    layout = QVBoxLayout(page2_widget)
+    layout.setContentsMargins(30, 30, 30, 30)
+
+    summary_widget = QWidget()
+    summary_layout = QVBoxLayout(summary_widget)
+    summary_layout.setContentsMargins(0, 0, 0, 12)
+    summary_layout.setSpacing(2)
+
+    lbl_summary_ticker = QLabel("ASELS")
+    lbl_summary_ticker.setProperty("cssClass", "tradeSummaryTicker")
+    lbl_summary_ticker.setAlignment(Qt.AlignCenter)
+    lbl_summary_name = QLabel("")
+    lbl_summary_name.setProperty("cssClass", "tradeSummaryName")
+    lbl_summary_name.setAlignment(Qt.AlignCenter)
+
+    summary_layout.addWidget(lbl_summary_ticker)
+    summary_layout.addWidget(lbl_summary_name)
+    layout.addWidget(summary_widget)
+
+    form = QFormLayout()
+    form.setSpacing(15)
+    form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+    date_edit = QDateEdit(QDate.currentDate())
+    date_edit.setCalendarPopup(True)
+    date_edit.setProperty("cssClass", "tradeInputNormal")
+    time_edit = QTimeEdit(QTime.currentTime())
+    time_edit.setDisplayFormat("HH:mm")
+    time_edit.setProperty("cssClass", "tradeInputNormal")
+
+    lbl_date = QLabel(L10N.TARIH_1)
+    lbl_date.setProperty("cssClass", "formLabel")
+    lbl_time = QLabel(L10N.SAAT)
+    lbl_time.setProperty("cssClass", "formLabel")
+    form.addRow(lbl_date, date_edit)
+    form.addRow(lbl_time, time_edit)
+
+    side_layout = QHBoxLayout()
+    side_layout.setSpacing(0)
+
+    btn_buy_mode = QPushButton(L10N.ALIS_BUY)
+    btn_buy_mode.setCheckable(True)
+    btn_buy_mode.setChecked(True)
+    btn_buy_mode.setProperty("cssClass", "tradeModeBtnLeft")
+
+    btn_sell_mode = QPushButton(L10N.SATIS_SELL)
+    btn_sell_mode.setCheckable(True)
+    btn_sell_mode.setProperty("cssClass", "tradeModeBtnRight")
+
+    mode_group = QButtonGroup(mode_group_parent)
+    mode_group.addButton(btn_buy_mode)
+    mode_group.addButton(btn_sell_mode)
+
+    side_layout.addWidget(btn_buy_mode)
+    side_layout.addWidget(btn_sell_mode)
+
+    lbl_side = QLabel(L10N.ISLEM_YONU)
+    lbl_side.setProperty("cssClass", "formLabel")
+    form.addRow(lbl_side, side_layout)
+
+    spin_quantity = QSpinBox()
+    spin_quantity.setRange(1, 10_000_000)
+    spin_quantity.setValue(1)
+    spin_quantity.setProperty("cssClass", "tradeInputNormal")
+
+    edit_price = CurrencySpinBox()
+    edit_price.setRange(0, 1_000_000)
+    edit_price.setDecimals(2)
+    edit_price.setSuffix(" TL")
+    edit_price.lineEdit().setPlaceholderText("0.00")
+    edit_price.setProperty("cssClass", "tradeInputNormal")
+
+    edit_amount = CurrencySpinBox()
+    edit_amount.setRange(0, 1_000_000_000)
+    edit_amount.setDecimals(2)
+    edit_amount.setSuffix(" TL")
+    edit_amount.lineEdit().setPlaceholderText(L10N.TOPLAM_TUTAR)
+    edit_amount.setProperty("cssClass", "tradeInputNormal")
+    edit_amount.setReadOnly(True)
+    edit_amount.setButtonSymbols(CurrencySpinBox.NoButtons)
+
+    lbl_lot = QLabel(L10N.LOT_ADEDI)
+    lbl_lot.setProperty("cssClass", "formLabel")
+    lbl_price = QLabel(L10N.BIRIM_FIYAT)
+    lbl_price.setProperty("cssClass", "formLabel")
+    lbl_total = QLabel(L10N.TOPLAM_TUTAR_1)
+    lbl_total.setProperty("cssClass", "formLabel")
+
+    form.addRow(lbl_lot, spin_quantity)
+    form.addRow(lbl_price, edit_price)
+    form.addRow(lbl_total, edit_amount)
+
+    layout.addLayout(form)
+    layout.addStretch()
+
+    return (
+        lbl_summary_ticker, lbl_summary_name,
+        date_edit, time_edit,
+        btn_buy_mode, btn_sell_mode, mode_group,
+        spin_quantity, edit_price, edit_amount,
+    )
+
+
 class NewStockTradeDialog(QDialog):
     """
     Yeni hisse/işlem ekleme sihirbazı.
@@ -129,167 +290,19 @@ class NewStockTradeDialog(QDialog):
 
     def _init_page1(self):
         """1. Sayfa: Ticker girişi ve Fiyat Sorgulama"""
-        layout = QVBoxLayout(self.page1)
-        layout.setContentsMargins(40, 40, 40, 40)
-        layout.setSpacing(20)
-
-        # Açıklama
-        info = QLabel(L10N.ISLEM_KODU_GIRINIZ_BIST_IS_UZANTISI)
-        info.setProperty("cssClass", "dialogSubtitle")
-        info.setWordWrap(True)
-        layout.addWidget(info)
-
-        # Form
-        form = QFormLayout()
-        form.setVerticalSpacing(20)
-        
-        self.line_ticker = QLineEdit()
-        self.line_ticker.setPlaceholderText(L10N.ORN_ASELS_THYAO)
-        self.line_ticker.setProperty("cssClass", "tradeInputBold")
-        
-        self.lbl_company_name = QLabel(L10N.HISSE_KODU_GIRILDIGINDE_OTOMATIK_ALINACAK)
-        self.lbl_company_name.setProperty("cssClass", "dialogSubtitle")
-        self.lbl_company_name.setWordWrap(True)
-
-        lbl_ticker = QLabel(L10N.HISSE_KODU)
-        lbl_ticker.setProperty("cssClass", "formLabel")
-        lbl_name = QLabel(L10N.SIRKET_ADI)
-        lbl_name.setProperty("cssClass", "formLabel")
-
-        form.addRow(lbl_ticker, self.line_ticker)
-        form.addRow(lbl_name, self.lbl_company_name)
-        layout.addLayout(form)
-
-        # Fiyat Bilgi Kartı (Sorgu Sonucu)
-        self.price_info_frame = QFrame()
-        self.price_info_frame.setProperty("cssClass", "infoFrame")
-        self.price_info_frame.hide() # Başlangıçta gizli
-        
-        pi_layout = QVBoxLayout(self.price_info_frame)
-        pi_layout.setContentsMargins(20, 15, 20, 15)
-        
-        lbl_info_title = QLabel(L10N.GUNCEL_PIYASA_FIYATI)
-        lbl_info_title.setProperty("cssClass", "infoTitle")
-        
-        self.lbl_fetched_price = QLabel("-")
-        self.lbl_fetched_price.setProperty("cssClass", "priceLarge")
-        
-        self.lbl_fetched_source = QLabel("-")
-        self.lbl_fetched_source.setProperty("cssClass", "successText")
-        
-        pi_layout.addWidget(lbl_info_title)
-        pi_layout.addWidget(self.lbl_fetched_price)
-        pi_layout.addWidget(self.lbl_fetched_source)
-        
-        layout.addWidget(self.price_info_frame)
-        layout.addStretch()
+        (
+            self.line_ticker, self.lbl_company_name,
+            self.price_info_frame, self.lbl_fetched_price, self.lbl_fetched_source,
+        ) = _build_page1_widgets(self.page1)
 
     def _init_page2(self):
         """2. Sayfa: Trade detayları"""
-        layout = QVBoxLayout(self.page2)
-        layout.setContentsMargins(30, 30, 30, 30)
-        
-        # Hisse Özeti (Hangi hissede işlem yapıyoruz?)
-        summary_widget = QWidget()
-        summary_layout = QVBoxLayout(summary_widget)
-        summary_layout.setContentsMargins(0, 0, 0, 12)
-        summary_layout.setSpacing(2)
-
-        self.lbl_summary_ticker = QLabel("ASELS")
-        self.lbl_summary_ticker.setProperty("cssClass", "tradeSummaryTicker")
-        self.lbl_summary_ticker.setAlignment(Qt.AlignCenter)
-        self.lbl_summary_name = QLabel("")
-        self.lbl_summary_name.setProperty("cssClass", "tradeSummaryName")
-        self.lbl_summary_name.setAlignment(Qt.AlignCenter)
-
-        summary_layout.addWidget(self.lbl_summary_ticker)
-        summary_layout.addWidget(self.lbl_summary_name)
-        layout.addWidget(summary_widget)
-
-        form = QFormLayout()
-        form.setSpacing(15)
-        form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
-
-
-
-        # Tarih / Saat
-        self.date_edit = QDateEdit(QDate.currentDate())
-        self.date_edit.setCalendarPopup(True)
-        self.date_edit.setProperty("cssClass", "tradeInputNormal")
-        self.time_edit = QTimeEdit(QTime.currentTime())
-        self.time_edit.setDisplayFormat("HH:mm")
-        self.time_edit.setProperty("cssClass", "tradeInputNormal")
-        
-        self.date_edit.setDate(QDate.currentDate())
-        self.time_edit.setTime(QTime.currentTime())
-
-        lbl_date = QLabel(L10N.TARIH_1)
-        lbl_date.setProperty("cssClass", "formLabel")
-        lbl_time = QLabel(L10N.SAAT)
-        lbl_time.setProperty("cssClass", "formLabel")
-
-        form.addRow(lbl_date, self.date_edit)
-        form.addRow(lbl_time, self.time_edit)
-
-        # İşlem Yönü
-        side_layout = QHBoxLayout()
-        side_layout.setSpacing(0)
-        
-        self.btn_buy_mode = QPushButton(L10N.ALIS_BUY)
-        self.btn_buy_mode.setCheckable(True)
-        self.btn_buy_mode.setChecked(True)
-        self.btn_buy_mode.setProperty("cssClass", "tradeModeBtnLeft")
-        
-        self.btn_sell_mode = QPushButton(L10N.SATIS_SELL)
-        self.btn_sell_mode.setCheckable(True)
-        self.btn_sell_mode.setProperty("cssClass", "tradeModeBtnRight")
-        
-        self.mode_group = QButtonGroup(self)
-        self.mode_group.addButton(self.btn_buy_mode)
-        self.mode_group.addButton(self.btn_sell_mode)
-        
-        side_layout.addWidget(self.btn_buy_mode)
-        side_layout.addWidget(self.btn_sell_mode)
-        
-        lbl_side = QLabel(L10N.ISLEM_YONU)
-        lbl_side.setProperty("cssClass", "formLabel")
-        form.addRow(lbl_side, side_layout)
-
-        # Lot / Fiyat / Tutar
-        self.spin_quantity = QSpinBox()
-        self.spin_quantity.setRange(1, 10_000_000)
-        self.spin_quantity.setValue(1)
-        self.spin_quantity.setProperty("cssClass", "tradeInputNormal")
-
-        self.edit_price = CurrencySpinBox()
-        self.edit_price.setRange(0, 1_000_000)
-        self.edit_price.setDecimals(2)
-        self.edit_price.setSuffix(" TL")
-        self.edit_price.lineEdit().setPlaceholderText("0.00")
-        self.edit_price.setProperty("cssClass", "tradeInputNormal")
-        
-        self.edit_amount = CurrencySpinBox()
-        self.edit_amount.setRange(0, 1_000_000_000)
-        self.edit_amount.setDecimals(2)
-        self.edit_amount.setSuffix(" TL")
-        self.edit_amount.lineEdit().setPlaceholderText(L10N.TOPLAM_TUTAR)
-        self.edit_amount.setProperty("cssClass", "tradeInputNormal")
-        self.edit_amount.setReadOnly(True)
-        self.edit_amount.setButtonSymbols(CurrencySpinBox.NoButtons)
-
-        lbl_lot = QLabel(L10N.LOT_ADEDI)
-        lbl_lot.setProperty("cssClass", "formLabel")
-        lbl_price = QLabel(L10N.BIRIM_FIYAT)
-        lbl_price.setProperty("cssClass", "formLabel")
-        lbl_total = QLabel(L10N.TOPLAM_TUTAR_1)
-        lbl_total.setProperty("cssClass", "formLabel")
-
-        form.addRow(lbl_lot, self.spin_quantity)
-        form.addRow(lbl_price, self.edit_price)
-        form.addRow(lbl_total, self.edit_amount)
-
-        layout.addLayout(form)
-        layout.addStretch()
+        (
+            self.lbl_summary_ticker, self.lbl_summary_name,
+            self.date_edit, self.time_edit,
+            self.btn_buy_mode, self.btn_sell_mode, self.mode_group,
+            self.spin_quantity, self.edit_price, self.edit_amount,
+        ) = _build_page2_widgets(self.page2, self)
 
     def _connect_signals(self):
         self.btn_cancel.clicked.connect(self.reject)
