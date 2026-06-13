@@ -44,11 +44,14 @@ class TradeInputDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
         layout.setContentsMargins(25, 25, 25, 25)
+        layout.addLayout(self._build_form())
+        layout.addStretch()
+        layout.addLayout(self._build_footer_buttons())
 
+    def _build_form(self) -> QFormLayout:
         form = QFormLayout()
         form.setSpacing(15)
         form.setLabelAlignment(Qt.AlignLeft)
-
         if self.side is None:
             self.radio_group = QButtonGroup(self)
             radio_layout = QHBoxLayout()
@@ -60,19 +63,37 @@ class TradeInputDialog(QDialog):
             radio_layout.addWidget(self.radio_buy)
             radio_layout.addWidget(self.radio_sell)
             form.addRow("İşlem:", radio_layout)
-
         self.txt_ticker = QLineEdit()
         self.txt_ticker.setPlaceholderText(L10N.ORN_ASELS)
         self.txt_ticker.setMinimumHeight(45)
         self.txt_ticker.returnPressed.connect(self._on_lookup)
         form.addRow("Ticker:", self.txt_ticker)
-
         self.spin_qty = QSpinBox()
         self.spin_qty.setRange(1, 1_000_000)
         self.spin_qty.setValue(100)
         self.spin_qty.setMinimumHeight(45)
         form.addRow("Lot:", self.spin_qty)
+        form.addRow(L10N.FIYAT_1, self._build_price_row())
+        self.edit_amount = QLineEdit()
+        self.edit_amount.setReadOnly(True)
+        self.edit_amount.setMinimumHeight(45)
+        self.edit_amount.setProperty("cssClass", "tradeInputNormal")
+        form.addRow(L10N.TUTAR_1, self.edit_amount)
+        self.spin_qty.valueChanged.connect(self._update_amount)
+        self._update_amount()
+        self.date_edit = QDateEdit(QDate.currentDate())
+        self.date_edit.setCalendarPopup(True)
+        self.date_edit.setMinimumHeight(45)
+        self.date_edit.setProperty("cssClass", "tradeInputNormal")
+        form.addRow(L10N.TARIH_1, self.date_edit)
+        self.time_edit = QTimeEdit(QTime.currentTime())
+        self.time_edit.setDisplayFormat("HH:mm")
+        self.time_edit.setMinimumHeight(45)
+        self.time_edit.setProperty("cssClass", "tradeInputNormal")
+        form.addRow(L10N.SAAT, self.time_edit)
+        return form
 
+    def _build_price_row(self) -> QHBoxLayout:
         price_row = QHBoxLayout()
         self.spin_price = CurrencySpinBox()
         self.spin_price.setRange(0.01, 100_000)
@@ -82,54 +103,29 @@ class TradeInputDialog(QDialog):
         self.spin_price.setMinimumHeight(45)
         self.spin_price.valueChanged.connect(self._update_amount)
         price_row.addWidget(self.spin_price)
-
         btn_lookup = QPushButton(L10N.FIYAT_AL)
         btn_lookup.setCursor(Qt.PointingHandCursor)
         btn_lookup.setProperty("cssClass", "primaryButton")
         btn_lookup.setMinimumHeight(45)
         btn_lookup.clicked.connect(self._on_lookup)
         price_row.addWidget(btn_lookup)
-        form.addRow(L10N.FIYAT_1, price_row)
+        return price_row
 
-        self.edit_amount = QLineEdit()
-        self.edit_amount.setReadOnly(True)
-        self.edit_amount.setMinimumHeight(45)
-        self.edit_amount.setProperty("cssClass", "tradeInputNormal")
-        form.addRow(L10N.TUTAR_1, self.edit_amount)
-        self.spin_qty.valueChanged.connect(self._update_amount)
-        self._update_amount()
-
-        self.date_edit = QDateEdit(QDate.currentDate())
-        self.date_edit.setCalendarPopup(True)
-        self.date_edit.setMinimumHeight(45)
-        self.date_edit.setProperty("cssClass", "tradeInputNormal")
-        form.addRow(L10N.TARIH_1, self.date_edit)
-
-        self.time_edit = QTimeEdit(QTime.currentTime())
-        self.time_edit.setDisplayFormat("HH:mm")
-        self.time_edit.setMinimumHeight(45)
-        self.time_edit.setProperty("cssClass", "tradeInputNormal")
-        form.addRow(L10N.SAAT, self.time_edit)
-
-        layout.addLayout(form)
-        layout.addStretch()
-
+    def _build_footer_buttons(self) -> QHBoxLayout:
         button_row = QHBoxLayout()
         button_row.addStretch()
         btn_cancel = QPushButton(L10N.CANCEL)
         btn_cancel.setMinimumHeight(40)
         btn_cancel.setProperty("cssClass", "secondaryButton")
         btn_cancel.clicked.connect(self.reject)
-
         self.btn_action = QPushButton(L10N.ONAYLA)
         self.btn_action.setMinimumHeight(40)
         self.btn_action.setProperty("cssClass", "successButton")
         self.btn_action.clicked.connect(self.accept)
         self.btn_action.setDefault(True)
-
         button_row.addWidget(btn_cancel)
         button_row.addWidget(self.btn_action)
-        layout.addLayout(button_row)
+        return button_row
 
     def _on_lookup(self):
         if not self.price_lookup_func:

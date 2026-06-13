@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `fdbed68`
+- Git commit: `d4f2db1`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3279
-- Effective code lines: 44143
+- Fonksiyon/metot: 3287
+- Effective code lines: 44151
 - Ihlalli sinif: 8
-- Ihlalli fonksiyon/metot: 143
+- Ihlalli fonksiyon/metot: 140
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31291 | 1 |
+| src | 329 | 31299 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -66,13 +66,10 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/analysis/analysis_comparison_section.py | _redraw_chart | 81 | 0 | 23 | function_effective_lines, function_complexity |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | _init_page2 | 78 | 0 | 1 | function_effective_lines |
 | src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 77 | 12 | 28 | function_effective_lines, function_effective_params, function_complexity |
-| src/ui/widgets/model_portfolio/dialogs/trade_input_dialog.py | _init_ui | 77 | 0 | 2 | function_effective_lines |
 | src/ui/pages/analysis/analysis_page.py | _init_ui | 76 | 0 | 1 | function_effective_lines |
 | src/ui/pages/analysis/analysis_control_panel.py | _init_ui | 75 | 0 | 2 | function_effective_lines |
-| src/ui/pages/ai_page/left_panel/xai_card.py | _init_ui | 73 | 0 | 1 | function_effective_lines |
 | scripts/apply_trade_adjustments_schema.py | main | 70 | 0 | 6 | function_effective_lines |
 | src/ui/pages/ai_page/left_panel/prediction_card.py | _init_ui | 70 | 0 | 1 | function_effective_lines |
-| src/ui/pages/dashboard/dashboard_page.py | _init_ui | 70 | 0 | 1 | function_effective_lines |
 | src/application/services/analysis/analysis_bundle_builder.py | build | 69 | 1 | 12 | function_effective_lines, function_complexity |
 | src/ui/pages/stock_detail/trade_form_panel.py | _init_ui | 69 | 0 | 1 | function_effective_lines |
 | src/application/container_parts/services.py | _build_feature_services | 66 | 3 | 1 | function_effective_lines |
@@ -92,6 +89,9 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/widgets/shared/controls/action_list_item.py | __init__ | 59 | 4 | 4 | function_effective_lines |
 | src/application/services/corporate_actions/corporate_action_service.py | _apply_bedelli | 58 | 4 | 7 | function_effective_lines |
 | src/ui/pages/comparison/utils/ai_helper.py | generate_commentary | 58 | 0 | 8 | function_effective_lines |
+| src/ui/pages/model_portfolio/utils/model_portfolio_ui_builder.py | build_ui | 58 | 0 | 1 | function_effective_lines |
+| src/ui/pages/comparison/utils/ai_helper.py | build_panel | 57 | 0 | 1 | function_effective_lines |
+| src/application/services/corporate_actions/corporate_action_service.py | _apply_bedelsiz | 55 | 4 | 6 | function_effective_lines |
 
 ## Saglik Raporu Crosswalk
 

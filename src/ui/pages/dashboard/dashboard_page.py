@@ -75,56 +75,65 @@ class DashboardPage(BasePage, LastUpdateDisplayMixin):
     def _init_ui(self):
         header_layout = QHBoxLayout()
         header_layout.setSpacing(20)
+        header_layout.addLayout(self._build_title_block(), 1)
+        header_layout.addLayout(self._build_actions_block(), 0)
+        self.main_layout.addLayout(header_layout)
+        self.summary_cards = DashboardSummaryCards()
+        self.main_layout.addWidget(self.summary_cards)
+        self.portfolio_table_widget = DashboardPortfolioTable()
+        self.portfolio_table_widget.row_double_clicked.connect(self._on_table_double_clicked)
+        self.portfolio_table_widget.corporate_action_requested.connect(self._actions.on_corporate_action)
+        self.main_layout.addWidget(self.portfolio_table_widget)
 
+    def _build_title_block(self) -> QVBoxLayout:
         title_layout = QVBoxLayout()
         title_layout.setSpacing(4)
-
         title_row = QHBoxLayout()
         title_row.setSpacing(10)
-
         icon_label = QLabel()
         icon_label.setPixmap(
             IconManager.get_icon("layout-dashboard", color="@COLOR_ACCENT", size=QSize(28, 28)).pixmap(28, 28)
         )
         title_row.addWidget(icon_label)
-
         title_label = QLabel(L10N.DASHBOARD)
         title_label.setProperty("cssClass", "pageTitle")
         title_row.addWidget(title_label)
         title_row.addStretch()
         title_layout.addLayout(title_row)
-
         description_label = QLabel(L10N.PORTFOYUNUZUN_OZETINI_RAPORLARINI_VE_GUNCELLEME)
         description_label.setProperty("cssClass", "pageDescription")
         description_label.setWordWrap(True)
         title_layout.addWidget(description_label)
+        return title_layout
 
-        header_layout.addLayout(title_layout, 1)
-
+    def _build_actions_block(self) -> QVBoxLayout:
         actions_layout = QVBoxLayout()
         actions_layout.setSpacing(6)
+        actions_layout.addLayout(self._build_primary_buttons())
+        self.lbl_last_update = QLabel("")
+        self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
+        last_update_row = QHBoxLayout()
+        last_update_row.setSpacing(0)
+        last_update_row.addStretch()
+        last_update_row.addWidget(self.lbl_last_update)
+        actions_layout.addLayout(last_update_row)
+        return actions_layout
 
-        primary_actions_layout = QHBoxLayout()
-        primary_actions_layout.setSpacing(10)
-
+    def _build_primary_buttons(self) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(10)
         self.btn_new_trade = AnimatedButton(L10N.YENI_ISLEM)
         self.btn_new_trade.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_new_trade.setProperty("cssClass", "primaryButton")
         self.btn_new_trade.clicked.connect(self._actions.on_new_trade)
-
         self.btn_update_prices = AnimatedButton(L10N.FIYATLARI_GUNCELLE)
         self.btn_update_prices.setIconName("refresh-cw", color="@COLOR_TEXT_PRIMARY")
         self.btn_update_prices.setProperty("cssClass", "updatePricesBtn")
         self.btn_update_prices.clicked.connect(self._actions.on_update_prices)
-
-        self.lbl_last_update = QLabel("")
-        self.lbl_last_update.setProperty("cssClass", "lastUpdateLabel")
-
         self.btn_capital = AnimatedButton(L10N.SERMAYE_YONETIMI)
         self.btn_capital.setIconName("coins", color="@COLOR_TEXT_PRIMARY")
         self.btn_capital.clicked.connect(self._actions.on_capital_management)
         self.btn_capital.setProperty("cssClass", "capitalButton")
-
         self.btn_report = AnimatedButton(L10N.RAPOR_AL)
         self.btn_report.setIconName(L10N.FILETEXT, color="@COLOR_TEXT_PRIMARY")
         self.btn_report.setProperty("cssClass", "reportButton")
@@ -136,31 +145,12 @@ class DashboardPage(BasePage, LastUpdateDisplayMixin):
         self._report_menu.addAction(self._report_today_action)
         self._report_menu.addAction(self._report_range_action)
         self.btn_report.setMenu(self._report_menu)
-
-        primary_actions_layout.addWidget(self.btn_new_trade)
-        primary_actions_layout.addWidget(self.btn_update_prices)
-        primary_actions_layout.addWidget(self.btn_capital)
-        primary_actions_layout.addWidget(self.btn_report)
-        primary_actions_layout.addStretch()
-        actions_layout.addLayout(primary_actions_layout)
-
-        last_update_row = QHBoxLayout()
-        last_update_row.setSpacing(0)
-        last_update_row.addStretch()
-        last_update_row.addWidget(self.lbl_last_update)
-        actions_layout.addLayout(last_update_row)
-
-        header_layout.addLayout(actions_layout, 0)
-        self.main_layout.addLayout(header_layout)
-
-        self.summary_cards = DashboardSummaryCards()
-
-        self.main_layout.addWidget(self.summary_cards)
-
-        self.portfolio_table_widget = DashboardPortfolioTable()
-        self.portfolio_table_widget.row_double_clicked.connect(self._on_table_double_clicked)
-        self.portfolio_table_widget.corporate_action_requested.connect(self._actions.on_corporate_action)
-        self.main_layout.addWidget(self.portfolio_table_widget)
+        row.addWidget(self.btn_new_trade)
+        row.addWidget(self.btn_update_prices)
+        row.addWidget(self.btn_capital)
+        row.addWidget(self.btn_report)
+        row.addStretch()
+        return row
 
     def on_page_enter(self):
         self._presenter.load_capital()
