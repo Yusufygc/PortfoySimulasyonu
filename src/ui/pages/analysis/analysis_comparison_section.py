@@ -129,101 +129,75 @@ class AnalysisComparisonSection(QWidget):
         if self._dto is None:
             self.chart_engine.setHtml("<div style='color:white; text-align:center; padding-top:200px;'>Karşılaştırma verisi bekleniyor.</div>")
             return
-
-        mode = self.combo_mode.currentData()
-        
-        # Convert dict to pd.Series for Plotly builder
         if not self._dto.portfolio_series:
             self.chart_engine.setHtml("<div style='color:white; text-align:center; padding-top:200px;'>Portföy verisi bulunamadı.</div>")
             return
-            
+        mode = self.combo_mode.currentData()
         p_series = pd.Series({pd.Timestamp(d): float(v) for d, v in self._dto.portfolio_series.items()})
         p_series.name = "Portföy"
-        
-        currency_label = "TL/USD/REAL" # TODO: get this from DTO
-        
+        currency_label = "TL/USD/REAL"
         if mode == self.MODE_PORTFOLIO:
-            b_data = {}
-            for benchmark in self._dto.benchmark_series:
-                b_data[benchmark.label] = {pd.Timestamp(d): float(v) for d, v in benchmark.points.items()}
-            b_df = pd.DataFrame(b_data)
-            
-            fig = build_performance_line_chart_v2(
-                portfolio_series=p_series,
-                benchmark_series=b_df,
-                currency_label=currency_label,
-                title=L10N.PORTFOY_VE_BENCHMARK_KARSILASTIRMASI,
-            )
-            self._set_fig_to_view(fig)
-            
+            self._draw_portfolio_vs_benchmark(p_series, currency_label)
         elif mode == self.MODE_PORTFOLIOS:
-            b_data = {}
-            for portfolio in self._dto.comparison_portfolios:
-                b_data[portfolio.label] = {pd.Timestamp(d): float(v) for d, v in portfolio.points.items()}
-            b_df = pd.DataFrame(b_data)
-            
-            fig = build_performance_line_chart_v2(
-                portfolio_series=p_series,
-                benchmark_series=b_df,
-                currency_label=currency_label,
-                title=L10N.PORTFOYLER_ARASI_KARSILASTIRMA,
-            )
-            self._set_fig_to_view(fig)
-            
+            self._draw_portfolios_comparison(p_series, currency_label)
         elif mode == self.MODE_STOCKS:
-            b_data = {}
-            for label, series in self._dto.stock_series.items():
-                b_data[display_ticker(label)] = {pd.Timestamp(d): float(v) for d, v in series.items()}
-            b_df = pd.DataFrame(b_data)
-            
-            fig = build_performance_line_chart_v2(
-                portfolio_series=p_series,
-                benchmark_series=b_df,
-                currency_label=currency_label,
-                title=L10N.SECILI_HISSELER_VE_PORTFOY,
-            )
-            self._set_fig_to_view(fig)
-            
+            self._draw_stocks_vs_portfolio(p_series, currency_label)
         elif mode == self.MODE_STOCKS_ONLY:
-            if not self._dto.stock_series:
-                self.chart_engine.setHtml("<div style='color:white; text-align:center; padding-top:200px;'>Hisse verisi bulunamadı.</div>")
-                return
-            b_data = {}
-            for label, series in self._dto.stock_series.items():
-                b_data[display_ticker(label)] = {pd.Timestamp(d): float(v) for d, v in series.items()}
-            b_df = pd.DataFrame(b_data)
-            
-            fig = build_performance_line_chart_v2(
-                portfolio_series=None,
-                benchmark_series=b_df,
-                currency_label=currency_label,
-                title=L10N.SECILI_HISSELER_KARSILASTIRMASI,
-            )
-            self._set_fig_to_view(fig)
-            
+            self._draw_stocks_only(currency_label)
         else:
-            # MODE_RELATIVE
-            b_data = {}
-            for benchmark in self._dto.benchmark_series:
-                aligned = self._build_relative_gap_series(self._dto.portfolio_series, benchmark.points)
-                if aligned:
-                    b_data[f"{self._dto.current_portfolio_label} - {benchmark.label}"] = {pd.Timestamp(d): float(v) for d, v in aligned.items()}
-                    
-            for portfolio in self._dto.comparison_portfolios:
-                aligned = self._build_relative_gap_series(self._dto.portfolio_series, portfolio.points)
-                if aligned:
-                    b_data[f"{self._dto.current_portfolio_label} - {portfolio.label}"] = {pd.Timestamp(d): float(v) for d, v in aligned.items()}
-                    
-            b_df = pd.DataFrame(b_data)
-            fig = build_performance_line_chart_v2(
-                portfolio_series=None,
-                benchmark_series=b_df,
-                currency_label=L10N.FARK,
-                title=L10N.GORELI_FARK_KARSILASTIRMASI,
-            )
-            # Override baseline since it's gap
-            fig.update_yaxes(title_text=L10N.FARK)
-            self._set_fig_to_view(fig)
+            self._draw_relative_gap(p_series)
+
+    def _draw_portfolio_vs_benchmark(self, p_series, currency_label: str) -> None:
+        b_data = {b.label: {pd.Timestamp(d): float(v) for d, v in b.points.items()} for b in self._dto.benchmark_series}
+        fig = build_performance_line_chart_v2(
+            portfolio_series=p_series, benchmark_series=pd.DataFrame(b_data),
+            currency_label=currency_label, title=L10N.PORTFOY_VE_BENCHMARK_KARSILASTIRMASI,
+        )
+        self._set_fig_to_view(fig)
+
+    def _draw_portfolios_comparison(self, p_series, currency_label: str) -> None:
+        b_data = {p.label: {pd.Timestamp(d): float(v) for d, v in p.points.items()} for p in self._dto.comparison_portfolios}
+        fig = build_performance_line_chart_v2(
+            portfolio_series=p_series, benchmark_series=pd.DataFrame(b_data),
+            currency_label=currency_label, title=L10N.PORTFOYLER_ARASI_KARSILASTIRMA,
+        )
+        self._set_fig_to_view(fig)
+
+    def _draw_stocks_vs_portfolio(self, p_series, currency_label: str) -> None:
+        b_data = {display_ticker(lbl): {pd.Timestamp(d): float(v) for d, v in s.items()} for lbl, s in self._dto.stock_series.items()}
+        fig = build_performance_line_chart_v2(
+            portfolio_series=p_series, benchmark_series=pd.DataFrame(b_data),
+            currency_label=currency_label, title=L10N.SECILI_HISSELER_VE_PORTFOY,
+        )
+        self._set_fig_to_view(fig)
+
+    def _draw_stocks_only(self, currency_label: str) -> None:
+        if not self._dto.stock_series:
+            self.chart_engine.setHtml("<div style='color:white; text-align:center; padding-top:200px;'>Hisse verisi bulunamadı.</div>")
+            return
+        b_data = {display_ticker(lbl): {pd.Timestamp(d): float(v) for d, v in s.items()} for lbl, s in self._dto.stock_series.items()}
+        fig = build_performance_line_chart_v2(
+            portfolio_series=None, benchmark_series=pd.DataFrame(b_data),
+            currency_label=currency_label, title=L10N.SECILI_HISSELER_KARSILASTIRMASI,
+        )
+        self._set_fig_to_view(fig)
+
+    def _draw_relative_gap(self, p_series) -> None:
+        b_data = {}
+        for benchmark in self._dto.benchmark_series:
+            aligned = self._build_relative_gap_series(self._dto.portfolio_series, benchmark.points)
+            if aligned:
+                b_data[f"{self._dto.current_portfolio_label} - {benchmark.label}"] = {pd.Timestamp(d): float(v) for d, v in aligned.items()}
+        for portfolio in self._dto.comparison_portfolios:
+            aligned = self._build_relative_gap_series(self._dto.portfolio_series, portfolio.points)
+            if aligned:
+                b_data[f"{self._dto.current_portfolio_label} - {portfolio.label}"] = {pd.Timestamp(d): float(v) for d, v in aligned.items()}
+        fig = build_performance_line_chart_v2(
+            portfolio_series=None, benchmark_series=pd.DataFrame(b_data),
+            currency_label=L10N.FARK, title=L10N.GORELI_FARK_KARSILASTIRMASI,
+        )
+        fig.update_yaxes(title_text=L10N.FARK)
+        self._set_fig_to_view(fig)
 
     def _set_fig_to_view(self, fig):
         html = fig.to_html(include_plotlyjs=True)
