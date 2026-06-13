@@ -139,90 +139,89 @@ class GoalsPanel(QWidget):
             self._set_readonly(i, 0, goal.name, user_data=goal.id)
             self._set_readonly(i, 1, f"₺ {goal.target_amount:,.2f}", Qt.AlignCenter)
             self._set_readonly(i, 2, f"₺ {goal.current_amount:,.2f}", Qt.AlignCenter)
-
-            months = goal.months_remaining()
-            m_item = QTableWidgetItem(f"{months}")
-            m_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            m_item.setTextAlignment(Qt.AlignCenter)
-            if months == 0:
-                m_item.setForeground(QColor("#ef4444"))
-            self._table.setItem(i, 3, m_item)
-
+            self._set_row_months_cell(i, goal)
             self._set_readonly(i, 4, f"₺ {goal.required_monthly_contribution():,.2f}", Qt.AlignCenter)
+            self._set_row_progress_cell(i, goal)
+            self._set_row_status_cell(i, goal)
+            self._set_row_actions(i, goal)
 
-            pct = goal.progress_ratio * 100
-            p_item = QTableWidgetItem(f"%{pct:.1f}")
-            p_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            p_item.setTextAlignment(Qt.AlignCenter)
-            if pct >= 100:
-                p_item.setForeground(QColor("#10b981"))
-            elif pct >= 50:
-                p_item.setForeground(QColor("#ca8a04"))
-            self._table.setItem(i, 5, p_item)
+    def _set_row_months_cell(self, row: int, goal) -> None:
+        months = goal.months_remaining()
+        m_item = QTableWidgetItem(f"{months}")
+        m_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        m_item.setTextAlignment(Qt.AlignCenter)
+        if months == 0:
+            m_item.setForeground(QColor("#ef4444"))
+        self._table.setItem(row, 3, m_item)
 
-            status_tr = self._STATUS_TR.get(goal.status, goal.status)
-            s_item = QTableWidgetItem(status_tr)
-            s_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            s_item.setTextAlignment(Qt.AlignCenter)
-            if goal.status == "COMPLETED":
-                s_item.setForeground(QColor("#10b981"))
-            elif goal.status == "ACTIVE":
-                s_item.setForeground(QColor("#3b82f6"))
-            elif goal.status == "PAUSED":
-                s_item.setForeground(QColor("#ca8a04"))
-            else:
-                s_item.setForeground(QColor("#ef4444"))
-            self._table.setItem(i, 6, s_item)
+    def _set_row_progress_cell(self, row: int, goal) -> None:
+        pct = goal.progress_ratio * 100
+        p_item = QTableWidgetItem(f"%{pct:.1f}")
+        p_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        p_item.setTextAlignment(Qt.AlignCenter)
+        if pct >= 100:
+            p_item.setForeground(QColor("#10b981"))
+        elif pct >= 50:
+            p_item.setForeground(QColor("#ca8a04"))
+        self._table.setItem(row, 5, p_item)
 
-            # İşlemler sütunu için butonlar (Düzenle, Katkı Ekle ve Sil)
-            action_widget = QWidget()
-            action_widget.setProperty("cssClass", "tableActionContainer")
-            action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(8, 0, 8, 0)
-            action_layout.setSpacing(6)
-            action_layout.setAlignment(Qt.AlignCenter)
+    def _set_row_status_cell(self, row: int, goal) -> None:
+        status_tr = self._STATUS_TR.get(goal.status, goal.status)
+        s_item = QTableWidgetItem(status_tr)
+        s_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        s_item.setTextAlignment(Qt.AlignCenter)
+        if goal.status == "COMPLETED":
+            s_item.setForeground(QColor("#10b981"))
+        elif goal.status == "ACTIVE":
+            s_item.setForeground(QColor("#3b82f6"))
+        elif goal.status == "PAUSED":
+            s_item.setForeground(QColor("#ca8a04"))
+        else:
+            s_item.setForeground(QColor("#ef4444"))
+        self._table.setItem(row, 6, s_item)
 
-            btn_edit = QPushButton()
-            btn_edit.setProperty("cssClass", "tableActionButtonEdit")
-            btn_edit.setMinimumSize(26, 26)
-            btn_edit.setMaximumSize(26, 26)
-            btn_edit.setCursor(Qt.PointingHandCursor)
-            btn_edit.setIcon(IconManager.get_icon("pencil", color="@COLOR_PRIMARY"))
-            btn_edit.setIconSize(QSize(16, 16))
-            btn_edit.setToolTip(L10N.HEDEFI_DUZENLE)
-
-            btn_contrib = QPushButton()
-            btn_contrib.setProperty("cssClass", "tableActionButtonContrib")
-            btn_contrib.setMinimumSize(26, 26)
-            btn_contrib.setMaximumSize(26, 26)
-            btn_contrib.setCursor(Qt.PointingHandCursor)
-            btn_contrib.setIcon(IconManager.get_icon("plus", color="@COLOR_PRIMARY"))
-            btn_contrib.setIconSize(QSize(16, 16))
-            btn_contrib.setToolTip(L10N.KATKI_EKLE_1)
-            is_completed = goal.status == "COMPLETED"
-            btn_contrib.setEnabled(not is_completed)
-
-            btn_delete = QPushButton()
-            btn_delete.setProperty("cssClass", "tableActionButtonDelete")
-            btn_delete.setMinimumSize(26, 26)
-            btn_delete.setMaximumSize(26, 26)
-            btn_delete.setCursor(Qt.PointingHandCursor)
-            btn_delete.setIcon(IconManager.get_icon("trash-2", color="@COLOR_TEXT_WHITE"))
-            btn_delete.setIconSize(QSize(16, 16))
-            btn_delete.setToolTip(L10N.HEDEFI_SIL)
-
-            # Sinyal bağlantıları (default arguments binding ile güvenli ID aktarımı)
-            g_id = goal.id
-            g_name = goal.name
-            btn_edit.clicked.connect(lambda _, gid=g_id: self.edit_requested.emit(gid))
-            if not is_completed:
-                btn_contrib.clicked.connect(lambda _, gid=g_id, gname=g_name: self.contribute_requested.emit(gid, gname))
-            btn_delete.clicked.connect(lambda _, gid=g_id, gname=g_name: self.delete_requested.emit(gid, gname))
-
-            action_layout.addWidget(btn_edit)
-            action_layout.addWidget(btn_contrib)
-            action_layout.addWidget(btn_delete)
-            self._table.setCellWidget(i, 7, action_widget)
+    def _set_row_actions(self, row: int, goal) -> None:
+        action_widget = QWidget()
+        action_widget.setProperty("cssClass", "tableActionContainer")
+        action_layout = QHBoxLayout(action_widget)
+        action_layout.setContentsMargins(8, 0, 8, 0)
+        action_layout.setSpacing(6)
+        action_layout.setAlignment(Qt.AlignCenter)
+        btn_edit = QPushButton()
+        btn_edit.setProperty("cssClass", "tableActionButtonEdit")
+        btn_edit.setMinimumSize(26, 26)
+        btn_edit.setMaximumSize(26, 26)
+        btn_edit.setCursor(Qt.PointingHandCursor)
+        btn_edit.setIcon(IconManager.get_icon("pencil", color="@COLOR_PRIMARY"))
+        btn_edit.setIconSize(QSize(16, 16))
+        btn_edit.setToolTip(L10N.HEDEFI_DUZENLE)
+        btn_contrib = QPushButton()
+        btn_contrib.setProperty("cssClass", "tableActionButtonContrib")
+        btn_contrib.setMinimumSize(26, 26)
+        btn_contrib.setMaximumSize(26, 26)
+        btn_contrib.setCursor(Qt.PointingHandCursor)
+        btn_contrib.setIcon(IconManager.get_icon("plus", color="@COLOR_PRIMARY"))
+        btn_contrib.setIconSize(QSize(16, 16))
+        btn_contrib.setToolTip(L10N.KATKI_EKLE_1)
+        is_completed = goal.status == "COMPLETED"
+        btn_contrib.setEnabled(not is_completed)
+        btn_delete = QPushButton()
+        btn_delete.setProperty("cssClass", "tableActionButtonDelete")
+        btn_delete.setMinimumSize(26, 26)
+        btn_delete.setMaximumSize(26, 26)
+        btn_delete.setCursor(Qt.PointingHandCursor)
+        btn_delete.setIcon(IconManager.get_icon("trash-2", color="@COLOR_TEXT_WHITE"))
+        btn_delete.setIconSize(QSize(16, 16))
+        btn_delete.setToolTip(L10N.HEDEFI_SIL)
+        g_id, g_name = goal.id, goal.name
+        btn_edit.clicked.connect(lambda _, gid=g_id: self.edit_requested.emit(gid))
+        if not is_completed:
+            btn_contrib.clicked.connect(lambda _, gid=g_id, gname=g_name: self.contribute_requested.emit(gid, gname))
+        btn_delete.clicked.connect(lambda _, gid=g_id, gname=g_name: self.delete_requested.emit(gid, gname))
+        action_layout.addWidget(btn_edit)
+        action_layout.addWidget(btn_contrib)
+        action_layout.addWidget(btn_delete)
+        self._table.setCellWidget(row, 7, action_widget)
 
     def show_feasibility(self, result: dict) -> None:
         """Fizibilite analizini gösterir. cssState ile renk yönetimi."""

@@ -112,18 +112,19 @@ class PeerCard(QWidget):
             self.setVisible(False)
             return
         self.setVisible(True)
+        self.lbl_as_of.setText(L10N.PEER_AS_OF_TMPL.format(date=peer.as_of_date) if peer.as_of_date else "")
+        self._update_rank_labels(peer)
+        self._update_meta_labels(peer)
+        self._update_pooled_price(peer)
+        self._update_confidence_and_xai(peer)
 
-        self.lbl_as_of.setText(
-            L10N.PEER_AS_OF_TMPL.format(date=peer.as_of_date) if peer.as_of_date else ""
-        )
-
+    def _update_rank_labels(self, peer) -> None:
         if peer.peer_percentile is not None:
             self.lbl_rank.setText(L10N.PEER_SIRA_TMPL.format(percentile=f"{peer.peer_percentile:.0f}"))
         elif peer.peer_score is not None:
             self.lbl_rank.setText(L10N.PEER_SKOR_TMPL.format(score=f"{peer.peer_score:+.3f}"))
         else:
             self.lbl_rank.setText("")
-
         label_tr = self._PEER_LABEL_TR.get(str(peer.peer_label or ""), peer.peer_label or "")
         self.lbl_label.setText(label_tr)
         state = {"outperform": "up", "underperform": "down"}.get(str(peer.peer_label or ""), "neutral")
@@ -132,67 +133,55 @@ class PeerCard(QWidget):
         self.lbl_label.style().unpolish(self.lbl_label)
         self.lbl_label.style().polish(self.lbl_label)
 
+    def _update_meta_labels(self, peer) -> None:
         if peer.universe_size:
             self.lbl_universe.setText(L10N.PEER_EVREN_TMPL.format(size=peer.universe_size))
             self.lbl_universe.setVisible(True)
         else:
             self.lbl_universe.setVisible(False)
-
         if peer.segment_liq or peer.segment_vol or peer.segment_sector:
-            self.lbl_segment.setText(
-                L10N.PEER_SEGMENT_TMPL.format(
-                    liq=self._format_quantile(peer.segment_liq),
-                    vol=self._format_quantile(peer.segment_vol),
-                    sector=self._format_sector(peer.segment_sector),
-                )
-            )
+            self.lbl_segment.setText(L10N.PEER_SEGMENT_TMPL.format(
+                liq=self._format_quantile(peer.segment_liq),
+                vol=self._format_quantile(peer.segment_vol),
+                sector=self._format_sector(peer.segment_sector),
+            ))
             self.lbl_segment.setVisible(True)
         else:
             self.lbl_segment.setVisible(False)
-
         if peer.trend_label and peer.trend_prob_up is not None:
             ret = peer.trend_expected_return
             ret_txt = f"{ret * 100:+.2f}%" if ret is not None else "-"
-            self.lbl_trend.setText(
-                L10N.PEER_TREND_TMPL.format(
-                    trend=peer.trend_label,
-                    prob=f"{peer.trend_prob_up * 100:.0f}",
-                    label="h-gün",
-                    ret=ret_txt,
-                )
-            )
+            self.lbl_trend.setText(L10N.PEER_TREND_TMPL.format(
+                trend=peer.trend_label,
+                prob=f"{peer.trend_prob_up * 100:.0f}",
+                label="h-gün",
+                ret=ret_txt,
+            ))
             self.lbl_trend.setVisible(True)
         else:
             self.lbl_trend.setVisible(False)
 
-        # Kol-B pooled fiyat bandı
-        if (getattr(peer, "kolb_price_p50", None) is not None and
-            getattr(peer, "kolb_price_low", None) is not None and
-            getattr(peer, "kolb_price_high", None) is not None):
-            p50_val = f"{peer.kolb_price_p50:.2f}"
-            low_val = f"{peer.kolb_price_low:.2f}"
-            high_val = f"{peer.kolb_price_high:.2f}"
-            horizon_val = peer.kolb_horizon_days or 5
-            self.lbl_pooled_price.setText(
-                L10N.PEER_POOLED_TAHMIN_TMPL.format(
-                    horizon=horizon_val,
-                    p50=p50_val,
-                    low=low_val,
-                    high=high_val
-                )
-            )
+    def _update_pooled_price(self, peer) -> None:
+        if (getattr(peer, "kolb_price_p50", None) is not None
+                and getattr(peer, "kolb_price_low", None) is not None
+                and getattr(peer, "kolb_price_high", None) is not None):
+            self.lbl_pooled_price.setText(L10N.PEER_POOLED_TAHMIN_TMPL.format(
+                horizon=peer.kolb_horizon_days or 5,
+                p50=f"{peer.kolb_price_p50:.2f}",
+                low=f"{peer.kolb_price_low:.2f}",
+                high=f"{peer.kolb_price_high:.2f}",
+            ))
             self.lbl_pooled_price.setVisible(True)
         else:
             self.lbl_pooled_price.setVisible(False)
 
+    def _update_confidence_and_xai(self, peer) -> None:
         if peer.confidence_label:
             conf_tr = self._CONF_TR.get(str(peer.confidence_label), peer.confidence_label)
             self.lbl_confidence.setText(L10N.PEER_GUVEN_TMPL.format(label=conf_tr))
             self.lbl_confidence.setVisible(True)
         else:
             self.lbl_confidence.setVisible(False)
-
-        # Kol-B XAI sürücüleri (kompakt metin satırları)
         rows_added = False
         if peer.xai_available:
             for item in (peer.xai_top_positive or [])[:3]:
@@ -202,7 +191,6 @@ class PeerCard(QWidget):
                 self.xai_layout.addWidget(self._make_driver_row(item, "down"))
                 rows_added = True
         self.lbl_xai_title.setVisible(rows_added)
-
         caveat = peer.xai_caveat if peer.xai_available else ""
         if caveat:
             self.lbl_caveat.setText(f"ℹ {caveat}")

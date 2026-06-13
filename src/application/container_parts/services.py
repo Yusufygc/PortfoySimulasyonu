@@ -165,27 +165,19 @@ def _build_reporting_services(
     }
 
 
-def _build_feature_services(
-    repositories: RepositorySet,
-    market_clients: MarketClientSet,
-    foundation: dict,
-) -> dict:
-    from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
+def _build_prereq_services(repositories: RepositorySet, market_clients: MarketClientSet):
     from src.application.services.market.price_data_health_service import PriceDataHealthService
-
-    model_portfolio_service = foundation["model_portfolio_service"]
-    corporate_action_price_adjustment_service = CorporateActionPriceAdjustmentService(
+    corp_price_adj = CorporateActionPriceAdjustmentService(
         action_repo=repositories.corporate_action_repo,
         price_repo=repositories.price_repo,
     )
-    corporate_action_service = CorporateActionService(
+    corp_action = CorporateActionService(
         action_repo=repositories.corporate_action_repo,
         portfolio_repo=repositories.portfolio_repo,
         trade_adjustment_repo=getattr(repositories, "trade_adjustment_repo", None),
-        price_adjustment_service=corporate_action_price_adjustment_service,
+        price_adjustment_service=corp_price_adj,
     )
-
-    price_data_health_service = PriceDataHealthService(
+    health_service = PriceDataHealthService(
         stock_repo=repositories.stock_repo,
         price_repo=repositories.price_repo,
         market_data_client=market_clients.market_client,
@@ -194,6 +186,18 @@ def _build_feature_services(
         corporate_action_repo=repositories.corporate_action_repo,
         holiday_provider=BistHolidayProvider(),
     )
+    return corp_action, health_service
+
+
+def _build_feature_services(
+    repositories: RepositorySet,
+    market_clients: MarketClientSet,
+    foundation: dict,
+) -> dict:
+    from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
+
+    model_portfolio_service = foundation["model_portfolio_service"]
+    corp_action_service, price_data_health_service = _build_prereq_services(repositories, market_clients)
 
     return {
         "price_data_health_service": price_data_health_service,
@@ -232,7 +236,7 @@ def _build_feature_services(
         ),
         "planning_service": PlanningService(planning_repo=repositories.planning_repo),
         "risk_profile_service": RiskProfileService(risk_profile_repo=repositories.risk_profile_repo),
-        "corporate_action_service": corporate_action_service,
+        "corporate_action_service": corp_action_service,
         "corporate_action_discovery_service": CorporateActionDiscoveryService(
             provider=KapMkkCorporateActionProvider(),
             candidate_repo=repositories.corporate_action_candidate_repo,
@@ -244,7 +248,7 @@ def _build_feature_services(
         ),
         "corporate_action_candidate_review_service": CorporateActionCandidateReviewService(
             candidate_repo=repositories.corporate_action_candidate_repo,
-            corporate_action_service=corporate_action_service,
+            corporate_action_service=corp_action_service,
         ),
         "backfill_service": BackfillService(
             stock_repo=repositories.stock_repo,

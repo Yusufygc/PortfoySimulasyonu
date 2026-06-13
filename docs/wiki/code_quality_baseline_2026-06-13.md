@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `af8332b`
+- Git commit: `fdbed68`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3264
-- Effective code lines: 44144
+- Fonksiyon/metot: 3279
+- Effective code lines: 44143
 - Ihlalli sinif: 8
-- Ihlalli fonksiyon/metot: 147
+- Ihlalli fonksiyon/metot: 143
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31292 | 1 |
+| src | 329 | 31291 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -63,11 +63,6 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | Dosya | Fonksiyon | Effective satir | Parametre | Complexity | Ihlal |
 |---|---|---:|---:|---:|---|
 | scripts/migrate_ui_strings.py | main | 116 | 0 | 37 | function_effective_lines, function_complexity |
-| src/infrastructure/ai/ai_core_fastapi_client.py | _parse_api_response | 109 | 1 | 15 | function_effective_lines, function_complexity |
-| src/ui/pages/ai_page/left_panel/peer_card.py | update_data | 91 | 1 | 28 | function_effective_lines, function_complexity |
-| src/ui/pages/analysis/chart_builder.py | build_performance_line_chart_v2 | 90 | 4 | 6 | function_effective_lines |
-| src/ui/widgets/planning/panels/goals_panel.py | load | 87 | 1 | 9 | function_effective_lines |
-| src/application/container_parts/services.py | _build_feature_services | 85 | 3 | 1 | function_effective_lines |
 | src/ui/pages/analysis/analysis_comparison_section.py | _redraw_chart | 81 | 0 | 23 | function_effective_lines, function_complexity |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | _init_page2 | 78 | 0 | 1 | function_effective_lines |
 | src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 77 | 12 | 28 | function_effective_lines, function_effective_params, function_complexity |
@@ -80,6 +75,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/dashboard/dashboard_page.py | _init_ui | 70 | 0 | 1 | function_effective_lines |
 | src/application/services/analysis/analysis_bundle_builder.py | build | 69 | 1 | 12 | function_effective_lines, function_complexity |
 | src/ui/pages/stock_detail/trade_form_panel.py | _init_ui | 69 | 0 | 1 | function_effective_lines |
+| src/application/container_parts/services.py | _build_feature_services | 66 | 3 | 1 | function_effective_lines |
 | src/ui/pages/ai_page/left_panel/prediction_card.py | update_data | 66 | 12 | 15 | function_effective_lines, function_effective_params, function_complexity |
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | _build_prompt_template | 65 | 4 | 27 | function_effective_lines, function_complexity |
 | src/ui/pages/optimization_page.py | _init_ui | 65 | 0 | 1 | function_effective_lines |
@@ -92,6 +88,10 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/dashboard/dashboard_corporate_action_actions.py | on_corporate_action | 60 | 2 | 10 | function_effective_lines |
 | src/ui/pages/settings/corporate_action_candidates_panel.py | _init_ui | 60 | 0 | 4 | function_effective_lines |
 | src/ui/widgets/planning/panels/goals_panel.py | _init_ui | 60 | 0 | 4 | function_effective_lines |
+| src/ui/widgets/dashboard/dialogs/date_range_dialog.py | __init__ | 59 | 4 | 5 | function_effective_lines |
+| src/ui/widgets/shared/controls/action_list_item.py | __init__ | 59 | 4 | 4 | function_effective_lines |
+| src/application/services/corporate_actions/corporate_action_service.py | _apply_bedelli | 58 | 4 | 7 | function_effective_lines |
+| src/ui/pages/comparison/utils/ai_helper.py | generate_commentary | 58 | 0 | 8 | function_effective_lines |
 
 ## Saglik Raporu Crosswalk
 

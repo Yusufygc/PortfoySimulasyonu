@@ -50,21 +50,7 @@ def _apply_turkish_month_axis(fig: go.Figure, dates) -> None:
     )
 
 
-def build_performance_line_chart_v2(
-    portfolio_series,
-    benchmark_series: pd.DataFrame,
-    currency_label: str,
-    title: str = L10N.PORTFOY_VS_BENCHMARK,
-) -> go.Figure:
-    """
-    İyileştirilmiş performans grafiği:
-    - Range selector butonları (1A, 3A, 6A, YBB, 1Y, Tümü)
-    - Range slider (mini zaman çubuğu)
-    - Başlangıç=100 referans çizgisi
-    - Hover formatında işaret (+/-)
-    """
-    fig = go.Figure()
-
+def _add_benchmark_traces(fig: go.Figure, benchmark_series: pd.DataFrame, currency_label: str) -> None:
     for i, col in enumerate(benchmark_series.columns):
         s = benchmark_series[col].dropna()
         color = BENCHMARK_COLORS[i % len(BENCHMARK_COLORS)]
@@ -73,52 +59,39 @@ def build_performance_line_chart_v2(
             "ret": (s.values - 100).round(2),
         }).values
         fig.add_trace(go.Scatter(
-            x=s.index,
-            y=s.values,
-            name=col,
-            line=dict(width=1.5, color=color),
-            opacity=0.75,
-            legendgroup=col,
+            x=s.index, y=s.values, name=col,
+            line=dict(width=1.5, color=color), opacity=0.75, legendgroup=col,
             hovertemplate=(
-                f"<b>{col}</b><br>" +
-                L10N.TARIH_CUSTOMDATA0BR +
+                f"<b>{col}</b><br>" + L10N.TARIH_CUSTOMDATA0BR +
                 f"Değer: %{{y:.1f}} ({currency_label})<br>" +
                 "Başlangıçtan: %{customdata[1]:+.2f}%<extra></extra>"
             ),
             customdata=customdata,
         ))
 
-    if portfolio_series is not None:
-        p = portfolio_series.dropna()
-        customdata = pd.DataFrame({
-            "date": [format_turkish_date(d) for d in p.index],
-            "ret": (p.values - 100).round(2),
-        }).values
-        fig.add_trace(go.Scatter(
-            x=p.index,
-            y=p.values,
-            name="Portföy",
-            line=dict(width=3, color=PORTFOLIO_COLOR),
-            opacity=1.0,
-            legendgroup="Portföy",
-            hovertemplate=(
-                "<b>Portföy</b><br>" +
-                L10N.TARIH_CUSTOMDATA0BR +
-                f"Değer: %{{y:.1f}} ({currency_label})<br>" +
-                "Başlangıçtan: %{customdata[1]:+.2f}%<extra></extra>"
-            ),
-            customdata=customdata,
-        ))
 
-    fig.add_hline(
-        y=100,
-        line=dict(color="#6c7086", width=1, dash="dot"),
-        annotation_text=L10N.BASLANGIC_100,
-        annotation_position=L10N.BOTTOM_RIGHT,
-        annotation_font=dict(size=10, color="#6c7086"),
-    )
+def _add_portfolio_trace(fig: go.Figure, portfolio_series, currency_label: str) -> None:
+    if portfolio_series is None:
+        return
+    p = portfolio_series.dropna()
+    customdata = pd.DataFrame({
+        "date": [format_turkish_date(d) for d in p.index],
+        "ret": (p.values - 100).round(2),
+    }).values
+    fig.add_trace(go.Scatter(
+        x=p.index, y=p.values, name="Portföy",
+        line=dict(width=3, color=PORTFOLIO_COLOR), opacity=1.0, legendgroup="Portföy",
+        hovertemplate=(
+            "<b>Portföy</b><br>" + L10N.TARIH_CUSTOMDATA0BR +
+            f"Değer: %{{y:.1f}} ({currency_label})<br>" +
+            "Başlangıçtan: %{customdata[1]:+.2f}%<extra></extra>"
+        ),
+        customdata=customdata,
+    ))
 
-    fig.update_layout(
+
+def _build_perf_chart_layout(currency_label: str, title: str) -> dict:
+    return dict(
         title=dict(text=title, font=dict(size=16)),
         xaxis=dict(
             title=L10N.TARIH,
@@ -131,8 +104,7 @@ def build_performance_line_chart_v2(
                     dict(count=1, label="1Y", step="year", stepmode="backward"),
                     dict(step="all", label="Tümü"),
                 ],
-                bgcolor="#313244",
-                activecolor="#585b70",
+                bgcolor="#313244", activecolor="#585b70",
                 font=dict(color="#cdd6f4", size=11),
             ),
             rangeslider=dict(visible=True, bgcolor="#1e1e2e", thickness=0.06),
@@ -146,6 +118,25 @@ def build_performance_line_chart_v2(
         plot_bgcolor="rgba(0,0,0,0)",
         height=580,
     )
+
+
+def build_performance_line_chart_v2(
+    portfolio_series,
+    benchmark_series: pd.DataFrame,
+    currency_label: str,
+    title: str = L10N.PORTFOY_VS_BENCHMARK,
+) -> go.Figure:
+    fig = go.Figure()
+    _add_benchmark_traces(fig, benchmark_series, currency_label)
+    _add_portfolio_trace(fig, portfolio_series, currency_label)
+    fig.add_hline(
+        y=100,
+        line=dict(color="#6c7086", width=1, dash="dot"),
+        annotation_text=L10N.BASLANGIC_100,
+        annotation_position=L10N.BOTTOM_RIGHT,
+        annotation_font=dict(size=10, color="#6c7086"),
+    )
+    fig.update_layout(**_build_perf_chart_layout(currency_label, title))
     all_dates = benchmark_series.index
     if portfolio_series is not None:
         all_dates = all_dates.union(portfolio_series.index)
