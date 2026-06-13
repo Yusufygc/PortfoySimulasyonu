@@ -13,6 +13,7 @@ Bu dosya, Portföy Simülasyonu projesindeki gelecek geliştirme planlarını, t
 * **Sorun/Risk**: Büyük application servisleri ve UI page/widget sınıfları yeni özellik eklerken sorumluluk karışmasına ve regresyon riskine yol açabilir.
 * **Geliştirme Planı**: Önce application servis facade'ları, ardından UI page/component ayrımı ve en son doğrulanmış dependency temizliği yapılacak. Her dilimden önce `scripts/measure_code_quality.py`, sonra hedefli testler ve tam `pytest tests -q` çalıştırılacak.
 * **Bağlantılı Rehber**: [code_quality_guardrails.md](code_quality_guardrails.md)
+* **Devam Notu**: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
 
 ### 1. Seans Kapalıyken Otomatik Güncelleme Davranışı
 * **Mevcut Durum**: [bist_market_session_service.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/application/services/market/bist_market_session_service.py) seans durumunu (açık, kapalı, tatil) doğru tespit edebiliyor.

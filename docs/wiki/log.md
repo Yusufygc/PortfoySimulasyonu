@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-13] yeni-sayfa | Refactor handoff ve devam notu
+
+- Sağlık baseline refactorunun amacı, tamamlanan commitleri, kalan fazları, dirty worktree uyarılarını ve devam komutlarını tek sayfada toplandı.
+- Application Faz 1 için hedefler ve kabul kriterleri başka bir ajan tarafından sürdürülebilecek şekilde kaydedildi.
+- Etkilenen dosyalar: `docs/wiki/refactor_handoff_2026-06-13.md`, `docs/wiki/index.md`, `docs/wiki/Plans.md`, `docs/wiki/log.md`.
+- Bağlantılı sayfa: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
+
 ## [2026-06-13] refaktor | İlk kalite baseline refactor dilimi
 
 - `ModelPortfolioTradeService` içindeki builder, sıralama ve zaman filtresi helper'ları sınıf dışına taşındı; sınıf `299 effective satır / 20 metot` ile eşik altına indi.

@@ -20,6 +20,7 @@
 | [pyside6_migration_analysis.md](pyside6_migration_analysis.md) | PyQt5 tabanlı masaüstü uygulamasını PySide6'ya taşımak için modüler analiz, risk matrisi ve faz planı |
 | [code_quality_guardrails.md](code_quality_guardrails.md) | Sağlık raporu sonrası ölçüm script'i, eşikler, istisna protokolü ve refactor guardrail'leri |
 | [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Yorum, boş satır ve docstring ayrıştırmalı kod kalitesi baseline raporu |
+| [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md) | Sağlık baseline refactorunun amacı, tamamlananları, kalan fazları ve devam komutları |
 | [comparison_lab.md](comparison_lab.md) | Karşılaştırma Laboratuvarı mimarisi, görsel bileşenleri, veri entegrasyonu ve Gemini AI asistan yapısı |
 | [service_reporting_and_export.md](service_reporting_and_export.md) | OpenPyXL Excel formatter ve dışa aktarım raporlaması |
 | [service_corporate_actions.md](service_corporate_actions.md) | Temettü, bölünme işlemleri ve portföy maliyetine etkileri |
@@ -77,4 +78,4 @@ Yeni bir wiki sayfası veya teknik doküman eklendiğinde:
 
 ---
 
-*Son güncelleme: 2026-06-13 — Kod kalitesi guardrail rehberi ve baseline raporu dizine işlendi.*
+*Son güncelleme: 2026-06-13 — Refactor handoff sayfası dizine işlendi.*
