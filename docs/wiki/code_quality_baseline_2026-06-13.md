@@ -7,12 +7,12 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `5afffad`
+- Git commit: `604314c`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3311
-- Effective code lines: 44145
-- Ihlalli sinif: 6
+- Fonksiyon/metot: 3296
+- Effective code lines: 44071
+- Ihlalli sinif: 4
 - Ihlalli fonksiyon/metot: 134
 - Saglik raporu eslesen dosya: 84/84
 
@@ -20,7 +20,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31293 | 1 |
+| src | 329 | 31219 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -39,32 +39,29 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/ui/pages/test_stock_detail_page.py | tests | 455 | 5 | 10 | 33 | ok |
 | tests/ui/pages/test_comparison_page.py | tests | 443 | 10 | 22 | 26 | ok |
 | src/ui/pages/comparison/utils/chart_renderer.py | src | 416 | 1 | 19 | 5 | ok |
-| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 415 | 1 | 23 | 0 | ok |
 | src/ui/pages/stock_detail/stock_detail_page.py | src | 411 | 1 | 20 | 4 | violation |
+| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 406 | 1 | 20 | 0 | ok |
 | src/application/services/planning/risk_profile_service.py | src | 397 | 4 | 15 | 1 | ok |
-| src/ui/pages/ai_page/right_panel/chatbot_panel.py | src | 392 | 1 | 31 | 0 | ok |
 | src/ui/pages/watchlist_page.py | src | 383 | 1 | 20 | 5 | ok |
+| scripts/migrate_ui_strings.py | scripts | 372 | 0 | 0 | 10 | ok |
 
 ## Sinif Ihlalleri
 
 | Dosya | Sinif | Effective satir | Metot | Ihlal |
 |---|---|---:|---:|---|
 | src/ui/shared/locale_tr.py | L10N | 797 | 0 | class_effective_lines |
-| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | NewStockTradeDialog | 396 | 23 | class_effective_lines, class_methods |
-| src/ui/pages/ai_page/right_panel/chatbot_panel.py | ChatbotPanel | 374 | 31 | class_effective_lines, class_methods |
+| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | NewStockTradeDialog | 387 | 20 | class_effective_lines |
 | src/ui/pages/stock_detail/stock_detail_page.py | StockDetailPage | 374 | 20 | class_effective_lines |
 | src/ui/pages/watchlist_page.py | WatchlistPage | 309 | 20 | class_effective_lines |
-| src/ui/widgets/shared/controls/currency_spin_box.py | CurrencySpinBox | 203 | 27 | class_methods |
 
 ## Fonksiyon/Metot Ihlalleri
 
 | Dosya | Fonksiyon | Effective satir | Parametre | Complexity | Ihlal |
 |---|---|---:|---:|---:|---|
 | scripts/migrate_ui_strings.py | main | 116 | 0 | 37 | function_effective_lines, function_complexity |
-| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | _init_page2 | 78 | 0 | 1 | function_effective_lines |
+| src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | _init_page2 | 79 | 0 | 1 | function_effective_lines |
 | scripts/apply_trade_adjustments_schema.py | main | 70 | 0 | 6 | function_effective_lines |
 | src/application/container_parts/services.py | _build_feature_services | 66 | 3 | 1 | function_effective_lines |
-| src/ui/pages/ai_page/right_panel/chatbot_panel.py | _build_prompt_template | 65 | 4 | 27 | function_effective_lines, function_complexity |
 | scripts/replicate_db.py | main | 64 | 0 | 13 | function_effective_lines, function_complexity |
 | src/ui/pages/ai_page/left_panel/peer_card.py | _init_ui | 63 | 0 | 1 | function_effective_lines |
 | src/ui/pages/settings/appearance_panel.py | _build_theme_card | 62 | 2 | 2 | function_effective_lines |
@@ -90,6 +87,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_update_view_passes_previous_close_map | 55 | 1 | 3 | function_effective_lines |
 | src/ui/pages/ai_page/left_panel/xai_card.py | _make_factor_row | 54 | 2 | 8 | function_effective_lines |
 | src/ui/pages/analysis/analysis_comparison_section.py | __init__ | 53 | 1 | 1 | function_effective_lines |
+| src/ui/pages/stock_detail/stock_chart_widget.py | _render_chart | 53 | 4 | 8 | function_effective_lines |
 
 ## Saglik Raporu Crosswalk
 
