@@ -23,7 +23,11 @@ class PredictionCard(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 14, 16, 14)
         layout.setSpacing(8)
+        self._build_pred_header(layout)
+        self._build_ticker_price_rows(layout)
+        self._build_trend_confidence(layout)
 
+    def _build_pred_header(self, layout) -> None:
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
         lbl_icon = QLabel()
@@ -35,7 +39,7 @@ class PredictionCard(QWidget):
         header_layout.addStretch()
         layout.addLayout(header_layout)
 
-        # Hisse & Model bilgisi
+    def _build_ticker_price_rows(self, layout) -> None:
         info_layout = QHBoxLayout()
         self.lbl_ticker = QLabel(L10N.HISSE)
         self.lbl_ticker.setProperty("cssClass", "aiPrimaryText")
@@ -46,8 +50,6 @@ class PredictionCard(QWidget):
         info_layout.addStretch()
         info_layout.addWidget(self.lbl_model)
         layout.addLayout(info_layout)
-
-        # Fiyatlar
         price_layout = QHBoxLayout()
         self.lbl_price = QLabel(L10N.TAHMINI_FIYAT)
         self.lbl_price.setProperty("cssClass", "priceValueLargeCyan")
@@ -58,15 +60,13 @@ class PredictionCard(QWidget):
         price_layout.addStretch()
         price_layout.addWidget(self.lbl_last_close)
         layout.addLayout(price_layout)
-
-        # Olasılıksal tahmin aralığı (p10–p90). Boşsa gizli.
         self.lbl_interval = QLabel("")
         self.lbl_interval.setProperty("cssClass", "aiMetaText")
         self.lbl_interval.setWordWrap(True)
         self.lbl_interval.setVisible(False)
         layout.addWidget(self.lbl_interval)
 
-        # Trend & Horizon
+    def _build_trend_confidence(self, layout) -> None:
         trend_layout = QHBoxLayout()
         self.lbl_trend = QLabel("")
         self.lbl_trend.setAlignment(Qt.AlignCenter)
@@ -81,8 +81,6 @@ class PredictionCard(QWidget):
         trend_layout.addStretch()
         trend_layout.addWidget(self.lbl_return)
         layout.addLayout(trend_layout)
-
-        # Güven barı
         conf_layout = QHBoxLayout()
         lbl_conf = QLabel(L10N.GUVEN)
         lbl_conf.setProperty("cssClass", "aiStrongMetaText")
@@ -115,55 +113,39 @@ class PredictionCard(QWidget):
         predicted_price_high: float | None = None,
         interval_method: str | None = None,
     ):
-        self.lbl_ticker.setText(L10N.HISSE_TMPL.format(ticker=display_ticker(ticker)))
+        self._update_price_labels(ticker, predicted_price, last_close)
+        self._update_interval_label(predicted_price_low, predicted_price_high, interval_method)
+        self._update_trend_labels(trend_label, horizon_days, weekly_expected_return)
+        self._update_confidence_display(confidence, confidence_label, model_name)
 
+    def _update_price_labels(self, ticker: str, predicted_price: float | None, last_close: float | None) -> None:
+        self.lbl_ticker.setText(L10N.HISSE_TMPL.format(ticker=display_ticker(ticker)))
         if predicted_price is not None:
             self.lbl_price.setText(L10N.TAHMINI_FIYAT_TMPL.format(price=f"{predicted_price:.2f}"))
         else:
             self.lbl_price.setText(L10N.TAHMINI_FIYAT_1)
+        if last_close is not None:
+            self.lbl_last_close.setText(L10N.SON_KAPANIS_FIYAT_TMPL.format(price=f"{last_close:.2f}"))
 
-        # Olasılıksal aralık (p10–p90). İki sınır da varsa göster, yoksa gizle.
-        if predicted_price_low is not None and predicted_price_high is not None:
-            method_text = self._INTERVAL_METHOD_TR.get(interval_method or "", "")
+    def _update_interval_label(self, low: float | None, high: float | None, method: str | None) -> None:
+        if low is not None and high is not None:
+            method_text = self._INTERVAL_METHOD_TR.get(method or "", "")
             if method_text:
                 self.lbl_interval.setText(
                     L10N.TAHMIN_ARALIGI_YONTEM_TMPL.format(
-                        low=f"{predicted_price_low:.2f}",
-                        high=f"{predicted_price_high:.2f}",
-                        method=method_text,
+                        low=f"{low:.2f}", high=f"{high:.2f}", method=method_text,
                     )
                 )
             else:
                 self.lbl_interval.setText(
-                    L10N.TAHMIN_ARALIGI_TMPL.format(
-                        low=f"{predicted_price_low:.2f}",
-                        high=f"{predicted_price_high:.2f}",
-                    )
+                    L10N.TAHMIN_ARALIGI_TMPL.format(low=f"{low:.2f}", high=f"{high:.2f}")
                 )
             self.lbl_interval.setVisible(True)
         else:
             self.lbl_interval.clear()
             self.lbl_interval.setVisible(False)
 
-        self.progress_conf.setValue(int(confidence * 100))
-
-        # Güven badge
-        badge_map = {"high": "YÜKSEK", "medium": "ORTA", "low": "DÜŞÜK"}
-        badge_text = badge_map.get(confidence_label, "")
-        self.lbl_conf_badge.setText(badge_text)
-        self.lbl_conf_badge.setProperty("cssState", confidence_label or "low")
-        self.lbl_conf_badge.style().unpolish(self.lbl_conf_badge)
-        self.lbl_conf_badge.style().polish(self.lbl_conf_badge)
-
-        # Model adı
-        if model_name:
-            self.lbl_model.setText(L10N.MODEL_TMPL.format(name=model_name))
-
-        # Son kapanış
-        if last_close is not None:
-            self.lbl_last_close.setText(L10N.SON_KAPANIS_FIYAT_TMPL.format(price=f"{last_close:.2f}"))
-
-        # Trend
+    def _update_trend_labels(self, trend_label: str | None, horizon_days: int | None, weekly_expected_return: float | None) -> None:
         trend_map = {"up": L10N.TREND_YUKSELIS, "down": L10N.TREND_DUSUS, "neutral": L10N.TREND_YATAY, "flat": L10N.TREND_YATAY}
         if trend_label:
             tl_lower = trend_label.lower()
@@ -171,17 +153,23 @@ class PredictionCard(QWidget):
             self.lbl_trend.setProperty("cssState", tl_lower if tl_lower in ("up", "down") else "neutral")
             self.lbl_trend.style().unpolish(self.lbl_trend)
             self.lbl_trend.style().polish(self.lbl_trend)
-
-        # Horizon
         if horizon_days is not None:
             self.lbl_horizon.setText(L10N.GUNLUK_TAHMIN_TMPL.format(days=horizon_days))
-
-        # Horizon sonundaki bileşik beklenen getiri
         if weekly_expected_return is not None:
             pct = weekly_expected_return * 100
             sign = "+" if pct >= 0 else ""
             horizon_label = f"{horizon_days} Günlük" if horizon_days is not None else L10N.HORIZON_SONU
             self.lbl_return.setText(L10N.BILESIK_GETIRI_TMPL.format(label=horizon_label, value=f"{sign}{pct:.2f}%"))
+
+    def _update_confidence_display(self, confidence: float, confidence_label: str, model_name: str) -> None:
+        self.progress_conf.setValue(int(confidence * 100))
+        badge_map = {"high": "YÜKSEK", "medium": "ORTA", "low": "DÜŞÜK"}
+        self.lbl_conf_badge.setText(badge_map.get(confidence_label, ""))
+        self.lbl_conf_badge.setProperty("cssState", confidence_label or "low")
+        self.lbl_conf_badge.style().unpolish(self.lbl_conf_badge)
+        self.lbl_conf_badge.style().polish(self.lbl_conf_badge)
+        if model_name:
+            self.lbl_model.setText(L10N.MODEL_TMPL.format(name=model_name))
 
     def reset(self):
         self.lbl_ticker.setText(L10N.HISSE)

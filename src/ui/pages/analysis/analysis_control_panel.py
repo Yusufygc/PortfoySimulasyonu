@@ -65,6 +65,14 @@ class AnalysisControlPanel(QFrame):
             )
         )
 
+        layout.addWidget(self._build_date_filter_frame())
+        layout.addLayout(self._build_quick_date_row())
+        self.combo_benchmark = self._create_combo_box("Benchmark")
+        self.combo_benchmark.currentIndexChanged.connect(self.filter_changed.emit)
+        layout.addWidget(self._wrap_field(L10N.KIYASLAMA_ENDEKSI, self.combo_benchmark, L10N.GENEL_BAKISTA_FARK_HESABI_ICIN))
+        layout.addStretch()
+
+    def _build_date_filter_frame(self) -> QFrame:
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
         self.date_start.setProperty("cssClass", "analysisDateInput")
@@ -73,7 +81,6 @@ class AnalysisControlPanel(QFrame):
         self.date_start.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.date_start.setDate(QDate.currentDate().addMonths(-3))
         self.date_start.dateChanged.connect(self.filter_changed.emit)
-
         self.date_end = QDateEdit()
         self.date_end.setCalendarPopup(True)
         self.date_end.setProperty("cssClass", "analysisDateInput")
@@ -82,32 +89,27 @@ class AnalysisControlPanel(QFrame):
         self.date_end.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
-
-        # Başlangıç ve bitiş tarihlerini tek bir "Tarih Aralığı" kartında birleştiriyoruz
         dates_frame = QFrame()
         dates_frame.setProperty("cssClass", "analysisFilterCard")
         dates_layout = QVBoxLayout(dates_frame)
         dates_layout.setContentsMargins(15, 15, 15, 15)
         dates_layout.setSpacing(10)
-
         dates_title = QLabel(L10N.TARIH_ARALIGI)
         dates_title.setProperty("cssClass", "panelTitle")
         dates_layout.addWidget(dates_title)
-
         pickers_layout = QHBoxLayout()
         pickers_layout.setSpacing(6)
         pickers_layout.setContentsMargins(0, 0, 0, 0)
         pickers_layout.addWidget(self.date_start, 1)
-        
         lbl_to = QLabel("—")
         lbl_to.setAlignment(Qt.AlignCenter)
         lbl_to.setProperty("cssClass", "dateSeparatorLabel")
         pickers_layout.addWidget(lbl_to)
-        
         pickers_layout.addWidget(self.date_end, 1)
         dates_layout.addLayout(pickers_layout)
-        layout.addWidget(dates_frame)
+        return dates_frame
 
+    def _build_quick_date_row(self) -> QHBoxLayout:
         quick_row = QHBoxLayout()
         quick_row.setSpacing(6)
         for label, days in [("1A", 30), ("3A", 90), ("6A", 180), ("1Y", 365)]:
@@ -115,18 +117,12 @@ class AnalysisControlPanel(QFrame):
             button.setProperty("cssClass", "quickDateBtn")
             button.clicked.connect(lambda _, d=days: self._set_quick_date(d))
             quick_row.addWidget(button)
-
         btn_all = QPushButton(L10N.TUMU)
         btn_all.setProperty("cssClass", "quickDateBtn")
         btn_all.clicked.connect(self._set_all_time)
         quick_row.addWidget(btn_all)
         quick_row.addStretch()
-        layout.addLayout(quick_row)
-
-        self.combo_benchmark = self._create_combo_box("Benchmark")
-        self.combo_benchmark.currentIndexChanged.connect(self.filter_changed.emit)
-        layout.addWidget(self._wrap_field(L10N.KIYASLAMA_ENDEKSI, self.combo_benchmark, L10N.GENEL_BAKISTA_FARK_HESABI_ICIN))
-        layout.addStretch()
+        return quick_row
 
     def _create_combo_box(self, _placeholder: str) -> QComboBox:
         combo = QComboBox()

@@ -30,6 +30,28 @@ from .analysis_risk_section import AnalysisRiskSection
 logger = logging.getLogger(__name__)
 
 
+def _wrap_in_scroll(widget: QWidget) -> QScrollArea:
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QFrame.NoFrame)
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    scroll.setMinimumWidth(0)
+    scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    content = QWidget()
+    content.setObjectName("scroll_content")
+    content.setMinimumWidth(0)
+    content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+    widget.setMinimumWidth(0)
+    widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+    layout = QVBoxLayout(content)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(0)
+    layout.addWidget(widget)
+    layout.addStretch()
+    scroll.setWidget(content)
+    return scroll
+
+
 class AnalysisPage(BasePage):
     def __init__(self, container, parent=None):
         super().__init__(parent)
@@ -46,53 +68,50 @@ class AnalysisPage(BasePage):
         content_layout = QHBoxLayout()
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(16)
-
         left_container = QWidget()
         left_container.setMinimumWidth(0)
         left_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         left_layout = QVBoxLayout(left_container)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(14)
-
-        header_layout = QHBoxLayout()
-        header_layout.setSpacing(10)
-
-        icon_lbl = IconLabel("line-chart", color="@COLOR_ACCENT", size=28)
-        header_layout.addWidget(icon_lbl)
-
-        title_col = QVBoxLayout()
-        title_col.setSpacing(4)
-
-        lbl_title = QLabel(L10N.ANALIZ_VE_KARSILASTIRMA)
-        lbl_title.setProperty("cssClass", "pageTitle")
-        title_col.addWidget(lbl_title)
-
-        lbl_desc = QLabel(L10N.PORTFOY_BENCHMARK_RISK_TEK_AKIS)
-        lbl_desc.setProperty("cssClass", "pageDescription")
-        title_col.addWidget(lbl_desc)
-
-        header_layout.addLayout(title_col)
-        header_layout.addStretch()
-
-        self.btn_toggle_panel = AnimatedButton(L10N.FILTRELERI_GIZLE)
-        self.btn_toggle_panel.setProperty("cssClass", "secondaryButton")
-        self.btn_toggle_panel.setIconName("layers", color="@COLOR_TEXT_SECONDARY", size=18)
-        self.btn_toggle_panel.clicked.connect(self._toggle_control_panel)
-        header_layout.addWidget(self.btn_toggle_panel)
-
-        self.btn_refresh = AnimatedButton(L10N.ANALIZI_YENILE)
-        self.btn_refresh.setProperty("cssClass", "primaryButton")
-        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=18)
-        self.btn_refresh.clicked.connect(self.refresh_data)
-        header_layout.addWidget(self.btn_refresh)
-        left_layout.addLayout(header_layout)
-
+        left_layout.addLayout(self._build_left_header())
         self.warning_banner = QLabel("")
         self.warning_banner.setProperty("cssClass", "warningBanner")
         self.warning_banner.setWordWrap(True)
         self.warning_banner.hide()
         left_layout.addWidget(self.warning_banner)
+        left_layout.addWidget(self._build_tabs(), 1)
+        content_layout.addWidget(left_container, 1)
+        content_layout.addWidget(self._build_control_panel_column(), 0)
+        self.main_layout.addLayout(content_layout, 1)
 
+    def _build_left_header(self) -> QHBoxLayout:
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(10)
+        header_layout.addWidget(IconLabel("line-chart", color="@COLOR_ACCENT", size=28))
+        title_col = QVBoxLayout()
+        title_col.setSpacing(4)
+        lbl_title = QLabel(L10N.ANALIZ_VE_KARSILASTIRMA)
+        lbl_title.setProperty("cssClass", "pageTitle")
+        title_col.addWidget(lbl_title)
+        lbl_desc = QLabel(L10N.PORTFOY_BENCHMARK_RISK_TEK_AKIS)
+        lbl_desc.setProperty("cssClass", "pageDescription")
+        title_col.addWidget(lbl_desc)
+        header_layout.addLayout(title_col)
+        header_layout.addStretch()
+        self.btn_toggle_panel = AnimatedButton(L10N.FILTRELERI_GIZLE)
+        self.btn_toggle_panel.setProperty("cssClass", "secondaryButton")
+        self.btn_toggle_panel.setIconName("layers", color="@COLOR_TEXT_SECONDARY", size=18)
+        self.btn_toggle_panel.clicked.connect(self._toggle_control_panel)
+        header_layout.addWidget(self.btn_toggle_panel)
+        self.btn_refresh = AnimatedButton(L10N.ANALIZI_YENILE)
+        self.btn_refresh.setProperty("cssClass", "primaryButton")
+        self.btn_refresh.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=18)
+        self.btn_refresh.clicked.connect(self.refresh_data)
+        header_layout.addWidget(self.btn_refresh)
+        return header_layout
+
+    def _build_tabs(self) -> QTabWidget:
         self.tabs = QTabWidget()
         self.tabs.setProperty("cssClass", "mainTabWidget")
         self.tabs.setMinimumWidth(0)
@@ -101,21 +120,18 @@ class AnalysisPage(BasePage):
         tab_bar.setExpanding(True)
         tab_bar.setUsesScrollButtons(False)
         tab_bar.setElideMode(Qt.ElideNone)
-
         self.overview_section = AnalysisOverviewSection()
         self.risk_section = AnalysisRiskSection()
-        self.tabs.addTab(self._wrap_scroll(self.overview_section), L10N.GENEL_BAKIS)
-        self.tabs.addTab(self._wrap_scroll(self.risk_section), L10N.DAGILIM_VE_RISK)
+        self.tabs.addTab(_wrap_in_scroll(self.overview_section), L10N.GENEL_BAKIS)
+        self.tabs.addTab(_wrap_in_scroll(self.risk_section), L10N.DAGILIM_VE_RISK)
         self.tabs.currentChanged.connect(self._on_tab_changed)
-        left_layout.addWidget(self.tabs, 1)
-        content_layout.addWidget(left_container, 1)
+        return self.tabs
 
+    def _build_control_panel_column(self) -> QWidget:
+        PANEL_WIDTH = 420
         self.control_panel = AnalysisControlPanel()
         self.control_panel.filter_changed.connect(self._request_refresh)
         self.control_panel.source_changed.connect(self._on_source_changed)
-
-        PANEL_WIDTH = 420
-
         self.control_panel_scroll = QScrollArea()
         self.control_panel_scroll.setWidgetResizable(True)
         self.control_panel_scroll.setFrameShape(QFrame.NoFrame)
@@ -124,41 +140,14 @@ class AnalysisPage(BasePage):
         self.control_panel_scroll.setFixedWidth(PANEL_WIDTH)
         self.control_panel_scroll.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         self.control_panel_scroll.setWidget(self.control_panel)
-
         self.control_panel_column = QWidget()
         self.control_panel_column.setFixedWidth(PANEL_WIDTH)
         self.control_panel_column.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-
         panel_layout = QVBoxLayout(self.control_panel_column)
         panel_layout.setContentsMargins(0, 0, 0, 0)
         panel_layout.setSpacing(0)
         panel_layout.addWidget(self.control_panel_scroll, 1)
-
-        content_layout.addWidget(self.control_panel_column, 0)
-
-        self.main_layout.addLayout(content_layout, 1)
-
-    def _wrap_scroll(self, widget: QWidget) -> QScrollArea:
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setMinimumWidth(0)
-        scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        content = QWidget()
-        content.setObjectName("scroll_content")
-        content.setMinimumWidth(0)
-        content.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        widget.setMinimumWidth(0)
-        widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        layout = QVBoxLayout(content)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addWidget(widget)
-        layout.addStretch()
-        scroll.setWidget(content)
-        return scroll
+        return self.control_panel_column
 
     def _toggle_control_panel(self):
         is_visible = self.control_panel_column.isVisible()
