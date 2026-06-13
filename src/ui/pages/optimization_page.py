@@ -57,98 +57,73 @@ class OptimizationPage(BasePage):
     # ------------------------------------------------------------------
 
     def _init_ui(self):
-        # Sayfa Kaydırma Alanı (İçerik sidebar dışına taşarsa çalışır)
+        # NOT: QSS selector'suz inline stylesheet koyma — alt widget'lara yayılır.
+        # Bunun yerine `QWidget#scroll_content` QSS kuralı kullanılır.
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
-
-        # NOT: Buraya selector'suz inline stylesheet ile transparent arka plan
-        # KOYMA. Qt'de parent'a verilen selector'suz stylesheet kuralı tüm
-        # alt widget'lara yayılır ve QSS buton arka planlarını ezer (buton
-        # beyaz görünür). Bunun yerine objectName ile QSS'teki
-        # `QWidget#scroll_content` kuralı kullanılır.
         self.scroll_content = QWidget()
         self.scroll_content.setObjectName("scroll_content")
         self.scroll_layout = QVBoxLayout(self.scroll_content)
         self.scroll_layout.setContentsMargins(25, 25, 25, 25)
         self.scroll_layout.setSpacing(20)
-        
-        # Başlık
-        header = QHBoxLayout()
-        self.lbl_title_icon = IconLabel("zap", color="@COLOR_ACCENT", size=28)
-        header.addWidget(self.lbl_title_icon)
-        
-        lbl_title = QLabel(L10N.PORTFOY_OPTIMIZASYONU)
-        lbl_title.setProperty("cssClass", "pageTitle")
-        header.addWidget(lbl_title)
-        header.addStretch()
-        self.scroll_layout.addLayout(header)
-
-        lbl_desc = QLabel(
-            L10N.OPTIMIZASYON_MARKOWITZ_ACIKLAMA +
-            L10N.MAKSIMIZE_EDEN_OPTIMAL_PORTFOY_AGIRLIKLARINI
-        )
-        lbl_desc.setProperty("cssClass", "pageDescription")
-        self.scroll_layout.addWidget(lbl_desc)
-
-        # Kaynak seçimi paneli
+        self._build_page_header_desc(self.scroll_layout)
         self.scroll_layout.addWidget(self._build_source_panel())
-
-        # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 0)
         self.progress_bar.setMaximumHeight(4)
         self.progress_bar.setProperty("cssClass", "optimizationProgressBar")
         self.progress_bar.setVisible(False)
         self.scroll_layout.addWidget(self.progress_bar)
-
-        # Metrik kartları
         self.scroll_layout.addWidget(self._build_metrics_panel())
+        self._build_metrics_info_and_suggestions(self.scroll_layout)
+        self.scroll_layout.addStretch()
+        self.scroll.setWidget(self.scroll_content)
+        self.main_layout.addWidget(self.scroll)
 
-        # Birleştirilmiş Bilgilendirme Kutusu
+    def _build_page_header_desc(self, layout) -> None:
+        header = QHBoxLayout()
+        self.lbl_title_icon = IconLabel("zap", color="@COLOR_ACCENT", size=28)
+        header.addWidget(self.lbl_title_icon)
+        lbl_title = QLabel(L10N.PORTFOY_OPTIMIZASYONU)
+        lbl_title.setProperty("cssClass", "pageTitle")
+        header.addWidget(lbl_title)
+        header.addStretch()
+        layout.addLayout(header)
+        lbl_desc = QLabel(L10N.OPTIMIZASYON_MARKOWITZ_ACIKLAMA + L10N.MAKSIMIZE_EDEN_OPTIMAL_PORTFOY_AGIRLIKLARINI)
+        lbl_desc.setProperty("cssClass", "pageDescription")
+        layout.addWidget(lbl_desc)
+
+    def _build_metrics_info_and_suggestions(self, layout) -> None:
         self.lbl_metrics_info = QLabel()
         self.lbl_metrics_info.setTextFormat(Qt.RichText)
         self.lbl_metrics_info.setText(
-            L10N.OPTIMIZASYON_METRIK_ACIKLAMA +
-            "<br><br>" +
-            L10N.OPTIMIZASYON_SON_2_YILLIK_GECMIS +
-            L10N.TEK_HISSE_MAKSIMUM_AGIRLIGI_40
+            L10N.OPTIMIZASYON_METRIK_ACIKLAMA + "<br><br>" +
+            L10N.OPTIMIZASYON_SON_2_YILLIK_GECMIS + L10N.TEK_HISSE_MAKSIMUM_AGIRLIGI_40
         )
         self.lbl_metrics_info.setProperty("cssClass", "disclaimerText")
         self.lbl_metrics_info.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.lbl_metrics_info.setWordWrap(True)
         self.lbl_metrics_info.setVisible(False)
-        self.scroll_layout.addWidget(self.lbl_metrics_info)
-
-        # Öneriler başlığı + tablo
+        layout.addWidget(self.lbl_metrics_info)
         suggestions_header = QHBoxLayout()
         suggestions_header.setSpacing(10)
-        
         self.lbl_sug_icon = IconLabel("list", color="@COLOR_TEXT_SECONDARY", size=20)
         self.lbl_sug_icon.setVisible(False)
         suggestions_header.addWidget(self.lbl_sug_icon)
-
         self.lbl_suggestions = QLabel(L10N.ONERILEN_DAGILIM)
         self.lbl_suggestions.setProperty("cssClass", "tableTitle")
         self.lbl_suggestions.setVisible(False)
         suggestions_header.addWidget(self.lbl_suggestions)
         suggestions_header.addStretch()
-        self.scroll_layout.addLayout(suggestions_header)
-
+        layout.addLayout(suggestions_header)
         self.suggestions_table = SuggestionsTable()
         self.suggestions_table.setVisible(False)
-        self.scroll_layout.addWidget(self.suggestions_table)
-
-        # Boş durum
+        layout.addWidget(self.suggestions_table)
         self.lbl_empty = QLabel(L10N.BIR_PORTFOY_KAYNAGI_SECIN_VE)
         self.lbl_empty.setProperty("cssClass", "emptyStateText")
         self.lbl_empty.setAlignment(Qt.AlignCenter)
-        self.scroll_layout.addWidget(self.lbl_empty)
-
-        self.scroll_layout.addStretch()
-        
-        self.scroll.setWidget(self.scroll_content)
-        self.main_layout.addWidget(self.scroll)
+        layout.addWidget(self.lbl_empty)
 
     def _build_source_panel(self) -> QFrame:
         """Kaynak seçimi ve Optimize Et butonu paneli."""

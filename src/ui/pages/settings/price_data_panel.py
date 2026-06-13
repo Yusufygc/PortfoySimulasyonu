@@ -114,7 +114,7 @@ class PriceDataPanel(QWidget):
         self.combo_portfolio_scope = QComboBox()
         self.combo_portfolio_scope.setProperty("cssClass", "tradeInputNormal")
         self.combo_portfolio_scope.setMinimumHeight(36)
-        self._populate_portfolio_scope_combo()
+        populate_scope_combo(self.combo_portfolio_scope, self.price_data_health_service)
 
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
@@ -231,10 +231,6 @@ class PriceDataPanel(QWidget):
             self.btn_copy_report,
         )
 
-    @property
-    def _price_data_buttons(self) -> tuple[AnimatedButton, ...]:
-        return self._price_data_top_buttons + (self.btn_update_selected,)
-
     def _summary_label(self, title: str, value: str, icon_name: str = None) -> QFrame:
         frame = QFrame()
         frame.setProperty("cssClass", "infoCard")
@@ -267,9 +263,6 @@ class PriceDataPanel(QWidget):
     # ------------------------------------------------------------------
     # Durum ve Proxy Metodları (Testler ve UI State İçin)
     # ------------------------------------------------------------------
-
-    def _populate_portfolio_scope_combo(self) -> None:
-        populate_scope_combo(self.combo_portfolio_scope, self.price_data_health_service)
 
     def _selected_scope(self) -> str:
         if not hasattr(self, "combo_portfolio_scope"):
