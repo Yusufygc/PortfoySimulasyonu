@@ -7,21 +7,21 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `527b878`
+- Git commit: `9974b61`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3251
-- Effective code lines: 44105
-- Ihlalli sinif: 12
-- Ihlalli fonksiyon/metot: 155
+- Fonksiyon/metot: 3253
+- Effective code lines: 44082
+- Ihlalli sinif: 10
+- Ihlalli fonksiyon/metot: 154
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31246 | 0 |
-| tests | 95 | 11253 | 0 |
+| src | 329 | 31230 | 0 |
+| tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
 
@@ -33,12 +33,12 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/application/services/market/price_data_health_service.py | src | 695 | 10 | 42 | 11 | ok |
 | tests/ui/pages/test_model_portfolio_page.py | tests | 659 | 17 | 43 | 24 | ok |
 | scripts/measure_code_quality.py | scripts | 589 | 3 | 10 | 40 | ok |
-| src/application/services/planning/model_portfolio_trade_service.py | src | 528 | 3 | 36 | 0 | ok |
 | tests/application/test_price_data_health_service.py | tests | 518 | 6 | 18 | 22 | ok |
+| src/application/services/planning/model_portfolio_trade_service.py | src | 514 | 3 | 30 | 6 | ok |
 | tests/application/test_analysis_service.py | tests | 504 | 12 | 23 | 19 | ok |
 | tests/ui/pages/test_stock_detail_page.py | tests | 455 | 5 | 10 | 33 | ok |
 | tests/ui/pages/test_comparison_page.py | tests | 443 | 10 | 22 | 26 | ok |
-| src/ui/pages/comparison/utils/chart_renderer.py | src | 420 | 1 | 22 | 1 | ok |
+| src/ui/pages/comparison/utils/chart_renderer.py | src | 416 | 1 | 19 | 5 | ok |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 415 | 1 | 23 | 0 | ok |
 | src/ui/pages/stock_detail/stock_detail_page.py | src | 399 | 1 | 16 | 3 | ok |
 | src/application/services/planning/risk_profile_service.py | src | 397 | 4 | 15 | 1 | ok |
@@ -51,9 +51,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 |---|---|---:|---:|---|
 | src/ui/shared/locale_tr.py | L10N | 797 | 0 | class_effective_lines |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | NewStockTradeDialog | 396 | 23 | class_effective_lines, class_methods |
-| src/application/services/planning/model_portfolio_trade_service.py | ModelPortfolioTradeService | 382 | 26 | class_effective_lines, class_methods |
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | ChatbotPanel | 374 | 31 | class_effective_lines, class_methods |
-| src/ui/pages/comparison/utils/chart_renderer.py | ChartRenderer | 369 | 22 | class_effective_lines, class_methods |
 | src/ui/pages/stock_detail/stock_detail_page.py | StockDetailPage | 369 | 16 | class_effective_lines |
 | src/ui/pages/watchlist_page.py | WatchlistPage | 352 | 20 | class_effective_lines |
 | src/ui/pages/risk_profile_page.py | RiskProfilePage | 330 | 22 | class_effective_lines, class_methods |

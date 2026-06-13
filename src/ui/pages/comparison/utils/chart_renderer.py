@@ -63,6 +63,84 @@ _DOWNLOAD_CHART_LABELS = {
 _CHART_NAMES = ("main", "drawdown", "periodic", "scatter", "treemap")
 
 
+def _find_column(df: pd.DataFrame, code: str, code_to_label: dict) -> str | None:
+    label = code_to_label.get(code)
+    if label and label in df.columns:
+        return label
+    for col in df.columns:
+        if col.lower() == code.lower() or (code.isdigit() and col == code):
+            return col
+        if code.lower().replace(" ", "").replace("_", "") in col.lower().replace(" ", "").replace("_", ""):
+            return col
+    return df.columns[0] if not df.empty else None
+
+
+def _fallback_cumulative(df: pd.DataFrame, fig: go.Figure) -> None:
+    df_ret = df.copy()
+    for col in df_ret.columns:
+        base_val = df_ret[col].iloc[0]
+        df_ret[col] = (
+            ((df_ret[col] - base_val) / base_val) * 100.0
+            if base_val != 0 else 0.0
+        )
+    for i, col in enumerate(df_ret.columns):
+        fig.add_trace(go.Scatter(
+            x=df_ret.index, y=df_ret[col], name=col,
+            line=dict(width=2, color=_COLORS[i % len(_COLORS)]),
+            hovertemplate=ComparisonChartFactory._date_value_hover_template()
+        ))
+    ComparisonChartFactory._apply_theme_layout(fig, L10N.KUMULATIF_PERFORMANS_GETIRISI)
+
+
+def build_main_fig(df: pd.DataFrame, mode: str, ratio_assets: tuple | None, code_to_label: dict) -> go.Figure:
+    fig = go.Figure()
+
+    if mode == L10N.NORMALIZE_BAZ_100:
+        df_norm = df.copy()
+        for col in df_norm.columns:
+            base_val = df_norm[col].iloc[0]
+            if base_val != 0:
+                df_norm[col] = (df_norm[col] / base_val) * 100.0
+        for i, col in enumerate(df_norm.columns):
+            fig.add_trace(go.Scatter(
+                x=df_norm.index, y=df_norm[col], name=col,
+                line=dict(width=2, color=_COLORS[i % len(_COLORS)]),
+                hovertemplate=ComparisonChartFactory._date_value_hover_template()
+            ))
+        ComparisonChartFactory._apply_theme_layout(fig, L10N.NORMALIZE_PERFORMANS_KIYASLAMASI_BAZ_100)
+    elif mode == L10N.RASYO_MODU and ratio_assets:
+        num_col = _find_column(df, ratio_assets[0], code_to_label)
+        den_col = _find_column(df, ratio_assets[1], code_to_label)
+        if num_col and den_col:
+            ratio_series = ComparisonService.calculate_asset_ratio(df[num_col], df[den_col])
+            ratio_name = f"{num_col} / {den_col}"
+            fig.add_trace(go.Scatter(
+                x=ratio_series.index, y=ratio_series.values,
+                name=ratio_name,
+                line=dict(width=2, color="#00D4FF"),
+                hovertemplate=ComparisonChartFactory._date_value_hover_template()
+            ))
+            ComparisonChartFactory._apply_theme_layout(fig, f"Rasyo GÃ¶sterimi: {ratio_name}")
+        else:
+            _fallback_cumulative(df, fig)
+    else:
+        _fallback_cumulative(df, fig)
+
+    ComparisonChartFactory._apply_date_axis_format(fig)
+    return fig
+
+
+def _resolve_asset_label(code: str, code_to_label: dict[str, str], asset_labels: dict[str, str]) -> str:
+    return code_to_label.get(code) or asset_labels.get(code) or code
+
+
+def _slugify(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value or "")
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_text.lower()).strip("_")
+    return re.sub(r"_+", "_", cleaned)
+
+
 class ChartRenderer:
     """Plotly grafiklerini, QTableWidget içeriğini ve boş durumu yönetir."""
 
@@ -265,73 +343,7 @@ class ChartRenderer:
     # ------------------------------------------------------------------
 
     def _build_main_fig(self, df: pd.DataFrame, mode: str, ratio_assets: tuple | None, code_to_label: dict) -> go.Figure:
-        fig = go.Figure()
-        
-        def find_col(code):
-            label = code_to_label.get(code)
-            if label and label in df.columns:
-                return label
-            for col in df.columns:
-                if col.lower() == code.lower() or (code.isdigit() and col == code):
-                    return col
-                if code.lower().replace(" ", "").replace("_", "") in col.lower().replace(" ", "").replace("_", ""):
-                    return col
-            return df.columns[0] if not df.empty else None
-
-        if mode == L10N.NORMALIZE_BAZ_100:
-            df_norm = df.copy()
-            for col in df_norm.columns:
-                base_val = df_norm[col].iloc[0]
-                if base_val != 0:
-                    df_norm[col] = (df_norm[col] / base_val) * 100.0
-            for i, col in enumerate(df_norm.columns):
-                fig.add_trace(go.Scatter(
-                    x=df_norm.index, y=df_norm[col], name=col,
-                    line=dict(width=2, color=_COLORS[i % len(_COLORS)]),
-                    hovertemplate=ComparisonChartFactory._date_value_hover_template()
-                ))
-            ComparisonChartFactory._apply_theme_layout(fig, L10N.NORMALIZE_PERFORMANS_KIYASLAMASI_BAZ_100)
-
-        elif mode == L10N.RASYO_MODU:
-            if ratio_assets:
-                num_code, den_code = ratio_assets
-                num_col = find_col(num_code)
-                den_col = find_col(den_code)
-                if num_col and den_col:
-                    ratio_series = ComparisonService.calculate_asset_ratio(df[num_col], df[den_col])
-                    ratio_name = f"{num_col} / {den_col}"
-                    fig.add_trace(go.Scatter(
-                        x=ratio_series.index, y=ratio_series.values,
-                        name=ratio_name,
-                        line=dict(width=2, color="#00D4FF"),
-                        hovertemplate=ComparisonChartFactory._date_value_hover_template()
-                    ))
-                    ComparisonChartFactory._apply_theme_layout(fig, f"Rasyo Gösterimi: {ratio_name}")
-                else:
-                    self._fallback_cumulative(df, fig)
-            else:
-                self._fallback_cumulative(df, fig)
-        else:
-            self._fallback_cumulative(df, fig)
-
-        ComparisonChartFactory._apply_date_axis_format(fig)
-        return fig
-        
-    def _fallback_cumulative(self, df: pd.DataFrame, fig: go.Figure) -> None:
-        df_ret = df.copy()
-        for col in df_ret.columns:
-            base_val = df_ret[col].iloc[0]
-            df_ret[col] = (
-                ((df_ret[col] - base_val) / base_val) * 100.0
-                if base_val != 0 else 0.0
-            )
-        for i, col in enumerate(df_ret.columns):
-            fig.add_trace(go.Scatter(
-                x=df_ret.index, y=df_ret[col], name=col,
-                line=dict(width=2, color=_COLORS[i % len(_COLORS)]),
-                hovertemplate=ComparisonChartFactory._date_value_hover_template()
-            ))
-        ComparisonChartFactory._apply_theme_layout(fig, L10N.KUMULATIF_PERFORMANS_GETIRISI)
+        return build_main_fig(df, mode, ratio_assets, code_to_label)
 
     def _build_download_filename(
         self,
@@ -351,8 +363,8 @@ class ChartRenderer:
             code_to_label=code_to_label,
             asset_labels=asset_labels,
         )
-        chart_part = _DOWNLOAD_CHART_LABELS.get(chart_key, self._slugify(chart_key))
-        mode_part = self._slugify(mode)
+        chart_part = _DOWNLOAD_CHART_LABELS.get(chart_key, _slugify(chart_key))
+        mode_part = _slugify(mode)
         start_part = start_date.strftime("%d.%m.%Y")
         end_part = end_date.strftime("%d.%m.%Y")
         return f"{asset_part}_{chart_part}_{mode_part}_{start_part}_{end_part}"
@@ -368,31 +380,20 @@ class ChartRenderer:
         labels: list[str]
         if mode == L10N.RASYO_MODU and ratio_assets:
             labels = [
-                self._resolve_asset_label(code, code_to_label, asset_labels)
+                _resolve_asset_label(code, code_to_label, asset_labels)
                 for code in ratio_assets
                 if code
             ]
         else:
             labels = [
-                self._resolve_asset_label(code, code_to_label, asset_labels)
+                _resolve_asset_label(code, code_to_label, asset_labels)
                 for code in selected_assets
                 if code
             ]
 
-        slugs = [self._slugify(label) for label in labels if label]
+        slugs = [_slugify(label) for label in labels if label]
         slugs = [slug for slug in slugs if slug]
         return "_".join(slugs) if slugs else "varlik"
-
-    @staticmethod
-    def _resolve_asset_label(code: str, code_to_label: dict[str, str], asset_labels: dict[str, str]) -> str:
-        return code_to_label.get(code) or asset_labels.get(code) or code
-
-    @staticmethod
-    def _slugify(value: str) -> str:
-        normalized = unicodedata.normalize("NFKD", value or "")
-        ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
-        cleaned = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_text.lower()).strip("_")
-        return re.sub(r"_+", "_", cleaned)
 
     # ------------------------------------------------------------------
     # Özet tablo (Senkron, hızlı olduğu için UI thread'de kalabilir)

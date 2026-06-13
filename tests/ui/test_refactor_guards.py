@@ -2,6 +2,8 @@ import ast
 import re
 from pathlib import Path
 
+from scripts.measure_code_quality import measure_file
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -76,7 +78,6 @@ def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
         ("src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py", "NewStockTradeDialog"),
         ("src/ui/pages/optimization_page.py", "OptimizationPage"),
         ("src/ui/pages/stock_detail/stock_detail_page.py", "StockDetailPage"),
-        ("src/ui/pages/comparison/utils/chart_renderer.py", "ChartRenderer"),
         ("src/ui/pages/ai_page/right_panel/chatbot_panel.py", "ChatbotPanel"),
         # P2 (2026-06-06): crosshair + ₺ axis + TR ay format birlikte; ileride
         # CrosshairOverlay/PyqtgraphChart base sınıfına bölme planlandı.
@@ -93,19 +94,12 @@ def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
     offenders = []
 
     for path in (ROOT / "src" / "ui").rglob("*.py"):
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ClassDef):
-                continue
-            key = (_src_rel(path), node.name)
-            end_lineno = getattr(node, "end_lineno", node.lineno)
-            class_lines = end_lineno - node.lineno + 1
-            methods = sum(
-                isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
-                for child in node.body
-            )
+        for record in measure_file(path, ROOT)["classes"]:
+            key = (record["path"], record["name"])
             if key in allowed:
                 continue
+            class_lines = record["effective_code_lines"]
+            methods = record["method_count"]
             if class_lines > 300 or methods > 20:
                 offenders.append(
                     f"{key[0]}::{key[1]} lines={class_lines} methods={methods}"

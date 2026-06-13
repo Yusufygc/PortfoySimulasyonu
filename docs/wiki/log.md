@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-13] refaktor | İlk kalite baseline refactor dilimi
+
+- `ModelPortfolioTradeService` içindeki builder, sıralama ve zaman filtresi helper'ları sınıf dışına taşındı; sınıf `299 effective satır / 20 metot` ile eşik altına indi.
+- `ChartRenderer` figure üretimi ve dosya adı helper'ları sınıf dışına taşındı; sınıf `299 effective satır / 19 metot` ile UI whitelist'inden çıkarıldı.
+- Doğrulama: `tests/application -q` -> 188 passed; `tests/ui/pages/test_comparison_page.py -q` -> 24 passed; `tests/ui/test_refactor_guards.py -q` -> 8 passed; `tests -q` -> 612 passed.
+- Etkilenen dosyalar: `src/application/services/planning/model_portfolio_trade_service.py`, `src/ui/pages/comparison/utils/chart_renderer.py`, `tests/ui/test_refactor_guards.py`.
+- Bağlantılı sayfa: [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md)
+
 ## [2026-06-13] yeni-sayfa | Kod kalitesi guardrail rehberi
 
 - Sağlık raporu sonrası kalıcı eşikler, istisna protokolü, UI page/component standardı ve application service facade standardı belgelendi.
