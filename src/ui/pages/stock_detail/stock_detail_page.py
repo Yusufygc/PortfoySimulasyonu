@@ -65,44 +65,76 @@ class StockDetailPage(BasePage):
         self._init_ui()
 
     def _init_ui(self):
-        # Create a scroll area for the left side content
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setProperty("cssClass", "stockDetailScroll")
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.NoFrame)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.scroll_area.setMinimumWidth(self._LEFT_SCROLL_MIN_WIDTH)
-        self.scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.scroll_area = self._build_left_scroll_area()
 
-        # Create left content container widget
         left_content_widget = QWidget()
         left_content_widget.setMinimumWidth(self._LEFT_CONTENT_MIN_WIDTH)
         left_layout = QVBoxLayout(left_content_widget)
         left_layout.setContentsMargins(0, 0, 10, 0)
         left_layout.setSpacing(15)
 
-        # 1. Başlık (Breadcrumb ve Başlık satırı)
+        self._build_header(left_layout)
+
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setProperty("cssClass", "horizontalDivider")
+        left_layout.addWidget(line)
+
+        self.chart_widget = StockChartWidget()
+        self.chart_widget.setMinimumHeight(400)
+        if self.market_client is not None:
+            self.chart_widget.set_price_series_provider(self.market_client.get_price_series)
+        left_layout.addWidget(self.chart_widget)
+
+        self.stats_panel = StockStatsPanel()
+        left_layout.addWidget(self.stats_panel)
+
+        lbl_history = QLabel(L10N.ISLEM_GECMISI)
+        lbl_history.setProperty("cssClass", "panelTitle")
+        left_layout.addWidget(lbl_history)
+        self.history_table = self._build_history_table()
+        left_layout.addWidget(self.history_table)
+
+        lbl_corp_actions = QLabel(L10N.UYGULANAN_SERMAYE_ARTIRIMLARI)
+        lbl_corp_actions.setProperty("cssClass", "panelTitle")
+        left_layout.addWidget(lbl_corp_actions)
+        self.corp_actions_table = self._build_corp_actions_table()
+        left_layout.addWidget(self.corp_actions_table)
+
+        self.scroll_area.setWidget(left_content_widget)
+        self.main_layout.addWidget(self._build_content_wrapper(), 1)
+
+    def _build_left_scroll_area(self) -> QScrollArea:
+        scroll = QScrollArea()
+        scroll.setProperty("cssClass", "stockDetailScroll")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setMinimumWidth(self._LEFT_SCROLL_MIN_WIDTH)
+        scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        return scroll
+
+    def _build_header(self, left_layout: QVBoxLayout) -> None:
         top_layout = QVBoxLayout()
         top_layout.setSpacing(0)
         top_layout.setContentsMargins(0, 0, 0, 10)
 
         breadcrumb_row = QHBoxLayout()
         breadcrumb_row.setSpacing(10)
-        
+
         from src.ui.widgets.shared.controls.animated_button import AnimatedButton
         self.btn_back = AnimatedButton(L10N.GERI)
         self.btn_back.setIconName("arrow-left", color="@COLOR_TEXT_PRIMARY", size=16)
         self.btn_back.setProperty("cssClass", "secondaryButton")
         self.btn_back.clicked.connect(self.navigate_back.emit)
-        
+
         self.lbl_breadcrumb = QLabel(L10N.PORTFOY_1)
         self.lbl_breadcrumb.setProperty("cssClass", "breadcrumbText")
-        
+
         breadcrumb_row.addWidget(self.btn_back)
         breadcrumb_row.addWidget(self.lbl_breadcrumb)
         breadcrumb_row.addStretch()
-        
         top_layout.addLayout(breadcrumb_row)
 
         title_row = QHBoxLayout()
@@ -130,70 +162,42 @@ class StockDetailPage(BasePage):
         top_layout.addLayout(title_row)
         left_layout.addLayout(top_layout)
 
-        # 2. Divider line
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setProperty("cssClass", "horizontalDivider")
-        left_layout.addWidget(line)
+    def _build_history_table(self) -> QTableWidget:
+        table = QTableWidget()
+        table.setColumnCount(5)
+        table.setHorizontalHeaderLabels([L10N.TARIH, "İşlem", L10N.ADET, L10N.FIYAT, L10N.TUTAR])
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        table.setSelectionMode(QTableWidget.NoSelection)
+        table.setSelectionBehavior(QTableWidget.SelectRows)
+        table.setEditTriggers(QTableWidget.NoEditTriggers)
+        table.setFocusPolicy(Qt.NoFocus)
+        table.setShowGrid(False)
+        table.setAlternatingRowColors(True)
+        table.setProperty("cssClass", "stockHistoryTable")
+        table.verticalHeader().setVisible(False)
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        table.setMinimumHeight(150)
+        table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        return table
 
-        # 3. Grafik
-        self.chart_widget = StockChartWidget()
-        self.chart_widget.setMinimumHeight(400)
-        if self.market_client is not None:
-            self.chart_widget.set_price_series_provider(self.market_client.get_price_series)
-        left_layout.addWidget(self.chart_widget)
+    def _build_corp_actions_table(self) -> QTableWidget:
+        table = QTableWidget()
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels([L10N.TARIH, L10N.ISLEM_TURU, L10N.ARTIRIM_ORANI])
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        table.setSelectionMode(QTableWidget.NoSelection)
+        table.setSelectionBehavior(QTableWidget.SelectRows)
+        table.setEditTriggers(QTableWidget.NoEditTriggers)
+        table.setFocusPolicy(Qt.NoFocus)
+        table.setShowGrid(False)
+        table.setAlternatingRowColors(True)
+        table.setProperty("cssClass", "stockHistoryTable")
+        table.verticalHeader().setVisible(False)
+        table.setMinimumHeight(150)
+        table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        return table
 
-        # 4. Özet Kartları
-        self.stats_panel = StockStatsPanel()
-        left_layout.addWidget(self.stats_panel)
-
-        # 5. İşlem Geçmişi Tablosu
-        lbl_history = QLabel(L10N.ISLEM_GECMISI)
-        lbl_history.setProperty("cssClass", "panelTitle")
-        left_layout.addWidget(lbl_history)
-
-        self.history_table = QTableWidget()
-        self.history_table.setColumnCount(5)
-        self.history_table.setHorizontalHeaderLabels([L10N.TARIH, "İşlem", L10N.ADET, L10N.FIYAT, L10N.TUTAR])
-        self.history_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.history_table.setSelectionMode(QTableWidget.NoSelection)
-        self.history_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.history_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.history_table.setFocusPolicy(Qt.NoFocus)
-        self.history_table.setShowGrid(False)
-        self.history_table.setAlternatingRowColors(True)
-        self.history_table.setProperty("cssClass", "stockHistoryTable")
-        self.history_table.verticalHeader().setVisible(False)
-        self.history_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.history_table.setMinimumHeight(150)
-        self.history_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        left_layout.addWidget(self.history_table)
-
-        # 6. Sermaye Tablosu
-        lbl_corp_actions = QLabel(L10N.UYGULANAN_SERMAYE_ARTIRIMLARI)
-        lbl_corp_actions.setProperty("cssClass", "panelTitle")
-        left_layout.addWidget(lbl_corp_actions)
-
-        self.corp_actions_table = QTableWidget()
-        self.corp_actions_table.setColumnCount(3)
-        self.corp_actions_table.setHorizontalHeaderLabels([L10N.TARIH, L10N.ISLEM_TURU, L10N.ARTIRIM_ORANI])
-        self.corp_actions_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.corp_actions_table.setSelectionMode(QTableWidget.NoSelection)
-        self.corp_actions_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.corp_actions_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.corp_actions_table.setFocusPolicy(Qt.NoFocus)
-        self.corp_actions_table.setShowGrid(False)
-        self.corp_actions_table.setAlternatingRowColors(True)
-        self.corp_actions_table.setProperty("cssClass", "stockHistoryTable")
-        self.corp_actions_table.verticalHeader().setVisible(False)
-        self.corp_actions_table.setMinimumHeight(150)
-        self.corp_actions_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        left_layout.addWidget(self.corp_actions_table)
-
-        # Set the scroll area content widget
-        self.scroll_area.setWidget(left_content_widget)
-
-        # Right sidebar (trade form)
+    def _build_content_wrapper(self) -> QScrollArea:
         self.trade_form = TradeFormPanel()
         self.trade_form.trade_submitted.connect(self._on_submit_trade)
         self.trade_form.spin_qty.valueChanged.connect(self._trigger_impact_update)
@@ -204,11 +208,9 @@ class StockDetailPage(BasePage):
 
         self.content_wrapper = QWidget()
         self.content_wrapper.setProperty("cssClass", "stockDetailContentWrapper")
-        # Main horizontal content layout inside a horizontally scrollable wrapper.
         content_layout = QHBoxLayout(self.content_wrapper)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(10)
-
         content_layout.addWidget(self.scroll_area, 1)
         content_layout.addWidget(self.trade_form, 0)
         wrapper_min_width = (
@@ -227,8 +229,7 @@ class StockDetailPage(BasePage):
         self.content_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.content_scroll_area.setWidget(self.content_wrapper)
         self.content_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        self.main_layout.addWidget(self.content_scroll_area, 1)
+        return self.content_scroll_area
 
     def _trigger_impact_update(self):
         self._sync_quantity_limits()

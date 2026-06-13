@@ -50,29 +50,29 @@ class WatchlistPage(BasePage):
         self._init_ui()
 
     def _init_ui(self):
-        # Başlık
+        self._build_page_header()
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(20)
+        content_layout.addWidget(self._build_left_panel())
+        content_layout.addWidget(self._build_right_panel(), 1)
+        self.main_layout.addLayout(content_layout)
+
+    def _build_page_header(self) -> None:
         header_layout = QHBoxLayout()
         header_layout.setSpacing(10)
-        
         icon_lbl = IconLabel("clipboard-list", color="@COLOR_ACCENT", size=28)
         header_layout.addWidget(icon_lbl)
-        
         lbl_title = QLabel(L10N.TAKIP_LISTELERI)
         lbl_title.setProperty("cssClass", "pageTitle")
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         self.main_layout.addLayout(header_layout)
-
         lbl_desc = QLabel(L10N.HISSE_SENETLERINI_LISTELER_HALINDE_ORGANIZE)
         lbl_desc.setWordWrap(True)
         lbl_desc.setProperty("cssClass", "pageDescription")
         self.main_layout.addWidget(lbl_desc)
 
-        # Ana içerik - Yatay bölünmüş
-        content_layout = QHBoxLayout()
-        content_layout.setSpacing(20)
-
-        # Sol Panel: Liste
+    def _build_left_panel(self) -> QFrame:
         left_panel = QFrame()
         left_panel.setObjectName("leftPanel")
         left_panel.setFixedWidth(300)
@@ -82,20 +82,16 @@ class WatchlistPage(BasePage):
 
         lbl_row = QHBoxLayout()
         lbl_row.setSpacing(8)
-        img = IconLabel("bookmark", color="@COLOR_TEXT_BRIGHT", size=18)
-        lbl_row.addWidget(img)
-        
+        lbl_row.addWidget(IconLabel("bookmark", color="@COLOR_TEXT_BRIGHT", size=18))
         lbl_lists = QLabel(L10N.LISTELERIM)
         lbl_lists.setProperty("cssClass", "tableTitle")
         lbl_row.addWidget(lbl_lists)
         lbl_row.addStretch()
-
         self.btn_new = AnimatedButton(L10N.YENI)
         self.btn_new.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_new.setProperty("cssClass", "watchlistNewButton")
         self.btn_new.clicked.connect(self._on_new_list)
         lbl_row.addWidget(self.btn_new)
-
         self._left_header_layout = lbl_row
         left_layout.addLayout(lbl_row)
 
@@ -111,15 +107,15 @@ class WatchlistPage(BasePage):
         self.btn_edit.setIconName("pencil", color="@COLOR_TEXT_PRIMARY")
         self.btn_edit.setProperty("cssClass", "secondaryButton")
         self.btn_edit.setEnabled(False)
-
         self.btn_delete = AnimatedButton(L10N.SIL)
         self.btn_delete.setIconName("trash-2", color="@COLOR_DANGER")
         self.btn_delete.setEnabled(False)
         self.btn_delete.setProperty("cssClass", "dangerOutlineButton")
         self.btn_edit.hide()
         self.btn_delete.hide()
+        return left_panel
 
-        # Sağ Panel: İçerik
+    def _build_right_panel(self) -> QFrame:
         right_panel = QFrame()
         right_panel.setObjectName("rightPanel")
         right_layout = QVBoxLayout(right_panel)
@@ -128,18 +124,15 @@ class WatchlistPage(BasePage):
 
         detail_header_layout = QHBoxLayout()
         detail_header_layout.setSpacing(12)
-
         self.lbl_list_name = QLabel(L10N.BIR_LISTE_SECIN)
         self.lbl_list_name.setProperty("cssClass", "panelTitleLarge")
         detail_header_layout.addWidget(self.lbl_list_name, 1)
-
         self.btn_add_stock = AnimatedButton(L10N.HISSE_EKLE)
         self.btn_add_stock.setIconName("plus", color="@COLOR_TEXT_WHITE")
         self.btn_add_stock.clicked.connect(self._on_add_stock)
         self.btn_add_stock.setEnabled(False)
         self.btn_add_stock.setProperty("cssClass", "primaryButton")
         detail_header_layout.addWidget(self.btn_add_stock, 0, Qt.AlignRight | Qt.AlignVCenter)
-
         self._detail_header_layout = detail_header_layout
         right_layout.addLayout(detail_header_layout)
 
@@ -148,35 +141,34 @@ class WatchlistPage(BasePage):
         self.lbl_list_desc.setWordWrap(True)
         right_layout.addWidget(self.lbl_list_desc)
 
-        # Hisse tablosu
-        self.stock_table = QTableWidget()
-        self.stock_table.setColumnCount(3)
-        self.stock_table.setHorizontalHeaderLabels([L10N.HISSE_ADI, "Not", ""])
-        self.stock_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.stock_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.stock_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
-        self.stock_table.setColumnWidth(2, 100)
-        self.stock_table.setSelectionMode(QTableWidget.NoSelection)
-        self.stock_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.stock_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.stock_table.setAlternatingRowColors(True)
-        self.stock_table.setShowGrid(False)
-        self.stock_table.setFocusPolicy(Qt.NoFocus)
-        self.stock_table.setWordWrap(True)
-        self.stock_table.setProperty("cssClass", "watchlistTable")
-        self.stock_table.horizontalHeader().setHighlightSections(False)
-        self.stock_table.verticalHeader().setDefaultSectionSize(42)
-        self.stock_table.verticalHeader().setVisible(False)
-
+        self.stock_table = self._build_stock_table()
         self.empty_state = self._create_empty_state()
         self.content_stack = QStackedWidget()
         self.content_stack.addWidget(self.stock_table)
         self.content_stack.addWidget(self.empty_state)
         right_layout.addWidget(self.content_stack, 1)
+        return right_panel
 
-        content_layout.addWidget(left_panel)
-        content_layout.addWidget(right_panel, 1)
-        self.main_layout.addLayout(content_layout)
+    def _build_stock_table(self) -> QTableWidget:
+        table = QTableWidget()
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels([L10N.HISSE_ADI, "Not", ""])
+        table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+        table.setColumnWidth(2, 100)
+        table.setSelectionMode(QTableWidget.NoSelection)
+        table.setSelectionBehavior(QTableWidget.SelectRows)
+        table.setEditTriggers(QTableWidget.NoEditTriggers)
+        table.setAlternatingRowColors(True)
+        table.setShowGrid(False)
+        table.setFocusPolicy(Qt.NoFocus)
+        table.setWordWrap(True)
+        table.setProperty("cssClass", "watchlistTable")
+        table.horizontalHeader().setHighlightSections(False)
+        table.verticalHeader().setDefaultSectionSize(42)
+        table.verticalHeader().setVisible(False)
+        return table
 
     def on_page_enter(self):
         self.refresh_data()

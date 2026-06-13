@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `9974b61`
+- Git commit: `b9dd891`
 - Dosya: 438
 - Sinif: 536
-- Fonksiyon/metot: 3253
-- Effective code lines: 44082
-- Ihlalli sinif: 10
-- Ihlalli fonksiyon/metot: 154
+- Fonksiyon/metot: 3250
+- Effective code lines: 44124
+- Ihlalli sinif: 8
+- Ihlalli fonksiyon/metot: 150
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 329 | 31230 | 0 |
+| src | 329 | 31272 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -40,10 +40,10 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/ui/pages/test_comparison_page.py | tests | 443 | 10 | 22 | 26 | ok |
 | src/ui/pages/comparison/utils/chart_renderer.py | src | 416 | 1 | 19 | 5 | ok |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 415 | 1 | 23 | 0 | ok |
-| src/ui/pages/stock_detail/stock_detail_page.py | src | 399 | 1 | 16 | 3 | ok |
+| src/ui/pages/stock_detail/stock_detail_page.py | src | 412 | 1 | 21 | 3 | violation |
 | src/application/services/planning/risk_profile_service.py | src | 397 | 4 | 15 | 1 | ok |
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | src | 392 | 1 | 31 | 0 | ok |
-| src/ui/pages/watchlist_page.py | src | 380 | 1 | 20 | 2 | ok |
+| src/ui/pages/watchlist_page.py | src | 388 | 1 | 24 | 2 | ok |
 
 ## Sinif Ihlalleri
 
@@ -51,29 +51,24 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 |---|---|---:|---:|---|
 | src/ui/shared/locale_tr.py | L10N | 797 | 0 | class_effective_lines |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | NewStockTradeDialog | 396 | 23 | class_effective_lines, class_methods |
+| src/ui/pages/stock_detail/stock_detail_page.py | StockDetailPage | 382 | 21 | class_effective_lines, class_methods |
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | ChatbotPanel | 374 | 31 | class_effective_lines, class_methods |
-| src/ui/pages/stock_detail/stock_detail_page.py | StockDetailPage | 369 | 16 | class_effective_lines |
-| src/ui/pages/watchlist_page.py | WatchlistPage | 352 | 20 | class_effective_lines |
-| src/ui/pages/risk_profile_page.py | RiskProfilePage | 330 | 22 | class_effective_lines, class_methods |
+| src/ui/pages/watchlist_page.py | WatchlistPage | 360 | 24 | class_effective_lines, class_methods |
 | src/ui/pages/settings/price_data_panel.py | PriceDataPanel | 260 | 22 | class_methods |
 | src/ui/widgets/shared/controls/currency_spin_box.py | CurrencySpinBox | 203 | 27 | class_methods |
 | src/infrastructure/db/sqlalchemy/repositories/sa_model_portfolio_repository.py | SQLAlchemyModelPortfolioRepository | 168 | 22 | class_methods |
-| src/application/services/planning/model_portfolio_service.py | ModelPortfolioService | 72 | 24 | class_methods |
 
 ## Fonksiyon/Metot Ihlalleri
 
 | Dosya | Fonksiyon | Effective satir | Parametre | Complexity | Ihlal |
 |---|---|---:|---:|---:|---|
-| src/ui/pages/stock_detail/stock_detail_page.py | _init_ui | 129 | 0 | 2 | function_effective_lines |
 | scripts/migrate_ui_strings.py | main | 116 | 0 | 37 | function_effective_lines, function_complexity |
 | src/ui/widgets/dashboard/dialogs/corporate_action_dialog.py | _init_ui | 110 | 0 | 3 | function_effective_lines |
 | src/infrastructure/ai/ai_core_fastapi_client.py | _parse_api_response | 109 | 1 | 15 | function_effective_lines, function_complexity |
 | src/ui/pages/comparison/widgets/ribbon_bar.py | _init_ui | 105 | 0 | 2 | function_effective_lines |
-| src/ui/pages/watchlist_page.py | _init_ui | 102 | 0 | 1 | function_effective_lines |
 | src/ui/widgets/stock/dialogs/trade_dialog.py | _init_ui | 96 | 0 | 2 | function_effective_lines |
 | src/ui/pages/ai_page/left_panel/peer_card.py | update_data | 91 | 1 | 28 | function_effective_lines, function_complexity |
 | src/ui/pages/analysis/chart_builder.py | build_performance_line_chart_v2 | 90 | 4 | 6 | function_effective_lines |
-| src/application/services/planning/optimization_service.py | _optimize | 89 | 2 | 19 | function_effective_lines, function_complexity |
 | src/ui/pages/settings/reset_panel.py | _init_ui | 87 | 0 | 2 | function_effective_lines |
 | src/ui/widgets/planning/panels/goals_panel.py | load | 87 | 1 | 9 | function_effective_lines |
 | src/application/container_parts/services.py | _build_feature_services | 85 | 3 | 1 | function_effective_lines |
@@ -92,8 +87,11 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/ai_page/left_panel/prediction_card.py | update_data | 66 | 12 | 15 | function_effective_lines, function_effective_params, function_complexity |
 | src/ui/pages/ai_page/right_panel/chatbot_panel.py | _build_prompt_template | 65 | 4 | 27 | function_effective_lines, function_complexity |
 | src/ui/pages/optimization_page.py | _init_ui | 65 | 0 | 1 | function_effective_lines |
-| src/ui/pages/risk_profile_page.py | _build_profile_card | 65 | 0 | 2 | function_effective_lines |
 | scripts/replicate_db.py | main | 64 | 0 | 13 | function_effective_lines, function_complexity |
+| src/ui/pages/ai_page/left_panel/peer_card.py | _init_ui | 63 | 0 | 1 | function_effective_lines |
+| src/ui/pages/settings/appearance_panel.py | _build_theme_card | 62 | 2 | 2 | function_effective_lines |
+| src/ui/widgets/planning/dialogs/goal_input_dialog.py | _init_ui | 62 | 0 | 2 | function_effective_lines |
+| tests/ui/pages/ai_page/test_ai_page_right_panel.py | test_panel_integration | 62 | 1 | 1 | function_effective_lines |
 
 ## Saglik Raporu Crosswalk
 

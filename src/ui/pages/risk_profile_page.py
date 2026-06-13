@@ -40,6 +40,70 @@ SECTION_ICONS = {
 }
 
 
+def _make_dimension_metric(title: str) -> tuple[QFrame, QLabel]:
+    card = QFrame()
+    card.setProperty("cssClass", "profileMetricCard")
+    layout = QVBoxLayout(card)
+    layout.setContentsMargins(12, 8, 12, 8)
+    layout.setSpacing(2)
+    lbl_title = QLabel(title)
+    lbl_title.setProperty("cssClass", "profileMetricTitle")
+    layout.addWidget(lbl_title)
+    lbl_value = QLabel("-")
+    lbl_value.setProperty("cssClass", "profileMetricValue")
+    layout.addWidget(lbl_value)
+    return card, lbl_value
+
+
+def _make_radio_button(text: str, value: str) -> QRadioButton:
+    rb = QRadioButton(text)
+    rb.setProperty("optionValue", value)
+    rb.setCursor(Qt.PointingHandCursor)
+    rb.setMinimumHeight(46)
+    rb.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    rb.setProperty("cssClass", "surveyRadio")
+    return rb
+
+
+def _select_radio_in_group(group: QButtonGroup, value: str) -> None:
+    for btn in group.buttons():
+        if btn.property("optionValue") == value:
+            btn.setChecked(True)
+            return
+
+
+def _make_allocation_block() -> tuple[QFrame, QLabel]:
+    block = QFrame()
+    block.setProperty("cssClass", "profileInfoBlock")
+    layout = QVBoxLayout(block)
+    layout.setContentsMargins(12, 8, 12, 9)
+    layout.setSpacing(4)
+    title = QLabel(L10N.ORNEK_DAGILIM)
+    title.setProperty("cssClass", "profileInfoTitle")
+    layout.addWidget(title)
+    lbl = QLabel("")
+    lbl.setWordWrap(True)
+    lbl.setProperty("cssClass", "profileDesc")
+    layout.addWidget(lbl)
+    return block, lbl
+
+
+def _make_notes_block() -> tuple[QFrame, QLabel]:
+    block = QFrame()
+    block.setProperty("cssClass", "profileInfoBlock")
+    layout = QVBoxLayout(block)
+    layout.setContentsMargins(12, 8, 12, 9)
+    layout.setSpacing(4)
+    title = QLabel(L10N.UYGUNLUK_NOTLARI)
+    title.setProperty("cssClass", "profileInfoTitle")
+    layout.addWidget(title)
+    lbl = QLabel("")
+    lbl.setWordWrap(True)
+    lbl.setProperty("cssClass", "profileDetail")
+    layout.addWidget(lbl)
+    return block, lbl
+
+
 class RiskProfilePage(BasePage):
     """MiFID benzeri profesyonel risk profili anketi sayfasi."""
 
@@ -71,26 +135,22 @@ class RiskProfilePage(BasePage):
 
         header = QHBoxLayout()
         header.setSpacing(10)
-
         icon_lbl = IconLabel("shield-check", color="@COLOR_ACCENT", size=28)
         header.addWidget(icon_lbl)
-
         lbl_title = QLabel(L10N.RISK_PROFIL_ANALIZI)
         lbl_title.setProperty("cssClass", "pageTitle")
         header.addWidget(lbl_title)
         header.addStretch()
         self.scroll_layout.addLayout(header)
 
-        lbl_desc = QLabel(
-            L10N.FINANSAL_DURUM_HEDEF_RISK_TOLERANSI
-        )
+        lbl_desc = QLabel(L10N.FINANSAL_DURUM_HEDEF_RISK_TOLERANSI)
         lbl_desc.setWordWrap(True)
         lbl_desc.setProperty("cssClass", "pageDescription")
         self.scroll_layout.addWidget(lbl_desc)
 
         self._build_profile_card()
         self._build_survey()
-        
+
         self.scroll_layout.addStretch()
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll)
@@ -104,7 +164,6 @@ class RiskProfilePage(BasePage):
 
         header_row = QHBoxLayout()
         header_row.setSpacing(16)
-
         score_col = QVBoxLayout()
         score_col.setSpacing(4)
         self.lbl_profile_header = QLabel(L10N.MEVCUT_PROFILINIZ)
@@ -114,7 +173,6 @@ class RiskProfilePage(BasePage):
         score_col.addWidget(self.lbl_profile_header)
         score_col.addWidget(self.lbl_score)
         header_row.addLayout(score_col, 1)
-
         self.lbl_label = QLabel("")
         self.lbl_label.setProperty("cssClass", "profileLabel")
         self.lbl_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -131,60 +189,20 @@ class RiskProfilePage(BasePage):
         self.dimension_grid.setVerticalSpacing(8)
         self.dimension_labels: Dict[str, QLabel] = {}
         for index, (dimension, label) in enumerate(DIMENSION_LABELS.items()):
-            card, value = self._create_dimension_metric(label)
+            card, value = _make_dimension_metric(label)
             self.dimension_grid.addWidget(card, index // 4, index % 4)
             self.dimension_grid.setColumnStretch(index % 4, 1)
             self.dimension_labels[dimension] = value
         card_layout.addLayout(self.dimension_grid)
 
-        allocation_block = QFrame()
-        allocation_block.setProperty("cssClass", "profileInfoBlock")
-        allocation_layout = QVBoxLayout(allocation_block)
-        allocation_layout.setContentsMargins(12, 8, 12, 9)
-        allocation_layout.setSpacing(4)
-        allocation_title = QLabel(L10N.ORNEK_DAGILIM)
-        allocation_title.setProperty("cssClass", "profileInfoTitle")
-        allocation_layout.addWidget(allocation_title)
-        self.lbl_allocation = QLabel("")
-        self.lbl_allocation.setWordWrap(True)
-        self.lbl_allocation.setProperty("cssClass", "profileDesc")
-        allocation_layout.addWidget(self.lbl_allocation)
+        allocation_block, self.lbl_allocation = _make_allocation_block()
         card_layout.addWidget(allocation_block)
 
-        notes_block = QFrame()
-        notes_block.setProperty("cssClass", "profileInfoBlock")
-        self.notes_block = notes_block
-        notes_layout = QVBoxLayout(notes_block)
-        notes_layout.setContentsMargins(12, 8, 12, 9)
-        notes_layout.setSpacing(4)
-        notes_title = QLabel(L10N.UYGUNLUK_NOTLARI)
-        notes_title.setProperty("cssClass", "profileInfoTitle")
-        notes_layout.addWidget(notes_title)
-        self.lbl_notes = QLabel("")
-        self.lbl_notes.setWordWrap(True)
-        self.lbl_notes.setProperty("cssClass", "profileDetail")
-        notes_layout.addWidget(self.lbl_notes)
-        card_layout.addWidget(notes_block)
+        self.notes_block, self.lbl_notes = _make_notes_block()
+        card_layout.addWidget(self.notes_block)
 
         self.profile_card.setVisible(False)
         self.scroll_layout.addWidget(self.profile_card)
-
-    @staticmethod
-    def _create_dimension_metric(title: str) -> tuple[QFrame, QLabel]:
-        card = QFrame()
-        card.setProperty("cssClass", "profileMetricCard")
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(12, 8, 12, 8)
-        layout.setSpacing(2)
-
-        lbl_title = QLabel(title)
-        lbl_title.setProperty("cssClass", "profileMetricTitle")
-        layout.addWidget(lbl_title)
-
-        lbl_value = QLabel("-")
-        lbl_value.setProperty("cssClass", "profileMetricValue")
-        layout.addWidget(lbl_value)
-        return card, lbl_value
 
     def _build_survey(self):
         self.survey_frame = QFrame()
@@ -197,12 +215,10 @@ class RiskProfilePage(BasePage):
         survey_header.setSpacing(10)
         img_survey = IconLabel("clipboard-list", color="@COLOR_TEXT_SECONDARY", size=22)
         survey_header.addWidget(img_survey)
-
         lbl_survey_title = QLabel(L10N.RISK_PROFILI_ANKETI)
         lbl_survey_title.setProperty("cssClass", "surveyTitle")
         survey_header.addWidget(lbl_survey_title)
         survey_header.addStretch()
-
         self.lbl_step = QLabel("")
         self.lbl_step.setProperty("cssClass", "surveyStep")
         survey_header.addWidget(self.lbl_step)
@@ -223,9 +239,7 @@ class RiskProfilePage(BasePage):
         self.btn_previous.setProperty("cssClass", "secondaryButton")
         self.btn_previous.clicked.connect(self._on_previous_section)
         btn_layout.addWidget(self.btn_previous)
-
         btn_layout.addStretch()
-
         self.btn_next = AnimatedButton(L10N.NEXT)
         self.btn_next.setIconName("arrow-right", color="@COLOR_TEXT_WHITE", size=18)
         self.btn_next.setCursor(Qt.PointingHandCursor)
@@ -234,7 +248,6 @@ class RiskProfilePage(BasePage):
         self.btn_next.setProperty("cssClass", "primaryButton")
         self.btn_next.clicked.connect(self._on_next_section)
         btn_layout.addWidget(self.btn_next)
-
         self.btn_calculate = AnimatedButton(L10N.PROFILI_HESAPLA)
         self.btn_calculate.setIconName("refresh-cw", color="@COLOR_TEXT_WHITE", size=20)
         self.btn_calculate.setCursor(Qt.PointingHandCursor)
@@ -248,10 +261,6 @@ class RiskProfilePage(BasePage):
         self.scroll_layout.addWidget(self.survey_frame)
         self._update_section_nav()
 
-    @staticmethod
-    def _section_icon_name(title: str) -> str:
-        return SECTION_ICONS.get(title, "clipboard-list")
-
     def _create_question_page(self, section_title: str, question, question_number: int) -> QFrame:
         page = QFrame()
         page.setProperty("cssClass", "surveySectionPage")
@@ -261,10 +270,9 @@ class RiskProfilePage(BasePage):
 
         section_header = QHBoxLayout()
         section_header.setSpacing(10)
-
-        icon = IconLabel(self._section_icon_name(section_title), color="@COLOR_ACCENT", size=22)
+        icon_name = SECTION_ICONS.get(section_title, "clipboard-list")
+        icon = IconLabel(icon_name, color="@COLOR_ACCENT", size=22)
         section_header.addWidget(icon)
-
         title = QLabel(section_title)
         title.setProperty("cssClass", "surveySectionTitle")
         section_header.addWidget(title)
@@ -273,7 +281,6 @@ class RiskProfilePage(BasePage):
 
         layout.addWidget(self._create_question_widget(question, question_number), 1)
         layout.addStretch()
-
         return page
 
     def _create_question_widget(self, question, question_number: int) -> QFrame:
@@ -290,27 +297,15 @@ class RiskProfilePage(BasePage):
 
         option_layout = QVBoxLayout()
         option_layout.setSpacing(10)
-
         group = QButtonGroup(self)
         group.setExclusive(True)
         for option in question.options:
-            radio = self._create_radio_button(option.label, option.value)
+            radio = _make_radio_button(option.label, option.value)
             group.addButton(radio)
             option_layout.addWidget(radio)
         self.answer_groups[question.id] = group
-
         layout.addLayout(option_layout)
         return frame
-
-    @staticmethod
-    def _create_radio_button(text: str, value: str) -> QRadioButton:
-        rb = QRadioButton(text)
-        rb.setProperty("optionValue", value)
-        rb.setCursor(Qt.PointingHandCursor)
-        rb.setMinimumHeight(46)
-        rb.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        rb.setProperty("cssClass", "surveyRadio")
-        return rb
 
     def _current_question_is_complete(self) -> bool:
         _section_title, question = self.questionnaire_items[self.current_question_index]
@@ -351,7 +346,6 @@ class RiskProfilePage(BasePage):
                 missing.append(question_id)
                 continue
             answers[question_id] = checked.property("optionValue")
-
         if missing:
             Toast.warning(self, L10N.LUTFEN_TUM_ANKET_SORULARINI_CEVAPLAYIN)
             return None
@@ -417,7 +411,7 @@ class RiskProfilePage(BasePage):
             group = self.answer_groups.get(question_id)
             if group is None:
                 continue
-            self._select_radio(group, value)
+            _select_radio_in_group(group, value)
 
     def hide_profile(self):
         self.profile_card.setVisible(False)
@@ -427,12 +421,3 @@ class RiskProfilePage(BasePage):
 
     def refresh_data(self):
         self.on_page_enter()
-
-    @staticmethod
-    def _select_radio(group: QButtonGroup, value: str):
-        for btn in group.buttons():
-            if btn.property("optionValue") == value:
-                btn.setChecked(True)
-                return
-
-
