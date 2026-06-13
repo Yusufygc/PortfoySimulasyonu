@@ -3,9 +3,9 @@ from src.ui.shared.locale_tr import L10N
 
 from typing import TYPE_CHECKING
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QTableWidgetItem
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtgui import QColor
+from src.qt_compat.qtwidgets import QTableWidgetItem
 
 from src.application.services.market.price_data_health_service import PriceDataHealthReport
 from src.ui.formatters import display_ticker
@@ -33,6 +33,7 @@ class PriceDataReportRenderer:
         ):
             label.metric_label.setText("-")
         panel.detail_text.setText(L10N.ANALIZ_SONUCU_BEKLENIYOR)
+        panel._set_selected_update_button_state(False)
 
     def apply_report(self, report: PriceDataHealthReport) -> None:
         """Raporu özet kartlara, tabloya ve detay paneline uygular."""
@@ -47,6 +48,7 @@ class PriceDataReportRenderer:
         )
         self.populate_health_table()
         panel.detail_text.setHtml(self.format_report_text(report))
+        panel._set_selected_update_button_state(False)
 
     def populate_health_table(self) -> None:
         """Sağlık tablosunu mevcut rapor verisiyle doldurur."""
@@ -93,12 +95,15 @@ class PriceDataReportRenderer:
         """Tabloda hisse seçildiğinde detay panelini günceller."""
         panel = self.panel
         if panel._current_report is None:
+            panel._set_selected_update_button_state(False)
             return
         stock_id = panel._selected_stock_id()
         if stock_id is None:
+            panel._set_selected_update_button_state(False)
             return
         row = next((r for r in panel._current_report.rows if r.stock_id == stock_id), None)
         if row is None:
+            panel._set_selected_update_button_state(False)
             return
 
         missing_text = ", ".join(d.strftime(L10N.DMY) for d in row.missing_dates[:80])
@@ -140,6 +145,7 @@ class PriceDataReportRenderer:
         </div>
         """
         panel.detail_text.setHtml(html)
+        panel._set_selected_update_button_state(True)
 
     def format_report_text(self, report: PriceDataHealthReport) -> str:
         """Tam raporu HTML string olarak döndürür."""

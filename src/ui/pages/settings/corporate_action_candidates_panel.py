@@ -4,9 +4,9 @@ from src.ui.shared.locale_tr import L10N
 from datetime import date
 from decimal import Decimal
 
-from PyQt5.QtCore import QDate, Qt, QUrl
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QDate, QThreadPool, Qt, QUrl
+from src.qt_compat.qtgui import QDesktopServices
+from src.qt_compat.qtwidgets import (
     QAbstractItemView,
     QComboBox,
     QDateEdit,
@@ -31,6 +31,7 @@ from src.domain.models.corporate_action_candidate import CorporateActionCandidat
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 from src.ui.widgets.shared import CurrencySpinBox
 from src.ui.widgets.shared import AnimatedButton, Toast
+from src.ui.worker import Worker
 
 
 class CorporateActionCandidatesPanel(QWidget):
@@ -40,6 +41,9 @@ class CorporateActionCandidatesPanel(QWidget):
         self.discovery_service = getattr(container, "corporate_action_discovery_service", None)
         self.review_service = getattr(container, "corporate_action_candidate_review_service", None)
         self.stock_repo = getattr(container, "stock_repo", None)
+        self.threadpool = QThreadPool.globalInstance()
+        self._discovery_worker = None
+        self._source_unavailable_detail: str | None = None
         self._candidates: dict[int, CorporateActionCandidate] = {}
         self._init_ui()
         self.refresh_list()
@@ -131,17 +135,35 @@ class CorporateActionCandidatesPanel(QWidget):
         if self.discovery_service is None:
             return
         self._set_controls_enabled(False)
-        try:
-            result = self.discovery_service.discover()
-            if getattr(result, "source_unavailable", False):
-                Toast.warning(self, _discovery_error_message(result))
-            else:
-                Toast.success(self, L10N.KURUMSAL_AKSIYON_TARAMASI_TAMAMLANDI_TMPL.format(count=result.saved_count))
+        worker = Worker(self.discovery_service.discover)
+        self._discovery_worker = worker
+        worker.signals.result.connect(self._on_discover_success)
+        worker.signals.error.connect(self._on_discover_error)
+        worker.signals.finished.connect(self._on_discover_finished)
+        self.threadpool.start(worker)
+
+    def _on_discover_success(self, result) -> None:
+        if getattr(result, "source_unavailable", False):
+            self._source_unavailable_detail = _discovery_error_detail(result)
             self.refresh_list()
-        except Exception as exc:
-            Toast.error(self, L10N.KURUMSAL_AKSIYON_TARAMASI_CALISTIRILAMADI_TMPL.format(exc=exc))
-        finally:
-            self._set_controls_enabled(True)
+            self.detail_text.setText(self._source_unavailable_detail)
+            Toast.info(self, L10N.KAP_MKK_KAYNAGI_GECICI_OKUNAMADI)
+            return
+        else:
+            self._source_unavailable_detail = None
+            Toast.success(self, L10N.KURUMSAL_AKSIYON_TARAMASI_TAMAMLANDI_TMPL.format(count=result.saved_count))
+        self.refresh_list()
+
+    def _on_discover_error(self, err_tuple) -> None:
+        Toast.error(self, L10N.KURUMSAL_AKSIYON_TARAMASI_CALISTIRILAMADI_TMPL.format(exc=err_tuple[1]))
+
+    def _on_discover_finished(self) -> None:
+        self._set_controls_enabled(True)
+        self._on_selection_changed()
+        if self._source_unavailable_detail:
+            self.detail_text.setText(self._source_unavailable_detail)
+            self._source_unavailable_detail = None
+        self._discovery_worker = None
 
     def refresh_list(self) -> None:
         if self.review_service is None:
@@ -187,7 +209,7 @@ class CorporateActionCandidatesPanel(QWidget):
         if candidate is None:
             return
         dialog = CorporateActionCandidateEditDialog(candidate, self.stock_repo, self)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         updated = dialog.to_candidate()
         try:
@@ -256,7 +278,8 @@ class CorporateActionCandidatesPanel(QWidget):
 class CorporateActionCandidateEditDialog(QDialog):
     def __init__(self, candidate: CorporateActionCandidate, stock_repo, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self._candidate = candidate
         self._stock_repo = stock_repo
         self.setWindowTitle(L10N.KURUMSAL_AKSIYON_ADAYI)
@@ -363,3 +386,9 @@ def _discovery_error_message(result) -> str:
     if errors:
         return f"KAP/MKK kaynagi gecici olarak okunamadi: {errors[0]}"
     return "KAP/MKK kaynagi gecici olarak okunamadi."
+
+
+def _discovery_error_detail(result) -> str:
+    errors = getattr(result, "errors", []) or []
+    detail = "\n".join(str(error) for error in errors) if errors else _discovery_error_message(result)
+    return L10N.KAP_MKK_KAYNAGI_DETAY_TMPL.format(detail=detail)

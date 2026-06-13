@@ -3,7 +3,7 @@ from src.ui.shared.locale_tr import L10N
 
 from datetime import date
 
-from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from src.qt_compat.qtwidgets import QFileDialog, QMessageBox
 
 from src.application.services.reporting.daily_history_models import ExportMode
 
@@ -45,7 +45,7 @@ class DashboardExportActions:
             return
 
         dialog = self._page.date_range_dialog_cls(self._page, min_date=first_date, max_date=date.today())
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.Accepted:
             return
 
         result = dialog.get_range()

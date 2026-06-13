@@ -9,8 +9,8 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QApplication, QDialog, QPushButton
+pytest.importorskip("PySide6")
+from src.qt_compat.qtwidgets import QApplication, QDialog, QPushButton
 
 from src.application.services.market.price_data_health_service import PriceDataHealthReport, StockPriceHealthRow
 from src.domain.models.model_portfolio import ModelPortfolio
@@ -412,7 +412,7 @@ def test_model_portfolio_capital_action_passes_dialog_result_to_service(monkeypa
         def __init__(self, current_cash, net_capital, parent=None):
             calls.append(("dialog", current_cash, net_capital))
 
-        def exec_(self):
+        def exec(self):
             return QDialog.Accepted
 
         def get_result(self):
@@ -461,6 +461,46 @@ def test_model_portfolio_capital_action_passes_dialog_result_to_service(monkeypa
     assert ("update",) in calls
 
 
+def test_model_portfolio_capital_action_ignores_invalid_dialog_result(monkeypatch):
+    calls = []
+
+    class FakeDialog:
+        def __init__(self, current_cash, net_capital, parent=None):
+            calls.append(("dialog", current_cash, net_capital))
+
+        def exec(self):
+            return QDialog.Accepted
+
+        def get_result(self):
+            return None
+
+    class FakeService:
+        def get_portfolio_summary(self, portfolio_id, price_map):
+            return {
+                "remaining_cash": Decimal("1000"),
+                "net_capital": Decimal("1200"),
+            }
+
+        def add_capital_movement(self, **kwargs):
+            calls.append(("service", kwargs))
+
+    monkeypatch.setattr(
+        "src.ui.pages.model_portfolio.utils.model_portfolio_actions.CapitalMovementDialog",
+        FakeDialog,
+    )
+    page = SimpleNamespace(
+        current_portfolio_id=4,
+        current_price_map={},
+        model_portfolio_service=FakeService(),
+        _load_portfolios=lambda: calls.append(("load",)),
+        _update_view=lambda: calls.append(("update",)),
+    )
+
+    ModelPortfolioActions(page).on_capital_movement()
+
+    assert calls == [("dialog", Decimal("1000"), Decimal("1200"))]
+
+
 def test_model_portfolio_trade_action_blocks_closed_market_session(monkeypatch):
     warnings = []
 
@@ -469,7 +509,7 @@ def test_model_portfolio_trade_action_blocks_closed_market_session(monkeypatch):
             self.btn_buy_mode = SimpleNamespace(setChecked=lambda val: None)
             self.btn_sell_mode = SimpleNamespace(setChecked=lambda val: None)
 
-        def exec_(self):
+        def exec(self):
             return QDialog.Accepted
 
         def get_result(self):
@@ -670,7 +710,7 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
     price_repo = DummyPriceRepo()
     latest_price_repo = DummyLatestPriceRepo()
     event_signal = DummyEventSignal()
-    from PyQt5.QtWidgets import QWidget
+    from src.qt_compat.qtwidgets import QWidget
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
     QWidget.__init__(page)
     page.current_portfolio_id = 4
@@ -709,7 +749,7 @@ def test_model_portfolio_refresh_publishes_prices_without_daily_price_write():
 def test_model_portfolio_refresh_button_shows_updating_text_during_refresh(monkeypatch):
     event_signal = DummyEventSignal()
     process_events_calls = []
-    from PyQt5.QtWidgets import QWidget
+    from src.qt_compat.qtwidgets import QWidget
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
     QWidget.__init__(page)
     page.current_portfolio_id = 4
@@ -756,7 +796,7 @@ def test_model_portfolio_refresh_button_shows_updating_text_during_refresh(monke
 
 
 def test_model_portfolio_prices_updated_event_updates_selected_portfolio_prices():
-    from PyQt5.QtWidgets import QWidget
+    from src.qt_compat.qtwidgets import QWidget
     page = ModelPortfolioPage.__new__(ModelPortfolioPage)
     QWidget.__init__(page)
     page.current_portfolio_id = 4

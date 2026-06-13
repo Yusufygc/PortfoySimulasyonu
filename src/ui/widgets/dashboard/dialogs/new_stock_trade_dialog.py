@@ -7,14 +7,15 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Optional, Literal, Dict, Any
 
-from PyQt5.QtCore import Qt, QDate, QTime, QThreadPool
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import Qt, QDate, QTime, QThreadPool
+from src.qt_compat.qtwidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
     QLabel, QLineEdit, QRadioButton, QSpinBox, 
     QDateEdit, QTimeEdit, QPushButton, QMessageBox, 
     QStackedWidget, QWidget, QFrame, QButtonGroup
 )
 from src.ui.formatters import display_ticker
+from src.ui.shared.ticker_validation import is_valid_ticker_input, normalize_ticker_input
 from src.ui.worker import Worker
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 from src.ui.widgets.shared import CurrencySpinBox
@@ -30,7 +31,8 @@ class NewStockTradeDialog(QDialog):
     """
     def __init__(self, parent=None, price_lookup_func=None, lot_size: int = 1):
         super().__init__(parent)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.price_lookup_func = price_lookup_func
         self.lot_size = lot_size
         self.current_price: Optional[Decimal] = None
@@ -354,6 +356,9 @@ class NewStockTradeDialog(QDialog):
         if not ticker:
             QMessageBox.warning(self, L10N.ERROR, L10N.LUTFEN_BIR_HISSE_KODU_TICKER)
             return False
+        if not is_valid_ticker_input(ticker):
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERSIZ_HISSE_KODU)
+            return False
 
         current_ticker = self._normalized_ticker()
         
@@ -432,6 +437,11 @@ class NewStockTradeDialog(QDialog):
         ticker = self.line_ticker.text().strip().upper()
         if not ticker or not self.price_lookup_func:
             return
+        if not is_valid_ticker_input(ticker):
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERSIZ_HISSE_KODU)
+            self._begin_lookup("")
+            self._price_lookup_in_flight = False
+            return
 
         normalized_ticker = self._normalize_ticker_value(ticker)
         if self._price_lookup_in_flight and normalized_ticker == self._last_lookup_ticker:
@@ -500,10 +510,7 @@ class NewStockTradeDialog(QDialog):
 
     @staticmethod
     def _normalize_ticker_value(ticker: str) -> str:
-        normalized = (ticker or "").strip().upper()
-        if normalized and "." not in normalized:
-            normalized += ".IS"
-        return normalized
+        return normalize_ticker_input(ticker)
 
     def _begin_lookup(self, normalized_ticker: str) -> None:
         self._price_lookup_in_flight = True

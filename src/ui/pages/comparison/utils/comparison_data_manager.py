@@ -7,7 +7,8 @@ import logging
 from typing import TYPE_CHECKING
 
 import pandas as pd
-from PyQt5.QtCore import QThreadPool
+from src.qt_compat.qtcore import QThreadPool, QTimer
+from src.qt_compat.lifecycle import is_qobject_deleted
 
 from src.ui.worker import Worker
 from src.application.services.analysis.models import AnalysisFilterState
@@ -26,11 +27,7 @@ logger = logging.getLogger(__name__)
 def _is_page_unavailable(page) -> bool:
     if getattr(page, "_comparison_page_active", True) is False:
         return True
-    try:
-        import sip
-        return sip.isdeleted(page)
-    except Exception:
-        return False
+    return is_qobject_deleted(page)
 
 
 class ComparisonDataManager:
@@ -192,6 +189,7 @@ class ComparisonDataManager:
         page = self.page
         if _is_page_unavailable(page):
             return
+        scroll_value = self._capture_scroll_value()
         start_date, end_date = page.ribbon_bar.date_range()
         selected_codes = page.ribbon_bar.selected_assets()
 
@@ -199,6 +197,7 @@ class ComparisonDataManager:
             page._request_seq += 1
             page.chart_overrides.clear()
             page._renderer.render_empty_state(L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN)
+            self._restore_scroll_value(scroll_value)
             return
 
         mode = page.ribbon_bar.selected_mode()
@@ -215,13 +214,14 @@ class ComparisonDataManager:
             page.ribbon_bar.blockSignals(True)
             try:
                 page.ribbon_bar.set_assets(updated_assets)
-                page.ribbon_bar.set_selected_assets(new_selected_codes)
+                page.ribbon_bar.set_selected_assets(new_selected_codes, emit=False)
             finally:
                 page.ribbon_bar.blockSignals(False)
             selected_codes = new_selected_codes
 
         page.chart_overrides.clear()
         self.refresh_panel_options()
+        self._restore_scroll_value(scroll_value)
 
         warnings = self.check_date_warnings()
         if warnings:
@@ -238,14 +238,14 @@ class ComparisonDataManager:
         page._selected_stock_ids = stock_ids
         worker = Worker(self.analysis_service.get_comparison_view, filter_state)
         worker.signals.result.connect(
-            lambda result, rid=request_id: self._on_data_ready(rid, result)
+            lambda result, rid=request_id, sv=scroll_value: self._on_data_ready(rid, result, sv)
         )
         worker.signals.error.connect(
-            lambda err, rid=request_id: self._on_data_error(rid, err)
+            lambda err, rid=request_id, sv=scroll_value: self._on_data_error(rid, err, sv)
         )
         self.threadpool.start(worker)
 
-    def _on_data_ready(self, request_id: int, dto) -> None:
+    def _on_data_ready(self, request_id: int, dto, scroll_value: int | None = None) -> None:
         """Worker sonucu döndüğünde grafikleri render eder."""
         page = self.page
         if _is_page_unavailable(page):
@@ -258,16 +258,18 @@ class ComparisonDataManager:
 
         if not series_dict:
             page._renderer.render_empty_state(L10N.SECILEN_FILTRELER_ICIN_VERI_BULUNAMADI)
+            self._restore_scroll_value(scroll_value)
             return
 
         aligned_df = ComparisonService.align_financial_series(series_dict)
         page._comparison_empty_message = None
         page.last_global_df = aligned_df
         page._renderer.trigger_visible_charts_render(aligned_df)
+        self._restore_scroll_value(scroll_value)
         page._last_loaded_assets = page.ribbon_bar.selected_assets()
         page._last_loaded_dates = page.ribbon_bar.date_range()
 
-    def _on_data_error(self, request_id: int, err_tuple) -> None:
+    def _on_data_error(self, request_id: int, err_tuple, scroll_value: int | None = None) -> None:
         """Worker hata döndürdüğünde boş durum gösterir."""
         page = self.page
         if _is_page_unavailable(page):
@@ -275,6 +277,7 @@ class ComparisonDataManager:
         if request_id != page._request_seq:
             return
         page._renderer.render_empty_state(L10N.VERI_YUKLEME_HATASI_TMPL.format(exc=err_tuple[1]))
+        self._restore_scroll_value(scroll_value)
 
     # ------------------------------------------------------------------
     # Yardımcı
@@ -299,6 +302,36 @@ class ComparisonDataManager:
                 return col
 
         return df.columns[0] if not df.empty else None
+
+    def _capture_scroll_value(self) -> int | None:
+        page = self.page
+        scroll_area = getattr(page, "scroll_area", None)
+        if scroll_area is None:
+            return None
+        try:
+            return scroll_area.verticalScrollBar().value()
+        except RuntimeError:
+            return None
+
+    def _restore_scroll_value(self, value: int | None) -> None:
+        if value is None:
+            return
+        page = self.page
+        scroll_area = getattr(page, "scroll_area", None)
+        if scroll_area is None:
+            return
+
+        def restore() -> None:
+            if _is_page_unavailable(page):
+                return
+            try:
+                bar = scroll_area.verticalScrollBar()
+                bar.setValue(min(value, bar.maximum()))
+            except RuntimeError:
+                return
+
+        restore()
+        QTimer.singleShot(0, restore)
 
     # ------------------------------------------------------------------
     # page_enter hook

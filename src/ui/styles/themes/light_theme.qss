@@ -8,7 +8,7 @@ QWidget {
     background-color: @COLOR_BG_BASE;
     color: @COLOR_TEXT_PRIMARY;
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-    font-size: @FONT_BASE;
+    font-size: 10pt;
 }
 
 /* --- DIALOGLAR & PENCERELER --- */

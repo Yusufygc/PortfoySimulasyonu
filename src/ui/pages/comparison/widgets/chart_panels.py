@@ -1,6 +1,7 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtCore import QObject, QEvent, QCoreApplication, Qt, QSize
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QAction, QWidget
+from src.qt_compat.qtcore import QObject, QEvent, Qt, QSize
+from src.qt_compat.qtgui import QAction
+from src.qt_compat.qtwidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QWidget
 from src.ui.core.icon_manager import IconManager
 
 
@@ -11,7 +12,11 @@ class WheelRedirectFilter(QObject):
         
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Wheel:
-            QCoreApplication.sendEvent(self.scroll_area, event)
+            delta = event.pixelDelta().y() or event.angleDelta().y()
+            if delta:
+                bar = self.scroll_area.verticalScrollBar()
+                bar.setValue(bar.value() - delta)
+            event.accept()
             return True
         return super().eventFilter(obj, event)
 

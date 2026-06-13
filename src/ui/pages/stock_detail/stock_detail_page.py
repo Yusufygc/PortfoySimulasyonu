@@ -4,10 +4,10 @@ from datetime import time as dt_time
 from decimal import Decimal
 from typing import Optional
 
-from PyQt5.QtCore import QDate, QTime, Qt, QThreadPool
-from PyQt5.QtGui import QColor
+from src.qt_compat.qtcore import QDate, QTime, Qt, QThreadPool
+from src.qt_compat.qtgui import QColor
 from src.ui.worker import Worker
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -35,6 +35,10 @@ logger = logging.getLogger(__name__)
 
 
 class StockDetailPage(BasePage):
+    _LEFT_SCROLL_MIN_WIDTH = 620
+    _LEFT_CONTENT_MIN_WIDTH = 875
+    _HISTORY_VISIBLE_ROW_LIMIT = 10
+
     def __init__(
         self,
         container,
@@ -68,9 +72,12 @@ class StockDetailPage(BasePage):
         self.scroll_area.setFrameShape(QFrame.NoFrame)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll_area.setMinimumWidth(self._LEFT_SCROLL_MIN_WIDTH)
+        self.scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Create left content container widget
         left_content_widget = QWidget()
+        left_content_widget.setMinimumWidth(self._LEFT_CONTENT_MIN_WIDTH)
         left_layout = QVBoxLayout(left_content_widget)
         left_layout.setContentsMargins(0, 0, 10, 0)
         left_layout.setSpacing(15)
@@ -157,8 +164,9 @@ class StockDetailPage(BasePage):
         self.history_table.setAlternatingRowColors(True)
         self.history_table.setProperty("cssClass", "stockHistoryTable")
         self.history_table.verticalHeader().setVisible(False)
+        self.history_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.history_table.setMinimumHeight(150)
-        self.history_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.history_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         left_layout.addWidget(self.history_table)
 
         # 6. Sermaye Tablosu
@@ -194,14 +202,33 @@ class StockDetailPage(BasePage):
         self.trade_form.time_edit.timeChanged.connect(self._trigger_impact_update)
         self.trade_form.btn_buy_mode.toggled.connect(self._trigger_impact_update)
 
-        # Main horizontal content layout
-        content_layout = QHBoxLayout()
+        self.content_wrapper = QWidget()
+        self.content_wrapper.setProperty("cssClass", "stockDetailContentWrapper")
+        # Main horizontal content layout inside a horizontally scrollable wrapper.
+        content_layout = QHBoxLayout(self.content_wrapper)
         content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(10)
 
         content_layout.addWidget(self.scroll_area, 1)
         content_layout.addWidget(self.trade_form, 0)
-        self.main_layout.addLayout(content_layout, 1)
+        wrapper_min_width = (
+            self._LEFT_CONTENT_MIN_WIDTH
+            + content_layout.spacing()
+            + self.trade_form.minimumWidth()
+        )
+        self.content_wrapper.setMinimumWidth(wrapper_min_width)
+        self.content_wrapper.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        self.content_scroll_area = QScrollArea()
+        self.content_scroll_area.setProperty("cssClass", "stockDetailContentScroll")
+        self.content_scroll_area.setWidgetResizable(True)
+        self.content_scroll_area.setFrameShape(QFrame.NoFrame)
+        self.content_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.content_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.content_scroll_area.setWidget(self.content_wrapper)
+        self.content_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        self.main_layout.addWidget(self.content_scroll_area, 1)
 
     def _trigger_impact_update(self):
         self._sync_quantity_limits()
@@ -308,6 +335,7 @@ class StockDetailPage(BasePage):
     def _load_history(self):
         if not self.current_stock_id:
             self.history_table.setRowCount(0)
+            self._update_history_table_height()
             return
 
         if self._is_model_context():
@@ -345,6 +373,28 @@ class StockDetailPage(BasePage):
             self.history_table.setItem(row_index, 2, self._history_item(str(qty)))
             self.history_table.setItem(row_index, 3, self._history_item(f"TL {price:,.2f}"))
             self.history_table.setItem(row_index, 4, self._history_item(f"TL {total:,.2f}"))
+        self._update_history_table_height()
+
+    def _update_history_table_height(self) -> None:
+        row_count = self.history_table.rowCount()
+        visible_rows = min(max(row_count, 1), self._HISTORY_VISIBLE_ROW_LIMIT)
+        default_row_height = self.history_table.verticalHeader().defaultSectionSize()
+        row_height = sum(
+            self.history_table.rowHeight(row) or default_row_height
+            for row in range(min(row_count, visible_rows))
+        )
+        if row_count == 0:
+            row_height = default_row_height
+        header_height = self.history_table.horizontalHeader().height() or self.history_table.horizontalHeader().sizeHint().height()
+        frame_height = self.history_table.frameWidth() * 2
+        table_height = header_height + row_height + frame_height + 2
+
+        if row_count > self._HISTORY_VISIBLE_ROW_LIMIT:
+            self.history_table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        else:
+            self.history_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.history_table.setFixedHeight(table_height)
+        self.history_table.updateGeometry()
 
     @staticmethod
     def _history_item(text: str, foreground: Optional[QColor] = None) -> QTableWidgetItem:

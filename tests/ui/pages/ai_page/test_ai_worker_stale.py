@@ -2,8 +2,8 @@ import sys
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QApplication
+pytest.importorskip("PySide6")
+from src.qt_compat.qtwidgets import QApplication
 
 from src.domain.models.ai_analysis import MessageRole
 from src.infrastructure.ai.qsettings_chat_history_repo import QSettingsChatHistoryRepository

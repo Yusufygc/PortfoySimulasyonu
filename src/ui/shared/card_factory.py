@@ -1,6 +1,6 @@
 # src/ui/shared/card_factory.py
 
-from PyQt5.QtWidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout
+from src.qt_compat.qtwidgets import QFrame, QLabel, QVBoxLayout, QHBoxLayout
 from typing import Tuple
 
 from src.ui.widgets.shared.controls.icon_label import IconLabel

@@ -1,8 +1,8 @@
 from src.ui.shared.locale_tr import L10N
 from datetime import datetime
 
-from PyQt5.QtCore import QThreadPool, QPropertyAnimation, QParallelAnimationGroup, QEasingCurve, QRect
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
+from src.qt_compat.qtcore import QThreadPool, QPropertyAnimation, QParallelAnimationGroup, QEasingCurve, QRect
+from src.qt_compat.qtwidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout
 
 from src.application.services.ai.ai_chat_service import AiChatService
 from src.application.services.ai.safety_guard import validate_user_input

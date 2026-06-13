@@ -213,6 +213,9 @@ class PlanningService:
         if goal is None:
             raise ValueError(f"Hedef bulunamadı: {goal_id}")
 
+        if goal.status == GoalStatus.COMPLETED or goal.is_completed:
+            raise ValueError("Tamamlanan hedefe katkÄ± eklenemez.")
+
         new_amount = goal.current_amount + amount_decimal
         new_status = GoalStatus.COMPLETED if new_amount >= goal.target_amount else goal.status
 

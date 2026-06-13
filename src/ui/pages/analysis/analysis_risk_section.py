@@ -1,14 +1,14 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget, QGridLayout
-from PyQt5.QtCore import QTimer
+from src.qt_compat.qtwidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget, QGridLayout
+from src.qt_compat.qtcore import QTimer, QUrl, Qt
 
+import tempfile
 
 from src.application.services.analysis import AllocationRiskDTO
 from src.ui.widgets.shared import InfoCard
 
-from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 from .chart_builder import build_pie_chart, patch_plotly_html
 
 
@@ -19,6 +19,14 @@ def _fmt_pct(value: float | None) -> str:
 class AnalysisRiskSection(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.cost_chart = None
+        self.value_chart = None
+        self._charts_initialized = False
+        self._latest_dto: AllocationRiskDTO | None = None
+        self._pending_error: str | None = None
+        self._cost_temp_file = None
+        self._val_temp_file = None
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(18)
@@ -61,21 +69,64 @@ class AnalysisRiskSection(QWidget):
 
         charts_row = QHBoxLayout()
         charts_row.setSpacing(15)
+        self.cost_chart_container = self._build_chart_placeholder(L10N.MALIYET_BAZLI_DAGILIM)
+        self.value_chart_container = self._build_chart_placeholder(L10N.GUNCEL_DEGER_DAGILIMI)
+        charts_row.addWidget(self.cost_chart_container, 1)
+        charts_row.addWidget(self.value_chart_container, 1)
+        layout.addLayout(charts_row)
+
+    def _build_chart_placeholder(self, title: str) -> QWidget:
+        container = QWidget()
+        container.setMinimumHeight(400)
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        placeholder = QLabel(title)
+        placeholder.setProperty("cssClass", "mutedText")
+        placeholder.setMinimumHeight(400)
+        placeholder.setWordWrap(True)
+        placeholder.setAlignment(Qt.AlignCenter)
+        layout.addWidget(placeholder)
+        return container
+
+    def activate_charts(self) -> None:
+        self._ensure_chart_views()
+        if self._pending_error:
+            self._set_chart_error(self._pending_error)
+        elif self._latest_dto is not None:
+            self._render_charts(self._latest_dto)
+
+    def _ensure_chart_views(self) -> None:
+        if self._charts_initialized:
+            return
+
+        from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
+
         self.cost_chart = SilentWebEngineView()
         self.value_chart = SilentWebEngineView()
         self.cost_chart.setMinimumHeight(400)
         self.value_chart.setMinimumHeight(400)
-        charts_row.addWidget(self.cost_chart, 1)
-        charts_row.addWidget(self.value_chart, 1)
-        layout.addLayout(charts_row)
+        self._replace_chart_placeholder(self.cost_chart_container, self.cost_chart)
+        self._replace_chart_placeholder(self.value_chart_container, self.value_chart)
+        self._charts_initialized = True
+
+    def _replace_chart_placeholder(self, container: QWidget, chart: QWidget) -> None:
+        layout = container.layout()
+        item = layout.takeAt(0)
+        if item is not None and item.widget() is not None:
+            item.widget().deleteLater()
+        layout.addWidget(chart)
 
     def set_error(self, message: str) -> None:
+        self._pending_error = message
         self.warning_banner.setText(message)
         self.warning_banner.show()
-        self.cost_chart.setHtml(f"<div style='color:white; text-align:center; padding-top:150px;'>{message}</div>")
-        self.value_chart.setHtml(f"<div style='color:white; text-align:center; padding-top:150px;'>{message}</div>")
+        if self._charts_initialized:
+            self._set_chart_error(message)
 
     def set_data(self, dto: AllocationRiskDTO) -> None:
+        self._latest_dto = dto
+        self._pending_error = None
         if dto.warnings:
             new_warnings = [w for w in dto.warnings if w not in getattr(self, '_shown_warnings', set())]
             if new_warnings:
@@ -96,17 +147,19 @@ class AnalysisRiskSection(QWidget):
         self.card_beta.set_value(f"{dto.beta:.2f}" if dto.beta is not None else "—")
         self.card_alpha.set_value(_fmt_pct(dto.alpha) if dto.alpha is not None else "—")
 
+        if self._charts_initialized:
+            self._render_charts(dto)
+
+    def _set_chart_error(self, message: str) -> None:
+        self.cost_chart.setHtml(f"<div style='color:white; text-align:center; padding-top:150px;'>{message}</div>")
+        self.value_chart.setHtml(f"<div style='color:white; text-align:center; padding-top:150px;'>{message}</div>")
+
+    def _render_charts(self, dto: AllocationRiskDTO) -> None:
         cost_breakdown = [(item.label, float(item.cost_value)) for item in dto.items if item.cost_value > 0]
         current_breakdown = [(item.label, float(item.current_value)) for item in dto.items if item.current_value > 0]
-        
-        from PyQt5.QtCore import QUrl
-        import tempfile
 
-        from PyQt5.QtWidgets import QApplication
-        from PyQt5.QtGui import QPalette
-        palette = QApplication.instance().palette()
-        is_light = palette.color(QPalette.Window).lightness() > 128
-        text_color = "#1e293b" if is_light else "#f1f5f9"
+        from src.ui.styles.tokens import DEFAULT_THEME
+        text_color = DEFAULT_THEME.get("COLOR_TEXT_PRIMARY", "#f1f5f9")
 
         if cost_breakdown:
             fig1 = build_pie_chart(L10N.MALIYET_BAZLI_DAGILIM, cost_breakdown, text_color=text_color)

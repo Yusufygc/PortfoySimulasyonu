@@ -5,8 +5,8 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict
 
-from PyQt5.QtWidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget, QSizePolicy, QScrollArea
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtwidgets import QFileDialog, QComboBox, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget, QSizePolicy, QScrollArea
+from src.qt_compat.qtcore import Qt
 
 from src.application.services.analysis import ComparisonViewDTO
 from src.ui.formatters import display_ticker
@@ -237,7 +237,7 @@ class AnalysisComparisonSection(QWidget):
         with open(self._temp_file_path, "w", encoding="utf-8") as f:
             f.write(html)
             
-        from PyQt5.QtCore import QUrl
+        from src.qt_compat.qtcore import QUrl
         self.chart_engine.load(QUrl.fromLocalFile(self._temp_file_path))
 
     def _build_relative_gap_series(

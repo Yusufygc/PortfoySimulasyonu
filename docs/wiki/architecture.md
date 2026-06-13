@@ -20,7 +20,7 @@ Modüler LLM Wiki prensibi gereği, detaylı teknik dokümantasyonlar alt belgel
 
 | Mimari Alan | Detay Belgesi | Özet İşlev |
 | :--- | :--- | :--- |
-| **Kullanıcı Arayüzü (UI)** | [ui_architecture_and_events.md](ui_architecture_and_events.md) | PyQt5, QThread Worker asenkron yapısı, Global Event Bus ve QSS Tasarım Sistemleri. |
+| **Kullanıcı Arayüzü (UI)** | [ui_architecture_and_events.md](ui_architecture_and_events.md) | PySide6, `src/qt_compat` binding sınırı, QRunnable Worker asenkron yapısı, Global Event Bus ve QSS Tasarım Sistemleri. |
 | **Piyasa ve Portföy** | [service_portfolio_and_market.md](service_portfolio_and_market.md) | Event-sourcing ile portföy hesaplanması, Trade mantığı ve YFinance fiyat sağlığı. |
 | **Kurumsal Aksiyonlar** | [service_corporate_actions.md](service_corporate_actions.md) | Temettü, Bedelli/Bedelsiz sermaye artırımı hesapları ve maliyet güncellemeleri. |
 | **İzleme Listesi** | [service_watchlist.md](service_watchlist.md) | Ana portföy dışında izlenen hisseler ve hedef fiyat takibi. |

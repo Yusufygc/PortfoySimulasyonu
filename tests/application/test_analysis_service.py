@@ -464,6 +464,26 @@ def test_page_payload_contains_all_sections(analysis_service):
     assert set(payload.keys()) == {"overview", "comparison", "risk"}
 
 
+def test_overview_risk_payload_skips_comparison_section(analysis_service, monkeypatch):
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_stock_ids=[],
+        selected_benchmarks=["bist100"],
+        portfolio_source="dashboard",
+    )
+
+    monkeypatch.setattr(
+        analysis_service,
+        "get_comparison_view",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("comparison should not be built")),
+    )
+
+    payload = analysis_service.get_overview_risk_payload(filter_state)
+
+    assert set(payload.keys()) == {"overview", "risk"}
+
+
 def test_empty_benchmark_selection_disables_benchmark_series(analysis_service):
     filter_state = AnalysisFilterState(
         start_date=date(2026, 1, 1),

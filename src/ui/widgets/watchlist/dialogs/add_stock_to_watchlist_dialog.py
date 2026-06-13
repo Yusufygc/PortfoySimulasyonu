@@ -3,8 +3,8 @@ from src.ui.shared.locale_tr import L10N
 
 from typing import Optional, Tuple
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import (
     QDialog,
     QFormLayout,
     QHBoxLayout,
@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
+from src.ui.shared.ticker_validation import is_valid_ticker_input
 
 
 class AddStockToWatchlistDialog(QDialog):
@@ -24,7 +25,8 @@ class AddStockToWatchlistDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(L10N.HISSE_EKLE_1)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.setModal(True)
         self.setMinimumWidth(420)
         self.setProperty("cssClass", "dialogContainer")
@@ -90,7 +92,7 @@ class AddStockToWatchlistDialog(QDialog):
     @staticmethod
     def get_stock_input(parent=None) -> Optional[Tuple[str, Optional[str]]]:
         dialog = AddStockToWatchlistDialog(parent)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return None
         return dialog.values()
 
@@ -98,6 +100,10 @@ class AddStockToWatchlistDialog(QDialog):
         ticker = self.ticker_edit.text().strip()
         if not ticker:
             QMessageBox.warning(self, L10N.EKSIK_BILGI, L10N.HISSE_BOS_OLAMAZ)
+            self.ticker_edit.setFocus()
+            return
+        if not is_valid_ticker_input(ticker):
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERSIZ_HISSE_KODU)
             self.ticker_edit.setFocus()
             return
 

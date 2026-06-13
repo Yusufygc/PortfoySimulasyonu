@@ -5,6 +5,59 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-13] duzeltme | Toast kapatma ikonu ve tema kontrasti
+
+- Toast kapatma kontrolu metin tabanli `x` yerine IconManager uzerinden uretilen tema-duyarli SVG `x` ikonuna tasindi.
+- `TOAST_CLOSE_ICON` ve `TOAST_CLOSE_HOVER_BG` tokenlari eklendi; dark/light toast zeminlerinde kapatma ikon kontrasti testle korunur.
+- Parent argumani eksik Toast API cagrisini yakalayan AST guard eklendi; Finansal Planlama'daki eksik parent cagrisi duzeltildi.
+- Dogrulama: `python -m pytest tests -q -p no:cacheprovider` -> 537 passed.
+- Etkilenen dosyalar: `src/ui/widgets/shared/feedback/toast.py`, `src/ui/styles/`, `src/ui/assets/icons/x.svg`, `tests/ui/`.
+
+## [2026-06-13] duzeltme | Analiz async lifecycle ve WebEngine lazy init
+
+- PySide6 sonrasi Analiz sayfasinda payload render edilmesine ragmen `Analiz Hesaplaniyor...` butonunun acik kalmasi, Worker cleanup ve sayfa request-id tamamlama akisi ile kapatildi.
+- `Worker` aktif referansi artik `finished` sinyali dis dinleyicilere teslim edildikten sonra internal cleanup sinyaliyle birakilir; QThreadPool event-loop regresyon testleri eklendi.
+- Analiz sayfasi ilk acilista yalniz overview+risk payload ister; eski `get_page_payload()` kontrati korunur, UI icin `get_overview_risk_payload()` kullanilir.
+- Risk tabindaki Plotly/WebEngine view'lari sayfa kurulumunda degil, kullanici `Dagilim & Risk` tabina gecince lazy olusturulur; ilk Analiz girisindeki odak/sicrama maliyeti azaltildi.
+- Dogrulama: `python -m pytest tests -q -p no:cacheprovider` -> 531 passed.
+- Etkilenen dosyalar: `src/ui/worker.py`, `src/ui/pages/analysis/`, `src/application/services/analysis/analysis_service.py`, `tests/ui/`, `tests/application/test_analysis_service.py`.
+
+## [2026-06-12] duzeltme | PySide6 sonrasi UI etkileşim ve tema regresyonları
+
+- Karşılaştırma WebEngine grafiklerinde mouse wheel artık event tekrar gönderimi yerine doğrudan sayfa scroll bar'ını hareket ettirir; grafik üzerindeyken sayfa scroll davranışı geri getirildi.
+- `SilentWebEngineView` focus almayacak şekilde ayarlandı; analiz/karşılaştırma grafik yüklenirken ana pencere odağının zıplaması azaltıldı.
+- Analiz dağılım grafiklerinde Plotly metin rengi Qt palette yerine aktif tema tokenlarından alınır; koyu temada legend ve başlıklar okunur.
+- Dialoglarda `WindowCloseButtonHint` açıkça korunur; context help butonu kaldırılırken X ile kapatma davranışı bozulmaz.
+- Global QSS kök fontu pixel-size yerine `10pt` olarak tanımlandı; Qt/pyqtgraph tarafındaki `QFont::setPointSize <= 0` uyarısı hedeflendi.
+- Doğrulama: `python -m pytest tests -q -p no:cacheprovider` -> 522 passed.
+- Etkilenen dosyalar: `src/ui/pages/comparison/widgets/chart_panels.py`, `src/ui/widgets/shared/controls/silent_web_view.py`, `src/ui/pages/analysis/`, `src/ui/widgets/**/dialogs/`, `src/ui/styles/themes/`, `tests/ui/`.
+
+## [2026-06-12] duzeltme | PySide6 sonrasi Windows DPI buyumesi normalize edildi
+
+- PySide6/Qt6'nin Windows 125% ekran olcegini otomatik uygulamasi nedeniyle sayfa icerikleri, sidebar ve sabit px tabanli QSS metrikleri buyuyordu.
+- `src/qt_compat/scaling.py` eklendi; `QApplication` olusmadan once Windows scale percent okunup 100% ustunde ters `QT_SCALE_FACTOR` uygulanir.
+- Bu makinede duz PySide6 `dpr=1.25`, `geom=1536x864`; app baslangic normalizasyonu sonrasi `QT_SCALE_FACTOR=0.8`, `dpr=1.0`, `geom=1920x1080` olarak dogrulandi.
+- Acil durum kapatma anahtari: `PORTFOYSIM_DISABLE_QT_SCALE_NORMALIZATION=1`; elle override icin mevcut `QT_SCALE_FACTOR` korunur.
+- Etkilenen dosyalar: `app.py`, `src/qt_compat/scaling.py`, `tests/ui/test_qt_scale_normalization.py`, `docs/wiki/ui_architecture_and_events.md`, `docs/wiki/log.md`.
+
+## [2026-06-12] refaktor | PySide6 göçü ve Qt compat katmanı uygulandı
+
+- `src/qt_compat/` paketi eklendi; QtCore/QtGui/QtWidgets/QtSvg/QtWebEngine/QtTest re-exportları ve `shiboken6.isValid` tabanlı lifecycle helper merkezi hale getirildi.
+- Üretim ve test importları PyQt5/PyQtWebEngine/sip yüzeyinden compat katmanına taşındı; `pyqtSignal/pyqtSlot`, `exec_()` ve `sip.isdeleted` kalıntıları temizlendi.
+- WebEngine download akışı Qt6 API'sine geçirildi: `setDownloadDirectory`, `setDownloadFileName`, `accept`.
+- PySide6 runtime farkları kapatıldı: `QDate.toPyDate`, `QTime.toPyTime`, eski enum alias'ları, `QVariant` yerine `None`, Qt6 `QWheelEvent` test fixture'ı ve QRunnable worker yaşam süresi.
+- Dependency pinleri güncellendi: `PySide6==6.11.1`; `PyQt5` ve `PyQtWebEngine` kaldırıldı.
+- Doğrulama: `python -m pytest tests` -> 517 passed; `pip check` -> temiz; `rg "PyQt5|PyQtWebEngine|pyqtSignal|pyqtSlot|import sip|sip\.isdeleted|exec_\(" app.py src tests` -> temiz.
+- Etkilenen ana yüzeyler: `src/qt_compat/`, `app.py`, `src/ui/**`, `tests/**`, `requirements.txt`, `docs/wiki/*`.
+
+## [2026-06-12] yeni-sayfa | PySide6 göç analizi ve faz planı
+
+- PyQt5 -> PySide6 geçişi için kod tabanı katmanlara ve UI alt parçalarına bölünerek analiz edildi.
+- PyQt5 import yüzeyi, `pyqtSignal`, `QThreadPool`, `QSettings`, `sip`, `exec_`, WebEngine/Plotly ve QSS riskleri belgelendi.
+- Önerilen göç modeli `compat-first, page-by-page` olarak kaydedildi; test, WebEngine ve Nuitka kabul kriterleri eklendi.
+- Etkilenen dosyalar: `docs/wiki/pyside6_migration_analysis.md`, `docs/wiki/index.md`, `docs/wiki/log.md`
+- Bağlantılı sayfa: [pyside6_migration_analysis.md](pyside6_migration_analysis.md)
+
 ## [2026-06-06] iyilestirme | Stock Detail grafik UX (TR aylar, crosshair, sembol Y-ekseni)
 
 - `StockChartWidget` (`pyqtgraph`) tamamen Turkce lokal: X-ekseni TR ay kisaltmalari (`"15 Oca"`), Y-ekseni `₺ 1.234,56` formati.

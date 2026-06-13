@@ -3,7 +3,7 @@ from src.ui.shared.locale_tr import L10N
 
 from datetime import date, timedelta
 
-from PyQt5.QtWidgets import QMessageBox
+from src.qt_compat.qtwidgets import QMessageBox
 
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionResult
 from src.domain.models.corporate_action import ActionType
@@ -45,7 +45,7 @@ class DashboardCorporateActionActions:
             current_price=current_price,
             parent=self._page,
         )
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.Accepted:
             return
 
         result_data = dialog.get_result()

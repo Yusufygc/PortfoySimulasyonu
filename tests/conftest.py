@@ -51,16 +51,16 @@ def fake_event_bus():
 
 @pytest.fixture
 def qapp():
-    pytest.importorskip("PyQt5")
-    from PyQt5.QtWidgets import QApplication
+    pytest.importorskip("PySide6")
+    from src.qt_compat.qtwidgets import QApplication
 
     return QApplication.instance() or QApplication(sys.argv)
 
 
 @pytest.fixture
 def drain_qt_events(qapp):
-    pytest.importorskip("PyQt5")
-    from PyQt5.QtCore import QThreadPool
+    pytest.importorskip("PySide6")
+    from src.qt_compat.qtcore import QThreadPool
 
     def _drain(timeout_ms: int = 1000):
         QThreadPool.globalInstance().waitForDone(timeout_ms)

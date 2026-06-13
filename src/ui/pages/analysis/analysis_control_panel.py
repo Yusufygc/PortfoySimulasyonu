@@ -4,8 +4,8 @@ from src.ui.shared.locale_tr import L10N
 from datetime import date, timedelta
 from typing import Dict, List
 
-from PyQt5.QtCore import QDate, pyqtSignal, Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QDate, Signal, Qt
+from src.qt_compat.qtwidgets import (
     QComboBox,
     QDateEdit,
     QFrame,
@@ -24,8 +24,8 @@ from .checkable_combo_box import CheckableComboBox
 
 
 class AnalysisControlPanel(QFrame):
-    filter_changed = pyqtSignal()
-    source_changed = pyqtSignal(str)
+    filter_changed = Signal()
+    source_changed = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -132,7 +132,9 @@ class AnalysisControlPanel(QFrame):
         combo = QComboBox()
         combo.setProperty("cssClass", "customComboBox")
         combo.setMinimumHeight(38)
-        combo.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLength)
+        combo.setSizeAdjustPolicy(
+            QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon
+        )
         return combo
 
     def _wrap_field(self, title: str, widget, description: str | None = None) -> QFrame:

@@ -1,6 +1,6 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtwidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
+from src.qt_compat.qtcore import Qt
 from src.domain.models.ai_analysis import ModelOutlook
 from src.ui.pages.ai_page.labels import outlook_label
 from src.ui.core.icon_manager import IconManager

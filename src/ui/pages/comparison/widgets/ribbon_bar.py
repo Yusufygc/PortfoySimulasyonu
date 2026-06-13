@@ -1,8 +1,8 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 from datetime import date, timedelta
-from PyQt5.QtCore import QDate, pyqtSignal, Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QDate, Signal, Qt
+from src.qt_compat.qtwidgets import (
     QComboBox,
     QDateEdit,
     QFrame,
@@ -17,10 +17,12 @@ from PyQt5.QtWidgets import (
 from src.ui.pages.analysis.checkable_combo_box import CheckableComboBox
 
 class ComparisonRibbonBar(QFrame):
-    filter_changed = pyqtSignal()
+    filter_changed = Signal()
+    _DATE_EDIT_WIDTH = 138
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.all_range_start_provider = None
         self.setProperty("cssClass", "panelFramePadded")
         self.setMinimumHeight(60)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -103,8 +105,10 @@ class ComparisonRibbonBar(QFrame):
         
         self.date_start = QDateEdit()
         self.date_start.setCalendarPopup(True)
+        self.date_start.setDisplayFormat("dd.MM.yyyy")
         self.date_start.setProperty("cssClass", "tradeInputNormal")
         self.date_start.setMinimumHeight(36)
+        self.date_start.setFixedWidth(self._DATE_EDIT_WIDTH)
         self.date_start.setDate(QDate.currentDate().addMonths(-3))
         self.date_start.dateChanged.connect(self.filter_changed.emit)
         self.date_row.addWidget(self.date_start)
@@ -113,8 +117,10 @@ class ComparisonRibbonBar(QFrame):
         
         self.date_end = QDateEdit()
         self.date_end.setCalendarPopup(True)
+        self.date_end.setDisplayFormat("dd.MM.yyyy")
         self.date_end.setProperty("cssClass", "tradeInputNormal")
         self.date_end.setMinimumHeight(36)
+        self.date_end.setFixedWidth(self._DATE_EDIT_WIDTH)
         self.date_end.setDate(QDate.currentDate())
         self.date_end.dateChanged.connect(self.filter_changed.emit)
         self.date_row.addWidget(self.date_end)
@@ -177,7 +183,8 @@ class ComparisonRibbonBar(QFrame):
             start_date = QDate(today.year(), 1, 1)
             self.date_start.setDate(start_date)
         elif label == "Tümü":
-            self.date_start.setDate(today.addYears(-5))
+            start = self._all_range_start_date()
+            self.date_start.setDate(QDate(start.year, start.month, start.day))
         elif delta is not None:
             days = delta.days
             self.date_start.setDate(today.addDays(-days))
@@ -186,6 +193,13 @@ class ComparisonRibbonBar(QFrame):
         self.date_start.blockSignals(False)
         
         self.filter_changed.emit()
+
+    def _all_range_start_date(self) -> date:
+        if callable(self.all_range_start_provider):
+            provided = self.all_range_start_provider(self.selected_assets())
+            if provided is not None:
+                return provided
+        return date(2000, 1, 1)
         
     def set_assets(self, assets: list[tuple[str, str]]) -> None:
         self.compare_combo.set_items(assets)
@@ -207,9 +221,10 @@ class ComparisonRibbonBar(QFrame):
     def selected_assets(self) -> list[str]:
         return self.compare_combo.selected_data()
         
-    def set_selected_assets(self, codes: list[str]) -> None:
+    def set_selected_assets(self, codes: list[str], emit: bool = True) -> None:
         self.compare_combo.set_selected_data(codes)
-        self.filter_changed.emit()
+        if emit:
+            self.filter_changed.emit()
         
     def selected_mode(self) -> str:
         return self.combo_mode.currentText()

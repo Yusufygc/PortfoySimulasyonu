@@ -16,8 +16,8 @@ from src.ui.shared.locale_tr import L10N
 from decimal import Decimal
 from typing import Optional, Dict, Any
 
-from PyQt5.QtCore import Qt, QDate
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import Qt, QDate
+from src.qt_compat.qtwidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
@@ -62,7 +62,8 @@ class CorporateActionDialog(QDialog):
         parent=None,
     ):
         super().__init__(parent)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self._ticker = ticker
         self._display_ticker = display_ticker(ticker)
         self._stock_id = stock_id

@@ -1,5 +1,5 @@
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy, QTextEdit, QWidget
+from src.qt_compat.qtcore import Qt, Signal
+from src.qt_compat.qtwidgets import QHBoxLayout, QSizePolicy, QTextEdit, QWidget
 
 from src.application.services.ai.safety_guard import MAX_CHAR_LIMIT
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
@@ -11,7 +11,7 @@ CHAT_INPUT_TOOLTIP = f"En fazla {MAX_CHAR_LIMIT} karakter"
 
 
 class ChatTextEdit(QTextEdit):
-    send_requested = pyqtSignal()
+    send_requested = Signal()
 
     def keyPressEvent(self, event):
         is_enter = event.key() in (Qt.Key_Return, Qt.Key_Enter)
@@ -26,7 +26,7 @@ class ChatTextEdit(QTextEdit):
 class ChatInputBar(QWidget):
     """Sohbet mesaji giris alani."""
 
-    send_requested = pyqtSignal(str)
+    send_requested = Signal(str)
 
     def __init__(self):
         super().__init__()

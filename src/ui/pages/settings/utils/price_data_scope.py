@@ -1,7 +1,7 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtWidgets import QComboBox
+from src.qt_compat.qtwidgets import QComboBox
 
 FALLBACK_SCOPE_OPTIONS = [("all_active", L10N.TUM_AKTIF_PORTFOYLER), ("dashboard", L10N.ANA_PORTFOY)]
 

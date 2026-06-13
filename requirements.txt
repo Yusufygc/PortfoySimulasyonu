@@ -20,8 +20,7 @@ mysql-connector-python==9.6.0
 python-dotenv==1.2.2
 
 # UI and visualization
-PyQt5==5.15.11
-PyQtWebEngine==5.15.7
+PySide6==6.11.1
 pyqtgraph==0.14.0
 plotly==6.7.0
 

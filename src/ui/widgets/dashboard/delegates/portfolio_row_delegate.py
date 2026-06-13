@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QStyledItemDelegate
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtwidgets import QStyledItemDelegate
+from src.qt_compat.qtgui import QColor
+from src.qt_compat.qtcore import Qt
 
 class PortfolioRowDelegate(QStyledItemDelegate):
     """

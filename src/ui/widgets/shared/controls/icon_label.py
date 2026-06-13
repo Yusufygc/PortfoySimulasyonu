@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PyQt5.QtCore import QEvent, QSize
-from PyQt5.QtWidgets import QLabel
+from src.qt_compat.qtcore import QEvent, QSize
+from src.qt_compat.qtwidgets import QLabel
 
 
 class IconLabel(QLabel):

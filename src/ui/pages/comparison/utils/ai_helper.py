@@ -3,12 +3,12 @@ from src.ui.shared.locale_tr import L10N
 """AI yorum paneli widget kurulumu ve Gemini worker yönetimi."""
 
 import logging
-from PyQt5.QtCore import Qt, QCoreApplication, QSize, QThreadPool
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import Qt, QCoreApplication, QSize, QThreadPool
+from src.qt_compat.qtwidgets import (
     QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton,
     QSizePolicy, QTextBrowser, QVBoxLayout,
 )
-from PyQt5.QtWidgets import QMessageBox
+from src.qt_compat.qtwidgets import QMessageBox
 
 from src.domain.models.ai_analysis import ChatMessage, MessageRole
 from src.ui.worker import Worker

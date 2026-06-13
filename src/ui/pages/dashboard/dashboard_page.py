@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from decimal import Decimal
 
-from PyQt5.QtCore import QModelIndex, QSettings, QThreadPool, QTimer, QSize
-from PyQt5.QtWidgets import QAction, QHBoxLayout, QLabel, QMenu, QVBoxLayout
+from src.qt_compat.qtcore import QModelIndex, QSettings, QThreadPool, QTimer, QSize
+from src.qt_compat.qtgui import QAction
+from src.qt_compat.qtwidgets import QHBoxLayout, QLabel, QMenu, QVBoxLayout
 
 from src.ui.pages.base_page import BasePage
 from src.ui.shared.last_update_mixin import LastUpdateDisplayMixin

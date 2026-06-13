@@ -1,6 +1,6 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import (
     QLabel,
     QFrame,
     QHBoxLayout,

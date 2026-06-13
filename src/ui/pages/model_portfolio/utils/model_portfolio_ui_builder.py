@@ -5,8 +5,8 @@ from src.ui.shared.locale_tr import L10N
 
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import (
-    QAction,
+from src.qt_compat.qtgui import QAction
+from src.qt_compat.qtwidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtcore import Qt
 
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.model_portfolio import PortfolioListPanel, PositionsTable

@@ -1,9 +1,9 @@
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor, QFont
-from PyQt5.QtWidgets import QHeaderView, QTableWidget, QTableWidgetItem
+from src.qt_compat.qtcore import Qt, Signal
+from src.qt_compat.qtgui import QColor, QFont
+from src.qt_compat.qtwidgets import QHeaderView, QTableWidget, QTableWidgetItem
 
 from src.ui.formatters import display_ticker
 from src.ui.shared.locale_tr import L10N
@@ -19,7 +19,7 @@ class PositionsTable(QTableWidget):
     NEGATIVE_COLOR = QColor("#ef4444")
     MUTED_COLOR = QColor("#666666")
 
-    row_double_clicked = pyqtSignal(dict)
+    row_double_clicked = Signal(dict)
     _COLUMNS = [
         L10N.HISSE_BASLIK,
         L10N.MALIYET_FIYATI,

@@ -1,13 +1,14 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QPushButton
+    QPushButton,
+    QMessageBox,
 )
 from src.ui.widgets.shared import InstantDoubleSpinBox
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtcore import Qt
 
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
@@ -17,7 +18,8 @@ class ContributionDialog(QDialog):
     def __init__(self, goal_name: str, parent=None):
         super().__init__(parent)
         self.setWindowTitle(L10N.KATKI_EKLE_BASLIK_TMPL.format(goal=goal_name))
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.setFixedSize(350, 180)
         self.setModal(True)
         self._init_ui()
@@ -59,4 +61,13 @@ class ContributionDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def get_amount(self) -> float:
-        return self.spin_amount.value()
+        if not self.spin_amount.has_valid_input(require_positive=True):
+            return 0.0
+        return float(self.spin_amount.input_decimal_value())
+
+    def accept(self) -> None:
+        if not self.spin_amount.has_valid_input(require_positive=True):
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERLI_BIR_TUTAR_GIRINIZ)
+            self.spin_amount.setFocus()
+            return
+        super().accept()

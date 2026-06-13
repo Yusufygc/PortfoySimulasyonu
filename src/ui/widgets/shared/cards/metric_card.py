@@ -11,8 +11,8 @@ Kullanım:
     card.update(current="1.23", optimal="1.87", delta=0.64, positive_is_good=True)
     card.reset()
 """
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtwidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
+from src.qt_compat.qtcore import Qt
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 

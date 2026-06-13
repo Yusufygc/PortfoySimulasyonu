@@ -1,7 +1,7 @@
 from src.ui.shared.locale_tr import L10N
 from typing import Optional, Tuple
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtwidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout
+from src.qt_compat.qtcore import Qt
 
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
@@ -11,7 +11,8 @@ class WatchlistDialog(QDialog):
     def __init__(self, title: str, name: str = "", description: str = "", parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.setModal(True)
         self.resize(350, 180)
         self.setProperty("cssClass", "dialogContainer")
@@ -78,6 +79,6 @@ class WatchlistDialog(QDialog):
     @classmethod
     def get_watchlist_data(cls, parent, title: str, name: str = "", description: str = "") -> Optional[Tuple[str, str]]:
         dialog = cls(title, name, description, parent)
-        if dialog.exec_() == QDialog.Accepted:
+        if dialog.exec() == QDialog.Accepted:
             return dialog.get_data()
         return None

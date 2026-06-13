@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, time
 
-from PyQt5.QtWidgets import QMessageBox, QWidget
+from src.qt_compat.qtwidgets import QMessageBox, QWidget
 
 from src.ui.shared.locale_tr import L10N
 

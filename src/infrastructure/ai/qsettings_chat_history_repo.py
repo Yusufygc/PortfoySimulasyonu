@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 
-from PyQt5.QtCore import QSettings
+from src.qt_compat.qtcore import QSettings
 
 from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
 from src.domain.ports.repositories.i_chat_history_repo import IChatHistoryRepository

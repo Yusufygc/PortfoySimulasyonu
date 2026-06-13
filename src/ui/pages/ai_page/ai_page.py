@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QSplitter
-from PyQt5.QtCore import Qt, QThreadPool
+from src.qt_compat.qtwidgets import QWidget, QHBoxLayout, QSplitter
+from src.qt_compat.qtcore import Qt, QThreadPool
 
 from src.application.services.ai.ai_analysis_service import AiAnalysisService
 from src.application.services.ai.ai_chat_service import AiChatService

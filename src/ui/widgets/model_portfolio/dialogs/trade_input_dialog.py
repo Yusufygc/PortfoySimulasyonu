@@ -5,8 +5,8 @@ import logging
 from decimal import Decimal
 from typing import Optional
 
-from PyQt5.QtCore import QDate, QTime, Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QDate, QTime, Qt
+from src.qt_compat.qtwidgets import (
     QDateEdit,
     QDialog,
     QFormLayout,
@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 class TradeInputDialog(QDialog):
     def __init__(self, side: Optional[str] = None, price_lookup_func=None, parent=None):
         super().__init__(parent)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.side = side
         self.price_lookup_func = price_lookup_func
         self.setWindowTitle(L10N.HISSE_ISLEM)

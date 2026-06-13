@@ -6,9 +6,9 @@ import logging
 from datetime import date, timedelta
 from typing import List, Optional
 
-from PyQt5.QtCore import QSettings, QThreadPool, QTimer, Qt
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QSettings, QThreadPool, QTimer, Qt
+from src.qt_compat.qtgui import QIcon
+from src.qt_compat.qtwidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,

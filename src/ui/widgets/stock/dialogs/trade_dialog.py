@@ -7,8 +7,8 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Optional, Literal
 
-from PyQt5.QtCore import Qt, QDate, QTime, QThreadPool
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import Qt, QDate, QTime, QThreadPool
+from src.qt_compat.qtwidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, 
     QLabel, QRadioButton, QSpinBox, QLineEdit, 
     QDateEdit, QTimeEdit, QPushButton, QMessageBox, QFrame, QWidget
@@ -37,7 +37,8 @@ class TradeDialog(QDialog):
         lot_size: int = 1,
     ):
         super().__init__(parent)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.stock_id = stock_id
         self.ticker = ticker
         self.price_lookup_func = price_lookup_func

@@ -49,6 +49,7 @@ class FakePriceRepo:
             for stock_id, points in prices_by_stock.items()
         }
         self.saved_prices = []
+        self.delete_calls = []
 
     def get_price_presence_map(self, stock_ids, start_date, end_date):
         return {
@@ -68,9 +69,13 @@ class FakePriceRepo:
                 result[stock_id] = dates[-1]
         return result
 
-    def delete_prices_in_range(self, start_date, end_date):
+    def delete_prices_in_range(self, start_date, end_date, stock_ids=None):
+        self.delete_calls.append((start_date, end_date, stock_ids))
+        scoped_stock_ids = set(stock_ids) if stock_ids is not None else None
         deleted = 0
-        for points in self.prices_by_stock.values():
+        for stock_id, points in self.prices_by_stock.items():
+            if scoped_stock_ids is not None and stock_id not in scoped_stock_ids:
+                continue
             for point_date in list(points):
                 if start_date <= point_date <= end_date:
                     deleted += 1
@@ -567,3 +572,56 @@ def test_price_health_update_normalizes_pre_ex_market_prices_for_adjusted_action
     assert result.updated_count == 2
     assert price_repo.prices_by_stock[1][date(2026, 5, 4)] == Decimal("10.0")
     assert price_repo.prices_by_stock[1][date(2026, 5, 5)] == Decimal("10")
+
+
+def test_delete_range_uses_selected_model_scope_stock_ids():
+    model_trade = ModelPortfolioTrade.create_buy(
+        portfolio_id=4,
+        stock_id=2,
+        trade_date=date(2026, 1, 2),
+        quantity=1,
+        price=Decimal("20"),
+    )
+    service, price_repo, _ = make_service(
+        {
+            1: {date(2026, 1, 5): Decimal("11")},
+            2: {date(2026, 1, 5): Decimal("22")},
+        },
+        trades=[],
+        model_trades_by_portfolio={4: [model_trade]},
+    )
+
+    deleted = service.delete_range(date(2026, 1, 1), date(2026, 1, 31), scope="model:4")
+
+    assert deleted == 1
+    assert price_repo.delete_calls == [(date(2026, 1, 1), date(2026, 1, 31), [2])]
+    assert date(2026, 1, 5) in price_repo.prices_by_stock[1]
+    assert date(2026, 1, 5) not in price_repo.prices_by_stock[2]
+
+
+def test_delete_range_returns_zero_when_scope_has_no_active_stocks():
+    service, price_repo, _ = make_service(
+        {1: {date(2026, 1, 5): Decimal("11")}, 2: {date(2026, 1, 5): Decimal("22")}},
+        trades=[],
+        model_trades_by_portfolio={4: []},
+    )
+
+    deleted = service.delete_range(date(2026, 1, 1), date(2026, 1, 31), scope="model:4")
+
+    assert deleted == 0
+    assert price_repo.delete_calls == []
+    assert price_repo.prices_by_stock[1]
+    assert price_repo.prices_by_stock[2]
+
+
+def test_delete_range_without_scope_keeps_global_delete_behavior():
+    service, price_repo, _ = make_service(
+        {1: {date(2026, 1, 5): Decimal("11")}, 2: {date(2026, 1, 5): Decimal("22")}},
+    )
+
+    deleted = service.delete_range(date(2026, 1, 1), date(2026, 1, 31))
+
+    assert deleted == 2
+    assert price_repo.delete_calls == [(date(2026, 1, 1), date(2026, 1, 31), None)]
+    assert price_repo.prices_by_stock[1] == {}
+    assert price_repo.prices_by_stock[2] == {}

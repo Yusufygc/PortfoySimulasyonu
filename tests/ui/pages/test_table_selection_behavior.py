@@ -4,9 +4,9 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QHeaderView, QTableView, QTableWidget
+pytest.importorskip("PySide6")
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import QApplication, QHeaderView, QTableView, QTableWidget
 
 from src.domain.models.watchlist import Watchlist
 from src.domain.models.position import Position
@@ -288,7 +288,7 @@ def test_watchlist_actions_are_placed_in_headers_and_stock_name_is_clean():
     if item is None:
         item = page.list_widget.item(0)
     if item is None:
-        from PyQt5.QtWidgets import QListWidgetItem
+        from src.qt_compat.qtwidgets import QListWidgetItem
 
         item = QListWidgetItem()
         page.list_widget.addItem(item)
@@ -306,7 +306,7 @@ def test_watchlist_empty_state_replaces_table_for_empty_selected_list():
     service = SimpleNamespace(get_watchlist_stocks=lambda watchlist_id: [])
     page = WatchlistPage(container=SimpleNamespace(watchlist_service=service))
 
-    from PyQt5.QtWidgets import QListWidgetItem
+    from src.qt_compat.qtwidgets import QListWidgetItem
 
     item = QListWidgetItem()
     page.list_widget.addItem(item)
@@ -365,7 +365,7 @@ def test_dashboard_table_uses_wrapped_header_min_width_and_all_stretch_modes():
     assert header.font().bold() is True
     assert header.header_text_color().name() == theme_tokens.DEFAULT_THEME["TABLE_HEADER_TEXT"]
     for column in range(model.columnCount()):
-        assert header.sectionResizeMode(column) == header.Stretch
+        assert header.sectionResizeMode(column) == QHeaderView.Stretch
         assert header.sectionSize(column) >= 95
 
 

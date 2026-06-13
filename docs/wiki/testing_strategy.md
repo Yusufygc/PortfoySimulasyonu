@@ -10,7 +10,7 @@ Portföy Simülasyonu projesi, regülasyonlara ve katı finansal hesaplamalara (
 
 - **Birim Testleri (Unit Tests):** `tests/domain` altında saf (veritabanı veya API bağlantısı olmayan) matematiksel hesaplamaları test eder.
 - **Servis Testleri (Application Tests):** `tests/application` altındadır. Dış bağımlılıklar (SQLAlchemy Repoları, YFinance istemcileri) `pytest-mock` kullanılarak mock'lanır ve iş kuralları (Use-Case) test edilir.
-- **Arayüz Testleri (UI Tests):** `pytest-qt` eklentisi kullanılarak PyQt widget'larının oluşturulması, sinyallerin (signal) tetiklenmesi ve ekrandaki renk/boyut değişiklikleri test edilir.
+- **Arayüz Testleri (UI Tests):** `pytest-qt` eklentisi kullanılarak PySide6 widget'larının oluşturulması, sinyallerin (signal) tetiklenmesi ve ekrandaki renk/boyut değişiklikleri test edilir. Test importları da üretim kodu gibi `src.qt_compat` paketini kullanır.
 
 ## 2. Fixture ve Mock Yaklaşımı (`conftest.py`)
 

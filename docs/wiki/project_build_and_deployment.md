@@ -11,7 +11,7 @@ Python kodlarını paketlemek için PyInstaller yerine **Nuitka** kullanılır. 
 ### Derleme Süreci
 1. `build_nuitka.bat` scripti çalıştırılır.
 2. Script `requirements.txt` ve `requirements-build.txt` dosyalarındaki pinli bağımlılıkları kurar.
-3. Nuitka, `app.py` ana dosyasından başlayarak tüm iç ve dış bağımlılıkları (`PyQt5`, `PyQtWebEngine`, `pandas`, `scipy` vb.) C koduna çevirir.
+3. Nuitka, `app.py` ana dosyasından başlayarak tüm iç ve dış bağımlılıkları (`PySide6`, Qt WebEngine, `pandas`, `scipy` vb.) C koduna çevirir.
 4. Uygulamanın ikonu `icons/portfoy-simulasyonu.ico` dosyasıyla ayarlanır.
 5. `.exe` çıktısı oluşturulur.
 
@@ -21,7 +21,9 @@ Güvenlik kuralı: Gerçek `.env` dosyası build çıktısına gömülmez. Paket
 
 ## 2. Bağımlılık Yönetimi (`requirements.txt`)
 
-Uygulamanın sürdürülebilirliği için `requirements.txt` ve `requirements-build.txt` dosyalarındaki kütüphane versiyonları "Pinli" (sabitlenmiş) olarak tutulmalıdır (`paket==versiyon`). Aksi halde YFinance, PyQtWebEngine veya Pandas'ın bir anda yeni versiyona geçmesi, beklenmedik arayüz çöküşlerine veya hesaplama hatalarına yol açabilir.
+Uygulamanın sürdürülebilirliği için `requirements.txt` ve `requirements-build.txt` dosyalarındaki kütüphane versiyonları "Pinli" (sabitlenmiş) olarak tutulmalıdır (`paket==versiyon`). Aksi halde YFinance, PySide6/Qt WebEngine veya Pandas'ın bir anda yeni versiyona geçmesi, beklenmedik arayüz çöküşlerine veya hesaplama hatalarına yol açabilir.
+
+Qt binding standardı: üretim kodu Qt sınıflarını doğrudan PySide6 modüllerinden değil `src/qt_compat/` paketinden alır. `requirements.txt` içinde uygulama binding'i `PySide6==6.11.1` olarak pinlidir; eski `PyQt5` ve `PyQtWebEngine` pinleri kaldırılmıştır.
 
 Yeni bir paket eklendiğinde sürüm numarası açıkça belirtilmelidir.
 

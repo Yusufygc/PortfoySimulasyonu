@@ -1,8 +1,8 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLineEdit
+from src.qt_compat.qtcore import Signal
+from src.qt_compat.qtwidgets import QFrame, QHBoxLayout, QLineEdit
 
 from src.ui.widgets.shared import AnimatedButton, CurrencySpinBox
 
@@ -10,9 +10,9 @@ from src.ui.widgets.shared import AnimatedButton, CurrencySpinBox
 class BudgetItemRow(QFrame):
     """Single income or expense row with edit, pin and delete actions."""
 
-    changed = pyqtSignal()
-    delete_requested = pyqtSignal(object)
-    pin_toggled = pyqtSignal(bool)
+    changed = Signal()
+    delete_requested = Signal(object)
+    pin_toggled = Signal(bool)
 
     def __init__(self, name: str = "", amount: float = 0.0, pinned: bool = False, parent=None):
         super().__init__(parent)
@@ -29,7 +29,7 @@ class BudgetItemRow(QFrame):
         self.name_edit.textChanged.connect(self.changed)
 
         self.amount_spin = CurrencySpinBox()
-        self.amount_spin.setRange(0, 10_000_000)
+        self.amount_spin.setRange(0, 1_000_000_000)
         self.amount_spin.setDecimals(2)
         self.amount_spin.setSuffix(" TL")
         self.amount_spin.setValue(amount)
@@ -71,6 +71,8 @@ class BudgetItemRow(QFrame):
         self.name_edit.setText(name)
 
     def get_amount(self) -> float:
+        if self.amount_spin.has_valid_input():
+            return float(self.amount_spin.input_decimal_value())
         return self.amount_spin.value()
 
     def set_pinned(self, pinned: bool) -> None:

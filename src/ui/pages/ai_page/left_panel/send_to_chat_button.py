@@ -1,11 +1,11 @@
 from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
-from PyQt5.QtCore import pyqtSignal
+from src.qt_compat.qtcore import Signal
 from src.domain.models.ai_analysis import AnalysisResult
 
 class SendToChatButton(AnimatedButton):
     """Analiz sonucunu sağ panele (chat) gönderme butonu"""
-    send_requested = pyqtSignal(AnalysisResult)
+    send_requested = Signal(AnalysisResult)
 
     def __init__(self):
         super().__init__(L10N.DETAYLI_YORUMLAT_CHATBOTA_GONDER)

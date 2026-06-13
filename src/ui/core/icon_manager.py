@@ -12,9 +12,9 @@ Kullanım:
 import os
 import logging
 from typing import Dict, Optional
-from PyQt5.QtGui import QIcon, QPixmap, QPainter
-from PyQt5.QtSvg import QSvgRenderer
-from PyQt5.QtCore import QSize, Qt
+from src.qt_compat.qtgui import QIcon, QPixmap, QPainter
+from src.qt_compat.qtsvg import QSvgRenderer
+from src.qt_compat.qtcore import QSize, Qt
 
 logger = logging.getLogger(__name__)
 

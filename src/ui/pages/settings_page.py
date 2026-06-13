@@ -1,9 +1,9 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtCore import QSize
-from PyQt5.QtCore import QSettings
-from PyQt5.QtWidgets import QCheckBox, QComboBox, QHBoxLayout, QLabel, QTabWidget
+from src.qt_compat.qtcore import QSize
+from src.qt_compat.qtcore import QSettings
+from src.qt_compat.qtwidgets import QCheckBox, QComboBox, QHBoxLayout, QLabel, QTabWidget
 
 from .base_page import BasePage
 from src.ui.core.icon_manager import IconManager
@@ -85,7 +85,7 @@ class SettingsPage(BasePage):
         self.tabs.setTabIcon(3, IconManager.get_icon("clipboard-list", color=c3, size=QSize(18, 18)))
 
     def changeEvent(self, event):
-        from PyQt5.QtCore import QEvent
+        from src.qt_compat.qtcore import QEvent
 
         if event.type() == QEvent.StyleChange:
             self._update_tab_icons()

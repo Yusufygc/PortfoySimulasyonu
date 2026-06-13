@@ -1,6 +1,6 @@
-from PyQt5.QtCore import QRect, QSize, Qt
-from PyQt5.QtGui import QColor, QPainter, QPalette
-from PyQt5.QtWidgets import QHeaderView, QStyle, QStyleOptionHeader
+from src.qt_compat.qtcore import QRect, QSize, Qt
+from src.qt_compat.qtgui import QColor, QPainter, QPalette
+from src.qt_compat.qtwidgets import QHeaderView, QStyle, QStyleOptionHeader
 
 import src.ui.styles.tokens as theme_tokens
 

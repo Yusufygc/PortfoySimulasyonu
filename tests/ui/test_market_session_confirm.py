@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QMessageBox
+pytest.importorskip("PySide6")
+from src.qt_compat.qtwidgets import QMessageBox
 
 from src.ui.shared.market_session_confirm import validate_market_session_open
 

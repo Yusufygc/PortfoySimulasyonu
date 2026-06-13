@@ -1,12 +1,12 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLineEdit
-from PyQt5.QtCore import pyqtSignal
+from src.qt_compat.qtwidgets import QWidget, QHBoxLayout, QLineEdit
+from src.qt_compat.qtcore import Signal
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 class TickerInputBar(QWidget):
     """Hisse kodu giriş alanı ve analiz butonu"""
-    analyze_requested = pyqtSignal(str)
+    analyze_requested = Signal(str)
 
     def __init__(self):
         super().__init__()

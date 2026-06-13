@@ -4,8 +4,8 @@ from src.ui.shared.locale_tr import L10N
 from decimal import Decimal
 from typing import Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QDialog, QFormLayout, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import QDialog, QFormLayout, QHBoxLayout, QLineEdit, QPushButton, QVBoxLayout
 
 from src.ui.widgets.shared import CurrencySpinBox
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
@@ -17,7 +17,8 @@ class PortfolioInputDialog(QDialog):
         self.portfolio = portfolio
         self.is_edit = portfolio is not None
         self.setWindowTitle(L10N.PORTFOY_DUZENLE if self.is_edit else L10N.YENI_PORTFOY)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.resize(400, 200)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")

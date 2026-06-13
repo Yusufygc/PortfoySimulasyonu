@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime
 
-from PyQt5.QtCore import QSettings, QThreadPool, QTimer
+from src.qt_compat.qtcore import QSettings, QThreadPool, QTimer
 
 from src.ui.shared.price_event_publisher import publish_prices_updated
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared import Toast
 from src.ui.worker import Worker
 

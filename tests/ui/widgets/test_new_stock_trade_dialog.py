@@ -3,12 +3,20 @@ from decimal import Decimal
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QMessageBox
+pytest.importorskip("PySide6")
+from src.qt_compat.qtwidgets import QMessageBox
 
 from src.application.services.market.price_lookup_service import PriceLookupResult
 from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.dashboard.dialogs.new_stock_trade_dialog import NewStockTradeDialog
+
+
+class _FakeThreadPool:
+    def __init__(self):
+        self.started = []
+
+    def start(self, worker):
+        self.started.append(worker)
 
 def test_new_stock_trade_dialog_uses_lookup_company_name_without_user_input(qapp):
     dialog = NewStockTradeDialog(price_lookup_func=None)

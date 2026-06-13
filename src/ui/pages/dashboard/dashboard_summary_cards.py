@@ -1,8 +1,8 @@
 from src.ui.shared.locale_tr import L10N
 # src/ui/pages/dashboard/dashboard_summary_cards.py
 
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtgui import QColor
+from src.qt_compat.qtwidgets import (
     QWidget,
     QHBoxLayout,
     QVBoxLayout,

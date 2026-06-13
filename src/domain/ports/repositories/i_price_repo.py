@@ -158,9 +158,15 @@ class IPriceRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def delete_prices_in_range(self, start_date: date, end_date: date) -> int:
+    def delete_prices_in_range(
+        self,
+        start_date: date,
+        end_date: date,
+        stock_ids: Sequence[int] | None = None,
+    ) -> int:
         """
         Belirtilen tarih aralığındaki fiyat kayıtlarını siler.
+        stock_ids None ise tüm hisseler, dolu liste ise yalnızca bu hisseler etkilenir.
 
         Returns:
             Silinen kayıt sayısı

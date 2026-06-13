@@ -7,10 +7,10 @@ import pandas as pd
 import pytest
 import plotly.graph_objects as go
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt
-from PyQt5.QtWebEngineWidgets import QWebEngineView  # Must be imported before QApplication
-from PyQt5.QtWidgets import QApplication, QGridLayout, QHBoxLayout, QSizePolicy
+pytest.importorskip("PySide6")
+from src.qt_compat.qtcore import QDate, Qt
+from src.qt_compat.qtwebengine import QWebEngineView  # Must be imported before QApplication
+from src.qt_compat.qtwidgets import QApplication, QGridLayout, QHBoxLayout, QSizePolicy
 
 app = QApplication.instance()
 if app is None:
@@ -22,12 +22,15 @@ from src.ui.shared.locale_tr import L10N
 
 class MockContainer:
     def __init__(self):
+        self.first_trade_dates = {}
         class MockPortfolioOption:
             def __init__(self, code, label, kind):
                 self.code = code
                 self.label = label
                 self.kind = kind
         class MockAnalysisService:
+            def __init__(self, outer):
+                self._outer = outer
             def get_portfolio_options(self):
                 return [MockPortfolioOption("dashboard", "Ana Portfoy", "dashboard")]
             def get_benchmark_definitions(self):
@@ -35,10 +38,10 @@ class MockContainer:
             def get_stock_map_for_source(self, code):
                 return {}
             def get_first_trade_date_for_source(self, code):
-                return None
+                return self._outer.first_trade_dates.get(code)
             def get_comparison_view(self, filter_state):
                 return None
-        self.analysis_service = MockAnalysisService()
+        self.analysis_service = MockAnalysisService(self)
         self.ai_chat_service = SimpleNamespace(generate=lambda messages: "")
 
 def test_comparison_page_init():
@@ -55,7 +58,7 @@ def test_comparison_page_init():
     assert page._main_chart_view is None
     assert page.main_chart_placeholder is not None
     assert page.summary_table is not None
-    from PyQt5.QtWidgets import QTableWidget
+    from src.qt_compat.qtwidgets import QTableWidget
     assert isinstance(page.summary_table, QTableWidget)
 
 
@@ -135,12 +138,14 @@ def test_chart_renderer_cleanup_stops_pending_loads(tmp_path):
 
 def test_wheel_redirect_filter():
     # Arrange
-    from PyQt5.QtCore import QPoint, QEvent, Qt, QCoreApplication
-    from PyQt5.QtGui import QWheelEvent
-    from PyQt5.QtWidgets import QScrollArea, QWidget
+    from src.qt_compat.qtcore import QPoint, Qt
+    from src.qt_compat.qtgui import QWheelEvent
+    from src.qt_compat.qtwidgets import QScrollArea, QWidget
     from src.ui.pages.comparison.comparison_page import WheelRedirectFilter
     
     scroll_area = QScrollArea()
+    scroll_area.verticalScrollBar().setRange(0, 1000)
+    scroll_area.verticalScrollBar().setValue(100)
     filt = WheelRedirectFilter(scroll_area)
     
     widget = QWidget()
@@ -149,14 +154,21 @@ def test_wheel_redirect_filter():
     # Act & Assert
     pos = QPoint(10, 10)
     angle_delta = QPoint(0, -120)
-    # Construct QWheelEvent: QWheelEvent(pos, globalPos, pixelDelta, angleDelta, angleDelta, orientation, buttons, modifiers)
+    # Construct QWheelEvent with the Qt6 signature.
     wheel_event = QWheelEvent(
-        pos, pos, QPoint(), angle_delta, 120, Qt.Vertical, Qt.NoButton, Qt.NoModifier
+        pos,
+        pos,
+        QPoint(),
+        angle_delta,
+        Qt.NoButton,
+        Qt.NoModifier,
+        Qt.ScrollUpdate,
+        False,
     )
     
-    # Intercept event and check that eventFilter returns True (meaning it consumed the event and forwarded it)
     res = filt.eventFilter(widget, wheel_event)
     assert res is True
+    assert scroll_area.verticalScrollBar().value() > 100
 
 def test_table_height_adjustment():
     # Arrange
@@ -199,6 +211,10 @@ def test_ribbon_uses_left_right_block_layout():
     assert ribbon.combo_den.isHidden() is False
     assert ribbon.date_row.indexOf(ribbon.date_start) >= 0
     assert ribbon.date_row.indexOf(ribbon.date_end) >= 0
+    assert ribbon.date_start.displayFormat() == "dd.MM.yyyy"
+    assert ribbon.date_end.displayFormat() == "dd.MM.yyyy"
+    assert ribbon.date_start.minimumWidth() >= 138
+    assert ribbon.date_end.minimumWidth() >= 138
     assert ribbon.right_vbox.indexOf(ribbon.date_row) >= 0
     assert ribbon.right_vbox.indexOf(ribbon.time_buttons_layout) >= 0
     for label, button in ribbon.time_buttons.items():
@@ -219,6 +235,54 @@ def test_ribbon_uses_left_right_block_layout():
         "num": ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_num))[:2],
         "den": ribbon.left_grid.getItemPosition(ribbon.left_grid.indexOf(ribbon.combo_den))[:2],
     }
+
+
+def test_ribbon_set_selected_assets_emits_once_and_can_be_silent():
+    ribbon = ComparisonRibbonBar()
+    ribbon.set_assets([("Ana Portfoy", "dashboard"), ("BIST100", "bist100")])
+    emissions = []
+    ribbon.filter_changed.connect(lambda: emissions.append("changed"))
+
+    ribbon.set_selected_assets(["dashboard"])
+
+    assert emissions == ["changed"]
+
+    ribbon.set_selected_assets(["dashboard", "bist100"], emit=False)
+
+    assert emissions == ["changed"]
+    assert ribbon.selected_assets() == ["dashboard", "bist100"]
+
+
+def test_all_range_uses_selected_portfolio_first_trade_date():
+    container = MockContainer()
+    container.first_trade_dates = {
+        "dashboard": date(2018, 5, 10),
+        "model:4": date(2020, 1, 2),
+    }
+    page = ComparisonPage(container)
+    page.ribbon_bar.set_assets([("Ana Portfoy", "dashboard"), ("Model", "model:4")])
+    page.ribbon_bar.set_selected_assets(["dashboard", "model:4"])
+
+    page.ribbon_bar._on_time_button_clicked("TÃ¼mÃ¼", None)
+
+    all_label = next(label for label in page.ribbon_bar.time_buttons if label.startswith("T"))
+    page.ribbon_bar._on_time_button_clicked(all_label, None)
+
+    assert page.ribbon_bar.date_start.date().toPyDate() == date(2018, 5, 10)
+    assert page.ribbon_bar.date_end.date() == QDate.currentDate()
+
+
+def test_all_range_falls_back_to_2000_without_portfolio_selection():
+    page = ComparisonPage(MockContainer())
+    page.ribbon_bar.set_assets([("BIST100", "benchmark:XU100")])
+    page.ribbon_bar.set_selected_assets([])
+
+    page.ribbon_bar._on_time_button_clicked("TÃ¼mÃ¼", None)
+
+    all_label = next(label for label in page.ribbon_bar.time_buttons if label.startswith("T"))
+    page.ribbon_bar._on_time_button_clicked(all_label, None)
+
+    assert page.ribbon_bar.date_start.date().toPyDate() == date(2000, 1, 1)
 
 
 def test_main_info_card_updates_with_graph_mode():
@@ -283,7 +347,7 @@ def test_ai_browser_expands_to_content_without_internal_scroll():
 
 def test_check_date_warnings(monkeypatch, fixed_today):
     from datetime import date, timedelta
-    from PyQt5.QtCore import QDate
+    from src.qt_compat.qtcore import QDate
     from src.ui.pages.comparison.utils import comparison_warning_builder
 
     class FixedDate(date):
@@ -337,7 +401,7 @@ def test_check_date_warnings(monkeypatch, fixed_today):
 
 
 def test_chart_panel_init_and_update():
-    from PyQt5.QtWidgets import QWidget
+    from src.qt_compat.qtwidgets import QWidget
     from src.ui.pages.comparison.comparison_page import ChartPanel
     
     widget = QWidget()
@@ -384,6 +448,52 @@ def test_compare_portfolio_holdings(monkeypatch):
     assert "dashboard" in selected
     assert "1" in selected
     assert "2" in selected
+
+
+def test_holdings_expansion_does_not_emit_second_refresh(monkeypatch):
+    class CapturingThreadPool:
+        def __init__(self):
+            self.started = []
+
+        def start(self, worker):
+            self.started.append(worker)
+
+    container = MockContainer()
+    monkeypatch.setattr(container.analysis_service, "get_stock_map_for_source", lambda code: {1: "THYAO.IS", 2: "EREGL.IS"})
+    page = ComparisonPage(container)
+    threadpool = CapturingThreadPool()
+    page._data_manager.threadpool = threadpool
+
+    page.ribbon_bar.set_selected_assets(["holdings:dashboard"])
+
+    assert len(threadpool.started) == 1
+    assert {"dashboard", "1", "2"}.issubset(set(page.ribbon_bar.selected_assets()))
+
+
+def test_request_refresh_restores_scroll_position_after_layout_updates(monkeypatch, qapp):
+    class CapturingThreadPool:
+        def __init__(self):
+            self.started = []
+
+        def start(self, worker):
+            self.started.append(worker)
+
+    page = ComparisonPage(MockContainer())
+    page._data_manager.threadpool = CapturingThreadPool()
+    page.ribbon_bar.set_selected_assets(["dashboard"], emit=False)
+    scroll_bar = page.scroll_area.verticalScrollBar()
+    scroll_bar.setRange(0, 1000)
+    scroll_bar.setValue(345)
+
+    def jump_during_panel_refresh():
+        scroll_bar.setValue(0)
+
+    monkeypatch.setattr(page._data_manager, "refresh_panel_options", jump_during_panel_refresh)
+
+    page._request_refresh()
+    qapp.processEvents()
+
+    assert scroll_bar.value() == 345
 
 
 def test_chart_specific_override():

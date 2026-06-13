@@ -6,7 +6,7 @@ from src.ui.shared.locale_tr import L10N
 
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import QDialog, QMessageBox  # noqa: F401 (test monkeypatches QMessageBox here)
+from src.qt_compat.qtwidgets import QDialog, QMessageBox  # noqa: F401 (test monkeypatches QMessageBox here)
 
 from src.ui.formatters import display_ticker
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
@@ -15,7 +15,7 @@ from src.ui.widgets.dashboard import NewStockTradeDialog
 from src.ui.widgets.shared import Toast
 from src.ui.worker import Worker
 from src.ui.shared.price_event_publisher import publish_prices_updated
-from PyQt5.QtCore import QTimer
+from src.qt_compat.qtcore import QTimer
 
 if TYPE_CHECKING:
     from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
@@ -29,7 +29,7 @@ class ModelPortfolioActions:
 
     def on_new_portfolio(self) -> None:
         dialog = PortfolioInputDialog(self.page)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         result = dialog.get_result()
         if not result:
@@ -50,7 +50,7 @@ class ModelPortfolioActions:
         if not portfolio:
             return
         dialog = PortfolioInputDialog(self.page, portfolio)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         result = dialog.get_result()
         if not result:
@@ -106,7 +106,7 @@ class ModelPortfolioActions:
             net_capital=summary["net_capital"],
             parent=self.page,
         )
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         result = dialog.get_result()
         if not result:
@@ -138,7 +138,7 @@ class ModelPortfolioActions:
         elif side == "SELL":
             dialog.btn_sell_mode.setChecked(True)
 
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         result = dialog.get_result()
         if not result:

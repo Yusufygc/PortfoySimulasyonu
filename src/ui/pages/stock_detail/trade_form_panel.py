@@ -1,21 +1,21 @@
 from src.ui.shared.locale_tr import L10N
 # src/ui/pages/stock_detail/trade_form_panel.py
 
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, 
     QPushButton, QFormLayout,
-    QSpinBox, QDateEdit, QTimeEdit, QButtonGroup, QSizePolicy
+    QDateEdit, QTimeEdit, QButtonGroup, QSizePolicy, QMessageBox
 )
-from PyQt5.QtCore import Qt, QDate, QTime, pyqtSignal
+from src.qt_compat.qtcore import Qt, QDate, QTime, Signal
 from decimal import Decimal
 
-from src.ui.widgets.shared import CurrencySpinBox
+from src.ui.widgets.shared import CurrencySpinBox, LotSpinBox
 
 class TradeFormPanel(QFrame):
     """Sağ paneldeki Alım/Satım işlemlerini yöneten form bileşeni."""
     
     # Kullanıcı emir girdiğinde fırlatılacak sinyal (formdan gelen bilgiler)
-    trade_submitted = pyqtSignal(bool, int, float, QDate, QTime) # is_buy, qty, price, date, time
+    trade_submitted = Signal(bool, int, float, QDate, QTime) # is_buy, qty, price, date, time
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -62,7 +62,7 @@ class TradeFormPanel(QFrame):
         form.addRow(L10N.ISLEM_YONU, side_layout)
         
         # Adet
-        self.spin_qty = QSpinBox()
+        self.spin_qty = LotSpinBox()
         self.spin_qty.setRange(1, 1_000_000)
         self.spin_qty.setValue(1)
         self.spin_qty.setProperty("cssClass", "tradeInputLarge")
@@ -273,6 +273,14 @@ class TradeFormPanel(QFrame):
         self.impact_grid.addRow(lbl_key, lbl_val)
 
     def _submit_trade(self):
+        if not self.spin_qty.has_valid_input():
+            QMessageBox.warning(self, L10N.GECERSIZ_ISLEM, L10N.GECERLI_BIR_LOT_GIRINIZ)
+            self.spin_qty.setFocus()
+            return
+        if self.date_edit.date() > QDate.currentDate():
+            QMessageBox.warning(self, L10N.GECERSIZ_ISLEM, L10N.GELECEK_TARIHLI_ISLEM_GIRILEMEZ)
+            self.date_edit.setFocus()
+            return
         is_buy = self.btn_buy_mode.isChecked()
         qty = self.spin_qty.value()
         price = self.spin_price.value()

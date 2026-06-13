@@ -1,8 +1,8 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from src.qt_compat.qtcore import QTimer
+from src.qt_compat.qtwidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from src.application.services.analysis import AnalysisOverviewDTO
 from src.ui.widgets.shared import InfoCard, MetricCard

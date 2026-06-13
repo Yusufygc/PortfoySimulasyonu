@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from PyQt5.QtCore import QDir, QStandardPaths, Qt
-from PyQt5.QtGui import QColor
-from PyQt5.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+from src.qt_compat.qtcore import QDir, QStandardPaths, Qt
+from src.qt_compat.qtgui import QColor
+from src.qt_compat.qtwebengine import QWebEnginePage, QWebEngineView
 
 class SilentWebEnginePage(QWebEnginePage):
     """
@@ -26,6 +26,7 @@ class SilentWebEngineView(QWebEngineView):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setFocusPolicy(Qt.NoFocus)
         self.setPage(SilentWebEnginePage(self))
         self.page().setBackgroundColor(QColor(0, 0, 0, 0))
         self._ensure_download_handler()
@@ -48,5 +49,6 @@ class SilentWebEngineView(QWebEngineView):
         target_dir.mkdir(parents=True, exist_ok=True)
 
         filename = download_item.downloadFileName() or "newplot.png"
-        download_item.setPath(str(target_dir / filename))
+        download_item.setDownloadDirectory(str(target_dir))
+        download_item.setDownloadFileName(filename)
         download_item.accept()

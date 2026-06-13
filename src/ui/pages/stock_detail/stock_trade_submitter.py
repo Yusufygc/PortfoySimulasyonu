@@ -1,9 +1,10 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
+from datetime import date
 from decimal import Decimal
 
-from PyQt5.QtWidgets import QMessageBox
+from src.qt_compat.qtwidgets import QMessageBox
 
 from src.domain.models.trade import TradeSide
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
@@ -20,6 +21,9 @@ class StockTradeSubmitter:
 
         trade_date = date_sel.toPyDate()
         trade_time = time_sel.toPyTime() if time_sel is not None else page.trade_form.time_edit.time().toPyTime()
+        if trade_date > date.today():
+            QMessageBox.warning(page, L10N.GECERSIZ_ISLEM, L10N.GELECEK_TARIHLI_ISLEM_GIRILEMEZ)
+            return
         if not confirm_market_session_if_needed(
             page,
             page.market_session_service,

@@ -242,6 +242,13 @@ class AnalysisService:
             "risk": self.get_allocation_risk_view(filter_state, bundle=bundle),
         }
 
+    def get_overview_risk_payload(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
+        bundle = self._build_analysis_bundle(filter_state)
+        return {
+            "overview": self.get_overview(filter_state, bundle=bundle),
+            "risk": self.get_allocation_risk_view(filter_state, bundle=bundle),
+        }
+
     def _build_analysis_bundle(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
         self._validate_filter_state(filter_state)
         return self._bundle_builder.build(filter_state)

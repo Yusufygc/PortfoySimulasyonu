@@ -15,24 +15,27 @@ Kullanım:
     panel.load(goals)
     panel.show_feasibility(result)
 """
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFrame, QSizePolicy
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QColor
+from src.qt_compat.qtcore import Qt, Signal, QSize
+from src.qt_compat.qtgui import QColor
 from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.core.icon_manager import IconManager
+
+
+_PRIORITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 
 
 class GoalsPanel(QWidget):
     """Hedef takip sekmesinin tüm görsel yapısını kapsayan panel."""
 
-    add_requested        = pyqtSignal()
-    contribute_requested = pyqtSignal(int, str)   # goal_id, goal_name
-    delete_requested     = pyqtSignal(int, str)   # goal_id, goal_name
-    analyze_requested    = pyqtSignal()
-    edit_requested       = pyqtSignal(int)        # goal_id
+    add_requested        = Signal()
+    contribute_requested = Signal(int, str)   # goal_id, goal_name
+    delete_requested     = Signal(int, str)   # goal_id, goal_name
+    analyze_requested    = Signal()
+    edit_requested       = Signal(int)        # goal_id
 
     _COLUMNS = ["Hedef", L10N.HEDEF_TUTAR_1, "Biriken", L10N.KALAN_AY, L10N.AYLIK_GEREKEN, "İlerleme", "Durum", L10N.ISLEMLER]
     _STATUS_TR = {
@@ -123,7 +126,15 @@ class GoalsPanel(QWidget):
     def load(self, goals: list) -> None:
         """Hedef listesini tabloya yazar."""
         self._table.setRowCount(0)
-        for i, goal in enumerate(goals):
+        sorted_goals = sorted(
+            enumerate(goals),
+            key=lambda item: (
+                _PRIORITY_ORDER.get(getattr(item[1], "priority", "MEDIUM"), 1),
+                item[1].months_remaining(),
+                item[0],
+            ),
+        )
+        for i, (_, goal) in enumerate(sorted_goals):
             self._table.insertRow(i)
             self._set_readonly(i, 0, goal.name, user_data=goal.id)
             self._set_readonly(i, 1, f"₺ {goal.target_amount:,.2f}", Qt.AlignCenter)
@@ -188,6 +199,8 @@ class GoalsPanel(QWidget):
             btn_contrib.setIcon(IconManager.get_icon("plus", color="@COLOR_PRIMARY"))
             btn_contrib.setIconSize(QSize(16, 16))
             btn_contrib.setToolTip(L10N.KATKI_EKLE_1)
+            is_completed = goal.status == "COMPLETED"
+            btn_contrib.setEnabled(not is_completed)
 
             btn_delete = QPushButton()
             btn_delete.setProperty("cssClass", "tableActionButtonDelete")
@@ -202,7 +215,8 @@ class GoalsPanel(QWidget):
             g_id = goal.id
             g_name = goal.name
             btn_edit.clicked.connect(lambda _, gid=g_id: self.edit_requested.emit(gid))
-            btn_contrib.clicked.connect(lambda _, gid=g_id, gname=g_name: self.contribute_requested.emit(gid, gname))
+            if not is_completed:
+                btn_contrib.clicked.connect(lambda _, gid=g_id, gname=g_name: self.contribute_requested.emit(gid, gname))
             btn_delete.clicked.connect(lambda _, gid=g_id, gname=g_name: self.delete_requested.emit(gid, gname))
 
             action_layout.addWidget(btn_edit)

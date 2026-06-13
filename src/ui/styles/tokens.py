@@ -235,6 +235,8 @@ DARK_THEME: dict[str, str] = {
     "TOAST_INFO_BG":        "#1e3a5f",
     "TOAST_INFO_BORDER":    "#3b82f6",
     "TOAST_TEXT":           "#f1f5f9",
+    "TOAST_CLOSE_ICON":     "#f8fafc",
+    "TOAST_CLOSE_HOVER_BG": "rgba(255, 255, 255, 0.14)",
 
     # -----------------------------------------------------------
     # PROGRESS BAR (semantic)
@@ -434,6 +436,8 @@ LIGHT_THEME: dict[str, str] = {
     "TOAST_INFO_BG":        "#eff6ff",
     "TOAST_INFO_BORDER":    "#2563eb",
     "TOAST_TEXT":           "#0f172a",
+    "TOAST_CLOSE_ICON":     "#0f172a",
+    "TOAST_CLOSE_HOVER_BG": "rgba(15, 23, 42, 0.08)",
 
     # -----------------------------------------------------------
     # PROGRESS BAR

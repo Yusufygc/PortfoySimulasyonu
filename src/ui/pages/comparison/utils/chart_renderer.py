@@ -12,10 +12,11 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 import plotly.graph_objects as go
-from PyQt5.QtCore import Qt, QUrl, QThreadPool, QTimer
-from PyQt5.QtGui import QBrush, QColor
+from src.qt_compat.qtcore import Qt, QUrl, QThreadPool, QTimer
+from src.qt_compat.qtgui import QBrush, QColor
+from src.qt_compat.lifecycle import is_qobject_deleted as _is_qobject_deleted
 from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
-from PyQt5.QtWidgets import QTableWidgetItem
+from src.qt_compat.qtwidgets import QTableWidgetItem
 
 from src.application.services.analysis.comparison_service import ComparisonService
 from src.ui.pages.comparison.chart_factory import ComparisonChartFactory
@@ -60,14 +61,6 @@ _DOWNLOAD_CHART_LABELS = {
 }
 
 _CHART_NAMES = ("main", "drawdown", "periodic", "scatter", "treemap")
-
-
-def _is_qobject_deleted(obj) -> bool:
-    try:
-        import sip
-        return sip.isdeleted(obj)
-    except Exception:
-        return False
 
 
 class ChartRenderer:

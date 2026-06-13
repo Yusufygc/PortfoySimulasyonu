@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Callable
 
-from PyQt5.QtCore import QObject, Qt, QEvent
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QObject, Qt, QEvent
+from src.qt_compat.qtwidgets import (
     QAbstractButton,
     QComboBox,
     QDateEdit,
@@ -64,6 +64,7 @@ def configure_dialog_behavior(
     enter_handler: Callable[[], None] | None = None,
 ) -> None:
     dialog.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+    dialog.setWindowFlag(Qt.WindowCloseButtonHint, True)
 
     if primary_button is not None:
         if hasattr(primary_button, "setDefault"):

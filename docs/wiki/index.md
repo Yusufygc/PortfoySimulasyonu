@@ -16,7 +16,8 @@
 | [service_planning_optimization.md](service_planning_optimization.md) | Markowitz optimizasyonu, SciPy, ağırlık kısıtları ve risk anketi |
 | [service_portfolio_and_market.md](service_portfolio_and_market.md) | Event-sourcing portföy hesaplaması, YFinance veri çekimi ve tatil takvimi |
 | [service_simulation.md](service_simulation.md) | Tarihsel backtest (simülasyon) altyapısı, snapshot üretimi ve uç vakalar |
-| [ui_architecture_and_events.md](ui_architecture_and_events.md) | PyQt5 arayüz mimarisi, Worker yapıları, Global Event Bus ve QSS Tema Yöneticisi |
+| [ui_architecture_and_events.md](ui_architecture_and_events.md) | PySide6 arayüz mimarisi, Qt compat katmanı, Worker yapıları, Global Event Bus ve QSS Tema Yöneticisi |
+| [pyside6_migration_analysis.md](pyside6_migration_analysis.md) | PyQt5 tabanlı masaüstü uygulamasını PySide6'ya taşımak için modüler analiz, risk matrisi ve faz planı |
 | [comparison_lab.md](comparison_lab.md) | Karşılaştırma Laboratuvarı mimarisi, görsel bileşenleri, veri entegrasyonu ve Gemini AI asistan yapısı |
 | [service_reporting_and_export.md](service_reporting_and_export.md) | OpenPyXL Excel formatter ve dışa aktarım raporlaması |
 | [service_corporate_actions.md](service_corporate_actions.md) | Temettü, bölünme işlemleri ve portföy maliyetine etkileri |
@@ -41,7 +42,7 @@ Comparison Lab geliştirme sürecinde takip edilen teknik şartnameler ve uygula
 | Sayfa | Özet |
 |-------|------|
 | [database_maintenance_and_scripts.md](database_maintenance_and_scripts.md) | DB Bütünlük onarımı, geçersiz trade temizliği, scriptler (purge vb.) |
-| [testing_strategy.md](testing_strategy.md) | Birim/Servis ve PyQt testlerinin (pytest) mimarisi ve fixture yapısı |
+| [testing_strategy.md](testing_strategy.md) | Birim/Servis ve PySide6 UI testlerinin (pytest) mimarisi ve fixture yapısı |
 | [manual_testing_guide.md](manual_testing_guide.md) | Uygulama sayfaları ve kritik akışlar için kapsamlı manuel test yönergesi |
 | [project_build_and_deployment.md](project_build_and_deployment.md) | Nuitka ile derleme (.exe), CI commit kancaları ve pip pinleme |
 | [log.md](log.md) | Kronolojik, yalnızca ekleme yapılan wiki güncelleme ve commit kaydı |
@@ -51,7 +52,7 @@ Comparison Lab geliştirme sürecinde takip edilen teknik şartnameler ve uygula
 
 ## 🌐 Proje Genel Bakış
 
-**Portföy Simülasyonu** — PyQt5 masaüstü portföy yönetim uygulaması.
+**Portföy Simülasyonu** — PySide6 masaüstü portföy yönetim uygulaması.
 
 - YFinance ile gerçek zamanlı fiyat takibi
 - Markowitz optimizasyonu (SciPy + Ledoit-Wolf)
@@ -74,4 +75,4 @@ Yeni bir wiki sayfası veya teknik doküman eklendiğinde:
 
 ---
 
-*Son güncelleme: 2026-06-01 — Gelişmiş karşılaştırma laboratuvarı ve tasarım spesifikasyonları dizine bağlandı.*
+*Son güncelleme: 2026-06-12 — PySide6 göçü, Qt compat katmanı ve UI test stratejisi dizine işlendi.*

@@ -6,11 +6,11 @@ from src.ui.shared.locale_tr import L10N
 
 from datetime import datetime
 
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QHBoxLayout, QPushButton, QLabel,
     QTabWidget, QWidget, QComboBox, QDialog,
 )
-from PyQt5.QtCore import Qt, QSize
+from src.qt_compat.qtcore import Qt, QSize
 
 from .base_page import BasePage
 from src.ui.widgets.planning import BudgetFormPanel, ContributionDialog, GoalInputDialog, GoalsPanel
@@ -81,7 +81,7 @@ class PlanningPage(BasePage):
         self.tab_widget.setTabIcon(1, IconManager.get_icon("target", color=c1))
 
     def _build_budget_tab(self, tab: QWidget) -> None:
-        from PyQt5.QtWidgets import QVBoxLayout
+        from src.qt_compat.qtwidgets import QVBoxLayout
         layout = QVBoxLayout(tab)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
@@ -127,7 +127,7 @@ class PlanningPage(BasePage):
         layout.addWidget(self.budget_form, stretch=1)
 
     def _build_goals_tab(self, tab: QWidget) -> None:
-        from PyQt5.QtWidgets import QVBoxLayout
+        from src.qt_compat.qtwidgets import QVBoxLayout
         layout = QVBoxLayout(tab)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -198,7 +198,7 @@ class PlanningPage(BasePage):
                 Toast.success(self, L10N.PINLENDI_TMPL.format(name=name))
             else:
                 self._service.unpin_budget_item(item_type, name)
-                Toast.success(L10N.PINI_KALDIRILDI_TMPL.format(name=name))
+                Toast.success(self, L10N.PINI_KALDIRILDI_TMPL.format(name=name))
             self._pinned_budget_items = self._service.get_pinned_budget_items()
             self.budget_form.set_pinned_items(self._pinned_budget_items)
         except Exception as e:
@@ -211,7 +211,7 @@ class PlanningPage(BasePage):
 
     def _on_add_goal(self) -> None:
         dialog = GoalInputDialog(self)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         result = dialog.get_result()
         if not result:
@@ -231,7 +231,7 @@ class PlanningPage(BasePage):
             return
         dialog = GoalInputDialog(self)
         dialog.load_goal(goal)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         result = dialog.get_result()
         if not result:
@@ -252,8 +252,12 @@ class PlanningPage(BasePage):
     def _on_contribute(self, goal_id: int, goal_name: str) -> None:
         if goal_id is None:
             return
+        goal = next((g for g in self._service.get_all_goals() if g.id == goal_id), None)
+        if getattr(goal, "status", None) == "COMPLETED":
+            Toast.warning(self, L10N.TAMAMLANAN_HEDEFE_KATKI_EKLENEMEZ)
+            return
         dialog = ContributionDialog(goal_name, self)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         amount = dialog.get_amount()
         if amount <= 0:
@@ -308,7 +312,7 @@ class PlanningPage(BasePage):
         self.refresh_data()
 
     def changeEvent(self, event):
-        from PyQt5.QtCore import QEvent
+        from src.qt_compat.qtcore import QEvent
         if event.type() == QEvent.StyleChange:
             self._update_tab_icons()
         super().changeEvent(event)

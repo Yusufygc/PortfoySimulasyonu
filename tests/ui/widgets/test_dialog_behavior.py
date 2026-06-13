@@ -8,10 +8,10 @@ import threading
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt
-from PyQt5.QtTest import QTest
-from PyQt5.QtWidgets import QDialog, QMessageBox
+pytest.importorskip("PySide6")
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qttest import QTest
+from src.qt_compat.qtwidgets import QDialog, QMessageBox
 
 from src.domain.models.corporate_action import ActionType
 from src.domain.models.corporate_action_candidate import CorporateActionCandidate, CorporateActionCandidateStatus
@@ -189,6 +189,43 @@ def test_custom_dialogs_hide_context_help_button(qapp):
     ]
 
     offenders = [type(dialog).__name__ for dialog in dialogs if dialog.windowFlags() & Qt.WindowContextHelpButtonHint]
+
+    assert offenders == []
+
+
+def test_custom_dialogs_keep_close_button_enabled(qapp):
+    candidate = CorporateActionCandidate(
+        id=1,
+        ticker="ASELS.IS",
+        stock_id=1,
+        source="KAP",
+        source_disclosure_id="1",
+        source_url=None,
+        action_type=ActionType.BEDELSIZ,
+        status=CorporateActionCandidateStatus.READY,
+        ratio=Decimal("0.5"),
+        subscription_price=None,
+        announcement_date=None,
+        ex_date=date(2026, 6, 2),
+        confidence=Decimal("0.9"),
+    )
+    dialogs = [
+        TradeInputDialog("BUY"),
+        NewStockTradeDialog(price_lookup_func=None),
+        CapitalDialog(Decimal("1000")),
+        CorporateActionDialog("ASELS.IS", 1, 100, Decimal("10"), Decimal("1000"), Decimal("20")),
+        DateRangeDialog(),
+        PortfolioInputDialog(),
+        GoalInputDialog(),
+        ContributionDialog("Hedef"),
+        WatchlistDialog("Liste"),
+        AddStockToWatchlistDialog(),
+        EditStockDialog(Stock(id=1, ticker="ASELS.IS", name="ASELS", currency_code="TRY")),
+        TradeDialog(stock_id=1, ticker="ASELS.IS", price_lookup_func=None),
+        CorporateActionCandidateEditDialog(candidate, stock_repo=None),
+    ]
+
+    offenders = [type(dialog).__name__ for dialog in dialogs if not dialog.windowFlags() & Qt.WindowCloseButtonHint]
 
     assert offenders == []
 

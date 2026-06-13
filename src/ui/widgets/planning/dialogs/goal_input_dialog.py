@@ -1,5 +1,5 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
@@ -8,10 +8,11 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QDateEdit,
     QComboBox,
-    QPushButton
+    QPushButton,
+    QMessageBox,
 )
 from src.ui.widgets.shared import InstantDoubleSpinBox
-from PyQt5.QtCore import QDate, Qt
+from src.qt_compat.qtcore import QDate, Qt
 
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
@@ -21,7 +22,8 @@ class GoalInputDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(L10N.YENI_HEDEF)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.setFixedSize(420, 320)  # Slightly larger to fit validation error label
         self.setModal(True)
         self._init_ui()
@@ -56,10 +58,12 @@ class GoalInputDialog(QDialog):
         form.addRow(lbl_amount, self.spin_amount)
 
         self.date_deadline = QDateEdit()
+        minimum_deadline = QDate.currentDate()
+        self.date_deadline.setMinimumDate(minimum_deadline)
         self.date_deadline.setDate(QDate.currentDate().addMonths(12))
         self.date_deadline.setCalendarPopup(True)
         if self.date_deadline.calendarWidget():
-            self.date_deadline.calendarWidget().setMinimumDate(QDate.currentDate())
+            self.date_deadline.calendarWidget().setMinimumDate(minimum_deadline)
         self.date_deadline.setProperty("cssClass", "tradeInputNormal")
         lbl_date = QLabel(L10N.HEDEF_TARIH)
         lbl_date.setProperty("cssClass", "formLabel")
@@ -109,19 +113,30 @@ class GoalInputDialog(QDialog):
 
         if not name:
             is_valid = False
-        elif date_val < today:
+            error_msg = L10N.HEDEF_ADI_BOS_OLAMAZ
+        elif date_val <= today:
             is_valid = False
-            error_msg = L10N.HEDEF_TARIH_BUGUNDEN_ONCE_OLAMAZ
+            error_msg = L10N.HEDEF_TARIHI_YARIN_VEYA_SONRA_OLMALI
 
         self.lbl_error.setText(error_msg)
         self.lbl_error.setVisible(bool(error_msg))
-        self.btn_save.setEnabled(is_valid)
+        self.btn_save.setEnabled(True)
 
     def accept(self):
         name = self.txt_name.text().strip()
         date_val = self.date_deadline.date()
         today = QDate.currentDate()
-        if not name or date_val < today:
+        if not name:
+            QMessageBox.warning(self, L10N.ERROR, L10N.HEDEF_ADI_BOS_OLAMAZ)
+            self.txt_name.setFocus()
+            return
+        if not self.spin_amount.has_valid_input(require_positive=True):
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERLI_BIR_TUTAR_GIRINIZ)
+            self.spin_amount.setFocus()
+            return
+        if date_val <= today:
+            QMessageBox.warning(self, L10N.ERROR, L10N.HEDEF_TARIHI_YARIN_VEYA_SONRA_OLMALI)
+            self.date_deadline.setFocus()
             return
         super().accept()
 
@@ -144,6 +159,10 @@ class GoalInputDialog(QDialog):
         name = self.txt_name.text().strip()
         if not name:
             return None
+        if not self.spin_amount.has_valid_input(require_positive=True):
+            return None
+        if self.date_deadline.date() <= QDate.currentDate():
+            return None
         priority_map = {
             "Düşük": "LOW",
             "Orta": "MEDIUM",
@@ -151,7 +170,7 @@ class GoalInputDialog(QDialog):
         }
         return {
             "name": name,
-            "target_amount": self.spin_amount.value(),
+            "target_amount": self.spin_amount.input_decimal_value(),
             "deadline": self.date_deadline.date().toPyDate(),
             "priority": priority_map.get(self.combo_priority.currentText(), "MEDIUM"),
         }

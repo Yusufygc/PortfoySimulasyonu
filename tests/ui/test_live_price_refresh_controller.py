@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget
+pytest.importorskip("PySide6")
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import QApplication, QWidget
 
 from src.application.services.market.live_price_refresh_service import LivePriceRefreshResult
 from src.ui.shared.live_price_refresh_controller import (
@@ -153,4 +153,21 @@ def test_live_price_refresh_success_publishes_event_and_records_timestamp():
     assert container.event_bus.prices_updated.emitted == [{7: Decimal("42.25")}]
     assert settings.values[LAST_LIVE_PRICE_REFRESH_KEY] == "2026-06-03T09:45:00+00:00"
     assert settings.synced is True
+    parent.deleteLater()
+
+
+def test_live_price_refresh_third_consecutive_error_shows_warning(monkeypatch):
+    warnings = []
+    controller, parent, _, _ = make_controller()
+    monkeypatch.setattr(
+        "src.ui.shared.live_price_refresh_controller.Toast.warning",
+        lambda _parent, message: warnings.append(message),
+    )
+
+    controller._on_error((RuntimeError, RuntimeError("boom"), ""))
+    controller._on_error((RuntimeError, RuntimeError("boom"), ""))
+    controller._on_error((RuntimeError, RuntimeError("boom"), ""))
+
+    assert len(warnings) == 1
+    assert "boom" in warnings[0]
     parent.deleteLater()

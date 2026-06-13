@@ -1,6 +1,6 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtwidgets import QWidget, QHBoxLayout, QLabel
+from src.qt_compat.qtcore import Qt
 
 
 class StatusBanner(QWidget):

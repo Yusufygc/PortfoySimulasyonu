@@ -8,8 +8,8 @@ import logging
 from datetime import date, datetime, time, timedelta
 
 import pyqtgraph as pg
-from PyQt5.QtCore import Qt, QPointF, QThreadPool
-from PyQt5.QtWidgets import QFrame, QSizePolicy, QVBoxLayout
+from src.qt_compat.qtcore import Qt, QPointF, QThreadPool
+from src.qt_compat.qtwidgets import QFrame, QSizePolicy, QVBoxLayout
 
 from src.ui.formatters import display_ticker
 from src.ui.worker import Worker
@@ -157,7 +157,7 @@ class StockChartWidget(QFrame):
         self._clear_reference_legend()
         self._configure_plot_item()
         self._install_crosshair()  # plot_widget.clear() crosshair item'larını da temizler
-        self.plot_widget.getPlotItem().setTitle(message, color=TEXT_SECONDARY, size=L10N.K_13PT)
+        self.plot_widget.getPlotItem().setTitle(message, color=TEXT_SECONDARY, size="13px")
         self.plot_widget.enableAutoRange()
 
     def draw_chart(

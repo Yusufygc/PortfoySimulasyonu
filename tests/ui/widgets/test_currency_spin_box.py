@@ -2,9 +2,9 @@ from decimal import Decimal
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt
-from PyQt5.QtTest import QTest
+pytest.importorskip("PySide6")
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qttest import QTest
 
 from src.ui.widgets.shared import CurrencySpinBox
 
@@ -63,19 +63,75 @@ def test_currency_spin_box_backspace_never_deletes_suffix(qapp):
 
 
 def test_currency_spin_box_rejects_letters(qapp):
-    box = _currency_box(qapp, 0)
+    box = _currency_box(qapp, 99)
 
     box.setFocus()
-    box.clear()
-    # When letters are typed, QDoubleSpinBox native or our validator will reject them.
-    # We will simulate typing letters and numbers, then verify the resulting value
-    # is only the numbers.
-    QTest.keyClicks(box.lineEdit(), "12a3b,4")
+    box.lineEdit().setText("abc")
     qapp.processEvents()
 
-    # On blur, it should format correctly ignoring letters if they were somehow bypassed, 
-    # but since they are rejected, the text in edit is "123,4".
+    assert box.has_valid_input(require_positive=True) is False
+
     box.clearFocus()
     qapp.processEvents()
-    
-    assert box.value() == 123.4
+
+    assert box.value() == 99
+
+
+@pytest.mark.parametrize("raw_text", ["-1000", "-", "abc", "100abc", "", ".", ","])
+def test_currency_spin_box_rejects_invalid_raw_amounts_without_minimum_fallback(qapp, raw_text):
+    box = _currency_box(qapp, 123.45)
+    box.lineEdit().setText(raw_text)
+
+    assert box.has_valid_input(require_positive=True) is False
+    assert box.valueFromText(raw_text) != pytest.approx(box.minimum())
+
+
+@pytest.mark.parametrize(
+    ("raw_text", "expected"),
+    [
+        ("1000", Decimal("1000")),
+        ("1000,50", Decimal("1000.50")),
+        ("1000.50", Decimal("1000.50")),
+        ("1.000,50", Decimal("1000.50")),
+    ],
+)
+def test_currency_spin_box_parses_supported_money_formats(qapp, raw_text, expected):
+    box = _currency_box(qapp, 123.45)
+    box.lineEdit().setText(raw_text)
+
+    assert box.has_valid_input(require_positive=True) is True
+    assert box.input_decimal_value() == expected
+
+
+def test_currency_spin_box_keeps_invalid_raw_text_after_focus_out(qapp):
+    box = _currency_box(qapp, 123.45)
+    box.setFocus()
+    qapp.processEvents()
+    box.lineEdit().setText("-1000")
+    box._remember_user_text("-1000")
+
+    box.clearFocus()
+    qapp.processEvents()
+
+    assert box.value() == pytest.approx(123.45)
+    assert box.has_valid_input(require_positive=True) is False
+
+
+def test_currency_spin_box_accepts_one_billion_when_in_range(qapp):
+    box = _currency_box(qapp, 123.45)
+    box.setRange(0, 1_000_000_000)
+
+    box.lineEdit().setText("1000000000")
+
+    assert box.has_valid_input() is True
+    assert box.input_decimal_value() == Decimal("1000000000")
+
+
+def test_currency_spin_box_rejects_above_max_without_maximum_clamp(qapp):
+    box = _currency_box(qapp, 123.45)
+    box.setRange(0, 1_000_000_000)
+
+    box.lineEdit().setText("1000000001")
+
+    assert box.has_valid_input() is False
+    assert box.valueFromText("1000000001") != pytest.approx(box.maximum())

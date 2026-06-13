@@ -1,8 +1,8 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from src.ui.theme_manager import THEME_REGISTRY, ThemeManager
 from src.ui.widgets.shared import Toast

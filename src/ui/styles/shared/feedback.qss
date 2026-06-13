@@ -52,15 +52,13 @@ QLabel[cssClass="toastMessage"] {
     border: none;
 }
 
-QPushButton[cssClass="toastClose"] {
+QToolButton[cssClass="toastClose"] {
     background: transparent;
-    color: @COLOR_TEXT_SECONDARY;
-    font-size: 18px;
     border: none;
     border-radius: 6px;
+    padding: 0;
 }
 
-QPushButton[cssClass="toastClose"]:hover {
-    background-color: @COLOR_CARD_SURFACE;
-    color: @COLOR_TEXT_PRIMARY;
+QToolButton[cssClass="toastClose"]:hover {
+    background-color: @TOAST_CLOSE_HOVER_BG;
 }

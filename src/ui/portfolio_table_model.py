@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from typing import List, Dict
-from PyQt5.QtGui import QColor, QFont
-from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex, QVariant
+from src.qt_compat.qtgui import QColor, QFont
+from src.qt_compat.qtcore import QAbstractTableModel, Qt, QModelIndex
 from decimal import Decimal
 
 from src.domain.models.position import Position
@@ -63,7 +63,7 @@ class PortfolioTableModel(QAbstractTableModel):
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if role != Qt.DisplayRole:
-            return QVariant()
+            return None
         if orientation == Qt.Horizontal:
             return self._headers[section]
         return section + 1
@@ -75,7 +75,7 @@ class PortfolioTableModel(QAbstractTableModel):
 
     def data(self, index: QModelIndex, role=Qt.DisplayRole):
         if not index.isValid():
-            return QVariant()
+            return None
 
         position = self._positions[index.row()]
         stock_id = position.stock_id
@@ -102,7 +102,7 @@ class PortfolioTableModel(QAbstractTableModel):
         if role == Qt.ToolTipRole:
             return "Hisse detaylarını görmek için çift tıkla"
 
-        return QVariant()
+        return None
 
     def _get_display_text(self, position: Position, col: int, current_price: Decimal | None) -> str:
         stock_id = position.stock_id
@@ -163,11 +163,11 @@ class PortfolioTableModel(QAbstractTableModel):
                     if change_pct < 0:
                         return QColor("#ef4444")
 
-        return QVariant()
+        return None
 
     def _get_background_color(self, position: Position, col: int, current_price: Decimal | None):
         if current_price is None:
-            return QVariant()
+            return None
 
         if col == 7:
             pl = position.unrealized_pl(current_price)
@@ -190,14 +190,14 @@ class PortfolioTableModel(QAbstractTableModel):
                 if change_pct < 0:
                     return QColor(239, 68, 68, 20)
 
-        return QVariant()
+        return None
 
     def _get_font(self, display_text: str):
         if display_text == "-":
             font = QFont()
             font.setItalic(True)
             return font
-        return QVariant()
+        return None
 
     # UI'yı güncellemek için helper
     def update_data(

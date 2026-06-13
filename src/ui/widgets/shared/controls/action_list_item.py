@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 
-from PyQt5.QtCore import Qt, QEvent, QSize, pyqtSignal
-from PyQt5.QtWidgets import QAction, QHBoxLayout, QMenu, QSizePolicy, QToolButton, QWidget
+from src.qt_compat.qtcore import Qt, QEvent, QSize, Signal
+from src.qt_compat.qtgui import QAction
+from src.qt_compat.qtwidgets import QHBoxLayout, QMenu, QSizePolicy, QToolButton, QWidget
 
 from src.ui.core.icon_manager import IconManager
 from src.ui.shared.locale_tr import L10N
@@ -13,9 +14,9 @@ from src.ui.widgets.shared.controls.elided_label import ElidedLabel
 class ActionListItem(QWidget):
     """List row with a trailing three-dot actions menu."""
 
-    selected = pyqtSignal()
-    edit_requested = pyqtSignal()
-    delete_requested = pyqtSignal()
+    selected = Signal()
+    edit_requested = Signal()
+    delete_requested = Signal()
 
     def __init__(self, text: str, secondary_text: str = None, draggable: bool = False, parent=None):
         super().__init__(parent)

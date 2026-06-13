@@ -1,9 +1,8 @@
 from decimal import Decimal
 
-from PyQt5.QtCore import QModelIndex, QPoint, Qt, pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
-    QAction,
+from src.qt_compat.qtcore import QModelIndex, QPoint, Qt, Signal
+from src.qt_compat.qtgui import QAction, QColor
+from src.qt_compat.qtwidgets import (
     QHeaderView,
     QMenu,
     QTableView,
@@ -23,9 +22,9 @@ class DashboardPortfolioTable(QWidget):
 
     MIN_SECTION_WIDTH = 95
 
-    row_double_clicked = pyqtSignal(QModelIndex)
+    row_double_clicked = Signal(QModelIndex)
     # row, action_type ("BEDELLI" | "BEDELSIZ")
-    corporate_action_requested = pyqtSignal(int, str)
+    corporate_action_requested = Signal(int, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -132,7 +131,7 @@ class DashboardPortfolioTable(QWidget):
 
         menu.addAction(act_bedelsiz)
         menu.addAction(act_bedelli)
-        menu.exec_(self.table_view.viewport().mapToGlobal(pos))
+        menu.exec(self.table_view.viewport().mapToGlobal(pos))
 
     def set_model(self, model):
         self.model = model

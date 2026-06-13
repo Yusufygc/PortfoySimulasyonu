@@ -2,8 +2,8 @@ from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
 from typing import Optional
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import (
     QDialog,
     QFormLayout,
     QHBoxLayout,
@@ -21,7 +21,8 @@ class EditStockInWatchlistDialog(QDialog):
     def __init__(self, ticker: str, current_notes: Optional[str] = None, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(L10N.HISSE_NOTUNU_DUZENLE)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.setModal(True)
         self.setMinimumWidth(420)
         self.setProperty("cssClass", "dialogContainer")
@@ -78,6 +79,6 @@ class EditStockInWatchlistDialog(QDialog):
     @staticmethod
     def get_notes_input(ticker: str, current_notes: Optional[str] = None, parent=None) -> tuple[bool, Optional[str]]:
         dialog = EditStockInWatchlistDialog(ticker, current_notes, parent)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return False, None
         return True, dialog.values()

@@ -10,8 +10,8 @@ Kullanım:
     card.set_value("₺ 12.500,00")
     card.set_value_state("positive")  # cssState ile QSS renk yönetimi
 """
-from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
-from PyQt5.QtCore import Qt, QSize
+from src.qt_compat.qtwidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
+from src.qt_compat.qtcore import Qt, QSize
 from src.ui.core.icon_manager import IconManager
 
 

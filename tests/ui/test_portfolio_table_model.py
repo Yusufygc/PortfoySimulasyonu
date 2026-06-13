@@ -2,8 +2,8 @@ from decimal import Decimal
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt
+pytest.importorskip("PySide6")
+from src.qt_compat.qtcore import Qt
 
 from src.domain.models.position import Position
 from src.ui.portfolio_table_model import PortfolioTableModel

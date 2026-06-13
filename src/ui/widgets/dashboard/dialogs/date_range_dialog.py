@@ -6,8 +6,8 @@ from src.ui.shared.locale_tr import L10N
 from datetime import date
 from typing import Optional, Tuple
 
-from PyQt5.QtCore import QDate, Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QDate, Qt
+from src.qt_compat.qtwidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
@@ -39,7 +39,8 @@ class DateRangeDialog(QDialog):
         title: str = L10N.TARIH_ARALIGI_SEC,
     ) -> None:
         super().__init__(parent)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.setWindowTitle(title)
         self.setModal(True)
         self.setMinimumWidth(360)
@@ -131,7 +132,7 @@ class DateRangeDialog(QDialog):
             start, end = result
         """
         dlg = DateRangeDialog(parent=parent, min_date=min_date, max_date=max_date, title=title)
-        ok = dlg.exec_() == QDialog.Accepted
+        ok = dlg.exec() == QDialog.Accepted
         if not ok:
             return None
         return dlg.get_range()

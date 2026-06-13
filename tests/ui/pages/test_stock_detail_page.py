@@ -5,9 +5,9 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QFormLayout, QHBoxLayout, QLabel, QSplitter, QTableWidget
+pytest.importorskip("PySide6")
+from src.qt_compat.qtcore import QDate, Qt
+from src.qt_compat.qtwidgets import QApplication, QFormLayout, QHBoxLayout, QLabel, QSizePolicy, QSplitter, QTableWidget
 
 from src.domain.models.trade import TradeSide
 from src.domain.models.model_portfolio import ModelTradeSide
@@ -16,6 +16,7 @@ from src.ui.pages.stock_detail.stock_chart_widget import StockChartWidget
 from src.ui.pages.stock_detail.stock_detail_page import StockDetailPage
 from src.ui.pages.stock_detail.trade_form_panel import TradeFormPanel
 from src.ui.shared.card_factory import CardFactory
+from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 
 
@@ -134,10 +135,55 @@ def test_card_factory_can_create_svg_icon_stat_card_without_emoji_text():
 
 def test_stock_detail_page_does_not_use_splitter_for_trade_panel():
     page = _stock_detail_page()
-    content_layout = page.main_layout.itemAt(page.main_layout.count() - 1).layout()
+    content_scroll = page.main_layout.itemAt(page.main_layout.count() - 1).widget()
+    content_layout = page.content_wrapper.layout()
 
+    assert content_scroll is page.content_scroll_area
     assert isinstance(content_layout, QHBoxLayout)
     assert page.findChild(QSplitter) is None
+
+
+def test_stock_detail_page_prevents_trade_panel_overlap_when_narrow(qapp):
+    page = _stock_detail_page()
+    content_layout = page.content_wrapper.layout()
+    expected_min_width = (
+        page._LEFT_CONTENT_MIN_WIDTH
+        + content_layout.spacing()
+        + page.trade_form.minimumWidth()
+    )
+
+    assert page.content_scroll_area.horizontalScrollBarPolicy() == Qt.ScrollBarAsNeeded
+    assert page.scroll_area.horizontalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert page.trade_form.minimumWidth() == 290
+    assert page.trade_form.maximumWidth() == 290
+    assert page.content_wrapper.minimumWidth() >= expected_min_width
+
+    page.resize(800, 700)
+    page.show()
+    qapp.processEvents()
+
+    assert not page.scroll_area.geometry().intersects(page.trade_form.geometry())
+    assert page.scroll_area.geometry().right() < page.trade_form.geometry().left()
+    assert page.content_scroll_area.horizontalScrollBar().maximum() > 0
+
+
+def test_trade_form_panel_allows_future_date_selection_but_warns_on_submit(qapp, monkeypatch):
+    panel = TradeFormPanel()
+    warnings = []
+    submitted = []
+    future = QDate.currentDate().addDays(1)
+    monkeypatch.setattr(
+        "src.ui.pages.stock_detail.trade_form_panel.QMessageBox.warning",
+        lambda *args, **kwargs: warnings.append(args[2]),
+    )
+    panel.trade_submitted.connect(lambda *args: submitted.append(args))
+
+    panel.date_edit.setDate(future)
+    panel._submit_trade()
+
+    assert panel.date_edit.date() == future
+    assert warnings == [L10N.GELECEK_TARIHLI_ISLEM_GIRILEMEZ]
+    assert submitted == []
 
 
 def test_history_table_is_read_only_centered_and_non_selectable():
@@ -167,6 +213,56 @@ def test_history_table_is_read_only_centered_and_non_selectable():
     buy_item = table.item(0, 1)
     assert buy_item.text() == "ALIM"
     assert buy_item.foreground().color().name() == "#10b981"
+
+
+def _history_trade(index: int):
+    return SimpleNamespace(
+        id=index,
+        trade_date=date(2026, 6, 1),
+        trade_time=time(10, 0, index % 60),
+        side=TradeSide.BUY if index % 2 == 0 else TradeSide.SELL,
+        quantity=index + 1,
+        price=Decimal("10"),
+        total_amount=Decimal("10"),
+    )
+
+
+def _expected_history_table_height(page: StockDetailPage, visible_rows: int) -> int:
+    table = page.history_table
+    default_row_height = table.verticalHeader().defaultSectionSize()
+    row_height = sum(table.rowHeight(row) or default_row_height for row in range(visible_rows))
+    header_height = table.horizontalHeader().height() or table.horizontalHeader().sizeHint().height()
+    return header_height + row_height + (table.frameWidth() * 2) + 2
+
+
+@pytest.mark.parametrize("trade_count", [4, 10])
+def test_history_table_grows_without_internal_scroll_until_ten_rows(trade_count):
+    page = _stock_detail_page([_history_trade(index) for index in range(trade_count)])
+    page.current_stock_id = 1
+
+    page._load_history()
+
+    assert page.history_table.verticalScrollBarPolicy() == Qt.ScrollBarAlwaysOff
+    assert page.history_table.minimumHeight() == _expected_history_table_height(page, trade_count)
+    assert page.history_table.maximumHeight() == page.history_table.minimumHeight()
+
+
+def test_history_table_uses_internal_scroll_after_ten_rows():
+    page = _stock_detail_page([_history_trade(index) for index in range(11)])
+    page.current_stock_id = 1
+
+    page._load_history()
+
+    assert page.history_table.verticalScrollBarPolicy() == Qt.ScrollBarAsNeeded
+    assert page.history_table.minimumHeight() == _expected_history_table_height(page, 10)
+    assert page.history_table.maximumHeight() == page.history_table.minimumHeight()
+
+
+def test_corporate_actions_table_scroll_behavior_is_unchanged():
+    page = _stock_detail_page()
+
+    assert page.corp_actions_table.minimumHeight() == 150
+    assert page.corp_actions_table.sizePolicy().verticalPolicy() == QSizePolicy.Expanding
 
 
 def test_stock_stats_panel_uses_svg_icons_and_balanced_stretches():

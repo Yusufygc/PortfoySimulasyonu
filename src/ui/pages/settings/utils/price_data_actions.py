@@ -5,7 +5,7 @@ from src.ui.shared.locale_tr import L10N
 from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import QApplication, QMessageBox
+from src.qt_compat.qtwidgets import QApplication, QMessageBox
 
 from src.application.services.market.price_data_health_service import (
     PriceDataHealthReport,
@@ -92,10 +92,16 @@ class PriceDataActions:
         if panel.price_data_health_service is None:
             return
         start_date, end_date = panel._date_range()
+        scope = panel._selected_scope()
+        scope_label = panel._selected_scope_label()
         if not ask_confirm(
             panel,
             L10N.FIYAT_VERISINI_SIL,
-            L10N.FIYAT_KAYITLARI_SILINECEK_ONAY_TMPL.format(start=start_date.strftime('%d.%m.%Y'), end=end_date.strftime('%d.%m.%Y')),
+            L10N.FIYAT_KAYITLARI_SILINECEK_ONAY_TMPL.format(
+                start=start_date.strftime('%d.%m.%Y'),
+                end=end_date.strftime('%d.%m.%Y'),
+                scope=scope_label,
+            ),
         ):
             return
         self._run_worker(
@@ -104,6 +110,7 @@ class PriceDataActions:
             L10N.FIYAT_KAYITLARI_SILINIYOR,
             start_date,
             end_date,
+            scope,
         )
 
     def copy_report(self) -> None:

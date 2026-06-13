@@ -5,8 +5,8 @@ from src.ui.shared.locale_tr import L10N
 import logging
 from decimal import Decimal
 
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QMessageBox, QDialog
+from src.qt_compat.qtcore import QTimer
+from src.qt_compat.qtwidgets import QMessageBox, QDialog
 
 from src.domain.models.trade import TradeSide
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
@@ -28,7 +28,7 @@ class DashboardActions:
 
     def on_capital_management(self) -> None:
         dialog = self._page.capital_dialog_cls(self._page._capital, self._page)
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         result = dialog.get_result()
         if not result:
@@ -63,7 +63,7 @@ class DashboardActions:
             price_lookup_func=self._page.price_lookup_func,
             lot_size=1,
         )
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         data = dialog.get_result()
         if not data:

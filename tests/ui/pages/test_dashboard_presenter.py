@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QWidget
+pytest.importorskip("PySide6")
+from src.qt_compat.qtwidgets import QWidget
 
 from src.domain.models.portfolio import Portfolio
 from src.domain.models.trade import Trade

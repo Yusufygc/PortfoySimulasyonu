@@ -1,7 +1,7 @@
 from src.ui.shared.locale_tr import L10N
 # src/ui/pages/stock_detail/stock_stats_panel.py
 
-from PyQt5.QtWidgets import QWidget, QHBoxLayout
+from src.qt_compat.qtwidgets import QWidget, QHBoxLayout
 from decimal import Decimal
 from src.ui.shared.card_factory import CardFactory
 

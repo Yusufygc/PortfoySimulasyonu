@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QScrollArea, QWidget, QVBoxLayout
-from PyQt5.QtCore import Qt, QTimer
+from src.qt_compat.qtwidgets import QScrollArea, QWidget, QVBoxLayout
+from src.qt_compat.qtcore import Qt, QTimer
 from .message_bubble import MessageBubble
 from src.domain.models.ai_analysis import ChatMessage
 

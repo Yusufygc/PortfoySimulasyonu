@@ -4,10 +4,10 @@ import re
 import sys
 from datetime import datetime
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QApplication, QLabel, QTextBrowser
-from PyQt5.QtCore import Qt
-from PyQt5.QtTest import QTest
+pytest.importorskip("PySide6")
+from src.qt_compat.qtwidgets import QApplication, QLabel, QTextBrowser
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qttest import QTest
 
 from src.ui.pages.ai_page.right_panel.chat_input_bar import (
     CHAT_INPUT_TOOLTIP,

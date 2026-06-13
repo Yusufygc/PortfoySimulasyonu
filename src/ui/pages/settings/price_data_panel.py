@@ -4,8 +4,8 @@ from src.ui.shared.locale_tr import L10N
 
 from datetime import date
 
-from PyQt5.QtCore import QDate, QSize, Qt, QThreadPool
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QDate, QSize, Qt, QThreadPool
+from src.qt_compat.qtwidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
@@ -149,6 +149,8 @@ class PriceDataPanel(QWidget):
         self.btn_update_selected = self._action_button(
             L10N.SECILI_HISSEYI_GUNCELLE, "refresh-cw", self._actions.update_selected
         )
+        self.btn_update_selected.setVisible(False)
+        self.btn_update_selected.setEnabled(False)
         self.btn_update_latest = self._action_button(
             L10N.SON_GUNDEN_BUGUNE_GUNCELLE, "calendar", self._actions.update_from_latest
         )
@@ -159,7 +161,8 @@ class PriceDataPanel(QWidget):
             L10N.RAPORU_KOPYALA, L10N.FILETEXT, self._actions.copy_report
         )
 
-        for button in self._price_data_buttons:
+        self.price_action_row = action_row
+        for button in self._price_data_top_buttons:
             action_row.addWidget(button)
         action_row.addStretch()
         return action_row
@@ -187,12 +190,21 @@ class PriceDataPanel(QWidget):
         self.health_table.itemSelectionChanged.connect(self._report_renderer.on_health_selection_changed)
         content_row.addWidget(self.health_table, 3)
 
+        detail_panel = QFrame()
+        detail_panel.setProperty("cssClass", "plainTextPanel")
+        detail_layout = QVBoxLayout(detail_panel)
+        detail_layout.setContentsMargins(0, 0, 0, 0)
+        detail_layout.setSpacing(10)
+
         self.detail_text = QTextEdit()
         self.detail_text.setReadOnly(True)
         self.detail_text.setMinimumWidth(280)
-        self.detail_text.setProperty("cssClass", "plainTextPanel")
+        self.detail_text.setFrameShape(QFrame.NoFrame)
         self.detail_text.setText(L10N.ANALIZ_SONUCU_BEKLENIYOR)
-        content_row.addWidget(self.detail_text, 1)
+        detail_layout.addWidget(self.detail_text, 1)
+        detail_layout.addWidget(self.btn_update_selected)
+
+        content_row.addWidget(detail_panel, 1)
         return content_row
 
     def _action_button(
@@ -210,15 +222,18 @@ class PriceDataPanel(QWidget):
         return button
 
     @property
-    def _price_data_buttons(self) -> tuple[AnimatedButton, ...]:
+    def _price_data_top_buttons(self) -> tuple[AnimatedButton, ...]:
         return (
             self.btn_analyze,
             self.btn_update_missing,
-            self.btn_update_selected,
             self.btn_update_latest,
             self.btn_delete_range,
             self.btn_copy_report,
         )
+
+    @property
+    def _price_data_buttons(self) -> tuple[AnimatedButton, ...]:
+        return self._price_data_top_buttons + (self.btn_update_selected,)
 
     def _summary_label(self, title: str, value: str, icon_name: str = None) -> QFrame:
         frame = QFrame()
@@ -260,6 +275,11 @@ class PriceDataPanel(QWidget):
         if not hasattr(self, "combo_portfolio_scope"):
             return "all_active"
         return self.combo_portfolio_scope.currentData() or "all_active"
+
+    def _selected_scope_label(self) -> str:
+        if not hasattr(self, "combo_portfolio_scope"):
+            return L10N.TUM_AKTIF_PORTFOYLER
+        return self.combo_portfolio_scope.currentText() or L10N.TUM_AKTIF_PORTFOYLER
 
     def _on_scope_changed(self) -> None:
         self._apply_minimum_start_date()
@@ -305,14 +325,20 @@ class PriceDataPanel(QWidget):
         item = self.health_table.item(row, 0)
         return item.data(Qt.UserRole) if item else None
 
+    def _set_selected_update_button_state(self, enabled: bool = True) -> None:
+        has_selection = self._selected_stock_id() is not None
+        self.btn_update_selected.setVisible(has_selection)
+        self.btn_update_selected.setEnabled(enabled and has_selection)
+
     def _set_busy(self, busy: bool, text: str | None = None) -> None:
         self._set_price_data_controls_enabled(not busy)
         if text:
             self.detail_text.setText(text)
 
     def _set_price_data_controls_enabled(self, enabled: bool) -> None:
-        for button in self._price_data_buttons:
+        for button in self._price_data_top_buttons:
             button.setEnabled(enabled)
+        self._set_selected_update_button_state(enabled)
         self.combo_portfolio_scope.setEnabled(enabled)
         self.date_start.setEnabled(enabled)
         self.date_end.setEnabled(enabled)

@@ -785,6 +785,11 @@ class PriceDataHealthService:
     def update_from_latest_to_today(self, today: date | None = None, scope: str | None = None) -> PriceDataUpdateResult:
         return self._updater.update_from_latest_to_today(today, scope)
 
-    def delete_range(self, start_date: date, end_date: date) -> int:
+    def delete_range(self, start_date: date, end_date: date, scope: str | None = None) -> int:
         _validate_range(start_date, end_date)
-        return self._price_repo.delete_prices_in_range(start_date, end_date)
+        if scope is None:
+            return self._price_repo.delete_prices_in_range(start_date, end_date)
+        stock_ids = sorted(self._scope_resolver.active_stock_ids(scope))
+        if not stock_ids:
+            return 0
+        return self._price_repo.delete_prices_in_range(start_date, end_date, stock_ids)

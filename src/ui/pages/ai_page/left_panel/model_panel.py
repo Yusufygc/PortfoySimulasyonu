@@ -1,7 +1,7 @@
 import logging
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QTabWidget
-from PyQt5.QtCore import QThreadPool, pyqtSignal, Qt
+from src.qt_compat.qtwidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QTabWidget
+from src.qt_compat.qtcore import QThreadPool, Signal, Qt
 
 from src.application.services.ai.ai_analysis_service import AiAnalysisService
 from src.domain.models.ai_analysis import AnalysisResult
@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 class ModelPanel(QWidget):
     """Sol Panel (Model Analiz Paneli) Ana Kapsayıcısı"""
-    send_to_chat_requested = pyqtSignal(AnalysisResult)
-    connection_dropped = pyqtSignal()  # FastAPIAdapter aktifken analiz hatası → re-probe için
+    send_to_chat_requested = Signal(AnalysisResult)
+    connection_dropped = Signal()  # FastAPIAdapter aktifken analiz hatası → re-probe için
 
     def __init__(self, analysis_service: AiAnalysisService):
         super().__init__()

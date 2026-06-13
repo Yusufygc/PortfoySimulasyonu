@@ -12,11 +12,11 @@ Kullanım:
     panel.reset()                # tüm kalemleri ve hedefi sıfırlar
     budget = panel.get_budget(month)  # Budget domain nesnesi döner
 """
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDoubleSpinBox,
     QScrollArea, QWidget, QSizePolicy,
 )
-from PyQt5.QtCore import Qt, QLocale, pyqtSignal
+from src.qt_compat.qtcore import Qt, QLocale, Signal
 
 from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
 from src.ui.widgets.shared import AnimatedButton, InfoCard, InstantDoubleSpinBox
@@ -28,7 +28,7 @@ from src.ui.widgets.planning.panels.budget_item_row import BudgetItemRow
 class BudgetFormPanel(QFrame):
     """3-kolonlu dinamik bütçe formu: Gelirler | Giderler | Özet."""
 
-    pin_toggle_requested = pyqtSignal(str, str, float, bool)
+    pin_toggle_requested = Signal(str, str, float, bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -142,7 +142,7 @@ class BudgetFormPanel(QFrame):
         lbl_target.setProperty("cssClass", "inputLabel")
 
         self.spin_target = InstantDoubleSpinBox()
-        self.spin_target.setRange(0, 10_000_000)
+        self.spin_target.setRange(0, 1_000_000_000)
         self.spin_target.setDecimals(2)
         self.spin_target.setLocale(QLocale(QLocale.Turkish, QLocale.Turkey))
         self.spin_target.setGroupSeparatorShown(True)
@@ -232,7 +232,7 @@ class BudgetFormPanel(QFrame):
         return Budget(
             id=None,
             month=month,
-            savings_target=self.spin_target.value(),
+            savings_target=self._target_amount(),
             items=items,
         )
 
@@ -240,7 +240,7 @@ class BudgetFormPanel(QFrame):
         income  = sum(r.get_amount() for r in self._income_rows)
         expense = sum(r.get_amount() for r in self._expense_rows)
         net     = income - expense
-        target  = self.spin_target.value()
+        target  = self._target_amount()
 
         self.card_income.set_value(f"₺ {income:,.2f}")
         self.card_expense.set_value(f"₺ {expense:,.2f}")
@@ -298,6 +298,11 @@ class BudgetFormPanel(QFrame):
             self._expense_layout.removeWidget(row)
         row.deleteLater()
         self._refresh_summary()
+
+    def _target_amount(self) -> float:
+        if self.spin_target.has_valid_input():
+            return float(self.spin_target.input_decimal_value())
+        return self.spin_target.value()
 
     def _clear_rows(self, rows: list, layout: QVBoxLayout) -> None:
         for row in rows:

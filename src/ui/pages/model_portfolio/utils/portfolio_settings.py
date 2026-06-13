@@ -4,7 +4,7 @@ import json
 from decimal import Decimal
 from typing import Dict, Optional
 from datetime import datetime
-from PyQt5.QtCore import QSettings
+from src.qt_compat.qtcore import QSettings
 
 LAST_SELECTED_PORTFOLIO_KEY = "model_portfolios/last_selected_id"
 

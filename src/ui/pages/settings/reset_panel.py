@@ -2,8 +2,8 @@ from __future__ import annotations
 from src.ui.shared.confirm_dialog import ask_confirm
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget, QCheckBox, QComboBox
-from PyQt5.QtCore import QSize
+from src.qt_compat.qtwidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget, QCheckBox, QComboBox
+from src.qt_compat.qtcore import QSize
 
 from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.core.icon_manager import IconManager
@@ -13,7 +13,7 @@ class ResetPanel(QWidget):
     def __init__(self, reset_service, settings=None, parent=None):
         super().__init__(parent)
         self.reset_service = reset_service
-        from PyQt5.QtCore import QSettings
+        from src.qt_compat.qtcore import QSettings
         self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
         self._init_ui()
 

@@ -2,24 +2,28 @@
 
 > Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
 
-Bu belge, `src/ui/` dizini altındaki PyQt5 bileşenleri, yönlendirme, asenkron iletişim ve tema mimarisini açıklar.
+Bu belge, `src/ui/` dizini altındaki PySide6 bileşenleri, `src/qt_compat` uyumluluk katmanı, yönlendirme, asenkron iletişim ve tema mimarisini açıklar.
 
-## 1. PyQt5 Thread ve Worker Yapısı
+## 1. PySide6 Thread ve Worker Yapısı
 
 Masaüstü uygulamalarında, API istekleri veya yoğun hesaplamalar Ana Thread'i (Main GUI Thread) kilitlerse arayüz donar. Bunu engellemek için tüm işlemler `QRunnable` ve `QThreadPool` tabanlı `worker.py` mekanizması ile arka planda çalıştırılır.
 
 ### Temel Akış
 1. Kullanıcı butona basar.
 2. UI nesnesi (örn. Buton), Worker nesnesini ilklendirir ve `QThreadPool.globalInstance().start(worker)` çağrılır.
-3. Worker, hesaplamayı arka planda yapar ve PyQt Sinyalleri (`signals`) ile sonucu (`success`, `error` vb.) ana thread'deki UI bileşenine iletir.
+3. Worker, hesaplamayı arka planda yapar ve PySide6 `Signal` nesneleri (`signals`) ile sonucu (`success`, `error` vb.) ana thread'deki UI bileşenine iletir.
 4. UI bileşeni sadece gelen sinyali dinleyerek ekrana yansıtır.
 
 ### Faz 4 Standardı
 
 - UI tarafındaki uzun işlemler ortak `src/ui/worker.py` içindeki `Worker(QRunnable)` ile çalışır; özel `QThread` sınıfı yalnızca gerekçeli ve testli istisna olarak kabul edilir.
+- Qt importları üretim UI kodunda doğrudan PySide6 üzerinden yapılmaz; `src/qt_compat/` modülleri binding sınırı olarak kullanılır.
+- `app.py`, `QApplication` oluşmadan önce `src/qt_compat/scaling.py` üzerinden Windows 100% üstü ekran ölçeğini ters `QT_SCALE_FACTOR` ile normalize eder. Bu, PySide6/Qt6 sonrası 125% sistem ölçeğinde sayfa içeriklerinin ve sabit px metriklerinin büyümesini engeller. Gerekirse `PORTFOYSIM_DISABLE_QT_SCALE_NORMALIZATION=1` ile kapatılabilir.
+- PySide6 altında QRunnable wrapper ömrü için `Worker` aktif işleri `finished` sinyali dış dinleyicilere teslim edilene kadar referans setinde tutar; internal cleanup ayrı sinyalle, `finished` sonrasında yapılır.
 - `Worker.signals.error` mevcut tuple sözleşmesini korur: `(exception_type, exception_value, traceback_text)`.
 - AI analizi, Gemini chat/yorum üretimi ve optimizasyon akışları `Worker + QThreadPool` modeline taşınmıştır.
 - Async UI sonuçlarında request-id kontrolü kullanılır; eski worker sonucu yeni filtre veya ekran durumunu ezmez.
+- Analiz sayfası gibi WebEngine/Plotly içeren ekranlarda gizli tablar ilk sayfa kurulumunda `QWebEngineView` oluşturmaz; grafik view'ları tab aktiflenince lazy init edilir ve eldeki DTO cache'i ile render edilir.
 
 ## 2. Global Event Bus (Pub/Sub)
 

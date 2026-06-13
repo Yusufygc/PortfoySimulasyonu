@@ -4,8 +4,8 @@ from src.ui.shared.locale_tr import L10N
 import logging
 from datetime import date, timedelta
 
-from PyQt5.QtCore import QSize, Qt, QThreadPool
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QSize, Qt, QThreadPool
+from src.qt_compat.qtwidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -38,6 +38,8 @@ class AnalysisPage(BasePage):
         self.analysis_service = container.analysis_service
         self.threadpool = QThreadPool()
         self._request_seq = 0
+        self._active_request_id = None
+        self._active_worker = None
         self._init_ui()
 
     def _init_ui(self) -> None:
@@ -104,6 +106,7 @@ class AnalysisPage(BasePage):
         self.risk_section = AnalysisRiskSection()
         self.tabs.addTab(self._wrap_scroll(self.overview_section), L10N.GENEL_BAKIS)
         self.tabs.addTab(self._wrap_scroll(self.risk_section), L10N.DAGILIM_VE_RISK)
+        self.tabs.currentChanged.connect(self._on_tab_changed)
         left_layout.addWidget(self.tabs, 1)
         content_layout.addWidget(left_container, 1)
 
@@ -209,18 +212,25 @@ class AnalysisPage(BasePage):
 
     def _request_refresh(self) -> None:
         filter_state = self._build_filter_state()
-        if filter_state.start_date > filter_state.end_date:
-            self._render_error("Ba\u015flang\u0131\u00e7 tarihi biti\u015f tarihinden sonra olamaz.")
-            return
-
         self._request_seq += 1
         request_id = self._request_seq
+        self._active_request_id = request_id
+
+        if filter_state.start_date > filter_state.end_date:
+            self._render_error("Ba\u015flang\u0131\u00e7 tarihi biti\u015f tarihinden sonra olamaz.")
+            self._complete_request(request_id)
+            return
+
         self._set_loading(True)
 
-        worker = Worker(self.analysis_service.get_page_payload, filter_state)
+        payload_loader = getattr(self.analysis_service, "get_overview_risk_payload", None)
+        if payload_loader is None:
+            payload_loader = self.analysis_service.get_page_payload
+        worker = Worker(payload_loader, filter_state)
         worker.signals.result.connect(lambda result, rid=request_id: self._on_payload_ready(rid, result))
         worker.signals.error.connect(lambda err, rid=request_id: self._on_payload_error(rid, err))
         worker.signals.finished.connect(lambda rid=request_id: self._on_payload_finished(rid))
+        self._active_worker = worker
         self.threadpool.start(worker)
 
     def _on_payload_ready(self, request_id: int, payload: dict) -> None:
@@ -229,17 +239,32 @@ class AnalysisPage(BasePage):
         self.warning_banner.hide()
         self.overview_section.set_data(payload["overview"])
         self.risk_section.set_data(payload["risk"])
+        if self.tabs.currentIndex() == 1:
+            self.risk_section.activate_charts()
+        self._complete_request(request_id)
 
     def _on_payload_error(self, request_id: int, err_tuple) -> None:
         if request_id != self._request_seq:
             return
         logger.error("Analiz y\u00fcklenemedi: %s", err_tuple[1], exc_info=True)
         self._render_error(str(err_tuple[1]))
+        self._complete_request(request_id)
 
     def _on_payload_finished(self, request_id: int) -> None:
         if request_id != self._request_seq:
             return
+        self._active_worker = None
+        self._complete_request(request_id)
+
+    def _complete_request(self, request_id: int) -> None:
+        if request_id != self._request_seq:
+            return
+        self._active_request_id = None
         self._set_loading(False)
+
+    def _on_tab_changed(self, index: int) -> None:
+        if index == 1:
+            self.risk_section.activate_charts()
 
     def _render_error(self, message: str) -> None:
         self.warning_banner.setText(message)

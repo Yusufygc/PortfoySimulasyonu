@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QApplication
+pytest.importorskip("PySide6")
+from src.qt_compat.qtwidgets import QApplication
 
 from src.application.services.market.price_data_health_service import (
     PriceDataHealthReport,
@@ -59,6 +59,12 @@ class DummyPriceDataHealthService:
     def update_from_latest_to_today(self, today=None, scope=None):
         return None
 
+    def update_stock_range(self, stock_id, start_date, end_date):
+        return None
+
+    def delete_range(self, start_date, end_date, scope=None):
+        return 0
+
 
 class DummySettings:
     def __init__(self, organization=None, application=None):
@@ -101,6 +107,9 @@ def test_settings_page_renders_price_data_management_section(monkeypatch):
     assert page.tabs.tabText(3) == "Kurumsal Aksiyonlar"
     assert page.btn_analyze.text().strip() == "Analiz Et"
     assert page.btn_update_missing.text().strip().startswith("Toplu Eksikleri")
+    assert page.price_data_tab.price_action_row.indexOf(page.btn_update_selected) == -1
+    assert page.btn_update_selected.isHidden()
+    assert page.btn_update_selected.isEnabled() is False
     assert page.health_table.columnCount() == 6
     assert page.health_table.horizontalHeaderItem(0).text() == "Hisse"
     assert page.combo_portfolio_scope.currentData() == "all_active"
@@ -191,6 +200,59 @@ def test_settings_page_populates_health_table_from_report():
     assert page.health_table.rowCount() == 2
     assert page.health_table.item(1, 0).text() == "BBB"
     assert page._selected_stock_id() is None
+    assert page.btn_update_selected.isHidden()
+
+
+def test_price_data_selected_update_button_lives_in_detail_panel_and_runs_selected_action(qapp):
+    page = SettingsPage(container=DummyContainer())
+    report = PriceDataHealthReport(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 5),
+        total_stock_count=1,
+        expected_business_days=[date(2026, 1, 2)],
+        weekend_days=[],
+        empty_weekdays=[],
+        holiday_candidate_dates=[],
+        latest_price_date=date(2026, 1, 2),
+        known_holiday_dates=[],
+        rows=[
+            StockPriceHealthRow(
+                stock_id=42,
+                ticker="AAA.IS",
+                last_price_date=date(2026, 1, 1),
+                missing_dates=[date(2026, 1, 2)],
+                first_missing_date=date(2026, 1, 2),
+                last_missing_date=date(2026, 1, 2),
+                status="Eksik Var",
+            ),
+        ],
+    )
+    calls = []
+
+    def fake_run_worker(fn, success_slot, busy_text, *args):
+        calls.append((fn.__name__, args))
+
+    page.price_data_tab._actions._run_worker = fake_run_worker
+    page._apply_report(report)
+
+    assert page.price_data_tab.price_action_row.indexOf(page.btn_update_selected) == -1
+    assert page.btn_update_selected.parentWidget() is not page
+    assert page.btn_update_selected.isHidden()
+
+    page.health_table.selectRow(0)
+    qapp.processEvents()
+
+    assert not page.btn_update_selected.isHidden()
+    assert page.btn_update_selected.isEnabled()
+
+    page.btn_update_selected.click()
+
+    assert calls == [
+        (
+            "update_stock_range",
+            (42, page.date_start.date().toPyDate(), page.date_end.date().toPyDate()),
+        )
+    ]
 
 
 def test_report_without_known_holidays_backwards_compatible():
@@ -268,3 +330,31 @@ def test_price_data_actions_update_from_latest_uses_last_completed_trading_day(m
     page.price_data_tab._actions.update_from_latest()
 
     assert calls == [("update_from_latest_to_today", (date(2026, 6, 5), "model:4"))]
+
+
+def test_price_data_actions_delete_range_passes_selected_scope_and_labels_confirmation(monkeypatch):
+    page = SettingsPage(container=DummyContainer())
+    page.combo_portfolio_scope.setCurrentIndex(page.combo_portfolio_scope.findData("model:4"))
+    calls = []
+    confirmations = []
+
+    def fake_confirm(_parent, title, message):
+        confirmations.append((title, message))
+        return True
+
+    def fake_run_worker(fn, success_slot, busy_text, *args):
+        calls.append((fn.__name__, args))
+
+    monkeypatch.setattr("src.ui.pages.settings.utils.price_data_actions.ask_confirm", fake_confirm)
+    page.price_data_tab._actions._run_worker = fake_run_worker
+
+    page.price_data_tab._actions.delete_range()
+
+    assert calls == [
+        (
+            "delete_range",
+            (date(2026, 2, 1), page.date_end.date().toPyDate(), "model:4"),
+        )
+    ]
+    assert confirmations
+    assert "Model Portföy: Büyüme" in confirmations[0][1]

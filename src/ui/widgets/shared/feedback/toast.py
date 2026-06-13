@@ -23,10 +23,16 @@ from __future__ import annotations
 import re
 from typing import ClassVar, List, Literal, Tuple
 
-from PyQt5.QtWidgets import QWidget, QLabel, QHBoxLayout, QPushButton
-from PyQt5.QtCore import QEvent, Qt, QTimer, QPropertyAnimation, QEasingCurve
+from src.qt_compat.qtwidgets import QWidget, QLabel, QHBoxLayout, QToolButton
+from src.qt_compat.qtcore import QEvent, Qt, QTimer, QPropertyAnimation, QEasingCurve, QSize
 
 from src.ui.widgets.shared.controls.icon_label import IconLabel
+
+try:
+    from shiboken6 import isValid as _qt_is_valid
+except ImportError:  # pragma: no cover - PySide runtime provides shiboken6
+    def _qt_is_valid(_obj) -> bool:
+        return True
 
 ToastType = Literal["success", "error", "warning", "info"]
 ToastPosition = Literal["top", "bottom"]
@@ -69,6 +75,29 @@ _EMOJI_SYMBOL_CODEPOINTS = {
 _EMOJI_JOINERS_AND_SELECTORS = {0x200D, 0x20E3, 0xFE0E, 0xFE0F}
 
 
+class _ToastCloseButton(QToolButton):
+    """Theme-aware SVG close button for toast notifications."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(26, 26)
+        self.setIconSize(QSize(16, 16))
+        self.setCursor(Qt.PointingHandCursor)
+        self.setProperty("cssClass", "toastClose")
+        self.setAutoRaise(True)
+        self._refresh_icon()
+
+    def _refresh_icon(self) -> None:
+        from src.ui.core.icon_manager import IconManager
+
+        self.setIcon(IconManager.get_icon("x", color="@TOAST_CLOSE_ICON", size=QSize(16, 16)))
+
+    def changeEvent(self, event) -> None:
+        if event.type() == QEvent.StyleChange:
+            self._refresh_icon()
+        super().changeEvent(event)
+
+
 class _ToastWidget(QWidget):
     """Tek bir Toast baloncuğu."""
 
@@ -108,14 +137,18 @@ class _ToastWidget(QWidget):
         QTimer.singleShot(duration_ms, self._begin_close)
 
     def eventFilter(self, watched, event) -> bool:
-        if watched in (self._parent_ref, self._anchor_ref) and event.type() in {
-            QEvent.Move,
-            QEvent.Resize,
-            QEvent.Show,
-            QEvent.WindowStateChange,
-        }:
-            QTimer.singleShot(0, self._reposition_all)
-        return super().eventFilter(watched, event)
+        try:
+            is_anchor_event = watched is self._parent_ref or watched is self._anchor_ref
+            if is_anchor_event and event.type() in {
+                QEvent.Move,
+                QEvent.Resize,
+                QEvent.Show,
+                QEvent.WindowStateChange,
+            }:
+                QTimer.singleShot(0, self._reposition_all)
+        except RuntimeError:
+            return False
+        return False
 
     # ------------------------------------------------------------------
     # UI
@@ -149,10 +182,7 @@ class _ToastWidget(QWidget):
         lbl_msg.setMaximumWidth(_MAX_W - 120)
         lbl_msg.setProperty("cssClass", "toastMessage")
 
-        btn_close = QPushButton("×")
-        btn_close.setFixedSize(26, 26)
-        btn_close.setCursor(Qt.PointingHandCursor)
-        btn_close.setProperty("cssClass", "toastClose")
+        btn_close = _ToastCloseButton()
         btn_close.clicked.connect(self._begin_close)
 
         row.addWidget(lbl_icon, 0, Qt.AlignTop)
@@ -199,9 +229,13 @@ class _ToastWidget(QWidget):
             if not _ToastWidget._registry[key]:
                 del _ToastWidget._registry[key]
         self._remove_parent_filters()
-        self.close()
+        try:
+            self.close()
+        except RuntimeError:
+            pass
         # Kalan toastları yeniden konumlandır
-        _ToastWidget._reposition_for_parent(self._parent_ref, self._position)
+        if _is_live_qobject(self._parent_ref):
+            _ToastWidget._reposition_for_parent(self._parent_ref, self._position)
 
     # ------------------------------------------------------------------
     # Konumlandırma
@@ -214,54 +248,81 @@ class _ToastWidget(QWidget):
         _ToastWidget._registry[key].append(self)
 
     def _reposition_all(self) -> None:
-        _ToastWidget._reposition_for_parent(self._parent_ref, self._position)
+        if _is_live_qobject(self._parent_ref):
+            _ToastWidget._reposition_for_parent(self._parent_ref, self._position)
 
     @staticmethod
     def _reposition_for_parent(parent: QWidget, position: ToastPosition = "top") -> None:
+        if not _is_live_qobject(parent):
+            return
         key = (id(parent), position)
         stack = _ToastWidget._registry.get(key, [])
 
-        anchor = _ToastWidget._anchor_for(parent)
+        try:
+            anchor = _ToastWidget._anchor_for(parent)
+            if not _is_live_qobject(anchor):
+                return
 
-        panel_w = anchor.width()
-        panel_h = anchor.height()
+            panel_w = anchor.width()
+            panel_h = anchor.height()
+        except RuntimeError:
+            return
 
         if position == "top":
             y_offset = _MARGIN
-            for toast in stack:
-                toast.adjustSize()
-                w = min(toast.width(), _MAX_W)
-                x = panel_w - w - _MARGIN
-                y = y_offset
-                toast.move(x, y)
-                toast.raise_()
-                toast.show()
-                y_offset = y + toast.height() + _SPACING
+            for toast in list(stack):
+                if not _is_live_qobject(toast):
+                    continue
+                try:
+                    toast.adjustSize()
+                    w = min(toast.width(), _MAX_W)
+                    x = panel_w - w - _MARGIN
+                    y = y_offset
+                    toast.move(x, y)
+                    toast.raise_()
+                    toast.show()
+                    y_offset = y + toast.height() + _SPACING
+                except RuntimeError:
+                    continue
         else:
             y_offset = panel_h - _MARGIN
-            for toast in reversed(stack):
-                toast.adjustSize()
-                w = min(toast.width(), _MAX_W)
-                x = panel_w - w - _MARGIN
-                y = y_offset - toast.height()
-                toast.move(x, y)
-                toast.raise_()
-                toast.show()
-                y_offset = y - _SPACING
+            for toast in reversed(list(stack)):
+                if not _is_live_qobject(toast):
+                    continue
+                try:
+                    toast.adjustSize()
+                    w = min(toast.width(), _MAX_W)
+                    x = panel_w - w - _MARGIN
+                    y = y_offset - toast.height()
+                    toast.move(x, y)
+                    toast.raise_()
+                    toast.show()
+                    y_offset = y - _SPACING
+                except RuntimeError:
+                    continue
 
     @staticmethod
     def _anchor_for(parent: QWidget) -> QWidget:
-        if hasattr(parent, "centralWidget") and parent.centralWidget() is not None:
-            return parent.centralWidget()
+        try:
+            if hasattr(parent, "centralWidget") and parent.centralWidget() is not None:
+                return parent.centralWidget()
+        except RuntimeError:
+            return parent
         return parent
 
     def _install_parent_filters(self) -> None:
-        self._parent_ref.installEventFilter(self)
-        if self._anchor_ref is not self._parent_ref:
-            self._anchor_ref.installEventFilter(self)
+        for watched in {self._parent_ref, self._anchor_ref}:
+            if not _is_live_qobject(watched):
+                continue
+            try:
+                watched.installEventFilter(self)
+            except RuntimeError:
+                pass
 
     def _remove_parent_filters(self) -> None:
         for watched in {self._parent_ref, self._anchor_ref}:
+            if not _is_live_qobject(watched):
+                continue
             try:
                 watched.removeEventFilter(self)
             except RuntimeError:
@@ -324,9 +385,24 @@ class Toast:
 def _root(widget: QWidget) -> QWidget:
     """En üst QMainWindow'u bul — Toast oraya çıpalar."""
     w = widget
-    while w.parent() is not None:
-        w = w.parent()
+    while _is_live_qobject(w):
+        try:
+            parent = w.parent()
+        except RuntimeError:
+            break
+        if parent is None:
+            break
+        w = parent
     return w
+
+
+def _is_live_qobject(obj) -> bool:
+    if obj is None:
+        return False
+    try:
+        return bool(_qt_is_valid(obj))
+    except (RuntimeError, TypeError):
+        return False
 
 
 def _strip_emoji(message: str) -> str:

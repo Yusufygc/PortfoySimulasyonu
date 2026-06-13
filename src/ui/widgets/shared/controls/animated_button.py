@@ -21,8 +21,8 @@ Kullanım:
 """
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QPushButton
-from PyQt5.QtCore import Qt, QEvent
+from src.qt_compat.qtwidgets import QPushButton
+from src.qt_compat.qtcore import Qt, QEvent
 
 
 class AnimatedButton(QPushButton):
@@ -51,7 +51,7 @@ class AnimatedButton(QPushButton):
         current_theme = ThemeManager.current_theme_id()
             
         from src.ui.core.icon_manager import IconManager
-        from PyQt5.QtCore import QSize
+        from src.qt_compat.qtcore import QSize
         self.setIcon(IconManager.get_icon(self._icon_name, color=self._icon_color, size=QSize(self._icon_size, self._icon_size)))
         self._last_applied_theme = current_theme
 

@@ -1,7 +1,7 @@
 import pytest
 import sys
-pytest.importorskip("PyQt5")
-from PyQt5.QtWidgets import QApplication
+pytest.importorskip("PySide6")
+from src.qt_compat.qtwidgets import QApplication
 
 from src.application.services.ai.safety_guard import validate_user_input, wrap_user_message, MAX_CHAR_LIMIT, load_safety_patterns
 from src.domain.models.ai_analysis import MessageRole, ChatMessage

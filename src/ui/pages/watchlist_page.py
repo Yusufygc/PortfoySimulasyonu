@@ -6,7 +6,7 @@ from src.ui.shared.locale_tr import L10N
 
 from typing import Optional
 
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
     QStackedWidget,
     QWidget,
 )
-from PyQt5.QtCore import Qt, QSize
+from src.qt_compat.qtcore import Qt, QSize
 from src.ui.formatters import display_ticker
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 
@@ -403,7 +403,7 @@ class WatchlistPage(BasePage):
 
         if self.price_lookup_func:
             from src.ui.worker import Worker
-            from PyQt5.QtCore import QThreadPool
+            from src.qt_compat.qtcore import QThreadPool
 
             self.setEnabled(False)
 

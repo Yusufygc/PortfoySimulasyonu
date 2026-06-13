@@ -6,8 +6,8 @@ from src.ui.shared.locale_tr import L10N
 from dataclasses import dataclass
 from typing import Optional
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
@@ -34,12 +34,14 @@ class EditStockDialog(QDialog):
 
     def __init__(self, stock: Stock, parent=None):
         super().__init__(parent)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self._stock = stock
         self._init_ui()
         self._connect_signals()
 
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
 
     def _init_ui(self):
         self.setWindowTitle(L10N.HISSEYI_DUZENLE)

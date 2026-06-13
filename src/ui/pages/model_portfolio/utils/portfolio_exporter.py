@@ -3,7 +3,7 @@ from src.ui.shared.locale_tr import L10N
 
 import logging
 from datetime import date
-from PyQt5.QtWidgets import QMessageBox, QFileDialog, QDialog
+from src.qt_compat.qtwidgets import QMessageBox, QFileDialog, QDialog
 
 from src.application.services.market.price_data_health_service import PRICE_SCOPE_MODEL_PREFIX
 from src.application.services.reporting.daily_history_models import ExportMode
@@ -33,7 +33,7 @@ class PortfolioExporter:
             return
 
         dialog = self.page.date_range_dialog_cls(self.page, min_date=first_date, max_date=date.today())
-        if dialog.exec_() != QDialog.Accepted:
+        if dialog.exec() != QDialog.Accepted:
             return
         result = dialog.get_range()
         if not result:

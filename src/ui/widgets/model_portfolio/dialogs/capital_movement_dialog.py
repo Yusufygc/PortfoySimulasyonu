@@ -4,8 +4,8 @@ from src.ui.shared.locale_tr import L10N
 from decimal import Decimal
 from typing import Optional
 
-from PyQt5.QtCore import QDate, QTime, Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QDate, QTime, Qt
+from src.qt_compat.qtwidgets import (
     QComboBox,
     QDateEdit,
     QDialog,
@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QTimeEdit,
     QVBoxLayout,
@@ -28,7 +29,8 @@ class CapitalMovementDialog(QDialog):
         self.current_cash = current_cash
         self.net_capital = net_capital
         self.setWindowTitle(L10N.SERMAYE_YONETIMI_1)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.setModal(True)
         self.setProperty("cssClass", "tradeDialog")
         self.resize(420, 330)
@@ -95,9 +97,9 @@ class CapitalMovementDialog(QDialog):
         layout.addLayout(button_row)
 
     def get_result(self) -> Optional[dict]:
-        amount = self.spin_amount.decimal_value()
-        if amount <= 0:
+        if not self.spin_amount.has_valid_input(require_positive=True):
             return None
+        amount = self.spin_amount.input_decimal_value()
         return {
             "movement_type": self.combo_action.currentData(),
             "amount": amount,
@@ -105,3 +107,10 @@ class CapitalMovementDialog(QDialog):
             "movement_time": self.time_edit.time().toPyTime(),
             "notes": self.txt_notes.text().strip() or None,
         }
+
+    def accept(self) -> None:
+        if not self.spin_amount.has_valid_input(require_positive=True):
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERLI_BIR_TUTAR_GIRINIZ)
+            self.spin_amount.setFocus()
+            return
+        super().accept()

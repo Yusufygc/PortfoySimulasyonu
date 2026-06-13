@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import List
 
-from PyQt5.QtCore import QEvent, QPoint, Qt, pyqtSignal
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import QComboBox, QFrame, QLineEdit, QListView, QVBoxLayout
+from src.qt_compat.qtcore import QEvent, QPoint, Qt, Signal
+from src.qt_compat.qtgui import QStandardItem, QStandardItemModel
+from src.qt_compat.qtwidgets import QComboBox, QFrame, QLineEdit, QListView, QVBoxLayout
 
 
 class CheckableComboBox(QComboBox):
-    selection_changed = pyqtSignal()
+    selection_changed = Signal()
 
     def __init__(self, placeholder: str = "Se\u00e7im yap\u0131n", parent=None):
         super().__init__(parent)

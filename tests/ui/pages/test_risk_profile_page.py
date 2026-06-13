@@ -3,11 +3,11 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
+pytest.importorskip("PySide6")
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PyQt5.QtWidgets import QApplication
+from src.qt_compat.qtwidgets import QApplication
 
 from src.application.services.planning.risk_profile_service import RiskProfileService
 from src.domain.models.risk_profile import RiskLabel, RiskProfile

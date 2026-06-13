@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QFrame, QGridLayout, QPushButton, QSizePolicy
+from src.qt_compat.qtcore import Signal
+from src.qt_compat.qtwidgets import QFrame, QGridLayout, QPushButton, QSizePolicy
 
 from src.application.services.analysis import BenchmarkDefinition
 
 
 class BenchmarkChipGroup(QFrame):
-    selection_changed = pyqtSignal()
+    selection_changed = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-pytest.importorskip("PyQt5")
+pytest.importorskip("PySide6")
 
 from src.application.container import AppContainer
 from src.application.events import GlobalEventBus

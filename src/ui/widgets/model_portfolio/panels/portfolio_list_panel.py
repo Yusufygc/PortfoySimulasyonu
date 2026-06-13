@@ -1,8 +1,8 @@
 from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
-from PyQt5.QtCore import Qt, QSize, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QSizePolicy, QVBoxLayout
+from src.qt_compat.qtcore import Qt, QSize, Signal
+from src.qt_compat.qtwidgets import QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QSizePolicy, QVBoxLayout
 
 from src.ui.widgets.shared import ActionListItem, AnimatedButton
 from src.ui.widgets.shared.controls.icon_label import IconLabel
@@ -11,11 +11,11 @@ from src.ui.widgets.shared.controls.icon_label import IconLabel
 class PortfolioListPanel(QFrame):
     """Left panel for model portfolios."""
 
-    portfolio_selected = pyqtSignal(object)
-    new_requested = pyqtSignal()
-    edit_requested = pyqtSignal()
-    delete_requested = pyqtSignal()
-    reordered = pyqtSignal(list)
+    portfolio_selected = Signal(object)
+    new_requested = Signal()
+    edit_requested = Signal()
+    delete_requested = Signal()
+    reordered = Signal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)

@@ -10,8 +10,8 @@ Kullanım:
     table = SuggestionsTable()
     table.populate(result.suggestions)
 """
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtwidgets import QTableWidget, QTableWidgetItem, QHeaderView
+from src.qt_compat.qtcore import Qt
 from src.ui.formatters import display_ticker
 
 

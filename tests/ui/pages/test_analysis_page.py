@@ -5,13 +5,18 @@ from types import SimpleNamespace
 
 import pytest
 
-pytest.importorskip("PyQt5")
-from PyQt5.QtCore import QEvent, Qt
-from PyQt5.QtGui import QMouseEvent
-from PyQt5.QtWidgets import QApplication, QGridLayout, QSizePolicy
+pytest.importorskip("PySide6")
+from src.qt_compat.qtcore import QEvent, Qt
+from src.qt_compat.qtgui import QMouseEvent
+from src.qt_compat.qtwidgets import QApplication, QGridLayout, QSizePolicy, QWidget
 
-from src.application.services.analysis import ComparisonViewDTO
+from src.application.services.analysis import (
+    AllocationRiskDTO,
+    AnalysisOverviewDTO,
+    ComparisonViewDTO,
+)
 from src.ui.pages.analysis import AnalysisPage
+from src.ui.pages.analysis.chart_builder import build_pie_chart
 from src.ui.pages.analysis.analysis_comparison_section import AnalysisComparisonSection
 from src.ui.pages.analysis.analysis_control_panel import AnalysisControlPanel
 from src.ui.pages.analysis.analysis_overview_section import AnalysisOverviewSection
@@ -38,10 +43,42 @@ class DummyAnalysisService:
     def get_benchmark_definitions(self):
         return []
 
+    def get_overview_risk_payload(self, _filter_state):
+        return _analysis_payload()
+
 
 class DummyPortfolioService:
     def get_first_trade_date(self):
         return None
+
+
+def _analysis_payload():
+    return {
+        "overview": AnalysisOverviewDTO(
+            total_value=Decimal("100"),
+            period_return_pct=1.2,
+            benchmark_gap_pct=None,
+            benchmark_label="Benchmark",
+            largest_position_label="ASELS",
+            largest_position_weight_pct=50.0,
+            best_contributor_label="ASELS",
+            best_contributor_pct=2.0,
+            worst_contributor_label="-",
+            worst_contributor_pct=None,
+            max_drawdown_pct=-1.0,
+            insights=[],
+            warnings=[],
+            portfolio_label="Ana Portfoy",
+        ),
+        "risk": AllocationRiskDTO(
+            items=[],
+            top_three_weight_pct=None,
+            volatility_pct=None,
+            max_drawdown_pct=None,
+            concentration_label="Dusuk",
+            warnings=[],
+        ),
+    }
 
 
 def test_analysis_page_has_two_primary_tabs():
@@ -55,6 +92,14 @@ def test_analysis_page_has_two_primary_tabs():
     assert page.tabs.count() == 2
     assert page.tabs.tabText(0) == "Genel Bakış"
     assert page.tabs.tabText(1) == "Dağılım & Risk"
+
+
+def test_analysis_pie_chart_uses_theme_text_color():
+    fig = build_pie_chart("Dağılım", [("ASELS", 10), ("THYAO", 20)], text_color="#f1f5f9")
+
+    assert fig.layout.font.color == "#f1f5f9"
+    assert fig.layout.legend.font.color == "#f1f5f9"
+    assert fig.layout.title.font.color == "#f1f5f9"
 
 
 def test_analysis_page_keeps_filter_panel_in_a_full_height_right_column():
@@ -242,4 +287,97 @@ def test_benchmark_chip_group_reserves_height_for_all_rows():
     assert group.layout().itemAtPosition(1, 0) is not None
     assert group.layout().itemAtPosition(1, 1) is not None
     assert "\n" in group.layout().itemAtPosition(1, 1).widget().text()
+
+
+def test_analysis_payload_result_clears_loading_state():
+    container = SimpleNamespace(
+        analysis_service=DummyAnalysisService(),
+        portfolio_service=DummyPortfolioService(),
+    )
+    page = AnalysisPage(container=container)
+    page._request_seq = 1
+    page._active_request_id = 1
+    page._set_loading(True)
+
+    page._on_payload_ready(1, _analysis_payload())
+
+    assert page.btn_refresh.isEnabled() is True
+    assert page._active_request_id is None
+
+
+def test_analysis_payload_error_clears_loading_state(monkeypatch):
+    monkeypatch.setattr("src.ui.widgets.shared.feedback.toast.Toast.error", lambda *args, **kwargs: None)
+    container = SimpleNamespace(
+        analysis_service=DummyAnalysisService(),
+        portfolio_service=DummyPortfolioService(),
+    )
+    page = AnalysisPage(container=container)
+    page._request_seq = 1
+    page._active_request_id = 1
+    page._set_loading(True)
+
+    page._on_payload_error(1, (ValueError, ValueError("boom"), "trace"))
+
+    assert page.btn_refresh.isEnabled() is True
+    assert page._active_request_id is None
+
+
+def test_analysis_ignores_stale_payload_and_completes_latest_request():
+    container = SimpleNamespace(
+        analysis_service=DummyAnalysisService(),
+        portfolio_service=DummyPortfolioService(),
+    )
+    page = AnalysisPage(container=container)
+    page._request_seq = 2
+    page._active_request_id = 2
+    page._set_loading(True)
+
+    page._on_payload_ready(1, _analysis_payload())
+
+    assert page.btn_refresh.isEnabled() is False
+    assert page._active_request_id == 2
+
+    page._on_payload_ready(2, _analysis_payload())
+
+    assert page.btn_refresh.isEnabled() is True
+    assert page._active_request_id is None
+
+
+def test_analysis_risk_webengine_is_lazy_until_risk_tab(monkeypatch):
+    created = []
+
+    class FakeWebView(QWidget):
+        def __init__(self):
+            super().__init__()
+            created.append(self)
+
+        def setHtml(self, _html):
+            pass
+
+        def load(self, _url):
+            pass
+
+    monkeypatch.setitem(
+        sys.modules,
+        "src.ui.widgets.shared.controls.silent_web_view",
+        SimpleNamespace(SilentWebEngineView=FakeWebView),
+    )
+    container = SimpleNamespace(
+        analysis_service=DummyAnalysisService(),
+        portfolio_service=DummyPortfolioService(),
+    )
+    page = AnalysisPage(container=container)
+    page._request_seq = 1
+
+    page._on_payload_ready(1, _analysis_payload())
+
+    assert created == []
+    assert page.risk_section.cost_chart is None
+    assert page.risk_section.value_chart is None
+
+    page.tabs.setCurrentIndex(1)
+
+    assert len(created) == 2
+    assert page.risk_section.cost_chart is created[0]
+    assert page.risk_section.value_chart is created[1]
 

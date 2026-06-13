@@ -1,6 +1,6 @@
 """Onay diyalog yardımcısı.
 
-PyQt5 + global QSS kullanıldığında `QMessageBox.question(..., defaultButton=...)`
+PySide6 + global QSS kullanıldığında `QMessageBox.question(..., defaultButton=...)`
 çağrısı `autoDefault` özelliğini yutar; sonuçta Enter tuşu hiçbir butonu
 tetiklemez. Bu modül `QMessageBox`'ı elle kurar, varsayılan butonun
 `setDefault(True)`, `setAutoDefault(True)` ve `setFocus()` çağrılarını
@@ -9,8 +9,8 @@ açıkça yapar; böylece Enter her zaman varsayılan seçeneği işler.
 
 from __future__ import annotations
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox, QWidget
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import QMessageBox, QWidget
 
 from src.ui.shared.locale_tr import L10N
 
@@ -54,5 +54,5 @@ def ask_confirm(
     other_btn.setDefault(False)
     other_btn.setAutoDefault(False)
 
-    box.exec_()
+    box.exec()
     return box.clickedButton() is yes_btn

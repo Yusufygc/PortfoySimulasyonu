@@ -4,8 +4,8 @@ from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
 import logging
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
+from src.qt_compat.qtcore import Qt
+from src.qt_compat.qtwidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 
 from src.ui.pages.base_page import BasePage
@@ -72,7 +72,7 @@ class ComparisonPage(BasePage):
         layout.setSpacing(12)
 
         # Başlık + açıklama
-        from PyQt5.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout
+        from src.qt_compat.qtwidgets import QHBoxLayout, QLabel, QVBoxLayout
         header = QHBoxLayout()
         title_col = QVBoxLayout()
         title_col.setSpacing(4)
@@ -90,6 +90,7 @@ class ComparisonPage(BasePage):
 
         # Ribbon bar
         self.ribbon_bar = ComparisonRibbonBar()
+        self.ribbon_bar.all_range_start_provider = self._comparison_all_start_date
         self.ribbon_bar.filter_changed.connect(self._request_refresh)
         layout.addWidget(self.ribbon_bar)
 
@@ -123,7 +124,7 @@ class ComparisonPage(BasePage):
         scroll_bar.valueChanged.connect(lambda: self._view_manager.check_viewport_visibility())
         
         # İlk görünürlük kontrolünü biraz gecikmeli yap (UI layout oturduktan sonra)
-        from PyQt5.QtCore import QTimer
+        from src.qt_compat.qtcore import QTimer
         QTimer.singleShot(100, lambda: self._view_manager.check_viewport_visibility())
 
     # ------------------------------------------------------------------
@@ -196,6 +197,21 @@ class ComparisonPage(BasePage):
     def _check_date_warnings(self) -> list[str]:
         """Test uyumluluğu için proxy."""
         return self._data_manager.check_date_warnings()
+
+    def _comparison_all_start_date(self, selected_codes: list[str]):
+        dates = []
+        for code in selected_codes:
+            source_code = None
+            if code == "dashboard" or code.startswith(("portfolio:", "model:")):
+                source_code = code
+            elif code.startswith("holdings:"):
+                source_code = code.split(":", 1)[1]
+            if not source_code:
+                continue
+            first_trade = self.analysis_service.get_first_trade_date_for_source(source_code)
+            if first_trade is not None:
+                dates.append(first_trade)
+        return min(dates) if dates else None
 
     def _update_table_height(self) -> None:
         """Test uyumluluğu için proxy."""

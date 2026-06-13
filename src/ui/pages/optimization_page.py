@@ -7,7 +7,7 @@ from src.ui.shared.locale_tr import L10N
 
 logger = logging.getLogger(__name__)
 
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QHBoxLayout,
     QPushButton,
     QLabel,
@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
 )
-from PyQt5.QtCore import Qt, QThreadPool, QSize
+from src.qt_compat.qtcore import Qt, QThreadPool, QSize
 
 from .base_page import BasePage
 from src.ui.core.icon_manager import IconManager

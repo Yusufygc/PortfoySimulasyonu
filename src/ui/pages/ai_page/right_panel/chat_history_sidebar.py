@@ -1,6 +1,6 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from src.qt_compat.qtcore import Qt, Signal
+from src.qt_compat.qtwidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
 from src.ui.core.icon_manager import IconManager
 from src.domain.models.ai_analysis import ChatSession
@@ -8,10 +8,10 @@ from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
 
 class ChatHistorySidebar(QFrame):
-    session_selected = pyqtSignal(str)
-    session_deleted = pyqtSignal(str)
-    new_session_requested = pyqtSignal()
-    close_requested = pyqtSignal()
+    session_selected = Signal(str)
+    session_deleted = Signal(str)
+    new_session_requested = Signal()
+    close_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -85,8 +85,8 @@ class ChatHistorySidebar(QFrame):
 
 
 class _ChatHistoryRow(QFrame):
-    selected = pyqtSignal(str)
-    deleted = pyqtSignal(str)
+    selected = Signal(str)
+    deleted = Signal(str)
 
     def __init__(self, session: ChatSession, selected: bool = False):
         super().__init__()

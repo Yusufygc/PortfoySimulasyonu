@@ -1,6 +1,11 @@
 import sys
-from PyQt5.QtCore import QCoreApplication, Qt
-from PyQt5.QtWidgets import QApplication
+
+from src.qt_compat.scaling import configure_qt_scale_normalization
+
+configure_qt_scale_normalization()
+
+from src.qt_compat.qtcore import QCoreApplication, Qt
+from src.qt_compat.qtwidgets import QApplication
 
 from src.infrastructure.logging.logger_setup import setup_logger, setup_global_exception_handler
 
@@ -37,7 +42,7 @@ def main():
     window = MainWindow(container=container)
     window.show()
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

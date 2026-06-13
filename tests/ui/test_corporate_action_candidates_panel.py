@@ -37,6 +37,28 @@ class DummyDiscoveryService:
         return self.result or SimpleNamespace(saved_count=1, source_unavailable=False, errors=[])
 
 
+class CapturingThreadPool:
+    def __init__(self):
+        self.started = []
+
+    def start(self, worker):
+        self.started.append(worker)
+
+
+class ImmediateThreadPool(CapturingThreadPool):
+    def start(self, worker):
+        super().start(worker)
+        worker.signals.result.emit(worker.fn())
+        worker.signals.finished.emit()
+
+
+class ErrorThreadPool(CapturingThreadPool):
+    def start(self, worker):
+        super().start(worker)
+        worker.signals.error.emit((RuntimeError, RuntimeError("boom"), ""))
+        worker.signals.finished.emit()
+
+
 def _candidate(status=CorporateActionCandidateStatus.READY):
     return CorporateActionCandidate(
         id=1,
@@ -87,8 +109,9 @@ def test_candidates_panel_apply_uses_review_service(qapp, monkeypatch):
     assert review.applied == [1]
 
 
-def test_candidates_panel_warns_when_discovery_source_unavailable(qapp, monkeypatch):
+def test_candidates_panel_informs_when_discovery_source_unavailable(qapp, monkeypatch):
     warnings = []
+    infos = []
     successes = []
     review = DummyReviewService([])
     panel = CorporateActionCandidatesPanel(
@@ -104,9 +127,14 @@ def test_candidates_panel_warns_when_discovery_source_unavailable(qapp, monkeypa
             stock_repo=None,
         )
     )
+    panel.threadpool = ImmediateThreadPool()
     monkeypatch.setattr(
         "src.ui.pages.settings.corporate_action_candidates_panel.Toast.warning",
         lambda _parent, message: warnings.append(message),
+    )
+    monkeypatch.setattr(
+        "src.ui.pages.settings.corporate_action_candidates_panel.Toast.info",
+        lambda _parent, message: infos.append(message),
     )
     monkeypatch.setattr(
         "src.ui.pages.settings.corporate_action_candidates_panel.Toast.success",
@@ -115,6 +143,50 @@ def test_candidates_panel_warns_when_discovery_source_unavailable(qapp, monkeypa
 
     panel.discover()
 
-    assert warnings
-    assert "KAP source 404" in warnings[0]
+    assert warnings == []
+    assert infos
+    assert "KAP/MKK" in infos[0]
+    assert "KAP source 404" in panel.detail_text.toPlainText()
     assert successes == []
+
+
+def test_candidates_panel_discover_starts_worker_without_blocking(qapp):
+    discovery = DummyDiscoveryService()
+    panel = CorporateActionCandidatesPanel(
+        SimpleNamespace(
+            corporate_action_discovery_service=discovery,
+            corporate_action_candidate_review_service=DummyReviewService([]),
+            stock_repo=None,
+        )
+    )
+    threadpool = CapturingThreadPool()
+    panel.threadpool = threadpool
+
+    panel.discover()
+
+    assert len(threadpool.started) == 1
+    assert discovery.called is False
+    assert panel.btn_refresh_remote.isEnabled() is False
+
+
+def test_candidates_panel_discover_error_reenables_controls(qapp, monkeypatch):
+    errors = []
+    panel = CorporateActionCandidatesPanel(
+        SimpleNamespace(
+            corporate_action_discovery_service=DummyDiscoveryService(),
+            corporate_action_candidate_review_service=DummyReviewService([]),
+            stock_repo=None,
+        )
+    )
+    panel.threadpool = ErrorThreadPool()
+    monkeypatch.setattr(
+        "src.ui.pages.settings.corporate_action_candidates_panel.Toast.error",
+        lambda _parent, message: errors.append(message),
+    )
+
+    panel.discover()
+
+    assert errors
+    assert "boom" in errors[0]
+    assert panel.btn_refresh_remote.isEnabled() is True
+    assert panel.btn_apply.isEnabled() is False

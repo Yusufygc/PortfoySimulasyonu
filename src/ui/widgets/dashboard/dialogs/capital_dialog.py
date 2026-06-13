@@ -2,7 +2,7 @@ from src.ui.shared.locale_tr import L10N
 from typing import Optional, Dict
 from decimal import Decimal
 
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtwidgets import (
     QDialog,
     QVBoxLayout,
     QHBoxLayout,
@@ -13,8 +13,9 @@ from PyQt5.QtWidgets import (
     QDateEdit,
     QTimeEdit,
     QLineEdit,
+    QMessageBox,
 )
-from PyQt5.QtCore import Qt, QDate, QTime
+from src.qt_compat.qtcore import Qt, QDate, QTime
 
 from src.ui.widgets.shared import CurrencySpinBox
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
@@ -27,7 +28,8 @@ class CapitalDialog(QDialog):
         self.current_capital = current_capital
         
         self.setWindowTitle(L10N.SERMAYE_YONETIMI_1)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(Qt.WindowCloseButtonHint, True)
         self.resize(350, 300)
         self.setModal(True)
         self.setProperty("cssClass", "dialogContainer")
@@ -101,7 +103,9 @@ class CapitalDialog(QDialog):
 
     def get_result(self) -> Optional[Dict]:
         action = "deposit" if self.combo_action.currentIndex() == 0 else "withdraw"
-        amount = self.spin_amount.decimal_value()
+        if not self.spin_amount.has_valid_input(require_positive=True):
+            return None
+        amount = self.spin_amount.input_decimal_value()
         
         if amount <= 0:
             return None
@@ -113,3 +117,10 @@ class CapitalDialog(QDialog):
             "movement_time": self.time_edit.time().toPyTime(),
             "notes": self.txt_notes.text().strip() or None,
         }
+
+    def accept(self) -> None:
+        if not self.spin_amount.has_valid_input(require_positive=True):
+            QMessageBox.warning(self, L10N.ERROR, L10N.GECERLI_BIR_TUTAR_GIRINIZ)
+            self.spin_amount.setFocus()
+            return
+        super().accept()

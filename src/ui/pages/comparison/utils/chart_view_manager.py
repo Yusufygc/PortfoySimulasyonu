@@ -11,7 +11,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import QWidget
+from src.qt_compat.lifecycle import is_qobject_deleted as _is_qobject_deleted
+from src.qt_compat.qtwidgets import QWidget
 from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 from src.ui.shared.locale_tr import L10N
 
@@ -22,14 +23,6 @@ logger = logging.getLogger(__name__)
 
 # Grafik adları → layout/placeholder attribute isimleri için sabit liste
 _CHART_NAMES = ("main", "drawdown", "periodic", "scatter", "treemap")
-
-
-def _is_qobject_deleted(obj) -> bool:
-    try:
-        import sip
-        return sip.isdeleted(obj)
-    except Exception:
-        return False
 
 
 class ChartViewManager:
@@ -65,12 +58,8 @@ class ChartViewManager:
     # ------------------------------------------------------------------
 
     def lazy_init_view_safe(self, name: str) -> None:
-        """sip.isdeleted kontrolüyle güvenli tembel başlatma."""
-        import sip
-        try:
-            if sip.isdeleted(self.page) or not self._page_is_active():
-                return
-        except Exception:
+        """QObject yaşam döngüsü kontrolüyle güvenli tembel başlatma."""
+        if _is_qobject_deleted(self.page) or not self._page_is_active():
             return
         self.get_or_create_view(name)
 
@@ -122,15 +111,11 @@ class ChartViewManager:
         Viewport içine giren panellerin QWebEngineView nesnelerini tembel olarak oluşturur
         ve eğer veri hazırsa asenkron render işlemini tetikler.
         """
-        import sip
-        try:
-            if (
-                sip.isdeleted(self.page)
-                or not self._page_is_active()
-                or not hasattr(self.page, "scroll_area")
-            ):
-                return
-        except Exception:
+        if (
+            _is_qobject_deleted(self.page)
+            or not self._page_is_active()
+            or not hasattr(self.page, "scroll_area")
+        ):
             return
 
         scroll_area = self.page.scroll_area
@@ -160,7 +145,7 @@ class ChartViewManager:
             if not container:
                 continue
 
-            from PyQt5.QtCore import QPoint
+            from src.qt_compat.qtcore import QPoint
             scroll_widget = scroll_area.widget()
             if not scroll_widget:
                 continue

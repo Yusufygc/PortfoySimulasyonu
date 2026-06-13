@@ -2,9 +2,9 @@
 import os
 import logging
 from typing import Optional
-from PyQt5.QtCore import QSettings
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QFont, QFontDatabase
+from src.qt_compat.qtcore import QSettings
+from src.qt_compat.qtwidgets import QApplication
+from src.qt_compat.qtgui import QFont, QFontDatabase
 
 logger = logging.getLogger(__name__)
 

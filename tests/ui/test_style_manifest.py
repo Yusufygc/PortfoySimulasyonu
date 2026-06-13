@@ -124,3 +124,42 @@ def test_component_token_contrast_pairs_are_readable():
         for fg_token, bg_token in pairs:
             ratio = _contrast_ratio(tokens[fg_token], tokens[bg_token])
             assert ratio >= 4.5, f"{theme_name} {fg_token}/{bg_token} contrast too low: {ratio:.2f}"
+
+
+def test_toast_close_icon_contrast_is_readable():
+    from src.ui.styles.tokens import DARK_THEME, LIGHT_THEME
+
+    toast_backgrounds = (
+        "TOAST_SUCCESS_BG",
+        "TOAST_WARNING_BG",
+        "TOAST_ERROR_BG",
+        "TOAST_INFO_BG",
+    )
+
+    for theme_name, tokens in (("dark", DARK_THEME), ("light", LIGHT_THEME)):
+        for bg_token in toast_backgrounds:
+            ratio = _contrast_ratio(tokens["TOAST_CLOSE_ICON"], tokens[bg_token])
+            assert ratio >= 4.5, f"{theme_name} TOAST_CLOSE_ICON/{bg_token} contrast too low: {ratio:.2f}"
+
+
+def test_toast_api_calls_pass_parent_widget_argument():
+    toast_methods = {"success", "error", "warning", "info"}
+    offenders = []
+
+    for path in (ROOT / "src" / "ui").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if (
+                isinstance(func, ast.Attribute)
+                and func.attr in toast_methods
+                and isinstance(func.value, ast.Name)
+                and func.value.id == "Toast"
+                and len(node.args) < 2
+            ):
+                rel_path = path.relative_to(ROOT).as_posix()
+                offenders.append(f"{rel_path}:{node.lineno} Toast.{func.attr}")
+
+    assert not offenders, f"Toast calls missing parent widget argument: {offenders}"

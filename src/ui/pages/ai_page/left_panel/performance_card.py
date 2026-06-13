@@ -1,6 +1,6 @@
 from src.ui.shared.locale_tr import L10N
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar, QGridLayout
-from PyQt5.QtCore import Qt
+from src.qt_compat.qtwidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar, QGridLayout
+from src.qt_compat.qtcore import Qt
 from src.ui.core.icon_manager import IconManager
 
 

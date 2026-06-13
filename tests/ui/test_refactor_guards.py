@@ -16,7 +16,7 @@ def test_ui_has_no_custom_qthread_classes_or_imports():
     for path in (ROOT / "src" / "ui").rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module == "PyQt5.QtCore":
+            if isinstance(node, ast.ImportFrom) and node.module in {"src.qt_compat.qtcore", "PySide6.QtCore"}:
                 if any(alias.name == "QThread" for alias in node.names):
                     offenders.append(f"{_src_rel(path)} imports QThread")
             if isinstance(node, ast.ClassDef):
@@ -27,6 +27,32 @@ def test_ui_has_no_custom_qthread_classes_or_imports():
                         offenders.append(f"{_src_rel(path)}::{node.name}")
 
     assert not offenders, f"Unexpected custom QThread usage in UI: {offenders}"
+
+
+def test_ui_imports_qt_through_compat_layer_only():
+    forbidden_roots = {
+        "Py" + "Qt5",
+        "Py" + "Qt6",
+        "Py" + "Side6",
+        "Py" + "QtWebEngine",
+        "s" + "ip",
+    }
+    offenders = []
+
+    for path in (ROOT / "src" / "ui").rglob("*.py"):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    root = alias.name.split(".")[0]
+                    if root in forbidden_roots:
+                        offenders.append(f"{_src_rel(path)} imports {alias.name}")
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                root = node.module.split(".")[0]
+                if root in forbidden_roots:
+                    offenders.append(f"{_src_rel(path)} imports from {node.module}")
+
+    assert not offenders, f"UI must import Qt through src.qt_compat only: {offenders}"
 
 
 def test_ui_price_events_are_published_through_helper_only():
@@ -57,6 +83,12 @@ def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
         ("src/ui/pages/stock_detail/stock_chart_widget.py", "StockChartWidget"),
         ("src/ui/shared/locale_tr.py", "L10N"),
         ("src/ui/pages/ai_page/left_panel/xai_card.py", "XAICard"),
+        # P2 (2026-06-13): sağlık raporu temelli geniş refactor öncesi baseline.
+        # Bu sınıflar ilgili fazlarda panel/helper ayrımıyla küçültülecek.
+        ("src/ui/pages/planning_page.py", "PlanningPage"),
+        ("src/ui/pages/comparison/utils/comparison_data_manager.py", "ComparisonDataManager"),
+        ("src/ui/pages/settings/price_data_panel.py", "PriceDataPanel"),
+        ("src/ui/widgets/shared/controls/currency_spin_box.py", "CurrencySpinBox"),
     }
     offenders = []
 

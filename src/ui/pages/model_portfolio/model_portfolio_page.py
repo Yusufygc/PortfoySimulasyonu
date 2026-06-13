@@ -8,8 +8,8 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, Optional, List
 
-from PyQt5.QtCore import QTimer, QThreadPool
-from PyQt5.QtWidgets import QApplication
+from src.qt_compat.qtcore import QTimer, QThreadPool
+from src.qt_compat.qtwidgets import QApplication
 
 from src.ui.pages.base_page import BasePage
 from src.ui.shared.last_update_mixin import LastUpdateDisplayMixin

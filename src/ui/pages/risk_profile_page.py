@@ -5,8 +5,8 @@ from src.ui.shared.locale_tr import L10N
 
 from typing import Dict, Optional
 
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtWidgets import (
+from src.qt_compat.qtcore import QSize, Qt
+from src.qt_compat.qtwidgets import (
     QButtonGroup,
     QFrame,
     QGridLayout,

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
-from PyQt5.QtCore import pyqtSignal, Qt
+from src.qt_compat.qtwidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
+from src.qt_compat.qtcore import Signal, Qt
 
 
 class BasePage(QWidget):
@@ -13,8 +13,8 @@ class BasePage(QWidget):
     """
     
     # Navigasyon signal'leri
-    navigate_to = pyqtSignal(str)  # Sayfa adı ile navigasyon
-    navigate_back = pyqtSignal()   # Geri dön
+    navigate_to = Signal(str)  # Sayfa adı ile navigasyon
+    navigate_back = Signal()   # Geri dön
     
     def __init__(self, parent=None):
         super().__init__(parent)
