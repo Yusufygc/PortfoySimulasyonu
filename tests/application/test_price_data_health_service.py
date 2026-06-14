@@ -4,7 +4,7 @@ from decimal import Decimal
 from src.application.services.market.price_data_health_service import PriceDataHealthService, PriceHealthServiceDeps
 from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.models.daily_price import DailyPrice
-from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade
+from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade, ModelPortfolioTradeSpec
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade
 
@@ -189,13 +189,9 @@ def test_model_scope_all_missing_weekday_stays_missing_when_dashboard_has_prices
         quantity=1,
         price=Decimal("10"),
     )
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, _, _ = make_service(
         {
             1: {date(2026, 1, 2): Decimal("10"), date(2026, 1, 5): Decimal("11")},
@@ -347,13 +343,9 @@ def test_closed_dashboard_position_is_not_scanned_by_default():
 
 
 def test_model_portfolio_stocks_are_scanned_and_stored_like_dashboard_stocks():
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, price_repo, market_client = make_service(
         {
             1: {date(2026, 1, 2): Decimal("10")},
@@ -378,13 +370,9 @@ def test_model_portfolio_stocks_are_scanned_and_stored_like_dashboard_stocks():
 
 
 def test_dashboard_scope_excludes_model_portfolio_positions():
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, _, _ = make_service(
         {
             1: {date(2026, 1, 2): Decimal("10")},
@@ -402,13 +390,9 @@ def test_dashboard_scope_excludes_model_portfolio_positions():
 
 
 def test_active_stock_ids_uses_same_scope_rules_as_health_analysis():
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, _, _ = make_service(
         {1: {}, 2: {}},
         trades=[
@@ -423,20 +407,12 @@ def test_active_stock_ids_uses_same_scope_rules_as_health_analysis():
 
 
 def test_model_scope_scans_only_selected_model_portfolio():
-    model_4_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=1,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("10"),
-    )
-    model_5_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=5,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_4_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10"),
+    ))
+    model_5_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=5, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, _, _ = make_service(
         {1: {date(2026, 1, 2): Decimal("10")}, 2: {}},
         {"AAA.IS": {date(2026, 1, 5): Decimal("12")}, "BBB.IS": {date(2026, 1, 5): Decimal("22")}},
@@ -453,20 +429,12 @@ def test_model_scope_scans_only_selected_model_portfolio():
 
 def test_update_missing_prices_uses_selected_model_scope_rows():
     model_4_trades = [
-        ModelPortfolioTrade.create_buy(
-            portfolio_id=4,
-            stock_id=1,
-            trade_date=date(2026, 1, 2),
-            quantity=1,
-            price=Decimal("10"),
-        ),
-        ModelPortfolioTrade.create_buy(
-            portfolio_id=4,
-            stock_id=2,
-            trade_date=date(2026, 1, 2),
-            quantity=1,
-            price=Decimal("20"),
-        ),
+        ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+            portfolio_id=4, stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10"),
+        )),
+        ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+            portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+        )),
     ]
     service, price_repo, market_client = make_service(
         {
@@ -492,13 +460,9 @@ def test_scope_minimum_start_date_uses_selected_portfolio_first_trade():
         quantity=1,
         price=Decimal("10"),
     )
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=1,
-        trade_date=date(2026, 3, 2),
-        quantity=1,
-        price=Decimal("12"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=1, trade_date=date(2026, 3, 2), quantity=1, price=Decimal("12"),
+    ))
     service, _, _ = make_service(
         {1: {}, 2: {}},
         trades=[dashboard_trade],
@@ -511,27 +475,15 @@ def test_scope_minimum_start_date_uses_selected_portfolio_first_trade():
 
 
 def test_closed_model_portfolio_position_is_not_scanned_by_default():
-    open_model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=1,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("10"),
-    )
-    closed_model_buy = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
-    closed_model_sell = ModelPortfolioTrade.create_sell(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 3),
-        quantity=1,
-        price=Decimal("21"),
-    )
+    open_model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10"),
+    ))
+    closed_model_buy = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
+    closed_model_sell = ModelPortfolioTrade.create_sell(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 3), quantity=1, price=Decimal("21"),
+    ))
     service, _, _ = make_service(
         {
             1: {date(2026, 1, 2): Decimal("10")},
@@ -577,13 +529,9 @@ def test_price_health_update_normalizes_pre_ex_market_prices_for_adjusted_action
 
 
 def test_delete_range_uses_selected_model_scope_stock_ids():
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, price_repo, _ = make_service(
         {
             1: {date(2026, 1, 5): Decimal("11")},

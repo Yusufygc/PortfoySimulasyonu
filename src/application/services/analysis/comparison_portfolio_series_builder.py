@@ -6,7 +6,7 @@ from src.application.services.portfolio.safe_portfolio_builder import build_port
 
 from .currency_conversion_service import CurrencyConversionService
 from .models import AnalysisFilterState, BenchmarkSeries
-from .portfolio_series_builder import PortfolioSeriesBuilder
+from .portfolio_series_builder import PortfolioSeriesBuilder, PortfolioSeriesRequest
 from .source_resolver import AnalysisSourceResolver
 
 
@@ -61,14 +61,16 @@ class ComparisonPortfolioSeriesBuilder:
         ticker_map = self._series_builder.get_ticker_map(stock_ids)
         build_result = build_portfolio_safely(scoped_trades)
         raw_series, twr_series, _, _ = self._series_builder.compute_portfolio_series(
-            build_result.valid_trades,
-            [],
-            stock_ids,
-            ticker_map,
-            filter_state.start_date,
-            filter_state.end_date,
-            build_result.portfolio,
-            trade_stock_ids=trade_stock_ids,
+            PortfolioSeriesRequest(
+                trades=build_result.valid_trades,
+                cash_movements=[],
+                stock_ids=stock_ids,
+                ticker_map=ticker_map,
+                start_date=filter_state.start_date,
+                end_date=filter_state.end_date,
+                portfolio=build_result.portfolio,
+                trade_stock_ids=trade_stock_ids,
+            )
         )
         return twr_series
 

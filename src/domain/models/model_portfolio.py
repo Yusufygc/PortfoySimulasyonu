@@ -5,7 +5,16 @@ from dataclasses import dataclass
 from datetime import date, time, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
+from typing import NamedTuple, Optional
+
+
+class ModelPortfolioTradeSpec(NamedTuple):
+    portfolio_id: int
+    stock_id: int
+    trade_date: date
+    quantity: int
+    price: Decimal
+    trade_time: Optional[time] = None
 
 
 class ModelTradeSide(str, Enum):
@@ -70,63 +79,37 @@ class ModelPortfolioTrade:
         return self.price * Decimal(self.quantity)
 
     @classmethod
-    def create_buy(
-        cls,
-        portfolio_id: int,
-        stock_id: int,
-        trade_date: date,
-        quantity: int,
-        price: Decimal,
-        trade_time: Optional[time] = None,
-    ) -> "ModelPortfolioTrade":
-        """
-        Yeni bir alış işlemi oluşturur.
-        """
-        if quantity <= 0:
+    def create_buy(cls, spec: "ModelPortfolioTradeSpec") -> "ModelPortfolioTrade":
+        if spec.quantity <= 0:
             raise ValueError("Quantity must be positive for BUY trades")
-
-        if price <= 0:
+        if spec.price <= 0:
             raise ValueError("Price must be positive")
-
         return cls(
             id=None,
-            portfolio_id=portfolio_id,
-            stock_id=stock_id,
-            trade_date=trade_date,
-            trade_time=trade_time,
+            portfolio_id=spec.portfolio_id,
+            stock_id=spec.stock_id,
+            trade_date=spec.trade_date,
+            trade_time=spec.trade_time,
             side=ModelTradeSide.BUY,
-            quantity=quantity,
-            price=price,
+            quantity=spec.quantity,
+            price=spec.price,
         )
 
     @classmethod
-    def create_sell(
-        cls,
-        portfolio_id: int,
-        stock_id: int,
-        trade_date: date,
-        quantity: int,
-        price: Decimal,
-        trade_time: Optional[time] = None,
-    ) -> "ModelPortfolioTrade":
-        """
-        Yeni bir satış işlemi oluşturur.
-        """
-        if quantity <= 0:
+    def create_sell(cls, spec: "ModelPortfolioTradeSpec") -> "ModelPortfolioTrade":
+        if spec.quantity <= 0:
             raise ValueError("Quantity must be positive for SELL trades")
-
-        if price <= 0:
+        if spec.price <= 0:
             raise ValueError("Price must be positive")
-
         return cls(
             id=None,
-            portfolio_id=portfolio_id,
-            stock_id=stock_id,
-            trade_date=trade_date,
-            trade_time=trade_time,
+            portfolio_id=spec.portfolio_id,
+            stock_id=spec.stock_id,
+            trade_date=spec.trade_date,
+            trade_time=spec.trade_time,
             side=ModelTradeSide.SELL,
-            quantity=quantity,
-            price=price,
+            quantity=spec.quantity,
+            price=spec.price,
         )
 
 

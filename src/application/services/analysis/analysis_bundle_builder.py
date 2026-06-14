@@ -8,7 +8,7 @@ from src.application.services.portfolio.safe_portfolio_builder import build_port
 from .benchmark_service import AnalysisBenchmarkService
 from .currency_conversion_service import CurrencyConversionService
 from .models import AnalysisFilterState, BenchmarkSeries
-from .portfolio_series_builder import PortfolioSeriesBuilder
+from .portfolio_series_builder import PortfolioSeriesBuilder, PortfolioSeriesRequest
 from .source_resolver import AnalysisSourceResolver
 
 
@@ -74,9 +74,16 @@ class AnalysisBundleBuilder:
         build_result = data["build_result"]
         ticker_map = data["ticker_map"]
         portfolio_series, twr_series, position_values_end, series_warnings = self._series_builder.compute_portfolio_series(
-            build_result.valid_trades, data["cash_movements"], data["valuation_stock_ids"],
-            ticker_map, filter_state.start_date, filter_state.end_date,
-            build_result.portfolio, trade_stock_ids=data["trade_stock_ids"],
+            PortfolioSeriesRequest(
+                trades=build_result.valid_trades,
+                cash_movements=data["cash_movements"],
+                stock_ids=data["valuation_stock_ids"],
+                ticker_map=ticker_map,
+                start_date=filter_state.start_date,
+                end_date=filter_state.end_date,
+                portfolio=build_result.portfolio,
+                trade_stock_ids=data["trade_stock_ids"],
+            )
         )
         warnings.extend(series_warnings)
         raw_benchmarks, benchmark_warnings = self._benchmark_service.build_benchmark_series(

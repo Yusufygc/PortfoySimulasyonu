@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from src.qt_compat.qtwidgets import QMessageBox
 
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionResult
+from src.domain.models.corporate_action import BedelliSpec
 from src.domain.models.corporate_action import ActionType
 from src.ui.formatters import display_ticker
 from src.ui.widgets.dashboard.dialogs.corporate_action_dialog import CorporateActionDialog, CorporateActionDialogContext
@@ -83,13 +84,13 @@ class DashboardCorporateActionActions:
                 ratio=result_data["ratio"],
                 notes=result_data.get("notes"),
             )
-        return self._page.corporate_action_service.register_bedelli(
+        return self._page.corporate_action_service.register_bedelli(BedelliSpec(
             stock_id=result_data["stock_id"],
             ex_date=result_data["ex_date"],
             ratio=result_data["ratio"],
             subscription_price=result_data["subscription_price"],
             notes=result_data.get("notes"),
-        )
+        ))
 
     def _refresh_prices_after_corporate_action(
         self,

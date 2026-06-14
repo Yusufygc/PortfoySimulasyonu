@@ -6,12 +6,21 @@ from datetime import date
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
+from typing import NamedTuple, Optional
 
 
 class ActionType(str, Enum):
     BEDELLI = "BEDELLI"
     BEDELSIZ = "BEDELSIZ"
+
+
+class BedelliSpec(NamedTuple):
+    stock_id: int
+    ex_date: date
+    ratio: Decimal
+    subscription_price: Decimal
+    announcement_date: Optional[date] = None
+    notes: Optional[str] = None
 
 
 def _validate_subscription_price(action_type: "ActionType", subscription_price: "Optional[Decimal]") -> None:
@@ -96,28 +105,20 @@ class CorporateAction:
         )
 
     @classmethod
-    def create_bedelli(
-        cls,
-        stock_id: int,
-        ex_date: date,
-        ratio: Decimal,
-        subscription_price: Decimal,
-        announcement_date: Optional[date] = None,
-        notes: Optional[str] = None,
-    ) -> "CorporateAction":
-        if ratio <= 0:
+    def create_bedelli(cls, spec: "BedelliSpec") -> "CorporateAction":
+        if spec.ratio <= 0:
             raise ValueError("Artırım oranı sıfırdan büyük olmalıdır")
-        if subscription_price is None or subscription_price <= 0:
+        if spec.subscription_price is None or spec.subscription_price <= 0:
             raise ValueError("Bedelli artırım için kullanım fiyatı (rüçhan fiyatı) sıfırdan büyük olmalıdır")
         return cls(
             id=None,
-            stock_id=stock_id,
+            stock_id=spec.stock_id,
             action_type=ActionType.BEDELLI,
-            ex_date=ex_date,
-            ratio=ratio,
-            subscription_price=subscription_price,
-            announcement_date=announcement_date,
-            notes=notes,
+            ex_date=spec.ex_date,
+            ratio=spec.ratio,
+            subscription_price=spec.subscription_price,
+            announcement_date=spec.announcement_date,
+            notes=spec.notes,
             applied=False,
         )
 

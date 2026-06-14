@@ -7,7 +7,7 @@ import pytest
 from src.application.services.portfolio.trade_entry_service import TradeEntryService, TradeRequest
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.application.services.planning.model_portfolio_trade_service import CapitalMovementSpec, ModelTradeInput
-from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade
+from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade, ModelPortfolioTradeSpec
 from src.domain.models.stock import Stock
 from src.domain.models.trade import TradeSide
 
@@ -19,20 +19,14 @@ class FakeModelPortfolioRepo:
         }
         self.trades = {
             1: [
-                ModelPortfolioTrade.create_buy(
-                    portfolio_id=1,
-                    stock_id=10,
-                    trade_date=date(2026, 1, 1),
-                    quantity=10,
-                    price=Decimal("10"),
-                ),
-                ModelPortfolioTrade.create_sell(
-                    portfolio_id=1,
-                    stock_id=10,
-                    trade_date=date(2026, 1, 2),
-                    quantity=2,
-                    price=Decimal("15"),
-                ),
+                ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+                    portfolio_id=1, stock_id=10, trade_date=date(2026, 1, 1),
+                    quantity=10, price=Decimal("10"),
+                )),
+                ModelPortfolioTrade.create_sell(ModelPortfolioTradeSpec(
+                    portfolio_id=1, stock_id=10, trade_date=date(2026, 1, 2),
+                    quantity=2, price=Decimal("15"),
+                )),
             ]
         }
         self.cash_movements = {1: []}

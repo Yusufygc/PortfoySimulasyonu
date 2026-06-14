@@ -9,7 +9,7 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import MagicMock, call
 
-from src.domain.models.corporate_action import ActionType, CorporateAction
+from src.domain.models.corporate_action import ActionType, BedelliSpec, CorporateAction
 from src.domain.models.trade import Trade, TradeSide
 from src.application.services.corporate_actions.corporate_action_service import (
     CorporateActionService,
@@ -125,10 +125,10 @@ class TestRegisterBedelli:
         expected = _make_action(2, 5, ActionType.BEDELLI, "0.20", "1.00")
         mock_action_repo.insert.return_value = expected
 
-        service.register_bedelli(
+        service.register_bedelli(BedelliSpec(
             stock_id=5, ex_date=date(2026, 4, 1),
-            ratio=Decimal("0.20"), subscription_price=Decimal("1.00")
-        )
+            ratio=Decimal("0.20"), subscription_price=Decimal("1.00"),
+        ))
 
         inserted = mock_action_repo.insert.call_args[0][0]
         assert inserted.action_type == ActionType.BEDELLI
@@ -136,10 +136,10 @@ class TestRegisterBedelli:
 
     def test_zero_subscription_price_raises(self, service):
         with pytest.raises(ValueError):
-            service.register_bedelli(
+            service.register_bedelli(BedelliSpec(
                 stock_id=1, ex_date=date(2026, 1, 1),
-                ratio=Decimal("0.20"), subscription_price=Decimal("0")
-            )
+                ratio=Decimal("0.20"), subscription_price=Decimal("0"),
+            ))
 
     def test_duplicate_bedelli_stock_type_ex_date_raises(self, service, mock_action_repo):
         mock_action_repo.get_by_stock.return_value = [
@@ -147,12 +147,10 @@ class TestRegisterBedelli:
         ]
 
         with pytest.raises(ValueError, match="zaten kayitli"):
-            service.register_bedelli(
-                stock_id=5,
-                ex_date=date(2026, 3, 15),
-                ratio=Decimal("0.20"),
-                subscription_price=Decimal("1.00"),
-            )
+            service.register_bedelli(BedelliSpec(
+                stock_id=5, ex_date=date(2026, 3, 15),
+                ratio=Decimal("0.20"), subscription_price=Decimal("1.00"),
+            ))
 
         mock_action_repo.insert.assert_not_called()
 

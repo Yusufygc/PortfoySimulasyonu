@@ -11,6 +11,7 @@ from src.domain.models.model_portfolio import (
     ModelPortfolioCashMovement,
     ModelPortfolioCashMovementType,
     ModelPortfolioTrade,
+    ModelPortfolioTradeSpec,
     ModelTradeSide,
 )
 from src.domain.models.stock import Stock
@@ -235,12 +236,7 @@ def _build_trade(
     trade_date: date,
     trade_time: Optional[time],
 ) -> ModelPortfolioTrade:
-    factory = (
-        ModelPortfolioTrade.create_buy
-        if target.trade_side == ModelTradeSide.BUY
-        else ModelPortfolioTrade.create_sell
-    )
-    return factory(
+    spec = ModelPortfolioTradeSpec(
         portfolio_id=target.portfolio_id,
         stock_id=target.stock_id,
         trade_date=trade_date,
@@ -248,6 +244,12 @@ def _build_trade(
         price=price,
         trade_time=trade_time,
     )
+    factory = (
+        ModelPortfolioTrade.create_buy
+        if target.trade_side == ModelTradeSide.BUY
+        else ModelPortfolioTrade.create_sell
+    )
+    return factory(spec)
 
 
 def _build_capital_movement(spec: "CapitalMovementSpec") -> ModelPortfolioCashMovement:

@@ -6,7 +6,7 @@ from src.application.services.corporate_actions.corporate_action_service import 
     CorporateActionResult,
     CorporateActionService,
 )
-from src.domain.models.corporate_action import ActionType, CorporateAction
+from src.domain.models.corporate_action import ActionType, BedelliSpec, CorporateAction
 from src.domain.models.corporate_action_candidate import (
     CorporateActionCandidate,
     CorporateActionCandidateStatus,
@@ -113,14 +113,14 @@ class CorporateActionCandidateReviewService:
                 announcement_date=candidate.announcement_date,
                 notes=notes,
             )
-        return self._corporate_action_service.register_bedelli(
+        return self._corporate_action_service.register_bedelli(BedelliSpec(
             stock_id=candidate.stock_id,
             ex_date=candidate.ex_date,
             ratio=candidate.ratio,
             subscription_price=candidate.subscription_price,
             announcement_date=candidate.announcement_date,
             notes=notes,
-        )
+        ))
 
 
 def _candidate_notes(candidate: CorporateActionCandidate) -> str:

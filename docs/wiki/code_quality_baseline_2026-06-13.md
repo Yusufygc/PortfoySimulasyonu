@@ -7,21 +7,21 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `55444db`
+- Git commit: `616fb6c`
 - Dosya: 440
-- Sinif: 542
-- Fonksiyon/metot: 3456
-- Effective code lines: 44397
+- Sinif: 572
+- Fonksiyon/metot: 3457
+- Effective code lines: 44376
 - Ihlalli sinif: 1
-- Ihlalli fonksiyon/metot: 55
+- Ihlalli fonksiyon/metot: 19
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 330 | 31506 | 1 |
-| tests | 95 | 11260 | 0 |
+| src | 330 | 31493 | 1 |
+| tests | 95 | 11252 | 0 |
 | scripts | 14 | 1603 | 0 |
 | root | 1 | 28 | 0 |
 
@@ -30,17 +30,17 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | Dosya | Katman | Effective satir | Sinif | Metot | Fonksiyon | Durum |
 |---|---|---:|---:|---:|---:|---|
 | src/ui/shared/locale_tr.py | src | 797 | 1 | 0 | 0 | ok |
-| src/application/services/market/price_data_health_service.py | src | 695 | 10 | 42 | 11 | ok |
+| src/application/services/market/price_data_health_service.py | src | 701 | 13 | 42 | 11 | ok |
 | tests/ui/pages/test_model_portfolio_page.py | tests | 659 | 17 | 43 | 24 | ok |
 | scripts/measure_code_quality.py | scripts | 589 | 3 | 10 | 40 | ok |
-| src/application/services/planning/model_portfolio_trade_service.py | src | 524 | 4 | 30 | 9 | ok |
-| tests/application/test_price_data_health_service.py | tests | 518 | 6 | 18 | 22 | ok |
-| tests/application/test_analysis_service.py | tests | 504 | 12 | 23 | 19 | ok |
-| tests/ui/pages/test_stock_detail_page.py | tests | 455 | 5 | 10 | 33 | ok |
+| src/application/services/planning/model_portfolio_trade_service.py | src | 512 | 8 | 30 | 9 | ok |
+| tests/application/test_analysis_service.py | tests | 510 | 12 | 23 | 20 | ok |
+| tests/application/test_price_data_health_service.py | tests | 468 | 6 | 18 | 22 | ok |
+| tests/ui/pages/test_stock_detail_page.py | tests | 453 | 5 | 10 | 33 | ok |
 | tests/ui/pages/test_comparison_page.py | tests | 443 | 10 | 22 | 26 | ok |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 434 | 1 | 20 | 6 | ok |
 | src/ui/pages/stock_detail/stock_detail_page.py | src | 417 | 1 | 17 | 8 | violation |
-| src/ui/pages/comparison/utils/chart_renderer.py | src | 414 | 2 | 20 | 7 | ok |
+| src/ui/pages/comparison/utils/chart_renderer.py | src | 413 | 3 | 20 | 7 | ok |
 | src/application/services/planning/risk_profile_service.py | src | 394 | 4 | 15 | 3 | ok |
 | src/ui/pages/watchlist_page.py | src | 384 | 1 | 20 | 6 | ok |
 | scripts/migrate_ui_strings.py | scripts | 372 | 0 | 0 | 10 | ok |
@@ -63,28 +63,17 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_export_today_blocks_when_history_prices_are_missing | 55 | 1 | 2 | function_effective_lines |
 | tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_update_view_passes_previous_close_map | 55 | 1 | 3 | function_effective_lines |
 | tests/infrastructure/market_data/test_benchmark_fetch_manual.py | main | 52 | 0 | 18 | function_effective_lines, function_complexity |
-| src/application/services/planning/model_portfolio_trade_service.py | add_trade | 48 | 7 | 1 | function_effective_params |
 | scripts/migrate_ui_strings.py | is_user_facing_string | 47 | 2 | 35 | function_complexity |
-| src/application/services/portfolio/trade_entry_service.py | submit_trade | 47 | 8 | 7 | function_effective_params |
 | scripts/migrate_ui_strings.py | process_file | 44 | 2 | 14 | function_complexity |
-| src/ui/widgets/planning/panels/budget_form_panel.py | _build_item_column | 44 | 8 | 1 | function_effective_params |
-| src/application/services/analysis/portfolio_series_builder.py | compute_portfolio_series | 43 | 8 | 5 | function_effective_params |
-| src/application/services/planning/model_portfolio_trade_service.py | add_capital_movement | 43 | 6 | 5 | function_effective_params |
-| src/domain/models/corporate_action_candidate.py | discovered | 40 | 13 | 1 | function_effective_params |
-| src/application/services/analysis/analysis_service.py | __init__ | 38 | 7 | 1 | function_effective_params |
-| src/application/services/simulation/history_snapshot_builder.py | build | 37 | 7 | 4 | function_effective_params |
-| src/ui/pages/stock_detail/stock_chart_widget.py | draw_chart | 37 | 6 | 7 | function_effective_params |
-| src/application/services/market/price_data_health_service.py | _build_rows | 35 | 7 | 5 | function_effective_params |
-| src/application/services/simulation/history_position_builder.py | _build_position | 35 | 7 | 3 | function_effective_params |
-| src/application/services/market/price_data_health_service.py | __init__ | 34 | 8 | 2 | function_effective_params |
-| src/application/services/simulation/history_position_builder.py | _position_metrics | 34 | 6 | 8 | function_effective_params |
-| src/application/services/simulation/history_simulation_service.py | _simulate_day | 34 | 7 | 4 | function_effective_params |
-| src/application/services/simulation/model_portfolio_history_simulation_service.py | _simulate_day | 34 | 7 | 4 | function_effective_params |
 | tests/ui/test_refactor_guards.py | test_ui_user_facing_text_uses_l10n_not_hardcoded_literals | 34 | 0 | 13 | function_complexity |
-| src/ui/shared/card_factory.py | create_stat_card | 32 | 8 | 4 | function_effective_params |
-| src/application/services/reporting/excel_dashboard_stats_calculator.py | _summary_rows | 31 | 9 | 3 | function_effective_params |
-| tests/application/test_price_data_health_service.py | make_service | 31 | 6 | 6 | function_effective_params |
+| tests/application/test_price_data_health_service.py | make_service | 33 | 6 | 6 | function_effective_params |
 | tests/ui/test_app_startup.py | test_main_window_initial_size_matches_analysis_layout_contract | 30 | 0 | 14 | function_complexity |
+| tests/application/test_excel_report_builder.py | _pos | 25 | 7 | 2 | function_effective_params |
+| tests/application/test_corporate_action_service.py | _make_action | 19 | 6 | 2 | function_effective_params |
+| tests/application/test_excel_report_builder.py | _snap | 19 | 7 | 1 | function_effective_params |
+| tests/conftest.py | _build | 18 | 7 | 2 | function_effective_params |
+| tests/conftest.py | _build | 16 | 6 | 2 | function_effective_params |
+| tests/ui/test_refactor_guards.py | test_ui_has_no_custom_qthread_classes_or_imports | 15 | 0 | 13 | function_complexity |
 
 ## Saglik Raporu Crosswalk
 

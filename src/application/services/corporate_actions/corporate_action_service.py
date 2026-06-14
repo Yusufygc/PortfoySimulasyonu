@@ -18,7 +18,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import List, NamedTuple, Optional
 
-from src.domain.models.corporate_action import ActionType, CorporateAction
+from src.domain.models.corporate_action import ActionType, BedelliSpec, CorporateAction
 from src.domain.models.position import Position
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.models.trade_adjustment import TradeAdjustment
@@ -187,29 +187,9 @@ class CorporateActionService:
         self._ensure_not_registered(action)
         return self._action_repo.insert(action)
 
-    def register_bedelli(
-        self,
-        stock_id: int,
-        ex_date: date,
-        ratio: Decimal,
-        subscription_price: Decimal,
-        announcement_date: Optional[date] = None,
-        notes: Optional[str] = None,
-    ) -> CorporateAction:
-        """
-        Bedelli sermaye artırımı (rüçhan hakkı kullanımı) kaydeder.
-
-        ratio             : Artırım oranı (örn. 0.20 → %20)
-        subscription_price: Rüçhan hakkı kullanım fiyatı (genellikle nominal değer = 1 TL)
-        """
-        action = CorporateAction.create_bedelli(
-            stock_id=stock_id,
-            ex_date=ex_date,
-            ratio=ratio,
-            subscription_price=subscription_price,
-            announcement_date=announcement_date,
-            notes=notes,
-        )
+    def register_bedelli(self, spec: BedelliSpec) -> CorporateAction:
+        """Bedelli sermaye artırımı (rüçhan hakkı kullanımı) kaydeder."""
+        action = CorporateAction.create_bedelli(spec)
         self._ensure_not_registered(action)
         return self._action_repo.insert(action)
 

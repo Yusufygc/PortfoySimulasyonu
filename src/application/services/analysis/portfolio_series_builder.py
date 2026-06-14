@@ -35,6 +35,17 @@ def _apply_cash_movements(cash_movements, current_cash: Decimal) -> tuple:
     return current_cash, net_flow
 
 
+class PortfolioSeriesRequest(NamedTuple):
+    trades: "List[Trade]"
+    cash_movements: "List[CashMovement]"
+    stock_ids: "Sequence[int]"
+    ticker_map: "Dict[int, str]"
+    start_date: date
+    end_date: date
+    portfolio: "Portfolio"
+    trade_stock_ids: "Sequence[int] | None" = None
+
+
 class _SimLoopInput(NamedTuple):
     start_date: date
     end_date: date
@@ -126,35 +137,28 @@ class PortfolioSeriesBuilder:
 
     def compute_portfolio_series(
         self,
-        trades: List[Trade],
-        cash_movements: List[CashMovement],
-        stock_ids: Sequence[int],
-        ticker_map: Dict[int, str],
-        start_date: date,
-        end_date: date,
-        portfolio: Portfolio,
-        trade_stock_ids: Sequence[int] | None = None,
+        req: PortfolioSeriesRequest,
     ) -> tuple[Dict[date, Decimal], Dict[date, Decimal], Dict[int, Decimal], List[str]]:
-        trade_scope = sorted(set(trade_stock_ids if trade_stock_ids is not None else {t.stock_id for t in trades}))
-        if not stock_ids and not trade_scope:
+        trade_scope = sorted(set(req.trade_stock_ids if req.trade_stock_ids is not None else {t.stock_id for t in req.trades}))
+        if not req.stock_ids and not trade_scope:
             return {}, {}, {}, []
 
         prices_by_stock, last_prices, warnings = self._init_prices_and_warnings(
-            stock_ids, ticker_map, start_date, end_date
+            req.stock_ids, req.ticker_map, req.start_date, req.end_date
         )
 
         current_positions, current_cash, has_cash_tracking = self._calc_initial_cash_and_positions(
-            trades, cash_movements, trade_scope, start_date, trade_stock_ids
+            req.trades, req.cash_movements, trade_scope, req.start_date, req.trade_stock_ids
         )
 
         trades_by_date, cash_by_date = self._group_events_by_date(
-            trades, cash_movements, trade_scope, start_date, end_date
+            req.trades, req.cash_movements, trade_scope, req.start_date, req.end_date
         )
 
         portfolio_series, twr_series = self._run_simulation_loop(
             _SimLoopInput(
-                start_date=start_date,
-                end_date=end_date,
+                start_date=req.start_date,
+                end_date=req.end_date,
                 has_cash_tracking=has_cash_tracking,
                 current_cash=current_cash,
                 current_positions=current_positions,
@@ -162,14 +166,14 @@ class PortfolioSeriesBuilder:
                 cash_by_date=cash_by_date,
                 prices_by_stock=prices_by_stock,
                 last_prices=last_prices,
-                stock_ids=stock_ids,
+                stock_ids=req.stock_ids,
                 warnings=warnings,
-                ticker_map=ticker_map,
+                ticker_map=req.ticker_map,
             )
         )
 
         position_values_end = self._calc_ending_position_values(
-            portfolio, last_prices, stock_ids
+            req.portfolio, last_prices, req.stock_ids
         )
 
         return portfolio_series, twr_series, position_values_end, warnings
