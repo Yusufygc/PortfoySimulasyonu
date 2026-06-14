@@ -188,13 +188,15 @@ class ModelPanel(QWidget):
         )
         self.peer_card.update_data(result.peer)
         self.performance_card.update_data(
-            composite_score=result.composite_score,
-            directional_accuracy=result.directional_accuracy,
-            hit_rate=result.hit_rate,
-            sharpe=result.sharpe,
-            rmse=result.rmse,
-            mae=result.mae,
-            stability_score=result.stability_score,
+            metric_values={
+                "composite_score": result.composite_score,
+                "directional_accuracy": result.directional_accuracy,
+                "hit_rate": result.hit_rate,
+                "sharpe": result.sharpe,
+                "rmse": result.rmse,
+                "mae": result.mae,
+                "stability_score": result.stability_score,
+            },
             last_close=result.last_close,
         )
         self.xai_card.update_data(

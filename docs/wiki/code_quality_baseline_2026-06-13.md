@@ -7,13 +7,13 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `29e1b20`
+- Git commit: `7e6b5ad`
 - Dosya: 440
 - Sinif: 540
-- Fonksiyon/metot: 3448
-- Effective code lines: 44375
+- Fonksiyon/metot: 3456
+- Effective code lines: 44388
 - Ihlalli sinif: 1
-- Ihlalli fonksiyon/metot: 59
+- Ihlalli fonksiyon/metot: 57
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
@@ -21,7 +21,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
 | src | 330 | 31500 | 1 |
-| tests | 95 | 11244 | 0 |
+| tests | 95 | 11257 | 0 |
 | scripts | 14 | 1603 | 0 |
 | root | 1 | 28 | 0 |
 
@@ -63,12 +63,10 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_export_today_blocks_when_history_prices_are_missing | 55 | 1 | 2 | function_effective_lines |
 | tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_update_view_passes_previous_close_map | 55 | 1 | 3 | function_effective_lines |
 | tests/infrastructure/market_data/test_benchmark_fetch_manual.py | main | 52 | 0 | 18 | function_effective_lines, function_complexity |
-| src/infrastructure/corporate_actions/kap_mkk_provider.py | parse_kap_mkk_disclosure | 50 | 1 | 15 | function_complexity |
 | src/application/services/planning/model_portfolio_trade_service.py | add_trade | 48 | 7 | 1 | function_effective_params |
 | scripts/migrate_ui_strings.py | is_user_facing_string | 47 | 2 | 35 | function_complexity |
-| src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 47 | 12 | 10 | function_effective_params |
 | src/application/services/portfolio/trade_entry_service.py | submit_trade | 47 | 8 | 7 | function_effective_params |
-| src/ui/pages/ai_page/left_panel/performance_card.py | update_data | 46 | 8 | 9 | function_effective_params |
+| src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 45 | 12 | 7 | function_effective_params |
 | scripts/migrate_ui_strings.py | process_file | 44 | 2 | 14 | function_complexity |
 | src/ui/widgets/planning/panels/budget_form_panel.py | _build_item_column | 44 | 8 | 1 | function_effective_params |
 | src/application/services/planning/model_portfolio_trade_service.py | add_capital_movement | 43 | 6 | 5 | function_effective_params |
@@ -85,6 +83,8 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/application/services/simulation/model_portfolio_history_simulation_service.py | _simulate_day | 34 | 7 | 4 | function_effective_params |
 | tests/ui/test_refactor_guards.py | test_ui_user_facing_text_uses_l10n_not_hardcoded_literals | 34 | 0 | 13 | function_complexity |
 | src/ui/shared/card_factory.py | create_stat_card | 32 | 8 | 4 | function_effective_params |
+| src/application/services/reporting/excel_dashboard_stats_calculator.py | _summary_rows | 31 | 9 | 3 | function_effective_params |
+| tests/application/test_price_data_health_service.py | make_service | 31 | 6 | 6 | function_effective_params |
 
 ## Saglik Raporu Crosswalk
 

@@ -35,6 +35,16 @@ def _apply_cash_movements(cash_movements, current_cash: Decimal) -> tuple:
     return current_cash, net_flow
 
 
+def _should_warn_missing_price(position, stock_id: int, warned_stocks: set) -> bool:
+    return position.total_quantity > 0 and stock_id not in warned_stocks
+
+
+def _emit_price_warning(warnings, ticker_map, stock_id: int, warned_stocks: set) -> None:
+    if warnings is not None and ticker_map is not None:
+        warnings.append(f"{ticker_map.get(stock_id, str(stock_id))} icin tarih araliginda fiyat verisi bulunamadi.")
+        warned_stocks.add(stock_id)
+
+
 def _sorted_trades_up_to_date(trades, end_date) -> list:
     return sorted(
         (trade for trade in trades if trade.trade_date <= end_date),
@@ -320,10 +330,8 @@ class PortfolioSeriesBuilder:
                     last_prices[stock_id] = day_price
                 price = last_prices[stock_id]
                 if price is None:
-                    if current_positions[stock_id].total_quantity > 0 and stock_id not in warned_stocks:
-                        if warnings is not None and ticker_map is not None:
-                            warnings.append(f"{ticker_map.get(stock_id, str(stock_id))} icin tarih araliginda fiyat verisi bulunamadi.")
-                            warned_stocks.add(stock_id)
+                    if _should_warn_missing_price(current_positions[stock_id], stock_id, warned_stocks):
+                        _emit_price_warning(warnings, ticker_map, stock_id, warned_stocks)
                     continue
                 total_value += current_positions[stock_id].market_value(price)
             portfolio_series[current_day] = total_value

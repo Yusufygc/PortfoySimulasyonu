@@ -46,15 +46,43 @@ class KapMkkCorporateActionProvider(ICorporateActionProvider):
         return candidates
 
 
+def _resolve_ticker_from_payload(payload: dict[str, Any], text: str) -> str | None:
+    ticker = _first_string(payload, "ticker", "stockCode", "stock_code", "code", "symbol")
+    if not ticker:
+        ticker = _extract_ticker(text)
+    return ticker
+
+
+def _resolve_source_url(payload: dict[str, Any], disclosure_id: str) -> str | None:
+    source_url = _first_string(payload, "sourceUrl", "url", "link")
+    if not source_url and disclosure_id:
+        source_url = f"https://www.kap.org.tr/tr/Bildirim/{disclosure_id}"
+    return source_url
+
+
+def _resolve_ratio(payload: dict[str, Any], text: str, action_type) -> "Decimal | None":
+    ratio = _decimal_from_known_keys(payload, "ratio", "rate", "bonusRatio", "paidRatio")
+    if ratio is None:
+        ratio = _extract_ratio(text, action_type)
+    return ratio
+
+
+def _resolve_subscription_price(payload: dict[str, Any], text: str, action_type) -> "Decimal | None":
+    subscription_price = _decimal_from_known_keys(
+        payload, "subscriptionPrice", "subscription_price", "rightIssuePrice", "kullanimFiyati"
+    )
+    if subscription_price is None and action_type == ActionType.BEDELLI:
+        subscription_price = _extract_subscription_price(text)
+    return subscription_price
+
+
 def parse_kap_mkk_disclosure(payload: dict[str, Any]) -> CorporateActionCandidate | None:
     text = _payload_text(payload)
     action_type = _detect_action_type(text)
     if action_type is None:
         return None
 
-    ticker = _first_string(payload, "ticker", "stockCode", "stock_code", "code", "symbol")
-    if not ticker:
-        ticker = _extract_ticker(text)
+    ticker = _resolve_ticker_from_payload(payload, text)
     if not ticker:
         return None
 
@@ -62,23 +90,9 @@ def parse_kap_mkk_disclosure(payload: dict[str, Any]) -> CorporateActionCandidat
     if not disclosure_id:
         disclosure_id = f"{ticker}:{_first_string(payload, 'publishDate', 'date') or hash(text)}"
 
-    source_url = _first_string(payload, "sourceUrl", "url", "link")
-    if not source_url and disclosure_id:
-        source_url = f"https://www.kap.org.tr/tr/Bildirim/{disclosure_id}"
-
-    ratio = _decimal_from_known_keys(payload, "ratio", "rate", "bonusRatio", "paidRatio")
-    if ratio is None:
-        ratio = _extract_ratio(text, action_type)
-
-    subscription_price = _decimal_from_known_keys(
-        payload,
-        "subscriptionPrice",
-        "subscription_price",
-        "rightIssuePrice",
-        "kullanimFiyati",
-    )
-    if subscription_price is None and action_type == ActionType.BEDELLI:
-        subscription_price = _extract_subscription_price(text)
+    source_url = _resolve_source_url(payload, str(disclosure_id))
+    ratio = _resolve_ratio(payload, text, action_type)
+    subscription_price = _resolve_subscription_price(payload, text, action_type)
 
     ex_date = _date_from_known_keys(payload, "exDate", "ex_date", "rightsUseDate", "hakKullanimTarihi")
     if ex_date is None:

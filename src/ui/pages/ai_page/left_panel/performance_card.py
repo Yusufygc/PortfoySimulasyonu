@@ -59,6 +59,26 @@ _METRIC_INFO = {
 }
 
 
+def _format_metric_value(val: float, unit: str) -> str:
+    if unit == "%":
+        return f"%{val:.1f}"
+    if unit == "₺":
+        return f"₺{val:.2f}"
+    return f"{val:.2f}"
+
+
+def _compute_metric_pct(val: float, info: dict, last_close: "float | None") -> int:
+    max_val = info["max"]
+    if info["higher_is_better"]:
+        pct = min(max(val / max_val * 100, 0), 100)
+    elif last_close and last_close > 0:
+        error_pct = (val / last_close) * 100
+        pct = max(100 - (error_pct * 10), 0)
+    else:
+        pct = max(100 - (val / max_val * 100), 0)
+    return int(pct)
+
+
 class PerformanceCard(QWidget):
     """Model performans metriklerini Türkçe açıklamalarla gösteren kart."""
 
@@ -118,62 +138,20 @@ class PerformanceCard(QWidget):
 
     def update_data(
         self,
-        composite_score: float | None = None,
-        directional_accuracy: float | None = None,
-        hit_rate: float | None = None,
-        sharpe: float | None = None,
-        rmse: float | None = None,
-        mae: float | None = None,
-        stability_score: float | None = None,
+        metric_values: dict,
         last_close: float | None = None,
     ) -> None:
-        """Performans metriklerini kartlara yazar."""
-        values = {
-            "composite_score": composite_score,
-            "directional_accuracy": directional_accuracy,
-            "hit_rate": hit_rate,
-            "sharpe": sharpe,
-            "rmse": rmse,
-            "mae": mae,
-            "stability_score": stability_score,
-        }
-
-        for key, val in values.items():
+        for key, val in metric_values.items():
             if key not in self._bars:
                 continue
             _, bar, lbl_value = self._bars[key]
             info = _METRIC_INFO[key]
-
             if val is None:
                 bar.setValue(0)
                 lbl_value.setText("-")
                 continue
-
-            # Değer metnini oluştur
-            unit = info["unit"]
-            if unit == "%":
-                lbl_value.setText(f"%{val:.1f}")
-            elif unit == "₺":
-                lbl_value.setText(f"₺{val:.2f}")
-            else:
-                lbl_value.setText(f"{val:.2f}")
-
-            # Bar yüzdesi hesapla
-            max_val = info["max"]
-            if info["higher_is_better"]:
-                pct = min(max(val / max_val * 100, 0), 100)
-            else:
-                # Düşük iyi (RMSE, MAE) -> Hisse fiyatına oranla hesapla
-                if last_close and last_close > 0:
-                    # % Hata payı (Örn: ₺15 hata / ₺300 fiyat = %5 hata)
-                    error_pct = (val / last_close) * 100
-                    # %10 hata ve üstü 0 bar verir, %0 hata 100 bar verir
-                    pct = max(100 - (error_pct * 10), 0)
-                else:
-                    # Fallback (sabit limite göre)
-                    pct = max(100 - (val / max_val * 100), 0)
-
-            bar.setValue(int(pct))
+            lbl_value.setText(_format_metric_value(val, info["unit"]))
+            bar.setValue(_compute_metric_pct(val, info, last_close))
 
     def reset(self) -> None:
         for _, (_, bar, lbl_value) in self._bars.items():
