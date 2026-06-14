@@ -8,6 +8,9 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 
 - Bir sınıf 300 satırı veya 20 metodu aşarsa (yorum satırları hariç) yeni özellik eklenmeden önce panel, helper veya servis ayrımı yapılır.
 - Bir fonksiyon 50 satırı (yorum satırları hariç), 5 parametreyi veya yaklaşık cyclomatic complexity 10 eşiğini aşarsa yeni davranış eklemek yerine önce küçük helper'lara bölünür.
+- **Parametre azaltma yöntemi — öncelik sırası:** (1) fonksiyonu daha küçük helper'lara böl; (2) yalnızca helper bölme mümkün değilse veya parametreler gerçek bir domain kavramı / cross-module contract oluşturuyorsa `NamedTuple`/`dataclass` kullanılır.
+- **NamedTuple kabul koşulları (üçünden biri sağlanmalı):** domain value object (iş kuralı taşır, 2+ modülde kullanılır); DI dependency grouping (`__init__` için bağımlılık kümesi); cross-module context (2+ farklı dosyada oluşturulan ve tüketilen veri transfer objesi).
+- **NamedTuple metric gaming (yasak):** tek bir private metodun param sayısını düşürmek için yaratılan NamedTuple; yalnızca 1 yerde kullanılan dosya-içi NamedTuple; tüm field'ları `object` tipli NamedTuple (tip güvenliği yoksa değeri de yoktur).
 - UI page sınıfları (dosya limiti: 400 satır, yorumlar hariç) yalnızca layout ve wiring sorumluluğu taşır. Tablo doldurma, rapor formatlama, worker orchestration, tema kartı ve reset onayı gibi alt davranışlar panel/component sınıflarına taşınır.
 - Application servisleri doğrudan dış API/client çağırmaz. Dış kaynaklar adapter/provider interface üzerinden kullanılır.
 - `except Exception` ancak hata loglandığında, kullanıcıya anlamlı sonuç döndürüldüğünde ve ilgili davranış testle kapatıldığında kabul edilir.
