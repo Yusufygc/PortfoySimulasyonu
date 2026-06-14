@@ -7,6 +7,26 @@ from typing import Dict, Sequence
 import pandas as pd
 
 
+def _extract_multiindex_close(row, ids_tickers, to_decimal_fn) -> dict:
+    result: dict = {}
+    for stock_id, ticker in ids_tickers:
+        try:
+            close_value = row["Close", ticker]
+        except KeyError:
+            continue
+        if pd.isna(close_value):
+            continue
+        result[stock_id] = to_decimal_fn(close_value)
+    return result
+
+
+def _extract_single_close(dataframe, stock_id, to_decimal_fn) -> dict:
+    close_value = dataframe.iloc[-1]["Close"]
+    if pd.isna(close_value):
+        return {}
+    return {stock_id: to_decimal_fn(close_value)}
+
+
 class YFinancePriceClient:
     def __init__(self, owner) -> None:
         self._owner = owner
@@ -44,34 +64,15 @@ class YFinancePriceClient:
         if not stock_ids:
             return {}
 
-        preloaded_results: Dict[int, Decimal] = {}
-        remaining_pairs = list(zip(stock_ids, tickers))
-
-        if not remaining_pairs:
-            return preloaded_results
-
-        remaining_ids = [stock_id for stock_id, _ in remaining_pairs]
-        remaining_tickers = [ticker for _, ticker in remaining_pairs]
-        dataframe = self._owner._download_dataframe(list(remaining_tickers), price_date, self.next_date(price_date))
+        pairs = list(zip(stock_ids, tickers))
+        all_tickers = [ticker for _, ticker in pairs]
+        dataframe = self._owner._download_dataframe(all_tickers, price_date, self.next_date(price_date))
         if dataframe.empty:
-            return preloaded_results
+            return {}
 
-        result: Dict[int, Decimal] = dict(preloaded_results)
         if isinstance(dataframe.columns, pd.MultiIndex):
-            row = dataframe.iloc[-1]
-            for stock_id, ticker in zip(remaining_ids, remaining_tickers):
-                try:
-                    close_value = row["Close", ticker]
-                except KeyError:
-                    continue
-                if pd.isna(close_value):
-                    continue
-                result[stock_id] = self.to_decimal(close_value)
-        else:
-            close_value = dataframe.iloc[-1]["Close"]
-            if not pd.isna(close_value):
-                result[remaining_ids[0]] = self.to_decimal(close_value)
-        return result
+            return _extract_multiindex_close(dataframe.iloc[-1], pairs, self.to_decimal)
+        return _extract_single_close(dataframe, pairs[0][0], self.to_decimal)
 
     def get_price_series(
         self,

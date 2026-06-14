@@ -13,6 +13,28 @@ from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 
 
+def _movement_time_key(item):
+    return item.movement_time or time.min
+
+
+def _trade_time_key(item):
+    return item.trade_time or time.min
+
+
+def _apply_cash_movements(cash_movements, current_cash: Decimal) -> tuple:
+    net_flow = Decimal("0")
+    for cm in sorted(cash_movements, key=_movement_time_key):
+        if cm.type == CashMovementType.DEPOSIT:
+            current_cash += cm.amount
+            net_flow += cm.amount
+        elif cm.type == CashMovementType.WITHDRAW:
+            current_cash -= cm.amount
+            net_flow -= cm.amount
+            if current_cash < 0:
+                current_cash = Decimal("0")
+    return current_cash, net_flow
+
+
 def _sorted_trades_up_to_date(trades, end_date) -> list:
     return sorted(
         (trade for trade in trades if trade.trade_date <= end_date),
@@ -217,17 +239,10 @@ class PortfolioSeriesBuilder:
         current_positions: Dict[int, Position],
         current_cash: Decimal,
     ) -> tuple[Decimal, Decimal]:
-        daily_net_cash_flow = Decimal("0")
-        for cm in sorted(cash_by_date.get(current_day, []), key=lambda item: item.movement_time or time.min):
-            if cm.type == CashMovementType.DEPOSIT:
-                current_cash += cm.amount
-                daily_net_cash_flow += cm.amount
-            elif cm.type == CashMovementType.WITHDRAW:
-                current_cash -= cm.amount
-                daily_net_cash_flow -= cm.amount
-                if current_cash < 0:
-                    current_cash = Decimal("0")
-        for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
+        current_cash, daily_net_cash_flow = _apply_cash_movements(
+            cash_by_date.get(current_day, []), current_cash
+        )
+        for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
             if trade.stock_id in current_positions:
                 current_positions[trade.stock_id].apply_trade(trade)
             trade_value = trade.quantity * trade.price
@@ -246,7 +261,7 @@ class PortfolioSeriesBuilder:
         current_positions: Dict[int, Position],
     ) -> Decimal:
         daily_net_cash_flow = Decimal("0")
-        for trade in sorted(trades_by_date.get(current_day, []), key=lambda item: item.trade_time or time.min):
+        for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
             if trade.stock_id in current_positions:
                 current_positions[trade.stock_id].apply_trade(trade)
             trade_value = trade.quantity * trade.price

@@ -135,19 +135,22 @@ def _find_price_transition_date(db_prices_sorted, action, factor):
     return None
 
 
+def _suggests_early_adjust(p_before: Decimal, p_after: Decimal, factor: Decimal) -> bool:
+    if not (p_before > 0 and p_after > 0):
+        return False
+    r = p_before / p_after
+    target_ratio = Decimal("1") / factor
+    return target_ratio > Decimal("1.3") and r < Decimal("1.3")
+
+
 def _determine_adjust_before_date(db_prices_sorted, action, factor, transition_date):
     if transition_date is not None:
         return transition_date
     prices_before = [dp for dp in db_prices_sorted if dp.price_date < action.ex_date]
     prices_after = [dp for dp in db_prices_sorted if dp.price_date >= action.ex_date]
     if prices_before and prices_after:
-        p_before = prices_before[-1].close_price
-        p_after = prices_after[0].close_price
-        if p_before > 0 and p_after > 0:
-            r = p_before / p_after
-            target_ratio = Decimal("1") / factor
-            if target_ratio > Decimal("1.3") and r < Decimal("1.3"):
-                return date(2000, 1, 1)
+        if _suggests_early_adjust(prices_before[-1].close_price, prices_after[0].close_price, factor):
+            return date(2000, 1, 1)
     return action.ex_date
 
 

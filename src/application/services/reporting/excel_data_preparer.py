@@ -21,6 +21,28 @@ def _sf(val: Optional[Decimal]) -> Optional[float]:
     return float(val) if val is not None else None
 
 
+def _latest_open_snapshot(snapshots):
+    return next((s for s in reversed(snapshots) if s.status == PortfolioStatus.OPEN), snapshots[-1])
+
+
+def _positions_on_date(positions, target_date):
+    return {p.ticker: p for p in positions if p.date == target_date}
+
+
+def _max_pnl_key(p):
+    return p.unrealized_pnl_pct if p.unrealized_pnl_pct is not None else Decimal("-inf")
+
+
+def _min_pnl_key(p):
+    return p.unrealized_pnl_pct if p.unrealized_pnl_pct is not None else Decimal("inf")
+
+
+def _format_pnl_pct_str(pos) -> str:
+    if pos.unrealized_pnl_pct is None:
+        return "N/A"
+    return f"{float(pos.unrealized_pnl_pct * 100):.2f}%"
+
+
 class ExcelDataPreparer:
     def __init__(self) -> None:
         self._dashboard_stats_calculator = ExcelDashboardStatsCalculator()
@@ -47,23 +69,11 @@ class ExcelDataPreparer:
         if not snapshots:
             return pd.DataFrame()
 
-        latest_snapshot = next(
-            (snapshot for snapshot in reversed(snapshots) if snapshot.status == PortfolioStatus.OPEN),
-            snapshots[-1],
-        )
-        latest_date = latest_snapshot.date
-        latest_positions = {p.ticker: p for p in positions if p.date == latest_date}
+        latest_snapshot = _latest_open_snapshot(snapshots)
+        latest_positions = _positions_on_date(positions, latest_snapshot.date)
 
-        best_stock  = max(
-            latest_positions.values(),
-            key=lambda p: p.unrealized_pnl_pct if p.unrealized_pnl_pct is not None else Decimal("-inf"),
-            default=None,
-        )
-        worst_stock = min(
-            latest_positions.values(),
-            key=lambda p: p.unrealized_pnl_pct if p.unrealized_pnl_pct is not None else Decimal("inf"),
-            default=None,
-        )
+        best_stock = max(latest_positions.values(), key=_max_pnl_key, default=None)
+        worst_stock = min(latest_positions.values(), key=_min_pnl_key, default=None)
 
         records = [
             {"Metrik": "Toplam Maliyet",           "Değer": self._fmt_tr_money(latest_snapshot.total_cost_basis)},
@@ -73,11 +83,9 @@ class ExcelDataPreparer:
         ]
 
         if best_stock:
-            pct_str = f"{float(best_stock.unrealized_pnl_pct * 100):.2f}%" if best_stock.unrealized_pnl_pct is not None else "N/A"
-            records.append({"Metrik": "En İyi Performans",  "Değer": f"{best_stock.ticker} ({pct_str})"})
+            records.append({"Metrik": "En İyi Performans",  "Değer": f"{best_stock.ticker} ({_format_pnl_pct_str(best_stock)})"})
         if worst_stock:
-            pct_str = f"{float(worst_stock.unrealized_pnl_pct * 100):.2f}%" if worst_stock.unrealized_pnl_pct is not None else "N/A"
-            records.append({"Metrik": "En Kötü Performans", "Değer": f"{worst_stock.ticker} ({pct_str})"})
+            records.append({"Metrik": "En Kötü Performans", "Değer": f"{worst_stock.ticker} ({_format_pnl_pct_str(worst_stock)})"})
 
         return pd.DataFrame(records)
 
