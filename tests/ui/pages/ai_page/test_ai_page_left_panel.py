@@ -3,7 +3,7 @@ import sys
 pytest.importorskip("PySide6")
 from src.qt_compat.qtwidgets import QApplication, QLabel
 from src.ui.pages.ai_page.left_panel.ticker_input_bar import TickerInputBar
-from src.ui.pages.ai_page.left_panel.prediction_card import PredictionCard
+from src.ui.pages.ai_page.left_panel.prediction_card import PredictionCard, PredictionDisplayArgs
 from src.ui.pages.ai_page.left_panel.signal_card import SignalCard
 from src.ui.pages.ai_page.left_panel.xai_card import XAICard, XaiDisplayArgs
 from src.domain.models.ai_analysis import ModelOutlook, XaiFactorItem
@@ -29,7 +29,10 @@ def test_prediction_card():
     """PredictionCard veri güncellemesini ve sıfırlamasını test et."""
     card = PredictionCard()
     
-    card.update_data("ASELS", 50.25, 0.85, horizon_days=5, weekly_expected_return=0.025)
+    card.update_data(PredictionDisplayArgs(
+        ticker="ASELS", predicted_price=50.25, confidence=0.85,
+        horizon_days=5, weekly_expected_return=0.025,
+    ))
     assert "ASELS" in card.lbl_ticker.text()
     assert "50.25" in card.lbl_price.text()
     assert "5" in card.lbl_return.text()

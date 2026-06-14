@@ -9,7 +9,7 @@ from src.ui.pages.ai_page.labels import DEFAULT_INVESTMENT_DISCLAIMER
 from src.ui.shared.locale_tr import L10N
 from .ticker_input_bar import TickerInputBar
 from .status_banner import StatusBanner
-from .prediction_card import PredictionCard
+from .prediction_card import PredictionCard, PredictionDisplayArgs
 from .signal_card import SignalCard
 from .xai_card import XAICard, XaiDisplayArgs
 from .peer_card import PeerCard
@@ -166,7 +166,7 @@ class ModelPanel(QWidget):
         self._update_all_cards(result)
 
     def _update_all_cards(self, result: AnalysisResult) -> None:
-        self.prediction_card.update_data(
+        self.prediction_card.update_data(PredictionDisplayArgs(
             ticker=result.ticker,
             predicted_price=result.predicted_price,
             confidence=result.confidence,
@@ -179,7 +179,7 @@ class ModelPanel(QWidget):
             predicted_price_low=result.predicted_price_low,
             predicted_price_high=result.predicted_price_high,
             interval_method=result.interval_method,
-        )
+        ))
         self.signal_card.update_data(
             outlook=result.outlook,
             strength=result.outlook_strength,

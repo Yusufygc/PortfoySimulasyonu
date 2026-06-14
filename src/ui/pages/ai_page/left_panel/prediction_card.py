@@ -1,8 +1,25 @@
+from typing import NamedTuple
+
 from src.ui.shared.locale_tr import L10N
 from src.qt_compat.qtwidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QProgressBar
 from src.qt_compat.qtcore import Qt
 from src.ui.core.icon_manager import IconManager
 from src.ui.formatters import display_ticker
+
+
+class PredictionDisplayArgs(NamedTuple):
+    ticker: str
+    predicted_price: "float | None"
+    confidence: float
+    confidence_label: str = ""
+    model_name: str = ""
+    last_close: "float | None" = None
+    trend_label: "str | None" = None
+    horizon_days: "int | None" = None
+    weekly_expected_return: "float | None" = None
+    predicted_price_low: "float | None" = None
+    predicted_price_high: "float | None" = None
+    interval_method: "str | None" = None
 
 
 class PredictionCard(QWidget):
@@ -98,25 +115,11 @@ class PredictionCard(QWidget):
         conf_layout.addWidget(self.lbl_conf_badge)
         layout.addLayout(conf_layout)
 
-    def update_data(
-        self,
-        ticker: str,
-        predicted_price: float | None,
-        confidence: float,
-        confidence_label: str = "",
-        model_name: str = "",
-        last_close: float | None = None,
-        trend_label: str | None = None,
-        horizon_days: int | None = None,
-        weekly_expected_return: float | None = None,
-        predicted_price_low: float | None = None,
-        predicted_price_high: float | None = None,
-        interval_method: str | None = None,
-    ):
-        self._update_price_labels(ticker, predicted_price, last_close)
-        self._update_interval_label(predicted_price_low, predicted_price_high, interval_method)
-        self._update_trend_labels(trend_label, horizon_days, weekly_expected_return)
-        self._update_confidence_display(confidence, confidence_label, model_name)
+    def update_data(self, args: PredictionDisplayArgs) -> None:
+        self._update_price_labels(args.ticker, args.predicted_price, args.last_close)
+        self._update_interval_label(args.predicted_price_low, args.predicted_price_high, args.interval_method)
+        self._update_trend_labels(args.trend_label, args.horizon_days, args.weekly_expected_return)
+        self._update_confidence_display(args.confidence, args.confidence_label, args.model_name)
 
     def _update_price_labels(self, ticker: str, predicted_price: float | None, last_close: float | None) -> None:
         self.lbl_ticker.setText(L10N.HISSE_TMPL.format(ticker=display_ticker(ticker)))

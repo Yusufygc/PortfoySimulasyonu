@@ -7,21 +7,21 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `7e6b5ad`
+- Git commit: `55444db`
 - Dosya: 440
-- Sinif: 540
+- Sinif: 542
 - Fonksiyon/metot: 3456
-- Effective code lines: 44388
+- Effective code lines: 44397
 - Ihlalli sinif: 1
-- Ihlalli fonksiyon/metot: 57
+- Ihlalli fonksiyon/metot: 55
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 330 | 31500 | 1 |
-| tests | 95 | 11257 | 0 |
+| src | 330 | 31506 | 1 |
+| tests | 95 | 11260 | 0 |
 | scripts | 14 | 1603 | 0 |
 | root | 1 | 28 | 0 |
 
@@ -66,11 +66,10 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/application/services/planning/model_portfolio_trade_service.py | add_trade | 48 | 7 | 1 | function_effective_params |
 | scripts/migrate_ui_strings.py | is_user_facing_string | 47 | 2 | 35 | function_complexity |
 | src/application/services/portfolio/trade_entry_service.py | submit_trade | 47 | 8 | 7 | function_effective_params |
-| src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 45 | 12 | 7 | function_effective_params |
 | scripts/migrate_ui_strings.py | process_file | 44 | 2 | 14 | function_complexity |
 | src/ui/widgets/planning/panels/budget_form_panel.py | _build_item_column | 44 | 8 | 1 | function_effective_params |
+| src/application/services/analysis/portfolio_series_builder.py | compute_portfolio_series | 43 | 8 | 5 | function_effective_params |
 | src/application/services/planning/model_portfolio_trade_service.py | add_capital_movement | 43 | 6 | 5 | function_effective_params |
-| src/application/services/analysis/portfolio_series_builder.py | compute_portfolio_series | 41 | 8 | 5 | function_effective_params |
 | src/domain/models/corporate_action_candidate.py | discovered | 40 | 13 | 1 | function_effective_params |
 | src/application/services/analysis/analysis_service.py | __init__ | 38 | 7 | 1 | function_effective_params |
 | src/application/services/simulation/history_snapshot_builder.py | build | 37 | 7 | 4 | function_effective_params |
@@ -85,6 +84,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/shared/card_factory.py | create_stat_card | 32 | 8 | 4 | function_effective_params |
 | src/application/services/reporting/excel_dashboard_stats_calculator.py | _summary_rows | 31 | 9 | 3 | function_effective_params |
 | tests/application/test_price_data_health_service.py | make_service | 31 | 6 | 6 | function_effective_params |
+| tests/ui/test_app_startup.py | test_main_window_initial_size_matches_analysis_layout_contract | 30 | 0 | 14 | function_complexity |
 
 ## Saglik Raporu Crosswalk
 
