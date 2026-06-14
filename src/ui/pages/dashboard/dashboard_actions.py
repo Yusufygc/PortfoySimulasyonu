@@ -8,6 +8,7 @@ from decimal import Decimal
 from src.qt_compat.qtcore import QTimer
 from src.qt_compat.qtwidgets import QMessageBox, QDialog
 
+from src.application.services.portfolio.trade_entry_service import TradeRequest
 from src.domain.models.trade import TradeSide
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
 from src.ui.widgets.shared import Toast
@@ -78,13 +79,15 @@ class DashboardActions:
 
         try:
             result = self._page.trade_entry_service.submit_trade(
-                ticker=data["ticker"],
-                name=data["name"],
-                side=TradeSide(data["side"]),
-                quantity=data["quantity"],
-                price=data["price"],
-                trade_date=data["trade_date"],
-                trade_time=data["trade_time"],
+                TradeRequest(
+                    ticker=data["ticker"],
+                    name=data["name"],
+                    side=TradeSide(data["side"]),
+                    quantity=data["quantity"],
+                    price=data["price"],
+                    trade_date=data["trade_date"],
+                    trade_time=data["trade_time"],
+                )
             )
             self._presenter.load_capital()
             self._presenter.refresh_data()

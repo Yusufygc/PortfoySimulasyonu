@@ -3,7 +3,7 @@ from src.ui.shared.locale_tr import L10N
 
 from src.qt_compat.qtwidgets import QWidget, QHBoxLayout
 from decimal import Decimal
-from src.ui.shared.card_factory import CardFactory
+from src.ui.shared.card_factory import CardFactory, StatCardStyle
 
 class StockStatsPanel(QWidget):
     """Hisse istatistiklerini gösteren yan yana kartlar paneli."""
@@ -17,32 +17,25 @@ class StockStatsPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(15)
         
-        # Hero Metric: Toplam Değer
         self.card_total_val, self.lbl_total_val = CardFactory.create_stat_card(
             L10N.TOPLAM_DEGER,
             "₺ 0.00",
-            icon_name="wallet",
-            icon_color="@COLOR_PRIMARY",
-            is_hero=True,
+            StatCardStyle(icon_name="wallet", icon_color="@COLOR_PRIMARY", is_hero=True),
         )
         self.card_pl, self.lbl_pl = CardFactory.create_stat_card(
             L10N.KR_ZARAR,
             "₺ 0.00",
-            is_colored=True,
-            icon_name="line-chart",
-            icon_color="@COLOR_TEXT_SECONDARY",
+            StatCardStyle(is_colored=True, icon_name="line-chart"),
         )
         self.card_avg_cost, self.lbl_avg_cost = CardFactory.create_stat_card(
             L10N.ORT_MALIYET_1,
             "₺ 0.00",
-            icon_name="tag",
-            icon_color="@COLOR_WARNING",
+            StatCardStyle(icon_name="tag", icon_color="@COLOR_WARNING"),
         )
         self.card_total_qty, self.lbl_total_qty = CardFactory.create_stat_card(
             L10N.TOPLAM_LOT,
             "0",
-            icon_name="package",
-            icon_color="@COLOR_TEXT_SECONDARY",
+            StatCardStyle(icon_name="package"),
         )
         self._set_card_minimums()
         self._set_pl_state("neutral")

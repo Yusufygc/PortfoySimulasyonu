@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from src.application.services.market.price_data_health_service import PriceDataHealthService
+from src.application.services.market.price_data_health_service import PriceDataHealthService, PriceHealthServiceDeps
 from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade
@@ -133,19 +133,21 @@ def make_service(
     price_repo = FakePriceRepo(prices_by_stock)
     market_client = FakeMarketClient(series_by_ticker or {}, single_prices_by_ticker)
     service = PriceDataHealthService(
-        stock_repo=FakeStockRepo(stocks),
-        price_repo=price_repo,
-        market_data_client=market_client,
-        portfolio_repo=FakePortfolioRepo(trades or []) if trades is not None else None,
-        model_portfolio_repo=(
-            FakeModelPortfolioRepo(model_trades_by_portfolio)
-            if model_trades_by_portfolio is not None
-            else None
-        ),
-        corporate_action_repo=(
-            FakeCorporateActionRepo(corporate_actions_by_stock)
-            if corporate_actions_by_stock is not None
-            else None
+        deps=PriceHealthServiceDeps(
+            stock_repo=FakeStockRepo(stocks),
+            price_repo=price_repo,
+            market_data_client=market_client,
+            portfolio_repo=FakePortfolioRepo(trades or []) if trades is not None else None,
+            model_portfolio_repo=(
+                FakeModelPortfolioRepo(model_trades_by_portfolio)
+                if model_trades_by_portfolio is not None
+                else None
+            ),
+            corporate_action_repo=(
+                FakeCorporateActionRepo(corporate_actions_by_stock)
+                if corporate_actions_by_stock is not None
+                else None
+            ),
         ),
     )
     return service, price_repo, market_client

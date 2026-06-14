@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta, time
 from decimal import Decimal
-from typing import Dict, List, Protocol, Sequence, Set
+from typing import Dict, List, NamedTuple, Protocol, Sequence, Set
 
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelTradeSide
@@ -189,6 +189,22 @@ def _active_stock_ids_for_date(
         for stock_id in stock_ids
         if first_trade_dates.get(stock_id) is not None and first_trade_dates[stock_id] <= point_date
     ]
+
+
+class PriceHealthServiceDeps(NamedTuple):
+    stock_repo: IStockRepository
+    price_repo: IPriceRepository
+    market_data_client: IMarketDataClient
+    portfolio_repo: "IPortfolioRepository | None" = None
+    model_portfolio_repo: "IModelPortfolioRepository | None" = None
+    corporate_action_repo: "ICorporateActionRepository | None" = None
+
+
+class _UpdaterCtx(NamedTuple):
+    scope_resolver: "PriceScopeResolver"
+    analyzer: "PriceHealthAnalyzer"
+    holiday_provider: "MarketHolidayProvider"
+    default_start_date_func: object
 
 
 class PriceScopeResolver:
@@ -473,19 +489,16 @@ class PriceHealthUpdater:
         stock_repo: IStockRepository,
         price_repo: IPriceRepository,
         market_data_client: IMarketDataClient,
-        scope_resolver: PriceScopeResolver,
-        analyzer: PriceHealthAnalyzer,
-        holiday_provider: MarketHolidayProvider,
-        default_start_date_func,
-        corporate_action_repo: ICorporateActionRepository | None = None,
+        ctx: "_UpdaterCtx",
+        corporate_action_repo: "ICorporateActionRepository | None" = None,
     ) -> None:
         self._stock_repo = stock_repo
         self._price_repo = price_repo
         self._market_data_client = market_data_client
-        self._scope_resolver = scope_resolver
-        self._analyzer = analyzer
-        self._holiday_provider = holiday_provider
-        self._default_start_date_func = default_start_date_func
+        self._scope_resolver = ctx.scope_resolver
+        self._analyzer = ctx.analyzer
+        self._holiday_provider = ctx.holiday_provider
+        self._default_start_date_func = ctx.default_start_date_func
         self._corporate_action_repo = corporate_action_repo
 
     def update_missing_prices(
@@ -718,37 +731,34 @@ class PriceHealthUpdater:
 class PriceDataHealthService:
     def __init__(
         self,
-        stock_repo: IStockRepository,
-        price_repo: IPriceRepository,
-        market_data_client: IMarketDataClient,
-        portfolio_repo: IPortfolioRepository | None = None,
-        model_portfolio_repo: IModelPortfolioRepository | None = None,
-        corporate_action_repo: ICorporateActionRepository | None = None,
-        holiday_provider: MarketHolidayProvider | None = None,
+        deps: "PriceHealthServiceDeps",
+        holiday_provider: "MarketHolidayProvider | None" = None,
         default_lookback_days: int = 90,
     ) -> None:
-        self._stock_repo = stock_repo
-        self._price_repo = price_repo
-        self._market_data_client = market_data_client
-        self._portfolio_repo = portfolio_repo
-        self._model_portfolio_repo = model_portfolio_repo
+        self._stock_repo = deps.stock_repo
+        self._price_repo = deps.price_repo
+        self._market_data_client = deps.market_data_client
+        self._portfolio_repo = deps.portfolio_repo
+        self._model_portfolio_repo = deps.model_portfolio_repo
         self._holiday_provider = holiday_provider or NoKnownMarketHolidayProvider()
         self._default_lookback_days = default_lookback_days
-        self._scope_resolver = PriceScopeResolver(stock_repo, portfolio_repo, model_portfolio_repo)
+        self._scope_resolver = PriceScopeResolver(deps.stock_repo, deps.portfolio_repo, deps.model_portfolio_repo)
         self._analyzer = PriceHealthAnalyzer(
-            price_repo=price_repo,
+            price_repo=deps.price_repo,
             scope_resolver=self._scope_resolver,
             holiday_provider=self._holiday_provider,
         )
         self._updater = PriceHealthUpdater(
-            stock_repo=stock_repo,
-            price_repo=price_repo,
-            market_data_client=market_data_client,
-            scope_resolver=self._scope_resolver,
-            analyzer=self._analyzer,
-            holiday_provider=self._holiday_provider,
-            default_start_date_func=self.default_start_date,
-            corporate_action_repo=corporate_action_repo,
+            stock_repo=deps.stock_repo,
+            price_repo=deps.price_repo,
+            market_data_client=deps.market_data_client,
+            ctx=_UpdaterCtx(
+                scope_resolver=self._scope_resolver,
+                analyzer=self._analyzer,
+                holiday_provider=self._holiday_provider,
+                default_start_date_func=self.default_start_date,
+            ),
+            corporate_action_repo=deps.corporate_action_repo,
         )
 
     def portfolio_scope_options(self) -> List[PriceDataScopeOption]:

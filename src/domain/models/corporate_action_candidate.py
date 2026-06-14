@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional
 
 from src.domain.models.corporate_action import ActionType
 
@@ -25,6 +25,22 @@ def _validate_candidate_numerics(ratio, subscription_price, confidence) -> None:
         raise ValueError("Subscription price must be positive when provided")
     if confidence < 0 or confidence > 1:
         raise ValueError("Candidate confidence must be between 0 and 1")
+
+
+class CandidateDiscoveryData(NamedTuple):
+    ticker: str
+    source: str
+    source_disclosure_id: str
+    action_type: ActionType
+    ratio: "Optional[Decimal]"
+    ex_date: "Optional[date]"
+    subscription_price: "Optional[Decimal]" = None
+    stock_id: "Optional[int]" = None
+    source_url: "Optional[str]" = None
+    announcement_date: "Optional[date]" = None
+    confidence: Decimal = Decimal("0.80")
+    raw_payload_json: "Optional[dict[str, Any]]" = None
+    parse_notes: "Optional[str]" = None
 
 
 class CorporateActionCandidateStatus(str, Enum):
@@ -74,45 +90,29 @@ class CorporateActionCandidate:
         _validate_candidate_numerics(self.ratio, self.subscription_price, self.confidence)
 
     @classmethod
-    def discovered(
-        cls,
-        *,
-        ticker: str,
-        source: str,
-        source_disclosure_id: str,
-        action_type: ActionType,
-        ratio: Optional[Decimal],
-        ex_date: Optional[date],
-        subscription_price: Optional[Decimal] = None,
-        stock_id: Optional[int] = None,
-        source_url: Optional[str] = None,
-        announcement_date: Optional[date] = None,
-        confidence: Decimal = Decimal("0.80"),
-        raw_payload_json: Optional[dict[str, Any]] = None,
-        parse_notes: Optional[str] = None,
-    ) -> "CorporateActionCandidate":
+    def discovered(cls, data: "CandidateDiscoveryData") -> "CorporateActionCandidate":
         return cls(
             id=None,
-            ticker=ticker,
-            stock_id=stock_id,
-            source=source,
-            source_disclosure_id=source_disclosure_id,
-            source_url=source_url,
-            action_type=action_type,
+            ticker=data.ticker,
+            stock_id=data.stock_id,
+            source=data.source,
+            source_disclosure_id=data.source_disclosure_id,
+            source_url=data.source_url,
+            action_type=data.action_type,
             status=cls.resolve_status(
-                action_type=action_type,
-                stock_id=stock_id,
-                ratio=ratio,
-                ex_date=ex_date,
-                subscription_price=subscription_price,
+                action_type=data.action_type,
+                stock_id=data.stock_id,
+                ratio=data.ratio,
+                ex_date=data.ex_date,
+                subscription_price=data.subscription_price,
             ),
-            ratio=ratio,
-            subscription_price=subscription_price,
-            announcement_date=announcement_date,
-            ex_date=ex_date,
-            confidence=confidence,
-            raw_payload_json=raw_payload_json,
-            parse_notes=parse_notes,
+            ratio=data.ratio,
+            subscription_price=data.subscription_price,
+            announcement_date=data.announcement_date,
+            ex_date=data.ex_date,
+            confidence=data.confidence,
+            raw_payload_json=data.raw_payload_json,
+            parse_notes=data.parse_notes,
         )
 
     @staticmethod

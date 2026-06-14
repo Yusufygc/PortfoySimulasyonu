@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.application.services.portfolio.trade_entry_service import TradeEntryService
+from src.application.services.portfolio.trade_entry_service import TradeEntryService, TradeRequest
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade
@@ -182,12 +182,14 @@ def test_dashboard_and_model_portfolio_reuse_same_stock_for_same_ticker():
     model_service = ModelPortfolioService(FakeModelPortfolioRepo(), stock_repo)
 
     dashboard_result = dashboard_service.submit_trade(
-        ticker="asels",
-        side=TradeSide.BUY,
-        quantity=1,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 3),
-        name="ASELSAN",
+        TradeRequest(
+            ticker="asels",
+            side=TradeSide.BUY,
+            quantity=1,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+            name="ASELSAN",
+        )
     )
     model_trade = model_service.add_trade_by_ticker(
         portfolio_id=1,

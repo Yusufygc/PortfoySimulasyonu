@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.application.services.portfolio.trade_entry_service import TradeEntryService
+from src.application.services.portfolio.trade_entry_service import TradeEntryService, TradeRequest
 from src.application.services.portfolio.portfolio_service import PortfolioService
 from src.domain.models.cash_movement import CashMovement
 from src.domain.models.stock import Stock
@@ -91,13 +91,15 @@ def test_submit_trade_creates_missing_stock_and_buy_trade():
     service = TradeEntryService(stock_repo=stock_repo, portfolio_service=portfolio_service)
 
     result = service.submit_trade(
-        ticker="asels",
-        side=TradeSide.BUY,
-        quantity=10,
-        price=Decimal("12.5"),
-        trade_date=date(2026, 1, 2),
-        trade_time=time(10, 30),
-        name="ASELSAN",
+        TradeRequest(
+            ticker="asels",
+            side=TradeSide.BUY,
+            quantity=10,
+            price=Decimal("12.5"),
+            trade_date=date(2026, 1, 2),
+            trade_time=time(10, 30),
+            name="ASELSAN",
+        )
     )
 
     assert result.stock_id == 1
@@ -118,12 +120,14 @@ def test_submit_trade_rejects_closed_market_session_before_saving():
 
     with pytest.raises(ValueError, match="BIST"):
         service.submit_trade(
-            ticker="asels",
-            side=TradeSide.BUY,
-            quantity=10,
-            price=Decimal("12.5"),
-            trade_date=date(2026, 6, 6),
-            trade_time=time(11, 0),
+            TradeRequest(
+                ticker="asels",
+                side=TradeSide.BUY,
+                quantity=10,
+                price=Decimal("12.5"),
+                trade_date=date(2026, 6, 6),
+                trade_time=time(11, 0),
+            )
         )
 
     assert portfolio_service.saved_trades == []
@@ -136,12 +140,14 @@ def test_submit_trade_reuses_existing_stock_by_id():
     service = TradeEntryService(stock_repo=stock_repo, portfolio_service=portfolio_service)
 
     result = service.submit_trade(
-        ticker="thyao",
-        stock_id=existing.id,
-        side=TradeSide.SELL,
-        quantity=3,
-        price=Decimal("100"),
-        trade_date=date(2026, 1, 5),
+        TradeRequest(
+            ticker="thyao",
+            stock_id=existing.id,
+            side=TradeSide.SELL,
+            quantity=3,
+            price=Decimal("100"),
+            trade_date=date(2026, 1, 5),
+        )
     )
 
     assert result.stock_id == existing.id
@@ -161,11 +167,13 @@ def test_submit_trade_rejects_buy_when_cash_is_insufficient():
 
     try:
         service.submit_trade(
-            ticker="asels",
-            side=TradeSide.BUY,
-            quantity=10,
-            price=Decimal("12.5"),
-            trade_date=date(2026, 1, 2),
+            TradeRequest(
+                ticker="asels",
+                side=TradeSide.BUY,
+                quantity=10,
+                price=Decimal("12.5"),
+                trade_date=date(2026, 1, 2),
+            )
         )
     except ValueError as exc:
         assert "yeterli sermayeniz yoktu" in str(exc)
@@ -186,20 +194,24 @@ def test_submit_trade_accepts_buy_after_deposit_and_sell_adds_cash():
     service = TradeEntryService(stock_repo=stock_repo, portfolio_service=portfolio_service)
 
     service.submit_trade(
-        ticker="ASELS",
-        stock_id=stock.id,
-        side=TradeSide.BUY,
-        quantity=10,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 2),
+        TradeRequest(
+            ticker="ASELS",
+            stock_id=stock.id,
+            side=TradeSide.BUY,
+            quantity=10,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 2),
+        )
     )
     service.submit_trade(
-        ticker="ASELS",
-        stock_id=stock.id,
-        side=TradeSide.SELL,
-        quantity=4,
-        price=Decimal("12"),
-        trade_date=date(2026, 1, 3),
+        TradeRequest(
+            ticker="ASELS",
+            stock_id=stock.id,
+            side=TradeSide.SELL,
+            quantity=4,
+            price=Decimal("12"),
+            trade_date=date(2026, 1, 3),
+        )
     )
 
     assert portfolio_service.get_cash_balance() == Decimal("148")
@@ -216,12 +228,14 @@ def test_submit_trade_rejects_sell_above_available_lot():
 
     try:
         service.submit_trade(
-            ticker="ASELS",
-            stock_id=stock.id,
-            side=TradeSide.SELL,
-            quantity=4,
-            price=Decimal("12"),
-            trade_date=date(2026, 1, 3),
+            TradeRequest(
+                ticker="ASELS",
+                stock_id=stock.id,
+                side=TradeSide.SELL,
+                quantity=4,
+                price=Decimal("12"),
+                trade_date=date(2026, 1, 3),
+            )
         )
     except ValueError as exc:
         assert "yeterli pozisyonunuz yoktu" in str(exc)

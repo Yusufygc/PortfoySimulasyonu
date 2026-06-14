@@ -15,7 +15,7 @@ from src.ui.pages.stock_detail.stock_stats_panel import StockStatsPanel
 from src.ui.pages.stock_detail.stock_chart_widget import StockChartWidget
 from src.ui.pages.stock_detail.stock_detail_page import StockDetailPage
 from src.ui.pages.stock_detail.trade_form_panel import TradeFormPanel
-from src.ui.shared.card_factory import CardFactory
+from src.ui.shared.card_factory import CardFactory, StatCardStyle
 from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 
@@ -121,9 +121,7 @@ def test_card_factory_can_create_svg_icon_stat_card_without_emoji_text():
     card, value = CardFactory.create_stat_card(
         "TEST KART",
         "₺ 1.00",
-        icon="💰",
-        icon_name="wallet",
-        icon_color="@COLOR_PRIMARY",
+        StatCardStyle(icon="💰", icon_name="wallet", icon_color="@COLOR_PRIMARY"),
     )
 
     icon_labels = card.findChildren(IconLabel)

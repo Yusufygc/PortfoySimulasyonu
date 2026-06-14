@@ -166,7 +166,7 @@ def _build_reporting_services(
 
 
 def _build_prereq_services(repositories: RepositorySet, market_clients: MarketClientSet):
-    from src.application.services.market.price_data_health_service import PriceDataHealthService
+    from src.application.services.market.price_data_health_service import PriceDataHealthService, PriceHealthServiceDeps
     corp_price_adj = CorporateActionPriceAdjustmentService(
         action_repo=repositories.corporate_action_repo,
         price_repo=repositories.price_repo,
@@ -178,12 +178,14 @@ def _build_prereq_services(repositories: RepositorySet, market_clients: MarketCl
         price_adjustment_service=corp_price_adj,
     )
     health_service = PriceDataHealthService(
-        stock_repo=repositories.stock_repo,
-        price_repo=repositories.price_repo,
-        market_data_client=market_clients.market_client,
-        portfolio_repo=repositories.portfolio_repo,
-        model_portfolio_repo=repositories.model_portfolio_repo,
-        corporate_action_repo=repositories.corporate_action_repo,
+        deps=PriceHealthServiceDeps(
+            stock_repo=repositories.stock_repo,
+            price_repo=repositories.price_repo,
+            market_data_client=market_clients.market_client,
+            portfolio_repo=repositories.portfolio_repo,
+            model_portfolio_repo=repositories.model_portfolio_repo,
+            corporate_action_repo=repositories.corporate_action_repo,
+        ),
         holiday_provider=BistHolidayProvider(),
     )
     return corp_action, health_service

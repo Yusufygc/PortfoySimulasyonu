@@ -11,7 +11,7 @@ from html import unescape
 from typing import Any, Callable, Iterable, Sequence
 
 from src.domain.models.corporate_action import ActionType
-from src.domain.models.corporate_action_candidate import CorporateActionCandidate
+from src.domain.models.corporate_action_candidate import CandidateDiscoveryData, CorporateActionCandidate
 from src.domain.ports.services.i_corporate_action_provider import (
     CorporateActionProviderUnavailable,
     ICorporateActionProvider,
@@ -106,18 +106,20 @@ def parse_kap_mkk_disclosure(payload: dict[str, Any]) -> CorporateActionCandidat
         parse_notes = "Bildirim iptal/duzeltme/tarih degisikligi ifadesi iceriyor; manuel inceleme gerekir."
 
     return CorporateActionCandidate.discovered(
-        ticker=_normalize_ticker(ticker),
-        source="KAP_MKK",
-        source_disclosure_id=str(disclosure_id),
-        source_url=source_url,
-        action_type=action_type,
-        ratio=ratio,
-        subscription_price=subscription_price,
-        announcement_date=announcement_date,
-        ex_date=ex_date,
-        confidence=confidence,
-        raw_payload_json=payload,
-        parse_notes=parse_notes,
+        CandidateDiscoveryData(
+            ticker=_normalize_ticker(ticker),
+            source="KAP_MKK",
+            source_disclosure_id=str(disclosure_id),
+            source_url=source_url,
+            action_type=action_type,
+            ratio=ratio,
+            ex_date=ex_date,
+            subscription_price=subscription_price,
+            announcement_date=announcement_date,
+            confidence=confidence,
+            raw_payload_json=payload,
+            parse_notes=parse_notes,
+        )
     )
 
 

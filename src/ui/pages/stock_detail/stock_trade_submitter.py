@@ -7,6 +7,7 @@ from decimal import Decimal
 from src.qt_compat.qtwidgets import QMessageBox
 
 from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
+from src.application.services.portfolio.trade_entry_service import TradeRequest
 from src.domain.models.trade import TradeSide
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
 
@@ -44,14 +45,16 @@ class StockTradeSubmitter:
         trade_side = TradeSide.BUY if is_buy else TradeSide.SELL
         try:
             result = page.trade_entry_service.submit_trade(
-                ticker=page.current_ticker,
-                stock_id=page.current_stock_id,
-                side=trade_side,
-                quantity=qty,
-                price=Decimal(str(price)),
-                trade_date=trade_date,
-                trade_time=trade_time,
-                name=page.current_ticker,
+                TradeRequest(
+                    ticker=page.current_ticker,
+                    stock_id=page.current_stock_id,
+                    side=trade_side,
+                    quantity=qty,
+                    price=Decimal(str(price)),
+                    trade_date=trade_date,
+                    trade_time=trade_time,
+                    name=page.current_ticker,
+                )
             )
             page.current_stock_id = result.stock_id
             page.current_ticker = result.ticker
