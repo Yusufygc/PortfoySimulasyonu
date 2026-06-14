@@ -41,10 +41,16 @@ def normalize_ai_markdown(content: str) -> str:
     return "\n".join(normalized)
 
 
+def _heading_blocklist_hit(line: str) -> bool:
+    if _is_bold_heading(line) or line.startswith(("#", ">", "`")):
+        return True
+    return line.count(",") > 1 or ";" in line
+
+
 def _is_heading_candidate(line: str) -> bool:
     if not line:
         return False
-    if _is_bold_heading(line) or line.startswith(("#", ">", "`")):
+    if _heading_blocklist_hit(line):
         return False
     if _LIST_ITEM_RE.match(line):
         return False
@@ -53,8 +59,6 @@ def _is_heading_candidate(line: str) -> bool:
     if len(line) > 72:
         return False
     if len(line.split()) > 9:
-        return False
-    if line.count(",") > 1 or ";" in line:
         return False
     return any(ch.isalpha() for ch in line)
 

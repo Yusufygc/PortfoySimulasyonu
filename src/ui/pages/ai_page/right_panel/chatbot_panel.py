@@ -20,10 +20,25 @@ from .chat_input_bar import ChatInputBar
 from .chat_history_sidebar import ChatHistorySidebar
 
 
+def _xai_name(f) -> str:
+    return getattr(f, "human_label", "") or getattr(f, "feature_name", "")
+
+
+def _xai_imp(f) -> float:
+    return getattr(f, "importance", 0) or 0
+
+
+def _xai_detail_text(parts: list, reason) -> str:
+    text = " (" + ", ".join(parts[1:]) + ")" if len(parts) > 1 else ""
+    if reason:
+        text += f" — {reason}"
+    return text
+
+
 def _format_xai_factor_for_prompt(f) -> str:
-    name = getattr(f, "human_label", "") or getattr(f, "feature_name", "")
+    name = _xai_name(f)
     feature = getattr(f, "feature_name", "")
-    imp = getattr(f, "importance", 0) or 0
+    imp = _xai_imp(f)
     group = getattr(f, "feature_group", None)
     reason = getattr(f, "reason", None)
     method = getattr(f, "method", None)
@@ -41,29 +56,29 @@ def _format_xai_factor_for_prompt(f) -> str:
         parts.append(f"yöntem: {method}")
     if approximate is True:
         parts.append("yaklaşık")
-    text = " (" + ", ".join(parts[1:]) + ")" if len(parts) > 1 else ""
-    if reason:
-        text += f" — {reason}"
-    return f"{parts[0]}{text}"
+    return f"{parts[0]}{_xai_detail_text(parts, reason)}"
+
+
+def _xai_top_factor_detail(result) -> str:
+    top_factor = (result.xai_positive_reasons or result.xai_negative_reasons or [None])[0]
+    if top_factor is None:
+        return ""
+    factor_name = _xai_name(top_factor)
+    factor_group = getattr(top_factor, "feature_group", None)
+    group_text = f" · XAI ana grup: {factor_group}" if factor_group else ""
+    return f"\nAna XAI faktörü: {factor_name}{group_text}"
 
 
 def _build_analysis_display_summary(result) -> str:
     horizon = f"{result.horizon_days} günlük" if result.horizon_days else L10N.HORIZON_SONU_1
     return_text = f"{result.weekly_expected_return * 100:.2f}%" if result.weekly_expected_return is not None else "-"
     xai_state = "mevcut" if result.xai_available else "yok"
-    xai_detail = ""
-    top_factor = (result.xai_positive_reasons or result.xai_negative_reasons or [None])[0]
-    if top_factor is not None:
-        factor_name = getattr(top_factor, "human_label", "") or getattr(top_factor, "feature_name", "")
-        factor_group = getattr(top_factor, "feature_group", None)
-        group_text = f" · XAI ana grup: {factor_group}" if factor_group else ""
-        xai_detail = f"\nAna XAI faktörü: {factor_name}{group_text}"
     return (
         f"{display_ticker(result.ticker)} analizi chat'e gönderildi.\n"
         f"Model: {result.model_name or '-'} · Yön beklentisi: {outlook_label(result.outlook)} · "
         f"{horizon} bileşik getiri: {return_text}\n"
         f"Güven: {result.confidence_label or '-'} · XAI: {xai_state}"
-        f"{xai_detail}"
+        f"{_xai_top_factor_detail(result)}"
     )
 
 

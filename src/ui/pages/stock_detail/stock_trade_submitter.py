@@ -71,6 +71,18 @@ class StockTradeSubmitter:
         except Exception as exc:
             QMessageBox.critical(page, L10N.ERROR, L10N.ISLEM_HATASI_TMPL.format(exc=exc))
 
+    def _check_position_closed(self, portfolio_id: int, stock_id: int, is_buy: bool) -> bool:
+        page = self.page
+        if not is_buy and hasattr(page.model_portfolio_service, "get_position_quantity_as_of"):
+            return page.model_portfolio_service.get_position_quantity_as_of(portfolio_id, stock_id) <= 0
+        return False
+
+    def _navigate_if_position_closed(self, position_closed: bool) -> None:
+        if position_closed:
+            main_window = self.page.window()
+            if hasattr(main_window, "show_model_portfolios"):
+                main_window.show_model_portfolios()
+
     def _submit_model_trade(self, is_buy: bool, qty: int, price: float, trade_date, trade_time) -> None:
         page = self.page
         portfolio_id = page._model_portfolio_id()
@@ -91,12 +103,7 @@ class StockTradeSubmitter:
             )
             page.current_stock_id = trade.stock_id
             page._detail_context.setdefault("price_map", {})[trade.stock_id] = Decimal(str(price))
-            position_closed = False
-            if not is_buy and hasattr(page.model_portfolio_service, "get_position_quantity_as_of"):
-                position_closed = page.model_portfolio_service.get_position_quantity_as_of(
-                    portfolio_id,
-                    page.current_stock_id,
-                ) <= 0
+            position_closed = self._check_position_closed(portfolio_id, page.current_stock_id, is_buy)
             message = (
                 L10N.POZISYON_KAPANDI_MODEL_PORTFOY_SAYFASINA
                 if position_closed
@@ -105,10 +112,7 @@ class StockTradeSubmitter:
             QMessageBox.information(page, L10N.SUCCESS, message)
             page.refresh_data()
             page._trigger_impact_update()
-            if position_closed:
-                main_window = page.window()
-                if hasattr(main_window, "show_model_portfolios"):
-                    main_window.show_model_portfolios()
+            self._navigate_if_position_closed(position_closed)
         except ValueError as exc:
             QMessageBox.warning(page, L10N.GECERSIZ_ISLEM, str(exc))
         except Exception as exc:

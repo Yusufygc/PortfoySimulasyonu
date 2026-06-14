@@ -7,6 +7,27 @@ from datetime import date
 logger = logging.getLogger(__name__)
 
 
+def _is_portfolio_like_code(code: str) -> bool:
+    return code == "dashboard" or code.startswith("portfolio:") or code.startswith("model:")
+
+
+def _early_start_warning(analysis_service, code: str, start_date, page) -> str | None:
+    try:
+        first_trade_dt = analysis_service.get_first_trade_date_for_source(code)
+        if first_trade_dt and start_date < first_trade_dt:
+            label = getattr(page, "_asset_labels", {}).get(code, code)
+            return (
+                f"Seçilen başlangıç tarihi ({start_date.strftime('%d.%m.%Y')}), "
+                + f"<b>{label}</b> varlığının ilk işlem tarihinden "
+                + f"({first_trade_dt.strftime('%d.%m.%Y')}) öncedir. "
+                + L10N.BU_DONEMDE_PORTFOY_DEGERI_0
+                + L10N.GORUNECEGINDEN_KIYASLAMA_YANILTICI_OLABILIR
+            )
+    except Exception as exc:
+        logger.debug("Failed to get first trade date for %s: %s", code, exc)
+    return None
+
+
 class ComparisonWarningBuilder:
     def __init__(self, page, analysis_service) -> None:
         self.page = page
@@ -23,23 +44,12 @@ class ComparisonWarningBuilder:
         if end_date > date.today():
             warnings.append(L10N.BITIS_TARIHI_BUGUNDEN_ILERI_BIR)
 
-        selected_codes = self.page.ribbon_bar.selected_assets()
-        for code in selected_codes:
-            if not (code == "dashboard" or code.startswith("portfolio:") or code.startswith("model:")):
+        for code in self.page.ribbon_bar.selected_assets():
+            if not _is_portfolio_like_code(code):
                 continue
-            try:
-                first_trade_dt = self.analysis_service.get_first_trade_date_for_source(code)
-                if first_trade_dt and start_date < first_trade_dt:
-                    label = getattr(self.page, "_asset_labels", {}).get(code, code)
-                    warnings.append(
-                        f"Seçilen başlangıç tarihi ({start_date.strftime('%d.%m.%Y')}), " +
-                        f"<b>{label}</b> varlığının ilk işlem tarihinden " +
-                        f"({first_trade_dt.strftime('%d.%m.%Y')}) öncedir. " +
-                        L10N.BU_DONEMDE_PORTFOY_DEGERI_0 +
-                        L10N.GORUNECEGINDEN_KIYASLAMA_YANILTICI_OLABILIR
-                    )
-            except Exception as exc:
-                logger.debug("Failed to get first trade date for %s: %s", code, exc)
+            msg = _early_start_warning(self.analysis_service, code, start_date, self.page)
+            if msg:
+                warnings.append(msg)
 
         if (end_date - start_date).days < 7:
             warnings.append(

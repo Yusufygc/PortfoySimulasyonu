@@ -14,6 +14,14 @@ class ActionType(str, Enum):
     BEDELSIZ = "BEDELSIZ"
 
 
+def _validate_subscription_price(action_type: "ActionType", subscription_price: "Optional[Decimal]") -> None:
+    if action_type == ActionType.BEDELLI:
+        if subscription_price is None or subscription_price <= 0:
+            raise ValueError("Subscription price must be positive for BEDELLI actions")
+    elif subscription_price is not None:
+        raise ValueError("Subscription price must be empty for BEDELSIZ actions")
+
+
 @dataclass(frozen=True)
 class CorporateAction:
     """
@@ -56,11 +64,7 @@ class CorporateAction:
         if self.ratio <= 0:
             raise ValueError("Corporate action ratio must be positive")
 
-        if self.action_type == ActionType.BEDELLI:
-            if self.subscription_price is None or self.subscription_price <= 0:
-                raise ValueError("Subscription price must be positive for BEDELLI actions")
-        elif self.subscription_price is not None:
-            raise ValueError("Subscription price must be empty for BEDELSIZ actions")
+        _validate_subscription_price(self.action_type, self.subscription_price)
 
         if self.price_adjustment_factor is not None and self.price_adjustment_factor <= 0:
             raise ValueError("Price adjustment factor must be positive")

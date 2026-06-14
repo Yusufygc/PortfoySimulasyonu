@@ -154,6 +154,15 @@ class AnalysisRiskSection(QWidget):
         self.cost_chart.setHtml(f"<div style='color:white; text-align:center; padding-top:150px;'>{message}</div>")
         self.value_chart.setHtml(f"<div style='color:white; text-align:center; padding-top:150px;'>{message}</div>")
 
+    def _write_html_to_view(self, html: str, temp_attr: str, chart_view) -> None:
+        if getattr(self, temp_attr, None) is None:
+            f = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
+            setattr(self, temp_attr, f.name)
+            f.close()
+        with open(getattr(self, temp_attr), "w", encoding="utf-8") as f:
+            f.write(html)
+        chart_view.load(QUrl.fromLocalFile(getattr(self, temp_attr)))
+
     def _render_charts(self, dto: AllocationRiskDTO) -> None:
         cost_breakdown = [(item.label, float(item.cost_value)) for item in dto.items if item.cost_value > 0]
         current_breakdown = [(item.label, float(item.current_value)) for item in dto.items if item.current_value > 0]
@@ -162,29 +171,13 @@ class AnalysisRiskSection(QWidget):
         text_color = DEFAULT_THEME.get("COLOR_TEXT_PRIMARY", "#f1f5f9")
 
         if cost_breakdown:
-            fig1 = build_pie_chart(L10N.MALIYET_BAZLI_DAGILIM, cost_breakdown, text_color=text_color)
-            html1 = fig1.to_html(include_plotlyjs=True)
-            html1 = patch_plotly_html(html1)
-            if not hasattr(self, "_cost_temp_file") or self._cost_temp_file is None:
-                f = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
-                self._cost_temp_file = f.name
-                f.close()
-            with open(self._cost_temp_file, "w", encoding="utf-8") as f:
-                f.write(html1)
-            self.cost_chart.load(QUrl.fromLocalFile(self._cost_temp_file))
+            html1 = patch_plotly_html(build_pie_chart(L10N.MALIYET_BAZLI_DAGILIM, cost_breakdown, text_color=text_color).to_html(include_plotlyjs=True))
+            self._write_html_to_view(html1, "_cost_temp_file", self.cost_chart)
         else:
             self.cost_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Maliyet verisi yok</div>")
 
         if current_breakdown:
-            fig2 = build_pie_chart(L10N.GUNCEL_DEGER_DAGILIMI, current_breakdown, text_color=text_color)
-            html2 = fig2.to_html(include_plotlyjs=True)
-            html2 = patch_plotly_html(html2)
-            if not hasattr(self, "_val_temp_file") or self._val_temp_file is None:
-                f = tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8")
-                self._val_temp_file = f.name
-                f.close()
-            with open(self._val_temp_file, "w", encoding="utf-8") as f:
-                f.write(html2)
-            self.value_chart.load(QUrl.fromLocalFile(self._val_temp_file))
+            html2 = patch_plotly_html(build_pie_chart(L10N.GUNCEL_DEGER_DAGILIMI, current_breakdown, text_color=text_color).to_html(include_plotlyjs=True))
+            self._write_html_to_view(html2, "_val_temp_file", self.value_chart)
         else:
             self.value_chart.setHtml("<div style='color:white; text-align:center; padding-top:150px;'>Değer verisi yok</div>")

@@ -7,6 +7,18 @@ from src.qt_compat.qtgui import QStandardItem, QStandardItemModel
 from src.qt_compat.qtwidgets import QComboBox, QFrame, QLineEdit, QListView, QVBoxLayout
 
 
+def _is_lineedit_click(obj, lineedit_obj, event_type) -> bool:
+    return obj is lineedit_obj and event_type == QEvent.MouseButtonRelease
+
+
+def _is_viewport_click(obj, popup_view, event_type) -> bool:
+    return popup_view is not None and obj is popup_view.viewport() and event_type == QEvent.MouseButtonRelease
+
+
+def _is_frame_hide(obj, popup_frame, event_type) -> bool:
+    return popup_frame is not None and obj is popup_frame and event_type == QEvent.Hide
+
+
 class CheckableComboBox(QComboBox):
     selection_changed = Signal()
 
@@ -95,12 +107,13 @@ class CheckableComboBox(QComboBox):
     def eventFilter(self, obj, event) -> bool:
         popup_view = self._safe_popup_view()
         popup_frame = self._safe_popup_frame()
+        event_type = event.type()
 
-        if obj is self.lineEdit() and event.type() == QEvent.MouseButtonRelease:
+        if _is_lineedit_click(obj, self.lineEdit(), event_type):
             self._toggle_popup()
             return True
 
-        if popup_view is not None and obj is popup_view.viewport() and event.type() == QEvent.MouseButtonRelease:
+        if _is_viewport_click(obj, popup_view, event_type):
             index = popup_view.indexAt(event.pos())
             if index.isValid():
                 item = self.model().itemFromIndex(index)
@@ -108,7 +121,7 @@ class CheckableComboBox(QComboBox):
                 item.setCheckState(next_state)
             return True
 
-        if popup_frame is not None and obj is popup_frame and event.type() == QEvent.Hide:
+        if _is_frame_hide(obj, popup_frame, event_type):
             self._popup_is_open = False
 
         return False

@@ -18,6 +18,10 @@ import pandas as pd
 from .chart_builder import build_performance_line_chart_v2, patch_plotly_html
 
 
+def _first_positive_base(series: Dict) -> "float | None":
+    return next((float(v) for v in series.values() if v and v > 0), None)
+
+
 class AnalysisComparisonSection(QWidget):
     MODE_PORTFOLIO = "portfolio_benchmark"
     MODE_PORTFOLIOS = "portfolio_portfolios"
@@ -211,8 +215,8 @@ class AnalysisComparisonSection(QWidget):
         benchmark_series: Dict[date, Decimal],
     ) -> Dict[date, float]:
         result: Dict[date, float] = {}
-        portfolio_base = next((float(value) for value in portfolio_series.values() if value and value > 0), None)
-        benchmark_base = next((float(value) for value in benchmark_series.values() if value and value > 0), None)
+        portfolio_base = _first_positive_base(portfolio_series)
+        benchmark_base = _first_positive_base(benchmark_series)
         if portfolio_base is None or benchmark_base is None:
             return result
         for point_date, portfolio_value in portfolio_series.items():
