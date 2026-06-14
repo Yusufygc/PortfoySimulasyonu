@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from src.qt_compat.qtwidgets import QDialog, QMessageBox  # noqa: F401 (test monkeypatches QMessageBox here)
 
+from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
 from src.ui.formatters import display_ticker
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
 from src.ui.widgets.model_portfolio import CapitalMovementDialog, PortfolioInputDialog, TradeInputDialog
@@ -141,12 +142,14 @@ class ModelPortfolioActions:
             self.page.model_portfolio_service.add_trade_by_ticker(
                 portfolio_id=portfolio_id,
                 ticker=result["ticker"],
-                side=effective_side,
-                quantity=result["quantity"],
-                price=result["price"],
-                trade_date=result["trade_date"],
-                trade_time=result["trade_time"],
-                name=result.get("name"),
+                trade_input=ModelTradeInput(
+                    side=effective_side,
+                    quantity=result["quantity"],
+                    price=result["price"],
+                    trade_date=result["trade_date"],
+                    trade_time=result["trade_time"],
+                    name=result.get("name"),
+                ),
             )
             self.page._load_portfolios()
             self.page._update_view()

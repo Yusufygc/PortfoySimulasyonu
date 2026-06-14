@@ -7,21 +7,21 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `7b85321`
+- Git commit: `29e1b20`
 - Dosya: 440
-- Sinif: 538
-- Fonksiyon/metot: 3405
-- Effective code lines: 44383
+- Sinif: 540
+- Fonksiyon/metot: 3448
+- Effective code lines: 44375
 - Ihlalli sinif: 1
-- Ihlalli fonksiyon/metot: 83
+- Ihlalli fonksiyon/metot: 59
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 330 | 31506 | 1 |
-| tests | 95 | 11246 | 0 |
+| src | 330 | 31500 | 1 |
+| tests | 95 | 11244 | 0 |
 | scripts | 14 | 1603 | 0 |
 | root | 1 | 28 | 0 |
 
@@ -33,14 +33,14 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/application/services/market/price_data_health_service.py | src | 695 | 10 | 42 | 11 | ok |
 | tests/ui/pages/test_model_portfolio_page.py | tests | 659 | 17 | 43 | 24 | ok |
 | scripts/measure_code_quality.py | scripts | 589 | 3 | 10 | 40 | ok |
+| src/application/services/planning/model_portfolio_trade_service.py | src | 524 | 4 | 30 | 9 | ok |
 | tests/application/test_price_data_health_service.py | tests | 518 | 6 | 18 | 22 | ok |
-| src/application/services/planning/model_portfolio_trade_service.py | src | 514 | 3 | 30 | 6 | ok |
 | tests/application/test_analysis_service.py | tests | 504 | 12 | 23 | 19 | ok |
 | tests/ui/pages/test_stock_detail_page.py | tests | 455 | 5 | 10 | 33 | ok |
 | tests/ui/pages/test_comparison_page.py | tests | 443 | 10 | 22 | 26 | ok |
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 434 | 1 | 20 | 6 | ok |
 | src/ui/pages/stock_detail/stock_detail_page.py | src | 417 | 1 | 17 | 8 | violation |
-| src/ui/pages/comparison/utils/chart_renderer.py | src | 416 | 1 | 19 | 5 | ok |
+| src/ui/pages/comparison/utils/chart_renderer.py | src | 414 | 2 | 20 | 7 | ok |
 | src/application/services/planning/risk_profile_service.py | src | 394 | 4 | 15 | 3 | ok |
 | src/ui/pages/watchlist_page.py | src | 384 | 1 | 20 | 6 | ok |
 | scripts/migrate_ui_strings.py | scripts | 372 | 0 | 0 | 10 | ok |
@@ -65,26 +65,26 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | tests/infrastructure/market_data/test_benchmark_fetch_manual.py | main | 52 | 0 | 18 | function_effective_lines, function_complexity |
 | src/infrastructure/corporate_actions/kap_mkk_provider.py | parse_kap_mkk_disclosure | 50 | 1 | 15 | function_complexity |
 | src/application/services/planning/model_portfolio_trade_service.py | add_trade | 48 | 7 | 1 | function_effective_params |
-| src/ui/pages/comparison/utils/chart_renderer.py | _generate_html_in_background | 48 | 6 | 12 | function_effective_params, function_complexity |
 | scripts/migrate_ui_strings.py | is_user_facing_string | 47 | 2 | 35 | function_complexity |
 | src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 47 | 12 | 10 | function_effective_params |
 | src/application/services/portfolio/trade_entry_service.py | submit_trade | 47 | 8 | 7 | function_effective_params |
-| src/infrastructure/market_data/investing_fallback_client.py | fetch_series_for_ticker | 46 | 3 | 11 | function_complexity |
 | src/ui/pages/ai_page/left_panel/performance_card.py | update_data | 46 | 8 | 9 | function_effective_params |
-| src/ui/pages/ai_page/left_panel/xai_card.py | update_data | 46 | 7 | 12 | function_effective_params, function_complexity |
-| src/application/services/planning/model_portfolio_trade_service.py | add_trade_by_ticker | 45 | 8 | 11 | function_effective_params, function_complexity |
-| src/ui/pages/dashboard/dashboard_presenter.py | refresh_data | 45 | 0 | 11 | function_complexity |
-| src/ui/widgets/shared/feedback/toast.py | _reposition_for_parent | 45 | 2 | 11 | function_complexity |
 | scripts/migrate_ui_strings.py | process_file | 44 | 2 | 14 | function_complexity |
-| src/ui/pages/model_portfolio/utils/model_portfolio_actions.py | on_trade | 44 | 1 | 12 | function_complexity |
 | src/ui/widgets/planning/panels/budget_form_panel.py | _build_item_column | 44 | 8 | 1 | function_effective_params |
 | src/application/services/planning/model_portfolio_trade_service.py | add_capital_movement | 43 | 6 | 5 | function_effective_params |
-| src/ui/pages/analysis/analysis_overview_section.py | set_data | 43 | 1 | 12 | function_complexity |
 | src/application/services/analysis/portfolio_series_builder.py | compute_portfolio_series | 41 | 8 | 5 | function_effective_params |
-| src/ui/pages/stock_detail/stock_trade_submitter.py | _submit_model_trade | 41 | 5 | 11 | function_complexity |
 | src/domain/models/corporate_action_candidate.py | discovered | 40 | 13 | 1 | function_effective_params |
 | src/application/services/analysis/analysis_service.py | __init__ | 38 | 7 | 1 | function_effective_params |
 | src/application/services/simulation/history_snapshot_builder.py | build | 37 | 7 | 4 | function_effective_params |
+| src/ui/pages/stock_detail/stock_chart_widget.py | draw_chart | 37 | 6 | 7 | function_effective_params |
+| src/application/services/market/price_data_health_service.py | _build_rows | 35 | 7 | 5 | function_effective_params |
+| src/application/services/simulation/history_position_builder.py | _build_position | 35 | 7 | 3 | function_effective_params |
+| src/application/services/market/price_data_health_service.py | __init__ | 34 | 8 | 2 | function_effective_params |
+| src/application/services/simulation/history_position_builder.py | _position_metrics | 34 | 6 | 8 | function_effective_params |
+| src/application/services/simulation/history_simulation_service.py | _simulate_day | 34 | 7 | 4 | function_effective_params |
+| src/application/services/simulation/model_portfolio_history_simulation_service.py | _simulate_day | 34 | 7 | 4 | function_effective_params |
+| tests/ui/test_refactor_guards.py | test_ui_user_facing_text_uses_l10n_not_hardcoded_literals | 34 | 0 | 13 | function_complexity |
+| src/ui/shared/card_factory.py | create_stat_card | 32 | 8 | 4 | function_effective_params |
 
 ## Saglik Raporu Crosswalk
 

@@ -22,6 +22,19 @@ USER_AGENT_WINDOWS_CHROME = (
 )
 
 
+def _parse_investing_history(data: dict, start_date: date, end_date: date) -> "Dict[date, Decimal]":
+    timestamps = data.get("t") or []
+    closes = data.get("c") or []
+    result: Dict[date, Decimal] = {}
+    for ts, close in zip(timestamps, closes):
+        if close is None:
+            continue
+        point_date = pd.Timestamp(ts, unit="s", tz="UTC").date()
+        if start_date <= point_date <= end_date:
+            result[point_date] = Decimal(str(float(close)))
+    return result
+
+
 def _candidate_matches_alias(candidate: dict, alias_type: str, alias_exchange: str) -> bool:
     candidate_type = str(candidate.get("type", "") or candidate.get("pair_type", ""))
     candidate_exchange = str(candidate.get("exchange", "") or "")
@@ -106,16 +119,7 @@ class InvestingFallbackClient:
             self._series_cache[cache_key] = {}
             return {}
 
-        timestamps = data.get("t") or []
-        closes = data.get("c") or []
-        result: Dict[date, Decimal] = {}
-        for ts, close in zip(timestamps, closes):
-            if close is None:
-                continue
-            point_date = pd.Timestamp(ts, unit="s", tz="UTC").date()
-            if start_date <= point_date <= end_date:
-                result[point_date] = Decimal(str(float(close)))
-
+        result = _parse_investing_history(data, start_date, end_date)
         self._series_cache[cache_key] = dict(result)
         return result
 

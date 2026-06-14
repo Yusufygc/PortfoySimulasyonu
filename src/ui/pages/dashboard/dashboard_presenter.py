@@ -14,6 +14,21 @@ from src.ui.shared.price_utils import build_previous_close_map
 logger = logging.getLogger(__name__)
 
 
+def _compute_portfolio_metrics(positions, price_map: dict, capital: Decimal) -> tuple:
+    positions_with_price = [p for p in positions if p.stock_id in price_map]
+    positions_value = sum(
+        (p.market_value(price_map[p.stock_id]) for p in positions_with_price),
+        Decimal("0"),
+    )
+    total_cost = sum((p.total_cost for p in positions), Decimal("0"))
+    profit_loss = sum(
+        (p.unrealized_pl(price_map[p.stock_id]) for p in positions_with_price),
+        Decimal("0"),
+    )
+    total_value = positions_value + capital
+    return total_value, total_cost, profit_loss
+
+
 class DashboardPresenter:
     def __init__(self, page) -> None:
         self._page = page
@@ -53,25 +68,7 @@ class DashboardPresenter:
         else:
             self._page.portfolio_model.update_data(positions, price_map, ticker_map, previous_close_map)
 
-        positions_value = sum(
-            (
-                position.market_value(price_map[position.stock_id])
-                for position in positions
-                if position.stock_id in price_map
-            ),
-            Decimal("0"),
-        )
-        total_value = positions_value + self._page._capital
-        total_cost = sum(position.total_cost for position in positions)
-        profit_loss = sum(
-            (
-                position.unrealized_pl(price_map[position.stock_id])
-                for position in positions
-                if position.stock_id in price_map
-            ),
-            Decimal("0"),
-        )
-
+        total_value, total_cost, profit_loss = _compute_portfolio_metrics(positions, price_map, self._page._capital)
         self._page.summary_cards.update_base_metrics(total_value, total_cost, self._page._capital, profit_loss)
         self._page.portfolio_table_widget.update_summary_row(total_value, profit_loss)
 
@@ -100,25 +97,8 @@ class DashboardPresenter:
         price_map = getattr(self._page.portfolio_model, "_price_map", {})
         price_map.update(new_prices)
         portfolio = self._page.portfolio_service.get_current_portfolio()
-        active_positions = portfolio.active_positions
-        total_cost = sum((position.total_cost for position in active_positions.values()), Decimal("0"))
-        positions_value = sum(
-            (
-                position.market_value(price_map[position.stock_id])
-                for position in active_positions.values()
-                if position.stock_id in price_map
-            ),
-            Decimal("0"),
-        )
-        total_value = positions_value + self._page._capital
-        profit_loss = sum(
-            (
-                position.unrealized_pl(price_map[position.stock_id])
-                for position in active_positions.values()
-                if position.stock_id in price_map
-            ),
-            Decimal("0"),
-        )
+        positions = list(portfolio.active_positions.values())
+        total_value, total_cost, profit_loss = _compute_portfolio_metrics(positions, price_map, self._page._capital)
         self._page.summary_cards.update_base_metrics(total_value, total_cost, self._page._capital, profit_loss)
         self._page.portfolio_table_widget.update_summary_row(total_value, profit_loss)
         if new_prices and hasattr(self._page, "record_last_update_time"):

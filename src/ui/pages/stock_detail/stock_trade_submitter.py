@@ -6,6 +6,7 @@ from decimal import Decimal
 
 from src.qt_compat.qtwidgets import QMessageBox
 
+from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
 from src.domain.models.trade import TradeSide
 from src.ui.shared.market_session_confirm import confirm_market_session_if_needed
 
@@ -95,11 +96,13 @@ class StockTradeSubmitter:
             trade = page.model_portfolio_service.add_trade_by_ticker(
                 portfolio_id=portfolio_id,
                 ticker=page.current_ticker,
-                side=side,
-                quantity=qty,
-                price=Decimal(str(price)),
-                trade_date=trade_date,
-                trade_time=trade_time,
+                trade_input=ModelTradeInput(
+                    side=side,
+                    quantity=qty,
+                    price=Decimal(str(price)),
+                    trade_date=trade_date,
+                    trade_time=trade_time,
+                ),
             )
             page.current_stock_id = trade.stock_id
             page._detail_context.setdefault("price_map", {})[trade.stock_id] = Decimal(str(price))

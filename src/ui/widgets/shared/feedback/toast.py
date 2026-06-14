@@ -75,6 +75,42 @@ _EMOJI_SYMBOL_CODEPOINTS = {
 _EMOJI_JOINERS_AND_SELECTORS = {0x200D, 0x20E3, 0xFE0E, 0xFE0F}
 
 
+def _place_toasts_top(stack, panel_w: int) -> None:
+    y_offset = _MARGIN
+    for toast in list(stack):
+        if not _is_live_qobject(toast):
+            continue
+        try:
+            toast.adjustSize()
+            w = min(toast.width(), _MAX_W)
+            x = panel_w - w - _MARGIN
+            y = y_offset
+            toast.move(x, y)
+            toast.raise_()
+            toast.show()
+            y_offset = y + toast.height() + _SPACING
+        except RuntimeError:
+            continue
+
+
+def _place_toasts_bottom(stack, panel_w: int, panel_h: int) -> None:
+    y_offset = panel_h - _MARGIN
+    for toast in reversed(list(stack)):
+        if not _is_live_qobject(toast):
+            continue
+        try:
+            toast.adjustSize()
+            w = min(toast.width(), _MAX_W)
+            x = panel_w - w - _MARGIN
+            y = y_offset - toast.height()
+            toast.move(x, y)
+            toast.raise_()
+            toast.show()
+            y_offset = y - _SPACING
+        except RuntimeError:
+            continue
+
+
 class _ToastCloseButton(QToolButton):
     """Theme-aware SVG close button for toast notifications."""
 
@@ -257,49 +293,18 @@ class _ToastWidget(QWidget):
             return
         key = (id(parent), position)
         stack = _ToastWidget._registry.get(key, [])
-
         try:
             anchor = _ToastWidget._anchor_for(parent)
             if not _is_live_qobject(anchor):
                 return
-
             panel_w = anchor.width()
             panel_h = anchor.height()
         except RuntimeError:
             return
-
         if position == "top":
-            y_offset = _MARGIN
-            for toast in list(stack):
-                if not _is_live_qobject(toast):
-                    continue
-                try:
-                    toast.adjustSize()
-                    w = min(toast.width(), _MAX_W)
-                    x = panel_w - w - _MARGIN
-                    y = y_offset
-                    toast.move(x, y)
-                    toast.raise_()
-                    toast.show()
-                    y_offset = y + toast.height() + _SPACING
-                except RuntimeError:
-                    continue
+            _place_toasts_top(stack, panel_w)
         else:
-            y_offset = panel_h - _MARGIN
-            for toast in reversed(list(stack)):
-                if not _is_live_qobject(toast):
-                    continue
-                try:
-                    toast.adjustSize()
-                    w = min(toast.width(), _MAX_W)
-                    x = panel_w - w - _MARGIN
-                    y = y_offset - toast.height()
-                    toast.move(x, y)
-                    toast.raise_()
-                    toast.show()
-                    y_offset = y - _SPACING
-                except RuntimeError:
-                    continue
+            _place_toasts_bottom(stack, panel_w, panel_h)
 
     @staticmethod
     def _anchor_for(parent: QWidget) -> QWidget:

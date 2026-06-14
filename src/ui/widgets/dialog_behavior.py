@@ -14,6 +14,17 @@ from src.qt_compat.qtwidgets import (
 )
 
 
+def _focused_widget_blocks_enter(widget) -> bool:
+    if isinstance(widget, (QTextEdit, QPlainTextEdit)):
+        return True
+    if isinstance(widget, QComboBox) and widget.view().isVisible():
+        return True
+    if isinstance(widget, QDateEdit):
+        calendar = widget.calendarWidget()
+        return bool(calendar and calendar.isVisible())
+    return False
+
+
 class _DialogEnterFilter(QObject):
     def __init__(self, dialog: QDialog, primary_button: QAbstractButton | None, enter_handler: Callable[[], None] | None):
         super().__init__(dialog)
@@ -40,14 +51,8 @@ class _DialogEnterFilter(QObject):
         return False
 
     def _should_ignore_focus_widget(self) -> bool:
-        widget = self._dialog.focusWidget()
-        if isinstance(widget, (QTextEdit, QPlainTextEdit)):
+        if _focused_widget_blocks_enter(self._dialog.focusWidget()):
             return True
-        if isinstance(widget, QComboBox) and widget.view().isVisible():
-            return True
-        if isinstance(widget, QDateEdit):
-            calendar = widget.calendarWidget()
-            return bool(calendar and calendar.isVisible())
         for combo in self._dialog.findChildren(QComboBox):
             if combo.view().isVisible():
                 return True

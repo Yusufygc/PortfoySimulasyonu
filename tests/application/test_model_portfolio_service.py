@@ -6,6 +6,7 @@ import pytest
 
 from src.application.services.portfolio.trade_entry_service import TradeEntryService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
+from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade
 from src.domain.models.stock import Stock
 from src.domain.models.trade import TradeSide
@@ -145,11 +146,13 @@ def test_model_portfolio_rejects_closed_market_session_before_saving_trade():
         service.add_trade_by_ticker(
             portfolio_id=1,
             ticker="ASELS",
-            side="BUY",
-            quantity=1,
-            price=Decimal("10"),
-            trade_date=date(2026, 6, 6),
-            trade_time=time(11, 0),
+            trade_input=ModelTradeInput(
+                side="BUY",
+                quantity=1,
+                price=Decimal("10"),
+                trade_date=date(2026, 6, 6),
+                trade_time=time(11, 0),
+            ),
         )
 
     assert len(repo.trades[1]) == 2
@@ -189,10 +192,12 @@ def test_dashboard_and_model_portfolio_reuse_same_stock_for_same_ticker():
     model_trade = model_service.add_trade_by_ticker(
         portfolio_id=1,
         ticker="ASELS",
-        side="BUY",
-        quantity=1,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 3),
+        trade_input=ModelTradeInput(
+            side="BUY",
+            quantity=1,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+        ),
     )
 
     assert dashboard_result.stock_id == 10
@@ -206,10 +211,12 @@ def test_model_portfolio_rejects_buy_when_cash_is_insufficient():
         service.add_trade_by_ticker(
             portfolio_id=1,
             ticker="ASELS",
-            side="BUY",
-            quantity=1000,
-            price=Decimal("10"),
-            trade_date=date(2026, 1, 3),
+            trade_input=ModelTradeInput(
+                side="BUY",
+                quantity=1000,
+                price=Decimal("10"),
+                trade_date=date(2026, 1, 3),
+            ),
         )
     except ValueError as exc:
         assert "Yetersiz nakit" in str(exc)
@@ -226,10 +233,12 @@ def test_model_portfolio_rejects_sell_for_missing_stock_without_creating_stock()
         service.add_trade_by_ticker(
             portfolio_id=1,
             ticker="XXXX",
-            side="SELL",
-            quantity=1,
-            price=Decimal("10"),
-            trade_date=date(2026, 1, 3),
+            trade_input=ModelTradeInput(
+                side="SELL",
+                quantity=1,
+                price=Decimal("10"),
+                trade_date=date(2026, 1, 3),
+            ),
         )
     except ValueError as exc:
         assert "Hisse bulunamadi" in str(exc)
@@ -305,11 +314,13 @@ def test_model_portfolio_deposit_allows_larger_later_buy():
     trade = service.add_trade_by_ticker(
         portfolio_id=1,
         ticker="ASELS",
-        side="BUY",
-        quantity=100,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 3),
-        trade_time=time(10, 0),
+        trade_input=ModelTradeInput(
+            side="BUY",
+            quantity=100,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+            trade_time=time(10, 0),
+        ),
     )
 
     assert trade.quantity == 100
@@ -328,11 +339,13 @@ def test_model_portfolio_rejects_retroactive_withdraw_that_breaks_later_buy():
     service.add_trade_by_ticker(
         portfolio_id=1,
         ticker="ASELS",
-        side="BUY",
-        quantity=100,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 3),
-        trade_time=time(10, 0),
+        trade_input=ModelTradeInput(
+            side="BUY",
+            quantity=100,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+            trade_time=time(10, 0),
+        ),
     )
 
     try:

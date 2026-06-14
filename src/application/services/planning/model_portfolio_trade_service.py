@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, time
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict, NamedTuple, Optional
 
 from src.application.services.market.trade_session_guard import ensure_trade_session_open
 from src.domain.models.model_portfolio import (
@@ -248,6 +248,49 @@ def _build_capital_movement(
     )
 
 
+class ModelTradeInput(NamedTuple):
+    side: str
+    quantity: int
+    price: Decimal
+    trade_date: date
+    trade_time: Optional[time] = None
+    name: Optional[str] = None
+
+
+def _normalize_ticker(ticker: str) -> str:
+    if not ticker or not ticker.strip():
+        raise ValueError("Ticker bos olamaz")
+    normalized = ticker.strip().upper()
+    if "." not in normalized:
+        normalized += ".IS"
+    return normalized
+
+
+def _validate_quantity_price(quantity: int, price: Decimal) -> None:
+    if quantity <= 0:
+        raise ValueError("Lot adedi pozitif olmalidir.")
+    if price <= 0:
+        raise ValueError("Fiyat pozitif olmalidir.")
+
+
+def _resolve_or_create_stock(stock_repo, ticker: str, trade_side, name: Optional[str]):
+    stock = stock_repo.get_stock_by_ticker(ticker)
+    if stock is None:
+        if trade_side != ModelTradeSide.BUY:
+            raise ValueError(f"Hisse bulunamadi: {ticker}")
+        if not is_valid_bist_ticker(ticker, name):
+            raise ValueError(f"Geçersiz hisse kodu: {ticker}")
+        stock = stock_repo.insert_stock(
+            Stock(
+                id=None,
+                ticker=ticker,
+                name=(name or ticker).strip() or ticker,
+                currency_code="TRY",
+            )
+        )
+    return stock
+
+
 class ModelPortfolioTradeService:
     def __init__(self, portfolio_repo, stock_repo, market_session_service=None) -> None:
         self._portfolio_repo = portfolio_repo
@@ -376,49 +419,21 @@ class ModelPortfolioTradeService:
         self,
         portfolio_id: int,
         ticker: str,
-        side: str,
-        quantity: int,
-        price: Decimal,
-        trade_date: date,
-        trade_time: Optional[time] = None,
-        name: Optional[str] = None,
+        trade_input: ModelTradeInput,
     ) -> ModelPortfolioTrade:
-        if not ticker or not ticker.strip():
-            raise ValueError("Ticker bos olamaz")
-
-        normalized_ticker = ticker.strip().upper()
-        if "." not in normalized_ticker:
-            normalized_ticker += ".IS"
-
-        trade_side = ModelTradeSide(side)
-        if quantity <= 0:
-            raise ValueError("Lot adedi pozitif olmalidir.")
-        if price <= 0:
-            raise ValueError("Fiyat pozitif olmalidir.")
-        ensure_trade_session_open(self._market_session_service, trade_date, trade_time)
-        stock = self._stock_repo.get_stock_by_ticker(normalized_ticker)
-        if stock is None:
-            if trade_side != ModelTradeSide.BUY:
-                raise ValueError(f"Hisse bulunamadi: {normalized_ticker}")
-            if not is_valid_bist_ticker(normalized_ticker, name):
-                raise ValueError(f"Geçersiz hisse kodu: {normalized_ticker}")
-            stock = self._stock_repo.insert_stock(
-                Stock(
-                    id=None,
-                    ticker=normalized_ticker,
-                    name=(name or normalized_ticker).strip() or normalized_ticker,
-                    currency_code="TRY",
-                )
-            )
-
+        normalized_ticker = _normalize_ticker(ticker)
+        trade_side = ModelTradeSide(trade_input.side)
+        _validate_quantity_price(trade_input.quantity, trade_input.price)
+        ensure_trade_session_open(self._market_session_service, trade_input.trade_date, trade_input.trade_time)
+        stock = _resolve_or_create_stock(self._stock_repo, normalized_ticker, trade_side, trade_input.name)
         return self.add_trade(
             portfolio_id=portfolio_id,
             stock_id=stock.id,
-            side=side,
-            quantity=quantity,
-            price=price,
-            trade_date=trade_date,
-            trade_time=trade_time,
+            side=trade_input.side,
+            quantity=trade_input.quantity,
+            price=trade_input.price,
+            trade_date=trade_input.trade_date,
+            trade_time=trade_input.trade_time,
         )
 
     def delete_trade(self, trade_id: int) -> None:
