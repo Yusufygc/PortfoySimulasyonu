@@ -13,6 +13,31 @@ from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 
 
+def _sorted_trades_up_to_date(trades, end_date) -> list:
+    return sorted(
+        (trade for trade in trades if trade.trade_date <= end_date),
+        key=lambda trade: (trade.trade_date, trade.trade_time or time.min, trade.id or 0),
+    )
+
+
+def _accumulate_active_stock_ids(portfolio, valid_trades, start_date) -> set:
+    stock_ids = set(portfolio.active_positions)
+    for trade in valid_trades:
+        if trade.trade_date < start_date:
+            continue
+        portfolio.apply_trade(trade)
+        if portfolio.positions[trade.stock_id].total_quantity > 0:
+            stock_ids.add(trade.stock_id)
+    return stock_ids
+
+
+def _build_initial_positions(trades_before: list, stock_ids) -> dict:
+    return {
+        stock_id: Position.from_trades(stock_id, [t for t in trades_before if t.stock_id == stock_id])
+        for stock_id in stock_ids
+    }
+
+
 class PortfolioSeriesBuilder:
     def __init__(
         self,
@@ -44,24 +69,13 @@ class PortfolioSeriesBuilder:
         selected = [stock_id for stock_id in selected_stock_ids if stock_id]
         if selected:
             return sorted(set(selected))
-
-        ordered_trades = sorted(
-            (trade for trade in trades if trade.trade_date <= end_date),
-            key=lambda trade: (trade.trade_date, trade.trade_time or time.min, trade.id or 0),
-        )
+        ordered_trades = _sorted_trades_up_to_date(trades, end_date)
         valid_trades = build_portfolio_safely(ordered_trades, is_sorted=True).valid_trades
         portfolio = build_portfolio_safely(
             (trade for trade in valid_trades if trade.trade_date < start_date),
             is_sorted=True,
         ).portfolio
-        stock_ids = set(portfolio.active_positions)
-        for trade in valid_trades:
-            if trade.trade_date < start_date:
-                continue
-            portfolio.apply_trade(trade)
-            if portfolio.positions[trade.stock_id].total_quantity > 0:
-                stock_ids.add(trade.stock_id)
-        return sorted(stock_ids)
+        return sorted(_accumulate_active_stock_ids(portfolio, valid_trades, start_date))
 
     def compute_portfolio_series(
         self,
@@ -163,12 +177,9 @@ class PortfolioSeriesBuilder:
         start_date: date,
         trade_stock_ids: Sequence[int] | None = None,
     ) -> tuple[Dict[int, Position], Decimal, bool]:
-        trades_before = [trade for trade in trades if trade.trade_date < start_date and trade.stock_id in stock_ids]
+        trades_before = [t for t in trades if t.trade_date < start_date and t.stock_id in stock_ids]
         cash_before = [cm for cm in cash_movements if cm.movement_date < start_date]
-        current_positions = {
-            stock_id: Position.from_trades(stock_id, [trade for trade in trades_before if trade.stock_id == stock_id])
-            for stock_id in stock_ids
-        }
+        current_positions = _build_initial_positions(trades_before, stock_ids)
         if trade_stock_ids is not None:
             has_cash_tracking = False
         else:

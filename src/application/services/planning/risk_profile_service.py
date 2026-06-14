@@ -251,6 +251,14 @@ QUESTIONNAIRE_SECTIONS: tuple[RiskQuestionSection, ...] = (
 )
 
 
+def _build_valid_option_values(questions) -> dict:
+    return {q.id: {opt.value for opt in q.options} for q in questions}
+
+
+def _find_invalid_answer_ids(answer_map: dict, valid_values: dict) -> list:
+    return [qid for qid, val in answer_map.items() if qid in valid_values and val not in valid_values[qid]]
+
+
 class RiskProfileService:
     """Risk profili anketini skorlar, gerekcelendirir ve kaydeder."""
 
@@ -342,25 +350,15 @@ class RiskProfileService:
         return max(0, min(100, score))
 
     def _validate_answers(self, answers: Mapping[str, str]) -> Dict[str, str]:
-        answer_map = {str(key): str(value) for key, value in answers.items()}
-        valid_values = {
-            question.id: {option.value for option in question.options}
-            for question in self._all_questions()
-        }
-
-        missing = [question_id for question_id in valid_values if question_id not in answer_map]
+        answer_map = {str(k): str(v) for k, v in answers.items()}
+        valid_values = _build_valid_option_values(self._all_questions())
+        missing = [qid for qid in valid_values if qid not in answer_map]
         if missing:
             raise ValueError(f"Eksik anket yanıtları: {', '.join(missing)}")
-
-        invalid = [
-            question_id
-            for question_id, value in answer_map.items()
-            if question_id in valid_values and value not in valid_values[question_id]
-        ]
+        invalid = _find_invalid_answer_ids(answer_map, valid_values)
         if invalid:
             raise ValueError(f"Geçersiz anket yanıtları: {', '.join(invalid)}")
-
-        return {question_id: answer_map[question_id] for question_id in valid_values}
+        return {qid: answer_map[qid] for qid in valid_values}
 
     def _calculate_dimension_scores(self, answers: Mapping[str, str]) -> Dict[str, int]:
         grouped: Dict[str, List[int]] = {dimension: [] for dimension in DIMENSION_WEIGHTS}

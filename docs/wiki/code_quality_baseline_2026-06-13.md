@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `8cfb40c`
+- Git commit: `7b85321`
 - Dosya: 440
 - Sinif: 538
-- Fonksiyon/metot: 3400
-- Effective code lines: 44380
-- Ihlalli sinif: 2
-- Ihlalli fonksiyon/metot: 86
+- Fonksiyon/metot: 3405
+- Effective code lines: 44383
+- Ihlalli sinif: 1
+- Ihlalli fonksiyon/metot: 83
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 330 | 31503 | 1 |
+| src | 330 | 31506 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 14 | 1603 | 0 |
 | root | 1 | 28 | 0 |
@@ -41,7 +41,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py | src | 434 | 1 | 20 | 6 | ok |
 | src/ui/pages/stock_detail/stock_detail_page.py | src | 417 | 1 | 17 | 8 | violation |
 | src/ui/pages/comparison/utils/chart_renderer.py | src | 416 | 1 | 19 | 5 | ok |
-| src/application/services/planning/risk_profile_service.py | src | 397 | 4 | 15 | 1 | ok |
+| src/application/services/planning/risk_profile_service.py | src | 394 | 4 | 15 | 3 | ok |
 | src/ui/pages/watchlist_page.py | src | 384 | 1 | 20 | 6 | ok |
 | scripts/migrate_ui_strings.py | scripts | 372 | 0 | 0 | 10 | ok |
 
@@ -50,7 +50,6 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | Dosya | Sinif | Effective satir | Metot | Ihlal |
 |---|---|---:|---:|---|
 | src/ui/shared/locale_tr.py | L10N | 797 | 0 | class_effective_lines |
-| src/application/services/analysis/portfolio_series_builder.py | PortfolioSeriesBuilder | 313 | 15 | class_effective_lines |
 
 ## Fonksiyon/Metot Ihlalleri
 
