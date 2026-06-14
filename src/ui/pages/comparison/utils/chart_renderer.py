@@ -136,6 +136,13 @@ class _FigCtx(NamedTuple):
     code_to_label: dict
 
 
+class _DownloadCtx(NamedTuple):
+    selected_assets: "list[str]"
+    ratio_assets: "tuple[str, str] | None"
+    code_to_label: "dict[str, str]"
+    asset_labels: "dict[str, str]"
+
+
 def _resolve_asset_label(code: str, code_to_label: dict[str, str], asset_labels: dict[str, str]) -> str:
     return code_to_label.get(code) or asset_labels.get(code) or code
 
@@ -220,12 +227,9 @@ class ChartRenderer:
         download_filename = self._build_download_filename(
             chart_key=mapped_key,
             mode=mode,
-            selected_assets=selected_assets,
-            ratio_assets=ratio_assets,
             start_date=start_date,
             end_date=end_date,
-            code_to_label=code_to_label,
-            asset_labels=asset_labels,
+            ctx=_DownloadCtx(selected_assets, ratio_assets, code_to_label, asset_labels),
         )
         
         worker = Worker(
@@ -363,19 +367,16 @@ class ChartRenderer:
         self,
         chart_key: str,
         mode: str,
-        selected_assets: list[str],
-        ratio_assets: tuple[str, str] | None,
         start_date,
         end_date,
-        code_to_label: dict[str, str],
-        asset_labels: dict[str, str],
+        ctx: _DownloadCtx,
     ) -> str:
         asset_part = self._build_asset_filename_part(
-            selected_assets=selected_assets,
+            selected_assets=ctx.selected_assets,
             mode=mode,
-            ratio_assets=ratio_assets,
-            code_to_label=code_to_label,
-            asset_labels=asset_labels,
+            ratio_assets=ctx.ratio_assets,
+            code_to_label=ctx.code_to_label,
+            asset_labels=ctx.asset_labels,
         )
         chart_part = _DOWNLOAD_CHART_LABELS.get(chart_key, _slugify(chart_key))
         mode_part = _slugify(mode)

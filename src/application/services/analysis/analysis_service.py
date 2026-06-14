@@ -36,6 +36,15 @@ from .risk_metrics import (
 )
 from .source_resolver import AnalysisSourceResolver
 
+from typing import NamedTuple
+
+
+class AnalysisServiceDeps(NamedTuple):
+    portfolio_repo: IPortfolioRepository
+    price_repo: IPriceRepository
+    stock_repo: IStockRepository
+    market_data_client: IMarketDataClient
+
 
 def _get_benchmark_vars(bundle: dict) -> "tuple":
     primary = bundle["benchmarks"][0] if bundle["benchmarks"] else None
@@ -58,27 +67,24 @@ def _get_contributor_stats(top, best, worst) -> dict:
 class AnalysisService:
     def __init__(
         self,
-        portfolio_repo: IPortfolioRepository,
-        price_repo: IPriceRepository,
-        stock_repo: IStockRepository,
-        market_data_client: IMarketDataClient,
+        deps: AnalysisServiceDeps,
         evds_client: EvdsSeriesProvider | None = None,
         cash_movement_repo: Optional[ICashMovementRepository] = None,
         model_portfolio_service=None,
     ) -> None:
-        self._stock_repo = stock_repo
+        self._stock_repo = deps.stock_repo
         self._cash_movement_repo = cash_movement_repo
         self._source_resolver = AnalysisSourceResolver(
-            portfolio_repo=portfolio_repo,
-            stock_repo=stock_repo,
+            portfolio_repo=deps.portfolio_repo,
+            stock_repo=deps.stock_repo,
             model_portfolio_service=model_portfolio_service,
         )
         self._series_builder = PortfolioSeriesBuilder(
-            price_repo=price_repo,
-            stock_repo=stock_repo,
+            price_repo=deps.price_repo,
+            stock_repo=deps.stock_repo,
         )
         self._benchmark_service = AnalysisBenchmarkService(
-            market_data_client=market_data_client,
+            market_data_client=deps.market_data_client,
             evds_client=evds_client
         )
         self._currency_service = CurrencyConversionService()

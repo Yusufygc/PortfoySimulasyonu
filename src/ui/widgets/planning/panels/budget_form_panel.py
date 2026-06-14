@@ -1,5 +1,6 @@
 from src.ui.shared.locale_tr import L10N
 # src/ui/widgets/planning/panels/budget_form_panel.py
+from typing import NamedTuple
 """
 BudgetFormPanel — Dinamik Bütçe Formu Panel Widget'ı
 
@@ -24,6 +25,14 @@ from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.planning.panels.budget_item_row import BudgetItemRow
 
 
+class _ColSpec(NamedTuple):
+    icon: str
+    icon_color: str
+    header_css: str
+    btn_css: str
+    btn_icon: str
+    btn_icon_color: str
+
 
 class BudgetFormPanel(QFrame):
     """3-kolonlu dinamik bütçe formu: Gelirler | Giderler | Özet."""
@@ -46,25 +55,15 @@ class BudgetFormPanel(QFrame):
         main.setSpacing(0)
 
         income_col, self._income_layout = self._build_item_column(
-            title=L10N.GELIRLER,
-            icon="banknote",
-            icon_color="@COLOR_SUCCESS",
-            header_css="successHeader",
-            btn_css="successButton",
-            btn_icon="plus",
-            btn_icon_color="@COLOR_TEXT_WHITE",
-            on_add=lambda: self._add_row("", 0.0, "income"),
+            L10N.GELIRLER,
+            _ColSpec("banknote", "@COLOR_SUCCESS", "successHeader", "successButton", "plus", "@COLOR_TEXT_WHITE"),
+            lambda: self._add_row("", 0.0, "income"),
         )
 
         expense_col, self._expense_layout = self._build_item_column(
-            title=L10N.GIDERLER,
-            icon="shopping-cart",
-            icon_color="@COLOR_DANGER",
-            header_css="dangerHeader",
-            btn_css="dangerButton",
-            btn_icon="plus",
-            btn_icon_color="@COLOR_TEXT_WHITE",
-            on_add=lambda: self._add_row("", 0.0, "expense"),
+            L10N.GIDERLER,
+            _ColSpec("shopping-cart", "@COLOR_DANGER", "dangerHeader", "dangerButton", "plus", "@COLOR_TEXT_WHITE"),
+            lambda: self._add_row("", 0.0, "expense"),
         )
 
         summary_col = self._build_summary_col()
@@ -75,35 +74,24 @@ class BudgetFormPanel(QFrame):
         main.addWidget(self._make_vsep())
         main.addWidget(summary_col, stretch=1)
 
-    def _build_item_column(
-        self,
-        title: str,
-        icon: str,
-        icon_color: str,
-        header_css: str,
-        btn_css: str,
-        btn_icon: str,
-        btn_icon_color: str,
-        on_add,
-    ) -> tuple:
+    def _build_item_column(self, title: str, col_spec: _ColSpec, on_add) -> tuple:
         col = QFrame()
         col.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         vbox = QVBoxLayout(col)
         vbox.setContentsMargins(10, 8, 10, 8)
         vbox.setSpacing(8)
 
-        # Başlık satırı
         header = QHBoxLayout()
         header.setSpacing(6)
-        icon_lbl = IconLabel(icon, color=icon_color, size=18)
+        icon_lbl = IconLabel(col_spec.icon, color=col_spec.icon_color, size=18)
         lbl = QLabel(title)
-        lbl.setProperty("cssClass", header_css)
+        lbl.setProperty("cssClass", col_spec.header_css)
 
         btn_add = AnimatedButton()
-        btn_add.setIconName(btn_icon, color=btn_icon_color, size=16)
+        btn_add.setIconName(col_spec.btn_icon, color=col_spec.btn_icon_color, size=16)
         btn_add.setFixedSize(32, 32)
         btn_add.setToolTip(L10N.EKLE)
-        btn_add.setProperty("cssClass", btn_css)
+        btn_add.setProperty("cssClass", col_spec.btn_css)
         btn_add.clicked.connect(on_add)
 
         header.addWidget(icon_lbl)
