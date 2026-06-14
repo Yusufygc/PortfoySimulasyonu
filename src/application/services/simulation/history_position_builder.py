@@ -4,8 +4,17 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
+from typing import NamedTuple
+
 from src.application.services.reporting.daily_history_models import DailyPosition
 from src.domain.models.portfolio import Portfolio
+
+
+class _DayCtx(NamedTuple):
+    prices_for_day: "dict[int, Decimal]"
+    ticker_map: "dict[int, str]"
+    last_close_by_stock: "dict[int, Decimal]"
+    total_value: Decimal
 
 
 @dataclass
@@ -29,16 +38,9 @@ class HistoryPositionBuilder:
         total_cost_basis = portfolio.total_cost()
         positions: list[DailyPosition] = []
 
+        day_ctx = _DayCtx(prices_for_day, ticker_map, last_close_by_stock, total_value)
         for stock_id, position in portfolio.positions.items():
-            daily_position = self._build_position(
-                current_date=current_date,
-                stock_id=stock_id,
-                position=position,
-                prices_for_day=prices_for_day,
-                ticker_map=ticker_map,
-                last_close_by_stock=last_close_by_stock,
-                total_value=total_value,
-            )
+            daily_position = self._build_position(current_date, stock_id, position, day_ctx)
             if daily_position is None:
                 continue
             positions.append(daily_position)
@@ -56,25 +58,15 @@ class HistoryPositionBuilder:
         current_date: date,
         stock_id: int,
         position,
-        prices_for_day: dict[int, Decimal],
-        ticker_map: dict[int, str],
-        last_close_by_stock: dict[int, Decimal],
-        total_value: Decimal,
+        ctx: _DayCtx,
     ) -> DailyPosition | None:
         qty = position.total_quantity
         if qty <= 0:
             return None
-        metrics = self._position_metrics(
-            stock_id=stock_id,
-            position=position,
-            quantity=qty,
-            prices_for_day=prices_for_day,
-            last_close_by_stock=last_close_by_stock,
-            total_value=total_value,
-        )
+        metrics = self._position_metrics(stock_id, position, qty, ctx)
         return DailyPosition(
             date=current_date,
-            ticker=ticker_map.get(stock_id, f"ID_{stock_id}"),
+            ticker=ctx.ticker_map.get(stock_id, f"ID_{stock_id}"),
             quantity=qty,
             avg_cost=position.average_cost or Decimal("0"),
             cost_basis=position.total_cost,
@@ -92,11 +84,9 @@ class HistoryPositionBuilder:
         stock_id: int,
         position,
         quantity: int,
-        prices_for_day: dict[int, Decimal],
-        last_close_by_stock: dict[int, Decimal],
-        total_value: Decimal,
+        ctx: _DayCtx,
     ) -> dict:
-        close_price = prices_for_day.get(stock_id)
+        close_price = ctx.prices_for_day.get(stock_id)
         if close_price is None:
             return {
                 "close_price": None,
@@ -110,7 +100,7 @@ class HistoryPositionBuilder:
 
         cost_basis = position.total_cost
         position_value = position.market_value(close_price)
-        last_close = last_close_by_stock.get(stock_id)
+        last_close = ctx.last_close_by_stock.get(stock_id)
         daily_change = (close_price / last_close) - 1 if last_close is not None and last_close != 0 else None
         unrealized_tl = position.unrealized_pl(close_price)
         daily_pnl = (close_price - last_close) * Decimal(quantity) if last_close is not None and last_close != 0 else unrealized_tl
@@ -121,5 +111,5 @@ class HistoryPositionBuilder:
             "daily_pnl": daily_pnl,
             "unrealized_tl": unrealized_tl,
             "unrealized_pct": (unrealized_tl / cost_basis) if cost_basis != 0 else None,
-            "weight_pct": (position_value / total_value) if total_value else None,
+            "weight_pct": (position_value / ctx.total_value) if ctx.total_value else None,
         }

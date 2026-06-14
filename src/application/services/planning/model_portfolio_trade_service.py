@@ -202,10 +202,14 @@ def _filter_movements_until(movements, as_of: date | tuple[date, time | None] | 
     )
 
 
+class _ModelTradeTarget(NamedTuple):
+    portfolio_id: int
+    stock_id: int
+    trade_side: ModelTradeSide
+
+
 def _build_trade(
-    portfolio_id: int,
-    stock_id: int,
-    trade_side: ModelTradeSide,
+    target: _ModelTradeTarget,
     quantity: int,
     price: Decimal,
     trade_date: date,
@@ -213,12 +217,12 @@ def _build_trade(
 ) -> ModelPortfolioTrade:
     factory = (
         ModelPortfolioTrade.create_buy
-        if trade_side == ModelTradeSide.BUY
+        if target.trade_side == ModelTradeSide.BUY
         else ModelPortfolioTrade.create_sell
     )
     return factory(
-        portfolio_id=portfolio_id,
-        stock_id=stock_id,
+        portfolio_id=target.portfolio_id,
+        stock_id=target.stock_id,
         trade_date=trade_date,
         quantity=quantity,
         price=price,
@@ -345,9 +349,7 @@ class ModelPortfolioTradeService:
         )
 
         trade = _build_trade(
-            portfolio_id=portfolio_id,
-            stock_id=stock_id,
-            trade_side=trade_side,
+            _ModelTradeTarget(portfolio_id, stock_id, trade_side),
             quantity=quantity,
             price=price,
             trade_date=trade_date,
