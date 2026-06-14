@@ -7,11 +7,11 @@ from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
-from src.application.services.corporate_actions.candidate_discovery_service import CorporateActionDiscoveryService
+from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
 from src.application.services.corporate_actions.candidate_review_service import CorporateActionCandidateReviewService
 from src.application.services.corporate_actions.price_adjustment_service import CorporateActionPriceAdjustmentService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
-from src.application.services.planning.optimization_service import OptimizationService
+from src.application.services.planning.optimization_service import OptimizationDeps, OptimizationService
 from src.application.services.planning.planning_service import PlanningService
 from src.application.services.planning.risk_profile_service import RiskProfileService
 from src.application.services.portfolio.cash_movement_service import CashMovementService
@@ -235,10 +235,12 @@ def _build_portfolio_services(repositories, market_clients, foundation, model_po
             stock_repo=repositories.stock_repo,
         ),
         "optimization_service": OptimizationService(
-            portfolio_service=foundation["portfolio_service"],
-            model_portfolio_service=model_portfolio_service,
-            stock_repo=repositories.stock_repo,
-            market_data_provider=market_clients.optimization_market_data_provider,
+            deps=OptimizationDeps(
+                portfolio_service=foundation["portfolio_service"],
+                model_portfolio_service=model_portfolio_service,
+                stock_repo=repositories.stock_repo,
+                market_data_provider=market_clients.optimization_market_data_provider,
+            ),
         ),
         "planning_service": PlanningService(planning_repo=repositories.planning_repo),
         "risk_profile_service": RiskProfileService(risk_profile_repo=repositories.risk_profile_repo),
@@ -248,13 +250,15 @@ def _build_portfolio_services(repositories, market_clients, foundation, model_po
 def _build_corporate_action_services(repositories, corp_action_service) -> dict:
     return {
         "corporate_action_discovery_service": CorporateActionDiscoveryService(
-            provider=KapMkkCorporateActionProvider(),
-            candidate_repo=repositories.corporate_action_candidate_repo,
-            stock_repo=repositories.stock_repo,
-            action_repo=repositories.corporate_action_repo,
-            portfolio_repo=repositories.portfolio_repo,
-            watchlist_repo=repositories.watchlist_repo,
-            model_portfolio_repo=repositories.model_portfolio_repo,
+            deps=CandidateDiscoveryDeps(
+                provider=KapMkkCorporateActionProvider(),
+                candidate_repo=repositories.corporate_action_candidate_repo,
+                stock_repo=repositories.stock_repo,
+                action_repo=repositories.corporate_action_repo,
+                portfolio_repo=repositories.portfolio_repo,
+                watchlist_repo=repositories.watchlist_repo,
+                model_portfolio_repo=repositories.model_portfolio_repo,
+            ),
         ),
         "corporate_action_candidate_review_service": CorporateActionCandidateReviewService(
             candidate_repo=repositories.corporate_action_candidate_repo,

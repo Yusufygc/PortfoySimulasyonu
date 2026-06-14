@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from src.application.services.planning.optimization_market_data import OptimizationPolicy
-from src.application.services.planning.optimization_service import OptimizationService
+from src.application.services.planning.optimization_service import OptimizationDeps, OptimizationService
 
 
 class FakeMarketDataProvider:
@@ -60,10 +60,12 @@ class FakeStockRepo:
 
 def _make_service(provider):
     return OptimizationService(
-        portfolio_service=FakePortfolioService(),
-        model_portfolio_service=FakeModelPortfolioService(),
-        stock_repo=FakeStockRepo(),
-        market_data_provider=provider,
+        deps=OptimizationDeps(
+            portfolio_service=FakePortfolioService(),
+            model_portfolio_service=FakeModelPortfolioService(),
+            stock_repo=FakeStockRepo(),
+            market_data_provider=provider,
+        ),
         policy=OptimizationPolicy(risk_free_rate=0.01, max_single_weight=0.70),
     )
 
@@ -148,10 +150,12 @@ class FakeThreeStockPortfolioService:
 def test_optimization_graceful_handling_invalid_tickers():
     provider = PartialMarketDataProvider()
     service = OptimizationService(
-        portfolio_service=FakeThreeStockPortfolioService(),
-        model_portfolio_service=FakeModelPortfolioService(),
-        stock_repo=FakeThreeStockRepo(),
-        market_data_provider=provider,
+        deps=OptimizationDeps(
+            portfolio_service=FakeThreeStockPortfolioService(),
+            model_portfolio_service=FakeModelPortfolioService(),
+            stock_repo=FakeThreeStockRepo(),
+            market_data_provider=provider,
+        ),
         policy=OptimizationPolicy(risk_free_rate=0.01, max_single_weight=0.70),
     )
 

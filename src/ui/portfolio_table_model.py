@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List, Dict
+from typing import Dict, List, NamedTuple, Optional
 from src.qt_compat.qtgui import QColor, QFont
 from src.qt_compat.qtcore import QAbstractTableModel, Qt, QModelIndex
 from decimal import Decimal
@@ -10,6 +10,14 @@ from decimal import Decimal
 from src.domain.models.position import Position
 from src.ui.formatters import display_ticker
 from src.ui.shared.locale_tr import L10N
+
+
+class PortfolioTableData(NamedTuple):
+    positions: List[Position]
+    price_map: Dict[int, Decimal]
+    ticker_map: Dict[int, str]
+    previous_close_map: Optional[Dict[int, Decimal]] = None
+    event_bus: object = None
 
 
 def _fmt_price(v) -> str:
@@ -51,21 +59,13 @@ class PortfolioTableModel(QAbstractTableModel):
       5: Gerçekleşmemiş Kar/Zarar
     """
 
-    def __init__(
-        self,
-        positions: List[Position],
-        price_map: Dict[int, Decimal],
-        ticker_map: Dict[int, str],
-        previous_close_map: Dict[int, Decimal] | None = None,
-        event_bus=None,
-        parent=None,
-    ):
+    def __init__(self, data: PortfolioTableData, parent=None):
         super().__init__(parent)
-        self._positions = positions
-        self._price_map = price_map
-        self._ticker_map = ticker_map  # { stock_id: "ASELS.IS" ... }
-        self._previous_close_map = previous_close_map or {}
-        self._event_bus = event_bus
+        self._positions = data.positions
+        self._price_map = data.price_map
+        self._ticker_map = data.ticker_map
+        self._previous_close_map = data.previous_close_map or {}
+        self._event_bus = data.event_bus
 
         self._headers = [
             L10N.HISSE_BASLIK,

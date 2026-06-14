@@ -26,7 +26,7 @@ from src.domain.models.trade import TradeSide
 from src.ui.formatters import display_ticker
 from src.ui.pages.base_page import BasePage
 
-from .stock_chart_widget import StockChartWidget
+from .stock_chart_widget import ChartContext, StockChartWidget
 from .stock_stats_panel import StockStatsPanel
 from .stock_trade_submitter import StockTradeSubmitter
 from .trade_form_panel import TradeFormPanel
@@ -290,14 +290,14 @@ class StockDetailPage(BasePage):
         if not self.current_ticker:
             return
         model_detail = self._model_position_detail() if self._is_model_context() else None
-        self.chart_widget.draw_chart(
-            self.current_ticker,
-            self.current_stock_id,
-            self.current_price,
-            None if self._is_model_context() else self.portfolio_service,
+        self.chart_widget.draw_chart(ChartContext(
+            ticker=self.current_ticker,
+            stock_id=self.current_stock_id,
+            price=self.current_price,
+            portfolio_service=None if self._is_model_context() else self.portfolio_service,
             price_repo=self.price_repo,
             average_cost=model_detail.get("avg_cost") if model_detail else None,
-        )
+        ))
         if self._is_model_context():
             self.stats_panel.update_model_stats(
                 self.model_portfolio_service,

@@ -8,7 +8,7 @@ from src.qt_compat.qtwidgets import QMessageBox
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionResult
 from src.domain.models.corporate_action import ActionType
 from src.ui.formatters import display_ticker
-from src.ui.widgets.dashboard.dialogs.corporate_action_dialog import CorporateActionDialog
+from src.ui.widgets.dashboard.dialogs.corporate_action_dialog import CorporateActionDialog, CorporateActionDialogContext
 from src.ui.widgets.shared import Toast
 from src.ui.worker import Worker
 
@@ -37,12 +37,14 @@ class DashboardCorporateActionActions:
         current_price = price_map.get(position.stock_id)
 
         dialog = CorporateActionDialog(
-            ticker=ticker,
-            stock_id=position.stock_id,
-            current_qty=position.total_quantity,
-            avg_cost=position.average_cost,
-            total_cost=position.total_cost,
-            current_price=current_price,
+            ctx=CorporateActionDialogContext(
+                ticker=ticker,
+                stock_id=position.stock_id,
+                current_qty=position.total_quantity,
+                avg_cost=position.average_cost,
+                total_cost=position.total_cost,
+                current_price=current_price,
+            ),
             parent=self._page,
         )
         if dialog.exec() != dialog.Accepted:

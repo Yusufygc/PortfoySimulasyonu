@@ -7,7 +7,7 @@ from typing import Dict, List
 
 from src.domain.models.portfolio import Portfolio
 from src.domain.models.position import Position
-from src.ui.portfolio_table_model import PortfolioTableModel
+from src.ui.portfolio_table_model import PortfolioTableData, PortfolioTableModel
 from src.ui.widgets.shared import Toast
 from src.ui.shared.price_utils import build_previous_close_map
 
@@ -57,11 +57,13 @@ class DashboardPresenter:
 
         if self._page.portfolio_model is None:
             self._page.portfolio_model = PortfolioTableModel(
-                positions,
-                price_map,
-                ticker_map,
-                previous_close_map=previous_close_map,
-                event_bus=self._page.container.event_bus,
+                PortfolioTableData(
+                    positions=positions,
+                    price_map=price_map,
+                    ticker_map=ticker_map,
+                    previous_close_map=previous_close_map,
+                    event_bus=self._page.container.event_bus,
+                ),
                 parent=self._page,
             )
             self._page.portfolio_table_widget.set_model(self._page.portfolio_model)

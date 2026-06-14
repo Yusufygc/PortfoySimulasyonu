@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from typing import Iterable, Sequence
+from typing import Iterable, NamedTuple, Optional, Sequence
 
 from src.domain.models.corporate_action import CorporateAction, ActionType
 from src.domain.models.corporate_action_candidate import (
@@ -28,6 +28,16 @@ from src.domain.ports.services.i_corporate_action_provider import (
 logger = logging.getLogger(__name__)
 
 
+class CandidateDiscoveryDeps(NamedTuple):
+    provider: ICorporateActionProvider
+    candidate_repo: ICorporateActionCandidateRepository
+    stock_repo: IStockRepository
+    action_repo: ICorporateActionRepository
+    portfolio_repo: Optional[IPortfolioRepository] = None
+    watchlist_repo: Optional[IWatchlistRepository] = None
+    model_portfolio_repo: Optional[IModelPortfolioRepository] = None
+
+
 @dataclass(frozen=True)
 class CorporateActionDiscoveryResult:
     fetched_count: int
@@ -39,24 +49,14 @@ class CorporateActionDiscoveryResult:
 
 
 class CorporateActionDiscoveryService:
-    def __init__(
-        self,
-        *,
-        provider: ICorporateActionProvider,
-        candidate_repo: ICorporateActionCandidateRepository,
-        stock_repo: IStockRepository,
-        action_repo: ICorporateActionRepository,
-        portfolio_repo: IPortfolioRepository | None = None,
-        watchlist_repo: IWatchlistRepository | None = None,
-        model_portfolio_repo: IModelPortfolioRepository | None = None,
-    ) -> None:
-        self._provider = provider
-        self._candidate_repo = candidate_repo
-        self._stock_repo = stock_repo
-        self._action_repo = action_repo
-        self._portfolio_repo = portfolio_repo
-        self._watchlist_repo = watchlist_repo
-        self._model_portfolio_repo = model_portfolio_repo
+    def __init__(self, deps: CandidateDiscoveryDeps) -> None:
+        self._provider = deps.provider
+        self._candidate_repo = deps.candidate_repo
+        self._stock_repo = deps.stock_repo
+        self._action_repo = deps.action_repo
+        self._portfolio_repo = deps.portfolio_repo
+        self._watchlist_repo = deps.watchlist_repo
+        self._model_portfolio_repo = deps.model_portfolio_repo
 
     def discover(
         self,

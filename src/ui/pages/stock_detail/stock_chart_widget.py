@@ -6,6 +6,7 @@ from src.ui.shared.locale_tr import L10N
 import bisect
 import logging
 from datetime import date, datetime, time, timedelta
+from typing import NamedTuple
 
 import pyqtgraph as pg
 from src.qt_compat.qtcore import Qt, QPointF, QThreadPool
@@ -66,6 +67,15 @@ class CurrencyAxisItem(pg.AxisItem):
             except (TypeError, ValueError):
                 labels.append("")
         return labels
+
+
+class ChartContext(NamedTuple):
+    ticker: str
+    stock_id: object
+    price: object
+    portfolio_service: object
+    price_repo: object = None
+    average_cost: object = None
 
 
 class StockChartWidget(QFrame):
@@ -160,16 +170,8 @@ class StockChartWidget(QFrame):
         self.plot_widget.getPlotItem().setTitle(message, color=TEXT_SECONDARY, size="13px")
         self.plot_widget.enableAutoRange()
 
-    def draw_chart(
-        self,
-        current_ticker: str,
-        current_stock_id,
-        current_price,
-        portfolio_service,
-        price_repo=None,
-        average_cost=None,
-    ):
-        if not current_ticker:
+    def draw_chart(self, ctx: ChartContext):
+        if not ctx.ticker:
             self.draw_empty_chart(L10N.GRAFIK_VERISI_BEKLENIYOR)
             return
 
@@ -179,9 +181,9 @@ class StockChartWidget(QFrame):
             end_date = date.today()
             start_date = end_date - timedelta(days=180)
 
-            points = self._db_series_to_points(price_repo, current_stock_id, start_date, end_date)
+            points = self._db_series_to_points(ctx.price_repo, ctx.stock_id, start_date, end_date)
             if not points and self._price_series_provider is not None:
-                yf_ticker = current_ticker if "." in current_ticker else f"{current_ticker}.IS"
+                yf_ticker = ctx.ticker if "." in ctx.ticker else f"{ctx.ticker}.IS"
                 try:
                     series = self._price_series_provider(yf_ticker, start_date, end_date)
                 except Exception as exc:
@@ -190,15 +192,15 @@ class StockChartWidget(QFrame):
                 points = self._provider_series_to_points(series)
 
             avg_cost = (
-                float(average_cost)
-                if average_cost is not None
-                else self._average_cost(current_stock_id, portfolio_service)
+                float(ctx.average_cost)
+                if ctx.average_cost is not None
+                else self._average_cost(ctx.stock_id, ctx.portfolio_service)
             )
             return points, avg_cost
 
         worker = Worker(_fetch)
         worker.signals.result.connect(
-            lambda result: self._render_chart(result[0], result[1], current_price, current_ticker)
+            lambda result: self._render_chart(result[0], result[1], ctx.price, ctx.ticker)
         )
         worker.signals.error.connect(lambda _err: self.draw_empty_chart(L10N.GRAFIK_YUKLENEMEDI))
         QThreadPool.globalInstance().start(worker)

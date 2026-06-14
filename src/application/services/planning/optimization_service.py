@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, NamedTuple, Optional
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,151 @@ from src.domain.models.optimization_result import (
 )
 
 
+def _split_tickers_by_price_history(
+    price_df: pd.DataFrame,
+    tickers: List[str],
+) -> tuple[list[str], list[str]]:
+    valid_tickers = list(price_df.columns) if not price_df.empty else []
+    invalid_tickers = [ticker for ticker in tickers if ticker not in valid_tickers]
+    return valid_tickers, invalid_tickers
+
+
+def _ensure_optimizable_history(
+    price_df: pd.DataFrame,
+    valid_tickers: list[str],
+    invalid_tickers: list[str],
+) -> None:
+    if len(valid_tickers) >= 2 and not price_df.empty and len(price_df) >= 60:
+        return
+
+    if invalid_tickers:
+        raise ValueError(
+            "Optimizasyon icin yeterli fiyat gecmisi olan en az 2 hisse bulunmalidir.\n"
+            f"Gecersiz veya yetersiz verisi olan hisseler: {', '.join(invalid_tickers)}"
+        )
+    raise ValueError("Yeterli fiyat gecmisi bulunamadi (en az 60 gun gerekli).")
+
+
+def _build_return_model(
+    price_df: pd.DataFrame,
+    trading_days_per_year: int,
+) -> tuple[pd.Series, pd.DataFrame]:
+    log_returns = np.log(price_df / price_df.shift(1)).replace([np.inf, -np.inf], np.nan).dropna()
+    if log_returns.empty or len(log_returns) < 2:
+        raise ValueError("Yeterli fiyat gecmisi bulunamadi (en az 60 gun gerekli).")
+
+    mean_returns = log_returns.mean() * trading_days_per_year
+    estimator = LedoitWolf()
+    estimator.fit(log_returns.values)
+    cov_matrix = pd.DataFrame(
+        estimator.covariance_ * trading_days_per_year,
+        index=log_returns.columns,
+        columns=log_returns.columns,
+    )
+    return mean_returns, cov_matrix
+
+
+def _portfolio_volatility(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
+    variance = float(weights.T @ cov_matrix @ weights)
+    if variance <= 0 or not np.isfinite(variance):
+        return 0.0
+    return float(np.sqrt(variance))
+
+
+def _negative_sharpe_ratio(
+    weights: np.ndarray,
+    mean_returns: np.ndarray,
+    cov_matrix: np.ndarray,
+    risk_free_rate: float,
+) -> float:
+    portfolio_return = np.sum(mean_returns * weights)
+    portfolio_volatility = _portfolio_volatility(weights, cov_matrix)
+    if portfolio_volatility <= 0 or not np.isfinite(portfolio_volatility):
+        return 1e9
+    return -(portfolio_return - risk_free_rate) / portfolio_volatility
+
+
+def _optimize_valid_weights(
+    mean_returns: np.ndarray,
+    cov_matrix: np.ndarray,
+    risk_free_rate: float,
+    max_single_weight: float,
+    remaining_weight: float,
+) -> np.ndarray:
+    num_assets = len(mean_returns)
+    initial_weights = np.array([1.0 / num_assets] * num_assets)
+    constraints = {"type": "eq", "fun": lambda weights: np.sum(weights) - 1}
+    max_weight = max(max_single_weight, 1.0 / num_assets)
+    bounds = tuple((0.0, max_weight) for _ in range(num_assets))
+
+    result = minimize(
+        _negative_sharpe_ratio,
+        initial_weights,
+        args=(mean_returns, cov_matrix, risk_free_rate),
+        method="SLSQP",
+        bounds=bounds,
+        constraints=constraints,
+    )
+
+    if not result.success:
+        raise ValueError("Optimizasyon hesaplanamadi. Lutfen tekrar deneyin.")
+
+    return result.x * remaining_weight
+
+
+def _suggestion_action(weight_diff: float) -> str:
+    if weight_diff > 1.0:
+        return "EKLE"
+    if weight_diff < -1.0:
+        return "AZALT"
+    return "TUT"
+
+
+def _build_partial_suggestions(
+    tickers: List[str],
+    valid_tickers: list[str],
+    invalid_tickers: list[str],
+    current_weights: np.ndarray,
+    optimal_valid_weights: np.ndarray,
+) -> list[OptimizationSuggestion]:
+    suggestions = []
+    for index, ticker in enumerate(valid_tickers):
+        current_weight = current_weights[tickers.index(ticker)] * 100
+        optimal_weight = optimal_valid_weights[index] * 100
+        change = optimal_weight - current_weight
+        suggestions.append(
+            OptimizationSuggestion(
+                symbol=ticker,
+                current_weight=current_weight,
+                optimal_weight=optimal_weight,
+                change=change,
+                action=_suggestion_action(change),
+            )
+        )
+
+    for ticker in invalid_tickers:
+        current_weight = current_weights[tickers.index(ticker)] * 100
+        suggestions.append(
+            OptimizationSuggestion(
+                symbol=ticker,
+                current_weight=current_weight,
+                optimal_weight=current_weight,
+                change=0.0,
+                action="TUT",
+            )
+        )
+
+    suggestions.sort(key=lambda item: item.optimal_weight, reverse=True)
+    return suggestions
+
+
+class OptimizationDeps(NamedTuple):
+    portfolio_service: object
+    model_portfolio_service: object
+    stock_repo: object
+    market_data_provider: OptimizationMarketDataProvider
+
+
 class OptimizationService:
     TRADING_DAYS_PER_YEAR = 252
     DEFAULT_RISK_FREE_RATE = 0.30
@@ -25,16 +170,13 @@ class OptimizationService:
 
     def __init__(
         self,
-        portfolio_service,
-        model_portfolio_service,
-        stock_repo,
-        market_data_provider: OptimizationMarketDataProvider,
+        deps: OptimizationDeps,
         risk_free_rate: float | None = None,
         policy: OptimizationPolicy | None = None,
     ) -> None:
-        self._portfolio_service = portfolio_service
-        self._model_portfolio_service = model_portfolio_service
-        self._stock_repo = stock_repo
+        self._portfolio_service = deps.portfolio_service
+        self._model_portfolio_service = deps.model_portfolio_service
+        self._stock_repo = deps.stock_repo
 
         base_policy = policy or OptimizationPolicy()
         if risk_free_rate is not None:
@@ -45,7 +187,7 @@ class OptimizationService:
             )
         self._policy = base_policy
         self._risk_free_rate = base_policy.risk_free_rate
-        self._market_data_provider = market_data_provider
+        self._market_data_provider = deps.market_data_provider
 
     def optimize_dashboard_portfolio(self) -> OptimizationResult:
         portfolio = self._portfolio_service.get_current_portfolio()
@@ -91,108 +233,34 @@ class OptimizationService:
         current_weights: np.ndarray,
     ) -> OptimizationResult:
         price_df = self._get_historical_prices(tickers, days=504)
-        
-        # Geçerli ve geçersiz hisseleri tespit et
-        valid_tickers = list(price_df.columns) if not price_df.empty else []
-        invalid_tickers = [t for t in tickers if t not in valid_tickers]
+        valid_tickers, invalid_tickers = _split_tickers_by_price_history(price_df, tickers)
+        _ensure_optimizable_history(price_df, valid_tickers, invalid_tickers)
 
-        if len(valid_tickers) < 2 or price_df.empty or len(price_df) < 60:
-            if invalid_tickers:
-                raise ValueError(
-                    f"Optimizasyon için yeterli fiyat geçmişi olan en az 2 hisse bulunmalıdır.\n"
-                    f"Geçersiz veya yetersiz verisi olan hisseler: {', '.join(invalid_tickers)}"
-                )
-            raise ValueError("Yeterli fiyat gecmisi bulunamadi (en az 60 gun gerekli).")
+        mean_returns, cov_matrix = _build_return_model(price_df, self._policy.trading_days_per_year)
 
-        log_returns = np.log(price_df / price_df.shift(1)).replace([np.inf, -np.inf], np.nan).dropna()
-        if log_returns.empty or len(log_returns) < 2:
-            raise ValueError("Yeterli fiyat gecmisi bulunamadi (en az 60 gun gerekli).")
-        mean_returns = log_returns.mean() * self._policy.trading_days_per_year
-
-        lw = LedoitWolf()
-        lw.fit(log_returns.values)
-        cov_matrix = pd.DataFrame(
-            lw.covariance_ * self._policy.trading_days_per_year,
-            index=log_returns.columns,
-            columns=log_returns.columns,
-        )
-
-        num_assets = len(valid_tickers)
-        
-        # Geçersiz/yetersiz hisselerin toplam mevcut ağırlığı
         invalid_indices = [tickers.index(t) for t in invalid_tickers]
         invalid_sum = float(np.sum(current_weights[invalid_indices])) if invalid_tickers else 0.0
-        
-        # Geçerli hisseler için kalan pay (1 - invalid_sum)
         remaining_weight = max(0.0, 1.0 - invalid_sum)
-
-        # Alt portföyü 1.0 üzerinden optimize et, sonra kalan payla ölçekle
-        initial_weights = np.array([1.0 / num_assets] * num_assets)
-        constraints = {"type": "eq", "fun": lambda w: np.sum(w) - 1}
-        max_w = max(self._policy.max_single_weight, 1.0 / num_assets)
-        bounds = tuple((0.0, max_w) for _ in range(num_assets))
-
-        result = minimize(
-            self._negative_sharpe_ratio,
-            initial_weights,
-            args=(mean_returns.values, cov_matrix.values, self._risk_free_rate),
-            method="SLSQP",
-            bounds=bounds,
-            constraints=constraints,
+        optimal_weights_scaled = _optimize_valid_weights(
+            mean_returns.values,
+            cov_matrix.values,
+            self._risk_free_rate,
+            self._policy.max_single_weight,
+            remaining_weight,
         )
 
-        if not result.success:
-            raise ValueError("Optimizasyon hesaplanamadi. Lutfen tekrar deneyin.")
-
-        optimal_valid_weights = result.x
-        optimal_weights_scaled = optimal_valid_weights * remaining_weight
-
-        # Metrik hesaplaması
         valid_indices = [tickers.index(t) for t in valid_tickers]
         current_valid_weights = current_weights[valid_indices]
         
         current_metrics = self._calculate_metrics(current_valid_weights, mean_returns.values, cov_matrix.values)
         optimized_metrics = self._calculate_metrics(optimal_weights_scaled, mean_returns.values, cov_matrix.values)
-        
-        # Önerileri oluştur
-        suggestions = []
-        for i, ticker in enumerate(valid_tickers):
-            curr_idx = tickers.index(ticker)
-            curr_w = current_weights[curr_idx] * 100
-            opt_w = optimal_weights_scaled[i] * 100
-            diff = opt_w - curr_w
-            
-            if diff > 1.0:
-                action = "EKLE"
-            elif diff < -1.0:
-                action = "AZALT"
-            else:
-                action = "TUT"
-                
-            suggestions.append(
-                OptimizationSuggestion(
-                    symbol=ticker,
-                    current_weight=curr_w,
-                    optimal_weight=opt_w,
-                    change=diff,
-                    action=action,
-                )
-            )
-
-        for ticker in invalid_tickers:
-            curr_idx = tickers.index(ticker)
-            curr_w = current_weights[curr_idx] * 100
-            suggestions.append(
-                OptimizationSuggestion(
-                    symbol=ticker,
-                    current_weight=curr_w,
-                    optimal_weight=curr_w,
-                    change=0.0,
-                    action="TUT",
-                )
-            )
-            
-        suggestions.sort(key=lambda s: s.optimal_weight, reverse=True)
+        suggestions = _build_partial_suggestions(
+            tickers,
+            valid_tickers,
+            invalid_tickers,
+            current_weights,
+            optimal_weights_scaled,
+        )
 
         return OptimizationResult(
             current_metrics=current_metrics,
@@ -207,11 +275,7 @@ class OptimizationService:
         cov_matrix: np.ndarray,
         risk_free_rate: float,
     ) -> float:
-        portfolio_return = np.sum(mean_returns * weights)
-        portfolio_volatility = OptimizationService._portfolio_volatility(weights, cov_matrix)
-        if portfolio_volatility <= 0 or not np.isfinite(portfolio_volatility):
-            return 1e9
-        return -(portfolio_return - risk_free_rate) / portfolio_volatility
+        return _negative_sharpe_ratio(weights, mean_returns, cov_matrix, risk_free_rate)
 
     def _calculate_metrics(
         self,
@@ -240,10 +304,7 @@ class OptimizationService:
 
     @staticmethod
     def _portfolio_volatility(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
-        variance = float(weights.T @ cov_matrix @ weights)
-        if variance <= 0 or not np.isfinite(variance):
-            return 0.0
-        return float(np.sqrt(variance))
+        return _portfolio_volatility(weights, cov_matrix)
 
     @staticmethod
     def _build_suggestions(
@@ -257,20 +318,13 @@ class OptimizationService:
             opt_w = optimal_weights[i] * 100
             diff = opt_w - curr_w
 
-            if diff > 1.0:
-                action = "EKLE"
-            elif diff < -1.0:
-                action = "AZALT"
-            else:
-                action = "TUT"
-
             suggestions.append(
                 OptimizationSuggestion(
                     symbol=ticker,
                     current_weight=curr_w,
                     optimal_weight=opt_w,
                     change=diff,
-                    action=action,
+                    action=_suggestion_action(diff),
                 )
             )
 

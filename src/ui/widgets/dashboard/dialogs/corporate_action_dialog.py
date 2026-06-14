@@ -14,7 +14,7 @@ from __future__ import annotations
 from src.ui.shared.locale_tr import L10N
 
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Dict, NamedTuple, Optional, Any
 
 from src.qt_compat.qtcore import Qt, QDate
 from src.qt_compat.qtwidgets import (
@@ -38,6 +38,15 @@ from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 from src.ui.widgets.shared import CurrencySpinBox
 
 
+class CorporateActionDialogContext(NamedTuple):
+    ticker: str
+    stock_id: int
+    current_qty: int
+    avg_cost: Optional[Decimal]
+    total_cost: Decimal
+    current_price: Optional[Decimal] = None
+
+
 class CorporateActionDialog(QDialog):
     """
     Sermaye artırımı giriş ve ön izleme diyaloğu.
@@ -51,26 +60,17 @@ class CorporateActionDialog(QDialog):
       current_price   : Anlık fiyat (None ise teorik fiyat hesaplanamaz)
     """
 
-    def __init__(
-        self,
-        ticker: str,
-        stock_id: int,
-        current_qty: int,
-        avg_cost: Optional[Decimal],
-        total_cost: Decimal,
-        current_price: Optional[Decimal] = None,
-        parent=None,
-    ):
+    def __init__(self, ctx: CorporateActionDialogContext, parent=None):
         super().__init__(parent)
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
         self.setWindowFlag(Qt.WindowCloseButtonHint, True)
-        self._ticker = ticker
-        self._display_ticker = display_ticker(ticker)
-        self._stock_id = stock_id
-        self._current_qty = current_qty
-        self._avg_cost = avg_cost or Decimal("0")
-        self._total_cost = total_cost
-        self._current_price = current_price
+        self._ticker = ctx.ticker
+        self._display_ticker = display_ticker(ctx.ticker)
+        self._stock_id = ctx.stock_id
+        self._current_qty = ctx.current_qty
+        self._avg_cost = ctx.avg_cost or Decimal("0")
+        self._total_cost = ctx.total_cost
+        self._current_price = ctx.current_price
 
         self.setWindowTitle(L10N.SERMAYE_ARTIRIMI_TMPL.format(ticker=self._display_ticker))
         self.setMinimumWidth(440)
