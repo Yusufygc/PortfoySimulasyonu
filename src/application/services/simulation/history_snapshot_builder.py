@@ -3,8 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from typing import NamedTuple
 
 from src.application.services.reporting.daily_history_models import DailyPortfolioSnapshot, PortfolioStatus
+
+
+class SnapshotValuation(NamedTuple):
+    portfolio_value: "Decimal | None"
+    total_cost_basis: Decimal
+    last_portfolio_value: "Decimal | None"
+    base_portfolio_value: "Decimal | None"
 
 
 @dataclass
@@ -18,33 +26,30 @@ class HistorySnapshotBuilder:
     def build(
         self,
         current_date: date,
-        portfolio_value: Decimal | None,
-        total_cost_basis: Decimal,
-        last_portfolio_value: Decimal | None,
-        base_portfolio_value: Decimal | None,
+        val: "SnapshotValuation",
         has_prices: bool,
         is_trading_day: bool,
     ) -> SnapshotBuildResult:
-        next_base = base_portfolio_value
-        next_last = last_portfolio_value
+        next_base = val.base_portfolio_value
+        next_last = val.last_portfolio_value
         returns = self._empty_returns()
 
-        if has_prices and portfolio_value is not None:
+        if has_prices and val.portfolio_value is not None:
             if next_base is None:
-                next_base = portfolio_value
+                next_base = val.portfolio_value
 
             returns = self._calculate_returns(
-                portfolio_value=portfolio_value,
-                total_cost_basis=total_cost_basis,
-                last_portfolio_value=last_portfolio_value,
+                portfolio_value=val.portfolio_value,
+                total_cost_basis=val.total_cost_basis,
+                last_portfolio_value=val.last_portfolio_value,
                 base_portfolio_value=next_base,
             )
-            next_last = portfolio_value
+            next_last = val.portfolio_value
         return SnapshotBuildResult(
             snapshot=DailyPortfolioSnapshot(
-                total_cost_basis=total_cost_basis,
+                total_cost_basis=val.total_cost_basis,
                 date=current_date,
-                total_value=portfolio_value,
+                total_value=val.portfolio_value,
                 daily_return_pct=returns["daily_return"],
                 cumulative_return_pct=returns["cumulative_return"],
                 daily_pnl=returns["daily_pnl"],
