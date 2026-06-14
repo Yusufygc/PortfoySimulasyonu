@@ -85,7 +85,15 @@ def _format_fallback_features(result, pos_factors: str, neg_factors: str) -> str
     return ""
 
 
+def _opt(value) -> str:
+    return str(value) if value is not None else "-"
+
+
 def _build_prompt_data_sections(result) -> str:
+    horizon_label = f"{result.horizon_days} Günlük" if result.horizon_days else "Horizon Sonu"
+    weekly_ret = f"{result.weekly_expected_return*100:.2f}%" if result.weekly_expected_return is not None else "-"
+    reasons = ", ".join(result.confidence_reasons) if result.confidence_reasons else "-"
+    warnings = ", ".join(result.confidence_warnings) if result.confidence_warnings else "-"
     return f"""[OTOMATİK ANALİZ AKTARIMI - Analiz Özeti]
 
 Hisse: {display_ticker(result.ticker)}
@@ -93,49 +101,53 @@ Analiz Durumu: {result.analysis_status}
 Oluşturulma: {result.generated_at}
 
 ── VERİ ──
-Son Kapanış: ₺{result.last_close or '-'}
-Son Gözlem Tarihi: {result.last_observed_date or '-'}
+Son Kapanış: ₺{_opt(result.last_close)}
+Son Gözlem Tarihi: {_opt(result.last_observed_date)}
 Veri Tazeliği: {result.data_freshness} ({result.staleness_days} gün geride)
 
 ── MODEL ──
-Model Adı: {result.model_name or '-'}
-Model Ailesi: {result.model_family or '-'}
-Doğrulama Modu: {result.validation_mode or '-'}
-Eğitim Tarihi: {result.trained_at or '-'}
+Model Adı: {_opt(result.model_name)}
+Model Ailesi: {_opt(result.model_family)}
+Doğrulama Modu: {_opt(result.validation_mode)}
+Eğitim Tarihi: {_opt(result.trained_at)}
 
 ── TAHMİN ──
-Trend: {result.trend_label or '-'}
+Trend: {_opt(result.trend_label)}
 Yön Beklentisi: {outlook_label(result.outlook)}
-Tahmin Horizonu: {result.horizon_days or '-'} gün
-Tahmini Fiyat: ₺{result.predicted_price or '-'}
-{f'{result.horizon_days} Günlük' if result.horizon_days else 'Horizon Sonu'} Bileşik Beklenen Getiri: {f'{result.weekly_expected_return*100:.2f}%' if result.weekly_expected_return is not None else '-'}
+Tahmin Horizonu: {_opt(result.horizon_days)} gün
+Tahmini Fiyat: ₺{_opt(result.predicted_price)}
+{horizon_label} Bileşik Beklenen Getiri: {weekly_ret}
 
 ── GÜVEN ──
 Güven Etiketi: {result.confidence_label}
-Güven Nedenleri: {', '.join(result.confidence_reasons) if result.confidence_reasons else '-'}
-Güven Uyarıları: {', '.join(result.confidence_warnings) if result.confidence_warnings else '-'}
+Güven Nedenleri: {reasons}
+Güven Uyarıları: {warnings}
 """
 
 
 def _build_prompt_template(result, pos_factors: str, neg_factors: str, features_formatted: str) -> str:
+    dir_acc = f"%{result.directional_accuracy:.1f}" if result.directional_accuracy else "-"
+    hit_rate = f"%{result.hit_rate:.1f}" if result.hit_rate else "-"
+    xai_avail = "Evet" if result.xai_available else "Hayır"
+    features_line = f"Genel Faktörler: {features_formatted}" if features_formatted else ""
     return _build_prompt_data_sections(result) + f"""
 ── PERFORMANS ──
-Bileşik Skor: {result.composite_score or '-'}
-Yön İsabeti: {f'%{result.directional_accuracy:.1f}' if result.directional_accuracy else '-'}
-İsabet Oranı: {f'%{result.hit_rate:.1f}' if result.hit_rate else '-'}
-Sharpe: {result.sharpe or '-'}
-RMSE: {result.rmse or '-'}
-MAE: {result.mae or '-'}
+Bileşik Skor: {_opt(result.composite_score)}
+Yön İsabeti: {dir_acc}
+İsabet Oranı: {hit_rate}
+Sharpe: {_opt(result.sharpe)}
+RMSE: {_opt(result.rmse)}
+MAE: {_opt(result.mae)}
 
 ── XAI (Açıklanabilirlik) ──
-XAI Mevcut: {'Evet' if result.xai_available else 'Hayır'}
-Yöntem: {result.xai_method or '-'}
+XAI Mevcut: {xai_avail}
+Yöntem: {_opt(result.xai_method)}
 Fiyatı Yukarı Çeken Faktörler:
 {pos_factors or '    (veri yok)'}
 Fiyata Aşağı Baskı Yapan Faktörler:
 {neg_factors or '    (veri yok)'}
-{f'Genel Faktörler: {features_formatted}' if features_formatted else ''}
-XAI Uyarısı: {result.xai_caveat or '-'}
+{features_line}
+XAI Uyarısı: {_opt(result.xai_caveat)}
 
 ── UYARI ──
 {result.disclaimer or 'Bu çıktı kişisel yatırım tavsiyesi değildir.'}

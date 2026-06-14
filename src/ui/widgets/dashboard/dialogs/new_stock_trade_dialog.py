@@ -180,6 +180,25 @@ def _build_page2_widgets(page2_widget, mode_group_parent):
     )
 
 
+def _resolve_ticker_lookup_result(dialog: "NewStockTradeDialog", current_ticker: str) -> "bool | None":
+    """Returns True/False if lookup state is conclusive, None to fall through to price check."""
+    if dialog._has_successful_lookup_for_ticker(current_ticker):
+        return True
+    if dialog._price_lookup_in_flight and dialog._last_lookup_ticker == current_ticker:
+        return False
+    if dialog.price_lookup_func and dialog._last_lookup_ticker != current_ticker:
+        dialog._on_ticker_edited()
+        return False
+    if (dialog.price_lookup_func and dialog._last_lookup_ticker == current_ticker
+            and not dialog._last_lookup_succeeded):
+        res = QMessageBox.question(
+            dialog, L10N.FIYAT_BULUNAMADI, L10N.BU_HISSE_ICIN_GUNCEL_FIYAT,
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        return res != QMessageBox.No
+    return None
+
+
 class NewStockTradeDialog(QDialog):
     """
     Yeni hisse/işlem ekleme sihirbazı.
@@ -368,36 +387,14 @@ class NewStockTradeDialog(QDialog):
         if not is_valid_ticker_input(ticker):
             QMessageBox.warning(self, L10N.ERROR, L10N.GECERSIZ_HISSE_KODU)
             return False
-
         current_ticker = self._normalized_ticker()
-        
-        # Lokal veya Çevrimiçi olarak hisse geçerli mi kontrol et
         if not is_valid_bist_ticker(current_ticker, self.fetched_stock_name):
             if not self._price_lookup_in_flight and self._last_lookup_ticker == current_ticker:
                 QMessageBox.warning(self, L10N.ERROR, L10N.GECERSIZ_HISSE_KODU)
                 return False
-
-        if self._has_successful_lookup_for_ticker(current_ticker):
-            return True
-
-        if self._price_lookup_in_flight and self._last_lookup_ticker == current_ticker:
-            return False
-
-        if self.price_lookup_func and self._last_lookup_ticker != current_ticker:
-            self._on_ticker_edited()
-            return False
-
-        if self.price_lookup_func and self._last_lookup_ticker == current_ticker and not self._last_lookup_succeeded:
-            res = QMessageBox.question(
-                self,
-                L10N.FIYAT_BULUNAMADI,
-                L10N.BU_HISSE_ICIN_GUNCEL_FIYAT,
-                QMessageBox.Yes | QMessageBox.No,
-            )
-            if res == QMessageBox.No:
-                return False
-            return True
-
+        result = _resolve_ticker_lookup_result(self, current_ticker)
+        if result is not None:
+            return result
         return self.current_price is not None
 
     def _validate_page2(self) -> bool:

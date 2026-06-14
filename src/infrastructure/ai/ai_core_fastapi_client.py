@@ -167,55 +167,52 @@ def _xai_factor_summary(item: XaiFactorItem) -> str:
     return f"{name}{group}{reason}"
 
 
+def _parse_float(block: dict, key: str) -> Optional[float]:
+    val = block.get(key)
+    try:
+        return None if val is None else float(val)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_int_safe(val) -> Optional[int]:
+    try:
+        return None if val is None else int(val)
+    except (TypeError, ValueError):
+        return None
+
+
 def _parse_peer(block: Optional[Dict[str, Any]]) -> Optional[PeerInfo]:
     """API `peer` bloğunu PeerInfo'ya taşır. Blok yok/boş ise None."""
     if not block:
         return None
-
-    def _f(key: str) -> Optional[float]:
-        val = block.get(key)
-        try:
-            return None if val is None else float(val)
-        except (TypeError, ValueError):
-            return None
-
     xai_pos = [_parse_xai_factor(f, "positive") for f in block.get("xai_top_positive", [])]
     xai_neg = [_parse_xai_factor(f, "negative") for f in block.get("xai_top_negative", [])]
-    universe = block.get("universe_size")
-    try:
-        universe = None if universe is None else int(universe)
-    except (TypeError, ValueError):
-        universe = None
-    horizon = block.get("kolb_horizon_days")
-    try:
-        horizon = None if horizon is None else int(horizon)
-    except (TypeError, ValueError):
-        horizon = None
     return PeerInfo(
         available=bool(block.get("available", False)),
         as_of_date=block.get("as_of_date"),
-        peer_score=_f("peer_score"),
-        peer_percentile=_f("peer_percentile"),
+        peer_score=_parse_float(block, "peer_score"),
+        peer_percentile=_parse_float(block, "peer_percentile"),
         peer_label=block.get("peer_label"),
-        universe_size=universe,
+        universe_size=_parse_int_safe(block.get("universe_size")),
         segment_liq=block.get("segment_liq"),
         segment_vol=block.get("segment_vol"),
         segment_sector=block.get("segment_sector"),
-        segment_icir=_f("segment_icir"),
+        segment_icir=_parse_float(block, "segment_icir"),
         confidence_label=block.get("confidence_label"),
-        confidence_reasons=list(block.get("confidence_reasons", []) or []),
-        confidence_warnings=list(block.get("confidence_warnings", []) or []),
+        confidence_reasons=list(block.get("confidence_reasons") or []),
+        confidence_warnings=list(block.get("confidence_warnings") or []),
         trend_label=block.get("trend_label"),
-        trend_prob_up=_f("trend_prob_up"),
-        trend_expected_return=_f("trend_expected_return"),
-        kolb_price_p50=_f("kolb_price_p50"),
-        kolb_price_low=_f("kolb_price_low"),
-        kolb_price_high=_f("kolb_price_high"),
-        kolb_horizon_days=horizon,
-        kolb_band_level=_f("kolb_band_level"),
+        trend_prob_up=_parse_float(block, "trend_prob_up"),
+        trend_expected_return=_parse_float(block, "trend_expected_return"),
+        kolb_price_p50=_parse_float(block, "kolb_price_p50"),
+        kolb_price_low=_parse_float(block, "kolb_price_low"),
+        kolb_price_high=_parse_float(block, "kolb_price_high"),
+        kolb_horizon_days=_parse_int_safe(block.get("kolb_horizon_days")),
+        kolb_band_level=_parse_float(block, "kolb_band_level"),
         xai_available=bool(block.get("xai_available", False)),
-        xai_method=block.get("xai_method", "") or "",
-        xai_caveat=block.get("xai_caveat", "") or "",
+        xai_method=block.get("xai_method") or "",
+        xai_caveat=block.get("xai_caveat") or "",
         xai_top_positive=xai_pos,
         xai_top_negative=xai_neg,
     )

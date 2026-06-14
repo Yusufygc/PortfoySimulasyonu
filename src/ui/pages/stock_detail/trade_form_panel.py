@@ -154,58 +154,61 @@ class TradeFormPanel(QFrame):
         # Bu bağımlılığı koparmak için bu sınıfta sadece arayüz bırakmalı.
         pass
 
-    def update_impact_preview(self, portfolio_service, current_stock_id: int, cash_balance: Decimal | None = None):
-        """Bu fonksiyon dışarıdan (Orchestrator tarafından) çağrılarak preview render eder."""
-        if not self.impact_card:
-            return
-            
-        layout = self.impact_grid
-        while layout.rowCount() > 0:
-            layout.removeRow(0)
-            
-        is_buy = self.btn_buy_mode.isChecked()
-        qty = int(self.spin_qty.value())
-        price = self.spin_price.decimal_value()
-        
+    def _get_position_qty_avg(self, current_stock_id: int, portfolio_service) -> "tuple[int, Decimal]":
         current_qty = 0
         current_avg = Decimal("0")
-        
         if current_stock_id and portfolio_service:
             portfolio = portfolio_service.get_current_portfolio()
             pos = portfolio.positions.get(current_stock_id)
             if pos:
                 current_qty = pos.total_quantity
                 current_avg = pos.average_cost or Decimal("0")
-        
-        if is_buy:
-            total_current_cost = current_qty * current_avg
-            new_cost = qty * price
-            total_new_qty = current_qty + qty
-            new_avg_cost = (total_current_cost + new_cost) / total_new_qty if total_new_qty > 0 else 0
-            
-            self._add_impact_row(L10N.YENI_ORT_MALIYET, f"₺ {new_avg_cost:,.2f}",
-                               state="balanced" if new_avg_cost != current_avg else "neutral")
-            self._add_impact_row(L10N.YENI_TOPLAM_LOT, f"{total_new_qty} (+{qty})")
-            self._add_impact_row(L10N.ISLEM_TUTARI, f"₺ {new_cost:,.2f}")
-            if cash_balance is not None:
-                remaining_cash = cash_balance - new_cost
-                if remaining_cash < 0:
-                    self._add_impact_row(L10N.KALAN_NAKIT, "₺ 0.00", state="negative")
-                    self._add_impact_row("Uyarı", L10N.YETERSIZ_NAKIT, state="negative")
-                else:
-                    self._add_impact_row(L10N.KALAN_NAKIT, f"₺ {remaining_cash:,.2f}", state="neutral")
-        else:
-            if qty > current_qty:
-                self._add_impact_row("Uyarı", L10N.YETERSIZ_BAKIYE, state="negative")
-            else:
-                realized_pl = (price - current_avg) * qty
-                remaining_qty = current_qty - qty
-                pl_state = "positive" if realized_pl >= 0 else "negative"
-                prefix = "+" if realized_pl >= 0 else ""
-                self._add_impact_row("Tahmini K/Z", f"{prefix}₺ {realized_pl:,.2f}", state=pl_state)
-                self._add_impact_row(L10N.KALAN_LOT, f"{remaining_qty}")
-                self._add_impact_row(L10N.ORT_MALIYET, f"₺ {current_avg:,.2f}")
+        return current_qty, current_avg
 
+    def _apply_buy_impact_rows(self, qty: int, price: Decimal, current_qty: int, current_avg: Decimal, cash_balance: "Decimal | None") -> None:
+        total_current_cost = current_qty * current_avg
+        new_cost = qty * price
+        total_new_qty = current_qty + qty
+        new_avg_cost = (total_current_cost + new_cost) / total_new_qty if total_new_qty > 0 else 0
+        self._add_impact_row(L10N.YENI_ORT_MALIYET, f"₺ {new_avg_cost:,.2f}",
+                             state="balanced" if new_avg_cost != current_avg else "neutral")
+        self._add_impact_row(L10N.YENI_TOPLAM_LOT, f"{total_new_qty} (+{qty})")
+        self._add_impact_row(L10N.ISLEM_TUTARI, f"₺ {new_cost:,.2f}")
+        if cash_balance is not None:
+            remaining_cash = cash_balance - new_cost
+            if remaining_cash < 0:
+                self._add_impact_row(L10N.KALAN_NAKIT, "₺ 0.00", state="negative")
+                self._add_impact_row("Uyarı", L10N.YETERSIZ_NAKIT, state="negative")
+            else:
+                self._add_impact_row(L10N.KALAN_NAKIT, f"₺ {remaining_cash:,.2f}", state="neutral")
+
+    def _apply_sell_impact_rows(self, qty: int, price: Decimal, current_qty: int, current_avg: Decimal) -> None:
+        if qty > current_qty:
+            self._add_impact_row("Uyarı", L10N.YETERSIZ_BAKIYE, state="negative")
+        else:
+            realized_pl = (price - current_avg) * qty
+            remaining_qty = current_qty - qty
+            pl_state = "positive" if realized_pl >= 0 else "negative"
+            prefix = "+" if realized_pl >= 0 else ""
+            self._add_impact_row("Tahmini K/Z", f"{prefix}₺ {realized_pl:,.2f}", state=pl_state)
+            self._add_impact_row(L10N.KALAN_LOT, f"{remaining_qty}")
+            self._add_impact_row(L10N.ORT_MALIYET, f"₺ {current_avg:,.2f}")
+
+    def update_impact_preview(self, portfolio_service, current_stock_id: int, cash_balance: Decimal | None = None):
+        """Bu fonksiyon dışarıdan (Orchestrator tarafından) çağrılarak preview render eder."""
+        if not self.impact_card:
+            return
+        layout = self.impact_grid
+        while layout.rowCount() > 0:
+            layout.removeRow(0)
+        is_buy = self.btn_buy_mode.isChecked()
+        qty = int(self.spin_qty.value())
+        price = self.spin_price.decimal_value()
+        current_qty, current_avg = self._get_position_qty_avg(current_stock_id, portfolio_service)
+        if is_buy:
+            self._apply_buy_impact_rows(qty, price, current_qty, current_avg, cash_balance)
+        else:
+            self._apply_sell_impact_rows(qty, price, current_qty, current_avg)
         self.impact_card.setVisible(True)
 
     def update_impact_preview_for_position(self, current_qty: int, current_avg: Decimal):

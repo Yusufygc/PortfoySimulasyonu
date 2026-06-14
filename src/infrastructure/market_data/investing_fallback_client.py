@@ -22,6 +22,16 @@ USER_AGENT_WINDOWS_CHROME = (
 )
 
 
+def _candidate_matches_alias(candidate: dict, alias_type: str, alias_exchange: str) -> bool:
+    candidate_type = str(candidate.get("type", "") or candidate.get("pair_type", ""))
+    candidate_exchange = str(candidate.get("exchange", "") or "")
+    if alias_type and candidate_type.lower() != alias_type.lower():
+        return False
+    if alias_exchange and candidate_exchange.lower() != alias_exchange.lower():
+        return False
+    return True
+
+
 class InvestingFallbackClient:
     INVESTING_SEARCH_ALIASES = {
         "XU100.IS": {"query": "XU100", "type": "Index", "exchange": "Istanbul"},
@@ -112,42 +122,30 @@ class InvestingFallbackClient:
     def _get_investing_alias(self, ticker: str) -> Optional[dict]:
         return self.INVESTING_SEARCH_ALIASES.get((ticker or "").upper())
 
-    def _resolve_investing_symbol_id(self, alias: dict) -> Optional[int]:
-        cache_key = (
-            str(alias.get("query", "")),
-            str(alias.get("type", "")),
-            str(alias.get("exchange", "")),
-        )
-        if cache_key in self._investing_id_cache:
-            return self._investing_id_cache[cache_key]
-
-        results = self._request_to_investing(
-            "search",
-            {
-                "query": cache_key[0],
-                "limit": 10,
-                "type": cache_key[1],
-                "exchange": cache_key[2],
-            },
-        )
-        investing_id: Optional[int] = None
+    def _find_strict_match_id(self, results, alias_type: str, alias_exchange: str) -> Optional[int]:
         for candidate in results or []:
-            candidate_type = str(candidate.get("type", "") or candidate.get("pair_type", ""))
-            candidate_exchange = str(candidate.get("exchange", "") or "")
-            if cache_key[1] and candidate_type.lower() != cache_key[1].lower():
-                continue
-            if cache_key[2] and candidate_exchange.lower() != cache_key[2].lower():
+            if not _candidate_matches_alias(candidate, alias_type, alias_exchange):
                 continue
             investing_id = self._extract_investing_id(candidate)
             if investing_id is not None:
-                break
+                return investing_id
+        return None
 
+    def _find_any_id(self, results) -> Optional[int]:
+        for candidate in results or []:
+            investing_id = self._extract_investing_id(candidate)
+            if investing_id is not None:
+                return investing_id
+        return None
+
+    def _resolve_investing_symbol_id(self, alias: dict) -> Optional[int]:
+        cache_key = (str(alias.get("query", "")), str(alias.get("type", "")), str(alias.get("exchange", "")))
+        if cache_key in self._investing_id_cache:
+            return self._investing_id_cache[cache_key]
+        results = self._request_to_investing("search", {"query": cache_key[0], "limit": 10, "type": cache_key[1], "exchange": cache_key[2]})
+        investing_id = self._find_strict_match_id(results, cache_key[1], cache_key[2])
         if investing_id is None:
-            for candidate in results or []:
-                investing_id = self._extract_investing_id(candidate)
-                if investing_id is not None:
-                    break
-
+            investing_id = self._find_any_id(results)
         self._investing_id_cache[cache_key] = investing_id
         return investing_id
 
