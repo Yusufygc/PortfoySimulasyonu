@@ -244,6 +244,20 @@ class PortfolioSeriesBuilder:
                 daily_net_cash_flow -= trade_value
         return daily_net_cash_flow
 
+    def _advance_twr_index(
+        self,
+        twr_index: Decimal,
+        total_value: Decimal,
+        previous_total_value,
+        daily_net_cash_flow: Decimal,
+    ) -> Decimal:
+        if previous_total_value is None:
+            return twr_index
+        base_value = previous_total_value + daily_net_cash_flow
+        if base_value > 0:
+            twr_index = twr_index * (Decimal("1") + (total_value - base_value) / base_value)
+        return twr_index
+
     def _run_simulation_loop(
         self,
         start_date: date,
@@ -286,13 +300,8 @@ class PortfolioSeriesBuilder:
                     continue
                 total_value += current_positions[stock_id].market_value(price)
             portfolio_series[current_day] = total_value
-            if previous_total_value is None:
-                twr_series[current_day] = twr_index
-            else:
-                base_value = previous_total_value + daily_net_cash_flow
-                if base_value > 0:
-                    twr_index = twr_index * (Decimal("1") + (total_value - base_value) / base_value)
-                twr_series[current_day] = twr_index
+            twr_index = self._advance_twr_index(twr_index, total_value, previous_total_value, daily_net_cash_flow)
+            twr_series[current_day] = twr_index
             previous_total_value = total_value
             current_day += timedelta(days=1)
         return portfolio_series, twr_series

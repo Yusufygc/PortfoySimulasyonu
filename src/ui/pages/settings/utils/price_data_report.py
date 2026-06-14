@@ -147,23 +147,24 @@ class PriceDataReportRenderer:
         panel.detail_text.setHtml(html)
         panel._set_selected_update_button_state(True)
 
+    def _build_problematic_html(self, problematic: list) -> str:
+        if not problematic:
+            return "<li>Yok</li>"
+        result = ""
+        for row in problematic[:20]:
+            result += (
+                f"<li>{display_ticker(row.ticker)}: "
+                f"<span style='color: #ef4444;'>{row.missing_count} eksik</span></li>"
+            )
+        if len(problematic) > 20:
+            result += f"<li>... ve {len(problematic) - 20} hisse daha</li>"
+        return result
+
     def format_report_text(self, report: PriceDataHealthReport) -> str:
         """Tam raporu HTML string olarak döndürür."""
         problematic = [row for row in report.rows if row.missing_count > 0]
         status_color = "#10b981" if "Sağlıklı" in report.health_label else "#ef4444"
-
-        problematic_html = ""
-        if problematic:
-            for row in problematic[:20]:
-                problematic_html += (
-                    f"<li>{display_ticker(row.ticker)}: "
-                    f"<span style='color: #ef4444;'>{row.missing_count} eksik</span></li>"
-                )
-            if len(problematic) > 20:
-                problematic_html += f"<li>... ve {len(problematic) - 20} hisse daha</li>"
-        else:
-            problematic_html = "<li>Yok</li>"
-
+        problematic_html = self._build_problematic_html(problematic)
         known_html = ", ".join(d.strftime("%d.%m.%Y") for d in report.known_holiday_dates[:40])
         if len(report.known_holiday_dates) > 40:
             known_html += f"<br>... +{len(report.known_holiday_dates) - 40} gün"

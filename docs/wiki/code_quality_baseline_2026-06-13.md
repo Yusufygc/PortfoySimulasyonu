@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `5d1583b`
+- Git commit: `08237ec`
 - Dosya: 439
 - Sinif: 538
-- Fonksiyon/metot: 3338
-- Effective code lines: 44320
-- Ihlalli sinif: 1
-- Ihlalli fonksiyon/metot: 122
+- Fonksiyon/metot: 3361
+- Effective code lines: 44341
+- Ihlalli sinif: 2
+- Ihlalli fonksiyon/metot: 109
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 330 | 31468 | 1 |
+| src | 330 | 31489 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -50,6 +50,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | Dosya | Sinif | Effective satir | Metot | Ihlal |
 |---|---|---:|---:|---|
 | src/ui/shared/locale_tr.py | L10N | 797 | 0 | class_effective_lines |
+| src/application/services/analysis/portfolio_series_builder.py | PortfolioSeriesBuilder | 307 | 14 | class_effective_lines |
 
 ## Fonksiyon/Metot Ihlalleri
 
@@ -57,34 +58,34 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 |---|---|---:|---:|---:|---|
 | scripts/migrate_ui_strings.py | main | 116 | 0 | 37 | function_effective_lines, function_complexity |
 | scripts/apply_trade_adjustments_schema.py | main | 70 | 0 | 6 | function_effective_lines |
-| src/application/container_parts/services.py | _build_feature_services | 66 | 3 | 1 | function_effective_lines |
 | scripts/replicate_db.py | main | 64 | 0 | 13 | function_effective_lines, function_complexity |
 | tests/ui/pages/ai_page/test_ai_page_right_panel.py | test_panel_integration | 62 | 1 | 1 | function_effective_lines |
 | tests/ui/pages/test_table_selection_behavior.py | test_model_positions_table_is_passive_and_preserves_colored_profit_loss | 61 | 0 | 4 | function_effective_lines |
-| src/ui/pages/dashboard/dashboard_corporate_action_actions.py | on_corporate_action | 60 | 2 | 10 | function_effective_lines |
-| src/ui/pages/model_portfolio/utils/model_portfolio_ui_builder.py | build_ui | 60 | 0 | 1 | function_effective_lines |
-| src/application/services/corporate_actions/corporate_action_service.py | _apply_bedelli | 58 | 4 | 7 | function_effective_lines |
-| src/ui/pages/comparison/utils/ai_helper.py | generate_commentary | 58 | 0 | 8 | function_effective_lines |
-| src/ui/pages/comparison/utils/ai_helper.py | build_panel | 57 | 0 | 1 | function_effective_lines |
-| src/application/services/corporate_actions/corporate_action_service.py | _apply_bedelsiz | 55 | 4 | 6 | function_effective_lines |
-| src/application/services/corporate_actions/price_adjustment_service.py | adjust_prices_for_applied_action | 55 | 1 | 20 | function_effective_lines, function_complexity |
 | tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_export_today_blocks_when_history_prices_are_missing | 55 | 1 | 2 | function_effective_lines |
 | tests/ui/pages/test_model_portfolio_page.py | test_model_portfolio_update_view_passes_previous_close_map | 55 | 1 | 3 | function_effective_lines |
-| src/ui/pages/ai_page/left_panel/xai_card.py | _make_factor_row | 54 | 2 | 8 | function_effective_lines |
-| src/ui/pages/analysis/analysis_comparison_section.py | __init__ | 53 | 1 | 1 | function_effective_lines |
-| src/ui/pages/stock_detail/stock_chart_widget.py | _render_chart | 53 | 4 | 8 | function_effective_lines |
-| src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 52 | 12 | 12 | function_effective_lines, function_effective_params, function_complexity |
-| src/ui/pages/ai_page/left_panel/performance_card.py | _init_ui | 52 | 0 | 3 | function_effective_lines |
-| src/ui/pages/ai_page/right_panel/chatbot_panel.py | _build_prompt_template | 52 | 4 | 27 | function_effective_lines, function_complexity |
-| src/ui/pages/dashboard/dashboard_corporate_action_actions.py | _refresh_prices_after_corporate_action | 52 | 3 | 4 | function_effective_lines |
-| src/ui/pages/risk_profile_page.py | _build_survey | 52 | 0 | 2 | function_effective_lines |
 | tests/infrastructure/market_data/test_benchmark_fetch_manual.py | main | 52 | 0 | 18 | function_effective_lines, function_complexity |
-| src/ui/pages/comparison/utils/comparison_data_manager.py | request_refresh | 51 | 0 | 10 | function_effective_lines |
 | src/infrastructure/corporate_actions/kap_mkk_provider.py | parse_kap_mkk_disclosure | 50 | 1 | 15 | function_complexity |
-| src/ui/pages/settings/utils/price_data_report.py | format_report_text | 50 | 1 | 13 | function_complexity |
 | src/infrastructure/ai/ai_core_fastapi_client.py | _parse_peer | 49 | 1 | 14 | function_complexity |
 | src/ui/pages/settings/utils/price_data_report.py | on_health_selection_changed | 49 | 0 | 15 | function_complexity |
 | src/application/services/analysis/analysis_service.py | get_overview | 48 | 2 | 17 | function_complexity |
+| src/application/services/planning/model_portfolio_trade_service.py | add_trade | 48 | 7 | 1 | function_effective_params |
+| src/ui/pages/comparison/utils/chart_renderer.py | _generate_html_in_background | 48 | 6 | 12 | function_effective_params, function_complexity |
+| scripts/migrate_ui_strings.py | is_user_facing_string | 47 | 2 | 35 | function_complexity |
+| src/application/services/analysis/portfolio_series_builder.py | _run_simulation_loop | 47 | 12 | 10 | function_effective_params |
+| src/application/services/portfolio/trade_entry_service.py | submit_trade | 47 | 8 | 7 | function_effective_params |
+| src/infrastructure/market_data/investing_fallback_client.py | fetch_series_for_ticker | 46 | 3 | 11 | function_complexity |
+| src/ui/pages/ai_page/left_panel/performance_card.py | update_data | 46 | 8 | 9 | function_effective_params |
+| src/ui/pages/ai_page/left_panel/xai_card.py | update_data | 46 | 7 | 12 | function_effective_params, function_complexity |
+| src/application/services/planning/model_portfolio_trade_service.py | add_trade_by_ticker | 45 | 8 | 11 | function_effective_params, function_complexity |
+| src/ui/pages/dashboard/dashboard_presenter.py | refresh_data | 45 | 0 | 11 | function_complexity |
+| src/ui/pages/stock_detail/trade_form_panel.py | update_impact_preview | 45 | 3 | 15 | function_complexity |
+| src/ui/widgets/shared/feedback/toast.py | _reposition_for_parent | 45 | 2 | 11 | function_complexity |
+| scripts/migrate_ui_strings.py | process_file | 44 | 2 | 14 | function_complexity |
+| src/application/services/corporate_actions/price_adjustment_service.py | adjust_downloaded_series | 44 | 2 | 22 | function_complexity |
+| src/application/services/planning/model_portfolio_snapshot_service.py | get_positions_with_details | 44 | 2 | 13 | function_complexity |
+| src/ui/pages/model_portfolio/utils/model_portfolio_actions.py | on_trade | 44 | 1 | 12 | function_complexity |
+| src/ui/widgets/planning/panels/budget_form_panel.py | _build_item_column | 44 | 8 | 1 | function_effective_params |
+| src/application/services/planning/model_portfolio_trade_service.py | add_capital_movement | 43 | 6 | 5 | function_effective_params |
 
 ## Saglik Raporu Crosswalk
 

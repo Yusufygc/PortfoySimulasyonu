@@ -155,8 +155,32 @@ class XAICard(QWidget):
         self.lbl_caveat.setVisible(False)
         self.lbl_unavailable.setVisible(False)
 
+    def _build_factor_header_row(self, name, feature_name, direction, group, bar_val) -> QHBoxLayout:
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.setSpacing(6)
+        icon_map = {"positive": "🟢", "negative": "🔴", "neutral": "⚪"}
+        lbl_icon = QLabel(icon_map.get(direction, "⚪"))
+        lbl_icon.setFixedWidth(22)
+        lbl_name = QLabel(name)
+        lbl_name.setWordWrap(True)
+        lbl_name.setToolTip(feature_name if feature_name == name else f"{name}\n{feature_name}")
+        lbl_name.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        lbl_name.setProperty("cssClass", "xaiFactorLabel")
+        lbl_group = QLabel(group)
+        lbl_group.setProperty("cssClass", "xaiFactorGroup")
+        lbl_group.setVisible(bool(group))
+        lbl_value = QLabel(f"{bar_val:.0f}%")
+        lbl_value.setFixedWidth(48)
+        lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        lbl_value.setProperty("cssClass", "metricValue")
+        header.addWidget(lbl_icon)
+        header.addWidget(lbl_name, 1)
+        header.addWidget(lbl_group)
+        header.addWidget(lbl_value)
+        return header
+
     def _make_factor_row(self, item, direction: str) -> QWidget:
-        """Tek bir XAI faktör satırı oluşturur."""
         name = self._item_value(item, "human_label") or self._item_value(item, "feature_name") or "-"
         feature_name = self._item_value(item, "feature_name") or name
         reason = self._item_value(item, "reason") or ""
@@ -165,44 +189,13 @@ class XAICard(QWidget):
         contribution = self._item_value(item, "contribution")
         approximate = self._item_value(item, "approximate")
         importance = self._safe_float(self._item_value(item, "importance"))
-        bar_val = abs(importance) * 100 if abs(importance) <= 1.0 else abs(importance)
-        bar_val = min(bar_val, 100)
-
+        bar_val = min(abs(importance) * 100 if abs(importance) <= 1.0 else abs(importance), 100)
         wrapper = QFrame()
         wrapper.setProperty("cssClass", "xaiFactorRow")
         outer = QVBoxLayout(wrapper)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(4)
-
-        header = QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        header.setSpacing(6)
-
-        icon_map = {"positive": "🟢", "negative": "🔴", "neutral": "⚪"}
-        lbl_icon = QLabel(icon_map.get(direction, "⚪"))
-        lbl_icon.setFixedWidth(22)
-
-        lbl_name = QLabel(name)
-        lbl_name.setWordWrap(True)
-        lbl_name.setToolTip(feature_name if feature_name == name else f"{name}\n{feature_name}")
-        lbl_name.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        lbl_name.setProperty("cssClass", "xaiFactorLabel")
-
-        lbl_group = QLabel(group)
-        lbl_group.setProperty("cssClass", "xaiFactorGroup")
-        lbl_group.setVisible(bool(group))
-
-        lbl_value = QLabel(f"{bar_val:.0f}%")
-        lbl_value.setFixedWidth(48)
-        lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        lbl_value.setProperty("cssClass", "metricValue")
-
-        header.addWidget(lbl_icon)
-        header.addWidget(lbl_name, 1)
-        header.addWidget(lbl_group)
-        header.addWidget(lbl_value)
-        outer.addLayout(header)
-
+        outer.addLayout(self._build_factor_header_row(name, feature_name, direction, group, bar_val))
         bar = QProgressBar()
         bar.setRange(0, 100)
         bar.setValue(int(bar_val))
@@ -211,14 +204,12 @@ class XAICard(QWidget):
         css_map = {"positive": "aiProgressGreen", "negative": "aiProgressRed", "neutral": "aiProgressBlue"}
         bar.setProperty("cssClass", css_map.get(direction, "aiProgressBlue"))
         outer.addWidget(bar)
-
         details = self._details_text(reason, method, contribution, approximate)
         if details:
             lbl_reason = QLabel(details)
             lbl_reason.setWordWrap(True)
             lbl_reason.setProperty("cssClass", "xaiFactorReason")
             outer.addWidget(lbl_reason)
-
         return wrapper
 
     def _set_caveat(self, xai_caveat: str) -> None:

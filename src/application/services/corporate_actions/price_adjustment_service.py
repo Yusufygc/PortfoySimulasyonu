@@ -121,6 +121,37 @@ def adjust_downloaded_series(
     return adjusted_series
 
 
+def _find_price_transition_date(db_prices_sorted, action, factor):
+    for i in range(len(db_prices_sorted) - 1):
+        dp1 = db_prices_sorted[i]
+        dp2 = db_prices_sorted[i + 1]
+        if abs((dp2.price_date - action.ex_date).days) > 7:
+            continue
+        if dp1.close_price <= 0 or dp2.close_price <= 0:
+            continue
+        r = dp1.close_price / dp2.close_price
+        target_ratio = Decimal("1") / factor
+        if abs(r - target_ratio) / target_ratio < Decimal("0.15"):
+            return dp2.price_date
+    return None
+
+
+def _determine_adjust_before_date(db_prices_sorted, action, factor, transition_date):
+    if transition_date is not None:
+        return transition_date
+    prices_before = [dp for dp in db_prices_sorted if dp.price_date < action.ex_date]
+    prices_after = [dp for dp in db_prices_sorted if dp.price_date >= action.ex_date]
+    if prices_before and prices_after:
+        p_before = prices_before[-1].close_price
+        p_after = prices_after[0].close_price
+        if p_before > 0 and p_after > 0:
+            r = p_before / p_after
+            target_ratio = Decimal("1") / factor
+            if target_ratio > Decimal("1.3") and r < Decimal("1.3"):
+                return date(2000, 1, 1)
+    return action.ex_date
+
+
 class CorporateActionPriceAdjustmentService:
     def __init__(
         self,
@@ -151,44 +182,12 @@ class CorporateActionPriceAdjustmentService:
             )
 
         factor = self._factor_for_action(action)
-
-        # Dynamic search for transition date in database prices to avoid double adjusting
         start_search = action.ex_date - timedelta(days=10)
         end_search = action.ex_date + timedelta(days=10)
         db_prices = self._price_repo.get_price_series(action.stock_id, start_search, end_search)
         db_prices_sorted = sorted(db_prices, key=lambda dp: dp.price_date)
-
-        transition_date = None
-        for i in range(len(db_prices_sorted) - 1):
-            dp1 = db_prices_sorted[i]
-            dp2 = db_prices_sorted[i + 1]
-            if abs((dp2.price_date - action.ex_date).days) > 7:
-                continue
-            if dp1.close_price <= 0 or dp2.close_price <= 0:
-                continue
-            r = dp1.close_price / dp2.close_price
-            target_ratio = Decimal("1") / factor
-            if abs(r - target_ratio) / target_ratio < Decimal("0.15"):
-                transition_date = dp2.price_date
-                break
-
-        before_date = action.ex_date
-        if transition_date is not None:
-            before_date = transition_date
-        else:
-            # If no transition is found, check if prices before ex_date are already adjusted
-            prices_before = [dp for dp in db_prices_sorted if dp.price_date < action.ex_date]
-            prices_after = [dp for dp in db_prices_sorted if dp.price_date >= action.ex_date]
-            if prices_before and prices_after:
-                p_before = prices_before[-1].close_price
-                p_after = prices_after[0].close_price
-                if p_before > 0 and p_after > 0:
-                    r = p_before / p_after
-                    target_ratio = Decimal("1") / factor
-                    if target_ratio > Decimal("1.3") and r < Decimal("1.3"):
-                        # Prices in the database before ex_date are already adjusted! Do not adjust again.
-                        before_date = date(2000, 1, 1)
-
+        transition_date = _find_price_transition_date(db_prices_sorted, action, factor)
+        before_date = _determine_adjust_before_date(db_prices_sorted, action, factor, transition_date)
         adjusted_count = self._price_repo.adjust_prices_before_date(
             stock_id=action.stock_id,
             before_date=before_date,

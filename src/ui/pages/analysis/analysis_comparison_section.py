@@ -28,27 +28,43 @@ class AnalysisComparisonSection(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._dto: ComparisonViewDTO | None = None
-
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(18)
-
         self.warning_banner = QLabel("")
         self.warning_banner.setProperty("cssClass", "warningBanner")
         self.warning_banner.setWordWrap(True)
         self.warning_banner.hide()
         layout.addWidget(self.warning_banner)
+        layout.addWidget(self._build_mode_selector_panel())
+        self.metrics_scroll = QScrollArea()
+        self.metrics_scroll.setWidgetResizable(True)
+        self.metrics_scroll.setFrameShape(QFrame.NoFrame)
+        self.metrics_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.metrics_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.metrics_scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.metrics_scroll.setFixedHeight(125)
+        self.metrics_container = QWidget()
+        self.metrics_container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.metrics_layout = QHBoxLayout(self.metrics_container)
+        self.metrics_layout.setContentsMargins(0, 0, 0, 0)
+        self.metrics_layout.setSpacing(12)
+        self.metrics_scroll.setWidget(self.metrics_container)
+        layout.addWidget(self.metrics_scroll)
+        self.chart_engine = SilentWebEngineView()
+        self.chart_engine.setMinimumHeight(500)
+        self.chart_engine.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout.addWidget(self.chart_engine)
 
+    def _build_mode_selector_panel(self) -> QFrame:
         top_panel = QFrame()
         top_panel.setProperty("cssClass", "panelFramePadded")
         top_layout = QHBoxLayout(top_panel)
         top_layout.setContentsMargins(15, 15, 15, 15)
         top_layout.setSpacing(12)
-
         lbl_mode = QLabel(L10N.GRAFIK_MODU)
         lbl_mode.setProperty("cssClass", "panelTitle")
         top_layout.addWidget(lbl_mode)
-
         self.combo_mode = QComboBox()
         self.combo_mode.setProperty("cssClass", "customComboBox")
         self.combo_mode.addItem(L10N.PORTFOY_VS_BENCHMARK, self.MODE_PORTFOLIO)
@@ -59,37 +75,12 @@ class AnalysisComparisonSection(QWidget):
         self.combo_mode.currentIndexChanged.connect(self._redraw_chart)
         top_layout.addWidget(self.combo_mode)
         top_layout.addStretch()
-
         self.btn_save = AnimatedButton(L10N.GRAFIGI_KAYDET)
         self.btn_save.setProperty("cssClass", "secondaryButton")
         self.btn_save.setIconName("save", color="@COLOR_TEXT_PRIMARY", size=24)
         self.btn_save.clicked.connect(self._save_chart)
         top_layout.addWidget(self.btn_save)
-        layout.addWidget(top_panel)
-
-        # Metrik kartları için yatay kaydırılabilir alan
-        self.metrics_scroll = QScrollArea()
-        self.metrics_scroll.setWidgetResizable(True)
-        self.metrics_scroll.setFrameShape(QFrame.NoFrame)
-        self.metrics_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.metrics_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.metrics_scroll.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.metrics_scroll.setFixedHeight(125) # Kartların sığacağı sabit yükseklik
-        
-        self.metrics_container = QWidget()
-        self.metrics_container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        
-        self.metrics_layout = QHBoxLayout(self.metrics_container)
-        self.metrics_layout.setContentsMargins(0, 0, 0, 0)
-        self.metrics_layout.setSpacing(12)
-        
-        self.metrics_scroll.setWidget(self.metrics_container)
-        layout.addWidget(self.metrics_scroll)
-
-        self.chart_engine = SilentWebEngineView()
-        self.chart_engine.setMinimumHeight(500)
-        self.chart_engine.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        layout.addWidget(self.chart_engine)
+        return top_panel
 
     def set_error(self, message: str) -> None:
         self.warning_banner.setText(message)

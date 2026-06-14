@@ -67,12 +67,31 @@ class PerformanceCard(QWidget):
         self._bars: dict[str, tuple[QLabel, QProgressBar, QLabel]] = {}
         self._init_ui()
 
+    def _build_metric_row(self, key: str, info: dict, row: int) -> None:
+        lbl_name = QLabel(info["label"])
+        lbl_name.setProperty("cssClass", "metricLabel")
+        lbl_name.setToolTip(info["desc"])
+        lbl_name.setMinimumWidth(130)
+        bar = QProgressBar()
+        bar.setRange(0, 100)
+        bar.setValue(0)
+        bar.setTextVisible(False)
+        bar.setFixedHeight(14)
+        bar.setProperty("cssClass", "aiProgressGreen" if info["higher_is_better"] else "aiProgressOrange")
+        lbl_value = QLabel("-")
+        lbl_value.setFixedWidth(60)
+        lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        lbl_value.setProperty("cssClass", "metricValue")
+        self.grid.addWidget(lbl_name, row, 0)
+        self.grid.addWidget(bar, row, 1)
+        self.grid.addWidget(lbl_value, row, 2)
+        self._bars[key] = (lbl_name, bar, lbl_value)
+
     def _init_ui(self) -> None:
         self.setProperty("cssClass", "aiCard")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(8)
-
         header_layout = QHBoxLayout()
         header_layout.setContentsMargins(0, 0, 0, 0)
         lbl_icon = QLabel()
@@ -83,54 +102,15 @@ class PerformanceCard(QWidget):
         header_layout.addWidget(title)
         header_layout.addStretch()
         layout.addLayout(header_layout)
-
         self.grid = QGridLayout()
         self.grid.setSpacing(6)
         layout.addLayout(self.grid)
-
-        # Metrikleri sırala — önemli olanlar üstte
         metric_order = [
-            "composite_score",
-            "directional_accuracy",
-            "hit_rate",
-            "sharpe",
-            "rmse",
-            "mae",
-            "stability_score",
+            "composite_score", "directional_accuracy", "hit_rate",
+            "sharpe", "rmse", "mae", "stability_score",
         ]
-
         for row, key in enumerate(metric_order):
-            info = _METRIC_INFO[key]
-
-            # Metrik adı etiketi (kalın)
-            lbl_name = QLabel(info["label"])
-            lbl_name.setProperty("cssClass", "metricLabel")
-            lbl_name.setToolTip(info["desc"])
-            lbl_name.setMinimumWidth(130)
-
-            # Progress bar
-            bar = QProgressBar()
-            bar.setRange(0, 100)
-            bar.setValue(0)
-            bar.setTextVisible(False)
-            bar.setFixedHeight(14)
-
-            css_class = "aiProgressGreen" if info["higher_is_better"] else "aiProgressOrange"
-            bar.setProperty("cssClass", css_class)
-
-            # Değer etiketi
-            lbl_value = QLabel("-")
-            lbl_value.setFixedWidth(60)
-            lbl_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            lbl_value.setProperty("cssClass", "metricValue")
-
-            self.grid.addWidget(lbl_name, row, 0)
-            self.grid.addWidget(bar, row, 1)
-            self.grid.addWidget(lbl_value, row, 2)
-
-            self._bars[key] = (lbl_name, bar, lbl_value)
-
-        # Açıklama alt etiketi
+            self._build_metric_row(key, _METRIC_INFO[key], row)
         self.lbl_hint = QLabel(L10N.METRIK_ADLARININ_UZERINE_GELEREK_ACIKLAMASINI)
         self.lbl_hint.setProperty("cssClass", "aiHintText")
         self.lbl_hint.setWordWrap(True)

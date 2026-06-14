@@ -203,6 +203,34 @@ class StockChartWidget(QFrame):
         worker.signals.error.connect(lambda _err: self.draw_empty_chart(L10N.GRAFIK_YUKLENEMEDI))
         QThreadPool.globalInstance().start(worker)
 
+    def _draw_price_series(self, x_values: list, y_values: list) -> None:
+        curve = self.plot_widget.plot(
+            x_values, y_values,
+            pen=pg.mkPen(LINE_BLUE, width=3),
+            symbol=None,
+            name=L10N.FIYAT,
+        )
+        baseline = min(y_values)
+        baseline_curve = pg.PlotDataItem(x_values, [baseline] * len(x_values), pen=pg.mkPen(None))
+        fill = pg.FillBetweenItem(curve, baseline_curve, brush=pg.mkBrush(59, 130, 246, 34))
+        self.plot_widget.addItem(baseline_curve)
+        self.plot_widget.addItem(fill)
+        ymin = min(y_values)
+        ymax = max(y_values)
+        padding = (ymax - ymin) * 0.12 if ymax > ymin else max(ymax * 0.1, 1.0)
+        self.plot_widget.setYRange(max(0, ymin - padding), ymax + padding, padding=0)
+
+    def _draw_reference_lines(self, avg_cost, current_price) -> None:
+        if avg_cost is not None:
+            self._add_reference_line(avg_cost, L10N.ORT_MALIYET, LINE_AVG_COST, Qt.DashLine)
+        if current_price:
+            self._add_reference_line(
+                float(current_price),
+                L10N.GUNCEL_DEGER_TMPL.format(value=f"{float(current_price):.2f}"),
+                LINE_CURRENT,
+                Qt.SolidLine,
+            )
+
     def _render_chart(
         self,
         points: list,
@@ -214,7 +242,6 @@ class StockChartWidget(QFrame):
             if not points:
                 self.draw_empty_chart(L10N.VERI_BULUNAMADI)
                 return
-
             self.plot_widget.clear()
             self._clear_reference_legend()
             self._configure_plot_item()
@@ -225,42 +252,11 @@ class StockChartWidget(QFrame):
                 color=TEXT_PRIMARY,
                 size="15pt",
             )
-
-            # Crosshair snap için noktaları sakla (x'e göre sıralı varsay)
             self._chart_points = sorted(points, key=lambda p: p[0])
-
             x_values = [point[0] for point in self._chart_points]
             y_values = [point[1] for point in self._chart_points]
-
-            curve = self.plot_widget.plot(
-                x_values,
-                y_values,
-                pen=pg.mkPen(LINE_BLUE, width=3),
-                symbol=None,
-                name=L10N.FIYAT,
-            )
-            baseline = min(y_values)
-            baseline_curve = pg.PlotDataItem(x_values, [baseline] * len(x_values), pen=pg.mkPen(None))
-            fill = pg.FillBetweenItem(curve, baseline_curve, brush=pg.mkBrush(59, 130, 246, 34))
-            self.plot_widget.addItem(baseline_curve)
-            self.plot_widget.addItem(fill)
-
-            ymin = min(y_values)
-            ymax = max(y_values)
-            padding = (ymax - ymin) * 0.12 if ymax > ymin else max(ymax * 0.1, 1.0)
-            self.plot_widget.setYRange(max(0, ymin - padding), ymax + padding, padding=0)
-
-            if avg_cost is not None:
-                self._add_reference_line(avg_cost, L10N.ORT_MALIYET, LINE_AVG_COST, Qt.DashLine)
-
-            if current_price:
-                self._add_reference_line(
-                    float(current_price),
-                    L10N.GUNCEL_DEGER_TMPL.format(value=f"{float(current_price):.2f}"),
-                    LINE_CURRENT,
-                    Qt.SolidLine,
-                )
-
+            self._draw_price_series(x_values, y_values)
+            self._draw_reference_lines(avg_cost, current_price)
             self.plot_widget.enableAutoRange(axis=pg.ViewBox.XAxis)
         except Exception as exc:
             logger.error("Grafik render hatası: %s", exc)

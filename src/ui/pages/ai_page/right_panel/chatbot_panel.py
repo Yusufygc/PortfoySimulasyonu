@@ -85,7 +85,7 @@ def _format_fallback_features(result, pos_factors: str, neg_factors: str) -> str
     return ""
 
 
-def _build_prompt_template(result, pos_factors: str, neg_factors: str, features_formatted: str) -> str:
+def _build_prompt_data_sections(result) -> str:
     return f"""[OTOMATİK ANALİZ AKTARIMI - Analiz Özeti]
 
 Hisse: {display_ticker(result.ticker)}
@@ -114,7 +114,11 @@ Tahmini Fiyat: ₺{result.predicted_price or '-'}
 Güven Etiketi: {result.confidence_label}
 Güven Nedenleri: {', '.join(result.confidence_reasons) if result.confidence_reasons else '-'}
 Güven Uyarıları: {', '.join(result.confidence_warnings) if result.confidence_warnings else '-'}
+"""
 
+
+def _build_prompt_template(result, pos_factors: str, neg_factors: str, features_formatted: str) -> str:
+    return _build_prompt_data_sections(result) + f"""
 ── PERFORMANS ──
 Bileşik Skor: {result.composite_score or '-'}
 Yön İsabeti: {f'%{result.directional_accuracy:.1f}' if result.directional_accuracy else '-'}

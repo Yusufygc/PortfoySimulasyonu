@@ -192,23 +192,19 @@ class ComparisonDataManager:
         scroll_value = self._capture_scroll_value()
         start_date, end_date = page.ribbon_bar.date_range()
         selected_codes = page.ribbon_bar.selected_assets()
-
         if not selected_codes:
             page._request_seq += 1
             page.chart_overrides.clear()
             page._renderer.render_empty_state(L10N.LUTFEN_KIYASLANACAK_VARLIKLARI_SECIN)
             self._restore_scroll_value(scroll_value)
             return
-
         mode = page.ribbon_bar.selected_mode()
         if mode == L10N.RASYO_MODU:
             num_code, den_code = page.ribbon_bar.ratio_assets()
             for extra_code in (num_code, den_code):
                 if extra_code and extra_code not in selected_codes:
                     selected_codes = list(selected_codes) + [extra_code]
-
         new_selected_codes, has_holdings_trigger = self._filter_state_builder.expand_holdings(selected_codes)
-
         if has_holdings_trigger:
             updated_assets = self.get_current_base_assets()
             page.ribbon_bar.blockSignals(True)
@@ -218,22 +214,21 @@ class ComparisonDataManager:
             finally:
                 page.ribbon_bar.blockSignals(False)
             selected_codes = new_selected_codes
-
         page.chart_overrides.clear()
         self.refresh_panel_options()
         self._restore_scroll_value(scroll_value)
-
         warnings = self.check_date_warnings()
         if warnings:
-            warning_text = "<b>⚠️ Dikkat:</b><br>" + L10N.BR.join([f"• {w}" for w in warnings])
-            page.warning_label.setText(warning_text)
+            page.warning_label.setText("<b>⚠️ Dikkat:</b><br>" + L10N.BR.join([f"• {w}" for w in warnings]))
             page.warning_panel.setVisible(True)
         else:
             page.warning_panel.setVisible(False)
+        self._start_comparison_worker(selected_codes, start_date, end_date, scroll_value)
 
+    def _start_comparison_worker(self, selected_codes, start_date, end_date, scroll_value) -> None:
+        page = self.page
         page._request_seq += 1
         request_id = page._request_seq
-
         filter_state, stock_ids = self._filter_state_builder.build(selected_codes, start_date, end_date)
         page._selected_stock_ids = stock_ids
         worker = Worker(self.analysis_service.get_comparison_view, filter_state)

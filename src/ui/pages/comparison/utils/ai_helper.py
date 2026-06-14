@@ -16,6 +16,66 @@ from src.ui.worker import Worker
 logger = logging.getLogger(__name__)
 
 
+def _collect_table_rows(table) -> list:
+    rows = []
+    for row in range(table.rowCount()):
+        name  = (table.item(row, 0) or type("", (), {"text": lambda: ""})()).text()
+        start = (table.item(row, 1) or type("", (), {"text": lambda: ""})()).text()
+        end   = (table.item(row, 2) or type("", (), {"text": lambda: ""})()).text()
+        ret   = (table.item(row, 3) or type("", (), {"text": lambda: ""})()).text()
+        if name:
+            rows.append(f"- **{name}**: Başlangıç: {start}, Dönem Sonu: {end}, Getiri: {ret}")
+    return rows
+
+
+def _build_commentary_prompt(table_rows: list, start_date, end_date, mode: str) -> str:
+    assets_info = "\n".join(table_rows)
+    return (
+        f"Kullanıcı Karşılaştırma Laboratuvarı ekranında "
+        f"{start_date.strftime('%d.%m.%Y')} ile {end_date.strftime('%d.%m.%Y')} "
+        f"tarihleri arasında {mode} biçiminde aşağıdaki varlıkların performanslarını kıyaslıyor:\n\n"
+        f"{assets_info}\n\n"
+        "Ayrıca bu dönemde seçili varlıkların drawdown ve risk-getiri saçılım grafikleri de oluşturulmuştur.\n"
+        "Bir finansal analist olarak, bu karşılaştırmayı detaylı ve profesyonelce yorumla:\n"
+        "1. Dönemin en başarılı varlığı hangisidir ve neden öne çıkmıştır?\n"
+        "2. Drawdown ve volatilite açısından en riskli ve en güvenli varlık hangisidir?\n"
+        "3. Portföy çeşitlendirmesi için 2-3 pratik öneride bulun.\n\n"
+        + L10N.NOT_YATIRIM_TAVSIYESI_VERMEDEN_VERIYE
+    )
+
+
+def _build_ai_panel_title_row() -> QHBoxLayout:
+    from src.ui.core.icon_manager import IconManager
+    title_row = QHBoxLayout()
+    icon_lbl = QLabel()
+    icon_lbl.setPixmap(
+        IconManager.get_icon("bot", color="#38bdf8", size=QSize(28, 28)).pixmap(28, 28)
+    )
+    title_lbl = QLabel(L10N.YAPAY_ZEKA_RAPOR_VE_ANALIZ)
+    title_lbl.setProperty("cssClass", "comparisonAiTitle")
+    title_row.addWidget(icon_lbl)
+    title_row.addWidget(title_lbl)
+    title_row.addStretch()
+    return title_row
+
+
+def _build_ai_browser_widget(page, fit_cb) -> "QTextBrowser":
+    browser = QTextBrowser()
+    browser.setFrameShape(QFrame.NoFrame)
+    browser.setReadOnly(True)
+    browser.setOpenExternalLinks(True)
+    browser.setProperty("cssClass", "comparisonAiBrowser")
+    browser.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    browser.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    browser.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+    browser.setMinimumHeight(0)
+    browser.setVisible(False)
+    browser.setFocusPolicy(Qt.NoFocus)
+    browser.document().contentsChanged.connect(fit_cb)
+    page.ai_browser = browser
+    return browser
+
+
 class AICommentaryHelper:
     """AI yorum paneli widget'larını oluşturur ve Gemini Worker'ı yönetir."""
 
@@ -31,32 +91,13 @@ class AICommentaryHelper:
     # ------------------------------------------------------------------
 
     def build_panel(self) -> QFrame:
-        """
-        AI yorum paneli QFrame'ini oluşturur ve page'e widget referanslarını bağlar.
-        Döndürülen frame scroll layout'a eklenir.
-        """
         page = self.page
         panel = QFrame()
         panel.setProperty("cssClass", "comparisonAiPanel")
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(15)
-
-        # Başlık
-        title_row = QHBoxLayout()
-        from src.ui.core.icon_manager import IconManager
-        icon_lbl = QLabel()
-        icon_lbl.setPixmap(
-            IconManager.get_icon("bot", color="#38bdf8", size=QSize(28, 28)).pixmap(28, 28)
-        )
-        title_lbl = QLabel(L10N.YAPAY_ZEKA_RAPOR_VE_ANALIZ)
-        title_lbl.setProperty("cssClass", "comparisonAiTitle")
-        title_row.addWidget(icon_lbl)
-        title_row.addWidget(title_lbl)
-        title_row.addStretch()
-        layout.addLayout(title_row)
-
-        # Açıklama
+        layout.addLayout(_build_ai_panel_title_row())
         desc = QLabel(
             L10N.KARSILASTIRMA_EKRANINDA_SECILEN_TUM_VARLIKLARIN +
             L10N.GETIRI_VOLATILITE_DRAWDOWN_GEMINI_YAPAY +
@@ -65,8 +106,6 @@ class AICommentaryHelper:
         desc.setWordWrap(True)
         desc.setProperty("cssClass", "comparisonAiDescription")
         layout.addWidget(desc)
-
-        # Buton
         page.ai_btn = QPushButton(L10N.YAPAY_ZEKA_YORUMU_OLUSTUR)
         page.ai_btn.setMinimumHeight(38)
         page.ai_btn.setMinimumWidth(200)
@@ -75,8 +114,6 @@ class AICommentaryHelper:
         page.ai_btn.setProperty("cssClass", "comparisonAiButton")
         page.ai_btn.clicked.connect(page._generate_ai_commentary)
         layout.addWidget(page.ai_btn)
-
-        # Progress bar
         page.ai_progress = QProgressBar()
         page.ai_progress.setTextVisible(False)
         page.ai_progress.setRange(0, 0)
@@ -84,22 +121,7 @@ class AICommentaryHelper:
         page.ai_progress.setProperty("cssClass", "comparisonAiProgress")
         page.ai_progress.setVisible(False)
         layout.addWidget(page.ai_progress)
-
-        # Browser
-        page.ai_browser = QTextBrowser()
-        page.ai_browser.setFrameShape(QFrame.NoFrame)
-        page.ai_browser.setReadOnly(True)
-        page.ai_browser.setOpenExternalLinks(True)
-        page.ai_browser.setProperty("cssClass", "comparisonAiBrowser")
-        page.ai_browser.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        page.ai_browser.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        page.ai_browser.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
-        page.ai_browser.setMinimumHeight(0)
-        page.ai_browser.setVisible(False)
-        page.ai_browser.setFocusPolicy(Qt.NoFocus)
-        page.ai_browser.document().contentsChanged.connect(self._fit_ai_browser_to_content)
-        layout.addWidget(page.ai_browser)
-
+        layout.addWidget(_build_ai_browser_widget(page, self._fit_ai_browser_to_content))
         page.ai_panel = panel
         return panel
 
@@ -108,62 +130,25 @@ class AICommentaryHelper:
     # ------------------------------------------------------------------
 
     def generate_commentary(self) -> None:
-        """Özet tablodan veri toplayarak Gemini'ye analiz promptu gönderir."""
-        table_rows = []
-        table = self.page.summary_table
-        for row in range(table.rowCount()):
-            name  = (table.item(row, 0) or type("", (), {"text": lambda: ""})()).text()
-            start = (table.item(row, 1) or type("", (), {"text": lambda: ""})()).text()
-            end   = (table.item(row, 2) or type("", (), {"text": lambda: ""})()).text()
-            ret   = (table.item(row, 3) or type("", (), {"text": lambda: ""})()).text()
-            if name:
-                table_rows.append(
-                    f"- **{name}**: Başlangıç: {start}, Dönem Sonu: {end}, Getiri: {ret}"
-                )
-
+        table_rows = _collect_table_rows(self.page.summary_table)
         if not table_rows:
-            QMessageBox.warning(
-                self.page, "Uyarı",
-                L10N.ANALIZ_EDILECEK_VERI_BULUNAMADI_LUTFEN
-            )
+            QMessageBox.warning(self.page, "Uyarı", L10N.ANALIZ_EDILECEK_VERI_BULUNAMADI_LUTFEN)
             return
-
         start_date, end_date = self.page.ribbon_bar.date_range()
         mode = self.page.ribbon_bar.selected_mode()
-        assets_info = "\n".join(table_rows)
-
-        prompt = (
-            f"Kullanıcı Karşılaştırma Laboratuvarı ekranında "
-            f"{start_date.strftime('%d.%m.%Y')} ile {end_date.strftime('%d.%m.%Y')} "
-            f"tarihleri arasında {mode} biçiminde aşağıdaki varlıkların performanslarını kıyaslıyor:\n\n"
-            f"{assets_info}\n\n"
-            "Ayrıca bu dönemde seçili varlıkların drawdown ve risk-getiri saçılım grafikleri de oluşturulmuştur.\n"
-            "Bir finansal analist olarak, bu karşılaştırmayı detaylı ve profesyonelce yorumla:\n"
-            "1. Dönemin en başarılı varlığı hangisidir ve neden öne çıkmıştır?\n"
-            "2. Drawdown ve volatilite açısından en riskli ve en güvenli varlık hangisidir?\n"
-            "3. Portföy çeşitlendirmesi için 2-3 pratik öneride bulun.\n\n" +
-            L10N.NOT_YATIRIM_TAVSIYESI_VERMEDEN_VERIYE
-        )
-
-        system_msg = ChatMessage(
-            role=MessageRole.SYSTEM,
-            content=L10N.SEN_PROFESYONEL_BIR_BIST_VE
-        )
+        prompt = _build_commentary_prompt(table_rows, start_date, end_date, mode)
+        system_msg = ChatMessage(role=MessageRole.SYSTEM, content=L10N.SEN_PROFESYONEL_BIR_BIST_VE)
         user_msg = ChatMessage(role=MessageRole.USER, content=prompt)
-
         scroll_bar = self.page.scroll_area.verticalScrollBar()
         scroll_pos = scroll_bar.value()
-
         self.page.ai_btn.setEnabled(False)
         self.page.ai_btn.setText(L10N.YAPAY_ZEKA_ANALIZ_EDIYOR)
         self.page.ai_progress.setVisible(True)
         self.page.ai_browser.setMarkdown(L10N.ANALIZ_HAZIRLANIYOR_LUTFEN_BEKLEYIN)
         self.page.ai_browser.setVisible(True)
         self._fit_ai_browser_to_content()
-
         QCoreApplication.processEvents()
         scroll_bar.setValue(scroll_pos)
-
         self._request_seq += 1
         request_id = self._request_seq
         self.ai_worker = Worker(self._chat_service.generate, [system_msg, user_msg])

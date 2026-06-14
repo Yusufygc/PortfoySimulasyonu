@@ -128,6 +128,34 @@ def _build_action_result(
     )
 
 
+def _record_and_update_trade(portfolio_repo, trade_adjustment_repo, trade, action_id, factor, post_qty, post_price):
+    if trade_adjustment_repo is not None:
+        adjustment = TradeAdjustment(
+            id=None,
+            trade_id=trade.id,
+            corporate_action_id=action_id,
+            factor=factor,
+            pre_quantity=trade.quantity,
+            post_quantity=post_qty,
+            pre_price=trade.price,
+            post_price=post_price,
+            applied_at=datetime.now(),
+        )
+        trade_adjustment_repo.insert(adjustment)
+    updated_trade = Trade(
+        id=trade.id,
+        stock_id=trade.stock_id,
+        trade_date=trade.trade_date,
+        trade_time=trade.trade_time,
+        side=trade.side,
+        quantity=post_qty,
+        price=post_price,
+        original_quantity=trade.original_quantity,
+        original_price=trade.original_price,
+    )
+    portfolio_repo.update_trade(updated_trade)
+
+
 class CorporateActionService:
     """
     Bedelli / Bedelsiz Sermaye Artırımı uygulama servisi.
@@ -322,50 +350,18 @@ class CorporateActionService:
         """
         avg_cost_before = position.average_cost
         shares_before = position.total_quantity
-        
         factor = Decimal("1") / (Decimal("1") + action.ratio)
-        
-        # ex-date öncesi tüm işlemleri güncelle
         trades = self._portfolio_repo.get_trades_by_stock(action.stock_id)
         trades_before = [t for t in trades if t.trade_date < action.ex_date]
-        
         for trade in trades_before:
             post_qty = int(trade.quantity * (Decimal("1") + action.ratio))
             post_price = (trade.price * factor).quantize(Decimal("1.0000"))
-            
-            # Günlük logunu kaydet
-            if self._trade_adjustment_repo is not None:
-                adjustment = TradeAdjustment(
-                    id=None,
-                    trade_id=trade.id,
-                    corporate_action_id=action.id,
-                    factor=factor,
-                    pre_quantity=trade.quantity,
-                    post_quantity=post_qty,
-                    pre_price=trade.price,
-                    post_price=post_price,
-                    applied_at=datetime.now()
-                )
-                self._trade_adjustment_repo.insert(adjustment)
-            
-            # İşlemi güncelle
-            updated_trade = Trade(
-                id=trade.id,
-                stock_id=trade.stock_id,
-                trade_date=trade.trade_date,
-                trade_time=trade.trade_time,
-                side=trade.side,
-                quantity=post_qty,
-                price=post_price,
-                original_quantity=trade.original_quantity,
-                original_price=trade.original_price,
+            _record_and_update_trade(
+                self._portfolio_repo, self._trade_adjustment_repo,
+                trade, action.id, factor, post_qty, post_price,
             )
-            self._portfolio_repo.update_trade(updated_trade)
-
-        # Yeni ortalama maliyet: aynı toplam maliyet / daha fazla hisse
         new_qty = shares_before + new_shares
         avg_cost_after = (position.total_cost / Decimal(str(new_qty))) if new_qty > 0 else Decimal("0")
-
         return _build_action_result(
             action=action,
             shares_before=shares_before,
@@ -395,50 +391,19 @@ class CorporateActionService:
         shares_before = position.total_quantity
         sub_price = action.subscription_price
         capital_spent = sub_price * Decimal(str(new_shares))
-        
         factor = self._price_adjustment_service._factor_for_action(action) if self._price_adjustment_service else Decimal("1")
-
-        # ex-date öncesi tüm işlemleri güncelle
         trades = self._portfolio_repo.get_trades_by_stock(action.stock_id)
         trades_before = [t for t in trades if t.trade_date < action.ex_date]
-        
         for trade in trades_before:
             post_qty = int(trade.quantity / factor)
             post_price = (trade.price * factor).quantize(Decimal("1.0000"))
-            
-            # Günlük logunu kaydet
-            if self._trade_adjustment_repo is not None:
-                adjustment = TradeAdjustment(
-                    id=None,
-                    trade_id=trade.id,
-                    corporate_action_id=action.id,
-                    factor=factor,
-                    pre_quantity=trade.quantity,
-                    post_quantity=post_qty,
-                    pre_price=trade.price,
-                    post_price=post_price,
-                    applied_at=datetime.now()
-                )
-                self._trade_adjustment_repo.insert(adjustment)
-            
-            # İşlemi güncelle
-            updated_trade = Trade(
-                id=trade.id,
-                stock_id=trade.stock_id,
-                trade_date=trade.trade_date,
-                trade_time=trade.trade_time,
-                side=trade.side,
-                quantity=post_qty,
-                price=post_price,
-                original_quantity=trade.original_quantity,
-                original_price=trade.original_price,
+            _record_and_update_trade(
+                self._portfolio_repo, self._trade_adjustment_repo,
+                trade, action.id, factor, post_qty, post_price,
             )
-            self._portfolio_repo.update_trade(updated_trade)
-
         new_qty = shares_before + new_shares
         new_total_cost = position.total_cost + capital_spent
         avg_cost_after = new_total_cost / Decimal(str(new_qty)) if new_qty > 0 else Decimal("0")
-
         return _build_action_result(
             action=action,
             shares_before=shares_before,

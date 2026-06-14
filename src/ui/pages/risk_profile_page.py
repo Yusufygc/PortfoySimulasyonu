@@ -204,13 +204,7 @@ class RiskProfilePage(BasePage):
         self.profile_card.setVisible(False)
         self.scroll_layout.addWidget(self.profile_card)
 
-    def _build_survey(self):
-        self.survey_frame = QFrame()
-        self.survey_frame.setProperty("cssClass", "surveyFrame")
-        survey_layout = QVBoxLayout(self.survey_frame)
-        survey_layout.setContentsMargins(26, 20, 26, 20)
-        survey_layout.setSpacing(16)
-
+    def _build_survey_header_row(self) -> QHBoxLayout:
         survey_header = QHBoxLayout()
         survey_header.setSpacing(10)
         img_survey = IconLabel("clipboard-list", color="@COLOR_TEXT_SECONDARY", size=22)
@@ -222,14 +216,9 @@ class RiskProfilePage(BasePage):
         self.lbl_step = QLabel("")
         self.lbl_step.setProperty("cssClass", "surveyStep")
         survey_header.addWidget(self.lbl_step)
-        survey_layout.addLayout(survey_header)
+        return survey_header
 
-        self.step_stack = QStackedWidget()
-        self.step_stack.setProperty("cssClass", "surveyStack")
-        for index, (section_title, question) in enumerate(self.questionnaire_items):
-            self.step_stack.addWidget(self._create_question_page(section_title, question, index + 1))
-        survey_layout.addWidget(self.step_stack, 1)
-
+    def _build_survey_btn_row(self) -> QHBoxLayout:
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
         self.btn_previous = AnimatedButton(L10N.BACK)
@@ -256,8 +245,21 @@ class RiskProfilePage(BasePage):
         self.btn_calculate.setProperty("cssClass", "calculateButton")
         self.btn_calculate.clicked.connect(self._on_calculate)
         btn_layout.addWidget(self.btn_calculate)
-        survey_layout.addLayout(btn_layout)
+        return btn_layout
 
+    def _build_survey(self):
+        self.survey_frame = QFrame()
+        self.survey_frame.setProperty("cssClass", "surveyFrame")
+        survey_layout = QVBoxLayout(self.survey_frame)
+        survey_layout.setContentsMargins(26, 20, 26, 20)
+        survey_layout.setSpacing(16)
+        survey_layout.addLayout(self._build_survey_header_row())
+        self.step_stack = QStackedWidget()
+        self.step_stack.setProperty("cssClass", "surveyStack")
+        for index, (section_title, question) in enumerate(self.questionnaire_items):
+            self.step_stack.addWidget(self._create_question_page(section_title, question, index + 1))
+        survey_layout.addWidget(self.step_stack, 1)
+        survey_layout.addLayout(self._build_survey_btn_row())
         self.scroll_layout.addWidget(self.survey_frame)
         self._update_section_nav()
 
