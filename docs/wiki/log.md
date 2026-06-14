@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-14] refaktor | Faz 2+3 tamamlandı; src fonksiyon satır ihlalleri giderildi; violations=134→109 (src:115→90)
+
+- Faz 2 (UI _init_ui döngüsü, 12 fonksiyon): peer_card, appearance_panel, goal_input_dialog, goals_panel, corporate_action_candidates_panel, date_range_dialog, action_list_item, model_panel, trade_dialog, main_window — modül düzeyi builder'lara bölündü.
+- Faz 3 (application servisleri + UI handler'lar, 14 fonksiyon): corporate_action_service._apply_bedelli/_apply_bedelsiz → _record_and_update_trade; price_adjustment_service → _find_price_transition_date + _determine_adjust_before_date; portfolio_series_builder._run_simulation_loop → _advance_twr_index; dashboard_corporate_action_actions → _register_action, _on_ca_backfill_success/_error; model_portfolio_ui_builder.build_ui → _build_action_buttons; ai_helper → _collect_table_rows, _build_commentary_prompt, _build_ai_panel_title_row, _build_ai_browser_widget; xai_card → _build_factor_header_row; stock_chart_widget → _draw_price_series, _draw_reference_lines; analysis_comparison_section → _build_mode_selector_panel; performance_card → _build_metric_row; chatbot_panel → _build_prompt_data_sections; risk_profile_page → _build_survey_header_row, _build_survey_btn_row; comparison_data_manager → _start_comparison_worker; price_data_report → _build_problematic_html.
+- Kalan 90 src ihlali: fonksiyon_satır ihlali ≈0 (parse_kap_mkk_disclosure tam sınırda=50); **cyclomatic complexity ihlali 49** + **parametre sayısı ihlali 44** — farklı refactor türü.
+- Doğrulama: 582 test geçti, 2 pre-existing hata değişmedi.
+- Bağlantılı sayfa: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
+
 ## [2026-06-14] refaktor | UI sınıf ihlalleri giderildi; violating_classes=4→1
 
 - `WatchlistPage._load_stocks` içindeki aksiyon buton bloğu `_make_stock_action_cell()` modül fonksiyonuna taşındı.

@@ -12,13 +12,15 @@ Production kodunda sağlık baseline raporuyla doğrulanmış sınıf, fonksiyon
 
 - Branch: `refactor`
 - Son önemli commitler:
-  - `b6d8bf8` - İlk kalite baseline ihlali azaltımı
-  - `b9dd891` - Refactor handoff ve devam notu
+  - `5d1583b` - Refactor tamamlama notunu wiki ve handoff sayfasına ekle
+  - `f0d2768` - Faz 3 application+UI fonksiyon ihlallerini gider; src violations=115→90
   - `75edccd` - Kalan sınıf ihlallerini gider; violating_classes=4→1
 - Güncel baseline metrikleri (2026-06-14):
-  - **Sınıf ihlali: `1`** (yalnızca `L10N` — belgeli istisna)
-  - Fonksiyon/metot ihlali: `134`
-  - Health report crosswalk: `84/84`
+  - **Sınıf ihlali: `2`** (`L10N` + `PortfolioSeriesBuilder` — her ikisi belgeli istisna)
+  - **Fonksiyon ihlali toplam: `109`** (src: `90`, tests: `14`, scripts: `5`)
+  - src satır ihlali: ≈0 (parse_kap_mkk_disclosure tam sınırda=50, >50 sayılmıyor)
+  - **src complexity ihlali: `49`** (cyclomatic > 10)
+  - **src parametre ihlali: `44`** (effective_params > 5)
 - Kirli worktree notu:
   - `app.py` ve bazı `src/ui/...` dosyalarında önceden var olan unstaged UI değişiklikleri bulunuyor.
   - Bu değişiklikler kullanıcıya ait kabul edilir; geri alınmaz.
@@ -43,17 +45,26 @@ Production kodunda sağlık baseline raporuyla doğrulanmış sınıf, fonksiyon
 - **violating_classes: 9 → 1** (L10N belgeli istisna)
 - Tam suite son doğrulama: `612 passed`.
 
+## Tamamlanan Fazlar (Faz 1-3)
+
+- **Faz 1** (regresyon): `_build_page2_widgets` (83 sat) → 3 sub-builder
+- **Faz 2** (UI _init_ui döngüsü): 12 fonksiyon modül düzeyine taşındı (violating_functions 134→122)
+- **Faz 3** (application+UI): 14 fonksiyon helper'lara bölündü (src violations 115→90)
+- src satır ihlali: **tümü giderildi** (≈0 kaldı)
+
 ## Kalan Fazlar
 
-1. Application servisleri (opsiyonel — sınıf ihlali kalmadı):
-   - `CorporateActionService` bedelli/bedelsiz hesaplarını calculator/builder helper'larına ayır.
-   - `PriceDataHealthService` DTO, scope resolver, analyzer ve updater yüzeylerini modül bazında ayır.
-   - `OptimizationService.__init__` parametre sayısı guard ihlali mevcut davranış ve DI sözleşmesi nedeniyle ayrıca değerlendirilmeli.
-2. Fonksiyon/metot ihlalleri (134 adet, ikincil öncelik):
-   - >50 satır fonksiyonlar; en büyükleri: UI page load metodları, AI yanıt işleyiciler.
-3. False-positive değerlendirmeleri:
-   - `L10N` kalıcı istisna olarak belgeli kalır.
-   - Repository method-count uyarıları interface yüzeyi nedeniyle ayrıca değerlendirilmeli.
+1. **Complexity ihlalleri (49 adet)** — cyclomatic > 10:
+   - `get_overview` (cc=17), `_calc_initial_cash_and_positions` (cc=20), `_run_simulation_loop` (cc=10), `compute_beta` (cc=13) vb.
+   - Yaklaşım: dallanma bloklarını alt fonksiyonlara çıkar; match/case yerine dict dispatch.
+2. **Parametre sayısı ihlalleri (44 adet)** — effective_params > 5:
+   - `_bundle_dict` (p=10), `_run_simulation_loop` (p=12), `compute_portfolio_series` (p=8) vb.
+   - Yaklaşım: dataclass/TypedDict parametre grubu oluştur; özellikle `portfolio_series_builder`.
+3. **Test ihlalleri (14 adet)** — düşük öncelik, mevcut test mantığı bozulmaz.
+4. **False-positive / belgeli istisnalar**:
+   - `L10N` (797 sat, sınıf) — locale sabitleri, bölünmez; kalıcı istisna.
+   - `PortfolioSeriesBuilder` (307 sat, sınıf) — complexity ve param ihlalleri dallanma yoğun simülasyon döngüsünden kaynaklanıyor; DI bağımlılıkları değiştirilmeden parametre azaltımı kısıtlı.
+   - scripts/5 — tek seferlik migration araçları, dokunulmaz.
 
 ## Çalışma Kuralları
 
