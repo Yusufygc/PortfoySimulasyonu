@@ -207,6 +207,13 @@ class _UpdaterCtx(NamedTuple):
     default_start_date_func: object
 
 
+class _RowBuildCtx(NamedTuple):
+    first_trade_dates: "Dict[int, date]"
+    presence_map: "Dict[int, Set[date]]"
+    latest_dates: "Dict[int, date]"
+    holiday_candidate_set: "Set[date]"
+
+
 class PriceScopeResolver:
     def __init__(
         self,
@@ -365,10 +372,12 @@ class PriceHealthAnalyzer:
                 stocks=stocks,
                 start_date=start_date,
                 business_days=business_days,
-                first_trade_dates=first_trade_dates,
-                presence_map=presence_map,
-                latest_dates=latest_dates,
-                holiday_candidate_set=set(holiday_candidates),
+                ctx=_RowBuildCtx(
+                    first_trade_dates=first_trade_dates,
+                    presence_map=presence_map,
+                    latest_dates=latest_dates,
+                    holiday_candidate_set=set(holiday_candidates),
+                ),
             ),
             latest_price_date=max(latest_dates.values(), default=None),
             known_holiday_dates=sorted(known_holidays),
@@ -430,10 +439,7 @@ class PriceHealthAnalyzer:
         stocks: Sequence[Stock],
         start_date: date,
         business_days: Sequence[date],
-        first_trade_dates: Dict[int, date],
-        presence_map: Dict[int, Set[date]],
-        latest_dates: Dict[int, date],
-        holiday_candidate_set: Set[date],
+        ctx: "_RowBuildCtx",
     ) -> List[StockPriceHealthRow]:
         rows: List[StockPriceHealthRow] = []
         for stock in stocks:
@@ -443,20 +449,18 @@ class PriceHealthAnalyzer:
                 stock_id=stock.id,
                 start_date=start_date,
                 business_days=business_days,
-                first_trade_dates=first_trade_dates,
-                presence_map=presence_map,
-                holiday_candidate_set=holiday_candidate_set,
+                ctx=ctx,
             )
             rows.append(
                 StockPriceHealthRow(
                     stock_id=stock.id,
                     ticker=stock.ticker,
-                    last_price_date=latest_dates.get(stock.id),
+                    last_price_date=ctx.latest_dates.get(stock.id),
                     missing_dates=missing_dates,
                     first_missing_date=missing_dates[0] if missing_dates else None,
                     last_missing_date=missing_dates[-1] if missing_dates else None,
                     status=_status_for_missing_count(len(missing_dates), expected_count),
-                    first_trade_date=first_trade_dates.get(stock.id),
+                    first_trade_date=ctx.first_trade_dates.get(stock.id),
                 )
             )
         return rows
@@ -466,17 +470,15 @@ class PriceHealthAnalyzer:
         stock_id: int,
         start_date: date,
         business_days: Sequence[date],
-        first_trade_dates: Dict[int, date],
-        presence_map: Dict[int, Set[date]],
-        holiday_candidate_set: Set[date],
+        ctx: "_RowBuildCtx",
     ) -> tuple[List[date], int]:
-        existing_dates = presence_map.get(stock_id, set())
-        active_start_date = max(start_date, first_trade_dates.get(stock_id, start_date))
+        existing_dates = ctx.presence_map.get(stock_id, set())
+        active_start_date = max(start_date, ctx.first_trade_dates.get(stock_id, start_date))
         missing_dates = [
             point_date
             for point_date in business_days
             if point_date >= active_start_date
-            and point_date not in holiday_candidate_set
+            and point_date not in ctx.holiday_candidate_set
             and point_date not in existing_dates
         ]
         expected_count = len([point_date for point_date in business_days if point_date >= active_start_date])

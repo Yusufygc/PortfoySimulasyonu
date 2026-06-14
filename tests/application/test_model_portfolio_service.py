@@ -6,7 +6,7 @@ import pytest
 
 from src.application.services.portfolio.trade_entry_service import TradeEntryService, TradeRequest
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
-from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
+from src.application.services.planning.model_portfolio_trade_service import CapitalMovementSpec, ModelTradeInput
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade
 from src.domain.models.stock import Stock
 from src.domain.models.trade import TradeSide
@@ -254,11 +254,13 @@ def test_model_portfolio_capital_deposit_increases_cash_without_profit():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
 
     movement = service.add_capital_movement(
-        portfolio_id=1,
-        movement_type="DEPOSIT",
-        amount=Decimal("500"),
-        movement_date=date(2026, 1, 3),
-        movement_time=time(10, 0),
+        CapitalMovementSpec(
+            portfolio_id=1,
+            movement_type="DEPOSIT",
+            amount=Decimal("500"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(10, 0),
+        )
     )
     summary = service.get_portfolio_summary(1, price_map={10: Decimal("12")})
 
@@ -273,11 +275,13 @@ def test_model_portfolio_capital_withdraw_reduces_cash_and_net_capital():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
 
     service.add_capital_movement(
-        portfolio_id=1,
-        movement_type="WITHDRAW",
-        amount=Decimal("100"),
-        movement_date=date(2026, 1, 3),
-        movement_time=time(10, 0),
+        CapitalMovementSpec(
+            portfolio_id=1,
+            movement_type="WITHDRAW",
+            amount=Decimal("100"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(10, 0),
+        )
     )
     summary = service.get_portfolio_summary(1, price_map={10: Decimal("12")})
 
@@ -291,11 +295,13 @@ def test_model_portfolio_rejects_withdraw_above_cash():
 
     try:
         service.add_capital_movement(
-            portfolio_id=1,
-            movement_type="WITHDRAW",
-            amount=Decimal("5000"),
-            movement_date=date(2026, 1, 3),
-            movement_time=time(10, 0),
+            CapitalMovementSpec(
+                portfolio_id=1,
+                movement_type="WITHDRAW",
+                amount=Decimal("5000"),
+                movement_date=date(2026, 1, 3),
+                movement_time=time(10, 0),
+            )
         )
     except ValueError as exc:
         assert "Yetersiz nakit" in str(exc)
@@ -307,11 +313,13 @@ def test_model_portfolio_deposit_allows_larger_later_buy():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
 
     service.add_capital_movement(
-        portfolio_id=1,
-        movement_type="DEPOSIT",
-        amount=Decimal("1000"),
-        movement_date=date(2026, 1, 3),
-        movement_time=time(9, 0),
+        CapitalMovementSpec(
+            portfolio_id=1,
+            movement_type="DEPOSIT",
+            amount=Decimal("1000"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(9, 0),
+        )
     )
     trade = service.add_trade_by_ticker(
         portfolio_id=1,
@@ -332,11 +340,13 @@ def test_model_portfolio_deposit_allows_larger_later_buy():
 def test_model_portfolio_rejects_retroactive_withdraw_that_breaks_later_buy():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
     service.add_capital_movement(
-        portfolio_id=1,
-        movement_type="DEPOSIT",
-        amount=Decimal("1000"),
-        movement_date=date(2026, 1, 3),
-        movement_time=time(9, 0),
+        CapitalMovementSpec(
+            portfolio_id=1,
+            movement_type="DEPOSIT",
+            amount=Decimal("1000"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(9, 0),
+        )
     )
     service.add_trade_by_ticker(
         portfolio_id=1,
@@ -352,11 +362,13 @@ def test_model_portfolio_rejects_retroactive_withdraw_that_breaks_later_buy():
 
     try:
         service.add_capital_movement(
-            portfolio_id=1,
-            movement_type="WITHDRAW",
-            amount=Decimal("950"),
-            movement_date=date(2026, 1, 3),
-            movement_time=time(9, 30),
+            CapitalMovementSpec(
+                portfolio_id=1,
+                movement_type="WITHDRAW",
+                amount=Decimal("950"),
+                movement_date=date(2026, 1, 3),
+                movement_time=time(9, 30),
+            )
         )
     except ValueError as exc:
         assert "sonraki model portf" in str(exc)

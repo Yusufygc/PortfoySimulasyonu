@@ -124,9 +124,9 @@ class ModelPortfolioActions:
         if not result:
             return
         try:
+            from src.application.services.planning.model_portfolio_trade_service import CapitalMovementSpec
             self.page.model_portfolio_service.add_capital_movement(
-                portfolio_id=self.page.current_portfolio_id,
-                **result,
+                CapitalMovementSpec(portfolio_id=self.page.current_portfolio_id, **result)
             )
             self.page._load_portfolios()
             self.page._update_view()
