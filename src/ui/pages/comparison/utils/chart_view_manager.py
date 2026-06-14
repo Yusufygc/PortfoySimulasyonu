@@ -105,6 +105,26 @@ class ChartViewManager:
     # Viewport Visibility Kontrolü
     # ------------------------------------------------------------------
 
+    def _process_chart_name_visibility(self, name, scroll_area, scroll_y, viewport_height, df) -> None:
+        existing_view = getattr(self.page, f"_{name}_chart_view", None)
+        if existing_view is not None and not _is_qobject_deleted(existing_view):
+            return
+        container = getattr(self.page, f"{name}_chart_container", None)
+        if not container:
+            return
+        from src.qt_compat.qtcore import QPoint
+        scroll_widget = scroll_area.widget()
+        if not scroll_widget:
+            return
+        pos = container.mapTo(scroll_widget, QPoint(0, 0))
+        top = pos.y()
+        bottom = top + container.height()
+        if bottom >= scroll_y - 300 and top <= scroll_y + viewport_height + 300:
+            self.get_or_create_view(name)
+            if hasattr(self.page, "_renderer"):
+                if hasattr(self.page._renderer, "render_single_chart_async"):
+                    self.page._renderer.render_single_chart_async(name, df)
+
     def check_viewport_visibility(self) -> None:
         """
         ScrollArea içerisindeki grafik panellerinin görünürlüğünü kontrol eder.
@@ -117,50 +137,22 @@ class ChartViewManager:
             or not hasattr(self.page, "scroll_area")
         ):
             return
-
         scroll_area = self.page.scroll_area
         vbar = scroll_area.verticalScrollBar()
         if not vbar:
             return
-            
         scroll_y = vbar.value()
         viewport = scroll_area.viewport()
         if not viewport:
             return
-            
         viewport_height = viewport.height()
         df = getattr(self.page, "last_global_df", None)
         has_renderable_data = df is not None and not df.empty
         if not has_renderable_data:
             self._update_placeholders_for_empty_state()
             return
-
         for name in _CHART_NAMES:
-            # Zaten oluşturulmuşsa atla
-            existing_view = getattr(self.page, f"_{name}_chart_view", None)
-            if existing_view is not None and not _is_qobject_deleted(existing_view):
-                continue
-
-            container = getattr(self.page, f"{name}_chart_container", None)
-            if not container:
-                continue
-
-            from src.qt_compat.qtcore import QPoint
-            scroll_widget = scroll_area.widget()
-            if not scroll_widget:
-                continue
-                
-            pos = container.mapTo(scroll_widget, QPoint(0, 0))
-            top = pos.y()
-            bottom = top + container.height()
-
-            # Viewport ile kesişiyorsa (300px tolerans ile) oluştur
-            if bottom >= scroll_y - 300 and top <= scroll_y + viewport_height + 300:
-                self.get_or_create_view(name)
-                # Veri hazırsa render işlemini tetikle
-                if hasattr(self.page, "_renderer"):
-                    if hasattr(self.page._renderer, "render_single_chart_async"):
-                        self.page._renderer.render_single_chart_async(name, df)
+            self._process_chart_name_visibility(name, scroll_area, scroll_y, viewport_height, df)
 
     def _page_is_active(self) -> bool:
         return getattr(self.page, "_comparison_page_active", True) is not False

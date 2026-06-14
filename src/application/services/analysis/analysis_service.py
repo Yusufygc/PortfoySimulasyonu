@@ -37,6 +37,24 @@ from .risk_metrics import (
 from .source_resolver import AnalysisSourceResolver
 
 
+def _get_benchmark_vars(bundle: dict) -> "tuple":
+    primary = bundle["benchmarks"][0] if bundle["benchmarks"] else None
+    gap = compute_relative_gap_pct(bundle["portfolio_series"], primary.points) if primary else None
+    label = primary.label if primary else "Benchmark"
+    return primary, gap, label
+
+
+def _get_contributor_stats(top, best, worst) -> dict:
+    return {
+        "top_label": top["label"] if top else "-",
+        "top_weight": top["weight"] if top else None,
+        "best_label": best["label"] if best else "-",
+        "best_pct": best["return_pct"] if best else None,
+        "worst_label": worst["label"] if worst else "-",
+        "worst_pct": worst["return_pct"] if worst else None,
+    }
+
+
 class AnalysisService:
     def __init__(
         self,
@@ -93,47 +111,35 @@ class AnalysisService:
         if bundle is None:
             bundle = self._build_analysis_bundle(filter_state)
         ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
-        position_snapshot = compute_position_snapshot(
-            bundle["portfolio"],
-            ticker_map,
-            bundle["position_values_end"],
-        )
+        position_snapshot = compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"])
         portfolio_series = bundle["portfolio_series"]
-        primary_benchmark = bundle["benchmarks"][0] if bundle["benchmarks"] else None
-        benchmark_gap = (
-            compute_relative_gap_pct(portfolio_series, primary_benchmark.points)
-            if primary_benchmark
-            else None
-        )
-
+        primary_benchmark, benchmark_gap, benchmark_label = _get_benchmark_vars(bundle)
         top_position = max(position_snapshot, key=lambda item: item["weight"], default=None)
         best = max(position_snapshot, key=lambda item: item["return_pct"], default=None)
         worst = min(position_snapshot, key=lambda item: item["return_pct"], default=None) if len(position_snapshot) > 1 else None
         max_drawdown = compute_max_drawdown_pct(portfolio_series)
         concentration_label = get_concentration_label(
             sum(item["weight"] for item in sorted(position_snapshot, key=lambda x: x["weight"], reverse=True)[:3])
-            if position_snapshot
-            else None
+            if position_snapshot else None
         )
-
         insights = [
             build_benchmark_insight(primary_benchmark.label if primary_benchmark else "benchmark", benchmark_gap),
             f"Risk yoğunluğu: {concentration_label}",
         ]
         if best and best["label"] != "-":
             insights.append(f"En güçlü performans: {best['label']} (%{best['return_pct']:+.2f})")
-
+        stats = _get_contributor_stats(top_position, best, worst)
         return AnalysisOverviewDTO(
             total_value=bundle["end_total_value"],
             period_return_pct=compute_return_pct(portfolio_series),
             benchmark_gap_pct=benchmark_gap,
-            benchmark_label=primary_benchmark.label if primary_benchmark else "Benchmark",
-            largest_position_label=top_position["label"] if top_position else "-",
-            largest_position_weight_pct=top_position["weight"] if top_position else None,
-            best_contributor_label=best["label"] if best else "-",
-            best_contributor_pct=best["return_pct"] if best else None,
-            worst_contributor_label=worst["label"] if worst else "-",
-            worst_contributor_pct=worst["return_pct"] if worst else None,
+            benchmark_label=benchmark_label,
+            largest_position_label=stats["top_label"],
+            largest_position_weight_pct=stats["top_weight"],
+            best_contributor_label=stats["best_label"],
+            best_contributor_pct=stats["best_pct"],
+            worst_contributor_label=stats["worst_label"],
+            worst_contributor_pct=stats["worst_pct"],
             max_drawdown_pct=max_drawdown,
             insights=insights,
             warnings=bundle["warnings"],

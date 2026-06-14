@@ -132,6 +132,29 @@ class PortfolioSeriesBuilder:
             last_prices[stock_id] = previous_price.close_price if previous_price else None
         return prices_by_stock, last_prices, warnings
 
+    def _initial_cash_from_history(
+        self,
+        cash_before: List[CashMovement],
+        trades_before: List[Trade],
+    ) -> Decimal:
+        cash = Decimal("0")
+        for cm in cash_before:
+            if cm.type == CashMovementType.DEPOSIT:
+                cash += cm.amount
+            elif cm.type == CashMovementType.WITHDRAW:
+                cash -= cm.amount
+                if cash < 0:
+                    cash = Decimal("0")
+        for t in trades_before:
+            trade_value = t.quantity * t.price
+            if t.side.name == "BUY":
+                cash -= trade_value
+                if cash < 0:
+                    cash = Decimal("0")
+            elif t.side.name == "SELL":
+                cash += trade_value
+        return cash
+
     def _calc_initial_cash_and_positions(
         self,
         trades: List[Trade],
@@ -142,37 +165,15 @@ class PortfolioSeriesBuilder:
     ) -> tuple[Dict[int, Position], Decimal, bool]:
         trades_before = [trade for trade in trades if trade.trade_date < start_date and trade.stock_id in stock_ids]
         cash_before = [cm for cm in cash_movements if cm.movement_date < start_date]
-
         current_positions = {
             stock_id: Position.from_trades(stock_id, [trade for trade in trades_before if trade.stock_id == stock_id])
             for stock_id in stock_ids
         }
-
         if trade_stock_ids is not None:
             has_cash_tracking = False
         else:
             has_cash_tracking = len(cash_movements) > 0 or len(cash_before) > 0
-            
-        current_cash = Decimal("0")
-
-        if has_cash_tracking:
-            for cm in cash_before:
-                if cm.type == CashMovementType.DEPOSIT:
-                    current_cash += cm.amount
-                elif cm.type == CashMovementType.WITHDRAW:
-                    current_cash -= cm.amount
-                    if current_cash < 0:
-                        current_cash = Decimal("0")
-
-            for t in trades_before:
-                trade_value = t.quantity * t.price
-                if t.side.name == "BUY":
-                    current_cash -= trade_value
-                    if current_cash < 0:
-                        current_cash = Decimal("0")
-                elif t.side.name == "SELL":
-                    current_cash += trade_value
-
+        current_cash = self._initial_cash_from_history(cash_before, trades_before) if has_cash_tracking else Decimal("0")
         return current_positions, current_cash, has_cash_tracking
 
     def _group_events_by_date(

@@ -12,6 +12,22 @@ from src.ui.formatters import display_ticker
 from src.ui.shared.locale_tr import L10N
 
 
+def _fmt_price(v) -> str:
+    return f"{v:,.2f}" if v is not None else "-"
+
+
+def _fmt_pct(v) -> str:
+    return f"%{v:+.2f}" if v is not None else "-"
+
+
+def _color_for_signed_value(value) -> "QColor | None":
+    if value > 0:
+        return QColor("#22c55e")
+    if value < 0:
+        return QColor("#ef4444")
+    return None
+
+
 class PortfolioTableModel(QAbstractTableModel):
     """
     Basit portföy tablo modeli.
@@ -104,65 +120,55 @@ class PortfolioTableModel(QAbstractTableModel):
 
         return None
 
+    def _display_col_ticker(self, stock_id: int) -> str:
+        ticker = self._ticker_map.get(stock_id)
+        return display_ticker(ticker) if ticker is not None else str(stock_id)
+
+    def _display_col_market_value(self, position: Position, current_price: Decimal | None) -> str:
+        if current_price is None:
+            return "-"
+        return f"{position.market_value(current_price):,.2f}"
+
+    def _display_col_pl(self, position: Position, current_price: Decimal | None) -> str:
+        if current_price is None:
+            return "-"
+        return f"{position.unrealized_pl(current_price):+,.2f}"
+
     def _get_display_text(self, position: Position, col: int, current_price: Decimal | None) -> str:
         stock_id = position.stock_id
-        if col == 0:  # HISSE
-            ticker = self._ticker_map.get(stock_id)
-            return display_ticker(ticker) if ticker is not None else str(stock_id)
-        if col == 1:  # MALIYET FIYATI
-            avg = position.average_cost
-            return f"{avg:,.2f}" if avg is not None else "-"
-        if col == 2:  # GUNCEL FIYAT
-            return f"{current_price:,.2f}" if current_price is not None else "-"
-        if col == 3:  # GUNLUK DEGISIM %
-            change_pct = self._daily_change_pct(stock_id, current_price)
-            return f"%{change_pct:+.2f}" if change_pct is not None else "-"
-        if col == 4:  # LOT
+        if col == 0:
+            return self._display_col_ticker(stock_id)
+        if col == 1:
+            return _fmt_price(position.average_cost)
+        if col == 2:
+            return _fmt_price(current_price)
+        if col == 3:
+            return _fmt_pct(self._daily_change_pct(stock_id, current_price))
+        if col == 4:
             return f"{position.total_quantity:,}"
-        if col == 5:  # PIYASA DEGERI
-            if current_price is None:
-                return "-"
-            mv = position.market_value(current_price)
-            return f"{mv:,.2f}"
-        if col == 6:  # TOPLAM DEGISIM %
-            change_pct = self._total_change_pct(position, current_price)
-            return f"%{change_pct:+.2f}" if change_pct is not None else "-"
-        if col == 7:  # KAR/ZARAR
-            if current_price is None:
-                return "-"
-            u_pl = position.unrealized_pl(current_price)
-            return f"{u_pl:+,.2f}"
+        if col == 5:
+            return self._display_col_market_value(position, current_price)
+        if col == 6:
+            return _fmt_pct(self._total_change_pct(position, current_price))
+        if col == 7:
+            return self._display_col_pl(position, current_price)
         return ""
 
     def _get_foreground_color(self, position: Position, col: int, current_price: Decimal | None, display_text: str):
         if display_text == "-":
             return QColor("#666666")
-
-        if current_price is not None:
-            # Kar/Zarar kolonu
-            if col == 7:
-                pl = position.unrealized_pl(current_price)
-                if pl > 0:
-                    return QColor("#22c55e")  # Yeşil
-                if pl < 0:
-                    return QColor("#ef4444")  # Kırmızı
-
-            if col == 3:
-                change_pct = self._daily_change_pct(position.stock_id, current_price)
-                if change_pct is not None:
-                    if change_pct > 0:
-                        return QColor("#22c55e")
-                    if change_pct < 0:
-                        return QColor("#ef4444")
-
-            if col == 6:
-                change_pct = self._total_change_pct(position, current_price)
-                if change_pct is not None:
-                    if change_pct > 0:
-                        return QColor("#22c55e")
-                    if change_pct < 0:
-                        return QColor("#ef4444")
-
+        if current_price is None:
+            return None
+        if col == 7:
+            return _color_for_signed_value(position.unrealized_pl(current_price))
+        if col == 3:
+            change_pct = self._daily_change_pct(position.stock_id, current_price)
+            if change_pct is not None:
+                return _color_for_signed_value(change_pct)
+        if col == 6:
+            change_pct = self._total_change_pct(position, current_price)
+            if change_pct is not None:
+                return _color_for_signed_value(change_pct)
         return None
 
     def _get_background_color(self, position: Position, col: int, current_price: Decimal | None):

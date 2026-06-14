@@ -16,11 +16,40 @@ def _normalize_suffix(suffix: str) -> str:
     return f" {clean}" if not clean.startswith(" ") else clean
 
 
-def _normalize_numeric_text(text: str) -> str:
-    clean = (text or "").replace(" ", "")
+def _validate_sign_format(clean: str) -> None:
     if clean.count("-") > 1 or ("-" in clean and not clean.startswith("-")):
         raise ValueError("invalid numeric input")
 
+
+def _normalize_mixed_separators(clean: str) -> str:
+    last_comma = clean.rfind(",")
+    last_dot = clean.rfind(".")
+    decimal_sep = "," if last_comma > last_dot else "."
+    group_sep = "." if decimal_sep == "," else ","
+    return clean.replace(group_sep, "").replace(decimal_sep, ".")
+
+
+def _is_thousand_grouping(parts: list) -> bool:
+    return all(part.isdigit() for part in parts) and all(len(part) == 3 for part in parts[1:])
+
+
+def _normalize_dot_separators(clean: str) -> str:
+    if clean.count(".") > 1:
+        parts = clean.split(".")
+        if not _is_thousand_grouping(parts):
+            raise ValueError("invalid numeric input")
+        return "".join(parts)
+    whole, fraction = clean.split(".", 1)
+    if fraction == "":
+        return f"{whole}."
+    if len(fraction) == 3 and 1 <= len(whole) <= 3:
+        return whole + fraction
+    return f"{whole}.{fraction}"
+
+
+def _normalize_numeric_text(text: str) -> str:
+    clean = (text or "").replace(" ", "")
+    _validate_sign_format(clean)
     sign = ""
     if clean.startswith("-"):
         sign = "-"
@@ -29,33 +58,16 @@ def _normalize_numeric_text(text: str) -> str:
         return sign
     if re.search(r"[^0-9.,]", clean):
         raise ValueError("invalid numeric input")
-
     comma_count = clean.count(",")
     dot_count = clean.count(".")
     if comma_count and dot_count:
-        last_comma = clean.rfind(",")
-        last_dot = clean.rfind(".")
-        decimal_sep = "," if last_comma > last_dot else "."
-        group_sep = "." if decimal_sep == "," else ","
-        clean = clean.replace(group_sep, "").replace(decimal_sep, ".")
+        clean = _normalize_mixed_separators(clean)
     elif comma_count:
         if comma_count > 1:
             raise ValueError("invalid numeric input")
         clean = clean.replace(",", ".")
     elif dot_count:
-        if dot_count > 1:
-            parts = clean.split(".")
-            if not all(part.isdigit() for part in parts) or not all(len(part) == 3 for part in parts[1:]):
-                raise ValueError("invalid numeric input")
-            clean = "".join(parts)
-        else:
-            whole, fraction = clean.split(".", 1)
-            if fraction == "":
-                clean = f"{whole}."
-            elif len(fraction) == 3 and 1 <= len(whole) <= 3:
-                clean = whole + fraction
-            else:
-                clean = f"{whole}.{fraction}"
+        clean = _normalize_dot_separators(clean)
     return sign + clean
 
 

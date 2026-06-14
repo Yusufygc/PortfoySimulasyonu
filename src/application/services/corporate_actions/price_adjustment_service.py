@@ -59,6 +59,44 @@ def adjusted_market_price(
     return value * cumulative_adjustment_factor(actions, price_date)
 
 
+def _filter_applied_actions(actions: Iterable[CorporateAction]) -> list:
+    return sorted(
+        [a for a in actions if a.applied and a.prices_adjusted],
+        key=lambda a: a.ex_date,
+        reverse=True,
+    )
+
+
+def _to_decimal_dict(series: Dict[date, Decimal]) -> Dict[date, Decimal]:
+    return {k: (v if isinstance(v, Decimal) else Decimal(str(v))) for k, v in series.items()}
+
+
+def _find_download_transition_date(sorted_dates, adjusted_series, action, factor) -> "date | None":
+    target_ratio = Decimal("1") / factor
+    for i in range(len(sorted_dates) - 1):
+        d, d_next = sorted_dates[i], sorted_dates[i + 1]
+        if abs((d_next - action.ex_date).days) > 7:
+            continue
+        p, p_next = adjusted_series[d], adjusted_series[d_next]
+        if p <= 0 or p_next <= 0:
+            continue
+        if abs(p / p_next - target_ratio) / target_ratio < Decimal("0.15"):
+            return d_next
+    return None
+
+
+def _apply_action_adjustments(sorted_dates, adjusted_series, action, factor) -> None:
+    transition_date = _find_download_transition_date(sorted_dates, adjusted_series, action, factor)
+    if transition_date is not None:
+        for d in sorted_dates:
+            if d < transition_date:
+                adjusted_series[d] = adjusted_series[d] * factor
+    else:
+        if sorted_dates[-1] < action.ex_date:
+            for d in sorted_dates:
+                adjusted_series[d] = adjusted_series[d] * factor
+
+
 def adjust_downloaded_series(
     series: Dict[date, Decimal],
     actions: Iterable[CorporateAction],
@@ -69,55 +107,16 @@ def adjust_downloaded_series(
     """
     if not series or not actions:
         return series
-
-    # Sort actions by ex_date descending (latest first)
-    sorted_actions = sorted(
-        [a for a in actions if a.applied and a.prices_adjusted],
-        key=lambda a: a.ex_date,
-        reverse=True
-    )
-    
+    sorted_actions = _filter_applied_actions(actions)
     if not sorted_actions:
         return series
-
-    adjusted_series = {k: (v if isinstance(v, Decimal) else Decimal(str(v))) for k, v in series.items()}
+    adjusted_series = _to_decimal_dict(series)
     sorted_dates = sorted(adjusted_series.keys())
-
     for action in sorted_actions:
         factor = action.price_adjustment_factor
         if factor is None or factor == Decimal("1"):
             continue
-
-        # Look for split transition in the series (within 7 days of ex_date)
-        transition_date = None
-        for i in range(len(sorted_dates) - 1):
-            d = sorted_dates[i]
-            d_next = sorted_dates[i + 1]
-            if abs((d_next - action.ex_date).days) > 7:
-                continue
-            p = adjusted_series[d]
-            p_next = adjusted_series[d_next]
-            if p <= 0 or p_next <= 0:
-                continue
-            r = p / p_next
-            target_ratio = Decimal("1") / factor
-            if abs(r - target_ratio) / target_ratio < Decimal("0.15"):
-                transition_date = d_next
-                break
-
-        if transition_date is not None:
-            # Transition found: adjust only dates before transition
-            for d in sorted_dates:
-                if d < transition_date:
-                    adjusted_series[d] = adjusted_series[d] * factor
-        else:
-            # Transition not found: check if the series is entirely before the ex_date
-            max_date = sorted_dates[-1]
-            if max_date < action.ex_date:
-                # Entire series is before split, so adjust all of them
-                for d in sorted_dates:
-                    adjusted_series[d] = adjusted_series[d] * factor
-                    
+        _apply_action_adjustments(sorted_dates, adjusted_series, action, factor)
     return adjusted_series
 
 
