@@ -28,6 +28,16 @@ def _color_for_signed_value(value) -> "QColor | None":
     return None
 
 
+def _color_for_bg(value) -> "QColor | None":
+    if value is None:
+        return None
+    if value > 0:
+        return QColor(16, 185, 129, 20)
+    if value < 0:
+        return QColor(239, 68, 68, 20)
+    return None
+
+
 class PortfolioTableModel(QAbstractTableModel):
     """
     Basit portföy tablo modeli.
@@ -174,28 +184,12 @@ class PortfolioTableModel(QAbstractTableModel):
     def _get_background_color(self, position: Position, col: int, current_price: Decimal | None):
         if current_price is None:
             return None
-
         if col == 7:
-            pl = position.unrealized_pl(current_price)
-            if pl > 0:
-                return QColor(16, 185, 129, 20)
-            if pl < 0:
-                return QColor(239, 68, 68, 20)
-        elif col == 3:
-            change_pct = self._daily_change_pct(position.stock_id, current_price)
-            if change_pct is not None:
-                if change_pct > 0:
-                    return QColor(16, 185, 129, 20)
-                if change_pct < 0:
-                    return QColor(239, 68, 68, 20)
-        elif col == 6:
-            change_pct = self._total_change_pct(position, current_price)
-            if change_pct is not None:
-                if change_pct > 0:
-                    return QColor(16, 185, 129, 20)
-                if change_pct < 0:
-                    return QColor(239, 68, 68, 20)
-
+            return _color_for_bg(position.unrealized_pl(current_price))
+        if col == 3:
+            return _color_for_bg(self._daily_change_pct(position.stock_id, current_price))
+        if col == 6:
+            return _color_for_bg(self._total_change_pct(position, current_price))
         return None
 
     def _get_font(self, display_text: str):

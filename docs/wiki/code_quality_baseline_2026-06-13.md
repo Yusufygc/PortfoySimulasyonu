@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `46e187c`
+- Git commit: `8cfb40c`
 - Dosya: 440
 - Sinif: 538
-- Fonksiyon/metot: 3391
-- Effective code lines: 44360
+- Fonksiyon/metot: 3400
+- Effective code lines: 44380
 - Ihlalli sinif: 2
-- Ihlalli fonksiyon/metot: 91
+- Ihlalli fonksiyon/metot: 86
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 330 | 31483 | 1 |
+| src | 330 | 31503 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 14 | 1603 | 0 |
 | root | 1 | 28 | 0 |
@@ -77,7 +77,6 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/dashboard/dashboard_presenter.py | refresh_data | 45 | 0 | 11 | function_complexity |
 | src/ui/widgets/shared/feedback/toast.py | _reposition_for_parent | 45 | 2 | 11 | function_complexity |
 | scripts/migrate_ui_strings.py | process_file | 44 | 2 | 14 | function_complexity |
-| src/application/services/planning/model_portfolio_snapshot_service.py | get_positions_with_details | 44 | 2 | 13 | function_complexity |
 | src/ui/pages/model_portfolio/utils/model_portfolio_actions.py | on_trade | 44 | 1 | 12 | function_complexity |
 | src/ui/widgets/planning/panels/budget_form_panel.py | _build_item_column | 44 | 8 | 1 | function_effective_params |
 | src/application/services/planning/model_portfolio_trade_service.py | add_capital_movement | 43 | 6 | 5 | function_effective_params |
@@ -86,6 +85,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/stock_detail/stock_trade_submitter.py | _submit_model_trade | 41 | 5 | 11 | function_complexity |
 | src/domain/models/corporate_action_candidate.py | discovered | 40 | 13 | 1 | function_effective_params |
 | src/application/services/analysis/analysis_service.py | __init__ | 38 | 7 | 1 | function_effective_params |
+| src/application/services/simulation/history_snapshot_builder.py | build | 37 | 7 | 4 | function_effective_params |
 
 ## Saglik Raporu Crosswalk
 

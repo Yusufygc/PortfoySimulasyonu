@@ -10,6 +10,28 @@ from src.application.services.reporting.daily_history_models import SheetName
 from src.application.services.reporting.excel_data_preparer import ExcelDataPreparer
 
 
+def _is_kpi_pl_label(label_cell) -> bool:
+    label = str(label_cell.value or "")
+    return "K/Z" in label or "Getiri" in label
+
+
+def _apply_kpi_value_style(value_cell, label_cell) -> None:
+    label_val = str(value_cell.value) if value_cell.value is not None else ""
+    is_negative = "-" in label_val or "−" in label_val
+    is_positive = not is_negative and any(c.isdigit() for c in label_val)
+    if _is_kpi_pl_label(label_cell):
+        if is_negative:
+            value_cell.fill = PatternFill(start_color=theme.NEGATIVE_FILL, end_color=theme.NEGATIVE_FILL, fill_type="solid")
+            value_cell.font = Font(bold=True, color=theme.NEGATIVE_FONT, size=13)
+        elif is_positive:
+            value_cell.fill = PatternFill(start_color=theme.POSITIVE_FILL, end_color=theme.POSITIVE_FILL, fill_type="solid")
+            value_cell.font = Font(bold=True, color=theme.POSITIVE_FONT, size=13)
+        else:
+            value_cell.font = Font(bold=True, size=13)
+    else:
+        value_cell.font = Font(bold=True, color=theme.NAVY_DEEP, size=13)
+
+
 class ExcelLayoutManager:
     def __init__(self, data_preparer: ExcelDataPreparer) -> None:
         self.data_preparer = data_preparer
@@ -44,20 +66,7 @@ class ExcelLayoutManager:
             label_cell = worksheet.cell(row=row_idx, column=1)
             value_cell = worksheet.cell(row=row_idx, column=2)
             label_cell.font = Font(bold=True, color=theme.NAVY_PRIMARY, size=10)
-            label_val = str(value_cell.value) if value_cell.value is not None else ""
-            is_negative = "-" in label_val or "−" in label_val
-            is_positive = not is_negative and any(c.isdigit() for c in label_val)
-            if "K/Z" in str(label_cell.value or "") or "Getiri" in str(label_cell.value or ""):
-                if is_negative:
-                    value_cell.fill = PatternFill(start_color=theme.NEGATIVE_FILL, end_color=theme.NEGATIVE_FILL, fill_type="solid")
-                    value_cell.font = Font(bold=True, color=theme.NEGATIVE_FONT, size=13)
-                elif is_positive:
-                    value_cell.fill = PatternFill(start_color=theme.POSITIVE_FILL, end_color=theme.POSITIVE_FILL, fill_type="solid")
-                    value_cell.font = Font(bold=True, color=theme.POSITIVE_FONT, size=13)
-                else:
-                    value_cell.font = Font(bold=True, size=13)
-            else:
-                value_cell.font = Font(bold=True, color=theme.NAVY_DEEP, size=13)
+            _apply_kpi_value_style(value_cell, label_cell)
 
     def add_banner_to_data_sheet(self, worksheet, title: str, ncols: int) -> None:
         if ncols <= 0:
