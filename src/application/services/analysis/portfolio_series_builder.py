@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import date, time, timedelta
 from decimal import Decimal
 from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence
@@ -46,21 +47,6 @@ class PortfolioSeriesRequest(NamedTuple):
     trade_stock_ids: "Sequence[int] | None" = None
 
 
-class _SimLoopInput(NamedTuple):
-    start_date: date
-    end_date: date
-    has_cash_tracking: bool
-    current_cash: Decimal
-    current_positions: dict
-    trades_by_date: dict
-    cash_by_date: dict
-    prices_by_stock: dict
-    last_prices: dict
-    stock_ids: Sequence
-    warnings: Optional[list] = None
-    ticker_map: Optional[dict] = None
-
-
 def _should_warn_missing_price(position, stock_id: int, warned_stocks: set) -> bool:
     return position.total_quantity > 0 and stock_id not in warned_stocks
 
@@ -94,6 +80,112 @@ def _build_initial_positions(trades_before: list, stock_ids) -> dict:
         stock_id: Position.from_trades(stock_id, [t for t in trades_before if t.stock_id == stock_id])
         for stock_id in stock_ids
     }
+
+
+def _process_cash_tracking_day(
+    current_day: date,
+    cash_by_date: Dict[date, list],
+    trades_by_date: Dict[date, list],
+    current_positions: Dict[int, Position],
+    current_cash: Decimal,
+) -> tuple[Decimal, Decimal]:
+    current_cash, daily_net_cash_flow = _apply_cash_movements(
+        cash_by_date.get(current_day, []), current_cash
+    )
+    for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
+        if trade.stock_id in current_positions:
+            current_positions[trade.stock_id].apply_trade(trade)
+        trade_value = trade.quantity * trade.price
+        if trade.side.name == "BUY":
+            current_cash -= trade_value
+            if current_cash < 0:
+                current_cash = Decimal("0")
+        elif trade.side.name == "SELL":
+            current_cash += trade_value
+    return current_cash, daily_net_cash_flow
+
+
+def _process_no_cash_day(
+    current_day: date,
+    trades_by_date: Dict[date, list],
+    current_positions: Dict[int, Position],
+) -> Decimal:
+    daily_net_cash_flow = Decimal("0")
+    for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
+        if trade.stock_id in current_positions:
+            current_positions[trade.stock_id].apply_trade(trade)
+        trade_value = trade.quantity * trade.price
+        if trade.side.name == "BUY":
+            daily_net_cash_flow += trade_value
+        elif trade.side.name == "SELL":
+            daily_net_cash_flow -= trade_value
+    return daily_net_cash_flow
+
+
+def _advance_twr_index(
+    twr_index: Decimal,
+    total_value: Decimal,
+    previous_total_value,
+    daily_net_cash_flow: Decimal,
+) -> Decimal:
+    if previous_total_value is None:
+        return twr_index
+    base_value = previous_total_value + daily_net_cash_flow
+    if base_value > 0:
+        twr_index = twr_index * (Decimal("1") + (total_value - base_value) / base_value)
+    return twr_index
+
+
+@dataclass
+class _PortfolioSimLoop:
+    """Tek bir portföy serisi simülasyonunun mutable çalışma durumu."""
+    start_date: date
+    end_date: date
+    has_cash_tracking: bool
+    current_cash: Decimal
+    current_positions: Dict[int, Position]
+    trades_by_date: Dict[date, list]
+    cash_by_date: Dict[date, list]
+    prices_by_stock: Dict[int, Dict[date, Decimal]]
+    last_prices: Dict[int, Optional[Decimal]]
+    stock_ids: Sequence[int]
+    warnings: List[str]
+    ticker_map: Dict[int, str]
+
+    def run(self) -> tuple[Dict[date, Decimal], Dict[date, Decimal]]:
+        portfolio_series: Dict[date, Decimal] = {}
+        twr_series: Dict[date, Decimal] = {}
+        twr_index = Decimal("100")
+        previous_total_value: Decimal | None = None
+        warned_stocks: set = set()
+        current_day = self.start_date
+        while current_day <= self.end_date:
+            if self.has_cash_tracking:
+                self.current_cash, daily_net_cash_flow = _process_cash_tracking_day(
+                    current_day, self.cash_by_date, self.trades_by_date,
+                    self.current_positions, self.current_cash,
+                )
+            else:
+                daily_net_cash_flow = _process_no_cash_day(
+                    current_day, self.trades_by_date, self.current_positions,
+                )
+            total_value = self.current_cash
+            for stock_id in self.stock_ids:
+                day_price = self.prices_by_stock[stock_id].get(current_day)
+                if day_price is not None:
+                    self.last_prices[stock_id] = day_price
+                price = self.last_prices[stock_id]
+                if price is None:
+                    if _should_warn_missing_price(self.current_positions[stock_id], stock_id, warned_stocks):
+                        _emit_price_warning(self.warnings, self.ticker_map, stock_id, warned_stocks)
+                    continue
+                total_value += self.current_positions[stock_id].market_value(price)
+            portfolio_series[current_day] = total_value
+            twr_index = _advance_twr_index(twr_index, total_value, previous_total_value, daily_net_cash_flow)
+            twr_series[current_day] = twr_index
+            previous_total_value = total_value
+            current_day += timedelta(days=1)
+        return portfolio_series, twr_series
 
 
 class PortfolioSeriesBuilder:
@@ -155,22 +247,20 @@ class PortfolioSeriesBuilder:
             req.trades, req.cash_movements, trade_scope, req.start_date, req.end_date
         )
 
-        portfolio_series, twr_series = self._run_simulation_loop(
-            _SimLoopInput(
-                start_date=req.start_date,
-                end_date=req.end_date,
-                has_cash_tracking=has_cash_tracking,
-                current_cash=current_cash,
-                current_positions=current_positions,
-                trades_by_date=trades_by_date,
-                cash_by_date=cash_by_date,
-                prices_by_stock=prices_by_stock,
-                last_prices=last_prices,
-                stock_ids=req.stock_ids,
-                warnings=warnings,
-                ticker_map=req.ticker_map,
-            )
-        )
+        portfolio_series, twr_series = _PortfolioSimLoop(
+            start_date=req.start_date,
+            end_date=req.end_date,
+            has_cash_tracking=has_cash_tracking,
+            current_cash=current_cash,
+            current_positions=current_positions,
+            trades_by_date=trades_by_date,
+            cash_by_date=cash_by_date,
+            prices_by_stock=prices_by_stock,
+            last_prices=last_prices,
+            stock_ids=req.stock_ids,
+            warnings=warnings,
+            ticker_map=req.ticker_map,
+        ).run()
 
         position_values_end = self._calc_ending_position_values(
             req.portfolio, last_prices, req.stock_ids
@@ -262,97 +352,6 @@ class PortfolioSeriesBuilder:
 
         return trades_by_date, cash_by_date
 
-    def _process_cash_tracking_day(
-        self,
-        current_day: date,
-        cash_by_date: Dict[date, List[CashMovement]],
-        trades_by_date: Dict[date, List[Trade]],
-        current_positions: Dict[int, Position],
-        current_cash: Decimal,
-    ) -> tuple[Decimal, Decimal]:
-        current_cash, daily_net_cash_flow = _apply_cash_movements(
-            cash_by_date.get(current_day, []), current_cash
-        )
-        for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
-            if trade.stock_id in current_positions:
-                current_positions[trade.stock_id].apply_trade(trade)
-            trade_value = trade.quantity * trade.price
-            if trade.side.name == "BUY":
-                current_cash -= trade_value
-                if current_cash < 0:
-                    current_cash = Decimal("0")
-            elif trade.side.name == "SELL":
-                current_cash += trade_value
-        return current_cash, daily_net_cash_flow
-
-    def _process_no_cash_day(
-        self,
-        current_day: date,
-        trades_by_date: Dict[date, List[Trade]],
-        current_positions: Dict[int, Position],
-    ) -> Decimal:
-        daily_net_cash_flow = Decimal("0")
-        for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
-            if trade.stock_id in current_positions:
-                current_positions[trade.stock_id].apply_trade(trade)
-            trade_value = trade.quantity * trade.price
-            if trade.side.name == "BUY":
-                daily_net_cash_flow += trade_value
-            elif trade.side.name == "SELL":
-                daily_net_cash_flow -= trade_value
-        return daily_net_cash_flow
-
-    def _advance_twr_index(
-        self,
-        twr_index: Decimal,
-        total_value: Decimal,
-        previous_total_value,
-        daily_net_cash_flow: Decimal,
-    ) -> Decimal:
-        if previous_total_value is None:
-            return twr_index
-        base_value = previous_total_value + daily_net_cash_flow
-        if base_value > 0:
-            twr_index = twr_index * (Decimal("1") + (total_value - base_value) / base_value)
-        return twr_index
-
-    def _run_simulation_loop(
-        self,
-        sim: _SimLoopInput,
-    ) -> tuple[Dict[date, Decimal], Dict[date, Decimal]]:
-        portfolio_series: Dict[date, Decimal] = {}
-        twr_series: Dict[date, Decimal] = {}
-        twr_index = Decimal("100")
-        previous_total_value: Decimal | None = None
-        warned_stocks: set = set()
-        current_cash = sim.current_cash
-        current_positions = sim.current_positions
-        current_day = sim.start_date
-        while current_day <= sim.end_date:
-            if sim.has_cash_tracking:
-                current_cash, daily_net_cash_flow = self._process_cash_tracking_day(
-                    current_day, sim.cash_by_date, sim.trades_by_date, current_positions, current_cash
-                )
-            else:
-                daily_net_cash_flow = self._process_no_cash_day(current_day, sim.trades_by_date, current_positions)
-            total_value = current_cash
-            for stock_id in sim.stock_ids:
-                day_price = sim.prices_by_stock[stock_id].get(current_day)
-                if day_price is not None:
-                    sim.last_prices[stock_id] = day_price
-                price = sim.last_prices[stock_id]
-                if price is None:
-                    if _should_warn_missing_price(current_positions[stock_id], stock_id, warned_stocks):
-                        _emit_price_warning(sim.warnings, sim.ticker_map, stock_id, warned_stocks)
-                    continue
-                total_value += current_positions[stock_id].market_value(price)
-            portfolio_series[current_day] = total_value
-            twr_index = self._advance_twr_index(twr_index, total_value, previous_total_value, daily_net_cash_flow)
-            twr_series[current_day] = twr_index
-            previous_total_value = total_value
-            current_day += timedelta(days=1)
-        return portfolio_series, twr_series
-
     def _calc_ending_position_values(
         self,
         portfolio: Portfolio,
@@ -395,4 +394,3 @@ class PortfolioSeriesBuilder:
 
     def get_ticker_map(self, stock_ids: Sequence[int]) -> Dict[int, str]:
         return self._stock_repo.get_ticker_map_for_stock_ids(list(stock_ids))
-

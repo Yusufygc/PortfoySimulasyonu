@@ -7,11 +7,11 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `616fb6c`
+- Git commit: `a2d1601`
 - Dosya: 440
 - Sinif: 572
 - Fonksiyon/metot: 3457
-- Effective code lines: 44376
+- Effective code lines: 44375
 - Ihlalli sinif: 1
 - Ihlalli fonksiyon/metot: 19
 - Saglik raporu eslesen dosya: 84/84
@@ -20,7 +20,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 330 | 31493 | 1 |
+| src | 330 | 31492 | 1 |
 | tests | 95 | 11252 | 0 |
 | scripts | 14 | 1603 | 0 |
 | root | 1 | 28 | 0 |

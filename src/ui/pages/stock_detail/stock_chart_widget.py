@@ -1,14 +1,21 @@
 # src/ui/pages/stock_detail/stock_chart_widget.py
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING, NamedTuple, Optional
+
 from src.ui.shared.locale_tr import L10N
 
 import bisect
 import logging
 from datetime import date, datetime, time, timedelta
-from typing import NamedTuple
+from decimal import Decimal
 
 import pyqtgraph as pg
+
+if TYPE_CHECKING:
+    from src.domain.ports.repositories.i_price_repo import IPriceRepository
+    from src.application.services.portfolio.portfolio_service import PortfolioService
 from src.qt_compat.qtcore import Qt, QPointF, QThreadPool
 from src.qt_compat.qtwidgets import QFrame, QSizePolicy, QVBoxLayout
 
@@ -71,11 +78,11 @@ class CurrencyAxisItem(pg.AxisItem):
 
 class ChartContext(NamedTuple):
     ticker: str
-    stock_id: object
-    price: object
-    portfolio_service: object
-    price_repo: object = None
-    average_cost: object = None
+    stock_id: int
+    price: Optional[Decimal]
+    portfolio_service: Optional[PortfolioService]
+    price_repo: Optional[IPriceRepository] = None
+    average_cost: Optional[Decimal] = None
 
 
 class StockChartWidget(QFrame):
