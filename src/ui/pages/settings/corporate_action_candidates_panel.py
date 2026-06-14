@@ -34,6 +34,56 @@ from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.worker import Worker
 
 
+def _make_action_button(text, icon_name, slot, css_class="secondaryButton", icon_color="@COLOR_TEXT_PRIMARY"):
+    button = AnimatedButton(text)
+    button.setIconName(icon_name, color=icon_color)
+    button.setProperty("cssClass", css_class)
+    button.clicked.connect(slot)
+    return button
+
+
+def _build_candidates_title_row(discover_cb, refresh_list_cb):
+    title_row = QHBoxLayout()
+    title = QLabel(L10N.KURUMSAL_AKSIYON_TAKIP)
+    title.setProperty("cssClass", "panelTitle")
+    title_row.addWidget(title)
+    title_row.addStretch()
+    btn_refresh_remote = _make_action_button(" KAP/MKK Yenile", "refresh-cw", discover_cb)
+    btn_refresh_list = _make_action_button(L10N.LISTEYI_YENILE, "list", refresh_list_cb)
+    title_row.addWidget(btn_refresh_remote)
+    title_row.addWidget(btn_refresh_list)
+    return title_row, btn_refresh_remote, btn_refresh_list
+
+
+def _build_candidates_table(selection_cb):
+    table = QTableWidget()
+    table.setColumnCount(8)
+    table.setHorizontalHeaderLabels(
+        ["Hisse", "Tip", "Durum", "Oran", "Kullanim", "Ex-Date", "Guven", "Kaynak"]
+    )
+    table.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
+    table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    table.setEditTriggers(QTableWidget.NoEditTriggers)
+    table.setSelectionBehavior(QAbstractItemView.SelectRows)
+    table.setSelectionMode(QAbstractItemView.SingleSelection)
+    table.verticalHeader().setVisible(False)
+    table.setProperty("cssClass", "dataTable")
+    table.itemSelectionChanged.connect(selection_cb)
+    return table
+
+
+def _build_candidates_action_row(apply_cb, edit_cb, ignore_cb, source_cb):
+    action_row = QHBoxLayout()
+    btn_apply = _make_action_button(L10N.ONAYLA_VE_UYGULA, L10N.PLUSCIRCLE, apply_cb)
+    btn_edit = _make_action_button(L10N.DUZENLE, "pencil", edit_cb)
+    btn_ignore = _make_action_button(L10N.YOKSAY, "trash-2", ignore_cb, L10N.DANGERTEXTBUTTON, "@COLOR_DANGER")
+    btn_open_source = _make_action_button(L10N.KAYNAGI_AC, "arrow-right", source_cb)
+    for button in (btn_apply, btn_edit, btn_ignore, btn_open_source):
+        action_row.addWidget(button)
+    action_row.addStretch()
+    return action_row, btn_apply, btn_edit, btn_ignore, btn_open_source
+
+
 class CorporateActionCandidatesPanel(QWidget):
     def __init__(self, container, parent=None) -> None:
         super().__init__(parent)
@@ -52,84 +102,38 @@ class CorporateActionCandidatesPanel(QWidget):
         root_layout = QVBoxLayout(self)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(18)
-
         card = QFrame()
         card.setProperty("cssClass", "panelFramePadded")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(14)
-
-        title_row = QHBoxLayout()
-        title = QLabel(L10N.KURUMSAL_AKSIYON_TAKIP)
-        title.setProperty("cssClass", "panelTitle")
-        title_row.addWidget(title)
-        title_row.addStretch()
-
-        self.btn_refresh_remote = self._action_button(" KAP/MKK Yenile", "refresh-cw", self.discover)
-        self.btn_refresh_list = self._action_button(L10N.LISTEYI_YENILE, "list", self.refresh_list)
-        title_row.addWidget(self.btn_refresh_remote)
-        title_row.addWidget(self.btn_refresh_list)
-        layout.addLayout(title_row)
-
-        desc = QLabel(
-            L10N.BEDELLI_VE_BEDELSIZ_SERMAYE_ARTIRIMI +
-            L10N.PORTFOY_VE_FIYAT_DUZELTMESI_YALNIZCA
+        title_row, self.btn_refresh_remote, self.btn_refresh_list = _build_candidates_title_row(
+            self.discover, self.refresh_list
         )
+        layout.addLayout(title_row)
+        desc = QLabel(L10N.BEDELLI_VE_BEDELSIZ_SERMAYE_ARTIRIMI + L10N.PORTFOY_VE_FIYAT_DUZELTMESI_YALNIZCA)
         desc.setWordWrap(True)
         desc.setProperty("cssClass", "pageDescription")
         layout.addWidget(desc)
-
-        self.table = QTableWidget()
-        self.table.setColumnCount(8)
-        self.table.setHorizontalHeaderLabels(
-            ["Hisse", "Tip", "Durum", "Oran", "Kullanim", "Ex-Date", "Guven", "Kaynak"]
-        )
-        self.table.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setProperty("cssClass", "dataTable")
-        self.table.itemSelectionChanged.connect(self._on_selection_changed)
+        self.table = _build_candidates_table(self._on_selection_changed)
         layout.addWidget(self.table, 1)
-
-        action_row = QHBoxLayout()
-        self.btn_apply = self._action_button(L10N.ONAYLA_VE_UYGULA, L10N.PLUSCIRCLE, self.apply_selected)
-        self.btn_edit = self._action_button(L10N.DUZENLE, "pencil", self.edit_selected)
-        self.btn_ignore = self._action_button(L10N.YOKSAY, "trash-2", self.ignore_selected, L10N.DANGERTEXTBUTTON, "@COLOR_DANGER")
-        self.btn_open_source = self._action_button(L10N.KAYNAGI_AC, "arrow-right", self.open_selected_source)
-        for button in (self.btn_apply, self.btn_edit, self.btn_ignore, self.btn_open_source):
-            action_row.addWidget(button)
-        action_row.addStretch()
+        action_row, self.btn_apply, self.btn_edit, self.btn_ignore, self.btn_open_source = (
+            _build_candidates_action_row(
+                self.apply_selected, self.edit_selected, self.ignore_selected, self.open_selected_source
+            )
+        )
         layout.addLayout(action_row)
-
         self.detail_text = QTextEdit()
         self.detail_text.setReadOnly(True)
         self.detail_text.setMinimumHeight(92)
         self.detail_text.setProperty("cssClass", "plainTextPanel")
         layout.addWidget(self.detail_text)
-
         root_layout.addWidget(card)
         if self.discovery_service is None or self.review_service is None:
             self._set_controls_enabled(False)
             self.detail_text.setText(L10N.KURUMSAL_AKSIYON_ADAY_SERVISLERI_KULLANILAMIYOR)
         else:
             self._on_selection_changed()
-
-    def _action_button(
-        self,
-        text: str,
-        icon_name: str,
-        slot,
-        css_class: str = "secondaryButton",
-        icon_color: str = "@COLOR_TEXT_PRIMARY",
-    ) -> AnimatedButton:
-        button = AnimatedButton(text)
-        button.setIconName(icon_name, color=icon_color)
-        button.setProperty("cssClass", css_class)
-        button.clicked.connect(slot)
-        return button
 
     def discover(self) -> None:
         if self.discovery_service is None:

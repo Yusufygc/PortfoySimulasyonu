@@ -28,6 +28,69 @@ from src.ui.core.icon_manager import IconManager
 _PRIORITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 
 
+def _build_goals_btn_row(add_cb, analyze_cb):
+    btn_row = QHBoxLayout()
+    btn_add = AnimatedButton(L10N.YENI_HEDEF_1)
+    btn_add.setIconName("plus", color="@COLOR_TEXT_WHITE")
+    btn_add.setMinimumHeight(38)
+    btn_add.setProperty("cssClass", "primaryButton")
+    btn_add.clicked.connect(add_cb)
+    btn_row.addWidget(btn_add)
+    btn_row.addStretch()
+    btn_analyze = AnimatedButton(L10N.FIZIBILITE_ANALIZI)
+    btn_analyze.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
+    btn_analyze.setMinimumHeight(38)
+    btn_analyze.setProperty("cssClass", "purpleButton")
+    btn_analyze.clicked.connect(analyze_cb)
+    btn_row.addWidget(btn_analyze)
+    return btn_row, btn_add, btn_analyze
+
+
+def _build_feasibility_frame():
+    frame = QFrame()
+    frame.setProperty("cssClass", "panelFrameBordered")
+    feas_row = QHBoxLayout(frame)
+    feas_row.setContentsMargins(18, 12, 18, 12)
+    lbl_power = QLabel(L10N.AYLIK_TASARRUF_GUCU)
+    lbl_power.setProperty("cssClass", "feasibilityText")
+    lbl_need = QLabel(L10N.TOPLAM_AYLIK_IHTIYAC)
+    lbl_need.setProperty("cssClass", "feasibilityText")
+    lbl_status = QLabel("")
+    lbl_status.setProperty("cssClass", "feasibilityStatus")
+    feas_row.addWidget(lbl_power)
+    feas_row.addWidget(lbl_need)
+    feas_row.addStretch()
+    feas_row.addWidget(lbl_status)
+    return frame, lbl_power, lbl_need, lbl_status
+
+
+def _build_goals_table(columns: list) -> QTableWidget:
+    from src.ui.widgets.shared.wrapped_header_view import WrappedHeaderView
+    table = QTableWidget()
+    table.setColumnCount(len(columns))
+    table.setHorizontalHeader(WrappedHeaderView(Qt.Horizontal, table))
+    table.setHorizontalHeaderLabels(columns)
+    for col in range(len(columns)):
+        table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
+    hh = table.horizontalHeader()
+    hh.setMinimumSectionSize(85)
+    for col in range(len(columns)):
+        if col == 7:
+            hh.setSectionResizeMode(col, QHeaderView.Fixed)
+            table.setColumnWidth(col, 120)
+        else:
+            hh.setSectionResizeMode(col, QHeaderView.Stretch)
+    hh.setStretchLastSection(False)
+    table.setSelectionBehavior(QTableWidget.SelectRows)
+    table.setAlternatingRowColors(True)
+    table.setShowGrid(True)
+    table.verticalHeader().setVisible(False)
+    table.verticalHeader().setDefaultSectionSize(48)
+    table.setEditTriggers(QTableWidget.NoEditTriggers)
+    table.setProperty("cssClass", "goalsTable")
+    return table
+
+
 class GoalsPanel(QWidget):
     """Hedef takip sekmesinin tüm görsel yapısını kapsayan panel."""
 
@@ -54,69 +117,15 @@ class GoalsPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
-
-        # Buton satırı
-        btn_row = QHBoxLayout()
-
-        self._btn_add = AnimatedButton(L10N.YENI_HEDEF_1)
-        self._btn_add.setIconName("plus", color="@COLOR_TEXT_WHITE")
-        self._btn_add.setMinimumHeight(38)
-        self._btn_add.setProperty("cssClass", "primaryButton")
-        self._btn_add.clicked.connect(self.add_requested)
-
-        btn_row.addWidget(self._btn_add)
-        btn_row.addStretch()
-
-        self._btn_analyze = AnimatedButton(L10N.FIZIBILITE_ANALIZI)
-        self._btn_analyze.setIconName("trending-up", color="@COLOR_TEXT_WHITE")
-        self._btn_analyze.setMinimumHeight(38)
-        self._btn_analyze.setProperty("cssClass", "purpleButton")
-        self._btn_analyze.clicked.connect(self.analyze_requested)
-        btn_row.addWidget(self._btn_analyze)
+        btn_row, self._btn_add, self._btn_analyze = _build_goals_btn_row(
+            self.add_requested, self.analyze_requested
+        )
         layout.addLayout(btn_row)
-
-        # Fizibilite kartı (başlangıçta gizli)
-        self._feasibility_frame = QFrame()
-        self._feasibility_frame.setProperty("cssClass", "panelFrameBordered")
-        feas_row = QHBoxLayout(self._feasibility_frame)
-        feas_row.setContentsMargins(18, 12, 18, 12)
-        self._lbl_power  = QLabel(L10N.AYLIK_TASARRUF_GUCU)
-        self._lbl_power.setProperty("cssClass", "feasibilityText")
-        self._lbl_need   = QLabel(L10N.TOPLAM_AYLIK_IHTIYAC)
-        self._lbl_need.setProperty("cssClass", "feasibilityText")
-        self._lbl_status = QLabel("")
-        self._lbl_status.setProperty("cssClass", "feasibilityStatus")
-        feas_row.addWidget(self._lbl_power)
-        feas_row.addWidget(self._lbl_need)
-        feas_row.addStretch()
-        feas_row.addWidget(self._lbl_status)
+        (self._feasibility_frame, self._lbl_power,
+         self._lbl_need, self._lbl_status) = _build_feasibility_frame()
         self._feasibility_frame.setVisible(False)
         layout.addWidget(self._feasibility_frame)
-
-        # Hedefler tablosu
-        from src.ui.widgets.shared.wrapped_header_view import WrappedHeaderView
-        self._table = QTableWidget()
-        self._table.setColumnCount(len(self._COLUMNS))
-        self._table.setHorizontalHeader(WrappedHeaderView(Qt.Horizontal, self._table))
-        self._table.setHorizontalHeaderLabels(self._COLUMNS)
-        for col in range(len(self._COLUMNS)):
-            self._table.horizontalHeaderItem(col).setTextAlignment(Qt.AlignCenter)
-        hh = self._table.horizontalHeader()
-        hh.setMinimumSectionSize(85)
-        for col in range(len(self._COLUMNS)):
-            if col == 7:  # İşlemler
-                hh.setSectionResizeMode(col, QHeaderView.Fixed)
-                self._table.setColumnWidth(col, 120)
-            else:
-                hh.setSectionResizeMode(col, QHeaderView.Stretch)
-        hh.setStretchLastSection(False)
-        self._table.setSelectionBehavior(QTableWidget.SelectRows)
-        self._table.setAlternatingRowColors(True)
-        self._table.setShowGrid(True)
-        self._table.verticalHeader().setVisible(False)
-        self._table.verticalHeader().setDefaultSectionSize(48)
-        self._table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self._table.setProperty("cssClass", "goalsTable")
+        self._table = _build_goals_table(self._COLUMNS)
         layout.addWidget(self._table)
 
     # ------------------------------------------------------------------

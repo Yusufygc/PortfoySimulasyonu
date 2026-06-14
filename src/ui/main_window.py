@@ -6,10 +6,11 @@ import logging
 from datetime import date, timedelta
 from typing import List, Optional
 
-from src.qt_compat.qtcore import QSettings, QThreadPool, QTimer, Qt
+from src.qt_compat.qtcore import QSettings, QThreadPool, QTimer, Qt, QPropertyAnimation, QEasingCurve
 from src.qt_compat.qtgui import QIcon
 from src.qt_compat.qtwidgets import (
     QFrame,
+    QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -34,11 +35,64 @@ MAIN_WINDOW_INITIAL_WIDTH = 1600
 MAIN_WINDOW_INITIAL_HEIGHT = 900
 
 
+def _make_nav_button(text: str, page_index: int, icon_name: str, goto_page_func) -> "AnimatedButton":
+    button = AnimatedButton(f" {text}")
+    if icon_name:
+        button.setIconName(icon_name, color="@COLOR_TEXT_SECONDARY")
+    button.setCheckable(True)
+    button.clicked.connect(lambda: goto_page_func(page_index))
+    button.setProperty("cssClass", "navMenuBtn")
+    return button
+
+
+def _add_nav_separator(sidebar_layout) -> None:
+    line = QFrame()
+    line.setFrameShape(QFrame.HLine)
+    line.setProperty("cssClass", "navSeparator")
+    sidebar_layout.addWidget(line)
+
+
+def _build_sidebar_nav(sidebar_layout, goto_page_func):
+    # Page indices match MainWindow.PAGE_* constants
+    _add_nav_separator(sidebar_layout)
+    btn_dashboard      = _make_nav_button(L10N.DASHBOARD,        0,  "layout-dashboard", goto_page_func)
+    btn_watchlist      = _make_nav_button(L10N.LISTELERIM,        1,  "list",             goto_page_func)
+    btn_model_port     = _make_nav_button(L10N.MODEL_PORTFOYLER,  2,  "wallet",           goto_page_func)
+    btn_analysis       = _make_nav_button(L10N.ANALIZ,            3,  "trending-up",      goto_page_func)
+    btn_comparison     = _make_nav_button(L10N.KARSILASTIRMA,     4,  L10N.BARCHART2,     goto_page_func)
+    btn_optimization   = _make_nav_button(L10N.OPTIMIZASYON,      6,  "zap",              goto_page_func)
+    btn_planning       = _make_nav_button(L10N.FINANSAL_PLANLAMA, 7,  "save",             goto_page_func)
+    btn_risk_profile   = _make_nav_button(L10N.RISK_PROFILI,      8,  "shield-check",     goto_page_func)
+    btn_ai_page        = _make_nav_button(L10N.AI_ASISTAN,        9,  "bot",              goto_page_func)
+    btn_settings       = _make_nav_button(L10N.SETTINGS,          10, "save",             goto_page_func)
+    for btn in (btn_dashboard, btn_watchlist, btn_model_port, btn_analysis, btn_comparison,
+                btn_optimization, btn_planning, btn_risk_profile, btn_ai_page, btn_settings):
+        sidebar_layout.addWidget(btn)
+    sidebar_layout.addStretch()
+    _add_nav_separator(sidebar_layout)
+    return (btn_dashboard, btn_watchlist, btn_model_port, btn_analysis, btn_comparison,
+            btn_optimization, btn_planning, btn_risk_profile, btn_ai_page, btn_settings)
+
+
 def last_completed_trading_day(today: date, trading_calendar) -> date:
     candidate = today - timedelta(days=1)
     while trading_calendar is not None and not trading_calendar.is_trading_day(candidate):
         candidate -= timedelta(days=1)
     return candidate
+
+
+def fade_in_page(page: QWidget | None) -> None:
+    if page is None:
+        return
+    effect = QGraphicsOpacityEffect(page)
+    page.setGraphicsEffect(effect)
+    anim = QPropertyAnimation(effect, b"opacity", page)
+    anim.setDuration(160)
+    anim.setStartValue(0.0)
+    anim.setEndValue(1.0)
+    anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+    anim.finished.connect(lambda: page.setGraphicsEffect(None))
+    anim.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
 
 
 class MainWindow(QMainWindow):
@@ -89,64 +143,33 @@ class MainWindow(QMainWindow):
     def _init_ui(self):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
-
         self.main_layout = QHBoxLayout(self.central_widget)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
-
         self.sidebar = QFrame()
         self.sidebar.setObjectName("sidebar")
         self.sidebar.setFixedWidth(220)
         self.sidebar_layout = QVBoxLayout(self.sidebar)
         self.sidebar_layout.setContentsMargins(15, 25, 15, 25)
         self.sidebar_layout.setSpacing(10)
-
         lbl_app_title = QLabel(L10N.SIDEBAR_PORTFOY_SIMULASYONU)
         lbl_app_title.setProperty("cssClass", "appTitle")
         lbl_app_title.setAlignment(Qt.AlignCenter)
         self.sidebar_layout.addWidget(lbl_app_title)
-
         env = os.getenv("PORTFOYSIM_ENV", "").upper()
         if env:
             lbl = QLabel(f"{env} ORTAMI")
             lbl.setAlignment(Qt.AlignCenter)
             lbl.setStyleSheet("color:#FF9800;font-weight:bold;background-color:#3E2723;border:1px solid #FF9800;border-radius:4px;padding:4px;margin:5px 0;")
             self.sidebar_layout.addWidget(lbl)
-
-        self._add_separator()
-        self.btn_dashboard = self._create_nav_button(L10N.DASHBOARD, self.PAGE_DASHBOARD, "layout-dashboard")
-        self.btn_watchlist = self._create_nav_button(L10N.LISTELERIM, self.PAGE_WATCHLIST, "list")
-        self.btn_model_portfolio = self._create_nav_button(L10N.MODEL_PORTFOYLER, self.PAGE_MODEL_PORTFOLIO, "wallet")
-        self.btn_analysis = self._create_nav_button(L10N.ANALIZ, self.PAGE_ANALYSIS, "trending-up")
-        self.btn_comparison = self._create_nav_button(L10N.KARSILASTIRMA, self.PAGE_COMPARISON, L10N.BARCHART2)
-        self.btn_optimization = self._create_nav_button(L10N.OPTIMIZASYON, self.PAGE_OPTIMIZATION, "zap")
-        self.btn_planning = self._create_nav_button(L10N.FINANSAL_PLANLAMA, self.PAGE_PLANNING, "save")
-        self.btn_risk_profile = self._create_nav_button(L10N.RISK_PROFILI, self.PAGE_RISK_PROFILE, "shield-check")
-        self.btn_ai_page = self._create_nav_button(L10N.AI_ASISTAN, self.PAGE_AI_PAGE, "bot")
-        self.btn_settings = self._create_nav_button(L10N.SETTINGS, self.PAGE_SETTINGS, "save")
-
-        for button in (
-            self.btn_dashboard,
-            self.btn_watchlist,
-            self.btn_model_portfolio,
-            self.btn_analysis,
-            self.btn_comparison,
-            self.btn_optimization,
-            self.btn_planning,
-            self.btn_risk_profile,
-            self.btn_ai_page,
-            self.btn_settings,
-        ):
-            self.sidebar_layout.addWidget(button)
-
-        self.sidebar_layout.addStretch()
-        self._add_separator()
-
+        (self.btn_dashboard, self.btn_watchlist, self.btn_model_portfolio,
+         self.btn_analysis, self.btn_comparison, self.btn_optimization,
+         self.btn_planning, self.btn_risk_profile, self.btn_ai_page,
+         self.btn_settings) = _build_sidebar_nav(self.sidebar_layout, self._goto_page)
         self.stacked_widget = QStackedWidget()
         self.pages = {}
         for _ in range(self.PAGE_COUNT):
             self.stacked_widget.addWidget(QWidget())
-
         self._instantiate_page(self.PAGE_DASHBOARD)
         self.main_layout.addWidget(self.sidebar)
         self.main_layout.addWidget(self.stacked_widget, 1)
@@ -158,21 +181,6 @@ class MainWindow(QMainWindow):
             return
         self._model_portfolio_price_event_persister = ModelPortfolioPriceEventPersister(service)
         event_bus.prices_updated.connect(self._model_portfolio_price_event_persister.on_prices_updated)
-
-    def _create_nav_button(self, text: str, page_index: int, icon_name: str = "") -> AnimatedButton:
-        button = AnimatedButton(f" {text}")
-        if icon_name:
-            button.setIconName(icon_name, color="@COLOR_TEXT_SECONDARY")
-        button.setCheckable(True)
-        button.clicked.connect(lambda: self._goto_page(page_index))
-        button.setProperty("cssClass", "navMenuBtn")
-        return button
-
-    def _add_separator(self):
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setProperty("cssClass", "navSeparator")
-        self.sidebar_layout.addWidget(line)
 
     def _instantiate_page(self, page_index: int):
         if page_index in self.pages:
@@ -215,6 +223,7 @@ class MainWindow(QMainWindow):
     def _activate_page(self, page_index: int):
         self.stacked_widget.setCurrentIndex(page_index)
         new_page = self.stacked_widget.currentWidget()
+        fade_in_page(new_page)
         if hasattr(new_page, "on_page_enter"):
             new_page.on_page_enter()
         self._update_nav_buttons(page_index)

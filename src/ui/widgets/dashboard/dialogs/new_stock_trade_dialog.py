@@ -80,79 +80,67 @@ def _build_page1_widgets(page1_widget):
     return line_ticker, lbl_company_name, price_info_frame, lbl_fetched_price, lbl_fetched_source
 
 
-def _build_page2_widgets(page2_widget, mode_group_parent):
-    layout = QVBoxLayout(page2_widget)
-    layout.setContentsMargins(30, 30, 30, 30)
-
+def _build_summary_header(page2_layout):
     summary_widget = QWidget()
     summary_layout = QVBoxLayout(summary_widget)
     summary_layout.setContentsMargins(0, 0, 0, 12)
     summary_layout.setSpacing(2)
-
     lbl_summary_ticker = QLabel("ASELS")
     lbl_summary_ticker.setProperty("cssClass", "tradeSummaryTicker")
     lbl_summary_ticker.setAlignment(Qt.AlignCenter)
     lbl_summary_name = QLabel("")
     lbl_summary_name.setProperty("cssClass", "tradeSummaryName")
     lbl_summary_name.setAlignment(Qt.AlignCenter)
-
     summary_layout.addWidget(lbl_summary_ticker)
     summary_layout.addWidget(lbl_summary_name)
-    layout.addWidget(summary_widget)
+    page2_layout.addWidget(summary_widget)
+    return lbl_summary_ticker, lbl_summary_name
 
-    form = QFormLayout()
-    form.setSpacing(15)
-    form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
+def _build_datetime_side_rows(form, mode_group_parent):
     date_edit = QDateEdit(QDate.currentDate())
     date_edit.setCalendarPopup(True)
     date_edit.setProperty("cssClass", "tradeInputNormal")
     time_edit = QTimeEdit(QTime.currentTime())
     time_edit.setDisplayFormat("HH:mm")
     time_edit.setProperty("cssClass", "tradeInputNormal")
-
     lbl_date = QLabel(L10N.TARIH_1)
     lbl_date.setProperty("cssClass", "formLabel")
     lbl_time = QLabel(L10N.SAAT)
     lbl_time.setProperty("cssClass", "formLabel")
     form.addRow(lbl_date, date_edit)
     form.addRow(lbl_time, time_edit)
-
-    side_layout = QHBoxLayout()
-    side_layout.setSpacing(0)
-
     btn_buy_mode = QPushButton(L10N.ALIS_BUY)
     btn_buy_mode.setCheckable(True)
     btn_buy_mode.setChecked(True)
     btn_buy_mode.setProperty("cssClass", "tradeModeBtnLeft")
-
     btn_sell_mode = QPushButton(L10N.SATIS_SELL)
     btn_sell_mode.setCheckable(True)
     btn_sell_mode.setProperty("cssClass", "tradeModeBtnRight")
-
     mode_group = QButtonGroup(mode_group_parent)
     mode_group.addButton(btn_buy_mode)
     mode_group.addButton(btn_sell_mode)
-
+    side_layout = QHBoxLayout()
+    side_layout.setSpacing(0)
     side_layout.addWidget(btn_buy_mode)
     side_layout.addWidget(btn_sell_mode)
-
     lbl_side = QLabel(L10N.ISLEM_YONU)
     lbl_side.setProperty("cssClass", "formLabel")
     form.addRow(lbl_side, side_layout)
+    return date_edit, time_edit, btn_buy_mode, btn_sell_mode, mode_group
 
+
+def _build_qty_price_rows(form):
     spin_quantity = QSpinBox()
     spin_quantity.setRange(1, 10_000_000)
     spin_quantity.setValue(1)
     spin_quantity.setProperty("cssClass", "tradeInputNormal")
-
     edit_price = CurrencySpinBox()
     edit_price.setRange(0, 1_000_000)
     edit_price.setDecimals(2)
     edit_price.setSuffix(" TL")
     edit_price.lineEdit().setPlaceholderText("0.00")
     edit_price.setProperty("cssClass", "tradeInputNormal")
-
     edit_amount = CurrencySpinBox()
     edit_amount.setRange(0, 1_000_000_000)
     edit_amount.setDecimals(2)
@@ -161,21 +149,29 @@ def _build_page2_widgets(page2_widget, mode_group_parent):
     edit_amount.setProperty("cssClass", "tradeInputNormal")
     edit_amount.setReadOnly(True)
     edit_amount.setButtonSymbols(CurrencySpinBox.NoButtons)
-
     lbl_lot = QLabel(L10N.LOT_ADEDI)
     lbl_lot.setProperty("cssClass", "formLabel")
     lbl_price = QLabel(L10N.BIRIM_FIYAT)
     lbl_price.setProperty("cssClass", "formLabel")
     lbl_total = QLabel(L10N.TOPLAM_TUTAR_1)
     lbl_total.setProperty("cssClass", "formLabel")
-
     form.addRow(lbl_lot, spin_quantity)
     form.addRow(lbl_price, edit_price)
     form.addRow(lbl_total, edit_amount)
+    return spin_quantity, edit_price, edit_amount
 
+
+def _build_page2_widgets(page2_widget, mode_group_parent):
+    layout = QVBoxLayout(page2_widget)
+    layout.setContentsMargins(30, 30, 30, 30)
+    lbl_summary_ticker, lbl_summary_name = _build_summary_header(layout)
+    form = QFormLayout()
+    form.setSpacing(15)
+    form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    date_edit, time_edit, btn_buy_mode, btn_sell_mode, mode_group = _build_datetime_side_rows(form, mode_group_parent)
+    spin_quantity, edit_price, edit_amount = _build_qty_price_rows(form)
     layout.addLayout(form)
     layout.addStretch()
-
     return (
         lbl_summary_ticker, lbl_summary_name,
         date_edit, time_edit,

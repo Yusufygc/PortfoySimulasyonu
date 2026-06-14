@@ -20,93 +20,81 @@ from src.ui.worker import Worker
 logger = logging.getLogger(__name__)
 
 
+def _build_model_analysis_tabs(prediction_card, signal_card, peer_card, performance_card, xai_card):
+    tabs = QTabWidget()
+    tab_outlook = QWidget()
+    layout_outlook = QVBoxLayout(tab_outlook)
+    layout_outlook.setContentsMargins(8, 8, 8, 8)
+    layout_outlook.setSpacing(10)
+    layout_outlook.addWidget(prediction_card)
+    layout_outlook.addWidget(signal_card)
+    layout_outlook.addWidget(peer_card)
+    tabs.addTab(tab_outlook, L10N.TAB_GENEL_GORUNUM)
+    tab_perf = QWidget()
+    layout_perf = QVBoxLayout(tab_perf)
+    layout_perf.setContentsMargins(8, 8, 8, 8)
+    layout_perf.setSpacing(10)
+    layout_perf.addWidget(performance_card)
+    tabs.addTab(tab_perf, L10N.TAB_MODEL_PERFORMANSI)
+    tab_xai = QWidget()
+    layout_xai = QVBoxLayout(tab_xai)
+    layout_xai.setContentsMargins(8, 8, 8, 8)
+    layout_xai.setSpacing(10)
+    layout_xai.addWidget(xai_card)
+    tabs.addTab(tab_xai, L10N.TAB_KARAR_FAKTORLERI)
+    return tabs
+
+
 class ModelPanel(QWidget):
     """Sol Panel (Model Analiz Paneli) Ana Kapsayıcısı"""
     send_to_chat_requested = Signal(AnalysisResult)
     connection_dropped = Signal()  # FastAPIAdapter aktifken analiz hatası → re-probe için
 
-    def __init__(self, analysis_service: AiAnalysisService):
+    def __init__(self, analysis_service: AiAnalysisService, ticker_list: list[str] | None = None):
         super().__init__()
         self._service = analysis_service
+        self._ticker_list = ticker_list or []
         self._threadpool = QThreadPool.globalInstance()
         self._analysis_request_id = 0
         self.worker = None
         self._init_ui()
 
     def _init_ui(self):
-        # Ana layout — scroll destekli
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 12, 0)
-
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setProperty("cssClass", "borderlessScrollArea")
-
         content = QWidget()
         layout = QVBoxLayout(content)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
-
-        # 1. Bağlantı durumu banner'ı (set_connection_checking ile görünür olur)
         self.status_banner = StatusBanner()
         layout.addWidget(self.status_banner)
-
-        # 2. Input
         self.input_bar = TickerInputBar()
         self.input_bar.analyze_requested.connect(self._start_analysis)
+        if self._ticker_list:
+            self.input_bar.set_ticker_list(self._ticker_list)
         layout.addWidget(self.input_bar)
-
-        # 3. Kartlar ve Sekmeler (Tabs)
         self.prediction_card = PredictionCard()
         self.signal_card = SignalCard()
         self.peer_card = PeerCard()
         self.performance_card = PerformanceCard()
         self.xai_card = XAICard()
-
-        self.tabs = QTabWidget()
-
-        # Tab 1: Genel Görünüm
-        tab_outlook = QWidget()
-        layout_outlook = QVBoxLayout(tab_outlook)
-        layout_outlook.setContentsMargins(8, 8, 8, 8)
-        layout_outlook.setSpacing(10)
-        layout_outlook.addWidget(self.prediction_card)
-        layout_outlook.addWidget(self.signal_card)
-        layout_outlook.addWidget(self.peer_card)
-        self.tabs.addTab(tab_outlook, L10N.TAB_GENEL_GORUNUM)
-
-        # Tab 2: Model Performansı
-        tab_perf = QWidget()
-        layout_perf = QVBoxLayout(tab_perf)
-        layout_perf.setContentsMargins(8, 8, 8, 8)
-        layout_perf.setSpacing(10)
-        layout_perf.addWidget(self.performance_card)
-        self.tabs.addTab(tab_perf, L10N.TAB_MODEL_PERFORMANSI)
-
-        # Tab 3: Karar Faktörleri (XAI)
-        tab_xai = QWidget()
-        layout_xai = QVBoxLayout(tab_xai)
-        layout_xai.setContentsMargins(8, 8, 8, 8)
-        layout_xai.setSpacing(10)
-        layout_xai.addWidget(self.xai_card)
-        self.tabs.addTab(tab_xai, L10N.TAB_KARAR_FAKTORLERI)
-
+        self.tabs = _build_model_analysis_tabs(
+            self.prediction_card, self.signal_card, self.peer_card,
+            self.performance_card, self.xai_card,
+        )
         layout.addWidget(self.tabs)
-
-        # 4. Yatırım tavsiyesi uyarısı
         self.lbl_disclaimer = QLabel(DEFAULT_INVESTMENT_DISCLAIMER)
         self.lbl_disclaimer.setProperty("cssClass", "disclaimerText")
         self.lbl_disclaimer.setWordWrap(True)
         layout.addWidget(self.lbl_disclaimer)
-
-        # 5. Gönder butonu
         self.btn_send_chat = SendToChatButton()
         self.btn_send_chat.send_requested.connect(self.send_to_chat_requested.emit)
         layout.addWidget(self.btn_send_chat)
-
         layout.addStretch()
-
         scroll.setWidget(content)
         outer_layout.addWidget(scroll)
 
@@ -169,23 +157,15 @@ class ModelPanel(QWidget):
 
     def _on_result_ready(self, result: AnalysisResult):
         self._set_disclaimer(result.disclaimer)
-
-        # Analiz durumu kontrol et
         if result.analysis_status not in ("ok", "low_confidence", "xai_unavailable"):
-            self.status_banner.show_analysis_status(
-                result.analysis_status,
-                result.staleness_days,
-            )
-            # no_model ve no_forecast durumlarında kartları güncelleme
+            self.status_banner.show_analysis_status(result.analysis_status, result.staleness_days)
             if result.analysis_status in ("no_model", "no_forecast", "error"):
                 return
         elif result.analysis_status != "ok":
-            self.status_banner.show_analysis_status(
-                result.analysis_status,
-                result.staleness_days,
-            )
+            self.status_banner.show_analysis_status(result.analysis_status, result.staleness_days)
+        self._update_all_cards(result)
 
-        # Kartları güncelle
+    def _update_all_cards(self, result: AnalysisResult) -> None:
         self.prediction_card.update_data(
             ticker=result.ticker,
             predicted_price=result.predicted_price,
@@ -200,16 +180,13 @@ class ModelPanel(QWidget):
             predicted_price_high=result.predicted_price_high,
             interval_method=result.interval_method,
         )
-
         self.signal_card.update_data(
             outlook=result.outlook,
             strength=result.outlook_strength,
             trend_label=result.trend_label,
             confidence_warnings=result.confidence_warnings,
         )
-
         self.peer_card.update_data(result.peer)
-
         self.performance_card.update_data(
             composite_score=result.composite_score,
             directional_accuracy=result.directional_accuracy,
@@ -220,7 +197,6 @@ class ModelPanel(QWidget):
             stability_score=result.stability_score,
             last_close=result.last_close,
         )
-
         self.xai_card.update_data(
             features=result.xai_features,
             text=result.xai_text,
@@ -230,7 +206,6 @@ class ModelPanel(QWidget):
             negative_reasons=result.xai_negative_reasons,
             xai_caveat=result.xai_caveat,
         )
-
         self.btn_send_chat.set_result(result)
 
     def _on_error(self, err: str):

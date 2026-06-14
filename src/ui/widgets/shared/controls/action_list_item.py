@@ -11,6 +11,59 @@ from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.shared.controls.elided_label import ElidedLabel
 
 
+def _secondary_elide_candidates(text: str) -> list[str]:
+    match = re.fullmatch(r"\((\d+)\s+hisse\)", text or "")
+    if not match:
+        return []
+    return [f"({match.group(1)} h.)"]
+
+
+def _build_action_list_label_section(layout, text, secondary_text):
+    label = ElidedLabel(text, minimum_width=18)
+    label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+    label.setTextInteractionFlags(Qt.NoTextInteraction)
+    label.setAutoFillBackground(False)
+    label.setProperty("cssClass", "actionListLabel")
+    label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+    secondary_label = None
+    secondary_short_text = None
+    if secondary_text:
+        secondary_candidates = _secondary_elide_candidates(secondary_text)
+        secondary_short_text = secondary_candidates[0] if secondary_candidates else secondary_text
+        secondary_label = ElidedLabel(
+            secondary_text, elide_candidates=secondary_candidates, minimum_width=34,
+        )
+        secondary_label.setTextInteractionFlags(Qt.NoTextInteraction)
+        secondary_label.setProperty("cssClass", "actionListSecondaryLabel")
+        secondary_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        secondary_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        layout.addWidget(label, 1)
+        layout.addWidget(secondary_label, 0, Qt.AlignVCenter)
+    else:
+        layout.addWidget(label, 1)
+    return label, secondary_label, secondary_short_text
+
+
+def _build_action_list_menu_section(layout, widget_parent, edit_cb, delete_cb):
+    menu_button = QToolButton()
+    menu_button.setIconSize(QSize(20, 20))
+    menu_button.setFixedSize(28, 28)
+    menu_button.setCursor(Qt.PointingHandCursor)
+    menu_button.setPopupMode(QToolButton.InstantPopup)
+    menu_button.setToolTip(L10N.ISLEMLER)
+    menu_button.setProperty("cssClass", "actionListMenuBtn")
+    action_edit = QAction(L10N.EDIT, widget_parent)
+    action_delete = QAction(L10N.DELETE, widget_parent)
+    action_edit.triggered.connect(lambda checked=False: edit_cb())
+    action_delete.triggered.connect(lambda checked=False: delete_cb())
+    menu = QMenu(menu_button)
+    menu.addAction(action_edit)
+    menu.addAction(action_delete)
+    menu_button.setMenu(menu)
+    layout.addWidget(menu_button, 0, Qt.AlignVCenter)
+    return menu_button, action_edit, action_delete
+
+
 class ActionListItem(QWidget):
     """List row with a trailing three-dot actions menu."""
 
@@ -26,72 +79,25 @@ class ActionListItem(QWidget):
         self._draggable = draggable
         self.secondary_label = None
         self._secondary_short_text = None
-
         layout = QHBoxLayout(self)
         layout.setContentsMargins(2, 0, 4, 0)
         layout.setSpacing(6)
         self._layout = layout
-
         if self._draggable:
             from src.ui.widgets.shared.controls.icon_label import IconLabel
             self.drag_handle = IconLabel("grip-vertical", color="@COLOR_TEXT_MUTED", size=16)
             self.drag_handle.setFixedWidth(16)
             self.drag_handle.setCursor(Qt.OpenHandCursor)
             layout.addWidget(self.drag_handle, 0, Qt.AlignVCenter)
-
-        self.label = ElidedLabel(text, minimum_width=18)
-        self.label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        self.label.setTextInteractionFlags(Qt.NoTextInteraction)
-        self.label.setAutoFillBackground(False)
-        self.label.setProperty("cssClass", "actionListLabel")
-        self.label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        if secondary_text:
-            secondary_candidates = self._secondary_elide_candidates(secondary_text)
-            self._secondary_short_text = secondary_candidates[0] if secondary_candidates else secondary_text
-            self.secondary_label = ElidedLabel(
-                secondary_text,
-                elide_candidates=secondary_candidates,
-                minimum_width=34,
-            )
-            self.secondary_label.setTextInteractionFlags(Qt.NoTextInteraction)
-            self.secondary_label.setProperty("cssClass", "actionListSecondaryLabel")
-            self.secondary_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.secondary_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-            layout.addWidget(self.label, 1)
-            layout.addWidget(self.secondary_label, 0, Qt.AlignVCenter)
-        else:
-            layout.addWidget(self.label, 1)
-
-        self.menu_button = QToolButton()
-        self.menu_button.setIconSize(QSize(20, 20))
-        self.menu_button.setFixedSize(28, 28)
-        self.menu_button.setCursor(Qt.PointingHandCursor)
-        self.menu_button.setPopupMode(QToolButton.InstantPopup)
-        self.menu_button.setToolTip(L10N.ISLEMLER)
-        self.menu_button.setProperty("cssClass", "actionListMenuBtn")
-        # Stil QSS'te: shared/lists.qss QToolButton[cssClass="actionListMenuBtn"]
+        (self.label, self.secondary_label,
+         self._secondary_short_text) = _build_action_list_label_section(layout, text, secondary_text)
+        (self.menu_button, self._action_edit,
+         self._action_delete) = _build_action_list_menu_section(
+            layout, self, self.edit_requested.emit, self.delete_requested.emit
+        )
         self._refresh_menu_icon()
-
-        self._action_edit = QAction(L10N.EDIT, self)
-        self._action_delete = QAction(L10N.DELETE, self)
-        self._action_edit.triggered.connect(lambda checked=False: self.edit_requested.emit())
-        self._action_delete.triggered.connect(lambda checked=False: self.delete_requested.emit())
         self._refresh_action_icons()
-
-        menu = QMenu(self.menu_button)
-        menu.addAction(self._action_edit)
-        menu.addAction(self._action_delete)
-        self.menu_button.setMenu(menu)
-
-        layout.addWidget(self.menu_button, 0, Qt.AlignVCenter)
         self._apply_dynamic_secondary_width()
-
-    @staticmethod
-    def _secondary_elide_candidates(text: str) -> list[str]:
-        match = re.fullmatch(r"\((\d+)\s+hisse\)", text or "")
-        if not match:
-            return []
-        return [f"({match.group(1)} h.)"]
 
     def _available_text_width(self) -> int:
         margins = self._layout.contentsMargins()

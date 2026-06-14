@@ -16,6 +16,69 @@ from src.qt_compat.qtcore import QDate, Qt
 
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 
+
+def _build_goal_form(parent_layout):
+    form = QFormLayout()
+    form.setSpacing(12)
+    txt_name = QLineEdit()
+    txt_name.setPlaceholderText(L10N.ORN_ARABA_EV_TATIL)
+    txt_name.setProperty("cssClass", "tradeInputNormal")
+    lbl_name = QLabel(L10N.HEDEF_ADI)
+    lbl_name.setProperty("cssClass", "formLabel")
+    form.addRow(lbl_name, txt_name)
+    spin_amount = InstantDoubleSpinBox()
+    spin_amount.setRange(1, 100_000_000)
+    spin_amount.setDecimals(2)
+    spin_amount.setSuffix(" TL")
+    spin_amount.setGroupSeparatorShown(True)
+    spin_amount.setValue(50000)
+    spin_amount.setProperty("cssClass", "tradeInputNormal")
+    lbl_amount = QLabel(L10N.HEDEF_TUTAR)
+    lbl_amount.setProperty("cssClass", "formLabel")
+    form.addRow(lbl_amount, spin_amount)
+    date_deadline = QDateEdit()
+    minimum_deadline = QDate.currentDate()
+    date_deadline.setMinimumDate(minimum_deadline)
+    date_deadline.setDate(QDate.currentDate().addMonths(12))
+    date_deadline.setCalendarPopup(True)
+    if date_deadline.calendarWidget():
+        date_deadline.calendarWidget().setMinimumDate(minimum_deadline)
+    date_deadline.setProperty("cssClass", "tradeInputNormal")
+    lbl_date = QLabel(L10N.HEDEF_TARIH)
+    lbl_date.setProperty("cssClass", "formLabel")
+    form.addRow(lbl_date, date_deadline)
+    lbl_error = QLabel()
+    lbl_error.setProperty("cssClass", "validationErrorLabel")
+    lbl_error.setVisible(False)
+    form.addRow("", lbl_error)
+    combo_priority = QComboBox()
+    combo_priority.addItems(["Düşük", "Orta", "Yüksek"])
+    combo_priority.setCurrentIndex(1)
+    combo_priority.setProperty("cssClass", "tradeInputNormal")
+    lbl_prio = QLabel(L10N.ONCELIK)
+    lbl_prio.setProperty("cssClass", "formLabel")
+    form.addRow(lbl_prio, combo_priority)
+    parent_layout.addLayout(form)
+    parent_layout.addStretch()
+    return txt_name, spin_amount, date_deadline, lbl_error, combo_priority
+
+
+def _build_goal_buttons(parent_layout, accept_cb, reject_cb):
+    btn_layout = QHBoxLayout()
+    btn_layout.addStretch()
+    btn_cancel = QPushButton(L10N.CANCEL)
+    btn_cancel.setProperty("cssClass", "secondaryButton")
+    btn_cancel.clicked.connect(reject_cb)
+    btn_save = QPushButton(L10N.EKLE)
+    btn_save.setProperty("cssClass", "tradeConfirmBuyBtn")
+    btn_save.clicked.connect(accept_cb)
+    btn_save.setDefault(True)
+    btn_layout.addWidget(btn_cancel)
+    btn_layout.addWidget(btn_save)
+    parent_layout.addLayout(btn_layout)
+    return btn_save
+
+
 class GoalInputDialog(QDialog):
     """Yeni hedef ekleme diyaloğu."""
 
@@ -31,74 +94,12 @@ class GoalInputDialog(QDialog):
 
     def _init_ui(self):
         self.setProperty("cssClass", "dialogContainer")
-
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
         layout.setContentsMargins(25, 25, 25, 25)
-
-        form = QFormLayout()
-        form.setSpacing(12)
-
-        self.txt_name = QLineEdit()
-        self.txt_name.setPlaceholderText(L10N.ORN_ARABA_EV_TATIL)
-        self.txt_name.setProperty("cssClass", "tradeInputNormal")
-        lbl_name = QLabel(L10N.HEDEF_ADI)
-        lbl_name.setProperty("cssClass", "formLabel")
-        form.addRow(lbl_name, self.txt_name)
-
-        self.spin_amount = InstantDoubleSpinBox()
-        self.spin_amount.setRange(1, 100_000_000)
-        self.spin_amount.setDecimals(2)
-        self.spin_amount.setSuffix(" TL")
-        self.spin_amount.setGroupSeparatorShown(True)
-        self.spin_amount.setValue(50000)
-        self.spin_amount.setProperty("cssClass", "tradeInputNormal")
-        lbl_amount = QLabel(L10N.HEDEF_TUTAR)
-        lbl_amount.setProperty("cssClass", "formLabel")
-        form.addRow(lbl_amount, self.spin_amount)
-
-        self.date_deadline = QDateEdit()
-        minimum_deadline = QDate.currentDate()
-        self.date_deadline.setMinimumDate(minimum_deadline)
-        self.date_deadline.setDate(QDate.currentDate().addMonths(12))
-        self.date_deadline.setCalendarPopup(True)
-        if self.date_deadline.calendarWidget():
-            self.date_deadline.calendarWidget().setMinimumDate(minimum_deadline)
-        self.date_deadline.setProperty("cssClass", "tradeInputNormal")
-        lbl_date = QLabel(L10N.HEDEF_TARIH)
-        lbl_date.setProperty("cssClass", "formLabel")
-        form.addRow(lbl_date, self.date_deadline)
-
-        self.lbl_error = QLabel()
-        self.lbl_error.setProperty("cssClass", "validationErrorLabel")
-        self.lbl_error.setVisible(False)
-        form.addRow("", self.lbl_error)
-
-        self.combo_priority = QComboBox()
-        self.combo_priority.addItems(["Düşük", "Orta", "Yüksek"])
-        self.combo_priority.setCurrentIndex(1)
-        self.combo_priority.setProperty("cssClass", "tradeInputNormal")
-        lbl_prio = QLabel(L10N.ONCELIK)
-        lbl_prio.setProperty("cssClass", "formLabel")
-        form.addRow(lbl_prio, self.combo_priority)
-
-        layout.addLayout(form)
-        layout.addStretch()
-
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        btn_cancel = QPushButton(L10N.CANCEL)
-        btn_cancel.setProperty("cssClass", "secondaryButton")
-        btn_cancel.clicked.connect(self.reject)
-        self.btn_save = QPushButton(L10N.EKLE)
-        self.btn_save.setProperty("cssClass", "tradeConfirmBuyBtn")
-        self.btn_save.clicked.connect(self.accept)
-        self.btn_save.setDefault(True)
-        btn_layout.addWidget(btn_cancel)
-        btn_layout.addWidget(self.btn_save)
-        layout.addLayout(btn_layout)
-
-        # Connect validation signals
+        (self.txt_name, self.spin_amount, self.date_deadline,
+         self.lbl_error, self.combo_priority) = _build_goal_form(layout)
+        self.btn_save = _build_goal_buttons(layout, self.accept, self.reject)
         self.txt_name.textChanged.connect(self._validate_inputs)
         self.date_deadline.dateChanged.connect(self._validate_inputs)
         self._validate_inputs()

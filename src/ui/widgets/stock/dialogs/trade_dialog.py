@@ -22,6 +22,73 @@ from src.ui.widgets.shared import CurrencySpinBox
 SideLiteral = Literal["BUY", "SELL"]
 DialogMode = Literal["trade", "edit_stock"]
 
+
+def _build_trade_side_row(form_layout):
+    side_container = QWidget()
+    side_layout = QHBoxLayout(side_container)
+    side_layout.setContentsMargins(0, 0, 0, 0)
+    radio_buy = QRadioButton(L10N.ALIS)
+    radio_sell = QRadioButton(L10N.SATIS)
+    radio_buy.setChecked(True)
+    radio_buy.setProperty("cssClass", "tradeRadioBuy")
+    radio_sell.setProperty("cssClass", "tradeRadioSell")
+    side_layout.addWidget(radio_buy)
+    side_layout.addWidget(radio_sell)
+    lbl_side = QLabel(L10N.ISLEM)
+    lbl_side.setProperty("cssClass", "formLabel")
+    form_layout.addRow(lbl_side, side_container)
+    return radio_buy, radio_sell
+
+
+def _build_trade_datetime_row(form_layout, normalize_date_cb):
+    date_edit = QDateEdit(QDate.currentDate())
+    date_edit.setCalendarPopup(True)
+    date_edit.setProperty("cssClass", "tradeInputNormal")
+    time_edit = QTimeEdit(QTime.currentTime())
+    time_edit.setDisplayFormat("HH:mm")
+    time_edit.setProperty("cssClass", "tradeInputNormal")
+    normalize_date_cb(QDate.currentDate())
+    dt_container = QWidget()
+    dt_layout = QHBoxLayout(dt_container)
+    dt_layout.setContentsMargins(0, 0, 0, 0)
+    dt_layout.setSpacing(10)
+    dt_layout.addWidget(date_edit)
+    dt_layout.addWidget(time_edit)
+    lbl_date = QLabel(L10N.ZAMAN)
+    lbl_date.setProperty("cssClass", "formLabel")
+    form_layout.addRow(lbl_date, dt_container)
+    return date_edit, time_edit
+
+
+def _build_trade_qty_price_rows(form_layout):
+    spin_quantity = QSpinBox()
+    spin_quantity.setRange(1, 10_000_000)
+    spin_quantity.setValue(1)
+    spin_quantity.setProperty("cssClass", "tradeInputNormal")
+    edit_price = CurrencySpinBox()
+    edit_price.setRange(0, 1_000_000)
+    edit_price.setDecimals(2)
+    edit_price.setSuffix(" TL")
+    edit_price.lineEdit().setPlaceholderText("0.00")
+    edit_price.setProperty("cssClass", "tradeInputNormal")
+    edit_amount = CurrencySpinBox()
+    edit_amount.setRange(0, 1_000_000_000)
+    edit_amount.setDecimals(2)
+    edit_amount.setSuffix(" TL")
+    edit_amount.lineEdit().setPlaceholderText(L10N.TOPLAM_TUTAR)
+    edit_amount.setProperty("cssClass", "tradeInputNormal")
+    lbl_lot = QLabel(L10N.ADET_LOT)
+    lbl_lot.setProperty("cssClass", "formLabel")
+    lbl_price = QLabel(L10N.BIRIM_FIYAT)
+    lbl_price.setProperty("cssClass", "formLabel")
+    lbl_total = QLabel(L10N.TOPLAM)
+    lbl_total.setProperty("cssClass", "formLabel")
+    form_layout.addRow(lbl_lot, spin_quantity)
+    form_layout.addRow(lbl_price, edit_price)
+    form_layout.addRow(lbl_total, edit_amount)
+    return spin_quantity, edit_price, edit_amount
+
+
 class TradeDialog(QDialog):
     """
     Mevcut hisseye işlem ekleme penceresi.
@@ -96,62 +163,9 @@ class TradeDialog(QDialog):
         return form_widget
 
     def _build_trade_inputs(self, form_layout: QFormLayout) -> None:
-        side_container = QWidget()
-        side_layout = QHBoxLayout(side_container)
-        side_layout.setContentsMargins(0, 0, 0, 0)
-        self.radio_buy = QRadioButton(L10N.ALIS)
-        self.radio_sell = QRadioButton(L10N.SATIS)
-        self.radio_buy.setChecked(True)
-        self.radio_buy.setProperty("cssClass", "tradeRadioBuy")
-        self.radio_sell.setProperty("cssClass", "tradeRadioSell")
-        side_layout.addWidget(self.radio_buy)
-        side_layout.addWidget(self.radio_sell)
-        lbl_side = QLabel(L10N.ISLEM)
-        lbl_side.setProperty("cssClass", "formLabel")
-        form_layout.addRow(lbl_side, side_container)
-
-        self.date_edit = QDateEdit(QDate.currentDate())
-        self.date_edit.setCalendarPopup(True)
-        self.date_edit.setProperty("cssClass", "tradeInputNormal")
-        self.time_edit = QTimeEdit(QTime.currentTime())
-        self.time_edit.setDisplayFormat("HH:mm")
-        self.time_edit.setProperty("cssClass", "tradeInputNormal")
-        self._normalize_trade_date(QDate.currentDate())
-        dt_container = QWidget()
-        dt_layout = QHBoxLayout(dt_container)
-        dt_layout.setContentsMargins(0, 0, 0, 0)
-        dt_layout.setSpacing(10)
-        dt_layout.addWidget(self.date_edit)
-        dt_layout.addWidget(self.time_edit)
-        lbl_date = QLabel(L10N.ZAMAN)
-        lbl_date.setProperty("cssClass", "formLabel")
-        form_layout.addRow(lbl_date, dt_container)
-
-        self.spin_quantity = QSpinBox()
-        self.spin_quantity.setRange(1, 10_000_000)
-        self.spin_quantity.setValue(1)
-        self.spin_quantity.setProperty("cssClass", "tradeInputNormal")
-        self.edit_price = CurrencySpinBox()
-        self.edit_price.setRange(0, 1_000_000)
-        self.edit_price.setDecimals(2)
-        self.edit_price.setSuffix(" TL")
-        self.edit_price.lineEdit().setPlaceholderText("0.00")
-        self.edit_price.setProperty("cssClass", "tradeInputNormal")
-        self.edit_amount = CurrencySpinBox()
-        self.edit_amount.setRange(0, 1_000_000_000)
-        self.edit_amount.setDecimals(2)
-        self.edit_amount.setSuffix(" TL")
-        self.edit_amount.lineEdit().setPlaceholderText(L10N.TOPLAM_TUTAR)
-        self.edit_amount.setProperty("cssClass", "tradeInputNormal")
-        lbl_lot = QLabel(L10N.ADET_LOT)
-        lbl_lot.setProperty("cssClass", "formLabel")
-        lbl_price = QLabel(L10N.BIRIM_FIYAT)
-        lbl_price.setProperty("cssClass", "formLabel")
-        lbl_total = QLabel(L10N.TOPLAM)
-        lbl_total.setProperty("cssClass", "formLabel")
-        form_layout.addRow(lbl_lot, self.spin_quantity)
-        form_layout.addRow(lbl_price, self.edit_price)
-        form_layout.addRow(lbl_total, self.edit_amount)
+        self.radio_buy, self.radio_sell = _build_trade_side_row(form_layout)
+        self.date_edit, self.time_edit = _build_trade_datetime_row(form_layout, self._normalize_trade_date)
+        self.spin_quantity, self.edit_price, self.edit_amount = _build_trade_qty_price_rows(form_layout)
 
     def _build_footer_frame(self) -> QFrame:
         footer = QFrame()

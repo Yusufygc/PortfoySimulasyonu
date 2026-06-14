@@ -8,6 +8,57 @@ from src.ui.theme_manager import THEME_REGISTRY, ThemeManager
 from src.ui.widgets.shared import Toast
 
 
+def _build_theme_preview_frame(tok) -> QFrame:
+    # NOT: Bu inline setStyleSheet bilinçli olarak kaldı.
+    # Önizleme başka temanın literal renk paletini boyar; aktif temadan bağımsız.
+    preview_frame = QFrame()
+    preview_frame.setFixedHeight(60)
+    preview_frame.setStyleSheet(
+        f"background-color: {tok['COLOR_BG_BASE']}; border-radius: 8px 8px 0 0;"
+    )
+    preview_layout = QHBoxLayout(preview_frame)
+    preview_layout.setContentsMargins(12, 10, 12, 10)
+    preview_layout.setSpacing(6)
+    for color in (
+        tok["COLOR_SIDEBAR"], tok["COLOR_BG_SURFACE"], tok["COLOR_PRIMARY"],
+        tok["COLOR_ACCENT"], tok["COLOR_SUCCESS"], tok["COLOR_DANGER"],
+    ):
+        swatch = QFrame()
+        swatch.setFixedSize(20, 36)
+        swatch.setStyleSheet(f"background-color: {color}; border-radius: 4px; border: none;")
+        preview_layout.addWidget(swatch)
+    preview_layout.addStretch()
+    return preview_frame
+
+
+def _build_theme_info_frame(theme_id: str, theme_info: dict) -> tuple[QFrame, dict]:
+    info_frame = QFrame()
+    info_frame.setObjectName(f"themeCardInfo_{theme_id}")
+    info_frame.setProperty("cssClass", "themeCardInfo")
+    info_layout = QVBoxLayout(info_frame)
+    info_layout.setContentsMargins(14, 12, 14, 14)
+    info_layout.setSpacing(6)
+    name_row = QHBoxLayout()
+    name_row.setSpacing(8)
+    radio_lbl = QLabel("○")
+    radio_lbl.setFixedWidth(18)
+    radio_lbl.setProperty("cssClass", "themeCardRadio")
+    name_row.addWidget(radio_lbl)
+    name_lbl = QLabel(theme_info["display_name"])
+    name_lbl.setProperty("cssClass", "themeCardName")
+    name_row.addWidget(name_lbl)
+    name_row.addStretch()
+    status_lbl = QLabel("")
+    status_lbl.setProperty("cssClass", "themeCardStatus")
+    name_row.addWidget(status_lbl)
+    info_layout.addLayout(name_row)
+    desc_lbl = QLabel(theme_info["description"])
+    desc_lbl.setWordWrap(True)
+    desc_lbl.setProperty("cssClass", "pageDescription")
+    info_layout.addWidget(desc_lbl)
+    return info_frame, {"radio": radio_lbl, "name": name_lbl, "status": status_lbl}
+
+
 class AppearancePanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -54,84 +105,21 @@ class AppearancePanel(QWidget):
 
     def _build_theme_card(self, theme_id: str, theme_info: dict) -> tuple[QFrame, dict]:
         from src.ui.styles.tokens import DARK_THEME, LIGHT_THEME
-
         token_map = {"dark": DARK_THEME, "light": LIGHT_THEME}
         tok = token_map.get(theme_id, DARK_THEME)
-
         card = QFrame()
         card.setObjectName(f"themeCard_{theme_id}")
         card.setProperty("cssClass", "themeCard")
         card.setFixedWidth(230)
         card.setCursor(Qt.PointingHandCursor)
         card.mousePressEvent = lambda _event, tid=theme_id: self._on_theme_selected(tid)
-
         outer = QVBoxLayout(card)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
-
-        # ---- Önizleme çerçevesi ----
-        # NOT: Bu iki inline setStyleSheet bilinçli olarak kaldı.
-        # Önizleme, *başka temanın* literal renk paletini boyar (dark
-        # modda light kart önizlemesi gibi). Aktif temadan bağımsız
-        # olduğu için QSS token sistemiyle parametrize edilemez.
-        preview_frame = QFrame()
-        preview_frame.setFixedHeight(60)
-        preview_frame.setStyleSheet(
-            f"background-color: {tok['COLOR_BG_BASE']}; border-radius: 8px 8px 0 0;"
-        )
-        preview_layout = QHBoxLayout(preview_frame)
-        preview_layout.setContentsMargins(12, 10, 12, 10)
-        preview_layout.setSpacing(6)
-
-        for color in (
-            tok["COLOR_SIDEBAR"],
-            tok["COLOR_BG_SURFACE"],
-            tok["COLOR_PRIMARY"],
-            tok["COLOR_ACCENT"],
-            tok["COLOR_SUCCESS"],
-            tok["COLOR_DANGER"],
-        ):
-            swatch = QFrame()
-            swatch.setFixedSize(20, 36)
-            swatch.setStyleSheet(f"background-color: {color}; border-radius: 4px; border: none;")
-            preview_layout.addWidget(swatch)
-        preview_layout.addStretch()
-        outer.addWidget(preview_frame)
-
-        # ---- Bilgi çerçevesi ----
-        info_frame = QFrame()
-        info_frame.setObjectName(f"themeCardInfo_{theme_id}")
-        info_frame.setProperty("cssClass", "themeCardInfo")
-        info_layout = QVBoxLayout(info_frame)
-        info_layout.setContentsMargins(14, 12, 14, 14)
-        info_layout.setSpacing(6)
-
-        name_row = QHBoxLayout()
-        name_row.setSpacing(8)
-
-        radio_lbl = QLabel("○")
-        radio_lbl.setFixedWidth(18)
-        radio_lbl.setProperty("cssClass", "themeCardRadio")
-        name_row.addWidget(radio_lbl)
-
-        name_lbl = QLabel(theme_info["display_name"])
-        name_lbl.setProperty("cssClass", "themeCardName")
-        name_row.addWidget(name_lbl)
-        name_row.addStretch()
-
-        status_lbl = QLabel("")
-        status_lbl.setProperty("cssClass", "themeCardStatus")
-        name_row.addWidget(status_lbl)
-
-        info_layout.addLayout(name_row)
-
-        desc_lbl = QLabel(theme_info["description"])
-        desc_lbl.setWordWrap(True)
-        desc_lbl.setProperty("cssClass", "pageDescription")
-        info_layout.addWidget(desc_lbl)
-
+        outer.addWidget(_build_theme_preview_frame(tok))
+        info_frame, refs = _build_theme_info_frame(theme_id, theme_info)
+        refs["card"] = card
         outer.addWidget(info_frame)
-        refs = {"card": card, "radio": radio_lbl, "name": name_lbl, "status": status_lbl}
         return card, refs
 
     def _on_theme_selected(self, theme_id: str) -> None:

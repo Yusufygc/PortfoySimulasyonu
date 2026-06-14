@@ -9,6 +9,72 @@ from src.qt_compat.qtwidgets import (
 from src.ui.core.icon_manager import IconManager
 
 
+def _build_peer_header_section(layout):
+    header = QHBoxLayout()
+    header.setContentsMargins(0, 0, 0, 0)
+    lbl_icon = QLabel()
+    lbl_icon.setPixmap(IconManager.get_icon("bar-chart-2", color="@COLOR_PRIMARY").pixmap(20, 20))
+    title = QLabel(L10N.PEER_BASLIK)
+    title.setProperty("cssClass", "cardLabel")
+    lbl_as_of = QLabel("")
+    lbl_as_of.setProperty("cssClass", "aiMetaText")
+    header.addWidget(lbl_icon)
+    header.addWidget(title)
+    header.addStretch()
+    header.addWidget(lbl_as_of)
+    layout.addLayout(header)
+    lbl_unavailable = QLabel(L10N.PEER_VERISI_YOK)
+    lbl_unavailable.setAlignment(Qt.AlignCenter)
+    lbl_unavailable.setProperty("cssClass", "aiHintText")
+    lbl_unavailable.setVisible(False)
+    layout.addWidget(lbl_unavailable)
+    rank_layout = QHBoxLayout()
+    lbl_rank = QLabel("")
+    lbl_rank.setProperty("cssClass", "aiPrimaryText")
+    lbl_label = QLabel("")
+    lbl_label.setAlignment(Qt.AlignCenter)
+    lbl_label.setProperty("cssClass", "trendBadge")
+    rank_layout.addWidget(lbl_rank)
+    rank_layout.addStretch()
+    rank_layout.addWidget(lbl_label)
+    layout.addLayout(rank_layout)
+    return lbl_as_of, lbl_unavailable, lbl_rank, lbl_label
+
+
+def _build_peer_meta_section(layout):
+    lbl_universe = QLabel("")
+    lbl_universe.setProperty("cssClass", "aiMetaText")
+    layout.addWidget(lbl_universe)
+    lbl_segment = QLabel("")
+    lbl_segment.setProperty("cssClass", "aiMetaText")
+    lbl_segment.setWordWrap(True)
+    layout.addWidget(lbl_segment)
+    lbl_trend = QLabel("")
+    lbl_trend.setProperty("cssClass", "aiStrongMetaText")
+    lbl_trend.setWordWrap(True)
+    layout.addWidget(lbl_trend)
+    lbl_pooled_price = QLabel("")
+    lbl_pooled_price.setProperty("cssClass", "aiStrongMetaText")
+    lbl_pooled_price.setWordWrap(True)
+    layout.addWidget(lbl_pooled_price)
+    lbl_confidence = QLabel("")
+    lbl_confidence.setProperty("cssClass", "aiMetaText")
+    layout.addWidget(lbl_confidence)
+    lbl_xai_title = QLabel(L10N.PEER_XAI_BASLIK)
+    lbl_xai_title.setProperty("cssClass", "xaiSectionTitle")
+    lbl_xai_title.setVisible(False)
+    layout.addWidget(lbl_xai_title)
+    xai_layout = QVBoxLayout()
+    xai_layout.setSpacing(4)
+    layout.addLayout(xai_layout)
+    lbl_caveat = QLabel("")
+    lbl_caveat.setProperty("cssClass", "aiHintText")
+    lbl_caveat.setWordWrap(True)
+    lbl_caveat.setVisible(False)
+    layout.addWidget(lbl_caveat)
+    return lbl_universe, lbl_segment, lbl_trend, lbl_pooled_price, lbl_confidence, lbl_xai_title, xai_layout, lbl_caveat
+
+
 class PeerCard(QWidget):
     """Kol-B (pooled global model) akran karşılaştırma kartı.
 
@@ -33,77 +99,11 @@ class PeerCard(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 14, 16, 14)
         layout.setSpacing(8)
-
-        header = QHBoxLayout()
-        header.setContentsMargins(0, 0, 0, 0)
-        lbl_icon = QLabel()
-        lbl_icon.setPixmap(IconManager.get_icon("bar-chart-2", color="@COLOR_PRIMARY").pixmap(20, 20))
-        title = QLabel(L10N.PEER_BASLIK)
-        title.setProperty("cssClass", "cardLabel")
-        self.lbl_as_of = QLabel("")
-        self.lbl_as_of.setProperty("cssClass", "aiMetaText")
-        header.addWidget(lbl_icon)
-        header.addWidget(title)
-        header.addStretch()
-        header.addWidget(self.lbl_as_of)
-        layout.addLayout(header)
-
-        self.lbl_unavailable = QLabel(L10N.PEER_VERISI_YOK)
-        self.lbl_unavailable.setAlignment(Qt.AlignCenter)
-        self.lbl_unavailable.setProperty("cssClass", "aiHintText")
-        self.lbl_unavailable.setVisible(False)
-        layout.addWidget(self.lbl_unavailable)
-
-        # Sıra + etiket
-        rank_layout = QHBoxLayout()
-        self.lbl_rank = QLabel("")
-        self.lbl_rank.setProperty("cssClass", "aiPrimaryText")
-        self.lbl_label = QLabel("")
-        self.lbl_label.setAlignment(Qt.AlignCenter)
-        self.lbl_label.setProperty("cssClass", "trendBadge")
-        rank_layout.addWidget(self.lbl_rank)
-        rank_layout.addStretch()
-        rank_layout.addWidget(self.lbl_label)
-        layout.addLayout(rank_layout)
-
-        self.lbl_universe = QLabel("")
-        self.lbl_universe.setProperty("cssClass", "aiMetaText")
-        layout.addWidget(self.lbl_universe)
-
-        self.lbl_segment = QLabel("")
-        self.lbl_segment.setProperty("cssClass", "aiMetaText")
-        self.lbl_segment.setWordWrap(True)
-        layout.addWidget(self.lbl_segment)
-
-        self.lbl_trend = QLabel("")
-        self.lbl_trend.setProperty("cssClass", "aiStrongMetaText")
-        self.lbl_trend.setWordWrap(True)
-        layout.addWidget(self.lbl_trend)
-
-        self.lbl_pooled_price = QLabel("")
-        self.lbl_pooled_price.setProperty("cssClass", "aiStrongMetaText")
-        self.lbl_pooled_price.setWordWrap(True)
-        layout.addWidget(self.lbl_pooled_price)
-
-        self.lbl_confidence = QLabel("")
-        self.lbl_confidence.setProperty("cssClass", "aiMetaText")
-        layout.addWidget(self.lbl_confidence)
-
-        # Kol-B XAI sürücüleri
-        self.lbl_xai_title = QLabel(L10N.PEER_XAI_BASLIK)
-        self.lbl_xai_title.setProperty("cssClass", "xaiSectionTitle")
-        self.lbl_xai_title.setVisible(False)
-        layout.addWidget(self.lbl_xai_title)
-
-        self.xai_layout = QVBoxLayout()
-        self.xai_layout.setSpacing(4)
-        layout.addLayout(self.xai_layout)
-
-        self.lbl_caveat = QLabel("")
-        self.lbl_caveat.setProperty("cssClass", "aiHintText")
-        self.lbl_caveat.setWordWrap(True)
-        self.lbl_caveat.setVisible(False)
-        layout.addWidget(self.lbl_caveat)
+        (self.lbl_as_of, self.lbl_unavailable,
+         self.lbl_rank, self.lbl_label) = _build_peer_header_section(layout)
+        (self.lbl_universe, self.lbl_segment, self.lbl_trend,
+         self.lbl_pooled_price, self.lbl_confidence,
+         self.lbl_xai_title, self.xai_layout, self.lbl_caveat) = _build_peer_meta_section(layout)
 
     def update_data(self, peer) -> None:
         """PeerInfo ile kartı günceller. peer None/available=False ise kartı gizler."""
