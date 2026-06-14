@@ -1,6 +1,14 @@
 from __future__ import annotations
 
 import pandas as pd
+from typing import NamedTuple
+
+
+class _PeriodValues(NamedTuple):
+    start_value: "float | None"
+    end_value: "float | None"
+    change_tl: "float | None"
+    change_pct: "float | None"
 
 
 class ExcelDashboardStatsCalculator:
@@ -46,7 +54,11 @@ class ExcelDashboardStatsCalculator:
         peak, low, best, worst = self._summary_extremes(df)
 
         stats["period"] = f"{self._fmt_date(first['Tarih'])} - {self._fmt_date(last['Tarih'])}"
-        stats["rows"] = self._summary_rows(stats, first, last, start_value, end_value, change_tl, change_pct, peak, low)
+        stats["rows"] = self._summary_rows(
+            stats["period"], last,
+            _PeriodValues(start_value, end_value, change_tl, change_pct),
+            peak, low,
+        )
         stats["portfolio_sentence"] = (
             f"Portföy {stats['period']} döneminde {self._fmt_tl(start_value)} seviyesinden "
             f"{self._fmt_tl(end_value)} seviyesine geldi. Net değişim {self._fmt_tl(change_tl)} "
@@ -61,21 +73,17 @@ class ExcelDashboardStatsCalculator:
 
     def _summary_rows(
         self,
-        stats: dict,
-        first,
+        period: str,
         last,
-        start_value,
-        end_value,
-        change_tl,
-        change_pct,
+        pv: _PeriodValues,
         peak,
         low,
     ) -> list[tuple[str, str]]:
         return [
-            ("Rapor dönemi", stats["period"]),
-            ("Başlangıç değeri", self._fmt_tl(start_value)),
-            ("Bitiş değeri", self._fmt_tl(end_value)),
-            ("Dönem değişimi", f"{self._fmt_tl(change_tl)} / {self._fmt_pct_value(change_pct)}"),
+            ("Rapor dönemi", period),
+            ("Başlangıç değeri", self._fmt_tl(pv.start_value)),
+            ("Bitiş değeri", self._fmt_tl(pv.end_value)),
+            ("Dönem değişimi", f"{self._fmt_tl(pv.change_tl)} / {self._fmt_pct_value(pv.change_pct)}"),
             (
                 "En yüksek değer",
                 f"{self._fmt_tl(self._num(peak['Portföy Değeri (TL)']))} ({self._fmt_date(peak['Tarih'])})"

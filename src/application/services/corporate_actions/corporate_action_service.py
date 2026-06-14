@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, NamedTuple, Optional
 
 from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.models.position import Position
@@ -28,6 +28,23 @@ from src.domain.ports.repositories.i_trade_adjustment_repo import ITradeAdjustme
 from src.application.services.corporate_actions.price_adjustment_service import (
     CorporateActionPriceAdjustmentService,
 )
+
+
+class _ShareChange(NamedTuple):
+    before: int
+    new: int
+    after: int
+
+
+class _CostChange(NamedTuple):
+    before: "Optional[Decimal]"
+    after: Decimal
+
+
+class _TradeUpdate(NamedTuple):
+    factor: Decimal
+    post_qty: int
+    post_price: Decimal
 
 
 @dataclass
@@ -54,19 +71,16 @@ class CorporateActionResult:
 
 def _bedelsiz_description(
     action: CorporateAction,
-    shares_before: int,
-    new_shares: int,
-    new_qty: int,
-    avg_cost_before: Decimal,
-    avg_cost_after: Decimal,
+    sc: _ShareChange,
+    cc: _CostChange,
     theoretical_price: Optional[Decimal],
 ) -> str:
     pct = float(action.ratio_percent)
     desc = (
         f"Bedelsiz Sermaye Artırımı %{pct:.0f} — "
         f"ex-date: {action.ex_date} | "
-        f"{shares_before} lot + {new_shares} bedelsiz lot = {new_qty} lot | "
-        f"Ort. maliyet: {avg_cost_before:.4f} → {avg_cost_after:.4f} TL"
+        f"{sc.before} lot + {sc.new} bedelsiz lot = {sc.after} lot | "
+        f"Ort. maliyet: {cc.before:.4f} → {cc.after:.4f} TL"
     )
     if theoretical_price is not None:
         desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
@@ -75,11 +89,8 @@ def _bedelsiz_description(
 
 def _bedelli_description(
     action: CorporateAction,
-    shares_before: int,
-    new_shares: int,
-    new_qty: int,
-    avg_cost_before: Decimal,
-    avg_cost_after: Decimal,
+    sc: _ShareChange,
+    cc: _CostChange,
     capital_spent: Decimal,
     theoretical_price: Optional[Decimal],
 ) -> str:
@@ -89,9 +100,9 @@ def _bedelli_description(
         f"Bedelli Sermaye Artırımı %{pct:.0f} — "
         f"ex-date: {action.ex_date} | "
         f"Kullanım fiyatı: {sub_price:.4f} TL | "
-        f"{shares_before} lot + {new_shares} yeni lot = {new_qty} lot | "
+        f"{sc.before} lot + {sc.new} yeni lot = {sc.after} lot | "
         f"Sermaye kullanımı: {capital_spent:.2f} TL | "
-        f"Ort. maliyet: {avg_cost_before:.4f} → {avg_cost_after:.4f} TL"
+        f"Ort. maliyet: {cc.before:.4f} → {cc.after:.4f} TL"
     )
     if theoretical_price is not None:
         desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
@@ -99,17 +110,17 @@ def _bedelli_description(
 
 
 
-def _record_and_update_trade(portfolio_repo, trade_adjustment_repo, trade, action_id, factor, post_qty, post_price):
+def _record_and_update_trade(portfolio_repo, trade_adjustment_repo, trade, action_id, upd: _TradeUpdate):
     if trade_adjustment_repo is not None:
         adjustment = TradeAdjustment(
             id=None,
             trade_id=trade.id,
             corporate_action_id=action_id,
-            factor=factor,
+            factor=upd.factor,
             pre_quantity=trade.quantity,
-            post_quantity=post_qty,
+            post_quantity=upd.post_qty,
             pre_price=trade.price,
-            post_price=post_price,
+            post_price=upd.post_price,
             applied_at=datetime.now(),
         )
         trade_adjustment_repo.insert(adjustment)
@@ -119,8 +130,8 @@ def _record_and_update_trade(portfolio_repo, trade_adjustment_repo, trade, actio
         trade_date=trade.trade_date,
         trade_time=trade.trade_time,
         side=trade.side,
-        quantity=post_qty,
-        price=post_price,
+        quantity=upd.post_qty,
+        price=upd.post_price,
         original_quantity=trade.original_quantity,
         original_price=trade.original_price,
     )
@@ -331,7 +342,7 @@ class CorporateActionService:
             post_price = (trade.price * factor).quantize(Decimal("1.0000"))
             _record_and_update_trade(
                 self._portfolio_repo, self._trade_adjustment_repo,
-                trade, action.id, factor, post_qty, post_price,
+                trade, action.id, _TradeUpdate(factor, post_qty, post_price),
             )
         new_qty = shares_before + new_shares
         avg_cost_after = (position.total_cost / Decimal(str(new_qty))) if new_qty > 0 else Decimal("0")
@@ -347,7 +358,10 @@ class CorporateActionService:
             theoretical_ex_price=theoretical_price,
             capital_spent=Decimal("0"),
             description=_bedelsiz_description(
-                action, shares_before, new_shares, new_qty, avg_cost_before, avg_cost_after, theoretical_price
+                action,
+                _ShareChange(shares_before, new_shares, new_qty),
+                _CostChange(avg_cost_before, avg_cost_after),
+                theoretical_price,
             ),
         )
 
@@ -374,7 +388,7 @@ class CorporateActionService:
             post_price = (trade.price * factor).quantize(Decimal("1.0000"))
             _record_and_update_trade(
                 self._portfolio_repo, self._trade_adjustment_repo,
-                trade, action.id, factor, post_qty, post_price,
+                trade, action.id, _TradeUpdate(factor, post_qty, post_price),
             )
         new_qty = shares_before + new_shares
         new_total_cost = position.total_cost + capital_spent
@@ -391,7 +405,11 @@ class CorporateActionService:
             theoretical_ex_price=theoretical_price,
             capital_spent=capital_spent,
             description=_bedelli_description(
-                action, shares_before, new_shares, new_qty, avg_cost_before, avg_cost_after, capital_spent, theoretical_price
+                action,
+                _ShareChange(shares_before, new_shares, new_qty),
+                _CostChange(avg_cost_before, avg_cost_after),
+                capital_spent,
+                theoretical_price,
             ),
         )
 
