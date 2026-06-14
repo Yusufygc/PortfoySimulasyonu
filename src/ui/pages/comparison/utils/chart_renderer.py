@@ -8,7 +8,7 @@ import os
 import re
 import tempfile
 import unicodedata
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -130,8 +130,26 @@ def build_main_fig(df: pd.DataFrame, mode: str, ratio_assets: tuple | None, code
     return fig
 
 
+class _FigCtx(NamedTuple):
+    mode: str
+    ratio_assets: tuple | None
+    code_to_label: dict
+
+
 def _resolve_asset_label(code: str, code_to_label: dict[str, str], asset_labels: dict[str, str]) -> str:
     return code_to_label.get(code) or asset_labels.get(code) or code
+
+
+def _codes_for_mode(mode: str, selected_assets: list, ratio_assets: tuple | None) -> list:
+    if mode == L10N.RASYO_MODU and ratio_assets:
+        return [code for code in ratio_assets if code]
+    return [code for code in selected_assets if code]
+
+
+def _slugs_from_codes(codes: list, code_to_label: dict, asset_labels: dict) -> list:
+    labels = [_resolve_asset_label(code, code_to_label, asset_labels) for code in codes if code]
+    raw_slugs = [_slugify(label) for label in labels if label]
+    return [slug for slug in raw_slugs if slug]
 
 
 def _slugify(value: str) -> str:
@@ -211,42 +229,30 @@ class ChartRenderer:
         )
         
         worker = Worker(
-            self._generate_html_in_background, 
-            mapped_key, df.copy(), mode, ratio_assets, code_to_label, download_filename
+            self._generate_html_in_background,
+            mapped_key, df.copy(), _FigCtx(mode, ratio_assets, code_to_label), download_filename
         )
         worker.signals.result.connect(self._on_html_ready)
         worker.signals.error.connect(lambda err: logger.error(f"Render error for {mapped_key}: {err}"))
         self.threadpool.start(worker)
 
-    def _generate_html_in_background(
-        self,
-        chart_key: str,
-        df: pd.DataFrame,
-        mode: str,
-        ratio_assets: tuple | None,
-        code_to_label: dict,
-        download_filename: str,
-    ) -> tuple[str, str] | None:
-        """Arka planda çalışacak fonksiyon."""
-        df_metrics = df if mode == L10N.RASYO_MODU else df
-        fig = None
-
+    def _build_fig_for_key(self, chart_key: str, df: pd.DataFrame, ctx: "_FigCtx"):
+        df_metrics = df
         if chart_key == "main":
-            fig = self._build_main_fig(df, mode, ratio_assets, code_to_label)
+            return self._build_main_fig(df, ctx.mode, ctx.ratio_assets, ctx.code_to_label)
         elif chart_key == "drawdown":
-            df_dd = ComparisonService.calculate_drawdowns(df_metrics)
-            fig = ComparisonChartFactory.build_drawdown_chart(df_dd)
+            return ComparisonChartFactory.build_drawdown_chart(ComparisonService.calculate_drawdowns(df_metrics))
         elif chart_key == "periodic":
-            df_periodic = ComparisonService.calculate_periodic_returns(df_metrics, freq="ME")
-            fig = ComparisonChartFactory.build_period_bar_chart(df_periodic)
+            return ComparisonChartFactory.build_period_bar_chart(
+                ComparisonService.calculate_periodic_returns(df_metrics, freq="ME")
+            )
         elif chart_key == "scatter":
             metrics = ComparisonService.calculate_risk_return_metrics(df_metrics)
             scatter_data = [
                 {L10N.VOLATILITE: m["annual_volatility_pct"], L10N.GETIRI: m["total_return_pct"], "Varlık": name}
                 for name, m in metrics.items()
             ]
-            df_scatter = pd.DataFrame(scatter_data).set_index("Varlık")
-            fig = ComparisonChartFactory.build_risk_return_scatter(df_scatter)
+            return ComparisonChartFactory.build_risk_return_scatter(pd.DataFrame(scatter_data).set_index("Varlık"))
         elif chart_key == "treemap":
             metrics = ComparisonService.calculate_risk_return_metrics(df_metrics)
             weights = [max(abs(m["total_return_pct"]), 1.0) for m in metrics.values()]
@@ -254,12 +260,20 @@ class ChartRenderer:
                 {L10N.VARLIK_AGIRLIGI: weights, L10N.GETIRI: [m["total_return_pct"] for m in metrics.values()]},
                 index=df.columns,
             )
-            fig = ComparisonChartFactory.build_treemap(df_weights)
+            return ComparisonChartFactory.build_treemap(df_weights)
+        return None
 
+    def _generate_html_in_background(
+        self,
+        chart_key: str,
+        df: pd.DataFrame,
+        ctx: "_FigCtx",
+        download_filename: str,
+    ) -> tuple[str, str] | None:
+        fig = self._build_fig_for_key(chart_key, df, ctx)
         if not fig:
             return None
 
-        # Build HTML
         try:
             shared_plotly_path = ensure_patched_plotly_js()
             shared_js_url = QUrl.fromLocalFile(shared_plotly_path).toString()
@@ -377,22 +391,8 @@ class ChartRenderer:
         code_to_label: dict[str, str],
         asset_labels: dict[str, str],
     ) -> str:
-        labels: list[str]
-        if mode == L10N.RASYO_MODU and ratio_assets:
-            labels = [
-                _resolve_asset_label(code, code_to_label, asset_labels)
-                for code in ratio_assets
-                if code
-            ]
-        else:
-            labels = [
-                _resolve_asset_label(code, code_to_label, asset_labels)
-                for code in selected_assets
-                if code
-            ]
-
-        slugs = [_slugify(label) for label in labels if label]
-        slugs = [slug for slug in slugs if slug]
+        codes = _codes_for_mode(mode, selected_assets, ratio_assets)
+        slugs = _slugs_from_codes(codes, code_to_label, asset_labels)
         return "_".join(slugs) if slugs else "varlik"
 
     # ------------------------------------------------------------------

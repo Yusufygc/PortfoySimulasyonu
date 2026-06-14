@@ -21,6 +21,17 @@ if TYPE_CHECKING:
     from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
 
 
+def _resolve_effective_side(result: dict, side: str | None) -> str:
+    return result.get("side") or side or "BUY"
+
+
+def _trade_success_message(result: dict, effective_side: str) -> str:
+    action = L10N.ALINDI if effective_side == "BUY" else L10N.SATILDI
+    return L10N.ISLEM_GERCEKLESTI_TMPL.format(
+        qty=result["quantity"], ticker=display_ticker(result["ticker"]), action=action
+    )
+
+
 class ModelPortfolioActions:
     """Model Portföy sayfası için CRUD ve alım-satım eylemlerini yönetir."""
 
@@ -125,6 +136,26 @@ class ModelPortfolioActions:
         except Exception as exc:
             Toast.error(self.page, L10N.SERMAYE_HAREKETI_KAYDEDILEMEDI_TMPL.format(exc=exc))
 
+    def _execute_add_trade(self, portfolio_id: int, result: dict, effective_side: str) -> None:
+        try:
+            self.page.model_portfolio_service.add_trade_by_ticker(
+                portfolio_id=portfolio_id,
+                ticker=result["ticker"],
+                side=effective_side,
+                quantity=result["quantity"],
+                price=result["price"],
+                trade_date=result["trade_date"],
+                trade_time=result["trade_time"],
+                name=result.get("name"),
+            )
+            self.page._load_portfolios()
+            self.page._update_view()
+            Toast.success(self.page, _trade_success_message(result, effective_side))
+        except ValueError as exc:
+            Toast.warning(self.page, str(exc))
+        except Exception as exc:
+            Toast.error(self.page, L10N.ISLEM_GERCEKLESTIRILEMEDI_TMPL.format(exc=exc))
+
     def on_trade(self, side: str | None = None) -> None:
         if self.page.current_portfolio_id is None:
             return
@@ -143,7 +174,7 @@ class ModelPortfolioActions:
         result = dialog.get_result()
         if not result:
             return
-        effective_side = result.get("side") or side or "BUY"
+        effective_side = _resolve_effective_side(result, side)
         if not confirm_market_session_if_needed(
             self.page,
             self.page.market_session_service,
@@ -151,25 +182,7 @@ class ModelPortfolioActions:
             result.get("trade_time"),
         ):
             return
-        try:
-            self.page.model_portfolio_service.add_trade_by_ticker(
-                portfolio_id=self.page.current_portfolio_id,
-                ticker=result["ticker"],
-                side=effective_side,
-                quantity=result["quantity"],
-                price=result["price"],
-                trade_date=result["trade_date"],
-                trade_time=result["trade_time"],
-                name=result.get("name"),
-            )
-            self.page._load_portfolios()
-            self.page._update_view()
-            action = L10N.ALINDI if effective_side == "BUY" else L10N.SATILDI
-            Toast.success(self.page, L10N.ISLEM_GERCEKLESTI_TMPL.format(qty=result['quantity'], ticker=display_ticker(result['ticker']), action=action))
-        except ValueError as exc:
-            Toast.warning(self.page, str(exc))
-        except Exception as exc:
-            Toast.error(self.page, L10N.ISLEM_GERCEKLESTIRILEMEDI_TMPL.format(exc=exc))
+        self._execute_add_trade(self.page.current_portfolio_id, result, effective_side)
 
     def on_update_prices(self) -> None:
         self._update_timeout_timer = QTimer(self.page)

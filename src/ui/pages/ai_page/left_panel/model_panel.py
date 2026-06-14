@@ -11,7 +11,7 @@ from .ticker_input_bar import TickerInputBar
 from .status_banner import StatusBanner
 from .prediction_card import PredictionCard
 from .signal_card import SignalCard
-from .xai_card import XAICard
+from .xai_card import XAICard, XaiDisplayArgs
 from .peer_card import PeerCard
 from .performance_card import PerformanceCard
 from .send_to_chat_button import SendToChatButton
@@ -200,11 +200,13 @@ class ModelPanel(QWidget):
         self.xai_card.update_data(
             features=result.xai_features,
             text=result.xai_text,
-            xai_available=result.xai_available,
-            xai_method=result.xai_method,
+            xai=XaiDisplayArgs(
+                available=result.xai_available,
+                method=result.xai_method,
+                caveat=result.xai_caveat,
+            ),
             positive_reasons=result.xai_positive_reasons,
             negative_reasons=result.xai_negative_reasons,
-            xai_caveat=result.xai_caveat,
         )
         self.btn_send_chat.set_result(result)
 

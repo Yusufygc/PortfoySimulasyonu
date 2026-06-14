@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 from src.ui.shared.locale_tr import L10N
 from src.qt_compat.qtcore import Qt
 from src.qt_compat.qtwidgets import (
@@ -11,6 +13,12 @@ from src.qt_compat.qtwidgets import (
     QWidget,
 )
 from src.ui.core.icon_manager import IconManager
+
+
+class XaiDisplayArgs(NamedTuple):
+    available: bool = True
+    method: str = ""
+    caveat: str = ""
 
 
 class XAICard(QWidget):
@@ -92,59 +100,52 @@ class XAICard(QWidget):
         row.addStretch()
         return container
 
-    def update_data(
-        self,
-        features: dict[str, float],
-        text: str,
-        xai_available: bool = True,
-        xai_method: str = "",
-        positive_reasons: list | None = None,
-        negative_reasons: list | None = None,
-        xai_caveat: str = "",
-    ):
-        """Kartı API verileriyle günceller."""
-        friendly_method = self._friendly_method(xai_method)
-        self.lbl_method.setText(L10N.YONTEM_TMPL.format(method=friendly_method) if friendly_method else "")
-        self._clear_layout(self.positive_layout)
-        self._clear_layout(self.negative_layout)
-        self._clear_layout(self.features_layout)
+    def _populate_reasons(self, reasons: list, layout, kind: str) -> None:
+        for item in reasons:
+            layout.addWidget(self._make_factor_row(item, kind))
 
-        if not xai_available:
-            self.lbl_unavailable.setVisible(True)
-            self.lbl_pos_title.setVisible(False)
-            self.lbl_neg_title.setVisible(False)
-            self.txt_explanation.setText(self._clean_text(text) or L10N.BU_MODEL_ICIN_XAI_ACIKLANABILIRLIK)
-            self._set_caveat(self._clean_text(xai_caveat))
-            return
-
+    def _populate_xai_views(self, positive_reasons, negative_reasons, features: dict) -> None:
         self.lbl_unavailable.setVisible(False)
         self.lbl_pos_title.setVisible(True)
         self.lbl_neg_title.setVisible(True)
-
         if positive_reasons:
-            for item in positive_reasons:
-                self.positive_layout.addWidget(self._make_factor_row(item, "positive"))
-
+            self._populate_reasons(positive_reasons, self.positive_layout, "positive")
         if negative_reasons:
-            for item in negative_reasons:
-                self.negative_layout.addWidget(self._make_factor_row(item, "negative"))
-
+            self._populate_reasons(negative_reasons, self.negative_layout, "negative")
         if not positive_reasons and not negative_reasons and features:
             self.lbl_pos_title.setVisible(False)
             self.lbl_neg_title.setVisible(False)
             for name, value in features.items():
                 self.features_layout.addWidget(self._make_factor_row(
-                    {
-                        "human_label": name,
-                        "feature_name": name,
-                        "importance": value,
-                        "direction": "neutral",
-                    },
+                    {"human_label": name, "feature_name": name, "importance": value, "direction": "neutral"},
                     "neutral",
                 ))
 
+    def update_data(
+        self,
+        features: dict[str, float],
+        text: str,
+        xai: XaiDisplayArgs = XaiDisplayArgs(),
+        positive_reasons: list | None = None,
+        negative_reasons: list | None = None,
+    ):
+        friendly_method = self._friendly_method(xai.method)
+        self.lbl_method.setText(L10N.YONTEM_TMPL.format(method=friendly_method) if friendly_method else "")
+        self._clear_layout(self.positive_layout)
+        self._clear_layout(self.negative_layout)
+        self._clear_layout(self.features_layout)
+
+        if not xai.available:
+            self.lbl_unavailable.setVisible(True)
+            self.lbl_pos_title.setVisible(False)
+            self.lbl_neg_title.setVisible(False)
+            self.txt_explanation.setText(self._clean_text(text) or L10N.BU_MODEL_ICIN_XAI_ACIKLANABILIRLIK)
+            self._set_caveat(self._clean_text(xai.caveat))
+            return
+
+        self._populate_xai_views(positive_reasons, negative_reasons, features)
         self.txt_explanation.setText(self._clean_text(text))
-        self._set_caveat(self._clean_text(xai_caveat))
+        self._set_caveat(self._clean_text(xai.caveat))
 
     def reset(self):
         self._clear_layout(self.positive_layout)

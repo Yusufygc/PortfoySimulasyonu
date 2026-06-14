@@ -5,7 +5,7 @@ from src.qt_compat.qtwidgets import QApplication, QLabel
 from src.ui.pages.ai_page.left_panel.ticker_input_bar import TickerInputBar
 from src.ui.pages.ai_page.left_panel.prediction_card import PredictionCard
 from src.ui.pages.ai_page.left_panel.signal_card import SignalCard
-from src.ui.pages.ai_page.left_panel.xai_card import XAICard
+from src.ui.pages.ai_page.left_panel.xai_card import XAICard, XaiDisplayArgs
 from src.domain.models.ai_analysis import ModelOutlook, XaiFactorItem
 
 app = QApplication.instance()
@@ -59,8 +59,7 @@ def test_xai_card_renders_factor_details():
     card.update_data(
         features={},
         text="XAI özeti",
-        xai_available=True,
-        xai_method="Feature Importance",
+        xai=XaiDisplayArgs(available=True, method="Feature Importance", caveat="Nedensellik kanıtı değildir."),
         positive_reasons=[
             XaiFactorItem(
                 feature_name="RSI_14",
@@ -75,7 +74,6 @@ def test_xai_card_renders_factor_details():
             )
         ],
         negative_reasons=[],
-        xai_caveat="Nedensellik kanıtı değildir.",
     )
 
     labels = [label.text() for label in card.findChildren(QLabel)]
