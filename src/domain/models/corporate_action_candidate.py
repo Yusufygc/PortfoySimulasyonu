@@ -9,6 +9,24 @@ from typing import Any, Optional
 from src.domain.models.corporate_action import ActionType
 
 
+def _validate_required_str(value: "str | None", field_name: str, *, uppercase: bool = True) -> str:
+    normalized = (value or "").strip()
+    if uppercase:
+        normalized = normalized.upper()
+    if not normalized:
+        raise ValueError(f"{field_name} is required")
+    return normalized
+
+
+def _validate_candidate_numerics(ratio, subscription_price, confidence) -> None:
+    if ratio is not None and ratio <= 0:
+        raise ValueError("Candidate ratio must be positive when provided")
+    if subscription_price is not None and subscription_price <= 0:
+        raise ValueError("Subscription price must be positive when provided")
+    if confidence < 0 or confidence > 1:
+        raise ValueError("Candidate confidence must be between 0 and 1")
+
+
 class CorporateActionCandidateStatus(str, Enum):
     DISCOVERED = "DISCOVERED"
     READY = "READY"
@@ -42,37 +60,18 @@ class CorporateActionCandidate:
     updated_at: Optional[datetime] = None
 
     def __post_init__(self) -> None:
-        ticker = (self.ticker or "").strip().upper()
-        if not ticker:
-            raise ValueError("Candidate ticker is required")
-        object.__setattr__(self, "ticker", ticker)
-
+        object.__setattr__(self, "ticker", _validate_required_str(self.ticker, "Candidate ticker"))
         if not isinstance(self.action_type, ActionType):
             object.__setattr__(self, "action_type", ActionType(self.action_type))
-
         if not isinstance(self.status, CorporateActionCandidateStatus):
-            object.__setattr__(
-                self,
-                "status",
-                CorporateActionCandidateStatus(self.status),
-            )
-
-        source = (self.source or "").strip().upper()
-        if not source:
-            raise ValueError("Candidate source is required")
-        object.__setattr__(self, "source", source)
-
-        disclosure_id = (self.source_disclosure_id or "").strip()
-        if not disclosure_id:
-            raise ValueError("Source disclosure id is required")
-        object.__setattr__(self, "source_disclosure_id", disclosure_id)
-
-        if self.ratio is not None and self.ratio <= 0:
-            raise ValueError("Candidate ratio must be positive when provided")
-        if self.subscription_price is not None and self.subscription_price <= 0:
-            raise ValueError("Subscription price must be positive when provided")
-        if self.confidence < 0 or self.confidence > 1:
-            raise ValueError("Candidate confidence must be between 0 and 1")
+            object.__setattr__(self, "status", CorporateActionCandidateStatus(self.status))
+        object.__setattr__(self, "source", _validate_required_str(self.source, "Candidate source"))
+        object.__setattr__(
+            self,
+            "source_disclosure_id",
+            _validate_required_str(self.source_disclosure_id, "Source disclosure id", uppercase=False),
+        )
+        _validate_candidate_numerics(self.ratio, self.subscription_price, self.confidence)
 
     @classmethod
     def discovered(

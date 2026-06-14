@@ -98,35 +98,6 @@ def _bedelli_description(
     return desc
 
 
-def _build_action_result(
-    action: CorporateAction,
-    shares_before: int,
-    new_shares: int,
-    shares_after: int,
-    avg_cost_before: Optional[Decimal],
-    avg_cost_after: Optional[Decimal],
-    theoretical_price: Optional[Decimal],
-    capital_spent: Decimal,
-    description: str,
-    price_adjustment_factor: Optional[Decimal] = None,
-    price_adjustment_count: int = 0,
-) -> CorporateActionResult:
-    return CorporateActionResult(
-        action_id=action.id,
-        action_type=action.action_type,
-        stock_id=action.stock_id,
-        shares_before=shares_before,
-        new_shares=new_shares,
-        shares_after=shares_after,
-        avg_cost_before=avg_cost_before,
-        avg_cost_after=avg_cost_after,
-        theoretical_ex_price=theoretical_price,
-        capital_spent=capital_spent,
-        description=description,
-        price_adjustment_factor=price_adjustment_factor,
-        price_adjustment_count=price_adjustment_count,
-    )
-
 
 def _record_and_update_trade(portfolio_repo, trade_adjustment_repo, trade, action_id, factor, post_qty, post_price):
     if trade_adjustment_repo is not None:
@@ -321,14 +292,16 @@ class CorporateActionService:
             return result
 
         adjustment = self._price_adjustment_service.adjust_prices_for_applied_action(action)
-        return _build_action_result(
-            action=action,
+        return CorporateActionResult(
+            action_id=action.id,
+            action_type=action.action_type,
+            stock_id=action.stock_id,
             shares_before=result.shares_before,
             new_shares=result.new_shares,
             shares_after=result.shares_after,
             avg_cost_before=result.avg_cost_before,
             avg_cost_after=result.avg_cost_after,
-            theoretical_price=result.theoretical_ex_price,
+            theoretical_ex_price=result.theoretical_ex_price,
             capital_spent=result.capital_spent,
             description=result.description,
             price_adjustment_factor=adjustment.factor,
@@ -362,14 +335,16 @@ class CorporateActionService:
             )
         new_qty = shares_before + new_shares
         avg_cost_after = (position.total_cost / Decimal(str(new_qty))) if new_qty > 0 else Decimal("0")
-        return _build_action_result(
-            action=action,
+        return CorporateActionResult(
+            action_id=action.id,
+            action_type=action.action_type,
+            stock_id=action.stock_id,
             shares_before=shares_before,
             new_shares=new_shares,
             shares_after=new_qty,
             avg_cost_before=avg_cost_before,
             avg_cost_after=avg_cost_after,
-            theoretical_price=theoretical_price,
+            theoretical_ex_price=theoretical_price,
             capital_spent=Decimal("0"),
             description=_bedelsiz_description(
                 action, shares_before, new_shares, new_qty, avg_cost_before, avg_cost_after, theoretical_price
@@ -404,14 +379,16 @@ class CorporateActionService:
         new_qty = shares_before + new_shares
         new_total_cost = position.total_cost + capital_spent
         avg_cost_after = new_total_cost / Decimal(str(new_qty)) if new_qty > 0 else Decimal("0")
-        return _build_action_result(
-            action=action,
+        return CorporateActionResult(
+            action_id=action.id,
+            action_type=action.action_type,
+            stock_id=action.stock_id,
             shares_before=shares_before,
             new_shares=new_shares,
             shares_after=new_qty,
             avg_cost_before=avg_cost_before,
             avg_cost_after=avg_cost_after,
-            theoretical_price=theoretical_price,
+            theoretical_ex_price=theoretical_price,
             capital_spent=capital_spent,
             description=_bedelli_description(
                 action, shares_before, new_shares, new_qty, avg_cost_before, avg_cost_after, capital_spent, theoretical_price

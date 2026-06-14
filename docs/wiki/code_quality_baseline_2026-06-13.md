@@ -7,20 +7,20 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 
 ## Ozet
 
-- Git commit: `08237ec`
+- Git commit: `f39727d`
 - Dosya: 439
 - Sinif: 538
-- Fonksiyon/metot: 3361
-- Effective code lines: 44341
+- Fonksiyon/metot: 3380
+- Effective code lines: 44321
 - Ihlalli sinif: 2
-- Ihlalli fonksiyon/metot: 109
+- Ihlalli fonksiyon/metot: 99
 - Saglik raporu eslesen dosya: 84/84
 
 ## Katman Ozeti
 
 | Katman | Dosya | Effective satir | Dosya ihlali |
 |---|---:|---:|---:|
-| src | 330 | 31489 | 1 |
+| src | 330 | 31469 | 1 |
 | tests | 95 | 11246 | 0 |
 | scripts | 13 | 1578 | 0 |
 | root | 1 | 28 | 0 |
@@ -50,7 +50,7 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | Dosya | Sinif | Effective satir | Metot | Ihlal |
 |---|---|---:|---:|---|
 | src/ui/shared/locale_tr.py | L10N | 797 | 0 | class_effective_lines |
-| src/application/services/analysis/portfolio_series_builder.py | PortfolioSeriesBuilder | 307 | 14 | class_effective_lines |
+| src/application/services/analysis/portfolio_series_builder.py | PortfolioSeriesBuilder | 313 | 15 | class_effective_lines |
 
 ## Fonksiyon/Metot Ihlalleri
 
@@ -67,7 +67,6 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/infrastructure/corporate_actions/kap_mkk_provider.py | parse_kap_mkk_disclosure | 50 | 1 | 15 | function_complexity |
 | src/infrastructure/ai/ai_core_fastapi_client.py | _parse_peer | 49 | 1 | 14 | function_complexity |
 | src/ui/pages/settings/utils/price_data_report.py | on_health_selection_changed | 49 | 0 | 15 | function_complexity |
-| src/application/services/analysis/analysis_service.py | get_overview | 48 | 2 | 17 | function_complexity |
 | src/application/services/planning/model_portfolio_trade_service.py | add_trade | 48 | 7 | 1 | function_effective_params |
 | src/ui/pages/comparison/utils/chart_renderer.py | _generate_html_in_background | 48 | 6 | 12 | function_effective_params, function_complexity |
 | scripts/migrate_ui_strings.py | is_user_facing_string | 47 | 2 | 35 | function_complexity |
@@ -81,11 +80,12 @@ Bu rapor `scripts/measure_code_quality.py` ile uretilen tekrarlanabilir baseline
 | src/ui/pages/stock_detail/trade_form_panel.py | update_impact_preview | 45 | 3 | 15 | function_complexity |
 | src/ui/widgets/shared/feedback/toast.py | _reposition_for_parent | 45 | 2 | 11 | function_complexity |
 | scripts/migrate_ui_strings.py | process_file | 44 | 2 | 14 | function_complexity |
-| src/application/services/corporate_actions/price_adjustment_service.py | adjust_downloaded_series | 44 | 2 | 22 | function_complexity |
 | src/application/services/planning/model_portfolio_snapshot_service.py | get_positions_with_details | 44 | 2 | 13 | function_complexity |
 | src/ui/pages/model_portfolio/utils/model_portfolio_actions.py | on_trade | 44 | 1 | 12 | function_complexity |
 | src/ui/widgets/planning/panels/budget_form_panel.py | _build_item_column | 44 | 8 | 1 | function_effective_params |
 | src/application/services/planning/model_portfolio_trade_service.py | add_capital_movement | 43 | 6 | 5 | function_effective_params |
+| src/ui/pages/analysis/analysis_overview_section.py | set_data | 43 | 1 | 12 | function_complexity |
+| src/application/services/analysis/portfolio_series_builder.py | compute_portfolio_series | 41 | 8 | 5 | function_effective_params |
 
 ## Saglik Raporu Crosswalk
 

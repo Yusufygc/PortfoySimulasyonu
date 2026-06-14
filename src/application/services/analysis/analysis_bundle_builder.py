@@ -31,18 +31,19 @@ class AnalysisBundleBuilder:
         warnings: List[str] = []
         data = self._resolve_trade_data(filter_state)
         series = self._compute_series_and_benchmarks(filter_state, data, warnings)
-        return self._bundle_dict(
-            portfolio=data["build_result"].portfolio,
-            portfolio_series=series["twr_series"],
-            end_total_value=next(reversed(series["raw_portfolio_series"].values())) if series["raw_portfolio_series"] else Decimal("0"),
-            benchmark_series=series["benchmark_series"],
-            stock_series=series["stock_series"],
-            position_values_end=series["position_values_end"],
-            warnings=warnings,
-            portfolio_label=data["portfolio_label"],
-            usd_series=series["usd_series"],
-            cpi_series=series["cpi_series"],
-        )
+        end_total_value = next(reversed(series["raw_portfolio_series"].values())) if series["raw_portfolio_series"] else Decimal("0")
+        return {
+            "portfolio": data["build_result"].portfolio,
+            "portfolio_series": series["twr_series"],
+            "benchmarks": series["benchmark_series"],
+            "stock_series": series["stock_series"],
+            "position_values_end": series["position_values_end"],
+            "end_total_value": end_total_value,
+            "warnings": warnings,
+            "portfolio_label": data["portfolio_label"],
+            "usd_series_dict": series["usd_series"],
+            "cpi_series_dict": series["cpi_series"],
+        }
 
     def _resolve_trade_data(self, filter_state: AnalysisFilterState) -> dict:
         trades = self._source_resolver.get_source_trades(filter_state.portfolio_source)
@@ -93,32 +94,6 @@ class AnalysisBundleBuilder:
             "twr_series": twr_series, "raw_portfolio_series": raw_portfolio_series,
             "position_values_end": position_values_end, "benchmark_series": benchmark_series,
             "stock_series": stock_series, "usd_series": usd_series, "cpi_series": cpi_series,
-        }
-
-    @staticmethod
-    def _bundle_dict(
-        portfolio,
-        portfolio_series,
-        end_total_value,
-        benchmark_series,
-        stock_series,
-        position_values_end,
-        warnings,
-        portfolio_label,
-        usd_series,
-        cpi_series,
-    ) -> Dict[str, object]:
-        return {
-            "portfolio": portfolio,
-            "portfolio_series": portfolio_series,
-            "benchmarks": benchmark_series,
-            "stock_series": stock_series,
-            "position_values_end": position_values_end,
-            "end_total_value": end_total_value,
-            "warnings": warnings,
-            "portfolio_label": portfolio_label,
-            "usd_series_dict": usd_series,
-            "cpi_series_dict": cpi_series,
         }
 
     def _cash_movements_for(self, filter_state: AnalysisFilterState) -> list:
