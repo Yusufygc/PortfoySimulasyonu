@@ -14,6 +14,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_portfolio_maintenance_repo
 from src.infrastructure.db.sqlalchemy.repositories.sa_portfolio_repository import SQLAlchemyPortfolioRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_price_repository import SQLAlchemyPriceRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_risk_profile_repository import SQLAlchemyRiskProfileRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_shareholder_repository import SQLAlchemyKapShareholderRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_trade_adjustment_repository import SQLAlchemyTradeAdjustmentRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_watchlist_repository import SQLAlchemyWatchlistRepository
@@ -35,6 +36,7 @@ class RepositorySet:
     corporate_action_repo: SQLAlchemyCorporateActionRepository
     corporate_action_candidate_repo: SQLAlchemyCorporateActionCandidateRepository
     trade_adjustment_repo: SQLAlchemyTradeAdjustmentRepository
+    kap_shareholder_repo: SQLAlchemyKapShareholderRepository
 
 
 def build_repositories(conn_provider) -> RepositorySet:
@@ -52,4 +54,5 @@ def build_repositories(conn_provider) -> RepositorySet:
         corporate_action_repo=SQLAlchemyCorporateActionRepository(conn_provider),
         corporate_action_candidate_repo=SQLAlchemyCorporateActionCandidateRepository(conn_provider),
         trade_adjustment_repo=SQLAlchemyTradeAdjustmentRepository(conn_provider),
+        kap_shareholder_repo=SQLAlchemyKapShareholderRepository(conn_provider),
     )

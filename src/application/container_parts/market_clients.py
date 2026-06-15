@@ -15,6 +15,7 @@ from src.infrastructure.market_data.yfinance_optimization_market_data_provider i
 )
 from src.infrastructure.market_data.yfinance_price_lookup_provider import YFinancePriceLookupProvider
 from src.infrastructure.market_data.yfinance_valuation_provider import YFinanceValuationProvider
+from src.infrastructure.corporate_actions.kap_shareholder_provider import KapShareholderProvider
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,7 @@ class MarketClientSet:
     isyatirim_provider: IsyatirimProvider
     evds_tufe_provider: EvdsTufeProvider
     yfinance_valuation_provider: YFinanceValuationProvider
+    kap_shareholder_provider: KapShareholderProvider
 
 
 def build_market_clients(conn_provider) -> MarketClientSet:
@@ -45,4 +47,5 @@ def build_market_clients(conn_provider) -> MarketClientSet:
         isyatirim_provider=IsyatirimProvider(),
         evds_tufe_provider=EvdsTufeProvider(evds_client=evds_client),
         yfinance_valuation_provider=YFinanceValuationProvider(),
+        kap_shareholder_provider=KapShareholderProvider(),
     )

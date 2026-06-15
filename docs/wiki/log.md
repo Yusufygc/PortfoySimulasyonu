@@ -5,6 +5,29 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-16] özellik | Ortaklık Yapısı sayfası MVP — KAP pay sahipliği tarihçesi
+
+- **Veri kaynağı:** KAP (kap.org.tr) `/api/company-detail/get-history/{OID}/kpy41_acc5_sermayede_dogrudan/N` endpoint'i; tek istek tüm tarihçe (~60-70 snapshot).
+- **Ticker → KAP OID:** `https://www.kap.org.tr/tr/bist-sirketler` sayfasının inline JSON'undan haftalık cache (`data/_cache/kap/bist_companies.json`).
+- **Yeni Domain:** `src/domain/models/shareholder.py` (`ShareholderRow`, `ShareholderSnapshot`); port `src/domain/ports/services/i_shareholder_provider.py`; repo port `src/domain/ports/repositories/i_shareholder_repo.py`.
+- **Yeni Infra:**
+  - `src/infrastructure/corporate_actions/kap_shareholder_provider.py` — HTTP + TR locale parse + cache.
+  - `src/infrastructure/db/sqlalchemy/orm_models.py` — `ORMKapCompany`, `ORMKapShareholderSnapshot`, `ORMKapShareholderRow` (auto-create).
+  - `src/infrastructure/db/sqlalchemy/repositories/sa_shareholder_repository.py` — atomik history replace.
+- **Yeni Application:** `src/application/services/analysis/shareholder_analysis_service.py` — TTL 24h, force_refresh seçeneği.
+- **Container:** `market_clients.py` + `repositories.py` + `services.py` wiring.
+- **Yeni UI sayfa:** `src/ui/pages/shareholders/` paketi — `ShareholdersPage` (sidebar PAGE_SHAREHOLDERS=12, PAGE_COUNT 12→13).
+  - Üst: Plotly çoklu çizgi grafiği (X=tarih, Y=pay %, her shareholder ayrı çizgi). Pay sahipliği değişim trendi tek bakışta görünür.
+  - Alt: snapshot timeline — her bildirim için card + dark-tema tablo (Ad, Pay TL, Pay %, Oy %).
+- **L10N:** `ORTAKLIK_YAPISI`, `ORTAKLIK_YAPISI_ACIKLAMA`, `ORTAKLIK_YUKLENIYOR_TMPL`, `ORTAKLIK_TAMAMLANDI_TMPL`, `YENILE`.
+- **Mimari kararlar:**
+  - §15: Application servisi KAP'a doğrudan değil port üzerinden erişir.
+  - §1: ShareholdersPage 158 satır (BasePage extension), dashboard_html.py ≤200 satır.
+  - Veri kalıcılığı: dosya cache (BIST haritası) + MySQL (tarihçe denormalize) — sorgu hızı için.
+- **Yeni testler:** `test_kap_shareholder_provider.py` (17 birim test — TR sayı parse, tarih parse, history parse, BIST regex), `test_shareholder_analysis_service.py` (5 mock test — TTL davranışı).
+- **Sonraki faz (bu PR'da DEĞİL):** Yönetim Kurulu (`kpy41_acc6_yonetim_kurulu_uyeleri`), Bağlı Ortaklıklar (`kpy41_acc7_bagli_ortakliklar`), Genel Bilgiler (sektör vs.) sekmeleri.
+
+---
 ## [2026-06-15] iyileştirme | Finansallar sayfası Plan 4 — UX düzeltmeleri (7 madde)
 
 - **EVDS hata propagasyonu:** `_enrich_tufe` catch bloğuna `metrics["_tufe_error"] = str(exc)` eklendi. `_chart_reel_buyume` gerçek hata mesajını gösterir; artık yanıltıcı "EVDS_API_KEY ortam değişkenini ayarlayın" mesajı yok.

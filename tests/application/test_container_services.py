@@ -17,6 +17,7 @@ def _fake_repositories():
         stock_repo=object(),
         watchlist_repo=object(),
         latest_price_repo=object(),
+        kap_shareholder_repo=object(),
     )
 
 
@@ -31,6 +32,7 @@ def _fake_market_clients():
         bist_market_session_service=object(),
         evds_tufe_provider=object(),
         yfinance_valuation_provider=object(),
+        kap_shareholder_provider=object(),
     )
 
 

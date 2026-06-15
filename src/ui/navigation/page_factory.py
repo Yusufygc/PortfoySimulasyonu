@@ -19,6 +19,7 @@ class PageFactory:
             9: self._create_ai_page,
             10: self._create_settings,
             11: self._create_financials,
+            12: self._create_shareholders,
         }
 
     def create(self, page_index: int):
@@ -90,3 +91,8 @@ class PageFactory:
         from src.ui.pages.financials.financials_page import FinancialsPage
 
         return FinancialsPage(container=self._container)
+
+    def _create_shareholders(self):
+        from src.ui.pages.shareholders.shareholders_page import ShareholdersPage
+
+        return ShareholdersPage(container=self._container)

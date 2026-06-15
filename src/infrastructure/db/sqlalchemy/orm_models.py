@@ -354,3 +354,80 @@ class ORMTradeAdjustment(Base):
 
     trade = relationship("ORMTrade")
     corporate_action = relationship("ORMCorporateAction")
+
+
+# ---------------------------------------------------------------------------
+# KAP Ortaklık Yapısı tabloları (Plan 6)
+# ---------------------------------------------------------------------------
+
+class ORMKapCompany(Base):
+    """KAP'tan bilinen şirket: ticker → mkkMemberOid eşleşmesi."""
+    __tablename__ = "kap_companies"
+
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    ticker = Column(String(20), nullable=False)
+    mkk_member_oid = Column(String(40), nullable=False)
+    title = Column(String(255))
+    last_fetched_at = Column(DateTime)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("ticker", name="uq_kap_companies_ticker"),
+        Index("idx_kap_companies_oid", "mkk_member_oid"),
+    )
+
+    shareholder_snapshots = relationship(
+        "ORMKapShareholderSnapshot",
+        back_populates="company",
+        cascade="all, delete-orphan",
+    )
+
+
+class ORMKapShareholderSnapshot(Base):
+    """KAP 'Sermayede %5+ pay sahibi' bildirimi (tek tarih için snapshot)."""
+    __tablename__ = "kap_shareholder_snapshots"
+
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    company_id = Column(
+        BIGINT(unsigned=True),
+        ForeignKey("kap_companies.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
+    creation_date = Column(Date, nullable=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "creation_date", name="uq_kap_shareholder_snapshot"),
+        Index("idx_kap_shareholder_snap_date", "creation_date"),
+    )
+
+    company = relationship("ORMKapCompany", back_populates="shareholder_snapshots")
+    rows = relationship(
+        "ORMKapShareholderRow",
+        back_populates="snapshot",
+        cascade="all, delete-orphan",
+    )
+
+
+class ORMKapShareholderRow(Base):
+    """Snapshot içindeki tek pay sahibi satırı."""
+    __tablename__ = "kap_shareholder_rows"
+
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    snapshot_id = Column(
+        BIGINT(unsigned=True),
+        ForeignKey("kap_shareholder_snapshots.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
+    shareholder_name = Column(String(500), nullable=False)
+    share_in_capital = Column(Numeric(24, 4))
+    ratio_in_capital = Column(Numeric(9, 4))
+    voting_right_ratio = Column(Numeric(9, 4))
+    is_total = Column(Boolean, nullable=False, default=False, server_default="0")
+
+    __table_args__ = (
+        Index("idx_kap_shareholder_rows_snap", "snapshot_id"),
+    )
+
+    snapshot = relationship("ORMKapShareholderSnapshot", back_populates="rows")

@@ -104,15 +104,16 @@ def _build_sidebar_nav(sidebar_layout, goto_page_func):
     btn_ai_page        = _make_nav_button(L10N.AI_ASISTAN,             9,  "bot",          goto_page_func)
     btn_settings       = _make_nav_button(L10N.SETTINGS,               10, "save",         goto_page_func)
     btn_financials     = _make_nav_button(L10N.BILANCO_VE_FINANSALLAR, 11, "bar-chart-2",  goto_page_func)
-    for btn in (btn_dashboard, btn_watchlist, btn_model_port, btn_financials, btn_analysis,
-                btn_comparison, btn_optimization, btn_planning, btn_risk_profile, btn_ai_page,
-                btn_settings):
+    btn_shareholders   = _make_nav_button(L10N.ORTAKLIK_YAPISI,        12, "users",        goto_page_func)
+    for btn in (btn_dashboard, btn_watchlist, btn_model_port, btn_financials, btn_shareholders,
+                btn_analysis, btn_comparison, btn_optimization, btn_planning, btn_risk_profile,
+                btn_ai_page, btn_settings):
         sidebar_layout.addWidget(btn)
     sidebar_layout.addStretch()
     _add_nav_separator(sidebar_layout)
     return (btn_dashboard, btn_watchlist, btn_model_port, btn_analysis, btn_comparison,
             btn_optimization, btn_planning, btn_risk_profile, btn_ai_page, btn_settings,
-            btn_financials)
+            btn_financials, btn_shareholders)
 
 
 def last_completed_trading_day(today: date, trading_calendar) -> date:
@@ -149,7 +150,8 @@ class MainWindow(QMainWindow):
     PAGE_AI_PAGE = 9
     PAGE_SETTINGS = 10
     PAGE_FINANCIALS = 11
-    PAGE_COUNT = 12
+    PAGE_SHAREHOLDERS = 12
+    PAGE_COUNT = 13
 
     def __init__(self, container, parent=None):
         super().__init__(parent)
@@ -207,7 +209,8 @@ class MainWindow(QMainWindow):
         (self.btn_dashboard, self.btn_watchlist, self.btn_model_portfolio,
          self.btn_analysis, self.btn_comparison, self.btn_optimization,
          self.btn_planning, self.btn_risk_profile, self.btn_ai_page,
-         self.btn_settings, self.btn_financials) = _build_sidebar_nav(self.sidebar_layout, self._goto_page)
+         self.btn_settings, self.btn_financials,
+         self.btn_shareholders) = _build_sidebar_nav(self.sidebar_layout, self._goto_page)
         self.stacked_widget = QStackedWidget()
         self.pages = {}
         for _ in range(self.PAGE_COUNT):
@@ -312,6 +315,7 @@ class MainWindow(QMainWindow):
             self.PAGE_AI_PAGE: (self.btn_ai_page, "bot"),
             self.PAGE_SETTINGS: (self.btn_settings, "save"),
             self.PAGE_FINANCIALS: (self.btn_financials, "bar-chart-2"),
+            self.PAGE_SHAREHOLDERS: (self.btn_shareholders, "users"),
         }
 
         for page_idx, (btn, icon_name) in nav_buttons.items():

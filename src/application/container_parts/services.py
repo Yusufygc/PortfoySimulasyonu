@@ -6,6 +6,7 @@ from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
 from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
+from src.application.services.analysis.shareholder_analysis_service import ShareholderAnalysisService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
@@ -63,6 +64,7 @@ class ServiceSet:
     backfill_service: BackfillService
     update_coordinator: PortfolioUpdateCoordinator
     financial_analysis_service: FinancialAnalysisService
+    shareholder_analysis_service: ShareholderAnalysisService
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
@@ -89,6 +91,10 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             financial_statement_provider=market_clients.isyatirim_provider,
             inflation_provider=market_clients.evds_tufe_provider,
             valuation_provider=market_clients.yfinance_valuation_provider,
+        ),
+        shareholder_analysis_service=ShareholderAnalysisService(
+            provider=market_clients.kap_shareholder_provider,
+            repository=repositories.kap_shareholder_repo,
         ),
     )
 
