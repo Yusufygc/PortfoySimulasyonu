@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-15] iyileştirme | Finansallar sayfası Plan 4 — UX düzeltmeleri (7 madde)
+
+- **EVDS hata propagasyonu:** `_enrich_tufe` catch bloğuna `metrics["_tufe_error"] = str(exc)` eklendi. `_chart_reel_buyume` gerçek hata mesajını gösterir; artık yanıltıcı "EVDS_API_KEY ortam değişkenini ayarlayın" mesajı yok.
+- **USD uyarı göstergesi:** `_chart_kpi_table` ve `_chart_satis_favok` başlıklarına `currency != "TRY"` kontrolü; başlıkta "⚠ USD verisi yaklaşık" notu görünür.
+- **Dönem esnekliği:** `financials_page.py`'e QComboBox (4 / 8 / 12 / Tümü) eklendi. `_on_analysis_done` seçime göre `n_periods` hesaplar.
+- **Font büyütme + max-height kaldırma:** `finansal_tablo.py` CSS güncellemesi — `.76rem→.88rem`, `.7rem→.82rem`, `.68rem→.78rem`, `.68em→.75em`; `max-height:68vh` kaldırıldı; satır padding `4px→6px`.
+- **Grafik yüksekliği artırıldı:** `_layout(height=520)` varsayılan; heatmap `height=420`, piotroski `height=460`, KPI tablo `height=480`; margin `{"t":60,"b":50,"l":70,"r":30}`.
+- **Teknik bilgi kutucukları:** `dashboard_html.py`'e `_INSIGHTS` dict eklendi (17 sekme için). Pane loop `_INSIGHTS.get(tid, "")` enjekte eder. Mavi kenarlıklı `.insight-box` CSS.
+- **SVG ikonlar:** Emoji yerine Tabler Icons (MIT) inline SVG. `_IP` dict + `_ic(key)` helper; her sekme butonunda 13×13 SVG + metin.
+
+---
 ## [2026-06-15] özellik | Finansallar sayfası Faz 3 — kalan 7 grafik + Finansal Tablo (18 sekme)
 
 - **Kapsam:** `scripts/finansal_lab/viz_prototype.py`'deki tüm eksik özellikler entegre edildi. Dashboard 10 → 18 sekmeye çıktı.

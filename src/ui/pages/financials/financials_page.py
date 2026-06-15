@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 
 from src.qt_compat.qtcore import QThreadPool
-from src.qt_compat.qtwidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from src.qt_compat.qtwidgets import QComboBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from src.ui.pages.base_page import BasePage
 from src.ui.pages.financials.panels.ticker_input_panel import TickerInputPanel
 from src.ui.pages.financials.panels.financials_chart_panel import FinancialsChartPanel
@@ -68,6 +68,17 @@ class FinancialsPage(BasePage):
         self._input_panel.fetch_requested.connect(self._on_fetch_requested)
         layout.addWidget(self._input_panel)
 
+        # Dönem seçici
+        period_row = QHBoxLayout()
+        period_row.addWidget(QLabel(L10N.DONEM + ":"))
+        self._period_combo = QComboBox()
+        self._period_combo.addItems(["4", "8", "12", "Tümü"])
+        self._period_combo.setCurrentIndex(1)
+        self._period_combo.setMaximumWidth(80)
+        period_row.addWidget(self._period_combo)
+        period_row.addStretch()
+        layout.addLayout(period_row)
+
         # Durum etiketi
         self._status_label = QLabel("")
         self._status_label.setProperty("cssClass", "pageDescription")
@@ -103,12 +114,14 @@ class FinancialsPage(BasePage):
     def _on_analysis_done(self, metrics: dict) -> None:
         """Analiz tamamlandı — HTML üret ve WebView'e yükle."""
         ticker = metrics.get("ticker", "")
-        n_periods = len(metrics.get("periods", []))
+        all_periods = metrics.get("periods", [])
         self._status_label.setText(
-            L10N.FINANSALLAR_TAMAMLANDI_TMPL.format(ticker=ticker, n=n_periods)
+            L10N.FINANSALLAR_TAMAMLANDI_TMPL.format(ticker=ticker, n=len(all_periods))
         )
         try:
-            html = build_dashboard(metrics, n_periods=_N_PERIODS)
+            sel = self._period_combo.currentText()
+            n_periods = len(all_periods) if sel == "Tümü" else int(sel)
+            html = build_dashboard(metrics, n_periods=n_periods)
             self._chart_panel.load_html(html)
         except Exception:
             logger.exception("Dashboard HTML üretilemedi [%s]", ticker)

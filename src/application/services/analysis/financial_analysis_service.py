@@ -79,6 +79,7 @@ class FinancialAnalysisService:
                 metrics["_tufe"] = tufe
         except Exception as exc:
             logger.warning("TÜFE enrich atlandı: %s", exc)
+            metrics["_tufe_error"] = str(exc)
 
     def _enrich_valuation(self, metrics: dict[str, Any], ticker: str) -> None:
         """Piyasa değerlemesini metrics['_market_val'] olarak enjekte et. Hata sessiz."""

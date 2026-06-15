@@ -36,11 +36,11 @@ _LAYOUT_BASE = {
     "xaxis": {"gridcolor": _C["grid"], "linecolor": _C["grid"]},
     "yaxis": {"gridcolor": _C["grid"], "linecolor": _C["grid"]},
 }
-_MARGIN = {"t": 60, "b": 40, "l": 60, "r": 20}
+_MARGIN = {"t": 60, "b": 50, "l": 70, "r": 30}
 
 
-def _layout(**overrides) -> dict:
-    return {**_LAYOUT_BASE, "margin": _MARGIN, **overrides}
+def _layout(height: int = 520, **overrides) -> dict:
+    return {**_LAYOUT_BASE, "margin": _MARGIN, "height": height, **overrides}
 
 
 def _periods_display(periods: list[str], n: int) -> list[str]:
@@ -147,9 +147,10 @@ def _chart_kpi_table(m: dict, n: int) -> go.Figure:
             align=["left"] + ["right"] * n_p, height=36,
         ),
     ))
+    usd_note = " ⚠ USD verisi yaklaşık — isyatirim.com.tr kaynaklı" if currency != "TRY" else ""
     fig.update_layout(**{
-        **_layout(margin={"t": 60, "b": 10, "l": 10, "r": 10}),
-        "title": f"{m.get('ticker', '')} — KPI Özeti ({currency})",
+        **_layout(height=480, margin={"t": 60, "b": 10, "l": 10, "r": 10}),
+        "title": f"{m.get('ticker', '')} — KPI Özeti ({currency}){usd_note}",
     })
     return fig
 
@@ -185,8 +186,9 @@ def _chart_satis_favok(m: dict, n: int) -> go.Figure:
     ), secondary_y=True)
 
     currency = m.get("currency", "TRY")
+    usd_note = " ⚠ USD verisi yaklaşık — isyatirim.com.tr kaynaklı" if currency != "TRY" else ""
     fig.update_layout(**_layout(
-        title=f"{m.get('ticker', '')} — Satışlar & Karlılık Marjları ({currency})",
+        title=f"{m.get('ticker', '')} — Satışlar & Karlılık Marjları ({currency}){usd_note}",
         legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
     ))
     fig.update_yaxes(title_text=f"Satışlar (mn {currency})", secondary_y=False, gridcolor=_C["grid"])
@@ -379,6 +381,7 @@ def _chart_piotroski(m: dict, n: int) -> go.Figure:
     score0    = m.get("piotroski", {}).get(p0)
     score_str = f"{int(score0)}/9" if score0 is not None else "—"
     fig.update_layout(**_layout(
+        height=460,
         title=f"{m.get('ticker', '')} — Piotroski F-Score | Son dönem: {score_str}",
         showlegend=False,
     ))
@@ -469,7 +472,13 @@ def _chart_temettu(m: dict, n: int) -> go.Figure:
 def _chart_reel_buyume(m: dict, n: int) -> go.Figure:
     tufe = m.get("_tufe", {})
     if not tufe:
-        return _empty_fig("TÜFE verisi yok.\nEVDS_API_KEY ortam değişkenini ayarlayın.")
+        err = m.get("_tufe_error", "")
+        msg = (
+            f"TÜFE verisi yüklenemedi.\n{err}"
+            if err
+            else "TÜFE verisi yok.\nEVDS_API_KEY .env dosyasında tanımlı olmalı."
+        )
+        return _empty_fig(msg)
 
     try:
         from src.application.services.analysis.financials.inflation import get_yoy_tufe, real_growth
@@ -712,11 +721,11 @@ def _chart_heatmap(m: dict, n: int) -> go.Figure:
         colorbar=dict(title="YoY %", ticksuffix="%"),
     ))
     fig.update_layout(**_layout(
+        height=420,
         title=f"{m.get('ticker', '')} — YoY % Değişim Isı Haritası",
         annotations=annotations,
         xaxis=dict(side="top", gridcolor=_C["grid"]),
         yaxis=dict(gridcolor=_C["grid"], autorange="reversed"),
-        height=400,
     ))
     return fig
 

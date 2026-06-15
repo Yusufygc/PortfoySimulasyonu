@@ -50,8 +50,15 @@ _CSS = (
     ".tab-btn.active{background:#0f172a;color:#00D4FF;border-color:#334155;"
     "border-bottom:2px solid #0f172a;margin-bottom:-2px}"
     ".tab-pane{display:none;border:1px solid #334155;border-top:none;"
-    "border-radius:0 0 8px 8px;background:#0f172a;padding:6px}"
+    "border-radius:0 0 8px 8px;background:#0f172a;padding:8px 8px 16px 8px}"
     ".tab-pane.active{display:block}"
+    ".tab-btn svg{vertical-align:-2px;margin-right:4px}"
+    ".insight-box{display:flex;gap:10px;background:#1e293b;border-left:3px solid #00D4FF;"
+    "border-radius:0 6px 6px 0;padding:10px 14px;margin:8px 0 4px;font-size:.8rem}"
+    ".ib-icon{font-size:1.1rem;flex-shrink:0;line-height:1.5}"
+    ".ib-body{color:#94a3b8;line-height:1.6}"
+    ".ib-body b{color:#f1f5f9;display:block;margin-bottom:2px}"
+    ".ib-body p{margin:0}"
 )
 
 _JS = r"""
@@ -69,6 +76,284 @@ function showTab(id,btn){
 """
 
 
+# ---------------------------------------------------------------------------
+# Inline SVG ikonlar — Tabler Icons MIT lisansı
+# ---------------------------------------------------------------------------
+
+_SVG_WRAP = (
+    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" '
+    'stroke="currentColor" stroke-width="1.6" '
+    'stroke-linecap="round" stroke-linejoin="round">{}</svg> '
+)
+
+_IP: dict[str, str] = {
+    "ftablo": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<rect x="3" y="5" width="18" height="14" rx="2"/>'
+        '<path d="M3 10h18"/><path d="M10 3v18"/>'
+    ),
+    "kpi": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M3 12m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/>'
+        '<path d="M9 8m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/>'
+        '<path d="M15 4m0 1a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1z"/>'
+    ),
+    "satis": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M3 17l6 -6l4 4l8 -8"/><path d="M14 7l7 0l0 7"/>'
+    ),
+    "bilanco": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M3 21l18 0"/><path d="M3 10l18 0"/>'
+        '<path d="M5 6l7 -3l7 3"/>'
+        '<path d="M4 10l0 11"/><path d="M20 10l0 11"/>'
+        '<path d="M8 14l0 3"/><path d="M12 14l0 3"/><path d="M16 14l0 3"/>'
+    ),
+    "netborc": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M3 5m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z"/>'
+        '<path d="M3 10l18 0"/><path d="M7 15l.01 0"/><path d="M11 15l2 0"/>'
+    ),
+    "waterfall": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M4 18v-4"/><path d="M8 18v-8"/>'
+        '<path d="M12 18v-12"/><path d="M16 18v-7"/><path d="M20 18v-3"/>'
+        '<path d="M4 10l4 -4l4 4l4 -5l4 4"/>'
+    ),
+    "fcf": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M3 21v-4a4 4 0 1 1 4 4h-4"/>'
+        '<path d="M21 3v4a4 4 0 1 1 -4 -4h4"/>'
+        '<path d="M3 11h12"/><path d="M9 3v12"/>'
+    ),
+    "nakit": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M3 3m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/>'
+        '<path d="M12 8m0 1a1 1 0 0 1 1 -1h0a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h0a1 1 0 0 1 -1 -1z"/>'
+        '<path d="M12 6l0 .01"/>'
+    ),
+    "heatmap": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<circle cx="5" cy="5" r="1"/><circle cx="12" cy="5" r="1"/>'
+        '<circle cx="19" cy="5" r="1"/><circle cx="5" cy="12" r="1"/>'
+        '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'
+        '<circle cx="5" cy="19" r="1"/><circle cx="12" cy="19" r="1"/>'
+        '<circle cx="19" cy="19" r="1"/>'
+    ),
+    "dupont": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M12 3l8 4.5v9l-8 4.5l-8 -4.5v-9z"/>'
+        '<path d="M12 12l8 -4.5"/><path d="M12 12v9"/>'
+        '<path d="M12 12l-8 -4.5"/>'
+    ),
+    "isletme": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<circle cx="12" cy="12" r="3"/>'
+        '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06 .06a2 2 0 0 1 -2.83 2.83l-.06 -.06'
+        'a1.65 1.65 0 0 0 -1.82 -.33a1.65 1.65 0 0 0 -1 1.51v.17a2 2 0 0 1 -4 0v-.09'
+        'a1.65 1.65 0 0 0 -1 -1.51a1.65 1.65 0 0 0 -1.82 .33l-.06 .06a2 2 0 0 1 -2.83 -2.83'
+        'l.06 -.06a1.65 1.65 0 0 0 .33 -1.82a1.65 1.65 0 0 0 -1.51 -1h-.17a2 2 0 0 1 0 -4h.09'
+        'a1.65 1.65 0 0 0 1.51 -1a1.65 1.65 0 0 0 -.33 -1.82l-.06 -.06a2 2 0 0 1 2.83 -2.83'
+        'l.06 .06a1.65 1.65 0 0 0 1.82 .33h.08a1.65 1.65 0 0 0 1 -1.51v-.17a2 2 0 0 1 4 0v.09'
+        'a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82 -.33l.06 -.06a2 2 0 0 1 2.83 2.83'
+        'l-.06 .06a1.65 1.65 0 0 0 -.33 1.82v.08a1.65 1.65 0 0 0 1.51 1h.17a2 2 0 0 1 0 4h-.09'
+        'a1.65 1.65 0 0 0 -1.51 1z"/>'
+    ),
+    "fscore": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M12 2l3.09 6.26l6.91 1l-5 4.87l1.18 6.87l-6.18 -3.25'
+        'l-6.18 3.25l1.18 -6.87l-5 -4.87l6.91 -1l3.09 -6.26z"/>'
+    ),
+    "sezon": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<rect x="4" y="5" width="16" height="16" rx="2"/>'
+        '<path d="M16 3v4"/><path d="M8 3v4"/>'
+        '<path d="M4 11h16"/><path d="M11 15h1"/><path d="M12 15v3"/>'
+    ),
+    "temettu": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/>'
+        '<path d="M12 12m-8 0a8 8 0 1 0 16 0a8 8 0 1 0 -16 0"/>'
+        '<path d="M12 4v1"/><path d="M12 19v1"/>'
+        '<path d="M4 12h1"/><path d="M19 12h1"/>'
+    ),
+    "reel": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M3 17l4 -4l4 4l4 -10l4 4"/>'
+    ),
+    "deger": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<path d="M6 4m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"/>'
+        '<path d="M12 9v6"/><path d="M9 12h6"/>'
+    ),
+    "bedelsiz": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<circle cx="12" cy="12" r="1"/>'
+        '<circle cx="12" cy="12" r="5"/>'
+        '<circle cx="12" cy="12" r="9"/>'
+        '<path d="M12 3l0 3"/><path d="M12 18l0 3"/>'
+        '<path d="M3 12l3 0"/><path d="M18 12l3 0"/>'
+    ),
+    "satisbd": (
+        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/>'
+        '<circle cx="12" cy="12" r="9"/>'
+        '<path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/>'
+        '<path d="M11.5 3a17 17 0 0 0 0 18"/>'
+        '<path d="M12.5 3a17 17 0 0 1 0 18"/>'
+    ),
+}
+
+
+def _ic(tab_id: str) -> str:
+    return _SVG_WRAP.format(_IP.get(tab_id, ""))
+
+
+# ---------------------------------------------------------------------------
+# Teknik bilgi kutucukları (sekme → HTML snippet)
+# ---------------------------------------------------------------------------
+
+_INSIGHTS: dict[str, str] = {
+    "kpi": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>KPI Özeti Nasıl Okunur?</b>"
+        "<p>Her satır bir temel finansal göstergeyi dönem bazında listeler. "
+        "▲ yeşil ok = önceki döneme göre artış, ▼ kırmızı = düşüş. "
+        "Satışlar ve FAVÖK büyürken net kar marjı sıkışıyorsa maliyet baskısı sinyali olabilir.</p>"
+        "</div></div>"
+    ),
+    "satis": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Satışlar & Marjlar Nasıl Okunur?</b>"
+        "<p>Mavi çubuklar satış gelirini (sol eksen), turuncu çizgi FAVÖK marjını, "
+        "noktalı yeşil çizgi brüt marjı gösterir (sağ eksen). "
+        "Çubuklar büyürken marjlar daralıyorsa büyüme kârsız olabilir.</p>"
+        "</div></div>"
+    ),
+    "bilanco": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Bilanço Nasıl Okunur?</b>"
+        "<p>Dönen varlık / kısa vadeli yükümlülük oranının (cari oran) 1,5x üzerinde "
+        "olması likidite sağlığı göstergesidir. Özkaynaklar büyürken borçlar "
+        "sabit kalıyorsa finansal kaldıraç kontrol altında demektir.</p>"
+        "</div></div>"
+    ),
+    "netborc": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Net Borç Nasıl Okunur?</b>"
+        "<p>Net Borç/FAVÖK &lt; 2x genellikle yönetilebilir kaldıraç, "
+        "&gt; 4x dikkat eşiği olarak kabul edilir. "
+        "Net nakit pozisyonu (negatif net borç) güçlü bilançonun işaretidir.</p>"
+        "</div></div>"
+    ),
+    "waterfall": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Gelir Köprüsü Nasıl Okunur?</b>"
+        "<p>Satışlardan başlayarak her kâr kaleminin bir öncekine katkısını gösterir. "
+        "Brüt kar → Faaliyet karı farkı operasyonel giderler, "
+        "Faaliyet karı → Net kar farkı ise faiz ve vergi yükünü yansıtır.</p>"
+        "</div></div>"
+    ),
+    "fcf": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>FCF vs Net Kar Nasıl Okunur?</b>"
+        "<p>Serbest nakit akımının (FCF) net kara yakın veya üzerinde olması "
+        "yüksek kazanç kalitesini gösterir. Büyük negatif fark şirketin kâr "
+        "açıkladığı hâlde nakit üretemediğine işaret edebilir.</p>"
+        "</div></div>"
+    ),
+    "nakit": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Nakit Akış Nasıl Okunur?</b>"
+        "<p>İşletme faaliyetlerinden nakit (mavi) > capex (kırmızı mutlak) "
+        "organik büyüme kapasitesini, pozitif FCF (yeşil) ise sermaye verimliliğini "
+        "gösterir. Negatif işletme CF sürekli ise temel işin nakit üretemediğini işaret eder.</p>"
+        "</div></div>"
+    ),
+    "heatmap": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>YoY Isı Haritası Nasıl Okunur?</b>"
+        "<p>Her hücre o metriğin yıllık % değişimini gösterir. "
+        "Koyu yeşil = güçlü büyüme, koyu kırmızı = daralma. "
+        "±50% sınırlarında renk doyar; sütunlar geneli kırmızıysa o dönemde "
+        "baskı yaşandığına işaret eder.</p>"
+        "</div></div>"
+    ),
+    "dupont": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>DuPont Analizi Nasıl Okunur?</b>"
+        "<p>ROE = Net Kar Marjı × Varlık Devir Hızı × Finansal Kaldıraç. "
+        "Hangi bileşenin ROE'yi sürüklediğini görmek için üç faktörün trendini karşılaştırın. "
+        "Kaldıraçtan beslenen ROE artışı riskli; marj ve devir hızından gelen sürdürülebilirdir.</p>"
+        "</div></div>"
+    ),
+    "isletme": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>İşletme Sermayesi Döngüsü Nasıl Okunur?</b>"
+        "<p>CCC (Nakit Dönüşüm Döngüsü) = DSO + DIO − DPO. "
+        "CCC ne kadar kısa olursa şirket nakdini o kadar hızlı döndürür; "
+        "negatif CCC (örn. büyük perakendeciler) iş modelinin güçlü nakit dinamiğine işaret eder.</p>"
+        "</div></div>"
+    ),
+    "fscore": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Piotroski F-Skoru Nasıl Okunur?</b>"
+        "<p>9 ikili kriter üzerinden toplam skor (0-9). "
+        "≥ 7 güçlü finansal sağlık, ≤ 3 zayıf sinyali. "
+        "Kârlılık, finansman yapısı ve operasyonel verimlilik alt kriterlerini "
+        "incelemek için 🔍 Piotroski detay satırlarına bakın.</p>"
+        "</div></div>"
+    ),
+    "sezon": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Sezonsellik Nasıl Okunur?</b>"
+        "<p>Her yılın çeyreklik (Q1-Q4) satışları gruplandırılarak karşılaştırılır. "
+        "Belirli çeyreklerde tutarlı yüksek satış sezonsal güç anlamına gelir. "
+        "Yıldan yıla aynı çeyrekte büyüme görülmesi organik talebi doğrular.</p>"
+        "</div></div>"
+    ),
+    "temettu": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Temettü Analizi Nasıl Okunur?</b>"
+        "<p>Dağıtım oranı (payout ratio) &lt; %60 sürdürülebilir temettü sinyali, "
+        "&gt; %80 kâr kalitesi veya büyüme yatırımı için baskı anlamına gelebilir. "
+        "Temettünün FCF'den finanse edilip edilmediğini nakit akış sekmesiyle karşılaştırın.</p>"
+        "</div></div>"
+    ),
+    "reel": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Reel Büyüme Nasıl Okunur?</b>"
+        "<p>Nominal büyüme oranından TÜFE enflasyonu çıkarılarak satın alma gücü cinsinden "
+        "büyüme hesaplanır (Fisher denklemi yaklaşımı). "
+        "Reel büyüme pozitifse şirket enflasyonun üzerinde gerçek değer üretiyor demektir.</p>"
+        "</div></div>"
+    ),
+    "deger": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Değerleme Nasıl Okunur?</b>"
+        "<p>F/K ve EV/FAVÖK aynı sektördeki rakiplerle karşılaştırılarak yorumlanmalıdır. "
+        "Düşük çarpan tek başına ucuzluk değil, büyüme beklentisi veya risk priminin "
+        "fiyatlandırması da olabilir. PD/DD &lt; 1 maddi değerin altında işlem anlamına gelir.</p>"
+        "</div></div>"
+    ),
+    "bedelsiz": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Bedelsiz Potansiyel Nasıl Okunur?</b>"
+        "<p>Enflasyon muhasebesi (TMS 29) uygulanan bilançoda özkaynaklar reel bazda "
+        "güncellenir; bu durum bedelsiz artırım potansiyelini doğrudan etkiler. "
+        "Yeşil ✓ etiketi TMS 29 uygulandığını, turuncu ⚠ nominal değerlerin kullanıldığını gösterir.</p>"
+        "</div></div>"
+    ),
+    "satisbd": (
+        "<div class='insight-box'><span class='ib-icon'>📌</span>"
+        "<div class='ib-body'><b>Satış Kırılımı Nasıl Okunur?</b>"
+        "<p>Yurt içi / yurt dışı satış dağılımı ihracat oranını ve coğrafi çeşitlendirmeyi "
+        "gösterir. Yüksek ihracat oranı döviz geliri sağlar; "
+        "kur güçlenirse yurt dışı gelirlerin TRY karşılığı artar.</p>"
+        "</div></div>"
+    ),
+}
+
+
 def _content(x: go.Figure | str) -> str:
     return x if isinstance(x, str) else _fig_to_div(x)
 
@@ -81,24 +366,24 @@ def build_dashboard(m: dict[str, Any], n_periods: int = 8) -> str:
     ticker = m.get("ticker", "")
 
     tabs = [
-        ("ftablo",    "📋 Finansal Tablo",      build_finansal_tablo_pane(m, n_periods)),
-        ("kpi",       "📊 KPI Özeti",           _chart_kpi_table(m, n_periods)),
-        ("satis",     "📈 Satışlar & Marjlar",  _chart_satis_favok(m, n_periods)),
-        ("bilanco",   "🏦 Bilanço",             _chart_bilanco(m, n_periods)),
-        ("netborc",   "💳 Net Borç",            _chart_net_borc(m, n_periods)),
-        ("waterfall", "🌊 Gelir Köprüsü",       _chart_waterfall(m, n_periods)),
-        ("fcf",       "💵 FCF vs Net Kar",      _chart_fcf_vs_netkar(m, n_periods)),
-        ("nakit",     "💧 Nakit Akış",          _chart_nakit_akis(m, n_periods)),
-        ("heatmap",   "🌡 YoY Isı Haritası",   _chart_heatmap(m, n_periods)),
-        ("dupont",    "🔍 DuPont",              _chart_dupont(m, n_periods)),
-        ("isletme",   "⚙️ İşletme Sermayesi",   _chart_isletme_sermaye(m, n_periods)),
-        ("fscore",    "🏅 Piotroski",           _chart_piotroski(m, n_periods)),
-        ("sezon",     "📅 Sezonsellik",         _chart_sezonsellik(m, n_periods)),
-        ("temettu",   "💰 Temettü",             _chart_temettu(m, n_periods)),
-        ("reel",      "📉 Reel Büyüme",         _chart_reel_buyume(m, n_periods)),
-        ("deger",     "💹 Değerleme",           _chart_degerleme(m, n_periods)),
-        ("bedelsiz",  "🎯 Bedelsiz Pot.",       _chart_bedelsiz(m, n_periods)),
-        ("satisbd",   "🌐 Satış Kırılımı",      _chart_satis_breakdown(m, n_periods)),
+        ("ftablo",    f"{_ic('ftablo')}Finansal Tablo",     build_finansal_tablo_pane(m, n_periods)),
+        ("kpi",       f"{_ic('kpi')}KPI Özeti",            _chart_kpi_table(m, n_periods)),
+        ("satis",     f"{_ic('satis')}Satışlar & Marjlar", _chart_satis_favok(m, n_periods)),
+        ("bilanco",   f"{_ic('bilanco')}Bilanço",          _chart_bilanco(m, n_periods)),
+        ("netborc",   f"{_ic('netborc')}Net Borç",         _chart_net_borc(m, n_periods)),
+        ("waterfall", f"{_ic('waterfall')}Gelir Köprüsü",  _chart_waterfall(m, n_periods)),
+        ("fcf",       f"{_ic('fcf')}FCF vs Net Kar",       _chart_fcf_vs_netkar(m, n_periods)),
+        ("nakit",     f"{_ic('nakit')}Nakit Akış",         _chart_nakit_akis(m, n_periods)),
+        ("heatmap",   f"{_ic('heatmap')}YoY Isı Haritası", _chart_heatmap(m, n_periods)),
+        ("dupont",    f"{_ic('dupont')}DuPont",            _chart_dupont(m, n_periods)),
+        ("isletme",   f"{_ic('isletme')}İşletme Sermayesi",_chart_isletme_sermaye(m, n_periods)),
+        ("fscore",    f"{_ic('fscore')}Piotroski",         _chart_piotroski(m, n_periods)),
+        ("sezon",     f"{_ic('sezon')}Sezonsellik",        _chart_sezonsellik(m, n_periods)),
+        ("temettu",   f"{_ic('temettu')}Temettü",          _chart_temettu(m, n_periods)),
+        ("reel",      f"{_ic('reel')}Reel Büyüme",         _chart_reel_buyume(m, n_periods)),
+        ("deger",     f"{_ic('deger')}Değerleme",          _chart_degerleme(m, n_periods)),
+        ("bedelsiz",  f"{_ic('bedelsiz')}Bedelsiz Pot.",   _chart_bedelsiz(m, n_periods)),
+        ("satisbd",   f"{_ic('satisbd')}Satış Kırılımı",   _chart_satis_breakdown(m, n_periods)),
     ]
 
     nav = "".join(
@@ -109,6 +394,7 @@ def build_dashboard(m: dict[str, Any], n_periods: int = 8) -> str:
     panes = "".join(
         f"<div id='{tid}' class='tab-pane{' active' if i == 0 else ''}'>"
         + _content(content)
+        + _INSIGHTS.get(tid, "")
         + "</div>"
         for i, (tid, _, content) in enumerate(tabs)
     )
