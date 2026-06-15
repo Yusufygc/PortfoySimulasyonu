@@ -6,7 +6,7 @@ import logging
 from datetime import date, timedelta
 from typing import List, Optional
 
-from src.qt_compat.qtcore import QSettings, QThreadPool, QTimer, Qt, QPropertyAnimation, QEasingCurve
+from src.qt_compat.qtcore import QSettings, QThreadPool, QTimer, Qt, QPropertyAnimation, QEasingCurve, QSize
 from src.qt_compat.qtgui import QIcon
 from src.qt_compat.qtwidgets import (
     QFrame,
@@ -35,8 +35,46 @@ MAIN_WINDOW_INITIAL_WIDTH = 1600
 MAIN_WINDOW_INITIAL_HEIGHT = 900
 
 
-def _make_nav_button(text: str, page_index: int, icon_name: str, goto_page_func) -> "AnimatedButton":
-    button = AnimatedButton(f" {text}")
+class _WrapNavButton(AnimatedButton):
+    """Uzun sidebar metni için otomatik word-wrap: sizeHint yüksekliği metne göre ayarlanır."""
+
+    _AVAILABLE_TEXT_W = 145  # sidebar(220) − paddingLR(30) − icon(18) − gap(6) − margin(~21)
+
+    def sizeHint(self) -> QSize:
+        sh  = super().sizeHint()
+        txt = self.text().strip()
+        if "\n" not in txt:
+            return sh
+        fm  = self.fontMetrics()
+        r   = fm.boundingRect(0, 0, self._AVAILABLE_TEXT_W, 9999,
+                               int(Qt.TextWordWrap | Qt.AlignLeft), txt)
+        return QSize(sh.width(), max(sh.height(), r.height() + 18))
+
+    def minimumSizeHint(self) -> QSize:
+        return self.sizeHint()
+
+
+def _split_nav_text(text: str, max_chars: int = 16) -> str:
+    """Metin max_chars'tan uzunsa en iyi boşluk noktasında \\n ekle."""
+    if len(text) <= max_chars:
+        return text
+    mid   = len(text) // 2
+    left  = text.rfind(" ", 0, mid + 1)
+    right = text.find(" ", mid)
+    if left == -1 and right == -1:
+        return text
+    if left == -1:
+        split = right
+    elif right == -1:
+        split = left
+    else:
+        split = left if abs(left - mid) <= abs(right - mid) else right
+    return text[:split] + "\n" + text[split + 1:]
+
+
+def _make_nav_button(text: str, page_index: int, icon_name: str, goto_page_func) -> "_WrapNavButton":
+    display = _split_nav_text(text)
+    button  = _WrapNavButton(f" {display}")
     if icon_name:
         button.setIconName(icon_name, color="@COLOR_TEXT_SECONDARY")
     button.setCheckable(True)
@@ -66,9 +104,9 @@ def _build_sidebar_nav(sidebar_layout, goto_page_func):
     btn_ai_page        = _make_nav_button(L10N.AI_ASISTAN,             9,  "bot",          goto_page_func)
     btn_settings       = _make_nav_button(L10N.SETTINGS,               10, "save",         goto_page_func)
     btn_financials     = _make_nav_button(L10N.BILANCO_VE_FINANSALLAR, 11, "bar-chart-2",  goto_page_func)
-    for btn in (btn_dashboard, btn_watchlist, btn_model_port, btn_analysis, btn_comparison,
-                btn_optimization, btn_planning, btn_risk_profile, btn_ai_page, btn_settings,
-                btn_financials):
+    for btn in (btn_dashboard, btn_watchlist, btn_model_port, btn_financials, btn_analysis,
+                btn_comparison, btn_optimization, btn_planning, btn_risk_profile, btn_ai_page,
+                btn_settings):
         sidebar_layout.addWidget(btn)
     sidebar_layout.addStretch()
     _add_nav_separator(sidebar_layout)

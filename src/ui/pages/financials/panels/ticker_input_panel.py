@@ -1,7 +1,7 @@
 """Ticker giriş + "Getir" butonu paneli."""
 from __future__ import annotations
 
-from src.qt_compat.qtcore import Qt, pyqtSignal
+from src.qt_compat.qtcore import Qt, Signal
 from src.qt_compat.qtwidgets import (
     QComboBox,
     QHBoxLayout,
@@ -15,7 +15,7 @@ from src.ui.shared.locale_tr import L10N
 class TickerInputPanel(QWidget):
     """Kullanıcıdan BIST hisse kodu alır ve 'Getir' sinyali yayar."""
 
-    fetch_requested = pyqtSignal(str, str)  # (ticker, currency)
+    fetch_requested = Signal(str, str)  # (ticker, currency)
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
