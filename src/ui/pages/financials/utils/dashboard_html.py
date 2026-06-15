@@ -2,26 +2,37 @@
 Finansal dashboard HTML üreticisi — orkestratör.
 
 Grafik fonksiyonları: charts.py
+Finansal tablo: finansal_tablo.py
 Offline Plotly: ensure_patched_plotly_js() ile yerel JS kullanır (CDN yok).
 """
 from __future__ import annotations
 
 from typing import Any
 
+import plotly.graph_objects as go
+
 from src.ui.pages.comparison.utils.plotly_html import ensure_patched_plotly_js
 from src.ui.pages.financials.utils.charts import (
+    _chart_bedelsiz,
     _chart_bilanco,
     _chart_degerleme,
     _chart_dupont,
+    _chart_fcf_vs_netkar,
+    _chart_heatmap,
     _chart_isletme_sermaye,
     _chart_kpi_table,
+    _chart_nakit_akis,
+    _chart_net_borc,
     _chart_piotroski,
     _chart_reel_buyume,
+    _chart_satis_breakdown,
     _chart_satis_favok,
     _chart_sezonsellik,
     _chart_temettu,
+    _chart_waterfall,
     _fig_to_div,
 )
+from src.ui.pages.financials.utils.finansal_tablo import build_finansal_tablo_pane
 
 # ---------------------------------------------------------------------------
 # CSS + JS (tab navigasyonu)
@@ -58,24 +69,36 @@ function showTab(id,btn){
 """
 
 
+def _content(x: go.Figure | str) -> str:
+    return x if isinstance(x, str) else _fig_to_div(x)
+
+
 def build_dashboard(m: dict[str, Any], n_periods: int = 8) -> str:
     """
-    Tek HTML dosyası olarak finansal dashboard üret (10 sekme).
+    Tek HTML dosyası olarak finansal dashboard üret (18 sekme).
     Plotly JS yerel dosyadan yüklenir (CDN bağımlılığı yok).
     """
     ticker = m.get("ticker", "")
 
     tabs = [
-        ("kpi",      "📊 KPI Özeti",            _chart_kpi_table(m, n_periods)),
-        ("satis",    "📈 Satışlar & Marjlar",   _chart_satis_favok(m, n_periods)),
-        ("bilanco",  "🏦 Bilanço",              _chart_bilanco(m, n_periods)),
-        ("dupont",   "🔍 DuPont",               _chart_dupont(m, n_periods)),
-        ("isletme",  "⚙️ İşletme Sermayesi",    _chart_isletme_sermaye(m, n_periods)),
-        ("fscore",   "🏅 Piotroski F-Score",    _chart_piotroski(m, n_periods)),
-        ("sezon",    "📅 Sezonsellik",           _chart_sezonsellik(m, n_periods)),
-        ("temettu",  "💰 Temettü",              _chart_temettu(m, n_periods)),
-        ("reel",     "📉 Reel Büyüme",          _chart_reel_buyume(m, n_periods)),
-        ("deger",    "💹 Değerleme",            _chart_degerleme(m, n_periods)),
+        ("ftablo",    "📋 Finansal Tablo",      build_finansal_tablo_pane(m, n_periods)),
+        ("kpi",       "📊 KPI Özeti",           _chart_kpi_table(m, n_periods)),
+        ("satis",     "📈 Satışlar & Marjlar",  _chart_satis_favok(m, n_periods)),
+        ("bilanco",   "🏦 Bilanço",             _chart_bilanco(m, n_periods)),
+        ("netborc",   "💳 Net Borç",            _chart_net_borc(m, n_periods)),
+        ("waterfall", "🌊 Gelir Köprüsü",       _chart_waterfall(m, n_periods)),
+        ("fcf",       "💵 FCF vs Net Kar",      _chart_fcf_vs_netkar(m, n_periods)),
+        ("nakit",     "💧 Nakit Akış",          _chart_nakit_akis(m, n_periods)),
+        ("heatmap",   "🌡 YoY Isı Haritası",   _chart_heatmap(m, n_periods)),
+        ("dupont",    "🔍 DuPont",              _chart_dupont(m, n_periods)),
+        ("isletme",   "⚙️ İşletme Sermayesi",   _chart_isletme_sermaye(m, n_periods)),
+        ("fscore",    "🏅 Piotroski",           _chart_piotroski(m, n_periods)),
+        ("sezon",     "📅 Sezonsellik",         _chart_sezonsellik(m, n_periods)),
+        ("temettu",   "💰 Temettü",             _chart_temettu(m, n_periods)),
+        ("reel",      "📉 Reel Büyüme",         _chart_reel_buyume(m, n_periods)),
+        ("deger",     "💹 Değerleme",           _chart_degerleme(m, n_periods)),
+        ("bedelsiz",  "🎯 Bedelsiz Pot.",       _chart_bedelsiz(m, n_periods)),
+        ("satisbd",   "🌐 Satış Kırılımı",      _chart_satis_breakdown(m, n_periods)),
     ]
 
     nav = "".join(
@@ -85,9 +108,9 @@ def build_dashboard(m: dict[str, Any], n_periods: int = 8) -> str:
     )
     panes = "".join(
         f"<div id='{tid}' class='tab-pane{' active' if i == 0 else ''}'>"
-        + _fig_to_div(fig)
+        + _content(content)
         + "</div>"
-        for i, (tid, _, fig) in enumerate(tabs)
+        for i, (tid, _, content) in enumerate(tabs)
     )
 
     js_path     = ensure_patched_plotly_js()

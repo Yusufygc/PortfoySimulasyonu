@@ -5,6 +5,28 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-15] özellik | Finansallar sayfası Faz 3 — kalan 7 grafik + Finansal Tablo (18 sekme)
+
+- **Kapsam:** `scripts/finansal_lab/viz_prototype.py`'deki tüm eksik özellikler entegre edildi. Dashboard 10 → 18 sekmeye çıktı.
+- **7 yeni Plotly grafik** (`charts.py` ekleri):
+  - `_chart_net_borc` — Bar (kırmızı/yeşil işarete göre) + Scatter secondary_y (Net Borç/FAVÖK).
+  - `_chart_waterfall` — `go.Waterfall` Gelir Köprüsü (Satışlar → Net Kar, en son dönem).
+  - `_chart_fcf_vs_netkar` — FCF fill-area + Net Kar dashed-line (Kazanç Kalitesi).
+  - `_chart_nakit_akis` — Grouped Bar: İşletme CF, FCF, Capex.
+  - `_chart_heatmap` — `go.Heatmap` 8 metrik × n dönem YoY% (özel colorscale, annotated).
+  - `_chart_bedelsiz` — Bar (bedelsiz_potansiyel_x) + Scatter × 2 (özkaynak, ödenmiş sermaye); enflasyon muhasebesi subtitle.
+  - `_chart_satis_breakdown` — Stacked Bar (Yurtiçi/Yurtdışı) + Scatter secondary_y (İhracat Oranı); banka graceful.
+- **`_bedelsiz_ef_info` helper:** §1 (≤50 satır) uyumu için `_chart_bedelsiz`'den ayrıştırıldı.
+- **Finansal Tablo sekmesi** (`utils/finansal_tablo.py`, YENİ):
+  - Interaktif HTML tablo — Plotly değil; kendi CSS/JS'i.
+  - `build_finansal_tablo_pane(m, n)` → `<style>+<div>+<script>` (tab pane'e gömülür).
+  - `_raw_sections` (compute_metrics çıktısı) ham veriyi BİLANÇO / GELİR / DİPNOT / NAKİT AKIŞ tablolarında gösterir.
+  - Dönem seçici, satır paketleri (localStorage), YoY Δ% badge.
+- **`dashboard_html.py` güncellemesi:** 18 sekme (Finansal Tablo ilk); `_content(x)` helper `go.Figure | str` birleştirmesi; tüm 17 yeni import.
+- **Testler:** `test_finansal_dashboard.py` — 19 test (HTML yapısı, JS değişkenler, graceful boş veri, 7 chart tipi kontrolü).
+- Doğrulama: 19 yeni test yeşil; toplam pre-existing hariç yeşil set değişmedi.
+- **Yalnız UI katmanı değişti** — Domain/App/Infra dokunulmadı.
+
 ## [2026-06-15] özellik | Finansallar sayfası Faz 2 — 7 yeni sekme + TÜFE + Değerleme
 
 - **Grafik sekmeleri (Faz 1):** `charts.py` yeni modülü — tüm chart builder'lar + paylaşılan yardımcılar buraya taşındı. `dashboard_html.py` yalnız orkestratör kaldı. 10 sekme: KPI, Satışlar & Marjlar, Bilanço, DuPont, İşletme Sermayesi, Piotroski, Sezonsellik, Temettü, Reel Büyüme, Değerleme.

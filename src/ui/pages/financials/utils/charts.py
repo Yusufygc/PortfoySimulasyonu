@@ -539,3 +539,270 @@ def _chart_degerleme(m: dict, n: int) -> go.Figure:
         yaxis_title="Çarpan (x)", yaxis_ticksuffix="x", showlegend=False,
     ))
     return fig
+
+
+# ---------------------------------------------------------------------------
+# Sekme: Net Borç & Kaldıraç
+# ---------------------------------------------------------------------------
+
+def _chart_net_borc(m: dict, n: int) -> go.Figure:
+    pds = _periods_display(m["periods"], n)
+    mn  = 1e6
+    nb  = _series(m, "net_borc",       pds, mn)
+    nbf = _series(m, "net_borc_favok", pds)
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(
+        x=pds, y=nb, name="Net Borç (mn)",
+        marker_color=[_C["red"] if (v or 0) > 0 else _C["green"] for v in nb],
+        opacity=0.8,
+    ), secondary_y=False)
+    fig.add_trace(go.Scatter(
+        x=pds, y=nbf, name="Net Borç / FAVÖK",
+        line={"color": _C["orange"], "width": 2.5},
+        mode="lines+markers", marker={"size": 6},
+    ), secondary_y=True)
+
+    currency = m.get("currency", "TRY")
+    fig.update_layout(**_layout(
+        title=f"{m.get('ticker', '')} — Net Borç & Kaldıraç ({currency})",
+    ))
+    fig.update_yaxes(title_text=f"Net Borç (mn {currency})", secondary_y=False, gridcolor=_C["grid"])
+    fig.update_yaxes(title_text="Net Borç / FAVÖK (x)", secondary_y=True, gridcolor=_C["grid"], ticksuffix="x")
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Sekme: Gelir Köprüsü (Waterfall — en son dönem)
+# ---------------------------------------------------------------------------
+
+def _chart_waterfall(m: dict, n: int) -> go.Figure:
+    p = m["periods"][0] if m["periods"] else None
+    if not p:
+        return _empty_fig("Dönem verisi bulunamadı.")
+
+    def _v(key: str) -> float:
+        return m.get(key, {}).get(p) or 0.0
+
+    mn       = 1e6
+    satis    = _v("satis")
+    brut_kar = _v("brut_kar")
+    faal_kar = _v("faaliyet_kar")
+    favok    = _v("favok")
+    net_kar  = _v("net_kar")
+
+    labels   = ["Satışlar", "Satışların Maliyeti", "Brüt Kar",
+                "Opex & Diğer", "Faaliyet Karı", "Amortisman+", "FAVÖK",
+                "Faiz/Vergi/Diğer", "Net Kar"]
+    values   = [
+        satis / mn,               (brut_kar - satis) / mn,    brut_kar / mn,
+        (faal_kar - brut_kar) / mn, faal_kar / mn,
+        (favok - faal_kar) / mn,    favok / mn,
+        (net_kar - favok) / mn,     net_kar / mn,
+    ]
+    measures = ["absolute", "relative", "total",
+                "relative", "total", "relative", "total", "relative", "total"]
+    currency = m.get("currency", "TRY")
+    fig = go.Figure(go.Waterfall(
+        x=labels, y=values, measure=measures,
+        connector={"line": {"color": _C["gray"]}},
+        decreasing={"marker": {"color": _C["red"]}},
+        increasing={"marker": {"color": _C["green"]}},
+        totals={"marker": {"color": _C["blue"]}},
+        textposition="outside",
+        text=[f"{v:,.0f}" if v else "" for v in values],
+    ))
+    fig.update_layout(**_layout(
+        title=f"{m.get('ticker', '')} — Gelir Köprüsü ({p}, mn {currency})",
+        yaxis_title=f"mn {currency}",
+    ))
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Sekme: FCF vs Net Kar (Kazanç Kalitesi)
+# ---------------------------------------------------------------------------
+
+def _chart_fcf_vs_netkar(m: dict, n: int) -> go.Figure:
+    pds  = _periods_display(m["periods"], n)
+    mn   = 1e6
+    fcf  = _series(m, "fcf",     pds, mn)
+    nkar = _series(m, "net_kar", pds, mn)
+
+    currency = m.get("currency", "TRY")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=pds, y=fcf, name="Serbest Nakit Akım",
+        fill="tozeroy", line={"color": _C["green"], "width": 2},
+        fillcolor="rgba(34,197,94,0.15)",
+    ))
+    fig.add_trace(go.Scatter(
+        x=pds, y=nkar, name="Net Kar",
+        line={"color": _C["orange"], "width": 2, "dash": "dash"},
+        mode="lines+markers", marker={"size": 5},
+    ))
+    fig.update_layout(**_layout(
+        title=f"{m.get('ticker', '')} — FCF vs Net Kar ({currency})",
+        yaxis_title=f"mn {currency}",
+    ))
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Sekme: Nakit Akış Çubuk Grafiği
+# ---------------------------------------------------------------------------
+
+def _chart_nakit_akis(m: dict, n: int) -> go.Figure:
+    pds  = _periods_display(m["periods"], n)
+    mn   = 1e6
+    islt = _series(m, "isletme_cf", pds, mn)
+    fcf  = _series(m, "fcf",        pds, mn)
+    cpx  = _series(m, "capex",      pds, mn)
+
+    currency = m.get("currency", "TRY")
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=pds, y=islt, name="İşletme CF",          marker_color=_C["blue"],  opacity=0.85))
+    fig.add_trace(go.Bar(x=pds, y=fcf,  name="Serbest Nakit Akım",  marker_color=_C["green"], opacity=0.85))
+    fig.add_trace(go.Bar(x=pds, y=cpx,  name="Capex",               marker_color=_C["red"],   opacity=0.85))
+    fig.update_layout(**_layout(
+        title=f"{m.get('ticker', '')} — Nakit Akış ({currency})",
+        barmode="group", yaxis_title=f"mn {currency}",
+    ))
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Sekme: YoY Isı Haritası
+# ---------------------------------------------------------------------------
+
+_HEATMAP_METRICS = [
+    ("Satışlar",     "satis"),
+    ("FAVÖK",        "favok"),
+    ("Net Kar",      "net_kar"),
+    ("FCF",          "fcf"),
+    ("Net Borç",     "net_borc"),
+    ("FAVÖK Marjı",  "favok_marji"),
+    ("Net Kar Marj", "net_kar_marji"),
+    ("ROE",          "roe"),
+]
+
+
+def _chart_heatmap(m: dict, n: int) -> go.Figure:
+    pds  = _periods_display(m["periods"], n)
+    yoy  = m.get("_delta", {}).get("yoy", {})
+    z_vals: list[list] = []
+    annotations: list[dict] = []
+
+    for label, key in _HEATMAP_METRICS:
+        row: list = []
+        for p in pds:
+            v = yoy.get(key, {}).get(p)
+            row.append(v)
+            annotations.append(dict(
+                x=p, y=label, text=(f"{v:+.1f}%" if v is not None else "—"),
+                showarrow=False, font=dict(color="white", size=10),
+            ))
+        z_vals.append(row)
+
+    labels = [k[0] for k in _HEATMAP_METRICS]
+    fig = go.Figure(go.Heatmap(
+        z=z_vals, x=pds, y=labels,
+        colorscale=[[0.0,"#7f1d1d"],[0.35,"#1a3a2a"],[0.5,"#1e293b"],[0.65,"#14532d"],[1.0,"#052e16"]],
+        zmid=0, zmin=-50, zmax=50, showscale=True,
+        colorbar=dict(title="YoY %", ticksuffix="%"),
+    ))
+    fig.update_layout(**_layout(
+        title=f"{m.get('ticker', '')} — YoY % Değişim Isı Haritası",
+        annotations=annotations,
+        xaxis=dict(side="top", gridcolor=_C["grid"]),
+        yaxis=dict(gridcolor=_C["grid"], autorange="reversed"),
+        height=400,
+    ))
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Sekme: Bedelsiz Potansiyel (helper + ana fn)
+# ---------------------------------------------------------------------------
+
+def _bedelsiz_ef_info(m: dict, p0: str | None) -> tuple[str, str]:
+    """(subtitle, ef_color) — enflasyon muhasebesi durumuna göre."""
+    bx0 = m.get("bedelsiz_potansiyel_x",  {}).get(p0)
+    bp0 = m.get("bedelsiz_potansiyel_pct", {}).get(p0)
+    ef0 = m.get("enflasyon_duzeltildi",    {}).get(p0)
+    ef_text  = "✓ Enflasyon muhasebesi uygulanmış (TMS 29)" if ef0 else "⚠ Nominal — enflasyon düzeltmesi uygulanmamış"
+    ef_color = _C["green"] if ef0 else _C["orange"]
+    subtitle = f"{bx0:.2f}x  (~%{bp0:.0f})  |  {ef_text}" if bx0 is not None else ef_text
+    return subtitle, ef_color
+
+
+def _chart_bedelsiz(m: dict, n: int) -> go.Figure:
+    pds = _periods_display(m["periods"], n)
+    bx  = _series(m, "bedelsiz_potansiyel_x", pds)
+    ozk = _series(m, "ozkaynak",              pds, 1e9)
+    sem = _series(m, "odenmis_sermaye",        pds, 1e9)
+
+    p0               = m["periods"][0] if m["periods"] else None
+    subtitle, ef_color = _bedelsiz_ef_info(m, p0)
+    currency         = m.get("currency", "TRY")
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(
+        x=pds, y=bx, name="Bedelsiz Potansiyel (x)", marker_color=_C["purple"], opacity=0.85,
+        text=[f"{v:.1f}x" if v is not None else "" for v in bx], textposition="outside",
+    ), secondary_y=False)
+    fig.add_trace(go.Scatter(
+        x=pds, y=ozk, name=f"Özkaynak (milyar {currency})",
+        line={"color": _C["teal"], "width": 2}, mode="lines+markers", marker={"size": 5},
+    ), secondary_y=True)
+    fig.add_trace(go.Scatter(
+        x=pds, y=sem, name=f"Ödenmiş Sermaye (milyar {currency})",
+        line={"color": _C["gray"], "width": 1.5, "dash": "dot"}, mode="lines+markers", marker={"size": 4},
+    ), secondary_y=True)
+    fig.update_layout(**_layout(
+        title={"text": (f"{m.get('ticker', '')} — Bedelsiz Potansiyel & Özkaynak ({currency})<br>"
+                        f"<sup><span style='color:{ef_color}'>{subtitle}</span></sup>"),
+               "font": {"size": 14}},
+        legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
+    ))
+    fig.update_yaxes(title_text="Bedelsiz Pot. (x)", secondary_y=False, gridcolor=_C["grid"], ticksuffix="x")
+    fig.update_yaxes(title_text=f"Milyar {currency}", secondary_y=True, gridcolor=_C["grid"])
+    return fig
+
+
+# ---------------------------------------------------------------------------
+# Sekme: Yurtiçi / Yurtdışı Satış Kırılımı
+# ---------------------------------------------------------------------------
+
+def _chart_satis_breakdown(m: dict, n: int) -> go.Figure:
+    pds = _periods_display(m["periods"], n)
+    mn  = 1e6
+    yi  = _series(m, "yurtici_satis",  pds, mn)
+    yd  = _series(m, "yurtdisi_satis", pds, mn)
+    ihr = _series(m, "ihracat_orani",  pds)
+
+    if all(v is None for v in yi) and all(v is None for v in yd):
+        return _empty_fig(
+            "Yurtiçi/Yurtdışı satış verisi bulunamadı\n"
+            "(bankalar için dipnot verisi mevcut değildir)"
+        )
+
+    currency = m.get("currency", "TRY")
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(
+        x=pds, y=yi, name=f"Yurtiçi (mn {currency})", marker_color=_C["blue"], opacity=0.85,
+    ), secondary_y=False)
+    fig.add_trace(go.Bar(
+        x=pds, y=yd, name=f"Yurtdışı / İhracat (mn {currency})", marker_color=_C["teal"], opacity=0.85,
+    ), secondary_y=False)
+    fig.add_trace(go.Scatter(
+        x=pds, y=ihr, name="İhracat Oranı %",
+        line={"color": _C["orange"], "width": 2.5}, mode="lines+markers", marker={"size": 6},
+    ), secondary_y=True)
+    fig.update_layout(**_layout(
+        title=f"{m.get('ticker', '')} — Yurtiçi / Yurtdışı Satış Kırılımı ({currency})",
+        barmode="stack", legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
+    ))
+    fig.update_yaxes(title_text=f"Satışlar (mn {currency})", secondary_y=False, gridcolor=_C["grid"])
+    fig.update_yaxes(title_text="İhracat Oranı %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%")
+    return fig
