@@ -87,6 +87,8 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
         ),
         financial_analysis_service=FinancialAnalysisService(
             financial_statement_provider=market_clients.isyatirim_provider,
+            inflation_provider=market_clients.evds_tufe_provider,
+            valuation_provider=market_clients.yfinance_valuation_provider,
         ),
     )
 

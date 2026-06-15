@@ -5,6 +5,24 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-15] özellik | Finansallar sayfası Faz 2 — 7 yeni sekme + TÜFE + Değerleme
+
+- **Grafik sekmeleri (Faz 1):** `charts.py` yeni modülü — tüm chart builder'lar + paylaşılan yardımcılar buraya taşındı. `dashboard_html.py` yalnız orkestratör kaldı. 10 sekme: KPI, Satışlar & Marjlar, Bilanço, DuPont, İşletme Sermayesi, Piotroski, Sezonsellik, Temettü, Reel Büyüme, Değerleme.
+- **Reel Büyüme — TÜFE (Faz 2):**
+  - Domain port: `i_inflation_data_provider.py` (`IInflationDataProvider` + `InflationDataUnavailable`).
+  - Infrastructure adapter: `evds_tufe_provider.py` — `EvdsClient.get_series("TP.FG.J0")` + parse + dosya cache 24 saat TTL (`tufe_index.json`).
+  - Application saf math: `financials/inflation.py` — `real_growth`, `get_yoy_tufe`, `period_to_month` (ağsız).
+  - Service enrichment: `_enrich_tufe(metrics)` helper (opsiyonel, graceful hata).
+- **Değerleme — yfinance (Faz 3):**
+  - Domain port: `i_market_valuation_provider.py` (`IMarketValuationProvider` + `MarketValuationUnavailable`).
+  - Infrastructure adapter: `yfinance_valuation_provider.py` — `yf.Ticker.fast_info` + `.info` fallback + dosya cache 1 saat TTL (`valuation_{TICKER}.json`).
+  - Application saf math: `financials/valuation.py` — `compute_valuation` F/K, PD/DD, EV/FAVÖK, F/S, `_safe_div`.
+  - Service enrichment: `_enrich_valuation(metrics, ticker)` helper (opsiyonel, graceful hata).
+- **Container wiring:** `MarketClientSet` → `evds_tufe_provider`, `yfinance_valuation_provider`; `FinancialAnalysisService` iki opsiyonel provider alıyor.
+- **Testler:** 4 yeni test modülü (inflation, valuation, evds_tufe_provider, yfinance_valuation_provider); `test_financial_analysis_service.py` genişletildi (enrichment mock); `test_container_services.py` mock güncellendi.
+- Doğrulama: 363 application/infra/domain testi yeşil; önceki pre-existing UI hataları değişmedi.
+- Bağlantılı sayfa: [service_analysis.md](service_analysis.md)
+
 ## [2026-06-15] özellik | Bilanço ve Finansallar sayfası — Clean Architecture entegrasyonu
 
 - **Mimari karar:** `scripts/finansal_lab/` prototipinden tam Clean Architecture entegrasyonu.

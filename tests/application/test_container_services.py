@@ -29,6 +29,8 @@ def _fake_market_clients():
         price_lookup_service=object(),
         trading_calendar=object(),
         bist_market_session_service=object(),
+        evds_tufe_provider=object(),
+        yfinance_valuation_provider=object(),
     )
 
 
