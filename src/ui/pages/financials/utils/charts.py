@@ -38,6 +38,12 @@ _LAYOUT_BASE = {
 }
 _MARGIN = {"t": 60, "b": 50, "l": 70, "r": 30}
 
+# Plotly biçim sabitleri — hovertemplate / tickformat / texttemplate için
+_FMT_FLOAT = ",.2f"   # 1,784.85
+_FMT_INT   = ",.0f"   # 1,785
+_FMT_PCT   = ".1f"    # 17.8
+_FMT_X     = ".2f"    # 1.78
+
 
 def _layout(height: int = 520, **overrides) -> dict:
     return {**_LAYOUT_BASE, "margin": _MARGIN, "height": height, **overrides}
@@ -62,6 +68,15 @@ def _empty_fig(msg: str) -> go.Figure:
     )
     fig.update_layout(**_layout())
     return fig
+
+
+_HOVER_NUM = "<b>%{x}</b><br>%{fullData.name}: %{y:,.2f}<extra></extra>"
+
+
+def _apply_hover_fmt(fig: go.Figure) -> None:
+    """Bar/Scatter trace'lerine sayısal hovertemplate uygula (2 ondalık + binlik ayırıcı)."""
+    fig.update_traces(hovertemplate=_HOVER_NUM, selector=dict(type="bar"))
+    fig.update_traces(hovertemplate=_HOVER_NUM, selector=dict(type="scatter"))
 
 
 def _fig_to_div(fig: go.Figure) -> str:
@@ -96,13 +111,13 @@ def _kpi_cell(val: float | None, yoy: float | None, scale: float, kind: str) -> 
     if val is None:
         return "—", "#334155"
     if kind == "abs":
-        s = f"{val / scale:,.1f}"
+        s = f"{val / scale:,.2f}"
         if yoy is not None:
             s += f"\n{'▲' if yoy > 0 else '▼'}{abs(yoy):.1f}%"
         color = "#1a3a2a" if (yoy or 0) > 0 else "#3a1a1a" if (yoy or 0) < 0 else "#1e293b"
         return s, color
     if kind == "pct":
-        return f"{val:.1f}%", "#1e293b"
+        return f"{val:.2f}%", "#1e293b"
     if kind == "days":
         return f"{val:.0f}g", "#1e293b"
     return f"{val:.2f}x", "#1e293b"
@@ -147,10 +162,9 @@ def _chart_kpi_table(m: dict, n: int) -> go.Figure:
             align=["left"] + ["right"] * n_p, height=36,
         ),
     ))
-    usd_note = " ⚠ USD verisi yaklaşık — isyatirim.com.tr kaynaklı" if currency != "TRY" else ""
     fig.update_layout(**{
         **_layout(height=480, margin={"t": 60, "b": 10, "l": 10, "r": 10}),
-        "title": f"{m.get('ticker', '')} — KPI Özeti ({currency}){usd_note}",
+        "title": f"{m.get('ticker', '')} — KPI Özeti ({currency})",
     })
     return fig
 
@@ -186,13 +200,13 @@ def _chart_satis_favok(m: dict, n: int) -> go.Figure:
     ), secondary_y=True)
 
     currency = m.get("currency", "TRY")
-    usd_note = " ⚠ USD verisi yaklaşık — isyatirim.com.tr kaynaklı" if currency != "TRY" else ""
     fig.update_layout(**_layout(
-        title=f"{m.get('ticker', '')} — Satışlar & Karlılık Marjları ({currency}){usd_note}",
+        title=f"{m.get('ticker', '')} — Satışlar & Karlılık Marjları ({currency})",
         legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
     ))
-    fig.update_yaxes(title_text=f"Satışlar (mn {currency})", secondary_y=False, gridcolor=_C["grid"])
-    fig.update_yaxes(title_text="Marj %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%")
+    fig.update_yaxes(title_text=f"Satışlar (mn {currency})", secondary_y=False, gridcolor=_C["grid"], tickformat=",.0f")
+    fig.update_yaxes(title_text="Marj %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%", tickformat=".1f")
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -228,7 +242,8 @@ def _chart_bilanco(m: dict, n: int) -> go.Figure:
     ))
     for col in [1, 2]:
         fig.update_yaxes(gridcolor=_C["grid"], linecolor=_C["grid"],
-                         title_text=f"mn {currency}", row=1, col=col)
+                         title_text=f"mn {currency}", row=1, col=col, tickformat=",.0f")
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -267,8 +282,9 @@ def _chart_dupont(m: dict, n: int) -> go.Figure:
         title=f"{m.get('ticker', '')} — DuPont Ayrıştırma (TTM) | ROE = Marj × Devir × Kaldıraç",
         legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
     ))
-    fig.update_yaxes(title_text="Marj / ROE (%)", secondary_y=False, gridcolor=_C["grid"], ticksuffix="%")
-    fig.update_yaxes(title_text="Oran (x)", secondary_y=True, gridcolor=_C["grid"], ticksuffix="x")
+    fig.update_yaxes(title_text="Marj / ROE (%)", secondary_y=False, gridcolor=_C["grid"], ticksuffix="%", tickformat=".1f")
+    fig.update_yaxes(title_text="Oran (x)", secondary_y=True, gridcolor=_C["grid"], ticksuffix="x", tickformat=".2f")
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -308,7 +324,9 @@ def _chart_isletme_sermaye(m: dict, n: int) -> go.Figure:
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — İşletme Sermayesi Döngüsü (Gün)",
         barmode="relative", yaxis_title="Gün", legend={"bgcolor": "rgba(0,0,0,0)"},
+        yaxis_tickformat=".0f",
     ))
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -386,6 +404,7 @@ def _chart_piotroski(m: dict, n: int) -> go.Figure:
         showlegend=False,
     ))
     fig.update_yaxes(range=[0, 10], title_text="F-Score", row=1, col=1, gridcolor=_C["grid"])
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -420,7 +439,9 @@ def _chart_sezonsellik(m: dict, n: int) -> go.Figure:
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — Sezonsellik (Diskret Çeyrek Satış, mn {currency})",
         barmode="group", yaxis_title=f"Satış (mn {currency})", legend={"bgcolor": "rgba(0,0,0,0)"},
+        yaxis_tickformat=",.0f",
     ))
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -460,8 +481,9 @@ def _chart_temettu(m: dict, n: int) -> go.Figure:
         title=f"{m.get('ticker', '')} — Temettü Analizi{tv_str}",
         barmode="group", legend={"bgcolor": "rgba(0,0,0,0)"},
     ))
-    fig.update_yaxes(title_text=f"mn {currency}", secondary_y=False, gridcolor=_C["grid"])
-    fig.update_yaxes(title_text="Dağıtım Oranı %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%")
+    fig.update_yaxes(title_text=f"mn {currency}", secondary_y=False, gridcolor=_C["grid"], tickformat=",.0f")
+    fig.update_yaxes(title_text="Dağıtım Oranı %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%", tickformat=".1f")
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -509,8 +531,10 @@ def _chart_reel_buyume(m: dict, n: int) -> go.Figure:
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — Reel Büyüme (TÜFE-deflate edilmiş)",
         barmode="group", yaxis_title="YoY % Büyüme", yaxis_ticksuffix="%",
+        yaxis_tickformat=".1f",
         legend={"bgcolor": "rgba(0,0,0,0)"},
     ))
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -545,8 +569,9 @@ def _chart_degerleme(m: dict, n: int) -> go.Figure:
     ))
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — Değerleme Çarpanları ({period}) | Piyasa Değeri: {mc_str}",
-        yaxis_title="Çarpan (x)", yaxis_ticksuffix="x", showlegend=False,
+        yaxis_title="Çarpan (x)", yaxis_ticksuffix="x", yaxis_tickformat=".2f", showlegend=False,
     ))
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -576,8 +601,9 @@ def _chart_net_borc(m: dict, n: int) -> go.Figure:
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — Net Borç & Kaldıraç ({currency})",
     ))
-    fig.update_yaxes(title_text=f"Net Borç (mn {currency})", secondary_y=False, gridcolor=_C["grid"])
-    fig.update_yaxes(title_text="Net Borç / FAVÖK (x)", secondary_y=True, gridcolor=_C["grid"], ticksuffix="x")
+    fig.update_yaxes(title_text=f"Net Borç (mn {currency})", secondary_y=False, gridcolor=_C["grid"], tickformat=",.0f")
+    fig.update_yaxes(title_text="Net Borç / FAVÖK (x)", secondary_y=True, gridcolor=_C["grid"], ticksuffix="x", tickformat=".2f")
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -624,6 +650,7 @@ def _chart_waterfall(m: dict, n: int) -> go.Figure:
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — Gelir Köprüsü ({p}, mn {currency})",
         yaxis_title=f"mn {currency}",
+        yaxis_tickformat=",.0f",
     ))
     return fig
 
@@ -653,7 +680,9 @@ def _chart_fcf_vs_netkar(m: dict, n: int) -> go.Figure:
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — FCF vs Net Kar ({currency})",
         yaxis_title=f"mn {currency}",
+        yaxis_tickformat=",.0f",
     ))
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -676,7 +705,9 @@ def _chart_nakit_akis(m: dict, n: int) -> go.Figure:
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — Nakit Akış ({currency})",
         barmode="group", yaxis_title=f"mn {currency}",
+        yaxis_tickformat=",.0f",
     ))
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -774,8 +805,9 @@ def _chart_bedelsiz(m: dict, n: int) -> go.Figure:
                "font": {"size": 14}},
         legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
     ))
-    fig.update_yaxes(title_text="Bedelsiz Pot. (x)", secondary_y=False, gridcolor=_C["grid"], ticksuffix="x")
-    fig.update_yaxes(title_text=f"Milyar {currency}", secondary_y=True, gridcolor=_C["grid"])
+    fig.update_yaxes(title_text="Bedelsiz Pot. (x)", secondary_y=False, gridcolor=_C["grid"], ticksuffix="x", tickformat=".2f")
+    fig.update_yaxes(title_text=f"Milyar {currency}", secondary_y=True, gridcolor=_C["grid"], tickformat=",.2f")
+    _apply_hover_fmt(fig)
     return fig
 
 
@@ -812,6 +844,7 @@ def _chart_satis_breakdown(m: dict, n: int) -> go.Figure:
         title=f"{m.get('ticker', '')} — Yurtiçi / Yurtdışı Satış Kırılımı ({currency})",
         barmode="stack", legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
     ))
-    fig.update_yaxes(title_text=f"Satışlar (mn {currency})", secondary_y=False, gridcolor=_C["grid"])
-    fig.update_yaxes(title_text="İhracat Oranı %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%")
+    fig.update_yaxes(title_text=f"Satışlar (mn {currency})", secondary_y=False, gridcolor=_C["grid"], tickformat=",.0f")
+    fig.update_yaxes(title_text="İhracat Oranı %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%", tickformat=".1f")
+    _apply_hover_fmt(fig)
     return fig

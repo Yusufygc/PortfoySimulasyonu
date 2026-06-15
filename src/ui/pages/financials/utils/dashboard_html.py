@@ -33,6 +33,7 @@ from src.ui.pages.financials.utils.charts import (
     _fig_to_div,
 )
 from src.ui.pages.financials.utils.finansal_tablo import build_finansal_tablo_pane
+from src.ui.pages.financials.utils.value_table import build_value_table
 
 # ---------------------------------------------------------------------------
 # CSS + JS (tab navigasyonu)
@@ -59,6 +60,16 @@ _CSS = (
     ".ib-body{color:#94a3b8;line-height:1.6}"
     ".ib-body b{color:#f1f5f9;display:block;margin-bottom:2px}"
     ".ib-body p{margin:0}"
+    ".val-tbl{width:100%;border-collapse:collapse;font-size:.78rem;"
+    "margin:10px 0;background:#0f172a;border:1px solid #334155;border-radius:6px;overflow:hidden}"
+    ".val-tbl thead th{background:#0a1628;color:#64748b;text-align:right;"
+    "padding:6px 10px;font-weight:600;border-bottom:1px solid #334155}"
+    ".val-tbl thead th:first-child{text-align:left}"
+    ".val-tbl tbody td{padding:5px 10px;border-bottom:1px solid #1e293b;"
+    "color:#e2e8f0;text-align:right;font-family:'Courier New',monospace}"
+    ".val-tbl tbody td:first-child{text-align:left;font-family:inherit;color:#cbd5e1}"
+    ".val-tbl tbody tr:last-child td{border-bottom:none}"
+    ".val-tbl tbody tr:hover td{background:#1a2535}"
 )
 
 _JS = r"""
@@ -354,6 +365,67 @@ _INSIGHTS: dict[str, str] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Yardımcı değer tabloları — sekme → (metric_key, label, fmt, scale)
+# ---------------------------------------------------------------------------
+
+_TABLE_ROWS: dict[str, list[tuple[str, str, str, float]]] = {
+    "satis": [
+        ("satis",          "Satışlar (mn TRY)", ",.0f", 1e6),
+        ("favok",          "FAVÖK (mn TRY)",    ",.0f", 1e6),
+        ("favok_marji",    "FAVÖK Marjı %",     ".2f",  1),
+        ("brut_kar_marji", "Brüt Marj %",       ".2f",  1),
+    ],
+    "netborc": [
+        ("net_borc",       "Net Borç (mn TRY)", ",.0f", 1e6),
+        ("net_borc_favok", "Net Borç/FAVÖK",    ".2f",  1),
+    ],
+    "fcf": [
+        ("fcf",     "FCF (mn TRY)",     ",.0f", 1e6),
+        ("net_kar", "Net Kar (mn TRY)", ",.0f", 1e6),
+    ],
+    "nakit": [
+        ("isletme_cf", "İşletme CF (mn TRY)", ",.0f", 1e6),
+        ("fcf",        "FCF (mn TRY)",        ",.0f", 1e6),
+        ("capex",      "Capex (mn TRY)",      ",.0f", 1e6),
+    ],
+    "dupont": [
+        ("dupont_net_kar_marji", "Net Kar Marjı %",   ".2f", 1),
+        ("dupont_varlik_devir",  "Varlık Devir Hızı", ".2f", 1),
+        ("dupont_fin_kaldirac",  "Finansal Kaldıraç", ".2f", 1),
+        ("dupont_roe",           "ROE %",             ".2f", 1),
+    ],
+    "isletme": [
+        ("dso", "DSO — Alacak Tahsil Süresi (gün)", ".0f", 1),
+        ("dio", "DIO — Stok Tutma Süresi (gün)",     ".0f", 1),
+        ("dpo", "DPO — Borç Ödeme Süresi (gün)",     ".0f", 1),
+        ("ccc", "CCC — Nakit Dönüşüm Döngüsü (gün)", ".0f", 1),
+    ],
+    "temettu": [
+        ("temettu_odeme", "Temettü Ödemesi (mn TRY)", ",.0f", 1e6),
+        ("dagitim_orani", "Dağıtım Oranı %",          ".2f",  1),
+    ],
+    "bedelsiz": [
+        ("bedelsiz_potansiyel_x",   "Bedelsiz Potansiyel (x)",  ".2f",  1),
+        ("bedelsiz_potansiyel_pct", "Bedelsiz Potansiyel %",    ".2f",  1),
+        ("ozkaynak",                "Özkaynak (mn TRY)",        ",.0f", 1e6),
+        ("odenmis_sermaye",         "Ödenmiş Sermaye (mn TRY)", ",.0f", 1e6),
+    ],
+    "satisbd": [
+        ("yurtici_satis",  "Yurtiçi Satış (mn TRY)",  ",.0f", 1e6),
+        ("yurtdisi_satis", "Yurtdışı Satış (mn TRY)", ",.0f", 1e6),
+        ("ihracat_orani",  "İhracat Oranı %",         ".2f",  1),
+    ],
+}
+
+
+def _value_table_for(tid: str, m: dict, n: int) -> str:
+    rows = _TABLE_ROWS.get(tid)
+    if not rows:
+        return ""
+    return build_value_table(m, n, rows)
+
+
 def _content(x: go.Figure | str) -> str:
     return x if isinstance(x, str) else _fig_to_div(x)
 
@@ -394,6 +466,7 @@ def build_dashboard(m: dict[str, Any], n_periods: int = 8) -> str:
     panes = "".join(
         f"<div id='{tid}' class='tab-pane{' active' if i == 0 else ''}'>"
         + _content(content)
+        + _value_table_for(tid, m, n_periods)
         + _INSIGHTS.get(tid, "")
         + "</div>"
         for i, (tid, _, content) in enumerate(tabs)

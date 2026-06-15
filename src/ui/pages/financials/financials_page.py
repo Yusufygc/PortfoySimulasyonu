@@ -92,8 +92,8 @@ class FinancialsPage(BasePage):
     # Worker orkestrasyon
     # ------------------------------------------------------------------
 
-    def _on_fetch_requested(self, ticker: str, currency: str) -> None:
-        """Ticker + currency ile analiz Worker'ı başlat."""
+    def _on_fetch_requested(self, ticker: str) -> None:
+        """Ticker ile analiz Worker'ı başlat (TRY)."""
         self._cancel_active_worker()
         self._input_panel.set_loading(True)
         self._status_label.setText(L10N.FINANSALLAR_YUKLENIYOR_TMPL.format(ticker=ticker))
@@ -103,7 +103,6 @@ class FinancialsPage(BasePage):
             self._service.analyze,
             ticker,
             _N_QUARTERS,
-            currency,
         )
         worker.signals.result.connect(self._on_analysis_done)
         worker.signals.error.connect(self._on_analysis_error)

@@ -301,6 +301,11 @@ def _scrape(ticker: str, n_quarters: int, currency: str) -> dict:
         if not rows or _batch_is_future(rows):
             continue
 
+        for y, p in batch:
+            label = _period_label(y, p)
+            if label not in collected_periods:
+                collected_periods.append(label)
+
         for row in rows:
             code    = row.get("itemCode", "")
             section = _code_to_section(code)
@@ -312,8 +317,6 @@ def _scrape(ticker: str, n_quarters: int, currency: str) -> dict:
             for i, (y, p) in enumerate(batch, start=1):
                 label = _period_label(y, p)
                 store.add(section, code, desc, label, _parse_value(row.get(f"value{i}")))
-                if i == 1 and label not in collected_periods:
-                    collected_periods.append(label)
 
     final_periods = collected_periods[:n_quarters]
     if not final_periods:
