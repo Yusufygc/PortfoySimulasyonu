@@ -18,6 +18,7 @@ class PageFactory:
             8: self._create_risk_profile,
             9: self._create_ai_page,
             10: self._create_settings,
+            11: self._create_financials,
         }
 
     def create(self, page_index: int):
@@ -84,3 +85,8 @@ class PageFactory:
         from src.ui.pages.comparison.comparison_page import ComparisonPage
 
         return ComparisonPage(container=self._container)
+
+    def _create_financials(self):
+        from src.ui.pages.financials.financials_page import FinancialsPage
+
+        return FinancialsPage(container=self._container)

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
+from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
@@ -61,6 +62,7 @@ class ServiceSet:
     corporate_action_candidate_review_service: CorporateActionCandidateReviewService
     backfill_service: BackfillService
     update_coordinator: PortfolioUpdateCoordinator
+    financial_analysis_service: FinancialAnalysisService
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
@@ -82,6 +84,9 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             price_update_service=foundation["price_update_service"],
             return_calc_service=foundation["return_calc_service"],
             event_bus=event_bus,
+        ),
+        financial_analysis_service=FinancialAnalysisService(
+            financial_statement_provider=market_clients.isyatirim_provider,
         ),
     )
 

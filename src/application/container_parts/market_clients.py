@@ -7,6 +7,7 @@ from src.application.services.market.bist_market_session_service import BistMark
 from src.application.services.market.price_lookup_service import PriceLookupService
 from src.infrastructure.market_data.evds_client import EvdsClient
 from src.infrastructure.calendar.bist_trading_calendar_provider import BistTradingCalendarProvider
+from src.infrastructure.market_data.isyatirim_provider import IsyatirimProvider
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
 from src.infrastructure.market_data.yfinance_optimization_market_data_provider import (
     YFinanceOptimizationMarketDataProvider,
@@ -23,6 +24,7 @@ class MarketClientSet:
     price_lookup_service: PriceLookupService
     bist_market_session_service: BistMarketSessionService
     db_integrity_service: DatabaseIntegrityService
+    isyatirim_provider: IsyatirimProvider
 
 
 def build_market_clients(conn_provider) -> MarketClientSet:
@@ -35,4 +37,5 @@ def build_market_clients(conn_provider) -> MarketClientSet:
         price_lookup_service=PriceLookupService(provider=YFinancePriceLookupProvider()),
         bist_market_session_service=BistMarketSessionService(trading_calendar=trading_calendar),
         db_integrity_service=DatabaseIntegrityService(conn_provider),
+        isyatirim_provider=IsyatirimProvider(),
     )

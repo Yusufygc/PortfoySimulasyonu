@@ -23,6 +23,7 @@ def _fake_repositories():
 def _fake_market_clients():
     return SimpleNamespace(
         evds_client=object(),
+        isyatirim_provider=object(),
         market_client=object(),
         optimization_market_data_provider=object(),
         price_lookup_service=object(),

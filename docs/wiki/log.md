@@ -5,6 +5,25 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-15] özellik | Bilanço ve Finansallar sayfası — Clean Architecture entegrasyonu
+
+- **Mimari karar:** `scripts/finansal_lab/` prototipinden tam Clean Architecture entegrasyonu.
+  - Domain port: `src/domain/ports/services/i_financial_statement_provider.py` (`IFinancialStatementProvider` Protocol + `FinancialStatementProviderUnavailable`).
+  - Infrastructure adapter: `src/infrastructure/market_data/isyatirim_provider.py` — isyatirim.com.tr JSON API scraper, dosya cache + 12 saat TTL (`data/_cache/financials/`).
+  - Application metrics: `src/application/services/analysis/financials/metrics.py` — saf, ağsız metrik hesabı (de-kümülasyon, TTM, Piotroski, DuPont, işletme sermayesi).
+  - Application service: `src/application/services/analysis/financial_analysis_service.py` — §15 uyumlu (dış API doğrudan çağrılmaz).
+  - DI kaydı: `market_clients.py` + `services.py` container parts güncellendi.
+- **UI katmanı** (§1: sayfa ≤400 satır):
+  - `src/ui/pages/financials/financials_page.py` — orkestrasyon (layout+wiring+Worker).
+  - `src/ui/pages/financials/panels/ticker_input_panel.py` — ticker + para birimi girişi.
+  - `src/ui/pages/financials/panels/financials_chart_panel.py` — SilentWebEngineView + offline Plotly.
+  - `src/ui/pages/financials/utils/dashboard_html.py` — 3-sekme Plotly HTML builder (CDN yok, `ensure_patched_plotly_js()`).
+- **Sidebar entegrasyonu:** `PAGE_FINANCIALS=11`, `PAGE_COUNT=12`, `page_factory.py` index 11, `_build_sidebar_nav` güncellendi.
+- **L10N:** 7 yeni giriş — `BILANCO_VE_FINANSALLAR`, `FINANSALLAR_*`.
+- **Testler:** 16 yeni test; `test_container_services.py` mock güncellendi.
+- Doğrulama: yeni 22 test yeşil; pre-existing 2 hata değişmedi.
+- Bağlantılı sayfa: [service_analysis.md](service_analysis.md)
+
 ## [2026-06-14] refaktor | Faz 2+3 tamamlandı; src fonksiyon satır ihlalleri giderildi; violations=134→109 (src:115→90)
 
 - Faz 2 (UI _init_ui döngüsü, 12 fonksiyon): peer_card, appearance_panel, goal_input_dialog, goals_panel, corporate_action_candidates_panel, date_range_dialog, action_list_item, model_panel, trade_dialog, main_window — modül düzeyi builder'lara bölündü.
