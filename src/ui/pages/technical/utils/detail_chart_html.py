@@ -83,7 +83,7 @@ def build_detail_dashboard(
     events_tbl = _build_events_table(events)
 
     body = (
-        f"<h2>{escape(ticker)} — Kapanış + SMA{short}/SMA{long}</h2>"
+        f"<h2>{escape(ticker)} — Kapanış + EMA{short}/EMA{long}</h2>"
         f"<div class='chart-box'>{chart_div}</div>"
         f"<h2>Cross Olayları ({len(events)} kayıt)</h2>"
         f"{events_tbl}"
@@ -101,8 +101,8 @@ def _build_price_chart(
     dates = [p.price_date for p in prices]
     closes = [float(p.close_price) for p in prices]
     ser = pd.Series(closes, index=dates).sort_index()
-    sma_s = ser.rolling(window=short, min_periods=short).mean()
-    sma_l = ser.rolling(window=long,  min_periods=long).mean()
+    ema_s = ser.ewm(span=short, adjust=False).mean()
+    ema_l = ser.ewm(span=long, adjust=False).mean()
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -111,14 +111,14 @@ def _build_price_chart(
         hovertemplate="<b>%{x}</b><br>Kapanış: %{y:,.2f}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=[d.isoformat() for d in sma_s.index], y=sma_s.values,
-        name=f"SMA{short}", line={"color": _C["orange"], "width": 1.4}, mode="lines",
-        hovertemplate=f"<b>%{{x}}</b><br>SMA{short}: %{{y:,.2f}}<extra></extra>",
+        x=[d.isoformat() for d in ema_s.index], y=ema_s.values,
+        name=f"EMA{short}", line={"color": _C["orange"], "width": 1.4}, mode="lines",
+        hovertemplate=f"<b>%{{x}}</b><br>EMA{short}: %{{y:,.2f}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=[d.isoformat() for d in sma_l.index], y=sma_l.values,
-        name=f"SMA{long}", line={"color": _C["purple"], "width": 1.4}, mode="lines",
-        hovertemplate=f"<b>%{{x}}</b><br>SMA{long}: %{{y:,.2f}}<extra></extra>",
+        x=[d.isoformat() for d in ema_l.index], y=ema_l.values,
+        name=f"EMA{long}", line={"color": _C["purple"], "width": 1.4}, mode="lines",
+        hovertemplate=f"<b>%{{x}}</b><br>EMA{long}: %{{y:,.2f}}<extra></extra>",
     ))
     _add_cross_markers(fig, events)
 
@@ -177,7 +177,7 @@ def _build_events_table(events: Sequence[GoldenCrossEvent]) -> str:
     return (
         "<table class='events-tbl'>"
         "<thead><tr>"
-        "<th>Tarih</th><th>Tip</th><th>Kapanış</th><th>SMA50</th><th>SMA200</th>"
+        "<th>Tarih</th><th>Tip</th><th>Kapanış</th><th>EMA50</th><th>EMA200</th>"
         "</tr></thead>"
         f"<tbody>{''.join(rows)}</tbody>"
         "</table>"

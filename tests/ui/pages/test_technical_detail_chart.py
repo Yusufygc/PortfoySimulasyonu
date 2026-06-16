@@ -65,8 +65,8 @@ class TestBuildDetailDashboard:
         html = build_detail_dashboard("FROTO", prices=_prices(), events=_events())
         assert "FROTO" in html
         assert "Kapanış" in html
-        assert "SMA50" in html
-        assert "SMA200" in html
+        assert "EMA50" in html
+        assert "EMA200" in html
         assert "Golden" in html
         assert "Death" in html
 

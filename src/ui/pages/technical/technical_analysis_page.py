@@ -123,7 +123,7 @@ class TechnicalAnalysisPage(BasePage):
         # Tablo
         self._tbl = QTableWidget(0, 5)
         self._tbl.setHorizontalHeaderLabels([
-            L10N.TARIH, L10N.HISSE_KODU, L10N.TIP, L10N.KAPANIS, "SMA50 / SMA200",
+            L10N.TARIH, L10N.HISSE_KODU, L10N.TIP, L10N.KAPANIS, "EMA50 / EMA200",
         ])
         self._tbl.verticalHeader().setVisible(False)
         self._tbl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)

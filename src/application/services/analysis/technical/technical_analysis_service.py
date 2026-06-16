@@ -42,7 +42,7 @@ class ScanResult:
 
 
 class TechnicalAnalysisService:
-    """SMA50/SMA200 cross taraması — tüm BIST veya tek ticker."""
+    """EMA50/EMA200 cross taraması — tüm BIST veya tek ticker."""
 
     def __init__(
         self,

@@ -44,14 +44,14 @@ def detect_crosses(
     if closes is None or len(closes) < long + 1:
         return []
 
-    sma_s = closes.rolling(window=short, min_periods=short).mean()
-    sma_l = closes.rolling(window=long,  min_periods=long).mean()
-    diff  = sma_s - sma_l
-    sign  = diff.gt(0)              # True iff sma_s > sma_l
+    ema_s = closes.ewm(span=short, adjust=False).mean()
+    ema_l = closes.ewm(span=long, adjust=False).mean()
+    diff  = ema_s - ema_l
+    sign  = diff.gt(0)              # True iff ema_s > ema_l
     prev  = sign.shift(1)
 
     # Cross noktaları: sign != prev, prev not NaN
-    cross_mask = sign.ne(prev) & prev.notna() & sma_l.notna() & sma_s.notna()
+    cross_mask = sign.ne(prev) & prev.notna() & ema_l.notna() & ema_s.notna()
 
     events: list[DetectedCross] = []
     for idx in closes.index[cross_mask]:
@@ -59,8 +59,8 @@ def detect_crosses(
         events.append(DetectedCross(
             cross_date=_as_date(idx),
             cross_type=CrossType.GOLDEN if is_golden else CrossType.DEATH,
-            short_ma=Decimal(str(sma_s.loc[idx])),
-            long_ma=Decimal(str(sma_l.loc[idx])),
+            short_ma=Decimal(str(ema_s.loc[idx])),
+            long_ma=Decimal(str(ema_l.loc[idx])),
             close_price=Decimal(str(closes.loc[idx])),
         ))
     return events

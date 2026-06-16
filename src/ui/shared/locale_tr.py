@@ -568,7 +568,7 @@ li {
     TEK_BIR_ISI_HARITASINDA_GOSTERIR = "tek bir ısı haritasında gösterir."
     TEK_HISSE_MAKSIMUM_AGIRLIGI_40 = "Tek hisse maksimum ağırlığı %40 ile sınırlandırılmıştır."
     TEKNIK_ANALIZ = "Teknik Analiz"
-    TEKNIK_ANALIZ_ACIKLAMA = "SMA50 / SMA200 Golden ve Death Cross sinyalleri."
+    TEKNIK_ANALIZ_ACIKLAMA = "EMA50 / EMA200 Golden ve Death Cross sinyalleri."
     TEMA_SECIMI = "Tema Seçimi"
     TEORIK_BAZ_FIYAT = "Teorik Baz Fiyat:"
     TICKER_BOS_OLAMAZ = "Ticker boş olamaz."
