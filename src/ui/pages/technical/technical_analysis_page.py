@@ -65,12 +65,18 @@ class TechnicalAnalysisPage(BasePage):
         desc.setProperty("cssClass", "pageDescription")
         layout.addWidget(desc)
 
-        # Üst kontrol çubuğu — Tarama butonu + status
+        # Üst kontrol çubuğu — Tarama butonu + Veri Tamamla + status
         top = QHBoxLayout()
         self._btn_scan = QPushButton(L10N.TARAMAYI_CALISTIR)
         self._btn_scan.setProperty("cssClass", "primaryButton")
         self._btn_scan.clicked.connect(self._on_scan_all)
         top.addWidget(self._btn_scan)
+
+        self._btn_backfill = QPushButton(L10N.VERI_TAMAMLA)
+        self._btn_backfill.setProperty("cssClass", "secondaryButton")
+        self._btn_backfill.clicked.connect(self._on_backfill_all)
+        top.addWidget(self._btn_backfill)
+
         self._status_label = QLabel("")
         self._status_label.setProperty("cssClass", "pageDescription")
         top.addWidget(self._status_label)
@@ -125,6 +131,7 @@ class TechnicalAnalysisPage(BasePage):
         self._tbl.setSortingEnabled(True)
         hdr = self._tbl.horizontalHeader()
         hdr.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._tbl.cellDoubleClicked.connect(self._on_row_double_clicked)
         v.addWidget(self._tbl, 1)
         return w
 
@@ -159,10 +166,11 @@ class TechnicalAnalysisPage(BasePage):
     def _on_scan_all(self) -> None:
         self._status_label.setText(L10N.TARAMA_BASLATILDI)
         self._btn_scan.setEnabled(False)
+        self._btn_backfill.setEnabled(False)
         worker = Worker(self._service.scan_all)
         worker.signals.result.connect(self._on_scan_done)
         worker.signals.error.connect(self._on_scan_error)
-        worker.signals.cleanup.connect(lambda: self._btn_scan.setEnabled(True))
+        worker.signals.cleanup.connect(lambda: [self._btn_scan.setEnabled(True), self._btn_backfill.setEnabled(True)])
         self._pool.start(worker)
 
     def _on_scan_done(self, result) -> None:
@@ -177,6 +185,52 @@ class TechnicalAnalysisPage(BasePage):
 
     def _on_scan_error(self, err_tuple) -> None:
         self._status_label.setText(L10N.TARAMA_HATA_TMPL.format(exc=err_tuple[1]))
+
+    def _on_backfill_all(self) -> None:
+        self._status_label.setText(L10N.VERI_TAMAMLAMA_BASLATILDI)
+        self._btn_scan.setEnabled(False)
+        self._btn_backfill.setEnabled(False)
+
+        from src.ui.main_window import last_completed_trading_day
+        from src.application.services.market.price_data_health_service import PRICE_SCOPE_ALL_BIST
+
+        target_date = last_completed_trading_day(
+            date.today(),
+            getattr(self.container, "trading_calendar", None),
+        )
+
+        service = getattr(self.container, "price_data_health_service", None)
+        if service is None:
+            self._status_label.setText("Hata: PriceDataHealthService bulunamadı.")
+            self._btn_scan.setEnabled(True)
+            self._btn_backfill.setEnabled(True)
+            return
+
+        worker = Worker(service.update_from_latest_to_today, target_date, PRICE_SCOPE_ALL_BIST)
+        worker.signals.result.connect(self._on_backfill_done)
+        worker.signals.error.connect(self._on_backfill_error)
+        worker.signals.cleanup.connect(self._on_backfill_cleanup)
+        self._pool.start(worker)
+
+    def _on_backfill_done(self, result) -> None:
+        updated_count = getattr(result, "updated_count", 0)
+        self._status_label.setText(L10N.VERI_TAMAMLAMA_TAMAMLANDI_TMPL.format(count=updated_count))
+        self._on_refresh_recent()
+
+    def _on_backfill_error(self, err_tuple) -> None:
+        self._status_label.setText(L10N.VERI_TAMAMLAMA_HATA_TMPL.format(exc=err_tuple[1]))
+
+    def _on_backfill_cleanup(self) -> None:
+        self._btn_scan.setEnabled(True)
+        self._btn_backfill.setEnabled(True)
+
+    def _on_row_double_clicked(self, row: int, column: int) -> None:
+        ticker_item = self._tbl.item(row, 1)
+        if ticker_item is not None:
+            ticker = ticker_item.text().strip().upper()
+            self._tabs.setCurrentIndex(1)
+            self._ticker_edit.setText(ticker)
+            self._on_load_detail()
 
     def _on_refresh_recent(self) -> None:
         sel = self._days_combo.currentText()

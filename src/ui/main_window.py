@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 AUTO_BACKFILL_SETTINGS_KEY = "settings/last_auto_price_backfill_at"
 AUTO_BIST_BACKFILL_SETTINGS_KEY = "settings/last_auto_bist_backfill_at"
 AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY = "settings/last_auto_corporate_action_discovery_at"
+AUTO_TECHNICAL_SCAN_SETTINGS_KEY = "settings/last_auto_technical_scan_at"
 BIST_MARKET_CLOSE_TIME = dt_time(18, 30)  # BIST kapanış sonrası fiyat verisi hazır
 MAIN_WINDOW_INITIAL_WIDTH = 1600
 MAIN_WINDOW_INITIAL_HEIGHT = 900
@@ -188,6 +189,7 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(0, self._start_auto_bist_backfill_once)
         self._live_price_refresh_controller.start()
         QTimer.singleShot(0, self._start_auto_corporate_action_discovery_once)
+        QTimer.singleShot(0, self._start_auto_technical_scan_once)
 
     def _init_ui(self):
         self.central_widget = QWidget()
@@ -444,3 +446,50 @@ class MainWindow(QMainWindow):
         self._settings.setValue(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, date.today().isoformat())
         self._settings.sync()
         logger.warning("Auto corporate action discovery failed: %s", err_tuple[1])
+
+    def _start_auto_technical_scan_once(self) -> None:
+        """Açılışta son taramadan beri 24 saatten fazla geçmişse otomatik scan çalıştır."""
+        service = getattr(self.container, "technical_analysis_service", None)
+        if service is None:
+            return
+
+        last_scan_str = self._settings.value(AUTO_TECHNICAL_SCAN_SETTINGS_KEY, "", type=str)
+        needs_scan = False
+        if not last_scan_str:
+            needs_scan = True
+        else:
+            try:
+                last_scan_dt = datetime.fromisoformat(last_scan_str)
+                if datetime.now() - last_scan_dt > timedelta(hours=24):
+                    needs_scan = True
+            except Exception:
+                needs_scan = True
+
+        if not needs_scan:
+            logger.info("Otomatik teknik analiz taraması atlandı (son tarama <24h önce)")
+            return
+
+        logger.info("Otomatik teknik analiz taraması başlatılıyor...")
+        worker = Worker(service.scan_all)
+        worker.signals.result.connect(self._on_auto_technical_scan_success)
+        worker.signals.error.connect(self._on_auto_technical_scan_error)
+        self._threadpool.start(worker)
+
+    def _on_auto_technical_scan_success(self, result) -> None:
+        self._settings.setValue(AUTO_TECHNICAL_SCAN_SETTINGS_KEY, datetime.now().isoformat())
+        self._settings.sync()
+        
+        # Eğer aktif sayfa teknik analiz ise yenile
+        current_page = self.stacked_widget.currentWidget()
+        if hasattr(current_page, "_on_refresh_recent"):
+            current_page._on_refresh_recent()
+
+        Toast.success(self, L10N.TARAMA_TAMAMLANDI_TMPL.format(
+            scanned=result.scanned_count,
+            new=result.new_event_count,
+            skipped=result.skipped_count,
+        ))
+
+    def _on_auto_technical_scan_error(self, err_tuple) -> None:
+        logger.error("Otomatik teknik analiz tarama hatası: %s", err_tuple[1])
+        Toast.warning(self, L10N.TARAMA_HATA_TMPL.format(exc=err_tuple[1]))
