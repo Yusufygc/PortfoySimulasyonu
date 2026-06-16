@@ -212,8 +212,7 @@ class MarketTickerBar(QFrame):
         if self._running:
             return
         import sys
-        import os
-        if "pytest" in sys.modules or os.environ.get("PORTFOYSIM_ENV") == "test":
+        if "pytest" in sys.modules:
             for item in self._items.values():
                 item.set_loading(False)
                 item.set_error()
@@ -372,8 +371,7 @@ class ScrollingMarketTicker(QWidget):
         if self._running:
             return
         import sys
-        import os
-        if "pytest" in sys.modules or os.environ.get("PORTFOYSIM_ENV") == "test":
+        if "pytest" in sys.modules:
             for ti in self._row_items:
                 ti.set_loading(False)
                 ti.set_error()

@@ -51,7 +51,7 @@ class YFinanceMarketDataClient(IMarketDataClient):
                     end=end,
                     interval="1d",
                     progress=False,
-                    auto_adjust=False,
+                    auto_adjust=True,
                     timeout=self._timeout,
                 )
         except MARKET_DATA_FALLBACK_ERRORS as e:

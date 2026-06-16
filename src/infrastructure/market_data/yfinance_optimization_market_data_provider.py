@@ -18,7 +18,7 @@ class YFinanceOptimizationMarketDataProvider:
                     period=f"{days}d",
                     interval="1d",
                     progress=False,
-                    auto_adjust=False,
+                    auto_adjust=True,
                     timeout=15,
                 )
         except MARKET_DATA_FALLBACK_ERRORS as exc:
@@ -51,7 +51,7 @@ class YFinanceOptimizationMarketDataProvider:
                         if value is not None:
                             return float(value)
 
-                hist = yt.history(period="5d", auto_adjust=False)
+                hist = yt.history(period="5d", auto_adjust=True)
                 if hist is not None and not hist.empty and "Close" in hist:
                     close_series = hist["Close"].dropna()
                     if not close_series.empty:
