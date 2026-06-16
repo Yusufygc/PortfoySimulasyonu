@@ -112,3 +112,14 @@ class TestParseBistCompanies:
 
     def test_empty_html(self):
         assert _parse_bist_companies("") == {}
+
+    def test_escaped_json_format(self):
+        """KAP gerçek HTML \"-escaped JSON kullanıyor; parser her iki halde de çalışmalı."""
+        html = (
+            r'foo{\"mkkMemberOid\":\"4028e4a140f2ed71014106890fae0138\",'
+            r'\"kapMemberTitle\":\"FORD OTOMOTİV SANAYİ A.Ş.\",'
+            r'\"stockCode\":\"FROTO\",\"cityName\":\"İSTANBUL\"}bar'
+        )
+        out = _parse_bist_companies(html)
+        assert "FROTO" in out
+        assert out["FROTO"]["mkkMemberOid"] == "4028e4a140f2ed71014106890fae0138"

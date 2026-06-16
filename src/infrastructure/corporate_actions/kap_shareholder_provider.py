@@ -139,10 +139,12 @@ class KapShareholderProvider(IShareholderProvider):
 # Parsers — saf fonksiyonlar (test edilebilir)
 # ---------------------------------------------------------------------------
 
-_OBJ_PATTERN  = re.compile(r"\{[^{}]*?\"mkkMemberOid\"[^{}]*?\}")
-_OID_PATTERN  = re.compile(r'"mkkMemberOid":"([0-9a-fA-F]{32})"')
-_TICK_PATTERN = re.compile(r'"stockCode":"([A-Z0-9]+)"')
-_TITLE_PATTERN = re.compile(r'"kapMemberTitle":"([^"]+)"')
+# KAP HTML inline JSON ya raw ya \"-escaped olabilir; her iki halde de match et.
+_Q = r'\\?"'
+_OBJ_PATTERN  = re.compile(r"\{[^{}]*?" + _Q + r"mkkMemberOid" + _Q + r"[^{}]*?\}")
+_OID_PATTERN  = re.compile(_Q + r"mkkMemberOid" + _Q + r":" + _Q + r"([0-9a-fA-F]{32})" + _Q)
+_TICK_PATTERN = re.compile(_Q + r"stockCode" + _Q + r":" + _Q + r"([A-Z0-9]+)" + _Q)
+_TITLE_PATTERN = re.compile(_Q + r"kapMemberTitle" + _Q + r":" + _Q + r"([^\"\\]+)")
 
 
 def _parse_bist_companies(html: str) -> dict[str, dict]:
