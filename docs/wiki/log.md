@@ -5,6 +5,37 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-16] özellik | Phase B — Golden / Death Cross detect + DB + servis (backend)
+
+SMA50 / SMA200 kesişimi (klasik teknik analiz boğa/ayı sinyali) tüm BIST için backend
+olarak entegre edildi. UI sonraki turda (Teknik Analiz sayfası).
+
+- **Domain:** `GoldenCrossEvent` + `CrossType (GOLDEN/DEATH)` + `IGoldenCrossRepository` port
+  (`src/domain/models/golden_cross_event.py`, `i_golden_cross_repo.py`).
+- **Saf detect** (`src/application/services/analysis/technical/golden_cross.py`):
+  vektörel pandas `rolling().mean()` + sign flip; `detect_crosses(closes, short=50, long=200)`
+  → `list[DetectedCross]` (date, type, short_ma, long_ma, close). Ağsız, IO yok.
+- **Infra:**
+  - `ORMGoldenCrossEvent` + `CrossTypeEnum('GOLDEN','DEATH')` (`orm_models.py`); unique
+    (stock_id, cross_date, cross_type) + index'ler.
+  - `scripts/apply_golden_cross_schema.py` (mevcut apply_*_schema kalıbı).
+  - `SQLAlchemyGoldenCrossRepository` — `INSERT ON DUPLICATE KEY` idempotent upsert + JOIN'lu
+    recent/per-stock query.
+- **Application servisi:** `TechnicalAnalysisService` (`src/application/services/analysis/technical/`)
+  - `scan_all(today)` → tüm 641 ticker tara, yeni cross'ları DB'ye yaz.
+  - `scan_ticker(ticker)` → tek ticker scan.
+  - `get_recent_events(days, cross_type)`, `get_events_for_ticker(ticker)` — UI sorgu API'leri.
+- **Container:** `repositories.golden_cross_repo`, `services.technical_analysis_service`.
+- **Testler:** 15 yeni test (8 saf detect + 7 servis mock — yetersiz veri, cross tespiti,
+  query delegate). Toplam 404/404 yeşil.
+- **İlk scan (test env):** 641 ticker × ~60s → **6385 cross eventi**, 58 atlandı (≤200 gün veri).
+
+**Sonraki:**
+- UI fazı — "Teknik Analiz" sayfası (sidebar): Son Sinyaller sekme (tablo + filtre) +
+  Ticker Detay sekme (Plotly kapanış + SMA50/200 + cross marker'lar) + manuel
+  "Taramayı Çalıştır" / "Veri Tamamla" butonları.
+
+---
 ## [2026-06-16] özellik | Phase A2 — Tüm BIST için günlük otomatik veri tamamlama
 
 Phase A1 (CSV import, commit `34b14e8`) ile 586 ticker × 10y verisi `daily_prices` tablosuna

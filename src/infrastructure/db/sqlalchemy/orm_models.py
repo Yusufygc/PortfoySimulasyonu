@@ -16,6 +16,10 @@ class CashMovementTypeEnum(str, enum.Enum):
     DEPOSIT = "DEPOSIT"
     WITHDRAW = "WITHDRAW"
 
+class CrossTypeEnum(str, enum.Enum):
+    GOLDEN = "GOLDEN"
+    DEATH  = "DEATH"
+
 class ORMStock(Base):
     __tablename__ = "stocks"
 
@@ -408,6 +412,32 @@ class ORMKapShareholderSnapshot(Base):
         back_populates="snapshot",
         cascade="all, delete-orphan",
     )
+
+
+class ORMGoldenCrossEvent(Base):
+    """SMA50 ile SMA200 kesişimi (Phase B — Golden / Death Cross taraması)."""
+    __tablename__ = "golden_cross_events"
+
+    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    stock_id = Column(
+        BIGINT(unsigned=True),
+        ForeignKey("stocks.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
+    cross_date = Column(Date, nullable=False)
+    cross_type = Column(Enum(CrossTypeEnum), nullable=False)
+    short_ma = Column(Numeric(18, 4))
+    long_ma = Column(Numeric(18, 4))
+    close_price = Column(Numeric(18, 4), nullable=False)
+    detected_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("stock_id", "cross_date", "cross_type", name="uq_golden_cross_event"),
+        Index("idx_golden_cross_date", "cross_date"),
+        Index("idx_golden_cross_type_date", "cross_type", "cross_date"),
+    )
+
+    stock = relationship("ORMStock")
 
 
 class ORMKapShareholderRow(Base):
