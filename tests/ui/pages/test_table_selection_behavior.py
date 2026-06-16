@@ -12,7 +12,7 @@ from src.domain.models.watchlist import Watchlist
 from src.domain.models.position import Position
 from src.ui.pages.dashboard.dashboard_portfolio_table import DashboardPortfolioTable
 from src.ui.pages.watchlist_page import WatchlistPage, _make_readonly_table_item
-from src.ui.portfolio_table_model import PortfolioTableModel
+from src.ui.portfolio_table_model import PortfolioTableModel, PortfolioTableData
 from src.ui.shared.locale_tr import L10N
 from src.ui.styles import tokens as theme_tokens
 from src.ui.widgets.model_portfolio.tables.positions_table import PositionsTable
@@ -34,10 +34,12 @@ def _assert_passive_table(table: QTableWidget) -> None:
 
 def _dashboard_model() -> PortfolioTableModel:
     return PortfolioTableModel(
-        positions=[Position(stock_id=1, total_quantity=10, total_cost=Decimal("100"))],
-        price_map={1: Decimal("12")},
-        ticker_map={1: "ASELS.IS"},
-        previous_close_map={1: Decimal("11")},
+        PortfolioTableData(
+            positions=[Position(stock_id=1, total_quantity=10, total_cost=Decimal("100"))],
+            price_map={1: Decimal("12")},
+            ticker_map={1: "ASELS.IS"},
+            previous_close_map={1: Decimal("11")},
+        )
     )
 
 

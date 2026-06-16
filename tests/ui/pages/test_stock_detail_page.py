@@ -322,6 +322,7 @@ def test_stock_chart_draws_empty_state_and_disables_date_si_prefix():
 
 
 def test_stock_chart_draws_price_series_with_pyqtgraph(drain_qt_events):
+    from src.ui.pages.stock_detail.stock_chart_widget import ChartContext
     chart = StockChartWidget()
     series = {
         date(2026, 5, 22): Decimal("7.50"),
@@ -330,8 +331,16 @@ def test_stock_chart_draws_price_series_with_pyqtgraph(drain_qt_events):
     }
     chart.set_price_series_provider(lambda ticker, start, end: series)
 
-    chart.draw_chart("OBAMS", 1, Decimal("7.96"), DummyPortfolioService())
-    chart.draw_chart("OBAMS", 1, Decimal("7.96"), DummyPortfolioService())
+    ctx = ChartContext(
+        ticker="OBAMS",
+        stock_id=1,
+        price=Decimal("7.96"),
+        portfolio_service=DummyPortfolioService(),
+        price_repo=SimpleNamespace(get_price_series=lambda *args, **kwargs: []),
+        average_cost=None
+    )
+    chart.draw_chart(ctx)
+    chart.draw_chart(ctx)
     drain_qt_events()
 
     assert len(chart.plot_widget.listDataItems()) >= 1
@@ -379,17 +388,17 @@ def test_stock_detail_model_submit_writes_model_trade(monkeypatch):
     expected_time = page.trade_form.time_edit.time().toPyTime()
     page._on_submit_trade(True, 2, 11.75, SimpleNamespace(toPyDate=lambda: date(2026, 5, 26)))
 
-    assert service.add_calls == [
-        {
-            "portfolio_id": 3,
-            "ticker": "SMRTG.IS",
-            "side": "BUY",
-            "quantity": 2,
-            "price": Decimal("11.75"),
-            "trade_date": date(2026, 5, 26),
-            "trade_time": expected_time,
-        }
-    ]
+    assert len(service.add_calls) == 1
+    call = service.add_calls[0]
+    assert call["portfolio_id"] == 3
+    assert call["ticker"] == "SMRTG.IS"
+    
+    trade_input = call["trade_input"]
+    assert trade_input.side == "BUY"
+    assert trade_input.quantity == 2
+    assert trade_input.price == Decimal("11.75")
+    assert trade_input.trade_date == date(2026, 5, 26)
+    assert trade_input.trade_time == expected_time
 
 
 def test_stock_detail_real_submit_warns_when_trade_validation_fails(monkeypatch):
@@ -397,7 +406,7 @@ def test_stock_detail_real_submit_warns_when_trade_validation_fails(monkeypatch)
     page.current_ticker = "ASELS.IS"
     page.current_stock_id = 1
     page.trade_entry_service = SimpleNamespace(
-        submit_trade=lambda **kwargs: (_ for _ in ()).throw(ValueError("Yetersiz pozisyon"))
+        submit_trade=lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("Yetersiz pozisyon"))
     )
     warnings = []
     monkeypatch.setattr(
@@ -453,7 +462,16 @@ def test_stock_chart_uses_db_series_before_provider(drain_qt_events):
         lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("provider should not be called")),
     )
 
-    chart.draw_chart("SMRTG.IS", 1, Decimal("11"), None, price_repo=price_repo, average_cost=Decimal("9"))
+    from src.ui.pages.stock_detail.stock_chart_widget import ChartContext
+    ctx = ChartContext(
+        ticker="SMRTG.IS",
+        stock_id=1,
+        price=Decimal("11"),
+        portfolio_service=None,
+        price_repo=price_repo,
+        average_cost=Decimal("9")
+    )
+    chart.draw_chart(ctx)
     drain_qt_events()
 
     assert len(chart.plot_widget.listDataItems()) >= 1
@@ -468,7 +486,15 @@ def test_stock_chart_falls_back_to_provider_when_db_empty(drain_qt_events):
         return {date(2026, 5, 25): Decimal("11")}
 
     chart.set_price_series_provider(provider)
-    chart.draw_chart("SMRTG", 1, Decimal("11"), None, price_repo=None)
+    from src.ui.pages.stock_detail.stock_chart_widget import ChartContext
+    ctx = ChartContext(
+        ticker="SMRTG",
+        stock_id=1,
+        price=Decimal("11"),
+        portfolio_service=None,
+        price_repo=None
+    )
+    chart.draw_chart(ctx)
     drain_qt_events()
 
     assert calls == ["SMRTG.IS"]  # UI .IS normalizasyonunu korur
@@ -524,7 +550,14 @@ def test_stock_chart_reference_legend_offset_avoids_title_overlap():
     chart = StockChartWidget()
     series = {date(2026, 5, 22): Decimal("7.50"), date(2026, 5, 25): Decimal("7.80")}
     chart.set_price_series_provider(lambda *_: series)
-    chart.draw_chart("OBAMS", 1, Decimal("7.80"), DummyPortfolioService())
+    from src.ui.pages.stock_detail.stock_chart_widget import ChartContext
+    ctx = ChartContext(
+        ticker="OBAMS",
+        stock_id=1,
+        price=Decimal("7.80"),
+        portfolio_service=DummyPortfolioService()
+    )
+    chart.draw_chart(ctx)
 
     # Worker async; offset doğrudan kaynaktan teyit edilebilir
     chart._add_reference_legend_item("test", None)

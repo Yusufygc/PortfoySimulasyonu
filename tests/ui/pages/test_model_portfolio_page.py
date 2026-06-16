@@ -431,8 +431,15 @@ def test_model_portfolio_capital_action_passes_dialog_result_to_service(monkeypa
                 "net_capital": Decimal("1200"),
             }
 
-        def add_capital_movement(self, **kwargs):
-            calls.append(("service", kwargs))
+        def add_capital_movement(self, spec):
+            calls.append(("service", {
+                "portfolio_id": spec.portfolio_id,
+                "movement_type": spec.movement_type,
+                "amount": spec.amount,
+                "movement_date": spec.movement_date,
+                "movement_time": spec.movement_time,
+                "notes": spec.notes,
+            }))
 
     monkeypatch.setattr(
         "src.ui.pages.model_portfolio.utils.model_portfolio_actions.CapitalMovementDialog",
@@ -481,8 +488,8 @@ def test_model_portfolio_capital_action_ignores_invalid_dialog_result(monkeypatc
                 "net_capital": Decimal("1200"),
             }
 
-        def add_capital_movement(self, **kwargs):
-            calls.append(("service", kwargs))
+        def add_capital_movement(self, spec):
+            calls.append(("service", spec))
 
     monkeypatch.setattr(
         "src.ui.pages.model_portfolio.utils.model_portfolio_actions.CapitalMovementDialog",

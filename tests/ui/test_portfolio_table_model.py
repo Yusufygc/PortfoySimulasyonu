@@ -6,16 +6,18 @@ pytest.importorskip("PySide6")
 from src.qt_compat.qtcore import Qt
 
 from src.domain.models.position import Position
-from src.ui.portfolio_table_model import PortfolioTableModel
+from src.ui.portfolio_table_model import PortfolioTableModel, PortfolioTableData
 from src.ui.shared.locale_tr import L10N
 
 
 def test_portfolio_table_model_uses_requested_header_order():
     model = PortfolioTableModel(
-        positions=[],
-        price_map={},
-        ticker_map={},
-        previous_close_map={},
+        PortfolioTableData(
+            positions=[],
+            price_map={},
+            ticker_map={},
+            previous_close_map={},
+        )
     )
 
     headers = [
@@ -37,10 +39,12 @@ def test_portfolio_table_model_uses_requested_header_order():
 
 def test_portfolio_table_model_displays_daily_and_total_change_percentages():
     model = PortfolioTableModel(
-        positions=[Position(stock_id=1, total_quantity=10, total_cost=Decimal("100"))],
-        price_map={1: Decimal("12")},
-        ticker_map={1: "ASELS.IS"},
-        previous_close_map={1: Decimal("11")},
+        PortfolioTableData(
+            positions=[Position(stock_id=1, total_quantity=10, total_cost=Decimal("100"))],
+            price_map={1: Decimal("12")},
+            ticker_map={1: "ASELS.IS"},
+            previous_close_map={1: Decimal("11")},
+        )
     )
 
     assert model.data(model.index(0, 1)) == "10.00"
@@ -54,10 +58,12 @@ def test_portfolio_table_model_displays_daily_and_total_change_percentages():
 
 def test_portfolio_table_model_returns_dash_without_previous_close():
     model = PortfolioTableModel(
-        positions=[Position(stock_id=1, total_quantity=10, total_cost=Decimal("100"))],
-        price_map={1: Decimal("12")},
-        ticker_map={1: "ASELS.IS"},
-        previous_close_map={},
+        PortfolioTableData(
+            positions=[Position(stock_id=1, total_quantity=10, total_cost=Decimal("100"))],
+            price_map={1: Decimal("12")},
+            ticker_map={1: "ASELS.IS"},
+            previous_close_map={},
+        )
     )
 
     assert model.data(model.index(0, 3)) == "-"

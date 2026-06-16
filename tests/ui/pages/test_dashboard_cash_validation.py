@@ -89,7 +89,7 @@ def test_dashboard_new_trade_shows_warning_for_invalid_trade(monkeypatch):
     warnings = []
     presenter = SimpleNamespace(load_capital=lambda: None, refresh_data=lambda: None)
     trade_service = SimpleNamespace(
-        submit_trade=lambda **kwargs: (_ for _ in ()).throw(ValueError("Yetersiz nakit"))
+        submit_trade=lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("Yetersiz nakit"))
     )
     dialog = SimpleNamespace(
         get_result=lambda: {

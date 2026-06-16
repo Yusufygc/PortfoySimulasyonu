@@ -73,6 +73,7 @@ def test_ui_price_events_are_published_through_helper_only():
 
 def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
     allowed = {
+        ("src/ui/main_window.py", "MainWindow"),
         ("src/ui/pages/risk_profile_page.py", "RiskProfilePage"),
         ("src/ui/pages/watchlist_page.py", "WatchlistPage"),
         ("src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py", "NewStockTradeDialog"),

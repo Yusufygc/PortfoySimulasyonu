@@ -201,7 +201,7 @@ class TechnicalAnalysisPage(BasePage):
 
         service = getattr(self.container, "price_data_health_service", None)
         if service is None:
-            self._status_label.setText("Hata: PriceDataHealthService bulunamadı.")
+            self._status_label.setText(L10N.HATA_TEK_SATIR_TMPL.format(exc="PriceDataHealthService not found"))
             self._btn_scan.setEnabled(True)
             self._btn_backfill.setEnabled(True)
             return

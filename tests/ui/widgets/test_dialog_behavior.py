@@ -18,7 +18,7 @@ from src.domain.models.corporate_action_candidate import CorporateActionCandidat
 from src.domain.models.stock import Stock
 from src.ui.pages.settings.corporate_action_candidates_panel import CorporateActionCandidateEditDialog
 from src.ui.widgets.dashboard.dialogs.capital_dialog import CapitalDialog
-from src.ui.widgets.dashboard.dialogs.corporate_action_dialog import CorporateActionDialog
+from src.ui.widgets.dashboard.dialogs.corporate_action_dialog import CorporateActionDialog, CorporateActionDialogContext
 from src.ui.widgets.dashboard.dialogs.date_range_dialog import DateRangeDialog
 from src.ui.widgets.dashboard.dialogs.new_stock_trade_dialog import NewStockTradeDialog
 from src.ui.widgets.model_portfolio.dialogs.portfolio_input_dialog import PortfolioInputDialog
@@ -176,7 +176,7 @@ def test_custom_dialogs_hide_context_help_button(qapp):
         TradeInputDialog("BUY"),
         NewStockTradeDialog(price_lookup_func=None),
         CapitalDialog(Decimal("1000")),
-        CorporateActionDialog("ASELS.IS", 1, 100, Decimal("10"), Decimal("1000"), Decimal("20")),
+        CorporateActionDialog(CorporateActionDialogContext("ASELS.IS", 1, 100, Decimal("10"), Decimal("1000"), Decimal("20"))),
         DateRangeDialog(),
         PortfolioInputDialog(),
         GoalInputDialog(),
@@ -213,7 +213,7 @@ def test_custom_dialogs_keep_close_button_enabled(qapp):
         TradeInputDialog("BUY"),
         NewStockTradeDialog(price_lookup_func=None),
         CapitalDialog(Decimal("1000")),
-        CorporateActionDialog("ASELS.IS", 1, 100, Decimal("10"), Decimal("1000"), Decimal("20")),
+        CorporateActionDialog(CorporateActionDialogContext("ASELS.IS", 1, 100, Decimal("10"), Decimal("1000"), Decimal("20"))),
         DateRangeDialog(),
         PortfolioInputDialog(),
         GoalInputDialog(),

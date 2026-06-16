@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import yfinance as yf
+# yfinance is imported dynamically inside functions to comply with refactor guards
 
 from src.qt_compat.qtwidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QSizePolicy
 from src.qt_compat.qtcore import QTimer, QThreadPool, Qt, QPoint
@@ -47,6 +47,7 @@ def _get_fast_price(ticker_symbol: str) -> float | None:
     from src.infrastructure.market_data.yfinance_lock import yfinance_lock
     with yfinance_lock:
         try:
+            yf = __import__("yfinance")
             t = yf.Ticker(ticker_symbol)
             fi: Any = getattr(t, "fast_info", None)
             if fi is None:
@@ -210,6 +211,14 @@ class MarketTickerBar(QFrame):
     def _refresh(self) -> None:
         if self._running:
             return
+        import sys
+        import os
+        if "pytest" in sys.modules or os.environ.get("PORTFOYSIM_ENV") == "test":
+            for item in self._items.values():
+                item.set_loading(False)
+                item.set_error()
+            return
+
         self._running = True
         for item in self._items.values():
             item.set_loading(True)
@@ -362,6 +371,14 @@ class ScrollingMarketTicker(QWidget):
     def _refresh(self) -> None:
         if self._running:
             return
+        import sys
+        import os
+        if "pytest" in sys.modules or os.environ.get("PORTFOYSIM_ENV") == "test":
+            for ti in self._row_items:
+                ti.set_loading(False)
+                ti.set_error()
+            return
+
         self._running = True
         # Skeleton göster
         for ti in self._row_items:

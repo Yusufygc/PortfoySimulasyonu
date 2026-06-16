@@ -556,6 +556,7 @@ def test_chart_renderer_main_fig_uses_date_and_decimal_hover_format():
 def test_chart_renderer_builds_contextual_download_filename():
     from types import SimpleNamespace
     from src.ui.pages.comparison.utils import chart_renderer
+    from src.ui.pages.comparison.utils.chart_renderer import _DownloadCtx
 
     page = SimpleNamespace(
         ribbon_bar=SimpleNamespace(),
@@ -563,15 +564,18 @@ def test_chart_renderer_builds_contextual_download_filename():
     )
     renderer = chart_renderer.ChartRenderer(page)
 
+    ctx = _DownloadCtx(
+        selected_assets=["dashboard", "xu100"],
+        ratio_assets=None,
+        code_to_label={},
+        asset_labels=page._asset_labels,
+    )
     filename = renderer._build_download_filename(
         chart_key="main",
         mode="Normal",
-        selected_assets=["dashboard", "xu100"],
-        ratio_assets=None,
         start_date=date(2026, 3, 8),
         end_date=date(2026, 6, 5),
-        code_to_label={},
-        asset_labels=page._asset_labels,
+        ctx=ctx,
     )
 
     assert filename == "ana_portfoy_bist_100_ana_performans_normal_08.03.2026_05.06.2026"
@@ -580,6 +584,7 @@ def test_chart_renderer_builds_contextual_download_filename():
 def test_chart_renderer_ratio_mode_uses_pay_and_payda_in_download_filename():
     from types import SimpleNamespace
     from src.ui.pages.comparison.utils import chart_renderer
+    from src.ui.pages.comparison.utils.chart_renderer import _DownloadCtx
     from src.ui.shared.locale_tr import L10N
 
     page = SimpleNamespace(
@@ -588,15 +593,18 @@ def test_chart_renderer_ratio_mode_uses_pay_and_payda_in_download_filename():
     )
     renderer = chart_renderer.ChartRenderer(page)
 
+    ctx = _DownloadCtx(
+        selected_assets=["dashboard", "portfolio:4", "xu100"],
+        ratio_assets=("portfolio:4", "dashboard"),
+        code_to_label={},
+        asset_labels=page._asset_labels,
+    )
     filename = renderer._build_download_filename(
         chart_key="main",
         mode=L10N.RASYO_MODU,
-        selected_assets=["dashboard", "portfolio:4", "xu100"],
-        ratio_assets=("portfolio:4", "dashboard"),
         start_date=date(2026, 3, 8),
         end_date=date(2026, 6, 5),
-        code_to_label={},
-        asset_labels=page._asset_labels,
+        ctx=ctx,
     )
 
     assert filename == "portfoy_4_ana_portfoy_ana_performans_rasyo_modu_08.03.2026_05.06.2026"
