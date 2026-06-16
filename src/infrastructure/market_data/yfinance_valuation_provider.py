@@ -62,35 +62,37 @@ def _fetch_snapshot(ticker: str) -> dict[str, Any]:
     }
 
     try:
-        t    = yf.Ticker(yf_ticker)
-        info = t.fast_info
-        try:
-            result["price"] = float(info.last_price)
-        except Exception:
-            pass
-        try:
-            mc = info.market_cap
-            if mc:
-                result["market_cap"] = float(mc)
-        except Exception:
-            pass
-        try:
-            so = info.shares
-            if so:
-                result["shares_outstanding"] = float(so)
-        except Exception:
-            pass
+        from .yfinance_lock import yfinance_lock
+        with yfinance_lock:
+            t    = yf.Ticker(yf_ticker)
+            info = t.fast_info
+            try:
+                result["price"] = float(info.last_price)
+            except Exception:
+                pass
+            try:
+                mc = info.market_cap
+                if mc:
+                    result["market_cap"] = float(mc)
+            except Exception:
+                pass
+            try:
+                so = info.shares
+                if so:
+                    result["shares_outstanding"] = float(so)
+            except Exception:
+                pass
 
-        if result["market_cap"] is None:
-            p, so = result["price"], result["shares_outstanding"]
-            if p is not None and so is not None:
-                result["market_cap"] = p * so
+            if result["market_cap"] is None:
+                p, so = result["price"], result["shares_outstanding"]
+                if p is not None and so is not None:
+                    result["market_cap"] = p * so
 
-        if result["price"] is None and result["market_cap"] is None:
-            full = t.info
-            result["price"]              = full.get("currentPrice") or full.get("previousClose")
-            result["market_cap"]         = full.get("marketCap")
-            result["shares_outstanding"] = full.get("sharesOutstanding")
+            if result["price"] is None and result["market_cap"] is None:
+                full = t.info
+                result["price"]              = full.get("currentPrice") or full.get("previousClose")
+                result["market_cap"]         = full.get("marketCap")
+                result["shares_outstanding"] = full.get("sharesOutstanding")
 
     except Exception as exc:
         result["error"] = str(exc)

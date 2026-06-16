@@ -42,16 +42,18 @@ class YFinanceMarketDataClient(IMarketDataClient):
         self._price_client = YFinancePriceClient(self)
 
     def _download_dataframe(self, tickers, start: date, end: date):
+        from .yfinance_lock import yfinance_lock
         try:
-            return yf.download(
-                tickers=tickers,
-                start=start,
-                end=end,
-                interval="1d",
-                progress=False,
-                auto_adjust=False,
-                timeout=self._timeout,
-            )
+            with yfinance_lock:
+                return yf.download(
+                    tickers=tickers,
+                    start=start,
+                    end=end,
+                    interval="1d",
+                    progress=False,
+                    auto_adjust=False,
+                    timeout=self._timeout,
+                )
         except MARKET_DATA_FALLBACK_ERRORS as e:
             raise MarketDataUnavailableError(f"YFinance indirme hatasi: {e}") from e
 

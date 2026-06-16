@@ -15,51 +15,53 @@ logger = logging.getLogger(__name__)
 
 class YFinancePriceLookupProvider:
     def lookup(self, normalized_ticker: str) -> PriceLookupSnapshot | None:
-        try:
-            yf_ticker = yf.Ticker(normalized_ticker)
-        except MARKET_DATA_FALLBACK_ERRORS as exc:
-            logger.error("YF Ticker init failed for %s: %s", normalized_ticker, exc)
-            return None
+        from .yfinance_lock import yfinance_lock
+        with yfinance_lock:
+            try:
+                yf_ticker = yf.Ticker(normalized_ticker)
+            except MARKET_DATA_FALLBACK_ERRORS as exc:
+                logger.error("YF Ticker init failed for %s: %s", normalized_ticker, exc)
+                return None
 
-        fast_info = self._safe_mapping(getattr(yf_ticker, "fast_info", None))
-        info = self._safe_mapping(getattr(yf_ticker, "info", None))
-        company_name = self._extract_company_name(info)
+            fast_info = self._safe_mapping(getattr(yf_ticker, "fast_info", None))
+            info = self._safe_mapping(getattr(yf_ticker, "info", None))
+            company_name = self._extract_company_name(info)
 
-        intraday_price = self._extract_intraday_price(fast_info, info)
-        if intraday_price is not None:
+            intraday_price = self._extract_intraday_price(fast_info, info)
+            if intraday_price is not None:
+                return PriceLookupSnapshot(
+                    intraday_price=intraday_price,
+                    company_name=company_name,
+                )
+
+            try:
+                history = yf_ticker.history(period="7d", auto_adjust=False)
+            except MARKET_DATA_FALLBACK_ERRORS as exc:
+                logger.error("YF history failed for %s: %s", normalized_ticker, exc)
+                return None
+
+            if history is None or history.empty or "Close" not in history:
+                return None
+
+            close_series = history["Close"].dropna()
+            if close_series.empty:
+                return None
+
+            last_ts = close_series.index[-1]
+            last_price = self._to_decimal(close_series.iloc[-1])
+            if last_price is None:
+                return None
+
+            as_of = (
+                last_ts.to_pydatetime().replace(tzinfo=timezone.utc)
+                if hasattr(last_ts, "to_pydatetime")
+                else None
+            )
             return PriceLookupSnapshot(
-                intraday_price=intraday_price,
+                last_close_price=last_price,
+                last_close_as_of=as_of,
                 company_name=company_name,
             )
-
-        try:
-            history = yf_ticker.history(period="7d", auto_adjust=False)
-        except MARKET_DATA_FALLBACK_ERRORS as exc:
-            logger.error("YF history failed for %s: %s", normalized_ticker, exc)
-            return None
-
-        if history is None or history.empty or "Close" not in history:
-            return None
-
-        close_series = history["Close"].dropna()
-        if close_series.empty:
-            return None
-
-        last_ts = close_series.index[-1]
-        last_price = self._to_decimal(close_series.iloc[-1])
-        if last_price is None:
-            return None
-
-        as_of = (
-            last_ts.to_pydatetime().replace(tzinfo=timezone.utc)
-            if hasattr(last_ts, "to_pydatetime")
-            else None
-        )
-        return PriceLookupSnapshot(
-            last_close_price=last_price,
-            last_close_as_of=as_of,
-            company_name=company_name,
-        )
 
     def _safe_mapping(self, value: Any) -> dict:
         try:

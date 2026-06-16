@@ -44,25 +44,27 @@ _DISPLAY_ORDER = ["ALTIN", "GÜMÜŞ", "USD/TRY", "EUR/TRY", "BIST 100"]
 
 def _get_fast_price(ticker_symbol: str) -> float | None:
     """yfinance fast_info'dan fiyat çeker. None = başarısız."""
-    try:
-        t = yf.Ticker(ticker_symbol)
-        fi: Any = getattr(t, "fast_info", None)
-        if fi is None:
-            return None
-        for key in ("lastPrice", "last_price", "regularMarketPrice", "currentPrice"):
-            try:
-                val = fi.get(key) if hasattr(fi, "get") else getattr(fi, key, None)
-            except Exception:
-                val = None
-            if val is not None:
+    from src.infrastructure.market_data.yfinance_lock import yfinance_lock
+    with yfinance_lock:
+        try:
+            t = yf.Ticker(ticker_symbol)
+            fi: Any = getattr(t, "fast_info", None)
+            if fi is None:
+                return None
+            for key in ("lastPrice", "last_price", "regularMarketPrice", "currentPrice"):
                 try:
-                    return float(val)
-                except (TypeError, ValueError):
-                    pass
-        return None
-    except Exception as exc:
-        logger.debug("[MarketTickerBar] %s fetch failed: %s", ticker_symbol, exc)
-        return None
+                    val = fi.get(key) if hasattr(fi, "get") else getattr(fi, key, None)
+                except Exception:
+                    val = None
+                if val is not None:
+                    try:
+                        return float(val)
+                    except (TypeError, ValueError):
+                        pass
+            return None
+        except Exception as exc:
+            logger.debug("[MarketTickerBar] %s fetch failed: %s", ticker_symbol, exc)
+            return None
 
 
 def _fetch_all() -> dict[str, float]:
