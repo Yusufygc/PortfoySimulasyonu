@@ -62,3 +62,40 @@ QToolButton[cssClass="toastClose"] {
 QToolButton[cssClass="toastClose"]:hover {
     background-color: @TOAST_CLOSE_HOVER_BG;
 }
+
+/* =======================================================
+   MarketTickerBar — Piyasa Şeridi
+   Dashboard ve Model Portföy sayfalarında header altında.
+======================================================= */
+
+QFrame#marketTickerBar {
+    background-color: @COLOR_BG_SURFACE;
+    border-top: 1px solid @COLOR_BORDER;
+    border-bottom: 1px solid @COLOR_BORDER;
+    border-radius: 0px;
+}
+
+QLabel[cssClass="tickerLabel"] {
+    background: transparent;
+    color: @COLOR_TEXT_BRIGHT;
+    font-size: 13px;
+    font-weight: 700;
+    border: none;
+}
+
+QLabel[cssClass="tickerValue"] {
+    background: transparent;
+    color: @COLOR_ACCENT;
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+}
+
+QFrame[cssClass="tickerSeparator"] {
+    color: @COLOR_BORDER;
+    background-color: @COLOR_BORDER;
+    max-width: 1px;
+    min-height: 24px;
+    max-height: 24px;
+    margin: 14px 0px;
+}

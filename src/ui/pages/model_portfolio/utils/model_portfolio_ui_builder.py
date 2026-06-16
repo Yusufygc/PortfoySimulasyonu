@@ -19,7 +19,7 @@ from src.qt_compat.qtcore import Qt
 
 from src.ui.widgets.shared.controls.icon_label import IconLabel
 from src.ui.widgets.model_portfolio import PortfolioListPanel, PositionsTable
-from src.ui.widgets.shared import AnimatedButton, InfoCard, MarketTickerBar
+from src.ui.widgets.shared import AnimatedButton, InfoCard, ScrollingMarketTicker
 
 if TYPE_CHECKING:
     from src.ui.pages.model_portfolio.model_portfolio_page import ModelPortfolioPage
@@ -40,7 +40,9 @@ class ModelPortfolioUIBuilder:
         title_label = QLabel(L10N.MODEL_PORTFOYLER)
         title_label.setProperty("cssClass", "pageTitle")
         header.addWidget(title_label)
-        header.addStretch()
+        # Marquee ticker — başlık ile butonlar arasında, sağdan sola kayar
+        self.page._market_bar = ScrollingMarketTicker(parent=self.page)
+        header.addWidget(self.page._market_bar, 1)
         right_container = QVBoxLayout()
         right_container.setSpacing(6)
         right_container.setContentsMargins(0, 0, 0, 0)
@@ -50,8 +52,6 @@ class ModelPortfolioUIBuilder:
         right_container.addWidget(self.page.lbl_last_update, 0, Qt.AlignRight | Qt.AlignVCenter)
         header.addLayout(right_container)
         self.page.main_layout.addLayout(header)
-        self.page._market_bar = MarketTickerBar(parent=self.page)
-        self.page.main_layout.addWidget(self.page._market_bar)
         lbl_desc = QLabel(L10N.KENDI_PORTFOY_MODELLERINIZI_OLUSTURUN_VE)
         lbl_desc.setWordWrap(True)
         lbl_desc.setProperty("cssClass", "pageDescription")

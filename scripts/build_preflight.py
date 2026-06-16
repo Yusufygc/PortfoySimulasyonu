@@ -120,7 +120,7 @@ def run_checks(
     checks = [
         _python_version(),
         _require_file(root, ".env.example"),
-        _require_file(root, "icons/portfoy-simulasyonu.ico"),
+        _require_file(root, "icons/icon.ico"),
         _require_file(root, "build_nuitka.bat"),
         _pinned_requirements(root, "requirements.txt"),
         _pinned_requirements(root, "requirements-build.txt"),

@@ -14,6 +14,7 @@ Kullanım:
 from src.qt_compat.qtwidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from src.qt_compat.qtcore import Qt
 from src.ui.widgets.shared.controls.icon_label import IconLabel
+from src.ui.widgets.shared.feedback.skeleton_widget import SkeletonBlock
 
 
 class MetricCard(QFrame):
@@ -78,6 +79,11 @@ class MetricCard(QFrame):
         self._lbl_delta.setAlignment(Qt.AlignRight)
         layout.addWidget(self._lbl_delta)
 
+        self._skeleton_current = SkeletonBlock(width=80, height=14, parent=self)
+        self._skeleton_optimal = SkeletonBlock(width=80, height=14, parent=self)
+        self._skeleton_current.hide()
+        self._skeleton_optimal.hide()
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -121,3 +127,15 @@ class MetricCard(QFrame):
         self._lbl_delta.setProperty("cssState", "")
         self._lbl_delta.style().unpolish(self._lbl_delta)
         self._lbl_delta.style().polish(self._lbl_delta)
+
+    def set_loading(self, loading: bool) -> None:
+        """Yükleme durumunu açar/kapatır. True iken skeleton gösterilir."""
+        self._lbl_current.setVisible(not loading)
+        self._lbl_optimal.setVisible(not loading)
+        self._lbl_delta.setVisible(not loading)
+        if loading:
+            self._skeleton_current.start()
+            self._skeleton_optimal.start()
+        else:
+            self._skeleton_current.stop()
+            self._skeleton_optimal.stop()

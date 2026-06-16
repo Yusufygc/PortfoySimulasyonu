@@ -413,7 +413,7 @@ Python tabanlı kütüphaneleri (PyQt5, SciPy vb.) bağımsız bir masaüstü uy
 .\build_nuitka.bat
 ```
 
-Build script; uygulama ikonunu `icons/portfoy-simulasyonu.ico` dosyasından alır, plugin'leri aktif eder ve `dist/` dizini altında son derlenmiş versiyonu çıkartır. Bilimsel kütüphanelerin paketlenmesi oldukça uzun sürebilir.
+Build script; uygulama ikonunu `icons/icon.ico` dosyasından alır, plugin'leri aktif eder ve `dist/` dizini altında son derlenmiş versiyonu çıkartır. Bilimsel kütüphanelerin paketlenmesi oldukça uzun sürebilir.
 
 Build script `requirements.txt` ve `requirements-build.txt` dosyalarındaki pinli sürümleri kullanır. `scripts/build_preflight.py` önce Python sürümü, pinli dependency formatı, Nuitka kurulumu, ikon, `.env.example`, pytest marker'ları ve `dist/.env` guard kontrollerini çalıştırır. Gerçek `.env` dosyası exe içine gömülmez; dağıtılan uygulama kendi bulunduğu dizindeki kullanıcıya özel `.env` dosyasını runtime sırasında okur.
 

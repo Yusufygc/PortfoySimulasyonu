@@ -12,7 +12,7 @@ from src.ui.shared.last_update_mixin import LastUpdateDisplayMixin
 from src.ui.core.icon_manager import IconManager
 from src.ui.shared.locale_tr import L10N
 from src.ui.widgets.dashboard import CapitalDialog, DateRangeDialog, NewStockTradeDialog
-from src.ui.widgets.shared import AnimatedButton, Toast
+from src.ui.widgets.shared import AnimatedButton, Toast, MarketTickerBar
 
 from .dashboard_actions import DashboardActions
 from .dashboard_portfolio_table import DashboardPortfolioTable
@@ -78,6 +78,8 @@ class DashboardPage(BasePage, LastUpdateDisplayMixin):
         header_layout.addLayout(self._build_title_block(), 1)
         header_layout.addLayout(self._build_actions_block(), 0)
         self.main_layout.addLayout(header_layout)
+        self._market_bar = MarketTickerBar(parent=self)
+        self.main_layout.addWidget(self._market_bar)
         self.summary_cards = DashboardSummaryCards()
         self.main_layout.addWidget(self.summary_cards)
         self.portfolio_table_widget = DashboardPortfolioTable()

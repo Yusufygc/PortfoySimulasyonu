@@ -34,6 +34,7 @@ def main():
 
     # Kayıtlı tema tercihini yükle (varsayılan: "dark")
     ThemeManager.apply_theme(app)
+    ThemeManager.connect_system_theme(app)
 
     # Container yapısını başlat (Bütün repo ve servisler içinde ayağa kalkar)
     container = AppContainer()

@@ -2,7 +2,7 @@
 import os
 import logging
 from typing import Optional
-from src.qt_compat.qtcore import QSettings
+from src.qt_compat.qtcore import QSettings, Qt
 from src.qt_compat.qtwidgets import QApplication
 from src.qt_compat.qtgui import QFont, QFontDatabase
 
@@ -258,6 +258,23 @@ class ThemeManager:
             resolved = resolved.replace(f"__COMMENT_{i}__", comment)
 
         return resolved
+
+    @classmethod
+    def connect_system_theme(cls, app: QApplication) -> None:
+        """OS dark/light değişikliğini dinle. Qt 6.5+ gerektirir."""
+        hints = app.styleHints()
+        if hasattr(hints, "colorSchemeChanged"):
+            hints.colorSchemeChanged.connect(cls._on_system_scheme_changed)
+            logger.info("[ThemeManager] Sistem tema değişikliği dinleyicisi bağlandı.")
+        else:
+            logger.debug("[ThemeManager] colorSchemeChanged mevcut değil (Qt < 6.5).")
+
+    @classmethod
+    def _on_system_scheme_changed(cls, scheme) -> None:
+        target = "dark" if scheme == Qt.ColorScheme.Dark else "light"
+        if target != cls._current_theme_id:
+            logger.info(f"[ThemeManager] OS tema değişti → '{target}'")
+            cls.switch_theme(target)
 
     @classmethod
     def _load_inter_font(cls) -> str:

@@ -20,6 +20,7 @@ class PageFactory:
             10: self._create_settings,
             11: self._create_financials,
             12: self._create_shareholders,
+            13: self._create_technical_analysis,
         }
 
     def create(self, page_index: int):
@@ -96,3 +97,8 @@ class PageFactory:
         from src.ui.pages.shareholders.shareholders_page import ShareholdersPage
 
         return ShareholdersPage(container=self._container)
+
+    def _create_technical_analysis(self):
+        from src.ui.pages.technical.technical_analysis_page import TechnicalAnalysisPage
+
+        return TechnicalAnalysisPage(container=self._container)

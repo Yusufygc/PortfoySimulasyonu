@@ -1,6 +1,6 @@
 from src.ui.shared.locale_tr import L10N
-from src.qt_compat.qtwidgets import QWidget, QHBoxLayout, QLineEdit
-from src.qt_compat.qtcore import Signal
+from src.qt_compat.qtwidgets import QWidget, QHBoxLayout, QLineEdit, QCompleter
+from src.qt_compat.qtcore import Signal, QStringListModel, Qt
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared.controls.animated_button import AnimatedButton
 
@@ -41,6 +41,17 @@ class TickerInputBar(QWidget):
             self.input_field.setCursorPosition(cursor_pos)
             
         self.btn_analyze.setEnabled(bool(upper_text.strip()))
+
+    def set_ticker_list(self, tickers: list[str]) -> None:
+        """DB'deki hisse kodlarını autocomplete olarak ekler."""
+        if not tickers:
+            return
+        model = QStringListModel(tickers, self)
+        completer = QCompleter(model, self)
+        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.input_field.setCompleter(completer)
 
     def _on_analyze(self):
         ticker = self.input_field.text().strip().upper()

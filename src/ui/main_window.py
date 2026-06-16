@@ -107,15 +107,16 @@ def _build_sidebar_nav(sidebar_layout, goto_page_func):
     btn_settings       = _make_nav_button(L10N.SETTINGS,               10, "save",         goto_page_func)
     btn_financials     = _make_nav_button(L10N.BILANCO_VE_FINANSALLAR, 11, "bar-chart-2",  goto_page_func)
     btn_shareholders   = _make_nav_button(L10N.ORTAKLIK_YAPISI,        12, "users",        goto_page_func)
+    btn_technical      = _make_nav_button(L10N.TEKNIK_ANALIZ,           13, "activity",     goto_page_func)
     for btn in (btn_dashboard, btn_watchlist, btn_model_port, btn_financials, btn_shareholders,
-                btn_analysis, btn_comparison, btn_optimization, btn_planning, btn_risk_profile,
-                btn_ai_page, btn_settings):
+                btn_technical, btn_analysis, btn_comparison, btn_optimization, btn_planning,
+                btn_risk_profile, btn_ai_page, btn_settings):
         sidebar_layout.addWidget(btn)
     sidebar_layout.addStretch()
     _add_nav_separator(sidebar_layout)
     return (btn_dashboard, btn_watchlist, btn_model_port, btn_analysis, btn_comparison,
             btn_optimization, btn_planning, btn_risk_profile, btn_ai_page, btn_settings,
-            btn_financials, btn_shareholders)
+            btn_financials, btn_shareholders, btn_technical)
 
 
 def last_completed_trading_day(today: date, trading_calendar) -> date:
@@ -153,7 +154,8 @@ class MainWindow(QMainWindow):
     PAGE_SETTINGS = 10
     PAGE_FINANCIALS = 11
     PAGE_SHAREHOLDERS = 12
-    PAGE_COUNT = 13
+    PAGE_TECHNICAL = 13
+    PAGE_COUNT = 14
 
     def __init__(self, container, parent=None):
         super().__init__(parent)
@@ -177,7 +179,7 @@ class MainWindow(QMainWindow):
         self._connect_model_portfolio_price_persister()
         env = os.getenv("PORTFOYSIM_ENV", "").upper()
         self.setWindowTitle(f"{L10N.APP_TITLE} [{env} ORTAMI]" if env else L10N.APP_TITLE)
-        self.setWindowIcon(QIcon("icons/portfoy-simulasyonu.ico"))
+        self.setWindowIcon(QIcon("icons/icon.ico"))
         self.resize(MAIN_WINDOW_INITIAL_WIDTH, MAIN_WINDOW_INITIAL_HEIGHT)
 
         self._init_ui()
@@ -213,7 +215,7 @@ class MainWindow(QMainWindow):
          self.btn_analysis, self.btn_comparison, self.btn_optimization,
          self.btn_planning, self.btn_risk_profile, self.btn_ai_page,
          self.btn_settings, self.btn_financials,
-         self.btn_shareholders) = _build_sidebar_nav(self.sidebar_layout, self._goto_page)
+         self.btn_shareholders, self.btn_technical) = _build_sidebar_nav(self.sidebar_layout, self._goto_page)
         self.stacked_widget = QStackedWidget()
         self.pages = {}
         for _ in range(self.PAGE_COUNT):
@@ -319,6 +321,7 @@ class MainWindow(QMainWindow):
             self.PAGE_SETTINGS: (self.btn_settings, "save"),
             self.PAGE_FINANCIALS: (self.btn_financials, "bar-chart-2"),
             self.PAGE_SHAREHOLDERS: (self.btn_shareholders, "users"),
+            self.PAGE_TECHNICAL: (self.btn_technical, "activity"),
         }
 
         for page_idx, (btn, icon_name) in nav_buttons.items():

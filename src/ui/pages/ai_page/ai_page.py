@@ -54,7 +54,11 @@ class AIPage(QWidget):
         self.splitter = QSplitter(Qt.Horizontal)
 
         from src.ui.pages.ai_page.left_panel.model_panel import ModelPanel
-        self.left_panel = ModelPanel(self._analysis_service)
+        try:
+            tickers = [s.ticker for s in self.container.stock_repo.get_all_stocks()] if self.container else []
+        except Exception:
+            tickers = []
+        self.left_panel = ModelPanel(self._analysis_service, ticker_list=tickers)
         self.left_panel.setMinimumWidth(560)
 
         from src.ui.pages.ai_page.right_panel.chatbot_panel import ChatbotPanel

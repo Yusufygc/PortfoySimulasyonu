@@ -34,7 +34,7 @@ Faz 6 ile release akışına `scripts/build_preflight.py` eklenmiştir. Script a
 - Python sürümü `>= 3.11`.
 - `requirements.txt` ve `requirements-build.txt` içindeki aktif dependency satırları `==` ile pinlidir.
 - `requirements-build.txt` içinde `nuitka==...` bulunur.
-- `icons/portfoy-simulasyonu.ico`, `.env.example`, `build_nuitka.bat` ve `pytest.ini` mevcuttur.
+- `icons/icon.ico`, `.env.example`, `build_nuitka.bat` ve `pytest.ini` mevcuttur.
 - `pytest.ini` içinde `manual`, `network`, `ui`, `integration` marker'ları tanımlıdır.
 - `dist/.env` bulunmaz.
 - Aktif Python ortamında `nuitka` import edilebilir.

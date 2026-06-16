@@ -13,6 +13,7 @@ Kullanım:
 from src.qt_compat.qtwidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QSizePolicy
 from src.qt_compat.qtcore import Qt, QSize
 from src.ui.core.icon_manager import IconManager
+from src.ui.widgets.shared.feedback.skeleton_widget import SkeletonBlock
 
 
 class InfoCard(QFrame):
@@ -52,6 +53,11 @@ class InfoCard(QFrame):
         layout.addLayout(title_row)
         layout.addWidget(self._lbl_value)
         
+        self._skeleton_title = SkeletonBlock(width=90, height=12, parent=self)
+        self._skeleton_value = SkeletonBlock(width=140, height=20, parent=self)
+        self._skeleton_title.hide()
+        self._skeleton_value.hide()
+
         if icon_name:
             self.set_icon(icon_name)
         else:
@@ -107,6 +113,18 @@ class InfoCard(QFrame):
         self._lbl_value.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self._refresh_value_min_height()
+
+    def set_loading(self, loading: bool) -> None:
+        """Yükleme durumunu açar/kapatır. True iken skeleton gösterilir."""
+        self._lbl_title.setVisible(not loading)
+        self._lbl_value.setVisible(not loading)
+        self._lbl_icon.setVisible(not loading)
+        if loading:
+            self._skeleton_title.start()
+            self._skeleton_value.start()
+        else:
+            self._skeleton_title.stop()
+            self._skeleton_value.stop()
 
     def get_value_label(self) -> QLabel:
         """Ham QLabel referansını döner (geriye dönük uyumluluk için)."""
