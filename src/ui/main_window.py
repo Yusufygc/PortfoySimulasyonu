@@ -3,7 +3,7 @@ from src.ui.shared.locale_tr import L10N
 
 import os
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, time as dt_time, timedelta
 from typing import List, Optional
 
 from src.qt_compat.qtcore import QSettings, QThreadPool, QTimer, Qt, QPropertyAnimation, QEasingCurve, QSize
@@ -30,7 +30,9 @@ from src.ui.worker import Worker
 logger = logging.getLogger(__name__)
 
 AUTO_BACKFILL_SETTINGS_KEY = "settings/last_auto_price_backfill_at"
+AUTO_BIST_BACKFILL_SETTINGS_KEY = "settings/last_auto_bist_backfill_at"
 AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY = "settings/last_auto_corporate_action_discovery_at"
+BIST_MARKET_CLOSE_TIME = dt_time(18, 30)  # BIST kapanış sonrası fiyat verisi hazır
 MAIN_WINDOW_INITIAL_WIDTH = 1600
 MAIN_WINDOW_INITIAL_HEIGHT = 900
 
@@ -181,6 +183,7 @@ class MainWindow(QMainWindow):
         self._init_ui()
         self._goto_page(self.PAGE_DASHBOARD)
         QTimer.singleShot(0, self._start_auto_price_backfill_once)
+        QTimer.singleShot(0, self._start_auto_bist_backfill_once)
         self._live_price_refresh_controller.start()
         QTimer.singleShot(0, self._start_auto_corporate_action_discovery_once)
 
@@ -359,6 +362,56 @@ class MainWindow(QMainWindow):
 
     def _on_auto_price_backfill_error(self, err_tuple) -> None:
         Toast.warning(self, L10N.OTOMATIK_VERI_GUNCELLEME_CALISTIRILAMADI_TMPL.format(exc=err_tuple[1]))
+
+    # ------------------------------------------------------------------
+    # Phase A2: tüm BIST için otomatik veri tamamlama (18:30 sonrası)
+    # ------------------------------------------------------------------
+
+    def _start_auto_bist_backfill_once(self) -> None:
+        """Açılışta tüm BIST tickerleri için eksik kapanışları yfinance ile doldur.
+
+        Şart: saat ≥ 18:30 (piyasa kapandı) ve aynı işlem günü için zaten çalışmadıysa.
+        "Açmayı unuttum" senaryosu: latest_date + 1 → today aralığı otomatik dolar
+        (PriceDataHealthService.update_from_latest_to_today davranışı).
+        """
+        from src.application.services.market.price_data_health_service import PRICE_SCOPE_ALL_BIST
+        service = getattr(self.container, "price_data_health_service", None)
+        if service is None:
+            return
+        if datetime.now().time() < BIST_MARKET_CLOSE_TIME:
+            logger.info("BIST backfill atlandı (saat < 18:30, piyasa açık olabilir)")
+            return
+        target_date = last_completed_trading_day(
+            date.today(),
+            getattr(self.container, "trading_calendar", None),
+        )
+        last_run = self._settings.value(AUTO_BIST_BACKFILL_SETTINGS_KEY, "", type=str)
+        if last_run == target_date.isoformat():
+            return
+
+        self._auto_bist_backfill_target_date = target_date
+        worker = Worker(service.update_from_latest_to_today, target_date, PRICE_SCOPE_ALL_BIST)
+        worker.signals.result.connect(self._on_auto_bist_backfill_success)
+        worker.signals.error.connect(self._on_auto_bist_backfill_error)
+        self._threadpool.start(worker)
+
+    def _on_auto_bist_backfill_success(self, result) -> None:
+        target_date = getattr(self, "_auto_bist_backfill_target_date", None) or last_completed_trading_day(
+            date.today(),
+            getattr(self.container, "trading_calendar", None),
+        )
+        self._settings.setValue(AUTO_BIST_BACKFILL_SETTINGS_KEY, target_date.isoformat())
+        self._settings.sync()
+        publish_prices_updated(getattr(self.container, "event_bus", None), getattr(result, "prices", None))
+        updated_count = getattr(result, "updated_count", 0)
+        error_count = len(getattr(result, "errors", []) or [])
+        if updated_count > 0:
+            Toast.success(self, L10N.OTOMATIK_BIST_GUNCELLEME_TAMAMLANDI_TMPL.format(count=updated_count))
+        elif error_count:
+            Toast.warning(self, L10N.OTOMATIK_BIST_GUNCELLEME_HATA_TMPL.format(count=error_count))
+
+    def _on_auto_bist_backfill_error(self, err_tuple) -> None:
+        Toast.warning(self, L10N.OTOMATIK_BIST_GUNCELLEME_CALISTIRILAMADI_TMPL.format(exc=err_tuple[1]))
 
     def reload_live_price_refresh_settings(self) -> None:
         self._live_price_refresh_controller.reload_settings()

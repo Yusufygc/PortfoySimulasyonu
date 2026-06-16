@@ -5,6 +5,38 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-06-16] özellik | Phase A2 — Tüm BIST için günlük otomatik veri tamamlama
+
+Phase A1 (CSV import, commit `34b14e8`) ile 586 ticker × 10y verisi `daily_prices` tablosuna
+yüklendi. Phase A2: her gün BIST kapanışı (18:30) sonrası app açılışında otomatik tamamlama.
+
+**Anahtar karar:** Yeni servis yazılmadı; mevcut `PriceDataHealthService.update_from_latest_to_today(today, scope)`
+genişletildi (yeni scope sabiti).
+
+- **Yeni scope:** `PRICE_SCOPE_ALL_BIST = "all_bist"` (`price_data_health_service.py:24`).
+  - `PriceScopeResolver.stocks_in_scope()`: scope == "all_bist" → portföye bakmadan `stock_repo.get_all_stocks()` döner.
+  - `PriceScopeResolver.first_trade_dates_by_stock()`: scope == "all_bist" → `{}` (portföye ait first-trade kısıtı yok).
+- **Auto-trigger** (`main_window.py`): yeni method `_start_auto_bist_backfill_once()` —
+  saat ≥ 18:30 ise + last_run != target_date ise Worker tetikler. QSettings cache
+  (`AUTO_BIST_BACKFILL_SETTINGS_KEY`) aynı işlem günü tekrar tetiklemez.
+  `BIST_MARKET_CLOSE_TIME = 18:30` modül sabiti.
+- **"Açmayı unuttum" desteği:** her ticker için `latest_date + 1 → today` aralığı çekilir.
+  2-3 gün boşluk birikmişse otomatik dolar — `update_from_latest_to_today` mevcut davranışı,
+  ek kod yok.
+- **L10N:** `OTOMATIK_BIST_GUNCELLEME_{TAMAMLANDI,HATA,CALISTIRILAMADI}_TMPL`.
+- **Test:** `test_price_data_health_service.py`'ye 3 yeni test
+  (all_bist tüm stocks döner, first_trade_dates {}, default scope mevcut davranış korunur).
+  389/389 yeşil.
+
+**Verification:**
+- `PORTFOYSIM_ENV=test python app.py` saat 18:30 öncesi → log "BIST backfill atlandı" + DB değişmez.
+- 18:30 sonrası → Worker tetiklenir, `daily_prices`'a yeni satırlar; Toast.success.
+- Aynı gün tekrar açılış → trigger atlanır (QSettings cache).
+
+**Sonraki:** Phase B (Golden Cross detect + `golden_cross_events` tablo + scan servisi) ve
+UI fazı (Teknik Analiz sayfası + manuel "Veri Tamamla" + "Taramayı Çalıştır" butonları).
+
+---
 ## [2026-06-16] özellik | Ortaklık Yapısı sayfası MVP — KAP pay sahipliği tarihçesi
 
 - **Veri kaynağı:** KAP (kap.org.tr) `/api/company-detail/get-history/{OID}/kpy41_acc5_sermayede_dogrudan/N` endpoint'i; tek istek tüm tarihçe (~60-70 snapshot).

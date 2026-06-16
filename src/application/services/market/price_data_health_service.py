@@ -21,6 +21,7 @@ from src.application.services.corporate_actions.price_adjustment_service import 
 PRICE_SCOPE_ALL_ACTIVE = "all_active"
 PRICE_SCOPE_DASHBOARD = "dashboard"
 PRICE_SCOPE_MODEL_PREFIX = "model:"
+PRICE_SCOPE_ALL_BIST = "all_bist"  # Phase A2: tüm BIST tickerleri (portföye bakmaksızın)
 
 
 class MarketHolidayProvider(Protocol):
@@ -244,6 +245,8 @@ class PriceScopeResolver:
         return options
 
     def first_trade_dates_by_stock(self, scope: str | None = None) -> Dict[int, date]:
+        if _normalize_scope(scope) == PRICE_SCOPE_ALL_BIST:
+            return {}
         if self._portfolio_repo is None and self._model_portfolio_repo is None:
             return {}
         active_stock_ids = self.active_stock_ids(scope)
@@ -258,6 +261,8 @@ class PriceScopeResolver:
 
     def stocks_in_scope(self, first_trade_dates: Dict[int, date], scope: str | None = None) -> List[Stock]:
         stocks = self._stock_repo.get_all_stocks()
+        if _normalize_scope(scope) == PRICE_SCOPE_ALL_BIST:
+            return stocks
         if self._portfolio_repo is None and self._model_portfolio_repo is None:
             return stocks
         active_stock_ids = self.active_stock_ids(scope)

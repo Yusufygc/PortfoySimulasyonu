@@ -575,3 +575,81 @@ def test_delete_range_without_scope_keeps_global_delete_behavior():
     assert price_repo.delete_calls == [(date(2026, 1, 1), date(2026, 1, 31), None)]
     assert price_repo.prices_by_stock[1] == {}
     assert price_repo.prices_by_stock[2] == {}
+
+
+# ---------------------------------------------------------------------------
+# Phase A2: PRICE_SCOPE_ALL_BIST davranışı
+# ---------------------------------------------------------------------------
+
+
+def test_all_bist_scope_returns_all_stocks_regardless_of_portfolio():
+    """ALL_BIST scope verilse portföye bakmadan tüm stocks'u target alır."""
+    from src.application.services.market.price_data_health_service import PRICE_SCOPE_ALL_BIST
+
+    # Portfolio sadece stock 1'i içerir; ama all_bist scope ile 2'si de hedeflenir.
+    trades = [
+        Trade(id=None, stock_id=1, trade_date=date(2025, 1, 1), trade_time=None,
+              side="BUY", quantity=10, price=Decimal("100")),
+    ]
+    series_by_ticker = {
+        "AAA.IS": {date(2026, 6, 13): Decimal("110")},
+        "BBB.IS": {date(2026, 6, 13): Decimal("220")},
+    }
+    service, price_repo, market_client = make_service(
+        prices_by_stock={1: {}, 2: {}},
+        series_by_ticker=series_by_ticker,
+        trades=trades,
+    )
+
+    result = service.update_from_latest_to_today(
+        today=date(2026, 6, 13),
+        scope=PRICE_SCOPE_ALL_BIST,
+    )
+
+    # Hem AAA hem BBB çekildi → 2 ticker fetch isteği
+    fetched_tickers = {req[0] for req in market_client.requests}
+    assert "AAA.IS" in fetched_tickers
+    assert "BBB.IS" in fetched_tickers
+    assert result.scanned_stock_count == 2
+
+
+def test_all_bist_scope_first_trade_dates_empty():
+    """ALL_BIST scope first_trade_dates_by_stock {} döner (portföye bağlı kısıt yok)."""
+    from src.application.services.market.price_data_health_service import (
+        PRICE_SCOPE_ALL_BIST,
+        PriceScopeResolver,
+    )
+
+    trades = [
+        Trade(id=None, stock_id=1, trade_date=date(2024, 1, 1), trade_time=None,
+              side="BUY", quantity=10, price=Decimal("100")),
+    ]
+    stocks = [Stock(id=1, ticker="AAA.IS", name="AAA")]
+    resolver = PriceScopeResolver(
+        stock_repo=FakeStockRepo(stocks),
+        portfolio_repo=FakePortfolioRepo(trades),
+        model_portfolio_repo=None,
+    )
+    result = resolver.first_trade_dates_by_stock(PRICE_SCOPE_ALL_BIST)
+    assert result == {}
+
+
+def test_default_scope_still_filters_to_active_portfolio():
+    """Mevcut davranış (scope=None → all_active) bozulmamış olmalı."""
+    trades = [
+        Trade(id=None, stock_id=1, trade_date=date(2025, 1, 1), trade_time=None,
+              side="BUY", quantity=10, price=Decimal("100")),
+    ]
+    series_by_ticker = {
+        "AAA.IS": {date(2026, 6, 13): Decimal("110")},
+        "BBB.IS": {date(2026, 6, 13): Decimal("220")},
+    }
+    service, price_repo, market_client = make_service(
+        prices_by_stock={1: {}, 2: {}},
+        series_by_ticker=series_by_ticker,
+        trades=trades,
+    )
+    result = service.update_from_latest_to_today(today=date(2026, 6, 13))
+    fetched_tickers = {req[0] for req in market_client.requests}
+    assert fetched_tickers == {"AAA.IS"}  # sadece portföydeki
+    assert result.scanned_stock_count == 1
