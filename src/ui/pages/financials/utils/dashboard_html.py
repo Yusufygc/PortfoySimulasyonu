@@ -41,47 +41,65 @@ from src.ui.pages.financials.utils.value_table import build_value_table
 
 _CSS = (
     "*, *::before, *::after{box-sizing:border-box;margin:0;padding:0}"
-    "body{background:#0f172a;color:#f1f5f9;font-family:Inter,'Segoe UI',sans-serif;padding:12px}"
-    ".tab-nav{display:flex;flex-wrap:wrap;gap:3px;border-bottom:2px solid #334155;"
-    "padding-bottom:0;margin-bottom:0}"
-    ".tab-btn{background:#1e293b;color:#94a3b8;border:1px solid #334155;"
-    "border-radius:5px 5px 0 0;border-bottom:none;padding:6px 14px;"
-    "cursor:pointer;font-size:.8rem;white-space:nowrap;transition:background .12s}"
-    ".tab-btn:hover{background:#2d3f53;color:#f1f5f9}"
-    ".tab-btn.active{background:#0f172a;color:#00D4FF;border-color:#334155;"
-    "border-bottom:2px solid #0f172a;margin-bottom:-2px}"
-    ".tab-pane{display:none;border:1px solid #334155;border-top:none;"
-    "border-radius:0 0 8px 8px;background:#0f172a;padding:8px 8px 16px 8px}"
+    "html,body{background:#0f172a;color:#f1f5f9;font-family:Inter,'Segoe UI',sans-serif;padding:12px;overflow:hidden}"
+    ".nav-container{background:#1e293b;border:1px solid #334155;border-radius:8px 8px 0 0;padding:10px 12px;margin-bottom:0}"
+    ".cat-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #334155}"
+    ".cat-btn{background:#0f172a;color:#94a3b8;border:1px solid #334155;border-radius:6px;padding:6px 14px;"
+    "cursor:pointer;font-size:.82rem;font-weight:600;transition:all .15s ease}"
+    ".cat-btn:hover{background:#273549;color:#f1f5f9}"
+    ".cat-btn.active{background:#00D4FF1f;color:#00D4FF;border-color:#00D4FF}"
+    ".sub-nav{display:none;flex-wrap:wrap;gap:5px}"
+    ".sub-nav.active{display:flex}"
+    ".tab-btn{background:#0f172a;color:#64748b;border:1px solid #334155;border-radius:4px;padding:5px 12px;"
+    "cursor:pointer;font-size:.78rem;white-space:nowrap;transition:all .12s ease}"
+    ".tab-btn:hover{background:#1e293b;color:#e2e8f0}"
+    ".tab-btn.active{background:#38bdf822;color:#38bdf8;border-color:#38bdf8;font-weight:600}"
+    ".tab-pane{display:none;border:1px solid #334155;border-top:none;border-radius:0 0 8px 8px;background:#0f172a;padding:12px}"
     ".tab-pane.active{display:block}"
-    ".tab-btn svg{vertical-align:-2px;margin-right:4px}"
+    ".tab-btn svg, .cat-btn svg{vertical-align:-2px;margin-right:4px}"
     ".insight-box{display:flex;gap:10px;background:#1e293b;border-left:3px solid #00D4FF;"
-    "border-radius:0 6px 6px 0;padding:10px 14px;margin:8px 0 4px;font-size:.8rem}"
+    "border-radius:0 6px 6px 0;padding:10px 14px;margin:12px 0 4px;font-size:.8rem}"
     ".ib-icon{font-size:1.1rem;flex-shrink:0;line-height:1.5}"
     ".ib-body{color:#94a3b8;line-height:1.6}"
     ".ib-body b{color:#f1f5f9;display:block;margin-bottom:2px}"
     ".ib-body p{margin:0}"
     ".val-tbl{width:100%;border-collapse:collapse;font-size:.78rem;"
-    "margin:10px 0;background:#0f172a;border:1px solid #334155;border-radius:6px;overflow:hidden}"
+    "margin:12px 0;background:#0f172a;border:1px solid #334155;border-radius:6px;overflow:hidden}"
     ".val-tbl thead th{background:#0a1628;color:#64748b;text-align:right;"
-    "padding:6px 10px;font-weight:600;border-bottom:1px solid #334155}"
+    "padding:7px 10px;font-weight:600;border-bottom:1px solid #334155}"
     ".val-tbl thead th:first-child{text-align:left}"
-    ".val-tbl tbody td{padding:5px 10px;border-bottom:1px solid #1e293b;"
-    "color:#e2e8f0;text-align:right;font-family:'Courier New',monospace}"
+    ".val-tbl tbody td{padding:6px 10px;border-bottom:1px solid #1e293b;"
+    "color:#e2e8f0;text-align:right;font-family:'JetBrains Mono','Courier New',monospace}"
     ".val-tbl tbody td:first-child{text-align:left;font-family:inherit;color:#cbd5e1}"
     ".val-tbl tbody tr:last-child td{border-bottom:none}"
     ".val-tbl tbody tr:hover td{background:#1a2535}"
 )
 
 _JS = r"""
-function showTab(id,btn){
+function showGroup(grpId, btn){
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sub-nav').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  const subNav = document.getElementById(grpId);
+  if(subNav){
+    subNav.classList.add('active');
+    const firstTabBtn = subNav.querySelector('.tab-btn');
+    if(firstTabBtn) firstTabBtn.click();
+  }
+}
+
+function showTab(id, btn){
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const pane = document.getElementById(id);
+  if(pane) pane.classList.add('active');
   btn.classList.add('active');
   setTimeout(()=>{
-    document.getElementById(id).querySelectorAll('.plotly-graph-div').forEach(el=>{
-      if(window.Plotly) Plotly.Plots.resize(el);
-    });
+    if(pane){
+      pane.querySelectorAll('.plotly-graph-div').forEach(el=>{
+        if(window.Plotly) Plotly.Plots.resize(el);
+      });
+    }
   },30);
 }
 """
@@ -432,44 +450,76 @@ def _content(x: go.Figure | str) -> str:
 
 def build_dashboard(m: dict[str, Any], n_periods: int = 8) -> str:
     """
-    Tek HTML dosyası olarak finansal dashboard üret (18 sekme).
+    Tek HTML dosyası olarak finansal dashboard üret (18 sekme, 4 ana grup).
     Plotly JS yerel dosyadan yüklenir (CDN bağımlılığı yok).
     """
     ticker = m.get("ticker", "")
 
-    tabs = [
-        ("ftablo",    f"{_ic('ftablo')}Finansal Tablo",     build_finansal_tablo_pane(m, n_periods)),
-        ("kpi",       f"{_ic('kpi')}KPI Özeti",            _chart_kpi_table(m, n_periods)),
-        ("satis",     f"{_ic('satis')}Satışlar & Marjlar", _chart_satis_favok(m, n_periods)),
-        ("bilanco",   f"{_ic('bilanco')}Bilanço",          _chart_bilanco(m, n_periods)),
-        ("netborc",   f"{_ic('netborc')}Net Borç",         _chart_net_borc(m, n_periods)),
-        ("waterfall", f"{_ic('waterfall')}Gelir Köprüsü",  _chart_waterfall(m, n_periods)),
-        ("fcf",       f"{_ic('fcf')}FCF vs Net Kar",       _chart_fcf_vs_netkar(m, n_periods)),
-        ("nakit",     f"{_ic('nakit')}Nakit Akış",         _chart_nakit_akis(m, n_periods)),
-        ("heatmap",   f"{_ic('heatmap')}YoY Isı Haritası", _chart_heatmap(m, n_periods)),
-        ("dupont",    f"{_ic('dupont')}DuPont",            _chart_dupont(m, n_periods)),
-        ("isletme",   f"{_ic('isletme')}İşletme Sermayesi",_chart_isletme_sermaye(m, n_periods)),
-        ("fscore",    f"{_ic('fscore')}Piotroski",         _chart_piotroski(m, n_periods)),
-        ("sezon",     f"{_ic('sezon')}Sezonsellik",        _chart_sezonsellik(m, n_periods)),
-        ("temettu",   f"{_ic('temettu')}Temettü",          _chart_temettu(m, n_periods)),
-        ("reel",      f"{_ic('reel')}Reel Büyüme",         _chart_reel_buyume(m, n_periods)),
-        ("deger",     f"{_ic('deger')}Değerleme",          _chart_degerleme(m, n_periods)),
-        ("bedelsiz",  f"{_ic('bedelsiz')}Bedelsiz Pot.",   _chart_bedelsiz(m, n_periods)),
-        ("satisbd",   f"{_ic('satisbd')}Satış Kırılımı",   _chart_satis_breakdown(m, n_periods)),
+    groups = [
+        ("grp-1", "📋 Finansal Tablolar & Özet", [
+            ("ftablo",    f"{_ic('ftablo')}Finansal Tablo",     build_finansal_tablo_pane(m, n_periods)),
+            ("kpi",       f"{_ic('kpi')}KPI Özeti",            _chart_kpi_table(m, n_periods)),
+            ("bilanco",   f"{_ic('bilanco')}Bilanço",          _chart_bilanco(m, n_periods)),
+            ("waterfall", f"{_ic('waterfall')}Gelir Köprüsü",  _chart_waterfall(m, n_periods)),
+        ]),
+        ("grp-2", "📈 Performans & Büyüme", [
+            ("satis",     f"{_ic('satis')}Satışlar & Marjlar", _chart_satis_favok(m, n_periods)),
+            ("satisbd",   f"{_ic('satisbd')}Satış Kırılımı",   _chart_satis_breakdown(m, n_periods)),
+            ("sezon",     f"{_ic('sezon')}Sezonsellik",        _chart_sezonsellik(m, n_periods)),
+            ("reel",      f"{_ic('reel')}Reel Büyüme",         _chart_reel_buyume(m, n_periods)),
+            ("heatmap",   f"{_ic('heatmap')}YoY Isı Haritası", _chart_heatmap(m, n_periods)),
+        ]),
+        ("grp-3", "📊 Kârlılık & Değerleme", [
+            ("deger",     f"{_ic('deger')}Değerleme",          _chart_degerleme(m, n_periods)),
+            ("dupont",    f"{_ic('dupont')}DuPont",            _chart_dupont(m, n_periods)),
+            ("fcf",       f"{_ic('fcf')}FCF vs Net Kar",       _chart_fcf_vs_netkar(m, n_periods)),
+            ("temettu",   f"{_ic('temettu')}Temettü",          _chart_temettu(m, n_periods)),
+        ]),
+        ("grp-4", "🛡️ Borç, Likidite & Kalite", [
+            ("netborc",   f"{_ic('netborc')}Net Borç",         _chart_net_borc(m, n_periods)),
+            ("nakit",     f"{_ic('nakit')}Nakit Akış",         _chart_nakit_akis(m, n_periods)),
+            ("isletme",   f"{_ic('isletme')}İşletme Sermayesi",_chart_isletme_sermaye(m, n_periods)),
+            ("fscore",    f"{_ic('fscore')}Piotroski",         _chart_piotroski(m, n_periods)),
+            ("bedelsiz",  f"{_ic('bedelsiz')}Bedelsiz Pot.",   _chart_bedelsiz(m, n_periods)),
+        ]),
     ]
 
-    nav = "".join(
-        f"<button class='tab-btn{' active' if i == 0 else ''}' "
-        f"onclick=\"showTab('{tid}',this)\">{lbl}</button>"
-        for i, (tid, lbl, _) in enumerate(tabs)
-    )
-    panes = "".join(
-        f"<div id='{tid}' class='tab-pane{' active' if i == 0 else ''}'>"
-        + _content(content)
-        + _value_table_for(tid, m, n_periods)
-        + _INSIGHTS.get(tid, "")
+    cat_buttons = []
+    sub_navs = []
+    panes = []
+
+    is_first_tab = True
+    for g_idx, (gid, gtitle, gtabs) in enumerate(groups):
+        cat_active = " active" if g_idx == 0 else ""
+        cat_buttons.append(
+            f"<button class='cat-btn{cat_active}' onclick=\"showGroup('{gid}',this)\">{gtitle}</button>"
+        )
+
+        sub_btns = []
+        for t_idx, (tid, lbl, content) in enumerate(gtabs):
+            tab_active = " active" if is_first_tab else ""
+            sub_btns.append(
+                f"<button class='tab-btn{tab_active}' onclick=\"showTab('{tid}',this)\">{lbl}</button>"
+            )
+            panes.append(
+                f"<div id='{tid}' class='tab-pane{tab_active}'>"
+                + _content(content)
+                + _value_table_for(tid, m, n_periods)
+                + _INSIGHTS.get(tid, "")
+                + "</div>"
+            )
+            is_first_tab = False
+
+        sub_nav_active = " active" if g_idx == 0 else ""
+        sub_navs.append(
+            f"<div id='{gid}' class='sub-nav{sub_nav_active}'>{''.join(sub_btns)}</div>"
+        )
+
+    nav_html = (
+        "<div class='nav-container'>"
+        f"<div class='cat-nav'>{''.join(cat_buttons)}</div>"
+        + "".join(sub_navs)
         + "</div>"
-        for i, (tid, _, content) in enumerate(tabs)
     )
 
     js_path     = ensure_patched_plotly_js()
@@ -484,8 +534,8 @@ def build_dashboard(m: dict[str, Any], n_periods: int = 8) -> str:
         f"<script src='{js_file_url}'></script>\n"
         f"<style>{_CSS}</style>\n"
         "</head>\n<body>\n"
-        f"<nav class='tab-nav'>{nav}</nav>\n"
-        + panes
+        f"{nav_html}\n"
+        + "".join(panes)
         + f"\n<script>\n{_JS}\n</script>\n"
         "</body>\n</html>"
     )

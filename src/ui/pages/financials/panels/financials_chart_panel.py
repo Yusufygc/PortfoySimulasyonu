@@ -24,6 +24,7 @@ class FinancialsChartPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         self._view = SilentWebEngineView(self)
+        self._view.setMinimumHeight(1150)
         layout.addWidget(self._view)
 
         self._show_placeholder()

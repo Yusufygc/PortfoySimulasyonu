@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-08-14] commit | Finansallar dashboard 4 ana grup ve UI geliştirmeleri
+
+- Finansallar dashboard'unda 18 sekme 4 ana kategori grubu altında toplandı (Finansal Tablolar & Özet, Performans & Büyüme, Kârlılık & Değerleme, Borç/Likidite/Kalite).
+- İki kademeli Kategori + Sekme nav arayüzü ve akıllı Plotly grafik boyutlandırması eklendi.
+- Finansal tablo dikey scrollbar ve QComboBox aşağı ok stili güncellendi.
+
+Etkilenen dosyalar: `src/ui/pages/financials/utils/dashboard_html.py`, `src/ui/pages/financials/utils/finansal_tablo.py`, `src/ui/styles/primitives/forms.qss`, `src/ui/pages/financials/financials_page.py`, `docs/wiki/log.md`
+
 ## [2026-08-14] commit | TradingView entegrasyonu, teknik analiz güncellemeleri ve Cuma verisi tamamlama
 
 - TradingView datafeed istemcisi entegre edildi (`tvdatafeed_client.py`, `tradingview-datafeed==2.1.1`).

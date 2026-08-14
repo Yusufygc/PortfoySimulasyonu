@@ -46,6 +46,11 @@ QComboBox::drop-down {
     border-left: 1px solid @COLOR_BORDER;
     width: 20px;
 }
+QComboBox::down-arrow {
+    image: url(@ICON_CHEVRON_DOWN);
+    width: 14px;
+    height: 14px;
+}
 QComboBox QAbstractItemView {
     background-color: @COLOR_BG_SURFACE;
     color: @COLOR_TEXT_PRIMARY;

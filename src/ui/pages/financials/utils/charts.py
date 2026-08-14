@@ -35,8 +35,17 @@ _LAYOUT_BASE = {
     "font":  {"color": _C["text"], "family": "Inter, Segoe UI, sans-serif", "size": 12},
     "xaxis": {"gridcolor": _C["grid"], "linecolor": _C["grid"]},
     "yaxis": {"gridcolor": _C["grid"], "linecolor": _C["grid"]},
+    "legend": {
+        "orientation": "h",
+        "yanchor": "bottom",
+        "y": 1.05,
+        "xanchor": "right",
+        "x": 1.0,
+        "bgcolor": "rgba(0,0,0,0)",
+        "font": {"size": 11, "color": "#94a3b8"},
+    },
 }
-_MARGIN = {"t": 60, "b": 50, "l": 70, "r": 30}
+_MARGIN = {"t": 75, "b": 40, "l": 75, "r": 35}
 
 # Plotly biçim sabitleri — hovertemplate / tickformat / texttemplate için
 _FMT_FLOAT = ",.2f"   # 1,784.85
@@ -202,7 +211,6 @@ def _chart_satis_favok(m: dict, n: int) -> go.Figure:
     currency = m.get("currency", "TRY")
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — Satışlar & Karlılık Marjları ({currency})",
-        legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
     ))
     fig.update_yaxes(title_text=f"Satışlar (mn {currency})", secondary_y=False, gridcolor=_C["grid"], tickformat=",.0f")
     fig.update_yaxes(title_text="Marj %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%", tickformat=".1f")
@@ -280,7 +288,6 @@ def _chart_dupont(m: dict, n: int) -> go.Figure:
 
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — DuPont Ayrıştırma (TTM) | ROE = Marj × Devir × Kaldıraç",
-        legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
     ))
     fig.update_yaxes(title_text="Marj / ROE (%)", secondary_y=False, gridcolor=_C["grid"], ticksuffix="%", tickformat=".1f")
     fig.update_yaxes(title_text="Oran (x)", secondary_y=True, gridcolor=_C["grid"], ticksuffix="x", tickformat=".2f")
@@ -803,7 +810,6 @@ def _chart_bedelsiz(m: dict, n: int) -> go.Figure:
         title={"text": (f"{m.get('ticker', '')} — Bedelsiz Potansiyel & Özkaynak ({currency})<br>"
                         f"<sup><span style='color:{ef_color}'>{subtitle}</span></sup>"),
                "font": {"size": 14}},
-        legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
     ))
     fig.update_yaxes(title_text="Bedelsiz Pot. (x)", secondary_y=False, gridcolor=_C["grid"], ticksuffix="x", tickformat=".2f")
     fig.update_yaxes(title_text=f"Milyar {currency}", secondary_y=True, gridcolor=_C["grid"], tickformat=",.2f")
@@ -842,7 +848,7 @@ def _chart_satis_breakdown(m: dict, n: int) -> go.Figure:
     ), secondary_y=True)
     fig.update_layout(**_layout(
         title=f"{m.get('ticker', '')} — Yurtiçi / Yurtdışı Satış Kırılımı ({currency})",
-        barmode="stack", legend={"bgcolor": "rgba(0,0,0,0)", "x": 0.01, "y": 0.99},
+        barmode="stack",
     ))
     fig.update_yaxes(title_text=f"Satışlar (mn {currency})", secondary_y=False, gridcolor=_C["grid"], tickformat=",.0f")
     fig.update_yaxes(title_text="İhracat Oranı %", secondary_y=True, gridcolor=_C["grid"], ticksuffix="%", tickformat=".1f")

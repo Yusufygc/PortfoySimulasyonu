@@ -14,12 +14,18 @@ logger = logging.getLogger(__name__)
 
 
 def _parse_evds_month_date(value: str) -> date:
-    if "-" in value and len(value) == 7:
-        parts = value.split("-")
-        if len(parts[0]) == 4:
-            return date(int(parts[0]), int(parts[1]), 1)
-        return date(int(parts[1]), int(parts[0]), 1)
-    return datetime.strptime(value, "%d-%m-%Y").date().replace(day=1)
+    val_str = str(value).strip()
+    if "-" in val_str:
+        parts = val_str.split("-")
+        if len(parts) == 2:
+            if len(parts[0]) == 4:
+                return date(int(parts[0]), int(parts[1]), 1)
+            return date(int(parts[1]), int(parts[0]), 1)
+        elif len(parts) == 3:
+            if len(parts[0]) == 4:
+                return date(int(parts[0]), int(parts[1]), 1)
+            return date(int(parts[2]), int(parts[1]), 1)
+    return datetime.strptime(val_str, "%d-%m-%Y").date().replace(day=1)
 
 
 class EvdsSeriesProvider(Protocol):

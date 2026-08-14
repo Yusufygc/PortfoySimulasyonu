@@ -49,16 +49,31 @@ def _save_cache(path: Path, data: dict[str, float]) -> None:
 def _parse_items(items: list[dict[str, Any]]) -> dict[str, float]:
     """EVDS API item listesini {"YYYY-MM": value} formatına çevirir."""
     result: dict[str, float] = {}
+    val_key = _TUFE_SERIES.replace(".", "_")
     for item in items:
         tarih = item.get("Tarih", "")
-        val   = item.get(_TUFE_SERIES)
+        val   = item.get(val_key) if val_key in item else item.get(_TUFE_SERIES)
         if not tarih or val is None:
             continue
         try:
-            # tarih: "01-01-2024" → "2024-01"
-            parts = tarih.split("-")
-            month_key = f"{parts[2]}-{parts[1]}"
-            result[month_key] = float(str(val).replace(",", "."))
+            val_num = float(str(val).replace(",", "."))
+            parts = str(tarih).strip().split("-")
+            if len(parts) == 2:
+                # "2024-1" veya "2024-01" veya "1-2024"
+                if len(parts[0]) == 4:
+                    year, month = int(parts[0]), int(parts[1])
+                else:
+                    month, year = int(parts[0]), int(parts[1])
+            elif len(parts) == 3:
+                # "01-01-2024" veya "2024-01-01"
+                if len(parts[0]) == 4:
+                    year, month = int(parts[0]), int(parts[1])
+                else:
+                    month, year = int(parts[1]), int(parts[2])
+            else:
+                continue
+            month_key = f"{year:04d}-{month:02d}"
+            result[month_key] = val_num
         except Exception:
             continue
     return result

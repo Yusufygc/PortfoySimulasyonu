@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import logging
 
-from src.qt_compat.qtcore import QThreadPool
-from src.qt_compat.qtwidgets import QComboBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from src.qt_compat.qtcore import QThreadPool, Qt
+from src.qt_compat.qtwidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 from src.ui.pages.base_page import BasePage
 from src.ui.pages.financials.panels.ticker_input_panel import TickerInputPanel
 from src.ui.pages.financials.panels.financials_chart_panel import FinancialsChartPanel
@@ -42,9 +42,13 @@ class FinancialsPage(BasePage):
     # ------------------------------------------------------------------
 
     def _init_ui(self) -> None:
-        layout = self.main_layout
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+
+        scroll_content = QWidget()
+        content_layout = QVBoxLayout(scroll_content)
+        content_layout.setContentsMargins(16, 16, 16, 16)
+        content_layout.setSpacing(12)
 
         # Başlık
         header = QHBoxLayout()
@@ -61,32 +65,42 @@ class FinancialsPage(BasePage):
 
         header.addLayout(title_col)
         header.addStretch()
-        layout.addLayout(header)
+        content_layout.addLayout(header)
 
         # Ticker giriş paneli
         self._input_panel = TickerInputPanel()
         self._input_panel.fetch_requested.connect(self._on_fetch_requested)
-        layout.addWidget(self._input_panel)
+        content_layout.addWidget(self._input_panel)
 
         # Dönem seçici
         period_row = QHBoxLayout()
         period_row.addWidget(QLabel(L10N.DONEM + ":"))
         self._period_combo = QComboBox()
+        self._period_combo.setProperty("cssClass", "customComboBox")
         self._period_combo.addItems(["4", "8", "12", "Tümü"])
         self._period_combo.setCurrentIndex(1)
-        self._period_combo.setMaximumWidth(80)
+        self._period_combo.setMinimumWidth(100)
         period_row.addWidget(self._period_combo)
         period_row.addStretch()
-        layout.addLayout(period_row)
+        content_layout.addLayout(period_row)
 
         # Durum etiketi
         self._status_label = QLabel("")
         self._status_label.setProperty("cssClass", "pageDescription")
-        layout.addWidget(self._status_label)
+        content_layout.addWidget(self._status_label)
 
         # Dashboard / WebView paneli
         self._chart_panel = FinancialsChartPanel()
-        layout.addWidget(self._chart_panel, 1)
+        content_layout.addWidget(self._chart_panel, 1)
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setWidget(scroll_content)
+
+        self.main_layout.addWidget(self.scroll_area, 1)
 
     # ------------------------------------------------------------------
     # Worker orkestrasyon
