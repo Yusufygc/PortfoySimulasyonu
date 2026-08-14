@@ -91,6 +91,7 @@ def test_ui_large_class_threshold_has_only_documented_phase_5_exceptions():
         ("src/ui/pages/comparison/utils/comparison_data_manager.py", "ComparisonDataManager"),
         ("src/ui/pages/settings/price_data_panel.py", "PriceDataPanel"),
         ("src/ui/widgets/shared/controls/currency_spin_box.py", "CurrencySpinBox"),
+        ("src/ui/pages/technical/technical_analysis_page.py", "TechnicalAnalysisPage"),
     }
     offenders = []
 

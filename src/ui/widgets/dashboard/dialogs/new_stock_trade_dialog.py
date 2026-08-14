@@ -16,6 +16,7 @@ from src.qt_compat.qtwidgets import (
 )
 from src.ui.formatters import display_ticker
 from src.ui.shared.ticker_validation import is_valid_ticker_input, normalize_ticker_input
+from src.qt_compat.lifecycle import is_qobject_deleted
 from src.ui.worker import Worker
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 from src.ui.widgets.shared import CurrencySpinBox
@@ -472,6 +473,8 @@ class NewStockTradeDialog(QDialog):
         QThreadPool.globalInstance().start(worker)
 
     def _on_price_fetched(self, result, requested_ticker: Optional[str] = None):
+        if is_qobject_deleted(self):
+            return
         if requested_ticker is not None and requested_ticker != self._last_lookup_ticker:
             return
 
@@ -500,6 +503,8 @@ class NewStockTradeDialog(QDialog):
         self.btn_next.setText(L10N.DEVAM_ET)
 
     def _on_price_error(self, err_tuple, requested_ticker: Optional[str] = None):
+        if is_qobject_deleted(self):
+            return
         if requested_ticker is not None and requested_ticker != self._last_lookup_ticker:
             return
 

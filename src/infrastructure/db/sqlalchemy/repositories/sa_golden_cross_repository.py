@@ -62,7 +62,8 @@ class SQLAlchemyGoldenCrossRepository(IGoldenCrossRepository):
                 .filter(ORMGoldenCrossEvent.cross_date >= since)
             )
             if cross_type is not None:
-                q = q.filter(ORMGoldenCrossEvent.cross_type == CrossTypeEnum(cross_type.value))
+                ct_val = cross_type if isinstance(cross_type, str) else cross_type.value
+                q = q.filter(ORMGoldenCrossEvent.cross_type == CrossTypeEnum(ct_val))
             rows = q.order_by(ORMGoldenCrossEvent.cross_date.desc()).limit(limit).all()
             return [self._to_domain(row, ticker) for row, ticker in rows]
 

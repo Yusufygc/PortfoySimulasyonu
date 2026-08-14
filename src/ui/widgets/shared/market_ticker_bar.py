@@ -18,6 +18,7 @@ from typing import Any
 
 from src.qt_compat.qtwidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QSizePolicy
 from src.qt_compat.qtcore import QTimer, QThreadPool, Qt, QPoint
+from src.qt_compat.lifecycle import is_qobject_deleted
 from src.ui.worker import Worker
 from src.ui.widgets.shared.feedback.skeleton_widget import SkeletonBlock
 
@@ -202,25 +203,31 @@ class MarketTickerBar(QFrame):
 
     def cleanup(self) -> None:
         """Sayfa kapatılırken çağır — timer'ı durdurur."""
-        self._timer.stop()
+        if not is_qobject_deleted(self):
+            try:
+                self._timer.stop()
+            except (RuntimeError, Exception):
+                pass
 
     # ------------------------------------------------------------------
     # Internal
     # ------------------------------------------------------------------
 
     def _refresh(self) -> None:
-        if self._running:
+        if is_qobject_deleted(self) or self._running:
             return
         import sys
         if "pytest" in sys.modules:
             for item in self._items.values():
-                item.set_loading(False)
-                item.set_error()
+                if not is_qobject_deleted(item):
+                    item.set_loading(False)
+                    item.set_error()
             return
 
         self._running = True
         for item in self._items.values():
-            item.set_loading(True)
+            if not is_qobject_deleted(item):
+                item.set_loading(True)
 
         worker = Worker(_fetch_all)
         worker.signals.result.connect(self._on_data)
@@ -229,7 +236,11 @@ class MarketTickerBar(QFrame):
         self._threadpool.start(worker)
 
     def _on_data(self, data: dict[str, float]) -> None:
+        if is_qobject_deleted(self):
+            return
         for label, item in self._items.items():
+            if is_qobject_deleted(item):
+                continue
             item.set_loading(False)
             if label in data:
                 item.set_value(data[label])
@@ -238,12 +249,17 @@ class MarketTickerBar(QFrame):
         logger.debug("[MarketTickerBar] Güncellendi: %s", list(data.keys()))
 
     def _on_error(self, err: tuple) -> None:
+        if is_qobject_deleted(self):
+            return
         for item in self._items.values():
-            item.set_loading(False)
-            item.set_error()
+            if not is_qobject_deleted(item):
+                item.set_loading(False)
+                item.set_error()
         logger.warning("[MarketTickerBar] Fetch hatası: %s", err[1])
 
     def _on_finished(self) -> None:
+        if is_qobject_deleted(self):
+            return
         self._running = False
 
 
@@ -306,14 +322,20 @@ class ScrollingMarketTicker(QWidget):
     # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
-        self._scroll_timer.stop()
-        self._data_timer.stop()
+        if not is_qobject_deleted(self):
+            try:
+                self._scroll_timer.stop()
+                self._data_timer.stop()
+            except (RuntimeError, Exception):
+                pass
 
     # ------------------------------------------------------------------
     # Row oluşturma
     # ------------------------------------------------------------------
 
     def _build_row(self, data: dict[str, float]) -> None:
+        if is_qobject_deleted(self):
+            return
         # Mevcut item'ları temizle
         while self._row_layout.count():
             item = self._row_layout.takeAt(0)
@@ -341,46 +363,56 @@ class ScrollingMarketTicker(QWidget):
 
     def _update_values(self, data: dict[str, float]) -> None:
         """Row'u yeniden inşa etmeden değerleri güncelle."""
+        if is_qobject_deleted(self):
+            return
         items_per_copy = len(_DISPLAY_ORDER)
         for copy_idx in range(2):
             for item_idx, label in enumerate(_DISPLAY_ORDER):
                 flat_idx = copy_idx * items_per_copy + item_idx
                 if flat_idx < len(self._row_items):
                     ti = self._row_items[flat_idx]
-                    ti.set_loading(False)
-                    if label in data:
-                        ti.set_value(data[label])
-                    else:
-                        ti.set_error()
+                    if not is_qobject_deleted(ti):
+                        ti.set_loading(False)
+                        if label in data:
+                            ti.set_value(data[label])
+                        else:
+                            ti.set_error()
 
     # ------------------------------------------------------------------
     # Animasyon
     # ------------------------------------------------------------------
 
     def _scroll_step(self) -> None:
+        if is_qobject_deleted(self) or is_qobject_deleted(self._row):
+            return
         self._offset += self._SPEED
         if self._offset >= self._half_width:
             self._offset = 0.0
-        self._row.move(QPoint(int(-self._offset), 0))
+        try:
+            self._row.move(QPoint(int(-self._offset), 0))
+        except (RuntimeError, Exception):
+            pass
 
     # ------------------------------------------------------------------
     # Veri güncelleme
     # ------------------------------------------------------------------
 
     def _refresh(self) -> None:
-        if self._running:
+        if is_qobject_deleted(self) or self._running:
             return
         import sys
         if "pytest" in sys.modules:
             for ti in self._row_items:
-                ti.set_loading(False)
-                ti.set_error()
+                if not is_qobject_deleted(ti):
+                    ti.set_loading(False)
+                    ti.set_error()
             return
 
         self._running = True
         # Skeleton göster
         for ti in self._row_items:
-            ti.set_loading(True)
+            if not is_qobject_deleted(ti):
+                ti.set_loading(True)
 
         worker = Worker(_fetch_all)
         worker.signals.result.connect(self._on_data)
@@ -389,15 +421,22 @@ class ScrollingMarketTicker(QWidget):
         self._threadpool.start(worker)
 
     def _on_data(self, data: dict[str, float]) -> None:
+        if is_qobject_deleted(self):
+            return
         self._last_data = data
         self._update_values(data)
         logger.debug("[ScrollingMarketTicker] Güncellendi: %s", list(data.keys()))
 
     def _on_error(self, err: tuple) -> None:
+        if is_qobject_deleted(self):
+            return
         for ti in self._row_items:
-            ti.set_loading(False)
-            ti.set_error()
+            if not is_qobject_deleted(ti):
+                ti.set_loading(False)
+                ti.set_error()
         logger.warning("[ScrollingMarketTicker] Fetch hatası: %s", err[1])
 
     def _on_finished(self) -> None:
+        if is_qobject_deleted(self):
+            return
         self._running = False

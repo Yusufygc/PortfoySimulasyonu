@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-08-14] commit | TradingView entegrasyonu, teknik analiz güncellemeleri ve Cuma verisi tamamlama
+
+- TradingView datafeed istemcisi entegre edildi (`tvdatafeed_client.py`, `tradingview-datafeed==2.1.1`).
+- Golden cross ve teknik analiz servisi/repository güncellemeleri yapıldı.
+- Eksik Cuma fiyatlarını tamamlamak için backfill scripti ve testleri eklendi (`scripts/backfill_missing_friday_prices.py`).
+- Teknik analiz ve Temel analiz filtre tartışma dokümanları eklendi (`teknik_analiz_tartisma.md`, `temel_analiz_filtre_tartisma.md`).
+- UI ve ticker bar geliştirmeleri yapıldı.
+
+Etkilenen dosyalar: `src/infrastructure/market_data/tvdatafeed_client.py`, `src/application/services/analysis/technical/`, `scripts/backfill_missing_friday_prices.py`, `teknik_analiz_tartisma.md`, `temel_analiz_filtre_tartisma.md`, `requirements.txt`, `docs/wiki/log.md`
+
 ## [2026-06-16] özellik | Phase B — Golden / Death Cross detect + DB + servis (backend)
 
 SMA50 / SMA200 kesişimi (klasik teknik analiz boğa/ayı sinyali) tüm BIST için backend

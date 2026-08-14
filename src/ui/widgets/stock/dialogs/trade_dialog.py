@@ -14,6 +14,7 @@ from src.qt_compat.qtwidgets import (
     QDateEdit, QTimeEdit, QPushButton, QMessageBox, QFrame, QWidget
 )
 from src.ui.formatters import display_ticker
+from src.qt_compat.lifecycle import is_qobject_deleted
 from src.ui.worker import Worker
 from src.ui.widgets.dialog_behavior import configure_dialog_behavior
 from src.ui.widgets.shared import CurrencySpinBox
@@ -209,6 +210,8 @@ class TradeDialog(QDialog):
         QThreadPool.globalInstance().start(worker)
 
     def _on_price_fetched(self, res):
+        if is_qobject_deleted(self):
+            return
         if res:
             self.current_price = res.price
             self.lbl_price_info.setText(L10N.GUNCEL_FIYAT_KAYNAK_TMPL.format(price=f"{res.price:,.2f}", source=(L10N.ANLIK if res.source == 'intraday' else L10N.KAPANIS)))
@@ -219,6 +222,8 @@ class TradeDialog(QDialog):
         self.btn_save.setEnabled(True)
 
     def _on_price_error(self, err_tuple):
+        if is_qobject_deleted(self):
+            return
         self.lbl_price_info.setText(L10N.AG_HATASI)
         self.btn_save.setEnabled(True)
 

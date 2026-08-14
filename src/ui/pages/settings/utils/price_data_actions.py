@@ -155,7 +155,6 @@ class PriceDataActions:
             Toast.warning(panel, L10N.GUNCELLENECEK_FIYAT_KAYDI_BULUNAMADI)
             if result.errors:
                 panel.detail_text.setText(L10N.HATA_DETAYLARI + "\n" + "\n".join(result.errors[:30]))
-            return
         if result.errors:
             Toast.warning(panel, L10N.VERI_KAYNAGI_UYARISI_TMPL.format(count=len(result.errors)))
         self.analyze()

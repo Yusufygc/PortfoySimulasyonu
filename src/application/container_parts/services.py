@@ -67,6 +67,7 @@ class ServiceSet:
     financial_analysis_service: FinancialAnalysisService
     shareholder_analysis_service: ShareholderAnalysisService
     technical_analysis_service: TechnicalAnalysisService
+    tv_backfill_service: object  # BackfillService | None
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
@@ -102,6 +103,16 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
             golden_cross_repo=repositories.golden_cross_repo,
+        ),
+        tv_backfill_service=(
+            BackfillService(
+                stock_repo=repositories.stock_repo,
+                price_repo=repositories.price_repo,
+                market_data_client=market_clients.tv_client,
+                corporate_action_repo=repositories.corporate_action_repo,
+            )
+            if getattr(market_clients, "tv_client", None) is not None
+            else None
         ),
     )
 

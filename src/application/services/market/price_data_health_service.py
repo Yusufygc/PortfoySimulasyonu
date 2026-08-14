@@ -633,12 +633,22 @@ class PriceHealthUpdater:
             )
 
         prices_to_save, last_price = self._daily_prices_from_series(stock, series, allowed_dates)
+        if not prices_to_save and allowed_dates:
+            return self._fallback_stock_range(
+                stock=stock,
+                start_date=start_date,
+                end_date=end_date,
+                allowed_dates=allowed_dates,
+                fetch_errors=fetch_errors,
+            )
+
         if prices_to_save:
             self._price_repo.upsert_daily_prices_bulk(prices_to_save)
         return PriceDataUpdateResult(
             scanned_stock_count=1,
             updated_count=len(prices_to_save),
             prices={stock.id: last_price} if last_price is not None else {},
+            errors=fetch_errors,
         )
 
     def _fallback_stock_range(

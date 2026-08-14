@@ -16,6 +16,9 @@ from src.qt_compat.qtcore import QVariantAnimation, QEasingCurve, Qt
 from src.qt_compat.qtgui import QPainter, QColor, QLinearGradient, QPainterPath
 
 
+from src.qt_compat.lifecycle import is_qobject_deleted
+
+
 class SkeletonBlock(QWidget):
     """
     Soldan sağa kayan shimmer gradyanı çizen hafif bir widget.
@@ -49,21 +52,40 @@ class SkeletonBlock(QWidget):
     # ------------------------------------------------------------------
 
     def start(self) -> None:
-        self.show()
-        if self._anim.state() != QVariantAnimation.State.Running:
-            self._anim.start()
+        if is_qobject_deleted(self):
+            return
+        try:
+            self.show()
+            if self._anim.state() != QVariantAnimation.State.Running:
+                self._anim.start()
+        except (RuntimeError, Exception):
+            pass
 
     def stop(self) -> None:
-        self._anim.stop()
-        self.hide()
+        if is_qobject_deleted(self):
+            return
+        try:
+            if self._anim.state() == QVariantAnimation.State.Running:
+                self._anim.stop()
+        except (RuntimeError, Exception):
+            pass
+        try:
+            self.hide()
+        except (RuntimeError, Exception):
+            pass
 
     # ------------------------------------------------------------------
     # Internal
     # ------------------------------------------------------------------
 
     def _on_value_changed(self, value: float) -> None:
+        if is_qobject_deleted(self):
+            return
         self._anim_offset = float(value)
-        self.update()
+        try:
+            self.update()
+        except (RuntimeError, Exception):
+            pass
 
     def paintEvent(self, event) -> None:  # noqa: N802
         painter = QPainter(self)

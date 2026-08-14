@@ -9,6 +9,7 @@ auto_commit.py
 REFACTOR.md
 backups
 
+/data
 
 .env.test
 /Eklenebilirler.txt

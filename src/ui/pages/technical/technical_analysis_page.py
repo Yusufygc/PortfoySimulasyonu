@@ -38,6 +38,7 @@ class TechnicalAnalysisPage(BasePage):
         self.container = container
         self.page_title = L10N.TEKNIK_ANALIZ
         self._service = container.technical_analysis_service
+        self._tv_backfill_service = getattr(container, "tv_backfill_service", None)
         self._price_repo = container.price_repo
         self._stock_repo = container.stock_repo
         self._pool = QThreadPool()
@@ -76,6 +77,14 @@ class TechnicalAnalysisPage(BasePage):
         self._btn_backfill.setProperty("cssClass", "secondaryButton")
         self._btn_backfill.clicked.connect(self._on_backfill_all)
         top.addWidget(self._btn_backfill)
+
+        self._btn_tv_backfill = QPushButton(L10N.TV_DEN_YUKLE)
+        self._btn_tv_backfill.setProperty("cssClass", "secondaryButton")
+        self._btn_tv_backfill.clicked.connect(self._on_tv_backfill)
+        if self._tv_backfill_service is None:
+            self._btn_tv_backfill.setEnabled(False)
+            self._btn_tv_backfill.setToolTip(L10N.TV_KURULU_DEGIL)
+        top.addWidget(self._btn_tv_backfill)
 
         self._status_label = QLabel("")
         self._status_label.setProperty("cssClass", "pageDescription")
@@ -223,6 +232,42 @@ class TechnicalAnalysisPage(BasePage):
     def _on_backfill_cleanup(self) -> None:
         self._btn_scan.setEnabled(True)
         self._btn_backfill.setEnabled(True)
+
+    # ------------------------------------------------------------------
+    # TV Backfill
+    # ------------------------------------------------------------------
+
+    def _on_tv_backfill(self) -> None:
+        if self._tv_backfill_service is None:
+            self._status_label.setText(L10N.TV_KURULU_DEGIL)
+            return
+        self._status_label.setText(L10N.TV_YUKLEME_BASLATILDI)
+        self._btn_scan.setEnabled(False)
+        self._btn_backfill.setEnabled(False)
+        self._btn_tv_backfill.setEnabled(False)
+
+        from datetime import timedelta
+        end = date.today()
+        start = end - timedelta(days=int(10 * 365.25))
+
+        worker = Worker(self._tv_backfill_service.backfill_range, start, end)
+        worker.signals.result.connect(self._on_tv_backfill_done)
+        worker.signals.error.connect(self._on_tv_backfill_error)
+        worker.signals.cleanup.connect(self._on_tv_backfill_cleanup)
+        self._pool.start(worker)
+
+    def _on_tv_backfill_done(self, count) -> None:
+        self._status_label.setText(L10N.TV_YUKLEME_TAMAMLANDI_TMPL.format(count=count))
+        self._on_refresh_recent()
+
+    def _on_tv_backfill_error(self, err_tuple) -> None:
+        self._status_label.setText(L10N.TV_YUKLEME_HATA_TMPL.format(exc=err_tuple[1]))
+
+    def _on_tv_backfill_cleanup(self) -> None:
+        self._btn_scan.setEnabled(True)
+        self._btn_backfill.setEnabled(True)
+        if self._tv_backfill_service is not None:
+            self._btn_tv_backfill.setEnabled(True)
 
     def _on_row_double_clicked(self, row: int, column: int) -> None:
         ticker_item = self._tbl.item(row, 1)

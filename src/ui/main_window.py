@@ -128,17 +128,9 @@ def last_completed_trading_day(today: date, trading_calendar) -> date:
 
 
 def fade_in_page(page: QWidget | None) -> None:
-    if page is None:
-        return
-    effect = QGraphicsOpacityEffect(page)
-    page.setGraphicsEffect(effect)
-    anim = QPropertyAnimation(effect, b"opacity", page)
-    anim.setDuration(160)
-    anim.setStartValue(0.0)
-    anim.setEndValue(1.0)
-    anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-    anim.finished.connect(lambda: page.setGraphicsEffect(None))
-    anim.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
+    """Sayfa geçişlerinde kararma ve kapanıp-açılma hissiyatını engellemek için direkt geçiş yapılır."""
+    return
+
 
 
 class MainWindow(QMainWindow):
@@ -273,9 +265,9 @@ class MainWindow(QMainWindow):
         self._activate_page(page_index)
 
     def _activate_page(self, page_index: int):
-        self.stacked_widget.setCurrentIndex(page_index)
-        new_page = self.stacked_widget.currentWidget()
+        new_page = self.stacked_widget.widget(page_index)
         fade_in_page(new_page)
+        self.stacked_widget.setCurrentIndex(page_index)
         if hasattr(new_page, "on_page_enter"):
             new_page.on_page_enter()
         self._update_nav_buttons(page_index)

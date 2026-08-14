@@ -29,6 +29,27 @@ from src.application.services.analysis.technical.golden_cross import (
 logger = logging.getLogger(__name__)
 
 _DEFAULT_SHORT = 50
+_MAX_PRICE_RATIO = 1000.0  # medyandan bu kadar sapan fiyat → bozuk veri
+
+
+def _is_series_sane(ser: pd.Series, ticker: str, log: logging.Logger) -> bool:
+    """Fiyat serisinde aşırı outlier var mı kontrol et.
+
+    Medyandan 1000x daha yüksek veya düşük değerler bozuk veri işareti.
+    Örnek: EREGL'de yanlış ölçekle girilmiş milyonluk fiyatlar.
+    """
+    median = ser.median()
+    if median <= 0:
+        log.warning("%s: medyan fiyat <= 0, atlanıyor.", ticker)
+        return False
+    ratio = ser.max() / median
+    if ratio > _MAX_PRICE_RATIO:
+        log.warning(
+            "%s: fiyat aralığı şüpheli (max/median=%.1f), EMA hesabı atlanıyor.",
+            ticker, ratio,
+        )
+        return False
+    return True
 _DEFAULT_LONG  = 200
 # detect için min 1 yıllık veri (long + buffer); CSV import ile 10y var.
 _LOOKBACK_YEARS = 10
@@ -102,15 +123,17 @@ class TechnicalAnalysisService:
         return ScanResult(scanned_count=1, new_event_count=new_count, skipped_count=0)
 
     def _scan_single(self, stock: Stock, today: date) -> Optional[List[GoldenCrossEvent]]:
-        """Tek stock için detect + GoldenCrossEvent listesi üret. None → yetersiz veri."""
+        """Tek stock için detect + GoldenCrossEvent listesi üret. None → yetersiz/bozuk veri."""
         start = today - timedelta(days=int(_LOOKBACK_YEARS * 365.25))
         series_rows = self._price_repo.get_price_series(stock.id, start, today)
-        if not series_rows or len(series_rows) < self._long + 1:
+        if not series_rows or len(series_rows) < self._long * 2:
             return None
         ser = pd.Series(
             data=[float(r.close_price) for r in series_rows],
             index=[r.price_date for r in series_rows],
         ).sort_index()
+        if not _is_series_sane(ser, stock.ticker, logger):
+            return None
         detected = detect_crosses(ser, short=self._short, long=self._long)
         return [self._to_event(stock, d) for d in detected]
 

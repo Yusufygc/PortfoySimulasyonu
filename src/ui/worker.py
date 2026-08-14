@@ -54,10 +54,19 @@ class Worker(QRunnable):
         except Exception:
             logger.exception("Worker job failed: job_id=%s operation=%s", self.job_id, operation)
             exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
+            try:
+                self.signals.error.emit((exctype, value, traceback.format_exc()))
+            except RuntimeError:
+                pass
         else:
             logger.info("Worker job finished: job_id=%s operation=%s", self.job_id, operation)
-            self.signals.result.emit(result)
+            try:
+                self.signals.result.emit(result)
+            except RuntimeError:
+                pass
         finally:
-            self.signals.finished.emit()
-            self.signals.cleanup.emit()
+            try:
+                self.signals.finished.emit()
+                self.signals.cleanup.emit()
+            except RuntimeError:
+                self._release()
