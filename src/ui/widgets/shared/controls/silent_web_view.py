@@ -28,7 +28,7 @@ class SilentWebEngineView(QWebEngineView):
         super().__init__(parent)
         self.setFocusPolicy(Qt.NoFocus)
         self.setPage(SilentWebEnginePage(self))
-        self.page().setBackgroundColor(QColor(0, 0, 0, 0))
+        self.page().setBackgroundColor(QColor("#0f172a"))
         self._ensure_download_handler()
 
     def _ensure_download_handler(self) -> None:

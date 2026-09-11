@@ -31,7 +31,7 @@ class ChartPlaceholder(QFrame):
         self.label.setProperty("cssClass", "comparisonChartPlaceholderLabel")
         self.label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.label)
-        self.setMinimumHeight(600)
+        self.setMinimumHeight(350)
 
 
 class ChartInfoCard(QFrame):

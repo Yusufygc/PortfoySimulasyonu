@@ -157,6 +157,13 @@ class ShareholdersPage(BasePage):
     def on_page_leave(self) -> None:
         self._chart_panel.cleanup()
 
+    def load_ticker(self, ticker: str) -> None:
+        clean = ticker.strip().upper()
+        if not clean:
+            return
+        self._ticker_edit.setText(clean)
+        self._on_fetch()
+
     def closeEvent(self, event) -> None:
         self.on_page_leave()
         super().closeEvent(event)

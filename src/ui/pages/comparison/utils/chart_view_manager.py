@@ -12,7 +12,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from src.qt_compat.lifecycle import is_qobject_deleted as _is_qobject_deleted
-from src.qt_compat.qtwidgets import QWidget
+from src.qt_compat.qtwidgets import QSizePolicy, QWidget
 from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 from src.ui.shared.locale_tr import L10N
 
@@ -76,7 +76,8 @@ class ChartViewManager:
             setattr(self.page, attr_name, None)
 
         view = SilentWebEngineView()
-        view.setMinimumHeight(600)
+        view.setMinimumHeight(350)
+        view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Wheel filtresi bağla
         if hasattr(self.page, "wheel_redirect_filter"):

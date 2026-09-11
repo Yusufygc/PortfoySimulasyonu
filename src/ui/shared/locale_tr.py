@@ -845,3 +845,36 @@ li {
     METRIC_MAE_DESC = "Yapay zekanın tahmin ettiği fiyat ile gerçek fiyat arasındaki ortalama net lira farkıdır. Düşük olması daha tutarlı tahminler demektir."
     METRIC_STABILITY_SCORE_LABEL = "Performans Tutarlılığı"
     METRIC_STABILITY_SCORE_DESC = "Yapay zekanın farklı zaman dilimlerinde (örneğin hem durgun hem de hareketli piyasalarda) benzer başarıyı sürdürme derecesidir."
+
+    # DCA Simülasyonu
+    DCA_SIMULATOR = "DCA Simülatörü"
+    DCA_SIMULATION_TITLE = "Düzenli Alım (DCA) Simülasyon Parametreleri"
+    DCA_RUN_BUTTON = "🚀 Simülasyonu Çalıştır"
+    DCA_CALCULATING = "DCA Simülasyonu hesaplanıyor..."
+    DCA_SUCCESS = "Simülasyon başarıyla tamamlandı."
+    DCA_HINT_TICKERS = "Hisseler (Virgülle ayırın):"
+    DCA_MONTHLY_CONTRIB = "Aylık Katkı Tutarı (₺):"
+    DCA_PERIOD = "Süre:"
+    DCA_SERVICE_NOT_FOUND = "DCA Backtest servisi bulunamadı."
+    DCA_ENTER_TICKER = "Lütfen en az bir hisse kodu girin."
+
+    # BIST Screener & Teknik Analiz
+    NAV_SCREENER = "BIST Tarama"
+    SCREENER_TITLE = "BIST Çoklu Sinyal Tarayıcısı (Screener)"
+    SCREENER_PAGE_TITLE = "BIST Tarama & Teknik Analiz"
+    SCREENER_DESC = "Yerel veri tabanı üzerindeki BIST hisselerini hazır teknik stratejilere ve hareketli ortalama kesişimlerine göre tarayın."
+    SCREENER_RUN_BUTTON = "⚡ Taramayı Çalıştır"
+    SCREENER_READY = "Taramayı başlatmak için butona tıklayın."
+    SCREENER_RUNNING = "BIST hisseleri taranıyor, lütfen bekleyin..."
+    SCREENER_SERVICE_NOT_FOUND = "Screener servisi bulunamadı."
+    STRATEJI = "Strateji"
+    TUM_STRATEJILER = "Tüm Stratejiler"
+    SCREENER_TAB_STRATEGIES = "Çoklu Strateji Taraması"
+    SCREENER_TAB_TECHNICAL = "Teknik Analiz & Göstergeler"
+
+    # Hisse 360
+    NAV_STOCK_360 = "Hisse 360"
+    STOCK_360_TITLE = "Hisse 360 & Finansal Araştırma"
+    STOCK_360_DESC = "Çeyreklik bilanço rasyoları, büyüme oranları ve KAP ortaklık verileri tek merkezde."
+    STOCK_360_SEARCH_PLACEHOLDER = "Örn: THYAO, GARAN..."
+    STOCK_360_SEARCH_BUTTON = "Ara / Yükle"

@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-12] refaktör | PyQt5/PySide6 UI Konsolidasyonu & Yeni Özellik Sayfaları Entegrasyonu
+
+- Deneysel `src/ui_qml/` katmanı temizlendi; ana PyQt5/PySide6 mimarisi korundu.
+- `ScreenerPage` (Hisse Tarayıcı) ve `Stock360Page` (Hisse 360 Görünümü) PyQt5/PySide6 sayfaları olarak yazıldı.
+- Finansal Planlama sayfasına DCA Simülasyon paneli (`DcaSimulationPanel`) entegre edildi.
+- `CheckableComboBox` bileşeni `src/ui/widgets/shared/controls/` altına taşındı.
+- UI sayfa ve panel birim testleri güncellendi (935 test %100 yeşil).
+
+Etkilenen modüller: `src/ui/pages/`, `src/ui/widgets/`, `src/ui/navigation/page_factory.py`, `docs/wiki/log.md`
+
 ## [2026-09-12] özellik | Faz 3–6 — Servis Konsolidasyonu, QML UI Katmanı & AI Karar Destek Ajanı
 
 - Clean Architecture uygulama katmanı 5 yeni servis (Stock360, PortfolioAnalytics, RiskOptimizationBridge, DcaBacktest, AiAdvisor) ile konsolide edildi.

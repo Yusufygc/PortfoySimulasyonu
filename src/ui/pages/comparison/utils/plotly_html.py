@@ -7,7 +7,63 @@ from pathlib import Path
 import plotly
 import plotly.graph_objects as go
 
-from src.ui.pages.analysis.chart_builder import patch_plotly_html
+def patch_plotly_html(html: str) -> str:
+    dark_css = """
+    <style>
+        html, body {
+            background-color: #0f172a !important;
+            color: #f1f5f9 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
+        }
+        .js-plotly-plot, .plot-container, .plotly, .svg-container {
+            background-color: #0f172a !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .main-svg {
+            background-color: #0f172a !important;
+        }
+        .modebar-container {
+            background-color: transparent !important;
+        }
+        .modebar-btn path {
+            fill: #94a3b8 !important;
+        }
+        .modebar-btn:hover path {
+            fill: #38bdf8 !important;
+        }
+    </style>
+    """
+    patch_script = dark_css + """
+    <script type="text/javascript">
+    (function() {
+        try {
+            var orig = CSSStyleSheet.prototype.insertRule;
+            CSSStyleSheet.prototype.insertRule = function(rule, index) {
+                try {
+                    return orig.call(this, rule, index);
+                } catch (e) {
+                    console.warn("Ignored CSSStyleSheet.insertRule error: ", rule, e);
+                    return 0;
+                }
+            };
+        } catch (e) {
+            console.error("Failed to patch CSSStyleSheet.insertRule", e);
+        }
+    })();
+    </script>
+    """
+    if "<head>" in html:
+        return html.replace("<head>", "<head>\n" + patch_script, 1)
+    elif "<html>" in html:
+        return html.replace("<html>", "<html>\n" + patch_script, 1)
+    else:
+        return patch_script + "\n" + html
 
 
 logger = logging.getLogger(__name__)
@@ -57,10 +113,12 @@ def build_plotly_html(
     download_filename: str | None = None,
 ) -> str:
     config = {
+        "responsive": True,
+        "displayModeBar": True,
         "toImageButtonOptions": {
             "format": "png",
             "filename": download_filename or "newplot",
-        }
+        },
     }
     if plotly_js_url:
         html = fig.to_html(include_plotlyjs=False, full_html=True, config=config)

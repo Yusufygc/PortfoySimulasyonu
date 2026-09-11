@@ -608,3 +608,14 @@ def test_chart_renderer_ratio_mode_uses_pay_and_payda_in_download_filename():
     )
 
     assert filename == "portfoy_4_ana_portfoy_ana_performans_rasyo_modu_08.03.2026_05.06.2026"
+
+
+def test_chart_view_manager_creates_view_with_expanding_size_policy():
+    page = ComparisonPage(MockContainer())
+    view = page._view_manager.get_or_create_view("main")
+
+    assert view is not None
+    assert view.minimumHeight() == 350
+    assert view.sizePolicy().horizontalPolicy() == QSizePolicy.Expanding
+    assert view.sizePolicy().verticalPolicy() == QSizePolicy.Expanding
+

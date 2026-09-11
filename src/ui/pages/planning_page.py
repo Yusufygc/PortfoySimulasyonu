@@ -13,7 +13,7 @@ from src.qt_compat.qtwidgets import (
 from src.qt_compat.qtcore import Qt, QSize
 
 from .base_page import BasePage
-from src.ui.widgets.planning import BudgetFormPanel, ContributionDialog, GoalInputDialog, GoalsPanel
+from src.ui.widgets.planning import BudgetFormPanel, ContributionDialog, DCASimulationPanel, GoalInputDialog, GoalsPanel
 from src.ui.widgets.shared import AnimatedButton, Toast
 from src.ui.core.icon_manager import IconManager
 from src.ui.widgets.shared.controls.icon_label import IconLabel
@@ -69,6 +69,10 @@ class PlanningPage(BasePage):
         self.tab_widget.addTab(goals_tab, L10N.HEDEF_TAKIBI)
         self._build_goals_tab(goals_tab)
 
+        # Sekme 3: DCA Simülasyonu
+        self._dca_panel = DCASimulationPanel(container=self.container)
+        self.tab_widget.addTab(self._dca_panel, L10N.DCA_SIMULATOR)
+
         self.tab_widget.currentChanged.connect(self._update_tab_icons)
         self._update_tab_icons()
         self.main_layout.addWidget(self.tab_widget)
@@ -77,8 +81,10 @@ class PlanningPage(BasePage):
         idx = self.tab_widget.currentIndex() if index == -1 else index
         c0 = "@COLOR_TEXT_WHITE" if idx == 0 else "@COLOR_TEXT_SECONDARY"
         c1 = "@COLOR_TEXT_WHITE" if idx == 1 else "@COLOR_TEXT_SECONDARY"
+        c2 = "@COLOR_TEXT_WHITE" if idx == 2 else "@COLOR_TEXT_SECONDARY"
         self.tab_widget.setTabIcon(0, IconManager.get_icon("list", color=c0))
         self.tab_widget.setTabIcon(1, IconManager.get_icon("target", color=c1))
+        self.tab_widget.setTabIcon(2, IconManager.get_icon("trending-up", color=c2))
 
     def _build_budget_tab(self, tab: QWidget) -> None:
         from src.qt_compat.qtwidgets import QVBoxLayout

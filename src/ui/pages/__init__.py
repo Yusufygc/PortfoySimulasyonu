@@ -7,7 +7,7 @@ from .base_page import BasePage
 from .dashboard import DashboardPage
 from .watchlist_page import WatchlistPage
 from .model_portfolio.model_portfolio_page import ModelPortfolioPage
-from .analysis import AnalysisPage
+from .comparison.comparison_page import ComparisonPage
 from .optimization_page import OptimizationPage
 from .planning_page import PlanningPage
 from .risk_profile_page import RiskProfilePage
@@ -18,7 +18,7 @@ __all__ = [
     "DashboardPage",
     "WatchlistPage",
     "ModelPortfolioPage",
-    "AnalysisPage",
+    "ComparisonPage",
     "OptimizationPage",
     "PlanningPage",
     "RiskProfilePage",

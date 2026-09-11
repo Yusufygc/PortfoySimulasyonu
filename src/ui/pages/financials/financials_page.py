@@ -166,6 +166,14 @@ class FinancialsPage(BasePage):
         self._cancel_active_worker()
         self._chart_panel.cleanup()
 
+    def load_ticker(self, ticker: str) -> None:
+        clean = ticker.strip().upper()
+        if not clean:
+            return
+        if hasattr(self, "_input_panel") and hasattr(self._input_panel, "_input"):
+            self._input_panel._input.setText(clean)
+        self._on_fetch_requested(clean)
+
     def closeEvent(self, event) -> None:
         self.on_page_leave()
         super().closeEvent(event)

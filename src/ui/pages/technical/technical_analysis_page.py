@@ -350,6 +350,14 @@ class TechnicalAnalysisPage(BasePage):
     # Yaşam döngüsü
     # ------------------------------------------------------------------
 
+    def load_ticker(self, ticker: str) -> None:
+        clean = ticker.strip().upper()
+        if not clean:
+            return
+        self._tabs.setCurrentIndex(1)
+        self._ticker_edit.setText(clean)
+        self._on_load_detail()
+
     def on_page_leave(self) -> None:
         self._chart_panel.cleanup()
 

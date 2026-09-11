@@ -6,7 +6,7 @@ import tempfile
 import logging
 
 from src.qt_compat.qtcore import QUrl
-from src.qt_compat.qtwidgets import QVBoxLayout, QWidget
+from src.qt_compat.qtwidgets import QSizePolicy, QVBoxLayout, QWidget
 from src.ui.widgets.shared.controls.silent_web_view import SilentWebEngineView
 from src.ui.shared.locale_tr import L10N
 
@@ -24,7 +24,8 @@ class FinancialsChartPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         self._view = SilentWebEngineView(self)
-        self._view.setMinimumHeight(1150)
+        self._view.setMinimumHeight(350)
+        self._view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(self._view)
 
         self._show_placeholder()

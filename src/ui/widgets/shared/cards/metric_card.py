@@ -30,12 +30,12 @@ class MetricCard(QFrame):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 14, 18, 14)
-        layout.setSpacing(8)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(4)
 
         # Başlık ve İkon
         header_layout = QHBoxLayout()
-        header_layout.setSpacing(10)
+        header_layout.setSpacing(6)
         
         if icon_name:
             self._lbl_icon = IconLabel(icon_name, color="@COLOR_TEXT_SECONDARY", size=20)

@@ -12,13 +12,13 @@ from src.qt_compat.qtwidgets import (
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
-    QWidget
+    QWidget,
 )
-from src.ui.pages.analysis.checkable_combo_box import CheckableComboBox
+from src.ui.widgets.shared import CheckableComboBox
 
 class ComparisonRibbonBar(QFrame):
     filter_changed = Signal()
-    _DATE_EDIT_WIDTH = 138
+    _DATE_EDIT_WIDTH = 152
     
     def __init__(self, parent=None):
         super().__init__(parent)

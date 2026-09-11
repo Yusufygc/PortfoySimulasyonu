@@ -125,7 +125,6 @@ class ActionListItem(QWidget):
         else:
             target_width = secondary_short_width
 
-        target_width = max(self.secondary_label.minimumSizeHint().width(), target_width)
         self.secondary_label.setFixedWidth(target_width)
         self.secondary_label.update()
 

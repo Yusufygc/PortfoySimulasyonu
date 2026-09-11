@@ -10,17 +10,19 @@ class PageFactory:
             0: self._create_dashboard,
             1: self._create_watchlist,
             2: self._create_model_portfolio,
-            3: self._create_analysis,
-            4: self._create_comparison,
+            3: self._create_stock_360,
+            4: self._create_analysis,
             5: self._create_stock_detail,
-            6: self._create_optimization,
+            6: self._create_screener,
             7: self._create_planning,
-            8: self._create_risk_profile,
+            8: self._create_optimization,
             9: self._create_ai_page,
             10: self._create_settings,
-            11: self._create_financials,
-            12: self._create_shareholders,
-            13: self._create_technical_analysis,
+            11: self._create_comparison,
+            12: self._create_financials,
+            13: self._create_shareholders,
+            14: self._create_technical_analysis,
+            15: self._create_risk_profile,
         }
 
     def create(self, page_index: int):
@@ -44,10 +46,15 @@ class PageFactory:
 
         return ModelPortfolioPage(container=self._container, price_lookup_func=self._price_lookup_func)
 
-    def _create_analysis(self):
-        from src.ui.pages.analysis import AnalysisPage
+    def _create_stock_360(self):
+        from src.ui.pages.stock_360 import Stock360Page
 
-        return AnalysisPage(container=self._container)
+        return Stock360Page(container=self._container, parent=self._parent_window)
+
+    def _create_analysis(self):
+        from src.ui.pages.comparison.comparison_page import ComparisonPage
+
+        return ComparisonPage(container=self._container)
 
     def _create_stock_detail(self):
         from src.ui.pages.stock_detail import StockDetailPage
@@ -58,20 +65,20 @@ class PageFactory:
             parent=self._parent_window,
         )
 
-    def _create_optimization(self):
-        from src.ui.pages.optimization_page import OptimizationPage
+    def _create_screener(self):
+        from src.ui.pages.screener import ScreenerPage
 
-        return OptimizationPage(container=self._container, price_lookup_func=self._price_lookup_func)
+        return ScreenerPage(container=self._container, parent=self._parent_window)
 
     def _create_planning(self):
         from src.ui.pages.planning_page import PlanningPage
 
         return PlanningPage(container=self._container)
 
-    def _create_risk_profile(self):
-        from src.ui.pages.risk_profile_page import RiskProfilePage
+    def _create_optimization(self):
+        from src.ui.pages.optimization_page import OptimizationPage
 
-        return RiskProfilePage(container=self._container)
+        return OptimizationPage(container=self._container, price_lookup_func=self._price_lookup_func)
 
     def _create_ai_page(self):
         from src.ui.pages.ai_page import AIPage
@@ -102,3 +109,8 @@ class PageFactory:
         from src.ui.pages.technical.technical_analysis_page import TechnicalAnalysisPage
 
         return TechnicalAnalysisPage(container=self._container)
+
+    def _create_risk_profile(self):
+        from src.ui.pages.risk_profile_page import RiskProfilePage
+
+        return RiskProfilePage(container=self._container)

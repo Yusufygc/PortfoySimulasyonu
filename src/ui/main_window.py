@@ -96,28 +96,26 @@ def _add_nav_separator(sidebar_layout) -> None:
 def _build_sidebar_nav(sidebar_layout, goto_page_func):
     # Page indices match MainWindow.PAGE_* constants
     _add_nav_separator(sidebar_layout)
-    btn_dashboard      = _make_nav_button(L10N.DASHBOARD,        0,  "layout-dashboard", goto_page_func)
-    btn_watchlist      = _make_nav_button(L10N.LISTELERIM,        1,  "list",             goto_page_func)
-    btn_model_port     = _make_nav_button(L10N.MODEL_PORTFOYLER,  2,  "wallet",           goto_page_func)
-    btn_analysis       = _make_nav_button(L10N.ANALIZ,            3,  "trending-up",      goto_page_func)
-    btn_comparison     = _make_nav_button(L10N.KARSILASTIRMA,     4,  L10N.BARCHART2,     goto_page_func)
-    btn_optimization   = _make_nav_button(L10N.OPTIMIZASYON,      6,  "zap",              goto_page_func)
-    btn_planning       = _make_nav_button(L10N.FINANSAL_PLANLAMA, 7,  "save",             goto_page_func)
-    btn_risk_profile   = _make_nav_button(L10N.RISK_PROFILI,      8,  "shield-check",     goto_page_func)
-    btn_ai_page        = _make_nav_button(L10N.AI_ASISTAN,             9,  "bot",          goto_page_func)
-    btn_settings       = _make_nav_button(L10N.SETTINGS,               10, "save",         goto_page_func)
-    btn_financials     = _make_nav_button(L10N.BILANCO_VE_FINANSALLAR, 11, "bar-chart-2",  goto_page_func)
-    btn_shareholders   = _make_nav_button(L10N.ORTAKLIK_YAPISI,        12, "users",        goto_page_func)
-    btn_technical      = _make_nav_button(L10N.TEKNIK_ANALIZ,           13, "activity",     goto_page_func)
-    for btn in (btn_dashboard, btn_watchlist, btn_model_port, btn_financials, btn_shareholders,
-                btn_technical, btn_analysis, btn_comparison, btn_optimization, btn_planning,
-                btn_risk_profile, btn_ai_page, btn_settings):
+    btn_dashboard      = _make_nav_button(L10N.DASHBOARD,                  0,  "layout-dashboard", goto_page_func)
+    btn_watchlist      = _make_nav_button(L10N.LISTELERIM,                  1,  "list",             goto_page_func)
+    btn_model_port     = _make_nav_button(L10N.MODEL_PORTFOYLER,            2,  "wallet",           goto_page_func)
+    btn_stock_360      = _make_nav_button(L10N.NAV_STOCK_360,               3,  "crosshair",        goto_page_func)
+    btn_comparison     = _make_nav_button(L10N.KARSILASTIRMA_LABORATUVARI, 11, "scale",            goto_page_func)
+    btn_screener       = _make_nav_button(L10N.NAV_SCREENER,                6,  "activity",         goto_page_func)
+    btn_planning       = _make_nav_button(L10N.FINANSAL_PLANLAMA,           7,  "calendar",         goto_page_func)
+    btn_optimization   = _make_nav_button(L10N.OPTIMIZASYON,                8,  "shield-check",     goto_page_func)
+    btn_ai_page        = _make_nav_button(L10N.AI_ASISTAN,                  9,  "bot",              goto_page_func)
+    btn_settings       = _make_nav_button(L10N.SETTINGS,                    10, "save",             goto_page_func)
+
+    for btn in (btn_dashboard, btn_watchlist, btn_model_port, btn_stock_360,
+                btn_comparison, btn_screener, btn_planning, btn_optimization,
+                btn_ai_page, btn_settings):
         sidebar_layout.addWidget(btn)
     sidebar_layout.addStretch()
     _add_nav_separator(sidebar_layout)
-    return (btn_dashboard, btn_watchlist, btn_model_port, btn_analysis, btn_comparison,
-            btn_optimization, btn_planning, btn_risk_profile, btn_ai_page, btn_settings,
-            btn_financials, btn_shareholders, btn_technical)
+    return (btn_dashboard, btn_watchlist, btn_model_port, btn_stock_360,
+            btn_comparison, btn_screener, btn_planning, btn_optimization,
+            btn_ai_page, btn_settings)
 
 
 def last_completed_trading_day(today: date, trading_calendar) -> date:
@@ -137,18 +135,20 @@ class MainWindow(QMainWindow):
     PAGE_DASHBOARD = 0
     PAGE_WATCHLIST = 1
     PAGE_MODEL_PORTFOLIO = 2
-    PAGE_ANALYSIS = 3
-    PAGE_COMPARISON = 4
+    PAGE_STOCK_360 = 3
+    PAGE_ANALYSIS = 4
     PAGE_STOCK_DETAIL = 5
-    PAGE_OPTIMIZATION = 6
+    PAGE_SCREENER = 6
     PAGE_PLANNING = 7
-    PAGE_RISK_PROFILE = 8
+    PAGE_OPTIMIZATION = 8
     PAGE_AI_PAGE = 9
     PAGE_SETTINGS = 10
-    PAGE_FINANCIALS = 11
-    PAGE_SHAREHOLDERS = 12
-    PAGE_TECHNICAL = 13
-    PAGE_COUNT = 14
+    PAGE_COMPARISON = 11
+    PAGE_FINANCIALS = 12
+    PAGE_SHAREHOLDERS = 13
+    PAGE_TECHNICAL = 14
+    PAGE_RISK_PROFILE = 15
+    PAGE_COUNT = 16
 
     def __init__(self, container, parent=None):
         super().__init__(parent)
@@ -173,6 +173,7 @@ class MainWindow(QMainWindow):
         env = os.getenv("PORTFOYSIM_ENV", "").upper()
         self.setWindowTitle(f"{L10N.APP_TITLE} [{env} ORTAMI]" if env else L10N.APP_TITLE)
         self.setWindowIcon(QIcon("icons/icon.ico"))
+        self.setMinimumSize(960, 600)
         self.resize(MAIN_WINDOW_INITIAL_WIDTH, MAIN_WINDOW_INITIAL_HEIGHT)
 
         self._init_ui()
@@ -206,10 +207,9 @@ class MainWindow(QMainWindow):
             lbl.setStyleSheet("color:#FF9800;font-weight:bold;background-color:#3E2723;border:1px solid #FF9800;border-radius:4px;padding:4px;margin:5px 0;")
             self.sidebar_layout.addWidget(lbl)
         (self.btn_dashboard, self.btn_watchlist, self.btn_model_portfolio,
-         self.btn_analysis, self.btn_comparison, self.btn_optimization,
-         self.btn_planning, self.btn_risk_profile, self.btn_ai_page,
-         self.btn_settings, self.btn_financials,
-         self.btn_shareholders, self.btn_technical) = _build_sidebar_nav(self.sidebar_layout, self._goto_page)
+         self.btn_stock_360, self.btn_comparison, self.btn_screener,
+         self.btn_planning, self.btn_optimization, self.btn_ai_page,
+         self.btn_settings) = _build_sidebar_nav(self.sidebar_layout, self._goto_page)
         self.stacked_widget = QStackedWidget()
         self.pages = {}
         for _ in range(self.PAGE_COUNT):
@@ -279,6 +279,14 @@ class MainWindow(QMainWindow):
         page.set_stock(ticker, stock_id, context=context)
         self._goto_page(self.PAGE_STOCK_DETAIL)
 
+    def show_stock_360(self, ticker: str):
+        if self.PAGE_STOCK_360 not in self.pages:
+            self._instantiate_page(self.PAGE_STOCK_360)
+        page = self.pages[self.PAGE_STOCK_360]
+        if hasattr(page, "set_stock"):
+            page.set_stock(ticker)
+        self._goto_page(self.PAGE_STOCK_360)
+
     def show_dashboard(self):
         self._goto_page(self.PAGE_DASHBOARD)
 
@@ -306,16 +314,13 @@ class MainWindow(QMainWindow):
             self.PAGE_DASHBOARD: (self.btn_dashboard, "layout-dashboard"),
             self.PAGE_WATCHLIST: (self.btn_watchlist, "list"),
             self.PAGE_MODEL_PORTFOLIO: (self.btn_model_portfolio, "wallet"),
-            self.PAGE_ANALYSIS: (self.btn_analysis, "trending-up"),
-            self.PAGE_COMPARISON: (self.btn_comparison, L10N.BARCHART2),
-            self.PAGE_OPTIMIZATION: (self.btn_optimization, "zap"),
-            self.PAGE_PLANNING: (self.btn_planning, "save"),
-            self.PAGE_RISK_PROFILE: (self.btn_risk_profile, "shield-check"),
+            self.PAGE_STOCK_360: (self.btn_stock_360, "crosshair"),
+            self.PAGE_COMPARISON: (self.btn_comparison, "scale"),
+            self.PAGE_SCREENER: (self.btn_screener, "activity"),
+            self.PAGE_PLANNING: (self.btn_planning, "calendar"),
+            self.PAGE_OPTIMIZATION: (self.btn_optimization, "shield-check"),
             self.PAGE_AI_PAGE: (self.btn_ai_page, "bot"),
             self.PAGE_SETTINGS: (self.btn_settings, "save"),
-            self.PAGE_FINANCIALS: (self.btn_financials, "bar-chart-2"),
-            self.PAGE_SHAREHOLDERS: (self.btn_shareholders, "users"),
-            self.PAGE_TECHNICAL: (self.btn_technical, "activity"),
         }
 
         for page_idx, (btn, icon_name) in nav_buttons.items():

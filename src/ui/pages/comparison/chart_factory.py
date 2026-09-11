@@ -34,31 +34,34 @@ class ComparisonChartFactory:
         if theme_colors is None:
             # Koyu tema varsayılan renkleri
             theme_colors = {
-                "paper_bg": "#111827",  # COLOR_CARD_SURFACE
-                "plot_bg": "#0f172a",   # COLOR_BG_BASE
+                "paper_bg": "#0f172a",  # COLOR_CARD_SURFACE / BG
+                "plot_bg": "#0b1120",   # Koyu grafik arka planı
                 "text": "#f1f5f9",      # COLOR_TEXT_PRIMARY
                 "grid": "#1e293b",      # COLOR_BORDER_SUBTLE
                 "zeroline": "#334155"   # COLOR_BORDER
             }
             
         fig.update_layout(
-            title={"text": title, "font": {"size": 16, "color": theme_colors.get("text", L10N.F1F5F9)}},
-            paper_bgcolor=theme_colors.get("paper_bg", "#111827"),
-            plot_bgcolor=theme_colors.get("plot_bg", "#0f172a"),
+            title={"text": title, "font": {"size": 15, "color": theme_colors.get("text", L10N.F1F5F9)}},
+            paper_bgcolor=theme_colors.get("paper_bg", "#0f172a"),
+            plot_bgcolor=theme_colors.get("plot_bg", "#0b1120"),
             font={"family": "Segoe UI, Arial", "color": theme_colors.get("text", L10N.F1F5F9)},
-            margin={"l": 40, "r": 40, "t": 60, "b": 40},
+            autosize=True,
+            margin={"l": 55, "r": 30, "t": 50, "b": 40},
             xaxis={
                 "gridcolor": theme_colors.get("grid", "#1e293b"),
                 "zerolinecolor": theme_colors.get("zeroline", "#334155"),
-                "tickfont": {"color": theme_colors.get("text", L10N.F1F5F9)}
+                "tickfont": {"color": theme_colors.get("text", L10N.F1F5F9), "size": 11}
             },
             yaxis={
                 "gridcolor": theme_colors.get("grid", "#1e293b"),
                 "zerolinecolor": theme_colors.get("zeroline", "#334155"),
-                "tickfont": {"color": theme_colors.get("text", L10N.F1F5F9)}
+                "tickfont": {"color": theme_colors.get("text", L10N.F1F5F9), "size": 11}
             },
             legend={
-                "font": {"color": theme_colors.get("text", L10N.F1F5F9)}
+                "font": {"color": theme_colors.get("text", L10N.F1F5F9), "size": 11},
+                "bgcolor": "rgba(15, 23, 42, 0.7)",
+                "bordercolor": "#1e293b"
             }
         )
         return fig
