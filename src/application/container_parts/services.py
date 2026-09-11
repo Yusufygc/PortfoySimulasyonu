@@ -36,6 +36,7 @@ from src.infrastructure.calendar.bist_holiday_provider import BistHolidayProvide
 from src.infrastructure.corporate_actions import KapMkkCorporateActionProvider
 
 
+
 @dataclass(frozen=True)
 class ServiceSet:
     portfolio_service: PortfolioService

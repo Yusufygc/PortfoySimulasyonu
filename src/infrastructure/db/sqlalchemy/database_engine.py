@@ -14,8 +14,16 @@ class SQLAlchemyEngineProvider:
     def __init__(self, config: MySQLConfig) -> None:
         self._config = config
         self._engine = self._create_engine()
+        self._init_db_schema()
         self._session_factory = sessionmaker(bind=self._engine, autoflush=False)
         self.Session = scoped_session(self._session_factory)
+
+    def _init_db_schema(self) -> None:
+        try:
+            from src.infrastructure.db.sqlalchemy.orm_models import Base
+            Base.metadata.create_all(bind=self._engine, checkfirst=True)
+        except Exception:
+            pass
 
     def _create_engine(self):
         # Format: mysql+mysqlconnector://user:password@host:port/database

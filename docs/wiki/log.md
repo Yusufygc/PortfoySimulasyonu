@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-08-21] güncelleme | ATC2.5 İndikatörü ve Trend Sinyal Alt Sisteminin Temizlenmesi
+
+- ATC2.5 (Alpha Trader Capital) indikatörü, Bayesian istatistik motoru ve trend tarayıcı modülleri (`atc/`, `trend_scanner_service.py`, `trend_backtest_service.py`) kaldırıldı.
+- Trend sinyali domain modelleri (`TrendSignal`, `TrendSignalPerformance`), portlar ve SQLAlchemy repository'leri silindi.
+- `TechnicalAnalysisPage` üzerinden ATC sekmesi ve ilgili buton/slotlar temizlendi; Golden/Death Cross ve Ticker Detay sekmeleri korundu.
+- `requirements.txt` ve `locale_tr.py` içindeki kullanılmayan ATC referansları ve bağımlılıkları temizlendi.
+- Tüm test seti (753 test) başarıyla yeşile ulaştırıldı.
+
+Etkilenen modüller: `src/application/services/analysis/technical/`, `src/infrastructure/db/sqlalchemy/`, `src/ui/pages/technical/`, `src/ui/shared/locale_tr.py`, `requirements.txt`
+
 ## [2026-08-14] commit | Finansallar dashboard 4 ana grup ve UI geliştirmeleri
 
 - Finansallar dashboard'unda 18 sekme 4 ana kategori grubu altında toplandı (Finansal Tablolar & Özet, Performans & Büyüme, Kârlılık & Değerleme, Borç/Likidite/Kalite).

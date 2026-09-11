@@ -10,7 +10,7 @@ class GlobalWheelEventFilter(QObject):
     def eventFilter(self, obj, event) -> bool:
         try:
             if event.type() == QEvent.Wheel:
-                if isinstance(obj, (QComboBox, QDateTimeEdit, QTabBar, QTabWidget)):
+                if isinstance(obj, (QComboBox, QDateTimeEdit, QTabBar)):
                     # Olayı kabul edip yutuyoruz, böylece bileşenin kendi wheelEvent metodu çalışmıyor.
                     event.accept()
                     return True

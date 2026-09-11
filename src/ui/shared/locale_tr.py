@@ -4,6 +4,7 @@ Bu modül arayüzdeki tüm kullanıcıya dönük sabit metinleri (lokalizasyon) 
 """
 
 class L10N:
+
     ACIKLAMA = "Açıklama:"
     ACIKLAMA_OPSIYONEL = "Açıklama (opsiyonel)"
     ACIK_VAR = "⚠️ Açık var"

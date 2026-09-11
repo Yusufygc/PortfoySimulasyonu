@@ -1,6 +1,6 @@
 # src/infrastructure/db/sqlalchemy/orm_models.py
 
-from sqlalchemy import Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
+from sqlalchemy import Boolean, Column, Computed, Date, DateTime, Enum, Float, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
@@ -19,6 +19,7 @@ class CashMovementTypeEnum(str, enum.Enum):
 class CrossTypeEnum(str, enum.Enum):
     GOLDEN = "GOLDEN"
     DEATH  = "DEATH"
+
 
 class ORMStock(Base):
     __tablename__ = "stocks"
@@ -461,3 +462,4 @@ class ORMKapShareholderRow(Base):
     )
 
     snapshot = relationship("ORMKapShareholderSnapshot", back_populates="rows")
+
