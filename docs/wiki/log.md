@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-11] yeni-sayfa | Portföy Simülasyonu Modernizasyon ve Mimari Dönüşüm Planı
+
+- Backend Clean Architecture omurgası korunarak; SQLite geçişi, pandas-ta/quantstats entegrasyonu, servis konsolidasyonu, AI karar destek mimarisi ve QML entegrasyon köprüsünü kapsayan ana plan hazırlandı.
+- Arayüz (UI-UX) tasarımı QML ile sıfırdan planlanacak şekilde köprü katmanı tasarlandı.
+- Bağlantılı dosya: [TRANSFORMATION_PLAN.md](../../TRANSFORMATION_PLAN.md)
+
 ## [2026-08-21] güncelleme | ATC2.5 İndikatörü ve Trend Sinyal Alt Sisteminin Temizlenmesi
 
 - ATC2.5 (Alpha Trader Capital) indikatörü, Bayesian istatistik motoru ve trend tarayıcı modülleri (`atc/`, `trend_scanner_service.py`, `trend_backtest_service.py`) kaldırıldı.

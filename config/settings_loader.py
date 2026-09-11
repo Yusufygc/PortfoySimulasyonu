@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
-from src.infrastructure.db.db_config import MySQLConfig
+from src.infrastructure.db.db_config import DatabaseConfig, MySQLConfig, SQLiteConfig
 
 
 class SettingsError(RuntimeError):
@@ -30,7 +30,7 @@ class MarketSettings:
 
 @dataclass(frozen=True)
 class AppSettings:
-    db: MySQLConfig
+    db: DatabaseConfig
     ai: AISettings
     market: MarketSettings
 
@@ -115,7 +115,7 @@ def _url_env(name: str, default: str) -> str:
     return value.rstrip("/")
 
 
-def _load_db_settings() -> MySQLConfig:
+def _load_mysql_settings() -> MySQLConfig:
     return MySQLConfig(
         host=_required_env("DB_HOST"),
         port=_required_int_env("DB_PORT"),
@@ -127,6 +127,21 @@ def _load_db_settings() -> MySQLConfig:
         pool_recycle_seconds=_optional_int_env("DB_POOL_RECYCLE_SECONDS", 3600),
         pool_pre_ping=_bool_env("DB_POOL_PRE_PING", True),
     )
+
+
+def _load_sqlite_settings() -> SQLiteConfig:
+    return SQLiteConfig(
+        db_path=_optional_env("DB_SQLITE_PATH") or "data/portfolio.db",
+    )
+
+
+def _load_db_settings() -> DatabaseConfig:
+    # DB_ENGINE="sqlite" -> SQLiteConfig, aksi halde (varsayılan) MySQLConfig.
+    # Bkz. TRANSFORMATION_PLAN.md §2/§9.1 — migration doğrulanana kadar varsayılan mysql kalır.
+    engine_name = (_optional_env("DB_ENGINE") or "mysql").lower()
+    if engine_name == "sqlite":
+        return _load_sqlite_settings()
+    return _load_mysql_settings()
 
 
 def load_ai_settings() -> AISettings:
@@ -154,5 +169,5 @@ def load_app_settings() -> AppSettings:
     )
 
 
-def load_settings() -> MySQLConfig:
+def load_settings() -> DatabaseConfig:
     return load_app_settings().db

@@ -19,3 +19,18 @@ class MySQLConfig:
     pool_size: int
     pool_recycle_seconds: int = 3600
     pool_pre_ping: bool = True
+
+
+@dataclass(frozen=True)
+class SQLiteConfig:
+    """
+    SQLite bağlantı parametrelerini taşıyan immutable config nesnesi.
+    Bkz. TRANSFORMATION_PLAN.md §2 — MySQL ➔ SQLite geçişi.
+    """
+    db_path: str = "data/portfolio.db"
+    journal_mode: str = "WAL"
+    synchronous: str = "NORMAL"
+    foreign_keys: bool = True
+
+
+DatabaseConfig = MySQLConfig | SQLiteConfig

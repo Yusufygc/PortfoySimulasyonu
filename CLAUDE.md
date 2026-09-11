@@ -29,12 +29,12 @@ Bu projedeki tüm kurallar, süreçler ve yönergeler için bkz:
 
 ## Proje Özeti
 
-**Portföy Simülasyonu** — BIST ve küresel hisseleri takip eden PyQt5 masaüstü uygulaması.  
+**Portföy Simülasyonu** — BIST ve küresel hisseleri takip eden PySide6 masaüstü uygulaması.  
 Markowitz optimizasyonu, risk profili analizi, backtest simülasyonu, Excel raporlama ve AI destekli analiz içerir.
 
 | Katman | Teknoloji |
 |--------|-----------|
-| UI | PyQt5, QSS theming, pyqtgraph |
+| UI | PySide6, QSS theming, pyqtgraph |
 | Uygulama Mantığı | Python 3.10+, DI Container |
 | Veritabanı | MySQL 8.0+ / SQLAlchemy ORM |
 | Piyasa Verisi | YFinance |
@@ -56,13 +56,13 @@ UI  →  Application  →  Infrastructure  →  Domain
 - **Domain** (`src/domain/`): Saf iş modelleri ve port arayüzleri. Hiçbir dış bağımlılık yok.
 - **Application** (`src/application/`): Servisler, DI container (`container.py`), EventBus (Pub/Sub).
 - **Infrastructure** (`src/infrastructure/`): SQLAlchemy repository'ler, YFinanceClient, logger.
-- **UI** (`src/ui/`): PyQt5 sayfalar, ThemeManager, PageFactory, QThread Worker.
+- **UI** (`src/ui/`): PySide6 sayfalar, ThemeManager, PageFactory, QThread Worker.
 
 Detay için bkz. [docs/wiki/architecture.md](docs/wiki/architecture.md).
 
 ### Event Bus
 
-`GlobalEventBus` (PyQt5 QObject sinyalleri) arka plan iş parçacıklarından UI'a thread-safe veri iletir:
+`GlobalEventBus` (PySide6 QObject sinyalleri) arka plan iş parçacıklarından UI'a thread-safe veri iletir:
 
 ```python
 container.event_bus.prices_updated.emit({"stock_id": Decimal("123.45")})
