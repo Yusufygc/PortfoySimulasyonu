@@ -34,7 +34,12 @@ class AppContainer:
         )
         self._expose_dataclass_fields(self.services)
 
-        self.ai = build_ai(self.settings.ai)
+        self.ai = build_ai(
+            self.settings.ai,
+            portfolio_analytics_service=self.services.portfolio_analytics_service,
+            risk_optimization_bridge_service=self.services.risk_optimization_bridge_service,
+            stock_360_service=self.services.stock_360_service,
+        )
         self._expose_dataclass_fields(self.ai)
 
     def _expose_dataclass_fields(self, group) -> None:

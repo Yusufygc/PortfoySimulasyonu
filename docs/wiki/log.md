@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-12] özellik | Faz 3–6 — Servis Konsolidasyonu, QML UI Katmanı & AI Karar Destek Ajanı
+
+- Clean Architecture uygulama katmanı 5 yeni servis (Stock360, PortfolioAnalytics, RiskOptimizationBridge, DcaBacktest, AiAdvisor) ile konsolide edildi.
+- Destek/Direnç (Pivot points + Cluster) ve DCA Backtest simülasyon motorları tamamlandı.
+- Gemini 2.5/3.6 Flash tabanlı Function Calling / Tool Use altyapısı (`AiAdvisorService`, `AdvisorTools`) ve `GeminiAdvisorChatProvider` uygulandı.
+- PySide6 QML UI katmanı 9 görünüm (Dashboard, Portfolio, Stock360, Analytics, Screener, Optimization, Simulation, Cashflow, AiAdvisor) ve QQuickPaintedItem grafikleriyle sıfırdan inşa edildi.
+- 388 yeni test yazılarak toplam test sayısı 1234'e çıkarıldı (%100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `src/application/services/`, `src/infrastructure/ai/`, `src/qt_compat/`, `tests/`
+
 ## [2026-09-11] özellik | Faz 2 — OHLCV Veri Genişletmesi, Vektörel İndikatör Motoru & Teknik Tarayıcı Servisi
 
 - `DailyPrice` domain modeli ve `ORMDailyPrice` şeması `open_price`, `high_price`, `low_price`, `volume` kolonlarıyla genişletildi.

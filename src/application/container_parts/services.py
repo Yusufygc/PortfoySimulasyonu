@@ -6,7 +6,9 @@ from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
 from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
+from src.application.services.analysis.portfolio_analytics_service import PortfolioAnalyticsService
 from src.application.services.analysis.shareholder_analysis_service import ShareholderAnalysisService
+from src.application.services.analysis.stock_360_service import Stock360Service
 from src.application.services.analysis.technical.technical_analysis_service import TechnicalAnalysisService
 from src.application.services.analysis.technical.screener_service import ScreenerService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
@@ -17,6 +19,7 @@ from src.application.services.corporate_actions.price_adjustment_service import 
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.application.services.planning.optimization_service import OptimizationDeps, OptimizationService
 from src.application.services.planning.planning_service import PlanningService
+from src.application.services.planning.risk_optimization_bridge_service import RiskOptimizationBridgeService
 from src.application.services.planning.risk_profile_service import RiskProfileService
 from src.application.services.portfolio.cash_movement_service import CashMovementService
 from src.application.services.portfolio.portfolio_maintenance_service import PortfolioMaintenanceService
@@ -30,6 +33,7 @@ from src.application.services.reporting.excel_formatter import ExcelFormatter
 from src.application.services.reporting.excel_report_builder import ExcelReportBuilder
 from src.application.services.reporting.model_portfolio_excel_export_service import ModelPortfolioExcelExportService
 from src.application.services.simulation.backfill_service import BackfillService
+from src.application.services.simulation.dca_backtest_service import DCABacktestService
 from src.application.services.simulation.history_simulation_service import HistorySimulationService
 from src.application.services.simulation.model_portfolio_history_simulation_service import ModelPortfolioHistorySimulationService
 from src.application.services.watchlist.watchlist_service import WatchlistService
@@ -68,8 +72,12 @@ class ServiceSet:
     update_coordinator: PortfolioUpdateCoordinator
     financial_analysis_service: FinancialAnalysisService
     shareholder_analysis_service: ShareholderAnalysisService
+    stock_360_service: Stock360Service
+    portfolio_analytics_service: PortfolioAnalyticsService
+    risk_optimization_bridge_service: RiskOptimizationBridgeService
     technical_analysis_service: TechnicalAnalysisService
     screener_service: ScreenerService
+    dca_backtest_service: DCABacktestService
     tv_backfill_service: object  # BackfillService | None
 
 
@@ -80,6 +88,16 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
         repositories,
         market_clients,
         foundation,
+    )
+
+    financial_analysis_service = FinancialAnalysisService(
+        financial_statement_provider=market_clients.isyatirim_provider,
+        inflation_provider=market_clients.evds_tufe_provider,
+        valuation_provider=market_clients.yfinance_valuation_provider,
+    )
+    shareholder_analysis_service = ShareholderAnalysisService(
+        provider=market_clients.kap_shareholder_provider,
+        repository=repositories.kap_shareholder_repo,
     )
 
     return ServiceSet(
@@ -93,14 +111,20 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             return_calc_service=foundation["return_calc_service"],
             event_bus=event_bus,
         ),
-        financial_analysis_service=FinancialAnalysisService(
-            financial_statement_provider=market_clients.isyatirim_provider,
-            inflation_provider=market_clients.evds_tufe_provider,
-            valuation_provider=market_clients.yfinance_valuation_provider,
+        financial_analysis_service=financial_analysis_service,
+        shareholder_analysis_service=shareholder_analysis_service,
+        stock_360_service=Stock360Service(
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
+            financial_analysis_service=financial_analysis_service,
+            shareholder_analysis_service=shareholder_analysis_service,
         ),
-        shareholder_analysis_service=ShareholderAnalysisService(
-            provider=market_clients.kap_shareholder_provider,
-            repository=repositories.kap_shareholder_repo,
+        portfolio_analytics_service=PortfolioAnalyticsService(
+            analysis_service=feature_services["analysis_service"],
+        ),
+        risk_optimization_bridge_service=RiskOptimizationBridgeService(
+            risk_profile_service=feature_services["risk_profile_service"],
+            optimization_service=feature_services["optimization_service"],
         ),
         technical_analysis_service=TechnicalAnalysisService(
             price_repo=repositories.price_repo,
@@ -108,6 +132,10 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             golden_cross_repo=repositories.golden_cross_repo,
         ),
         screener_service=ScreenerService(
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
+        ),
+        dca_backtest_service=DCABacktestService(
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
         ),

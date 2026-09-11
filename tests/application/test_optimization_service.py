@@ -83,6 +83,21 @@ def test_optimization_service_uses_injected_market_data_provider():
     assert result.optimized_metrics.volatility >= 0
 
 
+def test_min_volatility_point_has_lowest_or_equal_volatility_of_the_three():
+    # Verimli Sınır grafiğinin 3. noktası (bkz. plan §7.3 madde 5, OptimizationView) —
+    # minimum volatilite portföyü tanım olarak diğer iki noktadan (mevcut/max-Sharpe)
+    # daha düşük veya en fazla eşit volatiliteye sahip olmalıdır.
+    provider = FakeMarketDataProvider()
+    service = _make_service(provider)
+
+    result = service.optimize_dashboard_portfolio()
+
+    assert result.min_volatility_metrics is not None
+    epsilon = 1e-6
+    assert result.min_volatility_metrics.volatility <= result.optimized_metrics.volatility + epsilon
+    assert result.min_volatility_metrics.volatility <= result.current_metrics.volatility + epsilon
+
+
 def test_optimization_rejects_short_history():
     service = _make_service(ShortHistoryMarketDataProvider())
 
@@ -172,4 +187,45 @@ def test_optimization_graceful_handling_invalid_tickers():
     # AAA.IS and BBB.IS should be optimized and their optimal weights + CCC.IS current weight should sum to 100%
     total_opt_w = sum(s.optimal_weight for s in result.suggestions)
     assert total_opt_w == pytest.approx(100.0)
+
+
+class TestPerCallPolicyOverride:
+    """Bkz. RiskOptimizationBridgeService (§5.3): DI singleton'ın politikasını değiştirmeden
+    tek çağrılık kısıt uygulanabilmeli."""
+
+    def test_calculate_metrics_accepts_risk_free_rate_override(self):
+        service = _make_service(FakeMarketDataProvider())  # policy.risk_free_rate=0.01
+        weights = np.array([0.5, 0.5])
+        mean_returns = np.array([0.10, 0.20])
+        cov_matrix = np.array([[0.04, 0.0], [0.0, 0.04]])
+
+        default_metrics = service._calculate_metrics(weights, mean_returns, cov_matrix)
+        overridden_metrics = service._calculate_metrics(weights, mean_returns, cov_matrix, risk_free_rate=0.20)
+
+        assert overridden_metrics.expected_return == default_metrics.expected_return
+        assert overridden_metrics.sharpe_ratio < default_metrics.sharpe_ratio
+
+    def test_optimize_dashboard_portfolio_accepts_per_call_policy_without_mutating_default(self):
+        service = _make_service(FakeMarketDataProvider())
+        original_max_weight = service.policy.max_single_weight
+
+        override_policy = OptimizationPolicy(risk_free_rate=0.05, max_single_weight=0.05)
+        result = service.optimize_dashboard_portfolio(policy=override_policy)
+
+        assert len(result.suggestions) == 2
+        assert service.policy.max_single_weight == original_max_weight
+
+    def test_optimize_model_portfolio_accepts_per_call_policy_without_mutating_default(self, monkeypatch):
+        service = _make_service(FakeMarketDataProvider())
+        monkeypatch.setattr(
+            service, "_model_portfolio_service", SimpleNamespace(get_positions=lambda pid: {1: 10, 2: 20}),
+        )
+        original_max_weight = service.policy.max_single_weight
+
+        result = service.optimize_model_portfolio(
+            portfolio_id=1, policy=OptimizationPolicy(max_single_weight=0.15),
+        )
+
+        assert len(result.suggestions) == 2
+        assert service.policy.max_single_weight == original_max_weight
 
