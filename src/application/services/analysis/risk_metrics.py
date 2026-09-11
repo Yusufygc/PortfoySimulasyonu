@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from datetime import date
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from src.domain.models.portfolio import Portfolio
 
@@ -105,6 +105,174 @@ def compute_alpha(portfolio_series: Dict[date, Decimal], benchmark_series: Dict[
     if days == 0: return None
     period_rf = risk_free_rate * (days / 365.0) * 100.0
     return p_return - (period_rf + beta * (b_return - period_rf))
+
+
+def compute_sortino_ratio(series: Dict[date, Decimal], risk_free_rate: float = 0.40) -> Optional[float]:
+    """Sortino Ratio — Sharpe'a benzer ama sadece hedefin (risk-free) altındaki (downside)
+    oynaklığı cezalandırır. downside_deviation=0 ise (hiç kayıp yok) None döner."""
+    returns = compute_daily_return_vector(series)
+    if len(returns) < 2:
+        return None
+    daily_rf = risk_free_rate / 252.0
+    excess_returns = [r - daily_rf for r in returns]
+    mean_excess = sum(excess_returns) / len(excess_returns)
+    downside_sq = [min(r - daily_rf, 0.0) ** 2 for r in returns]
+    downside_deviation = math.sqrt(sum(downside_sq) / len(downside_sq))
+    if downside_deviation == 0:
+        return None
+    return (mean_excess / downside_deviation) * math.sqrt(252)
+
+
+def _compute_cagr_pct(series: Dict[date, Decimal]) -> Optional[float]:
+    """Yıllıklandırılmış bileşik büyüme oranı (%) — Calmar Ratio için kullanılır."""
+    dates = sorted(series.keys())
+    if len(dates) < 2:
+        return None
+    start_val = float(series[dates[0]] or 0)
+    end_val = float(series[dates[-1]] or 0)
+    if start_val <= 0 or end_val <= 0:
+        return None
+    days = (dates[-1] - dates[0]).days
+    years = days / 365.25
+    if years <= 0:
+        return None
+    cagr = (end_val / start_val) ** (1.0 / years) - 1.0
+    return cagr * 100.0
+
+
+def compute_calmar_ratio(series: Dict[date, Decimal]) -> Optional[float]:
+    """Calmar Ratio = Yıllıklandırılmış getiri (CAGR) / |Maksimum Drawdown|."""
+    cagr_pct = _compute_cagr_pct(series)
+    max_dd_pct = compute_max_drawdown_pct(series)
+    if cagr_pct is None or max_dd_pct is None or max_dd_pct == 0:
+        return None
+    return cagr_pct / abs(max_dd_pct)
+
+
+def compute_omega_ratio(series: Dict[date, Decimal], target_return: float = 0.0) -> Optional[float]:
+    """Omega Ratio = hedefin üstündeki kazançların toplamı / hedefin altındaki kayıpların toplamı.
+    target_return günlük getiri bazındadır (varsayılan 0.0)."""
+    returns = compute_daily_return_vector(series)
+    if len(returns) < 2:
+        return None
+    gains = sum(r - target_return for r in returns if r > target_return)
+    losses = sum(target_return - r for r in returns if r < target_return)
+    if losses == 0:
+        return None
+    return gains / losses
+
+
+def _historical_percentile(sorted_values: List[float], fraction: float) -> Optional[float]:
+    if not sorted_values:
+        return None
+    index = int(round(fraction * (len(sorted_values) - 1)))
+    index = max(0, min(index, len(sorted_values) - 1))
+    return sorted_values[index]
+
+
+def compute_value_at_risk_pct(series: Dict[date, Decimal], confidence: float = 0.95) -> Optional[float]:
+    """Tarihsel simülasyon VaR (%). Negatif değer = o güven seviyesinde beklenen en kötü
+    günlük getiri eşiği (örn. -3.2 → %95 güvenle günlük kayıp %3.2'yi aşmaz)."""
+    returns = compute_daily_return_vector(series)
+    if len(returns) < 2:
+        return None
+    threshold = _historical_percentile(sorted(returns), 1.0 - confidence)
+    return threshold * 100.0 if threshold is not None else None
+
+
+def compute_conditional_var_pct(series: Dict[date, Decimal], confidence: float = 0.95) -> Optional[float]:
+    """Conditional VaR / Expected Shortfall (%) — VaR eşiğinin altındaki günlerin ortalama getirisi.
+    VaR'dan daha negatif (daha kötü) olmalıdır; kuyruk riskini VaR'dan daha iyi yakalar."""
+    returns = compute_daily_return_vector(series)
+    if len(returns) < 2:
+        return None
+    sorted_returns = sorted(returns)
+    threshold = _historical_percentile(sorted_returns, 1.0 - confidence)
+    if threshold is None:
+        return None
+    tail = [r for r in sorted_returns if r <= threshold]
+    if not tail:
+        return None
+    return (sum(tail) / len(tail)) * 100.0
+
+
+def _paired_daily_returns(
+    a_series: Dict[date, Decimal],
+    b_series: Dict[date, Decimal],
+) -> Tuple[List[float], List[float]]:
+    """İki seri için ortak tarihlerde hizalanmış (hafta sonu hariç) günlük getiri çiftleri."""
+    dates = sorted(set(a_series.keys()) & set(b_series.keys()))
+    a_returns: List[float] = []
+    b_returns: List[float] = []
+    for prev_date, curr_date in zip(dates, dates[1:]):
+        if curr_date.weekday() >= 5:
+            continue
+        a_prev, a_curr = _safe_float_0(a_series[prev_date]), _safe_float_0(a_series[curr_date])
+        b_prev, b_curr = _safe_float_0(b_series[prev_date]), _safe_float_0(b_series[curr_date])
+        if a_prev > 0 and b_prev > 0:
+            a_returns.append((a_curr - a_prev) / a_prev)
+            b_returns.append((b_curr - b_prev) / b_prev)
+    return a_returns, b_returns
+
+
+def compute_r_squared(
+    portfolio_series: Dict[date, Decimal],
+    benchmark_series: Dict[date, Decimal],
+) -> Optional[float]:
+    """R-Squared — portföy ile benchmark günlük getirileri arasındaki korelasyonun karesi.
+    Benchmark hareketinin portföy hareketini ne kadar açıkladığını gösterir (0-1 arası)."""
+    port_returns, bench_returns = _paired_daily_returns(portfolio_series, benchmark_series)
+    if len(port_returns) < 2:
+        return None
+    p_mean = sum(port_returns) / len(port_returns)
+    b_mean = sum(bench_returns) / len(bench_returns)
+    covariance = sum((p - p_mean) * (b - b_mean) for p, b in zip(port_returns, bench_returns))
+    p_var = sum((p - p_mean) ** 2 for p in port_returns)
+    b_var = sum((b - b_mean) ** 2 for b in bench_returns)
+    denom = math.sqrt(p_var * b_var)
+    if denom == 0:
+        return None
+    correlation = covariance / denom
+    return correlation ** 2
+
+
+def compute_tracking_error(
+    portfolio_series: Dict[date, Decimal],
+    benchmark_series: Dict[date, Decimal],
+) -> Optional[float]:
+    """Tracking Error (%) — portföy ile benchmark günlük getiri farkının yıllıklandırılmış
+    standart sapması. Düşük değer = portföy benchmark'ı yakından takip ediyor."""
+    port_returns, bench_returns = _paired_daily_returns(portfolio_series, benchmark_series)
+    if len(port_returns) < 2:
+        return None
+    diffs = [p - b for p, b in zip(port_returns, bench_returns)]
+    mean_diff = sum(diffs) / len(diffs)
+    variance = sum((d - mean_diff) ** 2 for d in diffs) / (len(diffs) - 1)
+    return math.sqrt(variance) * math.sqrt(252) * 100.0
+
+
+def compute_monthly_returns_matrix(series: Dict[date, Decimal]) -> Dict[int, Dict[int, float]]:
+    """Yıl → Ay → o ayın getirisi (%) haritası (aylık getiri ısı haritası ham verisi).
+    Her ay için o ay içindeki en son gözlem "ay sonu değeri" kabul edilir."""
+    if not series:
+        return {}
+    month_end_values: Dict[Tuple[int, int], float] = {}
+    for d in sorted(series.keys()):
+        value = series[d]
+        if value is None:
+            continue
+        month_end_values[(d.year, d.month)] = float(value)
+
+    ordered_keys = sorted(month_end_values.keys())
+    result: Dict[int, Dict[int, float]] = {}
+    for i in range(1, len(ordered_keys)):
+        prev_key, curr_key = ordered_keys[i - 1], ordered_keys[i]
+        prev_val, curr_val = month_end_values[prev_key], month_end_values[curr_key]
+        if prev_val <= 0:
+            continue
+        year, month = curr_key
+        result.setdefault(year, {})[month] = ((curr_val - prev_val) / prev_val) * 100.0
+    return result
 
 
 def compute_max_drawdown_pct(series: Dict[date, Decimal]) -> Optional[float]:

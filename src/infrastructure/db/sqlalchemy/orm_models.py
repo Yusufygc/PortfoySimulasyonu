@@ -87,6 +87,12 @@ class ORMDailyPrice(Base):
     currency_code = Column(String(3), nullable=False, default="TRY", server_default="TRY")
     source = Column(String(50), nullable=False, default="yfinance", server_default="yfinance")
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+    # OHLCV genişletmesi (bkz. TRANSFORMATION_PLAN.md Faz 2) — ATR/Stochastic/CCI/VWAP/OBV için.
+    # Nullable: eski kayıtlarda ve close-only kaynaklarda boş kalabilir.
+    open_price = Column(Numeric(18, 4), nullable=True)
+    high_price = Column(Numeric(18, 4), nullable=True)
+    low_price = Column(Numeric(18, 4), nullable=True)
+    volume = Column(BIGINT(unsigned=True), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("stock_id", "price_date", name="uq_daily_price"),

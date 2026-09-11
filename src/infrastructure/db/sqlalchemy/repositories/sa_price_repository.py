@@ -25,7 +25,7 @@ class SQLAlchemyPriceRepository(IPriceRepository):
         close_p = orm.close_price
         if not isinstance(close_p, Decimal):
             close_p = Decimal(str(close_p))
-            
+
         return DailyPrice(
             id=orm.id,
             stock_id=orm.stock_id,
@@ -33,7 +33,17 @@ class SQLAlchemyPriceRepository(IPriceRepository):
             close_price=close_p,
             currency_code=orm.currency_code,
             source=orm.source,
+            open_price=self._to_optional_decimal(orm.open_price),
+            high_price=self._to_optional_decimal(orm.high_price),
+            low_price=self._to_optional_decimal(orm.low_price),
+            volume=orm.volume,
         )
+
+    @staticmethod
+    def _to_optional_decimal(value) -> Optional[Decimal]:
+        if value is None:
+            return None
+        return value if isinstance(value, Decimal) else Decimal(str(value))
 
     # ---------- READ ---------- #
     def get_price_for_date(self, stock_id: int, price_date: date) -> Optional[DailyPrice]:
@@ -144,21 +154,11 @@ class SQLAlchemyPriceRepository(IPriceRepository):
     # ---------- WRITE (UPSERT) ---------- #
     def upsert_daily_price(self, daily_price: DailyPrice) -> DailyPrice:
         with self._provider.get_session() as session:
-            stmt = insert(ORMDailyPrice).values(
-                stock_id=daily_price.stock_id,
-                price_date=daily_price.price_date,
-                close_price=daily_price.close_price,
-                currency_code=daily_price.currency_code,
-                source=daily_price.source
-            )
-            stmt = stmt.on_duplicate_key_update(
-                close_price=stmt.inserted.close_price,
-                currency_code=stmt.inserted.currency_code,
-                source=stmt.inserted.source
-            )
+            stmt = insert(ORMDailyPrice).values(**self._to_row(daily_price))
+            stmt = stmt.on_duplicate_key_update(**self._upsert_update_columns(stmt))
             result = session.execute(stmt)
             commit_or_rollback(session)
-            
+
             # last inserted id
             inserted_id = result.lastrowid
             return DailyPrice(
@@ -167,33 +167,53 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 price_date=daily_price.price_date,
                 close_price=daily_price.close_price,
                 currency_code=daily_price.currency_code,
-                source=daily_price.source
+                source=daily_price.source,
+                open_price=daily_price.open_price,
+                high_price=daily_price.high_price,
+                low_price=daily_price.low_price,
+                volume=daily_price.volume,
             )
 
     def upsert_daily_prices_bulk(self, prices: Iterable[DailyPrice]) -> None:
         prices_list = list(prices)
         if not prices_list:
             return
-        
-        values = [
-            {
-                "stock_id": p.stock_id,
-                "price_date": p.price_date,
-                "close_price": p.close_price,
-                "currency_code": p.currency_code,
-                "source": p.source
-            } for p in prices_list
-        ]
-        
+
+        values = [self._to_row(p) for p in prices_list]
+
         with self._provider.get_session() as session:
             stmt = insert(ORMDailyPrice).values(values)
-            stmt = stmt.on_duplicate_key_update(
-                close_price=stmt.inserted.close_price,
-                currency_code=stmt.inserted.currency_code,
-                source=stmt.inserted.source
-            )
+            stmt = stmt.on_duplicate_key_update(**self._upsert_update_columns(stmt))
             session.execute(stmt)
             commit_or_rollback(session)
+
+    @staticmethod
+    def _to_row(p: DailyPrice) -> dict:
+        return {
+            "stock_id": p.stock_id,
+            "price_date": p.price_date,
+            "close_price": p.close_price,
+            "currency_code": p.currency_code,
+            "source": p.source,
+            "open_price": p.open_price,
+            "high_price": p.high_price,
+            "low_price": p.low_price,
+            "volume": p.volume,
+        }
+
+    @staticmethod
+    def _upsert_update_columns(stmt) -> dict:
+        # OHLCV kolonları COALESCE ile güncellenir: yeni değer NULL ise (örn. close-only
+        # günlük fiyat güncelleme akışı) önceden backfill edilmiş OHLCV verisi silinmez.
+        return {
+            "close_price": stmt.inserted.close_price,
+            "currency_code": stmt.inserted.currency_code,
+            "source": stmt.inserted.source,
+            "open_price": func.coalesce(stmt.inserted.open_price, ORMDailyPrice.open_price),
+            "high_price": func.coalesce(stmt.inserted.high_price, ORMDailyPrice.high_price),
+            "low_price": func.coalesce(stmt.inserted.low_price, ORMDailyPrice.low_price),
+            "volume": func.coalesce(stmt.inserted.volume, ORMDailyPrice.volume),
+        }
 
     def adjust_prices_before_date(self, stock_id: int, before_date: date, factor: Decimal) -> int:
         if factor <= 0:

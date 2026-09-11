@@ -57,27 +57,31 @@ Mevcut projenin domain mantığı, event-sourcing portföy hesaplama mimarisi, k
 
 > **Not (2026-09-11, bkz. §9.2 / §9.3):** `pandas-ta`, `ta`, `quantstats`, `empyrical` gibi harici kütüphaneler bakımsızlık/bağımlılık riski nedeniyle kullanılmayacak. Aşağıdaki tüm indikatör ve metrikler `src/application/services/analysis/` altında özel, test edilebilir NumPy/Pandas fonksiyonları olarak yazılacak.
 
-### 3.1 Teknik Analiz & Piyasa Tarayıcısı (Screener)
-* **Mevcut Durum:** Yalnızca SMA50 ve SMA200 (Golden/Death Cross) hesaplayan elle yazılmış bir döngü var.
-* **Hedef:** `src/application/services/analysis/technical/indicators.py` altında özel vektörize fonksiyonlarla BIST hisseleri için analiz motoru kurmak (v1 kapsamı):
-  * **Trend Göstergeleri:** EMA (20, 50, 200), SMA.
-  * **Momentum & Osilatörler:** RSI (14), MACD (12, 26, 9), Stochastic, CCI.
-  * **Volatilite & Kanal:** Bollinger Bantları (20, 2), ATR (Average True Range).
-  * **Hacim Analizi:** VWAP (Hacim Ağırlıklı Ortalama Fiyat), OBV (On-Balance Volume).
+### 3.1 Teknik Analiz & Piyasa Tarayıcısı (Screener) — ✅ v1 indikatör seti tamamlandı
+* **Mevcut Durum (2026-09-11 öncesi):** Yalnızca SMA50 ve SMA200 (Golden/Death Cross) hesaplayan elle yazılmış bir döngü var.
+* **Tamamlandı:** `src/application/services/analysis/technical/indicators.py` altında özel vektörize fonksiyonlarla BIST hisseleri için analiz motoru kuruldu (v1 kapsamı):
+  * **Trend Göstergeleri:** EMA (20, 50, 200), SMA. ✅
+  * **Momentum & Osilatörler:** RSI (14) ✅, MACD (12, 26, 9) ✅, Stochastic ✅, CCI ✅.
+  * **Volatilite & Kanal:** Bollinger Bantları (20, 2) ✅, ATR (Average True Range) ✅.
+  * **Hacim Analizi:** VWAP (Hacim Ağırlıklı Ortalama Fiyat) ✅, OBV (On-Balance Volume) ✅.
   * *v1 kapsamı dışı (ayrı alt-faz, bkz. §9.2):* Supertrend, ADX, Ichimoku Cloud, Keltner Kanalları — çok adımlı/karmaşık hesaplama gerektirdiklerinden temel set stabilize olduktan sonra değerlendirilecek.
-* **BIST Çoklu Sinyal Tarayıcısı (Screener Service):**
-  * Kullanıcının hazır stratejilerle tüm BIST hisselerini saniyeler içinde taramasını sağlayan servis:
-    - *Örnek Filtre 1:* `RSI < 30` (Aşırı Satım) + `Fiyat > EMA200`
-    - *Örnek Filtre 2:* `MACD Kesişimi (Bullish)` + `Hacim > 20 Günlük Ortalama`
-    - *Örnek Filtre 3:* `Bollinger Alt Bandına Değenler`
-  * **Zorunlu bağımlılık (bkz. §9.6):** Screener yalnızca §4.2'deki yerel SQLite fiyat cache'i (`daily_prices`/`cached_*`) üzerinden çalışır; canlı YFinance çağrısı yapmaz — "saniyeler içinde tarama" hedefi bu önkoşula bağlıdır.
+  * **Önemli not (bkz. §9.10):** ATR/Stochastic/CCI/VWAP/OBV için gereken High/Low/Volume verisi DB'de yoktu — `daily_prices` şeması genişletildi (`open_price`/`high_price`/`low_price`/`volume`, nullable) ve 120 hisse için tarihsel OHLCV verisi backfill edildi. Detay için bkz. §9.10.
+* **BIST Çoklu Sinyal Tarayıcısı (Screener Service) — ✅ Tamamlandı:**
+  * `src/application/services/analysis/technical/screener.py` (saf filtre/snapshot mantığı) + `screener_service.py` (DB orkestrasyonu, `container.screener_service` olarak DI'ya bağlı):
+    - *Filtre 1:* `RSI < 30` (Aşırı Satım) + `Fiyat > EMA200` ✅
+    - *Filtre 2:* `MACD Kesişimi (Bullish)` + `Hacim > 20 Günlük Ortalama` ✅
+    - *Filtre 3:* `Bollinger Alt Bandına Değenler` ✅
+  * **Zorunlu bağımlılık (bkz. §9.6):** Screener yalnızca yerel DB (`price_repo`) üzerinden çalışır; canlı YFinance çağrısı yapmaz. **Gerçek veriyle doğrulandı:** 164 hisse, 1.55 saniyede tarandı, 8 eşleşme bulundu — "saniyeler içinde tarama" hedefi karşılandı.
 
-### 3.2 Profesyonel Portföy & Risk Metrikleri
-* **Hedef:** `src/application/services/analysis/risk_metrics.py` altında özel NumPy fonksiyonlarıyla portföyün ve model portföylerin performansını hedge-fund seviyesinde analiz etmek:
-  * **Risk/Getiri Oranları:** Sharpe Ratio, Sortino Ratio, Calmar Ratio, Omega Ratio.
-  * **Risk Metrikleri:** Max Drawdown, Drawdown Süresi (Recovery Period), Volatilite (Yıllıklandırılmış), VaR (%95 ve %99 Riske Maruz Değer), CVaR (Expected Shortfall).
-  * **Piyasa Korelasyonu:** Beta (XU100'e göre), Alpha, R-Squared, Tracking Error.
-  * **Dönemsellik Analizi:** Aylık/Yıllık getiri matrisi (Heatmap verisi — ham sayısal veri, çizim QML tarafında yapılır).
+### 3.2 Profesyonel Portföy & Risk Metrikleri — ✅ Tamamlandı
+* **Bulgu (2026-09-11):** `src/application/services/analysis/risk_metrics.py` zaten mevcuttu — `Sharpe`, `Beta`, `Alpha`, `Max Drawdown`, `Volatilite` özel (saf Python, `Dict[date, Decimal]` seri girdili) fonksiyonlarla önceden yazılmıştı; ancak **hiç test kapsamı yoktu**. Bu turda hem eksik metrikler eklendi hem de dosyanın tamamı için ilk kez test dosyası açıldı.
+* **Tamamlandı:** Aynı dosyada, aynı çağrı sözleşmesiyle (Dict[date, Decimal] seri, Optional[float] dönüş) eklenenler:
+  * **Risk/Getiri Oranları:** Sharpe ✅ (mevcuttu), Sortino ✅, Calmar ✅, Omega ✅.
+  * **Risk Metrikleri:** Max Drawdown ✅ (mevcuttu), Volatilite ✅ (mevcuttu), VaR (%95/%99, parametrik confidence) ✅, CVaR/Expected Shortfall ✅.
+  * **Piyasa Korelasyonu:** Beta ✅ (mevcuttu), Alpha ✅ (mevcuttu), R-Squared ✅, Tracking Error ✅.
+  * **Dönemsellik Analizi:** `compute_monthly_returns_matrix` — Yıl→Ay→getiri% haritası (ham veri, çizim QML tarafında) ✅.
+  * *Kapsam dışı bırakıldı:* Drawdown Süresi (Recovery Period) — ayrı bir zaman-serisi analizi gerektiriyor, AnalyticsView (§7.3) geliştirilirken ihtiyaç netleşince eklenecek.
+* 29 yeni test (`tests/application/services/analysis/test_risk_metrics.py`) — hem yeni fonksiyonlar hem mevcut `compute_max_drawdown_pct`/`compute_daily_return_vector` için ilk kez kapsam sağlandı.
 
 ### 3.3 Gelişmiş Backtest ve Simülasyon Motoru
 * Portföy için *"Geçmişte her ay X TL ekleseydim"*, *"Her çeyrekte Markowitz ile yeniden dengeleseydim (rebalancing)"*, *"Stop-loss / Take-profit uygulasaydım"* senaryolarını çalıştıran hızlı simülasyon motoru.
@@ -337,10 +341,10 @@ gantt
     SQLite Engine/Config + PRAGMA           :done, a2, after a1, 1d
     Migration Scripti + Doğrulama (§9.1)    :done, a3, after a2, 2d
     section Faz 2: Hesaplama Motoru
-    Temel İndikatörler (SMA/EMA/RSI/MACD)   :b1, after a3, 2d
-    Volatilite/Hacim İndikatörleri          :b2, after b1, 2d
-    Screener Servisi (cache-only, §9.6)     :b3, after b2, 2d
-    Risk Metrikleri Motoru (§9.3)           :b4, after b3, 2d
+    Temel İndikatörler (SMA/EMA/RSI/MACD)   :done, b1, after a3, 2d
+    Volatilite/Hacim İndikatörleri          :done, b2, after b1, 2d
+    Screener Servisi (cache-only, §9.6)     :done, b3, after b2, 2d
+    Risk Metrikleri Motoru (§9.3)           :done, b4, after b3, 2d
     Backtest & Rebalance Motoru             :b5, after b4, 3d
     section Faz 3: Servis Konsolidasyonu
     Stock360 Birleşik Servisi               :c1, after b5, 2d
@@ -441,9 +445,25 @@ gantt
 * `CLAUDE.md` ve `ARCHITECTURE_GATES.md §3.3` hâlâ `src/ui/` için "PyQt5" yazıyordu; ancak `requirements.txt` ve bu planın §7 başlığı `PySide6` kullanıyor. Proje dokümantasyonu güncel değildi.
 * **Düzeltildi (2026-09-11):** `CLAUDE.md` (Proje Özeti, teknoloji tablosu, Mimari, Event Bus bölümleri — 4 satır) ve `ARCHITECTURE_GATES.md` (§1 QApplication notu, §3.3 dizin tablosu — 2 satır) içindeki tüm "PyQt5" referansları "PySide6" olarak düzeltildi. Bu iki dosya `.gitignore`'da (GOVERNANCE §3.4) olduğundan commit gerekmiyor, sadece yerel dosya güncellendi.
 
+### 9.10 OHLCV Şema Boşluğu (Faz 2 uygulaması sırasında bulundu) — ✅ GİDERİLDİ
+* `daily_prices` tablosunda **sadece `close_price`** vardı — Open/High/Low/Volume hiç saklanmıyordu. `scripts/import_bist_ohlcv_to_db.py` kaynak CSV'lerinde bu veri mevcuttu (`Tarih,Açılış,Yüksek,Düşük,Kapanış,Düzeltilmiş_Kapanış,Hacim`) ama import script sadece düzeltilmiş kapanışı alıp gerisini atıyordu.
+* Sonuç: ATR, Stochastic, CCI, VWAP, OBV **hesaplanamıyordu** (Bollinger etkilenmedi, sadece close gerektirir).
+* **Karar (2026-09-11):** Şema genişletildi + yeniden import edildi. Yapılanlar:
+  1. `src/domain/models/daily_price.py`, `src/infrastructure/db/sqlalchemy/orm_models.py`, `src/infrastructure/db/sqlalchemy/repositories/sa_price_repository.py` — `open_price`/`high_price`/`low_price`/`volume` (nullable) eklendi. Upsert'lerde bu 4 kolon `COALESCE(yeni, eski)` ile güncellenir — close-only bir güncelleme akışı (örn. günlük yfinance fiyat refresh'i) daha önce backfill edilmiş OHLCV'yi silmez.
+  2. `scripts/apply_ohlcv_columns_schema.py` — idempotent `ALTER TABLE` (kolon varlığı önce kontrol edilir). Yedek alındı (`scripts/backup_mysql.py`), sonra uygulandı, tekrar çalıştırılıp idempotency doğrulandı.
+  3. `scripts/import_bist_ohlcv_to_db.py` — Açılış/Yüksek/Düşük/Hacim de okunup yazılıyor artık. **Yeni `--only-existing-stocks` flag'i eklendi** — tracked olmayan 585-164=421 ticker için istemeden yeni `stocks` satırı açılmasın diye.
+  4. Backfill çalıştırıldı: 120 hisse (164 tracked hisseden CSV karşılığı bulunanlar) için OHLCV geçmişi yüklendi — **362.124 → toplam `daily_prices` satırı** (önceki 74.063 satırın hiçbiri değişmedi, +288.061 tamamen yeni tarih; doğrulama: eski/yeni `close_price`+`source` karşılaştırması 0 fark verdi).
+  5. `scripts/migrate_mysql_to_sqlite.py` yeniden çalıştırıldı — SQLite kopyası (`data/portfolio.db`) yeni şema+veriyle güncellendi, checksum doğrulandı.
+* **Not:** 44 tracked hissenin (164-120) `bist/` klasöründe CSV karşılığı yok (muhtemelen farklı ticker formatı veya delisted) — bu hisseler OHLCV'siz kaldı, sadece close_price ile devam ediyor. ATR/Stochastic/CCI/VWAP/OBV bu hisseler için `NaN` döner (fonksiyonlar bunu güvenle handle eder, hata vermez).
+
+### 9.11 MySQL'e Özel Upsert Dialect'i (Faz 2 uygulaması sırasında bulundu) — ⚠️ AÇIK, İZLENİYOR
+* `sa_price_repository.py`, `sa_golden_cross_repository.py`, `sa_latest_price_repository.py` — üçü de `sqlalchemy.dialects.mysql.insert(...).on_duplicate_key_update(...)` kullanıyor. Bu **MySQL'e özel** bir API; SQLite'ta `on_duplicate_key_update` metodu yok — bu üç repository, `DB_ENGINE=sqlite` ile çalıştırıldığında `AttributeError` ile patlar.
+* Bu, orijinal §2.2.3'teki "dialect farkları normalize edilecek" notunun kapsamadığı somut bir örnek — repository'lerin SQLAlchemy'nin dialect-agnostic `insert(...).on_conflict_do_update(...)` (SQLite) API'sine veya her iki dialect'i de destekleyen bir yardımcı fonksiyona geçmesi gerekiyor.
+* **Durum:** Şu an `DB_ENGINE` varsayılanı `mysql` olduğu için canlı sistemi etkilemiyor — sorun yalnızca gerçek cutover (`DB_ENGINE=sqlite` varsayılan yapıldığında) anında ortaya çıkar. **Aksiyon ertelendi:** Faz 3/4 sırasında ya da cutover kararı verilmeden hemen önce bu 3 repository dialect-agnostic upsert'e geçirilmeli. Şimdilik bilgi amaçlı işaretlendi, bloklamıyor.
+
 ---
 
-## ✅ §9 Durumu: Tüm maddeler (9.1–9.9) kararlaştırıldı/giderildi (2026-09-11).
+## §9 Durumu: 9.1–9.10 kararlaştırıldı/giderildi, 9.11 açık/izleniyor (bloklamıyor) — son güncelleme 2026-09-11.
 
 ---
 *Doküman Oluşturulma Tarihi: 2026-09-11 | PortfoySimulasyonu Mimari Dönüşüm Projesi*

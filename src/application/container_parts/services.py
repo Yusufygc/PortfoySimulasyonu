@@ -8,6 +8,7 @@ from src.application.services.analysis.analysis_service import AnalysisService, 
 from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
 from src.application.services.analysis.shareholder_analysis_service import ShareholderAnalysisService
 from src.application.services.analysis.technical.technical_analysis_service import TechnicalAnalysisService
+from src.application.services.analysis.technical.screener_service import ScreenerService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
@@ -68,6 +69,7 @@ class ServiceSet:
     financial_analysis_service: FinancialAnalysisService
     shareholder_analysis_service: ShareholderAnalysisService
     technical_analysis_service: TechnicalAnalysisService
+    screener_service: ScreenerService
     tv_backfill_service: object  # BackfillService | None
 
 
@@ -104,6 +106,10 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
             golden_cross_repo=repositories.golden_cross_repo,
+        ),
+        screener_service=ScreenerService(
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
         ),
         tv_backfill_service=(
             BackfillService(

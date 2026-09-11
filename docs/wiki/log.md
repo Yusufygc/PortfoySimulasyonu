@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-11] özellik | Faz 2 — OHLCV Veri Genişletmesi, Vektörel İndikatör Motoru & Teknik Tarayıcı Servisi
+
+- `DailyPrice` domain modeli ve `ORMDailyPrice` şeması `open_price`, `high_price`, `low_price`, `volume` kolonlarıyla genişletildi.
+- Safe upsert COALESCE stratejisi ile close-only güncellemelerin önceden çekilmiş OHLCV verisini ezmesi önlendi.
+- Vektörel indikatör motoru (`indicators.py`), 10 kural kriterli teknik tarayıcı çekirdeği (`screener.py`) ve `TechnicalScreenerService` eklendi.
+- Risk metrikleri modülü (`risk_metrics.py`) VaR, CVaR, Sortino, Calmar, Ulcer Index, Gain-to-Pain, Win Rate gibi 10+ finansal metrikle zenginleştirildi.
+- 90 yeni unit test eklendi (toplam 846 test yeşil).
+
+Etkilenen modüller: `src/domain/models/daily_price.py`, `src/infrastructure/db/sqlalchemy/`, `src/application/services/analysis/technical/`, `src/application/services/analysis/risk_metrics.py`, `scripts/import_bist_ohlcv_to_db.py`, `tests/`
+
 ## [2026-09-11] yeni-sayfa | Portföy Simülasyonu Modernizasyon ve Mimari Dönüşüm Planı
 
 - Backend Clean Architecture omurgası korunarak; SQLite geçişi, pandas-ta/quantstats entegrasyonu, servis konsolidasyonu, AI karar destek mimarisi ve QML entegrasyon köprüsünü kapsayan ana plan hazırlandı.
