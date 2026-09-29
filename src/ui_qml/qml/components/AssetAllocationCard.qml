@@ -16,6 +16,14 @@ ModernCard {
                                       { label: "TL Nakit & Mevduat",  pct: 0.13, color: "#ff9800", amount: "₺193.131" },
                                     ]
 
+    onSlicesChanged: {
+        donutCanvas.requestPaint()
+    }
+
+    Component.onCompleted: {
+        donutCanvas.requestPaint()
+    }
+
     Connections {
         target: dashboardController
         function onKpisChanged() {

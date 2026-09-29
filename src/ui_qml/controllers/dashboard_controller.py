@@ -140,22 +140,25 @@ class DashboardController(QObject):
 
         positions = self._positions_model._positions
         if positions:
-            sorted_pos = sorted(positions, key=lambda x: x.get("marketValue", 0.0), reverse=True)
+            sorted_pos = sorted(positions, key=lambda x: float(x.get("marketValue", 0.0)), reverse=True)
             top_4 = sorted_pos[:4]
             other = sorted_pos[4:]
 
             for i, p in enumerate(top_4):
-                pct = (p.get("weight", 0.0)) / 100.0
+                weight_val = float(p.get("weight", 0.0))
+                pct = weight_val / 100.0
+                m_val = float(p.get("marketValue", 0.0))
                 slices.append({
-                    "label": p["ticker"],
+                    "label": str(p.get("ticker", "")),
                     "pct": float(round(pct, 4)),
                     "color": palette[i % len(palette)],
-                    "amount": f"₺{p.get('marketValue', 0.0):,.0f}",
+                    "amount": f"₺{m_val:,.0f}",
                 })
 
             if other:
-                other_val = sum(p.get("marketValue", 0.0) for p in other)
-                other_pct = (other_val / float(self._total_value)) if self._total_value > 0 else 0.0
+                other_val = sum(float(p.get("marketValue", 0.0)) for p in other)
+                tot_val = float(self._total_value) if self._total_value > 0 else 1.0
+                other_pct = other_val / tot_val if tot_val > 0 else 0.0
                 slices.append({
                     "label": f"Diğer ({len(other)} Hisse)",
                     "pct": float(round(other_pct, 4)),
@@ -165,12 +168,12 @@ class DashboardController(QObject):
 
         # Nakit varsa dilime ekle
         if self._capital > 0 and self._total_value > 0:
-            cash_pct = float(self._capital / self._total_value)
+            cash_pct = float(self._capital) / float(self._total_value)
             slices.append({
                 "label": "Nakit Bakiye",
                 "pct": float(round(cash_pct, 4)),
                 "color": "#ff9800",
-                "amount": f"₺{self._capital:,.0f}",
+                "amount": f"₺{float(self._capital):,.0f}",
             })
 
         return slices

@@ -41,6 +41,16 @@ def test_dashboard_kpis_and_positions_model(qapp):
     assert "%" in controller.cashRatio
     assert controller.holdingsCount == 8
 
+    # Varlık Dağılımı Slices (Decimal/Float tip uyuşmazlığı kontrolü)
+    slices = controller.allocationSlices
+    assert isinstance(slices, list)
+    assert len(slices) > 0
+    for s in slices:
+        assert "label" in s
+        assert isinstance(s["pct"], float)
+        assert "color" in s
+        assert "amount" in s
+
 
 def test_dashboard_trade_execution(qapp):
     controller = DashboardController()
@@ -130,4 +140,8 @@ def test_dashboard_with_real_container(qapp):
     assert chart_data[0][0] == "OBAMS.IS"
     parsed = json.loads(chart_data[0][1])
     assert len(parsed["candles"]) > 0
+
+    real_slices = dash_ctrl.allocationSlices
+    assert len(real_slices) >= 4
+    assert any("PSGYO" in s["label"] for s in real_slices)
 

@@ -13,6 +13,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWebEngineQuick import QtWebEngineQuick
+from PySide6.QtQuickControls2 import QQuickStyle
 
 from src.ui_qml.controllers.shell_controller import ShellController
 from src.ui_qml.controllers.chart_controller import ChartController
@@ -23,6 +24,9 @@ logger = logging.getLogger(__name__)
 
 def run_qml_app(container=None) -> int:
     """QML tabanlı modern arayüzü başlatır."""
+    # Modern özel bileşenlerin ve kaydırma çubuklarının (ScrollBar) native stil tarafından ezilmemesi için Basic stil ayarlanır
+    QQuickStyle.setStyle("Basic")
+
     # WebEngineQuick başlatması (QApplication öncesi veya hemen başında çağrılmalıdır)
     QtWebEngineQuick.initialize()
 

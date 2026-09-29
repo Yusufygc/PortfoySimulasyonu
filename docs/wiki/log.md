@@ -5,6 +5,20 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Donut Varlık Dağılımı Decimal Hatası Giderimi ve Modern Kapsül ScrollBar Tasarımı
+
+- **Decimal Bölme Hatası Giderildi:** `DashboardController.allocationSlices` içinde `pct = (p.get("weight", 0.0)) / 100.0` hesaplanırken ortaya çıkan `TypeError: unsupported operand type(s) for /: 'decimal.Decimal' and 'float'` hatası giderildi; tüm ağırlık, piyasa değeri ve nakit değerleri açıkça `float()`'a cast edildi.
+- **Donut Grafiği Güncelleme Tetikleyicisi:** `AssetAllocationCard.qml` üzerinde `onSlicesChanged` ve `Component.onCompleted` sinyallerine `donutCanvas.requestPaint()` eklenerek, sayfa açılışında ve hisse geçişlerinde donut grafiğinin anında yeniden çizilmesi sağlandı.
+- **Modern Kapsül ScrollBar Bileşeni (`ModernScrollBar.qml`):** Varsayılan hantal Windows işletim sistemi kaydırma çubuğu yerine TradingView & modern web standartlarında ince, yarı saydam ve akıcı bir kaydırma çubuğu geliştirildi:
+  - Dinamik genişlik: Normalde 6px ince kapsül, üzerine gelindiğinde (hover) veya sürüklendiğinde (drag) yumuşak geçişle (`NumberAnimation`, 140ms) 10px'e genişleme.
+  - Akıllı opaklık: Sayfada kaydırma yapılmadığında dikkat dağıtmamak için zarif yarı saydam (0.35), kaydırma anında veya hover durumunda belirgin (0.90), sayfa taşmıyorsa tamamen görünmez (0.0).
+  - TradingView teması ile uyumlu renkler (`Theme.scrollbarThumb`, `Theme.scrollbarThumbHover`, `Theme.scrollbarThumbActive`).
+  - `DashboardView.qml` içerisindeki `ScrollView`'a dikey kaydırma olarak bağlandı; yatay çubuk kapatıldı (`ScrollBar.AlwaysOff`) ve `contentWidth` döngüsel bağlanma (binding loop) uyarısı giderildi.
+- **QQuickStyle "Basic" Ayarı:** Windows native stilinin özel QML kontrollerini (özel `contentItem` ve `background`) ezmesini engellemek için `src/ui_qml/app.py` başlangıcında `QQuickStyle.setStyle("Basic")` etkinleştirildi.
+- **Test Kapsamı:** `test_dashboard_phase2.py` testlerine `allocationSlices` yapısı ve gerçek SQLite portföy dilimleri doğrulaması eklendi; tüm QML testleri sıfır uyarı ve sıfır hata ile doğrulandı.
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
 ## [2026-09-30] düzelt | TradingView Fiyat Ölçeği Otomatik Uyumlandırması, Mum Gövde/Fitil Türetimi ve Dinamik Varlık Dağılımı
 
 - **Fiyat Ölçeği Kilitlenmesi Giderildi:** Farklı fiyat seviyelerine sahip hisseler arasında geçiş yapıldığında (örn. THYAO ~300 TL'den OBAMS.IS ~5 TL'ye), TradingView motorunun fiyat skalasını kilitleyip mumları ekran dışına atması sorunu çözüldü. `setCandleData` fonksiyonunda `rightPriceScale` ve `candleSeries` için `autoScale: true` zorunlu kılındı; `priceScaleId: 'right'` açıkça atandı.

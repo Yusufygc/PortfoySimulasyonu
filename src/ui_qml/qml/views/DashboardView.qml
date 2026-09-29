@@ -8,12 +8,21 @@ Item {
     id: root
 
     ScrollView {
+        id: mainScrollView
         anchors.fill: parent
-        contentWidth: availableWidth
         clip: true
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+        ScrollBar.vertical: ModernScrollBar {
+            parent: mainScrollView
+            x: mainScrollView.mirrored ? 2 : mainScrollView.width - width - 3
+            y: mainScrollView.topPadding + 2
+            height: mainScrollView.availableHeight - 4
+            active: mainScrollView.ScrollBar.vertical.active
+        }
 
         ColumnLayout {
-            width: parent.width
+            width: mainScrollView.availableWidth
             spacing: Theme.spaceMd
 
             // Üst Başlık ve Aksiyon Butonları

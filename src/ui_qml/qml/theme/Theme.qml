@@ -36,6 +36,11 @@ QtObject {
     readonly property color accentSoft: isDark ? "#1b294d" : "#e8efff"
     readonly property color warningYellow: "#ff9800"
 
+    // --- Scrollbar Renkleri (Modern TradingView Tarzı) ---
+    readonly property color scrollbarThumb: isDark ? "#363a45" : "#c2c8d4"
+    readonly property color scrollbarThumbHover: isDark ? "#505666" : "#8c94a6"
+    readonly property color scrollbarThumbActive: accent
+
     // --- Boyutlar & Boşluklar ---
     readonly property int spaceXs: 4
     readonly property int spaceSm: 8
