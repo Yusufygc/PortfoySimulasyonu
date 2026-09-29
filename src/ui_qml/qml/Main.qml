@@ -13,7 +13,7 @@ ApplicationWindow {
     height: 840
     minimumWidth: 1024
     minimumHeight: 680
-    title: "Portföy Simülasyonu — Modern QML & TradingView"
+    title: "Portföy Simülasyonu - Modern QML & TradingView"
     color: Theme.bgPrimary
 
     ColumnLayout {

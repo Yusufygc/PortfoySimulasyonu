@@ -35,6 +35,10 @@ Item {
                 }
             }
         }
+
+        onJavaScriptConsoleMessage: function(level, message, lineNumber, sourceID) {
+            console.log("[TradingView JS]: " + message + " (line " + lineNumber + ")");
+        }
     }
 
     // Connections to Python ChartController
@@ -47,9 +51,16 @@ Item {
 
             const script = `
                 (function() {
-                    const data = JSON.parse(${JSON.stringify(jsonPayload)});
-                    setTicker("${tickerName}");
-                    setCandleData(data.candles, data.volumes);
+                    try {
+                        let data = ${jsonPayload};
+                        if (typeof data === "string") data = JSON.parse(data);
+                        setTicker("${tickerName}");
+                        if (data && data.candles && data.candles.length > 0) {
+                            setCandleData(data.candles, data.volumes || []);
+                        }
+                    } catch (err) {
+                        console.error("[TV Injection Error]:", err);
+                    }
                 })();
             `
             webView.runJavaScript(script)

@@ -61,5 +61,5 @@ QtObject {
 
     // --- Font Ailesi ---
     readonly property string fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif"
-    readonly property string monoFontFamily: "Consolas, 'Cascadia Code', 'Courier New', monospace"
+    readonly property string monoFontFamily: "'Segoe UI', 'Cascadia Code', Consolas, monospace"
 }

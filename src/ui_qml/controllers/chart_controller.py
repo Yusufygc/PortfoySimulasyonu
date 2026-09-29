@@ -45,27 +45,44 @@ class ChartController(QObject):
 
         # Eğer container ve repository varsa gerçek veriyi çekmeyi dene
         data_found = False
-        if self._container and hasattr(self._container, "daily_price_repo"):
+        if self._container and hasattr(self._container, "stock_repo") and hasattr(self._container, "price_repo"):
             try:
-                repo = self._container.daily_price_repo
-                # stock_id veya ticker sorgusu
-                prices = repo.get_prices_by_ticker(ticker) if hasattr(repo, "get_prices_by_ticker") else []
-                if prices:
-                    for p in prices:
-                        dt_str = p.date.strftime("%Y-%m-%d")
-                        candles.append({
-                            "time": dt_str,
-                            "open": float(p.open or p.close),
-                            "high": float(p.high or p.close),
-                            "low": float(p.low or p.close),
-                            "close": float(p.close),
-                        })
-                        volumes.append({
-                            "time": dt_str,
-                            "value": float(p.volume or 100000),
-                            "color": "rgba(8, 153, 129, 0.4)" if (p.close >= (p.open or p.close)) else "rgba(242, 54, 69, 0.4)",
-                        })
-                    data_found = True
+                stock = None
+                # Ticker alternatiflerini dene (örn. GARAN veya GARAN.IS)
+                for candidate in [ticker, f"{ticker}.IS", ticker.replace(".IS", "")]:
+                    stock = self._container.stock_repo.get_stock_by_ticker(candidate)
+                    if stock:
+                        break
+
+                if stock:
+                    start_date = datetime.now().date() - timedelta(days=365)
+                    end_date = datetime.now().date()
+                    prices = self._container.price_repo.get_price_series(stock.id, start_date, end_date)
+                    if prices:
+                        for p in prices:
+                            dt_str = p.price_date.strftime("%Y-%m-%d")
+                            o = float(p.open_price if p.open_price is not None else p.close_price)
+                            h = float(p.high_price if p.high_price is not None else p.close_price)
+                            l = float(p.low_price if p.low_price is not None else p.close_price)
+                            c = float(p.close_price)
+                            v = float(p.volume if p.volume is not None else 100000)
+                            candles.append({
+                                "time": dt_str,
+                                "open": o,
+                                "high": h,
+                                "low": l,
+                                "close": c,
+                            })
+                            volumes.append({
+                                "time": dt_str,
+                                "value": v,
+                                "color": "rgba(8, 153, 129, 0.4)" if c >= o else "rgba(242, 54, 69, 0.4)",
+                            })
+                        # TradingView kesinlikle artan tarih sıralaması ister
+                        candles.sort(key=lambda x: x["time"])
+                        volumes.sort(key=lambda x: x["time"])
+                        data_found = True
+                        logger.info("SQLite'tan %s icin %d adet mum verisi yuklendi.", ticker, len(candles))
             except Exception as exc:
                 logger.warning("Fiyat verisi cekilirken hata: %s", exc)
 

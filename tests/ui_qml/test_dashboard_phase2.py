@@ -110,3 +110,24 @@ def test_dashboard_qml_full_load(qapp):
 
     root_objects = engine.rootObjects()
     assert len(root_objects) > 0, f"Main.qml yüklenemedi! Hatalar: {warnings_list}"
+
+
+def test_dashboard_with_real_container(qapp):
+    import json
+    from src.application.container import AppContainer
+
+    container = AppContainer()
+    dash_ctrl = DashboardController(container=container)
+    chart_ctrl = ChartController(container=container)
+
+    assert dash_ctrl.holdingsCount == 7
+    assert "₺" in dash_ctrl.totalValue
+
+    chart_data = []
+    chart_ctrl.chartDataLoaded.connect(lambda t, p: chart_data.append((t, p)))
+    chart_ctrl.loadTicker("OBAMS.IS")
+    assert len(chart_data) == 1
+    assert chart_data[0][0] == "OBAMS.IS"
+    parsed = json.loads(chart_data[0][1])
+    assert len(parsed["candles"]) > 0
+

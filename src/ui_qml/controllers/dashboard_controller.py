@@ -125,53 +125,105 @@ class DashboardController(QObject):
 
     def _load_portfolio_data(self) -> None:
         """Gerçek servislerden veya gerçekçi simülasyondan verileri yükler."""
-        connected_to_db = False
+        pos_list = []
+        stocks_market_val = Decimal("0")
+        total_cost = Decimal("0")
+        daily_gain = Decimal("0")
+
         if self._container:
             try:
                 if hasattr(self._container, "portfolio_service") and hasattr(self._container, "stock_repo"):
                     cash = self._container.portfolio_service.get_cash_balance()
                     if cash is not None:
                         self._capital = Decimal(str(cash))
-                    connected_to_db = True
+
+                    portfolio = self._container.portfolio_service.get_current_portfolio()
+                    active = portfolio.active_positions
+                    if active:
+                        stock_ids = list(active.keys())
+                        latest_prices = {}
+                        if hasattr(self._container, "latest_price_repo"):
+                            try:
+                                latest_prices = self._container.latest_price_repo.get_latest_price_map(stock_ids)
+                            except Exception as e:
+                                logger.debug("latest_prices alınamadı: %s", e)
+
+                        for sid, pos in active.items():
+                            stock = self._container.stock_repo.get_stock_by_id(sid)
+                            ticker = stock.ticker if stock else f"STOCK_{sid}"
+                            company = stock.name if (stock and stock.name) else ticker
+                            qty = pos.total_quantity
+                            cost = pos.average_cost if pos.average_cost is not None else Decimal("0")
+                            price = latest_prices.get(sid, cost)
+
+                            diff_pct = Decimal("0")
+                            if hasattr(self._container, "price_repo"):
+                                try:
+                                    prev = self._container.price_repo.get_last_price_before(sid, date.today())
+                                    if prev and prev.close_price and prev.close_price > 0:
+                                        diff_pct = ((price - prev.close_price) / prev.close_price) * 100
+                                except Exception:
+                                    pass
+
+                            m_val = pos.market_value(price)
+                            tot_c = pos.total_cost
+                            pl = pos.unrealized_pl(price)
+                            pl_pct = (pl / tot_c * 100) if tot_c > 0 else Decimal("0")
+                            day_gain = m_val * (diff_pct / Decimal("100"))
+
+                            stocks_market_val += m_val
+                            total_cost += tot_c
+                            daily_gain += day_gain
+
+                            pos_list.append({
+                                "ticker": ticker,
+                                "companyName": company,
+                                "quantity": int(qty),
+                                "avgCost": float(cost),
+                                "currentPrice": float(price),
+                                "dailyDiff": float(diff_pct),
+                                "marketValue": float(m_val),
+                                "unrealizedPL": float(pl),
+                                "unrealizedPLPct": float(pl_pct),
+                                "weight": 0.0,
+                                "isUp": pl >= 0,
+                                "flashState": 0,
+                            })
             except Exception as exc:
                 logger.info("Canlı DB erişimi sağlanamadı, offline mod aktif: %s", exc)
 
-        # Pozisyon verilerini ve türev değerleri hesapla
-        pos_list = []
-        stocks_market_val = Decimal("0")
-        total_cost = Decimal("0")
-        daily_gain = Decimal("0")
+        # Eğer DB'de aktif pozisyon yoksa mock verileri kullan
+        if not pos_list:
+            for item in self._initial_positions:
+                qty = Decimal(str(item["quantity"]))
+                cost = Decimal(str(item["avgCost"]))
+                price = Decimal(str(item["currentPrice"]))
+                diff_pct = Decimal(str(item["dailyDiff"]))
 
-        for item in self._initial_positions:
-            qty = Decimal(str(item["quantity"]))
-            cost = Decimal(str(item["avgCost"]))
-            price = Decimal(str(item["currentPrice"]))
-            diff_pct = Decimal(str(item["dailyDiff"]))
+                m_val = qty * price
+                tot_c = qty * cost
+                pl = m_val - tot_c
+                pl_pct = (pl / tot_c * 100) if tot_c > 0 else Decimal("0")
+                day_gain = m_val * (diff_pct / Decimal("100"))
 
-            m_val = qty * price
-            tot_c = qty * cost
-            pl = m_val - tot_c
-            pl_pct = (pl / tot_c * 100) if tot_c > 0 else Decimal("0")
-            day_gain = m_val * (diff_pct / Decimal("100"))
+                stocks_market_val += m_val
+                total_cost += tot_c
+                daily_gain += day_gain
 
-            stocks_market_val += m_val
-            total_cost += tot_c
-            daily_gain += day_gain
-
-            pos_list.append({
-                "ticker": item["ticker"],
-                "companyName": item["companyName"],
-                "quantity": int(qty),
-                "avgCost": float(cost),
-                "currentPrice": float(price),
-                "dailyDiff": float(diff_pct),
-                "marketValue": float(m_val),
-                "unrealizedPL": float(pl),
-                "unrealizedPLPct": float(pl_pct),
-                "weight": 0.0,  # aşağıda hesaplanacak
-                "isUp": pl >= 0,
-                "flashState": 0,
-            })
+                pos_list.append({
+                    "ticker": item["ticker"],
+                    "companyName": item["companyName"],
+                    "quantity": int(qty),
+                    "avgCost": float(cost),
+                    "currentPrice": float(price),
+                    "dailyDiff": float(diff_pct),
+                    "marketValue": float(m_val),
+                    "unrealizedPL": float(pl),
+                    "unrealizedPLPct": float(pl_pct),
+                    "weight": 0.0,  # aşağıda hesaplanacak
+                    "isUp": pl >= 0,
+                    "flashState": 0,
+                })
 
         self._total_value = stocks_market_val + self._capital
         self._total_cost = total_cost
@@ -194,12 +246,11 @@ class DashboardController(QObject):
         self._is_refreshing = True
         self.refreshStateChanged.emit(True)
 
-        # Fiyat simülasyonu / YFinance çekimi
         def do_refresh():
             price_map = {}
             import numpy as np
-            for p in self._initial_positions:
-                old_p = float(p["currentPrice"])
+            for p in self._positions_model._positions:
+                old_p = float(p.get("currentPrice", 10.0))
                 change = np.random.normal(0.002, 0.015)
                 new_p = round(old_p * (1 + change), 2)
                 p["currentPrice"] = new_p
@@ -220,6 +271,31 @@ class DashboardController(QObject):
             self.tradeExecuted.emit(False, "Geçersiz işlem parametreleri.")
             return
 
+        # 1. Gerçek veritabanı servisi varsa kullan
+        if self._container and hasattr(self._container, "trade_entry_service"):
+            try:
+                from src.application.services.portfolio.trade_entry_service import TradeRequest
+                from src.domain.models.trade import TradeSide
+
+                trade_side = TradeSide.BUY if side.upper() == "BUY" else TradeSide.SELL
+                req = TradeRequest(
+                    ticker=ticker,
+                    side=trade_side,
+                    quantity=quantity,
+                    price=Decimal(str(price)),
+                    trade_date=date.today(),
+                    trade_time=datetime.now().time().replace(microsecond=0),
+                )
+                self._container.trade_entry_service.submit_trade(req)
+                self._load_portfolio_data()
+                self.tradeExecuted.emit(True, f"{quantity} adet {ticker} {side.upper()} işlemi başarıyla kaydedildi.")
+                return
+            except Exception as exc:
+                logger.warning("TradeEntryService ile işlem kaydedilemedi: %s", exc)
+                self.tradeExecuted.emit(False, str(exc))
+                return
+
+        # 2. Offline / Mock fallback
         total_amount = Decimal(str(quantity)) * Decimal(str(price))
 
         if side.upper() == "BUY":
@@ -227,7 +303,6 @@ class DashboardController(QObject):
                 self.tradeExecuted.emit(False, f"Yetersiz nakit! Gerekli: ₺{total_amount:,.2f}, Mevcut: ₺{self._capital:,.2f}")
                 return
             self._capital -= total_amount
-            # Pozisyona ekle veya yeni aç
             found = False
             for p in self._initial_positions:
                 if p["ticker"] == ticker:
@@ -251,7 +326,6 @@ class DashboardController(QObject):
                 })
             msg = f"{quantity} adet {ticker} başarıyla satın alındı (₺{total_amount:,.2f})."
         else: # SELL
-            # Pozisyon kontrolü
             target = next((p for p in self._initial_positions if p["ticker"] == ticker), None)
             if not target or target["quantity"] < quantity:
                 self.tradeExecuted.emit(False, f"Satış için yetersiz lot! Mevcut: {target['quantity'] if target else 0}")
@@ -273,6 +347,25 @@ class DashboardController(QObject):
             return
 
         dec_amount = Decimal(str(amount))
+
+        # 1. Gerçek veritabanı servisi varsa kullan
+        if self._container and hasattr(self._container, "cash_movement_service"):
+            try:
+                if action.upper() == "DEPOSIT":
+                    self._container.cash_movement_service.add_deposit(dec_amount, notes=note or "QML Sermaye Girişi")
+                    msg = f"₺{dec_amount:,.2f} nakit portföye yatırıldı."
+                else:
+                    self._container.cash_movement_service.add_withdraw(dec_amount, notes=note or "QML Sermaye Çıkışı")
+                    msg = f"₺{dec_amount:,.2f} nakit portföyden çekildi."
+                self._load_portfolio_data()
+                self.capitalUpdated.emit(True, msg)
+                return
+            except Exception as exc:
+                logger.warning("CashMovementService ile sermaye güncellenemedi: %s", exc)
+                self.capitalUpdated.emit(False, str(exc))
+                return
+
+        # 2. Offline / Mock fallback
         if action.lower() == "deposit":
             self._capital += dec_amount
             msg = f"₺{dec_amount:,.2f} nakit portföye yatırıldı."

@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | TradingView Mum Çizimi, ₺ Glif Desteği ve SQLite Portföy Pozisyonları Bağlantısı
+
+- **TradingView Mum Çizimi Düzeltildi:** `TradingViewChart.qml` içerisindeki çift JSON serileştirme (`JSON.stringify`) hatası giderildi; `ChartController` üzerinden `stock_repo` ve `price_repo` kullanılarak SQLite veritabanındaki gerçek günlük OHLCV mum verileri artan tarih sırasıyla Lightweight Charts motoruna aktarıldı.
+- **₺ Para Birimi Glifi Düzeltildi:** Windows üzerinde `Consolas` yazı tipinin Türk Lirası sembolünü (`₺` / `\u20ba`) desteklemeyip `b` harfi olarak render etmesi sorunu, `Theme.monoFontFamily` için `'Segoe UI'` ve `'Cascadia Code'` önceliklendirilerek çözüldü.
+- **Pencere Başlığı Encoding Düzeltildi:** Win32 başlık çubuğundaki Unicode tire bozulması ASCII standart tireye çevrildi.
+- **SQLite Gerçek Portföy Entegrasyonu:** `DashboardController._load_portfolio_data()` mock liste yerine `portfolio_service.get_current_portfolio()` üzerinden veritabanındaki 7 adet aktif pozisyonu (`OBAMS.IS`, `RUZYE.IS`, `UNLU.IS`, `BINHO.IS`, `BINBN.IS`, `PSGYO.IS`, `MERKO.IS`), güncel kapanış fiyatlarını ve gerçekleşmemiş K/Z metriklerini hesaplayacak şekilde bağlandı.
+- `submitTrade` ve `manageCapital` slotları `trade_entry_service` ve `cash_movement_service` üzerinden SQLite'a kalıcı kayıt yapacak şekilde entegre edildi.
+- Birim testleri güncellendi (`test_dashboard_phase2.py`, 7 test %100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
 ## [2026-09-30] özellik | MySQL'den SQLite'a Tam Geçiş & Yedek Senkronizasyonu
 
 - Masaüstündeki MySQL yedekleri (`portfoysim.sql` vb.) `backups/mysql/` dizinine güvenle kopyalandı.

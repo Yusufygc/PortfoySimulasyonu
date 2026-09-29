@@ -202,6 +202,9 @@
     }
 
     function setCandleData(candleList, volumeList = []) {
+      if (!chart || !candleSeries) {
+        initChart(elTicker ? elTicker.innerText : "BIST", true);
+      }
       if (!chart || !candleSeries) return;
       candleSeries.setData(candleList);
       if (volumeSeries && volumeList.length > 0) {
