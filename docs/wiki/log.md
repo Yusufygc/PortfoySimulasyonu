@@ -5,6 +5,19 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] özellik | Faz 2 — QML Dashboard, Açık Pozisyonlar Tablosu, Canlı Fiyat & İşlem Modalları
+
+- QML için `PositionsTableModel` list/table modeli yazıldı; anlık fiyat değişimlerinde yeşil/kırmızı tick yanıp sönme (flash) animasyonu eklendi.
+- `DashboardController` zenginleştirildi; canlı portföy KPI'ları (Toplam Değer, Gerçekleşmemiş K/Z, Günlük K/Z, Nakit Oranı), Al/Sat emir kaydı ve sermaye yatırma/çekme işlevleri eklendi.
+- `QuickTradeModal` bileşeni ile canlı fiyat/lot çarpımlı hisse alım ve satım penceresi oluşturuldu.
+- `CapitalModal` bileşeni ile portföye nakit ekleme ve çekme penceresi eklendi.
+- `AssetAllocationCard` ile QML Canvas tabanlı modern Donut varlık dağılım grafiği entegre edildi.
+- `ToastNotification` bildirim bileşeni ile kullanıcı geri bildirimleri görselleştirildi.
+- `DashboardView.qml` tam interaktif hale getirildi; satır tıklamasıyla TradingView grafiğine hisse aktarımı bağlandı.
+- Faz 2 birim testleri yazıldı (`tests/ui_qml/test_dashboard_phase2.py`, %100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/models/`, `src/ui_qml/controllers/`, `src/ui_qml/qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
 ## [2026-09-29] özellik | Faz 0 — QML Branch Başlatma, venv Ortamı ve TradingView Entegrasyon POC
 
 - `qml` branch'i açılarak paralel QML UI geliştirme süreci başlatıldı.
