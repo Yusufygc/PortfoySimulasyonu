@@ -139,37 +139,44 @@
           timeVisible: true,
           secondsVisible: false,
         },
-        watermark: {
-          visible: true,
-          fontSize: 48,
-          horzAlign: 'center',
-          vertAlign: 'center',
-          color: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
-          text: ticker,
-        }
       });
 
-      // Volume Series
-      volumeSeries = chart.addHistogramSeries({
+      // Volume Series (LightweightCharts v5 & v4 compatibility)
+      const volOptions = {
         color: '#26a69a',
         priceFormat: {
           type: 'volume',
         },
         priceScaleId: '',
-        scaleMargins: {
-          top: 0.8,
-          bottom: 0,
-        },
-      });
+      };
+      if (typeof chart.addSeries === 'function' && LightweightCharts.HistogramSeries) {
+        volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, volOptions);
+      } else if (typeof chart.addHistogramSeries === 'function') {
+        volumeSeries = chart.addHistogramSeries(volOptions);
+      }
 
-      // Candlestick Series
-      candleSeries = chart.addCandlestickSeries({
+      if (volumeSeries && typeof chart.priceScale === 'function') {
+        chart.priceScale('').applyOptions({
+          scaleMargins: {
+            top: 0.8,
+            bottom: 0,
+          },
+        });
+      }
+
+      // Candlestick Series (LightweightCharts v5 & v4 compatibility)
+      const candleOptions = {
         upColor: '#089981',
         downColor: '#f23645',
         borderVisible: false,
         wickUpColor: '#089981',
         wickDownColor: '#f23645',
-      });
+      };
+      if (typeof chart.addSeries === 'function' && LightweightCharts.CandlestickSeries) {
+        candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, candleOptions);
+      } else if (typeof chart.addCandlestickSeries === 'function') {
+        candleSeries = chart.addCandlestickSeries(candleOptions);
+      }
 
       // Crosshair move handler
       chart.subscribeCrosshairMove(param => {
@@ -228,23 +235,28 @@
 
     function addSMA(period, color = '#2962FF', data = []) {
       if (!chart) return;
-      const smaSeries = chart.addLineSeries({
+      const smaOptions = {
         color: color,
         lineWidth: 2,
         title: `SMA ${period}`,
-      });
-      if (data.length > 0) {
-        smaSeries.setData(data);
+      };
+      let smaSeries = null;
+      if (typeof chart.addSeries === 'function' && LightweightCharts.LineSeries) {
+        smaSeries = chart.addSeries(LightweightCharts.LineSeries, smaOptions);
+      } else if (typeof chart.addLineSeries === 'function') {
+        smaSeries = chart.addLineSeries(smaOptions);
       }
-      maSeriesList.push(smaSeries);
+      if (smaSeries) {
+        if (data.length > 0) {
+          smaSeries.setData(data);
+        }
+        maSeriesList.push(smaSeries);
+      }
     }
 
     function setTicker(ticker) {
-      elTicker.innerText = ticker;
-      if (chart) {
-        chart.applyOptions({
-          watermark: { text: ticker }
-        });
+      if (elTicker) {
+        elTicker.innerText = ticker;
       }
     }
 

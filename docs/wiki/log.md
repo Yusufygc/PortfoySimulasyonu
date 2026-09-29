@@ -5,6 +5,11 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | TradingView Lightweight Charts v5 API Uyumluluğu & Ekran Konumlandırması
+
+- **Lightweight Charts v5.2 API Geçişi:** Bundle edilen Lightweight Charts sürümünün v5.2 olması sebebiyle meydana gelen `chart.addHistogramSeries is not a function` ve `chart.addCandlestickSeries` hataları, v5 `chart.addSeries(LightweightCharts.HistogramSeries, ...)` ve `chart.addSeries(LightweightCharts.CandlestickSeries, ...)` API formatına geçirilerek giderildi.
+- **Pencerenin Ekran Dışında Açılması Çözüldü:** Sabit `1320x840` boyutu özellikle %125/%150 DPI ölçekli veya 1366x768 çözünürlüklü ekranlarda pencereyi ekran dışına taşıyordu. Hem `Main.qml` hem de `src/ui_qml/app.py` üzerinde birincil ekranın kullanılabilir geometrisine göre dinamik boyutlandırma (`availableGeometry()`) ve otomatik ortalama (`center`) eklendi.
+
 ## [2026-09-30] düzelt | TradingView Mum Çizimi, ₺ Glif Desteği ve SQLite Portföy Pozisyonları Bağlantısı
 
 - **TradingView Mum Çizimi Düzeltildi:** `TradingViewChart.qml` içerisindeki çift JSON serileştirme (`JSON.stringify`) hatası giderildi; `ChartController` üzerinden `stock_repo` ve `price_repo` kullanılarak SQLite veritabanındaki gerçek günlük OHLCV mum verileri artan tarih sırasıyla Lightweight Charts motoruna aktarıldı.

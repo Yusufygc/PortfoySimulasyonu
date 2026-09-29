@@ -9,12 +9,17 @@ import "views"
 ApplicationWindow {
     id: appWindow
     visible: true
-    width: 1320
-    height: 840
-    minimumWidth: 1024
-    minimumHeight: 680
+    width: Math.min(1320, Math.max(960, Screen.desktopAvailableWidth * 0.90))
+    height: Math.min(840, Math.max(600, Screen.desktopAvailableHeight * 0.90))
+    minimumWidth: 960
+    minimumHeight: 600
     title: "Portföy Simülasyonu - Modern QML & TradingView"
     color: Theme.bgPrimary
+
+    Component.onCompleted: {
+        x = Math.max(0, (Screen.desktopAvailableWidth - width) / 2)
+        y = Math.max(0, (Screen.desktopAvailableHeight - height) / 2)
+    }
 
     ColumnLayout {
         anchors.fill: parent

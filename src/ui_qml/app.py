@@ -66,6 +66,20 @@ def run_qml_app(container=None) -> int:
         logger.error("Main.qml yüklenemedi!")
         return -1
 
+    # Ekran çözünürlüğüne göre pencereyi otomatik sınırla ve ekranda merkeze al
+    primary_screen = app.primaryScreen()
+    if primary_screen:
+        geom = primary_screen.availableGeometry()
+        win = engine.rootObjects()[0]
+        cur_w = int(win.property("width") or 1200)
+        cur_h = int(win.property("height") or 760)
+        w = max(960, min(cur_w, geom.width() - 40))
+        h = max(600, min(cur_h, geom.height() - 60))
+        win.setProperty("width", w)
+        win.setProperty("height", h)
+        win.setProperty("x", geom.x() + max(0, (geom.width() - w) // 2))
+        win.setProperty("y", geom.y() + max(0, (geom.height() - h) // 2))
+
     logger.info("QML Arayüzü başarıyla başlatıldı.")
     return app.exec()
 
