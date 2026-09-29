@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradingView Chart</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #131722;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    #chart-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    #legend {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      pointer-events: none;
+    }
+    .legend-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e0e3eb;
+      letter-spacing: 0.5px;
+    }
+    .legend-stats {
+      font-size: 12px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      color: #787b86;
+      display: flex;
+      gap: 10px;
+    }
+    .stat-val {
+      font-weight: 600;
+    }
+    .val-up {
+      color: #089981;
+    }
+    .val-down {
+      color: #f23645;
+    }
+  </style>
+  <script src="../js/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <div id="chart-container">
+    <div id="legend">
+      <div id="legend-ticker" class="legend-title">PORTFÖY SİMÜLASYONU</div>
+      <div id="legend-ohlc" class="legend-stats">
+        <span>A: <span id="val-open" class="stat-val">-</span></span>
+        <span>Y: <span id="val-high" class="stat-val">-</span></span>
+        <span>D: <span id="val-low" class="stat-val">-</span></span>
+        <span>K: <span id="val-close" class="stat-val">-</span></span>
+        <span>Fark: <span id="val-change" class="stat-val">-</span></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let chart = null;
+    let candleSeries = null;
+    let volumeSeries = null;
+    let maSeriesList = [];
+    const container = document.getElementById('chart-container');
+    const elTicker = document.getElementById('legend-ticker');
+    const elOpen = document.getElementById('val-open');
+    const elHigh = document.getElementById('val-high');
+    const elLow = document.getElementById('val-low');
+    const elClose = document.getElementById('val-close');
+    const elChange = document.getElementById('val-change');
+
+    function initChart(ticker = "BIST", isDark = true) {
+      if (chart) {
+        chart.remove();
+        chart = null;
+        maSeriesList = [];
+      }
+
+      elTicker.innerText = ticker;
+
+      const bgColor = isDark ? '#131722' : '#ffffff';
+      const textColor = isDark ? '#d1d4dc' : '#131722';
+      const gridColor = isDark ? '#1e222d' : '#f0f3fa';
+      const borderColor = isDark ? '#2a2e39' : '#e0e3eb';
+
+      chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: container.clientHeight,
+        layout: {
+          background: { type: 'solid', color: bgColor },
+          textColor: textColor,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: 11,
+        },
+        grid: {
+          vertLines: { color: gridColor },
+          horzLines: { color: gridColor },
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+          vertLine: {
+            color: '#758696',
+            width: 1,
+            style: LightweightCharts.LineStyle.Dashed,
+            labelBackgroundColor: '#2a2e39',
+          },
+          horzLine: {
+            color: '#758696',
+            width: 1,
+            style: LightweightCharts.LineStyle.Dashed,
+            labelBackgroundColor: '#2a2e39',
+          },
+        },
+        rightPriceScale: {
+          borderColor: borderColor,
+          scaleMargins: {
+            top: 0.1,
+            bottom: 0.25,
+          },
+        },
+        timeScale: {
+          borderColor: borderColor,
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        watermark: {
+          visible: true,
+          fontSize: 48,
+          horzAlign: 'center',
+          vertAlign: 'center',
+          color: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
+          text: ticker,
+        }
+      });
+
+      // Volume Series
+      volumeSeries = chart.addHistogramSeries({
+        color: '#26a69a',
+        priceFormat: {
+          type: 'volume',
+        },
+        priceScaleId: '',
+        scaleMargins: {
+          top: 0.8,
+          bottom: 0,
+        },
+      });
+
+      // Candlestick Series
+      candleSeries = chart.addCandlestickSeries({
+        upColor: '#089981',
+        downColor: '#f23645',
+        borderVisible: false,
+        wickUpColor: '#089981',
+        wickDownColor: '#f23645',
+      });
+
+      // Crosshair move handler
+      chart.subscribeCrosshairMove(param => {
+        if (!param || !param.time || !param.seriesData.has(candleSeries)) {
+          return;
+        }
+        const data = param.seriesData.get(candleSeries);
+        if (data) {
+          elOpen.innerText = data.open.toFixed(2);
+          elHigh.innerText = data.high.toFixed(2);
+          elLow.innerText = data.low.toFixed(2);
+          elClose.innerText = data.close.toFixed(2);
+          
+          const diff = data.close - data.open;
+          const pct = ((diff / data.open) * 100).toFixed(2);
+          const sign = diff >= 0 ? '+' : '';
+          elChange.innerText = `${sign}${pct}%`;
+          elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
+        }
+      });
+
+      // Resize observer
+      const resizeObserver = new ResizeObserver(entries => {
+        if (entries.length > 0 && chart) {
+          const { width, height } = entries[0].contentRect;
+          chart.applyOptions({ width, height });
+        }
+      });
+      resizeObserver.observe(container);
+    }
+
+    function setCandleData(candleList, volumeList = []) {
+      if (!chart || !candleSeries) return;
+      candleSeries.setData(candleList);
+      if (volumeSeries && volumeList.length > 0) {
+        volumeSeries.setData(volumeList);
+      }
+      chart.timeScale().fitContent();
+
+      if (candleList.length > 0) {
+        const last = candleList[candleList.length - 1];
+        elOpen.innerText = last.open.toFixed(2);
+        elHigh.innerText = last.high.toFixed(2);
+        elLow.innerText = last.low.toFixed(2);
+        elClose.innerText = last.close.toFixed(2);
+        const diff = last.close - last.open;
+        const pct = ((diff / last.open) * 100).toFixed(2);
+        const sign = diff >= 0 ? '+' : '';
+        elChange.innerText = `${sign}${pct}%`;
+        elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
+      }
+    }
+
+    function addSMA(period, color = '#2962FF', data = []) {
+      if (!chart) return;
+      const smaSeries = chart.addLineSeries({
+        color: color,
+        lineWidth: 2,
+        title: `SMA ${period}`,
+      });
+      if (data.length > 0) {
+        smaSeries.setData(data);
+      }
+      maSeriesList.push(smaSeries);
+    }
+
+    function setTicker(ticker) {
+      elTicker.innerText = ticker;
+      if (chart) {
+        chart.applyOptions({
+          watermark: { text: ticker }
+        });
+      }
+    }
+
+    // Default initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      initChart("BIST100", true);
+    });
+  </script>
+</body>
+</html>

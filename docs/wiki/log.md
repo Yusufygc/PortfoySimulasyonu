@@ -5,6 +5,18 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-29] özellik | Faz 0 — QML Branch Başlatma, venv Ortamı ve TradingView Entegrasyon POC
+
+- `qml` branch'i açılarak paralel QML UI geliştirme süreci başlatıldı.
+- Proje içi `venv` sanal ortamı kuruldu, RULES.md güncellendi.
+- PySide6 + QtQuick + QtWebEngineQuick bağımlılıkları doğrulandı.
+- TradingView Lightweight Charts (v4.x) yerel standalone kütüphanesi ve HTML şablonu eklendi.
+- `src/ui_qml/` altında Controller'lar (Shell, Chart, Dashboard) ve Theme mimarisi oluşturuldu.
+- `app.py` içine `--ui=qml` parametresi eklendi; eski ve yeni UI paralel yaşatıldı.
+- QML POC yükleme ve kontrolcü testleri yazıldı (`tests/ui_qml/test_qml_poc.py`).
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `app.py`, `RULES.md`, `docs/wiki/log.md`
+
 ## [2026-09-12] refaktör | PyQt5/PySide6 UI Konsolidasyonu & Yeni Özellik Sayfaları Entegrasyonu
 
 - Deneysel `src/ui_qml/` katmanı temizlendi; ana PyQt5/PySide6 mimarisi korundu.

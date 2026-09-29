@@ -1,3 +1,4 @@
+import os
 import sys
 
 from src.qt_compat.scaling import configure_qt_scale_normalization
@@ -39,7 +40,13 @@ def main():
     # Container yapısını başlat (Bütün repo ve servisler içinde ayağa kalkar)
     container = AppContainer()
 
-    # 6) UI
+    # UI Seçimi: --ui=qml veya normal Widgets
+    if "--ui=qml" in sys.argv or os.environ.get("PORTFOYSIM_UI") == "qml":
+        from src.ui_qml.app import run_qml_app
+        logger.info("QML arayüz modu seçildi (--ui=qml).")
+        sys.exit(run_qml_app(container=container))
+
+    # 6) Klasik UI (Qt Widgets)
     window = MainWindow(container=container)
     window.show()
 

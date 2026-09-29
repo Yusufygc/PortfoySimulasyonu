@@ -12,7 +12,7 @@ Dosyalar arasında çelişki olursa en dar kapsamlı ve kullanıcıya en yakın 
 
 ### 0.1 Python Ortamı Kullanımı
 
-Tüm python komutları (test çalıştırma, script yürütme vb.) için **KESİNLİKLE** `C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe` yolu kullanılarak `Fintech` conda ortamı üzerinden işlem yapılmalıdır. Base python veya sadece `python` komutu kullanılmamalıdır.
+Tüm python komutları (test çalıştırma, script yürütme vb.) için **KESİNLİKLE** proje kökündeki sanal ortam `.\venv\Scripts\python.exe` yolu kullanılarak işlem yapılmalıdır. Base python veya `pip.exe` doğrudan çağrılmamalı, `.\venv\Scripts\python.exe -m ...` formatı tercih edilmelidir.
 
 ---
 

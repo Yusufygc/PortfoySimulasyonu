@@ -1,0 +1,57 @@
+import QtQuick
+import QtQuick.Layouts
+import "../theme"
+import "../components"
+
+Item {
+    id: root
+    property string title: "Sayfa Başlığı"
+    property string subtitle: "Bu modül dönüşüm planının sonraki fazında TradingView / QML bileşenleriyle inşa edilecektir."
+    property string iconSymbol: "🚧"
+    Layout.fillWidth: true
+    Layout.fillHeight: true
+
+    ModernCard {
+        anchors.centerIn: parent
+        implicitWidth: 460
+        implicitHeight: 260
+
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: Theme.spaceMd
+
+            Text {
+                text: root.iconSymbol
+                font.pixelSize: 48
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Text {
+                text: root.title
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontLg
+                font.weight: Font.Bold
+                color: Theme.textPrimary
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Text {
+                text: root.subtitle
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSm
+                color: Theme.textMuted
+                wrapMode: Text.WordWrap
+                horizontalAlignment: Text.AlignHCenter
+                Layout.preferredWidth: 360
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            ModernButton {
+                text: "← Dashboard'a Dön"
+                variant: "secondary"
+                Layout.alignment: Qt.AlignHCenter
+                onClicked: shellController.navigateTo(0)
+            }
+        }
+    }
+}
