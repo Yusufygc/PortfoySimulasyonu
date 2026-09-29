@@ -16,15 +16,28 @@ def configure_qt_application_attributes():
 
 
 def main():
+    logger = setup_logger()
+    setup_global_exception_handler()
+    logger.info("Uygulama başlatılıyor...")
+
+    # UI Seçimi: --ui=qml
+    if "--ui=qml" in sys.argv or os.environ.get("PORTFOYSIM_UI") == "qml":
+        from src.ui_qml.app import run_qml_app
+        logger.info("QML arayüz modu seçildi (--ui=qml).")
+        container = None
+        try:
+            from src.application.container import AppContainer
+            container = AppContainer()
+        except Exception as exc:
+            logger.warning("Veritabanı bağlantısı sağlanamadı (%s). QML offline modda devam ediyor.", exc)
+        sys.exit(run_qml_app(container=container))
+
+    # Klasik UI (Qt Widgets)
     configure_qt_application_attributes()
 
     from src.application.container import AppContainer
     from src.ui.theme_manager import ThemeManager
     from src.ui.main_window import MainWindow
-
-    logger = setup_logger()
-    setup_global_exception_handler()
-    logger.info("Uygulama başlatılıyor...")
 
     app = QApplication(sys.argv)
 
@@ -39,12 +52,6 @@ def main():
 
     # Container yapısını başlat (Bütün repo ve servisler içinde ayağa kalkar)
     container = AppContainer()
-
-    # UI Seçimi: --ui=qml veya normal Widgets
-    if "--ui=qml" in sys.argv or os.environ.get("PORTFOYSIM_UI") == "qml":
-        from src.ui_qml.app import run_qml_app
-        logger.info("QML arayüz modu seçildi (--ui=qml).")
-        sys.exit(run_qml_app(container=container))
 
     # 6) Klasik UI (Qt Widgets)
     window = MainWindow(container=container)
