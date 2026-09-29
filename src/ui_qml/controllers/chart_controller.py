@@ -22,6 +22,18 @@ class ChartController(QObject):
         self._container = container
         self._current_ticker: str = "THYAO"
 
+        # Eğer portföyde hisseler varsa ilk hisseyi varsayılan grafik yap
+        if self._container and hasattr(self._container, "portfolio_service") and hasattr(self._container, "stock_repo"):
+            try:
+                port = self._container.portfolio_service.get_current_portfolio()
+                if port and port.active_positions:
+                    first_sid = next(iter(port.active_positions.keys()))
+                    stock = self._container.stock_repo.get_stock_by_id(first_sid)
+                    if stock and stock.ticker:
+                        self._current_ticker = stock.ticker
+            except Exception:
+                pass
+
     @Property(str, notify=tickerChanged)
     def currentTicker(self) -> str:
         return self._current_ticker
@@ -59,28 +71,40 @@ class ChartController(QObject):
                     end_date = datetime.now().date()
                     prices = self._container.price_repo.get_price_series(stock.id, start_date, end_date)
                     if prices:
-                        for p in prices:
+                        sorted_prices = sorted(prices, key=lambda x: x.price_date)
+                        prev_close = None
+                        for p in sorted_prices:
                             dt_str = p.price_date.strftime("%Y-%m-%d")
-                            o = float(p.open_price if p.open_price is not None else p.close_price)
-                            h = float(p.high_price if p.high_price is not None else p.close_price)
-                            l = float(p.low_price if p.low_price is not None else p.close_price)
                             c = float(p.close_price)
-                            v = float(p.volume if p.volume is not None else 100000)
+
+                            # Eğer gerçek OHLC mevcutsa doğrudan kullan
+                            if p.open_price is not None and p.high_price is not None and p.low_price is not None:
+                                o = float(p.open_price)
+                                h = float(p.high_price)
+                                l = float(p.low_price)
+                            else:
+                                # Close-only kayıtlar için önceki günün kapanışını baz alarak gerçekçi mum gövdesi ve fitil türet
+                                o = prev_close if prev_close is not None else c
+                                spread = max(abs(c - o), c * 0.008)
+                                h = max(o, c) + (spread * 0.35)
+                                l = max(0.01, min(o, c) - (spread * 0.35))
+
+                            prev_close = c
+                            v = float(p.volume if p.volume is not None and p.volume > 0 else 250000)
+
                             candles.append({
                                 "time": dt_str,
-                                "open": o,
-                                "high": h,
-                                "low": l,
-                                "close": c,
+                                "open": round(o, 2),
+                                "high": round(h, 2),
+                                "low": round(l, 2),
+                                "close": round(c, 2),
                             })
                             volumes.append({
                                 "time": dt_str,
                                 "value": v,
                                 "color": "rgba(8, 153, 129, 0.4)" if c >= o else "rgba(242, 54, 69, 0.4)",
                             })
-                        # TradingView kesinlikle artan tarih sıralaması ister
-                        candles.sort(key=lambda x: x["time"])
-                        volumes.sort(key=lambda x: x["time"])
+
                         data_found = True
                         logger.info("SQLite'tan %s icin %d adet mum verisi yuklendi.", ticker, len(candles))
             except Exception as exc:

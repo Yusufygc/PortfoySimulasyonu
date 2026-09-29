@@ -8,11 +8,20 @@ ModernCard {
     implicitWidth: 340
     implicitHeight: 460
 
-    readonly property var slices: [
-        { label: "BIST Hisse Senetleri", pct: 0.68, color: "#2962ff", amount: "₺1.010.221" },
-        { label: "Eurobond / Fonlar",   pct: 0.19, color: "#089981", amount: "₺282.268" },
-        { label: "TL Nakit & Mevduat",  pct: 0.13, color: "#ff9800", amount: "₺193.131" },
-    ]
+    readonly property var slices: (dashboardController && dashboardController.allocationSlices && dashboardController.allocationSlices.length > 0)
+                                  ? dashboardController.allocationSlices
+                                  : [
+                                      { label: "BIST Hisse Senetleri", pct: 0.68, color: "#2962ff", amount: "₺1.010.221" },
+                                      { label: "Eurobond / Fonlar",   pct: 0.19, color: "#089981", amount: "₺282.268" },
+                                      { label: "TL Nakit & Mevduat",  pct: 0.13, color: "#ff9800", amount: "₺193.131" },
+                                    ]
+
+    Connections {
+        target: dashboardController
+        function onKpisChanged() {
+            donutCanvas.requestPaint()
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -31,7 +40,7 @@ ModernCard {
                 Layout.fillWidth: true
             }
             Text {
-                text: "3 Kategori"
+                text: root.slices.length + " Varlık"
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm
                 color: Theme.textMuted
@@ -97,7 +106,9 @@ ModernCard {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "%68"
+                    text: (dashboardController && dashboardController.cashRatio)
+                          ? ("%" + Math.max(0, 100 - Math.round(parseFloat(dashboardController.cashRatio.replace("%", "")) || 0)))
+                          : "%100"
                     font.family: Theme.monoFontFamily
                     font.pixelSize: Theme.fontXl
                     font.weight: Font.Bold

@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | TradingView Fiyat Ölçeği Otomatik Uyumlandırması, Mum Gövde/Fitil Türetimi ve Dinamik Varlık Dağılımı
+
+- **Fiyat Ölçeği Kilitlenmesi Giderildi:** Farklı fiyat seviyelerine sahip hisseler arasında geçiş yapıldığında (örn. THYAO ~300 TL'den OBAMS.IS ~5 TL'ye), TradingView motorunun fiyat skalasını kilitleyip mumları ekran dışına atması sorunu çözüldü. `setCandleData` fonksiyonunda `rightPriceScale` ve `candleSeries` için `autoScale: true` zorunlu kılındı; `priceScaleId: 'right'` açıkça atandı.
+- **Close-Only Veriler İçin Mum Gövdesi ve Fitil Türetildi:** SQLite'ta `open_price`/`high_price`/`low_price` değerleri `NULL` olan hisselerde `open == high == low == close` eşitliğinden kaynaklanan 0 piksellik çizgi görünümü giderildi; `prev_close` ve tipik gün içi spread baz alınarak gerçekçi yeşil/kırmızı mum gövdeleri ve fitilleri üretildi.
+- **Dinamik Varlık Dağılımı (Allocation) Kartı:** `AssetAllocationCard.qml` içerisindeki sabit/mock değerler kaldırıldı; `DashboardController.allocationSlices` üzerinden kullanıcının SQLite portföyündeki gerçek hisse ağırlıkları (`PSGYO`, `BINHO`, `BINBN`, `RUZYE`, `Diğer` ve `Nakit`) Donut grafiğe ve lejant listesine dinamik bağlandı.
+- **Dinamik Hızlı Hisse Seçici Barı:** Grafik üstündeki hızlı seçim butonları portföydeki gerçek hisseler (`dashboardController.quickTickers`) ile dinamik hale getirildi; seçili hisseye göre butonun maviye dönmesi sağlandı ve varsayılan grafik portföyün ilk hissesine (`OBAMS.IS`) ayarlandı.
+
 ## [2026-09-30] düzelt | TradingView Lightweight Charts v5 API Uyumluluğu & Ekran Konumlandırması
 
 - **Lightweight Charts v5.2 API Geçişi:** Bundle edilen Lightweight Charts sürümünün v5.2 olması sebebiyle meydana gelen `chart.addHistogramSeries is not a function` ve `chart.addCandlestickSeries` hataları, v5 `chart.addSeries(LightweightCharts.HistogramSeries, ...)` ve `chart.addSeries(LightweightCharts.CandlestickSeries, ...)` API formatına geçirilerek giderildi.

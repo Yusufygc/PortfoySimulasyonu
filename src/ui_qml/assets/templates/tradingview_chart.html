@@ -171,6 +171,7 @@
         borderVisible: false,
         wickUpColor: '#089981',
         wickDownColor: '#f23645',
+        priceScaleId: 'right',
       };
       if (typeof chart.addSeries === 'function' && LightweightCharts.CandlestickSeries) {
         candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, candleOptions);
@@ -180,7 +181,7 @@
 
       // Crosshair move handler
       chart.subscribeCrosshairMove(param => {
-        if (!param || !param.time || !param.seriesData.has(candleSeries)) {
+        if (!param || !param.time || !param.seriesData || !param.seriesData.has(candleSeries)) {
           return;
         }
         const data = param.seriesData.get(candleSeries);
@@ -191,7 +192,7 @@
           elClose.innerText = data.close.toFixed(2);
           
           const diff = data.close - data.open;
-          const pct = ((diff / data.open) * 100).toFixed(2);
+          const pct = data.open > 0 ? ((diff / data.open) * 100).toFixed(2) : "0.00";
           const sign = diff >= 0 ? '+' : '';
           elChange.innerText = `${sign}${pct}%`;
           elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
@@ -213,20 +214,45 @@
         initChart(elTicker ? elTicker.innerText : "BIST", true);
       }
       if (!chart || !candleSeries) return;
-      candleSeries.setData(candleList);
-      if (volumeSeries && volumeList.length > 0) {
-        volumeSeries.setData(volumeList);
+
+      // 1. Önceki sembolden kalan ölçek kilitlerini kaldır ve autoscale'i zorla
+      try {
+        if (typeof chart.priceScale === 'function') {
+          chart.priceScale('right').applyOptions({ autoScale: true });
+        }
+      } catch (e) {}
+
+      try {
+        if (candleSeries && typeof candleSeries.priceScale === 'function') {
+          candleSeries.priceScale().applyOptions({ autoScale: true });
+        }
+      } catch (e) {}
+
+      // 2. Mum verisini uygula
+      candleSeries.setData(candleList || []);
+
+      // 3. Hacim verisini uygula
+      if (volumeSeries) {
+        volumeSeries.setData(volumeList || []);
+        try {
+          volumeSeries.priceScale().applyOptions({
+            autoScale: true,
+            scaleMargins: { top: 0.8, bottom: 0 },
+          });
+        } catch (e) {}
       }
+
+      // 4. Zaman ve fiyat eksenlerini içeriğe oturt
       chart.timeScale().fitContent();
 
-      if (candleList.length > 0) {
+      if (candleList && candleList.length > 0) {
         const last = candleList[candleList.length - 1];
         elOpen.innerText = last.open.toFixed(2);
         elHigh.innerText = last.high.toFixed(2);
         elLow.innerText = last.low.toFixed(2);
         elClose.innerText = last.close.toFixed(2);
         const diff = last.close - last.open;
-        const pct = ((diff / last.open) * 100).toFixed(2);
+        const pct = last.open > 0 ? ((diff / last.open) * 100).toFixed(2) : "0.00";
         const sign = diff >= 0 ? '+' : '';
         elChange.innerText = `${sign}${pct}%`;
         elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');

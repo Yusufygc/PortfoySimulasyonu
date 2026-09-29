@@ -146,12 +146,14 @@ Item {
                             Item { Layout.fillWidth: true }
 
                             Repeater {
-                                model: ["THYAO", "GARAN", "ASELS", "KCHOL", "TUPRS"]
+                                model: dashboardController ? dashboardController.quickTickers : ["THYAO", "GARAN", "ASELS", "KCHOL"]
                                 ModernButton {
                                     text: modelData
-                                    variant: chartView.ticker === modelData ? "primary" : "ghost"
+                                    variant: (chartView.ticker === modelData || (chartController && chartController.currentTicker === modelData)) ? "primary" : "ghost"
                                     implicitHeight: 26
-                                    onClicked: chartView.loadStock(modelData)
+                                    onClicked: {
+                                        chartView.loadStock(modelData)
+                                    }
                                 }
                             }
                         }
@@ -161,7 +163,7 @@ Item {
                             id: chartView
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            ticker: "THYAO"
+                            ticker: chartController ? chartController.currentTicker : "OBAMS.IS"
                         }
                     }
                 }

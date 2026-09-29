@@ -121,6 +121,60 @@ class DashboardController(QObject):
     def isRefreshing(self) -> bool:
         return self._is_refreshing
 
+    @Property(list, notify=kpisChanged)
+    def quickTickers(self) -> List[str]:
+        """Grafik üst çubuğu için portföy hisseleri ve popüler semboller."""
+        portfolio_tickers = [p["ticker"] for p in self._positions_model._positions][:5]
+        defaults = ["THYAO", "GARAN", "ASELS", "KCHOL"]
+        res = list(portfolio_tickers)
+        for d in defaults:
+            if d not in res and len(res) < 6:
+                res.append(d)
+        return res or defaults
+
+    @Property(list, notify=kpisChanged)
+    def allocationSlices(self) -> List[Dict[str, Any]]:
+        """Portföyün gerçek varlık ve hisse ağırlık dağılım dilimlerini döner."""
+        slices = []
+        palette = ["#2962ff", "#089981", "#ff9800", "#e91e63", "#9c27b0", "#00bcd4", "#ff5722"]
+
+        positions = self._positions_model._positions
+        if positions:
+            sorted_pos = sorted(positions, key=lambda x: x.get("marketValue", 0.0), reverse=True)
+            top_4 = sorted_pos[:4]
+            other = sorted_pos[4:]
+
+            for i, p in enumerate(top_4):
+                pct = (p.get("weight", 0.0)) / 100.0
+                slices.append({
+                    "label": p["ticker"],
+                    "pct": float(round(pct, 4)),
+                    "color": palette[i % len(palette)],
+                    "amount": f"₺{p.get('marketValue', 0.0):,.0f}",
+                })
+
+            if other:
+                other_val = sum(p.get("marketValue", 0.0) for p in other)
+                other_pct = (other_val / float(self._total_value)) if self._total_value > 0 else 0.0
+                slices.append({
+                    "label": f"Diğer ({len(other)} Hisse)",
+                    "pct": float(round(other_pct, 4)),
+                    "color": "#787b86",
+                    "amount": f"₺{other_val:,.0f}",
+                })
+
+        # Nakit varsa dilime ekle
+        if self._capital > 0 and self._total_value > 0:
+            cash_pct = float(self._capital / self._total_value)
+            slices.append({
+                "label": "Nakit Bakiye",
+                "pct": float(round(cash_pct, 4)),
+                "color": "#ff9800",
+                "amount": f"₺{self._capital:,.0f}",
+            })
+
+        return slices
+
     # --- Veri Yükleme ve Hesaplama ---
 
     def _load_portfolio_data(self) -> None:
