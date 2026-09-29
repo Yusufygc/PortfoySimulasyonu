@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] özellik | MySQL'den SQLite'a Tam Geçiş & Yedek Senkronizasyonu
+
+- Masaüstündeki MySQL yedekleri (`portfoysim.sql` vb.) `backups/mysql/` dizinine güvenle kopyalandı.
+- `.env` yapılandırması `DB_ENGINE=sqlite` ve `DB_SQLITE_PATH=data/portfolio.db` olarak güncellendi.
+- `scripts/sync_mysql_backup_to_sqlite.py` script'i ile MySQL dump'ındaki en son veriler (362.158 günlük fiyat, KAP ortaklık ve hisse kayıtları) `data/portfolio.db` içerisine başarıyla aktarıldı.
+- `AppContainer`, repository ve servis katmanları SQLite ile test edildi; sistem MySQL servis bağımlılığından tamamen kurtarıldı.
+- Hem klasik Qt Widgets hem de yeni QML arayüzü doğrudan SQLite üzerinden sıfır konfigürasyonla çalışır hale getirildi.
+
+Etkilenen modüller: `.env`, `data/portfolio.db`, `scripts/`, `docs/wiki/log.md`
+
 ## [2026-09-30] özellik | Faz 2 — QML Dashboard, Açık Pozisyonlar Tablosu, Canlı Fiyat & İşlem Modalları
 
 - QML için `PositionsTableModel` list/table modeli yazıldı; anlık fiyat değişimlerinde yeşil/kırmızı tick yanıp sönme (flash) animasyonu eklendi.
