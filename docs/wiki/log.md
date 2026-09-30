@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] refaktör | Bulgu 6: QML Controller Doğrudan Repository Katman İhlalleri Application Servislerine Bağlandı
+
+- `ARCHITECTURE_GATES.md §6` ("UI katmanı asla doğrudan Repository çağırmaz; tüm veri erişimleri Application servisleri üzerinden gerçekleşmelidir") kuralı sağlandı.
+- `Stock360Service` bünyesine Application facade metodları (`get_all_stocks`, `get_stock_by_ticker`, `get_price_series`) eklendi.
+- `ChartController` ve `Stock360Controller` içindeki doğrudan `stock_repo` ve `price_repo` çağrıları temizlenerek `Stock360Service` ve `PortfolioService` servis katmanlarına devredildi.
+- Etkilenen modüller: src/application/services/analysis/stock_360_service.py, src/ui_qml/controllers/chart_controller.py, src/ui_qml/controllers/stock_360_controller.py, docs/wiki/log.md
+
 ## [2026-09-30] refaktör | Bulgu 7: ChartController Teknik İndikatör ve Cross Hesaplamaları DRY Standardına Bağlandı
 
 - `ChartController` bünyesinde elle yazılan ve kod tekrarına (DRY ihlali) yol açan Golden/Death Cross tespit döngüsü, `src/application/services/analysis/technical/golden_cross.py` içindeki `detect_crosses` motoruna delege edildi.

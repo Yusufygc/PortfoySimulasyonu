@@ -216,3 +216,19 @@ class Stock360Service:
         start = today - timedelta(days=_OVERVIEW_LOOKBACK_DAYS)
         rows = self._price_repo.get_price_series(stock.id, start, today)
         return sorted(rows, key=lambda r: r.price_date)
+
+    # ------------------------------------------------------------------
+    # Application Facade (UI Katman İzolasyonu - ARCHITECTURE_GATES §6)
+    # ------------------------------------------------------------------
+
+    def get_all_stocks(self) -> List[Any]:
+        """Kayıtlı tüm hisseleri döner (UI Controller doğrudan repo çağırmaz)."""
+        return self._stock_repo.get_all_stocks()
+
+    def get_stock_by_ticker(self, ticker: str) -> Optional[Any]:
+        """Ticker ile hisse nesnesini döner."""
+        return self._stock_repo.get_stock_by_ticker(ticker.strip().upper())
+
+    def get_price_series(self, stock_id: int, start_date: date, end_date: date) -> List[DailyPrice]:
+        """Hisse için tarih aralığındaki fiyat serisini döner."""
+        return self._price_repo.get_price_series(stock_id, start_date, end_date)

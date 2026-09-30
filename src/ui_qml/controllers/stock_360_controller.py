@@ -624,10 +624,19 @@ class Stock360Controller(QObject):
     def _load_available_stocks(self) -> None:
         """Kullanıcının portföyündeki veya DB'de en çok fiyatı olan hisseleri listeler."""
         candidates = ["BIMAS", "ADEL", "AKCNS", "ALBRK", "AYGAZ", "BRSAN", "CLEBI", "THYAO", "ASELS", "KCHOL"]
-        if self._container and hasattr(self._container, "repositories") and hasattr(self._container.repositories, "stock_repo"):
+        if self._container:
             try:
-                stocks = self._container.repositories.stock_repo.get_all_stocks()
-                tickers = [s.ticker.replace(".IS", "") for s in stocks if s.ticker]
+                stocks = []
+                s360_service = getattr(self._container, "stock_360_service", None)
+                if not s360_service and hasattr(self._container, "services"):
+                    s360_service = getattr(self._container.services, "stock_360_service", None)
+
+                if s360_service and hasattr(s360_service, "get_all_stocks"):
+                    stocks = s360_service.get_all_stocks()
+                elif hasattr(self._container, "repositories") and hasattr(self._container.repositories, "stock_repo"):
+                    stocks = self._container.repositories.stock_repo.get_all_stocks()
+
+                tickers = [s.ticker.replace(".IS", "") for s in stocks if getattr(s, "ticker", None)]
                 if tickers:
                     # En popülerleri öne al
                     sorted_tickers = []

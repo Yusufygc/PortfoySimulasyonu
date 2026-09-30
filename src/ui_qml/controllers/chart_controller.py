@@ -44,14 +44,29 @@ class ChartController(QObject):
         self._is_positive: bool = True
 
         # Eğer portföyde hisseler varsa ilk hisseyi varsayılan grafik yap
-        if self._container and hasattr(self._container, "portfolio_service") and hasattr(self._container, "stock_repo"):
+        if self._container:
             try:
-                port = self._container.portfolio_service.get_current_portfolio()
-                if port and port.active_positions:
-                    first_sid = next(iter(port.active_positions.keys()))
-                    stock = self._container.stock_repo.get_stock_by_id(first_sid)
-                    if stock and stock.ticker:
-                        self._current_ticker = stock.ticker
+                port_service = getattr(self._container, "portfolio_service", None)
+                if not port_service and hasattr(self._container, "services"):
+                    port_service = getattr(self._container.services, "portfolio_service", None)
+
+                s360 = getattr(self._container, "stock_360_service", None)
+                if not s360 and hasattr(self._container, "services"):
+                    s360 = getattr(self._container.services, "stock_360_service", None)
+
+                if port_service:
+                    port = port_service.get_current_portfolio()
+                    if port and port.active_positions:
+                        first_sid = next(iter(port.active_positions.keys()))
+                        if s360 and hasattr(s360, "get_all_stocks"):
+                            for s in s360.get_all_stocks():
+                                if s.id == first_sid and s.ticker:
+                                    self._current_ticker = s.ticker
+                                    break
+                        elif hasattr(self._container, "stock_repo"):
+                            stock = self._container.stock_repo.get_stock_by_id(first_sid)
+                            if stock and stock.ticker:
+                                self._current_ticker = stock.ticker
             except Exception as exc:
                 logger.debug("Varsayılan grafik hissesi belirlenemedi: %s", exc)
 
@@ -160,13 +175,20 @@ class ChartController(QObject):
         raw_volumes: list[dict[str, Any]] = []
         company_name = ticker
 
-        # 1. Veritabanından Fiyat Çek
+        # 1. Veritabanından Fiyat Çek (Önce Application servisi üzerinden)
         data_found = False
-        if self._container and hasattr(self._container, "stock_repo") and hasattr(self._container, "price_repo"):
+        if self._container:
             try:
+                s360 = getattr(self._container, "stock_360_service", None)
+                if not s360 and hasattr(self._container, "services"):
+                    s360 = getattr(self._container.services, "stock_360_service", None)
+
                 stock = None
                 for candidate in [ticker, f"{ticker}.IS", ticker.replace(".IS", "")]:
-                    stock = self._container.stock_repo.get_stock_by_ticker(candidate)
+                    if s360 and hasattr(s360, "get_stock_by_ticker"):
+                        stock = s360.get_stock_by_ticker(candidate)
+                    elif hasattr(self._container, "stock_repo"):
+                        stock = self._container.stock_repo.get_stock_by_ticker(candidate)
                     if stock:
                         break
 
@@ -174,7 +196,12 @@ class ChartController(QObject):
                     company_name = getattr(stock, "name", None) or stock.ticker
                     start_date = datetime.now().date() - timedelta(days=365 * 3)  # 3 yıllık veri
                     end_date = datetime.now().date()
-                    prices = self._container.price_repo.get_price_series(stock.id, start_date, end_date)
+                    prices = []
+                    if s360 and hasattr(s360, "get_price_series"):
+                        prices = s360.get_price_series(stock.id, start_date, end_date)
+                    elif hasattr(self._container, "price_repo"):
+                        prices = self._container.price_repo.get_price_series(stock.id, start_date, end_date)
+
                     if prices:
                         sorted_prices = sorted(prices, key=lambda x: x.price_date)
                         prev_close = None
