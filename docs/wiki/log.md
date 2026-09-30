@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] yeni-sayfa | QML Dönüşümü Handoff & Devam Kılavuzu (QML_TRANSFORMATION_HANDOFF.md)
+
+- Başka bir sohbet veya yeni bir ajanla çalışmaya devam edilebilmesi amacıyla kapsamlı el devir belgesi oluşturuldu.
+- Belge; projenin amacı ve QML dönüşüm vizyonunu, bağlayıcı UI/UX ve sistem kurallarını (`RULES.md`: emoji yasağı, Icons.qml, Strings.qml, taşmasız düzen), tamamlanan Faz 0, 2, 3, 4 detaylarını, `Main.qml` sayfa indekslerini ve Faz 5'ten Faz 11'e kadar tüm kalan aşamaların yol haritasını içermektedir.
+- Bağlantılı sayfa: [QML_TRANSFORMATION_HANDOFF.md](../../QML_TRANSFORMATION_HANDOFF.md)
+
 ## [2026-09-30] özellik | Faz 4 — Çoklu Takip Listeleri (Watchlist), Mini Sparkline Trendleri ve Hisse Yönetimi
 
 - **Çoklu Takip Listesi Mimarisi (`WatchlistController` & `WatchlistTableModel`):**
