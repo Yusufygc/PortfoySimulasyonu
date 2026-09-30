@@ -79,6 +79,10 @@ class SQLAlchemyStockRepository(IStockRepository):
     def insert_stock(self, stock: Stock) -> Stock:
         with self._provider.get_session() as session:
             orm_obj = self._to_orm(stock)
+            if orm_obj.id is None:
+                from sqlalchemy import func
+                max_id = session.query(func.max(ORMStock.id)).scalar() or 0
+                orm_obj.id = max_id + 1
             session.add(orm_obj)
             commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain(orm_obj)

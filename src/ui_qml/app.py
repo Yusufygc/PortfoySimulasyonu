@@ -18,6 +18,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from src.ui_qml.controllers.shell_controller import ShellController
 from src.ui_qml.controllers.chart_controller import ChartController
 from src.ui_qml.controllers.dashboard_controller import DashboardController
+from src.ui_qml.controllers.watchlist_controller import WatchlistController
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +52,14 @@ def run_qml_app(container=None) -> int:
     shell_ctrl = ShellController(container=container, parent=engine)
     chart_ctrl = ChartController(container=container, parent=engine)
     dash_ctrl = DashboardController(container=container, parent=engine)
+    watchlist_ctrl = WatchlistController(container=container, parent=engine)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
     context.setContextProperty("shellController", shell_ctrl)
     context.setContextProperty("chartController", chart_ctrl)
     context.setContextProperty("dashboardController", dash_ctrl)
+    context.setContextProperty("watchlistController", watchlist_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"

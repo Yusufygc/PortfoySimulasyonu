@@ -5,6 +5,29 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] özellik | Faz 4 — Çoklu Takip Listeleri (Watchlist), Mini Sparkline Trendleri ve Hisse Yönetimi
+
+- **Çoklu Takip Listesi Mimarisi (`WatchlistController` & `WatchlistTableModel`):**
+  - Kullanıcının SQLite veritabanında saklanan mevcut takip listeleri ("Spek hisseler", "indikatör grubu", "Uzun Vadeli") ve hisse notları QML tarafına tam reaktif bağlandı.
+  - CRUD yetenekleri: Liste oluşturma, isim/açıklama güncelleme, liste silme, hisse ekleme, hisse notu güncelleme ve listeden hisse çıkarma işlemleri Python slotları ve QML bağlantılarıyla tamamlandı.
+  - SQLite auto-increment uyumluluğu: `stocks` ve `watchlist_items` tablolarında `BIGINT PRIMARY KEY` için SQLite uyumlu dinamik ID üretimi sağlandı.
+- **7 Günlük Mini Sparkline Trend Bileşeni (`MiniSparkline.qml`):**
+  - QML `Canvas` üzerinde anti-aliased çizim ve dikey degrade dolgu (bullGreen / bearRed) ile TradingView tarzı ultra hafif mini trend grafiği geliştirildi.
+  - Veritabanındaki geçmiş kapanış fiyatları dinamik normalize edilerek tablo satırlarına gömüldü.
+- **Gün İçi Aralık Göstergesi (Day Range Bar):**
+  - Günün en düşük (Low) ve en yüksek (High) fiyatları arasında mevcut fiyatın yüzdelik konumunu dinamik gösteren kapsül progress bar eklendi.
+- **Modallar ve Etkileşimler:**
+  - `AddStockModal.qml`: Hisse sembolü ve kişisel strateji notu girişi.
+  - `ManageWatchlistModal.qml`: Yeni liste oluşturma ve mevcut listeyi düzenleme.
+  - `EditStockNoteModal.qml`: Hisseye özel hedef fiyat ve not düzenleme.
+  - Tek tıkla TradingView grafiğine aktarma ("Grafik" butonu) ve Dashboard hızlı işlem modalına ("İşlem" butonu) geçiş desteği.
+- **Tasarım ve Kural Uyumu (`RULES.md`):**
+  - Sıfır emoji politikası eksiksiz uygulandı; tüm ikonlar `Icons.qml` ve `ModernIcon` üzerinden SVG ile sağlandı.
+  - Tüm kullanıcı arayüzü metinleri `Strings.qml` içine taşındı.
+- **Test Kapsamı:** `tests/ui_qml/test_watchlist_phase4.py` geliştirilerek controller, model rolleri, CRUD döngüsü ve QML Main.qml rendering test edildi (15/15 test %100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `src/infrastructure/db/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
 ## [2026-09-30] düzelt | Merkezi SVG İkon ve String Mimarisi, Emoji Temizliği ve Buton Taşmalarının Giderilmesi
 
 - **Katı Emoji Yasağı (Strict No-Emoji Policy):** Windows masaüstünde yazıtipi uyumsuzluğuna, dikey hizalama problemlerine ve gayriciddi görünüme yol açan tüm Unicode emojiler (🚀, 💰, 📈, 🔄, ⚠️, ✕ vb.) arayüzden ve kod tabanından tamamen kaldırıldı (`RULES.md` Madde 2.1).

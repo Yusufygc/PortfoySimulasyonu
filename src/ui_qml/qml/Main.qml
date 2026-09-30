@@ -64,11 +64,9 @@ ApplicationWindow {
                         id: dashboardView
                     }
 
-                    // 1: Watchlist (Faz 4)
-                    PlaceholderView {
-                        title: Strings.navWatchlist + " (Watchlist)"
-                        subtitle: "Faz 4 kapsamında çoklu liste sekmeleri, anlık fiyat alarmları ve mini sparkline grafikleri inşa edilecektir."
-                        iconName: "watchlist"
+                    // 1: Watchlist (Faz 4 - Canlı Çoklu Liste & Sparkline)
+                    WatchlistView {
+                        id: watchlistView
                     }
 
                     // 2: Model Portföyler (Faz 6)
