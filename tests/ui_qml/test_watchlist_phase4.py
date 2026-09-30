@@ -140,3 +140,47 @@ def test_watchlist_qml_rendering(qapp, container):
     # Watchlist sayfasına geçiş (Index: 1)
     shell_ctrl.navigateTo(1)
     assert shell_ctrl.activePage == 1
+
+
+def test_chart_controller_load_stock_alias(qapp, container):
+    """loadStock slotunun loadTicker ile aynı şekilde çalıştığını doğrula."""
+    chart_ctrl = ChartController(container)
+    assert hasattr(chart_ctrl, "loadStock")
+    chart_ctrl.loadStock("ASELS")
+    assert chart_ctrl.currentTicker == "ASELS"
+
+
+def test_modern_icon_color_overlay_rendering(qapp):
+    """ModernIcon bileşeninin Qt5Compat.GraphicalEffects ile hatasız yüklendiğini doğrula."""
+    engine = QQmlApplicationEngine()
+    qml_dir = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
+    engine.addImportPath(str(qml_dir))
+
+    from PySide6.QtQml import QQmlComponent
+    comp = QQmlComponent(engine)
+    qml_str = """
+    import QtQuick
+    import Qt5Compat.GraphicalEffects
+    import "src/ui_qml/qml/components"
+    import "src/ui_qml/qml/theme"
+
+    Item {
+        width: 100
+        height: 100
+        ModernIcon {
+            name: "pencil"
+            size: 16
+            color: Theme.accent
+        }
+        ModernIcon {
+            name: "trash-2"
+            size: 16
+            color: Theme.bearRed
+        }
+    }
+    """
+    comp.setData(qml_str.encode("utf-8"), QUrl.fromLocalFile(str(Path.cwd() / "dummy.qml")))
+    assert not comp.errors(), f"ModernIcon QML hataları: {comp.errors()}"
+    obj = comp.create()
+    assert obj is not None
+

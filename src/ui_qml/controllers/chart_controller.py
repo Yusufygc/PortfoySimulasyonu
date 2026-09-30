@@ -108,6 +108,11 @@ class ChartController(QObject):
         self._fetch_and_emit_chart_data(ticker)
 
     @Slot(str)
+    def loadStock(self, ticker: str) -> None:
+        """loadTicker için uyumluluk takma adı (alias)."""
+        self.loadTicker(ticker)
+
+    @Slot(str)
     def setTimeframe(self, tf: str) -> None:
         tf = tf.strip().upper()
         if tf not in ["1D", "1W", "1M"] or tf == self._current_timeframe:

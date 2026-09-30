@@ -33,7 +33,7 @@ QtObject {
     readonly property string btnRefresh: "Fiyatları Yenile"
     readonly property string btnRefreshing: "Yenileniyor..."
     readonly property string btnCapital: "Sermaye Yönetimi"
-    readonly property string btnQuickTrade: "+ Hızlı Alım / Satım"
+    readonly property string btnQuickTrade: "Hızlı Alım / Satım"
 
     // --- KPI Kartları ---
     readonly property string kpiTotalValue: "Toplam Portföy Değeri"
@@ -111,8 +111,8 @@ QtObject {
     // --- İzleme Listeleri (Watchlist - Faz 4) ---
     readonly property string watchlistTitle: "İzleme Listelerim (Watchlist)"
     readonly property string watchlistSubtitle: "Kişiselleştirilmiş hisse takip portföyleri, canlı fiyat hareketleri ve mini trend analizleri"
-    readonly property string btnNewWatchlist: "+ Yeni Liste"
-    readonly property string btnAddStockToWatchlist: "+ Hisse Ekle"
+    readonly property string btnNewWatchlist: "Yeni Liste"
+    readonly property string btnAddStockToWatchlist: "Hisse Ekle"
     readonly property string btnEditWatchlist: "Listeyi Düzenle"
     readonly property string btnDeleteWatchlist: "Listeyi Sil"
     readonly property string watchlistMyLists: "TAKİP LİSTELERİM"
@@ -127,7 +127,7 @@ QtObject {
     readonly property string labelListDesc: "Açıklama (Opsiyonel)"
     readonly property string labelStockNotes: "Hisseye Dair Notunuz (Strateji / Hedef Fiyat)"
     readonly property string emptyWatchlistTitle: "Bu listede henüz hisse bulunmuyor"
-    readonly property string emptyWatchlistSubtitle: "Yukarıdaki '+ Hisse Ekle' butonuna tıklayarak istediğiniz BIST hissesini listenize ekleyebilirsiniz."
+    readonly property string emptyWatchlistSubtitle: "Yukarıdaki '+' butonuna tıklayarak istediğiniz BIST hissesini listenize ekleyebilirsiniz."
     readonly property string kpiActiveList: "Aktif Liste"
     readonly property string kpiGainersLosers: "Yükselen / Düşen"
     readonly property string kpiAvgChange: "Ortalama Değişim"

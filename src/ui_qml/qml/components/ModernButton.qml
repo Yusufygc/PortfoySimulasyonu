@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import "../theme"
 
 Rectangle {
@@ -8,6 +9,7 @@ Rectangle {
     property string iconName: ""
     property string iconSymbol: ""
     property string variant: "primary" // "primary", "secondary", "ghost", "danger"
+    property string tooltip: ""
     signal clicked()
 
     readonly property color contentColor: {
@@ -83,5 +85,12 @@ Rectangle {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: root.clicked()
+    }
+
+    ToolTip {
+        visible: root.tooltip !== "" && mouseArea.containsMouse
+        text: root.tooltip
+        delay: 350
+        timeout: 4000
     }
 }

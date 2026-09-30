@@ -5,6 +5,22 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | İzleme Listesi Aksiyon Butonları, İkon Tema Renklendirmesi ve Sade Ekle Butonları
+
+- **İzleme Listesi Aksiyon Butonları Tıklama Hiyerarşisi (`WatchlistView.qml`):**
+  - Sol takip listesi delegatında (`wlRow`) ve sağ hisse tablosu delegatında (`stockRow`) satırı saran ana `MouseArea`'ların en arkada kalması (`z: 0`) sağlandı.
+  - Aksiyon butonları (`RowLayout` z: 1, aksiyonlar z: 2) ön plana taşınarak; liste düzenleme (kalem), liste silme (çöp kutusu), hisse notu düzenleme (kalem), listeden çıkarma (çöp kutusu), TradingView'a aktarma ("Grafik") ve hızlı alım/satım ("İşlem") butonlarının tıklanabilirliği eksiksiz sağlandı.
+  - `ChartController` bünyesine `@Slot(str) def loadStock` takma adı eklendi ve QML çağrısı `loadTicker` ile senkronize edilerek `TypeError: Property 'loadStock' is not a function` hatası giderildi.
+  - "Grafik" butonuna basıldığında hem hissenin TradingView grafiğine yüklenmesi hem de otomatik olarak Dashboard'a yönlendirilmesi sağlandı (`shellController.navigateTo(0)`).
+  - "İşlem" butonu tıklandığında ilgili hissenin sembol ve fiyatıyla `QuickTradeModal` penceresini açması bağlandı.
+- **ModernIcon Koyu/Açık Tema Renklendirmesi (`ModernIcon.qml`):**
+  - Siyah/monokrom SVG ikonların Qt Quick Effects `MultiEffect` modunda luminance sıfır olduğu için koyu temada siyah kalması sorunu tespit edildi.
+  - `ModernIcon.qml` bileşeni `Qt5Compat.GraphicalEffects.ColorOverlay` motoruna geçirilerek tüm SVG ikonların hem koyu hem de açık temada dinamik olarak hedef renklerine (`Theme.accent`, `Theme.textMuted`, `Theme.bearRed`, `#ffffff` vb.) tam bürünmesi sağlandı.
+- **Ekle Butonlarının Sadeleştirilmesi (Çift Artı ve String Temizliği):**
+  - `Strings.qml` dosyasındaki `btnNewWatchlist`, `btnAddStockToWatchlist` ve `btnQuickTrade` metinlerindeki fazladan `+ ` karakterleri temizlendi.
+  - Kullanıcı talebi doğrultusunda araç çubuğu ve panel başlıklarındaki ekle butonları kompakt, şık ikon-only (`iconName: "plus"`, `tooltip: ...`) formatına getirildi; üzerine gelindiğinde açıklamayı gösteren `ToolTip` desteği `ModernButton.qml` içine entegre edildi.
+- **Test Kapsamı:** `test_watchlist_phase4.py` içine `test_chart_controller_load_stock_alias` ve `test_modern_icon_color_overlay_rendering` birim testleri eklenerek tüm testler %100 yeşil doğrulandı (17/17 test geçti).
+
 ## [2026-09-30] yeni-sayfa | QML Dönüşümü Handoff & Devam Kılavuzu (QML_TRANSFORMATION_HANDOFF.md)
 
 - Başka bir sohbet veya yeni bir ajanla çalışmaya devam edilebilmesi amacıyla kapsamlı el devir belgesi oluşturuldu.

@@ -61,8 +61,8 @@ Item {
 
                 // Yeni Liste Oluştur Butonu
                 ModernButton {
-                    text: Strings.btnNewWatchlist
                     iconName: "plus"
+                    tooltip: Strings.btnNewWatchlist
                     variant: "primary"
                     onClicked: manageModal.openCreate()
                 }
@@ -156,15 +156,27 @@ Item {
                                 radius: Theme.radiusSm
 
                                 readonly property bool isSelected: watchlistController && (modelData.id === watchlistController.currentWatchlistId)
-                                color: isSelected ? Theme.bgCardHover : (wlMouse.containsMouse ? Theme.bgInput : "transparent")
+                                readonly property bool isHovered: wlMouse.containsMouse || editMouse.containsMouse || deleteMouse.containsMouse
+                                color: isSelected ? Theme.bgCardHover : (isHovered ? Theme.bgInput : "transparent")
                                 border.color: isSelected ? Theme.accent : "transparent"
                                 border.width: isSelected ? 1 : 0
+
+                                MouseArea {
+                                    id: wlMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (watchlistController) watchlistController.selectWatchlist(modelData.id)
+                                    }
+                                }
 
                                 RowLayout {
                                     anchors.fill: parent
                                     anchors.leftMargin: 10
                                     anchors.rightMargin: 8
                                     spacing: 8
+                                    z: 1
 
                                     Column {
                                         Layout.fillWidth: true
@@ -208,19 +220,22 @@ Item {
 
                                     // Düzenle İkon Butonu
                                     Item {
-                                        width: 22
-                                        height: 22
-                                        visible: wlMouse.containsMouse || wlRow.isSelected
+                                        width: 24
+                                        height: 24
+                                        visible: wlRow.isHovered || wlRow.isSelected
+                                        z: 2
 
                                         ModernIcon {
                                             name: "pencil"
                                             size: 13
-                                            color: Theme.textMuted
+                                            color: editMouse.containsMouse ? Theme.accent : Theme.textMuted
                                             anchors.centerIn: parent
                                         }
 
                                         MouseArea {
+                                            id: editMouse
                                             anchors.fill: parent
+                                            hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: manageModal.openEdit(modelData.id, modelData.name, modelData.description)
                                         }
@@ -228,34 +243,27 @@ Item {
 
                                     // Sil İkon Butonu
                                     Item {
-                                        width: 22
-                                        height: 22
-                                        visible: wlMouse.containsMouse || wlRow.isSelected
+                                        width: 24
+                                        height: 24
+                                        visible: wlRow.isHovered || wlRow.isSelected
+                                        z: 2
 
                                         ModernIcon {
                                             name: "trash-2"
                                             size: 13
-                                            color: Theme.bearRed
+                                            color: deleteMouse.containsMouse ? "#ff5252" : Theme.bearRed
                                             anchors.centerIn: parent
                                         }
 
                                         MouseArea {
+                                            id: deleteMouse
                                             anchors.fill: parent
+                                            hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
                                                 if (watchlistController) watchlistController.deleteWatchlist(modelData.id)
                                             }
                                         }
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: wlMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (watchlistController) watchlistController.selectWatchlist(modelData.id)
                                     }
                                 }
                             }
@@ -264,8 +272,8 @@ Item {
                         // Alt Yeni Liste Butonu
                         ModernButton {
                             Layout.fillWidth: true
-                            text: Strings.btnNewWatchlist
                             iconName: "plus"
+                            tooltip: Strings.btnNewWatchlist
                             variant: "secondary"
                             onClicked: manageModal.openCreate()
                         }
@@ -306,8 +314,8 @@ Item {
                             }
 
                             ModernButton {
-                                text: Strings.btnAddStockToWatchlist
                                 iconName: "plus"
+                                tooltip: Strings.btnAddStockToWatchlist
                                 variant: "primary"
                                 enabled: watchlistController && (watchlistController.currentWatchlistId > 0)
                                 onClicked: addStockModal.open(watchlistController.currentWatchlistId)
@@ -350,14 +358,26 @@ Item {
                                 width: stocksListView.width
                                 height: 44
                                 radius: Theme.radiusSm
-                                color: stockMouse.containsMouse ? Theme.bgCardHover : "transparent"
+                                color: stockMouse.containsMouse ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgInput)
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
+
+                                MouseArea {
+                                    id: stockMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (chartController) chartController.loadTicker(model.ticker)
+                                        if (shellController) shellController.navigateTo(0)
+                                    }
+                                }
 
                                 RowLayout {
                                     anchors.fill: parent
                                     anchors.leftMargin: 12
                                     anchors.rightMargin: 12
+                                    z: 1
 
                                     // 1. Sembol & Şirket
                                     Column {
@@ -473,6 +493,7 @@ Item {
                                         Layout.preferredWidth: 165
                                         spacing: 4
                                         Layout.alignment: Qt.AlignRight
+                                        z: 2
 
                                         ModernButton {
                                             text: Strings.btnChart
@@ -480,7 +501,7 @@ Item {
                                             implicitHeight: 26
                                             implicitWidth: 55
                                             onClicked: {
-                                                if (chartController) chartController.loadStock(model.ticker)
+                                                if (chartController) chartController.loadTicker(model.ticker)
                                                 if (shellController) shellController.navigateTo(0)
                                             }
                                         }
@@ -491,7 +512,7 @@ Item {
                                             implicitHeight: 26
                                             implicitWidth: 50
                                             onClicked: {
-                                                tradeModal.open(model.ticker, model.priceRaw)
+                                                tradeModal.open(model.cleanTicker || model.ticker, model.priceRaw || 0.0)
                                             }
                                         }
 
@@ -502,11 +523,13 @@ Item {
                                             ModernIcon {
                                                 name: "pencil"
                                                 size: 13
-                                                color: Theme.textMuted
+                                                color: editStockMouse.containsMouse ? Theme.accent : Theme.textMuted
                                                 anchors.centerIn: parent
                                             }
                                             MouseArea {
+                                                id: editStockMouse
                                                 anchors.fill: parent
+                                                hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: editNoteModal.open(watchlistController.currentWatchlistId, model.stockId, model.cleanTicker, model.notes)
                                             }
@@ -519,27 +542,19 @@ Item {
                                             ModernIcon {
                                                 name: "trash-2"
                                                 size: 13
-                                                color: Theme.bearRed
+                                                color: deleteStockMouse.containsMouse ? "#ff5252" : Theme.bearRed
                                                 anchors.centerIn: parent
                                             }
                                             MouseArea {
+                                                id: deleteStockMouse
                                                 anchors.fill: parent
+                                                hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: {
                                                     if (watchlistController) watchlistController.removeStock(watchlistController.currentWatchlistId, model.stockId)
                                                 }
                                             }
                                         }
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: stockMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (chartController) chartController.loadStock(model.ticker)
                                     }
                                 }
                             }
