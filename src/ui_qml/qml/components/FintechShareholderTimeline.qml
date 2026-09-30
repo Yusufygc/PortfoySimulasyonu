@@ -491,7 +491,7 @@ ModernCard {
                                         }
                                     }
 
-                                    // Alt Satır: Önceki ➔ Yeni Pay + Oy Hakkı + Oran Karşılaştırma Çubuğu
+                                    // Alt Satır: Önceki -> Yeni Pay + Oy Hakkı + Oran Karşılaştırma Çubuğu
                                     RowLayout {
                                         Layout.fillWidth: true
                                         spacing: 10
@@ -508,8 +508,8 @@ ModernCard {
                                                 id: ratioTransitionTxt
                                                 anchors.centerIn: parent
                                                 text: (modelData.oldRatio && modelData.newRatio)
-                                                      ? (modelData.oldRatio + "  ➔  " + modelData.newRatio)
-                                                      : ("%" + (modelData.old_pct ? modelData.old_pct.toFixed(2) : "0.00") + "  ➔  %" + (modelData.new_pct ? modelData.new_pct.toFixed(2) : "0.00"))
+                                                      ? (modelData.oldRatio + "  ->  " + modelData.newRatio)
+                                                      : ("%" + (modelData.old_pct ? modelData.old_pct.toFixed(2) : "0.00") + "  ->  %" + (modelData.new_pct ? modelData.new_pct.toFixed(2) : "0.00"))
                                                 font.family: Theme.fontMono
                                                 font.pixelSize: 10
                                                 font.weight: Font.Medium

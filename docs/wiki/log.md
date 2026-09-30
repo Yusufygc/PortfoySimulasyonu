@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 18: FintechShareholderTimeline.qml İçindeki Unicode Ok Karakteri Temizlendi
+
+- `RULES.md §2.1` ve `§2.2` strict no-emoji ve merkezi vektörel ikon politikası uyarınca `FintechShareholderTimeline.qml` dosyasındaki ham Unicode ok karakterleri (`\u2794`) temizlendi ve standart `->` formatına dönüştürüldü.
+- `src/ui_qml` genelinde kalan emoji sayısı 0'a indirildi.
+- Etkilenen modüller: src/ui_qml/qml/components/FintechShareholderTimeline.qml, docs/wiki/log.md
+
 ## [2026-09-30] test | Bulgu 11 & Bulgu 16: İş Yatırım Cache Testi ve Python Sürüm Preflight Guard Düzeltildi
 
 - `tests/infrastructure/market_data/test_isyatirim_provider.py` içindeki `_MINIMAL_RAW` fixture'ına 4 çeyrek veri eklenerek cache hit testi başarılı kılındı (11/11 test yeşil).
