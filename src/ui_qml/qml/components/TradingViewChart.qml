@@ -6,7 +6,7 @@ import "../theme"
 Item {
     id: root
 
-    property string ticker: "BIST100"
+    property string ticker: chartController ? chartController.currentTicker : "THYAO"
     property bool isLoaded: false
 
     signal chartReady()
@@ -29,7 +29,8 @@ Item {
             if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                 root.isLoaded = true
                 root.chartReady()
-                // Initial data load if available
+
+                // İlk veri yükleme ve başlangıç indikatörleri
                 if (chartController) {
                     chartController.loadTicker(root.ticker)
                 }
@@ -54,17 +55,37 @@ Item {
                     try {
                         let data = ${jsonPayload};
                         if (typeof data === "string") data = JSON.parse(data);
-                        setTicker("${tickerName}");
-                        if (data && data.candles && data.candles.length > 0) {
-                            setCandleData(data.candles, data.volumes || []);
-                        }
+                        setCandleData(data);
                     } catch (err) {
                         console.error("[TV Injection Error]:", err);
                     }
                 })();
             `
-            webView.runJavaScript(script)
+            webView.runJavaScript(script, function() {
+                // Aktif indikatörleri senkronize et
+                syncIndicators();
+            })
         }
+
+        function onChartTypeChanged(chartType) {
+            if (!root.isLoaded) return
+            webView.runJavaScript(`setChartType("${chartType}");`);
+        }
+
+        function onIndicatorsChanged() {
+            if (!root.isLoaded) return
+            syncIndicators();
+        }
+    }
+
+    // Aktif indikatörleri HTML motoruna aktarma
+    function syncIndicators() {
+        if (!chartController || !root.isLoaded) return;
+        const allList = ["sma20", "sma50", "sma200", "ema20", "bb", "rsi", "macd", "markers"];
+        allList.forEach(ind => {
+            const active = chartController.isIndicatorActive(ind);
+            webView.runJavaScript(`toggleIndicator("${ind}", ${active});`);
+        });
     }
 
     // Public method to load ticker
@@ -72,6 +93,30 @@ Item {
         root.ticker = newTicker
         if (chartController) {
             chartController.loadTicker(newTicker)
+        }
+    }
+
+    function setTimeframe(tf) {
+        if (chartController) {
+            chartController.setTimeframe(tf)
+        }
+    }
+
+    function setChartType(type) {
+        if (chartController) {
+            chartController.setChartType(type)
+        }
+    }
+
+    function toggleIndicator(ind, enabled) {
+        if (chartController) {
+            chartController.toggleIndicator(ind, enabled)
+        }
+    }
+
+    function fitContent() {
+        if (root.isLoaded) {
+            webView.runJavaScript("fitContent();");
         }
     }
 

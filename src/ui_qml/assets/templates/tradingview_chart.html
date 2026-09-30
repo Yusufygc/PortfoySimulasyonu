@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TradingView Chart</title>
+  <title>TradingView Chart Pro</title>
   <style>
     * {
       box-sizing: border-box;
@@ -25,7 +25,7 @@
     }
     #legend {
       position: absolute;
-      top: 12px;
+      top: 10px;
       left: 14px;
       z-index: 10;
       display: flex;
@@ -33,8 +33,14 @@
       gap: 4px;
       pointer-events: none;
     }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
     .legend-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: #e0e3eb;
       letter-spacing: 0.5px;
@@ -45,6 +51,7 @@
       color: #787b86;
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
     }
     .stat-val {
       font-weight: 600;
@@ -55,28 +62,71 @@
     .val-down {
       color: #f23645;
     }
+    .ind-legend-row {
+      display: flex;
+      gap: 10px;
+      font-size: 11px;
+      font-family: 'Consolas', monospace;
+      font-weight: 600;
+      flex-wrap: wrap;
+    }
+    .tag-sma20 { color: #00e5ff; }
+    .tag-sma50 { color: #ff9800; }
+    .tag-sma200 { color: #b388ff; }
+    .tag-ema20 { color: #00e676; }
+    .tag-bb { color: #2196f3; }
+    .tag-rsi { color: #e040fb; }
+    .tag-macd { color: #2962ff; }
   </style>
   <script src="../js/lightweight-charts.standalone.production.js"></script>
 </head>
 <body>
   <div id="chart-container">
     <div id="legend">
-      <div id="legend-ticker" class="legend-title">PORTFÖY SİMÜLASYONU</div>
-      <div id="legend-ohlc" class="legend-stats">
-        <span>A: <span id="val-open" class="stat-val">-</span></span>
-        <span>Y: <span id="val-high" class="stat-val">-</span></span>
-        <span>D: <span id="val-low" class="stat-val">-</span></span>
-        <span>K: <span id="val-close" class="stat-val">-</span></span>
-        <span>Fark: <span id="val-change" class="stat-val">-</span></span>
+      <div class="legend-row">
+        <div id="legend-ticker" class="legend-title">PORTFÖY SİMÜLASYONU</div>
+        <div id="legend-ohlc" class="legend-stats">
+          <span>A: <span id="val-open" class="stat-val">-</span></span>
+          <span>Y: <span id="val-high" class="stat-val">-</span></span>
+          <span>D: <span id="val-low" class="stat-val">-</span></span>
+          <span>K: <span id="val-close" class="stat-val">-</span></span>
+          <span>Fark: <span id="val-change" class="stat-val">-</span></span>
+          <span>Hacim: <span id="val-vol" class="stat-val">-</span></span>
+        </div>
       </div>
+      <div id="legend-indicators" class="ind-legend-row"></div>
     </div>
   </div>
 
   <script>
     let chart = null;
-    let candleSeries = null;
+    let mainSeries = null;
     let volumeSeries = null;
-    let maSeriesList = [];
+    let currentChartType = "candle"; // 'candle' | 'line' | 'area' | 'bar'
+    let currentIsDark = true;
+    let markersPlugin = null;
+
+    // Aktif Seri Referansları
+    const seriesMap = {
+      sma20: null,
+      sma50: null,
+      sma200: null,
+      ema20: null,
+      bb_upper: null,
+      bb_middle: null,
+      bb_lower: null,
+      rsi: null,
+      macd_line: null,
+      macd_signal: null,
+      macd_hist: null,
+    };
+
+    // Aktif İndikatör Ayarları
+    const activeIndicators = new Set();
+
+    // Veri Önbelleği
+    let cachedData = null;
+
     const container = document.getElementById('chart-container');
     const elTicker = document.getElementById('legend-ticker');
     const elOpen = document.getElementById('val-open');
@@ -84,15 +134,21 @@
     const elLow = document.getElementById('val-low');
     const elClose = document.getElementById('val-close');
     const elChange = document.getElementById('val-change');
+    const elVol = document.getElementById('val-vol');
+    const elIndLegend = document.getElementById('legend-indicators');
 
     function initChart(ticker = "BIST", isDark = true) {
+      currentIsDark = isDark;
       if (chart) {
         chart.remove();
         chart = null;
-        maSeriesList = [];
+        mainSeries = null;
+        volumeSeries = null;
+        markersPlugin = null;
+        Object.keys(seriesMap).forEach(k => { seriesMap[k] = null; });
       }
 
-      elTicker.innerText = ticker;
+      if (elTicker) elTicker.innerText = ticker;
 
       const bgColor = isDark ? '#131722' : '#ffffff';
       const textColor = isDark ? '#d1d4dc' : '#131722';
@@ -118,13 +174,13 @@
             color: '#758696',
             width: 1,
             style: LightweightCharts.LineStyle.Dashed,
-            labelBackgroundColor: '#2a2e39',
+            labelBackgroundColor: isDark ? '#2a2e39' : '#e0e3eb',
           },
           horzLine: {
             color: '#758696',
             width: 1,
             style: LightweightCharts.LineStyle.Dashed,
-            labelBackgroundColor: '#2a2e39',
+            labelBackgroundColor: isDark ? '#2a2e39' : '#e0e3eb',
           },
         },
         rightPriceScale: {
@@ -141,65 +197,26 @@
         },
       });
 
-      // Volume Series (LightweightCharts v5 & v4 compatibility)
-      const volOptions = {
+      // Volume Series (Hacim Çubukları)
+      volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
         color: '#26a69a',
-        priceFormat: {
-          type: 'volume',
-        },
+        priceFormat: { type: 'volume' },
         priceScaleId: '',
-      };
-      if (typeof chart.addSeries === 'function' && LightweightCharts.HistogramSeries) {
-        volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, volOptions);
-      } else if (typeof chart.addHistogramSeries === 'function') {
-        volumeSeries = chart.addHistogramSeries(volOptions);
-      }
+      }, 0);
 
       if (volumeSeries && typeof chart.priceScale === 'function') {
         chart.priceScale('').applyOptions({
-          scaleMargins: {
-            top: 0.8,
-            bottom: 0,
-          },
+          scaleMargins: { top: 0.8, bottom: 0 },
         });
       }
 
-      // Candlestick Series (LightweightCharts v5 & v4 compatibility)
-      const candleOptions = {
-        upColor: '#089981',
-        downColor: '#f23645',
-        borderVisible: false,
-        wickUpColor: '#089981',
-        wickDownColor: '#f23645',
-        priceScaleId: 'right',
-      };
-      if (typeof chart.addSeries === 'function' && LightweightCharts.CandlestickSeries) {
-        candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, candleOptions);
-      } else if (typeof chart.addCandlestickSeries === 'function') {
-        candleSeries = chart.addCandlestickSeries(candleOptions);
-      }
+      // Ana Fiyat Serisini Oluştur
+      createMainPriceSeries(currentChartType);
 
-      // Crosshair move handler
-      chart.subscribeCrosshairMove(param => {
-        if (!param || !param.time || !param.seriesData || !param.seriesData.has(candleSeries)) {
-          return;
-        }
-        const data = param.seriesData.get(candleSeries);
-        if (data) {
-          elOpen.innerText = data.open.toFixed(2);
-          elHigh.innerText = data.high.toFixed(2);
-          elLow.innerText = data.low.toFixed(2);
-          elClose.innerText = data.close.toFixed(2);
-          
-          const diff = data.close - data.open;
-          const pct = data.open > 0 ? ((diff / data.open) * 100).toFixed(2) : "0.00";
-          const sign = diff >= 0 ? '+' : '';
-          elChange.innerText = `${sign}${pct}%`;
-          elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
-        }
-      });
+      // Crosshair Takipçisi
+      setupCrosshairHandler();
 
-      // Resize observer
+      // Resize Observer
       const resizeObserver = new ResizeObserver(entries => {
         if (entries.length > 0 && chart) {
           const { width, height } = entries[0].contentRect;
@@ -207,46 +224,199 @@
         }
       });
       resizeObserver.observe(container);
+
+      // Eğer önbellekte veri varsa yeniden çiz
+      if (cachedData) {
+        renderAll();
+      }
     }
 
-    function setCandleData(candleList, volumeList = []) {
-      if (!chart || !candleSeries) {
-        initChart(elTicker ? elTicker.innerText : "BIST", true);
+    function createMainPriceSeries(type) {
+      if (mainSeries) {
+        chart.removeSeries(mainSeries);
+        mainSeries = null;
+        markersPlugin = null;
       }
-      if (!chart || !candleSeries) return;
+      currentChartType = type;
 
-      // 1. Önceki sembolden kalan ölçek kilitlerini kaldır ve autoscale'i zorla
-      try {
-        if (typeof chart.priceScale === 'function') {
-          chart.priceScale('right').applyOptions({ autoScale: true });
+      if (type === "line") {
+        mainSeries = chart.addSeries(LightweightCharts.LineSeries, {
+          color: '#2962ff',
+          lineWidth: 2,
+          priceScaleId: 'right',
+        }, 0);
+      } else if (type === "area") {
+        mainSeries = chart.addSeries(LightweightCharts.AreaSeries, {
+          lineColor: '#2962ff',
+          topColor: 'rgba(41, 98, 255, 0.45)',
+          bottomColor: 'rgba(41, 98, 255, 0.0)',
+          lineWidth: 2,
+          priceScaleId: 'right',
+        }, 0);
+      } else if (type === "bar") {
+        mainSeries = chart.addSeries(LightweightCharts.BarSeries, {
+          upColor: '#089981',
+          downColor: '#f23645',
+          priceScaleId: 'right',
+        }, 0);
+      } else {
+        // Varsayılan: Candlestick
+        mainSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+          upColor: '#089981',
+          downColor: '#f23645',
+          borderVisible: false,
+          wickUpColor: '#089981',
+          wickDownColor: '#f23645',
+          priceScaleId: 'right',
+        }, 0);
+      }
+    }
+
+    function setupCrosshairHandler() {
+      chart.subscribeCrosshairMove(param => {
+        if (!param || !param.time || !cachedData) {
+          return;
         }
-      } catch (e) {}
 
-      try {
-        if (candleSeries && typeof candleSeries.priceScale === 'function') {
-          candleSeries.priceScale().applyOptions({ autoScale: true });
+        // 1. OHLC Bilgileri
+        if (param.seriesData && mainSeries && param.seriesData.has(mainSeries)) {
+          const data = param.seriesData.get(mainSeries);
+          if (data) {
+            let o, h, l, c;
+            if (data.close !== undefined) {
+              o = data.open !== undefined ? data.open : data.value;
+              h = data.high !== undefined ? data.high : data.value;
+              l = data.low !== undefined ? data.low : data.value;
+              c = data.close !== undefined ? data.close : data.value;
+            } else {
+              o = h = l = c = data.value;
+            }
+            elOpen.innerText = o.toFixed(2);
+            elHigh.innerText = h.toFixed(2);
+            elLow.innerText = l.toFixed(2);
+            elClose.innerText = c.toFixed(2);
+
+            const diff = c - o;
+            const pct = o > 0 ? ((diff / o) * 100).toFixed(2) : "0.00";
+            const sign = diff >= 0 ? '+' : '';
+            elChange.innerText = `${sign}${pct}%`;
+            elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
+          }
         }
-      } catch (e) {}
 
-      // 2. Mum verisini uygula
-      candleSeries.setData(candleList || []);
+        // Hacim
+        if (param.seriesData && volumeSeries && param.seriesData.has(volumeSeries)) {
+          const vData = param.seriesData.get(volumeSeries);
+          if (vData && vData.value !== undefined) {
+            elVol.innerText = (vData.value >= 1e6)
+              ? (vData.value / 1e6).toFixed(2) + "M"
+              : (vData.value / 1e3).toFixed(0) + "K";
+          }
+        }
 
-      // 3. Hacim verisini uygula
-      if (volumeSeries) {
-        volumeSeries.setData(volumeList || []);
+        // 2. Aktif İndikatörlerin Anlık Değerleri
+        updateIndicatorLegend(param);
+      });
+    }
+
+    function updateIndicatorLegend(param) {
+      if (!param || !param.seriesData) return;
+      const fragments = [];
+
+      if (seriesMap.sma20 && param.seriesData.has(seriesMap.sma20)) {
+        const v = param.seriesData.get(seriesMap.sma20);
+        if (v && v.value) fragments.push(`<span class="tag-sma20">SMA20: ${v.value.toFixed(2)}</span>`);
+      }
+      if (seriesMap.sma50 && param.seriesData.has(seriesMap.sma50)) {
+        const v = param.seriesData.get(seriesMap.sma50);
+        if (v && v.value) fragments.push(`<span class="tag-sma50">SMA50: ${v.value.toFixed(2)}</span>`);
+      }
+      if (seriesMap.sma200 && param.seriesData.has(seriesMap.sma200)) {
+        const v = param.seriesData.get(seriesMap.sma200);
+        if (v && v.value) fragments.push(`<span class="tag-sma200">SMA200: ${v.value.toFixed(2)}</span>`);
+      }
+      if (seriesMap.ema20 && param.seriesData.has(seriesMap.ema20)) {
+        const v = param.seriesData.get(seriesMap.ema20);
+        if (v && v.value) fragments.push(`<span class="tag-ema20">EMA20: ${v.value.toFixed(2)}</span>`);
+      }
+      if (seriesMap.rsi && param.seriesData.has(seriesMap.rsi)) {
+        const v = param.seriesData.get(seriesMap.rsi);
+        if (v && v.value) fragments.push(`<span class="tag-rsi">RSI(14): ${v.value.toFixed(2)}</span>`);
+      }
+      if (seriesMap.macd_line && param.seriesData.has(seriesMap.macd_line)) {
+        const m = param.seriesData.get(seriesMap.macd_line);
+        const s = seriesMap.macd_signal && param.seriesData.has(seriesMap.macd_signal) ? param.seriesData.get(seriesMap.macd_signal) : null;
+        if (m && m.value) {
+          const sigStr = s && s.value ? `  S: ${s.value.toFixed(2)}` : '';
+          fragments.push(`<span class="tag-macd">MACD: ${m.value.toFixed(2)}${sigStr}</span>`);
+        }
+      }
+
+      elIndLegend.innerHTML = fragments.join(" | ");
+    }
+
+    // --- Veri Yükleme ve Render ---
+
+    function setCandleData(payload) {
+      if (typeof payload === "string") {
         try {
-          volumeSeries.priceScale().applyOptions({
-            autoScale: true,
-            scaleMargins: { top: 0.8, bottom: 0 },
-          });
-        } catch (e) {}
+          payload = JSON.parse(payload);
+        } catch (e) {
+          console.error("JSON parse hatasi:", e);
+          return;
+        }
+      }
+      cachedData = payload;
+
+      if (payload.ticker && elTicker) {
+        const name = payload.companyName && payload.companyName !== payload.ticker ? ` (${payload.companyName})` : '';
+        elTicker.innerText = `${payload.ticker}${name}`;
       }
 
-      // 4. Zaman ve fiyat eksenlerini içeriğe oturt
+      if (payload.chartType && payload.chartType !== currentChartType) {
+        currentChartType = payload.chartType;
+        createMainPriceSeries(currentChartType);
+      }
+
+      renderAll();
+    }
+
+    function renderAll() {
+      if (!chart || !cachedData) return;
+
+      const candles = cachedData.candles || [];
+      const volumes = cachedData.volumes || [];
+
+      // 1. Ana Fiyat Serisi Verisi
+      if (mainSeries) {
+        if (currentChartType === "line" || currentChartType === "area") {
+          const lineData = candles.map(c => ({ time: c.time, value: c.close }));
+          mainSeries.setData(lineData);
+        } else {
+          mainSeries.setData(candles);
+        }
+      }
+
+      // 2. Hacim Verisi
+      if (volumeSeries) {
+        volumeSeries.setData(volumes);
+      }
+
+      // 3. İndikatörleri Güncelle
+      renderIndicators();
+
+      // 4. Sinyal İşaretçileri (Markers)
+      renderMarkers();
+
+      // 5. Otomatik Ölçek
+      try {
+        chart.priceScale('right').applyOptions({ autoScale: true });
+      } catch (e) {}
       chart.timeScale().fitContent();
 
-      if (candleList && candleList.length > 0) {
-        const last = candleList[candleList.length - 1];
+      // Son mum değerlerini lejanta yaz
+      if (candles.length > 0) {
+        const last = candles[candles.length - 1];
         elOpen.innerText = last.open.toFixed(2);
         elHigh.innerText = last.high.toFixed(2);
         elLow.innerText = last.low.toFixed(2);
@@ -256,37 +426,182 @@
         const sign = diff >= 0 ? '+' : '';
         elChange.innerText = `${sign}${pct}%`;
         elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
+
+        if (volumes.length > 0) {
+          const lastV = volumes[volumes.length - 1].value;
+          elVol.innerText = (lastV >= 1e6) ? (lastV / 1e6).toFixed(2) + "M" : (lastV / 1e3).toFixed(0) + "K";
+        }
       }
     }
 
-    function addSMA(period, color = '#2962FF', data = []) {
-      if (!chart) return;
-      const smaOptions = {
-        color: color,
-        lineWidth: 2,
-        title: `SMA ${period}`,
-      };
-      let smaSeries = null;
-      if (typeof chart.addSeries === 'function' && LightweightCharts.LineSeries) {
-        smaSeries = chart.addSeries(LightweightCharts.LineSeries, smaOptions);
-      } else if (typeof chart.addLineSeries === 'function') {
-        smaSeries = chart.addLineSeries(smaOptions);
-      }
-      if (smaSeries) {
-        if (data.length > 0) {
-          smaSeries.setData(data);
+    function renderIndicators() {
+      if (!chart || !cachedData) return;
+
+      // SMA 20
+      toggleOverlayLine('sma20', cachedData.sma20, '#00e5ff', 1.5);
+      // SMA 50
+      toggleOverlayLine('sma50', cachedData.sma50, '#ff9800', 1.5);
+      // SMA 200
+      toggleOverlayLine('sma200', cachedData.sma200, '#b388ff', 2);
+      // EMA 20
+      toggleOverlayLine('ema20', cachedData.ema20, '#00e676', 1.5);
+
+      // Bollinger Bantları
+      if (activeIndicators.has('bb') && cachedData.bb) {
+        if (!seriesMap.bb_upper) {
+          seriesMap.bb_upper = chart.addSeries(LightweightCharts.LineSeries, {
+            color: '#2196f3',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            title: 'BB Üst',
+          }, 0);
+          seriesMap.bb_middle = chart.addSeries(LightweightCharts.LineSeries, {
+            color: '#90caf9',
+            lineWidth: 1,
+            title: 'BB Orta',
+          }, 0);
+          seriesMap.bb_lower = chart.addSeries(LightweightCharts.LineSeries, {
+            color: '#2196f3',
+            lineWidth: 1,
+            lineStyle: LightweightCharts.LineStyle.Dashed,
+            title: 'BB Alt',
+          }, 0);
         }
-        maSeriesList.push(smaSeries);
+        seriesMap.bb_upper.setData(cachedData.bb.upper || []);
+        seriesMap.bb_middle.setData(cachedData.bb.middle || []);
+        seriesMap.bb_lower.setData(cachedData.bb.lower || []);
+      } else {
+        if (seriesMap.bb_upper) {
+          chart.removeSeries(seriesMap.bb_upper);
+          chart.removeSeries(seriesMap.bb_middle);
+          chart.removeSeries(seriesMap.bb_lower);
+          seriesMap.bb_upper = null;
+          seriesMap.bb_middle = null;
+          seriesMap.bb_lower = null;
+        }
       }
+
+      // Alt Pane: RSI (14)
+      const rsiPaneIndex = 1;
+      if (activeIndicators.has('rsi') && cachedData.rsi) {
+        if (!seriesMap.rsi) {
+          seriesMap.rsi = chart.addSeries(LightweightCharts.LineSeries, {
+            color: '#e040fb',
+            lineWidth: 2,
+            priceScaleId: 'rsi',
+            title: 'RSI(14)',
+          }, rsiPaneIndex);
+          // 70 ve 30 referans hatları
+          seriesMap.rsi.createPriceLine({ price: 70, color: '#f23645', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: '70 Aşırı Alım' });
+          seriesMap.rsi.createPriceLine({ price: 30, color: '#089981', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dashed, title: '30 Aşırı Satım' });
+        }
+        seriesMap.rsi.setData(cachedData.rsi || []);
+      } else {
+        if (seriesMap.rsi) {
+          chart.removeSeries(seriesMap.rsi);
+          seriesMap.rsi = null;
+        }
+      }
+
+      // Alt Pane: MACD (12, 26, 9)
+      const macdPaneIndex = seriesMap.rsi ? 2 : 1;
+      if (activeIndicators.has('macd') && cachedData.macd) {
+        if (!seriesMap.macd_hist) {
+          seriesMap.macd_hist = chart.addSeries(LightweightCharts.HistogramSeries, {
+            color: '#26a69a',
+            priceScaleId: 'macd',
+            title: 'Histogram',
+          }, macdPaneIndex);
+          seriesMap.macd_line = chart.addSeries(LightweightCharts.LineSeries, {
+            color: '#2962ff',
+            lineWidth: 1.5,
+            priceScaleId: 'macd',
+            title: 'MACD',
+          }, macdPaneIndex);
+          seriesMap.macd_signal = chart.addSeries(LightweightCharts.LineSeries, {
+            color: '#ff6d00',
+            lineWidth: 1.5,
+            priceScaleId: 'macd',
+            title: 'Sinyal',
+          }, macdPaneIndex);
+        }
+        seriesMap.macd_hist.setData(cachedData.macd.hist || []);
+        seriesMap.macd_line.setData(cachedData.macd.macd || []);
+        seriesMap.macd_signal.setData(cachedData.macd.signal || []);
+      } else {
+        if (seriesMap.macd_hist) {
+          chart.removeSeries(seriesMap.macd_hist);
+          chart.removeSeries(seriesMap.macd_line);
+          chart.removeSeries(seriesMap.macd_signal);
+          seriesMap.macd_hist = null;
+          seriesMap.macd_line = null;
+          seriesMap.macd_signal = null;
+        }
+      }
+    }
+
+    function toggleOverlayLine(key, data, color, width) {
+      if (activeIndicators.has(key) && data && data.length > 0) {
+        if (!seriesMap[key]) {
+          seriesMap[key] = chart.addSeries(LightweightCharts.LineSeries, {
+            color: color,
+            lineWidth: width,
+            priceScaleId: 'right',
+            title: key.toUpperCase(),
+          }, 0);
+        }
+        seriesMap[key].setData(data);
+      } else {
+        if (seriesMap[key]) {
+          chart.removeSeries(seriesMap[key]);
+          seriesMap[key] = null;
+        }
+      }
+    }
+
+    function renderMarkers() {
+      if (!mainSeries || !cachedData) return;
+      const showMarkers = activeIndicators.has('markers') || activeIndicators.has('goldencross');
+      const markersList = (showMarkers && cachedData.markers) ? cachedData.markers : [];
+
+      if (typeof LightweightCharts.createSeriesMarkers === 'function') {
+        if (markersPlugin) {
+          markersPlugin.setMarkers(markersList);
+        } else if (markersList.length > 0) {
+          markersPlugin = LightweightCharts.createSeriesMarkers(mainSeries, markersList);
+        }
+      } else if (typeof mainSeries.setMarkers === 'function') {
+        mainSeries.setMarkers(markersList);
+      }
+    }
+
+    // --- Dışarıya Açılan Kontrol Metotları ---
+
+    function setChartType(type) {
+      if (type === currentChartType) return;
+      createMainPriceSeries(type);
+      renderAll();
+    }
+
+    function toggleIndicator(name, isEnabled) {
+      name = name.toLowerCase();
+      if (isEnabled) {
+        activeIndicators.add(name);
+      } else {
+        activeIndicators.delete(name);
+      }
+      renderIndicators();
+      renderMarkers();
     }
 
     function setTicker(ticker) {
-      if (elTicker) {
-        elTicker.innerText = ticker;
-      }
+      if (elTicker) elTicker.innerText = ticker;
     }
 
-    // Default initialization
+    function fitContent() {
+      if (chart) chart.timeScale().fitContent();
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       initChart("BIST100", true);
     });

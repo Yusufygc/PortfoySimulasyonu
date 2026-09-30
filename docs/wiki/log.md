@@ -5,6 +5,25 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] özellik | Faz 3 — TradingView Teknik Analiz Laboratuvarı, Çoklu Zaman Dilimleri ve İndikatör Paketi
+
+- **Çoklu Zaman Dilimleri (Timeframes):** `ChartController` bünyesinde günlük (`1D` / `1G`), haftalık (`1W` / `1H`) ve aylık (`1M` / `1A`) yeniden örnekleme (resampling) mekanizması geliştirildi. BIST takvimine uygun şekilde haftalık ve aylık OHLCV barları vektörize üretilerek TradingView grafiğine dinamik aktarılıyor.
+- **Teknik İndikatör Paketi Entegrasyonu:** `src/application/services/analysis/technical/indicators.py` saf NumPy/Pandas fonksiyonları kullanılarak hesaplanan indikatörler TradingView motoruna bağlandı:
+  - **Ana Grafik Üstü (Overlay):** SMA 20 (Turkuaz), SMA 50 (Turuncu), SMA 200 (Mor), EMA 20 (Yeşil) ve Bollinger Bantları (Üst, Orta, Alt bantlar).
+  - **Alt Osilatör Panelleri (Multi-Pane):** Lightweight Charts v5.2 çoklu bölme mimarisi ile RSI (14) (70 aşırı alım / 30 aşırı satım kesikli referans çizgili) ve MACD (12, 26, 9) (histogram, MACD ve sinyal çizgili) dinamik alt panelleri eklendi.
+  - **Al / Sat Sinyal İşaretçileri (Markers):** SMA 50 ve SMA 200 kesişimlerini takip eden otomatik Golden Cross (`▲ Golden Cross`, yeşil ok) ve Death Cross (`▼ Death Cross`, kırmızı ok) görsel işaretçileri oluşturuldu.
+- **Grafik Türü Değişimi:** Mum (`candle`), Çizgi (`line`), Alan (`area`) ve Bar (`bar`) grafik türleri arasında anında akıcı geçiş desteği sağlandı.
+- **TradingView Üst Kontrol Araç Çubuğu (`TradingViewToolbar.qml`):**
+  - Aktif hisse sembolü, tam şirket unvanı ve canlı fiyat / yüzde değişim rozeti (`₺4.90  ▲ +2.08%`).
+  - Hızlı zaman dilimi butonları (`1G`, `1H`, `1A`).
+  - Grafik türü seçici butonları (`🕯️`, `📈`, `🌊`, `📊`).
+  - İndikatör açılır menüsü (Popup) ile anlık indikatör açma/kapatma.
+  - Otomatik sığdırma (`🎯`) ve tam ekran analiz butonu (`⛶`).
+- **Tam Ekran Teknik Analiz Modalı (`ChartFullscreenModal.qml`):** Masaüstü analiz derinliği için ekranın %96'sını kaplayan, tüm indikatör ve çizim alanı ferahlığı sunan tam ekran analiz laboratuvarı geliştirildi.
+- **Birim Testleri (`test_chart_phase3.py`):** 4 yeni test ile zaman dilimi yeniden örneklemesi, indikatör veri yapısı, toggle kontrolleri ve SQLite entegrasyonu %100 doğrulandı (toplam 11 QML testi yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
 ## [2026-09-30] düzelt | Donut Varlık Dağılımı Decimal Hatası Giderimi ve Modern Kapsül ScrollBar Tasarımı
 
 - **Decimal Bölme Hatası Giderildi:** `DashboardController.allocationSlices` içinde `pct = (p.get("weight", 0.0)) / 100.0` hesaplanırken ortaya çıkan `TypeError: unsupported operand type(s) for /: 'decimal.Decimal' and 'float'` hatası giderildi; tüm ağırlık, piyasa değeri ve nakit değerleri açıkça `float()`'a cast edildi.

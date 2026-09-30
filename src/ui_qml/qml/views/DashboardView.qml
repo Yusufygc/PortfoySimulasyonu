@@ -126,10 +126,10 @@ Item {
             // 2. Orta Blok: TradingView Grafiği & Portföy Dağılımı Donut
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 460
+                Layout.preferredHeight: 520
                 spacing: Theme.spaceMd
 
-                // Sol: TradingView Mum Grafiği
+                // Sol: TradingView Mum Grafiği & Teknik Analiz
                 ModernCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
@@ -139,35 +139,43 @@ Item {
                         anchors.margins: Theme.spaceSm
                         spacing: Theme.spaceSm
 
-                        // Grafik Üst Kontrol Barı (Hızlı Sembol Seçiciler)
+                        // 1. TradingView Gelişmiş Toolbar (Zaman Dilimleri, Grafik Türleri, İndikatörler)
+                        TradingViewToolbar {
+                            id: tvToolbar
+                            Layout.fillWidth: true
+                            chartView: chartView
+                            onToggleFullscreen: chartModal.open()
+                        }
+
+                        // 2. Hızlı Portföy Hisseleri Seçici Barı
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Theme.spaceSm
 
                             Text {
-                                text: "TRADINGVIEW CANLI GRAFİK"
+                                text: "PORTFÖY HİSSELERİ:"
                                 font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontXs
+                                font.pixelSize: 10
                                 font.weight: Font.Bold
                                 color: Theme.textMuted
                             }
 
-                            Item { Layout.fillWidth: true }
-
                             Repeater {
-                                model: dashboardController ? dashboardController.quickTickers : ["THYAO", "GARAN", "ASELS", "KCHOL"]
+                                model: dashboardController ? dashboardController.quickTickers : ["OBAMS.IS", "PSGYO.IS", "BINHO.IS"]
                                 ModernButton {
                                     text: modelData
-                                    variant: (chartView.ticker === modelData || (chartController && chartController.currentTicker === modelData)) ? "primary" : "ghost"
-                                    implicitHeight: 26
+                                    variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
+                                    implicitHeight: 24
                                     onClicked: {
                                         chartView.loadStock(modelData)
                                     }
                                 }
                             }
+
+                            Item { Layout.fillWidth: true }
                         }
 
-                        // TradingView QML Bileşeni
+                        // 3. TradingView QML Bileşeni
                         TradingViewChart {
                             id: chartView
                             Layout.fillWidth: true
@@ -422,6 +430,10 @@ Item {
 
     CapitalModal {
         id: capitalModal
+    }
+
+    ChartFullscreenModal {
+        id: chartModal
     }
 
     ToastNotification {
