@@ -1,7 +1,7 @@
 """KAP pay sahipliği SQLAlchemy repository."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from src.domain.models.shareholder import ShareholderRow, ShareholderSnapshot
@@ -99,7 +99,7 @@ class SQLAlchemyKapShareholderRepository(IShareholderRepository):
                         voting_right_ratio=r.voting_right_ratio,
                         is_total=r.is_total,
                     ))
-            company.last_fetched_at = datetime.utcnow()
+            company.last_fetched_at = datetime.now(timezone.utc).replace(tzinfo=None)
             commit_or_rollback(session)
 
     def get_shareholder_history(self, ticker: str) -> list[ShareholderSnapshot]:

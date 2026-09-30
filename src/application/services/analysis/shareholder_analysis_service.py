@@ -8,7 +8,7 @@ IShareholderRepository ile MySQL'de saklar.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from src.domain.models.shareholder import ShareholderSnapshot
@@ -89,4 +89,7 @@ class ShareholderAnalysisService:
         last = self._repository.get_last_fetched_at(ticker)
         if last is None:
             return False
-        return (datetime.utcnow() - last) < timedelta(hours=_REFRESH_TTL_HOURS)
+        now = datetime.now(timezone.utc)
+        if last.tzinfo is None:
+            now = now.replace(tzinfo=None)
+        return (now - last) < timedelta(hours=_REFRESH_TTL_HOURS)

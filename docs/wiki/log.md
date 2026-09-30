@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 17: Deprecated datetime.utcnow() Çağrıları timezone.utc ile Modernize Edildi
+
+- Python 3.12+ ile kullanımdan kaldırılan ve saat dilimi (timezone) uyuşmazlıklarına neden olabilen `datetime.utcnow()` çağrıları `datetime.now(timezone.utc)` ile modernize edildi.
+- `src/application/services/analysis/shareholder_analysis_service.py` ve `src/infrastructure/db/sqlalchemy/repositories/sa_shareholder_repository.py` dosyalarında UTC zaman karşılaştırmaları naive/aware istisnalarına karşı korumalı hale getirildi.
+- Etkilenen modüller: src/application/services/analysis/shareholder_analysis_service.py, src/infrastructure/db/sqlalchemy/repositories/sa_shareholder_repository.py, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 19: Sayı ve Hacim Formatları Türkçe Kısaltma Standardına (Mr/Mn/Bin) Çevrildi
 
 - `RULES.md §3` kuralı ("Para ve sayı formatları Türkçe standartlarında olmalıdır") uyarınca İngilizce kalan `B` (Billion), `M` (Million) ve `K` (Thousand) sayı/hacim kısaltmaları Türkçe finansal standart olan `Mr` (Milyar), `Mn` (Milyon) ve `Bin` olarak güncellendi.
