@@ -22,8 +22,8 @@ Item {
         url: Qt.resolvedUrl("../../assets/templates/tradingview_chart.html")
 
         settings.javascriptEnabled: true
-        settings.localContentCanAccessRemoteUrls: true
-        settings.localContentCanAccessFileUrls: true
+        settings.localContentCanAccessRemoteUrls: false
+        settings.localContentCanAccessFileUrls: false
 
         onLoadingChanged: function(loadRequest) {
             if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
@@ -50,18 +50,8 @@ Item {
             if (!root.isLoaded) return
             root.ticker = tickerName
 
-            const script = `
-                (function() {
-                    try {
-                        let data = ${jsonPayload};
-                        if (typeof data === "string") data = JSON.parse(data);
-                        setCandleData(data);
-                    } catch (err) {
-                        console.error("[TV Injection Error]:", err);
-                    }
-                })();
-            `
-            webView.runJavaScript(script, function() {
+            // Güvenli veri iletimi: jsonPayload güvenli bir string JSON parametresi olarak aktarılır (XSS/enjeksiyon engellenir)
+            webView.runJavaScript("setCandleData(" + JSON.stringify(jsonPayload) + ");", function() {
                 // Aktif indikatörleri senkronize et
                 syncIndicators();
             })
@@ -69,7 +59,7 @@ Item {
 
         function onChartTypeChanged(chartType) {
             if (!root.isLoaded) return
-            webView.runJavaScript(`setChartType("${chartType}");`);
+            webView.runJavaScript("setChartType(" + JSON.stringify(chartType) + ");");
         }
 
         function onIndicatorsChanged() {
@@ -85,7 +75,7 @@ Item {
         const allList = ["sma20", "sma50", "sma200", "ema20", "bb", "rsi", "macd", "markers"];
         allList.forEach(ind => {
             const active = activeList.indexOf(ind) !== -1;
-            webView.runJavaScript(`toggleIndicator("${ind}", ${active ? "true" : "false"});`);
+            webView.runJavaScript("toggleIndicator(" + JSON.stringify(ind) + ", " + (active ? "true" : "false") + ");");
         });
     }
 
@@ -126,7 +116,7 @@ Item {
         target: Theme
         function onIsDarkChanged() {
             if (!root.isLoaded) return
-            const script = `initChart("${root.ticker}", ${Theme.isDark});`
+            const script = "initChart(" + JSON.stringify(root.ticker) + ", " + (Theme.isDark ? "true" : "false") + ");";
             webView.runJavaScript(script, function() {
                 if (chartController) {
                     chartController.loadTicker(root.ticker)

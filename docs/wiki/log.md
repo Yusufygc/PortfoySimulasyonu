@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 1: QtWebEngine XSS ve Ham JS Enjeksiyon Açığı Kapatıldı
+
+- `TradingViewChart.qml` içinde `settings.localContentCanAccessRemoteUrls: false` ve `localContentCanAccessFileUrls: false` yapılarak yerel dosya ve harici URL erişimi sınırlandırıldı.
+- `${jsonPayload}` ve parametrik JS yürütmeleri string interpolation yerine `JSON.stringify(...)` ile güvenli parametre geçişine bağlandı; XSS ve kod enjeksiyonu engellendi.
+- Etkilenen modüller: src/ui_qml/qml/components/TradingViewChart.qml, docs/wiki/log.md
+
 ## [2026-09-30] belge | Kapsamlı Sistem Denetim ve Mimari İnceleme Raporu
 
 - QML arayüz katmanı (`src/ui_qml`), Domain, Application, Infrastructure, güvenlik, build ve test altyapısı kıdemli denetim ekibi perspektifiyle (Mimari, DevSecOps, QA, SRE) incelendi.
