@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] yapılandır | Bulgu 10: requirements.txt Bağımlılıkları ve Sürümleri Sanal Ortamla Eşitlendi
+
+- `requirements.txt` dosyasındaki gerçek dışı / yayınlanmamış sürüm pinleri (numpy 2.4.4, pandas 3.0.2, scipy 1.17.1, scikit-learn 1.8.0, plotly 6.7.0, pytest 9.0.3) sanal ortamdaki fiili kararlı sürümlerle (`numpy==2.2.6`, `pandas==2.3.3`, `scipy==1.15.3`, `scikit-learn==1.7.2`, `PySide6==6.11.2`, `SQLAlchemy==2.0.54`, `yfinance==1.7.0`, `plotly==7.1.0` vb.) senkronize edildi.
+- yfinance ve scraping için zorunlu olan `beautifulsoup4`, `lxml` ve `curl_cffi` bağımlılıkları açıkça listeye eklendi; `pip check` ve `scripts/build_preflight.py` statik pin kontrolü (%100 yeşil) başarıyla doğrulandı.
+- Etkilenen modüller: requirements.txt, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 13: Sessiz Hata Yutma (except Exception: pass) Blokları Logger İle Değiştirildi
 
 - `ARCHITECTURE_GATES.md` ve temiz kod standartları gereğince sistem genelinde istisnaların sessizce yutulduğu (`except Exception: pass`) 7 kritik nokta refaktör edildi.
