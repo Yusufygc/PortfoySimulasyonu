@@ -9,6 +9,15 @@ Item {
 
     readonly property var ctrl: (typeof stock360Controller !== "undefined") ? stock360Controller : null
 
+    Connections {
+        target: root.ctrl
+        function onViewModeChanged() {
+            if (mainScrollView && mainScrollView.contentItem) {
+                mainScrollView.contentItem.contentY = 0;
+            }
+        }
+    }
+
     ScrollView {
         id: mainScrollView
         anchors.fill: parent
@@ -533,7 +542,14 @@ Item {
             StackLayout {
                 id: viewModeStack
                 Layout.fillWidth: true
+                Layout.preferredHeight: currentItem ? currentItem.implicitHeight : 0
                 currentIndex: (root.ctrl) ? root.ctrl.viewMode : 0
+
+                onCurrentIndexChanged: {
+                    if (mainScrollView.contentItem) {
+                        mainScrollView.contentItem.contentY = 0;
+                    }
+                }
 
                 // GÖRÜNÜM MODU 0: GENEL BAKIŞ & ÖZET KARTLAR
                 ColumnLayout {

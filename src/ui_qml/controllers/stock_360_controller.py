@@ -88,6 +88,8 @@ class Stock360Controller(QObject):
     statementTypeChanged = Signal()
     statementSearchQueryChanged = Signal()
     shareholderTimelineChanged = Signal()
+    dupontChanged = Signal()
+    cashFlowChanged = Signal()
 
     # Thread-safe iç sinyal (arka plan iş parçacığından ana GUI iş parçacığına)
     _remoteDataReady = Signal(str, object, object, str, str, str)
@@ -443,11 +445,11 @@ class Stock360Controller(QObject):
     def latestQuarterMargin(self) -> str:
         return self._latest_quarter_margin
 
-    @Property(dict, notify=financialsChanged)
+    @Property(dict, notify=dupontChanged)
     def dupontData(self) -> Dict[str, Any]:
         return self._dupont_data
 
-    @Property(dict, notify=financialsChanged)
+    @Property(dict, notify=cashFlowChanged)
     def cashFlowData(self) -> Dict[str, Any]:
         return self._cash_flow_data
 
@@ -844,10 +846,13 @@ class Stock360Controller(QObject):
                 "period": p,
                 "revenue": rev_val,
                 "revenueStr": _format_currency(rev_val),
+                "revenue_str": _format_currency(rev_val),
                 "netIncome": net_val,
                 "netIncomeStr": _format_currency(net_val),
+                "net_income_str": _format_currency(net_val),
                 "margin": mg_val,
                 "marginStr": f"%{mg_val:.1f}",
+                "margin_str": f"%{mg_val:.1f}",
                 "isProfitable": net_val >= 0,
                 "ratio": min(1.0, rev_val / max_rev) if max_rev > 0 else 0.0,
                 "profitRatio": min(1.0, abs(net_val) / max_rev) if max_rev > 0 else 0.0,
@@ -883,12 +888,34 @@ class Stock360Controller(QObject):
 
         # 2. DuPont Kârlılık Kırılımı (Kârlılık Anatomisi)
         if active_periods:
-            p0 = active_periods[0]
-            dup_nm = m.get("dupont_net_kar_marji", {}).get(p0)
-            dup_at = m.get("dupont_varlik_devir", {}).get(p0)
-            dup_fl = m.get("dupont_fin_kaldirac", {}).get(p0)
-            dup_roe = m.get("dupont_roe", {}).get(p0)
-            pio = m.get("piotroski", {}).get(p0)
+            dup_p = None
+            for p in active_periods:
+                if m.get("dupont_net_kar_marji", {}).get(p) is not None:
+                    dup_p = p
+                    break
+            if not dup_p:
+                dup_p = active_periods[0]
+
+            dup_nm = m.get("dupont_net_kar_marji", {}).get(dup_p)
+            dup_at = m.get("dupont_varlik_devir", {}).get(dup_p)
+            dup_fl = m.get("dupont_fin_kaldirac", {}).get(dup_p)
+            dup_roe = m.get("dupont_roe", {}).get(dup_p)
+            pio = m.get("piotroski", {}).get(dup_p)
+
+            # Fallback: TTM hesaplanamamışsa son çeyrek bilanço kalemlerinden türet
+            if dup_nm is None:
+                s_val = float(satis_c.get(dup_p) or 0.0)
+                n_val = float(net_c.get(dup_p) or 0.0)
+                tv_val = float(m.get("toplam_varlik", {}).get(dup_p) or 0.0)
+                ozk_val = float(m.get("ozkaynak", {}).get(dup_p) or 0.0)
+                if s_val > 0:
+                    dup_nm = (n_val / s_val) * 100.0
+                if tv_val > 0 and s_val > 0:
+                    dup_at = (s_val * 4.0) / tv_val  # Yıllıklandırılmış devir
+                if ozk_val > 0 and tv_val > 0:
+                    dup_fl = tv_val / ozk_val
+                if dup_nm is not None and dup_at is not None and dup_fl is not None:
+                    dup_roe = (dup_nm * dup_at * dup_fl) / 100.0
 
             pio_score = int(pio) if pio is not None else 7
             if pio_score >= 7:
@@ -913,12 +940,19 @@ class Stock360Controller(QObject):
 
         # 3. Nakit Akışı & Borçluluk
         if active_periods:
-            p0 = active_periods[0]
-            ocf = m.get("isletme_cf", {}).get(p0)
-            cpx = m.get("capex", {}).get(p0)
-            fcf_val = m.get("fcf", {}).get(p0)
-            nb = m.get("net_borc", {}).get(p0)
-            nb_fav = m.get("net_borc_favok_ttm", {}).get(p0)
+            cf_p = None
+            for p in active_periods:
+                if m.get("isletme_cf", {}).get(p) is not None or m.get("net_borc", {}).get(p) is not None:
+                    cf_p = p
+                    break
+            if not cf_p:
+                cf_p = active_periods[0]
+
+            ocf = m.get("isletme_cf", {}).get(cf_p)
+            cpx = m.get("capex", {}).get(cf_p)
+            fcf_val = m.get("fcf", {}).get(cf_p)
+            nb = m.get("net_borc", {}).get(cf_p)
+            nb_fav = m.get("net_borc_favok_ttm", {}).get(cf_p)
 
             is_safe = (nb_fav is None or nb_fav < 2.5)
             self._cash_flow_data = {
@@ -935,8 +969,11 @@ class Stock360Controller(QObject):
         self._recalculate_shareholder_timeline()
 
         self.revenueChartChanged.emit()
+        self.dupontChanged.emit()
+        self.cashFlowChanged.emit()
         self.financialTableChanged.emit()
         self.shareholderTimelineChanged.emit()
+        self.financialsChanged.emit()
 
     def _recalculate_financial_table(self) -> None:
         if not self._cached_metrics:

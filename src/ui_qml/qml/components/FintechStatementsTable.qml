@@ -349,10 +349,10 @@ ModernCard {
                         Rectangle {
                             id: rowRect
                             width: tableContainer.totalTableWidth
-                            height: modelData.is_header ? 34 : 30
-                            property bool isHdr: (typeof modelData.isHeader !== "undefined") ? modelData.isHeader : (modelData.is_header || false)
-                            property bool hasChg: (modelData.yoyChange && modelData.yoyChange !== "—") || modelData.has_change
-                            property bool isPosYoy: (typeof modelData.isPositiveYoY !== "undefined") ? modelData.isPositiveYoY : (modelData.is_positive || false)
+                            height: rowRect.isHdr ? 34 : 30
+                            property bool isHdr: Boolean(modelData && (modelData.isHeader || modelData.is_header))
+                            property bool hasChg: Boolean(modelData && ((modelData.yoyChange && modelData.yoyChange !== "—") || modelData.has_change))
+                            property bool isPosYoy: Boolean(modelData && (modelData.isPositiveYoY || modelData.is_positive))
 
                             color: isHdr
                                    ? (Theme.isDark ? "rgba(59, 130, 246, 0.12)" : "rgba(37, 99, 235, 0.08)")
@@ -385,7 +385,7 @@ ModernCard {
 
                                         Text {
                                             Layout.fillWidth: true
-                                            text: modelData.name || modelData.label || ""
+                                            text: (modelData && (modelData.name || modelData.label)) ? ("" + (modelData.name || modelData.label)) : ""
                                             font.family: Theme.fontFamily
                                             font.pixelSize: rowRect.isHdr ? 11 : Theme.fontXs
                                             font.weight: rowRect.isHdr ? Font.Bold : Font.Normal
@@ -397,7 +397,7 @@ ModernCard {
 
                                 // Dönem Değer Hücreleri
                                 Repeater {
-                                    model: modelData.values || []
+                                    model: (modelData && modelData.values) ? modelData.values : []
 
                                     Item {
                                         width: tableContainer.colPeriodWidth
@@ -407,7 +407,7 @@ ModernCard {
                                             anchors.right: parent.right
                                             anchors.rightMargin: 12
                                             anchors.verticalCenter: parent.verticalCenter
-                                            text: modelData
+                                            text: (typeof modelData !== "undefined" && modelData !== null) ? ("" + modelData) : "—"
                                             font.family: Theme.fontMono
                                             font.pixelSize: 11
                                             font.weight: rowRect.isHdr ? Font.Bold : Font.Normal
@@ -437,7 +437,7 @@ ModernCard {
                                         Text {
                                             id: yoyTxt
                                             anchors.centerIn: parent
-                                            text: modelData.yoyChange || modelData.yoy || ""
+                                            text: (modelData && (modelData.yoyChange || modelData.yoy)) ? ("" + (modelData.yoyChange || modelData.yoy)) : ""
                                             font.family: Theme.fontMono
                                             font.pixelSize: 10
                                             font.weight: Font.Bold

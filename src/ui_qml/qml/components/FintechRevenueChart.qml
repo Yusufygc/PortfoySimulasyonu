@@ -382,7 +382,9 @@ ModernCard {
                         }
                         Item { Layout.fillWidth: true }
                         Text {
-                            text: tooltip.activeItem ? tooltip.activeItem.revenue_str : "—"
+                            text: (tooltip.activeItem && (tooltip.activeItem.revenueStr || tooltip.activeItem.revenue_str))
+                                  ? ("" + (tooltip.activeItem.revenueStr || tooltip.activeItem.revenue_str))
+                                  : "—"
                             font.family: Theme.fontMono
                             font.pixelSize: 10
                             font.weight: Font.DemiBold
@@ -400,7 +402,9 @@ ModernCard {
                         }
                         Item { Layout.fillWidth: true }
                         Text {
-                            text: tooltip.activeItem ? tooltip.activeItem.net_income_str : "—"
+                            text: (tooltip.activeItem && (tooltip.activeItem.netIncomeStr || tooltip.activeItem.net_income_str))
+                                  ? ("" + (tooltip.activeItem.netIncomeStr || tooltip.activeItem.net_income_str))
+                                  : "—"
                             font.family: Theme.fontMono
                             font.pixelSize: 10
                             font.weight: Font.DemiBold
@@ -418,7 +422,9 @@ ModernCard {
                         }
                         Item { Layout.fillWidth: true }
                         Text {
-                            text: tooltip.activeItem ? tooltip.activeItem.margin_str : "—"
+                            text: (tooltip.activeItem && (tooltip.activeItem.marginStr || tooltip.activeItem.margin_str))
+                                  ? ("" + (tooltip.activeItem.marginStr || tooltip.activeItem.margin_str))
+                                  : "—"
                             font.family: Theme.fontMono
                             font.pixelSize: 10
                             font.weight: Font.Bold
