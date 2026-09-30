@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 20: auto_commit.py Hassas Dosya ve Anahtar Sızıntısı Koruması Eklendi
+
+- `auto_commit.py` scriptinde `.env`, gizli anahtarlar, veritabanı dosyaları ve kimlik bilgilerini (`*.pem`, `*.key`, `*secret*`, `*credential*`, `*token*`, `*.db`, `.env*`) tespit eden `is_sensitive_file` güvenlik süzgeci entegre edildi.
+- Hassas dosyaların ve diff içeriklerinin harici yapay zeka modeline (Gemini API) kazara sızdırılması hem dosya listeleme aşamasında hem de diff üretim aşamasında çift katmanlı olarak engellendi.
+- Etkilenen modüller: auto_commit.py, docs/wiki/log.md
+
 ## [2026-09-30] yapılandır | Bulgu 10: requirements.txt Bağımlılıkları ve Sürümleri Sanal Ortamla Eşitlendi
 
 - `requirements.txt` dosyasındaki gerçek dışı / yayınlanmamış sürüm pinleri (numpy 2.4.4, pandas 3.0.2, scipy 1.17.1, scikit-learn 1.8.0, plotly 6.7.0, pytest 9.0.3) sanal ortamdaki fiili kararlı sürümlerle (`numpy==2.2.6`, `pandas==2.3.3`, `scipy==1.15.3`, `scikit-learn==1.7.2`, `PySide6==6.11.2`, `SQLAlchemy==2.0.54`, `yfinance==1.7.0`, `plotly==7.1.0` vb.) senkronize edildi.
