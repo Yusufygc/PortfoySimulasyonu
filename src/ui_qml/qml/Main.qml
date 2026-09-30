@@ -64,9 +64,13 @@ ApplicationWindow {
                         id: dashboardView
                     }
 
-                    // 1: Watchlist (Faz 4 - Canlı Çoklu Liste & Sparkline)
-                    WatchlistView {
-                        id: watchlistView
+                    // 1: Watchlist (Faz 4 - Canlı Çoklu Liste & Sparkline - Tembel Yükleme)
+                    Loader {
+                        id: watchlistLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 1 || (status === Loader.Ready)
+                        source: "views/WatchlistView.qml"
                     }
 
                     // 2: Model Portföyler (Faz 6)
@@ -76,9 +80,13 @@ ApplicationWindow {
                         iconName: "portfolio"
                     }
 
-                    // 3: Hisse 360 & Temel Analiz (Faz 5 - Canlı Rasyolar, Bilanço & KAP Ortaklık)
-                    Stock360View {
-                        id: stock360View
+                    // 3: Hisse 360 & Temel Analiz (Faz 5 - Canlı Rasyolar, Bilanço & KAP Ortaklık - Tembel Yükleme)
+                    Loader {
+                        id: stock360Loader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 3 || (status === Loader.Ready)
+                        source: "views/Stock360View.qml"
                     }
 
                     // 4: Karşılaştırma Laboratuvarı (Faz 7)

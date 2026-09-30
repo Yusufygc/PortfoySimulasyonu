@@ -18,6 +18,12 @@ Item {
         }
     }
 
+    Component.onCompleted: {
+        if (root.ctrl && typeof root.ctrl.ensureLoaded === "function") {
+            root.ctrl.ensureLoaded();
+        }
+    }
+
     ScrollView {
         id: mainScrollView
         anchors.fill: parent
