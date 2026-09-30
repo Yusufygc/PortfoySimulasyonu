@@ -114,7 +114,7 @@ ModernCard {
                         Layout.alignment: Qt.AlignHCenter
                     }
                     Text {
-                        text: "Operasyonel Giriş"
+                        text: Strings.cfOperatingInflow
                         font.family: Theme.fontFamily
                         font.pixelSize: 9
                         color: Theme.textMuted
@@ -152,7 +152,7 @@ ModernCard {
                         Layout.alignment: Qt.AlignHCenter
                     }
                     Text {
-                        text: "Kapasite & Yatırım"
+                        text: Strings.cfCapacityCapex
                         font.family: Theme.fontFamily
                         font.pixelSize: 9
                         color: Theme.textMuted
@@ -190,7 +190,7 @@ ModernCard {
                         Layout.alignment: Qt.AlignHCenter
                     }
                     Text {
-                        text: "Hissedara Kalan Nakit"
+                        text: Strings.cfFreeCashToEquity
                         font.family: Theme.fontFamily
                         font.pixelSize: 9
                         color: Theme.textMuted
@@ -228,7 +228,7 @@ ModernCard {
                         Layout.alignment: Qt.AlignHCenter
                     }
                     Text {
-                        text: "Net Borç: " + (root.cfData.netDebt || root.cfData.net_debt || "—")
+                        text: Strings.cfNetDebtPrefix + (root.cfData.netDebt || root.cfData.net_debt || "—")
                         font.family: Theme.fontFamily
                         font.pixelSize: 9
                         color: Theme.textMuted

@@ -121,7 +121,7 @@ ModernCard {
                             Layout.alignment: Qt.AlignHCenter
                         }
                         Text {
-                            text: "Kârlılık Motoru"
+                            text: Strings.dupontProfitEngine
                             font.family: Theme.fontFamily
                             font.pixelSize: 9
                             color: Theme.textMuted
@@ -169,7 +169,7 @@ ModernCard {
                             Layout.alignment: Qt.AlignHCenter
                         }
                         Text {
-                            text: "Varlık Verimliliği"
+                            text: Strings.dupontAssetEfficiency
                             font.family: Theme.fontFamily
                             font.pixelSize: 9
                             color: Theme.textMuted
@@ -217,7 +217,7 @@ ModernCard {
                             Layout.alignment: Qt.AlignHCenter
                         }
                         Text {
-                            text: "Borç / Özkaynak"
+                            text: Strings.dupontDebtEquity
                             font.family: Theme.fontFamily
                             font.pixelSize: 9
                             color: Theme.textMuted
@@ -250,7 +250,7 @@ ModernCard {
                         spacing: 2
 
                         Text {
-                            text: "ROE (Sonuç)"
+                            text: Strings.dupontRoeResult
                             font.family: Theme.fontFamily
                             font.pixelSize: 10
                             font.weight: Font.Bold
@@ -266,7 +266,7 @@ ModernCard {
                             Layout.alignment: Qt.AlignHCenter
                         }
                         Text {
-                            text: "Özsermaye Kârı"
+                            text: Strings.dupontEquityProfit
                             font.family: Theme.fontFamily
                             font.pixelSize: 9
                             color: Theme.textMuted
@@ -303,7 +303,7 @@ ModernCard {
                         }
 
                         Text {
-                            text: "Piotroski F-Score"
+                            text: Strings.ratioPiotroski
                             font.family: Theme.fontFamily
                             font.pixelSize: 11
                             font.weight: Font.Bold

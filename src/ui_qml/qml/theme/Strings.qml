@@ -243,5 +243,48 @@ QtObject {
     readonly property string labelTotalFilings: "Toplam Bildirim"
     readonly property string emptyTimelineSearch: "Arama kriterlerine uygun pay değişim bildirimi bulunamadı."
     readonly property string emptyTimelineSearchSubtitle: "Farklı bir arama terimi deneyebilir veya filtreyi değiştirebilirsiniz."
+
+    // --- Modallar ve Form Alanları ---
+    readonly property string labelCurrentBalance: "Mevcut Bakiye:"
+    readonly property string labelAmountTRY: "Tutar (₺)"
+    readonly property string labelDescriptionNote: "Açıklama / Not"
+    readonly property string placeholderCapitalNote: "Maaş tasarrufu birikimi"
+    readonly property string labelStockTicker: "Hisse Kodu (Ticker)"
+    readonly property string labelUnitPriceTRY: "Birim Fiyat (₺)"
+    readonly property string labelEstimatedTotal: "Tahmini Toplam Tutar:"
+    readonly property string labelCurrentCashPrefix: "Mevcut Nakit Bakiye: "
+
+    // --- Fintech DuPont & CashFlow & Gelir Kartları ---
+    readonly property string dupontProfitEngine: "Kârlılık Motoru"
+    readonly property string dupontAssetEfficiency: "Varlık Verimliliği"
+    readonly property string dupontDebtEquity: "Borç / Özkaynak"
+    readonly property string dupontRoeResult: "ROE (Sonuç)"
+    readonly property string dupontEquityProfit: "Özsermaye Kârı"
+    readonly property string cfOperatingInflow: "Operasyonel Giriş"
+    readonly property string cfCapacityCapex: "Kapasite & Yatırım"
+    readonly property string cfFreeCashToEquity: "Hissedara Kalan Nakit"
+    readonly property string cfNetDebtPrefix: "Net Borç: "
+    readonly property string revLastQuarterSales: "Son Çeyrek Satış"
+    readonly property string revSalesGrowthYoY: "Satış Büyümesi (YoY)"
+    readonly property string revLastQuarterNetIncome: "Son Çeyrek Net Kâr"
+    readonly property string revNetIncomeMargin: "Net Kâr Marjı"
+
+    // --- Badge & Yardımcı Metinler ---
+    readonly property string badgeValuation: "Değerleme"
+    readonly property string badgeMultiple: "Çarpan"
+    readonly property string badgeOperational: "Operasyonel"
+    readonly property string badgeDividend: "Temettü"
+    readonly property string badgeProfitability: "Kârlılık"
+    readonly property string badgeLeverage: "Kaldıraç"
+    readonly property string badgeFScore: "F-Score"
+    readonly property string badgeLiquidity: "Likidite"
+    readonly property string badgeNominal: "Nominal"
+    readonly property string badgeFreeFloat: "Halka Açık"
+    readonly property string badgeBlockShare: "Blok Pay"
+    readonly property string subtextLastUpdate: "Son Güncelleme"
+    readonly property string subtextActiveListDistribution: "Aktif Liste Dağılımı"
+    readonly property string subtextEqualWeightAverage: "Eşit Ağırlıklı Ortalama"
+    readonly property string marketBist: "BIST"
+    readonly property string labelMovingAverages: "SMA 50 / 200 & EMA 20"
 }
 

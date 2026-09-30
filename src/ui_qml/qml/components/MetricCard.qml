@@ -9,7 +9,7 @@ ModernCard {
     property string value: "₺0,00"
     property string changeText: "+0.00%"
     property bool isPositive: true
-    property string subText: "Son Güncelleme"
+    property string subText: Strings.subtextLastUpdate
     property string iconName: ""
     property string iconSymbol: ""
 

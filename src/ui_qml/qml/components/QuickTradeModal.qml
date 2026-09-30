@@ -135,7 +135,7 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 4
-                Text { text: "Hisse Kodu (Ticker)"; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
+                Text { text: Strings.labelStockTicker; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 38
@@ -165,7 +165,7 @@ Rectangle {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 4
-                    Text { text: "Lot Adedi"; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
+                    Text { text: Strings.labelLot; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: 38
@@ -190,7 +190,7 @@ Rectangle {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 4
-                    Text { text: "Birim Fiyat (₺)"; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
+                    Text { text: Strings.labelUnitPriceTRY; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
                     Rectangle {
                         Layout.fillWidth: true
                         implicitHeight: 38
@@ -226,7 +226,7 @@ Rectangle {
                     anchors.fill: parent
                     anchors.margins: 12
                     Text {
-                        text: "Tahmini Toplam Tutar:"
+                        text: Strings.labelEstimatedTotal
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
                         color: Theme.textSecondary
@@ -245,7 +245,7 @@ Rectangle {
 
             // Mevcut Nakit Bilgisi
             Text {
-                text: "Mevcut Nakit Bakiye: " + dashboardController.cashBalance
+                text: Strings.labelCurrentCashPrefix + dashboardController.cashBalance
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontXs
                 color: Theme.textMuted

@@ -87,7 +87,7 @@ Item {
                     title: Strings.kpiGainersLosers
                     value: (watchlistController ? (watchlistController.summaryGainersCount + " Yükselen / " + watchlistController.summaryLosersCount + " Düşen") : "-")
                     isPositive: watchlistController ? (watchlistController.summaryGainersCount >= watchlistController.summaryLosersCount) : true
-                    subText: "Aktif Liste Dağılımı"
+                    subText: Strings.subtextActiveListDistribution
                     iconName: "trendingup"
                 }
 
@@ -96,7 +96,7 @@ Item {
                     title: Strings.kpiAvgChange
                     value: (watchlistController && watchlistController.summaryAvgChange) ? watchlistController.summaryAvgChange : "%0.00"
                     isPositive: (watchlistController && watchlistController.summaryAvgChange.indexOf("+") !== -1)
-                    subText: "Eşit Ağırlıklı Ortalama"
+                    subText: Strings.subtextEqualWeightAverage
                     iconName: "linechart"
                 }
             }
@@ -400,7 +400,7 @@ Item {
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 Text {
                                                     anchors.centerIn: parent
-                                                    text: "BIST"
+                                                    text: Strings.marketBist
                                                     font.pixelSize: 8
                                                     font.weight: Font.Bold
                                                     color: Theme.textMuted

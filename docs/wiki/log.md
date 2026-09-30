@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 14: QML Arayüzündeki Sabit (Hardcoded) Metinler Strings Sözlüğüne Taşındı
+
+- `RULES.md §3` kuralı ("Tüm kullanıcı metinleri ve etiketler Strings.qml içinde toplanmalıdır") uyarınca QML bileşenlerinde sabit gömülü kalan tüm metinler `src/ui_qml/qml/theme/Strings.qml` merkezi sözlüğüne aktarıldı.
+- `CapitalModal.qml`, `QuickTradeModal.qml`, `FintechDuPontCard.qml`, `FintechCashFlowCard.qml`, `FintechRevenueChart.qml`, `MetricCard.qml`, `WatchlistView.qml` ve `Stock360View.qml` içerisindeki form başlıkları, rasyo rozetleri (badge), finansal gösterge adları ve alt metinler `Strings.<değişken>` çağrılarına bağlandı.
+- Etkilenen modüller: src/ui_qml/qml/theme/Strings.qml, src/ui_qml/qml/components/CapitalModal.qml, src/ui_qml/qml/components/QuickTradeModal.qml, src/ui_qml/qml/components/FintechDuPontCard.qml, src/ui_qml/qml/components/FintechCashFlowCard.qml, src/ui_qml/qml/components/FintechRevenueChart.qml, src/ui_qml/qml/components/MetricCard.qml, src/ui_qml/qml/views/Stock360View.qml, src/ui_qml/qml/views/WatchlistView.qml, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 20: auto_commit.py Hassas Dosya ve Anahtar Sızıntısı Koruması Eklendi
 
 - `auto_commit.py` scriptinde `.env`, gizli anahtarlar, veritabanı dosyaları ve kimlik bilgilerini (`*.pem`, `*.key`, `*secret*`, `*credential*`, `*token*`, `*.db`, `.env*`) tespit eden `is_sensitive_file` güvenlik süzgeci entegre edildi.

@@ -158,7 +158,7 @@ Rectangle {
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 12
-                    Text { text: "Mevcut Bakiye:"; font.pixelSize: 12; color: Theme.textSecondary; Layout.fillWidth: true }
+                    Text { text: Strings.labelCurrentBalance; font.pixelSize: 12; color: Theme.textSecondary; Layout.fillWidth: true }
                     Text { text: dashboardController.cashBalance; font.pixelSize: 13; font.weight: Font.Bold; color: Theme.textPrimary }
                 }
             }
@@ -167,7 +167,7 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 4
-                Text { text: "Tutar (₺)"; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
+                Text { text: Strings.labelAmountTRY; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 38
@@ -194,7 +194,7 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 4
-                Text { text: "Açıklama / Not"; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
+                Text { text: Strings.labelDescriptionNote; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 38
@@ -207,7 +207,7 @@ Rectangle {
                         id: noteInput
                         anchors.fill: parent
                         anchors.margins: 10
-                        text: "Maaş tasarrufu birikimi"
+                        text: Strings.placeholderCapitalNote
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontBase
                         color: Theme.textPrimary

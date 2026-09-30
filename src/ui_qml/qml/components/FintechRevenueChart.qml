@@ -463,7 +463,7 @@ ModernCard {
                     ColumnLayout {
                         spacing: 1
                         Text {
-                            text: "Son Çeyrek Satış"
+                            text: Strings.revLastQuarterSales
                             font.family: Theme.fontFamily
                             font.pixelSize: 10
                             color: Theme.textMuted
@@ -502,7 +502,7 @@ ModernCard {
                     ColumnLayout {
                         spacing: 1
                         Text {
-                            text: "Satış Büyümesi (YoY)"
+                            text: Strings.revSalesGrowthYoY
                             font.family: Theme.fontFamily
                             font.pixelSize: 10
                             color: Theme.textMuted
@@ -541,7 +541,7 @@ ModernCard {
                     ColumnLayout {
                         spacing: 1
                         Text {
-                            text: "Son Çeyrek Net Kâr"
+                            text: Strings.revLastQuarterNetIncome
                             font.family: Theme.fontFamily
                             font.pixelSize: 10
                             color: Theme.textMuted
@@ -580,7 +580,7 @@ ModernCard {
                     ColumnLayout {
                         spacing: 1
                         Text {
-                            text: "Net Kâr Marjı"
+                            text: Strings.revNetIncomeMargin
                             font.family: Theme.fontFamily
                             font.pixelSize: 10
                             color: Theme.textMuted

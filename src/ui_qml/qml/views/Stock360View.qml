@@ -587,7 +587,7 @@ Item {
                     subtitle: Strings.ratioPEDesc
                     iconName: "coins"
                     accentColor: Theme.accent
-                    badgeText: "Değerleme"
+                    badgeText: Strings.badgeValuation
                 }
 
                 RatioCard {
@@ -596,7 +596,7 @@ Item {
                     subtitle: Strings.ratioPBDesc
                     iconName: "scale"
                     accentColor: "#8b5cf6"
-                    badgeText: "Çarpan"
+                    badgeText: Strings.badgeMultiple
                 }
 
                 RatioCard {
@@ -605,7 +605,7 @@ Item {
                     subtitle: Strings.ratioEvEbitdaDesc
                     iconName: "activity"
                     accentColor: "#06b6d4"
-                    badgeText: "Operasyonel"
+                    badgeText: Strings.badgeOperational
                 }
 
                 RatioCard {
@@ -614,7 +614,7 @@ Item {
                     subtitle: Strings.ratioDivYieldDesc
                     iconName: "wallet"
                     accentColor: "#ec4899"
-                    badgeText: "Temettü"
+                    badgeText: Strings.badgeDividend
                 }
 
                 RatioCard {
@@ -623,7 +623,7 @@ Item {
                     subtitle: Strings.ratioROEDesc
                     iconName: "trendingup"
                     accentColor: Theme.bullGreen
-                    badgeText: "Kârlılık"
+                    badgeText: Strings.badgeProfitability
                 }
 
                 RatioCard {
@@ -632,7 +632,7 @@ Item {
                     subtitle: Strings.ratioNetDebtEbitdaDesc
                     iconName: "banknote"
                     accentColor: "#f59e0b"
-                    badgeText: "Kaldıraç"
+                    badgeText: Strings.badgeLeverage
                 }
 
                 RatioCard {
@@ -641,7 +641,7 @@ Item {
                     subtitle: Strings.ratioPiotroskiDesc
                     iconName: "shield-check"
                     accentColor: Theme.accent
-                    badgeText: "F-Score"
+                    badgeText: Strings.badgeFScore
                 }
 
                 RatioCard {
@@ -650,7 +650,7 @@ Item {
                     subtitle: Strings.ratioCurrentRatioDesc
                     iconName: "zap"
                     accentColor: "#10b981"
-                    badgeText: "Likidite"
+                    badgeText: Strings.badgeLiquidity
                 }
             }
 
@@ -853,7 +853,7 @@ Item {
                                 spacing: 2
 
                                 Text {
-                                    text: "SMA 50 / 200 & EMA 20"
+                                    text: Strings.labelMovingAverages
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontXs
                                     color: Theme.textMuted
@@ -990,7 +990,7 @@ Item {
                     subtitle: Strings.labelPaidCapitalDesc
                     iconName: "coins"
                     accentColor: Theme.accent
-                    badgeText: "Nominal"
+                    badgeText: Strings.badgeNominal
                 }
 
                 // Kart 2: Fiili Dolaşımdaki Paylar
@@ -1000,7 +1000,7 @@ Item {
                     subtitle: Strings.labelFreeFloatDesc
                     iconName: "users"
                     accentColor: "#06b6d4"
-                    badgeText: "Halka Açık"
+                    badgeText: Strings.badgeFreeFloat
                 }
 
                 // Kart 3: Hakim Ortak & Blok Pay
@@ -1015,7 +1015,7 @@ Item {
                     subtitle: Strings.labelControllingShareholderDesc
                     iconName: "target"
                     accentColor: "#8b5cf6"
-                    badgeText: "Blok Pay"
+                    badgeText: Strings.badgeBlockShare
                 }
 
                 // Kart 4: Toplam Bildirim & Senkronizasyon
