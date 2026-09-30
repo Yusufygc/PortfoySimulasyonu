@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 3: test_settings_loader.py Test Ortam İzolasyonu ve SQLite Desteği Eklendi
+
+- `tests/infrastructure/test_settings_loader.py` içindeki `OPTIONAL_ENV` kümesine `DB_ENGINE` ve `DB_SQLITE_PATH` eklendi; işletim sistemi ortamından sızan SQLite değişkenlerinin MySQL testlerini patlatması önlendi (7 test yeşile döndü).
+- `test_load_settings_builds_sqlite_config` birim testi eklenerek SQLite yapılandırmasının dinamik yüklenmesi test kapsamına alındı (10/10 test %100 yeşil).
+- Etkilenen modüller: tests/infrastructure/test_settings_loader.py, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 2: Dashboard Fiyat Yenilemedeki Sahte Veri Kaldırıldı ve Canlı Servise Bağlandı
 
 - `DashboardController.refreshMetrics()` içindeki sentetik `np.random.normal` fiyat üretim mantığı tamamen kaldırıldı.

@@ -18,6 +18,8 @@ REQUIRED_ENV = {
 }
 
 OPTIONAL_ENV = {
+    "DB_ENGINE",
+    "DB_SQLITE_PATH",
     "GEMINI_API_KEY",
     "AI_CORE_API_URL",
     "EVDS_API_KEY",
@@ -179,3 +181,15 @@ def test_load_settings_dynamic_env_file(monkeypatch, tmp_path):
     config = settings_loader.load_settings()
     assert config.database == "test-db"
     assert config.host == "test-host"
+
+
+def test_load_settings_builds_sqlite_config(monkeypatch, tmp_path):
+    _disable_env_file(monkeypatch, tmp_path)
+    _clear_required_env(monkeypatch)
+    monkeypatch.setenv("DB_ENGINE", "sqlite")
+    monkeypatch.setenv("DB_SQLITE_PATH", "custom/path.db")
+
+    config = settings_loader.load_settings()
+    assert isinstance(config, settings_loader.SQLiteConfig)
+    assert config.db_path == "custom/path.db"
+
