@@ -88,7 +88,8 @@ ModernCard {
             // Sol Kısım: DuPont Akışı (3 Adım + Sonuç)
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredWidth: parent.width * 0.68
+                Layout.preferredWidth: 620
+                Layout.minimumWidth: 360
                 spacing: 6
 
                 // 1. Adım: Net Kâr Marjı
@@ -278,7 +279,8 @@ ModernCard {
             // Sağ Kısım: Piotroski F-Score Kartı
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredWidth: parent.width * 0.32
+                Layout.preferredWidth: 300
+                Layout.minimumWidth: 180
                 Layout.fillHeight: true
                 radius: Theme.radiusSm
                 color: Theme.bgInput

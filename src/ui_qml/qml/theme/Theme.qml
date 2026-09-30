@@ -18,6 +18,7 @@ QtObject {
     // --- Sınır / Çerçeve Çizgileri ---
     readonly property color borderSubtle: isDark ? "#2a2e39" : "#e0e3eb"
     readonly property color borderCard: isDark ? "#2d313d" : "#e8ecf4"
+    readonly property color borderStrong: isDark ? "#434958" : "#c2c8d4"
     readonly property color borderFocus: "#2962ff"
 
     // --- Metin Renkleri ---
@@ -67,4 +68,6 @@ QtObject {
     // --- Font Ailesi ---
     readonly property string fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif"
     readonly property string monoFontFamily: "'Segoe UI', 'Cascadia Code', Consolas, monospace"
+    readonly property string fontMono: monoFontFamily
 }
+

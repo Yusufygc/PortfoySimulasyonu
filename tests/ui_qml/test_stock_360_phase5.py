@@ -342,3 +342,78 @@ def test_stock_360_view_full_render(qapp, container):
     obj = comp.create()
     assert obj is not None
 
+
+def test_stock_360_view_dynamic_height_and_kap_timeline(qapp, container):
+    """Görünüm modları arasında dinamik yükseklik optimizasyonunu ve KAP zaman çizelgesi filtrelerini test et."""
+    from PySide6.QtCore import QObject
+    from PySide6.QtQuickControls2 import QQuickStyle
+
+    QQuickStyle.setStyle("Basic")
+
+    engine = QQmlApplicationEngine()
+    s360_ctrl = Stock360Controller(container, engine)
+    engine.rootContext().setContextProperty("stock360Controller", s360_ctrl)
+
+    qml_dir = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
+    engine.addImportPath(str(qml_dir))
+
+    view_file = qml_dir / "views" / "Stock360View.qml"
+    comp = QQmlComponent(engine, QUrl.fromLocalFile(str(view_file)))
+    assert not comp.errors(), f"Stock360View Hataları: {comp.errors()}"
+    obj = comp.create()
+    assert obj is not None
+
+    obj.setProperty("width", 1200)
+    obj.setProperty("height", 800)
+    qapp.processEvents()
+
+    scroll = obj.childItems()[0]
+    loader = obj.findChild(QObject, "viewModeLoader")
+    assert loader is not None
+
+    # Mod 0: Genel Bakış (Kompakt, hayalet kaydırma boşluğu yok)
+    h0 = loader.property("height")
+    ch0 = scroll.property("contentHeight")
+    assert 600 < h0 < 900
+    assert 900 < ch0 < 1250
+
+    # Mod 1: Kapsamlı Bilanço (Dinamik genişleme)
+    s360_ctrl.setViewMode(1)
+    qapp.processEvents()
+    h1 = loader.property("height")
+    ch1 = scroll.property("contentHeight")
+    assert h1 > h0
+    assert ch1 > ch0
+
+    # Mod 2: KAP Ortaklık Tarihçesi
+    s360_ctrl.setViewMode(2)
+    qapp.processEvents()
+    h2 = loader.property("height")
+    ch2 = scroll.property("contentHeight")
+    assert 550 < h2 < 850
+    assert 800 < ch2 < 1150
+
+    # Zaman çizelgesi bileşeni ve filtreleme testi
+    timeline_comp = QQmlComponent(engine, QUrl.fromLocalFile(str(qml_dir / "components" / "FintechShareholderTimeline.qml")))
+    assert not timeline_comp.errors()
+    tl_obj = timeline_comp.create()
+    assert tl_obj is not None
+
+    # Tüm liste
+    total_len = len(tl_obj.property("timelineList"))
+    filtered_all = tl_obj.property("filteredList").toVariant()
+    assert len(filtered_all) == total_len
+
+    # Artış filtresi
+    tl_obj.setProperty("filterMode", "increase")
+    qapp.processEvents()
+    inc_list = tl_obj.property("filteredList").toVariant()
+    assert all(item.get("isIncrease") is True for item in inc_list)
+
+    # Azalış filtresi
+    tl_obj.setProperty("filterMode", "decrease")
+    qapp.processEvents()
+    dec_list = tl_obj.property("filteredList").toVariant()
+    assert all(item.get("isIncrease") is False for item in dec_list)
+
+

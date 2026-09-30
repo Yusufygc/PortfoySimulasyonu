@@ -6,11 +6,13 @@ import "../theme"
 ModernCard {
     id: root
 
+    property bool fullView: false
+
     implicitWidth: 380
-    implicitHeight: 380
+    implicitHeight: fullView ? 560 : 380
     Layout.fillWidth: true
-    Layout.minimumHeight: 340
-    Layout.preferredHeight: 380
+    Layout.minimumHeight: fullView ? 460 : 340
+    Layout.preferredHeight: fullView ? 560 : 380
 
     readonly property var slices: (typeof stock360Controller !== "undefined" && stock360Controller && stock360Controller.shareholderSlices)
                                   ? stock360Controller.shareholderSlices
@@ -46,8 +48,8 @@ ModernCard {
                 Layout.fillWidth: true
 
                 Rectangle {
-                    width: 18
-                    height: 18
+                    width: 20
+                    height: 20
                     radius: Theme.radiusSm
                     color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15)
                     Layout.alignment: Qt.AlignVCenter
@@ -123,7 +125,7 @@ ModernCard {
 
             // Sol: QML Canvas Donut Grafiği
             Item {
-                Layout.preferredWidth: 150
+                Layout.preferredWidth: root.fullView ? 180 : 150
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignVCenter
 
@@ -198,20 +200,28 @@ ModernCard {
                 }
             }
 
-            // Sağ: Ortak Listesi (Flickable / ScrollView)
+            // Sağ: Ortak Listesi (Flickable + ModernScrollBar)
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
                 Flickable {
+                    id: shareholdersFlick
                     anchors.fill: parent
                     contentHeight: shareholdersCol.implicitHeight
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
 
+                    ScrollBar.vertical: ModernScrollBar {
+                        parent: shareholdersFlick
+                        anchors.right: shareholdersFlick.right
+                        anchors.top: shareholdersFlick.top
+                        anchors.bottom: shareholdersFlick.bottom
+                    }
+
                     ColumnLayout {
                         id: shareholdersCol
-                        width: parent.width
+                        width: Math.max(100, shareholdersFlick.width - 12)
                         spacing: 8
 
                         Repeater {
@@ -219,7 +229,7 @@ ModernCard {
 
                             Rectangle {
                                 Layout.fillWidth: true
-                                implicitHeight: 38
+                                implicitHeight: root.fullView ? 50 : 38
                                 radius: Theme.radiusSm
                                 color: modelData.isFreeFloat
                                        ? Qt.rgba(Theme.borderSubtle.r, Theme.borderSubtle.g, Theme.borderSubtle.b, 0.2)
@@ -229,48 +239,83 @@ ModernCard {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.leftMargin: 8
-                                    anchors.rightMargin: 8
-                                    spacing: 6
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 8
 
                                     // Renk göstergesi
                                     Rectangle {
                                         width: 8
                                         height: 8
                                         radius: 4
-                                        color: modelData.color
+                                        color: modelData.color || Theme.accent
                                         Layout.alignment: Qt.AlignVCenter
                                     }
 
                                     // Ortak Adı
                                     ColumnLayout {
                                         Layout.fillWidth: true
-                                        spacing: 1
+                                        spacing: 2
+                                        Layout.alignment: Qt.AlignVCenter
+
                                         Text {
                                             text: modelData.name
                                             font.family: Theme.fontFamily
                                             font.pixelSize: Theme.fontXs
-                                            font.weight: Font.Medium
+                                            font.weight: Font.DemiBold
                                             color: Theme.textPrimary
                                             elide: Text.ElideRight
                                             Layout.fillWidth: true
                                         }
-                                        Text {
-                                            text: modelData.share
-                                            font.family: Theme.fontFamily
-                                            font.pixelSize: 10
-                                            color: Theme.textMuted
+
+                                        RowLayout {
+                                            spacing: 6
+                                            Text {
+                                                text: modelData.share || ""
+                                                font.family: Theme.fontFamily
+                                                font.pixelSize: 10
+                                                color: Theme.textMuted
+                                            }
+
+                                            // Oy Hakkı Rozeti (Tam görünüm modunda)
+                                            Rectangle {
+                                                visible: root.fullView && !!modelData.votingRatio
+                                                implicitWidth: votingTxt.implicitWidth + 8
+                                                implicitHeight: 16
+                                                radius: 3
+                                                color: Theme.isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)"
+
+                                                Text {
+                                                    id: votingTxt
+                                                    anchors.centerIn: parent
+                                                    text: Strings.labelVotingRatio + ": " + (modelData.votingRatio || "—")
+                                                    font.family: Theme.fontMono
+                                                    font.pixelSize: 9
+                                                    color: Theme.textSecondary
+                                                }
+                                            }
                                         }
                                     }
 
-                                    // Pay Oranı
-                                    Text {
-                                        text: modelData.ratioStr
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontSm
-                                        font.weight: Font.Bold
-                                        color: Theme.textPrimary
+                                    // Pay Oranı Rozeti
+                                    Rectangle {
+                                        implicitWidth: ratioTxt.implicitWidth + 12
+                                        implicitHeight: 24
+                                        radius: Theme.radiusSm
+                                        color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.12)
+                                        border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.25)
+                                        border.width: 1
                                         Layout.alignment: Qt.AlignVCenter
+
+                                        Text {
+                                            id: ratioTxt
+                                            anchors.centerIn: parent
+                                            text: modelData.ratioStr || ""
+                                            font.family: Theme.fontMono
+                                            font.pixelSize: Theme.fontSm
+                                            font.weight: Font.Bold
+                                            color: Theme.accent
+                                        }
                                     }
                                 }
                             }
@@ -303,8 +348,9 @@ ModernCard {
             Item { Layout.fillWidth: true }
         }
 
-        // Alt Çubuk: KAP Ortaklık Tarihçesi ve Zaman Çizelgesine Geçiş Butonu
+        // Alt Çubuk: KAP Ortaklık Tarihçesi ve Zaman Çizelgesine Geçiş Butonu (Yalnızca Genel Bakış Modunda)
         Rectangle {
+            visible: !root.fullView
             Layout.fillWidth: true
             implicitHeight: 32
             radius: Theme.radiusSm
@@ -335,7 +381,7 @@ ModernCard {
                 Item { Layout.fillWidth: true }
 
                 ModernIcon {
-                    name: "arrow-right"
+                    name: "expand"
                     size: 11
                     color: Theme.accent
                 }
