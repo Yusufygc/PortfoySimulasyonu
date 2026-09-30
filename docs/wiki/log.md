@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 19: Sayı ve Hacim Formatları Türkçe Kısaltma Standardına (Mr/Mn/Bin) Çevrildi
+
+- `RULES.md §3` kuralı ("Para ve sayı formatları Türkçe standartlarında olmalıdır") uyarınca İngilizce kalan `B` (Billion), `M` (Million) ve `K` (Thousand) sayı/hacim kısaltmaları Türkçe finansal standart olan `Mr` (Milyar), `Mn` (Milyon) ve `Bin` olarak güncellendi.
+- `src/ui_qml/controllers/stock_360_controller.py` içindeki `_format_volume` fonksiyonu ve `src/ui_qml/controllers/watchlist_controller.py` bünyesindeki hacim gösterimleri tutarlı hale getirildi.
+- Etkilenen modüller: src/ui_qml/controllers/stock_360_controller.py, src/ui_qml/controllers/watchlist_controller.py, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 14: QML Arayüzündeki Sabit (Hardcoded) Metinler Strings Sözlüğüne Taşındı
 
 - `RULES.md §3` kuralı ("Tüm kullanıcı metinleri ve etiketler Strings.qml içinde toplanmalıdır") uyarınca QML bileşenlerinde sabit gömülü kalan tüm metinler `src/ui_qml/qml/theme/Strings.qml` merkezi sözlüğüne aktarıldı.

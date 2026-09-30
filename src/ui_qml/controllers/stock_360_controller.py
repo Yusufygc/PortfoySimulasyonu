@@ -62,11 +62,11 @@ def _format_volume(val: Optional[int | float]) -> str:
         return "—"
     v = float(val)
     if v >= 1_000_000_000:
-        return f"{v / 1_000_000_000:.2f}B"
+        return f"{v / 1_000_000_000:.2f} Mr"
     elif v >= 1_000_000:
-        return f"{v / 1_000_000:.2f}M"
+        return f"{v / 1_000_000:.2f} Mn"
     elif v >= 1_000:
-        return f"{v / 1_000:.1f}K"
+        return f"{v / 1_000:.1f} Bin"
     return str(int(v))
 
 
