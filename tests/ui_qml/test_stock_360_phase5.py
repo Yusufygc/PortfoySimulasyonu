@@ -211,3 +211,60 @@ def test_stock_360_individual_components_rendering(qapp, container):
     assert not comp.errors(), f"QML Hataları: {comp.errors()}"
     obj = comp.create()
     assert obj is not None
+
+
+def test_stock_360_view_modes_and_periods(qapp, container):
+    """Görünüm modları (Genel Bakış, 18 Modüllü Bilanço, KAP Tarihçesi) ve çeyrek seçimlerini test et."""
+    ctrl = Stock360Controller(container)
+
+    # Varsayılan mod: 0 (Genel Bakış)
+    assert ctrl.viewMode == 0
+    assert ctrl.periodsCount == 8
+
+    # Mod 1: Kapsamlı Bilanço & 18 Analiz Modülü
+    ctrl.setViewMode(1)
+    assert ctrl.viewMode == 1
+
+    # Çeyrek dönem değiştirme: 4 çeyrek
+    ctrl.setFinancialsPeriods(4)
+    assert ctrl.periodsCount == 4
+
+    # Mod 2: KAP Ortaklık Tarihçesi
+    ctrl.setViewMode(2)
+    assert ctrl.viewMode == 2
+
+    # Mod 0'a geri dönüş
+    ctrl.setViewMode(0)
+    assert ctrl.viewMode == 0
+
+
+def test_financials_dashboard_view_component(qapp, container):
+    """FinancialsDashboardView bileşeninin hatasız derlenip render edildiğini doğrula."""
+    engine = QQmlApplicationEngine()
+    s360_ctrl = Stock360Controller(container, engine)
+    engine.rootContext().setContextProperty("stock360Controller", s360_ctrl)
+
+    qml_dir = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
+    engine.addImportPath(str(qml_dir))
+
+    comp = QQmlComponent(engine)
+    test_qml = """
+    import QtQuick
+    import "src/ui_qml/qml/components"
+    import "src/ui_qml/qml/theme"
+
+    Item {
+        width: 800
+        height: 600
+
+        FinancialsDashboardView {
+            anchors.fill: parent
+            htmlUrl: ""
+            isLoading: false
+        }
+    }
+    """
+    comp.setData(test_qml.encode("utf-8"), QUrl.fromLocalFile(str(Path.cwd() / "test_fin_dash.qml")))
+    assert not comp.errors(), f"QML Hataları: {comp.errors()}"
+    obj = comp.create()
+    assert obj is not None

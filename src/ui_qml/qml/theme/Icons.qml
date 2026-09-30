@@ -45,6 +45,9 @@ QtObject {
     readonly property url lineChart:     Qt.resolvedUrl("../../assets/icons/line-chart.svg")
     readonly property url candle:        Qt.resolvedUrl("../../assets/icons/candlestick.svg")
     readonly property url areaChart:     Qt.resolvedUrl("../../assets/icons/area-chart.svg")
+    readonly property url fileText:      Qt.resolvedUrl("../../assets/icons/file-text.svg")
+    readonly property url users:         Qt.resolvedUrl("../../assets/icons/users.svg")
+    readonly property url history:       Qt.resolvedUrl("../../assets/icons/history.svg")
 
     function get(name) {
         if (!name) return "";
@@ -99,6 +102,10 @@ QtObject {
             case "candle":        return candle;
             case "areachart":
             case "area":          return areaChart;
+            case "filetext":
+            case "file-text":     return fileText;
+            case "users":         return users;
+            case "history":       return history;
             case "info":          return info;
             case "alert":         return alert;
             default:              return Qt.resolvedUrl("../../assets/icons/" + name + ".svg");

@@ -7,16 +7,21 @@ Arka plan iş parçacığı (threading) ile UI donmasını engeller.
 """
 from __future__ import annotations
 
+import os
+import tempfile
+from pathlib import Path
 import logging
 import threading
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer
+from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer, QUrl
 
 from src.application.services.analysis.stock_360_service import Stock360Service
 from src.domain.models.shareholder import ShareholderSnapshot
+from src.ui.pages.financials.utils.dashboard_html import build_dashboard as build_financials_dashboard
+from src.ui.pages.shareholders.utils.dashboard_html import build_dashboard as build_shareholder_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +79,13 @@ class Stock360Controller(QObject):
     loadingChanged = Signal(bool)
     errorOccurred = Signal(str)
     availableStocksChanged = Signal()
+    financialsHtmlUrlChanged = Signal()
+    shareholdersHtmlUrlChanged = Signal()
+    periodsCountChanged = Signal(int)
+    viewModeChanged = Signal(int)
 
     # Thread-safe iç sinyal (arka plan iş parçacığından ana GUI iş parçacığına)
-    _remoteDataReady = Signal(str, object, object, str)
+    _remoteDataReady = Signal(str, object, object, str, str, str)
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
@@ -141,6 +150,19 @@ class Stock360Controller(QObject):
         self._paid_capital_str: str = "—"
         self._shareholder_date_str: str = "—"
         self._has_shareholders: bool = False
+
+        # Kapsamlı Bilanço (18 Modül) & KAP Ortaklık Tarihçesi
+        self._financials_html_url: str = ""
+        self._shareholders_html_url: str = ""
+        self._cached_metrics: Optional[Dict[str, Any]] = None
+        self._cached_snapshots: Optional[List[Any]] = None
+        self._current_periods_count: int = 8
+        self._active_view_mode: int = 0  # 0: Genel Bakış, 1: Kapsamlı Bilanço, 2: KAP Tarihçesi
+        self._is_financials_ready: bool = False
+        self._is_shareholders_ready: bool = False
+        self._kap_snapshot_count: int = 0
+        self._last_kap_filing_date: str = "—"
+        self._temp_files: List[str] = []
 
         # Hızlı seçim hisseleri
         self._available_stocks: List[str] = []
@@ -343,6 +365,39 @@ class Stock360Controller(QObject):
     def availableStocks(self) -> List[str]:
         return self._available_stocks
 
+    # Kapsamlı Bilanço & KAP Ortaklık Dashboard Properties
+    @Property(str, notify=financialsHtmlUrlChanged)
+    def financialsHtmlUrl(self) -> str:
+        return self._financials_html_url
+
+    @Property(str, notify=shareholdersHtmlUrlChanged)
+    def shareholdersHtmlUrl(self) -> str:
+        return self._shareholders_html_url
+
+    @Property(int, notify=periodsCountChanged)
+    def periodsCount(self) -> int:
+        return self._current_periods_count
+
+    @Property(int, notify=viewModeChanged)
+    def viewMode(self) -> int:
+        return self._active_view_mode
+
+    @Property(bool, notify=financialsChanged)
+    def isFinancialsReady(self) -> bool:
+        return self._is_financials_ready
+
+    @Property(bool, notify=shareholdersChanged)
+    def isShareholdersReady(self) -> bool:
+        return self._is_shareholders_ready
+
+    @Property(int, notify=shareholdersChanged)
+    def kapSnapshotCount(self) -> int:
+        return self._kap_snapshot_count
+
+    @Property(str, notify=shareholdersChanged)
+    def lastKapFilingDate(self) -> str:
+        return self._last_kap_filing_date
+
     # ------------------------------------------------------------------
     # Public Slots & API
     # ------------------------------------------------------------------
@@ -368,6 +423,56 @@ class Stock360Controller(QObject):
     def refreshShareholders(self) -> None:
         self.loadStock(self._current_ticker, force_refresh_shareholders=True)
 
+    @Slot(int)
+    def setViewMode(self, mode: int) -> None:
+        if self._active_view_mode != mode:
+            self._active_view_mode = mode
+            self.viewModeChanged.emit(mode)
+
+    @Slot(int)
+    def setFinancialsPeriods(self, periods: int) -> None:
+        """Kapsamlı bilanço için dönem sayısını (4, 8, 12, 0=Tümü) ayarlar ve HTML'i yeniler."""
+        self._current_periods_count = periods
+        self.periodsCountChanged.emit(periods)
+        if self._cached_metrics:
+            all_periods = self._cached_metrics.get("periods", [])
+            n_p = len(all_periods) if periods == 0 else periods
+            try:
+                html = build_financials_dashboard(self._cached_metrics, n_periods=n_p)
+                self._financials_html_url = self._write_temp_html(f"fin_{periods}", self._current_ticker, html)
+                self.financialsHtmlUrlChanged.emit()
+            except Exception as exc:
+                logger.exception("Finansal HTML yenilenemedi: %s", exc)
+        else:
+            self.refreshData()
+
+    @Slot()
+    def refreshShareholdersHistory(self) -> None:
+        """KAP ortaklık geçmişini internet üzerinden zorla yeniler."""
+        self.loadStock(self._current_ticker, force_refresh_shareholders=True)
+
+    def _write_temp_html(self, prefix: str, ticker: str, content: str) -> str:
+        """Yazılan HTML içeriğini geçici dosyaya kaydeder ve file:// URL döner."""
+        try:
+            temp_dir = Path(tempfile.gettempdir())
+            filename = f"portfoy_{prefix}_{ticker}.html"
+            file_path = temp_dir / filename
+            file_path.write_text(content, encoding="utf-8")
+            self._temp_files.append(str(file_path))
+            return QUrl.fromLocalFile(str(file_path)).toString()
+        except Exception as exc:
+            logger.exception("HTML geçici dosyaya yazılamadı: %s", exc)
+            return ""
+
+    def _cleanup_temp_files(self) -> None:
+        for f in self._temp_files:
+            try:
+                if os.path.exists(f):
+                    os.remove(f)
+            except OSError:
+                pass
+        self._temp_files.clear()
+
     # ------------------------------------------------------------------
     # Data Loading Strategy
     # ------------------------------------------------------------------
@@ -385,6 +490,12 @@ class Stock360Controller(QObject):
 
         # 2. Aşama: Ağ / Dış API çağrılarını (Bilanço & KAP) arka planda yürüt
         self._is_loading = True
+        self._is_financials_ready = False
+        self._is_shareholders_ready = False
+        self._financials_html_url = ""
+        self._shareholders_html_url = ""
+        self.financialsHtmlUrlChanged.emit()
+        self.shareholdersHtmlUrlChanged.emit()
         self._error_message = ""
         self.loadingChanged.emit(True)
 
@@ -506,29 +617,39 @@ class Stock360Controller(QObject):
         self.technicalChanged.emit()
 
     def _remote_fetch_worker(self, ticker: str, force_refresh_shareholders: bool) -> None:
-        """Ağ üzerinden finansal bilanço ve KAP ortaklık verilerini çeker."""
+        """Ağ üzerinden 18 modüllü finansal bilanço ve KAP ortaklık verilerini çeker."""
         s360_service: Optional[Stock360Service] = getattr(getattr(self._container, "services", None), "stock_360_service", None)
         financials_data = None
         shareholders_data = None
+        fin_html_url = ""
+        sh_html_url = ""
         err_msg = ""
 
         if s360_service:
-            # 1. Finansallar (İş Yatırım API)
+            # 1. Finansallar (12 Çeyrek Analiz ve 18 Modüllü İnteraktif Dashboard)
             try:
-                financials_data = s360_service.get_financials(ticker, n_quarters=6)
+                financials_data = s360_service.get_financials(ticker, n_quarters=12)
+                if financials_data:
+                    all_periods = financials_data.get("periods", [])
+                    n_p = len(all_periods) if self._current_periods_count == 0 else self._current_periods_count
+                    html = build_financials_dashboard(financials_data, n_periods=n_p)
+                    fin_html_url = self._write_temp_html(f"fin_{self._current_periods_count}", ticker, html)
             except Exception as exc:
                 logger.warning("Finansal veri çekilemedi [%s]: %s", ticker, exc)
                 err_msg = f"Finansal veriler alınamadı ({exc})"
 
-            # 2. KAP Ortaklık (KAP API / Cache)
+            # 2. KAP Ortaklık (KAP API / Cache & Tarihçe Çizelgesi)
             try:
                 shareholders_data = s360_service.get_shareholders(ticker, force_refresh=force_refresh_shareholders)
+                if shareholders_data:
+                    sh_html = build_shareholder_dashboard(ticker, shareholders_data)
+                    sh_html_url = self._write_temp_html("sh", ticker, sh_html)
             except Exception as exc:
                 logger.warning("KAP ortaklık verisi çekilemedi [%s]: %s", ticker, exc)
 
         # UI Thread'e güvenli bildirim gönder (Qt queued connection)
         try:
-            self._remoteDataReady.emit(ticker, financials_data, shareholders_data, err_msg)
+            self._remoteDataReady.emit(ticker, financials_data, shareholders_data, fin_html_url, sh_html_url, err_msg)
         except RuntimeError:
             pass
 
@@ -537,6 +658,8 @@ class Stock360Controller(QObject):
         ticker: str,
         financials: Optional[Dict[str, Any]],
         shareholders: Optional[List[ShareholderSnapshot]],
+        fin_html_url: str,
+        sh_html_url: str,
         error: str,
     ) -> None:
         if self._current_ticker != ticker:
@@ -547,27 +670,48 @@ class Stock360Controller(QObject):
         self._error_message = error
         self.loadingChanged.emit(False)
 
+        self._cached_metrics = financials
+        self._cached_snapshots = shareholders
+
         # Finansalları işle
         if financials and "periods" in financials and financials["periods"]:
             self._financial_raw_data = financials
             self._has_financials = True
+            self._is_financials_ready = True
             self._financial_periods = financials.get("periods", [])
+            self._financials_html_url = fin_html_url
             self._parse_valuation_ratios(financials)
             self._recalculate_financial_bars()
         else:
             self._has_financials = False
+            self._is_financials_ready = False
+            self._financials_html_url = ""
             self._set_fallback_financials(ticker)
 
         # Ortaklık yapısını işle
         if shareholders and len(shareholders) > 0:
             self._has_shareholders = True
+            self._is_shareholders_ready = True
+            self._shareholders_html_url = sh_html_url
+            self._kap_snapshot_count = len(shareholders)
+            self._last_kap_filing_date = (
+                shareholders[0].creation_date.strftime("%d.%m.%Y")
+                if getattr(shareholders[0], "creation_date", None)
+                else "—"
+            )
             self._parse_shareholder_data(shareholders[0])
         else:
             self._has_shareholders = False
+            self._is_shareholders_ready = False
+            self._shareholders_html_url = ""
+            self._kap_snapshot_count = 0
+            self._last_kap_filing_date = "—"
             self._set_fallback_shareholders(ticker)
 
         self.financialsChanged.emit()
         self.shareholdersChanged.emit()
+        self.financialsHtmlUrlChanged.emit()
+        self.shareholdersHtmlUrlChanged.emit()
 
     # ------------------------------------------------------------------
     # Data Processing & Parsing

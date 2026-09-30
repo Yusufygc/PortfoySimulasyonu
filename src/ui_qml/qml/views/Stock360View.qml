@@ -231,7 +231,130 @@ Item {
             }
 
             // ---------------------------------------------------------
-            // 2. HERO HEADER — GENEL BAKIŞ & FİYAT KARTI
+            // 2. GÖRÜNÜM MODU SEÇİCİ SEKME BARI
+            // ---------------------------------------------------------
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 46
+                radius: Theme.radiusMd
+                color: Theme.bgCard
+                border.color: Theme.borderSubtle
+                border.width: 1
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    spacing: 6
+
+                    // Sekme 0: Genel Bakış & Özet
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: Theme.radiusSm
+                        color: (root.ctrl && root.ctrl.viewMode === 0) ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15) : "transparent"
+                        border.color: (root.ctrl && root.ctrl.viewMode === 0) ? Theme.accent : "transparent"
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            ModernIcon {
+                                name: "target"
+                                size: 14
+                                color: (root.ctrl && root.ctrl.viewMode === 0) ? Theme.accent : Theme.textMuted
+                            }
+
+                            Text {
+                                text: Strings.tabOverviewAndCharts
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSm
+                                font.weight: (root.ctrl && root.ctrl.viewMode === 0) ? Font.Bold : Font.Normal
+                                color: (root.ctrl && root.ctrl.viewMode === 0) ? Theme.textPrimary : Theme.textMuted
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: if (root.ctrl) root.ctrl.setViewMode(0)
+                        }
+                    }
+
+                    // Sekme 1: Kapsamlı Bilanço (18 Modül)
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: Theme.radiusSm
+                        color: (root.ctrl && root.ctrl.viewMode === 1) ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15) : "transparent"
+                        border.color: (root.ctrl && root.ctrl.viewMode === 1) ? Theme.accent : "transparent"
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            ModernIcon {
+                                name: "file-text"
+                                size: 14
+                                color: (root.ctrl && root.ctrl.viewMode === 1) ? Theme.accent : Theme.textMuted
+                            }
+
+                            Text {
+                                text: Strings.tabFullFinancials
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSm
+                                font.weight: (root.ctrl && root.ctrl.viewMode === 1) ? Font.Bold : Font.Normal
+                                color: (root.ctrl && root.ctrl.viewMode === 1) ? Theme.textPrimary : Theme.textMuted
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: if (root.ctrl) root.ctrl.setViewMode(1)
+                        }
+                    }
+
+                    // Sekme 2: KAP Ortaklık Tarihçesi
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: Theme.radiusSm
+                        color: (root.ctrl && root.ctrl.viewMode === 2) ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15) : "transparent"
+                        border.color: (root.ctrl && root.ctrl.viewMode === 2) ? Theme.accent : "transparent"
+                        border.width: 1
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            ModernIcon {
+                                name: "history"
+                                size: 14
+                                color: (root.ctrl && root.ctrl.viewMode === 2) ? Theme.accent : Theme.textMuted
+                            }
+
+                            Text {
+                                text: Strings.tabShareholdersTimeline
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSm
+                                font.weight: (root.ctrl && root.ctrl.viewMode === 2) ? Font.Bold : Font.Normal
+                                color: (root.ctrl && root.ctrl.viewMode === 2) ? Theme.textPrimary : Theme.textMuted
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: if (root.ctrl) root.ctrl.setViewMode(2)
+                        }
+                    }
+                }
+            }
+
+            // ---------------------------------------------------------
+            // 3. HERO HEADER — GENEL BAKIŞ & FİYAT KARTI (TÜM MODLARDA AKTİF)
             // ---------------------------------------------------------
             ModernCard {
                 Layout.fillWidth: true
@@ -447,347 +570,565 @@ Item {
                 }
             }
 
-            // ---------------------------------------------------------
-            // 3. FİNANSAL DEĞERLEME & RASYOLAR (GRID)
-            // ---------------------------------------------------------
-            GridLayout {
-                Layout.fillWidth: true
-                columns: Math.max(2, Math.min(4, Math.floor(mainColumn.width / 200)))
-                rowSpacing: Theme.spaceSm
-                columnSpacing: Theme.spaceSm
-
-                RatioCard {
-                    title: Strings.ratioPE
-                    value: root.ctrl ? root.ctrl.peRatio : "—"
-                    subtitle: Strings.ratioPEDesc
-                    iconName: "scale"
-                    accentColor: Theme.accent
-                    badgeText: "Değerleme"
-                }
-
-                RatioCard {
-                    title: Strings.ratioPB
-                    value: root.ctrl ? root.ctrl.pbRatio : "—"
-                    subtitle: Strings.ratioPBDesc
-                    iconName: "shield-check"
-                    accentColor: "#8b5cf6"
-                    badgeText: "Özkaynak"
-                }
-
-                RatioCard {
-                    title: Strings.ratioEvEbitda
-                    value: root.ctrl ? root.ctrl.evEbitda : "—"
-                    subtitle: Strings.ratioEvEbitdaDesc
-                    iconName: "activity"
-                    accentColor: "#06b6d4"
-                    badgeText: "Operasyonel"
-                }
-
-                RatioCard {
-                    title: Strings.ratioDivYield
-                    value: root.ctrl ? root.ctrl.divYield : "—"
-                    subtitle: Strings.ratioDivYieldDesc
-                    iconName: "coins"
-                    accentColor: Theme.bullGreen
-                    badgeText: "Temettü"
-                }
-
-                RatioCard {
-                    title: "ROE"
-                    value: root.ctrl ? root.ctrl.roe : "—"
-                    subtitle: Strings.ratioROEDesc
-                    iconName: "trendingup"
-                    accentColor: Theme.bullGreen
-                    badgeText: "Kârlılık"
-                }
-
-                RatioCard {
-                    title: Strings.ratioNetDebtEbitda
-                    value: root.ctrl ? root.ctrl.netDebtEbitda : "—"
-                    subtitle: Strings.ratioNetDebtEbitdaDesc
-                    iconName: "banknote"
-                    accentColor: "#f59e0b"
-                    badgeText: "Kaldıraç"
-                }
-
-                RatioCard {
-                    title: Strings.ratioPiotroski
-                    value: root.ctrl ? root.ctrl.piotroskiScore : "—"
-                    subtitle: Strings.ratioPiotroskiDesc
-                    iconName: "shield-check"
-                    accentColor: Theme.accent
-                    badgeText: "F-Score"
-                }
-
-                RatioCard {
-                    title: Strings.ratioCurrentRatio
-                    value: root.ctrl ? root.ctrl.currentRatio : "—"
-                    subtitle: Strings.ratioCurrentRatioDesc
-                    iconName: "zap"
-                    accentColor: "#10b981"
-                    badgeText: "Likidite"
-                }
-            }
-
-            // ---------------------------------------------------------
-            // 4. ORTA BÖLÜM: ÇEYREKLİK BİLANÇO & GELİR TABLOSU + KAP ORTAKLIK
-            // ---------------------------------------------------------
-            RowLayout {
+            // =========================================================
+            // GÖRÜNÜM MODU 0: GENEL BAKIŞ & ÖZET KARTLAR
+            // =========================================================
+            ColumnLayout {
+                id: overviewSection
                 Layout.fillWidth: true
                 spacing: Theme.spaceMd
+                visible: (root.ctrl && root.ctrl.viewMode === 0)
 
-                // Çeyreklik Bilanço ve Gelir Tablosu Çubuk Grafiği
-                FinancialBarChart {
+                // 4. ÖNEMLİ DEĞERLEME VE FİNANSAL RASYOLAR (8'Lİ GRID)
+                GridLayout {
                     Layout.fillWidth: true
-                    Layout.preferredWidth: (mainColumn.width - Theme.spaceMd) * 0.62
+                    columns: 4
+                    rowSpacing: Theme.spaceSm
+                    columnSpacing: Theme.spaceSm
+
+                    RatioCard {
+                        title: Strings.ratioPE
+                        value: root.ctrl ? root.ctrl.peRatio : "—"
+                        subtitle: Strings.ratioPEDesc
+                        iconName: "coins"
+                        accentColor: Theme.accent
+                        badgeText: "Değerleme"
+                    }
+
+                    RatioCard {
+                        title: Strings.ratioPB
+                        value: root.ctrl ? root.ctrl.pbRatio : "—"
+                        subtitle: Strings.ratioPBDesc
+                        iconName: "scale"
+                        accentColor: "#8b5cf6"
+                        badgeText: "Çarpan"
+                    }
+
+                    RatioCard {
+                        title: Strings.ratioEvEbitda
+                        value: root.ctrl ? root.ctrl.evEbitda : "—"
+                        subtitle: Strings.ratioEvEbitdaDesc
+                        iconName: "activity"
+                        accentColor: "#06b6d4"
+                        badgeText: "Operasyonel"
+                    }
+
+                    RatioCard {
+                        title: Strings.ratioDivYield
+                        value: root.ctrl ? root.ctrl.divYield : "—"
+                        subtitle: Strings.ratioDivYieldDesc
+                        iconName: "wallet"
+                        accentColor: "#ec4899"
+                        badgeText: "Temettü"
+                    }
+
+                    RatioCard {
+                        title: Strings.ratioROE
+                        value: root.ctrl ? root.ctrl.roe : "—"
+                        subtitle: Strings.ratioROEDesc
+                        iconName: "trendingup"
+                        accentColor: Theme.bullGreen
+                        badgeText: "Kârlılık"
+                    }
+
+                    RatioCard {
+                        title: Strings.ratioNetDebtEbitda
+                        value: root.ctrl ? root.ctrl.netDebtEbitda : "—"
+                        subtitle: Strings.ratioNetDebtEbitdaDesc
+                        iconName: "banknote"
+                        accentColor: "#f59e0b"
+                        badgeText: "Kaldıraç"
+                    }
+
+                    RatioCard {
+                        title: Strings.ratioPiotroski
+                        value: root.ctrl ? root.ctrl.piotroskiScore : "—"
+                        subtitle: Strings.ratioPiotroskiDesc
+                        iconName: "shield-check"
+                        accentColor: Theme.accent
+                        badgeText: "F-Score"
+                    }
+
+                    RatioCard {
+                        title: Strings.ratioCurrentRatio
+                        value: root.ctrl ? root.ctrl.currentRatio : "—"
+                        subtitle: Strings.ratioCurrentRatioDesc
+                        iconName: "zap"
+                        accentColor: "#10b981"
+                        badgeText: "Likidite"
+                    }
                 }
 
-                // KAP Ortaklık Yapısı & Halka Açıklık Oranı
-                ShareholderPieCard {
+                // 5. ORTA BÖLÜM: ÇEYREKLİK BİLANÇO & GELİR TABLOSU + KAP ORTAKLIK
+                RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredWidth: (mainColumn.width - Theme.spaceMd) * 0.38
-                }
-            }
+                    spacing: Theme.spaceMd
 
-            // ---------------------------------------------------------
-            // 5. TEKNİK SEVİYELER & DESTEK / DİRENÇ KARTI
-            // ---------------------------------------------------------
-            ModernCard {
-                Layout.fillWidth: true
-                implicitHeight: techCol.implicitHeight + Theme.spaceMd * 2
-
-                ColumnLayout {
-                    id: techCol
-                    anchors.fill: parent
-                    anchors.margins: Theme.spaceMd
-                    spacing: Theme.spaceSm
-
-                    // Başlık & Trend Durumu Rozeti
-                    RowLayout {
+                    // Çeyreklik Bilanço ve Gelir Tablosu Çubuk Grafiği
+                    FinancialBarChart {
                         Layout.fillWidth: true
+                        Layout.preferredWidth: (mainColumn.width - Theme.spaceMd) * 0.62
+                    }
+
+                    // KAP Ortaklık Yapısı & Halka Açıklık Oranı
+                    ShareholderPieCard {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: (mainColumn.width - Theme.spaceMd) * 0.38
+                    }
+                }
+
+                // 6. TEKNİK SEVİYELER & DESTEK / DİRENÇ KARTI
+                ModernCard {
+                    Layout.fillWidth: true
+                    implicitHeight: techCol.implicitHeight + Theme.spaceMd * 2
+
+                    ColumnLayout {
+                        id: techCol
+                        anchors.fill: parent
+                        anchors.margins: Theme.spaceMd
                         spacing: Theme.spaceSm
 
+                        // Başlık & Trend Durumu Rozeti
                         RowLayout {
-                            spacing: 6
                             Layout.fillWidth: true
+                            spacing: Theme.spaceSm
 
+                            RowLayout {
+                                spacing: 6
+                                Layout.fillWidth: true
+
+                                Rectangle {
+                                    width: 18
+                                    height: 18
+                                    radius: Theme.radiusSm
+                                    color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15)
+                                    Layout.alignment: Qt.AlignVCenter
+
+                                    ModernIcon {
+                                        anchors.centerIn: parent
+                                        name: "target"
+                                        size: 11
+                                        color: Theme.accent
+                                    }
+                                }
+
+                                Text {
+                                    text: Strings.technicalTitle
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSm
+                                    font.weight: Font.Bold
+                                    color: Theme.textPrimary
+                                    font.letterSpacing: 0.5
+                                }
+                            }
+
+                            // Trend Durumu Rozeti
                             Rectangle {
-                                width: 18
-                                height: 18
-                                radius: Theme.radiusSm
+                                implicitWidth: trendLabel.implicitWidth + 14
+                                implicitHeight: 22
+                                radius: 11
                                 color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15)
                                 Layout.alignment: Qt.AlignVCenter
 
-                                ModernIcon {
+                                Text {
+                                    id: trendLabel
                                     anchors.centerIn: parent
-                                    name: "target"
-                                    size: 11
+                                    text: root.ctrl ? root.ctrl.trendStatus : "Dengeli"
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontXs
+                                    font.weight: Font.DemiBold
                                     color: Theme.accent
                                 }
                             }
-
-                            Text {
-                                text: Strings.technicalTitle
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontSm
-                                font.weight: Font.Bold
-                                color: Theme.textPrimary
-                                font.letterSpacing: 0.5
-                            }
                         }
 
-                        // Trend Durumu Rozeti
+                        // Separator
                         Rectangle {
-                            implicitWidth: trendLabel.implicitWidth + 14
-                            implicitHeight: 22
-                            radius: 11
-                            color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.15)
-                            Layout.alignment: Qt.AlignVCenter
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            color: Theme.borderSubtle
+                        }
 
-                            Text {
-                                id: trendLabel
-                                anchors.centerIn: parent
-                                text: root.ctrl ? root.ctrl.trendStatus : "Dengeli"
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontXs
-                                font.weight: Font.DemiBold
-                                color: Theme.accent
+                        // 4 Sütunlu Teknik Metrikler
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.spaceMd
+
+                            // 1. RSI (14)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 64
+                                radius: Theme.radiusSm
+                                color: Theme.bgInput
+                                border.color: Theme.borderSubtle
+                                border.width: 1
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 2
+
+                                    Text {
+                                        text: Strings.labelRSI
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontXs
+                                        color: Theme.textMuted
+                                    }
+
+                                    RowLayout {
+                                        spacing: 6
+                                        Text {
+                                            text: root.ctrl ? root.ctrl.rsi14 : "—"
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontMd
+                                            font.weight: Font.Bold
+                                            color: Theme.textPrimary
+                                        }
+                                        Text {
+                                            text: root.ctrl ? root.ctrl.rsiStatus : ""
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            color: Theme.accent
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. MACD
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 64
+                                radius: Theme.radiusSm
+                                color: Theme.bgInput
+                                border.color: Theme.borderSubtle
+                                border.width: 1
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 2
+
+                                    Text {
+                                        text: Strings.labelMACD
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontXs
+                                        color: Theme.textMuted
+                                    }
+
+                                    RowLayout {
+                                        spacing: 4
+                                        Text {
+                                            text: "Çizgi: " + (root.ctrl ? root.ctrl.macdLine : "—")
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            font.weight: Font.Bold
+                                            color: Theme.textPrimary
+                                        }
+                                        Text {
+                                            text: "• Sinyal: " + (root.ctrl ? root.ctrl.macdSignal : "—")
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            color: Theme.textSecondary
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 3. SMA & EMA
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 64
+                                radius: Theme.radiusSm
+                                color: Theme.bgInput
+                                border.color: Theme.borderSubtle
+                                border.width: 1
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 2
+
+                                    Text {
+                                        text: "SMA 50 / 200 & EMA 20"
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontXs
+                                        color: Theme.textMuted
+                                    }
+
+                                    RowLayout {
+                                        spacing: 4
+                                        Text {
+                                            text: (root.ctrl ? root.ctrl.sma50 : "—")
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            font.weight: Font.Bold
+                                            color: Theme.accent
+                                        }
+                                        Text {
+                                            text: "/ " + (root.ctrl ? root.ctrl.sma200 : "—")
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            color: Theme.textSecondary
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 4. Destek & Direnç
+                            Rectangle {
+                                Layout.fillWidth: true
+                                implicitHeight: 64
+                                radius: Theme.radiusSm
+                                color: Theme.bgInput
+                                border.color: Theme.borderSubtle
+                                border.width: 1
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 2
+
+                                    Text {
+                                        text: Strings.labelSupport + " / " + Strings.labelResistance
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontXs
+                                        color: Theme.textMuted
+                                    }
+
+                                    RowLayout {
+                                        spacing: 4
+                                        Text {
+                                            text: (root.ctrl ? root.ctrl.support : "—")
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            font.weight: Font.Bold
+                                            color: Theme.bullGreen
+                                        }
+                                        Text {
+                                            text: "/ " + (root.ctrl ? root.ctrl.resistance : "—")
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            font.weight: Font.Bold
+                                            color: Theme.bearRed
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
+                }
+            }
 
-                    // Separator
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 1
-                        color: Theme.borderSubtle
-                    }
+            // =========================================================
+            // GÖRÜNÜM MODU 1: KAPSAMLI BİLANÇO & 18 ANALİZ MODÜLÜ
+            // =========================================================
+            ColumnLayout {
+                id: financialsSection
+                Layout.fillWidth: true
+                spacing: Theme.spaceMd
+                visible: (root.ctrl && root.ctrl.viewMode === 1)
 
-                    // 4 Sütunlu Teknik Metrikler
+                // Dönem Seçici & Kontrol Çubuğu (4, 8, 12, Tüm Geçmiş)
+                ModernCard {
+                    Layout.fillWidth: true
+                    implicitHeight: 48
+
                     RowLayout {
-                        Layout.fillWidth: true
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.spaceMd
+                        anchors.rightMargin: Theme.spaceMd
                         spacing: Theme.spaceMd
 
-                        // 1. RSI (14)
-                        Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: 64
-                            radius: Theme.radiusSm
-                            color: Theme.bgInput
-                            border.color: Theme.borderSubtle
-                            border.width: 1
+                        Text {
+                            text: Strings.labelPeriod + ":"
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSm
+                            font.weight: Font.DemiBold
+                            color: Theme.textMuted
+                        }
 
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 2
+                        // Dönem Butonları: 4, 8, 12, 0 (Tümü)
+                        RowLayout {
+                            spacing: 6
 
-                                Text {
-                                    text: Strings.labelRSI
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontXs
-                                    color: Theme.textMuted
-                                }
+                            Repeater {
+                                model: [
+                                    { label: Strings.period4Quarters, val: 4 },
+                                    { label: Strings.period8Quarters, val: 8 },
+                                    { label: Strings.period12Quarters, val: 12 },
+                                    { label: Strings.periodAllQuarters, val: 0 }
+                                ]
 
-                                RowLayout {
-                                    spacing: 6
+                                Rectangle {
+                                    required property var modelData
+                                    implicitWidth: pLabel.implicitWidth + 20
+                                    implicitHeight: 30
+                                    radius: Theme.radiusSm
+                                    color: (root.ctrl && root.ctrl.periodsCount === modelData.val)
+                                        ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.2)
+                                        : Theme.bgInput
+                                    border.color: (root.ctrl && root.ctrl.periodsCount === modelData.val)
+                                        ? Theme.accent
+                                        : Theme.borderSubtle
+                                    border.width: 1
+
                                     Text {
-                                        text: root.ctrl ? root.ctrl.rsi14 : "—"
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontMd
-                                        font.weight: Font.Bold
-                                        color: Theme.textPrimary
-                                    }
-                                    Text {
-                                        text: root.ctrl ? root.ctrl.rsiStatus : ""
+                                        id: pLabel
+                                        anchors.centerIn: parent
+                                        text: modelData.label
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontXs
-                                        color: Theme.accent
+                                        font.weight: (root.ctrl && root.ctrl.periodsCount === modelData.val) ? Font.Bold : Font.Normal
+                                        color: (root.ctrl && root.ctrl.periodsCount === modelData.val) ? Theme.accent : Theme.textPrimary
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (root.ctrl) root.ctrl.setFinancialsPeriods(modelData.val)
+                                        }
                                     }
                                 }
                             }
                         }
 
-                        // 2. MACD
+                        Item { Layout.fillWidth: true }
+
+                        // Durum Rozeti
                         Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: 64
-                            radius: Theme.radiusSm
-                            color: Theme.bgInput
-                            border.color: Theme.borderSubtle
+                            implicitWidth: finStatusTxt.implicitWidth + 16
+                            implicitHeight: 26
+                            radius: 13
+                            color: Qt.rgba(Theme.bullGreen.r, Theme.bullGreen.g, Theme.bullGreen.b, 0.12)
+                            border.color: Qt.rgba(Theme.bullGreen.r, Theme.bullGreen.g, Theme.bullGreen.b, 0.3)
                             border.width: 1
 
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 2
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: 6
 
-                                Text {
-                                    text: Strings.labelMACD
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontXs
-                                    color: Theme.textMuted
+                                ModernIcon {
+                                    name: "layers"
+                                    size: 12
+                                    color: Theme.bullGreen
                                 }
 
-                                RowLayout {
-                                    spacing: 4
-                                    Text {
-                                        text: "Çizgi: " + (root.ctrl ? root.ctrl.macdLine : "—")
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
-                                        font.weight: Font.Bold
-                                        color: Theme.textPrimary
-                                    }
-                                    Text {
-                                        text: "• Sinyal: " + (root.ctrl ? root.ctrl.macdSignal : "—")
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
-                                        color: Theme.textSecondary
-                                    }
+                                Text {
+                                    id: finStatusTxt
+                                    text: Strings.statusFinancialsReady
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontXs
+                                    font.weight: Font.DemiBold
+                                    color: Theme.bullGreen
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 18 Modüllü İnteraktif Finansal Dashboard Web Görünümü
+                ModernCard {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 780
+                    clip: true
+
+                    FinancialsDashboardView {
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        htmlUrl: root.ctrl ? root.ctrl.financialsHtmlUrl : ""
+                        isLoading: root.ctrl ? root.ctrl.isLoading : false
+                        emptyTitle: Strings.emptyFinancialsTitle
+                        emptySubtitle: Strings.emptyFinancialsSubtitle
+                    }
+                }
+            }
+
+            // =========================================================
+            // GÖRÜNÜM MODU 2: KAP ORTAKLIK TARİHÇESİ VE ZAMAN ÇİZELGESİ
+            // =========================================================
+            ColumnLayout {
+                id: shareholdersSection
+                Layout.fillWidth: true
+                spacing: Theme.spaceMd
+                visible: (root.ctrl && root.ctrl.viewMode === 2)
+
+                // KAP Ortaklık Bilgi & Yenileme Çubuğu
+                ModernCard {
+                    Layout.fillWidth: true
+                    implicitHeight: 48
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.spaceMd
+                        anchors.rightMargin: Theme.spaceMd
+                        spacing: Theme.spaceMd
+
+                        // Bildirim Sayısı Rozeti
+                        Rectangle {
+                            implicitWidth: kapCountTxt.implicitWidth + 18
+                            implicitHeight: 28
+                            radius: 14
+                            color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.12)
+                            border.color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.25)
+                            border.width: 1
+
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: 6
+
+                                ModernIcon {
+                                    name: "history"
+                                    size: 13
+                                    color: Theme.accent
+                                }
+
+                                Text {
+                                    id: kapCountTxt
+                                    text: Strings.kapSnapshotCountTmpl.arg(root.ctrl ? root.ctrl.kapSnapshotCount : 0)
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontXs
+                                    font.weight: Font.Bold
+                                    color: Theme.accent
                                 }
                             }
                         }
 
-                        // 3. SMA & EMA
-                        Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: 64
-                            radius: Theme.radiusSm
-                            color: Theme.bgInput
-                            border.color: Theme.borderSubtle
-                            border.width: 1
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 2
-
-                                Text {
-                                    text: "SMA 50 / 200 & EMA 20"
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontXs
-                                    color: Theme.textMuted
-                                }
-
-                                RowLayout {
-                                    spacing: 4
-                                    Text {
-                                        text: (root.ctrl ? root.ctrl.sma50 : "—")
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
-                                        font.weight: Font.Bold
-                                        color: Theme.accent
-                                    }
-                                    Text {
-                                        text: "/ " + (root.ctrl ? root.ctrl.sma200 : "—")
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
-                                        color: Theme.textSecondary
-                                    }
-                                }
-                            }
+                        // Son Bildirim Tarihi
+                        Text {
+                            text: "Son Bildirim: " + (root.ctrl ? root.ctrl.lastKapFilingDate : "—")
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSm
+                            color: Theme.textMuted
                         }
 
-                        // 4. Destek & Direnç
-                        Rectangle {
-                            Layout.fillWidth: true
-                            implicitHeight: 64
-                            radius: Theme.radiusSm
-                            color: Theme.bgInput
-                            border.color: Theme.borderSubtle
-                            border.width: 1
+                        Item { Layout.fillWidth: true }
 
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 2
-
-                                Text {
-                                    text: Strings.labelSupport + " / " + Strings.labelResistance
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontXs
-                                    color: Theme.textMuted
-                                }
-
-                                RowLayout {
-                                    spacing: 4
-                                    Text {
-                                        text: (root.ctrl ? root.ctrl.support : "—")
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
-                                        font.weight: Font.Bold
-                                        color: Theme.bullGreen
-                                    }
-                                    Text {
-                                        text: "/ " + (root.ctrl ? root.ctrl.resistance : "—")
-                                        font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
-                                        font.weight: Font.Bold
-                                        color: Theme.bearRed
-                                    }
-                                }
+                        // KAP'tan Güncelle Butonu
+                        ModernButton {
+                            text: Strings.btnSyncKap
+                            iconName: "refresh"
+                            variant: "primary"
+                            onClicked: {
+                                if (root.ctrl) root.ctrl.refreshShareholdersHistory()
                             }
                         }
+                    }
+                }
+
+                // KAP Zaman Çizelgesi ve Bildirim Kartları Web Görünümü
+                ModernCard {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 740
+                    clip: true
+
+                    FinancialsDashboardView {
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        htmlUrl: root.ctrl ? root.ctrl.shareholdersHtmlUrl : ""
+                        isLoading: root.ctrl ? root.ctrl.isLoading : false
+                        emptyTitle: Strings.emptyShareholdersTitle
+                        emptySubtitle: Strings.emptyShareholdersSubtitle
                     }
                 }
             }

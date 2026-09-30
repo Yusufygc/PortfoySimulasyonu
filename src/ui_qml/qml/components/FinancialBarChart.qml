@@ -301,5 +301,54 @@ ModernCard {
                 }
             }
         }
+
+        // Alt Çubuk: Kapsamlı Bilanço Tablolarına (18 Modül) Geçiş Butonu
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 32
+            radius: Theme.radiusSm
+            color: Theme.bgInput
+            border.color: Theme.borderSubtle
+            border.width: 1
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                spacing: 8
+
+                ModernIcon {
+                    name: "file-text"
+                    size: 13
+                    color: Theme.accent
+                }
+
+                Text {
+                    text: Strings.btnOpenFullFinancials
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontXs
+                    font.weight: Font.DemiBold
+                    color: Theme.accent
+                }
+
+                Item { Layout.fillWidth: true }
+
+                ModernIcon {
+                    name: "arrow-right"
+                    size: 11
+                    color: Theme.accent
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (typeof stock360Controller !== "undefined" && stock360Controller) {
+                        stock360Controller.setViewMode(1)
+                    }
+                }
+            }
+        }
     }
 }

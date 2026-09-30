@@ -192,4 +192,22 @@ QtObject {
     readonly property string emptyShareholdersSubtitle: "Bu hisse için kayıtlı KAP ortaklık yapısı bulunamadı."
     readonly property string loadingStockData: "Hisse verileri ve finansal tablolar yükleniyor..."
     readonly property string btnOpenInTradingView: "TradingView Grafiğinde Aç"
+
+    // --- Hisse 360 & Kapsamlı Bilanço (Faz 5 Genişletme) ---
+    readonly property string tabOverviewAndCharts: "Genel Bakış & Özet"
+    readonly property string tabFullFinancials: "Kapsamlı Bilanço & 18 Analiz Modülü"
+    readonly property string tabShareholdersTimeline: "KAP Ortaklık Tarihçesi"
+    readonly property string period4Quarters: "4 Çeyrek"
+    readonly property string period8Quarters: "8 Çeyrek"
+    readonly property string period12Quarters: "12 Çeyrek"
+    readonly property string periodAllQuarters: "Tüm Geçmiş"
+    readonly property string labelPeriod: "Dönem"
+    readonly property string financialsLoading: "Bilanço ve analitik tablolar hazırlanıyor..."
+    readonly property string shareholdersLoading: "KAP ortaklık geçmişi ve zaman çizelgesi yükleniyor..."
+    readonly property string btnOpenFullFinancials: "Tüm Bilanço Tablolarını Aç (18 Modül)"
+    readonly property string btnOpenShareholderTimeline: "KAP Ortaklık Zaman Çizelgesini İncele"
+    readonly property string btnSyncKap: "KAP'tan Güncelle"
+    readonly property string kapSnapshotCountTmpl: "%1 Bildirim Kayıtlı"
+    readonly property string statusFinancialsReady: "18 Analiz Modülü ve Bilanço Tabloları Hazır"
+    readonly property string statusShareholdersReady: "KAP Ortaklık Zaman Çizelgesi Hazır"
 }
