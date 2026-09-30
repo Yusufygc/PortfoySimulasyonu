@@ -66,65 +66,65 @@ ApplicationWindow {
 
                     // 1: Watchlist (Faz 4)
                     PlaceholderView {
-                        title: "İzleme Listelerim (Watchlist)"
+                        title: Strings.navWatchlist + " (Watchlist)"
                         subtitle: "Faz 4 kapsamında çoklu liste sekmeleri, anlık fiyat alarmları ve mini sparkline grafikleri inşa edilecektir."
-                        iconSymbol: "⭐"
+                        iconName: "watchlist"
                     }
 
                     // 2: Model Portföyler (Faz 6)
                     PlaceholderView {
-                        title: "Model Portföyler"
+                        title: Strings.navPortfolio
                         subtitle: "Faz 6 kapsamında sanal portföy simülasyonu, nakit akışı ve BIST seans kontrollü al/sat dialogları eklenecektir."
-                        iconSymbol: "💼"
+                        iconName: "portfolio"
                     }
 
                     // 3: Hisse 360 (Faz 5)
                     PlaceholderView {
-                        title: "Hisse 360 & Temel Analiz"
+                        title: Strings.navStock360 + " & Temel Analiz"
                         subtitle: "Faz 5 kapsamında çeyreklik bilanço, rasyolar, KAP ortaklık yapısı ve serbest nakit akım grafikleri eklenecektir."
-                        iconSymbol: "🎯"
+                        iconName: "stock360"
                     }
 
                     // 4: Karşılaştırma Laboratuvarı (Faz 7)
                     PlaceholderView {
-                        title: "Karşılaştırma Laboratuvarı"
+                        title: Strings.navCompare
                         subtitle: "Faz 7 kapsamında çoklu varlık normalize getiri grafikleri ve korelasyon ısı haritası eklenecektir."
-                        iconSymbol: "⚖️"
+                        iconName: "compare"
                     }
 
                     // 5: Hisse Tarayıcı (Faz 7)
                     PlaceholderView {
-                        title: "Hisse Tarayıcı (Screener)"
+                        title: Strings.navScreener + " (Screener)"
                         subtitle: "Faz 7 kapsamında F/K, RSI, temettü verimi ve hazır strateji filtreleri inşa edilecektir."
-                        iconSymbol: "🔍"
+                        iconName: "screener"
                     }
 
                     // 6: Finansal Planlama (Faz 8)
                     PlaceholderView {
-                        title: "Finansal Planlama & DCA Simülasyonu"
+                        title: Strings.navPlanning + " & DCA Simülasyonu"
                         subtitle: "Faz 8 kapsamında kademeli alım (DCA) backtest simülatörü ve emeklilik tasarruf projeksiyonu eklenecektir."
-                        iconSymbol: "📅"
+                        iconName: "planning"
                     }
 
                     // 7: Optimizasyon (Faz 9)
                     PlaceholderView {
-                        title: "Markowitz Portföy Optimizasyonu"
+                        title: Strings.navOptimization
                         subtitle: "Faz 9 kapsamında Efficient Frontier saçılım eğrisi, ağırlık kısıtları ve rebalance önerileri eklenecektir."
-                        iconSymbol: "🛡️"
+                        iconName: "optimization"
                     }
 
                     // 8: AI Danışman (Faz 10)
                     PlaceholderView {
-                        title: "Gemini AI Karar Destek Asistanı"
+                        title: Strings.navAI + " Karar Destek Asistanı"
                         subtitle: "Faz 10 kapsamında interaktif chat, XAI portföy risk açıklamaları ve Function Calling durum takibi eklenecektir."
-                        iconSymbol: "🤖"
+                        iconName: "ai"
                     }
 
                     // 9: Ayarlar (Faz 11)
                     PlaceholderView {
-                        title: "Uygulama Ayarları"
+                        title: Strings.navSettings
                         subtitle: "Faz 11 kapsamında veritabanı bağlantı havuzu, Gemini API anahtarı ve tema yönetimi eklenecektir."
-                        iconSymbol: "⚙️"
+                        iconName: "settings"
                     }
                 }
             }

@@ -18,16 +18,16 @@ Rectangle {
     }
 
     readonly property var menuItems: [
-        { index: 0, title: "Genel Bakış",       icon: "📊" },
-        { index: 1, title: "İzleme Listeleri",   icon: "⭐" },
-        { index: 2, title: "Model Portföyler",   icon: "💼" },
-        { index: 3, title: "Hisse 360",          icon: "🎯" },
-        { index: 4, title: "Karşılaştırma Lab",  icon: "⚖️" },
-        { index: 5, title: "Hisse Tarayıcı",     icon: "🔍" },
-        { index: 6, title: "Finansal Planlama",  icon: "📅" },
-        { index: 7, title: "Optimizasyon",       icon: "🛡️" },
-        { index: 8, title: "AI Asistan",         icon: "🤖" },
-        { index: 9, title: "Ayarlar",            icon: "⚙️" },
+        { index: 0, title: Strings.navDashboard,    iconName: "dashboard" },
+        { index: 1, title: Strings.navWatchlist,    iconName: "watchlist" },
+        { index: 2, title: Strings.navPortfolio,    iconName: "portfolio" },
+        { index: 3, title: Strings.navStock360,     iconName: "stock360" },
+        { index: 4, title: Strings.navCompare,      iconName: "compare" },
+        { index: 5, title: Strings.navScreener,     iconName: "screener" },
+        { index: 6, title: Strings.navPlanning,     iconName: "planning" },
+        { index: 7, title: Strings.navOptimization, iconName: "optimization" },
+        { index: 8, title: Strings.navAI,           iconName: "ai" },
+        { index: 9, title: Strings.navSettings,     iconName: "settings" },
     ]
 
     ColumnLayout {
@@ -49,15 +49,16 @@ Rectangle {
                 anchors.rightMargin: 12
                 spacing: 12
 
-                Text {
-                    text: root.isCollapsed ? "➡️" : "⬅️"
-                    font.pixelSize: 13
+                ModernIcon {
+                    name: root.isCollapsed ? "expand" : "collapse"
+                    size: 16
+                    color: Theme.textMuted
                     Layout.alignment: Qt.AlignVCenter
                 }
 
                 Text {
                     visible: !root.isCollapsed
-                    text: "Menüyü Daralt"
+                    text: root.isCollapsed ? Strings.navExpand : Strings.navCollapse
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                     color: Theme.textMuted
@@ -124,9 +125,10 @@ Rectangle {
                     anchors.rightMargin: 12
                     spacing: 12
 
-                    Text {
-                        text: modelData.icon
-                        font.pixelSize: 15
+                    ModernIcon {
+                        name: modelData.iconName
+                        size: 18
+                        color: navItem.isActive ? Theme.accent : (navItem.isHovered ? Theme.textPrimary : Theme.textSecondary)
                         Layout.alignment: Qt.AlignVCenter
                     }
 

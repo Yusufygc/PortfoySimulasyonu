@@ -29,9 +29,11 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 10
 
-        Text {
-            text: root.isSuccess ? "✅" : "⚠️"
-            font.pixelSize: 16
+        ModernIcon {
+            name: root.isSuccess ? "check" : "alert"
+            size: 16
+            color: root.isSuccess ? Theme.bullGreen : Theme.bearRed
+            Layout.alignment: Qt.AlignVCenter
         }
 
         Text {

@@ -42,17 +42,22 @@ Rectangle {
             RowLayout {
                 Layout.fillWidth: true
                 Text {
-                    text: "Sermaye ve Nakit Yönetimi"
+                    text: Strings.modalCapitalTitle
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontLg
                     font.weight: Font.Bold
                     color: Theme.textPrimary
                     Layout.fillWidth: true
                 }
-                Text {
-                    text: "✕"
-                    font.pixelSize: 16
-                    color: Theme.textMuted
+                Item {
+                    width: 24
+                    height: 24
+                    ModernIcon {
+                        name: "close"
+                        size: 16
+                        color: Theme.textMuted
+                        anchors.centerIn: parent
+                    }
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -67,6 +72,7 @@ Rectangle {
                 spacing: Theme.spaceSm
 
                 Rectangle {
+                    id: depositTabBtn
                     Layout.fillWidth: true
                     implicitHeight: 36
                     radius: Theme.radiusSm
@@ -76,13 +82,23 @@ Rectangle {
 
                     property bool isDeposit: actionToggle.state === "deposit"
 
-                    Text {
+                    Row {
                         anchors.centerIn: parent
-                        text: "💰 Nakit Yatır"
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSm
-                        font.weight: Font.Bold
-                        color: parent.isDeposit ? "#ffffff" : Theme.textSecondary
+                        spacing: 6
+                        ModernIcon {
+                            name: "banknote"
+                            size: 14
+                            color: depositTabBtn.isDeposit ? "#ffffff" : Theme.textSecondary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: Strings.btnDeposit
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSm
+                            font.weight: Font.Bold
+                            color: depositTabBtn.isDeposit ? "#ffffff" : Theme.textSecondary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
 
                     MouseArea {
@@ -93,6 +109,7 @@ Rectangle {
                 }
 
                 Rectangle {
+                    id: withdrawTabBtn
                     Layout.fillWidth: true
                     implicitHeight: 36
                     radius: Theme.radiusSm
@@ -102,13 +119,23 @@ Rectangle {
 
                     property bool isDeposit: actionToggle.state === "deposit"
 
-                    Text {
+                    Row {
                         anchors.centerIn: parent
-                        text: "🏦 Nakit Çek"
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSm
-                        font.weight: Font.Bold
-                        color: !parent.isDeposit ? "#ffffff" : Theme.textSecondary
+                        spacing: 6
+                        ModernIcon {
+                            name: "capital"
+                            size: 14
+                            color: !withdrawTabBtn.isDeposit ? "#ffffff" : Theme.textSecondary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: Strings.btnWithdraw
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSm
+                            font.weight: Font.Bold
+                            color: !withdrawTabBtn.isDeposit ? "#ffffff" : Theme.textSecondary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
 
                     MouseArea {
@@ -196,14 +223,14 @@ Rectangle {
 
                 ModernButton {
                     Layout.fillWidth: true
-                    text: "İptal"
+                    text: Strings.btnCancel
                     variant: "secondary"
                     onClicked: root.close()
                 }
 
                 ModernButton {
                     Layout.fillWidth: true
-                    text: actionToggle.state === "deposit" ? "Sermaye Yatır" : "Nakit Çek"
+                    text: actionToggle.state === "deposit" ? Strings.btnDepositCapital : Strings.btnWithdrawCash
                     variant: "primary"
                     onClicked: {
                         const amount = parseFloat(amountInput.text) || 0.0

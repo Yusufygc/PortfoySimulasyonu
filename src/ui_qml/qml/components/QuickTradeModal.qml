@@ -47,17 +47,22 @@ Rectangle {
             RowLayout {
                 Layout.fillWidth: true
                 Text {
-                    text: "Hisse Alım / Satım Emri"
+                    text: Strings.modalTradeTitle
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontLg
                     font.weight: Font.Bold
                     color: Theme.textPrimary
                     Layout.fillWidth: true
                 }
-                Text {
-                    text: "✕"
-                    font.pixelSize: 16
-                    color: Theme.textMuted
+                Item {
+                    width: 24
+                    height: 24
+                    ModernIcon {
+                        name: "close"
+                        size: 16
+                        color: Theme.textMuted
+                        anchors.centerIn: parent
+                    }
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -83,7 +88,7 @@ Rectangle {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "▲ HİSSE AL (BUY)"
+                        text: Strings.btnBuyOrder
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.Bold
@@ -109,7 +114,7 @@ Rectangle {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "▼ HİSSE SAT (SELL)"
+                        text: Strings.btnSellOrder
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.Bold
@@ -256,14 +261,14 @@ Rectangle {
 
                 ModernButton {
                     Layout.fillWidth: true
-                    text: "İptal"
+                    text: Strings.btnCancel
                     variant: "secondary"
                     onClicked: root.close()
                 }
 
                 ModernButton {
                     Layout.fillWidth: true
-                    text: sideToggle.state === "BUY" ? "Alım Emrini Onayla" : "Satış Emrini Onayla"
+                    text: sideToggle.state === "BUY" ? Strings.btnBuyConfirm : Strings.btnSellConfirm
                     variant: sideToggle.state === "BUY" ? "primary" : "danger"
                     onClicked: {
                         const qty = parseInt(qtyInput.text) || 0

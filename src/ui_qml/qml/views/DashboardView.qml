@@ -32,14 +32,14 @@ Item {
                 Column {
                     spacing: 2
                     Text {
-                        text: "Portföy Genel Bakış"
+                        text: Strings.dashboardTitle
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXl
                         font.weight: Font.Bold
                         color: Theme.textPrimary
                     }
                     Text {
-                        text: "Gerçek zamanlı piyasa değerlemeleri, canlı emirler ve varlık dağılımı"
+                        text: Strings.dashboardSubtitle
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
                         color: Theme.textMuted
@@ -50,8 +50,8 @@ Item {
 
                 // Canlı Fiyat Yenile Butonu (Yükleniyor animasyonu ile)
                 ModernButton {
-                    text: dashboardController.isRefreshing ? "Yenileniyor..." : "Fiyatları Yenile"
-                    iconSymbol: "🔄"
+                    text: dashboardController.isRefreshing ? Strings.btnRefreshing : Strings.btnRefresh
+                    iconName: "refresh"
                     variant: "secondary"
                     enabled: !dashboardController.isRefreshing
                     onClicked: {
@@ -62,16 +62,16 @@ Item {
 
                 // Sermaye Yönetimi Butonu
                 ModernButton {
-                    text: "Sermaye Yönetimi"
-                    iconSymbol: "💼"
+                    text: Strings.btnCapital
+                    iconName: "capital"
                     variant: "secondary"
                     onClicked: capitalModal.open()
                 }
 
                 // Hızlı Al/Sat Butonu
                 ModernButton {
-                    text: "+ Hızlı Alım / Satım"
-                    iconSymbol: "⚡"
+                    text: Strings.btnQuickTrade
+                    iconName: "zap"
                     variant: "primary"
                     onClicked: tradeModal.open(chartView.ticker, 294.25)
                 }
@@ -84,42 +84,42 @@ Item {
 
                 MetricCard {
                     Layout.fillWidth: true
-                    title: "Toplam Portföy Değeri"
+                    title: Strings.kpiTotalValue
                     value: dashboardController.totalValue
                     changeText: dashboardController.dailyGainLossPct
                     isPositive: dashboardController.isDailyPositive
-                    subText: "Günlük Değişim"
-                    iconSymbol: "💰"
+                    subText: Strings.kpiDailyChange
+                    iconName: "banknote"
                 }
 
                 MetricCard {
                     Layout.fillWidth: true
-                    title: "Günlük Kâr / Zarar"
+                    title: Strings.kpiDailyGainLoss
                     value: dashboardController.dailyGainLoss
                     changeText: dashboardController.dailyGainLossPct
                     isPositive: dashboardController.isDailyPositive
-                    subText: "Bugünkü Getiri"
-                    iconSymbol: "📈"
+                    subText: Strings.kpiTodayReturn
+                    iconName: "trendingup"
                 }
 
                 MetricCard {
                     Layout.fillWidth: true
-                    title: "Toplam Gerçekleşmemiş K/Z"
+                    title: Strings.kpiUnrealizedPL
                     value: dashboardController.totalGainLoss
                     changeText: dashboardController.totalGainLossPct
                     isPositive: dashboardController.isTotalPositive
-                    subText: "Maliyet: " + dashboardController.totalCost
-                    iconSymbol: "🏆"
+                    subText: Strings.kpiCostPrefix + dashboardController.totalCost
+                    iconName: "linechart"
                 }
 
                 MetricCard {
                     Layout.fillWidth: true
-                    title: "Nakit Bakiye & Oran"
+                    title: Strings.kpiCashRatio
                     value: dashboardController.cashBalance
                     changeText: dashboardController.cashRatio
                     isPositive: true
-                    subText: dashboardController.holdingsCount + " Açık Pozisyon"
-                    iconSymbol: "🏦"
+                    subText: dashboardController.holdingsCount + Strings.kpiOpenPositionsSuffix
+                    iconName: "portfolio"
                 }
             }
 
@@ -147,32 +147,46 @@ Item {
                             onToggleFullscreen: chartModal.open()
                         }
 
-                        // 2. Hızlı Portföy Hisseleri Seçici Barı
+                        // 2. Hızlı Portföy Hisseleri Seçici Barı (Taşmayı önleyen esnek kaydırma)
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Theme.spaceSm
 
                             Text {
-                                text: "PORTFÖY HİSSELERİ:"
+                                text: Strings.tvPortfolioHoldings
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 10
                                 font.weight: Font.Bold
                                 color: Theme.textMuted
+                                Layout.alignment: Qt.AlignVCenter
                             }
 
-                            Repeater {
-                                model: dashboardController ? dashboardController.quickTickers : ["OBAMS.IS", "PSGYO.IS", "BINHO.IS"]
-                                ModernButton {
-                                    text: modelData
-                                    variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
-                                    implicitHeight: 24
-                                    onClicked: {
-                                        chartView.loadStock(modelData)
+                            Flickable {
+                                id: tickersFlickable
+                                Layout.fillWidth: true
+                                implicitHeight: 26
+                                contentWidth: tickersRow.implicitWidth
+                                contentHeight: 26
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+
+                                Row {
+                                    id: tickersRow
+                                    spacing: Theme.spaceXs
+
+                                    Repeater {
+                                        model: dashboardController ? dashboardController.quickTickers : ["OBAMS.IS", "PSGYO.IS", "BINHO.IS"]
+                                        ModernButton {
+                                            text: modelData
+                                            variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
+                                            implicitHeight: 24
+                                            onClicked: {
+                                                chartView.loadStock(modelData)
+                                            }
+                                        }
                                     }
                                 }
                             }
-
-                            Item { Layout.fillWidth: true }
                         }
 
                         // 3. TradingView QML Bileşeni
@@ -208,7 +222,7 @@ Item {
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
-                            text: "Açık Pozisyonlar ve Canlı Değerleme"
+                            text: Strings.positionsTableTitle
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontMd
                             font.weight: Font.Bold
@@ -216,7 +230,7 @@ Item {
                             Layout.fillWidth: true
                         }
                         Text {
-                            text: "Fiyatlar değiştikçe yeşil/kırmızı yanıp söner • Satıra tıklayarak grafiğini açabilirsiniz"
+                            text: Strings.positionsTableSubtitle
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             color: Theme.textMuted
@@ -235,16 +249,16 @@ Item {
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
 
-                            Text { text: "SEMBOL & ŞİRKET"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 160 }
-                            Text { text: "LOT"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
-                            Text { text: "MALİYET"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
-                            Text { text: "SON FİYAT"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
-                            Text { text: "GÜNLÜK %"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
-                            Text { text: "PİYASA DEĞERİ"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 110; horizontalAlignment: Text.AlignRight }
-                            Text { text: "K/Z (₺)"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 100; horizontalAlignment: Text.AlignRight }
-                            Text { text: "K/Z %"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
-                            Text { text: "AĞIRLIK"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
-                            Text { text: "İŞLEMLER"; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thSymbolCompany; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 160 }
+                            Text { text: Strings.thQuantity; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thAvgCost; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thLastPrice; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thDailyChange; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thMarketValue; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 110; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thPLTRY; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 100; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thPLPct; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thWeight; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
+                            Text { text: Strings.thActions; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
                         }
                     }
 
@@ -389,7 +403,7 @@ Item {
                                     Layout.alignment: Qt.AlignRight
 
                                     ModernButton {
-                                        text: "Grafik"
+                                        text: Strings.btnChart
                                         variant: "ghost"
                                         implicitHeight: 26
                                         implicitWidth: 60
@@ -397,7 +411,7 @@ Item {
                                     }
 
                                     ModernButton {
-                                        text: "İşlem"
+                                        text: Strings.btnTrade
                                         variant: "secondary"
                                         implicitHeight: 26
                                         implicitWidth: 55

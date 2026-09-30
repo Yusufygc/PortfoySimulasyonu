@@ -4,13 +4,20 @@ import "../theme"
 Rectangle {
     id: root
 
-    property string text: "Buton"
+    property string text: ""
+    property string iconName: ""
     property string iconSymbol: ""
     property string variant: "primary" // "primary", "secondary", "ghost", "danger"
     signal clicked()
 
-    implicitWidth: Math.max(90, contentRow.implicitWidth + 24)
-    implicitHeight: 36
+    readonly property color contentColor: {
+        if (!root.enabled) return Theme.textMuted
+        if (root.variant === "primary" || root.variant === "danger") return "#ffffff"
+        return Theme.textPrimary
+    }
+
+    implicitWidth: text.length > 0 ? (contentRow.implicitWidth + 20) : implicitHeight
+    implicitHeight: 34
     radius: Theme.radiusSm
 
     color: {
@@ -41,25 +48,31 @@ Rectangle {
     Row {
         id: contentRow
         anchors.centerIn: parent
-        spacing: 6
+        spacing: (root.iconName !== "" || root.iconSymbol !== "") && root.text.length > 0 ? 6 : 0
 
-        Text {
-            visible: root.iconSymbol !== ""
-            text: root.iconSymbol
-            font.pixelSize: 14
+        ModernIcon {
+            visible: root.iconName !== ""
+            name: root.iconName
+            size: 14
+            color: root.contentColor
             anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
+            visible: root.iconName === "" && root.iconSymbol !== ""
+            text: root.iconSymbol
+            font.pixelSize: 13
+            color: root.contentColor
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Text {
+            visible: root.text.length > 0
             text: root.text
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontBase
             font.weight: Font.DemiBold
-            color: {
-                if (!root.enabled) return Theme.textMuted
-                if (root.variant === "primary" || root.variant === "danger") return "#ffffff"
-                return Theme.textPrimary
-            }
+            color: root.contentColor
             anchors.verticalCenter: parent.verticalCenter
         }
     }

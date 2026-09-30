@@ -7,7 +7,8 @@ Item {
     id: root
     property string title: "Sayfa Başlığı"
     property string subtitle: "Bu modül dönüşüm planının sonraki fazında TradingView / QML bileşenleriyle inşa edilecektir."
-    property string iconSymbol: "🚧"
+    property string iconName: "layers"
+    property string iconSymbol: ""
     Layout.fillWidth: true
     Layout.fillHeight: true
 
@@ -20,9 +21,10 @@ Item {
             anchors.centerIn: parent
             spacing: Theme.spaceMd
 
-            Text {
-                text: root.iconSymbol
-                font.pixelSize: 48
+            ModernIcon {
+                name: root.iconName
+                size: 40
+                color: Theme.accent
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -47,7 +49,8 @@ Item {
             }
 
             ModernButton {
-                text: "← Dashboard'a Dön"
+                text: Strings.btnBackToDashboard || "Dashboard'a Dön"
+                iconName: "collapse"
                 variant: "secondary"
                 Layout.alignment: Qt.AlignHCenter
                 onClicked: shellController.navigateTo(0)

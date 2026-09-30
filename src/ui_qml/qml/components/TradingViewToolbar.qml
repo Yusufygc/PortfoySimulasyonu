@@ -9,7 +9,7 @@ Rectangle {
     property var chartView: null
     signal toggleFullscreen()
 
-    implicitHeight: 46
+    implicitHeight: 42
     color: Theme.bgCard
     radius: Theme.radiusSm
     border.color: Theme.borderSubtle
@@ -17,13 +17,13 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: Theme.spaceSm
-        anchors.rightMargin: Theme.spaceSm
-        spacing: Theme.spaceSm
+        anchors.leftMargin: 8
+        anchors.rightMargin: 8
+        spacing: 6
 
         // 1. Sol: Ticker, Şirket Adı ve Canlı Fiyat
         RowLayout {
-            spacing: 8
+            spacing: 6
             Layout.alignment: Qt.AlignVCenter
 
             Text {
@@ -40,14 +40,14 @@ Rectangle {
                 font.pixelSize: Theme.fontXs
                 color: Theme.textMuted
                 elide: Text.ElideRight
-                Layout.maximumWidth: 140
-                visible: text.length > 0
+                Layout.maximumWidth: 120
+                visible: root.width > 560 && text.length > 0
             }
 
             // Canlı Fiyat & Değişim Rozeti
             Rectangle {
-                implicitHeight: 24
-                implicitWidth: priceRow.implicitWidth + 12
+                implicitHeight: 22
+                implicitWidth: priceRow.implicitWidth + 10
                 radius: Theme.radiusSm
                 color: (chartController && chartController.isPositive) ? Theme.bullGreenSoft : Theme.bearRedSoft
                 visible: chartController && chartController.lastPrice !== "₺0.00"
@@ -60,7 +60,7 @@ Rectangle {
                     Text {
                         text: chartController ? chartController.lastPrice : ""
                         font.family: Theme.monoFontFamily
-                        font.pixelSize: Theme.fontXs
+                        font.pixelSize: 11
                         font.weight: Font.Bold
                         color: (chartController && chartController.isPositive) ? Theme.bullGreen : Theme.bearRed
                     }
@@ -68,7 +68,7 @@ Rectangle {
                     Text {
                         text: chartController ? chartController.priceChange : ""
                         font.family: Theme.monoFontFamily
-                        font.pixelSize: Theme.fontXs
+                        font.pixelSize: 11
                         font.weight: Font.DemiBold
                         color: (chartController && chartController.isPositive) ? Theme.bullGreen : Theme.bearRed
                     }
@@ -76,7 +76,7 @@ Rectangle {
             }
         }
 
-        Item { Layout.fillWidth: true }
+        Item { Layout.fillWidth: true } // Esnek Ara Boşluk
 
         // 2. Orta: Zaman Dilimleri (1G, 1H, 1A)
         RowLayout {
@@ -85,14 +85,14 @@ Rectangle {
 
             Repeater {
                 model: [
-                    { tf: "1D", label: "1G" },
-                    { tf: "1W", label: "1H" },
-                    { tf: "1M", label: "1A" }
+                    { tf: "1D", label: Strings.tf1D },
+                    { tf: "1W", label: Strings.tf1W },
+                    { tf: "1M", label: Strings.tf1M }
                 ]
 
                 Rectangle {
-                    implicitWidth: 32
-                    implicitHeight: 26
+                    implicitWidth: 28
+                    implicitHeight: 24
                     radius: Theme.radiusSm
                     color: (chartController && chartController.currentTimeframe === modelData.tf)
                            ? Theme.accent
@@ -102,7 +102,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: modelData.label
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontXs
+                        font.pixelSize: 11
                         font.weight: Font.Bold
                         color: (chartController && chartController.currentTimeframe === modelData.tf)
                                ? "#ffffff"
@@ -122,10 +122,10 @@ Rectangle {
             }
         }
 
-        // Dikey Ayırıcı
+        // Dikey İnce Ayırıcı
         Rectangle {
             implicitWidth: 1
-            implicitHeight: 18
+            implicitHeight: 16
             color: Theme.borderSubtle
         }
 
@@ -136,15 +136,15 @@ Rectangle {
 
             Repeater {
                 model: [
-                    { type: "candle", icon: "🕯️", title: "Mum" },
-                    { type: "line",   icon: "📈", title: "Çizgi" },
-                    { type: "area",   icon: "🌊", title: "Alan" },
-                    { type: "bar",    icon: "📊", title: "Bar" }
+                    { type: "candle", icon: "candle",    title: Strings.chartCandle },
+                    { type: "line",   icon: "line",      title: Strings.chartLine },
+                    { type: "area",   icon: "area",      title: Strings.chartArea },
+                    { type: "bar",    icon: "barchart",  title: Strings.chartBar }
                 ]
 
                 Rectangle {
-                    implicitWidth: 30
-                    implicitHeight: 26
+                    implicitWidth: 26
+                    implicitHeight: 24
                     radius: Theme.radiusSm
                     color: (chartController && chartController.currentChartType === modelData.type)
                            ? Theme.accentSoft
@@ -154,10 +154,13 @@ Rectangle {
                                   : "transparent"
                     border.width: 1
 
-                    Text {
+                    ModernIcon {
                         anchors.centerIn: parent
-                        text: modelData.icon
-                        font.pixelSize: 12
+                        name: modelData.icon
+                        size: 13
+                        color: (chartController && chartController.currentChartType === modelData.type)
+                               ? Theme.accent
+                               : Theme.textSecondary
                     }
 
                     MouseArea {
@@ -173,30 +176,29 @@ Rectangle {
             }
         }
 
-        // Dikey Ayırıcı
+        // Dikey İnce Ayırıcı
         Rectangle {
             implicitWidth: 1
-            implicitHeight: 18
+            implicitHeight: 16
             color: Theme.borderSubtle
         }
 
         // 4. İndikatörler Açılır Menü Butonu
         ModernButton {
             id: btnIndicators
-            text: "İndikatörler ▾"
-            iconSymbol: "📐"
+            text: Strings.btnIndicators
+            iconName: "layers"
             variant: "secondary"
-            implicitHeight: 28
+            implicitHeight: 26
             onClicked: indPopup.open()
         }
 
         // 5. Otomatik Sığdır Butonu
         ModernButton {
-            text: ""
-            iconSymbol: "🎯"
+            iconName: "target"
             variant: "ghost"
-            implicitHeight: 28
-            implicitWidth: 32
+            implicitHeight: 26
+            implicitWidth: 26
             onClicked: {
                 if (chartView) chartView.fitContent()
             }
@@ -204,11 +206,10 @@ Rectangle {
 
         // 6. Tam Ekran Genişlet Butonu
         ModernButton {
-            text: ""
-            iconSymbol: "⛶"
+            iconName: "fullscreen"
             variant: "ghost"
-            implicitHeight: 28
-            implicitWidth: 32
+            implicitHeight: 26
+            implicitWidth: 26
             onClicked: root.toggleFullscreen()
         }
     }
@@ -217,7 +218,7 @@ Rectangle {
     Popup {
         id: indPopup
         x: btnIndicators.x - 120
-        y: btnIndicators.y + btnIndicators.height + 6
+        y: btnIndicators.y + btnIndicators.height + 4
         width: 250
         padding: Theme.spaceSm
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
@@ -230,10 +231,10 @@ Rectangle {
         }
 
         contentItem: ColumnLayout {
-            spacing: 6
+            spacing: 4
 
             Text {
-                text: "TEKNİK İNDİKATÖRLER"
+                text: Strings.technicalIndicators
                 font.family: Theme.fontFamily
                 font.pixelSize: 11
                 font.weight: Font.Bold
@@ -292,10 +293,9 @@ Rectangle {
                             Layout.fillWidth: true
                         }
 
-                        Text {
-                            text: isChecked ? "✓" : ""
-                            font.pixelSize: 13
-                            font.weight: Font.Bold
+                        ModernIcon {
+                            name: "check"
+                            size: 14
                             color: Theme.accent
                             visible: isChecked
                         }

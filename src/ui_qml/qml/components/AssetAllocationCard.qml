@@ -40,7 +40,7 @@ ModernCard {
         RowLayout {
             Layout.fillWidth: true
             Text {
-                text: "Varlık Dağılımı (Allocation)"
+                text: Strings.allocationTitle
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontMd
                 font.weight: Font.Bold
@@ -106,7 +106,7 @@ ModernCard {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Hisse Payı"
+                    text: Strings.allocationShare
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     color: Theme.textMuted
@@ -190,23 +190,25 @@ ModernCard {
                 anchors.margins: 10
                 spacing: 10
 
-                Text {
-                    text: "🎯"
-                    font.pixelSize: 18
+                ModernIcon {
+                    name: "target"
+                    size: 18
+                    color: Theme.bullGreen
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 Column {
                     Layout.fillWidth: true
                     spacing: 2
                     Text {
-                        text: "Portföy Denge Durumu"
+                        text: Strings.portfolioBalanceStatus
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXs
                         font.weight: Font.Bold
                         color: Theme.bullGreen
                     }
                     Text {
-                        text: "Hisse ağırlığı hedef sınırda (%65-70). Nakit rezervi acil alımlar için yeterli."
+                        text: Strings.portfolioBalanceGood
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXs
                         color: Theme.textSecondary

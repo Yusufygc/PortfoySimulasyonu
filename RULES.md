@@ -100,6 +100,30 @@ Periyodik olarak aşağıdaki soruları sor ve düzelt:
 
 ---
 
+## 2. Arayüz ve UI/UX Standartları (QML & Tasarım Kuralları)
+
+Projede profesyonel masaüstü deneyimi ve tutarlı bir tasarım dili sağlamak amacıyla aşağıdaki UI/UX kuralları bağlayıcıdır:
+
+### 2.1 Emoji Yasağı (Strict No-Emoji Policy)
+- Arayüzün hiçbir yerinde (QML butonları, metrik kartları, tablolar, modal başlıkları, bildirimler veya sayfalar) **Unicode emoji (örn. 🚀, 💰, 📈, 🔄, ⚠️, ✕) KESİNLİKLE KULLANILMAZ**.
+- Emojiler Windows masaüstünde platform/yazıtipi uyumsuzluğuna, dikey hizalama bozulmalarına ve amatör bir görünüme neden olur.
+
+### 2.2 Merkezi İkon Mekanizması (`Icons.qml` & `ModernIcon.qml`)
+- Tüm görsel semboller ve ikonlar, `src/ui_qml/assets/icons/` dizinindeki optimize edilmiş vektörel SVG dosyalarından sağlanır.
+- İkon eşlemeleri merkezi `src/ui_qml/qml/theme/Icons.qml` singleton kataloğu üzerinden yönetilir (`Icons.get("iconName")` veya `Icons.dashboard` vb.).
+- QML bileşenlerinde ikon gösterimi için her zaman `ModernIcon` bileşeni kullanılır (`ModernIcon { name: "banknote"; size: 16; color: Theme.accent }`). `ModernIcon`, SVG maskelerini Qt Quick Effects GPU hızlandırmasıyla dinamik olarak açık/koyu tema renklerine büründürür.
+
+### 2.3 Merkezi Metin ve Yerelleştirme Mekanizması (`Strings.qml`)
+- Kullanıcıya görünen hiçbir arayüz metni, sayfa başlığı, buton etiketi, tablo sütun adı veya modal mesajı bileşenler içine **hardcoded** yazılmaz.
+- Tüm metinler `src/ui_qml/qml/theme/Strings.qml` singleton'ında tanımlanır ve buradan çağrılır (`Strings.dashboardTitle`, `Strings.btnRefresh` vb.). Bu sayede merkezi metin yönetimi ve gelecekteki çoklu dil desteği korunur.
+
+### 2.4 Taşma (Overflow) ve Esnek Düzen Standartları
+- Hiçbir buton veya toolbar öğesi sabit piksel genişliğine hapsedilerek metin kırpılmasına yol açmamalıdır. Butonlar içeriğine göre esnek genişlik almalıdır (`ModernButton.qml`).
+- Dinamik veya çoklu liste/etiket barındıran yatay alanlar (örn. "PORTFÖY HİSSELERİ" hızlı butonları, indikatör butonları), pencere daraldığında taşmayı önleyecek şekilde `Flickable`, `ScrollView` veya responsive düzen (`RowLayout` koşullu eleman görünürlüğü) ile sarılmalıdır.
+- Araç çubuklarında kart genişliği daraldığında (örn. < 560px) ikincil etiketler elide edilmeli veya gizlenmeli, butonların üst üste binmesi veya kart dışına taşması engellenmelidir.
+
+---
+
 ## 3. LLM Wiki Operasyon Protokolü
 
 Bu proje **LLM Wiki** pattern'ini uygular: ham kaynak değişmez, LLM wiki'yi yazar ve bakımını yapar, insan yönlendirir ve soru sorar.

@@ -5,6 +5,24 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Merkezi SVG İkon ve String Mimarisi, Emoji Temizliği ve Buton Taşmalarının Giderilmesi
+
+- **Katı Emoji Yasağı (Strict No-Emoji Policy):** Windows masaüstünde yazıtipi uyumsuzluğuna, dikey hizalama problemlerine ve gayriciddi görünüme yol açan tüm Unicode emojiler (🚀, 💰, 📈, 🔄, ⚠️, ✕ vb.) arayüzden ve kod tabanından tamamen kaldırıldı (`RULES.md` Madde 2.1).
+- **Merkezi Vektörel İkon Sistemi (`Icons.qml` & `ModernIcon.qml`):**
+  - `src/ui_qml/assets/icons/` altına 50'yi aşkın optimize Lucide SVG ikonu yerleştirildi.
+  - `Icons.qml` singleton kataloğu oluşturuldu ve `theme/qmldir` kaydı sağlandı.
+  - `ModernIcon.qml` bileşeni geliştirilerek Qt Quick Effects `MultiEffect` GPU renklendirmesi (`colorization: 1.0`, `colorizationColor`) ile açık/koyu tema uyumlu dinamik renklendirme uygulandı.
+- **Merkezi Metin ve Yerelleştirme Kataloğu (`Strings.qml`):**
+  - Tüm sayfa başlıkları, buton etiketleri, KPI başlıkları, tablo sütun adları ve modal mesajları `Strings.qml` singleton'ına taşınarak hardcoded metin bağımlılığı ortadan kaldırıldı (`RULES.md` Madde 2.3).
+- **Buton Taşmalarının (Overflow) Çözümü:**
+  - `TradingViewToolbar.qml`: Ekran genişliği < 560px olduğunda şirket unvanı elide/gizlenerek, buton yükseklikleri (24-26px) ve aralıkları optimize edilerek dar ekranlarda butonların kart dışına taşması engellendi.
+  - `DashboardView.qml`: "PORTFÖY HİSSELERİ" hızlı butonları esnek ve taşmasız `Flickable` kapsayıcısı içine alındı.
+  - `ModernButton.qml`: İçeriğe göre otomatik esnek genişlik alacak şekilde (`implicitWidth: contentRow.implicitWidth + 20`) güncellendi.
+- **Tüm Bileşenlerin Dönüşümü:** `Sidebar.qml`, `WindowHeader.qml`, `TradingViewToolbar.qml`, `MetricCard.qml`, `AssetAllocationCard.qml`, `QuickTradeModal.qml`, `CapitalModal.qml`, `ChartFullscreenModal.qml`, `PlaceholderView.qml`, `ToastNotification.qml` ve `Main.qml` eksiksiz dönüştürüldü.
+- **Yönetişim & Kurallar (`RULES.md`):** `2. Arayüz ve UI/UX Standartları (QML & Tasarım Kuralları)` başlığı altında emoji yasağı, merkezi ikon, merkezi string ve responsive taşma önleme standartları kalıcı proje kuralı haline getirildi.
+
+Etkilenen modüller: `RULES.md`, `src/ui_qml/`, `docs/wiki/log.md`
+
 ## [2026-09-30] düzelt | TradingView İndikatörlerinin Menüden Geri Kapatılamaması Sorununun Çözümü
 
 - **QML Reaktif Durum Bağlantısı Düzeltildi:** `TradingViewToolbar.qml` içerisindeki `isChecked` alanı daha önce `chartController.isIndicatorActive()` slot çağrısına bağlıydı. Slot çağrılarının QML tarafında otomatik dinleme (dependency tracking) mekanizması bulunmadığından `isChecked` her zaman ilk değerinde (`false`) kalıyor ve kullanıcı menüden tekrar tıkladığında `!isChecked` sürekli `True` olarak Python'a gidiyordu. `isChecked` alanı doğrudan `activeIndicators` Qt özelliğine (`indexOf(id) !== -1`) bağlanarak tam reaktif hale getirildi.

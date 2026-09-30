@@ -10,7 +10,8 @@ ModernCard {
     property string changeText: "+0.00%"
     property bool isPositive: true
     property string subText: "Son Güncelleme"
-    property string iconSymbol: "📈"
+    property string iconName: ""
+    property string iconSymbol: ""
 
     hoverable: true
     implicitWidth: 240
@@ -34,9 +35,18 @@ ModernCard {
                 elide: Text.ElideRight
             }
 
+            ModernIcon {
+                visible: root.iconName !== ""
+                name: root.iconName
+                size: 16
+                color: Theme.textMuted
+            }
+
             Text {
+                visible: root.iconName === "" && root.iconSymbol !== ""
                 text: root.iconSymbol
                 font.pixelSize: 14
+                color: Theme.textMuted
             }
         }
 

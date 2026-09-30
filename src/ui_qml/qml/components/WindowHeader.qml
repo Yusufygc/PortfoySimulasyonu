@@ -5,7 +5,7 @@ import "../theme"
 Rectangle {
     id: root
 
-    property string title: "PORTFÖY SİMÜLASYONU"
+    property string title: Strings.appName
     signal searchRequested(string ticker)
 
     color: Theme.bgTitlebar
@@ -31,10 +31,11 @@ Rectangle {
                 color: Theme.accent
                 anchors.verticalCenter: parent.verticalCenter
 
-                Text {
+                ModernIcon {
                     anchors.centerIn: parent
-                    text: "📊"
-                    font.pixelSize: 14
+                    name: "barchart"
+                    size: 16
+                    color: "#ffffff"
                 }
             }
 
@@ -53,7 +54,7 @@ Rectangle {
 
         // Quick Search Bar
         Rectangle {
-            implicitWidth: 200
+            implicitWidth: 220
             implicitHeight: 30
             radius: Theme.radiusSm
             color: Theme.bgInput
@@ -65,11 +66,11 @@ Rectangle {
                 anchors.fill: parent
                 anchors.leftMargin: 8
                 anchors.rightMargin: 8
-                spacing: 4
+                spacing: 6
 
-                Text {
-                    text: "🔍"
-                    font.pixelSize: 11
+                ModernIcon {
+                    name: "search"
+                    size: 13
                     color: Theme.textMuted
                 }
 
@@ -83,7 +84,7 @@ Rectangle {
                     clip: true
 
                     Text {
-                        text: "Hisse Ara (örn. THYAO)..."
+                        text: Strings.searchPlaceholder
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
                         color: Theme.textMuted
@@ -167,10 +168,11 @@ Rectangle {
             color: themeBtnArea.containsMouse ? Theme.bgCardHover : "transparent"
             Layout.alignment: Qt.AlignVCenter
 
-            Text {
+            ModernIcon {
                 anchors.centerIn: parent
-                text: Theme.isDark ? "☀️" : "🌙"
-                font.pixelSize: 14
+                name: Theme.isDark ? "sun" : "moon"
+                size: 15
+                color: Theme.textSecondary
             }
 
             MouseArea {

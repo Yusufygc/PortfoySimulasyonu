@@ -48,9 +48,10 @@ Rectangle {
                 }
 
                 ModernButton {
-                    text: "✕ Kapat"
+                    text: Strings.closeFullscreen
+                    iconName: "close"
                     variant: "secondary"
-                    implicitHeight: 36
+                    implicitHeight: 34
                     onClicked: root.close()
                 }
             }
