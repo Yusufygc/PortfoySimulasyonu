@@ -206,8 +206,17 @@ class DashboardController(QObject):
                             except Exception as e:
                                 logger.debug("latest_prices alınamadı: %s", e)
 
+                        # N+1 Önleme: Hisseleri toplu sorguyla tek seferde çek
+                        stocks_map = {}
+                        if hasattr(self._container, "stock_repo"):
+                            try:
+                                stocks_list = self._container.stock_repo.get_stocks_by_ids(stock_ids)
+                                stocks_map = {s.id: s for s in stocks_list}
+                            except Exception as exc:
+                                logger.debug("Toplu hisse bilgisi alinamadi: %s", exc)
+
                         for sid, pos in active.items():
-                            stock = self._container.stock_repo.get_stock_by_id(sid)
+                            stock = stocks_map.get(sid) or (self._container.stock_repo.get_stock_by_id(sid) if hasattr(self._container, "stock_repo") else None)
                             ticker = stock.ticker if stock else f"STOCK_{sid}"
                             company = stock.name if (stock and stock.name) else ticker
                             qty = pos.total_quantity

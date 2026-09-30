@@ -88,6 +88,26 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 .order_by(ORMDailyPrice.price_date.asc()).all()
             return [self._to_domain(r) for r in rows]
 
+    def get_price_series_bulk(
+        self,
+        stock_ids: Sequence[int],
+        start_date: date,
+        end_date: date,
+    ) -> Dict[int, List[DailyPrice]]:
+        if not stock_ids:
+            return {}
+        with self._provider.get_session() as session:
+            rows = session.query(ORMDailyPrice)\
+                .filter(ORMDailyPrice.stock_id.in_(stock_ids))\
+                .filter(ORMDailyPrice.price_date >= start_date)\
+                .filter(ORMDailyPrice.price_date <= end_date)\
+                .filter(ORMDailyPrice.close_price > 0)\
+                .order_by(ORMDailyPrice.price_date.asc()).all()
+            result: Dict[int, List[DailyPrice]] = {sid: [] for sid in stock_ids}
+            for r in rows:
+                result[r.stock_id].append(self._to_domain(r))
+            return result
+
     def get_portfolio_value_series(self, stock_ids: Sequence[int], start_date: date, end_date: date) -> Dict[date, Dict[int, Decimal]]:
         if not stock_ids:
             return {}

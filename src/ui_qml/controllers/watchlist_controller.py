@@ -186,6 +186,20 @@ class WatchlistController(QObject):
             start_date = date.today() - timedelta(days=90)
             end_date = date.today()
 
+            # N+1 Önleme: Tüm hisselerin fiyat serilerini tek toplu sorguyla çek
+            bulk_price_map: Dict[int, Any] = {}
+            if price_repo:
+                valid_sids = [
+                    (it.get("stock").id if it.get("stock") else (it.get("item").stock_id if it.get("item") else 0))
+                    for it in raw_stocks
+                ]
+                valid_sids = [sid for sid in valid_sids if sid > 0]
+                if valid_sids:
+                    try:
+                        bulk_price_map = price_repo.get_price_series_bulk(valid_sids, start_date, end_date)
+                    except Exception as exc:
+                        logger.warning("Toplu fiyat serisi alinamadi: %s", exc)
+
             for item_dict in raw_stocks:
                 item = item_dict.get("item")
                 stock = item_dict.get("stock")
@@ -195,13 +209,8 @@ class WatchlistController(QObject):
                 stock_id = stock.id if stock else (item.stock_id if item else 0)
                 item_id = item.id if item else 0
 
-                # Fiyat ve geçmiş seri çözümlemesi
-                hist_bars = []
-                if price_repo and stock_id > 0:
-                    try:
-                        hist_bars = price_repo.get_price_series(stock_id, start_date, end_date)
-                    except Exception as e:
-                        logger.warning("Fiyat serisi alinamadi (%s): %s", ticker, e)
+                # Fiyat ve geçmiş seri çözümlemesi (O(1) toplu map erişimi)
+                hist_bars = bulk_price_map.get(stock_id, [])
 
                 if hist_bars:
                     last_bar = hist_bars[-1]

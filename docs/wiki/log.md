@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] optimize | Bulgu 8: QML Controller'larında N+1 Senkron DB Sorguları Toplu Sorguya (Bulk) Dönüştürüldü
+
+- `WatchlistController` ve `DashboardController` döngüleri içinde her hisse için ayrı ayrı çalıştırılan senkron veritabanı sorguları (N+1 problemi) tespit edilerek toplu (bulk) yöntemlere geçirildi.
+- `IPriceRepository` arayüzüne ve `SQLAlchemyPriceRepository` uygulamasına `get_price_series_bulk(stock_ids, start_date, end_date)` metodu eklendi; takip listesindeki hisselerin geçmiş fiyat serileri tek bir `WHERE stock_id IN (...)` sorgusuna indirildi.
+- `DashboardController._load_portfolio_data` içinde her pozisyon için tekrarlanan `get_stock_by_id` çağrıları `get_stocks_by_ids` toplu sorgusuna bağlanarak bellek içi O(1) eşleşmeye dönüştürüldü; UI thread bloklanmaları ortadan kaldırıldı.
+- Etkilenen modüller: src/domain/ports/repositories/i_price_repo.py, src/infrastructure/db/sqlalchemy/repositories/sa_price_repository.py, src/ui_qml/controllers/watchlist_controller.py, src/ui_qml/controllers/dashboard_controller.py, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 12: PositionsTableModel İçindeki K/Z ve Piyasa Değeri Hesaplamaları Decimal Hassasiyetine Bağlandı
 
 - `RULES.md` ve `ARCHITECTURE_GATES.md` finansal hesaplama standartları gereğince açık pozisyonlar tablosundaki canlı fiyat güncelleme mantığı (`PositionsTableModel.update_prices`) `Decimal` hassasiyetine bağlandı.

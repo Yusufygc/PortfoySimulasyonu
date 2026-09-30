@@ -61,6 +61,18 @@ class IPriceRepository(ABC):
         """
         raise NotImplementedError
 
+    def get_price_series_bulk(
+        self,
+        stock_ids: Sequence[int],
+        start_date: date,
+        end_date: date,
+    ) -> Dict[int, List[DailyPrice]]:
+        """
+        Birden çok hisse için verilen tarih aralığındaki günlük fiyat serilerini toplu olarak döner.
+        N+1 sorgu problemini engellemek için kullanılır.
+        """
+        return {sid: self.get_price_series(sid, start_date, end_date) for sid in stock_ids}
+
     @abstractmethod
     def get_portfolio_value_series(
         self,
