@@ -7,9 +7,12 @@ denetler. UI'a bağımlı değildir; hata metinleri sade Türkçedir.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from typing import Tuple
+
+logger = logging.getLogger(__name__)
 
 # Gömülü varsayılan süzgeç listesi (harici dosya bulunamazsa devreye girer)
 FALLBACK_PATTERNS = [
@@ -79,8 +82,8 @@ def load_safety_patterns() -> list[str]:
                     line = line.strip()
                     if line and not line.startswith("#"):
                         patterns.append(line)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Güvenlik kalıpları dosyası (%s) okunamadı: %s", patterns_path, e)
 
     if not patterns:
         return FALLBACK_PATTERNS

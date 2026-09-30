@@ -1,10 +1,11 @@
-# src/infrastructure/db/sqlalchemy/database_engine.py
-
+import logging
 from pathlib import Path
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
 from src.infrastructure.db.db_config import DatabaseConfig, MySQLConfig, SQLiteConfig
+
+logger = logging.getLogger(__name__)
 
 
 class SQLAlchemyEngineProvider:
@@ -26,8 +27,8 @@ class SQLAlchemyEngineProvider:
         try:
             from src.infrastructure.db.sqlalchemy.orm_models import Base
             Base.metadata.create_all(bind=self._engine, checkfirst=True)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Tablo şemaları oluşturulurken hata veya uyarı: %s", exc)
 
     def _create_engine(self):
         if isinstance(self._config, SQLiteConfig):

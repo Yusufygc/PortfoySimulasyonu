@@ -1038,8 +1038,8 @@ class Stock360Controller(QObject):
                         pct = (v0 - v_prev) / abs(v_prev) * 100.0
                         is_pos_yoy = pct >= 0
                         yoy_str = f"{'+' if is_pos_yoy else ''}{pct:.1f}%"
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("YoY hesaplanamadı (%s): %s", name, exc)
 
             rows.append({
                 "name": name,

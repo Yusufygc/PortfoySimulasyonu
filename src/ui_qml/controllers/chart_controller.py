@@ -51,8 +51,8 @@ class ChartController(QObject):
                     stock = self._container.stock_repo.get_stock_by_id(first_sid)
                     if stock and stock.ticker:
                         self._current_ticker = stock.ticker
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Varsayılan grafik hissesi belirlenemedi: %s", exc)
 
     # --- Properties ---
 

@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 13: Sessiz Hata Yutma (except Exception: pass) Blokları Logger İle Değiştirildi
+
+- `ARCHITECTURE_GATES.md` ve temiz kod standartları gereğince sistem genelinde istisnaların sessizce yutulduğu (`except Exception: pass`) 7 kritik nokta refaktör edildi.
+- `src/ui_qml/controllers/chart_controller.py`, `src/ui_qml/controllers/dashboard_controller.py`, `src/ui_qml/controllers/stock_360_controller.py`, `src/infrastructure/db/sqlalchemy/database_engine.py`, `src/infrastructure/market_data/yfinance_valuation_provider.py`, `src/application/services/ai/safety_guard.py` ve `src/application/services/planning/optimization_service.py` dosyalarında oluşan tüm istisnalar seviyesine uygun logger (`logger.warning` veya `logger.debug`) çağrılarıyla kayıt altına alındı.
+- Etkilenen modüller: src/ui_qml/controllers/chart_controller.py, src/ui_qml/controllers/dashboard_controller.py, src/ui_qml/controllers/stock_360_controller.py, src/infrastructure/db/sqlalchemy/database_engine.py, src/infrastructure/market_data/yfinance_valuation_provider.py, src/application/services/ai/safety_guard.py, src/application/services/planning/optimization_service.py, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 9 & Bulgu 15: Flaky UI Testleri Deterministik Yapıldı ve Geçici Dosya Temizliği Bağlandı
 
 - `tests/ui_qml/test_stock_360_phase5.py` içindeki `time.sleep(1.5)` statik beklemeleri kaldırılarak `_wait_for_condition` (Qt event loop polling) deterministik asenkron beklemeye dönüştürüldü; test koşum süresi 11 saniyeden 6.6 saniyeye indi (%40 hızlanma).

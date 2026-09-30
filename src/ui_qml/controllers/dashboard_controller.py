@@ -220,8 +220,8 @@ class DashboardController(QObject):
                                     prev = self._container.price_repo.get_last_price_before(sid, date.today())
                                     if prev and prev.close_price and prev.close_price > 0:
                                         diff_pct = ((price - prev.close_price) / prev.close_price) * 100
-                                except Exception:
-                                    pass
+                                except Exception as exc:
+                                    logger.debug("Önceki gün kapanış fiyatı alınamadı (sid=%s): %s", sid, exc)
 
                             m_val = pos.market_value(price)
                             tot_c = pos.total_cost

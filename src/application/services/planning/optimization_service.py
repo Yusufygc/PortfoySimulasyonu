@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import logging
 from typing import List, NamedTuple, Optional
+
+logger = logging.getLogger(__name__)
 
 import numpy as np
 import pandas as pd
@@ -425,8 +428,8 @@ class OptimizationService:
                     result = price_lookup_func(ticker)
                     if result:
                         price = float(result.price)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Hisse %s icin price_lookup_func hatasi: %s", ticker, e)
 
             if price is None:
                 price = self._get_last_price(ticker) or 1.0

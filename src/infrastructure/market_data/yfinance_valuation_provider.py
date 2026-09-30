@@ -68,20 +68,20 @@ def _fetch_snapshot(ticker: str) -> dict[str, Any]:
             info = t.fast_info
             try:
                 result["price"] = float(info.last_price)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("yfinance fast_info.last_price alınamadı (%s): %s", yf_ticker, exc)
             try:
                 mc = info.market_cap
                 if mc:
                     result["market_cap"] = float(mc)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("yfinance fast_info.market_cap alınamadı (%s): %s", yf_ticker, exc)
             try:
                 so = info.shares
                 if so:
                     result["shares_outstanding"] = float(so)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("yfinance fast_info.shares alınamadı (%s): %s", yf_ticker, exc)
 
             if result["market_cap"] is None:
                 p, so = result["price"], result["shares_outstanding"]
