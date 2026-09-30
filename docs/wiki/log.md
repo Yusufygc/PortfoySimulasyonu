@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] yapılandır | Bulgu 4: Nuitka Build Betiği PySide6 ve QML Mimarisine Uyurlandı
+
+- `build_nuitka.bat` içindeki sabit geliştirici yolu (`C:\Users\ysfygc\...`) kaldırılıp yerel sanal ortam dinamik tespitine bağlandı (`.\venv\Scripts\python.exe`).
+- Nuitka derleyicisine `--enable-plugin=pyside6`, `--include-data-dir=src/ui_qml=src/ui_qml` ve `--include-data-dir=data=data` parametreleri eklendi; eski PyQt5 plugin'i kaldırıldı.
+- Etkilenen modüller: build_nuitka.bat, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 3: test_settings_loader.py Test Ortam İzolasyonu ve SQLite Desteği Eklendi
 
 - `tests/infrastructure/test_settings_loader.py` içindeki `OPTIONAL_ENV` kümesine `DB_ENGINE` ve `DB_SQLITE_PATH` eklendi; işletim sistemi ortamından sızan SQLite değişkenlerinin MySQL testlerini patlatması önlendi (7 test yeşile döndü).
