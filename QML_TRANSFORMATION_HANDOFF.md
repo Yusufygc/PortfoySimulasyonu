@@ -107,6 +107,16 @@ Geliştirme yaparken aşağıdaki kurallar **istisnasız** uygulanır:
 * **`WatchlistView.qml`:** Sol tarafta çoklu liste seçici kartı, sağ tarafta geniş hisse takip tablosu ve özet KPI çubuğu.
 * **Testler:** `tests/ui_qml/test_watchlist_phase4.py` (15/15 test %100 yeşil).
 
+### 4.6 Faz 5 — Hisse 360 & Temel Analiz Görünümü
+* **`Stock360Controller` (`src/ui_qml/controllers/stock_360_controller.py`):** Genel Bakış (Fiyat, Hacim, 52 Haftalık Aralık), Teknik Seviyeler (RSI, MACD, SMA 50/200, Destek/Direnç), Değerleme Rasyoları (F/K, PD/DD, FD/FAVÖK, Temettü Verimi, ROE, Net Borç/FAVÖK, Piotroski, Cari Oran).
+* **Arka Plan Threading:** UI donmasını engellemek için ağ/API çağrıları (`get_financials`, `get_shareholders`) arka planda çalıştırılıp Qt ana iş parçacığına `_remoteDataReady` sinyaliyle aktarılır (60 FPS).
+* **SQLite Uyumluluğu:** `sa_shareholder_repository.py` içerisindeki `BIGINT PRIMARY KEY` tabloları (`kap_companies`, `kap_shareholder_snapshots`, `kap_shareholder_rows`) için dinamik `max_id + 1` desteği sağlandı.
+* **`RatioCard.qml`:** Finansal rasyo rozet bileşeni.
+* **`FinancialBarChart.qml`:** QML Canvas üzerinde çeyreklik gelir/bilanço grafiği (Net Satışlar, Brüt Kâr, FAVÖK, Net Kâr sekmeleri).
+* **`ShareholderPieCard.qml`:** QML Canvas Donut grafik, ortasında Halka Açıklık Oranı ve sağında pay sahipleri listesi.
+* **`Stock360View.qml`:** Hızlı hisse arama, popüler hisse hapları (`Flickable`) ve TradingView'a tek tıkla geçiş desteği.
+* **Testler:** `tests/ui_qml/test_stock_360_phase5.py` (23/23 test %100 yeşil).
+
 ---
 
 ## 5. Mevcut Sayfa İndeksleri Durumu (`Main.qml`)
@@ -117,8 +127,8 @@ Geliştirme yaparken aşağıdaki kurallar **istisnasız** uygulanır:
 |:---:|:---|:---:|:---:|
 | **0** | `DashboardView` | **CANLI / AKTİF** | Faz 2 & Faz 3 |
 | **1** | `WatchlistView` | **CANLI / AKTİF** | Faz 4 |
-| **2** | `Model Portföyler` | *Placeholder* | Faz 6 |
-| **3** | `Hisse 360 & Temel Analiz` | *Placeholder* | **Faz 5 (SIRADAKİ ADIM)** |
+| **2** | `Model Portföyler` | *Placeholder* | **Faz 6 (SIRADAKİ ADIM)** |
+| **3** | `Hisse 360 & Temel Analiz` | **CANLI / AKTİF** | Faz 5 |
 | **4** | `Karşılaştırma Laboratuvarı` | *Placeholder* | Faz 7 |
 | **5** | `Hisse Tarayıcı (Screener)` | *Placeholder* | Faz 7 |
 | **6** | `Finansal Planlama & DCA` | *Placeholder* | Faz 8 |
@@ -130,28 +140,7 @@ Geliştirme yaparken aşağıdaki kurallar **istisnasız** uygulanır:
 
 ## 6. Kalan Fazlar ve Detaylı Yol Haritası
 
-### 🎯 FAZ 5: Hisse 360 & Temel Analiz Görünümü (SIRADAKİ ÖNCELİKLİ ADIM)
-* **Kapsam:**
-  - Tek arama kutusuyla (`THYAO`, `ASELS`, vb.) hisse sorgulama.
-  - Şirket unvanı, sektör bilgisi, son fiyat ve gün içi özet istatistikler.
-  - Finansal Rasyo Rozetleri: F/K, PD/DD, FD/FAVÖK, Temettü Verimi, Özsermaye Kârlılığı (ROE), Net Borç / FAVÖK (sektör ortalamalarıyla kıyaslamalı).
-  - Çeyreklik Bilanço ve Gelir Tablosu Görünümü: Net Satışlar, Brüt Kâr, FAVÖK ve Net Kâr trendlerinin çeyreklik karşılaştırmalı çubuk grafiği (`FinancialBarChart.qml` - QML Canvas).
-  - KAP Ortaklık Yapısı: Büyük ortaklar, pay oranları ve halka açıklık oranını gösteren pasta/donut grafiği (`ShareholderPieCard.qml`).
-* **Kullanılacak Mevcut Servisler:**
-  - `container.services.stock_360_service`
-  - `container.services.financial_analysis_service`
-  - `container.services.shareholder_analysis_service`
-* **Geliştirilecek Dosyalar:**
-  - `src/ui_qml/controllers/stock_360_controller.py`
-  - `src/ui_qml/qml/views/Stock360View.qml`
-  - `src/ui_qml/qml/components/RatioCard.qml`
-  - `src/ui_qml/qml/components/FinancialBarChart.qml`
-  - `src/ui_qml/qml/components/ShareholderPieCard.qml`
-  - `tests/ui_qml/test_stock_360_phase5.py`
-
----
-
-### FAZ 6: Model Portföyler (Sanal Simülasyon & Çoklu Portföy)
+### 🎯 FAZ 6: Model Portföyler (Sanal Simülasyon & Çoklu Portföy) (SIRADAKİ ÖNCELİKLİ ADIM)
 * **Kapsam:**
   - Çoklu sanal model portföy oluşturma, düzenleme ve silme.
   - Model portföye sanal hisse alımı/satımı ve nakit ekleme/çekme.
@@ -224,9 +213,9 @@ Yeni bir oturum açtığınızda asistana şu talimatı ileterek doğrudan başl
 
 ```text
 QML_TRANSFORMATION_HANDOFF.md dosyasını incele. 
-Faz 0, 2, 3 ve 4 başarıyla tamamlandı. 
+Faz 0, 2, 3, 4 ve 5 başarıyla tamamlandı. 
 Kurallara (RULES.md: strict no-emoji, Icons.qml, Strings.qml, taşmasız düzen) sadık kalarak,
-sıradaki aşama olan "FAZ 5: Hisse 360 & Temel Analiz Görünümü" geliştirmesine başla.
+sıradaki aşama olan "FAZ 6: Model Portföyler (Sanal Simülasyon & Çoklu Portföy)" geliştirmesine başla.
 ```
 
 ---
@@ -237,9 +226,9 @@ sıradaki aşama olan "FAZ 5: Hisse 360 & Temel Analiz Görünümü" geliştirme
 * **Veritabanı:** `data/portfolio.db` (SQLite).
 * **QML Kök Dosyası:** `src/ui_qml/qml/Main.qml`.
 * **Tema ve Sabitler:** `src/ui_qml/qml/theme/` (`Theme.qml`, `Icons.qml`, `Strings.qml`, `qmldir`).
-* **Yeniden Kullanılabilir Bileşenler:** `src/ui_qml/qml/components/` (`ModernIcon.qml`, `ModernButton.qml`, `ModernScrollBar.qml`, `MiniSparkline.qml`, vb.).
-* **Sayfa Görünümleri:** `src/ui_qml/qml/views/` (`DashboardView.qml`, `WatchlistView.qml`, vb.).
-* **Python QML Denetleyicileri:** `src/ui_qml/controllers/` (`DashboardController`, `ChartController`, `WatchlistController`, vb.).
+* **Yeniden Kullanılabilir Bileşenler:** `src/ui_qml/qml/components/` (`ModernIcon.qml`, `ModernButton.qml`, `ModernScrollBar.qml`, `MiniSparkline.qml`, `RatioCard.qml`, `FinancialBarChart.qml`, `ShareholderPieCard.qml`, vb.).
+* **Sayfa Görünümleri:** `src/ui_qml/qml/views/` (`DashboardView.qml`, `WatchlistView.qml`, `Stock360View.qml`, vb.).
+* **Python QML Denetleyicileri:** `src/ui_qml/controllers/` (`DashboardController`, `ChartController`, `WatchlistController`, `Stock360Controller`, vb.).
 * **Python QML Tablo Modelleri:** `src/ui_qml/models/` (`PositionsTableModel`, `WatchlistTableModel`, vb.).
-* **Birim Testleri:** `tests/ui_qml/` (`test_dashboard_phase2.py`, `test_chart_phase3.py`, `test_watchlist_phase4.py`).
+* **Birim Testleri:** `tests/ui_qml/` (`test_dashboard_phase2.py`, `test_chart_phase3.py`, `test_watchlist_phase4.py`, `test_stock_360_phase5.py`).
 * **Wiki & Günlük:** `docs/wiki/log.md`, `docs/wiki/index.md`, `RULES.md`.

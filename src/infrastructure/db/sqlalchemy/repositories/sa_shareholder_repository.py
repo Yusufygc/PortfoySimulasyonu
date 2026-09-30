@@ -26,11 +26,14 @@ class SQLAlchemyKapShareholderRepository(IShareholderRepository):
     # ------------------------------------------------------------------
 
     def upsert_company(self, ticker: str, mkk_member_oid: str, title: Optional[str]) -> int:
+        from sqlalchemy import func
         ticker = ticker.strip().upper()
         with self._provider.get_session() as session:
             row = session.query(ORMKapCompany).filter_by(ticker=ticker).first()
             if row is None:
+                max_id = session.query(func.max(ORMKapCompany.id)).scalar() or 0
                 row = ORMKapCompany(
+                    id=max_id + 1,
                     ticker=ticker,
                     mkk_member_oid=mkk_member_oid,
                     title=title,
@@ -65,6 +68,7 @@ class SQLAlchemyKapShareholderRepository(IShareholderRepository):
         ticker: str,
         snapshots: list[ShareholderSnapshot],
     ) -> None:
+        from sqlalchemy import func
         ticker = ticker.strip().upper()
         with self._provider.get_session() as session:
             company = session.query(ORMKapCompany).filter_by(ticker=ticker).first()
@@ -73,15 +77,21 @@ class SQLAlchemyKapShareholderRepository(IShareholderRepository):
 
             session.query(ORMKapShareholderSnapshot).filter_by(company_id=company.id).delete()
 
+            snap_max_id = session.query(func.max(ORMKapShareholderSnapshot.id)).scalar() or 0
+            row_max_id = session.query(func.max(ORMKapShareholderRow.id)).scalar() or 0
+
             for snap in snapshots:
+                snap_max_id += 1
                 orm_snap = ORMKapShareholderSnapshot(
+                    id=snap_max_id,
                     company_id=company.id,
                     creation_date=snap.creation_date,
                 )
                 session.add(orm_snap)
-                session.flush()
                 for r in snap.rows:
+                    row_max_id += 1
                     session.add(ORMKapShareholderRow(
+                        id=row_max_id,
                         snapshot_id=orm_snap.id,
                         shareholder_name=r.shareholder_name[:500],
                         share_in_capital=r.share_in_capital,

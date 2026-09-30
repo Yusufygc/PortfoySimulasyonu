@@ -19,6 +19,7 @@ from src.ui_qml.controllers.shell_controller import ShellController
 from src.ui_qml.controllers.chart_controller import ChartController
 from src.ui_qml.controllers.dashboard_controller import DashboardController
 from src.ui_qml.controllers.watchlist_controller import WatchlistController
+from src.ui_qml.controllers.stock_360_controller import Stock360Controller
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +44,8 @@ def run_qml_app(container=None) -> int:
     # DI Container
     if container is None:
         try:
-            from src.application.container import get_container
-            container = get_container()
+            from src.application.container import AppContainer
+            container = AppContainer()
         except Exception as exc:
             logger.warning("Container başlatılamadı, mock/offline modda devam ediliyor: %s", exc)
 
@@ -53,6 +54,7 @@ def run_qml_app(container=None) -> int:
     chart_ctrl = ChartController(container=container, parent=engine)
     dash_ctrl = DashboardController(container=container, parent=engine)
     watchlist_ctrl = WatchlistController(container=container, parent=engine)
+    stock_360_ctrl = Stock360Controller(container=container, parent=engine)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
@@ -60,6 +62,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("chartController", chart_ctrl)
     context.setContextProperty("dashboardController", dash_ctrl)
     context.setContextProperty("watchlistController", watchlist_ctrl)
+    context.setContextProperty("stock360Controller", stock_360_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"

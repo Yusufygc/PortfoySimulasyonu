@@ -76,11 +76,9 @@ ApplicationWindow {
                         iconName: "portfolio"
                     }
 
-                    // 3: Hisse 360 (Faz 5)
-                    PlaceholderView {
-                        title: Strings.navStock360 + " & Temel Analiz"
-                        subtitle: "Faz 5 kapsamında çeyreklik bilanço, rasyolar, KAP ortaklık yapısı ve serbest nakit akım grafikleri eklenecektir."
-                        iconName: "stock360"
+                    // 3: Hisse 360 & Temel Analiz (Faz 5 - Canlı Rasyolar, Bilanço & KAP Ortaklık)
+                    Stock360View {
+                        id: stock360View
                     }
 
                     // 4: Karşılaştırma Laboratuvarı (Faz 7)

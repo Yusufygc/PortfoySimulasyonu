@@ -5,6 +5,27 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] özellik | Faz 5 — Hisse 360 & Temel Analiz Görünümü (Rasyolar, Bilanço Çubuk Grafiği ve KAP Ortaklık Donut'ı)
+
+- **Hisse 360 Denetleyicisi (`Stock360Controller` — `src/ui_qml/controllers/stock_360_controller.py`):**
+  - Genel Bakış (son fiyat, günlük değişim, hacim, 52 haftalık aralık [min-max]), Teknik Seviyeler (RSI, MACD, SMA 50/200, EMA 20, Destek, Direnç), Değerleme Rasyoları (F/K, PD/DD, FD/FAVÖK, Temettü Verimi, ROE, Net Borç / FAVÖK, Piotroski, Cari Oran), Çeyreklik Bilanço ve KAP Ortaklık Yapısı tek merkezden yönetildi.
+  - Asenkron Arka Plan İş Parçacığı (Threading): Ağ ve dış API çağrıları (`Stock360Service.get_financials`, `get_shareholders`) UI'ı bloke etmeden arka planda çalıştırılıp Qt ana iş parçacığına `_remoteDataReady` sinyaliyle güvenli aktarılarak 60 FPS akıcı arayüz garantilendi.
+- **KAP SQLAlchemy Repository SQLite Desteği (`sa_shareholder_repository.py`):**
+  - `kap_companies`, `kap_shareholder_snapshots` ve `kap_shareholder_rows` tablolarındaki `BIGINT PRIMARY KEY` sütunları için SQLite uyumlu dinamik `max_id + 1` koruma mantığı eklendi.
+- **Finansal Rasyo Rozetleri (`RatioCard.qml`):**
+  - F/K, PD/DD, FD/FAVÖK, Temettü Verimi, ROE, Net Borç/FAVÖK, Piotroski F-Score ve Cari Oran için yeniden kullanılabilir, şık, GPU hızlandırmalı ve taşmasız rozet bileşeni geliştirildi.
+- **Çeyreklik Bilanço ve Gelir Tablosu Çubuk Grafiği (`FinancialBarChart.qml`):**
+  - QML `Canvas` üzerinde anti-aliased, degrade dolgulu, yuvarlatılmış köşeli ve interaktif hover destekli çubuk grafik motoru inşa edildi.
+  - Sekme değiştirici ile tek tıkla "Net Satışlar", "Brüt Kâr", "FAVÖK" ve "Net Kâr" serileri arasında anında geçiş desteği sağlandı.
+- **KAP Ortaklık Yapısı & Halka Açıklık Kartı (`ShareholderPieCard.qml`):**
+  - QML `Canvas` üzerinde dinamik Donut grafik, ortasında Halka Açıklık Oranı (% Free Float) göstergesi ve sağ tarafında pay sahipleri, nominal tutarlar ve oy hakkı oranları tablosu geliştirildi.
+- **Hisse 360 Görünümü (`Stock360View.qml`):**
+  - Tek arama kutusu ve hızlı hisse hapları (`Flickable`) ile anında BIST hissesi arama ve seçme.
+  - "TradingView'da Aç" butonu ile tek tıkla hisseyi tam kapsamlı teknik grafik sayfasına aktarma.
+  - `Main.qml` içerisinde indeks 3'e canlı olarak bağlandı.
+- **Kural Uyumu (`RULES.md`):** Sıfır emoji kuralı titizlikle korundu; tüm ikonlar `Icons.qml` üzerinden Lucide SVG ve `ModernIcon` ile sağlandı; tüm metinler `Strings.qml`'e eklendi.
+- **Test Kapsamı:** `tests/ui_qml/test_stock_360_phase5.py` test paketi yazılarak controller başlatma, hisse arama/temizleme, çeyreklik sekmeler, ortaklık yapısı ve QML tam render test edildi (23/23 test %100 yeşil).
+
 ## [2026-09-30] düzelt | İzleme Listesi Aksiyon Butonları, İkon Tema Renklendirmesi ve Sade Ekle Butonları
 
 - **İzleme Listesi Aksiyon Butonları Tıklama Hiyerarşisi (`WatchlistView.qml`):**
