@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 12: PositionsTableModel İçindeki K/Z ve Piyasa Değeri Hesaplamaları Decimal Hassasiyetine Bağlandı
+
+- `RULES.md` ve `ARCHITECTURE_GATES.md` finansal hesaplama standartları gereğince açık pozisyonlar tablosundaki canlı fiyat güncelleme mantığı (`PositionsTableModel.update_prices`) `Decimal` hassasiyetine bağlandı.
+- Ham kayan nokta (`float`) işlemlerinden kaynaklanabilecek yuvarlama hataları ve parasal tutar sapmaları önlendi; piyasa değeri, gerçekleşmemiş kâr/zarar ve yüzde değişimleri kesin matematiksel aritmetik üzerinden hesaplandı.
+- Etkilenen modüller: src/ui_qml/models/positions_table_model.py, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 17: Deprecated datetime.utcnow() Çağrıları timezone.utc ile Modernize Edildi
 
 - Python 3.12+ ile kullanımdan kaldırılan ve saat dilimi (timezone) uyuşmazlıklarına neden olabilen `datetime.utcnow()` çağrıları `datetime.now(timezone.utc)` ile modernize edildi.

@@ -107,21 +107,26 @@ class PositionsTableModel(QAbstractListModel):
         for row, pos in enumerate(self._positions):
             ticker = pos.get("ticker")
             if ticker in price_map:
-                new_price = float(price_map[ticker])
-                old_price = float(pos.get("currentPrice", new_price))
-                if new_price != old_price:
-                    pos["currentPrice"] = new_price
-                    qty = pos.get("quantity", 0)
-                    avg_cost = pos.get("avgCost", 0.0)
+                new_price_float = float(price_map[ticker])
+                old_price_float = float(pos.get("currentPrice", new_price_float))
+                if new_price_float != old_price_float:
+                    qty = Decimal(str(pos.get("quantity", 0)))
+                    avg_cost = Decimal(str(pos.get("avgCost", 0.0)))
+                    new_price = Decimal(str(new_price_float))
+
                     market_val = qty * new_price
-                    pos["marketValue"] = market_val
-                    pl = market_val - (qty * avg_cost)
-                    pos["unrealizedPL"] = pl
-                    pos["unrealizedPLPct"] = (pl / (qty * avg_cost) * 100) if avg_cost > 0 else 0.0
-                    pos["isUp"] = pl >= 0
+                    total_cost = qty * avg_cost
+                    pl = market_val - total_cost
+                    pl_pct = float((pl / total_cost * Decimal("100"))) if total_cost > Decimal("0") else 0.0
+
+                    pos["currentPrice"] = float(new_price)
+                    pos["marketValue"] = float(market_val)
+                    pos["unrealizedPL"] = float(pl)
+                    pos["unrealizedPLPct"] = pl_pct
+                    pos["isUp"] = pl >= Decimal("0")
 
                     # Flash state: 1 = Artış (Yeşil), 2 = Düşüş (Kırmızı)
-                    pos["flashState"] = 1 if new_price > old_price else 2
+                    pos["flashState"] = 1 if new_price_float > old_price_float else 2
 
                     idx = self.index(row)
                     self.dataChanged.emit(idx, idx, [
