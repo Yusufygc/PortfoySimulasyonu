@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | TradingView İndikatörlerinin Menüden Geri Kapatılamaması Sorununun Çözümü
+
+- **QML Reaktif Durum Bağlantısı Düzeltildi:** `TradingViewToolbar.qml` içerisindeki `isChecked` alanı daha önce `chartController.isIndicatorActive()` slot çağrısına bağlıydı. Slot çağrılarının QML tarafında otomatik dinleme (dependency tracking) mekanizması bulunmadığından `isChecked` her zaman ilk değerinde (`false`) kalıyor ve kullanıcı menüden tekrar tıkladığında `!isChecked` sürekli `True` olarak Python'a gidiyordu. `isChecked` alanı doğrudan `activeIndicators` Qt özelliğine (`indexOf(id) !== -1`) bağlanarak tam reaktif hale getirildi.
+- **Python Tek Parametreli Slot Aşırı Yüklemesi:** `ChartController.toggleIndicator` metodu tek parametreli çağrıyı destekleyecek şekilde aşırı yüklendi (`@Slot(str)` / `@Slot(str, bool)`). İndikatör aktifse Python içinde doğrudan `discard`, pasifse `add` yapılarak UI ile Python arasındaki olası durum uyumsuzlukları tamamen ortadan kaldırıldı.
+- **JS Motoru Boolean Doğrulaması & Lejant Güncellemesi:** `tradingview_chart.html` içerisindeki `toggleIndicator` fonksiyonuna string/boolean dönüşüm koruması eklendi (`boolVal = (isEnabled === true || isEnabled === "true" || isEnabled === 1)`). İndikatör kapatıldığında ilgili çizgi veya alt panel (RSI/MACD) grafikten kaldırılırken, üst bilgi lejantındaki etiketler de anında senkronize şekilde temizlenmektedir.
+- **Test Kapsamı:** `test_chart_phase3.py` testlerine tek ve çift parametreli indikatör açma/kapama doğrulamaları eklendi (11/11 test %100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
 ## [2026-09-30] özellik | Faz 3 — TradingView Teknik Analiz Laboratuvarı, Çoklu Zaman Dilimleri ve İndikatör Paketi
 
 - **Çoklu Zaman Dilimleri (Timeframes):** `ChartController` bünyesinde günlük (`1D` / `1G`), haftalık (`1W` / `1H`) ve aylık (`1M` / `1A`) yeniden örnekleme (resampling) mekanizması geliştirildi. BIST takvimine uygun şekilde haftalık ve aylık OHLCV barları vektörize üretilerek TradingView grafiğine dinamik aktarılıyor.

@@ -538,6 +538,15 @@
           seriesMap.macd_signal = null;
         }
       }
+
+      // İndikatör Lejant Etiketlerini Güncelle
+      if (elIndLegend) {
+        const tags = [];
+        activeIndicators.forEach(ind => {
+          tags.push(`<span class="tag-${ind}">${ind.toUpperCase()}</span>`);
+        });
+        elIndLegend.innerHTML = tags.join(" | ");
+      }
     }
 
     function toggleOverlayLine(key, data, color, width) {
@@ -585,7 +594,8 @@
 
     function toggleIndicator(name, isEnabled) {
       name = name.toLowerCase();
-      if (isEnabled) {
+      const boolVal = (isEnabled === true || isEnabled === "true" || isEnabled === 1);
+      if (boolVal) {
         activeIndicators.add(name);
       } else {
         activeIndicators.delete(name);

@@ -124,10 +124,16 @@ class ChartController(QObject):
         self._current_chart_type = chart_type
         self.chartTypeChanged.emit(chart_type)
 
+    @Slot(str)
     @Slot(str, bool)
-    def toggleIndicator(self, indicator: str, enabled: bool) -> None:
+    def toggleIndicator(self, indicator: str, enabled: Optional[bool] = None) -> None:
         ind = indicator.strip().lower()
-        if enabled:
+        if enabled is None:
+            if ind in self._active_indicators:
+                self._active_indicators.discard(ind)
+            else:
+                self._active_indicators.add(ind)
+        elif enabled:
             self._active_indicators.add(ind)
         else:
             self._active_indicators.discard(ind)

@@ -81,10 +81,11 @@ Item {
     // Aktif indikatörleri HTML motoruna aktarma
     function syncIndicators() {
         if (!chartController || !root.isLoaded) return;
+        const activeList = chartController.activeIndicators || [];
         const allList = ["sma20", "sma50", "sma200", "ema20", "bb", "rsi", "macd", "markers"];
         allList.forEach(ind => {
-            const active = chartController.isIndicatorActive(ind);
-            webView.runJavaScript(`toggleIndicator("${ind}", ${active});`);
+            const active = activeList.indexOf(ind) !== -1;
+            webView.runJavaScript(`toggleIndicator("${ind}", ${active ? "true" : "false"});`);
         });
     }
 

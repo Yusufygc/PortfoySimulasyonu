@@ -266,7 +266,9 @@ Rectangle {
                     radius: Theme.radiusSm
                     color: itemMouse.containsMouse ? Theme.bgCardHover : "transparent"
 
-                    readonly property bool isChecked: chartController ? chartController.isIndicatorActive(modelData.id) : false
+                    readonly property bool isChecked: (chartController && chartController.activeIndicators)
+                        ? (chartController.activeIndicators.indexOf(modelData.id) !== -1)
+                        : false
 
                     RowLayout {
                         anchors.fill: parent
@@ -306,7 +308,7 @@ Rectangle {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
                             if (chartController) {
-                                chartController.toggleIndicator(modelData.id, !isChecked)
+                                chartController.toggleIndicator(modelData.id)
                             }
                         }
                     }
