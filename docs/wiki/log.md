@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] refaktör | Bulgu 7: ChartController Teknik İndikatör ve Cross Hesaplamaları DRY Standardına Bağlandı
+
+- `ChartController` bünyesinde elle yazılan ve kod tekrarına (DRY ihlali) yol açan Golden/Death Cross tespit döngüsü, `src/application/services/analysis/technical/golden_cross.py` içindeki `detect_crosses` motoruna delege edildi.
+- Kısa vadeli veya az verili seriler için SMA bazlı zarif geri dönüş (graceful fallback) mekanizması korunarak TradingView sinyal işaretçileri merkezi domain kurallarıyla üretildi.
+- Etkilenen modüller: src/ui_qml/controllers/chart_controller.py, docs/wiki/log.md
+
 ## [2026-09-30] optimize | Bulgu 8: QML Controller'larında N+1 Senkron DB Sorguları Toplu Sorguya (Bulk) Dönüştürüldü
 
 - `WatchlistController` ve `DashboardController` döngüleri içinde her hisse için ayrı ayrı çalıştırılan senkron veritabanı sorguları (N+1 problemi) tespit edilerek toplu (bulk) yöntemlere geçirildi.

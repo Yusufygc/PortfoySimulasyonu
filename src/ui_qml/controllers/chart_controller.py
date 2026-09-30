@@ -19,6 +19,7 @@ from src.application.services.analysis.technical.indicators import (
     macd,
     bollinger_bands,
 )
+from src.application.services.analysis.technical.golden_cross import detect_crosses, CrossType
 
 logger = logging.getLogger(__name__)
 
@@ -397,33 +398,54 @@ class ChartController(QObject):
             for t, v in hist_clean.items()
         ]
 
-        # 5. Golden Cross / Death Cross Tespiti (SMA 50 ve SMA 200)
+        # 5. Golden Cross / Death Cross Tespiti (Application Servisine Delege Edilir - DRY)
         markers = []
-        if len(s50.dropna()) > 0 and len(s200.dropna()) > 0:
-            diff = s50 - s200
-            diff_clean = diff.dropna()
-            if len(diff_clean) > 1:
-                prev_val = diff_clean.iloc[0]
-                for t, curr_val in diff_clean.iloc[1:].items():
-                    # Golden Cross: SMA50 SMA200'ü yukarı kestiğinde
-                    if prev_val < 0 and curr_val >= 0:
-                        markers.append({
-                            "time": str(t),
-                            "position": "belowBar",
-                            "color": "#089981",
-                            "shape": "arrowUp",
-                            "text": "Golden Cross",
-                        })
-                    # Death Cross: SMA50 SMA200'ü aşağı kestiğinde
-                    elif prev_val > 0 and curr_val <= 0:
-                        markers.append({
-                            "time": str(t),
-                            "position": "aboveBar",
-                            "color": "#f23645",
-                            "shape": "arrowDown",
-                            "text": "Death Cross",
-                        })
-                    prev_val = curr_val
+        try:
+            cross_events = detect_crosses(closes, short=50, long=200)
+            for ev in cross_events:
+                if ev.cross_type == CrossType.GOLDEN:
+                    markers.append({
+                        "time": str(ev.cross_date),
+                        "position": "belowBar",
+                        "color": "#089981",
+                        "shape": "arrowUp",
+                        "text": "Golden Cross",
+                    })
+                elif ev.cross_type == CrossType.DEATH:
+                    markers.append({
+                        "time": str(ev.cross_date),
+                        "position": "aboveBar",
+                        "color": "#f23645",
+                        "shape": "arrowDown",
+                        "text": "Death Cross",
+                    })
+
+            # Kısa vadeli seriler için SMA fallback'i
+            if not markers and len(s50.dropna()) > 0 and len(s200.dropna()) > 0:
+                diff = s50 - s200
+                diff_clean = diff.dropna()
+                if len(diff_clean) > 1:
+                    prev_val = diff_clean.iloc[0]
+                    for t, curr_val in diff_clean.iloc[1:].items():
+                        if prev_val < 0 and curr_val >= 0:
+                            markers.append({
+                                "time": str(t),
+                                "position": "belowBar",
+                                "color": "#089981",
+                                "shape": "arrowUp",
+                                "text": "Golden Cross",
+                            })
+                        elif prev_val > 0 and curr_val <= 0:
+                            markers.append({
+                                "time": str(t),
+                                "position": "aboveBar",
+                                "color": "#f23645",
+                                "shape": "arrowDown",
+                                "text": "Death Cross",
+                            })
+                        prev_val = curr_val
+        except Exception as exc:
+            logger.debug("Golden/Death cross tespiti sirasinda istisna: %s", exc)
 
         return {
             "sma20": _to_line_data(s20),
