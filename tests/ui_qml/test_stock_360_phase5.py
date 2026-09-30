@@ -34,6 +34,17 @@ def container():
     return AppContainer()
 
 
+def _wait_for_condition(qapp, condition_fn, timeout_ms=4000):
+    start = time.time()
+    while (time.time() - start) * 1000 < timeout_ms:
+        qapp.processEvents()
+        if condition_fn():
+            return True
+        time.sleep(0.02)
+    qapp.processEvents()
+    return condition_fn()
+
+
 def test_stock_360_controller_initialization(qapp, container):
     """Stock360Controller'ın başarıyla başlatıldığını ve varsayılan verilerini doğrula."""
     ctrl = Stock360Controller(container)
@@ -79,9 +90,8 @@ def test_stock_360_controller_financial_tabs(qapp, container):
     """Çeyreklik bilanço metrik sekmeleri ve çubuk grafik verilerini test et."""
     ctrl = Stock360Controller(container)
 
-    # Arka plan iş parçacığının sonuçları işlemesi için kısa bir bekleme ve event işleme
-    time.sleep(1.5)
-    qapp.processEvents()
+    # Arka plan iş parçacığının sonuçları işlemesini bekle (deterministik)
+    _wait_for_condition(qapp, lambda: ctrl.isFinancialsReady or not ctrl.isLoading)
 
     # Varsayılan sekme
     assert ctrl.activeFinancialTab == "satis"
@@ -113,8 +123,8 @@ def test_stock_360_controller_shareholders(qapp, container):
     """KAP Ortaklık Yapısı ve Halka Açıklık Oranı verilerini doğrula."""
     ctrl = Stock360Controller(container)
 
-    time.sleep(1.5)
-    qapp.processEvents()
+    # Arka plan iş parçacığının ortaklık sonuçlarını işlemesini bekle (deterministik)
+    _wait_for_condition(qapp, lambda: ctrl.isShareholdersReady or not ctrl.isLoading)
 
     assert isinstance(ctrl.shareholdersList, list)
     assert isinstance(ctrl.shareholderSlices, list)

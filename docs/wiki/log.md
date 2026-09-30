@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 9 & Bulgu 15: Flaky UI Testleri Deterministik Yapıldı ve Geçici Dosya Temizliği Bağlandı
+
+- `tests/ui_qml/test_stock_360_phase5.py` içindeki `time.sleep(1.5)` statik beklemeleri kaldırılarak `_wait_for_condition` (Qt event loop polling) deterministik asenkron beklemeye dönüştürüldü; test koşum süresi 11 saniyeden 6.6 saniyeye indi (%40 hızlanma).
+- `Stock360Controller` bünyesine `QCoreApplication.aboutToQuit`, `destroyed` sinyalleri ve `__del__` yıkıcısı bağlanarak `_cleanup_temp_files()` otomatik çağrıma kavuşturuldu; diskte biriken geçici HTML raporlarının sızıntısı kalıcı olarak önlendi.
+- Etkilenen modüller: src/ui_qml/controllers/stock_360_controller.py, tests/ui_qml/test_stock_360_phase5.py, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 18: FintechShareholderTimeline.qml İçindeki Unicode Ok Karakteri Temizlendi
 
 - `RULES.md §2.1` ve `§2.2` strict no-emoji ve merkezi vektörel ikon politikası uyarınca `FintechShareholderTimeline.qml` dosyasındaki ham Unicode ok karakterleri (`\u2794`) temizlendi ve standart `->` formatına dönüştürüldü.

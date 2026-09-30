@@ -16,7 +16,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer, QUrl
+from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer, QUrl, QCoreApplication
 
 from src.application.services.analysis.stock_360_service import Stock360Service
 from src.domain.models.shareholder import ShareholderSnapshot
@@ -98,6 +98,12 @@ class Stock360Controller(QObject):
         super().__init__(parent)
         self._container = container
         self._remoteDataReady.connect(self._apply_remote_results)
+
+        # Uygulama kapandığında geçici HTML rapor dosyalarını otomatik temizle
+        app = QCoreApplication.instance()
+        if app is not None:
+            app.aboutToQuit.connect(self._cleanup_temp_files)
+        self.destroyed.connect(self._cleanup_temp_files)
 
         # Aktif Hisse ve Temel Bilgiler
         self._current_ticker: str = "BIMAS"
@@ -574,6 +580,12 @@ class Stock360Controller(QObject):
             except OSError:
                 pass
         self._temp_files.clear()
+
+    def __del__(self):
+        try:
+            self._cleanup_temp_files()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Data Loading Strategy
