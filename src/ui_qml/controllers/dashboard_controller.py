@@ -4,6 +4,7 @@ Dashboard Controller — Portföy KPI'ları, varlık dağılımı, canlı fiyat 
 from __future__ import annotations
 
 import logging
+import threading
 from datetime import datetime, date, timedelta
 from decimal import Decimal
 from typing import Dict, Any, List
@@ -299,26 +300,35 @@ class DashboardController(QObject):
 
     @Slot()
     def refreshMetrics(self) -> None:
-        """Piyasa fiyatlarını arka planda yeniler."""
+        """Piyasa fiyatlarını gerçek servis üzerinden arka planda yeniler."""
         self._is_refreshing = True
         self.refreshStateChanged.emit(True)
 
         def do_refresh():
-            price_map = {}
-            import numpy as np
-            for p in self._positions_model._positions:
-                old_p = float(p.get("currentPrice", 10.0))
-                change = np.random.normal(0.002, 0.015)
-                new_p = round(old_p * (1 + change), 2)
-                p["currentPrice"] = new_p
-                price_map[p["ticker"]] = new_p
+            try:
+                live_service = None
+                if self._container:
+                    services = getattr(self._container, "services", None)
+                    live_service = getattr(services, "live_price_refresh_service", None) if services else None
+                    if not live_service:
+                        live_service = getattr(self._container, "live_price_refresh_service", None)
 
-            self._positions_model.update_prices(price_map)
-            self._load_portfolio_data()
-            self._is_refreshing = False
-            self.refreshStateChanged.emit(False)
+                if live_service:
+                    live_service.refresh_active_prices()
+                else:
+                    logger.debug("Canlı fiyat yenileme servisi bulunamadı, mevcut veriler korunuyor.")
+            except Exception as exc:
+                logger.warning("Canlı fiyat yenileme sırasında hata oluştu: %s", exc)
+            finally:
+                QTimer.singleShot(0, self._on_refresh_finished)
 
-        QTimer.singleShot(800, do_refresh)
+        threading.Thread(target=do_refresh, daemon=True).start()
+
+    @Slot()
+    def _on_refresh_finished(self) -> None:
+        self._load_portfolio_data()
+        self._is_refreshing = False
+        self.refreshStateChanged.emit(False)
 
     @Slot(str, str, int, float, str)
     def submitTrade(self, ticker: str, side: str, quantity: int, price: float, notes: str) -> None:

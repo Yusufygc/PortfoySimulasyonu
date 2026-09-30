@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] düzelt | Bulgu 2: Dashboard Fiyat Yenilemedeki Sahte Veri Kaldırıldı ve Canlı Servise Bağlandı
+
+- `DashboardController.refreshMetrics()` içindeki sentetik `np.random.normal` fiyat üretim mantığı tamamen kaldırıldı.
+- Fiyat yenileme işlemi asenkron arka plan iş parçacığı üzerinden gerçek `LivePriceRefreshService` servisine bağlandı; yenileme bittiğinde güvenli bir şekilde `_load_portfolio_data()` tetiklendi.
+- Etkilenen modüller: src/ui_qml/controllers/dashboard_controller.py, docs/wiki/log.md
+
 ## [2026-09-30] düzelt | Bulgu 1: QtWebEngine XSS ve Ham JS Enjeksiyon Açığı Kapatıldı
 
 - `TradingViewChart.qml` içinde `settings.localContentCanAccessRemoteUrls: false` ve `localContentCanAccessFileUrls: false` yapılarak yerel dosya ve harici URL erişimi sınırlandırıldı.
