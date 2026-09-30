@@ -268,3 +268,77 @@ def test_financials_dashboard_view_component(qapp, container):
     assert not comp.errors(), f"QML Hataları: {comp.errors()}"
     obj = comp.create()
     assert obj is not None
+
+
+def test_fintech_components_and_models(qapp, container):
+    """Fintech bileşenlerinin (Revenue, DuPont, CashFlow, StatementsTable, Timeline) ve modellerin doğrulandığını test et."""
+    ctrl = Stock360Controller(container)
+
+    # Controller modellerini doğrula
+    assert isinstance(ctrl.revenueChartData, list)
+    assert ctrl.latestQuarterRevenue != ""
+    assert isinstance(ctrl.dupontData, dict)
+    assert isinstance(ctrl.cashFlowData, dict)
+    assert isinstance(ctrl.financialTableRows, list)
+    assert isinstance(ctrl.activeStatementPeriods, list)
+    assert isinstance(ctrl.shareholderTimeline, list)
+
+    # QML bileşenlerini instantiate et
+    engine = QQmlApplicationEngine()
+    engine.rootContext().setContextProperty("stock360Controller", ctrl)
+
+    qml_dir = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
+    engine.addImportPath(str(qml_dir))
+
+    comp = QQmlComponent(engine)
+    test_qml = """
+    import QtQuick
+    import "src/ui_qml/qml/components"
+    import "src/ui_qml/qml/theme"
+
+    Item {
+        width: 1000
+        height: 1200
+
+        FintechRevenueChart {
+            width: 800
+        }
+
+        FintechDuPontCard {
+            width: 800
+        }
+
+        FintechCashFlowCard {
+            width: 800
+        }
+
+        FintechStatementsTable {
+            width: 800
+        }
+
+        FintechShareholderTimeline {
+            width: 800
+        }
+    }
+    """
+    comp.setData(test_qml.encode("utf-8"), QUrl.fromLocalFile(str(Path.cwd() / "test_fintech_all.qml")))
+    assert not comp.errors(), f"Fintech QML Hataları: {comp.errors()}"
+    obj = comp.create()
+    assert obj is not None
+
+
+def test_stock_360_view_full_render(qapp, container):
+    """Stock360View sayfasının tam entegrasyonla hatasız derlenip oluşturulduğunu doğrula."""
+    engine = QQmlApplicationEngine()
+    s360_ctrl = Stock360Controller(container, engine)
+    engine.rootContext().setContextProperty("stock360Controller", s360_ctrl)
+
+    qml_dir = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
+    engine.addImportPath(str(qml_dir))
+
+    view_file = qml_dir / "views" / "Stock360View.qml"
+    comp = QQmlComponent(engine, QUrl.fromLocalFile(str(view_file)))
+    assert not comp.errors(), f"Stock360View QML Hataları: {comp.errors()}"
+    obj = comp.create()
+    assert obj is not None
+

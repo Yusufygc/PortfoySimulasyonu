@@ -83,6 +83,11 @@ class Stock360Controller(QObject):
     shareholdersHtmlUrlChanged = Signal()
     periodsCountChanged = Signal(int)
     viewModeChanged = Signal(int)
+    revenueChartChanged = Signal()
+    financialTableChanged = Signal()
+    statementTypeChanged = Signal()
+    statementSearchQueryChanged = Signal()
+    shareholderTimelineChanged = Signal()
 
     # Thread-safe iç sinyal (arka plan iş parçacığından ana GUI iş parçacığına)
     _remoteDataReady = Signal(str, object, object, str, str, str)
@@ -163,6 +168,21 @@ class Stock360Controller(QObject):
         self._kap_snapshot_count: int = 0
         self._last_kap_filing_date: str = "—"
         self._temp_files: List[str] = []
+
+        # Fintech Göstergeler & Veri Modelleri
+        self._revenue_chart_data: List[Dict[str, Any]] = []
+        self._revenue_yoy_growth: str = "—"
+        self._is_revenue_yoy_positive: bool = True
+        self._latest_quarter_revenue: str = "—"
+        self._latest_quarter_net_income: str = "—"
+        self._latest_quarter_margin: str = "—"
+        self._dupont_data: Dict[str, Any] = {}
+        self._cash_flow_data: Dict[str, Any] = {}
+        self._active_statement_periods: List[str] = []
+        self._financial_table_rows: List[Dict[str, Any]] = []
+        self._statement_type: str = "bilanco"  # 'bilanco', 'gelir', 'nakit_akim'
+        self._statement_search_query: str = ""
+        self._shareholder_timeline: List[Dict[str, Any]] = []
 
         # Hızlı seçim hisseleri
         self._available_stocks: List[str] = []
@@ -398,6 +418,59 @@ class Stock360Controller(QObject):
     def lastKapFilingDate(self) -> str:
         return self._last_kap_filing_date
 
+    # --- Fintech Göstergeler & Veri Modelleri ---
+    @Property(list, notify=revenueChartChanged)
+    def revenueChartData(self) -> List[Dict[str, Any]]:
+        return self._revenue_chart_data
+
+    @Property(str, notify=revenueChartChanged)
+    def revenueYoYGrowth(self) -> str:
+        return self._revenue_yoy_growth
+
+    @Property(bool, notify=revenueChartChanged)
+    def isRevenueYoYPositive(self) -> bool:
+        return self._is_revenue_yoy_positive
+
+    @Property(str, notify=revenueChartChanged)
+    def latestQuarterRevenue(self) -> str:
+        return self._latest_quarter_revenue
+
+    @Property(str, notify=revenueChartChanged)
+    def latestQuarterNetIncome(self) -> str:
+        return self._latest_quarter_net_income
+
+    @Property(str, notify=revenueChartChanged)
+    def latestQuarterMargin(self) -> str:
+        return self._latest_quarter_margin
+
+    @Property(dict, notify=financialsChanged)
+    def dupontData(self) -> Dict[str, Any]:
+        return self._dupont_data
+
+    @Property(dict, notify=financialsChanged)
+    def cashFlowData(self) -> Dict[str, Any]:
+        return self._cash_flow_data
+
+    @Property(list, notify=periodsCountChanged)
+    def activeStatementPeriods(self) -> List[str]:
+        return self._active_statement_periods
+
+    @Property(list, notify=financialTableChanged)
+    def financialTableRows(self) -> List[Dict[str, Any]]:
+        return self._financial_table_rows
+
+    @Property(str, notify=statementTypeChanged)
+    def statementType(self) -> str:
+        return self._statement_type
+
+    @Property(str, notify=statementSearchQueryChanged)
+    def statementSearchQuery(self) -> str:
+        return self._statement_search_query
+
+    @Property(list, notify=shareholderTimelineChanged)
+    def shareholderTimeline(self) -> List[Dict[str, Any]]:
+        return self._shareholder_timeline
+
     # ------------------------------------------------------------------
     # Public Slots & API
     # ------------------------------------------------------------------
@@ -429,12 +502,29 @@ class Stock360Controller(QObject):
             self._active_view_mode = mode
             self.viewModeChanged.emit(mode)
 
+    @Slot(str)
+    def setStatementType(self, statement_type: str) -> None:
+        if statement_type in ("bilanco", "gelir", "nakit_akim") and statement_type != self._statement_type:
+            self._statement_type = statement_type
+            self.statementTypeChanged.emit()
+            self._recalculate_financial_table()
+            self.financialTableChanged.emit()
+
+    @Slot(str)
+    def setStatementSearchQuery(self, query: str) -> None:
+        if query != self._statement_search_query:
+            self._statement_search_query = query
+            self.statementSearchQueryChanged.emit()
+            self._recalculate_financial_table()
+            self.financialTableChanged.emit()
+
     @Slot(int)
     def setFinancialsPeriods(self, periods: int) -> None:
-        """Kapsamlı bilanço için dönem sayısını (4, 8, 12, 0=Tümü) ayarlar ve HTML'i yeniler."""
+        """Kapsamlı bilanço ve grafikler için dönem sayısını (4, 8, 12, 0=Tümü) ayarlar ve yeniler."""
         self._current_periods_count = periods
         self.periodsCountChanged.emit(periods)
         if self._cached_metrics:
+            self._recalculate_all_fintech_models()
             all_periods = self._cached_metrics.get("periods", [])
             n_p = len(all_periods) if periods == 0 else periods
             try:
@@ -712,6 +802,230 @@ class Stock360Controller(QObject):
         self.shareholdersChanged.emit()
         self.financialsHtmlUrlChanged.emit()
         self.shareholdersHtmlUrlChanged.emit()
+
+        # Fintech Modellerini Yenile
+        self._recalculate_all_fintech_models()
+
+    # ------------------------------------------------------------------
+    # Fintech Calculation Engines
+    # ------------------------------------------------------------------
+
+    def _recalculate_all_fintech_models(self) -> None:
+        """Kullanıcının seçtiği dönem sayısına (4, 8, 12, Tümü) göre tüm Fintech modellerini hesaplar."""
+        if not self._cached_metrics:
+            return
+
+        m = self._cached_metrics
+        all_periods = m.get("periods", [])
+        if not all_periods:
+            return
+
+        n = len(all_periods) if self._current_periods_count == 0 else min(self._current_periods_count, len(all_periods))
+        active_periods = all_periods[:n]
+        self._active_statement_periods = active_periods
+
+        # 1. Gelir & Kârlılık Grafik Verisi (Kronolojik: Eskiden yeniye)
+        chronological_periods = list(reversed(active_periods))
+        satis_c = m.get("satis_ceyrek", {}) or m.get("satis", {})
+        net_c = m.get("net_kar_ceyrek", {}) or m.get("net_kar", {})
+        margin_c = m.get("net_kar_marji", {})
+
+        chart_items = []
+        max_rev = 1.0
+        for p in chronological_periods:
+            rev_val = float(satis_c.get(p) or 0.0)
+            max_rev = max(max_rev, rev_val)
+
+        for p in chronological_periods:
+            rev_val = float(satis_c.get(p) or 0.0)
+            net_val = float(net_c.get(p) or 0.0)
+            mg_val = float(margin_c.get(p) or 0.0)
+            chart_items.append({
+                "period": p,
+                "revenue": rev_val,
+                "revenueStr": _format_currency(rev_val),
+                "netIncome": net_val,
+                "netIncomeStr": _format_currency(net_val),
+                "margin": mg_val,
+                "marginStr": f"%{mg_val:.1f}",
+                "isProfitable": net_val >= 0,
+                "ratio": min(1.0, rev_val / max_rev) if max_rev > 0 else 0.0,
+                "profitRatio": min(1.0, abs(net_val) / max_rev) if max_rev > 0 else 0.0,
+            })
+        self._revenue_chart_data = chart_items
+
+        # Son Çeyrek KPI Rozetleri
+        if active_periods:
+            p0 = active_periods[0]
+            last_rev = float(satis_c.get(p0) or 0.0)
+            last_net = float(net_c.get(p0) or 0.0)
+            last_mg = float(margin_c.get(p0) or 0.0)
+            self._latest_quarter_revenue = _format_currency(last_rev)
+            self._latest_quarter_net_income = _format_currency(last_net)
+            self._latest_quarter_margin = f"%{last_mg:.2f}"
+
+            # YoY Satış Büyümesi
+            try:
+                y0, q0 = p0.split("/")
+                prev_p = f"{int(y0) - 1}/{q0}"
+                prev_rev = satis_c.get(prev_p)
+                if prev_rev and prev_rev > 0:
+                    yoy_growth = (last_rev - prev_rev) / prev_rev * 100.0
+                    is_pos = yoy_growth >= 0
+                    self._revenue_yoy_growth = f"{'+' if is_pos else ''}{yoy_growth:.1f}%"
+                    self._is_revenue_yoy_positive = is_pos
+                else:
+                    self._revenue_yoy_growth = "—"
+                    self._is_revenue_yoy_positive = True
+            except Exception:
+                self._revenue_yoy_growth = "—"
+                self._is_revenue_yoy_positive = True
+
+        # 2. DuPont Kârlılık Kırılımı (Kârlılık Anatomisi)
+        if active_periods:
+            p0 = active_periods[0]
+            dup_nm = m.get("dupont_net_kar_marji", {}).get(p0)
+            dup_at = m.get("dupont_varlik_devir", {}).get(p0)
+            dup_fl = m.get("dupont_fin_kaldirac", {}).get(p0)
+            dup_roe = m.get("dupont_roe", {}).get(p0)
+            pio = m.get("piotroski", {}).get(p0)
+
+            pio_score = int(pio) if pio is not None else 7
+            if pio_score >= 7:
+                pio_status = "Yüksek Finansal Güç"
+                pio_color = "#089981"
+            elif pio_score >= 4:
+                pio_status = "Dengeli Finansal Yapı"
+                pio_color = "#2962ff"
+            else:
+                pio_status = "Baskılanmış Risk Bölgesi"
+                pio_color = "#f23645"
+
+            self._dupont_data = {
+                "netMargin": f"%{dup_nm:.2f}" if dup_nm is not None else "—",
+                "assetTurnover": f"{dup_at:.2f}x" if dup_at is not None else "—",
+                "financialLeverage": f"{dup_fl:.2f}x" if dup_fl is not None else "—",
+                "roe": f"%{dup_roe:.2f}" if dup_roe is not None else "—",
+                "piotroski": f"{pio_score}/9",
+                "piotroskiStatus": pio_status,
+                "piotroskiColor": pio_color,
+            }
+
+        # 3. Nakit Akışı & Borçluluk
+        if active_periods:
+            p0 = active_periods[0]
+            ocf = m.get("isletme_cf", {}).get(p0)
+            cpx = m.get("capex", {}).get(p0)
+            fcf_val = m.get("fcf", {}).get(p0)
+            nb = m.get("net_borc", {}).get(p0)
+            nb_fav = m.get("net_borc_favok_ttm", {}).get(p0)
+
+            is_safe = (nb_fav is None or nb_fav < 2.5)
+            self._cash_flow_data = {
+                "operatingCf": _format_currency(ocf),
+                "capex": _format_currency(cpx),
+                "fcf": _format_currency(fcf_val),
+                "netDebt": _format_currency(nb),
+                "netDebtEbitda": f"{nb_fav:.2f}x" if nb_fav is not None else "—",
+                "isDebtSafe": is_safe,
+                "debtStatus": "Sürdürülebilir & Sağlıklı" if is_safe else "Yüksek Borçluluk",
+            }
+
+        self._recalculate_financial_table()
+        self._recalculate_shareholder_timeline()
+
+        self.revenueChartChanged.emit()
+        self.financialTableChanged.emit()
+        self.shareholderTimelineChanged.emit()
+
+    def _recalculate_financial_table(self) -> None:
+        if not self._cached_metrics:
+            self._financial_table_rows = []
+            return
+
+        raw_sec = self._cached_metrics.get("_raw_sections", {})
+        section_data = raw_sec.get(self._statement_type, {})
+        periods = self._active_statement_periods or self._cached_metrics.get("periods", [])[:8]
+
+        header_keywords = [
+            "DÖNEN VARLIKLAR", "DURAN VARLIKLAR", "KISA VADELİ YÜKÜMLÜLÜKLER",
+            "UZUN VADELİ YÜKÜMLÜLÜKLER", "ÖZKAYNAKLAR", "TOPLAM VARLIKLAR",
+            "TOPLAM KAYNAKLAR", "SÜRDÜRÜLEN FAALİYETLER", "DÖNEM KARI",
+            "İŞLETME FAALİYETLERİNDEN", "YATIRIM FAALİYETLERİNDEN", "FİNANSMAN FAALİYETLERİNDEN"
+        ]
+
+        query = self._statement_search_query.strip().lower()
+        rows = []
+
+        for name, p_dict in section_data.items():
+            if query and query not in name.lower():
+                continue
+
+            is_hdr = any(kw in name.upper() for kw in header_keywords)
+            vals = [_format_currency(p_dict.get(p)) for p in periods]
+
+            # YoY hesaplama
+            yoy_str = "—"
+            is_pos_yoy = True
+            if periods and len(periods) >= 1:
+                p0 = periods[0]
+                v0 = p_dict.get(p0)
+                try:
+                    y0, q0 = p0.split("/")
+                    prev_p = f"{int(y0) - 1}/{q0}"
+                    v_prev = p_dict.get(prev_p)
+                    if v0 is not None and v_prev is not None and abs(v_prev) > 0:
+                        pct = (v0 - v_prev) / abs(v_prev) * 100.0
+                        is_pos_yoy = pct >= 0
+                        yoy_str = f"{'+' if is_pos_yoy else ''}{pct:.1f}%"
+                except Exception:
+                    pass
+
+            rows.append({
+                "name": name,
+                "isHeader": is_hdr,
+                "values": vals,
+                "yoyChange": yoy_str,
+                "isPositiveYoY": is_pos_yoy,
+            })
+
+        self._financial_table_rows = rows
+
+    def _recalculate_shareholder_timeline(self) -> None:
+        sn = self._cached_snapshots
+        if not sn or len(sn) < 2:
+            self._shareholder_timeline = []
+            return
+
+        events = []
+        for i in range(len(sn) - 1):
+            curr = sn[i]
+            prev = sn[i + 1]
+            curr_date = curr.creation_date.strftime("%d.%m.%Y") if curr.creation_date else "—"
+            prev_map = {r.shareholder_name.strip(): float(r.ratio_in_capital or 0) for r in prev.rows if not r.is_total}
+
+            for r in curr.rows:
+                if r.is_total:
+                    continue
+                name = r.shareholder_name.strip()
+                new_ratio = float(r.ratio_in_capital or 0)
+                old_ratio = prev_map.get(name, 0.0)
+                diff = new_ratio - old_ratio
+                if abs(diff) >= 0.05:  # En az %0.05 değişim
+                    events.append({
+                        "date": curr_date,
+                        "name": name,
+                        "newRatio": f"%{new_ratio:.2f}",
+                        "oldRatio": f"%{old_ratio:.2f}",
+                        "diff": diff,
+                        "diffStr": f"{diff:+.2f}%",
+                        "isIncrease": diff > 0,
+                        "votingRatio": f"%{float(r.voting_right_ratio or 0):.2f}",
+                    })
+            if len(events) >= 15:
+                break
+
+        self._shareholder_timeline = events
 
     # ------------------------------------------------------------------
     # Data Processing & Parsing

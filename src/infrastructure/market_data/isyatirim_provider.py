@@ -354,13 +354,14 @@ class IsyatirimProvider:
         path = _cache_path(ticker, currency)
         if _is_cache_fresh(path):
             cached = _load_cache(path)
-            if cached:
-                logger.debug("isyatirim cache hit: %s_%s", ticker, currency)
+            if cached and len(cached.get("periods", [])) >= n_quarters:
+                logger.debug("isyatirim cache hit: %s_%s (%d periods)", ticker, currency, len(cached.get("periods", [])))
                 return cached
 
-        logger.info("isyatirim scrape: %s (%s, %dQ)", ticker, currency, n_quarters)
+        fetch_quarters = max(n_quarters, 12)
+        logger.info("isyatirim scrape: %s (%s, %dQ)", ticker, currency, fetch_quarters)
         try:
-            data = _scrape(ticker, n_quarters, currency)
+            data = _scrape(ticker, fetch_quarters, currency)
         except FinancialStatementProviderUnavailable:
             raise
         except Exception as exc:

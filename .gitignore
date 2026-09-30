@@ -18,6 +18,7 @@ backups
 docs/**/.obsidian/
 docs/MyDocs
 .icon_cache/
+scratch/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
