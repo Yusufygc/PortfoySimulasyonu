@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] refaktör | Bulgu 5: Stock360Controller Monolit Yapısı Modüler Alt Bileşenlere Ayrıştırıldı
+
+- `Stock360Controller` bünyesindeki 1.442 satırlık monolit "God Object" yapısı Clean Architecture ve tek sorumluluk prensibi (SRP) doğrultusunda modüler alt bileşenlere ayrıştırıldı:
+  - `src/ui_qml/controllers/stock_360_formatters.py`: Finansal para birimi, fiyat, hacim ve grafik renk paleti mantığı taşındı.
+  - `src/ui_qml/controllers/stock_360_fallback.py`: Dış servisler çevrimdışı olduğunda kullanıcı deneyimini kesintisiz kılan sektör haritası ve fallback bilanço/rasyo/KAP verileri izole edildi.
+  - `src/ui_qml/controllers/stock_360_html.py`: QML WebEngine için geçici HTML dashboard derleme ve geçici dosya temizleme lojiği modülerleştirildi.
+  - `src/ui_qml/controllers/stock_360_calc.py`: DuPont analizi, serbest nakit akımı, gelir grafiği, bilanço detay tablosu ve KAP pay sahipliği çizelgesi hesaplama motorları saf fonksiyonlara dönüştürüldü.
+- `Stock360Controller` satır sayısı 1.442'den 834'e düşürüldü; sınıf salt QML ViewModel durumunu ve sinyallerini yönetir hale getirildi.
+- Geriye dönük uyumluluk ve tüm QML test sözleşmesi (`tests/ui_qml/test_stock_360_phase5.py`, 11 test; `test_stock_360_modules.py`, 6 test) %100 korundu.
+- Etkilenen modüller: src/ui_qml/controllers/stock_360_controller.py, src/ui_qml/controllers/stock_360_formatters.py, src/ui_qml/controllers/stock_360_fallback.py, src/ui_qml/controllers/stock_360_html.py, src/ui_qml/controllers/stock_360_calc.py, tests/ui_qml/test_stock_360_modules.py, docs/wiki/log.md
+
 ## [2026-09-30] refaktör | Bulgu 6: QML Controller Doğrudan Repository Katman İhlalleri Application Servislerine Bağlandı
 
 - `ARCHITECTURE_GATES.md §6` ("UI katmanı asla doğrudan Repository çağırmaz; tüm veri erişimleri Application servisleri üzerinden gerçekleşmelidir") kuralı sağlandı.

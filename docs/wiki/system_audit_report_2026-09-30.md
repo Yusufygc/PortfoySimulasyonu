@@ -12,28 +12,28 @@ Ancak projenin mevcut durumunda; **QML katmanında WebEngine üzerinden ham stri
 
 ### Yönetici Özeti Tablosu
 
-| # | Bulgu | Öncelik | Boyut | Efor | Etki |
-|---|-------|:-------:|-------|:----:|------|
-| 1 | QtWebEngine XSS ve Ham JS Enjeksiyon Açığı | 🔴 | Güvenlik | S | Yüksek |
-| 2 | Dashboard Fiyat Yenilemesinde Canlı Servis Yerine Sahte Sayı (`np.random`) Üretimi | 🔴 | Mimari / Kod | S | Yüksek |
-| 3 | SQLite Göçü Sonrası `test_settings_loader.py` Çöküşü (7 Test Fail) | 🔴 | Test | S | Yüksek |
-| 4 | Nuitka Build Betiğinde Eski PyQt5 Plugin'i ve Sabit Geliştirici Yolu | 🔴 | Production | M | Yüksek |
-| 5 | God Object Patlaması: `Stock360Controller` (1.421 Satır, 96 Metot, CC=54) | 🟠 | Mimari / Kalite | L | Yüksek |
-| 6 | Katman İhlali: UI Controller'larının Doğrudan SQL Repository'lerine Erişmesi | 🟠 | Mimari | M | Yüksek |
-| 7 | DRY İhlali: Teknik İndikatör Hesaplamalarının UI Katmanında Yeniden Yazılması | 🟠 | Mimari / Kalite | M | Orta |
-| 8 | UI Thread'de N+1 Senkron DB Sorgusu ve Arayüz Donma Riski | 🟠 | Performans | M | Yüksek |
-| 9 | `time.sleep(1.5)` ile Bekletilen Flaky UI Testleri | 🟠 | Test | S | Orta |
-| 10 | `requirements.txt` ile Sanal Ortam Paket ve Sürüm Ayrışması | 🟠 | DevSecOps / SRE | S | Yüksek |
-| 11 | `test_isyatirim_provider.py` Veri Dönem Uyuşmazlığı Nedeniyle Test Hatası | 🟠 | Test | S | Düşük |
-| 12 | UI Tablo Modellerinde Kâr/Zarar İçin `float` Matematik Kullanımı | 🟠 | Kod Kalitesi | M | Orta |
-| 13 | 9 Ayrı Noktada Sessiz Hata Yutma (`except Exception: pass`) | 🟡 | Kod Kalitesi | S | Orta |
-| 14 | QML Dosyalarında 49 Adet Hardcoded Arayüz Metni (`RULES.md §2.3` İhlali) | 🟡 | Standartlar | M | Düşük |
-| 15 | `_write_temp_html` Tarafından Üretilen Geçici Dosyaların Asla Temizlenmemesi | 🟡 | Production / SRE | S | Orta |
-| 16 | Preflight Kontrolünde Python Sürüm Uyuşmazlığı (3.10 vs 3.11) | 🟡 | Production | S | Düşük |
-| 17 | Naive ve Aware Datetime Karışımı ile Deprecated `datetime.utcnow()` | 🟡 | Kod Kalitesi | M | Orta |
-| 18 | `FintechShareholderTimeline.qml` İçinde Ham Unicode Ok Karakteri (`\u2794`) | 🟢 | Standartlar | S | Düşük |
-| 19 | Sayı ve Para Birimi Formatlarında Dil/Kısaltma Uyuşmazlığı ("Mr" vs "B") | 🟢 | Yerel Bağlam | S | Düşük |
-| 20 | `auto_commit.py` Scriptinin Hassas Kod ve .env İçeriklerini Dış API'ye Göndermesi | 🟢 | DevSecOps | S | Düşük |
+| # | Bulgu | Öncelik | Boyut | Efor | Etki | Durum |
+|---|-------|:-------:|-------|:----:|------|:-----:|
+| 1 | QtWebEngine XSS ve Ham JS Enjeksiyon Açığı | 🔴 | Güvenlik | S | Yüksek | ✅ Çözüldü |
+| 2 | Dashboard Fiyat Yenilemesinde Canlı Servis Yerine Sahte Sayı (`np.random`) Üretimi | 🔴 | Mimari / Kod | S | Yüksek | ✅ Çözüldü |
+| 3 | SQLite Göçü Sonrası `test_settings_loader.py` Çöküşü (7 Test Fail) | 🔴 | Test | S | Yüksek | ✅ Çözüldü |
+| 4 | Nuitka Build Betiğinde Eski PyQt5 Plugin'i ve Sabit Geliştirici Yolu | 🔴 | Production | M | Yüksek | ✅ Çözüldü |
+| 5 | God Object Patlaması: `Stock360Controller` (1.421 Satır, 96 Metot, CC=54) | 🟠 | Mimari / Kalite | L | Yüksek | ✅ Çözüldü |
+| 6 | Katman İhlali: UI Controller'larının Doğrudan SQL Repository'lerine Erişmesi | 🟠 | Mimari | M | Yüksek | ✅ Çözüldü |
+| 7 | DRY İhlali: Teknik İndikatör Hesaplamalarının UI Katmanında Yeniden Yazılması | 🟠 | Mimari / Kalite | M | Orta | ✅ Çözüldü |
+| 8 | UI Thread'de N+1 Senkron DB Sorgusu ve Arayüz Donma Riski | 🟠 | Performans | M | Yüksek | ✅ Çözüldü |
+| 9 | `time.sleep(1.5)` ile Bekletilen Flaky UI Testleri | 🟠 | Test | S | Orta | ✅ Çözüldü |
+| 10 | `requirements.txt` ile Sanal Ortam Paket ve Sürüm Ayrışması | 🟠 | DevSecOps / SRE | S | Yüksek | ✅ Çözüldü |
+| 11 | `test_isyatirim_provider.py` Veri Dönem Uyuşmazlığı Nedeniyle Test Hatası | 🟠 | Test | S | Düşük | ✅ Çözüldü |
+| 12 | UI Tablo Modellerinde Kâr/Zarar İçin `float` Matematik Kullanımı | 🟠 | Kod Kalitesi | M | Orta | ✅ Çözüldü |
+| 13 | 9 Ayrı Noktada Sessiz Hata Yutma (`except Exception: pass`) | 🟡 | Kod Kalitesi | S | Orta | ✅ Çözüldü |
+| 14 | QML Dosyalarında 49 Adet Hardcoded Arayüz Metni (`RULES.md §2.3` İhlali) | 🟡 | Standartlar | M | Düşük | ✅ Çözüldü |
+| 15 | `_write_temp_html` Tarafından Üretilen Geçici Dosyaların Asla Temizlenmemesi | 🟡 | Production / SRE | S | Orta | ✅ Çözüldü |
+| 16 | Preflight Kontrolünde Python Sürüm Uyuşmazlığı (3.10 vs 3.11) | 🟡 | Production | S | Düşük | ✅ Çözüldü |
+| 17 | Naive ve Aware Datetime Karışımı ile Deprecated `datetime.utcnow()` | 🟡 | Kod Kalitesi | M | Orta | ✅ Çözüldü |
+| 18 | `FintechShareholderTimeline.qml` İçinde Ham Unicode Ok Karakteri (`\u2794`) | 🟢 | Standartlar | S | Düşük | ✅ Çözüldü |
+| 19 | Sayı ve Para Birimi Formatlarında Dil/Kısaltma Uyuşmazlığı ("Mr" vs "B") | 🟢 | Yerel Bağlam | S | Düşük | ✅ Çözüldü |
+| 20 | `auto_commit.py` Scriptinin Hassas Kod ve .env İçeriklerini Dış API'ye Göndermesi | 🟢 | DevSecOps | S | Düşük | ✅ Çözüldü |
 
 ---
 
