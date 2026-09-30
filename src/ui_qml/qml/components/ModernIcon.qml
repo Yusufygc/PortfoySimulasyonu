@@ -7,6 +7,8 @@ Item {
 
     property string name: ""
     property alias iconName: root.name
+    property alias iconColor: root.color
+    property var iconSource: null
     property int size: 16
     property color color: Theme.textPrimary
 
@@ -16,7 +18,7 @@ Item {
     Image {
         id: srcImg
         anchors.fill: parent
-        source: Icons.get(root.name)
+        source: root.iconSource ? root.iconSource : Icons.get(root.name)
         sourceSize.width: root.size * 2
         sourceSize.height: root.size * 2
         fillMode: Image.PreserveAspectFit

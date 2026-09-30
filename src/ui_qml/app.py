@@ -20,6 +20,7 @@ from src.ui_qml.controllers.chart_controller import ChartController
 from src.ui_qml.controllers.dashboard_controller import DashboardController
 from src.ui_qml.controllers.watchlist_controller import WatchlistController
 from src.ui_qml.controllers.stock_360_controller import Stock360Controller
+from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ def run_qml_app(container=None) -> int:
     dash_ctrl = DashboardController(container=container, parent=engine)
     watchlist_ctrl = WatchlistController(container=container, parent=engine)
     stock_360_ctrl = Stock360Controller(container=container, parent=engine)
+    portfolio_ctrl = ModelPortfolioController(container=container, parent=engine)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
@@ -63,6 +65,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("dashboardController", dash_ctrl)
     context.setContextProperty("watchlistController", watchlist_ctrl)
     context.setContextProperty("stock360Controller", stock_360_ctrl)
+    context.setContextProperty("portfolioController", portfolio_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"

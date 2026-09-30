@@ -73,11 +73,13 @@ ApplicationWindow {
                         source: "views/WatchlistView.qml"
                     }
 
-                    // 2: Model Portföyler (Faz 6)
-                    PlaceholderView {
-                        title: Strings.navPortfolio
-                        subtitle: "Faz 6 kapsamında sanal portföy simülasyonu, nakit akışı ve BIST seans kontrollü al/sat dialogları eklenecektir."
-                        iconName: "portfolio"
+                    // 2: Model Portföyler (Faz 6 - Canlı Sanal Simülasyon, Nakit Akışı & Al/Sat - Tembel Yükleme)
+                    Loader {
+                        id: modelPortfolioLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 2 || (status === Loader.Ready)
+                        source: "views/ModelPortfolioView.qml"
                     }
 
                     // 3: Hisse 360 & Temel Analiz (Faz 5 - Canlı Rasyolar, Bilanço & KAP Ortaklık - Tembel Yükleme)
