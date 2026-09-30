@@ -62,12 +62,12 @@ def _nuitka_requirement(root: Path) -> CheckResult:
 
 
 def _python_version() -> CheckResult:
-    ok = sys.version_info >= (3, 11)
+    ok = sys.version_info >= (3, 10)
     version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     return CheckResult(
         "python version",
         ok,
-        f"Python {version}" if ok else f"Python {version}; expected >= 3.11",
+        f"Python {version}" if ok else f"Python {version}; expected >= 3.10",
     )
 
 

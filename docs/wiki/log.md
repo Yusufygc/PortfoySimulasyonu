@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] test | Bulgu 11 & Bulgu 16: İş Yatırım Cache Testi ve Python Sürüm Preflight Guard Düzeltildi
+
+- `tests/infrastructure/market_data/test_isyatirim_provider.py` içindeki `_MINIMAL_RAW` fixture'ına 4 çeyrek veri eklenerek cache hit testi başarılı kılındı (11/11 test yeşil).
+- `scripts/build_preflight.py` içerisindeki Python sürüm eşiği, `CLAUDE.md` standardı olan `Python >= 3.10` ile uyumlandırıldı; `test_production_guards.py` yeşile döndü.
+- Tüm `tests/infrastructure` testleri (120/120) sıfır hatayla geçti.
+- Etkilenen modüller: tests/infrastructure/market_data/test_isyatirim_provider.py, scripts/build_preflight.py, docs/wiki/log.md
+
 ## [2026-09-30] yapılandır | Bulgu 4: Nuitka Build Betiği PySide6 ve QML Mimarisine Uyurlandı
 
 - `build_nuitka.bat` içindeki sabit geliştirici yolu (`C:\Users\ysfygc\...`) kaldırılıp yerel sanal ortam dinamik tespitine bağlandı (`.\venv\Scripts\python.exe`).

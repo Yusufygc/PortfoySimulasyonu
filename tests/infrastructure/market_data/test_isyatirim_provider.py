@@ -86,7 +86,7 @@ def test_load_cache_corrupt(tmp_path):
 _MINIMAL_RAW = {
     "ticker": "FROTO",
     "currency": "TRY",
-    "periods": ["2024/3"],
+    "periods": ["2024/3", "2023/12", "2023/9", "2023/6"],
     "sections": {"bilanco": {}, "gelir": {}, "dipnot": {}, "nakit_akim": {}},
 }
 
