@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-09-30] belge | Kapsamlı Sistem Denetim ve Mimari İnceleme Raporu
+
+- QML arayüz katmanı (`src/ui_qml`), Domain, Application, Infrastructure, güvenlik, build ve test altyapısı kıdemli denetim ekibi perspektifiyle (Mimari, DevSecOps, QA, SRE) incelendi.
+- 4 öncelik seviyesinde 20 detaylı teknik bulgu, etki analizleri ve kanıt kod blokları belgelendi.
+- Kriz yönetimi ve 24 saat / bu hafta / bu ay aksiyon planı oluşturuldu.
+- Bağlantılı sayfa: [system_audit_report_2026-09-30.md](system_audit_report_2026-09-30.md)
+
 ## [2026-09-30] özellik | Faz 5 — Hisse 360 & Temel Analiz Görünümü (Rasyolar, Bilanço Çubuk Grafiği ve KAP Ortaklık Donut'ı)
 
 - **Hisse 360 Denetleyicisi (`Stock360Controller` — `src/ui_qml/controllers/stock_360_controller.py`):**
