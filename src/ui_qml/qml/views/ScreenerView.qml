@@ -238,7 +238,11 @@ Item {
                             font.pixelSize: Theme.fontXs
                             font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignRight
-                            Layout.preferredWidth: 120
+                            Layout.preferredWidth: 100
+                        }
+
+                        Item {
+                            Layout.preferredWidth: 70
                         }
                     }
                 }
@@ -317,19 +321,68 @@ Item {
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.DemiBold
                                     horizontalAlignment: Text.AlignRight
-                                    Layout.preferredWidth: 120
+                                    Layout.preferredWidth: 100
+                                }
+
+                                // Hızlı Grafik Butonu
+                                Rectangle {
+                                    Layout.preferredWidth: 70
+                                    Layout.preferredHeight: 28
+                                    radius: Theme.radiusXs
+                                    color: btnChartMouse.containsMouse ? Theme.accent : Theme.bgInput
+                                    border.color: btnChartMouse.containsMouse ? Theme.accent : Theme.borderSubtle
+                                    border.width: 1
+                                    z: 3
+
+                                    RowLayout {
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        ModernIcon {
+                                            name: "linechart"
+                                            size: 11
+                                            color: btnChartMouse.containsMouse ? "#ffffff" : Theme.accent
+                                        }
+
+                                        Text {
+                                            text: Strings.btnChart
+                                            color: btnChartMouse.containsMouse ? "#ffffff" : Theme.textPrimary
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            font.weight: Font.DemiBold
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: btnChartMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            var clean = modelData.ticker.replace(".IS", "")
+                                            chartController.loadTicker(clean)
+                                            shellController.navigateTo(0)
+                                        }
+                                    }
                                 }
                             }
 
                             MouseArea {
                                 id: rowMouse
                                 anchors.fill: parent
+                                z: 1
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    chartController.loadTicker(modelData.ticker)
-                                    stock360Controller.searchStock(modelData.ticker)
-                                    shellController.navigateTo(3) // Hisse 360 sayfasına yönlendir
+                                    var clean = modelData.ticker.replace(".IS", "")
+                                    chartController.loadTicker(clean)
+                                    stock360Controller.searchStock(clean)
+                                    shellController.navigateTo(3) // Tek tık: Hisse 360 detay
+                                }
+                                onDoubleClicked: {
+                                    var clean = modelData.ticker.replace(".IS", "")
+                                    chartController.loadTicker(clean)
+                                    shellController.navigateTo(0) // Çift tık: TradingView Grafik
                                 }
                             }
                         }

@@ -382,7 +382,7 @@ QtObject {
     readonly property string screenerEmptyTitle: "Henüz tarama yapılmadı"
     readonly property string screenerEmptySubtitle: "Yukarıdaki stratejilerden birini seçip 'Taramayı Başlat' butonuna tıklayın"
     readonly property string screenerMatchesSuffix: " hisse sinyal verdi"
-    readonly property string screenerRowHint: "Grafiğini ve detaylarını görmek için hisseye tıklayın"
+    readonly property string screenerRowHint: "Çift tıkla: Grafik | Tek tıkla: 360 Analiz"
 
     // --- Finansal Planlama (Faz 8) ---
     readonly property string planningTitle: "Finansal Planlama & Simülasyon"
