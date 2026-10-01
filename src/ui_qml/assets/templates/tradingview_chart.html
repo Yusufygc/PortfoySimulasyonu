@@ -155,9 +155,12 @@
       const gridColor = isDark ? '#1e222d' : '#f0f3fa';
       const borderColor = isDark ? '#2a2e39' : '#e0e3eb';
 
+      const containerW = (container && container.clientWidth > 0) ? container.clientWidth : (window.innerWidth || 800);
+      const containerH = (container && container.clientHeight > 0) ? container.clientHeight : (window.innerHeight || 450);
+
       chart = LightweightCharts.createChart(container, {
-        width: container.clientWidth,
-        height: container.clientHeight,
+        width: containerW,
+        height: containerH,
         layout: {
           background: { type: 'solid', color: bgColor },
           textColor: textColor,
@@ -220,7 +223,9 @@
       const resizeObserver = new ResizeObserver(entries => {
         if (entries.length > 0 && chart) {
           const { width, height } = entries[0].contentRect;
-          chart.applyOptions({ width, height });
+          if (width > 0 && height > 0) {
+            chart.applyOptions({ width, height });
+          }
         }
       });
       resizeObserver.observe(container);
@@ -230,6 +235,16 @@
         renderAll();
       }
     }
+
+    function handleResize() {
+      if (!chart || !container) return;
+      const w = container.clientWidth || window.innerWidth;
+      const h = container.clientHeight || window.innerHeight;
+      if (w > 0 && h > 0) {
+        chart.applyOptions({ width: w, height: h });
+      }
+    }
+    window.addEventListener('resize', handleResize);
 
     function createMainPriceSeries(type) {
       if (mainSeries) {
@@ -368,6 +383,10 @@
       }
       cachedData = payload;
 
+      if (!chart) {
+        initChart(payload.ticker || "BIST", currentIsDark);
+      }
+
       if (payload.ticker && elTicker) {
         const name = payload.companyName && payload.companyName !== payload.ticker ? ` (${payload.companyName})` : '';
         elTicker.innerText = `${payload.ticker}${name}`;
@@ -378,56 +397,65 @@
         createMainPriceSeries(currentChartType);
       }
 
+      handleResize();
       renderAll();
     }
 
     function renderAll() {
       if (!chart || !cachedData) return;
 
+      handleResize();
+
       const candles = cachedData.candles || [];
       const volumes = cachedData.volumes || [];
 
-      // 1. Ana Fiyat Serisi Verisi
-      if (mainSeries) {
-        if (currentChartType === "line" || currentChartType === "area") {
-          const lineData = candles.map(c => ({ time: c.time, value: c.close }));
-          mainSeries.setData(lineData);
-        } else {
-          mainSeries.setData(candles);
-        }
-      }
-
-      // 2. Hacim Verisi
-      if (volumeSeries) {
-        volumeSeries.setData(volumes);
-      }
-
-      // 3. İndikatörleri Güncelle
-      renderIndicators();
-
-      // 4. Sinyal İşaretçileri (Markers)
-      renderMarkers();
-
-      // 5. Otomatik Ölçek
       try {
-        chart.priceScale('right').applyOptions({ autoScale: true });
-      } catch (e) {}
-      chart.timeScale().fitContent();
+        // 1. Ana Fiyat Serisi Verisi
+        if (mainSeries) {
+          if (currentChartType === "line" || currentChartType === "area") {
+            const lineData = candles.map(c => ({ time: c.time, value: c.close }));
+            mainSeries.setData(lineData);
+          } else {
+            mainSeries.setData(candles);
+          }
+        }
+
+        // 2. Hacim Verisi
+        if (volumeSeries) {
+          volumeSeries.setData(volumes);
+        }
+
+        // 3. İndikatörleri Güncelle
+        renderIndicators();
+
+        // 4. Sinyal İşaretçileri (Markers)
+        renderMarkers();
+
+        // 5. Otomatik Ölçek
+        try {
+          chart.priceScale('right').applyOptions({ autoScale: true });
+        } catch (e) {}
+        chart.timeScale().fitContent();
+      } catch (err) {
+        console.error("renderAll cizim hatasi:", err);
+      }
 
       // Son mum değerlerini lejanta yaz
       if (candles.length > 0) {
         const last = candles[candles.length - 1];
-        elOpen.innerText = last.open.toFixed(2);
-        elHigh.innerText = last.high.toFixed(2);
-        elLow.innerText = last.low.toFixed(2);
-        elClose.innerText = last.close.toFixed(2);
-        const diff = last.close - last.open;
+        if (elOpen && last.open !== undefined) elOpen.innerText = Number(last.open).toFixed(2);
+        if (elHigh && last.high !== undefined) elHigh.innerText = Number(last.high).toFixed(2);
+        if (elLow && last.low !== undefined) elLow.innerText = Number(last.low).toFixed(2);
+        if (elClose && last.close !== undefined) elClose.innerText = Number(last.close).toFixed(2);
+        const diff = Number(last.close) - Number(last.open);
         const pct = last.open > 0 ? ((diff / last.open) * 100).toFixed(2) : "0.00";
         const sign = diff >= 0 ? '+' : '';
-        elChange.innerText = `${sign}${pct}%`;
-        elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
+        if (elChange) {
+          elChange.innerText = `${sign}${pct}%`;
+          elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
+        }
 
-        if (volumes.length > 0) {
+        if (volumes.length > 0 && elVol) {
           const lastV = volumes[volumes.length - 1].value;
           elVol.innerText = (lastV >= 1e6) ? (lastV / 1e6).toFixed(2) + "M" : (lastV / 1e3).toFixed(0) + "K";
         }

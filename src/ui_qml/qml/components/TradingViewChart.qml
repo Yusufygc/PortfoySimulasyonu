@@ -8,10 +8,22 @@ Item {
 
     property string ticker: chartController ? chartController.currentTicker : "THYAO"
     property bool isLoaded: false
+    property var pendingPayload: null
 
     signal chartReady()
 
     clip: true
+
+    onWidthChanged: {
+        if (root.isLoaded) {
+            webView.runJavaScript("if (typeof handleResize === 'function') handleResize();");
+        }
+    }
+    onHeightChanged: {
+        if (root.isLoaded) {
+            webView.runJavaScript("if (typeof handleResize === 'function') handleResize();");
+        }
+    }
 
     WebEngineView {
         id: webView
@@ -22,16 +34,22 @@ Item {
         url: Qt.resolvedUrl("../../assets/templates/tradingview_chart.html")
 
         settings.javascriptEnabled: true
-        settings.localContentCanAccessRemoteUrls: false
-        settings.localContentCanAccessFileUrls: false
+        settings.localContentCanAccessRemoteUrls: true
+        settings.localContentCanAccessFileUrls: true
 
         onLoadingChanged: function(loadRequest) {
             if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
                 root.isLoaded = true
                 root.chartReady()
 
-                // İlk veri yükleme ve başlangıç indikatörleri
-                if (chartController) {
+                // Bekleyen veri varsa aktar, yoksa controller'dan iste
+                if (root.pendingPayload) {
+                    var payload = root.pendingPayload
+                    root.pendingPayload = null
+                    webView.runJavaScript("setCandleData(" + JSON.stringify(payload) + ");", function() {
+                        syncIndicators();
+                    })
+                } else if (chartController) {
                     chartController.loadTicker(root.ticker)
                 }
             }
@@ -47,8 +65,11 @@ Item {
         target: chartController
 
         function onChartDataLoaded(tickerName, jsonPayload) {
-            if (!root.isLoaded) return
             root.ticker = tickerName
+            if (!root.isLoaded) {
+                root.pendingPayload = jsonPayload
+                return
+            }
 
             // Güvenli veri iletimi: jsonPayload güvenli bir string JSON parametresi olarak aktarılır (XSS/enjeksiyon engellenir)
             webView.runJavaScript("setCandleData(" + JSON.stringify(jsonPayload) + ");", function() {

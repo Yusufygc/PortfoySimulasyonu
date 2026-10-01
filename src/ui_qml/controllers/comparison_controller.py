@@ -22,13 +22,37 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+from pathlib import Path
+from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.application.services.analysis.comparison_service import ComparisonService
 from src.application.services.analysis.models import AnalysisFilterState
 from src.ui.pages.comparison.utils.comparison_series_builder import ComparisonSeriesBuilder
 
 logger = logging.getLogger(__name__)
+
+_JS_DIR = Path(__file__).resolve().parent.parent / "assets" / "js"
+_LW_CHARTS_JS: str = ""
+_CHART_JS: str = ""
+
+
+def _load_embedded_scripts() -> None:
+    global _LW_CHARTS_JS, _CHART_JS
+    if not _LW_CHARTS_JS:
+        lw_file = _JS_DIR / "lightweight-charts.standalone.production.js"
+        if lw_file.exists():
+            try:
+                _LW_CHARTS_JS = lw_file.read_text(encoding="utf-8")
+            except Exception as e:
+                logger.warning("lightweight-charts script okunamadı: %s", e)
+    if not _CHART_JS:
+        chart_file = _JS_DIR / "chart.umd.min.js"
+        if chart_file.exists():
+            try:
+                _CHART_JS = chart_file.read_text(encoding="utf-8")
+            except Exception as e:
+                logger.warning("chart.umd.min.js script okunamadı: %s", e)
+
 
 PALETTE = [
     "#2962ff", "#089981", "#f23645", "#ff9800",
@@ -52,12 +76,22 @@ class ComparisonController(QObject):
     ratioAssetsChanged = Signal()
     operationResult = Signal(bool, str, arguments=["success", "message"])
 
+    # Worker Thread Signals (Qt QueuedConnection ile GUI ana thread'ine güvenli iletim)
+    _calcFinished = Signal(object, object, object)
+    _calcEmpty = Signal()
+    _calcError = Signal(str)
+
     def __init__(self, container, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._container = container
         self._analysis_service = container.analysis_service
         self._stock_repo = getattr(container, "stock_repo", None)
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ComparisonWorker")
+
+        # Worker sinyal bağlantıları (ana GUI thread'inde çalışır)
+        self._calcFinished.connect(self._apply_calculation_result)
+        self._calcEmpty.connect(self._apply_empty_result)
+        self._calcError.connect(self._apply_error_result)
 
         # State
         self._asset_options: List[Dict[str, str]] = []
@@ -237,12 +271,12 @@ class ComparisonController(QObject):
             series_dict, code_to_label = ComparisonSeriesBuilder.build_global_series(dto, [])
 
             if not series_dict:
-                QTimer.singleShot(0, self._apply_empty_result)
+                self._calcEmpty.emit()
                 return
 
             aligned = ComparisonService.align_financial_series(series_dict)
             if aligned.empty or len(aligned) < 2:
-                QTimer.singleShot(0, self._apply_empty_result)
+                self._calcEmpty.emit()
                 return
 
             # Risk-Getiri Metrikleri
@@ -257,11 +291,11 @@ class ComparisonController(QObject):
                     "volatility": round(rm.get("annual_volatility_pct", 0.0), 2),
                 })
 
-            # Ana thread'e aktar
-            QTimer.singleShot(0, lambda: self._apply_calculation_result(aligned, code_to_label, metrics))
+            # Ana GUI thread'ine Qt QueuedConnection ile aktar
+            self._calcFinished.emit(aligned, code_to_label, metrics)
         except Exception as exc:
             logger.exception("Arka plan karşılaştırma hatası: %s", exc)
-            QTimer.singleShot(0, lambda: self._apply_error_result(str(exc)))
+            self._calcError.emit(str(exc))
 
     def _apply_empty_result(self) -> None:
         self._cached_aligned = None
@@ -365,7 +399,7 @@ class ComparisonController(QObject):
                 data_points.append(f"{{time:'{time_str}',value:{float(val):.2f}}}")
 
             datasets_js.append(f"""
-                var s{i} = chart.addLineSeries({{
+                var s{i} = chart.addSeries(LightweightCharts.LineSeries, {{
                     color: '{color}',
                     lineWidth: 2,
                     title: '{col}'
@@ -388,7 +422,7 @@ class ComparisonController(QObject):
                 data_points.append(f"{{time:'{time_str}',value:{float(val):.2f}}}")
 
             datasets_js.append(f"""
-                var s{i} = chart.addAreaSeries({{
+                var s{i} = chart.addSeries(LightweightCharts.AreaSeries, {{
                     topColor: 'rgba(0, 0, 0, 0)',
                     bottomColor: '{color}22',
                     lineColor: '{color}',
@@ -401,14 +435,16 @@ class ComparisonController(QObject):
         return self._wrap_lw_chart(''.join(datasets_js), "Maksimum Değer Kaybı (Drawdown %)")
 
     def _wrap_lw_chart(self, series_code: str, title: str) -> str:
+        _load_embedded_scripts()
+        script_tag = f"<script>{_LW_CHARTS_JS}</script>" if _LW_CHARTS_JS else '<script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>'
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>body {{ margin: 0; background: #131722; overflow: hidden; }} #c {{ width: 100vw; height: 100vh; }}</style>
-<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+{script_tag}
 </head><body><div id="c"></div>
 <script>
 var chart = LightweightCharts.createChart(document.getElementById('c'), {{
-    width: window.innerWidth, height: window.innerHeight,
+    width: window.innerWidth || 800, height: window.innerHeight || 450,
     layout: {{ background: {{ color: '#131722' }}, textColor: '#9db2ce' }},
     grid: {{ vertLines: {{ color: '#1e222d' }}, horzLines: {{ color: '#1e222d' }} }},
     rightPriceScale: {{ borderColor: '#2a2e39', scaleMargins: {{ top: 0.1, bottom: 0.1 }} }},
@@ -424,6 +460,8 @@ window.addEventListener('resize', function() {{
 
     def _build_periodic_html(self, monthly_df: pd.DataFrame) -> str:
         """Aylık getirileri yan yana gösteren interaktif Chart.js Bar Grafiği."""
+        _load_embedded_scripts()
+        script_tag = f"<script>{_CHART_JS}</script>" if _CHART_JS else '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
         labels = [d.strftime("%Y-%m") if hasattr(d, "strftime") else str(d)[:7] for d in monthly_df.index]
         datasets = []
         for i, col in enumerate(monthly_df.columns):
@@ -439,7 +477,7 @@ window.addEventListener('resize', function() {{
 
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{script_tag}
 <style>body{{margin:12px;background:#131722;color:#9db2ce;overflow:hidden}}#chart-wrap{{width:98vw;height:90vh}}</style>
 </head><body><div id="chart-wrap"><canvas id="pChart"></canvas></div>
 <script>
@@ -465,6 +503,8 @@ new Chart(document.getElementById('pChart'), {{
 
     def _build_scatter_html(self, metrics: List[Dict[str, Any]]) -> str:
         """Risk / Getiri Saçılım (Scatter Plot) Grafiği."""
+        _load_embedded_scripts()
+        script_tag = f"<script>{_CHART_JS}</script>" if _CHART_JS else '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
         datasets = []
         for i, m in enumerate(metrics):
             color = PALETTE[i % len(PALETTE)]
@@ -480,7 +520,7 @@ new Chart(document.getElementById('pChart'), {{
 
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{script_tag}
 <style>body{{margin:12px;background:#131722;color:#9db2ce;overflow:hidden}}#chart-wrap{{width:98vw;height:90vh}}</style>
 </head><body><div id="chart-wrap"><canvas id="sChart"></canvas></div>
 <script>
