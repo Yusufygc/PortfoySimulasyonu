@@ -75,6 +75,8 @@ class ComparisonController(QObject):
     activeChartTabChanged = Signal()
     ratioAssetsChanged = Signal()
     treemapModeChanged = Signal()
+    treemapPortfolioChanged = Signal()
+    treemapPortfolioOptionsChanged = Signal()
     operationResult = Signal(bool, str, arguments=["success", "message"])
 
     # Worker Thread Signals (Qt QueuedConnection ile GUI ana thread'ine güvenli iletim)
@@ -106,6 +108,8 @@ class ComparisonController(QObject):
         self._ratio_numerator: str = "dashboard"
         self._ratio_denominator: str = "bist100"
         self._treemap_mode: str = "HOLDINGS"  # "HOLDINGS" (Portföy Hisseleri) | "ASSETS" (Seçilen Varlıklar)
+        self._treemap_portfolio_code: str = "dashboard"
+        self._treemap_portfolio_options: List[Dict[str, str]] = [{"code": "dashboard", "label": "Ana Portföy"}]
 
         # Cache of aligned data
         self._cached_aligned: Optional[pd.DataFrame] = None
@@ -116,6 +120,14 @@ class ComparisonController(QObject):
     @Property(str, notify=treemapModeChanged)
     def treemapMode(self) -> str:
         return self._treemap_mode
+
+    @Property(str, notify=treemapPortfolioChanged)
+    def treemapPortfolio(self) -> str:
+        return self._treemap_portfolio_code
+
+    @Property(list, notify=treemapPortfolioOptionsChanged)
+    def treemapPortfolioOptions(self) -> list:
+        return self._treemap_portfolio_options
 
     @Property(list, notify=assetOptionsChanged)
     def assetOptions(self) -> list:
@@ -164,11 +176,13 @@ class ComparisonController(QObject):
         """Portföy ve benchmark seçeneklerini yükler."""
         try:
             options: List[Dict[str, str]] = []
+            portfolio_opts: List[Dict[str, str]] = []
 
-            # 1. Portföyler
+            # 1. Portföyler (Ana Portföy & Model Portföyler)
             portfolios = self._analysis_service.get_portfolio_options()
             for p in portfolios:
                 options.append({"code": p.code, "label": p.label, "kind": p.kind})
+                portfolio_opts.append({"code": p.code, "label": p.label})
 
             # 2. Benchmarklar
             benchmarks = self._analysis_service.get_benchmark_definitions()
@@ -177,6 +191,10 @@ class ComparisonController(QObject):
 
             self._asset_options = options
             self.assetOptionsChanged.emit()
+
+            if portfolio_opts:
+                self._treemap_portfolio_options = portfolio_opts
+                self.treemapPortfolioOptionsChanged.emit()
 
             valid_codes = {o["code"] for o in options}
             self._selected_codes = [c for c in self._selected_codes if c in valid_codes]
@@ -230,12 +248,22 @@ class ComparisonController(QObject):
 
     @Slot(str)
     def setTreemapMode(self, mode: str) -> None:
-        """Treemap modunu ayarlar: 'HOLDINGS' (Ana Portföy Hisseleri) veya 'ASSETS' (Varlık Kıyaslaması)."""
+        """Treemap modunu ayarlar: 'HOLDINGS' (Portföy Hisseleri) veya 'ASSETS' (Varlık Kıyaslaması)."""
         mode = mode.strip().upper()
         if mode in ["HOLDINGS", "ASSETS"] and mode != self._treemap_mode:
             self._treemap_mode = mode
             self.treemapModeChanged.emit()
             if self._active_chart_tab == 4:
+                self._render_current_chart()
+
+    @Slot(str)
+    def setTreemapPortfolio(self, code: str) -> None:
+        """Treemap'te görüntülenecek portföyü ayarlar (Ana Portföy veya Model Portföyler)."""
+        code = str(code).strip()
+        if code and code != self._treemap_portfolio_code:
+            self._treemap_portfolio_code = code
+            self.treemapPortfolioChanged.emit()
+            if self._active_chart_tab == 4 and self._treemap_mode == "HOLDINGS":
                 self._render_current_chart()
 
     @Slot()
@@ -576,8 +604,17 @@ new Chart(document.getElementById('sChart'), {{
 }});
 </script></body></html>"""
 
-    def _get_portfolio_holdings(self) -> List[Dict[str, Any]]:
-        """Ana portföyün içindeki hisse senetlerinin ağırlık ve getiri dağılımını çeker."""
+    def _get_portfolio_label(self, code: str) -> str:
+        for p in self._treemap_portfolio_options:
+            if p.get("code") == code:
+                return str(p.get("label", code))
+        if code == "dashboard":
+            return "Ana Portföy"
+        return code
+
+    def _get_portfolio_holdings(self, portfolio_code: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Seçilen portföyün (ana portföy veya model portföyler) hisselerini, ağırlık ve getiri dağılımını çeker."""
+        target_code = portfolio_code or self._treemap_portfolio_code or "dashboard"
         try:
             if not self._analysis_service:
                 return []
@@ -591,8 +628,8 @@ new Chart(document.getElementById('sChart'), {{
                 end_date=end_dt,
                 selected_stock_ids=[],
                 selected_benchmarks=[],
-                portfolio_source="dashboard",
-                comparison_portfolio_sources=["dashboard"],
+                portfolio_source=target_code,
+                comparison_portfolio_sources=[target_code],
                 currency_mode="TL",
             )
             bundle = self._analysis_service._build_analysis_bundle(filter_state)
@@ -618,23 +655,22 @@ new Chart(document.getElementById('sChart'), {{
                 })
             return holdings
         except Exception as exc:
-            logger.warning("Portföy hisseleri çekilirken hata: %s", exc)
+            logger.warning("Portföy hisseleri çekilirken hata (%s): %s", target_code, exc)
             return []
 
     def _build_treemap_html(self) -> str:
         """
         Portföy Getiri Katkı & Büyüklük Haritası (Squarified Treemap).
-        treemapMode == 'HOLDINGS': Ana portföyün içindeki hisselerin portföy ağırlığı ve kâr/zarar haritası.
+        treemapMode == 'HOLDINGS': Seçilen portföyün (Ana Portföy veya Model Portföyler) hisse ağırlık ve getiri haritası.
         treemapMode == 'ASSETS': Seçilen varlıkların (portföy, BIST100, altın vb.) getiri katkı haritası.
         """
         import json
         is_holdings = (self._treemap_mode == "HOLDINGS")
         items = []
+        portfolio_name = self._get_portfolio_label(self._treemap_portfolio_code)
 
         if is_holdings:
-            items = self._get_portfolio_holdings()
-            if not items:
-                is_holdings = False
+            items = self._get_portfolio_holdings(self._treemap_portfolio_code)
 
         if not is_holdings:
             for m in self._metrics_list:
@@ -655,6 +691,7 @@ new Chart(document.getElementById('sChart'), {{
 
         items_json = json.dumps(items)
         is_holdings_js = "true" if is_holdings else "false"
+        portfolio_name_js = json.dumps(portfolio_name)
 
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -747,6 +784,7 @@ new Chart(document.getElementById('sChart'), {{
 <script>
 const rawData = {items_json};
 const isHoldings = {is_holdings_js};
+const portfolioName = {portfolio_name_js};
 const container = document.getElementById('treemap-container');
 const tooltip = document.getElementById('tooltip');
 
@@ -831,7 +869,17 @@ function render() {{
     const pad = 12;
     const w = (container.clientWidth || window.innerWidth) - pad;
     const h = (container.clientHeight || window.innerHeight) - pad;
-    if (w <= 0 || h <= 0 || !rawData || rawData.length === 0) return;
+    if (w <= 0 || h <= 0) return;
+
+    if (!rawData || rawData.length === 0) {{
+        if (isHoldings) {{
+            container.innerHTML = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#9db2ce; text-align:center; padding:20px;">' +
+                '<div style="font-size:16px; font-weight:600; margin-bottom:8px; color:#e0e3eb;">' + portfolioName + ' Pozisyonu Bulunamadı</div>' +
+                '<div style="font-size:13px; color:#64748b;">Bu model portföyde seçilen dönem için aktif hisse senedi kaydı bulunmuyor.</div>' +
+                '</div>';
+        }}
+        return;
+    }}
 
     const rects = computeTreemap(rawData, w, h);
 
@@ -863,7 +911,7 @@ function render() {{
 
         node.addEventListener('mouseenter', (e) => {{
             tooltip.style.display = 'block';
-            let ttHtml = `<div class="tt-title">${{r.item.label}} ${{isHoldings ? '(Portföy Pozisyonu)' : ''}}</div>`;
+            let ttHtml = `<div class="tt-title">${{r.item.label}} ${{isHoldings ? '(' + portfolioName + ' Pozisyonu)' : ''}}</div>`;
             if (isHoldings) {{
                 ttHtml += `
                     <div><b>Portföy Payı:</b> %${{r.item.weight.toFixed(2)}}</div>

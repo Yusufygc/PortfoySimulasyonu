@@ -307,6 +307,122 @@ Rectangle {
                 }
             }
 
+            // Portföy Seçici Dropdown (Sadece Portföy Hisseleri modundayken görünür)
+            RowLayout {
+                spacing: Theme.spaceXs
+                visible: comparisonController.treemapMode === "HOLDINGS" && comparisonController.treemapPortfolioOptions.length > 0
+
+                Rectangle {
+                    width: 1
+                    height: 18
+                    color: Theme.borderSubtle
+                    Layout.leftMargin: 4
+                    Layout.rightMargin: 4
+                }
+
+                Text {
+                    text: Strings.compareTreemapPortfolioSelect
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontXs
+                    font.weight: Font.DemiBold
+                }
+
+                ComboBox {
+                    id: portfolioCombo
+                    Layout.preferredWidth: 155
+                    Layout.preferredHeight: 26
+                    model: comparisonController.treemapPortfolioOptions
+                    textRole: "label"
+
+                    currentIndex: {
+                        for (var i = 0; i < comparisonController.treemapPortfolioOptions.length; i++) {
+                            if (comparisonController.treemapPortfolioOptions[i].code === comparisonController.treemapPortfolio) {
+                                return i
+                            }
+                        }
+                        return 0
+                    }
+
+                    background: Rectangle {
+                        color: Theme.bgSecondary
+                        radius: Theme.radiusXs
+                        border.color: portfolioCombo.hovered ? Theme.accent : Theme.borderSubtle
+                        border.width: 1
+                    }
+
+                    contentItem: Text {
+                        leftPadding: 8
+                        rightPadding: 20
+                        text: portfolioCombo.displayText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontXs
+                        color: Theme.textPrimary
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+
+                    indicator: ModernIcon {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: "chevrondown"
+                        size: 10
+                        color: Theme.textMuted
+                    }
+
+                    popup: Popup {
+                        y: portfolioCombo.height + 2
+                        width: Math.max(portfolioCombo.width, 165)
+                        implicitHeight: Math.min(220, contentItem.implicitHeight + 8)
+                        padding: 4
+
+                        contentItem: ListView {
+                            clip: true
+                            implicitHeight: contentHeight
+                            model: portfolioCombo.popup.visible ? portfolioCombo.delegateModel : null
+                            currentIndex: portfolioCombo.highlightedIndex
+
+                            ScrollIndicator.vertical: ScrollIndicator {}
+                        }
+
+                        background: Rectangle {
+                            color: Theme.bgCard
+                            border.color: Theme.borderCard
+                            border.width: 1
+                            radius: Theme.radiusSm
+                        }
+                    }
+
+                    delegate: ItemDelegate {
+                        width: portfolioCombo.width
+                        height: 28
+                        highlighted: portfolioCombo.highlightedIndex === index
+
+                        contentItem: Text {
+                            text: modelData.label
+                            color: highlighted ? Theme.accent : Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontXs
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+
+                        background: Rectangle {
+                            color: highlighted ? Theme.accentSoft : (hovered ? Theme.bgCardHover : "transparent")
+                            radius: Theme.radiusXs
+                        }
+                    }
+
+                    onActivated: function(idx) {
+                        var opt = comparisonController.treemapPortfolioOptions[idx]
+                        if (opt && opt.code) {
+                            comparisonController.setTreemapPortfolio(opt.code)
+                        }
+                    }
+                }
+            }
+
             Item { Layout.fillWidth: true }
         }
 

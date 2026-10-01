@@ -80,9 +80,16 @@ def test_comparison_controller_assets_and_run(qapp, container):
 
 
 def test_comparison_treemap_and_holdings_mode(qapp, container):
-    """Treemap sekmesi ve ana portföy hisseleri (HOLDINGS) ile varlık (ASSETS) modlarını test eder."""
+    """Treemap sekmesi, model portföy seçimi ve ana portföy ile varlık modlarını test eder."""
     ctrl = ComparisonController(container=container)
     assert ctrl.treemapMode == "HOLDINGS"
+    assert ctrl.treemapPortfolio == "dashboard"
+
+    # Portföy seçeneklerini yükleme
+    ctrl.loadAssetOptions()
+    assert len(ctrl.treemapPortfolioOptions) >= 1
+    codes = [p["code"] for p in ctrl.treemapPortfolioOptions]
+    assert "dashboard" in codes
 
     # Mod değişimi
     ctrl.setTreemapMode("ASSETS")
@@ -90,7 +97,17 @@ def test_comparison_treemap_and_holdings_mode(qapp, container):
     ctrl.setTreemapMode("HOLDINGS")
     assert ctrl.treemapMode == "HOLDINGS"
 
-    # Portföy hisselerini çekme testi
+    # Model portföy değiştirme testi
+    model_opts = [c for c in codes if c != "dashboard"]
+    if model_opts:
+        target_model = model_opts[0]
+        ctrl.setTreemapPortfolio(target_model)
+        assert ctrl.treemapPortfolio == target_model
+        holdings_model = ctrl._get_portfolio_holdings(target_model)
+        assert isinstance(holdings_model, list)
+
+    # Ana portföy hisselerini çekme testi
+    ctrl.setTreemapPortfolio("dashboard")
     holdings = ctrl._get_portfolio_holdings()
     assert isinstance(holdings, list)
     if holdings:
