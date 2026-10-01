@@ -340,5 +340,37 @@ QtObject {
     readonly property string portfolioThTotalPct: "TOPLAM %"
     readonly property string portfolioThPL: "K/Z (₺)"
     readonly property string portfolioThWeight: "AĞIRLIK"
+
+    // --- Karşılaştırma Laboratuvarı (Faz 7) ---
+    readonly property string compareTitle: "Karşılaştırma Laboratuvarı"
+    readonly property string compareSubtitle: "Portföyleri, benchmarkları ve hisseleri normalize getiri ve risk-getiri metrikleriyle kıyaslayın"
+    readonly property string compareAssetsTitle: "KARŞILAŞTIRILACAK VARLIKLAR"
+    readonly property string compareModeTitle: "GRAFİK MODU"
+    readonly property string compareModeNormal: "Normal"
+    readonly property string compareModeNormalized: "Normalize (Baz 100)"
+    readonly property string compareModeRatio: "Rasyo (A / B)"
+    readonly property string comparePeriod: "DÖNEM"
+    readonly property string compareBtnRun: "Karşılaştır"
+    readonly property string compareMetricsTitle: "RİSK & GETİRİ METRİKLERİ"
+    readonly property string compareThAsset: "VARLIK"
+    readonly property string compareThReturn: "TOPLAM GETİRİ"
+    readonly property string compareThVolatility: "YILLIK VOLATİLİTE"
+    readonly property string compareEmptyTitle: "Karşılaştırmak için en az bir varlık seçin"
+    readonly property string compareEmptySubtitle: "Sol panelden benchmark veya hisse seçerek getiri eğrilerini inceleyin"
+
+    // --- BIST Sinyal Tarayıcısı (Faz 7) ---
+    readonly property string screenerTitle: "BIST Sinyal Tarayıcısı"
+    readonly property string screenerSubtitle: "Tüm BIST hisselerini teknik göstergeler ve algoritmik stratejilerle tarayın"
+    readonly property string screenerFilterLabel: "STRATEJİ"
+    readonly property string screenerBtnScan: "Taramayı Başlat"
+    readonly property string screenerRunning: "Taranıyor..."
+    readonly property string screenerReady: "Taramaya hazır"
+    readonly property string screenerThTicker: "HİSSE KODU"
+    readonly property string screenerThStrategy: "SİNYAL VEREN STRATEJİ"
+    readonly property string screenerThPrice: "SON FİYAT"
+    readonly property string screenerEmptyTitle: "Henüz tarama yapılmadı"
+    readonly property string screenerEmptySubtitle: "Yukarıdaki stratejilerden birini seçip 'Taramayı Başlat' butonuna tıklayın"
+    readonly property string screenerMatchesSuffix: " hisse sinyal verdi"
+    readonly property string screenerRowHint: "Grafiğini ve detaylarını görmek için hisseye tıklayın"
 }
 

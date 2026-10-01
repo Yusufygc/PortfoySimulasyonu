@@ -91,18 +91,22 @@ ApplicationWindow {
                         source: "views/Stock360View.qml"
                     }
 
-                    // 4: Karşılaştırma Laboratuvarı (Faz 7)
-                    PlaceholderView {
-                        title: Strings.navCompare
-                        subtitle: "Faz 7 kapsamında çoklu varlık normalize getiri grafikleri ve korelasyon ısı haritası eklenecektir."
-                        iconName: "compare"
+                    // 4: Karşılaştırma Laboratuvarı (Faz 7 - Normalize Getiri & Risk Metrikleri - Tembel Yükleme)
+                    Loader {
+                        id: comparisonLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 4 || (status === Loader.Ready)
+                        source: "views/ComparisonView.qml"
                     }
 
-                    // 5: Hisse Tarayıcı (Faz 7)
-                    PlaceholderView {
-                        title: Strings.navScreener + " (Screener)"
-                        subtitle: "Faz 7 kapsamında F/K, RSI, temettü verimi ve hazır strateji filtreleri inşa edilecektir."
-                        iconName: "screener"
+                    // 5: BIST Sinyal Tarayıcısı (Faz 7 - Algoritmik Strateji Taraması - Tembel Yükleme)
+                    Loader {
+                        id: screenerLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 5 || (status === Loader.Ready)
+                        source: "views/ScreenerView.qml"
                     }
 
                     // 6: Finansal Planlama (Faz 8)

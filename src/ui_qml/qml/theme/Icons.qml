@@ -52,6 +52,8 @@ QtObject {
     readonly property url edit:          Qt.resolvedUrl("../../assets/icons/edit.svg")
     readonly property url trash:         Qt.resolvedUrl("../../assets/icons/trash-2.svg")
     readonly property url dollarSign:    Qt.resolvedUrl("../../assets/icons/dollar-sign.svg")
+    readonly property url play:          Qt.resolvedUrl("../../assets/icons/play.svg")
+    readonly property url filter:        Qt.resolvedUrl("../../assets/icons/filter.svg")
 
     function get(name) {
         if (!name) return "";
@@ -119,6 +121,8 @@ QtObject {
             case "delete":        return trash;
             case "dollarsign":
             case "dollar-sign":   return dollarSign;
+            case "play":          return play;
+            case "filter":        return filter;
             default:              return Qt.resolvedUrl("../../assets/icons/" + name + ".svg");
         }
     }
