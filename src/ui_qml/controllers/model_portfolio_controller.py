@@ -15,17 +15,35 @@ from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
 logger = logging.getLogger(__name__)
 
 
-def _fmt_currency(value: Decimal | None) -> str:
-    """TL biçiminde para birimi formatı."""
+def _fmt_currency(value: Decimal | float | None) -> str:
+    """Standart Türkçe para formatı: 1.000.000,00 ₺ veya -62.608,18 ₺."""
     if value is None:
-        return "₺0,00"
-    return f"₺{value:,.2f}"
+        return "0,00 ₺"
+    try:
+        val = float(value)
+        sign = "-" if val < 0 else ""
+        abs_val = abs(val)
+        formatted = f"{abs_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return f"{sign}{formatted} ₺"
+    except Exception:
+        return f"{value} ₺"
 
 
-def _fmt_pct(value: Decimal | None) -> str:
+def _fmt_pct(value: Decimal | float | None) -> str:
+    """Standart getiri yüzdesi formatı: +%1,07 veya -%30,96."""
     if value is None:
         return "%0,00"
-    return f"%{value:+.2f}"
+    try:
+        val = float(value)
+        abs_val = abs(val)
+        formatted = f"{abs_val:.2f}".replace(".", ",")
+        if val > 0:
+            return f"+%{formatted}"
+        elif val < 0:
+            return f"-%{formatted}"
+        return f"%{formatted}"
+    except Exception:
+        return f"%{value}"
 
 
 def _display_ticker(ticker: str) -> str:
@@ -303,6 +321,27 @@ class ModelPortfolioController(QObject):
             self.operationResult.emit(False, str(exc))
         except Exception as exc:
             self.operationResult.emit(False, f"İşlem gerçekleştirilemedi: {exc}")
+
+    @Slot(str, result=float)
+    def getLatestPriceForTicker(self, ticker: str) -> float:
+        """Hisse kodunun son bilinen fiyatını döner."""
+        raw = (ticker or "").strip().upper()
+        if not raw:
+            return 0.0
+        candidates = [raw, f"{raw}.IS"] if not raw.endswith(".IS") else [raw, raw[:-3]]
+        for cand in candidates:
+            if self._stock_repo:
+                stock = self._stock_repo.get_stock_by_ticker(cand)
+                if stock and stock.id:
+                    if self._latest_price_repo:
+                        lp = self._latest_price_repo.get_latest_price(stock.id)
+                        if lp and lp > 0:
+                            return float(lp)
+                    if self._price_repo:
+                        dp = self._price_repo.get_last_price_before(stock.id, date.today())
+                        if dp and dp.close_price and dp.close_price > 0:
+                            return float(dp.close_price)
+        return 0.0
 
     @Slot(int)
     def deleteTrade(self, trade_id: int):

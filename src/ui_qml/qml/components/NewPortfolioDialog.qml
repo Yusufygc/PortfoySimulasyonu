@@ -173,33 +173,40 @@ Popup {
                 font.pixelSize: Theme.fontSm
             }
 
-            SpinBox {
-                id: spinCash
+            Rectangle {
                 Layout.fillWidth: true
-                from: 1000
-                to: 100000000
-                stepSize: 5000
-                value: 100000
-                editable: true
+                height: 42
+                color: Theme.bgInput
+                radius: Theme.radiusSm
+                border.color: txtCash.activeFocus ? Theme.borderFocus : Theme.borderSubtle
+                border.width: 1
 
-                contentItem: TextInput {
-                    text: Number(spinCash.value).toLocaleString(Qt.locale("tr_TR")) + " ₺"
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontBase
-                    color: Theme.textPrimary
-                    horizontalAlignment: Qt.AlignLeft
-                    verticalAlignment: Qt.AlignVCenter
-                    leftPadding: Theme.spaceSm
-                    readOnly: !spinCash.editable
-                    validator: spinCash.validator
-                    inputMethodHints: Qt.ImhFormattedNumbersOnly
-                }
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: Theme.spaceSm
+                    anchors.rightMargin: Theme.spaceSm
+                    spacing: Theme.spaceXs
 
-                background: Rectangle {
-                    color: Theme.bgInput
-                    radius: Theme.radiusSm
-                    border.color: spinCash.activeFocus ? Theme.borderFocus : Theme.borderSubtle
-                    border.width: 1
+                    TextField {
+                        id: txtCash
+                        Layout.fillWidth: true
+                        text: "100000"
+                        color: Theme.textPrimary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontBase
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        background: null
+                        leftPadding: 0
+                        rightPadding: 0
+                    }
+
+                    Text {
+                        text: "₺"
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontBase
+                        font.weight: Font.Bold
+                    }
                 }
             }
         }
@@ -263,7 +270,8 @@ Popup {
                         if (root.isEdit) {
                             portfolioController.updatePortfolio(root.editPortfolioId, txtName.text, txtDesc.text)
                         } else {
-                            portfolioController.createPortfolio(txtName.text, txtDesc.text, spinCash.value)
+                            var initialCash = parseFloat(txtCash.text.replace(",", ".")) || 100000.0
+                            portfolioController.createPortfolio(txtName.text, txtDesc.text, initialCash)
                         }
                         root.close()
                     }

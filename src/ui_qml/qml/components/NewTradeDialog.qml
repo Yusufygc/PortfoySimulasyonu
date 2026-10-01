@@ -24,14 +24,14 @@ Popup {
 
     function calculateTotal() {
         var p = parseFloat(txtPrice.text.replace(",", ".")) || 0.0
-        var q = spinQty.value || 0
+        var q = parseInt(txtQty.text) || 0
         var tot = p * q
         return tot.toLocaleString(Qt.locale("tr_TR"), 'f', 2) + " ₺"
     }
 
     onOpened: {
         txtTicker.text = ""
-        spinQty.value = 100
+        txtQty.text = "100"
         txtPrice.text = ""
         side = "BUY"
         var today = new Date()
@@ -243,6 +243,16 @@ Popup {
                         border.color: txtTicker.activeFocus ? Theme.borderFocus : Theme.borderSubtle
                         border.width: 1
                     }
+
+                    onEditingFinished: {
+                        var ticker = txtTicker.text.trim().toUpperCase()
+                        if (ticker !== "") {
+                            var p = portfolioController.getLatestPriceForTicker(ticker)
+                            if (p > 0) {
+                                txtPrice.text = p.toFixed(2)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -257,33 +267,39 @@ Popup {
                     font.pixelSize: Theme.fontSm
                 }
 
-                SpinBox {
-                    id: spinQty
+                Rectangle {
                     Layout.fillWidth: true
-                    from: 1
-                    to: 1000000
-                    stepSize: 10
-                    value: 100
-                    editable: true
+                    height: 40
+                    color: Theme.bgInput
+                    radius: Theme.radiusSm
+                    border.color: txtQty.activeFocus ? Theme.borderFocus : Theme.borderSubtle
+                    border.width: 1
 
-                    background: Rectangle {
-                        color: Theme.bgInput
-                        radius: Theme.radiusSm
-                        border.color: spinQty.activeFocus ? Theme.borderFocus : Theme.borderSubtle
-                        border.width: 1
-                    }
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: Theme.spaceSm
+                        anchors.rightMargin: Theme.spaceSm
+                        spacing: Theme.spaceXs
 
-                    contentItem: TextInput {
-                        text: spinQty.value
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontBase
-                        color: Theme.textPrimary
-                        horizontalAlignment: Qt.AlignLeft
-                        verticalAlignment: Qt.AlignVCenter
-                        leftPadding: Theme.spaceSm
-                        readOnly: !spinQty.editable
-                        validator: spinQty.validator
-                        inputMethodHints: Qt.ImhDigitsOnly
+                        TextField {
+                            id: txtQty
+                            Layout.fillWidth: true
+                            text: "100"
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontBase
+                            inputMethodHints: Qt.ImhDigitsOnly
+                            background: null
+                            leftPadding: 0
+                            rightPadding: 0
+                        }
+
+                        Text {
+                            text: "Lot"
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSm
+                        }
                     }
                 }
             }
@@ -483,10 +499,13 @@ Popup {
                         var price = parseFloat(txtPrice.text.replace(",", "."))
                         if (!ticker || isNaN(price) || price <= 0) return
 
+                        var qty = parseInt(txtQty.text) || 0
+                        if (qty <= 0) return
+
                         portfolioController.addTrade(
                             ticker,
                             root.side,
-                            spinQty.value,
+                            qty,
                             price,
                             txtDate.text.trim(),
                             txtTime.text.trim()

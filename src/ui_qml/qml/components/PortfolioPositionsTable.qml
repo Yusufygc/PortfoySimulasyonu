@@ -24,10 +24,9 @@ Rectangle {
             spacing: Theme.spaceSm
 
             ModernIcon {
-                iconSource: Icons.get("barchart")
-                iconColor: Theme.accent
-                width: 16
-                height: 16
+                name: "barchart"
+                color: Theme.accent
+                size: 16
             }
 
             Text {
@@ -57,19 +56,22 @@ Rectangle {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Theme.spaceSm
-                anchors.rightMargin: Theme.spaceSm
+                anchors.leftMargin: Theme.spaceMd
+                anchors.rightMargin: Theme.spaceMd
                 spacing: Theme.spaceSm
 
+                // 1. HİSSE (Esnek kalan boşluğu doldurur)
                 Text {
                     text: Strings.portfolioThTicker
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
-                    Layout.preferredWidth: 110
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 120
                 }
 
+                // 2. LOT
                 Text {
                     text: Strings.portfolioThLot
                     color: Theme.textMuted
@@ -77,9 +79,12 @@ Rectangle {
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 60
+                    Layout.preferredWidth: 70
+                    Layout.minimumWidth: 70
+                    Layout.maximumWidth: 70
                 }
 
+                // 3. ORT. MALİYET
                 Text {
                     text: Strings.portfolioThAvgCost
                     color: Theme.textMuted
@@ -87,9 +92,12 @@ Rectangle {
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 80
+                    Layout.preferredWidth: 95
+                    Layout.minimumWidth: 95
+                    Layout.maximumWidth: 95
                 }
 
+                // 4. GÜNCEL FİYAT
                 Text {
                     text: Strings.portfolioThPrice
                     color: Theme.textMuted
@@ -97,9 +105,12 @@ Rectangle {
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 80
+                    Layout.preferredWidth: 95
+                    Layout.minimumWidth: 95
+                    Layout.maximumWidth: 95
                 }
 
+                // 5. GÜNLÜK %
                 Text {
                     text: Strings.portfolioThDailyPct
                     color: Theme.textMuted
@@ -107,9 +118,12 @@ Rectangle {
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 70
+                    Layout.preferredWidth: 85
+                    Layout.minimumWidth: 85
+                    Layout.maximumWidth: 85
                 }
 
+                // 6. PİYASA DEĞERİ
                 Text {
                     text: Strings.portfolioThValue
                     color: Theme.textMuted
@@ -117,9 +131,12 @@ Rectangle {
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 95
+                    Layout.preferredWidth: 110
+                    Layout.minimumWidth: 110
+                    Layout.maximumWidth: 110
                 }
 
+                // 7. TOPLAM %
                 Text {
                     text: Strings.portfolioThTotalPct
                     color: Theme.textMuted
@@ -127,9 +144,12 @@ Rectangle {
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 75
+                    Layout.preferredWidth: 85
+                    Layout.minimumWidth: 85
+                    Layout.maximumWidth: 85
                 }
 
+                // 8. K/Z (₺)
                 Text {
                     text: Strings.portfolioThPL
                     color: Theme.textMuted
@@ -137,9 +157,12 @@ Rectangle {
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: 95
+                    Layout.preferredWidth: 125
+                    Layout.minimumWidth: 125
+                    Layout.maximumWidth: 125
                 }
 
+                // 9. AĞIRLIK
                 Text {
                     text: Strings.portfolioThWeight
                     color: Theme.textMuted
@@ -147,7 +170,9 @@ Rectangle {
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
-                    Layout.fillWidth: true
+                    Layout.preferredWidth: 115
+                    Layout.minimumWidth: 115
+                    Layout.maximumWidth: 115
                 }
             }
         }
@@ -166,19 +191,20 @@ Rectangle {
             delegate: Rectangle {
                 id: rowDelegate
                 width: positionsListView.width
-                height: 44
+                height: 46
                 radius: Theme.radiusSm
                 color: rowMouse.containsMouse ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgSecondary)
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: Theme.spaceSm
-                    anchors.rightMargin: Theme.spaceSm
+                    anchors.leftMargin: Theme.spaceMd
+                    anchors.rightMargin: Theme.spaceMd
                     spacing: Theme.spaceSm
 
                     // 1. Ticker & Şirket Adı
                     ColumnLayout {
-                        Layout.preferredWidth: 110
+                        Layout.fillWidth: true
+                        Layout.minimumWidth: 120
                         spacing: 1
 
                         Text {
@@ -207,28 +233,34 @@ Rectangle {
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: 60
+                        Layout.preferredWidth: 70
+                        Layout.minimumWidth: 70
+                        Layout.maximumWidth: 70
                     }
 
                     // 3. Ort. Maliyet
                     Text {
-                        text: modelData.avgCost ? modelData.avgCost.toFixed(2) + " ₺" : "-"
+                        text: modelData.avgCost ? modelData.avgCost.toFixed(2).replace(".", ",") + " ₺" : "-"
                         color: Theme.textSecondary
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: 80
+                        Layout.preferredWidth: 95
+                        Layout.minimumWidth: 95
+                        Layout.maximumWidth: 95
                     }
 
                     // 4. Güncel Fiyat
                     Text {
-                        text: modelData.currentPrice ? modelData.currentPrice.toFixed(2) + " ₺" : "-"
+                        text: modelData.currentPrice ? modelData.currentPrice.toFixed(2).replace(".", ",") + " ₺" : "-"
                         color: Theme.textPrimary
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.DemiBold
                         horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: 80
+                        Layout.preferredWidth: 95
+                        Layout.minimumWidth: 95
+                        Layout.maximumWidth: 95
                     }
 
                     // 5. Günlük Değişim %
@@ -239,7 +271,9 @@ Rectangle {
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.DemiBold
                         horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: 70
+                        Layout.preferredWidth: 85
+                        Layout.minimumWidth: 85
+                        Layout.maximumWidth: 85
                     }
 
                     // 6. Piyasa Değeri
@@ -249,7 +283,9 @@ Rectangle {
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: 95
+                        Layout.preferredWidth: 110
+                        Layout.minimumWidth: 110
+                        Layout.maximumWidth: 110
                     }
 
                     // 7. Toplam Getiri %
@@ -260,7 +296,9 @@ Rectangle {
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.DemiBold
                         horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: 75
+                        Layout.preferredWidth: 85
+                        Layout.minimumWidth: 85
+                        Layout.maximumWidth: 85
                     }
 
                     // 8. Kâr / Zarar (₺)
@@ -271,12 +309,16 @@ Rectangle {
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.Bold
                         horizontalAlignment: Text.AlignRight
-                        Layout.preferredWidth: 95
+                        Layout.preferredWidth: 125
+                        Layout.minimumWidth: 125
+                        Layout.maximumWidth: 125
                     }
 
                     // 9. Ağırlık (Bar + %)
                     RowLayout {
-                        Layout.fillWidth: true
+                        Layout.preferredWidth: 115
+                        Layout.minimumWidth: 115
+                        Layout.maximumWidth: 115
                         spacing: Theme.spaceXs
 
                         Rectangle {
@@ -296,7 +338,7 @@ Rectangle {
                         }
 
                         Text {
-                            text: "%" + modelData.weight.toFixed(1)
+                            text: "%" + modelData.weight.toFixed(1).replace(".", ",")
                             color: Theme.textSecondary
                             font.family: Theme.fontMono
                             font.pixelSize: Theme.fontXs
