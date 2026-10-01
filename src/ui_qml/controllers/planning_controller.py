@@ -595,7 +595,11 @@ class PlanningController(QObject):
                         # Hisse yoksa oluştur
                         from src.domain.models.stock import Stock
                         new_ticker = t if t.endswith(".IS") else f"{t}.IS"
-                        stock = stock_repo.save_stock(Stock(id=None, ticker=new_ticker, name=new_ticker, currency_code="TRY"))
+                        new_stock_model = Stock(id=None, ticker=new_ticker, name=new_ticker, currency_code="TRY")
+                        if hasattr(stock_repo, "insert_stock"):
+                            stock = stock_repo.insert_stock(new_stock_model)
+                        elif hasattr(stock_repo, "save_stock"):
+                            stock = stock_repo.save_stock(new_stock_model)
                         t = new_ticker
 
                 # Fiyat serisi DB'de yoksa veya yetersizse otomatik çek

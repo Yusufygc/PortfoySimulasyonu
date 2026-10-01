@@ -87,6 +87,9 @@ class SQLAlchemyStockRepository(IStockRepository):
             commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain(orm_obj)
 
+    # Uyumluluk alias'ı
+    save_stock = insert_stock
+
     def insert_stocks_bulk(self, stocks: Iterable[Stock]) -> None:
         stocks_list = list(stocks)
         if not stocks_list:
