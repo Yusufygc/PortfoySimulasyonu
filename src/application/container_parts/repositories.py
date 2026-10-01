@@ -19,6 +19,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_shareholder_repository imp
 from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_trade_adjustment_repository import SQLAlchemyTradeAdjustmentRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_watchlist_repository import SQLAlchemyWatchlistRepository
+from src.infrastructure.repositories.duckdb_price_repo import DuckDBPriceRepository
 
 
 
@@ -26,6 +27,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_watchlist_repository impor
 class RepositorySet:
     portfolio_repo: SQLAlchemyPortfolioRepository
     price_repo: SQLAlchemyPriceRepository
+    duckdb_price_repo: DuckDBPriceRepository
     latest_price_repo: SQLAlchemyLatestPriceRepository
     cash_movement_repo: SQLAlchemyCashMovementRepository
     portfolio_maintenance_repo: SQLAlchemyPortfolioMaintenanceRepository
@@ -42,13 +44,15 @@ class RepositorySet:
 
 
 def build_repositories(conn_provider) -> RepositorySet:
+    stock_r = SQLAlchemyStockRepository(conn_provider)
     return RepositorySet(
         portfolio_repo=SQLAlchemyPortfolioRepository(conn_provider),
         price_repo=SQLAlchemyPriceRepository(conn_provider),
+        duckdb_price_repo=DuckDBPriceRepository(stock_repo=stock_r),
         latest_price_repo=SQLAlchemyLatestPriceRepository(conn_provider),
         cash_movement_repo=SQLAlchemyCashMovementRepository(conn_provider),
         portfolio_maintenance_repo=SQLAlchemyPortfolioMaintenanceRepository(conn_provider),
-        stock_repo=SQLAlchemyStockRepository(conn_provider),
+        stock_repo=stock_r,
         watchlist_repo=SQLAlchemyWatchlistRepository(conn_provider),
         model_portfolio_repo=SQLAlchemyModelPortfolioRepository(conn_provider),
         planning_repo=SQLAlchemyPlanningRepository(conn_provider),
