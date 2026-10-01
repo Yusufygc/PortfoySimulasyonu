@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import "../theme"
 
 Rectangle {
@@ -95,6 +96,57 @@ Rectangle {
                         if (text.trim() !== "") {
                             root.searchRequested(text.trim().toUpperCase())
                         }
+                    }
+                }
+            }
+        }
+
+        // Piyasa Senkronizasyon Rozeti (DuckDB Otomatik Güncelleme)
+        Rectangle {
+            visible: typeof marketSyncController !== "undefined" && marketSyncController && (marketSyncController.isSyncing || !marketSyncController.isUpToDate)
+            implicitWidth: syncRow.implicitWidth + 16
+            implicitHeight: 26
+            radius: Theme.radiusFull
+            color: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? Theme.accentSoft : "#fff3cd"
+            border.color: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? Theme.accent : "#ffc107"
+            border.width: 1
+            Layout.alignment: Qt.AlignVCenter
+
+            RowLayout {
+                id: syncRow
+                anchors.centerIn: parent
+                spacing: 5
+
+                BusyIndicator {
+                    width: 12
+                    height: 12
+                    running: typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing
+                    visible: running
+                }
+
+                ModernIcon {
+                    name: "refresh"
+                    size: 11
+                    color: "#856404"
+                    visible: !(typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing)
+                }
+
+                Text {
+                    text: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? "Borsa Güncelleniyor..." : "Veri Eksik (Güncelle)"
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontXs
+                    font.weight: Font.DemiBold
+                    color: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? Theme.accent : "#856404"
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (typeof marketSyncController !== "undefined" && marketSyncController) {
+                        marketSyncController.triggerSyncNow()
                     }
                 }
             }

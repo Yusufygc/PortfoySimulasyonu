@@ -142,4 +142,20 @@ ApplicationWindow {
             }
         }
     }
+
+    // Global Toast Bildirimi (Piyasa Verisi Senkronizasyonu & Sistem Mesajları)
+    ToastNotification {
+        id: globalToast
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 24
+        z: 999
+    }
+
+    Connections {
+        target: (typeof marketSyncController !== "undefined") ? marketSyncController : null
+        function onSyncNotification(success, message) {
+            globalToast.show(message, success)
+        }
+    }
 }
