@@ -1,6 +1,6 @@
 # Portföy Simülasyonu — QML Dönüşümü Handoff & Devam Kılavuzu
 
-> **Bu Belgenin Amacı:** Bu kılavuz, projenin PyQt5 QWidgets masaüstü mimarisinden modern **PySide6 + Qt Quick (QML)** mimarisine dönüştürülme sürecini, bugüne kadar tamamlanan tüm aşamaları, projenin nihai vizyonunu, bağlayıcı kurallarını ve kalan fazların detaylı uygulama planını açıklar. Başka bir sohbet oturumunda veya yeni bir ajanla çalışmaya başlandığında **doğrudan bu dosya referans alınarak** kalınan yerden kesintisiz devam edilebilir.
+> **Bu Belgenin Amacı:** Bu kılavuz, projenin PyQt5 QWidgets masaüstü mimarisinden modern **PySide6 + Qt Quick (QML)** mimarisine dönüştürülme sürecini, bugüne kadar tamamlanan tüm aşamaları (Faz 0'dan Faz 8'e ve DuckDB analitik altyapısına kadar), projenin nihai vizyonunu, bağlayıcı mimari ve tasarım kurallarını ve kalan fazların (Faz 9, 10, 11) detaylı uygulama planını açıklar. Başka bir sohbet oturumunda veya yeni bir ajanla çalışmaya başlandığında **doğrudan bu dosya referans alınarak** kalınan yerden kesintisiz devam edilebilir.
 
 ---
 
@@ -21,26 +21,30 @@ Yeni bir oturum açıldığında sırasıyla şu adımları uygulayın:
    ```powershell
    .\venv\Scripts\python.exe -m pytest tests/ui_qml/
    ```
-   *(Beklenen sonuç: 15/15 test %100 yeşil).*
+   *(Beklenen sonuç: 51/51 test %100 yeşil, ~9 saniye).*
 4. **Uygulamayı QML Modunda Başlatma:**
    ```powershell
    .\venv\Scripts\python.exe app.py --ui=qml
    ```
-5. **Veritabanı Durumu:** Sistem harici MySQL gerektirmez. Tüm portföy, hisse, işlem ve 360 bini aşkın tarihsel fiyat verisi yerel `data/portfolio.db` (SQLite) içerisindedir.
+5. **Çift Motorlu Hibrit Veritabanı Mimarisi (SQLite + DuckDB):**
+   * **İşlemsel Veritabanı (OLTP):** `data/portfolio.db` (SQLite, ~5 MB). Kullanıcı portföyleri, açık pozisyonlar, emirler, nakit hareketleri, izleme listeleri, model portföyler, bütçe/hedef kayıtları ve KAP ortaklık önbelleğini tutar. Sıfır harici servis bağımlılığıyla çalışır.
+   * **Analitik Piyasa Veritabanı (OLAP):** `data/market_history.duckdb` (DuckDB, ~115 MB). Borsa İstanbul'da (BIST) işlem gören **624 hisse senedinin 26 yıllık tarihsel günlük bar verilerini (2.238.543 bar, 2000-2026)** sütunsal (columnar) ve vektörel formatta saklar. Milisaniyeler mertebesinde tarama, getiri hesaplama ve kovaryans matrisi çıkarma olanağı tanır.
+   * **Otomatik Piyasa Senkronizasyonu:** `MarketDataSyncService` ve `MarketSyncController` sayesinde uygulama açılışında (5 sn sonra) eksik günleri tespit eden catch-up sync çalışır. Ayrıca her işlem günü seans kapandıktan sonra tam **18:15**'te otomatik artımlı (delta) senkronizasyon devreye girer.
 
 ---
 
 ## 2. Proje Amacı ve Dönüşüm Vizyonu (The North Star)
 
-Bu projenin temel amacı; Borsa İstanbul (BIST) hisse senetleri için geliştirilmiş, zengin finansal hesaplama ve analiz motoruna sahip olan mevcut portföy takip masaüstü uygulamasını:
-* **Hantal ve eskiyen PyQt5 QWidgets katmanından kurtarıp**,
-* **Donanım hızlandırmalı (OpenGL/DirectX), akıcı 60 FPS animasyonlu, koyu/açık tema uyumlu PySide6 + Qt Quick (QML) arayüzüne taşımak**,
-* Ağır harici servis ve MySQL kurulum bağımlılığını sonlandırarak **sıfır kurulumlu, taşınabilir SQLite tabanlı bir mimariye oturtmak**,
-* Clean Architecture (Domain ➔ Application ➔ Infrastructure ➔ UI_QML) katmanlarını, event-driven portföy motorunu ve kurumsal işlem mantığını (temettü/bedelli/bedelsiz) koruyarak profesyonel bir masaüstü yatırım terminali seviyesine çıkarmaktır.
+Bu projenin temel amacı; Borsa İstanbul (BIST) hisse senetleri için geliştirilmiş, zengin finansal hesaplama, sermaye artırımı (bedelli/bedelsiz), temettü düzeltmesi ve teknik/temel analiz motoruna sahip olan masaüstü yatırım platformunu:
+
+1. **Eski ve Hantal Arayüzden Kurtarmak:** Eskiyen PyQt5 QWidgets katmanından tamamen arındırarak, **donanım hızlandırmalı (Hardware Accelerated - OpenGL/DirectX), akıcı 60 FPS animasyonlu, koyu fintech temalı PySide6 + Qt Quick (QML)** arayüzüne taşımak.
+2. **Sıfır Kurulumlu Taşınabilir Mimari:** Ağır harici servis ve MySQL kurulum bağımlılığını sonlandırarak, tamamen yerel dosya tabanlı, taşınabilir ve yüksek performanslı **SQLite + DuckDB hibrit mimarisine** oturtmak.
+3. **Clean Architecture Disiplini:** Katmanlar arası sınırları koruyarak (`Domain` ➔ `Application` ➔ `Infrastructure` ➔ `UI_QML`), iş mantığını ve matematiksel kesinliği UI kodundan izole etmek. Parasal hesaplamalarda asla kayan nokta (`float`) hatasına izin vermemek (`Decimal` aritmetiği).
+4. **Entegre Yatırım Terminali Deneyimi:** Canlı portföy takibi, interaktif TradingView grafikleri, çoklu model portföyler, 18 modüllü Hisse 360 temel analiz, normalize karşılaştırma, 8 stratejili algoritmik hisse tarayıcısı, bütçe & DCA simülatörü, Markowitz portföy optimizasyonu ve Gemini AI karar destek asistanını tek bir modern masaüstü terminalinde birleştirmek.
 
 ---
 
-## 3. Bağlayıcı Kurallar ve Tasarım Standartları (`RULES.md`)
+## 3. Bağlayıcı Kurallar ve Tasarım Standartları (`RULES.md`, `GOVERNANCE.md`, `ARCHITECTURE_GATES.md`)
 
 Geliştirme yaparken aşağıdaki kurallar **istisnasız** uygulanır:
 
@@ -51,27 +55,47 @@ Geliştirme yaparken aşağıdaki kurallar **istisnasız** uygulanır:
 ### 3.2 Merkezi SVG İkon Sistemi (`RULES.md` Madde 2.2)
 * Tüm görsel semboller `src/ui_qml/assets/icons/` dizinindeki optimize edilmiş vektörel Lucide SVG dosyalarından karşılanır.
 * İkonlar `src/ui_qml/qml/theme/Icons.qml` singleton kataloğu üzerinden çekilir.
-* QML içinde ikon gösterimi daima `ModernIcon.qml` bileşeni ile yapılır (`ModernIcon { name: "banknote"; size: 16; color: Theme.accent }`). `ModernIcon`, SVG maskelerini Qt Quick Effects `MultiEffect` GPU renklendirmesiyle açık/koyu temaya anında büründürür.
+* QML içinde ikon gösterimi daima `ModernIcon.qml` bileşeni ile yapılır (`ModernIcon { name: "chart"; size: 16; color: Theme.accent }`). `ModernIcon`, SVG maskelerini Qt Quick Effects `MultiEffect` GPU renklendirmesiyle açık/koyu temaya anında büründürür.
 
 ### 3.3 Merkezi Metin & Yerelleştirme Kataloğu (`RULES.md` Madde 2.3)
 * Kullanıcıya görünen hiçbir sayfa başlığı, buton etiketi, tablo sütun adı, KPI başlığı veya modal mesajı bileşenler içine **hardcoded yazılmaz**.
-* Tüm metinler `src/ui_qml/qml/theme/Strings.qml` singleton kataloğunda toplanır ve oradan çağrılır (`Strings.dashboardTitle`, `Strings.btnRefresh` vb.).
+* Tüm metinler `src/ui_qml/qml/theme/Strings.qml` singleton kataloğunda toplanır ve oradan çağrılır (`Strings.dashboardTitle`, `Strings.btnRefresh` vb.). Yeni metin gereksiniminde önce `Strings.qml` dosyasına ekleme yapılır.
 
 ### 3.4 Taşmasız Esnek Düzen (Responsive & Anti-Overflow — `RULES.md` Madde 2.4)
-* Hiçbir buton veya araç çubuğu öğesi sabit piksel genişliğine hapsedilerek metin kırpılmasına yol açmamalıdır (`ModernButton.qml` içeriğine göre esner).
-* Dinamik veya çoklu liste/etiket barındıran yatay alanlar (örn. hızlı portföy hisseleri butonları, indikatör listeleri), pencere daraldığında taşmayı önleyecek şekilde `Flickable` veya `ScrollView` ile sarılmalıdır.
+* Hiçbir buton veya araç çubuğu öğesi sabit piksel genişliğine hapsedilerek metin kırpılmasına yol açmamalıdır (`ModernButton.qml` içeriğine göre esner, butonlar dialoglarda ortalanır).
+* Dinamik veya çoklu liste/etiket barındıran yatay alanlar (hızlı portföy hisseleri, indikatör butonları vb.), pencere daraldığında taşmayı önleyecek şekilde `Flickable` veya `ScrollView` ile sarılmalıdır.
 
 ### 3.5 QML Singleton Kayıt Zorunluluğu (`qmldir`)
-* QML'de `pragma Singleton` tanımlanan her dosyanın ait olduğu dizindeki `qmldir` dosyasına kaydedilmesi şarttır (`singleton Icons 1.0 Icons.qml` gibi). Aksi takdirde QML runtime nesneyi çözümleyemez.
+* QML'de `pragma Singleton` tanımlanan her dosyanın ait olduğu dizindeki `qmldir` dosyasına kaydedilmesi şarttır (`singleton Icons 1.0 Icons.qml`, `singleton Strings 1.0 Strings.qml` gibi). Aksi takdirde QML runtime nesneyi çözümleyemez.
 
-### 3.6 SQLite Auto-Increment Kuralı
-* MySQL'den aktarılan tablolarda `BIGINT PRIMARY KEY` sütunu SQLite tarafında otomatik `ROWID` alias'ı olmaz (yalnızca `INTEGER PRIMARY KEY` otomatik artar). Yeni hisse veya liste item'ı eklerken `max_id + 1` üreten koruyucu mantık repository'lerde (`sa_stock_repository.py`, `sa_watchlist_repository.py`) korunmalıdır.
+### 3.6 UI Katmanı Doğrudan Repository Çağırmaz (`ARCHITECTURE_GATES.md` Madde 6)
+* QML Controller sınıfları doğrudan SQLAlchemy veya DuckDB repository'lerine bağlanmaz. Tüm veri erişimleri ve iş mantığı `src/application/services/` katmanındaki servisler (`PortfolioService`, `Stock360Service`, `ComparisonService`, `PlanningService`, `MarketDataSyncService` vb.) üzerinden yürütülür.
+
+### 3.7 Asenkron İş Parçacığı ve Thread-Safety Standartları
+* Ağ istekleri, TradingView API sorguları veya ağır analiz hesaplamaları ana Qt UI iş parçacığında (MainThread) kesinlikle çalıştırılmaz.
+* Arka plan işlemleri `ThreadPoolExecutor` veya `threading.Thread` ile yürütülür; sonuçlar UI'a Qt Queued Connection mekanizmasına sahip **Qt Sinyalleri (`Signal`)** üzerinden iletilir. Arka plan thread'lerinden doğrudan QML property'si manipüle edilmez veya `QTimer.singleShot` çağrılmaz.
+
+### 3.8 Finansal Hesaplama ve Decimal Hassasiyeti (`ARCHITECTURE_GATES.md`)
+* Portföy değeri, gerçekleşmemiş/gerçekleşmiş kâr-zarar, ağırlıklar ve maliyet hesaplamalarında Python `Decimal` tipi kullanılır. Kayan nokta (`float`) yuvarlama hataları para işlemlerine sızdırılmaz.
 
 ---
 
-## 4. Tamamlanan Fazlar ve Yapılan İşler
+## 4. Tamamlanan Fazlar ve Yapılan İşler (Kronolojik Envanter)
 
-Şu ana kadar **Faz 0, MySQL-SQLite Göçü, Faz 2, Faz 3, İkon/String Refaktörü ve Faz 4** eksiksiz tamamlanmıştır.
+Şu ana kadar **Faz 0, Faz 2, Faz 3, İkon/String Refaktörü, Faz 4, Faz 5, Faz 6, Faz 7, Faz 8, DuckDB Analitik Katmanı ve Otomatik Senkronizasyon Sistemi** eksiksiz tamamlanmış, test edilmiş ve canlıya alınmıştır.
+
+```mermaid
+flowchart LR
+    F0["Faz 0 & SQLite<br/>(commit e25a851)"] --> F2["Faz 2: Dashboard<br/>(commit 2d784ef)"]
+    F2 --> F3["Faz 3: TradingView<br/>(commit 8bb37f4)"]
+    F3 --> F4["Faz 4: Watchlist<br/>(commit 0d80ebb)"]
+    F4 --> F5["Faz 5: Hisse 360<br/>(commit 57a5379)"]
+    F5 --> F6["Faz 6: Model Portföy<br/>(commit 57a5379)"]
+    F6 --> F7["Faz 7: Kıyas & Screener<br/>(commit e5139eb)"]
+    F7 --> F8["Faz 8: Planlama & DCA<br/>(commit 421e1ff)"]
+    F8 --> DUCK["DuckDB OLAP & BIST Sync<br/>(commit 57cca51 & 1163a0a)"]
+    DUCK --> F9["Faz 9: Optimizasyon<br/>(SIRADAKİ ADIM)"]
+```
 
 ### 4.1 Faz 0 & SQLite Tam Göçü (`commit: e25a851`, `7de5033`)
 * `qml` git branch'i açıldı. PySide6 + WebEngine sanal ortamı kuruldu.
@@ -79,43 +103,70 @@ Geliştirme yaparken aşağıdaki kurallar **istisnasız** uygulanır:
 * SQLAlchemy SQLite yapılandırması (`src/infrastructure/db/db_config.py` - `SQLiteConfig`) ve WAL mod optimizasyonları eklendi.
 
 ### 4.2 Faz 2 — QML Dashboard & Portföy Yönetimi (`commit: 2d784ef`, `f72051a`)
-* **`DashboardController` (`src/ui_qml/controllers/dashboard_controller.py`):** Canlı portföy özeti, toplam piyasa değeri, toplam kâr/zarar, günlük değişim ve nakit oranı hesaplamaları.
-* **`PositionsTableModel` (`src/ui_qml/models/positions_table_model.py`):** Açık pozisyonlar tablosu, fiyat değişimlerinde yeşil/kırmızı canlı yanıp sönme (flash) animasyonları.
-* **`AssetAllocationCard.qml`:** QML `Canvas` üzerinde dinamik Donut grafik, hisse ağırlıkları ve nakit dilimleri lejantı (Decimal bölme hatası düzeltildi).
+* **`DashboardController` (`src/ui_qml/controllers/dashboard_controller.py`):** Canlı portföy özeti, toplam piyasa değeri, kâr/zarar, günlük değişim ve nakit oranı hesaplamaları.
+* **`PositionsTableModel` (`src/ui_qml/models/positions_table_model.py`):** Açık pozisyonlar tablosu, fiyat değişimlerinde yeşil/kırmızı canlı yanıp sönme animasyonları.
+* **`AssetAllocationCard.qml`:** QML `Canvas` üzerinde dinamik Donut grafik, hisse ağırlıkları ve nakit dilimleri lejantı.
 * **Modallar:** Hızlı BIST hisse alım/satım modalı (`QuickTradeModal.qml`) ve nakit yatırma/çekme modalı (`CapitalModal.qml`).
-* **`ModernScrollBar.qml`:** Modern, yarı saydam, üzerine gelindiğinde genişleyen kapsül kaydırma çubuğu.
 
-### 4.3 Faz 3 — TradingView Teknik Analiz Laboratuvarı (`commit: 8bb37f4`, `81aac09`)
-* **HTML5/JS Motoru (`src/ui_qml/resources/tradingview_chart.html`):** Lightweight Charts v5.2 motoru entegre edildi. Fiyat skalası otomatik uyumlandırma (`autoScale: true`) ve mum gövde/fitil türetimi yapıldı.
-* **Çoklu Zaman Dilimleri:** Günlük (`1D`), Haftalık (`1W`), Aylık (`1M`) Pandas resampling mekanizması.
-* **Grafik Tipleri:** Mum (`candle`), Çizgi (`line`), Alan (`area`), Bar (`bar`).
-* **İndikatör Paketi:** SMA (20, 50, 200), EMA (20), Bollinger Bantları, Multi-pane RSI (14), MACD (12, 26, 9), otomatik Golden/Death Cross görsel sinyal okları.
-* **Araç Çubuğu & Tam Ekran:** `TradingViewToolbar.qml` ve ekranın %96'sını kaplayan `ChartFullscreenModal.qml` analiz laboratuvarı.
-* İndikatörlerin menüden geri kapatılamaması sorunu `activeIndicators` reaktif özelliği ve çift aşırı yüklemeli slotlarla çözüldü.
+### 4.3 Faz 3 — TradingView Teknik Analiz Laboratuvarı (`commit: 8bb37f4`, `81aac09`, `ed6dc85`)
+* **HTML5/JS Motoru (`src/ui_qml/resources/tradingview_chart.html`):** TradingView Lightweight Charts v5.2 motoru entegre edildi.
+* **Zaman Dilimleri & Grafik Tipleri:** `1D`, `1W`, `1M` resampling; Mum (`candle`), Çizgi (`line`), Alan (`area`), Bar (`bar`).
+* **Teknik İndikatör Paketi:** SMA (20, 50, 200), EMA (20), Bollinger Bantları, Multi-pane RSI (14), MACD (12, 26, 9), otomatik Golden/Death Cross görsel sinyal okları.
+* **Tam Ekran & Araç Çubuğu:** `TradingViewToolbar.qml` ve ekranın %96'sını kaplayan `ChartFullscreenModal.qml` modalı.
 
 ### 4.4 Merkezi İkon & String Mimarisi ve Emoji Temizliği (`commit: d3bd578`)
 * 52 adet optimize Lucide SVG ikonu `src/ui_qml/assets/icons/` altına yerleştirildi.
 * `Icons.qml`, `Strings.qml` ve `ModernIcon.qml` bileşenleri sisteme eklendi.
 * Tüm QML bileşenlerindeki emojiler temizlendi; metinler `Strings.qml` içine taşındı.
-* Butonların kart dışına taşması engellendi (`TradingViewToolbar`, `DashboardView` hızlı hisse barı `Flickable` yapıldı).
 
 ### 4.5 Faz 4 — Çoklu Takip Listeleri (Watchlist) & Mini Sparkline (`commit: 0d80ebb`)
-* **`WatchlistController` (`src/ui_qml/controllers/watchlist_controller.py`):** Kullanıcının kayıtlı takip listelerini ("Spek hisseler", "indikatör grubu", "Uzun Vadeli") yönetme, yeni liste oluşturma, silme, hisse ekleme, hisse notu güncelleme.
-* **`WatchlistTableModel` (`src/ui_qml/models/watchlist_table_model.py`):** Takip listesi tablosu (Fiyat, yüzde, gün içi aralık barı, 7 günlük mini sparkline serisi).
-* **`MiniSparkline.qml`:** QML `Canvas` üzerinde pürüzsüz degrade dolgulu 7 günlük TradingView tarzı mini trend grafiği.
-* **Modallar:** `AddStockModal.qml`, `ManageWatchlistModal.qml`, `EditStockNoteModal.qml`.
-* **`WatchlistView.qml`:** Sol tarafta çoklu liste seçici kartı, sağ tarafta geniş hisse takip tablosu ve özet KPI çubuğu.
-* **Testler:** `tests/ui_qml/test_watchlist_phase4.py` (15/15 test %100 yeşil).
+* **`WatchlistController` (`src/ui_qml/controllers/watchlist_controller.py`):** Çoklu takip listeleri oluşturma, düzenleme, silme, hisse ekleme, hisse notu güncelleme.
+* **`WatchlistTableModel` & `MiniSparkline.qml`:** QML `Canvas` üzerinde degrade dolgulu 7 günlük TradingView tarzı mini trend grafiği.
+* **Modallar & Görünüm:** `AddStockModal.qml`, `ManageWatchlistModal.qml`, `EditStockNoteModal.qml`, `WatchlistView.qml`.
 
-### 4.6 Faz 5 — Hisse 360 & Temel Analiz Görünümü
-* **`Stock360Controller` (`src/ui_qml/controllers/stock_360_controller.py`):** Genel Bakış (Fiyat, Hacim, 52 Haftalık Aralık), Teknik Seviyeler (RSI, MACD, SMA 50/200, Destek/Direnç), Değerleme Rasyoları (F/K, PD/DD, FD/FAVÖK, Temettü Verimi, ROE, Net Borç/FAVÖK, Piotroski, Cari Oran).
-* **Arka Plan Threading:** UI donmasını engellemek için ağ/API çağrıları (`get_financials`, `get_shareholders`) arka planda çalıştırılıp Qt ana iş parçacığına `_remoteDataReady` sinyaliyle aktarılır (60 FPS).
-* **SQLite Uyumluluğu:** `sa_shareholder_repository.py` içerisindeki `BIGINT PRIMARY KEY` tabloları (`kap_companies`, `kap_shareholder_snapshots`, `kap_shareholder_rows`) için dinamik `max_id + 1` desteği sağlandı.
-* **`RatioCard.qml`:** Finansal rasyo rozet bileşeni.
-* **`FinancialBarChart.qml`:** QML Canvas üzerinde çeyreklik gelir/bilanço grafiği (Net Satışlar, Brüt Kâr, FAVÖK, Net Kâr sekmeleri).
-* **`ShareholderPieCard.qml`:** QML Canvas Donut grafik, ortasında Halka Açıklık Oranı ve sağında pay sahipleri listesi.
-* **`Stock360View.qml`:** Hızlı hisse arama, popüler hisse hapları (`Flickable`) ve TradingView'a tek tıkla geçiş desteği.
-* **Testler:** `tests/ui_qml/test_stock_360_phase5.py` (23/23 test %100 yeşil).
+### 4.6 Faz 5 — Hisse 360 & Temel Analiz Görünümü (`commit: 57a5379`, `c479367`)
+* **`Stock360Controller` (`src/ui_qml/controllers/stock_360_controller.py`):** 18 finansal modül, rasyolar (`RatioCard`), çeyreklik gelir/bilanço çubuk grafiği (`FinancialBarChart`), KAP ortaklık yapısı ve halka açıklık donut'ı (`ShareholderPieCard`), zaman çizelgesi.
+* **Modüler Mimari Refaktörü:** Tek dosyadaki monolit yapı alt modüllere bölündü: `stock_360_calc.py`, `stock_360_fallback.py`, `stock_360_formatters.py`, `stock_360_html.py`.
+* **Arka Plan Threading:** UI donmasını engellemek için dış veri çağrıları arka planda çalıştırılıp Qt ana iş parçacığına `_remoteDataReady` sinyaliyle aktarıldı.
+
+### 4.7 Faz 6 — Model Portföyler (Sanal Simülasyon & Çoklu Portföy) (`commit: 57a5379`, `0a16bd8`)
+* **`ModelPortfolioController` (`src/ui_qml/controllers/model_portfolio_controller.py`):** Çoklu sanal model portföy oluşturma, düzenleme, silme, nakit yatırma/çekme ve hisse alım/satım emirleri.
+* **`ModelPortfolioView.qml`:** Portföy seçici, KPI özet şeridi (Toplam Değer, K/Z, Günlük Getiri, Nakit), pozisyonlar tablosu, Türkçe para formatı ve alım/satım modal pencereleri.
+
+### 4.8 Faz 7 — Karşılaştırma Laboratuvarı & BIST Sinyal Tarayıcısı (Screener) (`commit: e5139eb` ... `4d07f50`)
+* **`ComparisonController` (`src/ui_qml/controllers/comparison_controller.py`) & `ComparisonView.qml`:**
+  - Normalize Baz 100 getiri karşılaştırması (Ana Portföy, Model Portföyler, BIST 100, Altın, USD).
+  - Risk Metrikleri Tablosu (Sharpe, Sortino, Maksimum Drawdown, Beta, Alpha).
+  - **Getiri Katkı Haritası (Treemap):** QML `Canvas` üzerinde ağırlık bazlı kutular ve kâr/zarara göre degrade renk dolguları ile ana portföy ve model portföyler için görsel getiri haritası (`commit: 997d238`, `d63b7ec`, `efda489`).
+* **`ScreenerController` (`src/ui_qml/controllers/screener_controller.py`) & `ScreenerView.qml`:**
+  - **8 Popüler BIST Stratejisi:** RSI Aşırı Satım (<30), RSI Aşırı Alım (>70), Golden Cross (SMA50 > SMA200), Death Cross, MACD Boğa Kesişimi, Bollinger Alt Bant Teması, Bollinger Sıkışması (Squeeze), 52 Hafta Zirvesi Kırılımı.
+  - **Thread-Safe Queued Signal Mimarisi (`commit: 80b8c04`):** UI kilitlenmesini ve `QTimer` cross-thread hatasını önleyen güvenli arka plan tarayıcısı.
+  - **Çift Tıklama & Hızlı Grafik (`commit: 4d07f50`):** Taranan hisseye çift tıklandığında veya satırdaki "Grafik" butonuna basıldığında hisse kodunu temizleyip TradingView grafiğine yükleyerek Dashboard'a yönlendiren hızlı akış.
+
+### 4.9 Faz 8 — Finansal Planlama, Bütçe, Hedefler & DCA Simülatörü (`commit: 421e1ff` ... `979195e`)
+* **`PlanningController` (`src/ui_qml/controllers/planning_controller.py`) & `PlanningView.qml`:**
+  - **Bütçe Yönetimi:** Dönem açılır listesi (Yıl/Ay), gelir ve gider kalemleri listesi, yeni gelir/gider ekleme, kalemleri düzenleme ve silme modalı (`commit: 01fc2d9`, `c19ee72`).
+  - **Finansal Hedefler:** Hedef kartları, yüzde ilerleme çubukları, hedef ekleme/düzenleme/silme ve panoya sabitleme (pin/unpin) mekanizması.
+  - **DCA (Kademeli Alım) Backtest Simülatörü:** "Her ay X TL hisse alsaydım bugün ne olurdu?" tarihsel simülasyonu. Portföy Değer Eğrisi vs Toplam Yatırılan Tutar ve Enflasyon (TÜFE) karşılaştırması. TradingView Lightweight Charts v5 yerel scripti ile pürüzsüz grafik çizimi (`commit: b1201e7`).
+  - **UI Düzenlemeleri:** Dialog butonlarının taşması önlendi, ortalandı ve Türkçe öncelikli hale getirildi (`commit: d72a277`).
+
+### 4.10 DuckDB Analitik Piyasa Katmanı (OLAP) & BIST Bulk Downloader (`commit: 57cca51`)
+* `duckdb==1.5.6` kütüphanesi projeye dahil edildi.
+* `DuckDBPriceRepository` (`src/infrastructure/repositories/duckdb_price_repo.py`): `IPriceRepository` portunu uygulayan sütunsal ve vektörel DuckDB reponun geliştirilmesi.
+* `BistBulkDownloader` (`src/application/services/market_data/bist_bulk_downloader.py`) ve `scripts/sync_bist_to_duckdb.py`:
+  - TradingView Scanner API üzerinden BIST'teki tüm hisseler (626 adet) tarandı.
+  - **624 hissenin 26 yıllık geçmiş verisi (2.238.543 bar) 42.54 saniyede `data/market_history.duckdb` (115.51 MB) içine indirildi.**
+
+### 4.11 BIST Otomatik Artımlı Senkronizasyon Sistemi (`commit: 1163a0a`)
+* **`MarketDataSyncService` (`src/application/services/market_data/market_data_sync_service.py`):**
+  - DuckDB'deki en son bar tarihi (`MAX(date)`) ile BIST işlem günlerini karşılaştırıp eksik günleri (gap) tespit eden ve sadece eksik barları çeken delta sync servisi.
+* **`MarketSyncController` (`src/ui_qml/controllers/market_sync_controller.py`):**
+  - Uygulama açılışından 5 saniye sonra otomatik catch-up sync çalıştırır.
+  - Her işlem günü seans kapandıktan sonra saat tam **18:15**'te otomatik tetiklenir (18:00 seans bitişi + 18:05-18:10 marj belirleme seansı + 18:15 resmi veri yayını).
+* **Kullanıcı Arayüzü Bildirimi:**
+  - `WindowHeader.qml` üzerinde dönen/tamamlanan canlı senkronizasyon rozeti.
+  - Senkronizasyon bittiğinde yeşil `ToastNotification` bildirimi.
+* **DCA Entegrasyonu (`commit: 979195e`):** DCA simülatöründe `save_stock` metot eksikliği giderildi ve DuckDB'deki 2.2 milyon bardan doğrudan ticker ile fiyat okuma desteği eklendi.
 
 ---
 
@@ -123,112 +174,128 @@ Geliştirme yaparken aşağıdaki kurallar **istisnasız** uygulanır:
 
 `Main.qml` içerisindeki `StackLayout` indeksleri şu şekildedir:
 
-| İndeks | Sayfa / Görünüm | Durum | İlgili Faz |
-|:---:|:---|:---:|:---:|
-| **0** | `DashboardView` | **CANLI / AKTİF** | Faz 2 & Faz 3 |
-| **1** | `WatchlistView` | **CANLI / AKTİF** | Faz 4 |
-| **2** | `Model Portföyler` | *Placeholder* | **Faz 6 (SIRADAKİ ADIM)** |
-| **3** | `Hisse 360 & Temel Analiz` | **CANLI / AKTİF** | Faz 5 |
-| **4** | `Karşılaştırma Laboratuvarı` | *Placeholder* | Faz 7 |
-| **5** | `Hisse Tarayıcı (Screener)` | *Placeholder* | Faz 7 |
-| **6** | `Finansal Planlama & DCA` | *Placeholder* | Faz 8 |
-| **7** | `Portföy Optimizasyonu` | *Placeholder* | Faz 9 |
-| **8** | `Gemini AI Karar Destek` | *Placeholder* | Faz 10 |
-| **9** | `Uygulama Ayarları` | *Placeholder* | Faz 11 |
+| İndeks | Sayfa / Görünüm | Durum | İlgili Faz | Dosya Yolu |
+|:---:|:---|:---:|:---:|:---|
+| **0** | `DashboardView` | **CANLI / AKTİF** | Faz 2 & Faz 3 | `src/ui_qml/qml/views/DashboardView.qml` |
+| **1** | `WatchlistView` | **CANLI / AKTİF** | Faz 4 | `src/ui_qml/qml/views/WatchlistView.qml` |
+| **2** | `ModelPortfolioView` | **CANLI / AKTİF** | Faz 6 | `src/ui_qml/qml/views/ModelPortfolioView.qml` |
+| **3** | `Stock360View` | **CANLI / AKTİF** | Faz 5 | `src/ui_qml/qml/views/Stock360View.qml` |
+| **4** | `ComparisonView` | **CANLI / AKTİF** | Faz 7 | `src/ui_qml/qml/views/ComparisonView.qml` |
+| **5** | `ScreenerView` | **CANLI / AKTİF** | Faz 7 | `src/ui_qml/qml/views/ScreenerView.qml` |
+| **6** | `PlanningView` | **CANLI / AKTİF** | Faz 8 | `src/ui_qml/qml/views/PlanningView.qml` |
+| **7** | `OptimizationView` | *Placeholder* | **Faz 9 (SIRADAKİ ADIM)** | `src/ui_qml/qml/views/OptimizationView.qml` |
+| **8** | `AiAdvisorView` | *Placeholder* | **Faz 10** | `src/ui_qml/qml/views/AiAdvisorView.qml` |
+| **9** | `SettingsView` | *Placeholder* | **Faz 11** | `src/ui_qml/qml/views/SettingsView.qml` |
 
 ---
 
-## 6. Kalan Fazlar ve Detaylı Yol Haritası
+## 6. Kalan Fazlar ve Detaylı Uygulama Planı (Roadmap)
 
-### 🎯 FAZ 6: Model Portföyler (Sanal Simülasyon & Çoklu Portföy) (SIRADAKİ ÖNCELİKLİ ADIM)
-* **Kapsam:**
-  - Çoklu sanal model portföy oluşturma, düzenleme ve silme.
-  - Model portföye sanal hisse alımı/satımı ve nakit ekleme/çekme.
-  - Model portföy performansının ana portföy ve BIST 100 ile karşılaştırılması.
-* **Kullanılacak Servisler:**
-  - `container.services.model_portfolio_service`
-  - `container.services.model_portfolio_trade_service`
+### 🎯 FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier (SIRADAKİ ÖNCELİKLİ ADIM)
+
+Bu fazın amacı; portföydeki veya seçilen izleme listesindeki hisse senetleri için Modern Portföy Teorisi (Markowitz MPT) prensipleriyle matematiksel optimizasyon çalıştırmak, risk/getiri uzayındaki Verimli Sınır (Efficient Frontier) eğrisini çizmek ve kullanıcıya net rebalance (yeniden dengeleme) önerileri sunmaktır.
+
+* **Backend Servisleri (Mevcut Altyapı):**
+  - `src/application/services/planning/optimization_service.py` (`OptimizationService`): SciPy `SLSQP` optimizasyon motoru, Ledoit-Wolf kovaryans matrisi shrinkage'ı, beklenen getiri ve volatilite hesaplamaları.
+  - `src/application/services/planning/risk_optimization_bridge_service.py`: Kullanıcının risk toleransına göre hedef portföy ağırlıklarını belirleyen köprü servis.
+  - `src/application/services/analysis/portfolio_analytics_service.py`: Sharpe oranı, Sortino oranı, varyans ve kovaryans hesaplamaları.
+* **DuckDB Entegrasyonu Avantajı:**
+  - Hisse senetlerinin 26 yıllık günlük getirileri ve kovaryans matrisi DuckDB'deki `data/market_history.duckdb` tablosundan vektörel SQL ile milisaniyeler içinde çekilebilir.
 * **Geliştirilecek Dosyalar:**
-  - `src/ui_qml/controllers/model_portfolio_controller.py`
-  - `src/ui_qml/qml/views/ModelPortfolioView.qml`
-  - Model portföy al/sat ve transfer modalları.
+  1. `src/ui_qml/controllers/optimization_controller.py`:
+     - Portföydeki hisseleri veya seçilen hisse havuzunu getirme.
+     - Risk profili seçimi (Muhafazakar, Dengeli, Büyüme, Agresif).
+     - Min/Max hisse ağırlık kısıtları (örn. tek hisseye en fazla %25 ağırlık).
+     - Optimizasyon sonuçları: Maksimum Sharpe Portföyü, Minimum Oynaklık (Volatilite) Portföyü, Mevcut Portföy durumu.
+     - Monte Carlo simülasyonu ile üretilen 1.000+ rastgele portföy noktası ve Efficient Frontier eğrisi koordinatları.
+     - Rebalance tablosu: Hangi hisseden kaç adet/TL satılmalı, hangisine kaç adet/TL eklenmeli.
+  2. `src/ui_qml/qml/views/OptimizationView.qml`:
+     - Sol Panel: Portföy seçici, hisse ağırlık kısıtları (Slider/SpinBox), risk tolerans seçici, "Optimize Et" butonu.
+     - Orta/Üst Alan: Efficient Frontier Saçılım Grafiği (QML Canvas veya yerel Lightweight Charts / Chart.js scatter plot).
+     - Sağ/Alt Alan: Mevcut vs Optimize Portföy Ağırlık Karşılaştırması (Pasta veya Çubuk grafik) ve Rebalance Öneri Tablosu.
+  3. `tests/ui_qml/test_optimization_phase9.py`:
+     - Controller başlatma, kısıt parametreleri, optimizasyon çalıştırma, sinyal yayılımı ve QML render testleri.
 
 ---
 
-### FAZ 7: Karşılaştırma Laboratuvarı & Hisse Tarayıcısı (Screener)
-* **Kapsam:**
-  - Çoklu varlık kıyaslama (Normalize Baz 100 getiri eğrileri: Portföy vs. BIST 100, Altın, USD, TÜFE).
-  - Varlık korelasyon matrisi ve risk metrikleri (Sharpe, Sortino, Beta, Alpha, Maksimum Drawdown).
-  - Çoklu Sinyal Tarayıcısı: BIST hisselerini teknik ve temel filtrelere göre tarama (RSI < 30 Aşırı Satım + EMA200 Üzeri, MACD Bullish + Hacim Patlaması, Bollinger Alt Bant Teması).
-* **Kullanılacak Servisler:**
-  - `container.services.comparison_service`
-  - `container.services.screener_service`
-  - `container.services.portfolio_analytics_service`
+### 🎯 FAZ 10: Gemini AI Karar Destek Danışmanı
+
+Bu fazın amacı; Google Gemini LLM API (Gemini 2.5 Flash / Pro) modellerini kullanarak portföyün güçlü/zayıf yönlerini değerlendiren, makroekonomik gelişmeleri ve hisse rasyolarını sentezleyen interaktif bir yatırım danışmanı arayüzü sunmaktır.
+
+* **Backend Servisleri (Mevcut Altyapı):**
+  - `src/application/services/ai/gemini_advisor_service.py` (`GeminiAdvisorService`): Gemini API entegrasyonu, prompt mühendisliği, Function Calling araçları.
+  - XAI (Explainable AI) risk faktörleri servisi: Portföy yoğunlaşma riski, sektör ağırlığı, beta riski vb.
+* **Geliştirilecek Dosyalar:**
+  1. `src/ui_qml/controllers/ai_advisor_controller.py`:
+     - Sohbet geçmişi modeli (Kullanıcı mesajları ve AI yanıtları).
+     - Portföy bağlamını (açık pozisyonlar, maliyetler, kâr/zarar, BIST endeks performansı) prompt içine otomatik enjekte etme.
+     - Asenkron API çağrısı ve streaming/tam yanıt sinyalleri (`_aiResponseReady`, `_aiErrorOccurred`).
+     - Hızlı soru önerileri ("Portföyümün risk seviyesi nedir?", "Enflasyona karşı korumalı mıyım?", "DCA stratejim nasıl gidiyor?").
+  2. `src/ui_qml/qml/views/AiAdvisorView.qml`:
+     - Sohbet listesi (`ListView`), modern mesaj balonları (`ChatMessageCard.qml`), kod ve markdown formatlama.
+     - Alt kısımda zengin metin girdi kutusu ve gönder butonu.
+     - Sağ tarafta Portföy Sağlık Skoru ve XAI Risk Faktörleri paneli.
+  3. `tests/ui_qml/test_ai_advisor_phase10.py`:
+     - Controller mock testleri, sinyal doğrulama ve UI render testleri.
 
 ---
 
-### FAZ 8: Finansal Planlama & DCA Simülatörü
-* **Kapsam:**
-  - Aylık bütçe ve tasarruf hedefleri yönetimi (Gelir/gider kalemleri, birikim hedefleri ilerleme çubukları).
-  - DCA (Dolar Maliyeti Ortalaması / Kademeli Düzenli Alım) Simülatörü: "Her ay X TL hisse alsaydım bugün ne olurdu?" tarihsel simülasyonu ve enflasyona karşı reel getiri grafiği.
-* **Kullanılacak Servisler:**
-  - `container.services.planning_service`
-  - `container.services.dca_backtest_service`
+### 🎯 FAZ 11: Uygulama Ayarları, Veritabanı Yönetimi & Dağıtım
 
----
+Bu fazın amacı; uygulamanın tüm yapılandırmasını (tema, API anahtarları, veri senkronizasyonu, yedekleme) kullanıcı dostu bir arayüzde toplamak ve uygulamayı tek tıklamayla kurulabilir bir masaüstü paketine dönüştürmektir.
 
-### FAZ 9: Markowitz Portföy Optimizasyonu Görünümü
-* **Kapsam:**
-  - Risk profili seçimi (Muhafazakar ➔ Dengeli ➔ Büyüme ➔ Agresif).
-  - Verimli Sınır (Efficient Frontier) interaktif saçılım grafiği: Mevcut Portföy, Maksimum Sharpe Portföyü ve Minimum Oynaklık Portföyü noktaları.
-  - Rebalance Öneri Tablosu: Hangi hisseden ne kadar azaltılmalı, hangisine ne kadar eklenmeli.
-* **Kullanılacak Servisler:**
-  - `container.services.optimization_service`
-  - `container.services.risk_optimization_bridge_service`
-
----
-
-### FAZ 10: Gemini AI Karar Destek Danışmanı
-* **Kapsam:**
-  - QML arayüzüne gömülü interaktif yatırım danışmanı sohbet paneli.
-  - Portföyün güçlü ve zayıf yönlerini değerlendiren XAI (Açıklanabilir Yapay Zeka) risk faktörü analizi.
-  - Portföydeki hisseler için yapay zeka destekli güncel senaryo analizleri ve piyasa yorumları.
-* **Kullanılacak Servisler:**
-  - `container.services.gemini_advisor_service`
-
----
-
-### FAZ 11: Uygulama Ayarları, Tema Seçici ve Dağıtım
-* **Kapsam:**
-  - Koyu / Açık tema geçişi (`Theme.isDark` dinamik tetikleyici).
-  - API Anahtarları (Gemini API, EVDS vb.) yönetimi ve güvenli saklama.
-  - SQLite veritabanı yedekleme ve Excel dışa aktarım araçları.
-  - Nuitka ile derleme ve bağımsız çalıştırılabilir `.exe` oluşturma hazırlığı.
+* **Kapsam ve Özellikler:**
+  - **Görünüm & Tema:** Koyu / Açık tema geçişi (`Theme.isDark` dinamik değiştirici).
+  - **API Anahtarları:** Gemini API anahtarı, EVDS TCMB API anahtarı güvenli saklama ve bağlantı testi.
+  - **Veri Sağlığı & Senkronizasyon Merkezi:**
+    - SQLite (`data/portfolio.db`) tablo satır sayıları ve dosya boyutu.
+    - DuckDB (`data/market_history.duckdb`) 624 hisse son senkronizasyon tarihi, manuel "Tüm BIST'i Şimdi Senkronize Et" butonu.
+    - Veritabanı bütünlük kontrolü (Integrity Check) ve geçersiz işlem temizliği.
+  - **Dışa/İçe Aktarım (Export/Import):** Portföy işlemlerini Excel (.xlsx) ve JSON olarak yedekleme / geri yükleme.
+  - **Nuitka Dağıtım Hazırlığı:** `build_nuitka.bat` dosyasının PySide6, QML ve DuckDB kütüphaneleriyle bağımsız `.exe` üretecek şekilde test edilip doğrulanması.
+* **Geliştirilecek Dosyalar:**
+  - `src/ui_qml/controllers/settings_controller.py`
+  - `src/ui_qml/qml/views/SettingsView.qml`
+  - `tests/ui_qml/test_settings_phase11.py`
 
 ---
 
 ## 7. Yeni Bir Sohbet Başlatıldığında Verilecek Komut / Prompt Örneği
 
-Yeni bir oturum açtığınızda asistana şu talimatı ileterek doğrudan başlayabilirsiniz:
+Yeni bir oturum açtığınızda asistana aşağıdaki metni ileterek doğrudan başlayabilirsiniz:
 
 ```text
 QML_TRANSFORMATION_HANDOFF.md dosyasını incele. 
-Faz 0, 2, 3, 4 ve 5 başarıyla tamamlandı. 
-Kurallara (RULES.md: strict no-emoji, Icons.qml, Strings.qml, taşmasız düzen) sadık kalarak,
-sıradaki aşama olan "FAZ 6: Model Portföyler (Sanal Simülasyon & Çoklu Portföy)" geliştirmesine başla.
+Faz 0'dan Faz 8'e kadar tüm aşamalar, DuckDB analitik mimarisi ve BIST otomatik senkronizasyon sistemi başarıyla tamamlandı. 
+Testler (51/51) tamamen yeşil.
+RULES.md kurallarına (katı emoji yasağı, Icons.qml, Strings.qml, taşmasız düzen, UI'dan doğrudan repo çağırmama) sadık kalarak,
+sıradaki aşama olan "FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier" geliştirmesine başla.
 ```
 
 ---
 
-## 8. Önemli Dosya ve Dizin Referansları
+## 8. Önemli Dosya, Dizin ve Kod Referansları
 
 * **Giriş Noktası:** `app.py` (`--ui=qml` argümanı ile `src/ui_qml/app.py` çalıştırılır).
-* **Veritabanı:** `data/portfolio.db` (SQLite).
+* **Veritabanları:**
+  - SQLite: `data/portfolio.db` (Kişisel portföy, işlemler, bütçe).
+  - DuckDB: `data/market_history.duckdb` (624 BIST hissesi, 2.238.543 bar, 2000-2026).
 * **QML Kök Dosyası:** `src/ui_qml/qml/Main.qml`.
 * **Tema ve Sabitler:** `src/ui_qml/qml/theme/` (`Theme.qml`, `Icons.qml`, `Strings.qml`, `qmldir`).
-* **Yeniden Kullanılabilir Bileşenler:** `src/ui_qml/qml/components/` (`ModernIcon.qml`, `ModernButton.qml`, `ModernScrollBar.qml`, `MiniSparkline.qml`, `RatioCard.qml`, `FinancialBarChart.qml`, `ShareholderPieCard.qml`, vb.).
-* **Sayfa Görünümleri:** `src/ui_qml/qml/views/` (`DashboardView.qml`, `WatchlistView.qml`, `Stock360View.qml`, vb.).
-* **Python QML Denetleyicileri:** `src/ui_qml/controllers/` (`DashboardController`, `ChartController`, `WatchlistController`, `Stock360Controller`, vb.).
-* **Python QML Tablo Modelleri:** `src/ui_qml/models/` (`PositionsTableModel`, `WatchlistTableModel`, vb.).
-* **Birim Testleri:** `tests/ui_qml/` (`test_dashboard_phase2.py`, `test_chart_phase3.py`, `test_watchlist_phase4.py`, `test_stock_360_phase5.py`).
-* **Wiki & Günlük:** `docs/wiki/log.md`, `docs/wiki/index.md`, `RULES.md`.
+* **Bileşenler:** `src/ui_qml/qml/components/` (`ModernIcon.qml`, `ModernButton.qml`, `ModernScrollBar.qml`, `MiniSparkline.qml`, `RatioCard.qml`, `FinancialBarChart.qml`, `ShareholderPieCard.qml`, `TradingViewChart.qml`, `WindowHeader.qml`, `ToastNotification.qml` vb.).
+* **Sayfa Görünümleri:** `src/ui_qml/qml/views/`:
+  - `DashboardView.qml` (Portföy & Canlı Grafik)
+  - `WatchlistView.qml` (Çoklu Takip Listeleri)
+  - `ModelPortfolioView.qml` (Model Portföyler)
+  - `Stock360View.qml` (Hisse 360 Temel Analiz)
+  - `ComparisonView.qml` (Normalize Getiri & Treemap)
+  - `ScreenerView.qml` (BIST Hisse Tarayıcısı)
+  - `PlanningView.qml` (Bütçe, Hedefler & DCA)
+* **Python QML Denetleyicileri:** `src/ui_qml/controllers/`:
+  - `DashboardController`, `ChartController`, `WatchlistController`, `Stock360Controller`, `ModelPortfolioController`, `ComparisonController`, `ScreenerController`, `PlanningController`, `MarketSyncController`.
+* **Birim Testleri:** `tests/ui_qml/` (51 test, hepsi yeşil).
+* **Senkronizasyon Servisleri & Betikleri:**
+  - `src/application/services/market_data/market_data_sync_service.py`
+  - `src/application/services/market_data/bist_bulk_downloader.py`
+  - `scripts/sync_bist_to_duckdb.py`
+* **Kural ve Standart Belgeleri:** `AGENTS.md`, `CLAUDE.md`, `RULES.md`, `GOVERNANCE.md`, `ARCHITECTURE_GATES.md`.

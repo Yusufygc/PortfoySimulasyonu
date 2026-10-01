@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] belge | QML Dönüşüm Handoff Kılavuzu Faz 6-8, DuckDB ve Otomatik Senkronizasyonla Güncellendi
+
+- `QML_TRANSFORMATION_HANDOFF.md` dosyası projenin yeni oturumlardan pürüzsüzce devralınabilmesi için baştan sona güncellendi.
+- Tamamlanan aşamalar (Faz 6: Model Portföyler, Faz 7: Karşılaştırma & Screener & Treemap, Faz 8: Bütçe & Hedefler & DCA Simülatörü, DuckDB 624 BIST hissesi 2.2M bar OLAP altyapısı, 18:15 otomatik seans kapanış senkronizasyonu) detaylıca belgelendi.
+- Kalan fazların (Faz 9: Markowitz Portföy Optimizasyonu & Efficient Frontier, Faz 10: Gemini AI Karar Destek Danışmanı, Faz 11: Ayarlar & Veritabanı Yönetimi & Dağıtım) kapsamı, servis gereksinimleri, QML bileşenleri ve test planları yazıldı.
+- Yeni oturumlarda asistana verilecek doğrudan komut şablonu eklendi.
+- Etkilenen modüller: QML_TRANSFORMATION_HANDOFF.md, docs/wiki/index.md, docs/wiki/log.md
+
 ## [2026-09-30] refaktör | Bulgu 5: Stock360Controller Monolit Yapısı Modüler Alt Bileşenlere Ayrıştırıldı
 
 - `Stock360Controller` bünyesindeki 1.442 satırlık monolit "God Object" yapısı Clean Architecture ve tek sorumluluk prensibi (SRP) doğrultusunda modüler alt bileşenlere ayrıştırıldı:
