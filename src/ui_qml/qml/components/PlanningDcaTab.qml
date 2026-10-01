@@ -510,57 +510,102 @@ Item {
                 border.color: Theme.borderCard
                 border.width: 1
 
-                Item {
+                ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: Theme.spaceSm
+                    anchors.margins: Theme.spaceMd
+                    spacing: Theme.spaceSm
 
-                    WebEngineView {
-                        id: dcaWebView
-                        anchors.fill: parent
-                        backgroundColor: Theme.bgCard
-                        visible: planningController.dcaChartHtml !== ""
+                    // Başlık Şeridi
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spaceSm
 
-                        settings.javascriptEnabled: true
-                        settings.localContentCanAccessRemoteUrls: true
+                        ModernIcon {
+                            name: "trendingup"
+                            color: Theme.bullGreen
+                            size: 16
+                        }
 
-                        Connections {
-                            target: planningController
-                            function onDcaChanged() {
+                        Text {
+                            text: Strings.dcaChartTitle
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSm
+                            font.weight: Font.DemiBold
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: Theme.borderSubtle
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        WebEngineView {
+                            id: dcaWebView
+                            anchors.fill: parent
+                            backgroundColor: Theme.bgCard
+                            visible: planningController.dcaChartHtml !== ""
+
+                            settings.javascriptEnabled: true
+                            settings.localContentCanAccessRemoteUrls: true
+
+                            Component.onCompleted: {
                                 if (planningController.dcaChartHtml !== "") {
                                     dcaWebView.loadHtml(planningController.dcaChartHtml)
                                 }
                             }
-                        }
-                    }
 
-                    // Boş Durum
-                    ColumnLayout {
-                        anchors.centerIn: parent
-                        visible: planningController.dcaChartHtml === "" && !planningController.dcaIsRunning
-                        spacing: Theme.spaceSm
+                            onVisibleChanged: {
+                                if (visible && planningController.dcaChartHtml !== "") {
+                                    dcaWebView.loadHtml(planningController.dcaChartHtml)
+                                }
+                            }
 
-                        ModernIcon {
-                            Layout.alignment: Qt.AlignHCenter
-                            name: "areachart"
-                            color: Theme.textMuted
-                            size: 44
-                        }
-
-                        Text {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: "Simülasyon çalıştırılmadı"
-                            color: Theme.textPrimary
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontBase
-                            font.weight: Font.DemiBold
+                            Connections {
+                                target: planningController
+                                function onDcaChanged() {
+                                    if (planningController.dcaChartHtml !== "") {
+                                        dcaWebView.loadHtml(planningController.dcaChartHtml)
+                                    }
+                                }
+                            }
                         }
 
-                        Text {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: "Hisse kodlarını ve katkı tutarını girip 'Simülasyonu Çalıştır' butonuna basın."
-                            color: Theme.textMuted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontSm
+                        // Boş Durum
+                        ColumnLayout {
+                            anchors.centerIn: parent
+                            visible: planningController.dcaChartHtml === "" && !planningController.dcaIsRunning
+                            spacing: Theme.spaceSm
+
+                            ModernIcon {
+                                Layout.alignment: Qt.AlignHCenter
+                                name: "areachart"
+                                color: Theme.textMuted
+                                size: 44
+                            }
+
+                            Text {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: "Simülasyon çalıştırılmadı"
+                                color: Theme.textPrimary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontBase
+                                font.weight: Font.DemiBold
+                            }
+
+                            Text {
+                                Layout.alignment: Qt.AlignHCenter
+                                text: "Hisse kodlarını ve katkı tutarını girip 'Simülasyonu Çalıştır' butonuna basın."
+                                color: Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSm
+                            }
                         }
                     }
                 }

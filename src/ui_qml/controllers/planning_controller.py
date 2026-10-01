@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
@@ -19,6 +20,20 @@ from src.domain.models.budget import Budget, BudgetItem
 from src.domain.models.financial_goal import FinancialGoal, GoalStatus
 
 logger = logging.getLogger(__name__)
+
+_JS_DIR = Path(__file__).resolve().parent.parent / "assets" / "js"
+_LW_CHARTS_JS: str = ""
+
+
+def _load_embedded_scripts() -> None:
+    global _LW_CHARTS_JS
+    if not _LW_CHARTS_JS:
+        lw_file = _JS_DIR / "lightweight-charts.standalone.production.js"
+        if lw_file.exists():
+            try:
+                _LW_CHARTS_JS = lw_file.read_text(encoding="utf-8")
+            except Exception as e:
+                logger.warning("lightweight-charts script okunamadı: %s", e)
 
 
 def _fmt_money(val: float | Decimal | None) -> str:
@@ -632,6 +647,9 @@ class PlanningController(QObject):
     def _build_dca_chart_html(self, series: Dict[date, Decimal]) -> str:
         if not series:
             return ""
+        _load_embedded_scripts()
+        script_tag = f"<script>{_LW_CHARTS_JS}</script>" if _LW_CHARTS_JS else '<script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>'
+
         data_points = []
         for dt_val in sorted(series.keys()):
             val = float(series[dt_val])
@@ -639,24 +657,36 @@ class PlanningController(QObject):
 
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
-<style>body{{margin:0;background:#131722;overflow:hidden}}</style>
-<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
-</head><body><div id="c" style="width:100%;height:100%"></div>
+<style>
+body {{ margin: 0; background: #131722; overflow: hidden; }}
+#c {{ width: 100vw; height: 100vh; }}
+</style>
+{script_tag}
+</head><body><div id="c"></div>
 <script>
-var chart = LightweightCharts.createChart(document.getElementById('c'),{{
-    width:document.body.clientWidth,height:document.body.clientHeight,
-    layout:{{background:{{color:'#131722'}},textColor:'#9db2ce'}},
-    grid:{{vertLines:{{color:'#1e222d'}},horzLines:{{color:'#1e222d'}}}},
-    rightPriceScale:{{borderColor:'#2a2e39'}},
-    timeScale:{{borderColor:'#2a2e39'}},
+var chart = LightweightCharts.createChart(document.getElementById('c'), {{
+    width: window.innerWidth || 800, height: window.innerHeight || 450,
+    layout: {{ background: {{ color: '#131722' }}, textColor: '#9db2ce' }},
+    grid: {{ vertLines: {{ color: '#1e222d' }}, horzLines: {{ color: '#1e222d' }} }},
+    rightPriceScale: {{ borderColor: '#2a2e39', scaleMargins: {{ top: 0.1, bottom: 0.1 }} }},
+    timeScale: {{ borderColor: '#2a2e39', timeVisible: false }},
+    crosshair: {{ mode: 0 }}
 }});
-var areaSeries = chart.addAreaSeries({{
-    topColor: 'rgba(41, 98, 255, 0.4)',
-    bottomColor: 'rgba(41, 98, 255, 0.02)',
+var areaSeries = chart.addSeries(LightweightCharts.AreaSeries, {{
+    topColor: 'rgba(41, 98, 255, 0.45)',
+    bottomColor: 'rgba(41, 98, 255, 0.04)',
     lineColor: '#2962ff',
     lineWidth: 2,
+    priceFormat: {{
+        type: 'price',
+        precision: 2,
+        minMove: 0.01,
+    }},
+    title: 'Portföy Değeri (₺)',
 }});
 areaSeries.setData([{','.join(data_points)}]);
 chart.timeScale().fitContent();
-new ResizeObserver(()=>chart.applyOptions({{width:document.body.clientWidth,height:document.body.clientHeight}})).observe(document.body);
+window.addEventListener('resize', function() {{
+    chart.applyOptions({{ width: window.innerWidth, height: window.innerHeight }});
+}});
 </script></body></html>"""
