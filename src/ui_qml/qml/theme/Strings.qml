@@ -362,6 +362,9 @@ QtObject {
     readonly property string compareTabPeriodic: "Aylık Getiriler"
     readonly property string compareTabScatter: "Risk-Getiri Saçılımı"
     readonly property string compareTabTreemap: "Getiri Katkı Haritası (Treemap)"
+    readonly property string compareTreemapModeTitle: "Harita Türü"
+    readonly property string compareTreemapModeHoldings: "Ana Portföy Hisseleri"
+    readonly property string compareTreemapModeCompare: "Varlık Kıyaslaması"
     readonly property string compareRatioNumLabel: "Pay (A):"
     readonly property string compareRatioDenLabel: "Payda (B):"
 

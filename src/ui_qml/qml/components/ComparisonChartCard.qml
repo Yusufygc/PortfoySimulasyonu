@@ -244,6 +244,72 @@ Rectangle {
             Item { Layout.fillWidth: true }
         }
 
+        // Treemap Mod Seçici (Ana Portföy Hisseleri vs Seçilen Varlıklar) — Sadece Treemap Sekmesinde Görünür
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.spaceSm
+            visible: comparisonController.activeChartTab === 4
+
+            Text {
+                text: Strings.compareTreemapModeTitle + ":"
+                color: Theme.textMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontXs
+                font.weight: Font.DemiBold
+            }
+
+            // 2 Mod Butonu: Ana Portföy Hisseleri / Seçilen Varlıklar
+            Row {
+                spacing: Theme.spaceXs
+
+                Repeater {
+                    model: [
+                        { key: "HOLDINGS", text: Strings.compareTreemapModeHoldings, icon: "piechart" },
+                        { key: "ASSETS", text: Strings.compareTreemapModeCompare, icon: "layers" }
+                    ]
+
+                    Rectangle {
+                        width: tmModeRow.width + 16
+                        height: 26
+                        radius: Theme.radiusXs
+                        color: comparisonController.treemapMode === modelData.key ? Theme.accentSoft : (tmMouse.containsMouse ? Theme.bgCardHover : "transparent")
+                        border.color: comparisonController.treemapMode === modelData.key ? Theme.accent : Theme.borderSubtle
+                        border.width: 1
+
+                        RowLayout {
+                            id: tmModeRow
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            ModernIcon {
+                                name: modelData.icon
+                                color: comparisonController.treemapMode === modelData.key ? Theme.accent : Theme.textSecondary
+                                size: 12
+                            }
+
+                            Text {
+                                text: modelData.text
+                                color: comparisonController.treemapMode === modelData.key ? Theme.accent : Theme.textSecondary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontXs
+                                font.weight: comparisonController.treemapMode === modelData.key ? Font.DemiBold : Font.Normal
+                            }
+                        }
+
+                        MouseArea {
+                            id: tmMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: comparisonController.setTreemapMode(modelData.key)
+                        }
+                    }
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
         Rectangle {
             Layout.fillWidth: true
             height: 1

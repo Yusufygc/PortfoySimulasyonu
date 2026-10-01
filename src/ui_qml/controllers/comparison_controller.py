@@ -74,6 +74,7 @@ class ComparisonController(QObject):
     comparisonModeChanged = Signal()
     activeChartTabChanged = Signal()
     ratioAssetsChanged = Signal()
+    treemapModeChanged = Signal()
     operationResult = Signal(bool, str, arguments=["success", "message"])
 
     # Worker Thread Signals (Qt QueuedConnection ile GUI ana thread'ine güvenli iletim)
@@ -101,15 +102,20 @@ class ComparisonController(QObject):
         self._is_loading: bool = False
         self._period_label: str = "3A"
         self._comparison_mode: str = "NORMALIZED"  # "NORMALIZED", "NORMAL", "RATIO"
-        self._active_chart_tab: int = 0  # 0: Getiri, 1: Drawdown, 2: Aylık, 3: Saçılım
+        self._active_chart_tab: int = 0  # 0: Getiri, 1: Drawdown, 2: Aylık, 3: Saçılım, 4: Treemap
         self._ratio_numerator: str = "dashboard"
         self._ratio_denominator: str = "bist100"
+        self._treemap_mode: str = "HOLDINGS"  # "HOLDINGS" (Portföy Hisseleri) | "ASSETS" (Seçilen Varlıklar)
 
         # Cache of aligned data
         self._cached_aligned: Optional[pd.DataFrame] = None
         self._cached_labels: Dict[str, str] = {}
 
     # ──────────────────────────── QML Properties ────────────────────────────
+
+    @Property(str, notify=treemapModeChanged)
+    def treemapMode(self) -> str:
+        return self._treemap_mode
 
     @Property(list, notify=assetOptionsChanged)
     def assetOptions(self) -> list:
@@ -221,6 +227,16 @@ class ComparisonController(QObject):
         self.ratioAssetsChanged.emit()
         if self._comparison_mode == "RATIO":
             self._render_current_chart()
+
+    @Slot(str)
+    def setTreemapMode(self, mode: str) -> None:
+        """Treemap modunu ayarlar: 'HOLDINGS' (Ana Portföy Hisseleri) veya 'ASSETS' (Varlık Kıyaslaması)."""
+        mode = mode.strip().upper()
+        if mode in ["HOLDINGS", "ASSETS"] and mode != self._treemap_mode:
+            self._treemap_mode = mode
+            self.treemapModeChanged.emit()
+            if self._active_chart_tab == 4:
+                self._render_current_chart()
 
     @Slot()
     def runComparison(self) -> None:
@@ -365,7 +381,7 @@ class ComparisonController(QObject):
 
         elif self._active_chart_tab == 4:
             # Sekme 4: Getiri Katkı Haritası (Treemap)
-            self._chart_html = self._build_treemap_html(self._metrics_list)
+            self._chart_html = self._build_treemap_html()
 
         self.chartHtmlChanged.emit()
 
@@ -560,28 +576,85 @@ new Chart(document.getElementById('sChart'), {{
 }});
 </script></body></html>"""
 
-    def _build_treemap_html(self, metrics: List[Dict[str, Any]]) -> str:
+    def _get_portfolio_holdings(self) -> List[Dict[str, Any]]:
+        """Ana portföyün içindeki hisse senetlerinin ağırlık ve getiri dağılımını çeker."""
+        try:
+            if not self._analysis_service:
+                return []
+
+            from src.application.services.analysis.risk_metrics import compute_position_snapshot
+
+            end_dt = date.today()
+            start_dt = self._resolve_start_date(self._period_label, end_dt)
+            filter_state = AnalysisFilterState(
+                start_date=start_dt,
+                end_date=end_dt,
+                selected_stock_ids=[],
+                selected_benchmarks=[],
+                portfolio_source="dashboard",
+                comparison_portfolio_sources=["dashboard"],
+                currency_mode="TL",
+            )
+            bundle = self._analysis_service._build_analysis_bundle(filter_state)
+            ticker_map = self._analysis_service._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
+            snapshot = compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"])
+
+            holdings = []
+            for item in snapshot:
+                w = round(float(item["weight"]), 2)
+                ret = round(float(item["return_pct"]), 2)
+                cur_v = round(float(item["current_value"]), 2)
+                cost_v = round(float(item["cost_value"]), 2)
+                lbl = str(item["label"])
+                holdings.append({
+                    "code": lbl,
+                    "label": lbl,
+                    "ret": ret,
+                    "weight": w,
+                    "value": max(w, 0.5),  # Treemap kutu alanı portföy ağırlığına göre
+                    "marketValue": cur_v,
+                    "costValue": cost_v,
+                    "vol": 0.0,
+                })
+            return holdings
+        except Exception as exc:
+            logger.warning("Portföy hisseleri çekilirken hata: %s", exc)
+            return []
+
+    def _build_treemap_html(self) -> str:
         """
         Portföy Getiri Katkı & Büyüklük Haritası (Squarified Treemap).
-        Kutu boyutu göreceli getiri büyüklüğüne (max(|getiri|, 1.0)),
-        renk skalası ise pozitif (zümrüt yeşili) / negatif (kırmızı) getiri performansına göredir.
+        treemapMode == 'HOLDINGS': Ana portföyün içindeki hisselerin portföy ağırlığı ve kâr/zarar haritası.
+        treemapMode == 'ASSETS': Seçilen varlıkların (portföy, BIST100, altın vb.) getiri katkı haritası.
         """
         import json
+        is_holdings = (self._treemap_mode == "HOLDINGS")
         items = []
-        for m in metrics:
-            ret = float(m.get("totalReturn", 0.0))
-            vol = float(m.get("volatility", 0.0))
-            label = str(m.get("label", m.get("code", "")))
-            weight = max(abs(ret), 1.0)
-            items.append({
-                "code": str(m.get("code", "")),
-                "label": label,
-                "ret": round(ret, 2),
-                "vol": round(vol, 2),
-                "value": round(weight, 2),
-            })
+
+        if is_holdings:
+            items = self._get_portfolio_holdings()
+            if not items:
+                is_holdings = False
+
+        if not is_holdings:
+            for m in self._metrics_list:
+                ret = float(m.get("totalReturn", 0.0))
+                vol = float(m.get("volatility", 0.0))
+                label = str(m.get("label", m.get("code", "")))
+                weight = max(abs(ret), 1.0)
+                items.append({
+                    "code": str(m.get("code", "")),
+                    "label": label,
+                    "ret": round(ret, 2),
+                    "vol": round(vol, 2),
+                    "weight": round(weight, 2),
+                    "value": round(weight, 2),
+                    "marketValue": 0.0,
+                    "costValue": 0.0,
+                })
 
         items_json = json.dumps(items)
+        is_holdings_js = "true" if is_holdings else "false"
 
         return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -638,9 +711,9 @@ new Chart(document.getElementById('sChart'), {{
         text-shadow: 0 1px 3px rgba(0,0,0,0.7);
         white-space: nowrap;
     }}
-    .node-vol {{
+    .node-sub {{
         font-size: 11px;
-        color: rgba(255, 255, 255, 0.75);
+        color: rgba(255, 255, 255, 0.8);
         text-shadow: 0 1px 2px rgba(0,0,0,0.6);
         margin-top: 2px;
     }}
@@ -656,7 +729,7 @@ new Chart(document.getElementById('sChart'), {{
         color: #d1d4dc;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
         z-index: 100;
-        line-height: 1.5;
+        line-height: 1.6;
     }}
     .tt-title {{
         font-size: 13px;
@@ -673,6 +746,7 @@ new Chart(document.getElementById('sChart'), {{
 
 <script>
 const rawData = {items_json};
+const isHoldings = {is_holdings_js};
 const container = document.getElementById('treemap-container');
 const tooltip = document.getElementById('tooltip');
 
@@ -771,31 +845,45 @@ function render() {{
         node.style.background = getColor(r.item.ret);
 
         const sign = r.item.ret >= 0 ? '+' : '';
-        const titleSize = Math.max(10, Math.min(18, Math.floor(Math.min(r.w, r.h) / 5)));
-        const retSize = Math.max(10, Math.min(16, Math.floor(Math.min(r.w, r.h) / 6)));
+        const titleSize = Math.max(11, Math.min(18, Math.floor(Math.min(r.w, r.h) / 4.8)));
+        const retSize = Math.max(10, Math.min(16, Math.floor(Math.min(r.w, r.h) / 5.5)));
 
         let content = `<div class="node-label" style="font-size: ${{titleSize}}px;">${{r.item.label}}</div>
                        <div class="node-ret" style="font-size: ${{retSize}}px;">${{sign}}${{r.item.ret.toFixed(2)}}%</div>`;
 
-        if (r.h >= 65 && r.w >= 75) {{
-            content += `<div class="node-vol">Vol: %${{r.item.vol.toFixed(1)}}</div>`;
+        if (r.h >= 62 && r.w >= 70) {{
+            if (isHoldings) {{
+                content += `<div class="node-sub">Pay: %${{r.item.weight.toFixed(1)}}</div>`;
+            }} else if (r.item.vol > 0) {{
+                content += `<div class="node-sub">Vol: %${{r.item.vol.toFixed(1)}}</div>`;
+            }}
         }}
 
         node.innerHTML = content;
 
         node.addEventListener('mouseenter', (e) => {{
             tooltip.style.display = 'block';
-            tooltip.innerHTML = `
-                <div class="tt-title">${{r.item.label}}</div>
-                <div><b>Toplam Getiri:</b> <span style="color:${{r.item.ret >= 0 ? '#10b981' : '#f43f5e'}}">${{sign}}${{r.item.ret.toFixed(2)}}%</span></div>
-                <div><b>Yıllık Oynaklık (Risk):</b> %${{r.item.vol.toFixed(2)}}</div>
-                <div><b>Göreceli Katkı:</b> ${{r.item.value.toFixed(1)}} Puan</div>
-            `;
+            let ttHtml = `<div class="tt-title">${{r.item.label}} ${{isHoldings ? '(Portföy Pozisyonu)' : ''}}</div>`;
+            if (isHoldings) {{
+                ttHtml += `
+                    <div><b>Portföy Payı:</b> %${{r.item.weight.toFixed(2)}}</div>
+                    <div><b>Kâr / Zarar Getirisi:</b> <span style="color:${{r.item.ret >= 0 ? '#10b981' : '#f43f5e'}}; font-weight:bold;">${{sign}}${{r.item.ret.toFixed(2)}}%</span></div>
+                    <div><b>Piyasa Değeri:</b> ₺${{Number(r.item.marketValue).toLocaleString('tr-TR', {{minimumFractionDigits: 2}})}}</div>
+                    <div><b>Maliyet Tutarı:</b> ₺${{Number(r.item.costValue).toLocaleString('tr-TR', {{minimumFractionDigits: 2}})}}</div>
+                `;
+            }} else {{
+                ttHtml += `
+                    <div><b>Toplam Getiri:</b> <span style="color:${{r.item.ret >= 0 ? '#10b981' : '#f43f5e'}}; font-weight:bold;">${{sign}}${{r.item.ret.toFixed(2)}}%</span></div>
+                    <div><b>Yıllık Oynaklık (Risk):</b> %${{r.item.vol.toFixed(2)}}</div>
+                    <div><b>Göreceli Katkı:</b> ${{r.item.value.toFixed(1)}} Puan</div>
+                `;
+            }}
+            tooltip.innerHTML = ttHtml;
         }});
 
         node.addEventListener('mousemove', (e) => {{
-            const ttW = tooltip.offsetWidth || 180;
-            const ttH = tooltip.offsetHeight || 90;
+            const ttW = tooltip.offsetWidth || 190;
+            const ttH = tooltip.offsetHeight || 100;
             let left = e.clientX + 14;
             let top = e.clientY + 14;
             if (left + ttW > window.innerWidth) left = e.clientX - ttW - 14;

@@ -79,6 +79,36 @@ def test_comparison_controller_assets_and_run(qapp, container):
     assert ctrl.activeChartTab == 4
 
 
+def test_comparison_treemap_and_holdings_mode(qapp, container):
+    """Treemap sekmesi ve ana portföy hisseleri (HOLDINGS) ile varlık (ASSETS) modlarını test eder."""
+    ctrl = ComparisonController(container=container)
+    assert ctrl.treemapMode == "HOLDINGS"
+
+    # Mod değişimi
+    ctrl.setTreemapMode("ASSETS")
+    assert ctrl.treemapMode == "ASSETS"
+    ctrl.setTreemapMode("HOLDINGS")
+    assert ctrl.treemapMode == "HOLDINGS"
+
+    # Portföy hisselerini çekme testi
+    holdings = ctrl._get_portfolio_holdings()
+    assert isinstance(holdings, list)
+    if holdings:
+        first = holdings[0]
+        assert "code" in first
+        assert "label" in first
+        assert "weight" in first
+        assert "ret" in first
+        assert "marketValue" in first
+        assert "costValue" in first
+
+    # Treemap HTML üretim testi
+    html = ctrl._build_treemap_html()
+    assert "treemap-container" in html
+    assert "tooltip" in html
+
+
+
 def test_screener_controller_initialization_and_filters(qapp, container):
     """ScreenerController ve hazır filtre tanımlarını test eder."""
     ctrl = ScreenerController(container=container)
