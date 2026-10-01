@@ -43,6 +43,7 @@ QtObject {
     readonly property url trendingDown:  Qt.resolvedUrl("../../assets/icons/trending-down.svg")
     readonly property url barChart:      Qt.resolvedUrl("../../assets/icons/bar-chart-2.svg")
     readonly property url lineChart:     Qt.resolvedUrl("../../assets/icons/line-chart.svg")
+    readonly property url pieChart:      Qt.resolvedUrl("../../assets/icons/pie-chart.svg")
     readonly property url candle:        Qt.resolvedUrl("../../assets/icons/candlestick.svg")
     readonly property url areaChart:     Qt.resolvedUrl("../../assets/icons/area-chart.svg")
     readonly property url fileText:      Qt.resolvedUrl("../../assets/icons/file-text.svg")
@@ -73,7 +74,9 @@ QtObject {
             case "planning":
             case "planlama":      return planning;
             case "optimization":
-            case "optimizasyon":  return optimization;
+            case "optimizasyon":
+            case "shieldcheck":
+            case "shield-check":  return optimization;
             case "ai":
             case "asistan":       return ai;
             case "settings":
@@ -105,6 +108,8 @@ QtObject {
             case "bar":           return barChart;
             case "linechart":
             case "line":          return lineChart;
+            case "piechart":
+            case "pie-chart":     return pieChart;
             case "candle":        return candle;
             case "areachart":
             case "area":          return areaChart;

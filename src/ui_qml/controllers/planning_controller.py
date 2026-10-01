@@ -57,6 +57,7 @@ class PlanningController(QObject):
         self._budget_status_msg: str = ""
         self._income_items: List[Dict[str, Any]] = []
         self._expense_items: List[Dict[str, Any]] = []
+        self._available_months: List[str] = []
 
         # ── Hedefler Durumu ──
         self._goals_list: List[Dict[str, Any]] = []
@@ -76,6 +77,7 @@ class PlanningController(QObject):
         self._dca_chart_html: str = ""
 
         # İlk veri yükleme
+        self._refresh_available_months()
         self.loadBudgetForMonth(self._current_month)
         self.loadGoals()
 
@@ -84,6 +86,10 @@ class PlanningController(QObject):
     @Property(str, notify=budgetChanged)
     def currentMonth(self) -> str:
         return self._current_month
+
+    @Property(list, notify=budgetChanged)
+    def availableMonths(self) -> list:
+        return self._available_months
 
     @Property(str, notify=budgetChanged)
     def totalIncomeFormatted(self) -> str:
@@ -173,18 +179,65 @@ class PlanningController(QObject):
     def dcaChartHtml(self) -> str:
         return self._dca_chart_html
 
+    def _refresh_available_months(self) -> None:
+        """İlk veri tarihinden günümüze kadar bütçe aylarını üretir."""
+        now = datetime.now()
+        cur_year, cur_month = now.year, now.month
+
+        start_year = cur_year - 1
+        start_month = 1
+
+        try:
+            if self._service:
+                budgets = self._service.get_all_budgets()
+                if budgets:
+                    oldest_b = min(b.month for b in budgets if b.month)
+                    parts = oldest_b.split("-")
+                    start_year = min(start_year, int(parts[0]))
+                    start_month = min(start_month, int(parts[1]))
+
+            conn_prov = getattr(self._container, "conn_provider", None)
+            if conn_prov:
+                with conn_prov.Session() as session:
+                    from sqlalchemy import text
+                    min_trade = session.execute(text("SELECT min(trade_date) FROM trades")).scalar()
+                    if min_trade:
+                        t_parts = str(min_trade)[:7].split("-")
+                        start_year = min(start_year, int(t_parts[0]))
+                        start_month = min(start_month, int(t_parts[1]))
+        except Exception as exc:
+            logger.warning("Bütçe ayları listelenirken hata: %s", exc)
+
+        months = []
+        y, m = start_year, start_month
+        while (y < cur_year) or (y == cur_year and m <= cur_month):
+            months.append(f"{y}-{m:02d}")
+            m += 1
+            if m > 12:
+                m = 1
+                y += 1
+
+        months.reverse()  # En yeni ay en üstte olsun
+        if self._current_month not in months:
+            months.insert(0, self._current_month)
+        self._available_months = months
+
     # ──────────────────────────── Bütçe Slotları ────────────────────────────
 
     @Slot(str)
     def loadBudgetForMonth(self, month: str) -> None:
         """Belirtilen ay için bütçeyi yükler."""
-        if not self._service:
+        if not self._service or not month:
             return
         self._current_month = month
         try:
+            # Sabitlenmiş kalemler seti
+            pinned_items = self._service.get_pinned_budget_items()
+            pinned_set = {(p.item_type.upper(), p.name.strip().lower()) for p in pinned_items}
+
             budget = self._service.get_budget_for_month(month)
             if budget is None:
-                # Taslak bütçe
+                # Taslak bütçe (sabitlenmiş kalemlerden oluşturulur)
                 budget = self._service.get_budget_draft_from_pinned_items(month)
 
             self._total_income = float(budget.total_income)
@@ -196,12 +249,14 @@ class PlanningController(QObject):
             inc = []
             exp = []
             for item in budget.items:
+                is_pinned = (item.item_type.upper(), item.name.strip().lower()) in pinned_set
                 entry = {
                     "id": item.id or -1,
                     "name": item.name,
                     "amount": float(item.amount),
                     "amountFormatted": _fmt_money(item.amount),
                     "type": item.item_type,
+                    "isPinned": is_pinned,
                 }
                 if item.item_type.upper() == "INCOME":
                     inc.append(entry)
@@ -214,11 +269,37 @@ class PlanningController(QObject):
         except Exception as exc:
             logger.exception("Bütçe yüklenemedi: %s", exc)
 
+    @Slot(str, str, float, bool)
+    def togglePinItem(self, item_type: str, name: str, amount: float, pin: bool) -> None:
+        """Gelir veya gider kalemini pinler veya pinini kaldırır."""
+        if not self._service or not name.strip():
+            return
+        try:
+            if pin:
+                self._service.pin_budget_item(item_type.upper(), name.strip(), amount)
+                self.operationResult.emit(True, f"'{name}' kalemi sabitlendi (gelecek aylara otomatik aktarılacak).")
+            else:
+                self._service.unpin_budget_item(item_type.upper(), name.strip())
+                self.operationResult.emit(True, f"'{name}' kaleminin sabitlemesi kaldırıldı.")
+            self.loadBudgetForMonth(self._current_month)
+        except Exception as exc:
+            logger.exception("Pinleme işlemi başarısız: %s", exc)
+            self.operationResult.emit(False, str(exc))
+
     @Slot(str, str, float)
     def addBudgetItem(self, item_type: str, name: str, amount: float) -> None:
         """Geçici listeye bütçe kalemi ekler ve toplamları günceller."""
         if not name.strip() or amount <= 0:
             return
+
+        # Pinned kontrolü
+        is_pinned = False
+        try:
+            pinned_items = self._service.get_pinned_budget_items()
+            pinned_set = {(p.item_type.upper(), p.name.strip().lower()) for p in pinned_items}
+            is_pinned = (item_type.upper(), name.strip().lower()) in pinned_set
+        except Exception:
+            pass
 
         entry = {
             "id": -1,
@@ -226,6 +307,7 @@ class PlanningController(QObject):
             "amount": float(amount),
             "amountFormatted": _fmt_money(amount),
             "type": item_type.upper(),
+            "isPinned": is_pinned,
         }
 
         if item_type.upper() == "INCOME":
@@ -357,6 +439,21 @@ class PlanningController(QObject):
             logger.exception("Hedef eklenemedi: %s", exc)
             self.operationResult.emit(False, str(exc))
 
+    @Slot(int, str, float, str, str)
+    def updateGoal(self, goal_id: int, name: str, target: float, deadline_str: str, priority: str = "MEDIUM") -> None:
+        """Mevcut finansal hedefi günceller."""
+        if not self._service:
+            return
+        try:
+            d_parts = [int(p) for p in deadline_str.split("-")]
+            deadline = date(d_parts[0], d_parts[1], d_parts[2])
+            self._service.update_goal(goal_id, name, target, deadline, priority)
+            self.loadGoals()
+            self.operationResult.emit(True, f"'{name}' hedefi güncellendi.")
+        except Exception as exc:
+            logger.exception("Hedef güncellenemedi: %s", exc)
+            self.operationResult.emit(False, str(exc))
+
     @Slot(int)
     def deleteGoal(self, goal_id: int) -> None:
         """Hedefi siler."""
@@ -416,16 +513,37 @@ class PlanningController(QObject):
 
     def _execute_dca(self, tickers: List[str], amount: Decimal, s_date: date, e_date: date) -> None:
         try:
-            # Ticker normalizasyonu (.IS esnekliği)
+            # Ticker normalizasyonu (.IS esnekliği) & Otomatik Geçmiş Fiyat Kontrolü/İndirme
             resolved_tickers = []
             stock_repo = getattr(self._container, "stock_repo", None)
+            backfill_svc = getattr(self._container, "backfill_service", None)
+            price_repo = getattr(self._container, "price_repo", None)
+
             for t in tickers:
+                stock = None
                 if stock_repo:
                     stock = stock_repo.get_stock_by_ticker(t)
                     if not stock:
                         alt = t[:-3] if t.endswith(".IS") else f"{t}.IS"
-                        if stock_repo.get_stock_by_ticker(alt):
+                        stock = stock_repo.get_stock_by_ticker(alt)
+                        if stock:
                             t = alt
+                    if not stock:
+                        # Hisse yoksa oluştur
+                        from src.domain.models.stock import Stock
+                        new_ticker = t if t.endswith(".IS") else f"{t}.IS"
+                        stock = stock_repo.save_stock(Stock(id=None, ticker=new_ticker, name=new_ticker, currency_code="TRY"))
+                        t = new_ticker
+
+                # Fiyat serisi DB'de yoksa veya yetersizse otomatik çek
+                if stock and stock.id and backfill_svc and price_repo:
+                    existing_prices = price_repo.get_price_series(stock.id, s_date, e_date)
+                    if len(existing_prices) < 10:
+                        try:
+                            backfill_svc.backfill_for_single_stock(stock.id, stock.ticker, s_date, e_date)
+                        except Exception as bf_err:
+                            logger.warning("DCA otomatik backfill hatası (%s): %s", stock.ticker, bf_err)
+
                 resolved_tickers.append(t)
 
             res = self._dca_service.run(

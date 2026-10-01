@@ -196,6 +196,14 @@ Item {
             PlanningGoalsTab {
                 id: goalsTab
                 onNewGoalRequested: newGoalDialog.open()
+                onEditGoalRequested: function(gId, gName, tAmt, dLine, prio) {
+                    editGoalDialog.goalId = gId
+                    editGoalDialog.goalName = gName
+                    editGoalDialog.targetAmount = tAmt
+                    editGoalDialog.deadline = dLine
+                    editGoalDialog.priority = prio
+                    editGoalDialog.open()
+                }
                 onContributeRequested: function(gId, gName, rem) {
                     contributionDialog.goalId = gId
                     contributionDialog.goalName = gName
@@ -257,6 +265,10 @@ Item {
     // Dialoglar
     NewGoalDialog {
         id: newGoalDialog
+    }
+
+    EditGoalDialog {
+        id: editGoalDialog
     }
 
     GoalContributionDialog {

@@ -7,6 +7,7 @@ Item {
     id: root
 
     signal newGoalRequested()
+    signal editGoalRequested(int goalId, string name, real targetAmount, string deadline, string priority)
     signal contributeRequested(int goalId, string goalName, string remaining)
 
     ColumnLayout {
@@ -264,6 +265,29 @@ Item {
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: root.contributeRequested(modelData.id, modelData.name, modelData.remainingAmountFormatted)
+                                }
+                            }
+
+                            // Düzenle Butonu
+                            Rectangle {
+                                width: 28
+                                height: 28
+                                radius: Theme.radiusXs
+                                color: btnEditMouse.containsMouse ? Theme.accentSoft : "transparent"
+
+                                ModernIcon {
+                                    anchors.centerIn: parent
+                                    name: "edit"
+                                    color: btnEditMouse.containsMouse ? Theme.accent : Theme.textMuted
+                                    size: 13
+                                }
+
+                                MouseArea {
+                                    id: btnEditMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.editGoalRequested(modelData.id, modelData.name, modelData.targetAmount, modelData.deadline, modelData.priority)
                                 }
                             }
 

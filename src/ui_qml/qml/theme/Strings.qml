@@ -413,6 +413,8 @@ QtObject {
     readonly property string goalsFeasibilityPower: "Aylık Tasarruf Gücü:"
     readonly property string goalsBtnContribute: "Katkı Yap"
     readonly property string goalsDialogNewTitle: "Yeni Finansal Hedef"
+    readonly property string goalsDialogEditTitle: "Hedefi Düzenle"
+    readonly property string goalsBtnEdit: "Düzenle"
     readonly property string goalsDialogNameLabel: "Hedef Adı"
     readonly property string goalsDialogTargetLabel: "Hedef Tutar (₺)"
     readonly property string goalsDialogDeadlineLabel: "Hedef Tarih"

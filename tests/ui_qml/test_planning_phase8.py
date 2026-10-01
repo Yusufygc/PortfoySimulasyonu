@@ -53,8 +53,12 @@ def test_planning_controller_initialization(qapp, container):
 
 
 def test_planning_budget_item_operations(qapp, container):
-    """Bütçeye kalem ekleme, çıkarma ve hesaplama döngüsünü test eder."""
+    """Bütçeye kalem ekleme, çıkarma, pinleme ve hesaplama döngüsünü test eder."""
     ctrl = PlanningController(container=container)
+
+    # availableMonths kontrolü
+    assert len(ctrl.availableMonths) > 0
+    assert ctrl.currentMonth in ctrl.availableMonths
 
     initial_inc_count = len(ctrl.incomeItems)
     ctrl.addBudgetItem("INCOME", "Test Gelir", 15000.0)
@@ -66,13 +70,18 @@ def test_planning_budget_item_operations(qapp, container):
 
     assert ctrl.netSavingsPotential >= 10000.0
 
+    # Pinleme mekanizması testi
+    ctrl.togglePinItem("INCOME", "Test Gelir", 15000.0, True)
+    # Tekrar çağrıldığında kaldırılması (toggle)
+    ctrl.togglePinItem("INCOME", "Test Gelir", 15000.0, False)
+
     # Kalem silme
     ctrl.removeBudgetItem("INCOME", len(ctrl.incomeItems) - 1)
     assert len(ctrl.incomeItems) == initial_inc_count
 
 
 def test_planning_goals_lifecycle(qapp, container):
-    """Hedef oluşturma, katkı ekleme ve silme döngüsünü test eder."""
+    """Hedef oluşturma, güncelleme, katkı ekleme ve silme döngüsünü test eder."""
     ctrl = PlanningController(container=container)
 
     goal_name = "FZ8_TEST_HEDEF"
@@ -83,6 +92,15 @@ def test_planning_goals_lifecycle(qapp, container):
     assert created is not None
     goal_id = created["id"]
     assert created["targetAmount"] == 50000.0
+
+    # Hedef güncelleme testi
+    ctrl.updateGoal(goal_id, "FZ8_TEST_HEDEF_GUNCELLENDI", 75000.0, "2028-06-30", "MEDIUM")
+    ctrl.loadGoals()
+    updated_goal = next((g for g in ctrl.goalsList if g["id"] == goal_id), None)
+    assert updated_goal is not None
+    assert updated_goal["name"] == "FZ8_TEST_HEDEF_GUNCELLENDI"
+    assert updated_goal["targetAmount"] == 75000.0
+    assert updated_goal["deadline"] == "2028-06-30"
 
     # Katkı ekleme
     ctrl.addContribution(goal_id, 10000.0)

@@ -39,25 +39,93 @@ Item {
                     font.weight: Font.DemiBold
                 }
 
-                TextField {
-                    id: txtMonth
-                    Layout.preferredWidth: 110
+                ComboBox {
+                    id: comboMonth
+                    Layout.preferredWidth: 130
                     Layout.preferredHeight: 34
-                    text: planningController.currentMonth
-                    color: Theme.textPrimary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.fontBase
-                    leftPadding: Theme.spaceSm
-                    rightPadding: Theme.spaceSm
+                    model: planningController.availableMonths
+
+                    currentIndex: {
+                        var idx = planningController.availableMonths.indexOf(planningController.currentMonth)
+                        return idx >= 0 ? idx : 0
+                    }
 
                     background: Rectangle {
                         color: Theme.bgInput
                         radius: Theme.radiusSm
-                        border.color: txtMonth.activeFocus ? Theme.borderFocus : Theme.borderSubtle
+                        border.color: comboMonth.hovered ? Theme.accent : Theme.borderSubtle
                         border.width: 1
                     }
 
-                    onEditingFinished: planningController.loadBudgetForMonth(txtMonth.text.trim())
+                    contentItem: Text {
+                        leftPadding: Theme.spaceSm
+                        rightPadding: 24
+                        text: comboMonth.displayText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontBase
+                        font.weight: Font.DemiBold
+                        color: Theme.textPrimary
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+
+                    indicator: ModernIcon {
+                        anchors.right: parent.right
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        name: "chevrondown"
+                        size: 12
+                        color: Theme.textMuted
+                    }
+
+                    popup: Popup {
+                        y: comboMonth.height + 2
+                        width: Math.max(comboMonth.width, 140)
+                        implicitHeight: Math.min(260, contentItem.implicitHeight + 8)
+                        padding: 4
+
+                        contentItem: ListView {
+                            clip: true
+                            implicitHeight: contentHeight
+                            model: comboMonth.popup.visible ? comboMonth.delegateModel : null
+                            currentIndex: comboMonth.highlightedIndex
+
+                            ScrollBar.vertical: ModernScrollBar {}
+                        }
+
+                        background: Rectangle {
+                            color: Theme.bgCard
+                            border.color: Theme.borderCard
+                            border.width: 1
+                            radius: Theme.radiusSm
+                        }
+                    }
+
+                    delegate: ItemDelegate {
+                        width: comboMonth.width
+                        height: 30
+                        highlighted: comboMonth.highlightedIndex === index
+
+                        contentItem: Text {
+                            text: modelData
+                            color: highlighted ? Theme.accent : Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontSm
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        background: Rectangle {
+                            color: highlighted ? Theme.accentSoft : (hovered ? Theme.bgCardHover : "transparent")
+                            radius: Theme.radiusXs
+                        }
+                    }
+
+                    onActivated: function(idx) {
+                        var selMonth = planningController.availableMonths[idx]
+                        if (selMonth) {
+                            planningController.loadBudgetForMonth(selMonth)
+                        }
+                    }
                 }
 
                 Item { Layout.fillWidth: true }
@@ -429,9 +497,38 @@ Item {
                                     font.weight: Font.DemiBold
                                 }
 
+                                // Pin Butonu (Sabitleme)
                                 Rectangle {
-                                    width: 22
-                                    height: 22
+                                    width: 24
+                                    height: 24
+                                    radius: Theme.radiusXs
+                                    color: modelData.isPinned ? Theme.accentSoft : (btnPinIncMouse.containsMouse ? Theme.bgCardHover : "transparent")
+                                    border.color: modelData.isPinned ? Theme.accent : "transparent"
+                                    border.width: 1
+
+                                    ModernIcon {
+                                        anchors.centerIn: parent
+                                        name: "bookmark"
+                                        color: modelData.isPinned ? Theme.accent : (btnPinIncMouse.containsMouse ? Theme.textPrimary : Theme.textMuted)
+                                        size: 13
+                                    }
+
+                                    ToolTip.visible: btnPinIncMouse.containsMouse
+                                    ToolTip.text: modelData.isPinned ? "Sabitlendi (Her ay otomatik gelir) - Kaldırmak için tıkla" : "Bu kalemi sabitle (Gelecek aylara aktar)"
+                                    ToolTip.delay: 300
+
+                                    MouseArea {
+                                        id: btnPinIncMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: planningController.togglePinItem("INCOME", modelData.name, modelData.amount, !modelData.isPinned)
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: 24
+                                    height: 24
                                     radius: Theme.radiusXs
                                     color: btnDelIncMouse.containsMouse ? Theme.bearRedSoft : "transparent"
 
@@ -603,9 +700,38 @@ Item {
                                     font.weight: Font.DemiBold
                                 }
 
+                                // Pin Butonu (Sabitleme)
                                 Rectangle {
-                                    width: 22
-                                    height: 22
+                                    width: 24
+                                    height: 24
+                                    radius: Theme.radiusXs
+                                    color: modelData.isPinned ? Theme.accentSoft : (btnPinExpMouse.containsMouse ? Theme.bgCardHover : "transparent")
+                                    border.color: modelData.isPinned ? Theme.accent : "transparent"
+                                    border.width: 1
+
+                                    ModernIcon {
+                                        anchors.centerIn: parent
+                                        name: "bookmark"
+                                        color: modelData.isPinned ? Theme.accent : (btnPinExpMouse.containsMouse ? Theme.textPrimary : Theme.textMuted)
+                                        size: 13
+                                    }
+
+                                    ToolTip.visible: btnPinExpMouse.containsMouse
+                                    ToolTip.text: modelData.isPinned ? "Sabitlendi (Her ay otomatik gelir) - Kaldırmak için tıkla" : "Bu kalemi sabitle (Gelecek aylara aktar)"
+                                    ToolTip.delay: 300
+
+                                    MouseArea {
+                                        id: btnPinExpMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: planningController.togglePinItem("EXPENSE", modelData.name, modelData.amount, !modelData.isPinned)
+                                    }
+                                }
+
+                                Rectangle {
+                                    width: 24
+                                    height: 24
                                     radius: Theme.radiusXs
                                     color: btnDelExpMouse.containsMouse ? Theme.bearRedSoft : "transparent"
 

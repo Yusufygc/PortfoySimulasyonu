@@ -4,7 +4,8 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, Iterable, List, Optional, Sequence, Set
 
-from sqlalchemy.dialects.mysql import insert
+from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy import func
 from src.domain.models.daily_price import DailyPrice
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
@@ -174,15 +175,37 @@ class SQLAlchemyPriceRepository(IPriceRepository):
     # ---------- WRITE (UPSERT) ---------- #
     def upsert_daily_price(self, daily_price: DailyPrice) -> DailyPrice:
         with self._provider.get_session() as session:
-            stmt = insert(ORMDailyPrice).values(**self._to_row(daily_price))
-            stmt = stmt.on_duplicate_key_update(**self._upsert_update_columns(stmt))
+            is_sqlite = (session.bind.dialect.name == "sqlite")
+            row_dict = self._to_row(daily_price)
+            if is_sqlite:
+                if "id" not in row_dict or row_dict["id"] is None:
+                    max_id = session.execute(func.coalesce(func.max(ORMDailyPrice.id), 0)).scalar() or 0
+                    row_dict["id"] = int(max_id) + 1
+
+                stmt = sqlite_insert(ORMDailyPrice).values(**row_dict)
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["stock_id", "price_date"],
+                    set_={
+                        "close_price": stmt.excluded.close_price,
+                        "currency_code": stmt.excluded.currency_code,
+                        "source": stmt.excluded.source,
+                        "open_price": func.coalesce(stmt.excluded.open_price, ORMDailyPrice.open_price),
+                        "high_price": func.coalesce(stmt.excluded.high_price, ORMDailyPrice.high_price),
+                        "low_price": func.coalesce(stmt.excluded.low_price, ORMDailyPrice.low_price),
+                        "volume": func.coalesce(stmt.excluded.volume, ORMDailyPrice.volume),
+                    },
+                )
+            else:
+                stmt = mysql_insert(ORMDailyPrice).values(**row_dict)
+                stmt = stmt.on_duplicate_key_update(**self._upsert_update_columns(stmt))
+
             result = session.execute(stmt)
             commit_or_rollback(session)
 
             # last inserted id
             inserted_id = result.lastrowid
             return DailyPrice(
-                id=inserted_id if inserted_id else daily_price.id,
+                id=inserted_id if inserted_id else (row_dict.get("id") or daily_price.id),
                 stock_id=daily_price.stock_id,
                 price_date=daily_price.price_date,
                 close_price=daily_price.close_price,
@@ -200,11 +223,39 @@ class SQLAlchemyPriceRepository(IPriceRepository):
             return
 
         values = [self._to_row(p) for p in prices_list]
+        chunk_size = 100
 
         with self._provider.get_session() as session:
-            stmt = insert(ORMDailyPrice).values(values)
-            stmt = stmt.on_duplicate_key_update(**self._upsert_update_columns(stmt))
-            session.execute(stmt)
+            is_sqlite = (session.bind.dialect.name == "sqlite")
+            if is_sqlite:
+                max_id = session.execute(func.coalesce(func.max(ORMDailyPrice.id), 0)).scalar() or 0
+                max_id = int(max_id)
+                for item in values:
+                    if "id" not in item or item["id"] is None:
+                        max_id += 1
+                        item["id"] = max_id
+
+            for i in range(0, len(values), chunk_size):
+                chunk = values[i : i + chunk_size]
+                if is_sqlite:
+                    stmt = sqlite_insert(ORMDailyPrice).values(chunk)
+                    stmt = stmt.on_conflict_do_update(
+                        index_elements=["stock_id", "price_date"],
+                        set_={
+                            "close_price": stmt.excluded.close_price,
+                            "currency_code": stmt.excluded.currency_code,
+                            "source": stmt.excluded.source,
+                            "open_price": func.coalesce(stmt.excluded.open_price, ORMDailyPrice.open_price),
+                            "high_price": func.coalesce(stmt.excluded.high_price, ORMDailyPrice.high_price),
+                            "low_price": func.coalesce(stmt.excluded.low_price, ORMDailyPrice.low_price),
+                            "volume": func.coalesce(stmt.excluded.volume, ORMDailyPrice.volume),
+                        },
+                    )
+                else:
+                    stmt = mysql_insert(ORMDailyPrice).values(chunk)
+                    stmt = stmt.on_duplicate_key_update(**self._upsert_update_columns(stmt))
+
+                session.execute(stmt)
             commit_or_rollback(session)
 
     @staticmethod
