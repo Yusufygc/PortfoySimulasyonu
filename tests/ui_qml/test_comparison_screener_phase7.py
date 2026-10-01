@@ -75,6 +75,8 @@ def test_comparison_controller_assets_and_run(qapp, container):
     assert ctrl.activeChartTab == 2
     ctrl.setActiveChartTab(3)  # Scatter
     assert ctrl.activeChartTab == 3
+    ctrl.setActiveChartTab(4)  # Treemap
+    assert ctrl.activeChartTab == 4
 
 
 def test_screener_controller_initialization_and_filters(qapp, container):

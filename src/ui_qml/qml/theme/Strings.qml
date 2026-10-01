@@ -361,6 +361,7 @@ QtObject {
     readonly property string compareTabDrawdown: "Maks. Düşüş (Drawdown)"
     readonly property string compareTabPeriodic: "Aylık Getiriler"
     readonly property string compareTabScatter: "Risk-Getiri Saçılımı"
+    readonly property string compareTabTreemap: "Getiri Katkı Haritası (Treemap)"
     readonly property string compareRatioNumLabel: "Pay (A):"
     readonly property string compareRatioDenLabel: "Payda (B):"
 

@@ -22,7 +22,7 @@ Rectangle {
             Layout.fillWidth: true
             spacing: Theme.spaceSm
 
-            // 4 Grafik Sekmesi (Segment)
+            // 5 Grafik Sekmesi (Segment)
             Row {
                 spacing: Theme.spaceXs
 
@@ -31,7 +31,8 @@ Rectangle {
                         { idx: 0, text: Strings.compareTabCumulative, icon: "linechart" },
                         { idx: 1, text: Strings.compareTabDrawdown, icon: "trendingdown" },
                         { idx: 2, text: Strings.compareTabPeriodic, icon: "barchart" },
-                        { idx: 3, text: Strings.compareTabScatter, icon: "target" }
+                        { idx: 3, text: Strings.compareTabScatter, icon: "target" },
+                        { idx: 4, text: Strings.compareTabTreemap, icon: "layers" }
                     ]
 
                     Rectangle {
