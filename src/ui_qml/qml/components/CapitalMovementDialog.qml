@@ -11,8 +11,9 @@ Popup {
     modal: true
     dim: true
     anchors.centerIn: Overlay.overlay
-    width: Math.min(440, parent ? parent.width * 0.9 : 440)
-    padding: 0
+    width: Math.min(460, parent ? parent.width * 0.9 : 460)
+    padding: Theme.spaceLg
+    contentHeight: contentCol.implicitHeight
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: Rectangle {
@@ -38,8 +39,8 @@ Popup {
     }
 
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: Theme.spaceLg
+        id: contentCol
+        width: parent.width
         spacing: Theme.spaceMd
 
         // Başlık
@@ -329,18 +330,16 @@ Popup {
             }
         }
 
-        Item { Layout.fillHeight: true }
+        Item { Layout.preferredHeight: Theme.spaceSm }
 
-        // Alt Butonlar
+        // Alt Butonlar (Ortalanmış)
         RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.spaceSm
-
-            Item { Layout.fillWidth: true }
+            Layout.alignment: Qt.AlignHCenter
+            spacing: Theme.spaceMd
 
             Rectangle {
-                width: 90
-                height: 36
+                width: 110
+                height: 38
                 radius: Theme.radiusSm
                 color: btnCancelMouse.containsMouse ? Theme.bgCardHover : "transparent"
                 border.color: Theme.borderSubtle
@@ -364,8 +363,8 @@ Popup {
             }
 
             Rectangle {
-                width: 120
-                height: 36
+                width: 130
+                height: 38
                 radius: Theme.radiusSm
                 color: btnConfirmMouse.containsMouse ? Theme.accentHover : Theme.accent
 

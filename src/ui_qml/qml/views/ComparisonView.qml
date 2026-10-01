@@ -12,6 +12,13 @@ Item {
         comparisonController.runComparison()
     }
 
+    Timer {
+        id: debounceTimer
+        interval: 300
+        repeat: false
+        onTriggered: comparisonController.runComparison()
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: Theme.spaceMd
@@ -160,7 +167,7 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 comparisonController.toggleAsset(modelData.code, !isSelected)
-                                comparisonController.runComparison()
+                                debounceTimer.restart()
                             }
                         }
                     }
@@ -197,7 +204,10 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: comparisonController.runComparison()
+                        onClicked: {
+                            debounceTimer.stop()
+                            comparisonController.runComparison()
+                        }
                     }
                 }
             }

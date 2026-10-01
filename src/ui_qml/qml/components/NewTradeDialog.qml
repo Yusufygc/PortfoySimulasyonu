@@ -11,8 +11,9 @@ Popup {
     modal: true
     dim: true
     anchors.centerIn: Overlay.overlay
-    width: Math.min(460, parent ? parent.width * 0.9 : 460)
-    padding: 0
+    width: Math.min(480, parent ? parent.width * 0.9 : 480)
+    padding: Theme.spaceLg
+    contentHeight: contentCol.implicitHeight
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: Rectangle {
@@ -46,8 +47,8 @@ Popup {
     }
 
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: Theme.spaceLg
+        id: contentCol
+        width: parent.width
         spacing: Theme.spaceMd
 
         // Başlık & Kapat Butonu
@@ -434,18 +435,16 @@ Popup {
             }
         }
 
-        Item { Layout.fillHeight: true }
+        Item { Layout.preferredHeight: Theme.spaceSm }
 
-        // Alt Butonlar
+        // Alt Butonlar (Ortalanmış)
         RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.spaceSm
-
-            Item { Layout.fillWidth: true }
+            Layout.alignment: Qt.AlignHCenter
+            spacing: Theme.spaceMd
 
             Rectangle {
-                width: 90
-                height: 36
+                width: 110
+                height: 38
                 radius: Theme.radiusSm
                 color: btnCancelMouse.containsMouse ? Theme.bgCardHover : "transparent"
                 border.color: Theme.borderSubtle
@@ -469,8 +468,8 @@ Popup {
             }
 
             Rectangle {
-                width: 130
-                height: 36
+                width: 140
+                height: 38
                 radius: Theme.radiusSm
                 color: {
                     if (root.side === "BUY") {

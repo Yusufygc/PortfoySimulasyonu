@@ -357,6 +357,12 @@ QtObject {
     readonly property string compareThVolatility: "YILLIK VOLATİLİTE"
     readonly property string compareEmptyTitle: "Karşılaştırmak için en az bir varlık seçin"
     readonly property string compareEmptySubtitle: "Sol panelden benchmark veya hisse seçerek getiri eğrilerini inceleyin"
+    readonly property string compareTabCumulative: "Kümülatif Getiri"
+    readonly property string compareTabDrawdown: "Maks. Düşüş (Drawdown)"
+    readonly property string compareTabPeriodic: "Aylık Getiriler"
+    readonly property string compareTabScatter: "Risk-Getiri Saçılımı"
+    readonly property string compareRatioNumLabel: "Pay (A):"
+    readonly property string compareRatioDenLabel: "Payda (B):"
 
     // --- BIST Sinyal Tarayıcısı (Faz 7) ---
     readonly property string screenerTitle: "BIST Sinyal Tarayıcısı"

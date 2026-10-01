@@ -17,23 +17,60 @@ Rectangle {
         anchors.margins: Theme.spaceMd
         spacing: Theme.spaceSm
 
-        // Üst Bar: Başlık ve Hızlı Dönem Seçici
+        // 1. Üst Bar: 4 Grafik Sekmesi & Hızlı Dönem Butonları
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.spaceSm
 
-            ModernIcon {
-                name: "compare"
-                color: Theme.accent
-                size: 18
-            }
+            // 4 Grafik Sekmesi (Segment)
+            Row {
+                spacing: Theme.spaceXs
 
-            Text {
-                text: Strings.compareTitle
-                color: Theme.textPrimary
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontBase
-                font.weight: Font.DemiBold
+                Repeater {
+                    model: [
+                        { idx: 0, text: Strings.compareTabCumulative, icon: "linechart" },
+                        { idx: 1, text: Strings.compareTabDrawdown, icon: "trendingdown" },
+                        { idx: 2, text: Strings.compareTabPeriodic, icon: "barchart" },
+                        { idx: 3, text: Strings.compareTabScatter, icon: "target" }
+                    ]
+
+                    Rectangle {
+                        width: tabBtnRow.width + 16
+                        height: 30
+                        radius: Theme.radiusSm
+                        color: comparisonController.activeChartTab === modelData.idx ? Theme.accent : (tabMouse.containsMouse ? Theme.bgCardHover : Theme.bgSecondary)
+                        border.color: comparisonController.activeChartTab === modelData.idx ? Theme.accent : Theme.borderSubtle
+                        border.width: 1
+
+                        RowLayout {
+                            id: tabBtnRow
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            ModernIcon {
+                                name: modelData.icon
+                                color: comparisonController.activeChartTab === modelData.idx ? Theme.textInverse : Theme.textSecondary
+                                size: 12
+                            }
+
+                            Text {
+                                text: modelData.text
+                                color: comparisonController.activeChartTab === modelData.idx ? Theme.textInverse : Theme.textSecondary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontXs
+                                font.weight: comparisonController.activeChartTab === modelData.idx ? Font.DemiBold : Font.Normal
+                            }
+                        }
+
+                        MouseArea {
+                            id: tabMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: comparisonController.setActiveChartTab(modelData.idx)
+                        }
+                    }
+                }
             }
 
             Item { Layout.fillWidth: true }
@@ -46,8 +83,8 @@ Rectangle {
                     model: ["1A", "3A", "6A", "1Y", "YBB", "Tümü"]
 
                     Rectangle {
-                        width: 44
-                        height: 28
+                        width: 42
+                        height: 30
                         radius: Theme.radiusSm
                         color: comparisonController.periodLabel === modelData ? Theme.accent : (btnMouse.containsMouse ? Theme.bgCardHover : Theme.bgSecondary)
                         border.color: comparisonController.periodLabel === modelData ? Theme.accent : Theme.borderSubtle
@@ -74,13 +111,145 @@ Rectangle {
             }
         }
 
+        // 2. İkinci Bar: Mod Seçici (Normalize, Normal, Rasyo) — Sadece Getiri Grafiğinde Görünür
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.spaceSm
+            visible: comparisonController.activeChartTab === 0
+
+            Text {
+                text: Strings.compareModeTitle + ":"
+                color: Theme.textMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontXs
+                font.weight: Font.DemiBold
+            }
+
+            // 3 Mod Butonları
+            Row {
+                spacing: Theme.spaceXs
+
+                Repeater {
+                    model: [
+                        { key: "NORMALIZED", text: Strings.compareModeNormalized },
+                        { key: "NORMAL", text: Strings.compareModeNormal },
+                        { key: "RATIO", text: Strings.compareModeRatio }
+                    ]
+
+                    Rectangle {
+                        width: modeText.width + 16
+                        height: 26
+                        radius: Theme.radiusXs
+                        color: comparisonController.comparisonMode === modelData.key ? Theme.accentSoft : (mMouse.containsMouse ? Theme.bgCardHover : "transparent")
+                        border.color: comparisonController.comparisonMode === modelData.key ? Theme.accent : Theme.borderSubtle
+                        border.width: 1
+
+                        Text {
+                            id: modeText
+                            anchors.centerIn: parent
+                            text: modelData.text
+                            color: comparisonController.comparisonMode === modelData.key ? Theme.accent : Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontXs
+                            font.weight: comparisonController.comparisonMode === modelData.key ? Font.DemiBold : Font.Normal
+                        }
+
+                        MouseArea {
+                            id: mMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: comparisonController.setComparisonMode(modelData.key)
+                        }
+                    }
+                }
+            }
+
+            // Rasyo Seçicileri (Pay / Payda)
+            RowLayout {
+                spacing: Theme.spaceSm
+                visible: comparisonController.comparisonMode === "RATIO"
+
+                Text {
+                    text: Strings.compareRatioNumLabel
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontXs
+                }
+
+                ComboBox {
+                    id: numCombo
+                    Layout.preferredWidth: 130
+                    Layout.preferredHeight: 26
+                    model: comparisonController.metricsList
+                    textRole: "label"
+                    currentIndex: 0
+
+                    contentItem: Text {
+                        leftPadding: 6
+                        text: numCombo.displayText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontXs
+                        color: Theme.textPrimary
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+
+                    onActivated: function(idx) {
+                        var opt = comparisonController.metricsList[idx]
+                        if (opt) comparisonController.setRatioAssets(opt.code, comparisonController.ratioDenominator)
+                    }
+                }
+
+                Text {
+                    text: "/"
+                    color: Theme.textMuted
+                    font.pixelSize: Theme.fontSm
+                    font.weight: Font.Bold
+                }
+
+                Text {
+                    text: Strings.compareRatioDenLabel
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontXs
+                }
+
+                ComboBox {
+                    id: denCombo
+                    Layout.preferredWidth: 130
+                    Layout.preferredHeight: 26
+                    model: comparisonController.metricsList
+                    textRole: "label"
+                    currentIndex: Math.min(1, comparisonController.metricsList.length - 1)
+
+                    contentItem: Text {
+                        leftPadding: 6
+                        text: denCombo.displayText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontXs
+                        color: Theme.textPrimary
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+
+                    onActivated: function(idx) {
+                        var opt = comparisonController.metricsList[idx]
+                        if (opt) comparisonController.setRatioAssets(comparisonController.ratioNumerator, opt.code)
+                    }
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+        }
+
         Rectangle {
             Layout.fillWidth: true
             height: 1
             color: Theme.borderSubtle
         }
 
-        // Grafik veya Boş Durum
+        // 3. Grafik veya Boş Durum
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true

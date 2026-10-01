@@ -60,9 +60,21 @@ def test_comparison_controller_assets_and_run(qapp, container):
     ctrl.toggleAsset(first["code"], True)
     assert first["code"] in ctrl.selectedAssets
 
-    # Karşılaştırmayı çalıştır
-    ctrl.runComparison()
+    # Karşılaştırmayı doğrudan çalıştır
+    ctrl._worker_calculate(ctrl._selected_codes, ctrl._period_label)
     assert isinstance(ctrl.metricsList, list)
+
+    # Modlar ve sekmeler testi
+    ctrl.setComparisonMode("NORMAL")
+    assert ctrl.comparisonMode == "NORMAL"
+    ctrl.setComparisonMode("RATIO")
+    assert ctrl.comparisonMode == "RATIO"
+    ctrl.setActiveChartTab(1)  # Drawdown
+    assert ctrl.activeChartTab == 1
+    ctrl.setActiveChartTab(2)  # Periodic
+    assert ctrl.activeChartTab == 2
+    ctrl.setActiveChartTab(3)  # Scatter
+    assert ctrl.activeChartTab == 3
 
 
 def test_screener_controller_initialization_and_filters(qapp, container):
