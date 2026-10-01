@@ -190,13 +190,13 @@ Item {
                                 height: 18
                                 width: pText.width + 10
                                 radius: Theme.radiusXs
-                                color: modelData.priority === "HIGH" ? Theme.bearRedSoft : (modelData.priority === "MEDIUM" ? Theme.accentSoft : Theme.bgSecondary)
+                                color: (modelData.priority === "HIGH" || modelData.priorityTr === "YÜKSEK") ? Theme.bearRedSoft : ((modelData.priority === "MEDIUM" || modelData.priorityTr === "ORTA") ? Theme.accentSoft : Theme.bgSecondary)
 
                                 Text {
                                     id: pText
                                     anchors.centerIn: parent
-                                    text: modelData.priority
-                                    color: modelData.priority === "HIGH" ? Theme.bearRed : (modelData.priority === "MEDIUM" ? Theme.accent : Theme.textMuted)
+                                    text: modelData.priorityTr || (modelData.priority === "HIGH" ? "YÜKSEK" : (modelData.priority === "LOW" ? "DÜŞÜK" : "ORTA"))
+                                    color: (modelData.priority === "HIGH" || modelData.priorityTr === "YÜKSEK") ? Theme.bearRed : ((modelData.priority === "MEDIUM" || modelData.priorityTr === "ORTA") ? Theme.accent : Theme.textMuted)
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10
                                     font.weight: Font.Bold
@@ -287,7 +287,7 @@ Item {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.editGoalRequested(modelData.id, modelData.name, modelData.targetAmount, modelData.deadline, modelData.priority)
+                                    onClicked: root.editGoalRequested(modelData.id, modelData.name, modelData.targetAmount, modelData.deadline, modelData.priorityTr || modelData.priority)
                                 }
                             }
 

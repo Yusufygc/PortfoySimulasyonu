@@ -14,7 +14,7 @@ Popup {
     dim: true
     anchors.centerIn: Overlay.overlay
     width: Math.min(380, parent ? parent.width * 0.9 : 380)
-    padding: 0
+    padding: Theme.spaceLg
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: Rectangle {
@@ -29,9 +29,7 @@ Popup {
         txtAmount.forceActiveFocus()
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: Theme.spaceLg
+    contentItem: ColumnLayout {
         spacing: Theme.spaceMd
 
         // Başlık
@@ -77,29 +75,35 @@ Popup {
             }
         }
 
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: Theme.borderSubtle
+        }
+
         // Hedef Bilgisi
         Rectangle {
             Layout.fillWidth: true
             height: 48
             radius: Theme.radiusSm
             color: Theme.bgSecondary
-            border.color: Theme.borderSubtle
-            border.width: 1
 
-            ColumnLayout {
-                anchors.centerIn: parent
-                spacing: 2
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: Theme.spaceSm
+                spacing: Theme.spaceSm
 
                 Text {
                     text: root.goalName
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontBase
-                    font.weight: Font.Bold
+                    font.weight: Font.DemiBold
+                    Layout.fillWidth: true
                 }
 
                 Text {
-                    text: "Kalan Hedef: " + root.remainingFormatted
+                    text: "Kalan: " + root.remainingFormatted
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
@@ -139,12 +143,11 @@ Popup {
             }
         }
 
-        Item { Layout.fillHeight: true }
-
-        // Alt Butonlar
+        // Alt Butonlar (Düzeltildi ve Ortalandı)
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spaceSm
+            Layout.topMargin: Theme.spaceSm
+            spacing: Theme.spaceMd
 
             Item { Layout.fillWidth: true }
 
@@ -181,8 +184,8 @@ Popup {
 
                 Text {
                     anchors.centerIn: parent
-                    text: Strings.goalsBtnContribute
-                    color: Theme.textPrimary
+                    text: Strings.btnSave
+                    color: btnSaveMouse.containsMouse ? Theme.textInverse : Theme.bullGreen
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontBase
                     font.weight: Font.DemiBold
@@ -194,14 +197,16 @@ Popup {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        var amt = parseFloat(txtAmount.text.replace(",", "."))
-                        if (isNaN(amt) || amt <= 0 || root.goalId < 0) return
+                        var amount = parseFloat(txtAmount.text.replace(",", "."))
+                        if (isNaN(amount) || amount <= 0 || root.goalId < 0) return
 
-                        planningController.addContribution(root.goalId, amt)
+                        planningController.addContribution(root.goalId, amount)
                         root.close()
                     }
                 }
             }
+
+            Item { Layout.fillWidth: true }
         }
     }
 }

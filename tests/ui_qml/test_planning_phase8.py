@@ -108,22 +108,26 @@ def test_planning_goals_lifecycle(qapp, container):
     ctrl = PlanningController(container=container)
 
     goal_name = "FZ8_TEST_HEDEF"
-    ctrl.addGoal(goal_name, 50000.0, "2027-12-31", "HIGH")
+    ctrl.addGoal(goal_name, 50000.0, "2027-12-31", "YÜKSEK")
     ctrl.loadGoals()
 
     created = next((g for g in ctrl.goalsList if g["name"] == goal_name), None)
     assert created is not None
     goal_id = created["id"]
     assert created["targetAmount"] == 50000.0
+    assert created["priority"] == "HIGH"
+    assert created["priorityTr"] == "YÜKSEK"
 
-    # Hedef güncelleme testi
-    ctrl.updateGoal(goal_id, "FZ8_TEST_HEDEF_GUNCELLENDI", 75000.0, "2028-06-30", "MEDIUM")
+    # Hedef güncelleme testi (Türkçe ORTA öncelik ile)
+    ctrl.updateGoal(goal_id, "FZ8_TEST_HEDEF_GUNCELLENDI", 75000.0, "2028-06-30", "ORTA")
     ctrl.loadGoals()
     updated_goal = next((g for g in ctrl.goalsList if g["id"] == goal_id), None)
     assert updated_goal is not None
     assert updated_goal["name"] == "FZ8_TEST_HEDEF_GUNCELLENDI"
     assert updated_goal["targetAmount"] == 75000.0
     assert updated_goal["deadline"] == "2028-06-30"
+    assert updated_goal["priority"] == "MEDIUM"
+    assert updated_goal["priorityTr"] == "ORTA"
 
     # Katkı ekleme
     ctrl.addContribution(goal_id, 10000.0)

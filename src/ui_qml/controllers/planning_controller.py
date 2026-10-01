@@ -434,6 +434,8 @@ class PlanningController(QObject):
             goals_list = []
             for g in goals:
                 progress = min(1.0, float(g.progress_ratio))
+                prio_val = str(g.priority).upper()
+                prio_tr = "YÜKSEK" if prio_val == "HIGH" else ("DÜŞÜK" if prio_val == "LOW" else "ORTA")
                 goals_list.append({
                     "id": g.id,
                     "name": g.name,
@@ -444,7 +446,8 @@ class PlanningController(QObject):
                     "remainingAmount": float(g.remaining_amount),
                     "remainingAmountFormatted": _fmt_money(g.remaining_amount),
                     "deadline": g.deadline.isoformat() if hasattr(g.deadline, "isoformat") else str(g.deadline),
-                    "priority": g.priority,
+                    "priority": prio_val,
+                    "priorityTr": prio_tr,
                     "status": g.status.value if hasattr(g.status, "value") else str(g.status),
                     "isCompleted": g.is_completed,
                     "progress": progress,
@@ -473,7 +476,9 @@ class PlanningController(QObject):
         try:
             d_parts = [int(p) for p in deadline_str.split("-")]
             deadline = date(d_parts[0], d_parts[1], d_parts[2])
-            self._service.add_goal(name, target, deadline, priority)
+            p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}
+            prio_clean = p_map.get(str(priority).strip().upper(), "MEDIUM")
+            self._service.add_goal(name, target, deadline, prio_clean)
             self.loadGoals()
             self.operationResult.emit(True, f"'{name}' hedefi eklendi.")
         except Exception as exc:
@@ -488,7 +493,9 @@ class PlanningController(QObject):
         try:
             d_parts = [int(p) for p in deadline_str.split("-")]
             deadline = date(d_parts[0], d_parts[1], d_parts[2])
-            self._service.update_goal(goal_id, name, target, deadline, priority)
+            p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}
+            prio_clean = p_map.get(str(priority).strip().upper(), "MEDIUM")
+            self._service.update_goal(goal_id, name, target, deadline, prio_clean)
             self.loadGoals()
             self.operationResult.emit(True, f"'{name}' hedefi güncellendi.")
         except Exception as exc:

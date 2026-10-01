@@ -10,7 +10,7 @@ Popup {
     dim: true
     anchors.centerIn: Overlay.overlay
     width: Math.min(420, parent ? parent.width * 0.9 : 420)
-    padding: 0
+    padding: Theme.spaceLg
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: Rectangle {
@@ -29,13 +29,11 @@ Popup {
         var mm = String(d.getMonth() + 1).padStart(2, '0')
         var dd = String(d.getDate()).padStart(2, '0')
         txtDeadline.text = yyyy + "-" + mm + "-" + dd
-        comboPriority.currentIndex = 1 // MEDIUM
+        comboPriority.currentIndex = 1 // ORTA
         txtName.forceActiveFocus()
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: Theme.spaceLg
+    contentItem: ColumnLayout {
         spacing: Theme.spaceMd
 
         // Başlık
@@ -195,7 +193,7 @@ Popup {
             ComboBox {
                 id: comboPriority
                 Layout.fillWidth: true
-                model: ["LOW", "MEDIUM", "HIGH"]
+                model: ["DÜŞÜK", "ORTA", "YÜKSEK"]
 
                 background: Rectangle {
                     color: Theme.bgInput
@@ -215,17 +213,16 @@ Popup {
             }
         }
 
-        Item { Layout.fillHeight: true }
-
-        // Alt Butonlar
+        // Alt Butonlar (Düzeltildi ve Ortalandı)
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spaceSm
+            Layout.topMargin: Theme.spaceSm
+            spacing: Theme.spaceMd
 
             Item { Layout.fillWidth: true }
 
             Rectangle {
-                width: 90
+                width: 100
                 height: 36
                 radius: Theme.radiusSm
                 color: btnCancelMouse.containsMouse ? Theme.bgCardHover : "transparent"
@@ -250,7 +247,7 @@ Popup {
             }
 
             Rectangle {
-                width: 110
+                width: 120
                 height: 36
                 radius: Theme.radiusSm
                 color: btnSaveMouse.containsMouse ? Theme.accentHover : Theme.accent
@@ -280,6 +277,8 @@ Popup {
                     }
                 }
             }
+
+            Item { Layout.fillWidth: true }
         }
     }
 }

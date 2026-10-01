@@ -15,7 +15,7 @@ Popup {
     dim: true
     anchors.centerIn: Overlay.overlay
     width: Math.min(380, parent ? parent.width * 0.9 : 380)
-    padding: 0
+    padding: Theme.spaceLg
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: Rectangle {
@@ -31,9 +31,7 @@ Popup {
         txtName.forceActiveFocus()
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: Theme.spaceLg
+    contentItem: ColumnLayout {
         spacing: Theme.spaceMd
 
         // Başlık
@@ -148,12 +146,11 @@ Popup {
             }
         }
 
-        Item { Layout.fillHeight: true }
-
-        // Alt Butonlar
+        // Alt Butonlar (Düzeltildi ve Ortalandı)
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spaceSm
+            Layout.topMargin: Theme.spaceSm
+            spacing: Theme.spaceMd
 
             Item { Layout.fillWidth: true }
 
@@ -212,6 +209,8 @@ Popup {
                     }
                 }
             }
+
+            Item { Layout.fillWidth: true }
         }
     }
 }

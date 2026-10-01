@@ -16,7 +16,7 @@ Popup {
     dim: true
     anchors.centerIn: Overlay.overlay
     width: Math.min(420, parent ? parent.width * 0.9 : 420)
-    padding: 0
+    padding: Theme.spaceLg
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
     background: Rectangle {
@@ -30,14 +30,18 @@ Popup {
         txtName.text = root.goalName
         txtTarget.text = root.targetAmount > 0 ? root.targetAmount.toString() : ""
         txtDeadline.text = root.deadline
-        var idx = comboPriority.model.indexOf(root.priority.toUpperCase())
-        comboPriority.currentIndex = idx >= 0 ? idx : 1
+        var p = (root.priority || "MEDIUM").toUpperCase()
+        if (p === "HIGH" || p === "YÜKSEK") {
+            comboPriority.currentIndex = 2
+        } else if (p === "LOW" || p === "DÜŞÜK") {
+            comboPriority.currentIndex = 0
+        } else {
+            comboPriority.currentIndex = 1
+        }
         txtName.forceActiveFocus()
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: Theme.spaceLg
+    contentItem: ColumnLayout {
         spacing: Theme.spaceMd
 
         // Başlık
@@ -197,7 +201,7 @@ Popup {
             ComboBox {
                 id: comboPriority
                 Layout.fillWidth: true
-                model: ["LOW", "MEDIUM", "HIGH"]
+                model: ["DÜŞÜK", "ORTA", "YÜKSEK"]
 
                 background: Rectangle {
                     color: Theme.bgInput
@@ -217,17 +221,16 @@ Popup {
             }
         }
 
-        Item { Layout.fillHeight: true }
-
-        // Alt Butonlar
+        // Alt Butonlar (Düzeltildi ve Ortalandı)
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spaceSm
+            Layout.topMargin: Theme.spaceSm
+            spacing: Theme.spaceMd
 
             Item { Layout.fillWidth: true }
 
             Rectangle {
-                width: 90
+                width: 100
                 height: 36
                 radius: Theme.radiusSm
                 color: btnCancelMouse.containsMouse ? Theme.bgCardHover : "transparent"
@@ -252,7 +255,7 @@ Popup {
             }
 
             Rectangle {
-                width: 110
+                width: 120
                 height: 36
                 radius: Theme.radiusSm
                 color: btnSaveMouse.containsMouse ? Theme.accentHover : Theme.accent
@@ -282,6 +285,8 @@ Popup {
                     }
                 }
             }
+
+            Item { Layout.fillWidth: true }
         }
     }
 }
