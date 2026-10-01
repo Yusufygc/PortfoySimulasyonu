@@ -139,6 +139,27 @@ def test_screener_controller_initialization_and_filters(qapp, container):
     ctrl.setFilter(ctrl.filterOptions[1]["key"])
     assert ctrl.selectedFilter == ctrl.filterOptions[1]["key"]
 
+    # Asenkron tarama ve sinyal testi (Mock servis ile)
+    from unittest.mock import MagicMock
+    import time
+    from src.application.services.analysis.technical.screener_service import ScreenerMatch
+
+    mock_service = MagicMock()
+    mock_service.scan.return_value = [
+        ScreenerMatch(ticker="THYAO", filter_key="rsi_oversold", filter_label="Aşırı Satım", close_price=300.0)
+    ]
+    ctrl._screener_service = mock_service
+    ctrl.runScan()
+    for _ in range(50):
+        qapp.processEvents()
+        if not ctrl.isRunning:
+            break
+        time.sleep(0.02)
+    assert not ctrl.isRunning
+    assert len(ctrl.matchesList) == 1
+    assert ctrl.matchesList[0]["ticker"] == "THYAO"
+    assert "300.00 ₺" in ctrl.matchesList[0]["closePrice"]
+
 
 def test_comparison_qml_view_compilation(qapp, container):
     """ComparisonView.qml dosyasının QML motorunda hatasız derlendiğini test eder."""

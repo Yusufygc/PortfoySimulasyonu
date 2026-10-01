@@ -45,6 +45,7 @@ class IndicatorSnapshot:
     volume: Optional[float]
     volume_sma20: Optional[float]
     bb_lower: Optional[float]
+    bb_upper: Optional[float] = None
 
 
 def _safe_float(value) -> Optional[float]:
@@ -59,21 +60,14 @@ def build_snapshot(
     lows: pd.Series,
     volumes: pd.Series,
 ) -> Optional[IndicatorSnapshot]:
-    """Son bar için indikatör anlık görüntüsü üretir.
-
-    closes: Index=tarih (sıralı asc), value=kapanış. highs/lows/volumes opsiyoneldir
-    (OHLCV verisi olmayan hisseler için tamamen NaN geçilebilir — o zaman hacim/OHLC-bağımlı
-    alanlar None döner, close-only alanlar (rsi/ema/macd/bollinger) yine hesaplanır).
-
-    Yetersiz veri (close serisi boş veya son bar NaN) → None.
-    """
+    """Son bar için indikatör anlık görüntüsü üretir."""
     if len(closes) == 0 or pd.isna(closes.iloc[-1]):
         return None
 
     rsi_series = rsi(closes, period=_RSI_PERIOD)
     ema_series = ema(closes, period=_EMA_TREND_PERIOD)
     macd_line, macd_signal, _ = macd(closes, _MACD_FAST, _MACD_SLOW, _MACD_SIGNAL)
-    _, _, bb_lower = bollinger_bands(closes, period=_BOLLINGER_PERIOD, num_std=_BOLLINGER_STD)
+    bb_upper, _, bb_lower = bollinger_bands(closes, period=_BOLLINGER_PERIOD, num_std=_BOLLINGER_STD)
     volume_sma = sma(volumes, period=_VOLUME_SMA_PERIOD) if len(volumes) else pd.Series(dtype=float)
 
     macd_line_prev = macd_line.iloc[-2] if len(macd_line) >= 2 else None
@@ -90,37 +84,71 @@ def build_snapshot(
         volume=_safe_float(volumes.iloc[-1]) if len(volumes) else None,
         volume_sma20=_safe_float(volume_sma.iloc[-1]) if len(volume_sma) else None,
         bb_lower=_safe_float(bb_lower.iloc[-1]),
+        bb_upper=_safe_float(bb_upper.iloc[-1]),
     )
 
 
 # ------------------------------------------------------------------
 # Filtreler — her biri IndicatorSnapshot üzerinde saf bool predicate.
-# Gerekli alanlardan biri None ise (yetersiz veri) filtre eşleşmez (False).
 # ------------------------------------------------------------------
 
+def is_rsi_oversold(snap: IndicatorSnapshot) -> bool:
+    """RSI < 35 (Aşırı satım / dip bölgesi)."""
+    if snap.rsi14 is None:
+        return False
+    return snap.rsi14 < 35.0
+
+
+def is_rsi_overbought(snap: IndicatorSnapshot) -> bool:
+    """RSI > 65 (Aşırı alım / güçlü ivme veya zirve)."""
+    if snap.rsi14 is None:
+        return False
+    return snap.rsi14 > 65.0
+
+
 def is_rsi_oversold_above_ema200(snap: IndicatorSnapshot) -> bool:
+    """RSI < 35 + Fiyat > EMA200 (Yükselen trend içi düzeltme alımı)."""
     if snap.rsi14 is None or snap.ema200 is None:
         return False
-    return snap.rsi14 < _RSI_OVERSOLD_THRESHOLD and snap.close > snap.ema200
+    return snap.rsi14 < 35.0 and snap.close > snap.ema200
+
+
+def is_macd_bullish_cross(snap: IndicatorSnapshot) -> bool:
+    """MACD çizgisi sinyal çizgisini yukarı kesmiş."""
+    required = (snap.macd_line, snap.macd_signal, snap.macd_line_prev, snap.macd_signal_prev)
+    if any(v is None for v in required):
+        return False
+    return snap.macd_line_prev <= snap.macd_signal_prev and snap.macd_line > snap.macd_signal
 
 
 def is_macd_bullish_cross_with_volume_spike(snap: IndicatorSnapshot) -> bool:
-    required = (
-        snap.macd_line, snap.macd_signal,
-        snap.macd_line_prev, snap.macd_signal_prev,
-        snap.volume, snap.volume_sma20,
-    )
-    if any(v is None for v in required):
+    """MACD bullish kesişim + Hacim > 20 günlük ortalama."""
+    if not is_macd_bullish_cross(snap):
         return False
-    crossed_up = snap.macd_line_prev <= snap.macd_signal_prev and snap.macd_line > snap.macd_signal
-    volume_spike = snap.volume > snap.volume_sma20
-    return crossed_up and volume_spike
+    if snap.volume is None or snap.volume_sma20 is None:
+        return False
+    return snap.volume > snap.volume_sma20
+
+
+def is_volume_spike(snap: IndicatorSnapshot) -> bool:
+    """Hacim > 20 günlük ortalamanın 1.5 katı."""
+    if snap.volume is None or snap.volume_sma20 is None:
+        return False
+    return snap.volume > snap.volume_sma20 * 1.5
 
 
 def is_touching_lower_bollinger_band(snap: IndicatorSnapshot) -> bool:
+    """Fiyat Bollinger alt bandına değmiş veya %2 yakınına inmiş."""
     if snap.bb_lower is None:
         return False
-    return snap.close <= snap.bb_lower
+    return snap.close <= snap.bb_lower * 1.02
+
+
+def is_touching_upper_bollinger_band(snap: IndicatorSnapshot) -> bool:
+    """Fiyat Bollinger üst bandına değmiş veya üstüne çıkmış."""
+    if snap.bb_upper is None:
+        return False
+    return snap.close >= snap.bb_upper * 0.98
 
 
 class ScreenerFilterDef(NamedTuple):
@@ -129,16 +157,36 @@ class ScreenerFilterDef(NamedTuple):
 
 
 SCREENER_FILTERS: dict[str, ScreenerFilterDef] = {
-    "rsi_oversold_above_ema200": ScreenerFilterDef(
-        label="Aşırı Satım (RSI<30) + EMA200 Üzeri",
-        predicate=is_rsi_oversold_above_ema200,
+    "bollinger_lower_band_touch": ScreenerFilterDef(
+        label="Bollinger Alt Bandına Değme (Dip)",
+        predicate=is_touching_lower_bollinger_band,
+    ),
+    "macd_bullish_cross": ScreenerFilterDef(
+        label="MACD Al Kesişimi",
+        predicate=is_macd_bullish_cross,
     ),
     "macd_bullish_cross_volume_spike": ScreenerFilterDef(
-        label="MACD Bullish Kesişim + Hacim Patlaması",
+        label="MACD Kesişim + Hacim Patlaması",
         predicate=is_macd_bullish_cross_with_volume_spike,
     ),
-    "bollinger_lower_band_touch": ScreenerFilterDef(
-        label="Bollinger Alt Bandına Değme",
-        predicate=is_touching_lower_bollinger_band,
+    "rsi_oversold": ScreenerFilterDef(
+        label="Aşırı Satım (RSI < 35 Dip Avcısı)",
+        predicate=is_rsi_oversold,
+    ),
+    "rsi_oversold_above_ema200": ScreenerFilterDef(
+        label="Aşırı Satım (RSI<35) + EMA200 Üzeri",
+        predicate=is_rsi_oversold_above_ema200,
+    ),
+    "volume_spike": ScreenerFilterDef(
+        label="Güçlü Hacim Artışı (>1.5x)",
+        predicate=is_volume_spike,
+    ),
+    "bollinger_upper_band_touch": ScreenerFilterDef(
+        label="Bollinger Üst Bandını Zorlayanlar (Trend Gücü)",
+        predicate=is_touching_upper_bollinger_band,
+    ),
+    "rsi_overbought": ScreenerFilterDef(
+        label="Aşırı Alım (RSI > 65)",
+        predicate=is_rsi_overbought,
     ),
 }

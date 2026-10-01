@@ -379,7 +379,7 @@ Item {
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
-                            text: Strings.screenerRunning
+                            text: screenerController.statusText
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontBase

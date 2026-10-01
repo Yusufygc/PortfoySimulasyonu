@@ -142,8 +142,8 @@ class TestTouchingLowerBollingerBandFilter:
 
 
 class TestScreenerFiltersRegistry:
-    def test_registry_has_three_filters_with_labels_and_callables(self):
-        assert len(SCREENER_FILTERS) == 3
+    def test_registry_has_filters_with_labels_and_callables(self):
+        assert len(SCREENER_FILTERS) == 8
         for filter_def in SCREENER_FILTERS.values():
             assert isinstance(filter_def.label, str) and filter_def.label
             assert callable(filter_def.predicate)

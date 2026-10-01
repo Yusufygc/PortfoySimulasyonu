@@ -49,8 +49,11 @@ class TestScan:
         matches = ScreenerService(price_repo, stock_repo).scan()
 
         assert {m.filter_key for m in matches} == {
+            "rsi_oversold",
             "rsi_oversold_above_ema200",
+            "macd_bullish_cross",
             "macd_bullish_cross_volume_spike",
+            "volume_spike",
         }
         assert all(m.ticker == "FROTO" for m in matches)
         assert all(m.close_price == 10.0 for m in matches)

@@ -13,7 +13,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List, Optional
 
-from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.application.services.analysis.technical.screener import SCREENER_FILTERS
 
@@ -30,12 +30,18 @@ class ScreenerController(QObject):
     isRunningChanged = Signal()
     statusTextChanged = Signal()
     operationResult = Signal(bool, str, arguments=["success", "message"])
+    _scanCompleted = Signal(list)
+    _scanFailed = Signal(str)
 
     def __init__(self, container, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._container = container
         self._screener_service = getattr(container, "screener_service", None)
         self._executor = ThreadPoolExecutor(max_workers=1)
+
+        # Thread-safe bağlantılar
+        self._scanCompleted.connect(self._apply_results)
+        self._scanFailed.connect(self._apply_error)
 
         # State
         self._filter_options: List[Dict[str, str]] = []
@@ -89,7 +95,7 @@ class ScreenerController(QObject):
 
         self._is_running = True
         self.isRunningChanged.emit()
-        self._status_text = "Taranıyor..."
+        self._status_text = "Piyasa taranıyor, lütfen bekleyin..."
         self.statusTextChanged.emit()
 
         filter_keys = [self._selected_filter] if self._selected_filter else None
@@ -110,11 +116,10 @@ class ScreenerController(QObject):
         """Arka plan taraması tamamlandığında ana thread'e sonucu iletir."""
         try:
             results = future.result()
-            # Ana thread'de güncelle
-            QTimer.singleShot(0, lambda: self._apply_results(results))
+            self._scanCompleted.emit(results)
         except Exception as exc:
             logger.exception("Tarama hatası: %s", exc)
-            QTimer.singleShot(0, lambda: self._apply_error(str(exc)))
+            self._scanFailed.emit(str(exc))
 
     def _apply_results(self, results) -> None:
         matches = []
@@ -127,7 +132,10 @@ class ScreenerController(QObject):
             })
         self._matches = matches
         self.matchesChanged.emit()
-        self._status_text = f"Tarama tamamlandı: {len(matches)} hisse sinyal verdi"
+        if not matches:
+            self._status_text = "Tarama tamamlandı: Kriterlere uyan hisse bulunamadı"
+        else:
+            self._status_text = f"Tarama tamamlandı: {len(matches)} hisse sinyal verdi"
         self.statusTextChanged.emit()
         self._is_running = False
         self.isRunningChanged.emit()
