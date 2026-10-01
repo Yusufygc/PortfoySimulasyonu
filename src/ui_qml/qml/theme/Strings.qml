@@ -404,6 +404,11 @@ QtObject {
     readonly property string budgetPlaceholderName: "Maaş / Kira / Fatura"
     readonly property string budgetPlaceholderAmount: "5000"
     readonly property string budgetTargetPlaceholder: "Tasarruf hedefi (₺)"
+    readonly property string budgetEditItemTitle: "Bütçe Kalemini Düzenle"
+    readonly property string budgetEditIncomeTitle: "Gelir Kalemini Düzenle"
+    readonly property string budgetEditExpenseTitle: "Gider Kalemini Düzenle"
+    readonly property string budgetEditItemNameLabel: "Kalem Adı"
+    readonly property string budgetEditItemAmountLabel: "Tutar (₺)"
 
     // Hedefler
     readonly property string goalsTitle: "AKTİF HEDEFLER"

@@ -281,7 +281,13 @@ class PlanningController(QObject):
             else:
                 self._service.unpin_budget_item(item_type.upper(), name.strip())
                 self.operationResult.emit(True, f"'{name}' kaleminin sabitlemesi kaldırıldı.")
-            self.loadBudgetForMonth(self._current_month)
+
+            items = self._income_items if item_type.upper() == "INCOME" else self._expense_items
+            clean_name = name.strip().lower()
+            for it in items:
+                if it["name"].strip().lower() == clean_name:
+                    it["isPinned"] = pin
+            self.budgetChanged.emit()
         except Exception as exc:
             logger.exception("Pinleme işlemi başarısız: %s", exc)
             self.operationResult.emit(False, str(exc))
@@ -328,6 +334,41 @@ class PlanningController(QObject):
 
         self._recalculate_budget_totals()
         self.budgetChanged.emit()
+
+    @Slot(str, int, str, float)
+    def updateBudgetItem(self, item_type: str, index: int, new_name: str, new_amount: float) -> None:
+        """Bütçe kalemini düzenler, pinli ise şablonunu senkronize eder ve toplamları günceller."""
+        if not new_name.strip() or new_amount <= 0:
+            self.operationResult.emit(False, "Kalem adı boş olamaz ve tutar 0'dan büyük olmalıdır.")
+            return
+
+        is_income = item_type.upper() == "INCOME"
+        items_list = self._income_items if is_income else self._expense_items
+
+        if not (0 <= index < len(items_list)):
+            self.operationResult.emit(False, "Geçersiz kalem seçimi.")
+            return
+
+        target_item = items_list[index]
+        old_name = target_item["name"]
+        old_pinned = target_item.get("isPinned", False)
+
+        target_item["name"] = new_name.strip()
+        target_item["amount"] = float(new_amount)
+        target_item["amountFormatted"] = _fmt_money(new_amount)
+
+        # Eğer sabitlenmiş (pinned) bir kalemse ve adı/tutarı değiştiyse şablonu da güncelle
+        if old_pinned and self._service:
+            try:
+                if old_name.strip().lower() != new_name.strip().lower():
+                    self._service.unpin_budget_item(item_type.upper(), old_name.strip())
+                self._service.pin_budget_item(item_type.upper(), new_name.strip(), float(new_amount))
+            except Exception as exc:
+                logger.warning("Pin şablonu güncellenirken hata: %s", exc)
+
+        self._recalculate_budget_totals()
+        self.budgetChanged.emit()
+        self.operationResult.emit(True, f"'{new_name.strip()}' kalemi güncellendi.")
 
     @Slot(float)
     def saveCurrentBudget(self, savings_target: float) -> None:

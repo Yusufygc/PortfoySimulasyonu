@@ -75,9 +75,32 @@ def test_planning_budget_item_operations(qapp, container):
     # Tekrar çağrıldığında kaldırılması (toggle)
     ctrl.togglePinItem("INCOME", "Test Gelir", 15000.0, False)
 
+    # Kalem düzenleme (updateBudgetItem) testi
+    last_idx = len(ctrl.incomeItems) - 1
+    ctrl.updateBudgetItem("INCOME", last_idx, "Guncellenmis Gelir", 22000.0)
+    assert ctrl.incomeItems[last_idx]["name"] == "Guncellenmis Gelir"
+    assert ctrl.incomeItems[last_idx]["amount"] == 22000.0
+
     # Kalem silme
     ctrl.removeBudgetItem("INCOME", len(ctrl.incomeItems) - 1)
     assert len(ctrl.incomeItems) == initial_inc_count
+
+    # Backend PlanningService update_budget_item testi
+    if ctrl._service:
+        test_month = "2099-12"
+        updated_budget = ctrl._service.update_budget_item(
+            month=test_month,
+            old_name="Eski Kalem",
+            new_name="Servis Guncel Gelir",
+            new_amount=25000.0,
+            item_type="INCOME",
+        )
+        assert updated_budget is not None
+        matched = next((i for i in updated_budget.items if i.name == "Servis Guncel Gelir"), None)
+        assert matched is not None
+        assert float(matched.amount) == 25000.0
+        if updated_budget.id:
+            ctrl._service.delete_budget(updated_budget.id)
 
 
 def test_planning_goals_lifecycle(qapp, container):

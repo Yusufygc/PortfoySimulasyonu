@@ -497,6 +497,39 @@ Item {
                                     font.weight: Font.DemiBold
                                 }
 
+                                // Düzenle Butonu
+                                Rectangle {
+                                    width: 24
+                                    height: 24
+                                    radius: Theme.radiusXs
+                                    color: btnEditIncMouse.containsMouse ? Theme.accentSoft : "transparent"
+
+                                    ModernIcon {
+                                        anchors.centerIn: parent
+                                        name: "edit"
+                                        color: btnEditIncMouse.containsMouse ? Theme.accent : Theme.textMuted
+                                        size: 12
+                                    }
+
+                                    ToolTip.visible: btnEditIncMouse.containsMouse
+                                    ToolTip.text: "Kalemi Düzenle"
+                                    ToolTip.delay: 300
+
+                                    MouseArea {
+                                        id: btnEditIncMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            editBudgetItemDialog.itemType = "INCOME"
+                                            editBudgetItemDialog.itemIndex = index
+                                            editBudgetItemDialog.itemName = modelData.name
+                                            editBudgetItemDialog.itemAmount = modelData.amount
+                                            editBudgetItemDialog.open()
+                                        }
+                                    }
+                                }
+
                                 // Pin Butonu (Sabitleme)
                                 Rectangle {
                                     width: 24
@@ -700,6 +733,39 @@ Item {
                                     font.weight: Font.DemiBold
                                 }
 
+                                // Düzenle Butonu
+                                Rectangle {
+                                    width: 24
+                                    height: 24
+                                    radius: Theme.radiusXs
+                                    color: btnEditExpMouse.containsMouse ? Theme.accentSoft : "transparent"
+
+                                    ModernIcon {
+                                        anchors.centerIn: parent
+                                        name: "edit"
+                                        color: btnEditExpMouse.containsMouse ? Theme.accent : Theme.textMuted
+                                        size: 12
+                                    }
+
+                                    ToolTip.visible: btnEditExpMouse.containsMouse
+                                    ToolTip.text: "Kalemi Düzenle"
+                                    ToolTip.delay: 300
+
+                                    MouseArea {
+                                        id: btnEditExpMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            editBudgetItemDialog.itemType = "EXPENSE"
+                                            editBudgetItemDialog.itemIndex = index
+                                            editBudgetItemDialog.itemName = modelData.name
+                                            editBudgetItemDialog.itemAmount = modelData.amount
+                                            editBudgetItemDialog.open()
+                                        }
+                                    }
+                                }
+
                                 // Pin Butonu (Sabitleme)
                                 Rectangle {
                                     width: 24
@@ -756,5 +822,9 @@ Item {
                 }
             }
         }
+    }
+
+    EditBudgetItemDialog {
+        id: editBudgetItemDialog
     }
 }

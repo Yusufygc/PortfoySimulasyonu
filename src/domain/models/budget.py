@@ -26,6 +26,7 @@ class BudgetItem:
     amount: Decimal = Decimal("0")
 
     def __post_init__(self) -> None:
+        self.item_type = str(self.item_type).strip().lower()
         if self.item_type not in VALID_BUDGET_ITEM_TYPES:
             raise ValueError(f"Unknown budget item type: {self.item_type}")
         self.amount = _to_decimal(self.amount)
@@ -45,6 +46,7 @@ class BudgetPinnedItem:
     updated_at: Optional[datetime] = None
 
     def __post_init__(self) -> None:
+        self.item_type = str(self.item_type).strip().lower()
         if self.item_type not in VALID_BUDGET_ITEM_TYPES:
             raise ValueError(f"Unknown budget item type: {self.item_type}")
         self.name = self.name.strip()
