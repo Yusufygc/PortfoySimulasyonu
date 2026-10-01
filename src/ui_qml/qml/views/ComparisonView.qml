@@ -16,11 +16,11 @@ Item {
         anchors.fill: parent
         spacing: Theme.spaceMd
 
-        // Sol Panel: Varlık Seçim Listesi (280px)
+        // Sol Panel: Varlık Seçim Listesi (300px)
         Rectangle {
-            Layout.preferredWidth: 280
-            Layout.minimumWidth: 240
-            Layout.maximumWidth: 320
+            Layout.preferredWidth: 300
+            Layout.minimumWidth: 260
+            Layout.maximumWidth: 340
             Layout.fillHeight: true
             color: Theme.bgCard
             radius: Theme.radiusMd
@@ -35,7 +35,7 @@ Item {
                 // Panel Başlığı
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Theme.spaceSm
+                    spacing: Theme.spaceXs
 
                     ModernIcon {
                         name: "layers"
@@ -47,18 +47,28 @@ Item {
                         text: Strings.compareAssetsTitle
                         color: Theme.textPrimary
                         font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontSm
+                        font.pixelSize: Theme.fontXs
                         font.weight: Font.DemiBold
                         font.letterSpacing: 0.5
+                        elide: Text.ElideRight
                         Layout.fillWidth: true
                     }
 
-                    Text {
-                        text: comparisonController.selectedAssets.length + " seçili"
-                        color: Theme.accent
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontXs
-                        font.weight: Font.DemiBold
+                    Rectangle {
+                        height: 20
+                        width: badgeText.width + 12
+                        radius: Theme.radiusXs
+                        color: Theme.accentSoft
+
+                        Text {
+                            id: badgeText
+                            anchors.centerIn: parent
+                            text: comparisonController.selectedAssets.length + " seçili"
+                            color: Theme.accent
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontXs
+                            font.weight: Font.DemiBold
+                        }
                     }
                 }
 

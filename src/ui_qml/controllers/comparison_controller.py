@@ -2,10 +2,11 @@
 ComparisonController — Karşılaştırma Laboratuvarı QML controller'ı.
 
 Sorumluluk:
-- Karşılaştırılabilir varlık listesini sağlama (portföyler + benchmarklar)
-- Seçili varlıklar ve tarih aralığı ile normalize getiri serisi oluşturma
-- Drawdown ve Risk-Getiri metriklerini hesaplama
-- Tüm sonuçları QML property'lerine reaktif olarak yansıtma
+- analysis_service.get_portfolio_options() ve get_benchmark_definitions() ile varlık listesi
+- analysis_service.get_comparison_view(filter_state) ile çoklu portföy ve benchmark serisi
+- ComparisonSeriesBuilder ve ComparisonService ile serileri birleştirme ve normalize etme (Baz 100)
+- Risk-Getiri metriklerini hesaplama (Dönem Getirisi %, Yıllık Volatilite %)
+- LightweightCharts interaktif çizgi grafik HTML çıktısı
 """
 from __future__ import annotations
 
@@ -13,9 +14,16 @@ import logging
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
-from PySide6.QtCore import Property, QObject, Signal, Slot
+import pandas as pd
+from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+
+from src.application.services.analysis.comparison_service import ComparisonService
+from src.application.services.analysis.models import AnalysisFilterState
+from src.ui.pages.comparison.utils.comparison_series_builder import ComparisonSeriesBuilder
 
 logger = logging.getLogger(__name__)
+
+BENCHMARK_CODES = {"bist100", "gold", "silver", "usd", "euro", "deposit", "cpi", "xu100"}
 
 
 class ComparisonController(QObject):
@@ -34,13 +42,11 @@ class ComparisonController(QObject):
         super().__init__(parent)
         self._container = container
         self._analysis_service = container.analysis_service
-        self._comparison_service = getattr(container, "comparison_service", None)
-        self._price_repo = container.price_repo
-        self._stock_repo = container.stock_repo
+        self._stock_repo = getattr(container, "stock_repo", None)
 
         # State
         self._asset_options: List[Dict[str, str]] = []
-        self._selected_codes: List[str] = []
+        self._selected_codes: List[str] = ["dashboard", "bist100"]
         self._chart_html: str = ""
         self._metrics_list: List[Dict[str, Any]] = []
         self._is_loading: bool = False
@@ -76,16 +82,16 @@ class ComparisonController(QObject):
 
     @Slot()
     def loadAssetOptions(self) -> None:
-        """Karşılaştırılabilir varlık listesini yükler."""
+        """Karşılaştırılabilir portföy ve benchmark seçeneklerini yükler."""
         try:
             options: List[Dict[str, str]] = []
 
-            # Portföyler
+            # 1. Portföyler (Ana Portföy ve Model Portföyler)
             portfolios = self._analysis_service.get_portfolio_options()
             for p in portfolios:
                 options.append({"code": p.code, "label": p.label, "kind": p.kind})
 
-            # Benchmarklar
+            # 2. Piyasa Benchmarkları (BIST 100, Altın, Dolar vb.)
             benchmarks = self._analysis_service.get_benchmark_definitions()
             for b in benchmarks:
                 options.append({"code": b.code, "label": b.label, "kind": b.kind})
@@ -93,14 +99,15 @@ class ComparisonController(QObject):
             self._asset_options = options
             self.assetOptionsChanged.emit()
 
-            # İlk açılışta XU100'ü otomatik seç
+            # Seçili kodların geçerliliğini koru
+            valid_codes = {o["code"] for o in options}
+            self._selected_codes = [c for c in self._selected_codes if c in valid_codes]
             if not self._selected_codes and options:
-                xu100 = next((o for o in options if "xu100" in o["code"].lower()), None)
-                if xu100:
-                    self._selected_codes = [xu100["code"]]
-                elif len(options) > 0:
-                    self._selected_codes = [options[0]["code"]]
-                self.selectedAssetsChanged.emit()
+                # Varsayılan: Ana portföy ve BIST 100
+                first_two = [o["code"] for o in options[:2]]
+                self._selected_codes = first_two
+
+            self.selectedAssetsChanged.emit()
         except Exception as exc:
             logger.exception("Varlık seçenekleri yüklenemedi: %s", exc)
 
@@ -122,7 +129,7 @@ class ComparisonController(QObject):
 
     @Slot()
     def runComparison(self) -> None:
-        """Seçili varlıklarla karşılaştırma hesaplamasını çalıştırır."""
+        """Seçili varlıklarla backend üzerinden karşılaştırma hesaplamasını çalıştırır."""
         if not self._selected_codes:
             self._chart_html = ""
             self._metrics_list = []
@@ -137,42 +144,65 @@ class ComparisonController(QObject):
             end_dt = date.today()
             start_dt = self._resolve_start_date(self._period_label, end_dt)
 
-            # Her varlık için fiyat serisini topla
-            import pandas as pd
-            import numpy as np
-
-            series_dict: Dict[str, pd.Series] = {}
-            label_map: Dict[str, str] = {}
+            # Seçili kodları ayrıştır: Portföy kaynakları ve Benchmarklar
+            portfolio_sources: List[str] = []
+            benchmarks: List[str] = []
 
             for code in self._selected_codes:
-                label, series = self._get_price_series(code, start_dt, end_dt)
-                if series is not None and len(series) > 1:
-                    series_dict[code] = series
-                    label_map[code] = label
+                if code == "dashboard" or code.startswith("model:") or code.startswith("portfolio:"):
+                    portfolio_sources.append(code)
+                else:
+                    benchmarks.append(code)
+
+            primary_source = portfolio_sources[0] if portfolio_sources else "dashboard"
+
+            filter_state = AnalysisFilterState(
+                start_date=start_dt,
+                end_date=end_dt,
+                selected_stock_ids=[],
+                selected_benchmarks=benchmarks,
+                portfolio_source=primary_source,
+                comparison_portfolio_sources=portfolio_sources,
+                currency_mode="TL",
+            )
+
+            # Backend analizi çalıştır
+            dto = self._analysis_service.get_comparison_view(filter_state)
+
+            # DTO'dan serileri ve etiketleri çıkar
+            series_dict, code_to_label = ComparisonSeriesBuilder.build_global_series(dto, [])
 
             if not series_dict:
                 self._chart_html = ""
                 self._metrics_list = []
                 self.chartHtmlChanged.emit()
                 self.metricsListChanged.emit()
-                self._is_loading = False
-                self.isLoadingChanged.emit()
                 return
 
-            # Serileri hizala ve normalize et (baz=100)
-            from src.application.services.analysis.comparison_service import ComparisonService
+            # Serileri takvim bazında hizala
             aligned = ComparisonService.align_financial_series(series_dict)
-            normalized = (aligned / aligned.iloc[0]) * 100.0
+            if aligned.empty or len(aligned) < 2:
+                self._chart_html = ""
+                self._metrics_list = []
+                self.chartHtmlChanged.emit()
+                self.metricsListChanged.emit()
+                return
+
+            # Baz 100 normalize getiri hesabı
+            first_row = aligned.iloc[0]
+            normalized = (aligned.divide(first_row)) * 100.0
+            normalized = normalized.replace([float('inf'), float('-inf')], float('nan'))
+            normalized = normalized.ffill().bfill()
 
             # Risk-Getiri Metrikleri
             risk_return = ComparisonService.calculate_risk_return_metrics(aligned)
 
             metrics = []
-            for code, label in label_map.items():
-                rm = risk_return.get(code, {})
+            for col in aligned.columns:
+                rm = risk_return.get(col, {})
                 metrics.append({
-                    "code": code,
-                    "label": label,
+                    "code": col,
+                    "label": col,
                     "totalReturn": round(rm.get("total_return_pct", 0.0), 2),
                     "volatility": round(rm.get("annual_volatility_pct", 0.0), 2),
                 })
@@ -180,7 +210,7 @@ class ComparisonController(QObject):
             self.metricsListChanged.emit()
 
             # Chart HTML oluştur
-            self._chart_html = self._build_chart_html(normalized, label_map)
+            self._chart_html = self._build_chart_html(normalized)
             self.chartHtmlChanged.emit()
 
         except Exception as exc:
@@ -203,76 +233,61 @@ class ComparisonController(QObject):
             return end_dt - mapping[label]
         if label == "YBB":
             return date(end_dt.year, 1, 1)
-        # Tümü — en geniş tarih
-        return date(2020, 1, 1)
+        # Tümü
+        return date(2022, 1, 1)
 
-    def _get_price_series(self, code: str, start_dt: date, end_dt: date):
-        """Kod (benchmark/portföy/hisse) için fiyat serisini çeker."""
-        import pandas as pd
-
-        # Benchmark kodları (xu100, usd_try, gold_tl, vb.)
-        benchmarks = self._analysis_service.get_benchmark_definitions()
-        bm = next((b for b in benchmarks if b.code == code), None)
-        if bm and bm.ticker:
-            stock = self._stock_repo.get_stock_by_ticker(bm.ticker.upper())
-            if stock and stock.id:
-                rows = self._price_repo.get_price_series(stock.id, start_dt, end_dt)
-                if rows:
-                    dates = [r.price_date for r in rows]
-                    values = [float(r.close_price) for r in rows if r.close_price]
-                    if dates and values and len(dates) == len(values):
-                        return bm.label, pd.Series(values, index=dates)
-
-        # Portföy kaynaklı — basit hisse araması dene
-        stock = self._stock_repo.get_stock_by_ticker(code.upper())
-        if stock and stock.id:
-            rows = self._price_repo.get_price_series(stock.id, start_dt, end_dt)
-            if rows:
-                dates = [r.price_date for r in rows]
-                values = [float(r.close_price) for r in rows if r.close_price]
-                if dates and values and len(dates) == len(values):
-                    return stock.ticker, pd.Series(values, index=dates)
-
-        return code, None
-
-    def _build_chart_html(self, normalized, label_map) -> str:
-        """Lightweight.js tabanlı normalize getiri grafiği HTML'i üretir."""
-        colors = ["#2962ff", "#089981", "#f23645", "#ff9800", "#9c27b0", "#00bcd4", "#ff5722", "#4caf50"]
+    def _build_chart_html(self, normalized: pd.DataFrame) -> str:
+        """LightweightCharts normalize getiri grafiği (Baz 100)."""
+        palette = [
+            "#2962ff", "#089981", "#f23645", "#ff9800",
+            "#ab47bc", "#00bcd4", "#ff5722", "#4caf50",
+            "#e91e63", "#3f51b5", "#009688", "#ffc107"
+        ]
 
         datasets_js = []
-        for i, code in enumerate(normalized.columns):
-            label = label_map.get(code, code)
-            color = colors[i % len(colors)]
+        for i, col in enumerate(normalized.columns):
+            color = palette[i % len(palette)]
             data_points = []
-            for dt_val, val in normalized[code].dropna().items():
-                if hasattr(dt_val, "isoformat"):
-                    ts = f"new Date('{dt_val.isoformat()}').getTime()/1000"
+            series = normalized[col].dropna()
+            for dt_val, val in series.items():
+                if hasattr(dt_val, "strftime"):
+                    time_str = dt_val.strftime("%Y-%m-%d")
                 else:
-                    ts = "0"
-                data_points.append(f"{{time:{ts},value:{val:.2f}}}")
+                    time_str = str(dt_val)[:10]
+                data_points.append(f"{{time:'{time_str}',value:{float(val):.2f}}}")
+
             datasets_js.append(f"""
-                var s{i} = chart.addLineSeries({{color:'{color}',lineWidth:2,title:'{label}'}});
+                var s{i} = chart.addLineSeries({{
+                    color: '{color}',
+                    lineWidth: 2,
+                    title: '{col}'
+                }});
                 s{i}.setData([{','.join(data_points)}]);
             """)
 
         return f"""<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
-<style>body{{margin:0;background:#131722;overflow:hidden}}</style>
+<style>
+body {{ margin: 0; background: #131722; overflow: hidden; }}
+#c {{ width: 100vw; height: 100vh; }}
+</style>
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
 </head><body>
-<div id="c" style="width:100%;height:100%"></div>
+<div id="c"></div>
 <script>
-var chart = LightweightCharts.createChart(document.getElementById('c'),{{
-    width:document.body.clientWidth,
-    height:document.body.clientHeight,
-    layout:{{background:{{color:'#131722'}},textColor:'#9db2ce'}},
-    grid:{{vertLines:{{color:'#1e222d'}},horzLines:{{color:'#1e222d'}}}},
-    rightPriceScale:{{borderColor:'#2a2e39'}},
-    timeScale:{{borderColor:'#2a2e39',timeVisible:false}},
-    crosshair:{{mode:0}},
+var chart = LightweightCharts.createChart(document.getElementById('c'), {{
+    width: window.innerWidth,
+    height: window.innerHeight,
+    layout: {{ background: {{ color: '#131722' }}, textColor: '#9db2ce' }},
+    grid: {{ vertLines: {{ color: '#1e222d' }}, horzLines: {{ color: '#1e222d' }} }},
+    rightPriceScale: {{ borderColor: '#2a2e39', scaleMargins: {{ top: 0.1, bottom: 0.1 }} }},
+    timeScale: {{ borderColor: '#2a2e39', timeVisible: false }},
+    crosshair: {{ mode: 0 }}
 }});
 {''.join(datasets_js)}
 chart.timeScale().fitContent();
-new ResizeObserver(()=>chart.applyOptions({{width:document.body.clientWidth,height:document.body.clientHeight}})).observe(document.body);
+window.addEventListener('resize', function() {{
+    chart.applyOptions({{ width: window.innerWidth, height: window.innerHeight }});
+}});
 </script></body></html>"""

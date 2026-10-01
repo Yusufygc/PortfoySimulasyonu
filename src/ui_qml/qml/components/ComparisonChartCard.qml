@@ -103,6 +103,12 @@ Rectangle {
                         }
                     }
                 }
+
+                Component.onCompleted: {
+                    if (comparisonController.chartHtml !== "") {
+                        chartWebView.loadHtml(comparisonController.chartHtml)
+                    }
+                }
             }
 
             // Yükleniyor Durumu
