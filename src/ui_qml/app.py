@@ -23,6 +23,7 @@ from src.ui_qml.controllers.stock_360_controller import Stock360Controller
 from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
 from src.ui_qml.controllers.comparison_controller import ComparisonController
 from src.ui_qml.controllers.screener_controller import ScreenerController
+from src.ui_qml.controllers.planning_controller import PlanningController
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ def run_qml_app(container=None) -> int:
     portfolio_ctrl = ModelPortfolioController(container=container, parent=engine)
     comparison_ctrl = ComparisonController(container=container, parent=engine)
     screener_ctrl = ScreenerController(container=container, parent=engine)
+    planning_ctrl = PlanningController(container=container, parent=engine)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
@@ -72,6 +74,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("portfolioController", portfolio_ctrl)
     context.setContextProperty("comparisonController", comparison_ctrl)
     context.setContextProperty("screenerController", screener_ctrl)
+    context.setContextProperty("planningController", planning_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"

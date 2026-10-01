@@ -109,11 +109,13 @@ ApplicationWindow {
                         source: "views/ScreenerView.qml"
                     }
 
-                    // 6: Finansal Planlama (Faz 8)
-                    PlaceholderView {
-                        title: Strings.navPlanning + " & DCA Simülasyonu"
-                        subtitle: "Faz 8 kapsamında kademeli alım (DCA) backtest simülatörü ve emeklilik tasarruf projeksiyonu eklenecektir."
-                        iconName: "planning"
+                    // 6: Finansal Planlama (Faz 8 - Bütçe, Hedefler & DCA Simülasyonu - Tembel Yükleme)
+                    Loader {
+                        id: planningLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 6 || (status === Loader.Ready)
+                        source: "views/PlanningView.qml"
                     }
 
                     // 7: Optimizasyon (Faz 9)

@@ -372,5 +372,55 @@ QtObject {
     readonly property string screenerEmptySubtitle: "Yukarıdaki stratejilerden birini seçip 'Taramayı Başlat' butonuna tıklayın"
     readonly property string screenerMatchesSuffix: " hisse sinyal verdi"
     readonly property string screenerRowHint: "Grafiğini ve detaylarını görmek için hisseye tıklayın"
+
+    // --- Finansal Planlama (Faz 8) ---
+    readonly property string planningTitle: "Finansal Planlama & Simülasyon"
+    readonly property string planningSubtitle: "Aylık bütçenizi yönetin, finansal hedeflerinizi takip edin ve kademeli alım (DCA) stratejilerini simüle edin"
+    readonly property string planningTabBudget: "Bütçe Yönetimi"
+    readonly property string planningTabGoals: "Finansal Hedefler"
+    readonly property string planningTabDca: "DCA Simülatörü"
+
+    // Bütçe
+    readonly property string budgetMonthLabel: "Bütçe Dönemi"
+    readonly property string budgetKpiIncome: "Toplam Gelir"
+    readonly property string budgetKpiExpense: "Toplam Gider"
+    readonly property string budgetKpiSavings: "Tasarruf Gücü"
+    readonly property string budgetKpiTarget: "Tasarruf Hedefi"
+    readonly property string budgetIncomeTitle: "GELİR KALEMLERİ"
+    readonly property string budgetExpenseTitle: "GİDER KALEMLERİ"
+    readonly property string budgetBtnAddItem: "Kalem Ekle"
+    readonly property string budgetBtnSave: "Bütçeyi Kaydet"
+    readonly property string budgetPlaceholderName: "Maaş / Kira / Fatura"
+    readonly property string budgetPlaceholderAmount: "5000"
+    readonly property string budgetTargetPlaceholder: "Tasarruf hedefi (₺)"
+
+    // Hedefler
+    readonly property string goalsTitle: "AKTİF HEDEFLER"
+    readonly property string goalsBtnNew: "Yeni Hedef"
+    readonly property string goalsFeasibilityTitle: "FİZİBİLİTE ANALİZİ"
+    readonly property string goalsFeasibilityNeed: "Aylık Gereken Katkı:"
+    readonly property string goalsFeasibilityPower: "Aylık Tasarruf Gücü:"
+    readonly property string goalsBtnContribute: "Katkı Yap"
+    readonly property string goalsDialogNewTitle: "Yeni Finansal Hedef"
+    readonly property string goalsDialogNameLabel: "Hedef Adı"
+    readonly property string goalsDialogTargetLabel: "Hedef Tutar (₺)"
+    readonly property string goalsDialogDeadlineLabel: "Hedef Tarih"
+    readonly property string goalsDialogPriorityLabel: "Öncelik"
+    readonly property string goalsDialogContributeTitle: "Hedefe Katkı Ekle"
+    readonly property string goalsDialogContributeAmountLabel: "Katkı Tutarı (₺)"
+
+    // DCA Simülatörü
+    readonly property string dcaTitle: "Kademeli Alım (DCA) Backtest Motoru"
+    readonly property string dcaSubtitle: "Geçmişte her ay düzenli hisse senedi alsaydınız portföyünüzün bugün ne kadar olacağını simüle edin"
+    readonly property string dcaTickersLabel: "Hisseler (Boşlukla ayırın):"
+    readonly property string dcaAmountLabel: "Aylık Katkı (₺):"
+    readonly property string dcaDatesLabel: "Tarih Aralığı:"
+    readonly property string dcaBtnRun: "Simülasyonu Çalıştır"
+    readonly property string dcaKpiInvested: "Toplam Yatırılan"
+    readonly property string dcaKpiFinal: "Nihai Portföy Değeri"
+    readonly property string dcaKpiReturn: "Toplam Getiri"
+    readonly property string dcaKpiCount: "Katkı Sayısı"
+    readonly property string dcaSharesTitle: "BİRİKEN LOT DAĞILIMI"
+    readonly property string dcaChartTitle: "PORTFÖY DEĞER EĞRİSİ"
 }
 
