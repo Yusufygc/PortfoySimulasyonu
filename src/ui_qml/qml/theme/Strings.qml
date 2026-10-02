@@ -32,6 +32,13 @@ QtObject {
     readonly property string dashboardSubtitle: "Gerçek zamanlı piyasa değerlemeleri, canlı emirler ve varlık dağılımı"
     readonly property string btnRefresh: "Fiyatları Yenile"
     readonly property string btnRefreshing: "Yenileniyor..."
+    readonly property string btnUpdateClosingPrices: "Fiyatları Güncelle"
+    readonly property string btnUpdatingClosingPrices: "Güncelleniyor..."
+    readonly property string kpiWeeklyReturn: "Haftalık Getiri"
+    readonly property string kpiMonthlyReturn: "Aylık Getiri"
+    readonly property string kpiWeeklyBadge: "7 gün"
+    readonly property string kpiMonthlyBadge: "30 gün"
+    readonly property string kpiPeriodReturnSub: "Portföy değeri değişimi"
     readonly property string btnCapital: "Sermaye Yönetimi"
     readonly property string btnQuickTrade: "Hızlı Alım / Satım"
 

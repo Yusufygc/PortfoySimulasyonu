@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Dict, Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
+from src.ui_qml.last_update_store import LastUpdateStore, format_last_update, format_return_pct
 from src.ui_qml.models.positions_table_model import PositionsTableModel
 
 logger = logging.getLogger(__name__)
@@ -34,8 +35,14 @@ class DashboardController(QObject):
     tradeExecuted = Signal(bool, str)   # success, message
     capitalUpdated = Signal(bool, str)  # success, message
     excelExported = Signal(bool, str)   # success, message
+    returnsChanged = Signal()
+    lastUpdateChanged = Signal()
+    priceUpdateStateChanged = Signal(bool)
+    closingPricesUpdated = Signal(bool, str)  # success, message
 
     _asyncExportFinished = Signal(bool, str)
+    _asyncReturnsReady = Signal(object, object)    # weekly_pct, monthly_pct (None olabilir)
+    _asyncClosingFinished = Signal(object, str)    # PriceUpdateResult | None, hata
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
@@ -43,6 +50,15 @@ class DashboardController(QObject):
         self._positions_model = PositionsTableModel(self)
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="DashboardWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
+        self._asyncReturnsReady.connect(self._on_returns_ready)
+        self._asyncClosingFinished.connect(self._on_closing_finished)
+
+        # Son güncelleme zamanı ve dönemsel getiriler (kayıtlı son değer anında gösterilir, sonra yeniden hesaplanır)
+        self._store = LastUpdateStore()
+        self._weekly_pct, self._monthly_pct = self._store.saved_returns()
+        self._last_update: Optional[datetime] = self._store.dashboard_last_update()
+        self._is_updating_prices: bool = False
+        self._live_updated_count: int = 0
 
         # Temel Portföy Durum Değişkenleri
         self._capital: Decimal = Decimal("185000.00")
@@ -72,6 +88,7 @@ class DashboardController(QObject):
                 logger.warning("EventBus bağlantı hatası: %s", exc)
 
         self._load_portfolio_data()
+        self._reload_returns()
 
     # --- Properties ---
 
@@ -139,6 +156,30 @@ class DashboardController(QObject):
     @Property(bool, notify=refreshStateChanged)
     def isRefreshing(self) -> bool:
         return self._is_refreshing
+
+    @Property(str, notify=returnsChanged)
+    def weeklyReturnText(self) -> str:
+        return format_return_pct(self._weekly_pct)
+
+    @Property(str, notify=returnsChanged)
+    def monthlyReturnText(self) -> str:
+        return format_return_pct(self._monthly_pct)
+
+    @Property(bool, notify=returnsChanged)
+    def isWeeklyPositive(self) -> bool:
+        return self._weekly_pct is None or self._weekly_pct >= 0
+
+    @Property(bool, notify=returnsChanged)
+    def isMonthlyPositive(self) -> bool:
+        return self._monthly_pct is None or self._monthly_pct >= 0
+
+    @Property(str, notify=lastUpdateChanged)
+    def lastUpdateText(self) -> str:
+        return format_last_update(self._last_update)
+
+    @Property(bool, notify=priceUpdateStateChanged)
+    def isUpdatingPrices(self) -> bool:
+        return self._is_updating_prices
 
     @Property(list, notify=kpisChanged)
     def quickTickers(self) -> List[str]:
@@ -350,7 +391,8 @@ class DashboardController(QObject):
                         live_service = getattr(self._container, "live_price_refresh_service", None)
 
                 if live_service:
-                    live_service.refresh_active_prices()
+                    result = live_service.refresh_active_prices()
+                    self._live_updated_count = int(getattr(result, "updated_count", 0) or 0)
                 else:
                     logger.debug("Canlı fiyat yenileme servisi bulunamadı, mevcut veriler korunuyor.")
             except Exception as exc:
@@ -363,8 +405,79 @@ class DashboardController(QObject):
     @Slot()
     def _on_refresh_finished(self) -> None:
         self._load_portfolio_data()
+        if self._live_updated_count > 0:
+            self._record_last_update()
+            self._reload_returns()
         self._is_refreshing = False
         self.refreshStateChanged.emit(False)
+
+    @Slot()
+    def updateClosingPrices(self) -> None:
+        """Son tamamlanmış işlem gününün kapanış fiyatlarını günceller (tarihsel veri), getirileri yeniler."""
+        coordinator = getattr(self._container, "update_coordinator", None) if self._container else None
+        if coordinator is None:
+            self.closingPricesUpdated.emit(False, "Fiyat güncelleme servisi bulunamadı.")
+            return
+        if self._is_updating_prices:
+            return
+        self._set_updating_prices(True)
+        self._executor.submit(self._closing_prices_worker, coordinator)
+
+    def _closing_prices_worker(self, coordinator) -> None:
+        try:
+            result, _snapshot = coordinator.update_today_prices_and_get_snapshot()
+        except Exception as exc:
+            logger.exception("Kapanış fiyatı güncelleme hatası: %s", exc)
+            self._asyncClosingFinished.emit(None, str(exc))
+            return
+        self._asyncClosingFinished.emit(result, "")
+
+    def _on_closing_finished(self, result: Any, error: str) -> None:
+        self._set_updating_prices(False)
+        if error or result is None:
+            self.closingPricesUpdated.emit(False, f"Fiyat güncelleme hatası: {error}")
+            return
+        self._load_portfolio_data()
+        self._reload_returns()
+        updated = int(getattr(result, "updated_count", 0) or 0)
+        if updated <= 0:
+            reason = getattr(result, "skipped_reason", None)
+            self.closingPricesUpdated.emit(False, reason or "Güncellenecek fiyat bulunamadı.")
+            return
+        self._record_last_update()
+        self.closingPricesUpdated.emit(True, f"{updated} hissenin tarihsel kapanış verisi güncellendi.")
+
+    def _set_updating_prices(self, value: bool) -> None:
+        if self._is_updating_prices != value:
+            self._is_updating_prices = value
+            self.priceUpdateStateChanged.emit(value)
+
+    def _record_last_update(self) -> None:
+        self._last_update = self._store.save_dashboard_last_update()
+        self.lastUpdateChanged.emit()
+
+    def _reload_returns(self) -> None:
+        service = getattr(self._container, "return_calc_service", None) if self._container else None
+        if service is not None:
+            self._executor.submit(self._compute_returns_worker, service)
+
+    def _compute_returns_worker(self, service) -> None:
+        today = date.today()
+        try:
+            weekly, _, _ = service.compute_weekly_return(today)
+            monthly, _, _ = service.compute_monthly_return(today)
+        except Exception as exc:
+            logger.error("Getiri hesaplama hatası: %s", exc)
+            return
+        self._asyncReturnsReady.emit(
+            float(weekly) * 100 if weekly is not None else None,
+            float(monthly) * 100 if monthly is not None else None,
+        )
+
+    def _on_returns_ready(self, weekly_pct: Any, monthly_pct: Any) -> None:
+        self._weekly_pct, self._monthly_pct = weekly_pct, monthly_pct
+        self._store.save_returns(weekly_pct, monthly_pct)
+        self.returnsChanged.emit()
 
     @Slot(str, result="QVariantMap")
     def lookupTicker(self, ticker: str) -> dict:

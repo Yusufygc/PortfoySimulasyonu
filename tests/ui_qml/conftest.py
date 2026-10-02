@@ -24,3 +24,14 @@ def _no_background_market_sync(monkeypatch):
             return None
 
     monkeypatch.setattr(module, "QTimer", _TimerWithoutSingleShot)
+
+
+@pytest.fixture(autouse=True)
+def _isolated_last_update_settings(monkeypatch, tmp_path):
+    """Son güncelleme/getiri kayıtları gerçek kullanıcı ayarlarına (kayıt defteri) yazılmasın."""
+    from PySide6.QtCore import QSettings
+
+    import src.ui_qml.last_update_store as module
+
+    ini_path = str(tmp_path / "last_update.ini")
+    monkeypatch.setattr(module, "QSettings", lambda *args, **kwargs: QSettings(ini_path, QSettings.IniFormat))

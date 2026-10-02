@@ -47,6 +47,13 @@ Item {
                         font.pixelSize: Theme.fontSm
                         color: Theme.textMuted
                     }
+                    Text {
+                        visible: dashboardController.lastUpdateText !== ""
+                        text: dashboardController.lastUpdateText
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontXs
+                        color: Theme.textMuted
+                    }
                 }
 
                 Flow {
@@ -64,6 +71,15 @@ Item {
                         dashboardController.refreshMetrics()
                         chartView.loadStock(chartView.ticker)
                     }
+                }
+
+                // Kapanış Fiyatlarını Güncelle (tarihsel veri + getiriler)
+                ModernButton {
+                    text: dashboardController.isUpdatingPrices ? Strings.btnUpdatingClosingPrices : Strings.btnUpdateClosingPrices
+                    iconName: "history"
+                    variant: "secondary"
+                    enabled: !dashboardController.isUpdatingPrices
+                    onClicked: dashboardController.updateClosingPrices()
                 }
 
                 // Sermaye Yönetimi Butonu
@@ -142,6 +158,37 @@ Item {
                     isPositive: true
                     subText: dashboardController.holdingsCount + Strings.kpiOpenPositionsSuffix
                     iconName: "portfolio"
+                }
+            }
+
+            // 1b. Dönemsel Getiriler (haftalık / aylık)
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
+                uniformCellWidths: true
+
+                MetricCard {
+                    Layout.fillWidth: true
+                    implicitHeight: 96
+                    title: Strings.kpiWeeklyReturn
+                    value: dashboardController.weeklyReturnText
+                    changeText: Strings.kpiWeeklyBadge
+                    isPositive: dashboardController.isWeeklyPositive
+                    subText: Strings.kpiPeriodReturnSub
+                    iconName: "trendingup"
+                }
+
+                MetricCard {
+                    Layout.fillWidth: true
+                    implicitHeight: 96
+                    title: Strings.kpiMonthlyReturn
+                    value: dashboardController.monthlyReturnText
+                    changeText: Strings.kpiMonthlyBadge
+                    isPositive: dashboardController.isMonthlyPositive
+                    subText: Strings.kpiPeriodReturnSub
+                    iconName: "trendingup"
                 }
             }
 
@@ -651,6 +698,10 @@ Item {
         }
 
         function onExcelExported(success, message) {
+            toast.show(message, success)
+        }
+
+        function onClosingPricesUpdated(success, message) {
             toast.show(message, success)
         }
     }
