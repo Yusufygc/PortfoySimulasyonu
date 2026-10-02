@@ -1,0 +1,550 @@
+"""
+SettingsController — Uygulama Ayarları, Veritabanı Yönetimi ve Dışa Aktarım QML Controller'ı (Faz 11).
+
+Sorumluluklar:
+- Koyu / Açık tema geçişi (Theme.isDark yönetimi ve QSettings kalıcılığı)
+- API anahtarları (Google Gemini ve TCMB EVDS) yönetimi ve canlı bağlantı testi
+- SQLite OLTP (data/portfolio.db) sağlık metrikleri ve tablo satır sayıları
+- DuckDB OLAP (data/market_history.duckdb) 624 hisse bar istatistikleri ve seans kapanış senkronizasyonu
+- SQLite ve DuckDB bütünlük kontrolü (Integrity Check)
+- Excel (.xlsx) ve JSON portföy dışa aktarımı / yedekleme
+- ThreadPoolExecutor ile UI bloklamayan asenkron operasyonlar ve Qt Queued Signal mimarisi
+"""
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sqlite3
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import duckdb
+from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_SQLITE_PATH = "data/portfolio.db"
+_DEFAULT_DUCKDB_PATH = "data/market_history.duckdb"
+
+
+def _format_file_size(size_in_bytes: int) -> str:
+    if size_in_bytes < 1024:
+        return f"{size_in_bytes} B"
+    elif size_in_bytes < 1024 * 1024:
+        return f"{size_in_bytes / 1024:.1f} KB"
+    else:
+        return f"{size_in_bytes / (1024 * 1024):.2f} MB"
+
+
+class SettingsController(QObject):
+    """QML SettingsView için iş mantığı ve veri köprüsü."""
+
+    # QML Property Sinyalleri
+    isLoadingChanged = Signal(bool)
+    statusMessageChanged = Signal(str)
+    isDarkThemeChanged = Signal(bool)
+    geminiApiKeyChanged = Signal(str)
+    evdsApiKeyChanged = Signal(str)
+    sqliteDbSizeChanged = Signal(str)
+    sqliteTableStatsChanged = Signal()
+    duckDbSizeChanged = Signal(str)
+    duckDbStockCountChanged = Signal(int)
+    duckDbTotalBarsChanged = Signal(str)
+    duckDbLastDateChanged = Signal(str)
+    duckDbIsUpToDateChanged = Signal(bool)
+    isSyncingChanged = Signal(bool)
+    apiTestResultChanged = Signal(str)
+    integrityCheckResultChanged = Signal(str)
+
+    # Bildirim Sinyali
+    operationNotification = Signal(bool, str)  # success, message
+
+    # İç iş parçacığı sinyalleri (Qt Queued Connection garantisi)
+    _asyncStatsReady = Signal(dict)
+    _asyncSyncFinished = Signal(dict)
+    _asyncApiTestFinished = Signal(bool, str)
+    _asyncIntegrityFinished = Signal(bool, str)
+    _asyncExportFinished = Signal(bool, str)
+
+    def __init__(self, container=None, parent: Optional[QObject] = None) -> None:
+        super().__init__(parent)
+        self._container = container
+        self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="SettingsWorker")
+        self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+
+        # Dahili Durumlar
+        self._is_loading = False
+        self._status_message = "Hazır"
+        self._is_dark_theme = self._settings.value("ui/isDarkTheme", True, type=bool)
+        self._is_syncing = False
+        self._api_test_result = ""
+        self._integrity_check_result = ""
+
+        # Veritabanı Yolları
+        self._sqlite_path = Path(_DEFAULT_SQLITE_PATH).resolve()
+        self._duckdb_path = Path(_DEFAULT_DUCKDB_PATH).resolve()
+
+        # İstatistik Değerleri
+        self._sqlite_size = "0 B"
+        self._sqlite_table_stats: List[Dict[str, Any]] = []
+        self._duckdb_size = "0 B"
+        self._duckdb_stock_count = 0
+        self._duckdb_total_bars = "0"
+        self._duckdb_last_date = "-"
+        self._duckdb_is_up_to_date = True
+
+        # İç sinyal bağlantıları
+        self._asyncStatsReady.connect(self._on_stats_ready)
+        self._asyncSyncFinished.connect(self._on_sync_finished)
+        self._asyncApiTestFinished.connect(self._on_api_test_finished)
+        self._asyncIntegrityFinished.connect(self._on_integrity_finished)
+        self._asyncExportFinished.connect(self._on_export_finished)
+
+        # İlk istatistikleri yükle
+        self.refreshDatabaseStats()
+
+    # -------------------------------------------------------------------------
+    # QML Property'leri
+    # -------------------------------------------------------------------------
+
+    @Property(bool, notify=isLoadingChanged)
+    def isLoading(self) -> bool:
+        return self._is_loading
+
+    @Property(str, notify=statusMessageChanged)
+    def statusMessage(self) -> str:
+        return self._status_message
+
+    @Property(bool, notify=isDarkThemeChanged)
+    def isDarkTheme(self) -> bool:
+        return self._is_dark_theme
+
+    @Property(str, notify=geminiApiKeyChanged)
+    def geminiApiKey(self) -> str:
+        if self._container:
+            settings = getattr(self._container, "settings", None)
+            if settings and hasattr(settings, "ai"):
+                return getattr(settings.ai, "gemini_api_key", "") or ""
+        return ""
+
+    @Property(str, notify=evdsApiKeyChanged)
+    def evdsApiKey(self) -> str:
+        if self._container:
+            settings = getattr(self._container, "settings", None)
+            if settings and hasattr(settings, "evds"):
+                return getattr(settings.evds, "api_key", "") or ""
+        return ""
+
+    @Property(str, constant=True)
+    def sqliteDbPath(self) -> str:
+        return str(self._sqlite_path)
+
+    @Property(str, notify=sqliteDbSizeChanged)
+    def sqliteDbSize(self) -> str:
+        return self._sqlite_size
+
+    @Property("QVariantList", notify=sqliteTableStatsChanged)
+    def sqliteTableStats(self) -> List[Dict[str, Any]]:
+        return self._sqlite_table_stats
+
+    @Property(str, constant=True)
+    def duckDbPath(self) -> str:
+        return str(self._duckdb_path)
+
+    @Property(str, notify=duckDbSizeChanged)
+    def duckDbSize(self) -> str:
+        return self._duckdb_size
+
+    @Property(int, notify=duckDbStockCountChanged)
+    def duckDbStockCount(self) -> int:
+        return self._duckdb_stock_count
+
+    @Property(str, notify=duckDbTotalBarsChanged)
+    def duckDbTotalBars(self) -> str:
+        return self._duckdb_total_bars
+
+    @Property(str, notify=duckDbLastDateChanged)
+    def duckDbLastDate(self) -> str:
+        return self._duckdb_last_date
+
+    @Property(bool, notify=duckDbIsUpToDateChanged)
+    def duckDbIsUpToDate(self) -> bool:
+        return self._duckdb_is_up_to_date
+
+    @Property(bool, notify=isSyncingChanged)
+    def isSyncing(self) -> bool:
+        return self._is_syncing
+
+    @Property(str, notify=apiTestResultChanged)
+    def apiTestResult(self) -> str:
+        return self._api_test_result
+
+    @Property(str, notify=integrityCheckResultChanged)
+    def integrityCheckResult(self) -> str:
+        return self._integrity_check_result
+
+    # -------------------------------------------------------------------------
+    # Tema Yönetimi
+    # -------------------------------------------------------------------------
+
+    @Slot()
+    def toggleTheme(self) -> None:
+        """Koyu / Açık tema geçişini sağlar ve QSettings'e kaydeder."""
+        self._is_dark_theme = not self._is_dark_theme
+        self._settings.setValue("ui/isDarkTheme", self._is_dark_theme)
+        self.isDarkThemeChanged.emit(self._is_dark_theme)
+        theme_name = "Koyu Tema" if self._is_dark_theme else "Açık Tema"
+        self._set_status(f"{theme_name} aktif edildi")
+        self.operationNotification.emit(True, f"{theme_name} başarıyla etkinleştirildi.")
+
+    # -------------------------------------------------------------------------
+    # API Anahtarları ve Bağlantı Testi
+    # -------------------------------------------------------------------------
+
+    @Slot(str, str)
+    def saveApiKeys(self, gemini_key: str, evds_key: str) -> None:
+        """API anahtarlarını günceller ve yapılandırmaya yansıtır."""
+        clean_gemini = (gemini_key or "").strip()
+        clean_evds = (evds_key or "").strip()
+
+        if self._container:
+            settings = getattr(self._container, "settings", None)
+            if settings:
+                if hasattr(settings, "ai"):
+                    settings.ai.gemini_api_key = clean_gemini
+                if hasattr(settings, "evds"):
+                    settings.evds.api_key = clean_evds
+
+        self.geminiApiKeyChanged.emit(clean_gemini)
+        self.evdsApiKeyChanged.emit(clean_evds)
+        self.operationNotification.emit(True, "API anahtarları başarıyla güncellendi.")
+        self._set_status("API anahtarları kaydedildi")
+
+    @Slot(str)
+    def testGeminiApiKey(self, key_to_test: str) -> None:
+        """Google Gemini API anahtarı için canlı bağlantı testi yapar."""
+        key = (key_to_test or "").strip()
+        if not key:
+            self._api_test_result = "Lütfen önce geçerli bir API anahtarı girin."
+            self.apiTestResultChanged.emit(self._api_test_result)
+            return
+
+        self._set_loading(True)
+        self._api_test_result = "Google Gemini sunucularına bağlanılıyor..."
+        self.apiTestResultChanged.emit(self._api_test_result)
+
+        self._executor.submit(self._run_gemini_test_worker, key)
+
+    def _run_gemini_test_worker(self, key: str) -> None:
+        try:
+            from google import genai
+            client = genai.Client(api_key=key)
+            # En hafif model ile hızlı ping sorgusu
+            resp = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents="Ping. Sadece 'PONG' cevabını ver.",
+            )
+            success = bool(resp and resp.text)
+            msg = "Bağlantı Başarılı! Gemini 2.5 Flash erişilebilir durumda." if success else "Sunucu yanıt vermedi."
+            self._asyncApiTestFinished.emit(success, msg)
+        except Exception as exc:
+            logger.warning("Gemini API test hatası: %s", exc)
+            self._asyncApiTestFinished.emit(False, f"Bağlantı Hatası: {exc}")
+
+    def _on_api_test_finished(self, success: bool, message: str) -> None:
+        self._api_test_result = message
+        self.apiTestResultChanged.emit(self._api_test_result)
+        self._set_loading(False)
+        self.operationNotification.emit(success, message)
+
+    # -------------------------------------------------------------------------
+    # Veritabanı İstatistikleri ve Sağlık Taraması
+    # -------------------------------------------------------------------------
+
+    @Slot()
+    def refreshDatabaseStats(self) -> None:
+        """SQLite ve DuckDB metriklerini asenkron hesaplar."""
+        self._set_loading(True)
+        self._set_status("Veritabanı metrikleri taranıyor...")
+        self._executor.submit(self._run_db_stats_worker)
+
+    def _run_db_stats_worker(self) -> None:
+        payload: Dict[str, Any] = {}
+
+        # 1. SQLite Taraması
+        try:
+            if self._sqlite_path.exists():
+                payload["sqlite_size"] = _format_file_size(self._sqlite_path.stat().st_size)
+                conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
+                cursor = conn.cursor()
+
+                tables = [
+                    ("Hisse Senetleri (Katalog)", "stocks"),
+                    ("Gerçekleşen İşlemler (Emirler)", "trades"),
+                    ("Nakit Hareketleri & Sermaye", "cash_movements"),
+                    ("İzleme Listeleri (Watchlist)", "watchlists"),
+                    ("Model Portföyler (Simülasyon)", "model_portfolios"),
+                    ("Finansal Hedefler (Planning)", "dca_goals"),
+                ]
+
+                table_stats = []
+                for label, tbl in tables:
+                    try:
+                        cursor.execute(f"SELECT COUNT(*) FROM {tbl}")
+                        count = cursor.fetchone()[0]
+                        table_stats.append({"name": label, "count": f"{count:,}".replace(",", ".")})
+                    except Exception:
+                        table_stats.append({"name": label, "count": "0"})
+
+                conn.close()
+                payload["sqlite_table_stats"] = table_stats
+            else:
+                payload["sqlite_size"] = "0 B (Dosya Yok)"
+                payload["sqlite_table_stats"] = []
+        except Exception as e:
+            logger.warning("SQLite istatistik hatası: %s", e)
+            payload["sqlite_size"] = "Hata"
+            payload["sqlite_table_stats"] = []
+
+        # 2. DuckDB Taraması
+        try:
+            if self._duckdb_path.exists():
+                payload["duckdb_size"] = _format_file_size(self._duckdb_path.stat().st_size)
+                conn_d = duckdb.connect(str(self._duckdb_path), read_only=True)
+                stock_count = conn_d.execute("SELECT COUNT(*) FROM bist_stocks").fetchone()[0]
+                total_bars = conn_d.execute("SELECT COUNT(*) FROM daily_prices").fetchone()[0]
+                max_date = conn_d.execute("SELECT MAX(price_date) FROM daily_prices").fetchone()[0]
+                conn_d.close()
+
+                payload["duckdb_stock_count"] = int(stock_count)
+                payload["duckdb_total_bars"] = f"{int(total_bars):,}".replace(",", ".")
+                if max_date:
+                    payload["duckdb_last_date"] = max_date.strftime("%d.%m.%Y") if hasattr(max_date, "strftime") else str(max_date)
+                else:
+                    payload["duckdb_last_date"] = "-"
+                payload["duckdb_is_up_to_date"] = True
+            else:
+                payload["duckdb_size"] = "0 B (Dosya Yok)"
+                payload["duckdb_stock_count"] = 0
+                payload["duckdb_total_bars"] = "0"
+                payload["duckdb_last_date"] = "-"
+                payload["duckdb_is_up_to_date"] = False
+        except Exception as e:
+            logger.warning("DuckDB istatistik hatası: %s", e)
+            payload["duckdb_size"] = "Hata"
+            payload["duckdb_stock_count"] = 0
+            payload["duckdb_total_bars"] = "0"
+            payload["duckdb_last_date"] = "-"
+            payload["duckdb_is_up_to_date"] = False
+
+        self._asyncStatsReady.emit(payload)
+
+    def _on_stats_ready(self, payload: Dict[str, Any]) -> None:
+        self._sqlite_size = payload.get("sqlite_size", "0 B")
+        self._sqlite_table_stats = payload.get("sqlite_table_stats", [])
+        self._duckdb_size = payload.get("duckdb_size", "0 B")
+        self._duckdb_stock_count = payload.get("duckdb_stock_count", 0)
+        self._duckdb_total_bars = payload.get("duckdb_total_bars", "0")
+        self._duckdb_last_date = payload.get("duckdb_last_date", "-")
+        self._duckdb_is_up_to_date = payload.get("duckdb_is_up_to_date", True)
+
+        self.sqliteDbSizeChanged.emit(self._sqlite_size)
+        self.sqliteTableStatsChanged.emit()
+        self.duckDbSizeChanged.emit(self._duckdb_size)
+        self.duckDbStockCountChanged.emit(self._duckdb_stock_count)
+        self.duckDbTotalBarsChanged.emit(self._duckdb_total_bars)
+        self.duckDbLastDateChanged.emit(self._duckdb_last_date)
+        self.duckDbIsUpToDateChanged.emit(self._duckdb_is_up_to_date)
+
+        self._set_loading(False)
+        self._set_status("Veritabanı metrikleri güncellendi")
+
+    # -------------------------------------------------------------------------
+    # Piyasa Verisi Manuel Senkronizasyonu
+    # -------------------------------------------------------------------------
+
+    @Slot()
+    def runFullMarketSync(self) -> None:
+        """Kullanıcının tetiklediği eksik BIST verisi senkronizasyonunu yürütür."""
+        if self._is_syncing:
+            return
+
+        self._is_syncing = True
+        self.isSyncingChanged.emit(True)
+        self._set_status("BIST seans verileri senkronize ediliyor...")
+        self._executor.submit(self._run_market_sync_worker)
+
+    def _run_market_sync_worker(self) -> None:
+        try:
+            from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
+            sync_svc = MarketDataSyncService(
+                duckdb_path=str(self._duckdb_path),
+                sqlite_path=str(self._sqlite_path),
+            )
+            result = sync_svc.sync_missing_data()
+            self._asyncSyncFinished.emit({
+                "success": True,
+                "message": result.message,
+                "added_bars": result.added_bars,
+            })
+        except Exception as e:
+            logger.exception("Senkronizasyon işlemi hatası: %s", e)
+            self._asyncSyncFinished.emit({
+                "success": False,
+                "message": f"Senkronizasyon hatası: {e}",
+                "added_bars": 0,
+            })
+
+    def _on_sync_finished(self, res: Dict[str, Any]) -> None:
+        self._is_syncing = False
+        self.isSyncingChanged.emit(False)
+        success = res.get("success", False)
+        msg = res.get("message", "Tamamlandı")
+        self._set_status(msg)
+        self.operationNotification.emit(success, msg)
+        # İstatistikleri otomatik tazele
+        self.refreshDatabaseStats()
+
+    # -------------------------------------------------------------------------
+    # Veritabanı Bütünlük Kontrolü (Integrity Check)
+    # -------------------------------------------------------------------------
+
+    @Slot()
+    def checkDatabaseIntegrity(self) -> None:
+        """SQLite ve DuckDB için PRAGMA integrity_check çalıştırır."""
+        self._set_loading(True)
+        self._integrity_check_result = "Veritabanı bütünlük kontrolü yürütülüyor..."
+        self.integrityCheckResultChanged.emit(self._integrity_check_result)
+        self._executor.submit(self._run_integrity_worker)
+
+    def _run_integrity_worker(self) -> None:
+        errors = []
+        # SQLite
+        try:
+            conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
+            res = conn.execute("PRAGMA integrity_check;").fetchone()
+            conn.close()
+            if not res or res[0] != "ok":
+                errors.append(f"SQLite Bütünlük Sorunu: {res}")
+        except Exception as e:
+            errors.append(f"SQLite Kontrol Hatası: {e}")
+
+        # DuckDB
+        try:
+            conn_d = duckdb.connect(str(self._duckdb_path), read_only=True)
+            cnt = conn_d.execute("SELECT COUNT(*) FROM daily_prices").fetchone()[0]
+            conn_d.close()
+            if cnt <= 0:
+                errors.append("DuckDB: Tablo boş veya hasarlı.")
+        except Exception as e:
+            errors.append(f"DuckDB Kontrol Hatası: {e}")
+
+        if errors:
+            self._asyncIntegrityFinished.emit(False, " | ".join(errors))
+        else:
+            self._asyncIntegrityFinished.emit(
+                True,
+                "Mükemmel! SQLite (OLTP) ve DuckDB (OLAP) veritabanı bütünlüğü doğrulandı (OK)."
+            )
+
+    def _on_integrity_finished(self, success: bool, message: str) -> None:
+        self._integrity_check_result = message
+        self.integrityCheckResultChanged.emit(self._integrity_check_result)
+        self._set_loading(False)
+        self.operationNotification.emit(success, message)
+
+    # -------------------------------------------------------------------------
+    # Dışa Aktarım (Excel & JSON)
+    # -------------------------------------------------------------------------
+
+    @Slot()
+    def exportPortfolioToExcel(self) -> None:
+        """Kullanıcının portföyünü Excel formatında masaüstüne veya reports klasörüne kaydeder."""
+        self._set_loading(True)
+        self._set_status("Excel raporu hazırlanıyor...")
+        self._executor.submit(self._run_excel_export_worker)
+
+    def _run_excel_export_worker(self) -> None:
+        try:
+            # Hedef yol: Masaüstü veya proje içi reports/
+            desktop = Path.home() / "Desktop"
+            out_dir = desktop if desktop.exists() else Path("reports").resolve()
+            out_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            target_file = out_dir / f"PortfoySim_Rapor_{timestamp}.xlsx"
+
+            # SQLite verilerini pandas ile çekip profesyonelce yaz
+            import pandas as pd
+            conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
+
+            df_stocks = pd.read_sql_query("SELECT * FROM stocks", conn)
+            df_trades = pd.read_sql_query("SELECT * FROM trades ORDER BY trade_date DESC", conn)
+            df_cash = pd.read_sql_query("SELECT * FROM cash_movements ORDER BY movement_date DESC", conn)
+            conn.close()
+
+            with pd.ExcelWriter(str(target_file), engine="openpyxl") as writer:
+                df_stocks.to_excel(writer, sheet_name="Mevcut Pozisyonlar", index=False)
+                df_trades.to_excel(writer, sheet_name="İşlem Geçmişi", index=False)
+                df_cash.to_excel(writer, sheet_name="Nakit Hareketleri", index=False)
+
+            self._asyncExportFinished.emit(True, f"Excel raporu oluşturuldu:\n{target_file.name}")
+        except Exception as e:
+            logger.exception("Excel export hatası: %s", e)
+            self._asyncExportFinished.emit(False, f"Excel dışa aktarım hatası: {e}")
+
+    @Slot()
+    def exportPortfolioToJson(self) -> None:
+        """Tüm portföyü JSON yedek dosyası olarak kaydeder."""
+        self._set_loading(True)
+        self._set_status("JSON yedeği alınıyor...")
+        self._executor.submit(self._run_json_export_worker)
+
+    def _run_json_export_worker(self) -> None:
+        try:
+            desktop = Path.home() / "Desktop"
+            out_dir = desktop if desktop.exists() else Path("reports").resolve()
+            out_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            target_file = out_dir / f"PortfoySim_Yedek_{timestamp}.json"
+
+            import pandas as pd
+            conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
+            backup_data = {
+                "version": "2.0.0",
+                "exported_at": datetime.now().isoformat(),
+                "stocks": pd.read_sql_query("SELECT * FROM stocks", conn).to_dict(orient="records"),
+                "trades": pd.read_sql_query("SELECT * FROM trades", conn).to_dict(orient="records"),
+                "cash_movements": pd.read_sql_query("SELECT * FROM cash_movements", conn).to_dict(orient="records"),
+                "watchlists": pd.read_sql_query("SELECT * FROM watchlists", conn).to_dict(orient="records"),
+            }
+            conn.close()
+
+            with open(target_file, "w", encoding="utf-8") as f:
+                json.dump(backup_data, f, ensure_ascii=False, indent=2, default=str)
+
+            self._asyncExportFinished.emit(True, f"JSON yedeği kaydedildi:\n{target_file.name}")
+        except Exception as e:
+            logger.exception("JSON export hatası: %s", e)
+            self._asyncExportFinished.emit(False, f"JSON yedekleme hatası: {e}")
+
+    def _on_export_finished(self, success: bool, message: str) -> None:
+        self._set_loading(False)
+        self._set_status("Dışa aktarım tamamlandı")
+        self.operationNotification.emit(success, message)
+
+    # -------------------------------------------------------------------------
+    # Durum Yönetimi
+    # -------------------------------------------------------------------------
+
+    def _set_loading(self, val: bool) -> None:
+        if self._is_loading != val:
+            self._is_loading = val
+            self.isLoadingChanged.emit(val)
+
+    def _set_status(self, msg: str) -> None:
+        if self._status_message != msg:
+            self._status_message = msg
+            self.statusMessageChanged.emit(msg)

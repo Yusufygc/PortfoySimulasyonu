@@ -136,11 +136,13 @@ ApplicationWindow {
                         source: "views/AiAdvisorView.qml"
                     }
 
-                    // 9: Ayarlar (Faz 11)
-                    PlaceholderView {
-                        title: Strings.navSettings
-                        subtitle: "Faz 11 kapsamında veritabanı bağlantı havuzu, Gemini API anahtarı ve tema yönetimi eklenecektir."
-                        iconName: "settings"
+                    // 9: Ayarlar (Faz 11 - Uygulama Ayarları & Veritabanı Yönetimi - Tembel Yükleme)
+                    Loader {
+                        id: settingsLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 9 || (status === Loader.Ready)
+                        source: "views/SettingsView.qml"
                     }
                 }
             }

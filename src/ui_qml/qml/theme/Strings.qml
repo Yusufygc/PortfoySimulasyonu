@@ -502,6 +502,30 @@ QtObject {
     readonly property string aiApiKeyMissingNotice: "Gemini API anahtarı tanımlanmadı. Demo modunda yerel analiz motoru çalışıyor. Tam Function Calling için API anahtarı ekleyebilirsiniz."
     readonly property string aiBtnSaveKey: "Anahtarı Kaydet"
     readonly property string aiKeyPlaceholder: "Google Gemini API Anahtarınızı girin..."
+
+    // --- Uygulama Ayarları & Veritabanı Yönetimi (Faz 11) ---
+    readonly property string settingsTitle: "Uygulama Ayarları & Veri Yönetimi"
+    readonly property string settingsSubtitle: "Görünüm teması, API yapılandırmaları, SQLite & DuckDB veri sağlığı ve portföy yedekleme"
+    readonly property string settingsTabAppearance: "Görünüm & Tema"
+    readonly property string settingsTabApi: "API Anahtarları"
+    readonly property string settingsTabDatabase: "Veri Sağlığı & Senkronizasyon"
+    readonly property string settingsTabExport: "Dışa Aktarım & Yedekleme"
+    readonly property string settingsDarkTheme: "Koyu Tema (Dark Fintech)"
+    readonly property string settingsLightTheme: "Açık Tema (Light Clean)"
+    readonly property string settingsThemeDesc: "Göz yormayan koyu fintech teması veya ferah açık tema arasında geçiş yapabilirsiniz."
+    readonly property string settingsGeminiKeyTitle: "Google Gemini API Anahtarı"
+    readonly property string settingsGeminiKeyDesc: "AI Karar Destek Danışmanı ve interaktif hisse analizi için kullanılır."
+    readonly property string settingsEvdsKeyTitle: "TCMB EVDS API Anahtarı"
+    readonly property string settingsEvdsKeyDesc: "Resmi TÜFE enflasyon oranlarını ve makroekonomik serileri çekmek için kullanılır."
+    readonly property string settingsBtnTestConnection: "Bağlantıyı Test Et"
+    readonly property string settingsSqliteTitle: "İşlemsel Portföy Veritabanı (SQLite OLTP)"
+    readonly property string settingsDuckDbTitle: "Analitik Piyasa Veritabanı (DuckDB OLAP)"
+    readonly property string settingsBtnSyncNow: "Eksik BIST Barlarını Şimdi Senkronize Et"
+    readonly property string settingsBtnIntegrityCheck: "Veritabanı Bütünlüğünü Doğrula (Integrity Check)"
+    readonly property string settingsExportExcel: "Excel (.xlsx) Portföy Raporu İndir"
+    readonly property string settingsExportJson: "JSON Portföy Yedeği Al (.json)"
+    readonly property string settingsExportExcelDesc: "Açık pozisyonlarınızı, gerçekleşen emirlerinizi ve nakit geçmişinizi profesyonel Excel tablosu olarak kaydeder."
+    readonly property string settingsExportJsonDesc: "Tüm portföy ve sistem hareketlerini içeren tam yedek dosyası oluşturur."
 }
 
 
