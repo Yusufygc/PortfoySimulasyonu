@@ -35,3 +35,12 @@ def _isolated_last_update_settings(monkeypatch, tmp_path):
 
     ini_path = str(tmp_path / "last_update.ini")
     monkeypatch.setattr(module, "QSettings", lambda *args, **kwargs: QSettings(ini_path, QSettings.IniFormat))
+
+
+@pytest.fixture(autouse=True)
+def _no_background_returns_worker(monkeypatch):
+    """DashboardController açılışta getirileri arka plan iş parçacığında hesaplar. Test bittikten sonra çalışan
+    iş parçacığı silinmiş QObject'e sinyal gönderip native çökmeye yol açmasın; ilgili testler işlemi doğrudan çağırır."""
+    from src.ui_qml.controllers.dashboard_controller import DashboardController
+
+    monkeypatch.setattr(DashboardController, "_reload_returns", lambda self: None)

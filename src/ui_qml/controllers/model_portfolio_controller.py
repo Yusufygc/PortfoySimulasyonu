@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Any
 
 from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
 
+from src.ui_qml.last_update_store import LastUpdateStore, format_last_update
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,6 +65,7 @@ class ModelPortfolioController(QObject):
     loadingChanged = Signal()
     operationResult = Signal(bool, str)  # success, message
     excelExported = Signal(bool, str)    # success, message
+    lastUpdateChanged = Signal()
 
     _asyncExportFinished = Signal(bool, str)
 
@@ -71,6 +74,8 @@ class ModelPortfolioController(QObject):
         self._container = container
         self._service = getattr(container, "model_portfolio_service", None) if container else None
         self._lookup = getattr(container, "stock_lookup_service", None) if container else None
+        self._store = LastUpdateStore()
+        self._live_updated_count: int = 0
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ModelPortWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
 
@@ -127,6 +132,13 @@ class ModelPortfolioController(QObject):
         return self._current_portfolio_desc
 
     currentPortfolioDesc = Property(str, _get_current_portfolio_desc, notify=currentPortfolioChanged)
+
+    def _get_last_update_text(self):
+        if self._current_portfolio_id <= 0:
+            return ""
+        return format_last_update(self._store.model_portfolio_last_update(self._current_portfolio_id))
+
+    lastUpdateText = Property(str, _get_last_update_text, notify=lastUpdateChanged)
 
     # Summary properties
     def _get_summary_net_capital(self):
@@ -248,6 +260,7 @@ class ModelPortfolioController(QObject):
             self._current_portfolio_name = portfolio.name
             self._current_portfolio_desc = portfolio.description or ""
             self.currentPortfolioChanged.emit()
+            self.lastUpdateChanged.emit()
             self._load_price_map(portfolio_id)
             self._update_view()
         except Exception as exc:
@@ -415,9 +428,15 @@ class ModelPortfolioController(QObject):
     # =====================================================================
 
     def _refresh_prices_worker(self):
-        """Arka plan iş parçacığında fiyat güncelleme."""
+        """Arka plan iş parçacığında fiyat güncelleme: önce canlı fiyatlar çekilir, sonra fiyat haritası yeniden okunur."""
         try:
-            self._load_price_map(self._current_portfolio_id)
+            portfolio_id = self._current_portfolio_id
+            live_service = getattr(self._container, "live_price_refresh_service", None) if self._container else None
+            self._live_updated_count = -1  # -1: canlı servis yok (yalnızca veritabanından okunur)
+            if live_service is not None:
+                result = live_service.refresh_active_prices(f"model:{portfolio_id}")
+                self._live_updated_count = int(getattr(result, "updated_count", 0) or 0)
+            self._load_price_map(portfolio_id)
             QTimer.singleShot(0, self._on_prices_refreshed_success)
         except Exception as exc:
             logger.error("Fiyat güncelleme hatası: %s", exc)
@@ -427,7 +446,14 @@ class ModelPortfolioController(QObject):
         self._is_loading = False
         self.loadingChanged.emit()
         self._update_view()
-        self.operationResult.emit(True, "Fiyatlar güncellendi")
+        if self._live_updated_count < 0:
+            self.operationResult.emit(True, "Fiyatlar güncellendi")
+        elif self._live_updated_count == 0:
+            self.operationResult.emit(False, "Güncellenecek fiyat bulunamadı.")
+        else:
+            self._store.save_model_portfolio_last_update(self._current_portfolio_id)
+            self.lastUpdateChanged.emit()
+            self.operationResult.emit(True, f"{self._live_updated_count} hissenin fiyatı güncellendi.")
 
     def _on_prices_refreshed_error(self, error_msg: str):
         self._is_loading = False
@@ -602,6 +628,7 @@ class ModelPortfolioController(QObject):
         self._current_portfolio_name = ""
         self._current_portfolio_desc = ""
         self.currentPortfolioChanged.emit()
+        self.lastUpdateChanged.emit()
 
         self._summary_net_capital = "₺0,00"
         self._summary_remaining_cash = "₺0,00"

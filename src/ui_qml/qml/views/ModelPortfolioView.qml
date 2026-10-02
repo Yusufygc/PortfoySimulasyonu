@@ -139,6 +139,14 @@ Item {
                             elide: Text.ElideRight
                             Layout.fillWidth: true
                         }
+
+                        Text {
+                            visible: portfolioController.lastUpdateText !== ""
+                            text: portfolioController.lastUpdateText
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontXs
+                        }
                     }
 
                     // Aksiyon Butonları

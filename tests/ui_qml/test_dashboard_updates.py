@@ -12,6 +12,9 @@ from src.ui_qml.controllers.dashboard_controller import DashboardController
 from src.ui_qml.last_update_store import LastUpdateStore, format_last_update, format_return_pct
 
 
+_REAL_RELOAD_RETURNS = DashboardController._reload_returns  # conftest bu metodu varsayılan olarak devre dışı bırakır
+
+
 class ImmediateExecutor:
     def submit(self, fn, *args, **kwargs):
         fn(*args, **kwargs)
@@ -37,6 +40,7 @@ def _container(weekly=Decimal("0.0123"), monthly=Decimal("-0.05"), coordinator=N
 def _controller(container):
     ctrl = DashboardController(container=container)
     ctrl._executor = ImmediateExecutor()
+    ctrl._reload_returns = lambda: _REAL_RELOAD_RETURNS(ctrl)
     return ctrl
 
 
@@ -145,3 +149,67 @@ def test_live_refresh_records_last_update_only_when_prices_changed(qapp):
     ctrl._live_updated_count = 2
     ctrl._on_refresh_finished()
     assert ctrl.lastUpdateText.startswith("Son güncelleme: ")
+
+
+# ---------------------------------------------------------------------------
+# Model portföy: canlı fiyat güncelleme ve son güncelleme bilgisi
+# ---------------------------------------------------------------------------
+
+def _model_controller(live_service):
+    from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
+
+    service = MagicMock()
+    service.get_positions.return_value = {}
+    service.get_portfolio_by_id.return_value = SimpleNamespace(id=7, name="Deneme", description="")
+    container = SimpleNamespace(model_portfolio_service=service, live_price_refresh_service=live_service, event_bus=None)
+    ctrl = ModelPortfolioController(container=container)
+    ctrl._current_portfolio_id = 7
+    return ctrl
+
+
+def test_model_refresh_fetches_live_prices_for_that_portfolio_and_records_time(qapp):
+    live = MagicMock()
+    live.refresh_active_prices.return_value = SimpleNamespace(updated_count=4)
+    ctrl = _model_controller(live)
+    results = _capture(ctrl.operationResult)
+
+    ctrl._refresh_prices_worker()
+    QCoreApplication.processEvents()
+
+    live.refresh_active_prices.assert_called_once_with("model:7")
+    assert results == [(True, "4 hissenin fiyatı güncellendi.")]
+    assert ctrl.lastUpdateText.startswith("Son güncelleme: ")
+    assert LastUpdateStore().model_portfolio_last_update(7) is not None
+
+
+def test_model_refresh_without_updates_warns_and_keeps_last_update(qapp):
+    live = MagicMock()
+    live.refresh_active_prices.return_value = SimpleNamespace(updated_count=0)
+    ctrl = _model_controller(live)
+    results = _capture(ctrl.operationResult)
+
+    ctrl._refresh_prices_worker()
+    QCoreApplication.processEvents()
+
+    assert results == [(False, "Güncellenecek fiyat bulunamadı.")] and ctrl.lastUpdateText == ""
+
+
+def test_model_refresh_without_live_service_only_rereads_prices(qapp):
+    ctrl = _model_controller(None)
+    results = _capture(ctrl.operationResult)
+
+    ctrl._refresh_prices_worker()
+    QCoreApplication.processEvents()
+
+    assert results == [(True, "Fiyatlar güncellendi")] and ctrl.lastUpdateText == ""
+
+
+def test_model_last_update_is_per_portfolio(qapp):
+    LastUpdateStore().save_model_portfolio_last_update(7, datetime(2026, 10, 1, 10, 0))
+    ctrl = _model_controller(None)
+
+    ctrl.selectPortfolio(7)
+    assert ctrl.lastUpdateText == "Son güncelleme: 01.10.2026 10:00"
+
+    ctrl._current_portfolio_id = 8
+    assert ctrl.lastUpdateText == ""
