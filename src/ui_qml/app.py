@@ -33,6 +33,7 @@ from src.ui_qml.controllers.corporate_action_controller import CorporateActionCo
 from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustmentController
 from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
+from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
 from src.ui_qml.controllers.price_data_controller import PriceDataController
 from src.ui_qml.controllers.startup_jobs_controller import StartupJobsController
 from src.ui_qml.controllers.golden_cross_controller import GoldenCrossController
@@ -89,6 +90,7 @@ def run_qml_app(container=None) -> int:
     market_adjustment_ctrl = MarketAdjustmentController(container=container, parent=engine)
     system_ctrl = SystemController(container=container, parent=engine)
     market_ticker_ctrl = MarketTickerController(container=container, parent=engine)
+    model_analysis_ctrl = ModelAnalysisController(container=container, parent=engine)
 
     # Piyasa verisi senkronu yeni bar yazınca fiyata bağlı ekranları yenile
     market_sync_ctrl.dataSynced.connect(dash_ctrl.refreshMetrics)
@@ -126,6 +128,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("marketAdjustmentController", market_adjustment_ctrl)
     context.setContextProperty("systemController", system_ctrl)
     context.setContextProperty("marketTickerController", market_ticker_ctrl)
+    context.setContextProperty("modelAnalysisController", model_analysis_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"
