@@ -5,6 +5,18 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] düzelt | Hisse Detay Modalı Fiyat & K/Z Senkronizasyonu ve UI .IS Temizliği
+
+- Hisse Detay Modalı (`StockDetailModal`) ve `StockDetailController` bünyesindeki canlı fiyat, günlük değişim, piyasa değeri ve K/Z uyumsuzlukları giderildi:
+  - Fiyat Kaynağı Senkronizasyonu: `_get_latest_price` metodu öncelikle `latest_price_repo` ve `price_repo` üzerinden canlı portföy değerlendirme fiyatlarını (`1.21` TL MERKO, `3.15` TL PSGYO) çekecek şekilde güncellendi; DuckDB'de eksik/boş barlardan kaynaklanan `₺ - %-100.00` anomalisine karşı `WHERE close_price IS NOT NULL AND close_price > 0` filtresi uygulandı.
+  - Pozisyon & K/Z Hesaplaması: Piyasa değeri (`market_value`), kâr/zarar tutarı (`unrealized_pnl`) ve yüzdesi (`unrealized_pnl_pct`) Dashboard tablosuyla kuruşu kuruşuna eşitlendi.
+  - Hızlı Emir Formu: Modal açıldığında veya hisse değiştiğinde birim fiyatın hardcoded `10.00` kalması engellendi; hissenin anlık fiyatına otomatik senkronize edildi.
+  - Sermaye Artırımı Şeffaflığı: MERKO gibi bölünme (bedelsiz %638.34) yaşamış hisselerde işlem geçmişindeki lot adedi güncel bölünmüş pozisyonla eşleştirildi; bölünme öncesi orijinal işlem tutarı için "B" (Bölünme/Bedelsiz) rozeti ve hover tooltip desteği eklendi.
+  - Model Portföy Entegrasyonu: Modal model portföy bağlamında açıldığında pozisyon metriklerinin ve alım/satım emirlerinin model portföy servisine yönlendirilmesi sağlandı.
+  - UI .IS Temizliği: Varlık dağılımı donut pasta grafiği legend etiketleri (`allocationSlices`), hızlı butonlar (`quickTickers`) ve TradingView grafik başlığındaki `.IS` kalıntıları temizlendi.
+- Testler: `tests/ui_qml/test_stock_detail_and_excel.py` (10/10 yeni test), toplam QML testleri 82/82 %100 yeşil.
+- Etkilenen modüller: src/ui_qml/controllers/stock_detail_controller.py, src/ui_qml/controllers/dashboard_controller.py, src/ui_qml/controllers/chart_controller.py, src/ui_qml/qml/components/StockDetailModal.qml, src/ui_qml/qml/Main.qml, src/ui_qml/assets/templates/tradingview_chart.html, tests/ui_qml/test_stock_detail_and_excel.py, docs/wiki/log.md
+
 ## [2026-10-02] özellik | Hisse Detay Modalı ve Çok Sayfalı Profesyonel Excel Dışa Aktarımı QML Mimarisine Eklendi
 
 - Eski PyQt5 arayüzündeki hisse detay sayfası ve Excel raporlama motorları taranarak QML mimarisine temiz bir Clean Architecture adaptörüyle kazandırıldı:

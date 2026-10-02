@@ -193,7 +193,8 @@ class ChartController(QObject):
                         break
 
                 if stock:
-                    company_name = getattr(stock, "name", None) or stock.ticker
+                    raw_name = getattr(stock, "name", None) or stock.ticker
+                    company_name = raw_name.replace(".IS", "").strip()
                     start_date = datetime.now().date() - timedelta(days=365 * 3)  # 3 yıllık veri
                     end_date = datetime.now().date()
                     prices = []
@@ -298,9 +299,11 @@ class ChartController(QObject):
         indicators_data = self._calculate_indicators(resampled_candles)
 
         # 5. JSON Paketi Oluştur ve Gönder
+        clean_ticker = ticker.replace(".IS", "").strip().upper()
+        clean_company = (self._company_name or "").replace(".IS", "").strip()
         payload = {
-            "ticker": ticker,
-            "companyName": self._company_name,
+            "ticker": clean_ticker,
+            "companyName": clean_company,
             "timeframe": self._current_timeframe,
             "chartType": self._current_chart_type,
             "candles": resampled_candles,

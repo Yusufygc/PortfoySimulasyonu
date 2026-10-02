@@ -174,3 +174,36 @@ def test_stock_detail_modal_qml_compilation(qapp, container):
 
     obj = component.create()
     assert obj is not None, "StockDetailModal QML nesnesi oluşturulamadı!"
+
+
+def test_stock_detail_controller_live_price_and_diff(container):
+    """StockDetailController canlı fiyat ve günlük farkı hesaplayıp PnL ile eşleştirir."""
+    ctrl = StockDetailController(container=container)
+    ctrl.openStock("MERKO")
+
+    assert wait_until(lambda: ctrl.currentPrice > 0, timeout=3.0)
+    assert ctrl.currentPrice == 1.21
+    # Günlük değişim -%0.82 civarında olmalı
+    assert -1.0 <= ctrl.dailyDiff <= -0.5
+    # Açık pozisyon değerleri
+    assert ctrl.quantity > 0
+    assert ctrl.marketValue > 0
+    assert ctrl.unrealizedPnl < 0  # MERKO pozisyonda zararda
+    assert ctrl.unrealizedPnlPct < 0
+    assert ctrl.isPnlPositive is False
+
+
+def test_dashboard_controller_no_dot_is(container):
+    """DashboardController quickTickers ve allocationSlices içinde kesinlikle .IS bulunmadığını doğrular."""
+    dash = DashboardController(container=container)
+    dash._load_portfolio_data()
+
+    # quickTickers içinde .IS olmamalı
+    for t in dash.quickTickers:
+        assert not t.endswith(".IS"), f"quickTickers içinde .IS bulundu: {t}"
+
+    # allocationSlices içinde .IS olmamalı
+    for s in dash.allocationSlices:
+        lbl = s.get("label", "")
+        assert not lbl.endswith(".IS"), f"allocationSlices label içinde .IS bulundu: {lbl}"
+

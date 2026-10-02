@@ -301,11 +301,12 @@ class StockDetailController(QObject):
                     stock_obj = stock_repo.get_stock_by_ticker(f"{ticker}.IS")
                 if stock_obj:
                     data["stock_id"] = stock_obj.id
-                    data["company_name"] = stock_obj.name or ticker
+                    clean_name = (stock_obj.name or ticker).replace(".IS", "").strip()
+                    data["company_name"] = clean_name
                     data["sector"] = getattr(stock_obj, "sector", "BIST") or "BIST"
 
-            # 2. Güncel Fiyatı Çek (DuckDB veya SQLite)
-            cur_price, d_diff = self._get_latest_price(ticker)
+            # 2. Güncel Fiyatı Çek (Önce Canlı SQLite latest_price_repo, sonra DuckDB/Fallback)
+            cur_price, d_diff = self._get_latest_price(ticker, stock_id=data["stock_id"])
             data["current_price"] = cur_price
             data["daily_diff"] = d_diff
 
@@ -338,38 +339,75 @@ class StockDetailController(QObject):
             logger.exception("Hisse detay veri getirme hatası (%s): %s", ticker, e)
             self._asyncDataReady.emit({"error": str(e), "ticker": ticker})
 
-    def _get_latest_price(self, ticker: str) -> tuple[float, float]:
-        """DuckDB veya SQLite üzerinden son kapanış fiyatını ve dünkü farkı döndürür."""
+    def _get_latest_price(self, ticker: str, stock_id: Optional[int] = None) -> tuple[float, float]:
+        """En güncel fiyatı ve dünkü kapanışa göre yüzdesel farkı döndürür."""
         clean = _clean_ticker(ticker)
-        # Önce DuckDB kontrol et
+        cur_price = 0.0
+        diff = 0.0
+
+        # 1. Önce canlı portföy değerlendirme reposundan (latest_price_repo) fiyat çek
+        if self._container and stock_id:
+            if hasattr(self._container, "latest_price_repo"):
+                try:
+                    lp_map = self._container.latest_price_repo.get_latest_price_map([stock_id])
+                    if lp_map and stock_id in lp_map and lp_map[stock_id] is not None:
+                        cur_price = float(lp_map[stock_id])
+                except Exception as lp_err:
+                    logger.debug("latest_price_map alinamadi: %s", lp_err)
+
+            if cur_price > 0 and hasattr(self._container, "price_repo"):
+                try:
+                    prev = self._container.price_repo.get_last_price_before(stock_id, date.today())
+                    if prev and prev.close_price and float(prev.close_price) > 0:
+                        p_close = float(prev.close_price)
+                        diff = ((cur_price - p_close) / p_close) * 100.0
+                        return cur_price, diff
+                except Exception as p_err:
+                    logger.debug("prev price alinamadi: %s", p_err)
+
+        # 2. Eğer latest_price_repo'dan bulunamadıysa DuckDB analitik reposuna bak (SADECE NOT NULL ve > 0)
         duckdb_path = Path("data/market_history.duckdb")
         if duckdb_path.exists():
             try:
                 conn = duckdb.connect(str(duckdb_path), read_only=False)
                 rows = conn.execute(
-                    "SELECT close_price FROM daily_prices WHERE ticker = ? ORDER BY price_date DESC LIMIT 2",
+                    "SELECT close_price FROM daily_prices WHERE ticker = ? AND close_price IS NOT NULL AND close_price > 0 ORDER BY price_date DESC LIMIT 2",
                     [clean]
                 ).fetchall()
                 conn.close()
                 if rows:
-                    p1 = float(rows[0][0]) if rows[0][0] is not None else 0.0
+                    p1 = float(rows[0][0])
                     p2 = float(rows[1][0]) if len(rows) > 1 and rows[1][0] is not None else p1
-                    diff = ((p1 - p2) / p2 * 100.0) if p2 > 0 else 0.0
-                    return p1, diff
+                    d = ((p1 - p2) / p2 * 100.0) if p2 > 0 else 0.0
+                    if cur_price <= 0:
+                        cur_price = p1
+                    if diff == 0.0:
+                        diff = d
+                    return cur_price, diff
             except Exception as duck_err:
                 logger.debug("DuckDB fiyat okuma atlandı: %s", duck_err)
 
-        # Fallback: SQLite price_repo
+        # 3. Fallback: SQLite price_repo
         if self._container and hasattr(self._container, "price_repo"):
             try:
                 p_repo = self._container.price_repo
+                if stock_id:
+                    dp = p_repo.get_last_price_before(stock_id, date.today())
+                    if dp and dp.close_price:
+                        p = float(dp.close_price)
+                        if cur_price <= 0:
+                            cur_price = p
+                        return cur_price, diff
                 p_obj = p_repo.get_latest_price(clean) or p_repo.get_latest_price(f"{clean}.IS")
-                if p_obj:
-                    return float(p_obj.close_price), 0.0
+                if p_obj and p_obj.close_price:
+                    p = float(p_obj.close_price)
+                    if cur_price <= 0:
+                        cur_price = p
+                    return cur_price, diff
             except Exception:
                 pass
 
-        return 0.0, 0.0
+        return cur_price, diff
 
     def _load_main_position_data(self, data: Dict[str, Any], stock_obj: Any, cur_price: float) -> None:
         """Ana portföyden bu hisseye ait pozisyon ve işlem listesini yükler."""
@@ -383,16 +421,27 @@ class StockDetailController(QObject):
         portfolio = portfolio_service.get_current_portfolio()
         total_portfolio_val = Decimal("0")
 
-        # Toplam portföy değerini hesapla
+        # Toplam portföy değerini hesapla (Tekil toplu sorgu)
+        stock_ids = [sid for sid, pos in portfolio.positions.items() if pos.total_quantity > 0]
+        lp_map = {}
+        if hasattr(self._container, "latest_price_repo") and stock_ids:
+            try:
+                lp_map = self._container.latest_price_repo.get_latest_price_map(stock_ids)
+            except Exception:
+                pass
+
         for sid, pos in portfolio.positions.items():
             if pos.total_quantity > 0:
-                s_obj = self._container.stock_repo.get_stock_by_id(sid) if hasattr(self._container, "stock_repo") else None
-                tick = s_obj.ticker if s_obj else str(sid)
-                p, _ = self._get_latest_price(tick)
-                total_portfolio_val += Decimal(str(pos.total_quantity)) * Decimal(str(p if p > 0 else pos.total_cost / pos.total_quantity))
+                p_val = lp_map.get(sid)
+                if p_val is not None and p_val > 0:
+                    pos_val = Decimal(str(pos.total_quantity)) * p_val
+                else:
+                    pos_val = pos.total_cost
+                total_portfolio_val += pos_val
 
         cash = portfolio_service.get_cash_balance()
-        total_portfolio_val += cash
+        if cash:
+            total_portfolio_val += Decimal(str(cash))
 
         # Bu hissenin pozisyonunu çek
         if stock_obj and stock_obj.id in portfolio.positions:
@@ -401,8 +450,8 @@ class StockDetailController(QObject):
             cost = float(pos.total_cost)
             avg = (cost / qty) if qty > 0 else 0.0
             mval = qty * cur_price if cur_price > 0 else cost
-            pnl = mval - (qty * avg)
-            pnl_pct = ((pnl / (qty * avg)) * 100.0) if (qty * avg) > 0 else 0.0
+            pnl = mval - cost
+            pnl_pct = ((pnl / cost) * 100.0) if cost > 0 else 0.0
             weight = ((Decimal(str(mval)) / total_portfolio_val) * 100) if total_portfolio_val > 0 else Decimal("0")
 
             data["quantity"] = qty
@@ -423,9 +472,12 @@ class StockDetailController(QObject):
                 )
                 for t in trades:
                     is_buy = t.side in (TradeSide.BUY, ModelTradeSide.BUY)
-                    qty = getattr(t, "original_quantity", t.quantity)
-                    price = float(getattr(t, "original_price", t.price))
-                    tot = qty * price
+                    qty = t.quantity
+                    price = float(t.price)
+                    tot = float(t.total_amount)
+                    orig_qty = getattr(t, "original_quantity", None)
+                    orig_price = float(getattr(t, "original_price", 0.0) or 0.0)
+                    has_split = (orig_qty is not None and orig_qty != qty)
                     t_time = getattr(t, "trade_time", None)
                     data["trades"].append({
                         "date": t.trade_date.strftime("%d.%m.%Y"),
@@ -433,10 +485,15 @@ class StockDetailController(QObject):
                         "side": "ALIM" if is_buy else "SATIM",
                         "isBuy": is_buy,
                         "quantity": qty,
+                        "quantityStr": f"{qty:,} Lot",
                         "price": price,
                         "priceStr": f"₺{price:,.2f}",
                         "total": tot,
                         "totalStr": f"₺{tot:,.2f}",
+                        "hasSplit": has_split,
+                        "origQuantity": orig_qty,
+                        "origPrice": orig_price,
+                        "splitNote": f"Bölünme Öncesi: {orig_qty:,} Lot @ ₺{orig_price:,.2f}" if has_split else "",
                     })
             except Exception as tr_exc:
                 logger.warning("İşlem geçmişi okunamadı: %s", tr_exc)
@@ -454,6 +511,30 @@ class StockDetailController(QObject):
         if port:
             data["portfolio_name"] = port.name
 
+        try:
+            positions = model_service.get_positions(port_id)
+            summary = model_service.get_portfolio_summary(port_id)
+            total_val = float(summary.get("total_value", 0.0))
+
+            if stock_obj and stock_obj.id in positions:
+                pos = positions[stock_obj.id]
+                qty = pos.quantity
+                avg = float(pos.average_cost)
+                cost = qty * avg
+                mval = qty * cur_price if cur_price > 0 else cost
+                pnl = mval - cost
+                pnl_pct = (pnl / cost * 100.0) if cost > 0 else 0.0
+                weight = (mval / total_val * 100.0) if total_val > 0 else 0.0
+
+                data["quantity"] = qty
+                data["avg_cost"] = avg
+                data["market_value"] = mval
+                data["unrealized_pnl"] = pnl
+                data["unrealized_pnl_pct"] = pnl_pct
+                data["portfolio_weight_pct"] = weight
+        except Exception as me:
+            logger.warning("Model portfoy pozisyonu okunamadi: %s", me)
+
         if stock_obj and stock_obj.id:
             try:
                 trades = model_service.get_stock_trades(port_id, stock_obj.id)
@@ -469,10 +550,13 @@ class StockDetailController(QObject):
                         "side": "ALIM" if is_buy else "SATIM",
                         "isBuy": is_buy,
                         "quantity": qty,
+                        "quantityStr": f"{qty:,} Lot",
                         "price": price,
                         "priceStr": f"₺{price:,.2f}",
                         "total": tot,
                         "totalStr": f"₺{tot:,.2f}",
+                        "hasSplit": False,
+                        "splitNote": "",
                     })
             except Exception as me:
                 logger.warning("Model portfoy islemleri okunamadi: %s", me)
@@ -516,6 +600,28 @@ class StockDetailController(QObject):
                     tr_date = datetime.strptime(date_str, "%Y-%m-%d").date()
                 except Exception:
                     pass
+
+            if self._context_type == "model" and self._context_id > 0:
+                model_service = getattr(self._container, "model_portfolio_service", None) if self._container else None
+                if not model_service:
+                    raise RuntimeError("Model portföy servisi bulunamadı.")
+                from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
+                model_service.add_trade_by_ticker(
+                    portfolio_id=self._context_id,
+                    ticker=self._ticker,
+                    trade_input=ModelTradeInput(
+                        side="BUY" if is_buy else "SELL",
+                        quantity=qty,
+                        price=Decimal(str(price)),
+                        trade_date=tr_date,
+                        trade_time=datetime.now().time(),
+                    ),
+                )
+                total_amount = qty * price
+                action_tr = "satın alındı" if is_buy else "satıldı"
+                msg = f"{qty} adet {self._ticker} model portföye {action_tr} (₺{total_amount:,.2f})."
+                self._asyncTradeResult.emit(True, msg)
+                return
 
             portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
             stock_repo = getattr(self._container, "stock_repo", None) if self._container else None

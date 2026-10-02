@@ -29,6 +29,7 @@ Item {
         function onStockChanged() {
             if (stockDetailController && stockDetailController.currentPrice > 0) {
                 root.tradePrice = stockDetailController.currentPrice
+                txtPrice.text = stockDetailController.currentPrice.toFixed(2)
             }
         }
         function onTradeExecuted(success, message) {
@@ -36,6 +37,13 @@ Item {
         }
         function onExcelExported(success, message) {
             localToast.show(message, success)
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible && stockDetailController && stockDetailController.currentPrice > 0) {
+            root.tradePrice = stockDetailController.currentPrice
+            txtPrice.text = stockDetailController.currentPrice.toFixed(2)
         }
     }
 
@@ -564,9 +572,47 @@ Item {
 
                                         Item { Layout.preferredWidth: 14 }
 
-                                        Text { text: (modelData.quantity || 0) + " Lot"; color: Theme.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
-                                        Text { text: modelData.priceStr || "₺0.00"; color: Theme.textPrimary; font.pixelSize: 11; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
-                                        Text { text: modelData.totalStr || "₺0.00"; color: Theme.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
+                                        RowLayout {
+                                            Layout.preferredWidth: 80
+                                            Layout.alignment: Qt.AlignRight
+                                            spacing: 4
+
+                                            Text {
+                                                text: modelData.quantityStr || ((modelData.quantity || 0) + " Lot")
+                                                color: Theme.textPrimary
+                                                font.family: Theme.monoFontFamily
+                                                font.pixelSize: 11
+                                                Layout.fillWidth: true
+                                                horizontalAlignment: Text.AlignRight
+                                            }
+
+                                            Rectangle {
+                                                visible: Boolean(modelData.hasSplit)
+                                                width: 14
+                                                height: 14
+                                                radius: 7
+                                                color: Theme.accentSoft
+                                                ToolTip.visible: splitMouse.containsMouse
+                                                ToolTip.text: modelData.splitNote || ""
+                                                ToolTip.delay: 200
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "B"
+                                                    color: Theme.accent
+                                                    font.pixelSize: 9
+                                                    font.weight: Font.Bold
+                                                }
+
+                                                MouseArea {
+                                                    id: splitMouse
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                }
+                                            }
+                                        }
+                                        Text { text: modelData.priceStr || "₺0.00"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: 11; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
+                                        Text { text: modelData.totalStr || "₺0.00"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: 11; font.weight: Font.DemiBold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
                                     }
                                 }
 

@@ -131,7 +131,7 @@ class DashboardController(QObject):
     @Property(list, notify=kpisChanged)
     def quickTickers(self) -> List[str]:
         """Grafik üst çubuğu için portföy hisseleri ve popüler semboller."""
-        portfolio_tickers = [p["ticker"] for p in self._positions_model._positions][:5]
+        portfolio_tickers = [p["ticker"].replace(".IS", "").strip().upper() for p in self._positions_model._positions][:5]
         defaults = ["THYAO", "GARAN", "ASELS", "KCHOL"]
         res = list(portfolio_tickers)
         for d in defaults:
@@ -155,8 +155,9 @@ class DashboardController(QObject):
                 weight_val = float(p.get("weight", 0.0))
                 pct = weight_val / 100.0
                 m_val = float(p.get("marketValue", 0.0))
+                raw_label = str(p.get("ticker", "")).replace(".IS", "").strip().upper()
                 slices.append({
-                    "label": str(p.get("ticker", "")),
+                    "label": raw_label,
                     "pct": float(round(pct, 4)),
                     "color": palette[i % len(palette)],
                     "amount": f"₺{m_val:,.0f}",
@@ -223,8 +224,10 @@ class DashboardController(QObject):
 
                         for sid, pos in active.items():
                             stock = stocks_map.get(sid) or (self._container.stock_repo.get_stock_by_id(sid) if hasattr(self._container, "stock_repo") else None)
-                            ticker = stock.ticker if stock else f"STOCK_{sid}"
-                            company = stock.name if (stock and stock.name) else ticker
+                            raw_ticker = stock.ticker if stock else f"STOCK_{sid}"
+                            ticker = raw_ticker.replace(".IS", "").strip().upper()
+                            raw_company = stock.name if (stock and stock.name) else ticker
+                            company = raw_company.replace(".IS", "").strip()
                             qty = pos.total_quantity
                             cost = pos.average_cost if pos.average_cost is not None else Decimal("0")
                             price = latest_prices.get(sid, cost)

@@ -183,4 +183,18 @@ ApplicationWindow {
             shellController.navigateTo(3)
         }
     }
+
+    Connections {
+        target: (typeof stockDetailController !== "undefined") ? stockDetailController : null
+        function onTradeExecuted(success, message) {
+            if (success) {
+                if (typeof dashboardController !== "undefined") {
+                    dashboardController.refreshMetrics()
+                }
+                if (typeof modelPortfolioController !== "undefined") {
+                    modelPortfolioController.refreshData()
+                }
+            }
+        }
+    }
 }

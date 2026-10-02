@@ -388,8 +388,10 @@
       }
 
       if (payload.ticker && elTicker) {
-        const name = payload.companyName && payload.companyName !== payload.ticker ? ` (${payload.companyName})` : '';
-        elTicker.innerText = `${payload.ticker}${name}`;
+        const cleanTicker = (payload.ticker || "").replace(/\.IS$/i, "").replace(/\.IS/gi, "");
+        const cleanCompany = (payload.companyName || "").replace(/\.IS$/i, "").replace(/\.IS/gi, "").trim();
+        const name = cleanCompany && cleanCompany.toUpperCase() !== cleanTicker ? ` (${cleanCompany})` : '';
+        elTicker.innerText = `${cleanTicker}${name}`;
       }
 
       if (payload.chartType && payload.chartType !== currentChartType) {
