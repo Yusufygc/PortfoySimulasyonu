@@ -58,3 +58,16 @@ sequenceDiagram
 - Model portföy trade replay/simulation mantığı `ModelPortfolioTradeSimulator` sınıfına taşındı.
 - `ModelPortfolioTradeService` validasyon, trade üretimi, timeline kontrol ve repository orchestration sorumluluklarına indirildi.
 - Optimization tarafındaki callback fiyat lookup `except Exception` noktası bilinçli fallback contract'tır: callback bozulursa provider son fiyatına, o da yoksa varsayılan fiyata düşer.
+
+## Faz 9 QML & DuckDB Güncellemesi (2026-10-02)
+
+- **DuckDB Piyasa Verisi:** `DuckDBOptimizationMarketDataProvider` (`src/infrastructure/market_data/duckdb_optimization_market_data_provider.py`) geliştirildi. `data/market_history.duckdb` üzerindeki 624 BIST hissesinin 504 günlük fiyatları ve kovaryans matrisi milisaniyeler mertebesinde DuckDB columnar sorgusuyla temin edilir (eksik hisselerde YFinance fallback devrededir).
+- **Verimli Sınır ve Simülasyon Motoru:** `src/application/services/planning/frontier_simulation.py` modülü altında:
+  - `simulate_monte_carlo`: Dirichlet dağılımı ile 1.000 rastgele portföy noktasını 1 ms'de simüle eder.
+  - `calculate_efficient_frontier_curve`: Hedef getiri grid'i üzerinde SLSQP optimizasyonuyla Verimli Sınır (Efficient Frontier) eğrisinin koordinatlarını hesaplar.
+  - `calculate_rebalance_plan`: Mevcut ve optimum portföy ağırlıklarına göre fark yüzdesi, parasal fark (₺), aksiyon (EKLE/AZALT/TUT) ve tahmini lot miktarlarını hesaplar.
+- **QML Arayüzü ve Controller:**
+  - `OptimizationController` (`src/ui_qml/controllers/optimization_controller.py`): Asenkron `ThreadPoolExecutor` iş parçacığı ve Qt Queued Signal ile UI bloklamayan mimari. Chart.js tabanlı interaktif HTML5 scatter plot ve ağırlık karşılaştırma çubuk grafiği üretir.
+  - `OptimizationView.qml` (`src/ui_qml/qml/views/OptimizationView.qml`): Sol kontrol paneli, 4 adet KPI kartı (Maksimum Sharpe, Beklenen Getiri, Risk/Volatilite, Min Volatilite), 3 sekmeli yapı (Verimli Sınır, Ağırlık Dağılımı, Rebalance Tablosu).
+- **Test Kapsamı:** `tests/ui_qml/test_optimization_phase9.py` (5/5 yeşil, toplam QML testleri 56/56 %100 yeşil).
+

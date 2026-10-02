@@ -16,6 +16,9 @@ from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataCli
 from src.infrastructure.market_data.yfinance_optimization_market_data_provider import (
     YFinanceOptimizationMarketDataProvider,
 )
+from src.infrastructure.market_data.duckdb_optimization_market_data_provider import (
+    DuckDBOptimizationMarketDataProvider,
+)
 from src.infrastructure.market_data.yfinance_price_lookup_provider import YFinancePriceLookupProvider
 from src.infrastructure.market_data.yfinance_valuation_provider import YFinanceValuationProvider
 from src.infrastructure.corporate_actions.kap_shareholder_provider import KapShareholderProvider
@@ -26,7 +29,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class MarketClientSet:
     market_client: YFinanceMarketDataClient
-    optimization_market_data_provider: YFinanceOptimizationMarketDataProvider
+    optimization_market_data_provider: object
     trading_calendar: BistTradingCalendarProvider
     evds_client: EvdsClient
     price_lookup_service: PriceLookupService
@@ -51,9 +54,11 @@ def _build_tv_client() -> Optional[TvDatafeedClient]:
 def build_market_clients(conn_provider) -> MarketClientSet:
     trading_calendar = BistTradingCalendarProvider()
     evds_client      = EvdsClient()
+    yf_opt_provider  = YFinanceOptimizationMarketDataProvider()
+    duckdb_opt_provider = DuckDBOptimizationMarketDataProvider(fallback_provider=yf_opt_provider)
     return MarketClientSet(
         market_client=YFinanceMarketDataClient(),
-        optimization_market_data_provider=YFinanceOptimizationMarketDataProvider(),
+        optimization_market_data_provider=duckdb_opt_provider,
         trading_calendar=trading_calendar,
         evds_client=evds_client,
         price_lookup_service=PriceLookupService(provider=YFinancePriceLookupProvider()),

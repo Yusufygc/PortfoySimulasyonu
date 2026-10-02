@@ -25,6 +25,7 @@ from src.ui_qml.controllers.comparison_controller import ComparisonController
 from src.ui_qml.controllers.screener_controller import ScreenerController
 from src.ui_qml.controllers.planning_controller import PlanningController
 from src.ui_qml.controllers.market_sync_controller import MarketSyncController
+from src.ui_qml.controllers.optimization_controller import OptimizationController
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ def run_qml_app(container=None) -> int:
     screener_ctrl = ScreenerController(container=container, parent=engine)
     planning_ctrl = PlanningController(container=container, parent=engine)
     market_sync_ctrl = MarketSyncController(parent=engine)
+    optimization_ctrl = OptimizationController(container=container, parent=engine)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
@@ -78,6 +80,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("screenerController", screener_ctrl)
     context.setContextProperty("planningController", planning_ctrl)
     context.setContextProperty("marketSyncController", market_sync_ctrl)
+    context.setContextProperty("optimizationController", optimization_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"

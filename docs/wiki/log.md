@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] güncelleme | FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier Tamamlandı
+
+- PySide6 + Qt Quick (QML) mimarisi için Faz 9 Markowitz Portföy Optimizasyonu ve Verimli Sınır modülü eksiksiz tamamlandı.
+- `DuckDBOptimizationMarketDataProvider` geliştirilerek `market_history.duckdb` (624 BIST hissesi, 2.2M bar) ile kovaryans matrisi ve tarihsel fiyatlar milisaniyeler içinde çekilebilir kılındı.
+- `frontier_simulation.py` modülü ile vektörel Monte Carlo simülasyonu (1.000 portföy noktası), SLSQP Verimli Sınır eğrisi koordinatları ve parasal/lot bazlı yeniden dengeleme (rebalance) planlayıcısı uygulandı.
+- `OptimizationController` (asenkron ThreadPoolExecutor, Qt Queued Signals, Chart.js HTML5 scatter/bar grafiği, risk profili/ağırlık kısıtı yönetimi) ve `OptimizationView.qml` (modern fintech arayüzü, 4 KPI kartı, 3 sekme, dinamik rebalance tablosu) geliştirildi.
+- Testler: `tests/ui_qml/test_optimization_phase9.py` (5/5 yeni test), toplam QML testleri 56/56 %100 yeşil.
+- Etkilenen modüller: src/infrastructure/market_data/duckdb_optimization_market_data_provider.py, src/application/services/planning/frontier_simulation.py, src/ui_qml/controllers/optimization_controller.py, src/ui_qml/qml/views/OptimizationView.qml, src/ui_qml/qml/theme/Strings.qml, src/ui_qml/app.py, src/ui_qml/qml/Main.qml, tests/ui_qml/test_optimization_phase9.py, QML_TRANSFORMATION_HANDOFF.md, docs/wiki/log.md
+
 ## [2026-10-02] belge | QML Dönüşüm Handoff Kılavuzu Faz 6-8, DuckDB ve Otomatik Senkronizasyonla Güncellendi
 
 - `QML_TRANSFORMATION_HANDOFF.md` dosyası projenin yeni oturumlardan pürüzsüzce devralınabilmesi için baştan sona güncellendi.

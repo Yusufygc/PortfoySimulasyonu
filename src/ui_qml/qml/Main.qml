@@ -118,11 +118,13 @@ ApplicationWindow {
                         source: "views/PlanningView.qml"
                     }
 
-                    // 7: Optimizasyon (Faz 9)
-                    PlaceholderView {
-                        title: Strings.navOptimization
-                        subtitle: "Faz 9 kapsamında Efficient Frontier saçılım eğrisi, ağırlık kısıtları ve rebalance önerileri eklenecektir."
-                        iconName: "optimization"
+                    // 7: Optimizasyon (Faz 9 - Markowitz Portföy Optimizasyonu & Verimli Sınır - Tembel Yükleme)
+                    Loader {
+                        id: optimizationLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 7 || (status === Loader.Ready)
+                        source: "views/OptimizationView.qml"
                     }
 
                     // 8: AI Danışman (Faz 10)

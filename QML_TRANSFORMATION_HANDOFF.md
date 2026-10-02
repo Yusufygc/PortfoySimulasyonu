@@ -21,7 +21,7 @@ Yeni bir oturum açıldığında sırasıyla şu adımları uygulayın:
    ```powershell
    .\venv\Scripts\python.exe -m pytest tests/ui_qml/
    ```
-   *(Beklenen sonuç: 51/51 test %100 yeşil, ~9 saniye).*
+   *(Beklenen sonuç: 56/56 test %100 yeşil, ~9 saniye).*
 4. **Uygulamayı QML Modunda Başlatma:**
    ```powershell
    .\venv\Scripts\python.exe app.py --ui=qml
@@ -94,7 +94,8 @@ flowchart LR
     F6 --> F7["Faz 7: Kıyas & Screener<br/>(commit e5139eb)"]
     F7 --> F8["Faz 8: Planlama & DCA<br/>(commit 421e1ff)"]
     F8 --> DUCK["DuckDB OLAP & BIST Sync<br/>(commit 57cca51 & 1163a0a)"]
-    DUCK --> F9["Faz 9: Optimizasyon<br/>(SIRADAKİ ADIM)"]
+    DUCK --> F9["Faz 9: Optimizasyon & Frontier<br/>(CANLI / AKTİF)"]
+    F9 --> F10["Faz 10: AI Danışman<br/>(SIRADAKİ ADIM)"]
 ```
 
 ### 4.1 Faz 0 & SQLite Tam Göçü (`commit: e25a851`, `7de5033`)
@@ -168,6 +169,22 @@ flowchart LR
   - Senkronizasyon bittiğinde yeşil `ToastNotification` bildirimi.
 * **DCA Entegrasyonu (`commit: 979195e`):** DCA simülatöründe `save_stock` metot eksikliği giderildi ve DuckDB'deki 2.2 milyon bardan doğrudan ticker ile fiyat okuma desteği eklendi.
 
+### 4.12 Faz 9 — Markowitz Portföy Optimizasyonu & Verimli Sınır (Efficient Frontier)
+* **`DuckDBOptimizationMarketDataProvider` (`src/infrastructure/market_data/duckdb_optimization_market_data_provider.py`):**
+  - DuckDB `data/market_history.duckdb` üzerinden 624 BIST hissesinin 504 günlük kapanış fiyatlarını ve kovaryans matrisini ~20 ms içinde vektörel çeken piyasa veri sağlayıcısı (eksik hisselerde otomatik YFinance fallback).
+* **`frontier_simulation.py` (`src/application/services/planning/frontier_simulation.py`):**
+  - Vektörel Monte Carlo portföy simülatörü (`simulate_monte_carlo`): 1.000 rastgele portföy noktasını 1 ms'de üretir.
+  - Verimli Sınır eğrisi hesaplayıcı (`calculate_efficient_frontier_curve`): Hedef getiri grid'i üzerinde SLSQP optimizasyonuyla sınır eğrisi koordinatlarını çıkarır.
+  - Rebalance planlayıcı (`calculate_rebalance_plan`): Mevcut vs hedef ağırlıklar, parasal farklar (₺) ve tahmini lot emirlerini hesaplar.
+* **`OptimizationController` (`src/ui_qml/controllers/optimization_controller.py`):**
+  - Portföy seçici (Ana Portföy + Model Portföyler), risk profili seçimi (Çok Muhafazakar, Muhafazakar, Dengeli, Büyüme, Agresif, Manuel), tek hisse max ağırlık slider'ı, risksiz faiz oranı kısıtı.
+  - `ThreadPoolExecutor` ile asenkron arka plan hesaplama ve Qt Queued Signal yapısı.
+  - Chart.js tabanlı interaktif scatter plot (Verimli Sınır eğrisi + Monte Carlo bulutu + Mevcut/Optimum/Min Vol noktaları) ve ağırlık karşılaştırması çubuk grafiği.
+* **`OptimizationView.qml` (`src/ui_qml/qml/views/OptimizationView.qml`):**
+  - Sol kontrol paneli, 4 adet KPI metrik kartı (Maksimum Sharpe, Beklenen Getiri, Risk/Volatilite, Min Volatilite).
+  - 3 Sekmeli görünüm: Verimli Sınır Grafiği, Ağırlık Karşılaştırması, Yeniden Dengeleme (Rebalance) Tablosu (EKLE/AZALT/TUT rozetleri, parasal farklar, tahmini lotlar).
+* **Birim ve Arayüz Testleri:** `tests/ui_qml/test_optimization_phase9.py` (5/5 yeşil, toplam QML testi 56/56).
+
 ---
 
 ## 5. Mevcut Sayfa İndeksleri Durumu (`Main.qml`)
@@ -183,42 +200,21 @@ flowchart LR
 | **4** | `ComparisonView` | **CANLI / AKTİF** | Faz 7 | `src/ui_qml/qml/views/ComparisonView.qml` |
 | **5** | `ScreenerView` | **CANLI / AKTİF** | Faz 7 | `src/ui_qml/qml/views/ScreenerView.qml` |
 | **6** | `PlanningView` | **CANLI / AKTİF** | Faz 8 | `src/ui_qml/qml/views/PlanningView.qml` |
-| **7** | `OptimizationView` | *Placeholder* | **Faz 9 (SIRADAKİ ADIM)** | `src/ui_qml/qml/views/OptimizationView.qml` |
-| **8** | `AiAdvisorView` | *Placeholder* | **Faz 10** | `src/ui_qml/qml/views/AiAdvisorView.qml` |
+| **7** | `OptimizationView` | **CANLI / AKTİF** | Faz 9 | `src/ui_qml/qml/views/OptimizationView.qml` |
+| **8** | `AiAdvisorView` | *Placeholder* | **Faz 10 (SIRADAKİ ADIM)** | `src/ui_qml/qml/views/AiAdvisorView.qml` |
 | **9** | `SettingsView` | *Placeholder* | **Faz 11** | `src/ui_qml/qml/views/SettingsView.qml` |
 
 ---
 
 ## 6. Kalan Fazlar ve Detaylı Uygulama Planı (Roadmap)
 
-### 🎯 FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier (SIRADAKİ ÖNCELİKLİ ADIM)
+### FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier (TAMAMLANDI)
 
-Bu fazın amacı; portföydeki veya seçilen izleme listesindeki hisse senetleri için Modern Portföy Teorisi (Markowitz MPT) prensipleriyle matematiksel optimizasyon çalıştırmak, risk/getiri uzayındaki Verimli Sınır (Efficient Frontier) eğrisini çizmek ve kullanıcıya net rebalance (yeniden dengeleme) önerileri sunmaktır.
-
-* **Backend Servisleri (Mevcut Altyapı):**
-  - `src/application/services/planning/optimization_service.py` (`OptimizationService`): SciPy `SLSQP` optimizasyon motoru, Ledoit-Wolf kovaryans matrisi shrinkage'ı, beklenen getiri ve volatilite hesaplamaları.
-  - `src/application/services/planning/risk_optimization_bridge_service.py`: Kullanıcının risk toleransına göre hedef portföy ağırlıklarını belirleyen köprü servis.
-  - `src/application/services/analysis/portfolio_analytics_service.py`: Sharpe oranı, Sortino oranı, varyans ve kovaryans hesaplamaları.
-* **DuckDB Entegrasyonu Avantajı:**
-  - Hisse senetlerinin 26 yıllık günlük getirileri ve kovaryans matrisi DuckDB'deki `data/market_history.duckdb` tablosundan vektörel SQL ile milisaniyeler içinde çekilebilir.
-* **Geliştirilecek Dosyalar:**
-  1. `src/ui_qml/controllers/optimization_controller.py`:
-     - Portföydeki hisseleri veya seçilen hisse havuzunu getirme.
-     - Risk profili seçimi (Muhafazakar, Dengeli, Büyüme, Agresif).
-     - Min/Max hisse ağırlık kısıtları (örn. tek hisseye en fazla %25 ağırlık).
-     - Optimizasyon sonuçları: Maksimum Sharpe Portföyü, Minimum Oynaklık (Volatilite) Portföyü, Mevcut Portföy durumu.
-     - Monte Carlo simülasyonu ile üretilen 1.000+ rastgele portföy noktası ve Efficient Frontier eğrisi koordinatları.
-     - Rebalance tablosu: Hangi hisseden kaç adet/TL satılmalı, hangisine kaç adet/TL eklenmeli.
-  2. `src/ui_qml/qml/views/OptimizationView.qml`:
-     - Sol Panel: Portföy seçici, hisse ağırlık kısıtları (Slider/SpinBox), risk tolerans seçici, "Optimize Et" butonu.
-     - Orta/Üst Alan: Efficient Frontier Saçılım Grafiği (QML Canvas veya yerel Lightweight Charts / Chart.js scatter plot).
-     - Sağ/Alt Alan: Mevcut vs Optimize Portföy Ağırlık Karşılaştırması (Pasta veya Çubuk grafik) ve Rebalance Öneri Tablosu.
-  3. `tests/ui_qml/test_optimization_phase9.py`:
-     - Controller başlatma, kısıt parametreleri, optimizasyon çalıştırma, sinyal yayılımı ve QML render testleri.
+Bu faz başarıyla tamamlanmış ve canlıya alınmıştır (`OptimizationController`, `OptimizationView.qml`, `DuckDBOptimizationMarketDataProvider`, `frontier_simulation.py`, 56/56 yeşil test).
 
 ---
 
-### 🎯 FAZ 10: Gemini AI Karar Destek Danışmanı
+### 🎯 FAZ 10: Gemini AI Karar Destek Danışmanı (SIRADAKİ ÖNCELİKLİ ADIM)
 
 Bu fazın amacı; Google Gemini LLM API (Gemini 2.5 Flash / Pro) modellerini kullanarak portföyün güçlü/zayıf yönlerini değerlendiren, makroekonomik gelişmeleri ve hisse rasyolarını sentezleyen interaktif bir yatırım danışmanı arayüzü sunmaktır.
 
