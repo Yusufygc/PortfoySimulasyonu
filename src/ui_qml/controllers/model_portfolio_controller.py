@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, time as dt_time, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional, Any
@@ -61,6 +62,9 @@ class ModelPortfolioController(QObject):
     positionsChanged = Signal()
     loadingChanged = Signal()
     operationResult = Signal(bool, str)  # success, message
+    excelExported = Signal(bool, str)    # success, message
+
+    _asyncExportFinished = Signal(bool, str)
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
@@ -69,6 +73,8 @@ class ModelPortfolioController(QObject):
         self._price_repo = getattr(container, "price_repo", None) if container else None
         self._latest_price_repo = getattr(container, "latest_price_repo", None) if container else None
         self._stock_repo = getattr(container, "stock_repo", None) if container else None
+        self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ModelPortWorker")
+        self._asyncExportFinished.connect(self._on_export_finished)
 
         # State
         self._portfolio_list: List[Dict[str, Any]] = []
@@ -589,3 +595,64 @@ class ModelPortfolioController(QObject):
         self._positions_list = []
         self._has_positions = False
         self.positionsChanged.emit()
+
+    # -------------------------------------------------------------------------
+    # EXCEL RAPOR DIŞA AKTARIMI
+    # -------------------------------------------------------------------------
+
+    @Slot()
+    def exportToExcel(self) -> None:
+        """Mevcut seçili model portföyü Excel'e aktarır."""
+        if self._current_portfolio_id < 0:
+            self.operationResult.emit(False, "Dışa aktarmak için bir model portföy seçilmelidir.")
+            return
+        self.exportPortfolioToExcel(self._current_portfolio_id)
+
+    @Slot(int)
+    def exportPortfolioToExcel(self, portfolio_id: int) -> None:
+        """Belirtilen model portföyü Excel dosyası olarak kaydeder."""
+        self._executor.submit(self._run_excel_export_worker, portfolio_id)
+
+    def _run_excel_export_worker(self, portfolio_id: int) -> None:
+        try:
+            from pathlib import Path
+            from datetime import datetime
+            desktop = Path.home() / "Desktop"
+            out_dir = desktop if desktop.exists() else Path("reports").resolve()
+            out_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            port = self._service.get_portfolio_by_id(portfolio_id) if self._service else None
+            p_name = port.name if port else f"Portfoy_{portfolio_id}"
+            safe_name = "".join(c for c in p_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+            target_file = out_dir / f"Model_Portfoy_{safe_name}_{timestamp}.xlsx"
+
+            excel_service = getattr(self._container, "model_portfolio_excel_export_service", None) if self._container else None
+            if excel_service and self._service:
+                positions_dict = self._service.get_positions(portfolio_id)
+                # Fiyat haritası oluştur
+                price_map = {}
+                for sid in positions_dict.keys():
+                    price_val = Decimal("100.0")
+                    if self._price_repo:
+                        latest = self._price_repo.get_latest_price_by_stock_id(sid) if hasattr(self._price_repo, "get_latest_price_by_stock_id") else None
+                        if latest:
+                            price_val = Decimal(str(latest.close_price))
+                    price_map[sid] = price_val
+
+                excel_service.export_model_portfolio(
+                    portfolio_id=portfolio_id,
+                    price_map=price_map,
+                    file_path=target_file,
+                )
+                self._asyncExportFinished.emit(True, f"Model portföy Excel raporu oluşturuldu:\n{target_file.name}")
+            else:
+                self._asyncExportFinished.emit(False, "Excel dışa aktarım servisi yapılandırılmamış.")
+        except Exception as exc:
+            logger.exception("Model portföy Excel export hatası: %s", exc)
+            self._asyncExportFinished.emit(False, f"Excel raporu oluşturulamadı: {exc}")
+
+    def _on_export_finished(self, success: bool, message: str) -> None:
+        self.excelExported.emit(success, message)
+        self.operationResult.emit(success, message)
+

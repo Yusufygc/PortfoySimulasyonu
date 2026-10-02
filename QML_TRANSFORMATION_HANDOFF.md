@@ -21,7 +21,7 @@ Yeni bir oturum açıldığında sırasıyla şu adımları uygulayın:
    ```powershell
    .\venv\Scripts\python.exe -m pytest tests/ui_qml/
    ```
-   *(Beklenen sonuç: 72/72 test %100 yeşil, ~12 saniye).*
+   *(Beklenen sonuç: 80/80 test %100 yeşil, ~14 saniye).*
 4. **Uygulamayı QML Modunda Başlatma:**
    ```powershell
    .\venv\Scripts\python.exe app.py --ui=qml
@@ -209,6 +209,25 @@ flowchart LR
   - 4 Sekmeli modern fintech ayar arayüzü: *Görünüm & Tema*, *API Anahtarları*, *Veri Sağlığı & Senkronizasyon*, *Dışa Aktarım & Yedekleme*.
 * **Birim ve Arayüz Testleri:** `tests/ui_qml/test_settings_phase11.py` (7/7 yeşil, toplam QML testi 72/72).
 
+### 4.15 Hisse Detay Modalı & Profesyonel Excel Raporlama Entegrasyonu
+* **Eski PyQt5 Analizi:** Eski `StockDetailPage` ve backend raporlama servisleri (`ExcelExportService`, `ModelPortfolioExcelExportService`) incelenerek modern QML mimarisine kazandırıldı.
+* **`StockDetailController` (`src/ui_qml/controllers/stock_detail_controller.py`):**
+  - Seçilen hisseye ait pozisyon metrikleri (lot, ortalama maliyet, piyasa değeri, K/Z tutarı ve oranı, portföy ağırlığı).
+  - Hisseye özel gerçekleşmiş tüm alım/satım emirleri (`portfolio_service.get_trades_for_stock`).
+  - Şirketin sermaye artırımları / bedelli / bedelsiz kayıtları (`corporate_action_service.get_by_stock`).
+  - Doğrudan hisse detay modalı üzerinden ALIM/SATIM emri verme (`submitTrade`).
+  - Hisseye özel profesyonel biçimlendirilmiş Excel raporu üretimi (`exportStockToExcel`).
+* **`StockDetailModal.qml` (`src/ui_qml/qml/components/StockDetailModal.qml`):**
+  - Koyu fintech modal overlay; canlı fiyat başlığı, 4 KPI kartı, geçmiş işlemler ve sermaye artırımları sekmeleri, doğrudan al/sat emir formu.
+  - TradingView grafiğine geçiş ("Grafik"), Hisse 360 sayfasına geçiş ("Temel Analiz") ve Excel dışa aktarım kısayol butonları.
+  - `DashboardView.qml` ve `ModelPortfolioView.qml` tablolarında pozisyon satırına tıklandığında veya "Detay" butonuna basıldığında anında açılır.
+* **Excel Dışa Aktarım Sistemi:**
+  - `DashboardView.qml`: Başlıkta "Excel Raporu" butonuyla tüm portföy performansının (KPI'lar, Getiri Geçmişi, Pozisyonlar) 4 sayfalı Excel formatında dışa aktarımı.
+  - `ModelPortfolioView.qml`: Model portföy performansının Excel'e aktarımı.
+  - `SettingsView.qml`: Veri dışa aktarım sekmesinden profesyonel rapor üretimi.
+* **UI Suffix Standardı:** Kod ve arayüz genelinde hiçbir yerde `.IS` uzantısının görünmemesi kuralı titizlikle uygulandı (`_clean_ticker`).
+* **Birim ve Arayüz Testleri:** `tests/ui_qml/test_stock_detail_and_excel.py` (8/8 yeşil, toplam QML testi 80/80 %100 yeşil).
+
 ---
 
 ## 5. Mevcut Sayfa İndeksleri Durumu (`Main.qml`)
@@ -232,10 +251,10 @@ flowchart LR
 
 ## 6. QML Dönüşüm Durumu Özeti (%100 TAMAMLANDI)
 
-Bütün fazlar (Faz 0'dan Faz 11'e kadar) eksiksiz olarak tamamlanmıştır:
+Bütün fazlar (Faz 0'dan Faz 11'e kadar) ve legacy yeteneklerin (Hisse Detay & Excel Raporlama) taşınması eksiksiz olarak tamamlanmıştır:
 * Eski PyQt5 QWidgets katmanından donanım hızlandırmalı modern PySide6 + Qt Quick (QML) mimarisine geçiş %100 tamamlandı.
 * 10 ana ekranın tamamı canlı, tembel yüklemeli (Lazy Loading) ve sıfır anchor/binding uyarısıyla çalışmaktadır.
-* Toplam 72 birim ve arayüz testinin tamamı (72/72) %100 yeşildir.
+* Toplam 80 birim ve arayüz testinin tamamı (80/80) %100 yeşildir.
 * Çift motorlu hibrit veritabanı (SQLite OLTP + DuckDB 2.23M bar OLAP) ve 18:15 otomatik seans nöbetçisi aktiftir.
 
 ---
@@ -262,7 +281,7 @@ sıradaki aşama olan "FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Front
   - DuckDB: `data/market_history.duckdb` (624 BIST hissesi, 2.238.543 bar, 2000-2026).
 * **QML Kök Dosyası:** `src/ui_qml/qml/Main.qml`.
 * **Tema ve Sabitler:** `src/ui_qml/qml/theme/` (`Theme.qml`, `Icons.qml`, `Strings.qml`, `qmldir`).
-* **Bileşenler:** `src/ui_qml/qml/components/` (`ModernIcon.qml`, `ModernButton.qml`, `ModernScrollBar.qml`, `MiniSparkline.qml`, `RatioCard.qml`, `FinancialBarChart.qml`, `ShareholderPieCard.qml`, `TradingViewChart.qml`, `WindowHeader.qml`, `ToastNotification.qml` vb.).
+* **Bileşenler:** `src/ui_qml/qml/components/` (`StockDetailModal.qml`, `ModernIcon.qml`, `ModernButton.qml`, `ModernScrollBar.qml`, `MiniSparkline.qml`, `RatioCard.qml`, `FinancialBarChart.qml`, `ShareholderPieCard.qml`, `TradingViewChart.qml`, `WindowHeader.qml`, `ToastNotification.qml` vb.).
 * **Sayfa Görünümleri:** `src/ui_qml/qml/views/`:
   - `DashboardView.qml` (Portföy & Canlı Grafik)
   - `WatchlistView.qml` (Çoklu Takip Listeleri)
@@ -271,9 +290,12 @@ sıradaki aşama olan "FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Front
   - `ComparisonView.qml` (Normalize Getiri & Treemap)
   - `ScreenerView.qml` (BIST Hisse Tarayıcısı)
   - `PlanningView.qml` (Bütçe, Hedefler & DCA)
+  - `OptimizationView.qml` (Markowitz & Verimli Sınır)
+  - `AiAdvisorView.qml` (Gemini 2.5 AI Karar Destek)
+  - `SettingsView.qml` (Ayarlar & Veri Yönetimi)
 * **Python QML Denetleyicileri:** `src/ui_qml/controllers/`:
-  - `DashboardController`, `ChartController`, `WatchlistController`, `Stock360Controller`, `ModelPortfolioController`, `ComparisonController`, `ScreenerController`, `PlanningController`, `MarketSyncController`.
-* **Birim Testleri:** `tests/ui_qml/` (51 test, hepsi yeşil).
+  - `DashboardController`, `ChartController`, `StockDetailController`, `WatchlistController`, `Stock360Controller`, `ModelPortfolioController`, `ComparisonController`, `ScreenerController`, `PlanningController`, `OptimizationController`, `AiAdvisorController`, `SettingsController`, `MarketSyncController`.
+* **Birim Testleri:** `tests/ui_qml/` (80 test, hepsi yeşil).
 * **Senkronizasyon Servisleri & Betikleri:**
   - `src/application/services/market_data/market_data_sync_service.py`
   - `src/application/services/market_data/bist_bulk_downloader.py`

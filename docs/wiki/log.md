@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] özellik | Hisse Detay Modalı ve Çok Sayfalı Profesyonel Excel Dışa Aktarımı QML Mimarisine Eklendi
+
+- Eski PyQt5 arayüzündeki hisse detay sayfası ve Excel raporlama motorları taranarak QML mimarisine temiz bir Clean Architecture adaptörüyle kazandırıldı:
+  - `StockDetailController` (`src/ui_qml/controllers/stock_detail_controller.py`): Asenkron ThreadPoolExecutor, pozisyon metrikleri (lot, maliyet, k/z, ağırlık), hisseye özel geçmiş işlem listesi (`portfolio_service.get_trades_for_stock`), sermaye artırımları/bedelsiz/bedelli geçmişi (`corporate_action_service.get_by_stock`), doğrudan hisse alım/satım emri (`submitTrade`), ve hisseye özel açık/kapalı işlem ve sermaye hareketlerini içeren biçimlendirilmiş Excel raporu üretimi (`exportStockToExcel`).
+  - `StockDetailModal.qml` (`src/ui_qml/qml/components/StockDetailModal.qml`): Modern fintech koyu tema overlay modalı. Canlı fiyat başlığı, 4 KPI kartı, sekmeli geçmiş işlemler & sermaye artırımları tablosu, hızlı alım/satım işlem formu ve TradingView / Hisse 360 / Excel kısayol butonları.
+  - Suffix Temizliği: UI üzerinde hiçbir yerde `.IS` uzantısı kalmaması kuralı titizlikle uygulandı (`_clean_ticker`).
+  - Excel Raporlama: `ExcelExportService` (Dashboard, Günlük Getiriler, Hisse Dağılımı ve KPI'lar) ve `ModelPortfolioExcelExportService` (Model Portföy pozisyon ve performans dökümü) servisleri `DashboardController`, `ModelPortfolioController` ve `SettingsController` bileşenlerine tek tıkla Excel dışa aktarım (`exportToExcel`) aksiyonları olarak entegre edildi.
+  - Testler: `tests/ui_qml/test_stock_detail_and_excel.py` (8/8 yeni test), toplam QML testleri 80/80 %100 yeşil.
+- Etkilenen modüller: src/ui_qml/controllers/stock_detail_controller.py, src/ui_qml/controllers/dashboard_controller.py, src/ui_qml/controllers/model_portfolio_controller.py, src/ui_qml/controllers/settings_controller.py, src/ui_qml/app.py, src/ui_qml/qml/theme/Strings.qml, src/ui_qml/qml/components/StockDetailModal.qml, src/ui_qml/qml/views/DashboardView.qml, src/ui_qml/qml/views/ModelPortfolioView.qml, src/ui_qml/qml/Main.qml, tests/ui_qml/test_stock_detail_and_excel.py, docs/wiki/log.md
+
 ## [2026-10-02] güncelleme | FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier Tamamlandı
 
 - PySide6 + Qt Quick (QML) mimarisi için Faz 9 Markowitz Portföy Optimizasyonu ve Verimli Sınır modülü eksiksiz tamamlandı.

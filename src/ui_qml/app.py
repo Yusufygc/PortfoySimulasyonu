@@ -28,6 +28,7 @@ from src.ui_qml.controllers.market_sync_controller import MarketSyncController
 from src.ui_qml.controllers.optimization_controller import OptimizationController
 from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
 from src.ui_qml.controllers.settings_controller import SettingsController
+from src.ui_qml.controllers.stock_detail_controller import StockDetailController
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ def run_qml_app(container=None) -> int:
     optimization_ctrl = OptimizationController(container=container, parent=engine)
     ai_advisor_ctrl = AiAdvisorController(container=container, parent=engine)
     settings_ctrl = SettingsController(container=container, parent=engine)
+    stock_detail_ctrl = StockDetailController(container=container, parent=engine)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
@@ -87,6 +89,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("optimizationController", optimization_ctrl)
     context.setContextProperty("aiAdvisorController", ai_advisor_ctrl)
     context.setContextProperty("settingsController", settings_ctrl)
+    context.setContextProperty("stockDetailController", stock_detail_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"

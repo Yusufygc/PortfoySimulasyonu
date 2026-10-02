@@ -164,4 +164,23 @@ ApplicationWindow {
             globalToast.show(message, success)
         }
     }
+
+    // Hisse Detayı & Pozisyon Analitiği Modalı (Global)
+    StockDetailModal {
+        id: globalStockDetailModal
+
+        onOpenChartRequested: function(ticker) {
+            if (typeof chartController !== "undefined") {
+                chartController.loadTicker(ticker)
+            }
+            shellController.navigateTo(0)
+        }
+
+        onOpenStock360Requested: function(ticker) {
+            if (typeof stock360Controller !== "undefined") {
+                stock360Controller.searchTicker(ticker)
+            }
+            shellController.navigateTo(3)
+        }
+    }
 }

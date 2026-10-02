@@ -212,6 +212,49 @@ Item {
                             }
                         }
 
+                        // Excel Raporu Butonu
+                        Rectangle {
+                            height: 36
+                            width: btnExcelRow.width + Theme.spaceMd * 2
+                            radius: Theme.radiusSm
+                            color: btnExcelMouse.containsMouse ? Theme.bgCardHover : Theme.bgCard
+                            border.color: Theme.borderSubtle
+                            border.width: 1
+
+                            RowLayout {
+                                id: btnExcelRow
+                                anchors.centerIn: parent
+                                spacing: Theme.spaceXs
+
+                                ModernIcon {
+                                    iconSource: Icons.get("filetext")
+                                    iconColor: Theme.textSecondary
+                                    width: 14
+                                    height: 14
+                                }
+
+                                Text {
+                                    text: Strings.btnExportExcel
+                                    color: Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSm
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+
+                            MouseArea {
+                                id: btnExcelMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (typeof portfolioController !== "undefined") {
+                                        portfolioController.exportToExcel()
+                                    }
+                                }
+                            }
+                        }
+
                         // Yeni İşlem Butonu (+ Primary)
                         Rectangle {
                             height: 36
@@ -264,8 +307,9 @@ Item {
                     visible: portfolioController.hasPositions
 
                     onPositionClicked: function(stockId, ticker) {
-                        chartController.loadTicker(ticker)
-                        shellController.navigateTo(0) // Dashboard'a götürüp grafiğini açar
+                        if (typeof stockDetailController !== "undefined") {
+                            stockDetailController.openStockWithContext(ticker, "model", portfolioController.currentPortfolioId)
+                        }
                     }
                 }
 

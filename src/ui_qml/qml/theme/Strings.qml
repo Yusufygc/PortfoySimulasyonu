@@ -526,6 +526,30 @@ QtObject {
     readonly property string settingsExportJson: "JSON Portföy Yedeği Al (.json)"
     readonly property string settingsExportExcelDesc: "Açık pozisyonlarınızı, gerçekleşen emirlerinizi ve nakit geçmişinizi profesyonel Excel tablosu olarak kaydeder."
     readonly property string settingsExportJsonDesc: "Tüm portföy ve sistem hareketlerini içeren tam yedek dosyası oluşturur."
+
+    // --- Hisse Detay & Pozisyon Analitiği ---
+    readonly property string stockDetailTitle: "Hisse Detayı & Pozisyon Analizi"
+    readonly property string stockDetailBreadcrumb: "PORTFÖY"
+    readonly property string stockDetailKpiQty: "Toplam Lot"
+    readonly property string stockDetailKpiCost: "Ort. Maliyet"
+    readonly property string stockDetailKpiValue: "Piyasa Değeri"
+    readonly property string stockDetailKpiPnl: "Net Kâr / Zarar"
+    readonly property string stockDetailTabTrades: "İşlem Geçmişi"
+    readonly property string stockDetailTabCorpActions: "Sermaye Artırımları"
+    readonly property string stockDetailQuickTrade: "Hızlı Emir Girişi"
+    readonly property string stockDetailBtnTv: "TradingView Grafiği"
+    readonly property string stockDetailBtn360: "Hisse 360 Temel Analiz"
+    readonly property string stockDetailBtnExcel: "Hisse Geçmişini Excel'e Aktar"
+    readonly property string stockDetailEmptyTrades: "Bu hisse için kayıtlı işlem geçmişi bulunmuyor."
+    readonly property string stockDetailEmptyCorp: "Bu hisse için kayıtlı sermaye artırımı bulunmuyor."
+    readonly property string stockDetailThDate: "Tarih"
+    readonly property string stockDetailThTime: "Saat"
+    readonly property string stockDetailThType: "İşlem Türü"
+    readonly property string stockDetailThQty: "Adet (Lot)"
+    readonly property string stockDetailThPrice: "Fiyat"
+    readonly property string stockDetailThTotal: "Tutar"
+    readonly property string stockDetailThRatio: "Artırım Oranı"
+    readonly property string btnExportExcel: "Excel Raporu"
 }
 
 

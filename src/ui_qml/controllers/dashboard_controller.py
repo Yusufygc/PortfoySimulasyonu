@@ -5,9 +5,10 @@ from __future__ import annotations
 
 import logging
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
 from src.ui_qml.models.positions_table_model import PositionsTableModel
@@ -20,11 +21,16 @@ class DashboardController(QObject):
     refreshStateChanged = Signal(bool)
     tradeExecuted = Signal(bool, str)   # success, message
     capitalUpdated = Signal(bool, str)  # success, message
+    excelExported = Signal(bool, str)   # success, message
+
+    _asyncExportFinished = Signal(bool, str)
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
         self._container = container
         self._positions_model = PositionsTableModel(self)
+        self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="DashboardWorker")
+        self._asyncExportFinished.connect(self._on_export_finished)
 
         # Temel Portföy Durum Değişkenleri
         self._capital: Decimal = Decimal("185000.00")
@@ -459,3 +465,82 @@ class DashboardController(QObject):
         """EventBus'tan gelen fiyat güncellemesini işler."""
         logger.info("EventBus fiyat guncellemesi alindi: %d hisse", len(prices_dict))
         self.refreshMetrics()
+
+    # -------------------------------------------------------------------------
+    # EXCEL RAPOR DIŞA AKTARIMI
+    # -------------------------------------------------------------------------
+
+    @Slot()
+    def exportToExcel(self) -> None:
+        """Portföyün günlük simülasyonunu ve özetini profesyonel Excel raporu olarak kaydeder."""
+        self._executor.submit(self._run_excel_export_worker, None, None)
+
+    @Slot(str, str)
+    def exportToExcelRange(self, start_date_str: str, end_date_str: str) -> None:
+        """Belirtilen tarih aralığında Excel raporu oluşturur."""
+        self._executor.submit(self._run_excel_export_worker, start_date_str, end_date_str)
+
+    def _run_excel_export_worker(self, start_date_str: Optional[str], end_date_str: Optional[str]) -> None:
+        try:
+            from datetime import date, datetime
+            from pathlib import Path
+            from src.application.services.reporting.daily_history_models import ExportMode
+
+            desktop = Path.home() / "Desktop"
+            out_dir = desktop if desktop.exists() else Path("reports").resolve()
+            out_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            target_file = out_dir / f"Portfoy_Raporu_{timestamp}.xlsx"
+
+            # Tarih aralığını belirle
+            s_date = None
+            e_date = date.today()
+            if start_date_str:
+                try:
+                    s_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                except Exception:
+                    pass
+            if end_date_str:
+                try:
+                    e_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+                except Exception:
+                    pass
+
+            portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
+            excel_service = getattr(self._container, "excel_export_service", None) if self._container else None
+
+            if s_date is None and portfolio_service:
+                s_date = portfolio_service.get_first_trade_date()
+            if s_date is None:
+                s_date = date.today()
+
+            if excel_service:
+                excel_service.export_history(
+                    start_date=s_date,
+                    end_date=e_date,
+                    file_path=target_file,
+                    mode=ExportMode.OVERWRITE,
+                )
+                self._asyncExportFinished.emit(True, f"Excel portföy raporu kaydedildi:\n{target_file.name}")
+            else:
+                import pandas as pd
+                positions_data = [
+                    {
+                        "Hisse": p.get("ticker", ""),
+                        "Şirket": p.get("companyName", ""),
+                        "Lot": p.get("quantity", 0),
+                        "Maliyet": p.get("avgCost", 0.0),
+                        "Son Fiyat": p.get("currentPrice", 0.0),
+                    }
+                    for p in self._initial_positions
+                ]
+                df = pd.DataFrame(positions_data)
+                df.to_excel(str(target_file), index=False)
+                self._asyncExportFinished.emit(True, f"Excel tablosu kaydedildi:\n{target_file.name}")
+        except Exception as exc:
+            logger.exception("Dashboard Excel export hatası: %s", exc)
+            self._asyncExportFinished.emit(False, f"Excel raporu oluşturulamadı: {exc}")
+
+    def _on_export_finished(self, success: bool, message: str) -> None:
+        self.excelExported.emit(success, message)
+

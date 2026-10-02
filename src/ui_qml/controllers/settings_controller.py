@@ -476,21 +476,33 @@ class SettingsController(QObject):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             target_file = out_dir / f"PortfoySim_Rapor_{timestamp}.xlsx"
 
-            # SQLite verilerini pandas ile çekip profesyonelce yaz
-            import pandas as pd
-            conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
+            excel_service = getattr(self._container, "excel_export_service", None) if self._container else None
+            portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
 
-            df_stocks = pd.read_sql_query("SELECT * FROM stocks", conn)
-            df_trades = pd.read_sql_query("SELECT * FROM trades ORDER BY trade_date DESC", conn)
-            df_cash = pd.read_sql_query("SELECT * FROM cash_movements ORDER BY movement_date DESC", conn)
-            conn.close()
+            if excel_service and portfolio_service:
+                first_date = portfolio_service.get_first_trade_date() or date.today()
+                from src.application.services.reporting.daily_history_models import ExportMode
+                excel_service.export_history(
+                    start_date=first_date,
+                    end_date=date.today(),
+                    file_path=target_file,
+                    mode=ExportMode.OVERWRITE,
+                )
+                self._asyncExportFinished.emit(True, f"Kapsamlı portföy Excel raporu oluşturuldu:\n{target_file.name}")
+            else:
+                import pandas as pd
+                conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
+                df_stocks = pd.read_sql_query("SELECT * FROM stocks", conn)
+                df_trades = pd.read_sql_query("SELECT * FROM trades ORDER BY trade_date DESC", conn)
+                df_cash = pd.read_sql_query("SELECT * FROM cash_movements ORDER BY movement_date DESC", conn)
+                conn.close()
 
-            with pd.ExcelWriter(str(target_file), engine="openpyxl") as writer:
-                df_stocks.to_excel(writer, sheet_name="Mevcut Pozisyonlar", index=False)
-                df_trades.to_excel(writer, sheet_name="İşlem Geçmişi", index=False)
-                df_cash.to_excel(writer, sheet_name="Nakit Hareketleri", index=False)
+                with pd.ExcelWriter(str(target_file), engine="openpyxl") as writer:
+                    df_stocks.to_excel(writer, sheet_name="Mevcut Pozisyonlar", index=False)
+                    df_trades.to_excel(writer, sheet_name="İşlem Geçmişi", index=False)
+                    df_cash.to_excel(writer, sheet_name="Nakit Hareketleri", index=False)
 
-            self._asyncExportFinished.emit(True, f"Excel raporu oluşturuldu:\n{target_file.name}")
+                self._asyncExportFinished.emit(True, f"Excel raporu oluşturuldu:\n{target_file.name}")
         except Exception as e:
             logger.exception("Excel export hatası: %s", e)
             self._asyncExportFinished.emit(False, f"Excel dışa aktarım hatası: {e}")

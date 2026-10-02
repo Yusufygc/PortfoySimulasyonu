@@ -68,6 +68,18 @@ Item {
                     onClicked: capitalModal.open()
                 }
 
+                // Excel Raporu Butonu
+                ModernButton {
+                    text: Strings.btnExportExcel
+                    iconName: "filetext"
+                    variant: "secondary"
+                    onClicked: {
+                        if (typeof dashboardController !== "undefined") {
+                            dashboardController.exportToExcel()
+                        }
+                    }
+                }
+
                 // Hızlı Al/Sat Butonu
                 ModernButton {
                     text: Strings.btnQuickTrade
@@ -411,6 +423,18 @@ Item {
                                     }
 
                                     ModernButton {
+                                        text: "Detay"
+                                        variant: "ghost"
+                                        implicitHeight: 26
+                                        implicitWidth: 55
+                                        onClicked: {
+                                            if (typeof stockDetailController !== "undefined") {
+                                                stockDetailController.openStock(model.ticker)
+                                            }
+                                        }
+                                    }
+
+                                    ModernButton {
                                         text: Strings.btnTrade
                                         variant: "secondary"
                                         implicitHeight: 26
@@ -428,7 +452,12 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: chartView.loadStock(model.ticker)
+                                onClicked: {
+                                    chartView.loadStock(model.ticker)
+                                    if (typeof stockDetailController !== "undefined") {
+                                        stockDetailController.openStock(model.ticker)
+                                    }
+                                }
                             }
                         }
                     }
@@ -466,6 +495,10 @@ Item {
         }
 
         function onCapitalUpdated(success, message) {
+            toast.show(message, success)
+        }
+
+        function onExcelExported(success, message) {
             toast.show(message, success)
         }
     }
