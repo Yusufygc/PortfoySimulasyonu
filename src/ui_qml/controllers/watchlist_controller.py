@@ -7,6 +7,7 @@ from __future__ import annotations
 import logging
 from datetime import date, timedelta
 from decimal import Decimal
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
@@ -23,10 +24,14 @@ class WatchlistController(QObject):
     refreshStateChanged = Signal(bool)
     actionCompleted = Signal(bool, str)  # success, message
 
+    _asyncTickerVerified = Signal(int, str, str, bool)  # watchlist_id, ticker, notes, geçerli mi
+
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
         self._container = container
         self._stocks_model = WatchlistTableModel(self)
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="WatchlistWorker")
+        self._asyncTickerVerified.connect(self._on_ticker_verified)
 
         self._watchlists: List[Dict[str, Any]] = []
         self._current_watchlist_id: int = -1
@@ -414,6 +419,24 @@ class WatchlistController(QObject):
             self.actionCompleted.emit(True, f"{ticker} listeye eklendi.")
             return
 
+        # Bilinmeyen kod (SQLite'ta ve BIST kataloğunda yok): eklemeden önce çevrimiçi doğrula
+        lookup = getattr(self._container, "stock_lookup_service", None)
+        if lookup is not None and not lookup.is_known_ticker(ticker):
+            self._executor.submit(self._verify_ticker_worker, lookup, watchlist_id, ticker, notes)
+            return
+        self._add_stock_now(watchlist_id, ticker, notes)
+
+    def _verify_ticker_worker(self, lookup, watchlist_id: int, ticker: str, notes: str) -> None:
+        self._asyncTickerVerified.emit(watchlist_id, ticker, notes, bool(lookup.verify_ticker_online(ticker)))
+
+    def _on_ticker_verified(self, watchlist_id: int, ticker: str, notes: str, valid: bool) -> None:
+        if valid:
+            self._add_stock_now(watchlist_id, ticker, notes)
+        else:
+            self.actionCompleted.emit(False, f"Geçersiz hisse kodu: {ticker}")
+
+    def _add_stock_now(self, watchlist_id: int, ticker: str, notes: str) -> None:
+        ws = self._get_watchlist_service()
         try:
             ws.add_stock_by_ticker(watchlist_id, ticker, notes)
             self._load_stocks(watchlist_id)

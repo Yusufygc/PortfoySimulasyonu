@@ -21,11 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 class StockLookupService:
-    def __init__(self, stock_repo, price_repo, latest_price_repo, market_history_repo=None) -> None:
+    def __init__(self, stock_repo, price_repo, latest_price_repo, market_history_repo=None, price_lookup_service=None) -> None:
         self._stock_repo = stock_repo
         self._price_repo = price_repo
         self._latest_price_repo = latest_price_repo
         self._market_history_repo = market_history_repo
+        self._price_lookup_service = price_lookup_service
 
     # --- Hisse kayıtları ---
 
@@ -54,6 +55,31 @@ class StockLookupService:
         except Exception as exc:
             logger.debug("Hisse bulunamadı (%s): %s", ticker, exc)
             return None
+
+    def is_known_ticker(self, ticker: str) -> bool:
+        """Ağ çağrısı yapmadan: SQLite'ta kayıtlı veya DuckDB piyasa kataloğunda (tüm BIST) var mı?"""
+        code = clean_ticker(ticker)
+        if not code:
+            return False
+        if self.find_stock(code) is not None:
+            return True
+        if self._market_history_repo is None:
+            return False
+        try:
+            return bool(self._market_history_repo.has_ticker(code))
+        except Exception as exc:
+            logger.debug("DuckDB katalog sorgusu başarısız (%s): %s", code, exc)
+            return False
+
+    def verify_ticker_online(self, ticker: str) -> bool:
+        """Çevrimiçi fiyat sorgusu fiyat döndürüyorsa kod geçerlidir (yavaş; arka planda çağrılmalı)."""
+        if self._price_lookup_service is None:
+            return False
+        try:
+            return self._price_lookup_service.lookup_price_for_ticker(ticker) is not None
+        except Exception as exc:
+            logger.debug("Çevrimiçi kod doğrulaması başarısız (%s): %s", ticker, exc)
+            return False
 
     def list_stocks(self) -> List[Stock]:
         try:

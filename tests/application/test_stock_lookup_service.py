@@ -74,3 +74,34 @@ def test_market_reads_use_plain_ticker_and_degrade_without_history_repo():
     bare, _ = _service(market_history_repo=None)
     assert bare.get_market_bars("THYAO", date(2026, 1, 1), date(2026, 2, 1)) == []
     assert bare.get_last_market_bars("THYAO", 2) == [] and bare.get_market_company_name("THYAO") is None
+
+
+def test_is_known_ticker_checks_sqlite_then_duckdb_catalog_without_network():
+    service, parts = _service()
+    parts["stock_repo"].get_stock_by_ticker.return_value = None
+    parts["market_history_repo"].has_ticker.return_value = True
+    assert service.is_known_ticker("thyao.is") is True
+    parts["market_history_repo"].has_ticker.assert_called_once_with("THYAO")
+
+    parts["market_history_repo"].has_ticker.return_value = False
+    assert service.is_known_ticker("ABCDE") is False and service.is_known_ticker("") is False
+
+    parts["stock_repo"].get_stock_by_ticker.return_value = SimpleNamespace(id=1)
+    assert service.is_known_ticker("ABCDE") is True
+
+    parts["stock_repo"].get_stock_by_ticker.return_value = None
+    parts["market_history_repo"].has_ticker.side_effect = RuntimeError("db")
+    assert service.is_known_ticker("ABCDE") is False
+
+
+def test_verify_ticker_online_uses_price_lookup_and_survives_errors():
+    lookup = MagicMock()
+    service, _ = _service(price_lookup_service=lookup)
+
+    lookup.lookup_price_for_ticker.return_value = object()
+    assert service.verify_ticker_online("AAPL") is True
+    lookup.lookup_price_for_ticker.return_value = None
+    assert service.verify_ticker_online("ZZZZ") is False
+    lookup.lookup_price_for_ticker.side_effect = RuntimeError("ağ")
+    assert service.verify_ticker_online("AAPL") is False
+    assert _service()[0].verify_ticker_online("AAPL") is False

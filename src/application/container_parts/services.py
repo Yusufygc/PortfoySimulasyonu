@@ -151,6 +151,7 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             price_repo=repositories.price_repo,
             latest_price_repo=repositories.latest_price_repo,
             market_history_repo=repositories.market_history_repo,
+            price_lookup_service=market_clients.price_lookup_service,
         ),
         dca_backtest_service=DCABacktestService(
             price_repo=repositories.price_repo,
