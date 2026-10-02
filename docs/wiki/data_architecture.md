@@ -3,8 +3,10 @@
 > MySQL desteği kaldırıldı (2026-10-02). Uygulama yalnızca yerel dosya tabanlı iki veritabanı kullanır.
 > Yollar çalışma dizinine değil uygulama köküne göre çözülür: `src/infrastructure/db/paths.py`
 > (`DB_SQLITE_PATH`, `DUCKDB_PATH` ortam değişkenleriyle değiştirilebilir).
-> **Not:** `settings_loader` `.env` dosyasını `override=True` ile yükler; `.env` içinde `DB_SQLITE_PATH` varsa
-> kabuktan verilen ortam değişkeni onu ezemez (`DUCKDB_PATH` ise `.env`'de yoksa ezilebilir).
+> **Not:** `settings_loader` `.env` dosyasını `override=True` ile yükler, ancak kabuktan/test ortamından açıkça verilen
+> `DB_SQLITE_PATH` ve `DUCKDB_PATH` değerleri korunur (kopya veritabanında betik çalıştırmak için). Testlerde
+> `tests/conftest.py` oturum başına gerçek veritabanlarının kopyasını geçici klasöre alır ve bu iki değişkeni oraya yönlendirir;
+> testler gerçek `data/` dosyalarına yazmaz.
 
 ## Ticker biçimi (tek tip)
 

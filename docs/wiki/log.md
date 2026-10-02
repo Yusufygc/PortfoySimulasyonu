@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] düzelt | Test ve Betik Güvenliği: Gerçek Veritabanına Yazma Engellendi
+
+- **Sorun:** `.env` `override=True` ile yüklendiği için kabuktan verilen `DB_SQLITE_PATH` ezildi; "kopyada deneme" gerçek `portfolio.db` üzerinde çalıştı. `tests/ui_qml` içindeki gerçek `AppContainer()` kullanan testler de gerçek veritabanlarına yazıyordu (ör. izleme listesi testi `stocks` tablosuna kayıt bırakıyordu).
+- **Düzeltme:** `_load_project_env` açıkça verilmiş `DB_SQLITE_PATH`/`DUCKDB_PATH` değerlerini korur. `tests/conftest.py` oturum başına gerçek SQLite (yedekleme API'siyle) ve DuckDB dosyalarını geçici klasöre kopyalayıp yolları oraya yönlendirir; test koşumu öncesi/sonrası gerçek dosya özetleri aynı kalır. Göç betiği çalışmadan önce çözümlenen SQLite/DuckDB yollarını yazdırır.
+- Testler: 839 geçti, 4 xfail.
+
+---
 ## [2026-10-03] degistir | Piyasa Evreni DuckDB'ye Taşındı, Sermaye Artırımı Düzeltmesi DuckDB'de, Ticker Tek Tip
 
 - **Tüm BIST taraması:** Hisse Tarayıcı, Golden Cross, Hisse 360, grafik ve DCA evreni/fiyatlarını DuckDB'den (624 hisse) alır; `IMarketHistoryRepository` toplu okuma (`list_tickers`, `get_price_series_bulk`, `get_latest_dates`, `find_price_breaks`) kazandı. Gerçek veride tarayıcı ~2 sn, Golden Cross ~5 sn. Golden Cross olayları ticker anahtarlı `cross_events` tablosuna taşındı (eski `golden_cross_events` açılışta silinir). Açılışta BIST güncellemesi `MarketDataSyncService.sync_daily_delta` kullanır; TradingView yükleme düğmesi kaldırıldı.

@@ -44,10 +44,17 @@ def _env_file_path() -> Path:
     return Path(__file__).resolve().parents[1] / filename
 
 
+# Veritabanı yolları: kabuktan/test ortamından açıkça verilen değer `.env` dosyasıyla ezilmez
+# (kopya veritabanı üzerinde betik çalıştırmak ve testleri izole etmek için).
+_PROTECTED_PATH_ENV = ("DB_SQLITE_PATH", "DUCKDB_PATH")
+
+
 def _load_project_env() -> None:
     env_path = _env_file_path()
     if env_path.exists():
+        preset = {key: os.environ[key] for key in _PROTECTED_PATH_ENV if os.environ.get(key)}
         load_dotenv(env_path, override=True)
+        os.environ.update(preset)
 
 
 def _required_env(name: str) -> str:

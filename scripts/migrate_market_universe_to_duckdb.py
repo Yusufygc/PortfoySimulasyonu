@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from src.application.container import AppContainer
 from src.application.services.market_data.market_universe_migration_service import MarketUniverseMigrationService
-from src.infrastructure.db.paths import sqlite_db_path
+from src.infrastructure.db.paths import duckdb_path, sqlite_db_path
 
 
 def backup_sqlite(db_path: Path) -> Path:
@@ -41,6 +41,8 @@ def main() -> None:
     parser.add_argument("--execute", action="store_true", help="Yedek alır ve değişiklikleri uygular (varsayılan: kuru çalıştırma)")
     args = parser.parse_args()
 
+    print(f"SQLite : {sqlite_db_path(os.getenv('DB_SQLITE_PATH'))}")
+    print(f"DuckDB : {duckdb_path()}")
     container = AppContainer()
     repos = container.repositories
     service = MarketUniverseMigrationService(

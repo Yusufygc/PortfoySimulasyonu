@@ -10,6 +10,50 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_databases(tmp_path_factory):
+    """Gerçek `AppContainer()` kullanan testler gerçek veritabanlarına yazmasın.
+
+    Gerçek `data/portfolio.db` (tutarlı SQLite yedekleme API'siyle) ve `data/market_history.duckdb` oturum başına
+    geçici bir klasöre kopyalanır; `DB_SQLITE_PATH`/`DUCKDB_PATH` oraya yönlendirilir. Kopya alınamazsa
+    (dosya yok/kilitli) boş geçici veritabanları kullanılır; gerçek dosyalara asla yazılmaz.
+    """
+    import os
+    import shutil
+    import sqlite3
+
+    from src.infrastructure.db.paths import duckdb_path, sqlite_db_path
+
+    work = tmp_path_factory.mktemp("isolated_db")
+    real_sqlite, real_duck = sqlite_db_path(), duckdb_path()
+    test_sqlite, test_duck = work / "portfolio.db", work / "market_history.duckdb"
+    if real_sqlite.exists():
+        try:
+            src, dst = sqlite3.connect(real_sqlite), sqlite3.connect(test_sqlite)
+            try:
+                src.backup(dst)
+            finally:
+                dst.close()
+                src.close()
+        except Exception:
+            test_sqlite.unlink(missing_ok=True)
+    if real_duck.exists():
+        try:
+            shutil.copy2(real_duck, test_duck)
+        except Exception:
+            test_duck.unlink(missing_ok=True)
+
+    previous = {key: os.environ.get(key) for key in ("DB_SQLITE_PATH", "DUCKDB_PATH")}
+    os.environ["DB_SQLITE_PATH"] = str(test_sqlite)
+    os.environ["DUCKDB_PATH"] = str(test_duck)
+    yield work
+    for key, value in previous.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+
+
 @pytest.fixture(autouse=True)
 def _isolate_env_file(tmp_path, monkeypatch):
     """Testler gerçek .env dosyasına (API anahtarı kaydı vb.) asla yazmasın."""
