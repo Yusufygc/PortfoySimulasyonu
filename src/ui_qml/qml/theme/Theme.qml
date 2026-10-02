@@ -36,6 +36,17 @@ QtObject {
     readonly property color accentHover: "#1e53e5"
     readonly property color accentSoft: isDark ? "#1b294d" : "#e8efff"
     readonly property color warningYellow: "#ff9800"
+    readonly property color warningYellowSoft: isDark ? "#3e2710" : "#fff8e1"
+
+    // --- Semantik Renkler (Kolay ve standart erişim için) ---
+    readonly property color success: bullGreen
+    readonly property color successSoft: bullGreenSoft
+    readonly property color danger: bearRed
+    readonly property color dangerSoft: bearRedSoft
+    readonly property color warning: warningYellow
+    readonly property color warningSoft: warningYellowSoft
+    readonly property color info: accent
+    readonly property color infoSoft: accentSoft
 
     // --- Scrollbar Renkleri (Modern TradingView Tarzı) ---
     readonly property color scrollbarThumb: isDark ? "#363a45" : "#c2c8d4"

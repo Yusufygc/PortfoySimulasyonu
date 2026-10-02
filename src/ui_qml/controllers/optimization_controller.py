@@ -57,6 +57,20 @@ def _fmt_money(val: float | Decimal | None) -> str:
         return f"{val} ₺"
 
 
+def _fmt_pct(val: float | None, with_sign: bool = False) -> str:
+    if val is None or not np.isfinite(val):
+        return "%0,00"
+    num = float(val)
+    if abs(num) < 0.0001:
+        return "%0,00"
+    formatted = f"{abs(num):.2f}".replace(".", ",")
+    if num < 0:
+        return f"-%{formatted}"
+    elif with_sign and num > 0:
+        return f"+%{formatted}"
+    return f"%{formatted}"
+
+
 class OptimizationController(QObject):
     """QML context property: optimizationController"""
 
@@ -214,31 +228,43 @@ class OptimizationController(QObject):
 
     @Property(str, notify=kpiMetricsChanged)
     def optimalSharpeFormatted(self) -> str:
-        return f"{self._opt_sharpe:.2f}"
+        return f"{self._opt_sharpe:.2f}".replace(".", ",")
 
     @Property(str, notify=kpiMetricsChanged)
     def currentSharpeFormatted(self) -> str:
-        return f"{self._curr_sharpe:.2f}"
+        return f"{self._curr_sharpe:.2f}".replace(".", ",")
 
     @Property(str, notify=kpiMetricsChanged)
     def optimalReturnFormatted(self) -> str:
-        return f"%{self._opt_return * 100:.2f}"
+        return _fmt_pct(self._opt_return * 100)
 
     @Property(str, notify=kpiMetricsChanged)
     def currentReturnFormatted(self) -> str:
-        return f"%{self._curr_return * 100:.2f}"
+        return _fmt_pct(self._curr_return * 100)
 
     @Property(str, notify=kpiMetricsChanged)
     def optimalVolFormatted(self) -> str:
-        return f"%{self._opt_vol * 100:.2f}"
+        return _fmt_pct(self._opt_vol * 100)
 
     @Property(str, notify=kpiMetricsChanged)
     def currentVolFormatted(self) -> str:
-        return f"%{self._curr_vol * 100:.2f}"
+        return _fmt_pct(self._curr_vol * 100)
 
     @Property(str, notify=kpiMetricsChanged)
     def minVolFormatted(self) -> str:
-        return f"%{self._min_vol_vol * 100:.2f}"
+        return _fmt_pct(self._min_vol_vol * 100)
+
+    @Property(bool, notify=kpiMetricsChanged)
+    def isOptimalReturnPositive(self) -> bool:
+        return self._opt_return >= 0
+
+    @Property(bool, notify=kpiMetricsChanged)
+    def isCurrentReturnPositive(self) -> bool:
+        return self._curr_return >= 0
+
+    @Property(bool, notify=kpiMetricsChanged)
+    def isOptimalSharpePositive(self) -> bool:
+        return self._opt_sharpe >= 0
 
     # ──────────────────────────── QML Slots ────────────────────────────
 
@@ -534,7 +560,7 @@ new Chart(ctx, {{
   data: {{
     datasets: [
       {{
-        label: 'Monte Carlo Portföyleri (1.000 Nokta)',
+        label: 'Monte Carlo (1.000 Nokta)',
         data: mcData,
         backgroundColor: 'rgba(41, 98, 255, 0.25)',
         borderColor: 'transparent',
@@ -543,7 +569,7 @@ new Chart(ctx, {{
         order: 5
       }},
       {{
-        label: 'Verimli Sınır (Efficient Frontier)',
+        label: 'Verimli Sınır',
         data: frontierData,
         type: 'line',
         borderColor: '#00e676',
@@ -555,7 +581,7 @@ new Chart(ctx, {{
         order: 2
       }},
       {{
-        label: 'Maksimum Sharpe Portföyü',
+        label: 'Maksimum Sharpe',
         data: [{{ x: {opt_pt["x"]}, y: {opt_pt["y"]} }}],
         backgroundColor: '#00e676',
         borderColor: '#ffffff',
@@ -566,7 +592,7 @@ new Chart(ctx, {{
         order: 1
       }},
       {{
-        label: 'Minimum Volatilite Portföyü',
+        label: 'Minimum Risk',
         data: [{{ x: {min_vol_pt["x"]}, y: {min_vol_pt["y"]} }}],
         backgroundColor: '#00b0ff',
         borderColor: '#ffffff',
@@ -592,13 +618,23 @@ new Chart(ctx, {{
   options: {{
     responsive: true,
     maintainAspectRatio: false,
+    layout: {{
+      padding: {{ left: 16, right: 20, top: 10, bottom: 10 }}
+    }},
+    interaction: {{
+      mode: 'nearest',
+      intersect: true
+    }},
     plugins: {{
       legend: {{
+        position: 'top',
+        align: 'center',
         labels: {{
           color: '#9db2ce',
           font: {{ family: 'Segoe UI', size: 11 }},
           usePointStyle: true,
-          boxWidth: 8
+          boxWidth: 7,
+          padding: 12
         }}
       }},
       tooltip: {{
@@ -611,10 +647,17 @@ new Chart(ctx, {{
         callbacks: {{
           label: function(context) {{
             const p = context.raw;
+            function fmtPct(val) {{
+              if (val === null || val === undefined || isNaN(val)) return '%0,00';
+              const num = Number(val);
+              const str = Math.abs(num).toFixed(2).replace('.', ',');
+              if (num < 0) return '-%' + str;
+              return '%' + str;
+            }}
             let str = context.dataset.label + ': ';
-            str += 'Risk: %' + p.x + ' | Getiri: %' + p.y;
+            str += 'Risk: ' + fmtPct(p.x) + ' | Getiri: ' + fmtPct(p.y);
             if (p.sharpe !== undefined) {{
-              str += ' | Sharpe: ' + p.sharpe;
+              str += ' | Sharpe: ' + Number(p.sharpe).toFixed(2).replace('.', ',');
             }}
             return str;
           }}
@@ -684,27 +727,39 @@ new Chart(ctx, {{
     labels: {labels_json},
     datasets: [
       {{
-        label: 'Mevcut Ağırlık (%)',
+        label: 'Mevcut Ağırlık',
         data: {curr_json},
         backgroundColor: '#ff9800',
-        borderRadius: 4
+        borderRadius: 4,
+        barPercentage: 0.75,
+        categoryPercentage: 0.65
       }},
       {{
-        label: 'Önerilen Optimal Ağırlık (%)',
+        label: 'Önerilen Optimal Ağırlık',
         data: {opt_json},
         backgroundColor: '#00e676',
-        borderRadius: 4
+        borderRadius: 4,
+        barPercentage: 0.75,
+        categoryPercentage: 0.65
       }}
     ]
   }},
   options: {{
     responsive: true,
     maintainAspectRatio: false,
+    layout: {{
+      padding: {{ left: 16, right: 20, top: 10, bottom: 10 }}
+    }},
     plugins: {{
       legend: {{
+        position: 'top',
+        align: 'center',
         labels: {{
           color: '#9db2ce',
-          font: {{ family: 'Segoe UI', size: 11 }}
+          font: {{ family: 'Segoe UI', size: 11 }},
+          usePointStyle: true,
+          boxWidth: 8,
+          padding: 12
         }}
       }},
       tooltip: {{
@@ -713,9 +768,12 @@ new Chart(ctx, {{
         bodyColor: '#9db2ce',
         borderColor: '#2a2e39',
         borderWidth: 1,
+        padding: 10,
         callbacks: {{
           label: function(context) {{
-            return context.dataset.label + ': %' + context.raw.toFixed(2);
+            const v = Number(context.raw);
+            const str = v.toFixed(2).replace('.', ',');
+            return context.dataset.label + ': %' + str;
           }}
         }}
       }}
@@ -729,7 +787,8 @@ new Chart(ctx, {{
         title: {{
           display: true,
           text: 'Portföy Ağırlığı (%)',
-          color: '#9db2ce'
+          color: '#9db2ce',
+          font: {{ size: 12, weight: 'bold' }}
         }},
         grid: {{ color: '#1e222d' }},
         ticks: {{ color: '#9db2ce' }}

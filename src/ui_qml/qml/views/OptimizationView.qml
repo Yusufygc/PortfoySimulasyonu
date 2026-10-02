@@ -400,11 +400,13 @@ Rectangle {
                             color: Theme.bgSecondary
                             border.color: Theme.borderSubtle
                             border.width: 1
-                            implicitHeight: infoCol.height + 16
+                            implicitHeight: infoCol.implicitHeight + 16
 
                             ColumnLayout {
                                 id: infoCol
-                                anchors.fill: parent
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
                                 anchors.margins: 8
                                 spacing: 4
 
@@ -439,14 +441,26 @@ Rectangle {
                         Item { Layout.fillHeight: true }
 
                         // Durum Mesajı
-                        Text {
+                        Rectangle {
                             Layout.fillWidth: true
-                            wrapMode: Text.WordWrap
                             visible: optimizationController.statusMessage !== ""
-                            text: optimizationController.statusMessage
-                            color: optimizationController.hasResults ? Theme.success : Theme.warning
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontXs
+                            radius: Theme.radiusSm
+                            color: optimizationController.hasResults ? Theme.bullGreenSoft : (optimizationController.statusMessage.indexOf("Hata") !== -1 ? Theme.bearRedSoft : Theme.warningYellowSoft)
+                            border.color: optimizationController.hasResults ? Theme.bullGreen : (optimizationController.statusMessage.indexOf("Hata") !== -1 ? Theme.bearRed : Theme.warningYellow)
+                            border.width: 1
+                            implicitHeight: statusText.implicitHeight + 16
+
+                            Text {
+                                id: statusText
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                wrapMode: Text.WordWrap
+                                text: optimizationController.statusMessage
+                                color: optimizationController.hasResults ? Theme.bullGreen : (optimizationController.statusMessage.indexOf("Hata") !== -1 ? Theme.bearRed : Theme.warningYellow)
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontXs
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
 
                         // Çalıştır Butonu
@@ -511,7 +525,7 @@ Rectangle {
                     // Kart 1: Maksimum Sharpe
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 76
+                        Layout.preferredHeight: 88
                         radius: Theme.radiusMd
                         color: Theme.bgCard
                         border.color: Theme.borderCard
@@ -519,7 +533,10 @@ Rectangle {
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: Theme.spaceMd
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            anchors.topMargin: 10
+                            anchors.bottomMargin: 10
                             spacing: Theme.spaceSm
 
                             Rectangle {
@@ -546,7 +563,7 @@ Rectangle {
                                 }
                                 Text {
                                     text: optimizationController.optimalSharpeFormatted
-                                    color: Theme.textPrimary
+                                    color: optimizationController.isOptimalSharpePositive ? Theme.textPrimary : Theme.bearRed
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontLg
                                     font.weight: Font.Bold
@@ -564,7 +581,7 @@ Rectangle {
                     // Kart 2: Beklenen Getiri
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 76
+                        Layout.preferredHeight: 88
                         radius: Theme.radiusMd
                         color: Theme.bgCard
                         border.color: Theme.borderCard
@@ -572,19 +589,22 @@ Rectangle {
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: Theme.spaceMd
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            anchors.topMargin: 10
+                            anchors.bottomMargin: 10
                             spacing: Theme.spaceSm
 
                             Rectangle {
                                 width: 36
                                 height: 36
                                 radius: Theme.radiusSm
-                                color: Theme.successSoft
+                                color: optimizationController.isOptimalReturnPositive ? Theme.bullGreenSoft : Theme.bearRedSoft
 
                                 ModernIcon {
                                     anchors.centerIn: parent
-                                    name: "trendingup"
-                                    color: Theme.success
+                                    name: optimizationController.isOptimalReturnPositive ? "trendingup" : "trendingdown"
+                                    color: optimizationController.isOptimalReturnPositive ? Theme.bullGreen : Theme.bearRed
                                     size: 18
                                 }
                             }
@@ -599,14 +619,14 @@ Rectangle {
                                 }
                                 Text {
                                     text: optimizationController.optimalReturnFormatted
-                                    color: Theme.success
+                                    color: optimizationController.isOptimalReturnPositive ? Theme.bullGreen : Theme.bearRed
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontLg
                                     font.weight: Font.Bold
                                 }
                                 Text {
                                     text: "Mevcut: " + optimizationController.currentReturnFormatted
-                                    color: Theme.textSecondary
+                                    color: optimizationController.isCurrentReturnPositive ? Theme.textSecondary : Theme.bearRed
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10
                                 }
@@ -617,7 +637,7 @@ Rectangle {
                     // Kart 3: Yıllık Volatilite (Risk)
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 76
+                        Layout.preferredHeight: 88
                         radius: Theme.radiusMd
                         color: Theme.bgCard
                         border.color: Theme.borderCard
@@ -625,19 +645,22 @@ Rectangle {
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: Theme.spaceMd
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            anchors.topMargin: 10
+                            anchors.bottomMargin: 10
                             spacing: Theme.spaceSm
 
                             Rectangle {
                                 width: 36
                                 height: 36
                                 radius: Theme.radiusSm
-                                color: Theme.warningSoft
+                                color: Theme.warningYellowSoft
 
                                 ModernIcon {
                                     anchors.centerIn: parent
                                     name: "shieldcheck"
-                                    color: Theme.warning
+                                    color: Theme.warningYellow
                                     size: 18
                                 }
                             }
@@ -652,7 +675,7 @@ Rectangle {
                                 }
                                 Text {
                                     text: optimizationController.optimalVolFormatted
-                                    color: Theme.warning
+                                    color: Theme.warningYellow
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontLg
                                     font.weight: Font.Bold
@@ -670,7 +693,7 @@ Rectangle {
                     // Kart 4: Minimum Risk Portföyü
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 76
+                        Layout.preferredHeight: 88
                         radius: Theme.radiusMd
                         color: Theme.bgCard
                         border.color: Theme.borderCard
@@ -678,7 +701,10 @@ Rectangle {
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: Theme.spaceMd
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            anchors.topMargin: 10
+                            anchors.bottomMargin: 10
                             spacing: Theme.spaceSm
 
                             Rectangle {
@@ -711,7 +737,7 @@ Rectangle {
                                     font.weight: Font.Bold
                                 }
                                 Text {
-                                    text: "Minimun risk sınırı"
+                                    text: "Minimum risk sınırı"
                                     color: Theme.textSecondary
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10
@@ -969,7 +995,7 @@ Rectangle {
                                     Text {
                                         Layout.preferredWidth: 80
                                         horizontalAlignment: Text.AlignRight
-                                        text: "%" + modelData.currentWeight.toFixed(2)
+                                        text: "%" + (modelData.currentWeight || 0).toFixed(2).replace('.', ',')
                                         color: Theme.textSecondary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSm
@@ -979,7 +1005,7 @@ Rectangle {
                                     Text {
                                         Layout.preferredWidth: 80
                                         horizontalAlignment: Text.AlignRight
-                                        text: "%" + modelData.optimalWeight.toFixed(2)
+                                        text: "%" + (modelData.optimalWeight || 0).toFixed(2).replace('.', ',')
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSm
@@ -990,8 +1016,14 @@ Rectangle {
                                     Text {
                                         Layout.preferredWidth: 80
                                         horizontalAlignment: Text.AlignRight
-                                        text: (modelData.change > 0 ? "+" : "") + modelData.change.toFixed(2) + "%"
-                                        color: modelData.change > 0 ? Theme.success : (modelData.change < 0 ? Theme.danger : Theme.textMuted)
+                                        text: {
+                                            var ch = modelData.change || 0
+                                            var str = Math.abs(ch).toFixed(2).replace('.', ',')
+                                            if (ch > 0) return "+%" + str
+                                            if (ch < 0) return "-%" + str
+                                            return "%0,00"
+                                        }
+                                        color: modelData.change > 0 ? Theme.bullGreen : (modelData.change < 0 ? Theme.bearRed : Theme.textMuted)
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSm
                                         font.weight: Font.Bold
@@ -999,18 +1031,18 @@ Rectangle {
 
                                     // Aksiyon Rozeti (EKLE / AZALT / TUT)
                                     Rectangle {
-                                        Layout.preferredWidth: 90
+                                        Layout.preferredWidth: 100
                                         Layout.alignment: Qt.AlignHCenter
                                         height: 24
                                         radius: Theme.radiusXs
-                                        color: modelData.action === "EKLE" ? Theme.successSoft : (modelData.action === "AZALT" ? Theme.dangerSoft : Theme.bgPrimary)
-                                        border.color: modelData.action === "EKLE" ? Theme.success : (modelData.action === "AZALT" ? Theme.danger : Theme.borderSubtle)
+                                        color: modelData.action === "EKLE" ? Theme.bullGreenSoft : (modelData.action === "AZALT" ? Theme.bearRedSoft : Theme.bgSecondary)
+                                        border.color: modelData.action === "EKLE" ? Theme.bullGreen : (modelData.action === "AZALT" ? Theme.bearRed : Theme.borderSubtle)
                                         border.width: 1
 
                                         Text {
                                             anchors.centerIn: parent
                                             text: modelData.action
-                                            color: modelData.action === "EKLE" ? Theme.success : (modelData.action === "AZALT" ? Theme.danger : Theme.textMuted)
+                                            color: modelData.action === "EKLE" ? Theme.bullGreen : (modelData.action === "AZALT" ? Theme.bearRed : Theme.textMuted)
                                             font.family: Theme.fontFamily
                                             font.pixelSize: Theme.fontXs
                                             font.weight: Font.Bold
@@ -1021,8 +1053,14 @@ Rectangle {
                                     Text {
                                         Layout.preferredWidth: 110
                                         horizontalAlignment: Text.AlignRight
-                                        text: (modelData.amountDiff > 0 ? "+" : "") + modelData.amountDiff.toLocaleString(Qt.locale("tr_TR"), "f", 2) + " ₺"
-                                        color: modelData.amountDiff > 0 ? Theme.success : (modelData.amountDiff < 0 ? Theme.danger : Theme.textMuted)
+                                        text: {
+                                            var ad = modelData.amountDiff || 0
+                                            var str = Math.abs(ad).toLocaleString(Qt.locale("tr_TR"), "f", 2) + " ₺"
+                                            if (ad > 0) return "+" + str
+                                            if (ad < 0) return "-" + str
+                                            return "0,00 ₺"
+                                        }
+                                        color: modelData.amountDiff > 0 ? Theme.bullGreen : (modelData.amountDiff < 0 ? Theme.bearRed : Theme.textMuted)
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSm
                                         font.weight: Font.DemiBold

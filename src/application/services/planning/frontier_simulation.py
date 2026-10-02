@@ -82,11 +82,24 @@ def calculate_efficient_frontier_curve(
         logger.debug("Minimum volatilite bulunamadı: %s", exc)
         min_ret = float(np.min(mean_returns))
 
-    max_ret = float(np.max(mean_returns))
-    if max_ret <= min_ret:
-        max_ret = min_ret + 0.10
+    # 2. Kısıtlar altında ulaşılabilecek maksimum getiriyi bul
+    try:
+        max_res = minimize(
+            lambda w: -np.sum(w * mean_returns),
+            init_weights,
+            bounds=bounds,
+            constraints={"type": "eq", "fun": lambda w: np.sum(w) - 1.0},
+            method="SLSQP",
+        )
+        max_achievable_ret = float(np.sum(max_res.x * mean_returns)) if max_res.success else float(np.max(mean_returns))
+    except Exception as exc:
+        logger.debug("Maksimum getiri kısıtı hesaplanamadı: %s", exc)
+        max_achievable_ret = float(np.max(mean_returns))
 
-    target_returns = np.linspace(min_ret, max_ret, points_count)
+    if max_achievable_ret <= min_ret:
+        max_achievable_ret = min_ret + 0.05
+
+    target_returns = np.linspace(min_ret, max_achievable_ret, points_count)
     frontier_pts: List[Dict[str, float]] = []
 
     for tr in target_returns:
