@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Sequence, Tuple
 
 from src.domain.models.ai_tool import ToolDeclaration
 
-_MODEL_NAME = "gemini-3-flash-preview"
+_MODEL_NAME = "gemini-2.5-flash"
 _MAX_TOOL_ROUNDS = 4
 
 _SAFETY_CATEGORIES = (

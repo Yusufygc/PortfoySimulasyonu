@@ -127,11 +127,13 @@ ApplicationWindow {
                         source: "views/OptimizationView.qml"
                     }
 
-                    // 8: AI Danışman (Faz 10)
-                    PlaceholderView {
-                        title: Strings.navAI + " Karar Destek Asistanı"
-                        subtitle: "Faz 10 kapsamında interaktif chat, XAI portföy risk açıklamaları ve Function Calling durum takibi eklenecektir."
-                        iconName: "ai"
+                    // 8: AI Danışman (Faz 10 - Gemini AI Karar Destek & Portföy Danışmanı - Tembel Yükleme)
+                    Loader {
+                        id: aiAdvisorLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 8 || (status === Loader.Ready)
+                        source: "views/AiAdvisorView.qml"
                     }
 
                     // 9: Ayarlar (Faz 11)

@@ -21,7 +21,7 @@ Yeni bir oturum açıldığında sırasıyla şu adımları uygulayın:
    ```powershell
    .\venv\Scripts\python.exe -m pytest tests/ui_qml/
    ```
-   *(Beklenen sonuç: 58/58 test %100 yeşil, ~9 saniye).*
+   *(Beklenen sonuç: 65/65 test %100 yeşil, ~10 saniye).*
 4. **Uygulamayı QML Modunda Başlatma:**
    ```powershell
    .\venv\Scripts\python.exe app.py --ui=qml
@@ -185,6 +185,19 @@ flowchart LR
   - 3 Sekmeli görünüm: Verimli Sınır Grafiği, Ağırlık Karşılaştırması, Yeniden Dengeleme (Rebalance) Tablosu (EKLE/AZALT/TUT rozetleri, parasal farklar, tahmini lotlar).
 * **Birim ve Arayüz Testleri:** `tests/ui_qml/test_optimization_phase9.py` (7/7 yeşil, toplam QML testi 58/58).
 
+### 4.13 Faz 10 — Gemini AI Karar Destek Danışmanı & XAI Portföy Sağlık Paneli
+* **`google-genai==2.27.0` Entegrasyonu:** Resmi Google GenAI SDK'sı kurularak `gemini-2.5-flash` model desteği tamamlandı.
+* **`AiAdvisorController` (`src/ui_qml/controllers/ai_advisor_controller.py`):**
+  - Google Gemini 2.5 Flash ile Function Calling (4 salt-okunur araç: `get_portfolio_overview`, `get_allocation_and_risk`, `suggest_optimization`, `get_stock_overview`).
+  - Çift motorlu çalışma: Gerçek Gemini API + API anahtarı yokluğunda veya kesintide gerçek portföy verileriyle çalışan yerel analitik motoru fallback'i.
+  - Portföy Sağlık Skoru (0-100) ve 4 alt XAI boyutu (Varlık Çeşitliliği, Volatilite & Risk, Sharpe Kalitesi, Maksimum Düşüş).
+  - 4 adet hazır hızlı analiz soru şablonu (Quick Prompts).
+  - UI'ı bloklamayan `ThreadPoolExecutor` iş parçacığı ve Qt Queued Signal yapısı.
+* **`AiAdvisorView.qml` (`src/ui_qml/qml/views/AiAdvisorView.qml`):**
+  - **Sol Taraf (%68):** Durum göstergesi (Çevrimiçi / Simülasyon nabız ışığı), hızlı soru çipleri, Markdown destekli sohbet akışı (`ListView`), kullanılan analiz araçları (Function Calling) yeşil rozetleri, düşünme animasyonu ve alt gönderim çubuğu.
+  - **Sağ Taraf (%32, 340px):** Büyük dairesel Portföy Sağlık Skoru kartı, dinamik renk kodlaması, 4 XAI faktörünün ilerleme çubukları, API anahtarı tanımlama kartı ve metrik yenileme butonu.
+* **Birim ve Arayüz Testleri:** `tests/ui_qml/test_ai_advisor_phase10.py` (7/7 yeşil, toplam QML testi 65/65).
+
 ---
 
 ## 5. Mevcut Sayfa İndeksleri Durumu (`Main.qml`)
@@ -201,42 +214,20 @@ flowchart LR
 | **5** | `ScreenerView` | **CANLI / AKTİF** | Faz 7 | `src/ui_qml/qml/views/ScreenerView.qml` |
 | **6** | `PlanningView` | **CANLI / AKTİF** | Faz 8 | `src/ui_qml/qml/views/PlanningView.qml` |
 | **7** | `OptimizationView` | **CANLI / AKTİF** | Faz 9 | `src/ui_qml/qml/views/OptimizationView.qml` |
-| **8** | `AiAdvisorView` | *Placeholder* | **Faz 10 (SIRADAKİ ADIM)** | `src/ui_qml/qml/views/AiAdvisorView.qml` |
-| **9** | `SettingsView` | *Placeholder* | **Faz 11** | `src/ui_qml/qml/views/SettingsView.qml` |
+| **8** | `AiAdvisorView` | **CANLI / AKTİF** | Faz 10 | `src/ui_qml/qml/views/AiAdvisorView.qml` |
+| **9** | `SettingsView` | *Placeholder* | **Faz 11 (SON FAZ)** | `src/ui_qml/qml/views/SettingsView.qml` |
 
 ---
 
 ## 6. Kalan Fazlar ve Detaylı Uygulama Planı (Roadmap)
 
-### FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier (TAMAMLANDI)
+### FAZ 10: Gemini AI Karar Destek Danışmanı (TAMAMLANDI)
 
-Bu faz başarıyla tamamlanmış ve canlıya alınmıştır (`OptimizationController`, `OptimizationView.qml`, `DuckDBOptimizationMarketDataProvider`, `frontier_simulation.py`, 58/58 yeşil test).
-
----
-
-### 🎯 FAZ 10: Gemini AI Karar Destek Danışmanı (SIRADAKİ ÖNCELİKLİ ADIM)
-
-Bu fazın amacı; Google Gemini LLM API (Gemini 2.5 Flash / Pro) modellerini kullanarak portföyün güçlü/zayıf yönlerini değerlendiren, makroekonomik gelişmeleri ve hisse rasyolarını sentezleyen interaktif bir yatırım danışmanı arayüzü sunmaktır.
-
-* **Backend Servisleri (Mevcut Altyapı):**
-  - `src/application/services/ai/gemini_advisor_service.py` (`GeminiAdvisorService`): Gemini API entegrasyonu, prompt mühendisliği, Function Calling araçları.
-  - XAI (Explainable AI) risk faktörleri servisi: Portföy yoğunlaşma riski, sektör ağırlığı, beta riski vb.
-* **Geliştirilecek Dosyalar:**
-  1. `src/ui_qml/controllers/ai_advisor_controller.py`:
-     - Sohbet geçmişi modeli (Kullanıcı mesajları ve AI yanıtları).
-     - Portföy bağlamını (açık pozisyonlar, maliyetler, kâr/zarar, BIST endeks performansı) prompt içine otomatik enjekte etme.
-     - Asenkron API çağrısı ve streaming/tam yanıt sinyalleri (`_aiResponseReady`, `_aiErrorOccurred`).
-     - Hızlı soru önerileri ("Portföyümün risk seviyesi nedir?", "Enflasyona karşı korumalı mıyım?", "DCA stratejim nasıl gidiyor?").
-  2. `src/ui_qml/qml/views/AiAdvisorView.qml`:
-     - Sohbet listesi (`ListView`), modern mesaj balonları (`ChatMessageCard.qml`), kod ve markdown formatlama.
-     - Alt kısımda zengin metin girdi kutusu ve gönder butonu.
-     - Sağ tarafta Portföy Sağlık Skoru ve XAI Risk Faktörleri paneli.
-  3. `tests/ui_qml/test_ai_advisor_phase10.py`:
-     - Controller mock testleri, sinyal doğrulama ve UI render testleri.
+Bu faz başarıyla tamamlanmış ve canlıya alınmıştır (`AiAdvisorController`, `AiAdvisorView.qml`, `GeminiAdvisorChatProvider`, 65/65 yeşil test).
 
 ---
 
-### 🎯 FAZ 11: Uygulama Ayarları, Veritabanı Yönetimi & Dağıtım
+### 🎯 FAZ 11: Uygulama Ayarları, Veritabanı Yönetimi & Dağıtım (SON FAZ)
 
 Bu fazın amacı; uygulamanın tüm yapılandırmasını (tema, API anahtarları, veri senkronizasyonu, yedekleme) kullanıcı dostu bir arayüzde toplamak ve uygulamayı tek tıklamayla kurulabilir bir masaüstü paketine dönüştürmektir.
 

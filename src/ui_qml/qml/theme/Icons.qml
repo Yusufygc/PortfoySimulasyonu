@@ -55,6 +55,9 @@ QtObject {
     readonly property url dollarSign:    Qt.resolvedUrl("../../assets/icons/dollar-sign.svg")
     readonly property url play:          Qt.resolvedUrl("../../assets/icons/play.svg")
     readonly property url filter:        Qt.resolvedUrl("../../assets/icons/filter.svg")
+    readonly property url send:          Qt.resolvedUrl("../../assets/icons/send.svg")
+    readonly property url messageSquare: Qt.resolvedUrl("../../assets/icons/message-square.svg")
+    readonly property url activity:      Qt.resolvedUrl("../../assets/icons/activity.svg")
 
     function get(name) {
         if (!name) return "";

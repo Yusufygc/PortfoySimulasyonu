@@ -479,5 +479,29 @@ QtObject {
     readonly property string optMinVolLegend: "Minimum Volatilite Portföyü"
     readonly property string optMonteCarloLegend: "Monte Carlo Simülasyonu (1.000 Nokta)"
     readonly property string optFrontierLineLegend: "Verimli Sınır Eğrisi (Efficient Frontier)"
+
+    // --- AI Karar Destek Danışmanı (Faz 10) ---
+    readonly property string aiAdvisorTitle: "Gemini AI Karar Destek & Portföy Danışmanı"
+    readonly property string aiAdvisorSubtitle: "Google Gemini 2.5 Flash destekli interaktif portföy analizi, XAI risk faktörleri ve akıllı karar desteği"
+    readonly property string aiStatusOnline: "Çevrimiçi (Gemini 2.5 Flash)"
+    readonly property string aiStatusOffline: "Simülasyon / Demo Modu"
+    readonly property string aiStatusThinking: "Gemini analiz ediyor ve portföy verilerini inceliyor..."
+    readonly property string aiClearChat: "Sohbeti Temizle"
+    readonly property string aiInputPlaceholder: "Portföyünüz, hisseleriniz veya piyasa hakkında bir soru yazın (örn. Portföyümün risk analizi nedir?)..."
+    readonly property string aiSendBtn: "Gönder"
+    readonly property string aiDisclaimer: "Yapay zeka asistanı bilgilendirme ve analiz amaçlıdır, kesinlikle yatırım tavsiyesi (YTD) niteliği taşımaz."
+    readonly property string aiQuickPromptsTitle: "HIZLI ANALİZ SORULARI"
+    readonly property string aiHealthScoreTitle: "PORTFÖY SAĞLIK & RİSK SKORU"
+    readonly property string aiHealthScoreDesc: "Varlık çeşitliliği, volatilite, Sharpe ve geri çekilme risklerine göre ağırlıklandırılmış genel sağlık endeksi."
+    readonly property string aiHealthDiversification: "Varlık Çeşitliliği"
+    readonly property string aiHealthRisk: "Volatilite & Risk"
+    readonly property string aiHealthPerformance: "Sharpe & Getiri"
+    readonly property string aiHealthDrawdown: "Maksimum Düşüş"
+    readonly property string aiXaiInsightsTitle: "XAI İÇGÖRÜLERİ & RİSK ANALİZİ"
+    readonly property string aiToolsUsedBadge: "Kullanılan Analiz Araçları:"
+    readonly property string aiApiKeyMissingNotice: "Gemini API anahtarı tanımlanmadı. Demo modunda yerel analiz motoru çalışıyor. Tam Function Calling için API anahtarı ekleyebilirsiniz."
+    readonly property string aiBtnSaveKey: "Anahtarı Kaydet"
+    readonly property string aiKeyPlaceholder: "Google Gemini API Anahtarınızı girin..."
 }
+
 
