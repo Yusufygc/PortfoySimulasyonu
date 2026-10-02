@@ -626,8 +626,8 @@ Item {
     ExcelExportDialog {
         id: excelDialog
         title: Strings.excelDialogTitlePortfolio
-        onExportRequested: function(startText, endText, filePath) {
-            dashboardController.exportToExcelFile(startText, endText, filePath)
+        onExportRequested: function(startText, endText, filePath, append) {
+            dashboardController.exportToExcelFile(startText, endText, filePath, append)
         }
     }
 

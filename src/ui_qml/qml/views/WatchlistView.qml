@@ -164,6 +164,8 @@ Item {
                                 width: watchlistsListView.width
                                 height: 48
                                 radius: Theme.radiusSm
+                                property real dragOffset: 0
+                                transform: Translate { y: wlRow.dragOffset }
 
                                 readonly property bool isSelected: watchlistController && (modelData.id === watchlistController.currentWatchlistId)
                                 readonly property bool isHovered: wlMouse.containsMouse || editMouse.containsMouse || deleteMouse.containsMouse
@@ -187,6 +189,17 @@ Item {
                                     anchors.rightMargin: 8
                                     spacing: 8
                                     z: 1
+
+                                    ReorderHandle {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        target: wlRow
+                                        rowIndex: index
+                                        rowCount: watchlistsListView.count
+                                        step: wlRow.height + watchlistsListView.spacing
+                                        onMoveRequested: function(fromIndex, toIndex) {
+                                            if (watchlistController) watchlistController.moveWatchlist(fromIndex, toIndex)
+                                        }
+                                    }
 
                                     Column {
                                         Layout.fillWidth: true

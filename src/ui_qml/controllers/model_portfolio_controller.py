@@ -187,6 +187,23 @@ class ModelPortfolioController(QObject):
     # =====================================================================
 
     @Slot()
+    @Slot(int, int)
+    def movePortfolio(self, from_index: int, to_index: int) -> None:
+        """Model portföyü sürükle-bırak ile yeni sıraya taşır ve sırayı kalıcı kaydeder."""
+        size = len(self._portfolio_list)
+        if not self._service or not (0 <= from_index < size and 0 <= to_index < size) or from_index == to_index:
+            return
+        reordered = list(self._portfolio_list)
+        reordered.insert(to_index, reordered.pop(from_index))
+        try:
+            self._service.reorder_portfolios([p["portfolioId"] for p in reordered])
+        except Exception as exc:
+            logger.error("Model portföy sırası kaydedilemedi: %s", exc)
+            self.operationResult.emit(False, f"Sıra kaydedilemedi: {exc}")
+            return
+        self._portfolio_list = reordered
+        self.portfolioListChanged.emit()
+
     def refreshData(self):
         """Portföy listesini veritabanından yeniden yükler."""
         if not self._service:
@@ -632,8 +649,8 @@ class ModelPortfolioController(QObject):
             first = None
         return first.strftime("%d.%m.%Y") if first else ""
 
-    @Slot(str, str, str)
-    def exportHistoryToFile(self, start_text: str, end_text: str, file_path: str) -> None:
+    @Slot(str, str, str, bool)
+    def exportHistoryToFile(self, start_text: str, end_text: str, file_path: str, append: bool = False) -> None:
         """Seçili model portföyün tarihsel (günlük) Excel raporunu seçilen aralık ve dosyaya yazar."""
         from datetime import datetime as _dt
 
@@ -660,9 +677,11 @@ class ModelPortfolioController(QObject):
         if start > end:
             self.operationResult.emit(False, "Başlangıç tarihi bitiş tarihinden büyük olamaz.")
             return
-        self._executor.submit(self._run_history_export_worker, self._current_portfolio_id, start, end, file_path.strip())
+        self._executor.submit(
+            self._run_history_export_worker, self._current_portfolio_id, start, end, file_path.strip(), bool(append)
+        )
 
-    def _run_history_export_worker(self, portfolio_id: int, start, end, file_path: str) -> None:
+    def _run_history_export_worker(self, portfolio_id: int, start, end, file_path: str, append: bool = False) -> None:
         try:
             from pathlib import Path
             from src.application.services.reporting.daily_history_models import ExportMode
@@ -676,7 +695,8 @@ class ModelPortfolioController(QObject):
                 target = target.with_suffix(".xlsx")
             target.parent.mkdir(parents=True, exist_ok=True)
             excel_service.export_model_portfolio_history(
-                portfolio_id=portfolio_id, start_date=start, end_date=end, file_path=target, mode=ExportMode.OVERWRITE,
+                portfolio_id=portfolio_id, start_date=start, end_date=end, file_path=target,
+                mode=ExportMode.APPEND if append else ExportMode.OVERWRITE,
             )
             self._asyncExportFinished.emit(True, f"Model portföy raporu oluşturuldu:\n{target.name}")
         except Exception as exc:

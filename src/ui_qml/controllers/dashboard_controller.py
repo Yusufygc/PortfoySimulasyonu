@@ -579,9 +579,11 @@ class DashboardController(QObject):
             first = None
         return first.strftime("%d.%m.%Y") if first else ""
 
-    @Slot(str, str, str)
-    def exportToExcelFile(self, start_text: str, end_text: str, file_path: str) -> None:
-        """Seçilen tarih aralığı ve hedef dosya için Excel raporu üretir (boş tarih = ilk işlemden bugüne)."""
+    @Slot(str, str, str, bool)
+    def exportToExcelFile(self, start_text: str, end_text: str, file_path: str, append: bool = False) -> None:
+        """Seçilen tarih aralığı ve hedef dosya için Excel raporu üretir (boş tarih = ilk işlemden bugüne).
+
+        append=True mevcut dosyaya yeni günleri ekler (dosya yoksa yeni oluşturulur)."""
         start = _parse_report_date(start_text)
         end = _parse_report_date(end_text)
         if (start_text.strip() and start is None) or (end_text.strip() and end is None):
@@ -595,6 +597,7 @@ class DashboardController(QObject):
             start.isoformat() if start else None,
             end.isoformat() if end else None,
             file_path.strip() or None,
+            bool(append),
         )
 
     def _run_excel_export_worker(
@@ -602,6 +605,7 @@ class DashboardController(QObject):
         start_date_str: Optional[str],
         end_date_str: Optional[str],
         target_path: Optional[str] = None,
+        append: bool = False,
     ) -> None:
         try:
             from datetime import date, datetime
@@ -646,7 +650,7 @@ class DashboardController(QObject):
                     start_date=s_date,
                     end_date=e_date,
                     file_path=target_file,
-                    mode=ExportMode.OVERWRITE,
+                    mode=ExportMode.APPEND if append else ExportMode.OVERWRITE,
                 )
                 self._asyncExportFinished.emit(True, f"Excel portföy raporu kaydedildi:\n{target_file.name}")
             else:

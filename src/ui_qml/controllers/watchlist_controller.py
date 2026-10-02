@@ -90,6 +90,25 @@ class WatchlistController(QObject):
             return self._container.services.watchlist_service
         return None
 
+    @Slot(int, int)
+    def moveWatchlist(self, from_index: int, to_index: int) -> None:
+        """Listeyi sürükle-bırak ile yeni sıraya taşır ve sırayı kalıcı kaydeder."""
+        ws = self._get_watchlist_service()
+        size = len(self._watchlists)
+        if not (0 <= from_index < size and 0 <= to_index < size) or from_index == to_index:
+            return
+        reordered = list(self._watchlists)
+        reordered.insert(to_index, reordered.pop(from_index))
+        if ws is not None:
+            try:
+                ws.reorder_watchlists([w["id"] for w in reordered])
+            except Exception as exc:
+                logger.error("Watchlist sırası kaydedilemedi: %s", exc)
+                self.actionCompleted.emit(False, f"Sıra kaydedilemedi: {exc}")
+                return
+        self._watchlists = reordered
+        self.watchlistsChanged.emit()
+
     @Slot()
     def reloadAll(self) -> None:
         """Dışarıdan veri değişince (sistem sıfırlama vb.) listeleri DB'den yeniden okur."""

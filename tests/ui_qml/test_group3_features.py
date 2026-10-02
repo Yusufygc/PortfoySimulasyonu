@@ -585,3 +585,53 @@ def test_group3_qml_components_compile_without_warnings(qapp, relative_path):
 
     assert item is not None
     assert warnings == [], f"{relative_path} uyarı üretti:\n" + "\n".join(warnings)
+
+
+def test_dashboard_excel_export_append_mode_is_forwarded(qapp, tmp_path):
+    from src.application.services.reporting.daily_history_models import ExportMode
+
+    ctrl, container = _dashboard(qapp)
+    ctrl._executor = ImmediateExecutor()
+
+    ctrl.exportToExcelFile("01.02.2026", "01.03.2026", str(tmp_path / "var.xlsx"), True)
+    assert container.excel_export_service.export_history.call_args.kwargs["mode"] == ExportMode.APPEND
+
+    ctrl.exportToExcelFile("01.02.2026", "01.03.2026", str(tmp_path / "var.xlsx"))
+    assert container.excel_export_service.export_history.call_args.kwargs["mode"] == ExportMode.OVERWRITE
+
+
+def test_model_portfolio_export_append_mode_is_forwarded(qapp, tmp_path):
+    from src.application.services.reporting.daily_history_models import ExportMode
+
+    container = MagicMock()
+    ctrl = ModelPortfolioController(container=container)
+    ctrl._executor = ImmediateExecutor()
+    ctrl._current_portfolio_id = 3
+    ctrl._service = MagicMock()
+    ctrl._service.get_first_trade_date.return_value = date(2026, 1, 10)
+    export = container.model_portfolio_excel_export_service.export_model_portfolio_history
+
+    ctrl.exportHistoryToFile("", "01.03.2026", str(tmp_path / "m.xlsx"), True)
+    assert export.call_args.kwargs["mode"] == ExportMode.APPEND
+
+    ctrl.exportHistoryToFile("", "01.03.2026", str(tmp_path / "m.xlsx"))
+    assert export.call_args.kwargs["mode"] == ExportMode.OVERWRITE
+
+
+def test_excel_dialog_append_option_resets_on_open(qapp):
+    from PySide6.QtCore import Q_ARG, QMetaObject, QUrl
+    from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
+
+    qml_dir = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(str(qml_dir))
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(qml_dir / "components/ExcelExportDialog.qml")))
+    if not component.isReady():
+        pytest.fail("; ".join(e.toString() for e in component.errors()))
+    item = component.create()
+
+    item.setProperty("appendMode", True)
+    assert item.property("appendMode") is True
+    QMetaObject.invokeMethod(item, "open", Q_ARG("QVariant", "01.01.2026"), Q_ARG("QVariant", "r.xlsx"))
+
+    assert item.property("isOpen") is True and item.property("appendMode") is False

@@ -87,6 +87,8 @@ Rectangle {
                 width: portfolioListView.width
                 height: modelData.description ? 62 : 46
                 radius: Theme.radiusSm
+                property real dragOffset: 0
+                transform: Translate { y: itemDelegate.dragOffset }
 
                 readonly property bool isSelected: portfolioController.currentPortfolioId === modelData.portfolioId
 
@@ -115,6 +117,17 @@ Rectangle {
                     anchors.leftMargin: Theme.spaceSm + (itemDelegate.isSelected ? 4 : 0)
                     anchors.rightMargin: Theme.spaceSm
                     spacing: Theme.spaceSm
+
+                    ReorderHandle {
+                        Layout.alignment: Qt.AlignVCenter
+                        target: itemDelegate
+                        rowIndex: index
+                        rowCount: portfolioListView.count
+                        step: itemDelegate.height + portfolioListView.spacing
+                        onMoveRequested: function(fromIndex, toIndex) {
+                            portfolioController.movePortfolio(fromIndex, toIndex)
+                        }
+                    }
 
                     ColumnLayout {
                         Layout.fillWidth: true

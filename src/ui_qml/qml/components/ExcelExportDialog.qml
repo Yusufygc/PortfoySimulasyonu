@@ -13,10 +13,11 @@ Rectangle {
     property string defaultFileName: "Portfoy_Raporu.xlsx"
     property string firstDateText: ""
     property bool useRange: false
+    property alias appendMode: chkAppend.checked
     property string statusText: ""
 
     // Başlangıç/bitiş boş = ilk işlemden bugüne. Dosya yolu boşsa servis varsayılanını kullanır.
-    signal exportRequested(string startText, string endText, string filePath)
+    signal exportRequested(string startText, string endText, string filePath, bool append)
 
     anchors.fill: parent
     color: "#99000000"
@@ -38,6 +39,7 @@ Rectangle {
         txtStart.text = firstDateText
         txtEnd.text = todayText()
         txtFile.text = ""
+        chkAppend.checked = false
         statusText = ""
         isOpen = true
     }
@@ -155,6 +157,15 @@ Rectangle {
                 }
             }
 
+            CheckBox {
+                id: chkAppend
+                Layout.fillWidth: true
+                text: Strings.excelAppend
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSm
+                palette.windowText: Theme.textSecondary
+            }
+
             Text {
                 visible: root.statusText !== ""
                 text: root.statusText
@@ -183,7 +194,7 @@ Rectangle {
                         const start = root.useRange ? txtStart.text.trim() : ""
                         const end = root.useRange ? txtEnd.text.trim() : ""
                         root.close()
-                        root.exportRequested(start, end, txtFile.text.trim())
+                        root.exportRequested(start, end, txtFile.text.trim(), chkAppend.checked)
                     }
                 }
             }

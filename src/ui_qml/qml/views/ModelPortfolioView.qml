@@ -468,8 +468,8 @@ Item {
     ExcelExportDialog {
         id: excelDialog
         title: Strings.excelDialogTitleModel
-        onExportRequested: function(startText, endText, filePath) {
-            portfolioController.exportHistoryToFile(startText, endText, filePath)
+        onExportRequested: function(startText, endText, filePath, append) {
+            portfolioController.exportHistoryToFile(startText, endText, filePath, append)
         }
     }
 }

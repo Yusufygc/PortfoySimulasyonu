@@ -749,6 +749,7 @@ QtObject {
     readonly property string excelFilePlaceholder: "Boş bırakılırsa Masaüstü'ne kaydedilir"
     readonly property string excelBtnBrowse: "Gözat"
     readonly property string excelBtnExport: "Raporu Oluştur"
+    readonly property string excelAppend: "Mevcut dosyaya ekle (yoksa yeni dosya oluşturulur)"
 
     // --- Hızlı İşlem / Hisse Detay: İşlem Etkisi ---
     readonly property string tradeTickerUnknown: "Hisse yerel veritabanında bulunamadı; alımda kod doğrulanıp eklenir."
