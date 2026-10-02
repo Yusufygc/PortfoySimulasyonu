@@ -20,6 +20,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from config.settings_loader import persist_api_keys
 from src.application.services.ai.ai_advisor_service import AiAdvisorService
+from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
 from src.infrastructure.ai.gemini_advisor_chat_provider import (
     AdvisorChatResult,
     GeminiAdvisorChatProvider,
@@ -79,6 +80,7 @@ class AiAdvisorController(QObject):
     quickPromptsChanged = Signal()
     hasApiKeyChanged = Signal(bool)
     modelNameChanged = Signal(str)
+    sessionsChanged = Signal()
 
     # Bildirim Sinyalleri
     messageReceived = Signal(str, str)  # role, content (otomatik kaydırma için)
@@ -98,6 +100,8 @@ class AiAdvisorController(QObject):
         self._status_message = "Hazır"
         self._model_name = "Gemini 2.5 Flash"
         self._messages: List[Dict[str, Any]] = []
+        self._session: Optional[ChatSession] = None  # etkin sohbet oturumu
+        self._sessions: List[Dict[str, Any]] = []
 
         # Portföy Sağlık Metrikleri
         self._portfolio_health_score = 75
@@ -132,8 +136,8 @@ class AiAdvisorController(QObject):
         self._asyncResponseReady.connect(self._on_async_response_ready)
         self._asyncErrorReady.connect(self._on_async_error_ready)
 
-        # Karşılama mesajını ekle ve sağlık skorunu hesapla
-        self._init_welcome_message()
+        # Son aktif sohbeti yükle (yoksa karşılama mesajıyla yeni sohbet) ve sağlık skorunu hesapla
+        self._restore_last_session()
         self.refreshHealthScore()
 
     # -------------------------------------------------------------------------
@@ -151,6 +155,18 @@ class AiAdvisorController(QObject):
     @Property("QVariantList", notify=messagesChanged)
     def messages(self) -> List[Dict[str, Any]]:
         return self._messages
+
+    @Property("QVariantList", notify=sessionsChanged)
+    def sessions(self) -> List[Dict[str, Any]]:
+        return self._sessions
+
+    @Property(str, notify=sessionsChanged)
+    def activeSessionId(self) -> str:
+        return self._session.id if self._session else ""
+
+    @Property(bool, constant=True)
+    def historyAvailable(self) -> bool:
+        return self._get_session_service() is not None
 
     @Property(int, notify=portfolioHealthScoreChanged)
     def portfolioHealthScore(self) -> int:
@@ -188,6 +204,9 @@ class AiAdvisorController(QObject):
         if settings and hasattr(settings, "ai"):
             return getattr(settings.ai, "gemini_api_key", None)
         return None
+
+    def _get_session_service(self):
+        return getattr(self._container, "chat_session_service", None) if self._container else None
 
     def _get_advisor_service(self) -> Optional[AiAdvisorService]:
         if not self._container:
@@ -235,15 +254,126 @@ class AiAdvisorController(QObject):
             ),
             "timestamp": now_str,
             "toolCalls": [],
+            "isWelcome": True,
         }
         self._messages = [welcome]
         self.messagesChanged.emit()
 
+    # -------------------------------------------------------------------------
+    # Sohbet Geçmişi (oturumlar)
+    # -------------------------------------------------------------------------
+
+    def _restore_last_session(self) -> None:
+        service = self._get_session_service()
+        last = None
+        if service is not None:
+            try:
+                last = service.get_last_active_session()
+            except Exception as exc:
+                logger.warning("Son sohbet yüklenemedi: %s", exc)
+        if isinstance(last, ChatSession) and last.messages:
+            self._open_session(last)
+        else:
+            self._start_new_session()
+        self._refresh_sessions()
+
+    def _start_new_session(self) -> None:
+        service = self._get_session_service()
+        self._session = service.create_session() if service is not None else None
+        self._init_welcome_message()
+
+    def _open_session(self, session: ChatSession) -> None:
+        self._session = session
+        self._messages = [self._message_to_dict(i, m) for i, m in enumerate(session.messages)]
+        self.messagesChanged.emit()
+
+    @staticmethod
+    def _message_to_dict(index: int, message: ChatMessage) -> Dict[str, Any]:
+        return {
+            "id": f"msg-{index}",
+            "role": message.role.value,
+            "content": message.content,
+            "timestamp": message.timestamp.strftime("%H:%M"),
+            "toolCalls": [],
+        }
+
+    def _persist_session(self) -> None:
+        """Kullanıcı mesajı içeren etkin sohbeti kalıcı kaydeder (karşılama mesajı kaydedilmez)."""
+        service = self._get_session_service()
+        if service is None or self._session is None:
+            return
+        persisted = []
+        for entry in self._messages:
+            if entry.get("isWelcome") or entry["role"] == "system":
+                continue
+            try:
+                role = MessageRole(entry["role"])
+            except ValueError:
+                continue
+            persisted.append(ChatMessage(role=role, content=entry["content"]))
+        self._session.messages = persisted
+        try:
+            service.save_session(self._session)
+        except Exception as exc:
+            logger.warning("Sohbet kaydedilemedi: %s", exc)
+        self._refresh_sessions()
+
+    def _refresh_sessions(self) -> None:
+        service = self._get_session_service()
+        items: List[Dict[str, Any]] = []
+        if service is not None:
+            try:
+                for s in service.list_sessions():
+                    items.append({
+                        "id": s.id,
+                        "title": s.title or "Yeni Sohbet",
+                        "updatedText": s.updated_at.strftime("%d.%m.%Y %H:%M"),
+                        "messageCount": sum(1 for m in s.messages if m.role == MessageRole.USER),
+                    })
+            except Exception as exc:
+                logger.warning("Sohbet listesi okunamadı: %s", exc)
+        self._sessions = items
+        self.sessionsChanged.emit()
+
+    @Slot()
+    def newChat(self) -> None:
+        """Yeni (boş) sohbet başlatır; mevcut sohbet geçmişte kalır."""
+        if self._is_loading:
+            return
+        self._start_new_session()
+        self._refresh_sessions()
+        self._set_status("Yeni sohbet")
+
+    @Slot(str)
+    def selectSession(self, session_id: str) -> None:
+        service = self._get_session_service()
+        if service is None or self._is_loading or (self._session and self._session.id == session_id):
+            return
+        session = service.get_session(session_id)
+        if session is None:
+            return
+        service.set_active(session_id)
+        self._open_session(session)
+        self._refresh_sessions()
+
+    @Slot(str)
+    def deleteSession(self, session_id: str) -> None:
+        service = self._get_session_service()
+        if service is None or self._is_loading:
+            return
+        service.delete_session(session_id)
+        if self._session and self._session.id == session_id:
+            self._start_new_session()
+        self._refresh_sessions()
+
     @Slot()
     def clearChat(self) -> None:
-        """Sohbet geçmişini sıfırlar ve karşılama mesajını yükler."""
-        self._init_welcome_message()
-        self._set_status("Sohbet sıfırlandı")
+        """Eski ad: yeni sohbet başlatır (geçmiş korunur)."""
+        if self._session is None or self._get_session_service() is None:
+            self._init_welcome_message()
+            self._set_status("Sohbet sıfırlandı")
+            return
+        self.newChat()
 
     # -------------------------------------------------------------------------
     # Mesaj Gönderme ve Asenkron Çalıştırma
@@ -490,6 +620,7 @@ class AiAdvisorController(QObject):
         self.messageReceived.emit("ai", ai_msg["content"])
         self._set_loading(False)
         self._set_status("Hazır")
+        self._persist_session()
 
     def _on_async_error_ready(self, error_msg: str) -> None:
         now_str = datetime.now().strftime("%H:%M")

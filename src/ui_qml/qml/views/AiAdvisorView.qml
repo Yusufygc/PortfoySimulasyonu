@@ -132,7 +132,46 @@ Rectangle {
                 }
             }
 
-            // Sohbeti Temizle Butonu
+            // Sohbet Geçmişi Butonu
+            Rectangle {
+                visible: typeof aiAdvisorController !== "undefined" && aiAdvisorController.historyAvailable
+                Layout.preferredHeight: 36
+                Layout.preferredWidth: rowHistory.implicitWidth + 20
+                radius: Theme.radiusMd
+                color: btnHistoryMouse.containsMouse ? Theme.bgSurfaceHover : Theme.bgSurface
+                border.color: Theme.borderSubtle
+                border.width: 1
+
+                RowLayout {
+                    id: rowHistory
+                    anchors.centerIn: parent
+                    spacing: Theme.spaceXs
+
+                    ModernIcon {
+                        iconSource: Icons.history
+                        size: 14
+                        color: Theme.textSecondary
+                    }
+
+                    Text {
+                        text: Strings.aiHistory
+                        color: Theme.textSecondary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontXs
+                        font.weight: Font.Medium
+                    }
+                }
+
+                MouseArea {
+                    id: btnHistoryMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: chatHistoryDialog.open()
+                }
+            }
+
+            // Yeni Sohbet Butonu (eski ad: Sohbeti Temizle; geçmiş korunur)
             Rectangle {
                 Layout.preferredHeight: 36
                 Layout.preferredWidth: rowClear.implicitWidth + 20
@@ -1003,5 +1042,9 @@ Rectangle {
         anchors.bottomMargin: 24
         z: 999
         visible: root.toastVisible
+    }
+
+    ChatHistoryDialog {
+        id: chatHistoryDialog
     }
 }

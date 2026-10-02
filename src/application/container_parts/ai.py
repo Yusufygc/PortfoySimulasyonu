@@ -6,6 +6,7 @@ from config.settings_loader import AISettings
 from src.application.services.ai.ai_advisor_service import AiAdvisorService
 from src.application.services.ai.ai_analysis_service import AiAnalysisService
 from src.application.services.ai.ai_chat_service import AiChatService
+from src.application.services.ai.chat_session_service import ChatSessionService
 from src.domain.ports.repositories.i_chat_history_repo import IChatHistoryRepository
 from src.infrastructure.ai.ai_core_fastapi_client import (
     AICoreFastAPIClient,
@@ -22,6 +23,7 @@ class AiSet:
     ai_chat_service: AiChatService
     chat_history_repo: IChatHistoryRepository
     ai_advisor_service: AiAdvisorService
+    chat_session_service: ChatSessionService
 
 
 def build_ai(
@@ -33,13 +35,15 @@ def build_ai(
     live_provider = FastAPIAnalysisProvider(
         AICoreFastAPIClient(base_url=ai_settings.core_api_url)
     )
+    chat_history_repo = QSettingsChatHistoryRepository()
     return AiSet(
         ai_analysis_service=AiAnalysisService(
             live_provider=live_provider,
             fallback_provider=MockAIAnalysisProvider(),
         ),
         ai_chat_service=AiChatService(GeminiChatProvider(api_key=lambda: ai_settings.gemini_api_key)),
-        chat_history_repo=QSettingsChatHistoryRepository(),
+        chat_history_repo=chat_history_repo,
+        chat_session_service=ChatSessionService(chat_history_repo),
         # Yeni, ayrı "AI Danışman" özelliği (bkz. plan §6.2, e1.1) — mevcut
         # ai_chat_service/ai_page HİÇ değiştirilmedi, tamamen additive.
         ai_advisor_service=AiAdvisorService(
