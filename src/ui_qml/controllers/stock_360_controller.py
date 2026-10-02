@@ -18,9 +18,6 @@ from src.application.services.analysis.stock_360_service import Stock360Service
 from src.domain.models.shareholder import ShareholderSnapshot
 from src.ui_qml.controllers.stock_360_formatters import (
     DONUT_COLORS,
-    _format_currency,
-    _format_price,
-    _format_volume,
     format_currency,
     format_price,
     format_volume,
@@ -228,30 +225,14 @@ class Stock360Controller(QObject):
     def isLoading(self) -> bool:
         return self._is_loading
 
-    @Property(str, notify=errorMessageChanged)
-    def errorMessage(self) -> str:
-        return self._error_message
-
     # Genel Bakış
     @Property(str, notify=overviewChanged)
     def lastPrice(self) -> str:
         return self._last_price_str
 
-    @Property(float, notify=overviewChanged)
-    def lastPriceRaw(self) -> float:
-        return self._last_price_raw
-
-    @Property(str, notify=overviewChanged)
-    def lastPriceDate(self) -> str:
-        return self._last_price_date_str
-
     @Property(str, notify=overviewChanged)
     def dailyChange(self) -> str:
         return self._daily_change_str
-
-    @Property(float, notify=overviewChanged)
-    def dailyChangeRaw(self) -> float:
-        return self._daily_change_raw
 
     @Property(bool, notify=overviewChanged)
     def isDailyPositive(self) -> bool:
@@ -347,10 +328,6 @@ class Stock360Controller(QObject):
     def currentRatio(self) -> str:
         return self._current_ratio
 
-    @Property(str, notify=financialsChanged)
-    def marketCap(self) -> str:
-        return self._market_cap_str
-
     @Property(str, notify=activeFinancialTabChanged)
     def activeFinancialTab(self) -> str:
         return self._active_financial_tab
@@ -362,10 +339,6 @@ class Stock360Controller(QObject):
     @Property(str, notify=financialBarsChanged)
     def financialSummary(self) -> str:
         return self._financial_summary
-
-    @Property(bool, notify=financialsChanged)
-    def hasFinancials(self) -> bool:
-        return self._has_financials
 
     # Ortaklık Yapısı
     @Property("QVariantList", notify=shareholdersChanged)
@@ -392,23 +365,12 @@ class Stock360Controller(QObject):
     def shareholderDate(self) -> str:
         return self._shareholder_date_str
 
-    @Property(bool, notify=shareholdersChanged)
-    def hasShareholders(self) -> bool:
-        return self._has_shareholders
-
     # Hızlı Hisse Listesi
     @Property("QVariantList", notify=availableStocksChanged)
     def availableStocks(self) -> List[str]:
         return self._available_stocks
 
     # Faz 5.1 & 5.2 Property'leri
-    @Property(str, notify=financialsHtmlUrlChanged)
-    def financialsHtmlUrl(self) -> str:
-        return self._financials_html_url
-
-    @Property(str, notify=shareholdersHtmlUrlChanged)
-    def shareholdersHtmlUrl(self) -> str:
-        return self._shareholders_html_url
 
     @Property(int, notify=periodsCountChanged)
     def periodsCount(self) -> int:
@@ -417,14 +379,6 @@ class Stock360Controller(QObject):
     @Property(int, notify=viewModeChanged)
     def viewMode(self) -> int:
         return self._current_view_mode
-
-    @Property(bool, notify=financialsChanged)
-    def isFinancialsReady(self) -> bool:
-        return self._is_financials_ready
-
-    @Property(bool, notify=shareholdersChanged)
-    def isShareholdersReady(self) -> bool:
-        return self._is_shareholders_ready
 
     @Property(int, notify=shareholdersChanged)
     def kapSnapshotCount(self) -> int:

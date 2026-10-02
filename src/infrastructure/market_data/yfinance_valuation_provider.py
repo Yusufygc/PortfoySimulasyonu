@@ -15,7 +15,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-from src.domain.ports.services.i_market_valuation_provider import MarketValuationUnavailable
 
 logger = logging.getLogger(__name__)
 

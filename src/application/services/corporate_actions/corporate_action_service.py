@@ -203,9 +203,6 @@ class CorporateActionService:
     def get_by_stock(self, stock_id: int) -> List[CorporateAction]:
         return self._action_repo.get_by_stock(stock_id)
 
-    def get_pending(self) -> List[CorporateAction]:
-        return self._action_repo.get_all_pending()
-
     def get_pending_by_stock(self, stock_id: int) -> List[CorporateAction]:
         return self._action_repo.get_pending_by_stock(stock_id)
 

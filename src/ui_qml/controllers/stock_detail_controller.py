@@ -192,18 +192,10 @@ class StockDetailController(QObject):
     def marketValueStr(self) -> str:
         return f"₺{self._market_value:,.2f}"
 
-    @Property(float, notify=stockChanged)
-    def unrealizedPnl(self) -> float:
-        return self._unrealized_pnl
-
     @Property(str, notify=stockChanged)
     def unrealizedPnlStr(self) -> str:
         sign = "+" if self._unrealized_pnl >= 0 else ""
         return f"{sign}₺{self._unrealized_pnl:,.2f}"
-
-    @Property(float, notify=stockChanged)
-    def unrealizedPnlPct(self) -> float:
-        return self._unrealized_pnl_pct
 
     @Property(str, notify=stockChanged)
     def unrealizedPnlPctStr(self) -> str:
@@ -213,14 +205,6 @@ class StockDetailController(QObject):
     @Property(bool, notify=stockChanged)
     def isPnlPositive(self) -> bool:
         return self._unrealized_pnl >= 0
-
-    @Property(float, notify=stockChanged)
-    def portfolioWeightPct(self) -> float:
-        return self._portfolio_weight_pct
-
-    @Property(str, notify=stockChanged)
-    def portfolioWeightStr(self) -> str:
-        return f"%{self._portfolio_weight_pct:.1f}"
 
     @Property("QVariantList", notify=tradesChanged)
     def tradesList(self) -> List[Dict[str, Any]]:

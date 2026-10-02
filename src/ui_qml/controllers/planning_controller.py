@@ -126,10 +126,6 @@ class PlanningController(QObject):
     def savingsTarget(self) -> float:
         return self._savings_target
 
-    @Property(str, notify=budgetChanged)
-    def budgetStatusMessage(self) -> str:
-        return self._budget_status_msg
-
     @Property(list, notify=budgetChanged)
     def incomeItems(self) -> list:
         return self._income_items

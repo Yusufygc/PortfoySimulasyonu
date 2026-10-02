@@ -43,14 +43,6 @@ class PortfolioService:
     def get_valid_trades(self, as_of: date | tuple[date, dt_time | None] | None = None) -> List[Trade]:
         return self.get_portfolio_health(as_of=as_of).valid_trades
 
-    def get_portfolio_with_prices_for_date(
-        self,
-        value_date: date,
-    ) -> Tuple[Portfolio, Dict[int, Decimal]]:
-        portfolio = self.get_current_portfolio()
-        price_map = self._price_repo.get_prices_for_date(value_date)
-        return portfolio, price_map
-
     def add_trade(self, trade: Trade) -> Trade:
         return self._portfolio_repo.insert_trade(trade)
 
@@ -116,10 +108,6 @@ class PortfolioService:
         position = portfolio.positions.get(stock_id)
         return position.total_quantity if position else 0
 
-    def get_active_stock_ids(self) -> list[int]:
-        portfolio = self.get_current_portfolio()
-        return sorted(portfolio.active_positions)
-
     def get_all_trades(self) -> List[Trade]:
         return self._portfolio_repo.get_all_trades()
 
@@ -136,17 +124,6 @@ class PortfolioService:
         as_date, as_time = (as_of, None) if isinstance(as_of, date) else as_of
         max_key = (as_date, as_time or dt_time.max, float("inf"))
         return [trade for trade in trades if trade_sort_key(trade) <= max_key]
-
-    def _cash_movements_balance(self, as_of: date | tuple[date, dt_time | None] | None = None) -> Decimal:
-        balance = Decimal("0")
-        for _event_date, _event_time, _event_order, _event_id, event_type, amount in self._cash_movement_events_until(as_of):
-            if event_type == CashMovementType.DEPOSIT:
-                balance += amount
-            else:
-                balance -= amount
-                if balance < 0:
-                    balance = Decimal("0")
-        return balance
 
     def _cash_events_until(
         self,

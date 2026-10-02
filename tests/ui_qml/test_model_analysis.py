@@ -95,11 +95,11 @@ def test_analysis_to_dict_formats_turkish_values():
 def test_probe_sets_live_state_and_demo_warning(qapp):
     live = _ctrl(qapp, FakeService(live=True))
     live.probe()
-    assert live.isLive is True and live.bannerState == "success"
+    assert live.bannerState == "success"
 
     demo = _ctrl(qapp, FakeService(live=False))
     demo.probe()
-    assert demo.isLive is False and "DEMO" in demo.bannerText and demo.bannerState == "warning"
+    assert "DEMO" in demo.bannerText and demo.bannerState == "warning"
 
 
 def test_analyze_live_result_and_ticker_normalization(qapp):
@@ -110,7 +110,7 @@ def test_analyze_live_result_and_ticker_normalization(qapp):
     ctrl.analyze("thyao.is")
 
     assert service.analyzed == ["THYAO"]
-    assert ctrl.hasResult and ctrl.isDemoResult is False and ctrl.result["ticker"] == "THYAO"
+    assert ctrl.hasResult and ctrl.result["isLive"] is True and ctrl.result["ticker"] == "THYAO"
     assert ctrl.bannerState == "success" and ctrl.isBusy is False
 
 
@@ -120,7 +120,7 @@ def test_demo_results_are_marked_as_demo(qapp):
 
     ctrl.analyze("ASELS")
 
-    assert ctrl.isDemoResult is True and ctrl.bannerText.startswith("DEMO verisi")
+    assert ctrl.result["isLive"] is False and ctrl.bannerText.startswith("DEMO verisi")
 
 
 def test_blocking_status_shows_banner_without_result(qapp):
@@ -137,13 +137,13 @@ def test_error_drops_to_demo_except_on_timeout(qapp):
     ctrl = _ctrl(qapp, service)
     ctrl.probe()
     ctrl.analyze("ASELS")
-    assert service.dropped is True and ctrl.isLive is False and ctrl.bannerState == "error"
+    assert service.dropped is True and ctrl.bannerState == "error"
 
     slow = FakeService(live=True, error=RuntimeError("istek zaman aşımına uğradı: timeout"))
     ctrl2 = _ctrl(qapp, slow)
     ctrl2.probe()
     ctrl2.analyze("ASELS")
-    assert slow.dropped is False and ctrl2.isLive is True
+    assert slow.dropped is False and ctrl2.bannerState == "error"
 
 
 def test_send_to_advisor_emits_summary_prompt(qapp):

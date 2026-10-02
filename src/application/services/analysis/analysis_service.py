@@ -265,22 +265,6 @@ class AnalysisService:
         self._validate_filter_state(filter_state)
         return self._bundle_builder.build(filter_state)
 
-    def _apply_currency_mode(
-        self, 
-        series: dict, 
-        currency_mode: str, 
-        usd_try_series: dict, 
-        cpi_series: dict,
-        is_normalized: bool = False
-    ) -> dict:
-        return self._currency_service.apply_currency_mode(
-            series,
-            currency_mode,
-            usd_try_series,
-            cpi_series,
-            is_normalized=is_normalized,
-        )
-
     def _build_comparison_portfolio_series(
         self,
         filter_state: AnalysisFilterState,

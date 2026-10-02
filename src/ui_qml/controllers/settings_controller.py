@@ -163,10 +163,6 @@ class SettingsController(QObject):
     def duckDbLastDate(self) -> str:
         return self._duckdb_last_date
 
-    @Property(bool, notify=duckDbIsUpToDateChanged)
-    def duckDbIsUpToDate(self) -> bool:
-        return self._duckdb_is_up_to_date
-
     @Property(bool, notify=isSyncingChanged)
     def isSyncing(self) -> bool:
         return self._is_syncing

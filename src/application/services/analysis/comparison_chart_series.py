@@ -43,34 +43,6 @@ class ComparisonSeriesBuilder:
         return series_dict, code_to_label
 
     @staticmethod
-    def build_override_series(
-        dto,
-        portfolio_code: str,
-        asset_labels: dict[str, str],
-    ) -> tuple[dict[str, pd.Series], dict[str, str]]:
-        series_dict: dict[str, pd.Series] = {}
-        code_to_label: dict[str, str] = {}
-
-        if dto.portfolio_series:
-            label = dto.current_portfolio_label
-            series_dict[label] = ComparisonSeriesBuilder._series_from_points(dto.portfolio_series, label)
-            code_to_label[portfolio_code] = label
-            code_to_label[f"portfolio:{portfolio_code}"] = label
-
-        for cp in dto.comparison_portfolios:
-            if cp.points:
-                series_dict[cp.label] = ComparisonSeriesBuilder._series_from_points(cp.points, cp.label)
-                code_to_label[cp.code] = cp.label
-                code_to_label[f"portfolio:{cp.code}"] = cp.label
-
-        for stock_id, points in dto.stock_series.items():
-            if points:
-                label = asset_labels.get(str(stock_id), str(stock_id))
-                series_dict[label] = ComparisonSeriesBuilder._series_from_points(points, label)
-
-        return series_dict, code_to_label
-
-    @staticmethod
     def _series_from_points(points, name: str) -> pd.Series:
         series = pd.Series({pd.Timestamp(d): float(v) for d, v in points.items()})
         series.name = name

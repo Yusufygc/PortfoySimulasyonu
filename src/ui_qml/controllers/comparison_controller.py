@@ -310,11 +310,6 @@ class ComparisonController(QObject):
 
         self._executor_ai.submit(work)
 
-    @Slot()
-    def clearAiComment(self) -> None:
-        self._ai_comment = ""
-        self.aiCommentChanged.emit()
-
     @Slot(str)
     def setComparisonMode(self, mode: str) -> None:
         """Karşılaştırma modunu ayarlar: NORMALIZED, NORMAL, RATIO."""

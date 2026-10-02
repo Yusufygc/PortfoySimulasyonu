@@ -83,32 +83,3 @@ class ExcelLayoutManager:
         worksheet.freeze_panes = "A3"
         worksheet.auto_filter.ref = f"A2:{last_col}2"
 
-    def style_dashboard_sheet(self, worksheet) -> None:
-        worksheet.sheet_view.showGridLines = False
-        worksheet.freeze_panes = "A4"
-        worksheet.column_dimensions["A"].width = 22
-        worksheet.column_dimensions["B"].width = 18
-        worksheet.column_dimensions["C"].width = 13
-        for column_idx in range(4, 24):
-            worksheet.column_dimensions[get_column_letter(column_idx)].width = 13
-
-        worksheet.insert_rows(1, 3)
-        worksheet.merge_cells("A1:W1")
-        title_cell = worksheet["A1"]
-        title_cell.value = "Portföy Performans Paneli"
-        title_cell.font = Font(bold=True, color="FFFFFF", size=16)
-        title_cell.fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-        title_cell.alignment = Alignment(horizontal="center", vertical="center")
-        worksheet.row_dimensions[1].height = 28
-
-        worksheet.merge_cells("A2:W2")
-        note_cell = worksheet["A2"]
-        note_cell.value = "BIST kapalı günleri ve fiyat verisi olmayan günler performans serisine dahil edilmez."
-        note_cell.font = Font(italic=True, color="666666", size=9)
-        note_cell.alignment = Alignment(horizontal="center", wrap_text=True, vertical="center")
-        worksheet.row_dimensions[2].height = 24
-
-        for row in range(4, max(worksheet.max_row + 1, 62)):
-            worksheet.row_dimensions[row].height = 22
-        worksheet.auto_filter.ref = f"A4:B{worksheet.max_row}"
-

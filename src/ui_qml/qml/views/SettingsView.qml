@@ -665,6 +665,15 @@ Rectangle {
                                         color: Theme.borderSubtle
                                     }
 
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: (typeof settingsController !== "undefined") ? settingsController.sqliteDbPath : ""
+                                        elide: Text.ElideMiddle
+                                        color: Theme.textMuted
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontXs
+                                    }
+
                                     // Tablo Satır Sayıları
                                     ColumnLayout {
                                         Layout.fillWidth: true
@@ -773,6 +782,15 @@ Rectangle {
                                         Layout.fillWidth: true
                                         height: 1
                                         color: Theme.borderSubtle
+                                    }
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: (typeof settingsController !== "undefined") ? settingsController.duckDbPath : ""
+                                        elide: Text.ElideMiddle
+                                        color: Theme.textMuted
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontXs
                                     }
 
                                     ColumnLayout {

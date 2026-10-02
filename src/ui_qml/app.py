@@ -9,7 +9,6 @@ import logging
 from pathlib import Path
 
 from PySide6.QtCore import QUrl, QCoreApplication
-from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWebEngineQuick import QtWebEngineQuick

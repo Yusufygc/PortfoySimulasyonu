@@ -87,10 +87,6 @@ class MarketSyncController(QObject):
     def statusText(self) -> str:
         return self._status_text
 
-    @Property(str, notify=lastSyncTimeChanged)
-    def lastSyncTime(self) -> str:
-        return self._last_sync_time
-
     @Property(bool, notify=isUpToDateChanged)
     def isUpToDate(self) -> bool:
         return self._is_up_to_date
@@ -110,18 +106,6 @@ class MarketSyncController(QObject):
 
         future = self._executor.submit(self._sync_service.sync_daily_delta)
         future.add_done_callback(self._on_future_done)
-
-    @Slot()
-    def checkStatus(self) -> None:
-        """Güncellik durumunu kontrol eder."""
-        try:
-            status = self._sync_service.get_sync_status()
-            self._is_up_to_date = status.is_up_to_date
-            self.isUpToDateChanged.emit()
-            self._status_text = status.message
-            self.statusTextChanged.emit()
-        except Exception as exc:
-            logger.warning("MarketSyncController durum kontrolü hatası: %s", exc)
 
     # ──────────────────────────── Internal Nöbetçi Mantığı ────────────────────────────
 

@@ -77,14 +77,6 @@ class ChartController(QObject):
     def currentChartType(self) -> str:
         return self._current_chart_type
 
-    @Property(list, constant=True)
-    def timeframes(self) -> list[str]:
-        return ["1D", "1W", "1M"]
-
-    @Property(list, constant=True)
-    def chartTypes(self) -> list[str]:
-        return ["candle", "line", "area", "bar"]
-
     @Property(str, notify=tickerChanged)
     def companyName(self) -> str:
         return self._company_name
@@ -164,10 +156,6 @@ class ChartController(QObject):
         else:
             self._active_indicators.discard(ind)
         self.indicatorsChanged.emit()
-
-    @Slot(str, result=bool)
-    def isIndicatorActive(self, indicator: str) -> bool:
-        return indicator.strip().lower() in self._active_indicators
 
     # --- Data Fetching & Processing ---
 

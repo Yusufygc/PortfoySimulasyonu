@@ -83,7 +83,6 @@ class ServiceSet:
     technical_analysis_service: TechnicalAnalysisService
     screener_service: ScreenerService
     dca_backtest_service: DCABacktestService
-    tv_backfill_service: object  # BackfillService | None
     current_price_resolver: object  # CurrentPriceResolver
     stock_lookup_service: StockLookupService  # arayüz için salt okunur hisse/fiyat sorguları
     market_data_sync_service: object  # MarketDataSyncService (DuckDB + SQLite köprüsü)
@@ -169,16 +168,6 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             stock_repo=repositories.stock_repo,
             market_action_service=feature_services["market_corporate_action_service"],
             portfolio_action_repo=repositories.corporate_action_repo,
-        ),
-        tv_backfill_service=(
-            BackfillService(
-                stock_repo=repositories.stock_repo,
-                price_repo=repositories.price_repo,
-                market_data_client=market_clients.tv_client,
-                corporate_action_repo=repositories.corporate_action_repo,
-            )
-            if getattr(market_clients, "tv_client", None) is not None
-            else None
         ),
     )
 

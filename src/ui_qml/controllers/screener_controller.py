@@ -58,10 +58,6 @@ class ScreenerController(QObject):
     def filterOptions(self) -> list:
         return self._filter_options
 
-    @Property(str, notify=selectedFilterChanged)
-    def selectedFilter(self) -> str:
-        return self._selected_filter
-
     @Property(list, notify=matchesChanged)
     def matchesList(self) -> list:
         return self._matches

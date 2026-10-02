@@ -61,7 +61,7 @@ def test_optimization_controller_initialization(qapp, container):
     """OptimizationController başlatma ve varsayılan property değerlerini test eder."""
     ctrl = OptimizationController(container=container)
     assert len(ctrl.portfolioOptions) >= 1
-    assert ctrl.selectedPortfolioCode == "dashboard"
+    assert ctrl._selected_portfolio_code == "dashboard"
     assert len(ctrl.riskProfileOptions) >= 5
     assert ctrl.maxSingleWeight > 0.0
     assert ctrl.riskFreeRate > 0.0
@@ -71,7 +71,6 @@ def test_optimization_controller_initialization(qapp, container):
     assert ctrl.statusMessage == ""
     assert ctrl.chartHtml == ""
     assert isinstance(ctrl.suggestions, list)
-    assert isinstance(ctrl.weightsComparison, list)
 
 
 def test_optimization_controller_slots(qapp, container):
@@ -80,7 +79,7 @@ def test_optimization_controller_slots(qapp, container):
 
     # Portföy seçimi
     ctrl.selectPortfolio("dashboard")
-    assert ctrl.selectedPortfolioCode == "dashboard"
+    assert ctrl._selected_portfolio_code == "dashboard"
 
     # Risk profili seçimi
     ctrl.selectRiskProfile("AGRESIF")
@@ -133,7 +132,7 @@ def test_optimization_controller_execution(qapp, container):
     assert "action" in first_sug
     assert first_sug["action"] in ["EKLE", "AZALT", "TUT"]
 
-    assert ctrl.optimalSharpe >= 0.0 or ctrl.optimalSharpe < 0.0
+    assert ctrl.optimalSharpeFormatted != ""
     assert ctrl.optimalReturnFormatted != ""
     assert ctrl.optimalVolFormatted != ""
     assert isinstance(ctrl.isOptimalReturnPositive, bool)

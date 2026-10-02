@@ -31,9 +31,6 @@ def test_chart_controller_initialization(qapp):
     assert controller.currentTicker != ""
     assert controller.currentTimeframe == "1D"
     assert controller.currentChartType == "candle"
-    assert "1D" in controller.timeframes
-    assert "1W" in controller.timeframes
-    assert "1M" in controller.timeframes
 
 
 def test_chart_controller_timeframe_resampling(qapp):
@@ -110,27 +107,22 @@ def test_chart_controller_technical_indicators_payload(qapp):
 
 def test_chart_controller_indicator_toggles(qapp):
     controller = ChartController()
-    assert controller.isIndicatorActive("sma50") is False
     assert "sma50" not in controller.activeIndicators
 
     # Açma (True)
     controller.toggleIndicator("sma50", True)
-    assert controller.isIndicatorActive("sma50") is True
     assert "sma50" in controller.activeIndicators
 
     # Kapatma (False)
     controller.toggleIndicator("sma50", False)
-    assert controller.isIndicatorActive("sma50") is False
     assert "sma50" not in controller.activeIndicators
 
     # Tek parametreli toggle ile Açma
     controller.toggleIndicator("sma50")
-    assert controller.isIndicatorActive("sma50") is True
     assert "sma50" in controller.activeIndicators
 
     # Tek parametreli toggle ile Geri Kapatma
     controller.toggleIndicator("sma50")
-    assert controller.isIndicatorActive("sma50") is False
     assert "sma50" not in controller.activeIndicators
 
     # Grafik tipi değişimi

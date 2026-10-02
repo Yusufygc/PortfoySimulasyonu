@@ -102,45 +102,6 @@ class PositionsTableModel(QAbstractListModel):
         self.endResetModel()
         self.countChanged.emit(len(self._positions))
 
-    def update_prices(self, price_map: Dict[str, float]) -> None:
-        """Canlı fiyat güncellemesi ve yeşil/kırmızı tick yanıp sönme animasyonu."""
-        for row, pos in enumerate(self._positions):
-            ticker = pos.get("ticker")
-            if ticker in price_map:
-                new_price_float = float(price_map[ticker])
-                old_price_float = float(pos.get("currentPrice", new_price_float))
-                if new_price_float != old_price_float:
-                    qty = Decimal(str(pos.get("quantity", 0)))
-                    avg_cost = Decimal(str(pos.get("avgCost", 0.0)))
-                    new_price = Decimal(str(new_price_float))
-
-                    market_val = qty * new_price
-                    total_cost = qty * avg_cost
-                    pl = market_val - total_cost
-                    pl_pct = float((pl / total_cost * Decimal("100"))) if total_cost > Decimal("0") else 0.0
-
-                    pos["currentPrice"] = float(new_price)
-                    pos["marketValue"] = float(market_val)
-                    pos["unrealizedPL"] = float(pl)
-                    pos["unrealizedPLPct"] = pl_pct
-                    pos["isUp"] = pl >= Decimal("0")
-
-                    # Flash state: 1 = Artış (Yeşil), 2 = Düşüş (Kırmızı)
-                    pos["flashState"] = 1 if new_price_float > old_price_float else 2
-
-                    idx = self.index(row)
-                    self.dataChanged.emit(idx, idx, [
-                        self.CurrentPriceRole,
-                        self.MarketValueRole,
-                        self.UnrealizedPLRole,
-                        self.UnrealizedPLPctRole,
-                        self.IsUpRole,
-                        self.FlashStateRole
-                    ])
-
-        # 1.5 saniye sonra flash animasyonunu sıfırla
-        QTimer.singleShot(1500, self._clear_flash_states)
-
     def _clear_flash_states(self) -> None:
         for row, pos in enumerate(self._positions):
             if pos.get("flashState", 0) != 0:

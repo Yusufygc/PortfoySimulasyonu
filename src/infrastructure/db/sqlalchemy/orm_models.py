@@ -1,6 +1,6 @@
 # src/infrastructure/db/sqlalchemy/orm_models.py
 
-from sqlalchemy import BigInteger, Boolean, Column, Computed, Date, DateTime, Enum, Float, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 import enum

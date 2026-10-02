@@ -211,10 +211,6 @@ class ModelAnalysisController(QObject):
     def isBusy(self) -> bool:
         return self._busy or self._probing
 
-    @Property(bool, notify=connectionChanged)
-    def isLive(self) -> bool:
-        return self._live
-
     @Property(bool, notify=resultChanged)
     def hasResult(self) -> bool:
         return bool(self._result)
@@ -222,10 +218,6 @@ class ModelAnalysisController(QObject):
     @Property("QVariantMap", notify=resultChanged)
     def result(self) -> Dict[str, Any]:
         return self._result
-
-    @Property(bool, notify=resultChanged)
-    def isDemoResult(self) -> bool:
-        return bool(self._result) and not self._result.get("isLive", False)
 
     @Property(str, notify=bannerChanged)
     def bannerText(self) -> str:

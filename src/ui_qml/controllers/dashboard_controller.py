@@ -661,16 +661,6 @@ class DashboardController(QObject):
     # EXCEL RAPOR DIŞA AKTARIMI
     # -------------------------------------------------------------------------
 
-    @Slot()
-    def exportToExcel(self) -> None:
-        """Portföyün günlük simülasyonunu ve özetini profesyonel Excel raporu olarak kaydeder."""
-        self._executor.submit(self._run_excel_export_worker, None, None)
-
-    @Slot(str, str)
-    def exportToExcelRange(self, start_date_str: str, end_date_str: str) -> None:
-        """Belirtilen tarih aralığında Excel raporu oluşturur."""
-        self._executor.submit(self._run_excel_export_worker, start_date_str, end_date_str)
-
     @Slot(result=str)
     def firstTradeDateText(self) -> str:
         """Rapor aralığı için varsayılan başlangıç: ilk işlem tarihi (GG.AA.YYYY), yoksa boş."""

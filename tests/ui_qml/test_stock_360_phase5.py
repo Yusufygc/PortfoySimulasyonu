@@ -53,7 +53,7 @@ def test_stock_360_controller_initialization(qapp, container):
     assert ctrl.companyName != ""
     assert ctrl.sector != ""
     assert "₺" in ctrl.lastPrice or ctrl.lastPrice != ""
-    assert isinstance(ctrl.lastPriceRaw, float)
+    assert isinstance(ctrl._last_price_raw, float)
     assert "%" in ctrl.dailyChange
     assert ctrl.volume != ""
     assert 0.0 <= ctrl.week52RangePct <= 1.0
@@ -91,7 +91,7 @@ def test_stock_360_controller_financial_tabs(qapp, container):
     ctrl = Stock360Controller(container)
 
     # Arka plan iş parçacığının sonuçları işlemesini bekle (deterministik)
-    _wait_for_condition(qapp, lambda: ctrl.isFinancialsReady or not ctrl.isLoading)
+    _wait_for_condition(qapp, lambda: ctrl._is_financials_ready or not ctrl.isLoading)
 
     # Varsayılan sekme
     assert ctrl.activeFinancialTab == "satis"
@@ -124,7 +124,7 @@ def test_stock_360_controller_shareholders(qapp, container):
     ctrl = Stock360Controller(container)
 
     # Arka plan iş parçacığının ortaklık sonuçlarını işlemesini bekle (deterministik)
-    _wait_for_condition(qapp, lambda: ctrl.isShareholdersReady or not ctrl.isLoading)
+    _wait_for_condition(qapp, lambda: ctrl._is_shareholders_ready or not ctrl.isLoading)
 
     assert isinstance(ctrl.shareholdersList, list)
     assert isinstance(ctrl.shareholderSlices, list)

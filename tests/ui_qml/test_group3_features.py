@@ -373,8 +373,6 @@ def test_comparison_ai_comment_flow(qapp):
     prompt = container.ai_chat_service.generate.call_args.args[0][0].content
     assert "01.01.2026" in prompt and "Ana Portföy" in prompt and "%12.5" in prompt
     assert "Özet" in ctrl.aiComment and ctrl.aiBusy is False
-    ctrl.clearAiComment()
-    assert ctrl.aiComment == ""
 
 
 def test_comparison_ai_comment_errors_and_empty_data(qapp):

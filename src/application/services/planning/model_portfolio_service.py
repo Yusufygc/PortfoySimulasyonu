@@ -48,7 +48,6 @@ for _delegate_attr, _method_names in {
         "get_positions",
         "get_remaining_cash",
         "add_capital_movement",
-        "get_capital_movements",
         "get_invested_capital",
         "get_position_quantity_as_of",
         "get_valid_trades",
@@ -56,7 +55,6 @@ for _delegate_attr, _method_names in {
     "_snapshot": (
         "get_portfolio_summary",
         "get_positions_with_details",
-        "get_trade_count",
         "get_active_position_count",
     ),
 }.items():

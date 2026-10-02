@@ -7,8 +7,8 @@ Kapsam:
 - Gerçek portföy pozisyonu ve işlem geçmişi (tradesList) yükleme
 - Sermaye artırımları (corpActionsList) yükleme
 - Hisse detayından Excel (.xlsx) dışa aktarımı
-- DashboardController Excel dışa aktarımı (exportToExcel)
-- ModelPortfolioController Excel dışa aktarımı (exportToExcel)
+- DashboardController Excel dışa aktarımı (exportToExcelFile)
+- ModelPortfolioController Excel dışa aktarımı (exportHistoryToFile)
 - StockDetailModal.qml bileşeninin QML motorunda hatasız derlenmesi
 """
 from __future__ import annotations
@@ -116,14 +116,14 @@ def test_stock_detail_controller_export_excel(qapp, container):
     assert "OBAMS" in message
 
 
-def test_dashboard_controller_export_to_excel(qapp, container):
+def test_dashboard_controller_export_to_excel(qapp, container, tmp_path):
     """DashboardController üzerinden Excel raporu oluşturulabildiğini test eder."""
     dash = DashboardController(container=container)
 
     results = []
     dash.excelExported.connect(lambda s, m: results.append((s, m)))
 
-    dash.exportToExcel()
+    dash.exportToExcelFile("", "", str(tmp_path / "Portfoy_Raporu.xlsx"), False)
     assert wait_until(lambda: len(results) > 0), "Dashboard Excel aktarımı tamamlanamadı!"
 
     success, message = results[0]
@@ -131,7 +131,7 @@ def test_dashboard_controller_export_to_excel(qapp, container):
     assert ".xlsx" in message
 
 
-def test_model_portfolio_controller_export_to_excel(qapp, container):
+def test_model_portfolio_controller_export_to_excel(qapp, container, tmp_path):
     """ModelPortfolioController üzerinden model portföyün Excel'e aktarılabildiğini test eder."""
     port_ctrl = ModelPortfolioController(container=container)
     port_ctrl.refreshData()
@@ -145,7 +145,7 @@ def test_model_portfolio_controller_export_to_excel(qapp, container):
     results = []
     port_ctrl.excelExported.connect(lambda s, m: results.append((s, m)))
 
-    port_ctrl.exportToExcel()
+    port_ctrl.exportHistoryToFile("", "", str(tmp_path / "Model_Portfoy.xlsx"), False)
     assert wait_until(lambda: len(results) > 0), "Model portföy Excel aktarımı tamamlanamadı!"
 
     success, message = results[0]
@@ -201,7 +201,7 @@ def test_stock_detail_controller_live_price_and_diff(container):
     # Açık pozisyon değerleri
     assert ctrl.quantity > 0
     assert ctrl.marketValue > 0
-    assert ctrl.isPnlPositive == (ctrl.unrealizedPnl >= 0)
+    assert ctrl.isPnlPositive == (ctrl._unrealized_pnl >= 0)
 
 
 def test_dashboard_controller_no_dot_is(container):

@@ -369,18 +369,6 @@ class ModelPortfolioController(QObject):
                 return float(price)
         return 0.0
 
-    @Slot(int)
-    def deleteTrade(self, trade_id: int):
-        """Bir işlemi siler."""
-        if not self._service:
-            return
-        try:
-            self._service.delete_trade(trade_id)
-            self.refreshData()
-            self.operationResult.emit(True, "İşlem silindi")
-        except Exception as exc:
-            self.operationResult.emit(False, f"İşlem silinemedi: {exc}")
-
     @Slot(str, float, str, str, str)
     def addCapitalMovement(self, movement_type: str, amount: float,
                            move_date_str: str, move_time_str: str, notes: str):
@@ -647,14 +635,6 @@ class ModelPortfolioController(QObject):
     # EXCEL RAPOR DIŞA AKTARIMI
     # -------------------------------------------------------------------------
 
-    @Slot()
-    def exportToExcel(self) -> None:
-        """Mevcut seçili model portföyü Excel'e aktarır."""
-        if self._current_portfolio_id < 0:
-            self.operationResult.emit(False, "Dışa aktarmak için bir model portföy seçilmelidir.")
-            return
-        self.exportPortfolioToExcel(self._current_portfolio_id)
-
     @Slot(result=str)
     def firstTradeDateText(self) -> str:
         """Seçili model portföyün ilk işlem tarihi (GG.AA.YYYY), yoksa boş."""
@@ -718,47 +698,6 @@ class ModelPortfolioController(QObject):
             self._asyncExportFinished.emit(True, f"Model portföy raporu oluşturuldu:\n{target.name}")
         except Exception as exc:
             logger.exception("Model portföy tarihsel Excel export hatası: %s", exc)
-            self._asyncExportFinished.emit(False, f"Excel raporu oluşturulamadı: {exc}")
-
-    @Slot(int)
-    def exportPortfolioToExcel(self, portfolio_id: int) -> None:
-        """Belirtilen model portföyü Excel dosyası olarak kaydeder."""
-        self._executor.submit(self._run_excel_export_worker, portfolio_id)
-
-    def _run_excel_export_worker(self, portfolio_id: int) -> None:
-        try:
-            from pathlib import Path
-            from datetime import datetime
-            desktop = Path.home() / "Desktop"
-            out_dir = desktop if desktop.exists() else Path("reports").resolve()
-            out_dir.mkdir(parents=True, exist_ok=True)
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-            port = self._service.get_portfolio_by_id(portfolio_id) if self._service else None
-            p_name = port.name if port else f"Portfoy_{portfolio_id}"
-            safe_name = "".join(c for c in p_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
-            target_file = out_dir / f"Model_Portfoy_{safe_name}_{timestamp}.xlsx"
-
-            excel_service = getattr(self._container, "model_portfolio_excel_export_service", None) if self._container else None
-            if excel_service and self._service:
-                positions_dict = self._service.get_positions(portfolio_id)
-                # Fiyat haritası oluştur
-                resolved_prices = self._resolve_prices(list(positions_dict.keys()))
-                price_map = {
-                    sid: resolved_prices.get(sid) or getattr(pos, "average_cost", None) or Decimal("100.0")
-                    for sid, pos in positions_dict.items()
-                }
-
-                excel_service.export_model_portfolio(
-                    portfolio_id=portfolio_id,
-                    price_map=price_map,
-                    file_path=target_file,
-                )
-                self._asyncExportFinished.emit(True, f"Model portföy Excel raporu oluşturuldu:\n{target_file.name}")
-            else:
-                self._asyncExportFinished.emit(False, "Excel dışa aktarım servisi yapılandırılmamış.")
-        except Exception as exc:
-            logger.exception("Model portföy Excel export hatası: %s", exc)
             self._asyncExportFinished.emit(False, f"Excel raporu oluşturulamadı: {exc}")
 
     def _on_export_finished(self, success: bool, message: str) -> None:

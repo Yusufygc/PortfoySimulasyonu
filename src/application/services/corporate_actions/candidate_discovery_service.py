@@ -99,16 +99,6 @@ class CorporateActionDiscoveryService:
             candidates=saved,
         )
 
-    def reviewable_candidates(self) -> list[CorporateActionCandidate]:
-        return self._candidate_repo.get_by_statuses(
-            [
-                CorporateActionCandidateStatus.READY,
-                CorporateActionCandidateStatus.NEEDS_REVIEW,
-                CorporateActionCandidateStatus.DISCOVERED,
-                CorporateActionCandidateStatus.APPROVED,
-            ]
-        )
-
     def _prepare_candidate(self, candidate: CorporateActionCandidate) -> CorporateActionCandidate:
         stock = self._stock_repo.get_stock_by_ticker(candidate.ticker)
         stock_id = stock.id if stock is not None else None

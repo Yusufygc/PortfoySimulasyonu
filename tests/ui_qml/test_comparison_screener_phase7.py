@@ -133,11 +133,11 @@ def test_screener_controller_initialization_and_filters(qapp, container):
     # İlk seçenek "Tüm Stratejiler" olmalı
     assert ctrl.filterOptions[0]["key"] == ""
     assert not ctrl.isRunning
-    assert ctrl.selectedFilter == ""
+    assert ctrl._selected_filter == ""
 
     # Filtre değiştirme
     ctrl.setFilter(ctrl.filterOptions[1]["key"])
-    assert ctrl.selectedFilter == ctrl.filterOptions[1]["key"]
+    assert ctrl._selected_filter == ctrl.filterOptions[1]["key"]
 
     # Asenkron tarama ve sinyal testi (Mock servis ile)
     from unittest.mock import MagicMock

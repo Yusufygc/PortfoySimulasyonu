@@ -168,10 +168,6 @@ class OptimizationController(QObject):
     def portfolioOptions(self) -> list:
         return self._portfolio_options
 
-    @Property(str, notify=selectedPortfolioChanged)
-    def selectedPortfolioCode(self) -> str:
-        return self._selected_portfolio_code
-
     @Property(list, notify=riskProfileOptionsChanged)
     def riskProfileOptions(self) -> list:
         return self._risk_profile_options
@@ -216,15 +212,7 @@ class OptimizationController(QObject):
     def suggestions(self) -> list:
         return self._suggestions
 
-    @Property(list, notify=suggestionsChanged)
-    def weightsComparison(self) -> list:
-        return self._weights_comparison
-
     # --- KPI Properties ---
-
-    @Property(float, notify=kpiMetricsChanged)
-    def optimalSharpe(self) -> float:
-        return round(self._opt_sharpe, 2)
 
     @Property(str, notify=kpiMetricsChanged)
     def optimalSharpeFormatted(self) -> str:

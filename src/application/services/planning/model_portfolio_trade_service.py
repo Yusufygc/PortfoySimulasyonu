@@ -480,9 +480,6 @@ class ModelPortfolioTradeService:
     ):
         return self._simulate(portfolio_id, self._trades_until(portfolio_id, as_of), as_of=as_of).valid_trades
 
-    def get_capital_movements(self, portfolio_id: int):
-        return self._get_cash_movements(portfolio_id)
-
     def get_invested_capital(self, portfolio_id: int) -> Decimal:
         return self._simulate(portfolio_id, self._trades_until(portfolio_id)).invested_capital
 

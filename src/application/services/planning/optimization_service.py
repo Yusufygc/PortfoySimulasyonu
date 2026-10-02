@@ -263,9 +263,6 @@ class OptimizationService:
 
         return self._optimize(tickers, current_weights, policy=policy)
 
-    def get_model_portfolios(self) -> list:
-        return self._model_portfolio_service.get_all_portfolios()
-
     def _optimize(
         self,
         tickers: List[str],
@@ -364,31 +361,6 @@ class OptimizationService:
     @staticmethod
     def _portfolio_volatility(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
         return _portfolio_volatility(weights, cov_matrix)
-
-    @staticmethod
-    def _build_suggestions(
-        tickers: List[str],
-        current_weights: np.ndarray,
-        optimal_weights: np.ndarray,
-    ) -> List[OptimizationSuggestion]:
-        suggestions = []
-        for i, ticker in enumerate(tickers):
-            curr_w = current_weights[i] * 100
-            opt_w = optimal_weights[i] * 100
-            diff = opt_w - curr_w
-
-            suggestions.append(
-                OptimizationSuggestion(
-                    symbol=ticker,
-                    current_weight=curr_w,
-                    optimal_weight=opt_w,
-                    change=diff,
-                    action=_suggestion_action(diff),
-                )
-            )
-
-        suggestions.sort(key=lambda s: s.optimal_weight, reverse=True)
-        return suggestions
 
     def _get_historical_prices(self, tickers: List[str], days: int = 365) -> pd.DataFrame:
         return self._market_data_provider.get_historical_prices(tickers, days)

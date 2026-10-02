@@ -80,10 +80,6 @@ class PriceDataHealthReport:
         return len(self.known_holiday_dates)
 
     @property
-    def total_excluded_holiday_count(self) -> int:
-        return self.known_holiday_count + self.holiday_candidate_count
-
-    @property
     def health_label(self) -> str:
         if self.total_stock_count == 0:
             return "Kayıtlı hisse yok"
