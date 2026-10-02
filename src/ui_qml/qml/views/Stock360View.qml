@@ -509,14 +509,14 @@ Item {
                                 RowLayout {
                                     Layout.fillWidth: true
                                     Text {
-                                        text: "52H En Düşük: " + (root.ctrl ? root.ctrl.week52Low : "—")
+                                        text: Strings.stock360Low52Prefix + (root.ctrl ? root.ctrl.week52Low : "—")
                                         font.family: Theme.fontFamily
                                         font.pixelSize: 10
                                         color: Theme.textMuted
                                     }
                                     Item { Layout.fillWidth: true }
                                     Text {
-                                        text: "52H En Yüksek: " + (root.ctrl ? root.ctrl.week52High : "—")
+                                        text: Strings.stock360High52Prefix + (root.ctrl ? root.ctrl.week52High : "—")
                                         font.family: Theme.fontFamily
                                         font.pixelSize: 10
                                         color: Theme.textMuted

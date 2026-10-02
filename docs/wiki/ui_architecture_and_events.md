@@ -129,3 +129,13 @@ Bütün ekranlar `main_window.py` üzerinde barınır. Ancak kod kalabalığın�
 - Sidebar kapalıyken buton chat panelinin sol üst köşesinde (`x=20, y=14`) "Merhaba" mesajının üstünde yer alır; sidebar açıldığında ise başlıklar arası çakışmayı önlemek için otomatik olarak sidebar'ın sağ üst köşesine (`x=sidebar_width - 46, y=14`) kayar.
 - Sidebar içindeki eski "Kapat" butonu kaldırılmış, kapatma işlemi de bu hareketli ikon butonuyla birleştirilmiştir.
 - Uygulama başlangıcında son aktif sohbetin otomatik olarak açılması yerine, her zaman yeni ve temiz bir sohbet oturumu açılması sağlanmıştır.
+
+## QML Katman Kuralları (2026-10-03)
+
+`src/ui_qml` yalnızca `src/application` ve `src/domain`'e bağlanır. `tests/ui_qml/test_architecture_guards.py` bunu denetler:
+
+- `src.ui.*` (eski widget arayüzü), `src.infrastructure`, `sqlite3`, `duckdb`, `sqlalchemy` import edilemez.
+- Denetleyiciler repository'ye (`*_repo`, `.repositories`, `conn_provider`) doğrudan erişemez. Hisse kaydı, günlük fiyat, önceki kapanış, canlı fiyat önbelleği ve DuckDB piyasa verisi için `container.stock_lookup_service` (`StockLookupService`) kullanılır; hata durumunda boş sonuç döner.
+- Ayarlar ekranındaki veritabanı istatistiği, bütünlük kontrolü ve yedek dışa aktarımı `DatabaseMaintenanceService` içindedir. Piyasa düzeltme listesi `MarketCorporateActionService` üzerinden okunur. AI danışmanı Gemini sağlayıcısını container'dan enjekte edilen `chat_provider_factory` ile çağırır.
+- Eski ve yeni arayüzün paylaştığı HTML üreticileri `src/application/services/reporting/html/` altındadır (`plotly_html`, `financials_*`, `shareholders_dashboard`); karşılaştırma serisi üreticisi `src/application/services/analysis/comparison_chart_series.py` dosyasıdır. Eski `src/ui` sayfaları bunları buradan içe aktarır.
+- Kullanıcıya gösterilen QML metinleri `qml/theme/Strings.qml` içinde tanımlanır. `tests/ui_qml/test_strings_catalog.py` tanımsız `Strings.*` referansını, yinelenen anahtarı ve QML'deki sabit metin literalini yakalar (örnek veri ve bileşen varsayılanları izin listesindedir).

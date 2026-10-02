@@ -103,7 +103,7 @@ Popup {
                 }
 
                 Text {
-                    text: "Kalan: " + root.remainingFormatted
+                    text: Strings.goalRemainingPrefix + root.remainingFormatted
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs

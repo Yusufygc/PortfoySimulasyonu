@@ -565,7 +565,7 @@ Item {
                                     }
 
                                     ModernButton {
-                                        text: "Detay"
+                                        text: Strings.dashboardDetailButton
                                         variant: "ghost"
                                         implicitHeight: 26
                                         implicitWidth: 55

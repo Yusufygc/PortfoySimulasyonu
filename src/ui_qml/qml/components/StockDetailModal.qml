@@ -766,7 +766,7 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "ALIM (BUY)"
+                                    text: Strings.stockDetailBuyButton
                                     color: root.tradeSide === "BUY" ? "#FFFFFF" : Theme.bullGreen
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontXs
@@ -790,7 +790,7 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "SATIM (SELL)"
+                                    text: Strings.stockDetailSellButton
                                     color: root.tradeSide === "SELL" ? "#FFFFFF" : Theme.bearRed
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontXs
@@ -811,7 +811,7 @@ Item {
                             spacing: 4
 
                             Text {
-                                text: "Lot Adedi:"
+                                text: Strings.stockDetailLotLabel
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
@@ -849,7 +849,7 @@ Item {
                             spacing: 4
 
                             Text {
-                                text: "Birim Fiyat (₺):"
+                                text: Strings.stockDetailPriceLabel
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
@@ -894,7 +894,7 @@ Item {
                                 anchors.margins: 10
 
                                 Text {
-                                    text: "Toplam Tutar:"
+                                    text: Strings.stockDetailTotalLabel
                                     color: Theme.textMuted
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontXs

@@ -296,7 +296,7 @@ Popup {
                         }
 
                         Text {
-                            text: "Lot"
+                            text: Strings.tradeLotUnit
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm

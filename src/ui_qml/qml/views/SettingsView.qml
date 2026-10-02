@@ -145,7 +145,7 @@ Rectangle {
                         visible: root.activeTabIndex === 0
 
                         Text {
-                            text: "UYGULAMA TEMASI & GÖRÜNÜM"
+                            text: Strings.settingsAppearanceTitle
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
@@ -211,7 +211,7 @@ Rectangle {
                                                 font.weight: Font.Bold
                                             }
                                             Text {
-                                                text: "Varsayılan profesyonel koyu tema"
+                                                text: Strings.settingsDarkThemeDesc
                                                 color: Theme.textMuted
                                                 font.family: Theme.fontFamily
                                                 font.pixelSize: Theme.fontXs
@@ -302,7 +302,7 @@ Rectangle {
                                                 font.weight: Font.Bold
                                             }
                                             Text {
-                                                text: "Ferah ve aydınlık tasarım"
+                                                text: Strings.settingsLightThemeDesc
                                                 color: Theme.textMuted
                                                 font.family: Theme.fontFamily
                                                 font.pixelSize: Theme.fontXs
@@ -358,7 +358,7 @@ Rectangle {
                         visible: root.activeTabIndex === 1
 
                         Text {
-                            text: "HARİCİ SERVİS & API YAPILANDIRMASI"
+                            text: Strings.settingsApiTitle
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
@@ -391,7 +391,7 @@ Rectangle {
                                         Layout.fillWidth: true
                                     }
                                     Text {
-                                        text: "Model: Gemini 2.5 Flash"
+                                        text: Strings.settingsGeminiModel
                                         color: Theme.primary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontXs
@@ -582,7 +582,7 @@ Rectangle {
                                 }
 
                                 Text {
-                                    text: "API Anahtarlarını Kaydet"
+                                    text: Strings.settingsSaveApiKeys
                                     color: "#FFFFFF"
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSm
@@ -613,7 +613,7 @@ Rectangle {
                         visible: root.activeTabIndex === 2
 
                         Text {
-                            text: "ÇİFT MOTORLU HİBRİT VERİTABANI İSTATİSTİKLERİ"
+                            text: Strings.settingsDbStatsTitle
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
@@ -781,26 +781,26 @@ Rectangle {
 
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Text { text: "Kapsanan BIST Hissesi:"; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
+                                            Text { text: Strings.settingsDbStockCount; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
                                             Text { text: (typeof settingsController !== "undefined") ? settingsController.duckDbStockCount + " Hisse" : "624 Hisse"; color: Theme.textPrimary; font.weight: Font.DemiBold; font.pixelSize: Theme.fontXs }
                                         }
 
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Text { text: "Toplam Tarihsel Günlük Bar:"; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
+                                            Text { text: Strings.settingsDbTotalBars; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
                                             Text { text: (typeof settingsController !== "undefined") ? settingsController.duckDbTotalBars + " Bar" : "0 Bar"; color: Theme.textPrimary; font.weight: Font.DemiBold; font.pixelSize: Theme.fontXs }
                                         }
 
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Text { text: "Son Senkronizasyon Tarihi:"; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
+                                            Text { text: Strings.settingsDbLastSync; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
                                             Text { text: (typeof settingsController !== "undefined") ? settingsController.duckDbLastDate : "-"; color: Theme.bullGreen; font.weight: Font.Bold; font.pixelSize: Theme.fontXs }
                                         }
 
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Text { text: "Otomatik Senkronizasyon:"; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
-                                            Text { text: "Her İşlem Günü 18:15"; color: Theme.primary; font.weight: Font.DemiBold; font.pixelSize: Theme.fontXs }
+                                            Text { text: Strings.settingsDbAutoSync; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
+                                            Text { text: Strings.settingsDbAutoSyncValue; color: Theme.primary; font.weight: Font.DemiBold; font.pixelSize: Theme.fontXs }
                                         }
                                     }
 
@@ -871,7 +871,7 @@ Rectangle {
                         visible: root.activeTabIndex === 3
 
                         Text {
-                            text: "PORTFÖY VERİLERİNİ DIŞA AKTAR VE YEDEKLE"
+                            text: Strings.settingsExportTitle
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
@@ -937,7 +937,7 @@ Rectangle {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "Excel İndir (.xlsx)"
+                                        text: Strings.settingsExportExcelButton
                                         color: "#FFFFFF"
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontXs
@@ -1017,7 +1017,7 @@ Rectangle {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "JSON Yedeği Al"
+                                        text: Strings.settingsExportJsonButton
                                         color: "#FFFFFF"
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontXs

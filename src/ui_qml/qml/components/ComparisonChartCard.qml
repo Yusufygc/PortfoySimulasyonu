@@ -483,7 +483,7 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: "Karşılaştırma hesaplanıyor..."
+                    text: Strings.comparisonCalculating
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm

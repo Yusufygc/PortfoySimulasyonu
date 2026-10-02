@@ -13,7 +13,7 @@ ApplicationWindow {
     height: Math.min(840, Math.max(600, Screen.desktopAvailableHeight * 0.90))
     minimumWidth: 720
     minimumHeight: 480
-    title: "Portföy Simülasyonu - Modern QML & TradingView"
+    title: Strings.windowTitle
     color: Theme.bgPrimary
 
     // Dar pencerede kenar çubuğu otomatik daralır, boşluklar küçülür

@@ -95,7 +95,7 @@ Rectangle {
 
                             // Başlık
                         Text {
-                            text: "OPTİMİZASYON PARAMETRELERİ"
+                            text: Strings.optParamsTitle
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
@@ -445,7 +445,7 @@ Rectangle {
                                         color: Theme.accent
                                     }
                                     Text {
-                                        text: "Modern Portföy Teorisi (MPT)"
+                                        text: Strings.optMptTitle
                                         color: Theme.accent
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSm
@@ -456,7 +456,7 @@ Rectangle {
                                 Text {
                                     Layout.fillWidth: true
                                     wrapMode: Text.WordWrap
-                                    text: "Ledoit-Wolf kovaryans daraltması ve SciPy SLSQP çözücüsü ile portföyün risk başına getirisini (Sharpe) maksimize eder."
+                                    text: Strings.optMptDescription
                                     color: Theme.textMuted
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 12
@@ -598,7 +598,7 @@ Rectangle {
                                     font.weight: Font.Bold
                                 }
                                 Text {
-                                    text: "Mevcut: " + optimizationController.currentSharpeFormatted
+                                    text: Strings.optCurrentPrefix + optimizationController.currentSharpeFormatted
                                     color: Theme.textSecondary
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10
@@ -654,7 +654,7 @@ Rectangle {
                                     font.weight: Font.Bold
                                 }
                                 Text {
-                                    text: "Mevcut: " + optimizationController.currentReturnFormatted
+                                    text: Strings.optCurrentPrefix + optimizationController.currentReturnFormatted
                                     color: optimizationController.isCurrentReturnPositive ? Theme.textSecondary : Theme.bearRed
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10
@@ -710,7 +710,7 @@ Rectangle {
                                     font.weight: Font.Bold
                                 }
                                 Text {
-                                    text: "Mevcut: " + optimizationController.currentVolFormatted
+                                    text: Strings.optCurrentPrefix + optimizationController.currentVolFormatted
                                     color: Theme.textSecondary
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10
@@ -766,7 +766,7 @@ Rectangle {
                                     font.weight: Font.Bold
                                 }
                                 Text {
-                                    text: "Minimum risk sınırı"
+                                    text: Strings.optMinRiskLabel
                                     color: Theme.textSecondary
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10

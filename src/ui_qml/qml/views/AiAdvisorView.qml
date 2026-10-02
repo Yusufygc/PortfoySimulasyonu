@@ -930,7 +930,7 @@ Rectangle {
                                     }
 
                                     Text {
-                                        text: "Google Gemini 2.5 Flash API Aktif"
+                                        text: Strings.aiGeminiActive
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontXs
@@ -1039,7 +1039,7 @@ Rectangle {
                                     }
 
                                     Text {
-                                        text: "Portföy Sağlık Metriklerini Güncelle"
+                                        text: Strings.aiRefreshHealthMetrics
                                         color: Theme.textSecondary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontXs

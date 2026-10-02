@@ -409,7 +409,7 @@ Item {
                         TextField {
                             id: txtIncName
                             Layout.fillWidth: true
-                            placeholderText: "Maaş / Ek Gelir"
+                            placeholderText: Strings.budgetIncomePlaceholder
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
@@ -425,7 +425,7 @@ Item {
                         TextField {
                             id: txtIncAmount
                             Layout.preferredWidth: 90
-                            placeholderText: "Tutar"
+                            placeholderText: Strings.budgetAmountPlaceholder
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
@@ -521,7 +521,7 @@ Item {
                                     }
 
                                     ToolTip.visible: btnEditIncMouse.containsMouse
-                                    ToolTip.text: "Kalemi Düzenle"
+                                    ToolTip.text: Strings.budgetEditItemTooltip
                                     ToolTip.delay: 300
 
                                     MouseArea {
@@ -646,7 +646,7 @@ Item {
                         TextField {
                             id: txtExpName
                             Layout.fillWidth: true
-                            placeholderText: "Kira / Mutfak / Fatura"
+                            placeholderText: Strings.budgetExpensePlaceholder
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
@@ -662,7 +662,7 @@ Item {
                         TextField {
                             id: txtExpAmount
                             Layout.preferredWidth: 90
-                            placeholderText: "Tutar"
+                            placeholderText: Strings.budgetAmountPlaceholder
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
@@ -758,7 +758,7 @@ Item {
                                     }
 
                                     ToolTip.visible: btnEditExpMouse.containsMouse
-                                    ToolTip.text: "Kalemi Düzenle"
+                                    ToolTip.text: Strings.budgetEditItemTooltip
                                     ToolTip.delay: 300
 
                                     MouseArea {

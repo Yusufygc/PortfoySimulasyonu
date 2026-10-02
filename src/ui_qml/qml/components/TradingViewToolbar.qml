@@ -251,14 +251,14 @@ Rectangle {
             // İndikatör Listesi
             Repeater {
                 model: [
-                    { id: "sma20",       label: "SMA 20 (Kısa Vade)", color: "#00e5ff" },
-                    { id: "sma50",       label: "SMA 50 (Orta Vade)", color: "#ff9800" },
-                    { id: "sma200",      label: "SMA 200 (Uzun Vade)", color: "#b388ff" },
-                    { id: "ema20",       label: "EMA 20 (Üstel)", color: "#00e676" },
-                    { id: "bb",          label: "Bollinger Bantları (20, 2)", color: "#2196f3" },
-                    { id: "rsi",         label: "RSI (14) Alt Panel", color: "#e040fb" },
-                    { id: "macd",        label: "MACD (12, 26, 9) Alt Panel", color: "#2962ff" },
-                    { id: "markers",     label: "Golden / Death Cross Sinyalleri", color: "#ffd600" },
+                    { id: "sma20",       label: Strings.chartIndSma20, color: "#00e5ff" },
+                    { id: "sma50",       label: Strings.chartIndSma50, color: "#ff9800" },
+                    { id: "sma200",      label: Strings.chartIndSma200, color: "#b388ff" },
+                    { id: "ema20",       label: Strings.chartIndEma20, color: "#00e676" },
+                    { id: "bb",          label: Strings.chartIndBollinger, color: "#2196f3" },
+                    { id: "rsi",         label: Strings.chartIndRsi, color: "#e040fb" },
+                    { id: "macd",        label: Strings.chartIndMacd, color: "#2962ff" },
+                    { id: "markers",     label: Strings.chartIndCrossMarkers, color: "#ffd600" },
                 ]
 
                 Rectangle {

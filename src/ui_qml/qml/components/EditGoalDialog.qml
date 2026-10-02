@@ -108,7 +108,7 @@ Popup {
             TextField {
                 id: txtName
                 Layout.fillWidth: true
-                placeholderText: "Örn: Ev Peşinatı / Yeni Araba"
+                placeholderText: Strings.goalNamePlaceholder
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontBase

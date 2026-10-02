@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] duzelt | Mimari/Kalite Borcu: QML Katmanı Temizliği
+
+- **`src.ui` bağımlılıkları kalktı:** Plotly/finansal/ortaklık HTML üreticileri `src/application/services/reporting/html/` altına, `ComparisonSeriesBuilder` `analysis/comparison_chart_series.py` altına taşındı; eski sayfalar ve testler yeni yolu kullanır. `L10N` ve `display_ticker` bağımlılıkları kaldırıldı. Eski `src/ui` hâlâ varsayılan giriş noktasıdır, silinmedi.
+- **Denetleyicilerde doğrudan repository çağrısı kalmadı:** yeni `StockLookupService` (hisse, fiyat, önceki kapanış, canlı fiyat, DuckDB piyasa verisi) ve `DatabaseMaintenanceService`; piyasa düzeltmeleri `MarketCorporateActionService` üzerinden; planlama ham SQL yerine `portfolio_service.get_first_trade_date`; Gemini sağlayıcısı enjekte edilir.
+- **Bu geçişte görülen mevcut hatalar giderildi:** model portföy Excel dışa aktarımı var olmayan repo metodu yüzünden tüm fiyatları 100 yazıyordu; hisse detayında var olmayan `price_repo.get_latest_price` yutulan hataydı.
+- **QML sabit metinleri `Strings.qml`'e taşındı** (58 yeni anahtar, 19 dosya). Denetim testleri: `test_architecture_guards.py`, `test_strings_catalog.py`.
+- Bilinçli olarak yapılmadı: denetleyicilerdeki dinamik Türkçe bildirim metinleri (biçimlendirme verisiyle iç içe), `AssetAllocationCard` örnek verisi, `settings_controller` içindeki `db_config` okuması.
+
+---
 ## [2026-10-03] ekle | QML'de Kalan Backend Özellikleri Tamamlandı
 
 - **Ayarlar > Sistem sekmesi:** otomatik canlı fiyat yenileme (aç/kapa, 5/15/30/60 dk; eski kodda aralık 15'e sabitti, düzeltildi; yalnızca seans açıkken) ve sistem sıfırlama (ortak `ConfirmDialog.qml` ile onaylı). `SystemController`.

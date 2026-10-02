@@ -164,7 +164,7 @@ ColumnLayout {
                     }
 
                     Text {
-                        text: "TARAMA SONUÇLARI"
+                        text: Strings.screenerResultsTitle
                         color: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm

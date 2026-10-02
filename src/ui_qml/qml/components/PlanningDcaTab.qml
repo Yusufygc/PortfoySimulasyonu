@@ -98,7 +98,7 @@ Item {
                     Layout.preferredWidth: 110
 
                     Text {
-                        text: "Başlangıç (Tarih):"
+                        text: Strings.dcaStartDateLabel
                         color: Theme.textSecondary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXs
@@ -130,7 +130,7 @@ Item {
                     Layout.preferredWidth: 110
 
                     Text {
-                        text: "Bitiş (Tarih):"
+                        text: Strings.dcaEndDateLabel
                         color: Theme.textSecondary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXs
@@ -602,7 +602,7 @@ Item {
 
                             Text {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: "Simülasyon çalıştırılmadı"
+                                text: Strings.dcaNotRunTitle
                                 color: Theme.textPrimary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontBase
@@ -611,7 +611,7 @@ Item {
 
                             Text {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: "Hisse kodlarını ve katkı tutarını girip 'Simülasyonu Çalıştır' butonuna basın."
+                                text: Strings.dcaNotRunHint
                                 color: Theme.textMuted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontSm

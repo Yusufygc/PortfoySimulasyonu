@@ -214,7 +214,7 @@ Item {
                                 Text {
                                     id: compText
                                     anchors.centerIn: parent
-                                    text: "TAMAMLANDI"
+                                    text: Strings.goalCompletedBadge
                                     color: Theme.bullGreen
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10
@@ -226,7 +226,7 @@ Item {
 
                             // Hedef Tarih
                             Text {
-                                text: "Hedef: " + modelData.deadline
+                                text: Strings.goalTargetPrefix + modelData.deadline
                                 color: Theme.textMuted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
@@ -352,7 +352,7 @@ Item {
                             Layout.fillWidth: true
 
                             Text {
-                                text: "Biriken: " + modelData.currentAmountFormatted
+                                text: Strings.goalSavedPrefix + modelData.currentAmountFormatted
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
@@ -365,7 +365,7 @@ Item {
                             }
 
                             Text {
-                                text: "Hedef: " + modelData.targetAmountFormatted
+                                text: Strings.goalTargetPrefix + modelData.targetAmountFormatted
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
@@ -378,7 +378,7 @@ Item {
                             }
 
                             Text {
-                                text: "Kalan: " + modelData.remainingAmountFormatted
+                                text: Strings.goalRemainingPrefix + modelData.remainingAmountFormatted
                                 color: Theme.bearRed
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
@@ -387,7 +387,7 @@ Item {
                             Item { Layout.fillWidth: true }
 
                             Text {
-                                text: "Aylık Gereken: " + modelData.requiredMonthlyFormatted
+                                text: Strings.goalMonthlyNeededPrefix + modelData.requiredMonthlyFormatted
                                 color: Theme.textMuted
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
@@ -412,7 +412,7 @@ Item {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: "Henüz bir finansal hedef eklenmemiş"
+                    text: Strings.goalsEmptyTitle
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontBase
@@ -421,7 +421,7 @@ Item {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: "Ev, araba, tatil veya emeklilik hedeflerinizi ekleyerek birikiminizi takip edin."
+                    text: Strings.goalsEmptyHint
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm

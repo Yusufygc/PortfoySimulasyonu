@@ -98,7 +98,7 @@ Popup {
             TextField {
                 id: txtName
                 Layout.fillWidth: true
-                placeholderText: "Örn: Kira / Maaş / Fatura"
+                placeholderText: Strings.budgetItemNamePlaceholder
                 color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontBase
