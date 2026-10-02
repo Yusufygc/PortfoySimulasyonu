@@ -29,6 +29,9 @@ from src.ui_qml.controllers.optimization_controller import OptimizationControlle
 from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
 from src.ui_qml.controllers.settings_controller import SettingsController
 from src.ui_qml.controllers.stock_detail_controller import StockDetailController
+from src.ui_qml.controllers.corporate_action_controller import CorporateActionController
+from src.ui_qml.controllers.price_data_controller import PriceDataController
+from src.ui_qml.controllers.startup_jobs_controller import StartupJobsController
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +76,17 @@ def run_qml_app(container=None) -> int:
     ai_advisor_ctrl = AiAdvisorController(container=container, parent=engine)
     settings_ctrl = SettingsController(container=container, parent=engine)
     stock_detail_ctrl = StockDetailController(container=container, parent=engine)
+    corporate_action_ctrl = CorporateActionController(container=container, parent=engine)
+    price_data_ctrl = PriceDataController(container=container, parent=engine)
+    startup_jobs_ctrl = StartupJobsController(container=container, parent=engine)
 
     # Piyasa verisi senkronu yeni bar yazınca fiyata bağlı ekranları yenile
     market_sync_ctrl.dataSynced.connect(dash_ctrl.refreshMetrics)
     market_sync_ctrl.dataSynced.connect(portfolio_ctrl.refreshData)
+    # Sermaye artırımı / fiyat güncellemesi / açılış backfill'i sonrası ekranları DB'den yeniden yükle
+    for source in (corporate_action_ctrl.portfolioChanged, price_data_ctrl.pricesUpdated, startup_jobs_ctrl.pricesUpdated):
+        source.connect(dash_ctrl.reloadPortfolio)
+        source.connect(portfolio_ctrl.refreshData)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
@@ -94,6 +104,9 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("aiAdvisorController", ai_advisor_ctrl)
     context.setContextProperty("settingsController", settings_ctrl)
     context.setContextProperty("stockDetailController", stock_detail_ctrl)
+    context.setContextProperty("corporateActionController", corporate_action_ctrl)
+    context.setContextProperty("priceDataController", price_data_ctrl)
+    context.setContextProperty("startupJobsController", startup_jobs_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"

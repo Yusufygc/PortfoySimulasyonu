@@ -165,6 +165,13 @@ ApplicationWindow {
         }
     }
 
+    Connections {
+        target: (typeof startupJobsController !== "undefined") ? startupJobsController : null
+        function onJobNotification(success, message) {
+            globalToast.show(message, success)
+        }
+    }
+
     // Hisse Detayı & Pozisyon Analitiği Modalı (Global)
     StockDetailModal {
         id: globalStockDetailModal

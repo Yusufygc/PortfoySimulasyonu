@@ -10,25 +10,11 @@ Rectangle {
 
     property int activeTabIndex: 0
 
-    // Toast ve Bildirim Yönetimi
-    property string toastMessage: ""
-    property bool toastSuccess: true
-    property bool toastVisible: false
-
     Connections {
         target: (typeof settingsController !== "undefined") ? settingsController : null
         function onOperationNotification(success, message) {
-            root.toastMessage = message
-            root.toastSuccess = success
-            root.toastVisible = true
-            toastTimer.restart()
+            settingsToast.show(message, success)
         }
-    }
-
-    Timer {
-        id: toastTimer
-        interval: 3500
-        onTriggered: root.toastVisible = false
     }
 
     ColumnLayout {
@@ -38,12 +24,11 @@ Rectangle {
         // ---------------------------------------------------------------------
         // 1. ÜST BAŞLIK & SEKME SEÇİCİ BARI
         // ---------------------------------------------------------------------
-        RowLayout {
+        Flow {
             Layout.fillWidth: true
             spacing: Theme.spaceMd
 
             ColumnLayout {
-                Layout.fillWidth: true
                 spacing: 2
 
                 Text {
@@ -62,10 +47,10 @@ Rectangle {
                 }
             }
 
-            // Sekme Butonları (4 Sekme)
+            // Sekme Butonları (6 Sekme)
             Rectangle {
-                Layout.preferredHeight: 38
-                Layout.preferredWidth: rowTabs.implicitWidth + 8
+                height: 38
+                width: rowTabs.implicitWidth + 8
                 radius: Theme.radiusMd
                 color: Theme.bgSecondary
                 border.color: Theme.borderSubtle
@@ -81,7 +66,9 @@ Rectangle {
                             { name: Strings.settingsTabAppearance, icon: Icons.sun },
                             { name: Strings.settingsTabApi, icon: Icons.settings },
                             { name: Strings.settingsTabDatabase, icon: Icons.layers },
-                            { name: Strings.settingsTabExport, icon: Icons.fileText }
+                            { name: Strings.settingsTabExport, icon: Icons.fileText },
+                            { name: Strings.settingsTabCorporate, icon: Icons.layers },
+                            { name: Strings.settingsTabPriceData, icon: Icons.history }
                         ]
 
                         Rectangle {
@@ -1050,6 +1037,28 @@ Rectangle {
                             }
                         }
                     }
+
+                    // =========================================================
+                    // SEKME 4: KURUMSAL AKSİYONLAR (KAP/MKK ADAYLARI)
+                    // =========================================================
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.activeTabIndex === 4
+                        visible: root.activeTabIndex === 4
+                        source: "../components/SettingsCorporateActionsTab.qml"
+                        onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
+                    }
+
+                    // =========================================================
+                    // SEKME 5: FİYAT VERİSİ YÖNETİMİ
+                    // =========================================================
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.activeTabIndex === 5
+                        visible: root.activeTabIndex === 5
+                        source: "../components/SettingsPriceDataTab.qml"
+                        onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
+                    }
                 }
             }
         }
@@ -1062,6 +1071,5 @@ Rectangle {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 24
         z: 999
-        visible: root.toastVisible
     }
 }

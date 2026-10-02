@@ -550,6 +550,99 @@ QtObject {
     readonly property string stockDetailThTotal: "Tutar"
     readonly property string stockDetailThRatio: "Artırım Oranı"
     readonly property string btnExportExcel: "Excel Raporu"
+
+    // --- Ayarlar: Yeni Sekmeler ---
+    readonly property string settingsTabCorporate: "Kurumsal Aksiyonlar"
+    readonly property string settingsTabPriceData: "Fiyat Verisi"
+
+    // --- Sermaye Artırımı (Bedelli / Bedelsiz) Diyaloğu ---
+    readonly property string caTitle: "Sermaye Artırımı"
+    readonly property string caBtnOpen: "Sermaye Artırımı"
+    readonly property string caTypeBedelsiz: "Bedelsiz"
+    readonly property string caTypeBedelli: "Bedelli"
+    readonly property string caLabelType: "İşlem Türü"
+    readonly property string caLabelRatio: "Artırım Oranı (%)"
+    readonly property string caLabelExDate: "Ex-Date / Baz Fiyat Günü (YYYY-AA-GG)"
+    readonly property string caLabelSubPrice: "Kullanım Fiyatı / Rüçhan (₺)"
+    readonly property string caLabelNotes: "Not (opsiyonel)"
+    readonly property string caCurrentLot: "Mevcut Lot"
+    readonly property string caAvgCost: "Ort. Maliyet"
+    readonly property string caCurrentPrice: "Güncel Fiyat"
+    readonly property string caPreviewTitle: "Ön İzleme"
+    readonly property string caPreviewNewShares: "Yeni Hisse Adedi"
+    readonly property string caPreviewTotalLot: "Toplam Lot"
+    readonly property string caPreviewNewAvg: "Yeni Ort. Maliyet"
+    readonly property string caPreviewCapital: "Sermaye Kullanımı"
+    readonly property string caPreviewTheoretical: "Teorik Baz Fiyat"
+    readonly property string caInsufficientLots: "Uyarı: mevcut lot bu oranla yeni hisse üretmiyor."
+    readonly property string caBtnApply: "Uygula"
+    readonly property string caRetroNote: "Uygulama sonrası geçmiş fiyatlar yeniden indirilir (retroaktif düzeltme). Bu işlem birkaç saniye sürebilir."
+    readonly property string caNoPosition: "Bu hisse için ana portföyde açık pozisyon bulunamadı."
+
+    // --- Kurumsal Aksiyon Aday Paneli ---
+    readonly property string caCandTitle: "Kurumsal Aksiyon Takibi"
+    readonly property string caCandDesc: "Bedelli ve bedelsiz sermaye artırımı bildirimleri önce aday olarak listelenir. Portföy ve fiyat düzeltmesi yalnızca onayınızdan sonra uygulanır."
+    readonly property string caBtnScan: "KAP/MKK Tara"
+    readonly property string caBtnRefreshList: "Listeyi Yenile"
+    readonly property string caBtnApprove: "Onayla ve Uygula"
+    readonly property string caBtnEdit: "Düzenle"
+    readonly property string caBtnIgnore: "Yoksay"
+    readonly property string caBtnSource: "Kaynağı Aç"
+    readonly property string caThTicker: "Hisse"
+    readonly property string caThType: "Tip"
+    readonly property string caThStatus: "Durum"
+    readonly property string caThRatio: "Oran"
+    readonly property string caThSubPrice: "Kullanım"
+    readonly property string caThExDate: "Ex-Date"
+    readonly property string caThConfidence: "Güven"
+    readonly property string caThSource: "Kaynak"
+    readonly property string caEmpty: "Bekleyen aday yok. KAP/MKK Tara ile kaynağı kontrol edin."
+    readonly property string caNoSelection: "Aday seçilmedi."
+    readonly property string caServicesMissing: "Kurumsal aksiyon aday servisleri kullanılamıyor."
+    readonly property string caEditTitle: "Adayı Düzenle"
+    readonly property string caLabelTicker: "Hisse Kodu"
+    readonly property string statusReady: "Hazır"
+    readonly property string statusNeedsReview: "İnceleme Gerekli"
+    readonly property string statusApproved: "Onaylandı"
+    readonly property string statusDiscovered: "Keşfedildi"
+
+    function candidateStatusLabel(code) {
+        switch (code) {
+        case "READY": return statusReady
+        case "NEEDS_REVIEW": return statusNeedsReview
+        case "APPROVED": return statusApproved
+        case "DISCOVERED": return statusDiscovered
+        default: return code
+        }
+    }
+
+    // --- Fiyat Verisi Yönetimi ---
+    readonly property string pdTitle: "Fiyat Verisi Yönetimi"
+    readonly property string pdDesc: "Kayıtlı hisselerin günlük fiyat verisini kontrol eder, eksik günleri tamamlar ve tüm piyasada boş kalan tatil/kapalı gün adaylarını ayırır."
+    readonly property string pdProblemOnly: "Sadece sorunlu hisseler"
+    readonly property string pdStocks: "Hisse"
+    readonly property string pdMissing: "Eksik Gün"
+    readonly property string pdHolidays: "Bilinen Tatil"
+    readonly property string pdHolidayCandidates: "Tatil Adayı"
+    readonly property string pdLatest: "Son Güncel Tarih"
+    readonly property string pdScope: "Portföy"
+    readonly property string pdStart: "Başlangıç (GG.AA.YYYY)"
+    readonly property string pdEnd: "Bitiş (GG.AA.YYYY)"
+    readonly property string pdBtnAnalyze: "Analiz Et"
+    readonly property string pdBtnUpdateMissing: "Toplu Eksikleri Güncelle"
+    readonly property string pdBtnUpdateSelected: "Seçili Hisseyi Güncelle"
+    readonly property string pdBtnUpdateLatest: "Son Günden Bugüne Güncelle"
+    readonly property string pdBtnDelete: "Aralığı Sil"
+    readonly property string pdBtnCopy: "Raporu Kopyala"
+    readonly property string pdThTicker: "Hisse"
+    readonly property string pdThLastDate: "Son Veri"
+    readonly property string pdThMissing: "Eksik"
+    readonly property string pdThStatus: "Durum"
+    readonly property string pdThFirstMissing: "İlk Eksik"
+    readonly property string pdThLastMissing: "Son Eksik"
+    readonly property string pdWaiting: "Analiz sonucu bekleniyor. Önce Analiz Et'e basın."
+    readonly property string pdDeleteTitle: "Fiyat Verisini Sil"
+    readonly property string pdDeleteConfirm: "Seçili tarih aralığındaki ve kapsamdaki fiyat kayıtları silinecek. Bu işlem geri alınamaz."
+    readonly property string pdServiceMissing: "Fiyat verisi yönetim servisi kullanılamıyor."
+    readonly property string btnConfirmDelete: "Evet, Sil"
 }
-
-

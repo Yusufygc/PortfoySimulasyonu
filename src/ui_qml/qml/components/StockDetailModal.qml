@@ -224,6 +224,18 @@ Item {
                         }
                     }
 
+                    // Sermaye Artırımı (bedelli / bedelsiz) — yalnızca ana portföy pozisyonlarında
+                    ModernButton {
+                        visible: (typeof stockDetailController !== "undefined")
+                                 && !stockDetailController.isModelContext
+                                 && stockDetailController.quantity > 0
+                        text: Strings.caBtnOpen
+                        iconName: "layers"
+                        variant: "ghost"
+                        implicitHeight: 34
+                        onClicked: corporateActionDialog.open(stockDetailController.ticker)
+                    }
+
                     // Excel'e Aktar
                     ModernButton {
                         text: Strings.stockDetailBtnExcel
@@ -910,6 +922,16 @@ Item {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    CorporateActionDialog {
+        id: corporateActionDialog
+        onApplied: function(message) {
+            localToast.show(message, true)
+            if (typeof stockDetailController !== "undefined") {
+                stockDetailController.refreshData()
             }
         }
     }

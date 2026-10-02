@@ -5,6 +5,19 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] ekle | QML: Kurumsal Aksiyon, Fiyat Verisi Sağlığı ve Açılış Veri Bakım İşleri (Eski UI Eşitleme - Grup 2)
+
+- Eski PyQt5 arayüzünde olup QML'e taşınmamış backend özellikleri bağlandı:
+  - **Sermaye artırımı girişi:** `CorporateActionController` + `CorporateActionDialog.qml`. Hisse Detay modalındaki "Sermaye Artırımı" butonundan (yalnızca ana portföy pozisyonu) bedelli/bedelsiz kaydı, canlı ön izleme (yeni lot, yeni ort. maliyet, teorik baz fiyat), portföye uygulama ve geçmiş fiyatları yeniden indirme. Uygulama başarısız olursa kaydedilen bekleyen aksiyon silinir (yeniden denemeyi engellemesin).
+  - **KAP/MKK aday paneli:** Ayarlar > Kurumsal Aksiyonlar sekmesi (`SettingsCorporateActionsTab.qml`): tarama, düzenleme, onayla ve uygula, yoksay, kaynağı aç.
+  - **Fiyat Verisi Yönetimi:** `PriceDataController` + Ayarlar > Fiyat Verisi sekmesi (`SettingsPriceDataTab.qml`): eksik gün analizi, toplu/seçili/son günden bugüne güncelleme, aralık silme, raporu panoya kopyalama. Rapor biçimlendirmesi UI'dan bağımsız `price_data_report_formatter.py` modülüne alındı.
+  - **Açılış otomatik işleri:** `StartupJobsController` portföy hisseleri backfill'i, 18:30 sonrası tüm BIST backfill'i ve günlük KAP/MKK taramasını eski UI ile aynı QSettings anahtarlarıyla (günde bir kez) çalıştırır; sonuçlar global toast ve ekran yenilemesiyle bildirilir.
+- Ayarlar ekranı toast'ı hiç görünmüyordu (`settingsToast` mesajı bağlı değildi ve `visible` bağlaması `isVisible`'ı gizliyordu); doğrudan `show()` çağrılarına çevrildi. Başlık/sekme çubuğu 6 sekme için `Flow`'a alındı (dar pencerede alt satıra sarar).
+- **Grup 1 (kırık akışlar):** API anahtarı kaydı frozen ayarlarda `FrozenInstanceError` veriyordu, artık `persist_api_keys` ile `.env`'ye yazılıyor; Hisse Detay işlemi `TradeEntryService` üzerinden geçiyor; seans durumu `bist_market_session_service`'ten okunuyor; piyasa senkronu sonrası Dashboard/Model Portföy yenileniyor; demo veri yalnızca container yokken üretiliyor.
+- Test altyapısı: `tests/conftest.py` testlerin gerçek `.env`'ye yazmasını engeller; `tests/ui_qml/conftest.py` Basic stili ayarlar ve `MarketSyncController` açılış zamanlayıcısını devre dışı bırakır (test süresi uzayınca gerçek DuckDB senkronu başka testlerle çakışıp native çökmeye yol açıyordu). 128/128 QML testi yeşil.
+- Etkilenen modüller: src/ui_qml/controllers/corporate_action_controller.py, price_data_controller.py, startup_jobs_controller.py, src/application/services/market/price_data_report_formatter.py, src/ui_qml/qml/components/ (CorporateActionDialog, CorporateActionCandidateEditDialog, SettingsCorporateActionsTab, SettingsPriceDataTab, ModernInput, StockDetailModal), src/ui_qml/qml/views/SettingsView.qml, src/ui_qml/qml/theme/Strings.qml, src/ui_qml/app.py, tests/ui_qml/
+
+---
 ## [2026-10-02] düzelt | Dashboard Açık Pozisyonlar Tablosu Kolon Başlıkları ve Hücre Hizalaması
 
 - `DashboardView.qml` içerisindeki açık pozisyonlar tablosunda başlık satırı (`RowLayout`) ile veri satırları (`RowLayout`) arasındaki kolon kayması sorunu giderildi:

@@ -317,6 +317,11 @@ class DashboardController(QObject):
     # --- Slots ---
 
     @Slot()
+    def reloadPortfolio(self) -> None:
+        """Ağ çağrısı yapmadan portföyü veritabanından yeniden yükler (sermaye artırımı, fiyat güncellemesi sonrası)."""
+        self._load_portfolio_data()
+
+    @Slot()
     def refreshMetrics(self) -> None:
         """Piyasa fiyatlarını gerçek servis üzerinden arka planda yeniler."""
         self._is_refreshing = True

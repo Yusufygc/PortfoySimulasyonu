@@ -102,6 +102,10 @@ class StockDetailController(QObject):
     def isOpen(self) -> bool:
         return self._is_open
 
+    @Property(bool, notify=stockChanged)
+    def isModelContext(self) -> bool:
+        return self._context_type == "model"
+
     @Property(bool, notify=loadingChanged)
     def isLoading(self) -> bool:
         return self._is_loading
