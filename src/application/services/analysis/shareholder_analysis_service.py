@@ -3,7 +3,7 @@ ShareholderAnalysisService — KAP ortaklık yapısı orkestrasyon servisi.
 
 Dış API'yi doğrudan çağırmaz (ARCHITECTURE_GATES §15).
 IShareholderProvider arayüzü üzerinden KAP'a erişir; tarihçeyi
-IShareholderRepository ile MySQL'de saklar.
+IShareholderRepository ile SQLite'ta saklar.
 """
 from __future__ import annotations
 

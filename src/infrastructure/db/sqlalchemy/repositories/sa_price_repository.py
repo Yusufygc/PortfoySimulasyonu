@@ -4,7 +4,6 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, Iterable, List, Optional, Sequence, Set
 
-from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy import func
 from src.domain.models.daily_price import DailyPrice
@@ -175,29 +174,17 @@ class SQLAlchemyPriceRepository(IPriceRepository):
     # ---------- WRITE (UPSERT) ---------- #
     def upsert_daily_price(self, daily_price: DailyPrice) -> DailyPrice:
         with self._provider.get_session() as session:
-            is_sqlite = (session.bind.dialect.name == "sqlite")
             row_dict = self._to_row(daily_price)
-            if is_sqlite:
-                if "id" not in row_dict or row_dict["id"] is None:
-                    max_id = session.execute(func.coalesce(func.max(ORMDailyPrice.id), 0)).scalar() or 0
-                    row_dict["id"] = int(max_id) + 1
+            # BIGINT birincil anahtar SQLite'ta otomatik artmaz; yeni satıra elle id verilir
+            if "id" not in row_dict or row_dict["id"] is None:
+                max_id = session.execute(func.coalesce(func.max(ORMDailyPrice.id), 0)).scalar() or 0
+                row_dict["id"] = int(max_id) + 1
 
-                stmt = sqlite_insert(ORMDailyPrice).values(**row_dict)
-                stmt = stmt.on_conflict_do_update(
-                    index_elements=["stock_id", "price_date"],
-                    set_={
-                        "close_price": stmt.excluded.close_price,
-                        "currency_code": stmt.excluded.currency_code,
-                        "source": stmt.excluded.source,
-                        "open_price": func.coalesce(stmt.excluded.open_price, ORMDailyPrice.open_price),
-                        "high_price": func.coalesce(stmt.excluded.high_price, ORMDailyPrice.high_price),
-                        "low_price": func.coalesce(stmt.excluded.low_price, ORMDailyPrice.low_price),
-                        "volume": func.coalesce(stmt.excluded.volume, ORMDailyPrice.volume),
-                    },
-                )
-            else:
-                stmt = mysql_insert(ORMDailyPrice).values(**row_dict)
-                stmt = stmt.on_duplicate_key_update(**self._upsert_update_columns(stmt))
+            stmt = sqlite_insert(ORMDailyPrice).values(**row_dict)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["stock_id", "price_date"],
+                set_=self._upsert_set(stmt),
+            )
 
             result = session.execute(stmt)
             commit_or_rollback(session)
@@ -226,35 +213,18 @@ class SQLAlchemyPriceRepository(IPriceRepository):
         chunk_size = 100
 
         with self._provider.get_session() as session:
-            is_sqlite = (session.bind.dialect.name == "sqlite")
-            if is_sqlite:
-                max_id = session.execute(func.coalesce(func.max(ORMDailyPrice.id), 0)).scalar() or 0
-                max_id = int(max_id)
-                for item in values:
-                    if "id" not in item or item["id"] is None:
-                        max_id += 1
-                        item["id"] = max_id
+            max_id = int(session.execute(func.coalesce(func.max(ORMDailyPrice.id), 0)).scalar() or 0)
+            for item in values:
+                if "id" not in item or item["id"] is None:
+                    max_id += 1
+                    item["id"] = max_id
 
             for i in range(0, len(values), chunk_size):
-                chunk = values[i : i + chunk_size]
-                if is_sqlite:
-                    stmt = sqlite_insert(ORMDailyPrice).values(chunk)
-                    stmt = stmt.on_conflict_do_update(
-                        index_elements=["stock_id", "price_date"],
-                        set_={
-                            "close_price": stmt.excluded.close_price,
-                            "currency_code": stmt.excluded.currency_code,
-                            "source": stmt.excluded.source,
-                            "open_price": func.coalesce(stmt.excluded.open_price, ORMDailyPrice.open_price),
-                            "high_price": func.coalesce(stmt.excluded.high_price, ORMDailyPrice.high_price),
-                            "low_price": func.coalesce(stmt.excluded.low_price, ORMDailyPrice.low_price),
-                            "volume": func.coalesce(stmt.excluded.volume, ORMDailyPrice.volume),
-                        },
-                    )
-                else:
-                    stmt = mysql_insert(ORMDailyPrice).values(chunk)
-                    stmt = stmt.on_duplicate_key_update(**self._upsert_update_columns(stmt))
-
+                stmt = sqlite_insert(ORMDailyPrice).values(values[i : i + chunk_size])
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=["stock_id", "price_date"],
+                    set_=self._upsert_set(stmt),
+                )
                 session.execute(stmt)
             commit_or_rollback(session)
 
@@ -273,17 +243,16 @@ class SQLAlchemyPriceRepository(IPriceRepository):
         }
 
     @staticmethod
-    def _upsert_update_columns(stmt) -> dict:
-        # OHLCV kolonları COALESCE ile güncellenir: yeni değer NULL ise (örn. close-only
-        # günlük fiyat güncelleme akışı) önceden backfill edilmiş OHLCV verisi silinmez.
+    def _upsert_set(stmt) -> dict:
+        """Çakışmada güncellenecek sütunlar; OHLV verisi yoksa mevcut değer korunur."""
         return {
-            "close_price": stmt.inserted.close_price,
-            "currency_code": stmt.inserted.currency_code,
-            "source": stmt.inserted.source,
-            "open_price": func.coalesce(stmt.inserted.open_price, ORMDailyPrice.open_price),
-            "high_price": func.coalesce(stmt.inserted.high_price, ORMDailyPrice.high_price),
-            "low_price": func.coalesce(stmt.inserted.low_price, ORMDailyPrice.low_price),
-            "volume": func.coalesce(stmt.inserted.volume, ORMDailyPrice.volume),
+            "close_price": stmt.excluded.close_price,
+            "currency_code": stmt.excluded.currency_code,
+            "source": stmt.excluded.source,
+            "open_price": func.coalesce(stmt.excluded.open_price, ORMDailyPrice.open_price),
+            "high_price": func.coalesce(stmt.excluded.high_price, ORMDailyPrice.high_price),
+            "low_price": func.coalesce(stmt.excluded.low_price, ORMDailyPrice.low_price),
+            "volume": func.coalesce(stmt.excluded.volume, ORMDailyPrice.volume),
         }
 
     def adjust_prices_before_date(self, stock_id: int, before_date: date, factor: Decimal) -> int:

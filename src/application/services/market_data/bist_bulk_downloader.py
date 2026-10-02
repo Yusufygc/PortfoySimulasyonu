@@ -22,9 +22,10 @@ import pandas as pd
 import requests
 import yfinance as yf
 
+from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
+
 logger = logging.getLogger(__name__)
 
-_DEFAULT_DUCKDB_PATH = "data/market_history.duckdb"
 _TV_SCANNER_URL = "https://scanner.tradingview.com/turkey/scan"
 
 
@@ -35,10 +36,10 @@ class BistBulkDownloader:
 
     def __init__(
         self,
-        db_path: str = _DEFAULT_DUCKDB_PATH,
+        db_path: Optional[str] = None,
         max_workers: int = 4,
     ) -> None:
-        self._db_path = db_path
+        self._db_path = str(db_path) if db_path else str(default_duckdb_path())
         self._max_workers = max_workers
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()

@@ -241,6 +241,34 @@ class ChartController(QObject):
             except Exception as exc:
                 logger.warning("Fiyat verisi cekilirken hata: %s", exc)
 
+        # 2. Portföyde (SQLite) kaydı olmayan hisseler: DuckDB piyasa geçmişi (tüm BIST)
+        history_repo = getattr(self._container, "market_history_repo", None) if self._container else None
+        if (not data_found or not raw_candles) and history_repo is not None:
+            try:
+                end_date = datetime.now().date()
+                bars = history_repo.get_price_series(ticker, end_date - timedelta(days=365 * 3), end_date)
+                if bars:
+                    company_name = history_repo.get_company_name(ticker) or company_name
+                    prev_close = None
+                    for bar in bars:
+                        c = bar.close_price
+                        o = bar.open_price if bar.open_price else (prev_close if prev_close is not None else c)
+                        h = bar.high_price if bar.high_price else max(o, c)
+                        l = bar.low_price if bar.low_price else min(o, c)
+                        prev_close = c
+                        dt_str = bar.price_date.strftime("%Y-%m-%d")
+                        raw_candles.append({"time": dt_str, "open": round(o, 2), "high": round(h, 2),
+                                            "low": round(l, 2), "close": round(c, 2)})
+                        raw_volumes.append({
+                            "time": dt_str,
+                            "value": float(bar.volume or 0),
+                            "color": "rgba(8, 153, 129, 0.4)" if c >= o else "rgba(242, 54, 69, 0.4)",
+                        })
+                    data_found = True
+                    logger.info("DuckDB'den %s icin %d adet 1D mum verisi yuklendi.", ticker, len(raw_candles))
+            except Exception as exc:
+                logger.warning("DuckDB fiyat verisi okunamadi (%s): %s", ticker, exc)
+
         # 2. Demo veri yalnızca konteynersiz (offline) modda üretilir; gerçek DB'de veri yoksa boş grafik gösterilir
         if self._container is None and (not data_found or not raw_candles):
             base_price = 285.0 if "THY" in ticker else (110.0 if "GARAN" in ticker else 150.0)

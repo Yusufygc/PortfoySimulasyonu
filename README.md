@@ -9,7 +9,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.11-blue.svg" alt="Python 3.11">
   <img src="https://img.shields.io/badge/UI-PyQt5-41CD52.svg" alt="PyQt5">
-  <img src="https://img.shields.io/badge/Database-MySQL%20%2B%20SQLAlchemy-4479A1.svg" alt="MySQL ve SQLAlchemy">
+  <img src="https://img.shields.io/badge/Database-SQLite%20%2B%20DuckDB-4479A1.svg" alt="SQLite ve DuckDB">
   <img src="https://img.shields.io/badge/Analytics-NumPy%20%7C%20Pandas%20%7C%20SciPy-8CAAE6.svg" alt="Analitik yığını">
   <img src="https://img.shields.io/badge/Tests-pytest-0A9EDC.svg" alt="pytest">
   <img src="https://img.shields.io/badge/Architecture-Clean%20Architecture-10B981.svg" alt="Clean Architecture">
@@ -230,7 +230,8 @@ Yeni kalite kapılarına göre UI page sınıfları yalnız layout ve wiring sor
 
 | Alan | Teknoloji / Kaynak | Açıklama |
 | --- | --- | --- |
-| Veritabanı | MySQL 8.0+ | İşlem, hisse, fiyat, risk profili ve model portföy verileri |
+| Veritabanı (OLTP) | SQLite (`data/portfolio.db`) | İşlem, hisse, portföy fiyatları, risk profili ve model portföy verileri |
+| Piyasa geçmişi (OLAP) | DuckDB (`data/market_history.duckdb`) | Tüm BIST günlük barları; bkz. `docs/wiki/data_architecture.md` |
 | ORM | SQLAlchemy | Declarative model ve repository implementasyonları |
 | Piyasa verisi | YFinance | Hisse fiyatları ve geçmiş veri akışları |
 | Benchmark/fallback | Provider yapısı | Mevduat ve benzeri kaynaklar için kontrollü fallback |
@@ -241,15 +242,7 @@ Yeni kalite kapılarına göre UI page sınıfları yalnız layout ve wiring sor
 Ortam değişkenleri `.env` dosyasından okunur. Gerçek değerler repoya yazılmaz; örnek anahtarlar `.env.example` içinde tutulur.
 
 ```ini
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=portfoy_user
-DB_PASSWORD=change-me
-DB_NAME=portfoySim
-POOL_NAME=portfoy_pool
-POOL_SIZE=5
-DB_POOL_RECYCLE_SECONDS=3600
-DB_POOL_PRE_PING=true
+DB_SQLITE_PATH=data/portfolio.db
 GEMINI_API_KEY=change-me
 AI_CORE_API_URL=http://localhost:8000
 EVDS_API_KEY=
@@ -274,7 +267,7 @@ Test suite; domain, application, infrastructure ve UI katmanlarını dış API b
 | --- | --- | --- |
 | `tests/domain` | Domain modelleri, trade ve portföy hesap kuralları | Veritabanı veya dış sistem mocklanmaz. Saf matematiksel hesaplamalar test edilir. |
 | `tests/application` | Analiz, optimizasyon, simülasyon ve servis davranışları | `pytest-mock` (mocker) ile YFinance ve veritabanı Repoları mocklanır. API Limitsiz çalışır. |
-| `tests/infrastructure` | ORM şeması, repository ve ayar yükleyici kontrolleri | Test veritabanı (SQLite In-Memory) veya Docker MySQL ile entegrasyon. |
+| `tests/infrastructure` | ORM şeması, repository ve ayar yükleyici kontrolleri | Test veritabanı (SQLite). |
 | `tests/ui` | PyQt sayfaları, AI panelleri ve QSS | `pytest-qt` eklentisi kullanılarak widget davranışları ve EventBus tetiklemeleri denenir. |
 
 Ayrıca projenin `conftest.py` dosyasında, her testin tekrar tekrar portföy yaratmasını engelleyen "Ortak Fixture (Shared Fixture)" modelleri kurgulanmıştır.
@@ -296,7 +289,7 @@ Beklenen durum: testler geçer; dış servis gerektiren kontroller mock veya fal
 - `PyQt5`
 - `PyQtWebEngine`
 - `SQLAlchemy`
-- `mysql-connector-python`
+- `duckdb`
 - `numpy`
 - `pandas`
 - `scipy`
@@ -324,7 +317,7 @@ Worker işleri job id ve thread bilgisiyle loglanır. AI Core, market data ve ex
 ### Gereksinimler
 
 - Python 3.11
-- MySQL 8.0 veya uyumlu MySQL sunucusu
+- Harici veritabanı sunucusu gerekmez (SQLite + DuckDB yerel dosyalardır)
 - Windows PowerShell önerilir
 - Proje bağımlılıkları için `requirements.txt`
 
@@ -378,7 +371,7 @@ Alternatif:
 python app.py
 ```
 
-İlk çalıştırmada SQLAlchemy modelleri gerekli tabloları oluşturabilir. MySQL bağlantısının hazır olması gerekir.
+İlk çalıştırmada SQLAlchemy modelleri gerekli tabloları `data/portfolio.db` içinde oluşturur.
 
 ## Test ve Build
 

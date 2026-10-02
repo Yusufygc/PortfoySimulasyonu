@@ -19,6 +19,7 @@ def _fake_repositories():
         latest_price_repo=object(),
         kap_shareholder_repo=object(),
         golden_cross_repo=object(),
+        market_history_repo=object(),
     )
 
 

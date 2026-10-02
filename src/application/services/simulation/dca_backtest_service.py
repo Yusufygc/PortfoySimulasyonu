@@ -25,9 +25,16 @@ from src.domain.ports.repositories.i_stock_repo import IStockRepository
 class DCABacktestService:
     """'Her ay X TL alsaydım' senaryosunu yerel DB fiyat geçmişiyle çalıştırır."""
 
-    def __init__(self, price_repo: IPriceRepository, stock_repo: IStockRepository) -> None:
+    def __init__(
+        self,
+        price_repo: IPriceRepository,
+        stock_repo: IStockRepository,
+        market_history_repo=None,
+    ) -> None:
         self._price_repo = price_repo
         self._stock_repo = stock_repo
+        # Portföyde (SQLite) olmayan hisseler için DuckDB piyasa geçmişi (opsiyonel)
+        self._market_history_repo = market_history_repo
 
     def run(
         self,
@@ -75,10 +82,11 @@ class DCABacktestService:
             if stock is not None and stock.id is not None:
                 rows = self._price_repo.get_price_series(stock.id, start_date, end_date)
 
-            # DuckDB direct ticker fallback
-            if not rows and hasattr(self._price_repo, "get_price_series_by_ticker"):
-                rows = self._price_repo.get_price_series_by_ticker(ticker, start_date, end_date)
-
             for row in rows:
                 price_series.setdefault(row.price_date, {})[ticker] = row.close_price
+
+            # SQLite'ta (portföy) kaydı olmayan hisseler: DuckDB piyasa geçmişi
+            if not rows and self._market_history_repo is not None:
+                for bar in self._market_history_repo.get_price_series(ticker, start_date, end_date):
+                    price_series.setdefault(bar.price_date, {})[ticker] = Decimal(str(bar.close_price))
         return price_series

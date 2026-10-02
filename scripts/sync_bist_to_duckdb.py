@@ -22,7 +22,7 @@ def main():
     parser.add_argument("--workers", type=int, default=5, help="Paralel worker iş parçacığı sayısı (varsayılan: 5)")
     parser.add_argument("--limit", type=int, default=None, help="İndirilecek maksimum hisse sayısı")
     parser.add_argument("--tickers", type=str, default=None, help="Virgülle ayrılmış belirli hisseler (ör: THYAO,BIMAS)")
-    parser.add_argument("--db-path", type=str, default="data/market_history.duckdb", help="DuckDB dosya yolu")
+    parser.add_argument("--db-path", type=str, default=None, help="DuckDB dosya yolu (varsayılan: data/market_history.duckdb)")
     args = parser.parse_args()
 
     downloader = BistBulkDownloader(db_path=args.db_path, max_workers=args.workers)

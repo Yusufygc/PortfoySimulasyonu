@@ -12,6 +12,7 @@
 | [architecture.md](architecture.md) | Katmanlı mimari (Clean Architecture) özeti ve teknik belgelerin ana yönlendiricisi (Hub) |
 | [ai_integration.md](ai_integration.md) | Gemini API asistan entegrasyonu, XAI faktörleri ve prompt yapıları |
 | [database_schema_and_orm.md](database_schema_and_orm.md) | SQLAlchemy modelleri, Repo arayüzleri, veritabanı tabloları ve migration |
+| [data_architecture.md](data_architecture.md) | SQLite (OLTP) ve DuckDB (OLAP) veri sahipliği, yazma/okuma kuralları, bilinen sınırlar |
 | [service_analysis.md](service_analysis.md) | Risk/Getiri metrikleri, benchmark hesaplamaları ve fallback veri kuralları |
 | [service_planning_optimization.md](service_planning_optimization.md) | Markowitz optimizasyonu, SciPy, ağırlık kısıtları ve risk anketi |
 | [service_portfolio_and_market.md](service_portfolio_and_market.md) | Event-sourcing portföy hesaplaması, YFinance veri çekimi ve tatil takvimi |

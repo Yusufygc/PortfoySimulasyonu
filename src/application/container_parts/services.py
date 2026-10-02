@@ -14,6 +14,7 @@ from src.application.services.analysis.technical.screener_service import Screene
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
 from src.application.services.market.current_price_resolver import CurrentPriceResolver
+from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
 from src.application.services.corporate_actions.candidate_review_service import CorporateActionCandidateReviewService
 from src.application.services.corporate_actions.price_adjustment_service import CorporateActionPriceAdjustmentService
@@ -81,6 +82,7 @@ class ServiceSet:
     dca_backtest_service: DCABacktestService
     tv_backfill_service: object  # BackfillService | None
     current_price_resolver: object  # CurrentPriceResolver
+    market_data_sync_service: object  # MarketDataSyncService (DuckDB + SQLite köprüsü)
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
@@ -142,6 +144,12 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             price_repo=repositories.price_repo,
         ),
         dca_backtest_service=DCABacktestService(
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
+            market_history_repo=repositories.market_history_repo,
+        ),
+        market_data_sync_service=MarketDataSyncService(
+            trading_calendar=market_clients.trading_calendar,
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
         ),

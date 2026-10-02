@@ -3,17 +3,15 @@ from pathlib import Path
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
-from src.infrastructure.db.db_config import DatabaseConfig, MySQLConfig, SQLiteConfig
+from src.infrastructure.db.db_config import DatabaseConfig, SQLiteConfig
+from src.infrastructure.db.paths import resolve_data_path
 
 logger = logging.getLogger(__name__)
 
 
 class SQLAlchemyEngineProvider:
     """
-    SQLAlchemy için Engine ve Session üreten Provider.
-    Eski (Ham SQL) 'MySQLConnectionProvider' yapısının ORM muadilidir.
-    MySQLConfig ve SQLiteConfig'i dialect'e göre ayırt ederek destekler
-    (bkz. TRANSFORMATION_PLAN.md §2 — MySQL ➔ SQLite geçişi).
+    SQLite (işlemsel veritabanı) için SQLAlchemy Engine ve Session üreten Provider.
     """
 
     def __init__(self, config: DatabaseConfig) -> None:
@@ -31,25 +29,11 @@ class SQLAlchemyEngineProvider:
             logger.warning("Tablo şemaları oluşturulurken hata veya uyarı: %s", exc)
 
     def _create_engine(self):
-        if isinstance(self._config, SQLiteConfig):
-            return self._create_sqlite_engine(self._config)
-        return self._create_mysql_engine(self._config)
-
-    @staticmethod
-    def _create_mysql_engine(config: MySQLConfig):
-        # Format: mysql+mysqlconnector://user:password@host:port/database
-        db_url = f"mysql+mysqlconnector://{config.user}:{config.password}@{config.host}:{config.port}/{config.database}"
-        return create_engine(
-            db_url,
-            pool_recycle=config.pool_recycle_seconds,
-            pool_size=config.pool_size,
-            pool_pre_ping=config.pool_pre_ping,
-            echo=False,
-        )
+        return self._create_sqlite_engine(self._config)
 
     @staticmethod
     def _create_sqlite_engine(config: SQLiteConfig):
-        db_path = Path(config.db_path)
+        db_path = resolve_data_path(config.db_path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
         engine = create_engine(
             f"sqlite:///{db_path}",

@@ -15,7 +15,7 @@ class IPortfolioRepository(ABC):
 
     Amaç:
       - Uygulama/service katmanı bu interface'e göre programlar
-      - MySQL/PostgreSQL/SQLite fark etmeksizin concrete repo bu interface'i uygular.
+      - Concrete repo (SQLAlchemy/SQLite) bu interface'i uygular.
     """
 
     # --------- READ (Query) operasyonları --------- #

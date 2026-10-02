@@ -25,11 +25,10 @@ import duckdb
 from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
 
 from config.settings_loader import persist_api_keys
+from src.infrastructure.db.paths import duckdb_path, sqlite_db_path
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_SQLITE_PATH = "data/portfolio.db"
-_DEFAULT_DUCKDB_PATH = "data/market_history.duckdb"
 
 
 def _format_file_size(size_in_bytes: int) -> str:
@@ -86,8 +85,9 @@ class SettingsController(QObject):
         self._integrity_check_result = ""
 
         # Veritabanı Yolları
-        self._sqlite_path = Path(_DEFAULT_SQLITE_PATH).resolve()
-        self._duckdb_path = Path(_DEFAULT_DUCKDB_PATH).resolve()
+        configured = getattr(getattr(container, "db_config", None), "db_path", None) if container else None
+        self._sqlite_path = sqlite_db_path(configured if isinstance(configured, str) else None)
+        self._duckdb_path = duckdb_path(self._sqlite_path)
 
         # İstatistik Değerleri
         self._sqlite_size = "0 B"
@@ -387,11 +387,10 @@ class SettingsController(QObject):
     def _run_market_sync_worker(self) -> None:
         try:
             from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
-            sync_svc = MarketDataSyncService(
-                duckdb_path=str(self._duckdb_path),
-                sqlite_path=str(self._sqlite_path),
-            )
-            result = sync_svc.sync_missing_data()
+            sync_svc = getattr(self._container, "market_data_sync_service", None) if self._container else None
+            if not isinstance(sync_svc, MarketDataSyncService):
+                sync_svc = MarketDataSyncService(duckdb_path=str(self._duckdb_path))
+            result = sync_svc.sync_daily_delta()
             self._asyncSyncFinished.emit({
                 "success": True,
                 "message": result.message,

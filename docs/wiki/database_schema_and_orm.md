@@ -6,7 +6,7 @@ Bu belge, uygulamanın `src/infrastructure/db/sqlalchemy` dizini altındaki veri
 
 ## 1. Veritabanı Yaklaşımı ve Repository Pattern
 
-Uygulamanın çekirdek kodları (Domain) SQL veya MySQL teknolojisinden tamamen bağımsızdır. `src/domain/ports/repositories` altında tanımlı soyut arayüzler (Interfaces), SQLAlchemy Repository'leri tarafından `src/infrastructure` içinde somutlaştırılır.
+Uygulamanın çekirdek kodları (Domain) SQL veya belirli bir veritabanı teknolojisinden tamamen bağımsızdır. `src/domain/ports/repositories` altında tanımlı soyut arayüzler (Interfaces), SQLAlchemy Repository'leri tarafından `src/infrastructure` içinde somutlaştırılır.
 
 Bu sayede, ileride veritabanı SQLite veya PostgreSQL ile değiştirilmek istenirse sadece Infrastructure katmanında değişiklik yapılması yeterli olacaktır.
 
@@ -30,7 +30,7 @@ Aşağıda SQLAlchemy Declarative Base ile oluşturulan ana tablolar listelenmi�
 
 ## 3. İlklendirme ve Migration
 
-İlk çalıştırmada `database_engine.py` üzerinden MySQL/SQLite motoruna bağlanılır ve ORM modelleri otomatik olarak tabloları oluşturur (`metadata.create_all()`). Alembic veya benzeri ağır migration toollarından ziyade, uygulamanın esnek yapısı gereği modeller kendi tablolarını doğrudan oluşturacak şekilde yapılandırılmıştır. (Gelecekteki ölçeklenme planlarında Alembic eklenebilir).
+İlk çalıştırmada `database_engine.py` üzerinden SQLite motoruna bağlanılır (veri sahipliği için bkz. [data_architecture.md](data_architecture.md)) ve ORM modelleri otomatik olarak tabloları oluşturur (`metadata.create_all()`). Alembic veya benzeri ağır migration toollarından ziyade, uygulamanın esnek yapısı gereği modeller kendi tablolarını doğrudan oluşturacak şekilde yapılandırılmıştır. (Gelecekteki ölçeklenme planlarında Alembic eklenebilir).
 
 ## Faz 3 Notu (2026-06-02)
 

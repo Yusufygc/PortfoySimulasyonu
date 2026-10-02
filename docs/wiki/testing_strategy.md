@@ -71,7 +71,7 @@ Faz 6 ile test stratejisine production hazırlık guard'ları eklendi:
 
 - `tests/infrastructure/test_production_guards.py` repo içinde gerçek secret literal'ları ve build preflight statik koşullarını denetler.
 - `tests/infrastructure/test_logger_setup.py` logger handler tekrarını, env level override davranışını, secret redaction'ı ve global exception hook'u kapsar.
-- `tests/infrastructure/db/test_database_engine.py` SQLAlchemy engine'in DB pool ayarlarını `MySQLConfig` üzerinden aldığını doğrular.
+- `tests/infrastructure/db/test_database_engine.py` SQLAlchemy engine'in SQLite URL'sini, PRAGMA ayarlarını ve gerçek şema oluşturmayı doğrular.
 - `.github/workflows/tests.yml` Windows + Python 3.11 üzerinde `pip check`, `pytest --collect-only -q` ve `pytest tests -q` çalıştırır.
 
 CI default suite, `pytest.ini` içindeki `not manual and not network` filtresi nedeniyle canlı network/manual testleri çalıştırmaz. Nuitka build CI'da koşmaz; release öncesi `python scripts/build_preflight.py` ile manuel doğrulanır.

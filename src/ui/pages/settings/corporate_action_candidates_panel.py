@@ -178,7 +178,7 @@ class CorporateActionCandidatesPanel(QWidget):
             self.table.setRowCount(0)
             self.detail_text.setText(
                 L10N.KURUMSAL_AKSIYON_ADAY_TABLOSU_OKUNAMADI +
-                "Mevcut DB için scripts/apply_corporate_action_candidate_schema.py çalıştırılmalıdır.\n" +
+                "Şema uygulama açılışında otomatik oluşturulur; sorun sürerse uygulamayı yeniden başlatın.\n" +
                 f"Hata: {exc}"
             )
             return

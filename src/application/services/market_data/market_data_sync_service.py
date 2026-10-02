@@ -5,16 +5,16 @@ ile aktif gün arasındaki eksik verileri otomatik güncelleyen profesyonel serv
 Sorumluluklar:
 1. Akıllı Gap Tespiti: DuckDB'deki MAX(last_date) ile BIST takvimindeki son kapanmış işlem gününü kıyaslar.
 2. Artımlı Senkronizasyon (Incremental Sync): Sadece eksik günleri (delta) indirir (tüm tarihi tekrar indirmez).
-3. Çift Katman Güncelleme: DuckDB'yi (ve SQLite'ta kayıtlı portföy hisselerini) otomatik günceller.
+3. Çift Katman Güncelleme: DuckDB'yi (ve SQLite'ta kayıtlı portföy hisselerini, repository'ler üzerinden) günceller.
 4. Ağ Optimizasyonu: Batch ve thread-pool kullanarak 600+ hisseyi 2-4 saniyede günceller.
 """
 from __future__ import annotations
 
 import logging
-import sqlite3
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, time as dt_time, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -23,11 +23,11 @@ import pandas as pd
 import yfinance as yf
 
 from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
+from src.domain.models.daily_price import DailyPrice
+from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_DUCKDB_PATH = "data/market_history.duckdb"
-_DEFAULT_SQLITE_PATH = "data/portfolio.db"
 _MARKET_CLOSE_TIME = dt_time(18, 15)  # BIST seans kapanışı + marj kesinleşme saati
 
 
@@ -57,15 +57,21 @@ class MarketDataSyncService:
 
     def __init__(
         self,
-        duckdb_path: str = _DEFAULT_DUCKDB_PATH,
-        sqlite_path: str = _DEFAULT_SQLITE_PATH,
+        duckdb_path: Optional[str] = None,
         trading_calendar: Optional[MarketTradingCalendar] = None,
         max_workers: int = 6,
+        price_repo=None,
+        stock_repo=None,
     ) -> None:
-        self._duckdb_path = duckdb_path
-        self._sqlite_path = sqlite_path
+        """
+        price_repo / stock_repo: SQLite (OLTP) tarafı. Verilirse, portföyde kayıtlı hisselerin yeni
+        kapanışları SQLite `daily_prices` tablosuna da yazılır; verilmezse yalnızca DuckDB güncellenir.
+        """
+        self._duckdb_path = str(duckdb_path) if duckdb_path else str(default_duckdb_path())
         self._trading_calendar = trading_calendar or WeekdayTradingCalendar()
         self._max_workers = max_workers
+        self._price_repo = price_repo
+        self._stock_repo = stock_repo
 
     def _get_duckdb_conn(self, read_only: bool = False) -> duckdb.DuckDBPyConnection:
         Path(self._duckdb_path).parent.mkdir(parents=True, exist_ok=True)
@@ -149,6 +155,8 @@ class MarketDataSyncService:
         Sadece son kayıtlı gün ile son kapanmış gün arasındaki eksik verileri indirir.
         """
         t0 = time.time()
+        # DuckDB'de olup SQLite'a yazılamamış barlar (eski köprü hatası vb.) önce kapatılır
+        reconciled_bars = self.reconcile_sqlite_from_duckdb()
         status = self.get_sync_status(now)
 
         if status.is_up_to_date and not force:
@@ -156,7 +164,7 @@ class MarketDataSyncService:
             return MarketSyncResult(
                 is_up_to_date=True,
                 updated_stocks=0,
-                added_bars=0,
+                added_bars=reconciled_bars,
                 elapsed_seconds=round(time.time() - t0, 2),
                 message=status.message,
             )
@@ -288,40 +296,81 @@ class MarketDataSyncService:
             errors=errors,
         )
 
-    def _sync_to_sqlite(self, df_bars: pd.DataFrame) -> None:
-        """SQLite'ta kayıtlı portföy hisselerine de yeni kapanışları yazar."""
-        if not Path(self._sqlite_path).exists() or df_bars.empty:
-            return
+    def reconcile_sqlite_from_duckdb(self) -> int:
+        """DuckDB'de bulunup SQLite `daily_prices`'ta olmayan YENİ barları portföy hisseleri için SQLite'a taşır.
+
+        Her hisse için yalnızca SQLite'taki son kapanış tarihinden sonraki barlar alınır; mevcut
+        (örneğin sermaye artırımıyla düzeltilmiş) geçmiş barlar asla üzerine yazılmaz.
+        Döndürür: yazılan bar sayısı.
+        """
+        if self._price_repo is None or self._stock_repo is None or not Path(self._duckdb_path).exists():
+            return 0
         try:
-            s_conn = sqlite3.connect(self._sqlite_path)
-            s_cur = s_conn.cursor()
-            s_cur.execute("SELECT id, ticker FROM stocks")
-            sqlite_stocks = {r[1].replace(".IS", "").strip().upper(): r[0] for r in s_cur.fetchall()}
+            stocks = [s for s in self._stock_repo.get_all_stocks() if s.id is not None]
+            if not stocks:
+                return 0
+            ticker_by_id = {s.id: (s.ticker or "").replace(".IS", "").strip().upper() for s in stocks}
+            last_dates = self._price_repo.get_latest_price_dates(list(ticker_by_id))
+            floor = min((last_dates.get(sid) for sid in ticker_by_id if last_dates.get(sid)), default=None)
+            tickers = sorted(set(ticker_by_id.values()))
+            with self._get_duckdb_conn(read_only=True) as con:
+                frame = con.execute(
+                    "SELECT ticker, price_date, open_price, high_price, low_price, close_price, volume "
+                    "FROM daily_prices WHERE close_price > 0 AND price_date > ? AND ticker IN (SELECT UNNEST(?))",
+                    [floor or date(2000, 1, 1), tickers],
+                ).fetchdf()
+            if frame.empty:
+                return 0
+            frame["price_date"] = pd.to_datetime(frame["price_date"]).dt.date
+            last_by_ticker = {
+                ticker_by_id[sid]: last_dates[sid] for sid in ticker_by_id if last_dates.get(sid)
+            }
+            keep = [
+                row.price_date > last_by_ticker.get(row.ticker, date(2000, 1, 1))
+                for row in frame.itertuples(index=False)
+            ]
+            frame = frame[keep]
+            if frame.empty:
+                return 0
+            return self._sync_to_sqlite(frame)
+        except Exception as exc:
+            logger.warning("SQLite uzlaştırması başarısız: %s", exc)
+            return 0
 
-            matched_rows = []
-            for _, row in df_bars.iterrows():
-                tk = row["ticker"]
-                sid = sqlite_stocks.get(tk)
-                if sid is not None:
-                    matched_rows.append((
-                        sid,
-                        row["price_date"].isoformat(),
-                        row["close_price"],
-                        "TRY",
-                        "sync_service",
-                        row["open_price"],
-                        row["high_price"],
-                        row["low_price"],
-                        row["volume"],
-                    ))
+    def _sync_to_sqlite(self, df_bars: pd.DataFrame) -> int:
+        """SQLite'ta kayıtlı portföy hisselerine de yeni kapanışları repository üzerinden yazar.
 
-            if matched_rows:
-                s_cur.executemany("""
-                    INSERT OR REPLACE INTO daily_prices (stock_id, price_date, close_price, currency_code, source, open_price, high_price, low_price, volume)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, matched_rows)
-                s_conn.commit()
-                logger.info("SQLite senkronizasyonu: %d satır güncellendi.", len(matched_rows))
-            s_conn.close()
+        Döndürür: yazılan bar sayısı. Hata, DuckDB güncellemesini bozmaz (yalnızca loglanır).
+        """
+        if self._price_repo is None or self._stock_repo is None or df_bars.empty:
+            return 0
+        try:
+            stock_ids = {
+                (stock.ticker or "").replace(".IS", "").strip().upper(): stock.id
+                for stock in self._stock_repo.get_all_stocks()
+                if stock.id is not None
+            }
+            prices: List[DailyPrice] = []
+            for row in df_bars.itertuples(index=False):
+                stock_id = stock_ids.get(row.ticker)
+                if stock_id is None or not row.close_price or row.close_price <= 0:
+                    continue
+                prices.append(DailyPrice(
+                    id=None,
+                    stock_id=stock_id,
+                    price_date=row.price_date,
+                    close_price=Decimal(str(row.close_price)),
+                    currency_code="TRY",
+                    source="market_sync",
+                    open_price=Decimal(str(row.open_price)) if row.open_price == row.open_price else None,
+                    high_price=Decimal(str(row.high_price)) if row.high_price == row.high_price else None,
+                    low_price=Decimal(str(row.low_price)) if row.low_price == row.low_price else None,
+                    volume=int(row.volume) if row.volume == row.volume else None,
+                ))
+            if prices:
+                self._price_repo.upsert_daily_prices_bulk(prices)
+                logger.info("SQLite senkronizasyonu: %d satır güncellendi.", len(prices))
+            return len(prices)
         except Exception as exc:
             logger.warning("SQLite senkronizasyon köprüsü hatası: %s", exc)
+            return 0

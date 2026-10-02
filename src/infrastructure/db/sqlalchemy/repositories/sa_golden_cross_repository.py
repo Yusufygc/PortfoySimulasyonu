@@ -5,7 +5,6 @@ from datetime import date
 from typing import Iterable, List, Optional
 
 from sqlalchemy import func
-from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from src.domain.models.golden_cross_event import CrossType, GoldenCrossEvent
@@ -20,7 +19,7 @@ from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or
 
 
 class SQLAlchemyGoldenCrossRepository(IGoldenCrossRepository):
-    """Golden / Death Cross olayları için MySQL repo (INSERT IGNORE ile idempotent)."""
+    """Golden / Death Cross olayları için SQLite repo (ON CONFLICT DO NOTHING ile idempotent)."""
 
     def __init__(self, db_provider: SQLAlchemyEngineProvider) -> None:
         self._provider = db_provider
@@ -34,14 +33,7 @@ class SQLAlchemyGoldenCrossRepository(IGoldenCrossRepository):
         if not rows:
             return 0
         with self._provider.get_session() as session:
-            if session.bind.dialect.name == "sqlite":
-                return self._insert_new_sqlite(session, rows)
-            stmt = insert(ORMGoldenCrossEvent).values(rows)
-            # Duplicate (stock_id, cross_date, cross_type) → no-op (mevcut korunur)
-            stmt = stmt.on_duplicate_key_update(close_price=stmt.inserted.close_price)
-            result = session.execute(stmt)
-            commit_or_rollback(session)
-            return int(result.rowcount or 0)
+            return self._insert_new_sqlite(session, rows)
 
     @staticmethod
     def _insert_new_sqlite(session, rows: list) -> int:

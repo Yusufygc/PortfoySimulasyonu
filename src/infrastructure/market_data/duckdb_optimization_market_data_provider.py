@@ -18,10 +18,10 @@ import duckdb
 import pandas as pd
 
 from src.application.services.planning.optimization_market_data import OptimizationMarketDataProvider
+from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_DUCKDB_PATH = "data/market_history.duckdb"
 
 
 class DuckDBOptimizationMarketDataProvider:
@@ -29,10 +29,10 @@ class DuckDBOptimizationMarketDataProvider:
 
     def __init__(
         self,
-        duckdb_path: str = _DEFAULT_DUCKDB_PATH,
+        duckdb_path: Optional[str] = None,
         fallback_provider: Optional[OptimizationMarketDataProvider] = None,
     ) -> None:
-        self._duckdb_path = duckdb_path
+        self._duckdb_path = str(duckdb_path) if duckdb_path else str(default_duckdb_path())
         self._fallback_provider = fallback_provider
 
     def _get_connection(self) -> Optional[duckdb.DuckDBPyConnection]:

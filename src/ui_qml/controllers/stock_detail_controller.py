@@ -18,7 +18,6 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import duckdb
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.application.services.portfolio.trade_entry_service import TradeRequest
@@ -412,19 +411,14 @@ class StockDetailController(QObject):
                 except Exception as p_err:
                     logger.debug("prev price alinamadi: %s", p_err)
 
-        # 2. Eğer latest_price_repo'dan bulunamadıysa DuckDB analitik reposuna bak (SADECE NOT NULL ve > 0)
-        duckdb_path = Path("data/market_history.duckdb")
-        if duckdb_path.exists():
+        # 2. DuckDB piyasa geçmişi (salt okunur depo; yalnızca geçerli kapanışlar)
+        history_repo = getattr(self._container, "market_history_repo", None) if self._container else None
+        if history_repo is not None:
             try:
-                conn = duckdb.connect(str(duckdb_path), read_only=False)
-                rows = conn.execute(
-                    "SELECT close_price FROM daily_prices WHERE ticker = ? AND close_price IS NOT NULL AND close_price > 0 ORDER BY price_date DESC LIMIT 2",
-                    [clean]
-                ).fetchall()
-                conn.close()
-                if rows:
-                    p1 = float(rows[0][0])
-                    p2 = float(rows[1][0]) if len(rows) > 1 and rows[1][0] is not None else p1
+                bars = history_repo.get_last_bars(clean, 2)
+                if bars:
+                    p1 = bars[0].close_price
+                    p2 = bars[1].close_price if len(bars) > 1 else p1
                     d = ((p1 - p2) / p2 * 100.0) if p2 > 0 else 0.0
                     if cur_price <= 0:
                         cur_price = p1

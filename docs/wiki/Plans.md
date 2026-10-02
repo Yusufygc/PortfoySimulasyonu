@@ -21,7 +21,7 @@ Bu dosya, Portföy Simülasyonu projesindeki gelecek geliştirme planlarını, t
 * **Geliştirme Planı**: Fiyat güncelleme tetikleyicisini seans durumuyla ilişkilendirmek. Seans kapalıysa güncelleme sıklığını düşürmek veya tamamen askıya almak.
 
 ### 2. SQLAlchemy Oturum Ömrü ve Bağlantı Havuzlaması
-* **Sorun/Risk**: Uzun süreli masaüstü uygulaması oturumlarında MySQL bağlantı kopmaları veya SQLite kilitlenmeleri yaşanabilmektedir.
+* **Sorun/Risk**: Uzun süreli masaüstü uygulaması oturumlarında SQLite kilitlenmeleri yaşanabilmektedir.
 * **Geliştirme Planı**: [orm_schema.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/infrastructure/db/sqlalchemy/orm_models.py) ve repository katmanında session ömrünü izlemek. `pool_recycle` ve `pool_pre_ping` parametrelerinin `.env` yapılandırması üzerinden kontrolünü artırmak.
 
 ---

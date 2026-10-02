@@ -9,7 +9,8 @@ from urllib.parse import urlparse
 
 from dotenv import load_dotenv, set_key
 
-from src.infrastructure.db.db_config import DatabaseConfig, MySQLConfig, SQLiteConfig
+from src.infrastructure.db.db_config import DatabaseConfig, SQLiteConfig
+from src.infrastructure.db.paths import DEFAULT_SQLITE_RELATIVE, sqlite_db_path
 
 
 class SettingsError(RuntimeError):
@@ -63,42 +64,6 @@ def _optional_env(name: str) -> str | None:
     return value.strip()
 
 
-def _required_int_env(name: str, minimum: int = 1) -> int:
-    raw_value = _required_env(name)
-    try:
-        value = int(raw_value)
-    except ValueError as exc:
-        raise SettingsError(f"Environment variable {name} must be an integer.") from exc
-    if value < minimum:
-        raise SettingsError(f"Environment variable {name} must be >= {minimum}.")
-    return value
-
-
-def _optional_int_env(name: str, default: int, minimum: int = 1) -> int:
-    raw_value = _optional_env(name)
-    if raw_value is None:
-        return default
-    try:
-        value = int(raw_value)
-    except ValueError as exc:
-        raise SettingsError(f"Environment variable {name} must be an integer.") from exc
-    if value < minimum:
-        raise SettingsError(f"Environment variable {name} must be >= {minimum}.")
-    return value
-
-
-def _bool_env(name: str, default: bool) -> bool:
-    raw_value = _optional_env(name)
-    if raw_value is None:
-        return default
-    normalized = raw_value.lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    raise SettingsError(f"Environment variable {name} must be a boolean.")
-
-
 def _decimal_env(name: str, default: str) -> Decimal:
     raw_value = _optional_env(name) or default
     try:
@@ -115,33 +80,9 @@ def _url_env(name: str, default: str) -> str:
     return value.rstrip("/")
 
 
-def _load_mysql_settings() -> MySQLConfig:
-    return MySQLConfig(
-        host=_required_env("DB_HOST"),
-        port=_required_int_env("DB_PORT"),
-        user=_required_env("DB_USER"),
-        password=_required_env("DB_PASSWORD"),
-        database=_required_env("DB_NAME"),
-        pool_name=_required_env("POOL_NAME"),
-        pool_size=_required_int_env("POOL_SIZE"),
-        pool_recycle_seconds=_optional_int_env("DB_POOL_RECYCLE_SECONDS", 3600),
-        pool_pre_ping=_bool_env("DB_POOL_PRE_PING", True),
-    )
-
-
-def _load_sqlite_settings() -> SQLiteConfig:
-    return SQLiteConfig(
-        db_path=_optional_env("DB_SQLITE_PATH") or "data/portfolio.db",
-    )
-
-
 def _load_db_settings() -> DatabaseConfig:
-    # DB_ENGINE="sqlite" -> SQLiteConfig, aksi halde (varsayılan) MySQLConfig.
-    # Bkz. TRANSFORMATION_PLAN.md §2/§9.1 — migration doğrulanana kadar varsayılan mysql kalır.
-    engine_name = (_optional_env("DB_ENGINE") or "mysql").lower()
-    if engine_name == "sqlite":
-        return _load_sqlite_settings()
-    return _load_mysql_settings()
+    """SQLite yolu `DB_SQLITE_PATH` ile verilir (göreli yol uygulama köküne göre çözülür)."""
+    return SQLiteConfig(db_path=str(sqlite_db_path(_optional_env("DB_SQLITE_PATH") or DEFAULT_SQLITE_RELATIVE)))
 
 
 def load_ai_settings() -> AISettings:

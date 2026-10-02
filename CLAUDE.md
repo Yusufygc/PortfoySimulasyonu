@@ -36,7 +36,7 @@ Markowitz optimizasyonu, risk profili analizi, backtest simülasyonu, Excel rapo
 |--------|-----------|
 | UI | PySide6, QSS theming, pyqtgraph |
 | Uygulama Mantığı | Python 3.10+, DI Container |
-| Veritabanı | MySQL 8.0+ / SQLAlchemy ORM |
+| Veritabanı | SQLite (OLTP) + DuckDB (piyasa geçmişi, OLAP) / SQLAlchemy ORM |
 | Piyasa Verisi | YFinance |
 | Veri Bilimi | NumPy, Pandas, SciPy, scikit-learn |
 | Build | Nuitka (Windows .exe) |
@@ -111,13 +111,7 @@ pip install -r requirements.txt
 
 `.env` dosyası (proje kökünde):
 ```ini
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=portfoySim
-POOL_NAME=portfoy_pool
-POOL_SIZE=5
+DB_SQLITE_PATH=data/portfolio.db
 TCMB_DEPOSIT_RATE_FALLBACK=45.0
 GEMINI_API_KEY=your_gemini_key
 ```

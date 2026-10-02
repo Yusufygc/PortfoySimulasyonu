@@ -13,7 +13,7 @@ class IMarketDataClient(ABC):
 
     Yatırım uygulamamız şu an yfinance kullanacak,
     fakat bu interface sayesinde:
-        - yfinance → MySQLPriceRepository                 (gerçek senaryo)
+        - yfinance → SQLAlchemyPriceRepository            (gerçek senaryo)
         - FakeMarketClient → Unit test                   (test senaryosu)
         - AlphaVantageMarketClient → İleride genişleme
 

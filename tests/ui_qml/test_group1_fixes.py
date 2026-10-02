@@ -131,17 +131,17 @@ def test_market_sync_emits_data_synced_when_bars_added(qapp):
     assert emitted == [True]
 
 
-def test_market_sync_builds_service_from_container_paths():
+def test_market_sync_uses_container_sync_service_when_available():
+    from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
+
+    container_service = MarketDataSyncService(duckdb_path="x.duckdb")
     container = MagicMock()
-    container.db_config.db_path = "veri/portfolio.db"
-    calendar = object()
-    container.trading_calendar = calendar
+    container.market_data_sync_service = container_service
 
-    svc = MarketSyncController._build_sync_service(container)
-
-    assert svc._sqlite_path == "veri/portfolio.db"
-    assert svc._duckdb_path.replace("\\", "/") == "veri/market_history.duckdb"
-    assert svc._trading_calendar is calendar
+    assert MarketSyncController._build_sync_service(container) is container_service
+    # container yoksa veya servis sahte ise güvenli varsayılan kurulur
+    assert isinstance(MarketSyncController._build_sync_service(None), MarketDataSyncService)
+    assert isinstance(MarketSyncController._build_sync_service(MagicMock()), MarketDataSyncService)
 
 
 def test_dashboard_with_real_container_and_empty_portfolio_shows_no_demo_positions(qapp):

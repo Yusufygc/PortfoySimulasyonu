@@ -5,6 +5,20 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] temizle | MySQL Kalıntıları Kaldırıldı ve SQLite/DuckDB Veri Katmanı Tutarlı Hale Getirildi
+
+- **MySQL kaldırıldı:** `MySQLConfig`, `_create_mysql_engine`, MySQL `ON DUPLICATE KEY` dalları, `mysql-connector-python`, `DB_ENGINE/DB_HOST/DB_USER/DB_PASSWORD/DB_NAME/POOL_*` ortam değişkenleri (eski `.env` dosyalarında kalsa da yok sayılır), MySQL ORM `BIGINT(unsigned)` tipi (genel `BigInteger`), MySQL'e özgü betikler (`backup_mysql`, `migrate_mysql_to_sqlite`, `sync_mysql_backup_to_sqlite`, `compare_backup_to_sqlite`, `replicate_db`, 8 adet `apply_*_schema.py`, tüm `scripts/*.sql` DDL dosyaları) ve ilgili testler silindi. Tablolar `create_all` ile otomatik oluşur. `backups/` altındaki veri yedeklerine dokunulmadı.
+- **Tek yol kaynağı:** `src/infrastructure/db/paths.py`; göreli yollar artık çalışma dizinine değil uygulama köküne göre çözülür (`DB_SQLITE_PATH`, `DUCKDB_PATH`). Dağınık `"data/market_history.duckdb"` sabitleri kaldırıldı.
+- **DuckDB kalıntıları:**
+  - `DuckDBPriceRepository` kullanılmıyordu ama her `AppContainer()` oluşturulurken DuckDB'ye yazma bağlantısı açıp tablo oluşturuyordu; silindi. Yerine salt okunur `DuckDBMarketHistoryRepository` (`IMarketHistoryRepository`) geldi.
+  - **Köprü hatası:** `MarketDataSyncService._sync_to_sqlite` ham `sqlite3` ile `id` vermeden yazıyordu; her senkronda `NOT NULL constraint failed: daily_prices.id` ile sessizce başarısız oluyordu (SQLite portföy fiyatları güncellenmiyordu). Artık repository üzerinden yazılır, ayrıca `reconcile_sqlite_from_duckdb` geçmişte kaçan yeni barları (gerçek veride ~10 bin bar) kapatır.
+  - Ayarlar > "Senkronize et" olmayan `sync_missing_data` metodunu çağırıyordu; `sync_daily_delta` ile düzeltildi.
+  - DCA'daki "DuckDB fallback" `price_repo.get_price_series_by_ticker` varlığına bakıyordu (SQLAlchemy repo'da yok, ölü koddu); gerçek `market_history_repo` fallback'i bağlandı.
+  - Grafik: portföyde (SQLite) olmayan hisseler için DuckDB'den veri okunur. Hisse Detay ham `duckdb.connect(read_only=False)` yerine salt okunur depoyu kullanır.
+- Yeni wiki sayfası: [data_architecture.md](data_architecture.md) (hangi veri hangi veritabanında, kurallar, bilinen sınırlar).
+- Testler: 791 geçti (yeni: yol çözümleme, DuckDB okuyucu, DCA fallback, köprü, uzlaştırma).
+
+---
 ## [2026-10-02] düzelt | Bayat Fiyat: Dashboard Günlük Değişimi, Canlı Fiyat Önbelleği SQLite Upsert'i ve Golden Cross Yazımı
 
 - **Belirti:** Dashboard "Günlük Kâr/Zarar +%81" gibi anlamsız değerler gösteriyordu.

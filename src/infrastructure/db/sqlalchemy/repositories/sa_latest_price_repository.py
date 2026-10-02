@@ -4,7 +4,6 @@ from decimal import Decimal
 from typing import Dict, Iterable, Sequence
 
 from sqlalchemy import func
-from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from src.domain.models.latest_price import LatestPrice
@@ -73,20 +72,7 @@ class SQLAlchemyLatestPriceRepository(ILatestPriceRepository):
             for price in prices_list
         ]
         with self._provider.get_session() as session:
-            if session.bind.dialect.name == "sqlite":
-                self._upsert_sqlite(session, values)
-                commit_or_rollback(session)
-                return
-            stmt = insert(ORMLatestPrice).values(values)
-            stmt = stmt.on_duplicate_key_update(
-                price=stmt.inserted.price,
-                as_of=stmt.inserted.as_of,
-                source=stmt.inserted.source,
-                provider=stmt.inserted.provider,
-                fetched_at=stmt.inserted.fetched_at,
-                updated_at=func.now(),
-            )
-            session.execute(stmt)
+            self._upsert_sqlite(session, values)
             commit_or_rollback(session)
 
     @staticmethod

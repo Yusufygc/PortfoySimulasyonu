@@ -369,8 +369,8 @@ class CorporateActionController(QObject):
             self._candidate_objects = {}
             self.candidatesChanged.emit()
             self._set_detail(
-                "Aday tablosu okunamadı. Mevcut DB için scripts/apply_corporate_action_candidate_schema.py "
-                f"çalıştırılmalıdır.\nHata: {exc}"
+                "Aday tablosu okunamadı. Şema uygulama açılışında otomatik oluşturulur; sorun sürerse "
+                f"uygulamayı yeniden başlatın.\nHata: {exc}"
             )
             return
         self._candidate_objects = candidate_objects

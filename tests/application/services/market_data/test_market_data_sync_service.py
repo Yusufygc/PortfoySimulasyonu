@@ -18,10 +18,8 @@ class MockTradingCalendar:
 @pytest.fixture
 def sync_service(tmp_path):
     duckdb_file = str(tmp_path / "sync_test.duckdb")
-    sqlite_file = str(tmp_path / "portfolio_test.db")
     return MarketDataSyncService(
         duckdb_path=duckdb_file,
-        sqlite_path=sqlite_file,
         trading_calendar=MockTradingCalendar(),
     )
 

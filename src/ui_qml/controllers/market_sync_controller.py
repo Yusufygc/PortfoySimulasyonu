@@ -12,7 +12,6 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time as dt_time
-from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
@@ -74,16 +73,9 @@ class MarketSyncController(QObject):
 
     @staticmethod
     def _build_sync_service(container) -> MarketDataSyncService:
-        """Uygulamanın kullandığı SQLite dosyası ve tatil takvimiyle senkron servisi kurar."""
-        kwargs = {}
-        db_path = getattr(getattr(container, "db_config", None), "db_path", None) if container else None
-        if isinstance(db_path, str) and db_path:
-            kwargs["sqlite_path"] = db_path
-            kwargs["duckdb_path"] = str(Path(db_path).parent / "market_history.duckdb")
-        calendar = getattr(container, "trading_calendar", None) if container else None
-        if calendar is not None:
-            kwargs["trading_calendar"] = calendar
-        return MarketDataSyncService(**kwargs)
+        """Container'ın senkron servisini (SQLite köprüsü + tatil takvimi bağlı) kullanır; yoksa varsayılanı kurar."""
+        service = getattr(container, "market_data_sync_service", None) if container else None
+        return service if isinstance(service, MarketDataSyncService) else MarketDataSyncService()
 
     # ──────────────────────────── QML Properties ────────────────────────────
 
@@ -139,9 +131,9 @@ class MarketSyncController(QObject):
             status = self._sync_service.get_sync_status()
             self._is_up_to_date = status.is_up_to_date
             self.isUpToDateChanged.emit()
-            if not status.is_up_to_date:
-                logger.info("Uygulama başlangıcı: %s -> Otomatik senkronizasyon başlatılıyor.", status.message)
-                self.triggerSyncNow()
+            # Güncel olsa bile çalışır: DuckDB'de olup SQLite'a yazılamamış barlar uzlaştırılır
+            logger.info("Uygulama başlangıcı: %s -> Senkronizasyon/uzlaştırma başlatılıyor.", status.message)
+            self.triggerSyncNow()
         except Exception as exc:
             logger.warning("Startup sync kontrolü hatası: %s", exc)
 
