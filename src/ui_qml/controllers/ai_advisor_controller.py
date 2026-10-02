@@ -20,6 +20,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from config.settings_loader import persist_api_keys
 from src.application.services.ai.ai_advisor_service import AiAdvisorService
+from src.application.services.ai.safety_guard import MAX_CHAR_LIMIT, validate_user_input
 from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
 
 logger = logging.getLogger(__name__)
@@ -382,9 +383,30 @@ class AiAdvisorController(QObject):
             text = self._quick_prompts[prompt_index]["prompt"]
             self.sendMessage(text)
 
+    @Property(int, constant=True)
+    def maxInputLength(self) -> int:
+        """Kullanıcı mesajı için karakter sınırı (güvenlik süzgeciyle aynı değer)."""
+        return MAX_CHAR_LIMIT
+
+    @Slot(str, result=bool)
+    def submitUserMessage(self, text: str) -> bool:
+        """Kullanıcının yazdığı mesajı güvenlik süzgecinden geçirip gönderir.
+
+        Enjeksiyon, kapsam dışı kod talebi veya aşırı uzunluk varsa mesaj gönderilmez, neden toast ile bildirilir
+        ve False döner (arayüz yazılan metni silmez). Hızlı soru ve model analizi gibi sistemin ürettiği istemler
+        `sendMessage` ile doğrudan gider."""
+        is_safe, error_message = validate_user_input(text)
+        if not is_safe:
+            self.aiErrorOccurred.emit(error_message)
+            return False
+        if self._is_loading or not (text or "").strip():
+            return False
+        self.sendMessage(text)
+        return True
+
     @Slot(str)
     def sendMessage(self, text: str) -> None:
-        """Kullanıcı mesajını alır ve asenkron yanıt sürecini başlatır."""
+        """Güvenilir (sistem üretimi) mesajı gönderir ve asenkron yanıt sürecini başlatır."""
         query = (text or "").strip()
         if not query or self._is_loading:
             return

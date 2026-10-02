@@ -601,6 +601,7 @@ Rectangle {
                                 verticalAlignment: TextInput.AlignVCenter
                                 clip: true
                                 activeFocusOnTab: true
+                                maximumLength: (typeof aiAdvisorController !== "undefined") ? aiAdvisorController.maxInputLength : 750
 
                                 Text {
                                     text: Strings.aiInputPlaceholder
@@ -614,8 +615,7 @@ Rectangle {
 
                                 onAccepted: {
                                     if (txtInput.text.trim().length > 0 && typeof aiAdvisorController !== "undefined" && !aiAdvisorController.isLoading) {
-                                        aiAdvisorController.sendMessage(txtInput.text)
-                                        txtInput.text = ""
+                                        if (aiAdvisorController.submitUserMessage(txtInput.text)) txtInput.text = ""
                                     }
                                 }
                             }
@@ -647,8 +647,7 @@ Rectangle {
                                     cursorShape: (txtInput.text.trim().length > 0) ? Qt.PointingHandCursor : Qt.ArrowCursor
                                     onClicked: {
                                         if (txtInput.text.trim().length > 0 && typeof aiAdvisorController !== "undefined" && !aiAdvisorController.isLoading) {
-                                            aiAdvisorController.sendMessage(txtInput.text)
-                                            txtInput.text = ""
+                                            if (aiAdvisorController.submitUserMessage(txtInput.text)) txtInput.text = ""
                                         }
                                     }
                                 }
