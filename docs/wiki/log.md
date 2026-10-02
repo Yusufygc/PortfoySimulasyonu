@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] ekle | QML'de Kalan Backend Özellikleri Tamamlandı
+
+- **Ayarlar > Sistem sekmesi:** otomatik canlı fiyat yenileme (aç/kapa, 5/15/30/60 dk; eski kodda aralık 15'e sabitti, düzeltildi; yalnızca seans açıkken) ve sistem sıfırlama (ortak `ConfirmDialog.qml` ile onaylı). `SystemController`.
+- **Üst piyasa şeridi:** ALTIN, GÜMÜŞ, USD/TRY, EUR/TRY, BIST 100 (`MarketIndicatorsService`, `IMarketIndicatorProvider`, yfinance `fast_info`; 5 dk yenileme; dar pencerede gizli).
+- **Excel "mevcut dosyaya ekle"** (`ExportMode.APPEND`) seçeneği; Dashboard ve model portföy dışa aktarımında.
+- **Sürükle-bırak sıralama:** izleme listeleri ve model portföyler (`ReorderHandle.qml`, `moveWatchlist`, `movePortfolio`).
+- **AI sohbet geçmişi:** `ChatSessionService` (uygulama katmanı, eski arayüzle aynı QSettings deposu), oturum listesi/devam/silme/yeni sohbet (`ChatHistoryDialog.qml`).
+- **Hisse bazlı AI model analizi:** Yapay Zeka sayfası "Hisse Modeli" modu (`ModelAnalysisController`, `ModelAnalysisPanel.qml`). AI_Core erişilemezse sonuçlar rastgele DEMO verisidir ve belirgin biçimde işaretlenir.
+- **Hisse Detay grafiğinde ortalama maliyet çizgisi** (`ChartController.loadTickerWithCost`, şablonda `renderAverageCostLine`).
+
+---
 ## [2026-10-03] düzelt | Test ve Betik Güvenliği: Gerçek Veritabanına Yazma Engellendi
 
 - **Sorun:** `.env` `override=True` ile yüklendiği için kabuktan verilen `DB_SQLITE_PATH` ezildi; "kopyada deneme" gerçek `portfolio.db` üzerinde çalıştı. `tests/ui_qml` içindeki gerçek `AppContainer()` kullanan testler de gerçek veritabanlarına yazıyordu (ör. izleme listesi testi `stocks` tablosuna kayıt bırakıyordu).

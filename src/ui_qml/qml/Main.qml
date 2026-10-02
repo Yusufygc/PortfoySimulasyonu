@@ -205,7 +205,9 @@ ApplicationWindow {
 
         onOpenChartRequested: function(ticker) {
             if (typeof chartController !== "undefined") {
-                chartController.loadTicker(ticker)
+                // Pozisyonun ortalama maliyeti grafikte çizgi olarak gösterilir
+                const cost = (typeof stockDetailController !== "undefined") ? stockDetailController.avgCost : 0
+                chartController.loadTickerWithCost(ticker, cost)
             }
             shellController.navigateTo(0)
         }

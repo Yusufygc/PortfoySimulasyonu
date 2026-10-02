@@ -246,11 +246,34 @@
     }
     window.addEventListener('resize', handleResize);
 
+    let avgCostLine = null;
+
+    // Ortalama maliyet çizgisi: yalnızca payload.avgCost > 0 ise (Hisse Detay > Grafik) ana seriye eklenir
+    function renderAverageCostLine() {
+      if (!mainSeries) return;
+      try {
+        if (avgCostLine) { mainSeries.removePriceLine(avgCostLine); }
+      } catch (e) {}
+      avgCostLine = null;
+      const cost = cachedData && Number(cachedData.avgCost);
+      if (cost > 0) {
+        avgCostLine = mainSeries.createPriceLine({
+          price: cost,
+          color: '#f0b90b',
+          lineWidth: 1,
+          lineStyle: LightweightCharts.LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: 'Ort. Maliyet',
+        });
+      }
+    }
+
     function createMainPriceSeries(type) {
       if (mainSeries) {
         chart.removeSeries(mainSeries);
         mainSeries = null;
         markersPlugin = null;
+        avgCostLine = null;
       }
       currentChartType = type;
 
@@ -421,6 +444,8 @@
             mainSeries.setData(candles);
           }
         }
+
+        renderAverageCostLine();
 
         // 2. Hacim Verisi
         if (volumeSeries) {

@@ -42,6 +42,8 @@ class ChartController(QObject):
         self._last_price_str: str = "₺0.00"
         self._price_change_str: str = "+0.00%"
         self._is_positive: bool = True
+        self._average_cost: float | None = None  # Hisse Detay'dan açılan grafikte ortalama maliyet çizgisi
+        self._average_cost_ticker: str = ""
 
         # Eğer portföyde hisseler varsa ilk hisseyi varsayılan grafik yap
         if self._container:
@@ -116,12 +118,24 @@ class ChartController(QObject):
 
     @Slot(str)
     def loadTicker(self, ticker: str) -> None:
+        self._average_cost, self._average_cost_ticker = None, ""  # sıradan yüklemede maliyet çizgisi gösterilmez
+        self._load_ticker(ticker)
+
+    def _load_ticker(self, ticker: str) -> None:
         ticker = ticker.strip().upper()
         if not ticker:
             return
         self._current_ticker = ticker
         self.tickerChanged.emit(ticker)
         self._fetch_and_emit_chart_data(ticker)
+
+    @Slot(str, float)
+    def loadTickerWithCost(self, ticker: str, average_cost: float) -> None:
+        """Grafiği ortalama maliyet çizgisiyle yükler (Hisse Detay > Grafik). Maliyet <= 0 ise çizgi çizilmez."""
+        clean = ticker.replace(".IS", "").strip().upper()
+        self._average_cost = float(average_cost) if average_cost and average_cost > 0 else None
+        self._average_cost_ticker = clean if self._average_cost else ""
+        self._load_ticker(ticker)
 
     @Slot(str)
     def loadStock(self, ticker: str) -> None:
@@ -336,6 +350,8 @@ class ChartController(QObject):
             "chartType": self._current_chart_type,
             "candles": resampled_candles,
             "volumes": resampled_volumes,
+            # Ortalama maliyet çizgisi yalnızca maliyetin ait olduğu hissede gösterilir
+            "avgCost": self._average_cost if clean_ticker == self._average_cost_ticker else None,
             **indicators_data,
         }
 
