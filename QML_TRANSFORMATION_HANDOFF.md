@@ -21,7 +21,7 @@ Yeni bir oturum açıldığında sırasıyla şu adımları uygulayın:
    ```powershell
    .\venv\Scripts\python.exe -m pytest tests/ui_qml/
    ```
-   *(Beklenen sonuç: 56/56 test %100 yeşil, ~9 saniye).*
+   *(Beklenen sonuç: 58/58 test %100 yeşil, ~9 saniye).*
 4. **Uygulamayı QML Modunda Başlatma:**
    ```powershell
    .\venv\Scripts\python.exe app.py --ui=qml
@@ -183,7 +183,7 @@ flowchart LR
 * **`OptimizationView.qml` (`src/ui_qml/qml/views/OptimizationView.qml`):**
   - Sol kontrol paneli, 4 adet KPI metrik kartı (Maksimum Sharpe, Beklenen Getiri, Risk/Volatilite, Min Volatilite).
   - 3 Sekmeli görünüm: Verimli Sınır Grafiği, Ağırlık Karşılaştırması, Yeniden Dengeleme (Rebalance) Tablosu (EKLE/AZALT/TUT rozetleri, parasal farklar, tahmini lotlar).
-* **Birim ve Arayüz Testleri:** `tests/ui_qml/test_optimization_phase9.py` (5/5 yeşil, toplam QML testi 56/56).
+* **Birim ve Arayüz Testleri:** `tests/ui_qml/test_optimization_phase9.py` (7/7 yeşil, toplam QML testi 58/58).
 
 ---
 
@@ -210,7 +210,7 @@ flowchart LR
 
 ### FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier (TAMAMLANDI)
 
-Bu faz başarıyla tamamlanmış ve canlıya alınmıştır (`OptimizationController`, `OptimizationView.qml`, `DuckDBOptimizationMarketDataProvider`, `frontier_simulation.py`, 56/56 yeşil test).
+Bu faz başarıyla tamamlanmış ve canlıya alınmıştır (`OptimizationController`, `OptimizationView.qml`, `DuckDBOptimizationMarketDataProvider`, `frontier_simulation.py`, 58/58 yeşil test).
 
 ---
 
