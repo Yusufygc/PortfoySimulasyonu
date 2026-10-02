@@ -90,6 +90,11 @@ class WatchlistController(QObject):
             return self._container.services.watchlist_service
         return None
 
+    @Slot()
+    def reloadAll(self) -> None:
+        """Dışarıdan veri değişince (sistem sıfırlama vb.) listeleri DB'den yeniden okur."""
+        self._load_watchlists()
+
     def _load_watchlists(self) -> None:
         ws = self._get_watchlist_service()
         if not ws:

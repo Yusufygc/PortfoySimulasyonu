@@ -31,6 +31,7 @@ from src.ui_qml.controllers.settings_controller import SettingsController
 from src.ui_qml.controllers.stock_detail_controller import StockDetailController
 from src.ui_qml.controllers.corporate_action_controller import CorporateActionController
 from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustmentController
+from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.price_data_controller import PriceDataController
 from src.ui_qml.controllers.startup_jobs_controller import StartupJobsController
 from src.ui_qml.controllers.golden_cross_controller import GoldenCrossController
@@ -85,6 +86,7 @@ def run_qml_app(container=None) -> int:
     golden_cross_ctrl = GoldenCrossController(container=container, parent=engine)
     risk_profile_ctrl = RiskProfileController(container=container, parent=engine)
     market_adjustment_ctrl = MarketAdjustmentController(container=container, parent=engine)
+    system_ctrl = SystemController(container=container, parent=engine)
 
     # Piyasa verisi senkronu yeni bar yazınca fiyata bağlı ekranları yenile
     market_sync_ctrl.dataSynced.connect(dash_ctrl.refreshMetrics)
@@ -92,9 +94,11 @@ def run_qml_app(container=None) -> int:
     risk_profile_ctrl.profileSaved.connect(optimization_ctrl.reloadRiskProfile)
     # Sermaye artırımı / fiyat güncellemesi / açılış backfill'i sonrası ekranları DB'den yeniden yükle
     for source in (corporate_action_ctrl.portfolioChanged, price_data_ctrl.pricesUpdated, startup_jobs_ctrl.pricesUpdated,
-                   golden_cross_ctrl.pricesUpdated):
+                   golden_cross_ctrl.pricesUpdated, system_ctrl.pricesRefreshed, system_ctrl.systemReset):
         source.connect(dash_ctrl.reloadPortfolio)
         source.connect(portfolio_ctrl.refreshData)
+    system_ctrl.pricesRefreshed.connect(watchlist_ctrl.refreshPrices)
+    system_ctrl.systemReset.connect(watchlist_ctrl.reloadAll)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
@@ -118,6 +122,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("goldenCrossController", golden_cross_ctrl)
     context.setContextProperty("riskProfileController", risk_profile_ctrl)
     context.setContextProperty("marketAdjustmentController", market_adjustment_ctrl)
+    context.setContextProperty("systemController", system_ctrl)
 
     # QML import dizinleri
     qml_dir = Path(__file__).resolve().parent / "qml"

@@ -69,7 +69,8 @@ Rectangle {
                             { name: Strings.settingsTabExport, icon: Icons.fileText },
                             { name: Strings.settingsTabCorporate, icon: Icons.layers },
                             { name: Strings.settingsTabPriceData, icon: Icons.history },
-                            { name: Strings.settingsTabMarketAdj, icon: Icons.layers }
+                            { name: Strings.settingsTabMarketAdj, icon: Icons.layers },
+                            { name: Strings.settingsTabSystem, icon: Icons.settings }
                         ]
 
                         Rectangle {
@@ -1069,6 +1070,17 @@ Rectangle {
                         active: root.activeTabIndex === 6
                         visible: root.activeTabIndex === 6
                         source: "../components/SettingsMarketAdjustmentsTab.qml"
+                        onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
+                    }
+
+                    // =========================================================
+                    // SEKME 7: SİSTEM (OTOMATİK FİYAT YENİLEME, SIFIRLAMA)
+                    // =========================================================
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.activeTabIndex === 7
+                        visible: root.activeTabIndex === 7
+                        source: "../components/SettingsSystemTab.qml"
                         onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
                     }
                 }

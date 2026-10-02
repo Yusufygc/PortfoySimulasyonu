@@ -555,6 +555,23 @@ QtObject {
     readonly property string settingsTabCorporate: "Kurumsal Aksiyonlar"
     readonly property string settingsTabPriceData: "Fiyat Verisi"
     readonly property string settingsTabMarketAdj: "Piyasa Düzeltmeleri"
+    readonly property string settingsTabSystem: "Sistem"
+
+    // --- Ortak onay diyaloğu ---
+    readonly property string confirmDefault: "Onayla"
+    readonly property string confirmCancel: "Vazgeç"
+
+    // --- Ayarlar > Sistem ---
+    readonly property string sysRefreshTitle: "Otomatik Fiyat Yenileme"
+    readonly property string sysRefreshDesc: "Açık pozisyonların güncel fiyatları, borsa seansı açıkken seçilen aralıkta otomatik yenilenir."
+    readonly property string sysRefreshEnable: "Otomatik yenile"
+    readonly property string sysRefreshNow: "Şimdi Yenile"
+    readonly property string sysRefreshLast: "Son yenileme:"
+    readonly property string sysResetTitle: "Sistem Sıfırlama"
+    readonly property string sysResetDesc: "Tüm portföy, işlem, nakit hareketi, izleme listesi, model portföy, fiyat ve hisse verisi silinir. Bu işlem geri alınamaz."
+    readonly property string sysResetButton: "Sistemi Sıfırla"
+    readonly property string sysResetConfirmTitle: "Portföyü Sıfırla"
+    readonly property string sysResetConfirmMessage: "Tüm veriler silinecek. Emin misiniz?"
 
     // --- Ayarlar > Piyasa Düzeltmeleri (tüm BIST sermaye artırımı/bölünme fiyat düzeltmesi) ---
     readonly property string maTitle: "Sermaye Artırımı / Bölünme Düzeltmeleri (Tüm BIST)"
