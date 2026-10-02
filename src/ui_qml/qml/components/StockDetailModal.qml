@@ -20,6 +20,16 @@ Item {
     // Emir Formu Değişkenleri
     property string tradeSide: "BUY"  // "BUY" veya "SELL"
     property int tradeQty: 100
+    property string tradeDateText: ""
+    property string tradeTimeText: ""
+
+    function resetTradeMoment() {
+        const now = new Date()
+        const pad = (n) => String(n).padStart(2, "0")
+        tradeDateText = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate())
+        tradeTimeText = pad(now.getHours()) + ":" + pad(now.getMinutes())
+    }
+    Component.onCompleted: resetTradeMoment()
     property real tradePrice: (typeof stockDetailController !== "undefined" && stockDetailController.currentPrice > 0)
                               ? stockDetailController.currentPrice
                               : 10.0
@@ -41,6 +51,7 @@ Item {
     }
 
     onVisibleChanged: {
+        if (visible) root.resetTradeMoment()
         if (visible && stockDetailController && stockDetailController.currentPrice > 0) {
             root.tradePrice = stockDetailController.currentPrice
             txtPrice.text = stockDetailController.currentPrice.toFixed(2)
@@ -880,6 +891,55 @@ Item {
                             }
                         }
 
+                        // İşlem Tarihi ve Saati
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Repeater {
+                                model: [
+                                    { label: Strings.stockDetailDateLabel, field: "date" },
+                                    { label: Strings.stockDetailTimeLabel, field: "time" }
+                                ]
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+
+                                    Text {
+                                        text: modelData.label
+                                        color: Theme.textSecondary
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontXs
+                                    }
+
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 34
+                                        radius: Theme.radiusSm
+                                        color: Theme.bgInput
+                                        border.color: momentInput.activeFocus ? Theme.borderFocus : Theme.borderSubtle
+                                        border.width: 1
+
+                                        TextInput {
+                                            id: momentInput
+                                            anchors.fill: parent
+                                            anchors.margins: 8
+                                            text: modelData.field === "date" ? root.tradeDateText : root.tradeTimeText
+                                            color: Theme.textPrimary
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSm
+                                            font.weight: Font.Bold
+                                            onTextEdited: {
+                                                if (modelData.field === "date") root.tradeDateText = text
+                                                else root.tradeTimeText = text
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // Toplam Tutar Önizlemesi
                         Rectangle {
                             Layout.fillWidth: true
@@ -977,7 +1037,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: (root.tradeSide === "BUY" ? "ALIM EMRİNİ ONAYLA" : "SATIM EMRİNİ ONAYLA")
+                                text: (root.tradeSide === "BUY" ? Strings.stockDetailConfirmBuy : Strings.stockDetailConfirmSell)
                                 color: "#FFFFFF"
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
@@ -993,7 +1053,8 @@ Item {
                                             root.tradeSide,
                                             root.tradeQty,
                                             root.tradePrice,
-                                            ""
+                                            root.tradeDateText.trim(),
+                                            root.tradeTimeText.trim()
                                         )
                                     }
                                 }

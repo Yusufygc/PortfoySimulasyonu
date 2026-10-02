@@ -20,7 +20,7 @@ from src.domain.models.trade import TradeSide
 from src.ui_qml.controllers.dashboard_controller import DashboardController
 from src.ui_qml.controllers.market_sync_controller import MarketSyncController
 from src.ui_qml.controllers.shell_controller import ShellController
-from src.ui_qml.controllers.stock_detail_controller import StockDetailController
+from src.ui_qml.controllers.stock_detail_controller import StockDetailController, parse_trade_moment
 
 
 def test_persist_api_keys_writes_env_and_updates_frozen_settings(tmp_path):
@@ -64,7 +64,7 @@ def test_stock_detail_trade_goes_through_trade_entry_service(qapp):
     service = MagicMock()
     ctrl, results = _stock_detail_with_service(qapp, service)
 
-    ctrl._execute_trade_worker("BUY", 10, 250.0, "")
+    ctrl._execute_trade_worker("BUY", 10, 250.0, dt.date.today(), dt.time(9, 30))
 
     service.submit_trade.assert_called_once()
     req = service.submit_trade.call_args.args[0]
@@ -81,7 +81,7 @@ def test_stock_detail_trade_validation_error_is_reported(qapp):
     service.submit_trade.side_effect = ValueError("Yeterli sermayeniz yoktu")
     ctrl, results = _stock_detail_with_service(qapp, service)
 
-    ctrl._execute_trade_worker("BUY", 10, 250.0, "")
+    ctrl._execute_trade_worker("BUY", 10, 250.0, dt.date.today(), dt.time(9, 30))
 
     assert results and results[0][0] is False
     assert "Yeterli sermayeniz yoktu" in results[0][1]
@@ -91,12 +91,56 @@ def test_stock_detail_backdated_trade_uses_in_session_time(qapp):
     service = MagicMock()
     ctrl, _ = _stock_detail_with_service(qapp, service)
 
-    ctrl._execute_trade_worker("SELL", 5, 260.0, "2026-01-05")
+    ctrl._execute_trade_worker("SELL", 5, 260.0, dt.date(2026, 1, 5), dt.time(12, 0))
 
     req = service.submit_trade.call_args.args[0]
     assert req.trade_date == dt.date(2026, 1, 5)
     assert req.trade_time == dt.time(12, 0)
     assert req.side == TradeSide.SELL
+
+
+def test_parse_trade_moment_defaults_and_validation():
+    today = dt.date.today()
+
+    assert parse_trade_moment("", "")[0] == today
+    assert parse_trade_moment("2026-01-05", "") == (dt.date(2026, 1, 5), dt.time(12, 0))
+    assert parse_trade_moment("2026-01-05", "14:30") == (dt.date(2026, 1, 5), dt.time(14, 30))
+    for date_text, time_text, message in [
+        ("05.01.2026", "", "Tarih biçimi"),
+        ((today + dt.timedelta(days=1)).isoformat(), "", "Gelecek tarihli"),
+        ("2026-01-05", "25:99", "Saat biçimi"),
+    ]:
+        with pytest.raises(ValueError, match=message):
+            parse_trade_moment(date_text, time_text)
+
+
+def test_parse_trade_moment_rejects_future_time_today():
+    future = (dt.datetime.now() + dt.timedelta(minutes=30)).time()
+    if future < dt.datetime.now().time():  # gece yarısını aşan çalıştırma
+        pytest.skip("gün sınırı")
+
+    with pytest.raises(ValueError, match="Gelecek saatli"):
+        parse_trade_moment("", future.strftime("%H:%M"))
+
+
+def test_submit_trade_reports_invalid_date_without_starting_worker(qapp):
+    ctrl, _ = _stock_detail_with_service(qapp, MagicMock())
+    emitted = []
+    ctrl.tradeExecuted.connect(lambda ok, msg: emitted.append((ok, msg)))
+
+    ctrl.submitTrade("BUY", 10, 250.0, "yarin", "")
+
+    assert emitted == [(False, "Tarih biçimi geçersiz. Örnek: 2026-10-03")] and ctrl.isLoading is False
+
+
+def test_submit_trade_passes_chosen_time_to_trade_entry_service(qapp):
+    service = MagicMock()
+    ctrl, _ = _stock_detail_with_service(qapp, service)
+
+    ctrl._execute_trade_worker("BUY", 1, 10.0, *parse_trade_moment("2026-01-05", "10:15"))
+
+    req = service.submit_trade.call_args.args[0]
+    assert (req.trade_date, req.trade_time) == (dt.date(2026, 1, 5), dt.time(10, 15))
 
 
 @pytest.mark.parametrize("service_open", [True, False])

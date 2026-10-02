@@ -27,6 +27,31 @@ from src.domain.ticker import clean_ticker
 logger = logging.getLogger(__name__)
 
 
+def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
+    """Form alanlarından işlem anı. Boş tarih bugün; boş saat bugün için şimdi, geçmiş gün için 12:00.
+
+    Geçersiz biçim veya gelecek tarih için ValueError (kullanıcıya gösterilecek mesajla) fırlatır."""
+    today = date.today()
+    text = (date_str or "").strip()
+    try:
+        trade_date = datetime.strptime(text, "%Y-%m-%d").date() if text else today
+    except ValueError:
+        raise ValueError("Tarih biçimi geçersiz. Örnek: 2026-10-03") from None
+    if trade_date > today:
+        raise ValueError("Gelecek tarihli işlem girilemez.")
+
+    text = (time_str or "").strip()
+    if not text:
+        return trade_date, (datetime.now().time().replace(microsecond=0) if trade_date == today else dt_time(12, 0))
+    try:
+        trade_time = datetime.strptime(text, "%H:%M").time()
+    except ValueError:
+        raise ValueError("Saat biçimi geçersiz. Örnek: 14:30") from None
+    if trade_date == today and trade_time > datetime.now().time():
+        raise ValueError("Gelecek saatli işlem girilemez.")
+    return trade_date, trade_time
+
+
 class StockDetailController(QObject):
     """QML StockDetailModal / StockDetailView için ViewModel denetleyicisi."""
 
@@ -273,9 +298,11 @@ class StockDetailController(QObject):
         })
         return result
 
-    @Slot(str, int, float, str)
-    def submitTrade(self, side: str, quantity: int, price: float, date_str: str = "") -> None:
-        """Hisse detayından doğrudan hızlı alım veya satım emri gönderir."""
+    @Slot(str, int, float, str, str)
+    def submitTrade(self, side: str, quantity: int, price: float, date_str: str = "", time_str: str = "") -> None:
+        """Hisse detayından doğrudan hızlı alım veya satım emri gönderir.
+
+        `date_str` (YYYY-AA-GG) ve `time_str` (SS:DD) boşsa bugün/şimdi kullanılır."""
         if quantity <= 0:
             self.tradeExecuted.emit(False, "Lot adedi 0'dan büyük olmalıdır.")
             return
@@ -283,8 +310,14 @@ class StockDetailController(QObject):
             self.tradeExecuted.emit(False, "Fiyat 0'dan büyük olmalıdır.")
             return
 
+        try:
+            trade_date, trade_time = parse_trade_moment(date_str, time_str)
+        except ValueError as exc:
+            self.tradeExecuted.emit(False, str(exc))
+            return
+
         self._set_loading(True)
-        self._executor.submit(self._execute_trade_worker, side, quantity, price, date_str)
+        self._executor.submit(self._execute_trade_worker, side, quantity, price, trade_date, trade_time)
 
     @Slot()
     def exportStockToExcel(self) -> None:
@@ -594,18 +627,11 @@ class StockDetailController(QObject):
         self.tradesChanged.emit()
         self.corpActionsChanged.emit()
 
-    def _execute_trade_worker(self, side: str, qty: int, price: float, date_str: str) -> None:
+    def _execute_trade_worker(self, side: str, qty: int, price: float, tr_date: date, tr_time: dt_time) -> None:
         """Alım/satım işlemini veritabanında kaydeder."""
         try:
             is_buy = side.upper() == "BUY" or side.upper() == "ALIM"
             tr_side = TradeSide.BUY if is_buy else TradeSide.SELL
-
-            tr_date = date.today()
-            if date_str:
-                try:
-                    tr_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-                except Exception:
-                    pass
 
             if self._context_type == "model" and self._context_id > 0:
                 model_service = getattr(self._container, "model_portfolio_service", None) if self._container else None
@@ -620,7 +646,7 @@ class StockDetailController(QObject):
                         quantity=qty,
                         price=Decimal(str(price)),
                         trade_date=tr_date,
-                        trade_time=datetime.now().time(),
+                        trade_time=tr_time,
                     ),
                 )
                 total_amount = qty * price
@@ -634,8 +660,6 @@ class StockDetailController(QObject):
                 raise RuntimeError("İşlem giriş servisi bulunamadı.")
 
             # Seans/nakit/lot doğrulamaları TradeEntryService içinde yapılır (Dashboard ile aynı yol).
-            # Geçmiş tarihli işlemde saat bilgisi seçilemediği için seans içi sabit saat kullanılır.
-            tr_time = datetime.now().time().replace(microsecond=0) if tr_date == date.today() else dt_time(12, 0)
             trade_entry_service.submit_trade(
                 TradeRequest(
                     ticker=self._raw_ticker or self._ticker,
