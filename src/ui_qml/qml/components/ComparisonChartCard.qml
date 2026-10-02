@@ -439,6 +439,24 @@ Rectangle {
             color: Theme.borderSubtle
         }
 
+        // Grafik açıklaması (Nedir / Nasıl Yorumlanır); ana grafikte seçili moda göre değişir
+        ChartInfoCard {
+            readonly property int tab: comparisonController.activeChartTab
+            readonly property string mode: comparisonController.comparisonMode
+            title: [Strings.compareInfoCumulativeTitle, Strings.compareInfoDrawdownTitle, Strings.compareInfoPeriodicTitle,
+                    Strings.compareInfoScatterTitle, Strings.compareInfoTreemapTitle][tab] || ""
+            what: tab === 0
+                  ? (mode === "RATIO" ? Strings.compareInfoCumulativeRatioWhat
+                     : mode === "NORMALIZED" ? Strings.compareInfoCumulativeNormalizeWhat : Strings.compareInfoCumulativeWhat)
+                  : ([Strings.compareInfoDrawdownWhat, Strings.compareInfoPeriodicWhat,
+                      Strings.compareInfoScatterWhat, Strings.compareInfoTreemapWhat][tab - 1] || "")
+            how: tab === 0
+                 ? (mode === "RATIO" ? Strings.compareInfoCumulativeRatioHow
+                    : mode === "NORMALIZED" ? Strings.compareInfoCumulativeNormalizeHow : Strings.compareInfoCumulativeHow)
+                 : ([Strings.compareInfoDrawdownHow, Strings.compareInfoPeriodicHow,
+                     Strings.compareInfoScatterHow, Strings.compareInfoTreemapHow][tab - 1] || "")
+        }
+
         // 3. Grafik veya Boş Durum
         Item {
             Layout.fillWidth: true
