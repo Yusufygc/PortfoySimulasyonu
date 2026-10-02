@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] düzelt | Dashboard Açık Pozisyonlar Tablosu Kolon Başlıkları ve Hücre Hizalaması
+
+- `DashboardView.qml` içerisindeki açık pozisyonlar tablosunda başlık satırı (`RowLayout`) ile veri satırları (`RowLayout`) arasındaki kolon kayması sorunu giderildi:
+  - Sorun: Tablo başlığı ile veri delegesinde esnek/sabit genişlik tanımlarının tam kilitlenmemesi ve Qt Quick `RowLayout` yerleşim motorunun kalan alanı metin uzunluklarına göre paylaştırması nedeniyle kolon başlıkları ile veri hücreleri bir basamak sağa kayıyordu (örneğin LOT başlığı boşluğa, MALİYET başlığı lot adedine denk geliyordu).
+  - Çözüm: Başlık ve veri satırlarındaki tüm sayısal sütunlar ve aksiyon butonları (`SEMBOL & ŞİRKET`, `LOT: 70px`, `MALİYET: 85px`, `SON FİYAT: 85px`, `GÜNLÜK %: 75px`, `PİYASA DEĞERİ: 115px`, `K/Z (₺): 110px`, `K/Z %: 75px`, `AĞIRLIK: 65px`, `İŞLEMLER: 195px`) `Layout.preferredWidth`, `Layout.minimumWidth` ve `Layout.maximumWidth` değerleriyle 1:1 piksel kilitlendi.
+  - Esnek genişlik sadece ilk sütuna (`Layout.fillWidth: true; Layout.minimumWidth: 160`) verilerek pencere yeniden boyutlandırılsa dahi tüm sayısal hücrelerin başlıklarıyla kusursuz hizada kalması sağlandı.
+  - Testler: 82/82 QML testi başarıyla tamamlandı.
+- Etkilenen modüller: src/ui_qml/qml/views/DashboardView.qml, docs/wiki/log.md
+
 ## [2026-10-02] düzelt | Hisse Detay Modalı Fiyat & K/Z Senkronizasyonu ve UI .IS Temizliği
 
 - Hisse Detay Modalı (`StockDetailModal`) ve `StockDetailController` bünyesindeki canlı fiyat, günlük değişim, piyasa değeri ve K/Z uyumsuzlukları giderildi:

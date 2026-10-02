@@ -260,17 +260,106 @@ Item {
                             anchors.fill: parent
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
+                            spacing: 8
 
-                            Text { text: Strings.thSymbolCompany; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 160 }
-                            Text { text: Strings.thQuantity; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
-                            Text { text: Strings.thAvgCost; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
-                            Text { text: Strings.thLastPrice; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
-                            Text { text: Strings.thDailyChange; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
-                            Text { text: Strings.thMarketValue; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 110; horizontalAlignment: Text.AlignRight }
-                            Text { text: Strings.thPLTRY; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 100; horizontalAlignment: Text.AlignRight }
-                            Text { text: Strings.thPLPct; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
-                            Text { text: Strings.thWeight; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 70; horizontalAlignment: Text.AlignRight }
-                            Text { text: Strings.thActions; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
+                            Text {
+                                text: Strings.thSymbolCompany
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 160
+                            }
+                            Text {
+                                text: Strings.thQuantity
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 70
+                                Layout.minimumWidth: 70
+                                Layout.maximumWidth: 70
+                                horizontalAlignment: Text.AlignRight
+                            }
+                            Text {
+                                text: Strings.thAvgCost
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 85
+                                Layout.minimumWidth: 85
+                                Layout.maximumWidth: 85
+                                horizontalAlignment: Text.AlignRight
+                            }
+                            Text {
+                                text: Strings.thLastPrice
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 85
+                                Layout.minimumWidth: 85
+                                Layout.maximumWidth: 85
+                                horizontalAlignment: Text.AlignRight
+                            }
+                            Text {
+                                text: Strings.thDailyChange
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 75
+                                Layout.minimumWidth: 75
+                                Layout.maximumWidth: 75
+                                horizontalAlignment: Text.AlignRight
+                            }
+                            Text {
+                                text: Strings.thMarketValue
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 115
+                                Layout.minimumWidth: 115
+                                Layout.maximumWidth: 115
+                                horizontalAlignment: Text.AlignRight
+                            }
+                            Text {
+                                text: Strings.thPLTRY
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 110
+                                Layout.minimumWidth: 110
+                                Layout.maximumWidth: 110
+                                horizontalAlignment: Text.AlignRight
+                            }
+                            Text {
+                                text: Strings.thPLPct
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 75
+                                Layout.minimumWidth: 75
+                                Layout.maximumWidth: 75
+                                horizontalAlignment: Text.AlignRight
+                            }
+                            Text {
+                                text: Strings.thWeight
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 65
+                                Layout.minimumWidth: 65
+                                Layout.maximumWidth: 65
+                                horizontalAlignment: Text.AlignRight
+                            }
+                            Text {
+                                text: Strings.thActions
+                                color: Theme.textMuted
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                Layout.preferredWidth: 195
+                                Layout.minimumWidth: 195
+                                Layout.maximumWidth: 195
+                                horizontalAlignment: Text.AlignRight
+                            }
                         }
                     }
 
@@ -301,10 +390,12 @@ Item {
                                 anchors.fill: parent
                                 anchors.leftMargin: 12
                                 anchors.rightMargin: 12
+                                spacing: 8
 
                                 // Sembol & İsim
                                 Column {
-                                    Layout.preferredWidth: 160
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: 160
                                     spacing: 2
                                     Text {
                                         text: (model.ticker || "").replace(/\.IS$/i, "")
@@ -330,6 +421,8 @@ Item {
                                     font.pixelSize: Theme.fontSm
                                     color: Theme.textSecondary
                                     Layout.preferredWidth: 70
+                                    Layout.minimumWidth: 70
+                                    Layout.maximumWidth: 70
                                     horizontalAlignment: Text.AlignRight
                                 }
 
@@ -339,7 +432,9 @@ Item {
                                     font.family: Theme.monoFontFamily
                                     font.pixelSize: Theme.fontSm
                                     color: Theme.textSecondary
-                                    Layout.preferredWidth: 90
+                                    Layout.preferredWidth: 85
+                                    Layout.minimumWidth: 85
+                                    Layout.maximumWidth: 85
                                     horizontalAlignment: Text.AlignRight
                                 }
 
@@ -350,7 +445,9 @@ Item {
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.Bold
                                     color: model.flashState === 1 ? Theme.bullGreen : (model.flashState === 2 ? Theme.bearRed : Theme.textPrimary)
-                                    Layout.preferredWidth: 90
+                                    Layout.preferredWidth: 85
+                                    Layout.minimumWidth: 85
+                                    Layout.maximumWidth: 85
                                     horizontalAlignment: Text.AlignRight
                                 }
 
@@ -361,7 +458,9 @@ Item {
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.DemiBold
                                     color: model.dailyDiff.indexOf("+") !== -1 ? Theme.bullGreen : Theme.bearRed
-                                    Layout.preferredWidth: 80
+                                    Layout.preferredWidth: 75
+                                    Layout.minimumWidth: 75
+                                    Layout.maximumWidth: 75
                                     horizontalAlignment: Text.AlignRight
                                 }
 
@@ -372,7 +471,9 @@ Item {
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.DemiBold
                                     color: Theme.textPrimary
-                                    Layout.preferredWidth: 110
+                                    Layout.preferredWidth: 115
+                                    Layout.minimumWidth: 115
+                                    Layout.maximumWidth: 115
                                     horizontalAlignment: Text.AlignRight
                                 }
 
@@ -383,7 +484,9 @@ Item {
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.Bold
                                     color: model.isUp ? Theme.bullGreen : Theme.bearRed
-                                    Layout.preferredWidth: 100
+                                    Layout.preferredWidth: 110
+                                    Layout.minimumWidth: 110
+                                    Layout.maximumWidth: 110
                                     horizontalAlignment: Text.AlignRight
                                 }
 
@@ -394,7 +497,9 @@ Item {
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.Bold
                                     color: model.isUp ? Theme.bullGreen : Theme.bearRed
-                                    Layout.preferredWidth: 80
+                                    Layout.preferredWidth: 75
+                                    Layout.minimumWidth: 75
+                                    Layout.maximumWidth: 75
                                     horizontalAlignment: Text.AlignRight
                                 }
 
@@ -404,13 +509,17 @@ Item {
                                     font.family: Theme.monoFontFamily
                                     font.pixelSize: Theme.fontSm
                                     color: Theme.textSecondary
-                                    Layout.preferredWidth: 70
+                                    Layout.preferredWidth: 65
+                                    Layout.minimumWidth: 65
+                                    Layout.maximumWidth: 65
                                     horizontalAlignment: Text.AlignRight
                                 }
 
                                 // Aksiyon Butonları (Al/Sat & Grafik)
                                 RowLayout {
-                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 195
+                                    Layout.minimumWidth: 195
+                                    Layout.maximumWidth: 195
                                     spacing: 4
                                     Layout.alignment: Qt.AlignRight
 
