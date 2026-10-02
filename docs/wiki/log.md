@@ -5,6 +5,19 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] düzelt | Bayat Fiyat: Dashboard Günlük Değişimi, Canlı Fiyat Önbelleği SQLite Upsert'i ve Golden Cross Yazımı
+
+- **Belirti:** Dashboard "Günlük Kâr/Zarar +%81" gibi anlamsız değerler gösteriyordu.
+- **Kök neden 1:** `latest_prices` (canlı fiyat önbelleği) 11 Eylül'den kalmıştı; `daily_prices` ise 1 Ekim'e kadar güncel. Dashboard eski canlı fiyatı yeni kapanışla karşılaştırıyordu. Canlı yenileme hiç kalıcı olmuyordu çünkü `SQLAlchemyLatestPriceRepository.upsert_latest_prices` MySQL'e özgü `ON DUPLICATE KEY UPDATE` kullanıyordu ve SQLite'ta `UnsupportedCompilationError` fırlatıyordu (hata arka plan thread'inde yutuluyordu).
+- **Kök neden 2:** `SQLAlchemyGoldenCrossRepository.upsert_events_bulk` aynı MySQL SQL'ini kullanıyordu; yeni Golden Cross taraması SQLite'ta kayıt yazamazdı.
+- **Çözüm:**
+  - Her iki repository'ye SQLite dalı eklendi (`ON CONFLICT`, BIGINT birincil anahtar otomatik artmadığı için id elle verilir; golden cross yalnızca yeni olayları sayar).
+  - Yeni `CurrentPriceResolver` (`src/application/services/market/current_price_resolver.py`, container'da `current_price_resolver`): canlı fiyat yalnızca son günlük kapanıştan daha yeni bir güne aitse kullanılır, aksi halde son kapanış. Günlük değişim, seçilen fiyatın gününden önceki kapanışa göre hesaplanır (`get_last_price_before` "verilen gün dahil" olduğu için bir gün öncesi istenir).
+  - Dashboard, Model Portföy (fiyat haritası, önceki kapanış, son fiyat arama), Hisse Detay ve Sermaye Artırımı fiyat okumaları resolver'a bağlandı.
+- **Doğrulama (gerçek veri):** Toplam değer ₺598.908 -> ₺376.970, günlük +%1.53 (OBAMS +%6.74, grafikle aynı).
+- Testler: resolver birim testleri, SQLite upsert testleri (`tests/infrastructure/db/test_sqlite_upserts.py`); `test_production_guards` sahte API anahtarı literalini yakalıyordu, test değeri değiştirildi. 791 test geçti.
+
+---
 ## [2026-10-02] ekle | QML: Golden Cross, Risk Anketi, Karşılaştırma Eklentileri, Excel Aralığı, İşlem Tarih/Saat ve Responsive Düzen (Eski UI Eşitleme - Grup 3)
 
 - **Hisse Tarayıcı > Golden Cross sekmesi:** `GoldenCrossController` + `GoldenCrossTab.qml`. EMA50/EMA200 kesişim sinyalleri (dönem/tip filtresi), tüm BIST taraması, veri tamamlama, TradingView'den yükleme, hisse bazlı geçmiş. Açılışta son taramadan 24 saat geçmişse otomatik tarama (`StartupJobsController`). Tarayıcı ekranı `ScreenerStrategiesTab` + `GoldenCrossTab` sekmelerine bölündü; tek tıkta Hisse 360'a gidişteki yanlış slot adı (`searchStock` -> `searchTicker`) düzeltildi.

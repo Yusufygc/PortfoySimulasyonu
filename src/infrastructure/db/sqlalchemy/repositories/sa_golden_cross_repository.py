@@ -4,7 +4,9 @@ from __future__ import annotations
 from datetime import date
 from typing import Iterable, List, Optional
 
+from sqlalchemy import func
 from sqlalchemy.dialects.mysql import insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from src.domain.models.golden_cross_event import CrossType, GoldenCrossEvent
 from src.domain.ports.repositories.i_golden_cross_repo import IGoldenCrossRepository
@@ -32,12 +34,35 @@ class SQLAlchemyGoldenCrossRepository(IGoldenCrossRepository):
         if not rows:
             return 0
         with self._provider.get_session() as session:
+            if session.bind.dialect.name == "sqlite":
+                return self._insert_new_sqlite(session, rows)
             stmt = insert(ORMGoldenCrossEvent).values(rows)
             # Duplicate (stock_id, cross_date, cross_type) → no-op (mevcut korunur)
             stmt = stmt.on_duplicate_key_update(close_price=stmt.inserted.close_price)
             result = session.execute(stmt)
             commit_or_rollback(session)
             return int(result.rowcount or 0)
+
+    @staticmethod
+    def _insert_new_sqlite(session, rows: list) -> int:
+        """SQLite: yalnızca yeni olayları ekler (mevcut korunur), eklenen sayıyı döndürür.
+
+        BIGINT birincil anahtar otomatik artmadığı için id elle verilir.
+        """
+        max_id = int(session.execute(func.coalesce(func.max(ORMGoldenCrossEvent.id), 0)).scalar() or 0)
+        inserted = 0
+        chunk_size = 100
+        for start in range(0, len(rows), chunk_size):
+            chunk = []
+            for row in rows[start:start + chunk_size]:
+                max_id += 1
+                chunk.append({**row, "id": max_id})
+            stmt = sqlite_insert(ORMGoldenCrossEvent).values(chunk).on_conflict_do_nothing(
+                index_elements=["stock_id", "cross_date", "cross_type"]
+            )
+            inserted += int(session.execute(stmt).rowcount or 0)
+        commit_or_rollback(session)
+        return inserted
 
     def delete_all(self) -> int:
         with self._provider.get_session() as session:

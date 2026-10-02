@@ -219,7 +219,15 @@ class DashboardController(QObject):
                     if active:
                         stock_ids = list(active.keys())
                         latest_prices = {}
-                        if hasattr(self._container, "latest_price_repo"):
+                        # Güncel fiyat: canlı fiyat yalnızca son kapanıştan daha yeni bir güne aitse kullanılır
+                        resolver = getattr(self._container, "current_price_resolver", None)
+                        resolved_prices = {}
+                        if resolver is not None:
+                            try:
+                                resolved_prices = resolver.resolve(stock_ids)
+                            except Exception as e:
+                                logger.debug("Güncel fiyatlar çözümlenemedi: %s", e)
+                        elif hasattr(self._container, "latest_price_repo"):
                             try:
                                 latest_prices = self._container.latest_price_repo.get_latest_price_map(stock_ids)
                             except Exception as e:
@@ -242,10 +250,14 @@ class DashboardController(QObject):
                             company = raw_company.replace(".IS", "").strip()
                             qty = pos.total_quantity
                             cost = pos.average_cost if pos.average_cost is not None else Decimal("0")
-                            price = latest_prices.get(sid, cost)
+                            resolved = resolved_prices.get(sid)
+                            price = resolved.price if resolved is not None else latest_prices.get(sid, cost)
 
                             diff_pct = Decimal("0")
-                            if hasattr(self._container, "price_repo"):
+                            if resolved is not None:
+                                change = resolver.daily_change_pct(sid, resolved)
+                                diff_pct = change if change is not None else Decimal("0")
+                            elif hasattr(self._container, "price_repo"):
                                 try:
                                     prev = self._container.price_repo.get_last_price_before(sid, date.today())
                                     if prev and prev.close_price and prev.close_price > 0:
@@ -378,11 +390,10 @@ class DashboardController(QObject):
             if stock is None:
                 return result
             result.update({"found": True, "name": (stock.name or clean).replace(".IS", "").strip()})
-            latest_repo = getattr(self._container, "latest_price_repo", None)
-            if latest_repo is not None:
-                price = latest_repo.get_latest_price_map([stock.id]).get(stock.id)
-                if price:
-                    result["price"] = float(price)
+            resolver = getattr(self._container, "current_price_resolver", None)
+            price = resolver.price_map([stock.id]).get(stock.id) if resolver is not None else None
+            if price:
+                result["price"] = float(price)
         except Exception as exc:
             logger.debug("Hisse arama başarısız (%s): %s", clean, exc)
         return result

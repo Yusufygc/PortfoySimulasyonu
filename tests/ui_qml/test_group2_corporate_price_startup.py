@@ -90,7 +90,7 @@ def _ca_container():
     stock = SimpleNamespace(id=7, ticker="THYAO.IS", name="THY")
     container.stock_repo.get_stock_by_ticker.side_effect = lambda t: stock if t == "THYAO.IS" else None
     container.stock_repo.get_stock_by_id.return_value = stock
-    container.latest_price_repo.get_latest_price_map.return_value = {7: Decimal("300")}
+    container.current_price_resolver.price_map.return_value = {7: Decimal("300")}
     container.portfolio_service.get_first_trade_date.return_value = date(2025, 1, 2)
     container.backfill_service.backfill_for_single_stock.return_value = 42
     container.corporate_action_service.register_bedelsiz.return_value = SimpleNamespace(id=11)
@@ -117,6 +117,7 @@ def test_load_context_returns_position_and_price(qapp):
     container, _ = _ca_container()
     position = SimpleNamespace(total_quantity=1000, average_cost=Decimal("100"), total_cost=Decimal("100000"))
     container.portfolio_service.get_current_portfolio.return_value = SimpleNamespace(active_positions={7: position})
+    container.current_price_resolver.price_map.return_value = {7: Decimal("300")}
     ctrl = CorporateActionController(container=container)
 
     ctx = ctrl.loadContext("THYAO")

@@ -124,8 +124,8 @@ def test_ai_advisor_controller_save_api_key():
     ctrl = AiAdvisorController(container=mock_container)
     assert ctrl.hasApiKey is False
 
-    ctrl.saveApiKey("AIzaSyTEST_KEY_123456789")
-    assert mock_settings.ai.gemini_api_key == "AIzaSyTEST_KEY_123456789"
+    ctrl.saveApiKey("test-api-key-123456789")
+    assert mock_settings.ai.gemini_api_key == "test-api-key-123456789"
     assert ctrl.hasApiKey is True
     assert any("Google Gemini API anahtarınız" in m["content"] for m in ctrl.messages)
 

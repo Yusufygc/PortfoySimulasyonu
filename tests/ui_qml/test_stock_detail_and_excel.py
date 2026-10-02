@@ -182,12 +182,13 @@ def test_stock_detail_controller_live_price_and_diff(container):
     Gerçek piyasa verisi zamanla değiştiği için beklenen değerler sabit sayı yerine aynı
     repository'lerden hesaplanır.
     """
-    from datetime import date as _date
+    from datetime import timedelta
 
     stock = container.stock_repo.get_stock_by_ticker("MERKO.IS")
     assert stock is not None
-    latest = container.latest_price_repo.get_latest_price_map([stock.id]).get(stock.id)
-    previous = container.price_repo.get_last_price_before(stock.id, _date.today())
+    resolved = container.current_price_resolver.resolve([stock.id])[stock.id]
+    latest = resolved.price
+    previous = container.price_repo.get_last_price_before(stock.id, resolved.price_date - timedelta(days=1))
     assert latest and previous
 
     ctrl = StockDetailController(container=container)

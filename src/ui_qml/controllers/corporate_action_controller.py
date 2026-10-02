@@ -192,10 +192,10 @@ class CorporateActionController(QObject):
             if position is None:
                 return empty
             price = 0.0
-            latest_repo = self._svc("latest_price_repo")
-            if latest_repo is not None:
+            resolver = self._svc("current_price_resolver")
+            if resolver is not None:
                 try:
-                    price = float(latest_repo.get_latest_price_map([stock.id]).get(stock.id) or 0)
+                    price = float(resolver.price_map([stock.id]).get(stock.id) or 0)
                 except Exception as exc:
                     logger.debug("Güncel fiyat okunamadı: %s", exc)
             return {
@@ -292,10 +292,10 @@ class CorporateActionController(QObject):
             action_id = action.id
 
             current_price = None
-            latest_repo = self._svc("latest_price_repo")
-            if latest_repo is not None:
+            resolver = self._svc("current_price_resolver")
+            if resolver is not None:
                 try:
-                    current_price = latest_repo.get_latest_price_map([stock.id]).get(stock.id)
+                    current_price = resolver.price_map([stock.id]).get(stock.id)
                 except Exception:
                     current_price = None
             try:

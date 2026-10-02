@@ -13,6 +13,7 @@ from src.application.services.analysis.technical.technical_analysis_service impo
 from src.application.services.analysis.technical.screener_service import ScreenerService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
+from src.application.services.market.current_price_resolver import CurrentPriceResolver
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
 from src.application.services.corporate_actions.candidate_review_service import CorporateActionCandidateReviewService
 from src.application.services.corporate_actions.price_adjustment_service import CorporateActionPriceAdjustmentService
@@ -79,6 +80,7 @@ class ServiceSet:
     screener_service: ScreenerService
     dca_backtest_service: DCABacktestService
     tv_backfill_service: object  # BackfillService | None
+    current_price_resolver: object  # CurrentPriceResolver
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
@@ -134,6 +136,10 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
         screener_service=ScreenerService(
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
+        ),
+        current_price_resolver=CurrentPriceResolver(
+            latest_price_repo=repositories.latest_price_repo,
+            price_repo=repositories.price_repo,
         ),
         dca_backtest_service=DCABacktestService(
             price_repo=repositories.price_repo,

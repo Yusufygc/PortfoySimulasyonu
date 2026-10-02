@@ -339,10 +339,11 @@ class ModelPortfolioController(QObject):
             if self._stock_repo:
                 stock = self._stock_repo.get_stock_by_ticker(cand)
                 if stock and stock.id:
-                    if self._latest_price_repo:
-                        lp = self._latest_price_repo.get_latest_price(stock.id)
-                        if lp and lp > 0:
-                            return float(lp)
+                    resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
+                    if resolver is not None:
+                        resolved = resolver.price_map([stock.id]).get(stock.id)
+                        if resolved and resolved > 0:
+                            return float(resolved)
                     if self._price_repo:
                         dp = self._price_repo.get_last_price_before(stock.id, date.today())
                         if dp and dp.close_price and dp.close_price > 0:
@@ -447,7 +448,10 @@ class ModelPortfolioController(QObject):
             stock_ids = sorted(positions.keys())
             price_map: Dict[int, Decimal] = {}
 
-            if self._latest_price_repo:
+            resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
+            if resolver is not None:
+                price_map.update(resolver.price_map(stock_ids))
+            elif self._latest_price_repo:
                 price_map.update(self._latest_price_repo.get_latest_price_map(stock_ids))
 
             missing = [sid for sid in stock_ids if sid not in price_map]
@@ -568,7 +572,16 @@ class ModelPortfolioController(QObject):
             return result
         try:
             stock_ids = [pos.get("stock_id") for pos in positions if pos.get("stock_id")]
+            resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
+            resolved_map = resolver.resolve(stock_ids) if resolver is not None else {}
             for sid in stock_ids:
+                resolved = resolved_map.get(sid)
+                if resolved is not None:
+                    # Önceki kapanış, güncel fiyatın gününden önceki son kapanıştır
+                    previous = resolver.previous_close(sid, resolved)
+                    if previous is not None:
+                        result[sid] = previous
+                    continue
                 prev = self._price_repo.get_last_price_before(sid, date.today())
                 if prev is not None:
                     result[sid] = prev.close_price

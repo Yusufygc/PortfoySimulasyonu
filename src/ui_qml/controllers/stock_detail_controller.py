@@ -380,7 +380,19 @@ class StockDetailController(QObject):
         cur_price = 0.0
         diff = 0.0
 
-        # 1. Önce canlı portföy değerlendirme reposundan (latest_price_repo) fiyat çek
+        # 1. Güncel fiyat: canlı fiyat yalnızca son kapanıştan daha yeni bir güne aitse kullanılır
+        resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
+        if resolver is not None and stock_id:
+            try:
+                resolved = resolver.resolve([stock_id]).get(stock_id)
+                if resolved is not None:
+                    cur_price = float(resolved.price)
+                    change = resolver.daily_change_pct(stock_id, resolved)
+                    return cur_price, float(change) if change is not None else 0.0
+            except Exception as res_err:
+                logger.debug("current_price_resolver başarısız: %s", res_err)
+
+        # 1b. Eski yol: önce canlı portföy değerlendirme reposundan (latest_price_repo) fiyat çek
         if self._container and stock_id:
             if hasattr(self._container, "latest_price_repo"):
                 try:

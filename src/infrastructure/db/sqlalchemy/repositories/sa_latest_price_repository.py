@@ -5,6 +5,7 @@ from typing import Dict, Iterable, Sequence
 
 from sqlalchemy import func
 from sqlalchemy.dialects.mysql import insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from src.domain.models.latest_price import LatestPrice
 from src.domain.ports.repositories.i_latest_price_repo import ILatestPriceRepository
@@ -72,6 +73,10 @@ class SQLAlchemyLatestPriceRepository(ILatestPriceRepository):
             for price in prices_list
         ]
         with self._provider.get_session() as session:
+            if session.bind.dialect.name == "sqlite":
+                self._upsert_sqlite(session, values)
+                commit_or_rollback(session)
+                return
             stmt = insert(ORMLatestPrice).values(values)
             stmt = stmt.on_duplicate_key_update(
                 price=stmt.inserted.price,
@@ -83,3 +88,32 @@ class SQLAlchemyLatestPriceRepository(ILatestPriceRepository):
             )
             session.execute(stmt)
             commit_or_rollback(session)
+
+    @staticmethod
+    def _upsert_sqlite(session, values: list) -> None:
+        """SQLite: BIGINT birincil anahtar otomatik artmaz; yeni satırlara elle id verilir."""
+        existing = {
+            row.stock_id: row.id
+            for row in session.query(ORMLatestPrice.stock_id, ORMLatestPrice.id)
+            .filter(ORMLatestPrice.stock_id.in_([v["stock_id"] for v in values]))
+            .all()
+        }
+        max_id = int(session.execute(func.coalesce(func.max(ORMLatestPrice.id), 0)).scalar() or 0)
+        for item in values:
+            row_id = existing.get(item["stock_id"])
+            if row_id is None:
+                max_id += 1
+                row_id = max_id
+            stmt = sqlite_insert(ORMLatestPrice).values(id=row_id, **item)
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["stock_id"],
+                set_={
+                    "price": stmt.excluded.price,
+                    "as_of": stmt.excluded.as_of,
+                    "source": stmt.excluded.source,
+                    "provider": stmt.excluded.provider,
+                    "fetched_at": stmt.excluded.fetched_at,
+                    "updated_at": func.now(),
+                },
+            )
+            session.execute(stmt)
