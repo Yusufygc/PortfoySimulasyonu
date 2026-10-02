@@ -28,7 +28,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 from src.application.services.analysis.comparison_service import ComparisonService
 from src.application.services.analysis.models import AnalysisFilterState
 from src.domain.models.ai_analysis import ChatMessage, MessageRole
-from src.ui.pages.comparison.utils.comparison_series_builder import ComparisonSeriesBuilder
+from src.application.services.analysis.comparison_chart_series import ComparisonSeriesBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,6 @@ class ComparisonController(QObject):
         super().__init__(parent)
         self._container = container
         self._analysis_service = container.analysis_service
-        self._stock_repo = getattr(container, "stock_repo", None)
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ComparisonWorker")
         self._executor_ai = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ComparisonAI")
 

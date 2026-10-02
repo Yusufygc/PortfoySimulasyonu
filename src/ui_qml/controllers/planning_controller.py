@@ -211,15 +211,11 @@ class PlanningController(QObject):
                     start_year = min(start_year, int(parts[0]))
                     start_month = min(start_month, int(parts[1]))
 
-            conn_prov = getattr(self._container, "conn_provider", None)
-            if conn_prov:
-                with conn_prov.Session() as session:
-                    from sqlalchemy import text
-                    min_trade = session.execute(text("SELECT min(trade_date) FROM trades")).scalar()
-                    if min_trade:
-                        t_parts = str(min_trade)[:7].split("-")
-                        start_year = min(start_year, int(t_parts[0]))
-                        start_month = min(start_month, int(t_parts[1]))
+            portfolio_service = getattr(self._container, "portfolio_service", None)
+            first_trade = portfolio_service.get_first_trade_date() if portfolio_service else None
+            if first_trade:
+                start_year = min(start_year, first_trade.year)
+                start_month = min(start_month, first_trade.month)
         except Exception as exc:
             logger.warning("Bütçe ayları listelenirken hata: %s", exc)
 

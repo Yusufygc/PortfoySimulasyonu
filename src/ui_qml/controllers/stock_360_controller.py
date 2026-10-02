@@ -631,8 +631,8 @@ class Stock360Controller(QObject):
                 else:
                     if s360_service and hasattr(s360_service, "get_all_stocks"):
                         stocks = s360_service.get_all_stocks()
-                    elif hasattr(self._container, "repositories") and hasattr(self._container.repositories, "stock_repo"):
-                        stocks = self._container.repositories.stock_repo.get_all_stocks()
+                    elif getattr(self._container, "stock_lookup_service", None) is not None:
+                        stocks = self._container.stock_lookup_service.list_stocks()
                     tickers = [s.ticker.replace(".IS", "") for s in stocks if getattr(s, "ticker", None)]
                 if tickers:
                     sorted_tickers = []
@@ -663,9 +663,8 @@ class Stock360Controller(QObject):
         stock = None
         if s360_service and hasattr(s360_service, "get_stock_by_ticker"):
             stock = s360_service.get_stock_by_ticker(ticker) or s360_service.get_stock_by_ticker(f"{ticker}.IS")
-        elif hasattr(self._container, "repositories") and hasattr(self._container.repositories, "stock_repo"):
-            stock_repo = self._container.repositories.stock_repo
-            stock = stock_repo.get_stock_by_ticker(ticker) or stock_repo.get_stock_by_ticker(f"{ticker}.IS")
+        elif getattr(self._container, "stock_lookup_service", None) is not None:
+            stock = self._container.stock_lookup_service.find_stock(ticker)
 
         if stock:
             stock_name = stock.name or ticker

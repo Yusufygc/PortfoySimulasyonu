@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import QUrl
 
-from src.ui.pages.financials.utils.dashboard_html import build_dashboard as build_financials_dashboard_raw
-from src.ui.pages.shareholders.utils.dashboard_html import build_dashboard as build_shareholder_dashboard_raw
+from src.application.services.reporting.html.financials_dashboard import build_dashboard as build_financials_dashboard_raw
+from src.application.services.reporting.html.shareholders_dashboard import build_dashboard as build_shareholder_dashboard_raw
 
 logger = logging.getLogger(__name__)
 

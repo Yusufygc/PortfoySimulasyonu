@@ -1,8 +1,8 @@
 """
 Grafik altında gösterilen yardımcı değer tabloları (dark-tema HTML).
 
-Plotly değildir — saf HTML. dashboard_html.py her sekme için (varsa) bir tablo
-enjekte eder. CSS `.val-tbl` `dashboard_html.py._CSS` içinde tanımlıdır.
+Plotly değildir — saf HTML. financials_dashboard.py her sekme için (varsa) bir tablo
+enjekte eder. CSS `.val-tbl` `financials_dashboard.py._CSS` içinde tanımlıdır.
 """
 from __future__ import annotations
 

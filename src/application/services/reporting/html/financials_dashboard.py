@@ -11,8 +11,8 @@ from typing import Any
 
 import plotly.graph_objects as go
 
-from src.ui.pages.comparison.utils.plotly_html import ensure_patched_plotly_js
-from src.ui.pages.financials.utils.charts import (
+from src.application.services.reporting.html.plotly_html import ensure_patched_plotly_js
+from src.application.services.reporting.html.financials_charts import (
     _chart_bedelsiz,
     _chart_bilanco,
     _chart_degerleme,
@@ -32,8 +32,8 @@ from src.ui.pages.financials.utils.charts import (
     _chart_waterfall,
     _fig_to_div,
 )
-from src.ui.pages.financials.utils.finansal_tablo import build_finansal_tablo_pane
-from src.ui.pages.financials.utils.value_table import build_value_table
+from src.application.services.reporting.html.financials_table import build_finansal_tablo_pane
+from src.application.services.reporting.html.financials_value_table import build_value_table
 
 # ---------------------------------------------------------------------------
 # CSS + JS (tab navigasyonu)

@@ -2,7 +2,7 @@
 Finansal dashboard grafik fonksiyonları.
 
 Tüm _chart_* builder'lar ve paylaşılan yardımcılar burada.
-dashboard_html.py yalnız orkestratör olarak build_dashboard'u içerir.
+financials_dashboard.py yalnız orkestratör olarak build_dashboard'u içerir.
 """
 from __future__ import annotations
 

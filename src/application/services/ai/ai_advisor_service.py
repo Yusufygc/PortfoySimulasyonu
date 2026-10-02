@@ -11,7 +11,7 @@ detayı infrastructure'da kalır" ilkesine uyar (bkz. plan §6.2.2).
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from src.application.services.ai.advisor_tools import ToolSpec, build_tool_specs
 from src.domain.models.ai_tool import ToolDeclaration
@@ -25,7 +25,11 @@ class AiAdvisorService:
         portfolio_analytics_service,
         risk_optimization_bridge_service,
         stock_360_service,
+        chat_provider_factory: Optional[Callable[..., Any]] = None,
     ) -> None:
+        # (api_key, tool_declarations, call_tool) -> `generate(system_prompt, turns)` sağlayıcısı; SDK sınıfı
+        # container'da enjekte edilir, bu servis SDK'ya bağımlı kalmaz.
+        self._chat_provider_factory = chat_provider_factory
         self._tool_specs: List[ToolSpec] = build_tool_specs(
             portfolio_analytics_service, risk_optimization_bridge_service, stock_360_service,
         )
@@ -45,6 +49,16 @@ class AiAdvisorService:
             ToolDeclaration(name=spec.name, description=spec.description, parameters_schema=spec.parameters_schema)
             for spec in self._tool_specs
         ]
+
+    def chat(self, api_key: str, system_prompt: str, turns: Sequence[Tuple[str, str]]) -> Any:
+        """Gemini function-calling sohbetini çalıştırır (`AdvisorChatResult` döner); araçlar `call_tool` ile
+        çözülür. `turns`: (rol, metin) çiftleri, rol `user` veya `model`. Sağlayıcı yoksa RuntimeError."""
+        if self._chat_provider_factory is None:
+            raise RuntimeError("Sohbet sağlayıcısı yapılandırılmamış.")
+        provider = self._chat_provider_factory(
+            api_key=api_key, tool_declarations=self.tool_declarations, call_tool=self.call_tool,
+        )
+        return provider.generate(system_prompt, turns)
 
     def call_tool(self, name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """İsimle bir aracı çağırır. Bilinmeyen araç adı veya araç içi hata —

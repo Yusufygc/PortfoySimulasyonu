@@ -21,10 +21,6 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 from config.settings_loader import persist_api_keys
 from src.application.services.ai.ai_advisor_service import AiAdvisorService
 from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
-from src.infrastructure.ai.gemini_advisor_chat_provider import (
-    AdvisorChatResult,
-    GeminiAdvisorChatProvider,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -421,17 +417,12 @@ class AiAdvisorController(QObject):
             # 1. Gerçek Gemini API + Function Calling Denemesi
             if api_key and advisor_service:
                 try:
-                    provider = GeminiAdvisorChatProvider(
-                        api_key=api_key,
-                        tool_declarations=advisor_service.tool_declarations,
-                        call_tool=advisor_service.call_tool,
-                    )
                     # Turns: Gemini 'user' ve 'model' bekler
                     turns = [
                         ("user" if role == "user" else "model", content)
                         for role, content in history
                     ]
-                    chat_result: AdvisorChatResult = provider.generate(ADVISOR_SYSTEM_PROMPT, turns)
+                    chat_result = advisor_service.chat(api_key, ADVISOR_SYSTEM_PROMPT, turns)
                     tools_used = [
                         {
                             "name": tc.name,

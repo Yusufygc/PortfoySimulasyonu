@@ -15,7 +15,7 @@ from src.application.services.analysis.models import AnalysisFilterState
 from src.application.services.analysis.comparison_service import ComparisonService
 from src.ui.pages.comparison.utils.comparison_asset_options import ComparisonAssetOptions
 from src.ui.pages.comparison.utils.comparison_filter_state_builder import ComparisonFilterStateBuilder
-from src.ui.pages.comparison.utils.comparison_series_builder import ComparisonSeriesBuilder
+from src.application.services.analysis.comparison_chart_series import ComparisonSeriesBuilder
 from src.ui.pages.comparison.utils.comparison_warning_builder import ComparisonWarningBuilder
 
 if TYPE_CHECKING:

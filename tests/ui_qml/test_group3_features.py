@@ -413,7 +413,7 @@ def _dashboard(qapp):
     container.portfolio_service.get_cash_balance.return_value = Decimal("100000")
     container.portfolio_service.get_first_trade_date.return_value = date(2025, 1, 2)
     stock = SimpleNamespace(id=7, ticker="THYAO.IS", name="Türk Hava Yolları")
-    container.stock_repo.get_stock_by_ticker.side_effect = lambda t: stock if t == "THYAO.IS" else None
+    container.stock_lookup_service.find_stock.side_effect = lambda t: stock if t == "THYAO" else None
     container.current_price_resolver.price_map.return_value = {7: Decimal("301.5")}
     return DashboardController(container=container), container
 

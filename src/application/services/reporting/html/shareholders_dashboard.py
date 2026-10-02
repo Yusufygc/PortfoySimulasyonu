@@ -16,7 +16,7 @@ from typing import Iterable
 import plotly.graph_objects as go
 
 from src.domain.models.shareholder import ShareholderSnapshot
-from src.ui.pages.comparison.utils.plotly_html import ensure_patched_plotly_js
+from src.application.services.reporting.html.plotly_html import ensure_patched_plotly_js
 
 
 _C = {

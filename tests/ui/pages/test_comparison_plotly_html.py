@@ -2,7 +2,7 @@ from pathlib import Path
 
 import plotly.graph_objects as go
 
-from src.ui.pages.comparison.utils.plotly_html import (
+from src.application.services.reporting.html.plotly_html import (
     PATCH_MARKER,
     build_plotly_html,
     ensure_patched_plotly_js,

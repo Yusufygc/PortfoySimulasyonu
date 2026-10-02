@@ -14,6 +14,7 @@ from src.application.services.analysis.technical.screener_service import Screene
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
 from src.application.services.market.current_price_resolver import CurrentPriceResolver
+from src.application.services.market.stock_lookup_service import StockLookupService
 from src.application.services.market.market_indicators_service import MarketIndicatorsService
 from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
@@ -84,6 +85,7 @@ class ServiceSet:
     dca_backtest_service: DCABacktestService
     tv_backfill_service: object  # BackfillService | None
     current_price_resolver: object  # CurrentPriceResolver
+    stock_lookup_service: StockLookupService  # arayüz için salt okunur hisse/fiyat sorguları
     market_data_sync_service: object  # MarketDataSyncService (DuckDB + SQLite köprüsü)
     market_corporate_action_service: MarketCorporateActionService  # DuckDB ticker bazlı sermaye artırımı
     market_indicators_service: object  # MarketIndicatorsService | None (üst piyasa şeridi)
@@ -143,6 +145,12 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
         current_price_resolver=CurrentPriceResolver(
             latest_price_repo=repositories.latest_price_repo,
             price_repo=repositories.price_repo,
+        ),
+        stock_lookup_service=StockLookupService(
+            stock_repo=repositories.stock_repo,
+            price_repo=repositories.price_repo,
+            latest_price_repo=repositories.latest_price_repo,
+            market_history_repo=repositories.market_history_repo,
         ),
         dca_backtest_service=DCABacktestService(
             price_repo=repositories.price_repo,

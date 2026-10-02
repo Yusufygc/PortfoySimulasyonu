@@ -209,7 +209,8 @@ class DashboardController(QObject):
 
         if self._container:
             try:
-                if hasattr(self._container, "portfolio_service") and hasattr(self._container, "stock_repo"):
+                lookup = getattr(self._container, "stock_lookup_service", None)
+                if hasattr(self._container, "portfolio_service") and lookup is not None:
                     cash = self._container.portfolio_service.get_cash_balance()
                     if cash is not None:
                         self._capital = Decimal(str(cash))
@@ -227,23 +228,14 @@ class DashboardController(QObject):
                                 resolved_prices = resolver.resolve(stock_ids)
                             except Exception as e:
                                 logger.debug("Güncel fiyatlar çözümlenemedi: %s", e)
-                        elif hasattr(self._container, "latest_price_repo"):
-                            try:
-                                latest_prices = self._container.latest_price_repo.get_latest_price_map(stock_ids)
-                            except Exception as e:
-                                logger.debug("latest_prices alınamadı: %s", e)
+                        else:
+                            latest_prices = lookup.get_latest_price_map(stock_ids)
 
                         # N+1 Önleme: Hisseleri toplu sorguyla tek seferde çek
-                        stocks_map = {}
-                        if hasattr(self._container, "stock_repo"):
-                            try:
-                                stocks_list = self._container.stock_repo.get_stocks_by_ids(stock_ids)
-                                stocks_map = {s.id: s for s in stocks_list}
-                            except Exception as exc:
-                                logger.debug("Toplu hisse bilgisi alinamadi: %s", exc)
+                        stocks_map = lookup.get_stocks(stock_ids)
 
                         for sid, pos in active.items():
-                            stock = stocks_map.get(sid) or (self._container.stock_repo.get_stock_by_id(sid) if hasattr(self._container, "stock_repo") else None)
+                            stock = stocks_map.get(sid) or lookup.get_stock(sid)
                             raw_ticker = stock.ticker if stock else f"STOCK_{sid}"
                             ticker = raw_ticker.replace(".IS", "").strip().upper()
                             raw_company = stock.name if (stock and stock.name) else ticker
@@ -257,13 +249,10 @@ class DashboardController(QObject):
                             if resolved is not None:
                                 change = resolver.daily_change_pct(sid, resolved)
                                 diff_pct = change if change is not None else Decimal("0")
-                            elif hasattr(self._container, "price_repo"):
-                                try:
-                                    prev = self._container.price_repo.get_last_price_before(sid, date.today())
-                                    if prev and prev.close_price and prev.close_price > 0:
-                                        diff_pct = ((price - prev.close_price) / prev.close_price) * 100
-                                except Exception as exc:
-                                    logger.debug("Önceki gün kapanış fiyatı alınamadı (sid=%s): %s", sid, exc)
+                            else:
+                                prev_close = lookup.get_previous_close(sid)
+                                if prev_close:
+                                    diff_pct = ((price - prev_close) / prev_close) * 100
 
                             m_val = pos.market_value(price)
                             tot_c = pos.total_cost
@@ -382,11 +371,11 @@ class DashboardController(QObject):
         """Hisse kodu için kayıtlı şirket adı ve son bilinen fiyatı (DB'den, ağ çağrısı yapmadan) döndürür."""
         clean = (ticker or "").replace(".IS", "").strip().upper()
         result = {"found": False, "ticker": clean, "name": "", "price": 0.0}
-        stock_repo = getattr(self._container, "stock_repo", None) if self._container else None
-        if not clean or stock_repo is None:
+        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        if not clean or lookup is None:
             return result
         try:
-            stock = stock_repo.get_stock_by_ticker(f"{clean}.IS") or stock_repo.get_stock_by_ticker(clean)
+            stock = lookup.find_stock(clean)
             if stock is None:
                 return result
             result.update({"found": True, "name": (stock.name or clean).replace(".IS", "").strip()})

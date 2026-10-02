@@ -70,9 +70,7 @@ class ModelPortfolioController(QObject):
         super().__init__(parent)
         self._container = container
         self._service = getattr(container, "model_portfolio_service", None) if container else None
-        self._price_repo = getattr(container, "price_repo", None) if container else None
-        self._latest_price_repo = getattr(container, "latest_price_repo", None) if container else None
-        self._stock_repo = getattr(container, "stock_repo", None) if container else None
+        self._lookup = getattr(container, "stock_lookup_service", None) if container else None
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ModelPortWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
 
@@ -351,20 +349,11 @@ class ModelPortfolioController(QObject):
         raw = (ticker or "").strip().upper()
         if not raw:
             return 0.0
-        candidates = [raw, f"{raw}.IS"] if not raw.endswith(".IS") else [raw, raw[:-3]]
-        for cand in candidates:
-            if self._stock_repo:
-                stock = self._stock_repo.get_stock_by_ticker(cand)
-                if stock and stock.id:
-                    resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
-                    if resolver is not None:
-                        resolved = resolver.price_map([stock.id]).get(stock.id)
-                        if resolved and resolved > 0:
-                            return float(resolved)
-                    if self._price_repo:
-                        dp = self._price_repo.get_last_price_before(stock.id, date.today())
-                        if dp and dp.close_price and dp.close_price > 0:
-                            return float(dp.close_price)
+        stock = self._lookup.find_stock(raw) if self._lookup else None
+        if stock and stock.id:
+            price = self._resolve_prices([stock.id]).get(stock.id)
+            if price and price > 0:
+                return float(price)
         return 0.0
 
     @Slot(int)
@@ -463,24 +452,25 @@ class ModelPortfolioController(QObject):
         try:
             positions = self._service.get_positions(portfolio_id)
             stock_ids = sorted(positions.keys())
-            price_map: Dict[int, Decimal] = {}
-
-            resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
-            if resolver is not None:
-                price_map.update(resolver.price_map(stock_ids))
-            elif self._latest_price_repo:
-                price_map.update(self._latest_price_repo.get_latest_price_map(stock_ids))
-
-            missing = [sid for sid in stock_ids if sid not in price_map]
-            if self._price_repo:
-                for sid in missing:
-                    daily_price = self._price_repo.get_last_price_before(sid, date.today())
-                    if daily_price is not None:
-                        price_map[sid] = daily_price.close_price
-            self._current_price_map = price_map
+            self._current_price_map = self._resolve_prices(stock_ids)
         except Exception as exc:
             logger.warning("Fiyat haritası yüklenemedi: %s", exc)
             self._current_price_map = {}
+
+    def _resolve_prices(self, stock_ids: list) -> Dict[int, Decimal]:
+        """Güncel fiyat: önce çözümleyici (canlı/kapanış), yoksa canlı önbellek, eksikler için son kapanış."""
+        price_map: Dict[int, Decimal] = {}
+        resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
+        if resolver is not None:
+            price_map.update(resolver.price_map(stock_ids))
+        elif self._lookup:
+            price_map.update(self._lookup.get_latest_price_map(stock_ids))
+        if self._lookup:
+            for sid in [sid for sid in stock_ids if sid not in price_map]:
+                close = self._lookup.get_previous_close(sid)
+                if close is not None:
+                    price_map[sid] = close
+        return price_map
 
     def _update_view(self):
         """Seçili portföyün özet ve pozisyon bilgilerini günceller."""
@@ -585,7 +575,7 @@ class ModelPortfolioController(QObject):
     def _build_previous_close_map(self, positions: list) -> Dict[int, Decimal]:
         """Pozisyondaki hisselerin bir önceki kapanış fiyatlarını çeker."""
         result: Dict[int, Decimal] = {}
-        if not self._price_repo:
+        if not self._lookup:
             return result
         try:
             stock_ids = [pos.get("stock_id") for pos in positions if pos.get("stock_id")]
@@ -599,9 +589,9 @@ class ModelPortfolioController(QObject):
                     if previous is not None:
                         result[sid] = previous
                     continue
-                prev = self._price_repo.get_last_price_before(sid, date.today())
-                if prev is not None:
-                    result[sid] = prev.close_price
+                prev_close = self._lookup.get_previous_close(sid)
+                if prev_close is not None:
+                    result[sid] = prev_close
         except Exception as exc:
             logger.warning("Previous close map hatası: %s", exc)
         return result
@@ -726,14 +716,11 @@ class ModelPortfolioController(QObject):
             if excel_service and self._service:
                 positions_dict = self._service.get_positions(portfolio_id)
                 # Fiyat haritası oluştur
-                price_map = {}
-                for sid in positions_dict.keys():
-                    price_val = Decimal("100.0")
-                    if self._price_repo:
-                        latest = self._price_repo.get_latest_price_by_stock_id(sid) if hasattr(self._price_repo, "get_latest_price_by_stock_id") else None
-                        if latest:
-                            price_val = Decimal(str(latest.close_price))
-                    price_map[sid] = price_val
+                resolved_prices = self._resolve_prices(list(positions_dict.keys()))
+                price_map = {
+                    sid: resolved_prices.get(sid) or getattr(pos, "average_cost", None) or Decimal("100.0")
+                    for sid, pos in positions_dict.items()
+                }
 
                 excel_service.export_model_portfolio(
                     portfolio_id=portfolio_id,

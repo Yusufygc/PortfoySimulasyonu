@@ -204,26 +204,21 @@ class WatchlistController(QObject):
             raw_stocks = ws.get_watchlist_stocks(watchlist_id)
             stock_data_list: List[Dict[str, Any]] = []
 
-            price_repo = None
-            if self._container and hasattr(self._container, "repositories"):
-                price_repo = getattr(self._container.repositories, "price_repo", None)
+            lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
 
             start_date = date.today() - timedelta(days=90)
             end_date = date.today()
 
             # N+1 Önleme: Tüm hisselerin fiyat serilerini tek toplu sorguyla çek
             bulk_price_map: Dict[int, Any] = {}
-            if price_repo:
+            if lookup is not None:
                 valid_sids = [
                     (it.get("stock").id if it.get("stock") else (it.get("item").stock_id if it.get("item") else 0))
                     for it in raw_stocks
                 ]
                 valid_sids = [sid for sid in valid_sids if sid > 0]
                 if valid_sids:
-                    try:
-                        bulk_price_map = price_repo.get_price_series_bulk(valid_sids, start_date, end_date)
-                    except Exception as exc:
-                        logger.warning("Toplu fiyat serisi alinamadi: %s", exc)
+                    bulk_price_map = lookup.get_price_series_bulk(valid_sids, start_date, end_date)
 
             for item_dict in raw_stocks:
                 item = item_dict.get("item")

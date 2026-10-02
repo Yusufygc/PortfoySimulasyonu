@@ -125,6 +125,15 @@ class MarketCorporateActionService:
         )
         return result
 
+    # ---- okuma ve durum değişikliği ----------------------------------------------------
+    def list_actions(
+        self, ticker: Optional[str] = None, status: Optional[MarketActionStatus] = None,
+    ) -> List[MarketCorporateAction]:
+        return self._actions.list_actions(ticker=ticker, status=status)
+
+    def set_status(self, ticker: str, effective_date: date, status: MarketActionStatus) -> bool:
+        return self._actions.set_status(ticker, effective_date, status)
+
     # ---- kullanıcı kararları -----------------------------------------------------------
     def confirm(self, ticker: str, effective_date: date, factor: Optional[float] = None) -> MarketCorporateAction:
         action = self._require(ticker, effective_date)

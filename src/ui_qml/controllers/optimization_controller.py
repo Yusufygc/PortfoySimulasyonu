@@ -102,7 +102,7 @@ class OptimizationController(QObject):
         self._bridge_service = getattr(container, "risk_optimization_bridge_service", None)
         self._portfolio_service = getattr(container, "portfolio_service", None)
         self._model_portfolio_service = getattr(container, "model_portfolio_service", None)
-        self._stock_repo = getattr(container, "stock_repo", None)
+        self._lookup = getattr(container, "stock_lookup_service", None)
         self._risk_profile_service = getattr(container, "risk_profile_service", None)
 
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="OptWorker")
@@ -410,8 +410,7 @@ class OptimizationController(QObject):
 
             # 2. Hisse Sembolleri ve İsimlerini Al
             stock_ids = list(positions.keys())
-            stocks = self._stock_repo.get_stocks_by_ids(stock_ids) if self._stock_repo else []
-            stock_map = {s.id: s for s in stocks}
+            stock_map = self._lookup.get_stocks(stock_ids) if self._lookup else {}
             tickers = [stock_map[sid].ticker for sid in stock_ids if sid in stock_map]
             
             names_map: Dict[str, str] = {}

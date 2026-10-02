@@ -13,7 +13,6 @@ from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from src.ui_qml.controllers.shell_controller import ShellController
 from src.ui_qml.controllers.chart_controller import ChartController
 from src.ui_qml.controllers.dashboard_controller import DashboardController
-from src.ui.shared.locale_tr import L10N
 
 
 @pytest.fixture(scope="session")
@@ -31,7 +30,7 @@ def test_controllers_initialization(qapp):
     dash = DashboardController()
 
     assert shell.activePage == 0
-    assert shell.pageTitle == L10N.DASHBOARD
+    assert shell.pageTitle == "Ana Sayfa"
     assert chart.currentTicker == "THYAO"
     assert "₺" in dash.totalValue
 

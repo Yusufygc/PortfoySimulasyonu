@@ -87,3 +87,41 @@ class TestCallTool:
         result = service.call_tool("get_portfolio_overview")
 
         assert result == {"error": "beklenmeyen hata"}
+
+
+class TestChat:
+    def test_chat_builds_provider_with_tools_and_delegates(self):
+        captured = {}
+
+        class FakeProvider:
+            def __init__(self, api_key, tool_declarations, call_tool):
+                captured.update(api_key=api_key, declarations=tool_declarations, call_tool=call_tool)
+
+            def generate(self, system_prompt, turns):
+                captured.update(system_prompt=system_prompt, turns=list(turns))
+                return "sonuc"
+
+        service = AiAdvisorService(
+            portfolio_analytics_service=MagicMock(),
+            risk_optimization_bridge_service=MagicMock(),
+            stock_360_service=MagicMock(),
+            chat_provider_factory=FakeProvider,
+        )
+
+        result = service.chat("anahtar", "sistem", [("user", "merhaba")])
+
+        assert result == "sonuc"
+        assert captured["api_key"] == "anahtar" and captured["system_prompt"] == "sistem"
+        assert captured["turns"] == [("user", "merhaba")]
+        assert {d.name for d in captured["declarations"]} == {spec.name for spec in service.tool_specs}
+        assert captured["call_tool"] == service.call_tool
+
+    def test_chat_without_provider_factory_raises(self):
+        service = _make_service()
+
+        try:
+            service.chat("k", "s", [])
+        except RuntimeError as exc:
+            assert "yapılandırılmamış" in str(exc)
+        else:
+            raise AssertionError("RuntimeError bekleniyordu")

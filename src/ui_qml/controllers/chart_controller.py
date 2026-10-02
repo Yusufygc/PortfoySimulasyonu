@@ -52,23 +52,14 @@ class ChartController(QObject):
                 if not port_service and hasattr(self._container, "services"):
                     port_service = getattr(self._container.services, "portfolio_service", None)
 
-                s360 = getattr(self._container, "stock_360_service", None)
-                if not s360 and hasattr(self._container, "services"):
-                    s360 = getattr(self._container.services, "stock_360_service", None)
-
-                if port_service:
+                lookup = getattr(self._container, "stock_lookup_service", None)
+                if port_service and lookup:
                     port = port_service.get_current_portfolio()
                     if port and port.active_positions:
                         first_sid = next(iter(port.active_positions.keys()))
-                        if s360 and hasattr(s360, "get_all_stocks"):
-                            for s in s360.get_all_stocks():
-                                if s.id == first_sid and s.ticker:
-                                    self._current_ticker = s.ticker
-                                    break
-                        elif hasattr(self._container, "stock_repo"):
-                            stock = self._container.stock_repo.get_stock_by_id(first_sid)
-                            if stock and stock.ticker:
-                                self._current_ticker = stock.ticker
+                        stock = lookup.get_stock(first_sid)
+                        if stock and stock.ticker:
+                            self._current_ticker = stock.ticker
             except Exception as exc:
                 logger.debug("Varsayılan grafik hissesi belirlenemedi: %s", exc)
 
@@ -191,13 +182,13 @@ class ChartController(QObject):
 
         # 1. Birincil kaynak: DuckDB piyasa geçmişi (tüm BIST, sermaye artırımı düzeltmeli)
         data_found = False
-        history_repo = getattr(self._container, "market_history_repo", None) if self._container else None
-        if history_repo is not None:
+        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        if lookup is not None:
             try:
                 end_date = datetime.now().date()
-                bars = history_repo.get_price_series(ticker, end_date - timedelta(days=365 * 3), end_date)
+                bars = lookup.get_market_bars(ticker, end_date - timedelta(days=365 * 3), end_date)
                 if bars:
-                    company_name = history_repo.get_company_name(ticker) or company_name
+                    company_name = lookup.get_market_company_name(ticker) or company_name
                     prev_close = None
                     for bar in bars:
                         c = bar.close_price
@@ -221,29 +212,14 @@ class ChartController(QObject):
         # Yedek: SQLite portföy fiyatları (DuckDB'de olmayan hisseler)
         if self._container and not data_found:
             try:
-                s360 = getattr(self._container, "stock_360_service", None)
-                if not s360 and hasattr(self._container, "services"):
-                    s360 = getattr(self._container.services, "stock_360_service", None)
-
-                stock = None
-                for candidate in [ticker, f"{ticker}.IS", ticker.replace(".IS", "")]:
-                    if s360 and hasattr(s360, "get_stock_by_ticker"):
-                        stock = s360.get_stock_by_ticker(candidate)
-                    elif hasattr(self._container, "stock_repo"):
-                        stock = self._container.stock_repo.get_stock_by_ticker(candidate)
-                    if stock:
-                        break
+                stock = lookup.find_stock(ticker) if lookup else None
 
                 if stock:
                     raw_name = getattr(stock, "name", None) or stock.ticker
                     company_name = raw_name.replace(".IS", "").strip()
                     start_date = datetime.now().date() - timedelta(days=365 * 3)  # 3 yıllık veri
                     end_date = datetime.now().date()
-                    prices = []
-                    if s360 and hasattr(s360, "get_price_series"):
-                        prices = s360.get_price_series(stock.id, start_date, end_date)
-                    elif hasattr(self._container, "price_repo"):
-                        prices = self._container.price_repo.get_price_series(stock.id, start_date, end_date)
+                    prices = lookup.get_price_series(stock.id, start_date, end_date)
 
                     if prices:
                         sorted_prices = sorted(prices, key=lambda x: x.price_date)

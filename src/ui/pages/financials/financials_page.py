@@ -8,7 +8,7 @@ from src.qt_compat.qtwidgets import QComboBox, QFrame, QHBoxLayout, QLabel, QScr
 from src.ui.pages.base_page import BasePage
 from src.ui.pages.financials.panels.ticker_input_panel import TickerInputPanel
 from src.ui.pages.financials.panels.financials_chart_panel import FinancialsChartPanel
-from src.ui.pages.financials.utils.dashboard_html import build_dashboard
+from src.application.services.reporting.html.financials_dashboard import build_dashboard
 from src.ui.shared.locale_tr import L10N
 from src.ui.worker import Worker
 
@@ -23,7 +23,7 @@ class FinancialsPage(BasePage):
     Bilanço ve Finansallar sayfası.
 
     Sorumluluk: layout + wiring + Worker orchestration.
-    Grafik üretimi → dashboard_html.py (build_dashboard).
+    Grafik üretimi → financials_dashboard.py (build_dashboard).
     Veri alımı     → container.financial_analysis_service (DI).
     """
 

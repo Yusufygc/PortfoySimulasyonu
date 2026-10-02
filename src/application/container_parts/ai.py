@@ -12,6 +12,7 @@ from src.infrastructure.ai.ai_core_fastapi_client import (
     AICoreFastAPIClient,
     FastAPIAnalysisProvider,
 )
+from src.infrastructure.ai.gemini_advisor_chat_provider import GeminiAdvisorChatProvider
 from src.infrastructure.ai.gemini_chat_provider import GeminiChatProvider
 from src.infrastructure.ai.mock_ai_analysis_provider import MockAIAnalysisProvider
 from src.infrastructure.ai.qsettings_chat_history_repo import QSettingsChatHistoryRepository
@@ -50,5 +51,6 @@ def build_ai(
             portfolio_analytics_service=portfolio_analytics_service,
             risk_optimization_bridge_service=risk_optimization_bridge_service,
             stock_360_service=stock_360_service,
+            chat_provider_factory=GeminiAdvisorChatProvider,
         ),
     )

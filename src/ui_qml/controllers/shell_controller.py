@@ -6,7 +6,6 @@ from __future__ import annotations
 import datetime
 import logging
 from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer
-from src.ui.shared.locale_tr import L10N
 
 logger = logging.getLogger(__name__)
 
@@ -18,16 +17,16 @@ class ShellController(QObject):
     timeTick = Signal(str)
 
     PAGE_TITLES = {
-        0: L10N.DASHBOARD,
-        1: L10N.LISTELERIM,
-        2: L10N.MODEL_PORTFOYLER,
-        3: L10N.NAV_STOCK_360,
-        4: L10N.KARSILASTIRMA_LABORATUVARI,
-        5: L10N.NAV_SCREENER,
-        6: L10N.FINANSAL_PLANLAMA,
-        7: L10N.OPTIMIZASYON,
-        8: L10N.AI_ASISTAN,
-        9: L10N.SETTINGS,
+        0: "Ana Sayfa",
+        1: "Listelerim",
+        2: "Model Portföyler",
+        3: "Hisse 360",
+        4: "Karşılaştırma Laboratuvarı",
+        5: "BIST Tarama",
+        6: "Finansal Planlama",
+        7: "Optimizasyon",
+        8: "AI Asistan",
+        9: "Ayarlar",
     }
 
     def __init__(self, container=None, parent=None):

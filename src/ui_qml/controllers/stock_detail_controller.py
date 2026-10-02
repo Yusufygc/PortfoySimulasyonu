@@ -11,7 +11,6 @@ Sorumluluklar:
 from __future__ import annotations
 
 import logging
-import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time as dt_time
 from decimal import Decimal
@@ -23,16 +22,9 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 from src.application.services.portfolio.trade_entry_service import TradeRequest
 from src.domain.models.trade import TradeSide
 from src.domain.models.model_portfolio import ModelTradeSide
-from src.ui.formatters import display_ticker
+from src.domain.ticker import clean_ticker
 
 logger = logging.getLogger(__name__)
-
-
-def _clean_ticker(t: str) -> str:
-    """Hisse kodunu temizler ve .IS uzantısını kaldırır."""
-    if not t:
-        return ""
-    return t.replace(".IS", "").strip().upper()
 
 
 class StockDetailController(QObject):
@@ -225,7 +217,7 @@ class StockDetailController(QObject):
     @Slot(str, str, int)
     def openStockWithContext(self, ticker: str, context_type: str, context_id: int) -> None:
         """Belirtilen bağlamda (ana portföy veya model portföy) hisse detayını açar."""
-        clean = _clean_ticker(ticker)
+        clean = clean_ticker(ticker)
         if not clean:
             return
 
@@ -326,20 +318,16 @@ class StockDetailController(QObject):
                 "corp_actions": [],
             }
 
-            # 1. Hisse Tanımını Bul (Stock Repo)
-            stock_repo = getattr(self._container, "stock_repo", None) if self._container else None
-            stock_obj = None
-            if stock_repo:
-                stock_obj = stock_repo.get_stock_by_ticker(ticker)
-                if not stock_obj:
-                    stock_obj = stock_repo.get_stock_by_ticker(f"{ticker}.IS")
-                if stock_obj:
-                    data["stock_id"] = stock_obj.id
-                    clean_name = (stock_obj.name or ticker).replace(".IS", "").strip()
-                    data["company_name"] = clean_name
-                    data["sector"] = getattr(stock_obj, "sector", "BIST") or "BIST"
+            # 1. Hisse Tanımını Bul
+            lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+            stock_obj = lookup.find_stock(ticker) if lookup else None
+            if stock_obj:
+                data["stock_id"] = stock_obj.id
+                clean_name = (stock_obj.name or ticker).replace(".IS", "").strip()
+                data["company_name"] = clean_name
+                data["sector"] = getattr(stock_obj, "sector", "BIST") or "BIST"
 
-            # 2. Güncel Fiyatı Çek (Önce Canlı SQLite latest_price_repo, sonra DuckDB/Fallback)
+            # 2. Güncel Fiyatı Çek (Önce canlı fiyat önbelleği, sonra DuckDB/yedek)
             cur_price, d_diff = self._get_latest_price(ticker, stock_id=data["stock_id"])
             data["current_price"] = cur_price
             data["daily_diff"] = d_diff
@@ -375,7 +363,7 @@ class StockDetailController(QObject):
 
     def _get_latest_price(self, ticker: str, stock_id: Optional[int] = None) -> tuple[float, float]:
         """En güncel fiyatı ve dünkü kapanışa göre yüzdesel farkı döndürür."""
-        clean = _clean_ticker(ticker)
+        clean = clean_ticker(ticker)
         cur_price = 0.0
         diff = 0.0
 
@@ -391,62 +379,39 @@ class StockDetailController(QObject):
             except Exception as res_err:
                 logger.debug("current_price_resolver başarısız: %s", res_err)
 
-        # 1b. Eski yol: önce canlı portföy değerlendirme reposundan (latest_price_repo) fiyat çek
-        if self._container and stock_id:
-            if hasattr(self._container, "latest_price_repo"):
-                try:
-                    lp_map = self._container.latest_price_repo.get_latest_price_map([stock_id])
-                    if lp_map and stock_id in lp_map and lp_map[stock_id] is not None:
-                        cur_price = float(lp_map[stock_id])
-                except Exception as lp_err:
-                    logger.debug("latest_price_map alinamadi: %s", lp_err)
+        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
 
-            if cur_price > 0 and hasattr(self._container, "price_repo"):
-                try:
-                    prev = self._container.price_repo.get_last_price_before(stock_id, date.today())
-                    if prev and prev.close_price and float(prev.close_price) > 0:
-                        p_close = float(prev.close_price)
-                        diff = ((cur_price - p_close) / p_close) * 100.0
-                        return cur_price, diff
-                except Exception as p_err:
-                    logger.debug("prev price alinamadi: %s", p_err)
+        # 1b. Eski yol: önce canlı fiyat önbelleği (latest_prices), önceki kapanışa göre günlük değişim
+        if lookup is not None and stock_id:
+            live = lookup.get_latest_price_map([stock_id]).get(stock_id)
+            if live is not None:
+                cur_price = float(live)
+            if cur_price > 0:
+                prev_close = lookup.get_previous_close(stock_id)
+                if prev_close:
+                    p_close = float(prev_close)
+                    return cur_price, ((cur_price - p_close) / p_close) * 100.0
 
         # 2. DuckDB piyasa geçmişi (salt okunur depo; yalnızca geçerli kapanışlar)
-        history_repo = getattr(self._container, "market_history_repo", None) if self._container else None
-        if history_repo is not None:
-            try:
-                bars = history_repo.get_last_bars(clean, 2)
-                if bars:
-                    p1 = bars[0].close_price
-                    p2 = bars[1].close_price if len(bars) > 1 else p1
-                    d = ((p1 - p2) / p2 * 100.0) if p2 > 0 else 0.0
-                    if cur_price <= 0:
-                        cur_price = p1
-                    if diff == 0.0:
-                        diff = d
-                    return cur_price, diff
-            except Exception as duck_err:
-                logger.debug("DuckDB fiyat okuma atlandı: %s", duck_err)
+        if lookup is not None:
+            bars = lookup.get_last_market_bars(clean, 2)
+            if bars:
+                p1 = bars[0].close_price
+                p2 = bars[1].close_price if len(bars) > 1 else p1
+                d = ((p1 - p2) / p2 * 100.0) if p2 > 0 else 0.0
+                if cur_price <= 0:
+                    cur_price = p1
+                if diff == 0.0:
+                    diff = d
+                return cur_price, diff
 
-        # 3. Fallback: SQLite price_repo
-        if self._container and hasattr(self._container, "price_repo"):
-            try:
-                p_repo = self._container.price_repo
-                if stock_id:
-                    dp = p_repo.get_last_price_before(stock_id, date.today())
-                    if dp and dp.close_price:
-                        p = float(dp.close_price)
-                        if cur_price <= 0:
-                            cur_price = p
-                        return cur_price, diff
-                p_obj = p_repo.get_latest_price(clean) or p_repo.get_latest_price(f"{clean}.IS")
-                if p_obj and p_obj.close_price:
-                    p = float(p_obj.close_price)
-                    if cur_price <= 0:
-                        cur_price = p
-                    return cur_price, diff
-            except Exception:
-                pass
+        # 3. Yedek: SQLite günlük kapanışı
+        if lookup is not None:
+            close = lookup.get_previous_close(stock_id) if stock_id else lookup.get_latest_close(clean)
+            if close:
+                if cur_price <= 0:
+                    cur_price = float(close)
+                return cur_price, diff
 
         return cur_price, diff
 
@@ -464,12 +429,8 @@ class StockDetailController(QObject):
 
         # Toplam portföy değerini hesapla (Tekil toplu sorgu)
         stock_ids = [sid for sid, pos in portfolio.positions.items() if pos.total_quantity > 0]
-        lp_map = {}
-        if hasattr(self._container, "latest_price_repo") and stock_ids:
-            try:
-                lp_map = self._container.latest_price_repo.get_latest_price_map(stock_ids)
-            except Exception:
-                pass
+        lookup = getattr(self._container, "stock_lookup_service", None)
+        lp_map = lookup.get_latest_price_map(stock_ids) if lookup is not None else {}
 
         for sid, pos in portfolio.positions.items():
             if pos.total_quantity > 0:

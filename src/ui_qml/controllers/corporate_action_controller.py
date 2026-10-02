@@ -181,11 +181,11 @@ class CorporateActionController(QObject):
         empty = {"found": False, "ticker": _clean_ticker(ticker), "quantity": 0,
                  "avgCost": 0.0, "totalCost": 0.0, "currentPrice": 0.0}
         portfolio_service = self._svc("portfolio_service")
-        stock_repo = self._svc("stock_repo")
-        if portfolio_service is None or stock_repo is None:
+        lookup = self._svc("stock_lookup_service")
+        if portfolio_service is None or lookup is None:
             return empty
         try:
-            stock = self._resolve_stock(stock_repo, ticker)
+            stock = lookup.find_stock(_clean_ticker(ticker))
             if stock is None:
                 return empty
             position = portfolio_service.get_current_portfolio().active_positions.get(stock.id)
@@ -273,8 +273,8 @@ class CorporateActionController(QObject):
     ) -> None:
         action_id: Optional[int] = None
         try:
-            stock_repo = self._svc("stock_repo")
-            stock = self._resolve_stock(stock_repo, ticker) if stock_repo else None
+            lookup = self._svc("stock_lookup_service")
+            stock = lookup.find_stock(_clean_ticker(ticker)) if lookup else None
             if stock is None:
                 raise ValueError(f"Hisse bilgisi bulunamadı: {_clean_ticker(ticker)}")
 
@@ -343,13 +343,6 @@ class CorporateActionController(QObject):
         if success:
             self.portfolioChanged.emit()
             self.refreshCandidates()
-
-    @staticmethod
-    def _resolve_stock(stock_repo, ticker: str):
-        clean = _clean_ticker(ticker)
-        if not clean:
-            return None
-        return stock_repo.get_stock_by_ticker(f"{clean}.IS") or stock_repo.get_stock_by_ticker(clean)
 
     # ------------------------------------------------------------------ adaylar
 
@@ -442,10 +435,10 @@ class CorporateActionController(QObject):
             self.portfolioChanged.emit()
 
     def _stock_by_id(self, stock_id: Optional[int]):
-        stock_repo = self._svc("stock_repo")
-        if stock_repo is None or stock_id is None:
+        lookup = self._svc("stock_lookup_service")
+        if lookup is None or stock_id is None:
             return None
-        return stock_repo.get_stock_by_id(stock_id)
+        return lookup.get_stock(stock_id)
 
     @Slot(int)
     def ignoreCandidate(self, candidate_id: int) -> None:
@@ -480,8 +473,8 @@ class CorporateActionController(QObject):
             return
         try:
             clean = _clean_ticker(ticker)
-            stock_repo = self._svc("stock_repo")
-            stock = self._resolve_stock(stock_repo, clean) if stock_repo else None
+            lookup = self._svc("stock_lookup_service")
+            stock = lookup.find_stock(clean) if lookup else None
             kind = ActionType(action_type.upper())
             sub_price = _to_decimal(subscription_price)
             updated = CorporateActionCandidate(

@@ -15,29 +15,18 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import duckdb
 from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
 
 from config.settings_loader import persist_api_keys
-from src.infrastructure.db.paths import duckdb_path, sqlite_db_path
+from src.application.services.database.database_maintenance_service import DatabaseMaintenanceService
 
 logger = logging.getLogger(__name__)
 
-
-
-def _format_file_size(size_in_bytes: int) -> str:
-    if size_in_bytes < 1024:
-        return f"{size_in_bytes} B"
-    elif size_in_bytes < 1024 * 1024:
-        return f"{size_in_bytes / 1024:.1f} KB"
-    else:
-        return f"{size_in_bytes / (1024 * 1024):.2f} MB"
 
 
 class SettingsController(QObject):
@@ -86,8 +75,9 @@ class SettingsController(QObject):
 
         # Veritabanı Yolları
         configured = getattr(getattr(container, "db_config", None), "db_path", None) if container else None
-        self._sqlite_path = sqlite_db_path(configured if isinstance(configured, str) else None)
-        self._duckdb_path = duckdb_path(self._sqlite_path)
+        self._maintenance = DatabaseMaintenanceService.from_config(configured if isinstance(configured, str) else None)
+        self._sqlite_path = self._maintenance.sqlite_path
+        self._duckdb_path = self._maintenance.duckdb_path
 
         # İstatistik Değerleri
         self._sqlite_size = "0 B"
@@ -279,75 +269,7 @@ class SettingsController(QObject):
         self._executor.submit(self._run_db_stats_worker)
 
     def _run_db_stats_worker(self) -> None:
-        payload: Dict[str, Any] = {}
-
-        # 1. SQLite Taraması
-        try:
-            if self._sqlite_path.exists():
-                payload["sqlite_size"] = _format_file_size(self._sqlite_path.stat().st_size)
-                conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
-                cursor = conn.cursor()
-
-                tables = [
-                    ("Hisse Senetleri (Katalog)", "stocks"),
-                    ("Gerçekleşen İşlemler (Emirler)", "trades"),
-                    ("Nakit Hareketleri & Sermaye", "cash_movements"),
-                    ("İzleme Listeleri (Watchlist)", "watchlists"),
-                    ("Model Portföyler (Simülasyon)", "model_portfolios"),
-                    ("Finansal Hedefler (Planning)", "dca_goals"),
-                ]
-
-                table_stats = []
-                for label, tbl in tables:
-                    try:
-                        cursor.execute(f"SELECT COUNT(*) FROM {tbl}")
-                        count = cursor.fetchone()[0]
-                        table_stats.append({"name": label, "count": f"{count:,}".replace(",", ".")})
-                    except Exception:
-                        table_stats.append({"name": label, "count": "0"})
-
-                conn.close()
-                payload["sqlite_table_stats"] = table_stats
-            else:
-                payload["sqlite_size"] = "0 B (Dosya Yok)"
-                payload["sqlite_table_stats"] = []
-        except Exception as e:
-            logger.warning("SQLite istatistik hatası: %s", e)
-            payload["sqlite_size"] = "Hata"
-            payload["sqlite_table_stats"] = []
-
-        # 2. DuckDB Taraması
-        try:
-            if self._duckdb_path.exists():
-                payload["duckdb_size"] = _format_file_size(self._duckdb_path.stat().st_size)
-                conn_d = duckdb.connect(str(self._duckdb_path), read_only=True)
-                stock_count = conn_d.execute("SELECT COUNT(*) FROM bist_stocks").fetchone()[0]
-                total_bars = conn_d.execute("SELECT COUNT(*) FROM daily_prices").fetchone()[0]
-                max_date = conn_d.execute("SELECT MAX(price_date) FROM daily_prices").fetchone()[0]
-                conn_d.close()
-
-                payload["duckdb_stock_count"] = int(stock_count)
-                payload["duckdb_total_bars"] = f"{int(total_bars):,}".replace(",", ".")
-                if max_date:
-                    payload["duckdb_last_date"] = max_date.strftime("%d.%m.%Y") if hasattr(max_date, "strftime") else str(max_date)
-                else:
-                    payload["duckdb_last_date"] = "-"
-                payload["duckdb_is_up_to_date"] = True
-            else:
-                payload["duckdb_size"] = "0 B (Dosya Yok)"
-                payload["duckdb_stock_count"] = 0
-                payload["duckdb_total_bars"] = "0"
-                payload["duckdb_last_date"] = "-"
-                payload["duckdb_is_up_to_date"] = False
-        except Exception as e:
-            logger.warning("DuckDB istatistik hatası: %s", e)
-            payload["duckdb_size"] = "Hata"
-            payload["duckdb_stock_count"] = 0
-            payload["duckdb_total_bars"] = "0"
-            payload["duckdb_last_date"] = "-"
-            payload["duckdb_is_up_to_date"] = False
-
-        self._asyncStatsReady.emit(payload)
+        self._asyncStatsReady.emit(self._maintenance.collect_stats())
 
     def _on_stats_ready(self, payload: Dict[str, Any]) -> None:
         self._sqlite_size = payload.get("sqlite_size", "0 B")
@@ -427,27 +349,7 @@ class SettingsController(QObject):
         self._executor.submit(self._run_integrity_worker)
 
     def _run_integrity_worker(self) -> None:
-        errors = []
-        # SQLite
-        try:
-            conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
-            res = conn.execute("PRAGMA integrity_check;").fetchone()
-            conn.close()
-            if not res or res[0] != "ok":
-                errors.append(f"SQLite Bütünlük Sorunu: {res}")
-        except Exception as e:
-            errors.append(f"SQLite Kontrol Hatası: {e}")
-
-        # DuckDB
-        try:
-            conn_d = duckdb.connect(str(self._duckdb_path), read_only=True)
-            cnt = conn_d.execute("SELECT COUNT(*) FROM daily_prices").fetchone()[0]
-            conn_d.close()
-            if cnt <= 0:
-                errors.append("DuckDB: Tablo boş veya hasarlı.")
-        except Exception as e:
-            errors.append(f"DuckDB Kontrol Hatası: {e}")
-
+        errors = self._maintenance.check_integrity()
         if errors:
             self._asyncIntegrityFinished.emit(False, " | ".join(errors))
         else:
@@ -496,17 +398,7 @@ class SettingsController(QObject):
                 )
                 self._asyncExportFinished.emit(True, f"Kapsamlı portföy Excel raporu oluşturuldu:\n{target_file.name}")
             else:
-                import pandas as pd
-                conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
-                df_stocks = pd.read_sql_query("SELECT * FROM stocks", conn)
-                df_trades = pd.read_sql_query("SELECT * FROM trades ORDER BY trade_date DESC", conn)
-                df_cash = pd.read_sql_query("SELECT * FROM cash_movements ORDER BY movement_date DESC", conn)
-                conn.close()
-
-                with pd.ExcelWriter(str(target_file), engine="openpyxl") as writer:
-                    df_stocks.to_excel(writer, sheet_name="Mevcut Pozisyonlar", index=False)
-                    df_trades.to_excel(writer, sheet_name="İşlem Geçmişi", index=False)
-                    df_cash.to_excel(writer, sheet_name="Nakit Hareketleri", index=False)
+                self._maintenance.export_tables_to_excel(target_file)
 
                 self._asyncExportFinished.emit(True, f"Excel raporu oluşturuldu:\n{target_file.name}")
         except Exception as e:
@@ -528,17 +420,7 @@ class SettingsController(QObject):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             target_file = out_dir / f"PortfoySim_Yedek_{timestamp}.json"
 
-            import pandas as pd
-            conn = sqlite3.connect(str(self._sqlite_path), timeout=5)
-            backup_data = {
-                "version": "2.0.0",
-                "exported_at": datetime.now().isoformat(),
-                "stocks": pd.read_sql_query("SELECT * FROM stocks", conn).to_dict(orient="records"),
-                "trades": pd.read_sql_query("SELECT * FROM trades", conn).to_dict(orient="records"),
-                "cash_movements": pd.read_sql_query("SELECT * FROM cash_movements", conn).to_dict(orient="records"),
-                "watchlists": pd.read_sql_query("SELECT * FROM watchlists", conn).to_dict(orient="records"),
-            }
-            conn.close()
+            backup_data = self._maintenance.export_backup_data()
 
             with open(target_file, "w", encoding="utf-8") as f:
                 json.dump(backup_data, f, ensure_ascii=False, indent=2, default=str)

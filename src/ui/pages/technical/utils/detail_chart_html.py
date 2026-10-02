@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.golden_cross_event import CrossType, GoldenCrossEvent
-from src.ui.pages.comparison.utils.plotly_html import ensure_patched_plotly_js
+from src.application.services.reporting.html.plotly_html import ensure_patched_plotly_js
 
 _C = {
     "blue":   "#00D4FF",

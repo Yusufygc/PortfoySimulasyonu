@@ -88,8 +88,8 @@ def test_preview_floors_new_shares_and_flags_insufficient_lots():
 def _ca_container():
     container = MagicMock()
     stock = SimpleNamespace(id=7, ticker="THYAO.IS", name="THY")
-    container.stock_repo.get_stock_by_ticker.side_effect = lambda t: stock if t == "THYAO.IS" else None
-    container.stock_repo.get_stock_by_id.return_value = stock
+    container.stock_lookup_service.find_stock.side_effect = lambda t: stock if t == "THYAO" else None
+    container.stock_lookup_service.get_stock.return_value = stock
     container.current_price_resolver.price_map.return_value = {7: Decimal("300")}
     container.portfolio_service.get_first_trade_date.return_value = date(2025, 1, 2)
     container.backfill_service.backfill_for_single_stock.return_value = 42

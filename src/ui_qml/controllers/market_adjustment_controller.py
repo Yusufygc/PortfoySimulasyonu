@@ -74,10 +74,6 @@ class MarketAdjustmentController(QObject):
     def _service(self):
         return getattr(self._container, "market_corporate_action_service", None) if self._container else None
 
-    @property
-    def _store(self):
-        return getattr(self._container, "market_action_repo", None) if self._container else None
-
     # ------------------------------------------------------------------ properties
 
     @Property("QVariantList", notify=actionsChanged)
@@ -94,7 +90,7 @@ class MarketAdjustmentController(QObject):
 
     @Property(bool, constant=True)
     def serviceAvailable(self) -> bool:
-        return self._service is not None and self._store is not None
+        return self._service is not None
 
     def _set_busy(self, busy: bool) -> None:
         if self._is_busy != busy:
@@ -106,14 +102,14 @@ class MarketAdjustmentController(QObject):
     @Slot(str, str, int)
     def refresh(self, status: str, ticker_query: str, since_year: int) -> None:
         """Olayları listeler. status boşsa hepsi; since_year > 0 ise o yıldan itibaren; ticker_query alt metin arar."""
-        store = self._store
-        if store is None:
+        service = self._service
+        if service is None:
             self._actions, self._total = [], 0
             self.actionsChanged.emit()
             return
         try:
             wanted = MarketActionStatus(status) if status else None
-            rows = store.list_actions(status=wanted)
+            rows = service.list_actions(status=wanted)
         except Exception as exc:
             logger.exception("Piyasa düzeltmeleri okunamadı: %s", exc)
             rows = []
@@ -170,12 +166,12 @@ class MarketAdjustmentController(QObject):
     # ------------------------------------------------------------------ iç işleyiş
 
     def _set_status(self, ticker: str, effective_date: str, status: MarketActionStatus, message: str) -> None:
-        store, when = self._store, _parse_iso(effective_date)
-        if store is None or when is None:
+        service, when = self._service, _parse_iso(effective_date)
+        if service is None or when is None:
             self.notification.emit(False, "Geçersiz olay.")
             return
         try:
-            store.set_status(ticker, when, status)
+            service.set_status(ticker, when, status)
         except Exception as exc:
             self.notification.emit(False, f"İşlem başarısız: {exc}")
             return

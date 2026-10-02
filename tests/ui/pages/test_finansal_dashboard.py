@@ -71,7 +71,7 @@ def _make_metrics(ticker: str = "FROTO") -> dict:
 
 class TestBuildFinansalTabloPane:
     def test_contains_required_js_vars(self):
-        from src.ui.pages.financials.utils.finansal_tablo import build_finansal_tablo_pane
+        from src.application.services.reporting.html.financials_table import build_finansal_tablo_pane
         m = _make_metrics("FROTO")
         html = build_finansal_tablo_pane(m, 4)
         assert "const TICKER=" in html
@@ -82,20 +82,20 @@ class TestBuildFinansalTabloPane:
         assert "const DEFAULT_N=4" in html
 
     def test_raw_sections_serialized(self):
-        from src.ui.pages.financials.utils.finansal_tablo import build_finansal_tablo_pane
+        from src.application.services.reporting.html.financials_table import build_finansal_tablo_pane
         m = _make_metrics("THYAO")
         html = build_finansal_tablo_pane(m, 4)
         assert "Satışlar" in html
 
     def test_empty_raw_sections_does_not_crash(self):
-        from src.ui.pages.financials.utils.finansal_tablo import build_finansal_tablo_pane
+        from src.application.services.reporting.html.financials_table import build_finansal_tablo_pane
         m = _make_metrics()
         m["_raw_sections"] = {}
         html = build_finansal_tablo_pane(m, 4)
         assert "fin-tbl" in html
 
     def test_contains_table_and_controls(self):
-        from src.ui.pages.financials.utils.finansal_tablo import build_finansal_tablo_pane
+        from src.application.services.reporting.html.financials_table import build_finansal_tablo_pane
         html = build_finansal_tablo_pane(_make_metrics(), 4)
         assert "fin-thead" in html
         assert "pd-sel" in html
@@ -112,31 +112,31 @@ class TestBuildDashboard:
         js_file = tmp_path / "plotly.min.js"
         js_file.write_text("/* stub */")
         with patch(
-            "src.ui.pages.financials.utils.dashboard_html.ensure_patched_plotly_js",
+            "src.application.services.reporting.html.financials_dashboard.ensure_patched_plotly_js",
             return_value=str(js_file),
         ):
             yield
 
     def test_has_18_tabs(self):
-        from src.ui.pages.financials.utils.dashboard_html import build_dashboard
+        from src.application.services.reporting.html.financials_dashboard import build_dashboard
         html = build_dashboard(_make_metrics(), n_periods=4)
         assert html.count("class='tab-btn") == 18
 
     def test_finansal_tablo_is_first_tab(self):
-        from src.ui.pages.financials.utils.dashboard_html import build_dashboard
+        from src.application.services.reporting.html.financials_dashboard import build_dashboard
         html = build_dashboard(_make_metrics(), n_periods=4)
         ftablo_pos = html.index("'ftablo'")
         kpi_pos    = html.index("'kpi'")
         assert ftablo_pos < kpi_pos
 
     def test_offline_plotly_no_cdn(self):
-        from src.ui.pages.financials.utils.dashboard_html import build_dashboard
+        from src.application.services.reporting.html.financials_dashboard import build_dashboard
         html = build_dashboard(_make_metrics(), n_periods=4)
         assert "cdn.plot.ly" not in html
         assert "file:///" in html
 
     def test_returns_valid_html_string(self):
-        from src.ui.pages.financials.utils.dashboard_html import build_dashboard
+        from src.application.services.reporting.html.financials_dashboard import build_dashboard
         html = build_dashboard(_make_metrics(), n_periods=4)
         assert html.startswith("<!DOCTYPE html>")
         assert "</html>" in html
@@ -148,49 +148,49 @@ class TestBuildDashboard:
 
 class TestNewChartFunctions:
     def test_chart_net_borc_returns_figure(self):
-        from src.ui.pages.financials.utils.charts import _chart_net_borc
+        from src.application.services.reporting.html.financials_charts import _chart_net_borc
         import plotly.graph_objects as go
         assert isinstance(_chart_net_borc(_make_metrics(), 4), go.Figure)
 
     def test_chart_waterfall_returns_figure(self):
-        from src.ui.pages.financials.utils.charts import _chart_waterfall
+        from src.application.services.reporting.html.financials_charts import _chart_waterfall
         import plotly.graph_objects as go
         assert isinstance(_chart_waterfall(_make_metrics(), 4), go.Figure)
 
     def test_chart_waterfall_empty_periods(self):
-        from src.ui.pages.financials.utils.charts import _chart_waterfall
+        from src.application.services.reporting.html.financials_charts import _chart_waterfall
         m = _make_metrics(); m["periods"] = []
         fig = _chart_waterfall(m, 4)
         assert fig is not None
 
     def test_chart_fcf_vs_netkar_returns_figure(self):
-        from src.ui.pages.financials.utils.charts import _chart_fcf_vs_netkar
+        from src.application.services.reporting.html.financials_charts import _chart_fcf_vs_netkar
         import plotly.graph_objects as go
         assert isinstance(_chart_fcf_vs_netkar(_make_metrics(), 4), go.Figure)
 
     def test_chart_nakit_akis_returns_figure(self):
-        from src.ui.pages.financials.utils.charts import _chart_nakit_akis
+        from src.application.services.reporting.html.financials_charts import _chart_nakit_akis
         import plotly.graph_objects as go
         assert isinstance(_chart_nakit_akis(_make_metrics(), 4), go.Figure)
 
     def test_chart_heatmap_returns_figure(self):
-        from src.ui.pages.financials.utils.charts import _chart_heatmap
+        from src.application.services.reporting.html.financials_charts import _chart_heatmap
         import plotly.graph_objects as go
         assert isinstance(_chart_heatmap(_make_metrics(), 4), go.Figure)
 
     def test_chart_bedelsiz_returns_figure(self):
-        from src.ui.pages.financials.utils.charts import _chart_bedelsiz
+        from src.application.services.reporting.html.financials_charts import _chart_bedelsiz
         import plotly.graph_objects as go
         assert isinstance(_chart_bedelsiz(_make_metrics(), 4), go.Figure)
 
     def test_chart_satis_breakdown_empty_data(self):
-        from src.ui.pages.financials.utils.charts import _chart_satis_breakdown
+        from src.application.services.reporting.html.financials_charts import _chart_satis_breakdown
         import plotly.graph_objects as go
         fig = _chart_satis_breakdown(_make_metrics(), 4)
         assert isinstance(fig, go.Figure)
 
     def test_chart_satis_breakdown_with_data(self):
-        from src.ui.pages.financials.utils.charts import _chart_satis_breakdown
+        from src.application.services.reporting.html.financials_charts import _chart_satis_breakdown
         import plotly.graph_objects as go
         m = _make_metrics()
         for p in m["periods"]:
@@ -200,7 +200,7 @@ class TestNewChartFunctions:
         assert isinstance(_chart_satis_breakdown(m, 4), go.Figure)
 
     def test_bedelsiz_ef_info_enflasyon_true(self):
-        from src.ui.pages.financials.utils.charts import _bedelsiz_ef_info
+        from src.application.services.reporting.html.financials_charts import _bedelsiz_ef_info
         m = _make_metrics()
         m["enflasyon_duzeltildi"]["2024/3"] = True
         subtitle, color = _bedelsiz_ef_info(m, "2024/3")
@@ -208,6 +208,6 @@ class TestNewChartFunctions:
         assert color == "#22c55e"
 
     def test_bedelsiz_ef_info_enflasyon_false(self):
-        from src.ui.pages.financials.utils.charts import _bedelsiz_ef_info
+        from src.application.services.reporting.html.financials_charts import _bedelsiz_ef_info
         _, color = _bedelsiz_ef_info(_make_metrics(), "2024/3")
         assert color == "#f97316"

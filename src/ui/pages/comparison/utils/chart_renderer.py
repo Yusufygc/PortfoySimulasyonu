@@ -20,7 +20,7 @@ from src.qt_compat.qtwidgets import QTableWidgetItem
 
 from src.application.services.analysis.comparison_service import ComparisonService
 from src.ui.pages.comparison.chart_factory import ComparisonChartFactory
-from src.ui.pages.comparison.utils.plotly_html import build_plotly_html, ensure_patched_plotly_js
+from src.application.services.reporting.html.plotly_html import build_plotly_html, ensure_patched_plotly_js
 from src.ui.worker import Worker
 
 if TYPE_CHECKING:

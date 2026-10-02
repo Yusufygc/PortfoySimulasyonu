@@ -13,7 +13,7 @@ from src.qt_compat.qtwidgets import (
 )
 from src.ui.pages.base_page import BasePage
 from src.ui.pages.financials.panels.financials_chart_panel import FinancialsChartPanel
-from src.ui.pages.shareholders.utils.dashboard_html import build_dashboard
+from src.application.services.reporting.html.shareholders_dashboard import build_dashboard
 from src.ui.shared.locale_tr import L10N
 from src.ui.worker import Worker
 
