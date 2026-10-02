@@ -64,8 +64,8 @@ Rectangle {
 
             // SOL KONTROL PANELİ
             Rectangle {
-                Layout.preferredWidth: 320
-                Layout.minimumWidth: 280
+                Layout.preferredWidth: 290
+                Layout.minimumWidth: 270
                 Layout.fillHeight: true
                 radius: Theme.radiusMd
                 color: Theme.bgCard
@@ -73,14 +73,17 @@ Rectangle {
                 border.width: 1
 
                 ScrollView {
+                    id: leftScroll
                     anchors.fill: parent
                     anchors.margins: Theme.spaceMd
                     clip: true
                     ScrollBar.vertical: ModernScrollBar {}
 
                     ColumnLayout {
-                        width: parent.width
-                        spacing: Theme.spaceMd
+                        id: leftCol
+                        width: leftScroll.availableWidth
+                        anchors.verticalCenter: (implicitHeight < leftScroll.availableHeight) ? leftScroll.verticalCenter : undefined
+                        spacing: 14
 
                         // Başlık
                         Text {
@@ -88,7 +91,8 @@ Rectangle {
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
-                            font.weight: Font.DemiBold
+                            font.weight: Font.Bold
+                            font.letterSpacing: 0.5
                         }
 
                         Rectangle {
@@ -113,7 +117,7 @@ Rectangle {
                             ComboBox {
                                 id: portCombo
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 36
+                                Layout.preferredHeight: 38
                                 model: optimizationController.portfolioOptions
                                 textRole: "label"
 
@@ -167,7 +171,7 @@ Rectangle {
 
                                 delegate: ItemDelegate {
                                     width: portCombo.width
-                                    height: 32
+                                    height: 36
                                     highlighted: portCombo.highlightedIndex === index
 
                                     contentItem: Text {
@@ -210,7 +214,7 @@ Rectangle {
                             ComboBox {
                                 id: riskCombo
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 36
+                                Layout.preferredHeight: 38
                                 model: optimizationController.riskProfileOptions
                                 textRole: "label"
 
@@ -264,7 +268,7 @@ Rectangle {
 
                                 delegate: ItemDelegate {
                                     width: riskCombo.width
-                                    height: 32
+                                    height: 36
                                     highlighted: riskCombo.highlightedIndex === index
 
                                     contentItem: Text {
@@ -310,8 +314,8 @@ Rectangle {
                                 Item { Layout.fillWidth: true }
 
                                 Rectangle {
-                                    width: weightValText.width + 12
-                                    height: 22
+                                    width: weightValText.width + 16
+                                    height: 24
                                     radius: Theme.radiusXs
                                     color: Theme.accentSoft
 
@@ -321,7 +325,7 @@ Rectangle {
                                         text: "%" + Math.round(optimizationController.maxSingleWeight)
                                         color: Theme.accent
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
+                                        font.pixelSize: Theme.fontSm
                                         font.weight: Font.Bold
                                     }
                                 }
@@ -360,8 +364,8 @@ Rectangle {
                                 Item { Layout.fillWidth: true }
 
                                 Rectangle {
-                                    width: rfValText.width + 12
-                                    height: 22
+                                    width: rfValText.width + 16
+                                    height: 24
                                     radius: Theme.radiusXs
                                     color: Theme.bgSecondary
                                     border.color: Theme.borderSubtle
@@ -373,7 +377,7 @@ Rectangle {
                                         text: "%" + Math.round(optimizationController.riskFreeRate)
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
+                                        font.pixelSize: Theme.fontSm
                                         font.weight: Font.DemiBold
                                     }
                                 }
@@ -400,28 +404,28 @@ Rectangle {
                             color: Theme.bgSecondary
                             border.color: Theme.borderSubtle
                             border.width: 1
-                            implicitHeight: infoCol.implicitHeight + 16
+                            implicitHeight: infoCol.implicitHeight + 20
 
                             ColumnLayout {
                                 id: infoCol
                                 anchors.left: parent.left
                                 anchors.right: parent.right
                                 anchors.top: parent.top
-                                anchors.margins: 8
-                                spacing: 4
+                                anchors.margins: 10
+                                spacing: 6
 
                                 RowLayout {
                                     spacing: 6
                                     ModernIcon {
                                         name: "info"
-                                        size: 13
+                                        size: 14
                                         color: Theme.accent
                                     }
                                     Text {
                                         text: "Modern Portföy Teorisi (MPT)"
                                         color: Theme.accent
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
+                                        font.pixelSize: Theme.fontSm
                                         font.weight: Font.DemiBold
                                     }
                                 }
@@ -432,13 +436,11 @@ Rectangle {
                                     text: "Ledoit-Wolf kovaryans daraltması ve SciPy SLSQP çözücüsü ile portföyün risk başına getirisini (Sharpe) maksimize eder."
                                     color: Theme.textMuted
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 11
-                                    lineHeight: 1.25
+                                    font.pixelSize: 12
+                                    lineHeight: 1.3
                                 }
                             }
                         }
-
-                        Item { Layout.fillHeight: true }
 
                         // Durum Mesajı
                         Rectangle {
@@ -448,12 +450,12 @@ Rectangle {
                             color: optimizationController.hasResults ? Theme.bullGreenSoft : (optimizationController.statusMessage.indexOf("Hata") !== -1 ? Theme.bearRedSoft : Theme.warningYellowSoft)
                             border.color: optimizationController.hasResults ? Theme.bullGreen : (optimizationController.statusMessage.indexOf("Hata") !== -1 ? Theme.bearRed : Theme.warningYellow)
                             border.width: 1
-                            implicitHeight: statusText.implicitHeight + 16
+                            implicitHeight: statusText.implicitHeight + 18
 
                             Text {
                                 id: statusText
                                 anchors.fill: parent
-                                anchors.margins: 8
+                                anchors.margins: 10
                                 wrapMode: Text.WordWrap
                                 text: optimizationController.statusMessage
                                 color: optimizationController.hasResults ? Theme.bullGreen : (optimizationController.statusMessage.indexOf("Hata") !== -1 ? Theme.bearRed : Theme.warningYellow)
@@ -466,25 +468,25 @@ Rectangle {
                         // Çalıştır Butonu
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 42
+                            height: 48
                             radius: Theme.radiusSm
                             color: btnRunMouse.containsMouse ? Theme.accentHover : Theme.accent
                             opacity: optimizationController.isLoading ? 0.7 : 1.0
 
                             RowLayout {
                                 anchors.centerIn: parent
-                                spacing: Theme.spaceXs
+                                spacing: Theme.spaceSm
 
                                 ModernIcon {
                                     name: "refresh"
                                     color: Theme.textInverse
-                                    size: 16
+                                    size: 18
                                     visible: !optimizationController.isLoading
                                 }
 
                                 BusyIndicator {
-                                    width: 18
-                                    height: 18
+                                    width: 20
+                                    height: 20
                                     running: optimizationController.isLoading
                                     visible: optimizationController.isLoading
                                 }
