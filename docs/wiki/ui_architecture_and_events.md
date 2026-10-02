@@ -2,6 +2,8 @@
 
 > Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
 
+> **Not (2026-10-03):** Eski Qt Widgets arayüzü (`src/ui`) kaldırıldı. Arayüz yalnızca QML'dir (`src/ui_qml`). Bu belgedeki `src/ui` tabanlı anlatım tarihsel kayıttır; güncel kurallar için `ui_architecture_and_events.md` sonundaki "QML Katman Kuralları" bölümüne bakın.
+
 Bu belge, `src/ui/` dizini altındaki PySide6 bileşenleri, `src/qt_compat` uyumluluk katmanı, yönlendirme, asenkron iletişim ve tema mimarisini açıklar.
 
 ## 1. PySide6 Thread ve Worker Yapısı

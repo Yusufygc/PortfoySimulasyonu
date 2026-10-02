@@ -18,7 +18,7 @@
 | [service_planning_optimization.md](service_planning_optimization.md) | Markowitz optimizasyonu, SciPy, ağırlık kısıtları ve risk anketi |
 | [service_portfolio_and_market.md](service_portfolio_and_market.md) | Event-sourcing portföy hesaplaması, YFinance veri çekimi ve tatil takvimi |
 | [service_simulation.md](service_simulation.md) | Tarihsel backtest (simülasyon) altyapısı, snapshot üretimi ve uç vakalar |
-| [ui_architecture_and_events.md](ui_architecture_and_events.md) | PySide6 arayüz mimarisi, Qt compat katmanı, Worker yapıları, Global Event Bus ve QSS Tema Yöneticisi |
+| [ui_architecture_and_events.md](ui_architecture_and_events.md) | QML arayüz mimarisi (`src/ui_qml`), Qt compat katmanı, katman kuralları, Global Event Bus (eski widget arayüzü kaldırıldı) |
 | [pyside6_migration_analysis.md](pyside6_migration_analysis.md) | PyQt5 tabanlı masaüstü uygulamasını PySide6'ya taşımak için modüler analiz, risk matrisi ve faz planı |
 | [code_quality_guardrails.md](code_quality_guardrails.md) | Sağlık raporu sonrası ölçüm script'i, eşikler, istisna protokolü ve refactor guardrail'leri |
 | [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Yorum, boş satır ve docstring ayrıştırmalı kod kalitesi baseline raporu |
@@ -59,7 +59,7 @@ Comparison Lab geliştirme sürecinde takip edilen teknik şartnameler ve uygula
 
 ## 🌐 Proje Genel Bakış
 
-**Portföy Simülasyonu** — PySide6 masaüstü portföy yönetim uygulaması.
+**Portföy Simülasyonu** — PySide6 + QML masaüstü portföy yönetim uygulaması.
 
 - YFinance ile gerçek zamanlı fiyat takibi
 - Markowitz optimizasyonu (SciPy + Ledoit-Wolf)

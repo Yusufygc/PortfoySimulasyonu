@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
 
-Bu belge, `src/ui/pages/ai_page/` ve ilgili servisler altındaki yapay zeka asistanı entegrasyonunu kapsar.
+Bu belge, `src/ui_qml` (AiAdvisorView, ModelAnalysisPanel) ve ilgili servisler altındaki yapay zeka asistanı entegrasyonunu kapsar. Eski `src/ui/pages/ai_page/` kaldırıldı; aşağıdaki widget anlatımı tarihsel kayıttır.
 
 ## 1. Temel İşlev ve AI Core
 

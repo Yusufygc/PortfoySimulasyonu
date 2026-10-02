@@ -41,7 +41,6 @@ THRESHOLDS = {
     "function_effective_lines": 50,
     "function_effective_params": 5,
     "function_complexity": 10,
-    "ui_page_file_effective_lines": 400,
 }
 
 
@@ -247,15 +246,7 @@ def function_violations(record: dict[str, object]) -> list[str]:
 
 
 def file_violations(record: dict[str, object]) -> list[str]:
-    path = str(record["path"])
-    violations: list[str] = []
-    if (
-        path.startswith("src/ui/pages/")
-        and path.endswith("_page.py")
-        and int(record["effective_code_lines"]) > THRESHOLDS["ui_page_file_effective_lines"]
-    ):
-        violations.append("ui_page_file_effective_lines")
-    return violations
+    return []
 
 
 def parent_map(tree: ast.AST) -> dict[ast.AST, ast.AST]:

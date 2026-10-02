@@ -24,7 +24,7 @@ Yeni bir oturum açıldığında sırasıyla şu adımları uygulayın:
    *(Beklenen sonuç: 80/80 test %100 yeşil, ~14 saniye).*
 4. **Uygulamayı QML Modunda Başlatma:**
    ```powershell
-   .\venv\Scripts\python.exe app.py --ui=qml
+   .\venv\Scripts\python.exe app.py
    ```
 5. **Çift Motorlu Hibrit Veritabanı Mimarisi (SQLite + DuckDB):**
    * **İşlemsel Veritabanı (OLTP):** `data/portfolio.db` (SQLite, ~5 MB). Kullanıcı portföyleri, açık pozisyonlar, emirler, nakit hareketleri, izleme listeleri, model portföyler, bütçe/hedef kayıtları ve KAP ortaklık önbelleğini tutar. Sıfır harici servis bağımlılığıyla çalışır.
@@ -275,7 +275,7 @@ sıradaki aşama olan "FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Front
 
 ## 8. Önemli Dosya, Dizin ve Kod Referansları
 
-* **Giriş Noktası:** `app.py` (`--ui=qml` argümanı ile `src/ui_qml/app.py` çalıştırılır).
+* **Giriş Noktası:** `app.py` (doğrudan `src/ui_qml/app.py` çalıştırılır; eski `--ui=qml` bayrağı kaldırıldı).
 * **Veritabanları:**
   - SQLite: `data/portfolio.db` (Kişisel portföy, işlemler, bütçe).
   - DuckDB: `data/market_history.duckdb` (624 BIST hissesi, 2.238.543 bar, 2000-2026).

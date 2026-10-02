@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] sil | Eski Qt Widgets Arayüzü (`src/ui`) Kaldırıldı
+
+- **Kaldırılanlar:** `src/ui` (sayfalar, widget'lar, QSS stilleri, tema yöneticisi, `L10N`), `tests/ui` (eski arayüz testleri), `scripts/migrate_ui_strings.py` (L10N göç betiği).
+- **Giriş noktası:** `app.py` artık doğrudan QML arayüzünü açar (`run_qml_app`). `--ui=qml` bayrağı ve `PORTFOYSIM_UI` ortam değişkeni kaldırıldı; AppContainer kurulamazsa arayüz çevrimdışı modda açılır.
+- **Korunan testler taşındı:** HTML üretici testleri `tests/application/reporting_html/`, Qt ölçek testi `tests/qt_compat/`; ağ çağrısı koruması ve giriş noktası testleri `tests/test_repo_guards.py` içinde. Yeni test `src/ui` paketinin ve ona yapılan importların geri gelmemesini denetler.
+- **Betikler:** `fix_technical_analysis.py` son işlem günü için `price_update_service` kullanır; `measure_code_quality.py` içindeki `src/ui/pages` sayfa boyutu kuralı kaldırıldı.
+- **Dokümanlar:** CLAUDE.md, ARCHITECTURE_GATES.md, README.md ve ilgili wiki sayfaları QML'e göre güncellendi; tarihsel wiki anlatımları (comparison_lab, ui_architecture_and_events, ai_integration) üstte not bırakılarak korundu.
+- Silinen her şey git geçmişinde durur (`git log -- src/ui`); önceki commit'ten geri alınabilir.
+
+---
 ## [2026-10-03] ekle | Eski Arayüzde Olup QML'de Eksik Kalan Özellikler Tamamlandı
 
 Eski `src/ui` ile QML karşılaştırması sonunda bulunan 7 eksik giderildi:

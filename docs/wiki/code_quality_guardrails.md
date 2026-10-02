@@ -45,7 +45,7 @@ UI page sınıfları yalnız sayfa iskeleti, signal wiring ve servis/panel bağl
 - Worker orchestration
 - Dialog içi validasyon ve çok adımlı form akışı
 
-Bu davranışlar `widgets/`, `panels/`, `utils/` veya sayfaya özel alt modüllere taşınır. Kullanıcıya görünen metinler `src/ui/shared/locale_tr.py` içindeki `L10N` üzerinden gelir.
+Bu davranışlar `widgets/`, `panels/`, `utils/` veya sayfaya özel alt modüllere taşınır. Kullanıcıya görünen metinler `src/ui_qml/qml/theme/Strings.qml` içindeki `Strings` üzerinden gelir.
 
 ## Application Service Facade Standardı
 
@@ -63,6 +63,6 @@ Application servisleri public API'yi koruyan ince facade olarak kalmalıdır. A�
 
 1. Ölçüm script'ini çalıştır.
 2. Değiştirilecek dosyada mevcut eşik ihlali varsa önce refactor dilimini planla.
-3. Yeni kullanıcı metinlerini `L10N` içine ekle.
+3. Yeni kullanıcı metinlerini `Strings.qml` içine ekle.
 4. Katman sınırlarını koru; UI doğrudan HTTP/SDK/client import etmez.
 5. Hedefli testleri ve sonunda tam `pytest tests -q` komutunu çalıştır.

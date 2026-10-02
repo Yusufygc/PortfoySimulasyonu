@@ -183,7 +183,7 @@ Proje Clean Architecture prensipleriyle yapılandırılmıştır. Bağımlılık
 
 ```mermaid
 flowchart LR
-    UI["UI Katmanı\nPyQt5, QSS, Paneller, Worker"] --> APP["Application Katmanı\nServisler, DI Container, EventBus"]
+    UI["UI Katmanı\nPySide6 + QML, Denetleyiciler"] --> APP["Application Katmanı\nServisler, DI Container, EventBus"]
     APP --> DOMAIN["Domain Katmanı\nModeller, Portlar, İş Kuralları"]
     INFRA["Infrastructure Katmanı\nSQLAlchemy, Market Data, Logging"] --> DOMAIN
     APP --> INFRA
@@ -194,7 +194,7 @@ flowchart LR
 | Domain | Saf iş modelleri ve port arayüzleri | `Portfolio`, `Trade`, `Position`, repository portları |
 | Application | Use case orkestrasyonu ve hesaplama servisleri | analiz, optimizasyon, simülasyon, raporlama |
 | Infrastructure | Veritabanı, dış veri kaynakları, logging | SQLAlchemy repository, YFinance, benchmark provider |
-| UI | Kullanıcı arayüzü ve etkileşim akışları | PyQt sayfaları, paneller, QSS, worker |
+| UI | Kullanıcı arayüzü ve etkileşim akışları | QML görünümleri, Python denetleyiciler (`src/ui_qml`) |
 
 ### Dependency Injection ve Container
 
@@ -268,7 +268,7 @@ Test suite; domain, application, infrastructure ve UI katmanlarını dış API b
 | `tests/domain` | Domain modelleri, trade ve portföy hesap kuralları | Veritabanı veya dış sistem mocklanmaz. Saf matematiksel hesaplamalar test edilir. |
 | `tests/application` | Analiz, optimizasyon, simülasyon ve servis davranışları | `pytest-mock` (mocker) ile YFinance ve veritabanı Repoları mocklanır. API Limitsiz çalışır. |
 | `tests/infrastructure` | ORM şeması, repository ve ayar yükleyici kontrolleri | Test veritabanı (SQLite). |
-| `tests/ui` | PyQt sayfaları, AI panelleri ve QSS | `pytest-qt` eklentisi kullanılarak widget davranışları ve EventBus tetiklemeleri denenir. |
+| `tests/ui_qml` | QML görünümleri ve denetleyiciler | Denetleyici davranışı, QML derleme/uyarı kontrolü, katman ve metin koruma testleri. |
 
 Ayrıca projenin `conftest.py` dosyasında, her testin tekrar tekrar portföy yaratmasını engelleyen "Ortak Fixture (Shared Fixture)" modelleri kurgulanmıştır.
 
@@ -436,7 +436,7 @@ Sistem, bozuk trade'leri (eksik nakit veya sıfır lot altına düşme durumu) e
 | `src/domain` | Domain modelleri ve port arayüzleri |
 | `src/application` | Use case servisleri, DI container, simülasyon, analiz, raporlama |
 | `src/infrastructure` | SQLAlchemy, market data provider, logging |
-| `src/ui` | PyQt5 sayfaları, paneller, widget'lar ve QSS stilleri |
+| `src/ui_qml` | QML görünümleri, bileşenler, tema/metin singleton'ları ve Python denetleyiciler |
 | `tests` | Domain, application, infrastructure ve UI testleri |
 | `icons` | Uygulama ve README ikonları |
 | `RULES.md` | Kalite, refactor, test ve commit kuralları |

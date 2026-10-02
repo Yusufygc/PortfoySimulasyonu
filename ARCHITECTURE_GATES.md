@@ -14,9 +14,9 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 - UI page sınıfları (dosya limiti: 400 satır, yorumlar hariç) yalnızca layout ve wiring sorumluluğu taşır. Tablo doldurma, rapor formatlama, worker orchestration, tema kartı ve reset onayı gibi alt davranışlar panel/component sınıflarına taşınır.
 - Application servisleri doğrudan dış API/client çağırmaz. Dış kaynaklar adapter/provider interface üzerinden kullanılır.
 - `except Exception` ancak hata loglandığında, kullanıcıya anlamlı sonuç döndürüldüğünde ve ilgili davranış testle kapatıldığında kabul edilir.
-- PySide6 global `QApplication` ayarları canlı widget varken yeniden uygulanmaz. Tema değişiminde QSS güvenli kabul edilir; font ve global state değişimi kontrollü yapılır.
+- PySide6 global `QApplication` ayarları çalışan arayüz varken yeniden uygulanmaz. Tema değişimi `Theme.qml` singleton'ı üzerinden yapılır; font ve global state değişimi kontrollü yapılır.
 - Her production bug fix önce kırmızı testi kanıtlar, sonra fix ve tam test koşumu ile kapanır.
-- Kullanıcıya gösterilen arayüz metinlerinde Türkçe karakterlerin doğru kullanımı zorunludur. Arayüz dosyalarındaki sabit metinler doğrudan koda gömülmemeli, `src/ui/shared/locale_tr.py` (`L10N` sınıfı) altından çağrılmalıdır.
+- Kullanıcıya gösterilen arayüz metinlerinde Türkçe karakterlerin doğru kullanımı zorunludur. Arayüz dosyalarındaki sabit metinler doğrudan QML'e gömülmemeli, `src/ui_qml/qml/theme/Strings.qml` (`Strings` singleton) altından çağrılmalıdır. `tests/ui_qml/test_strings_catalog.py` bunu denetler.
 
 ---
 
@@ -55,7 +55,7 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 | [src/domain/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/domain/) | Saf domain modelleri, dış bağımlılık yasak |
 | [src/application/services/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/application/services/) | İş mantığı servisleri |
 | [src/infrastructure/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/infrastructure/) | DB, API adaptörleri |
-| [src/ui/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/) | PySide6 sayfalar ve widget'lar |
+| [src/ui_qml/](src/ui_qml/) | QML görünümleri ve Python denetleyiciler |
 | [tests/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/tests/) | Mirror yapı: tests/domain/, tests/application/, tests/ui/ |
 | [scripts/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/scripts/) | Tek seferlik migration ve bakım script'leri |
 | [docs/wiki/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/docs/wiki/) | Kalıcı bilgi tabanı (bkz. [RULES.md §1](RULES.md)) |

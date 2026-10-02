@@ -40,7 +40,8 @@ Faz 4 UI refactor'larında aşağıdaki test yüzeyleri zorunlu kabul edilir:
 - `tests/ui/test_worker.py`: ortak `Worker` success/error/finished sinyal sırası.
 - `tests/application/test_event_bus.py`: `GlobalEventBus` import ve `prices_updated` signal sözleşmesi.
 - `tests/ui/test_price_event_publisher.py`: boş fiyat payload'unun emit edilmemesi ve Decimal fiyatların korunması.
-- `tests/ui/test_style_manifest.py`: QSS manifest sağlığı, token çözümleme ve inline stylesheet guard.
+- `tests/ui_qml/`: denetleyici davranışı, QML derleme/uyarı kontrolü, `test_architecture_guards.py` (katman kuralları) ve `test_strings_catalog.py` (metin kataloğu).
+- `tests/test_repo_guards.py`: canlı ağ çağrısı yasağı, `src/ui` paketinin geri gelmemesi ve QML giriş noktası.
 - İlgili sayfa testleri: dashboard, comparison, analysis, stock detail, settings, model portfolio.
 
 Refactor sonunda hızlı doğrulama `tests/ui -q`, tam doğrulama ise `tests -q` ile yapılır. `.pytest_cache` permission warning bilinen ortam uyarısıdır; test sonucunu failed yapmadığı sürece blocker değildir.
@@ -57,7 +58,7 @@ Faz 5 ile test altyapısı davranış değiştirmeden sertleştirildi:
 
 Kalite guard'ları `tests/ui/test_refactor_guards.py` altındadır:
 
-- `src/ui` içinde özel `QThread` sınıfı veya importu yoktur.
+- `src/ui_qml` içinde `src.ui`, `src.infrastructure`, `sqlite3`, `duckdb` veya `sqlalchemy` importu ve doğrudan repository erişimi yoktur.
 - UI fiyat event yayını doğrudan `prices_updated.emit` ile değil `publish_prices_updated` helper'ı ile yapılır.
 - UI büyük sınıf eşiği için yalnız belgelenmiş geçici istisnalar kabul edilir. Sağlık raporu sonrası güncel liste `tests/ui/test_refactor_guards.py` ve [code_quality_guardrails.md](code_quality_guardrails.md) üzerinden izlenir.
 - Kod kalitesi baseline guard'ı `scripts/measure_code_quality.py` ile üretilir; [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) yorum, boş satır ve docstring ayrıştırmalı başlangıç metriğidir.

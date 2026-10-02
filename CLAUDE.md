@@ -23,18 +23,18 @@ Bu projedeki tüm kurallar, süreçler ve yönergeler için bkz:
 - Mimari karar, yeni özellik veya önemli hata çözümü → ilgili wiki sayfası güncellenir + `log.md`'ye eklenir.
 - Tüm commit mesajları Türkçe, detaylı gövde ile yazılır (`güncelle:`, `ekle:`, `düzelt:` vb.).
 - Büyük sınıf/fonksiyon eşiklerinde refactor zorunluluğu ve tam test koşumu için `ARCHITECTURE_GATES.md` içindeki kalite kapıları takip edilir.
-- Arayüzdeki (UI) tüm kullanıcı metinlerinde doğru Türkçe karakterler kullanılmalı ve bu metinler `src/ui/shared/locale_tr.py` (`L10N`) içinde yönetilmelidir.
+- Arayüzdeki (UI) tüm kullanıcı metinlerinde doğru Türkçe karakterler kullanılmalı ve bu metinler `src/ui_qml/qml/theme/Strings.qml` (`Strings` singleton) içinde yönetilmelidir.
 
 ---
 
 ## Proje Özeti
 
-**Portföy Simülasyonu** — BIST ve küresel hisseleri takip eden PySide6 masaüstü uygulaması.  
+**Portföy Simülasyonu** — BIST ve küresel hisseleri takip eden PySide6 + QML masaüstü uygulaması.  
 Markowitz optimizasyonu, risk profili analizi, backtest simülasyonu, Excel raporlama ve AI destekli analiz içerir.
 
 | Katman | Teknoloji |
 |--------|-----------|
-| UI | PySide6, QSS theming, pyqtgraph |
+| UI | PySide6 + QML (Qt Quick), TradingView Lightweight Charts, Plotly (WebEngine) |
 | Uygulama Mantığı | Python 3.10+, DI Container |
 | Veritabanı | SQLite (OLTP) + DuckDB (piyasa geçmişi, OLAP) / SQLAlchemy ORM |
 | Piyasa Verisi | YFinance |
@@ -56,7 +56,7 @@ UI  →  Application  →  Infrastructure  →  Domain
 - **Domain** (`src/domain/`): Saf iş modelleri ve port arayüzleri. Hiçbir dış bağımlılık yok.
 - **Application** (`src/application/`): Servisler, DI container (`container.py`), EventBus (Pub/Sub).
 - **Infrastructure** (`src/infrastructure/`): SQLAlchemy repository'ler, YFinanceClient, logger.
-- **UI** (`src/ui/`): PySide6 sayfalar, ThemeManager, PageFactory, QThread Worker.
+- **UI** (`src/ui_qml/`): QML görünümleri (`qml/`), Python denetleyiciler (`controllers/`), `Strings.qml` metin kataloğu. Denetleyiciler yalnızca application/domain katmanına bağlanır.
 
 Detay için bkz. [docs/wiki/architecture.md](docs/wiki/architecture.md).
 
@@ -135,7 +135,7 @@ GEMINI_API_KEY=your_gemini_key
 
 1. **Servis:** `src/domain/ports/` → interface → `src/application/services/` → impl → `container.py` kaydı
 2. **Repository:** `src/domain/ports/repositories/` → ORM modeli → `src/infrastructure/db/sqlalchemy/repositories/` → `container.py`
-3. **UI Sayfası:** `BasePage` alt sınıfı → `page_factory.py` kaydı → `MainWindow` yönlendirme
+3. **UI Sayfası:** `src/ui_qml/controllers/` altında denetleyici → `src/ui_qml/app.py` içinde context property kaydı → `qml/views/` görünümü → `Sidebar.qml` / `Main.qml` yönlendirme → metinler `Strings.qml`
 
 ---
 

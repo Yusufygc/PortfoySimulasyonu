@@ -36,11 +36,7 @@ def run_fix():
     today = date.today()
     
     # Find last completed trading day
-    from src.ui.main_window import last_completed_trading_day
-    target_date = last_completed_trading_day(
-        today,
-        getattr(container, "trading_calendar", None),
-    )
+    target_date = container.price_update_service.last_completed_trading_day(today)
     print(f"   Target date for update: {target_date}")
     
     update_res = health_service.update_from_latest_to_today(target_date, PRICE_SCOPE_ALL_BIST)

@@ -2,6 +2,8 @@
 
 # Karşılaştırma Laboratuvarı (Comparison Lab)
 
+> **Not (2026-10-03):** Eski Qt Widgets arayüzü (`src/ui`) kaldırıldı. Arayüz yalnızca QML'dir (`src/ui_qml`). Bu belgedeki `src/ui` tabanlı anlatım tarihsel kayıttır; güncel kurallar için `ui_architecture_and_events.md` sonundaki "QML Katman Kuralları" bölümüne bakın.
+
 Karşılaştırma Laboratuvarı, kullanıcıların aktif portföylerini, model portföylerini, piyasa endekslerini (BIST100, Altın, Gümüş, Dolar vb.) ve hisse senetlerini rasyo, drawdown (değer kaybı), dönemsel getiri ve risk-getiri saçılımı bazında detaylıca kıyaslayıp analiz edebilecekleri gelişmiş bir görselleştirme ve yapay zeka analiz merkezidir.
 
 ---
