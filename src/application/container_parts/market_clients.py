@@ -13,6 +13,7 @@ from src.infrastructure.market_data.evds_tufe_provider import EvdsTufeProvider
 from src.infrastructure.market_data.isyatirim_provider import IsyatirimProvider
 from src.infrastructure.market_data.tvdatafeed_client import TvDatafeedClient
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
+from src.infrastructure.market_data.yfinance_indicator_provider import YFinanceIndicatorProvider
 from src.infrastructure.market_data.yfinance_optimization_market_data_provider import (
     YFinanceOptimizationMarketDataProvider,
 )
@@ -40,6 +41,7 @@ class MarketClientSet:
     yfinance_valuation_provider: YFinanceValuationProvider
     kap_shareholder_provider: KapShareholderProvider
     tv_client: Optional[TvDatafeedClient] = field(default=None)
+    market_indicator_provider: Optional[YFinanceIndicatorProvider] = field(default=None)
 
 
 def _build_tv_client() -> Optional[TvDatafeedClient]:
@@ -69,4 +71,5 @@ def build_market_clients(conn_provider) -> MarketClientSet:
         yfinance_valuation_provider=YFinanceValuationProvider(),
         kap_shareholder_provider=KapShareholderProvider(),
         tv_client=_build_tv_client(),
+        market_indicator_provider=YFinanceIndicatorProvider(),
     )

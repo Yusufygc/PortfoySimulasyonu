@@ -14,6 +14,7 @@ from src.application.services.analysis.technical.screener_service import Screene
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
 from src.application.services.market.current_price_resolver import CurrentPriceResolver
+from src.application.services.market.market_indicators_service import MarketIndicatorsService
 from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
 from src.application.services.corporate_actions.candidate_review_service import CorporateActionCandidateReviewService
@@ -85,6 +86,7 @@ class ServiceSet:
     current_price_resolver: object  # CurrentPriceResolver
     market_data_sync_service: object  # MarketDataSyncService (DuckDB + SQLite köprüsü)
     market_corporate_action_service: MarketCorporateActionService  # DuckDB ticker bazlı sermaye artırımı
+    market_indicators_service: object  # MarketIndicatorsService | None (üst piyasa şeridi)
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
@@ -146,6 +148,11 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
             market_history_repo=repositories.market_history_repo,
+        ),
+        market_indicators_service=(
+            MarketIndicatorsService(market_clients.market_indicator_provider)
+            if getattr(market_clients, "market_indicator_provider", None) is not None
+            else None
         ),
         market_data_sync_service=MarketDataSyncService(
             trading_calendar=market_clients.trading_calendar,

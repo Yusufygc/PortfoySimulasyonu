@@ -56,7 +56,57 @@ Rectangle {
             }
         }
 
-        Item { Layout.fillWidth: true } // Spacer
+        // Piyasa şeridi: ALTIN | GÜMÜŞ | USD/TRY | EUR/TRY | BIST 100 (dar pencerede gizlenir)
+        Item {
+            id: tickerStrip
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            implicitHeight: 28
+            clip: true
+            visible: !root.compact
+            readonly property bool hasItems: typeof marketTickerController !== "undefined"
+                                             && marketTickerController && marketTickerController.items.length > 0
+
+            Row {
+                anchors.centerIn: parent
+                spacing: Theme.spaceMd
+                visible: tickerStrip.hasItems
+
+                Repeater {
+                    model: tickerStrip.hasItems ? marketTickerController.items : []
+
+                    Row {
+                        spacing: 5
+                        Text {
+                            text: modelData.label
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontXs
+                            font.weight: Font.Bold
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: modelData.valueText
+                            color: Theme.textPrimary
+                            font.family: Theme.monoFontFamily
+                            font.pixelSize: Theme.fontXs
+                            font.weight: Font.DemiBold
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            visible: modelData.hasChange && root.width > 1280
+                            text: modelData.changeText
+                            color: modelData.isUp ? Theme.bullGreen : Theme.bearRed
+                            font.family: Theme.monoFontFamily
+                            font.pixelSize: Theme.fontXs
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                }
+            }
+        }
+
+        Item { Layout.fillWidth: root.compact } // Dar pencerede boşluk
 
         // Quick Search Bar
         Rectangle {
