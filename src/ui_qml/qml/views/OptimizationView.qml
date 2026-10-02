@@ -77,15 +77,22 @@ Rectangle {
                     anchors.fill: parent
                     anchors.margins: Theme.spaceMd
                     clip: true
+                    contentWidth: availableWidth
+                    contentHeight: Math.max(availableHeight, leftCol.implicitHeight)
                     ScrollBar.vertical: ModernScrollBar {}
 
-                    ColumnLayout {
-                        id: leftCol
+                    Item {
                         width: leftScroll.availableWidth
-                        anchors.verticalCenter: (implicitHeight < leftScroll.availableHeight) ? leftScroll.verticalCenter : undefined
-                        spacing: 14
+                        height: Math.max(leftScroll.availableHeight, leftCol.implicitHeight)
 
-                        // Başlık
+                        ColumnLayout {
+                            id: leftCol
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 14
+
+                            // Başlık
                         Text {
                             text: "OPTİMİZASYON PARAMETRELERİ"
                             color: Theme.textMuted
@@ -508,10 +515,11 @@ Rectangle {
                                 enabled: !optimizationController.isLoading
                                 onClicked: optimizationController.runOptimization()
                             }
-                        }
-                    }
-                }
-            }
+                        } // btnRun
+                    } // leftCol
+                } // Item
+            } // leftScroll
+        } // Rectangle (sol panel)
 
             // SAĞ ANA ALAN (KPI + Sekmeler + Grafik / Tablo)
             ColumnLayout {
