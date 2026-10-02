@@ -77,20 +77,13 @@ Rectangle {
                     anchors.fill: parent
                     anchors.margins: Theme.spaceMd
                     clip: true
-                    contentWidth: availableWidth
-                    contentHeight: Math.max(availableHeight, leftCol.implicitHeight)
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     ScrollBar.vertical: ModernScrollBar {}
 
-                    Item {
+                    ColumnLayout {
+                        id: leftCol
                         width: leftScroll.availableWidth
-                        height: Math.max(leftScroll.availableHeight, leftCol.implicitHeight)
-
-                        ColumnLayout {
-                            id: leftCol
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 14
+                        spacing: 14
 
                             // Başlık
                         Text {
@@ -517,7 +510,6 @@ Rectangle {
                             }
                         } // btnRun
                     } // leftCol
-                } // Item
             } // leftScroll
         } // Rectangle (sol panel)
 

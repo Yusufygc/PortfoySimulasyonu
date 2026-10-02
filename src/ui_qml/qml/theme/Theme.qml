@@ -14,6 +14,8 @@ QtObject {
     readonly property color bgSidebar: isDark ? "#181b24" : "#f1f3f8"
     readonly property color bgTitlebar: isDark ? "#131722" : "#f8f9fd"
     readonly property color bgInput: isDark ? "#1a1e29" : "#f0f2f7"
+    readonly property color bgSurface: isDark ? "#1e222d" : "#ffffff"
+    readonly property color bgSurfaceHover: isDark ? "#2a2e39" : "#f0f3fa"
 
     // --- Sınır / Çerçeve Çizgileri ---
     readonly property color borderSubtle: isDark ? "#2a2e39" : "#e0e3eb"
@@ -35,8 +37,12 @@ QtObject {
     readonly property color accent: "#2962ff"
     readonly property color accentHover: "#1e53e5"
     readonly property color accentSoft: isDark ? "#1b294d" : "#e8efff"
+    readonly property color primary: accent
+    readonly property color primaryHover: accentHover
+    readonly property color primarySoft: accentSoft
     readonly property color warningYellow: "#ff9800"
     readonly property color warningYellowSoft: isDark ? "#3e2710" : "#fff8e1"
+    readonly property color accentWarning: warningYellow
 
     // --- Semantik Renkler (Kolay ve standart erişim için) ---
     readonly property color success: bullGreen

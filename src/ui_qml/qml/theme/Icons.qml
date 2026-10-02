@@ -13,6 +13,7 @@ QtObject {
     readonly property url screener:      Qt.resolvedUrl("../../assets/icons/search.svg")
     readonly property url planning:      Qt.resolvedUrl("../../assets/icons/calendar.svg")
     readonly property url optimization:  Qt.resolvedUrl("../../assets/icons/shield-check.svg")
+    readonly property url shieldCheck:   optimization
     readonly property url ai:            Qt.resolvedUrl("../../assets/icons/bot.svg")
     readonly property url settings:      Qt.resolvedUrl("../../assets/icons/settings.svg")
 

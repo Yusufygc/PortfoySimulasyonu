@@ -603,20 +603,13 @@ Rectangle {
                     anchors.fill: parent
                     anchors.margins: Theme.spaceMd
                     clip: true
-                    contentWidth: availableWidth
-                    contentHeight: Math.max(availableHeight, colHealth.implicitHeight)
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     ScrollBar.vertical: ModernScrollBar {}
 
-                    Item {
+                    ColumnLayout {
+                        id: colHealth
                         width: rightScroll.availableWidth
-                        height: Math.max(rightScroll.availableHeight, colHealth.implicitHeight)
-
-                        ColumnLayout {
-                            id: colHealth
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            spacing: 14
+                        spacing: 14
 
                             // Başlık
                             Text {
@@ -984,7 +977,6 @@ Rectangle {
                                 }
                             }
                         }
-                    }
                 }
             }
         }
