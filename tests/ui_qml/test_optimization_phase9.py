@@ -154,6 +154,64 @@ def test_fmt_pct():
     assert _fmt_pct(None) == "%0,00"
 
 
+def test_calculate_rebalance_plan_rules():
+    """calculate_rebalance_plan fonksiyonunun çıkış (sıfır ağırlık), tut ve .IS temizleme kurallarını test eder."""
+    from src.application.services.planning.frontier_simulation import calculate_rebalance_plan
+
+    current_weights = {
+        "SDTTR.IS": 0.69,   # Sıfırlanan hisse (çıkış)
+        "THYAO.IS": 15.20,  # TUTulacak hisse (fark %0.20)
+        "ENJSA.IS": 10.61,  # Eklenecek hisse (fark +%9.39)
+        "ENKAI.IS": 10.30,  # Çıkartılacak hisse
+    }
+    optimal_weights = {
+        "SDTTR.IS": 0.00,
+        "THYAO.IS": 15.00,
+        "ENJSA.IS": 20.00,
+        "ENKAI.IS": 0.00,
+    }
+    last_prices = {
+        "SDTTR.IS": 15.25,
+        "THYAO.IS": 300.0,
+        "ENJSA.IS": 60.0,
+        "ENKAI.IS": 45.0,
+    }
+    names = {
+        "SDTTR.IS": "SDT Uzay ve Savunma",
+        "THYAO.IS": "THYAO.IS",  # .IS uzantılı gelen kirli isim
+        "ENKAI.IS": "ENKAI.IS",
+    }
+
+    plan = calculate_rebalance_plan(
+        total_portfolio_value=100000.0,
+        current_weights=current_weights,
+        optimal_weights=optimal_weights,
+        last_prices=last_prices,
+        stock_names=names,
+    )
+
+    plan_map = {item["symbol"]: item for item in plan}
+
+    # 1. Hiçbir sembolde ve şirket adında .IS kalmamalıdır
+    for item in plan:
+        assert not item["symbol"].endswith(".IS"), f"{item['symbol']} .IS ile bitmemelidir"
+        assert not item["companyName"].endswith(".IS"), f"{item['companyName']} .IS ile bitmemelidir"
+
+    # 2. SDTTR: Ağırlık sıfırlanıyorsa aksiyon TUT DEĞİL, AZALT olmalıdır
+    sdttr = plan_map["SDTTR"]
+    assert sdttr["action"] == "AZALT", "Portföyden sıfırlanan hissenin aksiyonu AZALT olmalıdır"
+    assert sdttr["optimalWeight"] == 0.0
+    assert sdttr["amountDiff"] < 0
+    assert sdttr["estShares"] > 0
+
+    # 3. THYAO: Gerçekten TUT durumundaki hissede tutar farkı 0 ve lot 0 olmalıdır
+    thyao = plan_map["THYAO"]
+    assert thyao["action"] == "TUT", "Küçük sapmalı hisse TUT olmalıdır"
+    assert thyao["amountDiff"] == 0.0, "TUT hissesinde işlem tutarı 0 olmalıdır"
+    assert thyao["estShares"] == 0, "TUT hissesinde işlem lotu 0 olmalıdır"
+    assert thyao["companyName"] == "THYAO", "Kirli şirket adı temizlenmelidir"
+
+
 def test_optimization_qml_view_compilation(qapp, container):
     """OptimizationView.qml dosyasının QML motorunda hatasız derlendiğini test eder."""
     engine = QQmlApplicationEngine()

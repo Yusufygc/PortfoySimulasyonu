@@ -386,7 +386,7 @@ Item {
                                         Row {
                                             spacing: 6
                                             Text {
-                                                text: model.cleanTicker
+                                                text: (model.cleanTicker || "").replace(/\.IS$/i, "")
                                                 font.family: Theme.monoFontFamily
                                                 font.pixelSize: Theme.fontBase
                                                 font.weight: Font.Bold
@@ -408,7 +408,7 @@ Item {
                                             }
                                         }
                                         Text {
-                                            text: model.companyName
+                                            text: (model.companyName || "").replace(/\.IS$/i, "")
                                             font.family: Theme.fontFamily
                                             font.pixelSize: Theme.fontXs
                                             color: Theme.textMuted

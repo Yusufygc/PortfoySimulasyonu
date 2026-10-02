@@ -221,7 +221,7 @@ Item {
                                         Text {
                                             id: pillText
                                             anchors.centerIn: parent
-                                            text: modelData
+                                            text: (modelData || "").replace(/\.IS$/i, "")
                                             font.family: Theme.fontFamily
                                             font.pixelSize: Theme.fontXs
                                             font.weight: stockPill.isCurrent ? Font.Bold : Font.Normal
@@ -402,7 +402,7 @@ Item {
                                 spacing: Theme.spaceSm
 
                                 Text {
-                                    text: root.ctrl ? root.ctrl.currentTicker : "—"
+                                    text: root.ctrl ? (root.ctrl.currentTicker || "—").replace(/\.IS$/i, "") : "—"
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontXl
                                     font.weight: Font.Bold

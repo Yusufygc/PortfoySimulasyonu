@@ -150,18 +150,31 @@ def calculate_rebalance_plan(
         target_amt = tot_val * (opt_w / 100.0)
         diff_amt = target_amt - curr_amt
 
-        if diff_w > 1.0:
+        if opt_w == 0.0 and curr_w > 0.0:
+            action = "AZALT"
+        elif curr_w == 0.0 and opt_w > 0.0:
             action = "EKLE"
-        elif diff_w < -1.0:
+        elif diff_w > 0.5:
+            action = "EKLE"
+        elif diff_w < -0.5:
             action = "AZALT"
         else:
             action = "TUT"
+            # TUT durumunda rebalance işlemi yapılmaz, pozisyon korunur
+            diff_amt = 0.0
 
         price = float(prices.get(sym, 0.0))
-        est_shares = int(round(abs(diff_amt) / price)) if price > 0 else 0
+        if action == "TUT" or price <= 0:
+            est_shares = 0
+            diff_amt = 0.0
+        else:
+            est_shares = int(round(abs(diff_amt) / price))
 
-        clean_sym = sym.replace(".IS", "").strip().upper()
-        comp_name = names.get(sym, clean_sym)
+        clean_sym = sym.replace(".IS", "").replace(".is", "").strip().upper()
+        raw_name = names.get(sym) or names.get(clean_sym) or clean_sym
+        comp_name = raw_name.replace(".IS", "").replace(".is", "").strip() if raw_name else clean_sym
+        if not comp_name or comp_name.upper() == clean_sym:
+            comp_name = clean_sym
 
         plan.append(
             {

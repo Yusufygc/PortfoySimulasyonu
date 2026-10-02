@@ -61,7 +61,7 @@ Rectangle {
                 id: modalChart
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                ticker: chartController ? chartController.currentTicker : "OBAMS.IS"
+                ticker: chartController ? (chartController.currentTicker || "").replace(/\.IS$/i, "") : "OBAMS"
             }
         }
     }

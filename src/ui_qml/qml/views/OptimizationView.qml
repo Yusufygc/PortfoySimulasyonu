@@ -974,7 +974,7 @@ Rectangle {
                                     // Sembol
                                     Text {
                                         Layout.preferredWidth: 80
-                                        text: modelData.symbol
+                                        text: (modelData.symbol || "").replace(/\.IS$/i, "").replace(/\.IS/g, "")
                                         color: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSm
@@ -984,7 +984,10 @@ Rectangle {
                                     // Şirket Adı
                                     Text {
                                         Layout.fillWidth: true
-                                        text: modelData.companyName || modelData.symbol
+                                        text: {
+                                            var cn = (modelData.companyName || modelData.symbol || "")
+                                            return cn.replace(/\.IS$/i, "").replace(/\.IS/g, "")
+                                        }
                                         color: Theme.textSecondary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontSm

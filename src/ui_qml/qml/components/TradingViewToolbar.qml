@@ -27,7 +27,7 @@ Rectangle {
             Layout.alignment: Qt.AlignVCenter
 
             Text {
-                text: chartController ? chartController.currentTicker : "BIST"
+                text: chartController ? (chartController.currentTicker || "").replace(/\.IS$/i, "") : "BIST"
                 font.family: Theme.monoFontFamily
                 font.pixelSize: Theme.fontMd
                 font.weight: Font.Bold
@@ -35,7 +35,7 @@ Rectangle {
             }
 
             Text {
-                text: chartController && chartController.companyName ? chartController.companyName : ""
+                text: chartController && chartController.companyName ? chartController.companyName.replace(/\.IS$/i, "") : ""
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontXs
                 color: Theme.textMuted

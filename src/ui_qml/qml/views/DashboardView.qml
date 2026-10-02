@@ -175,9 +175,9 @@ Item {
                                     spacing: Theme.spaceXs
 
                                     Repeater {
-                                        model: dashboardController ? dashboardController.quickTickers : ["OBAMS.IS", "PSGYO.IS", "BINHO.IS"]
+                                        model: dashboardController ? dashboardController.quickTickers : ["OBAMS", "PSGYO", "BINHO"]
                                         ModernButton {
-                                            text: modelData
+                                            text: (modelData || "").replace(/\.IS$/i, "")
                                             variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
                                             implicitHeight: 24
                                             onClicked: {
@@ -194,7 +194,7 @@ Item {
                             id: chartView
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            ticker: chartController ? chartController.currentTicker : "OBAMS.IS"
+                            ticker: chartController ? (chartController.currentTicker || "").replace(/\.IS$/i, "") : "OBAMS"
                         }
                     }
                 }
@@ -295,14 +295,14 @@ Item {
                                     Layout.preferredWidth: 160
                                     spacing: 2
                                     Text {
-                                        text: model.ticker
+                                        text: (model.ticker || "").replace(/\.IS$/i, "")
                                         font.family: Theme.monoFontFamily
                                         font.pixelSize: Theme.fontBase
                                         font.weight: Font.Bold
                                         color: Theme.textPrimary
                                     }
                                     Text {
-                                        text: model.companyName
+                                        text: (model.companyName || "").replace(/\.IS$/i, "")
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontXs
                                         color: Theme.textMuted

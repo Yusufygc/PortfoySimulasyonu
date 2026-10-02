@@ -399,7 +399,22 @@ class OptimizationController(QObject):
             stocks = self._stock_repo.get_stocks_by_ids(stock_ids) if self._stock_repo else []
             stock_map = {s.id: s for s in stocks}
             tickers = [stock_map[sid].ticker for sid in stock_ids if sid in stock_map]
-            names_map = {stock_map[sid].ticker: getattr(stock_map[sid], "name", stock_map[sid].ticker) for sid in stock_ids if sid in stock_map}
+            
+            names_map: Dict[str, str] = {}
+            for sid in stock_ids:
+                if sid in stock_map:
+                    stk = stock_map[sid]
+                    raw_tick = stk.ticker
+                    clean_tick = raw_tick.replace(".IS", "").replace(".is", "").strip().upper()
+                    raw_name = getattr(stk, "name", None)
+                    if raw_name:
+                        clean_n = raw_name.replace(".IS", "").replace(".is", "").strip()
+                        display_name = clean_n if clean_n and clean_n.upper() != f"{clean_tick}.IS" else clean_tick
+                    else:
+                        display_name = clean_tick
+                    names_map[raw_tick] = display_name
+                    names_map[clean_tick] = display_name
+                    names_map[f"{clean_tick}.IS"] = display_name
 
             # 3. Fiyat Geçmişi ve Kovaryans Matrisi
             price_df = self._opt_service._get_historical_prices(tickers, days=504)
@@ -425,10 +440,13 @@ class OptimizationController(QObject):
             last_prices = {}
             for t in tickers:
                 p = self._opt_service._get_last_price(t)
-                last_prices[t] = float(p) if p else 1.0
+                val = float(p) if p else 1.0
+                clean_t = t.replace(".IS", "").replace(".is", "").strip().upper()
+                last_prices[t] = val
+                last_prices[clean_t] = val
 
-            curr_w_map = {s.symbol: s.current_weight for s in opt_result.suggestions}
-            opt_w_map = {s.symbol: s.optimal_weight for s in opt_result.suggestions}
+            curr_w_map = {s.symbol.replace(".IS", "").replace(".is", "").strip().upper(): s.current_weight for s in opt_result.suggestions}
+            opt_w_map = {s.symbol.replace(".IS", "").replace(".is", "").strip().upper(): s.optimal_weight for s in opt_result.suggestions}
 
             rebalance_plan = calculate_rebalance_plan(
                 total_portfolio_value=total_val if total_val > 0 else 100000.0,
@@ -477,7 +495,7 @@ class OptimizationController(QObject):
         self._suggestions = rebalance_plan
         self._weights_comparison = [
             {
-                "symbol": item["symbol"],
+                "symbol": str(item["symbol"]).replace(".IS", "").replace(".is", "").strip().upper(),
                 "currentWeight": item["currentWeight"],
                 "optimalWeight": item["optimalWeight"],
             }
