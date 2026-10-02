@@ -7,6 +7,9 @@ import "../components"
 Item {
     id: root
 
+    // Dar pencerede liste seçici tablonun üstüne geçer
+    readonly property bool stacked: width < 960
+
     ScrollView {
         id: mainScrollView
         anchors.fill: parent
@@ -69,9 +72,12 @@ Item {
             }
 
             // 2. KPI Özet Metrik Kartları
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spaceMd
+                columns: root.width < 700 ? 1 : 3
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
+                uniformCellWidths: true
 
                 MetricCard {
                     Layout.fillWidth: true
@@ -102,14 +108,18 @@ Item {
             }
 
             // 3. Ana İçerik: Sol Liste Seçici & Sağ Hisse Tablosu
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(520, stocksColumn.implicitHeight + 40)
-                spacing: Theme.spaceMd
+                Layout.preferredHeight: root.stacked ? (270 + 560 + Theme.spaceMd) : Math.max(520, stocksColumn.implicitHeight + 40)
+                columns: root.stacked ? 1 : 2
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
 
                 // Sol Panel: Takip Listelerim (Watchlist Selector)
                 ModernCard {
-                    Layout.preferredWidth: 280
+                    Layout.fillWidth: root.stacked
+                    Layout.preferredWidth: root.stacked ? -1 : 280
+                    Layout.preferredHeight: 270
                     Layout.fillHeight: true
 
                     ColumnLayout {
@@ -284,6 +294,7 @@ Item {
                 ModernCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.preferredHeight: 560
 
                     ColumnLayout {
                         id: stocksColumn
@@ -321,6 +332,24 @@ Item {
                                 onClicked: addStockModal.open(watchlistController.currentWatchlistId)
                             }
                         }
+
+                        // Tablo: dar alanda yatay kaydırılır (sütun hizası bozulur)
+                        Flickable {
+                            id: stocksFlick
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            visible: stocksListView.count > 0
+                            contentWidth: Math.max(width, 800)
+                            contentHeight: height
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            flickableDirection: Flickable.HorizontalFlick
+                            ScrollBar.horizontal: ModernScrollBar {}
+
+                            ColumnLayout {
+                                width: stocksFlick.contentWidth
+                                height: stocksFlick.height
+                                spacing: Theme.spaceSm
 
                         // Tablo Başlık Satırı
                         Rectangle {
@@ -557,6 +586,8 @@ Item {
                                         }
                                     }
                                 }
+                            }
+                        }
                             }
                         }
 

@@ -84,6 +84,7 @@ class StockDetailController(QObject):
         self._unrealized_pnl: float = 0.0
         self._unrealized_pnl_pct: float = 0.0
         self._portfolio_weight_pct: float = 0.0
+        self._cash: Optional[float] = None
 
         # Tablo Verileri
         self._trades_list: List[Dict[str, Any]] = []
@@ -251,6 +252,35 @@ class StockDetailController(QObject):
         """Mevcut hisse verilerini tazeler."""
         if self._ticker:
             self.openStockWithContext(self._ticker, self._context_type, self._context_id)
+
+    @Slot(str, int, float, result="QVariantMap")
+    def tradeImpact(self, side: str, quantity: int, price: float) -> Dict[str, Any]:
+        """Emir girilirse pozisyonun alacağı hali (lot, ortalama maliyet, nakit) önceden hesaplar."""
+        qty = max(0, int(quantity))
+        total = qty * float(price)
+        is_buy = side.upper() in ("BUY", "ALIM")
+        cur_qty, cur_avg = int(self._quantity), float(self._avg_cost)
+        result: Dict[str, Any] = {"valid": qty > 0 and price > 0, "message": ""}
+        if is_buy:
+            new_qty = cur_qty + qty
+            new_avg = ((cur_qty * cur_avg) + total) / new_qty if new_qty > 0 else 0.0
+            cash_after = None if self._cash is None else self._cash - total
+            if cash_after is not None and cash_after < 0:
+                result["valid"] = False
+                result["message"] = "Yetersiz nakit"
+        else:
+            new_qty = cur_qty - qty
+            new_avg = cur_avg if new_qty > 0 else 0.0
+            cash_after = None if self._cash is None else self._cash + total
+            if new_qty < 0:
+                result["valid"] = False
+                result["message"] = "Yetersiz lot"
+        result.update({
+            "newQty": f"{max(new_qty, 0):,}".replace(",", "."),
+            "newAvg": f"₺{new_avg:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if new_qty > 0 else "-",
+            "cashAfter": "-" if cash_after is None else f"₺{cash_after:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        })
+        return result
 
     @Slot(str, int, float, str)
     def submitTrade(self, side: str, quantity: int, price: float, date_str: str = "") -> None:
@@ -445,6 +475,7 @@ class StockDetailController(QObject):
                 total_portfolio_val += pos_val
 
         cash = portfolio_service.get_cash_balance()
+        data["cash"] = float(cash) if cash is not None else None
         if cash:
             total_portfolio_val += Decimal(str(cash))
 
@@ -520,6 +551,8 @@ class StockDetailController(QObject):
             positions = model_service.get_positions(port_id)
             summary = model_service.get_portfolio_summary(port_id)
             total_val = float(summary.get("total_value", 0.0))
+            if summary.get("remaining_cash") is not None:
+                data["cash"] = float(summary["remaining_cash"])
 
             if stock_obj and stock_obj.id in positions:
                 pos = positions[stock_obj.id]
@@ -583,6 +616,7 @@ class StockDetailController(QObject):
         self._unrealized_pnl = data.get("unrealized_pnl", 0.0)
         self._unrealized_pnl_pct = data.get("unrealized_pnl_pct", 0.0)
         self._portfolio_weight_pct = data.get("portfolio_weight_pct", 0.0)
+        self._cash = data.get("cash")
         self._portfolio_name = data.get("portfolio_name", "Portföy")
 
         self._trades_list = data.get("trades", [])

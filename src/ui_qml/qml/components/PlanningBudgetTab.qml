@@ -6,6 +6,8 @@ import "../theme"
 Item {
     id: root
 
+    readonly property bool stacked: width < 900
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spaceMd
@@ -198,9 +200,12 @@ Item {
         }
 
         // 2. KPI Kartları
-        RowLayout {
+        GridLayout {
             Layout.fillWidth: true
-            spacing: Theme.spaceMd
+            columns: root.width < 700 ? 1 : 3
+            columnSpacing: Theme.spaceMd
+            rowSpacing: Theme.spaceMd
+            uniformCellWidths: true
 
             // Toplam Gelir
             Rectangle {
@@ -344,16 +349,20 @@ Item {
             }
         }
 
-        // 3. İki Sütunlu Kalemler Alanı (Gelirler - Giderler)
-        RowLayout {
+        // 3. İki Sütunlu Kalemler Alanı (Gelirler - Giderler; dar alanda alt alta)
+        GridLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spaceMd
+            columns: root.stacked ? 1 : 2
+            columnSpacing: Theme.spaceMd
+            rowSpacing: Theme.spaceMd
+            uniformCellWidths: true
 
             // Sol Sütun: Gelir Kalemleri
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.preferredHeight: 380
                 color: Theme.bgCard
                 radius: Theme.radiusMd
                 border.color: Theme.borderCard
@@ -590,6 +599,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.preferredHeight: 380
                 color: Theme.bgCard
                 radius: Theme.radiusMd
                 border.color: Theme.borderCard

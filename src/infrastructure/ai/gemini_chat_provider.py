@@ -7,7 +7,7 @@ UI/application SDK detaylarını bilmez. Hata metinleri sadedir.
 
 from __future__ import annotations
 
-from typing import Sequence, Tuple
+from typing import Callable, Sequence, Tuple, Union
 
 from src.domain.ports.services.i_ai_chat_provider import IAIChatProvider
 
@@ -33,8 +33,14 @@ def _load_gemini_sdk():
 
 
 class GeminiChatProvider(IAIChatProvider):
-    def __init__(self, api_key: str | None) -> None:
-        self._api_key = api_key
+    def __init__(self, api_key: Union[str, None, Callable[[], "str | None"]]) -> None:
+        # Çağrılabilir verilirse anahtar her istekte yeniden okunur (Ayarlar'dan değiştirilince yeniden başlatma gerekmez)
+        self._api_key_source = api_key
+
+    @property
+    def _api_key(self) -> "str | None":
+        source = self._api_key_source
+        return source() if callable(source) else source
 
     def generate(self, system_prompt: str, turns: Sequence[Tuple[str, str]]) -> str:
         if not self._api_key:

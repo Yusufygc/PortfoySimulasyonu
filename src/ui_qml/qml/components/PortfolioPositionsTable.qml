@@ -47,6 +47,23 @@ Rectangle {
             }
         }
 
+        // Tablo: dar alanda yatay kaydırılır (sütun hizası bozulmaz)
+        Flickable {
+            id: tableFlick
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            contentWidth: Math.max(width, 760)
+            contentHeight: height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.HorizontalFlick
+            ScrollBar.horizontal: ModernScrollBar {}
+
+            ColumnLayout {
+                width: tableFlick.contentWidth
+                height: tableFlick.height
+                spacing: Theme.spaceSm
+
         // Tablo Kolon Başlıkları
         Rectangle {
             Layout.fillWidth: true
@@ -355,6 +372,8 @@ Rectangle {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.positionClicked(modelData.stockId, modelData.ticker)
                 }
+            }
+        }
             }
         }
     }

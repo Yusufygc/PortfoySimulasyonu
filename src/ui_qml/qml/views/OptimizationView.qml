@@ -10,6 +10,10 @@ Rectangle {
 
     color: Theme.bgPrimary
 
+    // Dar pencerede parametre paneli üstte, sonuçlar altta (ana sayfa kaydırması devreye girer)
+    readonly property bool stacked: width < 980
+    readonly property int minContentHeight: stacked ? 1300 : 0
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.spaceLg
@@ -57,16 +61,20 @@ Rectangle {
         }
 
         // 2. Ana Çalışma Alanı (Sol Panel: Parametreler | Sağ Panel: KPI + Grafikler/Tablolar)
-        RowLayout {
+        GridLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spaceMd
+            columns: root.stacked ? 1 : 2
+            columnSpacing: Theme.spaceMd
+            rowSpacing: Theme.spaceMd
 
             // SOL KONTROL PANELİ
             Rectangle {
-                Layout.preferredWidth: 290
-                Layout.minimumWidth: 270
-                Layout.fillHeight: true
+                Layout.fillWidth: root.stacked
+                Layout.preferredWidth: root.stacked ? -1 : 290
+                Layout.minimumWidth: root.stacked ? 0 : 270
+                Layout.preferredHeight: root.stacked ? 430 : -1
+                Layout.fillHeight: !root.stacked
                 radius: Theme.radiusMd
                 color: Theme.bgCard
                 border.color: Theme.borderCard
@@ -217,6 +225,13 @@ Rectangle {
                                 Layout.preferredHeight: 38
                                 model: optimizationController.riskProfileOptions
                                 textRole: "label"
+                                currentIndex: {
+                                    const opts = optimizationController.riskProfileOptions
+                                    for (let i = 0; i < opts.length; i++) {
+                                        if (opts[i].code === optimizationController.selectedRiskProfile) return i
+                                    }
+                                    return 0
+                                }
 
                                 background: Rectangle {
                                     color: riskCombo.hovered ? Theme.bgCardHover : Theme.bgSecondary
@@ -292,6 +307,14 @@ Rectangle {
                                         optimizationController.selectRiskProfile(opt.code)
                                     }
                                 }
+                            }
+
+                            ModernButton {
+                                Layout.fillWidth: true
+                                text: Strings.riskBtnOpen
+                                iconName: "shieldcheck"
+                                variant: "secondary"
+                                onClicked: riskQuestionnaire.open()
                             }
                         }
 
@@ -517,12 +540,16 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.preferredHeight: 780
                 spacing: Theme.spaceMd
 
-                // 1. KPI ŞERİDİ (4 KART)
-                RowLayout {
+                // 1. KPI ŞERİDİ (4 KART; dar alanda 2x2)
+                GridLayout {
                     Layout.fillWidth: true
-                    spacing: Theme.spaceMd
+                    columns: (root.stacked ? root.width < 800 : root.width < 1280) ? 2 : 4
+                    columnSpacing: Theme.spaceMd
+                    rowSpacing: Theme.spaceMd
+                    uniformCellWidths: true
 
                     // Kart 1: Maksimum Sharpe
                     Rectangle {
@@ -1093,5 +1120,9 @@ Rectangle {
                 }
             }
         }
+    }
+
+    RiskQuestionnaireDialog {
+        id: riskQuestionnaire
     }
 }

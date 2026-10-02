@@ -288,6 +288,20 @@ class OptimizationController(QObject):
             self._selected_portfolio_code = code
             self.selectedPortfolioChanged.emit()
 
+    @Slot()
+    def reloadRiskProfile(self) -> None:
+        """Kayıtlı risk profili (anket sonucu) değiştiğinde seçimi ve ağırlık kısıtını günceller."""
+        if not self._risk_profile_service:
+            return
+        try:
+            prof = self._risk_profile_service.get_current_profile()
+        except Exception as exc:
+            logger.debug("Risk profili okunamadı: %s", exc)
+            return
+        if prof and prof.risk_label in [r["code"] for r in self._risk_profile_options]:
+            self._selected_risk_profile = ""  # aynı koda dönse bile kısıt ve combo yenilensin
+            self.selectRiskProfile(prof.risk_label)
+
     @Slot(str)
     def selectRiskProfile(self, profile_code: str) -> None:
         if self._selected_risk_profile != profile_code:

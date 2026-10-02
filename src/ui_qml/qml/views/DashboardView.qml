@@ -25,9 +25,12 @@ Item {
             width: mainScrollView.availableWidth
             spacing: Theme.spaceMd
 
-            // Üst Başlık ve Aksiyon Butonları
-            RowLayout {
+            // Üst Başlık ve Aksiyon Butonları (dar pencerede butonlar başlığın altına geçer)
+            GridLayout {
                 Layout.fillWidth: true
+                columns: root.width < 1060 ? 1 : 2
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceSm
 
                 Column {
                     spacing: 2
@@ -46,7 +49,10 @@ Item {
                     }
                 }
 
-                Item { Layout.fillWidth: true }
+                Flow {
+                    Layout.alignment: root.width < 1060 ? Qt.AlignLeft : Qt.AlignRight
+                    Layout.fillWidth: root.width < 1060
+                    spacing: Theme.spaceSm
 
                 // Canlı Fiyat Yenile Butonu (Yükleniyor animasyonu ile)
                 ModernButton {
@@ -75,7 +81,7 @@ Item {
                     variant: "secondary"
                     onClicked: {
                         if (typeof dashboardController !== "undefined") {
-                            dashboardController.exportToExcel()
+                            excelDialog.open(dashboardController.firstTradeDateText(), "Portfoy_Raporu.xlsx")
                         }
                     }
                 }
@@ -85,14 +91,18 @@ Item {
                     text: Strings.btnQuickTrade
                     iconName: "zap"
                     variant: "primary"
-                    onClicked: tradeModal.open(chartView.ticker, 294.25)
+                    onClicked: tradeModal.open(chartView.ticker, 0)
+                }
                 }
             }
 
-            // 1. KPI Metrik Kartları (4 Adet)
-            RowLayout {
+            // 1. KPI Metrik Kartları (4 Adet; dar pencerede 2x2)
+            GridLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spaceMd
+                columns: root.width < 980 ? 2 : 4
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
+                uniformCellWidths: true
 
                 MetricCard {
                     Layout.fillWidth: true
@@ -136,15 +146,20 @@ Item {
             }
 
             // 2. Orta Blok: TradingView Grafiği & Portföy Dağılımı Donut
-            RowLayout {
+            GridLayout {
+                id: midGrid
+                readonly property bool stacked: root.width < 1000
                 Layout.fillWidth: true
-                Layout.preferredHeight: 520
-                spacing: Theme.spaceMd
+                Layout.preferredHeight: stacked ? 480 + 340 + Theme.spaceMd : 520
+                columns: stacked ? 1 : 2
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
 
                 // Sol: TradingView Mum Grafiği & Teknik Analiz
                 ModernCard {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.preferredHeight: 480
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -214,7 +229,9 @@ Item {
                 // Sağ: Varlık Dağılımı Donut Kartı
                 AssetAllocationCard {
                     id: allocationCard
-                    Layout.preferredWidth: 320
+                    Layout.fillWidth: midGrid.stacked
+                    Layout.preferredWidth: midGrid.stacked ? -1 : 320
+                    Layout.preferredHeight: 340
                     Layout.fillHeight: true
                 }
             }
@@ -248,6 +265,22 @@ Item {
                             color: Theme.textMuted
                         }
                     }
+
+                    // Tablo: dar pencerede yatay kaydırılır (sütun hizası bozulmaz)
+                    Flickable {
+                        id: tableFlick
+                        Layout.fillWidth: true
+                        implicitHeight: tableInner.implicitHeight + 10
+                        contentWidth: Math.max(width, 1130)
+                        contentHeight: tableInner.implicitHeight
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        ScrollBar.horizontal: ModernScrollBar {}
+
+                        ColumnLayout {
+                            id: tableInner
+                            width: tableFlick.contentWidth
+                            spacing: Theme.spaceSm
 
                     // Tablo Başlık Satırı
                     Rectangle {
@@ -570,6 +603,8 @@ Item {
                             }
                         }
                     }
+                        }
+                    }
                 }
             }
         }
@@ -586,6 +621,14 @@ Item {
 
     ChartFullscreenModal {
         id: chartModal
+    }
+
+    ExcelExportDialog {
+        id: excelDialog
+        title: Strings.excelDialogTitlePortfolio
+        onExportRequested: function(startText, endText, filePath) {
+            dashboardController.exportToExcelFile(startText, endText, filePath)
+        }
     }
 
     ToastNotification {

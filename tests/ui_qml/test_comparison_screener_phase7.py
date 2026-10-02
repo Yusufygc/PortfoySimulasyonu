@@ -61,7 +61,7 @@ def test_comparison_controller_assets_and_run(qapp, container):
     assert first["code"] in ctrl.selectedAssets
 
     # Karşılaştırmayı doğrudan çalıştır
-    ctrl._worker_calculate(ctrl._selected_codes, ctrl._period_label)
+    ctrl._worker_calculate(ctrl._selected_codes, *ctrl._resolve_range())
     assert isinstance(ctrl.metricsList, list)
 
     # Modlar ve sekmeler testi

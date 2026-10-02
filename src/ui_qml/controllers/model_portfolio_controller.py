@@ -608,6 +608,68 @@ class ModelPortfolioController(QObject):
             return
         self.exportPortfolioToExcel(self._current_portfolio_id)
 
+    @Slot(result=str)
+    def firstTradeDateText(self) -> str:
+        """Seçili model portföyün ilk işlem tarihi (GG.AA.YYYY), yoksa boş."""
+        if self._current_portfolio_id < 0 or not self._service:
+            return ""
+        try:
+            first = self._service.get_first_trade_date(self._current_portfolio_id)
+        except Exception:
+            first = None
+        return first.strftime("%d.%m.%Y") if first else ""
+
+    @Slot(str, str, str)
+    def exportHistoryToFile(self, start_text: str, end_text: str, file_path: str) -> None:
+        """Seçili model portföyün tarihsel (günlük) Excel raporunu seçilen aralık ve dosyaya yazar."""
+        from datetime import datetime as _dt
+
+        def parse(text):
+            for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
+                try:
+                    return _dt.strptime((text or "").strip(), fmt).date()
+                except ValueError:
+                    continue
+            return None
+
+        if self._current_portfolio_id < 0:
+            self.operationResult.emit(False, "Dışa aktarmak için bir model portföy seçilmelidir.")
+            return
+        first = self._service.get_first_trade_date(self._current_portfolio_id) if self._service else None
+        start = parse(start_text) or first
+        end = parse(end_text) or date.today()
+        if (start_text.strip() and parse(start_text) is None) or (end_text.strip() and parse(end_text) is None):
+            self.operationResult.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+            return
+        if start is None:
+            self.operationResult.emit(False, "Bu model portföyde işlem bulunamadı.")
+            return
+        if start > end:
+            self.operationResult.emit(False, "Başlangıç tarihi bitiş tarihinden büyük olamaz.")
+            return
+        self._executor.submit(self._run_history_export_worker, self._current_portfolio_id, start, end, file_path.strip())
+
+    def _run_history_export_worker(self, portfolio_id: int, start, end, file_path: str) -> None:
+        try:
+            from pathlib import Path
+            from src.application.services.reporting.daily_history_models import ExportMode
+
+            excel_service = getattr(self._container, "model_portfolio_excel_export_service", None) if self._container else None
+            if excel_service is None:
+                self._asyncExportFinished.emit(False, "Excel dışa aktarım servisi yapılandırılmamış.")
+                return
+            target = Path(file_path) if file_path else Path.home() / "Desktop" / f"Model_Portfoy_{portfolio_id}.xlsx"
+            if target.suffix.lower() != ".xlsx":
+                target = target.with_suffix(".xlsx")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            excel_service.export_model_portfolio_history(
+                portfolio_id=portfolio_id, start_date=start, end_date=end, file_path=target, mode=ExportMode.OVERWRITE,
+            )
+            self._asyncExportFinished.emit(True, f"Model portföy raporu oluşturuldu:\n{target.name}")
+        except Exception as exc:
+            logger.exception("Model portföy tarihsel Excel export hatası: %s", exc)
+            self._asyncExportFinished.emit(False, f"Excel raporu oluşturulamadı: {exc}")
+
     @Slot(int)
     def exportPortfolioToExcel(self, portfolio_id: int) -> None:
         """Belirtilen model portföyü Excel dosyası olarak kaydeder."""

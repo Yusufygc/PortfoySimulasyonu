@@ -5,11 +5,14 @@ import "../theme"
 Rectangle {
     id: root
 
+    // Kullanıcı tercihi (buton) ve dar pencerede otomatik daralma
     property bool isCollapsed: false
+    property bool autoCollapse: false
+    readonly property bool collapsed: isCollapsed || autoCollapse
     signal itemClicked(int index)
 
     color: Theme.bgSidebar
-    implicitWidth: isCollapsed ? 64 : 210
+    implicitWidth: collapsed ? 64 : 210
     border.color: Theme.borderSubtle
     border.width: 1
 
@@ -50,15 +53,15 @@ Rectangle {
                 spacing: 12
 
                 ModernIcon {
-                    name: root.isCollapsed ? "expand" : "collapse"
+                    name: root.collapsed ? "expand" : "collapse"
                     size: 16
                     color: Theme.textMuted
                     Layout.alignment: Qt.AlignVCenter
                 }
 
                 Text {
-                    visible: !root.isCollapsed
-                    text: root.isCollapsed ? Strings.navExpand : Strings.navCollapse
+                    visible: !root.collapsed
+                    text: root.collapsed ? Strings.navExpand : Strings.navCollapse
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                     color: Theme.textMuted
@@ -73,7 +76,7 @@ Rectangle {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root.isCollapsed = !root.isCollapsed
+                onClicked: root.isCollapsed = !root.collapsed
             }
         }
 
@@ -133,7 +136,7 @@ Rectangle {
                     }
 
                     Text {
-                        visible: !root.isCollapsed
+                        visible: !root.collapsed
                         text: modelData.title
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontBase

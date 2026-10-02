@@ -65,8 +65,10 @@ Item {
     // Modal Pencere Gövdesi
     Rectangle {
         id: modalBox
-        width: Math.min(parent.width - 64, 1020)
-        height: Math.min(parent.height - 48, 740)
+        // Dar pencerede modal tüm alanı kullanır; içerik tek sütuna iner ve kaydırılır
+        readonly property bool stacked: width < 900
+        width: Math.min(parent.width - 24, 1020)
+        height: Math.min(parent.height - 24, 740)
         anchors.centerIn: parent
         color: Theme.bgSecondary
         radius: Theme.radiusMd
@@ -80,17 +82,30 @@ Item {
             onClicked: {}
         }
 
-        ColumnLayout {
+        Flickable {
+            id: modalScroll
             anchors.fill: parent
             anchors.margins: Theme.spaceLg
+            contentWidth: width
+            contentHeight: Math.max(height, modalColumn.implicitHeight)
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ModernScrollBar {}
+
+        ColumnLayout {
+            id: modalColumn
+            width: modalScroll.width
+            height: modalScroll.contentHeight
             spacing: Theme.spaceMd
 
             // =================================================================
             // 1. ÜST BAŞLIK VE KONTROL BARI
             // =================================================================
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spaceMd
+                columns: modalBox.stacked ? 1 : 2
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceSm
 
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -191,7 +206,9 @@ Item {
                 }
 
                 // Hızlı Aksiyon Butonları
-                RowLayout {
+                Flow {
+                    Layout.alignment: modalBox.stacked ? Qt.AlignLeft : Qt.AlignRight
+                    Layout.fillWidth: modalBox.stacked
                     spacing: 8
 
                     // TradingView Grafiğinde Aç
@@ -290,9 +307,12 @@ Item {
             // =================================================================
             // 2. POZİSYON KPI KARTLARI (4 KART)
             // =================================================================
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spaceMd
+                columns: modalBox.width < 700 ? 2 : 4
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
+                uniformCellWidths: true
 
                 // 1. Toplam Lot
                 Rectangle {
@@ -442,10 +462,12 @@ Item {
             // =================================================================
             // 3. İKİ SÜTUNLU GÖVDE: SOL TABLOLAR & SAĞ HIZLI EMİR FORMU
             // =================================================================
-            RowLayout {
+            GridLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: Theme.spaceMd
+                columns: modalBox.stacked ? 1 : 2
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
 
                 // -------------------------------------------------------------
                 // SOL PANEL: TABLAR (İŞLEM GEÇMİŞİ & SERMAYE ARTIRIMLARI)
@@ -454,6 +476,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     Layout.preferredWidth: 620
+                    Layout.preferredHeight: 380
                     radius: Theme.radiusSm
                     color: Theme.bgCard
                     border.color: Theme.borderSubtle
@@ -706,7 +729,9 @@ Item {
                 // SAĞ PANEL: HIZLI EMİR FORMU
                 // -------------------------------------------------------------
                 Rectangle {
-                    Layout.preferredWidth: 320
+                    Layout.fillWidth: modalBox.stacked
+                    Layout.preferredWidth: modalBox.stacked ? -1 : 320
+                    Layout.preferredHeight: 520
                     Layout.fillHeight: true
                     radius: Theme.radiusSm
                     color: Theme.bgCard
@@ -887,6 +912,60 @@ Item {
                             }
                         }
 
+                        // İşlem Etkisi Tahmini
+                        Rectangle {
+                            id: impactBox
+                            Layout.fillWidth: true
+                            implicitHeight: impactCol.implicitHeight + 16
+                            radius: Theme.radiusSm
+                            color: Theme.bgSecondary
+                            border.color: impact.valid ? Theme.borderSubtle : Theme.bearRed
+
+                            property var impact: {
+                                if (typeof stockDetailController === "undefined") return ({ valid: false, message: "" })
+                                stockDetailController.quantity
+                                stockDetailController.avgCost
+                                return stockDetailController.tradeImpact(root.tradeSide, root.tradeQty, root.tradePrice)
+                            }
+
+                            ColumnLayout {
+                                id: impactCol
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 3
+
+                                Text {
+                                    text: Strings.stockDetailImpactTitle
+                                    color: Theme.textMuted
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontXs
+                                    font.weight: Font.Bold
+                                }
+
+                                Repeater {
+                                    model: [
+                                        { label: Strings.stockDetailImpactLot, value: impactBox.impact.newQty || "-" },
+                                        { label: Strings.stockDetailImpactAvg, value: impactBox.impact.newAvg || "-" },
+                                        { label: Strings.stockDetailImpactCash, value: impactBox.impact.cashAfter || "-" }
+                                    ]
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text { text: modelData.label; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; Layout.fillWidth: true; elide: Text.ElideRight }
+                                        Text { text: modelData.value; color: Theme.textPrimary; font.family: Theme.fontMono; font.pixelSize: Theme.fontXs; font.weight: Font.DemiBold }
+                                    }
+                                }
+
+                                Text {
+                                    visible: impactBox.impact.message !== undefined && impactBox.impact.message !== ""
+                                    text: impactBox.impact.message || ""
+                                    color: Theme.bearRed
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontXs
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+                        }
+
                         Item { Layout.fillHeight: true }
 
                         // Emri Gönder Butonu
@@ -923,6 +1002,7 @@ Item {
                     }
                 }
             }
+        }
         }
     }
 

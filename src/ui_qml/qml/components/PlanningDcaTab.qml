@@ -7,6 +7,8 @@ import "../theme"
 Item {
     id: root
 
+    readonly property bool stacked: width < 900
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spaceMd
@@ -218,10 +220,13 @@ Item {
             }
         }
 
-        // 2. DCA KPI Kartları Şeridi
-        RowLayout {
+        // 2. DCA KPI Kartları Şeridi (dar alanda 2x2)
+        GridLayout {
             Layout.fillWidth: true
-            spacing: Theme.spaceMd
+            columns: root.width < 900 ? 2 : 4
+            columnSpacing: Theme.spaceMd
+            rowSpacing: Theme.spaceMd
+            uniformCellWidths: true
 
             // Toplam Yatırılan
             Rectangle {
@@ -413,14 +418,18 @@ Item {
         }
 
         // 3. Alt Bölüm: Hisse Lot Dağılımı + Değer Eğrisi Grafiği
-        RowLayout {
+        GridLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spaceMd
+            columns: root.stacked ? 1 : 2
+            columnSpacing: Theme.spaceMd
+            rowSpacing: Theme.spaceMd
 
             // Sol Panel: Biriken Hisseler (260px)
             Rectangle {
-                Layout.preferredWidth: 260
+                Layout.fillWidth: root.stacked
+                Layout.preferredWidth: root.stacked ? -1 : 260
+                Layout.preferredHeight: 300
                 Layout.fillHeight: true
                 color: Theme.bgCard
                 radius: Theme.radiusMd
@@ -505,6 +514,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.preferredHeight: 420
                 color: Theme.bgCard
                 radius: Theme.radiusMd
                 border.color: Theme.borderCard

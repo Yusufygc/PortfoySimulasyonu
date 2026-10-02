@@ -17,13 +17,15 @@ Rectangle {
         anchors.margins: Theme.spaceMd
         spacing: Theme.spaceSm
 
-        // 1. Üst Bar: 4 Grafik Sekmesi & Hızlı Dönem Butonları
-        RowLayout {
+        // 1. Üst Bar: Grafik Sekmeleri & Hızlı Dönem Butonları (sığmazsa dönem butonları alta sarar)
+        Flow {
+            id: topFlow
             Layout.fillWidth: true
             spacing: Theme.spaceSm
 
             // 5 Grafik Sekmesi (Segment)
             Row {
+                id: tabsRow
                 spacing: Theme.spaceXs
 
                 Repeater {
@@ -74,10 +76,15 @@ Rectangle {
                 }
             }
 
-            Item { Layout.fillWidth: true }
+            // Sığıyorsa dönem butonlarını sağa yaslar, sığmıyorsa 0 genişlikte kalır
+            Item {
+                height: 1
+                width: Math.max(0, topFlow.width - tabsRow.width - periodsRow.width - topFlow.spacing * 2)
+            }
 
             // Hızlı Dönem Butonları
             Row {
+                id: periodsRow
                 spacing: Theme.spaceXs
 
                 Repeater {
@@ -113,7 +120,7 @@ Rectangle {
         }
 
         // 2. İkinci Bar: Mod Seçici (Normalize, Normal, Rasyo) — Sadece Getiri Grafiğinde Görünür
-        RowLayout {
+        Flow {
             Layout.fillWidth: true
             spacing: Theme.spaceSm
             visible: comparisonController.activeChartTab === 0

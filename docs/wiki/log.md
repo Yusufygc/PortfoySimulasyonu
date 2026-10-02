@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-02] ekle | QML: Golden Cross, Risk Anketi, Karşılaştırma Eklentileri, Excel Aralığı, İşlem Tarih/Saat ve Responsive Düzen (Eski UI Eşitleme - Grup 3)
+
+- **Hisse Tarayıcı > Golden Cross sekmesi:** `GoldenCrossController` + `GoldenCrossTab.qml`. EMA50/EMA200 kesişim sinyalleri (dönem/tip filtresi), tüm BIST taraması, veri tamamlama, TradingView'den yükleme, hisse bazlı geçmiş. Açılışta son taramadan 24 saat geçmişse otomatik tarama (`StartupJobsController`). Tarayıcı ekranı `ScreenerStrategiesTab` + `GoldenCrossTab` sekmelerine bölündü; tek tıkta Hisse 360'a gidişteki yanlış slot adı (`searchStock` -> `searchTicker`) düzeltildi.
+- **Risk profili anketi:** `RiskProfileController` + `RiskQuestionnaireDialog.qml` (Optimizasyon > Risk Anketi). Kayıtlı profil seçimi ve tek hisse ağırlık kısıtı anket sonrası güncellenir; risk combo'su controller durumuna bağlandı.
+- **Karşılaştırma:** özel tarih aralığı, TL/USD/Reel para birimi, "Portföy + Hisseleri" (tek tek hisse kıyası), Gemini AI yorumu (`ComparisonAiDialog`). `GeminiChatProvider` anahtarı artık her istekte okur (Ayarlar'dan değiştirince yeniden başlatma gerekmez).
+- **Excel:** `ExcelExportDialog` ile tarih aralığı + kayıt konumu (Dashboard günlük rapor, Model Portföy tarihsel rapor).
+- **İşlem:** Hızlı işlem modalına tarih/saat, hisse kodundan şirket adı ve son fiyat (sabit 294.25 fiyat kaldırıldı); Hisse Detay'da işlem etkisi tahmini (yeni lot, ortalama maliyet, kalan nakit).
+- **Responsive/esnek düzen:** pencere asgari boyutu 720x480; 1100 px altında kenar çubuğu otomatik daralır; sayfa içeriği asgari ölçünün (`minContentWidth/minContentHeight`) altında kaydırılır; iki panelli sayfalar (Model Portföy, Karşılaştırma, Optimizasyon, AI, İzleme Listeleri, Planlama) dar pencerede alt alta dizilir; KPI şeritleri 2x2'ye iner; pozisyon/izleme tabloları yatay kaydırılır; Hisse Detay modalı tek sütuna iner; başlık ve sekme çubukları `Flow`/`GridLayout` ile sarar. Ofscreen render ile 780x560, 900x600, 1024x640, 1366x768 boyutlarında görsel doğrulandı.
+- Test: eski kodda gerçek piyasa verisine sabit sayıyla bağlı `test_stock_detail_controller_live_price_and_diff` repository'lerden beklenen değeri hesaplayacak şekilde güncellendi. 168/168 QML testi yeşil.
+
+---
 ## [2026-10-02] ekle | QML: Kurumsal Aksiyon, Fiyat Verisi Sağlığı ve Açılış Veri Bakım İşleri (Eski UI Eşitleme - Grup 2)
 
 - Eski PyQt5 arayüzünde olup QML'e taşınmamış backend özellikleri bağlandı:

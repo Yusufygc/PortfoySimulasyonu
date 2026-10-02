@@ -19,16 +19,24 @@ Item {
         onTriggered: comparisonController.runComparison()
     }
 
-    RowLayout {
+    // Dar pencerede varlık paneli üstte, grafik/metrikler altta (ana sayfa kaydırması devreye girer)
+    readonly property bool stacked: width < 960
+    readonly property int minContentHeight: stacked ? 1240 : 0
+
+    GridLayout {
         anchors.fill: parent
-        spacing: Theme.spaceMd
+        columns: root.stacked ? 1 : 2
+        columnSpacing: Theme.spaceMd
+        rowSpacing: Theme.spaceMd
 
         // Sol Panel: Varlık Seçim Listesi (300px)
         Rectangle {
-            Layout.preferredWidth: 300
-            Layout.minimumWidth: 260
-            Layout.maximumWidth: 340
-            Layout.fillHeight: true
+            Layout.fillWidth: root.stacked
+            Layout.preferredWidth: root.stacked ? -1 : 300
+            Layout.minimumWidth: root.stacked ? 0 : 260
+            Layout.maximumWidth: root.stacked ? 100000 : 340
+            Layout.preferredHeight: root.stacked ? 560 : -1
+            Layout.fillHeight: !root.stacked
             color: Theme.bgCard
             radius: Theme.radiusMd
             border.color: Theme.borderCard
@@ -173,6 +181,112 @@ Item {
                     }
                 }
 
+                // Para birimi modu
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.spaceXs
+
+                    Text {
+                        text: Strings.compareCurrencyLabel
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontXs
+                        font.weight: Font.Bold
+                    }
+
+                    Row {
+                        spacing: Theme.spaceXs
+
+                        Repeater {
+                            model: [
+                                { key: "TL", text: "TL" },
+                                { key: "USD", text: "USD" },
+                                { key: "REAL", text: Strings.compareCurrencyReal }
+                            ]
+
+                            Rectangle {
+                                width: Math.max(52, currencyLabel.implicitWidth + 20)
+                                height: 28
+                                radius: Theme.radiusSm
+                                color: comparisonController.currencyMode === modelData.key ? Theme.accent : (currencyMouse.containsMouse ? Theme.bgCardHover : Theme.bgSecondary)
+                                border.color: comparisonController.currencyMode === modelData.key ? Theme.accent : Theme.borderSubtle
+
+                                Text {
+                                    id: currencyLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.text
+                                    color: comparisonController.currencyMode === modelData.key ? Theme.textInverse : Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontXs
+                                    font.weight: Font.DemiBold
+                                }
+
+                                MouseArea {
+                                    id: currencyMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: comparisonController.setCurrencyMode(modelData.key)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Özel tarih aralığı
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.spaceXs
+
+                    Text {
+                        text: Strings.compareCustomRangeLabel
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontXs
+                        font.weight: Font.Bold
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.spaceXs
+
+                        ModernInput {
+                            id: txtRangeStart
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            implicitHeight: 30
+                            placeholder: "GG.AA.YYYY"
+                            text: comparisonController.customStart
+                        }
+
+                        ModernInput {
+                            id: txtRangeEnd
+                            Layout.fillWidth: true
+                            Layout.preferredWidth: 1
+                            implicitHeight: 30
+                            placeholder: "GG.AA.YYYY"
+                            text: comparisonController.customEnd
+                        }
+
+                        ModernButton {
+                            text: Strings.compareBtnApplyRange
+                            variant: comparisonController.periodLabel === "ÖZEL" ? "primary" : "secondary"
+                            implicitHeight: 30
+                            onClicked: comparisonController.setCustomRange(txtRangeStart.text, txtRangeEnd.text)
+                        }
+                    }
+                }
+
+                // Yapay zeka yorumu
+                ModernButton {
+                    Layout.fillWidth: true
+                    text: Strings.compareBtnAi
+                    iconName: "ai"
+                    variant: "secondary"
+                    enabled: comparisonController.metricsList.length > 0
+                    onClicked: aiDialog.open()
+                }
+
                 // Alt Aksiyon Butonu
                 Rectangle {
                     Layout.fillWidth: true
@@ -217,6 +331,7 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.preferredHeight: 660
             spacing: Theme.spaceMd
 
             // Performans Grafiği Kartı
@@ -232,6 +347,25 @@ Item {
                 Layout.preferredHeight: 180
                 Layout.minimumHeight: 140
             }
+        }
+    }
+
+    ComparisonAiDialog {
+        id: aiDialog
+    }
+
+    ToastNotification {
+        id: compareToast
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 24
+        z: 999
+    }
+
+    Connections {
+        target: comparisonController
+        function onOperationResult(success, message) {
+            compareToast.show(message, success)
         }
     }
 }

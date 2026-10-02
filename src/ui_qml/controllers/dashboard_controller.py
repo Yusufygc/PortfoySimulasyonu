@@ -16,6 +16,18 @@ from src.ui_qml.models.positions_table_model import PositionsTableModel
 logger = logging.getLogger(__name__)
 
 
+def _parse_report_date(text: str):
+    """GG.AA.YYYY veya YYYY-AA-GG biçimindeki metni tarihe çevirir; boş/geçersizse None."""
+    from datetime import datetime as _dt
+
+    for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
+        try:
+            return _dt.strptime((text or "").strip(), fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 class DashboardController(QObject):
     kpisChanged = Signal()
     refreshStateChanged = Signal(bool)
@@ -353,9 +365,67 @@ class DashboardController(QObject):
         self._is_refreshing = False
         self.refreshStateChanged.emit(False)
 
+    @Slot(str, result="QVariantMap")
+    def lookupTicker(self, ticker: str) -> dict:
+        """Hisse kodu için kayıtlı şirket adı ve son bilinen fiyatı (DB'den, ağ çağrısı yapmadan) döndürür."""
+        clean = (ticker or "").replace(".IS", "").strip().upper()
+        result = {"found": False, "ticker": clean, "name": "", "price": 0.0}
+        stock_repo = getattr(self._container, "stock_repo", None) if self._container else None
+        if not clean or stock_repo is None:
+            return result
+        try:
+            stock = stock_repo.get_stock_by_ticker(f"{clean}.IS") or stock_repo.get_stock_by_ticker(clean)
+            if stock is None:
+                return result
+            result.update({"found": True, "name": (stock.name or clean).replace(".IS", "").strip()})
+            latest_repo = getattr(self._container, "latest_price_repo", None)
+            if latest_repo is not None:
+                price = latest_repo.get_latest_price_map([stock.id]).get(stock.id)
+                if price:
+                    result["price"] = float(price)
+        except Exception as exc:
+            logger.debug("Hisse arama başarısız (%s): %s", clean, exc)
+        return result
+
+    @Slot(str, str, int, float, str, str, str)
+    def submitTradeAt(
+        self, ticker: str, side: str, quantity: int, price: float, notes: str, date_text: str, time_text: str
+    ) -> None:
+        """Belirtilen tarih (GG.AA.YYYY) ve saat (SS:DD) ile Al/Sat işlemi kaydeder."""
+        trade_date = date.today()
+        trade_time = datetime.now().time().replace(microsecond=0)
+        if (date_text or "").strip():
+            try:
+                trade_date = datetime.strptime(date_text.strip(), "%d.%m.%Y").date()
+            except ValueError:
+                self.tradeExecuted.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+                return
+            if trade_date > date.today():
+                self.tradeExecuted.emit(False, "Gelecek tarihli işlem girilemez.")
+                return
+        if (time_text or "").strip():
+            try:
+                trade_time = datetime.strptime(time_text.strip(), "%H:%M").time()
+            except ValueError:
+                self.tradeExecuted.emit(False, "Saat biçimi geçersiz. Biçim: SS:DD")
+                return
+        self._submit_trade_impl(ticker, side, quantity, price, notes, trade_date, trade_time)
+
     @Slot(str, str, int, float, str)
     def submitTrade(self, ticker: str, side: str, quantity: int, price: float, notes: str) -> None:
-        """Al/Sat işlemini kaydeder ve portföyü günceller."""
+        """Al/Sat işlemini bugünün tarihi ve şu anki saatle kaydeder ve portföyü günceller."""
+        self._submit_trade_impl(ticker, side, quantity, price, notes, None, None)
+
+    def _submit_trade_impl(
+        self,
+        ticker: str,
+        side: str,
+        quantity: int,
+        price: float,
+        notes: str,
+        trade_date: Optional[date],
+        trade_time: Optional[Any],
+    ) -> None:
         ticker = ticker.strip().upper()
         if not ticker or quantity <= 0 or price <= 0:
             self.tradeExecuted.emit(False, "Geçersiz işlem parametreleri.")
@@ -373,8 +443,8 @@ class DashboardController(QObject):
                     side=trade_side,
                     quantity=quantity,
                     price=Decimal(str(price)),
-                    trade_date=date.today(),
-                    trade_time=datetime.now().time().replace(microsecond=0),
+                    trade_date=trade_date or date.today(),
+                    trade_time=trade_time or datetime.now().time().replace(microsecond=0),
                 )
                 self._container.trade_entry_service.submit_trade(req)
                 self._load_portfolio_data()
@@ -488,7 +558,40 @@ class DashboardController(QObject):
         """Belirtilen tarih aralığında Excel raporu oluşturur."""
         self._executor.submit(self._run_excel_export_worker, start_date_str, end_date_str)
 
-    def _run_excel_export_worker(self, start_date_str: Optional[str], end_date_str: Optional[str]) -> None:
+    @Slot(result=str)
+    def firstTradeDateText(self) -> str:
+        """Rapor aralığı için varsayılan başlangıç: ilk işlem tarihi (GG.AA.YYYY), yoksa boş."""
+        service = getattr(self._container, "portfolio_service", None) if self._container else None
+        try:
+            first = service.get_first_trade_date() if service else None
+        except Exception:
+            first = None
+        return first.strftime("%d.%m.%Y") if first else ""
+
+    @Slot(str, str, str)
+    def exportToExcelFile(self, start_text: str, end_text: str, file_path: str) -> None:
+        """Seçilen tarih aralığı ve hedef dosya için Excel raporu üretir (boş tarih = ilk işlemden bugüne)."""
+        start = _parse_report_date(start_text)
+        end = _parse_report_date(end_text)
+        if (start_text.strip() and start is None) or (end_text.strip() and end is None):
+            self.excelExported.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+            return
+        if start and end and start > end:
+            self.excelExported.emit(False, "Başlangıç tarihi bitiş tarihinden büyük olamaz.")
+            return
+        self._executor.submit(
+            self._run_excel_export_worker,
+            start.isoformat() if start else None,
+            end.isoformat() if end else None,
+            file_path.strip() or None,
+        )
+
+    def _run_excel_export_worker(
+        self,
+        start_date_str: Optional[str],
+        end_date_str: Optional[str],
+        target_path: Optional[str] = None,
+    ) -> None:
         try:
             from datetime import date, datetime
             from pathlib import Path
@@ -499,6 +602,11 @@ class DashboardController(QObject):
             out_dir.mkdir(parents=True, exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             target_file = out_dir / f"Portfoy_Raporu_{timestamp}.xlsx"
+            if target_path:
+                target_file = Path(target_path)
+                if target_file.suffix.lower() != ".xlsx":
+                    target_file = target_file.with_suffix(".xlsx")
+                target_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Tarih aralığını belirle
             s_date = None

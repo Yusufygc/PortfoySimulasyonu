@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -27,6 +27,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.application.services.analysis.comparison_service import ComparisonService
 from src.application.services.analysis.models import AnalysisFilterState
+from src.domain.models.ai_analysis import ChatMessage, MessageRole
 from src.ui.pages.comparison.utils.comparison_series_builder import ComparisonSeriesBuilder
 
 logger = logging.getLogger(__name__)
@@ -77,12 +78,16 @@ class ComparisonController(QObject):
     treemapModeChanged = Signal()
     treemapPortfolioChanged = Signal()
     treemapPortfolioOptionsChanged = Signal()
+    customRangeChanged = Signal()
+    currencyModeChanged = Signal()
+    aiCommentChanged = Signal()
     operationResult = Signal(bool, str, arguments=["success", "message"])
 
     # Worker Thread Signals (Qt QueuedConnection ile GUI ana thread'ine güvenli iletim)
     _calcFinished = Signal(object, object, object)
     _calcEmpty = Signal()
     _calcError = Signal(str)
+    _aiFinished = Signal(str, str)  # (yorum, hata)
 
     def __init__(self, container, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -90,11 +95,13 @@ class ComparisonController(QObject):
         self._analysis_service = container.analysis_service
         self._stock_repo = getattr(container, "stock_repo", None)
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ComparisonWorker")
+        self._executor_ai = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ComparisonAI")
 
         # Worker sinyal bağlantıları (ana GUI thread'inde çalışır)
         self._calcFinished.connect(self._apply_calculation_result)
         self._calcEmpty.connect(self._apply_empty_result)
         self._calcError.connect(self._apply_error_result)
+        self._aiFinished.connect(self._apply_ai_result)
 
         # State
         self._asset_options: List[Dict[str, str]] = []
@@ -103,6 +110,12 @@ class ComparisonController(QObject):
         self._metrics_list: List[Dict[str, Any]] = []
         self._is_loading: bool = False
         self._period_label: str = "3A"
+        self._custom_start: str = ""
+        self._custom_end: str = ""
+        self._currency_mode: str = "TL"  # "TL", "USD", "REAL" (enflasyondan arındırılmış)
+        self._ai_comment: str = ""
+        self._ai_busy: bool = False
+        self._last_range: tuple = (None, None)
         self._comparison_mode: str = "NORMALIZED"  # "NORMALIZED", "NORMAL", "RATIO"
         self._active_chart_tab: int = 0  # 0: Getiri, 1: Drawdown, 2: Aylık, 3: Saçılım, 4: Treemap
         self._ratio_numerator: str = "dashboard"
@@ -153,6 +166,26 @@ class ComparisonController(QObject):
     def periodLabel(self) -> str:
         return self._period_label
 
+    @Property(str, notify=customRangeChanged)
+    def customStart(self) -> str:
+        return self._custom_start
+
+    @Property(str, notify=customRangeChanged)
+    def customEnd(self) -> str:
+        return self._custom_end
+
+    @Property(str, notify=currencyModeChanged)
+    def currencyMode(self) -> str:
+        return self._currency_mode
+
+    @Property(str, notify=aiCommentChanged)
+    def aiComment(self) -> str:
+        return self._ai_comment
+
+    @Property(bool, notify=aiCommentChanged)
+    def aiBusy(self) -> bool:
+        return self._ai_busy
+
     @Property(str, notify=comparisonModeChanged)
     def comparisonMode(self) -> str:
         return self._comparison_mode
@@ -182,6 +215,7 @@ class ComparisonController(QObject):
             portfolios = self._analysis_service.get_portfolio_options()
             for p in portfolios:
                 options.append({"code": p.code, "label": p.label, "kind": p.kind})
+                options.append({"code": f"holdings:{p.code}", "label": f"{p.label} + Hisseleri", "kind": "HİSSELER"})
                 portfolio_opts.append({"code": p.code, "label": p.label})
 
             # 2. Benchmarklar
@@ -220,6 +254,67 @@ class ComparisonController(QObject):
         self._period_label = label
         self.periodLabelChanged.emit()
         self.runComparison()
+
+    @Slot(str, str, result=bool)
+    def setCustomRange(self, start_text: str, end_text: str) -> bool:
+        """Serbest tarih aralığı (GG.AA.YYYY veya YYYY-AA-GG) seçer ve karşılaştırmayı çalıştırır."""
+        start, end = self._parse_date(start_text), self._parse_date(end_text)
+        if start is None or end is None:
+            self.operationResult.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+            return False
+        if start >= end:
+            self.operationResult.emit(False, "Başlangıç tarihi bitiş tarihinden önce olmalıdır.")
+            return False
+        if end > date.today():
+            end = date.today()
+        self._custom_start = start.strftime("%d.%m.%Y")
+        self._custom_end = end.strftime("%d.%m.%Y")
+        self.customRangeChanged.emit()
+        self._period_label = "ÖZEL"
+        self.periodLabelChanged.emit()
+        self.runComparison()
+        return True
+
+    @Slot(str)
+    def setCurrencyMode(self, mode: str) -> None:
+        """Para birimi modu: TL, USD veya REAL (enflasyondan arındırılmış)."""
+        mode = mode.strip().upper()
+        if mode in ("TL", "USD", "REAL") and mode != self._currency_mode:
+            self._currency_mode = mode
+            self.currencyModeChanged.emit()
+            self.runComparison()
+
+    @Slot()
+    def generateAiComment(self) -> None:
+        """Seçili varlıkların performans özetini Gemini ile yorumlatır (arka planda)."""
+        chat_service = getattr(self._container, "ai_chat_service", None)
+        if chat_service is None:
+            self.operationResult.emit(False, "Yapay zeka servisi bulunamadı.")
+            return
+        if self._ai_busy:
+            return
+        if not self._metrics_list:
+            self.operationResult.emit(False, "Analiz edilecek veri bulunamadı. Önce karşılaştırmayı çalıştırın.")
+            return
+        prompt = self._build_commentary_prompt()
+        self._ai_busy = True
+        self._ai_comment = ""
+        self.aiCommentChanged.emit()
+
+        def work() -> None:
+            try:
+                text = chat_service.generate([ChatMessage(role=MessageRole.USER, content=prompt)])
+                self._aiFinished.emit(text, "")
+            except Exception as exc:
+                logger.warning("Karşılaştırma AI yorumu üretilemedi: %s", exc)
+                self._aiFinished.emit("", str(exc))
+
+        self._executor_ai.submit(work)
+
+    @Slot()
+    def clearAiComment(self) -> None:
+        self._ai_comment = ""
+        self.aiCommentChanged.emit()
 
     @Slot(str)
     def setComparisonMode(self, mode: str) -> None:
@@ -280,22 +375,36 @@ class ComparisonController(QObject):
         self.isLoadingChanged.emit()
 
         selected_codes = list(self._selected_codes)
-        period_label = self._period_label
+        start_dt, end_dt = self._resolve_range()
+        self._last_range = (start_dt, end_dt)
 
-        self._executor.submit(self._worker_calculate, selected_codes, period_label)
+        self._executor.submit(self._worker_calculate, selected_codes, start_dt, end_dt, self._currency_mode)
 
-    def _worker_calculate(self, selected_codes: List[str], period_label: str) -> None:
+    def _worker_calculate(self, selected_codes: List[str], start_dt: date, end_dt: date, currency_mode: str = "TL") -> None:
         """Arka plan thread'inde veri çekimi ve hizalama hesabı."""
         try:
-            end_dt = date.today()
-            start_dt = self._resolve_start_date(period_label, end_dt)
-
             portfolio_sources: List[str] = []
             benchmarks: List[str] = []
+            stock_ids: List[int] = []
 
             for code in selected_codes:
-                if code == "dashboard" or code.startswith("model:") or code.startswith("portfolio:"):
-                    portfolio_sources.append(code)
+                if code.startswith("holdings:"):
+                    # Portföy + o portföyün hisseleri (tek tek kıyaslanır)
+                    source = code.split(":", 1)[1]
+                    if source not in portfolio_sources:
+                        portfolio_sources.append(source)
+                    try:
+                        for stock_id in self._analysis_service.get_stock_map_for_source(source):
+                            if stock_id not in stock_ids:
+                                stock_ids.append(stock_id)
+                    except Exception as exc:
+                        logger.warning("Portföy hisseleri okunamadı (%s): %s", source, exc)
+                elif code == "dashboard" or code.startswith("model:") or code.startswith("portfolio:"):
+                    if code not in portfolio_sources:
+                        portfolio_sources.append(code)
+                elif code.isdigit():
+                    if int(code) not in stock_ids:
+                        stock_ids.append(int(code))
                 else:
                     benchmarks.append(code)
 
@@ -304,15 +413,15 @@ class ComparisonController(QObject):
             filter_state = AnalysisFilterState(
                 start_date=start_dt,
                 end_date=end_dt,
-                selected_stock_ids=[],
+                selected_stock_ids=stock_ids,
                 selected_benchmarks=benchmarks,
                 portfolio_source=primary_source,
                 comparison_portfolio_sources=portfolio_sources,
-                currency_mode="TL",
+                currency_mode=currency_mode,
             )
 
             dto = self._analysis_service.get_comparison_view(filter_state)
-            series_dict, code_to_label = ComparisonSeriesBuilder.build_global_series(dto, [])
+            series_dict, code_to_label = ComparisonSeriesBuilder.build_global_series(dto, stock_ids)
 
             if not series_dict:
                 self._calcEmpty.emit()
@@ -422,6 +531,58 @@ class ComparisonController(QObject):
         return df.columns[0] if len(df.columns) > 0 else None
 
     # ──────────────────────────── HTML Builders ────────────────────────────
+
+    @staticmethod
+    def _parse_date(text: str) -> Optional[date]:
+        text = (text or "").strip()
+        for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(text, fmt).date()
+            except ValueError:
+                continue
+        return None
+
+    def _resolve_range(self) -> tuple:
+        end_dt = date.today()
+        if self._period_label == "ÖZEL":
+            start = self._parse_date(self._custom_start)
+            end = self._parse_date(self._custom_end)
+            if start is not None and end is not None and start < end:
+                return start, end
+        return self._resolve_start_date(self._period_label, end_dt), end_dt
+
+    def _apply_ai_result(self, text: str, error: str) -> None:
+        self._ai_busy = False
+        if error:
+            self._ai_comment = ""
+            self.operationResult.emit(False, f"Yapay zeka yorumu üretilemedi: {error}")
+        else:
+            self._ai_comment = text
+        self.aiCommentChanged.emit()
+
+    def _build_commentary_prompt(self) -> str:
+        start, end = self._last_range
+        mode_labels = {"NORMALIZED": "Normalize (Baz 100)", "NORMAL": "Normal", "RATIO": "Rasyo"}
+        currency_labels = {"TL": "TL", "USD": "USD", "REAL": "enflasyondan arındırılmış (reel)"}
+        rows = "\n".join(
+            f"- **{m['label']}**: Toplam Getiri: %{m['totalReturn']}, Yıllık Volatilite: %{m['volatility']}"
+            for m in self._metrics_list
+        )
+        period = (
+            f"{start.strftime('%d.%m.%Y')} ile {end.strftime('%d.%m.%Y')} tarihleri arasında"
+            if start and end else "seçili dönemde"
+        )
+        return (
+            f"Kullanıcı Karşılaştırma Laboratuvarı ekranında {period} "
+            f"{mode_labels.get(self._comparison_mode, self._comparison_mode)} biçiminde, "
+            f"{currency_labels.get(self._currency_mode, self._currency_mode)} cinsinden aşağıdaki varlıkların "
+            f"performanslarını kıyaslıyor:\n\n{rows}\n\n"
+            "Bir finansal analist olarak bu karşılaştırmayı profesyonelce yorumla:\n"
+            "1. Dönemin en başarılı varlığı hangisidir ve neden öne çıkmıştır?\n"
+            "2. Volatilite açısından en riskli ve en güvenli varlık hangisidir?\n"
+            "3. Portföy çeşitlendirmesi için 2-3 pratik öneride bulun.\n\n"
+            "Not: Yatırım tavsiyesi vermeden, yalnızca verileri yorumla."
+        )
 
     def _resolve_start_date(self, label: str, end_dt: date) -> date:
         mapping = {

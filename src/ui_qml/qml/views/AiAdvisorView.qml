@@ -37,6 +37,10 @@ Rectangle {
         onTriggered: root.toastVisible = false
     }
 
+    // Dar pencerede sağlık paneli sohbetin altına iner (ana sayfa kaydırması devreye girer)
+    readonly property bool stacked: width < 940
+    readonly property int minContentHeight: stacked ? 1080 : 0
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spaceMd
@@ -58,6 +62,8 @@ Rectangle {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXl
                     font.weight: Font.Bold
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
                 }
 
                 Text {
@@ -65,6 +71,8 @@ Rectangle {
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
                 }
             }
 
@@ -170,10 +178,12 @@ Rectangle {
         // ---------------------------------------------------------------------
         // 2. ANA GÖVDE: SOL SOHBET TERMİNALİ (%68) + SAĞ SAĞLIK PANELİ (%32)
         // ---------------------------------------------------------------------
-        RowLayout {
+        GridLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: Theme.spaceMd
+            columns: root.stacked ? 1 : 2
+            columnSpacing: Theme.spaceMd
+            rowSpacing: Theme.spaceMd
 
             // =================================================================
             // SOL ALAN: SOHBET TERMİNALİ
@@ -181,6 +191,7 @@ Rectangle {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.preferredHeight: 520
                 radius: Theme.radiusMd
                 color: Theme.bgCard
                 border.color: Theme.borderCard
@@ -591,8 +602,10 @@ Rectangle {
             // SAĞ ALAN: PORTFÖY SAĞLIK & XAI RİSK PANELİ (%32, 340px)
             // =================================================================
             Rectangle {
-                Layout.preferredWidth: 340
-                Layout.fillHeight: true
+                Layout.fillWidth: root.stacked
+                Layout.preferredWidth: root.stacked ? -1 : 340
+                Layout.preferredHeight: root.stacked ? 460 : -1
+                Layout.fillHeight: !root.stacked
                 radius: Theme.radiusMd
                 color: Theme.bgCard
                 border.color: Theme.borderCard

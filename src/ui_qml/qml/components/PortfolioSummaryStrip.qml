@@ -3,10 +3,13 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import "../theme"
 
-RowLayout {
+GridLayout {
     id: root
 
-    spacing: Theme.spaceMd
+    columns: width < 640 ? 2 : 4
+    columnSpacing: Theme.spaceMd
+    rowSpacing: Theme.spaceMd
+    uniformCellWidths: true
 
     // 1. Net Sermaye
     Rectangle {

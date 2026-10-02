@@ -177,20 +177,30 @@ def test_stock_detail_modal_qml_compilation(qapp, container):
 
 
 def test_stock_detail_controller_live_price_and_diff(container):
-    """StockDetailController canlı fiyat ve günlük farkı hesaplayıp PnL ile eşleştirir."""
+    """StockDetailController canlı fiyat ve günlük farkı hesaplayıp PnL ile eşleştirir.
+
+    Gerçek piyasa verisi zamanla değiştiği için beklenen değerler sabit sayı yerine aynı
+    repository'lerden hesaplanır.
+    """
+    from datetime import date as _date
+
+    stock = container.stock_repo.get_stock_by_ticker("MERKO.IS")
+    assert stock is not None
+    latest = container.latest_price_repo.get_latest_price_map([stock.id]).get(stock.id)
+    previous = container.price_repo.get_last_price_before(stock.id, _date.today())
+    assert latest and previous
+
     ctrl = StockDetailController(container=container)
     ctrl.openStock("MERKO")
 
-    assert wait_until(lambda: ctrl.currentPrice > 0, timeout=3.0)
-    assert ctrl.currentPrice == 1.21
-    # Günlük değişim -%0.82 civarında olmalı
-    assert -1.0 <= ctrl.dailyDiff <= -0.5
+    assert wait_until(lambda: ctrl.currentPrice > 0, timeout=5.0)
+    assert ctrl.currentPrice == pytest.approx(float(latest), rel=1e-6)
+    expected_diff = (float(latest) - float(previous.close_price)) / float(previous.close_price) * 100
+    assert ctrl.dailyDiff == pytest.approx(expected_diff, abs=0.01)
     # Açık pozisyon değerleri
     assert ctrl.quantity > 0
     assert ctrl.marketValue > 0
-    assert ctrl.unrealizedPnl < 0  # MERKO pozisyonda zararda
-    assert ctrl.unrealizedPnlPct < 0
-    assert ctrl.isPnlPositive is False
+    assert ctrl.isPnlPositive == (ctrl.unrealizedPnl >= 0)
 
 
 def test_dashboard_controller_no_dot_is(container):

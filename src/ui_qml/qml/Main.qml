@@ -11,10 +11,24 @@ ApplicationWindow {
     visible: true
     width: Math.min(1320, Math.max(960, Screen.desktopAvailableWidth * 0.90))
     height: Math.min(840, Math.max(600, Screen.desktopAvailableHeight * 0.90))
-    minimumWidth: 960
-    minimumHeight: 600
+    minimumWidth: 720
+    minimumHeight: 480
     title: "Portföy Simülasyonu - Modern QML & TradingView"
     color: Theme.bgPrimary
+
+    // Dar pencerede kenar çubuğu otomatik daralır, boşluklar küçülür
+    readonly property bool compact: width < 1100
+    // İçerik bu genişliğin/yüksekliğin altına inerse sayfa kaydırılır (taşma/bozulma yerine)
+    readonly property int pageMinWidth: 760
+    readonly property int pageMinHeight: 480
+
+    // Etkin sayfanın bildirdiği asgari içerik ölçüsü (minContentWidth / minContentHeight); yoksa varsayılan
+    function activePageMetric(name, fallback) {
+        const page = pageStack.children[shellController.activePage]
+        const target = (page && page.item !== undefined) ? page.item : page
+        const value = target ? target[name] : undefined
+        return (value !== undefined && value !== null && value > 0) ? value : fallback
+    }
 
     Component.onCompleted: {
         x = Math.max(0, (Screen.desktopAvailableWidth - width) / 2)
@@ -45,6 +59,7 @@ ApplicationWindow {
             Sidebar {
                 id: sidebar
                 Layout.fillHeight: true
+                autoCollapse: appWindow.compact
             }
 
             // Sayfa İçerik Alanı
@@ -53,10 +68,21 @@ ApplicationWindow {
                 Layout.fillHeight: true
                 color: Theme.bgPrimary
 
+                Flickable {
+                    id: pageScroll
+                    anchors.fill: parent
+                    anchors.margins: appWindow.compact ? Theme.spaceSm : Theme.spaceMd
+                    contentWidth: Math.max(width, appWindow.activePageMetric("minContentWidth", appWindow.pageMinWidth))
+                    contentHeight: Math.max(height, appWindow.activePageMetric("minContentHeight", appWindow.pageMinHeight))
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: ModernScrollBar {}
+                    ScrollBar.horizontal: ModernScrollBar {}
+
                 StackLayout {
                     id: pageStack
-                    anchors.fill: parent
-                    anchors.margins: Theme.spaceMd
+                    width: pageScroll.contentWidth
+                    height: pageScroll.contentHeight
                     currentIndex: shellController.activePage
 
                     // 0: Dashboard (Canlı QML & TradingView)
@@ -144,6 +170,7 @@ ApplicationWindow {
                         active: shellController.activePage === 9 || (status === Loader.Ready)
                         source: "views/SettingsView.qml"
                     }
+                }
                 }
             }
         }

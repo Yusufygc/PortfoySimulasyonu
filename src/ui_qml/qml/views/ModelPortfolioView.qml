@@ -32,18 +32,26 @@ Item {
         onTriggered: root.toastVisible = false
     }
 
+    // Dar pencerede liste üstte, detay altta (ana sayfa kaydırması devreye girer)
+    readonly property bool stacked: width < 960
+    readonly property int minContentHeight: stacked ? 940 : 0
+
     // Ana Düzen (Sol Panel + Sağ Detay Paneli)
-    RowLayout {
+    GridLayout {
         anchors.fill: parent
-        spacing: Theme.spaceMd
+        columns: root.stacked ? 1 : 2
+        columnSpacing: Theme.spaceMd
+        rowSpacing: Theme.spaceMd
 
         // Sol Panel: Portföy Listesi (280px)
         PortfolioListCard {
             id: listCard
-            Layout.preferredWidth: 280
-            Layout.minimumWidth: 240
-            Layout.maximumWidth: 320
-            Layout.fillHeight: true
+            Layout.fillWidth: root.stacked
+            Layout.preferredWidth: root.stacked ? -1 : 280
+            Layout.minimumWidth: root.stacked ? 0 : 240
+            Layout.maximumWidth: root.stacked ? 100000 : 320
+            Layout.preferredHeight: root.stacked ? 250 : -1
+            Layout.fillHeight: !root.stacked
 
             onNewPortfolioRequested: {
                 newPortfolioDialog.isEdit = false
@@ -63,6 +71,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.preferredHeight: 650
             color: "transparent"
 
             // 1. Portföy Seçili Olmadığında Boş Durum
@@ -103,10 +112,12 @@ Item {
                 spacing: Theme.spaceMd
                 visible: portfolioController.currentPortfolioId > 0
 
-                // Başlık & Hızlı Aksiyon Butonları
-                RowLayout {
+                // Başlık & Hızlı Aksiyon Butonları (dar pencerede iki satır)
+                GridLayout {
                     Layout.fillWidth: true
-                    spacing: Theme.spaceMd
+                    columns: root.width < 1180 ? 1 : 2
+                    columnSpacing: Theme.spaceMd
+                    rowSpacing: Theme.spaceSm
 
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -132,6 +143,7 @@ Item {
 
                     // Aksiyon Butonları
                     RowLayout {
+                        Layout.alignment: root.width < 1180 ? Qt.AlignLeft : Qt.AlignRight
                         spacing: Theme.spaceSm
 
                         // Fiyatları Güncelle Butonu
@@ -249,7 +261,8 @@ Item {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     if (typeof portfolioController !== "undefined") {
-                                        portfolioController.exportToExcel()
+                                        excelDialog.open(portfolioController.firstTradeDateText(),
+                                                         "Model_Portfoy_" + portfolioController.currentPortfolioName + ".xlsx")
                                     }
                                 }
                             }
@@ -450,5 +463,13 @@ Item {
 
     CapitalMovementDialog {
         id: capitalMovementDialog
+    }
+
+    ExcelExportDialog {
+        id: excelDialog
+        title: Strings.excelDialogTitleModel
+        onExportRequested: function(startText, endText, filePath) {
+            portfolioController.exportHistoryToFile(startText, endText, filePath)
+        }
     }
 }

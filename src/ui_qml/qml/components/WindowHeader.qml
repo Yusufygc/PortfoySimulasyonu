@@ -9,6 +9,10 @@ Rectangle {
     property string title: Strings.appName
     signal searchRequested(string ticker)
 
+    // Dar pencerede başlık, seans metni ve saat sadeleşir
+    readonly property bool compact: width < 960
+    readonly property bool tiny: width < 760
+
     color: Theme.bgTitlebar
     implicitHeight: 48
     border.color: Theme.borderSubtle
@@ -41,6 +45,7 @@ Rectangle {
             }
 
             Text {
+                visible: !root.tiny
                 text: root.title
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontMd
@@ -57,6 +62,7 @@ Rectangle {
         Rectangle {
             implicitWidth: 220
             implicitHeight: 30
+            Layout.minimumWidth: 110
             radius: Theme.radiusSm
             color: Theme.bgInput
             border.color: searchInput.activeFocus ? Theme.borderFocus : Theme.borderSubtle
@@ -132,6 +138,7 @@ Rectangle {
                 }
 
                 Text {
+                    visible: !root.compact
                     text: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? "Borsa Güncelleniyor..." : "Veri Eksik (Güncelle)"
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
@@ -184,6 +191,7 @@ Rectangle {
                 }
 
                 Text {
+                    visible: !root.compact
                     text: shellController.sessionText
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
@@ -196,6 +204,7 @@ Rectangle {
 
         // Digital Clock
         Rectangle {
+            visible: !root.tiny
             implicitWidth: 80
             implicitHeight: 26
             radius: Theme.radiusSm

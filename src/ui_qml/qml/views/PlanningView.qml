@@ -30,14 +30,20 @@ Item {
         onTriggered: root.toastVisible = false
     }
 
+    // Dar pencerede bütçe kalemleri alt alta geçer (ana sayfa kaydırması devreye girer)
+    readonly property bool stacked: width < 900
+    readonly property int minContentHeight: stacked ? (activeTabIndex === 0 ? 1280 : (activeTabIndex === 2 ? 1180 : 0)) : 0
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spaceMd
 
-        // 1. Üst Başlık & Sekme Seçici
-        RowLayout {
+        // 1. Üst Başlık & Sekme Seçici (dar pencerede sekmeler başlığın altına geçer)
+        GridLayout {
             Layout.fillWidth: true
-            spacing: Theme.spaceMd
+            columns: root.width < 1060 ? 1 : 2
+            columnSpacing: Theme.spaceMd
+            rowSpacing: Theme.spaceSm
 
             ColumnLayout {
                 Layout.fillWidth: true

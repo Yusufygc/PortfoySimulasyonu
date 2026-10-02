@@ -454,6 +454,7 @@ def _startup_container(updated=5):
         scanned_stock_count=3, updated_count=updated, prices={1: Decimal("10")}
     )
     container.corporate_action_discovery_service.discover.return_value = SimpleNamespace(saved_count=2)
+    container.technical_analysis_service = None  # teknik tarama ayrı test edilir
     return container
 
 

@@ -38,7 +38,7 @@ def build_ai(
             live_provider=live_provider,
             fallback_provider=MockAIAnalysisProvider(),
         ),
-        ai_chat_service=AiChatService(GeminiChatProvider(api_key=ai_settings.gemini_api_key)),
+        ai_chat_service=AiChatService(GeminiChatProvider(api_key=lambda: ai_settings.gemini_api_key)),
         chat_history_repo=QSettingsChatHistoryRepository(),
         # Yeni, ayrı "AI Danışman" özelliği (bkz. plan §6.2, e1.1) — mevcut
         # ai_chat_service/ai_page HİÇ değiştirilmedi, tamamen additive.
