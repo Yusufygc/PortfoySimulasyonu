@@ -68,7 +68,8 @@ Rectangle {
                             { name: Strings.settingsTabDatabase, icon: Icons.layers },
                             { name: Strings.settingsTabExport, icon: Icons.fileText },
                             { name: Strings.settingsTabCorporate, icon: Icons.layers },
-                            { name: Strings.settingsTabPriceData, icon: Icons.history }
+                            { name: Strings.settingsTabPriceData, icon: Icons.history },
+                            { name: Strings.settingsTabMarketAdj, icon: Icons.layers }
                         ]
 
                         Rectangle {
@@ -1057,6 +1058,17 @@ Rectangle {
                         active: root.activeTabIndex === 5
                         visible: root.activeTabIndex === 5
                         source: "../components/SettingsPriceDataTab.qml"
+                        onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
+                    }
+
+                    // =========================================================
+                    // SEKME 6: PİYASA DÜZELTMELERİ (TÜM BIST SERMAYE ARTIRIMI)
+                    // =========================================================
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.activeTabIndex === 6
+                        visible: root.activeTabIndex === 6
+                        source: "../components/SettingsMarketAdjustmentsTab.qml"
                         onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
                     }
                 }

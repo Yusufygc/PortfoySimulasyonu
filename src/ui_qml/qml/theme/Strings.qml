@@ -554,6 +554,32 @@ QtObject {
     // --- Ayarlar: Yeni Sekmeler ---
     readonly property string settingsTabCorporate: "Kurumsal Aksiyonlar"
     readonly property string settingsTabPriceData: "Fiyat Verisi"
+    readonly property string settingsTabMarketAdj: "Piyasa Düzeltmeleri"
+
+    // --- Ayarlar > Piyasa Düzeltmeleri (tüm BIST sermaye artırımı/bölünme fiyat düzeltmesi) ---
+    readonly property string maTitle: "Sermaye Artırımı / Bölünme Düzeltmeleri (Tüm BIST)"
+    readonly property string maDesc: "Ham fiyatlar değiştirilmez. Veriden tespit edilen büyük fiyat kırılmaları aday olur; onayladığınız olaylar Hisse Tarayıcı, Golden Cross, grafik ve optimizasyonda düzeltilmiş fiyat olarak kullanılır."
+    readonly property string maBtnScan: "Veriden Tara"
+    readonly property string maBtnConfirm: "Onayla"
+    readonly property string maBtnIgnore: "Reddet"
+    readonly property string maBtnReopen: "Geri Al"
+    readonly property string maFilterAll: "Hepsi"
+    readonly property string maFilterCandidate: "Onay bekleyen"
+    readonly property string maFilterConfirmed: "Onaylı"
+    readonly property string maFilterIgnored: "Reddedilen"
+    readonly property string maFilterNoBreak: "Kırılma yok"
+    readonly property string maTicker: "Hisse"
+    readonly property string maSince: "Başlangıç yılı"
+    readonly property string maThDate: "Etkin Gün"
+    readonly property string maThFactor: "Faktör"
+    readonly property string maThObserved: "Gözlenen Oran"
+    readonly property string maThConfidence: "Güven"
+    readonly property string maThStatus: "Durum"
+    readonly property string maThSource: "Kaynak"
+    readonly property string maFactorLabel: "Uygulanacak faktör (örn. 0,5 = fiyatlar yarıya iner)"
+    readonly property string maEmpty: "Kayıt yok. 'Veriden Tara' ile aday arayın."
+    readonly property string maNoSelection: "Bir olay seçin. Faktör, etkin günden ÖNCEKİ tüm fiyatlarla çarpılır."
+    readonly property string maServiceMissing: "Piyasa geçmişi (DuckDB) servisi bulunamadı."
 
     // --- Sermaye Artırımı (Bedelli / Bedelsiz) Diyaloğu ---
     readonly property string caTitle: "Sermaye Artırımı"
