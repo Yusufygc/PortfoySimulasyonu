@@ -15,6 +15,7 @@ except ImportError:
         pass
 
 from src.domain.exceptions import MarketDataUnavailableError
+from src.domain.ticker import to_yf_symbol
 from ._errors import MARKET_DATA_FALLBACK_ERRORS
 from .yfinance_price_client import YFinancePriceClient
 
@@ -57,8 +58,9 @@ class YFinanceMarketDataClient(IMarketDataClient):
         except MARKET_DATA_FALLBACK_ERRORS as e:
             raise MarketDataUnavailableError(f"YFinance indirme hatasi: {e}") from e
 
+    # Kanonik ticker uzantısızdır (`THYAO`); yfinance borsa son eki (`THYAO.IS`) ister, bu yüzden sınırda çevrilir.
     def get_closing_price(self, stock_id: int, ticker: str, price_date: date):
-        return self._price_client.get_closing_price(ticker=ticker, price_date=price_date)
+        return self._price_client.get_closing_price(ticker=to_yf_symbol(ticker), price_date=price_date)
 
     def get_closing_prices(
         self,
@@ -66,7 +68,9 @@ class YFinanceMarketDataClient(IMarketDataClient):
         tickers: Sequence[str],
         price_date: date,
     ):
-        return self._price_client.get_closing_prices(stock_ids=stock_ids, tickers=tickers, price_date=price_date)
+        return self._price_client.get_closing_prices(
+            stock_ids=stock_ids, tickers=[to_yf_symbol(t) for t in tickers], price_date=price_date
+        )
 
     def get_price_series(
         self,
@@ -74,4 +78,6 @@ class YFinanceMarketDataClient(IMarketDataClient):
         start_date: date,
         end_date: date,
     ):
-        return self._price_client.get_price_series(ticker=ticker, start_date=start_date, end_date=end_date)
+        return self._price_client.get_price_series(
+            ticker=to_yf_symbol(ticker), start_date=start_date, end_date=end_date
+        )

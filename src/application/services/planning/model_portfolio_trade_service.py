@@ -16,6 +16,7 @@ from src.domain.models.model_portfolio import (
 )
 from src.domain.models.stock import Stock
 from src.domain.constants.bist_tickers import is_valid_bist_ticker
+from src.domain.ticker import clean_ticker
 
 
 class _SimAccumulators(NamedTuple):
@@ -280,10 +281,7 @@ class ModelTradeInput(NamedTuple):
 def _normalize_ticker(ticker: str) -> str:
     if not ticker or not ticker.strip():
         raise ValueError("Ticker bos olamaz")
-    normalized = ticker.strip().upper()
-    if "." not in normalized:
-        normalized += ".IS"
-    return normalized
+    return clean_ticker(ticker)
 
 
 def _validate_quantity_price(quantity: int, price: Decimal) -> None:

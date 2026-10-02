@@ -46,12 +46,12 @@ _RETRY_DELAY = 2.0
 
 
 def _parse_ticker(ticker: str) -> tuple[str, str]:
-    """'THYAO.IS' → ('THYAO', 'BIST').  Suffix yok → NASDAQ."""
+    """'THYAO.IS' → ('THYAO', 'BIST').  Suffix yok → BIST (kanonik ticker uzantısızdır; uygulama BIST odaklıdır)."""
     upper = ticker.upper()
     for suffix, exchange in _SUFFIX_EXCHANGE.items():
         if upper.endswith(suffix):
             return upper[: -len(suffix)], exchange
-    return upper, "NASDAQ"
+    return upper, "BIST"
 
 
 def _is_valid_ticker(ticker: str) -> bool:

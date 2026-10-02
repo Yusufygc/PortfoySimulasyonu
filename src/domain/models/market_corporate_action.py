@@ -30,6 +30,7 @@ class MarketActionSource(str, Enum):
     DETECTED = "DETECTED"
     KAP = "KAP"
     PORTFOLIO = "PORTFOLIO"  # portföy kurumsal aksiyon akışından aktarıldı
+    MIGRATION = "MIGRATION"  # SQLite'taki düzeltilmiş geçmiş ile DuckDB ham geçmişinin farkından türetildi
     MANUAL = "MANUAL"
 
 

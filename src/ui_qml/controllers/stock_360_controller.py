@@ -624,12 +624,16 @@ class Stock360Controller(QObject):
                 if not s360_service and hasattr(self._container, "services"):
                     s360_service = getattr(self._container.services, "stock_360_service", None)
 
-                if s360_service and hasattr(s360_service, "get_all_stocks"):
-                    stocks = s360_service.get_all_stocks()
-                elif hasattr(self._container, "repositories") and hasattr(self._container.repositories, "stock_repo"):
-                    stocks = self._container.repositories.stock_repo.get_all_stocks()
-
-                tickers = [s.ticker.replace(".IS", "") for s in stocks if getattr(s, "ticker", None)]
+                # Önce DuckDB piyasa kataloğu (tüm BIST); yoksa SQLite'taki hisseler
+                catalog = s360_service.get_catalog_tickers() if s360_service and hasattr(s360_service, "get_catalog_tickers") else []
+                if isinstance(catalog, list) and catalog:
+                    tickers = [str(t) for t in catalog]
+                else:
+                    if s360_service and hasattr(s360_service, "get_all_stocks"):
+                        stocks = s360_service.get_all_stocks()
+                    elif hasattr(self._container, "repositories") and hasattr(self._container.repositories, "stock_repo"):
+                        stocks = self._container.repositories.stock_repo.get_all_stocks()
+                    tickers = [s.ticker.replace(".IS", "") for s in stocks if getattr(s, "ticker", None)]
                 if tickers:
                     sorted_tickers = []
                     for c in candidates:

@@ -24,10 +24,11 @@ def test_get_closing_price_success(monkeypatch):
         
     monkeypatch.setattr(client, "_download_dataframe", mock_download)
     
-    price = client.get_closing_price(1, "AAPL", date(2026, 1, 1))
+    price = client.get_closing_price(1, "THYAO", date(2026, 1, 1))
     assert price == Decimal("10.5")
     assert len(download_calls) == 1
-    assert download_calls[0] == ("AAPL", date(2026, 1, 1), date(2026, 1, 2))
+    # kanonik ticker uzantısızdır; yfinance sınırında `.IS` eklenir
+    assert download_calls[0] == ("THYAO.IS", date(2026, 1, 1), date(2026, 1, 2))
 
 def test_get_closing_price_empty_response(monkeypatch):
     client = YFinanceMarketDataClient()
@@ -35,14 +36,14 @@ def test_get_closing_price_empty_response(monkeypatch):
     
     monkeypatch.setattr(client, "_download_dataframe", lambda *a: df)
     
-    with pytest.raises(ValueError, match="AAPL icin 2026-01-01 gun sonu fiyati bulunamadi"):
-        client.get_closing_price(1, "AAPL", date(2026, 1, 1))
+    with pytest.raises(ValueError, match="THYAO.IS icin 2026-01-01 gun sonu fiyati bulunamadi"):
+        client.get_closing_price(1, "THYAO", date(2026, 1, 1))
 
 def test_get_closing_prices_multi_ticker(monkeypatch):
     client = YFinanceMarketDataClient()
     
     # yfinance returns multi-index columns for multi-ticker download
-    columns = pd.MultiIndex.from_tuples([("Close", "AAPL"), ("Close", "MSFT")])
+    columns = pd.MultiIndex.from_tuples([("Close", "THYAO.IS"), ("Close", "ASELS.IS")])
     df = pd.DataFrame([[150.0, 400.0]], index=[pd.Timestamp("2026-01-01")], columns=columns)
     
     download_calls = []
@@ -52,9 +53,9 @@ def test_get_closing_prices_multi_ticker(monkeypatch):
         
     monkeypatch.setattr(client, "_download_dataframe", mock_download)
     
-    prices = client.get_closing_prices([1, 2], ["AAPL", "MSFT"], date(2026, 1, 1))
+    prices = client.get_closing_prices([1, 2], ["THYAO", "ASELS"], date(2026, 1, 1))
     assert prices == {1: Decimal("150.0"), 2: Decimal("400.0")}
-    assert download_calls[0][0] == ["AAPL", "MSFT"]
+    assert download_calls[0][0] == ["THYAO.IS", "ASELS.IS"]
 
 def test_get_price_series(monkeypatch):
     client = YFinanceMarketDataClient()
@@ -69,7 +70,7 @@ def test_get_price_series(monkeypatch):
         
     monkeypatch.setattr(client, "_download_dataframe", mock_download)
     
-    series = client.get_price_series("AAPL", date(2026, 1, 1), date(2026, 1, 3))
+    series = client.get_price_series("THYAO", date(2026, 1, 1), date(2026, 1, 3))
     assert series == {
         date(2026, 1, 1): Decimal("100.0"),
         date(2026, 1, 2): Decimal("101.5"),
@@ -117,3 +118,16 @@ def test_optimization_last_price_returns_none_on_yfinance_failure(monkeypatch):
     )
 
     assert YFinanceOptimizationMarketDataProvider().get_last_price("AAPL") is None
+
+
+def test_get_price_series_keeps_explicit_exchange_suffix_and_index_symbols(monkeypatch):
+    client = YFinanceMarketDataClient()
+    df = pd.DataFrame({"Close": [1.0, 2.0]}, index=pd.to_datetime(["2026-01-01", "2026-01-02"]))
+    seen = []
+    monkeypatch.setattr(client, "_download_dataframe", lambda tickers, start, end: seen.append(tickers) or df)
+
+    client.get_price_series("^XU100", date(2026, 1, 1), date(2026, 1, 2))
+    client.get_price_series("sap.de", date(2026, 1, 1), date(2026, 1, 2))
+    client.get_price_series("asels.is", date(2026, 1, 1), date(2026, 1, 2))
+
+    assert seen == ["^XU100", "SAP.DE", "ASELS.IS"]

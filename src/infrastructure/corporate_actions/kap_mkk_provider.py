@@ -11,6 +11,7 @@ from html import unescape
 from typing import Any, Callable, Iterable, Sequence
 
 from src.domain.models.corporate_action import ActionType
+from src.domain.ticker import clean_ticker
 from src.domain.models.corporate_action_candidate import CandidateDiscoveryData, CorporateActionCandidate
 from src.domain.ports.services.i_corporate_action_provider import (
     CorporateActionProviderUnavailable,
@@ -41,7 +42,7 @@ class KapMkkCorporateActionProvider(ICorporateActionProvider):
         candidates: list[CorporateActionCandidate] = []
         for payload in self._fetcher(tickers, start_date, end_date):
             candidate = parse_kap_mkk_disclosure(payload)
-            if candidate is not None and candidate.ticker in {ticker.upper() for ticker in tickers}:
+            if candidate is not None and candidate.ticker in {clean_ticker(ticker) for ticker in tickers}:
                 candidates.append(candidate)
         return candidates
 
@@ -305,8 +306,7 @@ def _extract_ticker(text: str) -> str | None:
 
 
 def _normalize_ticker(ticker: str) -> str:
-    ticker = ticker.strip().upper()
-    return ticker if ticker.endswith(".IS") else f"{ticker}.IS"
+    return clean_ticker(ticker)
 
 
 def _extract_ratio(text: str, action_type: ActionType) -> Decimal | None:

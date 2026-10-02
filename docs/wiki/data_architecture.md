@@ -3,32 +3,57 @@
 > MySQL desteği kaldırıldı (2026-10-02). Uygulama yalnızca yerel dosya tabanlı iki veritabanı kullanır.
 > Yollar çalışma dizinine değil uygulama köküne göre çözülür: `src/infrastructure/db/paths.py`
 > (`DB_SQLITE_PATH`, `DUCKDB_PATH` ortam değişkenleriyle değiştirilebilir).
+> **Not:** `settings_loader` `.env` dosyasını `override=True` ile yükler; `.env` içinde `DB_SQLITE_PATH` varsa
+> kabuktan verilen ortam değişkeni onu ezemez (`DUCKDB_PATH` ise `.env`'de yoksa ezilebilir).
+
+## Ticker biçimi (tek tip)
+
+Kanonik ticker **uzantısız büyük harftir** (`THYAO`): `stocks.ticker`, DuckDB, KAP, Golden Cross olayları ve arayüz.
+`.IS` yalnızca yfinance gibi borsa son eki isteyen dış sınırlarda eklenir (`src/domain/ticker.py`: `clean_ticker`,
+`to_yf_symbol`). `SQLAlchemyStockRepository.get_stock_by_ticker` her iki biçimi de bulur; yazma (`insert/update`)
+uzantısızı kaydeder; açılışta eski `.IS` kayıtlar çakışma yoksa uzantısıza çevrilir. Yazıcılar (işlem girişi, model
+portföy, izleme listesi, KAP sağlayıcı) uzantı eklemez. Uygulama BIST odaklıdır: uzantısız her kod yfinance'e `.IS`
+ile gider; endeks (`^XU100`), kur (`USDTRY=X`) ve zaten uzantılı semboller olduğu gibi kalır.
 
 ## Sahiplik özeti
 
 | Veri | Depo | Yazan | Okuyan |
 |---|---|---|---|
 | Portföy: `stocks`, `trades`, `cash_movements`, `trade_adjustments` | **SQLite** `data/portfolio.db` | `PortfolioService`, `TradeEntryService`, `CashMovementService` | Dashboard, Hisse Detay, Karşılaştırma, Optimizasyon, Excel |
-| Portföydeki/izlenen hisselerin günlük kapanışları: `daily_prices` (~166 hisse) | **SQLite** | `MarketDataSyncService` (köprü + uzlaştırma), `PriceDataHealthService`, `BackfillService`, sermaye artırımı fiyat düzeltmesi | Portföy değerleme, grafik, Teknik tarama, Hisse 360, DCA |
+| Kullanıcı verisine (işlem, izleme listesi, model portföy, kurumsal aksiyon) bağlı hisselerin günlük kapanışları: `daily_prices` (~35 hisse) | **SQLite** | `MarketDataSyncService` (köprü + uzlaştırma), `PriceDataHealthService`, `BackfillService`, sermaye artırımı fiyat düzeltmesi | Portföy değerleme, Karşılaştırma, `CurrentPriceResolver` |
 | Canlı/gün içi fiyat önbelleği: `latest_prices` | **SQLite** | `LivePriceRefreshService` | `CurrentPriceResolver` (yalnızca son kapanıştan yeni güne aitse kullanılır) |
 | Takip listeleri, model portföyler (+işlem/nakit), bütçe/hedef/sabit kalemler | **SQLite** | ilgili servisler | ilgili ekranlar |
-| Kurumsal aksiyonlar ve KAP/MKK adayları | **SQLite** | `CorporateActionService`, aday servisleri | Hisse Detay, Ayarlar |
-| Risk profilleri, Golden Cross olayları, KAP ortaklık anlık görüntüleri | **SQLite** | `RiskProfileService`, `TechnicalAnalysisService`, `ShareholderAnalysisService` | Optimizasyon, Tarayıcı, Hisse 360 |
-| **Tüm BIST günlük barları** (`daily_prices`, ticker bazlı, ~2,2 milyon bar, 2000-bugün) ve hisse kataloğu (`bist_stocks`, ~624) | **DuckDB** `data/market_history.duckdb` | `BistBulkDownloader` (ilk yükleme, script), `MarketDataSyncService.sync_daily_delta` (artımlı) | `DuckDBMarketHistoryRepository` (salt okunur): grafik (portföy dışı hisseler), Hisse Detay son bar, DCA fallback; `DuckDBOptimizationMarketDataProvider` (Markowitz); Ayarlar istatistikleri |
+| Portföy kurumsal aksiyonları ve KAP/MKK adayları (`corporate_actions`, `corporate_action_candidates`) | **SQLite** | `CorporateActionService`, aday servisleri | Hisse Detay, Ayarlar |
+| Risk profilleri, KAP ortaklık anlık görüntüleri | **SQLite** | `RiskProfileService`, `ShareholderAnalysisService` | Optimizasyon, Hisse 360 |
+| Golden/Death Cross olayları `cross_events` (ticker anahtarlı, türetilmiş) | **SQLite** | `TechnicalAnalysisService` | Hisse Tarayıcı |
+| **Tüm BIST günlük ham barları** (`daily_prices`, ticker bazlı, ~2,2 milyon bar, 2000-bugün) ve hisse kataloğu (`bist_stocks`, ~624) | **DuckDB** `data/market_history.duckdb` | `BistBulkDownloader` (ilk yükleme, script), `MarketDataSyncService.sync_daily_delta` (artımlı) | `DuckDBMarketHistoryRepository` (salt okunur) |
+| **Sermaye artırımı/bölünme olayları ve fiyat düzeltme faktörleri** (`market_corporate_actions`, ticker anahtarlı) | **DuckDB** | `DuckDBCorporateActionStore` (`MarketCorporateActionService` üzerinden) | `DuckDBMarketHistoryRepository` (düzeltilmiş okuma) |
 | Ayarlar: tema, otomatik iş işaretleri, sohbet geçmişi | Windows `QSettings` | `SettingsController`, `StartupJobsController` | aynı |
 | API anahtarları | `.env` | `persist_api_keys` | `settings_loader` |
 | Harici önbellekler (TÜFE, KAP) | `data/_cache/*.json` | sağlayıcılar | sağlayıcılar |
 
+DuckDB'yi okuyanlar: Hisse Tarayıcı ve Golden Cross (tüm evren), Hisse 360 (genel bakış/teknik seviyeler/şirket adı/hızlı liste),
+grafik, Hisse Detay son bar, DCA (birincil kaynak), Markowitz optimizasyonu, Ayarlar istatistikleri.
+
 ## Kurallar
 
-1. **İşlemsel veri ve portföy fiyatları SQLite'tadır.** DuckDB'ye yazma yalnızca piyasa verisi indiricileri içindir.
-2. **DuckDB'ye yalnızca `IMarketHistoryRepository` (okuma) ve `MarketDataSyncService` / `BistBulkDownloader` (yazma) erişir.** Controller veya servislerde ham `duckdb.connect` kullanılmaz.
-3. **DuckDB -> SQLite köprüsü repository üzerinden yapılır** (`price_repo.upsert_daily_prices_bulk`). Ham `sqlite3` yazımı yasaktır (BIGINT birincil anahtar otomatik artmadığı için eski köprü sessizce `NOT NULL constraint failed: daily_prices.id` ile başarısız oluyordu).
-4. `MarketDataSyncService.reconcile_sqlite_from_duckdb` her senkronda DuckDB'de olup SQLite'ta olmayan **yeni** barları portföy hisseleri için SQLite'a taşır; mevcut (sermaye artırımıyla düzeltilmiş) geçmiş barların üzerine asla yazmaz.
+1. **İşlemsel veri SQLite'tadır; piyasa verisinin sahibi DuckDB'dir.** SQLite `daily_prices` yalnızca kullanıcı verisine
+   bağlı hisseler içindir (kullanıcı verisine bağlı olmayan 133 hissenin fiyatı ve kaydı 2026-10-03'te silindi).
+2. **DuckDB'ye yalnızca `IMarketHistoryRepository` (okuma), `IMarketCorporateActionRepository` ve
+   `MarketDataSyncService` / `BistBulkDownloader` (yazma) erişir.** Controller veya servislerde ham `duckdb.connect` kullanılmaz.
+3. **DuckDB -> SQLite köprüsü repository üzerinden yapılır** (`price_repo.upsert_daily_prices_bulk`). Ham `sqlite3` yazımı yasaktır
+   (BIGINT birincil anahtar otomatik artmadığı için eski köprü sessizce `NOT NULL constraint failed` ile başarısız oluyordu).
+4. `MarketDataSyncService.reconcile_sqlite_from_duckdb` her senkronda DuckDB'de olup SQLite'ta olmayan **yeni** barları
+   kullanıcı verisine bağlı hisseler için SQLite'a taşır; mevcut (düzeltilmiş) geçmiş barların üzerine asla yazmaz.
 5. SQLite BIGINT birincil anahtarlarında yeni satıra `id` elle verilir (`max(id)+1`).
+6. **DuckDB'deki ham barlar asla değiştirilmez.** Düzeltme `market_corporate_actions` faktörleriyle okuma anında uygulanır
+   (bkz. [market_corporate_actions.md](market_corporate_actions.md)).
 
-## Bilinen sınırlar (karar bekleyen)
+## Bilinen sınırlar
 
-- **Evren farkı:** SQLite'ta 168 hisse, DuckDB'de ~624 hisse var. Tarayıcı (strateji + Golden Cross) ve teknik analiz `stock_repo`'daki hisseleri tarar, yani yalnızca SQLite'taki 168'i. Tüm BIST'i taramak için hisselerin `stocks` tablosuna eklenmesi veya tarayıcının DuckDB'den beslenmesi gerekir.
-- **Düzeltilmiş/düzeltilmemiş fiyat:** Sermaye artırımı fiyat düzeltmesi yalnızca SQLite barlarına uygulanır; DuckDB ham barlar tutar. Optimizasyon DuckDB fiyatlarını kullandığı için bedelsiz sonrası getiri hesabı etkilenebilir.
-- **Ticker biçimi:** SQLite `stocks.ticker` karışık (46 kayıt `.IS` uzantılı, 122 uzantısız); DuckDB uzantısızdır. Kod her ikisini de tolere eder, veri normalleştirilmemiştir.
+- **Düzeltilmemiş adaylar:** Veriden tespit edilen sermaye artırımı adayları kullanıcı onayına kadar düzeltmeye girmez;
+  onaylanana dek tarayıcı o hisse için ham seriyi görür.
+- **Hacim:** Düzeltilmiş okumada OHLC faktörlenir, hacim ham kalır.
+- **SQLite fiyatları (35 hisse):** Portföy değerlemesi SQLite'tan okur; DuckDB düzeltmesi ile otomatik eşitlenmez. Portföy aksiyonu
+  uygulandığında her iki depo da güncellenir.
+- **`candidate.ticker` eski kayıtları** `.IS` uzantılı olabilir (yalnızca `corporate_action_candidates`); aramalar iki biçimi de tolere eder.

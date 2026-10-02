@@ -80,7 +80,7 @@ class FakeModelPortfolioRepo:
 class FakeStockRepo:
     def __init__(self):
         self.stocks = {
-            10: Stock(id=10, ticker="ASELS.IS", name="ASELSAN", currency_code="TRY"),
+            10: Stock(id=10, ticker="ASELS", name="ASELSAN", currency_code="TRY"),
         }
 
     def get_stock_by_id(self, stock_id):
@@ -122,7 +122,7 @@ def test_model_portfolio_service_returns_positions_with_details():
     positions = service.get_positions_with_details(1, price_map={10: Decimal("12")})
 
     assert len(positions) == 1
-    assert positions[0]["ticker"] == "ASELS.IS"
+    assert positions[0]["ticker"] == "ASELS"
     assert positions[0]["quantity"] == 8
     assert positions[0]["current_value"] == Decimal("96")
     assert positions[0]["profit_loss"] == Decimal("16")

@@ -9,6 +9,7 @@ from src.application.services.market.trade_session_guard import ensure_trade_ses
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.constants.bist_tickers import is_valid_bist_ticker
+from src.domain.ticker import clean_ticker
 
 
 class TradeRequest(NamedTuple):
@@ -37,11 +38,9 @@ class TradeEntryService:
 
     @staticmethod
     def normalize_ticker(ticker: str) -> str:
-        normalized = (ticker or "").strip().upper()
+        normalized = clean_ticker(ticker)
         if not normalized:
             raise ValueError("Ticker bos olamaz.")
-        if "." not in normalized:
-            normalized += ".IS"
         return normalized
 
     def ensure_stock(

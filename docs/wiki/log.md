@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] degistir | Piyasa Evreni DuckDB'ye Taşındı, Sermaye Artırımı Düzeltmesi DuckDB'de, Ticker Tek Tip
+
+- **Tüm BIST taraması:** Hisse Tarayıcı, Golden Cross, Hisse 360, grafik ve DCA evreni/fiyatlarını DuckDB'den (624 hisse) alır; `IMarketHistoryRepository` toplu okuma (`list_tickers`, `get_price_series_bulk`, `get_latest_dates`, `find_price_breaks`) kazandı. Gerçek veride tarayıcı ~2 sn, Golden Cross ~5 sn. Golden Cross olayları ticker anahtarlı `cross_events` tablosuna taşındı (eski `golden_cross_events` açılışta silinir). Açılışta BIST güncellemesi `MarketDataSyncService.sync_daily_delta` kullanır; TradingView yükleme düğmesi kaldırıldı.
+- **Sermaye artırımı DuckDB'de:** ham barlar değişmez; `market_corporate_actions` faktörleriyle düzeltilmiş okuma (`adjusted=True` varsayılan). Veri güdümlü tespit (tek barlık hata ve kriz günü piyasa hareketi ayıklanır), onay/red, ham veride kırılma kalmayan olayları `NO_BREAK` yapan çift düzeltme koruması. Ayrıntı: [market_corporate_actions.md](market_corporate_actions.md).
+- **SQLite göçü:** kullanıcı verisine bağlı olmayan 133 hissenin SQLite fiyatı ve kaydı silindi (305.692 satır, yedekli); 35 hisse kaldı. SQLite düzeltilmiş geçmişinden 10 geçmiş olay DuckDB'ye türetildi (yalnızca ham seri aynı kırılmayı gösteriyorsa; ham seri sürekliyse SQLite'ın hatalı olduğu anlaşılıp olay üretilmedi).
+- **Ticker tek tip:** kanonik biçim uzantısız (`THYAO`); `.IS` yalnızca yfinance sınırında (`src/domain/ticker.py`). `stocks` kayıtları açılışta çevrilir; yazıcılar uzantı eklemez.
+- **DuckDB bakımı:** kısmi (NULL kapanışlı) son 30 günlük barlar yeniden indirilir; indirici NaN/0 kapanışı eler ve 3 denemeli geri çekilme yapar.
+- Testler: 831 geçti, 4 xfail.
+
+---
 ## [2026-10-02] temizle | MySQL Kalıntıları Kaldırıldı ve SQLite/DuckDB Veri Katmanı Tutarlı Hale Getirildi
 
 - **MySQL kaldırıldı:** `MySQLConfig`, `_create_mysql_engine`, MySQL `ON DUPLICATE KEY` dalları, `mysql-connector-python`, `DB_ENGINE/DB_HOST/DB_USER/DB_PASSWORD/DB_NAME/POOL_*` ortam değişkenleri (eski `.env` dosyalarında kalsa da yok sayılır), MySQL ORM `BIGINT(unsigned)` tipi (genel `BigInteger`), MySQL'e özgü betikler (`backup_mysql`, `migrate_mysql_to_sqlite`, `sync_mysql_backup_to_sqlite`, `compare_backup_to_sqlite`, `replicate_db`, 8 adet `apply_*_schema.py`, tüm `scripts/*.sql` DDL dosyaları) ve ilgili testler silindi. Tablolar `create_all` ile otomatik oluşur. `backups/` altındaki veri yedeklerine dokunulmadı.

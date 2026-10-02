@@ -230,7 +230,7 @@ class StockDetailController(QObject):
             return
 
         self._ticker = clean
-        self._raw_ticker = f"{clean}.IS"
+        self._raw_ticker = clean
         self._context_type = context_type.lower()
         self._context_id = context_id
         self._is_open = True

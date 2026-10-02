@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from src.domain.models.watchlist import Watchlist, WatchlistItem
 from src.domain.models.stock import Stock
+from src.domain.ticker import clean_ticker
 from src.domain.ports.repositories.i_watchlist_repo import IWatchlistRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 
@@ -222,12 +223,9 @@ class WatchlistService:
         if not ticker or not ticker.strip():
             raise ValueError("Ticker boş olamaz")
 
-        ticker = ticker.strip().upper()
+        ticker = clean_ticker(ticker)
         if len(ticker) > 15:
             raise ValueError("Hisse kodu 15 karakterden uzun olamaz.")
-
-        if "." not in ticker:
-            ticker = ticker + ".IS"
 
         # Stock'u bul veya oluştur
         stock = self._stock_repo.get_stock_by_ticker(ticker)

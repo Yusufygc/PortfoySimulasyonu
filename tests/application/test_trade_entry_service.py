@@ -103,8 +103,8 @@ def test_submit_trade_creates_missing_stock_and_buy_trade():
     )
 
     assert result.stock_id == 1
-    assert result.ticker == "ASELS.IS"
-    assert stock_repo.get_stock_by_ticker("ASELS.IS").name == "ASELSAN"
+    assert result.ticker == "ASELS"
+    assert stock_repo.get_stock_by_ticker("ASELS").name == "ASELSAN"
     assert portfolio_service.saved_trades[0].stock_id == 1
     assert portfolio_service.saved_trades[0].side == TradeSide.BUY
 

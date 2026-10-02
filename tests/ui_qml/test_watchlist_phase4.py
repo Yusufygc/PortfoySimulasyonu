@@ -76,6 +76,8 @@ def test_watchlist_crud_operations(qapp, container):
 
     unique_suffix = uuid.uuid4().hex[:6]
     test_list_name = f"Test Portfoy {unique_suffix}"
+    # Gerçek DB'ye test sırasında eklenen hisse kaydı geride bırakılmaz
+    stock_existed = container.stock_repo.get_stock_by_ticker("THYAO") is not None
 
     try:
         # 1. Yeni Liste Oluşturma
@@ -112,6 +114,9 @@ def test_watchlist_crud_operations(qapp, container):
         if controller.currentWatchlistId == new_wl_id:
             controller.deleteWatchlist(new_wl_id)
         assert len(controller.watchlists) == initial_count
+        created = None if stock_existed else container.stock_repo.get_stock_by_ticker("THYAO")
+        if created is not None:
+            container.portfolio_maintenance_repo.delete_unreferenced_stocks([created.id])
 
 
 def test_watchlist_qml_rendering(qapp, container):

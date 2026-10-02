@@ -10,6 +10,7 @@ from decimal import Decimal
 from typing import Dict, Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
+from src.domain.ticker import clean_ticker
 from src.ui_qml.models.watchlist_table_model import WatchlistTableModel
 
 logger = logging.getLogger(__name__)
@@ -365,13 +366,10 @@ class WatchlistController(QObject):
 
     @Slot(int, str, str)
     def addStock(self, watchlist_id: int, ticker: str, notes: str = "") -> None:
-        ticker = ticker.strip().upper()
+        ticker = clean_ticker(ticker)
         if not ticker:
             self.actionCompleted.emit(False, "Hisse kodu boş olamaz!")
             return
-
-        if not ticker.endswith(".IS") and "." not in ticker:
-            ticker = f"{ticker}.IS"
 
         ws = self._get_watchlist_service()
         if not ws:

@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from src.domain.models.market_corporate_action import (
     MarketActionSource,
@@ -184,6 +184,79 @@ class MarketCorporateActionService:
         )
         self._actions.upsert(stored)
         return stored
+
+    def import_actions_from_adjusted_history(
+        self, ticker: str, adjusted_closes: Dict[date, float]
+    ) -> List[MarketCorporateAction]:
+        """Bir hissenin DÜZELTİLMİŞ kapanış geçmişi (örn. SQLite) ile DuckDB HAM geçmişi arasındaki baz farkından
+        geçmiş sermaye artırımlarını türetir ve ONAYLI olarak kaydeder.
+
+        Düzeltilmiş/ham oranı bir olay gününde basamak yapar; basamak oranı faktördür. Yalnızca kalıcı
+        (önceki ve sonraki 3 barda sabit kalan), >= %20 büyüklükte basamaklar alınır (temettü düzeltmesi ve
+        veri hatası elenir) VE ham serinin kendisi aynı kırılmayı göstermelidir (ham seri zaten düzeltilmişse
+        fark düzeltilmiş kaynağın hatasıdır). Zaten kayıtlı bir olayın +-5 günündeki basamak atlanır.
+        """
+        if len(adjusted_closes) < 8:
+            return []
+        raw = {
+            b.price_date: b.close_price
+            for b in self._history.get_price_series(
+                ticker, min(adjusted_closes), max(adjusted_closes), adjusted=False
+            )
+        }
+        dates = sorted(d for d, v in adjusted_closes.items() if v and v > 0 and raw.get(d, 0) > 0)
+        if len(dates) < 8:
+            return []
+        ratios = [adjusted_closes[d] / raw[d] for d in dates]
+        known = list(self._actions.list_actions(ticker=ticker))
+        window = timedelta(days=_DUPLICATE_WINDOW_DAYS)
+        created: List[MarketCorporateAction] = []
+        for i in range(3, len(dates) - 2):
+            before = sorted(ratios[i - 3:i])[1]
+            after = sorted(ratios[i:i + 3])[1]
+            if after <= 0:
+                continue
+            factor = before / after
+            if 1.0 / _IDIOSYNCRATIC_DROP < factor < _IDIOSYNCRATIC_RISE:
+                continue
+            # kalıcılık: pencerenin her iki yanı kendi içinde tutarlı olmalı
+            if any(abs(r / before - 1.0) > 0.05 for r in ratios[i - 3:i]) or any(
+                abs(r / after - 1.0) > 0.05 for r in ratios[i:i + 3]
+            ):
+                continue
+            # DuckDB ham serisinin KENDİSİ bu kırılmayı göstermiyorsa (kaynak zaten düzeltmiş; fark SQLite'ın
+            # hatasından kaynaklanıyor) olay üretilmez: aksi halde doğru DuckDB serisi bozulurdu.
+            effective = self.locate_effective_date(ticker, dates[i], factor)
+            if effective is None:
+                continue
+            near = next((a for a in known if abs(effective - a.effective_date) <= window), None)
+            if near is not None:
+                if near.status != MarketActionStatus.CANDIDATE:
+                    continue
+                # Veriden tespit edilmiş aday: kesin faktörle onayla
+                confirmed = replace(
+                    near, factor=factor, status=MarketActionStatus.CONFIRMED, source=MarketActionSource.MIGRATION,
+                    confidence=0.9, note="Aday, SQLite düzeltilmiş geçmişinden türetilen kesin faktörle onaylandı",
+                )
+                self._actions.upsert(confirmed)
+                known[known.index(near)] = confirmed
+                created.append(confirmed)
+                continue
+            action = MarketCorporateAction(
+                ticker=ticker.replace(".IS", "").strip().upper(),
+                effective_date=effective,
+                factor=factor,
+                action_type=MarketActionType.REVERSE_SPLIT if factor > 1 else MarketActionType.OTHER,
+                status=MarketActionStatus.CONFIRMED,
+                source=MarketActionSource.MIGRATION,
+                observed_ratio=1.0 / factor,
+                confidence=0.9,
+                note="SQLite düzeltilmiş geçmişi ile DuckDB ham geçmişinin farkından türetildi",
+            )
+            self._actions.upsert(action)
+            known.append(action)
+            created.append(action)
+        return created
 
     def import_portfolio_actions(self, portfolio_action_repo, stock_repo) -> int:
         """Uygulanmış tüm portföy aksiyonlarını aktarır (idempotent: aynı olay üzerine yazılır)."""

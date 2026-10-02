@@ -28,6 +28,12 @@ class SQLAlchemyEngineProvider:
             # Türetilmiş veri: eski stock_id anahtarlı Golden Cross tablosu yerine ticker anahtarlı `cross_events` kullanılır
             with self._engine.begin() as conn:
                 conn.exec_driver_sql("DROP TABLE IF EXISTS golden_cross_events")
+                # Kanonik ticker uzantısızdır: eski `.IS` kayıtlar çakışma yoksa uzantısıza çevrilir (idempotent)
+                conn.exec_driver_sql(
+                    "UPDATE stocks SET ticker = substr(ticker, 1, length(ticker) - 3) "
+                    "WHERE upper(ticker) LIKE '%.IS' AND NOT EXISTS ("
+                    "SELECT 1 FROM stocks s2 WHERE s2.ticker = substr(stocks.ticker, 1, length(stocks.ticker) - 3))"
+                )
         except Exception as exc:
             logger.warning("Tablo şemaları oluşturulurken hata veya uyarı: %s", exc)
 

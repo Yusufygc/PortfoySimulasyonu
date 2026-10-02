@@ -2,6 +2,7 @@
 
 from typing import Dict, Iterable, List, Optional, Sequence
 from src.domain.models.stock import Stock
+from src.domain.ticker import clean_ticker
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import ORMStock
@@ -30,7 +31,7 @@ class SQLAlchemyStockRepository(IStockRepository):
     def _to_orm(self, domain: Stock) -> ORMStock:
         return ORMStock(
             id=domain.id, # Insert için None gelecektir
-            ticker=domain.ticker,
+            ticker=clean_ticker(domain.ticker),
             name=domain.name,
             currency_code=domain.currency_code,
             created_at=domain.created_at,
@@ -51,10 +52,15 @@ class SQLAlchemyStockRepository(IStockRepository):
             return self._to_domain(row)
 
     def get_stock_by_ticker(self, ticker: str) -> Optional[Stock]:
+        """`THYAO` ve `THYAO.IS` aynı hisseyi bulur (kanonik kayıt uzantısızdır; eski `.IS` kayıtlar da tolere edilir)."""
+        clean = clean_ticker(ticker)
+        if not clean:
+            return None
         with self._provider.get_session() as session:
-            row = session.query(ORMStock).filter_by(ticker=ticker).first()
-            if row is None:
+            rows = session.query(ORMStock).filter(ORMStock.ticker.in_([clean, f"{clean}.IS"])).all()
+            if not rows:
                 return None
+            row = next((r for r in rows if r.ticker == clean), rows[0])
             return self._to_domain(row)
 
     def get_stocks_by_ids(self, stock_ids: Sequence[int]) -> List[Stock]:
@@ -106,7 +112,7 @@ class SQLAlchemyStockRepository(IStockRepository):
         with self._provider.get_session() as session:
             orm_obj = session.query(ORMStock).filter_by(id=stock.id).first()
             if orm_obj:
-                orm_obj.ticker = stock.ticker
+                orm_obj.ticker = clean_ticker(stock.ticker)
                 orm_obj.name = stock.name
                 orm_obj.currency_code = stock.currency_code
                 # created_at and updated_at handled by DB / server_default / onupdate
