@@ -13,7 +13,7 @@ class IGoldenCrossRepository(ABC):
 
     @abstractmethod
     def upsert_events_bulk(self, events: Iterable[GoldenCrossEvent]) -> int:
-        """Toplu upsert (stock_id+cross_date+cross_type unique). Yeni eklenen satır sayısını döner."""
+        """Toplu upsert (ticker+cross_date+cross_type unique). Yeni eklenen satır sayısını döner."""
         raise NotImplementedError
 
     @abstractmethod
@@ -27,12 +27,12 @@ class IGoldenCrossRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_events_for_stock(self, stock_id: int) -> List[GoldenCrossEvent]:
-        """Tek stock için tüm tarihçe, en yeni önce."""
+    def get_events_for_ticker(self, ticker: str) -> List[GoldenCrossEvent]:
+        """Tek hisse için tüm tarihçe, en yeni önce. `.IS` uzantısı verilse de verilmese de çalışır."""
         raise NotImplementedError
 
     @abstractmethod
-    def get_last_cross_date_for_stock(self, stock_id: int) -> Optional[date]:
+    def get_last_cross_date_for_ticker(self, ticker: str) -> Optional[date]:
         """İncremental scan için: son kayıtlı cross tarihi (yoksa None)."""
         raise NotImplementedError
 

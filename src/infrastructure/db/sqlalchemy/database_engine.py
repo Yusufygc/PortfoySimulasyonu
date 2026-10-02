@@ -25,6 +25,9 @@ class SQLAlchemyEngineProvider:
         try:
             from src.infrastructure.db.sqlalchemy.orm_models import Base
             Base.metadata.create_all(bind=self._engine, checkfirst=True)
+            # Türetilmiş veri: eski stock_id anahtarlı Golden Cross tablosu yerine ticker anahtarlı `cross_events` kullanılır
+            with self._engine.begin() as conn:
+                conn.exec_driver_sql("DROP TABLE IF EXISTS golden_cross_events")
         except Exception as exc:
             logger.warning("Tablo şemaları oluşturulurken hata veya uyarı: %s", exc)
 

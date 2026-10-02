@@ -50,7 +50,7 @@ def _capture(signal):
 
 def _event(ticker="THYAO.IS", kind=CrossType.GOLDEN, day=date(2026, 3, 2)):
     return GoldenCrossEvent(
-        id=1, stock_id=7, ticker=ticker, cross_date=day, cross_type=kind,
+        id=1, ticker=ticker, cross_date=day, cross_type=kind,
         short_ma=Decimal("101.5"), long_ma=Decimal("99.25"), close_price=Decimal("1234.5"),
     )
 
@@ -104,34 +104,32 @@ def test_golden_cross_scan_reports_and_requests_reload(qapp):
     assert ctrl.isBusy is False
 
 
-def test_golden_cross_complete_data_uses_all_bist_scope(qapp):
-    health = MagicMock()
-    health.update_from_latest_to_today.return_value = PriceDataUpdateResult(10, 5)
-    calendar = MagicMock()
-    calendar.is_trading_day.return_value = True
-    ctrl, _ = _golden_ctrl(qapp, MagicMock(), price_data_health_service=health, trading_calendar=calendar)
+def test_golden_cross_complete_data_syncs_duckdb_market_history(qapp):
+    from src.application.services.market_data.market_data_sync_service import MarketSyncResult
+
+    sync = MagicMock()
+    sync.sync_daily_delta.return_value = MarketSyncResult(True, 600, 1200, 1.0, "ok")
+    ctrl, _ = _golden_ctrl(qapp, MagicMock(), market_data_sync_service=sync)
     updated = _capture(ctrl.pricesUpdated)
 
     ctrl.completeData()
 
-    target, scope = health.update_from_latest_to_today.call_args.args
-    assert scope == PRICE_SCOPE_ALL_BIST and target < date.today()
+    sync.sync_daily_delta.assert_called_once_with()
     assert updated
 
 
-def test_golden_cross_tradingview_unavailable_is_reported(qapp):
-    ctrl, _ = _golden_ctrl(qapp, MagicMock(), tv_backfill_service=None)
+def test_golden_cross_complete_data_without_sync_service_is_reported(qapp):
+    ctrl, _ = _golden_ctrl(qapp, MagicMock(), market_data_sync_service=None)
     notes = _capture(ctrl.notification)
 
-    ctrl.loadFromTradingView()
+    ctrl.completeData()
 
-    assert ctrl.tvAvailable is False
     assert notes and notes[-1][0] is False
 
 
 def test_golden_cross_ticker_history_and_error_path(qapp):
     service = MagicMock()
-    service.get_events_for_ticker.side_effect = lambda t: [_event()] if t == "THYAO.IS" else []
+    service.get_events_for_ticker.side_effect = lambda t: [_event()] if t == "THYAO" else []
     ctrl, _ = _golden_ctrl(qapp, service)
 
     ctrl.loadTickerEvents("thyao")

@@ -12,8 +12,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
@@ -25,7 +24,6 @@ logger = logging.getLogger(__name__)
 PERIOD_OPTIONS = [("7 gün", 7), ("30 gün", 30), ("90 gün", 90), ("180 gün", 180), ("1 yıl", 365), ("Tümü", 0)]
 TYPE_OPTIONS = [("Hepsi", ""), ("Golden", "GOLDEN"), ("Death", "DEATH")]
 _ALL_DAYS = 365 * 20
-_TV_BACKFILL_YEARS = 10
 
 
 def _fmt(value) -> str:
@@ -112,10 +110,6 @@ class GoldenCrossController(QObject):
     def serviceAvailable(self) -> bool:
         return self._svc("technical_analysis_service") is not None
 
-    @Property(bool, constant=True)
-    def tvAvailable(self) -> bool:
-        return self._svc("tv_backfill_service") is not None
-
     def _set_status(self, text: str) -> None:
         self._status = text
         self.statusChanged.emit()
@@ -157,34 +151,15 @@ class GoldenCrossController(QObject):
 
     @Slot()
     def completeData(self) -> None:
-        """Tüm BIST için eksik kapanışları son günden bugüne tamamlar."""
-        service = self._svc("price_data_health_service")
+        """Tüm BIST için eksik kapanışları DuckDB piyasa geçmişine (artımlı senkron) tamamlar."""
+        service = self._svc("market_data_sync_service")
         if service is None:
-            self.notification.emit(False, "Fiyat verisi yönetim servisi bulunamadı.")
+            self.notification.emit(False, "Piyasa veri senkron servisi bulunamadı.")
             return
         if self._is_busy:
             return
-        from src.application.services.market.price_data_health_service import PRICE_SCOPE_ALL_BIST
-
-        calendar = self._svc("trading_calendar")
-        target = date.today() - timedelta(days=1)
-        while calendar is not None and not calendar.is_trading_day(target):
-            target -= timedelta(days=1)
         self._set_busy(True, "Eksik fiyat verisi tamamlanıyor...")
-        self._submit("backfill", service.update_from_latest_to_today, target, PRICE_SCOPE_ALL_BIST)
-
-    @Slot()
-    def loadFromTradingView(self) -> None:
-        service = self._svc("tv_backfill_service")
-        if service is None:
-            self.notification.emit(False, "TradingView veri modülü kurulu değil.")
-            return
-        if self._is_busy:
-            return
-        end = date.today()
-        start = end - timedelta(days=int(_TV_BACKFILL_YEARS * 365.25))
-        self._set_busy(True, "TradingView'den geçmiş veri yükleniyor...")
-        self._submit("tv_backfill", service.backfill_range, start, end)
+        self._submit("backfill", service.sync_daily_delta)
 
     @Slot(str)
     def loadTickerEvents(self, ticker: str) -> None:
@@ -193,7 +168,7 @@ class GoldenCrossController(QObject):
         if service is None or not clean:
             return
         try:
-            events = service.get_events_for_ticker(f"{clean}.IS") or service.get_events_for_ticker(clean)
+            events = service.get_events_for_ticker(clean)
         except Exception as exc:
             logger.exception("Hisse sinyal geçmişi okunamadı (%s): %s", clean, exc)
             events = []
@@ -228,17 +203,12 @@ class GoldenCrossController(QObject):
             self.notification.emit(True, message)
             self.scanCompleted.emit()
         elif job == "backfill":
-            count = getattr(result, "updated_count", 0)
+            count = getattr(result, "added_bars", 0)
             message = f"Veri tamamlama bitti: {count} fiyat kaydı eklendi."
             self._set_status(message)
             self.notification.emit(True, message)
             if count:
                 self.pricesUpdated.emit()
-        elif job == "tv_backfill":
-            message = f"TradingView yükleme tamamlandı: {result} kayıt."
-            self._set_status(message)
-            self.notification.emit(True, message)
-            self.pricesUpdated.emit()
 
     @staticmethod
     def _event_to_dict(e) -> Dict[str, Any]:

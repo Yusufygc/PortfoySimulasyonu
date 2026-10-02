@@ -669,6 +669,12 @@ class Stock360Controller(QObject):
                 sector_name = stock.sector
             else:
                 sector_name = guess_sector(ticker)
+        elif s360_service and hasattr(s360_service, "get_company_name"):
+            # Portföyde (SQLite) olmayan hisse: DuckDB piyasa kataloğundaki ad
+            catalog_name = s360_service.get_company_name(ticker)
+            if isinstance(catalog_name, str) and catalog_name:
+                stock_name = catalog_name
+            sector_name = guess_sector(ticker)
 
         self._company_name = stock_name
         self._sector = sector_name

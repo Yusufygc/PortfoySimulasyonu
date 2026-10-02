@@ -48,23 +48,58 @@ def test_latest_price_upsert_empty_is_noop(provider):
     assert repo.get_latest_price_map([1]) == {}
 
 
-def _event(stock_id, day, kind=CrossType.GOLDEN, close="100"):
+def _event(ticker, day, kind=CrossType.GOLDEN, close="100"):
     return GoldenCrossEvent(
-        id=None, stock_id=stock_id, ticker="X", cross_date=day, cross_type=kind,
+        id=None, ticker=ticker, cross_date=day, cross_type=kind,
         short_ma=Decimal("1"), long_ma=Decimal("2"), close_price=Decimal(close),
     )
 
 
 def test_golden_cross_bulk_insert_counts_only_new_events(provider):
     repo = SQLAlchemyGoldenCrossRepository(provider)
-    events = [_event(1, date(2026, 3, 2)), _event(1, date(2026, 4, 2), CrossType.DEATH), _event(2, date(2026, 3, 2))]
+    events = [
+        _event("AAA", date(2026, 3, 2)), _event("AAA", date(2026, 4, 2), CrossType.DEATH),
+        _event("BBB.IS", date(2026, 3, 2)),  # uzantı normalize edilir
+    ]
 
     assert repo.upsert_events_bulk(events) == 3
     # aynı olaylar + bir yenisi: yalnızca yeni olan sayılır, mevcutlar korunur
-    again = events + [_event(2, date(2026, 5, 4))]
+    again = events + [_event("BBB", date(2026, 5, 4))]
     assert repo.upsert_events_bulk(again) == 1
 
     stored = repo.get_recent_events(since=date(2026, 1, 1), limit=50)
     assert len(stored) == 4
     assert {e.cross_type for e in stored} == {CrossType.GOLDEN, CrossType.DEATH}
     assert repo.upsert_events_bulk([]) == 0
+
+
+def test_golden_cross_events_are_keyed_by_ticker_not_stock_table(provider):
+    repo = SQLAlchemyGoldenCrossRepository(provider)
+    # SQLite `stocks` tablosunda olmayan (yalnızca DuckDB evreninde bulunan) hisse için de kaydedilir
+    repo.upsert_events_bulk([_event("ZZZZ", date(2026, 3, 2)), _event("ZZZZ", date(2026, 6, 1), CrossType.DEATH)])
+
+    events = repo.get_events_for_ticker("zzzz.is")
+
+    assert [e.cross_date for e in events] == [date(2026, 6, 1), date(2026, 3, 2)]  # en yeni önce
+    assert repo.get_last_cross_date_for_ticker("ZZZZ") == date(2026, 6, 1)
+    assert repo.get_last_cross_date_for_ticker("YOKTUR") is None
+
+
+def test_legacy_golden_cross_table_is_dropped_on_startup(tmp_path):
+    import sqlite3
+
+    from src.infrastructure.db.db_config import SQLiteConfig
+    from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
+
+    path = tmp_path / "legacy.db"
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE golden_cross_events (id INTEGER PRIMARY KEY, stock_id INTEGER NOT NULL)")
+    con.commit()
+    con.close()
+
+    SQLAlchemyEngineProvider(SQLiteConfig(db_path=str(path))).dispose()
+
+    con = sqlite3.connect(path)
+    tables = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    con.close()
+    assert "golden_cross_events" not in tables and "cross_events" in tables

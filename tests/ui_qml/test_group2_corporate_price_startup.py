@@ -455,6 +455,7 @@ def _startup_container(updated=5):
         scanned_stock_count=3, updated_count=updated, prices={1: Decimal("10")}
     )
     container.corporate_action_discovery_service.discover.return_value = SimpleNamespace(saved_count=2)
+    container.market_data_sync_service.sync_daily_delta.return_value = SimpleNamespace(added_bars=7, errors=[])
     container.technical_analysis_service = None  # teknik tarama ayrı test edilir
     return container
 
@@ -480,17 +481,20 @@ def test_startup_jobs_run_once_per_day_and_notify(qapp, tmp_path, monkeypatch):
     ctrl.runAll()
 
     target = last_completed_trading_day(date.today(), container.trading_calendar)
-    # Portföy backfill + tüm BIST backfill (18:30 sonrası) çalıştı
-    assert container.price_data_health_service.update_from_latest_to_today.call_count == 2
+    # Portföy backfill (SQLite) + tüm BIST için DuckDB artımlı senkron (18:30 sonrası) çalıştı
+    assert container.price_data_health_service.update_from_latest_to_today.call_count == 1
+    container.market_data_sync_service.sync_daily_delta.assert_called_once_with()
     assert settings.value(AUTO_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat()
     assert settings.value(AUTO_BIST_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat()
     assert settings.value(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, "", type=str) == date.today().isoformat()
     assert container.event_bus.prices_updated.emit.called
     assert refreshed
     assert any("kurumsal aksiyon adayı" in n[1] for n in notes)
+    assert any("BIST güncellemesi tamamlandı: 7" in n[1] for n in notes)
 
     ctrl.runAll()  # aynı gün tekrar çalışmaz
-    assert container.price_data_health_service.update_from_latest_to_today.call_count == 2
+    assert container.price_data_health_service.update_from_latest_to_today.call_count == 1
+    container.market_data_sync_service.sync_daily_delta.assert_called_once_with()
     container.corporate_action_discovery_service.discover.assert_called_once()
 
 
@@ -505,6 +509,7 @@ def test_startup_bist_backfill_skipped_before_market_close_time(qapp, tmp_path, 
     ctrl.runAll()
 
     assert container.price_data_health_service.update_from_latest_to_today.call_count == 1
+    container.market_data_sync_service.sync_daily_delta.assert_not_called()
     assert settings.value(AUTO_BIST_BACKFILL_SETTINGS_KEY, "", type=str) == ""
 
 

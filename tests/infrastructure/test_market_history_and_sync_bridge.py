@@ -202,3 +202,42 @@ def test_bulk_downloader_drops_nan_and_zero_close_rows():
 
     assert list(frame["close_price"]) == [1.0]
     assert BistBulkDownloader.normalize_history_frame("ASELS", hist.iloc[1:]) is None
+
+
+def test_dca_prefers_market_history_over_sqlite(duck_file):
+    class Stock:
+        id = 1
+
+    class Stocks:
+        def get_stock_by_ticker(self, ticker):
+            return Stock()
+
+    class Prices:
+        def get_price_series(self, *args):  # SQLite'ta farklı (eski) fiyat var
+            return [SimpleNamespace(price_date=date(2026, 3, 2), close_price=Decimal("999"))]
+
+    service = DCABacktestService(Prices(), Stocks(), market_history_repo=DuckDBMarketHistoryRepository(duck_file))
+
+    series = service._build_price_series(["ASELS"], date(2026, 3, 1), date(2026, 3, 31))
+
+    assert series[date(2026, 3, 2)] == {"ASELS": Decimal("10.5")}
+    # DuckDB'de olmayan hisse SQLite'a düşer
+    fallback = service._build_price_series(["YOKTUR"], date(2026, 3, 1), date(2026, 3, 31))
+    assert fallback == {date(2026, 3, 2): {"YOKTUR": Decimal("999")}}
+
+
+def test_stock_360_reads_overview_and_name_from_market_history(duck_file):
+    from unittest.mock import MagicMock
+
+    from src.application.services.analysis.stock_360_service import Stock360Service
+
+    stock_repo = MagicMock()
+    stock_repo.get_stock_by_ticker.return_value = None
+    service = Stock360Service(MagicMock(), stock_repo, MagicMock(), MagicMock(),
+                              market_history_repo=DuckDBMarketHistoryRepository(duck_file))
+
+    overview = service.get_overview("asels.is", today=date(2026, 3, 10))
+
+    assert overview.last_price == Decimal("11.0") and overview.last_price_date == date(2026, 3, 3)
+    assert round(overview.daily_change_pct, 2) == round((11.0 - 10.5) / 10.5 * 100, 2)
+    assert service.get_company_name("ASELS") == "Aselsan"

@@ -654,7 +654,6 @@ QtObject {
     readonly property string gcBtnRefresh: "Yenile"
     readonly property string gcBtnScan: "Taramayı Çalıştır"
     readonly property string gcBtnCompleteData: "Veri Tamamla"
-    readonly property string gcBtnTradingView: "TradingView'den Yükle"
     readonly property string gcSignalsTitle: "KESİŞİM SİNYALLERİ (EMA50 / EMA200)"
     readonly property string gcThDate: "Tarih"
     readonly property string gcThTicker: "Hisse"

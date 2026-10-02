@@ -15,9 +15,8 @@ class CrossType(str, Enum):
 
 @dataclass(frozen=True)
 class GoldenCrossEvent:
-    """SMA50 ile SMA200 kesişimi (golden_cross_events tablosunun domain karşılığı)."""
+    """EMA50 ile EMA200 kesişimi (cross_events tablosunun domain karşılığı). Ticker anahtarlıdır (uzantısız)."""
     id: Optional[int]
-    stock_id: int
     ticker: str
     cross_date: date
     cross_type: CrossType
@@ -27,8 +26,8 @@ class GoldenCrossEvent:
     detected_at: Optional[datetime] = None
 
     def __post_init__(self) -> None:
-        if self.stock_id <= 0:
-            raise ValueError("stock_id must be positive")
+        if not self.ticker:
+            raise ValueError("ticker is required")
         if not isinstance(self.cross_type, CrossType):
             object.__setattr__(self, "cross_type", CrossType(self.cross_type))
         if self.close_price <= 0:

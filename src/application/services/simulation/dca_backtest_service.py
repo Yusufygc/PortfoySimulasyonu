@@ -72,21 +72,23 @@ class DCABacktestService:
     ) -> Dict[date, Dict[str, Decimal]]:
         price_series: Dict[date, Dict[str, Decimal]] = {}
         for ticker in tickers:
+            # Birincil kaynak: DuckDB piyasa geçmişi (tüm BIST, sermaye artırımı düzeltmeli)
+            bars = (
+                self._market_history_repo.get_price_series(ticker, start_date, end_date)
+                if self._market_history_repo is not None
+                else []
+            )
+            if bars:
+                for bar in bars:
+                    price_series.setdefault(bar.price_date, {})[ticker] = Decimal(str(bar.close_price))
+                continue
+
+            # Yedek: SQLite portföy fiyatları (DuckDB'de olmayan/yabancı hisseler)
             stock = self._stock_repo.get_stock_by_ticker(ticker)
             if stock is None or stock.id is None:
-                # Alternatif ticker formatını dene (.IS)
                 alt = ticker[:-3] if ticker.endswith(".IS") else f"{ticker}.IS"
                 stock = self._stock_repo.get_stock_by_ticker(alt)
-
-            rows = []
             if stock is not None and stock.id is not None:
-                rows = self._price_repo.get_price_series(stock.id, start_date, end_date)
-
-            for row in rows:
-                price_series.setdefault(row.price_date, {})[ticker] = row.close_price
-
-            # SQLite'ta (portföy) kaydı olmayan hisseler: DuckDB piyasa geçmişi
-            if not rows and self._market_history_repo is not None:
-                for bar in self._market_history_repo.get_price_series(ticker, start_date, end_date):
-                    price_series.setdefault(bar.price_date, {})[ticker] = Decimal(str(bar.close_price))
+                for row in self._price_repo.get_price_series(stock.id, start_date, end_date):
+                    price_series.setdefault(row.price_date, {})[ticker] = row.close_price
         return price_series

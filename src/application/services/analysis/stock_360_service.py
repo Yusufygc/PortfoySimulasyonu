@@ -19,7 +19,7 @@ import logging
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Any, List, Optional
+from typing import Any, List, NamedTuple, Optional
 
 import pandas as pd
 
@@ -28,7 +28,9 @@ from src.application.services.analysis.shareholder_analysis_service import Share
 from src.application.services.analysis.technical.indicators import ema, macd, rsi, sma
 from src.application.services.analysis.technical.support_resistance import compute_support_resistance
 from src.domain.models.daily_price import DailyPrice
+from src.domain.models.market_bar import MarketBar
 from src.domain.models.shareholder import ShareholderSnapshot
+from src.domain.ports.repositories.i_market_history_repo import IMarketHistoryRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 
@@ -77,7 +79,16 @@ class Stock360Snapshot:
     shareholders_error: Optional[str]
 
 
-def _rows_to_series(rows: List[DailyPrice], field: str) -> pd.Series:
+class _PriceRow(NamedTuple):
+    """DuckDB barının `DailyPrice` ile uyumlu hafif görünümü (yalnızca Hisse 360'ın okuduğu alanlar)."""
+    price_date: date
+    close_price: Decimal
+    high_price: Optional[float]
+    low_price: Optional[float]
+    volume: Optional[int]
+
+
+def _rows_to_series(rows: List[Any], field: str) -> pd.Series:
     dates = [r.price_date for r in rows]
     values = [float(getattr(r, field)) if getattr(r, field) is not None else float("nan") for r in rows]
     return pd.Series(values, index=dates)
@@ -98,9 +109,11 @@ class Stock360Service:
         stock_repo: IStockRepository,
         financial_analysis_service: FinancialAnalysisService,
         shareholder_analysis_service: ShareholderAnalysisService,
+        market_history_repo: Optional[IMarketHistoryRepository] = None,
     ) -> None:
         self._price_repo = price_repo
         self._stock_repo = stock_repo
+        self._market_history_repo = market_history_repo
         self._financial_service = financial_analysis_service
         self._shareholder_service = shareholder_analysis_service
 
@@ -208,14 +221,31 @@ class Stock360Service:
     # Internals
     # ------------------------------------------------------------------
 
-    def _load_recent_prices(self, ticker: str, today: Optional[date]) -> List[DailyPrice]:
+    def _load_recent_prices(self, ticker: str, today: Optional[date]) -> List[Any]:
         today = today or date.today()
-        stock = self._stock_repo.get_stock_by_ticker(ticker.strip().upper())
+        start = today - timedelta(days=_OVERVIEW_LOOKBACK_DAYS)
+        # Birincil kaynak: DuckDB piyasa geçmişi (tüm BIST, sermaye artırımı düzeltmeli)
+        if self._market_history_repo is not None:
+            bars = self._market_history_repo.get_price_series(ticker, start, today)
+            if bars:
+                return [self._bar_to_row(b) for b in sorted(bars, key=lambda b: b.price_date)]
+        # Yedek: SQLite portföy fiyatları (DuckDB'de olmayan hisseler)
+        clean = ticker.strip().upper()
+        stock = self._stock_repo.get_stock_by_ticker(clean) or self._stock_repo.get_stock_by_ticker(f"{clean}.IS")
         if stock is None or stock.id is None:
             return []
-        start = today - timedelta(days=_OVERVIEW_LOOKBACK_DAYS)
         rows = self._price_repo.get_price_series(stock.id, start, today)
         return sorted(rows, key=lambda r: r.price_date)
+
+    @staticmethod
+    def _bar_to_row(bar: MarketBar) -> _PriceRow:
+        return _PriceRow(
+            price_date=bar.price_date,
+            close_price=Decimal(str(bar.close_price)),
+            high_price=bar.high_price,
+            low_price=bar.low_price,
+            volume=bar.volume,
+        )
 
     # ------------------------------------------------------------------
     # Application Facade (UI Katman İzolasyonu - ARCHITECTURE_GATES §6)
@@ -228,6 +258,12 @@ class Stock360Service:
     def get_stock_by_ticker(self, ticker: str) -> Optional[Any]:
         """Ticker ile hisse nesnesini döner."""
         return self._stock_repo.get_stock_by_ticker(ticker.strip().upper())
+
+    def get_company_name(self, ticker: str) -> Optional[str]:
+        """Piyasa kataloğundaki (DuckDB) şirket adı; portföyde olmayan hisseler için."""
+        if self._market_history_repo is None:
+            return None
+        return self._market_history_repo.get_company_name(ticker)
 
     def get_price_series(self, stock_id: int, start_date: date, end_date: date) -> List[DailyPrice]:
         """Hisse için tarih aralığındaki fiyat serisini döner."""

@@ -131,15 +131,6 @@ Item {
                     onClicked: goldenCrossController.completeData()
                 }
 
-                ModernButton {
-                    visible: root.hasController && goldenCrossController.tvAvailable
-                    text: Strings.gcBtnTradingView
-                    variant: "secondary"
-                    implicitHeight: 36
-                    enabled: !root.busy
-                    onClicked: goldenCrossController.loadFromTradingView()
-                }
-
                 Row {
                     spacing: Theme.spaceXs
                     height: 36

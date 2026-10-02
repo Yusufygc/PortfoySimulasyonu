@@ -17,10 +17,9 @@ from typing import List, Optional
 import pandas as pd
 
 from src.domain.models.golden_cross_event import CrossType, GoldenCrossEvent
-from src.domain.models.stock import Stock
+from src.domain.models.market_bar import MarketBar
 from src.domain.ports.repositories.i_golden_cross_repo import IGoldenCrossRepository
-from src.domain.ports.repositories.i_price_repo import IPriceRepository
-from src.domain.ports.repositories.i_stock_repo import IStockRepository
+from src.domain.ports.repositories.i_market_history_repo import IMarketHistoryRepository
 from src.application.services.analysis.technical.golden_cross import (
     DetectedCross,
     detect_crosses,
@@ -30,6 +29,11 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_SHORT = 50
 _MAX_PRICE_RATIO = 1000.0  # medyandan bu kadar sapan fiyat → bozuk veri
+_SCAN_CHUNK = 60  # tek sorguda okunan hisse sayısı (bellek/tek bağlantı dengesi)
+
+
+def _clean_ticker(ticker: str) -> str:
+    return (ticker or "").strip().upper().replace(".IS", "")
 
 
 def _is_series_sane(ser: pd.Series, ticker: str, log: logging.Logger) -> bool:
@@ -67,14 +71,12 @@ class TechnicalAnalysisService:
 
     def __init__(
         self,
-        price_repo: IPriceRepository,
-        stock_repo: IStockRepository,
+        market_history_repo: IMarketHistoryRepository,
         golden_cross_repo: IGoldenCrossRepository,
         short_period: int = _DEFAULT_SHORT,
         long_period:  int = _DEFAULT_LONG,
     ) -> None:
-        self._price_repo  = price_repo
-        self._stock_repo  = stock_repo
+        self._history     = market_history_repo
         self._cross_repo  = golden_cross_repo
         self._short       = short_period
         self._long        = long_period
@@ -84,64 +86,65 @@ class TechnicalAnalysisService:
     # ------------------------------------------------------------------
 
     def scan_all(self, today: Optional[date] = None) -> ScanResult:
-        """Tüm BIST tickerleri için cross taraması, yeni eventleri DB'ye yaz."""
+        """Tüm BIST (DuckDB piyasa geçmişi, düzeltilmiş fiyatlar) için cross taraması, yeni eventleri DB'ye yaz."""
         today = today or date.today()
-        stocks = self._stock_repo.get_all_stocks()
-        logger.info("Golden Cross taraması başlıyor: %d ticker", len(stocks))
+        tickers = self._history.list_tickers()
+        logger.info("Golden Cross taraması başlıyor: %d ticker", len(tickers))
 
-        total_new   = 0
-        skipped     = 0
+        start = today - timedelta(days=int(_LOOKBACK_YEARS * 365.25))
+        total_new = 0
+        skipped = 0
         all_events: list[GoldenCrossEvent] = []
 
-        for stock in stocks:
-            if stock.id is None:
-                continue
-            events = self._scan_single(stock, today)
-            if events is None:
-                skipped += 1
-                continue
-            all_events.extend(events)
+        for offset in range(0, len(tickers), _SCAN_CHUNK):
+            chunk = tickers[offset:offset + _SCAN_CHUNK]
+            series_by_ticker = self._history.get_price_series_bulk(chunk, start, today)
+            for ticker in chunk:
+                events = self._events_from_bars(ticker, series_by_ticker.get(ticker, []))
+                if events is None:
+                    skipped += 1
+                    continue
+                all_events.extend(events)
 
         if all_events:
             total_new = self._cross_repo.upsert_events_bulk(all_events)
         logger.info(
             "Golden Cross taraması tamamlandı: %d ticker, %d yeni event, %d atlandı (yetersiz veri)",
-            len(stocks), total_new, skipped,
+            len(tickers), total_new, skipped,
         )
-        return ScanResult(scanned_count=len(stocks), new_event_count=total_new, skipped_count=skipped)
+        return ScanResult(scanned_count=len(tickers), new_event_count=total_new, skipped_count=skipped)
 
     def scan_ticker(self, ticker: str, today: Optional[date] = None) -> ScanResult:
         """Tek ticker için tam tarama."""
         today = today or date.today()
-        stock = self._stock_repo.get_stock_by_ticker(ticker.strip().upper())
-        if stock is None or stock.id is None:
+        clean = _clean_ticker(ticker)
+        if not clean or not self._history.has_ticker(clean):
             return ScanResult(scanned_count=0, new_event_count=0, skipped_count=0)
-        events = self._scan_single(stock, today)
+        start = today - timedelta(days=int(_LOOKBACK_YEARS * 365.25))
+        events = self._events_from_bars(clean, self._history.get_price_series(clean, start, today))
         if events is None:
             return ScanResult(scanned_count=1, new_event_count=0, skipped_count=1)
         new_count = self._cross_repo.upsert_events_bulk(events)
         return ScanResult(scanned_count=1, new_event_count=new_count, skipped_count=0)
 
-    def _scan_single(self, stock: Stock, today: date) -> Optional[List[GoldenCrossEvent]]:
-        """Tek stock için detect + GoldenCrossEvent listesi üret. None → yetersiz/bozuk veri."""
-        start = today - timedelta(days=int(_LOOKBACK_YEARS * 365.25))
-        series_rows = self._price_repo.get_price_series(stock.id, start, today)
-        if not series_rows or len(series_rows) < self._long * 2:
+    def _events_from_bars(self, ticker: str, bars: List[MarketBar]) -> Optional[List[GoldenCrossEvent]]:
+        """Bir hissenin barlarından cross olayları. None → yetersiz/bozuk veri."""
+        if not bars or len(bars) < self._long * 2:
             return None
         ser = pd.Series(
-            data=[float(r.close_price) for r in series_rows],
-            index=[r.price_date for r in series_rows],
+            data=[float(b.close_price) for b in bars],
+            index=[b.price_date for b in bars],
         ).sort_index()
-        if not _is_series_sane(ser, stock.ticker, logger):
+        if not _is_series_sane(ser, ticker, logger):
             return None
         detected = detect_crosses(ser, short=self._short, long=self._long)
-        return [self._to_event(stock, d) for d in detected]
+        return [self._to_event(ticker, d) for d in detected]
 
-    def _to_event(self, stock: Stock, det: DetectedCross) -> GoldenCrossEvent:
+    @staticmethod
+    def _to_event(ticker: str, det: DetectedCross) -> GoldenCrossEvent:
         return GoldenCrossEvent(
             id=None,
-            stock_id=stock.id,  # type: ignore[arg-type]
-            ticker=stock.ticker,
+            ticker=ticker,
             cross_date=det.cross_date,
             cross_type=det.cross_type,
             short_ma=det.short_ma,
@@ -163,7 +166,4 @@ class TechnicalAnalysisService:
         return self._cross_repo.get_recent_events(since=since, cross_type=cross_type, limit=limit)
 
     def get_events_for_ticker(self, ticker: str) -> List[GoldenCrossEvent]:
-        stock = self._stock_repo.get_stock_by_ticker(ticker.strip().upper())
-        if stock is None or stock.id is None:
-            return []
-        return self._cross_repo.get_events_for_stock(stock.id)
+        return self._cross_repo.get_events_for_ticker(_clean_ticker(ticker))

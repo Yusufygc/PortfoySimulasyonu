@@ -421,15 +421,16 @@ class ORMKapShareholderSnapshot(Base):
 
 
 class ORMGoldenCrossEvent(Base):
-    """SMA50 ile SMA200 kesişimi (Phase B — Golden / Death Cross taraması)."""
-    __tablename__ = "golden_cross_events"
+    """EMA50/EMA200 kesişimi (Golden / Death Cross taraması).
+
+    Türetilmiş veridir (DuckDB piyasa geçmişinden yeniden üretilebilir) ve ticker anahtarlıdır:
+    tüm BIST taranır, `stocks` tablosuna bağımlı değildir. Eski `golden_cross_events` (stock_id anahtarlı)
+    tablosu açılışta silinir.
+    """
+    __tablename__ = "cross_events"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    stock_id = Column(
-        BigInteger,
-        ForeignKey("stocks.id", ondelete="CASCADE", onupdate="CASCADE"),
-        nullable=False,
-    )
+    ticker = Column(String(20), nullable=False)
     cross_date = Column(Date, nullable=False)
     cross_type = Column(Enum(CrossTypeEnum), nullable=False)
     short_ma = Column(Numeric(18, 4))
@@ -438,12 +439,10 @@ class ORMGoldenCrossEvent(Base):
     detected_at = Column(DateTime, nullable=False, server_default=func.now())
 
     __table_args__ = (
-        UniqueConstraint("stock_id", "cross_date", "cross_type", name="uq_golden_cross_event"),
-        Index("idx_golden_cross_date", "cross_date"),
-        Index("idx_golden_cross_type_date", "cross_type", "cross_date"),
+        UniqueConstraint("ticker", "cross_date", "cross_type", name="uq_cross_event"),
+        Index("idx_cross_event_date", "cross_date"),
+        Index("idx_cross_event_type_date", "cross_type", "cross_date"),
     )
-
-    stock = relationship("ORMStock")
 
 
 class ORMKapShareholderRow(Base):

@@ -15,7 +15,7 @@ def _prices(n: int = 250) -> list[DailyPrice]:
     start = date(2020, 1, 1)
     return [
         DailyPrice(
-            id=None, stock_id=1,
+            id=None, 
             price_date=start + timedelta(days=i),
             close_price=Decimal(str(100 + i * 0.1)),
         )
@@ -26,14 +26,14 @@ def _prices(n: int = 250) -> list[DailyPrice]:
 def _events() -> list[GoldenCrossEvent]:
     return [
         GoldenCrossEvent(
-            id=None, stock_id=1, ticker="FROTO",
+            id=None, ticker="FROTO",
             cross_date=date(2020, 6, 1),
             cross_type=CrossType.GOLDEN,
             short_ma=Decimal("110.5"), long_ma=Decimal("108.2"),
             close_price=Decimal("115"),
         ),
         GoldenCrossEvent(
-            id=None, stock_id=1, ticker="FROTO",
+            id=None, ticker="FROTO",
             cross_date=date(2020, 8, 1),
             cross_type=CrossType.DEATH,
             short_ma=Decimal("120.1"), long_ma=Decimal("121.4"),

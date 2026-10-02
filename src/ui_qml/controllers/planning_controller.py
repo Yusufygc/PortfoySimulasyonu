@@ -576,42 +576,8 @@ class PlanningController(QObject):
 
     def _execute_dca(self, tickers: List[str], amount: Decimal, s_date: date, e_date: date) -> None:
         try:
-            # Ticker normalizasyonu (.IS esnekliği) & Otomatik Geçmiş Fiyat Kontrolü/İndirme
-            resolved_tickers = []
-            stock_repo = getattr(self._container, "stock_repo", None)
-            backfill_svc = getattr(self._container, "backfill_service", None)
-            price_repo = getattr(self._container, "price_repo", None)
-
-            for t in tickers:
-                stock = None
-                if stock_repo:
-                    stock = stock_repo.get_stock_by_ticker(t)
-                    if not stock:
-                        alt = t[:-3] if t.endswith(".IS") else f"{t}.IS"
-                        stock = stock_repo.get_stock_by_ticker(alt)
-                        if stock:
-                            t = alt
-                    if not stock:
-                        # Hisse yoksa oluştur
-                        from src.domain.models.stock import Stock
-                        new_ticker = t if t.endswith(".IS") else f"{t}.IS"
-                        new_stock_model = Stock(id=None, ticker=new_ticker, name=new_ticker, currency_code="TRY")
-                        if hasattr(stock_repo, "insert_stock"):
-                            stock = stock_repo.insert_stock(new_stock_model)
-                        elif hasattr(stock_repo, "save_stock"):
-                            stock = stock_repo.save_stock(new_stock_model)
-                        t = new_ticker
-
-                # Fiyat serisi DB'de yoksa veya yetersizse otomatik çek
-                if stock and stock.id and backfill_svc and price_repo:
-                    existing_prices = price_repo.get_price_series(stock.id, s_date, e_date)
-                    if len(existing_prices) < 10:
-                        try:
-                            backfill_svc.backfill_for_single_stock(stock.id, stock.ticker, s_date, e_date)
-                        except Exception as bf_err:
-                            logger.warning("DCA otomatik backfill hatası (%s): %s", stock.ticker, bf_err)
-
-                resolved_tickers.append(t)
+            # Fiyatlar DuckDB piyasa geçmişinden okunur (tüm BIST); `stocks` tablosuna hisse eklenmez
+            resolved_tickers = [t.strip().upper().replace(".IS", "") for t in tickers if t and t.strip()]
 
             res = self._dca_service.run(
                 tickers=resolved_tickers,

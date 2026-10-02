@@ -32,7 +32,7 @@ class DummyTechnicalAnalysisService:
         self.recent_events_called = True
         return [
             GoldenCrossEvent(
-                id=1, stock_id=1, ticker="ASELS",
+                id=1, ticker="ASELS",
                 cross_date=date(2026, 6, 15),
                 cross_type=CrossType.GOLDEN,
                 short_ma=Decimal("50.5"), long_ma=Decimal("49.8"),
