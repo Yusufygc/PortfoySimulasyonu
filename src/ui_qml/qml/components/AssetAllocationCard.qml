@@ -48,7 +48,7 @@ ModernCard {
                 Layout.fillWidth: true
             }
             Text {
-                text: root.slices.length + " Varlık"
+                text: root.slices.length + Strings.assetCountSuffix
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm
                 color: Theme.textMuted

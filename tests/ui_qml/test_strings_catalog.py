@@ -26,6 +26,29 @@ ALLOWED_LITERALS = {
 }
 
 
+STRING_LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
+TURKISH_LETTER = re.compile(r"[çğıöşüÇĞİÖŞÜ]")
+
+# Türkçe harf içeren ama kullanıcı metni olmayan sabitler: controller ile değiş tokuş edilen değerler ve durum kodları
+ALLOWED_TURKISH_LITERALS = {
+    ("components/ComparisonChartCard.qml", "Tümü"),          # dönem etiketi, controller.setPeriod değeri
+    ("components/EditGoalDialog.qml", "YÜKSEK"),             # hedef önceliği değerleri (controller ile aynı dilde)
+    ("components/EditGoalDialog.qml", "DÜŞÜK"),
+    ("components/EditGoalDialog.qml", "ORTA"),
+    ("components/NewGoalDialog.qml", "YÜKSEK"),
+    ("components/NewGoalDialog.qml", "DÜŞÜK"),
+    ("components/NewGoalDialog.qml", "ORTA"),
+    ("components/PlanningGoalsTab.qml", "BAŞARILI"),         # fizibilite durum kodu
+    ("components/PlanningGoalsTab.qml", "YÜKSEK"),
+    ("components/PlanningGoalsTab.qml", "DÜŞÜK"),
+    ("views/ComparisonView.qml", "ÖZEL"),                    # dönem etiketi
+    ("views/SettingsView.qml", "Başarılı"),                  # API testi sonuç metninde aranan kelime
+    ("components/MetricCard.qml", "Metrik Başlığı"),
+    ("views/PlaceholderView.qml", "Sayfa Başlığı"),
+    ("views/PlaceholderView.qml", "Bu modül dönüşüm planının sonraki fazında TradingView / QML bileşenleriyle inşa edilecektir."),
+}
+
+
 def _qml_files():
     return sorted(path for path in QML_DIR.rglob("*.qml") if path != STRINGS_FILE)
 
@@ -54,6 +77,20 @@ def test_qml_files_do_not_hardcode_user_facing_text():
                     violations.append(f"{relative}:{number}: {match.group(1)}: \"{match.group(2)}\"")
 
     assert violations == [], "Metinler Strings.qml'e taşınmalı:\n" + "\n".join(violations)
+
+
+def test_qml_files_do_not_embed_turkish_string_literals():
+    """Property adından bağımsız: Türkçe harf içeren her dize literali Strings.qml'de olmalı (izin listesi hariç)."""
+    violations = []
+    for path in _qml_files():
+        relative = path.relative_to(QML_DIR).as_posix()
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+            for match in STRING_LITERAL.finditer(line.split("//", 1)[0]):
+                literal = match.group(1)
+                if TURKISH_LETTER.search(literal) and (relative, literal) not in ALLOWED_TURKISH_LITERALS:
+                    violations.append(f"{relative}:{number}: \"{literal}\"")
+
+    assert violations == [], "Türkçe metinler Strings.qml'e taşınmalı:\n" + "\n".join(violations)
 
 
 def test_strings_catalog_has_no_duplicate_keys():

@@ -49,7 +49,7 @@ Item {
             }
 
             ModernButton {
-                text: Strings.btnBackToDashboard || "Dashboard'a Dön"
+                text: Strings.btnBackToDashboard
                 iconName: "collapse"
                 variant: "secondary"
                 Layout.alignment: Qt.AlignHCenter

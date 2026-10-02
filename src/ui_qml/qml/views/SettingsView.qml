@@ -230,8 +230,8 @@ Rectangle {
                                         Text {
                                             anchors.centerIn: parent
                                             text: (typeof settingsController !== "undefined" && settingsController.isDarkTheme)
-                                                  ? "Aktif Tema"
-                                                  : "Koyu Temaya Geç"
+                                                  ? Strings.settingsActiveTheme
+                                                  : Strings.settingsSwitchToDark
                                             color: (typeof settingsController !== "undefined" && settingsController.isDarkTheme)
                                                    ? "#FFFFFF"
                                                    : Theme.textSecondary
@@ -321,8 +321,8 @@ Rectangle {
                                         Text {
                                             anchors.centerIn: parent
                                             text: (typeof settingsController !== "undefined" && !settingsController.isDarkTheme)
-                                                  ? "Aktif Tema"
-                                                  : "Açık Temaya Geç"
+                                                  ? Strings.settingsActiveTheme
+                                                  : Strings.settingsSwitchToLight
                                             color: (typeof settingsController !== "undefined" && !settingsController.isDarkTheme)
                                                    ? "#FFFFFF"
                                                    : Theme.textSecondary
@@ -683,7 +683,7 @@ Rectangle {
                                                     Layout.fillWidth: true
                                                 }
                                                 Text {
-                                                    text: modelData.count + " kayıt"
+                                                    text: modelData.count + Strings.settingsRecordSuffix
                                                     color: Theme.textPrimary
                                                     font.family: Theme.fontFamily
                                                     font.pixelSize: Theme.fontXs

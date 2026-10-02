@@ -91,7 +91,7 @@ Item {
                 MetricCard {
                     Layout.fillWidth: true
                     title: Strings.kpiGainersLosers
-                    value: (watchlistController ? (watchlistController.summaryGainersCount + " Yükselen / " + watchlistController.summaryLosersCount + " Düşen") : "-")
+                    value: (watchlistController ? (watchlistController.summaryGainersCount + Strings.watchlistGainersSep + watchlistController.summaryLosersCount + Strings.watchlistLosersSuffix) : "-")
                     isPositive: watchlistController ? (watchlistController.summaryGainersCount >= watchlistController.summaryLosersCount) : true
                     subText: Strings.subtextActiveListDistribution
                     iconName: "trendingup"
@@ -330,7 +330,7 @@ Item {
                                     color: Theme.textPrimary
                                 }
                                 Text {
-                                    text: (watchlistController && watchlistController.currentWatchlistDesc !== "") ? watchlistController.currentWatchlistDesc : "Takip listesindeki hisselerin anlık piyasa fiyatları ve trendleri"
+                                    text: (watchlistController && watchlistController.currentWatchlistDesc !== "") ? watchlistController.currentWatchlistDesc : Strings.watchlistDefaultDesc
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSm
                                     color: Theme.textMuted

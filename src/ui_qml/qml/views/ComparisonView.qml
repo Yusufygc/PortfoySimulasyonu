@@ -78,7 +78,7 @@ Item {
                         Text {
                             id: badgeText
                             anchors.centerIn: parent
-                            text: comparisonController.selectedAssets.length + " seçili"
+                            text: comparisonController.selectedAssets.length + Strings.compareSelectedSuffix
                             color: Theme.accent
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs

@@ -515,7 +515,7 @@ Rectangle {
                                 }
 
                                 Text {
-                                    text: optimizationController.isLoading ? "Hesaplanıyor..." : Strings.optBtnRun
+                                    text: optimizationController.isLoading ? Strings.btnCalculating : Strings.optBtnRun
                                     color: Theme.textInverse
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontBase

@@ -63,7 +63,7 @@ ModernCard {
                 Text {
                     id: cfStatusTxt
                     anchors.centerIn: parent
-                    text: root.cfData.debtStatus || root.cfData.leverage_status || "Dengeli Borç"
+                    text: root.cfData.debtStatus || root.cfData.leverage_status || Strings.financialDebtBalanced
                     font.family: Theme.fontFamily
                     font.pixelSize: 10
                     font.weight: Font.DemiBold

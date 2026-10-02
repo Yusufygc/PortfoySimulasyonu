@@ -38,7 +38,7 @@ Rectangle {
             }
 
             Text {
-                text: comparisonController.metricsList.length + " varlık"
+                text: comparisonController.metricsList.length + Strings.compareAssetCountSuffix
                 color: Theme.textMuted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontXs

@@ -124,8 +124,8 @@ Rectangle {
 
                     Text {
                         text: (typeof aiAdvisorController !== "undefined" && aiAdvisorController.hasApiKey)
-                              ? "• Çevrimiçi"
-                              : "• Simülasyon"
+                              ? Strings.aiBadgeOnline
+                              : Strings.aiBadgeSimulation
                         color: (typeof aiAdvisorController !== "undefined" && aiAdvisorController.hasApiKey)
                                ? Theme.bullGreen
                                : Theme.textMuted

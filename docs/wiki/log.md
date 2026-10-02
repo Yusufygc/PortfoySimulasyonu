@@ -5,6 +5,20 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] ekle | Eski Arayüzde Olup QML'de Eksik Kalan Özellikler Tamamlandı
+
+Eski `src/ui` ile QML karşılaştırması sonunda bulunan 7 eksik giderildi:
+
+- **Hisse detay hızlı işlem formu:** tarih (YYYY-AA-GG) ve saat (SS:DD) alanları; `parse_trade_moment` geçersiz biçim ve gelecek tarih/saati engeller. Boş bırakılırsa bugün/şimdi (geçmiş günde 12:00).
+- **Dashboard:** "Fiyatları Güncelle" (`update_coordinator`, son kapanış fiyatları), haftalık/aylık getiri kartları (`return_calc_service`) ve "Son güncelleme" bilgisi. `ui_qml/last_update_store.py` eski arayüzle aynı QSettings anahtarlarını kullanır.
+- **Model portföy "Fiyat Güncelle":** yalnızca veritabanını yeniden okuyordu; artık `live_price_refresh_service` ile (`model:{id}` kapsamı) çevrimiçi fiyat çeker, portföy bazlı son güncelleme zamanı gösterilir.
+- **Listeye hisse eklerken kod doğrulaması:** `StockLookupService.is_known_ticker` (SQLite + DuckDB kataloğu, ağsız) ve bilinmeyen kodlar için arka planda `verify_ticker_online`; geçersizse "Geçersiz hisse kodu" ve kayıt oluşmaz.
+- **Karşılaştırma grafik açıklama kartları** (`ChartInfoCard.qml`): sekmeye ve ana grafik moduna göre "Nedir / Nasıl Yorumlanır".
+- **Sabit metinler:** ikinci geçişte ternary ve JS içindeki 29 Türkçe metin daha `Strings.qml`'e taşındı. `test_strings_catalog.py` artık property adından bağımsız, Türkçe harf içeren her dize literalini yakalar (controller ile değiş tokuş edilen durum kodları izin listesinde).
+- Test kararlılığı: `DashboardController` açılışta getiri hesaplayan iş parçacığı başlattığından testlerde devre dışı bırakıldı (silinmiş QObject'e sinyal gönderip tam suitte ara sıra native çökme yapıyordu).
+- Bilinçli fark: karşılaştırma metrik tablosu eski "Dönem Sonu Getiri Özeti" ile aynı içerikte olmadığı için ona açıklama kartı eklenmedi; TradingView yükleme butonu kaldırılmış kalır.
+
+---
 ## [2026-10-03] duzelt | Mimari/Kalite Borcu: QML Katmanı Temizliği
 
 - **`src.ui` bağımlılıkları kalktı:** Plotly/finansal/ortaklık HTML üreticileri `src/application/services/reporting/html/` altına, `ComparisonSeriesBuilder` `analysis/comparison_chart_series.py` altına taşındı; eski sayfalar ve testler yeni yolu kullanır. `L10N` ve `display_ticker` bağımlılıkları kaldırıldı. Eski `src/ui` hâlâ varsayılan giriş noktasıdır, silinmedi.

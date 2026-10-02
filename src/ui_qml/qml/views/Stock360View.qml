@@ -787,7 +787,7 @@ Item {
                                         Text {
                                             id: rsiStatusTxt
                                             anchors.centerIn: parent
-                                            text: root.ctrl ? root.ctrl.rsiStatus : "Nötr"
+                                            text: root.ctrl ? root.ctrl.rsiStatus : Strings.stock360Neutral
                                             font.family: Theme.fontFamily
                                             font.pixelSize: 9
                                             font.weight: Font.DemiBold

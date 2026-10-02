@@ -189,7 +189,7 @@ Rectangle {
 
                 Text {
                     visible: !root.compact
-                    text: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? "Borsa Güncelleniyor..." : "Veri Eksik (Güncelle)"
+                    text: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? Strings.headerMarketSyncing : Strings.headerMarketDataMissing
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold

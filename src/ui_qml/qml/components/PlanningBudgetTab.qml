@@ -556,7 +556,7 @@ Item {
                                     }
 
                                     ToolTip.visible: btnPinIncMouse.containsMouse
-                                    ToolTip.text: modelData.isPinned ? "Sabitlendi (Her ay otomatik gelir) - Kaldırmak için tıkla" : "Bu kalemi sabitle (Gelecek aylara aktar)"
+                                    ToolTip.text: modelData.isPinned ? Strings.budgetPinnedTooltip : Strings.budgetPinTooltip
                                     ToolTip.delay: 300
 
                                     MouseArea {
@@ -793,7 +793,7 @@ Item {
                                     }
 
                                     ToolTip.visible: btnPinExpMouse.containsMouse
-                                    ToolTip.text: modelData.isPinned ? "Sabitlendi (Her ay otomatik gelir) - Kaldırmak için tıkla" : "Bu kalemi sabitle (Gelecek aylara aktar)"
+                                    ToolTip.text: modelData.isPinned ? Strings.budgetPinnedTooltip : Strings.budgetPinTooltip
                                     ToolTip.delay: 300
 
                                     MouseArea {

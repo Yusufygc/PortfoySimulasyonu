@@ -326,7 +326,7 @@ Rectangle {
                             const price = parseFloat(priceInput.text.replace(",", ".")) || 0.0
                             const ticker = tickerInput.text.trim().toUpperCase()
                             dashboardController.submitTradeAt(
-                                ticker, root.side, qty, price, "Hızlı Emir",
+                                ticker, root.side, qty, price, Strings.quickTradeNote,
                                 dateInput.text.trim(), timeInput.text.trim())
                             root.close()
                         }

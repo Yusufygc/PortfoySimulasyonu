@@ -139,7 +139,7 @@ Item {
                             font.pixelSize: Theme.fontXs
                         }
                         Text {
-                            text: (typeof stockDetailController !== "undefined") ? stockDetailController.portfolioName : "Portföy"
+                            text: (typeof stockDetailController !== "undefined") ? stockDetailController.portfolioName : Strings.stockDetailPortfolioFallback
                             color: Theme.textSecondary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs

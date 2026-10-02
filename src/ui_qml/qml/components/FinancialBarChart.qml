@@ -163,7 +163,7 @@ ModernCard {
                         ctx.fillStyle = Theme.textMuted;
                         ctx.font = "12px sans-serif";
                         ctx.textAlign = "center";
-                        ctx.fillText("Finansal grafik verisi bulunamadı", width / 2, height / 2);
+                        ctx.fillText(Strings.financialChartNoData, width / 2, height / 2);
                         return;
                     }
 

@@ -152,7 +152,7 @@ ModernCard {
                         ctx.font = "12px sans-serif";
                         ctx.textAlign = "center";
                         ctx.textBaseline = "middle";
-                        ctx.fillText("Finansal grafik verisi yükleniyor...", w / 2, h / 2);
+                        ctx.fillText(Strings.financialChartLoading, w / 2, h / 2);
                         return;
                     }
 

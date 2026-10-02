@@ -63,7 +63,7 @@ ModernCard {
                 Text {
                     id: roeStatusTxt
                     anchors.centerIn: parent
-                    text: root.dupont.piotroskiStatus || root.dupont.roe_status || "Yüksek Verimlilik"
+                    text: root.dupont.piotroskiStatus || root.dupont.roe_status || Strings.financialHighEfficiency
                     font.family: Theme.fontFamily
                     font.pixelSize: 10
                     font.weight: Font.DemiBold
@@ -324,7 +324,7 @@ ModernCard {
                     }
 
                     Text {
-                        text: root.dupont.piotroskiStatus || root.dupont.piotroski_desc || "Finansal Sağlık Analizi"
+                        text: root.dupont.piotroskiStatus || root.dupont.piotroski_desc || Strings.financialHealthAnalysis
                         font.family: Theme.fontFamily
                         font.pixelSize: 10
                         color: Theme.textMuted

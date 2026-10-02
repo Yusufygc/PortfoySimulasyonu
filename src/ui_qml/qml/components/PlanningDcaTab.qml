@@ -192,7 +192,7 @@ Item {
                         }
 
                         Text {
-                            text: planningController.dcaIsRunning ? "Hesaplanıyor..." : Strings.dcaBtnRun
+                            text: planningController.dcaIsRunning ? Strings.btnCalculating : Strings.dcaBtnRun
                             color: planningController.dcaIsRunning ? Theme.textMuted : Theme.textInverse
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontBase

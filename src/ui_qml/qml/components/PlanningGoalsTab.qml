@@ -56,7 +56,7 @@ Item {
                             font.weight: Font.Bold
                         }
                         Text {
-                            text: planningController.feasibilityMessage || "Hedef fizibilitesi bütçe tasarruf gücünüze göre hesaplanır."
+                            text: planningController.feasibilityMessage || Strings.goalsFeasibilityHint
                             color: Theme.textMuted
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
@@ -195,7 +195,7 @@ Item {
                                 Text {
                                     id: pText
                                     anchors.centerIn: parent
-                                    text: modelData.priorityTr || (modelData.priority === "HIGH" ? "YÜKSEK" : (modelData.priority === "LOW" ? "DÜŞÜK" : "ORTA"))
+                                    text: modelData.priorityTr || (modelData.priority === "HIGH" ? Strings.goalPriorityHigh : (modelData.priority === "LOW" ? Strings.goalPriorityLow : Strings.goalPriorityMedium))
                                     color: (modelData.priority === "HIGH" || modelData.priorityTr === "YÜKSEK") ? Theme.bearRed : ((modelData.priority === "MEDIUM" || modelData.priorityTr === "ORTA") ? Theme.accent : Theme.textMuted)
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 10
