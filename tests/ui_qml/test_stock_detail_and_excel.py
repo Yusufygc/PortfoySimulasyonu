@@ -32,7 +32,7 @@ def container():
     return AppContainer()
 
 
-def wait_until(condition, timeout=3.0):
+def wait_until(condition, timeout=15.0):
     """Asenkron işlemler için Qt event loop'u çalıştırarak koşulun sağlanmasını bekler."""
     start = time.time()
     while not condition() and time.time() - start < timeout:

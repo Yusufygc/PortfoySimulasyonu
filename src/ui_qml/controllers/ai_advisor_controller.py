@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from config.settings_loader import persist_api_keys
 from src.application.services.ai.ai_advisor_service import AiAdvisorService
 from src.infrastructure.ai.gemini_advisor_chat_provider import (
     AdvisorChatResult,
@@ -658,7 +659,12 @@ class AiAdvisorController(QObject):
             return
         settings = getattr(self._container, "settings", None)
         if settings and hasattr(settings, "ai"):
-            settings.ai.gemini_api_key = clean_key
+            try:
+                persist_api_keys(settings, gemini_key=clean_key)
+            except Exception as exc:
+                logger.exception("Gemini API anahtarı kaydedilemedi: %s", exc)
+                self._set_status(f"API anahtarı kaydedilemedi: {exc}")
+                return
             self.hasApiKeyChanged.emit(True)
             self._set_status("Gemini API Anahtarı kaydedildi")
             self._messages.append({

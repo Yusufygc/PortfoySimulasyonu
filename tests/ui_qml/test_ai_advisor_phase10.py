@@ -22,6 +22,7 @@ from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
 from src.ui_qml.controllers.chart_controller import ChartController
 from src.ui_qml.controllers.comparison_controller import ComparisonController
 from src.ui_qml.controllers.dashboard_controller import DashboardController
+from config.settings_loader import AISettings
 from src.ui_qml.controllers.market_sync_controller import MarketSyncController
 from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
 from src.ui_qml.controllers.optimization_controller import OptimizationController
@@ -117,7 +118,7 @@ def test_ai_advisor_controller_save_api_key():
     """saveApiKey slotunun ayarları güncellediğini ve sistem mesajı eklediğini test eder."""
     mock_container = MagicMock()
     mock_settings = MagicMock()
-    mock_settings.ai.gemini_api_key = ""
+    mock_settings.ai = AISettings(gemini_api_key=None, core_api_url="http://localhost:8000")
     mock_container.settings = mock_settings
 
     ctrl = AiAdvisorController(container=mock_container)

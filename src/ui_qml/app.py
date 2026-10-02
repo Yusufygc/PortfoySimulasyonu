@@ -68,11 +68,15 @@ def run_qml_app(container=None) -> int:
     comparison_ctrl = ComparisonController(container=container, parent=engine)
     screener_ctrl = ScreenerController(container=container, parent=engine)
     planning_ctrl = PlanningController(container=container, parent=engine)
-    market_sync_ctrl = MarketSyncController(parent=engine)
+    market_sync_ctrl = MarketSyncController(parent=engine, container=container)
     optimization_ctrl = OptimizationController(container=container, parent=engine)
     ai_advisor_ctrl = AiAdvisorController(container=container, parent=engine)
     settings_ctrl = SettingsController(container=container, parent=engine)
     stock_detail_ctrl = StockDetailController(container=container, parent=engine)
+
+    # Piyasa verisi senkronu yeni bar yazınca fiyata bağlı ekranları yenile
+    market_sync_ctrl.dataSynced.connect(dash_ctrl.refreshMetrics)
+    market_sync_ctrl.dataSynced.connect(portfolio_ctrl.refreshData)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()

@@ -4,8 +4,11 @@ Shell Controller — QML ana pencere, navigasyon ve piyasa seans durumunu yönet
 from __future__ import annotations
 
 import datetime
+import logging
 from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer
 from src.ui.shared.locale_tr import L10N
+
+logger = logging.getLogger(__name__)
 
 
 class ShellController(QObject):
@@ -49,23 +52,23 @@ class ShellController(QObject):
         self._current_time_str = now.strftime("%H:%M:%S")
         self.timeTick.emit(self._current_time_str)
 
-        # Check BIST Session (Hafta içi 10:00 - 18:00)
-        is_weekday = now.weekday() < 5
-        hour = now.hour
-        minute = now.minute
-        time_minutes = hour * 60 + minute
-
-        # 10:00 = 600, 18:05 = 1085
         was_open = self._bist_open
-        if is_weekday and (600 <= time_minutes <= 1085):
-            self._bist_open = True
-            self._session_text = "BIST: Canlı Seans Açık"
-        else:
-            self._bist_open = False
-            self._session_text = "BIST: Seans Kapalı"
+        self._bist_open = self._is_session_open(now)
+        self._session_text = "BIST: Canlı Seans Açık" if self._bist_open else "BIST: Seans Kapalı"
 
         if was_open != self._bist_open:
             self.marketStatusChanged.emit()
+
+    def _is_session_open(self, now: datetime.datetime) -> bool:
+        """Seans durumunu tatil/yarım gün takvimini bilen servisten okur; servis yoksa hafta içi 10:00-18:10."""
+        session_service = getattr(self._container, "bist_market_session_service", None) if self._container else None
+        if session_service is not None:
+            try:
+                return bool(session_service.status_for(now.date(), now.time()).is_open)
+            except Exception:
+                logger.debug("Seans servisi okunamadı, varsayılan takvim kullanılıyor.", exc_info=True)
+        minutes = now.hour * 60 + now.minute
+        return now.weekday() < 5 and 600 <= minutes <= 1090
 
     # --- Properties ---
 

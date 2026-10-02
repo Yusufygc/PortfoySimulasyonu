@@ -241,8 +241,8 @@ class ChartController(QObject):
             except Exception as exc:
                 logger.warning("Fiyat verisi cekilirken hata: %s", exc)
 
-        # 2. Fallback Mock Veri (Veritabanında hisse yoksa)
-        if not data_found or not raw_candles:
+        # 2. Demo veri yalnızca konteynersiz (offline) modda üretilir; gerçek DB'de veri yoksa boş grafik gösterilir
+        if self._container is None and (not data_found or not raw_candles):
             base_price = 285.0 if "THY" in ticker else (110.0 if "GARAN" in ticker else 150.0)
             today = datetime.now().date()
             np.random.seed(abs(hash(ticker)) % (2**32))

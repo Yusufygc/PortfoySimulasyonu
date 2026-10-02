@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib.parse import urlparse
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 
 from src.infrastructure.db.db_config import DatabaseConfig, MySQLConfig, SQLiteConfig
 
@@ -171,3 +171,39 @@ def load_app_settings() -> AppSettings:
 
 def load_settings() -> DatabaseConfig:
     return load_app_settings().db
+
+
+def _env_write_path() -> Path:
+    """persist_api_keys'in yazdığı dosya (testlerde gerçek .env'den ayrıştırılabilsin diye ayrı)."""
+    return _env_file_path()
+
+
+def persist_api_keys(settings: AppSettings | None, gemini_key: str | None = None, evds_key: str | None = None) -> Path:
+    """API anahtarlarını .env dosyasına yazar, ortam değişkenlerini ve (verilmişse) çalışan ayarları günceller.
+
+    `AISettings` / `MarketSettings` frozen olduğundan çalışma anı güncellemesi
+    `object.__setattr__` ile yapılır; böylece ayarları okuyan servisler yeniden başlatma
+    gerektirmeden yeni değeri görür. `None` verilen anahtara dokunulmaz.
+    """
+    env_path = _env_write_path()
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    if not env_path.exists():
+        env_path.touch()
+
+    updates = {"GEMINI_API_KEY": gemini_key, "EVDS_API_KEY": evds_key}
+    for name, value in updates.items():
+        if value is None:
+            continue
+        clean = value.strip()
+        set_key(str(env_path), name, clean, quote_mode="never")
+        if clean:
+            os.environ[name] = clean
+        else:
+            os.environ.pop(name, None)
+
+    if settings is not None:
+        if gemini_key is not None:
+            object.__setattr__(settings.ai, "gemini_api_key", gemini_key.strip() or None)
+        if evds_key is not None:
+            object.__setattr__(settings.market, "evds_api_key", evds_key.strip() or None)
+    return env_path

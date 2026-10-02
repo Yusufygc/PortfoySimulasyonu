@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, time as dt_time
+from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
@@ -34,6 +35,8 @@ class MarketSyncController(QObject):
     lastSyncTimeChanged = Signal()
     isUpToDateChanged = Signal()
     syncNotification = Signal(bool, str, arguments=["success", "message"])
+    # Yeni bar yazıldığında yayınlanır; fiyatlara bağlı ekranlar (Dashboard, Model Portföy) yenilenir.
+    dataSynced = Signal()
 
     # Worker thread sinyalleri (Thread-safe)
     _syncWorkerFinished = Signal(object)
@@ -43,9 +46,10 @@ class MarketSyncController(QObject):
         self,
         sync_service: Optional[MarketDataSyncService] = None,
         parent: QObject | None = None,
+        container=None,
     ) -> None:
         super().__init__(parent)
-        self._sync_service = sync_service or MarketDataSyncService()
+        self._sync_service = sync_service or self._build_sync_service(container)
         self._executor = ThreadPoolExecutor(max_workers=1)
 
         # Thread-safe bağlantılar
@@ -67,6 +71,19 @@ class MarketSyncController(QObject):
         self._watcher_timer.setInterval(60_000)  # 60 saniye
         self._watcher_timer.timeout.connect(self._on_watcher_tick)
         self._watcher_timer.start()
+
+    @staticmethod
+    def _build_sync_service(container) -> MarketDataSyncService:
+        """Uygulamanın kullandığı SQLite dosyası ve tatil takvimiyle senkron servisi kurar."""
+        kwargs = {}
+        db_path = getattr(getattr(container, "db_config", None), "db_path", None) if container else None
+        if isinstance(db_path, str) and db_path:
+            kwargs["sqlite_path"] = db_path
+            kwargs["duckdb_path"] = str(Path(db_path).parent / "market_history.duckdb")
+        calendar = getattr(container, "trading_calendar", None) if container else None
+        if calendar is not None:
+            kwargs["trading_calendar"] = calendar
+        return MarketDataSyncService(**kwargs)
 
     # ──────────────────────────── QML Properties ────────────────────────────
 
@@ -167,6 +184,7 @@ class MarketSyncController(QObject):
         if result.added_bars > 0:
             msg = f"Borsa verileri güncellendi: {result.updated_stocks} hisse için {result.added_bars:,} yeni bar eklendi."
             self.syncNotification.emit(True, msg)
+            self.dataSynced.emit()
         else:
             logger.info("MarketSyncController: %s", result.message)
 

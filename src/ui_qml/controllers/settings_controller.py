@@ -24,6 +24,8 @@ from typing import Any, Dict, List, Optional
 import duckdb
 from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
 
+from config.settings_loader import persist_api_keys
+
 logger = logging.getLogger(__name__)
 
 _DEFAULT_SQLITE_PATH = "data/portfolio.db"
@@ -134,8 +136,9 @@ class SettingsController(QObject):
     def evdsApiKey(self) -> str:
         if self._container:
             settings = getattr(self._container, "settings", None)
-            if settings and hasattr(settings, "evds"):
-                return getattr(settings.evds, "api_key", "") or ""
+            market = getattr(settings, "market", None) if settings else None
+            if market is not None:
+                return getattr(market, "evds_api_key", "") or ""
         return ""
 
     @Property(str, constant=True)
@@ -210,17 +213,21 @@ class SettingsController(QObject):
         clean_gemini = (gemini_key or "").strip()
         clean_evds = (evds_key or "").strip()
 
-        if self._container:
-            settings = getattr(self._container, "settings", None)
-            if settings:
-                if hasattr(settings, "ai"):
-                    settings.ai.gemini_api_key = clean_gemini
-                if hasattr(settings, "evds"):
-                    settings.evds.api_key = clean_evds
+        try:
+            persist_api_keys(
+                getattr(self._container, "settings", None) if self._container else None,
+                gemini_key=clean_gemini,
+                evds_key=clean_evds,
+            )
+        except Exception as exc:
+            logger.exception("API anahtarları kaydedilemedi: %s", exc)
+            self.operationNotification.emit(False, f"API anahtarları kaydedilemedi: {exc}")
+            self._set_status("API anahtarları kaydedilemedi")
+            return
 
         self.geminiApiKeyChanged.emit(clean_gemini)
         self.evdsApiKeyChanged.emit(clean_evds)
-        self.operationNotification.emit(True, "API anahtarları başarıyla güncellendi.")
+        self.operationNotification.emit(True, "API anahtarları kaydedildi. EVDS anahtarı bir sonraki açılışta etkin olur.")
         self._set_status("API anahtarları kaydedildi")
 
     @Slot(str)

@@ -64,21 +64,29 @@ def test_settings_controller_toggle_theme():
     assert ctrl.isDarkTheme == initial_theme
 
 
-def test_settings_controller_save_api_keys():
-    """saveApiKeys slotunun anahtarları başarıyla güncellediğini test eder."""
+def test_settings_controller_save_api_keys(tmp_path):
+    """saveApiKeys frozen ayarlarda çalışır, .env'ye yazar ve çalışan ayarı günceller."""
+    from decimal import Decimal
+
+    from config.settings_loader import AISettings, MarketSettings
+
     mock_container = MagicMock()
-    mock_settings = MagicMock()
-    mock_settings.ai.gemini_api_key = ""
-    mock_settings.evds.api_key = ""
-    mock_container.settings = mock_settings
+    mock_container.settings.ai = AISettings(gemini_api_key=None, core_api_url="http://localhost:8000")
+    mock_container.settings.market = MarketSettings(evds_api_key=None, tcmb_deposit_rate_fallback=Decimal("45"))
 
     ctrl = SettingsController(container=mock_container)
+    notifications = []
+    ctrl.operationNotification.connect(lambda ok, msg: notifications.append(ok))
     ctrl.saveApiKeys("GEMINI_KEY_XYZ", "EVDS_KEY_123")
 
-    assert mock_settings.ai.gemini_api_key == "GEMINI_KEY_XYZ"
-    assert mock_settings.evds.api_key == "EVDS_KEY_123"
+    assert notifications == [True]
+    assert mock_container.settings.ai.gemini_api_key == "GEMINI_KEY_XYZ"
+    assert mock_container.settings.market.evds_api_key == "EVDS_KEY_123"
     assert ctrl.geminiApiKey == "GEMINI_KEY_XYZ"
     assert ctrl.evdsApiKey == "EVDS_KEY_123"
+    env_text = (tmp_path / ".env").read_text(encoding="utf-8")
+    assert "GEMINI_API_KEY=GEMINI_KEY_XYZ" in env_text
+    assert "EVDS_API_KEY=EVDS_KEY_123" in env_text
 
 
 def test_settings_controller_db_stats(qapp):

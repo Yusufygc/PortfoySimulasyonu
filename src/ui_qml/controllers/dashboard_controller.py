@@ -268,8 +268,8 @@ class DashboardController(QObject):
             except Exception as exc:
                 logger.info("Canlı DB erişimi sağlanamadı, offline mod aktif: %s", exc)
 
-        # Eğer DB'de aktif pozisyon yoksa mock verileri kullan
-        if not pos_list:
+        # Demo pozisyonlar yalnızca konteynersiz (offline) modda gösterilir; gerçek DB'de boş portföy boş kalır
+        if not pos_list and self._container is None:
             for item in self._initial_positions:
                 qty = Decimal(str(item["quantity"]))
                 cost = Decimal(str(item["avgCost"]))

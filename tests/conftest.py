@@ -10,6 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 
+@pytest.fixture(autouse=True)
+def _isolate_env_file(tmp_path, monkeypatch):
+    """Testler gerçek .env dosyasına (API anahtarı kaydı vb.) asla yazmasın."""
+    import config.settings_loader as settings_loader
+
+    monkeypatch.setattr(settings_loader, "_env_write_path", lambda: tmp_path / ".env")
+
+
 def pytest_collection_modifyitems(config, items):
     for item in items:
         path = Path(str(item.fspath)).as_posix()

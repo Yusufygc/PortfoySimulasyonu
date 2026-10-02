@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime
+from datetime import date, datetime, time as dt_time
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -21,7 +21,8 @@ from typing import Any, Dict, List, Optional
 import duckdb
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from src.domain.models.trade import Trade, TradeSide
+from src.application.services.portfolio.trade_entry_service import TradeRequest
+from src.domain.models.trade import TradeSide
 from src.domain.models.model_portfolio import ModelTradeSide
 from src.ui.formatters import display_ticker
 
@@ -623,27 +624,24 @@ class StockDetailController(QObject):
                 self._asyncTradeResult.emit(True, msg)
                 return
 
-            portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
-            stock_repo = getattr(self._container, "stock_repo", None) if self._container else None
+            trade_entry_service = getattr(self._container, "trade_entry_service", None) if self._container else None
+            if not trade_entry_service:
+                raise RuntimeError("İşlem giriş servisi bulunamadı.")
 
-            if not portfolio_service or not stock_repo:
-                raise RuntimeError("Portföy servisi bulunamadı.")
-
-            stock = stock_repo.get_stock_by_ticker(self._ticker) or stock_repo.get_stock_by_ticker(self._raw_ticker)
-            if not stock:
-                # Yeni hisse ekle
-                stock = stock_repo.insert_stock(self._raw_ticker, self._company_name or self._ticker)
-
-            new_trade = Trade(
-                stock_id=stock.id,
-                trade_date=tr_date,
-                trade_time=datetime.now().time(),
-                side=tr_side,
-                quantity=qty,
-                price=Decimal(str(price)),
+            # Seans/nakit/lot doğrulamaları TradeEntryService içinde yapılır (Dashboard ile aynı yol).
+            # Geçmiş tarihli işlemde saat bilgisi seçilemediği için seans içi sabit saat kullanılır.
+            tr_time = datetime.now().time().replace(microsecond=0) if tr_date == date.today() else dt_time(12, 0)
+            trade_entry_service.submit_trade(
+                TradeRequest(
+                    ticker=self._raw_ticker or self._ticker,
+                    side=tr_side,
+                    quantity=qty,
+                    price=Decimal(str(price)),
+                    trade_date=tr_date,
+                    trade_time=tr_time,
+                    name=self._company_name or None,
+                )
             )
-
-            portfolio_service.add_trade(new_trade)
             total_amount = qty * price
             action_tr = "satın alındı" if is_buy else "satıldı"
             msg = f"{qty} adet {self._ticker} başarıyla {action_tr} (₺{total_amount:,.2f})."
