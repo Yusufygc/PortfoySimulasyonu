@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] sil | Ölü Kod Temizliği
+
+Eski arayüz kaldırıldıktan sonra `vulture` + dize/QML çapraz kontrolüyle yapılan tarama sonucu (AI_Core istemcisine dokunulmadı):
+
+- **Silinen dosyalar:** `investing_fallback_client.py`, `tvdatafeed_client.py`, `db_integrity_service.py` (hiçbir arayüzde kullanılmıyordu), `qt_compat` altındaki 7 kullanılmayan sarmalayıcı. Container'dan `tv_backfill_service`, `tv_client`, `db_integrity_service` alanları; `requirements.txt`'ten `tradingview-datafeed` ve `websocket-client` kalktı.
+- **Silinen metotlar:** application/domain katmanında çağrılmayan ~15 metot ve kullanılmayan importlar.
+- **Denetleyici üyeleri:** QML'den çağrılmayan üyeler silindi (Dashboard/model portföy `exportToExcel*` tarihsel rapor diyaloğu ile değiştirilmişti, `deleteTrade`, Stock 360 ve Hisse Detay kullanılmayan alanları vb.); artık dinleyicisiz 3 sinyal kaldırıldı. Kullanılabilir olanlar arayüze bağlandı: Ayarlar > veritabanı kartlarında SQLite/DuckDB dosya yolları, Piyasa Düzeltmeleri sekmesinde "listelenen / toplam olay" sayısı.
+- **Strings.qml:** kullanılmayan 77 anahtar silindi; `test_strings_catalog.py` artık kullanılmayan anahtarı da yakalar.
+- Bilinçli olarak bırakılanlar: repository port/implementasyon çiftleri (CRUD tamlığı), `IInflationDataProvider`/`IMarketValuationProvider` protokolleri (modülleri başka istisna sınıfları için kullanılıyor), openpyxl/DTO alanı yanlış pozitifleri.
+
+---
 ## [2026-10-03] sil | Eski Qt Widgets Arayüzü (`src/ui`) Kaldırıldı
 
 - **Kaldırılanlar:** `src/ui` (sayfalar, widget'lar, QSS stilleri, tema yöneticisi, `L10N`), `tests/ui` (eski arayüz testleri), `scripts/migrate_ui_strings.py` (L10N göç betiği).

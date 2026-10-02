@@ -76,6 +76,16 @@ ColumnLayout {
         Layout.fillWidth: true
     }
 
+    Text {
+        visible: root.hasController && marketAdjustmentController.totalCount > 0
+        text: root.hasController
+              ? Strings.maCountShown + marketAdjustmentController.actions.length + " / " + marketAdjustmentController.totalCount
+              : ""
+        color: Theme.textMuted
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.fontXs
+    }
+
     // Filtreler
     Flow {
         Layout.fillWidth: true

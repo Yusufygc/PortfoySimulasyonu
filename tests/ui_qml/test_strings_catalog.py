@@ -98,3 +98,24 @@ def test_strings_catalog_has_no_duplicate_keys():
     duplicates = sorted({key for key in keys if keys.count(key) > 1})
 
     assert duplicates == []
+
+
+def test_strings_catalog_has_no_unused_keys():
+    """Hiçbir QML/Python/JS dosyasında kullanılmayan metin anahtarı Strings.qml'de tutulmaz."""
+    catalog = STRINGS_FILE.read_text(encoding="utf-8")
+    consumers = " ".join(path.read_text(encoding="utf-8") for path in _qml_files())
+    for base in (QML_DIR.parent / "controllers", QML_DIR.parent / "assets"):
+        for path in base.rglob("*"):
+            if path.is_file() and path.suffix in {".py", ".js", ".html"}:
+                consumers += " " + path.read_text(encoding="utf-8", errors="ignore")
+
+    unused = []
+    for key in re.findall(r"^\s+readonly property \w+ (\w+):", catalog, re.MULTILINE):
+        if re.search(rf"\bStrings\.{key}\b", consumers) or re.search(rf"[\"']{key}[\"']", consumers):
+            continue
+        body = re.sub(rf"^\s+readonly property \w+ {key}:.*$", "", catalog, flags=re.MULTILINE)
+        if re.search(rf"\b{key}\b", body):  # Strings.qml içindeki başka bir üye kullanıyor
+            continue
+        unused.append(key)
+
+    assert unused == [], "Kullanılmayan Strings anahtarları: " + ", ".join(unused)

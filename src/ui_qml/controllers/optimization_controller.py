@@ -76,7 +76,6 @@ class OptimizationController(QObject):
 
     # --- Signals ---
     portfolioOptionsChanged = Signal()
-    selectedPortfolioChanged = Signal()
     riskProfileOptionsChanged = Signal()
     selectedRiskProfileChanged = Signal()
     maxSingleWeightChanged = Signal()
@@ -274,7 +273,6 @@ class OptimizationController(QObject):
     def selectPortfolio(self, code: str) -> None:
         if self._selected_portfolio_code != code:
             self._selected_portfolio_code = code
-            self.selectedPortfolioChanged.emit()
 
     @Slot()
     def reloadRiskProfile(self) -> None:

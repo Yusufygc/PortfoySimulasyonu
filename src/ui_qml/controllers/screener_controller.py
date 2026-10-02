@@ -25,7 +25,6 @@ class ScreenerController(QObject):
 
     # --- Signals ---
     filterOptionsChanged = Signal()
-    selectedFilterChanged = Signal()
     matchesChanged = Signal()
     isRunningChanged = Signal()
     statusTextChanged = Signal()
@@ -76,7 +75,6 @@ class ScreenerController(QObject):
     def setFilter(self, filter_key: str) -> None:
         """Aktif filtreyi değiştirir (boş string = tüm stratejiler)."""
         self._selected_filter = filter_key
-        self.selectedFilterChanged.emit()
 
     @Slot()
     def runScan(self) -> None:

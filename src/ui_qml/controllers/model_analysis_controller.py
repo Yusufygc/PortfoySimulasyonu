@@ -173,7 +173,6 @@ class ModelAnalysisController(QObject):
 
     resultChanged = Signal()
     busyChanged = Signal()
-    connectionChanged = Signal()
     bannerChanged = Signal()
     # Sonucu portföy danışmanına gönder (QML sohbet moduna geçer ve mesajı yollar)
     advisorPromptReady = Signal(str, arguments=["prompt"])
@@ -259,7 +258,6 @@ class ModelAnalysisController(QObject):
         self._probing = False
         self._live = live
         self.busyChanged.emit()
-        self.connectionChanged.emit()
         if live:
             self._set_banner("AI_Core modeli bağlı.", "success")
         else:
@@ -302,7 +300,6 @@ class ModelAnalysisController(QObject):
             if self._live and service is not None and not any(k in lowered for k in ("zaman aşımı", "timeout", "timed out")):
                 service.mark_unavailable()
                 self._live = False
-                self.connectionChanged.emit()
             return
         text, state = _STATUS_TEXTS.get(result.analysis_status, (f"Bilinmeyen durum: {result.analysis_status}", "warning"))
         if result.analysis_status == "stale_data" and result.staleness_days:
