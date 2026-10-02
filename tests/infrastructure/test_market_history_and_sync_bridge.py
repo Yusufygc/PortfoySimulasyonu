@@ -160,3 +160,45 @@ def test_reconcile_copies_only_newer_bars_and_never_overwrites_history(tmp_path,
     assert asels == {date(2026, 3, 2): Decimal("5.00"), date(2026, 3, 3): Decimal("10.5"), date(2026, 3, 4): Decimal("11.0")}
     assert len(price_repo.get_price_series(2, date(2026, 3, 1), date(2026, 3, 31))) == 1
     assert service.reconcile_sqlite_from_duckdb() == 0  # tekrar: yeni bar yok
+
+
+def test_market_history_bulk_catalog_and_latest_dates(duck_file):
+    con = duckdb.connect(str(duck_file))
+    con.execute("INSERT INTO bist_stocks VALUES ('THYAO', 'THY')")
+    con.execute("INSERT INTO daily_prices VALUES ('THYAO', '2026-03-02', 1, 2, 1, 1.5, 10)")
+    con.close()
+    repo = DuckDBMarketHistoryRepository(duck_file)
+
+    assert repo.list_tickers() == ["ASELS", "THYAO"]
+    bulk = repo.get_price_series_bulk(["asels.is", "THYAO", "YOKTUR"], date(2026, 3, 1), date(2026, 3, 31))
+    assert set(bulk) == {"ASELS", "THYAO"}
+    assert [b.close_price for b in bulk["ASELS"]] == [10.5, 11.0]  # NULL kapanışlı bar elenir
+    assert repo.get_latest_dates() == {"ASELS": date(2026, 3, 3), "THYAO": date(2026, 3, 2)}
+    assert repo.get_price_series_bulk([], date(2026, 3, 1), date(2026, 3, 31)) == {}
+
+
+def test_sync_finds_partial_invalid_bars_for_repair(duck_file):
+    service = MarketDataSyncService(duckdb_path=str(duck_file))
+
+    assert service._find_invalid_bar_start(date(2026, 3, 10)) == date(2026, 3, 4)
+    assert service._find_invalid_bar_start(date(2026, 1, 1)) is None  # pencere dışı
+
+
+def test_bulk_downloader_drops_nan_and_zero_close_rows():
+    from src.application.services.market_data.bist_bulk_downloader import BistBulkDownloader
+
+    hist = pd.DataFrame(
+        {
+            "Open": [1.0, 2.0, 3.0],
+            "High": [1.0, 2.0, 3.0],
+            "Low": [1.0, 2.0, 3.0],
+            "Close": [1.0, float("nan"), 0.0],
+            "Volume": [10, None, 5],
+        },
+        index=pd.to_datetime(["2026-03-02", "2026-03-03", "2026-03-04"]).rename("Date"),
+    )
+
+    frame = BistBulkDownloader.normalize_history_frame("ASELS", hist)
+
+    assert list(frame["close_price"]) == [1.0]
+    assert BistBulkDownloader.normalize_history_frame("ASELS", hist.iloc[1:]) is None

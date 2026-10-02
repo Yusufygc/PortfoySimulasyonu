@@ -55,7 +55,8 @@ def main():
     results = downloader.sync_all(tickers=target_tickers, progress_cb=on_progress)
     elapsed = time.time() - t0
 
-    db_size_mb = os.path.getsize(args.db_path) / (1024 * 1024) if os.path.exists(args.db_path) else 0
+    db_path = args.db_path or downloader.db_path
+    db_size_mb = os.path.getsize(db_path) / (1024 * 1024) if os.path.exists(db_path) else 0
 
     print("\n" + "=" * 70)
     print(" SENKRONİZASYON TAMAMLANDI")
@@ -63,7 +64,7 @@ def main():
     print(f"  Başarılı Hisse Sayısı : {len(results):,} / {len(target_tickers):,}")
     print(f"  Toplam Eklenen Bar     : {total_saved_rows:,}")
     print(f"  Geçen Süre             : {elapsed:.2f} saniye")
-    print(f"  DuckDB Dosya Boyutu    : {db_size_mb:.2f} MB ({args.db_path})")
+    print(f"  DuckDB Dosya Boyutu    : {db_size_mb:.2f} MB ({db_path})")
     print("=" * 70)
 
 

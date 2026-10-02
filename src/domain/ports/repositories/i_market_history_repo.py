@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import date
-from typing import List, Optional
+from typing import Dict, List, Optional, Sequence
 
 from src.domain.models.market_bar import MarketBar
 
@@ -36,4 +36,21 @@ class IMarketHistoryRepository(ABC):
 
     @abstractmethod
     def get_company_name(self, ticker: str) -> Optional[str]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_tickers(self) -> List[str]:
+        """Katalogdaki (bist_stocks) tüm tickerlar, uzantısız büyük harf, alfabetik."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_price_series_bulk(
+        self, tickers: Sequence[str], start_date: date, end_date: date
+    ) -> Dict[str, List[MarketBar]]:
+        """Birden çok hisse için tek sorguda günlük barlar (ticker -> eskiden yeniye). Verisiz hisse sonuçta yer almaz."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_latest_dates(self) -> Dict[str, date]:
+        """Her hissenin geçerli kapanışlı son bar tarihi (ticker -> tarih)."""
         raise NotImplementedError

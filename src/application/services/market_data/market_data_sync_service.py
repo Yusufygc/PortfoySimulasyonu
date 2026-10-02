@@ -146,6 +146,23 @@ class MarketDataSyncService:
             message=msg,
         )
 
+    def _find_invalid_bar_start(self, last_trading_day: date) -> Optional[date]:
+        """Son 30 günde kapanışı NULL/<=0 olan en eski bar tarihi (kısmi indirilmiş gün); yoksa None."""
+        if not Path(self._duckdb_path).exists():
+            return None
+        try:
+            with self._get_duckdb_conn(read_only=True) as con:
+                row = con.execute(
+                    "SELECT MIN(price_date) FROM daily_prices "
+                    "WHERE (close_price IS NULL OR close_price <= 0) AND price_date >= ? AND price_date <= ?",
+                    [last_trading_day - timedelta(days=30), last_trading_day],
+                ).fetchone()
+        except Exception as exc:
+            logger.debug("Geçersiz bar taraması başarısız: %s", exc)
+            return None
+        found = row[0] if row else None
+        return found.date() if isinstance(found, datetime) else found
+
     def sync_daily_delta(
         self,
         now: Optional[datetime] = None,
@@ -158,8 +175,9 @@ class MarketDataSyncService:
         # DuckDB'de olup SQLite'a yazılamamış barlar (eski köprü hatası vb.) önce kapatılır
         reconciled_bars = self.reconcile_sqlite_from_duckdb()
         status = self.get_sync_status(now)
+        repair_start = self._find_invalid_bar_start(status.last_completed_trading_day)
 
-        if status.is_up_to_date and not force:
+        if status.is_up_to_date and not force and repair_start is None:
             logger.info("MarketDataSyncService: %s", status.message)
             return MarketSyncResult(
                 is_up_to_date=True,
@@ -183,6 +201,9 @@ class MarketDataSyncService:
             )
 
         start_date = status.missing_trading_days[0] if status.missing_trading_days else (status.max_db_date or date.today())
+        if repair_start is not None:
+            start_date = min(start_date, repair_start)
+            logger.info("MarketDataSyncService: geçersiz kapanışlı barlar %s tarihinden itibaren yeniden indirilecek.", repair_start)
         end_date = status.last_completed_trading_day + timedelta(days=1)  # yfinance end_date exclusive
 
         logger.info(
@@ -266,6 +287,8 @@ class MarketDataSyncService:
                     SELECT ticker, price_date, open_price, high_price, low_price, close_price, volume
                     FROM temp_delta
                 """)
+                # Yeniden indirilemeyen (kısmi/hayalet) geçersiz kapanışlı barlar yeni veriyle değiştirildi; kalanlar atılır
+                con.execute("DELETE FROM daily_prices WHERE close_price IS NULL OR close_price <= 0")
                 con.execute("""
                     UPDATE bist_stocks
                     SET last_date = sub.max_d,

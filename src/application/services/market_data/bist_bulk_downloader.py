@@ -27,6 +27,8 @@ from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
 logger = logging.getLogger(__name__)
 
 _TV_SCANNER_URL = "https://scanner.tradingview.com/turkey/scan"
+_DOWNLOAD_ATTEMPTS = 3
+_RETRY_BACKOFF_SECONDS = 2.0
 
 
 class BistBulkDownloader:
@@ -43,6 +45,10 @@ class BistBulkDownloader:
         self._max_workers = max_workers
         Path(self._db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
+
+    @property
+    def db_path(self) -> str:
+        return self._db_path
 
     def _get_connection(self) -> duckdb.DuckDBPyConnection:
         return duckdb.connect(self._db_path, read_only=False)
@@ -114,26 +120,38 @@ class BistBulkDownloader:
         """Tek bir hissenin tüm geçmişini (period='max') çeker."""
         clean = ticker.replace(".IS", "").strip().upper()
         yf_symbol = f"{clean}.IS"
-        try:
-            t = yf.Ticker(yf_symbol)
-            hist = t.history(period="max", auto_adjust=False)
-            if hist.empty:
-                return None
+        hist = None
+        for attempt in range(_DOWNLOAD_ATTEMPTS):
+            try:
+                hist = yf.Ticker(yf_symbol).history(period="max", auto_adjust=False)
+                break
+            except Exception as exc:
+                logger.warning("%s indirme hatası (deneme %d/%d): %s", clean, attempt + 1, _DOWNLOAD_ATTEMPTS, exc)
+                if attempt + 1 < _DOWNLOAD_ATTEMPTS:
+                    time.sleep(_RETRY_BACKOFF_SECONDS * (attempt + 1))
+        if hist is None or hist.empty:
+            return None
+        return self.normalize_history_frame(clean, hist)
 
+    @staticmethod
+    def normalize_history_frame(clean_ticker: str, hist: pd.DataFrame) -> Optional[pd.DataFrame]:
+        """Yahoo geçmişini DuckDB şemasına çevirir; kapanışı NaN/<=0 olan (kısmi veya hayalet) barları eler."""
+        try:
             hist = hist.reset_index()
-            # Tarih kolonunu standartlaştır
             date_col = "Date" if "Date" in hist.columns else hist.columns[0]
             hist["price_date"] = pd.to_datetime(hist[date_col]).dt.date
-            hist["ticker"] = clean
+            hist["ticker"] = clean_ticker
             hist["open_price"] = hist["Open"].astype(float)
             hist["high_price"] = hist["High"].astype(float)
             hist["low_price"] = hist["Low"].astype(float)
             hist["close_price"] = hist["Close"].astype(float)
             hist["volume"] = hist["Volume"].fillna(0).astype(int)
-
-            return hist[["ticker", "price_date", "open_price", "high_price", "low_price", "close_price", "volume"]]
+            valid = hist[hist["close_price"] > 0]  # NaN karşılaştırması False verir
+            if valid.empty:
+                return None
+            return valid[["ticker", "price_date", "open_price", "high_price", "low_price", "close_price", "volume"]]
         except Exception as exc:
-            logger.debug("%s indirme hatası: %s", ticker, exc)
+            logger.warning("%s geçmişi işlenemedi: %s", clean_ticker, exc)
             return None
 
     def save_stock_history(self, df: pd.DataFrame) -> int:

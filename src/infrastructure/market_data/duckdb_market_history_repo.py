@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from datetime import date
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Sequence
 
 import duckdb
 
@@ -82,3 +82,34 @@ class DuckDBMarketHistoryRepository(IMarketHistoryRepository):
     def get_company_name(self, ticker: str) -> Optional[str]:
         rows = self._query("SELECT name FROM bist_stocks WHERE ticker = ? LIMIT 1", [clean_ticker(ticker)])
         return rows[0][0] if rows and rows[0][0] else None
+
+    def list_tickers(self) -> List[str]:
+        rows = self._query("SELECT ticker FROM bist_stocks ORDER BY ticker", [])
+        return [row[0] for row in rows if row[0]]
+
+    def get_price_series_bulk(
+        self, tickers: Sequence[str], start_date: date, end_date: date
+    ) -> Dict[str, List[MarketBar]]:
+        cleaned = sorted({clean_ticker(t) for t in tickers if t})
+        if not cleaned:
+            return {}
+        rows = self._query(
+            "SELECT ticker, price_date, open_price, high_price, low_price, close_price, volume FROM daily_prices "
+            "WHERE ticker IN (SELECT UNNEST(?)) AND price_date >= ? AND price_date <= ? "
+            "ORDER BY ticker, price_date",
+            [cleaned, start_date, end_date],
+        )
+        result: Dict[str, List[MarketBar]] = {}
+        for row in rows:
+            bar = self._to_bar(row[0], row[1:])
+            if bar is not None:
+                result.setdefault(row[0], []).append(bar)
+        return result
+
+    def get_latest_dates(self) -> Dict[str, date]:
+        rows = self._query(
+            "SELECT ticker, MAX(price_date) FROM daily_prices WHERE close_price IS NOT NULL AND close_price > 0 "
+            "GROUP BY ticker",
+            [],
+        )
+        return {row[0]: row[1] for row in rows if row[1] is not None}
