@@ -62,16 +62,33 @@ class MarketDataSyncService:
         max_workers: int = 6,
         price_repo=None,
         stock_repo=None,
+        market_action_service=None,
+        portfolio_action_repo=None,
     ) -> None:
         """
         price_repo / stock_repo: SQLite (OLTP) tarafı. Verilirse, portföyde kayıtlı hisselerin yeni
         kapanışları SQLite `daily_prices` tablosuna da yazılır; verilmezse yalnızca DuckDB güncellenir.
+        market_action_service / portfolio_action_repo: verilirse her senkronda portföy kurumsal aksiyonları
+        DuckDB'ye aktarılır ve onaylı olayların ham veride hâlâ kırılma gösterdiği doğrulanır.
         """
         self._duckdb_path = str(duckdb_path) if duckdb_path else str(default_duckdb_path())
         self._trading_calendar = trading_calendar or WeekdayTradingCalendar()
         self._max_workers = max_workers
         self._price_repo = price_repo
         self._stock_repo = stock_repo
+        self._market_action_service = market_action_service
+        self._portfolio_action_repo = portfolio_action_repo
+
+    def refresh_corporate_actions(self) -> None:
+        """Portföy aksiyonlarını DuckDB'ye aktarır, onaylı olayları ham veriye karşı doğrular (hata sync'i bozmaz)."""
+        if self._market_action_service is None or not Path(self._duckdb_path).exists():
+            return
+        try:
+            if self._portfolio_action_repo is not None and self._stock_repo is not None:
+                self._market_action_service.import_portfolio_actions(self._portfolio_action_repo, self._stock_repo)
+            self._market_action_service.verify_actions()
+        except Exception as exc:
+            logger.warning("Kurumsal aksiyon yenilemesi başarısız: %s", exc)
 
     def _get_duckdb_conn(self, read_only: bool = False) -> duckdb.DuckDBPyConnection:
         Path(self._duckdb_path).parent.mkdir(parents=True, exist_ok=True)
@@ -174,6 +191,7 @@ class MarketDataSyncService:
         t0 = time.time()
         # DuckDB'de olup SQLite'a yazılamamış barlar (eski köprü hatası vb.) önce kapatılır
         reconciled_bars = self.reconcile_sqlite_from_duckdb()
+        self.refresh_corporate_actions()
         status = self.get_sync_status(now)
         repair_start = self._find_invalid_bar_start(status.last_completed_trading_day)
 

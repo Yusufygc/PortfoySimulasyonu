@@ -17,6 +17,7 @@ from src.application.services.market.current_price_resolver import CurrentPriceR
 from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
 from src.application.services.corporate_actions.candidate_review_service import CorporateActionCandidateReviewService
+from src.application.services.corporate_actions.market_action_service import MarketCorporateActionService
 from src.application.services.corporate_actions.price_adjustment_service import CorporateActionPriceAdjustmentService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.application.services.planning.optimization_service import OptimizationDeps, OptimizationService
@@ -83,6 +84,7 @@ class ServiceSet:
     tv_backfill_service: object  # BackfillService | None
     current_price_resolver: object  # CurrentPriceResolver
     market_data_sync_service: object  # MarketDataSyncService (DuckDB + SQLite köprüsü)
+    market_corporate_action_service: MarketCorporateActionService  # DuckDB ticker bazlı sermaye artırımı
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
@@ -152,6 +154,8 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             trading_calendar=market_clients.trading_calendar,
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
+            market_action_service=feature_services["market_corporate_action_service"],
+            portfolio_action_repo=repositories.corporate_action_repo,
         ),
         tv_backfill_service=(
             BackfillService(
@@ -247,9 +251,15 @@ def _build_reporting_services(
 
 def _build_prereq_services(repositories: RepositorySet, market_clients: MarketClientSet):
     from src.application.services.market.price_data_health_service import PriceDataHealthService, PriceHealthServiceDeps
+    market_action_service = MarketCorporateActionService(
+        history_repo=repositories.market_history_repo,
+        action_repo=repositories.market_action_repo,
+    )
     corp_price_adj = CorporateActionPriceAdjustmentService(
         action_repo=repositories.corporate_action_repo,
         price_repo=repositories.price_repo,
+        stock_repo=repositories.stock_repo,
+        market_action_service=market_action_service,
     )
     corp_action = CorporateActionService(
         action_repo=repositories.corporate_action_repo,
@@ -268,7 +278,7 @@ def _build_prereq_services(repositories: RepositorySet, market_clients: MarketCl
         ),
         holiday_provider=BistHolidayProvider(),
     )
-    return corp_action, health_service
+    return corp_action, health_service, market_action_service
 
 
 def _build_market_services(repositories, market_clients, price_data_health_service, model_portfolio_service) -> dict:
@@ -353,10 +363,13 @@ def _build_feature_services(
     foundation: dict,
 ) -> dict:
     model_portfolio_service = foundation["model_portfolio_service"]
-    corp_action_service, price_data_health_service = _build_prereq_services(repositories, market_clients)
+    corp_action_service, price_data_health_service, market_action_service = _build_prereq_services(
+        repositories, market_clients
+    )
     return {
         "price_data_health_service": price_data_health_service,
         "corporate_action_service": corp_action_service,
+        "market_corporate_action_service": market_action_service,
         **_build_market_services(repositories, market_clients, price_data_health_service, model_portfolio_service),
         **_build_portfolio_services(repositories, market_clients, foundation, model_portfolio_service),
         **_build_corporate_action_services(repositories, corp_action_service),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, replace
 from datetime import date, timedelta, datetime
 from decimal import Decimal
 from typing import Iterable, Dict
@@ -8,6 +9,9 @@ from typing import Iterable, Dict
 from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -159,9 +163,14 @@ class CorporateActionPriceAdjustmentService:
         self,
         action_repo: ICorporateActionRepository,
         price_repo: IPriceRepository,
+        stock_repo=None,
+        market_action_service=None,
     ) -> None:
         self._action_repo = action_repo
         self._price_repo = price_repo
+        # Verilirse, SQLite fiyat düzeltmesi sonrası olay DuckDB piyasa geçmişine de ONAYLI olarak kaydedilir
+        self._stock_repo = stock_repo
+        self._market_action_service = market_action_service
 
     def adjust_prices_for_action(self, action_id: int) -> PriceAdjustmentResult:
         action = self._action_repo.get_by_id(action_id)
@@ -196,12 +205,26 @@ class CorporateActionPriceAdjustmentService:
             factor=factor,
         )
         self._action_repo.mark_prices_adjusted(action.id, factor, adjusted_count)
+        self._register_in_market_history(action, factor)
         return PriceAdjustmentResult(
             action_id=action.id,
             stock_id=action.stock_id,
             factor=factor,
             adjusted_count=adjusted_count,
         )
+
+    def _register_in_market_history(self, action: CorporateAction, factor: Decimal) -> None:
+        """DuckDB tarafı başarısız olsa bile SQLite düzeltmesi geri alınmaz; yalnızca loglanır."""
+        if self._market_action_service is None or self._stock_repo is None:
+            return
+        try:
+            stock = next((s for s in self._stock_repo.get_all_stocks() if s.id == action.stock_id), None)
+            if stock is not None:
+                self._market_action_service.register_portfolio_action(
+                    stock.ticker, replace(action, price_adjustment_factor=factor)
+                )
+        except Exception as exc:
+            logger.warning("Kurumsal aksiyon DuckDB piyasa geçmişine kaydedilemedi: %s", exc)
 
     def _factor_for_action(self, action: CorporateAction) -> Decimal:
         if action.action_type == ActionType.BEDELSIZ:

@@ -19,6 +19,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_shareholder_repository imp
 from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_trade_adjustment_repository import SQLAlchemyTradeAdjustmentRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_watchlist_repository import SQLAlchemyWatchlistRepository
+from src.infrastructure.market_data.duckdb_corporate_action_store import DuckDBCorporateActionStore
 from src.infrastructure.market_data.duckdb_market_history_repo import DuckDBMarketHistoryRepository
 
 
@@ -28,6 +29,7 @@ class RepositorySet:
     portfolio_repo: SQLAlchemyPortfolioRepository
     price_repo: SQLAlchemyPriceRepository
     market_history_repo: DuckDBMarketHistoryRepository  # DuckDB (OLAP), salt okunur
+    market_action_repo: DuckDBCorporateActionStore  # DuckDB ticker bazlı kurumsal aksiyon/faktör deposu
     latest_price_repo: SQLAlchemyLatestPriceRepository
     cash_movement_repo: SQLAlchemyCashMovementRepository
     portfolio_maintenance_repo: SQLAlchemyPortfolioMaintenanceRepository
@@ -49,6 +51,7 @@ def build_repositories(conn_provider) -> RepositorySet:
         portfolio_repo=SQLAlchemyPortfolioRepository(conn_provider),
         price_repo=SQLAlchemyPriceRepository(conn_provider),
         market_history_repo=DuckDBMarketHistoryRepository(),
+        market_action_repo=DuckDBCorporateActionStore(),
         latest_price_repo=SQLAlchemyLatestPriceRepository(conn_provider),
         cash_movement_repo=SQLAlchemyCashMovementRepository(conn_provider),
         portfolio_maintenance_repo=SQLAlchemyPortfolioMaintenanceRepository(conn_provider),
