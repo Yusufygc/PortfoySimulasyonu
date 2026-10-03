@@ -23,6 +23,7 @@ from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioCont
 from src.ui_qml.controllers.comparison_controller import ComparisonController
 from src.ui_qml.controllers.screener_controller import ScreenerController
 from src.ui_qml.controllers.planning_controller import PlanningController
+from src.ui_qml.controllers.strategy_backtest_controller import StrategyBacktestController
 from src.ui_qml.controllers.market_sync_controller import MarketSyncController
 from src.ui_qml.controllers.optimization_controller import OptimizationController
 from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
@@ -77,6 +78,7 @@ def run_qml_app(container=None) -> int:
     comparison_ctrl = ComparisonController(container=container, parent=engine)
     screener_ctrl = ScreenerController(container=container, parent=engine)
     planning_ctrl = PlanningController(container=container, parent=engine)
+    strategy_backtest_ctrl = StrategyBacktestController(container=container, parent=engine)
     market_sync_ctrl = MarketSyncController(parent=engine, container=container)
     optimization_ctrl = OptimizationController(container=container, parent=engine)
     ai_advisor_ctrl = AiAdvisorController(container=container, parent=engine)
@@ -116,6 +118,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("comparisonController", comparison_ctrl)
     context.setContextProperty("screenerController", screener_ctrl)
     context.setContextProperty("planningController", planning_ctrl)
+    context.setContextProperty("strategyBacktestController", strategy_backtest_ctrl)
     context.setContextProperty("marketSyncController", market_sync_ctrl)
     context.setContextProperty("optimizationController", optimization_ctrl)
     context.setContextProperty("aiAdvisorController", ai_advisor_ctrl)

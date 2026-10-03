@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import logging
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
+
+from src.ui_qml.controllers.number_input import parse_decimal_text
 
 logger = logging.getLogger(__name__)
 
@@ -26,17 +28,9 @@ def _fmt_tr(value: Decimal) -> str:
 
 
 def parse_amount(text: str) -> Optional[Decimal]:
-    """'1.234,56' veya '1234.56' -> Decimal; geçersiz veya pozitif olmayan değer için None."""
-    raw = (text or "").strip().replace(" ", "")
-    if not raw:
-        return None
-    if "," in raw:
-        raw = raw.replace(".", "").replace(",", ".")
-    try:
-        value = Decimal(raw)
-    except InvalidOperation:
-        return None
-    return value if value.is_finite() and value > 0 else None
+    """'1.234,56', '1234.56' veya '50.000' -> Decimal; geçersiz veya pozitif olmayan değer için None."""
+    value = parse_decimal_text(text)
+    return value if value is not None and value > 0 else None
 
 
 def parse_date(text: str) -> Optional[date]:

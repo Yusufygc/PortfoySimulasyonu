@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] ekle | Strateji Backtest (Periyodik Yeniden Dengeleme, Stop-Loss / Take-Profit)
+
+- **Motor:** `strategy_backtest.py` (saf) + `StrategyBacktestService`. Yeniden dengeleme eşit veya Markowitz ağırlığıyla (her dengeleme gününde yalnızca geçmiş veriden maksimum Sharpe, `optimization_service.compute_max_sharpe_weights`); stop-loss/take-profit giriş fiyatına göre günlük kapanışla. Her ikisi de "al ve tut" taban çizgisiyle ve maksimum düşüşle karşılaştırılır.
+- **Ortak fiyat okuyucu:** `price_series_loader.py` (DCA servisi de bunu kullanır).
+- **Arayüz:** Planlama > "Strateji Testi" sekmesi (`PlanningStrategyTab.qml`, `StrategyBacktestController`, çok serili `lw_chart_html.py` grafiği); sayı girişleri `number_input.py` (Türkçe `1.234,5` ve `50.000` biçimleri; temettü tutarı da aynı ayrıştırıcıyı kullanır).
+- Gerçek DuckDB kopyasında THYAO/ASELS/BIMAS/FROTO 2023-2026 doğrulaması: yeniden dengeleme ~0,4 sn. Plan §9.13 güncellendi. Wiki: `service_simulation.md`.
+
+---
 ## [2026-10-03] ekle | Nakit Temettü Kaydı
 
 - **Backend:** `CashMovementType.DIVIDEND`, `cash_movements.stock_id` (açılışta idempotent ALTER; gerçek veritabanı kopyasında doğrulandı), `CashMovementService.add/get/delete_dividend`, `PortfolioService.validate_cash_removal`. Temettü nakit bakiyeye girer ve TWR getirisi olarak sayılır; yatırma gibi dış sermaye akışı değildir.

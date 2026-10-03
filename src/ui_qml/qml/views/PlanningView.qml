@@ -183,6 +183,41 @@ Item {
                             onClicked: root.activeTabIndex = 2
                         }
                     }
+
+                    // Sekme 3: Strateji Testi
+                    Rectangle {
+                        width: 150
+                        height: 32
+                        radius: Theme.radiusXs
+                        color: root.activeTabIndex === 3 ? Theme.accent : (btnTab3Mouse.containsMouse ? Theme.bgCardHover : "transparent")
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: Theme.spaceXs
+
+                            ModernIcon {
+                                name: "compare"
+                                color: root.activeTabIndex === 3 ? Theme.textInverse : Theme.textSecondary
+                                size: 14
+                            }
+
+                            Text {
+                                text: Strings.planningTabStrategy
+                                color: root.activeTabIndex === 3 ? Theme.textInverse : Theme.textPrimary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontSm
+                                font.weight: root.activeTabIndex === 3 ? Font.Bold : Font.Normal
+                            }
+                        }
+
+                        MouseArea {
+                            id: btnTab3Mouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.activeTabIndex = 3
+                        }
+                    }
                 }
             }
         }
@@ -221,6 +256,11 @@ Item {
             // 2: DCA
             PlanningDcaTab {
                 id: dcaTab
+            }
+
+            // 3: Strateji Testi
+            PlanningStrategyTab {
+                id: strategyTab
             }
         }
     }

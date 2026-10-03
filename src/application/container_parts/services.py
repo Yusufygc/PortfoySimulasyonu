@@ -39,6 +39,7 @@ from src.application.services.reporting.excel_report_builder import ExcelReportB
 from src.application.services.reporting.model_portfolio_excel_export_service import ModelPortfolioExcelExportService
 from src.application.services.simulation.backfill_service import BackfillService
 from src.application.services.simulation.dca_backtest_service import DCABacktestService
+from src.application.services.simulation.strategy_backtest_service import StrategyBacktestService
 from src.application.services.simulation.history_simulation_service import HistorySimulationService
 from src.application.services.simulation.model_portfolio_history_simulation_service import ModelPortfolioHistorySimulationService
 from src.application.services.watchlist.watchlist_service import WatchlistService
@@ -83,6 +84,7 @@ class ServiceSet:
     technical_analysis_service: TechnicalAnalysisService
     screener_service: ScreenerService
     dca_backtest_service: DCABacktestService
+    strategy_backtest_service: StrategyBacktestService
     current_price_resolver: object  # CurrentPriceResolver
     stock_lookup_service: StockLookupService  # arayüz için salt okunur hisse/fiyat sorguları
     market_data_sync_service: object  # MarketDataSyncService (DuckDB + SQLite köprüsü)
@@ -153,6 +155,11 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
             price_lookup_service=market_clients.price_lookup_service,
         ),
         dca_backtest_service=DCABacktestService(
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
+            market_history_repo=repositories.market_history_repo,
+        ),
+        strategy_backtest_service=StrategyBacktestService(
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
             market_history_repo=repositories.market_history_repo,

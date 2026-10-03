@@ -66,7 +66,7 @@ def _capture(signal):
 class TestParsing:
     @pytest.mark.parametrize(
         "text,expected",
-        [("1234.56", "1234.56"), ("1.234,56", "1234.56"), ("25,5", "25.5"), (" 100 ", "100")],
+        [("1234.56", "1234.56"), ("1.234,56", "1234.56"), ("25,5", "25.5"), (" 100 ", "100"), ("50.000", "50000"), ("1.250", "1250")],
     )
     def test_parse_amount_accepts_turkish_and_plain_formats(self, text, expected):
         assert parse_amount(text) == Decimal(expected)

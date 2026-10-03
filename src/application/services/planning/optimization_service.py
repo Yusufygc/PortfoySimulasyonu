@@ -143,6 +143,24 @@ def _optimize_min_volatility_weights(
     return result.x * remaining_weight
 
 
+def compute_max_sharpe_weights(
+    price_df: pd.DataFrame,
+    policy: OptimizationPolicy | None = None,
+) -> dict[str, float]:
+    """Fiyat tablosundan (sütun = ticker) maksimum Sharpe ağırlıklarını döner (toplam 1, tek hisse üst sınırlı).
+
+    Canlı portföy durumundan bağımsız, saf hesaptır (geçmişe dönük backtest için). Veri yetersizse ValueError fırlatır.
+    """
+    policy = policy or OptimizationPolicy()
+    if price_df.shape[1] < 2 or len(price_df) < 60:
+        raise ValueError("Maksimum Sharpe ağırlığı için en az 2 hisse ve 60 günlük fiyat gerekir.")
+    mean_returns, cov_matrix = _build_return_model(price_df, policy.trading_days_per_year)
+    weights = _optimize_valid_weights(
+        mean_returns.values, cov_matrix.values, policy.risk_free_rate, policy.max_single_weight, 1.0
+    )
+    return {str(ticker): float(weight) for ticker, weight in zip(mean_returns.index, weights)}
+
+
 def _suggestion_action(weight_diff: float) -> str:
     if weight_diff > 1.0:
         return "EKLE"

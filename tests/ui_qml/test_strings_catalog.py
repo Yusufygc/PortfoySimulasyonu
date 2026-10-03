@@ -19,6 +19,7 @@ ALLOWED_LITERALS = {
     ("components/AssetAllocationCard.qml", "TL Nakit & Mevduat"),
     ("components/MetricCard.qml", "Metrik Başlığı"),
     ("components/PlanningDcaTab.qml", "THYAO FROTO"),
+    ("components/PlanningStrategyTab.qml", "THYAO ASELS BIMAS"),
     ("views/ComparisonView.qml", "TL"),
     ("views/ComparisonView.qml", "USD"),
 }

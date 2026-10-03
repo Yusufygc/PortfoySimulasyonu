@@ -4,7 +4,7 @@
 > * **Arayüz:** 8 görünümlü `main.py` + özel `QQuickPaintedItem` grafik yapısı (§7.1, §7.4) yerine `src/ui_qml/app.py` giriş noktası, 10 sayfa (Dashboard, İzleme Listesi, Model Portföyler, Hisse 360, Karşılaştırma, Tarayıcı, Planlama, Optimizasyon, AI Danışman, Ayarlar), TradingView Lightweight Charts ve Plotly (WebEngine) kullanılmaktadır. §9.4'teki "WebEngine kullanılmayacak" kararı fiilen terk edilmiştir. AnalyticsView/SimulationView/CashflowView adları Karşılaştırma ve Planlama sayfalarına karşılık gelir.
 > * **Eski arayüz:** §9.7'deki "paralel çalıştır, parity sonrası sil" stratejisi tamamlanmış, `src/ui` ve `tests/ui` silinmiştir. §6.2.1'deki `ai_page` notu artık geçerli değildir.
 > * **Veri:** Piyasa evreni DuckDB'ye taşınmış, ticker biçimi uzantısız tek tipe indirilmiş, sermaye artırımı düzeltmesi DuckDB'ye eklenmiştir (§9.11 ve §9.12 çözülmüştür).
-> * **Kapsam dışı kalanlar:** Plandaki bazı maddeler uygulanmamıştır; liste §9.13'tedir.
+> * **Sonradan tamamlananlar ve kapsam dışı kalanlar:** ADX/Supertrend, strateji backtest, nakit temettü ve ağ yeniden denemesi 2026-10-03'te eklenmiştir; hâlâ uygulanmayanlar §9.13'tedir.
 >
 > **Hedef:** Mevcut Clean Architecture backend emeğini koruyarak; veritabanı, hesaplama motorları, veri sağlayıcılar ve yapay zeka entegrasyonundaki pürüzleri gidermek, gereksiz şişkinlikleri budamak ve sıfırdan tasarlanacak **QML (Qt Quick)** arayüzü için sağlam, modern bir servis altyapısı hazırlamak.
 
@@ -613,17 +613,21 @@ gantt
 
 ---
 
-### 9.13 Planda Olup Uygulanmayan Maddeler (2026-10-03 kod taraması)
-* Supertrend, ADX, Ichimoku, Keltner göstergeleri (§9.2: v1 dışı).
-* Stop-loss/take-profit ve Markowitz'li periyodik rebalance backtest; yalnızca DCA vardır (§9.12).
-* Nakit temettü akışı: `CorporateAction` yalnızca bedelli/bedelsiz sermaye artırımını modeller.
+### 9.13 Planda Olup Sonradan Tamamlanan veya Uygulanmayan Maddeler (2026-10-03 kod taraması)
+**Tamamlandı (2026-10-03):**
+* ADX ve Supertrend göstergeleri ve iki yeni tarayıcı stratejisi (`indicators.py`, `screener.py`).
+* Markowitz (maksimum Sharpe) veya eşit ağırlıklı periyodik rebalance backtest ile stop-loss/take-profit backtest (`strategy_backtest.py`, Planlama > Strateji Testi sekmesi). §9.12'deki "OptimizationService yalnızca canlı portföyü optimize eder" engeli, saf `compute_max_sharpe_weights` fonksiyonuyla aşıldı.
+* Nakit temettü kaydı: `CashMovementType.DIVIDEND`, TWR getirisi olarak sayılır (Hisse Detay > Temettü).
+* Ağ çağrıları için ortak üstel geri çekilmeli yeniden deneme (`src/infrastructure/retry.py`).
+
+**Hâlâ uygulanmayan:**
+* Ichimoku ve Keltner göstergeleri (§9.2: v1 dışı).
 * Plandaki `cached_financial_statements` tablosu: yoktur; yalnızca `kap_*` tabloları vardır.
-* Üstel geri çekilmeli yeniden deneme (retry/backoff): yalnızca `bist_bulk_downloader.py` içinde vardır.
 * Drawdown toparlanma süresi (§3.2) ve hisse bazlı min/max ağırlık kısıtı (§7.3-5; yalnızca tek global üst sınır vardır).
 
 ---
 
-## §9 Durumu: 9.1–9.12 kararlaştırıldı/giderildi; 9.13'teki maddeler kapsam dışı bırakılmıştır — son güncelleme 2026-10-03.
+## §9 Durumu: 9.1–9.12 kararlaştırıldı/giderildi; 9.13'te yalnızca üç madde açık kalmıştır — son güncelleme 2026-10-03.
 
 ---
 *Doküman Oluşturulma Tarihi: 2026-09-11 | PortfoySimulasyonu Mimari Dönüşüm Projesi*

@@ -52,3 +52,12 @@ flowchart TD
 - Dashboard ve model portföy history simulation servislerinde günlük döngü `_simulate_day` helper'ına ayrıldı.
 - `HistoryPositionBuilder` pozisyon metriklerini helper üzerinden üretir; `HistorySnapshotBuilder` daily/cumulative return ve status seçimini ayrı pure helper'larla hesaplar.
 - Hafta sonu carry-forward, BIST kapalı gün, aynı gün çoklu işlem, eksik fiyat ve invalid sell edge-case testleri korunur.
+
+## Strateji Backtest: Yeniden Dengeleme ve Stop-Loss / Take-Profit (2026-10-03)
+
+- **Dosyalar:** `simulation/strategy_backtest.py` (saf hesap), `strategy_backtest_service.py` (doğrulama, fiyat okuma, Markowitz ağırlığı), `price_series_loader.py` (DCA ile ortak fiyat okuyucu: DuckDB birincil, SQLite yedek). Arayüz: Planlama > Strateji Testi (`StrategyBacktestController`, `PlanningStrategyTab.qml`).
+- **Yeniden dengeleme:** Başlangıçta ve her N ayda (1, 3, 6, 12) bir ayın ilk işlem gününde hedef ağırlığa dönülür. Ağırlık eşit veya Markowitz'dir: Markowitz için her dengeleme gününde yalnızca o güne kadarki son 252 günlük veriden `compute_max_sharpe_weights` (Ledoit-Wolf kovaryans, SLSQP, tek hisse üst sınırı `OptimizationPolicy` varsayılanı) hesaplanır; ileriye bakış yoktur. Veri yetersizse o gün eşit ağırlığa dönülür ve olay listesine "Uyarı" yazılır. Isınma verisi için başlangıçtan 420 takvim günü öncesi okunur.
+- **Stop-loss / take-profit:** Eşit ağırlıkla alım; her pozisyon giriş fiyatına göre eşikte (günlük kapanışla kontrol) satılıp nakde geçer, yeniden alınmaz.
+- **Taban çizgisi:** Aynı başlangıç dağılımıyla "al ve tut"; sonuç getiri, maksimum düşüş ve olay listesiyle karşılaştırılır.
+- **Varsayımlar:** Kapanış fiyatından işlem, gün içi/gap yok, kesirli lot, nakit getirisi 0, isteğe bağlı komisyon (alım ve satım tutarı oranı). Başlangıç, tüm hisselerin fiyatının olduğu ilk işlem günüdür (sonradan işlem görmeye başlayan hisse başlangıcı öteler).
+- Testler: `tests/application/services/simulation/test_strategy_backtest*.py`, `tests/ui_qml/test_strategy_backtest_controller.py`.

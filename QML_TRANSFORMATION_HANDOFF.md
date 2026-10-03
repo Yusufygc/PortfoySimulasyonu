@@ -239,7 +239,11 @@ flowchart LR
 * **Eski arayüz kaldırıldı:** `src/ui` ve `tests/ui` silindi (`e59f6a4`); `app.py` doğrudan QML'i açar. Parity kontrolünde bulunan 7 eksik QML'e taşındı. Silinenler git geçmişinden geri alınabilir.
 * **Mimari ve metin korumaları:** `tests/ui_qml/test_architecture_guards.py` (UI katmanında `src.ui`/infrastructure/sqlite3/duckdb/sqlalchemy importu ve `*_repo` erişimi yasak), `tests/ui_qml/test_strings_catalog.py` (tanımsız/yinelenen/kullanılmayan `Strings` anahtarı ve sabit metin denetimi), `tests/test_repo_guards.py` (testlerde canlı ağ çağrısı yasak, `src/ui` geri gelmez).
 * **Ölü kod temizliği:** Kullanılmayan servis, istemci (TradingView/Investing yedek istemcileri), denetleyici üyeleri ve 77 `Strings` anahtarı silindi. AI_Core istemcisine dokunulmadı. Ayrıntı: `docs/wiki/log.md`.
-* **Güncel test durumu:** `pytest tests/` tam paket 964 geçti, 4 xfailed.
+* **Strateji Testi (Planlama sekmesi 4):** Periyodik rebalance (eşit ağırlık veya geçmiş verilerle her dengeleme gününde hesaplanan Markowitz maksimum Sharpe) ve stop-loss/take-profit backtest'i, "al ve tut" taban çizgisiyle karşılaştırılır (`StrategyBacktestService`, `StrategyBacktestController`, `PlanningStrategyTab.qml`). Günlük kapanış fiyatı, kesirli lot, sıfır nakit getirisi varsayılır.
+* **Nakit temettü:** Hisse Detay > Temettü; nakde girer ve TWR getirisi sayılır, dış sermaye girişi değildir (`CashMovementType.DIVIDEND`, `cash_movements.stock_id`).
+* **Ağ yeniden denemesi:** `src/infrastructure/retry.py` (geçici hatalarda üstel geri çekilme; yfinance, EVDS, KAP, İş Yatırım, benchmark kazıyıcısı).
+* **SQLite BIGINT id düzeltmesi:** `id` vermeden eklenen kayıtlar (işlem, nakit hareketi vb.) önceden gerçek veritabanında NOT NULL hatası veriyordu; `orm_models.py` `before_insert` dinleyicisi `max(id)+1` atar.
+* **Güncel test durumu:** `pytest tests/` tam paket yeşil (bu bölümün yazıldığı sırada 1080+ test).
 
 ---
 
