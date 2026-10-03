@@ -34,8 +34,18 @@ class SQLAlchemyEngineProvider:
                     "WHERE upper(ticker) LIKE '%.IS' AND NOT EXISTS ("
                     "SELECT 1 FROM stocks s2 WHERE s2.ticker = substr(stocks.ticker, 1, length(stocks.ticker) - 3))"
                 )
+            self._add_missing_columns()
         except Exception as exc:
             logger.warning("Tablo şemaları oluşturulurken hata veya uyarı: %s", exc)
+
+    def _add_missing_columns(self) -> None:
+        """`create_all` mevcut tabloya sütun eklemez; sonradan eklenen boş (nullable) sütunlar burada tamamlanır (idempotent)."""
+        with self._engine.begin() as conn:
+            columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(cash_movements)")}
+            if columns and "stock_id" not in columns:
+                conn.exec_driver_sql(
+                    "ALTER TABLE cash_movements ADD COLUMN stock_id BIGINT REFERENCES stocks(id) ON DELETE SET NULL"
+                )
 
     def _create_engine(self):
         return self._create_sqlite_engine(self._config)

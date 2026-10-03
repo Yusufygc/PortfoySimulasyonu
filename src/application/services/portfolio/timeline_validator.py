@@ -45,6 +45,20 @@ class PortfolioTimelineValidator:
                 )
 
     @classmethod
+    def validate_cash_removal(
+        cls,
+        trades: list[Trade],
+        cash_movements: list[tuple[date, dt_time, int, int, object, Decimal]],
+        removed_id: int,
+    ) -> None:
+        """Bir nakit girişi (ör. temettü) silinirse sonraki alım/çekimlerin yetersiz nakde düşüp düşmediğini denetler."""
+        baseline = {marker for marker, _reason in cls._timeline_violations(trades, cash_movements)}
+        remaining = [event for event in cash_movements if event[3] != removed_id]
+        for marker, _reason in cls._timeline_violations(trades, remaining):
+            if marker not in baseline:
+                raise ValueError("Bu kayıt silinirse sonraki alım veya nakit çekimi için nakit yetersiz kalır.")
+
+    @classmethod
     def _timeline_violations(
         cls,
         trades: list[Trade],
@@ -90,7 +104,7 @@ class PortfolioTimelineValidator:
 
     @classmethod
     def _apply_event(cls, ctx: _EventCtx, cash, positions, violations) -> Decimal:
-        if ctx.event_type == CashMovementType.DEPOSIT:
+        if ctx.event_type in (CashMovementType.DEPOSIT, CashMovementType.DIVIDEND):
             return cash + ctx.payload
         if ctx.event_type == CashMovementType.WITHDRAW:
             return cls._apply_withdraw(ctx.event_id, ctx.payload, ctx.marker, cash, violations)

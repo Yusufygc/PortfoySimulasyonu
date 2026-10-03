@@ -25,9 +25,10 @@ def _trade_time_key(item):
 def _apply_cash_movements(cash_movements, current_cash: Decimal) -> tuple:
     net_flow = Decimal("0")
     for cm in sorted(cash_movements, key=_movement_time_key):
-        if cm.type == CashMovementType.DEPOSIT:
+        if cm.type.adds_cash:
             current_cash += cm.amount
-            net_flow += cm.amount
+            if cm.type.is_external_flow:  # temettü getiridir, dış sermaye akışı değildir
+                net_flow += cm.amount
         elif cm.type == CashMovementType.WITHDRAW:
             current_cash -= cm.amount
             net_flow -= cm.amount
@@ -296,7 +297,7 @@ class PortfolioSeriesBuilder:
     ) -> Decimal:
         cash = Decimal("0")
         for cm in cash_before:
-            if cm.type == CashMovementType.DEPOSIT:
+            if cm.type.adds_cash:
                 cash += cm.amount
             elif cm.type == CashMovementType.WITHDRAW:
                 cash -= cm.amount

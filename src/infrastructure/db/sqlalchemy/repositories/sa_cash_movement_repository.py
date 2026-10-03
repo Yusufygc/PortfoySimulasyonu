@@ -28,6 +28,7 @@ class SQLAlchemyCashMovementRepository(ICashMovementRepository):
             amount=amount,
             notes=orm.notes,
             created_at=orm.created_at,
+            stock_id=orm.stock_id,
         )
 
     @staticmethod
@@ -39,6 +40,7 @@ class SQLAlchemyCashMovementRepository(ICashMovementRepository):
             type=domain.type.value,
             amount=domain.amount,
             notes=domain.notes,
+            stock_id=domain.stock_id,
         )
 
     def get_all_movements(self) -> List[CashMovement]:
@@ -83,6 +85,26 @@ class SQLAlchemyCashMovementRepository(ICashMovementRepository):
             return
         with self._provider.get_session() as session:
             session.add_all([self._to_orm(movement) for movement in movement_list])
+            commit_or_rollback(session)
+
+    def get_movements_by_type(self, movement_type: CashMovementType, stock_id: Optional[int] = None) -> List[CashMovement]:
+        with self._provider.get_session() as session:
+            query = session.query(ORMCashMovement).filter(ORMCashMovement.type == movement_type.value)
+            if stock_id is not None:
+                query = query.filter(ORMCashMovement.stock_id == stock_id)
+            rows = query.order_by(
+                ORMCashMovement.movement_date, ORMCashMovement.movement_time, ORMCashMovement.id
+            ).all()
+            return [self._to_domain(row) for row in rows]
+
+    def get_movement(self, movement_id: int) -> Optional[CashMovement]:
+        with self._provider.get_session() as session:
+            row = session.get(ORMCashMovement, movement_id)
+            return self._to_domain(row) if row is not None else None
+
+    def delete_movement(self, movement_id: int) -> None:
+        with self._provider.get_session() as session:
+            session.query(ORMCashMovement).filter(ORMCashMovement.id == movement_id).delete()
             commit_or_rollback(session)
 
     def delete_all_movements(self) -> None:

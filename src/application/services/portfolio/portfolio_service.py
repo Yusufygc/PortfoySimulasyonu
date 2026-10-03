@@ -55,13 +55,21 @@ class PortfolioService:
     def get_cash_balance(self, as_of: date | tuple[date, dt_time | None] | None = None) -> Decimal:
         balance = Decimal("0")
         for _event_date, _event_time, _event_order, _event_id, event_type, amount in self._cash_events_until(as_of):
-            if event_type in (CashMovementType.DEPOSIT, TradeSide.SELL):
+            if event_type in (CashMovementType.DEPOSIT, CashMovementType.DIVIDEND, TradeSide.SELL):
                 balance += amount
             else:
                 balance -= amount
                 if balance < 0:
                     balance = Decimal("0")
         return balance
+
+    def validate_cash_removal(self, movement_id: int) -> None:
+        """Nakit girişini silmek sonraki işlemleri geçersiz kılıyorsa ValueError fırlatır."""
+        PortfolioTimelineValidator.validate_cash_removal(
+            trades=self.get_valid_trades(),
+            cash_movements=self._cash_movement_events_until(),
+            removed_id=movement_id,
+        )
 
     def validate_trade(self, trade: Trade) -> None:
         if trade.quantity <= 0:
@@ -159,7 +167,7 @@ class PortfolioService:
 
         events: list[tuple[date, dt_time, int, int, object, Decimal]] = []
         for movement in movements:
-            event_order = 0 if movement.type == CashMovementType.DEPOSIT else 30
+            event_order = 0 if movement.type.adds_cash else 30
             events.append(
                 (
                     movement.movement_date,

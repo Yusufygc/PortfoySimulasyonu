@@ -1,6 +1,7 @@
 # src/infrastructure/db/sqlalchemy/orm_models.py
 
 from sqlalchemy import BigInteger, Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
+from sqlalchemy import event, select
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 import enum
@@ -14,6 +15,7 @@ class TradeSideEnum(str, enum.Enum):
 class CashMovementTypeEnum(str, enum.Enum):
     DEPOSIT = "DEPOSIT"
     WITHDRAW = "WITHDRAW"
+    DIVIDEND = "DIVIDEND"
 
 class CrossTypeEnum(str, enum.Enum):
     GOLDEN = "GOLDEN"
@@ -71,6 +73,8 @@ class ORMCashMovement(Base):
     amount = Column(Numeric(18, 4), nullable=False)
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+    # Yalnızca temettü hareketlerinde dolu (hangi hisseden geldiği)
+    stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="SET NULL"), nullable=True)
 
     __table_args__ = (
         Index("idx_cash_movements_date", "movement_date", "movement_time"),
@@ -466,4 +470,23 @@ class ORMKapShareholderRow(Base):
     )
 
     snapshot = relationship("ORMKapShareholderSnapshot", back_populates="rows")
+
+
+@event.listens_for(Base, "before_insert", propagate=True)
+def _assign_missing_bigint_id(mapper, connection, target) -> None:
+    """SQLite'ta `BIGINT` birincil anahtar otomatik artmaz (yalnızca `INTEGER PRIMARY KEY` rowid takma adıdır).
+
+    `id` verilmeden eklenen kayıtlara `max(id) + 1` atanır. Aynı flush içindeki kayıtlar için sayaç bağlantıda tutulur.
+    Kimliği repository'de elle atayan kodlar etkilenmez (`id` dolu).
+    """
+    table = mapper.local_table
+    key = list(table.primary_key.columns)
+    if len(key) != 1 or key[0].name != "id" or not isinstance(key[0].type, BigInteger):
+        return
+    if getattr(target, "id", None) is not None:
+        return
+    assigned = connection.info.setdefault("assigned_bigint_ids", {})
+    current_max = connection.execute(select(func.coalesce(func.max(key[0]), 0))).scalar() or 0
+    target.id = max(int(current_max), assigned.get(table.name, 0)) + 1
+    assigned[table.name] = target.id
 

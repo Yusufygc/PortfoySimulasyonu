@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] düzelt | SQLite BIGINT Birincil Anahtar Otomatik Atama
+
+- **Hata:** SQLite'ta `BIGINT` birincil anahtar rowid takma adı olmadığı için otomatik artmaz. `id` vermeden kayıt ekleyen repository'ler (`insert_trade`, `insert_movement`, model portföy, bütçe vb.) gerçek veritabanında `NOT NULL constraint failed: ...id` ile başarısız oluyordu; yalnızca `id`'yi elle atayan repository'ler (fiyat, hisse, izleme listesi) çalışıyordu. Mock'lu testler bunu yakalamıyordu.
+- **Düzeltme:** `orm_models.py` içine `Base` için `before_insert` dinleyicisi eklendi; tek `BIGINT id` birincil anahtarlı tabloda `id` boşsa `max(id)+1` (aynı flush içinde sayaç) atanır. Elle `id` verenler etkilenmez.
+- Testler: `tests/infrastructure/db/test_cash_movement_dividend_repository.py` (gerçek geçici SQLite). Wiki: `data_architecture.md` kural 5.
+
+---
 ## [2026-10-03] ekle | ADX ve Supertrend Göstergeleri, İki Yeni Tarayıcı Stratejisi
 
 - **Göstergeler:** `indicators.py` içine `adx` (Wilder; ADX, +DI, -DI) ve `supertrend` (çizgi ve yön) eklendi.

@@ -47,7 +47,7 @@ grafik, Hisse Detay son bar, DCA (birincil kaynak), Markowitz optimizasyonu, Aya
    (BIGINT birincil anahtar otomatik artmadığı için eski köprü sessizce `NOT NULL constraint failed` ile başarısız oluyordu).
 4. `MarketDataSyncService.reconcile_sqlite_from_duckdb` her senkronda DuckDB'de olup SQLite'ta olmayan **yeni** barları
    kullanıcı verisine bağlı hisseler için SQLite'a taşır; mevcut (düzeltilmiş) geçmiş barların üzerine asla yazmaz.
-5. SQLite BIGINT birincil anahtarlarında yeni satıra `id` elle verilir (`max(id)+1`).
+5. SQLite BIGINT birincil anahtarı otomatik artmaz. `orm_models.py` içindeki `before_insert` dinleyicisi `id` verilmeden eklenen kayıtlara `max(id)+1` atar (işlem, nakit hareketi, model portföy, bütçe vb.). Kimliği repository'de elle atayanlar etkilenmez.
 6. **DuckDB'deki ham barlar asla değiştirilmez.** Düzeltme `market_corporate_actions` faktörleriyle okuma anında uygulanır
    (bkz. [market_corporate_actions.md](market_corporate_actions.md)).
 7. **Dış ağ çağrıları `src/infrastructure/retry.py::retry_call` ile yapılır.** Geçici hatalar (bağlantı/zaman aşımı, HTTP 408/429/5xx,
