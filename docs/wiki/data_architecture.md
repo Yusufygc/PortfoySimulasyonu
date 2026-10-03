@@ -50,6 +50,11 @@ grafik, Hisse Detay son bar, DCA (birincil kaynak), Markowitz optimizasyonu, Aya
 5. SQLite BIGINT birincil anahtarlarında yeni satıra `id` elle verilir (`max(id)+1`).
 6. **DuckDB'deki ham barlar asla değiştirilmez.** Düzeltme `market_corporate_actions` faktörleriyle okuma anında uygulanır
    (bkz. [market_corporate_actions.md](market_corporate_actions.md)).
+7. **Dış ağ çağrıları `src/infrastructure/retry.py::retry_call` ile yapılır.** Geçici hatalar (bağlantı/zaman aşımı, HTTP 408/429/5xx,
+   yfinance hız sınırı) üstel geri çekilmeyle (1 sn, 2 sn...) en çok 3 kez denenir; kalıcı hatalar (4xx, ayrıştırma) denenmez.
+   Kullanan istemciler: yfinance indirme ve optimizasyon verisi, EVDS, KAP (kamuya açık kaynak ve ortaklık), İş Yatırım, ölçüt
+   (benchmark) kazıyıcısı ve `BistBulkDownloader`. Tek hisse anlık fiyat sorguları (`YFinancePriceLookupProvider`, değerleme)
+   arayüzü bekletmemek için bilerek yeniden denenmez. Testlerde bekleme `tests/conftest.py` ile kapatılır.
 
 ## Bilinen sınırlar
 

@@ -11,7 +11,6 @@ Mimari:
 from __future__ import annotations
 
 import logging
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +22,7 @@ import requests
 import yfinance as yf
 
 from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
+from src.infrastructure.retry import retry_call
 
 logger = logging.getLogger(__name__)
 
@@ -120,15 +120,18 @@ class BistBulkDownloader:
         """Tek bir hissenin tüm geçmişini (period='max') çeker."""
         clean = ticker.replace(".IS", "").strip().upper()
         yf_symbol = f"{clean}.IS"
-        hist = None
-        for attempt in range(_DOWNLOAD_ATTEMPTS):
-            try:
-                hist = yf.Ticker(yf_symbol).history(period="max", auto_adjust=False)
-                break
-            except Exception as exc:
-                logger.warning("%s indirme hatası (deneme %d/%d): %s", clean, attempt + 1, _DOWNLOAD_ATTEMPTS, exc)
-                if attempt + 1 < _DOWNLOAD_ATTEMPTS:
-                    time.sleep(_RETRY_BACKOFF_SECONDS * (attempt + 1))
+        try:
+            # yfinance bu çağrıda çoğu hatayı genel istisna olarak döndürür; her hata yeniden denenir.
+            hist = retry_call(
+                lambda: yf.Ticker(yf_symbol).history(period="max", auto_adjust=False),
+                attempts=_DOWNLOAD_ATTEMPTS,
+                base_delay=_RETRY_BACKOFF_SECONDS,
+                is_retryable=lambda _exc: True,
+                label=f"{clean} indirme",
+            )
+        except Exception as exc:
+            logger.warning("%s indirilemedi: %s", clean, exc)
+            return None
         if hist is None or hist.empty:
             return None
         return self.normalize_history_frame(clean, hist)

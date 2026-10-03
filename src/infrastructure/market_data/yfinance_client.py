@@ -16,6 +16,7 @@ except ImportError:
 
 from src.domain.exceptions import MarketDataUnavailableError
 from src.domain.ticker import to_yf_symbol
+from src.infrastructure.retry import retry_call
 from ._errors import MARKET_DATA_FALLBACK_ERRORS
 from .yfinance_price_client import YFinancePriceClient
 
@@ -44,7 +45,9 @@ class YFinanceMarketDataClient(IMarketDataClient):
 
     def _download_dataframe(self, tickers, start: date, end: date):
         from .yfinance_lock import yfinance_lock
-        try:
+
+        def download():
+            # Kilit denemeler arasında bırakılır; bekleme sırasında diğer yfinance çağrıları engellenmez.
             with yfinance_lock:
                 return yf.download(
                     tickers=tickers,
@@ -55,6 +58,9 @@ class YFinanceMarketDataClient(IMarketDataClient):
                     auto_adjust=True,
                     timeout=self._timeout,
                 )
+
+        try:
+            return retry_call(download, label="YFinance indirme")
         except MARKET_DATA_FALLBACK_ERRORS as e:
             raise MarketDataUnavailableError(f"YFinance indirme hatasi: {e}") from e
 

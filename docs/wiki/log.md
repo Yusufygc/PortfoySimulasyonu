@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] ekle | Ağ Çağrılarına Ortak Yeniden Deneme (Retry/Backoff)
+
+- **`src/infrastructure/retry.py`:** `retry_call` (üstel geri çekilme, varsayılan 3 deneme) ve `is_transient_error` (URLError, zaman aşımı, bağlantı hatası, HTTP 408/429/5xx, `YFRateLimitError`). Kalıcı hatalar ilk denemede çağırana döner.
+- **Bağlanan istemciler:** `YFinanceMarketDataClient`, yfinance optimizasyon sağlayıcısı, `EvdsClient`, KAP kamuya açık kaynak ve ortaklık sağlayıcıları, İş Yatırım toplu çekimi, ölçüt kazıyıcısı. `BistBulkDownloader` kendi döngüsü yerine ortak yardımcıyı kullanır (davranış aynı: her hata 2 sn, 4 sn bekleyerek denenir).
+- yfinance kilidi denemeler arasında bırakılır. Tek hisse anlık fiyat sorguları arayüzü bekletmemek için bilerek denenmez.
+- Testler: `tests/infrastructure/test_retry.py`, `tests/infrastructure/market_data/test_network_retry_integration.py`; `tests/conftest.py` testlerde beklemeyi kapatır. Wiki: `data_architecture.md` kural 7.
+
+---
 ## [2026-10-03] belge | Dönüşüm Belgeleri Güncel Duruma Çekildi
 
 - **`QML_TRANSFORMATION_HANDOFF.md`:** Test sayısı (964 geçti, 4 xfailed), veritabanı boyutları, denetleyici listesi ve Faz 9-11 durumu düzeltildi; "Faz 11 Sonrası Eklemeler" bölümü (tek piyasa evreni, sermaye artırımı düzeltmesi, eski arayüzün kaldırılması, koruma testleri, ölü kod temizliği) eklendi.

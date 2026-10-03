@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Optional
 
 from src.domain.models.shareholder import ShareholderRow, ShareholderSnapshot
+from src.infrastructure.retry import retry_call
 from src.domain.ports.services.i_shareholder_provider import (
     IShareholderProvider,
     ShareholderProviderUnavailable,
@@ -124,8 +125,12 @@ class KapShareholderProvider(IShareholderProvider):
 
     def _http_get(self, url: str, timeout: int = 20) -> str:
         req = urllib.request.Request(url, headers=_HEADERS)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read().decode("utf-8", errors="ignore")
+
+        def fetch() -> str:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read().decode("utf-8", errors="ignore")
+
+        return retry_call(fetch, label="KAP ortaklık")
 
     @staticmethod
     def _cache_fresh(path: Path, ttl_hours: int) -> bool:

@@ -13,6 +13,7 @@ import pandas as pd
 
 from config.settings_loader import load_market_settings
 from src.domain.exceptions import MarketDataUnavailableError
+from src.infrastructure.retry import retry_call
 from ._errors import MARKET_DATA_FALLBACK_ERRORS
 from .evds_client import EvdsClient
 
@@ -55,9 +56,12 @@ class ScrapedBenchmarkProvider:
                 "Accept-Language": "en-US,en;q=0.9",
             },
         )
-        try:
+        def fetch() -> str:
             with urlopen(request, timeout=self._timeout) as response:
                 return response.read().decode("utf-8")
+
+        try:
+            return retry_call(fetch, label="Benchmark kaynağı")
         except urllib.error.URLError as e:
             raise MarketDataUnavailableError(f"Veri kaynagina erisilemiyor: {url}") from e
 

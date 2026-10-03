@@ -12,6 +12,7 @@ from typing import Any, Callable, Iterable, Sequence
 
 from src.domain.models.corporate_action import ActionType
 from src.domain.ticker import clean_ticker
+from src.infrastructure.retry import retry_call
 from src.domain.models.corporate_action_candidate import CandidateDiscoveryData, CorporateActionCandidate
 from src.domain.ports.services.i_corporate_action_provider import (
     CorporateActionProviderUnavailable,
@@ -165,9 +166,12 @@ def _fetch_url_text(url: str, timeout: int = 15) -> str:
         headers={"User-Agent": "PortfoySim/1.0"},
         method="GET",
     )
-    try:
+    def fetch() -> str:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.read().decode("utf-8", errors="replace")
+
+    try:
+        return retry_call(fetch, label="KAP kamuya açık kaynak")
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, socket.timeout, OSError) as exc:
         raise CorporateActionProviderUnavailable(f"KAP public source unavailable: {url} ({exc})") from exc
 

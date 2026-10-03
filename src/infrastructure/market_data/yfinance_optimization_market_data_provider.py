@@ -6,6 +6,7 @@ import pandas as pd
 import yfinance as yf
 
 from src.domain.ticker import to_yf_symbol
+from src.infrastructure.retry import retry_call
 from src.infrastructure.market_data._errors import MARKET_DATA_FALLBACK_ERRORS
 
 
@@ -15,9 +16,9 @@ class YFinanceOptimizationMarketDataProvider:
         # Kanonik ticker uzantısızdır; yfinance `.IS` ister. Sonuç sütunları çağıranın ticker'larıyla döner.
         yf_symbols = [to_yf_symbol(t) for t in tickers]
         back_map = dict(zip(yf_symbols, tickers))
-        try:
+        def download():
             with yfinance_lock:
-                df = yf.download(
+                return yf.download(
                     tickers=yf_symbols,
                     period=f"{days}d",
                     interval="1d",
@@ -25,6 +26,9 @@ class YFinanceOptimizationMarketDataProvider:
                     auto_adjust=True,
                     timeout=15,
                 )
+
+        try:
+            df = retry_call(download, label="YFinance optimizasyon verisi")
         except MARKET_DATA_FALLBACK_ERRORS as exc:
             raise ValueError(f"Fiyat verisi cekilemedi: {exc}") from exc
 

@@ -62,6 +62,14 @@ def _isolate_env_file(tmp_path, monkeypatch):
     monkeypatch.setattr(settings_loader, "_env_write_path", lambda: tmp_path / ".env")
 
 
+@pytest.fixture(autouse=True)
+def _no_retry_sleep(monkeypatch):
+    """Yeniden deneme bekleme süreleri testleri yavaşlatmasın."""
+    import src.infrastructure.retry as retry
+
+    monkeypatch.setattr(retry, "_sleep", lambda _seconds: None)
+
+
 def pytest_collection_modifyitems(config, items):
     for item in items:
         path = Path(str(item.fspath)).as_posix()

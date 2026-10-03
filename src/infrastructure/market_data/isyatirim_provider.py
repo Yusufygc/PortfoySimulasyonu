@@ -24,6 +24,7 @@ import requests
 from src.domain.ports.services.i_financial_statement_provider import (
     FinancialStatementProviderUnavailable,
 )
+from src.infrastructure.retry import raise_for_transient_status, retry_call
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +171,12 @@ def _fetch_batch(
         params[f"year{i}"]   = y
         params[f"period{i}"] = p
     try:
-        r = session.get(_JSON_URL, params=params, headers=_HEADERS, timeout=20)
+        def get():
+            response = session.get(_JSON_URL, params=params, headers=_HEADERS, timeout=20)
+            raise_for_transient_status(response)
+            return response
+
+        r = retry_call(get, label=f"İş Yatırım {ticker}")
         j = r.json()
         if not j.get("ok"):
             return None
