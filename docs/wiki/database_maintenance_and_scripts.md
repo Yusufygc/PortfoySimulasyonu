@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
 
-Bu belge, `src/application/services/database/db_integrity_service.py` ve projedeki `scripts/` klasörünün operasyonel işlevlerini belgeler. 
+Bu belge, `src/application/services/database/database_maintenance_service.py` (Ayarlar > Sistem: istatistik, `PRAGMA integrity_check`, yedek) ve projedeki `scripts/` klasörünün operasyonel işlevlerini belgeler. Eski `db_integrity_service.py` (`DatabaseIntegrityService`) hiçbir arayüzde, betikte veya testte kullanılmadığı için 2026-10-03'te kaldırıldı. 
 
 Bir uygulamanın zamanla kirlenen verilerini (bozuk trade'ler, yanlış girilmiş nakit bakiye) onarmak ve sistemi kararlı tutmak için bakım (maintenance) scriptlerine ihtiyaç vardır.
 
@@ -34,4 +34,4 @@ Geliştiricilerin ve kullanıcıların sistemi güvenle test edebilmeleri için 
 3. **Çalıştırma:** `PORTFOYSIM_ENV` ortam değişkeni `test` yapılarak uygulama başlatılır (`$env:PORTFOYSIM_ENV="test"; python app.py`).
 4. **UI Korumaları:** Test ortamında çalışıldığında pencere başlığında ve yan menüde belirgin görsel uyarılar gösterilerek canlı verinin yanlışlıkla değiştirilmesi engellenir.
 
-Uygulamanın uzun süreli sağlığı için, büyük versiyon atlamalarında `db_integrity_service` raporu incelenmeli ve gerekirse bakım scriptleri ile temizlik yapılmalıdır.
+Uygulamanın uzun süreli sağlığı için, büyük versiyon atlamalarında Ayarlar'daki veritabanı bütünlük kontrolü (`DatabaseMaintenanceService.check_integrity`) çalıştırılmalı ve gerekirse bakım scriptleri ile temizlik yapılmalıdır.

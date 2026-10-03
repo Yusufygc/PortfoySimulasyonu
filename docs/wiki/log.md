@@ -13,6 +13,7 @@ Eski arayüz kaldırıldıktan sonra `vulture` + dize/QML çapraz kontrolüyle y
 - **Silinen metotlar:** application/domain katmanında çağrılmayan ~15 metot ve kullanılmayan importlar.
 - **Denetleyici üyeleri:** QML'den çağrılmayan üyeler silindi (Dashboard/model portföy `exportToExcel*` tarihsel rapor diyaloğu ile değiştirilmişti, `deleteTrade`, Stock 360 ve Hisse Detay kullanılmayan alanları vb.); artık dinleyicisiz 3 sinyal kaldırıldı. Kullanılabilir olanlar arayüze bağlandı: Ayarlar > veritabanı kartlarında SQLite/DuckDB dosya yolları, Piyasa Düzeltmeleri sekmesinde "listelenen / toplam olay" sayısı.
 - **Strings.qml:** kullanılmayan 77 anahtar silindi; `test_strings_catalog.py` artık kullanılmayan anahtarı da yakalar.
+- **Doğrulama (denetim):** silinenlerin hiçbirinin eski arayüzde, betikte, testte veya QML'de çağrısı yoktu (`git grep` ile önceki commit'te doğrulandı); yalnızca `DatabaseIntegrityService` ve TradingView istemcisi dokümanlarda anılıyordu, ilgili wiki sayfaları güncellendi. Tüm sayfalar (10) açılarak QML çalışma zamanı uyarısı olmadığı doğrulandı.
 - Bilinçli olarak bırakılanlar: repository port/implementasyon çiftleri (CRUD tamlığı), `IInflationDataProvider`/`IMarketValuationProvider` protokolleri (modülleri başka istisna sınıfları için kullanılıyor), openpyxl/DTO alanı yanlış pozitifleri.
 
 ---

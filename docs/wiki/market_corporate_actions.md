@@ -41,7 +41,7 @@ ham veriye karşı doğrulanır; beklenen kırılmanın en az yarısı yoksa ola
 
 ## Kaynaklar
 
-- **Ham bar:** yfinance (`auto_adjust=False`). TradingView (`tvdatafeed`) yalnızca ikincil doğrulama adayıdır: split-düzeltmeli ama temettü-düzeltmesiz, yalnızca kapanış, anonim ve kırılgan; 624 hissede denenmedi.
+- **Ham bar:** yfinance (`auto_adjust=False`). TradingView (`tvdatafeed`) yalnızca ikincil doğrulama adayıydı (istemci ve bağımlılık kullanılmadığı için 2026-10-03'te kaldırıldı; git geçmişinden geri alınabilir): split-düzeltmeli ama temettü-düzeltmesiz, yalnızca kapanış, anonim ve kırılgan; 624 hissede denenmedi.
 - **Olay kaynağı:** (1) veri güdümlü tarama, (2) portföy kurumsal aksiyon akışı (`CorporateActionPriceAdjustmentService` uygulanan olayı DuckDB'ye de kaydeder; etkin gün `locate_effective_date` ile ham veriden bulunur), (3) SQLite geçmişinden göç (aşağıda), (4) KAP/MKK adayı onayı.
 
 ## SQLite göçü (2026-10-03)
