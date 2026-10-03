@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] ekle | ADX ve Supertrend Göstergeleri, İki Yeni Tarayıcı Stratejisi
+
+- **Göstergeler:** `indicators.py` içine `adx` (Wilder; ADX, +DI, -DI) ve `supertrend` (çizgi ve yön) eklendi.
+- **Tarayıcı:** `IndicatorSnapshot` ADX/DI ve Supertrend yönü (son ve önceki bar) alanlarını kazandı; `SCREENER_FILTERS` 8'den 10'a çıktı: "Güçlü Yükseliş Trendi (ADX > 25, +DI > -DI)" ve "Supertrend Al Sinyali (Trend Dönüşü)". Açılır liste filtreleri `SCREENER_FILTERS`'tan okuduğundan arayüz değişikliği gerekmedi.
+- Gerçek DuckDB kopyasında tam BIST taraması ~3,6 sn; ADX filtresi 18, Supertrend al sinyali 6 hisse yakaladı.
+- Testler: `test_indicators_trend.py`, `test_screener_trend_filters.py`. Wiki: `service_analysis.md`.
+
+---
 ## [2026-10-03] ekle | Ağ Çağrılarına Ortak Yeniden Deneme (Retry/Backoff)
 
 - **`src/infrastructure/retry.py`:** `retry_call` (üstel geri çekilme, varsayılan 3 deneme) ve `is_transient_error` (URLError, zaman aşımı, bağlantı hatası, HTTP 408/429/5xx, `YFRateLimitError`). Kalıcı hatalar ilk denemede çağırana döner.

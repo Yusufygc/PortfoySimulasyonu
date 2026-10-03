@@ -52,3 +52,10 @@ graph LR
 - Tarihsel portfoy serisi kapatilmis islemleri silmez; cash replay icin tum ilgili trade'ler korunur, fiyat uyarilari ise yalniz analiz araliginda degerleme gereken hisseler icin uretilir.
 - Ana portfoy `Toplam Portfoy Degeri` nakit bakiye + acik pozisyon piyasa degeri olarak hesaplanir.
 - Silinmis model portfoy secimi stale kalirsa analiz kaynagi dashboard'a normalize edilir ve karsilastirma serisi olarak tekrar eklenmez.
+
+## Teknik Göstergeler ve Hisse Tarayıcı (2026-10-03)
+
+- **Göstergeler** (`src/application/services/analysis/technical/indicators.py`, saf NumPy/Pandas): SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic, CCI, VWAP, OBV, **ADX** (Wilder, `adx` -> ADX, +DI, -DI) ve **Supertrend** (`supertrend` -> çizgi, yön +1/-1; ATR 10, çarpan 3).
+- **Tarayıcı** (`screener.py`, `ScreenerService`): `IndicatorSnapshot` son bar değerlerini taşır; `SCREENER_FILTERS` 10 hazır filtre içerir. Yeni filtreler: `adx_strong_uptrend` (ADX > 25 ve +DI > -DI) ve `supertrend_buy_signal` (yön son barda -1'den +1'e döndü).
+- ADX ve Supertrend High/Low serisi ister; yalnızca kapanışı olan hisselerde snapshot alanları `None` kalır ve bu filtreler eşleşmez. DuckDB'den gelen tüm BIST taraması OHLC içerir (gerçek veride 624 hisse ~3,6 sn).
+- Kapsam dışı: Ichimoku ve Keltner kanalları (plan §9.13).

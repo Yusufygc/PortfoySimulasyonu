@@ -41,7 +41,7 @@ Bu projenin temel amacı; Borsa İstanbul (BIST) hisse senetleri için geliştir
 1. **Eski ve Hantal Arayüzden Kurtarmak:** Eskiyen PyQt5 QWidgets katmanından tamamen arındırarak, **donanım hızlandırmalı (Hardware Accelerated - OpenGL/DirectX), akıcı 60 FPS animasyonlu, koyu fintech temalı PySide6 + Qt Quick (QML)** arayüzüne taşımak.
 2. **Sıfır Kurulumlu Taşınabilir Mimari:** Ağır harici servis ve MySQL kurulum bağımlılığını sonlandırarak, tamamen yerel dosya tabanlı, taşınabilir ve yüksek performanslı **SQLite + DuckDB hibrit mimarisine** oturtmak.
 3. **Clean Architecture Disiplini:** Katmanlar arası sınırları koruyarak (`Domain` ➔ `Application` ➔ `Infrastructure` ➔ `UI_QML`), iş mantığını ve matematiksel kesinliği UI kodundan izole etmek. Parasal hesaplamalarda asla kayan nokta (`float`) hatasına izin vermemek (`Decimal` aritmetiği).
-4. **Entegre Yatırım Terminali Deneyimi:** Canlı portföy takibi, interaktif TradingView grafikleri, çoklu model portföyler, 18 modüllü Hisse 360 temel analiz, normalize karşılaştırma, 8 stratejili algoritmik hisse tarayıcısı, bütçe & DCA simülatörü, Markowitz portföy optimizasyonu ve Gemini AI karar destek asistanını tek bir modern masaüstü terminalinde birleştirmek.
+4. **Entegre Yatırım Terminali Deneyimi:** Canlı portföy takibi, interaktif TradingView grafikleri, çoklu model portföyler, 18 modüllü Hisse 360 temel analiz, normalize karşılaştırma, 10 stratejili algoritmik hisse tarayıcısı (ADX ve Supertrend dahil), bütçe & DCA simülatörü, Markowitz portföy optimizasyonu ve Gemini AI karar destek asistanını tek bir modern masaüstü terminalinde birleştirmek.
 
 ---
 
@@ -143,7 +143,7 @@ flowchart LR
   - Risk Metrikleri Tablosu (Sharpe, Sortino, Maksimum Drawdown, Beta, Alpha).
   - **Getiri Katkı Haritası (Treemap):** QML `Canvas` üzerinde ağırlık bazlı kutular ve kâr/zarara göre degrade renk dolguları ile ana portföy ve model portföyler için görsel getiri haritası (`commit: 997d238`, `d63b7ec`, `efda489`).
 * **`ScreenerController` (`src/ui_qml/controllers/screener_controller.py`) & `ScreenerView.qml`:**
-  - **8 Popüler BIST Stratejisi:** RSI Aşırı Satım (<30), RSI Aşırı Alım (>70), Golden Cross (SMA50 > SMA200), Death Cross, MACD Boğa Kesişimi, Bollinger Alt Bant Teması, Bollinger Sıkışması (Squeeze), 52 Hafta Zirvesi Kırılımı.
+  - **10 Hazır Strateji (`SCREENER_FILTERS`):** RSI aşırı satım (<35), RSI aşırı satım + EMA200 üzeri, RSI aşırı alım (>65), MACD al kesişimi, MACD kesişimi + hacim patlaması, güçlü hacim artışı, Bollinger alt bant teması, Bollinger üst bant teması, güçlü yükseliş trendi (ADX > 25, +DI > -DI), Supertrend al sinyali. Golden Cross ayrı sekmede taranır.
   - **Thread-Safe Queued Signal Mimarisi (`commit: 80b8c04`):** UI kilitlenmesini ve `QTimer` cross-thread hatasını önleyen güvenli arka plan tarayıcısı.
   - **Çift Tıklama & Hızlı Grafik (`commit: 4d07f50`):** Taranan hisseye çift tıklandığında veya satırdaki "Grafik" butonuna basıldığında hisse kodunu temizleyip TradingView grafiğine yükleyerek Dashboard'a yönlendiren hızlı akış.
 

@@ -148,3 +148,82 @@ def obv(closes: pd.Series, volumes: pd.Series) -> pd.Series:
     if len(direction) > 0:
         direction.iloc[0] = 0.0
     return (direction * volumes).cumsum()
+
+
+def adx(
+    highs: pd.Series,
+    lows: pd.Series,
+    closes: pd.Series,
+    period: int = 14,
+) -> tuple[pd.Series, pd.Series, pd.Series]:
+    """Average Directional Index (Wilder): (adx, plus_di, minus_di).
+
+    ADX trendin yönünü değil gücünü ölçer (>25 güçlü trend); yön +DI/-DI karşılaştırmasından okunur.
+    Wilder smoothing = ewm(alpha=1/period). DI toplamı 0 olan barlarda (hareket yok) DX 0 sayılır.
+    """
+    up_move = highs.diff()
+    down_move = -lows.diff()
+    plus_dm = up_move.where((up_move > down_move) & (up_move > 0), 0.0)
+    minus_dm = down_move.where((down_move > up_move) & (down_move > 0), 0.0)
+
+    prev_close = closes.shift(1)
+    true_range = pd.concat(
+        [highs - lows, (highs - prev_close).abs(), (lows - prev_close).abs()],
+        axis=1,
+    ).max(axis=1)
+
+    def smooth(series: pd.Series) -> pd.Series:
+        return series.ewm(alpha=1.0 / period, adjust=False, min_periods=period).mean()
+
+    smoothed_tr = smooth(true_range)
+    plus_di = 100.0 * smooth(plus_dm) / smoothed_tr
+    minus_di = 100.0 * smooth(minus_dm) / smoothed_tr
+
+    di_sum = plus_di + minus_di
+    dx = (100.0 * (plus_di - minus_di).abs() / di_sum).where(di_sum != 0, 0.0)
+    adx_line = dx.ewm(alpha=1.0 / period, adjust=False, min_periods=period).mean()
+    return adx_line, plus_di, minus_di
+
+
+def supertrend(
+    highs: pd.Series,
+    lows: pd.Series,
+    closes: pd.Series,
+    period: int = 10,
+    multiplier: float = 3.0,
+) -> tuple[pd.Series, pd.Series]:
+    """Supertrend: (çizgi, yön). Yön +1 yükseliş (çizgi fiyatın altında), -1 düşüş (çizgi fiyatın üstünde).
+
+    ATR tabanlı bantlar yalnızca trend lehine daralır; kapanış karşı banda geçince yön değişir.
+    ATR ısınma süresince (ilk `period - 1` bar) çizgi NaN, yön 0 döner.
+    """
+    atr_values = atr(highs, lows, closes, period).to_numpy(dtype=float)
+    mid = ((highs + lows) / 2.0).to_numpy(dtype=float)
+    close = closes.to_numpy(dtype=float)
+    size = len(close)
+
+    line = [float("nan")] * size
+    direction = [0] * size
+    final_upper = float("nan")
+    final_lower = float("nan")
+    current = 0
+    for i in range(size):
+        if atr_values[i] != atr_values[i] or close[i] != close[i]:  # NaN: ısınma veya eksik bar
+            continue
+        basic_upper = mid[i] + multiplier * atr_values[i]
+        basic_lower = mid[i] - multiplier * atr_values[i]
+        if current == 0:
+            final_upper, final_lower, current = basic_upper, basic_lower, 1
+        else:
+            prev_close = close[i - 1]
+            if basic_upper < final_upper or prev_close > final_upper:
+                final_upper = basic_upper
+            if basic_lower > final_lower or prev_close < final_lower:
+                final_lower = basic_lower
+            if current == -1 and close[i] > final_upper:
+                current = 1
+            elif current == 1 and close[i] < final_lower:
+                current = -1
+        direction[i] = current
+        line[i] = final_lower if current == 1 else final_upper
+    return pd.Series(line, index=closes.index), pd.Series(direction, index=closes.index, dtype=int)
