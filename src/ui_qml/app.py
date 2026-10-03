@@ -29,6 +29,7 @@ from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
 from src.ui_qml.controllers.settings_controller import SettingsController
 from src.ui_qml.controllers.stock_detail_controller import StockDetailController
 from src.ui_qml.controllers.corporate_action_controller import CorporateActionController
+from src.ui_qml.controllers.dividend_controller import DividendController
 from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustmentController
 from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
@@ -82,6 +83,7 @@ def run_qml_app(container=None) -> int:
     settings_ctrl = SettingsController(container=container, parent=engine)
     stock_detail_ctrl = StockDetailController(container=container, parent=engine)
     corporate_action_ctrl = CorporateActionController(container=container, parent=engine)
+    dividend_ctrl = DividendController(container=container, parent=engine)
     price_data_ctrl = PriceDataController(container=container, parent=engine)
     startup_jobs_ctrl = StartupJobsController(container=container, parent=engine)
     golden_cross_ctrl = GoldenCrossController(container=container, parent=engine)
@@ -96,7 +98,7 @@ def run_qml_app(container=None) -> int:
     market_sync_ctrl.dataSynced.connect(portfolio_ctrl.refreshData)
     risk_profile_ctrl.profileSaved.connect(optimization_ctrl.reloadRiskProfile)
     # Sermaye artırımı / fiyat güncellemesi / açılış backfill'i sonrası ekranları DB'den yeniden yükle
-    for source in (corporate_action_ctrl.portfolioChanged, price_data_ctrl.pricesUpdated, startup_jobs_ctrl.pricesUpdated,
+    for source in (corporate_action_ctrl.portfolioChanged, dividend_ctrl.portfolioChanged, price_data_ctrl.pricesUpdated, startup_jobs_ctrl.pricesUpdated,
                    golden_cross_ctrl.pricesUpdated, system_ctrl.pricesRefreshed, system_ctrl.systemReset):
         source.connect(dash_ctrl.reloadPortfolio)
         source.connect(portfolio_ctrl.refreshData)
@@ -120,6 +122,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("settingsController", settings_ctrl)
     context.setContextProperty("stockDetailController", stock_detail_ctrl)
     context.setContextProperty("corporateActionController", corporate_action_ctrl)
+    context.setContextProperty("dividendController", dividend_ctrl)
     context.setContextProperty("priceDataController", price_data_ctrl)
     context.setContextProperty("startupJobsController", startup_jobs_ctrl)
     context.setContextProperty("goldenCrossController", golden_cross_ctrl)

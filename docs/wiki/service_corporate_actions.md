@@ -56,3 +56,11 @@ graph TD
 - Backfill ve fiyat sağlığı güncelleme akışları, uygulanmış fiyat düzeltme action'larını dikkate alarak ham market fiyatlarını DB'ye normalize edilmiş yazar.
 - MERKO onarımı için `scripts/merko_bedelsiz_artirimi.py --dry-run` ön kontrol, ardından scriptin normal çalıştırılması kullanılır.
  
+
+## Nakit Temettü Kaydı (2026-10-03)
+
+- **Model:** `CashMovementType.DIVIDEND` (`cash_movements` tablosu, `stock_id` sütunu temettü hisseyi tutar; mevcut veritabanlarında açılışta idempotent `ALTER TABLE` ile eklenir). Temettü `CorporateAction` değildir; lot veya maliyeti değiştirmez.
+- **Nakit ve getiri:** Net tutar nakit bakiyeye girer (`adds_cash`) ancak dış sermaye akışı sayılmaz (`is_external_flow` yanlış): `PortfolioSeriesBuilder` zaman ağırlıklı getiriyi (TWR) temettü kadar yükseltir, aynı tutarda "Nakit Yatır" ise getiri üretmez. Zaman çizelgesi doğrulayıcısı temettüyü yatırma gibi nakit girişi sayar.
+- **Servis:** `CashMovementService.add_dividend / get_dividends / get_total_dividends / delete_dividend`. Kayıt için hissenin o tarihte portföyde pozisyonu olmalı, tarih gelecekte olamaz. Silme, sonraki alım veya çekimi yetersiz nakde düşürüyorsa reddedilir (`PortfolioService.validate_cash_removal`).
+- **Arayüz:** Hisse Detay modalı > "Temettü" (yalnızca ana portföy pozisyonu) -> `DividendDialog.qml` + `DividendController`: net tutar, tarih, not girişi ve geçmiş listesi/silme. Model portföyler için temettü yoktur.
+- **Kapsam dışı:** Brüt/stopaj hesabı ve otomatik temettü tespiti yoktur; tutar kullanıcıdan net olarak alınır. Dashboard "Toplam K/Z" kartı yalnızca pozisyon kâr/zararıdır, temettüyü içermez (getiri grafikleri ve nakit bakiye içerir).

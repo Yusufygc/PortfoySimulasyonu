@@ -264,6 +264,18 @@ Item {
                         onClicked: corporateActionDialog.open(stockDetailController.ticker)
                     }
 
+                    // Nakit temettü kaydı — yalnızca ana portföy pozisyonlarında
+                    ModernButton {
+                        visible: (typeof stockDetailController !== "undefined")
+                                 && !stockDetailController.isModelContext
+                                 && stockDetailController.quantity > 0
+                        text: Strings.dividendBtnOpen
+                        iconName: "coins"
+                        variant: "ghost"
+                        implicitHeight: 34
+                        onClicked: dividendDialog.open(stockDetailController.ticker)
+                    }
+
                     // Excel'e Aktar
                     ModernButton {
                         text: Strings.stockDetailBtnExcel
@@ -1074,6 +1086,13 @@ Item {
             if (typeof stockDetailController !== "undefined") {
                 stockDetailController.refreshData()
             }
+        }
+    }
+
+    DividendDialog {
+        id: dividendDialog
+        onDividendsUpdated: function(message) {
+            localToast.show(message, true)
         }
     }
 

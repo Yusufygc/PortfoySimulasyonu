@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] ekle | Nakit Temettü Kaydı
+
+- **Backend:** `CashMovementType.DIVIDEND`, `cash_movements.stock_id` (açılışta idempotent ALTER; gerçek veritabanı kopyasında doğrulandı), `CashMovementService.add/get/delete_dividend`, `PortfolioService.validate_cash_removal`. Temettü nakit bakiyeye girer ve TWR getirisi olarak sayılır; yatırma gibi dış sermaye akışı değildir.
+- **Arayüz:** Hisse Detay modalına "Temettü" düğmesi (ana portföy, açık pozisyon), `DividendDialog.qml` ve `DividendController` (kayıt, geçmiş, silme). `app.py`'de bağlandı; kayıt/silme sonrası Dashboard ve model portföy ekranları yenilenir.
+- **Doğrulama kuralları:** O tarihte pozisyon olmalı, gelecek tarih yok, silme sonraki nakit akışını bozamaz.
+- Testler: `tests/application/test_dividend_cash_flow.py`, `tests/infrastructure/db/test_cash_movement_dividend_repository.py`, `tests/ui_qml/test_dividend_controller.py`. Wiki: `service_corporate_actions.md`.
+
+---
 ## [2026-10-03] düzelt | SQLite BIGINT Birincil Anahtar Otomatik Atama
 
 - **Hata:** SQLite'ta `BIGINT` birincil anahtar rowid takma adı olmadığı için otomatik artmaz. `id` vermeden kayıt ekleyen repository'ler (`insert_trade`, `insert_movement`, model portföy, bütçe vb.) gerçek veritabanında `NOT NULL constraint failed: ...id` ile başarısız oluyordu; yalnızca `id`'yi elle atayan repository'ler (fiyat, hisse, izleme listesi) çalışıyordu. Mock'lu testler bunu yakalamıyordu.
