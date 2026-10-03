@@ -21,8 +21,6 @@ ALLOWED_LITERALS = {
     ("components/PlanningDcaTab.qml", "THYAO FROTO"),
     ("views/ComparisonView.qml", "TL"),
     ("views/ComparisonView.qml", "USD"),
-    ("views/PlaceholderView.qml", "Sayfa Başlığı"),
-    ("views/PlaceholderView.qml", "Bu modül dönüşüm planının sonraki fazında TradingView / QML bileşenleriyle inşa edilecektir."),
 }
 
 
@@ -44,8 +42,6 @@ ALLOWED_TURKISH_LITERALS = {
     ("views/ComparisonView.qml", "ÖZEL"),                    # dönem etiketi
     ("views/SettingsView.qml", "Başarılı"),                  # API testi sonuç metninde aranan kelime
     ("components/MetricCard.qml", "Metrik Başlığı"),
-    ("views/PlaceholderView.qml", "Sayfa Başlığı"),
-    ("views/PlaceholderView.qml", "Bu modül dönüşüm planının sonraki fazında TradingView / QML bileşenleriyle inşa edilecektir."),
 }
 
 

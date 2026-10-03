@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-03] belge | Dönüşüm Belgeleri Güncel Duruma Çekildi
+
+- **`QML_TRANSFORMATION_HANDOFF.md`:** Test sayısı (964 geçti, 4 xfailed), veritabanı boyutları, denetleyici listesi ve Faz 9-11 durumu düzeltildi; "Faz 11 Sonrası Eklemeler" bölümü (tek piyasa evreni, sermaye artırımı düzeltmesi, eski arayüzün kaldırılması, koruma testleri, ölü kod temizliği) eklendi.
+- **`TRANSFORMATION_PLAN.md`:** Başa tarihsel plan notu eklendi (gerçek arayüz yapısı, WebEngine kararı, eski arayüz silinmesi). §9.11 ve §9.12 çözüldü olarak işaretlendi, Aşama 5 kapatıldı, uygulanmayan maddeler §9.13'te listelendi.
+- **Wiki `index.md`:** Handoff satırı güncellendi.
+- **Silinen:** kullanılmayan `views/PlaceholderView.qml` ve `test_strings_catalog.py` izin listesindeki girdileri.
+
+---
 ## [2026-10-03] sil | Ölü Kod Temizliği
 
 Eski arayüz kaldırıldıktan sonra `vulture` + dize/QML çapraz kontrolüyle yapılan tarama sonucu (AI_Core istemcisine dokunulmadı):

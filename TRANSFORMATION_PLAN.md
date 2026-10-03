@@ -1,5 +1,11 @@
 # Portföy Simülasyonu — Modernizasyon, Mimari Dönüşüm ve Güçlendirme Planı
 
+> **Güncel durum notu (2026-10-03):** Bu belge 2026-09 tarihli **tarihsel plandır**; dönüşüm tamamlanmıştır. Uygulama plandan şu noktalarda ayrışmıştır ve güncel durum için [QML_TRANSFORMATION_HANDOFF.md](QML_TRANSFORMATION_HANDOFF.md) esas alınmalıdır:
+> * **Arayüz:** 8 görünümlü `main.py` + özel `QQuickPaintedItem` grafik yapısı (§7.1, §7.4) yerine `src/ui_qml/app.py` giriş noktası, 10 sayfa (Dashboard, İzleme Listesi, Model Portföyler, Hisse 360, Karşılaştırma, Tarayıcı, Planlama, Optimizasyon, AI Danışman, Ayarlar), TradingView Lightweight Charts ve Plotly (WebEngine) kullanılmaktadır. §9.4'teki "WebEngine kullanılmayacak" kararı fiilen terk edilmiştir. AnalyticsView/SimulationView/CashflowView adları Karşılaştırma ve Planlama sayfalarına karşılık gelir.
+> * **Eski arayüz:** §9.7'deki "paralel çalıştır, parity sonrası sil" stratejisi tamamlanmış, `src/ui` ve `tests/ui` silinmiştir. §6.2.1'deki `ai_page` notu artık geçerli değildir.
+> * **Veri:** Piyasa evreni DuckDB'ye taşınmış, ticker biçimi uzantısız tek tipe indirilmiş, sermaye artırımı düzeltmesi DuckDB'ye eklenmiştir (§9.11 ve §9.12 çözülmüştür).
+> * **Kapsam dışı kalanlar:** Plandaki bazı maddeler uygulanmamıştır; liste §9.13'tedir.
+>
 > **Hedef:** Mevcut Clean Architecture backend emeğini koruyarak; veritabanı, hesaplama motorları, veri sağlayıcılar ve yapay zeka entegrasyonundaki pürüzleri gidermek, gereksiz şişkinlikleri budamak ve sıfırdan tasarlanacak **QML (Qt Quick)** arayüzü için sağlam, modern bir servis altyapısı hazırlamak.
 
 ---
@@ -507,7 +513,7 @@ gantt
 - [x] **Aşama 2 (Hesaplama & Motor):** Özel NumPy/Pandas indikatör motoru (`indicators.py`) ve risk metrikleri motorunun (`risk_metrics.py`) yazıldı (bkz. §9.2/§9.3 — harici lib yok), Teknik Tarayıcı (Screener) ve DCA Backtest servisleri yazıldı (Markowitz rebalancing/stop-loss v1 kapsamı dışı, bkz. §9.12).
 - [x] **Aşama 3 (Servis Birleştirme):** `Stock360Service` (§5.1) ve `PortfolioAnalyticsService` (§5.2) facade'leri yazıldı, `RiskOptimizationBridgeService` ile Risk Profili ↔ Optimizasyon motoru bağlandı (§5.3, tek-hisse ağırlık limiti risk etiketine göre). Üçü de mevcut sayfalara dokunmayan additive facade — sıfır regresyon; tam suite 899 passed, 4 xfailed.
 - [x] **Aşama 4 (QML Köprüsü & UI-UX Tasarımı):** QML controller ve table model arayüzlerinin kodlanması, **8 view**'in (Dashboard, Stock360, Screener, Analytics, Optimization, Simulation, Watchlist, Cashflow — bkz. §9.5) tamamı + §7.5 UX polish (sayfa geçişi/rolling number/tablo hover) tamamlandı. d0-d7, toplam suite 1183 passed/4 xfailed.
-- [ ] **Aşama 5 (İleriki Faz - AI Entegrasyonu):** Çekirdek sistem ve QML UI oturduktan sonra Gemini API Tool-Calling karar destek asistanının geliştirilmesi (yeni `AIAdvisorView.qml` dahil).
+- [x] **Aşama 5 (İleriki Faz - AI Entegrasyonu):** Gemini API Tool-Calling karar destek asistanı tamamlandı (§6.2, e1.1-e1.4; QML'de `AiAdvisorView.qml`).
 
 ---
 
@@ -595,19 +601,29 @@ gantt
   5. `scripts/migrate_mysql_to_sqlite.py` yeniden çalıştırıldı — SQLite kopyası (`data/portfolio.db`) yeni şema+veriyle güncellendi, checksum doğrulandı.
 * **Not:** 44 tracked hissenin (164-120) `bist/` klasöründe CSV karşılığı yok (muhtemelen farklı ticker formatı veya delisted) — bu hisseler OHLCV'siz kaldı, sadece close_price ile devam ediyor. ATR/Stochastic/CCI/VWAP/OBV bu hisseler için `NaN` döner (fonksiyonlar bunu güvenle handle eder, hata vermez).
 
-### 9.11 MySQL'e Özel Upsert Dialect'i (Faz 2 uygulaması sırasında bulundu) — ⚠️ AÇIK, İZLENİYOR
+### 9.11 MySQL'e Özel Upsert Dialect'i (Faz 2 uygulaması sırasında bulundu) — ✅ ÇÖZÜLDÜ (2026-10-03: kodda `on_duplicate_key_update` kalmadı, uygulama yalnızca SQLite kullanır)
 * `sa_price_repository.py`, `sa_golden_cross_repository.py`, `sa_latest_price_repository.py` — üçü de `sqlalchemy.dialects.mysql.insert(...).on_duplicate_key_update(...)` kullanıyor. Bu **MySQL'e özel** bir API; SQLite'ta `on_duplicate_key_update` metodu yok — bu üç repository, `DB_ENGINE=sqlite` ile çalıştırıldığında `AttributeError` ile patlar.
 * Bu, orijinal §2.2.3'teki "dialect farkları normalize edilecek" notunun kapsamadığı somut bir örnek — repository'lerin SQLAlchemy'nin dialect-agnostic `insert(...).on_conflict_do_update(...)` (SQLite) API'sine veya her iki dialect'i de destekleyen bir yardımcı fonksiyona geçmesi gerekiyor.
 * **Durum:** Şu an `DB_ENGINE` varsayılanı `mysql` olduğu için canlı sistemi etkilemiyor — sorun yalnızca gerçek cutover (`DB_ENGINE=sqlite` varsayılan yapıldığında) anında ortaya çıkar. **Aksiyon ertelendi:** Faz 3/4 sırasında ya da cutover kararı verilmeden hemen önce bu 3 repository dialect-agnostic upsert'e geçirilmeli. Şimdilik bilgi amaçlı işaretlendi, bloklamıyor.
 
-### 9.12 Backtest Motoru Kapsam Daraltma + Ticker Format Tutarsızlığı (Faz 2 b5 sırasında bulundu) — ✅ KARARLAŞTIRILDI / ⚠️ İKİNCİ MADDE AÇIK
+### 9.12 Backtest Motoru Kapsam Daraltma + Ticker Format Tutarsızlığı (Faz 2 b5 sırasında bulundu) — ✅ KARARLAŞTIRILDI / ✅ TICKER MADDESİ ÇÖZÜLDÜ (kanonik uzantısız ticker, `src/domain/ticker.py`, commit `7634afd`)
 * **Kapsam kararı:** §3.3'teki 3 örnek senaryodan (DCA, Markowitz rebalancing, stop-loss/take-profit) yalnızca **DCA** v1'e alındı. Markowitz rebalancing, `OptimizationService`'in şu an sadece CANLI portföyü optimize edebilmesi (tarihsel bir noktada değil) nedeniyle ek refactor gerektiriyor — ayrı bir alt-faz. Stop-loss/take-profit da plan metninde eşik/kural detayı verilmediği için ertelendi.
 * **Bulgu, açık (⚠️ bloklamıyor):** Gerçek veriyle test sırasında `stocks.ticker` alanının **tutarsız formatta** olduğu görüldü — bazı kayıtlar `.IS` sonekiyle (`FROTO.IS`, `ADESE.IS`), bazıları sonek olmadan (`ADEL`, `AKCNS`) saklanıyor; aynı ticker'ın iki farklı biçimde aranması sessizce "bulunamadı" (None) sonucu veriyor. Bu, `import_bist_ohlcv_to_db.py`'nin (plain ticker, örn. "AKBNK") mevcut/orijinal yfinance-kaynaklı kayıtlarla (`.IS` sonekli) örtüşmemesinden kaynaklanıyor olabilir — kök neden netleştirilmedi.
 * **Aksiyon (ertelendi):** Bu format tutarsızlığı Stock360Service (§5.1, Faz 3) veya QML Stock360View (§7.3) arama kutusu geliştirilirken kesin çözülmeli (örn. ticker normalize fonksiyonu her iki formatı da deneyen bir lookup, veya tek format'a migrate eden bir script). Şu an mevcut sayfalar zaten bu format tutarsızlığıyla çalışıyor olduğundan (yeni bir regresyon değil), bloklayıcı değil.
 
 ---
 
-## §9 Durumu: 9.1–9.10 ve 9.12 (kapsam kararı) kararlaştırıldı/giderildi; 9.11 ve 9.12'nin ticker-format bulgusu açık/izleniyor (bloklamıyor) — son güncelleme 2026-09-11.
+### 9.13 Planda Olup Uygulanmayan Maddeler (2026-10-03 kod taraması)
+* Supertrend, ADX, Ichimoku, Keltner göstergeleri (§9.2: v1 dışı).
+* Stop-loss/take-profit ve Markowitz'li periyodik rebalance backtest; yalnızca DCA vardır (§9.12).
+* Nakit temettü akışı: `CorporateAction` yalnızca bedelli/bedelsiz sermaye artırımını modeller.
+* Plandaki `cached_financial_statements` tablosu: yoktur; yalnızca `kap_*` tabloları vardır.
+* Üstel geri çekilmeli yeniden deneme (retry/backoff): yalnızca `bist_bulk_downloader.py` içinde vardır.
+* Drawdown toparlanma süresi (§3.2) ve hisse bazlı min/max ağırlık kısıtı (§7.3-5; yalnızca tek global üst sınır vardır).
+
+---
+
+## §9 Durumu: 9.1–9.12 kararlaştırıldı/giderildi; 9.13'teki maddeler kapsam dışı bırakılmıştır — son güncelleme 2026-10-03.
 
 ---
 *Doküman Oluşturulma Tarihi: 2026-09-11 | PortfoySimulasyonu Mimari Dönüşüm Projesi*

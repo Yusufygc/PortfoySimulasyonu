@@ -24,7 +24,7 @@
 | [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Yorum, boş satır ve docstring ayrıştırmalı kod kalitesi baseline raporu |
 | [system_audit_report_2026-09-30.md](system_audit_report_2026-09-30.md) | QML arayüz, mimari, güvenlik ve test kapsamlı sistem denetim raporu (20 bulgu) |
 | [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md) | Sağlık baseline refactorunun amacı, tamamlananları, kalan fazları ve devam komutları |
-| [QML_TRANSFORMATION_HANDOFF.md](../../QML_TRANSFORMATION_HANDOFF.md) | QML dönüşümünün amacı, tamamlanan fazlar (0-8, DuckDB & Otomatik Senkronizasyon), kurallar ve kalan fazlar yol haritası |
+| [QML_TRANSFORMATION_HANDOFF.md](../../QML_TRANSFORMATION_HANDOFF.md) | QML dönüşümünün amacı, tamamlanan fazlar (0-11, DuckDB evreni, eski arayüzün kaldırılması), kurallar ve devralma kılavuzu |
 | [comparison_lab.md](comparison_lab.md) | Karşılaştırma Laboratuvarı mimarisi, görsel bileşenleri, veri entegrasyonu ve Gemini AI asistan yapısı |
 | [service_reporting_and_export.md](service_reporting_and_export.md) | OpenPyXL Excel formatter ve dışa aktarım raporlaması |
 | [service_corporate_actions.md](service_corporate_actions.md) | Temettü, bölünme işlemleri ve portföy maliyetine etkileri |

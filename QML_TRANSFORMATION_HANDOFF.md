@@ -1,6 +1,6 @@
 # Portföy Simülasyonu — QML Dönüşümü Handoff & Devam Kılavuzu
 
-> **Bu Belgenin Amacı:** Bu kılavuz, projenin PyQt5 QWidgets masaüstü mimarisinden modern **PySide6 + Qt Quick (QML)** mimarisine dönüştürülme sürecini, bugüne kadar tamamlanan tüm aşamaları (Faz 0'dan Faz 8'e ve DuckDB analitik altyapısına kadar), projenin nihai vizyonunu, bağlayıcı mimari ve tasarım kurallarını ve kalan fazların (Faz 9, 10, 11) detaylı uygulama planını açıklar. Başka bir sohbet oturumunda veya yeni bir ajanla çalışmaya başlandığında **doğrudan bu dosya referans alınarak** kalınan yerden kesintisiz devam edilebilir.
+> **Bu Belgenin Amacı:** Bu kılavuz, projenin PyQt5 QWidgets masaüstü mimarisinden modern **PySide6 + Qt Quick (QML)** mimarisine dönüştürülme sürecini, bugüne kadar tamamlanan tüm aşamaları (Faz 0'dan Faz 8'e ve DuckDB analitik altyapısına kadar), projenin nihai vizyonunu, bağlayıcı mimari ve tasarım kurallarını ve Faz 11 sonrası eklemeleri (eski arayüzün kaldırılması, tüm BIST için DuckDB evreni, sermaye artırımı düzeltmeleri, ölü kod temizliği) açıklar. Dönüşüm tamamlanmıştır; bu dosya devralma ve referans belgesidir. Başka bir sohbet oturumunda veya yeni bir ajanla çalışmaya başlandığında **doğrudan bu dosya referans alınarak** kalınan yerden kesintisiz devam edilebilir. Tarihsel plan ve kapsam dışı bırakılan maddeler için bkz. [TRANSFORMATION_PLAN.md](TRANSFORMATION_PLAN.md).
 
 ---
 
@@ -21,14 +21,15 @@ Yeni bir oturum açıldığında sırasıyla şu adımları uygulayın:
    ```powershell
    .\venv\Scripts\python.exe -m pytest tests/ui_qml/
    ```
-   *(Beklenen sonuç: 80/80 test %100 yeşil, ~14 saniye).*
+   Tüm paket için `.\venv\Scripts\python.exe -m pytest tests/` çalıştırılır.
+   *(Beklenen sonuç: tam pakette 964 geçti, 4 xfailed; testler gerçek veritabanına yazmaz, QSettings geçici INI dosyasına yönlendirilir).*
 4. **Uygulamayı QML Modunda Başlatma:**
    ```powershell
    .\venv\Scripts\python.exe app.py
    ```
 5. **Çift Motorlu Hibrit Veritabanı Mimarisi (SQLite + DuckDB):**
-   * **İşlemsel Veritabanı (OLTP):** `data/portfolio.db` (SQLite, ~5 MB). Kullanıcı portföyleri, açık pozisyonlar, emirler, nakit hareketleri, izleme listeleri, model portföyler, bütçe/hedef kayıtları ve KAP ortaklık önbelleğini tutar. Sıfır harici servis bağımlılığıyla çalışır.
-   * **Analitik Piyasa Veritabanı (OLAP):** `data/market_history.duckdb` (DuckDB, ~115 MB). Borsa İstanbul'da (BIST) işlem gören **624 hisse senedinin 26 yıllık tarihsel günlük bar verilerini (2.238.543 bar, 2000-2026)** sütunsal (columnar) ve vektörel formatta saklar. Milisaniyeler mertebesinde tarama, getiri hesaplama ve kovaryans matrisi çıkarma olanağı tanır.
+   * **İşlemsel Veritabanı (OLTP):** `data/portfolio.db` (SQLite). Kullanıcı portföyleri, açık pozisyonlar, emirler, nakit hareketleri, izleme listeleri, model portföyler, bütçe/hedef kayıtları, sermaye artırımı kayıtları ve KAP ortaklık önbelleğini tutar. Portföy hisselerinin fiyat geçmişi değerleme için burada kalır; portföy dışı piyasa evreni DuckDB'dedir. Sıfır harici servis bağımlılığıyla çalışır.
+   * **Analitik Piyasa Veritabanı (OLAP):** `data/market_history.duckdb` (DuckDB, ~143 MB). Borsa İstanbul'da (BIST) işlem gören **624 hissenin 26 yıllık tarihsel günlük bar verisini** (2000-2026) sütunsal ve vektörel formatta saklar. Hisse Tarayıcı, Golden Cross, Hisse 360, grafik, DCA ve optimizasyon evrenini bu depo besler. Ticker'lar uzantısızdır (`THYAO`); `.IS` yalnızca yfinance sınırında eklenir (`src/domain/ticker.py`). Sermaye artırımı düzeltmeleri ham bara dokunmadan ticker anahtarlı olay tablosu ve kümülatif faktörle uygulanır (bkz. wiki `market_corporate_actions.md`).
    * **Otomatik Piyasa Senkronizasyonu:** `MarketDataSyncService` ve `MarketSyncController` sayesinde uygulama açılışında (5 sn sonra) eksik günleri tespit eden catch-up sync çalışır. Ayrıca her işlem günü seans kapandıktan sonra tam **18:15**'te otomatik artımlı (delta) senkronizasyon devreye girer.
 
 ---
@@ -94,8 +95,10 @@ flowchart LR
     F6 --> F7["Faz 7: Kıyas & Screener<br/>(commit e5139eb)"]
     F7 --> F8["Faz 8: Planlama & DCA<br/>(commit 421e1ff)"]
     F8 --> DUCK["DuckDB OLAP & BIST Sync<br/>(commit 57cca51 & 1163a0a)"]
-    DUCK --> F9["Faz 9: Optimizasyon & Frontier<br/>(CANLI / AKTİF)"]
-    F9 --> F10["Faz 10: AI Danışman<br/>(SIRADAKİ ADIM)"]
+    DUCK --> F9["Faz 9: Optimizasyon & Frontier<br/>(tamamlandı)"]
+    F9 --> F10["Faz 10: AI Danışman<br/>(tamamlandı)"]
+    F10 --> F11["Faz 11: Ayarlar & Veri Yönetimi<br/>(tamamlandı)"]
+    F11 --> POST["Faz 11 sonrası: tek piyasa evreni,<br/>eski arayüz kaldırıldı, ölü kod temizliği"]
 ```
 
 ### 4.1 Faz 0 & SQLite Tam Göçü (`commit: e25a851`, `7de5033`)
@@ -225,8 +228,18 @@ flowchart LR
   - `DashboardView.qml`: Başlıkta "Excel Raporu" butonuyla tüm portföy performansının (KPI'lar, Getiri Geçmişi, Pozisyonlar) 4 sayfalı Excel formatında dışa aktarımı.
   - `ModelPortfolioView.qml`: Model portföy performansının Excel'e aktarımı.
   - `SettingsView.qml`: Veri dışa aktarım sekmesinden profesyonel rapor üretimi.
-* **UI Suffix Standardı:** Kod ve arayüz genelinde hiçbir yerde `.IS` uzantısının görünmemesi kuralı titizlikle uygulandı (`_clean_ticker`).
-* **Birim ve Arayüz Testleri:** `tests/ui_qml/test_stock_detail_and_excel.py` (8/8 yeşil, toplam QML testi 80/80 %100 yeşil).
+* **UI Suffix Standardı:** Arayüzde `.IS` uzantısı görünmez. Sonradan kanonik ticker biçimi uzantısız (`THYAO`) olarak veri katmanına da yayıldı (bkz. §4.16).
+* **Birim ve Arayüz Testleri:** `tests/ui_qml/test_stock_detail_and_excel.py` (8 test). Bu fazın sonunda QML testi 80/80 yeşildi; güncel toplam §4.16'da.
+
+### 4.16 Faz 11 Sonrası Eklemeler (2026-10, `qml` branch)
+* **Tek piyasa evreni (DuckDB):** Hisse Tarayıcı, Golden Cross, Hisse 360, grafik ve DCA tüm BIST'i (624 hisse) DuckDB'den okur (`IMarketHistoryRepository` toplu okuma: `list_tickers`, `get_price_series_bulk`, `get_latest_dates`). SQLite'taki portföy dışı hisselerin fiyat geçmişi DuckDB'ye taşındı. Golden Cross olayları ticker anahtarlı `cross_events` tablosundadır.
+* **Sermaye artırımı düzeltmesi:** DuckDB'de veri güdümlü aday tespiti, Ayarlar > Piyasa Düzeltmeleri sekmesinde onay/red/geri alma (`MarketAdjustmentController`, `CorporateActionController`). Ham bar değişmez, düzeltme faktör tablosundan okunur. Tespit edilen adaylar kullanıcı onayı bekler.
+* **Ek ekranlar ve özellikler:** Üst piyasa şeridi (altın, gümüş, USD/TRY, EUR/TRY, BIST 100), Ayarlar > Sistem sekmesi (otomatik canlı fiyat yenileme, sistem sıfırlama), yapay zeka sohbet geçmişi ve hisse bazlı model analizi, izleme listesi/model portföy sürükle-bırak sıralama, hisse detayında ortalama maliyet çizgisi ve işlem tarih/saat alanı, dashboard kapanış fiyatı güncelleme ile haftalık/aylık getiri ve son güncelleme bilgisi (`last_update_store.py`), model portföy "Fiyat Güncelle", karşılaştırma grafiklerinde "Nedir / Nasıl Yorumlanır" kartı (`ChartInfoCard.qml`), izleme listesine hisse eklerken kod doğrulaması.
+* **Okuma ve bakım servisleri:** `StockLookupService` (hisse bilgisi/fiyat okuma için tek yüzey) ve `DatabaseMaintenanceService` (istatistik, bütünlük kontrolü, yedek dışa aktarma). Denetleyiciler yalnızca application/domain katmanına bağlanır.
+* **Eski arayüz kaldırıldı:** `src/ui` ve `tests/ui` silindi (`e59f6a4`); `app.py` doğrudan QML'i açar. Parity kontrolünde bulunan 7 eksik QML'e taşındı. Silinenler git geçmişinden geri alınabilir.
+* **Mimari ve metin korumaları:** `tests/ui_qml/test_architecture_guards.py` (UI katmanında `src.ui`/infrastructure/sqlite3/duckdb/sqlalchemy importu ve `*_repo` erişimi yasak), `tests/ui_qml/test_strings_catalog.py` (tanımsız/yinelenen/kullanılmayan `Strings` anahtarı ve sabit metin denetimi), `tests/test_repo_guards.py` (testlerde canlı ağ çağrısı yasak, `src/ui` geri gelmez).
+* **Ölü kod temizliği:** Kullanılmayan servis, istemci (TradingView/Investing yedek istemcileri), denetleyici üyeleri ve 77 `Strings` anahtarı silindi. AI_Core istemcisine dokunulmadı. Ayrıntı: `docs/wiki/log.md`.
+* **Güncel test durumu:** `pytest tests/` tam paket 964 geçti, 4 xfailed.
 
 ---
 
@@ -254,8 +267,8 @@ flowchart LR
 Bütün fazlar (Faz 0'dan Faz 11'e kadar) ve legacy yeteneklerin (Hisse Detay & Excel Raporlama) taşınması eksiksiz olarak tamamlanmıştır:
 * Eski PyQt5 QWidgets katmanından donanım hızlandırmalı modern PySide6 + Qt Quick (QML) mimarisine geçiş %100 tamamlandı.
 * 10 ana ekranın tamamı canlı, tembel yüklemeli (Lazy Loading) ve sıfır anchor/binding uyarısıyla çalışmaktadır.
-* Toplam 80 birim ve arayüz testinin tamamı (80/80) %100 yeşildir.
-* Çift motorlu hibrit veritabanı (SQLite OLTP + DuckDB 2.23M bar OLAP) ve 18:15 otomatik seans nöbetçisi aktiftir.
+* Tam test paketi yeşildir (964 geçti, 4 xfailed). Eski arayüz kaldırılmıştır (bkz. §4.16).
+* Çift motorlu hibrit veritabanı (SQLite OLTP + DuckDB OLAP) ve 18:15 otomatik seans nöbetçisi aktiftir.
 
 ---
 
@@ -264,11 +277,10 @@ Bütün fazlar (Faz 0'dan Faz 11'e kadar) ve legacy yeteneklerin (Hisse Detay & 
 Yeni bir oturum açtığınızda asistana aşağıdaki metni ileterek doğrudan başlayabilirsiniz:
 
 ```text
-QML_TRANSFORMATION_HANDOFF.md dosyasını incele. 
-Faz 0'dan Faz 8'e kadar tüm aşamalar, DuckDB analitik mimarisi ve BIST otomatik senkronizasyon sistemi başarıyla tamamlandı. 
-Testler (51/51) tamamen yeşil.
-RULES.md kurallarına (katı emoji yasağı, Icons.qml, Strings.qml, taşmasız düzen, UI'dan doğrudan repo çağırmama) sadık kalarak,
-sıradaki aşama olan "FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier" geliştirmesine başla.
+QML_TRANSFORMATION_HANDOFF.md ve TRANSFORMATION_PLAN.md (§9 kapsam dışı maddeler) dosyalarını incele.
+QML dönüşümü ve Faz 11 sonrası eklemeler tamamlandı; testler (964 geçti, 4 xfailed) yeşil.
+RULES.md kurallarına (katı emoji yasağı, Icons.qml, Strings.qml, taşmasız düzen, UI'dan doğrudan repo çağırmama) sadık kalarak
+planda kapsam dışı kalan maddelerden hangisinin yapılacağını kullanıcıyla netleştir ve başla.
 ```
 
 ---
@@ -278,7 +290,7 @@ sıradaki aşama olan "FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Front
 * **Giriş Noktası:** `app.py` (doğrudan `src/ui_qml/app.py` çalıştırılır; eski `--ui=qml` bayrağı kaldırıldı).
 * **Veritabanları:**
   - SQLite: `data/portfolio.db` (Kişisel portföy, işlemler, bütçe).
-  - DuckDB: `data/market_history.duckdb` (624 BIST hissesi, 2.238.543 bar, 2000-2026).
+  - DuckDB: `data/market_history.duckdb` (624 BIST hissesi, 2000-2026; ticker'lar uzantısız).
 * **QML Kök Dosyası:** `src/ui_qml/qml/Main.qml`.
 * **Tema ve Sabitler:** `src/ui_qml/qml/theme/` (`Theme.qml`, `Icons.qml`, `Strings.qml`, `qmldir`).
 * **Bileşenler:** `src/ui_qml/qml/components/` (`StockDetailModal.qml`, `ModernIcon.qml`, `ModernButton.qml`, `ModernScrollBar.qml`, `MiniSparkline.qml`, `RatioCard.qml`, `FinancialBarChart.qml`, `ShareholderPieCard.qml`, `TradingViewChart.qml`, `WindowHeader.qml`, `ToastNotification.qml` vb.).
@@ -294,8 +306,10 @@ sıradaki aşama olan "FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Front
   - `AiAdvisorView.qml` (Gemini 2.5 AI Karar Destek)
   - `SettingsView.qml` (Ayarlar & Veri Yönetimi)
 * **Python QML Denetleyicileri:** `src/ui_qml/controllers/`:
-  - `DashboardController`, `ChartController`, `StockDetailController`, `WatchlistController`, `Stock360Controller`, `ModelPortfolioController`, `ComparisonController`, `ScreenerController`, `PlanningController`, `OptimizationController`, `AiAdvisorController`, `SettingsController`, `MarketSyncController`.
-* **Birim Testleri:** `tests/ui_qml/` (80 test, hepsi yeşil).
+  - Sayfa denetleyicileri: `DashboardController`, `ChartController`, `StockDetailController`, `WatchlistController`, `Stock360Controller` (+ `stock_360_calc/fallback/formatters/html`), `ModelPortfolioController`, `ModelAnalysisController`, `ComparisonController`, `ScreenerController`, `GoldenCrossController`, `PlanningController`, `OptimizationController`, `RiskProfileController`, `AiAdvisorController`, `SettingsController`.
+  - Ayarlar ve veri yönetimi: `CorporateActionController`, `MarketAdjustmentController`, `PriceDataController`, `MarketSyncController`, `StartupJobsController`, `SystemController`.
+  - Kabuk: `ShellController` (sayfa yönlendirme), `MarketTickerController` (üst piyasa şeridi).
+* **Birim Testleri:** `tests/ui_qml/` (mimari ve metin koruma testleri dahil); tam paket 964 geçti, 4 xfailed.
 * **Senkronizasyon Servisleri & Betikleri:**
   - `src/application/services/market_data/market_data_sync_service.py`
   - `src/application/services/market_data/bist_bulk_downloader.py`

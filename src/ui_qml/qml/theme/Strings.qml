@@ -107,7 +107,6 @@ QtObject {
     readonly property string btnWithdrawCash: "Nakit Çek"
     readonly property string btnExecute: "Emri Onayla"
     readonly property string btnCancel: "İptal"
-    readonly property string btnBackToDashboard: "Dashboard'a Dön"
 
     // --- İzleme Listeleri (Watchlist - Faz 4) ---
     readonly property string watchlistTitle: "İzleme Listelerim (Watchlist)"
