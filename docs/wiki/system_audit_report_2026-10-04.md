@@ -146,6 +146,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Çözüm:** Sütunu `BigInteger().with_variant(Integer, "sqlite")` yap (rowid takma adı, gerçek otomatik artış), mevcut tablolar için bir kerelik tablo yeniden oluşturma göçü; ya da yazma işlemini `BEGIN IMMEDIATE` ile başlat.
 - **Düzeltme Eforu:** M
 - **Bağımlılık:** Bulgu 5 (göç altyapısı).
+- **Durum:** Çözüldü (2026-10-04), rapordaki ilk seçenekle (kilit). Çakışma önce `test_bigint_id_concurrency.py` ile yeniden üretildi (`UNIQUE constraint failed: stocks.id`), sonra dinleyiciye `UPDATE ... WHERE 0` ile yazma kilidi eklenerek giderildi. `with_variant(Integer, "sqlite")` seçeneği tablo yeniden kurulumu gerektirdiğinden (gerçek veritabanında üretilmiş sütun, FK ve 42 indeks) ertelendi, `roadmap.md`'de kayıtlı.
 
 ### [🟡] 8. Naive tarih/saat kullanımı
 - **Persona:** Kıdemli Yazılım Mimarı.

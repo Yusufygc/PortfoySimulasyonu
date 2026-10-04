@@ -1,7 +1,7 @@
 # src/infrastructure/db/sqlalchemy/orm_models.py
 
 from sqlalchemy import BigInteger, Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
-from sqlalchemy import event, select
+from sqlalchemy import event, false, select
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 import enum
@@ -478,6 +478,10 @@ def _assign_missing_bigint_id(mapper, connection, target) -> None:
 
     `id` verilmeden eklenen kayıtlara `max(id) + 1` atanır. Aynı flush içindeki kayıtlar için sayaç bağlantıda tutulur.
     Kimliği repository'de elle atayan kodlar etkilenmez (`id` dolu).
+
+    Eşzamanlı yazıcılarda çakışmayı önlemek için `max(id)` okunmadan önce hiçbir satırı değiştirmeyen bir `UPDATE`
+    ile SQLite yazma kilidi alınır: ikinci yazıcı, ilki commit edene kadar burada bekler ve sonra güncel `max(id)`
+    değerini görür. Kilit olmadan iki bağlantı aynı `max(id)` değerini okuyup aynı kimliği atardı.
     """
     table = mapper.local_table
     key = list(table.primary_key.columns)
@@ -485,6 +489,7 @@ def _assign_missing_bigint_id(mapper, connection, target) -> None:
         return
     if getattr(target, "id", None) is not None:
         return
+    connection.execute(table.update().where(false()).values({key[0].name: key[0]}))
     assigned = connection.info.setdefault("assigned_bigint_ids", {})
     current_max = connection.execute(select(func.coalesce(func.max(key[0]), 0))).scalar() or 0
     target.id = max(int(current_max), assigned.get(table.name, 0)) + 1

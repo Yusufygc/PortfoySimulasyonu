@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | BIGINT Kimlik Atamasında Eşzamanlı Yazıcı Çakışması (Denetim Bulgu 7)
+
+- `before_insert` dinleyicisi (`orm_models.py`) `max(id)` okumadan önce `UPDATE ... WHERE 0` ile SQLite yazma kilidini alıyor. İkinci yazıcı ilki commit edene kadar bekler ve güncel `max(id)` değerini görür.
+- Çakışma önce yeniden üretildi: iki oturum, A flush edilmiş ama commit edilmemişken B kayıt ekleyince `UNIQUE constraint failed: stocks.id`. Test: `tests/infrastructure/db/test_bigint_id_concurrency.py` (düzeltmeden önce kırmızı, sonra yeşil; 5 tekrarda kararlı).
+- Kalıcı çözüm (`INTEGER PRIMARY KEY`, tablo yeniden kurulumu) `roadmap.md`'ye eklendi; `database_schema_and_orm.md` ve `data_architecture.md` güncellendi.
+
+---
 ## [2026-10-04] düzeltme | AI Yerel Motoru Sorgu Niyeti Eşleştirmesi (Denetim Bulgu 6)
 
 - `AiAdvisorController._generate_local_portfolio_analysis` optimizasyon raporuna karar verirken `"al"` ve `"sat"` için alt dize araması yapıyordu; `maliyet`, `analiz`, `altın` gibi sözcükler her soruda Markowitz aracını tetikliyordu.
