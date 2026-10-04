@@ -493,6 +493,17 @@ def test_dashboard_excel_file_export_validates_dates(qapp):
     container.excel_export_service.export_history.assert_not_called()
     assert ctrl.firstTradeDateText() == "02.01.2025"
 
+def test_dashboard_excel_worker_reports_invalid_iso_date_instead_of_silent_fallback(qapp, tmp_path):
+    ctrl, container = _dashboard(qapp)
+    ctrl._executor = ImmediateExecutor()
+    results = _capture(ctrl.excelExported)
+
+    ctrl._run_excel_export_worker("2026-13-45", None, str(tmp_path / "x.xlsx"))
+
+    assert results[-1][0] is False
+    container.excel_export_service.export_history.assert_not_called()
+
+
 
 def test_model_portfolio_history_export(qapp, tmp_path):
     container = MagicMock()

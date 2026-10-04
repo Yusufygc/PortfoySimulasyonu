@@ -80,8 +80,8 @@ class DuckDBOptimizationMarketDataProvider:
             finally:
                 try:
                     con.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("DuckDB bağlantısı kapatılamadı: %s", exc)
 
         # Fallback sağlayıcısına delege et
         if self._fallback_provider is not None:
@@ -108,8 +108,8 @@ class DuckDBOptimizationMarketDataProvider:
             finally:
                 try:
                     con.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("DuckDB bağlantısı kapatılamadı: %s", exc)
 
         if self._fallback_provider is not None:
             return self._fallback_provider.get_last_price(ticker)

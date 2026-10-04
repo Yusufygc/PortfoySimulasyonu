@@ -184,8 +184,8 @@ def compute_revenue_chart(
                 is_pos = yoy_growth >= 0
                 kpis["revenue_yoy_growth"] = f"{'+' if is_pos else ''}{yoy_growth:.1f}%"
                 kpis["is_revenue_yoy_positive"] = is_pos
-        except Exception:
-            pass
+        except (ValueError, TypeError, ZeroDivisionError) as exc:
+            logger.debug("Yıllık ciro büyümesi hesaplanamadı: %s", exc)
 
     return chart_items, kpis
 

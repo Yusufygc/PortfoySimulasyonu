@@ -67,10 +67,7 @@ class BistBulkDownloader:
                 );
             """)
             # Eski tablolarda updated_at olmayabilir, ekle
-            try:
-                con.execute("ALTER TABLE bist_stocks ADD COLUMN updated_at TIMESTAMP;")
-            except Exception:
-                pass
+            con.execute("ALTER TABLE bist_stocks ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;")
 
             con.execute("""
                 CREATE TABLE IF NOT EXISTS daily_prices (

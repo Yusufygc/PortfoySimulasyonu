@@ -37,7 +37,8 @@ def _is_cache_fresh(path: Path) -> bool:
 def _load_cache(path: Path) -> dict[str, float] | None:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
+    except (OSError, ValueError) as exc:
+        logger.debug("TÜFE önbelleği okunamadı (%s): %s", path, exc)
         return None
 
 
@@ -74,7 +75,8 @@ def _parse_items(items: list[dict[str, Any]]) -> dict[str, float]:
                 continue
             month_key = f"{year:04d}-{month:02d}"
             result[month_key] = val_num
-        except Exception:
+        except (ValueError, TypeError) as exc:
+            logger.debug("TÜFE kaydı atlandı (%r): %s", tarih, exc)
             continue
     return result
 

@@ -559,7 +559,7 @@ class ModelPortfolioController(QObject):
                 )
                 total_val = summary.get("total_value", Decimal("0"))
             except Exception:
-                pass
+                logger.warning("Model portföy toplam değeri hesaplanamadı; ağırlık 0 gösterilecek.", exc_info=True)
 
             weight = 0.0
             if current_value and total_val and total_val > 0:

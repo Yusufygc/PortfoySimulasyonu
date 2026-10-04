@@ -312,7 +312,7 @@ class PlanningController(QObject):
             pinned_set = {(p.item_type.upper(), p.name.strip().lower()) for p in pinned_items}
             is_pinned = (item_type.upper(), name.strip().lower()) in pinned_set
         except Exception:
-            pass
+            logger.warning("Pinlenmiş bütçe kalemleri okunamadı.", exc_info=True)
 
         entry = {
             "id": -1,

@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | Sessiz Yutulan İstisnaların Giderilmesi (Denetim Bulgu 4)
+
+- Sessiz `except ... pass/continue` yerleri görünür hale getirildi: AI yerel analiz araçları, model portföy toplam değeri, planlama pin kalemleri (`logger.warning`, `exc_info`); EVDS TÜFE ayrıştırma ve önbellek, Stock 360 YoY hesabı, verimli sınır noktası, DuckDB bağlantı kapatma (`logger.debug`, dar istisna türleri).
+- `DashboardController` Excel işçisi tarihleri `date.fromisoformat` ile okur; geçersiz değer sessizce yok sayılmaz, `excelExported(False, ...)` ile bildirilir.
+- `BistBulkDownloader` şema göçü `ADD COLUMN IF NOT EXISTS` kullanır (hata yutan `try/except` kaldırıldı).
+- `stock_360_controller.py` `__del__` temizliği bilinçli olarak bırakıldı. Test: `test_dashboard_excel_worker_reports_invalid_iso_date_instead_of_silent_fallback`.
+
+---
 ## [2026-10-04] düzeltme | Derlemeden Gerçek `data/` Klasörünün Çıkarılması (Denetim Bulgu 1)
 
 - `build_nuitka.bat` artık `--include-data-dir=data=data` kullanmıyor; kişisel `portfolio.db` ve DuckDB `.exe`'ye girmez.

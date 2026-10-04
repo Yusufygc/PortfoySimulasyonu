@@ -109,6 +109,7 @@ except Exception:
 - **Çözüm:** `except ValueError` ile daralt ve `logger.warning` ekle; kullanıcıya dönen sonuçta geçersiz girdiyi bildir. Diğer 17 yer için en azından `logger.debug(..., exc_info=True)`.
 - **Düzeltme Eforu:** M
 - **Bağımlılık:** Log hacmi; `except Exception` toplamı 241 olduğundan hepsi tek seferde değil, 18'lik küme önce.
+- **Durum:** Çözüldü (2026-10-04). Düzeltme notu: Excel dışa aktarımında tarih arayüz yuvasında (`exportToExcelFile`) zaten doğrulanıyor; sessiz geri dönüş yalnızca işçi fonksiyonda savunmacı koddu, rapordaki "yanlış aralıkta rapor" senaryosu bu yolla gerçekleşmezdi. İşçi artık `date.fromisoformat` kullanıyor, geçersiz değer dış `except` ile kullanıcıya bildiriliyor. Diğer yerler: `logger.warning`/`debug` eklendi, `except` türleri daraltıldı, DuckDB `ALTER ... ADD COLUMN IF NOT EXISTS`. Bilinçli bırakılan: `stock_360_controller.py:539` (`__del__` temizliği).
 
 ### [🟠] 5. Şema göçü sürümsüz ve tek tabloya özel
 - **Persona:** SRE / DevOps.

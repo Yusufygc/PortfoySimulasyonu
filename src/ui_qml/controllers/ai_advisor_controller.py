@@ -504,7 +504,7 @@ class AiAdvisorController(QObject):
                     "label": "Portföy Genel Özeti",
                 })
             except Exception:
-                pass
+                logger.warning("Yerel analiz aracı başarısız: get_portfolio_overview", exc_info=True)
 
         # Araç 2: Dağılım ve Risk
         risk_data = {}
@@ -516,7 +516,7 @@ class AiAdvisorController(QObject):
                     "label": "Varlık Dağılımı ve Risk",
                 })
             except Exception:
-                pass
+                logger.warning("Yerel analiz aracı başarısız: get_allocation_and_risk", exc_info=True)
 
         total_val = overview_data.get("total_value_try") or 0.0
         period_ret = overview_data.get("period_return_pct")
@@ -539,7 +539,7 @@ class AiAdvisorController(QObject):
                         "label": "Markowitz Optimizasyonu",
                     })
                 except Exception:
-                    pass
+                    logger.warning("Yerel analiz aracı başarısız: suggest_optimization", exc_info=True)
 
             suggestions = opt_data.get("suggestions", [])
             lines = [

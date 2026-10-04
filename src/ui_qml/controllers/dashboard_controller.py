@@ -716,18 +716,8 @@ class DashboardController(QObject):
                 target_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Tarih aralığını belirle
-            s_date = None
-            e_date = date.today()
-            if start_date_str:
-                try:
-                    s_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-                except Exception:
-                    pass
-            if end_date_str:
-                try:
-                    e_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
-                except Exception:
-                    pass
+            s_date = date.fromisoformat(start_date_str) if start_date_str else None
+            e_date = date.fromisoformat(end_date_str) if end_date_str else date.today()
 
             portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
             excel_service = getattr(self._container, "excel_export_service", None) if self._container else None

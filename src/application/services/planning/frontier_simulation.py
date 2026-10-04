@@ -119,7 +119,8 @@ def calculate_efficient_frontier_curve(
                 vol_pct = float(res.fun * 100.0)
                 ret_pct = float(tr * 100.0)
                 frontier_pts.append({"x": round(vol_pct, 2), "y": round(ret_pct, 2)})
-        except Exception:
+        except Exception as exc:
+            logger.debug("Verimli sınır noktası atlandı (hedef getiri=%.4f): %s", tr, exc)
             continue
 
     # Volatiliteye göre sıralı döndür
