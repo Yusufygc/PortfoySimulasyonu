@@ -28,6 +28,25 @@ _MIN_WEIGHT_CHANGE = 0.005  # olay listesine yalnızca %0,5'ten büyük ağırl�
 
 
 @dataclass(frozen=True)
+class BacktestSetup:
+    """Backtest girdileri: hisseler, başlangıç sermayesi, başlangıç (ve isteğe bağlı bitiş) tarihi ve komisyon oranı."""
+    tickers: Sequence[str]
+    initial_capital: Decimal
+    start_date: date
+    end_date: Optional[date] = None
+    commission_rate: float = 0.0
+
+
+@dataclass
+class _RunLog:
+    """Simülasyon sırasında biriken olaylar ve sayaçlar."""
+    events: List["StrategyEvent"]
+    skipped: Sequence[str]
+    rebalance_count: int = 0
+    exit_count: int = 0
+
+
+@dataclass(frozen=True)
 class StrategyEvent:
     event_date: date
     ticker: str          # genel olaylarda boş
@@ -101,15 +120,13 @@ def max_drawdown_pct(series: Dict[date, Decimal]) -> Optional[float]:
 
 def simulate_rebalancing(
     price_series: PriceSeries,
-    tickers: Sequence[str],
-    initial_capital: Decimal,
-    start_date: date,
+    setup: BacktestSetup,
     rebalance_every_months: int,
     weight_fn: WeightFunction,
-    commission_rate: float = 0.0,
 ) -> StrategyBacktestResult:
     """Periyodik yeniden dengeleme ile "al ve tut" karşılaştırması."""
-    prices, skipped = build_price_matrix(price_series, list(tickers))
+    initial_capital, start_date, commission_rate = setup.initial_capital, setup.start_date, setup.commission_rate
+    prices, skipped = build_price_matrix(price_series, list(setup.tickers))
     sim_dates = _simulation_dates(prices, start_date)
     if not sim_dates:
         return _empty_result(initial_capital, skipped)
@@ -139,17 +156,16 @@ def simulate_rebalancing(
         strategy_series[d] = _money(_market_value(shares, prices.loc[d]))
         baseline_series[d] = _money(_market_value(baseline_shares, prices.loc[d]))
 
-    return _build_result(initial_capital, strategy_series, baseline_series, events, skipped, rebalance_count=rebalance_count)
+    return _build_result(
+        initial_capital, strategy_series, baseline_series, _RunLog(events, skipped, rebalance_count=rebalance_count)
+    )
 
 
 def simulate_stop_take(
     price_series: PriceSeries,
-    tickers: Sequence[str],
-    initial_capital: Decimal,
-    start_date: date,
+    setup: BacktestSetup,
     stop_loss_pct: Optional[float],
     take_profit_pct: Optional[float],
-    commission_rate: float = 0.0,
 ) -> StrategyBacktestResult:
     """Eşit ağırlıkla alım; her pozisyon giriş fiyatına göre stop-loss / take-profit eşiğinde satılır ve nakde geçer.
 
@@ -157,7 +173,8 @@ def simulate_stop_take(
     """
     if stop_loss_pct is None and take_profit_pct is None:
         raise ValueError("Stop-loss veya take-profit eşiklerinden en az biri verilmelidir.")
-    prices, skipped = build_price_matrix(price_series, list(tickers))
+    initial_capital, start_date, commission_rate = setup.initial_capital, setup.start_date, setup.commission_rate
+    prices, skipped = build_price_matrix(price_series, list(setup.tickers))
     sim_dates = _simulation_dates(prices, start_date)
     if not sim_dates:
         return _empty_result(initial_capital, skipped)
@@ -188,7 +205,7 @@ def simulate_stop_take(
         strategy_series[d] = _money(cash + _market_value(shares, day))
         baseline_series[d] = _money(_market_value(baseline_shares, day))
 
-    return _build_result(initial_capital, strategy_series, baseline_series, events, skipped, exit_count=exit_count)
+    return _build_result(initial_capital, strategy_series, baseline_series, _RunLog(events, skipped, exit_count=exit_count))
 
 
 # ---------------------------------------------------------------- yardımcılar
@@ -280,10 +297,7 @@ def _build_result(
     initial_capital: Decimal,
     strategy_series: Dict[date, Decimal],
     baseline_series: Dict[date, Decimal],
-    events: List[StrategyEvent],
-    skipped: Sequence[str],
-    rebalance_count: int = 0,
-    exit_count: int = 0,
+    log: _RunLog,
 ) -> StrategyBacktestResult:
     last = max(strategy_series)
     final_value, baseline_final = strategy_series[last], baseline_series[last]
@@ -299,10 +313,10 @@ def _build_result(
         baseline_return_pct=_return_pct(baseline_final, initial_capital),
         max_drawdown_pct=max_drawdown_pct(strategy_series),
         baseline_max_drawdown_pct=max_drawdown_pct(baseline_series),
-        events=events,
-        rebalance_count=rebalance_count,
-        exit_count=exit_count,
-        skipped_tickers=list(skipped),
+        events=log.events,
+        rebalance_count=log.rebalance_count,
+        exit_count=log.exit_count,
+        skipped_tickers=list(log.skipped),
     )
 
 

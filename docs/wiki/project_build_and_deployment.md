@@ -34,7 +34,7 @@ Testler preflight'ın statik koşullarını da denetler (`tests/infrastructure/t
 
 ## 5. CI (GitHub Actions)
 
-`.github/workflows/tests.yml` üç iş çalıştırır (`push`, `pull_request` ve haftalık zamanlama): **test** (Windows; Python 3.10 ve 3.11 zorunlu, 3.12 deneysel/engelleyici değil; `QT_QPA_PLATFORM=offscreen`; `pip install -r requirements.txt`, `pip check`, `pytest --collect-only -q`, `pytest tests -q --cov=src --cov=config --cov-fail-under=80`, kapsam raporu artifact), **quality** (`scripts/measure_code_quality.py` tavanları: 14 sınıf, 103 fonksiyon, 0 dosya; yeni eşik ihlali eklenemez, borç azaldıkça tavanlar düşürülür) ve **security** (`pip-audit` ile kurulu ortamın tamamının, geçişli bağımlılıklar dahil, bilinen açıklara karşı taranması). `pytest.ini` filtresi `manual` ve `network` testlerini dışarıda bırakır. Nuitka derlemesi CI'da koşmaz. Lint (ruff/flake8) henüz yoktur: mevcut kodda toplu temizlik gerektirir.
+`.github/workflows/tests.yml` üç iş çalıştırır (`push`, `pull_request` ve haftalık zamanlama): **test** (Windows; Python 3.10 ve 3.11 zorunlu, 3.12 deneysel/engelleyici değil; `QT_QPA_PLATFORM=offscreen`; `pip install -r requirements.txt`, `pip check`, `pytest --collect-only -q`, `pytest tests -q --cov=src --cov=config --cov-fail-under=80`, kapsam raporu artifact), **quality** (`scripts/measure_code_quality.py` tavanları: 14 sınıf, 98 fonksiyon, 0 dosya; yeni eşik ihlali eklenemez, borç azaldıkça tavanlar düşürülür) ve **security** (`pip-audit` ile kurulu ortamın tamamının, geçişli bağımlılıklar dahil, bilinen açıklara karşı taranması). `pytest.ini` filtresi `manual` ve `network` testlerini dışarıda bırakır. Nuitka derlemesi CI'da koşmaz. Lint (ruff/flake8) henüz yoktur: mevcut kodda toplu temizlik gerektirir.
 
 ## 6. Çalıştırma Betikleri
 
@@ -42,4 +42,4 @@ Testler preflight'ın statik koşullarını da denetler (`tests/infrastructure/t
 
 ## 7. `auto_commit.py`
 
-Kök dizindeki `auto_commit.py`, değişen dosyaların diff'ini Gemini API'ye (`gemini-2.5-flash`) göndererek Türkçe commit mesajı önerir. Hassas dosyalar (`.env*`, anahtar/sertifika uzantıları, `.db`, `.sqlite`, adında `secret`/`password`/`token`/`api_key` geçenler) dış API'ye gönderilmez; yine de diff içeriği dış servise gider. Zorunlu bir süreç adımı değildir. Commit kuralları için [GOVERNANCE.md](../../GOVERNANCE.md).
+Kök dizindeki `auto_commit.py`, değişen dosyaların diff'ini Gemini API'ye (`gemini-2.5-flash`) göndererek Türkçe commit mesajı önerir. Hassas dosyalar (`.env*`, anahtar/sertifika uzantıları, `.db`, `.sqlite`, adında `secret`/`password`/`token`/`api_key` geçenler) dış API'ye gönderilmez; yine de diff içeriği dış servise gider. Zorunlu bir süreç adımı değildir. Gemini anahtarını önce işletim sistemi sır deposundan (Ayarlar sayfasının yazdığı yer), sonra ortam değişkeninden, en son `.env` dosyasından okur. Commit kuralları için [GOVERNANCE.md](../../GOVERNANCE.md).

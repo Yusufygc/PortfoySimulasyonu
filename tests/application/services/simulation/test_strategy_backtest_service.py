@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 
 from src.application.services.planning.optimization_service import compute_max_sharpe_weights
+from src.application.services.simulation.strategy_backtest import BacktestSetup
 from src.application.services.simulation.strategy_backtest_service import (
     WEIGHTING_EQUAL,
     WEIGHTING_MARKOWITZ,
@@ -18,6 +19,21 @@ from src.application.services.simulation.strategy_backtest_service import (
 
 CAPITAL = Decimal("100000")
 START, END = date(2025, 1, 2), date(2025, 12, 31)
+
+
+_SETUP_KEYS = ("tickers", "initial_capital", "start_date", "end_date", "commission_rate")
+
+
+def _setup(tickers=("AAA", "BBB"), **overrides) -> BacktestSetup:
+    values = dict(initial_capital=CAPITAL, start_date=START, end_date=END, commission_rate=0.0)
+    values.update(overrides)
+    return BacktestSetup(tickers=list(tickers), **values)
+
+
+def _split(params: dict):
+    """Karışık parametre sözlüğünü (BacktestSetup alanları + yöntem parametreleri) ikiye ayırır."""
+    setup = BacktestSetup(**{key: params[key] for key in _SETUP_KEYS if key in params})
+    return setup, {key: value for key, value in params.items() if key not in _SETUP_KEYS}
 
 
 def _business_days(start: date, end: date):
@@ -85,7 +101,7 @@ class TestComputeMaxSharpeWeights:
 class TestRebalancingService:
     def test_equal_weight_run_returns_series_and_baseline(self, three_stocks):
         result = _service(three_stocks).run_rebalancing(
-            ["aaa", "BBB.IS", "ccc"], CAPITAL, START, END, rebalance_every_months=3, weighting=WEIGHTING_EQUAL
+            _setup(["aaa", "BBB.IS", "ccc"]), rebalance_every_months=3, weighting=WEIGHTING_EQUAL
         )
 
         assert result.start_date >= START and result.end_date <= END
@@ -96,21 +112,21 @@ class TestRebalancingService:
 
     def test_markowitz_uses_warmup_history_and_changes_weights(self, three_stocks):
         result = _service(three_stocks).run_rebalancing(
-            ["AAA", "BBB", "CCC"], CAPITAL, START, END, rebalance_every_months=3, weighting=WEIGHTING_MARKOWITZ
+            _setup(["AAA", "BBB", "CCC"]), rebalance_every_months=3, weighting=WEIGHTING_MARKOWITZ
         )
 
         assert result.start_date == START or result.start_date <= date(2025, 1, 6)
         assert not [e for e in result.events if e.action == "FALLBACK"]
         assert any(e.action == "REBALANCE" for e in result.events)
         # Maksimum Sharpe ağırlıkları eşit ağırlıktan farklıdır, bu yüzden strateji tabanı tutmaz
-        equal = _service(three_stocks).run_rebalancing(["AAA", "BBB", "CCC"], CAPITAL, START, END, 3, WEIGHTING_EQUAL)
+        equal = _service(three_stocks).run_rebalancing(_setup(["AAA", "BBB", "CCC"]), 3, WEIGHTING_EQUAL)
         assert result.final_value != equal.final_value
 
     def test_markowitz_without_warmup_data_falls_back_to_equal_and_reports(self):
         days = list(_business_days(START, END))
         data = {"AAA": _walk(1, 0.001, 0.01, days), "BBB": _walk(2, 0.0, 0.02, days)}
         # Başlangıçtan önce veri yok: ilk gün 60 gün geçmiş yok -> eşit ağırlık
-        result = _service(data).run_rebalancing(["AAA", "BBB"], CAPITAL, START, END, 6, WEIGHTING_MARKOWITZ)
+        result = _service(data).run_rebalancing(_setup(["AAA", "BBB"]), 6, WEIGHTING_MARKOWITZ)
 
         fallback = [e for e in result.events if e.action == "FALLBACK"]
         assert fallback and fallback[0].event_date == result.start_date
@@ -132,14 +148,15 @@ class TestRebalancingService:
         params = dict(tickers=["AAA", "BBB"], initial_capital=CAPITAL, start_date=START, end_date=END)
         params.update(kwargs)
 
+        setup, method_args = _split(params)
         with pytest.raises(ValueError, match=message):
-            _service(three_stocks).run_rebalancing(**params)
+            _service(three_stocks).run_rebalancing(setup, **method_args)
 
 
 class TestStopTakeService:
     def test_runs_on_real_series_and_reports_exits(self, three_stocks):
         result = _service(three_stocks).run_stop_take(
-            ["AAA", "BBB", "CCC"], CAPITAL, START, END, stop_loss_pct=8, take_profit_pct=15
+            _setup(["AAA", "BBB", "CCC"]), stop_loss_pct=8, take_profit_pct=15
         )
 
         assert result.exit_count == len([e for e in result.events if e.action in ("STOP_LOSS", "TAKE_PROFIT")])
@@ -160,5 +177,6 @@ class TestStopTakeService:
         params = dict(tickers=["AAA"], initial_capital=CAPITAL, start_date=START, end_date=END, stop_loss_pct=5)
         params.update(kwargs)
 
+        setup, method_args = _split(params)
         with pytest.raises(ValueError, match=message):
-            _service(three_stocks).run_stop_take(**params)
+            _service(three_stocks).run_stop_take(setup, **method_args)

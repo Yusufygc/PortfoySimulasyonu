@@ -7,11 +7,22 @@ import subprocess
 import time
 
 def get_api_key():
+    """Gemini anahtarı: önce işletim sistemi sır deposu (Ayarlar sayfası oraya yazar), sonra ortam, sonra .env."""
+    try:
+        from config.secret_store import KeyringSecretStore
+
+        stored = KeyringSecretStore().get("GEMINI_API_KEY")
+        if stored:
+            return stored
+    except Exception:
+        pass
+    if os.environ.get("GEMINI_API_KEY"):
+        return os.environ["GEMINI_API_KEY"].strip()
     try:
         with open(".env", "r", encoding="utf-8") as f:
             for line in f:
                 if line.startswith("GEMINI_API_KEY="):
-                    return line.strip().split("=")[1].strip()
+                    return line.strip().split("=", 1)[1].strip()
     except Exception as e:
         print(f"Error reading .env: {e}")
     return None

@@ -12,6 +12,7 @@ from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from PySide6.QtWidgets import QApplication
 
 from src.application.services.simulation.strategy_backtest import (
+    BacktestSetup,
     equal_weight_function,
     simulate_rebalancing,
     simulate_stop_take,
@@ -40,13 +41,13 @@ class ImmediateExecutor:
 
 def _stop_take_result():
     series = {d: {"A": Decimal(p)} for d, p in zip(DAYS, (100, 95, 90, 70, 50))}
-    return simulate_stop_take(series, ["A"], CAPITAL, DAYS[0], 10, None)
+    return simulate_stop_take(series, BacktestSetup(["A"], CAPITAL, DAYS[0]), 10, None)
 
 
 def _rebalance_result():
     rows = [(date(2026, 1, 2), 100, 100), (date(2026, 2, 2), 200, 100), (date(2026, 3, 2), 100, 100)]
     series = {d: {"A": Decimal(a), "B": Decimal(b)} for d, a, b in rows}
-    return simulate_rebalancing(series, ["A", "B"], CAPITAL, rows[0][0], 1, equal_weight_function(["A", "B"]))
+    return simulate_rebalancing(series, BacktestSetup(["A", "B"], CAPITAL, rows[0][0]), 1, equal_weight_function(["A", "B"]))
 
 
 class FakeService:
@@ -123,11 +124,11 @@ class TestRun:
 
         name, args = service.calls[0]
         assert name == "rebalancing"
-        tickers, capital, start, end, months, weighting, commission = args
-        assert tickers == ["THYAO", "ASELS"]
-        assert capital == Decimal("50000")  # "50.000" Türkçe binlik ayracı
-        assert (start, end, months, weighting) == (date(2026, 1, 1), date(2026, 6, 30), 3, "markowitz")
-        assert commission == pytest.approx(0.001)
+        setup, months, weighting = args
+        assert setup.tickers == ["THYAO", "ASELS"]
+        assert setup.initial_capital == Decimal("50000")  # "50.000" Türkçe binlik ayracı
+        assert (setup.start_date, setup.end_date, months, weighting) == (date(2026, 1, 1), date(2026, 6, 30), 3, "markowitz")
+        assert setup.commission_rate == pytest.approx(0.001)
         assert "2 dengeleme" in ctrl.summaryText
         assert [e["actionText"] for e in ctrl.events][:2] == ["Dengeleme", "Dengeleme"]
 
@@ -150,7 +151,7 @@ class TestRun:
         assert notes == [(False, "Simülasyon çalıştırılamadı.")]
 
     def test_empty_result_is_reported(self, qapp):
-        empty = simulate_stop_take({}, ["A"], CAPITAL, DAYS[0], 10, None)
+        empty = simulate_stop_take({}, BacktestSetup(["A"], CAPITAL, DAYS[0]), 10, None)
         ctrl = _controller(FakeService(empty))
         notes = _capture(ctrl.notification)
 
@@ -220,7 +221,7 @@ class TestStrategyTabQml:
 
         name, args = service.calls[0]
         assert name == "rebalancing"
-        assert args[0] == ["THYAO", "ASELS", "BIMAS"]
-        assert args[4] == 3 and args[5] == "equal"  # varsayılan: 3 aylık, eşit ağırlık
+        assert args[0].tickers == ["THYAO", "ASELS", "BIMAS"]
+        assert args[1] == 3 and args[2] == "equal"  # varsayılan: 3 aylık, eşit ağırlık
         assert item.property("hasResult") is True
         assert self.warnings == []

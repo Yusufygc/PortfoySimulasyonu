@@ -7,6 +7,7 @@ from decimal import Decimal
 import pytest
 
 from src.application.services.simulation.strategy_backtest import (
+    BacktestSetup,
     equal_weight_function,
     max_drawdown_pct,
     rebalance_dates,
@@ -52,8 +53,8 @@ class TestMaxDrawdown:
 class TestRebalancing:
     def _run(self, rows, months=1, commission=0.0, weight_fn=None, tickers=("A", "B")):
         return simulate_rebalancing(
-            _series(rows), list(tickers), CAPITAL, rows[0][0], months,
-            weight_fn or equal_weight_function(list(tickers)), commission,
+            _series(rows), BacktestSetup(list(tickers), CAPITAL, rows[0][0], commission_rate=commission), months,
+            weight_fn or equal_weight_function(list(tickers)),
         )
 
     def test_constant_prices_change_nothing(self):
@@ -143,13 +144,13 @@ class TestRebalancing:
             return {"A": 1.0, "B": 1.0}
 
         rows = [(date(2025, 12, 1), {"A": 90, "B": 90})] + [(d, {"A": 100, "B": 100}) for d in MONTHLY[:3]]
-        simulate_rebalancing(_series(rows), ["A", "B"], CAPITAL, date(2026, 1, 2), 1, spy)
+        simulate_rebalancing(_series(rows), BacktestSetup(["A", "B"], CAPITAL, date(2026, 1, 2)), 1, spy)
 
         assert seen[date(2026, 1, 2)] == (2, date(2026, 1, 2))  # ısınma barı + başlangıç, sonrası yok
         assert seen[date(2026, 2, 2)][1] == date(2026, 2, 2)
 
     def test_no_data_returns_empty_result(self):
-        result = simulate_rebalancing({}, ["A", "B"], CAPITAL, date(2026, 1, 1), 1, equal_weight_function(["A", "B"]))
+        result = simulate_rebalancing({}, BacktestSetup(["A", "B"], CAPITAL, date(2026, 1, 1)), 1, equal_weight_function(["A", "B"]))
 
         assert result.strategy_series == {} and result.total_return_pct is None
 
@@ -159,7 +160,7 @@ class TestStopTake:
         days = [date(2026, 1, 1) + timedelta(days=i) for i in range(len(a_prices))]
         rows = [(d, {"A": p, **({"B": extra[i]} if extra else {})}) for i, (d, p) in enumerate(zip(days, a_prices))]
         tickers = ["A", "B"] if extra else ["A"]
-        return simulate_stop_take(_series(rows), tickers, CAPITAL, days[0], stop, take, commission), days
+        return simulate_stop_take(_series(rows), BacktestSetup(tickers, CAPITAL, days[0], commission_rate=commission), stop, take), days
 
     def test_stop_loss_sells_at_threshold_and_stays_in_cash(self):
         result, days = self._run([100, 95, 90, 70, 50], stop=10)
@@ -199,7 +200,7 @@ class TestStopTake:
 
     def test_requires_at_least_one_threshold(self):
         with pytest.raises(ValueError):
-            simulate_stop_take(_series([(date(2026, 1, 1), {"A": 100})]), ["A"], CAPITAL, date(2026, 1, 1), None, None)
+            simulate_stop_take(_series([(date(2026, 1, 1), {"A": 100})]), BacktestSetup(["A"], CAPITAL, date(2026, 1, 1)), None, None)
 
     def test_drawdown_is_lower_for_stopped_strategy(self):
         result, _ = self._run([100, 90, 60, 40], stop=10)

@@ -233,6 +233,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Etki:** Düşük; QML slot imzaları parametre sayısını zorluyor.
 - **Çözüm:** Servis katmanında parametre nesnesi (`StopTakeParams`); `container_parts/services.py` istisna olarak belgelenir.
 - **Düzeltme Eforu:** M
+- **Durum:** Kısmen çözüldü (2026-10-04). Strateji backtest ailesi `BacktestSetup` parametre nesnesine geçti (`simulate_rebalancing/stop_take` 7 -> 4, `run_rebalancing/stop_take` 7 -> 3, `_build_result` 7 -> 4; `_RunLog`); eşik dışı fonksiyon 103 -> 98. Bilinçli bırakılanlar: QML `@Slot` imzaları (`runRebalancing`, `runStopTake`, `submitTradeAt`, `updateCandidate`, `addTrade`, `applyAction`, `computePreview`: parametre sayısı QML çağrısının sözleşmesidir), `MarketDataSyncService.__init__` (bağımlılık enjeksiyonu kurucusu) ve import sayısı >25 olan kompozisyon/facade modülleri (`container_parts/services.py` 48, `ui_qml/app.py`, `analysis_service.py`, `portfolio_analytics_service.py`, `stock_360_controller.py`).
 
 ### [🟢] 16. Bakım artıkları
 - **Persona:** DevOps.
@@ -240,6 +241,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Kategori:** Bakım
 - **Sorun:** Üç eskimiş tek seferlik betik hâlâ duruyor. `auto_commit.py` belgesiz ve kök dizinde. `CLAUDE.md` ve `RULES.md` hem `.gitignore`'da hem izleniyor (ignore etkisiz, yanıltıcı).
 - **Çözüm:** Betikleri sil veya `scripts/legacy/`; `.gitignore` satırlarını kaldır; `auto_commit.py` ya belgele ya sil.
+- **Durum:** Çözüldü (2026-10-04), iki düzeltmeyle. Üç eskimiş betik silindi. **Rapor hatası:** `auto_commit.py` belgesiz değildi (`project_build_and_deployment.md` §7 ve `index.md`'de anlatılıyor); bunun yerine Bulgu 10'dan sonra Gemini anahtarını yalnızca `.env`'den okuduğu için bozulmuştu: artık önce sır deposundan okuyor. `.gitignore`'daki `CLAUDE.md`/`RULES.md` satırlarına **dokunulmadı**: dosyalar izleniyor (ignore etkisiz), ama `ARCHITECTURE_GATES.md` ajanın `.gitignore`'daki kural dosyalarını commit'lememesini bu listeye dayandırıyor; satırları kaldırmak o kuralı sessizce değiştirir. Karar sende.
 - **Düzeltme Eforu:** S
 
 ## Metodoloji Uyumu (`AI-Gelistirme-Metodolojisi.md`)

@@ -12,6 +12,7 @@ Markowitz ağırlığı: her yeniden dengeleme gününde, o güne kadarki son `l
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Dict, List, Optional
@@ -21,6 +22,7 @@ import pandas as pd
 from src.application.services.planning.optimization_service import compute_max_sharpe_weights
 from src.application.services.simulation.price_series_loader import load_price_series
 from src.application.services.simulation.strategy_backtest import (
+    BacktestSetup,
     StrategyBacktestResult,
     equal_weight_function,
     simulate_rebalancing,
@@ -44,12 +46,12 @@ def _normalize(tickers: List[str]) -> List[str]:
     return seen
 
 
-def _validate_common(capital: Decimal, start_date: date, end_date: date, commission_rate: float) -> None:
-    if capital <= 0:
+def _validate_common(setup: BacktestSetup) -> None:
+    if setup.initial_capital <= 0:
         raise ValueError("Başlangıç sermayesi 0'dan büyük olmalıdır.")
-    if end_date <= start_date:
+    if setup.end_date is None or setup.end_date <= setup.start_date:
         raise ValueError("Bitiş tarihi başlangıç tarihinden sonra olmalıdır.")
-    if not 0 <= commission_rate < 0.1:
+    if not 0 <= setup.commission_rate < 0.1:
         raise ValueError("Komisyon oranı %0 ile %10 arasında olmalıdır.")
 
 
@@ -63,41 +65,31 @@ class StrategyBacktestService:
 
     def run_rebalancing(
         self,
-        tickers: List[str],
-        initial_capital: Decimal,
-        start_date: date,
-        end_date: date,
+        setup: BacktestSetup,
         rebalance_every_months: int = 3,
         weighting: str = WEIGHTING_EQUAL,
-        commission_rate: float = 0.0,
     ) -> StrategyBacktestResult:
-        names = _normalize(tickers)
+        names = _normalize(list(setup.tickers))
         if len(names) < 2:
             raise ValueError("Yeniden dengeleme için en az 2 hisse kodu girin.")
         if weighting not in (WEIGHTING_EQUAL, WEIGHTING_MARKOWITZ):
             raise ValueError("Ağırlık yöntemi 'equal' veya 'markowitz' olmalıdır.")
         if not 1 <= rebalance_every_months <= 12:
             raise ValueError("Yeniden dengeleme aralığı 1 ile 12 ay arasında olmalıdır.")
-        _validate_common(initial_capital, start_date, end_date, commission_rate)
+        _validate_common(setup)
 
         warmup = _WARMUP_CALENDAR_DAYS if weighting == WEIGHTING_MARKOWITZ else 0
-        series = self._load(names, start_date - timedelta(days=warmup), end_date)
+        series = self._load(names, setup.start_date - timedelta(days=warmup), setup.end_date)
         weight_fn = self._markowitz_weight_function() if weighting == WEIGHTING_MARKOWITZ else equal_weight_function(names)
-        return simulate_rebalancing(
-            series, names, initial_capital, start_date, rebalance_every_months, weight_fn, commission_rate
-        )
+        return simulate_rebalancing(series, replace(setup, tickers=names), rebalance_every_months, weight_fn)
 
     def run_stop_take(
         self,
-        tickers: List[str],
-        initial_capital: Decimal,
-        start_date: date,
-        end_date: date,
+        setup: BacktestSetup,
         stop_loss_pct: Optional[float] = None,
         take_profit_pct: Optional[float] = None,
-        commission_rate: float = 0.0,
     ) -> StrategyBacktestResult:
-        names = _normalize(tickers)
+        names = _normalize(list(setup.tickers))
         if not names:
             raise ValueError("En az bir hisse kodu girin.")
         if stop_loss_pct is None and take_profit_pct is None:
@@ -107,10 +99,10 @@ class StrategyBacktestService:
                 raise ValueError(f"{label} eşiği 0'dan büyük olmalıdır.")
         if stop_loss_pct is not None and stop_loss_pct >= 100:
             raise ValueError("Stop-loss eşiği %100'den küçük olmalıdır.")
-        _validate_common(initial_capital, start_date, end_date, commission_rate)
+        _validate_common(setup)
 
-        series = self._load(names, start_date, end_date)
-        return simulate_stop_take(series, names, initial_capital, start_date, stop_loss_pct, take_profit_pct, commission_rate)
+        series = self._load(names, setup.start_date, setup.end_date)
+        return simulate_stop_take(series, replace(setup, tickers=names), stop_loss_pct, take_profit_pct)
 
     def _load(self, tickers: List[str], start_date: date, end_date: date) -> Dict[date, Dict[str, Decimal]]:
         series = load_price_series(

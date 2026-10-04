@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] temizlik | Parametre Nesnesi ve Bakım Artıkları (Denetim Bulgu 15-16)
+
+- **Bulgu 15:** `BacktestSetup` (`strategy_backtest.py`) parametre nesnesi: `simulate_rebalancing` / `simulate_stop_take` 7 -> 4 parametre, `StrategyBacktestService.run_rebalancing` / `run_stop_take` 7 -> 3, `_build_result` 7 -> 4 (`_RunLog`). Denetleyici ve testler uyarlandı (78 test). QML `@Slot` imzaları, `MarketDataSyncService.__init__` ve import sayısı yüksek kompozisyon modülleri bilinçli bırakıldı.
+- **Bulgu 16:** Silindi: `scripts/import_bist_ohlcv_to_db.py`, `backfill_missing_friday_prices.py`, `fix_technical_analysis.py` (eskimiş tek seferlik betikler). `auto_commit.py` Gemini anahtarını artık sır deposundan, ortamdan, en son `.env`'den okuyor (Bulgu 10 sonrası `.env`'de anahtar kalmadığı için bozulmuştu). `.gitignore`'daki `CLAUDE.md`/`RULES.md` satırlarına dokunulmadı (bkz. denetim raporu).
+- Eşik dışı fonksiyon sayısı 103 -> 98; CI tavanı 98'e çekildi.
+
+---
 ## [2026-10-04] refaktör | Dev QML Görünümlerinin Bölünmesi (Denetim Bulgu 14)
 
 - **Güvence:** Yeni `tests/ui_qml/test_qml_views_runtime_smoke.py`: beş büyük görünüm uygulamadaki tüm bağlam özellikleriyle oluşturulur, her sekme/mod etkinleştirilir ve QML motorunun **hiç uyarı** üretmediği doğrulanır (kopan `root.*` / kimlik başvurularını yakalar). Test başlangıçta `ModelAnalysisPanel.qml` içinde 3 `Unable to assign undefined to QString` uyarısı buldu (analiz verisi yokken); boş metin yedeğiyle giderildi.

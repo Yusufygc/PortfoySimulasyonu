@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from src.application.services.simulation.strategy_backtest import StrategyBacktestResult
+from src.application.services.simulation.strategy_backtest import BacktestSetup, StrategyBacktestResult
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.controllers.lw_chart_html import line_chart_html
 
@@ -137,13 +137,8 @@ class StrategyBacktestController(QObject):
         args = self._common_args(tickers, capital, start, end, commission_pct)
         if args is None:
             return
-        names, amount, start_date, end_date, commission = args
-        self._submit(
-            "rebalance",
-            lambda: self._service.run_rebalancing(
-                names, amount, start_date, end_date, months, weighting, commission
-            ),
-        )
+        setup = self._setup(*args)
+        self._submit("rebalance", lambda: self._service.run_rebalancing(setup, months, weighting))
 
     @Slot(str, str, str, str, str, str, str)
     def runStopTake(
@@ -156,13 +151,16 @@ class StrategyBacktestController(QObject):
         if stop is None and take is None:
             self.notification.emit(False, "Stop-loss veya take-profit eşiklerinden en az birini girin.")
             return
-        names, amount, start_date, end_date, commission = args
-        self._submit(
-            "stop_take",
-            lambda: self._service.run_stop_take(names, amount, start_date, end_date, stop, take, commission),
-        )
+        setup = self._setup(*args)
+        self._submit("stop_take", lambda: self._service.run_stop_take(setup, stop, take))
 
     # ------------------------------------------------------------------ internal
+
+    @staticmethod
+    def _setup(names, amount, start_date, end_date, commission) -> BacktestSetup:
+        return BacktestSetup(
+            tickers=names, initial_capital=amount, start_date=start_date, end_date=end_date, commission_rate=commission
+        )
 
     def _common_args(self, tickers: str, capital: str, start: str, end: str, commission_pct: str):
         if self._service is None:
