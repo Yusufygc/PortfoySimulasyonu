@@ -41,7 +41,7 @@ ALLOWED_TURKISH_LITERALS = {
     ("components/PlanningGoalsTab.qml", "YÜKSEK"),
     ("components/PlanningGoalsTab.qml", "DÜŞÜK"),
     ("views/ComparisonView.qml", "ÖZEL"),                    # dönem etiketi
-    ("views/SettingsView.qml", "Başarılı"),                  # API testi sonuç metninde aranan kelime
+    ("components/SettingsApiKeysTab.qml", "Başarılı"),        # API testi sonuç metninde aranan kelime
     ("components/MetricCard.qml", "Metrik Başlığı"),
 }
 

@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] refaktör | Dev QML Görünümlerinin Bölünmesi (Denetim Bulgu 14)
+
+- **Güvence:** Yeni `tests/ui_qml/test_qml_views_runtime_smoke.py`: beş büyük görünüm uygulamadaki tüm bağlam özellikleriyle oluşturulur, her sekme/mod etkinleştirilir ve QML motorunun **hiç uyarı** üretmediği doğrulanır (kopan `root.*` / kimlik başvurularını yakalar). Test başlangıçta `ModelAnalysisPanel.qml` içinde 3 `Unable to assign undefined to QString` uyarısı buldu (analiz verisi yokken); boş metin yedeğiyle giderildi.
+- **Adım 1 - `SettingsView.qml`** (1117 -> 231 satır): sekme 0-3 yeni bileşenlere çıkarıldı (`SettingsAppearanceTab`, `SettingsApiKeysTab`, `SettingsDataHealthTab`, `SettingsExportTab`); sekme 4-7 zaten ayrı bileşendi. Bileşenler eskisi gibi doğrudan örneklenir (yük/bellek davranışı ve sekmeler arası durum korunur, `Loader` kullanılmadı). `test_strings_catalog.py` izin listesi taşınan `Başarılı` literali için güncellendi.
+
+---
 ## [2026-10-04] düzeltme | yfinance Kapısı Zaman Aşımı (Denetim Bulgu 13)
 
 - Denetim bulgusu kodla doğrulandı ve **kısmen düzeltildi**: toplu BIST indirmeleri (`bist_bulk_downloader.py`, `market_data_sync_service.py`) `yfinance_lock` kullanmıyor ve zaten eşzamanlı çalışıyor; yani "toplu senkron kullanıcının fiyat sorgusunu bekletir" iddiası yanlıştı. yfinance 1.7.0 `multi.py` paylaşılan küresel durum (`shared._DFS`) kullanmıyor. Gerçek risk: kilit alma süresiz olduğundan takılan tek bir etkileşimli çağrı diğer tüm etkileşimli yfinance çağrılarını bekletebilir.
