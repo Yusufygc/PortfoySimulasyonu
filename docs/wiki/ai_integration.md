@@ -25,6 +25,8 @@ API anahtarı `GEMINI_API_KEY` (veya Ayarlar > API Anahtarları) ile verilir; `A
 
 ## 2. Portföy Danışmanı (Tool-Calling)
 
+Kod yapısı (UI katmanı): `ai_advisor_controller.py` QML yüzeyi ve sinyal akışını; `advisor_chat_support.py` sistem istemi, karşılama, hızlı sorular, oturum dönüşümleri ve Gemini çağrısını; `advisor_local_analysis.py` anahtar yokken çalışan yerel analiz motorunu; `advisor_health.py` sağlık skoru eşik tablolarını ve hesabını taşır.
+
 Akış: kullanıcı mesajı -> `AiAdvisorController` arka plan iş parçacığında `AiAdvisorService.chat(api_key, sistem_istemi, turlar)` -> `GeminiAdvisorChatProvider` Gemini'ye araç bildirimleriyle gönderir -> model araç çağırırsa servis çalıştırıp sonucu geri verir -> en çok **4 tur** sonra son metin döner. Sonuç metin ve "kullanılan araçlar" rozetleri olarak gösterilir.
 
 Araçlar (`advisor_tools.py`; hepsi **salt okunur**, JSON döner; mutasyon aracı eklenmez ve bu bir istem kuralı değil mimari sınırdır):

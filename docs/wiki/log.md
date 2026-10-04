@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] refaktör | AiAdvisorController Ayrıştırması, 4. Adım (Denetim Bulgu 2)
+
+- **Karakterizasyon:** Refaktör öncesi kod sahte danışman/oturum servisleriyle iki altın çıktı üretti (25 + 10 senaryo): sağlık skoru (tüm eşik bantları, eksik veri, bozuk girdi, araç hatası, danışman yok; sinyal sırası dahil), yerel analiz (genel/optimizasyon, tüm araçların başarılı/başarısız/yok durumları), araç etiketleri, arka plan çalışanı (Gemini başarılı/hata/anahtar yok/servis yok), karşılama, hızlı sorular, oturum listesi (kısmi hata dahil), kalıcılaştırma ve oturum açma. Sonrasında bayt düzeyinde özdeş.
+- **Yeni `advisor_health.py`:** eşik tabloları (`_DIVERSITY_BANDS`, ...) ve `compute_health` / `default_health`; `refreshHealthScore` (110 satır, CC 22) ~15 satıra indi.
+- **Yeni `advisor_local_analysis.py`:** yerel analiz motoru (`generate_local_portfolio_analysis`, `fmt_money_tr`, `fmt_pct_tr`, `TOOL_LABELS`); `_generate_local_portfolio_analysis` (113 satır, CC 18) rapor üreticilerine bölündü, tekrarlayan araç çağrısı `_call_tool` oldu.
+- **Yeni `advisor_chat_support.py`:** `ADVISOR_SYSTEM_PROMPT`, karşılama mesajı, hızlı sorular, mesaj/oturum dönüşümleri ve `try_gemini_chat`.
+- **`AiAdvisorController`:** 835 -> 458 satır; kullanılmayan üç servis erişimcisi (`_get_portfolio_analytics_service`, `_get_risk_optimization_bridge`, `_get_stock_360_service`) silindi. QML yüzeyi değişmedi.
+- **Ölçüm:** etkin satır 613 -> 299: **300 satır eşiğinin altına indi** (sınıf ihlali yalnızca metot sayısı: 40 > 20). Eşik dışı fonksiyon 77 -> 75, CI tavanı 75.
+- **Testler:** Yeni `tests/ui_qml/test_advisor_modules.py` (21 test); mevcut testler değişmeden geçti.
+
+---
 ## [2026-10-04] refaktör | OptimizationController Ayrıştırması, 3. Adım (Denetim Bulgu 2)
 
 - **Karakterizasyon:** Refaktör öncesi kod sahte servislerle 33 senaryoda çalıştırıldı: açılış ve kayıtlı risk profili durumları, ana/model portföy hesabı, tüm hata dalları (servis yok, 2'den az pozisyon, bozuk portföy kodu, arama servisi yok), `_on_calc_finished` sonrası tüm QML özellikleri, öneri tabloları, iki grafik HTML'inin SHA-256 özetleri ve slot davranışları (Monte Carlo için sabit tohum). Refaktör sonrası bayt düzeyinde özdeş.

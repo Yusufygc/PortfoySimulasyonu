@@ -13,7 +13,6 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
@@ -22,48 +21,18 @@ from config.settings_loader import persist_api_keys
 from src.application.services.ai.ai_advisor_service import AiAdvisorService
 from src.application.services.ai.safety_guard import MAX_CHAR_LIMIT, validate_user_input
 from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
-from src.ui_qml.controllers.advisor_query_intent import is_optimization_query
+from src.ui_qml.controllers.advisor_health import compute_health, default_health
+from src.ui_qml.controllers.advisor_chat_support import (
+    build_welcome_message,
+    default_quick_prompts,
+    message_to_dict,
+    messages_to_persist,
+    session_list_item,
+    try_gemini_chat,
+)
+from src.ui_qml.controllers.advisor_local_analysis import TOOL_LABELS, generate_local_portfolio_analysis
 
 logger = logging.getLogger(__name__)
-
-ADVISOR_SYSTEM_PROMPT = """Sen Borsa İstanbul (BIST) ve modern portföy yönetimi konusunda uzmanlaşmış, analitik, rasyonel ve yardımsever bir Kıdemli Portföy Danışmanısın.
-Sana kullanıcının portföyünü, risk metriklerini ve hisse detaylarını inceleyebilmen için özel analiz araçları (tools) sağlanmıştır:
-- get_portfolio_overview: Kullanıcının toplam portföy büyüklüğü, dönem getirisi, BIST100 farkı ve en iyi/kötü hisselerini döner.
-- get_allocation_and_risk: Varlık dağılımı (ağırlık %), volatilite, maksimum düşüş (drawdown), beta, Sharpe ve yoğunlaşma durumunu döner.
-- suggest_optimization: Modern Portföy Teorisi (Markowitz SLSQP) ile hedef ağırlıklar ve AL/SAT/TUT yeniden dengeleme önerileri döner.
-- get_stock_overview: Tek bir hissenin güncel fiyatı, 52 haftalık aralığı ve teknik indikatörlerini (RSI, MACD, SMA) döner.
-
-TEMEL İLKELERİN:
-1. Kullanıcı portföyü, hisseleri veya piyasa hakkında bir şey sorduğunda ilgili aracı ÇAĞIR ve gerçek verilere dayanarak konuş.
-2. Spekülatif, temelsiz veya kesinlik bildiren ("kesin yükselecektir", "tavan yapacak") ifadelerden kaçın.
-3. Rakamları ve oranları Türkiye finans standartlarında ifade et (örn: ₺150.450,20 ve %14,25).
-4. Yanıtlarında Markdown kalın metin, liste ve net paragraflar kullan. Aşırı uzun ve boğucu rapor dilinden kaçın; pratik ve uygulanabilir içgörüler sun.
-5. Cevabın sonunda mutlaka 1-2 cümlelik "Özet / Aksiyon Önerisi" ve yasal uyarı ("Yatırım tavsiyesi niteliğinde değildir.") ekle.
-"""
-
-
-def _fmt_money_tr(val: float | Decimal | None) -> str:
-    if val is None:
-        return "0,00 ₺"
-    try:
-        return f"{float(val):,.2f} ₺".replace(",", "X").replace(".", ",").replace("X", ".")
-    except Exception:
-        return f"{val} ₺"
-
-
-def _fmt_pct_tr(val: float | None, with_sign: bool = False) -> str:
-    if val is None:
-        return "%0,00"
-    num = float(val)
-    if abs(num) < 0.0001:
-        return "%0,00"
-    formatted = f"{abs(num):.2f}".replace(".", ",")
-    if num < 0:
-        return f"-%{formatted}"
-    elif with_sign and num > 0:
-        return f"+%{formatted}"
-    return f"%{formatted}"
-
 
 class AiAdvisorController(QObject):
     """QML AiAdvisorView için veri ve etkileşim köprüsü."""
@@ -107,28 +76,7 @@ class AiAdvisorController(QObject):
         self._health_factors: List[Dict[str, Any]] = []
 
         # Hızlı Soru Önerileri
-        self._quick_prompts: List[Dict[str, Any]] = [
-            {
-                "title": "Portföy Risk Analizi",
-                "prompt": "Portföyümün genel risk ve getiri durumunu, Sharpe oranını ve en büyük risk faktörlerini özetler misin?",
-                "icon": "shield-check",
-            },
-            {
-                "title": "Varlık Dağılımı & Yoğunlaşma",
-                "prompt": "Portföyümdeki varlık dağılımı ve hisse ağırlıklarım dengeli mi? Aşırı yoğunlaşma riski taşıyan hissem var mı?",
-                "icon": "pie-chart",
-            },
-            {
-                "title": "Rebalance (Yeniden Dengeleme)",
-                "prompt": "Dengeli risk profiline göre portföyümü optimize ettiğimizde hangi hisseleri artırmalı veya azaltmalıyım?",
-                "icon": "scale",
-            },
-            {
-                "title": "Hisse Durum Değerlendirmesi",
-                "prompt": "Portföyümdeki en büyük pozisyonumun güncel fiyatı, teknik seviyeleri ve 52 haftalık görünümü nedir?",
-                "icon": "trending-up",
-            },
-        ]
+        self._quick_prompts: List[Dict[str, Any]] = default_quick_prompts()
 
         # İç sinyal bağlantıları
         self._asyncResponseReady.connect(self._on_async_response_ready)
@@ -211,50 +159,12 @@ class AiAdvisorController(QObject):
             return None
         return getattr(self._container, "ai_advisor_service", None)
 
-    def _get_portfolio_analytics_service(self):
-        if not self._container:
-            return None
-        services = getattr(self._container, "services", None)
-        if services and hasattr(services, "portfolio_analytics_service"):
-            return services.portfolio_analytics_service
-        return getattr(self._container, "portfolio_analytics_service", None)
-
-    def _get_risk_optimization_bridge(self):
-        if not self._container:
-            return None
-        services = getattr(self._container, "services", None)
-        if services and hasattr(services, "risk_optimization_bridge_service"):
-            return services.risk_optimization_bridge_service
-        return getattr(self._container, "risk_optimization_bridge_service", None)
-
-    def _get_stock_360_service(self):
-        if not self._container:
-            return None
-        services = getattr(self._container, "services", None)
-        if services and hasattr(services, "stock_360_service"):
-            return services.stock_360_service
-        return getattr(self._container, "stock_360_service", None)
-
     # -------------------------------------------------------------------------
     # Karşılama ve Sıfırlama
     # -------------------------------------------------------------------------
 
     def _init_welcome_message(self) -> None:
-        now_str = datetime.now().strftime("%H:%M")
-        welcome = {
-            "id": "msg-0",
-            "role": "ai",
-            "content": (
-                "**Merhaba! Ben Gemini destekli Yapay Zeka Portföy Danışmanınız.**\n\n"
-                "Portföyünüzün risk ve varlık dağılımını analiz edebilir, Modern Portföy Teorisi'ne göre "
-                "yeniden dengeleme (rebalance) önerileri sunabilir ve hisselerinizin teknik/temel verilerini yorumlayabilirim.\n\n"
-                "Aşağıdaki **Hızlı Analiz Soruları**ndan birine tıklayabilir veya aklınızdaki soruyu doğrudan yazabilirsiniz."
-            ),
-            "timestamp": now_str,
-            "toolCalls": [],
-            "isWelcome": True,
-        }
-        self._messages = [welcome]
+        self._messages = [build_welcome_message()]
         self.messagesChanged.emit()
 
     # -------------------------------------------------------------------------
@@ -282,33 +192,15 @@ class AiAdvisorController(QObject):
 
     def _open_session(self, session: ChatSession) -> None:
         self._session = session
-        self._messages = [self._message_to_dict(i, m) for i, m in enumerate(session.messages)]
+        self._messages = [message_to_dict(i, m) for i, m in enumerate(session.messages)]
         self.messagesChanged.emit()
-
-    @staticmethod
-    def _message_to_dict(index: int, message: ChatMessage) -> Dict[str, Any]:
-        return {
-            "id": f"msg-{index}",
-            "role": message.role.value,
-            "content": message.content,
-            "timestamp": message.timestamp.strftime("%H:%M"),
-            "toolCalls": [],
-        }
 
     def _persist_session(self) -> None:
         """Kullanıcı mesajı içeren etkin sohbeti kalıcı kaydeder (karşılama mesajı kaydedilmez)."""
         service = self._get_session_service()
         if service is None or self._session is None:
             return
-        persisted = []
-        for entry in self._messages:
-            if entry.get("isWelcome") or entry["role"] == "system":
-                continue
-            try:
-                role = MessageRole(entry["role"])
-            except ValueError:
-                continue
-            persisted.append(ChatMessage(role=role, content=entry["content"]))
+        persisted = messages_to_persist(self._messages)
         self._session.messages = persisted
         try:
             service.save_session(self._session)
@@ -322,12 +214,7 @@ class AiAdvisorController(QObject):
         if service is not None:
             try:
                 for s in service.list_sessions():
-                    items.append({
-                        "id": s.id,
-                        "title": s.title or "Yeni Sohbet",
-                        "updatedText": s.updated_at.strftime("%d.%m.%Y %H:%M"),
-                        "messageCount": sum(1 for m in s.messages if m.role == MessageRole.USER),
-                    })
+                    items.append(session_list_item(s))
             except Exception as exc:
                 logger.warning("Sohbet listesi okunamadı: %s", exc)
         self._sessions = items
@@ -439,27 +326,10 @@ class AiAdvisorController(QObject):
 
             # 1. Gerçek Gemini API + Function Calling Denemesi
             if api_key and advisor_service:
-                try:
-                    # Turns: Gemini 'user' ve 'model' bekler
-                    turns = [
-                        ("user" if role == "user" else "model", content)
-                        for role, content in history
-                    ]
-                    chat_result = advisor_service.chat(api_key, ADVISOR_SYSTEM_PROMPT, turns)
-                    tools_used = [
-                        {
-                            "name": tc.name,
-                            "label": self._tool_name_to_label(tc.name),
-                        }
-                        for tc in chat_result.tool_calls
-                    ]
-                    self._asyncResponseReady.emit({
-                        "content": chat_result.text,
-                        "toolCalls": tools_used,
-                    })
+                response = try_gemini_chat(advisor_service, api_key, history)
+                if response is not None:
+                    self._asyncResponseReady.emit(response)
                     return
-                except Exception as exc:
-                    logger.warning("Gemini API çağrısı başarısız, yerel analiz motoruna geçiliyor: %s", exc)
 
             # 2. Yerel Akıllı Analiz Fallback'i (Gerçek Portföy Verileri ile)
             fallback_response, used_tools = self._generate_local_portfolio_analysis(query)
@@ -473,13 +343,7 @@ class AiAdvisorController(QObject):
             self._asyncErrorReady.emit(str(e))
 
     def _tool_name_to_label(self, name: str) -> str:
-        mapping = {
-            "get_portfolio_overview": "Portföy Genel Özeti",
-            "get_allocation_and_risk": "Varlık Dağılımı ve Risk",
-            "suggest_optimization": "Markowitz Optimizasyonu",
-            "get_stock_overview": "Hisse Teknik & Fiyat Analizi",
-        }
-        return mapping.get(name, name)
+        return TOOL_LABELS.get(name, name)
 
     # -------------------------------------------------------------------------
     # Yerel Akıllı Analiz Fallback Motoru (Gerçek Portföy Verilerine Dayanır)
@@ -487,133 +351,7 @@ class AiAdvisorController(QObject):
 
     def _generate_local_portfolio_analysis(self, query: str) -> Tuple[str, List[Dict[str, str]]]:
         """API anahtarı yokken veya ağ hatasında reel portföy verileriyle zengin karar desteği sunar."""
-        advisor = self._get_advisor_service()
-        analytics = self._get_portfolio_analytics_service()
-        risk_bridge = self._get_risk_optimization_bridge()
-        stock_svc = self._get_stock_360_service()
-
-        used_tools: List[Dict[str, str]] = []
-
-        # Araç 1: Portföy Özeti
-        overview_data = {}
-        if advisor:
-            try:
-                overview_data = advisor.call_tool("get_portfolio_overview", {})
-                used_tools.append({
-                    "name": "get_portfolio_overview",
-                    "label": "Portföy Genel Özeti",
-                })
-            except Exception:
-                logger.warning("Yerel analiz aracı başarısız: get_portfolio_overview", exc_info=True)
-
-        # Araç 2: Dağılım ve Risk
-        risk_data = {}
-        if advisor:
-            try:
-                risk_data = advisor.call_tool("get_allocation_and_risk", {})
-                used_tools.append({
-                    "name": "get_allocation_and_risk",
-                    "label": "Varlık Dağılımı ve Risk",
-                })
-            except Exception:
-                logger.warning("Yerel analiz aracı başarısız: get_allocation_and_risk", exc_info=True)
-
-        total_val = overview_data.get("total_value_try") or 0.0
-        period_ret = overview_data.get("period_return_pct")
-        benchmark_gap = overview_data.get("benchmark_gap_pct")
-        largest_stock = overview_data.get("largest_position_label") or "Yok"
-        largest_weight = overview_data.get("largest_position_weight_pct") or 0.0
-        sharpe = risk_data.get("sharpe_ratio")
-        volatility = risk_data.get("volatility_pct")
-        max_dd = risk_data.get("max_drawdown_pct")
-        top3_weight = risk_data.get("top_three_weight_pct") or 0.0
-
-        # Eğer soru Optimizasyon / Rebalance ile ilgiliyse
-        if is_optimization_query(query):
-            opt_data = {}
-            if advisor:
-                try:
-                    opt_data = advisor.call_tool("suggest_optimization", {"risk_label": "DENGELI"})
-                    used_tools.append({
-                        "name": "suggest_optimization",
-                        "label": "Markowitz Optimizasyonu",
-                    })
-                except Exception:
-                    logger.warning("Yerel analiz aracı başarısız: suggest_optimization", exc_info=True)
-
-            suggestions = opt_data.get("suggestions", [])
-            lines = [
-                "### Modern Portföy Teorisi — Yeniden Dengeleme Analizi",
-                "",
-                f"Mevcut portföyünüzün toplam büyüklüğü **{_fmt_money_tr(total_val)}** seviyesindedir. "
-                f"Dengeli risk profili simülasyonuna göre portföyünüzün getiri/risk oranını maksimize etmek için aşağıdaki düzenlemeler önerilmektedir:",
-                "",
-            ]
-            if suggestions:
-                lines.append("| Hisse | Mevcut Pay | Hedef Pay | Değişim | Aksiyon |")
-                lines.append("| :--- | :--- | :--- | :--- | :--- |")
-                for s in suggestions[:6]:
-                    sym = s.get("symbol", "").replace(".IS", "")
-                    cur_w = _fmt_pct_tr(s.get("current_weight_pct"))
-                    opt_w = _fmt_pct_tr(s.get("optimal_weight_pct"))
-                    chg = _fmt_pct_tr(s.get("change_pct"), with_sign=True)
-                    act = s.get("action", "TUT")
-                    lines.append(f"| **{sym}** | {cur_w} | {opt_w} | {chg} | **{act}** |")
-                lines.append("")
-                lines.append(
-                    "**Stratejik Değerlendirme:** Portföyde ağırlığı yüksek olan hisselerden kâr realizasyonu "
-                    "yapılarak ağırlığı düşük kalan hisselere pay aktarılması genel portföy volatilitesini düşürecektir."
-                )
-            else:
-                lines.append("Portföyünüzde henüz yeterli çeşitlilikte hisse senedi bulunmadığından optimizasyon matrisi oluşturulamadı.")
-
-            lines.append("")
-            lines.append("*Not: Yerel analiz motoru çalıştırıldı. Gemini API anahtarı ekleyerek çoklu turlu etkileşimli danışmanlığı aktif edebilirsiniz.*")
-            lines.append("")
-            lines.append("**Yatırım Tavsiyesi Değildir (YTD).**")
-            return "\n".join(lines), used_tools
-
-        # Genel Risk & Portföy Değerlendirmesi
-        lines = [
-            "### Portföy Sağlık & Risk Durumu Raporu",
-            "",
-            f"Portföyünüzün toplam değeri **{_fmt_money_tr(total_val)}** olup piyasa hareketlerine karşı genel görünümü şöyledir:",
-            "",
-            f"- **Dönem Getirisi:** {_fmt_pct_tr(period_ret, with_sign=True)} "
-            f"(BIST 100 Endeksine Göre: {_fmt_pct_tr(benchmark_gap, with_sign=True)})",
-            f"- **Yıllık Volatilite (Risk):** {_fmt_pct_tr(volatility)}",
-            f"- **Sharpe Oranı:** {f'{sharpe:.2f}' if sharpe is not None else 'N/A'} (Birim risk başına getiri kalitesi)",
-            f"- **Maksimum Geri Çekilme (Drawdown):** {_fmt_pct_tr(max_dd)}",
-            f"- **En Büyük Pozisyon:** **{largest_stock.replace('.IS', '')}** ({_fmt_pct_tr(largest_weight)})",
-            f"- **İlk 3 Hisse Yoğunlaşması:** {_fmt_pct_tr(top3_weight)}",
-            "",
-            "#### Danışman Değerlendirmesi:",
-        ]
-
-        if top3_weight > 60:
-            lines.append(
-                "- **Yüksek Yoğunlaşma Riski:** Portföyünüzün %60'ından fazlası ilk 3 hissede toplanmış durumda. "
-                "Sektörel şoklara karşı dayanıklılığı artırmak için portföyü farklı sektörlere yaymanız önerilir."
-            )
-        else:
-            lines.append(
-                "- **Dengeli Varlık Dağılımı:** Hisselerinizin portföye dağılımı makul seviyelerde. Tek bir hisseye aşırı bağımlılık riski düşük."
-            )
-
-        if sharpe is not None and sharpe > 1.0:
-            lines.append(
-                "- **Güçlü Risk-Getiri Dengesi:** Sharpe oranınız 1.0 seviyesinin üzerinde, bu da aldığınız riskin getiri ile iyi dengelendiğini gösteriyor."
-            )
-        else:
-            lines.append(
-                "- **Getiri Potansiyeli:** Volatiliteye oranla getiri marjını yükseltmek için 'Optimizasyon' sekmesindeki rebalance modelini inceleyebilirsiniz."
-            )
-
-        lines.append("")
-        lines.append("*Not: Yerel analiz motoru çalıştırıldı. Gemini API anahtarı tanımlandığında model ile doğrudan serbest sohbet edebilirsiniz.*")
-        lines.append("")
-        lines.append("**Yatırım Tavsiyesi Değildir (YTD).**")
-        return "\n".join(lines), used_tools
+        return generate_local_portfolio_analysis(self._get_advisor_service(), query)
 
     # -------------------------------------------------------------------------
     # Yanıt ve Hata Geri Çağrıları (Qt Ana İş Parçacığı)
@@ -663,116 +401,8 @@ class AiAdvisorController(QObject):
             return
 
         try:
-            risk_data = advisor.call_tool("get_allocation_and_risk", {})
-            top3_w = float(risk_data.get("top_three_weight_pct") or 50.0)
-            volatility = float(risk_data.get("volatility_pct") or 30.0)
-            sharpe = risk_data.get("sharpe_ratio")
-            sharpe_val = float(sharpe) if sharpe is not None else 0.8
-            max_dd = abs(float(risk_data.get("max_drawdown_pct") or 20.0))
-
-            # 1. Çeşitlilik Puanı (max 25)
-            if top3_w <= 40.0:
-                score_div = 25
-                div_status = "Yüksek Çeşitlilik"
-            elif top3_w <= 60.0:
-                score_div = 20
-                div_status = "Dengeli Dağılım"
-            elif top3_w <= 80.0:
-                score_div = 12
-                div_status = "Orta Yoğunlaşma"
-            else:
-                score_div = 6
-                div_status = "Yüksek Yoğunlaşma Riski"
-
-            # 2. Risk & Volatilite Puanı (max 25)
-            if volatility <= 22.0:
-                score_vol = 25
-                vol_status = "Düşük Volatilite"
-            elif volatility <= 32.0:
-                score_vol = 20
-                vol_status = "Piyasa Ortalaması"
-            elif volatility <= 42.0:
-                score_vol = 14
-                vol_status = "Yüksek Dalgalanma"
-            else:
-                score_vol = 8
-                vol_status = "Aşırı Riskli"
-
-            # 3. Sharpe & Getiri Kalitesi Puanı (max 25)
-            if sharpe_val >= 1.5:
-                score_shp = 25
-                shp_status = "Mükemmel Getiri/Risk"
-            elif sharpe_val >= 1.0:
-                score_shp = 20
-                shp_status = "İyi Performans"
-            elif sharpe_val >= 0.5:
-                score_shp = 14
-                shp_status = "Kabul Edilebilir"
-            else:
-                score_shp = 8
-                shp_status = "Düşük Getiri Verimi"
-
-            # 4. Maksimum Geri Çekilme (Drawdown) Puanı (max 25)
-            if max_dd <= 15.0:
-                score_dd = 25
-                dd_status = "Mükemmel Koruma"
-            elif max_dd <= 25.0:
-                score_dd = 20
-                dd_status = "Normal Geri Çekilme"
-            elif max_dd <= 35.0:
-                score_dd = 14
-                dd_status = "Yüksek Kayıp Riski"
-            else:
-                score_dd = 8
-                dd_status = "Kritik Düşüş Seviyesi"
-
-            total_score = score_div + score_vol + score_shp + score_dd
-            self._portfolio_health_score = max(0, min(100, total_score))
-
-            if self._portfolio_health_score >= 80:
-                self._health_score_label = "Çok Güçlü"
-            elif self._portfolio_health_score >= 65:
-                self._health_score_label = "Dengeli"
-            elif self._portfolio_health_score >= 50:
-                self._health_score_label = "Orta Risk"
-            else:
-                self._health_score_label = "Yüksek Risk"
-
-            self._health_factors = [
-                {
-                    "title": "Varlık Çeşitliliği",
-                    "value": f"%{top3_w:.1f} (İlk 3)",
-                    "score": score_div,
-                    "maxScore": 25,
-                    "status": div_status,
-                    "isGood": score_div >= 18,
-                },
-                {
-                    "title": "Volatilite & Risk",
-                    "value": f"%{volatility:.1f}",
-                    "score": score_vol,
-                    "maxScore": 25,
-                    "status": vol_status,
-                    "isGood": score_vol >= 18,
-                },
-                {
-                    "title": "Sharpe Rasyosu",
-                    "value": f"{sharpe_val:.2f}",
-                    "score": score_shp,
-                    "maxScore": 25,
-                    "status": shp_status,
-                    "isGood": score_shp >= 18,
-                },
-                {
-                    "title": "Maksimum Düşüş",
-                    "value": f"-%{max_dd:.1f}",
-                    "score": score_dd,
-                    "maxScore": 25,
-                    "status": dd_status,
-                    "isGood": score_dd >= 18,
-                },
-            ]
-
+            score, label, factors = compute_health(advisor.call_tool("get_allocation_and_risk", {}))
+            self._portfolio_health_score, self._health_score_label, self._health_factors = score, label, factors
         except Exception as exc:
             logger.warning("Portföy sağlık skoru hesaplanırken hata: %s", exc)
             self._set_default_health_metrics()
@@ -782,14 +412,7 @@ class AiAdvisorController(QObject):
         self.healthFactorsChanged.emit()
 
     def _set_default_health_metrics(self) -> None:
-        self._portfolio_health_score = 70
-        self._health_score_label = "Dengeli"
-        self._health_factors = [
-            {"title": "Varlık Çeşitliliği", "value": "%55.0", "score": 18, "maxScore": 25, "status": "Dengeli Dağılım", "isGood": True},
-            {"title": "Volatilite & Risk", "value": "%28.4", "score": 19, "maxScore": 25, "status": "Piyasa Ortalaması", "isGood": True},
-            {"title": "Sharpe Rasyosu", "value": "1.12", "score": 18, "maxScore": 25, "status": "İyi Performans", "isGood": True},
-            {"title": "Maksimum Düşüş", "value": "-%18.5", "score": 15, "maxScore": 25, "status": "Normal Seviye", "isGood": True},
-        ]
+        self._portfolio_health_score, self._health_score_label, self._health_factors = default_health()
 
     # -------------------------------------------------------------------------
     # API Anahtarı Yönetimi
