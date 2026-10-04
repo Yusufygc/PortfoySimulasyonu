@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QUrl
+from PySide6.QtCore import QCoreApplication, QObject, QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from PySide6.QtWidgets import QApplication
@@ -50,7 +50,8 @@ TARGETS = {
     "OptimizationView": ("views/OptimizationView.qml", None, [None], None),
     # Hisse 360 görünüm modları (0 Genel Bakış, 1 Finansal, 2 KAP) bir denetleyici yuvasıyla değişir
     "Stock360View": ("views/Stock360View.qml", None, [None], ("stock360Controller", "setViewMode", (0, 1, 2, 0))),
-    "StockDetailModal": ("components/StockDetailModal.qml", "activeTab", range(5), None),
+    # Alt sekme durumu StockDetailTabsPanel bileşeninde: çocuk bileşenin özelliği değiştirilir
+    "StockDetailModal": ("components/StockDetailModal.qml", None, [None], ("child", "StockDetailTabsPanel", "activeTab", (0, 1, 0))),
 }
 
 
@@ -126,7 +127,14 @@ def test_view_loads_every_tab_without_qml_warnings(qml_env, name):
             item.setProperty(property_name, value)
         _pump()
 
-    if driver is not None:
+    if driver is not None and driver[0] == "child":
+        _, class_name, property_name, driver_values = driver
+        children = [o for o in item.findChildren(QObject) if class_name in o.metaObject().className()]
+        assert children, f"{class_name} bulunamadı"
+        for value in driver_values:
+            assert children[0].setProperty(property_name, value), f"{class_name}.{property_name} ayarlanamadı"
+            _pump(10)
+    elif driver is not None:
         controller_name, slot_name, driver_values = driver
         for value in driver_values:
             getattr(controllers[controller_name], slot_name)(value)
