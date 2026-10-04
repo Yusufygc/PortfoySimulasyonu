@@ -92,7 +92,7 @@ Proje olgun ve disiplinli: katman ihlalleri testle korunuyor, parasal hesaplar `
 - **Çözüm:** Tablo-güdümlü dallanma (`isyatirim_provider` satır eşlemesi bir sözlüğe), grafik verisi için yükleme/dönüştürme/yayın ayrımı, `_single_period` için kalem başına küçük hesap fonksiyonları.
 - **Düzeltme Eforu:** L
 - **Bağımlılık:** İlgili testler (`test_financial_*`, `test_chart_*`) önce karakterizasyon testi olarak sabitlenmeli.
-- **Durum:** Çözüldü (2026-10-04) listelenen üç fonksiyon için: `_single_period` CC 41 -> 2, `_scrape` CC 43 -> 5, `_fetch_and_emit_chart_data` CC 42 -> ~7. Her biri önce refaktör öncesi koddan üretilen karakterizasyon testiyle sabitlendi. Rapordaki diğer iki örnek (`stock_360_controller.py:608` CC 34, `stock_360_fallback.py:69` CC 31) ve toplam 108 eşik ihlali açık. En yüksek kalan: `_piotroski` (CC 24), `ChartController._calculate_indicators` (CC 22).
+- **Durum:** Çözüldü (2026-10-04) listelenen üç fonksiyon için: `_single_period` CC 41 -> 2, `_scrape` CC 43 -> 5, `_fetch_and_emit_chart_data` CC 42 -> ~7. Her biri önce refaktör öncesi koddan üretilen karakterizasyon testiyle sabitlendi. Aynı gün rapordaki kalan dört örnek de çözüldü: `_piotroski` CC 24 -> 2, `ChartController._calculate_indicators` CC 22 -> 1, `get_fallback_financials` CC 31 -> 1, `Stock360Controller._load_local_overview_and_technical` CC 34 -> 6. Eşik dışı toplam 110 -> 104 fonksiyon; kalanlar `code_quality_guardrails.md` §3'te.
 
 ### [🟠] 4. Sessiz yutulan istisnalar
 - **Persona:** QA / Test Mühendisi.

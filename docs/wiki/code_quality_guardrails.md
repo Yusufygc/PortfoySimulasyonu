@@ -28,12 +28,12 @@ Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (do
 
 ## 3. Güncel Durum (2026-10-04 ölçümü)
 
-Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **105 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
+Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **104 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
 
 | Denetleyici | Etkin satır | Metot |
 |---|---:|---:|
 | `ComparisonController` | 884 | 50 |
-| `Stock360Controller` | 685 | 84 |
+| `Stock360Controller` | 623 | 86 |
 | `OptimizationController` | 628 | 36 |
 | `AiAdvisorController` | 614 | 44 |
 | `DashboardController` | 611 | 44 |

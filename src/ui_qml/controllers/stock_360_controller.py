@@ -19,16 +19,14 @@ from src.domain.models.shareholder import ShareholderSnapshot
 from src.ui_qml.controllers.stock_360_formatters import (
     DONUT_COLORS,
     format_currency,
-    format_price,
-    format_volume,
 )
 from src.ui_qml.controllers.stock_360_fallback import (
-    guess_sector,
     get_default_overview,
     get_default_technical,
     get_fallback_financials,
     get_fallback_shareholders,
 )
+from src.ui_qml.controllers.stock_360_overview import overview_fields, resolve_identity, technical_fields
 from src.ui_qml.controllers.stock_360_html import (
     generate_financials_html,
     generate_shareholders_html,
@@ -606,93 +604,17 @@ class Stock360Controller(QObject):
         self.availableStocksChanged.emit()
 
     def _load_local_overview_and_technical(self, ticker: str) -> None:
-        """Yerel SQLite veritabanından şirket adı, sektör, fiyat ve TA seviyelerini yükler."""
-        stock_name = ticker
-        sector_name = "BIST Şirketi"
-
+        """Yerel veritabanından şirket adı, sektör, fiyat ve TA seviyelerini yükler (`stock_360_overview`)."""
         s360_service: Optional[Stock360Service] = getattr(
             getattr(self._container, "services", None), "stock_360_service", None
         )
-
-        stock = None
-        if s360_service and hasattr(s360_service, "get_stock_by_ticker"):
-            stock = s360_service.get_stock_by_ticker(ticker) or s360_service.get_stock_by_ticker(f"{ticker}.IS")
-        elif getattr(self._container, "stock_lookup_service", None) is not None:
-            stock = self._container.stock_lookup_service.find_stock(ticker)
-
-        if stock:
-            stock_name = stock.name or ticker
-            if hasattr(stock, "sector") and stock.sector:
-                sector_name = stock.sector
-            else:
-                sector_name = guess_sector(ticker)
-        elif s360_service and hasattr(s360_service, "get_company_name"):
-            # Portföyde (SQLite) olmayan hisse: DuckDB piyasa kataloğundaki ad
-            catalog_name = s360_service.get_company_name(ticker)
-            if isinstance(catalog_name, str) and catalog_name:
-                stock_name = catalog_name
-            sector_name = guess_sector(ticker)
-
-        self._company_name = stock_name
-        self._sector = sector_name
+        self._company_name, self._sector = resolve_identity(self._container, s360_service, ticker)
 
         if s360_service:
-            # Genel Bakış
-            ov = s360_service.get_overview(ticker) or s360_service.get_overview(f"{ticker}.IS")
-            if ov:
-                self._last_price_raw = float(ov.last_price)
-                self._last_price_str = format_price(ov.last_price)
-                self._last_price_date_str = ov.last_price_date.strftime("%d.%m.%Y")
-                chg = ov.daily_change_pct or 0.0
-                self._daily_change_raw = float(chg)
-                self._daily_change_str = f"{'+' if chg >= 0 else ''}{chg:.2f}%"
-                self._is_daily_positive = chg >= 0
-                self._volume_str = format_volume(ov.volume)
-                self._week52_low_str = format_price(ov.week52_low)
-                self._week52_high_str = format_price(ov.week52_high)
-
-                low_f = float(ov.week52_low)
-                high_f = float(ov.week52_high)
-                if high_f > low_f:
-                    self._week52_range_pct = max(0.0, min(1.0, (self._last_price_raw - low_f) / (high_f - low_f)))
-                else:
-                    self._week52_range_pct = 0.5
-            else:
-                self._set_default_overview(ticker)
-
-            # Teknik Seviyeler
+            overview = s360_service.get_overview(ticker) or s360_service.get_overview(f"{ticker}.IS")
+            self._apply_overview(overview_fields(overview) if overview else get_default_overview(ticker))
             tech = s360_service.get_technical_levels(ticker) or s360_service.get_technical_levels(f"{ticker}.IS")
-            if tech:
-                if tech.rsi14 is not None:
-                    self._rsi14_str = f"{tech.rsi14:.1f}"
-                    if tech.rsi14 >= 70:
-                        self._rsi_status = "Aşırı Alım"
-                    elif tech.rsi14 <= 30:
-                        self._rsi_status = "Aşırı Satım"
-                    else:
-                        self._rsi_status = "Dengeli"
-                else:
-                    self._rsi14_str = "—"
-                    self._rsi_status = "Nötr"
-
-                self._macd_line_str = f"{tech.macd_line:.2f}" if tech.macd_line is not None else "—"
-                self._macd_signal_str = f"{tech.macd_signal:.2f}" if tech.macd_signal is not None else "—"
-                self._sma50_str = format_price(tech.sma50) if tech.sma50 is not None else "—"
-                self._sma200_str = format_price(tech.sma200) if tech.sma200 is not None else "—"
-                self._ema20_str = format_price(tech.ema20) if tech.ema20 is not None else "—"
-                self._support_str = format_price(tech.support) if tech.support is not None else "—"
-                self._resistance_str = format_price(tech.resistance) if tech.resistance is not None else "—"
-
-                # Trend sinyali
-                if tech.sma50 is not None and tech.sma200 is not None:
-                    if tech.sma50 > tech.sma200:
-                        self._trend_status = "Boğa / Golden Trend"
-                    else:
-                        self._trend_status = "Ayı / Baskılı"
-                else:
-                    self._trend_status = "Dengeli"
-            else:
-                self._set_default_technical()
+            self._apply_technical(technical_fields(tech) if tech else get_default_technical())
         else:
             self._set_default_overview(ticker)
             self._set_default_technical()
@@ -905,8 +827,7 @@ class Stock360Controller(QObject):
     # Defaults & Fallbacks (Zarif Çökmesiz Deneyim)
     # ------------------------------------------------------------------
 
-    def _set_default_overview(self, ticker: str) -> None:
-        ov = get_default_overview(ticker)
+    def _apply_overview(self, ov: Dict[str, Any]) -> None:
         self._last_price_str = ov["last_price_str"]
         self._last_price_raw = ov["last_price_raw"]
         self._last_price_date_str = ov["last_price_date_str"]
@@ -918,8 +839,7 @@ class Stock360Controller(QObject):
         self._week52_high_str = ov["week52_high_str"]
         self._week52_range_pct = ov["week52_range_pct"]
 
-    def _set_default_technical(self) -> None:
-        tech = get_default_technical()
+    def _apply_technical(self, tech: Dict[str, Any]) -> None:
         self._rsi14_str = tech["rsi14_str"]
         self._rsi_status = tech["rsi_status"]
         self._macd_line_str = tech["macd_line_str"]
@@ -930,6 +850,12 @@ class Stock360Controller(QObject):
         self._support_str = tech["support_str"]
         self._resistance_str = tech["resistance_str"]
         self._trend_status = tech["trend_status"]
+
+    def _set_default_overview(self, ticker: str) -> None:
+        self._apply_overview(get_default_overview(ticker))
+
+    def _set_default_technical(self) -> None:
+        self._apply_technical(get_default_technical())
 
     def _set_fallback_financials(self, ticker: str) -> None:
         fb = get_fallback_financials(ticker)
