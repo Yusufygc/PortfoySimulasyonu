@@ -203,6 +203,8 @@ Item {
 
                                     Column {
                                         Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        Layout.alignment: Qt.AlignVCenter
                                         spacing: 2
                                         Text {
                                             text: modelData.name
@@ -211,7 +213,7 @@ Item {
                                             font.weight: wlRow.isSelected ? Font.Bold : Font.DemiBold
                                             color: wlRow.isSelected ? Theme.textPrimary : Theme.textSecondary
                                             elide: Text.ElideRight
-                                            width: 150
+                                            width: parent.width
                                         }
                                         Text {
                                             text: (modelData.description && modelData.description !== "") ? modelData.description : (modelData.count + " Hisse")
@@ -219,14 +221,15 @@ Item {
                                             font.pixelSize: Theme.fontXs
                                             color: Theme.textMuted
                                             elide: Text.ElideRight
-                                            width: 150
+                                            width: parent.width
                                         }
                                     }
 
                                     // Hisse Adedi Rozeti
                                     Rectangle {
-                                        implicitWidth: countText.implicitWidth + 12
-                                        implicitHeight: 20
+                                        Layout.alignment: Qt.AlignVCenter
+                                        Layout.preferredWidth: Math.max(22, countText.implicitWidth + 12)
+                                        Layout.preferredHeight: 20
                                         radius: 10
                                         color: wlRow.isSelected ? Theme.accent : Theme.bgInput
 
@@ -243,9 +246,9 @@ Item {
 
                                     // Düzenle İkon Butonu
                                     Item {
-                                        width: 24
-                                        height: 24
-                                        visible: wlRow.isHovered || wlRow.isSelected
+                                        Layout.preferredWidth: 24
+                                        Layout.preferredHeight: 24
+                                        opacity: (wlRow.isHovered || wlRow.isSelected) ? 1.0 : 0.0
                                         z: 2
 
                                         ModernIcon {
@@ -266,9 +269,9 @@ Item {
 
                                     // Sil İkon Butonu
                                     Item {
-                                        width: 24
-                                        height: 24
-                                        visible: wlRow.isHovered || wlRow.isSelected
+                                        Layout.preferredWidth: 24
+                                        Layout.preferredHeight: 24
+                                        opacity: (wlRow.isHovered || wlRow.isSelected) ? 1.0 : 0.0
                                         z: 2
 
                                         ModernIcon {
@@ -349,10 +352,18 @@ Item {
                         // Tablo: dar alanda yatay kaydırılır (sütun hizası bozulur)
                         Flickable {
                             id: stocksFlick
+                            // Başlık ve satırlar aynı sabit sütun genişliklerini kullanır (hizalama bozulmaz)
+                            readonly property int colGap: 12
+                            readonly property int colSymbol: 170
+                            readonly property int colPrice: 90
+                            readonly property int colChange: 84
+                            readonly property int colRange: 124
+                            readonly property int colTrend: 90
+                            readonly property int colActions: 172
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             visible: stocksListView.count > 0
-                            contentWidth: Math.max(width, 800)
+                            contentWidth: Math.max(width, 1060)
                             contentHeight: height
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
@@ -375,14 +386,15 @@ Item {
                                 anchors.fill: parent
                                 anchors.leftMargin: 12
                                 anchors.rightMargin: 12
+                                spacing: stocksFlick.colGap
 
-                                Text { text: Strings.thSymbolCompany; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 160 }
-                                Text { text: Strings.thLastPrice; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 85; horizontalAlignment: Text.AlignRight }
-                                Text { text: Strings.thDailyChange; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 80; horizontalAlignment: Text.AlignRight }
-                                Text { text: Strings.thDayRange; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 115; horizontalAlignment: Text.AlignHCenter }
-                                Text { text: Strings.thTrend7D; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 85; horizontalAlignment: Text.AlignHCenter }
-                                Text { text: Strings.thNotes; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.fillWidth: true }
-                                Text { text: Strings.thActions; color: Theme.textMuted; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: 165; horizontalAlignment: Text.AlignRight }
+                                Text { text: Strings.thSymbolCompany; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colSymbol; Layout.minimumWidth: stocksFlick.colSymbol; Layout.maximumWidth: stocksFlick.colSymbol }
+                                Text { text: Strings.thLastPrice; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colPrice; Layout.minimumWidth: stocksFlick.colPrice; Layout.maximumWidth: stocksFlick.colPrice; horizontalAlignment: Text.AlignRight }
+                                Text { text: Strings.thDailyChange; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colChange; Layout.minimumWidth: stocksFlick.colChange; Layout.maximumWidth: stocksFlick.colChange; horizontalAlignment: Text.AlignRight }
+                                Text { text: Strings.thDayRange; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colRange; Layout.minimumWidth: stocksFlick.colRange; Layout.maximumWidth: stocksFlick.colRange; horizontalAlignment: Text.AlignHCenter }
+                                Text { text: Strings.thTrend7D; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colTrend; Layout.minimumWidth: stocksFlick.colTrend; Layout.maximumWidth: stocksFlick.colTrend; horizontalAlignment: Text.AlignHCenter }
+                                Text { text: Strings.thNotes; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.fillWidth: true; Layout.minimumWidth: 200 }
+                                Text { text: Strings.thActions; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colActions; Layout.minimumWidth: stocksFlick.colActions; Layout.maximumWidth: stocksFlick.colActions; horizontalAlignment: Text.AlignRight }
                             }
                         }
 
@@ -398,7 +410,7 @@ Item {
                             delegate: Rectangle {
                                 id: stockRow
                                 width: stocksListView.width
-                                height: 44
+                                height: 54
                                 radius: Theme.radiusSm
                                 color: stockMouse.containsMouse ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgInput)
 
@@ -419,11 +431,15 @@ Item {
                                     anchors.fill: parent
                                     anchors.leftMargin: 12
                                     anchors.rightMargin: 12
+                                    spacing: stocksFlick.colGap
                                     z: 1
 
                                     // 1. Sembol & Şirket
                                     Column {
-                                        Layout.preferredWidth: 160
+                                        Layout.preferredWidth: stocksFlick.colSymbol
+                                        Layout.minimumWidth: stocksFlick.colSymbol
+                                        Layout.maximumWidth: stocksFlick.colSymbol
+                                        Layout.alignment: Qt.AlignVCenter
                                         spacing: 2
                                         Row {
                                             spacing: 6
@@ -452,10 +468,10 @@ Item {
                                         Text {
                                             text: (model.companyName || "").replace(/\.IS$/i, "")
                                             font.family: Theme.fontFamily
-                                            font.pixelSize: Theme.fontXs
-                                            color: Theme.textMuted
+                                            font.pixelSize: Theme.fontSm
+                                            color: Theme.textSecondary
                                             elide: Text.ElideRight
-                                            width: 150
+                                            width: stocksFlick.colSymbol
                                         }
                                     }
 
@@ -466,7 +482,9 @@ Item {
                                         font.pixelSize: Theme.fontSm
                                         font.weight: Font.Bold
                                         color: Theme.textPrimary
-                                        Layout.preferredWidth: 85
+                                        Layout.preferredWidth: stocksFlick.colPrice
+                                        Layout.minimumWidth: stocksFlick.colPrice
+                                        Layout.maximumWidth: stocksFlick.colPrice
                                         horizontalAlignment: Text.AlignRight
                                     }
 
@@ -477,21 +495,25 @@ Item {
                                         font.pixelSize: Theme.fontSm
                                         font.weight: Font.DemiBold
                                         color: model.isUp ? Theme.bullGreen : Theme.bearRed
-                                        Layout.preferredWidth: 80
+                                        Layout.preferredWidth: stocksFlick.colChange
+                                        Layout.minimumWidth: stocksFlick.colChange
+                                        Layout.maximumWidth: stocksFlick.colChange
                                         horizontalAlignment: Text.AlignRight
                                     }
 
                                     // 4. Gün İçi Aralık (Low - High Mini Bar)
                                     ColumnLayout {
-                                        Layout.preferredWidth: 115
-                                        spacing: 2
+                                        Layout.preferredWidth: stocksFlick.colRange
+                                        Layout.minimumWidth: stocksFlick.colRange
+                                        Layout.maximumWidth: stocksFlick.colRange
+                                        spacing: 3
                                         Layout.alignment: Qt.AlignVCenter
 
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Text { text: model.dayLow; font.pixelSize: 9; color: Theme.textMuted }
+                                            Text { text: model.dayLow; font.family: Theme.monoFontFamily; font.pixelSize: Theme.fontXs; color: Theme.textSecondary }
                                             Item { Layout.fillWidth: true }
-                                            Text { text: model.dayHigh; font.pixelSize: 9; color: Theme.textMuted }
+                                            Text { text: model.dayHigh; font.family: Theme.monoFontFamily; font.pixelSize: Theme.fontXs; color: Theme.textSecondary }
                                         }
 
                                         Rectangle {
@@ -513,7 +535,9 @@ Item {
 
                                     // 5. 7G Trend Mini Sparkline
                                     MiniSparkline {
-                                        Layout.preferredWidth: 85
+                                        Layout.preferredWidth: stocksFlick.colTrend
+                                        Layout.minimumWidth: stocksFlick.colTrend
+                                        Layout.maximumWidth: stocksFlick.colTrend
                                         Layout.preferredHeight: 24
                                         Layout.alignment: Qt.AlignVCenter
                                         points: model.sparkline
@@ -524,17 +548,24 @@ Item {
                                     Text {
                                         text: model.notes !== "" ? model.notes : "-"
                                         font.family: Theme.fontFamily
-                                        font.pixelSize: Theme.fontXs
-                                        color: model.notes !== "" ? Theme.textSecondary : Theme.textMuted
+                                        font.pixelSize: Theme.fontSm
+                                        color: model.notes !== "" ? Theme.textPrimary : Theme.textMuted
+                                        wrapMode: Text.WordWrap
+                                        maximumLineCount: 2
                                         elide: Text.ElideRight
+                                        verticalAlignment: Text.AlignVCenter
                                         Layout.fillWidth: true
+                                        Layout.minimumWidth: 200
+                                        Layout.alignment: Qt.AlignVCenter
                                     }
 
                                     // 7. Aksiyonlar (Grafik, İşlem, Not Düzenle, Sil)
                                     RowLayout {
-                                        Layout.preferredWidth: 165
+                                        Layout.preferredWidth: stocksFlick.colActions
+                                        Layout.minimumWidth: stocksFlick.colActions
+                                        Layout.maximumWidth: stocksFlick.colActions
                                         spacing: 4
-                                        Layout.alignment: Qt.AlignRight
+                                        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                                         z: 2
 
                                         ModernButton {
