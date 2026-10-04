@@ -6,7 +6,7 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 
 ## 1. Kod Kalitesi ve Refactor Güvenlik Kapıları
 
-- Bir sınıf 300 satırı veya 20 metodu aşarsa (yorum satırları hariç) yeni özellik eklenmeden önce panel, helper veya servis ayrımı yapılır.
+- Bir sınıf 300 satırı veya 20 metodu aşarsa (yorum satırları hariç) yeni özellik eklenmeden önce panel, helper veya servis ayrımı yapılır. **Sayım:** `@Property` getter'ları (QML bağlama yüzeyi) metot sayısına ve satıra dahil edilmez; `src/ui_qml/controllers/` sınıfları için sınır 400 satır / 30 metottur (`scripts/measure_code_quality.py`). Kalan eşik dışı denetleyiciler kabul edilen borçtur (denetim Bulgu 2); sırf eşik için ayrıştırılmaz.
 - Bir fonksiyon 50 satırı (yorum satırları hariç), 5 parametreyi veya yaklaşık cyclomatic complexity 10 eşiğini aşarsa yeni davranış eklemek yerine önce küçük helper'lara bölünür.
 - **Parametre azaltma yöntemi — öncelik sırası:** (1) fonksiyonu daha küçük helper'lara böl; (2) yalnızca helper bölme mümkün değilse veya parametreler gerçek bir domain kavramı / cross-module contract oluşturuyorsa `NamedTuple`/`dataclass` kullanılır.
 - **NamedTuple kabul koşulları (üçünden biri sağlanmalı):** domain value object (iş kuralı taşır, 2+ modülde kullanılır); DI dependency grouping (`__init__` için bağımlılık kümesi); cross-module context (2+ farklı dosyada oluşturulan ve tüketilen veri transfer objesi).
@@ -17,6 +17,15 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 - PySide6 global `QApplication` ayarları çalışan arayüz varken yeniden uygulanmaz. Tema değişimi `Theme.qml` singleton'ı üzerinden yapılır; font ve global state değişimi kontrollü yapılır.
 - Her production bug fix önce kırmızı testi kanıtlar, sonra fix ve tam test koşumu ile kapanır.
 - Kullanıcıya gösterilen arayüz metinlerinde Türkçe karakterlerin doğru kullanımı zorunludur. Arayüz dosyalarındaki sabit metinler doğrudan QML'e gömülmemeli, `src/ui_qml/qml/theme/Strings.qml` (`Strings` singleton) altından çağrılmalıdır. `tests/ui_qml/test_strings_catalog.py` bunu denetler.
+
+### 1.1 Refaktör Disiplini
+
+- **Değer şartı:** Refaktör okunabilirlik, hata riski veya test edilebilirlik kazandırmalıdır. Yalnızca ölçüt sayısını düşürmek için yeni modül/sarmalayıcı açmak yasaktır (metric gaming). Ölçüt gerçek sorunu yansıtmıyorsa kod yerine ölçüt düzeltilir ve gerekçesi `docs/wiki/log.md`'ye yazılır.
+- **Karakterizasyon önce:** Davranışı koruyan taşıma/bölme öncesi mevcut kodun çıktısı sabit girdilerle (hata dalları dahil) kaydedilir; refaktör sonrası aynı girdilerle karşılaştırılır. Eşdeğerlik kanıtlanmadan commit atılmaz.
+- **Ölçülü kapsam:** Birden çok benzer sınıfı ayrıştırma işinde ilk örnekten sonra kazanç/maliyet raporlanır; devam kararı kullanıcıdadır. Kullanıcı görünür fayda üretmeyen işe sınırsız devam edilmez.
+- **Davranış değişikliği ayrı commit:** Refaktör sırasında bulunan hata aynı commit'te sessizce düzeltilmez; ayrı commit ve kırmızı testle düzeltilir (§1 bug-fix kuralı).
+- **Yüzde/oran formülleri:** Türev yüzde/oran değerleri (ROE, marj, büyüme) için elle hesaplanmış beklenen değerli birim test zorunludur; yalnızca biçim doğrulayan test yetmez.
+- **Zaman bağımlılığı:** Testler gerçek saate/tarihe bağlı olamaz. Piyasa zamanı `market_clock` (`market_now`, `market_today`) üzerinden alınır ve testte yamalanır. Koddan bir bağımlılık veya yama hedefi kalktığında o hedefi yamalayan testler `grep` ile taranıp güncellenir.
 
 ---
 
@@ -67,8 +76,10 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 - Ajan, commit sonrası push yapmadan önce ilgili test setini çalıştırır.
 - Ajan, `git add .` kullanmaz; her zaman dosya isimlerini açıkça belirtir.
 - Ajan, PowerShell ortamında `&&` operatörü kullanmaz; komutları ayrı ayrı çalıştırır.
-- Ajan, `.gitignore`'da listelenen dosyaları (CLAUDE.md, RULES.md, GOVERNANCE.md, ARCHITECTURE_GATES.md, .env vb.) commit'lemez.
+- Ajan, `.gitignore`'da listelenen dosyaları (`.env`, `data/`, `logs/`, `backups/` vb.) commit'lemez. Kural dosyaları (AGENTS.md, CLAUDE.md, RULES.md, GOVERNANCE.md, ARCHITECTURE_GATES.md) izlenir; ajan bunları düzenleyebilir ve değişikliği diğer dosyalarla aynı kurallarla (§GOVERNANCE) commit'ler.
 - Ajan, geçici debug/test dosyalarını (debug_test.py vb.) işi bitince siler.
+- Ajan, denetim/analiz raporuna yazdığı sayı ve iddiaları (kullanım sayısı, "yok/belgesiz", "bekler") koda bakarak doğrular; doğrulanmayan iddia raporda "doğrulanmadı" diye işaretlenir. (Dersler: Bulgu 4/13/16 düzeltmeleri; "43 yer" iddiası gerçekte ~110 kullanımdı.)
+- Ajan, kalite ölçütünü hedef alan bir iş önermeden önce işin kullanıcıya ne kazandırdığını ve ölçütün gerçek sorunu yansıtıp yansıtmadığını söyler; belirsizse işe başlamadan sorar.
 
 ---
 

@@ -215,7 +215,6 @@ Mevcut `.gitignore` dosyasındaki proje-özel kurallar:
 
 | Pattern | Neden |
 |---------|-------|
-| `CLAUDE.md`, `RULES.md` | Ajan konfigürasyonu, her branch'te farklı olabilir |
 | `.env` | Veritabanı şifreleri ve API anahtarları |
 | `backups/` | Yerel yedekler |
 | `*.sql` (istisna: scripts/) | Yerel veritabanı dump'ları |
@@ -225,6 +224,7 @@ Mevcut `.gitignore` dosyasındaki proje-özel kurallar:
 | `.icon_cache/` | Tema ikonları önbelleği |
 
 **Kurallar:**
+- Kural ve ajan yönerge dosyaları (`AGENTS.md`, `CLAUDE.md`, `RULES.md`, `GOVERNANCE.md`, `ARCHITECTURE_GATES.md`) **izlenir**; `.gitignore`'a eklenmez ve normal commit kurallarıyla commit'lenir.
 - Yeni bir dosya türü veya dizin kalıcı olarak takipten çıkarılacaksa `.gitignore`'a eklenir ve commit mesajında belirtilir.
 - `.gitignore`'dan çıkartılan dosyalar (ör. `!scripts/*.sql`) açıkça yorum satırı ile belgelenir.
 - Geçici dosyalar (test script'leri, debug çıktıları) `.gitignore`'a değil, silme alışkanlığına dayanır.

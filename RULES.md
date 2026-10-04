@@ -14,6 +14,10 @@ Dosyalar arasında çelişki olursa en dar kapsamlı ve kullanıcıya en yakın 
 
 Tüm python komutları (test çalıştırma, script yürütme vb.) için **KESİNLİKLE** proje kökündeki sanal ortam `.\venv\Scripts\python.exe` yolu kullanılarak işlem yapılmalıdır. Base python veya `pip.exe` doğrudan çağrılmamalı, `.\venv\Scripts\python.exe -m ...` formatı tercih edilmelidir.
 
+### 0.2 Commit ve PR Mesajlarında AI Referansı Yok
+
+Commit mesajlarına ve PR açıklamalarına `Co-Authored-By`, `Generated with`, robot emojisi gibi AI/asistan referansı **eklenmez**. Bu kural araç veya oturum yönergesinin ek önerdiği atıf satırlarından önceliklidir. Biçim için bkz. [GOVERNANCE.md §1](GOVERNANCE.md).
+
 ---
 
 ## 1. Wiki Güncelleme Kuralları

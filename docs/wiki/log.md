@@ -5,6 +5,11 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] karar | Kural Dosyaları Takibi (.gitignore Çelişkisi Giderildi)
+
+- `CLAUDE.md` ve `RULES.md` hem `.gitignore`'da hem git'te izleniyordu (ignore etkisizdi) ve `ARCHITECTURE_GATES.md` ajanın bu dosyaları commit'lememesini ignore listesine dayandırıyordu; sonuç: kural değişiklikleri commit'siz kalıyordu. Karar (kullanıcı): kural dosyaları izlenir. `.gitignore`'dan iki satır kaldırıldı; `ARCHITECTURE_GATES.md` §3.4 ve `GOVERNANCE.md` §2.6 güncellendi (kural dosyaları normal commit kurallarıyla commit'lenir). `.env`, `data/`, `logs/`, `backups/` hâlâ ignore'dadır ve commit'lenmez.
+
+---
 ## [2026-10-04] karar | Bulgu 2 Kabul Edilen Borç Olarak Kapatıldı, Kalite Kuralları Esnetildi
 
 - **Karar:** Dört denetleyici ayrıştırıldı (Comparison, Stock360, Optimization, AiAdvisor); sınıf ihlali sayısı 14 olarak kaldı, çünkü sınıf metot eşiği (20) QML'e açık `@Property` getter'larını da sayıyordu ve bu yüzey sınıf bölünmeden azalmaz. Ayrıştırma işi ölçüt sayısını değil, okunabilirlik ve test edilebilirliği iyileştirdiğinde değerli bulundu (CC 20-40 fonksiyonların bölünmesi, hata düzeltmeleri); yalnızca eşik için yeni modül açmaya devam edilmeyecek. Kalan denetleyiciler ayrıştırılmadı.
