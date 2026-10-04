@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
-import numpy as np
 import pandas as pd
 
 from PySide6.QtCore import QObject, Signal, Slot, Property
@@ -20,6 +18,12 @@ from src.application.services.analysis.technical.indicators import (
     bollinger_bands,
 )
 from src.application.services.analysis.technical.golden_cross import detect_crosses, CrossType
+from src.ui_qml.controllers.chart_candle_sources import (
+    demo_candles,
+    last_price_summary,
+    load_market_history_candles,
+    load_price_series_candles,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -159,168 +163,52 @@ class ChartController(QObject):
 
     # --- Data Fetching & Processing ---
 
-    def _fetch_and_emit_chart_data(self, ticker: str) -> None:
-        """
-        Gerçek veritabanından veri çeker, zaman dilimine (1D, 1W, 1M) göre resample eder,
-        tüm teknik indikatörleri (SMA, EMA, BB, RSI, MACD) hesaplar ve zengin JSON döner.
-        """
-        raw_candles: list[dict[str, Any]] = []
-        raw_volumes: list[dict[str, Any]] = []
-        company_name = ticker
-
-        # 1. Birincil kaynak: DuckDB piyasa geçmişi (tüm BIST, sermaye artırımı düzeltmeli)
-        data_found = False
+    def _load_candles(self, ticker: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
+        """Mum kaynağı sırası: DuckDB piyasa geçmişi, SQLite fiyatları; demo yalnızca konteynersiz modda."""
         lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
         if lookup is not None:
-            try:
-                end_date = datetime.now().date()
-                bars = lookup.get_market_bars(ticker, end_date - timedelta(days=365 * 3), end_date)
-                if bars:
-                    company_name = lookup.get_market_company_name(ticker) or company_name
-                    prev_close = None
-                    for bar in bars:
-                        c = bar.close_price
-                        o = bar.open_price if bar.open_price else (prev_close if prev_close is not None else c)
-                        h = bar.high_price if bar.high_price else max(o, c)
-                        l = bar.low_price if bar.low_price else min(o, c)
-                        prev_close = c
-                        dt_str = bar.price_date.strftime("%Y-%m-%d")
-                        raw_candles.append({"time": dt_str, "open": round(o, 2), "high": round(h, 2),
-                                            "low": round(l, 2), "close": round(c, 2)})
-                        raw_volumes.append({
-                            "time": dt_str,
-                            "value": float(bar.volume or 0),
-                            "color": "rgba(8, 153, 129, 0.4)" if c >= o else "rgba(242, 54, 69, 0.4)",
-                        })
-                    data_found = True
-                    logger.info("DuckDB'den %s icin %d adet 1D mum verisi yuklendi.", ticker, len(raw_candles))
-            except Exception as exc:
-                logger.warning("DuckDB fiyat verisi okunamadi (%s): %s", ticker, exc)
+            loaded = load_market_history_candles(lookup, ticker)
+            if loaded:
+                return loaded
+        if self._container:
+            return load_price_series_candles(lookup, ticker)
+        return demo_candles(ticker)
 
-        # Yedek: SQLite portföy fiyatları (DuckDB'de olmayan hisseler)
-        if self._container and not data_found:
-            try:
-                stock = lookup.find_stock(ticker) if lookup else None
+    def _update_last_price(self, candles: list[dict[str, Any]]) -> None:
+        summary = last_price_summary(candles)
+        if summary is not None:
+            self._last_price_str, self._is_positive, self._price_change_str = summary
 
-                if stock:
-                    raw_name = getattr(stock, "name", None) or stock.ticker
-                    company_name = raw_name.replace(".IS", "").strip()
-                    start_date = datetime.now().date() - timedelta(days=365 * 3)  # 3 yıllık veri
-                    end_date = datetime.now().date()
-                    prices = lookup.get_price_series(stock.id, start_date, end_date)
-
-                    if prices:
-                        sorted_prices = sorted(prices, key=lambda x: x.price_date)
-                        prev_close = None
-                        for p in sorted_prices:
-                            dt_str = p.price_date.strftime("%Y-%m-%d")
-                            c = float(p.close_price)
-
-                            if p.open_price is not None and p.high_price is not None and p.low_price is not None:
-                                o = float(p.open_price)
-                                h = float(p.high_price)
-                                l = float(p.low_price)
-                            else:
-                                o = prev_close if prev_close is not None else c
-                                spread = max(abs(c - o), c * 0.008)
-                                h = max(o, c) + (spread * 0.35)
-                                l = max(0.01, min(o, c) - (spread * 0.35))
-
-                            prev_close = c
-                            v = float(p.volume if p.volume is not None and p.volume > 0 else 250000)
-
-                            raw_candles.append({
-                                "time": dt_str,
-                                "open": round(o, 2),
-                                "high": round(h, 2),
-                                "low": round(l, 2),
-                                "close": round(c, 2),
-                            })
-                            raw_volumes.append({
-                                "time": dt_str,
-                                "value": v,
-                                "color": "rgba(8, 153, 129, 0.4)" if c >= o else "rgba(242, 54, 69, 0.4)",
-                            })
-
-                        data_found = True
-                        logger.info("SQLite'tan %s icin %d adet 1D mum verisi yuklendi.", ticker, len(raw_candles))
-            except Exception as exc:
-                logger.warning("Fiyat verisi cekilirken hata: %s", exc)
-
-        # 2. Demo veri yalnızca konteynersiz (offline) modda üretilir; gerçek DB'de veri yoksa boş grafik gösterilir
-        if self._container is None and (not data_found or not raw_candles):
-            base_price = 285.0 if "THY" in ticker else (110.0 if "GARAN" in ticker else 150.0)
-            today = datetime.now().date()
-            np.random.seed(abs(hash(ticker)) % (2**32))
-
-            current_price = base_price
-            for i in range(260, -1, -1):
-                d = today - timedelta(days=i)
-                if d.weekday() >= 5:
-                    continue
-
-                change_pct = np.random.normal(0.001, 0.02)
-                o = current_price
-                c = o * (1 + change_pct)
-                h = max(o, c) * (1 + abs(np.random.normal(0, 0.008)))
-                l = min(o, c) * (1 - abs(np.random.normal(0, 0.008)))
-                v = int(np.random.uniform(500000, 3500000))
-
-                dt_str = d.strftime("%Y-%m-%d")
-                raw_candles.append({
-                    "time": dt_str,
-                    "open": round(o, 2),
-                    "high": round(h, 2),
-                    "low": round(l, 2),
-                    "close": round(c, 2),
-                })
-                raw_volumes.append({
-                    "time": dt_str,
-                    "value": v,
-                    "color": "rgba(8, 153, 129, 0.4)" if c >= o else "rgba(242, 54, 69, 0.4)",
-                })
-                current_price = c
-
-        self._company_name = company_name
-
-        # 3. Zaman Dilimine Göre Yeniden Örnekleme (Resampling)
-        resampled_candles, resampled_volumes = self._resample_timeframe(
-            raw_candles, raw_volumes, self._current_timeframe
-        )
-
-        # Son Fiyat Bilgisi Güncelleme
-        if resampled_candles:
-            last_c = resampled_candles[-1]
-            last_close = last_c["close"]
-            prev_close = resampled_candles[-2]["close"] if len(resampled_candles) > 1 else last_c["open"]
-            diff = last_close - prev_close
-            diff_pct = (diff / prev_close) * 100 if prev_close > 0 else 0.0
-
-            self._last_price_str = f"₺{last_close:,.2f}"
-            self._is_positive = diff >= 0
-            sign = "+" if diff >= 0 else ""
-            self._price_change_str = f"{sign}{diff_pct:.2f}%"
-
-        # 4. Teknik İndikatörleri Hesapla (NumPy / Pandas Vektörize)
-        indicators_data = self._calculate_indicators(resampled_candles)
-
-        # 5. JSON Paketi Oluştur ve Gönder
+    def _build_payload(
+        self,
+        ticker: str,
+        candles: list[dict[str, Any]],
+        volumes: list[dict[str, Any]],
+        indicators: dict[str, Any],
+    ) -> dict[str, Any]:
         clean_ticker = ticker.replace(".IS", "").strip().upper()
-        clean_company = (self._company_name or "").replace(".IS", "").strip()
-        payload = {
+        return {
             "ticker": clean_ticker,
-            "companyName": clean_company,
+            "companyName": (self._company_name or "").replace(".IS", "").strip(),
             "timeframe": self._current_timeframe,
             "chartType": self._current_chart_type,
-            "candles": resampled_candles,
-            "volumes": resampled_volumes,
+            "candles": candles,
+            "volumes": volumes,
             # Ortalama maliyet çizgisi yalnızca maliyetin ait olduğu hissede gösterilir
             "avgCost": self._average_cost if clean_ticker == self._average_cost_ticker else None,
-            **indicators_data,
+            **indicators,
         }
 
-        json_str = json.dumps(payload)
-        self.chartDataLoaded.emit(ticker, json_str)
+    def _fetch_and_emit_chart_data(self, ticker: str) -> None:
+        """
+        Mumları kaynaklardan yükler, zaman dilimine (1D, 1W, 1M) göre resample eder,
+        tüm teknik indikatörleri (SMA, EMA, BB, RSI, MACD) hesaplar ve zengin JSON yayar.
+        """
+        raw_candles, raw_volumes, self._company_name = self._load_candles(ticker)
+        candles, volumes = self._resample_timeframe(raw_candles, raw_volumes, self._current_timeframe)
+        self._update_last_price(candles)
+        payload = self._build_payload(ticker, candles, volumes, self._calculate_indicators(candles))
+        self.chartDataLoaded.emit(ticker, json.dumps(payload))
 
     def _resample_timeframe(
         self,

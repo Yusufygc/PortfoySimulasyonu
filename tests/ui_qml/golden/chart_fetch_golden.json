@@ -1,0 +1,318 @@
+{
+ "duckdb_daily": {
+  "avgCost": null,
+  "candle_count": 70,
+  "companyName": "Test Şirketi A.Ş.",
+  "controller_state": [
+   "₺135.70",
+   "+0.59%",
+   true,
+   "Test Şirketi A.Ş."
+  ],
+  "emitted_ticker": "TEST.IS",
+  "first_candle": {
+   "close": 100.0,
+   "high": 100.0,
+   "low": 100.0,
+   "open": 100.0,
+   "time": "2026-01-05"
+  },
+  "first_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-01-05",
+   "value": 0.0
+  },
+  "last_candle": {
+   "close": 135.7,
+   "high": 135.7,
+   "low": 134.9,
+   "open": 134.9,
+   "time": "2026-04-10"
+  },
+  "last_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-04-10",
+   "value": 1690.0
+  },
+  "payload_keys": [
+   "avgCost",
+   "bb",
+   "candles",
+   "chartType",
+   "companyName",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50",
+   "ticker",
+   "timeframe",
+   "volumes"
+  ],
+  "payload_sha256": "cdc6ac327802d32db5feb1db6e438a7afd39c6351331d4252903986703180ed0",
+  "ticker": "TEST",
+  "timeframe": "1D"
+ },
+ "duckdb_monthly": {
+  "avgCost": null,
+  "candle_count": 4,
+  "companyName": "Test Şirketi A.Ş.",
+  "controller_state": [
+   "₺135.70",
+   "+3.75%",
+   true,
+   "Test Şirketi A.Ş."
+  ],
+  "emitted_ticker": "TEST.IS",
+  "first_candle": {
+   "close": 110.7,
+   "high": 111.6,
+   "low": 99.7,
+   "open": 100.0,
+   "time": "2026-01-30"
+  },
+  "first_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-01-30",
+   "value": 16500.0
+  },
+  "last_candle": {
+   "close": 135.7,
+   "high": 135.8,
+   "low": 130.5,
+   "open": 131.2,
+   "time": "2026-04-10"
+  },
+  "last_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-04-10",
+   "value": 9920.0
+  },
+  "payload_keys": [
+   "avgCost",
+   "bb",
+   "candles",
+   "chartType",
+   "companyName",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50",
+   "ticker",
+   "timeframe",
+   "volumes"
+  ],
+  "payload_sha256": "a41918e47137106eea8a308b6c02b6428258cc05b43c7eef4c4c767b74a347af",
+  "ticker": "TEST",
+  "timeframe": "1M"
+ },
+ "duckdb_weekly_with_cost": {
+  "avgCost": 104.5,
+  "candle_count": 14,
+  "companyName": "Test Şirketi A.Ş.",
+  "controller_state": [
+   "₺135.70",
+   "+1.88%",
+   true,
+   "Test Şirketi A.Ş."
+  ],
+  "emitted_ticker": "TEST.IS",
+  "first_candle": {
+   "close": 103.2,
+   "high": 104.1,
+   "low": 99.7,
+   "open": 100.0,
+   "time": "2026-01-09"
+  },
+  "first_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-01-09",
+   "value": 3060.0
+  },
+  "last_candle": {
+   "close": 135.7,
+   "high": 135.8,
+   "low": 131.4,
+   "open": 132.1,
+   "time": "2026-04-10"
+  },
+  "last_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-04-10",
+   "value": 6670.0
+  },
+  "payload_keys": [
+   "avgCost",
+   "bb",
+   "candles",
+   "chartType",
+   "companyName",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50",
+   "ticker",
+   "timeframe",
+   "volumes"
+  ],
+  "payload_sha256": "7c6b0f92b988b792828af34b8856088ddb9be31e781fee3c8ec779e61105f7e6",
+  "ticker": "TEST",
+  "timeframe": "1W"
+ },
+ "no_data_anywhere": {
+  "avgCost": null,
+  "candle_count": 0,
+  "companyName": "TEST",
+  "controller_state": [
+   "₺0.00",
+   "+0.00%",
+   true,
+   "TEST.IS"
+  ],
+  "emitted_ticker": "TEST.IS",
+  "first_candle": null,
+  "first_volume": null,
+  "last_candle": null,
+  "last_volume": null,
+  "payload_keys": [
+   "avgCost",
+   "bb",
+   "candles",
+   "chartType",
+   "companyName",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50",
+   "ticker",
+   "timeframe",
+   "volumes"
+  ],
+  "payload_sha256": "f39ed62128613609549873833bdcfa7ddacc44c816db01d76e2601ccea2dc868",
+  "ticker": "TEST",
+  "timeframe": "1D"
+ },
+ "sqlite_fallback_after_duckdb_error": {
+  "avgCost": null,
+  "candle_count": 70,
+  "companyName": "Test Hisse",
+  "controller_state": [
+   "₺135.70",
+   "+0.59%",
+   true,
+   "Test Hisse"
+  ],
+  "emitted_ticker": "TEST.IS",
+  "first_candle": {
+   "close": 100.0,
+   "high": 100.8,
+   "low": 99.1,
+   "open": 99.7,
+   "time": "2026-01-05"
+  },
+  "first_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-01-05",
+   "value": 250000.0
+  },
+  "last_candle": {
+   "close": 135.7,
+   "high": 136.08,
+   "low": 134.52,
+   "open": 134.9,
+   "time": "2026-04-10"
+  },
+  "last_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-04-10",
+   "value": 569.0
+  },
+  "payload_keys": [
+   "avgCost",
+   "bb",
+   "candles",
+   "chartType",
+   "companyName",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50",
+   "ticker",
+   "timeframe",
+   "volumes"
+  ],
+  "payload_sha256": "324d9ee1f857bacb4643950eead7de749934b9f418c34d35908db8c1a94c5579",
+  "ticker": "TEST",
+  "timeframe": "1D"
+ },
+ "sqlite_fallback_when_duckdb_empty": {
+  "avgCost": null,
+  "candle_count": 14,
+  "companyName": "Test Hisse",
+  "controller_state": [
+   "₺135.70",
+   "+1.88%",
+   true,
+   "Test Hisse"
+  ],
+  "emitted_ticker": "TEST.IS",
+  "first_candle": {
+   "close": 103.2,
+   "high": 104.0,
+   "low": 99.1,
+   "open": 99.7,
+   "time": "2026-01-09"
+  },
+  "first_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-01-09",
+   "value": 252010.0
+  },
+  "last_candle": {
+   "close": 135.7,
+   "high": 136.08,
+   "low": 132.13,
+   "open": 133.2,
+   "time": "2026-04-10"
+  },
+  "last_volume": {
+   "color": "rgba(8, 153, 129, 0.4)",
+   "time": "2026-04-10",
+   "value": 252270.0
+  },
+  "payload_keys": [
+   "avgCost",
+   "bb",
+   "candles",
+   "chartType",
+   "companyName",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50",
+   "ticker",
+   "timeframe",
+   "volumes"
+  ],
+  "payload_sha256": "3e8d7b79592789c3c3d7cf2254a273a9db2b1dd28e6a4ae21dec7e168681d376",
+  "ticker": "TEST",
+  "timeframe": "1W"
+ }
+}
