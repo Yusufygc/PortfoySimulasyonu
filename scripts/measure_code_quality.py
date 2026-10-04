@@ -667,7 +667,34 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--health-report", type=Path, default=DEFAULT_HEALTH_REPORT)
     parser.add_argument("--fail-on-threshold", action="store_true")
+    parser.add_argument(
+        "--max-class-violations", type=int, default=None,
+        help="Eşik dışı sınıf sayısı bu değeri aşarsa 1 döner (mevcut borcu tavan alıp yeni ihlali engelleyen kapı).",
+    )
+    parser.add_argument(
+        "--max-function-violations", type=int, default=None,
+        help="Eşik dışı fonksiyon sayısı bu değeri aşarsa 1 döner.",
+    )
+    parser.add_argument(
+        "--max-file-violations", type=int, default=None,
+        help="Eşik dışı dosya sayısı bu değeri aşarsa 1 döner.",
+    )
     return parser.parse_args(argv)
+
+
+def ceiling_failures(report: dict, args: argparse.Namespace) -> list[str]:
+    """Verilen tavanları aşan ihlal türlerini açıklayan satırlar (boşsa kapı geçer)."""
+    limits = (
+        ("classes", "sınıf", args.max_class_violations),
+        ("functions", "fonksiyon", args.max_function_violations),
+        ("files", "dosya", args.max_file_violations),
+    )
+    failures = []
+    for key, label, limit in limits:
+        count = len(report["violations"][key])
+        if limit is not None and count > limit:
+            failures.append(f"Eşik dışı {label} sayısı {count}, tavan {limit}: yeni ihlal eklenmemeli.")
+    return failures
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -682,7 +709,10 @@ def main(argv: list[str] | None = None) -> int:
         or report["violations"]["functions"]
     ):
         return 1
-    return 0
+    failures = ceiling_failures(report, args)
+    for line in failures:
+        print(line)
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] güncelleme | CI Genişletildi (Denetim Bulgu 11)
+
+- `.github/workflows/tests.yml`: Python matrisi 3.10 ve 3.11 (zorunlu) + 3.12 (deneysel, `continue-on-error`); `QT_QPA_PLATFORM=offscreen`; pip önbelleği; `pytest-cov` ile kapsam (`--cov=src --cov=config --cov-fail-under=80`, yerel taban %84, `coverage.xml` artifact); eşzamanlı çalışma iptali.
+- Yeni **quality** işi: `measure_code_quality.py` tavan kapısı (14 sınıf, 104 fonksiyon, 0 dosya). Betiğe `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ve `ceiling_failures` eklendi (`tests/test_code_quality_measurement.py` içinde 3 test).
+- Yeni **security** işi: `pip-audit` kurulu ortamı tarar (push, PR ve haftalık zamanlama). Yerelde: doğrudan bağımlılıklarda açık yok; yerel `venv` içindeki `setuptools 65.5.0` için 4 açık raporlanıyor (çalışma zamanı bağımlılığı değil, derleme aracı; `pip install -U setuptools` önerilir).
+- `requirements.txt`'e `pytest-cov==7.1.0`. **Doğrulanmadı:** iş akışı GitHub üzerinde koşmadı (YAML yerelde ayrıştırıldı; testler yerelde `QT_QPA_PLATFORM=offscreen` ile 1257 geçti, Python 3.12 denenmedi). Lint (ruff) bilinçli eklenmedi.
+
+---
 ## [2026-10-04] güncelleme | API Anahtarları İşletim Sistemi Sır Deposunda (Denetim Bulgu 10)
 
 - Yeni `config/secret_store.py` (`SecretStore`, `KeyringSecretStore`): Gemini ve EVDS anahtarları Windows Kimlik Bilgisi Yöneticisi'nde (`keyring==25.7.0`, hizmet `PortfoySimulasyonu`) saklanır. `persist_api_keys` depoya yazar ve `.env`'deki düz metin kalıntıyı siler; depo yoksa/hata verirse `.env` yedeğine düşer. Boş değer depodan, `.env`'den ve ortamdan siler. Yükleme sırasında depo `.env`'den önceliklidir. Değer hiçbir zaman log'a yazılmaz.

@@ -97,3 +97,31 @@ def test_repo_measurement_smoke():
     assert report["summary"]["file_count"] > 0
     assert report["summary"]["effective_code_lines"] > 0
     assert {"src", "tests", "scripts", "root"} <= set(report["summary"]["by_layer"])
+
+
+def _report(classes=0, functions=0, files=0):
+    return {"violations": {"classes": [0] * classes, "functions": [0] * functions, "files": [0] * files}}
+
+
+def _args(**limits):
+    return measure_code_quality.parse_args([f"--{name.replace('_', '-')}={value}" for name, value in limits.items()])
+
+
+def test_ceiling_gate_passes_when_counts_are_at_or_below_limits():
+    args = _args(max_class_violations=14, max_function_violations=104)
+
+    assert measure_code_quality.ceiling_failures(_report(classes=14, functions=100), args) == []
+
+
+def test_ceiling_gate_reports_each_exceeded_kind():
+    args = _args(max_class_violations=14, max_function_violations=104)
+
+    failures = measure_code_quality.ceiling_failures(_report(classes=15, functions=105), args)
+
+    assert len(failures) == 2 and "sınıf" in failures[0] and "fonksiyon" in failures[1]
+
+
+def test_ceiling_gate_is_off_without_limits():
+    args = measure_code_quality.parse_args([])
+
+    assert measure_code_quality.ceiling_failures(_report(classes=99, functions=999, files=9), args) == []

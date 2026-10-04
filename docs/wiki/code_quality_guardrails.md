@@ -6,6 +6,8 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 
 ## 1. Ölçüm
 
+**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 14 sınıf, 104 fonksiyon, 0 dosya); yeni ihlal eklenemez. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
+
 ```powershell
 .\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar
 .\venv\Scripts\python.exe scripts\measure_code_quality.py --output-dir C:\temp\cq

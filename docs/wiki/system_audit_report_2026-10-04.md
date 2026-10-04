@@ -191,6 +191,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Çözüm:** Matris (3.10, 3.12); `pip-audit` adımı; `--cov` raporu; ihlal sayısının artmasını engelleyen bir kapı (mevcut 14/110 sayısı tavan olarak).
 - **Düzeltme Eforu:** M
 - **Bağımlılık:** CI süresi.
+- **Durum:** Çözüldü (2026-10-04), lint hariç. Python matrisi, kapsam eşiği, kalite tavan kapısı ve `pip-audit` eklendi. İş akışı GitHub'da koşmadı; lint eklenmedi (toplu temizlik gerektirir).
 
 ### [🟡] 12. Test hijyeni
 - **Persona:** QA / Test Mühendisi.

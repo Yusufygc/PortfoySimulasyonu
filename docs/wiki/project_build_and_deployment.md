@@ -34,7 +34,7 @@ Testler preflight'ın statik koşullarını da denetler (`tests/infrastructure/t
 
 ## 5. CI (GitHub Actions)
 
-`.github/workflows/tests.yml`: her `push` ve `pull_request` için Windows + Python 3.11 üzerinde `pip install -r requirements.txt`, `pip check`, `pytest --collect-only -q`, `pytest tests -q`. `pytest.ini` filtresi `manual` ve `network` testlerini dışarıda bırakır. Nuitka derlemesi CI'da koşmaz.
+`.github/workflows/tests.yml` üç iş çalıştırır (`push`, `pull_request` ve haftalık zamanlama): **test** (Windows; Python 3.10 ve 3.11 zorunlu, 3.12 deneysel/engelleyici değil; `QT_QPA_PLATFORM=offscreen`; `pip install -r requirements.txt`, `pip check`, `pytest --collect-only -q`, `pytest tests -q --cov=src --cov=config --cov-fail-under=80`, kapsam raporu artifact), **quality** (`scripts/measure_code_quality.py` tavanları: 14 sınıf, 104 fonksiyon, 0 dosya; yeni eşik ihlali eklenemez, borç azaldıkça tavanlar düşürülür) ve **security** (`pip-audit` ile kurulu ortamın tamamının, geçişli bağımlılıklar dahil, bilinen açıklara karşı taranması). `pytest.ini` filtresi `manual` ve `network` testlerini dışarıda bırakır. Nuitka derlemesi CI'da koşmaz. Lint (ruff/flake8) henüz yoktur: mevcut kodda toplu temizlik gerektirir.
 
 ## 6. Çalıştırma Betikleri
 
