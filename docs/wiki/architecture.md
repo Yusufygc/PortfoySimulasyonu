@@ -85,7 +85,7 @@ Açılıştan sonra başlayan otomatik işler (ayrıntı: [settings_and_system.m
 
 - Ağ, veritabanı taraması ve ağır hesaplama ana (GUI) iş parçacığında çalıştırılmaz. Denetleyiciler `ThreadPoolExecutor` kullanır; sonuç, Qt kuyruklu sinyalleriyle (`_xxxFinished = Signal(...)`) ana iş parçacığına taşınır. Arka plan iş parçacığından QML özelliği değiştirilmez.
 - Açılış işleri tek bir iş parçacığında sırayla çalışır (veri kaynaklarını aynı anda yormamak için).
-- `yfinance` çağrıları `yfinance_lock` ile serileştirilir; kilit yeniden deneme beklemesi sırasında tutulmaz ([service_market_data_providers.md](service_market_data_providers.md)).
+- Etkileşimli `yfinance` çağrıları `yfinance_lock` kapısıyla serileştirilir; kapı 30 sn içinde alınamazsa uyarıp kilitsiz sürdürür (fail-open) ve kilit yeniden deneme beklemesi sırasında tutulmaz ([service_market_data_providers.md](service_market_data_providers.md)).
 - Fiyat güncellemeleri `GlobalEventBus.prices_updated` (Qt sinyali, yük: `dict[int, Decimal]`) ile yayınlanır; Dashboard ve Model Portföy bu sinyali dinleyerek yenilenir.
 
 ---

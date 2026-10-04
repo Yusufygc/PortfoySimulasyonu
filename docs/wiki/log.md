@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | yfinance Kapısı Zaman Aşımı (Denetim Bulgu 13)
+
+- Denetim bulgusu kodla doğrulandı ve **kısmen düzeltildi**: toplu BIST indirmeleri (`bist_bulk_downloader.py`, `market_data_sync_service.py`) `yfinance_lock` kullanmıyor ve zaten eşzamanlı çalışıyor; yani "toplu senkron kullanıcının fiyat sorgusunu bekletir" iddiası yanlıştı. yfinance 1.7.0 `multi.py` paylaşılan küresel durum (`shared._DFS`) kullanmıyor. Gerçek risk: kilit alma süresiz olduğundan takılan tek bir etkileşimli çağrı diğer tüm etkileşimli yfinance çağrılarını bekletebilir.
+- `yfinance_lock` artık zaman aşımlı `YFinanceGate`: 30 sn içinde alınamazsa uyarı yazılır ve çağrı kilitsiz sürdürülür (fail-open); 2 sn üzeri beklemeler bilgi olarak loglanır; zaman aşımına düşen giriş başkasının kilidini serbest bırakmaz (iş parçacığı başına yığın). Mevcut `with yfinance_lock:` kullanımları değişmedi.
+- Testler: `test_yfinance_gate.py` (serileştirme, takılan tutucuya karşı fail-open, istisnada serbest bırakma, iç içe kullanım).
+- Kasıtlı olarak yapılmadı: kilidi tamamen kaldırmak (yfinance'in tüm yolları için kanıt yok) veya iki kilide bölmek.
+
+---
 ## [2026-10-04] düzeltme | Test Hijyeni (Denetim Bulgu 12)
 
 - Silindi: `tests/infrastructure/market_data/test_benchmark_fetch_manual.py` (kaldırılmış `_investing_client` alanına başvuruyordu, çalışamazdı); `conftest.py` marker dalı ve `test_repo_guards.py` izin listesi temizlendi.

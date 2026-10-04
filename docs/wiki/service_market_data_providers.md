@@ -46,7 +46,7 @@ Testlerde bekleme `tests/conftest.py` ile kapatılır (`retry._sleep` değiştir
 
 - `MARKET_DATA_FALLBACK_ERRORS` (`infrastructure/market_data/_errors.py`): yfinance, `urllib`, JSON ayrıştırma, `MarketDataUnavailableError` ve benzeri beklenen hataları tek ailede toplar; kontrolsüz `except Exception` kullanılmaz.
 - İstemci hataları `MarketDataUnavailableError` ile sarılır; çağıran katman deterministik geri düşmeyi seçer (ör. EVDS yok -> sabit mevduat faizi; AI_Core yok -> demo sağlayıcı; İş Yatırım yok -> Hisse 360 yedek veri).
-- `yfinance_lock`: yfinance çağrıları süreç genelinde serileştirilir. Kilit yeniden deneme beklemesi sırasında tutulmaz.
+- `yfinance_lock` (`YFinanceGate`): etkileşimli sağlayıcılar (tek fiyat, değerleme, gösterge, optimizasyon, istemci) birbirini süreç genelinde serileştirir; toplu BIST indirmeleri (`BistBulkDownloader`, `MarketDataSyncService`) kapıyı kullanmaz ve eşzamanlı çalışır. Kapı `LOCK_WAIT_TIMEOUT_SECONDS` (30 sn) içinde alınamazsa uyarı yazılıp çağrı kilitsiz sürdürülür (fail-open): takılan tek bir istek tüm yfinance kullanıcılarını sonsuza dek bekletmez; zaman aşımına düşen giriş, başkasının tuttuğu kilidi serbest bırakmaz. Kilit yeniden deneme beklemesi sırasında tutulmaz. yfinance 1.7.0 indirme yolu paylaşılan küresel durum kullanmadığından kilitsiz devam güvenlidir.
 - yfinance zaman dilimi önbelleği geçici klasörde tutulur (`<temp>/portfoy-simulasyonu/yfinance-cache`).
 
 ## 5. DuckDB Okuyucuları

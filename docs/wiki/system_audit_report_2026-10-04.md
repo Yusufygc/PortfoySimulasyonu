@@ -213,6 +213,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Çözüm:** Kullanıcı kaynaklı sorguları (`price_lookup`) toplu iş kilidinden ayır (iki kilit) veya toplu indirmeyi `yf.download(threads=True)` ile tek çağrıda yap.
 - **Düzeltme Eforu:** M
 - **Bağımlılık:** yfinance sürüm davranışı; testler.
+- **Durum:** Kısmen doğru çıktı, çözüldü (2026-10-04). Rapordaki "toplu senkron kilidin arkasında bekler" iddiası yanlıştı: toplu indirmeler kilidi kullanmıyor. Gerçek risk süresiz kilit beklemesiydi; `YFinanceGate` 30 sn zaman aşımı ve fail-open ile giderildi (`yfinance_lock.py`, `test_yfinance_gate.py`).
 
 ### [🟡] 14. Dev QML görünümleri
 - **Persona:** Kıdemli Yazılım Mimarı.
