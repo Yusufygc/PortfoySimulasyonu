@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import Callable, Dict, Iterable, List
 
 from src.application.services.market.price_data_health_service import PRICE_SCOPE_ALL_ACTIVE
-from src.application.services.market.price_lookup_service import PriceLookupService
+from src.application.services.market.price_lookup_service import PriceLookupResult, PriceLookupService
 from src.domain.models.latest_price import LatestPrice
 from src.domain.ports.repositories.i_latest_price_repo import ILatestPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
@@ -64,18 +64,51 @@ class LivePriceRefreshService:
         stock_ids = self._target_stock_ids(scope)
         ticker_map = self._stock_repo.get_ticker_map_for_stock_ids(stock_ids)
 
-        prices: Dict[int, Decimal] = {}
-        latest_prices: List[LatestPrice] = []
-        errors: List[str] = []
-        for position, stock_id in enumerate(stock_ids):
+        errors: List[str] = [f"{sid}: ticker bulunamadi." for sid in stock_ids if not ticker_map.get(sid)]
+        tickers = {sid: ticker_map[sid] for sid in stock_ids if ticker_map.get(sid)}
+        results = self._lookup_bulk(tickers)
+        results.update(self._lookup_one_by_one({sid: t for sid, t in tickers.items() if sid not in results}, deadline, errors))
+
+        fetched_at = datetime.now(timezone.utc)
+        latest_prices = [
+            LatestPrice(id=None, stock_id=sid, price=res.price, as_of=res.as_of, source=res.source,
+                        provider="price_lookup", fetched_at=fetched_at)
+            for sid, res in results.items()
+        ]
+        if self._latest_price_repo is not None:
+            self._latest_price_repo.upsert_latest_prices(latest_prices)
+
+        prices: Dict[int, Decimal] = {sid: res.price for sid, res in results.items()}
+        return LivePriceRefreshResult(
+            scanned_count=len(stock_ids),
+            updated_count=len(prices),
+            prices=prices,
+            errors=errors,
+            started_at=started_at,
+            finished_at=datetime.now(timezone.utc),
+        )
+
+    def _lookup_bulk(self, tickers: Dict[int, str]) -> Dict[int, PriceLookupResult]:
+        """Tek toplu istek (hisse başına ~2 sn'lik tekli sorgu yerine); desteklenmiyorsa boş döner."""
+        bulk = getattr(self._price_lookup_service, "lookup_prices_bulk", None)
+        if bulk is None or not tickers:
+            return {}
+        try:
+            by_ticker = bulk(list(tickers.values())) or {}
+        except Exception as exc:
+            logger.warning("Toplu canlı fiyat sorgusu başarısız; tekli sorguya geçiliyor: %s", exc)
+            return {}
+        return {sid: by_ticker[ticker] for sid, ticker in tickers.items() if ticker in by_ticker}
+
+    def _lookup_one_by_one(self, tickers: Dict[int, str], deadline: float, errors: List[str]) -> Dict[int, PriceLookupResult]:
+        """Toplu istekte gelmeyen hisseler için tekli sorgu (zaman bütçesi içinde)."""
+        results: Dict[int, PriceLookupResult] = {}
+        items = list(tickers.items())
+        for position, (stock_id, ticker) in enumerate(items):
             if time.monotonic() > deadline:
-                errors.append(f"Zaman bütçesi doldu: {len(stock_ids) - position} hisse atlandı.")
-                logger.warning("Canlı fiyat yenileme zaman bütçesini aştı; %d hisse atlandı.", len(stock_ids) - position)
+                errors.append(f"Zaman bütçesi doldu: {len(items) - position} hisse atlandı.")
+                logger.warning("Canlı fiyat yenileme zaman bütçesini aştı; %d hisse atlandı.", len(items) - position)
                 break
-            ticker = ticker_map.get(stock_id)
-            if not ticker:
-                errors.append(f"{stock_id}: ticker bulunamadi.")
-                continue
             try:
                 result = self._price_lookup_service.lookup_price_for_ticker(ticker)
             except Exception as exc:
@@ -85,27 +118,5 @@ class LivePriceRefreshService:
             if result is None:
                 errors.append(f"{ticker}: fiyat bulunamadi.")
                 continue
-            prices[stock_id] = result.price
-            latest_prices.append(
-                LatestPrice(
-                    id=None,
-                    stock_id=stock_id,
-                    price=result.price,
-                    as_of=result.as_of,
-                    source=result.source,
-                    provider="price_lookup",
-                    fetched_at=datetime.now(timezone.utc),
-                )
-            )
-
-        if self._latest_price_repo is not None:
-            self._latest_price_repo.upsert_latest_prices(latest_prices)
-
-        return LivePriceRefreshResult(
-            scanned_count=len(stock_ids),
-            updated_count=len(prices),
-            prices=prices,
-            errors=errors,
-            started_at=started_at,
-            finished_at=datetime.now(timezone.utc),
-        )
+            results[stock_id] = result
+        return results

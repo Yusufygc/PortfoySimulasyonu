@@ -463,6 +463,13 @@ class ModelPortfolioController(QObject):
         )
         # Previous close map for daily change
         prev_close_map = self._build_previous_close_map(positions)
+        # Ağırlık paydası: portföy toplam değeri bir kez hesaplanır (eskiden her pozisyonda yeniden: O(N²))
+        total_val = Decimal("0")
+        try:
+            summary = self._service.get_portfolio_summary(self._current_portfolio_id, self._current_price_map)
+            total_val = summary.get("total_value", Decimal("0"))
+        except Exception:
+            logger.warning("Model portföy toplam değeri hesaplanamadı; ağırlık 0 gösterilecek.", exc_info=True)
 
         self._positions_list = []
         for pos in positions:
@@ -484,16 +491,6 @@ class ModelPortfolioController(QObject):
             total_change_pct = None
             if current_price and avg_cost and avg_cost > 0:
                 total_change_pct = float(((current_price - avg_cost) / avg_cost) * 100)
-
-            # Weight
-            total_val = Decimal("0")
-            try:
-                summary = self._service.get_portfolio_summary(
-                    self._current_portfolio_id, self._current_price_map
-                )
-                total_val = summary.get("total_value", Decimal("0"))
-            except Exception:
-                logger.warning("Model portföy toplam değeri hesaplanamadı; ağırlık 0 gösterilecek.", exc_info=True)
 
             weight = 0.0
             if current_value and total_val and total_val > 0:

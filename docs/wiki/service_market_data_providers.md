@@ -11,7 +11,7 @@ Bu sayfa uygulamanın dış veri kaynaklarını, bunları saran sağlayıcılar�
 | Günlük OHLCV (tüm BIST, ham) | Yahoo Finance (`yfinance`, `auto_adjust=False`) | `BistBulkDownloader`, `MarketDataSyncService` | DuckDB (`data/market_history.duckdb`) |
 | Hisse listesi (BIST evreni) | TradingView Scanner API | `BistBulkDownloader.fetch_all_bist_tickers` | `bist_stocks` tablosu |
 | Portföy hisseleri kapanışı | yfinance | `YFinanceMarketDataClient` (`yfinance_client.py`, `yfinance_price_client.py`) | SQLite `daily_prices` |
-| Anlık fiyat | yfinance `fast_info` / `history` | `YFinancePriceLookupProvider` | SQLite `latest_prices` |
+| Anlık fiyat | yfinance toplu `download(period="1d", interval="1m")` (50'lik parçalar; `lookup_intraday_bulk`), gelmeyenler için tekli `fast_info` / `history` | `YFinancePriceLookupProvider` | SQLite `latest_prices` |
 | Üst piyasa şeridi | yfinance | `YFinanceIndicatorProvider` (`MarketIndicatorsService`) | yok (her yenilemede) |
 | Piyasa değeri, hisse adedi (Hisse 360) | yfinance | `YFinanceValuationProvider` | `data/_cache/financials/valuation_<TICKER>.json`, TTL 1 saat |
 | Çeyreklik mali tablolar | İş Yatırım (JSON uç noktası) | `isyatirim_provider.py` | `data/_cache/financials/<TICKER>_<PB>.json`, TTL 12 saat |

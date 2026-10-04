@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import timezone
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Dict, Sequence, Tuple
 
+import pandas as pd
 import yfinance as yf
 
 from src.application.services.market.price_lookup_service import PriceLookupSnapshot
@@ -12,8 +13,57 @@ from src.infrastructure.market_data._errors import MARKET_DATA_FALLBACK_ERRORS
 
 logger = logging.getLogger(__name__)
 
+BULK_CHUNK_SIZE = 50
+
+
+def _symbol_frame(data: Any, symbol: str, symbol_count: int) -> Any:
+    """Çok düzeyli sütunlarda sembolün alt tablosu; tek sembollü düz tabloda tablonun kendisi; yoksa None."""
+    if isinstance(data.columns, pd.MultiIndex):
+        return data[symbol] if symbol in data.columns.get_level_values(0) else None
+    return data if symbol_count == 1 else None
+
+
+def latest_bars_from_download(data: Any, symbols: Sequence[str]) -> Dict[str, Tuple[Decimal, datetime]]:
+    """`yf.download(..., group_by="ticker")` çıktısından her sembolün son geçerli kapanışı ve bar zamanı (UTC)."""
+    if data is None or getattr(data, "empty", True):
+        return {}
+    result: Dict[str, Tuple[Decimal, datetime]] = {}
+    for symbol in symbols:
+        frame = _symbol_frame(data, symbol, len(symbols))
+        if frame is None or "Close" not in frame:
+            continue
+        closes = frame["Close"].dropna()
+        closes = closes[closes > 0]
+        if closes.empty:
+            continue
+        stamp = pd.Timestamp(closes.index[-1])
+        stamp = stamp.tz_localize("UTC") if stamp.tzinfo is None else stamp.tz_convert("UTC")
+        # yfinance dakika barları float32 kalıntısı taşır (0.98 -> 0.9800000190734863); BIST fiyat adımı 2 hanedir
+        price = YFinancePriceLookupProvider._to_decimal(round(float(closes.iloc[-1]), 4))
+        if price is not None:
+            result[symbol] = (price, stamp.to_pydatetime())
+    return result
+
 
 class YFinancePriceLookupProvider:
+    def lookup_intraday_bulk(self, normalized_tickers: Sequence[str]) -> Dict[str, Tuple[Decimal, datetime]]:
+        """Son dakika barları tek `yf.download` isteğiyle (50'lik parçalar); hisse başına `fast_info` + `info` yerine."""
+        from .yfinance_lock import yfinance_lock
+
+        result: Dict[str, Tuple[Decimal, datetime]] = {}
+        symbols = list(dict.fromkeys(normalized_tickers))
+        for start in range(0, len(symbols), BULK_CHUNK_SIZE):
+            chunk = symbols[start:start + BULK_CHUNK_SIZE]
+            with yfinance_lock:
+                try:
+                    data = yf.download(" ".join(chunk), period="1d", interval="1m", group_by="ticker",
+                                       auto_adjust=False, threads=True, progress=False)
+                except MARKET_DATA_FALLBACK_ERRORS as exc:
+                    logger.warning("Toplu dakika barı indirilemedi (%d hisse): %s", len(chunk), exc)
+                    continue
+            result.update(latest_bars_from_download(data, chunk))
+        return result
+
     def lookup(self, normalized_ticker: str) -> PriceLookupSnapshot | None:
         from .yfinance_lock import yfinance_lock
         with yfinance_lock:

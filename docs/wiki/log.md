@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-05] iyileştirme | Toplu Canlı Fiyat ve Model Portföy Pozisyon Hesabı
+
+- **Ölçüm (gerçek verinin kopyası, ağ yok, ana iş parçacığı):** Ana Sayfa yeniden yükleme ~11 ms, İzleme Listesi ~6 ms, Model Portföy 34-84 ms (13 pozisyonlu portföy en yavaşı). Hepsi 100 ms altında: arka plana taşıma yapılmadı (ölçmeden taşıma yok kuralı).
+- **Model Portföy:** `_update_positions` her pozisyon için `get_portfolio_summary()` yeniden hesaplıyordu (O(N²)); toplam değer döngüden önce bir kez hesaplanır. Çıktı eski kodla birebir karşılaştırıldı (3 portföy, JSON aynı).
+- **Toplu canlı fiyat:** Canlı yenileme hisse başına `fast_info` + `info` (iki HTTP isteği) yerine önce tek `yf.download(period="1d", interval="1m", group_by="ticker")` isteği kullanır (`YFinancePriceLookupProvider.lookup_intraday_bulk`, 50'lik parçalar, `yfinance_lock` altında; `PriceLookupService.lookup_prices_bulk`). Gelmeyen hisseler eski tekli yoldan, zaman bütçesi içinde denenir. Gerçek denemede 8 hisse ~2 sn. `as_of` son dakika barının zamanıdır (eskiden sorgu anı); bu, `live_price_rule` penceresiyle tutarlıdır. Fiyat float32 kalıntısına karşı 4 haneye yuvarlanır.
+- **Bilinen sınır:** Dakika barı kapanış seansını içermez (ör. 02.10 THYAO 17:59 barı 292,25, resmi kapanış 292,0). 18:00-18:30 arasında son sürekli işlem fiyatı görünür; 18:30'dan sonra kural kesin günlük kapanışı esas alır.
+- **Test:** `tests/application/test_bulk_live_prices.py` (sahte DataFrame ayrıştırma, UTC zaman, float32 yuvarlama, servis eşlemesi, tekli yola düşme).
+
+---
 ## [2026-10-05] mimari | Fiyat Güncellemesinin Tek Koordinatörü ve Düğmesiz Güncelleme
 
 - **Sorun 1 - Ana Sayfa ağ zinciri:** Dashboard her `event_bus.prices_updated` olayında ve piyasa senkronu sonrası (`dataSynced`) `refreshMetrics` ile ağdan **tüm** canlı fiyatları yeniden çekiyordu; kapanıştan sonra gereksiz 30-120 sn ağ turu açıyor ve seans dışı "intraday" kaydı üretiyordu. Yenileme ham `threading.Thread` ve iş parçacığından `QTimer.singleShot` ile bitiyordu (proje kuralına aykırı), yeniden giriş koruması yoktu.

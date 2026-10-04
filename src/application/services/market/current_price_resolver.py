@@ -29,6 +29,11 @@ SOURCE_LIVE = "live"
 SOURCE_DAILY = "daily"
 
 
+def _live_market_date(live: Any) -> Optional[date]:
+    as_of = getattr(live, "as_of", None) if live is not None else None
+    return to_market_date(as_of) if as_of else None
+
+
 @dataclass(frozen=True)
 class ResolvedPrice:
     price: Decimal
@@ -66,7 +71,7 @@ class CurrentPriceResolver:
         for sid in ids:
             live_price = live.get(sid)
             daily_date = last_dates.get(sid)
-            live_date = to_market_date(live_price.as_of) if live_price is not None and live_price.as_of else None
+            live_date = _live_market_date(live_price)
 
             if live_price is not None and self.live_applies(live_price, daily_date, now):
                 result[sid] = ResolvedPrice(live_price.price, live_date, SOURCE_LIVE)
