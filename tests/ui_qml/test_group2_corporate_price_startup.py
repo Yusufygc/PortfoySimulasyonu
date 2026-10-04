@@ -503,8 +503,8 @@ def test_startup_bist_backfill_skipped_before_market_close_time(qapp, tmp_path, 
     container = _startup_container()
     ctrl, settings = _startup_ctrl(qapp, tmp_path, container)
     monkeypatch.setattr(
-        "src.ui_qml.controllers.startup_jobs_controller.datetime",
-        SimpleNamespace(now=lambda: SimpleNamespace(time=lambda: __import__("datetime").time(12, 0))),
+        "src.ui_qml.controllers.startup_jobs_controller.market_now",
+        lambda: datetime.combine(market_today(), time(12, 0)),
     )
 
     ctrl.runAll()
@@ -520,8 +520,8 @@ def test_startup_job_error_does_not_mark_as_done(qapp, tmp_path, monkeypatch):
     container.corporate_action_discovery_service.discover.side_effect = RuntimeError("kap yok")
     ctrl, settings = _startup_ctrl(qapp, tmp_path, container)
     monkeypatch.setattr(
-        "src.ui_qml.controllers.startup_jobs_controller.datetime",
-        SimpleNamespace(now=lambda: SimpleNamespace(time=lambda: __import__("datetime").time(10, 0))),
+        "src.ui_qml.controllers.startup_jobs_controller.market_now",
+        lambda: datetime.combine(market_today(), time(10, 0)),
     )
     notes = _capture(ctrl.jobNotification)
 

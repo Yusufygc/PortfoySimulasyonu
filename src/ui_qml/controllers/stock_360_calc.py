@@ -223,7 +223,7 @@ def _dupont_from_statements(m: Dict[str, Any], period: str, current: Tuple[Any, 
     if ozk_val > 0 and tv_val > 0:
         fl = tv_val / ozk_val
     if nm is not None and at is not None and fl is not None:
-        roe = (nm * at * fl) / 100.0
+        roe = nm * at * fl  # marj zaten yüzde: %marj x devir x kaldıraç = %ROE
     return nm, at, fl, roe
 
 

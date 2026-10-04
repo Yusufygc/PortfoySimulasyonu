@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | DuPont Yedek ROE Hesabı ve Saate Bağlı Test
+
+- `stock_360_calc.compute_dupont_data` yedek yolunda (TTM DuPont yokken bilanço kalemlerinden türetme) ROE `marj * devir * kaldıraç / 100` hesaplanıyordu; marj zaten yüzde olduğundan sonuç 100 kat küçüktü (marj %10, devir 1, kaldıraç 4 -> `%0.40`). `/ 100` kaldırıldı (`%40.00`); regresyon testi `test_dupont_derived_from_statements_when_ttm_missing` ROE'yi doğrular. Önceki girişteki "düzeltilmedi" notu bu girişle kapanmıştır.
+- `test_group2_corporate_price_startup.py` içindeki iki test (`..._skipped_before_market_close_time`, `..._job_error_does_not_mark_as_done`) hâlâ kaldırılmış `datetime` yamasını kullanıyordu ve yalnızca gerçek saat 19:00'dan önceyken geçiyordu; `market_now` yamasına çevrildi (saatten bağımsız).
+
+---
 ## [2026-10-04] refaktör | Stock360Controller Ayrıştırması, 2. Adım (Denetim Bulgu 2)
 
 - **Karakterizasyon:** Refaktör öncesi kod üzerinde iki altın çıktı alındı: (1) `stock_360_calc` / `stock_360_fallback` fonksiyonları 173 girdi/senaryo için (boş, eksik, bozuk dönem, farklı sekmeler ve arama sorguları, 0-6 KAP snapshot'ı); (2) denetleyicinin tüm QML özellikleri 26 senaryoda (açılış varsayılanları, arka plan çekimi başarılı/finans hatası/KAP hatası/veri yok/boş dönem, dönem-sekme-tablo yuvaları, hisse uyuşmazlığı, katalog/portföy/hata durumunda hızlı seçim hisseleri). Refaktör sonrası ikisi de bayt düzeyinde özdeş.
