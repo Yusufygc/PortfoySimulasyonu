@@ -53,6 +53,8 @@ Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `stock_360_calc.
 
 ## 4. Denetleyici ve QML Standardı
 
+**QML dosya tavanı:** `Strings.qml` hariç hiçbir QML dosyası 900 satırı aşmaz (`tests/ui_qml/test_qml_file_size_guard.py`); aşan görünüm sekme/bölüm bileşenlerine bölünür ([qml_pages_guide.md](qml_pages_guide.md)).
+
 Denetleyici yalnızca durum, sinyal ve servis çağrısı bağlamasından sorumludur. Büyümemesi gerekenler: uzun hesap blokları, biçimlendirme, HTML/grafik üretimi, çok adımlı iş akışları. Bunlar saf yardımcı modüllere (`*_calc.py`, `*_formatters.py`, `lw_chart_html.py`, `number_input.py`) veya application servislerine taşınır. QML sayfaları iskelet ve bağlama kodudur; büyük sayfalar sekme bileşenlerine bölünür (`PlanningBudgetTab`, `SettingsPriceDataTab`...). Kullanıcı metinleri `Strings.qml`'dedir.
 
 ## 5. Application Servis Standardı

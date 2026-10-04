@@ -222,6 +222,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Sorun:** Birçok görünüm sekme bileşenlerine bölünmüş (Planlama, Ayarlar fiyat sekmesi) ama bu beşi hâlâ tek dosya.
 - **Etki:** Gezinme ve birleştirme çatışmaları; değişen her satırda dosyanın tamamı yeniden yükleniyor ve gözle denetlenemiyor.
 - **Çözüm:** Sekme/kart başına bileşen; `PlanningBudgetTab` örüntüsü.
+- **Durum:** Çözüldü (2026-10-04). Beş görünüm 23 bileşene bölündü (1117/1128/1113/1107/1080 -> 231/101/122/178/122 satır); `test_qml_views_runtime_smoke.py` (uyarısız yükleme) ve `test_qml_file_size_guard.py` (900 satır tavanı) eklendi. Görsel/etkileşimli davranış (tıklama, kaydırma, yerleşim) bu ortamda elle doğrulanmadı: duman testi yalnızca bağlama ve kimlik hatalarını yakalar; uygulamayı açıp beş ekranı gözle denemen gerekir.
 - **Düzeltme Eforu:** L
 - **Bağımlılık:** `test_strings_catalog.py` tarama kapsamı.
 

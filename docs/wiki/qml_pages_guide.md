@@ -81,6 +81,20 @@ Sekmeler: Görünüm & Tema, API Anahtarları, Veri Sağlığı & Senkronizasyon
 
 ---
 
+## Büyük Görünümlerin Bileşenleri
+
+Beş büyük görünüm 2026-10-04'te bileşenlere bölündü (hiçbiri 900 satırı aşmaz; `test_qml_file_size_guard.py`). Bileşenler eskisi gibi doğrudan örneklenir (Loader kullanılmaz, sekmeler arası durum korunur); ana görünüm yalnızca yerleşimi, durumu ve diyalogları tutar, üst durumu özellik/sinyalle geçirir.
+
+| Görünüm | Bileşenler |
+|---|---|
+| `SettingsView` (231 satır) | `SettingsAppearanceTab`, `SettingsApiKeysTab`, `SettingsDataHealthTab`, `SettingsExportTab` (+ önceden ayrı: `SettingsCorporateActionsTab`, `SettingsPriceDataTab`, `SettingsMarketAdjustmentsTab`, `SettingsSystemTab`) |
+| `OptimizationView` (101) | `OptimizationParamsPanel` (`stacked`, `riskQuestionnaireRequested`), `OptimizationKpiStrip` (`stacked`, `hostWidth`), `OptimizationResultsPanel` |
+| `Stock360View` (122) | `Stock360TopBar`, `Stock360ModeTabs`, `Stock360HeroCard`, `Stock360OverviewSection`, `Stock360FinancialsSection`, `Stock360ShareholdersSection` (`hostWidth` = Loader genişliği) |
+| `StockDetailModal` (178) | `StockDetailHeader` (sinyaller), `StockDetailKpiCards` (`boxWidth`), `StockDetailTabsPanel` (`activeTab`), `StockDetailOrderForm` (emir durumu, `resetTradeMoment()`, `syncPrice()`) |
+| `AiAdvisorView` (122) | `AiAdvisorHeader` (`historyRequested`), `AiChatTerminal` (`scrollToEnd()`), `AiHealthPanel` (`stacked`) |
+
+Yeni bölme kuralları: bileşen yalnızca kendi kimliklerini ve `root` özelliklerini kullanır; ana görünümdeki kimliklere başvurmak yerine özellik/sinyal tanımlanır. Her bölmeden sonra `tests/ui_qml/test_qml_views_runtime_smoke.py` tüm sekme/modları uyarısız yüklemelidir.
+
 ## Denetleyici Referansı
 
 | Denetleyici | Sorumluluk |
