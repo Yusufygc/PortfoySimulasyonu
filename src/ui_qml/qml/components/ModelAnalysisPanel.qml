@@ -172,7 +172,7 @@ Item {
                             Text { text: Strings.mdlStrength; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm }
                             ProgressBar { Layout.fillWidth: true; from: 0; to: 100; value: root.analysis.outlookStrengthPct || 0 }
                         }
-                        Text { visible: (root.analysis.trendText || "") !== ""; text: root.analysis.trendText; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm }
+                        Text { visible: (root.analysis.trendText || "") !== ""; text: root.analysis.trendText || ""; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm }
 
                         // Performans metrikleri
                         Text { text: Strings.mdlPerformance; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; font.weight: Font.Bold; Layout.topMargin: Theme.spaceSm }
@@ -207,7 +207,7 @@ Item {
                     spacing: Theme.spaceSm
 
                     Text { text: Strings.mdlXai + (root.analysis.xaiMethod ? " (" + root.analysis.xaiMethod + ")" : ""); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; font.weight: Font.Bold }
-                    Text { visible: (root.analysis.xaiText || "") !== ""; text: root.analysis.xaiText; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: (root.analysis.xaiText || "") !== ""; text: root.analysis.xaiText || ""; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; wrapMode: Text.WordWrap; Layout.fillWidth: true }
 
                     GridLayout {
                         Layout.fillWidth: true
@@ -244,7 +244,7 @@ Item {
                             }
                         }
                     }
-                    Text { visible: (root.analysis.xaiCaveat || "") !== ""; text: root.analysis.xaiCaveat; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: (root.analysis.xaiCaveat || "") !== ""; text: root.analysis.xaiCaveat || ""; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 }
             }
 
