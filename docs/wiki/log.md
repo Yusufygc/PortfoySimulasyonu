@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-05] düzeltme | Açılış İşlerinde Çift BIST Senkronu ve "Dün" Hedefi
+
+- **Sorun 1:** `StartupJobsController._queue_bist_backfill`, `MarketSyncController` ile aynı `MarketDataSyncService.sync_daily_delta`'yı ayrı yürütücüde eşzamanlı çalıştırıyordu (kilit yok, DuckDB yazma çakışması riski, çift indirme). Ayrıca 18:30 saat kapısı sabah/gece açılışlarında işi atlatıyordu (log: "00:47 BIST backfill atlandı (saat < 18:30)").
+- **Sorun 2:** Portföy kapanış tamamlamanın hedefi her zaman dündü (`last_completed_trading_day` bugünü hiç vermiyordu); kapanıştan sonra açılışta BIST dışı pozisyonların bugünkü kapanışı bu yoldan gelmiyordu.
+- **Düzeltme:** Açılış BIST işi kaldırıldı (`settings/last_auto_bist_backfill_at` artık kullanılmıyor); BIST tamamı yalnızca `MarketSyncController`'da. Portföy tamamlama hedefi tek kaynaktan: `BistMarketSessionService.last_completed_trading_day(market_now())` (18:30'dan sonra bugün). Kurumsal aksiyon taraması günü `market_today()`.
+
+---
 ## [2026-10-05] düzeltme | Kapanış Saati Tek Kaynak ve Canlı Fiyat Seçim Kuralı
 
 - **Sorun 1 - gece/hafta sonu günlük değişim %0:** Seans dışında canlı fiyat çekilince yfinance `fast_info` son kapanışı verir ve kayıt `source="intraday"`, `as_of=şimdi` ile yazılır. `CurrentPriceResolver` bunu "son kapanıştan yeni gün" sayıp önceki kapanışı aynı fiyat olarak buluyordu: Ana Sayfa ve Model Portföy günlük değişimi %0. Ayrıca gün `as_of.date()` (UTC) ile alınıyordu.

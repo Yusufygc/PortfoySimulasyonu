@@ -33,7 +33,6 @@ from src.ui_qml.controllers.corporate_action_controller import (
 from src.ui_qml.controllers.price_data_controller import PriceDataController
 from src.ui_qml.controllers.startup_jobs_controller import (
     AUTO_BACKFILL_SETTINGS_KEY,
-    AUTO_BIST_BACKFILL_SETTINGS_KEY,
     AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY,
     StartupJobsController,
     last_completed_trading_day,
@@ -452,6 +451,7 @@ def _startup_ctrl(qapp, tmp_path, container):
 def _startup_container(updated=5):
     container = MagicMock()
     container.trading_calendar.is_trading_day.return_value = True
+    container.trading_calendar.is_half_trading_day.return_value = False
     container.price_data_health_service.update_from_latest_to_today.return_value = PriceDataUpdateResult(
         scanned_stock_count=3, updated_count=updated, prices={1: Decimal("10")}
     )
@@ -464,9 +464,16 @@ def _startup_container(updated=5):
 def test_last_completed_trading_day_skips_closed_days():
     calendar = MagicMock()
     calendar.is_trading_day.side_effect = lambda d: d.weekday() < 5
-    monday = date(2026, 3, 9)
-    assert last_completed_trading_day(monday, calendar) == date(2026, 3, 6)
-    assert last_completed_trading_day(monday, None) == monday - timedelta(days=1)
+    calendar.is_half_trading_day.return_value = False
+    monday_noon = datetime(2026, 3, 9, 12, 0)
+    assert last_completed_trading_day(monday_noon, calendar) == date(2026, 3, 6)
+    assert last_completed_trading_day(monday_noon, None) == date(2026, 3, 6)
+
+
+def test_last_completed_trading_day_includes_today_once_close_data_is_ready():
+    """Kapanıştan sonra açılışta bugünün kapanışı da tamamlanır (eskiden hedef hep dündü)."""
+    assert last_completed_trading_day(datetime(2026, 3, 9, 18, 29), None) == date(2026, 3, 6)
+    assert last_completed_trading_day(datetime(2026, 3, 9, 18, 30), None) == date(2026, 3, 9)
 
 
 def test_startup_jobs_run_once_per_day_and_notify(qapp, tmp_path, monkeypatch):
@@ -481,37 +488,18 @@ def test_startup_jobs_run_once_per_day_and_notify(qapp, tmp_path, monkeypatch):
 
     ctrl.runAll()
 
-    target = last_completed_trading_day(market_today(), container.trading_calendar)
-    # Portföy backfill (SQLite) + tüm BIST için DuckDB artımlı senkron (18:30 sonrası) çalıştı
-    assert container.price_data_health_service.update_from_latest_to_today.call_count == 1
-    container.market_data_sync_service.sync_daily_delta.assert_called_once_with()
-    assert settings.value(AUTO_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat()
-    assert settings.value(AUTO_BIST_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat()
+    # 19:00: kapanış verisi hazır, hedef bugün. BIST tamamı MarketSyncController'ın işi: burada senkron yok
+    container.price_data_health_service.update_from_latest_to_today.assert_called_once_with(market_today())
+    container.market_data_sync_service.sync_daily_delta.assert_not_called()
+    assert settings.value(AUTO_BACKFILL_SETTINGS_KEY, "", type=str) == market_today().isoformat()
     assert settings.value(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, "", type=str) == market_today().isoformat()
     assert container.event_bus.prices_updated.emit.called
     assert refreshed
     assert any("kurumsal aksiyon adayı" in n[1] for n in notes)
-    assert any("BIST güncellemesi tamamlandı: 7" in n[1] for n in notes)
 
     ctrl.runAll()  # aynı gün tekrar çalışmaz
     assert container.price_data_health_service.update_from_latest_to_today.call_count == 1
-    container.market_data_sync_service.sync_daily_delta.assert_called_once_with()
     container.corporate_action_discovery_service.discover.assert_called_once()
-
-
-def test_startup_bist_backfill_skipped_before_market_close_time(qapp, tmp_path, monkeypatch):
-    container = _startup_container()
-    ctrl, settings = _startup_ctrl(qapp, tmp_path, container)
-    monkeypatch.setattr(
-        "src.ui_qml.controllers.startup_jobs_controller.market_now",
-        lambda: datetime.combine(market_today(), time(12, 0)),
-    )
-
-    ctrl.runAll()
-
-    assert container.price_data_health_service.update_from_latest_to_today.call_count == 1
-    container.market_data_sync_service.sync_daily_delta.assert_not_called()
-    assert settings.value(AUTO_BIST_BACKFILL_SETTINGS_KEY, "", type=str) == ""
 
 
 def test_startup_job_error_does_not_mark_as_done(qapp, tmp_path, monkeypatch):

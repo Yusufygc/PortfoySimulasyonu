@@ -29,10 +29,11 @@ Veritabanı istatistiği, bütünlük (`PRAGMA integrity_check` ve DuckDB okuma 
 
 `StartupJobsController` işleri (gün içinde zaten çalışanlar atlanır; sonuç ve işaretler `QSettings`'te):
 
-1. **Portföy kapanış tamamlama:** son tamamlanmış işlem gününe kadar eksik kapanışlar (`PriceDataHealthService.update_from_latest_to_today`). Hedef gün bugün değil son tamamlanmış işlem günüdür.
-2. **Tüm BIST tamamlama:** yalnızca saat >= 18:30 ise; `MarketDataSyncService.sync_daily_delta`.
-3. **KAP/MKK aday taraması:** günde bir kez.
-4. **Golden/Death Cross taraması:** son taramadan 24 saat geçmişse.
+1. **Portföy kapanış tamamlama:** kapanış verisi hazır son işlem gününe kadar eksik kapanışlar (`PriceDataHealthService.update_from_latest_to_today`). Hedef gün `BistMarketSessionService.last_completed_trading_day`: 18:30'dan (yarım gün 13:20) sonra bugün, öncesinde önceki işlem günü. BIST dışı pozisyonlar için tek kapanış yoludur.
+2. **KAP/MKK aday taraması:** günde bir kez (Istanbul günü).
+3. **Golden/Death Cross taraması:** son taramadan 24 saat geçmişse.
+
+Tüm BIST tamamlaması yalnızca `MarketSyncController`'dadır (eskiden açılış işi de aynı `sync_daily_delta`'yı ayrı yürütücüde eşzamanlı çalıştırıyordu).
 
 Sonuçlar küresel toast ile bildirilir (yeni fiyat kaydı, yeni aday, yeni sinyal); hata durumunda kısa uyarı verilir. Yeni fiyat yazıldığında Dashboard/Model Portföy yenilenir.
 
@@ -49,7 +50,7 @@ Kuruluş/uygulama adı `PortfoySimulasyonu`. Başlıca anahtarlar:
 | Anahtar | Anlam |
 |---|---|
 | `ui/isDarkTheme` | Tema |
-| `settings/last_auto_price_backfill_at`, `settings/last_auto_bist_backfill_at` | Açılış kapanış tamamlama işaretleri (hedef gün) |
+| `settings/last_auto_price_backfill_at` | Açılış kapanış tamamlama işareti (hedef gün) |
 | `settings/last_auto_corporate_action_discovery_at` | Günlük aday taraması işareti |
 | `settings/last_auto_technical_scan_at` | Golden Cross tarama zamanı |
 | `settings/live_price_refresh_enabled`, `settings/live_price_refresh_interval_minutes`, `settings/last_live_price_refresh_at` | Canlı fiyat yenileme |

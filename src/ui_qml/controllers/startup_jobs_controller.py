@@ -3,10 +3,10 @@ StartupJobsController — Uygulama açılışında çalışan otomatik veri bak�
 
 Eski arayüzdeki `MainWindow` açılış işlerinin karşılığıdır; aynı QSettings anahtarlarını kullanır,
 böylece iki arayüz aynı günde işi iki kez çalıştırmaz:
-1. Portföy hisseleri için son güncel günden bugüne eksik kapanışları tamamlama
-2. Tüm BIST hisseleri için eksik kapanışları tamamlama (seans kapanışı sonrası, 18:30'dan itibaren)
-3. KAP/MKK kurumsal aksiyon adaylarını günde bir kez tarama
-4. Golden/Death Cross teknik taramasını son taramadan 24 saat geçmişse çalıştırma
+1. Portföy hisseleri için son güncel günden kapanış verisi hazır son işlem gününe kadar eksik kapanışları tamamlama
+   (BIST dışı hisseler için tek yol; BIST tamamı `MarketSyncController` artımlı senkronuyla gelir)
+2. KAP/MKK kurumsal aksiyon adaylarını günde bir kez tarama
+3. Golden/Death Cross teknik taramasını son taramadan 24 saat geçmişse çalıştırma
 
 İşler tek bir arka plan thread'inde sırayla çalışır (veri kaynağını aynı anda yormamak için).
 """
@@ -14,28 +14,25 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, time as dt_time, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Callable, Optional
 
 from PySide6.QtCore import QObject, QSettings, QTimer, Signal
+from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.domain.market_clock import market_now, market_today
 
 logger = logging.getLogger(__name__)
 
 AUTO_BACKFILL_SETTINGS_KEY = "settings/last_auto_price_backfill_at"
-AUTO_BIST_BACKFILL_SETTINGS_KEY = "settings/last_auto_bist_backfill_at"
 AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY = "settings/last_auto_corporate_action_discovery_at"
 AUTO_TECHNICAL_SCAN_SETTINGS_KEY = "settings/last_auto_technical_scan_at"
 TECHNICAL_SCAN_INTERVAL = timedelta(hours=24)
-BIST_MARKET_CLOSE_TIME = dt_time(18, 30)
 STARTUP_DELAY_MS = 8000
 
 
-def last_completed_trading_day(today: date, trading_calendar) -> date:
-    candidate = today - timedelta(days=1)
-    while trading_calendar is not None and not trading_calendar.is_trading_day(candidate):
-        candidate -= timedelta(days=1)
-    return candidate
+def last_completed_trading_day(now: datetime, trading_calendar) -> date:
+    """Kapanış verisi hazır olan son işlem günü (tek kaynak: `BistMarketSessionService`, 18:30'dan sonra bugün)."""
+    return BistMarketSessionService(trading_calendar).last_completed_trading_day(now)
 
 
 class StartupJobsController(QObject):
@@ -70,7 +67,6 @@ class StartupJobsController(QObject):
     def runAll(self) -> None:
         """Gün içinde zaten çalışmış işleri atlayarak tüm açılış işlerini kuyruğa alır."""
         self._queue_price_backfill()
-        self._queue_bist_backfill()
         self._queue_corporate_action_discovery()
         self._queue_technical_scan()
 
@@ -90,31 +86,17 @@ class StartupJobsController(QObject):
         service = self._svc("price_data_health_service")
         if service is None:
             return
-        target = last_completed_trading_day(market_today(), self._svc("trading_calendar"))
+        target = last_completed_trading_day(market_now(), self._svc("trading_calendar"))
         if self._settings.value(AUTO_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat():
             return
         self._targets["price_backfill"] = target
         self._submit("price_backfill", service.update_from_latest_to_today, target)
 
-    def _queue_bist_backfill(self) -> None:
-        """Tüm BIST için eksik kapanışları DuckDB piyasa geçmişine artımlı senkronla tamamlar."""
-        service = self._svc("market_data_sync_service")
-        if service is None:
-            return
-        if market_now().time() < BIST_MARKET_CLOSE_TIME:
-            logger.info("BIST backfill atlandı (saat < 18:30, piyasa açık olabilir)")
-            return
-        target = last_completed_trading_day(market_today(), self._svc("trading_calendar"))
-        if self._settings.value(AUTO_BIST_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat():
-            return
-        self._targets["bist_backfill"] = target
-        self._submit("bist_backfill", service.sync_daily_delta)
-
     def _queue_corporate_action_discovery(self) -> None:
         service = self._svc("corporate_action_discovery_service")
         if service is None:
             return
-        if self._settings.value(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, "", type=str) == date.today().isoformat():
+        if self._settings.value(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, "", type=str) == market_today().isoformat():
             return
         self._submit("corporate_action_discovery", service.discover)
 
@@ -141,7 +123,6 @@ class StartupJobsController(QObject):
         if error:
             messages = {
                 "price_backfill": "Otomatik veri güncelleme çalıştırılamadı",
-                "bist_backfill": "Otomatik BIST güncellemesi çalıştırılamadı",
                 "corporate_action_discovery": "Kurumsal aksiyon taraması çalıştırılamadı",
                 "technical_scan": "Otomatik Golden Cross taraması çalıştırılamadı",
             }
@@ -150,10 +131,8 @@ class StartupJobsController(QObject):
             return
         if job == "price_backfill":
             self._finish_backfill(result, AUTO_BACKFILL_SETTINGS_KEY, "price_backfill", "Otomatik veri güncelleme")
-        elif job == "bist_backfill":
-            self._finish_bist_sync(result)
         elif job == "corporate_action_discovery":
-            self._remember(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, date.today().isoformat())
+            self._remember(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, market_today().isoformat())
             saved = getattr(result, "saved_count", 0)
             if saved > 0:
                 self.jobNotification.emit(True, f"{saved} yeni kurumsal aksiyon adayı bulundu. Ayarlar > Kurumsal Aksiyonlar'dan inceleyin.")
@@ -163,20 +142,8 @@ class StartupJobsController(QObject):
             if new_events > 0:
                 self.jobNotification.emit(True, f"Golden Cross taraması tamamlandı: {new_events} yeni sinyal.")
 
-    def _finish_bist_sync(self, result: Any) -> None:
-        target = self._targets.get("bist_backfill") or last_completed_trading_day(market_today(), self._svc("trading_calendar"))
-        errors = len(getattr(result, "errors", []) or [])
-        if not errors:
-            self._remember(AUTO_BIST_BACKFILL_SETTINGS_KEY, target.isoformat())
-        added = getattr(result, "added_bars", 0)
-        if added > 0:
-            self.pricesUpdated.emit()
-            self.jobNotification.emit(True, f"Otomatik BIST güncellemesi tamamlandı: {added} fiyat kaydı eklendi.")
-        elif errors:
-            self.jobNotification.emit(False, f"Otomatik BIST güncellemesi sırasında {errors} hata oluştu.")
-
     def _finish_backfill(self, result: Any, key: str, target_key: str, label: str) -> None:
-        target = self._targets.get(target_key) or last_completed_trading_day(market_today(), self._svc("trading_calendar"))
+        target = self._targets.get(target_key) or last_completed_trading_day(market_now(), self._svc("trading_calendar"))
         self._remember(key, target.isoformat())
         prices = getattr(result, "prices", None)
         event_bus = self._svc("event_bus")
