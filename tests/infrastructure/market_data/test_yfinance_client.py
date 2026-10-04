@@ -39,24 +39,6 @@ def test_get_closing_price_empty_response(monkeypatch):
     with pytest.raises(ValueError, match="THYAO.IS icin 2026-01-01 gun sonu fiyati bulunamadi"):
         client.get_closing_price(1, "THYAO", date(2026, 1, 1))
 
-def test_get_closing_prices_multi_ticker(monkeypatch):
-    client = YFinanceMarketDataClient()
-    
-    # yfinance returns multi-index columns for multi-ticker download
-    columns = pd.MultiIndex.from_tuples([("Close", "THYAO.IS"), ("Close", "ASELS.IS")])
-    df = pd.DataFrame([[150.0, 400.0]], index=[pd.Timestamp("2026-01-01")], columns=columns)
-    
-    download_calls = []
-    def mock_download(tickers, start, end):
-        download_calls.append((tickers, start, end))
-        return df
-        
-    monkeypatch.setattr(client, "_download_dataframe", mock_download)
-    
-    prices = client.get_closing_prices([1, 2], ["THYAO", "ASELS"], date(2026, 1, 1))
-    assert prices == {1: Decimal("150.0"), 2: Decimal("400.0")}
-    assert download_calls[0][0] == ["THYAO.IS", "ASELS.IS"]
-
 def test_get_price_series(monkeypatch):
     client = YFinanceMarketDataClient()
     

@@ -5,6 +5,11 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-05] temizlik | Kullanılmayan get_closing_prices Kaldırıldı
+
+- `IMarketDataClient.get_closing_prices`, `YFinanceMarketDataClient` ve `YFinancePriceClient` uygulamaları ile yardımcıları (`_extract_multiindex_close`, `_extract_single_close`) kaldırıldı; tek çağıranı `PriceUpdateService` önceki temizlikte silinmişti. Tekli kapanış (`get_closing_price`) ve seri (`get_price_series`) yerinde; fiyat tamamlama bunları kullanır.
+
+---
 ## [2026-10-05] düzeltme | Açılış İşleri İlk Senkrondan Sonra, Geçersiz Bar Tanı Logu
 
 - **Sorun:** Açılışta BIST senkronu (5. sn, ~18 sn) bitmeden portföy kapanış tamamlaması (8. sn) başlıyordu; senkronun SQLite köprüsünün birazdan yazacağı ~35 portföy hissesini tek tek yeniden indiriyor ve aynı `daily_prices` satırlarını eşzamanlı yazıyordu (tamamlama sermaye artırımı düzeltmesi uygular, köprü ham kapanış yazar).

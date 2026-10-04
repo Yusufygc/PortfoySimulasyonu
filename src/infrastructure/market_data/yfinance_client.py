@@ -5,7 +5,6 @@ import tempfile
 import warnings
 from datetime import date
 from pathlib import Path
-from typing import Sequence
 
 import yfinance as yf
 try:
@@ -67,16 +66,6 @@ class YFinanceMarketDataClient(IMarketDataClient):
     # Kanonik ticker uzantısızdır (`THYAO`); yfinance borsa son eki (`THYAO.IS`) ister, bu yüzden sınırda çevrilir.
     def get_closing_price(self, stock_id: int, ticker: str, price_date: date):
         return self._price_client.get_closing_price(ticker=to_yf_symbol(ticker), price_date=price_date)
-
-    def get_closing_prices(
-        self,
-        stock_ids: Sequence[int],
-        tickers: Sequence[str],
-        price_date: date,
-    ):
-        return self._price_client.get_closing_prices(
-            stock_ids=stock_ids, tickers=[to_yf_symbol(t) for t in tickers], price_date=price_date
-        )
 
     def get_price_series(
         self,

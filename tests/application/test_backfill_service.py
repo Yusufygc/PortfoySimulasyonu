@@ -27,9 +27,6 @@ class FakeMarketDataClient:
     def get_closing_price(self, stock_id: int, ticker: str, price_date: date):
         raise NotImplementedError
 
-    def get_closing_prices(self, stock_ids, tickers, price_date):
-        raise NotImplementedError
-
     def get_price_series(self, ticker: str, start_date: date, end_date: date):
         self.series_requests.append((ticker, start_date, end_date))
         return self.series_by_ticker.get(ticker, {})
