@@ -1,0 +1,2329 @@
+{
+ "all_improving": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 9
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 9
+  }
+ },
+ "all_worsening": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 1
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 1
+  }
+ },
+ "cash_flow_equal_to_profit": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  }
+ },
+ "empty_periods": {},
+ "missing_metrics": {
+  "2023/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  }
+ },
+ "no_previous_year_period": {
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  }
+ },
+ "random_00": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  }
+ },
+ "random_01": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  }
+ },
+ "random_02": {
+  "2023/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 0,
+   "score": 1
+  }
+ },
+ "random_03": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 6
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  }
+ },
+ "random_04": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 2
+  }
+ },
+ "random_05": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": null,
+   "score": 5
+  }
+ },
+ "random_06": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 4
+  }
+ },
+ "random_07": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 0,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  }
+ },
+ "random_08": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 4
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  }
+ },
+ "random_09": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  }
+ },
+ "random_10": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 4
+  }
+ },
+ "random_11": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 5
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  }
+ },
+ "random_12": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 4
+  }
+ },
+ "random_13": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 4
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 0,
+   "score": 3
+  }
+ },
+ "random_14": {
+  "2023/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 5
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 4
+  }
+ },
+ "random_15": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 4
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  }
+ },
+ "random_16": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 4
+  }
+ },
+ "random_17": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 4
+  }
+ },
+ "random_18": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 5
+  }
+ },
+ "random_19": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 0
+  }
+ },
+ "random_20": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  }
+ },
+ "random_21": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 4
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 1
+  }
+ },
+ "random_22": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  }
+ },
+ "random_23": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 5
+  }
+ },
+ "random_24": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  }
+ },
+ "random_25": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  }
+ },
+ "random_26": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  }
+ },
+ "random_27": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 3
+  }
+ },
+ "random_28": {
+  "2023/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 2
+  }
+ },
+ "random_29": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  }
+ },
+ "random_30": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 0,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 1
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  }
+ },
+ "random_31": {
+  "2023/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  }
+ },
+ "random_32": {
+  "2023/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  }
+ },
+ "random_33": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 5
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  }
+ },
+ "random_34": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 3
+  }
+ },
+ "random_35": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  }
+ },
+ "random_36": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 4
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  }
+ },
+ "random_37": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 1,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 1,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 3
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 1,
+   "score": 5
+  }
+ },
+ "random_38": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": 1,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": null,
+   "score": 4
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 1,
+   "f9_varlik_devir_artan": 0,
+   "score": 5
+  }
+ },
+ "random_39": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 1,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": 0,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 0,
+   "f2_isletme_cf_pozitif": 0,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 0
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": 1,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 2
+  }
+ },
+ "share_count_decrease": {
+  "2023/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": null
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": null,
+   "f2_isletme_cf_pozitif": null,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": null,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 1
+  }
+ },
+ "unchanged_values_boundaries": {
+  "2023/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2024/12": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 3
+  },
+  "2024/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": null,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": null,
+   "f6_cari_oran_artan": null,
+   "f7_hisse_artmadi": null,
+   "f8_brut_marj_artan": null,
+   "f9_varlik_devir_artan": null,
+   "score": 2
+  },
+  "2025/3": {
+   "f1_net_kar_pozitif": 1,
+   "f2_isletme_cf_pozitif": 1,
+   "f3_roa_artan": 0,
+   "f4_cf_kar_ustu": 0,
+   "f5_uv_borc_azalan": 0,
+   "f6_cari_oran_artan": 0,
+   "f7_hisse_artmadi": 1,
+   "f8_brut_marj_artan": 0,
+   "f9_varlik_devir_artan": 0,
+   "score": 3
+  }
+ }
+}

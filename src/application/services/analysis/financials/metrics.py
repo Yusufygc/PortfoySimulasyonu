@@ -22,6 +22,7 @@ Not: isyatirim.com.tr verisi YTD kümülatif (2026/3 = Q1 YTD, 2025/12 = tüm y�
 """
 from __future__ import annotations
 
+import operator
 import re
 from typing import Any
 
@@ -379,65 +380,69 @@ def _find_yoy_period(period: str, all_periods: list[str]) -> str | None:
 # Piotroski F-Score
 # ---------------------------------------------------------------------------
 
+def _compare(current: float | None, other: float | None, test) -> int | None:
+    """İki değer de varsa `test(current, other)` için 1/0; biri eksikse None."""
+    if current is None or other is None:
+        return None
+    return 1 if test(current, other) else 0
+
+
+class _PeriodView:
+    """Bir dönemin ölçülerine ve bir önceki yılın aynı dönemine (varsa) erişim."""
+
+    def __init__(self, series: dict, period: str, yoy_period: str | None) -> None:
+        self._series = series
+        self._period = period
+        self._yoy_period = yoy_period
+
+    def cur(self, key: str) -> float | None:
+        return self._series.get(key, {}).get(self._period)
+
+    def prv(self, key: str) -> float | None:
+        return self._series.get(key, {}).get(self._yoy_period) if self._yoy_period else None
+
+    def rose(self, key: str) -> int | None:
+        return _compare(self.cur(key), self.prv(key), operator.gt)
+
+    def fell(self, key: str) -> int | None:
+        return _compare(self.cur(key), self.prv(key), operator.lt)
+
+    def positive(self, key: str) -> int | None:
+        return _compare(self.cur(key), 0, operator.gt)
+
+
+def _piotroski_period(view: _PeriodView) -> dict:
+    f1 = view.positive("net_kar")
+    f2 = view.positive("isletme_cf")
+    f3 = view.rose("roa")
+    f4 = _compare(view.cur("isletme_cf"), view.cur("net_kar"), operator.gt)
+    f5 = view.fell("uv_borc_varlik")
+    f6 = view.rose("cari_oran")
+    f7 = _compare(view.cur("odenmis_sermaye"), view.prv("odenmis_sermaye"), operator.le)
+    f8 = view.rose("brut_kar_marji")
+    f9 = view.rose("varlik_devir_ytd")
+
+    known = [c for c in (f1, f2, f3, f4, f5, f6, f7, f8, f9) if c is not None]
+    return {
+        "score":                 sum(known) if known else None,
+        "f1_net_kar_pozitif":    f1,
+        "f2_isletme_cf_pozitif": f2,
+        "f3_roa_artan":          f3,
+        "f4_cf_kar_ustu":        f4,
+        "f5_uv_borc_azalan":     f5,
+        "f6_cari_oran_artan":    f6,
+        "f7_hisse_artmadi":      f7,
+        "f8_brut_marj_artan":    f8,
+        "f9_varlik_devir_artan": f9,
+    }
+
+
 def _piotroski(all_single: dict, periods: list[str]) -> dict[str, dict]:
     """Piotroski F-Score (0–9). YoY karşılaştırma ile."""
-
-    def g(key: str, p: str) -> float | None:
-        return all_single.get(key, {}).get(p)
-
-    result: dict[str, dict] = {}
-    for period in periods:
-        yoy_p = _find_yoy_period(period, periods)
-
-        def cur(key: str) -> float | None:   # noqa: E731
-            return g(key, period)
-
-        def prv(key: str) -> float | None:   # noqa: E731
-            return g(key, yoy_p) if yoy_p else None
-
-        def s_up(key: str) -> int | None:    # noqa: E731
-            c, p_ = cur(key), prv(key)
-            return None if (c is None or p_ is None) else (1 if c > p_ else 0)
-
-        def s_dn(key: str) -> int | None:    # noqa: E731
-            c, p_ = cur(key), prv(key)
-            return None if (c is None or p_ is None) else (1 if c < p_ else 0)
-
-        def s_pos(key: str) -> int | None:   # noqa: E731
-            v = cur(key)
-            return None if v is None else (1 if v > 0 else 0)
-
-        f1 = s_pos("net_kar")
-        f2 = s_pos("isletme_cf")
-        f3 = s_up("roa")
-        ic, nk = cur("isletme_cf"), cur("net_kar")
-        f4 = (1 if (ic is not None and nk is not None and ic > nk)
-              else 0 if (ic is not None and nk is not None) else None)
-        f5 = s_dn("uv_borc_varlik")
-        f6 = s_up("cari_oran")
-        ods_c, ods_p = cur("odenmis_sermaye"), prv("odenmis_sermaye")
-        f7 = (1 if (ods_c is not None and ods_p is not None and ods_c <= ods_p)
-              else 0 if (ods_c is not None and ods_p is not None) else None)
-        f8 = s_up("brut_kar_marji")
-        f9 = s_up("varlik_devir_ytd")
-
-        criteria = [f1, f2, f3, f4, f5, f6, f7, f8, f9]
-        known    = [c for c in criteria if c is not None]
-        score    = sum(known) if known else None
-
-        result[period] = {
-            "score":                 score,
-            "f1_net_kar_pozitif":    f1,
-            "f2_isletme_cf_pozitif": f2,
-            "f3_roa_artan":          f3,
-            "f4_cf_kar_ustu":        f4,
-            "f5_uv_borc_azalan":     f5,
-            "f6_cari_oran_artan":    f6,
-            "f7_hisse_artmadi":      f7,
-            "f8_brut_marj_artan":    f8,
-            "f9_varlik_devir_artan": f9,
-        }
-    return result
+    return {
+        period: _piotroski_period(_PeriodView(all_single, period, _find_yoy_period(period, periods)))
+        for period in periods
+    }
 
 
 # ---------------------------------------------------------------------------
