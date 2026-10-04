@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] temizlik | Kullanılmayan Keşif Betiklerinin Silinmesi
+
+- **Silinenler:** `scripts/bencmarkVeri.py`, `tcmbApi.py`, `tcmbFaizApi.py`, `inspect_db.py`, `show_violations.py` ve `scripts/finansal_lab/` (prototipler ve üretilen örnek veri dosyaları). Hiçbiri kod, test, derleme veya CI tarafından çağrılmıyordu.
+- **Etkilenen belgeler:** `database_maintenance_and_scripts.md` (betik tablosu), `roadmap.md` (teknik borç satırı artık yalnızca kalan eskimiş tek seferlik betikleri listeler), `code_quality_guardrails.md` (fonksiyon eşik ihlali 129 -> 110).
+- **Kalanlar:** `import_bist_ohlcv_to_db.py`, `backfill_missing_friday_prices.py`, `fix_technical_analysis.py` eskimiş tek seferlik betikler olarak belgelendi; silme kararı bekliyor.
+
+---
 ## [2026-10-04] güncelleme | Dokümantasyonun Kod Tabanına Göre Baştan Doğrulanması ve Yenilenmesi
 
 - **Silinenler:** Gitignore'daki `docs/MyDocs` (37 dosya: eski widget arayüzü planları, MySQL dönemi raporları, tamamlanmış görev listeleri, eski denetimler) kaldırıldı; silmeden önce yedeği alındı. Yalnızca hâlâ uygulanmamış fikirler `roadmap.md`'ye taşındı. Wiki'den `refactor_handoff_2026-06-13.md`, `pyside6_migration_analysis.md` ve çözülmüş bulgulardan oluşan `system_audit_report_2026-09-30.md` silindi (tarihçe `log.md` ve git geçmişinde).

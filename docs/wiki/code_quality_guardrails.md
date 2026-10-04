@@ -12,7 +12,7 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 .\venv\Scripts\python.exe scripts\measure_code_quality.py --fail-on-threshold   # eşik ihlalinde 1 döner
 ```
 
-Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (dosya adı sabit `BASELINE_DATE` ile belirlenir). Yorum ve boş satırlar eşik kararından çıkarılır; docstring satırları ayrıca raporlanır ve eşikler `effective_code_lines` üzerinden değerlendirilir. `scripts/show_violations.py` bu JSON'u okur.
+Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (dosya adı sabit `BASELINE_DATE` ile belirlenir). Yorum ve boş satırlar eşik kararından çıkarılır; docstring satırları ayrıca raporlanır ve eşikler `effective_code_lines` üzerinden değerlendirilir.
 
 **Not:** Depodaki [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) ve `.json` dosyaları eski Qt Widgets arayüzü dönemine ait **tarihsel referanstır**; güncel durum için ölçümü yeniden çalıştırın (bir önceki dosyanın üzerine yazmaması için `--output-dir` verin).
 
@@ -28,7 +28,7 @@ Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (do
 
 ## 3. Güncel Durum (2026-10-04 ölçümü)
 
-Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **129 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
+Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **110 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
 
 | Denetleyici | Etkin satır | Metot |
 |---|---:|---:|
@@ -47,7 +47,7 @@ Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **129 fonk
 | `PriceDataController` | 288 | 37 |
 | `StrategyBacktestController` | 170 | 21 |
 
-Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `stock_360_calc.py` (6), `comparison_controller.py`, `corporate_action_controller.py`, `dashboard_controller.py` (5'er) ve `scripts/finansal_lab/` prototiplerindedir. Bunlar geçici ve bilinen teknik borçtur ([roadmap.md](roadmap.md)); **yeni ihlal eklenmez**: bu denetleyicilere özellik eklemeden önce ilgili parça ayrı modüle (hesap yardımcısı, alt denetleyici) çıkarılır. `Stock360Controller` bu ayrımın örneğidir (`stock_360_calc/fallback/formatters/html`).
+Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `stock_360_calc.py` (6), `comparison_controller.py`, `corporate_action_controller.py`, `dashboard_controller.py` (5'er) dosyalarındadır. Bunlar geçici ve bilinen teknik borçtur ([roadmap.md](roadmap.md)); **yeni ihlal eklenmez**: bu denetleyicilere özellik eklemeden önce ilgili parça ayrı modüle (hesap yardımcısı, alt denetleyici) çıkarılır. `Stock360Controller` bu ayrımın örneğidir (`stock_360_calc/fallback/formatters/html`).
 
 ## 4. Denetleyici ve QML Standardı
 

@@ -36,7 +36,6 @@ Tümü proje kökünden `.\venv\Scripts\python.exe scripts\<ad>.py` ile çalış
 | `build_preflight.py` | Derleme öncesi kontroller ([project_build_and_deployment.md](project_build_and_deployment.md)). | |
 | `import_bist_ohlcv_to_db.py` | BIST OHLCV CSV'lerini içe aktarır. | MySQL dönemine ait, sabit yerel kaynak dizini vardır; eskimiş kabul edin. |
 | `backfill_missing_friday_prices.py`, `fix_technical_analysis.py` | Tek seferlik düzeltmeler (sabit tarih/hisse). | Yeniden kullanmadan önce okuyun. |
-| `bencmarkVeri.py`, `tcmbApi.py`, `tcmbFaizApi.py`, `inspect_db.py`, `show_violations.py`, `finansal_lab/` | Keşif/prototip betikleri. | Hiçbir yerden çağrılmaz ([roadmap.md](roadmap.md)). |
 
 ## 3. Güvenli Çalışma Pratikleri
 
