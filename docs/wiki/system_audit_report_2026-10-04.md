@@ -120,6 +120,7 @@ except Exception:
 - **Çözüm:** `schema_version` tablosu + numaralı, idempotent göç listesi; ya da Alembic. En azından göç öncesi otomatik `data/backups/` yedeği (betiklerde var, açılışta yok).
 - **Düzeltme Eforu:** M
 - **Bağımlılık:** `database_schema_and_orm.md`, testlerdeki geçici DB kopyası.
+- **Durum:** Çözüldü (2026-10-04). Kodda rapordan daha kötü bir durum bulundu: tüm `_init_db_schema` bloğu `except Exception` ile sarılıydı, göç hatası yutuluyordu (üç adım da her açılışta yeniden çalışıyordu). `schema_migrations.py` eklendi: sürüm tablosu, göç öncesi yedek, hata yükseltme. Açık nokta: göç hatasında kullanıcı yalnızca çevrimdışı mod görür, hata penceresi yok.
 
 ### [🟡] 6. AI yerel motorunda alt dize eşleşmesi
 - **Persona:** Kıdemli Yazılım Mimarı.

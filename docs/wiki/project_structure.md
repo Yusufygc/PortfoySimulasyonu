@@ -51,7 +51,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 
 | Alt dizin | İçerik |
 |---|---|
-| `db/` | `paths.py` (veri dosyası yolları), `db_config.py`, `sqlalchemy/` (`database_engine`, `orm_models`, 15 repository). |
+| `db/` | `paths.py` (veri dosyası yolları), `db_config.py`, `sqlalchemy/` (`database_engine`, `schema_migrations`, `orm_models`, 15 repository). |
 | `market_data/` | DuckDB deposu (`duckdb_market_history_repo`, `duckdb_corporate_action_store`, `duckdb_optimization_market_data_provider`), yfinance istemcileri, `evds_client`, `evds_tufe_provider`, `isyatirim_provider`, `scraped_benchmark_provider`. |
 | `corporate_actions/` | `kap_mkk_provider` (kurumsal aksiyon duyuruları), `kap_shareholder_provider` (ortaklık yapısı). |
 | `calendar/` | BIST resmi tatil takvimi (2020-2030) ve işlem günü sağlayıcıları. |

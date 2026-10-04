@@ -34,7 +34,12 @@ Sohbet geçmişi, tema ve açılış işaretleri veritabanında değil `QSetting
 ## 3. İlklendirme ve Şema Evrimi
 
 - `SQLAlchemyEngineProvider` bağlantıyı `check_same_thread=False` ile kurar, SQLite PRAGMA'larını uygular (WAL günlük modu, `synchronous=NORMAL`, `foreign_keys=ON`) ve `Base.metadata.create_all(checkfirst=True)` ile eksik tabloları oluşturur. Alembic kullanılmaz.
-- **Açılış göçleri** (`_init_db_schema`, idempotent): eski `golden_cross_events` tablosu silinir (türetilmiş veri); `.IS` uzantılı eski `stocks.ticker` kayıtları çakışma yoksa uzantısıza çevrilir; `_add_missing_columns` mevcut tabloya sonradan eklenen boş sütunları ekler (şu an `cash_movements.stock_id`). Yeni sütun eklerken bu yolu kullanın; `create_all` var olan tabloya sütun eklemez.
+- **Sürümlü şema göçleri** (`schema_migrations.py`, `_init_db_schema` çağırır): uygulanan göçler `schema_migrations` tablosunda (`version`, `name`, `applied_at`) tutulur ve her biri yalnızca bir kez çalışır. Mevcut göçler: 1 eski `golden_cross_events` tablosunu siler (türetilmiş veri), 2 `.IS` uzantılı `stocks.ticker` kayıtlarını çakışma yoksa uzantısıza çevirir, 3 `cash_movements.stock_id` sütununu ekler.
+  - Bekleyen göç varsa ve veritabanı doluysa göçten önce `data/backups/portfolio_pre_migration_<zaman>.db` yedeği alınır (SQLite `backup` API'si, son 5 tutulur). Yedek alınamazsa göç başlamaz.
+  - Her göç kendi transaction'ında çalışır, sürüm kaydı aynı transaction'dadır. SQLite DDL'i her sürücüde geri alınamayabileceğinden göçler **idempotent** yazılır.
+  - Hata yutulmaz: `SchemaMigrationError` yükselir; `app.py` bunu yakalayıp uygulamayı çevrimdışı modda açar ve log'a yazar.
+  - Taze veritabanında `create_all` güncel şemayı kurar, mevcut göçler çalıştırılmadan uygulanmış işaretlenir.
+  - **Yeni sütun/veri dönüşümü eklemek:** `MIGRATIONS` listesinin sonuna bir sonraki numarayla `Migration` ekleyin; numara ve sırayı değiştirmeyin. `create_all` var olan tabloya sütun eklemez.
 - Bazı repository'ler kendi tablosunu `checkfirst=True` ile oluşturur (ör. nakit hareketi, bütçe pinleri).
 - **BIGINT birincil anahtar:** SQLite `BIGINT` anahtarı otomatik artırmaz. `orm_models.py` içindeki `before_insert` dinleyicisi `id` boşsa `max(id)+1` atar (aynı flush içinde sayaç tutar); `id`'yi elle atayan repository'ler (fiyat, hisse, izleme listesi) etkilenmez. İki iş parçacığı aynı anda aynı tabloya yazarsa teorik çakışma olabilir; tek kullanıcılı masaüstünde kabul edilmiştir.
 - Yabancı anahtarlar: `daily_prices`, `corporate_actions`, `trades` hisse silmeyi engeller (`RESTRICT`); izleme listesi öğeleri ve model işlemleri CASCADE. Hisse silmek için `PortfolioMaintenanceService.purge_stock_by_ticker` bağlı kayıtları doğru sırayla siler ([database_maintenance_and_scripts.md](database_maintenance_and_scripts.md)).
@@ -49,4 +54,4 @@ Mali tablo, TÜFE, değerleme ve KAP şirket listesi önbellekleri veritabanınd
 
 ## 6. Testler
 
-`tests/infrastructure/db/` (`test_database_engine.py`, `test_orm_schema.py`, `test_sqlite_upserts.py`, `test_transaction_helper.py`, repository testleri, `test_cash_movement_dividend_repository.py`: id atama ve sütun göçü).
+`tests/infrastructure/db/` (`test_database_engine.py`, `test_schema_migrations.py`, `test_orm_schema.py`, `test_sqlite_upserts.py`, `test_transaction_helper.py`, repository testleri, `test_cash_movement_dividend_repository.py`: id atama ve sütun göçü).

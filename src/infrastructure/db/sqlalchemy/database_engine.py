@@ -22,30 +22,11 @@ class SQLAlchemyEngineProvider:
         self.Session = scoped_session(self._session_factory)
 
     def _init_db_schema(self) -> None:
-        try:
-            from src.infrastructure.db.sqlalchemy.orm_models import Base
-            Base.metadata.create_all(bind=self._engine, checkfirst=True)
-            # Türetilmiş veri: eski stock_id anahtarlı Golden Cross tablosu yerine ticker anahtarlı `cross_events` kullanılır
-            with self._engine.begin() as conn:
-                conn.exec_driver_sql("DROP TABLE IF EXISTS golden_cross_events")
-                # Kanonik ticker uzantısızdır: eski `.IS` kayıtlar çakışma yoksa uzantısıza çevrilir (idempotent)
-                conn.exec_driver_sql(
-                    "UPDATE stocks SET ticker = substr(ticker, 1, length(ticker) - 3) "
-                    "WHERE upper(ticker) LIKE '%.IS' AND NOT EXISTS ("
-                    "SELECT 1 FROM stocks s2 WHERE s2.ticker = substr(stocks.ticker, 1, length(stocks.ticker) - 3))"
-                )
-            self._add_missing_columns()
-        except Exception as exc:
-            logger.warning("Tablo şemaları oluşturulurken hata veya uyarı: %s", exc)
+        """Şemayı kurar ve bekleyen sürümlü göçleri uygular; hata `SchemaMigrationError` olarak yükselir."""
+        from src.infrastructure.db.sqlalchemy.orm_models import Base
+        from src.infrastructure.db.sqlalchemy.schema_migrations import run_migrations
 
-    def _add_missing_columns(self) -> None:
-        """`create_all` mevcut tabloya sütun eklemez; sonradan eklenen boş (nullable) sütunlar burada tamamlanır (idempotent)."""
-        with self._engine.begin() as conn:
-            columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(cash_movements)")}
-            if columns and "stock_id" not in columns:
-                conn.exec_driver_sql(
-                    "ALTER TABLE cash_movements ADD COLUMN stock_id BIGINT REFERENCES stocks(id) ON DELETE SET NULL"
-                )
+        run_migrations(self._engine, Base.metadata)
 
     def _create_engine(self):
         return self._create_sqlite_engine(self._config)

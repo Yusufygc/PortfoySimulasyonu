@@ -11,6 +11,7 @@ def test_database_engine_uses_sqlite_url_and_connect_args(monkeypatch, tmp_path)
 
     monkeypatch.setattr(database_engine, "create_engine", fake_create_engine)
     monkeypatch.setattr(database_engine, "event", type("_E", (), {"listen": staticmethod(lambda *a, **k: None)}))
+    monkeypatch.setattr(database_engine.SQLAlchemyEngineProvider, "_init_db_schema", lambda self: None)
 
     db_path = tmp_path / "portfolio.db"
     config = SQLiteConfig(db_path=str(db_path))

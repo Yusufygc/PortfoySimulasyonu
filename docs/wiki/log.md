@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | Sürümlü Şema Göçleri (Denetim Bulgu 5)
+
+- Yeni `src/infrastructure/db/sqlalchemy/schema_migrations.py`: numaralı `Migration` listesi, `schema_migrations` sürüm tablosu, göç öncesi `data/backups/` yedeği (son 5), göç başına transaction, hata yükseltme (`SchemaMigrationError`). Üç eski açılış adımı (golden_cross DROP, `.IS` ticker, `cash_movements.stock_id`) 1-3 numaralı göçlere taşındı.
+- `SQLAlchemyEngineProvider._init_db_schema` artık göç hatasını yutmuyor (eskiden tüm blok `except Exception` ile loglanıp geçiliyordu).
+- Gerçek `portfolio.db` kopyasında doğrulandı: satır sayıları değişmedi, 59 MB yedek alındı, ikinci açılışta göç yok.
+- Testler: `test_schema_migrations.py` (taze veritabanı, yedek, tek seferlik uygulama, hatada yedek ve yükselme, yedek hatasında durma, yedek budama); `test_database_engine.py` şema kurulumunu sahte engine ile atlayacak şekilde düzeltildi.
+- Açık: göç hatası `app.py` tarafından çevrimdışı modda sessizce karşılanıyor; kullanıcıya hata penceresi gösterilmiyor.
+
+---
 ## [2026-10-04] düzeltme | Sessiz Yutulan İstisnaların Giderilmesi (Denetim Bulgu 4)
 
 - Sessiz `except ... pass/continue` yerleri görünür hale getirildi: AI yerel analiz araçları, model portföy toplam değeri, planlama pin kalemleri (`logger.warning`, `exc_info`); EVDS TÜFE ayrıştırma ve önbellek, Stock 360 YoY hesabı, verimli sınır noktası, DuckDB bağlantı kapatma (`logger.debug`, dar istisna türleri).
