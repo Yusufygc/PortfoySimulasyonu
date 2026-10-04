@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-05] düzeltme | Açılış İşleri İlk Senkrondan Sonra, Geçersiz Bar Tanı Logu
+
+- **Sorun:** Açılışta BIST senkronu (5. sn, ~18 sn) bitmeden portföy kapanış tamamlaması (8. sn) başlıyordu; senkronun SQLite köprüsünün birazdan yazacağı ~35 portföy hissesini tek tek yeniden indiriyor ve aynı `daily_prices` satırlarını eşzamanlı yazıyordu (tamamlama sermaye artırımı düzeltmesi uygular, köprü ham kapanış yazar).
+- **Düzeltme:** `MarketSyncController.syncFinished` her senkron turunun sonunda (başarılı/başarısız; başlangıç kontrolü hata verirse de) yayınlanır. `StartupJobsController.start_after(signal)` açılış işlerini ilk turdan sonra bir kez başlatır (sinyal gelmezse 120 sn yedek süre); `app.py` bunu kullanır (`autostart=False`).
+- **Tanı logu:** `MarketDataSyncService._find_invalid_bar_start` geçersiz kapanışlı bar bulunca sayıyı ve ilk 10 hisse/günü uyarı olarak loglar ("Geçersiz kapanışlı N bar bulundu (ilk 10: ...)"). Her açılışta yeniden indirme tekrar ederse kaynak bu satırdan bulunur.
+- **Test:** `test_startup_sequencing.py` (senkrondan önce başlamaz, bir kez çalışır; `syncFinished` başarı ve hatada), tanı logu testi.
+
+---
 ## [2026-10-05] temizlik | PortfolioUpdateCoordinator ve PriceUpdateService Kaldırıldı
 
 - Dashboard "Fiyatları Güncelle" düğmesi kalkınca `PortfolioUpdateCoordinator` arayüzden çağrılmıyordu; tek bağımlılığı olan `PriceUpdateService` de öksüz kaldı. İkisi, testleri, container kaydı ve `build_services`'in artık kullanılmayan `event_bus` parametresi kaldırıldı. Kapanış tamamlama `PriceDataHealthService` (açılış işi) ve `MarketDataSyncService` (BIST) üzerinden yapılır.

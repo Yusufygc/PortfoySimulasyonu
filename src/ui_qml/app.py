@@ -95,7 +95,7 @@ def run_qml_app(container=None) -> int:
     corporate_action_ctrl = CorporateActionController(container=container, parent=engine)
     dividend_ctrl = DividendController(container=container, parent=engine)
     price_data_ctrl = PriceDataController(container=container, parent=engine)
-    startup_jobs_ctrl = StartupJobsController(container=container, parent=engine)
+    startup_jobs_ctrl = StartupJobsController(container=container, parent=engine, autostart=False)
     golden_cross_ctrl = GoldenCrossController(container=container, parent=engine)
     risk_profile_ctrl = RiskProfileController(container=container, parent=engine)
     market_adjustment_ctrl = MarketAdjustmentController(container=container, parent=engine)
@@ -103,6 +103,8 @@ def run_qml_app(container=None) -> int:
     market_ticker_ctrl = MarketTickerController(container=container, parent=engine)
     model_analysis_ctrl = ModelAnalysisController(container=container, parent=engine)
 
+    # Açılış kapanış tamamlaması ilk BIST senkronundan sonra: aynı kapanışlar iki yoldan eşzamanlı indirilmesin
+    startup_jobs_ctrl.start_after(market_sync_ctrl.syncFinished)
     price_refresh_ctrl = PriceRefreshController(system_ctrl, market_sync_ctrl, container=container, parent=engine)
     _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl)
     for source in (market_sync_ctrl.dataSynced, system_ctrl.pricesRefreshed, startup_jobs_ctrl.pricesUpdated,

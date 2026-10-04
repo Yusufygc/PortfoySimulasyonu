@@ -81,3 +81,20 @@ def test_get_sync_status_missing_days(sync_service):
     status = sync_service.get_sync_status(now=tuesday_evening)
     assert status.is_up_to_date is False
     assert status.missing_trading_days == [date(2026, 10, 5), date(2026, 10, 6)]
+
+
+def test_invalid_bar_scan_logs_tickers_and_dates(sync_service, caplog):
+    """Tanı: geçersiz kapanışlı bar bulununca hangi hisse/gün olduğu loga yazılır (yeniden indirmenin kaynağını bulmak için)."""
+    import duckdb
+
+    con = duckdb.connect(sync_service._duckdb_path)
+    con.execute("CREATE TABLE daily_prices (ticker VARCHAR, price_date DATE, open_price DOUBLE, high_price DOUBLE, "
+                "low_price DOUBLE, close_price DOUBLE, volume BIGINT)")
+    con.execute("INSERT INTO daily_prices VALUES ('AAA', '2026-10-01', 1, 1, 1, NULL, 0), ('BBB', '2026-10-02', 1, 1, 1, 5, 0)")
+    con.close()
+
+    with caplog.at_level("WARNING"):
+        start = sync_service._find_invalid_bar_start(date(2026, 10, 2))
+
+    assert start == date(2026, 10, 1)
+    assert "Geçersiz kapanışlı 1 bar bulundu (ilk 10: AAA 2026-10-01)" in caplog.text

@@ -36,6 +36,8 @@ class MarketSyncController(QObject):
     syncNotification = Signal(bool, str, arguments=["success", "message"])
     # Yeni bar yazıldığında yayınlanır; fiyatlara bağlı ekranlar (Dashboard, Model Portföy) yenilenir.
     dataSynced = Signal()
+    # Her senkron turunun sonunda (başarılı/başarısız, yeni bar olsun olmasın); açılış işleri ilk turdan sonra başlar
+    syncFinished = Signal()
 
     # Worker thread sinyalleri (Thread-safe)
     _syncWorkerFinished = Signal(object)
@@ -120,6 +122,7 @@ class MarketSyncController(QObject):
             self.triggerSyncNow()
         except Exception as exc:
             logger.warning("Startup sync kontrolü hatası: %s", exc)
+            self.syncFinished.emit()  # senkron başlamadı: bekleyen açılış işleri gecikmesin
 
     def _on_watcher_tick(self) -> None:
         """Her 60 saniyede bir: bugünün kapanış verisi hazır olduysa (Istanbul saati, tatil takvimi) günde bir kez senkronlar."""
@@ -162,6 +165,7 @@ class MarketSyncController(QObject):
             self.dataSynced.emit()
         else:
             logger.info("MarketSyncController: %s", result.message)
+        self.syncFinished.emit()
 
     def _on_sync_failed(self, error_msg: str) -> None:
         self._is_syncing = False
@@ -169,3 +173,4 @@ class MarketSyncController(QObject):
         self._status_text = f"Güncelleme hatası: {error_msg}"
         self.statusTextChanged.emit()
         self.syncNotification.emit(False, f"Piyasa verisi güncellenemedi: {error_msg}")
+        self.syncFinished.emit()

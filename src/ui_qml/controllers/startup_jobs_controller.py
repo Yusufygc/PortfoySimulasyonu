@@ -8,7 +8,8 @@ böylece iki arayüz aynı günde işi iki kez çalıştırmaz:
 2. KAP/MKK kurumsal aksiyon adaylarını günde bir kez tarama
 3. Golden/Death Cross teknik taramasını son taramadan 24 saat geçmişse çalıştırma
 
-İşler tek bir arka plan thread'inde sırayla çalışır (veri kaynağını aynı anda yormamak için).
+İşler tek bir arka plan thread'inde sırayla çalışır (veri kaynağını aynı anda yormamak için). Uygulamada açılıştaki ilk
+kapanış senkronu bittikten sonra başlar (`start_after`); böylece aynı kapanışlar iki yoldan indirilmez.
 """
 from __future__ import annotations
 
@@ -28,6 +29,8 @@ AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY = "settings/last_auto_corporate_act
 AUTO_TECHNICAL_SCAN_SETTINGS_KEY = "settings/last_auto_technical_scan_at"
 TECHNICAL_SCAN_INTERVAL = timedelta(hours=24)
 STARTUP_DELAY_MS = 8000
+# `start_after` sinyali (ilk kapanış senkronunun bitişi) hiç gelmezse açılış işleri bu süre sonunda yine başlar
+STARTUP_FALLBACK_MS = 120_000
 
 
 def last_completed_trading_day(now: datetime, trading_calendar) -> date:
@@ -58,11 +61,27 @@ class StartupJobsController(QObject):
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._jobDone.connect(self._on_job_done)
         self._targets: dict[str, Any] = {}
+        self._started = False
         if autostart:
-            QTimer.singleShot(STARTUP_DELAY_MS, self.runAll)
+            QTimer.singleShot(STARTUP_DELAY_MS, self._start_once)
 
     def _svc(self, name: str):
         return getattr(self._container, name, None) if self._container else None
+
+    def start_after(self, signal) -> None:
+        """Açılış işlerini verilen sinyalden (ilk kapanış senkronunun bitişi) sonra bir kez başlatır.
+
+        Senkron, BIST portföy hisselerinin kapanışlarını SQLite'a zaten yazar; tamamlama ondan önce başlarsa aynı hisseleri
+        tek tek yeniden indirir ve aynı satırları eşzamanlı yazardı. Sinyal gelmezse yedek süre sonunda başlar.
+        """
+        signal.connect(self._start_once)
+        QTimer.singleShot(STARTUP_FALLBACK_MS, self._start_once)
+
+    def _start_once(self) -> None:
+        if self._started:
+            return
+        self._started = True
+        self.runAll()
 
     def runAll(self) -> None:
         """Gün içinde zaten çalışmış işleri atlayarak tüm açılış işlerini kuyruğa alır."""

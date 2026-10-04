@@ -156,16 +156,23 @@ class MarketDataSyncService:
         """Son 30 günde kapanışı NULL/<=0 olan en eski bar tarihi (kısmi indirilmiş gün); yoksa None."""
         if not Path(self._duckdb_path).exists():
             return None
+        where = "WHERE (close_price IS NULL OR close_price <= 0) AND price_date >= ? AND price_date <= ?"
+        params = [last_trading_day - timedelta(days=30), last_trading_day]
         try:
             with self._get_duckdb_conn(read_only=True) as con:
-                row = con.execute(
-                    "SELECT MIN(price_date) FROM daily_prices "
-                    "WHERE (close_price IS NULL OR close_price <= 0) AND price_date >= ? AND price_date <= ?",
-                    [last_trading_day - timedelta(days=30), last_trading_day],
-                ).fetchone()
+                row = con.execute(f"SELECT MIN(price_date), COUNT(*) FROM daily_prices {where}", params).fetchone()
+                sample = con.execute(
+                    f"SELECT ticker, price_date FROM daily_prices {where} ORDER BY price_date, ticker LIMIT 10", params
+                ).fetchall() if row and row[1] else []
         except Exception as exc:
             logger.debug("Geçersiz bar taraması başarısız: %s", exc)
             return None
+        if sample:
+            # Tanı: her açılışta yeniden indirme tekrar ederse geçersiz barı yazan kaynağı bulmak için
+            logger.warning(
+                "Geçersiz kapanışlı %d bar bulundu (ilk 10: %s).",
+                row[1], ", ".join(f"{ticker} {day}" for ticker, day in sample),
+            )
         found = row[0] if row else None
         return found.date() if isinstance(found, datetime) else found
 
