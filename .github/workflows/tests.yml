@@ -81,7 +81,7 @@ jobs:
           python scripts/measure_code_quality.py
           --output-dir "${{ runner.temp }}/code-quality"
           --max-class-violations 14
-          --max-function-violations 91
+          --max-function-violations 81
           --max-file-violations 0
 
   security:

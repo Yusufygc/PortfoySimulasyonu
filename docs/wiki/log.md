@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] refaktör | Stock360Controller Ayrıştırması, 2. Adım (Denetim Bulgu 2)
+
+- **Karakterizasyon:** Refaktör öncesi kod üzerinde iki altın çıktı alındı: (1) `stock_360_calc` / `stock_360_fallback` fonksiyonları 173 girdi/senaryo için (boş, eksik, bozuk dönem, farklı sekmeler ve arama sorguları, 0-6 KAP snapshot'ı); (2) denetleyicinin tüm QML özellikleri 26 senaryoda (açılış varsayılanları, arka plan çekimi başarılı/finans hatası/KAP hatası/veri yok/boş dönem, dönem-sekme-tablo yuvaları, hisse uyuşmazlığı, katalog/portföy/hata durumunda hızlı seçim hisseleri). Refaktör sonrası ikisi de bayt düzeyinde özdeş.
+- **Yeni `stock_360_remote.py`:** `discover_available_stocks` / `rank_tickers` (hızlı seçim hisseleri), `fetch_remote_data` (arka plan finansal + KAP çekimi, HTML panoları, geçici dosya listesi) ve `RemoteResult`. `_remoteDataReady` sinyali artık tek `RemoteResult` nesnesi taşır (önceki 6 parametre yerine); `_apply_remote_results` finans ve ortaklık uygulamasını `_apply_financials_result` / `_apply_shareholders_result` olarak ayırır.
+- **`stock_360_calc.py`:** eşik dışı 6 fonksiyonun tamamı bölündü (`parse_valuation_ratios` CC 19, `compute_revenue_chart` 19, `compute_dupont_data` 27, `compute_financial_table_rows` 15, `compute_shareholder_timeline` 14, `parse_shareholder_data` 16): ortak yardımcılar `_series_value`, `_first_period_with_data`, `_prior_year_period`, `_statement_yoy`, `_snapshot_changes`, `_donut_entry`. `stock_360_fallback.get_fallback_shareholders` veri sabitleri ayrı üreticilere alındı.
+- **`Stock360Controller`:** `__init__` (85 satır) durum gruplarına bölündü; `setFinancialsPeriods` HTML yenileme `_refresh_financials_html`'e, rasyo atama `_apply_ratios`'a çıkarıldı. QML yüzeyi (Property/Slot/Signal adları) değişmedi.
+- **Ölçüm:** `Stock360Controller` 623 -> 567 etkin satır; metot 86 -> 95 (`__init__` ve uygulama adımları bölününce metot sayısı arttı, sınıf hâlâ eşiğin üstünde). Stock 360 modüllerinde eşik dışı fonksiyon 10 -> 0 (kalan ikisi test fonksiyonu); toplam 91 -> 81, CI tavanı 81.
+- **Testler:** Yeni `tests/ui_qml/test_stock_360_remote.py` (8 test); mevcut tüm testler değişmeden geçti.
+- **Bulunan (düzeltilmedi):** `compute_dupont_data` yedek yolunda (TTM DuPont yokken bilanço kalemlerinden türetme) ROE `nm * devir * kaldıraç / 100` ile hesaplanıyor; marj zaten yüzde olduğundan sonuç 100 kat küçük çıkıyor (ör. marj %10, devir 1, kaldıraç 4 -> `%0.40`, beklenen `%40`). Refaktör davranışı korudu; düzeltme ayrı iş olarak bırakıldı.
+
+---
 ## [2026-10-04] refaktör | ComparisonController Ayrıştırması, 1. Adım (Denetim Bulgu 2)
 
 - **Karakterizasyon:** Refaktör öncesi `ComparisonController` HTML üreticileri (çizgi/drawdown/aylık/saçılım/treemap), istem metni, başlangıç tarihi ve tarih ayrıştırma sabit girdilerle çalıştırılıp SHA-256 özetleri alındı; sonrasında aynı girdiler yeni modüllerle özdeş çıktı verdi (11/11).

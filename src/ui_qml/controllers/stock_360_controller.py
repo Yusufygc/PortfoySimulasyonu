@@ -29,10 +29,10 @@ from src.ui_qml.controllers.stock_360_fallback import (
 from src.ui_qml.controllers.stock_360_overview import overview_fields, resolve_identity, technical_fields
 from src.ui_qml.controllers.stock_360_html import (
     generate_financials_html,
-    generate_shareholders_html,
     write_temp_html,
     cleanup_temp_files,
 )
+from src.ui_qml.controllers.stock_360_remote import RemoteResult, discover_available_stocks, fetch_remote_data
 from src.ui_qml.controllers.stock_360_calc import (
     parse_valuation_ratios,
     compute_financial_bars,
@@ -90,13 +90,38 @@ class Stock360Controller(QObject):
     shareholderTimelineChanged = Signal()
 
     # Arka plan iş parçacığı güvenli sinyali
-    _remoteDataReady = Signal(str, object, object, str, str, str)
+    _remoteDataReady = Signal(object)
 
     def __init__(self, container=None, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
         self._container = container
 
-        # Temel durum
+        self._init_identity_state()
+        self._init_overview_and_technical_state()
+        self._init_financial_state()
+        self._init_shareholder_state()
+        self._init_html_and_fintech_state()
+
+        # Sinyal bağlantısı
+        self._remoteDataReady.connect(self._apply_remote_results)
+
+        # Hızlı seçim hisseleri
+        self._load_available_stocks()
+
+        # Varsayılan başlangıç verisi (Hızlı açılış)
+        self._set_default_overview(self._current_ticker)
+        self._set_default_technical()
+        self._set_fallback_financials(self._current_ticker)
+        self._set_fallback_shareholders(self._current_ticker)
+
+        # Uygulama kapanırken geçici dosyaları temizle
+        app = QCoreApplication.instance()
+        if app:
+            app.aboutToQuit.connect(self._cleanup_temp_files)
+
+        self._has_loaded_data = False
+
+    def _init_identity_state(self) -> None:
         self._current_ticker: str = "BIMAS"
         self._company_name: str = "BİM Birleşik Mağazalar A.Ş."
         self._sector: str = "Perakende Ticaret"
@@ -104,6 +129,7 @@ class Stock360Controller(QObject):
         self._error_message: str = ""
         self._available_stocks: List[str] = []
 
+    def _init_overview_and_technical_state(self) -> None:
         # Genel Bakış
         self._last_price_str: str = "₺0.00"
         self._last_price_raw: float = 0.0
@@ -128,6 +154,7 @@ class Stock360Controller(QObject):
         self._resistance_str: str = "—"
         self._trend_status: str = "Dengeli"
 
+    def _init_financial_state(self) -> None:
         # Finansallar & Rasyolar
         self._pe_ratio: str = "—"
         self._pb_ratio: str = "—"
@@ -146,7 +173,7 @@ class Stock360Controller(QObject):
         self._financial_summary: str = ""
         self._has_financials: bool = False
 
-        # Ortaklık Yapısı
+    def _init_shareholder_state(self) -> None:
         self._shareholders_list: List[Dict[str, Any]] = []
         self._shareholder_slices: List[Dict[str, Any]] = []
         self._free_float_ratio_str: str = "—"
@@ -155,6 +182,7 @@ class Stock360Controller(QObject):
         self._shareholder_date_str: str = "—"
         self._has_shareholders: bool = False
 
+    def _init_html_and_fintech_state(self) -> None:
         # Faz 5.1 & 5.2 — HTML Dashboard ve Fintech Durumu
         self._financials_html_url: str = ""
         self._shareholders_html_url: str = ""
@@ -183,25 +211,6 @@ class Stock360Controller(QObject):
         self._statement_type: str = "bilanco"
         self._statement_search_query: str = ""
         self._shareholder_timeline: List[Dict[str, Any]] = []
-
-        # Sinyal bağlantısı
-        self._remoteDataReady.connect(self._apply_remote_results)
-
-        # Hızlı seçim hisseleri
-        self._load_available_stocks()
-
-        # Varsayılan başlangıç verisi (Hızlı açılış)
-        self._set_default_overview(self._current_ticker)
-        self._set_default_technical()
-        self._set_fallback_financials(self._current_ticker)
-        self._set_fallback_shareholders(self._current_ticker)
-
-        # Uygulama kapanırken geçici dosyaları temizle
-        app = QCoreApplication.instance()
-        if app:
-            app.aboutToQuit.connect(self._cleanup_temp_files)
-
-        self._has_loaded_data = False
 
     # ------------------------------------------------------------------
     # QML Property Tanımları
@@ -504,19 +513,22 @@ class Stock360Controller(QObject):
         self.periodsCountChanged.emit(periods)
         if self._cached_metrics:
             self._recalculate_all_fintech_models()
-            all_periods = self._cached_metrics.get("periods", [])
-            n_p = len(all_periods) if periods == 0 else periods
-            try:
-                html = generate_financials_html(self._cached_metrics, n_periods=n_p)
-                url, f_path = write_temp_html(f"fin_{periods}", self._current_ticker, html)
-                if f_path:
-                    self._temp_files.append(f_path)
-                self._financials_html_url = url
-                self.financialsHtmlUrlChanged.emit()
-            except Exception as exc:
-                logger.exception("Finansal HTML yenilenemedi: %s", exc)
+            self._refresh_financials_html(periods)
         else:
             self.refreshData()
+
+    def _refresh_financials_html(self, periods: int) -> None:
+        all_periods = self._cached_metrics.get("periods", [])
+        n_p = len(all_periods) if periods == 0 else periods
+        try:
+            html = generate_financials_html(self._cached_metrics, n_periods=n_p)
+            url, f_path = write_temp_html(f"fin_{periods}", self._current_ticker, html)
+            if f_path:
+                self._temp_files.append(f_path)
+            self._financials_html_url = url
+            self.financialsHtmlUrlChanged.emit()
+        except Exception as exc:
+            logger.exception("Finansal HTML yenilenemedi: %s", exc)
 
     @Slot()
     def refreshShareholdersHistory(self) -> None:
@@ -568,39 +580,7 @@ class Stock360Controller(QObject):
 
     def _load_available_stocks(self) -> None:
         """Kullanıcının portföyündeki veya DB'de en çok fiyatı olan hisseleri listeler."""
-        candidates = ["BIMAS", "ADEL", "AKCNS", "ALBRK", "AYGAZ", "BRSAN", "CLEBI", "THYAO", "ASELS", "KCHOL"]
-        if self._container:
-            try:
-                stocks = []
-                s360_service = getattr(self._container, "stock_360_service", None)
-                if not s360_service and hasattr(self._container, "services"):
-                    s360_service = getattr(self._container.services, "stock_360_service", None)
-
-                # Önce DuckDB piyasa kataloğu (tüm BIST); yoksa SQLite'taki hisseler
-                catalog = s360_service.get_catalog_tickers() if s360_service and hasattr(s360_service, "get_catalog_tickers") else []
-                if isinstance(catalog, list) and catalog:
-                    tickers = [str(t) for t in catalog]
-                else:
-                    if s360_service and hasattr(s360_service, "get_all_stocks"):
-                        stocks = s360_service.get_all_stocks()
-                    elif getattr(self._container, "stock_lookup_service", None) is not None:
-                        stocks = self._container.stock_lookup_service.list_stocks()
-                    tickers = [s.ticker.replace(".IS", "") for s in stocks if getattr(s, "ticker", None)]
-                if tickers:
-                    sorted_tickers = []
-                    for c in candidates:
-                        if c in tickers:
-                            sorted_tickers.append(c)
-                    for t in tickers:
-                        if t not in sorted_tickers:
-                            sorted_tickers.append(t)
-                    self._available_stocks = sorted_tickers[:12]
-                    self.availableStocksChanged.emit()
-                    return
-            except Exception as exc:
-                logger.warning("Available stocks yüklenirken hata: %s", exc)
-
-        self._available_stocks = candidates
+        self._available_stocks = discover_available_stocks(self._container)
         self.availableStocksChanged.emit()
 
     def _load_local_overview_and_technical(self, ticker: str) -> None:
@@ -627,75 +607,44 @@ class Stock360Controller(QObject):
         s360_service: Optional[Stock360Service] = getattr(
             getattr(self._container, "services", None), "stock_360_service", None
         )
-        financials_data = None
-        shareholders_data = None
-        fin_html_url = ""
-        sh_html_url = ""
-        err_msg = ""
-        new_temp_files = []
-
-        if s360_service:
-            # 1. Finansallar
-            try:
-                financials_data = s360_service.get_financials(ticker, n_quarters=12)
-                if financials_data:
-                    all_periods = financials_data.get("periods", [])
-                    n_p = len(all_periods) if self._current_periods_count == 0 else self._current_periods_count
-                    html = generate_financials_html(financials_data, n_periods=n_p)
-                    url, f_path = write_temp_html(f"fin_{self._current_periods_count}", ticker, html)
-                    fin_html_url = url
-                    if f_path:
-                        new_temp_files.append(f_path)
-            except Exception as exc:
-                logger.warning("Finansal veri çekilemedi [%s]: %s", ticker, exc)
-                err_msg = f"Finansal veriler alınamadı ({exc})"
-
-            # 2. KAP Ortaklık
-            try:
-                shareholders_data = s360_service.get_shareholders(ticker, force_refresh=force_refresh_shareholders)
-                if shareholders_data:
-                    sh_html = generate_shareholders_html(ticker, shareholders_data)
-                    url, f_path = write_temp_html("sh", ticker, sh_html)
-                    sh_html_url = url
-                    if f_path:
-                        new_temp_files.append(f_path)
-            except Exception as exc:
-                logger.warning("KAP ortaklık verisi çekilemedi [%s]: %s", ticker, exc)
-
-        self._temp_files.extend(new_temp_files)
+        result = fetch_remote_data(s360_service, ticker, self._current_periods_count, force_refresh_shareholders)
+        self._temp_files.extend(result.temp_files)
 
         # UI Thread'e güvenli bildirim gönder (Qt queued connection)
         try:
-            self._remoteDataReady.emit(ticker, financials_data, shareholders_data, fin_html_url, sh_html_url, err_msg)
+            self._remoteDataReady.emit(result)
         except RuntimeError:
             pass
 
-    def _apply_remote_results(
-        self,
-        ticker: str,
-        financials: Optional[Dict[str, Any]],
-        shareholders: Optional[List[ShareholderSnapshot]],
-        fin_html_url: str,
-        sh_html_url: str,
-        error: str,
-    ) -> None:
-        if self._current_ticker != ticker:
+    def _apply_remote_results(self, result: RemoteResult) -> None:
+        if self._current_ticker != result.ticker:
             return
 
         self._is_loading = False
-        self._error_message = error
+        self._error_message = result.error
         self.loadingChanged.emit(False)
 
-        self._cached_metrics = financials
-        self._cached_snapshots = shareholders
+        self._cached_metrics = result.financials
+        self._cached_snapshots = result.shareholders
 
-        # Finansalları işle
+        self._apply_financials_result(result.ticker, result.financials, result.fin_html_url)
+        self._apply_shareholders_result(result.ticker, result.shareholders, result.sh_html_url)
+
+        self.financialsChanged.emit()
+        self.shareholdersChanged.emit()
+        self.financialsHtmlUrlChanged.emit()
+        self.shareholdersHtmlUrlChanged.emit()
+
+        # Fintech Modellerini Yenile
+        self._recalculate_all_fintech_models()
+
+    def _apply_financials_result(self, ticker: str, financials: Optional[Dict[str, Any]], html_url: str) -> None:
         if financials and "periods" in financials and financials["periods"]:
             self._financial_raw_data = financials
             self._has_financials = True
             self._is_financials_ready = True
             self._financial_periods = financials.get("periods", [])
-            self._financials_html_url = fin_html_url
+            self._financials_html_url = html_url
             self._parse_valuation_ratios(financials)
             self._recalculate_financial_bars()
         else:
@@ -704,11 +653,13 @@ class Stock360Controller(QObject):
             self._financials_html_url = ""
             self._set_fallback_financials(ticker)
 
-        # Ortaklık yapısını işle
+    def _apply_shareholders_result(
+        self, ticker: str, shareholders: Optional[List[ShareholderSnapshot]], html_url: str
+    ) -> None:
         if shareholders and len(shareholders) > 0:
             self._has_shareholders = True
             self._is_shareholders_ready = True
-            self._shareholders_html_url = sh_html_url
+            self._shareholders_html_url = html_url
             self._kap_snapshot_count = len(shareholders)
             self._last_kap_filing_date = (
                 shareholders[0].creation_date.strftime("%d.%m.%Y")
@@ -723,14 +674,6 @@ class Stock360Controller(QObject):
             self._kap_snapshot_count = 0
             self._last_kap_filing_date = "—"
             self._set_fallback_shareholders(ticker)
-
-        self.financialsChanged.emit()
-        self.shareholdersChanged.emit()
-        self.financialsHtmlUrlChanged.emit()
-        self.shareholdersHtmlUrlChanged.emit()
-
-        # Fintech Modellerini Yenile
-        self._recalculate_all_fintech_models()
 
     # ------------------------------------------------------------------
     # Fintech Calculation Engines
@@ -792,16 +735,18 @@ class Stock360Controller(QObject):
 
     def _parse_valuation_ratios(self, f: Dict[str, Any]) -> None:
         """Değerleme ve rasyo göstergelerini ayrıştırır."""
-        parsed = parse_valuation_ratios(f)
-        self._pe_ratio = parsed["pe_ratio"]
-        self._pb_ratio = parsed["pb_ratio"]
-        self._ev_ebitda = parsed["ev_ebitda"]
-        self._div_yield = parsed["div_yield"]
-        self._market_cap_str = parsed["market_cap_str"]
-        self._roe = parsed["roe"]
-        self._net_debt_ebitda = parsed["net_debt_ebitda"]
-        self._piotroski_score = parsed["piotroski_score"]
-        self._current_ratio = parsed["current_ratio"]
+        self._apply_ratios(parse_valuation_ratios(f))
+
+    def _apply_ratios(self, ratios: Dict[str, str]) -> None:
+        self._pe_ratio = ratios["pe_ratio"]
+        self._pb_ratio = ratios["pb_ratio"]
+        self._ev_ebitda = ratios["ev_ebitda"]
+        self._div_yield = ratios["div_yield"]
+        self._market_cap_str = ratios["market_cap_str"]
+        self._roe = ratios["roe"]
+        self._net_debt_ebitda = ratios["net_debt_ebitda"]
+        self._piotroski_score = ratios["piotroski_score"]
+        self._current_ratio = ratios["current_ratio"]
 
     def _recalculate_financial_bars(self) -> None:
         """Seçili sekmeye göre çubuk grafik verisini hazırlar."""
@@ -859,16 +804,7 @@ class Stock360Controller(QObject):
 
     def _set_fallback_financials(self, ticker: str) -> None:
         fb = get_fallback_financials(ticker)
-        ratios = fb["ratios"]
-        self._pe_ratio = ratios["pe_ratio"]
-        self._pb_ratio = ratios["pb_ratio"]
-        self._ev_ebitda = ratios["ev_ebitda"]
-        self._div_yield = ratios["div_yield"]
-        self._roe = ratios["roe"]
-        self._net_debt_ebitda = ratios["net_debt_ebitda"]
-        self._piotroski_score = ratios["piotroski_score"]
-        self._current_ratio = ratios["current_ratio"]
-        self._market_cap_str = ratios["market_cap_str"]
+        self._apply_ratios(fb["ratios"])
 
         self._financial_raw_data = fb["raw_data"]
         self._financial_periods = self._financial_raw_data.get("periods", [])

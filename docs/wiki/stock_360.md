@@ -38,6 +38,7 @@ Hisse 360, tek bir hisse için fiyat, teknik seviyeler, mali tablolar, değerlem
 | `stock_360_calc.py` | Rasyo ayrıştırma, çeyreklik çubuk grafik, gelir grafiği, DuPont, nakit akışı, tablo satırları ve ortaklık zaman çizelgesi hesapları. |
 | `stock_360_formatters.py` | Para birimi, fiyat, hacim biçimi ve donut renkleri. |
 | `stock_360_fallback.py` | Dış servis kapalı veya veri eksikken varsayılan/örnek veri ve sektör tahmini. |
+| `stock_360_remote.py` | Hızlı seçim hisseleri keşfi ve arka plan finansal + KAP çekimi (`fetch_remote_data`, `RemoteResult`); denetleyiciye tek nesne olarak döner. |
 | `stock_360_html.py` | Plotly finansal dashboard ve ortaklık HTML'ini geçici dosyaya yazar; çıkışta temizlenir. |
 
 QML bileşenleri: `RatioCard`, `FinancialBarChart`, `FintechStatementsTable`, `FintechDuPontCard`, `FintechCashFlowCard`, `FintechRevenueChart`, `ShareholderPieCard`, `FintechShareholderTimeline`, `FinancialsDashboardView` (WebEngine). Açılış performansı için sayfa ilk ziyarette yüklenir (`ensureLoaded`).
