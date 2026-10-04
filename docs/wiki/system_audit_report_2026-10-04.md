@@ -4,6 +4,10 @@
 
 Denetim şablonu: `V2-GenelSablon.md`. Süreç uyumu ölçütü: `AI-Gelistirme-Metodolojisi.md`. Bulgular statik inceleme ve komut çıktısına dayanır; çalıştırılan komutlar ve sayılar rapor içinde belirtilmiştir. Tam test paketi bu denetimde 1118 geçti, 4 xfailed.
 
+## Uygulama Durumu (2026-10-04 sonu)
+
+16 bulgudan 15'i çözüldü veya kısmen çözüldü; her bulgunun altında `Durum` satırı vardır. **Açık: Bulgu 2** (14 denetleyici sınıfının ayrıştırılması, XL). Denetim sırasında düzeltilen rapor hataları: Bulgu 4 (Excel tarihi senaryosu), Bulgu 13 (toplu senkron kilidi iddiası), Bulgu 16 (`auto_commit.py` belgesiz değildi). Kod, test ve belge sayıları için `log.md` ilgili girdilerine bakın.
+
 ## Tarama Planı
 
 1. Dizin ağacı: 269 `src` Python dosyası (31.215 etkin satır), 136 test dosyası (1050 test fonksiyonu, 14.987 etkin satır), 8 betik, QML dosyaları ~26.000 satır.
