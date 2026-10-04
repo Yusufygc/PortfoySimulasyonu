@@ -202,6 +202,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Çözüm:** Beklemeyi `qtbot.waitUntil`/sinyal yakalama ile değiştir; manuel testi onar veya sil.
 - **Düzeltme Eforu:** S
 - **Bağımlılık:** Yok.
+- **Durum:** Çözüldü (2026-10-04). Gerçek zayıf noktalar iki testti (1 sn sınırlı döngüler); diğer ikisi zaten zaman aşımlı beklemeydi. Ölü manuel test silindi. Ek bulgu: `QT_QUICK_CONTROLS_STYLE` yalnızca `tests/ui_qml/conftest.py`'deydi, bu yüzden bir QML testi tek başına kırılıyordu; kök `conftest.py`'ye taşındı.
 
 ### [🟡] 13. Global `yfinance_lock`
 - **Persona:** SRE / DevOps.

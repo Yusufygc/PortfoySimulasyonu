@@ -1,3 +1,4 @@
+import threading
 from unittest.mock import MagicMock, patch
 import pytest
 from PySide6.QtCore import QCoreApplication
@@ -10,7 +11,15 @@ from src.ui_qml.controllers.market_sync_controller import MarketSyncController
 
 
 @pytest.fixture
-def mock_sync_service():
+def sync_gate():
+    """Sahte senkronu, test `isSyncing` durumunu doğrulayana kadar bekletir (sabit uyku yerine olay)."""
+    gate = threading.Event()
+    yield gate
+    gate.set()  # test erken biterse iş parçacığı takılı kalmasın
+
+
+@pytest.fixture
+def mock_sync_service(sync_gate):
     svc = MagicMock()
     svc.get_sync_status.return_value = MarketSyncStatus(
         max_db_date=None,
@@ -20,8 +29,7 @@ def mock_sync_service():
         message="Veriler güncel",
     )
     def mock_sync():
-        import time
-        time.sleep(0.05)
+        sync_gate.wait(timeout=10)
         return MarketSyncResult(
             is_up_to_date=True,
             updated_stocks=10,
@@ -40,21 +48,16 @@ def test_market_sync_controller_initialization(qapp, mock_sync_service):
     assert "hazır" in ctrl.statusText.lower()
 
 
-def test_market_sync_controller_trigger_sync(qapp, mock_sync_service):
+def test_market_sync_controller_trigger_sync(qapp, mock_sync_service, sync_gate, wait_until):
     ctrl = MarketSyncController(sync_service=mock_sync_service)
     notifications = []
     ctrl.syncNotification.connect(lambda s, m: notifications.append((s, m)))
 
     ctrl.triggerSyncNow()
-    assert ctrl.isSyncing is True
+    assert ctrl.isSyncing is True  # senkron kapıda bekliyor: durum deterministik
 
-    # Thread tamamlanmasını bekle
-    import time
-    for _ in range(50):
-        qapp.processEvents()
-        if not ctrl.isSyncing:
-            break
-        time.sleep(0.02)
+    sync_gate.set()
+    assert wait_until(lambda: not ctrl.isSyncing), "Senkron tamamlanmadı"
 
     assert not ctrl.isSyncing
     assert ctrl.isUpToDate is True

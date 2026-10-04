@@ -46,7 +46,7 @@ Arka plan işi yapan denetleyicilerde testler `ImmediateExecutor` benzeri bir y�
 
 ## 4.1 Ağ ve Marker'lar
 
-`pytest.ini`: `addopts = -m "not manual and not network"`. Marker'lar: `ui`, `integration`, `network` (canlı ağ), `manual` (elle çalıştırılacak). Varsayılan paket canlı kaynaklara bağlı değildir. `tests/infrastructure/market_data/test_benchmark_fetch_manual.py` manuel/ağ işaretlidir ve silinmiş bir alana başvurduğu için onarım bekler ([roadmap.md](roadmap.md)).
+`pytest.ini`: `addopts = -m "not manual and not network"`. Marker'lar: `ui`, `integration`, `network` (canlı ağ), `manual` (elle çalıştırılacak). Varsayılan paket canlı kaynaklara bağlı değildir. Arka plan iş parçacığı bekleyen QML/denetleyici testleri sabit uyku yerine ortak `wait_until` fixture'ını (koşul + zaman aşımı, Qt olay döngüsü) kullanır; zamanlamaya bağlı durumlar `threading.Event` kapısıyla deterministik yapılır (`test_market_sync_controller.py`). `QT_QUICK_CONTROLS_STYLE=Basic` kök `conftest.py`'de ayarlıdır; böylece QML yükleyen her test tek başına da geçer. Gerçek işletim sistemi sır deposunu deneyen tek `manual` test `test_secret_store.py` içindedir.
 
 ## 5. Komutlar
 

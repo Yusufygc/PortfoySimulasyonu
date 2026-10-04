@@ -126,7 +126,7 @@ def test_comparison_treemap_and_holdings_mode(qapp, container):
 
 
 
-def test_screener_controller_initialization_and_filters(qapp, container):
+def test_screener_controller_initialization_and_filters(qapp, container, wait_until):
     """ScreenerController ve hazır filtre tanımlarını test eder."""
     ctrl = ScreenerController(container=container)
     assert len(ctrl.filterOptions) >= 3
@@ -141,7 +141,6 @@ def test_screener_controller_initialization_and_filters(qapp, container):
 
     # Asenkron tarama ve sinyal testi (Mock servis ile)
     from unittest.mock import MagicMock
-    import time
     from src.application.services.analysis.technical.screener_service import ScreenerMatch
 
     mock_service = MagicMock()
@@ -150,11 +149,7 @@ def test_screener_controller_initialization_and_filters(qapp, container):
     ]
     ctrl._screener_service = mock_service
     ctrl.runScan()
-    for _ in range(50):
-        qapp.processEvents()
-        if not ctrl.isRunning:
-            break
-        time.sleep(0.02)
+    assert wait_until(lambda: not ctrl.isRunning), "Tarama tamamlanmadı"
     assert not ctrl.isRunning
     assert len(ctrl.matchesList) == 1
     assert ctrl.matchesList[0]["ticker"] == "THYAO"

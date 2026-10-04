@@ -1,4 +1,6 @@
+import os
 import sys
+import time
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -8,6 +10,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+# Uygulamayla aynı Qt Quick Controls stili (Basic): QML'i yükleyen her test (yalnızca tests/ui_qml değil) özelleştirme
+# uyarısı almasın. Tek başına koşan QML testlerinin sıraya bağlı kırılmasını önler.
+os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -93,6 +99,24 @@ def secret_store():
     secret_store_module.set_secret_store(previous)
 
 
+@pytest.fixture
+def wait_until():
+    """Arka plan iş parçacığı sonuçlarını Qt olay döngüsünü işleyerek bekler (sabit uyku yerine koşul + zaman aşımı)."""
+    from PySide6.QtCore import QCoreApplication
+
+    def _wait(condition, timeout: float = 10.0, interval: float = 0.01) -> bool:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            QCoreApplication.processEvents()
+            if condition():
+                return True
+            time.sleep(interval)
+        QCoreApplication.processEvents()
+        return bool(condition())
+
+    return _wait
+
+
 @pytest.fixture(autouse=True)
 def _no_retry_sleep(monkeypatch):
     """Yeniden deneme bekleme süreleri testleri yavaşlatmasın."""
@@ -106,9 +130,6 @@ def pytest_collection_modifyitems(config, items):
         path = Path(str(item.fspath)).as_posix()
         if "/tests/ui/" in path or path.startswith("tests/ui/"):
             item.add_marker(pytest.mark.ui)
-        if path.endswith("tests/infrastructure/market_data/test_benchmark_fetch_manual.py"):
-            item.add_marker(pytest.mark.manual)
-            item.add_marker(pytest.mark.network)
 
 
 @pytest.fixture

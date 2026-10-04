@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | Test Hijyeni (Denetim Bulgu 12)
+
+- Silindi: `tests/infrastructure/market_data/test_benchmark_fetch_manual.py` (kaldırılmış `_investing_client` alanına başvuruyordu, çalışamazdı); `conftest.py` marker dalı ve `test_repo_guards.py` izin listesi temizlendi.
+- Kök `conftest.py`: `wait_until` fixture'ı (koşul + zaman aşımı + Qt olay döngüsü) ve `QT_QUICK_CONTROLS_STYLE=Basic`. Stil ayarı daha önce yalnızca `tests/ui_qml/conftest.py`'deydi; bu yüzden `test_chat_session_service.py::test_chat_history_dialog...` tek başına koşunca kırılıyordu (roadmap'teki "sıra bağımlı QML testi" kalemi kapandı).
+- `test_market_sync_controller.py`: 0,05 sn uyku yerine `threading.Event` kapısı (`isSyncing` durumu deterministik), 1 sn'lik sınırlı döngü yerine `wait_until`. `test_comparison_screener_phase7.py`: aynı şekilde `wait_until` (10 sn).
+- Bilinçli bırakılan: `test_stock_360_phase5.py` ve `test_stock_detail_and_excel.py` zaten 4 sn / 15 sn zaman aşımlı koşul beklemesi kullanıyor (sabit uyku değil); `test_bigint_id_concurrency.py` içindeki 0,3 sn bekleme yarışı kurmak için gerekli ve yorumlu.
+
+---
 ## [2026-10-04] güncelleme | CI Genişletildi (Denetim Bulgu 11)
 
 - `.github/workflows/tests.yml`: Python matrisi 3.10 ve 3.11 (zorunlu) + 3.12 (deneysel, `continue-on-error`); `QT_QPA_PLATFORM=offscreen`; pip önbelleği; `pytest-cov` ile kapsam (`--cov=src --cov=config --cov-fail-under=80`, yerel taban %84, `coverage.xml` artifact); eşzamanlı çalışma iptali.

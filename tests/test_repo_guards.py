@@ -9,9 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_automated_tests_do_not_call_live_network_helpers_directly():
-    allowed_manual = {
-        Path("tests/infrastructure/market_data/test_benchmark_fetch_manual.py"),
-    }
+    allowed_manual: set[Path] = set()  # canlı ağ çağıran manuel test kalmadı; eklenirse buraya yazın
     live_network_patterns = (
         re.compile(r"\brequests\.(get|post|put|delete)\("),
         re.compile(r"\burllib\.request\.urlopen\("),
