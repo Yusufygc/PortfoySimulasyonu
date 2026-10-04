@@ -43,13 +43,14 @@ from src.ui_qml.controllers.watchlist_controller import WatchlistController
 
 QML_DIR = Path(__file__).resolve().parents[2] / "src" / "ui_qml" / "qml"
 
-# (qml dosyası, değiştirilen özellik, değerler)
+# (qml dosyası, değiştirilen özellik, değerler, denetleyici üzerinden sürücü (ad, yuva, değerler) ya da None)
 TARGETS = {
-    "SettingsView": ("views/SettingsView.qml", "activeTabIndex", range(8)),
-    "AiAdvisorView": ("views/AiAdvisorView.qml", "mode", range(2)),
-    "OptimizationView": ("views/OptimizationView.qml", None, [None]),
-    "Stock360View": ("views/Stock360View.qml", None, [None]),
-    "StockDetailModal": ("components/StockDetailModal.qml", "activeTab", range(5)),
+    "SettingsView": ("views/SettingsView.qml", "activeTabIndex", range(8), None),
+    "AiAdvisorView": ("views/AiAdvisorView.qml", "mode", range(2), None),
+    "OptimizationView": ("views/OptimizationView.qml", None, [None], None),
+    # Hisse 360 görünüm modları (0 Genel Bakış, 1 Finansal, 2 KAP) bir denetleyici yuvasıyla değişir
+    "Stock360View": ("views/Stock360View.qml", None, [None], ("stock360Controller", "setViewMode", (0, 1, 2, 0))),
+    "StockDetailModal": ("components/StockDetailModal.qml", "activeTab", range(5), None),
 }
 
 
@@ -99,7 +100,7 @@ def qml_env(qapp):
     engine.addImportPath(str(QML_DIR))
     warnings: list[str] = []
     engine.warnings.connect(lambda items: warnings.extend(w.toString() for w in items))
-    yield engine, warnings
+    yield engine, warnings, controllers
     engine.deleteLater()
 
 
@@ -110,8 +111,8 @@ def _pump(times: int = 6) -> None:
 
 @pytest.mark.parametrize("name", sorted(TARGETS))
 def test_view_loads_every_tab_without_qml_warnings(qml_env, name):
-    engine, warnings = qml_env
-    relative_path, property_name, values = TARGETS[name]
+    engine, warnings, controllers = qml_env
+    relative_path, property_name, values, driver = TARGETS[name]
     component = QQmlComponent(engine, QUrl.fromLocalFile(str(QML_DIR / relative_path)))
     assert component.isReady(), "; ".join(e.toString() for e in component.errors())
 
@@ -124,5 +125,11 @@ def test_view_loads_every_tab_without_qml_warnings(qml_env, name):
         if property_name is not None:
             item.setProperty(property_name, value)
         _pump()
+
+    if driver is not None:
+        controller_name, slot_name, driver_values = driver
+        for value in driver_values:
+            getattr(controllers[controller_name], slot_name)(value)
+            _pump(10)
 
     assert warnings == [], "\n".join(warnings)

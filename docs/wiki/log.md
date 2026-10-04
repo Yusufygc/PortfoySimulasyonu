@@ -9,6 +9,8 @@
 
 - **Güvence:** Yeni `tests/ui_qml/test_qml_views_runtime_smoke.py`: beş büyük görünüm uygulamadaki tüm bağlam özellikleriyle oluşturulur, her sekme/mod etkinleştirilir ve QML motorunun **hiç uyarı** üretmediği doğrulanır (kopan `root.*` / kimlik başvurularını yakalar). Test başlangıçta `ModelAnalysisPanel.qml` içinde 3 `Unable to assign undefined to QString` uyarısı buldu (analiz verisi yokken); boş metin yedeğiyle giderildi.
 - **Adım 1 - `SettingsView.qml`** (1117 -> 231 satır): sekme 0-3 yeni bileşenlere çıkarıldı (`SettingsAppearanceTab`, `SettingsApiKeysTab`, `SettingsDataHealthTab`, `SettingsExportTab`); sekme 4-7 zaten ayrı bileşendi. Bileşenler eskisi gibi doğrudan örneklenir (yük/bellek davranışı ve sekmeler arası durum korunur, `Loader` kullanılmadı). `test_strings_catalog.py` izin listesi taşınan `Başarılı` literali için güncellendi.
+- **Adım 2 - `OptimizationView.qml`** (1128 -> 101 satır): sol parametre paneli `OptimizationParamsPanel` (`stacked` özelliği, `riskQuestionnaireRequested` sinyali; diyalog görünümde kalır), KPI şeridi `OptimizationKpiStrip` (`stacked`, `hostWidth`), sekme çubuğu + içerik kartı `OptimizationResultsPanel`.
+- **Adım 3 - `Stock360View.qml`** (1113 -> 122 satır): üç `Component` gövdesi `Stock360OverviewSection`, `Stock360FinancialsSection`, `Stock360ShareholdersSection` (`hostWidth` = Loader genişliği), satır içi bölümler `Stock360TopBar`, `Stock360ModeTabs`, `Stock360HeroCard` (`root.ctrl` her bileşende yeniden tanımlı). Duman testi artık Hisse 360 görünüm modlarını (0/1/2) `setViewMode` ile sürer; üç bölümün de örneklendiği doğrulandı.
 
 ---
 ## [2026-10-04] düzeltme | yfinance Kapısı Zaman Aşımı (Denetim Bulgu 13)
