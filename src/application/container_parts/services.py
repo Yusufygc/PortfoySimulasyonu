@@ -30,8 +30,6 @@ from src.application.services.portfolio.cash_movement_service import CashMovemen
 from src.application.services.portfolio.portfolio_maintenance_service import PortfolioMaintenanceService
 from src.application.services.portfolio.portfolio_reset_service import PortfolioResetService
 from src.application.services.portfolio.portfolio_service import PortfolioService
-from src.application.services.portfolio.portfolio_update_coordinator import PortfolioUpdateCoordinator
-from src.application.services.portfolio.price_update_service import PriceUpdateService
 from src.application.services.portfolio.trade_entry_service import TradeEntryService
 from src.application.services.reporting.excel_export_service import ExcelExportService
 from src.application.services.reporting.excel_formatter import ExcelFormatter
@@ -54,7 +52,6 @@ class ServiceSet:
     cash_movement_service: CashMovementService
     portfolio_maintenance_service: PortfolioMaintenanceService
     trade_entry_service: TradeEntryService
-    price_update_service: PriceUpdateService
     price_data_health_service: object
     live_price_refresh_service: object
     return_calc_service: ReturnCalcService
@@ -75,7 +72,6 @@ class ServiceSet:
     corporate_action_discovery_service: CorporateActionDiscoveryService
     corporate_action_candidate_review_service: CorporateActionCandidateReviewService
     backfill_service: BackfillService
-    update_coordinator: PortfolioUpdateCoordinator
     financial_analysis_service: FinancialAnalysisService
     shareholder_analysis_service: ShareholderAnalysisService
     stock_360_service: Stock360Service
@@ -92,7 +88,7 @@ class ServiceSet:
     market_indicators_service: object  # MarketIndicatorsService | None (üst piyasa şeridi)
 
 
-def build_services(repositories: RepositorySet, market_clients: MarketClientSet, event_bus) -> ServiceSet:
+def build_services(repositories: RepositorySet, market_clients: MarketClientSet) -> ServiceSet:
     foundation = _build_foundation_services(repositories, market_clients)
     reporting = _build_reporting_services(repositories, market_clients, foundation)
     feature_services = _build_feature_services(
@@ -115,13 +111,6 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
         **foundation,
         **reporting,
         **feature_services,
-        update_coordinator=PortfolioUpdateCoordinator(
-            portfolio_repo=repositories.portfolio_repo,
-            stock_repo=repositories.stock_repo,
-            price_update_service=foundation["price_update_service"],
-            return_calc_service=foundation["return_calc_service"],
-            event_bus=event_bus,
-        ),
         financial_analysis_service=financial_analysis_service,
         shareholder_analysis_service=shareholder_analysis_service,
         stock_360_service=Stock360Service(
@@ -195,11 +184,6 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
         portfolio_service=portfolio_service,
         market_session_service=market_clients.bist_market_session_service,
     )
-    price_update_service = PriceUpdateService(
-        repositories.price_repo,
-        market_clients.market_client,
-        trading_calendar=market_clients.trading_calendar,
-    )
     return_calc_service = ReturnCalcService(repositories.portfolio_repo, repositories.price_repo)
     model_portfolio_service = ModelPortfolioService(
         model_portfolio_repo=repositories.model_portfolio_repo,
@@ -214,7 +198,6 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
             maintenance_repo=repositories.portfolio_maintenance_repo,
         ),
         "trade_entry_service": trade_entry_service,
-        "price_update_service": price_update_service,
         "return_calc_service": return_calc_service,
         "model_portfolio_service": model_portfolio_service,
     }

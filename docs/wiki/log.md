@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-05] temizlik | PortfolioUpdateCoordinator ve PriceUpdateService Kaldırıldı
+
+- Dashboard "Fiyatları Güncelle" düğmesi kalkınca `PortfolioUpdateCoordinator` arayüzden çağrılmıyordu; tek bağımlılığı olan `PriceUpdateService` de öksüz kaldı. İkisi, testleri, container kaydı ve `build_services`'in artık kullanılmayan `event_bus` parametresi kaldırıldı. Kapanış tamamlama `PriceDataHealthService` (açılış işi) ve `MarketDataSyncService` (BIST) üzerinden yapılır.
+- `IMarketDataClient.get_closing_prices` artık çağrılmıyor; port ve altyapı uygulaması yerinde bırakıldı (ayrı karar).
+
+---
 ## [2026-10-05] iyileştirme | Toplu Canlı Fiyat ve Model Portföy Pozisyon Hesabı
 
 - **Ölçüm (gerçek verinin kopyası, ağ yok, ana iş parçacığı):** Ana Sayfa yeniden yükleme ~11 ms, İzleme Listesi ~6 ms, Model Portföy 34-84 ms (13 pozisyonlu portföy en yavaşı). Hepsi 100 ms altında: arka plana taşıma yapılmadı (ölçmeden taşıma yok kuralı).

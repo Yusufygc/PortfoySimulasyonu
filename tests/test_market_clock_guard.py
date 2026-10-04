@@ -19,7 +19,6 @@ MARKET_CLOCK_MODULES = [
     "src/application/services/market/stock_lookup_service.py",
     "src/application/services/market_data/market_universe_migration_service.py",
     "src/application/services/portfolio/cash_movement_service.py",
-    "src/application/services/portfolio/portfolio_update_coordinator.py",
     "src/domain/models/financial_goal.py",
     "src/ui_qml/controllers/price_data_controller.py",
 ]

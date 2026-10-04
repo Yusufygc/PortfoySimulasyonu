@@ -43,7 +43,6 @@ def test_build_services_wires_corporate_action_services():
     services = build_services(
         repositories=_fake_repositories(),
         market_clients=_fake_market_clients(),
-        event_bus=object(),
     )
 
     assert services.corporate_action_service._price_adjustment_service is not None

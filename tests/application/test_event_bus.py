@@ -40,7 +40,7 @@ def test_container_uses_default_global_event_bus(monkeypatch):
     monkeypatch.setattr("src.application.container.build_market_clients", lambda _provider: object())
     monkeypatch.setattr(
         "src.application.container.build_services",
-        lambda repositories, market_clients, event_bus: DummyServices(),
+        lambda repositories, market_clients: DummyServices(),
     )
     monkeypatch.setattr(
         "src.application.container.build_ai",

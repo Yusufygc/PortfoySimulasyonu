@@ -35,7 +35,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 |---|---|
 | `container.py`, `container_parts/` | DI container ve fabrikalar (`repositories`, `market_clients`, `services`, `ai`). |
 | `events/` | `GlobalEventBus` (`prices_updated`). |
-| `services/portfolio/` | `PortfolioService`, `TradeEntryService`, `CashMovementService`, `PriceUpdateService`, `PortfolioUpdateCoordinator`, `PortfolioMaintenanceService`, `PortfolioResetService`, `timeline_validator`, `safe_portfolio_builder`. |
+| `services/portfolio/` | `PortfolioService`, `TradeEntryService`, `CashMovementService`, `PortfolioMaintenanceService`, `PortfolioResetService`, `timeline_validator`, `safe_portfolio_builder`. |
 | `services/market/` | `StockLookupService`, `CurrentPriceResolver`, `LivePriceRefreshService`, `PriceDataHealthService`, `PriceLookupService`, `MarketIndicatorsService`, `BistMarketSessionService`, işlem günü takvimi ve seans koruması. |
 | `services/market_data/` | `MarketDataSyncService` (artımlı DuckDB senkronu), `BistBulkDownloader`, `MarketUniverseMigrationService`. |
 | `services/corporate_actions/` | `CorporateActionService`, `CorporateActionPriceAdjustmentService`, KAP/MKK aday keşfi ve inceleme, `MarketCorporateActionService` (DuckDB). |

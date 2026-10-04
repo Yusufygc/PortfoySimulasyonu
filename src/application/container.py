@@ -30,7 +30,6 @@ class AppContainer:
         self.services = build_services(
             repositories=self.repositories,
             market_clients=self.market_clients,
-            event_bus=self.event_bus,
         )
         self._expose_dataclass_fields(self.services)
 

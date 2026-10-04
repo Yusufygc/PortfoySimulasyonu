@@ -60,8 +60,7 @@ class IStockRepository(ABC):
 
         map'i döner.
 
-        Gün sonu fiyat güncellemesi (PriceUpdateService) için
-        tam ihtiyacımız olan şey.
+        Canlı fiyat yenilemesi ve fiyat tamamlama bunu kullanır.
         """
         raise NotImplementedError
 

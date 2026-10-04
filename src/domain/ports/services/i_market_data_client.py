@@ -64,8 +64,7 @@ class IMarketDataClient(ABC):
             }
 
         Not:
-            UI’da “Gün Sonu Fiyatlarını Güncelle” butonu tıklandığında
-            PriceUpdateService bu fonksiyonu kullanacak.
+            Şu an uygulamada çağıran yok (tek tüketicisi PriceUpdateService kaldırıldı).
         """
         raise NotImplementedError
 

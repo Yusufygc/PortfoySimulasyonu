@@ -32,7 +32,7 @@ Ana portföyün canlı özeti.
 - **İşlemler:** hızlı alım/satım (`QuickTradeModal`, tarih ve saat alanlı), sermaye yatırma/çekme (`CapitalModal`), fiyat durumu (`PriceStatusChip`: ortak son güncelleme ve küçük yenile ikonu; fiyatlar kendiliğinden güncellenir), tarihsel Excel raporu (`ExcelExportDialog`; mevcut dosyaya ekleme modu).
 - **Hisse Detay modalı** (`StockDetailController`): lot, ortalama maliyet, piyasa değeri, K/Z; işlem geçmişi ve sermaye artırımları sekmeleri; işlem etkisi ön izlemesi; hızlı emir; **Sermaye Artırımı** (`CorporateActionDialog`), **Temettü** (`DividendDialog`), TradingView ve Hisse 360'a geçiş, hisse bazlı Excel. Sermaye artırımı ve temettü yalnızca ana portföy ve açık pozisyon için görünür.
 
-Servisler: `PortfolioService`, `TradeEntryService`, `CashMovementService`, `PortfolioUpdateCoordinator`, `ReturnCalcService`, `CurrentPriceResolver`, `ExcelExportService`. Fiyat ve işlem kuralları: [service_portfolio_and_market.md](service_portfolio_and_market.md).
+Servisler: `PortfolioService`, `TradeEntryService`, `CashMovementService`, `ReturnCalcService`, `CurrentPriceResolver`, `ExcelExportService`. Fiyat ve işlem kuralları: [service_portfolio_and_market.md](service_portfolio_and_market.md).
 
 ## 1. İzleme Listeleri
 
