@@ -181,162 +181,172 @@ _HBK              = ("Hisse Başına Kazanç",)
 # Tekil dönem metrikleri
 # ---------------------------------------------------------------------------
 
-def _single_period(sections: dict, period: str) -> dict[str, float | None]:
-    g  = sections.get("gelir",      {})
-    b  = sections.get("bilanco",    {})
-    d  = sections.get("dipnot",     {})
-    na = sections.get("nakit_akim", {})
+def _bucket_value(bucket: dict, *candidates: str, period: str) -> float | None:
+    return _get({"_": bucket}, "_", *candidates, period=period)
 
-    def gv(bucket, *candidates):
-        return _get({"_": bucket}, "_", *candidates, period=period)
 
-    satis          = gv(g, *_SATIS)
-    brut_kar       = gv(g, *_BRUT_KAR)
-    faal_kar       = gv(g, *_FAALKAR)
-    net_kar        = gv(g, *_NET_KAR)
-    satis_maliyeti = gv(g, *_SATIS_MALY)
-    hbk            = gv(g, *_HBK)
+def _pct(value: float | None) -> float | None:
+    return value * 100 if value is not None else None
 
-    nakit           = gv(b, *_NAKIT)
-    donen           = gv(b, *_DONEN)
-    kvy             = gv(b, *_KVY)
-    ozkaynak        = _find_b(b, *_OZKAYNAK,         period=period)
-    odenmis_sermaye = _find_b(b, *_ODENMIS_SERMAYE,  period=period)
-    serm_duzeltme   = _find_b(b, *_SERMAYE_DUZELTME, period=period)
-    toplam_varlik   = _find_b(b, *_TOPLAM_VARLIK,    period=period)
-    ticari_alacak   = gv(b, *_TIC_ALACAK)
-    stok            = gv(b, *_STOK)
-    ticari_borc     = gv(b, *_TIC_BORC)
 
-    fin_kv = gv(b, *_FIN_BORC_KV)
-    fin_uv = gv(b, *_FIN_BORC_UV)
-    toplam_fin_borc = (
-        (fin_kv or 0) + (fin_uv or 0)
-        if (fin_kv is not None or fin_uv is not None) else None
-    )
-    net_borc = (
-        toplam_fin_borc - nakit
-        if toplam_fin_borc is not None and nakit is not None else None
-    )
+def _sum_optional(first: float | None, second: float | None) -> float | None:
+    """İkisi de yoksa None; biri varsa eksik olan 0 sayılarak toplanır."""
+    if first is None and second is None:
+        return None
+    return (first or 0) + (second or 0)
 
-    amorti         = gv(d, *_AMORTISMAN)
-    yurtici_satis  = gv(d, *_YURTICI_SAT)
-    yurtdisi_satis = gv(d, *_YURTDISI_SAT)
 
-    fcf        = gv(na, *_FCF)
-    capex      = gv(na, *_CAPEX)
-    isletme    = gv(na, *_ISLETME_CF)
-    temettu    = gv(na, *_TEMETTU_ODE)
-    serm_artir = gv(na, *_SERM_ARTIR)
+def _turnover_days(balance: float | None, flow: float | None, days: int) -> float | None:
+    """`bakiye / akış * gün`; akış yok veya sıfırsa None."""
+    if balance is None or flow is None or flow == 0:
+        return None
+    return balance / flow * days
 
-    favok: float | None = (
-        faal_kar + amorti
-        if faal_kar is not None and amorti is not None else faal_kar
-    )
 
-    yil = int(period.split("/")[0])
-    enflasyon_duzeltildi: bool = (yil >= 2024) or (serm_duzeltme not in (None, 0))
-
-    bedelsiz_x   = _safe_div(ozkaynak, odenmis_sermaye)
-    bedelsiz_pct = (bedelsiz_x - 1) * 100 if bedelsiz_x is not None else None
-
-    brut_marj  = _safe_div(brut_kar, satis)
-    favok_marj = _safe_div(favok,    satis)
-    nk_marj    = _safe_div(net_kar,  satis)
-    fcf_marj   = _safe_div(fcf,      satis)
-    capex_sat  = _safe_div(capex,    satis)
-
-    roe_v = _safe_div(net_kar, ozkaynak)
-    roa_v = _safe_div(net_kar, toplam_varlik)
-
-    varlik_devir_ytd = _safe_div(satis,        toplam_varlik)
-    fin_kaldirac     = _safe_div(toplam_varlik, ozkaynak)
-    uv_borc_varlik   = _safe_div(fin_uv,       toplam_varlik)
-
-    days     = _days_in_period(period)
-    cogs_abs = abs(satis_maliyeti) if satis_maliyeti is not None else None
-
-    dso: float | None = (
-        ticari_alacak / satis * days
-        if (ticari_alacak is not None and satis is not None and satis != 0) else None
-    )
-    dio: float | None = (
-        stok / cogs_abs * days
-        if (stok is not None and cogs_abs is not None and cogs_abs != 0) else None
-    )
-    dpo: float | None = (
-        ticari_borc / cogs_abs * days
-        if (ticari_borc is not None and cogs_abs is not None and cogs_abs != 0) else None
-    )
-    ccc: float | None = (
-        dso + dio - dpo
-        if (dso is not None and dio is not None and dpo is not None) else None
-    )
-
-    toplam_satis_dipnot = (
-        (yurtici_satis or 0) + (yurtdisi_satis or 0)
-        if (yurtici_satis is not None or yurtdisi_satis is not None) else None
-    )
-    ihracat_orani: float | None = (
-        yurtdisi_satis / toplam_satis_dipnot * 100
-        if (yurtdisi_satis is not None
-            and toplam_satis_dipnot is not None
-            and toplam_satis_dipnot != 0) else None
-    )
-    dagitim_orani: float | None = (
-        abs(temettu) / net_kar * 100
-        if (temettu is not None and net_kar is not None and net_kar != 0) else None
-    )
-
+def _income_items(sections: dict, period: str) -> dict[str, float | None]:
+    g = sections.get("gelir", {})
     return {
-        "satis":               satis,
-        "brut_kar":            brut_kar,
-        "faaliyet_kar":        faal_kar,
-        "favok":               favok,
-        "net_kar":             net_kar,
-        "nakit":               nakit,
-        "net_borc":            net_borc,
-        "donen_varlik":        donen,
-        "kisa_vadeli_yukuml":  kvy,
-        "ozkaynak":            ozkaynak,
-        "odenmis_sermaye":     odenmis_sermaye,
-        "sermaye_duzeltme":    serm_duzeltme,
-        "enflasyon_duzeltildi": enflasyon_duzeltildi,
-        "bedelsiz_potansiyel_x":   bedelsiz_x,
-        "bedelsiz_potansiyel_pct": bedelsiz_pct,
-        "fcf":                 fcf,
-        "capex":               capex,
-        "isletme_cf":          isletme,
-        "toplam_varlik":       toplam_varlik,
-        "ticari_alacak":       ticari_alacak,
-        "stok":                stok,
-        "ticari_borc":         ticari_borc,
-        "fin_borc_uv":         fin_uv,
-        "satis_maliyeti":      satis_maliyeti,
-        "yurtici_satis":       yurtici_satis,
-        "yurtdisi_satis":      yurtdisi_satis,
-        "temettu_odeme":       temettu,
-        "sermaye_artirimi":    serm_artir,
-        "hbk":                 hbk,
-        "brut_kar_marji":      (brut_marj  * 100) if brut_marj  is not None else None,
-        "favok_marji":         (favok_marj * 100) if favok_marj is not None else None,
-        "net_kar_marji":       (nk_marj    * 100) if nk_marj    is not None else None,
-        "fcf_marji":           (fcf_marj   * 100) if fcf_marj   is not None else None,
-        "capex_satis":         (capex_sat  * 100) if capex_sat  is not None else None,
-        "roe":                 (roe_v * 100) if roe_v is not None else None,
-        "roa":                 (roa_v * 100) if roa_v is not None else None,
-        "ihracat_orani":       ihracat_orani,
-        "dagitim_orani":       dagitim_orani,
-        "net_borc_favok":      _safe_div(net_borc, favok),
-        "cari_oran":           _safe_div(donen, kvy),
-        "varlik_devir_ytd":    varlik_devir_ytd,
-        "fin_kaldirac":        fin_kaldirac,
-        "uv_borc_varlik":      uv_borc_varlik,
-        "dso":                 dso,
-        "dio":                 dio,
-        "dpo":                 dpo,
-        "ccc":                 ccc,
+        "satis":          _bucket_value(g, *_SATIS, period=period),
+        "brut_kar":       _bucket_value(g, *_BRUT_KAR, period=period),
+        "faal_kar":       _bucket_value(g, *_FAALKAR, period=period),
+        "net_kar":        _bucket_value(g, *_NET_KAR, period=period),
+        "satis_maliyeti": _bucket_value(g, *_SATIS_MALY, period=period),
+        "hbk":            _bucket_value(g, *_HBK, period=period),
     }
+
+
+def _balance_items(sections: dict, period: str) -> dict[str, float | None]:
+    b = sections.get("bilanco", {})
+    return {
+        "nakit":           _bucket_value(b, *_NAKIT, period=period),
+        "donen":           _bucket_value(b, *_DONEN, period=period),
+        "kvy":             _bucket_value(b, *_KVY, period=period),
+        "ozkaynak":        _find_b(b, *_OZKAYNAK, period=period),
+        "odenmis_sermaye": _find_b(b, *_ODENMIS_SERMAYE, period=period),
+        "serm_duzeltme":   _find_b(b, *_SERMAYE_DUZELTME, period=period),
+        "toplam_varlik":   _find_b(b, *_TOPLAM_VARLIK, period=period),
+        "ticari_alacak":   _bucket_value(b, *_TIC_ALACAK, period=period),
+        "stok":            _bucket_value(b, *_STOK, period=period),
+        "ticari_borc":     _bucket_value(b, *_TIC_BORC, period=period),
+        "fin_kv":          _bucket_value(b, *_FIN_BORC_KV, period=period),
+        "fin_uv":          _bucket_value(b, *_FIN_BORC_UV, period=period),
+    }
+
+
+def _note_and_cash_flow_items(sections: dict, period: str) -> dict[str, float | None]:
+    d = sections.get("dipnot", {})
+    na = sections.get("nakit_akim", {})
+    return {
+        "amorti":         _bucket_value(d, *_AMORTISMAN, period=period),
+        "yurtici_satis":  _bucket_value(d, *_YURTICI_SAT, period=period),
+        "yurtdisi_satis": _bucket_value(d, *_YURTDISI_SAT, period=period),
+        "fcf":            _bucket_value(na, *_FCF, period=period),
+        "capex":          _bucket_value(na, *_CAPEX, period=period),
+        "isletme":        _bucket_value(na, *_ISLETME_CF, period=period),
+        "temettu":        _bucket_value(na, *_TEMETTU_ODE, period=period),
+        "serm_artir":     _bucket_value(na, *_SERM_ARTIR, period=period),
+    }
+
+
+def _working_capital_metrics(raw: dict[str, float | None], period: str) -> dict[str, float | None]:
+    days = _days_in_period(period)
+    cogs_abs = abs(raw["satis_maliyeti"]) if raw["satis_maliyeti"] is not None else None
+    dso = _turnover_days(raw["ticari_alacak"], raw["satis"], days)
+    dio = _turnover_days(raw["stok"], cogs_abs, days)
+    dpo = _turnover_days(raw["ticari_borc"], cogs_abs, days)
+    ccc = dso + dio - dpo if (dso is not None and dio is not None and dpo is not None) else None
+    return {"dso": dso, "dio": dio, "dpo": dpo, "ccc": ccc}
+
+
+_RAW_TO_OUTPUT: dict[str, str] = {
+    "satis": "satis", "brut_kar": "brut_kar", "faal_kar": "faaliyet_kar", "net_kar": "net_kar",
+    "nakit": "nakit", "donen": "donen_varlik", "kvy": "kisa_vadeli_yukuml", "ozkaynak": "ozkaynak",
+    "odenmis_sermaye": "odenmis_sermaye", "serm_duzeltme": "sermaye_duzeltme", "fcf": "fcf",
+    "capex": "capex", "isletme": "isletme_cf", "toplam_varlik": "toplam_varlik",
+    "ticari_alacak": "ticari_alacak", "stok": "stok", "ticari_borc": "ticari_borc",
+    "fin_uv": "fin_borc_uv", "satis_maliyeti": "satis_maliyeti", "yurtici_satis": "yurtici_satis",
+    "yurtdisi_satis": "yurtdisi_satis", "temettu": "temettu_odeme", "serm_artir": "sermaye_artirimi",
+    "hbk": "hbk",
+}
+
+
+def _favok(raw: dict[str, float | None]) -> float | None:
+    faal_kar, amorti = raw["faal_kar"], raw["amorti"]
+    return faal_kar + amorti if faal_kar is not None and amorti is not None else faal_kar
+
+
+def _net_debt(raw: dict[str, float | None]) -> float | None:
+    total_fin_debt = _sum_optional(raw["fin_kv"], raw["fin_uv"])
+    if total_fin_debt is None or raw["nakit"] is None:
+        return None
+    return total_fin_debt - raw["nakit"]
+
+
+def _export_ratio(raw: dict[str, float | None]) -> float | None:
+    foreign = raw["yurtdisi_satis"]
+    total = _sum_optional(raw["yurtici_satis"], foreign)
+    if foreign is None or total is None or total == 0:
+        return None
+    return foreign / total * 100
+
+
+def _payout_ratio(raw: dict[str, float | None]) -> float | None:
+    dividend, net_profit = raw["temettu"], raw["net_kar"]
+    if dividend is None or net_profit is None or net_profit == 0:
+        return None
+    return abs(dividend) / net_profit * 100
+
+
+def _is_inflation_adjusted(raw: dict[str, float | None], period: str) -> bool:
+    return int(period.split("/")[0]) >= 2024 or raw["serm_duzeltme"] not in (None, 0)
+
+
+def _derived_metrics(raw: dict[str, float | None], period: str) -> dict[str, float | None]:
+    favok = _favok(raw)
+    net_borc = _net_debt(raw)
+    bedelsiz_x = _safe_div(raw["ozkaynak"], raw["odenmis_sermaye"])
+    return {
+        "favok": favok,
+        "net_borc": net_borc,
+        "enflasyon_duzeltildi": _is_inflation_adjusted(raw, period),
+        "bedelsiz_potansiyel_x": bedelsiz_x,
+        "bedelsiz_potansiyel_pct": (bedelsiz_x - 1) * 100 if bedelsiz_x is not None else None,
+        "ihracat_orani": _export_ratio(raw),
+        "dagitim_orani": _payout_ratio(raw),
+        "net_borc_favok": _safe_div(net_borc, favok),
+    }
+
+
+def _ratio_metrics(raw: dict[str, float | None], favok: float | None) -> dict[str, float | None]:
+    satis, net_kar = raw["satis"], raw["net_kar"]
+    ozkaynak, toplam_varlik = raw["ozkaynak"], raw["toplam_varlik"]
+    return {
+        "brut_kar_marji":   _pct(_safe_div(raw["brut_kar"], satis)),
+        "favok_marji":      _pct(_safe_div(favok, satis)),
+        "net_kar_marji":    _pct(_safe_div(net_kar, satis)),
+        "fcf_marji":        _pct(_safe_div(raw["fcf"], satis)),
+        "capex_satis":      _pct(_safe_div(raw["capex"], satis)),
+        "roe":              _pct(_safe_div(net_kar, ozkaynak)),
+        "roa":              _pct(_safe_div(net_kar, toplam_varlik)),
+        "cari_oran":        _safe_div(raw["donen"], raw["kvy"]),
+        "varlik_devir_ytd": _safe_div(satis, toplam_varlik),
+        "fin_kaldirac":     _safe_div(toplam_varlik, ozkaynak),
+        "uv_borc_varlik":   _safe_div(raw["fin_uv"], toplam_varlik),
+    }
+
+
+def _single_period(sections: dict, period: str) -> dict[str, float | None]:
+    raw = {
+        **_income_items(sections, period),
+        **_balance_items(sections, period),
+        **_note_and_cash_flow_items(sections, period),
+    }
+    derived = _derived_metrics(raw, period)
+    result = {output: raw[source] for source, output in _RAW_TO_OUTPUT.items()}
+    result.update(derived)
+    result.update(_ratio_metrics(raw, derived["favok"]))
+    result.update(_working_capital_metrics(raw, period))
+    return result
 
 
 # ---------------------------------------------------------------------------

@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] refaktör | Karmaşık Fonksiyonların Bölünmesi (Denetim Bulgu 3)
+
+- **Adım 1 - `financials/metrics.py::_single_period`** (140 satır, CC 41 -> 12 satır, CC 2): ham kalem okuma (`_income_items`, `_balance_items`, `_note_and_cash_flow_items`), türetilmiş metrikler (`_derived_metrics`, `_favok`, `_net_debt`, `_export_ratio`, `_payout_ratio`), oranlar (`_ratio_metrics`), işletme sermayesi (`_working_capital_metrics`) ve ham-çıktı ad eşlemesi (`_RAW_TO_OUTPUT`) olarak ayrıldı. Çıktı değişmedi: `test_metrics_single_period.py` refaktör öncesi koddan alınan 6 senaryolu karakterizasyon testidir (tam veri, boş, kısmi, sıfır payda, enflasyon bayrağı, FAVÖK amortismansız).
+- Not: `test_chat_session_service.py::test_chat_history_dialog_compiles_and_lists_sessions` tek başına koşunca "native style" QML uyarısıyla kırılıyor (tam pakette geçiyor); bu refaktörden bağımsız, sıra bağımlılığı.
+
+---
 ## [2026-10-04] düzeltme | BIGINT Kimlik Atamasında Eşzamanlı Yazıcı Çakışması (Denetim Bulgu 7)
 
 - `before_insert` dinleyicisi (`orm_models.py`) `max(id)` okumadan önce `UPDATE ... WHERE 0` ile SQLite yazma kilidini alıyor. İkinci yazıcı ilki commit edene kadar bekler ve güncel `max(id)` değerini görür.
