@@ -12,49 +12,23 @@ Sorumluluk:
 """
 from __future__ import annotations
 
-import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from decimal import Decimal
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from src.application.services.planning.frontier_simulation import (
-    calculate_efficient_frontier_curve,
-    calculate_rebalance_plan,
-    simulate_monte_carlo,
+from src.domain.models.risk_profile import RiskLabel
+from src.ui_qml.controllers.optimization_chart_html import build_frontier_chart_html, build_weights_chart_html
+from src.ui_qml.controllers.optimization_pipeline import (
+    OptimizationInputError,
+    OptimizationServices,
+    clean_ticker,
+    compute_optimization,
 )
-from src.application.services.planning.optimization_market_data import OptimizationPolicy
-from src.application.services.planning.optimization_service import _build_return_model
-from src.domain.models.risk_profile import PROFILE_INFO, RiskLabel
 
 logger = logging.getLogger(__name__)
-
-_JS_DIR = Path(__file__).resolve().parent.parent / "assets" / "js"
-_CHART_JS: str = ""
-
-
-def _load_embedded_scripts() -> None:
-    global _CHART_JS
-    if not _CHART_JS:
-        chart_file = _JS_DIR / "chart.umd.min.js"
-        if chart_file.exists():
-            try:
-                _CHART_JS = chart_file.read_text(encoding="utf-8")
-            except Exception as e:
-                logger.warning("chart.umd.min.js script okunamadı: %s", e)
-
-
-def _fmt_money(val: float | Decimal | None) -> str:
-    if val is None:
-        return "0,00 ₺"
-    try:
-        return f"{float(val):,.2f} ₺".replace(",", "X").replace(".", ",").replace("X", ".")
-    except Exception:
-        return f"{val} ₺"
 
 
 def _fmt_pct(val: float | None, with_sign: bool = False) -> str:
@@ -110,7 +84,11 @@ class OptimizationController(QObject):
         self._calcFinished.connect(self._on_calc_finished)
         self._calcError.connect(self._on_calc_error)
 
-        # Durum Değişkenleri
+        self._init_state()
+        self._init_risk_profiles()
+        self.refreshPortfolios()
+
+    def _init_state(self) -> None:
         self._portfolio_options: List[Dict[str, str]] = []
         self._selected_portfolio_code: str = "dashboard"
         self._selected_risk_profile: str = RiskLabel.DENGELI
@@ -137,7 +115,7 @@ class OptimizationController(QObject):
         self._suggestions: List[Dict[str, Any]] = []
         self._weights_comparison: List[Dict[str, Any]] = []
 
-        # Risk Profili Seçenekleri
+    def _init_risk_profiles(self) -> None:
         self._risk_profile_options: List[Dict[str, Any]] = [
             {"code": RiskLabel.COK_MUHAFAZAKAR, "label": "Çok Muhafazakar", "maxWeight": 8.0},
             {"code": RiskLabel.MUHAFAZAKAR, "label": "Muhafazakar", "maxWeight": 10.0},
@@ -158,8 +136,6 @@ class OptimizationController(QObject):
                         self._max_single_weight = float(matched["maxWeight"])
             except Exception as e:
                 logger.debug("Risk profili okunamadı: %s", e)
-
-        self.refreshPortfolios()
 
     # ──────────────────────────── QML Properties ────────────────────────────
 
@@ -351,170 +327,22 @@ class OptimizationController(QObject):
         risk_free_rate: float,
     ) -> None:
         try:
-            if not self._opt_service:
-                self._calcError.emit("OptimizationService hazır değil.")
-                return
-
-            policy = OptimizationPolicy(
-                trading_days_per_year=252,
-                risk_free_rate=risk_free_rate,
-                max_single_weight=max_single_weight,
+            services = OptimizationServices(
+                self._opt_service, self._portfolio_service, self._model_portfolio_service, self._lookup
             )
-
-            # 1. Hisseleri ve Pozisyonları Çek
-            positions: Dict[int, Any] = {}
-            total_val: float = 0.0
-
-            if portfolio_code == "dashboard":
-                if not self._portfolio_service:
-                    self._calcError.emit("PortfolioService bulunamadı.")
-                    return
-                current_p = self._portfolio_service.get_current_portfolio()
-                positions = current_p.active_positions
-                if len(positions) < 2:
-                    self._calcError.emit("Optimizasyon için portföyde en az 2 farklı hisse bulunmalıdır.")
-                    return
-                # Toplam piyasa değeri
-                for sid, pos in positions.items():
-                    price = float(pos.average_cost or 1.0)
-                    total_val += pos.total_quantity * price
-
-                opt_result = self._opt_service.optimize_dashboard_portfolio(policy=policy)
-            else:
-                if not self._model_portfolio_service:
-                    self._calcError.emit("ModelPortfolioService bulunamadı.")
-                    return
-                pid = int(portfolio_code)
-                positions = self._model_portfolio_service.get_positions(pid)
-                if len(positions) < 2:
-                    self._calcError.emit("Optimizasyon için model portföyde en az 2 farklı hisse bulunmalıdır.")
-                    return
-                for sid, qty in positions.items():
-                    total_val += qty * 100.0  # Yaklaşık baz değer
-
-                opt_result = self._opt_service.optimize_model_portfolio(pid, policy=policy)
-
-            # 2. Hisse Sembolleri ve İsimlerini Al
-            stock_ids = list(positions.keys())
-            stock_map = self._lookup.get_stocks(stock_ids) if self._lookup else {}
-            tickers = [stock_map[sid].ticker for sid in stock_ids if sid in stock_map]
-            
-            names_map: Dict[str, str] = {}
-            for sid in stock_ids:
-                if sid in stock_map:
-                    stk = stock_map[sid]
-                    raw_tick = stk.ticker
-                    clean_tick = raw_tick.replace(".IS", "").replace(".is", "").strip().upper()
-                    raw_name = getattr(stk, "name", None)
-                    if raw_name:
-                        clean_n = raw_name.replace(".IS", "").replace(".is", "").strip()
-                        display_name = clean_n if clean_n and clean_n.upper() != f"{clean_tick}.IS" else clean_tick
-                    else:
-                        display_name = clean_tick
-                    names_map[raw_tick] = display_name
-                    names_map[clean_tick] = display_name
-                    names_map[f"{clean_tick}.IS"] = display_name
-
-            # 3. Fiyat Geçmişi ve Kovaryans Matrisi
-            price_df = self._opt_service._get_historical_prices(tickers, days=504)
-            mean_returns, cov_matrix = _build_return_model(price_df, trading_days_per_year=252)
-
-            # 4. Monte Carlo Simülasyonu (1.000 Nokta)
-            mc_points = simulate_monte_carlo(
-                mean_returns.values,
-                cov_matrix.values,
-                risk_free_rate=risk_free_rate,
-                num_simulations=1000,
-            )
-
-            # 5. Efficient Frontier Eğrisi (20 Nokta)
-            frontier_curve = calculate_efficient_frontier_curve(
-                mean_returns.values,
-                cov_matrix.values,
-                max_single_weight=max_single_weight,
-                points_count=20,
-            )
-
-            # 6. Rebalance Planı ve Son Fiyatlar
-            last_prices = {}
-            for t in tickers:
-                p = self._opt_service._get_last_price(t)
-                val = float(p) if p else 1.0
-                clean_t = t.replace(".IS", "").replace(".is", "").strip().upper()
-                last_prices[t] = val
-                last_prices[clean_t] = val
-
-            curr_w_map = {s.symbol.replace(".IS", "").replace(".is", "").strip().upper(): s.current_weight for s in opt_result.suggestions}
-            opt_w_map = {s.symbol.replace(".IS", "").replace(".is", "").strip().upper(): s.optimal_weight for s in opt_result.suggestions}
-
-            rebalance_plan = calculate_rebalance_plan(
-                total_portfolio_value=total_val if total_val > 0 else 100000.0,
-                current_weights=curr_w_map,
-                optimal_weights=opt_w_map,
-                last_prices=last_prices,
-                stock_names=names_map,
-            )
-
-            # 7. Payload Hazırla
-            min_vol_metrics = opt_result.min_volatility_metrics or opt_result.optimized_metrics
-            payload = {
-                "opt_result": opt_result,
-                "mc_points": mc_points,
-                "frontier_curve": frontier_curve,
-                "rebalance_plan": rebalance_plan,
-                "min_vol_metrics": min_vol_metrics,
-            }
+            payload = compute_optimization(services, portfolio_code, max_single_weight, risk_free_rate)
             self._calcFinished.emit(payload)
-
+        except OptimizationInputError as exc:
+            self._calcError.emit(str(exc))
         except Exception as exc:
             logger.exception("Optimizasyon hesaplama hatası: %s", exc)
             self._calcError.emit(str(exc))
 
     def _on_calc_finished(self, payload: dict) -> None:
         """Worker tamamlandığında GUI ana thread'inde çalışır."""
-        opt_res = payload["opt_result"]
-        min_vol = payload["min_vol_metrics"]
-        mc_points = payload["mc_points"]
-        frontier_curve = payload["frontier_curve"]
-        rebalance_plan = payload["rebalance_plan"]
-
-        # KPI'lar
-        self._curr_sharpe = float(opt_res.current_metrics.sharpe_ratio)
-        self._curr_return = float(opt_res.current_metrics.expected_return)
-        self._curr_vol = float(opt_res.current_metrics.volatility)
-
-        self._opt_sharpe = float(opt_res.optimized_metrics.sharpe_ratio)
-        self._opt_return = float(opt_res.optimized_metrics.expected_return)
-        self._opt_vol = float(opt_res.optimized_metrics.volatility)
-
-        self._min_vol_vol = float(min_vol.volatility)
-        self._min_vol_return = float(min_vol.expected_return)
-
-        # Tablolar
-        self._suggestions = rebalance_plan
-        self._weights_comparison = [
-            {
-                "symbol": str(item["symbol"]).replace(".IS", "").replace(".is", "").strip().upper(),
-                "currentWeight": item["currentWeight"],
-                "optimalWeight": item["optimalWeight"],
-            }
-            for item in rebalance_plan
-        ]
-
-        # Grafikler HTML Üretimi
-        curr_pt = {"x": round(self._curr_vol * 100.0, 2), "y": round(self._curr_return * 100.0, 2)}
-        opt_pt = {"x": round(self._opt_vol * 100.0, 2), "y": round(self._opt_return * 100.0, 2)}
-        min_vol_pt = {"x": round(self._min_vol_vol * 100.0, 2), "y": round(self._min_vol_return * 100.0, 2)}
-
-        self._chart_html = self._build_frontier_chart_html(
-            mc_points=mc_points,
-            frontier_curve=frontier_curve,
-            curr_pt=curr_pt,
-            opt_pt=opt_pt,
-            min_vol_pt=min_vol_pt,
-        )
-
-        self._weights_chart_html = self._build_weights_chart_html(self._weights_comparison)
+        self._apply_kpis(payload["opt_result"], payload["min_vol_metrics"])
+        self._apply_tables(payload["rebalance_plan"])
+        self._render_charts(payload["mc_points"], payload["frontier_curve"])
 
         self._is_loading = False
         self._has_results = True
@@ -529,290 +357,46 @@ class OptimizationController(QObject):
         self.weightsChartHtmlChanged.emit()
         self.operationResult.emit(True, "Portföy optimizasyonu başarıyla tamamlandı.")
 
+    def _apply_kpis(self, opt_res, min_vol) -> None:
+        self._curr_sharpe = float(opt_res.current_metrics.sharpe_ratio)
+        self._curr_return = float(opt_res.current_metrics.expected_return)
+        self._curr_vol = float(opt_res.current_metrics.volatility)
+
+        self._opt_sharpe = float(opt_res.optimized_metrics.sharpe_ratio)
+        self._opt_return = float(opt_res.optimized_metrics.expected_return)
+        self._opt_vol = float(opt_res.optimized_metrics.volatility)
+
+        self._min_vol_vol = float(min_vol.volatility)
+        self._min_vol_return = float(min_vol.expected_return)
+
+    def _apply_tables(self, rebalance_plan: List[Dict[str, Any]]) -> None:
+        self._suggestions = rebalance_plan
+        self._weights_comparison = [
+            {
+                "symbol": clean_ticker(str(item["symbol"])),
+                "currentWeight": item["currentWeight"],
+                "optimalWeight": item["optimalWeight"],
+            }
+            for item in rebalance_plan
+        ]
+
+    def _render_charts(self, mc_points: List[Dict[str, float]], frontier_curve: List[Dict[str, float]]) -> None:
+        curr_pt = {"x": round(self._curr_vol * 100.0, 2), "y": round(self._curr_return * 100.0, 2)}
+        opt_pt = {"x": round(self._opt_vol * 100.0, 2), "y": round(self._opt_return * 100.0, 2)}
+        min_vol_pt = {"x": round(self._min_vol_vol * 100.0, 2), "y": round(self._min_vol_return * 100.0, 2)}
+
+        self._chart_html = build_frontier_chart_html(
+            mc_points=mc_points,
+            frontier_curve=frontier_curve,
+            curr_pt=curr_pt,
+            opt_pt=opt_pt,
+            min_vol_pt=min_vol_pt,
+        )
+        self._weights_chart_html = build_weights_chart_html(self._weights_comparison)
+
     def _on_calc_error(self, err_msg: str) -> None:
         self._is_loading = False
         self._status_message = err_msg
         self.isLoadingChanged.emit()
         self.statusMessageChanged.emit()
         self.operationResult.emit(False, err_msg)
-
-    # ──────────────────────────── HTML Grafik Üreticileri ────────────────────────────
-
-    def _build_frontier_chart_html(
-        self,
-        mc_points: List[Dict[str, float]],
-        frontier_curve: List[Dict[str, float]],
-        curr_pt: Dict[str, float],
-        opt_pt: Dict[str, float],
-        min_vol_pt: Dict[str, float],
-    ) -> str:
-        """Verimli Sınır (Efficient Frontier) ve Monte Carlo saçılım grafiği HTML5/Chart.js."""
-        _load_embedded_scripts()
-        script_tag = f"<script>{_CHART_JS}</script>" if _CHART_JS else '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
-
-        mc_json = json.dumps(mc_points)
-        frontier_json = json.dumps(frontier_curve)
-
-        return f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-{script_tag}
-<style>
-  body {{ margin: 0; padding: 12px; background: #131722; color: #9db2ce; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }}
-  #chart-container {{ width: 100%; height: calc(100vh - 24px); position: relative; }}
-</style>
-</head>
-<body>
-<div id="chart-container">
-  <canvas id="frontierCanvas"></canvas>
-</div>
-<script>
-const mcData = {mc_json};
-const frontierData = {frontier_json};
-
-const ctx = document.getElementById('frontierCanvas').getContext('2d');
-new Chart(ctx, {{
-  type: 'scatter',
-  data: {{
-    datasets: [
-      {{
-        label: 'Monte Carlo (1.000 Nokta)',
-        data: mcData,
-        backgroundColor: 'rgba(41, 98, 255, 0.25)',
-        borderColor: 'transparent',
-        pointRadius: 2,
-        pointHoverRadius: 4,
-        order: 5
-      }},
-      {{
-        label: 'Verimli Sınır',
-        data: frontierData,
-        type: 'line',
-        borderColor: '#00e676',
-        backgroundColor: 'transparent',
-        borderWidth: 3,
-        pointRadius: 0,
-        tension: 0.35,
-        fill: false,
-        order: 2
-      }},
-      {{
-        label: 'Maksimum Sharpe',
-        data: [{{ x: {opt_pt["x"]}, y: {opt_pt["y"]} }}],
-        backgroundColor: '#00e676',
-        borderColor: '#ffffff',
-        borderWidth: 2,
-        pointRadius: 9,
-        pointHoverRadius: 13,
-        pointStyle: 'circle',
-        order: 1
-      }},
-      {{
-        label: 'Minimum Risk',
-        data: [{{ x: {min_vol_pt["x"]}, y: {min_vol_pt["y"]} }}],
-        backgroundColor: '#00b0ff',
-        borderColor: '#ffffff',
-        borderWidth: 2,
-        pointRadius: 8,
-        pointHoverRadius: 12,
-        pointStyle: 'triangle',
-        order: 1
-      }},
-      {{
-        label: 'Mevcut Portföy',
-        data: [{{ x: {curr_pt["x"]}, y: {curr_pt["y"]} }}],
-        backgroundColor: '#ff9800',
-        borderColor: '#ffffff',
-        borderWidth: 2,
-        pointRadius: 9,
-        pointHoverRadius: 13,
-        pointStyle: 'rectRot',
-        order: 1
-      }}
-    ]
-  }},
-  options: {{
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: {{
-      padding: {{ left: 16, right: 20, top: 10, bottom: 10 }}
-    }},
-    interaction: {{
-      mode: 'nearest',
-      intersect: true
-    }},
-    plugins: {{
-      legend: {{
-        position: 'top',
-        align: 'center',
-        labels: {{
-          color: '#9db2ce',
-          font: {{ family: 'Segoe UI', size: 11 }},
-          usePointStyle: true,
-          boxWidth: 7,
-          padding: 12
-        }}
-      }},
-      tooltip: {{
-        backgroundColor: '#1e222d',
-        titleColor: '#ffffff',
-        bodyColor: '#9db2ce',
-        borderColor: '#2a2e39',
-        borderWidth: 1,
-        padding: 10,
-        callbacks: {{
-          label: function(context) {{
-            const p = context.raw;
-            function fmtPct(val) {{
-              if (val === null || val === undefined || isNaN(val)) return '%0,00';
-              const num = Number(val);
-              const str = Math.abs(num).toFixed(2).replace('.', ',');
-              if (num < 0) return '-%' + str;
-              return '%' + str;
-            }}
-            let str = context.dataset.label + ': ';
-            str += 'Risk: ' + fmtPct(p.x) + ' | Getiri: ' + fmtPct(p.y);
-            if (p.sharpe !== undefined) {{
-              str += ' | Sharpe: ' + Number(p.sharpe).toFixed(2).replace('.', ',');
-            }}
-            return str;
-          }}
-        }}
-      }}
-    }},
-    scales: {{
-      x: {{
-        title: {{
-          display: true,
-          text: 'Yıllık Volatilite (Oynaklık / Risk %)',
-          color: '#9db2ce',
-          font: {{ size: 12, weight: 'bold' }}
-        }},
-        grid: {{ color: '#1e222d' }},
-        ticks: {{ color: '#9db2ce' }}
-      }},
-      y: {{
-        title: {{
-          display: true,
-          text: 'Beklenen Yıllık Getiri (%)',
-          color: '#9db2ce',
-          font: {{ size: 12, weight: 'bold' }}
-        }},
-        grid: {{ color: '#1e222d' }},
-        ticks: {{ color: '#9db2ce' }}
-      }}
-    }}
-  }}
-}});
-</script>
-</body>
-</html>"""
-
-    def _build_weights_chart_html(self, comparison: List[Dict[str, Any]]) -> str:
-        """Mevcut vs Optimize Ağırlık Karşılaştırması Çubuk Grafiği HTML5/Chart.js."""
-        _load_embedded_scripts()
-        script_tag = f"<script>{_CHART_JS}</script>" if _CHART_JS else '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
-
-        labels = [item["symbol"] for item in comparison]
-        curr_weights = [item["currentWeight"] for item in comparison]
-        opt_weights = [item["optimalWeight"] for item in comparison]
-
-        labels_json = json.dumps(labels)
-        curr_json = json.dumps(curr_weights)
-        opt_json = json.dumps(opt_weights)
-
-        return f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-{script_tag}
-<style>
-  body {{ margin: 0; padding: 12px; background: #131722; color: #9db2ce; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }}
-  #weights-container {{ width: 100%; height: calc(100vh - 24px); position: relative; }}
-</style>
-</head>
-<body>
-<div id="weights-container">
-  <canvas id="weightsCanvas"></canvas>
-</div>
-<script>
-const ctx = document.getElementById('weightsCanvas').getContext('2d');
-new Chart(ctx, {{
-  type: 'bar',
-  data: {{
-    labels: {labels_json},
-    datasets: [
-      {{
-        label: 'Mevcut Ağırlık',
-        data: {curr_json},
-        backgroundColor: '#ff9800',
-        borderRadius: 4,
-        barPercentage: 0.75,
-        categoryPercentage: 0.65
-      }},
-      {{
-        label: 'Önerilen Optimal Ağırlık',
-        data: {opt_json},
-        backgroundColor: '#00e676',
-        borderRadius: 4,
-        barPercentage: 0.75,
-        categoryPercentage: 0.65
-      }}
-    ]
-  }},
-  options: {{
-    responsive: true,
-    maintainAspectRatio: false,
-    layout: {{
-      padding: {{ left: 16, right: 20, top: 10, bottom: 10 }}
-    }},
-    plugins: {{
-      legend: {{
-        position: 'top',
-        align: 'center',
-        labels: {{
-          color: '#9db2ce',
-          font: {{ family: 'Segoe UI', size: 11 }},
-          usePointStyle: true,
-          boxWidth: 8,
-          padding: 12
-        }}
-      }},
-      tooltip: {{
-        backgroundColor: '#1e222d',
-        titleColor: '#ffffff',
-        bodyColor: '#9db2ce',
-        borderColor: '#2a2e39',
-        borderWidth: 1,
-        padding: 10,
-        callbacks: {{
-          label: function(context) {{
-            const v = Number(context.raw);
-            const str = v.toFixed(2).replace('.', ',');
-            return context.dataset.label + ': %' + str;
-          }}
-        }}
-      }}
-    }},
-    scales: {{
-      x: {{
-        grid: {{ color: '#1e222d' }},
-        ticks: {{ color: '#9db2ce' }}
-      }},
-      y: {{
-        title: {{
-          display: true,
-          text: 'Portföy Ağırlığı (%)',
-          color: '#9db2ce',
-          font: {{ size: 12, weight: 'bold' }}
-        }},
-        grid: {{ color: '#1e222d' }},
-        ticks: {{ color: '#9db2ce' }}
-      }}
-    }}
-  }}
-}});
-</script>
-</body>
-</html>"""

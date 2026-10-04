@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] refaktör | OptimizationController Ayrıştırması, 3. Adım (Denetim Bulgu 2)
+
+- **Karakterizasyon:** Refaktör öncesi kod sahte servislerle 33 senaryoda çalıştırıldı: açılış ve kayıtlı risk profili durumları, ana/model portföy hesabı, tüm hata dalları (servis yok, 2'den az pozisyon, bozuk portföy kodu, arama servisi yok), `_on_calc_finished` sonrası tüm QML özellikleri, öneri tabloları, iki grafik HTML'inin SHA-256 özetleri ve slot davranışları (Monte Carlo için sabit tohum). Refaktör sonrası bayt düzeyinde özdeş.
+- **Yeni `optimization_pipeline.py`:** `compute_optimization` (pozisyonlar, Markowitz sonucu, Monte Carlo, verimli sınır, rebalance planı), `build_names_map`, `clean_ticker`, `OptimizationServices`. Girdi sorunları (eksik servis, yetersiz pozisyon) `OptimizationInputError` ile bildirilir; denetleyici bunu kullanıcı mesajına, diğer hataları günlüklenen hataya çevirir (önceki davranış korundu).
+- **Yeni `optimization_chart_html.py`:** `build_frontier_chart_html`, `build_weights_chart_html`; HTML şablonları fonksiyon gövdesinden modül sabitine alındı, Chart.js yükleyici buraya taşındı.
+- **`OptimizationController`:** 818 -> 402 satır; `_async_compute_optimization` (102 satır, CC 25) ~10 satıra indi, `_on_calc_finished` `_apply_kpis` / `_apply_tables` / `_render_charts` olarak bölündü, `__init__` durum ve risk profili gruplarına ayrıldı. Kullanılmayan `_fmt_money` silindi. QML yüzeyi değişmedi.
+- **Ölçüm:** etkin satır 628 -> 279: **300 satır eşiğinin altına indi** (sınıf ihlali artık yalnızca metot sayısı: 39 > 20). Eşik dışı fonksiyon 81 -> 77, CI tavanı 77.
+- **Testler:** Yeni `tests/ui_qml/test_optimization_pipeline.py` (10 test); mevcut testler değişmeden geçti.
+
+---
 ## [2026-10-04] düzeltme | DuPont Yedek ROE Hesabı ve Saate Bağlı Test
 
 - `stock_360_calc.compute_dupont_data` yedek yolunda (TTM DuPont yokken bilanço kalemlerinden türetme) ROE `marj * devir * kaldıraç / 100` hesaplanıyordu; marj zaten yüzde olduğundan sonuç 100 kat küçüktü (marj %10, devir 1, kaldıraç 4 -> `%0.40`). `/ 100` kaldırıldı (`%40.00`); regresyon testi `test_dupont_derived_from_statements_when_ttm_missing` ROE'yi doğrular. Önceki girişteki "düzeltilmedi" notu bu girişle kapanmıştır.

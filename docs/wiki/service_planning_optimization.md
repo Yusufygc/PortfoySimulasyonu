@@ -40,6 +40,8 @@ Arayüz: Finansal Planlama sayfası (`PlanningController`): Bütçe, Hedefler, D
 
 Kaynak seçimi (ana portföy veya model portföy), risk profili seçici (Çok Muhafazakar, Muhafazakar, Dengeli, Büyüme, Agresif, Manuel), tek hisse sınırı kaydırıcısı, risksiz faiz. Hesap `ThreadPoolExecutor` ile arka planda çalışır. Üç sekme: Verimli Sınır (Monte Carlo bulutu, sınır eğrisi; mevcut, maksimum Sharpe ve minimum risk noktaları), Ağırlık Dağılımı, Yeniden Dengeleme. Kaydırıcı kayıtlı profili değiştirmez; yalnızca bu görünüm için geçici bir etiket (`risk_label_override`) üretir. Model portföy optimizasyonu canlı API çağırmaz (`price_lookup_func` verilmez).
 
+Kod yapısı: `optimization_controller.py` QML yüzeyi, durum ve sinyal akışını; `optimization_pipeline.py` arka plan hesap hattını (pozisyon yükleme, Markowitz, Monte Carlo, verimli sınır, rebalance planı; girdi sorunları `OptimizationInputError`); `optimization_chart_html.py` Chart.js grafik HTML'lerini üretir.
+
 ## 4. Risk Profili (`RiskProfileService`)
 
 - **Anket:** 4 bölüm (Finansal Durum, Yatırım Hedefi, Risk Toleransı, Bilgi ve Tecrübe) ve 4 boyut: Risk Kapasitesi (%30), Risk Toleransı (%30), Bilgi ve Tecrübe (%20), Hedef ve Likidite (%20). Her seçeneğin puanı vardır; boyut puanları ağırlıklı toplanır (0-100).
