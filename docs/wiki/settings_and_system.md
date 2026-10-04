@@ -24,7 +24,7 @@ Veritabanı istatistiği, bütünlük (`PRAGMA integrity_check` ve DuckDB okuma 
 | İş | Tetik | Denetleyici / servis |
 |---|---|---|
 | **DuckDB artımlı senkron** (catch-up) | Açılıştan 5 sn sonra; ayrıca hafta içi **18:15**'te ve elle | `MarketSyncController` -> `MarketDataSyncService.sync_daily_delta`: DuckDB'deki son bar ile son tamamlanmış işlem günü arasındaki eksik günleri yalnızca eksik barlar için indirir; portföy hisselerinin yeni barlarını SQLite'a taşır (`reconcile_sqlite_from_duckdb`); portföy kurumsal aksiyonlarını DuckDB'ye aktarır ve onaylı olayları ham veriye karşı doğrular (çift düzeltme koruması). Bitince `dataSynced` ile Dashboard ve Model Portföy yenilenir; başlıkta senkron rozeti görünür. |
-| **Canlı fiyat yenileme** | Açılıştan 6 sn sonra, sonra 5/15/30/60 dk aralıkla (varsayılan açık, 15 dk) | `SystemController` -> `LivePriceRefreshService.refresh_active_prices`; yalnızca BIST seansı açıkken; `latest_prices`'a yazar ve `prices_updated` yayınlar. |
+| **Canlı fiyat yenileme** | Açılıştan 6 sn sonra, sonra 5/15/30/60 dk aralıkla (varsayılan açık, 15 dk) | `SystemController` -> `LivePriceRefreshService.refresh_active_prices`; yalnızca BIST seansı açıkken (10:00-18:10); portföy pozisyonları ve izleme listesi hisseleri; `latest_prices`'a yazar ve `prices_updated` yayınlar. |
 | **Açılış bakım işleri** | Açılıştan 8 sn sonra, tek iş parçacığında sırayla | `StartupJobsController` |
 
 `StartupJobsController` işleri (gün içinde zaten çalışanlar atlanır; sonuç ve işaretler `QSettings`'te):

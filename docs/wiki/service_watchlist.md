@@ -21,13 +21,13 @@ Liste CRUD (`get_all_watchlists`, `create_watchlist`, `update_watchlist`, `delet
 
 - **Listeler:** sol panelde liste kartları, sürükle-bırak sıralama, oluşturma/düzenleme/silme (`ManageWatchlistModal`). Başlıkta yükselen/düşen hisse sayısı.
 - **Hisse ekleme** (`AddStockModal`): kod doğrulanır. SQLite'ta kayıtlı veya DuckDB kataloğunda (tüm BIST) bilinen kod doğrudan eklenir; bilinmeyen kod arka planda çevrimiçi doğrulanır (`StockLookupService.verify_ticker_online`); geçersizse "Geçersiz hisse kodu: X" gösterilir ve kayıt oluşmaz.
-- **Tablo** (`WatchlistTableModel`): son fiyat ve günlük değişim, son ~10 kapanışlık mini sparkline (`MiniSparkline`, Canvas), hisse notu (`EditStockNoteModal`). Fiyat ve seriler `StockLookupService` toplu okumasıyla gelir (DuckDB/SQLite), ağ çağrısı yoktur.
+- **Tablo** (`WatchlistTableModel`): son fiyat ve günlük değişim, son ~10 kapanışlık mini sparkline (`MiniSparkline`, Canvas), hisse notu (`EditStockNoteModal`). Fiyat ve seriler `StockLookupService` toplu okumasıyla gelir (DuckDB/SQLite); canlı fiyat önbelleği (`latest_prices`) `watchlist_pricing.py` ile günlük barların üzerine bindirilir (denetleyicinin kendisi ağ çağrısı yapmaz; canlı fiyatı `LivePriceRefreshService` yazar). Başlık ve satırlar aynı sabit sütun genişliklerini kullanır.
 - **Fiyat yenileme:** `refreshPrices` elle veya Ayarlar > Sistem canlı yenilemesi sonrası çalışır. Sistem sıfırlanınca listeler yeniden yüklenir.
 - Satırdan **hızlı işlem** (`QuickTradeModal`) ve hisse detayı açılabilir.
 
 ## 4. Sınırlar
 
-Hedef fiyat takibi ve hedef fiyata ulaşınca bildirim yoktur. Watchlist hisseleri fiyat sağlığı kapsamına girmez (varsayılan kapsam açık pozisyonlardır; bkz. [service_portfolio_and_market.md](service_portfolio_and_market.md)); izleme listesi hisselerinin fiyatı DuckDB'deki tüm BIST verisinden gelir.
+Hedef fiyat takibi ve hedef fiyata ulaşınca bildirim yoktur. Watchlist hisseleri fiyat sağlığı (eksik gün tamamlama) kapsamına girmez ama canlı fiyat yenilemesine dahildir (varsayılan sağlık kapsamı açık pozisyonlardır; bkz. [service_portfolio_and_market.md](service_portfolio_and_market.md)); izleme listesi hisselerinin fiyatı DuckDB'deki tüm BIST verisinden gelir.
 
 ## 5. Testler
 

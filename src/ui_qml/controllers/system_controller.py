@@ -10,12 +10,13 @@ Ağır işler arka plan thread'inde çalışır, sonuçlar Qt sinyalleriyle ana 
 from __future__ import annotations
 
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Optional
 
 from PySide6.QtCore import Property, QObject, QSettings, QTimer, Signal, Slot
-from src.domain.market_clock import market_today
+from src.domain.market_clock import market_now, market_today
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,8 @@ DEFAULT_INTERVAL_MINUTES = 15
 INTERVAL_OPTIONS = (5, 15, 30, 60)
 _STARTUP_DELAY_MS = 6000
 _ERROR_TOAST_THRESHOLD = 3
+# Bir yenileme bu süreden uzun sürerse takılmış sayılır ve yeni yürütücüyle yeniden başlatılır
+_REFRESH_STALL_SECONDS = 300.0
 
 
 def _to_bool(value: Any, default: bool) -> bool:
@@ -66,6 +69,8 @@ class SystemController(QObject):
         self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._is_refreshing = False
+        self._refresh_started = 0.0
+        self._refresh_generation = 0
         self._is_resetting = False
         self._consecutive_errors = 0
         self._timer = QTimer(self)
@@ -147,7 +152,8 @@ class SystemController(QObject):
         if session is None:
             return True
         try:
-            return bool(session.status_for(market_today()).is_open)
+            # Saat verilmezse yalnızca gün kontrol edilir (gece de açık görünür); canlı yenileme seans saatinde çalışmalı
+            return bool(session.status_for(market_today(), market_now().time()).is_open)
         except Exception as exc:
             logger.warning("BIST seans kontrolü başarısız: %s", exc)
             return True
@@ -156,19 +162,37 @@ class SystemController(QObject):
     def refreshNow(self) -> None:
         """Seans açıksa aktif pozisyonların canlı fiyatlarını yeniler (zamanlayıcı ve elle çağrı)."""
         service = self._svc("live_price_refresh_service")
-        if service is None or self._is_refreshing or not self.liveRefreshEnabled or not self._session_open():
+        if service is None or not self.liveRefreshEnabled:
+            return
+        self._release_stalled_refresh()
+        if self._is_refreshing or not self._session_open():
             return
         self._is_refreshing = True
+        self._refresh_started = time.monotonic()
+        generation = self._refresh_generation
         self.busyChanged.emit()
 
         def work() -> None:
             try:
-                self._refreshFinished.emit(service.refresh_active_prices(), "")
+                result, error = service.refresh_active_prices(), ""
             except Exception as exc:
                 logger.warning("Otomatik fiyat yenileme başarısız: %s", exc)
-                self._refreshFinished.emit(None, str(exc))
+                result, error = None, str(exc)
+            if generation == self._refresh_generation:  # takılıp bırakılmış eski çalışanın sonucu yok sayılır
+                self._refreshFinished.emit(result, error)
 
         self._executor.submit(work)
+
+    def _release_stalled_refresh(self) -> None:
+        """Ağ çağrısında asılı kalan yenilemeyi bırakır; tek işçili yürütücü kilitli kalmasın diye yenisi açılır."""
+        if not self._is_refreshing or time.monotonic() - self._refresh_started < _REFRESH_STALL_SECONDS:
+            return
+        logger.warning("Canlı fiyat yenileme %.0f sn'den uzun sürdü; yeniden başlatılıyor.", _REFRESH_STALL_SECONDS)
+        self._refresh_generation += 1
+        self._executor.shutdown(wait=False, cancel_futures=True)
+        self._executor = ThreadPoolExecutor(max_workers=1)
+        self._is_refreshing = False
+        self.busyChanged.emit()
 
     def _on_refresh_finished(self, result: Any, error: str) -> None:
         self._is_refreshing = False

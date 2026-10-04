@@ -290,6 +290,15 @@ def _build_prereq_services(repositories: RepositorySet, market_clients: MarketCl
     return corp_action, health_service, market_action_service
 
 
+def _watchlist_stock_ids(watchlist_repo) -> set:
+    """Tüm izleme listelerindeki hisse kimlikleri (canlı fiyat yenilemesine dahil edilir)."""
+    return {
+        item.stock_id
+        for watchlist in watchlist_repo.get_all_watchlists()
+        for item in watchlist_repo.get_items_by_watchlist_id(watchlist.id)
+    }
+
+
 def _build_market_services(repositories, market_clients, price_data_health_service, model_portfolio_service) -> dict:
     from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
     return {
@@ -298,6 +307,7 @@ def _build_market_services(repositories, market_clients, price_data_health_servi
             price_lookup_service=market_clients.price_lookup_service,
             price_data_health_service=price_data_health_service,
             latest_price_repo=repositories.latest_price_repo,
+            extra_stock_ids_provider=lambda: _watchlist_stock_ids(repositories.watchlist_repo),
         ),
         "analysis_service": AnalysisService(
             deps=AnalysisServiceDeps(

@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-05] düzeltme | Canlı Fiyat Yenileme Donması ve İzleme Listesi Arayüzü
+
+- **Sorun 1 - izleme listesi fiyatı donuk:** `LivePriceRefreshService` yalnızca ana/model portföy pozisyonlarını yeniliyordu; izleme listesi hisseleri hiç yenilenmiyordu. Ayrıca `WatchlistController._load_stocks` yalnızca günlük barlardan (gün sonunda yazılır) fiyat/değişim hesaplıyor, `latest_prices` önbelleğini hiç okumuyordu: seans içinde fiyat bir önceki kapanışta kalıyordu.
+- **Düzeltme:** `LivePriceRefreshService` ek hisse kaynağı alır (`extra_stock_ids_provider`; container izleme listesi hisselerini verir) ve tur başına zaman bütçesi (120 sn, `time_budget_seconds`) uygular. `StockLookupService.get_latest_prices` eklendi. Yeni `watchlist_pricing.py` canlı fiyatı günlük barların üzerine bindirir: canlı fiyat son bardan eskiyse (ör. Ağustos tarihli kalıntı kayıt) veya `source != intraday` ise yok sayılır; yeni gün canlı fiyatı son kapanışla aynıysa (hafta sonu, seans öncesi) bindirilmez, çünkü günlük değişim %0 görünürdü. `market_clock.to_market_date` eklendi.
+- **Sorun 2 - yenileme takılabiliyordu:** `SystemController.refreshNow` bir yenileme ağ çağrısında asılı kalırsa `_is_refreshing` hiç temizlenmiyor ve tek işçili yürütücü kilitleniyordu; sonraki zamanlayıcı turları sessizce atlanıyordu (donma). 300 sn'yi aşan yenileme artık takılmış sayılır, yeni yürütücüyle yeniden başlatılır; eski çalışanın geç sonucu nesil sayacıyla yok sayılır.
+- **Sorun 3 - gece de çalışıyordu:** Seans kontrolü (`_session_open`) saati vermeden `status_for` çağırdığı için işlem günü olan her günün 00:00-24:00'ı "açık" sayılıyordu (belgede "yalnızca seans açıkken" yazıyordu). Artık `market_now().time()` verilir (BIST 10:00-18:10).
+- **Arayüz (`WatchlistView.qml`):** soldaki liste satırında liste adı/açıklama metni sabit 150 px genişlikteydi ve hisse adedi rozetinin üstüne biniyordu; metin artık kalan genişliğe uyar, rozet ve düzenle/sil ikonları sabit yer kaplar (hover'da yeniden akış yok). Tabloda başlık ve satırlar tek yerde tanımlı sabit sütun genişliklerini (`min=max=preferred`) paylaşır, Gün Aralığı sütunu satırlar arasında kaymaz; yazılar büyütüldü (şirket adı/aralık değerleri `fontSm`/`fontXs` ve `textSecondary`, notlar `fontSm` ve `textPrimary`, 2 satıra kadar sarılır), satır yüksekliği 54.
+- **Test:** `test_watchlist_live_pricing.py` (13 test). `test_stock_360_overview_characterization.py` gün değiştiğinde kırılıyordu (yedek veri `date.today()` taşıyor); bugünün tarihi yer tutucuya çevrilerek günden bağımsız hale getirildi (zaman bağımlı test kuralı).
+- Doğrulanmadı: gerçek `yfinance` ağıyla izleme listesi yenilemesi ve ekran etkileşimi (yalnızca ofscreen render ve gerçek verinin kopyası ile okuma denendi).
+
+---
 ## [2026-10-04] karar | Kural Dosyaları Takibi (.gitignore Çelişkisi Giderildi)
 
 - `CLAUDE.md` ve `RULES.md` hem `.gitignore`'da hem git'te izleniyordu (ignore etkisizdi) ve `ARCHITECTURE_GATES.md` ajanın bu dosyaları commit'lememesini ignore listesine dayandırıyordu; sonuç: kural değişiklikleri commit'siz kalıyordu. Karar (kullanıcı): kural dosyaları izlenir. `.gitignore`'dan iki satır kaldırıldı; `ARCHITECTURE_GATES.md` §3.4 ve `GOVERNANCE.md` §2.6 güncellendi (kural dosyaları normal commit kurallarıyla commit'lenir). `.env`, `data/`, `logs/`, `backups/` hâlâ ignore'dadır ve commit'lenmez.

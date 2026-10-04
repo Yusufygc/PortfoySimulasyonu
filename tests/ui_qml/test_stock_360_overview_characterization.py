@@ -12,6 +12,10 @@ import pytest
 from src.ui_qml.controllers.stock_360_controller import Stock360Controller
 
 GOLDEN_PATH = Path(__file__).parent / "golden" / "stock_360_overview_golden.json"
+# Yedek veriler bugünün tarihini taşır (`date.today()`); golden 04.10.2026'da üretildi. Bugünün tarihi yer tutucuya çevrilir,
+# böylece test günden bağımsızdır ama gerçek veriden gelen tarihler (ör. 02.10.2026) hâlâ karşılaştırılır.
+GOLDEN_DAY = "04.10.2026"
+TODAY_PLACEHOLDER = "<BUGUN>"
 
 OVERVIEW = SimpleNamespace(
     last_price=312.456, last_price_date=date(2026, 10, 2), daily_change_pct=2.345,
@@ -103,7 +107,9 @@ def run_scenario(name: str) -> dict:
 
     controller._load_local_overview_and_technical(ticker)
 
-    state = {k: v for k, v in vars(controller).items() if isinstance(v, (str, int, float, bool, type(None)))}
+    today = date.today().strftime("%d.%m.%Y")
+    state = {k: (TODAY_PLACEHOLDER if v == today else v) for k, v in vars(controller).items()
+             if isinstance(v, (str, int, float, bool, type(None)))}
     return {"state": state, "overview_changed_emits": len(emitted)}
 
 
@@ -111,4 +117,5 @@ def run_scenario(name: str) -> dict:
 def test_local_overview_and_technical_is_unchanged(name):
     golden = json.loads(GOLDEN_PATH.read_text(encoding="utf-8"))
 
-    assert json.loads(json.dumps(run_scenario(name))) == golden[name]
+    expected = {**golden[name], "state": {k: (TODAY_PLACEHOLDER if v == GOLDEN_DAY else v) for k, v in golden[name]["state"].items()}}
+    assert json.loads(json.dumps(run_scenario(name))) == expected

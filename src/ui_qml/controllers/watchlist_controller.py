@@ -11,7 +11,9 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
+from src.domain.market_clock import to_market_date
 from src.domain.ticker import clean_ticker
+from src.ui_qml.controllers.watchlist_pricing import DEFAULT_PRICING, price_row
 from src.ui_qml.models.watchlist_table_model import WatchlistTableModel
 
 logger = logging.getLogger(__name__)
@@ -216,6 +218,7 @@ class WatchlistController(QObject):
 
             # N+1 Önleme: Tüm hisselerin fiyat serilerini tek toplu sorguyla çek
             bulk_price_map: Dict[int, Any] = {}
+            live_prices: Dict[int, Any] = {}
             if lookup is not None:
                 valid_sids = [
                     (it.get("stock").id if it.get("stock") else (it.get("item").stock_id if it.get("item") else 0))
@@ -224,6 +227,9 @@ class WatchlistController(QObject):
                 valid_sids = [sid for sid in valid_sids if sid > 0]
                 if valid_sids:
                     bulk_price_map = lookup.get_price_series_bulk(valid_sids, start_date, end_date)
+                    # Günlük barlar gün sonunda yazılır; seans içi fiyat canlı fiyat önbelleğinden bindirilir
+                    fetched = lookup.get_latest_prices(valid_sids)
+                    live_prices = fetched if isinstance(fetched, dict) else {}
 
             for item_dict in raw_stocks:
                 item = item_dict.get("item")
@@ -237,42 +243,21 @@ class WatchlistController(QObject):
                 # Fiyat ve geçmiş seri çözümlemesi (O(1) toplu map erişimi)
                 hist_bars = bulk_price_map.get(stock_id, [])
 
-                if hist_bars:
-                    last_bar = hist_bars[-1]
-                    price_val = float(last_bar.close_price)
-                    prev_close = float(hist_bars[-2].close_price) if len(hist_bars) > 1 else price_val
-                    daily_diff = ((price_val - prev_close) / prev_close * 100) if prev_close > 0 else 0.0
-
-                    low_val = float(last_bar.low_price) if getattr(last_bar, "low_price", None) else price_val * 0.985
-                    high_val = float(last_bar.high_price) if getattr(last_bar, "high_price", None) else price_val * 1.015
-                    day_range_span = max(0.01, high_val - low_val)
-                    day_range_pct = max(0.0, min(1.0, (price_val - low_val) / day_range_span))
-
-                    vol_raw = getattr(last_bar, "volume", None)
-                    vol_text = f"{float(vol_raw)/1e6:.1f}M" if vol_raw else "-"
-
-                    sparkline_pts = [float(b.close_price) for b in hist_bars[-10:]]
-                else:
-                    # Fiyat yoksa varsayılan
-                    price_val = 100.0
-                    daily_diff = 0.0
-                    low_val = 98.0
-                    high_val = 102.0
-                    day_range_pct = 0.5
-                    vol_text = "-"
-                    sparkline_pts = [100.0, 100.0]
+                live = live_prices.get(stock_id)
+                live_date = to_market_date(live.as_of) if live is not None else None
+                pricing = price_row(hist_bars, live, live_date) or DEFAULT_PRICING
 
                 stock_data_list.append({
                     "ticker": ticker,
                     "cleanTicker": ticker.replace(".IS", ""),
                     "companyName": name if name and name != ticker else ticker.replace(".IS", ""),
-                    "priceRaw": price_val,
-                    "dailyDiffRaw": daily_diff,
-                    "dayLow": low_val,
-                    "dayHigh": high_val,
-                    "dayRangePct": day_range_pct,
-                    "volume": vol_text,
-                    "sparkline": sparkline_pts,
+                    "priceRaw": pricing.price,
+                    "dailyDiffRaw": pricing.daily_diff_pct,
+                    "dayLow": pricing.day_low,
+                    "dayHigh": pricing.day_high,
+                    "dayRangePct": pricing.day_range_pct,
+                    "volume": pricing.volume_text,
+                    "sparkline": pricing.sparkline,
                     "notes": notes or "",
                     "stockId": stock_id,
                     "itemId": item_id,

@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Sequence
 
 from src.domain.models.daily_price import DailyPrice
+from src.domain.models.latest_price import LatestPrice
 from src.domain.models.market_bar import MarketBar
 from src.domain.models.stock import Stock
 from src.domain.ticker import clean_ticker
@@ -135,6 +136,17 @@ class StockLookupService:
             return dict(self._latest_price_repo.get_latest_price_map(ids))
         except Exception as exc:
             logger.debug("Canlı fiyat haritası alınamadı: %s", exc)
+            return {}
+
+    def get_latest_prices(self, stock_ids: Sequence[int]) -> Dict[int, LatestPrice]:
+        """Canlı fiyat önbelleği kayıtları (fiyat, zaman damgası, kaynak); okunamazsa boş."""
+        ids = [sid for sid in dict.fromkeys(stock_ids) if sid is not None]
+        if not ids:
+            return {}
+        try:
+            return dict(self._latest_price_repo.get_latest_prices(ids))
+        except Exception as exc:
+            logger.debug("Canlı fiyat kayıtları alınamadı: %s", exc)
             return {}
 
     # --- DuckDB piyasa geçmişi (tüm BIST, düzeltilmiş fiyatlar) ---
