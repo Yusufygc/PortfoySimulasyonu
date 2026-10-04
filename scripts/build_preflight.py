@@ -112,6 +112,22 @@ def _dist_env_guard(root: Path) -> CheckResult:
     )
 
 
+def _bundled_data_guard(root: Path) -> CheckResult:
+    """Gerçek `data/` klasörü (kişisel veritabanları) derleme paketine gömülmemeli."""
+    path = root / "build_nuitka.bat"
+    if not path.exists():
+        return CheckResult("bundled data guard", False, "build_nuitka.bat missing")
+    bundled = any(
+        "--include-data-dir=data" in line and not line.lstrip().upper().startswith("REM")
+        for line in path.read_text(encoding="utf-8").splitlines()
+    )
+    return CheckResult(
+        "bundled data guard",
+        not bundled,
+        "data/ is not bundled" if not bundled else "build_nuitka.bat must not bundle the data/ directory",
+    )
+
+
 def run_checks(
     root: Path = ROOT,
     python_executable: str = sys.executable,
@@ -127,6 +143,7 @@ def run_checks(
         _nuitka_requirement(root),
         _pytest_ini_markers(root),
         _dist_env_guard(root),
+        _bundled_data_guard(root),
     ]
     if include_runtime_imports:
         checks.append(_nuitka_import(python_executable))

@@ -5,6 +5,19 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | Derlemeden Gerçek `data/` Klasörünün Çıkarılması (Denetim Bulgu 1)
+
+- `build_nuitka.bat` artık `--include-data-dir=data=data` kullanmıyor; kişisel `portfolio.db` ve DuckDB `.exe`'ye girmez.
+- `scripts/build_preflight.py` yeni `bundled data guard` denetimi ekledi (REM satırları yok sayılır); `test_production_guards.py` içinde iki test.
+- `project_build_and_deployment.md` güncellendi. Açık nokta: `onefile` derlemede `app_root()` (`sys.executable` dizini) gerçek derlemeyle doğrulanmadı.
+
+---
+## [2026-10-04] inceleme | Kapsamlı Sistem Denetim Raporu
+
+- **Eklenen:** `system_audit_report_2026-10-04.md` (V2 denetim şablonu ve AI geliştirme metodolojisine göre). 16 bulgu: kritik yok; öne çıkanlar `build_nuitka.bat` gerçek `data/` klasörünü `.exe`'ye gömüyor, 14 denetleyici sınıfı ve CC>40 fonksiyonlar, 18 sessiz `except`, sürümsüz şema göçü, AI yerel motorunda `"al"/"sat"` alt dize eşleşmesi.
+- **Durum:** Bulgular sırayla uygulanıyor (1-7); biten bulgu ayrı `düzeltme` girişiyle kaydedilir.
+
+---
 ## [2026-10-04] temizlik | Kullanılmayan Keşif Betiklerinin Silinmesi
 
 - **Silinenler:** `scripts/bencmarkVeri.py`, `tcmbApi.py`, `tcmbFaizApi.py`, `inspect_db.py`, `show_violations.py` ve `scripts/finansal_lab/` (prototipler ve üretilen örnek veri dosyaları). Hiçbiri kod, test, derleme veya CI tarafından çağrılmıyordu.

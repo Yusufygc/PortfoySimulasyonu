@@ -9,18 +9,18 @@ PyInstaller yerine **Nuitka** kullanılır (Python'u C'ye çevirip derler; perfo
 1. `venv` veya `.venv` içindeki Python'u (yoksa sistem Python'u) seçer.
 2. `pip install -r requirements.txt -r requirements-build.txt` (`nuitka==2.7.14` pinli).
 3. `scripts\build_preflight.py` ile yayın öncesi kontrolleri çalıştırır; başarısızsa durur.
-4. Nuitka'yı çalıştırır: `--standalone --onefile --enable-plugin=pyside6 --include-data-dir=src/ui_qml=src/ui_qml --include-data-dir=data=data --disable-console`, `--include-package=yfinance/pandas/openpyxl/sqlalchemy`, simge `icons/icon.ico`, çıktı `dist/`, giriş `app.py`. Test ve pytest paketleri dışarıda bırakılır.
+4. Nuitka'yı çalıştırır: `--standalone --onefile --enable-plugin=pyside6 --include-data-dir=src/ui_qml=src/ui_qml --disable-console`, `--include-package=yfinance/pandas/openpyxl/sqlalchemy`, simge `icons/icon.ico`, çıktı `dist/`, giriş `app.py`. Test ve pytest paketleri dışarıda bırakılır.
 5. `dist\.env` varsa hata verip çıkar.
 
 Dikkat:
 - `src/ui_qml` dizini QML dosyaları, SVG ikonlar, JS kütüphaneleri ve HTML şablonlarıyla pakete dahildir.
-- `--include-data-dir=data=data` yerel `data/` klasörünü (gerçek `portfolio.db`, DuckDB ve yedekler dahil) pakete gömer. Başkasına dağıtılacak paketten önce `data/` içeriğini gözden geçirin; kişisel veri ve ~150 MB DuckDB dosyası pakete girer.
+- `data/` klasörü pakete **gömülmez** (2026-10-04'e kadar gömülüyordu; gerçek `portfolio.db` ve ~150 MB DuckDB kişisel veri taşıdığından kaldırıldı). Uygulama `.exe` dizininde boş `data/` oluşturur; piyasa verisi açılış senkronuyla veya `scripts/sync_bist_to_duckdb.py` ile dolar. **Doğrulanmadı:** `onefile` paketinde `sys.executable` dizininin kalıcı olup olmadığı (`app_root()`) gerçek bir derlemeyle denenmeli.
 - Bilimsel kütüphaneler (SciPy, pandas, scikit-learn) ve WebEngine paketlemeyi ağırlaştırır; derleme uzun sürebilir.
 - Gerçek `.env` pakete **gömülmez**. Paketlenen uygulama, çalıştığı dizindeki `.env` dosyasını okur (`settings_loader`, `sys.frozen` ise `sys.executable` dizini); `.env` yanına konulmalıdır.
 
 ## 2. Release Preflight (`scripts/build_preflight.py`)
 
-Denetler: Python >= 3.10; `requirements.txt` ve `requirements-build.txt` aktif satırlarının `==` ile pinli olması; `nuitka==` varlığı; `icons/icon.ico`, `.env.example`, `build_nuitka.bat`, `pytest.ini` dosyalarının varlığı; `pytest.ini` marker'larının (`manual`, `network`, `ui`, `integration`) tanımlı olması; `dist/.env` yokluğu; etkin Python'da `nuitka` import edilebilirliği. `nuitka import` adımı düşerse yayın engelleyicidir: `python -m pip install -r requirements-build.txt`.
+Denetler: Python >= 3.10; `requirements.txt` ve `requirements-build.txt` aktif satırlarının `==` ile pinli olması; `nuitka==` varlığı; `icons/icon.ico`, `.env.example`, `build_nuitka.bat`, `pytest.ini` dosyalarının varlığı; `pytest.ini` marker'larının (`manual`, `network`, `ui`, `integration`) tanımlı olması; `dist/.env` yokluğu; `build_nuitka.bat`'ın `data/` klasörünü gömmemesi; etkin Python'da `nuitka` import edilebilirliği. `nuitka import` adımı düşerse yayın engelleyicidir: `python -m pip install -r requirements-build.txt`.
 
 Testler preflight'ın statik koşullarını da denetler (`tests/infrastructure/test_production_guards.py`).
 

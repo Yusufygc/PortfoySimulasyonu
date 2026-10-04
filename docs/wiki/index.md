@@ -59,6 +59,7 @@
 | [testing_strategy.md](testing_strategy.md) | Test piramidi, koruma testleri, fixture ve gerçek veri izolasyonu, komutlar, CI |
 | [manual_testing_guide.md](manual_testing_guide.md) | 10 sayfa ve arka plan davranışı için yayın öncesi manuel test listesi |
 | [code_quality_guardrails.md](code_quality_guardrails.md) | Eşikler, ölçüm komutu, güncel eşik ihlalleri, istisna protokolü |
+| [system_audit_report_2026-10-04.md](system_audit_report_2026-10-04.md) | Kapsamlı sistem denetimi: 16 bulgu (öncelik, kanıt, çözüm), aksiyon planı, metodoloji uyumu |
 | [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Tarihsel kod kalitesi baseline raporu (eski arayüz dönemi) |
 | [project_build_and_deployment.md](project_build_and_deployment.md) | Nuitka derlemesi, preflight, pinli bağımlılıklar, CI, `auto_commit.py` |
 
