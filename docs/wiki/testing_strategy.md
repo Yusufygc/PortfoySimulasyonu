@@ -71,3 +71,7 @@ Her yeniden düzenlemeden sonra ve yeni özellik eklemeden önce paketin yeşil 
 - QML bileşeni için `QQmlComponent` ile yükleyip uyarı listesinin boş olduğunu doğrulayın; bileşen nesnesini testin sonuna dek referansta tutun (aksi halde çöp toplanıp "already deleted" hatası verir).
 - Canlı ağ çağrısı eklemeyin; sağlayıcıları `monkeypatch` ile sahteleyin.
 - Yeni `Strings` anahtarı kullanılmıyorsa `test_strings_catalog` kırar; kullanılmayan anahtarı silin.
+- **Gerçek saate bağlı test yazmayın:** piyasa saati/günü kodu `src/domain/market_clock.py` (`market_now`, `market_today`) kullanır; testler bunları kodun içe aldığı modülde yamalar (`monkeypatch.setattr("...startup_jobs_controller.market_now", ...)`). Saat 19:00'dan sonra kırılan iki başlangıç işi testi bu hatadan çıktı.
+- **Yama hedefi kalkınca testleri tarayın:** koddan bir bağımlılık (ör. `datetime`) kalkarsa veya yer değiştirirse `grep -rn "<modül>.<ad>" tests` ile o hedefi yamalayan testler bulunup güncellenir; yama sessizce etkisiz kalıp test yalnızca belirli saatlerde geçer.
+- **Oran/yüzde formüllerini elle hesaplanmış değerle doğrulayın:** türev yüzde değerleri (ROE, marj, büyüme) için girdisi basit sayılarla (ör. marj %10, devir 1, kaldıraç 4 -> ROE %40) beklenen değeri elle hesaplayan birim test yazın; "çıktı biçimi doğru" testi birimi 100 kat yanlış formülü yakalamaz (DuPont yedek ROE hatası).
+- **Taşıma refaktörü için karakterizasyon:** davranışı koruyan bölmeden önce sabit girdilerle çıktıyı kaydedin (JSON/SHA-256) ve sonra aynı girdilerle karşılaştırın; uygun olanı kalıcı teste çevirin.

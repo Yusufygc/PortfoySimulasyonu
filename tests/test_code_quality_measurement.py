@@ -125,3 +125,34 @@ def test_ceiling_gate_is_off_without_limits():
     args = measure_code_quality.parse_args([])
 
     assert measure_code_quality.ceiling_failures(_report(classes=99, functions=999, files=9), args) == []
+
+
+def test_qt_property_getters_do_not_count_toward_class_size(tmp_path):
+    getters = "\n".join(
+        f"    @Property(int, notify=changed)\n    def value_{index}(self) -> int:\n        return {index}" for index in range(25)
+    )
+    path = _write(
+        tmp_path / "src" / "ui_qml" / "controllers" / "sample_controller.py",
+        f"""class SampleController:
+{getters}
+
+    def logic(self):
+        return 1
+""",
+    )
+
+    class_record = measure_code_quality.measure_file(path, tmp_path)["classes"][0]
+
+    assert class_record["binding_method_count"] == 25
+    assert class_record["method_count"] == 1
+    assert class_record["violations"] == []
+
+
+def test_ui_controllers_get_wider_class_limits_than_other_layers(tmp_path):
+    methods = "\n".join(f"    def method_{index}(self):\n        return {index}" for index in range(25))
+    body = f"class Sample:\n{methods}\n"
+    controller = _write(tmp_path / "src" / "ui_qml" / "controllers" / "a_controller.py", body)
+    service = _write(tmp_path / "src" / "application" / "services" / "a_service.py", body)
+
+    assert measure_code_quality.measure_file(controller, tmp_path)["classes"][0]["violations"] == []
+    assert measure_code_quality.measure_file(service, tmp_path)["classes"][0]["violations"] == ["class_methods"]

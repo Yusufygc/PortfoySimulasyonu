@@ -6,7 +6,7 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 
 ## 1. Ölçüm
 
-**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 14 sınıf, 75 fonksiyon, 0 dosya); yeni ihlal eklenemez. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
+**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 5 sınıf, 75 fonksiyon, 0 dosya); yeni ihlal eklenemez. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
 
 ```powershell
 .\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar
@@ -22,34 +22,29 @@ Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (do
 
 | Yüzey | Eşik | Aksiyon |
 |---|---:|---|
-| Sınıf satırı | `>300` etkin satır | Yeni davranış eklemeden önce sorumluluk ayrımı (helper, servis, alt denetleyici). |
-| Sınıf metodu | `>20` metot | Sorumluluk ayrımı veya belgelenmiş geçici istisna. |
+| Sınıf satırı | `>300` etkin satır (QML denetleyicileri: `>400`) | Yeni davranış eklemeden önce sorumluluk ayrımı (helper, servis, alt denetleyici). |
+| Sınıf metodu | `>20` metot (QML denetleyicileri: `>30`) | Sorumluluk ayrımı veya belgelenmiş geçici istisna. |
 | Fonksiyon/metot satırı | `>50` etkin satır | Küçük fonksiyonlara bölünür. |
 | Parametre sayısı | `>5` | Parametre nesnesi veya daha dar API. |
 | Cyclomatic complexity | `>10` | Dallar ayrıştırılır, hedefli test eklenir. |
 
+**Sayım kuralı:** `@Property(...)` ile QML'e açılan getter'lar sınıfın metot sayısına ve etkin satırına dahil edilmez (saf bağlama yüzeyi; raporda `binding_method_count`). `@Slot` ve diğer metotlar sayılır. `src/ui_qml/controllers/` altındaki sınıflar bağlama yüzeyi nedeniyle 400 satır / 30 metot sınırıyla ölçülür; diğer katmanlar 300 / 20. Neden: getter sayısı QML sözleşmesinden gelir ve sınıf bölünmeden azalmaz; 14 denetleyici bu yüzden eşik dışı görünüyordu.
+
 ## 3. Güncel Durum (2026-10-04 ölçümü)
 
-Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **75 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
+Python dosyası eşiği (400 satır) ihlali yoktur. **5 sınıf** ve **75 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir (`@Property` getter'ları hariç; eşik 400 satır / 30 metot):
 
 | Denetleyici | Etkin satır | Metot |
 |---|---:|---:|
-| `ComparisonController` | 339 | 43 |
-| `Stock360Controller` | 567 | 95 |
-| `OptimizationController` | 279 | 39 |
-| `AiAdvisorController` | 299 | 40 |
-| `DashboardController` | 611 | 44 |
-| `StockDetailController` | 558 | 43 |
+| `DashboardController` | 504 | 23 |
 | `ModelPortfolioController` | 518 | 41 |
-| `PlanningController` | 489 | 39 |
-| `WatchlistController` | 405 | 29 |
-| `CorporateActionController` | 394 | 29 |
-| `ChartController` | 199 | 22 |
-| `SettingsController` | 304 | 38 |
-| `PriceDataController` | 288 | 37 |
-| `StrategyBacktestController` | 170 | 21 |
+| `PlanningController` | 445 | 17 |
+| `Stock360Controller` | 455 | 39 |
+| `StockDetailController` | 507 | 19 |
 
-Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `corporate_action_controller.py` ve `dashboard_controller.py` (5'er) dosyalarındadır. Bunlar geçici ve bilinen teknik borçtur ([roadmap.md](roadmap.md)); **yeni ihlal eklenmez**: bu denetleyicilere özellik eklemeden önce ilgili parça ayrı modüle (hesap yardımcısı, alt denetleyici) çıkarılır. `Stock360Controller` (`stock_360_calc/fallback/formatters/html/overview/remote`) `ComparisonController` (`comparison_chart_html`, `comparison_support`) `OptimizationController` (`optimization_pipeline`, `optimization_chart_html`) ve `AiAdvisorController` (`advisor_health`, `advisor_local_analysis`, `advisor_chat_support`) bu ayrımın örnekleridir. Kalan sınıf ihlallerinin büyük kısmı QML'e açık `@Property`/`@Slot` yüzeyidir; sınıf başına 20 metot altına inmek için yüzeyin alt denetleyicilere bölünmesi (QML bağlamalarının değişmesi) gerekir.
+Bunlar **kabul edilen borçtur** (denetim Bulgu 2, 2026-10-04): sırf eşik için ayrıştırılmaz; yeni davranış eklenen denetleyicide önce ilgili parça çıkarılır (bkz. §6). Karar gerekçesi için [log.md](log.md) "Bulgu 2 Kabul Edilen Borç" girdisine bakın.
+
+Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `corporate_action_controller.py` ve `dashboard_controller.py` (5'er) dosyalarındadır. Bunlar geçici ve bilinen teknik borçtur ([roadmap.md](roadmap.md)); **yeni ihlal eklenmez**: bu denetleyicilere özellik eklemeden önce ilgili parça ayrı modüle (hesap yardımcısı, alt denetleyici) çıkarılır. `Stock360Controller` (`stock_360_calc/fallback/formatters/html/overview/remote`) `ComparisonController` (`comparison_chart_html`, `comparison_support`) `OptimizationController` (`optimization_pipeline`, `optimization_chart_html`) ve `AiAdvisorController` (`advisor_health`, `advisor_local_analysis`, `advisor_chat_support`) bu ayrımın örnekleridir. `@Property` getter'ları ölçümde sayılmadığı için kalan ihlaller gerçek mantık satırlarıdır.
 
 ## 4. Denetleyici ve QML Standardı
 
@@ -74,3 +69,11 @@ Servisler public API'yi koruyan ince facade olarak kalır; büyüyen servislerde
 3. Yeni kullanıcı metinlerini `Strings.qml`'e ekle.
 4. Katman sınırlarını koru; denetleyici HTTP/SDK/repository import etmez.
 5. Hedefli testleri ve sonunda tam `pytest tests -q` komutunu çalıştır.
+
+## 8. Refaktör Disiplini (alınan dersler)
+
+Kurallar [ARCHITECTURE_GATES.md](../../ARCHITECTURE_GATES.md) §1.1'dedir; özeti:
+
+- **Değer şartı:** refaktör okunabilirlik, hata riski veya test edilebilirlik kazandırmalıdır. Yalnızca ölçüt sayısını düşürmek (yeni modül, yeni sarmalayıcı) gerekçe değildir; ölçüt gerçek sorunu yansıtmıyorsa ölçüt düzeltilir (§2 sayım kuralı).
+- **Karakterizasyon önce:** davranışı koruyan taşıma/bölmeden önce mevcut kodun çıktısı sabit girdilerle kaydedilir, sonra karşılaştırılır; geçici betik yerine kalıcı test tercih edilir.
+- **Küçük adım, ölçülü kapsam:** bir oturumda çok sayıda benzer sınıfa girişmeden önce ilk örnekten kazanç/maliyet raporlanır ve devam kararı kullanıcıdan alınır.

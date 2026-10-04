@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] karar | Bulgu 2 Kabul Edilen Borç Olarak Kapatıldı, Kalite Kuralları Esnetildi
+
+- **Karar:** Dört denetleyici ayrıştırıldı (Comparison, Stock360, Optimization, AiAdvisor); sınıf ihlali sayısı 14 olarak kaldı, çünkü sınıf metot eşiği (20) QML'e açık `@Property` getter'larını da sayıyordu ve bu yüzey sınıf bölünmeden azalmaz. Ayrıştırma işi ölçüt sayısını değil, okunabilirlik ve test edilebilirliği iyileştirdiğinde değerli bulundu (CC 20-40 fonksiyonların bölünmesi, hata düzeltmeleri); yalnızca eşik için yeni modül açmaya devam edilmeyecek. Kalan denetleyiciler ayrıştırılmadı.
+- **Ölçüm kuralı değişti (`scripts/measure_code_quality.py`):** (1) `@Property` getter'ları sınıf metot sayısına ve etkin satırına dahil edilmez (`binding_method_count` ayrıca raporlanır); (2) `src/ui_qml/controllers/` sınıfları için eşik 400 etkin satır / 30 metot (diğer katmanlar 300 / 20 kalır). Fonksiyon eşikleri (50 satır, 5 parametre, CC 10) değişmedi. Yeni kuralla eşik dışı sınıf 14 -> 5 (`DashboardController`, `ModelPortfolioController`, `PlanningController`, `Stock360Controller`, `StockDetailController`); CI sınıf tavanı 5, fonksiyon tavanı 75. İki yeni test (`tests/test_code_quality_measurement.py`).
+- **Yeni kurallar** (`ARCHITECTURE_GATES.md` §1.1 ve §3.4, `testing_strategy.md` §7): refaktör ölçülebilir fayda gerektirir; taşıma öncesi karakterizasyon; yüzde/oran formülleri elle hesaplanmış beklenen değerle test edilir (DuPont ROE hatası); testler gerçek saate bağlı olamaz ve kaldırılan yama hedefleri taranır (iki saat bağımlı test); denetim iddiaları kod okunarak doğrulanır (Bulgu 4, 13, 16 düzeltmeleri, "43" yerine ~110 kullanım).
+- Denetim raporunda Bulgu 2 durumu "Kapatıldı (kabul edilen borç)" olarak güncellendi.
+
+---
 ## [2026-10-04] refaktör | AiAdvisorController Ayrıştırması, 4. Adım (Denetim Bulgu 2)
 
 - **Karakterizasyon:** Refaktör öncesi kod sahte danışman/oturum servisleriyle iki altın çıktı üretti (25 + 10 senaryo): sağlık skoru (tüm eşik bantları, eksik veri, bozuk girdi, araç hatası, danışman yok; sinyal sırası dahil), yerel analiz (genel/optimizasyon, tüm araçların başarılı/başarısız/yok durumları), araç etiketleri, arka plan çalışanı (Gemini başarılı/hata/anahtar yok/servis yok), karşılama, hızlı sorular, oturum listesi (kısmi hata dahil), kalıcılaştırma ve oturum açma. Sonrasında bayt düzeyinde özdeş.

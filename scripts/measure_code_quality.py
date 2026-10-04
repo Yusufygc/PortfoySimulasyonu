@@ -38,6 +38,9 @@ EXCLUDED_DIRS = {
 THRESHOLDS = {
     "class_effective_lines": 300,
     "class_methods": 20,
+    # QML denetleyicileri (src/ui_qml/controllers/): bağlama yüzeyi (@Slot, sinyal, durum) nedeniyle daha geniş sınır.
+    "ui_controller_effective_lines": 400,
+    "ui_controller_methods": 30,
     "function_effective_lines": 50,
     "function_effective_params": 5,
     "function_complexity": 10,
@@ -225,11 +228,32 @@ def threshold_status(violations: list[str]) -> str:
     return "violation" if violations else "ok"
 
 
+UI_CONTROLLER_PREFIX = "src/ui_qml/controllers/"
+
+
+def is_qt_property(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """`@Property(...)` ile QML'e açılan getter: saf bağlama yüzeyi, sınıf boyutuna sayılmaz."""
+    for decorator in node.decorator_list:
+        target = decorator.func if isinstance(decorator, ast.Call) else decorator
+        name = target.attr if isinstance(target, ast.Attribute) else getattr(target, "id", "")
+        if name == "Property":
+            return True
+    return False
+
+
+def class_thresholds(path: object) -> tuple[int, int]:
+    """(etkin satır, metot) sınırı; QML denetleyicileri için ayrı."""
+    if str(path).replace("\\", "/").startswith(UI_CONTROLLER_PREFIX):
+        return THRESHOLDS["ui_controller_effective_lines"], THRESHOLDS["ui_controller_methods"]
+    return THRESHOLDS["class_effective_lines"], THRESHOLDS["class_methods"]
+
+
 def class_violations(record: dict[str, object]) -> list[str]:
+    max_lines, max_methods = class_thresholds(record.get("path", ""))
     violations: list[str] = []
-    if int(record["effective_code_lines"]) > THRESHOLDS["class_effective_lines"]:
+    if int(record["effective_code_lines"]) > max_lines:
         violations.append("class_effective_lines")
-    if int(record["method_count"]) > THRESHOLDS["class_methods"]:
+    if int(record["method_count"]) > max_methods:
         violations.append("class_methods")
     return violations
 
@@ -264,11 +288,16 @@ def build_class_records(
     records = []
     for node in class_nodes:
         block_lines = node_line_set(node)
-        methods = [
+        all_methods = [
             child
             for child in node.body
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
         ]
+        binding = [child for child in all_methods if is_qt_property(child)]
+        methods = [child for child in all_methods if child not in binding]
+        binding_lines: set[int] = set()
+        for child in binding:
+            binding_lines |= node_line_set(child)
         record: dict[str, object] = {
             "path": context.relative,
             "layer": context.layer,
@@ -276,9 +305,10 @@ def build_class_records(
             "lineno": node.lineno,
             "end_lineno": getattr(node, "end_lineno", node.lineno),
             "code_lines": len(context.tokens.code_line_numbers & block_lines),
-            "effective_code_lines": len(context.effective_lines & block_lines),
+            "effective_code_lines": len(context.effective_lines & (block_lines - binding_lines)),
             "docstring_lines": len(context.docs & block_lines),
             "method_count": len(methods),
+            "binding_method_count": len(binding),
             "function_count": len(methods),
         }
         violations = class_violations(record)
