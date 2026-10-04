@@ -140,58 +140,13 @@ Item {
                             Layout.fillWidth: true
                         }
 
-                        Text {
-                            visible: portfolioController.lastUpdateText !== ""
-                            text: portfolioController.lastUpdateText
-                            color: Theme.textMuted
-                            font.family: Theme.fontFamily
-                            font.pixelSize: Theme.fontXs
-                        }
+                        PriceStatusChip {}
                     }
 
                     // Aksiyon Butonları
                     RowLayout {
                         Layout.alignment: root.width < 1180 ? Qt.AlignLeft : Qt.AlignRight
                         spacing: Theme.spaceSm
-
-                        // Fiyatları Güncelle Butonu
-                        Rectangle {
-                            height: 36
-                            width: btnRefreshRow.width + Theme.spaceMd * 2
-                            radius: Theme.radiusSm
-                            color: btnRefreshMouse.containsMouse ? Theme.bgCardHover : Theme.bgCard
-                            border.color: Theme.borderSubtle
-                            border.width: 1
-
-                            RowLayout {
-                                id: btnRefreshRow
-                                anchors.centerIn: parent
-                                spacing: Theme.spaceXs
-
-                                ModernIcon {
-                                    iconSource: Icons.get("refresh")
-                                    iconColor: Theme.textSecondary
-                                    width: 14
-                                    height: 14
-                                }
-
-                                Text {
-                                    text: Strings.portfolioBtnRefreshPrices
-                                    color: Theme.textSecondary
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: Theme.fontSm
-                                    font.weight: Font.DemiBold
-                                }
-                            }
-
-                            MouseArea {
-                                id: btnRefreshMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: portfolioController.refreshPrices()
-                            }
-                        }
 
                         // Sermaye Yönetimi Butonu
                         Rectangle {

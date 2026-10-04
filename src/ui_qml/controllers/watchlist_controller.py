@@ -10,7 +10,7 @@ from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 
-from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
+from PySide6.QtCore import QObject, Signal, Property, Slot
 from src.domain.market_clock import market_now, to_market_date
 from src.domain.ticker import clean_ticker
 from src.ui_qml.controllers.watchlist_pricing import DEFAULT_PRICING, price_row
@@ -23,7 +23,6 @@ class WatchlistController(QObject):
     watchlistsChanged = Signal()
     currentWatchlistChanged = Signal()
     stocksChanged = Signal()
-    refreshStateChanged = Signal(bool)
     actionCompleted = Signal(bool, str)  # success, message
 
     _asyncTickerVerified = Signal(int, str, str, bool)  # watchlist_id, ticker, notes, geçerli mi
@@ -44,7 +43,6 @@ class WatchlistController(QObject):
         self._summary_gainers: int = 0
         self._summary_losers: int = 0
         self._summary_avg_change: str = "%0.00"
-        self._is_refreshing: bool = False
 
         self._load_watchlists()
 
@@ -85,10 +83,6 @@ class WatchlistController(QObject):
     @Property(str, notify=stocksChanged)
     def summaryAvgChange(self) -> str:
         return self._summary_avg_change
-
-    @Property(bool, notify=refreshStateChanged)
-    def isRefreshing(self) -> bool:
-        return self._is_refreshing
 
     # --- Data Loading & Processing ---
 
@@ -481,15 +475,6 @@ class WatchlistController(QObject):
 
     @Slot()
     def refreshPrices(self) -> None:
-        self._is_refreshing = True
-        self.refreshStateChanged.emit(True)
-
+        """Fiyatlar veritabanında değişti (`PriceRefreshController.pricesChanged`): seçili liste yeniden okunur (ağ yok)."""
         if self._current_watchlist_id > 0:
             self._load_stocks(self._current_watchlist_id)
-
-        QTimer.singleShot(600, lambda: self._finish_refresh())
-
-    def _finish_refresh(self) -> None:
-        self._is_refreshing = False
-        self.refreshStateChanged.emit(False)
-        self.actionCompleted.emit(True, "İzleme listesi fiyatları güncellendi.")

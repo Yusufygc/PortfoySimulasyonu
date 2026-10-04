@@ -1,6 +1,7 @@
 """Son fiyat güncelleme zamanı ve dönemsel getiri değerlerinin kalıcı saklanması.
 
-Eski arayüzle aynı QSettings kayıtlarını kullanır; böylece iki arayüz de aynı "son güncelleme" bilgisini görür.
+Son güncelleme zamanı tek ve ortaktır (`PriceRefreshController` yazar, tüm fiyat ekranları gösterir); anahtar eski
+arayüzün Ana Sayfa kaydıyla aynıdır.
 """
 from __future__ import annotations
 
@@ -9,13 +10,9 @@ from typing import Optional, Tuple
 
 from PySide6.QtCore import QSettings
 
-DASHBOARD_LAST_UPDATE_KEY = "dashboard/last_price_update_at"
+PRICES_LAST_UPDATE_KEY = "dashboard/last_price_update_at"
 WEEKLY_RETURN_KEY = "dashboard/weekly_return_pct"
 MONTHLY_RETURN_KEY = "dashboard/monthly_return_pct"
-
-
-def model_portfolio_last_update_key(portfolio_id: int) -> str:
-    return f"model_portfolios/{portfolio_id}/last_price_update_at"
 
 
 def format_last_update(updated_at: Optional[datetime]) -> str:
@@ -31,17 +28,11 @@ class LastUpdateStore:
         self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
 
     # ---- son güncelleme zamanı ----------------------------------------------------------
-    def dashboard_last_update(self) -> Optional[datetime]:
-        return self._read_time(DASHBOARD_LAST_UPDATE_KEY)
+    def prices_last_update(self) -> Optional[datetime]:
+        return self._read_time(PRICES_LAST_UPDATE_KEY)
 
-    def save_dashboard_last_update(self, updated_at: Optional[datetime] = None) -> datetime:
-        return self._write_time(DASHBOARD_LAST_UPDATE_KEY, updated_at)
-
-    def model_portfolio_last_update(self, portfolio_id: int) -> Optional[datetime]:
-        return self._read_time(model_portfolio_last_update_key(portfolio_id))
-
-    def save_model_portfolio_last_update(self, portfolio_id: int, updated_at: Optional[datetime] = None) -> datetime:
-        return self._write_time(model_portfolio_last_update_key(portfolio_id), updated_at)
+    def save_prices_last_update(self, updated_at: Optional[datetime] = None) -> datetime:
+        return self._write_time(PRICES_LAST_UPDATE_KEY, updated_at)
 
     # ---- dönemsel getiriler -------------------------------------------------------------
     def saved_returns(self) -> Tuple[Optional[float], Optional[float]]:

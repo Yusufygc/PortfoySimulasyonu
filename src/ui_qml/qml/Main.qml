@@ -224,11 +224,13 @@ ApplicationWindow {
         target: (typeof stockDetailController !== "undefined") ? stockDetailController : null
         function onTradeExecuted(success, message) {
             if (success) {
-                if (typeof dashboardController !== "undefined") {
-                    dashboardController.refreshMetrics()
+                // Yeni pozisyon: ekranlar DB'den yeniden okunur; seans açıksa yeni hissenin canlı fiyatı da çekilir
+                if (typeof priceRefreshController !== "undefined") {
+                    priceRefreshController.notifyDataChanged()
+                    priceRefreshController.refreshNow()
                 }
-                if (typeof modelPortfolioController !== "undefined") {
-                    modelPortfolioController.refreshData()
+                if (typeof portfolioController !== "undefined") {
+                    portfolioController.refreshData()
                 }
             }
         }

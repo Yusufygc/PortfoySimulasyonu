@@ -148,5 +148,5 @@ def test_session_check_passes_market_time(system, monkeypatch):
     seen = []
     system._container.bist_market_session_service = SimpleNamespace(
         status_for=lambda day, at=None: seen.append(at) or SimpleNamespace(is_open=False))
-    assert system._session_open() is False
+    assert system.session_open() is False
     assert seen and seen[0] is not None

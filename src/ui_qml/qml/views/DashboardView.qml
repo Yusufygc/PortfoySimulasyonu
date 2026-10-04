@@ -47,40 +47,13 @@ Item {
                         font.pixelSize: Theme.fontSm
                         color: Theme.textMuted
                     }
-                    Text {
-                        visible: dashboardController.lastUpdateText !== ""
-                        text: dashboardController.lastUpdateText
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontXs
-                        color: Theme.textMuted
-                    }
+                    PriceStatusChip {}
                 }
 
                 Flow {
                     Layout.alignment: root.width < 1060 ? Qt.AlignLeft : Qt.AlignRight
                     Layout.fillWidth: root.width < 1060
                     spacing: Theme.spaceSm
-
-                // Canlı Fiyat Yenile Butonu (Yükleniyor animasyonu ile)
-                ModernButton {
-                    text: dashboardController.isRefreshing ? Strings.btnRefreshing : Strings.btnRefresh
-                    iconName: "refresh"
-                    variant: "secondary"
-                    enabled: !dashboardController.isRefreshing
-                    onClicked: {
-                        dashboardController.refreshMetrics()
-                        chartView.loadStock(chartView.ticker)
-                    }
-                }
-
-                // Kapanış Fiyatlarını Güncelle (tarihsel veri + getiriler)
-                ModernButton {
-                    text: dashboardController.isUpdatingPrices ? Strings.btnUpdatingClosingPrices : Strings.btnUpdateClosingPrices
-                    iconName: "history"
-                    variant: "secondary"
-                    enabled: !dashboardController.isUpdatingPrices
-                    onClicked: dashboardController.updateClosingPrices()
-                }
 
                 // Sermaye Yönetimi Butonu
                 ModernButton {
@@ -698,10 +671,6 @@ Item {
         }
 
         function onExcelExported(success, message) {
-            toast.show(message, success)
-        }
-
-        function onClosingPricesUpdated(success, message) {
             toast.show(message, success)
         }
     }

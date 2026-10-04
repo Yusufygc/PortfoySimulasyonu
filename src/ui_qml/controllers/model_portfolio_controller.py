@@ -5,15 +5,13 @@ sermaye yönetimi ve fiyat güncelleme kapasitesi sağlar.
 from __future__ import annotations
 
 import logging
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, time as dt_time, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional, Any
 
-from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
+from PySide6.QtCore import QObject, Signal, Property, Slot
 
-from src.ui_qml.last_update_store import LastUpdateStore, format_last_update
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +63,6 @@ class ModelPortfolioController(QObject):
     loadingChanged = Signal()
     operationResult = Signal(bool, str)  # success, message
     excelExported = Signal(bool, str)    # success, message
-    lastUpdateChanged = Signal()
 
     _asyncExportFinished = Signal(bool, str)
 
@@ -74,8 +71,6 @@ class ModelPortfolioController(QObject):
         self._container = container
         self._service = getattr(container, "model_portfolio_service", None) if container else None
         self._lookup = getattr(container, "stock_lookup_service", None) if container else None
-        self._store = LastUpdateStore()
-        self._live_updated_count: int = 0
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ModelPortWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
 
@@ -102,13 +97,6 @@ class ModelPortfolioController(QObject):
         # Price map
         self._current_price_map: Dict[int, Decimal] = {}
 
-        # Event bus
-        if container and hasattr(container, "event_bus") and container.event_bus:
-            try:
-                container.event_bus.prices_updated.connect(self._on_prices_updated_event)
-            except Exception as exc:
-                logger.warning("EventBus bağlantı hatası: %s", exc)
-
     # =====================================================================
     #  Properties (QML'e açılan)
     # =====================================================================
@@ -132,13 +120,6 @@ class ModelPortfolioController(QObject):
         return self._current_portfolio_desc
 
     currentPortfolioDesc = Property(str, _get_current_portfolio_desc, notify=currentPortfolioChanged)
-
-    def _get_last_update_text(self):
-        if self._current_portfolio_id <= 0:
-            return ""
-        return format_last_update(self._store.model_portfolio_last_update(self._current_portfolio_id))
-
-    lastUpdateText = Property(str, _get_last_update_text, notify=lastUpdateChanged)
 
     # Summary properties
     def _get_summary_net_capital(self):
@@ -240,6 +221,7 @@ class ModelPortfolioController(QObject):
                     else:
                         self._clear_current()
                 else:
+                    self._load_price_map(self._current_portfolio_id)
                     self._update_view()
             elif self._portfolio_list:
                 self.selectPortfolio(self._portfolio_list[0]["portfolioId"])
@@ -260,7 +242,6 @@ class ModelPortfolioController(QObject):
             self._current_portfolio_name = portfolio.name
             self._current_portfolio_desc = portfolio.description or ""
             self.currentPortfolioChanged.emit()
-            self.lastUpdateChanged.emit()
             self._load_price_map(portfolio_id)
             self._update_view()
         except Exception as exc:
@@ -403,63 +384,16 @@ class ModelPortfolioController(QObject):
             self.operationResult.emit(False, f"Sermaye hareketi kaydedilemedi: {exc}")
 
     @Slot()
-    def refreshPrices(self):
-        """Fiyatları arka planda günceller."""
+    def reloadPrices(self) -> None:
+        """Fiyatlar veritabanında değişti (`PriceRefreshController.pricesChanged`): seçili portföy yeniden okunur."""
         if not self._service or self._current_portfolio_id <= 0:
             return
-        self._is_loading = True
-        self.loadingChanged.emit()
-        threading.Thread(target=self._refresh_prices_worker, daemon=True).start()
+        self._load_price_map(self._current_portfolio_id)
+        self._update_view()
 
     # =====================================================================
     #  Internal helpers
     # =====================================================================
-
-    def _refresh_prices_worker(self):
-        """Arka plan iş parçacığında fiyat güncelleme: önce canlı fiyatlar çekilir, sonra fiyat haritası yeniden okunur."""
-        try:
-            portfolio_id = self._current_portfolio_id
-            live_service = getattr(self._container, "live_price_refresh_service", None) if self._container else None
-            self._live_updated_count = -1  # -1: canlı servis yok (yalnızca veritabanından okunur)
-            if live_service is not None:
-                result = live_service.refresh_active_prices(f"model:{portfolio_id}")
-                self._live_updated_count = int(getattr(result, "updated_count", 0) or 0)
-            self._load_price_map(portfolio_id)
-            QTimer.singleShot(0, self._on_prices_refreshed_success)
-        except Exception as exc:
-            logger.error("Fiyat güncelleme hatası: %s", exc)
-            QTimer.singleShot(0, lambda: self._on_prices_refreshed_error(str(exc)))
-
-    def _on_prices_refreshed_success(self):
-        self._is_loading = False
-        self.loadingChanged.emit()
-        self._update_view()
-        if self._live_updated_count < 0:
-            self.operationResult.emit(True, "Fiyatlar güncellendi")
-        elif self._live_updated_count == 0:
-            self.operationResult.emit(False, "Güncellenecek fiyat bulunamadı.")
-        else:
-            self._store.save_model_portfolio_last_update(self._current_portfolio_id)
-            self.lastUpdateChanged.emit()
-            self.operationResult.emit(True, f"{self._live_updated_count} hissenin fiyatı güncellendi.")
-
-    def _on_prices_refreshed_error(self, error_msg: str):
-        self._is_loading = False
-        self.loadingChanged.emit()
-        self.operationResult.emit(False, f"Fiyat güncelleme hatası: {error_msg}")
-
-    def _on_prices_updated_event(self, prices: Dict[int, Decimal]):
-        """EventBus üzerinden gelen fiyat güncellemelerini işler."""
-        if self._current_portfolio_id <= 0 or not prices:
-            return
-        try:
-            positions = self._service.get_positions(self._current_portfolio_id)
-            relevant = {sid: p for sid, p in prices.items() if sid in positions}
-            if relevant:
-                self._current_price_map.update(relevant)
-                self._update_view()
-        except Exception as exc:
-            logger.warning("EventBus fiyat güncelleme hatası: %s", exc)
 
     def _load_price_map(self, portfolio_id: int):
         """Seçili portföyün hisse fiyatlarını yükler."""
@@ -616,7 +550,6 @@ class ModelPortfolioController(QObject):
         self._current_portfolio_name = ""
         self._current_portfolio_desc = ""
         self.currentPortfolioChanged.emit()
-        self.lastUpdateChanged.emit()
 
         self._summary_net_capital = "₺0,00"
         self._summary_remaining_cash = "₺0,00"

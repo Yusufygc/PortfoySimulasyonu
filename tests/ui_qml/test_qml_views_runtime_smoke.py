@@ -38,6 +38,7 @@ from src.ui_qml.controllers.startup_jobs_controller import StartupJobsController
 from src.ui_qml.controllers.stock_360_controller import Stock360Controller
 from src.ui_qml.controllers.stock_detail_controller import StockDetailController
 from src.ui_qml.controllers.strategy_backtest_controller import StrategyBacktestController
+from src.ui_qml.controllers.price_refresh_controller import PriceRefreshController
 from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.watchlist_controller import WatchlistController
 
@@ -95,6 +96,8 @@ def qml_env(qapp):
         "marketTickerController": MarketTickerController(container=container, parent=engine),
         "modelAnalysisController": ModelAnalysisController(container=container, parent=engine),
     }
+    controllers["priceRefreshController"] = PriceRefreshController(
+        controllers["systemController"], controllers["marketSyncController"], container=container, parent=engine)
     context = engine.rootContext()
     for name, controller in controllers.items():
         context.setContextProperty(name, controller)

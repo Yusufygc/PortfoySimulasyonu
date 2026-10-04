@@ -1,4 +1,4 @@
-"""Dashboard: kapanış fiyatı güncelleme, dönemsel getiriler ve son güncelleme bilgisi."""
+"""Dashboard ve Model Portföy: dönemsel getiriler, ortak son güncelleme bilgisi ve fiyat değişikliğinde DB'den yeniden okuma."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -20,20 +20,12 @@ class ImmediateExecutor:
         fn(*args, **kwargs)
 
 
-def _capture(signal):
-    received = []
-    signal.connect(lambda *args: received.append(args))
-    return received
-
-
-def _container(weekly=Decimal("0.0123"), monthly=Decimal("-0.05"), coordinator=None):
+def _container(weekly=Decimal("0.0123"), monthly=Decimal("-0.05")):
     container = MagicMock()
     container.portfolio_service.get_current_portfolio.return_value = SimpleNamespace(active_positions={})
     container.portfolio_service.get_cash_balance.return_value = Decimal("1000")
     container.return_calc_service.compute_weekly_return.return_value = (weekly, None, None)
     container.return_calc_service.compute_monthly_return.return_value = (monthly, None, None)
-    if coordinator is not None:
-        container.update_coordinator = coordinator
     return container
 
 
@@ -50,16 +42,14 @@ def test_formatters():
     assert format_last_update(datetime(2026, 10, 3, 14, 5)) == "Son güncelleme: 03.10.2026 14:05"
 
 
-def test_store_roundtrip_matches_legacy_keys(qapp):
+def test_store_roundtrip_uses_shared_prices_key(qapp):
     store = LastUpdateStore()
-    assert store.dashboard_last_update() is None and store.saved_returns() == (None, None)
+    assert store.prices_last_update() is None and store.saved_returns() == (None, None)
 
-    moment = store.save_dashboard_last_update(datetime(2026, 10, 3, 9, 30, 45))
-    store.save_model_portfolio_last_update(7, datetime(2026, 10, 2, 18, 0))
+    moment = store.save_prices_last_update(datetime(2026, 10, 3, 9, 30, 45))
     store.save_returns(1.5, None)
 
-    assert store.dashboard_last_update() == moment
-    assert store.model_portfolio_last_update(7) == datetime(2026, 10, 2, 18, 0) and store.model_portfolio_last_update(8) is None
+    assert store.prices_last_update() == moment
     assert store.saved_returns() == (1.5, None)
 
 
@@ -94,122 +84,59 @@ def test_return_calculation_failure_keeps_previous_values(qapp):
     assert ctrl.weeklyReturnText == "%+4,00"
 
 
-def test_update_closing_prices_success_records_time_and_notifies(qapp):
-    coordinator = MagicMock()
-    coordinator.update_today_prices_and_get_snapshot.return_value = (SimpleNamespace(updated_count=3), object())
-    ctrl = _controller(_container(coordinator=coordinator))
-    results = _capture(ctrl.closingPricesUpdated)
-    states = _capture(ctrl.priceUpdateStateChanged)
+def test_dashboard_reload_prices_rereads_db_and_returns_without_network(qapp):
+    container = _container()
+    ctrl = _controller(container)
+    container.portfolio_service.get_current_portfolio.reset_mock()
+    container.return_calc_service.compute_weekly_return.reset_mock()
 
-    ctrl.updateClosingPrices()
-    QCoreApplication.processEvents()
+    ctrl.reloadPrices()
 
-    assert results == [(True, "3 hissenin tarihsel kapanış verisi güncellendi.")]
-    assert states == [(True,), (False,)] and ctrl.isUpdatingPrices is False
-    assert ctrl.lastUpdateText.startswith("Son güncelleme: ")
-    assert LastUpdateStore().dashboard_last_update() is not None
-
-
-def test_update_closing_prices_without_updates_shows_reason_and_keeps_last_update(qapp):
-    coordinator = MagicMock()
-    coordinator.update_today_prices_and_get_snapshot.return_value = (
-        SimpleNamespace(updated_count=0, skipped_reason="Piyasa kapalı"), object())
-    ctrl = _controller(_container(coordinator=coordinator))
-    results = _capture(ctrl.closingPricesUpdated)
-
-    ctrl.updateClosingPrices()
-    QCoreApplication.processEvents()
-
-    assert results == [(False, "Piyasa kapalı")] and ctrl.lastUpdateText == ""
-
-
-def test_update_closing_prices_error_and_missing_service(qapp):
-    coordinator = MagicMock()
-    coordinator.update_today_prices_and_get_snapshot.side_effect = RuntimeError("ağ yok")
-    ctrl = _controller(_container(coordinator=coordinator))
-    results = _capture(ctrl.closingPricesUpdated)
-
-    ctrl.updateClosingPrices()
-    QCoreApplication.processEvents()
-    assert results == [(False, "Fiyat güncelleme hatası: ağ yok")] and ctrl.isUpdatingPrices is False
-
-    offline = DashboardController(container=None)
-    results = _capture(offline.closingPricesUpdated)
-    offline.updateClosingPrices()
-    assert results == [(False, "Fiyat güncelleme servisi bulunamadı.")]
-
-
-def test_live_refresh_records_last_update_only_when_prices_changed(qapp):
-    ctrl = _controller(_container())
-
-    ctrl._live_updated_count = 0
-    ctrl._on_refresh_finished()
-    assert ctrl.lastUpdateText == ""
-
-    ctrl._live_updated_count = 2
-    ctrl._on_refresh_finished()
-    assert ctrl.lastUpdateText.startswith("Son güncelleme: ")
+    container.portfolio_service.get_current_portfolio.assert_called_once()
+    container.return_calc_service.compute_weekly_return.assert_called_once()
+    container.live_price_refresh_service.refresh_active_prices.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
-# Model portföy: canlı fiyat güncelleme ve son güncelleme bilgisi
+# Model portföy: fiyat değişikliğinde seçili portföyün fiyat haritası yeniden okunur
 # ---------------------------------------------------------------------------
 
-def _model_controller(live_service):
+def _model_controller(prices):
     from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
 
     service = MagicMock()
-    service.get_positions.return_value = {}
+    service.get_positions.return_value = {5: object()}
     service.get_portfolio_by_id.return_value = SimpleNamespace(id=7, name="Deneme", description="")
-    container = SimpleNamespace(model_portfolio_service=service, live_price_refresh_service=live_service, event_bus=None)
+    service.get_all_portfolios.return_value = [SimpleNamespace(id=7, name="Deneme", description="")]
+    service.get_active_position_count.return_value = 1
+    service.get_positions_with_details.return_value = []
+    service.get_portfolio_summary.return_value = {}
+    resolver = MagicMock()
+    resolver.price_map.side_effect = lambda ids: dict(prices)
+    live = MagicMock()
+    container = SimpleNamespace(model_portfolio_service=service, current_price_resolver=resolver,
+                                live_price_refresh_service=live, event_bus=None)
     ctrl = ModelPortfolioController(container=container)
-    ctrl._current_portfolio_id = 7
-    return ctrl
-
-
-def test_model_refresh_fetches_live_prices_for_that_portfolio_and_records_time(qapp):
-    live = MagicMock()
-    live.refresh_active_prices.return_value = SimpleNamespace(updated_count=4)
-    ctrl = _model_controller(live)
-    results = _capture(ctrl.operationResult)
-
-    ctrl._refresh_prices_worker()
-    QCoreApplication.processEvents()
-
-    live.refresh_active_prices.assert_called_once_with("model:7")
-    assert results == [(True, "4 hissenin fiyatı güncellendi.")]
-    assert ctrl.lastUpdateText.startswith("Son güncelleme: ")
-    assert LastUpdateStore().model_portfolio_last_update(7) is not None
-
-
-def test_model_refresh_without_updates_warns_and_keeps_last_update(qapp):
-    live = MagicMock()
-    live.refresh_active_prices.return_value = SimpleNamespace(updated_count=0)
-    ctrl = _model_controller(live)
-    results = _capture(ctrl.operationResult)
-
-    ctrl._refresh_prices_worker()
-    QCoreApplication.processEvents()
-
-    assert results == [(False, "Güncellenecek fiyat bulunamadı.")] and ctrl.lastUpdateText == ""
-
-
-def test_model_refresh_without_live_service_only_rereads_prices(qapp):
-    ctrl = _model_controller(None)
-    results = _capture(ctrl.operationResult)
-
-    ctrl._refresh_prices_worker()
-    QCoreApplication.processEvents()
-
-    assert results == [(True, "Fiyatlar güncellendi")] and ctrl.lastUpdateText == ""
-
-
-def test_model_last_update_is_per_portfolio(qapp):
-    LastUpdateStore().save_model_portfolio_last_update(7, datetime(2026, 10, 1, 10, 0))
-    ctrl = _model_controller(None)
-
     ctrl.selectPortfolio(7)
-    assert ctrl.lastUpdateText == "Son güncelleme: 01.10.2026 10:00"
+    return ctrl, prices, live
 
-    ctrl._current_portfolio_id = 8
-    assert ctrl.lastUpdateText == ""
+
+def test_model_reload_prices_rereads_price_map_without_network(qapp):
+    ctrl, prices, live = _model_controller({5: Decimal("10")})
+    assert ctrl._current_price_map == {5: Decimal("10")}
+
+    prices[5] = Decimal("11")
+    ctrl.reloadPrices()
+
+    assert ctrl._current_price_map == {5: Decimal("11")}
+    live.refresh_active_prices.assert_not_called()
+
+
+def test_model_refresh_data_with_same_selection_rereads_prices(qapp):
+    """Eskiden seçim değişmediyse önbellekteki eski fiyatla çiziliyordu (senkron sonrası eski fiyat)."""
+    ctrl, prices, _ = _model_controller({5: Decimal("10")})
+
+    prices[5] = Decimal("12")
+    ctrl.refreshData()
+
+    assert ctrl._current_price_map == {5: Decimal("12")}

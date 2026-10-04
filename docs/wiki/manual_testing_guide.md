@@ -93,10 +93,10 @@ Temizlik: Test temettüsü silindi.
 - **Adımlar:** Yatır ve çek; bakiyeden fazla çekmeyi dene.
 - **Beklenen sonuç:** Bakiye güncellenir; fazla çekim reddedilir. Sermaye hareketleri seans kuralına tabi değildir.
 
-### DASH-005 | Kapanış fiyatı güncelleme
+### DASH-005 | Otomatik fiyat güncelleme
 
-- **Adımlar:** "Fiyatları Güncelle".
-- **Beklenen sonuç:** Hedef bugün değil son tamamlanmış işlem günüdür; fiyatlar ve "son güncelleme" yenilenir; tek hisse hatası diğerlerini engellemez.
+- **Adımlar:** (a) Uygulamayı BIST seansı içinde açın ve bekleyin. (b) Uygulamayı 18:30'dan sonra (veya gece/hafta sonu) açın ve bekleyin. (c) Başlık altındaki küçük yenile ikonuna tıklayın.
+- **Beklenen sonuç:** Düğmeye basmadan Ana Sayfa, İzleme Listesi ve Model Portföy aynı fiyatı gösterir. (a) Canlı fiyat gelir, "Son güncelleme" ilerler. (b) Bugünün kapanışı gelir; günlük değişim son iki kapanıştan hesaplanır (%0 değil). (c) Seans içinde canlı, dışında kapanış senkronu çalışır; ikon dönerken arayüz donmaz.
 
 ### DASH-006 | Grafik
 
@@ -165,8 +165,8 @@ Temizlik: Test temettüsü silindi.
 
 ### MP-003 | Fiyat ve rapor
 
-- **Adımlar:** "Fiyat Güncelle"; Excel raporu.
-- **Beklenen sonuç:** Canlı fiyat ekrana yansır ama `daily_prices` yazılmaz; rapor öncesi eksik kapanış varsa uyarı listesi çıkar.
+- **Adımlar:** Fiyat güncellemesini bekleyin (veya küçük yenile ikonu); Excel raporu.
+- **Beklenen sonuç:** Seçili portföy düğmesiz yeni fiyatı gösterir; canlı fiyat `daily_prices` yazmaz; rapor öncesi eksik kapanış varsa uyarı listesi çıkar.
 
 ---
 

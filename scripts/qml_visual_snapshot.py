@@ -70,7 +70,7 @@ def _build_engine():
         ai_advisor_controller, chart_controller, comparison_controller, corporate_action_controller,
         dashboard_controller, dividend_controller, golden_cross_controller, market_adjustment_controller,
         market_sync_controller, market_ticker_controller, model_analysis_controller, model_portfolio_controller,
-        optimization_controller, planning_controller, price_data_controller, risk_profile_controller,
+        optimization_controller, planning_controller, price_data_controller, price_refresh_controller, risk_profile_controller,
         screener_controller, settings_controller, shell_controller, startup_jobs_controller, stock_360_controller,
         stock_detail_controller, strategy_backtest_controller, system_controller, watchlist_controller,
     )
@@ -105,6 +105,8 @@ def _build_engine():
     }
     controllers = {name: cls(container=container, parent=engine) for name, cls in classes.items()}
     controllers["marketSyncController"] = market_sync_controller.MarketSyncController(parent=engine, container=container)
+    controllers["priceRefreshController"] = price_refresh_controller.PriceRefreshController(
+        controllers["systemController"], controllers["marketSyncController"], container=container, parent=engine)
     for name, controller in controllers.items():
         engine.rootContext().setContextProperty(name, controller)
     engine.addImportPath(str(Path(os.getcwd()) / "src" / "ui_qml" / "qml"))

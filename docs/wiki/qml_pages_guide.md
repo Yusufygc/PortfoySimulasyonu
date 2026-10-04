@@ -29,7 +29,7 @@ Ana portföyün canlı özeti.
 - **Açık pozisyonlar tablosu** (`PositionsTableModel`): lot, maliyet, güncel fiyat, günlük %, ağırlık; fiyat değişiminde yeşil/kırmızı yanıp sönme. Satıra tıklayınca **Hisse Detay modalı** açılır.
 - **Varlık dağılımı** (`AssetAllocationCard`, Canvas donut).
 - **TradingView grafiği** (`TradingViewChart`, `TradingViewToolbar`): zaman dilimi, mum/çizgi/alan/bar, göstergeler, tam ekran (`ChartFullscreenModal`); hisse detayından açıldığında ortalama maliyet çizgisi gösterilir.
-- **İşlemler:** hızlı alım/satım (`QuickTradeModal`, tarih ve saat alanlı), sermaye yatırma/çekme (`CapitalModal`), kapanış fiyatı güncelleme (`updateClosingPrices`, son tamamlanmış işlem gününe kadar), tarihsel Excel raporu (`ExcelExportDialog`; mevcut dosyaya ekleme modu).
+- **İşlemler:** hızlı alım/satım (`QuickTradeModal`, tarih ve saat alanlı), sermaye yatırma/çekme (`CapitalModal`), fiyat durumu (`PriceStatusChip`: ortak son güncelleme ve küçük yenile ikonu; fiyatlar kendiliğinden güncellenir), tarihsel Excel raporu (`ExcelExportDialog`; mevcut dosyaya ekleme modu).
 - **Hisse Detay modalı** (`StockDetailController`): lot, ortalama maliyet, piyasa değeri, K/Z; işlem geçmişi ve sermaye artırımları sekmeleri; işlem etkisi ön izlemesi; hızlı emir; **Sermaye Artırımı** (`CorporateActionDialog`), **Temettü** (`DividendDialog`), TradingView ve Hisse 360'a geçiş, hisse bazlı Excel. Sermaye artırımı ve temettü yalnızca ana portföy ve açık pozisyon için görünür.
 
 Servisler: `PortfolioService`, `TradeEntryService`, `CashMovementService`, `PortfolioUpdateCoordinator`, `ReturnCalcService`, `CurrentPriceResolver`, `ExcelExportService`. Fiyat ve işlem kuralları: [service_portfolio_and_market.md](service_portfolio_and_market.md).
@@ -40,7 +40,7 @@ Birden çok liste (sürükle-bırak sıralama), hisse ekleme/çıkarma, hisse no
 
 ## 2. Model Portföyler
 
-Sanal portföyler: oluşturma/düzenleme/silme, sürükle-bırak sıralama, başlangıç sermayesi, sermaye yatırma/çekme, hisse al/sat, "Fiyat Güncelle" (canlı fiyat; `LivePriceRefreshService.refresh_active_prices("model:<id>")`), tarihsel Excel raporu. KPI: net sermaye, nakit, toplam değer, K/Z (`toplam değer - net sermaye`). Pozisyon satırından hisse detayı açılır (model bağlamı: sermaye artırımı/temettü yok). Bkz. [service_planning_optimization.md](service_planning_optimization.md).
+Sanal portföyler: oluşturma/düzenleme/silme, sürükle-bırak sıralama, başlangıç sermayesi, sermaye yatırma/çekme, hisse al/sat, fiyat durumu (`PriceStatusChip`; fiyat değişince seçili portföy `reloadPrices` ile DB'den yeniden okunur), tarihsel Excel raporu. KPI: net sermaye, nakit, toplam değer, K/Z (`toplam değer - net sermaye`). Pozisyon satırından hisse detayı açılır (model bağlamı: sermaye artırımı/temettü yok). Bkz. [service_planning_optimization.md](service_planning_optimization.md).
 
 ## 3. Hisse 360
 
@@ -123,6 +123,7 @@ Yeni bölme kuralları: bileşen yalnızca kendi kimliklerini ve `root` özellik
 | `SystemController` | Otomatik canlı fiyat yenileme, sistem sıfırlama |
 | `StartupJobsController` | Açılış bakım işleri |
 | `MarketSyncController` | DuckDB artımlı senkron ve kapanış verisi nöbetçisi (18:30) |
+| `PriceRefreshController` | Fiyat güncellemesinin tek koordinatörü: kaynak sinyallerini tek `pricesChanged`'e birleştirir (400 ms), ortak son güncelleme ve tek yenile ikonu (`priceRefreshController`) |
 | `PriceDataController` | Fiyat verisi sağlığı |
 | `MarketAdjustmentController` | Piyasa sermaye artırımı düzeltmeleri |
 | `MarketTickerController` | Üst piyasa şeridi |

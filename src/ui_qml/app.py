@@ -36,11 +36,19 @@ from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
 from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
 from src.ui_qml.controllers.price_data_controller import PriceDataController
+from src.ui_qml.controllers.price_refresh_controller import PriceRefreshController
 from src.ui_qml.controllers.startup_jobs_controller import StartupJobsController
 from src.ui_qml.controllers.golden_cross_controller import GoldenCrossController
 from src.ui_qml.controllers.risk_profile_controller import RiskProfileController
 
 logger = logging.getLogger(__name__)
+
+
+def _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl) -> None:
+    """Birleştirilmiş fiyat değişikliği: öncelik sırasıyla Ana Sayfa, İzleme Listesi, Model Portföy DB'den yeniden okunur."""
+    price_refresh_ctrl.pricesChanged.connect(dash_ctrl.reloadPrices)
+    price_refresh_ctrl.pricesChanged.connect(watchlist_ctrl.refreshPrices)
+    price_refresh_ctrl.pricesChanged.connect(portfolio_ctrl.reloadPrices)
 
 
 def run_qml_app(container=None) -> int:
@@ -95,17 +103,17 @@ def run_qml_app(container=None) -> int:
     market_ticker_ctrl = MarketTickerController(container=container, parent=engine)
     model_analysis_ctrl = ModelAnalysisController(container=container, parent=engine)
 
-    # Piyasa verisi senkronu yeni bar yazınca fiyata bağlı ekranları yenile
-    market_sync_ctrl.dataSynced.connect(dash_ctrl.refreshMetrics)
-    market_sync_ctrl.dataSynced.connect(portfolio_ctrl.refreshData)
-    risk_profile_ctrl.profileSaved.connect(optimization_ctrl.reloadRiskProfile)
-    # Sermaye artırımı / fiyat güncellemesi / açılış backfill'i sonrası ekranları DB'den yeniden yükle
-    for source in (corporate_action_ctrl.portfolioChanged, dividend_ctrl.portfolioChanged, price_data_ctrl.pricesUpdated, startup_jobs_ctrl.pricesUpdated,
-                   golden_cross_ctrl.pricesUpdated, system_ctrl.pricesRefreshed, system_ctrl.systemReset):
-        source.connect(dash_ctrl.reloadPortfolio)
+    price_refresh_ctrl = PriceRefreshController(system_ctrl, market_sync_ctrl, container=container, parent=engine)
+    _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl)
+    for source in (market_sync_ctrl.dataSynced, system_ctrl.pricesRefreshed, startup_jobs_ctrl.pricesUpdated,
+                   price_data_ctrl.pricesUpdated, golden_cross_ctrl.pricesUpdated):
+        price_refresh_ctrl.watch(source)
+    # Portföy içeriği değişti (fiyat değil): son güncelleme zamanı değişmez, liste/özet yeniden okunur
+    for source in (corporate_action_ctrl.portfolioChanged, dividend_ctrl.portfolioChanged, system_ctrl.systemReset):
+        price_refresh_ctrl.watch(source, records_update=False)
         source.connect(portfolio_ctrl.refreshData)
-    system_ctrl.pricesRefreshed.connect(watchlist_ctrl.refreshPrices)
     system_ctrl.systemReset.connect(watchlist_ctrl.reloadAll)
+    risk_profile_ctrl.profileSaved.connect(optimization_ctrl.reloadRiskProfile)
 
     # QML Context Property olarak bağla
     context = engine.rootContext()
@@ -132,6 +140,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("riskProfileController", risk_profile_ctrl)
     context.setContextProperty("marketAdjustmentController", market_adjustment_ctrl)
     context.setContextProperty("systemController", system_ctrl)
+    context.setContextProperty("priceRefreshController", price_refresh_ctrl)
     context.setContextProperty("marketTickerController", market_ticker_ctrl)
     context.setContextProperty("modelAnalysisController", model_analysis_ctrl)
 

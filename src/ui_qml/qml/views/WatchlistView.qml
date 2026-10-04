@@ -47,20 +47,10 @@ Item {
                         font.pixelSize: Theme.fontSm
                         color: Theme.textMuted
                     }
+                    PriceStatusChip {}
                 }
 
                 Item { Layout.fillWidth: true }
-
-                // Fiyatları Yenile Butonu
-                ModernButton {
-                    text: watchlistController && watchlistController.isRefreshing ? Strings.btnRefreshing : Strings.btnRefresh
-                    iconName: "refresh"
-                    variant: "secondary"
-                    enabled: !(watchlistController && watchlistController.isRefreshing)
-                    onClicked: {
-                        if (watchlistController) watchlistController.refreshPrices()
-                    }
-                }
 
                 // Yeni Liste Oluştur Butonu
                 ModernButton {

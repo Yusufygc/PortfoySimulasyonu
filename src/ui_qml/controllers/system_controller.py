@@ -147,7 +147,7 @@ class SystemController(QObject):
         if self.liveRefreshEnabled:
             self._timer.start(self.liveRefreshInterval * 60_000)
 
-    def _session_open(self) -> bool:
+    def session_open(self) -> bool:
         session = self._svc("bist_market_session_service")
         if session is None:
             return True
@@ -160,12 +160,17 @@ class SystemController(QObject):
 
     @Slot()
     def refreshNow(self) -> None:
-        """Seans açıksa aktif pozisyonların canlı fiyatlarını yeniler (zamanlayıcı ve elle çağrı)."""
+        """Otomatik yenileme açıksa ve seans açıksa canlı fiyatları yeniler (zamanlayıcı ve Ayarlar düğmesi)."""
+        if self.liveRefreshEnabled:
+            self.start_refresh()
+
+    def start_refresh(self) -> None:
+        """Seans açıksa canlı fiyatları yeniler; otomatik yenileme ayarından bağımsız (tek yenile ikonu)."""
         service = self._svc("live_price_refresh_service")
-        if service is None or not self.liveRefreshEnabled:
+        if service is None:
             return
         self._release_stalled_refresh()
-        if self._is_refreshing or not self._session_open():
+        if self._is_refreshing or not self.session_open():
             return
         self._is_refreshing = True
         self._refresh_started = time.monotonic()

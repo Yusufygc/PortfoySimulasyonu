@@ -5,6 +5,18 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-05] mimari | Fiyat Güncellemesinin Tek Koordinatörü ve Düğmesiz Güncelleme
+
+- **Sorun 1 - Ana Sayfa ağ zinciri:** Dashboard her `event_bus.prices_updated` olayında ve piyasa senkronu sonrası (`dataSynced`) `refreshMetrics` ile ağdan **tüm** canlı fiyatları yeniden çekiyordu; kapanıştan sonra gereksiz 30-120 sn ağ turu açıyor ve seans dışı "intraday" kaydı üretiyordu. Yenileme ham `threading.Thread` ve iş parçacığından `QTimer.singleShot` ile bitiyordu (proje kuralına aykırı), yeniden giriş koruması yoktu.
+- **Sorun 2 - Model Portföy eski fiyat:** `refreshData` seçili portföy değişmediyse fiyat haritasını yeniden okumuyordu; senkron/tamamlama sonrası Model Portföy eski fiyatta kalıyordu.
+- **Sorun 3 - İzleme Listesi güncellenmiyordu:** Piyasa senkronu ve açılış tamamlaması sonrası İzleme Listesi yenilenmiyordu; `refreshPrices` ağ çağrısı yapmadan sahte 600 ms "güncellendi" gösteriyordu.
+- **Düzeltme:** Yeni `PriceRefreshController` (`priceRefreshController`): fiyat yazan tüm sinyalleri ve portföy değişikliklerini tek `pricesChanged` sinyalinde birleştirir (400 ms), ortak son güncelleme zamanını tutar ve tek yenile ikonunu sağlar (seans içinde `SystemController.start_refresh`, dışında `MarketSyncController.triggerSyncNow`). Ana Sayfa `reloadPrices`, İzleme Listesi `refreshPrices`, Model Portföy `reloadPrices` yalnızca DB'den yeniden okur. Dashboard'dan `refreshMetrics`/`updateClosingPrices` ve event bus aboneliği, Model Portföy'den `refreshPrices` ve ham iş parçacığı, İzleme Listesi'nden sahte zamanlayıcı kaldırıldı; `refreshData` seçim değişmese de fiyat haritasını okur.
+- **Arayüz:** Ana Sayfa "Fiyatları Yenile" ve "Fiyatları Güncelle", Model Portföy "Fiyat Güncelle", İzleme Listesi yenile düğmeleri kaldırıldı; yerine ortak `PriceStatusChip` (son güncelleme + küçük yenile ikonu, yenilenirken döner). Başarılı işlem sonrası (`StockDetail`) eski `refreshMetrics` ve var olmayan `modelPortfolioController` çağrıları düzeltildi.
+- **Son güncelleme:** tek ortak zaman (`dashboard/last_price_update_at`); model portföy başına zaman kaldırıldı.
+- **H10 incelemesi:** Açılışlarda (03.10 ve 05.10) 624 hissenin 01.10-02.10 için yeniden indirilmesi ve her seferinde 35 satır uzlaştırma, gerçek verinin kopyasında yeniden üretilemedi: geçersiz bar yok, uzlaştırma iki turda 0 satır, yinelenen ticker yok; iki DuckDB yazıcısı da geçersiz kapanışı eler. 03.10'daki tek seferlik veri göçünün kalıntısı olarak değerlendirildi; kod değişikliği yapılmadı. Sonraki açılış loglarında "geçersiz kapanışlı barlar" satırı tekrar görünürse yeniden incelenmeli.
+- **Test:** `test_price_refresh_controller.py` (5 sinyal -> 1 yenileme, portföy değişikliği zaman kaydetmez, event bus, ikon seans içi/dışı, meşgulken yok sayılır), `test_dashboard_updates.py` (DB'den yeniden okuma, Model fiyat haritası yenilenir).
+
+---
 ## [2026-10-05] düzeltme | Açılış İşlerinde Çift BIST Senkronu ve "Dün" Hedefi
 
 - **Sorun 1:** `StartupJobsController._queue_bist_backfill`, `MarketSyncController` ile aynı `MarketDataSyncService.sync_daily_delta`'yı ayrı yürütücüde eşzamanlı çalıştırıyordu (kilit yok, DuckDB yazma çakışması riski, çift indirme). Ayrıca 18:30 saat kapısı sabah/gece açılışlarında işi atlatıyordu (log: "00:47 BIST backfill atlandı (saat < 18:30)").

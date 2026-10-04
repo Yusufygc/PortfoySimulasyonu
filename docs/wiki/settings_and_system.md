@@ -23,7 +23,7 @@ Veritabanı istatistiği, bütünlük (`PRAGMA integrity_check` ve DuckDB okuma 
 
 | İş | Tetik | Denetleyici / servis |
 |---|---|---|
-| **DuckDB artımlı senkron** (catch-up) | Açılıştan 5 sn sonra; ayrıca işlem günü kapanış verisi hazır olunca (**18:30**, yarım gün 13:20; Istanbul saati, tatil takvimi) ve elle | `MarketSyncController` -> `MarketDataSyncService.sync_daily_delta`: DuckDB'deki son bar ile son tamamlanmış işlem günü arasındaki eksik günleri yalnızca eksik barlar için indirir; portföy hisselerinin yeni barlarını SQLite'a taşır (`reconcile_sqlite_from_duckdb`); portföy kurumsal aksiyonlarını DuckDB'ye aktarır ve onaylı olayları ham veriye karşı doğrular (çift düzeltme koruması). Bitince `dataSynced` ile Dashboard ve Model Portföy yenilenir; başlıkta senkron rozeti görünür. |
+| **DuckDB artımlı senkron** (catch-up) | Açılıştan 5 sn sonra; ayrıca işlem günü kapanış verisi hazır olunca (**18:30**, yarım gün 13:20; Istanbul saati, tatil takvimi) ve elle | `MarketSyncController` -> `MarketDataSyncService.sync_daily_delta`: DuckDB'deki son bar ile son tamamlanmış işlem günü arasındaki eksik günleri yalnızca eksik barlar için indirir; portföy hisselerinin yeni barlarını SQLite'a taşır (`reconcile_sqlite_from_duckdb`); portföy kurumsal aksiyonlarını DuckDB'ye aktarır ve onaylı olayları ham veriye karşı doğrular (çift düzeltme koruması). Bitince `dataSynced` `PriceRefreshController` üzerinden Ana Sayfa, İzleme Listesi ve Model Portföy'ü yeniler; başlıkta senkron rozeti görünür. |
 | **Canlı fiyat yenileme** | Açılıştan 6 sn sonra, sonra 5/15/30/60 dk aralıkla (varsayılan açık, 15 dk) | `SystemController` -> `LivePriceRefreshService.refresh_active_prices`; yalnızca BIST seansı açıkken (10:00-18:10); portföy pozisyonları ve izleme listesi hisseleri; `latest_prices`'a yazar ve `prices_updated` yayınlar. |
 | **Açılış bakım işleri** | Açılıştan 8 sn sonra, tek iş parçacığında sırayla | `StartupJobsController` |
 
@@ -35,7 +35,11 @@ Veritabanı istatistiği, bütünlük (`PRAGMA integrity_check` ve DuckDB okuma 
 
 Tüm BIST tamamlaması yalnızca `MarketSyncController`'dadır (eskiden açılış işi de aynı `sync_daily_delta`'yı ayrı yürütücüde eşzamanlı çalıştırıyordu).
 
-Sonuçlar küresel toast ile bildirilir (yeni fiyat kaydı, yeni aday, yeni sinyal); hata durumunda kısa uyarı verilir. Yeni fiyat yazıldığında Dashboard/Model Portföy yenilenir.
+Sonuçlar küresel toast ile bildirilir (yeni fiyat kaydı, yeni aday, yeni sinyal); hata durumunda kısa uyarı verilir. Yeni fiyat yazıldığında fiyat ekranları `PriceRefreshController` üzerinden yenilenir.
+
+### Fiyat güncellemesinin koordinasyonu (`PriceRefreshController`)
+
+Fiyat yazan yollar (`MarketSyncController.dataSynced`, `SystemController.pricesRefreshed`, `StartupJobsController.pricesUpdated`, `PriceDataController`/`GoldenCrossController.pricesUpdated`, `event_bus.prices_updated`) ve portföy içeriği değişiklikleri (`portfolioChanged`, `systemReset`) tek bir `pricesChanged` sinyalinde birleşir (400 ms; art arda gelen sinyaller tek yenilemeye iner). Ana Sayfa (`reloadPrices`), İzleme Listesi (`refreshPrices`) ve Model Portföy (`reloadPrices`) yalnızca DB'den yeniden okur; ekranlar kendisi ağ çağrısı yapmaz. Fiyat yazan kaynaklar ortak son güncelleme zamanını kaydeder (`dashboard/last_price_update_at`). Ekranlardaki `PriceStatusChip` bu zamanı ve küçük yenile ikonunu gösterir; ikon seans açıksa canlı yenilemeyi (`SystemController.start_refresh`, otomatik yenileme ayarından bağımsız), değilse kapanış senkronunu (`MarketSyncController.triggerSyncNow`) başlatır.
 
 ## 3. Canlı Fiyat Yenileme ve Sıfırlama (`SystemController`)
 
@@ -54,7 +58,7 @@ Kuruluş/uygulama adı `PortfoySimulasyonu`. Başlıca anahtarlar:
 | `settings/last_auto_corporate_action_discovery_at` | Günlük aday taraması işareti |
 | `settings/last_auto_technical_scan_at` | Golden Cross tarama zamanı |
 | `settings/live_price_refresh_enabled`, `settings/live_price_refresh_interval_minutes`, `settings/last_live_price_refresh_at` | Canlı fiyat yenileme |
-| `dashboard/last_price_update_at`, `dashboard/weekly_return_pct`, `dashboard/monthly_return_pct`, `model_portfolios/<id>/last_price_update_at` | Son güncelleme ve dönemsel getiriler (`last_update_store.py`) |
+| `dashboard/last_price_update_at`, `dashboard/weekly_return_pct`, `dashboard/monthly_return_pct` | Ortak son fiyat güncellemesi ve dönemsel getiriler (`last_update_store.py`; model portföy başına ayrı zaman artık yok) |
 | Sohbet geçmişi anahtarları | AI sohbet oturumları (`QSettingsChatHistoryRepository`) |
 
 Testler `QSettings`'i geçici INI dosyasına yönlendirir; gerçek kayıt defterine yazılmaz.

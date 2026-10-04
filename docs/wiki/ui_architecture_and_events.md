@@ -70,11 +70,11 @@ Kurallar: arka plan iş parçacığından QML özelliği doğrudan değiştirilm
 
 | Mekanizma | Kullanım |
 |---|---|
-| `GlobalEventBus.prices_updated` (`dict[int, Decimal]`) | Fiyat güncellemesi (kapanış tamamlama, Dashboard "Fiyatları Güncelle", açılış işleri). Dashboard ve Model Portföy dinler. Boş yük yayınlanmaz. |
-| Denetleyici sinyalleri (`dataSynced`, `pricesUpdated`, `portfolioChanged`, `pricesRefreshed`, `systemReset`) | `app.py` içinde bağlanır: sermaye artırımı, temettü, fiyat güncelleme, açılış tamamlama ve sistem yenileme sonrası Dashboard (`reloadPortfolio`) ve Model Portföy (`refreshData`) yenilenir; piyasa senkronu sonrası fiyat ekranları yenilenir. |
+| `GlobalEventBus.prices_updated` (`dict[int, Decimal]`) | Fiyat güncellemesi (canlı yenileme, kapanış tamamlama, açılış işleri). Yalnızca `PriceRefreshController` dinler; ekranlar yükteki fiyatı kullanmaz, DB'den yeniden okur. Boş yük yayınlanmaz. |
+| Denetleyici sinyalleri (`dataSynced`, `pricesUpdated`, `portfolioChanged`, `pricesRefreshed`, `systemReset`) | `app.py` içinde `PriceRefreshController.watch` ile bağlanır ve tek `pricesChanged` sinyalinde birleşir (400 ms); Ana Sayfa (`reloadPrices`), İzleme Listesi (`refreshPrices`), Model Portföy (`reloadPrices`) DB'den yeniden okur. `portfolioChanged`/`systemReset` ayrıca Model Portföy listesini (`refreshData`) yeniler. |
 | `QSettings` | Tema, otomatik iş işaretleri, son güncelleme zamanları, sohbet geçmişi. |
 
-Canlı fiyat önceliği: EventBus'tan gelen canlı fiyat, sonra `latest_prices`, en son son kapanış (`CurrentPriceResolver`; bkz. [service_portfolio_and_market.md](service_portfolio_and_market.md)). Tarihsel rapor ve backtest yalnızca `daily_prices` kapanışını kullanır.
+Güncel fiyat: `latest_prices` canlı kaydı yalnızca seans içinde alınmışsa, aksi halde son kapanış (`CurrentPriceResolver`; bkz. [service_portfolio_and_market.md](service_portfolio_and_market.md)). Tarihsel rapor ve backtest yalnızca `daily_prices` kapanışını kullanır.
 
 ## 7. Denetleyici Kuralları
 
