@@ -135,6 +135,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Çözüm:** Sözcük sınırı: `re.search(r"\b(al|sat)\b", ...)` veya yalnızca belirgin sözcükler ("optimizasyon", "dengele", "öneri").
 - **Düzeltme Eforu:** S
 - **Bağımlılık:** Yerel analiz testleri.
+- **Durum:** Çözüldü (2026-10-04). Yeni `advisor_query_intent.py`: sözcük sınırlı regex ve Türkçe duyarlı küçük harf (Bulgu 9'un bu noktadaki kısmı da kapandı; `planning_controller` isim eşleştirmesi iki tarafta aynı dönüşümü kullandığından dokunulmadı).
 
 ### [🟡] 7. BIGINT `max(id)+1` ataması
 - **Persona:** Kıdemli Yazılım Mimarı.

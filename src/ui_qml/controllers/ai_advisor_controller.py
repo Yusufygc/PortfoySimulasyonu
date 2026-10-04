@@ -22,6 +22,7 @@ from config.settings_loader import persist_api_keys
 from src.application.services.ai.ai_advisor_service import AiAdvisorService
 from src.application.services.ai.safety_guard import MAX_CHAR_LIMIT, validate_user_input
 from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
+from src.ui_qml.controllers.advisor_query_intent import is_optimization_query
 
 logger = logging.getLogger(__name__)
 
@@ -492,7 +493,6 @@ class AiAdvisorController(QObject):
         stock_svc = self._get_stock_360_service()
 
         used_tools: List[Dict[str, str]] = []
-        lower_q = query.lower()
 
         # Araç 1: Portföy Özeti
         overview_data = {}
@@ -529,7 +529,7 @@ class AiAdvisorController(QObject):
         top3_weight = risk_data.get("top_three_weight_pct") or 0.0
 
         # Eğer soru Optimizasyon / Rebalance ile ilgiliyse
-        if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", "al", "sat"]):
+        if is_optimization_query(query):
             opt_data = {}
             if advisor:
                 try:

@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | AI Yerel Motoru Sorgu Niyeti Eşleştirmesi (Denetim Bulgu 6)
+
+- `AiAdvisorController._generate_local_portfolio_analysis` optimizasyon raporuna karar verirken `"al"` ve `"sat"` için alt dize araması yapıyordu; `maliyet`, `analiz`, `altın` gibi sözcükler her soruda Markowitz aracını tetikliyordu.
+- Yeni saf modül `advisor_query_intent.py` (`is_optimization_query`, `turkish_lower`): sözcük sınırlı regex, açık sözcük kökleri, `İ/I` duyarlı küçük harf. Denetleyiciye yeni mantık eklenmedi (eşik ihlali olan sınıf).
+- Testler: `tests/ui_qml/test_advisor_query_intent.py` (19 test, denetleyici düzeyinde iki davranış testi dahil).
+
+---
 ## [2026-10-04] düzeltme | Sürümlü Şema Göçleri (Denetim Bulgu 5)
 
 - Yeni `src/infrastructure/db/sqlalchemy/schema_migrations.py`: numaralı `Migration` listesi, `schema_migrations` sürüm tablosu, göç öncesi `data/backups/` yedeği (son 5), göç başına transaction, hata yükseltme (`SchemaMigrationError`). Üç eski açılış adımı (golden_cross DROP, `.IS` ticker, `cash_movements.stock_id`) 1-3 numaralı göçlere taşındı.
