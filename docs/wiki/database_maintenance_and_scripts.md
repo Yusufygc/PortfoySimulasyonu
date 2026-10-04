@@ -33,6 +33,7 @@ Tümü proje kökünden `.\venv\Scripts\python.exe scripts\<ad>.py` ile çalış
 | `migrate_market_universe_to_duckdb.py` | SQLite piyasa geçmişini DuckDB tek evrenine taşır; **varsayılan kuru çalıştırma**, `--execute` önce yedek alır (`data/backups/`). | 2026-10-03'te çalıştırıldı ([data_architecture.md](data_architecture.md)). |
 | `purge_stock.py` | `--ticker THYAO` ile hisseyi ve bağlı kayıtları siler (`PortfolioMaintenanceService`). | Geri alınamaz; önce yedek alın. |
 | `measure_code_quality.py` | Kod boyutu/karmaşıklık ölçümü; `--output-dir`, `--fail-on-threshold` ([code_quality_guardrails.md](code_quality_guardrails.md)). | |
+| `qml_visual_snapshot.py` | `render <dizin>` büyük QML görünümlerinin ofscreen ekran görüntüsünü alır, `compare <a> <b>` iki dizini piksel piksel karşılaştırır (QML yeniden düzenlemelerinde görsel eşdeğerlik kanıtı). Gerçek veriye dokunmaz, geçici kopya kullanır. | Eski commit için `git worktree` kullanın ([qml_pages_guide.md](qml_pages_guide.md)). |
 | `build_preflight.py` | Derleme öncesi kontroller ([project_build_and_deployment.md](project_build_and_deployment.md)). | |
 | `import_bist_ohlcv_to_db.py` | BIST OHLCV CSV'lerini içe aktarır. | MySQL dönemine ait, sabit yerel kaynak dizini vardır; eskimiş kabul edin. |
 | `backfill_missing_friday_prices.py`, `fix_technical_analysis.py` | Tek seferlik düzeltmeler (sabit tarih/hisse). | Yeniden kullanmadan önce okuyun. |

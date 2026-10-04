@@ -128,6 +128,38 @@ def _backup_database(db_path: Path) -> Path:
     return target
 
 
+def _pending_migrations(engine: Engine, existing_tables: set[str], migrations: tuple[Migration, ...]) -> list[Migration]:
+    if not existing_tables:  # taze veritabanı: create_all güncel şemayı kurar
+        return []
+    applied = _applied_versions(engine, existing_tables)
+    return [m for m in sorted(migrations, key=lambda m: m.version) if m.version not in applied]
+
+
+def _create_schema(engine: Engine, metadata: MetaData, stamp: tuple[Migration, ...]) -> None:
+    """Eksik tabloları ve sürüm tablosunu kurar; `stamp` verilen göçleri uygulanmış işaretler (taze veritabanı)."""
+    try:
+        metadata.create_all(bind=engine, checkfirst=True)
+        with engine.begin() as conn:
+            _ensure_version_table(conn)
+            for migration in sorted(stamp, key=lambda m: m.version):
+                _record(conn, migration)
+    except Exception as exc:
+        raise SchemaMigrationError(f"Şema oluşturulamadı: {exc}") from exc
+
+
+def _apply_migration(engine: Engine, migration: Migration, backup_path: Path | None) -> None:
+    try:
+        with engine.begin() as conn:
+            migration.apply(conn)
+            _record(conn, migration)
+    except Exception as exc:
+        backup_note = f" Yedek: {backup_path}" if backup_path else ""
+        raise SchemaMigrationError(
+            f"Şema göçü {migration.version} ({migration.name}) başarısız: {exc}.{backup_note}"
+        ) from exc
+    logger.info("Şema göçü uygulandı: %s (%s)", migration.version, migration.name)
+
+
 def run_migrations(
     engine: Engine,
     metadata: MetaData,
@@ -135,11 +167,7 @@ def run_migrations(
 ) -> None:
     """Şemayı kurar ve bekleyen göçleri sırayla uygular; hata `SchemaMigrationError` olarak yükselir."""
     existing_tables = set(inspect(engine).get_table_names())
-    is_fresh = not existing_tables
-    pending = [] if is_fresh else [
-        m for m in sorted(migrations, key=lambda m: m.version)
-        if m.version not in _applied_versions(engine, existing_tables)
-    ]
+    pending = _pending_migrations(engine, existing_tables, migrations)
 
     backup_path: Path | None = None
     db_path = _database_file(engine)
@@ -147,25 +175,6 @@ def run_migrations(
         backup_path = _backup_database(db_path)
         logger.info("Şema göçü öncesi yedek alındı: %s", backup_path)
 
-    try:
-        metadata.create_all(bind=engine, checkfirst=True)
-        with engine.begin() as conn:
-            _ensure_version_table(conn)
-            if is_fresh:
-                # Taze veritabanında create_all güncel şemayı kurar; geçmiş göçler uygulanmış sayılır.
-                for migration in sorted(migrations, key=lambda m: m.version):
-                    _record(conn, migration)
-    except Exception as exc:
-        raise SchemaMigrationError(f"Şema oluşturulamadı: {exc}") from exc
-
+    _create_schema(engine, metadata, stamp=migrations if not existing_tables else ())
     for migration in pending:
-        try:
-            with engine.begin() as conn:
-                migration.apply(conn)
-                _record(conn, migration)
-        except Exception as exc:
-            backup_note = f" Yedek: {backup_path}" if backup_path else ""
-            raise SchemaMigrationError(
-                f"Şema göçü {migration.version} ({migration.name}) başarısız: {exc}.{backup_note}"
-            ) from exc
-        logger.info("Şema göçü uygulandı: %s (%s)", migration.version, migration.name)
+        _apply_migration(engine, migration, backup_path)

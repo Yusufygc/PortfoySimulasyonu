@@ -6,7 +6,7 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 
 ## 1. Ölçüm
 
-**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 14 sınıf, 104 fonksiyon, 0 dosya); yeni ihlal eklenemez. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
+**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 14 sınıf, 103 fonksiyon, 0 dosya); yeni ihlal eklenemez. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
 
 ```powershell
 .\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar
@@ -30,7 +30,7 @@ Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (do
 
 ## 3. Güncel Durum (2026-10-04 ölçümü)
 
-Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **104 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
+Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **103 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
 
 | Denetleyici | Etkin satır | Metot |
 |---|---:|---:|

@@ -62,7 +62,7 @@ Her yeniden düzenlemeden sonra ve yeni özellik eklemeden önce paketin yeşil 
 
 ## 6. CI
 
-`.github/workflows/tests.yml`: test işi (Windows, Python 3.10/3.11 zorunlu + 3.12 deneysel, offscreen Qt, kapsam eşiği %80; yerel taban %84), kalite kapısı ve `pip-audit` güvenlik taraması ([project_build_and_deployment.md](project_build_and_deployment.md)). Kapsamı yerelde ölçmek: `pytest tests -q --cov=src --cov=config --cov-report=term`. Nuitka derlemesi CI'da koşmaz; yayın öncesi `scripts/build_preflight.py` ile elle doğrulanır ([project_build_and_deployment.md](project_build_and_deployment.md)).
+`.github/workflows/tests.yml`: test işi (Windows, Python 3.10/3.11 zorunlu + 3.12 deneysel, offscreen Qt, kapsam eşiği %80; yerel taban %84), kalite kapısı ve `pip-audit` güvenlik taraması ([project_build_and_deployment.md](project_build_and_deployment.md)). Görsel eşdeğerlik: büyük QML yeniden düzenlemelerinde `scripts/qml_visual_snapshot.py render` ile eski ve yeni koddan ofscreen ekran görüntüsü alınıp `compare` ile piksel piksel karşılaştırılır (bkz. [qml_pages_guide.md](qml_pages_guide.md)). Kapsamı yerelde ölçmek: `pytest tests -q --cov=src --cov=config --cov-report=term`. Nuitka derlemesi CI'da koşmaz; yayın öncesi `scripts/build_preflight.py` ile elle doğrulanır ([project_build_and_deployment.md](project_build_and_deployment.md)).
 
 ## 7. Yeni Test Yazarken
 

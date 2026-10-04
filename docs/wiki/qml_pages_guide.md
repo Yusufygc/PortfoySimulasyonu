@@ -93,6 +93,8 @@ Beş büyük görünüm 2026-10-04'te bileşenlere bölündü (hiçbiri 900 sat�
 | `StockDetailModal` (178) | `StockDetailHeader` (sinyaller), `StockDetailKpiCards` (`boxWidth`), `StockDetailTabsPanel` (`activeTab`), `StockDetailOrderForm` (emir durumu, `resetTradeMoment()`, `syncPrice()`) |
 | `AiAdvisorView` (122) | `AiAdvisorHeader` (`historyRequested`), `AiChatTerminal` (`scrollToEnd()`), `AiHealthPanel` (`stacked`) |
 
+**Görsel doğrulama (2026-10-04):** bölmeden önceki commit (`b3169fb`) ile sonrası, 17 ekran durumu için (Ayarlar 8 sekme, AI Asistan 2 mod, Optimizasyon, Hisse 360 3 mod, Hisse Detay kapalı/açık/2. sekme) ofscreen yazılımsal render ile `scripts/qml_visual_snapshot.py` aracılığıyla karşılaştırıldı: **farklı piksel sayısı 0**. Ofscreen ortamda yazı tipleri kutu olarak çizilir (yerleşim ve renk karşılaştırılır, metin biçimi değil); gerçek tıklama/kaydırma etkileşimi ve metin render'ı elle denenmedi.
+
 Yeni bölme kuralları: bileşen yalnızca kendi kimliklerini ve `root` özelliklerini kullanır; ana görünümdeki kimliklere başvurmak yerine özellik/sinyal tanımlanır. Her bölmeden sonra `tests/ui_qml/test_qml_views_runtime_smoke.py` tüm sekme/modları uyarısız yüklemelidir.
 
 ## Denetleyici Referansı
