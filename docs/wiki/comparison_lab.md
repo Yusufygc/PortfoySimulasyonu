@@ -47,3 +47,13 @@ Karşılaştırma grafikleri Plotly kullanmaz. Plotly yalnızca Hisse 360'taki f
 - "Tümü" dönemi sabit 2022 başlangıçlıdır.
 - Genişletilmiş risk metrikleri (Sortino, Calmar, Omega, VaR...) servis katmanında hazırdır ama bu ekranda gösterilmez.
 - Plandaki işlem analizi, davranışsal analiz ve XIRR yoktur ([roadmap.md](roadmap.md)).
+
+## 4. Kod Yapısı
+
+| Modül | Sorumluluk |
+|---|---|
+| `controllers/comparison_controller.py` | QML yüzeyi (Property/Slot/Signal), durum, arka plan iş parçacığı ve sinyal akışı |
+| `controllers/comparison_support.py` | Saf yardımcılar: seçimi (portföy / benchmark / hisse) ayırma, tarih aralığı, risk-getiri metrikleri, AI istemi, portföy hisse verisi |
+| `controllers/comparison_chart_html.py` | Saf HTML üreticileri (Lightweight Charts, Chart.js, treemap şablonları) |
+
+Grafik HTML'i sabit girdilerle üretilip değişmediği doğrulanarak taşınmıştır; yeni grafik eklerken üretici `comparison_chart_html.py`'ye, denetleyiciye yalnızca sekme dağıtımı eklenir.

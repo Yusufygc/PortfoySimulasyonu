@@ -6,7 +6,7 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 
 ## 1. Ölçüm
 
-**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 14 sınıf, 98 fonksiyon, 0 dosya); yeni ihlal eklenemez. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
+**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 14 sınıf, 91 fonksiyon, 0 dosya); yeni ihlal eklenemez. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
 
 ```powershell
 .\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar
@@ -30,11 +30,11 @@ Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (do
 
 ## 3. Güncel Durum (2026-10-04 ölçümü)
 
-Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **98 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
+Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **91 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
 
 | Denetleyici | Etkin satır | Metot |
 |---|---:|---:|
-| `ComparisonController` | 884 | 50 |
+| `ComparisonController` | 339 | 43 |
 | `Stock360Controller` | 623 | 86 |
 | `OptimizationController` | 628 | 36 |
 | `AiAdvisorController` | 614 | 44 |
@@ -49,7 +49,7 @@ Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **98 fonks
 | `PriceDataController` | 288 | 37 |
 | `StrategyBacktestController` | 170 | 21 |
 
-Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `stock_360_calc.py` (6), `comparison_controller.py`, `corporate_action_controller.py`, `dashboard_controller.py` (5'er) dosyalarındadır. Bunlar geçici ve bilinen teknik borçtur ([roadmap.md](roadmap.md)); **yeni ihlal eklenmez**: bu denetleyicilere özellik eklemeden önce ilgili parça ayrı modüle (hesap yardımcısı, alt denetleyici) çıkarılır. `Stock360Controller` bu ayrımın örneğidir (`stock_360_calc/fallback/formatters/html`).
+Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `stock_360_calc.py` (6), `comparison_controller.py`, `corporate_action_controller.py`, `dashboard_controller.py` (5'er) dosyalarındadır. Bunlar geçici ve bilinen teknik borçtur ([roadmap.md](roadmap.md)); **yeni ihlal eklenmez**: bu denetleyicilere özellik eklemeden önce ilgili parça ayrı modüle (hesap yardımcısı, alt denetleyici) çıkarılır. `Stock360Controller` (`stock_360_calc/fallback/formatters/html`) ve `ComparisonController` (`comparison_chart_html`, `comparison_support`) bu ayrımın örnekleridir. Kalan sınıf ihlallerinin büyük kısmı QML'e açık `@Property`/`@Slot` yüzeyidir; sınıf başına 20 metot altına inmek için yüzeyin alt denetleyicilere bölünmesi (QML bağlamalarının değişmesi) gerekir.
 
 ## 4. Denetleyici ve QML Standardı
 

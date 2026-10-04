@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] refaktör | ComparisonController Ayrıştırması, 1. Adım (Denetim Bulgu 2)
+
+- **Karakterizasyon:** Refaktör öncesi `ComparisonController` HTML üreticileri (çizgi/drawdown/aylık/saçılım/treemap), istem metni, başlangıç tarihi ve tarih ayrıştırma sabit girdilerle çalıştırılıp SHA-256 özetleri alındı; sonrasında aynı girdiler yeni modüllerle özdeş çıktı verdi (11/11).
+- **Yeni `comparison_chart_html.py`:** saf grafik HTML üreticileri (`build_line_chart_html`, `build_drawdown_html`, `build_periodic_html`, `build_scatter_html`, `build_treemap_html`, `treemap_items_from_metrics`), `PALETTE` ve gömülü JS yükleyici. Büyük HTML şablonları fonksiyon gövdesinden modül sabitine alındı.
+- **Yeni `comparison_support.py`:** `parse_date`, `resolve_start_date`, `resolve_range`, `find_column`, `split_selection`, `build_filter_state`, `build_risk_return_metrics`, `build_commentary_prompt`, `fetch_portfolio_holdings`. Denetleyici durumuna bağımlı değil.
+- **`ComparisonController`:** 1109 -> 477 satır; `_render_current_chart` sekme dağıtımına indirildi (`_build_returns_html` ayrıldı), `loadAssetOptions` seçenek toplamayı `_collect_asset_options`'a verdi. QML yüzeyi (Property, Slot, Signal) değişmedi.
+- **Testler:** Yeni `tests/ui_qml/test_comparison_support.py` (11 test). Mevcut denetleyici testleri değişmeden geçti (`_resolve_range`, `_get_portfolio_holdings` ince bağlayıcı olarak denetleyicide kaldı).
+- **Ölçüm:** `ComparisonController` 884 -> 339 etkin satır, 50 -> 43 metot; hâlâ 300 satır / 20 metot eşiğinin üstünde (kalan metotların çoğu QML'e açık `@Property` getter'ı ve `@Slot`; bunlar sınıf bölünmeden, yani QML API'si değişmeden azaltılamaz). Eşik dışı fonksiyon 98 -> 91; CI tavanı 91.
+
+---
 ## [2026-10-04] temizlik | Parametre Nesnesi ve Bakım Artıkları (Denetim Bulgu 15-16)
 
 - **Bulgu 15:** `BacktestSetup` (`strategy_backtest.py`) parametre nesnesi: `simulate_rebalancing` / `simulate_stop_take` 7 -> 4 parametre, `StrategyBacktestService.run_rebalancing` / `run_stop_take` 7 -> 3, `_build_result` 7 -> 4 (`_RunLog`). Denetleyici ve testler uyarlandı (78 test). QML `@Slot` imzaları, `MarketDataSyncService.__init__` ve import sayısı yüksek kompozisyon modülleri bilinçli bırakıldı.
