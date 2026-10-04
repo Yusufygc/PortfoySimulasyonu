@@ -180,6 +180,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Çözüm:** Windows Kimlik Bilgisi Yöneticisi (`keyring`) ile saklama; `.env` yalnızca geliştirme yedeği olarak kalır.
 - **Düzeltme Eforu:** M
 - **Bağımlılık:** Yeni bağımlılık (`keyring`) ve Nuitka paketleme.
+- **Durum:** Çözüldü (2026-10-04). `config/secret_store.py`; depo yoksa `.env` yedeği. Nuitka derlemesinde `keyring` arka ucu denenmedi.
 
 ### [🟡] 11. CI kapsamı dar
 - **Persona:** SRE / DevOps.

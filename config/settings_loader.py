@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from dataclasses import dataclass
@@ -7,10 +8,15 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib.parse import urlparse
 
-from dotenv import load_dotenv, set_key
+from dotenv import dotenv_values, load_dotenv, set_key, unset_key
+
+from config.secret_store import SECRET_NAMES, get_secret_store
 
 from src.infrastructure.db.db_config import DatabaseConfig, SQLiteConfig
 from src.infrastructure.db.paths import DEFAULT_SQLITE_RELATIVE, sqlite_db_path
+
+
+logger = logging.getLogger(__name__)
 
 
 class SettingsError(RuntimeError):
@@ -49,12 +55,22 @@ def _env_file_path() -> Path:
 _PROTECTED_PATH_ENV = ("DB_SQLITE_PATH", "DUCKDB_PATH")
 
 
+def _apply_stored_secrets() -> None:
+    """İşletim sistemi sır deposundaki API anahtarlarını ortam değişkenlerine yansıtır (depo `.env`'den önceliklidir)."""
+    store = get_secret_store()
+    for name in SECRET_NAMES:
+        value = store.get(name)
+        if value:
+            os.environ[name] = value
+
+
 def _load_project_env() -> None:
     env_path = _env_file_path()
     if env_path.exists():
         preset = {key: os.environ[key] for key in _PROTECTED_PATH_ENV if os.environ.get(key)}
         load_dotenv(env_path, override=True)
         os.environ.update(preset)
+    _apply_stored_secrets()
 
 
 def _required_env(name: str) -> str:
@@ -126,28 +142,44 @@ def _env_write_path() -> Path:
     return _env_file_path()
 
 
+def _remove_env_key(env_path: Path, name: str) -> None:
+    if name in dotenv_values(env_path):
+        unset_key(str(env_path), name)
+
+
+def _persist_secret(env_path: Path, name: str, value: str) -> None:
+    """Anahtarı sır deposuna yazar; depo kullanılamazsa `.env` dosyasına düşer. Boş değer anahtarı siler."""
+    store = get_secret_store()
+    if not value:
+        store.delete(name)
+        _remove_env_key(env_path, name)
+        os.environ.pop(name, None)
+        return
+    if store.set(name, value):
+        _remove_env_key(env_path, name)  # düz metin kalıntı bırakma
+    else:
+        logger.warning("%s işletim sistemi sır deposuna yazılamadı; .env dosyasına kaydediliyor.", name)
+        set_key(str(env_path), name, value, quote_mode="never")
+    os.environ[name] = value
+
+
 def persist_api_keys(settings: AppSettings | None, gemini_key: str | None = None, evds_key: str | None = None) -> Path:
-    """API anahtarlarını .env dosyasına yazar, ortam değişkenlerini ve (verilmişse) çalışan ayarları günceller.
+    """API anahtarlarını işletim sistemi sır deposuna (yoksa `.env` dosyasına) yazar, ortam değişkenlerini ve
+    (verilmişse) çalışan ayarları günceller.
 
     `AISettings` / `MarketSettings` frozen olduğundan çalışma anı güncellemesi
     `object.__setattr__` ile yapılır; böylece ayarları okuyan servisler yeniden başlatma
-    gerektirmeden yeni değeri görür. `None` verilen anahtara dokunulmaz.
+    gerektirmeden yeni değeri görür. `None` verilen anahtara dokunulmaz. Dönen yol `.env` dosyasıdır
+    (yedek hedef ve temizlenen düz metin kalıntıların bulunduğu dosya).
     """
     env_path = _env_write_path()
     env_path.parent.mkdir(parents=True, exist_ok=True)
     if not env_path.exists():
         env_path.touch()
 
-    updates = {"GEMINI_API_KEY": gemini_key, "EVDS_API_KEY": evds_key}
-    for name, value in updates.items():
-        if value is None:
-            continue
-        clean = value.strip()
-        set_key(str(env_path), name, clean, quote_mode="never")
-        if clean:
-            os.environ[name] = clean
-        else:
-            os.environ.pop(name, None)
+    for name, value in {"GEMINI_API_KEY": gemini_key, "EVDS_API_KEY": evds_key}.items():
+        if value is not None:
+            _persist_secret(env_path, name, value.strip())
 
     if settings is not None:
         if gemini_key is not None:

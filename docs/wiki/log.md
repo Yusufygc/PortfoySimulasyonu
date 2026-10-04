@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] güncelleme | API Anahtarları İşletim Sistemi Sır Deposunda (Denetim Bulgu 10)
+
+- Yeni `config/secret_store.py` (`SecretStore`, `KeyringSecretStore`): Gemini ve EVDS anahtarları Windows Kimlik Bilgisi Yöneticisi'nde (`keyring==25.7.0`, hizmet `PortfoySimulasyonu`) saklanır. `persist_api_keys` depoya yazar ve `.env`'deki düz metin kalıntıyı siler; depo yoksa/hata verirse `.env` yedeğine düşer. Boş değer depodan, `.env`'den ve ortamdan siler. Yükleme sırasında depo `.env`'den önceliklidir. Değer hiçbir zaman log'a yazılmaz.
+- Testler gerçek depoya asla dokunmaz: `conftest.py` autouse `secret_store` fixture'ı bellek içi depo kullanır. `test_secret_store.py` (öncelik, kalıntı temizliği, yedek, silme, güvenli hata, log sızıntısı, gerçek depoda elle koşulan `manual` testi); `test_group1_fixes.py` ve `test_settings_phase11.py` yeni davranışa uyarlandı.
+- `requirements.txt` `keyring==25.7.0`; `build_nuitka.bat` `--include-package=keyring --include-distribution-metadata=keyring`. **Doğrulanmadı:** Nuitka derlemesinde `keyring` arka uç keşfi (derleme denenmedi; başarısız olursa uygulama `.env` yedeğiyle çalışır). Gerçek Windows deposu `pytest -m manual` ve elle deneme ile doğrulandı (yazma/okuma/silme).
+
+---
 ## [2026-10-04] düzeltme | Piyasa Saati: Istanbul Saat Dilimi (Denetim Bulgu 8)
 
 - Yeni `src/domain/market_clock.py` (`market_now`, `market_today`, `market_time`): `Europe/Istanbul` duvar saati, naive döner; `tzdata` yoksa sabit UTC+3 yedeği.

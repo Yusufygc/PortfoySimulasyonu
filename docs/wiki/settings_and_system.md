@@ -9,7 +9,7 @@ Bu sayfa Ayarlar sayfasının sekmelerini, uygulama açılışında ve zamanlay�
 | Sekme | Denetleyici | İçerik |
 |---|---|---|
 | Görünüm & Tema | `SettingsController` | Koyu/açık tema (`Theme.isDark`, `QSettings` `ui/isDarkTheme`). |
-| API Anahtarları | `SettingsController` | Gemini ve TCMB EVDS anahtarlarını `.env` dosyasına yazar (`persist_api_keys`; çalışan ayarlar yeniden başlatma gerektirmeden güncellenir) ve Gemini anahtarını canlı çağrıyla sınar. |
+| API Anahtarları | `SettingsController` | Gemini ve TCMB EVDS anahtarlarını işletim sistemi sır deposuna (`keyring`; yoksa `.env`) yazar (`persist_api_keys`; çalışan ayarlar yeniden başlatma gerektirmeden güncellenir) ve Gemini anahtarını canlı çağrıyla sınar. |
 | Veri Sağlığı & Senkronizasyon | `SettingsController`, `MarketSyncController` | SQLite ve DuckDB dosya boyutu, tablo satır sayıları (hisse, işlem, nakit hareketi, izleme listesi, model portföy, finansal hedef), DuckDB hisse/bar sayısı ve son seans tarihi, bütünlük kontrolü, "Eksik BIST Barlarını Şimdi Senkronize Et". Dosya yolları gösterilir. |
 | Dışa Aktarım & Yedekleme | `SettingsController` | Portföy raporunu Excel olarak, tam veri yedeğini JSON olarak (`stocks`, `trades`, `cash_movements`, `watchlists`) masaüstüne (yoksa `reports/`) yazar. |
 | Kurumsal Aksiyonlar | `CorporateActionController` | KAP/MKK aday listesi: yenile, kaynak aç, düzenle, yoksay, onayla ve uygula ([service_corporate_actions.md](service_corporate_actions.md)). |

@@ -33,7 +33,7 @@ Proje kökündeki `.env` dosyası `config/settings_loader.py` ile okunur (`.env.
 
 Kurallar:
 - `.env`, `override=True` ile yüklenir; ancak kabuktan açıkça verilen `DB_SQLITE_PATH` ve `DUCKDB_PATH` korunur. Gerçek veriye dokunmadan betik çalıştırmak için bu iki değişken kopya dosyalara yönlendirilir.
-- API anahtarları Ayarlar > API Anahtarları sekmesinden de yazılır (`persist_api_keys`; `.env` dosyasına ve çalışan ayarlara).
+- API anahtarları (`GEMINI_API_KEY`, `EVDS_API_KEY`) Ayarlar > API Anahtarları sekmesinden girildiğinde **işletim sistemi sır deposuna** (Windows Kimlik Bilgisi Yöneticisi, `keyring`, hizmet adı `PortfoySimulasyonu`) yazılır ve `.env`'deki düz metin kalıntı silinir; çalışan ayarlar güncellenir. Okurken depo `.env`'den önceliklidir; depo veya `keyring` kullanılamıyorsa `.env` yedeğine düşülür. Geliştirmede `.env` ile anahtar vermeye devam edilebilir. Testler gerçek depoya dokunmaz (`secret_store` autouse fixture'ı bellek içi depo kullanır); gerçek depoyla elle deneme: `pytest -m manual tests/infrastructure/test_secret_store.py`.
 - Gerçek `.env` derleme çıktısına gömülmez; paketlenen uygulama yanındaki `.env` dosyasını okur.
 - `logger_setup`, API anahtarı ve parola benzeri ortam değişkenlerinin değerlerini loglarda maskeler.
 

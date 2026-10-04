@@ -43,7 +43,7 @@ Dosyayı yalnızca `BistBulkDownloader` ve `MarketDataSyncService` (yazma), `Duc
 | **Tüm BIST günlük ham barları** (`daily_prices`, ticker bazlı, ~2,2 milyon bar, 2000-bugün) ve hisse kataloğu (`bist_stocks`, ~624) | **DuckDB** `data/market_history.duckdb` | `BistBulkDownloader` (ilk yükleme, script), `MarketDataSyncService.sync_daily_delta` (artımlı) | `DuckDBMarketHistoryRepository` (salt okunur) |
 | **Sermaye artırımı/bölünme olayları ve fiyat düzeltme faktörleri** (`market_corporate_actions`, ticker anahtarlı) | **DuckDB** | `DuckDBCorporateActionStore` (`MarketCorporateActionService` üzerinden) | `DuckDBMarketHistoryRepository` (düzeltilmiş okuma) |
 | Ayarlar: tema, otomatik iş işaretleri, sohbet geçmişi | Windows `QSettings` | `SettingsController`, `StartupJobsController` | aynı |
-| API anahtarları | `.env` | `persist_api_keys` | `settings_loader` |
+| API anahtarları | İşletim sistemi sır deposu (Windows Kimlik Bilgisi Yöneticisi, `keyring`); depo yoksa `.env` | `persist_api_keys` (`config/secret_store.py`) | `settings_loader` |
 | Harici önbellekler (TÜFE, KAP) | `data/_cache/*.json` | sağlayıcılar | sağlayıcılar |
 
 DuckDB'yi okuyanlar: Hisse Tarayıcı ve Golden Cross (tüm evren), Hisse 360 (genel bakış/teknik seviyeler/şirket adı/hızlı liste),

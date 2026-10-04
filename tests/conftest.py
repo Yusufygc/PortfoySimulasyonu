@@ -62,6 +62,37 @@ def _isolate_env_file(tmp_path, monkeypatch):
     monkeypatch.setattr(settings_loader, "_env_write_path", lambda: tmp_path / ".env")
 
 
+class InMemorySecretStore:
+    """Testlerde gerçek Windows Kimlik Bilgisi Yöneticisi yerine kullanılan bellek içi sır deposu."""
+
+    def __init__(self, fail_writes: bool = False) -> None:
+        self.values: dict[str, str] = {}
+        self.fail_writes = fail_writes
+
+    def get(self, name):
+        return self.values.get(name)
+
+    def set(self, name, value):
+        if self.fail_writes:
+            return False
+        self.values[name] = value
+        return True
+
+    def delete(self, name):
+        return self.values.pop(name, None) is not None
+
+
+@pytest.fixture(autouse=True)
+def secret_store():
+    """Testler gerçek işletim sistemi sır deposuna (anahtar okuma/yazma) asla dokunmasın."""
+    from config import secret_store as secret_store_module
+
+    store = InMemorySecretStore()
+    previous = secret_store_module.set_secret_store(store)
+    yield store
+    secret_store_module.set_secret_store(previous)
+
+
 @pytest.fixture(autouse=True)
 def _no_retry_sleep(monkeypatch):
     """Yeniden deneme bekleme süreleri testleri yavaşlatmasın."""

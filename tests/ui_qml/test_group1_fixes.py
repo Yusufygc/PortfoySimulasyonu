@@ -23,7 +23,7 @@ from src.ui_qml.controllers.shell_controller import ShellController
 from src.ui_qml.controllers.stock_detail_controller import StockDetailController, parse_trade_moment
 
 
-def test_persist_api_keys_writes_env_and_updates_frozen_settings(tmp_path):
+def test_persist_api_keys_stores_secret_and_updates_frozen_settings(tmp_path, secret_store):
     settings = MagicMock()
     settings.ai = AISettings(gemini_api_key=None, core_api_url="http://localhost:8000")
     settings.market = MarketSettings(evds_api_key="old", tcmb_deposit_rate_fallback=Decimal("45"))
@@ -33,8 +33,8 @@ def test_persist_api_keys_writes_env_and_updates_frozen_settings(tmp_path):
     assert settings.ai.gemini_api_key == "abc"
     assert settings.market.evds_api_key == "old"  # None verilen anahtara dokunulmaz
     assert env_path == tmp_path / ".env"
-    assert "GEMINI_API_KEY=abc" in env_path.read_text(encoding="utf-8")
-    assert "EVDS_API_KEY" not in env_path.read_text(encoding="utf-8")
+    assert secret_store.values == {"GEMINI_API_KEY": "abc"}
+    assert "GEMINI_API_KEY" not in env_path.read_text(encoding="utf-8")  # düz metin .env'ye yazılmaz
 
 
 def test_persist_api_keys_empty_value_clears_runtime_key(tmp_path):

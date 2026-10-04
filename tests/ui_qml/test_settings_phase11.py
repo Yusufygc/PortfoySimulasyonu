@@ -64,8 +64,8 @@ def test_settings_controller_toggle_theme():
     assert ctrl.isDarkTheme == initial_theme
 
 
-def test_settings_controller_save_api_keys(tmp_path):
-    """saveApiKeys frozen ayarlarda çalışır, .env'ye yazar ve çalışan ayarı günceller."""
+def test_settings_controller_save_api_keys(tmp_path, secret_store):
+    """saveApiKeys frozen ayarlarda çalışır, anahtarları sır deposuna yazar ve çalışan ayarı günceller."""
     from decimal import Decimal
 
     from config.settings_loader import AISettings, MarketSettings
@@ -84,9 +84,8 @@ def test_settings_controller_save_api_keys(tmp_path):
     assert mock_container.settings.market.evds_api_key == "EVDS_KEY_123"
     assert ctrl.geminiApiKey == "GEMINI_KEY_XYZ"
     assert ctrl.evdsApiKey == "EVDS_KEY_123"
-    env_text = (tmp_path / ".env").read_text(encoding="utf-8")
-    assert "GEMINI_API_KEY=GEMINI_KEY_XYZ" in env_text
-    assert "EVDS_API_KEY=EVDS_KEY_123" in env_text
+    assert secret_store.values == {"GEMINI_API_KEY": "GEMINI_KEY_XYZ", "EVDS_API_KEY": "EVDS_KEY_123"}
+    assert "KEY" not in (tmp_path / ".env").read_text(encoding="utf-8")  # düz metin .env'ye yazılmaz
 
 
 def test_settings_controller_db_stats(qapp):

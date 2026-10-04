@@ -9,7 +9,7 @@ PyInstaller yerine **Nuitka** kullanılır (Python'u C'ye çevirip derler; perfo
 1. `venv` veya `.venv` içindeki Python'u (yoksa sistem Python'u) seçer.
 2. `pip install -r requirements.txt -r requirements-build.txt` (`nuitka==2.7.14` pinli).
 3. `scripts\build_preflight.py` ile yayın öncesi kontrolleri çalıştırır; başarısızsa durur.
-4. Nuitka'yı çalıştırır: `--standalone --onefile --enable-plugin=pyside6 --include-data-dir=src/ui_qml=src/ui_qml --disable-console`, `--include-package=yfinance/pandas/openpyxl/sqlalchemy`, simge `icons/icon.ico`, çıktı `dist/`, giriş `app.py`. Test ve pytest paketleri dışarıda bırakılır.
+4. Nuitka'yı çalıştırır: `--standalone --onefile --enable-plugin=pyside6 --include-data-dir=src/ui_qml=src/ui_qml --disable-console`, `--include-package=yfinance/pandas/openpyxl/sqlalchemy/keyring` (+ `--include-distribution-metadata=keyring`; arka uç keşfi için), simge `icons/icon.ico`, çıktı `dist/`, giriş `app.py`. Test ve pytest paketleri dışarıda bırakılır.
 5. `dist\.env` varsa hata verip çıkar.
 
 Dikkat:
