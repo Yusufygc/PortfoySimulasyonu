@@ -13,6 +13,7 @@ from typing import Dict, Any, List, Optional
 from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
 from src.ui_qml.last_update_store import LastUpdateStore, format_last_update, format_return_pct
 from src.ui_qml.models.positions_table_model import PositionsTableModel
+from src.domain.market_clock import market_time, market_today
 
 logger = logging.getLogger(__name__)
 
@@ -462,7 +463,7 @@ class DashboardController(QObject):
             self._executor.submit(self._compute_returns_worker, service)
 
     def _compute_returns_worker(self, service) -> None:
-        today = date.today()
+        today = market_today()
         try:
             weekly, _, _ = service.compute_weekly_return(today)
             monthly, _, _ = service.compute_monthly_return(today)
@@ -505,15 +506,15 @@ class DashboardController(QObject):
         self, ticker: str, side: str, quantity: int, price: float, notes: str, date_text: str, time_text: str
     ) -> None:
         """Belirtilen tarih (GG.AA.YYYY) ve saat (SS:DD) ile Al/Sat işlemi kaydeder."""
-        trade_date = date.today()
-        trade_time = datetime.now().time().replace(microsecond=0)
+        trade_date = market_today()
+        trade_time = market_time()
         if (date_text or "").strip():
             try:
                 trade_date = datetime.strptime(date_text.strip(), "%d.%m.%Y").date()
             except ValueError:
                 self.tradeExecuted.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
                 return
-            if trade_date > date.today():
+            if trade_date > market_today():
                 self.tradeExecuted.emit(False, "Gelecek tarihli işlem girilemez.")
                 return
         if (time_text or "").strip():
@@ -556,8 +557,8 @@ class DashboardController(QObject):
                     side=trade_side,
                     quantity=quantity,
                     price=Decimal(str(price)),
-                    trade_date=trade_date or date.today(),
-                    trade_time=trade_time or datetime.now().time().replace(microsecond=0),
+                    trade_date=trade_date or market_today(),
+                    trade_time=trade_time or market_time(),
                 )
                 self._container.trade_entry_service.submit_trade(req)
                 self._load_portfolio_data()

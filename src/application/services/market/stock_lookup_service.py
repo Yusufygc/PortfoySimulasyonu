@@ -16,6 +16,7 @@ from src.domain.models.daily_price import DailyPrice
 from src.domain.models.market_bar import MarketBar
 from src.domain.models.stock import Stock
 from src.domain.ticker import clean_ticker
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ class StockLookupService:
     def get_previous_close(self, stock_id: int, before: Optional[date] = None) -> Optional[Decimal]:
         """`before` gününden (varsayılan bugün) önceki son kapanış; yoksa None."""
         try:
-            price = self._price_repo.get_last_price_before(stock_id, before or date.today())
+            price = self._price_repo.get_last_price_before(stock_id, before or market_today())
         except Exception as exc:
             logger.debug("Önceki kapanış okunamadı (id=%s): %s", stock_id, exc)
             return None

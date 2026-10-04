@@ -25,6 +25,7 @@ from src.application.services.analysis.technical.screener import (
 )
 from src.domain.models.market_bar import MarketBar
 from src.domain.ports.repositories.i_market_history_repo import IMarketHistoryRepository
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class ScreenerService:
     ) -> List[ScreenerMatch]:
         """Verilen filtre anahtarlarıyla (None → tüm filtreler) tüm hisseleri tarar."""
         keys = filter_keys if filter_keys is not None else list(SCREENER_FILTERS.keys())
-        today = today or date.today()
+        today = today or market_today()
         start = today - timedelta(days=self._lookback_days)
 
         tickers = self._history.list_tickers()
@@ -83,7 +84,7 @@ class ScreenerService:
         """Tek ticker için tarama (UI'da tek hisse detay kontrolü için)."""
         clean = (ticker or "").strip().upper().replace(".IS", "")
         keys = filter_keys if filter_keys is not None else list(SCREENER_FILTERS.keys())
-        today = today or date.today()
+        today = today or market_today()
         start = today - timedelta(days=self._lookback_days)
         snapshot = self._build_snapshot(self._history.get_price_series(clean, start, today))
         if snapshot is None:

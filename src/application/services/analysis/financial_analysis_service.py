@@ -17,6 +17,7 @@ from src.domain.ports.services.i_financial_statement_provider import (
 )
 from src.application.services.analysis.financials.metrics import compute_metrics
 from src.application.services.analysis.financials.valuation import compute_valuation
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class FinancialAnalysisService:
         if not periods:
             return
         try:
-            today = date.today()
+            today = market_today()
             start = date(today.year - _TUFE_LOOKBACK_YEARS, 1, 1)
             tufe  = self._inflation_provider.get_monthly_tufe(start, today)
             if tufe:

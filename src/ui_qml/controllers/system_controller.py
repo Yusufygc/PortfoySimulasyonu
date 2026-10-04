@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime
+from datetime import datetime
 from typing import Any, Optional
 
 from PySide6.QtCore import Property, QObject, QSettings, QTimer, Signal, Slot
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ class SystemController(QObject):
         if session is None:
             return True
         try:
-            return bool(session.status_for(date.today()).is_open)
+            return bool(session.status_for(market_today()).is_open)
         except Exception as exc:
             logger.warning("BIST seans kontrolü başarısız: %s", exc)
             return True

@@ -24,6 +24,7 @@ from src.application.services.market.price_data_report_formatter import (
     format_stock_detail_html,
     is_healthy,
 )
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +164,7 @@ class PriceDataController(QObject):
         self.scopeOptionsChanged.emit()
 
     def _reset_range(self, scope: Optional[str] = None) -> None:
-        today = date.today()
+        today = market_today()
         start = today - timedelta(days=30)
         if self._service is not None:
             try:
@@ -265,7 +266,7 @@ class PriceDataController(QObject):
         if not self._ready():
             return
         calendar = getattr(self._container, "trading_calendar", None) if self._container else None
-        target = date.today() - timedelta(days=1)
+        target = market_today() - timedelta(days=1)
         while calendar is not None and not calendar.is_trading_day(target):
             target -= timedelta(days=1)
         self._last_scope = scope

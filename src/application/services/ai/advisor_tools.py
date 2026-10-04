@@ -14,11 +14,12 @@ JSON Schema'ya benzer `parameters_schema` dict'leri döner; SDK'ya özgü
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Callable, Dict, List, Optional
 
 from src.application.services.analysis.models import AnalysisFilterState
+from src.domain.market_clock import market_today
 
 _DEFAULT_LOOKBACK_DAYS = 365
 _DEFAULT_BENCHMARK = "bist100"
@@ -51,7 +52,7 @@ class ToolSpec:
 def _build_default_filter_state(portfolio_analytics_service) -> AnalysisFilterState:
     """`DashboardController._build_filter_state()` ile aynı desen — dashboard
     portföyü, BIST 100 benchmark, ilk işlem tarihinden bugüne."""
-    today = date.today()
+    today = market_today()
     start = portfolio_analytics_service.get_first_trade_date_for_source("dashboard") or (
         today - timedelta(days=_DEFAULT_LOOKBACK_DAYS)
     )

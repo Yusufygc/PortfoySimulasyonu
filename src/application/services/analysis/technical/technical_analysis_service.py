@@ -24,6 +24,7 @@ from src.application.services.analysis.technical.golden_cross import (
     DetectedCross,
     detect_crosses,
 )
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ class TechnicalAnalysisService:
 
     def scan_all(self, today: Optional[date] = None) -> ScanResult:
         """Tüm BIST (DuckDB piyasa geçmişi, düzeltilmiş fiyatlar) için cross taraması, yeni eventleri DB'ye yaz."""
-        today = today or date.today()
+        today = today or market_today()
         tickers = self._history.list_tickers()
         logger.info("Golden Cross taraması başlıyor: %d ticker", len(tickers))
 
@@ -116,7 +117,7 @@ class TechnicalAnalysisService:
 
     def scan_ticker(self, ticker: str, today: Optional[date] = None) -> ScanResult:
         """Tek ticker için tam tarama."""
-        today = today or date.today()
+        today = today or market_today()
         clean = _clean_ticker(ticker)
         if not clean or not self._history.has_ticker(clean):
             return ScanResult(scanned_count=0, new_event_count=0, skipped_count=0)
@@ -162,7 +163,7 @@ class TechnicalAnalysisService:
         cross_type: Optional[CrossType] = None,
         limit: int = 200,
     ) -> List[GoldenCrossEvent]:
-        since = date.today() - timedelta(days=days)
+        since = market_today() - timedelta(days=days)
         return self._cross_repo.get_recent_events(since=since, cross_type=cross_type, limit=limit)
 
     def get_events_for_ticker(self, ticker: str) -> List[GoldenCrossEvent]:

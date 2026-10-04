@@ -4,7 +4,8 @@ paneli ve açılış otomatik veri bakım işleri (QML controller'ları ve yeni 
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
+from src.domain.market_clock import market_today
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
@@ -472,21 +473,21 @@ def test_startup_jobs_run_once_per_day_and_notify(qapp, tmp_path, monkeypatch):
     container = _startup_container()
     ctrl, settings = _startup_ctrl(qapp, tmp_path, container)
     monkeypatch.setattr(
-        "src.ui_qml.controllers.startup_jobs_controller.datetime",
-        SimpleNamespace(now=lambda: SimpleNamespace(time=lambda: __import__("datetime").time(19, 0))),
+        "src.ui_qml.controllers.startup_jobs_controller.market_now",
+        lambda: datetime.combine(market_today(), time(19, 0)),
     )
     notes = _capture(ctrl.jobNotification)
     refreshed = _capture(ctrl.pricesUpdated)
 
     ctrl.runAll()
 
-    target = last_completed_trading_day(date.today(), container.trading_calendar)
+    target = last_completed_trading_day(market_today(), container.trading_calendar)
     # Portföy backfill (SQLite) + tüm BIST için DuckDB artımlı senkron (18:30 sonrası) çalıştı
     assert container.price_data_health_service.update_from_latest_to_today.call_count == 1
     container.market_data_sync_service.sync_daily_delta.assert_called_once_with()
     assert settings.value(AUTO_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat()
     assert settings.value(AUTO_BIST_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat()
-    assert settings.value(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, "", type=str) == date.today().isoformat()
+    assert settings.value(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, "", type=str) == market_today().isoformat()
     assert container.event_bus.prices_updated.emit.called
     assert refreshed
     assert any("kurumsal aksiyon adayı" in n[1] for n in notes)

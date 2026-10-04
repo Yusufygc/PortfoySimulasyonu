@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date, time
 from decimal import Decimal
 from typing import List, Optional
 
 from src.domain.models.cash_movement import CashMovement, CashMovementType
+from src.domain.market_clock import market_time, market_today
 
 
 class CashMovementService:
@@ -21,8 +22,8 @@ class CashMovementService:
     ) -> CashMovement:
         movement = CashMovement.create_deposit(
             amount=amount,
-            movement_date=movement_date or date.today(),
-            movement_time=movement_time or datetime.now().time().replace(microsecond=0),
+            movement_date=movement_date or market_today(),
+            movement_time=movement_time or market_time(),
             notes=notes,
         )
         return self._cash_movement_repo.insert_movement(movement)
@@ -40,8 +41,8 @@ class CashMovementService:
                 raise ValueError(f"Yetersiz nakit. Çekilecek: {amount:.2f} TL, Mevcut: {balance:.2f} TL")
         movement = CashMovement.create_withdraw(
             amount=amount,
-            movement_date=movement_date or date.today(),
-            movement_time=movement_time or datetime.now().time().replace(microsecond=0),
+            movement_date=movement_date or market_today(),
+            movement_time=movement_time or market_time(),
             notes=notes,
         )
         return self._cash_movement_repo.insert_movement(movement)
@@ -58,8 +59,8 @@ class CashMovementService:
         Temettü portföyün getirisidir: bakiyeye girer ancak dış sermaye akışı (yatırma) sayılmaz.
         Hissenin o tarihte portföyde pozisyonu olmalıdır.
         """
-        movement_date = movement_date or date.today()
-        if movement_date > date.today():
+        movement_date = movement_date or market_today()
+        if movement_date > market_today():
             raise ValueError("Temettü tarihi gelecekte olamaz.")
         if self._portfolio_service is not None:
             if self._portfolio_service.get_position_quantity_as_of(stock_id, as_of=movement_date) <= 0:

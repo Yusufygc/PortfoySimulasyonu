@@ -17,6 +17,7 @@ from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
 from src.application.services.corporate_actions.price_adjustment_service import adjusted_market_price
+from src.domain.market_clock import market_today
 
 PRICE_SCOPE_ALL_ACTIVE = "all_active"
 PRICE_SCOPE_DASHBOARD = "dashboard"
@@ -567,7 +568,7 @@ class PriceHealthUpdater:
         )
 
     def update_from_latest_to_today(self, today: date | None = None, scope: str | None = None) -> PriceDataUpdateResult:
-        today = today or date.today()
+        today = today or market_today()
         first_trade_dates = self._scope_resolver.first_trade_dates_by_stock(scope)
         stocks = [
             stock for stock in self._scope_resolver.stocks_in_scope(first_trade_dates, scope) if stock.id is not None
@@ -781,7 +782,7 @@ class PriceDataHealthService:
         return self._scope_resolver.active_stock_ids(scope)
 
     def default_start_date(self, today: date | None = None, scope: str | None = None) -> date:
-        today = today or date.today()
+        today = today or market_today()
         candidate = today - timedelta(days=self._default_lookback_days)
         minimum = self.minimum_start_date(scope)
         return max(candidate, minimum) if minimum else candidate

@@ -14,6 +14,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import date
 from typing import List
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class MarketUniverseMigrationService:
 
     def plan(self) -> MigrationPlan:
         unreferenced = set(self._maintenance.unreferenced_stock_ids())
-        today = date.today()
+        today = market_today()
         plan = MigrationPlan()
         for stock in self._stock_repo.get_all_stocks():
             if stock.id is None:
@@ -95,7 +96,7 @@ class MarketUniverseMigrationService:
 
     def execute(self, plan: MigrationPlan) -> MigrationResult:
         result = MigrationResult()
-        today = date.today()
+        today = market_today()
         # 1) Düzeltme bilgisini DuckDB'ye taşı (kullanıcı verisine bağlı hisseler dahil: onların SQLite fiyatları kalır
         #    ama DuckDB tarafı da aynı bazı görmeli)
         for entry in plan.entries:

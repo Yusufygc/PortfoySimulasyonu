@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
 
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.application.services.portfolio.price_update_service import PriceUpdateService
 from src.application.services.analysis.return_calc_service import ReturnCalcService
 from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
+from src.domain.market_clock import market_today
 
 
 @dataclass
@@ -39,7 +39,7 @@ class PortfolioUpdateCoordinator:
         Dönüş:
           (price_update_result, portfolio_snapshot)
         """
-        price_date = self.price_update_service.last_completed_trading_day(date.today())
+        price_date = self.price_update_service.last_completed_trading_day(market_today())
 
         # 1) Net açık pozisyonu olan hisseleri bul
         portfolio = build_portfolio_safely(self.portfolio_repo.get_all_trades()).portfolio

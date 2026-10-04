@@ -25,6 +25,7 @@ import yfinance as yf
 from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
 from src.domain.models.daily_price import DailyPrice
 from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
+from src.domain.market_clock import market_now
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class MarketDataSyncService:
         BIST'in son tamamlanmış (kapanmış) işlem gününü hesaplar.
         Hafta içi saat 18:15'ten önce ise dünü; hafta sonu ise Cuma gününü verir.
         """
-        current_dt = now or datetime.now()
+        current_dt = now or market_now()
         current_date = current_dt.date()
         current_time = current_dt.time()
 

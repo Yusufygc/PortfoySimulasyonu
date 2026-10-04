@@ -158,6 +158,7 @@ if any(w in lower_q for w in ["optimizasyon", "rebalance", "dengele", "öneri", 
 - **Çözüm:** Tek bir `market_clock` yardımcısı (`ZoneInfo("Europe/Istanbul")`) üzerinden "bugün/şimdi" al; servisler `today` parametresi alıyor (ör. `screener_service.py:69`), bu enjeksiyon noktası korunur.
 - **Düzeltme Eforu:** M
 - **Bağımlılık:** Seans koruması testleri.
+- **Durum:** Çözüldü (2026-10-04). `market_clock.py` eklendi, piyasa takvimine bağlı 17 modül dönüştürüldü. Rapordaki "43 yerde" sayısı eksikti (gerçekte ~110 kullanım vardı); yalnızca piyasa saatine bağlı olanlar dönüştürüldü, yerel zamanın doğru olduğu yerler bilinçli bırakıldı.
 
 ### [🟡] 9. Türkçe `lower()` sorunu
 - **Persona:** Kıdemli Yazılım Mimarı.

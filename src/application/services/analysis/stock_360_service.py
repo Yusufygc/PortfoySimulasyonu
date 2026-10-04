@@ -33,6 +33,7 @@ from src.domain.models.shareholder import ShareholderSnapshot
 from src.domain.ports.repositories.i_market_history_repo import IMarketHistoryRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +223,7 @@ class Stock360Service:
     # ------------------------------------------------------------------
 
     def _load_recent_prices(self, ticker: str, today: Optional[date]) -> List[Any]:
-        today = today or date.today()
+        today = today or market_today()
         start = today - timedelta(days=_OVERVIEW_LOOKBACK_DAYS)
         # Birincil kaynak: DuckDB piyasa geçmişi (tüm BIST, sermaye artırımı düzeltmeli)
         if self._market_history_repo is not None:

@@ -57,6 +57,8 @@ Testlerde bekleme `tests/conftest.py` ile kapatılır (`retry._sleep` değiştir
 
 `BistMarketSessionService` normal gün 10:00-18:10, yarım gün 10:00-13:00 olarak seansı belirler. `MarketTradingCalendar` işlem günü ve yarım gün kararını verir; üretimde `BistTradingCalendarProvider` BIST resmi tatil takvimini kullanır. `MarketDataSyncService.get_last_completed_trading_day` son kapanmış işlem gününü hesaplar. Otomatik senkron: açılıştan 5 sn sonra ve hafta içi 18:15'te ([settings_and_system.md](settings_and_system.md)).
 
+**Piyasa saati (`src/domain/market_clock.py`):** BIST takvimine bağlı "şimdi/bugün" (seans koruması, bugünkü fiyat kontrolü, işlem tarihi/saati varsayılanı, zamanlanmış senkron hedef günü, tarayıcı "bugün"ü) `date.today()` / `datetime.now()` yerine `market_today()`, `market_now()`, `market_time()` ile alınır. Bunlar `Europe/Istanbul` duvar saatini **saat dilimi bilgisi taşımayan** değer olarak döner (mevcut naive tarih/saat değerleriyle karşılaştırılabilir). `tzdata` yoksa Türkiye'nin sabit UTC+3 değeri kullanılır. Bilgisayar saat dilimi Türkiye'den farklıysa bu, seans penceresinin ve "bugün" gününün kaymasını önler. Yerel zamanın doğru olduğu yerler (sohbet saati, dosya adı damgası, kayıt oluşturma damgaları, tarama aralığı süresi) bilinçli olarak yerel saatte kalır. `tests/test_market_clock_guard.py` tamamen dönüştürülmüş modülleri korur.
+
 ## 7. Yeni Kaynak Eklerken
 
 1. Domain'de port tanımla (`ports/services/`), `infrastructure/` altında uygula.

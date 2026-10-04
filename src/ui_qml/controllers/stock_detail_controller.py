@@ -23,6 +23,7 @@ from src.application.services.portfolio.trade_entry_service import TradeRequest
 from src.domain.models.trade import TradeSide
 from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.ticker import clean_ticker
+from src.domain.market_clock import market_now, market_time, market_today
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
     """Form alanlarından işlem anı. Boş tarih bugün; boş saat bugün için şimdi, geçmiş gün için 12:00.
 
     Geçersiz biçim veya gelecek tarih için ValueError (kullanıcıya gösterilecek mesajla) fırlatır."""
-    today = date.today()
+    today = market_today()
     text = (date_str or "").strip()
     try:
         trade_date = datetime.strptime(text, "%Y-%m-%d").date() if text else today
@@ -42,12 +43,12 @@ def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
 
     text = (time_str or "").strip()
     if not text:
-        return trade_date, (datetime.now().time().replace(microsecond=0) if trade_date == today else dt_time(12, 0))
+        return trade_date, (market_time() if trade_date == today else dt_time(12, 0))
     try:
         trade_time = datetime.strptime(text, "%H:%M").time()
     except ValueError:
         raise ValueError("Saat biçimi geçersiz. Örnek: 14:30") from None
-    if trade_date == today and trade_time > datetime.now().time():
+    if trade_date == today and trade_time > market_now().time():
         raise ValueError("Gelecek saatli işlem girilemez.")
     return trade_date, trade_time
 

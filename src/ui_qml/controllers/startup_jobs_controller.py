@@ -18,6 +18,7 @@ from datetime import date, datetime, time as dt_time, timedelta
 from typing import Any, Callable, Optional
 
 from PySide6.QtCore import QObject, QSettings, QTimer, Signal
+from src.domain.market_clock import market_now, market_today
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +90,7 @@ class StartupJobsController(QObject):
         service = self._svc("price_data_health_service")
         if service is None:
             return
-        target = last_completed_trading_day(date.today(), self._svc("trading_calendar"))
+        target = last_completed_trading_day(market_today(), self._svc("trading_calendar"))
         if self._settings.value(AUTO_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat():
             return
         self._targets["price_backfill"] = target
@@ -100,10 +101,10 @@ class StartupJobsController(QObject):
         service = self._svc("market_data_sync_service")
         if service is None:
             return
-        if datetime.now().time() < BIST_MARKET_CLOSE_TIME:
+        if market_now().time() < BIST_MARKET_CLOSE_TIME:
             logger.info("BIST backfill atlandı (saat < 18:30, piyasa açık olabilir)")
             return
-        target = last_completed_trading_day(date.today(), self._svc("trading_calendar"))
+        target = last_completed_trading_day(market_today(), self._svc("trading_calendar"))
         if self._settings.value(AUTO_BIST_BACKFILL_SETTINGS_KEY, "", type=str) == target.isoformat():
             return
         self._targets["bist_backfill"] = target
@@ -163,7 +164,7 @@ class StartupJobsController(QObject):
                 self.jobNotification.emit(True, f"Golden Cross taraması tamamlandı: {new_events} yeni sinyal.")
 
     def _finish_bist_sync(self, result: Any) -> None:
-        target = self._targets.get("bist_backfill") or last_completed_trading_day(date.today(), self._svc("trading_calendar"))
+        target = self._targets.get("bist_backfill") or last_completed_trading_day(market_today(), self._svc("trading_calendar"))
         errors = len(getattr(result, "errors", []) or [])
         if not errors:
             self._remember(AUTO_BIST_BACKFILL_SETTINGS_KEY, target.isoformat())
@@ -175,7 +176,7 @@ class StartupJobsController(QObject):
             self.jobNotification.emit(False, f"Otomatik BIST güncellemesi sırasında {errors} hata oluştu.")
 
     def _finish_backfill(self, result: Any, key: str, target_key: str, label: str) -> None:
-        target = self._targets.get(target_key) or last_completed_trading_day(date.today(), self._svc("trading_calendar"))
+        target = self._targets.get(target_key) or last_completed_trading_day(market_today(), self._svc("trading_calendar"))
         self._remember(key, target.isoformat())
         prices = getattr(result, "prices", None)
         event_bus = self._svc("event_bus")

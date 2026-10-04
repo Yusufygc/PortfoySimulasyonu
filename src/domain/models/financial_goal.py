@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
+from src.domain.market_clock import market_today
 
 
 class GoalPriority:
@@ -77,7 +78,7 @@ class FinancialGoal:
         if self.deadline is None:
             return 0
 
-        today = today or date.today()
+        today = today or market_today()
         if self.deadline <= today:
             return 0
 

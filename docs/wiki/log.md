@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] düzeltme | Piyasa Saati: Istanbul Saat Dilimi (Denetim Bulgu 8)
+
+- Yeni `src/domain/market_clock.py` (`market_now`, `market_today`, `market_time`): `Europe/Istanbul` duvar saati, naive döner; `tzdata` yoksa sabit UTC+3 yedeği.
+- Piyasa takvimine bağlı 17 modülde (seans/bugün kontrolü, işlem ve nakit tarihi varsayılanları, açılış işleri, tarayıcı ve teknik analiz, fiyat sağlığı, Hisse 360, AI araçları, hedef ilerlemesi) `date.today()` / `datetime.now()` değiştirildi; yerel zamanın doğru olduğu yerler (sohbet saati, dosya damgaları, kayıt damgaları) bilinçli bırakıldı.
+- Testler: `tests/domain/test_market_clock.py` (UTC 22:30 -> ertesi gün, mikrosaniyesiz saat, UTC+3 yedeği), `tests/test_market_clock_guard.py` (dönüştürülen modüller). `test_group2_corporate_price_startup.py` artık `market_now` yamalıyor.
+- Kullanılmayan `date`/`datetime` importları temizlendi. `service_market_data_providers.md` §6 güncellendi.
+
+---
 ## [2026-10-04] refaktör | Karmaşık Fonksiyonların Bölünmesi (Denetim Bulgu 3)
 
 - **Adım 1 - `financials/metrics.py::_single_period`** (140 satır, CC 41 -> 12 satır, CC 2): ham kalem okuma (`_income_items`, `_balance_items`, `_note_and_cash_flow_items`), türetilmiş metrikler (`_derived_metrics`, `_favok`, `_net_debt`, `_export_ratio`, `_payout_ratio`), oranlar (`_ratio_metrics`), işletme sermayesi (`_working_capital_metrics`) ve ham-çıktı ad eşlemesi (`_RAW_TO_OUTPUT`) olarak ayrıldı. Çıktı değişmedi: `test_metrics_single_period.py` refaktör öncesi koddan alınan 6 senaryolu karakterizasyon testidir (tam veri, boş, kısmi, sıfır payda, enflasyon bayrağı, FAVÖK amortismansız).
