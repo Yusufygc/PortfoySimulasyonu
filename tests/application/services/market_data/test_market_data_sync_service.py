@@ -5,7 +5,6 @@ from unittest.mock import MagicMock
 from src.application.services.market_data.market_data_sync_service import (
     MarketDataSyncService,
     MarketSyncStatus,
-    _MARKET_CLOSE_TIME,
 )
 
 
@@ -36,6 +35,12 @@ def test_last_completed_trading_day_after_market_close(sync_service):
     wednesday_evening = datetime(2026, 10, 7, 18, 30, 0)
     last_day = sync_service.get_last_completed_trading_day(now=wednesday_evening)
     assert last_day == date(2026, 10, 7)
+
+
+def test_last_completed_trading_day_waits_for_close_data(sync_service):
+    # 18:10 kapanış + 20 dk veri gecikmesi: 18:20'de bugünün barı henüz kesin kapanış değil
+    assert sync_service.get_last_completed_trading_day(now=datetime(2026, 10, 7, 18, 20)) == date(2026, 10, 6)
+    assert sync_service.get_last_completed_trading_day(now=datetime(2026, 10, 7, 18, 29, 59)) == date(2026, 10, 6)
 
 
 def test_last_completed_trading_day_on_weekend(sync_service):

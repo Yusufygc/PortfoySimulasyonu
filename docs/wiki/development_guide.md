@@ -86,4 +86,4 @@ Her özellik için: birim test, `Strings.qml` metinleri, ilgili wiki sayfası ve
 | Başlangıçta "Veritabanı bağlantısı sağlanamadı" | `DB_SQLITE_PATH` yanlış veya dosya kilitli; arayüz çevrimdışı modda açılır. |
 | Yapay Zeka sayfasında "Simülasyon" rozeti | AI_Core servisi (`AI_CORE_API_URL`) kapalıdır; hisse modeli analizi demo sağlayıcıya düşer. Portföy Danışmanı için `GEMINI_API_KEY` yeterlidir. |
 | Plotly grafikleri boş (`Plotly is not defined`) | Eski Chromium Plotly'nin CSS kuralını ayrıştıramaz; `plotly_html.py` yama uygulanmış yerel JS (`plotly-shared-patched.min.js`) üretir, CDN kullanılmaz ([comparison_lab.md](comparison_lab.md)). |
-| Piyasa verisi eski | Ayarlar > Veri Sağlığı & Senkronizasyon > "Eksik BIST Barlarını Şimdi Senkronize Et"; açılışta ve 18:15'te otomatik de çalışır. |
+| Piyasa verisi eski | Ayarlar > Veri Sağlığı & Senkronizasyon > "Eksik BIST Barlarını Şimdi Senkronize Et"; açılışta ve kapanış verisi hazır olunca (18:30, yarım gün 13:20) otomatik de çalışır. |

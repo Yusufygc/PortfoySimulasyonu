@@ -3,7 +3,8 @@ MarketSyncController — Piyasa verisi senkronizasyonunun QML controller'ı ve a
 
 Sorumluluklar:
 1. Uygulama Açılışı (Startup Catch-up): Açılıştan 5 saniye sonra eksik gün farkını sessizce kapatır.
-2. Seans Kapanış Nöbetçisi (Market Close Watcher): Hafta içi saat 18:15 olduğunda otomatik tetiklenir.
+2. Seans Kapanış Nöbetçisi (Market Close Watcher): İşlem günü kapanış verisi hazır olunca (18:10 + 20 dk = 18:30,
+   yarım gün 13:20; Istanbul saati ve BIST tatil takvimi) günde bir kez otomatik tetiklenir.
 3. Manuel Tetikleme: Kullanıcı veya buton istediğinde anında senkronizasyon başlatabilir.
 4. UI Bildirimi: Başarı ve durum değişikliklerini QML ToastNotification bileşenine aktarır.
 """
@@ -11,7 +12,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, time as dt_time
+from datetime import date, datetime
 from typing import Optional
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
@@ -20,10 +21,9 @@ from src.application.services.market_data.market_data_sync_service import (
     MarketDataSyncService,
     MarketSyncResult,
 )
+from src.domain.market_clock import market_today
 
 logger = logging.getLogger(__name__)
-
-_MARKET_CLOSE_TIME = dt_time(18, 15)
 
 
 class MarketSyncController(QObject):
@@ -122,18 +122,17 @@ class MarketSyncController(QObject):
             logger.warning("Startup sync kontrolü hatası: %s", exc)
 
     def _on_watcher_tick(self) -> None:
-        """Her 60 saniyede bir seans kapanış saatini kontrol eder."""
-        now = datetime.now()
-        current_date = now.date()
-        current_time = now.time()
-
-        # Hafta içi mi ve 18:15'i geçti mi?
-        if now.weekday() < 5 and current_time >= _MARKET_CLOSE_TIME:
-            # Bugün için otomatik güncelleme daha önce yapılmadıysa
-            if self._last_auto_synced_date != current_date and not self._is_syncing:
-                logger.info("Seans kapandı (18:15 geçti) -> Gün sonu kapanış verileri otomatik güncelleniyor.")
-                self._last_auto_synced_date = current_date
-                self.triggerSyncNow()
+        """Her 60 saniyede bir: bugünün kapanış verisi hazır olduysa (Istanbul saati, tatil takvimi) günde bir kez senkronlar."""
+        today = market_today()
+        try:
+            completed = self._sync_service.get_last_completed_trading_day()
+        except Exception as exc:
+            logger.warning("Kapanış saati kontrolü başarısız: %s", exc)
+            return
+        if completed == today and self._last_auto_synced_date != today and not self._is_syncing:
+            logger.info("Seans kapanış verisi hazır -> Gün sonu kapanış verileri otomatik güncelleniyor.")
+            self._last_auto_synced_date = today
+            self.triggerSyncNow()
 
     def _on_future_done(self, future) -> None:
         try:

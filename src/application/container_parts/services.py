@@ -146,6 +146,7 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet,
         current_price_resolver=CurrentPriceResolver(
             latest_price_repo=repositories.latest_price_repo,
             price_repo=repositories.price_repo,
+            session_service=market_clients.bist_market_session_service,
         ),
         stock_lookup_service=StockLookupService(
             stock_repo=repositories.stock_repo,

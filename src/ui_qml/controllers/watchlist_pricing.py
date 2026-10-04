@@ -1,7 +1,7 @@
 """İzleme listesi satır fiyatı: günlük barlar ve (varsa) güncel canlı fiyattan fiyat, günlük fark, aralık ve trend.
 
 Saf fonksiyonlardır. Günlük barlar yalnızca gün sonunda yazıldığı için seans içinde fiyat bu barlardan "donmuş" görünür;
-canlı fiyat önbelleği (`latest_prices`) bar tarihinden yeni ya da aynı gündeyse barların üzerine bindirilir.
+canlı fiyat önbelleği (`latest_prices`) kayıt seans içinde alınmışsa barların üzerine bindirilir (karar çağıranda).
 """
 from __future__ import annotations
 
@@ -94,19 +94,12 @@ def price_with_live(bars: Sequence[Any], live_price: float, live_date: date) -> 
     )
 
 
-def price_row(bars: Sequence[Any], live: Any, live_date: Optional[date]) -> Optional[RowPricing]:
-    """Canlı fiyat yeni bir bilgi taşıyorsa bindirir, değilse yalnızca barlardan fiyatlar.
+def price_row(bars: Sequence[Any], live_price: Optional[float], live_date: Optional[date]) -> Optional[RowPricing]:
+    """Uygulanacak canlı fiyat varsa barların üzerine bindirir, yoksa yalnızca barlardan fiyatlar.
 
-    Canlı fiyat bir sonraki seans gününe aitse ve son kapanışla aynıysa (hafta sonu, seans öncesi) yeni bir bilgi
-    değildir; bindirilirse günlük fark yanlışlıkla %0 görünürdü.
+    Canlı fiyatın uygulanıp uygulanmayacağına çağıran karar verir (`CurrentPriceResolver.live_applies`, Ana Sayfa ile
+    aynı kural); seans dışında alınmış kayıt bindirilseydi günlük fark yanlışlıkla %0 görünürdü.
     """
-    if live is None or live_date is None or getattr(live, "source", "") != "intraday":
+    if live_price is None or live_date is None:
         return price_from_bars(bars)
-    live_price = float(live.price)
-    if bars:
-        last = bars[-1]
-        if live_date < last.price_date:
-            return price_from_bars(bars)
-        if live_date > last.price_date and live_price == float(last.close_price):
-            return price_from_bars(bars)
-    return price_with_live(bars, live_price, live_date)
+    return price_with_live(bars, float(live_price), live_date)

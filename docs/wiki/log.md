@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-05] düzeltme | Kapanış Saati Tek Kaynak ve Canlı Fiyat Seçim Kuralı
+
+- **Sorun 1 - gece/hafta sonu günlük değişim %0:** Seans dışında canlı fiyat çekilince yfinance `fast_info` son kapanışı verir ve kayıt `source="intraday"`, `as_of=şimdi` ile yazılır. `CurrentPriceResolver` bunu "son kapanıştan yeni gün" sayıp önceki kapanışı aynı fiyat olarak buluyordu: Ana Sayfa ve Model Portföy günlük değişimi %0. Ayrıca gün `as_of.date()` (UTC) ile alınıyordu.
+- **Düzeltme:** Yeni saf kural `src/domain/live_price_rule.live_price_applies`: canlı kayıt yalnızca bir işlem gününün seans penceresinde (açılış ile kapanış verisinin hazır olduğu an) alınmışsa ve son bardan yeni güne aitse (aynı günse yalnızca kapanış verisi henüz hazır değilken) kullanılır. `CurrentPriceResolver.live_applies` kuralı uygular (Istanbul saati, `to_market_datetime`); İzleme Listesi de aynı kuralı kullanır (önceki "fiyat son kapanışla aynıysa bindirme" sezgisi kaldırıldı).
+- **Sorun 2 - kapanış verisi erken çekiliyordu:** Senkron 18:15'te çalışıyordu; yfinance BIST verisi ~15 dk gecikmeli, kapanış seansı 18:10'da bitiyor. 18:15 barı kapanış fiyatı değildi ve gün "güncel" sayıldığı için hiç düzeltilmiyordu. Kod tabanında üç ayrı kapanış saati vardı (18:10 / 18:15 / 18:30); nöbetçi yerel saat ve `weekday()` kullanıyordu (tatil ve saat dilimi hatası); yarım gün yok sayılıyordu.
+- **Düzeltme:** `BistMarketSessionService.session_window` ve `last_completed_trading_day` tek kaynak: kapanış + `CLOSE_DATA_DELAY` (20 dk) = tam gün 18:30, yarım gün 13:20. `MarketDataSyncService.get_last_completed_trading_day` ve `MarketSyncController` nöbetçisi bunu kullanır (nöbetçi: servisin kapanış verisi hazır günü bugünse günde bir kez).
+- **Test:** `tests/domain/test_live_price_rule.py` (pencere, yarım gün, tatil, gece/hafta sonu/seans öncesi kaydı, aynı gün kapanış hazır, resolver gece açılışı %10 değişim), nöbetçi testi, 18:20 senkron testi.
+
+---
 ## [2026-10-05] düzeltme | Canlı Fiyat Yenileme Donması ve İzleme Listesi Arayüzü
 
 - **Sorun 1 - izleme listesi fiyatı donuk:** `LivePriceRefreshService` yalnızca ana/model portföy pozisyonlarını yeniliyordu; izleme listesi hisseleri hiç yenilenmiyordu. Ayrıca `WatchlistController._load_stocks` yalnızca günlük barlardan (gün sonunda yazılır) fiyat/değişim hesaplıyor, `latest_prices` önbelleğini hiç okumuyordu: seans içinde fiyat bir önceki kapanışta kalıyordu.

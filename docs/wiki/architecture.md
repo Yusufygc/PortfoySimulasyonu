@@ -77,7 +77,7 @@ Açılıştan sonra başlayan otomatik işler (ayrıntı: [settings_and_system.m
 | 5 sn | Eksik gün farkı için DuckDB artımlı senkron (catch-up) | `MarketSyncController` |
 | 6 sn | Otomatik canlı fiyat yenileme zamanlayıcısı (seans açıkken) | `SystemController` |
 | 8 sn | Portföy/BIST kapanış tamamlama, KAP/MKK aday taraması, Golden Cross taraması | `StartupJobsController` |
-| 18:15 (hafta içi) | Seans kapanışı sonrası artımlı senkron | `MarketSyncController` |
+| 18:30 (işlem günü; yarım gün 13:20) | Kapanış verisi hazır olunca artımlı senkron (seans kapanışı + 20 dk veri gecikmesi) | `MarketSyncController` |
 
 ---
 

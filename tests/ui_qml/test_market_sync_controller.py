@@ -64,3 +64,23 @@ def test_market_sync_controller_trigger_sync(qapp, mock_sync_service, sync_gate,
     assert len(notifications) == 1
     assert notifications[0][0] is True
     assert "10 hisse" in notifications[0][1]
+
+
+def test_watcher_syncs_once_when_today_close_data_is_ready(qapp, mock_sync_service, sync_gate, monkeypatch):
+    """Nöbetçi saat sabiti değil, servisin kapanış verisi hazır günü (Istanbul saati, tatil takvimi) ile karar verir."""
+    from datetime import date
+    from src.ui_qml.controllers import market_sync_controller as module
+
+    today = date(2026, 10, 5)
+    monkeypatch.setattr(module, "market_today", lambda: today)
+    ctrl = MarketSyncController(sync_service=mock_sync_service)
+    ctrl.triggerSyncNow = MagicMock()
+
+    mock_sync_service.get_last_completed_trading_day.return_value = date(2026, 10, 2)  # kapanış verisi henüz yok
+    ctrl._on_watcher_tick()
+    assert ctrl.triggerSyncNow.call_count == 0
+
+    mock_sync_service.get_last_completed_trading_day.return_value = today
+    ctrl._on_watcher_tick()
+    ctrl._on_watcher_tick()
+    assert ctrl.triggerSyncNow.call_count == 1

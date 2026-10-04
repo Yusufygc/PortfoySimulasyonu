@@ -5,18 +5,23 @@ CurrentPriceResolver — Portföy değerlemesi için "güncel fiyat" kaynağın�
 - `latest_prices`: canlı/gün içi fiyat önbelleği (yalnızca canlı yenileme çalışınca güncellenir)
 - `daily_prices`: günlük kapanışlar (piyasa senkronu ve veri tamamlama ile güncellenir)
 
-Canlı yenileme çalışmadığında `latest_prices` günlerce eski kalabilir. Eski bir canlı fiyatı yeni
-kapanışlarla karşılaştırmak anlamsız günlük değişim üretir. Bu sınıf, canlı fiyat yalnızca son
-günlük kapanıştan **daha yeni bir güne** aitse onu kullanır; aksi halde son kapanışı döndürür.
-Günlük değişim için önceki kapanış, seçilen fiyatın gününden **önceki** son kapanıştır.
+Canlı yenileme çalışmadığında `latest_prices` günlerce eski kalabilir; seans dışında çekilen kayıt da yeni bir günün
+fiyatı değildir. Eski bir canlı fiyatı yeni kapanışlarla karşılaştırmak anlamsız günlük değişim üretir. Canlı kaydın
+kullanılıp kullanılmayacağı `src/domain/live_price_rule.live_price_applies` kuralıyla (seans penceresi, Istanbul saati)
+belirlenir; aksi halde son kapanış döner. Günlük değişim için önceki kapanış, seçilen fiyatın gününden **önceki** son
+kapanıştır. İzleme listesi de aynı kuralı `live_applies` üzerinden kullanır.
 """
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from typing import Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
+
+from src.application.services.market.bist_market_session_service import BistMarketSessionService
+from src.domain.live_price_rule import live_price_applies
+from src.domain.market_clock import market_now, to_market_date, to_market_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +37,22 @@ class ResolvedPrice:
 
 
 class CurrentPriceResolver:
-    def __init__(self, latest_price_repo, price_repo) -> None:
+    def __init__(self, latest_price_repo, price_repo, session_service: BistMarketSessionService | None = None) -> None:
         self._latest_price_repo = latest_price_repo
         self._price_repo = price_repo
+        self._session = session_service or BistMarketSessionService()
+
+    def live_applies(self, live: Any, last_bar_date: Optional[date], now: Optional[datetime] = None) -> bool:
+        """Canlı kayıt (LatestPrice) son günlük kapanışın yerine geçmeli mi? (bkz. `live_price_applies`)"""
+        if live is None or getattr(live, "as_of", None) is None:
+            return False
+        return live_price_applies(
+            getattr(live, "source", ""),
+            to_market_datetime(live.as_of),
+            last_bar_date,
+            now or market_now(),
+            self._session.session_window,
+        )
 
     def resolve(self, stock_ids: Sequence[int]) -> Dict[int, ResolvedPrice]:
         ids = [sid for sid in dict.fromkeys(stock_ids) if sid is not None]
@@ -42,14 +60,15 @@ class CurrentPriceResolver:
             return {}
         live = self._read_live(ids)
         last_dates = self._read_last_daily_dates(ids)
+        now = market_now()
 
         result: Dict[int, ResolvedPrice] = {}
         for sid in ids:
             live_price = live.get(sid)
             daily_date = last_dates.get(sid)
-            live_date = live_price.as_of.date() if live_price is not None else None
+            live_date = to_market_date(live_price.as_of) if live_price is not None and live_price.as_of else None
 
-            if live_price is not None and (daily_date is None or live_date > daily_date):
+            if live_price is not None and self.live_applies(live_price, daily_date, now):
                 result[sid] = ResolvedPrice(live_price.price, live_date, SOURCE_LIVE)
                 continue
             daily = self._read_daily_close(sid, daily_date) if daily_date is not None else None

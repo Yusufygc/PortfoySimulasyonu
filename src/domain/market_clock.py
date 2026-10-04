@@ -45,7 +45,12 @@ def market_time() -> time:
     return market_now().time().replace(microsecond=0)
 
 
+def to_market_datetime(value: datetime) -> datetime:
+    """Zaman damgasının Istanbul duvar saati (naive); saat dilimsiz (naive) değerler UTC kabul edilir."""
+    aware = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+    return aware.astimezone(MARKET_TIMEZONE).replace(tzinfo=None)
+
+
 def to_market_date(value: datetime) -> date:
     """Zaman damgasının Istanbul takvim günü; saat dilimsiz (naive) değerler UTC kabul edilir."""
-    aware = value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
-    return aware.astimezone(MARKET_TIMEZONE).date()
+    return to_market_datetime(value).date()

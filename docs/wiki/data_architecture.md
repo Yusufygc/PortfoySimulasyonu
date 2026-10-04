@@ -35,7 +35,7 @@ Dosyayı yalnızca `BistBulkDownloader` ve `MarketDataSyncService` (yazma), `Duc
 |---|---|---|---|
 | Portföy: `stocks`, `trades`, `cash_movements`, `trade_adjustments` | **SQLite** `data/portfolio.db` | `PortfolioService`, `TradeEntryService`, `CashMovementService` | Dashboard, Hisse Detay, Karşılaştırma, Optimizasyon, Excel |
 | Kullanıcı verisine (işlem, izleme listesi, model portföy, kurumsal aksiyon) bağlı hisselerin günlük kapanışları: `daily_prices` (~35 hisse) | **SQLite** | `MarketDataSyncService` (köprü + uzlaştırma), `PriceDataHealthService`, `BackfillService`, sermaye artırımı fiyat düzeltmesi | Portföy değerleme, Karşılaştırma, `CurrentPriceResolver` |
-| Canlı/gün içi fiyat önbelleği: `latest_prices` | **SQLite** | `LivePriceRefreshService` | `CurrentPriceResolver` (yalnızca son kapanıştan yeni güne aitse kullanılır) |
+| Canlı/gün içi fiyat önbelleği: `latest_prices` | **SQLite** | `LivePriceRefreshService` | `CurrentPriceResolver` ve İzleme Listesi (yalnızca seans penceresinde alınmış ve son kapanıştan yeni güne aitse kullanılır; `src/domain/live_price_rule.py`) |
 | Takip listeleri, model portföyler (+işlem/nakit), bütçe/hedef/sabit kalemler | **SQLite** | ilgili servisler | ilgili ekranlar |
 | Portföy kurumsal aksiyonları ve KAP/MKK adayları (`corporate_actions`, `corporate_action_candidates`) | **SQLite** | `CorporateActionService`, aday servisleri | Hisse Detay, Ayarlar |
 | Risk profilleri, KAP ortaklık anlık görüntüleri | **SQLite** | `RiskProfileService`, `ShareholderAnalysisService` | Optimizasyon, Hisse 360 |

@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import date, datetime, time as dt_time, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -22,14 +22,13 @@ import duckdb
 import pandas as pd
 import yfinance as yf
 
+from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
 from src.domain.models.daily_price import DailyPrice
 from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
 from src.domain.market_clock import market_now
 
 logger = logging.getLogger(__name__)
-
-_MARKET_CLOSE_TIME = dt_time(18, 15)  # BIST seans kapanışı + marj kesinleşme saati
 
 
 @dataclass(frozen=True)
@@ -74,6 +73,7 @@ class MarketDataSyncService:
         """
         self._duckdb_path = str(duckdb_path) if duckdb_path else str(default_duckdb_path())
         self._trading_calendar = trading_calendar or WeekdayTradingCalendar()
+        self._session = BistMarketSessionService(trading_calendar=self._trading_calendar)
         self._max_workers = max_workers
         self._price_repo = price_repo
         self._stock_repo = stock_repo
@@ -97,23 +97,11 @@ class MarketDataSyncService:
 
     def get_last_completed_trading_day(self, now: Optional[datetime] = None) -> date:
         """
-        BIST'in son tamamlanmış (kapanmış) işlem gününü hesaplar.
-        Hafta içi saat 18:15'ten önce ise dünü; hafta sonu ise Cuma gününü verir.
+        BIST'in kapanış verisi kesinleşmiş son işlem günü (Istanbul saati).
+        Kapanış seansı (18:10, yarım gün 13:00) + veri gecikmesi (20 dk) geçmeden bugün sayılmaz;
+        erken çekilen bar kapanış fiyatı değildir ve sonradan "güncel" sayılıp düzeltilmezdi.
         """
-        current_dt = now or market_now()
-        current_date = current_dt.date()
-        current_time = current_dt.time()
-
-        # Bugün işlem günü mü ve seans bitti mi?
-        if self._trading_calendar.is_trading_day(current_date):
-            if current_time >= _MARKET_CLOSE_TIME:
-                return current_date
-
-        # Değilse geriye doğru en son açık işlem gününü bul
-        candidate = current_date - timedelta(days=1)
-        while not self._trading_calendar.is_trading_day(candidate):
-            candidate -= timedelta(days=1)
-        return candidate
+        return self._session.last_completed_trading_day(now or market_now())
 
     def get_sync_status(self, now: Optional[datetime] = None) -> MarketSyncStatus:
         """

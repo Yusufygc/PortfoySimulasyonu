@@ -21,10 +21,6 @@ def _bar(day: date, close: float, low: float | None = None, high: float | None =
                            high_price=None if high is None else Decimal(str(high)), volume=volume)
 
 
-def _live(price: float, source: str = "intraday"):
-    return SimpleNamespace(price=Decimal(str(price)), source=source)
-
-
 FRIDAY, MONDAY = date(2026, 10, 2), date(2026, 10, 5)
 BARS = [_bar(date(2026, 10, 1), 10.0), _bar(FRIDAY, 11.0, low=10.5, high=11.5, volume=2_500_000)]
 
@@ -40,7 +36,7 @@ def test_bars_only_pricing_uses_last_two_closes():
 
 
 def test_live_price_on_new_session_day_compares_with_last_close():
-    row = pricing.price_row(BARS, _live(12.1), MONDAY)
+    row = pricing.price_row(BARS, 12.1, MONDAY)
     assert row.price == 12.1
     assert row.daily_diff_pct == pytest.approx(10.0)  # 11.0 -> 12.1
     assert row.day_high == 12.1 and row.day_low == 10.5
@@ -48,26 +44,17 @@ def test_live_price_on_new_session_day_compares_with_last_close():
 
 
 def test_live_price_same_day_as_last_bar_replaces_that_bar():
-    row = pricing.price_row(BARS, _live(10.5), FRIDAY)
+    row = pricing.price_row(BARS, 10.5, FRIDAY)
     assert row.daily_diff_pct == pytest.approx(5.0)  # önceki kapanış 10.0
     assert row.sparkline == [10.0, 10.5]
 
 
-def test_unchanged_live_price_after_close_keeps_previous_day_change():
-    """Hafta sonu/seans öncesi canlı fiyat son kapanışla aynıdır; bindirilirse değişim yanlışlıkla %0 olurdu."""
-    row = pricing.price_row(BARS, _live(11.0), MONDAY)
-    assert row.daily_diff_pct == pytest.approx(10.0)
-    assert row.sparkline == [10.0, 11.0]
-
-
-def test_stale_or_non_intraday_live_price_is_ignored():
-    assert pricing.price_row(BARS, _live(99.0), date(2026, 9, 30)).price == 11.0  # çubuktan eski
-    assert pricing.price_row(BARS, _live(99.0, source="last_close"), MONDAY).price == 11.0
+def test_no_applicable_live_price_uses_bars():
     assert pricing.price_row(BARS, None, None).price == 11.0
 
 
 def test_live_price_without_bars_still_prices_row():
-    row = pricing.price_row([], _live(5.0), MONDAY)
+    row = pricing.price_row([], 5.0, MONDAY)
     assert row.price == 5.0 and row.daily_diff_pct == 0.0
     assert pricing.price_row([], None, None) is None
 

@@ -122,7 +122,7 @@ Yeni bölme kuralları: bileşen yalnızca kendi kimliklerini ve `root` özellik
 | `SettingsController` | Tema, API anahtarları, veritabanı istatistiği, bütünlük, dışa aktarım |
 | `SystemController` | Otomatik canlı fiyat yenileme, sistem sıfırlama |
 | `StartupJobsController` | Açılış bakım işleri |
-| `MarketSyncController` | DuckDB artımlı senkron ve 18:15 nöbetçisi |
+| `MarketSyncController` | DuckDB artımlı senkron ve kapanış verisi nöbetçisi (18:30) |
 | `PriceDataController` | Fiyat verisi sağlığı |
 | `MarketAdjustmentController` | Piyasa sermaye artırımı düzeltmeleri |
 | `MarketTickerController` | Üst piyasa şeridi |

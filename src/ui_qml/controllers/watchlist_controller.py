@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot, QTimer
-from src.domain.market_clock import to_market_date
+from src.domain.market_clock import market_now, to_market_date
 from src.domain.ticker import clean_ticker
 from src.ui_qml.controllers.watchlist_pricing import DEFAULT_PRICING, price_row
 from src.ui_qml.models.watchlist_table_model import WatchlistTableModel
@@ -213,8 +213,10 @@ class WatchlistController(QObject):
 
             lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
 
-            start_date = date.today() - timedelta(days=90)
-            end_date = date.today()
+            now = market_now()
+            end_date = now.date()
+            start_date = end_date - timedelta(days=90)
+            resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
 
             # N+1 Önleme: Tüm hisselerin fiyat serilerini tek toplu sorguyla çek
             bulk_price_map: Dict[int, Any] = {}
@@ -244,8 +246,12 @@ class WatchlistController(QObject):
                 hist_bars = bulk_price_map.get(stock_id, [])
 
                 live = live_prices.get(stock_id)
-                live_date = to_market_date(live.as_of) if live is not None else None
-                pricing = price_row(hist_bars, live, live_date) or DEFAULT_PRICING
+                last_bar_date = hist_bars[-1].price_date if hist_bars else None
+                if resolver is not None and resolver.live_applies(live, last_bar_date, now):
+                    pricing = price_row(hist_bars, float(live.price), to_market_date(live.as_of))
+                else:
+                    pricing = price_row(hist_bars, None, None)
+                pricing = pricing or DEFAULT_PRICING
 
                 stock_data_list.append({
                     "ticker": ticker,
