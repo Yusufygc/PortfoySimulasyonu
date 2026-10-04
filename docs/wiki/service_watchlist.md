@@ -1,25 +1,34 @@
-# İzleme Listesi (Watchlist) Servisi
+# İzleme Listesi (Watchlist)
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Sayfa: [qml_pages_guide.md](qml_pages_guide.md)
 
-Bu belge, `src/application/services/watchlist` dizinini ve izleme listesi yeteneklerini açıklar.
+Kullanıcının portföyüne henüz eklemediği ama takip ettiği hisseler için birden çok liste. Kod: `src/application/services/watchlist/watchlist_service.py`, `src/domain/models/watchlist.py`, `src/ui_qml/controllers/watchlist_controller.py`.
 
-## 1. Amacı ve Modelleri
+## 1. Modeller ve Tablolar
 
-Kullanıcıların henüz portföylerine (gerçek parayla) eklemedikleri ancak radarında tutmak istedikleri hisseleri listeledikleri yapıdır. 
+| Tablo | Alanlar |
+|---|---|
+| `watchlists` | `name`, `description`, `sort_order`, zaman damgaları |
+| `watchlist_items` | `watchlist_id`, `stock_id`, `notes`, `added_at`; `(watchlist_id, stock_id)` benzersiz |
 
-Modeller:
-- `Watchlist`: Listenin kendisi (İsim, Oluşturulma tarihi vb.)
-- `WatchlistItem`: Liste altındaki her bir hisse kaydı. Hisse bazlı açıklama notu (`notes`) ve eklendiği tarih bilgilerini içerir.
+Liste silinince öğeleri de silinir (CASCADE).
 
-## 2. Portföyle Entegrasyon
+## 2. Servis (`WatchlistService`)
 
-Watchlist verisi, `analysis` ekranında (özellikle Comparison Lab tarafında) benchmark veya "Potansiyel Hisseler" olarak gösterilebilir. 
-İlerleyen aşamalarda `WatchlistService` asenkron `GlobalEventBus` sinyallerini dinleyerek, "prices_updated" event'i tetiklendiğinde hedef fiyata (Target Price) ulaşan hisseler için Toast/Notification üretme yeteneğine sahiptir.
+Liste CRUD (`get_all_watchlists`, `create_watchlist`, `update_watchlist`, `delete_watchlist`), sıralama (`reorder_watchlists(ids)`), hisse işlemleri (`get_watchlist_stocks`, `add_stock_to_watchlist`, `add_stock_by_ticker`, `remove_stock_from_watchlist`, `update_watchlist_item_notes`, `get_watchlist_item_count`). `add_stock_by_ticker` kodu kanonik biçime çevirir (`THYAO.IS` -> `THYAO`), 15 karakterden uzun kodu reddeder ve hisse `stocks`'ta yoksa oluşturur.
 
-## 3. UI Entegrasyonu
+## 3. Arayüz Davranışı
 
-Ana Sayfa veya ayrı bir İzleme Listesi sekmesi üzerinden `WatchlistService` çağrılarak hisseler eklenir/çıkarılır. Fiyat sağlığı (Price Health) paneli, kullanıcının Watchlist'inde olan hisseleri de dikkate alarak YFinance API üzerinden eksik gün tamamlaması yapar. 
-Yani Watchlist'e eklenen bir hissenin geçmiş verisi arka planda sistem tarafından otomatik çekilmeye başlanır.
+- **Listeler:** sol panelde liste kartları, sürükle-bırak sıralama, oluşturma/düzenleme/silme (`ManageWatchlistModal`). Başlıkta yükselen/düşen hisse sayısı.
+- **Hisse ekleme** (`AddStockModal`): kod doğrulanır. SQLite'ta kayıtlı veya DuckDB kataloğunda (tüm BIST) bilinen kod doğrudan eklenir; bilinmeyen kod arka planda çevrimiçi doğrulanır (`StockLookupService.verify_ticker_online`); geçersizse "Geçersiz hisse kodu: X" gösterilir ve kayıt oluşmaz.
+- **Tablo** (`WatchlistTableModel`): son fiyat ve günlük değişim, son ~10 kapanışlık mini sparkline (`MiniSparkline`, Canvas), hisse notu (`EditStockNoteModal`). Fiyat ve seriler `StockLookupService` toplu okumasıyla gelir (DuckDB/SQLite), ağ çağrısı yoktur.
+- **Fiyat yenileme:** `refreshPrices` elle veya Ayarlar > Sistem canlı yenilemesi sonrası çalışır. Sistem sıfırlanınca listeler yeniden yüklenir.
+- Satırdan **hızlı işlem** (`QuickTradeModal`) ve hisse detayı açılabilir.
 
-Ayrıca, liste içerisindeki her bir hissenin eylem sütununda (silme butonunun solunda) yer alan kalem ikonu üzerinden hisse notları `EditStockInWatchlistDialog` penceresi aracılığıyla düzenlenebilir.
+## 4. Sınırlar
+
+Hedef fiyat takibi ve hedef fiyata ulaşınca bildirim yoktur. Watchlist hisseleri fiyat sağlığı kapsamına girmez (varsayılan kapsam açık pozisyonlardır; bkz. [service_portfolio_and_market.md](service_portfolio_and_market.md)); izleme listesi hisselerinin fiyatı DuckDB'deki tüm BIST verisinden gelir.
+
+## 5. Testler
+
+`tests/application/test_watchlist_service.py`, `tests/ui_qml/test_watchlist_phase4.py`, `test_watchlist_ticker_validation.py`, `test_reorder.py`.

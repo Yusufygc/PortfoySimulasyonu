@@ -1,15 +1,19 @@
+> Ana sayfa: [../index.md](../index.md) | Yol haritası: [../roadmap.md](../roadmap.md)
+>
+> **Durum notu (2026-10-03):** Bu belge tarihsel bir tasarım tartışmasıdır ve eski Qt Widgets arayüzü döneminde yazılmıştır; içindeki `src/ui/...` ve `file:///` bağlantıları artık geçerli değildir. Güncel durum: Golden/Death Cross taraması QML'de (`GoldenCrossController`, Hisse Tarayıcı > Golden Cross) çalışır; çok sinyalli tarayıcı `screener.py` içinde 10 hazır filtre sunar (RSI, MACD, Bollinger, hacim, ADX, Supertrend). Donchian kırılımı, yapısal kırılım (Higher-High/Lower-Low), Ichimoku ve Keltner bu belgedeki fikirlerden hâlâ uygulanmamıştır. Güncel mimari için bkz. [../technical_analysis_and_screener.md](../technical_analysis_and_screener.md).
+
 # 📊 Teknik Analiz — Trend Kırılım Tespit Sistemi Tartışma Dokümanı
 
 ## Mevcut Durum
 
-Şu an [technical_analysis_page.py](file:///D:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/technical/technical_analysis_page.py) sayfasında **tek bir sinyal türü** var:
+Şu an technical_analysis_page.py sayfasında **tek bir sinyal türü** var:
 
 | Mevcut | Detay |
 |---|---|
 | **EMA50 / EMA200 Golden Cross** | Boğa sinyali — EMA(50) yukarı keser |
 | **EMA50 / EMA200 Death Cross** | Ayı sinyali — EMA(50) aşağı keser |
 
-Bu çok iyi bir başlangıç noktası. Mevcut altyapı ([golden_cross.py](file:///D:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/application/services/analysis/technical/golden_cross.py), [TechnicalAnalysisService](file:///D:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/application/services/analysis/technical/technical_analysis_service.py), IGoldenCrossRepository) sağlam bir Clean Architecture deseni üzerine kurulu. Ancak **yalnızca uzun vadeli MA cross** tespiti yapıyor — bir "trend kırılım tarayıcı" için çok daha zengin bir mekanizma seti gerekiyor.
+Bu çok iyi bir başlangıç noktası. Mevcut altyapı (golden_cross.py, TechnicalAnalysisService, IGoldenCrossRepository) sağlam bir Clean Architecture deseni üzerine kurulu. Ancak **yalnızca uzun vadeli MA cross** tespiti yapıyor — bir "trend kırılım tarayıcı" için çok daha zengin bir mekanizma seti gerekiyor.
 
 ---
 

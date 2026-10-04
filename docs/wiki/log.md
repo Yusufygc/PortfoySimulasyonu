@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-10-04] güncelleme | Dokümantasyonun Kod Tabanına Göre Baştan Doğrulanması ve Yenilenmesi
+
+- **Silinenler:** Gitignore'daki `docs/MyDocs` (37 dosya: eski widget arayüzü planları, MySQL dönemi raporları, tamamlanmış görev listeleri, eski denetimler) kaldırıldı; silmeden önce yedeği alındı. Yalnızca hâlâ uygulanmamış fikirler `roadmap.md`'ye taşındı. Wiki'den `refactor_handoff_2026-06-13.md`, `pyside6_migration_analysis.md` ve çözülmüş bulgulardan oluşan `system_audit_report_2026-09-30.md` silindi (tarihçe `log.md` ve git geçmişinde).
+- **Yeni sayfalar:** `project_structure.md`, `development_guide.md`, `qml_pages_guide.md`, `service_market_data_providers.md`, `technical_analysis_and_screener.md`, `stock_360.md`, `settings_and_system.md`, `glossary.md`; `Plans.md` -> `roadmap.md` (doğrulanmış fikir havuzu ve teknik borç).
+- **Baştan yazılanlar:** `architecture.md`, `ui_architecture_and_events.md` (yalnızca QML), `qml_pages_guide.md`, `comparison_lab.md` (Plotly değil Lightweight Charts/Chart.js), `ai_integration.md` (tool-calling, girdi güvenliği, AI_Core), `service_portfolio_and_market.md`, `service_corporate_actions.md` (eski tablodaki `STOCK_SPLIT/DIVIDEND/RIGHTS_ISSUE` türleri kodda yoktu), `service_analysis.md`, `service_planning_optimization.md`, `service_simulation.md`, `service_watchlist.md`, `service_reporting_and_export.md`, `database_schema_and_orm.md` (23 tablo), `database_maintenance_and_scripts.md` (olmayan `replicate_db.py`, `DbIntegrityService` anlatımı kaldırıldı), `testing_strategy.md`, `manual_testing_guide.md` (QML sayfalarına göre), `project_build_and_deployment.md`, `code_quality_guardrails.md` (güncel 14 sınıf/129 fonksiyon ihlali), `index.md`.
+- **Güncellenenler:** `data_architecture.md` (DuckDB şeması), `market_corporate_actions.md` (gezinme), kök `README.md` (PyQt5/MySQL dönemi anlatımı kaldırıldı).
+- **Taşınanlar:** Kök `teknik_analiz_tartisma.md` ve `temel_analiz_filtre_tartisma.md` -> `docs/wiki/tasarim_notlari/` (üstlerine durum notu eklendi).
+- **Kodda bulunan hatalar:** `DatabaseMaintenanceService` finansal hedef sayısını olmayan `dca_goals` tablosundan okuyordu (`financial_goals` olarak düzeltildi); `CorporateActionService` modül açıklaması eski sentetik BUY modelini anlatıyordu (geriye dönük düzeltme modeli olarak düzeltildi); `pytest.ini` `ui` marker açıklaması güncellendi.
+- Doğrulama: wiki içi bağlantılar ve dizin kapsamı betikle denetlendi (kırık bağlantı, dizinde olmayan sayfa ve yetim sayfa yok).
+
+---
 ## [2026-10-03] ekle | Strateji Backtest (Periyodik Yeniden Dengeleme, Stop-Loss / Take-Profit)
 
 - **Motor:** `strategy_backtest.py` (saf) + `StrategyBacktestService`. Yeniden dengeleme eşit veya Markowitz ağırlığıyla (her dengeleme gününde yalnızca geçmiş veriden maksimum Sharpe, `optimization_service.compute_max_sharpe_weights`); stop-loss/take-profit giriş fiyatına göre günlük kapanışla. Her ikisi de "al ve tut" taban çizgisiyle ve maksimum düşüşle karşılaştırılır.

@@ -1,37 +1,51 @@
-# Veritabanı Bakımı ve Scriptler
+# Veritabanı Bakımı ve Betikler
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Şema: [database_schema_and_orm.md](database_schema_and_orm.md) | Veri sahipliği: [data_architecture.md](data_architecture.md)
 
-Bu belge, `src/application/services/database/database_maintenance_service.py` (Ayarlar > Sistem: istatistik, `PRAGMA integrity_check`, yedek) ve projedeki `scripts/` klasörünün operasyonel işlevlerini belgeler. Eski `db_integrity_service.py` (`DatabaseIntegrityService`) hiçbir arayüzde, betikte veya testte kullanılmadığı için 2026-10-03'te kaldırıldı. 
+## 1. Uygulama İçi Bakım (`DatabaseMaintenanceService`)
 
-Bir uygulamanın zamanla kirlenen verilerini (bozuk trade'ler, yanlış girilmiş nakit bakiye) onarmak ve sistemi kararlı tutmak için bakım (maintenance) scriptlerine ihtiyaç vardır.
+`src/application/services/database/database_maintenance_service.py`, Ayarlar > Veri Sağlığı ve Dışa Aktarım sekmeleri için SQLite ve DuckDB dosyalarını **salt okunur** açar; arayüz katmanı ham bağlantı kullanmaz.
 
-## 1. Veritabanı Bütünlük Servisi (`DbIntegrityService`)
+| İşlev | Ayrıntı |
+|---|---|
+| `collect_stats()` | Dosya boyutları; SQLite tablo satır sayıları (hisse, işlem, nakit hareketi, izleme listesi, model portföy, finansal hedef); DuckDB hisse sayısı, toplam bar ve son bar tarihi. Dosya yoksa "Dosya Yok" gösterilir. |
+| `check_integrity()` | SQLite `PRAGMA integrity_check` ve DuckDB `daily_prices` okuma testi; sorun listesi döner, boş liste sağlam demektir. |
+| `export_backup_data()` | JSON yedeği için `stocks`, `trades`, `cash_movements`, `watchlists` tablolarının içeriği. Dosyayı `SettingsController` masaüstüne (yoksa `reports/`) `PortfoySim_Yedek_<tarih>.json` olarak yazar. |
+| `from_config()` | Yolları `src/infrastructure/db/paths.py` ile çözer (`DB_SQLITE_PATH`, `DUCKDB_PATH`). |
 
-Event-Sourced sistemlerde işlem zinciri birbirine bağlıdır. Eğer bir hissede elde yeterli lot olmadan "Satış" (SELL) girilmişse veya nakit eksiye inmişse, bu ilerideki kâr/zarar hesaplamalarını patlatır.
+Not: JSON yedeği tam bir geri yükleme aracı değildir (model portföy, bütçe, kurumsal aksiyon içermez); tam yedek için `data/portfolio.db` dosyasını kopyalayın. Eski `DatabaseIntegrityService` (işlem zinciri denetimi) hiçbir yerde kullanılmadığı için 2026-10-03'te kaldırıldı; işlem zinciri tutarlılığı çalışma anında `build_portfolio_safely` ve `PortfolioTimelineValidator` ile sağlanır ([service_portfolio_and_market.md](service_portfolio_and_market.md)).
 
-`DbIntegrityService` şunları kontrol eder:
-- **Eksik veya Hatalı Trade'ler:** Orijinali olmayan bir hissenin satılıp satılmadığı.
-- **Nakit ve Lot Yetersizliği:** Trade_Entry_Service tarafından normalde engellenen ama bir şekilde (örneğin SQL ile manuel) veritabanına sızmış geçersiz kayıtlar.
-- **Bütünlük Raporu Üretimi:** Sorunlu kayıtları listeler. UI üzerinden "Bozuk kayıtları yoksayarak güvenli portföy kur" seçeneğini destekleyerek uygulamanın çökmesini engeller.
+Portföy düzeyi bakım servisleri:
 
-## 2. Operasyonel Scriptler (`scripts/`)
+| Servis | Görev |
+|---|---|
+| `PortfolioMaintenanceService.purge_stock_by_ticker` | Hisseyi ve tüm bağlı kayıtlarını (işlem, izleme listesi, model portföy, fiyat) FK sırasına uygun siler. Geri alınamaz. |
+| `PortfolioResetService.reset_all` | Ayarlar > Sistem > sıfırlama; model portföyleri, izleme listelerini, işlemleri, nakit hareketlerini, fiyatları ve hisseleri siler ([settings_and_system.md](settings_and_system.md)). |
+| `MarketUniverseMigrationService` | SQLite piyasa geçmişini DuckDB'ye taşıyan bir kerelik göç (tamamlandı). |
 
-| Script Adı | İşlevi |
-| --- | --- |
-| `replicate_db.py` | Canlı veritabanındaki tüm tabloları ve verileri, test veritabanına kopyalar. Güvenlik önlemi olarak canlı ve test veritabanı adları aynı ise çalışmaz. |
-| `purge_stock.py` | Belirli bir hissenin (örn. ismi değişmiş veya delist olmuş) tüm işlemlerini, watchlist kayıtlarını, fiyat geçmişini ve model portföy bağlantılarını kalıcı olarak temizler. Çok dikkatli kullanılmalıdır. |
-| `clean_db_prices.py` | Eksik fiyat veya 0 değerine inmiş hatalı fiyatları silerek YFinance'in yeniden indirmesini tetiklemek için temizlik yapar. |
-| `manual_backfill.py` | Eksik verileri veya özel bir geçmiş aralığı API sınırlamalarına takılmadan (chunking ile) parça parça indirmeye yarar. |
-| `dbOlusturmak.sql` vb. | İlk kurulumda otomatik SQL oluşturmaların manuel yedeğidir. |
+## 2. Betikler (`scripts/`)
 
-## 3. Test Ortamı Veritabanı ve Güvenli Çalışma
+Tümü proje kökünden `.\venv\Scripts\python.exe scripts\<ad>.py` ile çalıştırılır. **Veriyi değiştiren betikleri önce kopya veritabanına yöneltin** (`DB_SQLITE_PATH`, `DUCKDB_PATH`; bkz. [development_guide.md](development_guide.md)).
 
-Geliştiricilerin ve kullanıcıların sistemi güvenle test edebilmeleri için izole bir test veritabanı altyapısı desteklenir:
+| Betik | İşlev | Not |
+|---|---|---|
+| `sync_bist_to_duckdb.py` | Tüm BIST geçmişini yfinance'ten DuckDB'ye indirir (`--workers`, `--limit`, `--tickers THYAO,BIMAS`, `--db-path`). Hisse listesi TradingView Scanner API'sinden gelir. | İlk yükleme ve onarım içindir; günlük güncelleme uygulama içinde `MarketDataSyncService` ile yapılır. |
+| `migrate_market_universe_to_duckdb.py` | SQLite piyasa geçmişini DuckDB tek evrenine taşır; **varsayılan kuru çalıştırma**, `--execute` önce yedek alır (`data/backups/`). | 2026-10-03'te çalıştırıldı ([data_architecture.md](data_architecture.md)). |
+| `purge_stock.py` | `--ticker THYAO` ile hisseyi ve bağlı kayıtları siler (`PortfolioMaintenanceService`). | Geri alınamaz; önce yedek alın. |
+| `measure_code_quality.py` | Kod boyutu/karmaşıklık ölçümü; `--output-dir`, `--fail-on-threshold` ([code_quality_guardrails.md](code_quality_guardrails.md)). | |
+| `build_preflight.py` | Derleme öncesi kontroller ([project_build_and_deployment.md](project_build_and_deployment.md)). | |
+| `import_bist_ohlcv_to_db.py` | BIST OHLCV CSV'lerini içe aktarır. | MySQL dönemine ait, sabit yerel kaynak dizini vardır; eskimiş kabul edin. |
+| `backfill_missing_friday_prices.py`, `fix_technical_analysis.py` | Tek seferlik düzeltmeler (sabit tarih/hisse). | Yeniden kullanmadan önce okuyun. |
+| `bencmarkVeri.py`, `tcmbApi.py`, `tcmbFaizApi.py`, `inspect_db.py`, `show_violations.py`, `finansal_lab/` | Keşif/prototip betikleri. | Hiçbir yerden çağrılmaz ([roadmap.md](roadmap.md)). |
 
-1. **Yapılandırma:** Kök dizinde `.env.test` dosyası oluşturulup `DB_NAME=portfoySim_test` ayarlanır.
-2. **Kopyalama:** `python scripts/replicate_db.py` çalıştırılarak canlı veriler test veritabanına aktarılır.
-3. **Çalıştırma:** `PORTFOYSIM_ENV` ortam değişkeni `test` yapılarak uygulama başlatılır (`$env:PORTFOYSIM_ENV="test"; python app.py`).
-4. **UI Korumaları:** Test ortamında çalışıldığında pencere başlığında ve yan menüde belirgin görsel uyarılar gösterilerek canlı verinin yanlışlıkla değiştirilmesi engellenir.
+## 3. Güvenli Çalışma Pratikleri
 
-Uygulamanın uzun süreli sağlığı için, büyük versiyon atlamalarında Ayarlar'daki veritabanı bütünlük kontrolü (`DatabaseMaintenanceService.check_integrity`) çalıştırılmalı ve gerekirse bakım scriptleri ile temizlik yapılmalıdır.
+1. Veriyi değiştirmeden önce `data/portfolio.db` ve `data/market_history.duckdb` dosyalarını kopyalayın; migrasyon betikleri `data/backups/` altına SQLite yedeği alır.
+2. Denemeler için `DB_SQLITE_PATH` ve `DUCKDB_PATH` ortam değişkenlerini kopya dosyalara yönlendirin; `.env` bu iki değişkeni ezmez.
+3. Test ortamı: `PORTFOYSIM_ENV=test` `.env.test` dosyasını okur (`run_test.bat`). Pytest ayrıca oturum başına geçici kopya kullanır; testler gerçek dosyalara yazmaz ([testing_strategy.md](testing_strategy.md)).
+4. Büyük sürüm geçişlerinden sonra Ayarlar'dan bütünlük kontrolünü çalıştırın.
+5. DuckDB'ye yalnızca ilgili servis ve betikler yazar; elle `duckdb.connect` ile ham bar değiştirmeyin ([data_architecture.md](data_architecture.md) kural 6).
+
+## 4. Kullanılmayan Hisse Temizliği
+
+Model portföy veya izleme listesi silinince ortak sözlük olan `stocks` kaydı ve varsa `daily_prices` geçmişi otomatik silinmez (bilinçli, güvenli davranış). Hiçbir yerde kullanılmayan hisseleri temizlemek için önce `trades`, `watchlist_items`, `model_portfolio_trades` ve `corporate_actions` içinde kullanılmadığını doğrulayın, yedek alın, sonra `purge_stock.py` kullanın. Fiyat sağlığı raporu yalnızca net açık pozisyonları taradığı için kullanılmayan hisseler raporda görünmez.

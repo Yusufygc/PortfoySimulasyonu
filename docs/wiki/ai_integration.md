@@ -1,24 +1,77 @@
-# Yapay Zeka (Gemini AI) Entegrasyonu
+# Yapay Zeka Entegrasyonu
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Sayfa: [qml_pages_guide.md](qml_pages_guide.md)
 
-Bu belge, `src/ui_qml` (AiAdvisorView, ModelAnalysisPanel) ve ilgili servisler altındaki yapay zeka asistanı entegrasyonunu kapsar. Eski `src/ui/pages/ai_page/` kaldırıldı; aşağıdaki widget anlatımı tarihsel kayıttır.
+Yapay zeka özellikleri üç ayrı yoldan gelir ve hepsi **yatırım tavsiyesi vermeyen** analiz/yorum aracıdır:
 
-## 1. Temel İşlev ve AI Core
+| Özellik | Sağlayıcı | Nerede |
+|---|---|---|
+| **Portföy Danışmanı** (function-calling sohbet) | Gemini 2.5 Flash (`GeminiAdvisorChatProvider`) | AI Asistan sayfası, mod "Portföy Danışmanı" |
+| **Hisse Modeli** (tahmin, XAI, akran) | AI_Core FastAPI servisi, kapalıysa demo | AI Asistan sayfası, mod "Hisse Modeli" |
+| **Karşılaştırma yorumu** | Gemini (`GeminiChatProvider`, `gemini-3-flash-preview`) | Karşılaştırma Lab > Yapay Zeka Yorumu |
 
-Portföy Simülasyonu, kullanıcının portföyündeki analiz metriklerini, rasyoları veya bir hissenin durumunu düz matematiksel sayılar olmaktan çıkarıp, Gemini API kullanarak yorumlar. 
+API anahtarı `GEMINI_API_KEY` (veya Ayarlar > API Anahtarları) ile verilir; `AI_CORE_API_URL` AI_Core adresidir.
 
-*Not: Uygulama güncel `google.genai` SDK'sını kullanır. Gemini API anahtarı `config/settings_loader.py` içindeki merkezi ayar yükleyici üzerinden okunur.*
+## 1. Katmanlar
 
-## 2. Açıklanabilirlik ve "Yatırım Tavsiyesi Değildir" Politikası
+| Katman | Bileşen |
+|---|---|
+| Domain | `models/ai_analysis.py` (`AnalysisResult`, `ModelOutlook`, `ForecastPoint`, `XaiFactorItem`, `PeerInfo`, `ChatMessage`, `MessageRole`), `models/ai_tool.py` (`ToolDeclaration`); portlar `i_ai_chat_provider`, `i_ai_analysis_provider`, `i_chat_history_repo`. |
+| Application (`services/ai/`) | `AiAdvisorService` (araç kayıt defteri ve sohbet), `advisor_tools.py`, `AiChatService`, `AiAnalysisService`, `ChatSessionService`, `safety_guard.py`. |
+| Infrastructure (`infrastructure/ai/`) | `GeminiAdvisorChatProvider`, `GeminiChatProvider`, `AICoreFastAPIClient` + `FastAPIAnalysisProvider`, `MockAIAnalysisProvider`, `QSettingsChatHistoryRepository`. |
+| UI | `AiAdvisorController`, `ModelAnalysisController`; `AiAdvisorView.qml`, `ModelAnalysisPanel.qml`, `ChatHistoryDialog.qml`. |
 
-Projedeki en önemli yapısal kural, yapay zekanın **Yatırım Tavsiyesi** (Al/Sat sinyali) **VERMEMESİDİR**.
-Prompt mimarisi şu şekilde kurgulanmıştır:
+`container_parts/ai.py::build_ai` bunları kurar; `AiAdvisorService` Gemini sağlayıcısını `chat_provider_factory` ile alır (denetleyici SDK'yı doğrudan import etmez).
 
-- **Veri Sağlama:** LLM'e sadece saf finansal veriler, teknik göstergeler (örn. Sharpe, Drawdown) verilir.
-- **XAI (Explainable AI - Açıklanabilir Yapay Zeka) Faktörleri:** LLM'den yanıt dönerken, modelin bu yorumu yapmasına neyin sebep olduğunu gösteren "Faktörler" listesi (Örn: "Artan volatilite ve yüksek drawdown oranına dayanarak riskli görünmektedir") istenmektedir.
-- Kullanıcıya model görünümü, performans kartı ve XAI faktörleri olarak ayrıştırılmış modüler bir panelle sunum yapılır.
+## 2. Portföy Danışmanı (Tool-Calling)
 
-## 3. Sohbet Bağlamı (Context) Aktarımı
+Akış: kullanıcı mesajı -> `AiAdvisorController` arka plan iş parçacığında `AiAdvisorService.chat(api_key, sistem_istemi, turlar)` -> `GeminiAdvisorChatProvider` Gemini'ye araç bildirimleriyle gönderir -> model araç çağırırsa servis çalıştırıp sonucu geri verir -> en çok **4 tur** sonra son metin döner. Sonuç metin ve "kullanılan araçlar" rozetleri olarak gösterilir.
 
-Sohbet panelindeki geçmiş konuşmalar sırayla tutulur ve LLM'e (Gemini) beslenir. Bu şekilde kullanıcı, "Bu hissenin grafiğini göster" dediğinde ardından "Peki bu riske değer mi?" diye sorarsa LLM önceki hisseyi hatırlayarak bağlamsal (context-aware) cevap verebilir. Hatalar log dosyasına ayrıntılı yazılırken, kullanıcı arayüzüne (UI) olabildiğince basitleştirilmiş ve kibar bir formatta yansıtılır.
+Araçlar (`advisor_tools.py`; hepsi **salt okunur**, JSON döner; mutasyon aracı eklenmez ve bu bir istem kuralı değil mimari sınırdır):
+
+| Araç | Kaynak |
+|---|---|
+| `get_portfolio_overview` | `PortfolioAnalyticsService.get_overview`: toplam değer, dönem getirisi, BIST 100 farkı, en iyi/kötü katkı. |
+| `get_allocation_and_risk` | `get_allocation_risk_view`: ağırlıklar, volatilite, maksimum düşüş, beta, Sharpe, yoğunlaşma. |
+| `suggest_optimization(risk_label?)` | `RiskOptimizationBridgeService`: Markowitz hedef ağırlıklar ve EKLE/AZALT/TUT önerileri ([service_planning_optimization.md](service_planning_optimization.md)). |
+| `get_stock_overview(ticker)` | `Stock360Service`: fiyat, 52 hafta aralığı, RSI/MACD/SMA ([stock_360.md](stock_360.md)). |
+
+Bilinmeyen araç adı veya araç içi hata exception fırlatmaz; `{"error": ...}` döner ve sohbet çökmez.
+
+**Geri düşme:** API anahtarı yoksa veya Gemini çağrısı hata verirse denetleyici gerçek portföy verisiyle çalışan **yerel analiz motoruna** düşer (aynı araçları doğrudan çağırıp şablonla yanıt üretir); durum çubuğu "Simülasyon" rozetiyle belirtir. Anahtar varsa "Çevrimiçi".
+
+**Portföy Sağlık Skoru (0-100)** her yenilemede hesaplanır: dört boyut, her biri en çok 25 puan: varlık çeşitliliği (ilk üç pozisyon ağırlığı), volatilite, Sharpe, maksimum düşüş. Etiketler: >= 80 Çok Güçlü, >= 65 Dengeli, >= 50 Orta Risk, altı Yüksek Risk. Sağ panelde boyut çubukları ("XAI içgörüleri") gösterilir; hesap hata verirse varsayılan skor 70 gösterilir.
+
+**Hızlı sorular:** dört hazır istem çipi güvenilir yol (`sendMessage`) üzerinden gider.
+
+**Sohbet geçmişi:** `ChatSessionService` oturumları listeler, devam ettirir, siler; yeni oturum ilk kullanıcı mesajı gelene dek kaydedilmez, başlık ilk mesajdan türetilir. Oturumlar `QSettings`'te tutulur (`QSettingsChatHistoryRepository`), veritabanında değil. Uygulama her açılışta son oturumu geri yükler.
+
+## 3. Girdi Güvenliği (`safety_guard.py`)
+
+`submitUserMessage(text)` (kullanıcının yazdığı mesaj) göndermeden önce `validate_user_input` çalıştırır:
+
+- En çok **750 karakter** (`MAX_CHAR_LIMIT`; giriş kutusu `maximumLength` ile sınırlıdır).
+- `config/safety_patterns.txt` içindeki regex kalıpları (İngilizce ve Türkçe prompt-injection/jailbreak ifadeleri, kod yazma talepleri, "yatırım tavsiyesi ver" gibi kapsam dışı istekler; büyük/küçük harf duyarsız). Dosya okunamazsa gömülü yedek liste kullanılır.
+- Riskli girdi reddedilir ve kullanıcıya "Güvenlik Uyarısı" gösterilir; model çağrılmaz.
+
+`wrap_user_message` kullanıcı girdisini yapısal sınırlar içine alır (veri/talimat ayrımı). Hızlı sorular ve model analizi özeti gibi **güvenilir** metinler doğrulamayı atlayan `sendMessage` yoludur.
+
+## 4. İstem Politikası
+
+- Danışman istemi (`ADVISOR_SYSTEM_PROMPT`): BIST uzmanı danışman rolü, araçları çağırma, spekülatif/kesin ifadelerden kaçınma, Türkçe sayı biçimi, kısa Markdown, her yanıtın sonunda özet/aksiyon ve "Yatırım tavsiyesi niteliğinde değildir." uyarısı.
+- Genel sohbet istemi (`AiChatService.SYSTEM_PROMPT`): finans/piyasa/portföy dışı konulara ve yazılım yardımına yanıt vermez, yatırım tavsiyesi vermez, veride olmayan bilgi uydurmaz, açıklanabilirlik faktörlerini nedensellik kanıtı gibi anlatmaz, "Gündelik Özet" ile bitirir. Geçmişten en çok 20 mesaj gönderilir.
+- LLM'e matematiksel hesap yaptırılmaz; sayılar yerel servislerden gelir, model yorumlar.
+
+## 5. Hisse Modeli (AI_Core)
+
+`ModelAnalysisController` (Yapay Zeka > Hisse Modeli): `probe()` ile AI_Core erişilebilirliğini yoklar, `analyze(ticker)` ile analiz üretir (arka planda). `AiAnalysisService` bağlantı varsa canlı sağlayıcıyı (`AICoreFastAPIClient`: `health_check`, `get_analysis`, `get_symbols`, `get_best_model`, `get_leaderboard`), yoksa `MockAIAnalysisProvider`'ı kullanır; analiz sırasında canlı sağlayıcı düşerse `mark_unavailable` ile demoya döner.
+
+`AnalysisResult`: tahmin edilen fiyat, güven (0-1) ve gerekçe/uyarılar, yön beklentisi (`ModelOutlook`: yukarı/aşağı/nötr) ve gücü, son kapanış ve veri tazeliği, tahmin noktaları (aralık yöntemiyle), akran (peer) bilgisi (yüzdelik, etiket), trend olasılığı ve XAI faktörleri (en çok pozitif/negatif etkenler, yöntem uyarısı). **Demo sonuçlar gerçek değildir** ve arayüzde belirgin biçimde "demo" olarak işaretlenir. "Danışmana Gönder" analiz özetini sohbete aktarır (`sendToAdvisor`). AI_Core ayrı bir projedir (`ts_forecasting_lab`); bu depodaki istemci ve ayrıştırıcı hazırdır, servis kapalıysa demo çalışır.
+
+## 6. Hata Yönetimi
+
+Gemini/ağ hataları loga ayrıntılı yazılır; kullanıcıya kısa ve kibar Türkçe mesaj gösterilir. Anahtar yoksa danışman yerel motora düşer, karşılaştırma yorumu hata mesajı gösterir. Ağ çağrıları için genel yeniden deneme [service_market_data_providers.md](service_market_data_providers.md) içindedir (LLM çağrıları denenmez).
+
+## 7. Testler
+
+`tests/application/test_advisor_tools.py`, `test_ai_advisor_service.py`, `test_chat_session_service.py`, `tests/infrastructure/test_gemini_advisor_chat_provider.py` (sahte SDK; gerçek API'ye gidilmez), `tests/ui_qml/test_ai_advisor_phase10.py`, `test_model_analysis.py`. Gerçek Gemini ile uçtan uca doğrulama otomatik pakette yoktur (deterministik değil, ücretli).

@@ -1,66 +1,53 @@
-# Kurumsal Aksiyonlar (Corporate Actions) Servisi
+# Kurumsal Aksiyonlar ve Nakit Temettü
 
-## KAP/MKK Aday Otomasyonu Notu (2026-06-02)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Piyasa geneli düzeltme: [market_corporate_actions.md](market_corporate_actions.md)
 
-- Bedelli ve bedelsiz sermaye artirimlari once `CorporateActionCandidate` olarak kaydedilir; portfoy ve fiyat gecmisi kullanici onayi olmadan degismez.
-- `CorporateActionDiscoveryService` KAP/MKK provider'ini calistirir, portfoy/watchlist/model portfoy ticker'larini hedefler ve uygulanmis action ile cakisan adaylari kaydetmez.
-- `CorporateActionCandidateReviewService` sadece `READY`/`APPROVED` adaylari mevcut `CorporateActionService` uzerinden uygular; sentetik trade ve fiyat duzeltme idempotency ayni hattan korunur.
-- Ayarlar > Kurumsal Aksiyonlar sekmesi aday listeleme, KAP/MKK yenileme, kaynak acma, duzenleme, yoksayma ve onayla-uygula akisini sunar.
-- Mevcut DB'ler icin `scripts/apply_corporate_action_candidate_schema.py` calistirilerek `corporate_action_candidates` tablosu eklenir.
-- Public KAP taramasi resmi API aboneligi gerektirmeden best-effort calisir; kaynak 404/timeout verirse discovery result `source_unavailable=True` ve `errors` ile doner, startup worker stack trace veya toast uretmez.
-- Manuel `KAP/MKK Yenile` butonu kaynak okunamadiginda kullaniciya kisa uyari gosterir; default test suite canli KAP agina bagli degildir.
+Kod: `src/application/services/corporate_actions/` ve `portfolio/cash_movement_service.py`. Bu sayfa **portföye uygulanan** bedelli/bedelsiz sermaye artırımını, KAP/MKK aday akışını ve nakit temettü kaydını anlatır. Tüm BIST için veriden tespit edilen fiyat düzeltmesi ayrı bir mekanizmadır: [market_corporate_actions.md](market_corporate_actions.md).
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+## 1. Türler
 
-Bu belge, `src/application/services/corporate_actions` dizini altındaki temettü (dividend), bedelli ve bedelsiz sermaye artırımı gibi varlık tabanlı şirket olaylarını açıklar.
+| Tür | Model | Etki |
+|---|---|---|
+| Bedelsiz sermaye artırımı | `ActionType.BEDELSIZ` | Lot oranla artar, toplam maliyet sabit kalır, ortalama maliyet düşer. |
+| Bedelli sermaye artırımı | `ActionType.BEDELLI` | Lot artar; kullanım fiyatı x yeni lot kadar sermaye toplam maliyete eklenir (nakit tutarı), ortalama maliyet yeniden hesaplanır. |
+| Nakit temettü | `CashMovementType.DIVIDEND` | `CorporateAction` **değildir**; lot ve maliyeti değiştirmez, nakde girer (bölüm 5). |
 
-## 1. Temel İşlev
+`ActionType` yalnızca bedelli ve bedelsizi kapsar; bölünme (split) portföy aksiyonu olarak modellenmez (piyasa geneli düzeltmede birleştirme/bölünme faktörü vardır).
 
-Kurumsal aksiyonlar, bir hissenin portföydeki lot miktarını veya maliyetini doğrudan etkiler. Event-Sourcing (işlem geçmişi) tabanlı portföy modelinde, bu aksiyonların portföy hesaplanırken dikkate alınması hayati önem taşır. Eğer dikkate alınmazsa kullanıcının Kâr/Zarar metrikleri devasa oranda hatalı gözükür (Örn: Hissenin %500 bedelsiz bölünüp fiyatının 6'ya düşmesi).
+## 2. Sermaye Artırımı Uygulaması (`CorporateActionService`)
 
-## 2. Türler ve Hesaplama Mantığı
+Akış: `register_bedelsiz` / `register_bedelli` aksiyonu kaydeder (`corporate_actions`) -> `apply_action(action_id, current_price)` portföye uygular.
 
-| Aksiyon Türü | Veritabanı (Type) | Sisteme Etkisi |
-| --- | --- | --- |
-| **Bedelsiz Sermaye Artırımı** | `STOCK_SPLIT` / `BONUS` | Yatırımcının portföyündeki hisse adedi çarpılır, yeni bir "0 maliyetli" alım (veya ayarlama) gibi sisteme yansıtılır. Toplam maliyet değişmez ama birim ortalama maliyet düşer. |
-| **Temettü (Dividend)** | `DIVIDEND` | Hisse başına verilen net nakit temettü, yatırımcının elindeki lot sayısıyla çarpılır ve sisteme "Nakit Girişi" (Cash Inflow) olarak yansıtılır. İstenirse hisse maliyetinden düşülerek de hesaplanabilir. |
-| **Bedelli Sermaye Artırımı** | `RIGHTS_ISSUE` | Hisse sayısını artırırken sistemde rüçhan hakkı kullanımı nedeniyle bir "Nakit Çıkışı" (Cash Outflow) üretir. Toplam maliyete eklenir. |
+- Uygulama için ex-date'te **açık pozisyon** gerekir; aksiyon daha önce uygulanmışsa veya hesaplanan yeni lot sıfırsa `ValueError` fırlatılır.
+- **Yeni pay hesabı** (BIST kuralı): `int(mevcut_lot x oran)` (aşağı yuvarlama). **Teorik baz fiyat** `CorporateAction.theoretical_price(güncel_fiyat)` ile hesaplanır.
+- **Geriye dönük düzeltme modeli:** ex-date öncesi işlemlerin lot ve fiyatı faktörle ayarlanır; `trades.original_quantity` ve `original_price` özgün değerleri korur, her değişiklik `trade_adjustments` tablosuna (faktör, önceki/sonraki lot ve fiyat) denetim izi olarak yazılır. Bedelsiz lot katsayısı `1 + oran`, fiyat katsayısı `1 / (1 + oran)`.
+- **Sıra güvenliği:** işlem düzeltmesi başarısız olursa aksiyon "uygulandı" işaretlenmez (testle sabitlenmiştir).
+- **Fiyat geçmişi düzeltmesi** (`CorporateActionPriceAdjustmentService`): uygulanan aksiyondan sonra SQLite `daily_prices`'ta yalnızca `price_date < ex_date` kayıtları düzeltilir. Bedelsiz katsayısı `1 / (1 + r)`; bedelli katsayısı `(P0 + r*K) / ((1 + r) * P0)` (P0: ex-date öncesi ham kapanış, K: kullanım fiyatı). `corporate_actions` satırında `prices_adjusted`, `prices_adjusted_at`, `price_adjustment_factor`, `price_adjustment_count` alanları **idempotency** sağlar: aynı aksiyon iki kez uygulanmaz. Geçiş günü `_find_price_transition_date` ile gerçek kırılmadan bulunur. Uygulanan olay aynı faktörle DuckDB `market_corporate_actions`'a ONAYLI olarak da kaydedilir (başarısız olursa SQLite düzeltmesi geri alınmaz, yalnızca loglanır).
+- Fiyat yeniden indirmelerinde (backfill, sağlık güncellemesi) uygulanmış aksiyonlar dikkate alınarak ham piyasa fiyatı düzeltilmiş yazılır (`adjust_downloaded_series`).
 
-## 3. Mimari Entegrasyon
+Arayüz: Hisse Detay modalı > **Sermaye Artırımı** (yalnızca ana portföy, açık pozisyon): tür (bedelsiz/bedelli), oran, ex-date, kullanım fiyatı, not; canlı ön izleme (yeni lot, yeni ortalama maliyet, sermaye tutarı, teorik baz fiyat) `compute_preview` ile hesaplanır. Uygulama arka planda çalışır; başarısızsa kaydedilen bekleyen aksiyon silinir. Başarıdan sonra Dashboard ve Model Portföy yenilenir.
 
-Kurumsal aksiyonlar doğrudan `CorporateActionService` vasıtasıyla veritabanına (`corporate_actions` tablosuna) kaydedilir. Portföy simülasyonu çalıştırılırken (veya `Portfolio.from_trades` anında), işlemlerin yapıldığı günlerde kurumsal aksiyon olup olmadığı kontrol edilir. Varsa bu matematiksel ayarlamalar pozisyon nesnesinin (`Position`) adet ve maliyet hesaplamalarına "Event" olarak dahil edilir.
+## 3. KAP/MKK Aday Akışı
 
-```mermaid
-graph TD
-    A[Trade Geçmişi] --> B(Portföy Hesaplama)
-    C[Corporate Actions] --> B
-    B --> D{Pozisyon Değerlemesi}
-    D -->|Lot Çarpımı| E[Bölünme Ayarı]
-    D -->|Maliyet Düşümü| F[Temettü Ayarı]
-```
-## Faz 2 Notu (2026-06-02)
+Bedelli/bedelsiz duyuruları önce **aday** olarak kaydedilir; kullanıcı onayı olmadan portföy veya fiyat geçmişi değişmez.
 
-- `CorporateActionService.apply_action` failure-safe sıraya alındı: action okunur, pozisyon etkisi hesaplanır, sentetik trade insert edilir ve sadece insert başarılı olursa action `applied` işaretlenir.
-- Trade insert exception durumunda action applied kalmaması regression testiyle sabitlendi.
+- `CorporateActionDiscoveryService.discover(tickers, start, end)`: `kap_mkk_provider` ile KAP'ın kamuya açık duyuru listesini ve bildirim sayfalarını tarar; hedef ticker'lar portföy, izleme listesi ve model portföy hisseleridir. Uygulanmış bir aksiyonla çakışan adaylar kaydedilmez. Resmi API aboneliği gerekmez (best-effort); kaynak 404/zaman aşımı verirse sonuç `source_unavailable` ve `errors` ile döner, açılış işi iz veya toast üretmez.
+- `CorporateActionCandidateReviewService`: yalnızca `READY`/`APPROVED` adaylar `approve_and_apply` ile mevcut `CorporateActionService` üzerinden uygulanır (sentetik düzeltme ve fiyat düzeltme idempotency aynı hattan korunur); `ignore` ve `update_candidate` ile yoksayma/düzenleme.
+- Aday tablosu: `corporate_action_candidates` (benzersiz: kaynak, duyuru kimliği, tür, ticker). Eski kayıtların `ticker`'ı `.IS` uzantılı olabilir; aramalar iki biçimi de tolere eder.
+- Arayüz: Ayarlar > Kurumsal Aksiyonlar (liste, "KAP/MKK Yenile", kaynak açma, düzenleme, yoksayma, onayla ve uygula). Açılışta günde bir kez otomatik tarama çalışır ([settings_and_system.md](settings_and_system.md)); manuel yenileme, kaynak okunamazsa kısa uyarı gösterir.
 
-## Faz 2D Notu (2026-06-02)
+## 4. Eksik Veri ve MERKO Örneği
 
-- Bedelli/bedelsiz description ve `CorporateActionResult` üretimi pure helper function'lara taşındı.
-- `CorporateActionService` kayıt, sorgu ve action application orchestration sorumluluğunda kalır; public API değişmedi.
+Bedelli artırımda ham fiyat geçmişi düzeltme olmadan grafikte sahte düşüş üretir; bu yüzden fiyat düzeltmesi uygulamanın zorunlu parçasıdır. MERKO için onarım betiği artık yoktur; benzer durumlarda aksiyon Hisse Detay'dan girilir veya Piyasa Düzeltmeleri sekmesindeki aday onaylanır.
 
-## MERKO ve Geçmiş Fiyat Düzeltme Notu (2026-06-02)
+## 5. Nakit Temettü Kaydı
 
-- Sermaye artırımı uygulandıktan sonra `daily_prices` geçmişi in-place düzeltilir; sadece `price_date < ex_date` kayıtları etkilenir.
-- Bedelsiz katsayısı `1 / (1 + ratio)`, bedelli katsayısı `(P0 + ratio * K) / ((1 + ratio) * P0)` olarak hesaplanır.
-- `corporate_actions` tablosunda `prices_adjusted`, `prices_adjusted_at`, `price_adjustment_factor` ve `price_adjustment_count` alanları idempotency için tutulur.
-- Backfill ve fiyat sağlığı güncelleme akışları, uygulanmış fiyat düzeltme action'larını dikkate alarak ham market fiyatlarını DB'ye normalize edilmiş yazar.
-- MERKO onarımı için `scripts/merko_bedelsiz_artirimi.py --dry-run` ön kontrol, ardından scriptin normal çalıştırılması kullanılır.
- 
+- **Model:** `CashMovementType.DIVIDEND`; `cash_movements.stock_id` temettüyü hisseye bağlar (mevcut veritabanlarında açılışta idempotent `ALTER TABLE` ile eklenir). Temettü kaydı bir hisse içermek zorundadır.
+- **Nakit ve getiri:** net tutar nakit bakiyeye girer (`adds_cash`) ama **dış sermaye akışı sayılmaz** (`is_external_flow` yanlış). `PortfolioSeriesBuilder` zaman ağırlıklı getiriyi (TWR) temettü kadar yükseltir; aynı tutarda "Nakit Yatır" getiri üretmez. Zaman çizelgesi doğrulayıcısı temettüyü nakit girişi sayar.
+- **Servis:** `CashMovementService.add_dividend(stock_id, tutar, tarih, not)`, `get_dividends`, `get_total_dividends`, `delete_dividend`. Kayıt için hissenin o tarihte portföyde pozisyonu olmalı ve tarih gelecekte olmamalıdır. Silme, sonraki alım/çekimi yetersiz nakde düşürüyorsa reddedilir (`PortfolioService.validate_cash_removal`).
+- **Arayüz:** Hisse Detay modalı > **Temettü** (yalnızca ana portföy, açık pozisyon): `DividendDialog` ve `DividendController`; net tutar (`1.234,5`, `50.000` biçimleri), tarih, not ve geçmiş listesi/silme. Kayıt veya silme sonrası Dashboard yenilenir. Girilen metin Türkçe sayı ayrıştırıcısıyla okunur.
+- **Sınırlar:** Brüt/stopaj hesabı ve otomatik temettü tespiti yoktur; tutar kullanıcıdan net alınır. Model portföy için temettü yoktur. Dashboard "Toplam K/Z" kartı yalnızca pozisyon kâr/zararıdır; temettü getiri grafiklerine ve nakit bakiyeye yansır ([roadmap.md](roadmap.md)).
 
-## Nakit Temettü Kaydı (2026-10-03)
+## 6. Testler
 
-- **Model:** `CashMovementType.DIVIDEND` (`cash_movements` tablosu, `stock_id` sütunu temettü hisseyi tutar; mevcut veritabanlarında açılışta idempotent `ALTER TABLE` ile eklenir). Temettü `CorporateAction` değildir; lot veya maliyeti değiştirmez.
-- **Nakit ve getiri:** Net tutar nakit bakiyeye girer (`adds_cash`) ancak dış sermaye akışı sayılmaz (`is_external_flow` yanlış): `PortfolioSeriesBuilder` zaman ağırlıklı getiriyi (TWR) temettü kadar yükseltir, aynı tutarda "Nakit Yatır" ise getiri üretmez. Zaman çizelgesi doğrulayıcısı temettüyü yatırma gibi nakit girişi sayar.
-- **Servis:** `CashMovementService.add_dividend / get_dividends / get_total_dividends / delete_dividend`. Kayıt için hissenin o tarihte portföyde pozisyonu olmalı, tarih gelecekte olamaz. Silme, sonraki alım veya çekimi yetersiz nakde düşürüyorsa reddedilir (`PortfolioService.validate_cash_removal`).
-- **Arayüz:** Hisse Detay modalı > "Temettü" (yalnızca ana portföy pozisyonu) -> `DividendDialog.qml` + `DividendController`: net tutar, tarih, not girişi ve geçmiş listesi/silme. Model portföyler için temettü yoktur.
-- **Kapsam dışı:** Brüt/stopaj hesabı ve otomatik temettü tespiti yoktur; tutar kullanıcıdan net olarak alınır. Dashboard "Toplam K/Z" kartı yalnızca pozisyon kâr/zararıdır, temettüyü içermez (getiri grafikleri ve nakit bakiye içerir).
+`tests/domain/test_corporate_action.py`, `tests/application/test_corporate_action_service.py`, `test_corporate_action_candidate_services.py`, `test_cash_movement_service.py`, `test_dividend_cash_flow.py`; `tests/infrastructure/db/test_cash_movement_dividend_repository.py`; `tests/ui_qml/test_group2_corporate_price_startup.py`, `test_dividend_controller.py`.

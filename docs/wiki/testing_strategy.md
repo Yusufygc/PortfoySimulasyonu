@@ -1,78 +1,73 @@
-# Test Stratejisi (Testing Strategy)
+# Test Stratejisi
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Geliştirme: [development_guide.md](development_guide.md) | Manuel test: [manual_testing_guide.md](manual_testing_guide.md)
 
-Bu belge, uygulamanın test kültürünü ve `tests/` dizininin mimarisini açıklar.
+## 1. Durum
 
-## 1. Test Piramidi ve Kapsam (Coverage)
+`pytest tests -q` (2026-10-04): **1118 geçti, 4 xfailed** (1122 toplanan). Dağılım: `domain` 74, `application` 584, `infrastructure` 170, `ui_qml` 282, `qt_compat` 3; kalan testler kök dizindeki koruma ve ölçüm testleridir. Dört `xfail`, `tests/application/test_friday_excel_export_bug.py` içindeki bilinen cuma/hafta sonu Excel davranışı vakalarıdır.
 
-Portföy Simülasyonu projesi, regülasyonlara ve katı finansal hesaplamalara (Portföy P&L, Sharpe, Optimizasyon) dayandığı için yüksek bir test disiplinine sahiptir.
+## 2. Test Piramidi
 
-- **Birim Testleri (Unit Tests):** `tests/domain` altında saf (veritabanı veya API bağlantısı olmayan) matematiksel hesaplamaları test eder.
-- **Servis Testleri (Application Tests):** `tests/application` altındadır. Dış bağımlılıklar (SQLAlchemy Repoları, YFinance istemcileri) `pytest-mock` kullanılarak mock'lanır ve iş kuralları (Use-Case) test edilir.
-- **Arayüz Testleri (UI Tests):** `pytest-qt` eklentisi kullanılarak PySide6 widget'larının oluşturulması, sinyallerin (signal) tetiklenmesi ve ekrandaki renk/boyut değişiklikleri test edilir. Test importları da üretim kodu gibi `src.qt_compat` paketini kullanır.
+| Katman | Dizin | Yaklaşım |
+|---|---|---|
+| Domain | `tests/domain/` | Saf modeller (`Portfolio`, `Position`, `Trade`, `CorporateAction`, `RiskProfile`, `ticker`...); veritabanı ve ağ yok. |
+| Application | `tests/application/` | İş kuralları; repository ve sağlayıcılar sahte/`MagicMock`. Saf motorlar (indikatör, backtest, risk metrikleri) sentetik veriyle doğrulanır. |
+| Infrastructure | `tests/infrastructure/` | Gerçek **geçici** SQLite/DuckDB ile repository, şema göçü, sağlayıcı ayrıştırıcıları; HTTP yanıtları sahte (`monkeypatch`). |
+| UI (QML) | `tests/ui_qml/` | Denetleyici davranışı, QML bileşenlerinin uyarısız derlenmesi ve örneklenmesi, koruma testleri. `pytest-qt` kullanılmaz; `QQmlApplicationEngine`/`QQmlComponent` ile doğrudan yüklenir. |
+| Qt uyumluluk | `tests/qt_compat/` | Ekran ölçek normalizasyonu. |
+| Depo geneli | `tests/test_repo_guards.py`, `tests/test_code_quality_measurement.py` | Aşağıya bakın. |
 
-## 2. Fixture ve Mock Yaklaşımı (`conftest.py`)
+## 3. Koruma (Guard) Testleri
 
-Testlerde sürekli olarak "Sahte Portföy", "Sahte Hisseler" ve "Sahte Fiyat Verisi" üretmek kod tekrarına yol açar. Bu yüzden `tests/conftest.py` dosyası paylaşılan (shared) test verilerini (Fixture) barındırır.
+| Test | Korur |
+|---|---|
+| `tests/ui_qml/test_architecture_guards.py` | `src/ui_qml`: `src.infrastructure`, `sqlite3`, `duckdb`, `sqlalchemy`, `src.ui` import yok; denetleyicilerde `*_repo` erişimi yok. |
+| `tests/ui_qml/test_strings_catalog.py` | `Strings.*` referansları tanımlı; yinelenen veya kullanılmayan anahtar yok; QML'de sabit kullanıcı metni ve Türkçe literal yok (izin listesi hariç). |
+| `tests/test_repo_guards.py` | Testlerde canlı ağ çağrısı yok; `src/ui` paketi geri gelmez; `app.py` `AA_ShareOpenGLContexts` ayarını `run_qml_app`'ten önce yapar. |
+| `tests/infrastructure/test_production_guards.py` | Depoda gerçek sır literal'i yok; derleme preflight statik koşulları. |
+| `tests/infrastructure/test_test_isolation.py` | Testlerin gerçek veritabanına yazmaması. |
+| `tests/test_code_quality_measurement.py` | Kalite ölçüm betiğinin çıktısı ([code_quality_guardrails.md](code_quality_guardrails.md)). |
 
-Örnek Mock Yaklaşımı:
-Bir optimizasyon servisi test edilirken YFinance API'si asla gerçek bir HTTP isteği atmaz. `MarketDataProvider` arayüzünü uygulayan bir Mock Sınıf veya `mocker.patch` kullanılarak sabit test verileri döndürülür. Bu, testlerin (internetsiz ortamlarda bile) hızlı ve tekrarlanabilir (reproducible) olmasını sağlar.
+## 4. Fixture ve İzolasyon (`conftest.py`)
 
-## 3. Komutlar
+`tests/conftest.py` (tüm testler):
+- **Gerçek veritabanı koruması** (oturum, otomatik): gerçek `data/portfolio.db` SQLite yedekleme API'siyle ve `data/market_history.duckdb` geçici klasöre kopyalanır; `DB_SQLITE_PATH` ve `DUCKDB_PATH` oraya yönlendirilir. Kopya alınamazsa boş geçici veritabanı kullanılır. Gerçek dosyalara asla yazılmaz.
+- `_isolate_env_file`: `.env` yazımı (API anahtarı kaydı) geçici dizine yönlenir.
+- `_no_retry_sleep`: ağ yeniden denemesi beklemesi kapatılır ([service_market_data_providers.md](service_market_data_providers.md)).
+- Paylaşılan: `fake_event_bus`, `qapp`, `drain_qt_events`, `fixed_today`, `sample_stock_factory`, `sample_trade_factory`, `sample_daily_price_factory`.
 
-Testleri çalıştırmak için proje kurallarındaki standart `pytest` komutları kullanılır:
+`tests/ui_qml/conftest.py` (otomatik):
+- Qt Quick Controls "Basic" stili (uygulamayla aynı).
+- `MarketSyncController` açılış zamanlayıcısı kapatılır (arka plan DuckDB erişimi başka testlerle çakışıp native çökmeye yol açıyordu).
+- `QSettings` / `last_update_store` geçici INI dosyasına yönlendirilir (gerçek kayıt defterine yazılmaz).
+- `DashboardController._reload_returns` kapatılır (arka plan iş parçacığı test sonrası silinmiş QObject'e sinyal gönderip çökmeye yol açıyordu); ilgili testler işlemi doğrudan çağırır.
 
-```bash
-# Tüm testleri çalıştırır
-python -m pytest tests/
+Arka plan işi yapan denetleyicilerde testler `ImmediateExecutor` benzeri bir yürütücüyle işleri eşzamanlı çalıştırır; böylece sinyaller deterministik olur.
 
-# Sadece spesifik bir klasörü veya dosyayı çalıştırır
-python -m pytest tests/application/
+## 4.1 Ağ ve Marker'lar
+
+`pytest.ini`: `addopts = -m "not manual and not network"`. Marker'lar: `ui`, `integration`, `network` (canlı ağ), `manual` (elle çalıştırılacak). Varsayılan paket canlı kaynaklara bağlı değildir. `tests/infrastructure/market_data/test_benchmark_fetch_manual.py` manuel/ağ işaretlidir ve silinmiş bir alana başvurduğu için onarım bekler ([roadmap.md](roadmap.md)).
+
+## 5. Komutlar
+
+```powershell
+.\venv\Scripts\python.exe -m pytest tests -q                    # tüm paket
+.\venv\Scripts\python.exe -m pytest tests/ui_qml -q             # yalnız arayüz
+.\venv\Scripts\python.exe -m pytest tests/application/services/simulation -q
+.\venv\Scripts\python.exe -m pytest tests -k dividend -q        # anahtar kelimeyle
+.\venv\Scripts\python.exe -m pytest --collect-only -q           # toplanan test sayısı
 ```
 
-Her refactoring işleminden sonra (ve yeni özellik eklenmeden önce) testlerin çalıştırılıp yeşil (Passed) olduğu kanıtlanmalıdır.
+Her yeniden düzenlemeden sonra ve yeni özellik eklemeden önce paketin yeşil olduğu doğrulanır. `.pytest_cache` izin uyarısı ortam kaynaklı bilinen bir uyarıdır.
 
-## 4. Faz 4 UI Regresyon Kapıları
+## 6. CI
 
-Faz 4 UI refactor'larında aşağıdaki test yüzeyleri zorunlu kabul edilir:
+`.github/workflows/tests.yml`: Windows + Python 3.11 üzerinde bağımlılık kurulumu, `pip check`, `pytest --collect-only -q` ve `pytest tests -q`. Nuitka derlemesi CI'da koşmaz; yayın öncesi `scripts/build_preflight.py` ile elle doğrulanır ([project_build_and_deployment.md](project_build_and_deployment.md)).
 
-- `tests/ui/test_worker.py`: ortak `Worker` success/error/finished sinyal sırası.
-- `tests/application/test_event_bus.py`: `GlobalEventBus` import ve `prices_updated` signal sözleşmesi.
-- `tests/ui/test_price_event_publisher.py`: boş fiyat payload'unun emit edilmemesi ve Decimal fiyatların korunması.
-- `tests/ui_qml/`: denetleyici davranışı, QML derleme/uyarı kontrolü, `test_architecture_guards.py` (katman kuralları) ve `test_strings_catalog.py` (metin kataloğu).
-- `tests/test_repo_guards.py`: canlı ağ çağrısı yasağı, `src/ui` paketinin geri gelmemesi ve QML giriş noktası.
-- İlgili sayfa testleri: dashboard, comparison, analysis, stock detail, settings, model portfolio.
+## 7. Yeni Test Yazarken
 
-Refactor sonunda hızlı doğrulama `tests/ui -q`, tam doğrulama ise `tests -q` ile yapılır. `.pytest_cache` permission warning bilinen ortam uyarısıdır; test sonucunu failed yapmadığı sürece blocker değildir.
-
-## 5. Faz 5 Test / QA Guard Standardı
-
-Faz 5 ile test altyapısı davranış değiştirmeden sertleştirildi:
-
-- `pytest.ini` marker katalogunu tanımlar: `ui`, `integration`, `network`, `manual`.
-- Default test komutu `manual` ve `network` marker'lı testleri çalıştırmaz; canlı veri kontrolleri açık tercih ile koşulur.
-- `tests/conftest.py` ortak fixture yüzeyini taşır: `qapp`, `drain_qt_events`, `fake_event_bus`, `fixed_today` ve temel domain builder fixture'ları.
-- UI async testlerinde dağınık `QThreadPool.globalInstance().waitForDone()` ve `processEvents()` çağrıları yerine `drain_qt_events` kullanılır.
-- Manuel benchmark kontrolü `tests/infrastructure/market_data/test_benchmark_fetch_manual.py` altında tutulur ve `manual + network` marker'larıyla default suite dışında kalır.
-
-Kalite guard'ları `tests/ui/test_refactor_guards.py` altındadır:
-
-- `src/ui_qml` içinde `src.ui`, `src.infrastructure`, `sqlite3`, `duckdb` veya `sqlalchemy` importu ve doğrudan repository erişimi yoktur.
-- UI fiyat event yayını doğrudan `prices_updated.emit` ile değil `publish_prices_updated` helper'ı ile yapılır.
-- UI büyük sınıf eşiği için yalnız belgelenmiş geçici istisnalar kabul edilir. Sağlık raporu sonrası güncel liste `tests/ui/test_refactor_guards.py` ve [code_quality_guardrails.md](code_quality_guardrails.md) üzerinden izlenir.
-- Kod kalitesi baseline guard'ı `scripts/measure_code_quality.py` ile üretilir; [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) yorum, boş satır ve docstring ayrıştırmalı başlangıç metriğidir.
-- Otomatik testler canlı HTTP helper'larını doğrudan çağıramaz; canlı kontroller manuel/network marker'ı ister.
-
-Faz 5 baseline: `pytest --collect-only -q` -> **305 collected**; `tests/ui -q` -> **91 passed**; `tests/domain tests/application tests/infrastructure -q` -> **214 passed**. `.pytest_cache` permission warning ortam kaynaklı bilinen uyarıdır.
-
-## 6. Faz 6 Production Guard ve CI
-
-Faz 6 ile test stratejisine production hazırlık guard'ları eklendi:
-
-- `tests/infrastructure/test_production_guards.py` repo içinde gerçek secret literal'ları ve build preflight statik koşullarını denetler.
-- `tests/infrastructure/test_logger_setup.py` logger handler tekrarını, env level override davranışını, secret redaction'ı ve global exception hook'u kapsar.
-- `tests/infrastructure/db/test_database_engine.py` SQLAlchemy engine'in SQLite URL'sini, PRAGMA ayarlarını ve gerçek şema oluşturmayı doğrular.
-- `.github/workflows/tests.yml` Windows + Python 3.11 üzerinde `pip check`, `pytest --collect-only -q` ve `pytest tests -q` çalıştırır.
-
-CI default suite, `pytest.ini` içindeki `not manual and not network` filtresi nedeniyle canlı network/manual testleri çalıştırmaz. Nuitka build CI'da koşmaz; release öncesi `python scripts/build_preflight.py` ile manuel doğrulanır.
+- Servis testinde mock repository kullanın; zaman çizelgesi, nakit ve geçmişe dönük girişler için gerçek `PortfolioService` + sahte repo birleşimi (`tests/application/test_dividend_cash_flow.py` örneği) tercih edilir.
+- SQLite davranışı (`BIGINT` id, göç, FK) için gerçek geçici veritabanı kullanın; mock bu sınıf hatayı yakalamaz (örnek: BIGINT id hatası yalnızca gerçek veritabanıyla görüldü).
+- QML bileşeni için `QQmlComponent` ile yükleyip uyarı listesinin boş olduğunu doğrulayın; bileşen nesnesini testin sonuna dek referansta tutun (aksi halde çöp toplanıp "already deleted" hatası verir).
+- Canlı ağ çağrısı eklemeyin; sağlayıcıları `monkeypatch` ile sahteleyin.
+- Yeni `Strings` anahtarı kullanılmıyorsa `test_strings_catalog` kırar; kullanılmayan anahtarı silin.

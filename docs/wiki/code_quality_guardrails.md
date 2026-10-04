@@ -1,68 +1,72 @@
 # Kod Kalitesi Guardrail'leri
 
-> Ana sayfa: [index.md](index.md) | Baseline: [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Test stratejisi: [testing_strategy.md](testing_strategy.md)
+> Ana sayfa: [index.md](index.md) | Test stratejisi: [testing_strategy.md](testing_strategy.md) | Geliştirme: [development_guide.md](development_guide.md) | Kapılar: [ARCHITECTURE_GATES.md](../../ARCHITECTURE_GATES.md)
 
-Bu sayfa `PortfoySimulasyonu_saglik_raporu.html` sonrası kalıcı kalite kurallarını tanımlar. HTML raporu tek karar kaynağı değildir; refactor hedefleri `scripts/measure_code_quality.py` çıktısı ve mevcut mimari kurallarla doğrulanır.
+Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlallerini tanımlar. Karar kaynağı `scripts/measure_code_quality.py` çıktısı ve mimari kurallardır.
 
-## Ölçüm Komutu
+## 1. Ölçüm
 
-```bash
-C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe scripts\measure_code_quality.py
+```powershell
+.\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar
+.\venv\Scripts\python.exe scripts\measure_code_quality.py --output-dir C:\temp\cq
+.\venv\Scripts\python.exe scripts\measure_code_quality.py --fail-on-threshold   # eşik ihlalinde 1 döner
 ```
 
-Script şu dosyaları üretir:
+Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (dosya adı sabit `BASELINE_DATE` ile belirlenir). Yorum ve boş satırlar eşik kararından çıkarılır; docstring satırları ayrıca raporlanır ve eşikler `effective_code_lines` üzerinden değerlendirilir. `scripts/show_violations.py` bu JSON'u okur.
 
-- [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md)
-- [code_quality_baseline_2026-06-13.json](code_quality_baseline_2026-06-13.json)
+**Not:** Depodaki [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) ve `.json` dosyaları eski Qt Widgets arayüzü dönemine ait **tarihsel referanstır**; güncel durum için ölçümü yeniden çalıştırın (bir önceki dosyanın üzerine yazmaması için `--output-dir` verin).
 
-Ölçümde yorum satırları ve boş satırlar eşik kararından çıkarılır. Modül, sınıf ve fonksiyon docstring satırları ayrıca raporlanır; eşikler `effective_code_lines` üzerinden değerlendirilir.
-
-## Eşikler
+## 2. Eşikler
 
 | Yüzey | Eşik | Aksiyon |
 |---|---:|---|
-| Sınıf satırı | `>300` effective satır | Yeni davranış eklemeden önce panel, helper veya servis ayrımı yapılır. |
-| Sınıf metodu | `>20` metot | Sorumluluk ayrımı yapılır veya geçici istisna belgelenir. |
-| Fonksiyon/metot satırı | `>50` effective satır | Küçük helper fonksiyonlara bölünür. |
-| Fonksiyon/metot parametresi | `>5` effective parametre | Parametre nesnesi, config modeli veya daha dar API tercih edilir. |
-| Cyclomatic complexity | `>10` | Koşul dalları ayrıştırılır ve hedefli test eklenir. |
-| UI page dosyası | `>400` effective satır | Page yalnız layout/wiring bırakılacak şekilde panel/component ayrımı yapılır. |
+| Sınıf satırı | `>300` etkin satır | Yeni davranış eklemeden önce sorumluluk ayrımı (helper, servis, alt denetleyici). |
+| Sınıf metodu | `>20` metot | Sorumluluk ayrımı veya belgelenmiş geçici istisna. |
+| Fonksiyon/metot satırı | `>50` etkin satır | Küçük fonksiyonlara bölünür. |
+| Parametre sayısı | `>5` | Parametre nesnesi veya daha dar API. |
+| Cyclomatic complexity | `>10` | Dallar ayrıştırılır, hedefli test eklenir. |
 
-## İstisna Protokolü
+## 3. Güncel Durum (2026-10-04 ölçümü)
 
-- Yeni istisna ancak geçici ve gerekçeli ise kabul edilir.
-- İstisna `tests/ui/test_refactor_guards.py` veya ölçüm JSON'unda görünür olmalı, bu sayfada veya ilgili wiki sayfasında refactor hedefiyle açıklanmalıdır.
-- Production dosyalarında yeni eşik ihlali oluşturulmaz. Zorunluysa aynı değişiklik setinde refactor planı ve test kapsamı eklenir.
-- Repository interface'leri için "God Object" uyarıları false-positive olabilir; yalnız interface gerçekten farklı iş alanlarını karıştırıyorsa bölünür.
+Python dosyası eşiği (400 satır) ihlali yoktur. **14 sınıf** ve **129 fonksiyon** eşik dışıdır; sınıf ihlallerinin tamamı QML denetleyicileridir:
 
-## UI Page ve Component Standardı
+| Denetleyici | Etkin satır | Metot |
+|---|---:|---:|
+| `ComparisonController` | 884 | 50 |
+| `Stock360Controller` | 685 | 84 |
+| `OptimizationController` | 628 | 36 |
+| `AiAdvisorController` | 614 | 44 |
+| `DashboardController` | 611 | 44 |
+| `StockDetailController` | 558 | 43 |
+| `ModelPortfolioController` | 518 | 41 |
+| `PlanningController` | 489 | 39 |
+| `WatchlistController` | 405 | 29 |
+| `CorporateActionController` | 394 | 29 |
+| `ChartController` | 392 | 19 |
+| `SettingsController` | 304 | 38 |
+| `PriceDataController` | 288 | 37 |
+| `StrategyBacktestController` | 170 | 21 |
 
-UI page sınıfları yalnız sayfa iskeleti, signal wiring ve servis/panel bağlantısından sorumludur. Aşağıdaki davranışlar page içinde büyütülmez:
+Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `stock_360_calc.py` (6), `comparison_controller.py`, `corporate_action_controller.py`, `dashboard_controller.py` (5'er) ve `scripts/finansal_lab/` prototiplerindedir. Bunlar geçici ve bilinen teknik borçtur ([roadmap.md](roadmap.md)); **yeni ihlal eklenmez**: bu denetleyicilere özellik eklemeden önce ilgili parça ayrı modüle (hesap yardımcısı, alt denetleyici) çıkarılır. `Stock360Controller` bu ayrımın örneğidir (`stock_360_calc/fallback/formatters/html`).
 
-- Büyük `_init_ui` blokları
-- Tablo satırı doldurma ve formatlama
-- Chart çizimi ve tema uyarlama
-- Worker orchestration
-- Dialog içi validasyon ve çok adımlı form akışı
+## 4. Denetleyici ve QML Standardı
 
-Bu davranışlar `widgets/`, `panels/`, `utils/` veya sayfaya özel alt modüllere taşınır. Kullanıcıya görünen metinler `src/ui_qml/qml/theme/Strings.qml` içindeki `Strings` üzerinden gelir.
+Denetleyici yalnızca durum, sinyal ve servis çağrısı bağlamasından sorumludur. Büyümemesi gerekenler: uzun hesap blokları, biçimlendirme, HTML/grafik üretimi, çok adımlı iş akışları. Bunlar saf yardımcı modüllere (`*_calc.py`, `*_formatters.py`, `lw_chart_html.py`, `number_input.py`) veya application servislerine taşınır. QML sayfaları iskelet ve bağlama kodudur; büyük sayfalar sekme bileşenlerine bölünür (`PlanningBudgetTab`, `SettingsPriceDataTab`...). Kullanıcı metinleri `Strings.qml`'dedir.
 
-## Application Service Facade Standardı
+## 5. Application Servis Standardı
 
-Application servisleri public API'yi koruyan ince facade olarak kalmalıdır. Aşağıdaki sorumluluklar büyüyen servislerden ayrılır:
+Servisler public API'yi koruyan ince facade olarak kalır; büyüyen servislerden şunlar ayrılır: kapsam çözümleme, doğrulama, dış sağlayıcı/repository çağrısı, hesaplama algoritması, persistence ve DTO üretimi. Örnekler: `PriceDataHealthService` (analyzer/updater/scope resolver), `ModelPortfolioService` (admin/trade/snapshot), `OptimizationService` (+ `frontier_simulation`), saf backtest motorları ve servis ayrımı.
 
-- Scope ve input çözümleme
-- Validasyon
-- Dış provider/repository çağrısı
-- Hesaplama/analiz algoritması
-- Persistence ve rapor DTO üretimi
+## 6. İstisna Protokolü
 
-Öncelikli refactor hedefleri baseline raporunda listelenen fiyat sağlığı, model portföy trade, kurumsal aksiyon, risk profili ve optimizasyon servisleridir.
+- Yeni istisna yalnızca geçici ve gerekçeli kabul edilir; ölçüm JSON'unda görünür olmalı ve bu sayfada refactor hedefiyle açıklanmalıdır.
+- Production dosyalarında yeni eşik ihlali oluşturulmaz; zorunluysa aynı değişiklikte refactor planı ve test kapsamı eklenir.
+- Repository arayüzlerindeki "God Object" uyarıları yanlış pozitif olabilir; yalnızca farklı iş alanlarını karıştırıyorsa bölünür.
 
-## Yeni Özellik Öncesi Kontrol
+## 7. Yeni Özellik Öncesi Kontrol
 
-1. Ölçüm script'ini çalıştır.
-2. Değiştirilecek dosyada mevcut eşik ihlali varsa önce refactor dilimini planla.
-3. Yeni kullanıcı metinlerini `Strings.qml` içine ekle.
-4. Katman sınırlarını koru; UI doğrudan HTTP/SDK/client import etmez.
+1. Ölçüm betiğini çalıştır.
+2. Değişecek dosyada mevcut ihlal varsa önce ayrıştırma dilimini planla.
+3. Yeni kullanıcı metinlerini `Strings.qml`'e ekle.
+4. Katman sınırlarını koru; denetleyici HTTP/SDK/repository import etmez.
 5. Hedefli testleri ve sonunda tam `pytest tests -q` komutunu çalıştır.

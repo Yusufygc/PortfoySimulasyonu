@@ -1,114 +1,49 @@
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Değişiklik günlüğü: [log.md](log.md)
+> Ana sayfa: [index.md](index.md) | Analiz servisleri: [service_analysis.md](service_analysis.md) | Sayfa rehberi: [qml_pages_guide.md](qml_pages_guide.md)
 
-# Karşılaştırma Laboratuvarı (Comparison Lab)
+# Karşılaştırma Laboratuvarı
 
-> **Not (2026-10-03):** Eski Qt Widgets arayüzü (`src/ui`) kaldırıldı. Arayüz yalnızca QML'dir (`src/ui_qml`). Bu belgedeki `src/ui` tabanlı anlatım tarihsel kayıttır; güncel kurallar için `ui_architecture_and_events.md` sonundaki "QML Katman Kuralları" bölümüne bakın.
+Karşılaştırma Lab (`ComparisonView`, `ComparisonController`), portföyleri, benchmark'ları ve hisseleri aynı eksende getiri, kayıp ve risk açısından kıyaslayan sayfadır. Hesaplar servis katmanındadır ([service_analysis.md](service_analysis.md)); denetleyici seçimi çözer, hesabı arka planda çalıştırır ve grafik HTML'ini üretir.
 
-Karşılaştırma Laboratuvarı, kullanıcıların aktif portföylerini, model portföylerini, piyasa endekslerini (BIST100, Altın, Gümüş, Dolar vb.) ve hisse senetlerini rasyo, drawdown (değer kaybı), dönemsel getiri ve risk-getiri saçılımı bazında detaylıca kıyaslayıp analiz edebilecekleri gelişmiş bir görselleştirme ve yapay zeka analiz merkezidir.
+## 1. Kullanıcı Akışı
 
----
+1. **Varlık seçimi:** sol panelde çoklu seçim. Seçenekler: Ana Portföy, her model portföy, her biri için sanal **"<Portföy> + Hisseleri"** (`holdings:<kod>`; portföyün kendisi ve içindeki tüm hisseler tek tek kıyaslanır), benchmark'lar (BIST 100, altın, gümüş, USD/TRY, EUR/TRY, mevduat faizi, TÜFE). Başlangıçta ilk iki seçenek seçilir.
+2. **Dönem:** `1A`, `3A`, `6A`, `1Y`, `YBB` (yıl başından bugüne), `Tümü` (2022-01-01'den), `ÖZEL` (GG.AA.YYYY veya YYYY-AA-GG). Dönem seçimi hesabı yeniden çalıştırır.
+3. **Mod:** `Normal` (fiyat/değer), `Normalize (Baz 100)`, `Rasyo (A / B)` (pay ve payda varlıkları seçilir).
+4. **Para birimi:** TL, USD, Reel (TÜFE'den arındırılmış).
+5. **Karşılaştır:** `runComparison` arka plan iş parçacığında çalışır; tamamlanınca aktif sekme çizilir.
 
-## 🏗️ Modüler Bileşen Yapısı
+## 2. Grafik Sekmeleri
 
-Sayfa, [comparison_page.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/comparison/comparison_page.py) içinde tanımlanan `ComparisonPage` sınıfı etrafında şekillenmiştir:
+| Sekme | İçerik | Çizim |
+|---|---|---|
+| Kümülatif Getiri | Seçili varlıkların normal/normalize/rasyo eğrileri | TradingView Lightweight Charts |
+| Maks. Düşüş (Drawdown) | Tarihsel zirveden düşüş yüzdesi (sıfır çizgisinin altı) | Lightweight Charts |
+| Aylık Getiriler | Varlıkların aylık net getirileri yan yana | Chart.js çubuk |
+| Risk-Getiri Saçılımı | Yıllık volatilite (x) ve toplam getiri (y) | Chart.js saçılım |
+| Getiri Katkı Haritası (Treemap) | Kutu alanı ağırlık, renk getiri; "Portföy Hisseleri" veya "Varlık Kıyaslaması" türü, portföy seçimi | HTML/Canvas |
 
-```mermaid
-graph TD
-    CP[ComparisonPage] --> RB[ComparisonRibbonBar]
-    CP --> C1[ChartPanel: Main Chart]
-    CP --> C2[ChartPanel: Drawdown Chart]
-    CP --> C3[ChartPanel: Periodic Return Chart]
-    CP --> C4[ChartPanel: Risk-Return Scatter]
-    CP --> C5[ChartPanel: Summary Table]
-    C1 --> INF1[ChartInfoCard: Cumulative Info]
-    C2 --> INF2[ChartInfoCard: Drawdown Info]
-    CP --> AI[AI Analiz Paneli]
-```
+Altta **risk ve getiri tablosu** (varlık, toplam getiri %, yıllık volatilite %) yer alır. Her grafiğin üstündeki **bilgi kartı** (`ChartInfoCard`, varsayılan kapalı) "Nedir / Nasıl Yorumlanır" açıklamalarını sekme ve moda göre gösterir; metinler `Strings.qml`'dedir.
 
-### 1. Ribbon Bar Filtre Paneli ([widgets/ribbon_bar.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/comparison/widgets/ribbon_bar.py))
-* **Çoklu Varlık Seçimi**: `CheckableComboBox` ile aktif portföyler, endeksler ve hisseler çoklu olarak seçilir.
-* **Sanal "Portföy + Hisseleri" Akışı**: Arayüzde listelenen `"{Portföy} + Hisseleri"` (kod: `holdings:<portföy_kodu>`) sanal seçeneği işaretlendiğinde, portföyün kendisi ve içindeki tüm hisseler reaktif olarak çözümlenip seçilir.
-* **Tarih & Aralık**: Başlangıç/bitiş tarihleri ile 1A, 3A, 6A, 1Y, YBB ve Tümü (5Y) hızlı aralık butonları yer alır.
+## 3. Yapay Zekâ Yorumu
 
-### 2. Grafik Panelleri ([ChartPanel](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/comparison/comparison_page.py#L90))
-* **Vektör İkonlar**: Başlıkların solunda Lucide SVG ikonları kullanılır. Emojiler tamamen kaldırılmıştır.
-* **Grafik-Özelinde Override (`inspect_btn`)**: Sağ üst köşedeki menüden bir portföy seçildiğinde, sayfanın genel filtreleri bozulmadan sadece o grafik özelinde hisse bazında kıyaslama yapılır.
-* **Küresel Seçime Dön (Geri Alma)**: Override menüsünün en üstünde yer alan checkable **"Küresel Seçime Dön"** (`refresh-cw` ikonlu) aksiyon ile grafik tekrar küresel Ribbon Bar filtrelerine geri döndürülür.
-* **Kontrast QMenu Tasarımı**: Koyu mod ile uyumlu, koyu arka plan üstünde okunabilir gri/beyaz metinler ve neon cyan (`#00ffff`) seçili öğe göstergeleri eklenmiştir.
+"Yapay Zeka Yorumu" düğmesi (`ComparisonAiDialog`) seçili varlıkların toplam getiri ve volatilitesini, dönemi, modu ve para birimini bir istem metnine çevirir ve `AiChatService` ile Gemini'ye gönderir; sonuç diyalogda gösterilir ("Yorumu Yenile" ile tekrar üretilir). İstem yatırım tavsiyesi vermemesini ister; ekranda "kişisel yatırım tavsiyesi değildir" uyarısı bulunur. API anahtarı yoksa hata mesajı gösterilir ([ai_integration.md](ai_integration.md)).
 
-### 3. Bilgilendirme ve Finansal Okuryazarlık Kartları ([ChartInfoCard](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/ui/pages/comparison/comparison_page.py#L30))
-* **Neon Renk Şeması**: Başlıklar neon mavi (`#00ffff`), etiketler neon sarı (`#fbbf24`), açıklamalar parlak beyaz (`#ffffff`) olarak tasarlanmıştır.
-* **Büyütülmüş Fontlar**: Okunabilirliği maksimize etmek adına başlıklar `26px`, açıklamalar ise `24px` boyutuna getirilmiştir. Sol tarafta `info` Lucide SVG ikonu inline HTML ile render edilir.
+## 4. Veri ve Hizalama Kuralları
 
-### 4. QWebEngineView Kaydırma Çakışması Filtresi (`WheelRedirectFilter`)
-* Plotly grafiklerini render eden `QWebEngineView` bileşenlerinde fare tekerleği (wheel) olaylarının kaybolmasını ve dikey sayfa scrollunun kilitlenmesini engeller. Yakalanan olayları `QCoreApplication.sendEvent` ile ana dikey `QScrollArea` bileşenine yönlendirir.
+- Seriler `ComparisonService.align_financial_series` ile ortak tarih indeksinde hizalanır (tatil farkları ileri doldurma ile kapanır); en az 2 ortak gün yoksa boş durum gösterilir.
+- Hesap `AnalysisFilterState` ile `AnalysisService.get_comparison_view` üzerinden yapılır; birden çok portföy seçildiğinde `comparison_portfolio_sources` taşınır, ilk portföy birincil kaynaktır.
+- Grafikte kullanılan JS kütüphaneleri uygulamayla birlikte gelir (`assets/js/`); CDN'e yalnızca yerel dosya okunamazsa düşülür.
 
----
+## 5. Plotly ve Yama Notu
 
-## 🔄 Veri ve Sinyal Akış Senaryoları
+Karşılaştırma grafikleri Plotly kullanmaz. Plotly yalnızca Hisse 360'taki finansal dashboard ve ortaklık HTML'inde kullanılır (`reporting/html/plotly_html.py`, `financials_dashboard.py`). Eski QtWebEngine Chromium'u Plotly'nin `:focus-visible` CSS kuralını ayrıştıramayıp `Plotly is not defined` hatasıyla grafikleri boş bırakabildiği için `plotly_html.py` `CSSStyleSheet.insertRule` yamasını ayrı bir `plotly-shared-patched.min.js` dosyasına yazar ve HTML bu yerel dosyayı kullanır; ağ gerekmez.
 
-### Senaryo A: Sanal "Portföy + Hisseleri" Seçimi
+## 6. Testler
 
-```mermaid
-sequenceDiagram
-    Kullanıcı->>RibbonBar: "Ana Portföy + Hisseleri" Seçeneğini İşaretler
-    RibbonBar->>ComparisonPage: filter_changed.emit()
-    ComparisonPage->>ComparisonPage: _request_refresh() tetiklenir
-    Note over ComparisonPage: "holdings:dashboard" kodu yakalanır
-    ComparisonPage->>AnalysisService: get_stock_map_for_source("dashboard") çağrısı
-    AnalysisService-->>ComparisonPage: Hisse Listesi: {1: "THYAO.IS", 2: "EREGL.IS"}
-    Note over ComparisonPage: RibbonBar sinyalleri geçici olarak blockSignals(True) yapılır
-    ComparisonPage->>RibbonBar: set_selected_assets(["dashboard", "1", "2"])
-    Note over ComparisonPage: blockSignals(False) yapılır ve yeni kodlarla veri çekilir
-    ComparisonPage->>ComparisonPage: _on_data_ready() ile grafikleri render et
-```
+`tests/ui_qml/test_comparison_screener_phase7.py` (denetleyici ve QML), `tests/ui_qml/test_comparison_info_cards.py` (bilgi kartları), `tests/application/services/test_comparison_service.py` (saf hesaplar).
 
-### Senaryo B: Grafik-Özelinde Portföy İnceleme ve Geri Alma
+## 7. Sınırlar
 
-```mermaid
-sequenceDiagram
-    Kullanıcı->>ChartPanel: "Portföy İçeriğini Kıyasla" -> "Ana Portföy" Seçer
-    ChartPanel->>ComparisonPage: handle_chart_portfolio_selected("main_chart", "dashboard")
-    Note over ComparisonPage: self.chart_overrides["main_chart"] = "dashboard"
-    ComparisonPage->>ComparisonPage: _request_override_refresh("main_chart", "dashboard")
-    Note over ComparisonPage: Arka planda hisselerin verileri asenkron işçi (Worker) ile çekilir
-    ComparisonPage->>ChartPanel: _render_main_chart() ile sadece o grafiği override verisiyle güncelle
-    Kullanıcı->>ChartPanel: "Küresel Seçime Dön" Seçer
-    ChartPanel->>ComparisonPage: handle_chart_portfolio_selected("main_chart", None)
-    Note over ComparisonPage: Override silinir ve self.last_global_df geri yüklenir
-    ComparisonPage->>ChartPanel: _render_main_chart() ile grafiği küresel verilere döndür
-```
-
----
-
-## 🧮 Analitik ve Matematiksel Motor ([ComparisonService](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/application/services/analysis/comparison_service.py))
-
-Tüm finansal hesaplamalar backend katmanındaki saf veri servisleri tarafından yürütülür:
-1. **Veri Hizalama (`align_financial_series`)**: Farklı tatil günlerine sahip varlıkların serilerini ortak bir tarih indeksinde `outer join` ve forward-fill (`ffill()`) ile birleştirir.
-2. **Rasyo Motoru (`calculate_asset_ratio`)**: Hizalanmış serilerde $Rasyo = Seri_A / Seri_B$ oranını sıfıra bölünme ve tanımsızlık (`NaN`, `inf`) kontrolleriyle hesaplar.
-3. **Maksimum Drawdown (`calculate_drawdowns`)**: Tarihsel zirve zirve noktalarından yaşanan düşüş yüzdesini hesaplar:
-   $$DD = \frac{Fiyat - Tarihsel Zirve}{Tarihsel Zirve} \times 100$$
-4. **Risk-Getiri Volatilitesi (`calculate_risk_return_metrics`)**: Günlük getirilerin standart sapmasından yıllıklandırılmış volatiliteyi (risk) bulur:
-   $$\sigma_{annual} = \sigma_{daily} \times \sqrt{252} \times 100$$
-
----
-
-## 🧪 Birim Testleri ve Senaryolar ([test_comparison_page.py](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/tests/ui/pages/test_comparison_page.py))
-
-* **`test_chart_panel_init_and_update`**: `ChartPanel` başlatılmasını, menü aksiyonlarının (Küresel Dönüş + Seçenekler) oluşturulmasını ve tetiklenme callback'lerini test eder.
-* **`test_compare_portfolio_holdings`**: "Portföy + Hisseleri" sanal tetikleyicisinin `_request_refresh` içindeki reaktif hisse çözümleme ve seçim akışını doğrular.
-* **`test_chart_specific_override`**: Grafik bazlı bağımsız filtrelerin `self.chart_overrides` sözlüğüne yazılmasını ve sıfırlanma (None) akışını denetler.
-
----
-
-## 🔗 Tarihsel Tasarım Belgeleri ve Şartnameler
-Geliştirme aşamasındaki orijinal tasarım spec dosyalarına buradan ulaşabilirsiniz:
-* [Aşama 1: Matematiksel Altyapı ve Veri Motoru](../../analizSayfasi/1_COMPARISON_SERVICE.md)
-* [Aşama 2: Plotly Grafik Üreticisi ve Şablon Yapısı](../../analizSayfasi/2_COMPARISON_CHART_FACTORY.md)
-* [Aşama 3: PyQt5 UI Bileşenleri ve Sinyal Ağı](../../analizSayfasi/3_UI_LAYERS_AND_SIGNALS.md)
-* [Aşama 4: Navigasyon ve Entegrasyon Aşamaları](../../analizSayfasi/4_NAVIGATION_AND_INTEGRATION.md)
-## Plotly WebEngine Render Notu (2026-06-02)
-
-- QWebEngine'in eski Chromium motoru Plotly'nin `:focus-visible` CSS rule'unu parse edemediginde grafikler `Plotly is not defined` hatasiyla bos kalabilir.
-- Comparison Lab artik `plotly-shared-patched.min.js` uretir; `CSSStyleSheet.insertRule` patch'i Plotly bundle calismadan once ayni JS dosyasinin basinda uygulanir.
-- CDN veya canli network kullanilmaz; patched shared JS yazilamazsa inline Plotly HTML fallback'i patch script'iyle birlikte uretilir.
+- "Tümü" dönemi sabit 2022 başlangıçlıdır.
+- Genişletilmiş risk metrikleri (Sortino, Calmar, Omega, VaR...) servis katmanında hazırdır ama bu ekranda gösterilmez.
+- Plandaki işlem analizi, davranışsal analiz ve XIRR yoktur ([roadmap.md](roadmap.md)).

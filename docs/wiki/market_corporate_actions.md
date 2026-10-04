@@ -1,5 +1,7 @@
 # Piyasa Geçmişi (DuckDB) Sermaye Artırımı Düzeltmesi
 
+> Ana sayfa: [index.md](index.md) | Portföy aksiyonları: [service_corporate_actions.md](service_corporate_actions.md) | Veri: [data_architecture.md](data_architecture.md) | Arayüz: [settings_and_system.md](settings_and_system.md)
+
 Tüm BIST için (portföyde olsun olmasın) bölünme/bedelsiz/bedelli kaynaklı fiyat kırılmalarının düzeltilmesi.
 Kod: `src/domain/models/market_corporate_action.py`, `src/application/services/corporate_actions/market_action_service.py`,
 `src/infrastructure/market_data/duckdb_corporate_action_store.py`, `duckdb_market_history_repo.py`.

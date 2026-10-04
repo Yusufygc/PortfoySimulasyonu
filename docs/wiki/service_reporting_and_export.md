@@ -1,57 +1,58 @@
-# Excel Raporlama ve Dışa Aktarım (Export) Servisleri
+# Raporlama ve Dışa Aktarım (Excel, HTML)
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Simülasyon: [service_simulation.md](service_simulation.md)
 
-Bu belge, `src/application/services/reporting` dizinindeki Excel üretim ve raporlama süreçlerini detaylandırır. Uygulama, geçmiş portföy verisini ve model portföy analizlerini `openpyxl` kütüphanesi kullanarak Excel (.xlsx) formatında dışa aktarır.
+Kod: `src/application/services/reporting/`. İki tür çıktı vardır: tarihsel portföy **Excel** raporları (`openpyxl`) ve arayüzde WebEngine ile gösterilen **HTML** üreticileri (Plotly dashboard'ları).
 
-## 1. Raporlama Mimarisi
+## 1. Excel Raporlama
 
-Raporlama sistemi, birbirine sıkı sıkıya bağlı olmayan, tek sorumluluk prensibine (SRP) uyan bileşenlere ayrılmıştır:
+### Servisler
 
-| Sınıf / Modül | Sorumluluk |
-| --- | --- |
-| `ExcelExportService` | İşlemi başlatan ana servistir. Raporun hazırlanmasını koordine eder. |
-| `ExcelDataPreparer` | Portföy ve model portföy verilerini (Snapshot) alır, Excel'e yazılabilecek listeler / tuple'lar haline getirir. |
-| `ExcelFormatter` | Hücrelerin veri tiplerini (sayı, yüzde, tarih) ayarlar ve biçimlendirme yapar. |
-| `ExcelTheme` | Başlık renkleri, fontlar ve tablo kenarlık (border) ayarlarını (QSS Tokens mantığına benzer şekilde) uygular. |
-| `ExcelLayoutManager` | Excel sayfasındaki kolon genişliklerini ve freeze panes (sabit dondurulmuş satırlar) ayarlarını yönetir. |
+| Servis | Görev |
+|---|---|
+| `ExcelExportService.export_history(start, end, file_path, mode)` | Ana portföy tarihsel raporu: `HistorySimulationService` ile günlük snapshot üretir ve `ExcelReportBuilder`'a verir. |
+| `ModelPortfolioExcelExportService` | `export_model_portfolio_history(...)` model portföyün tarihsel raporu; `export_model_portfolio(...)` anlık görüntü. |
+| `ExcelReportBuilder` | Çalışma kitabını yazar (`build_and_save`); tarih sütunu normalizasyonu. |
+| `ExcelDataPreparer` | Snapshot'ı tablo verisine (liste/tuple) çevirir. |
+| `ExcelFormatter`, `ExcelTheme`, `ExcelLayoutManager` | Hücre tipi/biçim, kurumsal renk paleti ve kenarlık, sütun genişliği ve dondurulmuş satırlar. |
+| `ExcelDashboardStatsCalculator` | Özet panel KPI metinleri ve en büyük pozisyonlar. |
+| `ExcelAppendMerger` | Mevcut dosyaya ekleme: birleştirme, tekrar ayıklama ve yedek. |
 
-## 2. Duplicate Günlük Veri Engelleme (Append Mode)
+### Çalışma kitabı
 
-Tarihsel verilerin sürekli olarak Excel dosyasına eklenmesi durumunda aynı tarih satırlarının tekrar etmesini engellemek için "Tarih Normalizasyonu ve Dedup" mantığı uygulanır. 
+Dört sayfa: `Özet Panel`, `Portföy Özeti`, `Günlük Detaylar`, `Hisse Özeti`. (Grafik odaklı sayfalar kaldırılmıştır.)
 
-- Yeni veriler eklendiğinde `Timestamp` ve düz `Date` formatları birbirine karışabilir. 
-- Ortak helper fonksiyonlar vasıtasıyla Excel dosyası append (üzerine ekleme) modunda açılır, verilerdeki aynı tarihe ait eski satırlar varsa yenileriyle ezilir ve tek bir temiz tarih listesi oluşturulur.
+### Ekleme modu ve tekrar engelleme
 
-## 3. Akış Şeması
+Arayüzde "mevcut dosyaya ekle" seçilirse yeni günler mevcut dosyaya eklenir; dosya yoksa yeni oluşturulur. `Timestamp` ve düz `date` karışıklığı ortak normalizasyonla giderilir; aynı tarihin eski satırları yenileriyle ezilir, böylece tek temiz tarih listesi kalır. Dosya yoksa taze yazılır, izin hatası kullanıcıya açık mesajla yükseltilir, bozuk çalışma kitabı yedeklenip yeniden oluşturulur; sessiz `except: pass` yoktur.
 
-```mermaid
-sequenceDiagram
-    UI->>ExcelExportService: Rapor Al (Bugün / Tarih Aralığı)
-    ExcelExportService->>SimulationService: Belirtilen tarihler için snapshot al
-    ExcelExportService->>ExcelDataPreparer: Snapshot'ı tablo verisine çevir
-    ExcelDataPreparer-->>ExcelExportService: Raw Data
-    ExcelExportService->>OpenPyXL: Workbook oluştur
-    ExcelExportService->>ExcelFormatter: Verileri Formatla
-    ExcelExportService->>ExcelTheme: Tablo stillerini uygula
-    ExcelExportService->>UI: Başarı Durumu ve Dosya Yolu
-```
-## Faz 2 Notu (2026-06-02)
+### Fiyat sözleşmesi
 
-- `ExcelReportBuilder._append_to_existing_excel` içindeki silent `except Exception: pass` kaldırıldı.
-- Dosya yoksa fresh write yapılır; permission hataları kullanıcıya açık mesajla yükseltilir; corrupt workbook okuma hatasında mevcut backup + yeniden oluşturma davranışı korunur.
-- Büyük reporting sınıfları için daha ileri parçalara ayırma adayı devam eder: append/dedup mantığı `ExcelAppendMerger`, dashboard stats ayrı calculator.
+Tarihsel raporlar yalnızca `daily_prices` kapanışını kullanır; canlı fiyat (`latest_prices`, ekrandaki anlık değerler) rapora karışmaz. Model portföy raporu öncesi arayüz seçili `model:<id>` kapsamı için fiyat sağlığı analizi çalıştırır; eksik kapanış varsa dosya seçilmeden kullanıcıya hisse/tarih listesi gösterilir, böylece ekrandaki gecikmeli fiyatla rapordaki DB kapanışı arasında sessiz uyumsuzluk oluşmaz.
 
-## Faz 2D Notu (2026-06-02)
+### Arayüz girişleri
 
-- Append/dedup/backup davranışı `ExcelAppendMerger` sınıfına taşındı; `ExcelReportBuilder` writer orchestration ve formatting akışını yönetir.
-- Dashboard KPI metinleri ve top holding hesapları `ExcelDashboardStatsCalculator` içinde tutulur.
-- Excel dışa aktarım artık dört çalışma sayfası üretir: `Özet Panel`, `Portföy Özeti`, `Günlük Detaylar`, `Hisse Özeti`.
-- Grafik odaklı `Grafikler` ve `Grafik Verileri` sayfaları kaldırıldı; workbook sözleşmesi sadeleştirildi.
+| Yer | İşlev |
+|---|---|
+| Genel Bakış > Excel Raporu (`ExcelExportDialog`) | Tarih aralığı (boş = ilk işlemden bugüne), hedef dosya, ekleme modu; `DashboardController.exportToExcelFile`. |
+| Model Portföy > Rapor | `ModelPortfolioController.exportHistoryToFile` aynı diyalogla. |
+| Hisse Detay > "Hisse Geçmişini Excel'e Aktar" | `StockDetailController.exportStockToExcel`: hisseye özel işlem ve pozisyon raporu. |
+| Ayarlar > Dışa Aktarım | Portföy Excel raporu (`exportPortfolioToExcel`) ve JSON yedeği ([database_maintenance_and_scripts.md](database_maintenance_and_scripts.md)). |
 
-## Model Portfoy Rapor Fiyat Sozlesmesi (2026-06-06)
+Tüm dışa aktarımlar arka plan iş parçacığında çalışır; sonuç sinyalle toast olarak gösterilir.
 
-- Model portfoy Excel raporlari tarihsel rapordur ve degerleme icin yalniz `daily_prices` kapanis verisini kullanir; ekranin canli `current_price_map` degerleri rapora overlay edilmez.
-- `latest_prices` intraday cache'i Excel rapor, backtest veya gecmis performans hesaplarina kaynak olmaz; canli UI ile tarihsel rapor arasindaki fark bilincli olarak korunur.
-- UI export akisi rapor uretmeden once secili `model:<id>` kapsaminda `PriceDataHealthService.analyze(...)` calistirir. Eksik kapanis fiyati varsa dosya secme ve Excel export cagrisi baslamadan kullaniciya hisse/tarih listesi gosterilir.
-- Bu kapi, model portfoy ekraninda gorunen gecikmeli/canli fiyat ile Excel raporundaki DB kapanis fiyati arasinda sessiz uyumsuzluk olusmasini engeller.
+## 2. HTML Üreticileri (`reporting/html/`)
+
+Arayüzden bağımsız, saf HTML üreten modüller; denetleyici çıktıyı geçici dosyaya yazıp QML `WebEngineView` ile gösterir ([stock_360.md](stock_360.md)).
+
+| Modül | Üretim |
+|---|---|
+| `financials_dashboard.py` (+ `financials_charts`, `financials_table`, `financials_value_table`) | Hisse 360 finansal dashboard: grafikler, etkileşimli tablo, değer tabloları (koyu tema). |
+| `shareholders_dashboard.py` | KAP ortaklık yapısı dashboard'u. |
+| `plotly_html.py` | Plotly HTML kapsayıcısı; `ensure_patched_plotly_js` yerel yama uygulanmış Plotly JS'i (`plotly-shared-patched.min.js`) üretir. Eski Chromium'un `:focus-visible` CSS kuralını ayrıştıramaması `Plotly is not defined` hatasına yol açtığından `CSSStyleSheet.insertRule` yaması Plotly paketinden önce uygulanır; ağ kullanılmaz. |
+
+`PriceDataReportFormatter` (market servisleri) fiyat sağlığı raporunu HTML veya düz metne çevirir.
+
+## 3. Testler
+
+`tests/application/test_excel_report_builder.py`, `test_model_portfolio_excel_export_service.py`, `test_friday_excel_export_bug.py` (hafta sonu/cuma düzeltmesi), `tests/application/reporting_html/` (Plotly ve finansal dashboard HTML), `tests/ui_qml/test_stock_detail_and_excel.py`, `test_dashboard_updates.py`.

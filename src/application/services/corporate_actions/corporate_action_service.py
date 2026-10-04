@@ -6,9 +6,11 @@ Akış:
   1. Kullanıcı register_bedelli / register_bedelsiz ile aksiyonu sisteme kaydeder.
   2. Uygun zamanda apply_action çağrılır.
   3. Servis, mevcut pozisyonu hesaplar ve BİST kuralına göre yeni hisse adetini belirler.
-  4. Bedelsiz → sıfır maliyetli sentetik BUY eklenir (toplam maliyet sabit kalır, ortalama düşer).
-     Bedelli → kullanım fiyatından sentetik BUY eklenir (sermayeden düşer, ortalama değişir).
-  5. Aksiyon "applied" olarak işaretlenir.
+  4. Geriye dönük düzeltme modeli: ex-date öncesi işlemlerin lot ve fiyatı faktörle ayarlanır (özgün değerler
+     `original_quantity/original_price` ile korunur, denetim izi `trade_adjustments` tablosundadır).
+     Bedelsiz → toplam maliyet sabit kalır, ortalama maliyet düşer.
+     Bedelli → kullanım fiyatı x yeni lot kadar sermaye toplam maliyete eklenir, ortalama maliyet yeniden hesaplanır.
+  5. Aksiyon "applied" olarak işaretlenir ve geçmiş fiyatlar aynı faktörle düzeltilir.
 """
 
 from __future__ import annotations

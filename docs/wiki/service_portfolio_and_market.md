@@ -1,103 +1,83 @@
-# Portföy ve Piyasa Verisi (Market Data) Servisleri
+# Portföy, Fiyat Akışları ve Nakit
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Veri sahipliği: [data_architecture.md](data_architecture.md)
 
-Bu belge, işlem geçmişinin tutulmasını (`Trade`) ve piyasa verilerinin (`Market Data`) nasıl çekilip işlendiğini açıklar.
+Bu sayfa ana portföyün nasıl hesaplandığını, işlem ve nakit kurallarını, iki ayrı fiyat akışını ve fiyat verisi sağlığını açıklar. Dış veri kaynakları için bkz. [service_market_data_providers.md](service_market_data_providers.md); kurumsal aksiyonlar ve temettü için [service_corporate_actions.md](service_corporate_actions.md).
 
-## 1. Event-Sourcing ile Portföy Hesaplaması
+## 1. Olay Kaynaklı Portföy
 
-Geleneksel sistemler, portföyün P&L değerini (realize edilmemiş kâr/zarar) veri tabanında tutmaya meyillidir. Ancak `Portföy Simülasyonu` projesinde veri bütünlüğünü korumak için Event-Sourcing (Olay Kaynağı) mantığı benimsenmiştir:
+Türev değerler (lot, ortalama maliyet, gerçekleşmiş/gerçekleşmemiş K/Z) veritabanında **saklanmaz**. Kullanıcının `Trade` kayıtları (BUY/SELL) kronolojik olarak tutulur ve her ihtiyaçta `Portfolio.from_trades()` ile baştan işlenir. `Position`, hisse başına lot, toplam maliyet ve gerçekleşmiş K/Z'yi, `Portfolio` ise toplam piyasa değerini ve K/Z'yi hesaplar.
 
-- Türev değerler (P&L, maliyet) **veritabanında saklanmaz.**
-- Kullanıcının "Alış" (BUY) ve "Satış" (SELL) işlemleri (`Trade` objeleri) kronolojik olarak veritabanında tutulur.
-- Uygulama açıldığında veya yeni bir işlem eklendiğinde, `Portfolio.from_trades()` çağrılarak tüm işlemler baştan sona işlenir ve portföyün güncel hali sıfırdan hesaplanır.
+Avantajı: geçmişe dönük işlem, bedelsiz sermaye artırımı veya düzeltme tek doğruluk kaynağından (işlem geçmişi) tutarlı yeniden hesaplanır. Parasal hesaplar `Decimal` ile yapılır.
 
-### Avantajları:
-- Bölünme, temettü (Corporate Actions) veya geçmişe dönük işlem düzenlemelerinde veri tutarsızlığı yaşanmaz.
-- Tüm hesaplamalar tek bir "Truth" (Gerçek) kaynağına dayanır: İşlem geçmişi.
+`build_portfolio_safely()` (`safe_portfolio_builder.py`) işlemleri `(tarih, saat, id)` sırasına koyar ve eldeki lottan fazla satışı geçersiz sayıp ayırır (`InvalidTrade`); böylece bozuk bir kayıt uygulamayı çökertmez, geçerli işlemlerle portföy kurulur.
 
-## 2. Piyasa Verisi (Market Data) ve `YFinanceClient`
+## 2. İşlem Girişi
 
-Gerçek zamanlı piyasa fiyatları ve geçmiş fiyat (historical prices) verileri `src/infrastructure/market_data/yfinance_client.py` üzerinden YFinance kütüphanesi ile çekilir.
+`TradeEntryService.submit_trade(TradeRequest)` sırasıyla:
 
-### Eksik Veri ve Tatil Sağlığı
-Bir piyasa takip uygulamasında en büyük sorunlardan biri tatil günleri ve fiyat dönmeyen (eksik veri) günleridir.
-`MarketDataService` şu sorumlulukları üstlenir:
-1. **Tatil Takvimi:** BIST (Borsa İstanbul) takvimi göz önüne alınarak, Cumartesi ve Pazar günleri haricinde veri dönmeyen günleri "Tatil Adayı" olarak sınıflandırır.
-2. **Eksik Veri Tespiti:** Seçili hisseler arasında eksik günleri saptar ve arayüze eksik veri sağlığı raporu sunar.
-3. **Kapanış Düzeltmeleri:** Bölünme veya temettü sonrası fiyat düzeltmelerini (Adjusted Close) yFinance'ten alır ve veritabanındaki `daily_prices` tablosunu asenkron olarak günceller.
+1. Lot ve fiyatın pozitif olduğunu doğrular.
+2. **BIST seans koruması:** `BistMarketSessionService` ile tarih/saat açık seansta olmalıdır (normal gün 10:00-18:10, yarım gün 10:00-13:00; hafta sonu, resmi tatil ve seans dışı saat reddedilir). Kural yalnızca hisse alım/satımı içindir; nakit hareketleri kapsam dışıdır. Aynı koruma model portföy işlemlerinde de uygulanır.
+3. Alımda o tarih/saatteki nakit bakiyeyi denetler ("yeterli sermayeniz yoktu").
+4. Hisseyi bulur; yoksa yalnızca **alımda** `is_valid_bist_ticker` ile doğrulayıp `stocks`'a ekler (kanonik ticker uzantısızdır).
+5. `PortfolioService.validate_trade` ile zaman çizelgesini denetler (aşağıya bakın) ve kaydeder.
 
-```mermaid
-graph TD
-    A[UI Fiyat Sağlığı Ekranı] --> B[Eksik Verileri Bul]
-    B --> C[YFinance'ten Eksik Günleri Çek]
-    C --> D[DailyPrices Tablosuna Yaz]
-    D --> E[EventBus: prices_updated Sinyali Yay]
-    E --> F[Tüm Açık Ekranları Otomatik Güncelle]
-```
-## Faz 2 Notu (2026-06-02)
+**Zaman çizelgesi doğrulaması** (`PortfolioTimelineValidator`): geçmişe dönük girilen işlem, kendisinden sonraki işlem ve nakit akışını geçersiz kılıyorsa ("sonraki nakit veya lot akışını geçersiz hale getiriyor") reddedilir. Olaylar `(tarih, saat, sıra, id)` ile sıralanır; aynı anda nakit girişleri (yatırma, temettü) işlemlerden önce uygulanır.
 
-- `PriceLookupService` application katmanında yalnız ticker normalize eder ve `PriceLookupProvider` sonucunu DTO'ya çevirir; YFinance erişimi `YFinancePriceLookupProvider` adapter'ındadır.
-- `BackfillService` doğrudan YFinance kullanmaz; fiyat serilerini `IMarketDataClient.get_price_series` portundan alır.
-- `PriceDataHealthService` BIST tatil bilgisini `MarketHolidayProvider` üzerinden alır; production adapter `BistHolidayProvider` olarak infrastructure altında konumlanır.
-- `PriceUpdateService` ve BIST seans servisi trading-day kararlarını `MarketTradingCalendar` portu ile alır; BIST takvimi container'dan enjekte edilir.
+## 3. Nakit Hareketleri
 
-## Faz 2D Notu (2026-06-02)
+`cash_movements` tablosu üç tür tutar: `DEPOSIT` (yatırma), `WITHDRAW` (çekme) ve `DIVIDEND` (nakit temettü; `stock_id` ile hisseye bağlı). Nakit bakiye hareketlerden ve işlemlerden türetilir (`PortfolioService.get_cash_balance`): yatırma, temettü ve satış nakdi artırır; çekme ve alım azaltır. Eksiye düşmeyi gerektiren geçmiş kayıtlar sıfırda sabitlenir.
 
-- `PriceDataHealthService` facade olarak kalır; analiz `PriceHealthAnalyzer`, update/fetch-save `PriceHealthUpdater`, portföy/model trade kapsamı `PriceScopeResolver` ile yürütülür.
-- `PriceUpdateService` kapanış fiyatı çekme ve `DailyPrice` üretimini helper'lara ayırır; public result contract değişmedi.
-- `PortfolioTimelineValidator` timeline event hazırlama ve event uygulama adımlarını ayırır; retroaktif trade güvenlik davranışı korunur.
+- Çekme, bakiyeyi aşıyorsa reddedilir.
+- Yatırma/çekme **dış sermaye akışıdır**; zaman ağırlıklı getiri (TWR) hesabında akış olarak ayrılır. Temettü ise getiridir (akış sayılmaz). Bkz. [service_corporate_actions.md](service_corporate_actions.md).
+- `CashMovementService.delete_dividend` ve `PortfolioService.validate_cash_removal`, silmenin sonraki alım/çekimi yetersiz nakde düşürüp düşürmediğini denetler.
 
-## Faz 3 Notu (2026-06-02)
+## 4. Değer ve Getiri Hesapları
 
-- Infrastructure market adapter'larında fallback hata ailesi `MARKET_DATA_FALLBACK_ERRORS` ile merkezileştirildi; yfinance, urllib, JSON parse ve `MarketDataUnavailableError` kaynaklı beklenen hatalar deterministik fallback'e düşer.
-- Repository ve market-data adapter taramasında kontrolsüz `except Exception` kalmadı; beklenmeyen programlama hataları artık sessizce yutulmaz.
-- `ScrapedBenchmarkProvider._request_json` invalid JSON durumunu `MarketDataUnavailableError` olarak sarar; TCMB mevduat oranı akışı EVDS erişim hatasında manuel fallback sözleşmesini korur.
-- YFinance fiyat lookup ve optimizasyon adapter'ları network/veri hatalarında sırasıyla `None` veya anlamlı hata sonucu üretir; canlı network testleri default pytest koşumuna bağımlı değildir.
+| Servis | Görev |
+|---|---|
+| `ReturnCalcService` | Belirli tarihte portföy değeri (`compute_portfolio_value_on`, eksik fiyatlar son bilinen kapanışla tamamlanır), iki tarih arası getiri, haftalık ve aylık getiri. |
+| `PortfolioSeriesBuilder` | Günlük portföy değer serisi ve TWR serisi; nakit akışı olarak yalnızca yatırma/çekme ve (nakit izlenmiyorsa) alım/satım sayılır ([service_analysis.md](service_analysis.md)). |
+| `CurrentPriceResolver` | Değerleme için "güncel fiyat" kaynağını seçer (aşağıya bakın). |
 
-## Aktif Fiyat Kapsami Notu (2026-06-02)
+## 5. İki Ayrı Fiyat Akışı
 
-- Dashboard fiyat guncelleme ve Ayarlar > Fiyat Verisi Yonetimi varsayilan kapsami yalniz net acik pozisyonlardir.
-- Gecmiste alinip tamamen satilmis hisseler fiyat guncelleme, veri sagligi ve otomatik eksik fiyat tamamlama kapsamindan cikarilir; eski fiyat kayitlari silinmez.
-- Model portfoy fiyat sagligi da ayni event-sourced net pozisyon kuralini kullanir; manuel `update_stock_range(stock_id, ...)` belirli hisse icin calismaya devam eder.
+| Akış | Tablo | Yazan | Kullanan |
+|---|---|---|---|
+| **Kapanış (tarihsel)** | `daily_prices` (SQLite, portföy hisseleri) ve DuckDB (tüm BIST) | `PriceUpdateService`, `BackfillService`, `PriceDataHealthService`, `MarketDataSyncService` | Rapor, backtest, fiyat sağlığı, analiz, tarihsel performans |
+| **Canlı / gün içi** | `latest_prices` (SQLite, hisse başına tek satır: `price`, `as_of`, `source`, `provider`, `fetched_at`) | `LivePriceRefreshService` | Dashboard ve Model Portföy anlık değerleme |
 
-## Portfoy Bazli Fiyat Kapsami Notu (2026-06-03)
+`CurrentPriceResolver`: canlı fiyat yalnızca son günlük kapanıştan **daha yeni bir güne** aitse kullanılır; aksi halde son kapanış döner. Günlük değişim için önceki kapanış, seçilen fiyatın gününden **önceki** son geçerli kapanıştır. Eski bir canlı fiyatı yeni kapanışla kıyaslayıp anlamsız değişim üretmemek için bu ayrım yapılır. Ekran önceliği: EventBus'tan gelen canlı fiyat, `latest_prices`, son `daily_prices` kapanışı.
 
-- Ayarlar > Fiyat Verisi Yonetimi ekrani portfoy kapsam secimi destekler: `Tüm aktif portföyler`, `Ana Portföy` ve her model portfoy icin `Model Portföy: <ad>`.
-- Secili kapsam `PriceDataHealthService` public metodlarina opsiyonel scope olarak tasinir; parametre verilmezse eski `all_active` davranisi korunur.
-- Baslangic tarihi secili kapsamda acik pozisyonu bulunan hisselerin ilk islem tarihine set edilir; eksik veri hesabi her hisse icin kendi ilk islem tarihinden itibaren yapilir.
-- Fiyat kayitlari `daily_prices` tablosunda ortak kalir; kapsam secimi yalniz analiz, toplu eksik tamamlama ve son gunden bugune guncelleme taramasini daraltir.
+- **Hedef tarih her zaman son tamamlanmış işlem günüdür.** Açılıştaki otomatik tamamlama ve Dashboard "Fiyatları Güncelle" bugünü kapanış saymaz (`PriceUpdateService.last_completed_trading_day`).
+- `LivePriceRefreshService.refresh_active_prices(scope)`: varsayılan `all_active` kapsamında ana portföy ve model portföylerin açık pozisyonlarını (`PriceDataHealthService.active_stock_ids`) `PriceLookupService` ile sorgular, `latest_prices`'a yazar ve `prices_updated` yayınlar. Tek tek ticker hataları sonuçta `errors` listesinde toplanır, diğer hisseleri engellemez. `daily_prices` yazmaz.
+- Otomatik canlı yenileme `SystemController` zamanlayıcısıyla (5/15/30/60 dk) yalnızca BIST seansı açıkken çalışır; periyodik tekil hatalar toast göstermez, art arda genel hata birikirse kısa uyarı verilir ([settings_and_system.md](settings_and_system.md)).
+- `PortfolioUpdateCoordinator.update_today_prices_and_get_snapshot()` kapanış fiyatlarını günceller, EventBus ile yayınlar ve portföy anlık görüntüsünü döner.
 
-## Otomatik Canli Fiyat Yenileme Notu (2026-06-03)
+## 6. Fiyat Verisi Sağlığı
 
-- Uygulamada iki fiyat akisi ayridir: `PriceDataHealthService`, `PriceUpdateService` ve `BackfillService` kapanis/backfill verisini `daily_prices` tablosuna yazar; `LivePriceRefreshService` intraday/guncel fiyatlari `latest_prices` tablosuna upsert eder ve ayni payload'u EventBus ile UI'a yayar.
-- `LivePriceRefreshService` varsayilan `all_active` kapsaminda ana portfoy + model portfoy acik pozisyon hisselerini `PriceDataHealthService.active_stock_ids(...)` yardimcisiyla cozer; kapsam kuralini duplicate etmez.
-- Intraday yenileme `PriceLookupService.lookup_price_for_ticker(...)` kullanir, tekil ticker hatalarini result `errors` listesinde toplar ve diger hisselerin yenilenmesini engellemez.
-- Model portfoy manuel fiyat yenileme de `daily_prices` yazmaz; guncel fiyatlar `latest_prices`, bellek `current_price_map` ve `prices_updated` eventi uzerinden ekranlara yansir.
+`PriceDataHealthService` (facade; `PriceHealthAnalyzer`, `PriceHealthUpdater`, `PriceScopeResolver`) eksik işlem günü kapanışlarını bulur ve tamamlar.
 
-## Latest ve Kapanis Fiyat Ayrimi Notu (2026-06-06)
+- **Kapsam:** varsayılan yalnızca net açık pozisyonlardır; tamamen satılmış hisseler kapsamdan çıkar (eski fiyatlar silinmez). Kapsam seçenekleri: `Tüm aktif portföyler`, `Ana Portföy`, `Model Portföy: <ad>`. Başlangıç tarihi seçili kapsamdaki hisselerin ilk işlem tarihidir; eksik hesabı her hisse için kendi ilk işlem tarihinden yapılır.
+- **Takvim:** `MarketTradingCalendar` ve `MarketHolidayProvider` (BIST tatil takvimi, 2020-2030) kullanılır. Bilinen tatiller beklenen gün sayısına girmez; veri dönmeyen hafta içi günler "tatil adayı" sınıflanır. Dar kapsamda tüm seçili hisseler aynı gün boşsa ama başka aktif kapsamda o gün fiyat varsa gün eksik veri sayılır; tüm evren boşsa heuristik tatil adayı korunur.
+- **Aksiyonlar:** analiz, eksikleri tamamla, seçili hisseyi tamamla, son günden son tamamlanmış işlem gününe güncelle, aralığı sil. Arayüz: Ayarlar > Fiyat Verisi (`PriceDataController`).
+- Rapor, `PriceDataReportFormatter` ile arayüzden bağımsız HTML veya düz metne çevrilir (panoya kopyalama).
+- Model portföy Excel raporu öncesi eksik kapanış denetlenir ([service_reporting_and_export.md](service_reporting_and_export.md)).
 
-- `daily_prices` yalniz kapanmis islem gunlerinin tarihsel kapanis verisidir; rapor, backtest, fiyat sagligi, analiz ve tarihsel performans bu tabloyu tek kaynak kabul eder.
-- `latest_prices` restart sonrasi korunabilen intraday/latest fiyat cache'idir; satir basina tek `stock_id` tutulur ve `price`, `as_of`, `source`, `provider`, `fetched_at`, `updated_at` alanlariyla son canli veriyi saklar.
-- Dashboard ve Model Portfoy ekran degerlemelerinde oncelik EventBus ile gelen canli fiyat, sonra `latest_prices`, en sonda son `daily_prices` kapanisidir; bu UI sozlesmesi tarihsel rapor sozlesmesini degistirmez.
-- Uygulama acilisindaki otomatik backfill ve Dashboard manuel kapanis guncellemesi bugunu kapanis kabul etmez; hedef tarih her zaman son tamamlanmis islem gunudur.
-- Ayarlar > Fiyat Verisi Yonetimi tarihsel kapanis verisi yonetir; "son gunden bugune" aksiyonu da bugune degil son tamamlanmis islem gunune kadar `daily_prices` tamamlar.
+## 7. Diğer Servisler
 
-## Model Portfoy Fiyat Sagligi Notu (2026-06-06)
+| Servis | Görev |
+|---|---|
+| `StockLookupService` | Arayüz için salt okunur hisse ve fiyat sorguları (`find_stock`, `is_known_ticker`, `get_price_series(_bulk)`, `get_previous_close`, `get_latest_price_map`, `get_market_bars`, `get_market_company_name`, `verify_ticker_online`). `THYAO` ve `THYAO.IS` aynı kaydı bulur; hata durumunda boş sonuç döner. |
+| `MarketIndicatorsService` | Üst şerit: USD/TRY, EUR/TRY, BIST 100, gram altın ve gümüş; alınamayanlar atlanır. |
+| `PortfolioMaintenanceService.purge_stock_by_ticker` | Hisseyi ve tüm bağlantılı kayıtlarını kalıcı siler (dikkatli kullanım). |
+| `PortfolioResetService.reset_all` | Tüm portföy, fiyat ve hisse verisini sıfırlar (Ayarlar > Sistem). |
+| `PriceLookupService` | Ticker normalize eder ve sağlayıcı sonucunu DTO'ya çevirir. |
+| `BackfillService` | Tarih aralığı için fiyat serisini `IMarketDataClient` portundan alıp `daily_prices`'a yazar; hisse tek başına da tamamlanabilir. |
 
-- `dashboard` ve `model:<id>` gibi dar fiyat sagligi kapsamlarinda tum secili hisseler ayni is gununde eksikse, bu gun artik otomatik tatil adayi sayilmaz.
-- Ayni tarihte baska aktif portfoy kapsaminda DB fiyat kaydi varsa dar kapsamdaki bos gun eksik veri olarak raporlanir; yalniz tum aktif evren bos ise heuristik tatil adayi korunur.
-- Bu ayrim, model portfoy ekranindaki canli/QSettings fiyatlari ile tarihsel `daily_prices` kapanis verisini karistirmadan eksik DB kapanislarini gorunur tutar.
+## 8. Model Portföy Sermaye ve Fiyat Kuralları
 
-## Toplam Deger Kapsami Notu (2026-06-03)
-
-- Dashboard ve analiz toplam portfoy degeri kullanici varligini temsil eder: nakit bakiye + acik pozisyon piyasa degeri.
-- Pozisyon tablolari acik pozisyonlardan uretilir; tamamen kapanmis hisseler tablo, otomatik fiyat guncelleme ve analiz filtre kapsaminda tekrar gosterilmez.
-- Gecmis trade kayitlari ve fiyatlar korunur; satis nakdi toplam deger serisine yansimaya devam eder.
-
-## Model Portfoy Sermaye Hareketleri Notu (2026-06-03)
-
-- Model portfoylerde baslangic sermayesi korunur; sonradan eklenen/cekilen sermaye `model_portfolio_cash_movements` tablosunda tarih-saatli hareket olarak tutulur.
-- Model portfoy trade simulasyonu trade ve sermaye hareketlerini ayni timeline'da isler; ayni tarih/saatte sermaye hareketi trade'den once uygulanir.
-- Alim nakit kontrolu ve sermaye cekme kontrolu timeline'daki mevcut nakde gore yapilir; gecmise donuk hareket sonraki trade akisini gecersiz kiliyorsa reddedilir.
-- Model portfoy K/Z hesabi `toplam deger - net sermaye` seklindedir; sermaye eklemek kar, sermaye cekmek zarar sayilmaz.
+- Model portföy başlangıç sermayesi korunur; sonradan eklenen/çekilen sermaye `model_portfolio_cash_movements` tablosunda tarih-saatli hareket olarak tutulur. İşlem ve sermaye hareketi aynı zaman çizelgesinde işlenir; aynı anda sermaye hareketi işlemden önce uygulanır.
+- Alım ve çekme, o andaki nakde göre doğrulanır; geçmişe dönük hareket sonraki işlemi geçersiz kılıyorsa reddedilir.
+- K/Z = `toplam değer - net sermaye`; sermaye eklemek kâr, çekmek zarar sayılmaz.
+- Model portföy "Fiyat Güncelle" `daily_prices` yazmaz; canlı fiyat `latest_prices`, bellek ve `prices_updated` ile ekrana yansır. Tarihsel rapor ise yalnızca `daily_prices` kapanışını kullanır.

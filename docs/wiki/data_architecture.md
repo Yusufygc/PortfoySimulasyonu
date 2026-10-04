@@ -1,5 +1,7 @@
 # Veri Mimarisi: SQLite (OLTP) ve DuckDB (OLAP)
 
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Şema: [database_schema_and_orm.md](database_schema_and_orm.md) | Kaynaklar: [service_market_data_providers.md](service_market_data_providers.md)
+
 > MySQL desteği kaldırıldı (2026-10-02). Uygulama yalnızca yerel dosya tabanlı iki veritabanı kullanır.
 > Yollar çalışma dizinine değil uygulama köküne göre çözülür: `src/infrastructure/db/paths.py`
 > (`DB_SQLITE_PATH`, `DUCKDB_PATH` ortam değişkenleriyle değiştirilebilir).
@@ -16,6 +18,16 @@ Kanonik ticker **uzantısız büyük harftir** (`THYAO`): `stocks.ticker`, DuckD
 uzantısızı kaydeder; açılışta eski `.IS` kayıtlar çakışma yoksa uzantısıza çevrilir. Yazıcılar (işlem girişi, model
 portföy, izleme listesi, KAP sağlayıcı) uzantı eklemez. Uygulama BIST odaklıdır: uzantısız her kod yfinance'e `.IS`
 ile gider; endeks (`^XU100`), kur (`USDTRY=X`) ve zaten uzantılı semboller olduğu gibi kalır.
+
+## DuckDB şeması (`data/market_history.duckdb`)
+
+| Tablo | Sütunlar |
+|---|---|
+| `bist_stocks` | `ticker` (PK), `name`, `currency_code`, `first_date`, `last_date`, `total_bars`, `updated_at` |
+| `daily_prices` | `ticker`, `price_date` (PK birlikte), `open_price`, `high_price`, `low_price`, `close_price`, `volume` (ham, düzeltilmemiş) |
+| `market_corporate_actions` | `ticker`, `effective_date` (PK), `factor`, `action_type`, `status`, `source`, `ex_date`, `ratio`, `rights_price`, `observed_ratio`, `confidence`, `note`, `updated_at` |
+
+Dosyayı yalnızca `BistBulkDownloader` ve `MarketDataSyncService` (yazma), `DuckDBMarketHistoryRepository` ve `DuckDBCorporateActionStore` (okuma/aksiyon yazma) açar; `DatabaseMaintenanceService` istatistik için salt okunur açar.
 
 ## Sahiplik özeti
 

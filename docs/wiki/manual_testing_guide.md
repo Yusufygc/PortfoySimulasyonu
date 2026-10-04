@@ -1,837 +1,344 @@
-# Kapsamlı Manuel Test Yönergesi
+# Manuel Test Yönergesi
 
-> Ana sayfa: [index.md](index.md) | Değişiklik günlüğü: [log.md](log.md) | Test stratejisi: [testing_strategy.md](testing_strategy.md)
+> Ana sayfa: [index.md](index.md) | Test stratejisi: [testing_strategy.md](testing_strategy.md) | Sayfa rehberi: [qml_pages_guide.md](qml_pages_guide.md)
 
-Bu belge, Portföy Simülasyonu masaüstü uygulamasının her ana sayfasını ve kritik kullanıcı akışlarını manuel olarak test etmek için hazırlanmıştır. Amaç, yeni sürüm öncesinde yalnızca ekranların açıldığını değil, veri kalıcılığı, hata mesajları, uyarılar, geri dönüşler, dış servis bağımlılıkları ve çapraz sayfa etkilerini de doğrulamaktır.
+Bu belge, QML arayüzünün 10 sayfasını ve kritik akışlarını yayın öncesi elle doğrulamak içindir. Otomatik testler denetleyici ve QML derlemesini kapsar ama gerçek pencere davranışını, WebEngine grafiklerini, dış servisleri ve çapraz sayfa etkilerini kapsamaz. Amaç yalnızca ekranların açılmasını değil; kalıcılığı, hata mesajlarını, geri dönüşleri ve sayfalar arası etkileri doğrulamaktır.
 
 ---
 
 ## 1. Test Kaydı Formatı
 
-Her manuel test çalıştırmasında aşağıdaki format kullanılmalıdır:
-
-- **ID:** Rehberdeki test kimliği.
-- **Durum:** Geçti / Kaldı / Engellendi / Uygulanamaz.
-- **Ortam:** Branch, commit, veritabanı adı, Python ortamı, tarih-saat.
-- **Kanıt:** Ekran görüntüsü, log satırı, export dosyası, hata mesajı veya kısa not.
-- **Temizlik:** Testin bıraktığı veri geri alındı mı, yedekten dönüldü mü, yoksa veri bilinçli olarak korundu mu.
-
-Önerilen kayıt örneği:
+Her çalıştırmada: **ID**, **Durum** (Geçti / Kaldı / Engellendi / Uygulanamaz), **Ortam** (branch, commit, veritabanı, tarih-saat), **Kanıt** (ekran görüntüsü, log satırı, dosya), **Temizlik** (test verisi geri alındı mı).
 
 ```text
-ID: FP-BUD-006
+ID: DIV-002
 Durum: Geçti
-Ortam: local / test_db / 2026-06-04 21:30
-Kanıt: screenshots/fp_budget_pin_empty_month.png
-Temizlik: Test ayı ve pinli kalemler test sonunda silindi.
+Ortam: qml / kopya_db / 2026-10-04 14:10
+Kanıt: screenshots/temettu_listesi.png
+Temizlik: Test temettüsü silindi.
 ```
 
 ---
 
 ## 2. Ortam Hazırlığı
 
-### ENV-001 | Test veritabanı ve yedek
+### ENV-001 | Kopya veritabanı
 
-- **Ön koşul:** Testler canlı/verimli kişisel veriyi bozmayacak ayrı bir DB üzerinde yapılmalı.
+- **Ön koşul:** Gerçek kişisel veri bozulmamalı.
 - **Adımlar:**
-  1. `.env` dosyasındaki `DB_NAME` değerinin test veritabanını gösterdiğini doğrula.
-  2. Yıkıcı testlerden önce DB yedeği al.
-  3. Test başlangıç saatini ve branch/commit bilgisini kaydet.
-- **Beklenen sonuç:** Test verisi geri alınabilir durumdadır; canlı veri üzerinde reset/silme yapılmaz.
-- **Kanıt:** DB adı, yedek dosya adı veya kısa ortam notu.
+  1. `data/portfolio.db` ve `data/market_history.duckdb` dosyalarını kopyala.
+  2. `DB_SQLITE_PATH` ve `DUCKDB_PATH` ortam değişkenlerini kopyalara yönlendir ([development_guide.md](development_guide.md)).
+  3. Branch/commit bilgisini ve başlangıç saatini not et.
+- **Beklenen sonuç:** Tüm test kopya veride yapılır; gerçek dosyalar değişmez.
 
 ### ENV-002 | Uygulama başlatma
 
-- **Ön koşul:** Bağımlılıklar kurulu, `.env` geçerli.
-- **Adımlar:**
-  1. Proje kökünde terminal aç.
-  2. Gerekli Python ortamını aktive et.
-  3. `python app.py` komutuyla uygulamayı başlat.
-  4. `logs/app.log` dosyasını açık tut.
-- **Beklenen sonuç:** Ana pencere açılır, uygulama kilitlenmez, başlangıçta kritik exception loglanmaz.
-- **Kanıt:** Ana ekran görüntüsü ve son log satırları.
+- **Adımlar:** `.\venv\Scripts\python.exe app.py`; `logs/app.log` dosyasını açık tut.
+- **Beklenen sonuç:** Ana pencere açılır, "Genel Bakış" görünür, başlangıçta kritik exception loglanmaz. AI_Core çalışmıyorsa bağlantı reddi logu beklenir.
 
-### ENV-003 | Minimum test veri seti
+### ENV-003 | Minimum veri seti
 
-- **Ön koşul:** Uygulama açık.
-- **Adımlar:**
-  1. Ana portföyde nakit bakiyesi oluştur.
-  2. En az üç hissede alış işlemi gir.
-  3. En az bir hissede kısmi veya tam satış işlemi gir.
-  4. Bir boş ve bir dolu izleme listesi oluştur.
-  5. Bir boş ve bir dolu model portföy oluştur.
-  6. Finansal Planlama için bir kayıtlı bütçe ayı, bir kayıtsız ay, pinli gelir/gider ve bir finansal hedef oluştur.
-  7. Risk profili için hem profil yok hem profil var durumunu test edecek not al.
-  8. Ayarlar > Fiyat Verisi Yönetimi için fiyat eksiği bulunan en az bir hisse belirle.
-  9. Kurumsal aksiyon testleri için yalnızca test DB'de kullanılacak bir aday veya manuel senaryo hazırla.
-- **Beklenen sonuç:** Tüm ana ekranlar boş, dolu ve hata durumlarıyla test edilebilir.
-- **Kanıt:** Test veri matrisi notu.
+- **Adımlar:** Ana portföye nakit yatır; en az üç hissede alım ve birinde kısmi satış gir (seans saatleri içinde, ör. 10:00-18:10 hafta içi); bir boş ve bir dolu izleme listesi; bir boş ve bir dolu model portföy; bir kayıtlı ve bir kayıtsız bütçe ayı, pinli kalem ve bir hedef; risk anketi doldurulmamış hâl.
+- **Beklenen sonuç:** Tüm sayfalar boş, dolu ve hata durumlarıyla denenebilir.
 
 ---
 
 ## 3. Global Kontroller
 
-### GLB-001 | Navigasyon ve sayfa yaşam döngüsü
+### GLB-001 | Gezinme
 
-- **Adımlar:**
-  1. Sol menüdeki tüm sayfalara sırayla git: Ana Sayfa, Listelerim, Model Portföyler, Analiz, Karşılaştırma, Optimizasyon, Finansal Planlama, Risk Profili, AI Asistan, Ayarlar.
-  2. Her geçişte seçili menü durumunu ve sayfanın veri yüklediğini kontrol et.
-  3. Aynı sayfaya ikinci kez dönüp verinin yeniden yüklenip yüklenmediğini gözle.
-- **Beklenen sonuç:** Sayfa geçişlerinde donma, boş beyaz ekran, stale veri veya yanlış aktif menü yoktur.
-- **Kanıt:** Kısa video veya her sayfadan ekran görüntüsü.
+- **Adımlar:** Kenar çubuğundan sırayla: Genel Bakış, İzleme Listeleri, Model Portföyler, Hisse 360, Karşılaştırma Lab, Hisse Tarayıcı, Finansal Planlama, Optimizasyon, AI Asistan, Ayarlar. Dar pencerede (<1100 px) kenar çubuğunun daraldığını ve içeriğin yatay/dikey kaydırıldığını doğrula.
+- **Beklenen sonuç:** Donma, beyaz ekran veya yanlış aktif menü yok; sayfa ilk ziyarette yüklenir, sonra bellekte kalır.
 
-### GLB-002 | Tema ve görsel tutarlılık
+### GLB-002 | Tema
 
-- **Adımlar:**
-  1. Ayarlar > Görünüm üzerinden açık ve koyu tema arasında geçiş yap.
-  2. Tüm ana sayfalara dön.
-  3. Tablo, buton, kart, dialog ve grafiklerin okunabilirliğini kontrol et.
-- **Beklenen sonuç:** Tema değişimi uygulama genelinde uygulanır; metinler görünür, ikonlar kaybolmaz, inline bozuk stil oluşmaz.
-- **Kanıt:** Açık/koyu tema ekran görüntüleri.
+- **Adımlar:** Ayarlar > Görünüm & Tema ile açık/koyu geçiş; tüm sayfaları gez; uygulamayı kapatıp aç.
+- **Beklenen sonuç:** Metin, ikon, tablo, diyalog ve grafik okunur; seçim yeniden açılışta korunur.
 
-### GLB-003 | Veri kalıcılığı
+### GLB-003 | Kalıcılık
 
-- **Adımlar:**
-  1. Bir işlem, bir watchlist, bir model portföy, bir bütçe ve bir ayar değişikliği yap.
-  2. Uygulamayı kapatıp yeniden aç.
-  3. Aynı sayfalarda verilerin korunup korunmadığını kontrol et.
-- **Beklenen sonuç:** Kalıcı olması gereken veriler korunur; geçici hesaplamalar doğru şekilde yeniden üretilir.
-- **Kanıt:** Önce/sonra ekran görüntüleri.
+- **Adımlar:** Bir işlem, izleme listesi, model portföy, bütçe ve ayar değişikliği yap; uygulamayı kapatıp aç.
+- **Beklenen sonuç:** Veriler korunur.
 
-### GLB-004 | Hata ve iptal davranışı
+### GLB-004 | Hata ve iptal
 
-- **Adımlar:**
-  1. Kritik dialoglarda İptal veya pencere kapatma aksiyonunu dene.
-  2. Geçersiz girişleri dene: boş isim, sıfır tutar, negatif tutar, geçersiz tarih aralığı.
-  3. Log dosyasında kritik exception olup olmadığını kontrol et.
-- **Beklenen sonuç:** Kullanıcı iptali veri yazmaz; geçersiz girişler açık mesajla engellenir; uygulama kapanmaz.
-- **Kanıt:** Uyarı mesajı görüntüsü ve log notu.
+- **Adımlar:** Diyaloglarda İptal/kapatma; boş ad, sıfır/negatif tutar, geçersiz tarih dene; `logs/app.log`'u kontrol et.
+- **Beklenen sonuç:** İptal veri yazmaz; geçersiz giriş açık Türkçe mesajla engellenir; uygulama kapanmaz.
+
+### GLB-005 | Üst başlık
+
+- **Adımlar:** Arama kutusuna `THYAO` yaz; piyasa şeridini ve senkron rozetini gözle.
+- **Beklenen sonuç:** Arama Genel Bakış grafiğini ilgili hisseyle açar; şerit altın, gümüş, USD/TRY, EUR/TRY, BIST 100 gösterir (ağ yoksa ilgili öğeler gizlenir); senkron sürerken rozet görünür.
 
 ---
 
-## 4. Ana Sayfa / Dashboard
+## 4. Genel Bakış (Dashboard)
 
-### DASH-001 | Portföy özet kartları
+### DASH-001 | KPI ve tablo
 
-- **Ön koşul:** En az bir açık pozisyon ve nakit bakiyesi var.
-- **Adımlar:**
-  1. Ana Sayfa'yı aç.
-  2. Toplam değer, maliyet, nakit, kar/zarar ve getiri kartlarını kontrol et.
-  3. Fiyat güncellemesi sonrası kartları tekrar kontrol et.
-- **Beklenen sonuç:** Kartlar boş veya hatalı formatta değildir; nakit negatif gösterilmez; fiyat değişimi ilgili değerleri günceller.
-- **Kanıt:** Fiyat güncelleme öncesi/sonrası ekran görüntüsü.
+- **Beklenen sonuç:** Toplam değer, K/Z, günlük değişim, nakit, haftalık/aylık getiri ve "son güncelleme" görünür; pozisyon tablosu lot, maliyet, güncel fiyat, günlük %, ağırlık gösterir; tutarlar Türkçe biçimlidir; varlık dağılımı donut'u pozisyonlarla uyumludur.
 
-### DASH-002 | Portföy tablosu ve hisse detayına geçiş
+### DASH-002 | Alım
 
-- **Adımlar:**
-  1. Portföy tablosunda her satırda ticker, adet, maliyet, güncel fiyat ve kar/zarar alanlarını kontrol et.
-  2. Bir satıra çift tıkla.
-  3. Hisse Detayı sayfasının doğru hisseyle açıldığını doğrula.
-  4. Geri butonuyla Ana Sayfa'ya dön.
-- **Beklenen sonuç:** Çift tıklanan ticker detay sayfasında aynıdır; geri dönüş önceki sayfayı bozmadan çalışır.
-- **Kanıt:** Ticker eşleşmesini gösteren ekran görüntüsü.
+- **Adımlar:** Hızlı işlem: hisse kodu, lot, fiyat, tarih ve saat gir.
+- **Beklenen sonuç:** Yeterli nakit varsa kayıt oluşur ve tablo/KPI yenilenir; yetersiz nakit, seans dışı saat, hafta sonu/tatil ve geçersiz kod açık mesajla reddedilir.
 
-### DASH-003 | Yeni işlem sihirbazı - alış
+### DASH-003 | Satış
 
-- **Adımlar:**
-  1. `Yeni İşlem` butonuna bas.
-  2. Geçerli bir ticker ara ve lookup sonucunu bekle.
-  3. Alış seç, adet ve tarih/saat gir.
-  4. Tutar ve fiyat bilgisinin doğru hesaplandığını kontrol et.
-  5. İşlemi kaydet.
-- **Beklenen sonuç:** Yeni alış portföy tablosuna yansır, nakit azalır, logda kritik hata yoktur.
-- **Kanıt:** İşlem öncesi/sonrası portföy satırı.
+- **Adımlar:** Eldeki lottan fazla satış dene; geçmiş tarihli satış dene.
+- **Beklenen sonuç:** Fazla satış ve sonraki akışı bozan geçmiş tarihli kayıt reddedilir.
 
-### DASH-004 | Yeni işlem sihirbazı - satış ve validasyon
+### DASH-004 | Sermaye
 
-- **Adımlar:**
-  1. Mevcut pozisyonu olan bir hisse için satış gir.
-  2. Önce eldeki miktardan fazla satış dene.
-  3. Sonra geçerli satış miktarıyla kaydet.
-- **Beklenen sonuç:** Fazla satış engellenir; geçerli satış pozisyonu ve nakdi günceller.
-- **Kanıt:** Uyarı mesajı ve başarılı satış sonrası tablo.
+- **Adımlar:** Yatır ve çek; bakiyeden fazla çekmeyi dene.
+- **Beklenen sonuç:** Bakiye güncellenir; fazla çekim reddedilir. Sermaye hareketleri seans kuralına tabi değildir.
 
-### DASH-005 | Piyasa/fiyat uyarıları
+### DASH-005 | Kapanış fiyatı güncelleme
 
-- **Adımlar:**
-  1. Fiyatı bulunamayan veya piyasa saati dışında işlem senaryosunu dene.
-  2. Uygulamanın onay/uyarı penceresini gösterdiğini kontrol et.
-  3. İptal ve devam seçeneklerini ayrı ayrı test et.
-- **Beklenen sonuç:** İptal veri yazmaz; devam seçilirse beklenen işlem akışı sürer.
-- **Kanıt:** Onay penceresi görüntüsü.
+- **Adımlar:** "Fiyatları Güncelle".
+- **Beklenen sonuç:** Hedef bugün değil son tamamlanmış işlem günüdür; fiyatlar ve "son güncelleme" yenilenir; tek hisse hatası diğerlerini engellemez.
 
-### DASH-006 | Sermaye yönetimi
+### DASH-006 | Grafik
 
-- **Adımlar:**
-  1. `Sermaye Yönetimi` dialogunu aç.
-  2. Para yatırma işlemi gir.
-  3. Para çekme işlemi gir.
-  4. Bakiyeden fazla çekim dene.
-- **Beklenen sonuç:** Yatırma nakdi artırır; çekme nakdi azaltır; yetersiz nakit engellenir.
-- **Kanıt:** Nakit kartı önce/sonra.
+- **Adımlar:** Zaman dilimi (1D/1W/1M), grafik tipi, göstergeler (SMA/EMA, Bollinger, RSI, MACD), tam ekran.
+- **Beklenen sonuç:** Grafik tüm seçimlerde yeniden çizilir; boş veride açıklayıcı durum gösterilir.
 
-### DASH-007 | Fiyatları güncelle
+### DASH-007 | Excel raporu
 
-- **Adımlar:**
-  1. `Fiyatları Güncelle` butonuna bas.
-  2. Loading/disabled durumunu gözle.
-  3. İşlem bitince tablo ve özet kartların güncellendiğini kontrol et.
-- **Beklenen sonuç:** UI donmaz; sonuç kullanıcıya bildirilir; fiyat event'i ilgili ekranlara yansır.
-- **Kanıt:** Güncelleme sonrası toast/status.
-
-### DASH-008 | Rapor alma
-
-- **Adımlar:**
-  1. `Rapor Al > Bugün` seç.
-  2. Oluşan dosyayı açılabilirlik açısından kontrol et.
-  3. `Rapor Al > Tarih Aralığı` seç ve geçerli aralık gir.
-  4. Başlangıç > bitiş gibi geçersiz aralık dene.
-- **Beklenen sonuç:** Geçerli rapor üretilir; geçersiz tarih engellenir.
-- **Kanıt:** Export dosya adı ve uyarı ekranı.
-
-### DASH-009 | Kurumsal aksiyon uygulama
-
-- **Ön koşul:** Test DB veya yedek alınmış DB.
-- **Adımlar:**
-  1. Uygun portföy satırından kurumsal aksiyon dialogunu aç.
-  2. Bedelli/bedelsiz senaryosunu uygula.
-  3. Pozisyon adet/maliyet ve geçmiş fiyat etkisini kontrol et.
-- **Beklenen sonuç:** İşlem idempotent ve açıklanabilir sonuç üretir; iptal veri yazmaz.
-- **Kanıt:** Uygulama öncesi/sonrası pozisyon verisi.
+- **Adımlar:** Excel Raporu: tarih aralığı, dosya, "ekle" modu açık/kapalı.
+- **Beklenen sonuç:** Dört sayfalı dosya oluşur (Özet Panel, Portföy Özeti, Günlük Detaylar, Hisse Özeti); ekleme modunda tarihler tekrarlanmaz; geçersiz tarih mesajla reddedilir.
 
 ---
 
-## 5. Listelerim
+## 5. Hisse Detay Modalı
 
-### WLIST-001 | Liste oluşturma
+### SD-001 | Açılış ve içerik
 
-- **Adımlar:**
-  1. Listelerim sayfasını aç.
-  2. Yeni liste oluştur.
-  3. Boş isim ve tekrar eden isim dene.
-- **Beklenen sonuç:** Geçerli liste kaydedilir; geçersiz isimler engellenir veya açık mesaj verir.
-- **Kanıt:** Sol liste paneli görüntüsü.
+- **Adımlar:** Pozisyon satırına tıkla.
+- **Beklenen sonuç:** Lot, ortalama maliyet, piyasa değeri, K/Z; "İşlem Geçmişi" ve "Sermaye Artırımları" sekmeleri; hızlı emir formu işlem etkisini (yeni lot, ortalama maliyet, kalan nakit) canlı gösterir.
 
-### WLIST-002 | Liste düzenleme, silme ve sıralama
+### SD-002 | Sermaye artırımı
 
-- **Adımlar:**
-  1. Var olan listeyi yeniden adlandır.
-  2. Liste satırındaki silme aksiyonunu kullan.
-  3. Onay penceresinde iptal ve onay davranışlarını test et.
-  4. Listeleri sürükle-bırak ile yeniden sırala.
-- **Beklenen sonuç:** İptal veri silmez; onay siler; sıra yeniden açılışta korunur.
-- **Kanıt:** Sıralama önce/sonra.
+- **Adımlar:** Bedelsiz (ör. %50) gir; ön izlemeyi incele; uygula. Ardından aynı aksiyonu tekrar dene.
+- **Beklenen sonuç:** Yeni lot aşağı yuvarlanır, ortalama maliyet düşer, geçmiş işlemler ve fiyat grafiği ex-date öncesi düzeltilir; tekrar uygulama reddedilir; Dashboard yenilenir. Bedelli için kullanım fiyatı zorunludur.
 
-### WLIST-003 | Listeye hisse ekleme ve çıkarma
+### SD-003 | Temettü (DIV)
 
-- **Adımlar:**
-  1. Dolu olmayan bir liste seç.
-  2. `Hisse Ekle` akışını aç.
-  3. Geçerli ticker ekle.
-  4. Aynı hisseyi tekrar eklemeyi dene.
-  5. Hisseyi listeden çıkar.
-- **Beklenen sonuç:** Geçerli hisse görünür; duplicate engellenir; çıkarma sonrası tablo güncellenir.
-- **Kanıt:** Liste içeriği ekranı.
+- **Adımlar:** Temettü: net tutar (`1.250,50`), tarih, not; ekle. Pozisyon öncesi tarih ve gelecek tarih dene. Kaydı sil.
+- **Beklenen sonuç:** Tutar nakit bakiyeye eklenir ve listede görünür; pozisyon yokken ve gelecek tarihte reddedilir; temettü sermaye girişi sayılmaz (getiri grafiğinde getiri olarak görünür); sonraki alımı finanse ettiyse silme reddedilir.
 
-### WLIST-004 | Boş durum
+### SD-004 | Diğer
 
-- **Adımlar:**
-  1. Boş bir watchlist seç veya tüm hisseleri çıkar.
-  2. Boş durum metni ve aksiyon butonunu kontrol et.
-  3. Boş durumdan hisse ekle.
-- **Beklenen sonuç:** Kullanıcı boş ekranda kilitlenmez; ekleme sonrası normal tabloya döner.
-- **Kanıt:** Boş durum ve dolu durum görüntüleri.
+- **Adımlar:** TradingView grafiği, Hisse 360'a geçiş, hisse Excel'i; model portföy bağlamında aç.
+- **Beklenen sonuç:** Geçişler doğru hisseyi açar; Excel oluşur; model bağlamında Sermaye Artırımı ve Temettü düğmeleri görünmez.
 
 ---
 
-## 6. Model Portföyler
+## 6. İzleme Listeleri
 
-### MP-001 | Model portföy oluşturma ve seçim
+### WL-001 | Liste yönetimi
 
-- **Adımlar:**
-  1. Yeni model portföy oluştur.
-  2. Liste panelinde seçili duruma geçtiğini kontrol et.
-  3. Uygulamayı yeniden açıp son/geçerli seçimin korunup korunmadığını kontrol et.
-- **Beklenen sonuç:** Portföy oluşturulur, sağ panel doğru portföyü gösterir, geçersiz eski seçim varsa uygulama ilk geçerli portföye döner.
-- **Kanıt:** Liste ve başlık eşleşmesi.
+- **Adımlar:** Liste oluştur, düzenle, sil, sürükle-bırak sırala.
+- **Beklenen sonuç:** Sıralama ve içerik yeniden açılışta korunur.
 
-### MP-002 | Düzenleme, silme ve sıralama
+### WL-002 | Hisse ekleme
 
-- **Adımlar:**
-  1. Portföy adını düzenle.
-  2. Portföyleri sürükle-bırak ile sırala.
-  3. Boş ve dolu portföy silme akışını dene.
-- **Beklenen sonuç:** Onay akışı çalışır; silinen portföy sağ panelde stale veri bırakmaz.
-- **Kanıt:** Önce/sonra liste paneli.
+- **Adımlar:** Bilinen kod (`THYAO`), `.IS` uzantılı kod, bilinmeyen geçerli kod, geçersiz kod ekle.
+- **Beklenen sonuç:** Bilinen kodlar doğrudan eklenir (uzantı temizlenir); geçersiz kod "Geçersiz hisse kodu" ile reddedilir ve kayıt oluşmaz.
 
-### MP-003 | Model portföyde hisse al
+### WL-003 | Tablo
 
-- **Adımlar:**
-  1. Dolu veya boş model portföy seç.
-  2. `Hisse Al` dialogunu aç.
-  3. Geçerli ticker, lot, fiyat ve tarih gir.
-  4. Tutar alanının `Lot x Fiyat` olarak güncellendiğini doğrula.
-  5. Kaydet.
-- **Beklenen sonuç:** Pozisyon tabloya eklenir; sermaye/nakit etkisi doğru gösterilir.
-- **Kanıt:** Pozisyon tablosu.
-
-### MP-004 | Model portföyde hisse sat
-
-- **Adımlar:**
-  1. Pozisyonsuz portföyde `Hisse Sat` butonunun pasif olduğunu kontrol et.
-  2. Pozisyonlu portföyde satış dialogunu aç.
-  3. Elde olmayan miktar ve geçerli miktar senaryolarını dene.
-- **Beklenen sonuç:** Pozisyonsuz satış engellenir; fazla satış hata verir; geçerli satış tabloya yansır.
-- **Kanıt:** Buton durumu ve satış sonrası tablo.
-
-### MP-005 | Sermaye yönetimi
-
-- **Adımlar:**
-  1. `Sermaye Yönetimi` dialogunu aç.
-  2. Sermaye ekle ve çıkar.
-  3. Aynı tarih/saatte trade ile sermaye hareketi etkisini gözlemle.
-- **Beklenen sonuç:** Net kar/zarar sermaye ekleme/çekmeden yapay etkilenmez; nakit doğru hesaplanır.
-- **Kanıt:** Özet kartları.
-
-### MP-006 | Fiyat yenileme ve rapor
-
-- **Adımlar:**
-  1. `Fiyat Güncelle` butonuna bas.
-  2. Pozisyon fiyatlarının güncellendiğini kontrol et.
-  3. `Rapor Al` menüsünden bugün ve tarih aralığı raporu üret.
-- **Beklenen sonuç:** Fiyatlar memory/event akışıyla güncellenir; rapor dosyaları açılabilir.
-- **Kanıt:** Toast/status ve dosya.
-
-### MP-007 | Hisse detayına geçiş
-
-- **Adımlar:**
-  1. Model portföy pozisyon satırına çift tıkla.
-  2. Hisse Detayı'nın model portföy bağlamıyla açıldığını kontrol et.
-  3. Geri dön.
-- **Beklenen sonuç:** Detay sayfası doğru ticker ve model portföy verisiyle açılır.
-- **Kanıt:** Detay başlığı.
+- **Beklenen sonuç:** Fiyat, günlük değişim, sparkline ve not görünür; not düzenlenir; satırdan hızlı işlem açılır; boş liste boş durum gösterir.
 
 ---
 
-## 7. Hisse Detayı
+## 7. Model Portföyler
 
-### SD-001 | Ana Sayfa bağlamından detay
+### MP-001 | CRUD ve sıralama
 
-- **Adımlar:**
-  1. Ana Sayfa tablosundan bir hisseye çift tıkla.
-  2. Fiyat, grafik, istatistik ve işlem geçmişini kontrol et.
-  3. Geri butonunu kullan.
-- **Beklenen sonuç:** Detay sayfası ana portföy bağlamında doğru veriyi gösterir; geri dönüş Ana Sayfa'ya döner.
-- **Kanıt:** Ticker ve işlem geçmişi ekranı.
+- **Beklenen sonuç:** Oluşturma (başlangıç sermayesi), düzenleme, silme ve sürükle-bırak sıralama çalışır; ilk portföy otomatik seçilir; liste boşsa sağ panel temizlenir.
 
-### SD-002 | Model portföy bağlamından detay
+### MP-002 | İşlem ve sermaye
 
-- **Adımlar:**
-  1. Model Portföyler sayfasından bir pozisyona çift tıkla.
-  2. Detay sayfasında model portföy bağlamının korunduğunu kontrol et.
-  3. Geri butonuyla Model Portföyler'e dön.
-- **Beklenen sonuç:** Ana portföy ile model portföy verisi karışmaz.
-- **Kanıt:** Başlık ve geri dönüş ekranı.
+- **Adımlar:** Hisse al/sat, sermaye yatır/çek, geçmiş tarihli hareket.
+- **Beklenen sonuç:** Nakit kontrolü ve zaman çizelgesi doğrulaması çalışır; K/Z = toplam değer - net sermaye (sermaye eklemek kâr sayılmaz); seans koruması alım/satımda uygulanır.
 
-### SD-003 | Hızlı işlem formu
+### MP-003 | Fiyat ve rapor
 
-- **Adımlar:**
-  1. Alış modunu seç, lot gir, etki önizlemesini kontrol et.
-  2. Satış modunu seç, geçersiz ve geçerli lot dene.
-  3. Tarih/saat alanlarını değiştir.
-  4. İşlemi onayla.
-- **Beklenen sonuç:** Önizleme canlı güncellenir; geçersiz işlem engellenir; geçerli işlem ilgili portföye yazılır.
-- **Kanıt:** İşlem sonrası detay ve kaynak sayfa.
-
-### SD-004 | Fiyat/grafik yokluğu
-
-- **Adımlar:**
-  1. Fiyat geçmişi eksik olan bir hisse aç.
-  2. Grafik ve metrik alanlarının boş veri davranışını kontrol et.
-- **Beklenen sonuç:** Sayfa çökmez; kullanıcıya anlaşılır boş/veri yok durumu gösterilir.
-- **Kanıt:** Boş veri ekranı.
+- **Adımlar:** "Fiyat Güncelle"; Excel raporu.
+- **Beklenen sonuç:** Canlı fiyat ekrana yansır ama `daily_prices` yazılmaz; rapor öncesi eksik kapanış varsa uyarı listesi çıkar.
 
 ---
 
-## 8. Analiz
+## 8. Hisse 360
 
-### ANL-001 | İlk yükleme ve sekmeler
+### S360-001 | Arama ve genel bakış
 
-- **Adımlar:**
-  1. Analiz sayfasını aç.
-  2. `Genel Bakış` ve `Dağılım & Risk` sekmelerini değiştir.
-  3. Grafik ve metrik kartların görünür olduğunu kontrol et.
-- **Beklenen sonuç:** Sekme değişiminde grafikler kaybolmaz; sayfa yatay/dikey taşma üretmez.
-- **Kanıt:** İki sekmeden ekran görüntüsü.
+- **Adımlar:** `THYAO`, portföyde olmayan bir BIST hissesi, `.IS` uzantılı kod, geçersiz kod ara.
+- **Beklenen sonuç:** Fiyat, günlük değişim, 52 hafta aralığı, hacim ve teknik seviyeler anında gelir; portföy dışı hisselerde de çalışır; geçersiz kod hata gösterir.
 
-### ANL-002 | Filtre paneli
+### S360-002 | Finansal tablolar
 
-- **Adımlar:**
-  1. `Filtreleri Gizle/Göster` butonunu kullan.
-  2. Portföy kaynağı, para birimi, hisse filtresi ve benchmark seçimini değiştir.
-  3. `Analizi Yenile` butonuna bas.
-- **Beklenen sonuç:** Filtre paneli state'i doğru görünür; yenileme sonrası grafik ve metrikler seçime göre değişir.
-- **Kanıt:** Filtre ve sonuç ekranı.
+- **Adımlar:** Sekme, tablo türü (bilanço, gelir, nakit akımı), dönem (4/8/12/tüm çeyrek), arama.
+- **Beklenen sonuç:** Veri arka planda yüklenir (yükleniyor göstergesi); rasyolar, DuPont, nakit akışı ve gelir grafiği dolar; ağ yoksa yedek veri/hata mesajı görünür, sayfa çökmez.
 
-### ANL-003 | Tarih aralığı ve hızlı tarih butonları
+### S360-003 | Ortaklık yapısı
 
-- **Adımlar:**
-  1. `1A`, `3A`, `6A`, `1Y`, `Tümü` butonlarını sırayla dene.
-  2. Manuel geçerli tarih aralığı gir.
-  3. Başlangıç tarihini bitişten sonraya al.
-- **Beklenen sonuç:** Hızlı butonlar tarihleri ayarlar; geçersiz aralık uyarı verir ve analiz çalışmaz.
-- **Kanıt:** Tarih alanları ve uyarı.
-
-### ANL-004 | Veri eksikliği ve loading
-
-- **Adımlar:**
-  1. Fiyat verisi eksik bir hisseyi filtreye dahil et.
-  2. Analizi yenile.
-  3. Loading sırasında buton metni ve sayfa tepkisini gözle.
-- **Beklenen sonuç:** UI donmaz; eksik veri uyarısı anlaşılır; işlem bitince buton eski haline döner.
-- **Kanıt:** Uyarı bannerı veya log notu.
+- **Beklenen sonuç:** KAP pay sahipleri pasta ve zaman çizelgesiyle gelir; yenileme çalışır; erişilemezse bölüm hata gösterir.
 
 ---
 
-## 9. Karşılaştırma
+## 9. Karşılaştırma Lab
 
-### CMP-001 | Varlık seçimi ve normal grafik
+### CMP-001 | Seçim ve dönem
 
-- **Adımlar:**
-  1. Karşılaştırma sayfasını aç.
-  2. En az iki varlık seç.
-  3. `Normal` modda ana grafiğin yüklendiğini kontrol et.
-- **Beklenen sonuç:** Grafik boş kalmaz; seçilen varlıklar legend/çizgilerde görünür.
-- **Kanıt:** Ana grafik ekranı.
+- **Adımlar:** Ana Portföy, bir model portföy, "Portföy + Hisseleri", BIST 100, altın, USD/TRY, TÜFE seç; dönemleri (1A, 3A, 6A, 1Y, YBB, Tümü, ÖZEL) dene.
+- **Beklenen sonuç:** Her değişiklikte hesap yeniden çalışır; ÖZEL aralıkta geçersiz tarih reddedilir; ortak 2 gün yoksa boş durum gösterilir.
 
-### CMP-002 | Normalize ve rasyo modu
+### CMP-002 | Modlar ve para birimi
 
-- **Adımlar:**
-  1. `Normalize (Baz 100)` modunu seç.
-  2. `Rasyo Modu`na geç.
-  3. Pay ve payda combobox'larının görünür olduğunu kontrol et.
-  4. Farklı pay/payda kombinasyonları dene.
-- **Beklenen sonuç:** Mod değişimi grafiği yeniler; rasyo kontrolleri yalnızca rasyo modunda görünür.
-- **Kanıt:** Üç mod ekranı.
+- **Adımlar:** Normal, Normalize (Baz 100), Rasyo (A/B); TL, USD, Reel (TÜFE).
+- **Beklenen sonuç:** Eğriler moda ve para birimine göre değişir; rasyo için pay ve payda seçimi zorunludur.
 
-### CMP-003 | Tarih aralığı ve hızlı butonlar
+### CMP-003 | Grafik sekmeleri
 
-- **Adımlar:**
-  1. `1A`, `3A`, `6A`, `1Y`, `YBB`, `Tümü` butonlarını dene.
-  2. Manuel geçerli ve geçersiz tarih aralığı gir.
-- **Beklenen sonuç:** Tarihler ve grafik senkron güncellenir; geçersiz aralık engellenir.
-- **Kanıt:** Tarih alanları.
+- **Adımlar:** Kümülatif, Drawdown, Aylık Getiriler, Risk-Getiri Saçılımı, Treemap (Portföy Hisseleri / Varlık Kıyaslaması).
+- **Beklenen sonuç:** Her sekme çizilir; risk-getiri tablosu toplam getiri ve volatiliteyi gösterir; bilgi kartları (Nedir / Nasıl Yorumlanır) açılır-kapanır.
 
-### CMP-004 | Alt grafik panelleri
+### CMP-004 | Yapay zeka yorumu
 
-- **Adımlar:**
-  1. Drawdown, periyodik getiri, scatter ve treemap bölümlerini sırayla görüntüle.
-  2. Lazy yüklenen panellerde grafiklerin boş kalmadığını kontrol et.
-  3. Sayfa kaydırma ve resize davranışını dene.
-- **Beklenen sonuç:** Her panel okunabilir; grafik alanı taşmaz veya üst üste binmez.
-- **Kanıt:** Her panelden ekran görüntüsü.
-
-### CMP-005 | Portföy içerik kıyaslama menüleri
-
-- **Adımlar:**
-  1. Grafik panellerindeki `Portföy İçeriğini Kıyasla` menüsünü aç.
-  2. Global getiri ve portföy seçeneklerini dene.
-  3. Menü seçiminin ilgili grafiğe yansıdığını kontrol et.
-- **Beklenen sonuç:** Menü seçenekleri doğru aksiyonu tetikler; grafik yenilenir.
-- **Kanıt:** Menü ve sonuç grafiği.
-
-### CMP-006 | AI yorum üretimi
-
-- **Adımlar:**
-  1. Karşılaştırma sonucu varken AI yorum butonunu kullan.
-  2. API anahtarı var ve yok durumlarını ayrı ayrı test et.
-- **Beklenen sonuç:** API çalışıyorsa yorum üretilir; yoksa kullanıcıya anlaşılır fallback/hata mesajı gösterilir.
-- **Kanıt:** AI paneli veya hata mesajı.
+- **Adımlar:** "Yapay Zeka Yorumu" (anahtar var/yok).
+- **Beklenen sonuç:** Anahtar varsa yorum üretilir ve yenilenebilir; yoksa açık hata mesajı; "yatırım tavsiyesi değildir" uyarısı görünür.
 
 ---
 
-## 10. Optimizasyon
+## 10. Hisse Tarayıcı
 
-### OPT-001 | Kaynak portföy seçimi
+### SCR-001 | Strateji taraması
 
-- **Adımlar:**
-  1. Optimizasyon sayfasını aç.
-  2. Ana portföy ve model portföy kaynaklarını sırayla seç.
-  3. Boş portföy kaynağı varsa seç.
-- **Beklenen sonuç:** Kaynak seçimi doğru label ve veriyle güncellenir; boş kaynak açıklanır.
-- **Kanıt:** Kaynak combobox ve boş durum.
+- **Adımlar:** "Tüm Stratejiler" ve tek tek (ADX, Supertrend dahil) tara.
+- **Beklenen sonuç:** Birkaç saniyede sonuç gelir; liste hisse, strateji ve son fiyat gösterir; çift tıklama grafiği, tek tıklama Hisse 360'ı açar; sonuç yoksa boş durum mesajı çıkar.
 
-### OPT-002 | Optimize etme
+### SCR-002 | Golden Cross
 
-- **Adımlar:**
-  1. Yeterli fiyat geçmişi olan portföy seç.
-  2. `Optimize Et` butonuna bas.
-  3. Progress bar ve buton state'ini gözle.
-  4. Sonuç metrik kartları ve öneri tablosunu kontrol et.
-- **Beklenen sonuç:** Beklenen getiri, risk, Sharpe ve ağırlık önerileri görünür; stale sonuç eski isteğe aitse ekrana yazılmaz.
-- **Kanıt:** Sonuç ekranı.
-
-### OPT-003 | Veri yetersizliği ve hata
-
-- **Adımlar:**
-  1. Kısa fiyat geçmişi veya tek hisseli kaynak seç.
-  2. Optimize etmeyi dene.
-  3. Servis hatası veya fiyat lookup hatasını simüle edebiliyorsan gözle.
-- **Beklenen sonuç:** Uygulama çökmez; toast/status ile hata açıklanır; eski başarılı sonuç yanlışlıkla korunmaz.
-- **Kanıt:** Hata mesajı.
+- **Adımlar:** Gün sayısı ve tür (Golden/Death) filtresi; tek hisse geçmişi; "Tümünü tara"; "veriyi tamamla".
+- **Beklenen sonuç:** Liste filtreye göre güncellenir; tarama arka planda çalışır ve ekran donmaz.
 
 ---
 
 ## 11. Finansal Planlama
 
-### FP-BUD-001 | Bütçe ay seçimi
+### FP-BUD-001 | Bütçe
 
-- **Adımlar:**
-  1. Finansal Planlama > Bütçe Yönetimi sekmesini aç.
-  2. Kayıtlı bütçesi olan bir ay seç.
-  3. Kayıtlı bütçesi olmayan bir ay seç.
-- **Beklenen sonuç:** Kayıtlı ayda kayıtlı içerik korunur; boş ayda form taslak olarak açılır.
-- **Kanıt:** İki ayın ekran görüntüsü.
+- **Adımlar:** Ay seç; gelir/gider ekle, düzenle, sil; tasarruf hedefi; kalemi pinle; kayıtsız aya geç.
+- **Beklenen sonuç:** Toplam gelir/gider/net ve durum mesajı doğrudur; pinli kalemler yalnızca bütçesi olmayan ayda taslak olarak gelir; kayıtlı aylar değişmez.
 
-### FP-BUD-002 | Gelir/gider satırı ekleme ve silme
+### FP-GOAL-001 | Hedefler
 
-- **Adımlar:**
-  1. Gelir bölümüne satır ekle, başlık ve tutar gir.
-  2. Gider bölümüne satır ekle, başlık ve tutar gir.
-  3. Her iki bölümden satır sil.
-- **Beklenen sonuç:** Satırlar doğru bölümde oluşur; toplamlar canlı güncellenir; silme toplamları azaltır.
-- **Kanıt:** Satır ve özet kartları.
+- **Adımlar:** Hedef ekle, düzenle, sil, katkı ekle; öncelik değiştir.
+- **Beklenen sonuç:** İlerleme çubuğu ve fizibilite durumu (BAŞARILI/YETERSİZ KAYNAK/KRİTİK/BİLGİ) doğru görünür.
 
-### FP-BUD-003 | Bütçe kaydetme
+### FP-DCA-001 | DCA
 
-- **Adımlar:**
-  1. Gelir, gider ve aylık tasarruf hedefi gir.
-  2. `Bütçeyi Kaydet` butonuna bas.
-  3. Ay değiştirip geri dön.
-- **Beklenen sonuç:** Kayıtlı veriler geri yüklenir; status label başarılı kayıt bilgisini gösterir.
-- **Kanıt:** Kaydetme sonrası ve yeniden yükleme ekranı.
+- **Adımlar:** Hisseler (`THYAO FROTO`), aylık tutar, başlangıç/bitiş tarihi, çalıştır.
+- **Beklenen sonuç:** Değer eğrisi, toplam yatırılan, nihai değer, getiri ve katkı sayısı gelir; geçersiz hisse atlanır.
 
-### FP-BUD-004 | Aylık Tasarruf Hedefi TL formatı
+### FP-STR-001 | Strateji Testi
 
-- **Adımlar:**
-  1. `Aylık Tasarruf Hedefi` alanına `300000` gir.
-  2. Alan odağını değiştir.
-  3. Kaydet ve ayı yeniden aç.
-- **Beklenen sonuç:** Görsel format `300.000,00TL` şeklindedir; kayıt numeric değeri bozulmaz.
-- **Kanıt:** Spinbox ekran görüntüsü.
-
-### FP-BUD-005 | Pin/unpin davranışı
-
-- **Adımlar:**
-  1. Gelir satırında bir başlık ve tutar gir, pin ikonuna bas.
-  2. Gider satırında başka bir başlık ve tutar gir, pin ikonuna bas.
-  3. İkonların aktif göründüğünü kontrol et.
-  4. Aynı kalemi unpin yap.
-- **Beklenen sonuç:** Pin state'i ikonla görünür; unpin sonrası kalem pinli kabul edilmez.
-- **Kanıt:** Aktif/pasif ikon ekranları.
-
-### FP-BUD-006 | Pinli kalemlerin boş aya otomatik gelmesi
-
-- **Adımlar:**
-  1. En az bir gelir ve bir gider kalemini pinle.
-  2. Daha önce bütçe kaydedilmemiş bir ay seç.
-  3. Forma otomatik gelen satırları kontrol et.
-- **Beklenen sonuç:** Pinli kalemler varsayılan tutarlarıyla gelir/gider bölümlerine eklenir.
-- **Kanıt:** Boş ay otomatik taslak ekranı.
-
-### FP-BUD-007 | Kayıtlı ayın korunması
-
-- **Adımlar:**
-  1. Bir ay için bütçe kaydet.
-  2. Sonra yeni bir pinli kalem oluştur.
-  3. Kayıtlı aya geri dön.
-- **Beklenen sonuç:** Kayıtlı ay sessizce değiştirilmez; yeni pinli kalem kayıtlı ayın içine otomatik enjekte edilmez.
-- **Kanıt:** Kayıtlı ay ekranı.
-
-### FP-GOAL-001 | Hedef oluşturma
-
-- **Adımlar:**
-  1. Hedef Takibi sekmesini aç.
-  2. `Yeni Hedef` ile hedef adı, hedef tutar, mevcut tutar ve tarih gir.
-  3. Boş ad, negatif tutar ve geçersiz tarih dene.
-- **Beklenen sonuç:** Geçerli hedef tabloya eklenir; geçersiz girişler engellenir.
-- **Kanıt:** Hedef tablosu.
-
-### FP-GOAL-002 | Katkı ekleme ve silme
-
-- **Adımlar:**
-  1. Bir hedef seç.
-  2. `Katkı Ekle` ile tutar gir.
-  3. Güncel tutar/progress değerini kontrol et.
-  4. Hedefi silme akışında iptal ve onay seçeneklerini dene.
-- **Beklenen sonuç:** Katkı progress'i artırır; iptal silmez; onay hedefi kaldırır.
-- **Kanıt:** Önce/sonra hedef satırı.
-
-### FP-GOAL-003 | Fizibilite analizi
-
-- **Adımlar:**
-  1. Deadline ve hedef tutarı olan bir hedef seç.
-  2. `Fizibilite Analizi` çalıştır.
-  3. Aylık gerekli katkı ve durum mesajını kontrol et.
-- **Beklenen sonuç:** Analiz anlaşılır sonuç verir; eksik veri varsa kullanıcıya açıklanır.
-- **Kanıt:** Analiz sonucu.
+- **Adımlar:** Yeniden dengeleme (3 aylık, eşit; sonra Markowitz); stop-loss/take-profit (örn. %10/%30); komisyon %0,1; hata girdileri (tek hisse, negatif sermaye, eşiksiz stop-take, gelecek tarih).
+- **Beklenen sonuç:** KPI (strateji ve al-tut getirisi, fark, maksimum düşüş), özet satırı (dönem, dengeleme/çıkış sayısı), çift çizgili grafik ve olay listesi gelir; Markowitz veri yetersizse "Uyarı" olayı görünür; hatalı girdi açık mesajla reddedilir; `50.000` sermaye 50 bin olarak okunur.
 
 ---
 
-## 12. Risk Profili
+## 12. Optimizasyon ve Risk Profili
 
-### RISK-001 | Profil yok başlangıç durumu
+### OPT-001 | Kaynak ve çalıştırma
 
-- **Adımlar:**
-  1. Test DB'de risk profili yokken sayfayı aç.
-  2. Başlangıç kartı ve ilk soru görünümünü kontrol et.
-- **Beklenen sonuç:** Kullanıcı ankete başlayabilir; boş profil hata üretmez.
-- **Kanıt:** İlk ekran.
+- **Adımlar:** Ana portföy ve model portföy seç; risk profili, tek hisse üst sınırı, risksiz faiz ayarla; optimize et.
+- **Beklenen sonuç:** KPI kartları (maksimum Sharpe, getiri, risk, minimum volatilite) gelir; Verimli Sınır, Ağırlık Dağılımı ve Yeniden Dengeleme sekmeleri dolar; EKLE/AZALT/TUT önerileri tutarlıdır; kaydırıcı kayıtlı profili değiştirmez.
 
-### RISK-002 | Anket ilerleme ve zorunlu cevap
+### OPT-002 | Veri yetersizliği
 
-- **Adımlar:**
-  1. Cevap seçmeden `Devam` butonuna bas.
-  2. Bir cevap seçip ilerle.
-  3. `Geri` butonuyla önceki soruya dön.
-- **Beklenen sonuç:** Cevapsız ilerleme engellenir; cevap seçimi korunur; geri dönüş çalışır.
-- **Kanıt:** Uyarı ve ilerleme ekranları.
+- **Adımlar:** 2'den az hisseli veya geçmişi kısa portföy ile dene.
+- **Beklenen sonuç:** Anlamlı hata mesajı; uygulama kapanmaz.
 
-### RISK-003 | Profil hesaplama
+### RISK-001 | Risk anketi
 
-- **Adımlar:**
-  1. Tüm soruları cevapla.
-  2. `Profili Hesapla` butonuna bas.
-  3. Başarı mesajı, skor, profil etiketi, boyut skorları, varlık dağılımı ve uygunluk notlarını kontrol et.
-- **Beklenen sonuç:** Profil kaydedilir ve tekrar girişte sonuç kartı görünür.
-- **Kanıt:** Sonuç kartı.
+- **Adımlar:** Anketi doldur ve kaydet; farklı yanıtlarla etiketleri ve tutarlılık notlarını dene.
+- **Beklenen sonuç:** Skor ve etiket (Çok Muhafazakar ... Agresif) hesaplanır; kayıtlı profil Optimizasyon'da tek hisse sınırını belirler; "yatırım tavsiyesi değildir" notu görünür.
 
 ---
 
 ## 13. AI Asistan
 
-### AI-001 | Sayfa açılışı ve backend durumu
+### AI-001 | Portföy Danışmanı
 
-- **Adımlar:**
-  1. AI Asistan sayfasını aç.
-  2. Bağlantı kontrolü/loading durumunu gözle.
-  3. Backend yokken fallback/mock davranışını kontrol et.
-- **Beklenen sonuç:** Sayfa UI thread'i bloklamaz; backend yoksa kullanıcıya anlaşılır durum gösterir.
-- **Kanıt:** Status bannerı.
+- **Adımlar:** Anahtar tanımlıyken hızlı sorular ve serbest soru; anahtar yokken tekrar.
+- **Beklenen sonuç:** Anahtar varken araç rozetleriyle Türkçe yanıt ve "Çevrimiçi" rozeti; yokken yerel analiz ve "Simülasyon" rozeti; sağlık skoru ve XAI boyutları görünür.
 
-### AI-002 | Model analiz paneli
+### AI-002 | Girdi güvenliği
 
-- **Adımlar:**
-  1. Geçerli ticker gir.
-  2. Analiz çalıştır.
-  3. Tahmin, sinyal, performans ve XAI kartlarını kontrol et.
-  4. Geçersiz ticker dene.
-- **Beklenen sonuç:** Geçerli analiz sonuç üretir; geçersiz ticker hata mesajı üretir.
-- **Kanıt:** Analiz sonucu ve hata ekranı.
+- **Adımlar:** "ignore previous instructions", "yatırım tavsiyesi ver", 750 karakterden uzun metin gönder.
+- **Beklenen sonuç:** Mesaj reddedilir ve "Güvenlik Uyarısı" görünür; model çağrılmaz.
 
-### AI-003 | Analizi chate gönderme
+### AI-003 | Geçmiş ve oturumlar
 
-- **Adımlar:**
-  1. Başarılı analiz sonrası `SendToChatButton` aksiyonunu kullan.
-  2. Chat panelinde yapılandırılmış sistem mesajının göründüğünü kontrol et.
-- **Beklenen sonuç:** Analiz bağlamı chat tarafına taşınır; mesaj formatı bozulmaz.
-- **Kanıt:** Chat mesajı.
+- **Adımlar:** Yeni sohbet, geçmişten oturum aç, sil, uygulamayı yeniden başlat.
+- **Beklenen sonuç:** Oturumlar listelenir ve devam ettirilir; boş oturum kaydedilmez.
 
-### AI-004 | Chatbot paneli
+### AI-004 | Hisse Modeli
 
-- **Adımlar:**
-  1. Metin mesajı gönder.
-  2. Boş mesaj göndermeyi dene.
-  3. `Sohbeti Temizle` aksiyonunu kullan.
-  4. Gemini API anahtarı yoksa hata/fallback davranışını gözle.
-- **Beklenen sonuç:** Boş mesaj engellenir; yanıt veya hata net görünür; temizleme sohbeti sıfırlar.
-- **Kanıt:** Chat ekranı.
+- **Adımlar:** Modu aç, hisse analiz et (AI_Core açık ve kapalı).
+- **Beklenen sonuç:** Servis kapalıysa sonuçlar belirgin "demo" işaretiyle gelir; açıksa gerçek tahmin, güven, XAI ve akran bilgisi görünür; "Danışmana Gönder" özeti sohbete aktarır.
 
 ---
 
 ## 14. Ayarlar
 
-### SET-001 | Otomatik fiyat yenileme
+### SET-001 | API anahtarları
 
-- **Adımlar:**
-  1. `Otomatik fiyat yenileme` checkbox'ını aç/kapat.
-  2. Aralık combobox'ından 5/15/30/60 dakika seçeneklerini dene.
-  3. Uygulamayı yeniden açıp tercihin korunmasını kontrol et.
-- **Beklenen sonuç:** Timer ayarı restart gerektirmeden uygulanır; tercih kalıcıdır.
-- **Kanıt:** Ayar ekranı.
+- **Adımlar:** Gemini anahtarı gir, sına, kaydet; EVDS anahtarı gir.
+- **Beklenen sonuç:** Başarı/hata mesajı gelir; anahtar `.env` dosyasına yazılır ve yeniden başlatma gerektirmeden etkili olur.
 
-### SET-002 | Görünüm
+### SET-002 | Veri sağlığı
 
-- **Adımlar:**
-  1. Görünüm sekmesinde dark/light tema kartlarını sırayla seç.
-  2. Tüm ana sayfalarda tema görünümünü kontrol et.
-- **Beklenen sonuç:** Tema anında değişir; kart seçimi doğru state gösterir.
-- **Kanıt:** Tema kartı ve başka sayfa ekranı.
+- **Adımlar:** İstatistikleri yenile; bütünlük kontrolü; "Eksik BIST Barlarını Şimdi Senkronize Et".
+- **Beklenen sonuç:** Dosya boyutları, tablo sayıları (finansal hedefler dahil), DuckDB hisse/bar sayısı ve son tarih doğru; bütünlük "sağlam" döner; senkron bitince toast ve Dashboard yenilemesi görülür.
 
-### SET-003 | Sistem sıfırlama
+### SET-003 | Dışa aktarım
 
-- **Ön koşul:** Sadece test DB veya yedek alınmış DB.
-- **Adımlar:**
-  1. Ana Sayfa sekmesindeki `Sistemi Sıfırla` aksiyonunu başlat.
-  2. Onay penceresinde iptal et.
-  3. Tekrar başlat ve onayla.
-  4. Uygulama verilerinin beklenen şekilde temizlendiğini kontrol et.
-- **Beklenen sonuç:** İptal veri silmez; onay test DB'yi sıfırlar; uygulama çökmez.
-- **Kanıt:** Onay öncesi/sonrası ekranı.
+- **Beklenen sonuç:** Excel ve JSON yedeği masaüstüne yazılır; JSON `stocks`, `trades`, `cash_movements`, `watchlists` içerir.
 
-### SET-004 | Fiyat Verisi Yönetimi - analiz
+### SET-004 | Kurumsal aksiyon adayları
 
-- **Adımlar:**
-  1. Fiyat Verisi Yönetimi sekmesini aç.
-  2. Kapsam combobox'ında tüm aktif portföyler, ana portföy ve model portföy seçeneklerini dene.
-  3. Başlangıç/bitiş tarihlerini ayarla.
-  4. `Sadece problemli kayıtlar` seçeneğini aç/kapat.
-  5. `Analiz Et` butonuna bas.
-- **Beklenen sonuç:** Tablo ve detay metni seçili kapsama göre güncellenir; tarih aralığı validasyonu çalışır.
-- **Kanıt:** Analiz tablosu.
+- **Adımlar:** "KAP/MKK Yenile"; aday düzenle, yoksay, onayla ve uygula.
+- **Beklenen sonuç:** Kaynak erişilemezse kısa uyarı; onay portföye uygular ve fiyat geçmişini düzeltir; yoksayılan aday listeden düşer.
 
-### SET-005 | Fiyat Verisi Yönetimi - güncelleme ve silme
+### SET-005 | Fiyat verisi
 
-- **Ön koşul:** Test DB veya yedek alınmış DB.
-- **Adımlar:**
-  1. `Toplu Eksikleri Güncelle` aksiyonunu çalıştır.
-  2. Bir satır seçip `Seçili Hisseyi Güncelle` çalıştır.
-  3. `Son Günden Bugüne Güncelle` aksiyonunu dene.
-  4. Test aralığında `Aralığı Sil` için iptal ve onay davranışını dene.
-  5. `Raporu Kopyala` ile clipboard içeriğini kontrol et.
-- **Beklenen sonuç:** Güncelleme aksiyonları status verir; silme yalnız onayda çalışır; rapor kopyalanır.
-- **Kanıt:** Status mesajı ve clipboard notu.
+- **Adımlar:** Kapsam seç (Tüm aktif, Ana, Model); analiz; eksikleri tamamla; seçili hisseyi tamamla; son günden güncelle; aralığı sil; raporu kopyala.
+- **Beklenen sonuç:** Eksik gün sayıları ve tatil adayları doğru; güncelleme son tamamlanmış işlem gününe kadardır.
 
-### SET-006 | Kurumsal Aksiyonlar
+### SET-006 | Piyasa düzeltmeleri
 
-- **Ön koşul:** Test DB veya yedek alınmış DB.
-- **Adımlar:**
-  1. `KAP/MKK Yenile` ve `Listeyi Yenile` aksiyonlarını çalıştır.
-  2. Aday seç, detay metnini kontrol et.
-  3. `Düzenle` dialogunda alanları değiştir ve iptal/kaydet davranışlarını dene.
-  4. `Yoksay` için iptal/onay akışını dene.
-  5. `Onayla ve Uygula` aksiyonunu test adayında çalıştır.
-  6. `Kaynağı Aç` aksiyonunda bağlantı davranışını kontrol et.
-- **Beklenen sonuç:** Kaynak erişilemezse graceful uyarı verilir; aday uygulama portföy/fiyat verisini beklenen şekilde değiştirir; iptal veri yazmaz.
-- **Kanıt:** Aday tablosu ve uygulama sonrası sonuç.
+- **Adımlar:** Durum/ticker/yıl filtresi; "Tara"; aday onayla (faktör düzenle), yoksay, yeniden aç.
+- **Beklenen sonuç:** Onaylanan olay tarayıcı ve grafiklerde düzeltilmiş fiyatı etkiler; yoksayılan etkilemez; liste olay sayacını gösterir.
+
+### SET-007 | Sistem
+
+- **Adımlar:** Canlı yenilemeyi aç/kapat, aralık değiştir, "Şimdi Yenile"; (yalnızca kopya veride) "Sistemi Sıfırla".
+- **Beklenen sonuç:** Ayarlar yeniden açılışta korunur; yenileme yalnızca seans açıkken çalışır; sıfırlama onay ister ve portföy, işlem, nakit, izleme listesi, model portföy ve hisseleri siler (DuckDB ve bütçe silinmez).
 
 ---
 
-## 15. Çapraz Akışlar
+## 15. Arka Plan Davranışı
 
-### XFLOW-001 | Fiyat güncelleme event yayılımı
+### BG-001 | Açılış işleri
 
-- **Adımlar:**
-  1. Ana Sayfa'da fiyat güncelle.
-  2. Model Portföyler, Analiz, Karşılaştırma ve Hisse Detayı sayfalarına geç.
-  3. Güncel fiyatların veya ilgili uyarıların yansımasını kontrol et.
-- **Beklenen sonuç:** Fiyat event'i stale veri bırakmaz; sayfalar kendi veri sözleşmesine göre yenilenir.
-- **Kanıt:** Önce/sonra ekran görüntüleri.
+- **Adımlar:** Uygulamayı aç ve 10-15 sn bekle; `logs/app.log` ve toast'lara bak.
+- **Beklenen sonuç:** Catch-up senkronu (5 sn), canlı yenileme (6 sn) ve açılış bakım işleri (8 sn) hata vermeden başlar; yeni fiyat/aday/sinyal varsa toast gösterilir; gün içinde tekrar açınca tamamlanmış işler atlanır.
 
-### XFLOW-002 | Export dosyaları
+### BG-002 | Ağ yokken
 
-- **Adımlar:**
-  1. Ana Sayfa ve Model Portföyler raporlarını üret.
-  2. Excel dosyalarını aç.
-  3. Başlıklar, tarih aralığı, sayısal formatlar ve boş satırları kontrol et.
-- **Beklenen sonuç:** Dosyalar bozuk değildir; rapor kapsamı seçime uygundur.
-- **Kanıt:** Dosya adı ve kısa içerik notu.
-
-### XFLOW-003 | Silme/onay genel davranışı
-
-- **Adımlar:**
-  1. Watchlist, model portföy, finansal hedef, fiyat aralığı ve sistem reset onaylarını ayrı ayrı test et.
-  2. Her akışta önce iptal, sonra onay dene.
-- **Beklenen sonuç:** İptal hiçbir veri yazmaz; onay yalnız hedeflenen veriyi etkiler.
-- **Kanıt:** Her akış için önce/sonra notu.
-
-### XFLOW-004 | Yeniden başlatma sonrası kritik state
-
-- **Adımlar:**
-  1. Tema, otomatik yenileme, watchlist sırası, model portföy seçimi, bütçe kayıtları ve risk profilini değiştir.
-  2. Uygulamayı kapatıp aç.
-  3. State'lerin korunup korunmadığını kontrol et.
-- **Beklenen sonuç:** Kalıcı state'ler korunur; geçici worker/loading state'leri temiz başlar.
-- **Kanıt:** Yeniden açılış ekranları.
-
----
-
-## 16. Negatif ve Hata Senaryoları
-
-### NEG-001 | Boş veri
-
-- **Adımlar:** Boş DB veya reset sonrası tüm ana sayfaları aç.
-- **Beklenen sonuç:** Hiçbir sayfa crash etmez; boş durum mesajları ve aksiyonları görünür.
-- **Kanıt:** Boş sayfa ekranları.
-
-### NEG-002 | Geçersiz tarih aralıkları
-
-- **Adımlar:** Ana Sayfa raporu, Analiz, Karşılaştırma, Ayarlar fiyat verisi ve Finansal Planlama dialoglarında başlangıç tarihini bitişten sonraya al.
-- **Beklenen sonuç:** İşlem çalışmaz; kullanıcıya net uyarı verilir.
-- **Kanıt:** Uyarı mesajları.
-
-### NEG-003 | Yetersiz nakit veya pozisyon
-
-- **Adımlar:** Ana Sayfa, Hisse Detayı ve Model Portföyler içinde bakiyeden fazla alış veya elde olmayan lot satışı dene.
-- **Beklenen sonuç:** Geçersiz işlem yazılmaz; uyarı verilir.
-- **Kanıt:** Uyarı ve işlem geçmişinin değişmediği notu.
-
-### NEG-004 | Dış servis hataları
-
-- **Adımlar:** Fiyat lookup, KAP/MKK yenileme ve AI/Gemini çağrılarını ağ yok veya API anahtarı yok durumunda dene.
-- **Beklenen sonuç:** Uygulama kapanmaz; fallback veya hata mesajı görünür; logda beklenen warning dışında kritik exception olmaz.
-- **Kanıt:** Hata mesajı ve log satırı.
-
-### NEG-005 | Kullanıcı iptali
-
-- **Adımlar:** Tüm dialoglarda pencere kapatma, İptal ve Escape davranışını dene.
-- **Beklenen sonuç:** İptal edilen aksiyon veri yazmaz; kaynak sayfa kullanılabilir kalır.
-- **Kanıt:** Dialog kapandıktan sonra veri state'i.
-
----
-
-## 17. Sürüm Öncesi Smoke Checklist
-
-Tam manuel test yapılamadığında en az şu hızlı kontrol çalıştırılmalıdır:
-
-- [ ] Uygulama `python app.py` ile açılıyor, logda kritik exception yok.
-- [ ] Tüm ana sayfalara gidilebiliyor.
-- [ ] Ana Sayfa portföy kartları ve tablo görünüyor.
-- [ ] Yeni alış işlemi eklenebiliyor.
-- [ ] Sermaye yatırma/çekme çalışıyor.
-- [ ] Watchlist oluşturma ve hisse ekleme çalışıyor.
-- [ ] Model portföy oluşturma, hisse al/sat ve rapor alma çalışıyor.
-- [ ] Hisse Detayı dashboard ve model portföy bağlamından açılıyor.
-- [ ] Analiz sayfasında tarih/benchmark değiştirip yenileme çalışıyor.
-- [ ] Karşılaştırma sayfasında normal, normalize ve rasyo modları grafik üretiyor.
-- [ ] Optimizasyon yeterli veriyle sonuç üretiyor veya yetersiz veri için düzgün hata veriyor.
-- [ ] Finansal Planlama bütçe kaydediyor, pinli kalemleri boş aya getiriyor ve `300.000,00TL` formatını gösteriyor.
-- [ ] Finansal hedef ekleme ve katkı ekleme çalışıyor.
-- [ ] Risk profili anketi tamamlanıp sonuç kartı üretiyor.
-- [ ] AI Asistan backend yoksa fallback/hata state'ini düzgün gösteriyor.
-- [ ] Ayarlar tema değişimi ve otomatik fiyat yenileme tercihini kaydediyor.
-- [ ] Fiyat Verisi Yönetimi analiz raporu üretiyor.
-- [ ] Kurumsal aksiyon aday listesi hata durumunda uygulamayı çökertmiyor.
-- [ ] Uygulama kapatılıp açıldığında kalıcı state'ler korunuyor.
-
----
-
-## 18. Test Kapanışı
-
-- Başarısız testler için ID, ekran görüntüsü, log ve tekrar üretme adımlarıyla issue/not oluştur.
-- Yıkıcı testler yapıldıysa DB'yi yedekten geri yükle veya test DB'yi yeniden seed et.
-- Export, screenshot ve geçici dosyaları test koşumu klasöründe sakla.
-- Tam test koşumunun sonunda şu özet kaydı üret:
-
-```text
-Manuel Test Özeti
-Tarih:
-Branch / Commit:
-DB:
-Toplam Senaryo:
-Geçti:
-Kaldı:
-Engellendi:
-Kritik Bulgular:
-Yedek / Temizlik:
-```
+- **Adımlar:** Ağı kes, uygulamayı aç.
+- **Beklenen sonuç:** Yerel veri (Dashboard, Hisse 360 genel bakış, tarayıcı) çalışır; dış veriye bağlı bölümler kısa hata mesajı verir; sayfa donmaz.

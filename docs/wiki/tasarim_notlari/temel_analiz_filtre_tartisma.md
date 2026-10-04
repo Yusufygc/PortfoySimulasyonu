@@ -1,3 +1,7 @@
+> Ana sayfa: [../index.md](../index.md) | Yol haritası: [../roadmap.md](../roadmap.md)
+>
+> **Durum notu (2026-10-03):** Bu belge tarihsel bir tasarım tartışmasıdır ve eski arayüz döneminde yazılmıştır; `src/ui/...` ve `file:///` bağlantıları geçerli değildir. Temel analiz metrikleri (F/K, PD/DD, FD/FAVÖK, DuPont, Piotroski vb.) tek hisse için Hisse 360'ta hesaplanır (`src/application/services/analysis/financials/`). Belgenin asıl konusu olan **tüm BIST için toplu temel analiz taraması hâlâ uygulanmamıştır**; yol haritasında açık madde olarak durur. Güncel mimari için bkz. [../stock_360.md](../stock_360.md).
+
 # 📊 Temel Analiz Filtre Tarama Sistemi — Tartışma Dokümanı
 
 ## Mevcut Durum
