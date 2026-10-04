@@ -1,0 +1,378 @@
+{
+ "empty": {
+  "keys": [
+   "bb",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50"
+  ],
+  "last_rsi": [],
+  "last_sma20": [],
+  "lengths": {
+   "bb": {
+    "lower": 0,
+    "middle": 0,
+    "upper": 0
+   },
+   "ema20": 0,
+   "macd": {
+    "hist": 0,
+    "macd": 0,
+    "signal": 0
+   },
+   "markers": 0,
+   "rsi": 0,
+   "sma20": 0,
+   "sma200": 0,
+   "sma50": 0
+  },
+  "markers": [],
+  "sha256": "2cba1232a17a9484d9ba6a0e89d0095c7f91081d2461d9e4e16a6a9077f5466c"
+ },
+ "falling_then_rising_260_bars": {
+  "keys": [
+   "bb",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50"
+  ],
+  "last_rsi": [
+   {
+    "time": "2024-09-16",
+    "value": 100.0
+   }
+  ],
+  "last_sma20": [
+   {
+    "time": "2024-09-16",
+    "value": 229.55
+   }
+  ],
+  "lengths": {
+   "bb": {
+    "lower": 241,
+    "middle": 241,
+    "upper": 241
+   },
+   "ema20": 241,
+   "macd": {
+    "hist": 227,
+    "macd": 235,
+    "signal": 227
+   },
+   "markers": 0,
+   "rsi": 246,
+   "sma20": 241,
+   "sma200": 61,
+   "sma50": 211
+  },
+  "markers": [],
+  "sha256": "cd11c1cb0093016160091461c66ce0fa6cbbd8d42c50bb446a3a8e8bd832a472"
+ },
+ "rising_300_bars_no_cross": {
+  "keys": [
+   "bb",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50"
+  ],
+  "last_rsi": [
+   {
+    "time": "2024-10-26",
+    "value": 100.0
+   }
+  ],
+  "last_sma20": [
+   {
+    "time": "2024-10-26",
+    "value": 186.85
+   }
+  ],
+  "lengths": {
+   "bb": {
+    "lower": 281,
+    "middle": 281,
+    "upper": 281
+   },
+   "ema20": 281,
+   "macd": {
+    "hist": 267,
+    "macd": 275,
+    "signal": 267
+   },
+   "markers": 0,
+   "rsi": 286,
+   "sma20": 281,
+   "sma200": 101,
+   "sma50": 251
+  },
+  "markers": [],
+  "sha256": "eb28272755b8426fa95f2292ab264a37944c15079f890b1a6a820fd0290d4aa6"
+ },
+ "short_70_bars": {
+  "keys": [
+   "bb",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50"
+  ],
+  "last_rsi": [
+   {
+    "time": "2024-03-10",
+    "value": 73.28
+   }
+  ],
+  "last_sma20": [
+   {
+    "time": "2024-03-10",
+    "value": 125.38
+   }
+  ],
+  "lengths": {
+   "bb": {
+    "lower": 51,
+    "middle": 51,
+    "upper": 51
+   },
+   "ema20": 51,
+   "macd": {
+    "hist": 37,
+    "macd": 45,
+    "signal": 37
+   },
+   "markers": 0,
+   "rsi": 56,
+   "sma20": 51,
+   "sma200": 0,
+   "sma50": 21
+  },
+  "markers": [],
+  "sha256": "b053dae6ac74400da38fed5c16d46abd9c8feb16a9490f3bd529791fa7c29e73"
+ },
+ "single_bar": {
+  "keys": [
+   "bb",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50"
+  ],
+  "last_rsi": [],
+  "last_sma20": [],
+  "lengths": {
+   "bb": {
+    "lower": 0,
+    "middle": 0,
+    "upper": 0
+   },
+   "ema20": 0,
+   "macd": {
+    "hist": 0,
+    "macd": 0,
+    "signal": 0
+   },
+   "markers": 0,
+   "rsi": 0,
+   "sma20": 0,
+   "sma200": 0,
+   "sma50": 0
+  },
+  "markers": [],
+  "sha256": "2cba1232a17a9484d9ba6a0e89d0095c7f91081d2461d9e4e16a6a9077f5466c"
+ },
+ "wave_420_bars_with_crosses": {
+  "keys": [
+   "bb",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50"
+  ],
+  "last_rsi": [
+   {
+    "time": "2025-02-23",
+    "value": 0.5
+   }
+  ],
+  "last_sma20": [
+   {
+    "time": "2025-02-23",
+    "value": 102.29
+   }
+  ],
+  "lengths": {
+   "bb": {
+    "lower": 401,
+    "middle": 401,
+    "upper": 401
+   },
+   "ema20": 401,
+   "macd": {
+    "hist": 387,
+    "macd": 395,
+    "signal": 387
+   },
+   "markers": 4,
+   "rsi": 406,
+   "sma20": 401,
+   "sma200": 221,
+   "sma50": 371
+  },
+  "markers": [
+   {
+    "color": "#089981",
+    "position": "belowBar",
+    "shape": "arrowUp",
+    "text": "Golden Cross",
+    "time": "2024-07-18"
+   },
+   {
+    "color": "#f23645",
+    "position": "aboveBar",
+    "shape": "arrowDown",
+    "text": "Death Cross",
+    "time": "2024-09-11"
+   },
+   {
+    "color": "#089981",
+    "position": "belowBar",
+    "shape": "arrowUp",
+    "text": "Golden Cross",
+    "time": "2024-11-18"
+   },
+   {
+    "color": "#f23645",
+    "position": "aboveBar",
+    "shape": "arrowDown",
+    "text": "Death Cross",
+    "time": "2025-02-16"
+   }
+  ],
+  "sha256": "fe4cfc26120a83f64092a5da7929cd1902b36c56bee62cd61ed39fdac3f13c25"
+ },
+ "wave_420_detect_raises": {
+  "keys": [
+   "bb",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50"
+  ],
+  "last_rsi": [
+   {
+    "time": "2025-02-23",
+    "value": 0.5
+   }
+  ],
+  "last_sma20": [
+   {
+    "time": "2025-02-23",
+    "value": 102.29
+   }
+  ],
+  "lengths": {
+   "bb": {
+    "lower": 401,
+    "middle": 401,
+    "upper": 401
+   },
+   "ema20": 401,
+   "macd": {
+    "hist": 387,
+    "macd": 395,
+    "signal": 387
+   },
+   "markers": 0,
+   "rsi": 406,
+   "sma20": 401,
+   "sma200": 221,
+   "sma50": 371
+  },
+  "markers": [],
+  "sha256": "db2bc85ee25ef325d528a2f81be7f5d4af0e82f417366596f9ae0f754b1123ea"
+ },
+ "wave_420_sma_fallback_only": {
+  "keys": [
+   "bb",
+   "ema20",
+   "macd",
+   "markers",
+   "rsi",
+   "sma20",
+   "sma200",
+   "sma50"
+  ],
+  "last_rsi": [
+   {
+    "time": "2025-02-23",
+    "value": 0.5
+   }
+  ],
+  "last_sma20": [
+   {
+    "time": "2025-02-23",
+    "value": 102.29
+   }
+  ],
+  "lengths": {
+   "bb": {
+    "lower": 401,
+    "middle": 401,
+    "upper": 401
+   },
+   "ema20": 401,
+   "macd": {
+    "hist": 387,
+    "macd": 395,
+    "signal": 387
+   },
+   "markers": 2,
+   "rsi": 406,
+   "sma20": 401,
+   "sma200": 221,
+   "sma50": 371
+  },
+  "markers": [
+   {
+    "color": "#f23645",
+    "position": "aboveBar",
+    "shape": "arrowDown",
+    "text": "Death Cross",
+    "time": "2024-09-23"
+   },
+   {
+    "color": "#089981",
+    "position": "belowBar",
+    "shape": "arrowUp",
+    "text": "Golden Cross",
+    "time": "2024-12-01"
+   }
+  ],
+  "sha256": "767d2594b9176a3c9d78211f665b228337e61b1423680478b2bcb477c71ac3ae"
+ }
+}

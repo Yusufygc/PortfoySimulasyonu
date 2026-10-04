@@ -10,14 +10,7 @@ import pandas as pd
 
 from PySide6.QtCore import QObject, Signal, Slot, Property
 
-from src.application.services.analysis.technical.indicators import (
-    sma,
-    ema,
-    rsi,
-    macd,
-    bollinger_bands,
-)
-from src.application.services.analysis.technical.golden_cross import detect_crosses, CrossType
+from src.ui_qml.controllers.chart_indicators import calculate_indicators
 from src.ui_qml.controllers.chart_candle_sources import (
     demo_candles,
     last_price_summary,
@@ -274,120 +267,5 @@ class ChartController(QObject):
             return candles, volumes
 
     def _calculate_indicators(self, candles: list[dict[str, Any]]) -> dict[str, Any]:
-        """Tüm teknik indikatör serilerini ve sinyal işaretçilerini hesaplar."""
-        empty_result = {
-            "sma20": [],
-            "sma50": [],
-            "sma200": [],
-            "ema20": [],
-            "bb": {"upper": [], "middle": [], "lower": []},
-            "rsi": [],
-            "macd": {"macd": [], "signal": [], "hist": []},
-            "markers": [],
-        }
-        if not candles:
-            return empty_result
-
-        times = [c["time"] for c in candles]
-        closes = pd.Series([c["close"] for c in candles], index=times)
-        highs = pd.Series([c["high"] for c in candles], index=times)
-        lows = pd.Series([c["low"] for c in candles], index=times)
-
-        def _to_line_data(series: pd.Series) -> list[dict[str, Any]]:
-            clean = series.dropna()
-            return [{"time": str(t), "value": round(float(v), 2)} for t, v in clean.items()]
-
-        # 1. Hareketli Ortalamalar
-        s20 = sma(closes, 20)
-        s50 = sma(closes, 50)
-        s200 = sma(closes, 200)
-        e20 = ema(closes, 20)
-
-        # 2. Bollinger Bantları
-        bb_upper, bb_mid, bb_lower = bollinger_bands(closes, 20, 2.0)
-
-        # 3. RSI
-        rsi14 = rsi(closes, 14)
-
-        # 4. MACD
-        m_line, s_line, h_line = macd(closes, 12, 26, 9)
-        macd_clean = m_line.dropna()
-        sig_clean = s_line.dropna()
-        hist_clean = h_line.dropna()
-
-        macd_hist_data = [
-            {
-                "time": str(t),
-                "value": round(float(v), 2),
-                "color": "rgba(8, 153, 129, 0.7)" if v >= 0 else "rgba(242, 54, 69, 0.7)",
-            }
-            for t, v in hist_clean.items()
-        ]
-
-        # 5. Golden Cross / Death Cross Tespiti (Application Servisine Delege Edilir - DRY)
-        markers = []
-        try:
-            cross_events = detect_crosses(closes, short=50, long=200)
-            for ev in cross_events:
-                if ev.cross_type == CrossType.GOLDEN:
-                    markers.append({
-                        "time": str(ev.cross_date),
-                        "position": "belowBar",
-                        "color": "#089981",
-                        "shape": "arrowUp",
-                        "text": "Golden Cross",
-                    })
-                elif ev.cross_type == CrossType.DEATH:
-                    markers.append({
-                        "time": str(ev.cross_date),
-                        "position": "aboveBar",
-                        "color": "#f23645",
-                        "shape": "arrowDown",
-                        "text": "Death Cross",
-                    })
-
-            # Kısa vadeli seriler için SMA fallback'i
-            if not markers and len(s50.dropna()) > 0 and len(s200.dropna()) > 0:
-                diff = s50 - s200
-                diff_clean = diff.dropna()
-                if len(diff_clean) > 1:
-                    prev_val = diff_clean.iloc[0]
-                    for t, curr_val in diff_clean.iloc[1:].items():
-                        if prev_val < 0 and curr_val >= 0:
-                            markers.append({
-                                "time": str(t),
-                                "position": "belowBar",
-                                "color": "#089981",
-                                "shape": "arrowUp",
-                                "text": "Golden Cross",
-                            })
-                        elif prev_val > 0 and curr_val <= 0:
-                            markers.append({
-                                "time": str(t),
-                                "position": "aboveBar",
-                                "color": "#f23645",
-                                "shape": "arrowDown",
-                                "text": "Death Cross",
-                            })
-                        prev_val = curr_val
-        except Exception as exc:
-            logger.debug("Golden/Death cross tespiti sirasinda istisna: %s", exc)
-
-        return {
-            "sma20": _to_line_data(s20),
-            "sma50": _to_line_data(s50),
-            "sma200": _to_line_data(s200),
-            "ema20": _to_line_data(e20),
-            "bb": {
-                "upper": _to_line_data(bb_upper),
-                "middle": _to_line_data(bb_mid),
-                "lower": _to_line_data(bb_lower),
-            },
-            "rsi": _to_line_data(rsi14),
-            "macd": {
-                "macd": _to_line_data(macd_clean),
-                "signal": _to_line_data(sig_clean),
-                "hist": macd_hist_data,
-            },
-            "markers": markers,
-        }
+        """Tüm teknik indikatör serilerini ve sinyal işaretçilerini hesaplar (`chart_indicators`)."""
+        return calculate_indicators(candles)

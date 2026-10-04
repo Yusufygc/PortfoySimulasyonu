@@ -64,7 +64,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | Yol | İçerik |
 |---|---|
 | `app.py` | `run_qml_app`: denetleyicileri kurar, context property olarak kaydeder, `Main.qml`'i yükler. |
-| `controllers/` | 25 denetleyici (`*_controller.py`) ve yardımcı modüller (`number_input`, `advisor_query_intent`, `chart_candle_sources`, `lw_chart_html`, `stock_360_calc/fallback/formatters/html`). Rehber: [qml_pages_guide.md](qml_pages_guide.md). |
+| `controllers/` | 25 denetleyici (`*_controller.py`) ve yardımcı modüller (`number_input`, `advisor_query_intent`, `chart_candle_sources`, `chart_indicators`, `lw_chart_html`, `stock_360_calc/fallback/formatters/html`). Rehber: [qml_pages_guide.md](qml_pages_guide.md). |
 | `models/` | `PositionsTableModel`, `WatchlistTableModel` (`QAbstractTableModel`). |
 | `last_update_store.py` | Son fiyat güncelleme zamanı ve dönemsel getirilerin `QSettings`'te saklanması. |
 | `qml/Main.qml` | Ana pencere, kenar çubuğu, sayfa yükleyiciler (lazy `Loader`). |
