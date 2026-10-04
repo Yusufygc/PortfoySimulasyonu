@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from dataclasses import dataclass
 from datetime import timedelta
 from itertools import islice
 from pathlib import Path
@@ -227,114 +228,132 @@ def _save_cache(path: Path, data: dict) -> None:
 # Scraping mantığı (lab isyatirim_scraper.py'den taşındı)
 # ---------------------------------------------------------------------------
 
+_KEY_ITEM_CODES = {"1A", "3C"}
+
+
+def _candidate_quarters(today) -> list[tuple[int, int]]:
+    """Bu yıl ve geçen yıl için çeyrekler, en yeniden eskiye (12, 9, 6, 3)."""
+    return [(year, period) for year in (today.year, today.year - 1) for period in (12, 9, 6, 3)]
+
+
+def _probe_financial_group(
+    session: requests.Session,
+    ticker: str,
+    batch: list[tuple[int, int]],
+    currency: str,
+) -> tuple[str, tuple[int, int], list[dict]] | None:
+    """`batch` için öncelik sırasıyla financialGroup dener; anahtar kalemde veri olan ilk (grup, çeyrek, satırlar) döner."""
+    for group in _GROUPS_PRIORITY:
+        rows = _fetch_batch(session, ticker, batch, currency, group)
+        if not rows:
+            continue
+        key_rows = [r for r in rows if r.get("itemCode", "").upper() in _KEY_ITEM_CODES]
+        for value_index, quarter in enumerate(batch, start=1):
+            if any(_row_has_data(r, value_index) for r in key_rows):
+                return group, quarter, rows
+    return None
+
+
+def _add_rows_to_store(store: _SectionStore, rows: list[dict], batch: list[tuple[int, int]]) -> None:
+    for row in rows:
+        code = row.get("itemCode", "")
+        section = _code_to_section(code)
+        desc = (row.get("itemDescTr") or "").strip()
+        if section is None or not desc:
+            continue
+        for value_index, (year, period) in enumerate(batch, start=1):
+            store.add(section, code, desc, _period_label(year, period), _parse_value(row.get(f"value{value_index}")))
+
+
+@dataclass(frozen=True)
+class _StatementSource:
+    """Tek bir şirket/para birimi/financialGroup için paket çekme bağlamı."""
+    session: requests.Session
+    ticker: str
+    currency: str
+    group: str
+
+    def fetch(self, batch: list[tuple[int, int]]) -> list[dict] | None:
+        return _fetch_batch(self.session, self.ticker, batch, self.currency, self.group)
+
+
+@dataclass(frozen=True)
+class _Probe:
+    """Grup keşfinde bulunan ilk gerçek çeyrek ve o isteğin satırları (yeniden kullanılabilir)."""
+    first_quarter: tuple[int, int]
+    rows: list[dict]
+    labels: list[str]
+
+
+def _rows_for_batch(
+    source: _StatementSource, batch: list[tuple[int, int]], index: int, reusable_rows: list[dict] | None,
+) -> list[dict] | None:
+    if index == 0 and reusable_rows is not None:
+        return reusable_rows
+    if index > 0:
+        time.sleep(0.3)
+    return source.fetch(batch)
+
+
+def _register_periods(collected_periods: list[str], batch: list[tuple[int, int]]) -> None:
+    for year, period in batch:
+        label = _period_label(year, period)
+        if label not in collected_periods:
+            collected_periods.append(label)
+
+
+def _collect_periods(source: _StatementSource, probe: _Probe, n_quarters: int) -> tuple[list[str], dict]:
+    """İlk gerçek çeyrekten geriye 4'lü paketlerle çeyrekleri toplar; (dönem etiketleri, bölümler) döner."""
+    all_quarters = _generate_quarters(probe.first_quarter[0], probe.first_quarter[1], n_quarters + 4)
+    batches = list(_batched(all_quarters, 4))
+    store = _SectionStore()
+    collected_periods: list[str] = []
+
+    first_labels = [_period_label(y, p) for y, p in batches[0]] if batches else []
+    reusable_rows = probe.rows if probe.labels == first_labels else None
+
+    for index, batch in enumerate(batches):
+        if len(collected_periods) >= n_quarters:
+            break
+        rows = _rows_for_batch(source, batch, index, reusable_rows)
+        if not rows or _batch_is_future(rows):
+            continue
+        _register_periods(collected_periods, batch)
+        _add_rows_to_store(store, rows, batch)
+
+    return collected_periods[:n_quarters], store.data
+
+
 def _scrape(ticker: str, n_quarters: int, currency: str) -> dict:
     """isyatirim JSON API'sından veri çek. Hata → FinancialStatementProviderUnavailable."""
     import datetime
 
-    session  = requests.Session()
-    now      = datetime.date.today()
-
-    candidates: list[tuple[int, int]] = []
-    for y in [now.year, now.year - 1]:
-        for p in [12, 9, 6, 3]:
-            candidates.append((y, p))
-
-    chosen_group: str | None    = None
-    first_real_year: int | None = None
-    first_real_period: int | None = None
-    probe_rows: list[dict] | None = None
+    session = requests.Session()
+    candidates = _candidate_quarters(datetime.date.today())
     probe_batch = candidates[:4]
-    key_codes = {"1A", "3C"}
 
-    for grp in _GROUPS_PRIORITY:
-        rows = _fetch_batch(session, ticker, probe_batch, currency, grp)
-        if not rows:
-            continue
-        key_rows = [r for r in rows if r.get("itemCode", "").upper() in key_codes]
-        if not key_rows:
-            continue
-        for vi in range(1, 5):
-            if any(_row_has_data(r, vi) for r in key_rows):
-                chosen_group = grp
-                first_real_year, first_real_period = probe_batch[vi - 1]
-                probe_rows = rows
-                break
-        if chosen_group:
-            break
-
-    if not chosen_group:
-        probe_batch2 = candidates[4:8]
-        for grp in _GROUPS_PRIORITY:
-            rows = _fetch_batch(session, ticker, probe_batch2, currency, grp)
-            if not rows:
-                continue
-            key_rows = [r for r in rows if r.get("itemCode", "").upper() in key_codes]
-            for vi in range(1, 5):
-                if key_rows and any(_row_has_data(r, vi) for r in key_rows):
-                    chosen_group = grp
-                    first_real_year, first_real_period = probe_batch2[vi - 1]
-                    probe_rows = rows
-                    break
-            if chosen_group:
-                break
-
-    if not chosen_group or first_real_year is None:
+    # Önce son 4 çeyrek, bulunamazsa bir önceki 4 çeyrek denenir.
+    found = _probe_financial_group(session, ticker, probe_batch, currency)
+    if found is None:
+        found = _probe_financial_group(session, ticker, candidates[4:8], currency)
+    if found is None:
         raise FinancialStatementProviderUnavailable(
             f"{ticker}: isyatirim'den veri bulunamadı (tüm financialGroup denemesi başarısız)"
         )
+    group, first_quarter, probe_rows = found
 
-    all_quarters = _generate_quarters(first_real_year, first_real_period, n_quarters + 4)
-    batches      = list(_batched(all_quarters, 4))
-
-    store             = _SectionStore()
-    collected_periods: list[str] = []
-
-    probe_labels = [_period_label(y, p) for y, p in probe_batch]
-    first_labels = [_period_label(y, p) for y, p in batches[0]] if batches else []
-    probe_cache  = probe_rows if probe_labels == first_labels else None
-
-    for idx, batch in enumerate(batches):
-        if len(collected_periods) >= n_quarters:
-            break
-
-        if idx == 0 and probe_cache is not None:
-            rows = probe_cache
-        else:
-            if idx > 0:
-                time.sleep(0.3)
-            rows = _fetch_batch(session, ticker, batch, currency, chosen_group)
-
-        if not rows or _batch_is_future(rows):
-            continue
-
-        for y, p in batch:
-            label = _period_label(y, p)
-            if label not in collected_periods:
-                collected_periods.append(label)
-
-        for row in rows:
-            code    = row.get("itemCode", "")
-            section = _code_to_section(code)
-            if section is None:
-                continue
-            desc = (row.get("itemDescTr") or "").strip()
-            if not desc:
-                continue
-            for i, (y, p) in enumerate(batch, start=1):
-                label = _period_label(y, p)
-                store.add(section, code, desc, label, _parse_value(row.get(f"value{i}")))
-
-    final_periods = collected_periods[:n_quarters]
-    if not final_periods:
+    probe = _Probe(first_quarter, probe_rows, [_period_label(y, p) for y, p in probe_batch])
+    periods, sections = _collect_periods(_StatementSource(session, ticker, currency, group), probe, n_quarters)
+    if not periods:
         raise FinancialStatementProviderUnavailable(
             f"{ticker}: isyatirim'den geçerli dönem verisi alınamadı"
         )
 
     return {
         "ticker":   ticker,
-        "periods":  final_periods,
+        "periods":  periods,
         "currency": currency,
-        "sections": store.data,
+        "sections": sections,
     }
 
 
