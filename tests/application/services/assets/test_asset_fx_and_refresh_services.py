@@ -60,6 +60,9 @@ class FakeFxRepo(IFxRateRepository):
 
 
 class FakeAssetRepo(IAssetRepository):
+    def delete_all_assets(self):
+        self.assets.clear()
+
     def __init__(self, assets: List[Asset]):
         self.assets = {a.id: a for a in assets}
 

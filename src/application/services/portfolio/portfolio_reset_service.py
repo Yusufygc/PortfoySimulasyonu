@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
+from src.domain.ports.repositories.i_asset_repo import IAssetRepository
 from src.domain.ports.repositories.i_cash_movement_repo import ICashMovementRepository
 from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
@@ -28,6 +29,7 @@ class PortfolioResetService:
     watchlist_repo: Optional[IWatchlistRepository] = None
     model_portfolio_repo: Optional[IModelPortfolioRepository] = None
     cash_movement_repo: Optional[ICashMovementRepository] = None
+    asset_repo: Optional[IAssetRepository] = None  # BIST dışı varlık defteri (Portföyüm)
 
     def reset_all(self) -> None:
         if self.model_portfolio_repo is not None:
@@ -38,5 +40,7 @@ class PortfolioResetService:
         self.portfolio_repo.delete_all_trades()
         if self.cash_movement_repo is not None:
             self.cash_movement_repo.delete_all_movements()
+        if self.asset_repo is not None:
+            self.asset_repo.delete_all_assets()
         self.price_repo.delete_all_prices()
         self.stock_repo.delete_all_stocks()

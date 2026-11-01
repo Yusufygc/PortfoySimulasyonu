@@ -41,15 +41,24 @@ def container():
     return AppContainer()
 
 
-def test_settings_controller_initialization():
+def test_settings_controller_initialization(container):
     """SettingsController'ın varsayılan dosya yolları ve özelliklerini test eder."""
-    ctrl = SettingsController(container=None)
+    ctrl = SettingsController(container=container)
 
     assert "portfolio.db" in ctrl.sqliteDbPath
     assert "market_history.duckdb" in ctrl.duckDbPath
     assert isinstance(ctrl.isDarkTheme, bool)
     assert ctrl.isSyncing is False
     assert isinstance(ctrl.isLoading, bool)
+
+
+def test_settings_controller_without_container_does_not_open_databases():
+    """Container yoksa denetleyici ham veritabanı bağlantısı açmaz; işlemler kullanılamaz mesajı verir."""
+    ctrl = SettingsController(container=None)
+    results = []
+    ctrl._asyncIntegrityFinished.connect(lambda ok, msg: results.append((ok, msg)))
+    ctrl._run_integrity_worker()
+    assert ctrl._maintenance is None and results and results[0][0] is False
 
 
 def test_settings_controller_toggle_theme():
@@ -88,10 +97,10 @@ def test_settings_controller_save_api_keys(tmp_path, secret_store):
     assert "KEY" not in (tmp_path / ".env").read_text(encoding="utf-8")  # düz metin .env'ye yazılmaz
 
 
-def test_settings_controller_db_stats(qapp):
+def test_settings_controller_db_stats(qapp, container):
     """refreshDatabaseStats slotunun SQLite ve DuckDB istatistiklerini doldurduğunu test eder."""
     from PySide6.QtCore import QCoreApplication
-    ctrl = SettingsController(container=None)
+    ctrl = SettingsController(container=container)
 
     # Worker fonksiyonunu doğrudan çalıştır ve sinyali manuel tüket
     mock_payload = {}
@@ -108,9 +117,9 @@ def test_settings_controller_db_stats(qapp):
     assert len(mock_payload.get("sqlite_table_stats", [])) >= 5
 
 
-def test_settings_controller_integrity_check():
+def test_settings_controller_integrity_check(container):
     """checkDatabaseIntegrity slotunun SQLite ve DuckDB için başarıyla çalıştığını test eder."""
-    ctrl = SettingsController(container=None)
+    ctrl = SettingsController(container=container)
     ctrl._run_integrity_worker()
 
     # Worker direkt çağrıldığında sinyal yayar, hata fırlatmaz
@@ -118,13 +127,23 @@ def test_settings_controller_integrity_check():
     assert ctrl._duckdb_path.exists()
 
 
-def test_settings_controller_export_portfolio(tmp_path):
-    """Excel ve JSON dışa aktarım mekanizmasının sorunsuz çalıştığını test eder."""
-    ctrl = SettingsController(container=None)
+def test_settings_controller_export_portfolio(tmp_path, container, monkeypatch):
+    """Excel ve JSON dışa aktarım mekanizmasının sorunsuz çalıştığını test eder (gerçek masaüstüne yazmaz)."""
+    import json
+    from pathlib import Path
 
-    # Test export worker
+    (tmp_path / "Desktop").mkdir()
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+    ctrl = SettingsController(container=container)
+    results = []
+    ctrl._asyncExportFinished.connect(lambda ok, msg: results.append(ok))
+
     ctrl._run_excel_export_worker()
     ctrl._run_json_export_worker()
+
+    assert results == [True, True]
+    backup = json.loads(next((tmp_path / "Desktop").glob("*.json")).read_text(encoding="utf-8"))
+    assert "assets" in backup and "asset_trades" in backup
 
 
 def test_settings_qml_view_compilation(qapp, container):

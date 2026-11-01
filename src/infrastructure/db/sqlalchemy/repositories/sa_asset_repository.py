@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from src.domain.models.asset import Asset, AssetClass
 from src.domain.ports.repositories.i_asset_repo import IAssetRepository
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
-from src.infrastructure.db.sqlalchemy.orm_models import ORMAsset
+from src.infrastructure.db.sqlalchemy.orm_models import ORMAsset, ORMAssetLatestPrice, ORMAssetPrice, ORMAssetTrade
 from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback
 
 
@@ -76,6 +76,12 @@ class SQLAlchemyAssetRepository(IAssetRepository):
     def set_active(self, asset_id: int, is_active: bool) -> None:
         with self._provider.get_session() as session:
             session.query(ORMAsset).filter(ORMAsset.id == asset_id).update({"is_active": is_active})
+            commit_or_rollback(session)
+
+    def delete_all_assets(self) -> None:
+        with self._provider.get_session() as session:
+            for model in (ORMAssetTrade, ORMAssetPrice, ORMAssetLatestPrice, ORMAsset):  # çocuk tablolar önce
+                session.query(model).delete(synchronize_session=False)
             commit_or_rollback(session)
 
     def delete_asset(self, asset_id: int) -> None:

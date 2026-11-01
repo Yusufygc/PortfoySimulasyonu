@@ -217,6 +217,8 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
             watchlist_service=feature_services["watchlist_service"],
         ),
         market_data_sync_service=MarketDataSyncService(
+            repositories.market_history_store,
+            getattr(market_clients, "market_bar_downloader", None),
             trading_calendar=market_clients.trading_calendar,
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
@@ -379,6 +381,7 @@ def _build_portfolio_services(repositories, market_clients, foundation, model_po
             watchlist_repo=repositories.watchlist_repo,
             model_portfolio_repo=repositories.model_portfolio_repo,
             cash_movement_repo=repositories.cash_movement_repo,
+            asset_repo=repositories.asset_repo,
         ),
         "watchlist_service": WatchlistService(
             watchlist_repo=repositories.watchlist_repo,

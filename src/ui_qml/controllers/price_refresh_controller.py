@@ -31,6 +31,7 @@ class PriceRefreshController(QObject):
     pricesChanged = Signal()
     busyChanged = Signal()
     lastUpdateChanged = Signal()
+    _busPrices = Signal(object)  # uygulama olay yolundan gelen fiyat yükü (ana iş parçacığına aktarım)
 
     # Art arda gelen kaynak sinyallerinin tek yenilemeye indiği bekleme süresi
     COALESCE_MS = 400
@@ -50,8 +51,9 @@ class PriceRefreshController(QObject):
         event_bus = getattr(container, "event_bus", None) if container is not None else None
         if event_bus is not None:
             try:
-                # Arka plan iş parçacığından yayınlanabilir; sinyal-yuva bağlantısı ana iş parçacığına kuyruklar
-                event_bus.prices_updated.connect(self._on_event_bus_prices)
+                # Olay arka plan iş parçacığında yayınlanabilir; Qt sinyaline aktarılarak ana iş parçacığına kuyruklanır
+                self._busPrices.connect(self._on_event_bus_prices)
+                event_bus.prices_updated.connect(self._busPrices.emit)
             except Exception as exc:
                 logger.warning("EventBus bağlantı hatası: %s", exc)
 

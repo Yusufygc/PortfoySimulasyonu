@@ -23,7 +23,6 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
 
 from config.settings_loader import persist_api_keys
-from src.application.services.database.database_maintenance_service import DatabaseMaintenanceService
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +73,10 @@ class SettingsController(QObject):
         self._integrity_check_result = ""
 
         # Veritabanı Yolları
-        configured = getattr(getattr(container, "db_config", None), "db_path", None) if container else None
-        self._maintenance = DatabaseMaintenanceService.from_config(configured if isinstance(configured, str) else None)
-        self._sqlite_path = self._maintenance.sqlite_path
-        self._duckdb_path = self._maintenance.duckdb_path
+        # Container yoksa (çevrimdışı/test) bakım işlemleri devre dışıdır; denetleyici ham bağlantı açmaz
+        self._maintenance = getattr(container, "database_maintenance_service", None) if container else None
+        self._sqlite_path = self._maintenance.sqlite_path if self._maintenance else Path("")
+        self._duckdb_path = self._maintenance.duckdb_path if self._maintenance else Path("")
 
         # İstatistik Değerleri
         self._sqlite_size = "0 B"
@@ -265,7 +264,7 @@ class SettingsController(QObject):
         self._executor.submit(self._run_db_stats_worker)
 
     def _run_db_stats_worker(self) -> None:
-        self._asyncStatsReady.emit(self._maintenance.collect_stats())
+        self._asyncStatsReady.emit(self._maintenance.collect_stats() if self._maintenance else {})
 
     def _on_stats_ready(self, payload: Dict[str, Any]) -> None:
         self._sqlite_size = payload.get("sqlite_size", "0 B")
@@ -304,10 +303,9 @@ class SettingsController(QObject):
 
     def _run_market_sync_worker(self) -> None:
         try:
-            from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
             sync_svc = getattr(self._container, "market_data_sync_service", None) if self._container else None
-            if not isinstance(sync_svc, MarketDataSyncService):
-                sync_svc = MarketDataSyncService(duckdb_path=str(self._duckdb_path))
+            if sync_svc is None:
+                raise RuntimeError("Piyasa senkron servisi kullanılamıyor.")
             result = sync_svc.sync_daily_delta()
             self._asyncSyncFinished.emit({
                 "success": True,
@@ -345,7 +343,7 @@ class SettingsController(QObject):
         self._executor.submit(self._run_integrity_worker)
 
     def _run_integrity_worker(self) -> None:
-        errors = self._maintenance.check_integrity()
+        errors = self._maintenance.check_integrity() if self._maintenance else ["Veritabanı servisi kullanılamıyor."]
         if errors:
             self._asyncIntegrityFinished.emit(False, " | ".join(errors))
         else:
@@ -416,6 +414,8 @@ class SettingsController(QObject):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             target_file = out_dir / f"PortfoySim_Yedek_{timestamp}.json"
 
+            if self._maintenance is None:
+                raise RuntimeError("Veritabanı servisi kullanılamıyor.")
             backup_data = self._maintenance.export_backup_data()
 
             with open(target_file, "w", encoding="utf-8") as f:

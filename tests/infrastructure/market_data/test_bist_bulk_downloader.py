@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.application.services.market_data.bist_bulk_downloader import BistBulkDownloader
+from src.infrastructure.market_data.bist_bulk_downloader import BistBulkDownloader
 
 
 @pytest.fixture

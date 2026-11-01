@@ -4,6 +4,7 @@ from datetime import date, timedelta
 import duckdb
 import pytest
 
+from src.infrastructure.market_data.duckdb_market_history_store import DuckDBMarketHistoryStore
 from src.application.services.corporate_actions.market_action_service import (
     MarketCorporateActionService,
     classify_break,
@@ -228,11 +229,12 @@ def test_sync_service_refresh_imports_portfolio_actions_and_is_safe_without_serv
     stock_repo = SimpleNamespace(get_all_stocks=lambda: [SimpleNamespace(id=1, ticker="SPLT.IS")])
     action_repo = SimpleNamespace(get_all=lambda: [_portfolio_action(SPLIT_DAY, 0.5)])
 
-    MarketDataSyncService(str(duck_file)).refresh_corporate_actions()  # servis yok: sessizce çıkar
+    MarketDataSyncService(DuckDBMarketHistoryStore(str(duck_file))).refresh_corporate_actions()  # servis yok: sessizce çıkar
     assert store.list_actions() == []
 
     MarketDataSyncService(
-        str(duck_file), stock_repo=stock_repo, market_action_service=market, portfolio_action_repo=action_repo
+        DuckDBMarketHistoryStore(str(duck_file)), stock_repo=stock_repo, market_action_service=market,
+        portfolio_action_repo=action_repo,
     ).refresh_corporate_actions()
 
     assert [(a.ticker, a.status) for a in store.list_actions()] == [("SPLT", MarketActionStatus.CONFIRMED)]

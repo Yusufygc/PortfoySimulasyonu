@@ -1,4 +1,4 @@
-"""DatabaseMaintenanceService: istatistik, bütünlük kontrolü ve yedek dökümü."""
+"""SqliteDuckDbMaintenance: istatistik, bütünlük kontrolü ve yedek dökümü."""
 from __future__ import annotations
 
 import sqlite3
@@ -6,8 +6,8 @@ from datetime import date
 
 import duckdb
 
-from src.application.services.database.database_maintenance_service import (
-    DatabaseMaintenanceService,
+from src.infrastructure.db.database_maintenance import (
+    SqliteDuckDbMaintenance as DatabaseMaintenanceService,
     format_file_size,
 )
 

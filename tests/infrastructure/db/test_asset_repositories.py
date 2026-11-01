@@ -77,6 +77,21 @@ class TestAssetRepository:
         assert price_repo.get_daily_prices(btc.id) == []
 
 
+    def test_delete_all_assets_clears_ledger_but_keeps_fx(self, provider, asset_repo, btc):
+        trade_repo = SQLAlchemyAssetTradeRepository(provider)
+        price_repo = SQLAlchemyAssetPriceRepository(provider)
+        fx_repo = SQLAlchemyFxRateRepository(provider)
+        trade_repo.add_trade(AssetTrade(None, btc.id, date(2026, 1, 1), None, TradeSide.BUY, D("1"), D("100"), D("30")))
+        price_repo.upsert_daily_prices([AssetPrice(None, btc.id, date(2026, 1, 1), D("100"), "USD", "yfinance")])
+        fx_repo.upsert_rates([FxRate(None, "USD", "TRY", date(2026, 1, 1), D("40"), "yfinance")])
+
+        asset_repo.delete_all_assets()
+
+        assert asset_repo.list_assets(active_only=False) == [] and trade_repo.list_trades() == []
+        assert price_repo.get_daily_prices(btc.id) == []
+        assert fx_repo.get_rates("USD", "TRY") != []
+
+
 class TestAssetTradeRepository:
     def test_roundtrips_fractional_values(self, provider, btc):
         repo = SQLAlchemyAssetTradeRepository(provider)

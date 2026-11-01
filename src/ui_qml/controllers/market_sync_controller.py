@@ -74,10 +74,10 @@ class MarketSyncController(QObject):
         self._watcher_timer.start()
 
     @staticmethod
-    def _build_sync_service(container) -> MarketDataSyncService:
-        """Container'ın senkron servisini (SQLite köprüsü + tatil takvimi bağlı) kullanır; yoksa varsayılanı kurar."""
+    def _build_sync_service(container) -> Optional[MarketDataSyncService]:
+        """Container'ın senkron servisi (SQLite köprüsü + tatil takvimi bağlı); container yoksa senkron devre dışıdır."""
         service = getattr(container, "market_data_sync_service", None) if container else None
-        return service if isinstance(service, MarketDataSyncService) else MarketDataSyncService()
+        return service if isinstance(service, MarketDataSyncService) else None
 
     # ──────────────────────────── QML Properties ────────────────────────────
 
@@ -98,7 +98,7 @@ class MarketSyncController(QObject):
     @Slot()
     def triggerSyncNow(self) -> None:
         """Kullanıcı veya sistem tarafından anında artımlı senkronizasyon başlatır."""
-        if self._is_syncing:
+        if self._is_syncing or self._sync_service is None:
             return
 
         self._is_syncing = True
@@ -113,6 +113,9 @@ class MarketSyncController(QObject):
 
     def _startup_check_and_sync(self) -> None:
         """Uygulama açıldıktan sonra eksik gün kontrolü yapar."""
+        if self._sync_service is None:
+            self.syncFinished.emit()  # senkron yok: bekleyen açılış işleri gecikmesin
+            return
         try:
             status = self._sync_service.get_sync_status()
             self._is_up_to_date = status.is_up_to_date
@@ -127,6 +130,8 @@ class MarketSyncController(QObject):
     def _on_watcher_tick(self) -> None:
         """Her 60 saniyede bir: bugünün kapanış verisi hazır olduysa (Istanbul saati, tatil takvimi) günde bir kez senkronlar."""
         today = market_today()
+        if self._sync_service is None:
+            return
         try:
             completed = self._sync_service.get_last_completed_trading_day()
         except Exception as exc:

@@ -7,6 +7,7 @@ import duckdb
 import pandas as pd
 import pytest
 
+from src.infrastructure.market_data.duckdb_market_history_store import DuckDBMarketHistoryStore
 from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
 from src.application.services.simulation.dca_backtest_service import DCABacktestService
 from src.infrastructure.db.db_config import SQLiteConfig
@@ -89,20 +90,22 @@ def sqlite_repos(tmp_path):
 
 
 def _delta_frame():
-    return pd.DataFrame([
+    from src.domain.models.market_bar import MarketBar
+
+    return [MarketBar(**row) for row in [
         {"ticker": "ASELS", "price_date": date(2026, 3, 5), "open_price": 11.0, "high_price": 12.0,
          "low_price": 10.5, "close_price": 11.5, "volume": 5000},
         {"ticker": "THYAO", "price_date": date(2026, 3, 5), "open_price": float("nan"), "high_price": float("nan"),
          "low_price": float("nan"), "close_price": 300.0, "volume": 0},
         {"ticker": "YOKHISSE", "price_date": date(2026, 3, 5), "open_price": 1.0, "high_price": 1.0,
          "low_price": 1.0, "close_price": 1.0, "volume": 1},
-    ])
+    ]]
 
 
 def test_sync_bridge_writes_new_bars_into_sqlite_via_repositories(tmp_path, sqlite_repos):
     """Eski ham sqlite3 köprüsü 'NOT NULL constraint failed: daily_prices.id' ile sessizce başarısız oluyordu."""
     price_repo, stock_repo = sqlite_repos
-    service = MarketDataSyncService(duckdb_path=str(tmp_path / "x.duckdb"), price_repo=price_repo, stock_repo=stock_repo)
+    service = MarketDataSyncService(DuckDBMarketHistoryStore(str(tmp_path / "x.duckdb")), price_repo=price_repo, stock_repo=stock_repo)
 
     assert service._sync_to_sqlite(_delta_frame()) == 2  # portföyde olmayan hisse atlanır
 
@@ -117,7 +120,7 @@ def test_sync_bridge_writes_new_bars_into_sqlite_via_repositories(tmp_path, sqli
 
 
 def test_sync_bridge_is_noop_without_repositories(tmp_path):
-    service = MarketDataSyncService(duckdb_path=str(tmp_path / "x.duckdb"))
+    service = MarketDataSyncService(DuckDBMarketHistoryStore(str(tmp_path / "x.duckdb")))
     assert service._sync_to_sqlite(_delta_frame()) == 0
 
 
@@ -152,7 +155,7 @@ def test_reconcile_copies_only_newer_bars_and_never_overwrites_history(tmp_path,
         "('VAKFN', '2026-03-03', 1, 1, 1, 1.0, 5)"      # portföyde yok
     )
     con.close()
-    service = MarketDataSyncService(duckdb_path=str(duck), price_repo=price_repo, stock_repo=stock_repo)
+    service = MarketDataSyncService(DuckDBMarketHistoryStore(str(duck)), price_repo=price_repo, stock_repo=stock_repo)
 
     assert service.reconcile_sqlite_from_duckdb() == 3
 
@@ -178,14 +181,14 @@ def test_market_history_bulk_catalog_and_latest_dates(duck_file):
 
 
 def test_sync_finds_partial_invalid_bars_for_repair(duck_file):
-    service = MarketDataSyncService(duckdb_path=str(duck_file))
+    service = MarketDataSyncService(DuckDBMarketHistoryStore(str(duck_file)))
 
     assert service._find_invalid_bar_start(date(2026, 3, 10)) == date(2026, 3, 4)
     assert service._find_invalid_bar_start(date(2026, 1, 1)) is None  # pencere dışı
 
 
 def test_bulk_downloader_drops_nan_and_zero_close_rows():
-    from src.application.services.market_data.bist_bulk_downloader import BistBulkDownloader
+    from src.infrastructure.market_data.bist_bulk_downloader import BistBulkDownloader
 
     hist = pd.DataFrame(
         {

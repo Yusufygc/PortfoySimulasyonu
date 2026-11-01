@@ -22,6 +22,9 @@ D = Decimal
 
 
 class FakeAssetRepo(IAssetRepository):
+    def delete_all_assets(self):
+        self.assets.clear()
+
     def __init__(self):
         self.assets: dict[int, Asset] = {}
 

@@ -5,6 +5,8 @@ from dataclasses import fields
 from config.settings_loader import AppSettings, load_app_settings
 from src.application.container_parts import build_ai, build_market_clients, build_repositories, build_services
 from src.application.events import GlobalEventBus
+from src.application.services.database.database_maintenance_service import DatabaseMaintenanceService
+from src.infrastructure.db.database_maintenance import SqliteDuckDbMaintenance
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 
 
@@ -32,6 +34,11 @@ class AppContainer:
             market_clients=self.market_clients,
         )
         self._expose_dataclass_fields(self.services)
+
+        configured_path = getattr(self.db_config, "db_path", None)
+        self.database_maintenance_service = DatabaseMaintenanceService(
+            SqliteDuckDbMaintenance.from_config(configured_path if isinstance(configured_path, str) else None)
+        )
 
         self.ai = build_ai(
             self.settings.ai,

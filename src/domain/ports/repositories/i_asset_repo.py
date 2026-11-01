@@ -34,3 +34,8 @@ class IAssetRepository(ABC):
     def delete_asset(self, asset_id: int) -> None:
         """Varlığı ve (cascade ile) işlem/fiyat kayıtlarını siler."""
         raise NotImplementedError
+
+    @abstractmethod
+    def delete_all_assets(self) -> None:
+        """Sistem sıfırlama: tüm varlıkları, işlemlerini ve fiyatlarını siler (kurlar piyasa verisidir, kalır)."""
+        raise NotImplementedError

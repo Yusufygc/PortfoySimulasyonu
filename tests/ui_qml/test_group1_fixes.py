@@ -15,6 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from config.settings_loader import AISettings, MarketSettings, persist_api_keys
+from src.infrastructure.market_data.duckdb_market_history_store import DuckDBMarketHistoryStore
 from src.application.services.market_data.market_data_sync_service import MarketSyncResult
 from src.domain.models.trade import TradeSide
 from src.ui_qml.controllers.dashboard_controller import DashboardController
@@ -178,14 +179,14 @@ def test_market_sync_emits_data_synced_when_bars_added(qapp):
 def test_market_sync_uses_container_sync_service_when_available():
     from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
 
-    container_service = MarketDataSyncService(duckdb_path="x.duckdb")
+    container_service = MarketDataSyncService(DuckDBMarketHistoryStore("x.duckdb"))
     container = MagicMock()
     container.market_data_sync_service = container_service
 
     assert MarketSyncController._build_sync_service(container) is container_service
-    # container yoksa veya servis sahte ise güvenli varsayılan kurulur
-    assert isinstance(MarketSyncController._build_sync_service(None), MarketDataSyncService)
-    assert isinstance(MarketSyncController._build_sync_service(MagicMock()), MarketDataSyncService)
+    # container yoksa veya servis sahte ise senkron devre dışıdır (denetleyici altyapı kurmaz)
+    assert MarketSyncController._build_sync_service(None) is None
+    assert MarketSyncController._build_sync_service(MagicMock()) is None
 
 
 def test_dashboard_with_real_container_and_empty_portfolio_shows_no_demo_positions(qapp):

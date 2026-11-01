@@ -2,6 +2,7 @@ from datetime import date, datetime, time as dt_time, timedelta
 import pytest
 from unittest.mock import MagicMock
 
+from src.infrastructure.market_data.duckdb_market_history_store import DuckDBMarketHistoryStore
 from src.application.services.market_data.market_data_sync_service import (
     MarketDataSyncService,
     MarketSyncStatus,
@@ -17,10 +18,7 @@ class MockTradingCalendar:
 @pytest.fixture
 def sync_service(tmp_path):
     duckdb_file = str(tmp_path / "sync_test.duckdb")
-    return MarketDataSyncService(
-        duckdb_path=duckdb_file,
-        trading_calendar=MockTradingCalendar(),
-    )
+    return MarketDataSyncService(DuckDBMarketHistoryStore(duckdb_file), trading_calendar=MockTradingCalendar())
 
 
 def test_last_completed_trading_day_before_market_close(sync_service):
@@ -59,7 +57,7 @@ def test_get_sync_status_empty_db(sync_service):
 
 def test_get_sync_status_up_to_date(sync_service):
     # DuckDB'ye sahte tablo ve kayıt ekle
-    with sync_service._get_duckdb_conn(read_only=False) as con:
+    with sync_service.store.connect(read_only=False) as con:
         con.execute("CREATE TABLE bist_stocks (ticker VARCHAR PRIMARY KEY, last_date DATE)")
         con.execute("INSERT INTO bist_stocks VALUES ('THYAO', '2026-10-06')")
 
@@ -72,7 +70,7 @@ def test_get_sync_status_up_to_date(sync_service):
 
 def test_get_sync_status_missing_days(sync_service):
     # DuckDB'de son tarih Cuma (2026-10-02)
-    with sync_service._get_duckdb_conn(read_only=False) as con:
+    with sync_service.store.connect(read_only=False) as con:
         con.execute("CREATE TABLE bist_stocks (ticker VARCHAR PRIMARY KEY, last_date DATE)")
         con.execute("INSERT INTO bist_stocks VALUES ('THYAO', '2026-10-02')")
 
@@ -87,7 +85,7 @@ def test_invalid_bar_scan_logs_tickers_and_dates(sync_service, caplog):
     """Tanı: geçersiz kapanışlı bar bulununca hangi hisse/gün olduğu loga yazılır (yeniden indirmenin kaynağını bulmak için)."""
     import duckdb
 
-    con = duckdb.connect(sync_service._duckdb_path)
+    con = duckdb.connect(sync_service.store.path)
     con.execute("CREATE TABLE daily_prices (ticker VARCHAR, price_date DATE, open_price DOUBLE, high_price DOUBLE, "
                 "low_price DOUBLE, close_price DOUBLE, volume BIGINT)")
     con.execute("INSERT INTO daily_prices VALUES ('AAA', '2026-10-01', 1, 1, 1, NULL, 0), ('BBB', '2026-10-02', 1, 1, 1, 5, 0)")

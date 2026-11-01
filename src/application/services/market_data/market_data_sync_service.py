@@ -15,20 +15,20 @@ import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
-from pathlib import Path
-from typing import Dict, List, Optional, Set
-
-import duckdb
-import pandas as pd
-import yfinance as yf
+from typing import List, Optional, Sequence
 
 from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
-from src.domain.models.daily_price import DailyPrice
-from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
 from src.domain.market_clock import market_now
+from src.domain.models.daily_price import DailyPrice
+from src.domain.models.market_bar import MarketBar
+from src.domain.ports.repositories.i_market_history_store import IMarketBarDownloader, IMarketHistoryStore
 
 logger = logging.getLogger(__name__)
+
+
+def _optional_decimal(value) -> Optional[Decimal]:
+    return None if value is None or value != value else Decimal(str(value))
 
 
 @dataclass(frozen=True)
@@ -57,32 +57,35 @@ class MarketDataSyncService:
 
     def __init__(
         self,
-        duckdb_path: Optional[str] = None,
+        store: IMarketHistoryStore,
+        downloader: Optional[IMarketBarDownloader] = None,
         trading_calendar: Optional[MarketTradingCalendar] = None,
-        max_workers: int = 6,
-        price_repo=None,
-        stock_repo=None,
-        market_action_service=None,
-        portfolio_action_repo=None,
+        **repos,
     ) -> None:
         """
-        price_repo / stock_repo: SQLite (OLTP) tarafı. Verilirse, portföyde kayıtlı hisselerin yeni
-        kapanışları SQLite `daily_prices` tablosuna da yazılır; verilmezse yalnızca DuckDB güncellenir.
-        market_action_service / portfolio_action_repo: verilirse her senkronda portföy kurumsal aksiyonları
-        DuckDB'ye aktarılır ve onaylı olayların ham veride hâlâ kırılma gösterdiği doğrulanır.
+        store: DuckDB piyasa geçmişi (yazma portu); downloader: dış kaynaktan bar indirme (yoksa indirme yapılmaz).
+        `repos` (hepsi isteğe bağlı): `price_repo` / `stock_repo` verilirse portföyde kayıtlı hisselerin yeni
+        kapanışları SQLite `daily_prices` tablosuna da yazılır; `market_action_service` / `portfolio_action_repo`
+        verilirse her senkronda portföy kurumsal aksiyonları DuckDB'ye aktarılır ve onaylı olaylar doğrulanır.
         """
-        self._duckdb_path = str(duckdb_path) if duckdb_path else str(default_duckdb_path())
+        self._store = store
+        self._downloader = downloader
         self._trading_calendar = trading_calendar or WeekdayTradingCalendar()
         self._session = BistMarketSessionService(trading_calendar=self._trading_calendar)
-        self._max_workers = max_workers
-        self._price_repo = price_repo
-        self._stock_repo = stock_repo
-        self._market_action_service = market_action_service
-        self._portfolio_action_repo = portfolio_action_repo
+        self._price_repo = repos.pop("price_repo", None)
+        self._stock_repo = repos.pop("stock_repo", None)
+        self._market_action_service = repos.pop("market_action_service", None)
+        self._portfolio_action_repo = repos.pop("portfolio_action_repo", None)
+        if repos:
+            raise TypeError(f"Bilinmeyen bağımlılık: {', '.join(sorted(repos))}")
+
+    @property
+    def store(self) -> IMarketHistoryStore:
+        return self._store
 
     def refresh_corporate_actions(self) -> None:
         """Portföy aksiyonlarını DuckDB'ye aktarır, onaylı olayları ham veriye karşı doğrular (hata sync'i bozmaz)."""
-        if self._market_action_service is None or not Path(self._duckdb_path).exists():
+        if self._market_action_service is None or not self._store.exists():
             return
         try:
             if self._portfolio_action_repo is not None and self._stock_repo is not None:
@@ -90,10 +93,6 @@ class MarketDataSyncService:
             self._market_action_service.verify_actions()
         except Exception as exc:
             logger.warning("Kurumsal aksiyon yenilemesi başarısız: %s", exc)
-
-    def _get_duckdb_conn(self, read_only: bool = False) -> duckdb.DuckDBPyConnection:
-        Path(self._duckdb_path).parent.mkdir(parents=True, exist_ok=True)
-        return duckdb.connect(self._duckdb_path, read_only=read_only)
 
     def get_last_completed_trading_day(self, now: Optional[datetime] = None) -> date:
         """
@@ -109,17 +108,7 @@ class MarketDataSyncService:
         """
         last_trading_day = self.get_last_completed_trading_day(now)
 
-        max_db_date = None
-        if Path(self._duckdb_path).exists():
-            try:
-                with self._get_duckdb_conn(read_only=True) as con:
-                    res = con.execute("SELECT MAX(last_date) FROM bist_stocks").fetchone()
-                    if res and res[0]:
-                        max_db_date = res[0]
-                        if isinstance(max_db_date, datetime):
-                            max_db_date = max_db_date.date()
-            except Exception as exc:
-                logger.warning("DuckDB max_date okunamadı: %s", exc)
+        max_db_date = self._store.last_bar_date()
 
         if max_db_date is None:
             return MarketSyncStatus(
@@ -154,27 +143,14 @@ class MarketDataSyncService:
 
     def _find_invalid_bar_start(self, last_trading_day: date) -> Optional[date]:
         """Son 30 günde kapanışı NULL/<=0 olan en eski bar tarihi (kısmi indirilmiş gün); yoksa None."""
-        if not Path(self._duckdb_path).exists():
-            return None
-        where = "WHERE (close_price IS NULL OR close_price <= 0) AND price_date >= ? AND price_date <= ?"
-        params = [last_trading_day - timedelta(days=30), last_trading_day]
-        try:
-            with self._get_duckdb_conn(read_only=True) as con:
-                row = con.execute(f"SELECT MIN(price_date), COUNT(*) FROM daily_prices {where}", params).fetchone()
-                sample = con.execute(
-                    f"SELECT ticker, price_date FROM daily_prices {where} ORDER BY price_date, ticker LIMIT 10", params
-                ).fetchall() if row and row[1] else []
-        except Exception as exc:
-            logger.debug("Geçersiz bar taraması başarısız: %s", exc)
-            return None
+        oldest, count, sample = self._store.invalid_bars(last_trading_day - timedelta(days=30), last_trading_day)
         if sample:
             # Tanı: her açılışta yeniden indirme tekrar ederse geçersiz barı yazan kaynağı bulmak için
             logger.warning(
                 "Geçersiz kapanışlı %d bar bulundu (ilk 10: %s).",
-                row[1], ", ".join(f"{ticker} {day}" for ticker, day in sample),
+                count, ", ".join(f"{ticker} {day}" for ticker, day in sample),
             )
-        found = row[0] if row else None
-        return found.date() if isinstance(found, datetime) else found
+        return oldest
 
     def sync_daily_delta(
         self,
@@ -201,17 +177,14 @@ class MarketDataSyncService:
                 message=status.message,
             )
 
-        # Hedef hisseler
-        with self._get_duckdb_conn(read_only=True) as con:
-            tickers = [r[0] for r in con.execute("SELECT ticker FROM bist_stocks ORDER BY ticker").fetchall()]
-
-        if not tickers:
+        tickers = self._store.list_tickers()
+        if not tickers or self._downloader is None:
             return MarketSyncResult(
                 is_up_to_date=False,
                 updated_stocks=0,
                 added_bars=0,
                 elapsed_seconds=round(time.time() - t0, 2),
-                message="DuckDB'de hisse listesi bulunamadı.",
+                message="DuckDB'de hisse listesi bulunamadı." if not tickers else "Piyasa verisi indiricisi yok.",
             )
 
         start_date = status.missing_trading_days[0] if status.missing_trading_days else (status.max_db_date or date.today())
@@ -226,99 +199,11 @@ class MarketDataSyncService:
             start_date,
             status.last_completed_trading_day,
         )
-
-        # Batch indirme (50'şerli parçalarla YFinance batch download)
-        chunk_size = 50
-        total_added_bars = 0
-        updated_stocks = 0
-        errors: List[str] = []
-
-        all_collected_dfs: List[pd.DataFrame] = []
-
-        for i in range(0, len(tickers), chunk_size):
-            chunk = tickers[i : i + chunk_size]
-            symbols_str = " ".join([f"{tk}.IS" for tk in chunk])
-            try:
-                data = yf.download(
-                    symbols_str,
-                    start=start_date.isoformat(),
-                    end=end_date.isoformat(),
-                    group_by="ticker",
-                    auto_adjust=False,
-                    threads=True,
-                    progress=False,
-                )
-                if data is None or data.empty:
-                    continue
-
-                for tk in chunk:
-                    clean_tk = tk
-                    yf_sym = f"{tk}.IS"
-                    try:
-                        # Tekli mi çoklu mu kontrol et
-                        if len(chunk) == 1:
-                            df_sub = data.copy()
-                        elif yf_sym in data.columns.levels[0]:
-                            df_sub = data[yf_sym].dropna(how="all").copy()
-                        else:
-                            continue
-
-                        if df_sub.empty:
-                            continue
-
-                        df_sub = df_sub.reset_index()
-                        date_col = "Date" if "Date" in df_sub.columns else df_sub.columns[0]
-                        df_sub["price_date"] = pd.to_datetime(df_sub[date_col]).dt.date
-                        df_sub["ticker"] = clean_tk
-                        df_sub["open_price"] = df_sub["Open"].astype(float)
-                        df_sub["high_price"] = df_sub["High"].astype(float)
-                        df_sub["low_price"] = df_sub["Low"].astype(float)
-                        df_sub["close_price"] = df_sub["Close"].astype(float)
-                        df_sub["volume"] = df_sub["Volume"].fillna(0).astype(int)
-
-                        # Geçerli kapanış fiyatı olan satırları filtrele
-                        valid = df_sub[df_sub["close_price"] > 0]
-                        if not valid.empty:
-                            all_collected_dfs.append(valid[["ticker", "price_date", "open_price", "high_price", "low_price", "close_price", "volume"]])
-                            updated_stocks += 1
-                    except Exception as sub_err:
-                        logger.debug("Hisse parse hatası (%s): %s", tk, sub_err)
-
-            except Exception as batch_err:
-                msg = f"Batch indirme hatası (blok {i}): {batch_err}"
-                logger.warning(msg)
-                errors.append(msg)
-
-        # DuckDB'ye tek hamlede bulk insert
-        if all_collected_dfs:
-            combined = pd.concat(all_collected_dfs, ignore_index=True)
-            total_added_bars = len(combined)
-
-            with self._get_duckdb_conn(read_only=False) as con:
-                con.register("temp_delta", combined)
-                con.execute("""
-                    INSERT OR REPLACE INTO daily_prices
-                    SELECT ticker, price_date, open_price, high_price, low_price, close_price, volume
-                    FROM temp_delta
-                """)
-                # Yeniden indirilemeyen (kısmi/hayalet) geçersiz kapanışlı barlar yeni veriyle değiştirildi; kalanlar atılır
-                con.execute("DELETE FROM daily_prices WHERE close_price IS NULL OR close_price <= 0")
-                con.execute("""
-                    UPDATE bist_stocks
-                    SET last_date = sub.max_d,
-                        total_bars = sub.cnt,
-                        updated_at = ?
-                    FROM (
-                        SELECT ticker, MAX(price_date) as max_d, COUNT(*) as cnt
-                        FROM daily_prices
-                        GROUP BY ticker
-                    ) sub
-                    WHERE bist_stocks.ticker = sub.ticker
-                """, [datetime.now()])
-                con.unregister("temp_delta")
-
-            # SQLite portföy hisseleri için köprü güncelleme
-            self._sync_to_sqlite(combined)
+        bars, updated_stocks, errors = self._downloader.download_daily(tickers, start_date, end_date)
+        total_added_bars = len(bars)
+        if bars:
+            self._store.write_bars(bars)  # DuckDB'ye tek hamlede toplu yazım
+            self._sync_to_sqlite(bars)  # SQLite portföy hisseleri için köprü güncelleme
 
         elapsed = round(time.time() - t0, 2)
         success_msg = f"Güncelleme tamamlandı: {updated_stocks} hisse için {total_added_bars:,} yeni bar eklendi ({elapsed} sn)."
@@ -340,7 +225,7 @@ class MarketDataSyncService:
         (örneğin sermaye artırımıyla düzeltilmiş) geçmiş barlar asla üzerine yazılmaz.
         Döndürür: yazılan bar sayısı.
         """
-        if self._price_repo is None or self._stock_repo is None or not Path(self._duckdb_path).exists():
+        if self._price_repo is None or self._stock_repo is None or not self._store.exists():
             return 0
         try:
             stocks = [s for s in self._stock_repo.get_all_stocks() if s.id is not None]
@@ -349,37 +234,22 @@ class MarketDataSyncService:
             ticker_by_id = {s.id: (s.ticker or "").replace(".IS", "").strip().upper() for s in stocks}
             last_dates = self._price_repo.get_latest_price_dates(list(ticker_by_id))
             floor = min((last_dates.get(sid) for sid in ticker_by_id if last_dates.get(sid)), default=None)
-            tickers = sorted(set(ticker_by_id.values()))
-            with self._get_duckdb_conn(read_only=True) as con:
-                frame = con.execute(
-                    "SELECT ticker, price_date, open_price, high_price, low_price, close_price, volume "
-                    "FROM daily_prices WHERE close_price > 0 AND price_date > ? AND ticker IN (SELECT UNNEST(?))",
-                    [floor or date(2000, 1, 1), tickers],
-                ).fetchdf()
-            if frame.empty:
-                return 0
-            frame["price_date"] = pd.to_datetime(frame["price_date"]).dt.date
+            bars = self._store.bars_after(floor or date(2000, 1, 1), sorted(set(ticker_by_id.values())))
             last_by_ticker = {
                 ticker_by_id[sid]: last_dates[sid] for sid in ticker_by_id if last_dates.get(sid)
             }
-            keep = [
-                row.price_date > last_by_ticker.get(row.ticker, date(2000, 1, 1))
-                for row in frame.itertuples(index=False)
-            ]
-            frame = frame[keep]
-            if frame.empty:
-                return 0
-            return self._sync_to_sqlite(frame)
+            newer = [bar for bar in bars if bar.price_date > last_by_ticker.get(bar.ticker, date(2000, 1, 1))]
+            return self._sync_to_sqlite(newer)
         except Exception as exc:
             logger.warning("SQLite uzlaştırması başarısız: %s", exc)
             return 0
 
-    def _sync_to_sqlite(self, df_bars: pd.DataFrame) -> int:
+    def _sync_to_sqlite(self, bars: Sequence[MarketBar]) -> int:
         """SQLite'ta kayıtlı portföy hisselerine de yeni kapanışları repository üzerinden yazar.
 
         Döndürür: yazılan bar sayısı. Hata, DuckDB güncellemesini bozmaz (yalnızca loglanır).
         """
-        if self._price_repo is None or self._stock_repo is None or df_bars.empty:
+        if self._price_repo is None or self._stock_repo is None or not bars:
             return 0
         try:
             stock_ids = {
@@ -388,7 +258,7 @@ class MarketDataSyncService:
                 if stock.id is not None
             }
             prices: List[DailyPrice] = []
-            for row in df_bars.itertuples(index=False):
+            for row in bars:
                 stock_id = stock_ids.get(row.ticker)
                 if stock_id is None or not row.close_price or row.close_price <= 0:
                     continue
@@ -399,10 +269,10 @@ class MarketDataSyncService:
                     close_price=Decimal(str(row.close_price)),
                     currency_code="TRY",
                     source="market_sync",
-                    open_price=Decimal(str(row.open_price)) if row.open_price == row.open_price else None,
-                    high_price=Decimal(str(row.high_price)) if row.high_price == row.high_price else None,
-                    low_price=Decimal(str(row.low_price)) if row.low_price == row.low_price else None,
-                    volume=int(row.volume) if row.volume == row.volume else None,
+                    open_price=_optional_decimal(row.open_price),
+                    high_price=_optional_decimal(row.high_price),
+                    low_price=_optional_decimal(row.low_price),
+                    volume=row.volume,
                 ))
             if prices:
                 self._price_repo.upsert_daily_prices_bulk(prices)

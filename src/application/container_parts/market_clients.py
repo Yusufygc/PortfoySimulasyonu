@@ -6,6 +6,7 @@ from typing import Optional
 
 from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.application.services.market.price_lookup_service import PriceLookupService
+from src.infrastructure.market_data.yfinance_bist_bar_downloader import YFinanceBistBarDownloader
 from src.infrastructure.market_data.evds_client import EvdsClient
 from src.infrastructure.calendar.bist_trading_calendar_provider import BistTradingCalendarProvider
 from src.infrastructure.market_data.evds_tufe_provider import EvdsTufeProvider
@@ -40,6 +41,7 @@ class MarketClientSet:
     kap_shareholder_provider: KapShareholderProvider
     asset_price_provider: YFinanceAssetPriceProvider  # BIST dışı varlık ve kur fiyatı + sembol doğrulama
     market_indicator_provider: Optional[YFinanceIndicatorProvider] = field(default=None)
+    market_bar_downloader: Optional[YFinanceBistBarDownloader] = field(default=None)  # artımlı BIST barı
 
 
 def build_market_clients(conn_provider) -> MarketClientSet:
@@ -60,4 +62,5 @@ def build_market_clients(conn_provider) -> MarketClientSet:
         kap_shareholder_provider=KapShareholderProvider(),
         asset_price_provider=YFinanceAssetPriceProvider(),
         market_indicator_provider=YFinanceIndicatorProvider(),
+        market_bar_downloader=YFinanceBistBarDownloader(),
     )
