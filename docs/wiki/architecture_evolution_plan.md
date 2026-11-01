@@ -71,11 +71,29 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 - Denetleyicilerde `Decimal` aritmetiği kalmaz (koruma testi: `src/ui_qml/controllers` içinde para hesabı deseni).
 - **Kabul:** aynı pozisyonun değeri Portföyüm, Hisse Detay ve Excel'de birebir aynı (karakterizasyon testi).
 
-### E5 — Alan eksikleri
+### E5 — Ücretler, ortak nakit havuzu ve gram altın (kararlar 2026-11-02)
 
-- İşlem komisyonu ve BSMV: `Trade`/`AssetTrade` ücret alanı, maliyete ekleme, Excel ve TWR'ye yansıtma; `schema_migrations.py` göç 4 (otomatik yedekli).
-- [roadmap.md](roadmap.md) §2.8 maddeleri (birleşik TWR, varlıkların optimizasyona girmesi, varlık nakdi) bu aşamadan sonra ele alınır.
-- **Kabul:** komisyonlu alım/satım ortalama maliyet ve K/Z'yi elle hesapla eşleşir; eski veritabanı göçle kayıpsız açılır.
+Kullanıcı kararları: komisyon ve BSMV ayarlanabilir, varsayılan 0; geçmiş işlemler 0 ücretle kalır; tüm alım-satımlar tek ortak nakit havuzundan yapılır; USD varlık için önce TL ile USD alınır; toplam portföy TL ve USD gösterilir; altın gram bazlı, TL fiyatlı ve TL nakitten; eski varlık işlemleri nakde dokunmaz; yetersiz bakiyede hata verilir (otomatik çevirme yok).
+
+**Alt aşamalar** (her biri ayrı commit dizisi, tam test yeşil):
+
+| Aşama | İçerik | Şema |
+|---|---|---|
+| E5.1 Ücret | `Trade.fee` ve `AssetTrade.fee` (işlem para biriminde, mutlak tutar, işlem anında ayardan hesaplanıp saklanır). Alımda maliyete eklenir, satışta gelirden düşer. Ayarlar: BIST komisyon %, varlık komisyon %, BSMV % (komisyon üzerinden). Excel, nakit hesabı, emir ön izlemesi, ortalama maliyet ve K/Z ücretli çalışır. | Göç 4: `trades.fee`, `asset_trades.fee` (varsayılan 0) |
+| E5.2 Ortak nakit havuzu | Nakit para birimine göre tutulur (TRY, USD). `cash_movements.currency`; `fx_conversions` tablosu (TL <-> USD döviz al/sat, kur, ücret). Varlık alımı varlığın ödeme para biriminden düşer, satışı ekler; bakiye yetmezse "Yetersiz USD nakit, önce Döviz Al" hatası. BIST tarafı TL'de kalır. | Göç 5: `cash_movements.currency`, `fx_conversions`, `asset_trades.cash_linked` (eski kayıtlar 0 = nakde dokunmaz, yenilar 1) |
+| E5.3 Gram altın | `Asset.settlement_currency` (ödeme/işlem para birimi; varsayılan fiyat para birimi). Altın: fiyat USD ons (GC=F) -> gram TL = ons x USDTRY / 31,1035, birim GRAM, ödeme TL. Katalogda "Altın (gram)"; eski ons kayıtları olduğu gibi kalır. Gümüş/platin/paladyum aynı yoldan gram yapılabilir. | Göç 5: `assets.settlement_currency` |
+| E5.4 Birleşik özet | `UnifiedSummary`: nakit para birimine göre (`cash_by_currency`), toplam değer TL ve USD gösterimi USD nakdi de içerir. | yok |
+| E5.5 Arayüz | Ayarlar > Ücretler; Portföyüm nakit kartı (TL/USD bakiyesi), Döviz Al/Sat penceresi, varlık işlem penceresinde ödeme para birimi, bakiye ve ücret ön izlemesi, gram gösterimi. | yok |
+
+**Kurallar:**
+
+- Ücret geçmişi yeniden yazmaz: işlem anındaki oran `fee` olarak saklanır; ayar sonradan değişse eski işlem aynı kalır.
+- Nakit bakiyesi olay kaynaklıdır: para birimi başına `hareketler + döviz çevirmeleri + nakde bağlı işlemler`; türev değer saklanmaz.
+- Döviz çevirme iç transferdir (dış sermaye akışı sayılmaz, TWR'yi etkilemez); USD nakdin kur kazancı bu aşamada ayrı izlenmez, yalnızca toplam değerde görünür.
+- Birleşik TWR, risk ve optimizasyon varlıkları hâlâ kapsamaz ([roadmap.md](roadmap.md) §2.8).
+- Göçler otomatik yedekli ve idempotent; eski veritabanıyla göç testi zorunlu.
+
+**Kabul:** komisyonlu alım/satım ortalama maliyet, nakit ve K/Z elle hesapla eşleşir; TL ile USD alıp USD varlık alınca iki para biriminin bakiyesi doğru düşer; yetersiz bakiye hata verir; gram altın TL fiyatı ons x kur / 31,1035 ile elle eşleşir; eski veritabanı göçle kayıpsız açılır.
 
 ### E6 — Özellik modülleri (isteğe bağlı, son)
 
@@ -122,5 +140,5 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 | E2 | Uygulandı (2026-11-02): `presenters/formatting.py` (tek Türkçe biçimleyici, 9 kopya kalktı), `messages.py` (Python metin kataloğu), mandal tavanı 538 -> 0 (67 satır `metin-muaf`). Sapma ve kalanlar aşağıda |
 | E3 | Uygulandı (2026-11-02): sınıf ihlali 4 -> 0, fonksiyon 73 -> 72; CI tavanı 0 / 72. Sapma ve kalanlar aşağıda |
 | E4 | Uygulandı (2026-11-02): `PositionQueryService`, `PositionSnapshot`, `preview_order`; karakterizasyon testi Portföyüm = Hisse Detay = Excel; denetleyici para aritmetiği mandalı (36 -> 34 satır). Sapma ve kalanlar aşağıda |
-| E5 | Açık |
+| E5 | Kararlar alındı (2026-11-02), E5.1 başlıyor |
 | E6 | Açık (isteğe bağlı) |
