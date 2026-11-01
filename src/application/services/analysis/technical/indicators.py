@@ -1,7 +1,7 @@
 """
 Teknik analiz indikatörleri — saf, vektörize NumPy/Pandas fonksiyonları.
 
-Harici kütüphane (`pandas-ta`, `ta`) kullanılmaz (bkz. TRANSFORMATION_PLAN.md §9.2) —
+Harici kütüphane (`pandas-ta`, `ta`) kullanılmaz —
 bakım riski ve NumPy/Pandas sürüm kırılganlığı nedeniyle özel implementasyon seçildi.
 
 Her fonksiyon:

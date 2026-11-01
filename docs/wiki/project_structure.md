@@ -18,7 +18,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | `icons/` | Uygulama ve derleme simgeleri. |
 | `build_nuitka.bat`, `requirements*.txt` | Windows `.exe` derlemesi ve pinli bağımlılıklar ([project_build_and_deployment.md](project_build_and_deployment.md)). |
 | `AGENTS.md`, `CLAUDE.md`, `RULES.md`, `GOVERNANCE.md`, `ARCHITECTURE_GATES.md` | Ajan/geliştirici kuralları. |
-| `README.md`, `QML_TRANSFORMATION_HANDOFF.md`, `TRANSFORMATION_PLAN.md` | Genel tanıtım, dönüşüm devralma kılavuzu ve tarihsel plan. |
+| `README.md` | Genel tanıtım. |
 
 ## 2. `src/domain/`
 

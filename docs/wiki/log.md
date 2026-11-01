@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-01] temizlik | Dönüşüm Devir Belgeleri Kaldırıldı
+
+- `QML_TRANSFORMATION_HANDOFF.md` ve `TRANSFORMATION_PLAN.md` silindi: QML dönüşümü tamamlandı, güncel bilgi wiki sayfalarında; uygulanmayan maddeler zaten [roadmap.md](roadmap.md) içinde. Belgeler git geçmişinden geri alınabilir.
+- README, `docs/wiki/index.md`, `roadmap.md`, `project_structure.md` ve kod yorumlarındaki bu belgelere bağlantılar kaldırıldı.
+
+---
 ## [2026-10-05] temizlik | Kullanılmayan get_closing_prices Kaldırıldı
 
 - `IMarketDataClient.get_closing_prices`, `YFinanceMarketDataClient` ve `YFinancePriceClient` uygulamaları ile yardımcıları (`_extract_multiindex_close`, `_extract_single_close`) kaldırıldı; tek çağıranı `PriceUpdateService` önceki temizlikte silinmişti. Tekli kapanış (`get_closing_price`) ve seri (`get_price_series`) yerinde; fiyat tamamlama bunları kullanır.

@@ -4,7 +4,7 @@ BIST Çoklu Sinyal Tarayıcısı — saf indikatör anlık görüntüsü (snapsh
 Ağsız, durumsuz, IO yok — saf fonksiyonlar (golden_cross.py ile aynı desen).
 DB erişimi ve orkestrasyon `screener_service.py`'dedir.
 
-Hazır filtreler (bkz. TRANSFORMATION_PLAN.md §3.1):
+Hazır filtreler:
 - rsi_oversold_above_ema200: RSI < 30 (aşırı satım) + Fiyat > EMA200
 - macd_bullish_cross_volume_spike: MACD bullish kesişim + Hacim > 20 günlük ortalama
 - bollinger_lower_band_touch: Fiyat, Bollinger alt bandına değmiş/altına inmiş

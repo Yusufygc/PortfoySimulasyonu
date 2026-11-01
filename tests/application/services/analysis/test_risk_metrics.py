@@ -1,4 +1,4 @@
-"""Risk metrikleri motoru — saf hesap testleri (bkz. TRANSFORMATION_PLAN.md §9.3)."""
+"""Risk metrikleri motoru — saf hesap testleri."""
 from __future__ import annotations
 
 from datetime import date, timedelta

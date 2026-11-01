@@ -1,13 +1,13 @@
 """
 DCA (Düzenli Katkı) Backtest Motoru — saf simülasyon hesabı.
 
-"Geçmişte her ay X TL hisse alsaydım" senaryosu (bkz. TRANSFORMATION_PLAN.md §3.3).
+"Geçmişte her ay X TL hisse alsaydım" senaryosu.
 Ağsız, durumsuz, IO yok — saf fonksiyon. DB erişimi ve ticker/tarih hazırlığı
 `dca_backtest_service.py`'dedir (golden_cross.py / technical_analysis_service.py
 ile aynı "saf hesap + orkestrasyon" desenine uyar).
 
 v1 kapsamı: sabit periyotta (aylık) sabit tutarlı katkı, sabit ağırlıklarla
-dağıtılır (Markowitz/periyodik rebalancing ayrı bir alt-faz — bkz. TRANSFORMATION_PLAN.md §9.12).
+dağıtılır (Markowitz/periyodik rebalancing ayrı bir alt-faz).
 """
 from __future__ import annotations
 

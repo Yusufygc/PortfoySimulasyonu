@@ -71,7 +71,6 @@ Tüm teknik belgeler `docs/wiki/` altındadır; başlangıç noktası [docs/wiki
 | Veri mimarisi | [data_architecture.md](docs/wiki/data_architecture.md) |
 | Test stratejisi | [testing_strategy.md](docs/wiki/testing_strategy.md) |
 | Yapılacaklar | [roadmap.md](docs/wiki/roadmap.md) |
-| Dönüşüm geçmişi | [QML_TRANSFORMATION_HANDOFF.md](QML_TRANSFORMATION_HANDOFF.md) |
 
 Kurallar: [RULES.md](RULES.md) (wiki, arayüz standartları), [GOVERNANCE.md](GOVERNANCE.md) (commit ve süreç), [ARCHITECTURE_GATES.md](ARCHITECTURE_GATES.md) (kalite kapıları), [CLAUDE.md](CLAUDE.md) / [AGENTS.md](AGENTS.md) (ajan girişi).
 

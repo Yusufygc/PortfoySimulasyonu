@@ -1,4 +1,4 @@
-> Ana sayfa: [index.md](index.md) | Değişiklik günlüğü: [log.md](log.md) | Dönüşüm geçmişi: [QML_TRANSFORMATION_HANDOFF.md](../../QML_TRANSFORMATION_HANDOFF.md)
+> Ana sayfa: [index.md](index.md) | Değişiklik günlüğü: [log.md](log.md)
 
 # Yol Haritası ve Fikir Havuzu
 

@@ -6,7 +6,7 @@ Sorumluluk:
 - build_snapshot (saf) ile indikatör anlık görüntüsünü çıkar
 - SCREENER_FILTERS'daki hazır filtrelerle eşleştir, ScreenerMatch listesi döndür
 
-Zorunlu bağımlılık (bkz. TRANSFORMATION_PLAN.md §9.6): Bu servis SADECE yerel DuckDB'yi okur —
+Zorunlu bağımlılık:Bu servis SADECE yerel DuckDB'yi okur —
 canlı YFinance/API çağrısı yapmaz. "Saniyeler içinde tarama" hedefi bu önkoşula bağlıdır.
 """
 from __future__ import annotations

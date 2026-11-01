@@ -16,7 +16,7 @@ class DailyPrice:
     open_price/high_price/low_price/volume opsiyoneldir (Optional) —
     eski kayıtlarda ve close-only veri kaynaklarında None olabilir.
     ATR/Stochastic/CCI/VWAP/OBV gibi OHLCV-bağımlı indikatörler bu alanlar
-    doluyken hesaplanabilir (bkz. TRANSFORMATION_PLAN.md Faz 2).
+    doluyken hesaplanabilir.
     """
     id: Optional[int]
     stock_id: int

@@ -67,8 +67,6 @@
 
 | Belge | Özet |
 |---|---|
-| [QML_TRANSFORMATION_HANDOFF.md](../../QML_TRANSFORMATION_HANDOFF.md) | QML dönüşümünün tamamlanan fazları, Faz 11 sonrası eklemeler ve devralma kılavuzu |
-| [TRANSFORMATION_PLAN.md](../../TRANSFORMATION_PLAN.md) | Tarihsel dönüşüm planı (üstündeki durum notu ve §9.13 güncel durumu belirtir) |
 | [tasarim_notlari/teknik_analiz_tartisma.md](tasarim_notlari/teknik_analiz_tartisma.md) | Trend kırılım tarayıcısı tasarım tartışması (kısmen uygulanmadı) |
 | [tasarim_notlari/temel_analiz_filtre_tartisma.md](tasarim_notlari/temel_analiz_filtre_tartisma.md) | Toplu temel analiz taraması tasarım tartışması (uygulanmadı) |
 | [log.md](log.md) | Kronolojik, yalnızca ekleme yapılan değişiklik günlüğü |
