@@ -121,6 +121,7 @@ ModernCard {
                         Text {
                             Layout.fillWidth: true
                             text: model.title
+                            textFormat: Text.PlainText  // dış kaynaklı metin zengin metin olarak işlenmez
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.DemiBold
@@ -136,6 +137,7 @@ ModernCard {
 
                             Text {
                                 text: model.sourceName
+                                textFormat: Text.PlainText  // dış kaynaklı metin zengin metin olarak işlenmez
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: Font.Bold
@@ -151,6 +153,7 @@ ModernCard {
                             Text {
                                 visible: model.symbols !== ""
                                 text: model.symbols
+                                textFormat: Text.PlainText  // dış kaynaklı metin zengin metin olarak işlenmez
                                 font.family: Theme.monoFontFamily
                                 font.pixelSize: Theme.fontXs
                                 color: Theme.textSecondary
@@ -170,6 +173,7 @@ ModernCard {
                             Layout.fillWidth: true
                             visible: model.summary !== ""
                             text: model.summary
+                            textFormat: Text.PlainText  // dış kaynaklı metin zengin metin olarak işlenmez
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
                             color: Theme.textSecondary

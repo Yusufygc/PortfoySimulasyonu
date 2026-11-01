@@ -16,9 +16,9 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
-from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.url_opener import open_external_url
 from src.domain.models.corporate_action import ActionType, BedelliSpec
 from src.domain.models.corporate_action_candidate import (
     CorporateActionCandidate,
@@ -506,7 +506,7 @@ class CorporateActionController(QObject):
     def openCandidateSource(self, candidate_id: int) -> None:
         candidate = self._candidate_objects.get(candidate_id)
         if candidate is not None and candidate.source_url:
-            QDesktopServices.openUrl(QUrl(candidate.source_url))
+            open_external_url(candidate.source_url)  # dış kaynaklı adres: yalnızca http/https
 
     @Slot(int)
     def selectCandidate(self, candidate_id: int) -> None:

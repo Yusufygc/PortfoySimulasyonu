@@ -44,6 +44,7 @@ ColumnLayout {
                     spacing: Theme.spaceXs
                     Text {
                         text: row.source.name
+                        textFormat: Text.PlainText  // dış kaynaklı metin zengin metin olarak işlenmez
                         color: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
@@ -68,6 +69,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     visible: row.source.description !== ""
                     text: row.source.description
+                    textFormat: Text.PlainText  // dış kaynaklı metin zengin metin olarak işlenmez
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
@@ -76,6 +78,7 @@ ColumnLayout {
                 Text {
                     Layout.fillWidth: true
                     text: row.source.statusText
+                    textFormat: Text.PlainText  // dış kaynaklı metin zengin metin olarak işlenmez
                     color: row.source.hasError ? Theme.bearRed : Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs

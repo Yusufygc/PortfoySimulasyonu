@@ -40,10 +40,14 @@ def parse_feed_datetime(text: Optional[str]) -> Optional[datetime]:
 
 
 def clean_text(raw: Optional[str], limit: int = MAX_SUMMARY_CHARS) -> str:
-    """HTML etiketlerini ve varlıklarını temizler, boşlukları sadeleştirir, uzunluğu sınırlar."""
+    """HTML etiketlerini ve varlıklarını temizler, boşlukları sadeleştirir, uzunluğu sınırlar.
+
+    Önce varlıklar çözülür, sonra etiketler silinir: `&lt;img&gt;` gibi kaçışlı etiketler de metinden atılır
+    (aksi halde çözüm sonrası gerçek etikete dönüşüp arayüzde zengin metin olarak işlenebilirdi).
+    """
     if not raw:
         return ""
-    text = _SPACES.sub(" ", html.unescape(_TAG.sub(" ", raw))).strip()
+    text = _SPACES.sub(" ", _TAG.sub(" ", html.unescape(html.unescape(raw)))).strip()
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "…"

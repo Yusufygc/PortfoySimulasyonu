@@ -445,6 +445,7 @@ ModernCard {
                                         Text {
                                             Layout.fillWidth: true
                                             text: modelData.name || modelData.holder || ""
+                                            textFormat: Text.PlainText
                                             font.family: Theme.fontFamily
                                             font.pixelSize: Theme.fontSm
                                             font.weight: Font.Bold

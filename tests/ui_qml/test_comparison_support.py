@@ -87,7 +87,7 @@ def test_treemap_items_from_metrics_weights_by_abs_return():
 def test_chart_builders_embed_series_titles():
     index = pd.date_range("2026-01-01", periods=3, freq="D")
     df = pd.DataFrame({"A": [100.0, 101.0, 102.0]}, index=index)
-    assert "title: 'A'" in charts.build_line_chart_html(df, is_normalized=True)
+    assert 'title: "A"' in charts.build_line_chart_html(df, is_normalized=True)
     assert "AreaSeries" in charts.build_drawdown_html(df)
     assert "type: 'bar'" in charts.build_periodic_html(df)
     assert "type: 'scatter'" in charts.build_scatter_html([{"label": "A", "volatility": 1.0, "totalReturn": 2.0}])

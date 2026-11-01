@@ -1,10 +1,11 @@
 """TradingView Lightweight Charts ile çok serili çizgi grafik HTML'i üretir (WebEngineView'a `loadHtml` ile verilir)."""
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 from typing import List, Sequence, Tuple
+
+from src.ui_qml.controllers.comparison_chart_html import js_literal
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ var chart = LightweightCharts.createChart(document.getElementById('c'), {{
     timeScale: {{ borderColor: '#2a2e39', timeVisible: false }},
     crosshair: {{ mode: 0 }}
 }});
-var specs = {json.dumps(specs)};
+var specs = {js_literal(specs)};
 specs.forEach(function(spec) {{
     var line = chart.addSeries(LightweightCharts.LineSeries, {{
         color: spec.color, lineWidth: 2, title: spec.title,

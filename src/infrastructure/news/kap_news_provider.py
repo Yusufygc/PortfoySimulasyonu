@@ -10,6 +10,7 @@ from src.domain.market_clock import MARKET_TIMEZONE, market_today
 from src.domain.models.news_item import NewsItem, NewsScope, NewsTarget, TargetKind
 from src.domain.ports.services.i_news_provider import INewsProvider, NewsProviderUnavailable
 from src.infrastructure.news._http import PostFetcher, http_post_json
+from src.infrastructure.news.feed_parser import clean_text
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,7 @@ def _related_symbols(payload: Dict[str, Any], tracked: set) -> tuple:
 def _to_news_item(payload: Dict[str, Any], tracked: set) -> Optional[NewsItem]:
     published = _parse_publish_date(str(payload.get("publishDate", "")))
     index = payload.get("disclosureIndex")
-    title = str(payload.get("subject") or payload.get("kapTitle") or "").strip()
+    title = clean_text(str(payload.get("subject") or payload.get("kapTitle") or ""), limit=220)
     if published is None or index is None or not title:
         return None
     return NewsItem(
@@ -78,7 +79,7 @@ def _to_news_item(payload: Dict[str, Any], tracked: set) -> Optional[NewsItem]:
         source_id=SOURCE_ID,
         source_name="KAP",
         published_at=published,
-        summary=str(payload.get("summary") or "").strip(),
+        summary=clean_text(str(payload.get("summary") or "")),
         related_symbols=_related_symbols(payload, tracked),
         language="tr",
         badge=str(payload.get("disclosureClass") or ""),

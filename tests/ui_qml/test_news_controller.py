@@ -8,7 +8,7 @@ import pytest
 from PySide6.QtCore import QCoreApplication
 
 from src.domain.models.news_item import NewsFeedResult, NewsItem, NewsSourceStatus
-from src.ui_qml.controllers import news_controller as module
+from src.ui_qml.controllers import url_opener as module
 from src.ui_qml.controllers.news_controller import NewsController, news_item_to_row, relative_time_text
 
 NOW = datetime(2026, 11, 1, 12, 0, tzinfo=timezone.utc)

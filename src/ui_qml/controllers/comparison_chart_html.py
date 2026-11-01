@@ -14,6 +14,12 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+
+def js_literal(value: Any) -> str:
+    """Değeri <script> içine güvenle gömülecek JS ifadesine çevirir (tırnak, ters bölü ve `</script>` kaçışlı)."""
+    text = json.dumps(value, ensure_ascii=False).replace("</", "<\\/")
+    return text.replace(chr(0x2028), "\\u2028").replace(chr(0x2029), "\\u2029")
+
 _JS_DIR = Path(__file__).resolve().parent.parent / "assets" / "js"
 _LW_CHARTS_JS: str = ""
 _CHART_JS: str = ""
@@ -155,6 +161,7 @@ _TREEMAP_TEMPLATE = """<!DOCTYPE html>
 const rawData = {items_json};
 const isHoldings = {is_holdings_js};
 const portfolioName = {portfolio_name_js};
+function esc(value) {{ const d = document.createElement('div'); d.textContent = String(value); return d.innerHTML; }}
 const container = document.getElementById('treemap-container');
 const tooltip = document.getElementById('tooltip');
 
@@ -244,7 +251,7 @@ function render() {{
     if (!rawData || rawData.length === 0) {{
         if (isHoldings) {{
             container.innerHTML = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#9db2ce; text-align:center; padding:20px;">' +
-                '<div style="font-size:16px; font-weight:600; margin-bottom:8px; color:#e0e3eb;">' + portfolioName + ' Pozisyonu Bulunamadı</div>' +
+                '<div style="font-size:16px; font-weight:600; margin-bottom:8px; color:#e0e3eb;">' + esc(portfolioName) + ' Pozisyonu Bulunamadı</div>' +
                 '<div style="font-size:13px; color:#64748b;">Bu model portföyde seçilen dönem için aktif hisse senedi kaydı bulunmuyor.</div>' +
                 '</div>';
         }}
@@ -266,7 +273,7 @@ function render() {{
         const titleSize = Math.max(11, Math.min(18, Math.floor(Math.min(r.w, r.h) / 4.8)));
         const retSize = Math.max(10, Math.min(16, Math.floor(Math.min(r.w, r.h) / 5.5)));
 
-        let content = `<div class="node-label" style="font-size: ${{titleSize}}px;">${{r.item.label}}</div>
+        let content = `<div class="node-label" style="font-size: ${{titleSize}}px;">${{esc(r.item.label)}}</div>
                        <div class="node-ret" style="font-size: ${{retSize}}px;">${{sign}}${{r.item.ret.toFixed(2)}}%</div>`;
 
         if (r.h >= 62 && r.w >= 70) {{
@@ -281,7 +288,7 @@ function render() {{
 
         node.addEventListener('mouseenter', (e) => {{
             tooltip.style.display = 'block';
-            let ttHtml = `<div class="tt-title">${{r.item.label}} ${{isHoldings ? '(' + portfolioName + ' Pozisyonu)' : ''}}</div>`;
+            let ttHtml = `<div class="tt-title">${{esc(r.item.label)}} ${{isHoldings ? '(' + esc(portfolioName) + ' Pozisyonu)' : ''}}</div>`;
             if (isHoldings) {{
                 ttHtml += `
                     <div><b>Portföy Payı:</b> %${{r.item.weight.toFixed(2)}}</div>
@@ -356,7 +363,7 @@ def build_line_chart_html(df: pd.DataFrame, is_ratio: bool = False, is_normal: b
                 var s{i} = chart.addSeries(LightweightCharts.LineSeries, {{
                     color: '{color}',
                     lineWidth: 2,
-                    title: '{col}'
+                    title: {js_literal(col)}
                 }});
                 s{i}.setData([{','.join(data_points)}]);
             """)
@@ -382,7 +389,7 @@ def build_drawdown_html(dd_df: pd.DataFrame) -> str:
                     bottomColor: '{color}22',
                     lineColor: '{color}',
                     lineWidth: 2,
-                    title: '{col}'
+                    title: {js_literal(col)}
                 }});
                 s{i}.setData([{','.join(data_points)}]);
             """)
@@ -425,7 +432,7 @@ def build_periodic_html(monthly_df: pd.DataFrame) -> str:
         color = PALETTE[i % len(PALETTE)]
         vals = [round(float(v), 2) if not pd.isna(v) else 0 for v in monthly_df[col]]
         datasets.append(f"""{{
-                label: '{col}',
+                label: {js_literal(col)},
                 data: {vals},
                 backgroundColor: '{color}cc',
                 borderColor: '{color}',
@@ -467,7 +474,7 @@ def build_scatter_html(metrics: List[Dict[str, Any]]) -> str:
     for i, m in enumerate(metrics):
         color = PALETTE[i % len(PALETTE)]
         datasets.append(f"""{{
-                label: '{m["label"]}',
+                label: {js_literal(m["label"])},
                 data: [{{ x: {m["volatility"]}, y: {m["totalReturn"]} }}],
                 backgroundColor: '{color}',
                 borderColor: '#ffffff',
@@ -505,9 +512,9 @@ def build_treemap_html(items: List[Dict[str, Any]], is_holdings: bool, portfolio
 
     is_holdings: Seçilen portföyün hisse ağırlık ve getiri haritası; aksi halde seçilen varlıkların getiri katkı haritası.
     """
-    items_json = json.dumps(items)
+    items_json = js_literal(items)
     is_holdings_js = "true" if is_holdings else "false"
-    portfolio_name_js = json.dumps(portfolio_name)
+    portfolio_name_js = js_literal(portfolio_name)
 
     return _TREEMAP_TEMPLATE.format(
         items_json=items_json, is_holdings_js=is_holdings_js, portfolio_name_js=portfolio_name_js

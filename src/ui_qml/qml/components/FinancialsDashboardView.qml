@@ -21,7 +21,8 @@ Item {
         visible: root.htmlUrl !== "" && !root.isLoading
 
         settings.javascriptEnabled: true
-        settings.localContentCanAccessRemoteUrls: true
+        // Plotly yerel dosyadan yüklenir; uzak adrese erişim gerekmez (dış veri içeren sayfa ağa çıkamaz)
+        settings.localContentCanAccessRemoteUrls: false
         settings.localContentCanAccessFileUrls: true
 
         onJavaScriptConsoleMessage: function(level, message, lineNumber, sourceID) {

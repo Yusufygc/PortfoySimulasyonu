@@ -260,6 +260,7 @@ ModernCard {
 
                                         Text {
                                             text: modelData.name
+                                            textFormat: Text.PlainText
                                             font.family: Theme.fontFamily
                                             font.pixelSize: Theme.fontXs
                                             font.weight: Font.DemiBold

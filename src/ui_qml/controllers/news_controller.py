@@ -12,17 +12,16 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
-from PySide6.QtCore import Property, QObject, QSettings, QTimer, QUrl, Signal, Slot
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import Property, QObject, QSettings, QTimer, Signal, Slot
 
 from src.domain.models.news_item import NewsFeedResult, NewsItem
 from src.ui_qml.controllers.news_settings_controller import load_refresh_minutes
+from src.ui_qml.controllers.url_opener import open_external_url
 from src.ui_qml.models.news_list_model import NewsListModel
 
 logger = logging.getLogger(__name__)
 
 _STARTUP_DELAY_MS = 2500
-_ALLOWED_SCHEMES = ("http", "https")
 
 
 def relative_time_text(published: datetime, now: datetime | None = None) -> str:
@@ -133,11 +132,7 @@ class NewsController(QObject):
 
     @Slot(str)
     def openUrl(self, url: str) -> None:
-        target = QUrl(url)
-        if target.scheme().lower() not in _ALLOWED_SCHEMES:
-            logger.warning("Haber bağlantısı reddedildi (şema): %s", url)
-            return
-        QDesktopServices.openUrl(target)
+        open_external_url(url)
 
     # ---------- Çekim ---------- #
 

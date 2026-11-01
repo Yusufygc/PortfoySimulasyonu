@@ -10,7 +10,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from src.domain.models.news_item import NewsFeedResult, NewsSourceStatus
-from src.ui_qml.controllers import news_controller as module
+from src.ui_qml.controllers import url_opener as module
 from src.ui_qml.controllers.news_controller import NewsController
 from tests.ui_qml.test_news_controller import FakeNewsService, SyncExecutor, _item
 
