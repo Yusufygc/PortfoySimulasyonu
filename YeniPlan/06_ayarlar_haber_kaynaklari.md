@@ -30,7 +30,9 @@ Kapatılan kaynak hemen etkili olur: `NewsController.sourcesChanged` sinyali pan
 
 ## 3. Veri
 
-SQLite `news_source_settings`:
+> Uygulama notu (Aşama 6): tablo adı `news_sources` (`ORMNewsSource`); sütunlar `source_id` (PK), `kind`, `name`, `enabled`, `language`, `scope`, `url`, `description`, `is_custom`, `options_json`, `sort_order`. Varsayılanlar `src/infrastructure/news/default_sources.py` içinde, ilk `NewsService.list_sources()` çağrısında eklenir. Kaynağa özgü seçenekler (`include_mass_notices`) `options_json` içindedir.
+
+SQLite `news_source_settings` (tasarım taslağı):
 
 | Sütun | Anlam |
 |---|---|
@@ -44,7 +46,7 @@ SQLite `news_source_settings`:
 |---|---|---|
 | `kap` | açık | BIST şirket bildirimleri; kapatılabilir |
 | `yahoo_rss` | açık | ABD hissesi, kripto, emtia (İngilizce) |
-| `google_news` | **kullanıcı kararı bekliyor** | Türkçe şirket/varlık haberi; kullanım koşulu notu |
+| `google_news` | açık (karar: 2026-11-01) | Türkçe şirket/varlık haberi; kullanım koşulu notu |
 | `rss:aa_ekonomi`, `rss:bloomberght`, `rss:haberturk_ekonomi`, `rss:trt_ekonomi`, `rss:investing_tr` | açık | Türkçe piyasa akışı |
 | `rss:cnbc_top`, `rss:bbc_business` | açık | İngilizce global akış |
 | `rss:coindesk`, `rss:cointelegraph` | kapalı (kripto varlığı varsa önerilir) | Kripto |

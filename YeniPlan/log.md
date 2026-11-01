@@ -5,6 +5,18 @@
 > Başlık biçimi: `## [YYYY-AA-GG] işlem | Konu`
 
 ---
+## [2026-11-01] uygulama | Aşama 6: haber altyapısı, haber paneli ve global grafik
+
+- Kullanıcı kararları: Google News varsayılan **açık**; çok hisseli KAP kurum bildirimleri varsayılan **gizli**.
+- KAP kimlik haritası hatası düzeltildi (`GARAN, TGB` gibi virgüllü kodlar; test eklendi, önbellek v2). Hisse 360 ortaklık yapısı da düzeldi.
+- Haber altyapısı: domain modelleri/portlar, RSS+Atom ayrıştırıcı, `RssNewsProvider`/`YahooRssNewsProvider`/`GoogleNewsRssProvider`/`KapDisclosureNewsProvider`, `NewsService` (hata yalıtımı, tekilleştirme, TTL önbellek, eski önbelleğe düşme), `NewsTargetService`, `news_sources` tablosu ve repository, JSON dosya önbelleği. Container'a kayıtlı.
+- UI: `NewsController`, `NewsListModel`, `NewsPanel.qml`; Genel Bakış grafik + haber paneli (geniş/dar yerleşim). Görsel anlık görüntü betiğine panel örnek verisi eklendi.
+- Genel Bakış grafiği varlık defteri sembollerini (BTC-USD, GC=F, AAPL vb.) çizer; BIST yolu ve karakterizasyon testleri değişmedi.
+- Canlı doğrulama: genel RSS 150 haber/0,4 sn; şirket akışı 81 haber/3,1 sn (KAP GARAN dahil).
+- Test: tam paket 1678 geçti, 4 xfailed. Kalite ölçümünde yeni ihlal yok (`chart_controller._resample_timeframe` önceden vardı).
+- Kalan: Aşama 7 (Ayarlar > Haber Kaynakları: aç/kapa, özel RSS, KAP toplu bildirim seçeneği, bağlantı testi, yenileme aralığı).
+
+---
 ## [2026-11-01] spike | Aşama 6 öncesi haber kaynakları yoklaması
 
 - **KAP:** `POST /tr/api/disclosure/members/byCriteria` şirket bazlı bildirimleri döndürüyor (ISO tarih zorunlu, çoklu şirket tek istekte, 0,2-1,2 sn); bağlantı `https://www.kap.org.tr/tr/Bildirim/{disclosureIndex}`. Gürültü: ~üçte bir çok hisseli kurum bildirimi ve çoklu `FR` kaydı.

@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Günlük: [log.md](log.md) | Önceki: [04_portfoyum_sayfasi.md](04_portfoyum_sayfasi.md) | Sonraki: [06_ayarlar_haber_kaynaklari.md](06_ayarlar_haber_kaynaklari.md)
 
-Durum: **Taslak** (Aşama 6); spike tamamlandı, sonuçlar aşağıda ve [tasarim_notlari/](tasarim_notlari/) altında
+Durum: **Uygulandı** (Aşama 6; Ayarlar sekmesi Aşama 7'de). Spike sonuçları aşağıda ve [tasarim_notlari/](tasarim_notlari/) altında
 
 ## 1. Sayfa Yerleşimi
 
@@ -58,6 +58,25 @@ SQLite `news_source_settings(source_id PK, enabled, config_json)` + infrastructu
 - `controllers/news_controller.py`: `MarketTickerController` kalıbı — tek işçili `ThreadPoolExecutor`, `_loading` bayrağı, `Signal` ile ana thread'e dönüş, `QTimer` ile periyodik yenileme; `openUrl(url)` slotu `QDesktopServices.openUrl` kullanır (örnek: `corporate_action_controller.py`). QML'de `Qt.openUrlExternally` kullanılmaz.
 - `models/news_list_model.py`: `ListTableModel` tabanlı.
 - `qml/components/NewsPanel.qml`: iki sekme — "Portföyüm ve İzleme" (şirket) / "Piyasa ve Global". Her satırda kaynak rozeti, dil rozeti, göreli zaman; tıklayınca varsayılan tarayıcı açılır. Boş durum, yükleniyor ve hata durumları metinleri `Strings.qml`'de.
+
+## 2b. Uygulama Notları (Aşama 6)
+
+Plandan sapmalar ve gerçek dosya yolları:
+
+| Konu | Uygulama |
+|---|---|
+| Domain | `src/domain/models/news_item.py` (`NewsItem`, `NewsTarget`/`TargetKind`, `NewsSourceConfig` + `options`, `NewsSourceStatus`, `NewsFeedResult`); portlar `ports/services/i_news_provider.py` (`NewsProviderUnavailable`), `ports/repositories/i_news_source_repo.py` (`INewsSourceRepository`, `INewsCache`) |
+| Sağlayıcı arayüzü | `fetch(targets)`; `scope` ile COMPANY (KAP, Yahoo, Google; hedef gerekir) / MARKET (RSS; hedefsiz) ayrımı. Plandaki `fetch(symbols \| None)` yerine hedefe tür bilgisi taşıyan `NewsTarget` kullanıldı |
+| Altyapı | `src/infrastructure/news/`: `_http.py` (durum denetimi + `retry_call`), `feed_parser.py` (UTC'ye normalize), `rss_providers.py` (RSS, Yahoo, Google), `kap_news_provider.py`, `news_file_cache.py`, `default_sources.py`, `provider_factory.py` |
+| KAP süzgeci | Çok hisseli kurum bildirimleri varsayılan gizli (`include_mass_notices` seçeneği), "Sorumluluk Beyanı" alt belgeleri elenir, aynı dakikadaki `FR` kayıtları teke iner |
+| Servis | `services/news/news_service.py`: kaynak başına hata yalıtımı, URL/başlık tekilleştirme, TTL 10 dk, hatada eski önbelleğe düşme (durumda hata raporlanır), en çok 150 haber. `news_target_service.py`: portföy → varlık defteri → izleme listesi, en çok 30 hedef |
+| Önbellek | Kaynak + hedef parmak izi başına JSON dosya (`data/_cache/news/`); yeniden başlatmada ve çevrimdışıyken son çekim gösterilir |
+| UI | `NewsController` (tek işçi, 10 dk yenileme, `forceRefresh`, `failedSources`, yalnızca http/https `openUrl`), `NewsListModel`, `NewsPanel.qml`; Genel Bakış ≥1150 px'te grafik + 380 px panel, dar pencerede panel altta |
+| Grafik | `AssetChartService` + `chart_candle_sources.load_asset_candles`: sembol BIST'te yoksa varlık defterindeki kapanışlar çizilir (OHLC kapanıştan türetilir, hacim yok); son fiyat varlığın para birimiyle; hızlı seçici `chartController.quickAssets` ile varlıkları da listeler |
+
+Canlı doğrulama (2026-11-01, geçici veritabanı): 7 genel RSS kaynağı 0,4 sn'de 150 haber; KAP + Yahoo + Google 5 hedef için 3,1 sn'de 81 haber (GARAN dahil KAP bildirimi geldi).
+
+Bilinen sınırlar: 1H/1W/1M yeniden örnekleme 2 ondalıkta yuvarlar (çok düşük fiyatlı varlıkta haftalık/aylık mumlar kaba kalır); varlık grafiğinde hacim ve gerçek OHLC yok; Yahoo sembol akışı BIST için kullanılmaz (bayat).
 
 ## 3. Spike Sonuçları (2026-11-01)
 

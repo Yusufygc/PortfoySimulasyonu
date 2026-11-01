@@ -62,8 +62,8 @@ Durum: **Onaylı**
 
 | Soru | Durum |
 |---|---|
-| Google News RSS varsayılan açık mı kapalı mı? | **Kullanıcı kararı bekliyor.** Türkçe şirket haberi için en geniş kaynak, ama kişisel okuyucu kullanımına yönelik; uygulama kişisel bir araç. Öneri: açık, Ayarlar'da koşul notuyla |
-| Çok hisseli kurum bildirimleri (SPK işlem yasağı vb.) varsayılan gizli mi? | Öneri: gizli (şirket haberinde ≤5 ilgili hisse kuralı); Ayarlar'da açılabilir |
-| KAP kimlik haritası hatası (45 şirket, GARAN dahil) ne zaman düzeltilsin? | Öneri: Aşama 6 başında, test ile; Hisse 360 ortaklık yapısını da düzeltir |
+| Google News RSS varsayılan açık mı kapalı mı? | **Karar: açık** (2026-11-01). Türkçe şirket haberi için en geniş kaynak; Ayarlar'da koşul notuyla kapatılabilir |
+| Çok hisseli kurum bildirimleri (SPK işlem yasağı vb.) varsayılan gizli mi? | **Karar: gizli** (2026-11-01); KAP kaynağının `include_mass_notices` seçeneğiyle açılabilir (Aşama 7'de Ayarlar'a bağlanır) |
+| KAP kimlik haritası hatası (45 şirket, GARAN dahil) ne zaman düzeltilsin? | **Düzeltildi** (b98c81a): virgüllü kodlar ayrıştırılıyor, önbellek `bist_companies_v2.json` |
 
 Spike kayıtları: [tasarim_notlari/](tasarim_notlari/).
