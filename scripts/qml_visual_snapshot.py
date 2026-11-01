@@ -70,6 +70,7 @@ def _build_engine():
         ai_advisor_controller, assets_controller, chart_controller, comparison_controller, corporate_action_controller,
         dashboard_controller, dividend_controller, golden_cross_controller, market_adjustment_controller,
         market_sync_controller, market_ticker_controller, model_analysis_controller, model_portfolio_controller, my_portfolio_controller,
+        news_controller,
         optimization_controller, planning_controller, price_data_controller, price_refresh_controller, risk_profile_controller,
         screener_controller, settings_controller, shell_controller, startup_jobs_controller, stock_360_controller,
         stock_detail_controller, strategy_backtest_controller, system_controller, watchlist_controller,
@@ -103,6 +104,7 @@ def _build_engine():
         "marketAdjustmentController": market_adjustment_controller.MarketAdjustmentController,
         "systemController": system_controller.SystemController,
         "marketTickerController": market_ticker_controller.MarketTickerController,
+        "newsController": news_controller.NewsController,
         "modelAnalysisController": model_analysis_controller.ModelAnalysisController,
     }
     controllers = {name: cls(container=container, parent=engine) for name, cls in classes.items()}
@@ -113,6 +115,20 @@ def _build_engine():
         engine.rootContext().setContextProperty(name, controller)
     engine.addImportPath(str(Path(os.getcwd()) / "src" / "ui_qml" / "qml"))
     return engine, controllers
+
+
+def _seed_news(controller) -> None:
+    """Ağ çağrısı yapmadan haber panelini örnek satırlarla doldurur (yerleşim karşılaştırması için)."""
+    base = {"sourceName": "KAP", "sourceId": "kap", "language": "tr", "badge": "ODA", "url": "https://example.com"}
+    rows = [
+        {**base, "title": "Özel Durum Açıklaması: yeni sipariş", "summary": "Şirket yeni sipariş aldığını duyurdu.",
+         "timeText": "5 dk önce", "symbols": "THYAO"},
+        {**base, "title": "Örnek uzun bir haber başlığı iki satıra taşabilecek uzunlukta olmalıdır", "summary": "",
+         "timeText": "2 sa önce", "symbols": "", "sourceName": "AA Ekonomi", "language": "en"},
+    ]
+    controller.companyNews.set_rows(rows)
+    controller.marketNews.set_rows(rows[1:])
+    controller._loaded_once = True
 
 
 def _render_view(engine, out_dir: Path, name: str, qml_relative: str, steps) -> None:
@@ -170,7 +186,9 @@ def render(out_dir: Path, db_dir: Path | None) -> None:
     engine, controllers = _build_engine()
     _pump(40)  # arka plan açılış yüklemelerinin oturması için
 
-    _render_view(engine, out_dir, "dashboard", "views/DashboardView.qml", [("default", None)])
+    _seed_news(controllers["newsController"])
+    _render_view(engine, out_dir, "dashboard", "views/DashboardView.qml",
+                 [("default", None), ("narrow", _set_property("width", 900))])
     _render_view(engine, out_dir, "myportfolio", "views/MyPortfolioView.qml", [("default", None)])
     _render_view(engine, out_dir, "settings", "views/SettingsView.qml",
                  [(f"tab{i}", _set_property("activeTabIndex", i)) for i in range(8)])

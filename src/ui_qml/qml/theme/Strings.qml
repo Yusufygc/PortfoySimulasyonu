@@ -28,7 +28,7 @@ QtObject {
 
     // --- Dashboard Görünümü ---
     readonly property string dashboardTitle: "Genel Bakış"
-    readonly property string dashboardSubtitle: "Etkileşimli grafik ve portföyündeki hisselere hızlı erişim"
+    readonly property string dashboardSubtitle: "Etkileşimli grafik, şirket haberleri ve piyasa akışı"
     readonly property string myPortfolioTitle: "Portföyüm"
     readonly property string myPortfolioSubtitle: "Gerçek zamanlı piyasa değerlemeleri, canlı emirler ve varlık dağılımı"
     readonly property string currencyTRY: "TRY"
@@ -91,6 +91,17 @@ QtObject {
     readonly property string kpiPeriodReturnSub: "Portföy değeri değişimi"
     readonly property string btnCapital: "Sermaye Yönetimi"
     readonly property string btnQuickTrade: "Hızlı Alım / Satım"
+
+    // --- Haber Paneli (Genel Bakış) ---
+    readonly property string newsTitle: "Haberler"
+    readonly property string newsTabCompany: "Portföyüm ve İzleme"
+    readonly property string newsTabMarket: "Piyasa ve Global"
+    readonly property string newsLoading: "Haberler yükleniyor..."
+    readonly property string newsEmptyCompany: "Takip ettiğin varlıklar için haber bulunamadı."
+    readonly property string newsEmptyMarket: "Piyasa haberi bulunamadı. Haber kaynaklarını Ayarlar sayfasından açabilirsin."
+    readonly property string newsFailedPrefix: "Ulaşılamayan kaynaklar: "
+    readonly property string newsRefreshTooltip: "Haberleri şimdi yenile"
+    readonly property string newsEnglishBadge: "EN"
 
     // --- KPI Kartları ---
     readonly property string kpiTotalValue: "Toplam Portföy Değeri"

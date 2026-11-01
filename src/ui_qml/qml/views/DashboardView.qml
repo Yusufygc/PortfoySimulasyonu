@@ -6,8 +6,11 @@ import "../components"
 Item {
     id: root
 
-    // Grafik alanı bu yüksekliğin altına inerse sayfa kaydırılır (Main.qml activePageMetric)
-    readonly property int minContentHeight: 560
+    // Geniş pencerede grafik solda, haber paneli sağda; dar pencerede haber paneli grafiğin altına iner
+    readonly property bool wide: width >= 1150
+
+    // Sayfa bu yüksekliğin altına inerse kaydırılır (Main.qml activePageMetric)
+    readonly property int minContentHeight: wide ? 560 : 960
 
     ColumnLayout {
         anchors.fill: parent
@@ -33,74 +36,91 @@ Item {
             PriceStatusChip {}
         }
 
-        // TradingView Mum Grafiği & Teknik Analiz
-        ModernCard {
+        GridLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 420
+            columns: root.wide ? 2 : 1
+            columnSpacing: Theme.spaceMd
+            rowSpacing: Theme.spaceMd
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: Theme.spaceSm
-                spacing: Theme.spaceSm
+            // TradingView Mum Grafiği & Teknik Analiz
+            ModernCard {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: 420
 
-                // 1. TradingView Gelişmiş Toolbar (Zaman Dilimleri, Grafik Türleri, İndikatörler)
-                TradingViewToolbar {
-                    id: tvToolbar
-                    Layout.fillWidth: true
-                    chartView: chartView
-                    onToggleFullscreen: chartModal.open()
-                }
-
-                // 2. Hızlı Portföy Hisseleri Seçici Barı (Taşmayı önleyen esnek kaydırma)
-                RowLayout {
-                    Layout.fillWidth: true
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Theme.spaceSm
                     spacing: Theme.spaceSm
 
-                    Text {
-                        text: Strings.tvPortfolioHoldings
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 10
-                        font.weight: Font.Bold
-                        color: Theme.textMuted
-                        Layout.alignment: Qt.AlignVCenter
+                    // 1. TradingView Gelişmiş Toolbar (Zaman Dilimleri, Grafik Türleri, İndikatörler)
+                    TradingViewToolbar {
+                        id: tvToolbar
+                        Layout.fillWidth: true
+                        chartView: chartView
+                        onToggleFullscreen: chartModal.open()
                     }
 
-                    Flickable {
-                        id: tickersFlickable
+                    // 2. Hızlı Portföy Hisseleri Seçici Barı (Taşmayı önleyen esnek kaydırma)
+                    RowLayout {
                         Layout.fillWidth: true
-                        implicitHeight: 26
-                        contentWidth: tickersRow.implicitWidth
-                        contentHeight: 26
-                        clip: true
-                        boundsBehavior: Flickable.StopAtBounds
+                        spacing: Theme.spaceSm
 
-                        Row {
-                            id: tickersRow
-                            spacing: Theme.spaceXs
+                        Text {
+                            text: Strings.tvPortfolioHoldings
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 10
+                            font.weight: Font.Bold
+                            color: Theme.textMuted
+                            Layout.alignment: Qt.AlignVCenter
+                        }
 
-                            Repeater {
-                                model: dashboardController ? dashboardController.quickTickers : ["OBAMS", "PSGYO", "BINHO"]
-                                ModernButton {
-                                    text: (modelData || "").replace(/\.IS$/i, "")
-                                    variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
-                                    implicitHeight: 24
-                                    onClicked: {
-                                        chartView.loadStock(modelData)
+                        Flickable {
+                            id: tickersFlickable
+                            Layout.fillWidth: true
+                            implicitHeight: 26
+                            contentWidth: tickersRow.implicitWidth
+                            contentHeight: 26
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+
+                            Row {
+                                id: tickersRow
+                                spacing: Theme.spaceXs
+
+                                Repeater {
+                                    model: dashboardController ? dashboardController.quickTickers : ["OBAMS", "PSGYO", "BINHO"]
+                                    ModernButton {
+                                        text: (modelData || "").replace(/\.IS$/i, "")
+                                        variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
+                                        implicitHeight: 24
+                                        onClicked: {
+                                            chartView.loadStock(modelData)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
 
-                // 3. TradingView QML Bileşeni
-                TradingViewChart {
-                    id: chartView
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    ticker: chartController ? (chartController.currentTicker || "").replace(/\.IS$/i, "") : "OBAMS"
+                    // 3. TradingView QML Bileşeni
+                    TradingViewChart {
+                        id: chartView
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        ticker: chartController ? (chartController.currentTicker || "").replace(/\.IS$/i, "") : "OBAMS"
+                    }
                 }
+            }
+
+            // Şirket ve piyasa haberleri
+            NewsPanel {
+                Layout.preferredWidth: root.wide ? 380 : -1
+                Layout.fillWidth: !root.wide
+                Layout.fillHeight: root.wide
+                Layout.preferredHeight: root.wide ? -1 : 420
+                Layout.minimumHeight: 320
             }
         }
     }

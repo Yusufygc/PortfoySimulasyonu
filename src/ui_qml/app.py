@@ -36,6 +36,7 @@ from src.ui_qml.controllers.dividend_controller import DividendController
 from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustmentController
 from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
+from src.ui_qml.controllers.news_controller import NewsController
 from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
 from src.ui_qml.controllers.price_data_controller import PriceDataController
 from src.ui_qml.controllers.price_refresh_controller import PriceRefreshController
@@ -107,6 +108,7 @@ def run_qml_app(container=None) -> int:
     market_adjustment_ctrl = MarketAdjustmentController(container=container, parent=engine)
     system_ctrl = SystemController(container=container, parent=engine)
     market_ticker_ctrl = MarketTickerController(container=container, parent=engine)
+    news_ctrl = NewsController(container=container, parent=engine, autostart=True)
     model_analysis_ctrl = ModelAnalysisController(container=container, parent=engine)
 
     # Açılış kapanış tamamlaması ilk BIST senkronundan sonra: aynı kapanışlar iki yoldan eşzamanlı indirilmesin
@@ -114,6 +116,7 @@ def run_qml_app(container=None) -> int:
     price_refresh_ctrl = PriceRefreshController(system_ctrl, market_sync_ctrl, container=container, parent=engine)
     _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl, my_portfolio_ctrl)
     assets_ctrl.dataChanged.connect(my_portfolio_ctrl.reload)
+    assets_ctrl.dataChanged.connect(news_ctrl.refresh)  # takip hedefleri değişti
     for source in (market_sync_ctrl.dataSynced, system_ctrl.pricesRefreshed, startup_jobs_ctrl.pricesUpdated,
                    price_data_ctrl.pricesUpdated, golden_cross_ctrl.pricesUpdated):
         price_refresh_ctrl.watch(source)
@@ -122,6 +125,7 @@ def run_qml_app(container=None) -> int:
         price_refresh_ctrl.watch(source, records_update=False)
         source.connect(portfolio_ctrl.refreshData)
         source.connect(my_portfolio_ctrl.reload)
+        source.connect(news_ctrl.refresh)
     system_ctrl.systemReset.connect(watchlist_ctrl.reloadAll)
     risk_profile_ctrl.profileSaved.connect(optimization_ctrl.reloadRiskProfile)
 
@@ -154,6 +158,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("systemController", system_ctrl)
     context.setContextProperty("priceRefreshController", price_refresh_ctrl)
     context.setContextProperty("marketTickerController", market_ticker_ctrl)
+    context.setContextProperty("newsController", news_ctrl)
     context.setContextProperty("modelAnalysisController", model_analysis_ctrl)
 
     # QML import dizinleri

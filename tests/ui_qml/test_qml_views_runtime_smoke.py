@@ -26,6 +26,7 @@ from src.ui_qml.controllers.golden_cross_controller import GoldenCrossController
 from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustmentController
 from src.ui_qml.controllers.market_sync_controller import MarketSyncController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
+from src.ui_qml.controllers.news_controller import NewsController
 from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
 from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
 from src.ui_qml.controllers.my_portfolio_controller import MyPortfolioController
@@ -100,6 +101,7 @@ def qml_env(qapp):
         "marketAdjustmentController": MarketAdjustmentController(container=container, parent=engine),
         "systemController": SystemController(container=container, parent=engine),
         "marketTickerController": MarketTickerController(container=container, parent=engine),
+        "newsController": NewsController(container=container, parent=engine),
         "modelAnalysisController": ModelAnalysisController(container=container, parent=engine),
     }
     controllers["priceRefreshController"] = PriceRefreshController(
