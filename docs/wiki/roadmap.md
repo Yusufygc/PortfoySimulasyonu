@@ -10,9 +10,11 @@ Durum etiketleri: **Açık** (başlanmadı), **Kısmi** (bir bölümü var).
 
 ## 1. Teknik Borç
 
+Yapısal borcun aşamalı giderilme planı: [architecture_evolution_plan.md](architecture_evolution_plan.md).
+
 | Konu | Durum | Ayrıntı |
 |---|---|---|
-| Büyük denetleyici sınıfları | Kabul edilen borç | Denetim Bulgu 2 kapatıldı (2026-10-04): `scripts/measure_code_quality.py` ölçümünde `@Property` getter'ları sayılmaz ve QML denetleyicileri 400 satır / 30 metot sınırıyla ölçülür; eşik dışı 5 sınıf (`DashboardController` 504, `ModelPortfolioController` 518, `PlanningController` 445, `Stock360Controller` 455, `StockDetailController` 507 etkin satır) ve 75 fonksiyon kalır. Yalnızca eşik için ayrıştırma yapılmaz; yeni davranış eklenen denetleyicide önce ilgili parça çıkarılır. Eşikler [code_quality_guardrails.md](code_quality_guardrails.md) içindedir. |
+| Büyük denetleyici sınıfları | Kabul edilen borç | Denetim Bulgu 2 kapatıldı (2026-10-04): `scripts/measure_code_quality.py` ölçümünde `@Property` getter'ları sayılmaz ve QML denetleyicileri 400 satır / 30 metot sınırıyla ölçülür; eşik dışı 4 sınıf (`DashboardController` 2026-11-01'de değerleme kodu kaldırılarak eşik altına indi; `ModelPortfolioController` 461, `PlanningController` 445, `Stock360Controller` 455, `StockDetailController` 507 etkin satır) ve 75 fonksiyon kalır. Yalnızca eşik için ayrıştırma yapılmaz; yeni davranış eklenen denetleyicide önce ilgili parça çıkarılır. Eşikler [code_quality_guardrails.md](code_quality_guardrails.md) içindedir. |
 | SQLite `BIGINT` kimlik tabloları | Açık | `id` sütunları `BIGINT` olduğundan otomatik artmaz; `before_insert` dinleyicisi `max(id)+1` atar (yazma kilidiyle çakışmasız). Kalıcı çözüm: SQLite için `BigInteger().with_variant(Integer, "sqlite")` ve ~19 tablonun yeniden kurulması (üretilmiş sütun `trades.total_amount`, FK ve indeksler korunarak, ayrı numaralı göç). Risk/fayda nedeniyle ertelendi. |
 | Kullanılmayan CRUD port/implementasyon çiftleri | Açık | Bazı repository metotları (CRUD tamlığı için yazılmış) hiçbir servis tarafından çağrılmaz. Bilinçli olarak bırakılmıştır. |
 | Veritabanı oturum ömrü | İzleme | Uzun oturumlarda SQLite kilitlenmesi görülürse `pool_recycle`/`pool_pre_ping` ayarlarının `.env` ile denetlenmesi planlanmıştı; şu an gözlenen bir sorun yoktur. |
@@ -36,7 +38,7 @@ Durum etiketleri: **Açık** (başlanmadı), **Kısmi** (bir bölümü var).
 
 | Fikir | Durum | Not |
 |---|---|---|
-| Dinamik risksiz faiz | Kısmi | Varsayılan %30'dur (`OptimizationPolicy`); kullanıcı arayüzden elle değiştirebilir (`setRiskFreeRate`). TCMB/tahvil verisinden otomatik çekme yoktur. |
+| Dinamik risksiz faiz | Kısmi | Tek varsayım `src/domain/constants/finance.DEFAULT_ANNUAL_RISK_FREE_RATE` (%40); Sharpe/Sortino/Alfa ve optimizasyon aynı değeri kullanır, optimizasyon ekranında o çalıştırma için değiştirilebilir. TCMB/tahvil verisinden otomatik çekme yoktur. |
 | İşlem maliyeti cezası (turnover) | Açık | Amaç fonksiyonunda komisyon yoktur; yalnızca strateji backtest'inde komisyon oranı vardır. |
 | Black-Litterman | Açık | Beklenen getiri yalnızca tarihsel ortalamadır (Chopra-Ziemba sınırlaması). |
 | Hisse bazlı min/max ağırlık, sektör ve likidite kısıtı | Açık | Yalnızca tek global tek-hisse üst sınırı vardır. |
@@ -98,7 +100,7 @@ Kapsam kararları ve ayrıntı: [service_asset_ledger.md](service_asset_ledger.m
 | Benchmark olarak BTC / NASDAQ | Açık | `AnalysisBenchmarkService` listesi sabittir. |
 | Varlık temettü / stake geliri | Açık | |
 | Varlık nakdi (USD vb.) defteri | Açık | Varlık alımı BIST nakdine bağlı değildir; tek TRY nakit defteri vardır. |
-| Sistem sıfırlama ve JSON yedeğinde varlık defteri | Açık | `PortfolioResetService.reset_all` ve yedek dışa aktarımı `assets`, `asset_trades`, `asset_prices`, `asset_latest_prices`, `fx_rates` tablolarını kapsamaz. |
+| İşlem komisyonu ve BSMV | Açık | K/Z ve maliyet brüt hesaplanır; `Trade`/`AssetTrade` ücret alanı, maliyete ekleme ve şema göçü gerekir. |
 | Gram birimli maden kataloğu | Açık | `AssetUnit.GRAM` ve `Asset.unit_price` hazırdır; katalog yalnızca ons girdisi içerir. |
 | Varlık grafiğinde gerçek OHLC ve hacim | Açık | Varlık fiyatı yalnızca kapanış saklanır; haftalık/aylık yeniden örnekleme 2 ondalıkta yuvarlar. |
 | Abd/CME resmî tatil takvimi | Açık | Varlık seans takvimi tatilleri modellemez. |

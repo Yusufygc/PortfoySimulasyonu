@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-01] düzeltme | QA Denetimi: Hesap, Güvenlik ve Katman Sızıntısı Düzeltmeleri
+
+- **Para girişi:** QML `parseFloat` Türkçe tutarları yanlış okuyordu (`50.000` -> 50; model portföy sermayesi, yeni portföy nakdi, bütçe/hedef, işlem fiyatı). Yeni `Numbers` QML tekili Python `parse_decimal_text` kurallarıyla okur; kullanıcı girdisinde `parseFloat` testle yasak.
+- **Sıfırlama/yedek:** sistem sıfırlama varlık defterini de siler; JSON yedeği `assets` ve `asset_trades` içerir.
+- **Hesaplar:** eski fiyat/kur tespiti (`stale_symbols`, Portföyüm uyarısı); tek risksiz faiz (`DEFAULT_ANNUAL_RISK_FREE_RATE` %40, önce %30 ve %40 karışıktı); TWR ilk gün getirisi; oynaklıkta tatil günleri sıfır getiri sayılmaz; `DashboardController` değerleme kodu ve demo/sahte işlem yolu kaldırıldı (rakamların tek kaynağı `UnifiedPortfolioService`); emir ön izlemesi `Position.preview_trade` (Decimal); piyasa kapalı günde "Son İşlem Günü" etiketi.
+- **Güvenlik:** haber metninde kaçışlı HTML etiketi gerçek etikete dönüşmüyor (temizleme sırası), dış kaynaklı metin `PlainText`; dış bağlantılar yalnızca http/https (`url_opener`, KAP aday kaynağı dahil); grafik HTML'inde adlar `js_literal` ile kaçışlı (kesme işaretli portföy adı grafiği bozuyordu); mali tablo WebEngine görünümü uzak adrese erişemez.
+- **Katman sızıntıları:** `DatabaseMaintenanceService` -> `IDatabaseMaintenance` (`SqliteDuckDbMaintenance`); `MarketDataSyncService` -> `IMarketHistoryStore` + `IMarketBarDownloader`; `BistBulkDownloader` altyapıya taşındı; `GlobalEventBus` Qt'den bağımsız; denetleyiciler servis kurmaz. Yeni koruma: `tests/test_layer_guards.py`.
+- **Kalite:** sınıf ihlali 5 -> 4 (CI tavanı düşürüldü), fonksiyon 75 (tavanda). Test: 1743 geçti, 4 xfailed.
+- **Kalan (plan):** [architecture_evolution_plan.md](architecture_evolution_plan.md) (presenter katmanı, tek metin kataloğu, büyük denetleyiciler, okuma servisleri, komisyon/BSMV, `app.py` testi).
+
+---
 ## [2026-11-01] yeni-sayfa | Portföyüm, Varlık Defteri ve Haber Akışı Wiki'ye İşlendi
 
 - Üç büyük özellik tamamlandı ve geçici tasarım klasörü wiki'ye taşınıp silindi: **Portföyüm** sayfası (Genel Bakış artık yalnızca grafik + haber), **BIST dışı varlık defteri** (altın, gümüş, platin, paladyum, kripto, ABD hissesi; ayrı defter, TRY/USD, sınıf bazlı dağılım, birleşik değerleme) ve **haber akışı** (KAP, Yahoo Finance, Google News, RSS; Ayarlar'dan kaynak yönetimi).

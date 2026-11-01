@@ -22,7 +22,7 @@ Arayüz: Finansal Planlama sayfası (`PlanningController`): Bütçe, Hedefler, D
 
 - **Veri:** `OptimizationMarketDataProvider` (zorunlu bağımlılık). Üretimde `DuckDBOptimizationMarketDataProvider` 504 günlük düzeltilmiş kapanışı DuckDB'den okur, eksik hissede yfinance sağlayıcısına düşer. Servis doğrudan ağ çağırmaz; sağlayıcı test için sahte olabilir.
 - **Getiri modeli:** günlük log getirilerin yıllıklandırılmış ortalaması (252 gün). **Kovaryans:** scikit-learn `LedoitWolf` büzüşmesi (büyük ve karışık varlık havuzlarında kararsızlığı önler).
-- **Amaç ve kısıtlar:** SciPy SLSQP ile `-(getiri - risksiz) / volatilite` minimize edilir; ağırlıklar `[0, max_tek_hisse]` aralığında ve toplamı 1'dir. Tek hisse sınırı `max(sınır, 1/n)` ile uygulanır (n küçükken uygulanabilirliği korur). Varsayılan politika (`OptimizationPolicy`): risksiz faiz %30, tek hisse üst sınırı %40, yıl 252 gün.
+- **Amaç ve kısıtlar:** SciPy SLSQP ile `-(getiri - risksiz) / volatilite` minimize edilir; ağırlıklar `[0, max_tek_hisse]` aralığında ve toplamı 1'dir. Tek hisse sınırı `max(sınır, 1/n)` ile uygulanır (n küçükken uygulanabilirliği korur). Varsayılan politika (`OptimizationPolicy`): risksiz faiz `DEFAULT_ANNUAL_RISK_FREE_RATE` (%40; analiz ekranlarıyla aynı), tek hisse üst sınırı %40, yıl 252 gün.
 - **Minimum volatilite noktası:** aynı kısıtlarla doğrudan volatiliteyi minimize eden ikinci bir çözüm (`min_volatility_metrics`).
 - **Veri yetersizliği:** en az 2 geçerli hisse ve 60 gün fiyat gerekir; yetersiz hisseler listelenir ve kısmi öneri üretilir. Sıfır volatilite, `NaN/inf` metrikler ve SLSQP başarısızlığı anlamlı hata verir.
 - **Sonuç:** `OptimizationResult` (mevcut, optimal ve minimum risk metrikleri; hisse bazlı EKLE/AZALT/TUT önerileri; geçersiz hisseler).

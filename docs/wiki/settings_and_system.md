@@ -11,7 +11,7 @@ Bu sayfa Ayarlar sayfasının sekmelerini, uygulama açılışında ve zamanlay�
 | Görünüm & Tema | `SettingsController` | Koyu/açık tema (`Theme.isDark`, `QSettings` `ui/isDarkTheme`). |
 | API Anahtarları | `SettingsController` | Gemini ve TCMB EVDS anahtarlarını işletim sistemi sır deposuna (`keyring`; yoksa `.env`) yazar (`persist_api_keys`; çalışan ayarlar yeniden başlatma gerektirmeden güncellenir) ve Gemini anahtarını canlı çağrıyla sınar. |
 | Veri Sağlığı & Senkronizasyon | `SettingsController`, `MarketSyncController` | SQLite ve DuckDB dosya boyutu, tablo satır sayıları (hisse, işlem, nakit hareketi, izleme listesi, model portföy, finansal hedef), DuckDB hisse/bar sayısı ve son seans tarihi, bütünlük kontrolü, "Eksik BIST Barlarını Şimdi Senkronize Et". Dosya yolları gösterilir. |
-| Dışa Aktarım & Yedekleme | `SettingsController` | Portföy raporunu Excel olarak, tam veri yedeğini JSON olarak (`stocks`, `trades`, `cash_movements`, `watchlists`) masaüstüne (yoksa `reports/`) yazar. |
+| Dışa Aktarım & Yedekleme | `SettingsController` | Portföy raporunu Excel olarak, tam veri yedeğini JSON olarak (`stocks`, `trades`, `cash_movements`, `watchlists`, `assets`, `asset_trades`) masaüstüne (yoksa `reports/`) yazar. |
 | Kurumsal Aksiyonlar | `CorporateActionController` | KAP/MKK aday listesi: yenile, kaynak aç, düzenle, yoksay, onayla ve uygula ([service_corporate_actions.md](service_corporate_actions.md)). |
 | Fiyat Verisi | `PriceDataController` | Kapsam seçili fiyat sağlığı: analiz, eksikleri tamamla, seçili hisseyi tamamla, son günden güncelle, aralığı sil, raporu kopyala ([service_portfolio_and_market.md](service_portfolio_and_market.md)). |
 | Piyasa Düzeltmeleri | `MarketAdjustmentController` | Tüm BIST için veriden tespit edilen sermaye artırımı adayları: tara, onayla (faktör düzenlenebilir), yoksay, yeniden aç ([market_corporate_actions.md](market_corporate_actions.md)). Liste olay sayacı gösterir. |
@@ -46,7 +46,7 @@ Fiyat yazan yollar (`MarketSyncController.dataSynced`, `SystemController.pricesR
 
 - Aç/kapa ve aralık (5/15/30/60 dk) ayarı kalıcıdır; "Şimdi Yenile" anında çalıştırır.
 - Tekil ticker hataları toast üretmez; art arda genel hata (eşik 3) birikirse kısa uyarı gösterilir.
-- **Sistemi sıfırla:** `PortfolioResetService.reset_all` model portföyleri, izleme listelerini, işlemleri, nakit hareketlerini, fiyatları ve hisse kayıtlarını siler. DuckDB piyasa verisi, bütçe/hedefler ve risk profili sıfırlanmaz. Geri alınamaz; onay ister. Sonrasında Genel Bakış, Portföyüm, Model Portföy ve izleme listesi yeniden yüklenir. **Bilinen sınır:** sıfırlama BIST dışı varlık defterini (`assets`, `asset_trades`, `asset_prices`, `asset_latest_prices`, `fx_rates`) ve haber kaynağı tercihlerini silmez; JSON yedeği de varlık defterini içermez ([roadmap.md](roadmap.md)).
+- **Sistemi sıfırla:** `PortfolioResetService.reset_all` model portföyleri, izleme listelerini, işlemleri, nakit hareketlerini, fiyatları ve hisse kayıtlarını siler. DuckDB piyasa verisi, bütçe/hedefler ve risk profili sıfırlanmaz. Geri alınamaz; onay ister. BIST dışı varlık defteri de (`assets`, `asset_trades`, `asset_prices`, `asset_latest_prices`) silinir; kurlar (`fx_rates`, piyasa verisi) ve haber kaynağı tercihleri (ayar) kalır. Sonrasında Genel Bakış, Portföyüm, Model Portföy ve izleme listesi yeniden yüklenir.
 
 ## 4. `QSettings` Anahtarları
 

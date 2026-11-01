@@ -15,7 +15,7 @@ graph TD
 | Katman | Dizin | Sorumluluk | Bağımlılık kuralı |
 |---|---|---|---|
 | Domain | `src/domain/` | Saf iş modelleri (`Portfolio`, `Position`, `Trade`, `CashMovement`, `CorporateAction`...) ve port arayüzleri (`I*Repository`, `I*Provider`). | Hiçbir dış paket veya katmana bağımlı değildir. |
-| Application | `src/application/` | İş servisleri, DI container (`AppContainer`), `GlobalEventBus`. | Yalnızca domain ve portlara bağlıdır; somut altyapıyı container'da görür. |
+| Application | `src/application/` | İş servisleri, DI container (`AppContainer`), `GlobalEventBus`. | Yalnızca domain ve portlara bağlıdır; somut altyapıyı yalnızca bileşim kökü (`container.py`, `container_parts/`) görür. Altyapı (`duckdb`, `sqlite3`, `yfinance`, `requests`, SQLAlchemy) ve çerçeve (PySide6/Qt) importu `tests/test_layer_guards.py` ile yasaktır. |
 | Infrastructure | `src/infrastructure/` | SQLAlchemy repository'leri, DuckDB deposu, yfinance/EVDS/KAP/İş Yatırım istemcileri, Gemini ve AI_Core sağlayıcıları, loglama. | Domain portlarını uygular. |
 | UI | `src/ui_qml/` | QML görünümleri (`qml/`), Python denetleyiciler (`controllers/`), tablo modelleri (`models/`). | Yalnızca application ve domain'e bağlanır (aşağıya bakın). |
 
@@ -86,7 +86,7 @@ Açılıştan sonra başlayan otomatik işler (ayrıntı: [settings_and_system.m
 - Ağ, veritabanı taraması ve ağır hesaplama ana (GUI) iş parçacığında çalıştırılmaz. Denetleyiciler `ThreadPoolExecutor` kullanır; sonuç, Qt kuyruklu sinyalleriyle (`_xxxFinished = Signal(...)`) ana iş parçacığına taşınır. Arka plan iş parçacığından QML özelliği değiştirilmez.
 - Açılış işleri tek bir iş parçacığında sırayla çalışır (veri kaynaklarını aynı anda yormamak için).
 - Etkileşimli `yfinance` çağrıları `yfinance_lock` kapısıyla serileştirilir; kapı 30 sn içinde alınamazsa uyarıp kilitsiz sürdürür (fail-open) ve kilit yeniden deneme beklemesi sırasında tutulmaz ([service_market_data_providers.md](service_market_data_providers.md)).
-- Fiyat güncellemeleri `GlobalEventBus.prices_updated` (Qt sinyali, yük: `dict[int, Decimal]`) ile yayınlanır; Genel Bakış, Portföyüm ve Model Portföy bu sinyali dinleyerek yenilenir.
+- Fiyat güncellemeleri `GlobalEventBus.prices_updated` (Qt'den bağımsız yayın/abone olayı, yük: `dict[int, Decimal]`; abone hatası yalıtılır) ile yayınlanır; `PriceRefreshController` yükü kendi Qt sinyaline aktararak ana iş parçacığına geçirir; Genel Bakış, Portföyüm ve Model Portföy bu sinyali dinleyerek yenilenir.
 
 ---
 

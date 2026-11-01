@@ -72,12 +72,13 @@ Kurallar:
 - **Birleşim:** Toplam değer = pozisyon değerleri + BIST nakdi. Container `CurrentPriceResolver` ve `StockLookupService` örneklerini paylaşır.
 - **Varlık fiyatı:** son fiyat ile son günlük kapanıştan tarihi daha yeni olan seçilir (eşitse son fiyat). Değer = `miktar x birim fiyat x güncel kur`.
 - **Maliyet ve K/Z:** TRY maliyet her alımın kendi kuruyla tutulur; `unrealized_pl_try` kur farkını da içerir.
+- **Eski veri işaretlenir:** fiyat (kripto 3 gün, diğerleri 7 gün) veya kur (7 gün) eşikten eskiyse pozisyon son bilinen değerle gösterilir ama `is_stale` olur; özet `stale_symbols` taşır ve Portföyüm uyarı satırı gösterir.
 - **Eksik veri sessizce atlanmaz:** fiyat veya kur yoksa pozisyon TRY maliyetiyle değerlenir, `is_priced=False` olur; özet `is_partial` ve `unpriced_symbols` taşır. (`Portfolio.total_market_value` ise fiyatsız pozisyonu atlar; iki davranış bilinçli olarak farklıdır.)
 - **Günlük kazanç:** varlığın kendi para biriminde günlük değişim; kazanç = bugünkü değer - önceki kapanış değeri (`değer - değer/(1+yüzde/100)`); kur hareketi dahil değil.
 - **Dağılım:** sınıf bazlı dilimler (BIST, ABD hisse, kripto, emtia, nakit), değere göre azalan; `weight_pct` toplam değere (nakit dahil) göredir.
 - **Gösterim:** yalnızca TRY ve USD; kur yoksa TRY'ye düşer ve `display_unavailable=True` olur.
 
-**Bilinen fark:** Genel Bakış'ın eski `DashboardController` günlük kazancı `bugünkü değer x yüzde` yaklaşığını kullanıyordu; birleşik servis tam formülü kullanır (gerçek veride -14.730 TL ve -13.780 TL). Portföyüm tüm rakamlarını birleşik servisten okur; `DashboardController` yalnızca BIST modalları ve BIST haftalık/aylık getiri kartları için kalır. Toplam değer, maliyet ve nakit iki yolda birebir aynıdır.
+**Tek hesap yolu:** Eski `DashboardController` değerlemesi (yaklaşık günlük kazanç `değer x yüzde`) 2026-11-01'de kaldırıldı; portföy rakamlarının tek kaynağı bu servistir. `DashboardController` yalnızca BIST işlemleri, sermaye, BIST haftalık/aylık getiri ve Excel raporunu sunar. Piyasa kapalı günde günlük K/Z kartı "Son İşlem Günü" etiketiyle gösterilir.
 
 ## 6. Container ve Test
 

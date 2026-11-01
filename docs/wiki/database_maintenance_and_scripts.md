@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Şema: [database_schema_and_orm.md](database_schema_and_orm.md) | Veri sahipliği: [data_architecture.md](data_architecture.md)
 
-## 1. Uygulama İçi Bakım (`DatabaseMaintenanceService`)
+## 1. Uygulama İçi Bakım (`DatabaseMaintenanceService` -> `IDatabaseMaintenance` -> `SqliteDuckDbMaintenance`)
 
 `src/application/services/database/database_maintenance_service.py`, Ayarlar > Veri Sağlığı ve Dışa Aktarım sekmeleri için SQLite ve DuckDB dosyalarını **salt okunur** açar; arayüz katmanı ham bağlantı kullanmaz.
 

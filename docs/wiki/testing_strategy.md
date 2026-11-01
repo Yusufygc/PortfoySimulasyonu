@@ -23,6 +23,9 @@
 |---|---|
 | `tests/ui_qml/test_architecture_guards.py` | `src/ui_qml`: `src.infrastructure`, `sqlite3`, `duckdb`, `sqlalchemy`, `src.ui` import yok; denetleyicilerde `*_repo` erişimi yok. |
 | `tests/ui_qml/test_strings_catalog.py` | `Strings.*` referansları tanımlı; yinelenen veya kullanılmayan anahtar yok; QML'de sabit kullanıcı metni ve Türkçe literal yok (izin listesi hariç). |
+| `tests/test_layer_guards.py` | `src/application` (bileşim kökü hariç) ve `src/domain` altyapı/çerçeve (`duckdb`, `sqlite3`, `yfinance`, `requests`, SQLAlchemy, PySide6, `src.infrastructure`, `src.ui_qml`) import etmez. |
+| `tests/ui_qml/test_numbers_singleton.py` | QML `Numbers.parse` Python `parse_decimal_text` ile aynı sonucu verir; bileşenlerde kullanıcı girdisine `parseFloat`/`parseInt` yazılmaz. |
+| `tests/ui_qml/test_external_content_safety.py` | Bağlantı şeması, haber metni temizliği, grafik HTML'inde JS/HTML kaçışı. |
 | `tests/test_repo_guards.py` | Testlerde canlı ağ çağrısı yok; `src/ui` paketi geri gelmez; `app.py` `AA_ShareOpenGLContexts` ayarını `run_qml_app`'ten önce yapar. |
 | `tests/infrastructure/test_production_guards.py` | Depoda gerçek sır literal'i yok; derleme preflight statik koşulları. |
 | `tests/infrastructure/test_test_isolation.py` | Testlerin gerçek veritabanına yazmaması. |

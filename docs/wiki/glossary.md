@@ -69,7 +69,7 @@ Projede geçen alan ve teknik terimler. Ayrıntı için ilgili sayfaya bakın.
 | **Denetleyici (controller)** | QML için Python `QObject` (ViewModel) ([ui_architecture_and_events.md](ui_architecture_and_events.md)). |
 | **Context property** | `setContextProperty` ile QML'e açılan denetleyici. |
 | **Lazy `Loader`** | Sayfanın ilk ziyarette yüklenmesi. |
-| **EventBus** | `GlobalEventBus.prices_updated` Qt sinyali. |
+| **EventBus** | `GlobalEventBus.prices_updated`: Qt'den bağımsız yayın/abone olayı (uygulama katmanı). |
 | **Guard testi** | Mimari/standart kuralını otomatik denetleyen test ([testing_strategy.md](testing_strategy.md)). |
 | **AI_Core** | Hisse tahmin/XAI üreten ayrı FastAPI projesi (`ts_forecasting_lab`). |
 | **Tool-calling** | LLM'in tanımlı araçları çağırarak gerçek veriyle yanıt kurması ([ai_integration.md](ai_integration.md)). |

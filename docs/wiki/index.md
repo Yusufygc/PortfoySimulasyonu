@@ -17,6 +17,7 @@
 | [development_guide.md](development_guide.md) | Kurulum, `.env` ayarları, komutlar, gerçek veriyi koruma, yeni özellik kalıpları, sık sorunlar |
 | [glossary.md](glossary.md) | Finans, risk ve mimari terimler sözlüğü |
 | [roadmap.md](roadmap.md) | Kodda olmayan özellikler (fikir havuzu) ve bilinen teknik borç |
+| [architecture_evolution_plan.md](architecture_evolution_plan.md) | Mimari evrim planı: presenter katmanı, tek metin kataloğu, büyük denetleyicilerin bölünmesi, okuma servisleri, komisyon |
 
 ## Arayüz
 

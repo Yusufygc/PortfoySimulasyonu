@@ -34,10 +34,10 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | Alt dizin | Servisler |
 |---|---|
 | `container.py`, `container_parts/` | DI container ve fabrikalar (`repositories`, `market_clients`, `services`, `ai`). |
-| `events/` | `GlobalEventBus` (`prices_updated`). |
+| `events/` | `GlobalEventBus` (`prices_updated`; Qt'den bağımsız yayın/abone). |
 | `services/portfolio/` | `PortfolioService`, `TradeEntryService`, `CashMovementService`, `PortfolioMaintenanceService`, `PortfolioResetService`, `timeline_validator`, `safe_portfolio_builder`. |
 | `services/market/` | `StockLookupService`, `CurrentPriceResolver`, `LivePriceRefreshService`, `PriceDataHealthService`, `PriceLookupService`, `MarketIndicatorsService`, `BistMarketSessionService`, işlem günü takvimi ve seans koruması. |
-| `services/market_data/` | `MarketDataSyncService` (artımlı DuckDB senkronu), `BistBulkDownloader`, `MarketUniverseMigrationService`. |
+| `services/market_data/` | `MarketDataSyncService` (artımlı senkron; DuckDB ve yfinance'e `IMarketHistoryStore` / `IMarketBarDownloader` portlarıyla erişir), `MarketUniverseMigrationService`. |
 | `services/corporate_actions/` | `CorporateActionService`, `CorporateActionPriceAdjustmentService`, KAP/MKK aday keşfi ve inceleme, `MarketCorporateActionService` (DuckDB). |
 | `services/analysis/` | `AnalysisService`, `PortfolioAnalyticsService`, `ComparisonService`, `AnalysisBenchmarkService`, `ReturnCalcService`, `risk_metrics`, `Stock360Service`, `FinancialAnalysisService`, `ShareholderAnalysisService`; `financials/` (metrik, değerleme, enflasyon) ve `technical/` (göstergeler, tarayıcı, Golden Cross, destek/direnç). |
 | `services/planning/` | `PlanningService`, `OptimizationService`, `frontier_simulation`, `RiskProfileService`, `RiskOptimizationBridgeService`, model portföy servisleri. |
@@ -47,7 +47,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | `services/news/` | `NewsService`, `NewsTargetService` ([service_news.md](service_news.md)). |
 | `services/reporting/` | Excel dışa aktarım (`ExcelExportService`, `ModelPortfolioExcelExportService`...) ve `html/` (Plotly/finansal/ortaklık HTML üreticileri). |
 | `services/ai/` | `AiAdvisorService`, `advisor_tools`, `AiChatService`, `AiAnalysisService`, `ChatSessionService`, `safety_guard`. |
-| `services/database/` | `DatabaseMaintenanceService`. |
+| `services/database/` | `DatabaseMaintenanceService` (`IDatabaseMaintenance` portu üzerinden). |
 
 ## 4. `src/infrastructure/`
 
@@ -55,6 +55,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 |---|---|
 | `db/` | `paths.py` (veri dosyası yolları), `db_config.py`, `sqlalchemy/` (`database_engine`, `schema_migrations`, `orm_models`, 20 repository). |
 | `market_data/` | DuckDB deposu (`duckdb_market_history_repo`, `duckdb_corporate_action_store`, `duckdb_optimization_market_data_provider`), yfinance istemcileri (`yfinance_asset_price_provider` varlık fiyatı ve kur), `evds_client`, `evds_tufe_provider`, `isyatirim_provider`, `scraped_benchmark_provider`. |
+| `market_data/` (ek) | `bist_bulk_downloader` (TradingView + yfinance ilk yükleme), `duckdb_market_history_store`, `yfinance_bist_bar_downloader`. `db/database_maintenance.py`: `SqliteDuckDbMaintenance`. |
 | `news/` | Haber sağlayıcıları (`kap_news_provider`, `rss_providers`: RSS/Yahoo/Google), `feed_parser`, `_http`, `news_file_cache`, `default_sources`, `provider_factory`. |
 | `corporate_actions/` | `kap_mkk_provider` (kurumsal aksiyon duyuruları), `kap_shareholder_provider` (ortaklık yapısı). |
 | `calendar/` | BIST resmi tatil takvimi (2020-2030) ve işlem günü sağlayıcıları. |
@@ -78,7 +79,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 
 ## 6. `src/qt_compat/`
 
-Qt binding sınırı: `qtcore`, `qtwidgets` ve `scaling` (Windows ekran ölçeğini ters `QT_SCALE_FACTOR` ile normalize eder). Üretim kodu `GlobalEventBus` gibi yerlerde Qt sınıflarını buradan alır.
+Qt binding sınırı: `qtcore`, `qtwidgets` ve `scaling` (Windows ekran ölçeğini ters `QT_SCALE_FACTOR` ile normalize eder). Uygulama katmanı Qt kullanmaz (`tests/test_layer_guards.py`).
 
 ## 7. Test Dizini
 

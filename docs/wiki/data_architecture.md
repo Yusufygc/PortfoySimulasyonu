@@ -29,7 +29,7 @@ ile gider; endeks (`^XU100`), kur (`USDTRY=X`) ve zaten uzantılı semboller old
 | `daily_prices` | `ticker`, `price_date` (PK birlikte), `open_price`, `high_price`, `low_price`, `close_price`, `volume` (ham, düzeltilmemiş) |
 | `market_corporate_actions` | `ticker`, `effective_date` (PK), `factor`, `action_type`, `status`, `source`, `ex_date`, `ratio`, `rights_price`, `observed_ratio`, `confidence`, `note`, `updated_at` |
 
-Dosyayı yalnızca `BistBulkDownloader` ve `MarketDataSyncService` (yazma), `DuckDBMarketHistoryRepository` ve `DuckDBCorporateActionStore` (okuma/aksiyon yazma) açar; `DatabaseMaintenanceService` istatistik için salt okunur açar.
+Dosyayı yalnızca altyapı sınıfları açar: `BistBulkDownloader` (ilk yükleme) ve `DuckDBMarketHistoryStore` (artımlı yazma; `MarketDataSyncService` bunu `IMarketHistoryStore` portuyla kullanır), `DuckDBMarketHistoryRepository` ve `DuckDBCorporateActionStore` (okuma/aksiyon yazma); `SqliteDuckDbMaintenance` istatistik için salt okunur açar (`DatabaseMaintenanceService` portu üzerinden).
 
 ## Sahiplik özeti
 

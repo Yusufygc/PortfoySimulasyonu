@@ -70,7 +70,7 @@ Kurallar: arka plan iş parçacığından QML özelliği doğrudan değiştirilm
 
 | Mekanizma | Kullanım |
 |---|---|
-| `GlobalEventBus.prices_updated` (`dict[int, Decimal]`) | Fiyat güncellemesi (canlı yenileme, kapanış tamamlama, açılış işleri). Yalnızca `PriceRefreshController` dinler; ekranlar yükteki fiyatı kullanmaz, DB'den yeniden okur. Boş yük yayınlanmaz. |
+| `GlobalEventBus.prices_updated` (`dict[int, Decimal]`) | Fiyat güncellemesi (canlı yenileme, kapanış tamamlama, açılış işleri). Qt'den bağımsız olaydır; abone yayının yapıldığı iş parçacığında çağrılır. Yalnızca `PriceRefreshController` dinler ve yükü kendi Qt sinyaliyle ana iş parçacığına aktarır; ekranlar yükteki fiyatı kullanmaz, DB'den yeniden okur. Boş yük yayınlanmaz. |
 | Denetleyici sinyalleri (`dataSynced`, `pricesUpdated`, `portfolioChanged`, `pricesRefreshed`, `systemReset`) | `app.py` içinde `PriceRefreshController.watch` ile bağlanır ve tek `pricesChanged` sinyalinde birleşir (400 ms); Ana Sayfa (`reloadPrices`), Portföyüm (`myPortfolioController.reloadPrices`), İzleme Listesi (`refreshPrices`), Model Portföy (`reloadPrices`) DB'den yeniden okur. `portfolioChanged`/`systemReset` ayrıca Model Portföy listesini (`refreshData`) ve Portföyüm'ü (`reload`) yeniler. |
 | Varlık ve haber sinyalleri | `assetsController.dataChanged` Portföyüm'ü (`reload`), haber panelini (`newsController.refresh`) ve grafik hızlı seçicisini (`chartController.refreshAssets`) yeniler; `newsSettingsController.sourcesChanged` haber panelini, `refreshMinutesChanged` haber zamanlayıcısını günceller. `AssetsController(autostart=True)` 5 dakikada bir varlık fiyatlarını sessizce yeniler, `NewsController(autostart=True)` ayardaki aralıkta (varsayılan 10 dk) haberleri yeniler; ikisi de testte varsayılan olarak kapalıdır. |
 | `QSettings` | Tema, otomatik iş işaretleri, son güncelleme zamanları, sohbet geçmişi. |
@@ -82,7 +82,9 @@ Güncel fiyat: `latest_prices` canlı kaydı yalnızca seans içinde alınmışs
 - Denetleyici yalnızca `container.<servis>` üzerinden application servisine bağlanır; repository, `sqlite3`, `duckdb`, `sqlalchemy` ve `src.infrastructure` import edilmez (`tests/ui_qml/test_architecture_guards.py`).
 - Hisse ve fiyat okuma: `StockLookupService`. Veritabanı istatistiği/bütünlük/yedek: `DatabaseMaintenanceService`. Piyasa düzeltme listesi: `MarketCorporateActionService`. Gemini sağlayıcısı: container'dan enjekte edilen `chat_provider_factory`.
 - Servis bulunamazsa (çevrimdışı mod) denetleyici boş durum gösterir ve çökmez; hata kullanıcıya kısa Türkçe metinle yansıtılır, ayrıntı loga yazılır.
-- Kullanıcı girdisi denetleyicide doğrulanır: sayılar `number_input.parse_decimal_text` (`1.234,5`, `50.000`, `1234.5`), tarihler `YYYY-AA-GG` veya `GG.AA.YYYY`.
+- Kullanıcı girdisi denetleyicide doğrulanır: sayılar `number_input.parse_decimal_text` (`1.234,5`, `50.000`, `1234.5`), tarihler `YYYY-AA-GG` veya `GG.AA.YYYY`. QML'de sayı okumak gerekiyorsa yalnızca `Numbers.parse` / `Numbers.parseInteger` (tema tekili, Python kurallarıyla aynı) kullanılır; JavaScript `parseFloat` Türkçe biçimi yanlış okur (`50.000` -> 50) ve kullanıcı girdisinde testle yasaktır (`test_numbers_singleton.py`).
+- Denetleyiciler servis kurmaz: `DatabaseMaintenanceService`, `MarketDataSyncService` gibi servisler yalnızca container'dan alınır; container yoksa ilgili işlem "kullanılamıyor" döner.
+- Dış kaynaklı metin (haber, KAP, ortak adları) QML'de `textFormat: Text.PlainText` ile gösterilir; dış bağlantılar yalnızca `url_opener.open_external_url` ile (http/https) açılır; WebEngine HTML'ine gömülen adlar `js_literal` ile kaçışlanır.
 - İşlem girişi (alım/satım) için BIST seans koruması servis katmanındadır (`TradeEntryService`, `ModelPortfolioTradeService`): hafta sonu, tatil ve seans dışı saatte kayıt oluşmaz. Nakit/sermaye hareketleri bu kurala dahil değildir.
 
 ## 8. Ekran Ölçeği
