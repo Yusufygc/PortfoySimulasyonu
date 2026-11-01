@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
 from src.ui_qml.controllers.advisor_local_analysis import TOOL_LABELS
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -29,33 +30,30 @@ TEMEL İLKELERİN:
 """
 
 _WELCOME_TEXT = (
-    "**Merhaba! Ben Gemini destekli Yapay Zeka Portföy Danışmanınız.**\n\n"
-    "Portföyünüzün risk ve varlık dağılımını analiz edebilir, Modern Portföy Teorisi'ne göre "
-    "yeniden dengeleme (rebalance) önerileri sunabilir ve hisselerinizin teknik/temel verilerini yorumlayabilirim.\n\n"
-    "Aşağıdaki **Hızlı Analiz Soruları**ndan birine tıklayabilir veya aklınızdaki soruyu doğrudan yazabilirsiniz."
+    msg("advisor_chat.merhaba_ben_gemini_destekli_yapay_zeka")
 )
 
 
 def default_quick_prompts() -> List[Dict[str, Any]]:
     return [
         {
-            "title": "Portföy Risk Analizi",
-            "prompt": "Portföyümün genel risk ve getiri durumunu, Sharpe oranını ve en büyük risk faktörlerini özetler misin?",
+            "title": msg("advisor_chat.portfoy_risk_analizi"),
+            "prompt": msg("advisor_chat.portfoyumun_genel_risk_ve_getiri_durumunu"),
             "icon": "shield-check",
         },
         {
-            "title": "Varlık Dağılımı & Yoğunlaşma",
-            "prompt": "Portföyümdeki varlık dağılımı ve hisse ağırlıklarım dengeli mi? Aşırı yoğunlaşma riski taşıyan hissem var mı?",
+            "title": msg("advisor_chat.varlik_dagilimi_yogunlasma"),
+            "prompt": msg("advisor_chat.portfoyumdeki_varlik_dagilimi_ve_hisse_agirl"),
             "icon": "pie-chart",
         },
         {
             "title": "Rebalance (Yeniden Dengeleme)",
-            "prompt": "Dengeli risk profiline göre portföyümü optimize ettiğimizde hangi hisseleri artırmalı veya azaltmalıyım?",
+            "prompt": msg("advisor_chat.dengeli_risk_profiline_gore_portfoyumu_optim"),
             "icon": "scale",
         },
         {
-            "title": "Hisse Durum Değerlendirmesi",
-            "prompt": "Portföyümdeki en büyük pozisyonumun güncel fiyatı, teknik seviyeleri ve 52 haftalık görünümü nedir?",
+            "title": msg("advisor_chat.hisse_durum_degerlendirmesi"),
+            "prompt": msg("advisor_chat.portfoyumdeki_en_buyuk_pozisyonumun_guncel_f"),
             "icon": "trending-up",
         },
     ]

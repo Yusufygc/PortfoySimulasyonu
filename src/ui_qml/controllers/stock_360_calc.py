@@ -14,6 +14,7 @@ from src.ui_qml.controllers.stock_360_formatters import (
     format_currency,
     format_price,
 )
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -71,11 +72,11 @@ def compute_financial_bars(
     }.get(active_tab, "satis_ceyrek")
 
     metric_name = {
-        "satis": "Net Satışlar",
-        "brut_kar": "Brüt Kâr",
-        "favok": "FAVÖK",
+        "satis": msg("stock360.net_satislar"),
+        "brut_kar": msg("stock360.brut_kar"),
+        "favok": msg("stock360.favok"),
         "net_kar": "Net Kâr",
-    }.get(active_tab, "Net Satışlar")
+    }.get(active_tab, msg("stock360.net_satislar"))
 
     series = raw_data.get(metric_key, {})
     sub_periods = periods[:6]  # Son 6 çeyrek
@@ -229,10 +230,10 @@ def _dupont_from_statements(m: Dict[str, Any], period: str, current: Tuple[Any, 
 
 def _piotroski_band(score: int) -> Tuple[str, str]:
     if score >= 7:
-        return "Yüksek Finansal Güç", "#089981"
+        return msg("stock360.yuksek_finansal_guc"), "#089981"
     if score >= 4:
-        return "Dengeli Finansal Yapı", "#2962ff"
-    return "Baskılanmış Risk Bölgesi", "#f23645"
+        return msg("stock360.dengeli_finansal_yapi"), "#2962ff"
+    return msg("stock360.baskilanmis_risk_bolgesi"), "#f23645"
 
 
 def compute_dupont_data(
@@ -295,7 +296,7 @@ def compute_cash_flow_data(
         "netDebt": format_currency(nb),
         "netDebtEbitda": _format_or_dash(nb_fav, "{:.2f}x"),
         "isDebtSafe": is_safe,
-        "debtStatus": "Sürdürülebilir & Sağlıklı" if is_safe else "Yüksek Borçluluk",
+        "debtStatus": msg("stock360.surdurulebilir_saglikli") if is_safe else msg("stock360.yuksek_borcluluk"),
     }
 
 

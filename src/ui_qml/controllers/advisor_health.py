@@ -5,23 +5,24 @@ Saf fonksiyonlardır; yalnızca `get_allocation_and_risk` aracının çıktı s�
 from __future__ import annotations
 
 from typing import Any, Dict, List, Sequence, Tuple
+from src.ui_qml.messages import msg
 
 _FACTOR_MAX = 25
 _GOOD_SCORE = 18
 
 # (üst sınır, puan, durum); sınırı aşan değerler son satırdaki varsayılana düşer.
-_DIVERSITY_BANDS = ((40.0, 25, "Yüksek Çeşitlilik"), (60.0, 20, "Dengeli Dağılım"), (80.0, 12, "Orta Yoğunlaşma"))
-_DIVERSITY_DEFAULT = (6, "Yüksek Yoğunlaşma Riski")
-_VOLATILITY_BANDS = ((22.0, 25, "Düşük Volatilite"), (32.0, 20, "Piyasa Ortalaması"), (42.0, 14, "Yüksek Dalgalanma"))
-_VOLATILITY_DEFAULT = (8, "Aşırı Riskli")
-_DRAWDOWN_BANDS = ((15.0, 25, "Mükemmel Koruma"), (25.0, 20, "Normal Geri Çekilme"), (35.0, 14, "Yüksek Kayıp Riski"))
-_DRAWDOWN_DEFAULT = (8, "Kritik Düşüş Seviyesi")
+_DIVERSITY_BANDS = ((40.0, 25, msg("advisor_health.yuksek_cesitlilik")), (60.0, 20, msg("advisor_health.dengeli_dagilim")), (80.0, 12, msg("advisor_health.orta_yogunlasma")))
+_DIVERSITY_DEFAULT = (6, msg("advisor_health.yuksek_yogunlasma_riski"))
+_VOLATILITY_BANDS = ((22.0, 25, msg("advisor_health.dusuk_volatilite")), (32.0, 20, msg("advisor_health.piyasa_ortalamasi")), (42.0, 14, msg("advisor_health.yuksek_dalgalanma")))
+_VOLATILITY_DEFAULT = (8, msg("advisor_health.asiri_riskli"))
+_DRAWDOWN_BANDS = ((15.0, 25, msg("advisor_health.mukemmel_koruma")), (25.0, 20, msg("advisor_health.normal_geri_cekilme")), (35.0, 14, msg("advisor_health.yuksek_kayip_riski")))
+_DRAWDOWN_DEFAULT = (8, msg("advisor_health.kritik_dusus_seviyesi"))
 # (alt sınır, puan, durum); sınırın altındaki değerler son satırdaki varsayılana düşer.
-_SHARPE_BANDS = ((1.5, 25, "Mükemmel Getiri/Risk"), (1.0, 20, "İyi Performans"), (0.5, 14, "Kabul Edilebilir"))
-_SHARPE_DEFAULT = (8, "Düşük Getiri Verimi")
+_SHARPE_BANDS = ((1.5, 25, msg("advisor_health.mukemmel_getiri_risk")), (1.0, 20, msg("advisor_health.iyi_performans")), (0.5, 14, "Kabul Edilebilir"))
+_SHARPE_DEFAULT = (8, msg("advisor_health.dusuk_getiri_verimi"))
 
-_LABEL_BANDS = ((80, "Çok Güçlü"), (65, "Dengeli"), (50, "Orta Risk"))
-_LABEL_DEFAULT = "Yüksek Risk"
+_LABEL_BANDS = ((80, msg("advisor_health.cok_guclu")), (65, "Dengeli"), (50, "Orta Risk"))
+_LABEL_DEFAULT = msg("advisor_health.yuksek_risk")
 
 
 def _score_at_most(value: float, bands: Sequence[Tuple[float, int, str]], default: Tuple[int, str]) -> Tuple[int, str]:
@@ -65,10 +66,10 @@ def compute_health(risk_data: Dict[str, Any]) -> Tuple[int, str, List[Dict[str, 
 
     total = max(0, min(100, diversity[0] + vol[0] + shp[0] + dd[0]))
     factors = [
-        _factor("Varlık Çeşitliliği", f"%{top3_w:.1f} (İlk 3)", diversity),
+        _factor(msg("advisor_health.varlik_cesitliligi"), msg("advisor_health.ilk_3", top3_w=top3_w), diversity),
         _factor("Volatilite & Risk", f"%{volatility:.1f}", vol),
         _factor("Sharpe Rasyosu", f"{sharpe_val:.2f}", shp),
-        _factor("Maksimum Düşüş", f"-%{max_dd:.1f}", dd),
+        _factor(msg("advisor_health.maksimum_dusus"), f"-%{max_dd:.1f}", dd),
     ]
     return total, _overall_label(total), factors
 
@@ -76,8 +77,8 @@ def compute_health(risk_data: Dict[str, Any]) -> Tuple[int, str, List[Dict[str, 
 def default_health() -> Tuple[int, str, List[Dict[str, Any]]]:
     """Analitik veri alınamadığında gösterilen sabit sağlık özeti."""
     return 70, "Dengeli", [
-        {"title": "Varlık Çeşitliliği", "value": "%55.0", "score": 18, "maxScore": 25, "status": "Dengeli Dağılım", "isGood": True},
-        {"title": "Volatilite & Risk", "value": "%28.4", "score": 19, "maxScore": 25, "status": "Piyasa Ortalaması", "isGood": True},
-        {"title": "Sharpe Rasyosu", "value": "1.12", "score": 18, "maxScore": 25, "status": "İyi Performans", "isGood": True},
-        {"title": "Maksimum Düşüş", "value": "-%18.5", "score": 15, "maxScore": 25, "status": "Normal Seviye", "isGood": True},
+        {"title": msg("advisor_health.varlik_cesitliligi"), "value": "%55.0", "score": 18, "maxScore": 25, "status": msg("advisor_health.dengeli_dagilim"), "isGood": True},
+        {"title": "Volatilite & Risk", "value": "%28.4", "score": 19, "maxScore": 25, "status": msg("advisor_health.piyasa_ortalamasi"), "isGood": True},
+        {"title": "Sharpe Rasyosu", "value": "1.12", "score": 18, "maxScore": 25, "status": msg("advisor_health.iyi_performans"), "isGood": True},
+        {"title": msg("advisor_health.maksimum_dusus"), "value": "-%18.5", "score": 15, "maxScore": 25, "status": "Normal Seviye", "isGood": True},
     ]

@@ -31,6 +31,7 @@ from src.ui_qml.controllers.advisor_chat_support import (
     try_gemini_chat,
 )
 from src.ui_qml.controllers.advisor_local_analysis import TOOL_LABELS, generate_local_portfolio_analysis
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class AiAdvisorController(QObject):
 
         # Dahili durumlar
         self._is_loading = False
-        self._status_message = "Hazır"
+        self._status_message = msg("ai_advisor.hazir")
         self._model_name = "Gemini 2.5 Flash"
         self._messages: List[Dict[str, Any]] = []
         self._session: Optional[ChatSession] = None  # etkin sohbet oturumu
@@ -256,7 +257,7 @@ class AiAdvisorController(QObject):
         """Eski ad: yeni sohbet başlatır (geçmiş korunur)."""
         if self._session is None or self._get_session_service() is None:
             self._init_welcome_message()
-            self._set_status("Sohbet sıfırlandı")
+            self._set_status(msg("ai_advisor.sohbet_sifirlandi"))
             return
         self.newChat()
 
@@ -312,7 +313,7 @@ class AiAdvisorController(QObject):
         self.messageReceived.emit("user", query)
 
         self._set_loading(True)
-        self._set_status("Gemini analiz ediyor ve portföy verilerini inceliyor...")
+        self._set_status(msg("ai_advisor.gemini_analiz_ediyor_ve_portfoy_verilerini"))
 
         # Asenkron arka plan görevi
         history_tuples = [(m["role"], m["content"]) for m in self._messages if m["role"] in ("user", "ai")]
@@ -370,7 +371,7 @@ class AiAdvisorController(QObject):
         self.messagesChanged.emit()
         self.messageReceived.emit("ai", ai_msg["content"])
         self._set_loading(False)
-        self._set_status("Hazır")
+        self._set_status(msg("ai_advisor.hazir"))
         self._persist_session()
 
     def _on_async_error_ready(self, error_msg: str) -> None:
@@ -378,7 +379,7 @@ class AiAdvisorController(QObject):
         err_entry = {
             "id": f"msg-{len(self._messages) + 1}",
             "role": "system",
-            "content": f"Yanıt alınırken bir hata oluştu: {error_msg}",
+            "content": msg("ai_advisor.yanit_alinirken_bir_hata_olustu", error_msg=error_msg),
             "timestamp": now_str,
             "toolCalls": [],
         }
@@ -386,7 +387,7 @@ class AiAdvisorController(QObject):
         self.messagesChanged.emit()
         self.aiErrorOccurred.emit(error_msg)
         self._set_loading(False)
-        self._set_status("Hata oluştu")
+        self._set_status(msg("ai_advisor.hata_olustu"))
 
     # -------------------------------------------------------------------------
     # Portföy Sağlık Skoru & XAI Risk Faktörleri Hesaplama
@@ -430,14 +431,14 @@ class AiAdvisorController(QObject):
                 persist_api_keys(settings, gemini_key=clean_key)
             except Exception as exc:
                 logger.exception("Gemini API anahtarı kaydedilemedi: %s", exc)
-                self._set_status(f"API anahtarı kaydedilemedi: {exc}")
+                self._set_status(msg("ai_advisor.api_anahtari_kaydedilemedi", exc=exc))
                 return
             self.hasApiKeyChanged.emit(True)
-            self._set_status("Gemini API Anahtarı kaydedildi")
+            self._set_status(msg("ai_advisor.gemini_api_anahtari_kaydedildi"))
             self._messages.append({
                 "id": f"msg-{len(self._messages) + 1}",
                 "role": "system",
-                "content": "Google Gemini API anahtarınız başarıyla tanımlandı. Gemini 2.5 Flash ile tam etkileşimli danışmanlık aktif.",
+                "content": msg("ai_advisor.google_gemini_api_anahtariniz_basariyla_tani"),
                 "timestamp": datetime.now().strftime("%H:%M"),
                 "toolCalls": [],
             })

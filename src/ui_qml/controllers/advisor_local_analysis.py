@@ -9,23 +9,24 @@ from typing import Any, Dict, List, Tuple
 
 from src.ui_qml.controllers.advisor_query_intent import is_optimization_query
 from src.ui_qml.presenters.formatting import tr_money, tr_pct
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
 TOOL_LABELS = {
-    "get_portfolio_overview": "Portföy Genel Özeti",
-    "get_allocation_and_risk": "Varlık Dağılımı ve Risk",
+    "get_portfolio_overview": msg("advisor_local.portfoy_genel_ozeti"),
+    "get_allocation_and_risk": msg("advisor_local.varlik_dagilimi_ve_risk"),
     "suggest_optimization": "Markowitz Optimizasyonu",
     "get_stock_overview": "Hisse Teknik & Fiyat Analizi",
 }
 
 _LOCAL_NOTE_OPTIMIZATION = (
-    "*Not: Yerel analiz motoru çalıştırıldı. Gemini API anahtarı ekleyerek çoklu turlu etkileşimli danışmanlığı aktif edebilirsiniz.*"
+    msg("advisor_local.not_yerel_analiz_motoru_calistirildi_gemini")
 )
 _LOCAL_NOTE_GENERAL = (
-    "*Not: Yerel analiz motoru çalıştırıldı. Gemini API anahtarı tanımlandığında model ile doğrudan serbest sohbet edebilirsiniz.*"
+    msg("advisor_local.not_yerel_analiz_motoru_calistirildi_gemini_2")
 )
-_DISCLAIMER = "**Yatırım Tavsiyesi Değildir (YTD).**"
+_DISCLAIMER = msg("advisor_local.yatirim_tavsiyesi_degildir_ytd")
 
 
 def _call_tool(advisor: Any, name: str, args: Dict[str, Any], used_tools: List[Dict[str, str]]) -> Dict[str, Any]:
@@ -44,14 +45,13 @@ def _call_tool(advisor: Any, name: str, args: Dict[str, Any], used_tools: List[D
 def _optimization_report(total_val: float, opt_data: Dict[str, Any]) -> str:
     suggestions = opt_data.get("suggestions", [])
     lines = [
-        "### Modern Portföy Teorisi — Yeniden Dengeleme Analizi",
+        msg("advisor_local.modern_portfoy_teorisi_yeniden_dengeleme_ana"),
         "",
-        f"Mevcut portföyünüzün toplam büyüklüğü **{tr_money(total_val)}** seviyesindedir. "
-        f"Dengeli risk profili simülasyonuna göre portföyünüzün getiri/risk oranını maksimize etmek için aşağıdaki düzenlemeler önerilmektedir:",
+        msg("advisor_local.mevcut_portfoyunuzun_toplam_buyuklugu_seviye", amount=tr_money(total_val)),
         "",
     ]
     if suggestions:
-        lines.append("| Hisse | Mevcut Pay | Hedef Pay | Değişim | Aksiyon |")
+        lines.append(msg("advisor_local.hisse_mevcut_pay_hedef_pay_degisim"))
         lines.append("| :--- | :--- | :--- | :--- | :--- |")
         for s in suggestions[:6]:
             sym = s.get("symbol", "").replace(".IS", "")
@@ -62,35 +62,33 @@ def _optimization_report(total_val: float, opt_data: Dict[str, Any]) -> str:
             lines.append(f"| **{sym}** | {cur_w} | {opt_w} | {chg} | **{act}** |")
         lines.append("")
         lines.append(
-            "**Stratejik Değerlendirme:** Portföyde ağırlığı yüksek olan hisselerden kâr realizasyonu "
-            "yapılarak ağırlığı düşük kalan hisselere pay aktarılması genel portföy volatilitesini düşürecektir."
+            msg("advisor_local.stratejik_degerlendirme_portfoyde_agirligi_y")
         )
     else:
-        lines.append("Portföyünüzde henüz yeterli çeşitlilikte hisse senedi bulunmadığından optimizasyon matrisi oluşturulamadı.")
+        lines.append(msg("advisor_local.portfoyunuzde_henuz_yeterli_cesitlilikte_his"))
 
     lines.extend(["", _LOCAL_NOTE_OPTIMIZATION, "", _DISCLAIMER])
     return "\n".join(lines)
 
 
 def _advisor_assessment(top3_weight: float, sharpe: float | None) -> List[str]:
-    lines = ["#### Danışman Değerlendirmesi:"]
+    lines = [msg("advisor_local.danisman_degerlendirmesi")]
     if top3_weight > 60:
         lines.append(
-            "- **Yüksek Yoğunlaşma Riski:** Portföyünüzün %60'ından fazlası ilk 3 hissede toplanmış durumda. "
-            "Sektörel şoklara karşı dayanıklılığı artırmak için portföyü farklı sektörlere yaymanız önerilir."
+            msg("advisor_local.yuksek_yogunlasma_riski_portfoyunuzun_60_ind")
         )
     else:
         lines.append(
-            "- **Dengeli Varlık Dağılımı:** Hisselerinizin portföye dağılımı makul seviyelerde. Tek bir hisseye aşırı bağımlılık riski düşük."
+            msg("advisor_local.dengeli_varlik_dagilimi_hisselerinizin_portf")
         )
 
     if sharpe is not None and sharpe > 1.0:
         lines.append(
-            "- **Güçlü Risk-Getiri Dengesi:** Sharpe oranınız 1.0 seviyesinin üzerinde, bu da aldığınız riskin getiri ile iyi dengelendiğini gösteriyor."
+            msg("advisor_local.guclu_risk_getiri_dengesi_sharpe_oraniniz")
         )
     else:
         lines.append(
-            "- **Getiri Potansiyeli:** Volatiliteye oranla getiri marjını yükseltmek için 'Optimizasyon' sekmesindeki rebalance modelini inceleyebilirsiniz."
+            msg("advisor_local.getiri_potansiyeli_volatiliteye_oranla_getir")
         )
     return lines
 
@@ -107,17 +105,16 @@ def _general_report(overview_data: Dict[str, Any], risk_data: Dict[str, Any]) ->
     top3_weight = risk_data.get("top_three_weight_pct") or 0.0
 
     lines = [
-        "### Portföy Sağlık & Risk Durumu Raporu",
+        msg("advisor_local.portfoy_saglik_risk_durumu_raporu"),
         "",
-        f"Portföyünüzün toplam değeri **{tr_money(total_val)}** olup piyasa hareketlerine karşı genel görünümü şöyledir:",
+        msg("advisor_local.portfoyunuzun_toplam_degeri_olup_piyasa_hare", amount=tr_money(total_val)),
         "",
-        f"- **Dönem Getirisi:** {tr_pct(period_ret, with_sign=True)} "
-        f"(BIST 100 Endeksine Göre: {tr_pct(benchmark_gap, with_sign=True)})",
-        f"- **Yıllık Volatilite (Risk):** {tr_pct(volatility)}",
-        f"- **Sharpe Oranı:** {f'{sharpe:.2f}' if sharpe is not None else 'N/A'} (Birim risk başına getiri kalitesi)",
-        f"- **Maksimum Geri Çekilme (Drawdown):** {tr_pct(max_dd)}",
-        f"- **En Büyük Pozisyon:** **{largest_stock.replace('.IS', '')}** ({tr_pct(largest_weight)})",
-        f"- **İlk 3 Hisse Yoğunlaşması:** {tr_pct(top3_weight)}",
+        msg("advisor_local.donem_getirisi_bist_100_endeksine_gore", period=tr_pct(period_ret, with_sign=True), gap=tr_pct(benchmark_gap, with_sign=True)),
+        msg("advisor_local.yillik_volatilite_risk", pct=tr_pct(volatility)),
+        msg("advisor_local.sharpe_orani_birim_risk_basina_getiri", sharpe=f'{sharpe:.2f}' if sharpe is not None else 'N/A'),
+        msg("advisor_local.maksimum_geri_cekilme_drawdown", pct=tr_pct(max_dd)),
+        msg("advisor_local.en_buyuk_pozisyon", ticker=largest_stock.replace('.IS', ''), weight=tr_pct(largest_weight)),
+        msg("advisor_local.ilk_3_hisse_yogunlasmasi", pct=tr_pct(top3_weight)),
         "",
     ]
     lines.extend(_advisor_assessment(top3_weight, sharpe))
