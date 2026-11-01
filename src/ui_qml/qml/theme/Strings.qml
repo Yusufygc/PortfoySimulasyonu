@@ -31,13 +31,61 @@ QtObject {
     readonly property string dashboardSubtitle: "Etkileşimli grafik ve portföyündeki hisselere hızlı erişim"
     readonly property string myPortfolioTitle: "Portföyüm"
     readonly property string myPortfolioSubtitle: "Gerçek zamanlı piyasa değerlemeleri, canlı emirler ve varlık dağılımı"
+    readonly property string currencyTRY: "TRY"
+    readonly property string currencyUSD: "USD"
+    readonly property string myPortfolioPartialNote: "Fiyatı veya kuru alınamayan pozisyonlar maliyet bedeliyle değerlendi: "
+    readonly property string myPortfolioUsdUnavailable: "USD/TRY kuru bulunamadı; tutarlar TRY gösteriliyor."
+    readonly property string myPortfolioUsdRateNote: "USD/TRY kuru: "
+    readonly property string myPortfolioEmpty: "Bu sınıfta pozisyon yok."
+    readonly property string myPortfolioMetalNote: "Emtia fiyatları vadeli kontrat (USD/ons) fiyatıdır; spot fiyattan küçük sapma gösterebilir."
+    readonly property string allocClassBist: "BIST Hisseleri"
+    readonly property string allocClassUs: "ABD Hisseleri"
+    readonly property string allocClassCrypto: "Kripto"
+    readonly property string allocClassMetal: "Emtia"
+    readonly property string allocClassCash: "Nakit"
+    readonly property string tabAll: "Tümü"
+    readonly property string btnAddAsset: "Varlık Ekle"
+    readonly property string btnAssetTrade: "Varlık İşlemi"
+    readonly property string holdingUnpriced: "Maliyet"
+    readonly property string assetRemove: "Kaldır"
+    readonly property string assetAddTitle: "Varlık Ekle"
+    readonly property string assetAddCatalog: "Hazır Varlıklar"
+    readonly property string assetAddCustom: "Sembolle Ekle"
+    readonly property string assetAddHint: "Sembol fiyat kaynağında doğrulanır. Örnekler: AAPL (ABD hissesi), BTC-USD (kripto), GC=F (emtia)."
+    readonly property string assetLabelSymbol: "Sembol"
+    readonly property string assetLabelName: "Ad (isteğe bağlı)"
+    readonly property string assetLabelClass: "Varlık Sınıfı"
+    readonly property string assetLabelCurrency: "Fiyat Para Birimi"
+    readonly property string assetAddedBadge: "Ekli"
+    readonly property string assetAdding: "Ekleniyor..."
+    readonly property string btnAddShort: "Ekle"
+    readonly property string assetTradeTitle: "Varlık İşlemi (BIST Dışı)"
+    readonly property string assetTradeLabelAsset: "Varlık"
+    readonly property string assetTradeLabelQty: "Miktar"
+    readonly property string assetTradeLabelPrice: "Birim Fiyat"
+    readonly property string assetTradeLabelFx: "Kur (1 birim kaç TRY)"
+    readonly property string assetTradeNoAssets: "Önce bir varlık ekleyin."
+    readonly property string assetTradeTotal: "Tahmini Tutar:"
+    readonly property string assetBuy: "ALIM"
+    readonly property string assetSell: "SATIM"
+
+    function allocationClassName(key) {
+        switch (key) {
+        case "BIST_STOCK": return allocClassBist
+        case "US_STOCK": return allocClassUs
+        case "CRYPTO": return allocClassCrypto
+        case "PRECIOUS_METAL": return allocClassMetal
+        case "CASH": return allocClassCash
+        default: return key
+        }
+    }
     readonly property string btnRefresh: "Fiyatları Yenile"
     // Fiyat durumu bileşeni (PriceStatusChip): fiyatlar kendiliğinden güncellenir
     readonly property string priceStatusRefreshing: "Fiyatlar güncelleniyor..."
     readonly property string priceStatusNever: "Fiyatlar henüz güncellenmedi"
     readonly property string priceStatusRefreshTooltip: "Fiyatları şimdi yenile (seans içinde canlı fiyat, kapanıştan sonra kapanış verisi)"
-    readonly property string kpiWeeklyReturn: "Haftalık Getiri"
-    readonly property string kpiMonthlyReturn: "Aylık Getiri"
+    readonly property string kpiWeeklyReturn: "Haftalık Getiri (BIST)"
+    readonly property string kpiMonthlyReturn: "Aylık Getiri (BIST)"
     readonly property string kpiWeeklyBadge: "7 gün"
     readonly property string kpiMonthlyBadge: "30 gün"
     readonly property string kpiPeriodReturnSub: "Portföy değeri değişimi"
@@ -72,15 +120,15 @@ QtObject {
     readonly property string chartBar: "Bar"
 
     // --- Tablo & Pozisyonlar ---
-    readonly property string positionsTableTitle: "Açık Pozisyonlar ve Canlı Değerleme"
-    readonly property string positionsTableSubtitle: "Fiyatlar değiştikçe yeşil/kırmızı yanıp söner • Satıra tıklayarak grafiğini açabilirsiniz"
+    readonly property string positionsTableTitle: "Pozisyonlar ve Değerleme"
+    readonly property string positionsTableSubtitle: "Tutarlar seçili para biriminde, fiyatlar varlığın kendi para biriminde • BIST satırına tıklayınca detay açılır"
     readonly property string thSymbolCompany: "SEMBOL & ŞİRKET"
-    readonly property string thQuantity: "LOT"
+    readonly property string thQuantity: "MİKTAR"
     readonly property string thAvgCost: "MALİYET"
     readonly property string thLastPrice: "SON FİYAT"
     readonly property string thDailyChange: "GÜNLÜK %"
     readonly property string thMarketValue: "PİYASA DEĞERİ"
-    readonly property string thPLTRY: "K/Z (₺)"
+    readonly property string thPL: "K/Z"
     readonly property string thPLPct: "K/Z %"
     readonly property string thWeight: "AĞIRLIK"
     readonly property string thActions: "İŞLEMLER"
@@ -89,7 +137,7 @@ QtObject {
 
     // --- Varlık Dağılımı (Allocation) ---
     readonly property string allocationTitle: "Varlık Dağılımı (Allocation)"
-    readonly property string allocationShare: "Hisse Payı"
+    readonly property string allocationShare: "Yatırım Payı"
     readonly property string portfolioBalanceStatus: "Portföy Denge Durumu"
     readonly property string portfolioBalanceGood: "Hisse ağırlığı hedef sınırda (%65-70). Nakit rezervi acil alımlar için yeterli."
 

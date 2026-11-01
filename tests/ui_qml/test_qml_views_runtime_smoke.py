@@ -16,6 +16,7 @@ from PySide6.QtWidgets import QApplication
 
 from src.application.container import AppContainer
 from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
+from src.ui_qml.controllers.assets_controller import AssetsController
 from src.ui_qml.controllers.chart_controller import ChartController
 from src.ui_qml.controllers.comparison_controller import ComparisonController
 from src.ui_qml.controllers.corporate_action_controller import CorporateActionController
@@ -27,6 +28,7 @@ from src.ui_qml.controllers.market_sync_controller import MarketSyncController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
 from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
 from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
+from src.ui_qml.controllers.my_portfolio_controller import MyPortfolioController
 from src.ui_qml.controllers.optimization_controller import OptimizationController
 from src.ui_qml.controllers.planning_controller import PlanningController
 from src.ui_qml.controllers.price_data_controller import PriceDataController
@@ -75,6 +77,8 @@ def qml_env(qapp):
         "shellController": ShellController(container=container, parent=engine),
         "chartController": ChartController(container=container, parent=engine),
         "dashboardController": DashboardController(container=container, parent=engine),
+        "myPortfolioController": MyPortfolioController(container=container, parent=engine),
+        "assetsController": AssetsController(container=container, parent=engine),
         "watchlistController": WatchlistController(container=container, parent=engine),
         "stock360Controller": Stock360Controller(container=container, parent=engine),
         "portfolioController": ModelPortfolioController(container=container, parent=engine),

@@ -8,13 +8,17 @@ ModernCard {
     implicitWidth: 340
     implicitHeight: 460
 
-    readonly property var slices: (dashboardController && dashboardController.allocationSlices && dashboardController.allocationSlices.length > 0)
-                                  ? dashboardController.allocationSlices
-                                  : [
-                                      { label: "BIST Hisse Senetleri", pct: 0.68, color: "#2962ff", amount: "₺1.010.221" },
-                                      { label: "Eurobond / Fonlar",   pct: 0.19, color: "#089981", amount: "₺282.268" },
-                                      { label: "TL Nakit & Mevduat",  pct: 0.13, color: "#ff9800", amount: "₺193.131" },
-                                    ]
+    // Dilimler: [{ classKey, pct (0-1), color, amount }]; MyPortfolioController.allocationSlices ile beslenir
+    property var slices: []
+
+    // Nakit dışındaki dilimlerin toplam payı (donut merkezi)
+    readonly property real investedShare: {
+        let total = 0
+        for (let i = 0; i < slices.length; i++) {
+            if (slices[i].classKey !== "CASH") total += slices[i].pct
+        }
+        return total
+    }
 
     onSlicesChanged: {
         donutCanvas.requestPaint()
@@ -22,13 +26,6 @@ ModernCard {
 
     Component.onCompleted: {
         donutCanvas.requestPaint()
-    }
-
-    Connections {
-        target: dashboardController
-        function onKpisChanged() {
-            donutCanvas.requestPaint()
-        }
     }
 
     ColumnLayout {
@@ -114,9 +111,7 @@ ModernCard {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: (dashboardController && dashboardController.cashRatio)
-                          ? ("%" + Math.max(0, 100 - Math.round(parseFloat(dashboardController.cashRatio.replace("%", "")) || 0)))
-                          : "%100"
+                    text: "%" + Math.round(root.investedShare * 100)
                     font.family: Theme.monoFontFamily
                     font.pixelSize: Theme.fontXl
                     font.weight: Font.Bold
@@ -146,7 +141,7 @@ ModernCard {
                     }
 
                     Text {
-                        text: modelData.label
+                        text: Strings.allocationClassName(modelData.classKey)
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
                         color: Theme.textSecondary
@@ -167,7 +162,7 @@ ModernCard {
                         font.family: Theme.monoFontFamily
                         font.pixelSize: Theme.fontXs
                         color: Theme.textMuted
-                        Layout.preferredWidth: 70
+                        Layout.preferredWidth: 100
                         horizontalAlignment: Text.AlignRight
                     }
                 }

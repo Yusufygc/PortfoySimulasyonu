@@ -67,9 +67,9 @@ def _build_engine():
 
     from src.application.container import AppContainer
     from src.ui_qml.controllers import (
-        ai_advisor_controller, chart_controller, comparison_controller, corporate_action_controller,
+        ai_advisor_controller, assets_controller, chart_controller, comparison_controller, corporate_action_controller,
         dashboard_controller, dividend_controller, golden_cross_controller, market_adjustment_controller,
-        market_sync_controller, market_ticker_controller, model_analysis_controller, model_portfolio_controller,
+        market_sync_controller, market_ticker_controller, model_analysis_controller, model_portfolio_controller, my_portfolio_controller,
         optimization_controller, planning_controller, price_data_controller, price_refresh_controller, risk_profile_controller,
         screener_controller, settings_controller, shell_controller, startup_jobs_controller, stock_360_controller,
         stock_detail_controller, strategy_backtest_controller, system_controller, watchlist_controller,
@@ -81,6 +81,8 @@ def _build_engine():
         "shellController": shell_controller.ShellController,
         "chartController": chart_controller.ChartController,
         "dashboardController": dashboard_controller.DashboardController,
+        "myPortfolioController": my_portfolio_controller.MyPortfolioController,
+        "assetsController": assets_controller.AssetsController,
         "watchlistController": watchlist_controller.WatchlistController,
         "stock360Controller": stock_360_controller.Stock360Controller,
         "portfolioController": model_portfolio_controller.ModelPortfolioController,

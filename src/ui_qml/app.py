@@ -17,6 +17,8 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from src.ui_qml.controllers.shell_controller import ShellController
 from src.ui_qml.controllers.chart_controller import ChartController
 from src.ui_qml.controllers.dashboard_controller import DashboardController
+from src.ui_qml.controllers.my_portfolio_controller import MyPortfolioController
+from src.ui_qml.controllers.assets_controller import AssetsController
 from src.ui_qml.controllers.watchlist_controller import WatchlistController
 from src.ui_qml.controllers.stock_360_controller import Stock360Controller
 from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
@@ -44,9 +46,11 @@ from src.ui_qml.controllers.risk_profile_controller import RiskProfileController
 logger = logging.getLogger(__name__)
 
 
-def _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl) -> None:
-    """Birleştirilmiş fiyat değişikliği: öncelik sırasıyla Ana Sayfa, İzleme Listesi, Model Portföy DB'den yeniden okunur."""
+def _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl, my_portfolio_ctrl=None) -> None:
+    """Birleştirilmiş fiyat değişikliği: öncelik sırasıyla Ana Sayfa, Portföyüm, İzleme Listesi, Model Portföy DB'den yeniden okunur."""
     price_refresh_ctrl.pricesChanged.connect(dash_ctrl.reloadPrices)
+    if my_portfolio_ctrl is not None:
+        price_refresh_ctrl.pricesChanged.connect(my_portfolio_ctrl.reloadPrices)
     price_refresh_ctrl.pricesChanged.connect(watchlist_ctrl.refreshPrices)
     price_refresh_ctrl.pricesChanged.connect(portfolio_ctrl.reloadPrices)
 
@@ -80,6 +84,8 @@ def run_qml_app(container=None) -> int:
     shell_ctrl = ShellController(container=container, parent=engine)
     chart_ctrl = ChartController(container=container, parent=engine)
     dash_ctrl = DashboardController(container=container, parent=engine)
+    my_portfolio_ctrl = MyPortfolioController(container=container, parent=engine)
+    assets_ctrl = AssetsController(container=container, parent=engine, autostart=True)
     watchlist_ctrl = WatchlistController(container=container, parent=engine)
     stock_360_ctrl = Stock360Controller(container=container, parent=engine)
     portfolio_ctrl = ModelPortfolioController(container=container, parent=engine)
@@ -106,7 +112,8 @@ def run_qml_app(container=None) -> int:
     # Açılış kapanış tamamlaması ilk BIST senkronundan sonra: aynı kapanışlar iki yoldan eşzamanlı indirilmesin
     startup_jobs_ctrl.start_after(market_sync_ctrl.syncFinished)
     price_refresh_ctrl = PriceRefreshController(system_ctrl, market_sync_ctrl, container=container, parent=engine)
-    _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl)
+    _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl, my_portfolio_ctrl)
+    assets_ctrl.dataChanged.connect(my_portfolio_ctrl.reload)
     for source in (market_sync_ctrl.dataSynced, system_ctrl.pricesRefreshed, startup_jobs_ctrl.pricesUpdated,
                    price_data_ctrl.pricesUpdated, golden_cross_ctrl.pricesUpdated):
         price_refresh_ctrl.watch(source)
@@ -114,6 +121,7 @@ def run_qml_app(container=None) -> int:
     for source in (corporate_action_ctrl.portfolioChanged, dividend_ctrl.portfolioChanged, system_ctrl.systemReset):
         price_refresh_ctrl.watch(source, records_update=False)
         source.connect(portfolio_ctrl.refreshData)
+        source.connect(my_portfolio_ctrl.reload)
     system_ctrl.systemReset.connect(watchlist_ctrl.reloadAll)
     risk_profile_ctrl.profileSaved.connect(optimization_ctrl.reloadRiskProfile)
 
@@ -122,6 +130,8 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("shellController", shell_ctrl)
     context.setContextProperty("chartController", chart_ctrl)
     context.setContextProperty("dashboardController", dash_ctrl)
+    context.setContextProperty("myPortfolioController", my_portfolio_ctrl)
+    context.setContextProperty("assetsController", assets_ctrl)
     context.setContextProperty("watchlistController", watchlist_ctrl)
     context.setContextProperty("stock360Controller", stock_360_ctrl)
     context.setContextProperty("portfolioController", portfolio_ctrl)

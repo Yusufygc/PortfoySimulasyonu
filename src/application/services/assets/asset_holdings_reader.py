@@ -45,6 +45,7 @@ class AssetHoldingsReader:
             native_currency=asset.quote_currency,
             cost_native=position.total_cost,
             cost_try=position.total_cost_try,
+            ref_id=asset.id,
         )
         quoted, reference_date = self._pick_price(asset, latest)
         fx_rate = self._fx.get_rate(asset.quote_currency, "TRY")

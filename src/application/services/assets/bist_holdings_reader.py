@@ -47,6 +47,7 @@ class BistHoldingsReader:
             native_currency="TRY",
             cost_native=cost,
             cost_try=cost,
+            ref_id=stock_id,
         )
         if resolved is None:
             return HoldingValuation(**base, value_try=cost, is_priced=False)

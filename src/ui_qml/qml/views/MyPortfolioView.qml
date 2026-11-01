@@ -7,6 +7,9 @@ import "../components"
 Item {
     id: root
 
+    // "Fiyatları Yenile" düğmesine basıldı: sonuç bildirimi gösterilir (otomatik yenileme sessizdir)
+    property bool manualRefresh: false
+
     ScrollView {
         id: mainScrollView
         anchors.fill: parent
@@ -28,7 +31,7 @@ Item {
             // Üst Başlık ve Aksiyon Butonları (dar pencerede butonlar başlığın altına geçer)
             GridLayout {
                 Layout.fillWidth: true
-                columns: root.width < 1060 ? 1 : 2
+                columns: root.width < 1500 ? 1 : 2
                 columnSpacing: Theme.spaceMd
                 rowSpacing: Theme.spaceSm
 
@@ -51,11 +54,54 @@ Item {
                 }
 
                 Flow {
-                    Layout.alignment: root.width < 1060 ? Qt.AlignLeft : Qt.AlignRight
-                    Layout.fillWidth: root.width < 1060
+                    Layout.alignment: root.width < 1500 ? Qt.AlignLeft : Qt.AlignRight
+                    Layout.fillWidth: root.width < 1500
                     spacing: Theme.spaceSm
 
-                    // Sermaye Yönetimi Butonu
+                    // TRY / USD gösterim anahtarı
+                    Row {
+                        spacing: 2
+                        ModernButton {
+                            text: Strings.currencyTRY
+                            variant: myPortfolioController.displayCurrency === "TRY" ? "primary" : "ghost"
+                            onClicked: myPortfolioController.setDisplayCurrency("TRY")
+                        }
+                        ModernButton {
+                            text: Strings.currencyUSD
+                            variant: myPortfolioController.displayCurrency === "USD" ? "primary" : "ghost"
+                            onClicked: myPortfolioController.setDisplayCurrency("USD")
+                        }
+                    }
+
+                    // Varlık fiyatlarını ve BIST fiyatlarını şimdi yenile
+                    ModernButton {
+                        text: Strings.btnRefresh
+                        iconName: "refresh"
+                        variant: "ghost"
+                        enabled: !assetsController.busy
+                        onClicked: {
+                            root.manualRefresh = true
+                            assetsController.refreshPrices()
+                            if (typeof priceRefreshController !== "undefined") priceRefreshController.refreshNow()
+                        }
+                    }
+
+                    // Varlık Ekle / Varlık İşlemi (BIST dışı)
+                    ModernButton {
+                        text: Strings.btnAddAsset
+                        iconName: "coins"
+                        variant: "secondary"
+                        onClicked: assetAddModal.open()
+                    }
+
+                    ModernButton {
+                        text: Strings.btnAssetTrade
+                        iconName: "trade"
+                        variant: "secondary"
+                        onClicked: assetTradeModal.open(0)
+                    }
+
+                    // Sermaye Yönetimi Butonu (BIST nakdi)
                     ModernButton {
                         text: Strings.btnCapital
                         iconName: "capital"
@@ -63,7 +109,7 @@ Item {
                         onClicked: capitalModal.open()
                     }
 
-                    // Excel Raporu Butonu
+                    // Excel Raporu Butonu (BIST portföyü)
                     ModernButton {
                         text: Strings.btnExportExcel
                         iconName: "filetext"
@@ -75,7 +121,7 @@ Item {
                         }
                     }
 
-                    // Hızlı Al/Sat Butonu
+                    // Hızlı Al/Sat Butonu (BIST)
                     ModernButton {
                         text: Strings.btnQuickTrade
                         iconName: "zap"
@@ -83,6 +129,46 @@ Item {
                         onClicked: tradeModal.open(chartController ? (chartController.currentTicker || "").replace(/\.IS$/i, "") : "", 0)
                     }
                 }
+            }
+
+            // Uyarılar: değerlenemeyen pozisyon ve USD kuru
+            Rectangle {
+                visible: myPortfolioController.isPartial
+                Layout.fillWidth: true
+                implicitHeight: partialText.implicitHeight + Theme.spaceMd
+                radius: Theme.radiusSm
+                color: Theme.bgInput
+                border.color: Theme.warning
+                border.width: 1
+
+                Text {
+                    id: partialText
+                    anchors.fill: parent
+                    anchors.margins: Theme.spaceSm
+                    text: Strings.myPortfolioPartialNote + myPortfolioController.unpricedSymbols.join(", ")
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontSm
+                    color: Theme.warning
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            Text {
+                visible: myPortfolioController.displayUnavailable
+                text: Strings.myPortfolioUsdUnavailable
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSm
+                color: Theme.warning
+                Layout.fillWidth: true
+            }
+
+            Text {
+                visible: myPortfolioController.displayCurrency === "USD" && !myPortfolioController.displayUnavailable
+                text: Strings.myPortfolioUsdRateNote + myPortfolioController.usdRate
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontXs
+                color: Theme.textMuted
+                Layout.fillWidth: true
             }
 
             // 1. KPI Metrik Kartları (4 Adet; dar pencerede 2x2)
@@ -96,9 +182,9 @@ Item {
                 MetricCard {
                     Layout.fillWidth: true
                     title: Strings.kpiTotalValue
-                    value: dashboardController.totalValue
-                    changeText: dashboardController.dailyGainLossPct
-                    isPositive: dashboardController.isDailyPositive
+                    value: myPortfolioController.totalValue
+                    changeText: myPortfolioController.dailyGainPct
+                    isPositive: myPortfolioController.isDailyPositive
                     subText: Strings.kpiDailyChange
                     iconName: "banknote"
                 }
@@ -106,9 +192,9 @@ Item {
                 MetricCard {
                     Layout.fillWidth: true
                     title: Strings.kpiDailyGainLoss
-                    value: dashboardController.dailyGainLoss
-                    changeText: dashboardController.dailyGainLossPct
-                    isPositive: dashboardController.isDailyPositive
+                    value: myPortfolioController.dailyGain
+                    changeText: myPortfolioController.dailyGainPct
+                    isPositive: myPortfolioController.isDailyPositive
                     subText: Strings.kpiTodayReturn
                     iconName: "trendingup"
                 }
@@ -116,20 +202,20 @@ Item {
                 MetricCard {
                     Layout.fillWidth: true
                     title: Strings.kpiUnrealizedPL
-                    value: dashboardController.totalGainLoss
-                    changeText: dashboardController.totalGainLossPct
-                    isPositive: dashboardController.isTotalPositive
-                    subText: Strings.kpiCostPrefix + dashboardController.totalCost
+                    value: myPortfolioController.unrealizedPL
+                    changeText: myPortfolioController.unrealizedPLPct
+                    isPositive: myPortfolioController.isPLPositive
+                    subText: Strings.kpiCostPrefix + myPortfolioController.totalCost
                     iconName: "linechart"
                 }
 
                 MetricCard {
                     Layout.fillWidth: true
                     title: Strings.kpiCashRatio
-                    value: dashboardController.cashBalance
-                    changeText: dashboardController.cashRatio
+                    value: myPortfolioController.cashBalance
+                    changeText: myPortfolioController.cashRatio
                     isPositive: true
-                    subText: dashboardController.holdingsCount + Strings.kpiOpenPositionsSuffix
+                    subText: myPortfolioController.holdingsCount + Strings.kpiOpenPositionsSuffix
                     iconName: "portfolio"
                 }
             }
@@ -145,6 +231,7 @@ Item {
 
                 AssetAllocationCard {
                     id: allocationCard
+                    slices: myPortfolioController.allocationSlices
                     Layout.fillWidth: midGrid.stacked
                     Layout.preferredWidth: midGrid.stacked ? -1 : 320
                     Layout.preferredHeight: 340
@@ -180,10 +267,16 @@ Item {
             }
 
             // 3. Açık Pozisyonlar Tablosu
-            OpenPositionsTable {
+            HoldingsTable {
                 Layout.fillWidth: true
-                onTradeRequested: function(ticker, price) {
-                    tradeModal.open(ticker, price)
+                onTradeRequested: function(ticker) {
+                    tradeModal.open(ticker, 0)
+                }
+                onAssetTradeRequested: function(assetId) {
+                    assetTradeModal.open(assetId)
+                }
+                onAssetRemoveRequested: function(assetId) {
+                    assetsController.removeAsset(assetId)
                 }
             }
         }
@@ -196,6 +289,14 @@ Item {
 
     CapitalModal {
         id: capitalModal
+    }
+
+    AssetAddModal {
+        id: assetAddModal
+    }
+
+    AssetTradeModal {
+        id: assetTradeModal
     }
 
     ExcelExportDialog {
@@ -213,20 +314,35 @@ Item {
         anchors.margins: Theme.spaceLg
     }
 
-    // Python Controller Sinyal Bağlantıları
+    // BIST işlem ve sermaye değişiklikleri birleşik özeti yeniden okutur
     Connections {
         target: dashboardController
 
         function onTradeExecuted(success, message) {
             toast.show(message, success)
+            if (success) myPortfolioController.reload()
         }
 
         function onCapitalUpdated(success, message) {
             toast.show(message, success)
+            if (success) myPortfolioController.reload()
         }
 
         function onExcelExported(success, message) {
             toast.show(message, success)
+        }
+    }
+
+    // Varlık defteri sonuçları; otomatik fiyat yenilemesi yalnızca elle istendiğinde bildirilir
+    Connections {
+        target: assetsController
+
+        function onAssetAdded(success, message) { toast.show(message, success) }
+        function onTradeRecorded(success, message) { toast.show(message, success) }
+        function onAssetRemoved(success, message) { toast.show(message, success) }
+        function onPricesRefreshed(success, message) {
+            if (root.manualRefresh || !success) toast.show(message, success)
+            root.manualRefresh = false
         }
     }
 }

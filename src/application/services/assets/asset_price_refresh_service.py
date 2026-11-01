@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Callable, List, Optional
 
 from src.application.services.assets.asset_market_calendar import AssetMarketCalendar
@@ -80,6 +81,14 @@ class AssetPriceRefreshService:
             updated.append(asset.symbol)
         self._price_repo.upsert_latest_prices(records)
         return AssetRefreshResult(updated=updated, skipped_closed=skipped, missing=missing)
+
+    def cached_price(self, asset_id: int) -> Optional[Decimal]:
+        """Veritabanındaki en yeni fiyat (ağ çağrısı yok): son fiyat ile son kapanıştan tarihi yeni olan; yoksa None."""
+        latest = self._price_repo.get_latest_prices([asset_id]).get(asset_id)
+        daily = self._price_repo.get_last_daily_price(asset_id)
+        if latest is not None and (daily is None or latest.as_of.date() >= daily.price_date):
+            return latest.price
+        return daily.close_price if daily is not None else None
 
     def backfill_history(self, asset_id: int, start: Optional[date] = None, end: Optional[date] = None) -> int:
         """Varlığın günlük kapanış geçmişini çekip kaydeder (yeni varlık eklenince); kaydedilen gün sayısını döner."""

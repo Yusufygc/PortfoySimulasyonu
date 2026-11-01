@@ -241,6 +241,9 @@ ApplicationWindow {
                 if (typeof portfolioController !== "undefined") {
                     portfolioController.refreshData()
                 }
+                if (typeof myPortfolioController !== "undefined") {
+                    myPortfolioController.reload()
+                }
             }
         }
     }

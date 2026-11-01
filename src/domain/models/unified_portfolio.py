@@ -59,6 +59,7 @@ class HoldingValuation:
     daily_gain_try: Decimal = ZERO
     weight_pct: Decimal = ZERO
     is_priced: bool = True
+    ref_id: Optional[int] = None   # BIST için stock_id, varlık defteri için asset_id
 
     @property
     def unrealized_pl_try(self) -> Decimal:
