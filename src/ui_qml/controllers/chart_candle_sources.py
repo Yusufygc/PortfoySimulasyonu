@@ -106,6 +106,39 @@ def load_price_series_candles(lookup, ticker: str) -> Loaded:
     return candles, volumes, company_name
 
 
+def load_asset_candles(asset_chart_service, ticker: str) -> tuple[Candles, Candles, str, str] | None:
+    """Varlık defterindeki (BIST dışı) sembolün günlük mumları: `(mumlar, hacimler, ad, para birimi)`.
+
+    Varlık fiyatları yalnızca kapanış olarak saklanır; açılış/yüksek/düşük kapanıştan türetilir, hacim yoktur.
+    Varlık bulunmaz veya fiyat yoksa `None`.
+    """
+    try:
+        series = asset_chart_service.get_series(ticker) if asset_chart_service else None
+    except Exception as exc:
+        logger.warning("Varlık grafik verisi okunamadi (%s): %s", ticker, exc)
+        return None
+    if series is None or not series.points:
+        return None
+    candles: Candles = []
+    volumes: Candles = []
+    prev_close = None
+    for price_date, close_price in series.points:
+        close = float(close_price)
+        open_, high, low = _synthetic_ohlc(close, prev_close)
+        prev_close = close
+        date_text = price_date.strftime("%Y-%m-%d")
+        candles.append(_asset_candle(date_text, open_, high, low, close))
+        volumes.append(_volume(date_text, 0.0, open_, close))
+    return candles, volumes, series.name, series.currency
+
+
+def _asset_candle(date_text: str, open_: float, high: float, low: float, close: float) -> dict[str, Any]:
+    """Düşük fiyatlı varlıklar (ör. 0,15 USD kripto) için kuruş yerine 6 hane hassasiyet."""
+    digits = 2 if close >= 100 else 6
+    return {"time": date_text, "open": round(open_, digits), "high": round(high, digits),
+            "low": round(low, digits), "close": round(close, digits)}
+
+
 def demo_candles(ticker: str) -> Loaded:
     """Çevrimdışı (konteynersiz) mod için rastgele yürüyüşlü ~1 yıllık demo mumlar."""
     base_price = 285.0 if "THY" in ticker else (110.0 if "GARAN" in ticker else 150.0)
@@ -129,7 +162,10 @@ def demo_candles(ticker: str) -> Loaded:
     return candles, volumes, ticker
 
 
-def last_price_summary(candles: Candles) -> tuple[str, bool, str] | None:
+CURRENCY_SYMBOLS = {"TRY": "₺", "USD": "$", "EUR": "€"}
+
+
+def last_price_summary(candles: Candles, currency: str = "TRY") -> tuple[str, bool, str] | None:
     """Son mumdan `(fiyat metni, artışta mı, yüzde değişim metni)`; mum yoksa `None`."""
     if not candles:
         return None
@@ -139,4 +175,8 @@ def last_price_summary(candles: Candles) -> tuple[str, bool, str] | None:
     diff = last_close - prev_close
     diff_pct = (diff / prev_close) * 100 if prev_close > 0 else 0.0
     sign = "+" if diff >= 0 else ""
-    return f"₺{last_close:,.2f}", diff >= 0, f"{sign}{diff_pct:.2f}%"
+    prefix = CURRENCY_SYMBOLS.get(currency, f"{currency} ")
+    # BIST (TRY) biçimi değişmez; düşük fiyatlı varlıklarda kuruş hassasiyeti yetmez
+    small_asset = currency != "TRY" and last_close < 1
+    amount = f"{last_close:,.6f}".rstrip("0").rstrip(".") if small_asset else f"{last_close:,.2f}"
+    return f"{prefix}{amount}", diff >= 0, f"{sign}{diff_pct:.2f}%"

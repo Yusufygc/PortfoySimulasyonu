@@ -117,6 +117,7 @@ def run_qml_app(container=None) -> int:
     _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl, my_portfolio_ctrl)
     assets_ctrl.dataChanged.connect(my_portfolio_ctrl.reload)
     assets_ctrl.dataChanged.connect(news_ctrl.refresh)  # takip hedefleri değişti
+    assets_ctrl.dataChanged.connect(chart_ctrl.refreshAssets)
     for source in (market_sync_ctrl.dataSynced, system_ctrl.pricesRefreshed, startup_jobs_ctrl.pricesUpdated,
                    price_data_ctrl.pricesUpdated, golden_cross_ctrl.pricesUpdated):
         price_refresh_ctrl.watch(source)

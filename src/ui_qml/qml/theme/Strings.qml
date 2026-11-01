@@ -114,7 +114,7 @@ QtObject {
     readonly property string kpiOpenPositionsSuffix: " Açık Pozisyon"
 
     // --- TradingView Araç Çubuğu & Grafikler ---
-    readonly property string tvPortfolioHoldings: "PORTFÖY HİSSELERİ:"
+    readonly property string tvPortfolioHoldings: "PORTFÖY VE VARLIKLAR:"
     readonly property string btnIndicators: "İndikatörler"
     readonly property string closeFullscreen: "Kapat"
     readonly property string technicalIndicators: "TEKNİK İNDİKATÖRLER"

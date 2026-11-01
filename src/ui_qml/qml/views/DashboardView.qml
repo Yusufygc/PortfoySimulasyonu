@@ -12,6 +12,20 @@ Item {
     // Sayfa bu yüksekliğin altına inerse kaydırılır (Main.qml activePageMetric)
     readonly property int minContentHeight: wide ? 560 : 960
 
+    // Hızlı seçici: portföy BIST hisseleri + Portföyüm varlıkları (BTC, altın vb.); ticker grafiğe verilen semboldür
+    readonly property var quickChips: {
+        const chips = []
+        const stocks = dashboardController ? dashboardController.quickTickers : ["OBAMS", "PSGYO", "BINHO"]
+        for (let i = 0; i < stocks.length; i++) {
+            chips.push({ ticker: stocks[i], label: (stocks[i] || "").replace(/\.IS$/i, "") })
+        }
+        const assets = chartController ? chartController.quickAssets : []
+        for (let j = 0; j < assets.length; j++) {
+            chips.push({ ticker: assets[j].ticker, label: assets[j].label })
+        }
+        return chips
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: Theme.spaceMd
@@ -90,13 +104,13 @@ Item {
                                 spacing: Theme.spaceXs
 
                                 Repeater {
-                                    model: dashboardController ? dashboardController.quickTickers : ["OBAMS", "PSGYO", "BINHO"]
+                                    model: root.quickChips
                                     ModernButton {
-                                        text: (modelData || "").replace(/\.IS$/i, "")
-                                        variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
+                                        text: modelData.label
+                                        variant: (chartController && chartController.currentTicker === modelData.ticker) ? "primary" : "ghost"
                                         implicitHeight: 24
                                         onClicked: {
-                                            chartView.loadStock(modelData)
+                                            chartView.loadStock(modelData.ticker)
                                         }
                                     }
                                 }

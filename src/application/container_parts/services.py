@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
+from src.application.services.assets.asset_chart_service import AssetChartService
 from src.application.services.assets.asset_holdings_reader import AssetHoldingsReader
 from src.application.services.assets.asset_ledger_service import AssetLedgerService
 from src.application.services.assets.asset_price_refresh_service import AssetPriceRefreshService
@@ -101,6 +102,7 @@ class ServiceSet:
     asset_price_refresh_service: AssetPriceRefreshService  # varlık son fiyat ve geçmiş yenileme
     fx_rate_service: FxRateService  # kur okuma ve yenileme
     unified_portfolio_service: UnifiedPortfolioService  # BIST + varlık defteri birleşik TRY özeti
+    asset_chart_service: AssetChartService  # Genel Bakış grafiği için varlık fiyat serileri
     news_service: NewsService  # haber akışı (KAP, RSS, Yahoo, Google)
     news_target_service: NewsTargetService  # haber sorgusu yapılacak takip hedefleri
 
@@ -201,6 +203,7 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         ),
         fx_rate_service=fx_rate_service,
         unified_portfolio_service=unified_portfolio_service,
+        asset_chart_service=AssetChartService(asset_ledger_service, repositories.asset_price_repo),
         news_service=NewsService(
             source_repo=repositories.news_source_repo,
             provider_factory=NewsProviderFactory(lambda ticker: market_clients.kap_shareholder_provider.resolve_member_oid(ticker)[0]),

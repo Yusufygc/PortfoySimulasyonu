@@ -14,6 +14,7 @@ from src.ui_qml.controllers.chart_indicators import calculate_indicators
 from src.ui_qml.controllers.chart_candle_sources import (
     demo_candles,
     last_price_summary,
+    load_asset_candles,
     load_market_history_candles,
     load_price_series_candles,
 )
@@ -27,6 +28,7 @@ class ChartController(QObject):
     timeframeChanged = Signal(str)
     chartTypeChanged = Signal(str)
     indicatorsChanged = Signal()
+    assetsChanged = Signal()
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
@@ -36,6 +38,7 @@ class ChartController(QObject):
         self._current_chart_type: str = "candle"
         self._active_indicators: set[str] = set()
         self._company_name: str = ""
+        self._price_currency: str = "TRY"  # son fiyat önekinin para birimi (BIST dışı varlıkta USD vb.)
         self._last_price_str: str = "₺0.00"
         self._price_change_str: str = "+0.00%"
         self._is_positive: bool = True
@@ -90,6 +93,18 @@ class ChartController(QObject):
     def isPositive(self) -> bool:
         return self._is_positive
 
+    @Property(list, notify=assetsChanged)
+    def quickAssets(self) -> list[dict[str, str]]:
+        """Grafik hızlı seçicisi için varlık defterindeki BIST dışı semboller: [{ticker, label}]."""
+        service = getattr(self._container, "asset_chart_service", None) if self._container else None
+        if service is None:
+            return []
+        try:
+            return [{"ticker": ticker, "label": label} for ticker, label in service.list_chart_symbols()]
+        except Exception as exc:
+            logger.debug("Grafik varlık sembolleri okunamadı: %s", exc)
+            return []
+
     @Property(list, notify=indicatorsChanged)
     def activeIndicators(self) -> list[str]:
         return sorted(list(self._active_indicators))
@@ -116,6 +131,11 @@ class ChartController(QObject):
         self._average_cost = float(average_cost) if average_cost and average_cost > 0 else None
         self._average_cost_ticker = clean if self._average_cost else ""
         self._load_ticker(ticker)
+
+    @Slot()
+    def refreshAssets(self) -> None:
+        """Varlık defteri değişti: hızlı seçici yeniden okunur."""
+        self.assetsChanged.emit()
 
     @Slot(str)
     def loadStock(self, ticker: str) -> None:
@@ -158,17 +178,26 @@ class ChartController(QObject):
 
     def _load_candles(self, ticker: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
         """Mum kaynağı sırası: DuckDB piyasa geçmişi, SQLite fiyatları; demo yalnızca konteynersiz modda."""
+        self._price_currency = "TRY"
         lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
         if lookup is not None:
             loaded = load_market_history_candles(lookup, ticker)
             if loaded:
                 return loaded
         if self._container:
-            return load_price_series_candles(lookup, ticker)
+            loaded = load_price_series_candles(lookup, ticker)
+            if loaded[0]:
+                return loaded
+            # BIST'te bulunamadı: Portföyüm varlık defterindeki (kripto, emtia, ABD hissesi) sembol mü?
+            asset = load_asset_candles(getattr(self._container, "asset_chart_service", None), ticker)
+            if asset is not None:
+                candles, volumes, name, self._price_currency = asset
+                return candles, volumes, name
+            return loaded
         return demo_candles(ticker)
 
     def _update_last_price(self, candles: list[dict[str, Any]]) -> None:
-        summary = last_price_summary(candles)
+        summary = last_price_summary(candles, self._price_currency)
         if summary is not None:
             self._last_price_str, self._is_positive, self._price_change_str = summary
 
