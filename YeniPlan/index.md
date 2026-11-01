@@ -16,7 +16,7 @@ Durum etiketleri: **Taslak** (yazıldı, tartışılabilir), **Onaylı** (kullan
 | [01_mimari_kararlar.md](01_mimari_kararlar.md) | Ayrı defter kararı, alternatifler, kabuller, riskler | Onaylı |
 | [02_varlik_defteri.md](02_varlik_defteri.md) | Domain modelleri, tablolar, servisler, varlık kataloğu | Uygulandı |
 | [03_fiyat_ve_kur_hatti.md](03_fiyat_ve_kur_hatti.md) | Sembol çözümleme, fiyat sağlayıcı, takvim, kur | Aşama 3 Uygulandı |
-| [04_portfoyum_sayfasi.md](04_portfoyum_sayfasi.md) | Portföyüm UI, controller'lar, dağılım, sayfa bölünmesi | Aşama 1 ve 4 Uygulandı |
+| [04_portfoyum_sayfasi.md](04_portfoyum_sayfasi.md) | Portföyüm UI, controller'lar, dağılım, sayfa bölünmesi | Aşama 1, 4 ve 5 Uygulandı |
 | [05_genel_bakis_ve_haber.md](05_genel_bakis_ve_haber.md) | Genel Bakış yerleşimi, haber mimarisi, spike planı | Taslak |
 | [06_ayarlar_haber_kaynaklari.md](06_ayarlar_haber_kaynaklari.md) | Ayarlar > Haber Kaynakları sekmesi, aç/kapa sistemi | Taslak |
 | [07_test_ve_kalite.md](07_test_ve_kalite.md) | Test stratejisi, koruma testleri, kalite kapıları | Taslak |
@@ -32,7 +32,7 @@ Durum etiketleri: **Taslak** (yazıldı, tartışılabilir), **Onaylı** (kullan
 | 2 | Varlık defteri (domain + DB) | Uygulandı |
 | 3 | Fiyat ve kur hattı | Uygulandı |
 | 4 | Birleşik portföy servisi | Uygulandı |
-| 5 | Portföyüm arayüzü | Açık |
+| 5 | Portföyüm arayüzü | Uygulandı |
 | 6 | Genel Bakış + haber akışı (önce spike) | Açık |
 | 7 | Ayarlar > Haber Kaynakları | Açık |
 | 8 | Ertelenenler (v2) | Açık |

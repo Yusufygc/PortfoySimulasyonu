@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Günlük: [log.md](log.md) | Önceki: [03_fiyat_ve_kur_hatti.md](03_fiyat_ve_kur_hatti.md) | Sonraki: [05_genel_bakis_ve_haber.md](05_genel_bakis_ve_haber.md)
 
-Durum: Aşama 1 ve 4 **Uygulandı** (2026-11-01); Aşama 5 (arayüz) **Taslak**
+Durum: Aşama 1, 4 ve 5 **Uygulandı** (2026-11-01)
 
 ## 1. Aşama 1 — Sayfa Bölünmesi (davranış korunur)
 
@@ -54,7 +54,33 @@ Kurallar:
 
 Doğrulama ve bulgu (2026-11-01, gerçek veritabanı kopyası): 7 BIST pozisyonu için toplam değer (260.311,90), maliyet (699.848,88) ve nakit `DashboardController` ile **birebir aynı**. Günlük kazanç farklı: birleşik servis −14.730 ₺ (%-5,36), dashboard −13.780 ₺ (%-5,29). Birleşik servis tam formülü kullanır (bugünkü değer − önceki kapanış değeri); dashboard `bugünkü değer × yüzde` yaklaşığını kullanır ve negatif günlerde farkı küçük, pozitif günlerde büyük gösterir. Dashboard hesabı bu aşamada değiştirilmedi (BIST davranışı korunur); Portföyüm arayüzü (Aşama 5) birleşik değeri göstereceğinden iki ekran arasındaki fark için karar gerekir.
 
-## 3. Aşama 5 — Arayüz
+## 3. Aşama 5 — Arayüz (Uygulandı, 2026-11-01)
+
+Portföyüm sayfasının tüm rakamları `UnifiedPortfolioService` üzerinden okunur (BIST sekmesi dahil); `DashboardController` yalnızca BIST modallarına (hızlı al/sat, sermaye, Excel) ve haftalık/aylık BIST getiri kartlarına bağlı kalır. Günlük kazanç tam formülle hesaplanır.
+
+Dosyalar:
+
+| Katman | Dosya |
+|---|---|
+| Sunum yardımcıları | `src/ui_qml/controllers/portfolio_presenter.py` (para/miktar/yüzde biçimi, satır ve dilim sözlükleri, sekme süzgeci) |
+| Model | `src/ui_qml/models/holdings_list_model.py` (`HoldingsListModel`) |
+| Denetleyici | `src/ui_qml/controllers/my_portfolio_controller.py` (`myPortfolioController`: özet, TRY/USD, sekme, dilimler), `assets_controller.py` (`assetsController`: varlık ekleme, işlem, fiyat yenileme, öneri) |
+| Kayıt | `src/ui_qml/app.py`: iki denetleyici + `pricesChanged` / `portfolioChanged` / `systemReset` / `assetsController.dataChanged` bağlantıları; `AssetsController(autostart=True)` 5 dakikada bir `refresh_latest(only_open=True)` çalıştırır |
+| QML | `views/MyPortfolioView.qml`, `components/HoldingsTable.qml` (eski `OpenPositionsTable.qml` yerine), `AssetAddModal.qml`, `AssetTradeModal.qml`; `AssetAllocationCard.qml` artık `slices` özelliğiyle beslenir ve sınıf etiketlerini `Strings.allocationClassName` ile çözer |
+| Test | `test_portfolio_presenter.py`, `test_my_portfolio_controller.py`, `test_assets_controller.py`, `test_my_portfolio_view.py` (taze DB, gerçek container, gerçek QML), `test_qml_views_runtime_smoke.py` genişletmesi |
+
+Davranış notları:
+
+- **Sayfa:** TRY/USD anahtarı; "Fiyatları Yenile"; Varlık Ekle / Varlık İşlemi; BIST nakdi, Excel ve hızlı al/sat BIST için aynen. Üstte değerlenemeyen pozisyon uyarısı ve USD kuru bulunamadı uyarısı; 4 KPI kartı birleşik özetten.
+- **Dağılım:** sınıf bazlı dilimler (BIST, ABD, kripto, emtia, nakit); donut merkezi nakit dışı payı gösterir.
+- **Tablo:** Tümü / BIST / ABD / Kripto / Emtia sekmeleri (adetli); tutarlar seçili para biriminde, fiyatlar varlığın kendi para biriminde; değerlenemeyen pozisyonda "Maliyet" işareti; BIST satırı Grafik / Detay / İşlem, BIST dışı satır İşlem / Kaldır; emtia sekmesinde vadeli kontrat notu.
+- **Varlık ekleme:** katalogdan tek tıkla ya da sembolle; doğrulama, geçmiş doldurma, son fiyat ve kur yükleme arka planda; adımlardan biri başarısız olursa varlık yine eklenir ve mesaj bunu belirtir.
+- **Varlık işlemi:** kesirli miktar, fiyat ve kur önerisi veritabanından (ağ yok), TRY fiyatlı varlıkta kur gizli; elden fazla satış ve geriye dönük satış servis tarafından reddedilir.
+- **Bildirimler:** otomatik fiyat yenilemesi sessizdir; yalnızca "Fiyatları Yenile" ile istenen sonuç ve hatalar gösterilir.
+- **Bilinen sınırlar:** haftalık/aylık getiri kartları yalnızca BIST'tir (etiketlerde "(BIST)"); birleşik TWR v2. BIST nakdi dışında varlık nakdi yoktur. Ofscreen anlık görüntüde yazılar kutu çizildiği için yatay genişlik doğrulaması güvenilir değildir; gerçek pencerede kontrol edilmelidir.
+
+### Özgün plan metni
+
 
 `views/MyPortfolioView.qml`:
 

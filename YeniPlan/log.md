@@ -5,6 +5,15 @@
 > Başlık biçimi: `## [YYYY-AA-GG] işlem | Konu`
 
 ---
+## [2026-11-01] uygulama | Aşama 5: Portföyüm arayüzü
+
+- Portföyüm tüm rakamlarını `UnifiedPortfolioService`'ten okur (BIST sekmesi dahil; günlük kazanç tam formül). `MyPortfolioController`: KPI'lar, TRY/USD anahtarı, sınıf dilimleri, sekmeler, tablo modeli; `AssetsController`: varlık ekleme (arka plan), işlem kaydı, fiyat yenileme, öneri, kaldırma.
+- QML: `HoldingsTable` (eski `OpenPositionsTable` kaldırıldı), `AssetAddModal`, `AssetTradeModal`, `MyPortfolioView` yeniden yazıldı, `AssetAllocationCard` sınıf dilimleriyle beslenir.
+- `app.py`: iki denetleyici, `pricesChanged`/`portfolioChanged`/`systemReset`/`dataChanged` bağlantıları, 5 dakikalık otomatik varlık fiyat yenilemesi.
+- Test: 4 yeni test dosyası (sunum, iki denetleyici, uçtan uca QML) + duman testi genişletmesi; tam paket 1604 geçti, 4 xfailed.
+- Haftalık/aylık getiri kartları yalnızca BIST (etiketlendi); birleşik TWR v2.
+
+---
 ## [2026-11-01] uygulama | Aşama 4: Birleşik portföy servisi
 
 - `UnifiedPortfolioService.get_summary(display_currency)`: BIST pozisyonları + BIST nakdi + varlık defteri → tek TRY özeti (`UnifiedSummary`): toplam değer, maliyet, K/Z, günlük kazanç, sınıf bazlı dilimler, pozisyon ağırlıkları, TRY/USD gösterim oranı.
