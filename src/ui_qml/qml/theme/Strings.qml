@@ -12,6 +12,7 @@ QtObject {
     readonly property string navCollapse: "Menüyü Daralt"
     readonly property string navExpand: "Menüyü Genişlet"
     readonly property string navDashboard: "Genel Bakış"
+    readonly property string navMyPortfolio: "Portföyüm"
     readonly property string navWatchlist: "İzleme Listeleri"
     readonly property string navPortfolio: "Model Portföyler"
     readonly property string navStock360: "Hisse 360"
@@ -26,8 +27,10 @@ QtObject {
     readonly property string searchPlaceholder: "Hisse Ara (örn. THYAO)..."
 
     // --- Dashboard Görünümü ---
-    readonly property string dashboardTitle: "Portföy Genel Bakış"
-    readonly property string dashboardSubtitle: "Gerçek zamanlı piyasa değerlemeleri, canlı emirler ve varlık dağılımı"
+    readonly property string dashboardTitle: "Genel Bakış"
+    readonly property string dashboardSubtitle: "Etkileşimli grafik ve portföyündeki hisselere hızlı erişim"
+    readonly property string myPortfolioTitle: "Portföyüm"
+    readonly property string myPortfolioSubtitle: "Gerçek zamanlı piyasa değerlemeleri, canlı emirler ve varlık dağılımı"
     readonly property string btnRefresh: "Fiyatları Yenile"
     // Fiyat durumu bileşeni (PriceStatusChip): fiyatlar kendiliğinden güncellenir
     readonly property string priceStatusRefreshing: "Fiyatlar güncelleniyor..."

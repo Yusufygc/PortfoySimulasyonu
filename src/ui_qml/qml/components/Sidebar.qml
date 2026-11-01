@@ -22,6 +22,7 @@ Rectangle {
 
     readonly property var menuItems: [
         { index: 0, title: Strings.navDashboard,    iconName: "dashboard" },
+        { index: 10, title: Strings.navMyPortfolio, iconName: "piechart" },
         { index: 1, title: Strings.navWatchlist,    iconName: "watchlist" },
         { index: 2, title: Strings.navPortfolio,    iconName: "portfolio" },
         { index: 3, title: Strings.navStock360,     iconName: "stock360" },

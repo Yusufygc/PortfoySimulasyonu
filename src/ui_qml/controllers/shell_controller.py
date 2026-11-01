@@ -27,6 +27,7 @@ class ShellController(QObject):
         7: "Optimizasyon",
         8: "AI Asistan",
         9: "Ayarlar",
+        10: "Portföyüm",
     }
 
     def __init__(self, container=None, parent=None):

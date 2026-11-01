@@ -168,6 +168,8 @@ def render(out_dir: Path, db_dir: Path | None) -> None:
     engine, controllers = _build_engine()
     _pump(40)  # arka plan açılış yüklemelerinin oturması için
 
+    _render_view(engine, out_dir, "dashboard", "views/DashboardView.qml", [("default", None)])
+    _render_view(engine, out_dir, "myportfolio", "views/MyPortfolioView.qml", [("default", None)])
     _render_view(engine, out_dir, "settings", "views/SettingsView.qml",
                  [(f"tab{i}", _set_property("activeTabIndex", i)) for i in range(8)])
     _render_view(engine, out_dir, "aiadvisor", "views/AiAdvisorView.qml",

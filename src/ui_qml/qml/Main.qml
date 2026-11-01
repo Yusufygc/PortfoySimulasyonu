@@ -170,6 +170,15 @@ ApplicationWindow {
                         active: shellController.activePage === 9 || (status === Loader.Ready)
                         source: "views/SettingsView.qml"
                     }
+
+                    // 10: Portföyüm (Pozisyonlar, KPI'lar, Varlık Dağılımı - Tembel Yükleme)
+                    Loader {
+                        id: myPortfolioLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 10 || (status === Loader.Ready)
+                        source: "views/MyPortfolioView.qml"
+                    }
                 }
                 }
             }

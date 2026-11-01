@@ -46,6 +46,8 @@ QML_DIR = Path(__file__).resolve().parents[2] / "src" / "ui_qml" / "qml"
 
 # (qml dosyası, değiştirilen özellik, değerler, denetleyici üzerinden sürücü (ad, yuva, değerler) ya da None)
 TARGETS = {
+    "DashboardView": ("views/DashboardView.qml", None, [None], None),
+    "MyPortfolioView": ("views/MyPortfolioView.qml", None, [None], None),
     "SettingsView": ("views/SettingsView.qml", "activeTabIndex", range(8), None),
     "AiAdvisorView": ("views/AiAdvisorView.qml", "mode", range(2), None),
     "OptimizationView": ("views/OptimizationView.qml", None, [None], None),
