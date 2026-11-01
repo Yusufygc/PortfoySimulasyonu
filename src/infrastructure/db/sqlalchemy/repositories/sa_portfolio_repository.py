@@ -1,6 +1,7 @@
 # src/infrastructure/db/sqlalchemy/repositories/sa_portfolio_repository.py
 
 from datetime import date
+from decimal import Decimal
 from typing import Iterable, List, Optional, Sequence
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
@@ -28,6 +29,7 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             price=orm.price,
             original_quantity=orm.original_quantity,
             original_price=orm.original_price,
+            fee=orm.fee if orm.fee is not None else Decimal("0"),
         )
 
     def _to_orm(self, domain: Trade) -> ORMTrade:
@@ -41,6 +43,7 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             price=domain.price,
             original_quantity=domain.original_quantity,
             original_price=domain.original_price,
+            fee=domain.fee,
         )
 
     # ---------- READ ---------- #
@@ -105,6 +108,7 @@ class SQLAlchemyPortfolioRepository(IPortfolioRepository):
             orm_obj.price = trade.price
             orm_obj.original_quantity = trade.original_quantity
             orm_obj.original_price = trade.original_price
+            orm_obj.fee = trade.fee
             commit_or_rollback(session)
 
     def delete_trade(self, trade_id: int) -> None:

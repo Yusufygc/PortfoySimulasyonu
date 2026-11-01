@@ -136,6 +136,7 @@ def _record_and_update_trade(portfolio_repo, trade_adjustment_repo, trade, actio
         price=upd.post_price,
         original_quantity=trade.original_quantity,
         original_price=trade.original_price,
+        fee=trade.fee,  # bölünme/bedelli ücreti değiştirmez
     )
     portfolio_repo.update_trade(updated_trade)
 

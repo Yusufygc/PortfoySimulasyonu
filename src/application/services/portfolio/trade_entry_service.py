@@ -31,10 +31,17 @@ class TradeEntryResult:
 
 
 class TradeEntryService:
-    def __init__(self, stock_repo, portfolio_service, market_session_service=None) -> None:
+    def __init__(self, stock_repo, portfolio_service, market_session_service=None, fee_service=None) -> None:
         self._stock_repo = stock_repo
         self._portfolio_service = portfolio_service
         self._market_session_service = market_session_service
+        self._fee_service = fee_service
+
+    def estimate_fee(self, quantity: int, price: Decimal) -> Decimal:
+        """Verilen emir için ayarlardaki oranlarla ücret (ayar yoksa 0); arayüz ön izlemesi de bunu kullanır."""
+        if self._fee_service is None:
+            return Decimal("0")
+        return self._fee_service.bist_fee(Decimal(quantity) * price)
 
     @staticmethod
     def normalize_ticker(ticker: str) -> str:
@@ -81,8 +88,9 @@ class TradeEntryService:
         if req.price <= 0:
             raise ValueError("Fiyat pozitif olmalıdır.")
         ensure_trade_session_open(self._market_session_service, req.trade_date, req.trade_time)
+        fee = self.estimate_fee(req.quantity, req.price)
         if trade_side == TradeSide.BUY:
-            total_amount = Decimal(req.quantity) * req.price
+            total_amount = Decimal(req.quantity) * req.price + fee
             cash_balance = self._portfolio_service.get_cash_balance(as_of=(req.trade_date, req.trade_time))
             if total_amount > cash_balance:
                 date_str = req.trade_date.strftime("%d.%m.%Y")
@@ -103,6 +111,7 @@ class TradeEntryService:
             trade_time=req.trade_time,
             quantity=req.quantity,
             price=req.price,
+            fee=fee,
         )
         self._portfolio_service.validate_trade(trade)
         saved_trade = self._portfolio_service.add_trade(trade)

@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.models.trade import TradeSide
-from src.domain.models.trade_impact import INSUFFICIENT_CASH, INSUFFICIENT_LOTS, preview_order
+from src.domain.models.trade_impact import INSUFFICIENT_CASH, INSUFFICIENT_LOTS, OrderSpec, preview_order
 from src.domain.ticker import clean_ticker
 from src.domain.market_clock import market_now, market_time, market_today
 from src.ui_qml.messages import msg
@@ -261,11 +261,15 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
         """Emir girilirse pozisyonun alacağı hali (lot, ortalama maliyet, nakit) önceden hesaplar."""
         trade_side = TradeSide.BUY if side.upper() in ("BUY", "ALIM") else TradeSide.SELL
         cash = None if self._cash is None else Decimal(str(self._cash))
-        impact = preview_order(trade_side, quantity, Decimal(str(price or 0)), int(self._quantity), Decimal(str(self._avg_cost)), cash)
+        unit_price = Decimal(str(price or 0))
+        entry = getattr(self._container, "trade_entry_service", None) if self._container else None
+        fee = entry.estimate_fee(max(0, int(quantity)), unit_price) if entry is not None and unit_price > 0 and quantity > 0 else Decimal("0")
+        impact = preview_order(OrderSpec(trade_side, quantity, unit_price, fee), int(self._quantity), Decimal(str(self._avg_cost)), cash)
         reasons = {INSUFFICIENT_CASH: msg("stock_detail.insufficient_cash"), INSUFFICIENT_LOTS: msg("stock_detail.insufficient_lots")}
         return {
             "valid": impact.valid,
             "message": reasons.get(impact.reason, ""),
+            "fee": "₺" + tr_number(fee),
             "newQty": f"{max(impact.new_quantity, 0):,}".replace(",", "."),
             "newAvg": "-" if impact.new_avg_cost is None else "₺" + tr_number(impact.new_avg_cost),
             "cashAfter": "-" if impact.cash_after is None else "₺" + tr_number(impact.cash_after),

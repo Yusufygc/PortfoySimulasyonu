@@ -80,9 +80,9 @@ class PortfolioService:
         as_of = (trade.trade_date, trade.trade_time)
         if trade.side == TradeSide.BUY:
             cash_balance = self.get_cash_balance(as_of=as_of)
-            if trade.total_amount > cash_balance:
+            if trade.cash_amount > cash_balance:
                 raise ValueError(
-                    f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash_balance:.2f} TL"
+                    f"Yetersiz nakit. Gerekli: {trade.cash_amount:.2f} TL, Mevcut: {cash_balance:.2f} TL"
                 )
             PortfolioTimelineValidator.validate_candidate_timeline(
                 candidate=trade,
@@ -146,7 +146,7 @@ class PortfolioService:
                     20,
                     int(trade.id or 0),
                     trade.side,
-                    trade.total_amount,
+                    trade.cash_amount,
                 )
             )
         return sorted(events, key=lambda event: (event[0], event[1], event[2], event[3]))

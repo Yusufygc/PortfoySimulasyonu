@@ -126,15 +126,15 @@ class PortfolioTimelineValidator:
             violations.append((marker, f"Yetersiz pozisyon. Satmak istediğiniz: {trade.quantity}, Mevcut: {available}"))
             return cash
         positions[trade.stock_id] -= trade.quantity
-        return cash + trade.total_amount
+        return cash + trade.cash_amount
 
     @staticmethod
     def _apply_buy_trade(trade: Trade, marker, cash: Decimal, positions, violations) -> Decimal:
-        if trade.total_amount > cash:
-            violations.append((marker, f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash:.2f} TL"))
+        if trade.cash_amount > cash:
+            violations.append((marker, f"Yetersiz nakit. Gerekli: {trade.cash_amount:.2f} TL, Mevcut: {cash:.2f} TL"))
             cash = Decimal("0")
         else:
-            cash -= trade.total_amount
+            cash -= trade.cash_amount
         positions[trade.stock_id] += trade.quantity
         return cash
 

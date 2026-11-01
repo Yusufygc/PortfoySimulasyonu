@@ -8,12 +8,12 @@ Bu sayfa SQLite (işlemsel) şemasını ve ORM katmanını anlatır. DuckDB şem
 
 Domain katmanı SQL'den bağımsızdır: `src/domain/ports/repositories/` altındaki soyut arayüzler `src/infrastructure/db/sqlalchemy/repositories/` içindeki 20 SQLAlchemy repository'siyle (`sa_*.py`) uygulanır. Yazma yollarındaki `commit/rollback/refresh` tekrarları `_transaction.py` yardımcılarına (`commit_or_rollback`, `commit_refresh_or_rollback`) taşınmıştır; hata yakalama `SQLAlchemyError` ailesiyle sınırlıdır. `SQLAlchemyRiskProfileRepository` eski `risk_profiles` şeması için bilinçli bir uyumluluk yolu taşır.
 
-## 2. Tablolar (`orm_models.py`, 29 tablo)
+## 2. Tablolar (`orm_models.py`, 30 tablo)
 
 | Alan | Tablo | İçerik |
 |---|---|---|
 | Hisse ve işlem | `stocks` | `ticker` (benzersiz, kanonik uzantısız), `name`, `currency_code`. |
-| | `trades` | BUY/SELL: `stock_id`, tarih, saat, `quantity`, `price`, `original_quantity`, `original_price` (sermaye artırımı öncesi özgün değerler), `total_amount` (üretilmiş sütun: `quantity * price`), `notes`. |
+| | `trades` | BUY/SELL: `stock_id`, tarih, saat, `quantity`, `price`, `original_quantity`, `original_price` (sermaye artırımı öncesi özgün değerler), `fee` (komisyon + BSMV, TL, varsayılan 0; alımda maliyete eklenir), `total_amount` (üretilmiş sütun: `quantity * price`), `notes`. |
 | | `trade_adjustments` | Sermaye artırımı düzeltme denetim izi: `trade_id`, `corporate_action_id`, `factor`, önceki/sonraki lot ve fiyat. |
 | | `cash_movements` | `DEPOSIT`/`WITHDRAW`/`DIVIDEND`, `amount`, tarih/saat, `notes`, `stock_id` (yalnızca temettü; `ON DELETE SET NULL`). |
 | Fiyat | `daily_prices` | `(stock_id, price_date)` benzersiz; `close_price`, `open/high/low`, `volume`, `source`. Yalnızca portföy hisseleri (kullanıcı verisine bağlı). |
@@ -29,7 +29,8 @@ Domain katmanı SQL'den bağımsızdır: `src/domain/ports/repositories/` altın
 | Teknik | `cross_events` | Golden/Death Cross olayları: `(ticker, cross_date, cross_type)` benzersiz; türetilmiş veri. |
 | KAP | `kap_companies` (`ticker` benzersiz, `mkk_member_oid`), `kap_shareholder_snapshots`, `kap_shareholder_rows` | Ortaklık yapısı önbelleği. |
 | Varlık defteri (BIST dışı) | `assets` | `symbol`, `name`, `asset_class`, `quote_currency`, `yf_symbol`, `unit`, `is_active`; `(asset_class, symbol)` benzersiz. |
-| | `asset_trades` | BUY/SELL: `quantity`, `price` `Numeric(28,10)`, `fx_rate_to_try`, `trade_time`, `note`. |
+| | `asset_trades` | BUY/SELL: `quantity`, `price` `Numeric(28,10)`, `fx_rate_to_try`, `fee` (işlem para biriminde), `trade_time`, `note`. |
+| Ayar | `app_settings` | Küçük anahtar-değer ayarları: `key` (PK), `value` (ücret oranları `fee.*`). |
 | | `asset_prices` | Günlük kapanış: `(asset_id, price_date)` benzersiz, `close_price`, `currency_code`, `source`. |
 | | `asset_latest_prices` | Varlık başına son fiyat ve zaman damgası. |
 | | `fx_rates` | Kur serisi: `(base_currency, quote_currency, rate_date)` benzersiz (`uq_fx_rate`), `rate`, `source`. |
@@ -41,7 +42,7 @@ Sohbet geçmişi, tema ve açılış işaretleri veritabanında değil `QSetting
 ## 3. İlklendirme ve Şema Evrimi
 
 - `SQLAlchemyEngineProvider` bağlantıyı `check_same_thread=False` ile kurar, SQLite PRAGMA'larını uygular (WAL günlük modu, `synchronous=NORMAL`, `foreign_keys=ON`) ve `Base.metadata.create_all(checkfirst=True)` ile eksik tabloları oluşturur. Alembic kullanılmaz.
-- **Sürümlü şema göçleri** (`schema_migrations.py`, `_init_db_schema` çağırır): uygulanan göçler `schema_migrations` tablosunda (`version`, `name`, `applied_at`) tutulur ve her biri yalnızca bir kez çalışır. Mevcut göçler: 1 eski `golden_cross_events` tablosunu siler (türetilmiş veri), 2 `.IS` uzantılı `stocks.ticker` kayıtlarını çakışma yoksa uzantısıza çevirir, 3 `cash_movements.stock_id` sütununu ekler.
+- **Sürümlü şema göçleri** (`schema_migrations.py`, `_init_db_schema` çağırır): uygulanan göçler `schema_migrations` tablosunda (`version`, `name`, `applied_at`) tutulur ve her biri yalnızca bir kez çalışır. Mevcut göçler: 1 eski `golden_cross_events` tablosunu siler (türetilmiş veri), 2 `.IS` uzantılı `stocks.ticker` kayıtlarını çakışma yoksa uzantısıza çevirir, 3 `cash_movements.stock_id` sütununu ekler, 4 `trades.fee` ve `asset_trades.fee` sütunlarını 0 varsayılanıyla ekler.
   - Bekleyen göç varsa ve veritabanı doluysa göçten önce `data/backups/portfolio_pre_migration_<zaman>.db` yedeği alınır (SQLite `backup` API'si, son 5 tutulur). Yedek alınamazsa göç başlamaz.
   - Her göç kendi transaction'ında çalışır, sürüm kaydı aynı transaction'dadır. SQLite DDL'i her sürücüde geri alınamayabileceğinden göçler **idempotent** yazılır.
   - Hata yutulmaz: `SchemaMigrationError` yükselir; `app.py` bunu yakalayıp uygulamayı çevrimdışı modda açar ve log'a yazar.

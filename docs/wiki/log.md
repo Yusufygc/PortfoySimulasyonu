@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-02] güncelleme | Evrim Planı E5.1: İşlem Ücreti (Komisyon + BSMV)
+
+- Kararlar: komisyon ve BSMV kullanıcı ayarı (varsayılan 0), geçmiş işlemler 0 ücretle kalır, tüm alım-satım ortak nakit havuzundan, USD varlık için önce TL ile USD alınır, altın gram/TL/TL nakit, eski varlık işlemleri nakde dokunmaz. E5 planı buna göre E5.1-E5.5 olarak yeniden yazıldı.
+- Domain: `Trade.fee` / `AssetTrade.fee`, `cash_amount` (alımda tutar + ücret, satışta tutar - ücret); `Position`/`AssetPosition` maliyete ücret ekler, satış gelirini ücretten düşer; `FeeRates` + `calculate_fee`; `preview_order` ücretli (`OrderSpec`).
+- Altyapı: göç 4 (`trades.fee`, `asset_trades.fee`, 0 varsayılan, otomatik yedekli), `app_settings` tablosu, `SQLAlchemyAppSettingsRepository`. Nakit hesapları (`PortfolioService`, `PortfolioTimelineValidator`, `portfolio_series_builder`), `TradeEntryService` ve `AssetLedgerService.record_trade` ücretli.
+- Arayüz: Ayarlar > Ücretler sekmesi (`FeeSettingsController`, `SettingsFeesTab.qml`), Hisse Detay emir ön izlemesinde "Tahmini Ücret".
+- Testler: elle hesaplanmış ücret senaryoları, eski şemadan göç testi, ayar ve denetleyici testleri. Fonksiyon ihlali 71 -> 72 (CI tavanı 72). Test: 1830 geçti, 4 xfailed. Model portföyler ücret taşımaz.
+
+---
 ## [2026-11-02] güncelleme | Evrim Planı E4: Pozisyon Rakamları İçin Tek Okuma Kaynağı
 
 - Yeni `PositionQueryService` (`ana portföy`, `model portföy`, `quote`) ve domain `PositionSnapshot`/`PortfolioPositions`; container `position_query_service` olarak bağlar. Ana portföy `BistHoldingsReader` ile Portföyüm'le aynı yoldan değerlenir.

@@ -38,10 +38,12 @@ class AssetLedgerService:
         asset_repo: IAssetRepository,
         trade_repo: IAssetTradeRepository,
         symbol_verifier: Optional[IAssetSymbolVerifier] = None,
+        fee_service=None,
     ) -> None:
         self._asset_repo = asset_repo
         self._trade_repo = trade_repo
         self._symbol_verifier = symbol_verifier
+        self._fee_service = fee_service
 
     # ---------- Varlık tanımı ---------- #
 
@@ -114,8 +116,10 @@ class AssetLedgerService:
         return AssetLedger.from_trades(self._trade_repo.list_trades())
 
     def record_trade(self, asset_id: int, side: TradeSide, quantity, price, **options) -> AssetTrade:
-        """`options`: `trade_date` (varsayılan bugün), `trade_time` (`time`), `fx_rate_to_try` (boşsa kur 1) ve `note`."""
+        """`options`: `trade_date` (varsayılan bugün), `trade_time` (`time`), `fx_rate_to_try` (boşsa kur 1), `note` ve
+        `fee` (işlem para biriminde; verilmezse ayarlardaki komisyon/BSMV oranlarıyla hesaplanır, ayar yoksa 0)."""
         trade_date: date = options.pop("trade_date", None) or market_today()
+        fee_option = options.pop("fee", None)
         trade_time: Optional[time] = options.pop("trade_time", None)
         fx_rate_to_try, note = options.pop("fx_rate_to_try", None), options.pop("note", None)
         if options:
@@ -134,6 +138,8 @@ class AssetLedgerService:
         if price_value <= 0:
             raise ValueError("Fiyat sıfırdan büyük olmalı.")
 
+        fee_value = self._resolve_fee(fee_option, quantity_value * price_value)
+
         trade = AssetTrade(
             id=None,
             asset_id=asset_id,
@@ -144,6 +150,7 @@ class AssetLedgerService:
             price=price_value,
             fx_rate_to_try=fx_value,
             note=(note or "").strip() or None,
+            fee=fee_value,
         )
         self._ensure_ledger_valid(self._trade_repo.list_trades(asset_id) + [trade], asset)
         return self._trade_repo.add_trade(trade)
@@ -168,6 +175,15 @@ class AssetLedgerService:
             raise ValueError(f"{asset.yf_symbol} sembolü doğrulanamadı: fiyat kaynağına ulaşılamıyor.") from exc
         if not valid:
             raise ValueError(f"{asset.yf_symbol} sembolü için fiyat verisi bulunamadı.")
+
+    def _resolve_fee(self, fee_option, gross_amount: Decimal) -> Decimal:
+        """Elle girilen ücret varsa o, yoksa ayardaki oranlarla hesaplanan (ayar yoksa 0)."""
+        if fee_option is not None:
+            fee = _decimal(fee_option, "Ücret")
+            if fee < 0:
+                raise ValueError("Ücret negatif olamaz.")
+            return fee
+        return self._fee_service.asset_fee(gross_amount) if self._fee_service is not None else Decimal("0")
 
     @staticmethod
     def _resolve_fx_rate(asset: Asset, fx_rate_to_try) -> Decimal:

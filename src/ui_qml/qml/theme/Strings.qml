@@ -583,6 +583,15 @@ QtObject {
     readonly property string settingsTabMarketAdj: "Piyasa Düzeltmeleri"
     readonly property string settingsTabSystem: "Sistem"
     readonly property string settingsTabNews: "Haber Kaynakları"
+    readonly property string settingsTabFees: "Ücretler"
+    readonly property string settingsFeesTitle: "İŞLEM ÜCRETLERİ (KOMİSYON VE BSMV)"
+    readonly property string settingsFeesDesc: "Oranlar yüzde olarak girilir ve varsayılan olarak 0'dır. Ücret işlem anında hesaplanıp işlemle birlikte saklanır; oranları sonradan değiştirmek eski işlemleri etkilemez. Alımda ücret maliyete eklenir, satışta gelirden düşer."
+    readonly property string settingsFeesBist: "BIST hisse komisyonu"
+    readonly property string settingsFeesBistHint: "İşlem tutarı üzerinden alınan komisyon yüzdesi"
+    readonly property string settingsFeesAsset: "Varlık komisyonu"
+    readonly property string settingsFeesAssetHint: "Altın, kripto ve ABD hissesi işlemlerinde işlem tutarı üzerinden komisyon yüzdesi"
+    readonly property string settingsFeesBsmv: "BSMV"
+    readonly property string settingsFeesBsmvHint: "Komisyon tutarı üzerinden alınan vergi yüzdesi (ör. 5)"
 
     // --- Ayarlar > Haber Kaynakları ---
     readonly property string newsSetTitle: "Haber Kaynakları"
@@ -805,6 +814,7 @@ QtObject {
     readonly property string stockDetailImpactLot: "Yeni Toplam Lot"
     readonly property string stockDetailImpactAvg: "Yeni Ort. Maliyet"
     readonly property string stockDetailImpactCash: "Kalan Nakit"
+    readonly property string stockDetailImpactFee: "Tahmini Ücret"
 
     // --- Sabit metinler (QML'den taşındı) ---
     readonly property string comparisonCalculating: "Karşılaştırma hesaplanıyor..."

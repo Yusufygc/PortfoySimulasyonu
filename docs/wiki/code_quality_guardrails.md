@@ -6,7 +6,7 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 
 ## 1. Ölçüm
 
-**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 0 sınıf, 71 fonksiyon, 0 dosya); yeni ihlal eklenemez. Ölçüm `tests/`, `scripts/` ve `src/` dosyalarının tümünü kapsar: test yardımcılarındaki 5'ten çok parametre de ihlaldir (2026-11-01'de Portföyüm/haber işi tavanı 92'ye çıkarmıştı; seçenek sözlüğü, `**options` ve küçük yardımcı fonksiyonlarla 75'e indirildi). Ölçüm `--output-dir` olmadan tarihsel baseline dosyalarının üzerine yazar; yerelde mutlaka `--output-dir` verin. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
+**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 0 sınıf, 72 fonksiyon, 0 dosya); yeni ihlal eklenemez. Ölçüm `tests/`, `scripts/` ve `src/` dosyalarının tümünü kapsar: test yardımcılarındaki 5'ten çok parametre de ihlaldir (2026-11-01'de Portföyüm/haber işi tavanı 92'ye çıkarmıştı; seçenek sözlüğü, `**options` ve küçük yardımcı fonksiyonlarla 75'e indirildi). Ölçüm `--output-dir` olmadan tarihsel baseline dosyalarının üzerine yazar; yerelde mutlaka `--output-dir` verin. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
 
 ```powershell
 .\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar
@@ -32,7 +32,7 @@ Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (do
 
 ## 3. Güncel Durum (2026-10-04 ölçümü)
 
-Python dosyası eşiği (400 satır) ve sınıf eşiği ihlali yoktur. **71 fonksiyon** eşik dışıdır (2026-11-02 ölçümü). 2026-11-02'ye kadar dört QML denetleyicisi sınıf eşiğini aşıyordu (eşik 400 satır / 30 metot, `@Property` getter'ları hariç); E3 ile ayrıştırıldı:
+Python dosyası eşiği (400 satır) ve sınıf eşiği ihlali yoktur. **72 fonksiyon** eşik dışıdır (2026-11-02 ölçümü). 2026-11-02'ye kadar dört QML denetleyicisi sınıf eşiğini aşıyordu (eşik 400 satır / 30 metot, `@Property` getter'ları hariç); E3 ile ayrıştırıldı:
 
 | Denetleyici | Önce (satır/metot) | Sonra | Ayrılan parça |
 |---|---:|---:|---|

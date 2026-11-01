@@ -59,7 +59,7 @@ def test_existing_database_is_backed_up_and_migrated_once(tmp_path):
 
     SQLAlchemyEngineProvider(SQLiteConfig(db_path=str(path))).dispose()
 
-    assert _versions(path) == [1, 2, 3]
+    assert _versions(path) == [m.version for m in schema_migrations.MIGRATIONS]
     backups = _backups(path)
     assert len(backups) == 1
     with sqlite3.connect(backups[0]) as conn:
@@ -76,7 +76,7 @@ def test_second_startup_applies_nothing_and_takes_no_new_backup(tmp_path):
     SQLAlchemyEngineProvider(SQLiteConfig(db_path=str(path))).dispose()
 
     assert _backups(path) == first_backups
-    assert _versions(path) == [1, 2, 3]
+    assert _versions(path) == [m.version for m in schema_migrations.MIGRATIONS]
 
 
 def test_migration_runs_exactly_once(tmp_path):
@@ -137,3 +137,39 @@ def test_old_backups_are_pruned(tmp_path):
     remaining = sorted(p.name for p in backup_dir.glob(f"{BACKUP_PREFIX}*.db"))
     assert len(remaining) == KEEP_BACKUPS
     assert remaining[-1].endswith(f"{KEEP_BACKUPS + 2:02d}.db")
+
+
+OLD_TRADES = """
+    CREATE TABLE trades (
+        id BIGINT NOT NULL, stock_id BIGINT NOT NULL, trade_date DATE NOT NULL, trade_time TIME, side VARCHAR(4) NOT NULL,
+        quantity BIGINT NOT NULL, price NUMERIC(18, 4) NOT NULL, original_quantity BIGINT NOT NULL,
+        original_price NUMERIC(18, 4) NOT NULL, notes VARCHAR(255), created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        PRIMARY KEY (id)
+    )
+"""
+OLD_ASSET_TRADES = """
+    CREATE TABLE asset_trades (
+        id INTEGER NOT NULL, asset_id INTEGER NOT NULL, trade_date DATE NOT NULL, trade_time TIME, side VARCHAR(4) NOT NULL,
+        quantity NUMERIC(28, 10) NOT NULL, price NUMERIC(28, 10) NOT NULL, fx_rate_to_try NUMERIC(18, 8) DEFAULT 1 NOT NULL,
+        note VARCHAR(255), created_at DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id)
+    )
+"""
+
+
+def test_fee_migration_adds_zero_fee_to_existing_trades_and_keeps_data(tmp_path):
+    path = tmp_path / "old_trades.db"
+    with sqlite3.connect(path) as conn:
+        conn.execute(OLD_TRADES)
+        conn.execute(OLD_ASSET_TRADES)
+        conn.execute("INSERT INTO trades (id, stock_id, trade_date, side, quantity, price, original_quantity, original_price) "
+                     "VALUES (1, 7, '2026-01-02', 'BUY', 10, 100, 10, 100)")
+        conn.execute("INSERT INTO asset_trades (id, asset_id, trade_date, side, quantity, price) "
+                     "VALUES (1, 3, '2026-01-02', 'BUY', 0.5, 60000)")
+
+    SQLAlchemyEngineProvider(SQLiteConfig(db_path=str(path))).dispose()
+    SQLAlchemyEngineProvider(SQLiteConfig(db_path=str(path))).dispose()  # ikinci açılış idempotent
+
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT quantity, price, fee FROM trades").fetchall() == [(10, 100, 0)]
+        assert conn.execute("SELECT quantity, price, fee FROM asset_trades").fetchall() == [(0.5, 60000, 0)]
+    assert 4 in _versions(path)

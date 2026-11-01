@@ -28,6 +28,7 @@ class Trade:
     price: Decimal         # birim fiyat
     original_quantity: Optional[int] = None
     original_price: Optional[Decimal] = None
+    fee: Decimal = Decimal("0")   # komisyon + BSMV (TL, mutlak tutar); alımda maliyete eklenir, satışta gelirden düşer
 
     def __post_init__(self) -> None:
         if not isinstance(self.side, TradeSide):
@@ -47,6 +48,10 @@ class Trade:
         if self.price < 0:
             raise ValueError("Price cannot be negative")
 
+        object.__setattr__(self, "fee", self.fee if isinstance(self.fee, Decimal) else Decimal(str(self.fee)))
+        if self.fee < 0:
+            raise ValueError("Fee cannot be negative")
+
     @property
     def total_amount(self) -> Decimal:
         """
@@ -54,6 +59,11 @@ class Trade:
         Not: SELL işlemlerinde de pozitif tutulur, iş kuralı tarafında yorumlanır.
         """
         return self.price * Decimal(self.quantity)
+
+    @property
+    def cash_amount(self) -> Decimal:
+        """Nakit etkisinin büyüklüğü: alımda tutar + ücret (çıkan), satışta tutar - ücret (giren)."""
+        return self.total_amount + self.fee if self.side == TradeSide.BUY else self.total_amount - self.fee
 
     # ---- Factory / yardımcı metotlar (İstersen kullanırsın) ---- #
 
@@ -65,6 +75,7 @@ class Trade:
         quantity: int,
         price: Decimal,
         trade_time: Optional[time] = None,
+        fee: Decimal = Decimal("0"),
     ) -> "Trade":
         """
         Yeni bir alış işlemi oluşturur (id henüz yok, DB insert sonrası gelir).
@@ -83,6 +94,7 @@ class Trade:
             side=TradeSide.BUY,
             quantity=quantity,
             price=price,
+            fee=fee,
         )
 
     @classmethod
@@ -93,6 +105,7 @@ class Trade:
         quantity: int,
         price: Decimal,
         trade_time: Optional[time] = None,
+        fee: Decimal = Decimal("0"),
     ) -> "Trade":
         """
         Yeni bir satış işlemi oluşturur.
@@ -112,4 +125,5 @@ class Trade:
             side=TradeSide.SELL,
             quantity=quantity,
             price=price,
+            fee=fee,
         )

@@ -71,7 +71,8 @@ Rectangle {
                             { name: Strings.settingsTabPriceData, icon: Icons.history },
                             { name: Strings.settingsTabMarketAdj, icon: Icons.layers },
                             { name: Strings.settingsTabSystem, icon: Icons.settings },
-                            { name: Strings.settingsTabNews, icon: Icons.fileText }
+                            { name: Strings.settingsTabNews, icon: Icons.fileText },
+                            { name: Strings.settingsTabFees, icon: Icons.banknote }
                         ]
 
                         Rectangle {
@@ -221,6 +222,17 @@ Rectangle {
                         active: root.activeTabIndex === 8
                         visible: root.activeTabIndex === 8
                         source: "../components/SettingsNewsTab.qml"
+                        onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
+                    }
+
+                    // =========================================================
+                    // SEKME 9: ÜCRETLER (KOMİSYON VE BSMV ORANLARI)
+                    // =========================================================
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.activeTabIndex === 9
+                        visible: root.activeTabIndex === 9
+                        source: "../components/SettingsFeesTab.qml"
                         onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
                     }
                 }

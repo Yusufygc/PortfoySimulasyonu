@@ -531,7 +531,7 @@ def test_model_portfolio_history_export(qapp, tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_stock_detail_trade_impact(qapp):
-    ctrl = StockDetailController(container=MagicMock())
+    ctrl = StockDetailController(container=SimpleNamespace())
     ctrl._quantity, ctrl._avg_cost, ctrl._cash = 100, 10.0, 5000.0
 
     buy = ctrl.tradeImpact("BUY", 100, 20.0)
@@ -546,6 +546,20 @@ def test_stock_detail_trade_impact(qapp):
 
     oversell = ctrl.tradeImpact("SELL", 150, 20.0)
     assert oversell["valid"] is False and oversell["message"] == "Yetersiz lot"
+
+
+def test_stock_detail_trade_impact_includes_estimated_fee(qapp):
+    from decimal import Decimal as D
+
+    container = SimpleNamespace(trade_entry_service=SimpleNamespace(estimate_fee=lambda quantity, price: D("10")))
+    ctrl = StockDetailController(container=container)
+    ctrl._quantity, ctrl._avg_cost, ctrl._cash = 100, 10.0, 5000.0
+
+    buy = ctrl.tradeImpact("BUY", 100, 20.0)
+
+    # ortalama (1000 + 2000 + 10) / 200 = 15,05; nakit 5000 - 2000 - 10 = 2990
+    assert buy["fee"] == "₺10,00" and buy["newAvg"] == "₺15,05" and buy["cashAfter"] == "₺2.990,00"
+    assert ctrl.tradeImpact("BUY", 0, 20.0)["fee"] == "₺0,00"  # emir yoksa ücret yok
 
 
 # ---------------------------------------------------------------------------

@@ -86,3 +86,36 @@ class TestPortfolioRepository:
 
         repo.delete_all_trades()
         assert repo.get_all_trades() == [] and repo.get_first_trade_date() is None
+
+
+class TestTradeFeePersistence:
+    def test_fee_roundtrip_update_and_default_zero(self, repo, stocks):
+        saved = repo.insert_trade(Trade.create_buy(stocks[0].id, date(2026, 3, 2), 10, D("100"), fee=D("5.2500")))
+        plain = repo.insert_trade(_buy(stocks[1].id, date(2026, 3, 2)))
+
+        assert repo.get_trade_by_id(saved.id).fee == D("5.2500") and repo.get_trade_by_id(plain.id).fee == D("0")
+
+        updated = Trade(id=saved.id, stock_id=saved.stock_id, trade_date=saved.trade_date, trade_time=None,
+                        side=TradeSide.BUY, quantity=10, price=D("100"), fee=D("7"))
+        repo.update_trade(updated)
+        assert repo.get_trade_by_id(saved.id).fee == D("7")
+
+    def test_asset_trade_fee_and_app_setting_roundtrip(self, provider):
+        from src.domain.models.asset import Asset, AssetClass
+        from src.domain.models.asset_trade import AssetTrade
+        from src.infrastructure.db.sqlalchemy.repositories.sa_app_settings_repository import SQLAlchemyAppSettingsRepository
+        from src.infrastructure.db.sqlalchemy.repositories.sa_asset_repository import SQLAlchemyAssetRepository
+        from src.infrastructure.db.sqlalchemy.repositories.sa_asset_trade_repository import SQLAlchemyAssetTradeRepository
+
+        asset = SQLAlchemyAssetRepository(provider).add_asset(
+            Asset(None, "BTC", "Bitcoin", AssetClass.CRYPTO, "USD", "BTC-USD"))
+        trades = SQLAlchemyAssetTradeRepository(provider)
+        saved = trades.add_trade(AssetTrade(None, asset.id, date(2026, 3, 2), None, TradeSide.BUY, D("0.5"), D("60000"),
+                                            fx_rate_to_try=D("30"), fee=D("12.5")))
+        assert trades.get_trade(saved.id).fee == D("12.5")
+
+        settings = SQLAlchemyAppSettingsRepository(provider)
+        assert settings.get("fee.bsmv_pct") is None
+        settings.set("fee.bsmv_pct", "5")
+        settings.set("fee.bsmv_pct", "7")
+        assert settings.get("fee.bsmv_pct") == "7"

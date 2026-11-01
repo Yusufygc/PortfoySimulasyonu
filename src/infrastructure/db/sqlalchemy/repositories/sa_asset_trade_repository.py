@@ -26,6 +26,7 @@ def _to_domain(orm: ORMAssetTrade) -> AssetTrade:
         price=_decimal(orm.price),
         fx_rate_to_try=_decimal(orm.fx_rate_to_try),
         note=orm.note,
+        fee=_decimal(orm.fee) if orm.fee is not None else Decimal("0"),
     )
 
 
@@ -40,6 +41,7 @@ def _to_orm(trade: AssetTrade) -> ORMAssetTrade:
         price=trade.price,
         fx_rate_to_try=trade.fx_rate_to_try,
         note=trade.note,
+        fee=trade.fee,
     )
 
 

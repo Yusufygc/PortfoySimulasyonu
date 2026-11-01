@@ -24,27 +24,33 @@ class TradeImpact:
     cash_after: Optional[Decimal]       # nakit bilinmiyorsa None
 
 
-def preview_order(
-    side: TradeSide,
-    quantity: int,
-    price: Decimal,
-    current_quantity: int,
-    current_avg_cost: Decimal,
-    cash: Optional[Decimal],
-) -> TradeImpact:
+@dataclass(frozen=True)
+class OrderSpec:
+    """Önizlenecek emir: yön, lot, birim fiyat ve ücret (TL)."""
+
+    side: TradeSide
+    quantity: int
+    price: Decimal
+    fee: Decimal = ZERO
+
+
+def _rejection_reason(side: TradeSide, new_quantity: int, cash_after: Optional[Decimal]) -> str:
+    if side == TradeSide.BUY:
+        return INSUFFICIENT_CASH if cash_after is not None and cash_after < 0 else ""
+    return INSUFFICIENT_LOTS if new_quantity < 0 else ""
+
+
+def preview_order(order: OrderSpec, current_quantity: int, current_avg_cost: Decimal, cash: Optional[Decimal]) -> TradeImpact:
     """Alım/satım ön izlemesi; yetersiz nakit ve yetersiz lot burada karara bağlanır (arayüz yalnızca biçimler)."""
-    quantity = max(0, int(quantity))
-    price = price if price and price > 0 else ZERO
+    side, fee = order.side, order.fee
+    quantity = max(0, int(order.quantity))
+    price = order.price if order.price and order.price > 0 else ZERO
     total = price * Decimal(quantity)
     position = Position(stock_id=0, total_quantity=current_quantity, total_cost=current_avg_cost * Decimal(current_quantity))
-    new_quantity, new_avg = position.preview_trade(side, quantity, price)  # domain kuralı
-    cash_after = None if cash is None else (cash - total if side == TradeSide.BUY else cash + total)
+    new_quantity, new_avg = position.preview_trade(side, quantity, price, fee)  # domain kuralı (ücret alımda maliyete girer)
+    cash_after = None if cash is None else (cash - total - fee if side == TradeSide.BUY else cash + total - fee)
 
-    reason = ""
-    if side == TradeSide.BUY and cash_after is not None and cash_after < 0:
-        reason = INSUFFICIENT_CASH
-    elif side == TradeSide.SELL and new_quantity < 0:
-        reason = INSUFFICIENT_LOTS
+    reason = _rejection_reason(side, new_quantity, cash_after)
     return TradeImpact(
         valid=quantity > 0 and price > 0 and not reason,
         reason=reason,

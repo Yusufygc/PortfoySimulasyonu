@@ -26,6 +26,7 @@ def _fake_repositories():
         asset_price_repo=object(),
         fx_rate_repo=object(),
         news_source_repo=object(),
+        app_settings_repo=object(),
         market_history_store=object(),
     )
 

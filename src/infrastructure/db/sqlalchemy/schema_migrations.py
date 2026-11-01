@@ -66,10 +66,19 @@ def _add_cash_movements_stock_id(conn: Connection) -> None:
         )
 
 
+def _add_trade_fee_columns(conn: Connection) -> None:
+    """İşlem ücreti (komisyon + BSMV): mevcut işlemler 0 ücretle kalır."""
+    for table, column_type in (("trades", "NUMERIC(18, 4)"), ("asset_trades", "NUMERIC(28, 10)")):
+        columns = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table})")}
+        if columns and "fee" not in columns:
+            conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN fee {column_type} NOT NULL DEFAULT 0")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "drop_legacy_golden_cross_events", _drop_legacy_golden_cross_events),
     Migration(2, "canonicalize_stock_tickers", _canonicalize_stock_tickers),
     Migration(3, "add_cash_movements_stock_id", _add_cash_movements_stock_id),
+    Migration(4, "add_trade_fee_columns", _add_trade_fee_columns),
 )
 
 

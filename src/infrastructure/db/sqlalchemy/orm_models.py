@@ -52,6 +52,7 @@ class ORMTrade(Base):
     price = Column(Numeric(18, 4), nullable=False)
     original_quantity = Column(BigInteger, nullable=False)
     original_price = Column(Numeric(18, 4), nullable=False)
+    fee = Column(Numeric(18, 4), nullable=False, default=0, server_default="0")  # komisyon + BSMV (TL)
     total_amount = Column(Numeric(18, 4), Computed("quantity * price", persisted=True))
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
@@ -505,6 +506,7 @@ class ORMAssetTrade(Base):
     quantity = Column(Numeric(28, 10), nullable=False)
     price = Column(Numeric(28, 10), nullable=False)
     fx_rate_to_try = Column(Numeric(18, 8), nullable=False, default=1, server_default="1")
+    fee = Column(Numeric(28, 10), nullable=False, default=0, server_default="0")  # işlem para biriminde
     note = Column(String(255))
     created_at = Column(DateTime, server_default=func.now())
 
@@ -559,6 +561,15 @@ class ORMFxRate(Base):
     __table_args__ = (
         UniqueConstraint("base_currency", "quote_currency", "rate_date", name="uq_fx_rate"),
     )
+
+
+class ORMAppSetting(Base):
+    """Küçük anahtar-değer ayarları (ücret oranları vb.); veritabanında tutulur, yedeğe girer."""
+
+    __tablename__ = "app_settings"
+
+    key = Column(String(80), primary_key=True)
+    value = Column(String(200), nullable=False, default="")
 
 
 class ORMNewsSource(Base):

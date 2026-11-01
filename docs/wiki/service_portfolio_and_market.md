@@ -24,6 +24,16 @@ Avantajı: geçmişe dönük işlem, bedelsiz sermaye artırımı veya düzeltme
 
 **Zaman çizelgesi doğrulaması** (`PortfolioTimelineValidator`): geçmişe dönük girilen işlem, kendisinden sonraki işlem ve nakit akışını geçersiz kılıyorsa ("sonraki nakit veya lot akışını geçersiz hale getiriyor") reddedilir. Olaylar `(tarih, saat, sıra, id)` ile sıralanır; aynı anda nakit girişleri (yatırma, temettü) işlemlerden önce uygulanır.
 
+### İşlem ücreti (komisyon + BSMV)
+
+Ücret oranları **Ayarlar > Ücretler**'den girilir ve varsayılan 0'dır (`FeeSettingsService`, `app_settings` tablosu): BIST komisyonu, varlık komisyonu ve BSMV (yüzde). Ücret `komisyon + komisyon x BSMV` olarak işlem anında hesaplanır (4 haneye yuvarlanır) ve `Trade.fee` / `AssetTrade.fee` olarak işlemle saklanır; oranlar sonradan değişse eski işlem aynı kalır, mevcut işlemler göç 4 ile 0 ücretle açılır.
+
+- **Alım:** ücret maliyete eklenir (`Position.total_cost`, ortalama maliyet ücretli). Nakit düşüşü `Trade.cash_amount = tutar + ücret`.
+- **Satış:** gelir ücret düşülerek yazılır (gerçekleşmiş K/Z ve nakit girişi net). Ortalama maliyet değişmez.
+- **Kontroller:** nakit yeterliliği (`submit_trade`, `validate_trade`, zaman çizelgesi doğrulaması), TWR/nakit serisi (`portfolio_series_builder`) ve emir ön izlemesi (`preview_order`, Hisse Detay "Tahmini Ücret") ücretlidir.
+- **Varlık defteri:** ücret işlemin para biriminde saklanır; TRY maliyet `(tutar + ücret) x kur`. `record_trade(..., fee=)` ile elle ücret verilebilir.
+- **Kapsam dışı:** model portföyler ücret taşımaz (sanal portföy, brüt).
+
 ## 3. Nakit Hareketleri
 
 `cash_movements` tablosu üç tür tutar: `DEPOSIT` (yatırma), `WITHDRAW` (çekme) ve `DIVIDEND` (nakit temettü; `stock_id` ile hisseye bağlı). Nakit bakiye hareketlerden ve işlemlerden türetilir (`PortfolioService.get_cash_balance`): yatırma, temettü ve satış nakdi artırır; çekme ve alım azaltır. Eksiye düşmeyi gerektiren geçmiş kayıtlar sıfırda sabitlenir.

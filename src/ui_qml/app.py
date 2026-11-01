@@ -37,6 +37,7 @@ from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustment
 from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
 from src.ui_qml.controllers.news_controller import NewsController
+from src.ui_qml.controllers.fee_settings_controller import FeeSettingsController
 from src.ui_qml.controllers.news_settings_controller import NewsSettingsController
 from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
 from src.ui_qml.controllers.price_data_controller import PriceDataController
@@ -93,6 +94,7 @@ def create_controllers(container, parent, autostart: bool = True) -> Dict[str, A
         "marketTickerController": make(MarketTickerController),
         "newsController": make(NewsController, autostart=autostart),
         "newsSettingsController": make(NewsSettingsController),
+        "feeSettingsController": make(FeeSettingsController),
         "modelAnalysisController": make(ModelAnalysisController),
     }
     controllers["priceRefreshController"] = PriceRefreshController(

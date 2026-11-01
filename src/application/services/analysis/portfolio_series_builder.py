@@ -96,7 +96,7 @@ def _process_cash_tracking_day(
     for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
         if trade.stock_id in current_positions:
             current_positions[trade.stock_id].apply_trade(trade)
-        trade_value = trade.quantity * trade.price
+        trade_value = trade.cash_amount  # ücret dahil (alımda tutar + ücret, satışta tutar - ücret)
         if trade.side.name == "BUY":
             current_cash -= trade_value
             if current_cash < 0:
@@ -115,7 +115,7 @@ def _process_no_cash_day(
     for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
         if trade.stock_id in current_positions:
             current_positions[trade.stock_id].apply_trade(trade)
-        trade_value = trade.quantity * trade.price
+        trade_value = trade.cash_amount
         if trade.side.name == "BUY":
             daily_net_cash_flow += trade_value
         elif trade.side.name == "SELL":

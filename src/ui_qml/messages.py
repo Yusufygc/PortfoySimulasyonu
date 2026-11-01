@@ -474,6 +474,10 @@ MESSAGES: Dict[str, str] = {
     # --- Hisse detayı emir ön izlemesi ---
     "stock_detail.insufficient_cash": "Yetersiz nakit",
     "stock_detail.insufficient_lots": "Yetersiz lot",
+    # --- Ücret ayarları ---
+    "fees.service_missing": "Ücret ayarı servisi kullanılamıyor.",
+    "fees.invalid_number": "Oranlar sayı olmalıdır (ör. 0,2).",
+    "fees.saved": "Ücret oranları kaydedildi.",
 }
 
 

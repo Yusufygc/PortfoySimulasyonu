@@ -34,6 +34,7 @@ class AssetTrade:
     price: Decimal
     fx_rate_to_try: Decimal = Decimal("1")
     note: Optional[str] = None
+    fee: Decimal = Decimal("0")   # komisyon + BSMV, işlemin para biriminde mutlak tutar
 
     def __post_init__(self) -> None:
         if not isinstance(self.side, TradeSide):
@@ -45,6 +46,7 @@ class AssetTrade:
         object.__setattr__(self, "quantity", _to_decimal(self.quantity, "quantity"))
         object.__setattr__(self, "price", _to_decimal(self.price, "price"))
         object.__setattr__(self, "fx_rate_to_try", _to_decimal(self.fx_rate_to_try, "fx_rate_to_try"))
+        object.__setattr__(self, "fee", _to_decimal(self.fee, "fee"))
 
         if self.asset_id <= 0:
             raise ValueError("Asset id must be positive")
@@ -54,11 +56,18 @@ class AssetTrade:
             raise ValueError("Price must be positive")
         if self.fx_rate_to_try <= 0:
             raise ValueError("FX rate must be positive")
+        if self.fee < 0:
+            raise ValueError("Fee cannot be negative")
 
     @property
     def total_amount(self) -> Decimal:
         """İşlem tutarı (varlığın para biriminde)."""
         return self.price * self.quantity
+
+    @property
+    def cash_amount(self) -> Decimal:
+        """Nakit etkisinin büyüklüğü (işlem para biriminde): alımda tutar + ücret, satışta tutar - ücret."""
+        return self.total_amount + self.fee if self.side == TradeSide.BUY else self.total_amount - self.fee
 
     @property
     def total_amount_try(self) -> Decimal:

@@ -67,8 +67,8 @@ class AssetPosition:
         self.trades.append(trade)
 
     def _apply_buy(self, trade: AssetTrade) -> None:
-        self.total_cost += trade.total_amount
-        self.total_cost_try += trade.total_amount_try
+        self.total_cost += trade.cash_amount          # ücret maliyete dahildir
+        self.total_cost_try += trade.cash_amount * trade.fx_rate_to_try
         self.total_quantity += trade.quantity
 
     def _apply_sell(self, trade: AssetTrade) -> None:
@@ -79,8 +79,8 @@ class AssetPosition:
         cost_of_sold = self.total_cost * sold_ratio
         cost_of_sold_try = self.total_cost_try * sold_ratio
 
-        self.realized_pl += trade.total_amount - cost_of_sold
-        self.realized_pl_try += trade.total_amount_try - cost_of_sold_try
+        self.realized_pl += trade.cash_amount - cost_of_sold              # net gelir (ücret düşülmüş)
+        self.realized_pl_try += trade.cash_amount * trade.fx_rate_to_try - cost_of_sold_try
 
         self.total_quantity -= trade.quantity
         self.total_cost -= cost_of_sold

@@ -13,6 +13,7 @@ from src.application.services.assets.bist_holdings_reader import BistHoldingsRea
 from src.application.services.assets.fx_rate_service import FxRateService
 from src.application.services.assets.unified_portfolio_service import UnifiedPortfolioService
 from src.application.services.portfolio.position_query_service import PositionQueryService
+from src.application.services.settings.fee_settings_service import FeeSettingsService
 from src.application.services.news.news_service import NewsService
 from src.application.services.news.news_target_service import NewsTargetService
 from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
@@ -103,6 +104,7 @@ class ServiceSet:
     asset_price_refresh_service: AssetPriceRefreshService  # varlık son fiyat ve geçmiş yenileme
     fx_rate_service: FxRateService  # kur okuma ve yenileme
     unified_portfolio_service: UnifiedPortfolioService  # BIST + varlık defteri birleşik TRY özeti
+    fee_settings_service: FeeSettingsService  # komisyon ve BSMV oranları (varsayılan 0) ve ücret hesabı
     position_query_service: PositionQueryService  # pozisyon rakamlarının tek okuma kaynağı (Portföyüm ile aynı değerleme)
     asset_chart_service: AssetChartService  # Genel Bakış grafiği için varlık fiyat serileri
     news_service: NewsService  # haber akışı (KAP, RSS, Yahoo, Google)
@@ -144,6 +146,7 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         asset_repo=repositories.asset_repo,
         trade_repo=repositories.asset_trade_repo,
         symbol_verifier=market_clients.asset_price_provider,
+        fee_service=foundation["fee_settings_service"],
     )
     fx_rate_service = FxRateService(
         provider=market_clients.asset_price_provider,
@@ -243,6 +246,7 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
         repositories.price_repo,
         cash_movement_repo=repositories.cash_movement_repo,
     )
+    fee_settings_service = FeeSettingsService(repositories.app_settings_repo)
     cash_movement_service = CashMovementService(
         cash_movement_repo=repositories.cash_movement_repo,
         portfolio_service=portfolio_service,
@@ -251,6 +255,7 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
         stock_repo=repositories.stock_repo,
         portfolio_service=portfolio_service,
         market_session_service=market_clients.bist_market_session_service,
+        fee_service=fee_settings_service,
     )
     return_calc_service = ReturnCalcService(repositories.portfolio_repo, repositories.price_repo)
     model_portfolio_service = ModelPortfolioService(
@@ -260,6 +265,7 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
     )
 
     return {
+        "fee_settings_service": fee_settings_service,
         "portfolio_service": portfolio_service,
         "cash_movement_service": cash_movement_service,
         "portfolio_maintenance_service": PortfolioMaintenanceService(

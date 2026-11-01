@@ -292,6 +292,7 @@ Rectangle {
                     model: [
                     { label: Strings.stockDetailImpactLot, value: impactBox.impact.newQty || "-" },
                     { label: Strings.stockDetailImpactAvg, value: impactBox.impact.newAvg || "-" },
+                    { label: Strings.stockDetailImpactFee, value: impactBox.impact.fee || "-" },
                     { label: Strings.stockDetailImpactCash, value: impactBox.impact.cashAfter || "-" }
                     ]
                     RowLayout {
