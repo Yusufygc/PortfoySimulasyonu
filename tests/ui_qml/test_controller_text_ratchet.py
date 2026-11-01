@@ -1,7 +1,7 @@
 """Mandal: denetleyicilerdeki Türkçe kullanıcı metni literali sayısı artamaz, hedef 0.
 
 Kullanıcıya görünen metin `src/ui_qml/messages.py` kataloğundadır (QML'in kendi metni `Strings.qml`'de). Sayım: log çağrıları
-ve docstring hariç (`# metin-muaf: neden` yorumlu satırlar da hariç), Türkçe harf içeren her metin sabiti. Bir dosyada sayı düşerse `controller_text_baseline.json` aynı
+ve docstring hariç (satır sonunda ya da hemen üstünde `# metin-muaf: neden` yorumu olanlar da hariç), Türkçe harf içeren her metin sabiti. Bir dosyada sayı düşerse `controller_text_baseline.json` aynı
 commit'te düşürülür (test bunu zorlar); yeni dosyanın tavanı 0'dır.
 """
 from __future__ import annotations
@@ -29,6 +29,13 @@ def _skipped_nodes(tree: ast.AST) -> set:
     return skipped
 
 
+def _is_exempt(lines: list, lineno: int) -> bool:
+    """Sabitin satırında ya da hemen üstündeki yorum satırında muaf işareti var mı (çok satırlı şablonlar için)."""
+    here = lines[lineno - 1]
+    above = lines[lineno - 2].strip() if lineno > 1 else ""
+    return EXEMPT_MARK in here or (above.startswith("#") and EXEMPT_MARK in above)
+
+
 def count_turkish_literals(path: Path) -> int:
     source = path.read_text(encoding="utf-8")
     lines = source.splitlines()
@@ -39,7 +46,7 @@ def count_turkish_literals(path: Path) -> int:
         for node in ast.walk(tree)
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
         and id(node) not in skipped and TURKISH_LETTER.search(node.value)
-        and EXEMPT_MARK not in lines[node.lineno - 1]
+        and not _is_exempt(lines, node.lineno)
     )
 
 

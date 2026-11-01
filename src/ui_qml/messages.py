@@ -432,6 +432,45 @@ MESSAGES: Dict[str, str] = {
     "ai_advisor.api_anahtari_kaydedilemedi": "API anahtarı kaydedilemedi: {exc}",
     "ai_advisor.gemini_api_anahtari_kaydedildi": "Gemini API Anahtarı kaydedildi",
     "ai_advisor.google_gemini_api_anahtariniz_basariyla_tani": "Google Gemini API anahtarınız başarıyla tanımlandı. Gemini 2.5 Flash ile tam etkileşimli danışmanlık aktif.",
+    # --- Model analizi (ek) ---
+    "model_analysis.no_result": "sonuç alınamadı",
+    # --- Karşılaştırma ---
+    "comparison.ana_portfoy": "Ana Portföy",
+    "comparison.tarih_bicimi_gecersiz_bicim_gg_aa": "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY",
+    "comparison.baslangic_tarihi_bitis_tarihinden_once_olmal": "Başlangıç tarihi bitiş tarihinden önce olmalıdır.",
+    "comparison.yapay_zeka_servisi_bulunamadi": "Yapay zeka servisi bulunamadı.",
+    "comparison.analiz_edilecek_veri_bulunamadi_once_karsila": "Analiz edilecek veri bulunamadı. Önce karşılaştırmayı çalıştırın.",
+    "comparison.yapay_zeka_yorumu_uretilemedi": "Yapay zeka yorumu üretilemedi: {error}",
+    # --- Karşılaştırma (destek) ---
+    "comparison.enflasyondan_arindirilmis_reel": "enflasyondan arındırılmış (reel)",
+    # --- Optimizasyon ---
+    "optimization.cok_muhafazakar": "Çok Muhafazakar",
+    "optimization.buyume_odakli": "Büyüme Odaklı",
+    "optimization.ozel_manuel_kisit": "Özel / Manuel Kısıt",
+    "optimization.ana_portfoy_canli": "Ana Portföy (Canlı)",
+    "optimization.optimizasyon_hesaplaniyor": "Optimizasyon hesaplanıyor...",
+    "optimization.optimizasyon_basariyla_tamamlandi": "Optimizasyon başarıyla tamamlandı.",
+    "optimization.portfoy_optimizasyonu_basariyla_tamamlandi": "Portföy optimizasyonu başarıyla tamamlandı.",
+    # --- Hisse 360 ---
+    "stock360.bist_sirketi": "BIST Şirketi",
+    "stock360.asiri_alim": "Aşırı Alım",
+    "stock360.asiri_satim": "Aşırı Satım",
+    "stock360.boga_golden_trend": "Boğa / Golden Trend",
+    "stock360.ayi_baskili": "Ayı / Baskılı",
+    "stock360.notr": "Nötr",
+    # --- Optimizasyon girdisi ---
+    "optimization_input.portfolioservice_bulunamadi": "PortfolioService bulunamadı.",
+    "optimization_input.optimizasyon_icin_portfoyde_en_az_2": "Optimizasyon için portföyde en az 2 farklı hisse bulunmalıdır.",
+    "optimization_input.modelportfolioservice_bulunamadi": "ModelPortfolioService bulunamadı.",
+    "optimization_input.optimizasyon_icin_model_portfoyde_en_az": "Optimizasyon için model portföyde en az 2 farklı hisse bulunmalıdır.",
+    "optimization_input.optimizationservice_hazir_degil": "OptimizationService hazır değil.",
+    # --- Karşılaştırma grafiği ---
+    "comparison_chart.fiyat_deger": "Fiyat / Değer",
+    "comparison_chart.maksimum_deger_kaybi_drawdown": "Maksimum Değer Kaybı (Drawdown %)",
+    # --- Hisse 360 ---
+    "stock360.bim_birlesik_magazalar_a_s": "BİM Birleşik Mağazalar A.Ş.",
+    # --- Hisse 360 ---
+    "stock360.finansal_veriler_alinamadi": "Finansal veriler alınamadı ({exc})",
 }
 
 

@@ -13,25 +13,25 @@ from src.ui_qml.controllers.stock_360_formatters import DONUT_COLORS
 def guess_sector(ticker: str) -> str:
     """Hisse sembolüne göre sektör eşleştirmesi yapar."""
     sec_map = {
-        "THYAO": "Ulaştırma & Havacılık",
-        "PGSUS": "Ulaştırma & Havacılık",
+        "THYAO": "Ulaştırma & Havacılık",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "PGSUS": "Ulaştırma & Havacılık",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         "BIMAS": "Perakende Ticaret",
         "MGROS": "Perakende Ticaret",
         "ASELS": "Savunma & Teknoloji",
-        "KCHOL": "Holding & Yatırım",
-        "SAHOL": "Holding & Yatırım",
-        "AKBNK": "Bankacılık",
-        "GARAN": "Bankacılık",
-        "ISCTR": "Bankacılık",
-        "YKBNK": "Bankacılık",
+        "KCHOL": "Holding & Yatırım",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "SAHOL": "Holding & Yatırım",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "AKBNK": "Bankacılık",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "GARAN": "Bankacılık",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "ISCTR": "Bankacılık",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "YKBNK": "Bankacılık",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         "SISE": "Cam & Sanayi",
-        "EREGL": "Demir & Çelik",
+        "EREGL": "Demir & Çelik",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         "TUPRS": "Petrol & Rafineri",
-        "ADEL": "Kırtasiye & İmalat",
+        "ADEL": "Kırtasiye & İmalat",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         "FROTO": "Otomotiv",
         "TOASO": "Otomotiv",
     }
-    return sec_map.get(ticker, "Borsa İstanbul Sanayi & Hizmet")
+    return sec_map.get(ticker, "Borsa İstanbul Sanayi & Hizmet")  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
 
 
 def get_default_overview(ticker: str) -> Dict[str, Any]:
@@ -62,7 +62,7 @@ def get_default_technical() -> Dict[str, Any]:
         "ema20_str": "₺382.00",
         "support_str": "₺385.00",
         "resistance_str": "₺420.00",
-        "trend_status": "Boğa / Golden Cross",
+        "trend_status": "Boğa / Golden Cross",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
     }
 
 
@@ -127,31 +127,31 @@ def _fallback_flat_metrics() -> Dict[str, Dict[str, float]]:
 
 def _fallback_raw_sections() -> Dict[str, Dict[str, Dict[str, int]]]:
     balance = {
-        "DÖNEN VARLIKLAR": 98_000_000_000,
+        "DÖNEN VARLIKLAR": 98_000_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         "Nakit ve Nakit Benzerleri": 24_000_000_000,
         "Ticari Alacaklar": 18_500_000_000,
         "Stoklar": 42_000_000_000,
         "DURAN VARLIKLAR": 110_000_000_000,
-        "Maddi Duran Varlıklar": 72_000_000_000,
+        "Maddi Duran Varlıklar": 72_000_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         "TOPLAM VARLIKLAR": 208_000_000_000,
-        "KISA VADELİ YÜKÜMLÜLÜKLER": 82_000_000_000,
-        "UZUN VADELİ YÜKÜMLÜLÜKLER": 34_000_000_000,
-        "ÖZKAYNAKLAR": 92_000_000_000,
+        "KISA VADELİ YÜKÜMLÜLÜKLER": 82_000_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "UZUN VADELİ YÜKÜMLÜLÜKLER": 34_000_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "ÖZKAYNAKLAR": 92_000_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         "TOPLAM KAYNAKLAR": 208_000_000_000,
     }
     income = {
-        "Satış Gelirleri": 236_832_000_000,
-        "Satışların Maliyeti (-)": -187_332_000_000,
-        "BRÜT KÂR": 49_500_000_000,
-        "Genel Yönetim Giderleri (-)": -18_400_000_000,
-        "FAVÖK": 21_100_000_000,
-        "DÖNEM KARI": 8_543_000_000,
+        "Satış Gelirleri": 236_832_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "Satışların Maliyeti (-)": -187_332_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "BRÜT KÂR": 49_500_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "Genel Yönetim Giderleri (-)": -18_400_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "FAVÖK": 21_100_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "DÖNEM KARI": 8_543_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
     }
     cash_flow = {
-        "İŞLETME FAALİYETLERİNDEN NAKİT AKIŞLARI": 12_000_000_000,
-        "YATIRIM FAALİYETLERİNDEN NAKİT AKIŞLARI": -4_500_000_000,
-        "FİNANSMAN FAALİYETLERİNDEN NAKİT AKIŞLARI": -3_200_000_000,
-        "Serbest Nakit Akımı (FCF)": 7_500_000_000,
+        "İŞLETME FAALİYETLERİNDEN NAKİT AKIŞLARI": 12_000_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "YATIRIM FAALİYETLERİNDEN NAKİT AKIŞLARI": -4_500_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "FİNANSMAN FAALİYETLERİNDEN NAKİT AKIŞLARI": -3_200_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+        "Serbest Nakit Akımı (FCF)": 7_500_000_000,  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
     }
     return {
         section: {name: _flat_series(value) for name, value in items.items()}
@@ -176,7 +176,7 @@ def get_fallback_financials(ticker: str) -> Dict[str, Any]:
 def _fallback_shareholder_rows() -> List[Dict[str, Any]]:
     return [
         {
-            "name": "KURUCU ORTAK / HOLDİNG",
+            "name": "KURUCU ORTAK / HOLDİNG",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
             "ratio": 56.89,
             "ratioStr": "%56.89",
             "share": "₺147.83 Mn",
@@ -185,7 +185,7 @@ def _fallback_shareholder_rows() -> List[Dict[str, Any]]:
             "isFreeFloat": False,
         },
         {
-            "name": "DİĞER (HALKA AÇIK)",
+            "name": "DİĞER (HALKA AÇIK)",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
             "ratio": 43.11,
             "ratioStr": "%43.11",
             "share": "₺112.03 Mn",
@@ -200,7 +200,7 @@ def _fallback_shareholder_timeline() -> List[Dict[str, Any]]:
     return [
         {
             "date": "15.01.2026",
-            "name": "KURUCU ORTAK / HOLDİNG",
+            "name": "KURUCU ORTAK / HOLDİNG",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
             "newRatio": "%56.89",
             "oldRatio": "%56.40",
             "diff": 0.49,
@@ -210,7 +210,7 @@ def _fallback_shareholder_timeline() -> List[Dict[str, Any]]:
         },
         {
             "date": "12.11.2025",
-            "name": "DİĞER (HALKA AÇIK)",
+            "name": "DİĞER (HALKA AÇIK)",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
             "newRatio": "%43.11",
             "oldRatio": "%43.60",
             "diff": -0.49,
@@ -230,8 +230,8 @@ def get_fallback_shareholders(ticker: str) -> Dict[str, Any]:
         "paid_capital_str": "₺259.86 Mn",
         "shareholders_list": _fallback_shareholder_rows(),
         "shareholder_slices": [
-            {"label": "KURUCU ORTAK / HOLDİNG", "pct": 0.5689, "color": DONUT_COLORS[0], "amount": "₺147.83 Mn"},
-            {"label": "DİĞER (HALKA AÇIK)", "pct": 0.4311, "color": DONUT_COLORS[-1], "amount": "₺112.03 Mn"},
+            {"label": "KURUCU ORTAK / HOLDİNG", "pct": 0.5689, "color": DONUT_COLORS[0], "amount": "₺147.83 Mn"},  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+            {"label": "DİĞER (HALKA AÇIK)", "pct": 0.4311, "color": DONUT_COLORS[-1], "amount": "₺112.03 Mn"},  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         ],
         "shareholder_timeline": _fallback_shareholder_timeline(),
     }

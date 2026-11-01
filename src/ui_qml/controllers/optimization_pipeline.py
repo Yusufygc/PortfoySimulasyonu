@@ -15,6 +15,7 @@ from src.application.services.planning.frontier_simulation import (
 )
 from src.application.services.planning.optimization_market_data import OptimizationPolicy
 from src.application.services.planning.optimization_service import _build_return_model
+from src.ui_qml.messages import msg
 
 _MIN_POSITIONS = 2
 _TRADING_DAYS = 252
@@ -38,10 +39,10 @@ def clean_ticker(raw: str) -> str:
 
 def _load_dashboard(services: OptimizationServices, policy: OptimizationPolicy) -> Tuple[Dict[int, Any], float, Any]:
     if not services.portfolio_service:
-        raise OptimizationInputError("PortfolioService bulunamadı.")
+        raise OptimizationInputError(msg("optimization_input.portfolioservice_bulunamadi"))
     positions = services.portfolio_service.get_current_portfolio().active_positions
     if len(positions) < _MIN_POSITIONS:
-        raise OptimizationInputError("Optimizasyon için portföyde en az 2 farklı hisse bulunmalıdır.")
+        raise OptimizationInputError(msg("optimization_input.optimizasyon_icin_portfoyde_en_az_2"))
     # Toplam piyasa değeri
     total_val = sum(pos.total_quantity * float(pos.average_cost or 1.0) for pos in positions.values())
     return positions, total_val, services.opt_service.optimize_dashboard_portfolio(policy=policy)
@@ -49,11 +50,11 @@ def _load_dashboard(services: OptimizationServices, policy: OptimizationPolicy) 
 
 def _load_model(services: OptimizationServices, portfolio_code: str, policy: OptimizationPolicy) -> Tuple[Dict[int, Any], float, Any]:
     if not services.model_portfolio_service:
-        raise OptimizationInputError("ModelPortfolioService bulunamadı.")
+        raise OptimizationInputError(msg("optimization_input.modelportfolioservice_bulunamadi"))
     pid = int(portfolio_code)
     positions = services.model_portfolio_service.get_positions(pid)
     if len(positions) < _MIN_POSITIONS:
-        raise OptimizationInputError("Optimizasyon için model portföyde en az 2 farklı hisse bulunmalıdır.")
+        raise OptimizationInputError(msg("optimization_input.optimizasyon_icin_model_portfoyde_en_az"))
     total_val = sum(qty * 100.0 for qty in positions.values())  # Yaklaşık baz değer
     return positions, total_val, services.opt_service.optimize_model_portfolio(pid, policy=policy)
 
@@ -109,7 +110,7 @@ def compute_optimization(
 ) -> Dict[str, Optional[Any]]:
     """Optimizasyonu, Monte Carlo simülasyonunu, verimli sınırı ve rebalance planını hesaplar."""
     if not services.opt_service:
-        raise OptimizationInputError("OptimizationService hazır değil.")
+        raise OptimizationInputError(msg("optimization_input.optimizationservice_hazir_degil"))
 
     policy = OptimizationPolicy(
         trading_days_per_year=_TRADING_DAYS,

@@ -301,10 +301,10 @@ def compute_cash_flow_data(
 
 
 _STATEMENT_HEADER_KEYWORDS = (
-    "DÖNEN VARLIKLAR", "DURAN VARLIKLAR", "KISA VADELİ YÜKÜMLÜLÜKLER",
-    "UZUN VADELİ YÜKÜMLÜLÜKLER", "ÖZKAYNAKLAR", "TOPLAM VARLIKLAR",
-    "TOPLAM KAYNAKLAR", "SÜRDÜRÜLEN FAALİYETLER", "DÖNEM KARI",
-    "İŞLETME FAALİYETLERİNDEN", "YATIRIM FAALİYETLERİNDEN", "FİNANSMAN FAALİYETLERİNDEN",
+    "DÖNEN VARLIKLAR", "DURAN VARLIKLAR", "KISA VADELİ YÜKÜMLÜLÜKLER",  # metin-muaf: bilanço kalem adı / ortaklık adı eşleme
+    "UZUN VADELİ YÜKÜMLÜLÜKLER", "ÖZKAYNAKLAR", "TOPLAM VARLIKLAR",  # metin-muaf: bilanço kalem adı / ortaklık adı eşleme
+    "TOPLAM KAYNAKLAR", "SÜRDÜRÜLEN FAALİYETLER", "DÖNEM KARI",  # metin-muaf: bilanço kalem adı / ortaklık adı eşleme
+    "İŞLETME FAALİYETLERİNDEN", "YATIRIM FAALİYETLERİNDEN", "FİNANSMAN FAALİYETLERİNDEN",  # metin-muaf: bilanço kalem adı / ortaklık adı eşleme
 )
 
 
@@ -402,7 +402,7 @@ def _donut_entry(index: int, row: Any) -> Tuple[Dict[str, Any], Dict[str, Any], 
     share_tl = float(row.share_in_capital or 0)
     voting = float(row.voting_right_ratio or 0)
 
-    is_free_float = "DİĞER" in name.upper() or "HALKA" in name.upper()
+    is_free_float = "DİĞER" in name.upper() or "HALKA" in name.upper()  # metin-muaf: bilanço kalem adı / ortaklık adı eşleme
     if is_free_float:
         color = DONUT_COLORS[-1]  # Nötr gri
     else:

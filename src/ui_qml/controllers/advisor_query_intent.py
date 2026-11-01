@@ -9,13 +9,13 @@ from __future__ import annotations
 import re
 
 _OPTIMIZATION_PATTERN = re.compile(
-    r"\b(?:optimiz\w*|rebalance\w*|dengele\w*|öneri\w*|al|alım\w*|alm\w*|sat|satış\w*|satm\w*)\b"
+    r"\b(?:optimiz\w*|rebalance\w*|dengele\w*|öneri\w*|al|alım\w*|alm\w*|sat|satış\w*|satm\w*)\b"  # metin-muaf: sorgu niyet eşleme desenleri
 )
 
 
 def turkish_lower(text: str) -> str:
     """`İ -> i`, `I -> ı` eşlemesiyle küçük harfe çevirir (Python varsayılanı `İ` için birleştirici nokta üretir)."""
-    return text.replace("İ", "i").replace("I", "ı").lower()
+    return text.replace("İ", "i").replace("I", "ı").lower()  # metin-muaf: sorgu niyet eşleme desenleri
 
 
 def is_optimization_query(query: str) -> bool:

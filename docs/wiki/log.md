@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-02] güncelleme | Evrim Planı E2: Tek Biçimleyici ve Python Metin Kataloğu
+
+- `src/ui_qml/presenters/formatting.py`: `tr_number`, `tr_money`, `tr_pct`, `tr_number_or_dash`; denetleyicilerdeki dokuz biçimleyici kopyası kaldırıldı. `portfolio_presenter` `presenters/` altına taşındı.
+- `src/ui_qml/messages.py`: `MESSAGES` + `msg(anahtar, **parametre)`; 38 denetleyicideki kullanıcı metni (bildirim, durum, hata, Excel sütun adları, AI danışman raporları) kataloğa taşındı. Yerel `msg` değişkenleri `text`/`message` olarak yeniden adlandırıldı.
+- Korumalar: `test_controller_text_ratchet.py` (denetleyicide Türkçe literal tavanı 538 -> 0; veri/istem/HTML şablonu satırları `# metin-muaf: neden` ile işaretli, 67 satır), `test_message_catalog.py` (tanımsız/kullanılmayan anahtar yok, parametre-yer tutucu eşleşir, anahtar sabit), `test_formatting.py`.
+- Sapma: plandaki "QML'de `Strings.message` ile çöz" yerine anahtar Python'da çözülür (QML tüketicileri ve testleri değişmez). Ayrıntı: [architecture_evolution_plan.md](architecture_evolution_plan.md).
+- Kalite tavanları değişmedi (sınıf 4, fonksiyon 73). Test: 1782 geçti, 4 xfailed.
+
+---
 ## [2026-11-01] güncelleme | Evrim Planı E1: Bileşim Kökü ve Sayısal Güvence Testleri
 
 - `src/ui_qml/app.py`: `create_controllers` (tek denetleyici listesi), `wire_controllers` (sinyal bağlantıları), `build_ui` (kayıt) ayrıldı; davranış aynı. Duman testi ve görsel anlık görüntü betiği aynı listeyi kullanır. `app.py` kapsamı %0 -> %79.

@@ -291,11 +291,11 @@ class ModelAnalysisController(QObject):
         self._busy = False
         self.busyChanged.emit()
         if error or result is None:
-            self._set_banner(msg("model_analysis.analiz_hatasi", value=error or 'sonuç alınamadı'), "error")
+            self._set_banner(msg("model_analysis.analiz_hatasi", value=error or msg("model_analysis.no_result")), "error")
             # Zaman aşımında canlı bağlantı korunur; diğer hatalarda demo'ya düşülür
             lowered = error.lower()
             service = self._service
-            if self._live and service is not None and not any(k in lowered for k in ("zaman aşımı", "timeout", "timed out")):
+            if self._live and service is not None and not any(k in lowered for k in ("zaman aşımı", "timeout", "timed out")):  # metin-muaf: hata metninde aranan anahtar sözcükler
                 service.mark_unavailable()
                 self._live = False
             return

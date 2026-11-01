@@ -9,8 +9,9 @@ from typing import Any, Callable, Dict, Tuple
 
 from src.ui_qml.controllers.stock_360_fallback import guess_sector
 from src.ui_qml.controllers.stock_360_formatters import format_price, format_volume
+from src.ui_qml.messages import msg
 
-_DEFAULT_SECTOR = "BIST Şirketi"
+_DEFAULT_SECTOR = msg("stock360.bist_sirketi")
 _MISSING = "—"
 _RSI_OVERBOUGHT = 70
 _RSI_OVERSOLD = 30
@@ -62,16 +63,16 @@ def overview_fields(overview: Any) -> Dict[str, Any]:
 
 def rsi_status(rsi14: float) -> str:
     if rsi14 >= _RSI_OVERBOUGHT:
-        return "Aşırı Alım"
+        return msg("stock360.asiri_alim")
     if rsi14 <= _RSI_OVERSOLD:
-        return "Aşırı Satım"
+        return msg("stock360.asiri_satim")
     return "Dengeli"
 
 
 def trend_status(sma50: float | None, sma200: float | None) -> str:
     if sma50 is None or sma200 is None:
         return "Dengeli"
-    return "Boğa / Golden Trend" if sma50 > sma200 else "Ayı / Baskılı"
+    return msg("stock360.boga_golden_trend") if sma50 > sma200 else msg("stock360.ayi_baskili")
 
 
 def _formatted(value: float | None, formatter: Callable[[float], str]) -> str:
@@ -83,7 +84,7 @@ def technical_fields(tech: Any) -> Dict[str, Any]:
     has_rsi = tech.rsi14 is not None
     return {
         "rsi14_str": f"{tech.rsi14:.1f}" if has_rsi else _MISSING,
-        "rsi_status": rsi_status(tech.rsi14) if has_rsi else "Nötr",
+        "rsi_status": rsi_status(tech.rsi14) if has_rsi else msg("stock360.notr"),
         "macd_line_str": _formatted(tech.macd_line, lambda v: f"{v:.2f}"),
         "macd_signal_str": _formatted(tech.macd_signal, lambda v: f"{v:.2f}"),
         "sma50_str": _formatted(tech.sma50, format_price),

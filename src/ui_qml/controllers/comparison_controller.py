@@ -43,6 +43,7 @@ from src.ui_qml.controllers.comparison_support import (
     parse_date,
     resolve_range,
 )
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,7 @@ class ComparisonController(QObject):
         self._ratio_denominator: str = "bist100"
         self._treemap_mode: str = "HOLDINGS"  # "HOLDINGS" (Portföy Hisseleri) | "ASSETS" (Seçilen Varlıklar)
         self._treemap_portfolio_code: str = "dashboard"
-        self._treemap_portfolio_options: List[Dict[str, str]] = [{"code": "dashboard", "label": "Ana Portföy"}]
+        self._treemap_portfolio_options: List[Dict[str, str]] = [{"code": "dashboard", "label": msg("comparison.ana_portfoy")}]
 
         # Cache of aligned data
         self._cached_aligned: Optional[pd.DataFrame] = None
@@ -194,7 +195,7 @@ class ComparisonController(QObject):
         portfolio_opts: List[Dict[str, str]] = []
         for p in self._analysis_service.get_portfolio_options():
             options.append({"code": p.code, "label": p.label, "kind": p.kind})
-            options.append({"code": f"holdings:{p.code}", "label": f"{p.label} + Hisseleri", "kind": "HİSSELER"})
+            options.append({"code": f"holdings:{p.code}", "label": f"{p.label} + Hisseleri", "kind": "HİSSELER"})  # metin-muaf: kimlik değerleri (QML ve destek modülüyle eşleşir)
             portfolio_opts.append({"code": p.code, "label": p.label})
         for b in self._analysis_service.get_benchmark_definitions():
             options.append({"code": b.code, "label": b.label, "kind": b.kind})
@@ -242,17 +243,17 @@ class ComparisonController(QObject):
         """Serbest tarih aralığı (GG.AA.YYYY veya YYYY-AA-GG) seçer ve karşılaştırmayı çalıştırır."""
         start, end = parse_date(start_text), parse_date(end_text)
         if start is None or end is None:
-            self.operationResult.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+            self.operationResult.emit(False, msg("comparison.tarih_bicimi_gecersiz_bicim_gg_aa"))
             return False
         if start >= end:
-            self.operationResult.emit(False, "Başlangıç tarihi bitiş tarihinden önce olmalıdır.")
+            self.operationResult.emit(False, msg("comparison.baslangic_tarihi_bitis_tarihinden_once_olmal"))
             return False
         if end > date.today():
             end = date.today()
         self._custom_start = start.strftime("%d.%m.%Y")
         self._custom_end = end.strftime("%d.%m.%Y")
         self.customRangeChanged.emit()
-        self._period_label = "ÖZEL"
+        self._period_label = "ÖZEL"  # metin-muaf: kimlik değerleri (QML ve destek modülüyle eşleşir)
         self.periodLabelChanged.emit()
         self.runComparison()
         return True
@@ -271,12 +272,12 @@ class ComparisonController(QObject):
         """Seçili varlıkların performans özetini Gemini ile yorumlatır (arka planda)."""
         chat_service = getattr(self._container, "ai_chat_service", None)
         if chat_service is None:
-            self.operationResult.emit(False, "Yapay zeka servisi bulunamadı.")
+            self.operationResult.emit(False, msg("comparison.yapay_zeka_servisi_bulunamadi"))
             return
         if self._ai_busy:
             return
         if not self._metrics_list:
-            self.operationResult.emit(False, "Analiz edilecek veri bulunamadı. Önce karşılaştırmayı çalıştırın.")
+            self.operationResult.emit(False, msg("comparison.analiz_edilecek_veri_bulunamadi_once_karsila"))
             return
         prompt = build_commentary_prompt(
             self._last_range, self._metrics_list, self._comparison_mode, self._currency_mode
@@ -415,7 +416,7 @@ class ComparisonController(QObject):
         self._ai_busy = False
         if error:
             self._ai_comment = ""
-            self.operationResult.emit(False, f"Yapay zeka yorumu üretilemedi: {error}")
+            self.operationResult.emit(False, msg("comparison.yapay_zeka_yorumu_uretilemedi", error=error))
         else:
             self._ai_comment = text
         self.aiCommentChanged.emit()
@@ -460,7 +461,7 @@ class ComparisonController(QObject):
             if p.get("code") == code:
                 return str(p.get("label", code))
         if code == "dashboard":
-            return "Ana Portföy"
+            return msg("comparison.ana_portfoy")
         return code
 
     def _get_portfolio_holdings(self, portfolio_code: Optional[str] = None) -> List[Dict[str, Any]]:

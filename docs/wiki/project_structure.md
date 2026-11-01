@@ -68,8 +68,10 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | Yol | İçerik |
 |---|---|
 | `app.py` | `run_qml_app`: denetleyicileri kurar, context property olarak kaydeder, `Main.qml`'i yükler. |
-| `controllers/` | 30 denetleyici (`*_controller.py`) ve yardımcı modüller (`number_input`, `advisor_query_intent`, `chart_candle_sources`, `chart_indicators`, `stock_360_overview`, `lw_chart_html`, `stock_360_calc/fallback/formatters/html/remote`, `portfolio_presenter`). Rehber: [qml_pages_guide.md](qml_pages_guide.md). |
+| `controllers/` | 30 denetleyici (`*_controller.py`) ve yardımcı modüller (`number_input`, `advisor_query_intent`, `chart_candle_sources`, `chart_indicators`, `stock_360_overview`, `lw_chart_html`, `stock_360_calc/fallback/formatters/html/remote`). Rehber: [qml_pages_guide.md](qml_pages_guide.md). |
 | `models/` | `PositionsTableModel`, `WatchlistTableModel` (`QAbstractTableModel`), `HoldingsListModel`, `NewsListModel` (`QAbstractListModel`). |
+| `presenters/` | Qt'siz sunum yardımcıları: `formatting.py` (`tr_number`, `tr_money`, `tr_pct`, `tr_number_or_dash`: tek Türkçe sayı biçimleyici), `portfolio_presenter.py` (Portföyüm satır/dilim sözlükleri). |
+| `messages.py` | Python tarafı kullanıcı metin kataloğu (`MESSAGES`, `msg(anahtar, **parametre)`); denetleyiciler metin yazmaz. |
 | `last_update_store.py` | Son fiyat güncelleme zamanı ve dönemsel getirilerin `QSettings`'te saklanması. |
 | `qml/Main.qml` | Ana pencere, kenar çubuğu, sayfa yükleyiciler (lazy `Loader`). |
 | `qml/views/` | 11 sayfa görünümü. |

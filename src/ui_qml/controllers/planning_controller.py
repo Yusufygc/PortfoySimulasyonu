@@ -610,7 +610,8 @@ class PlanningController(QObject):
             val = float(series[dt_val])
             data_points.append(f"{{time:'{dt_val.isoformat()}',value:{val:.2f}}}")
 
-        return f"""<!DOCTYPE html>  # metin-muaf: HTML şablonu
+        # metin-muaf: HTML şablonu
+        return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
 body {{ margin: 0; background: #131722; overflow: hidden; }}

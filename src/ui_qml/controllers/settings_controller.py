@@ -238,7 +238,7 @@ class SettingsController(QObject):
             # En hafif model ile hızlı ping sorgusu
             resp = client.models.generate_content(
                 model="gemini-2.5-flash",
-                contents="Ping. Sadece 'PONG' cevabını ver.",
+                contents="Ping. Sadece 'PONG' cevabını ver.",  # metin-muaf: yapay zeka istemi, arayüz metni değil
             )
             success = bool(resp and resp.text)
             text = msg("settings.baglanti_basarili_gemini_2_5_flash") if success else msg("settings.sunucu_yanit_vermedi")

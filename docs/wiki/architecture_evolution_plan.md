@@ -82,6 +82,14 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 - `src/application/services/` ve `src/ui_qml/controllers/` altında özellik dilimleri: `portfolio/`, `assets/`, `news/`, `planning/`, `analysis/`, `market/`. Katman kuralları dilim içinde de geçerli; dilimler arası yalnızca uygulama servisi üzerinden.
 - Yalnızca E2-E4 bittikten sonra ve kod hareketinin getirisi açıksa yapılır (salt taşıma refaktörü değer şartını sağlamalı, bkz. [code_quality_guardrails.md](code_quality_guardrails.md) §8).
 
+### E2 uygulama notları (2026-11-02)
+
+- **Sapma:** plan, Python mesajlarının QML'de `Strings.message(key, args)` ile çözülmesini öngörüyordu. Bunun için her tüketici QML ve testindeki metin beklentisi değişecekti. Bunun yerine anahtar Python'da çözülür (`msg()`), sinyaller eskisi gibi hazır metin taşır; metin yine tek dosyadadır (`src/ui_qml/messages.py`). Dil değişimi gerekirse çözüm noktası tek yerde (`msg`) kalır.
+- **Muaf tutulanlar (67 satır, `# metin-muaf: neden`):** yapay zeka sistem istemleri ve kullanıcı istemi parçaları, HTML/JS grafik şablonları, servis durum değerleri ve eşleme anahtarları (öncelik, dönem kimliği, bilanço kalem adı, ortaklık adı), sorgu niyet desenleri, servis yokken kullanılan demo yedek verisi (`stock_360_fallback`, izleme listesi). Yedek (demo) verinin üretimde gerçekten gerekli olup olmadığı ayrı bir temizlik konusudur.
+- **Sayılamayanlar:** mandal Türkçe harf içeren sabitleri sayar; harf içermeyen kullanıcı metni ("Evet", "Metrik", "ORTA" gibi) tespit edilemez, rastlananlar elle kataloğa alındı.
+- **Biçim ailesi farkı bilerek korundu:** Hisse 360 (`₺1,234.50 Mr`) ve Portföyüm (`₺1,234.56`) İngilizce ayraçlı kompakt biçim kullanır, `strategy_backtest` ve ana sayfa getirisi `%+1,23` işaretini yüzdeden sonra yazar. Çıktıyı değiştirmemek için `tr_*` ailesine alınmadı; birleştirme ayrı bir görünür-değişiklik kararıdır.
+- **Kalan (E2 kapsamı dışı):** `Strings.qml` ile `messages.py` arasında aynı metnin iki yerde bulunmadığını denetleyen test yok.
+
 ## 3. Riskler
 
 | Risk | Önlem |
@@ -96,7 +104,7 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 | Aşama | Durum |
 |---|---|
 | E1 | Uygulandı (2026-11-01): `create_controllers` / `wire_controllers` / `build_ui`, `test_app_composition.py` (app.py %79), `test_twr_scenarios.py`, `test_portfolio_repository.py` (%100) |
-| E2 | Açık |
+| E2 | Uygulandı (2026-11-02): `presenters/formatting.py` (tek Türkçe biçimleyici, 9 kopya kalktı), `messages.py` (Python metin kataloğu), mandal tavanı 538 -> 0 (67 satır `metin-muaf`). Sapma ve kalanlar aşağıda |
 | E3 | Açık |
 | E4 | Açık |
 | E5 | Açık |

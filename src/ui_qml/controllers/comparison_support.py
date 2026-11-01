@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 import pandas as pd
 
 from src.application.services.analysis.models import AnalysisFilterState
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ _PERIOD_DELTAS = {
 }
 
 _MODE_LABELS = {"NORMALIZED": "Normalize (Baz 100)", "NORMAL": "Normal", "RATIO": "Rasyo"}
-_CURRENCY_LABELS = {"TL": "TL", "USD": "USD", "REAL": "enflasyondan arındırılmış (reel)"}
+_CURRENCY_LABELS = {"TL": "TL", "USD": "USD", "REAL": msg("comparison.enflasyondan_arindirilmis_reel")}
 
 
 def parse_date(text: str) -> Optional[date]:
@@ -45,7 +46,7 @@ def resolve_start_date(label: str, end_dt: date) -> date:
 
 def resolve_range(period_label: str, custom_start: str, custom_end: str) -> Tuple[date, date]:
     end_dt = date.today()
-    if period_label == "ÖZEL":
+    if period_label == "ÖZEL":  # metin-muaf: dönem kimliği ve yapay zeka istemi
         start = parse_date(custom_start)
         end = parse_date(custom_end)
         if start is not None and end is not None and start < end:
@@ -144,15 +145,15 @@ def build_commentary_prompt(
 ) -> str:
     start, end = last_range
     rows = "\n".join(
-        f"- **{m['label']}**: Toplam Getiri: %{m['totalReturn']}, Yıllık Volatilite: %{m['volatility']}"
+        f"- **{m['label']}**: Toplam Getiri: %{m['totalReturn']}, Yıllık Volatilite: %{m['volatility']}"  # metin-muaf: dönem kimliği ve yapay zeka istemi
         for m in metrics
     )
     period = (
-        f"{start.strftime('%d.%m.%Y')} ile {end.strftime('%d.%m.%Y')} tarihleri arasında"
-        if start and end else "seçili dönemde"
+        f"{start.strftime('%d.%m.%Y')} ile {end.strftime('%d.%m.%Y')} tarihleri arasında"  # metin-muaf: dönem kimliği ve yapay zeka istemi
+        if start and end else "seçili dönemde"  # metin-muaf: dönem kimliği ve yapay zeka istemi
     )
     return (
-        f"Kullanıcı Karşılaştırma Laboratuvarı ekranında {period} "
+        f"Kullanıcı Karşılaştırma Laboratuvarı ekranında {period} "  # metin-muaf: dönem kimliği ve yapay zeka istemi
         f"{_MODE_LABELS.get(comparison_mode, comparison_mode)} biçiminde, "
         f"{_CURRENCY_LABELS.get(currency_mode, currency_mode)} cinsinden aşağıdaki varlıkların "
         f"performanslarını kıyaslıyor:\n\n{rows}\n\n"

@@ -15,6 +15,7 @@ _JS_DIR = Path(__file__).resolve().parent.parent / "assets" / "js"
 _CHART_JS: str = ""
 _CDN_TAG = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>'
 
+# metin-muaf: HTML şablonu
 _FRONTIER_TEMPLATE = """<!DOCTYPE html>
 <html>
 <head>
@@ -171,6 +172,7 @@ new Chart(ctx, {{
 </body>
 </html>"""
 
+# metin-muaf: HTML şablonu
 _WEIGHTS_TEMPLATE = """<!DOCTYPE html>
 <html>
 <head>

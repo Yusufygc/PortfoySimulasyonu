@@ -28,6 +28,7 @@ from src.ui_qml.controllers.optimization_pipeline import (
     compute_optimization,
 )
 from src.ui_qml.presenters.formatting import tr_pct
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -104,12 +105,12 @@ class OptimizationController(QObject):
 
     def _init_risk_profiles(self) -> None:
         self._risk_profile_options: List[Dict[str, Any]] = [
-            {"code": RiskLabel.COK_MUHAFAZAKAR, "label": "Çok Muhafazakar", "maxWeight": 8.0},
+            {"code": RiskLabel.COK_MUHAFAZAKAR, "label": msg("optimization.cok_muhafazakar"), "maxWeight": 8.0},
             {"code": RiskLabel.MUHAFAZAKAR, "label": "Muhafazakar", "maxWeight": 10.0},
             {"code": RiskLabel.DENGELI, "label": "Dengeli", "maxWeight": 20.0},
-            {"code": RiskLabel.BUYUME_ODAKLI, "label": "Büyüme Odaklı", "maxWeight": 28.0},
+            {"code": RiskLabel.BUYUME_ODAKLI, "label": msg("optimization.buyume_odakli"), "maxWeight": 28.0},
             {"code": RiskLabel.AGRESIF, "label": "Agresif", "maxWeight": 35.0},
-            {"code": "MANUAL", "label": "Özel / Manuel Kısıt", "maxWeight": self._max_single_weight},
+            {"code": "MANUAL", "label": msg("optimization.ozel_manuel_kisit"), "maxWeight": self._max_single_weight},
         ]
 
         # Başlangıçta kayıtlı risk profilini kontrol et
@@ -221,7 +222,7 @@ class OptimizationController(QObject):
     @Slot()
     def refreshPortfolios(self) -> None:
         """Kullanılabilir portföyleri (Ana Portföy + Model Portföyler) yükler."""
-        options = [{"code": "dashboard", "label": "Ana Portföy (Canlı)"}]
+        options = [{"code": "dashboard", "label": msg("optimization.ana_portfoy_canli")}]
         if self._model_portfolio_service:
             try:
                 models = self._model_portfolio_service.get_all_portfolios()
@@ -293,7 +294,7 @@ class OptimizationController(QObject):
             return
 
         self._is_loading = True
-        self._status_message = "Optimizasyon hesaplanıyor..."
+        self._status_message = msg("optimization.optimizasyon_hesaplaniyor")
         self.isLoadingChanged.emit()
         self.statusMessageChanged.emit()
 
@@ -333,7 +334,7 @@ class OptimizationController(QObject):
 
         self._is_loading = False
         self._has_results = True
-        self._status_message = "Optimizasyon başarıyla tamamlandı."
+        self._status_message = msg("optimization.optimizasyon_basariyla_tamamlandi")
 
         self.isLoadingChanged.emit()
         self.hasResultsChanged.emit()
@@ -342,7 +343,7 @@ class OptimizationController(QObject):
         self.suggestionsChanged.emit()
         self.chartHtmlChanged.emit()
         self.weightsChartHtmlChanged.emit()
-        self.operationResult.emit(True, "Portföy optimizasyonu başarıyla tamamlandı.")
+        self.operationResult.emit(True, msg("optimization.portfoy_optimizasyonu_basariyla_tamamlandi"))
 
     def _apply_kpis(self, opt_res, min_vol) -> None:
         self._curr_sharpe = float(opt_res.current_metrics.sharpe_ratio)

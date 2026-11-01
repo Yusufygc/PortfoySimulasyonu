@@ -14,6 +14,7 @@ from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
+# metin-muaf: yapay zeka sistem istemi, arayüz metni değil
 ADVISOR_SYSTEM_PROMPT = """Sen Borsa İstanbul (BIST) ve modern portföy yönetimi konusunda uzmanlaşmış, analitik, rasyonel ve yardımsever bir Kıdemli Portföy Danışmanısın.
 Sana kullanıcının portföyünü, risk metriklerini ve hisse detaylarını inceleyebilmen için özel analiz araçları (tools) sağlanmıştır:
 - get_portfolio_overview: Kullanıcının toplam portföy büyüklüğü, dönem getirisi, BIST100 farkı ve en iyi/kötü hisselerini döner.

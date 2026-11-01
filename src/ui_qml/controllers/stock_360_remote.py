@@ -14,6 +14,7 @@ from src.ui_qml.controllers.stock_360_html import (
     generate_shareholders_html,
     write_temp_html,
 )
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,7 @@ def fetch_remote_data(service: Any, ticker: str, periods_count: int, force_refre
             result.fin_html_url = _write_html(result, f"fin_{periods_count}", ticker, html)
     except Exception as exc:
         logger.warning("Finansal veri çekilemedi [%s]: %s", ticker, exc)
-        result.error = f"Finansal veriler alınamadı ({exc})"
+        result.error = msg("stock360.finansal_veriler_alinamadi", exc=exc)
 
     # 2. KAP Ortaklık
     try:

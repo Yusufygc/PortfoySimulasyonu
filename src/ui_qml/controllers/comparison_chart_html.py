@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import pandas as pd
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ PALETTE = [
 ]
 
 
+# metin-muaf: HTML şablonu
 _SCATTER_TEMPLATE = """<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 {script_tag}
@@ -69,6 +71,7 @@ new Chart(document.getElementById('sChart'), {{
 }});
 </script></body></html>"""
 
+# metin-muaf: HTML şablonu
 _TREEMAP_TEMPLATE = """<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
@@ -368,7 +371,7 @@ def build_line_chart_html(df: pd.DataFrame, is_ratio: bool = False, is_normal: b
                 s{i}.setData([{','.join(data_points)}]);
             """)
 
-    title_note = "Rasyo (A/B)" if is_ratio else ("Fiyat / Değer" if is_normal else "Normalize Getiri (Baz 100)")
+    title_note = "Rasyo (A/B)" if is_ratio else (msg("comparison_chart.fiyat_deger") if is_normal else "Normalize Getiri (Baz 100)")
     return _wrap_lw_chart(''.join(datasets_js), title_note)
 
 
@@ -394,7 +397,7 @@ def build_drawdown_html(dd_df: pd.DataFrame) -> str:
                 s{i}.setData([{','.join(data_points)}]);
             """)
 
-    return _wrap_lw_chart(''.join(datasets_js), "Maksimum Değer Kaybı (Drawdown %)")
+    return _wrap_lw_chart(''.join(datasets_js), msg("comparison_chart.maksimum_deger_kaybi_drawdown"))
 
 
 def _wrap_lw_chart(series_code: str, title: str) -> str:

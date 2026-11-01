@@ -39,6 +39,7 @@ Application servisleri
 Kurallar ([RULES.md](../../RULES.md) §2):
 - **Emoji yok.** Simgeler yalnızca SVG ikonlardır (`ModernIcon`, GPU renklendirmeli).
 - **Metin kataloğu:** QML'e sabit kullanıcı metni yazılmaz; yeni metin önce `Strings.qml`'e eklenir. `tests/ui_qml/test_strings_catalog.py` tanımsız/yinelenen/kullanılmayan anahtarı ve Türkçe sabit literal'i yakalar. Örnek veri ve bileşen varsayılanları testteki izin listesindedir.
+- **Python tarafı metin kataloğu:** Denetleyiciler Türkçe kullanıcı metni yazmaz; `src/ui_qml/messages.py` içindeki `msg("anahtar", ad=değer)` çağrılır (anahtar adı `<alan>.<olay>`). Sayı/para/yüzde biçimi `src/ui_qml/presenters/formatting.py` (`tr_number`, `tr_money`, `tr_pct`). Koruma: `tests/ui_qml/test_controller_text_ratchet.py` (denetleyicide Türkçe literal tavanı **0**; log, docstring ve `# metin-muaf: neden` yorumlu veri/istem/HTML şablonu hariç) ve `tests/ui_qml/test_message_catalog.py` (tanımsız ve kullanılmayan anahtar yok, çağrı parametreleri yer tutucularla eşleşir, anahtar sabit olmalı).
 - **Taşma yok:** Butonlar içeriğe göre esner (`ModernButton`); çok öğeli yatay alanlar `Flickable`/`Flow`/`GridLayout` ile sarılır; dar kartlarda ikincil etiketler elide edilir.
 - Ortak bileşenler: `ModernCard`, `ModernButton`, `ModernInput`, `ModernComboBox`, `ModernScrollBar`, `ModernIcon`, `MetricCard`, `ConfirmDialog`, `ToastNotification`.
 

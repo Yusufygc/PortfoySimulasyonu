@@ -43,6 +43,7 @@ from src.ui_qml.controllers.stock_360_calc import (
     compute_shareholder_timeline,
     parse_shareholder_data,
 )
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ class Stock360Controller(QObject):
 
     def _init_identity_state(self) -> None:
         self._current_ticker: str = "BIMAS"
-        self._company_name: str = "BİM Birleşik Mağazalar A.Ş."
+        self._company_name: str = msg("stock360.bim_birlesik_magazalar_a_s")
         self._sector: str = "Perakende Ticaret"
         self._is_loading: bool = False
         self._error_message: str = ""
@@ -144,7 +145,7 @@ class Stock360Controller(QObject):
 
         # Teknik Seviyeler
         self._rsi14_str: str = "—"
-        self._rsi_status: str = "Nötr"
+        self._rsi_status: str = msg("stock360.notr")
         self._macd_line_str: str = "—"
         self._macd_signal_str: str = "—"
         self._sma50_str: str = "—"
