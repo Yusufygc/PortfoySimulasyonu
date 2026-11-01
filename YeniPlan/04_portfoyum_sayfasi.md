@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Günlük: [log.md](log.md) | Önceki: [03_fiyat_ve_kur_hatti.md](03_fiyat_ve_kur_hatti.md) | Sonraki: [05_genel_bakis_ve_haber.md](05_genel_bakis_ve_haber.md)
 
-Durum: **Taslak** (Aşama 1, 4 ve 5)
+Durum: Aşama 1 ve 4 **Uygulandı** (2026-11-01); Aşama 5 (arayüz) **Taslak**
 
 ## 1. Aşama 1 — Sayfa Bölünmesi (davranış korunur)
 
@@ -29,15 +29,30 @@ Kararlar:
 - Dokunulacak dosyalar: `shell_controller.py` (`PAGE_TITLES[10]`), `Main.qml` (yeni Loader), `Sidebar.qml` (`menuItems`, 2. sıra), `Strings.qml` (`navMyPortfolio` ve taşınan metinler; kullanılmayan anahtarlar silinir), `Icons.qml`, `tests/ui_qml/test_qml_poc.py:33`.
 - Doğrulama: `test_dashboard_*`, `test_qml_poc`, `test_strings_catalog`, `test_qml_file_size_guard` yeşil; `scripts/qml_visual_snapshot.py`'ye Genel Bakış ve Portföyüm eklenir.
 
-## 2. Aşama 4 — Birleşik Portföy Servisi
+## 2. Aşama 4 — Birleşik Portföy Servisi (Uygulandı)
 
-`UnifiedPortfolioService` (`src/application/services/assets/` veya `portfolio/`):
+Dosyalar:
 
-- Girdi: BIST `Portfolio` (mevcut `PortfolioService`, `CurrentPriceResolver`) + `AssetLedger` + güncel fiyatlar + kur.
-- Çıktı:
-  - `UnifiedSummary`: toplam değer (TRY), maliyet, kâr/zarar, günlük değişim, "kısmi" bayrağı.
-  - `AllocationBreakdown`: sınıf bazlı dilimler (BIST, ABD hisse, kripto, emtia, nakit) ve varlık bazlı dilimler; BIST nakdi ayrı dilim.
-- Gösterim kuru: TRY veya USD; `FxRateService` ile çevrilir.
+| Katman | Dosya |
+|---|---|
+| Domain | `src/domain/models/unified_portfolio.py` (`AllocationClass`, `HoldingValuation`, `AllocationSlice`, `UnifiedSummary`, `daily_gain`); `Asset.unit_price` (`asset.py`) |
+| BIST okuyucu | `src/application/services/assets/bist_holdings_reader.py` (`BistHoldingsReader`) |
+| Varlık okuyucu | `src/application/services/assets/asset_holdings_reader.py` (`AssetHoldingsReader`) |
+| Servis | `src/application/services/assets/unified_portfolio_service.py` (`UnifiedPortfolioService.get_summary(display_currency)`) |
+| Container | `ServiceSet.unified_portfolio_service`; `build_services` aynı `CurrentPriceResolver` ve `StockLookupService` örneklerini paylaşır |
+| Test | `tests/domain/test_unified_portfolio_models.py`, `tests/application/services/assets/test_unified_portfolio_service.py`, `tests/application/test_asset_container_wiring.py` |
+
+Kurallar:
+
+- **Birleşim:** BIST açık pozisyonları (`PortfolioService` + `CurrentPriceResolver`) + BIST TRY nakdi + varlık defteri pozisyonları. Toplam değer = pozisyon değerleri + nakit. Nakit yalnızca BIST nakdidir (varlık alımı nakdi etkilemez).
+- **Varlık fiyatı:** son fiyat ile son günlük kapanıştan tarihi daha yeni olan seçilir (eşitse son fiyat). Gram birimli madende ons fiyatı gram fiyatına çevrilir (`Asset.unit_price`); değer `miktar × birim fiyat × güncel kur`.
+- **Maliyet ve K/Z:** TRY maliyet her alımın kendi kuruyla tutulur; `unrealized_pl_try` kur farkını da içerir.
+- **Eksik veri:** fiyat veya kur yoksa pozisyon TRY maliyetiyle değerlenir, `is_priced=False` olur; özet `is_partial` ve `unpriced_symbols` taşır. Hiçbir pozisyon sessizce düşmez.
+- **Günlük değişim:** varlığın kendi para biriminde, seçilen fiyatın gününden önceki son kapanışa göre; kur hareketi dahil değildir. Günlük kazanç = bugünkü değer − önceki kapanış değeri.
+- **Dağılım:** sınıf bazlı dilimler (BIST, ABD hisse, kripto, emtia, nakit), değere göre azalan; her pozisyonun `weight_pct` değeri toplam değere (nakit dahil) göredir.
+- **Gösterim:** `get_summary("USD")` toplamları güncel USD/TRY ile çevirmek için `display_rate` döner (`display_amount`); kur yoksa TRY'ye düşer ve `display_unavailable=True` olur. Yalnızca TRY ve USD desteklenir.
+
+Doğrulama ve bulgu (2026-11-01, gerçek veritabanı kopyası): 7 BIST pozisyonu için toplam değer (260.311,90), maliyet (699.848,88) ve nakit `DashboardController` ile **birebir aynı**. Günlük kazanç farklı: birleşik servis −14.730 ₺ (%-5,36), dashboard −13.780 ₺ (%-5,29). Birleşik servis tam formülü kullanır (bugünkü değer − önceki kapanış değeri); dashboard `bugünkü değer × yüzde` yaklaşığını kullanır ve negatif günlerde farkı küçük, pozitif günlerde büyük gösterir. Dashboard hesabı bu aşamada değiştirilmedi (BIST davranışı korunur); Portföyüm arayüzü (Aşama 5) birleşik değeri göstereceğinden iki ekran arasındaki fark için karar gerekir.
 
 ## 3. Aşama 5 — Arayüz
 

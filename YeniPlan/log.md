@@ -5,6 +5,16 @@
 > Başlık biçimi: `## [YYYY-AA-GG] işlem | Konu`
 
 ---
+## [2026-11-01] uygulama | Aşama 4: Birleşik portföy servisi
+
+- `UnifiedPortfolioService.get_summary(display_currency)`: BIST pozisyonları + BIST nakdi + varlık defteri → tek TRY özeti (`UnifiedSummary`): toplam değer, maliyet, K/Z, günlük kazanç, sınıf bazlı dilimler, pozisyon ağırlıkları, TRY/USD gösterim oranı.
+- `BistHoldingsReader` (mevcut `PortfolioService` ve `CurrentPriceResolver`), `AssetHoldingsReader` (en yeni fiyat seçimi, güncel kur, gram birimi için `Asset.unit_price`).
+- Eksik fiyat veya kur: pozisyon TRY maliyetiyle değerlenir, `is_priced=False`; özet `is_partial` ve `unpriced_symbols` taşır (sessiz atlama yok).
+- Container: `unified_portfolio_service`; `build_services` paylaşılan çözümleyici ve arama servisini yerel değişkenlere aldı.
+- Test: 36 yeni (domain DTO, servis, container); tam paket 1528 geçti, 4 xfailed.
+- Parite (gerçek DB kopyası): toplam değer, maliyet, nakit `DashboardController` ile aynı; günlük kazanç farklı (birleşik tam formül: -14.730 TL; dashboard yaklaşığı: -13.780 TL). Dashboard hesabı değiştirilmedi; karar notu [04_portfoyum_sayfasi.md](04_portfoyum_sayfasi.md) §2.
+
+---
 ## [2026-11-01] uygulama | Aşama 3: Fiyat ve kur hattı
 
 - `resolve_yf_symbol` (sınıfa duyarlı, `.IS` eklemez), `src/domain/units.py` ortak ons→gram sabiti (iki kopya tek kaynağa indi).
