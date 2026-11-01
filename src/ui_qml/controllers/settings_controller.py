@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
 
 from config.settings_loader import persist_api_keys
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class SettingsController(QObject):
 
         # Dahili Durumlar
         self._is_loading = False
-        self._status_message = "Hazır"
+        self._status_message = msg("settings.hazir")
         self._is_dark_theme = self._settings.value("ui/isDarkTheme", True, type=bool)
         self._is_syncing = False
         self._api_test_result = ""
@@ -184,9 +185,9 @@ class SettingsController(QObject):
         self._is_dark_theme = not self._is_dark_theme
         self._settings.setValue("ui/isDarkTheme", self._is_dark_theme)
         self.isDarkThemeChanged.emit(self._is_dark_theme)
-        theme_name = "Koyu Tema" if self._is_dark_theme else "Açık Tema"
+        theme_name = msg("settings.dark_theme") if self._is_dark_theme else msg("settings.acik_tema")
         self._set_status(f"{theme_name} aktif edildi")
-        self.operationNotification.emit(True, f"{theme_name} başarıyla etkinleştirildi.")
+        self.operationNotification.emit(True, msg("settings.basariyla_etkinlestirildi", theme_name=theme_name))
 
     # -------------------------------------------------------------------------
     # API Anahtarları ve Bağlantı Testi
@@ -206,26 +207,26 @@ class SettingsController(QObject):
             )
         except Exception as exc:
             logger.exception("API anahtarları kaydedilemedi: %s", exc)
-            self.operationNotification.emit(False, f"API anahtarları kaydedilemedi: {exc}")
-            self._set_status("API anahtarları kaydedilemedi")
+            self.operationNotification.emit(False, msg("settings.api_anahtarlari_kaydedilemedi", exc=exc))
+            self._set_status(msg("settings.api_anahtarlari_kaydedilemedi_2"))
             return
 
         self.geminiApiKeyChanged.emit(clean_gemini)
         self.evdsApiKeyChanged.emit(clean_evds)
-        self.operationNotification.emit(True, "API anahtarları kaydedildi. EVDS anahtarı bir sonraki açılışta etkin olur.")
-        self._set_status("API anahtarları kaydedildi")
+        self.operationNotification.emit(True, msg("settings.api_anahtarlari_kaydedildi_evds_anahtari_bir"))
+        self._set_status(msg("settings.api_anahtarlari_kaydedildi"))
 
     @Slot(str)
     def testGeminiApiKey(self, key_to_test: str) -> None:
         """Google Gemini API anahtarı için canlı bağlantı testi yapar."""
         key = (key_to_test or "").strip()
         if not key:
-            self._api_test_result = "Lütfen önce geçerli bir API anahtarı girin."
+            self._api_test_result = msg("settings.lutfen_once_gecerli_bir_api_anahtari")
             self.apiTestResultChanged.emit(self._api_test_result)
             return
 
         self._set_loading(True)
-        self._api_test_result = "Google Gemini sunucularına bağlanılıyor..."
+        self._api_test_result = msg("settings.google_gemini_sunucularina_baglaniliyor")
         self.apiTestResultChanged.emit(self._api_test_result)
 
         self._executor.submit(self._run_gemini_test_worker, key)
@@ -240,11 +241,11 @@ class SettingsController(QObject):
                 contents="Ping. Sadece 'PONG' cevabını ver.",
             )
             success = bool(resp and resp.text)
-            text = "Bağlantı Başarılı! Gemini 2.5 Flash erişilebilir durumda." if success else "Sunucu yanıt vermedi."
+            text = msg("settings.baglanti_basarili_gemini_2_5_flash") if success else msg("settings.sunucu_yanit_vermedi")
             self._asyncApiTestFinished.emit(success, text)
         except Exception as exc:
             logger.warning("Gemini API test hatası: %s", exc)
-            self._asyncApiTestFinished.emit(False, f"Bağlantı Hatası: {exc}")
+            self._asyncApiTestFinished.emit(False, msg("settings.baglanti_hatasi", exc=exc))
 
     def _on_api_test_finished(self, success: bool, message: str) -> None:
         self._api_test_result = message
@@ -260,7 +261,7 @@ class SettingsController(QObject):
     def refreshDatabaseStats(self) -> None:
         """SQLite ve DuckDB metriklerini asenkron hesaplar."""
         self._set_loading(True)
-        self._set_status("Veritabanı metrikleri taranıyor...")
+        self._set_status(msg("settings.veritabani_metrikleri_taraniyor"))
         self._executor.submit(self._run_db_stats_worker)
 
     def _run_db_stats_worker(self) -> None:
@@ -284,7 +285,7 @@ class SettingsController(QObject):
         self.duckDbIsUpToDateChanged.emit(self._duckdb_is_up_to_date)
 
         self._set_loading(False)
-        self._set_status("Veritabanı metrikleri güncellendi")
+        self._set_status(msg("settings.veritabani_metrikleri_guncellendi"))
 
     # -------------------------------------------------------------------------
     # Piyasa Verisi Manuel Senkronizasyonu
@@ -305,7 +306,7 @@ class SettingsController(QObject):
         try:
             sync_svc = getattr(self._container, "market_data_sync_service", None) if self._container else None
             if sync_svc is None:
-                raise RuntimeError("Piyasa senkron servisi kullanılamıyor.")
+                raise RuntimeError(msg("settings.piyasa_senkron_servisi_kullanilamiyor"))
             result = sync_svc.sync_daily_delta()
             self._asyncSyncFinished.emit({
                 "success": True,
@@ -316,7 +317,7 @@ class SettingsController(QObject):
             logger.exception("Senkronizasyon işlemi hatası: %s", e)
             self._asyncSyncFinished.emit({
                 "success": False,
-                "message": f"Senkronizasyon hatası: {e}",
+                "message": msg("settings.senkronizasyon_hatasi", e=e),
                 "added_bars": 0,
             })
 
@@ -324,7 +325,7 @@ class SettingsController(QObject):
         self._is_syncing = False
         self.isSyncingChanged.emit(False)
         success = res.get("success", False)
-        text = res.get("message", "Tamamlandı")
+        text = res.get("message", msg("settings.tamamlandi"))
         self._set_status(text)
         self.operationNotification.emit(success, text)
         # İstatistikleri otomatik tazele
@@ -338,18 +339,18 @@ class SettingsController(QObject):
     def checkDatabaseIntegrity(self) -> None:
         """SQLite ve DuckDB için PRAGMA integrity_check çalıştırır."""
         self._set_loading(True)
-        self._integrity_check_result = "Veritabanı bütünlük kontrolü yürütülüyor..."
+        self._integrity_check_result = msg("settings.veritabani_butunluk_kontrolu_yurutuluyor")
         self.integrityCheckResultChanged.emit(self._integrity_check_result)
         self._executor.submit(self._run_integrity_worker)
 
     def _run_integrity_worker(self) -> None:
-        errors = self._maintenance.check_integrity() if self._maintenance else ["Veritabanı servisi kullanılamıyor."]
+        errors = self._maintenance.check_integrity() if self._maintenance else [msg("settings.veritabani_servisi_kullanilamiyor")]
         if errors:
             self._asyncIntegrityFinished.emit(False, " | ".join(errors))
         else:
             self._asyncIntegrityFinished.emit(
                 True,
-                "Mükemmel! SQLite (OLTP) ve DuckDB (OLAP) veritabanı bütünlüğü doğrulandı (OK)."
+                msg("settings.mukemmel_sqlite_oltp_ve_duckdb_olap")
             )
 
     def _on_integrity_finished(self, success: bool, message: str) -> None:
@@ -366,7 +367,7 @@ class SettingsController(QObject):
     def exportPortfolioToExcel(self) -> None:
         """Kullanıcının portföyünü Excel formatında masaüstüne veya reports klasörüne kaydeder."""
         self._set_loading(True)
-        self._set_status("Excel raporu hazırlanıyor...")
+        self._set_status(msg("settings.excel_raporu_hazirlaniyor"))
         self._executor.submit(self._run_excel_export_worker)
 
     def _run_excel_export_worker(self) -> None:
@@ -390,20 +391,20 @@ class SettingsController(QObject):
                     file_path=target_file,
                     mode=ExportMode.OVERWRITE,
                 )
-                self._asyncExportFinished.emit(True, f"Kapsamlı portföy Excel raporu oluşturuldu:\n{target_file.name}")
+                self._asyncExportFinished.emit(True, msg("settings.kapsamli_portfoy_excel_raporu_olusturuldu", name=target_file.name))
             else:
                 self._maintenance.export_tables_to_excel(target_file)
 
-                self._asyncExportFinished.emit(True, f"Excel raporu oluşturuldu:\n{target_file.name}")
+                self._asyncExportFinished.emit(True, msg("settings.excel_raporu_olusturuldu", name=target_file.name))
         except Exception as e:
             logger.exception("Excel export hatası: %s", e)
-            self._asyncExportFinished.emit(False, f"Excel dışa aktarım hatası: {e}")
+            self._asyncExportFinished.emit(False, msg("settings.excel_disa_aktarim_hatasi", e=e))
 
     @Slot()
     def exportPortfolioToJson(self) -> None:
         """Tüm portföyü JSON yedek dosyası olarak kaydeder."""
         self._set_loading(True)
-        self._set_status("JSON yedeği alınıyor...")
+        self._set_status(msg("settings.json_yedegi_aliniyor"))
         self._executor.submit(self._run_json_export_worker)
 
     def _run_json_export_worker(self) -> None:
@@ -415,20 +416,20 @@ class SettingsController(QObject):
             target_file = out_dir / f"PortfoySim_Yedek_{timestamp}.json"
 
             if self._maintenance is None:
-                raise RuntimeError("Veritabanı servisi kullanılamıyor.")
+                raise RuntimeError(msg("settings.veritabani_servisi_kullanilamiyor"))
             backup_data = self._maintenance.export_backup_data()
 
             with open(target_file, "w", encoding="utf-8") as f:
                 json.dump(backup_data, f, ensure_ascii=False, indent=2, default=str)
 
-            self._asyncExportFinished.emit(True, f"JSON yedeği kaydedildi:\n{target_file.name}")
+            self._asyncExportFinished.emit(True, msg("settings.json_yedegi_kaydedildi", name=target_file.name))
         except Exception as e:
             logger.exception("JSON export hatası: %s", e)
-            self._asyncExportFinished.emit(False, f"JSON yedekleme hatası: {e}")
+            self._asyncExportFinished.emit(False, msg("settings.json_yedekleme_hatasi", e=e))
 
     def _on_export_finished(self, success: bool, message: str) -> None:
         self._set_loading(False)
-        self._set_status("Dışa aktarım tamamlandı")
+        self._set_status(msg("settings.disa_aktarim_tamamlandi"))
         self.operationNotification.emit(success, message)
 
     # -------------------------------------------------------------------------

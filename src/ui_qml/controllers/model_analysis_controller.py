@@ -16,31 +16,31 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.models.ai_analysis import AnalysisResult, ModelOutlook, PeerInfo, XaiFactorItem
 from src.domain.ticker import clean_ticker
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
 DISCLAIMER = (
-    "Bu çıktı kişisel yatırım tavsiyesi değildir. Model geçmiş verilerden üretilmiş analitik bir görünümdür; "
-    "nihai karar kullanıcıya aittir."
+    msg("model_analysis.bu_cikti_kisisel_yatirim_tavsiyesi_degildir")
 )
 _OUTLOOK_LABELS = {
-    ModelOutlook.UP: ("Yükseliş eğilimi", "up"),
-    ModelOutlook.DOWN: ("Düşüş eğilimi", "down"),
-    ModelOutlook.NEUTRAL: ("Yatay / nötr görünüm", "neutral"),
+    ModelOutlook.UP: (msg("model_analysis.yukselis_egilimi"), "up"),
+    ModelOutlook.DOWN: (msg("model_analysis.dusus_egilimi"), "down"),
+    ModelOutlook.NEUTRAL: (msg("model_analysis.yatay_notr_gorunum"), "neutral"),
 }
-_CONFIDENCE_LABELS = {"low": "Düşük", "medium": "Orta", "high": "Yüksek"}
-_TREND_LABELS = {"up": "Yükseliş trendi", "down": "Düşüş trendi", "neutral": "Yatay seyir", "flat": "Yatay seyir"}
-_PEER_LABELS = {"outperform": "Akranlarına göre güçlü", "inline": "Akranlarıyla paralel",
-                "underperform": "Akranlarına göre zayıf", "unknown": "Belirsiz"}
+_CONFIDENCE_LABELS = {"low": msg("model_analysis.dusuk"), "medium": "Orta", "high": msg("model_analysis.yuksek")}
+_TREND_LABELS = {"up": msg("model_analysis.yukselis_trendi"), "down": msg("model_analysis.dusus_trendi"), "neutral": "Yatay seyir", "flat": "Yatay seyir"}
+_PEER_LABELS = {"outperform": msg("model_analysis.akranlarina_gore_guclu"), "inline": msg("model_analysis.akranlariyla_paralel"),
+                "underperform": msg("model_analysis.akranlarina_gore_zayif"), "unknown": "Belirsiz"}
 # analysis_status -> (metin, durum)
 _STATUS_TEXTS = {
-    "ok": ("Analiz başarılı, veriler güncel.", "success"),
-    "stale_data": ("Dikkat: piyasa verisi eski, tahminler güncel olmayabilir.", "warning"),
-    "no_model": ("Bu hisse için kayıtlı model bulunamadı.", "error"),
-    "no_forecast": ("Model mevcut ama tahmin üretilmemiş.", "warning"),
-    "low_confidence": ("Sonuç mevcut ancak güven düzeyi düşük.", "warning"),
-    "xai_unavailable": ("Tahmin mevcut ama açıklanabilirlik (XAI) verisi yok.", "warning"),
-    "error": ("Beklenmeyen bir hata oluştu.", "error"),
+    "ok": (msg("model_analysis.analiz_basarili_veriler_guncel"), "success"),
+    "stale_data": (msg("model_analysis.dikkat_piyasa_verisi_eski_tahminler_guncel"), "warning"),
+    "no_model": (msg("model_analysis.bu_hisse_icin_kayitli_model_bulunamadi"), "error"),
+    "no_forecast": (msg("model_analysis.model_mevcut_ama_tahmin_uretilmemis"), "warning"),
+    "low_confidence": (msg("model_analysis.sonuc_mevcut_ancak_guven_duzeyi_dusuk"), "warning"),
+    "xai_unavailable": (msg("model_analysis.tahmin_mevcut_ama_aciklanabilirlik_xai_veris"), "warning"),
+    "error": (msg("model_analysis.beklenmeyen_bir_hata_olustu"), "error"),
 }
 _BLOCKING_STATUSES = {"no_model", "no_forecast", "error"}
 
@@ -102,13 +102,13 @@ def analysis_to_dict(result: AnalysisResult) -> Dict[str, Any]:
         interval = f"{_price(result.predicted_price_low)} - {_price(result.predicted_price_high)}"
     trend = _TREND_LABELS.get((result.trend_label or "").lower(), result.trend_label or "")
     performance = [
-        ("Bileşik skor", _num(result.composite_score, 1)),
-        ("Yön doğruluğu", "-" if result.directional_accuracy is None else _pct(result.directional_accuracy, 1)),
-        ("İsabet oranı", "-" if result.hit_rate is None else _pct(result.hit_rate, 1)),
+        (msg("model_analysis.bilesik_skor"), _num(result.composite_score, 1)),
+        (msg("model_analysis.yon_dogrulugu"), "-" if result.directional_accuracy is None else _pct(result.directional_accuracy, 1)),
+        (msg("model_analysis.isabet_orani"), "-" if result.hit_rate is None else _pct(result.hit_rate, 1)),
         ("Sharpe", _num(result.sharpe, 2)),
         ("RMSE", _num(result.rmse, 2)),
         ("MAE", _num(result.mae, 2)),
-        ("Kararlılık", _num(result.stability_score, 2)),
+        (msg("model_analysis.kararlilik"), _num(result.stability_score, 2)),
     ]
     return {
         "ticker": result.ticker,
@@ -121,7 +121,7 @@ def analysis_to_dict(result: AnalysisResult) -> Dict[str, Any]:
         "changeIsUp": change_pct is not None and change_pct >= 0,
         "hasChange": change_pct is not None,
         "intervalText": interval or "-",
-        "horizonText": "-" if result.horizon_days is None else f"{result.horizon_days} gün",
+        "horizonText": "-" if result.horizon_days is None else msg("model_analysis.gun", horizon_days=result.horizon_days),
         "weeklyReturnText": "-" if result.weekly_expected_return is None else _pct(result.weekly_expected_return * 100, 2, True),
         "confidenceText": _CONFIDENCE_LABELS.get(result.confidence_label, result.confidence_label),
         "confidencePct": int(round(max(0.0, min(1.0, result.confidence)) * 100)),
@@ -133,7 +133,7 @@ def analysis_to_dict(result: AnalysisResult) -> Dict[str, Any]:
         "trendText": trend,
         "freshnessText": (
             f"Son veri: {result.last_observed_date or '-'}"
-            + (f" ({result.staleness_days} işlem günü geride)" if result.staleness_days else "")
+            + (msg("model_analysis.islem_gunu_geride", staleness_days=result.staleness_days) if result.staleness_days else "")
         ),
         "performance": [{"label": label, "valueText": value} for label, value in performance],
         "xaiAvailable": result.xai_available,
@@ -162,9 +162,7 @@ def analysis_to_dict(result: AnalysisResult) -> Dict[str, Any]:
 def advisor_prompt(data: Dict[str, Any]) -> str:
     """Analiz özetini portföy danışmanına soru olarak gönderilecek metne çevirir."""
     return (
-        f"{data['ticker']} için model analizi sonucu: tahmin {data['predictedText']} (son kapanış {data['lastCloseText']}, "
-        f"{data['changeText']}), yön beklentisi: {data['outlookText']}, güven: {data['confidenceText']}. "
-        "Bu sonucu portföyüm bağlamında yorumlar mısın?"
+        msg("model_analysis.icin_model_analizi_sonucu_tahmin_son", ticker=data["ticker"], predicted=data["predictedText"], last_close=data["lastCloseText"], change=data["changeText"], outlook=data["outlookText"], confidence=data["confidenceText"])
     )
 
 
@@ -243,7 +241,7 @@ class ModelAnalysisController(QObject):
             return
         self._probing = True
         self.busyChanged.emit()
-        self._set_banner("Yapay zeka motoruna bağlanılıyor...", "warning")
+        self._set_banner(msg("model_analysis.yapay_zeka_motoruna_baglaniliyor"), "warning")
 
         def work() -> None:
             try:
@@ -259,9 +257,9 @@ class ModelAnalysisController(QObject):
         self._live = live
         self.busyChanged.emit()
         if live:
-            self._set_banner("AI_Core modeli bağlı.", "success")
+            self._set_banner(msg("model_analysis.ai_core_modeli_bagli"), "success")
         else:
-            self._set_banner("Model henüz bağlı değil: sonuçlar DEMO verisidir, gerçek tahmin değildir.", "warning")
+            self._set_banner(msg("model_analysis.model_henuz_bagli_degil_sonuclar_demo"), "warning")
 
     # ------------------------------------------------------------------ analiz
 
@@ -293,7 +291,7 @@ class ModelAnalysisController(QObject):
         self._busy = False
         self.busyChanged.emit()
         if error or result is None:
-            self._set_banner(f"Analiz hatası: {error or 'sonuç alınamadı'}", "error")
+            self._set_banner(msg("model_analysis.analiz_hatasi", value=error or 'sonuç alınamadı'), "error")
             # Zaman aşımında canlı bağlantı korunur; diğer hatalarda demo'ya düşülür
             lowered = error.lower()
             service = self._service
@@ -303,9 +301,9 @@ class ModelAnalysisController(QObject):
             return
         text, state = _STATUS_TEXTS.get(result.analysis_status, (f"Bilinmeyen durum: {result.analysis_status}", "warning"))
         if result.analysis_status == "stale_data" and result.staleness_days:
-            text += f" ({result.staleness_days} işlem günü geride)"
+            text += msg("model_analysis.islem_gunu_geride", staleness_days=result.staleness_days)
         if not self._live:
-            text = "DEMO verisi (model bağlı değil): " + text
+            text = msg("model_analysis.demo_verisi_model_bagli_degil") + text
             state = "warning"
         self._set_banner(text, state)
         if result.analysis_status in _BLOCKING_STATUSES:

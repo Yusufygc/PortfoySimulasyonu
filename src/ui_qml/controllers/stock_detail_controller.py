@@ -25,6 +25,7 @@ from src.domain.models.trade import TradeSide
 from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.ticker import clean_ticker
 from src.domain.market_clock import market_now, market_time, market_today
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,9 @@ def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
     try:
         trade_date = datetime.strptime(text, "%Y-%m-%d").date() if text else today
     except ValueError:
-        raise ValueError("Tarih biçimi geçersiz. Örnek: 2026-10-03") from None
+        raise ValueError(msg("stock_detail.tarih_bicimi_gecersiz_ornek_2026_10")) from None
     if trade_date > today:
-        raise ValueError("Gelecek tarihli işlem girilemez.")
+        raise ValueError(msg("stock_detail.gelecek_tarihli_islem_girilemez"))
 
     text = (time_str or "").strip()
     if not text:
@@ -48,9 +49,9 @@ def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
     try:
         trade_time = datetime.strptime(text, "%H:%M").time()
     except ValueError:
-        raise ValueError("Saat biçimi geçersiz. Örnek: 14:30") from None
+        raise ValueError(msg("stock_detail.saat_bicimi_gecersiz_ornek_14_30")) from None
     if trade_date == today and trade_time > market_now().time():
-        raise ValueError("Gelecek saatli işlem girilemez.")
+        raise ValueError(msg("stock_detail.gelecek_saatli_islem_girilemez"))
     return trade_date, trade_time
 
 
@@ -91,7 +92,7 @@ class StockDetailController(QObject):
         self._sector: str = ""
         self._context_type: str = "main"   # "main" veya "model"
         self._context_id: int = 0          # model portfolio id (varsa)
-        self._portfolio_name: str = "Ana Portföy"
+        self._portfolio_name: str = msg("stock_detail.ana_portfoy")
 
         # Metrikler
         self._current_price: float = 0.0
@@ -238,7 +239,7 @@ class StockDetailController(QObject):
         self._context_id = context_id
         self._is_open = True
         self._set_loading(True)
-        self._set_status(f"{clean} verileri yükleniyor...")
+        self._set_status(msg("stock_detail.verileri_yukleniyor", clean=clean))
         self.stockChanged.emit()
 
         self._executor.submit(self._fetch_stock_details_worker, clean, self._context_type, self._context_id)
@@ -287,10 +288,10 @@ class StockDetailController(QObject):
 
         `date_str` (YYYY-AA-GG) ve `time_str` (SS:DD) boşsa bugün/şimdi kullanılır."""
         if quantity <= 0:
-            self.tradeExecuted.emit(False, "Lot adedi 0'dan büyük olmalıdır.")
+            self.tradeExecuted.emit(False, msg("stock_detail.lot_adedi_0_dan_buyuk_olmalidir"))
             return
         if price <= 0:
-            self.tradeExecuted.emit(False, "Fiyat 0'dan büyük olmalıdır.")
+            self.tradeExecuted.emit(False, msg("stock_detail.fiyat_0_dan_buyuk_olmalidir"))
             return
 
         try:
@@ -306,7 +307,7 @@ class StockDetailController(QObject):
     def exportStockToExcel(self) -> None:
         """Bu hisseye ait pozisyon özeti, işlem geçmişi ve sermaye artırımlarını Excel'e aktarır."""
         self._set_loading(True)
-        self._set_status("Hisse Excel raporu hazırlanıyor...")
+        self._set_status(msg("stock_detail.hisse_excel_raporu_hazirlaniyor"))
         self._executor.submit(self._export_excel_worker)
 
     # -------------------------------------------------------------------------
@@ -329,7 +330,7 @@ class StockDetailController(QObject):
                 "unrealized_pnl": 0.0,
                 "unrealized_pnl_pct": 0.0,
                 "portfolio_weight_pct": 0.0,
-                "portfolio_name": "Ana Portföy" if ctx_type == "main" else f"Model Portföy #{ctx_id}",
+                "portfolio_name": msg("stock_detail.ana_portfoy") if ctx_type == "main" else msg("stock_detail.model_portfoy", ctx_id=ctx_id),
                 "trades": [],
                 "corp_actions": [],
             }
@@ -512,7 +513,7 @@ class StockDetailController(QObject):
                         "hasSplit": has_split,
                         "origQuantity": orig_qty,
                         "origPrice": orig_price,
-                        "splitNote": f"Bölünme Öncesi: {orig_qty:,} Lot @ ₺{orig_price:,.2f}" if has_split else "",
+                        "splitNote": msg("stock_detail.bolunme_oncesi_lot", orig_qty=orig_qty, orig_price=orig_price) if has_split else "",
                     })
             except Exception as tr_exc:
                 logger.warning("İşlem geçmişi okunamadı: %s", tr_exc)
@@ -600,12 +601,12 @@ class StockDetailController(QObject):
         self._unrealized_pnl_pct = data.get("unrealized_pnl_pct", 0.0)
         self._portfolio_weight_pct = data.get("portfolio_weight_pct", 0.0)
         self._cash = data.get("cash")
-        self._portfolio_name = data.get("portfolio_name", "Portföy")
+        self._portfolio_name = data.get("portfolio_name", msg("stock_detail.portfoy"))
 
         self._trades_list = data.get("trades", [])
         self._corp_actions_list = data.get("corp_actions", [])
 
-        self._set_status(f"{self._ticker} hazır.")
+        self._set_status(msg("stock_detail.hazir", ticker=self._ticker))
         self.stockChanged.emit()
         self.tradesChanged.emit()
         self.corpActionsChanged.emit()
@@ -619,7 +620,7 @@ class StockDetailController(QObject):
             if self._context_type == "model" and self._context_id > 0:
                 model_service = getattr(self._container, "model_portfolio_service", None) if self._container else None
                 if not model_service:
-                    raise RuntimeError("Model portföy servisi bulunamadı.")
+                    raise RuntimeError(msg("stock_detail.model_portfoy_servisi_bulunamadi"))
                 from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
                 model_service.add_trade_by_ticker(
                     portfolio_id=self._context_id,
@@ -633,14 +634,14 @@ class StockDetailController(QObject):
                     ),
                 )
                 total_amount = qty * price
-                action_tr = "satın alındı" if is_buy else "satıldı"
-                text = f"{qty} adet {self._ticker} model portföye {action_tr} (₺{total_amount:,.2f})."
+                action_tr = msg("stock_detail.satin_alindi") if is_buy else msg("stock_detail.satildi")
+                text = msg("stock_detail.adet_model_portfoye", qty=qty, ticker=self._ticker, action_tr=action_tr, total_amount=total_amount)
                 self._asyncTradeResult.emit(True, text)
                 return
 
             trade_entry_service = getattr(self._container, "trade_entry_service", None) if self._container else None
             if not trade_entry_service:
-                raise RuntimeError("İşlem giriş servisi bulunamadı.")
+                raise RuntimeError(msg("stock_detail.islem_giris_servisi_bulunamadi"))
 
             # Seans/nakit/lot doğrulamaları TradeEntryService içinde yapılır (Dashboard ile aynı yol).
             trade_entry_service.submit_trade(
@@ -655,8 +656,8 @@ class StockDetailController(QObject):
                 )
             )
             total_amount = qty * price
-            action_tr = "satın alındı" if is_buy else "satıldı"
-            text = f"{qty} adet {self._ticker} başarıyla {action_tr} (₺{total_amount:,.2f})."
+            action_tr = msg("stock_detail.satin_alindi") if is_buy else msg("stock_detail.satildi")
+            text = msg("stock_detail.adet_basariyla", qty=qty, ticker=self._ticker, action_tr=action_tr, total_amount=total_amount)
             self._asyncTradeResult.emit(True, text)
 
         except Exception as e:
@@ -682,18 +683,18 @@ class StockDetailController(QObject):
 
             # 1. Pozisyon Özeti DataFrame
             summary_data = [
-                {"Metrik": "Hisse Kodu", "Değer": self._ticker},
-                {"Metrik": "Şirket Adı", "Değer": self._company_name},
-                {"Metrik": "Sektör", "Değer": self._sector},
-                {"Metrik": "Portföy", "Değer": self._portfolio_name},
-                {"Metrik": "Rapor Tarihi", "Değer": datetime.now().strftime("%d.%m.%Y %H:%M")},
-                {"Metrik": "Mevcut Lot", "Değer": self._quantity},
-                {"Metrik": "Ortalama Maliyet (TL)", "Değer": self._avg_cost},
-                {"Metrik": "Son Kapanış Fiyatı (TL)", "Değer": self._current_price},
-                {"Metrik": "Toplam Piyasa Değeri (TL)", "Değer": self._market_value},
-                {"Metrik": "Net Kâr / Zarar (TL)", "Değer": self._unrealized_pnl},
-                {"Metrik": "Kâr / Zarar Oranı (%)", "Değer": f"%{self._unrealized_pnl_pct:.2f}"},
-                {"Metrik": "Portföy Ağırlığı (%)", "Değer": f"%{self._portfolio_weight_pct:.1f}"},
+                {msg("stock_detail.metric"): msg("stock_detail.ticker_label"), msg("stock_detail.deger"): self._ticker},
+                {msg("stock_detail.metric"): msg("stock_detail.sirket_adi"), msg("stock_detail.deger"): self._company_name},
+                {msg("stock_detail.metric"): msg("stock_detail.sektor"), msg("stock_detail.deger"): self._sector},
+                {msg("stock_detail.metric"): msg("stock_detail.portfoy"), msg("stock_detail.deger"): self._portfolio_name},
+                {msg("stock_detail.metric"): msg("stock_detail.report_date"), msg("stock_detail.deger"): datetime.now().strftime("%d.%m.%Y %H:%M")},
+                {msg("stock_detail.metric"): msg("stock_detail.current_lots"), msg("stock_detail.deger"): self._quantity},
+                {msg("stock_detail.metric"): msg("stock_detail.avg_cost_tl"), msg("stock_detail.deger"): self._avg_cost},
+                {msg("stock_detail.metric"): msg("stock_detail.son_kapanis_fiyati_tl"), msg("stock_detail.deger"): self._current_price},
+                {msg("stock_detail.metric"): msg("stock_detail.toplam_piyasa_degeri_tl"), msg("stock_detail.deger"): self._market_value},
+                {msg("stock_detail.metric"): msg("stock_detail.net_pnl_tl"), msg("stock_detail.deger"): self._unrealized_pnl},
+                {msg("stock_detail.metric"): msg("stock_detail.kar_zarar_orani"), msg("stock_detail.deger"): f"%{self._unrealized_pnl_pct:.2f}"},
+                {msg("stock_detail.metric"): msg("stock_detail.portfoy_agirligi"), msg("stock_detail.deger"): f"%{self._portfolio_weight_pct:.1f}"},
             ]
             df_summary = pd.DataFrame(summary_data)
 
@@ -703,45 +704,45 @@ class StockDetailController(QObject):
                 trades_export.append({
                     "Tarih": t.get("date", "-"),
                     "Saat": t.get("time", "-"),
-                    "İşlem Türü": t.get("side", "-"),
+                    msg("stock_detail.islem_turu"): t.get("side", "-"),
                     "Adet (Lot)": t.get("quantity", 0),
                     "Fiyat (TL)": t.get("price", 0.0),
                     "Toplam Tutar (TL)": t.get("total", 0.0),
                 })
-            df_trades = pd.DataFrame(trades_export) if trades_export else pd.DataFrame([{"Bilgi": "Kayıtlı işlem bulunamadı."}])
+            df_trades = pd.DataFrame(trades_export) if trades_export else pd.DataFrame([{msg("stock_detail.info"): msg("stock_detail.kayitli_islem_bulunamadi")}])
 
             # 3. Sermaye Artırımları DataFrame
             corp_export = []
             for c in self._corp_actions_list:
                 corp_export.append({
                     "Tarih": c.get("date", "-"),
-                    "İşlem Türü": c.get("actionType", "-"),
-                    "Artırım Oranı": c.get("ratioStr", "-"),
-                    "Uygulandı mı?": "Evet" if c.get("applied") else "Hayır",
+                    msg("stock_detail.islem_turu"): c.get("actionType", "-"),
+                    msg("stock_detail.artirim_orani"): c.get("ratioStr", "-"),
+                    msg("stock_detail.uygulandi_mi"): msg("stock_detail.yes") if c.get("applied") else msg("stock_detail.hayir"),
                 })
-            df_corp = pd.DataFrame(corp_export) if corp_export else pd.DataFrame([{"Bilgi": "Kayıtlı sermaye artırımı bulunamadı."}])
+            df_corp = pd.DataFrame(corp_export) if corp_export else pd.DataFrame([{msg("stock_detail.info"): msg("stock_detail.kayitli_sermaye_artirimi_bulunamadi")}])
 
             with pd.ExcelWriter(str(target_file), engine="openpyxl") as writer:
-                df_summary.to_excel(writer, sheet_name="Pozisyon Özeti", index=False)
-                df_trades.to_excel(writer, sheet_name="İşlem Geçmişi", index=False)
-                df_corp.to_excel(writer, sheet_name="Sermaye Artırımları", index=False)
+                df_summary.to_excel(writer, sheet_name=msg("stock_detail.pozisyon_ozeti"), index=False)
+                df_trades.to_excel(writer, sheet_name=msg("stock_detail.islem_gecmisi"), index=False)
+                df_corp.to_excel(writer, sheet_name=msg("stock_detail.sermaye_artirimlari"), index=False)
 
                 # Formatter mevcutsa profesyonel stilleri uygula
                 formatter = getattr(self._container, "excel_formatter", None) if self._container else None
                 if formatter:
                     try:
-                        formatter.apply_formatting(writer, "Pozisyon Özeti", df_summary)
-                        formatter.apply_formatting(writer, "İşlem Geçmişi", df_trades)
-                        formatter.apply_formatting(writer, "Sermaye Artırımları", df_corp)
+                        formatter.apply_formatting(writer, msg("stock_detail.pozisyon_ozeti"), df_summary)
+                        formatter.apply_formatting(writer, msg("stock_detail.islem_gecmisi"), df_trades)
+                        formatter.apply_formatting(writer, msg("stock_detail.sermaye_artirimlari"), df_corp)
                     except Exception as fe:
                         logger.debug("ExcelFormatter opsiyonel stil uygulanamadı: %s", fe)
 
-            text = f"{self._ticker} detay raporu başarıyla kaydedildi:\n{target_file.name}"
+            text = msg("stock_detail.detay_raporu_basariyla_kaydedildi", ticker=self._ticker, name=target_file.name)
             self._asyncExportResult.emit(True, text)
 
         except Exception as e:
             logger.exception("Excel hisse dökümü hatası: %s", e)
-            self._asyncExportResult.emit(False, f"Excel raporu oluşturulamadı: {e}")
+            self._asyncExportResult.emit(False, msg("stock_detail.excel_raporu_olusturulamadi", e=e))
 
     def _on_export_result(self, success: bool, message: str) -> None:
         self._set_loading(False)
