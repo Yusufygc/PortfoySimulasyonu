@@ -6,10 +6,11 @@ from typing import List, Optional
 
 from src.domain.models.market_indicator import IndicatorQuote, MarketIndicator
 from src.domain.ports.services.i_market_indicator_provider import IMarketIndicatorProvider
+from src.domain.units import TROY_OUNCE_GRAMS
 
 logger = logging.getLogger(__name__)
 
-TROY_OZ_TO_GRAM = 31.1035
+TROY_OZ_TO_GRAM = float(TROY_OUNCE_GRAMS)
 
 # (etiket, sembol, para birimi) — USD/TRY altın/gümüş TRY dönüşümü için önce okunur
 _SIMPLE = (

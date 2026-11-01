@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
+from src.application.services.assets.asset_ledger_service import AssetLedgerService
+from src.application.services.assets.asset_price_refresh_service import AssetPriceRefreshService
+from src.application.services.assets.fx_rate_service import FxRateService
 from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
 from src.application.services.analysis.portfolio_analytics_service import PortfolioAnalyticsService
 from src.application.services.analysis.shareholder_analysis_service import ShareholderAnalysisService
@@ -86,6 +89,9 @@ class ServiceSet:
     market_data_sync_service: object  # MarketDataSyncService (DuckDB + SQLite köprüsü)
     market_corporate_action_service: MarketCorporateActionService  # DuckDB ticker bazlı sermaye artırımı
     market_indicators_service: object  # MarketIndicatorsService | None (üst piyasa şeridi)
+    asset_ledger_service: AssetLedgerService  # BIST dışı varlık defteri (Portföyüm)
+    asset_price_refresh_service: AssetPriceRefreshService  # varlık son fiyat ve geçmiş yenileme
+    fx_rate_service: FxRateService  # kur okuma ve yenileme
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet) -> ServiceSet:
@@ -158,6 +164,20 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
             MarketIndicatorsService(market_clients.market_indicator_provider)
             if getattr(market_clients, "market_indicator_provider", None) is not None
             else None
+        ),
+        asset_ledger_service=AssetLedgerService(
+            asset_repo=repositories.asset_repo,
+            trade_repo=repositories.asset_trade_repo,
+            symbol_verifier=market_clients.asset_price_provider,
+        ),
+        asset_price_refresh_service=AssetPriceRefreshService(
+            asset_repo=repositories.asset_repo,
+            price_repo=repositories.asset_price_repo,
+            provider=market_clients.asset_price_provider,
+        ),
+        fx_rate_service=FxRateService(
+            provider=market_clients.asset_price_provider,
+            repo=repositories.fx_rate_repo,
         ),
         market_data_sync_service=MarketDataSyncService(
             trading_calendar=market_clients.trading_calendar,

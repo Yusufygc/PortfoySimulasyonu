@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from src.infrastructure.db.sqlalchemy.repositories.sa_asset_price_repository import SQLAlchemyAssetPriceRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_asset_repository import SQLAlchemyAssetRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_asset_trade_repository import SQLAlchemyAssetTradeRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_cash_movement_repository import SQLAlchemyCashMovementRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_corporate_action_candidate_repository import (
     SQLAlchemyCorporateActionCandidateRepository,
 )
 from src.infrastructure.db.sqlalchemy.repositories.sa_corporate_action_repository import SQLAlchemyCorporateActionRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_fx_rate_repository import SQLAlchemyFxRateRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_latest_price_repository import SQLAlchemyLatestPriceRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_model_portfolio_repository import SQLAlchemyModelPortfolioRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_planning_repository import SQLAlchemyPlanningRepository
@@ -43,6 +47,10 @@ class RepositorySet:
     trade_adjustment_repo: SQLAlchemyTradeAdjustmentRepository
     kap_shareholder_repo: SQLAlchemyKapShareholderRepository
     golden_cross_repo: SQLAlchemyGoldenCrossRepository
+    asset_repo: SQLAlchemyAssetRepository  # BIST dışı varlık defteri (Portföyüm)
+    asset_trade_repo: SQLAlchemyAssetTradeRepository
+    asset_price_repo: SQLAlchemyAssetPriceRepository
+    fx_rate_repo: SQLAlchemyFxRateRepository
 
 
 def build_repositories(conn_provider) -> RepositorySet:
@@ -65,4 +73,8 @@ def build_repositories(conn_provider) -> RepositorySet:
         trade_adjustment_repo=SQLAlchemyTradeAdjustmentRepository(conn_provider),
         kap_shareholder_repo=SQLAlchemyKapShareholderRepository(conn_provider),
         golden_cross_repo=SQLAlchemyGoldenCrossRepository(conn_provider),
+        asset_repo=SQLAlchemyAssetRepository(conn_provider),
+        asset_trade_repo=SQLAlchemyAssetTradeRepository(conn_provider),
+        asset_price_repo=SQLAlchemyAssetPriceRepository(conn_provider),
+        fx_rate_repo=SQLAlchemyFxRateRepository(conn_provider),
     )

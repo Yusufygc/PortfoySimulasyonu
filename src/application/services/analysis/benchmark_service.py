@@ -6,6 +6,7 @@ from decimal import Decimal
 from typing import Dict, List, Optional, Protocol, Sequence
 
 from src.domain.ports.services.i_market_data_client import IMarketDataClient
+from src.domain.units import TROY_OUNCE_GRAMS
 from datetime import datetime
 
 from .models import BenchmarkDefinition, BenchmarkSeries
@@ -35,7 +36,7 @@ class EvdsSeriesProvider(Protocol):
 
 class AnalysisBenchmarkService:
     DEFAULT_BENCHMARK_CODES = ["bist100", "gold", "silver", "usd", "euro", "deposit", "cpi"]
-    TROY_OUNCE_GRAMS = Decimal("31.1034768")
+    TROY_OUNCE_GRAMS = TROY_OUNCE_GRAMS
     MARKET_BENCHMARK_CANDIDATES: Dict[str, Sequence[str]] = {
         "bist100": ("XU100.IS", "^XU100"),
         "usd": ("TRY=X", "USDTRY=X"),

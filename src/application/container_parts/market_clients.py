@@ -10,6 +10,7 @@ from src.infrastructure.market_data.evds_client import EvdsClient
 from src.infrastructure.calendar.bist_trading_calendar_provider import BistTradingCalendarProvider
 from src.infrastructure.market_data.evds_tufe_provider import EvdsTufeProvider
 from src.infrastructure.market_data.isyatirim_provider import IsyatirimProvider
+from src.infrastructure.market_data.yfinance_asset_price_provider import YFinanceAssetPriceProvider
 from src.infrastructure.market_data.yfinance_client import YFinanceMarketDataClient
 from src.infrastructure.market_data.yfinance_indicator_provider import YFinanceIndicatorProvider
 from src.infrastructure.market_data.yfinance_optimization_market_data_provider import (
@@ -37,6 +38,7 @@ class MarketClientSet:
     evds_tufe_provider: EvdsTufeProvider
     yfinance_valuation_provider: YFinanceValuationProvider
     kap_shareholder_provider: KapShareholderProvider
+    asset_price_provider: YFinanceAssetPriceProvider  # BIST dışı varlık ve kur fiyatı + sembol doğrulama
     market_indicator_provider: Optional[YFinanceIndicatorProvider] = field(default=None)
 
 
@@ -56,5 +58,6 @@ def build_market_clients(conn_provider) -> MarketClientSet:
         evds_tufe_provider=EvdsTufeProvider(evds_client=evds_client),
         yfinance_valuation_provider=YFinanceValuationProvider(),
         kap_shareholder_provider=KapShareholderProvider(),
+        asset_price_provider=YFinanceAssetPriceProvider(),
         market_indicator_provider=YFinanceIndicatorProvider(),
     )

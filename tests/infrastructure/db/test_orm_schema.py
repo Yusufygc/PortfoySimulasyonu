@@ -77,3 +77,23 @@ def test_budget_pinned_items_declares_duplicate_guard():
     assert "name" in columns
     assert "default_amount" in columns
     assert "uq_budget_pinned_item_type_name" in constraint_names(ORMBudgetPinnedItem)
+
+
+def test_asset_ledger_tables_declare_unique_constraints_and_integer_keys():
+    from sqlalchemy import Integer
+
+    from src.infrastructure.db.sqlalchemy.orm_models import (
+        ORMAsset,
+        ORMAssetLatestPrice,
+        ORMAssetPrice,
+        ORMAssetTrade,
+        ORMFxRate,
+    )
+
+    assert "uq_assets_class_symbol" in constraint_names(ORMAsset)
+    assert "uq_asset_price" in constraint_names(ORMAssetPrice)
+    assert "uq_asset_latest_prices_asset" in constraint_names(ORMAssetLatestPrice)
+    assert "uq_fx_rate" in constraint_names(ORMFxRate)
+    for model in (ORMAsset, ORMAssetTrade, ORMAssetPrice, ORMAssetLatestPrice, ORMFxRate):
+        assert isinstance(model.__table__.columns["id"].type, Integer)
+    assert ORMAssetTrade.__table__.columns["quantity"].type.scale == 10

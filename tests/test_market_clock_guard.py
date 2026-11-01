@@ -15,6 +15,8 @@ MARKET_CLOCK_MODULES = [
     "src/application/services/analysis/stock_360_service.py",
     "src/application/services/analysis/technical/screener_service.py",
     "src/application/services/analysis/technical/technical_analysis_service.py",
+    "src/application/services/assets/asset_price_refresh_service.py",
+    "src/application/services/assets/fx_rate_service.py",
     "src/application/services/market/price_data_health_service.py",
     "src/application/services/market/stock_lookup_service.py",
     "src/application/services/market_data/market_universe_migration_service.py",

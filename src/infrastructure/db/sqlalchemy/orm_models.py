@@ -90,7 +90,7 @@ class ORMDailyPrice(Base):
     currency_code = Column(String(3), nullable=False, default="TRY", server_default="TRY")
     source = Column(String(50), nullable=False, default="yfinance", server_default="yfinance")
     created_at = Column(DateTime, nullable=False, server_default=func.now())
-    # OHLCV genişletmesi (bkz. TRANSFORMATION_PLAN.md Faz 2) — ATR/Stochastic/CCI/VWAP/OBV için.
+    # OHLCV genişletmesi —ATR/Stochastic/CCI/VWAP/OBV için.
     # Nullable: eski kayıtlarda ve close-only kaynaklarda boş kalabilir.
     open_price = Column(Numeric(18, 4), nullable=True)
     high_price = Column(Numeric(18, 4), nullable=True)
@@ -470,6 +470,95 @@ class ORMKapShareholderRow(Base):
     )
 
     snapshot = relationship("ORMKapShareholderSnapshot", back_populates="rows")
+
+
+class ORMAsset(Base):
+    """BIST dışı varlık (ABD hissesi, kripto, kıymetli maden). `Integer` anahtar: otomatik artar."""
+
+    __tablename__ = "assets"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(30), nullable=False)
+    name = Column(String(150), nullable=False)
+    asset_class = Column(String(20), nullable=False)
+    quote_currency = Column(String(3), nullable=False)
+    yf_symbol = Column(String(40), nullable=False)
+    unit = Column(String(10), nullable=False, default="UNIT", server_default="UNIT")
+    is_active = Column(Boolean, nullable=False, default=True, server_default="1")
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("asset_class", "symbol", name="uq_assets_class_symbol"),
+    )
+
+    trades = relationship("ORMAssetTrade", back_populates="asset", cascade="all, delete")
+
+
+class ORMAssetTrade(Base):
+    __tablename__ = "asset_trades"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
+    trade_date = Column(Date, nullable=False)
+    trade_time = Column(Time, nullable=True)
+    side = Column(Enum(TradeSideEnum), nullable=False)
+    quantity = Column(Numeric(28, 10), nullable=False)
+    price = Column(Numeric(28, 10), nullable=False)
+    fx_rate_to_try = Column(Numeric(18, 8), nullable=False, default=1, server_default="1")
+    note = Column(String(255))
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_asset_trades_asset_date", "asset_id", "trade_date"),
+    )
+
+    asset = relationship("ORMAsset", back_populates="trades")
+
+
+class ORMAssetPrice(Base):
+    __tablename__ = "asset_prices"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
+    price_date = Column(Date, nullable=False)
+    close_price = Column(Numeric(28, 10), nullable=False)
+    currency_code = Column(String(3), nullable=False)
+    source = Column(String(30), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("asset_id", "price_date", name="uq_asset_price"),
+    )
+
+
+class ORMAssetLatestPrice(Base):
+    __tablename__ = "asset_latest_prices"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
+    price = Column(Numeric(28, 10), nullable=False)
+    currency_code = Column(String(3), nullable=False)
+    as_of = Column(DateTime, nullable=False)
+    source = Column(String(30), nullable=False)
+    fetched_at = Column(DateTime, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("asset_id", name="uq_asset_latest_prices_asset"),
+    )
+
+
+class ORMFxRate(Base):
+    __tablename__ = "fx_rates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    base_currency = Column(String(3), nullable=False)
+    quote_currency = Column(String(3), nullable=False)
+    rate_date = Column(Date, nullable=False)
+    rate = Column(Numeric(18, 8), nullable=False)
+    source = Column(String(30), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("base_currency", "quote_currency", "rate_date", name="uq_fx_rate"),
+    )
 
 
 @event.listens_for(Base, "before_insert", propagate=True)

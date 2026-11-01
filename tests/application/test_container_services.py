@@ -21,6 +21,10 @@ def _fake_repositories():
         golden_cross_repo=object(),
         market_history_repo=object(),
         market_action_repo=object(),
+        asset_repo=object(),
+        asset_trade_repo=object(),
+        asset_price_repo=object(),
+        fx_rate_repo=object(),
     )
 
 
@@ -36,6 +40,7 @@ def _fake_market_clients():
         evds_tufe_provider=object(),
         yfinance_valuation_provider=object(),
         kap_shareholder_provider=object(),
+        asset_price_provider=object(),
     )
 
 
