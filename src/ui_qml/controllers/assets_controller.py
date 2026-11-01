@@ -57,6 +57,50 @@ def parse_time_text(text: str) -> Optional[time]:
     return None
 
 
+def _parse_amounts(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[tuple]]:
+    side = str(form.get("side", "")).upper()
+    if side not in ("BUY", "SELL"):
+        return "İşlem yönü geçersiz.", None
+    qty, unit_price = parse_decimal_text(form.get("quantity", "")), parse_decimal_text(form.get("price", ""))
+    if qty is None or qty <= 0:
+        return "Miktar sıfırdan büyük bir sayı olmalı.", None
+    if unit_price is None or unit_price <= 0:
+        return "Fiyat sıfırdan büyük bir sayı olmalı.", None
+    return None, (TradeSide(side), qty, unit_price)
+
+
+def _parse_moment(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[tuple]]:
+    trade_date, trade_time = parse_date_text(form.get("date", "")), parse_time_text(form.get("time", ""))
+    if trade_date is None:
+        return "Tarih GG.AA.YYYY biçiminde olmalı.", None
+    if trade_time is None:
+        return "Saat SS:DD biçiminde olmalı.", None
+    return None, (trade_date, trade_time)
+
+
+def _parse_fx(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[Decimal]]:
+    text = str(form.get("fx", "") or "").strip()
+    if not text:
+        return None, None
+    rate = parse_decimal_text(text)
+    if rate is None or rate <= 0:
+        return "Kur sıfırdan büyük bir sayı olmalı.", None
+    return None, rate
+
+
+def parse_trade_form(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[tuple]]:
+    """İşlem penceresi alanlarını doğrular: `(hata, (yön, miktar, fiyat, tarih, saat, kur))`."""
+    parts: list = []
+    for parse in (_parse_amounts, _parse_moment, _parse_fx):
+        error, value = parse(form)
+        if error:
+            return error, None
+        parts.append(value)
+    side, qty, unit_price = parts[0]
+    trade_date, trade_time = parts[1]
+    return None, (side, qty, unit_price, trade_date, trade_time, parts[2])
+
+
 class AssetsController(QObject):
     """QML context property: assetsController"""
 
@@ -221,19 +265,20 @@ class AssetsController(QObject):
             "fxRate": f"{rate:.4f}" if rate is not None and not asset.is_try_quoted else "",
         }
 
-    @Slot(int, str, str, str, str, str, str)
-    def recordTrade(self, asset_id: int, side: str, quantity: str, price: str, date_text: str, time_text: str, fx_text: str) -> None:
+    @Slot(int, "QVariantMap")
+    def recordTrade(self, asset_id: int, form: Dict[str, Any]) -> None:
+        """`form`: side (BUY/SELL), quantity, price, date (GG.AA.YYYY), time (SS:DD), fx (boş olabilir) metinleri."""
         if self._ledger is None:
             self.tradeRecorded.emit(False, "Varlık servisi kullanılamıyor.")
             return
-        error, parsed = self._parse_trade_inputs(side, quantity, price, date_text, time_text, fx_text)
+        error, parsed = parse_trade_form(form)
         if error:
             self.tradeRecorded.emit(False, error)
             return
         trade_side, qty, unit_price, trade_date, trade_time, fx_rate = parsed
         try:
             trade = self._ledger.record_trade(
-                asset_id, trade_side, qty, unit_price, trade_date, trade_time, fx_rate_to_try=fx_rate
+                asset_id, trade_side, qty, unit_price, trade_date=trade_date, trade_time=trade_time, fx_rate_to_try=fx_rate
             )
         except ValueError as exc:
             self.tradeRecorded.emit(False, str(exc))
@@ -242,25 +287,6 @@ class AssetsController(QObject):
         label = "ALIM" if trade.side == TradeSide.BUY else "SATIM"
         self.tradeRecorded.emit(True, f"{asset.symbol} {label} işlemi kaydedildi.")
         self.dataChanged.emit()
-
-    @staticmethod
-    def _parse_trade_inputs(side, quantity, price, date_text, time_text, fx_text) -> Tuple[Optional[str], Optional[tuple]]:
-        if side.upper() not in ("BUY", "SELL"):
-            return "İşlem yönü geçersiz.", None
-        qty, unit_price = parse_decimal_text(quantity), parse_decimal_text(price)
-        if qty is None or qty <= 0:
-            return "Miktar sıfırdan büyük bir sayı olmalı.", None
-        if unit_price is None or unit_price <= 0:
-            return "Fiyat sıfırdan büyük bir sayı olmalı.", None
-        trade_date, trade_time = parse_date_text(date_text), parse_time_text(time_text)
-        if trade_date is None:
-            return "Tarih GG.AA.YYYY biçiminde olmalı.", None
-        if trade_time is None:
-            return "Saat SS:DD biçiminde olmalı.", None
-        fx_rate = parse_decimal_text(fx_text) if (fx_text or "").strip() else None
-        if (fx_text or "").strip() and (fx_rate is None or fx_rate <= 0):
-            return "Kur sıfırdan büyük bir sayı olmalı.", None
-        return None, (TradeSide(side.upper()), qty, unit_price, trade_date, trade_time, fx_rate)
 
     @Slot(int)
     def removeAsset(self, asset_id: int) -> None:

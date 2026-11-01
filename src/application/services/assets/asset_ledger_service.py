@@ -7,6 +7,7 @@ from typing import List, Optional
 from src.application.services.assets.asset_catalog import ASSET_CATALOG, CatalogEntry, find_catalog_entry
 from src.domain.asset_symbols import resolve_yf_symbol
 from src.domain.exceptions import MarketDataUnavailableError
+from src.domain.market_clock import market_today
 from src.domain.models.asset import Asset, AssetClass, AssetUnit
 from src.domain.models.asset_position import AssetLedger
 from src.domain.models.asset_trade import AssetTrade
@@ -54,15 +55,11 @@ class AssetLedgerService:
     def get_asset(self, asset_id: int) -> Optional[Asset]:
         return self._asset_repo.get_asset(asset_id)
 
-    def add_asset(
-        self,
-        symbol: str,
-        name: str,
-        asset_class: AssetClass,
-        quote_currency: str,
-        yf_symbol: Optional[str] = None,
-        unit: AssetUnit = AssetUnit.UNIT,
-    ) -> Asset:
+    def add_asset(self, symbol: str, name: str, asset_class: AssetClass, quote_currency: str, **options) -> Asset:
+        """`options`: `yf_symbol` (varsayılan sınıfa göre çözülür) ve `unit` (varsayılan `AssetUnit.UNIT`)."""
+        yf_symbol, unit = options.pop("yf_symbol", None), options.pop("unit", AssetUnit.UNIT)
+        if options:
+            raise TypeError(f"Bilinmeyen varlık seçeneği: {', '.join(sorted(options))}")
         try:
             asset = Asset(
                 id=None,
@@ -116,17 +113,13 @@ class AssetLedgerService:
     def get_ledger(self) -> AssetLedger:
         return AssetLedger.from_trades(self._trade_repo.list_trades())
 
-    def record_trade(
-        self,
-        asset_id: int,
-        side: TradeSide,
-        quantity,
-        price,
-        trade_date: date,
-        trade_time: Optional[time] = None,
-        fx_rate_to_try=None,
-        note: Optional[str] = None,
-    ) -> AssetTrade:
+    def record_trade(self, asset_id: int, side: TradeSide, quantity, price, **options) -> AssetTrade:
+        """`options`: `trade_date` (varsayılan bugün), `trade_time` (`time`), `fx_rate_to_try` (boşsa kur 1) ve `note`."""
+        trade_date: date = options.pop("trade_date", None) or market_today()
+        trade_time: Optional[time] = options.pop("trade_time", None)
+        fx_rate_to_try, note = options.pop("fx_rate_to_try", None), options.pop("note", None)
+        if options:
+            raise TypeError(f"Bilinmeyen işlem seçeneği: {', '.join(sorted(options))}")
         asset = self._asset_repo.get_asset(asset_id)
         if asset is None:
             raise ValueError("Varlık bulunamadı.")

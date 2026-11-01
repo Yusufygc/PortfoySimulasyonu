@@ -23,7 +23,8 @@ def qapp():
     return QCoreApplication.instance() or QCoreApplication([])
 
 
-def holding(symbol, cls, value, cost, currency="USD", daily=None, priced=True):
+def holding(symbol, cls, value, cost, **options):
+    currency, daily, priced = options.get("currency", "USD"), options.get("daily"), options.get("priced", True)
     return HoldingValuation(
         key=f"{cls.value}:{symbol}", symbol=symbol, name=symbol, allocation_class=cls, quantity=D("2"),
         native_currency=currency, cost_native=D(cost), cost_try=D(cost), value_try=D(value),

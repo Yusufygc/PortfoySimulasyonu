@@ -46,36 +46,29 @@ class Asset:
     is_active: bool = True
 
     def __post_init__(self) -> None:
-        if not isinstance(self.asset_class, AssetClass):
-            try:
-                object.__setattr__(self, "asset_class", AssetClass(self.asset_class))
-            except ValueError as exc:
-                raise ValueError(f"Unknown asset class: {self.asset_class}") from exc
-        if not isinstance(self.unit, AssetUnit):
-            try:
-                object.__setattr__(self, "unit", AssetUnit(self.unit))
-            except ValueError as exc:
-                raise ValueError(f"Unknown asset unit: {self.unit}") from exc
+        self._coerce_enum("asset_class", AssetClass, "asset class")
+        self._coerce_enum("unit", AssetUnit, "asset unit")
+        self._set_required("symbol", "Asset symbol is required", str.upper)
+        self._set_required("name", "Asset name is required")
+        self._set_required("yf_symbol", "Asset price symbol is required")
+        self._set_required("quote_currency", "Asset quote currency must be a 3 letter code", str.upper, length=3)
 
-        symbol = (self.symbol or "").strip().upper()
-        if not symbol:
-            raise ValueError("Asset symbol is required")
-        object.__setattr__(self, "symbol", symbol)
+    def _coerce_enum(self, field_name: str, enum_type, label: str) -> None:
+        value = getattr(self, field_name)
+        if isinstance(value, enum_type):
+            return
+        try:
+            object.__setattr__(self, field_name, enum_type(value))
+        except ValueError as exc:
+            raise ValueError(f"Unknown {label}: {value}") from exc
 
-        name = (self.name or "").strip()
-        if not name:
-            raise ValueError("Asset name is required")
-        object.__setattr__(self, "name", name)
-
-        currency = (self.quote_currency or "").strip().upper()
-        if len(currency) != 3:
-            raise ValueError("Asset quote currency must be a 3 letter code")
-        object.__setattr__(self, "quote_currency", currency)
-
-        yf_symbol = (self.yf_symbol or "").strip()
-        if not yf_symbol:
-            raise ValueError("Asset price symbol is required")
-        object.__setattr__(self, "yf_symbol", yf_symbol)
+    def _set_required(self, field_name: str, message: str, transform=None, length: Optional[int] = None) -> None:
+        value = (getattr(self, field_name) or "").strip()
+        if transform is not None:
+            value = transform(value)
+        if not value or (length is not None and len(value) != length):
+            raise ValueError(message)
+        object.__setattr__(self, field_name, value)
 
     @property
     def is_try_quoted(self) -> bool:

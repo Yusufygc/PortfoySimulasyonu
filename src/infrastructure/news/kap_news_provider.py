@@ -61,14 +61,17 @@ def _is_mass_notice(payload: Dict[str, Any], tracked: set) -> bool:
     return len(related) > MAX_RELATED_STOCKS or not (set(related) & tracked)
 
 
+def _related_symbols(payload: Dict[str, Any], tracked: set) -> tuple:
+    codes = _split_codes(payload.get("stockCodes")) or _split_codes(payload.get("relatedStocks"))
+    return tuple(code for code in codes if code in tracked) or tuple(codes[:MAX_RELATED_STOCKS])
+
+
 def _to_news_item(payload: Dict[str, Any], tracked: set) -> Optional[NewsItem]:
     published = _parse_publish_date(str(payload.get("publishDate", "")))
     index = payload.get("disclosureIndex")
     title = str(payload.get("subject") or payload.get("kapTitle") or "").strip()
     if published is None or index is None or not title:
         return None
-    codes = _split_codes(payload.get("stockCodes")) or _split_codes(payload.get("relatedStocks"))
-    related = tuple(code for code in codes if code in tracked) or tuple(codes[:MAX_RELATED_STOCKS])
     return NewsItem(
         title=title,
         url=KAP_DISCLOSURE_URL.format(index=index),
@@ -76,7 +79,7 @@ def _to_news_item(payload: Dict[str, Any], tracked: set) -> Optional[NewsItem]:
         source_name="KAP",
         published_at=published,
         summary=str(payload.get("summary") or "").strip(),
-        related_symbols=related,
+        related_symbols=_related_symbols(payload, tracked),
         language="tr",
         badge=str(payload.get("disclosureClass") or ""),
     )
@@ -123,10 +126,7 @@ class KapDisclosureNewsProvider(INewsProvider):
     def scope(self) -> NewsScope:
         return NewsScope.COMPANY
 
-    def fetch(self, targets: Sequence[NewsTarget]) -> List[NewsItem]:
-        tickers = [t.symbol.upper() for t in targets if t.kind is TargetKind.BIST][:MAX_COMPANIES]
-        if not tickers:
-            return []
+    def _resolve_oids(self, tickers: Sequence[str]) -> List[str]:
         oids: List[str] = []
         for ticker in tickers:
             try:
@@ -135,7 +135,9 @@ class KapDisclosureNewsProvider(INewsProvider):
                 logger.warning("KAP kimliği çözülemedi (%s): %s", ticker, exc)
         if not oids:
             raise NewsProviderUnavailable("KAP: şirket kimlikleri çözülemedi")
+        return oids
 
+    def _request(self, oids: Sequence[str]) -> List[Dict[str, Any]]:
         today = market_today()
         body = _request_body(oids, today - timedelta(days=LOOKBACK_DAYS), today)
         headers = {"Accept": "application/json", "Referer": _REFERER, "Origin": "https://www.kap.org.tr"}
@@ -145,14 +147,18 @@ class KapDisclosureNewsProvider(INewsProvider):
             raise NewsProviderUnavailable(f"KAP: yanıt ayrıştırılamadı ({exc})") from exc
         if not isinstance(payloads, list):
             raise NewsProviderUnavailable("KAP: beklenen bildirim listesi gelmedi")
+        return [p for p in payloads if isinstance(p, dict)]
 
+    def _is_wanted(self, payload: Dict[str, Any], tracked: set) -> bool:
+        return not _is_noise_sub_document(payload) and (self._include_mass or not _is_mass_notice(payload, tracked))
+
+    def fetch(self, targets: Sequence[NewsTarget]) -> List[NewsItem]:
+        tickers = [t.symbol.upper() for t in targets if t.kind is TargetKind.BIST][:MAX_COMPANIES]
+        if not tickers:
+            return []
+        payloads = self._request(self._resolve_oids(tickers))
         tracked = set(tickers)
-        wanted = [
-            p for p in payloads
-            if isinstance(p, dict)
-            and not _is_noise_sub_document(p)
-            and (self._include_mass or not _is_mass_notice(p, tracked))
-        ]
-        items = [item for item in (_to_news_item(p, tracked) for p in _collapse_financial_reports(wanted)) if item]
+        wanted = _collapse_financial_reports([p for p in payloads if self._is_wanted(p, tracked)])
+        items = [item for item in (_to_news_item(p, tracked) for p in wanted) if item]
         items.sort(key=lambda item: item.published_at, reverse=True)
         return items[:MAX_ITEMS]

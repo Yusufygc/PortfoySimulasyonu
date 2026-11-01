@@ -53,15 +53,17 @@ class FakeLedger:
             raise ValueError(self.add_error)
         return Asset(9, key, "Katalog", AssetClass.CRYPTO, "USD", f"{key}-USD")
 
-    def add_asset(self, symbol, name, asset_class, currency, unit=AssetUnit.UNIT, yf_symbol=None):
+    def add_asset(self, symbol, name, asset_class, currency, **options):
         if self.add_error:
             raise ValueError(self.add_error)
         return Asset(10, symbol.upper(), name, asset_class, currency, symbol.upper())
 
-    def record_trade(self, asset_id, side, quantity, price, trade_date, trade_time=None, fx_rate_to_try=None, note=None):
+    def record_trade(self, asset_id, side, quantity, price, **options):
         if self.trade_error:
             raise ValueError(self.trade_error)
-        self.trades.append((asset_id, side, quantity, price, trade_date, trade_time, fx_rate_to_try))
+        self.trades.append(
+            (asset_id, side, quantity, price, options["trade_date"], options.get("trade_time"), options.get("fx_rate_to_try"))
+        )
         return SimpleNamespace(side=side)
 
     def remove_asset(self, asset_id):
@@ -244,12 +246,17 @@ class TestRefreshPrices:
         assert not parts[3]._timer.isActive()
 
 
+def form(*values):
+    """İşlem penceresi alanları sırasıyla: yön, miktar, fiyat, tarih, saat, kur."""
+    return dict(zip(("side", "quantity", "price", "date", "time", "fx"), values))
+
+
 class TestRecordTrade:
     def test_records_trade_with_parsed_values(self, parts):
         ledger, _, _, controller = parts
         log = capture(controller)
 
-        controller.recordTrade(1, "buy", "0,5", "65.000", "05.01.2026", "10:30", "40,25")
+        controller.recordTrade(1, form("buy", "0,5", "65.000", "05.01.2026", "10:30", "40,25"))
 
         assert ledger.trades == [(1, TradeSide.BUY, D("0.5"), D("65000"), date(2026, 1, 5), time(10, 30), D("40.25"))]
         assert log["trade"] == [(True, "BTC ALIM işlemi kaydedildi.")] and log["data"] == 1
@@ -258,7 +265,7 @@ class TestRecordTrade:
         ledger, _, _, controller = parts
         log = capture(controller)
 
-        controller.recordTrade(2, "SELL", "10", "2500", "05.01.2026", "10:30", "")
+        controller.recordTrade(2, form("SELL", "10", "2500", "05.01.2026", "10:30", ""))
 
         assert ledger.trades[0][6] is None
         assert log["trade"] == [(True, "GAU SATIM işlemi kaydedildi.")]
@@ -279,7 +286,7 @@ class TestRecordTrade:
         ledger, _, _, controller = parts
         log = capture(controller)
 
-        controller.recordTrade(*args)
+        controller.recordTrade(args[0], form(*args[1:]))
 
         assert ledger.trades == [] and log["data"] == 0
         assert log["trade"][0][0] is False and message in log["trade"][0][1]
@@ -289,7 +296,7 @@ class TestRecordTrade:
         ledger.trade_error = "BTC: işlem sonrası elde yeterli miktar kalmıyor."
         log = capture(controller)
 
-        controller.recordTrade(1, "SELL", "5", "100", "05.01.2026", "10:30", "40")
+        controller.recordTrade(1, form("SELL", "5", "100", "05.01.2026", "10:30", "40"))
 
         assert log["trade"] == [(False, "BTC: işlem sonrası elde yeterli miktar kalmıyor.")] and log["data"] == 0
 

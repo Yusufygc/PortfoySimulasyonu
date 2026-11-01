@@ -333,9 +333,11 @@ Rectangle {
                         text: root.isBuy ? Strings.assetBuy : Strings.assetSell
                         variant: root.isBuy ? "primary" : "danger"
                         enabled: root.currentAssetId > 0
-                        onClicked: assetsController.recordTrade(
-                            root.currentAssetId, root.side, qtyInput.text, priceInput.text,
-                            dateInput.text.trim(), timeInput.text.trim(), root.isTry ? "" : fxInput.text)
+                        onClicked: assetsController.recordTrade(root.currentAssetId, {
+                            "side": root.side, "quantity": qtyInput.text, "price": priceInput.text,
+                            "date": dateInput.text.trim(), "time": timeInput.text.trim(),
+                            "fx": root.isTry ? "" : fxInput.text
+                        })
                     }
                 }
             }

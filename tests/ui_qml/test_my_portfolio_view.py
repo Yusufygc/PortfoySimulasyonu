@@ -102,7 +102,7 @@ def seed_btc(container):
     """0,5 BTC: 60.000 USD'den, kur 30 ile alındı; güncel fiyat 70.000 USD, güncel kur 40."""
     asset = container.asset_repo.add_asset(Asset(None, "BTC", "Bitcoin", AssetClass.CRYPTO, "USD", "BTC-USD"))
     container.asset_ledger_service.record_trade(
-        asset.id, TradeSide.BUY, "0.5", "60000", date(2026, 1, 2), fx_rate_to_try="30")
+        asset.id, TradeSide.BUY, "0.5", "60000", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
     now = datetime(2026, 1, 5, 12, 0)
     container.asset_price_repo.upsert_latest_prices([AssetLatestPrice(None, asset.id, D("70000"), "USD", now, "yfinance", now)])
     container.fx_rate_repo.upsert_rates([FxRate(None, "USD", "TRY", date(2026, 1, 5), D("40"), "yfinance")])
@@ -172,7 +172,7 @@ class TestMyPortfolioPage:
         results = []
         assets.tradeRecorded.connect(lambda ok, msg: results.append((ok, msg)))
 
-        assets.recordTrade(asset.id, "SELL", "0,25", "72000", "06.01.2026", "10:00", "41")
+        assets.recordTrade(asset.id, {"side": "SELL", "quantity": "0,25", "price": "72000", "date": "06.01.2026", "time": "10:00", "fx": "41"})
         pump()
 
         assert results == [(True, "BTC SATIM işlemi kaydedildi.")]
@@ -188,7 +188,7 @@ class TestMyPortfolioPage:
         results = []
         assets.tradeRecorded.connect(lambda ok, msg: results.append((ok, msg)))
 
-        assets.recordTrade(asset.id, "SELL", "2", "72000", "06.01.2026", "10:00", "41")
+        assets.recordTrade(asset.id, {"side": "SELL", "quantity": "2", "price": "72000", "date": "06.01.2026", "time": "10:00", "fx": "41"})
 
         assert results[0][0] is False and "yeterli miktar" in results[0][1]
         assert page.totalValue == "₺1,400,000.00"

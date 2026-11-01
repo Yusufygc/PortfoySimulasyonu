@@ -102,7 +102,8 @@ def bist_trade(stock_id, qty, price, day=date(2026, 1, 2)):
     return Trade(None, stock_id, day, None, TradeSide.BUY, qty, D(price))
 
 
-def asset_trade(asset_id, qty, price, fx, day=date(2026, 1, 2), side=TradeSide.BUY):
+def asset_trade(asset_id, qty, price, fx, **options):
+    day, side = options.get("day", date(2026, 1, 2)), options.get("side", TradeSide.BUY)
     return AssetTrade(None, asset_id, day, None, side, D(qty), D(price), D(fx))
 
 
@@ -119,7 +120,12 @@ def daily(asset_id, day, close):
     return AssetPrice(None, asset_id, day, D(close), "USD", "yfinance")
 
 
-def build(*, bist_trades=(), cash="0", bist_prices=None, bist_changes=None, assets=(), asset_trades=(), fx=None, price_repo=None):
+def build(**options):
+    """Seçenekler: bist_trades, cash, bist_prices, bist_changes, assets, asset_trades, fx, price_repo."""
+    bist_trades, cash = options.get("bist_trades", ()), options.get("cash", "0")
+    bist_prices, bist_changes = options.get("bist_prices"), options.get("bist_changes")
+    assets, asset_trades = options.get("assets", ()), options.get("asset_trades", ())
+    fx, price_repo = options.get("fx"), options.get("price_repo")
     stocks = [Stock(1, "THYAO.IS", "Türk Hava Yolları"), Stock(2, "GARAN", "Garanti")]
     bist = BistHoldingsReader(
         FakePortfolioService(list(bist_trades), cash), FakeStockLookup(stocks), FakeResolver(bist_prices or {}, bist_changes)

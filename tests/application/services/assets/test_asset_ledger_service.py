@@ -92,7 +92,7 @@ def btc(service):
 
 @pytest.fixture
 def gold_try(service):
-    return service.add_asset("GAU", "Gram altın", AssetClass.PRECIOUS_METAL, "TRY", "GRAM-ALTIN", AssetUnit.GRAM)
+    return service.add_asset("GAU", "Gram altın", AssetClass.PRECIOUS_METAL, "TRY", yf_symbol="GRAM-ALTIN", unit=AssetUnit.GRAM)
 
 
 class TestCatalog:
@@ -122,7 +122,7 @@ class TestAddAsset:
             service.add_catalog_asset("BTC")
 
     def test_readding_inactive_asset_reactivates_it(self, service, btc):
-        service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
         service.remove_asset(btc.id)
         assert service.list_assets() == []
 
@@ -178,7 +178,7 @@ class TestRemoveAsset:
         assert service.list_assets(active_only=False) == []
 
     def test_asset_with_trades_is_only_deactivated(self, service, btc):
-        service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
 
         service.remove_asset(btc.id)
 
@@ -193,70 +193,70 @@ class TestRemoveAsset:
 
 class TestRecordTrade:
     def test_records_buy_and_builds_ledger(self, service, btc):
-        service.record_trade(btc.id, TradeSide.BUY, "0.5", "60000", date(2026, 1, 1), fx_rate_to_try="34")
-        service.record_trade(btc.id, TradeSide.SELL, "0.2", "70000", date(2026, 1, 5), fx_rate_to_try="35")
+        service.record_trade(btc.id, TradeSide.BUY, "0.5", "60000", trade_date=date(2026, 1, 1), fx_rate_to_try="34")
+        service.record_trade(btc.id, TradeSide.SELL, "0.2", "70000", trade_date=date(2026, 1, 5), fx_rate_to_try="35")
 
         position = service.get_ledger().get_position(btc.id)
         assert position.total_quantity == D("0.3")
         assert position.realized_pl == D("0.2") * D("70000") - D("0.2") * D("60000")
 
     def test_try_quoted_asset_ignores_fx_rate(self, service, gold_try):
-        trade = service.record_trade(gold_try.id, TradeSide.BUY, "10", "2500", date(2026, 1, 1))
+        trade = service.record_trade(gold_try.id, TradeSide.BUY, "10", "2500", trade_date=date(2026, 1, 1))
 
         assert trade.fx_rate_to_try == D("1")
 
     def test_foreign_asset_requires_fx_rate(self, service, btc):
         with pytest.raises(ValueError, match="kuru gerekli"):
-            service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 1, 1))
+            service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1))
 
     def test_accepts_decimal_comma_strings(self, service, btc):
-        trade = service.record_trade(btc.id, TradeSide.BUY, "0,25", "100,5", date(2026, 1, 1), fx_rate_to_try="34,2")
+        trade = service.record_trade(btc.id, TradeSide.BUY, "0,25", "100,5", trade_date=date(2026, 1, 1), fx_rate_to_try="34,2")
 
         assert (trade.quantity, trade.price, trade.fx_rate_to_try) == (D("0.25"), D("100.5"), D("34.2"))
 
     @pytest.mark.parametrize("quantity,price,message", [("0", "1", "Miktar"), ("1", "0", "Fiyat"), ("abc", "1", "geçerli bir sayı")])
     def test_rejects_invalid_numbers(self, service, btc, quantity, price, message):
         with pytest.raises(ValueError, match=message):
-            service.record_trade(btc.id, TradeSide.BUY, quantity, price, date(2026, 1, 1), fx_rate_to_try="30")
+            service.record_trade(btc.id, TradeSide.BUY, quantity, price, trade_date=date(2026, 1, 1), fx_rate_to_try="30")
 
     def test_rejects_float_input(self, service, btc):
         with pytest.raises(ValueError, match="float"):
-            service.record_trade(btc.id, TradeSide.BUY, 0.5, "1", date(2026, 1, 1), fx_rate_to_try="30")
+            service.record_trade(btc.id, TradeSide.BUY, 0.5, "1", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
 
     def test_cannot_sell_more_than_held(self, service, btc):
-        service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
 
         with pytest.raises(ValueError, match="yeterli miktar"):
-            service.record_trade(btc.id, TradeSide.SELL, "1.5", "100", date(2026, 1, 2), fx_rate_to_try="30")
+            service.record_trade(btc.id, TradeSide.SELL, "1.5", "100", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
         assert len(service.get_trades(btc.id)) == 1
 
     def test_backdated_sell_before_purchase_is_rejected(self, service, btc):
-        service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 2, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 2, 1), fx_rate_to_try="30")
 
         with pytest.raises(ValueError, match="yeterli miktar"):
-            service.record_trade(btc.id, TradeSide.SELL, "1", "100", date(2026, 1, 1), fx_rate_to_try="30")
+            service.record_trade(btc.id, TradeSide.SELL, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
 
     def test_inactive_or_missing_asset_is_rejected(self, service, btc):
-        service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
         service.remove_asset(btc.id)
 
         with pytest.raises(ValueError, match="pasif"):
-            service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 1, 2), fx_rate_to_try="30")
+            service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
         with pytest.raises(ValueError, match="Varlık bulunamadı"):
-            service.record_trade(99, TradeSide.BUY, "1", "100", date(2026, 1, 2), fx_rate_to_try="30")
+            service.record_trade(99, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
 
 
 class TestDeleteTrade:
     def test_delete_removes_trade(self, service, btc):
-        trade = service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 1, 1), fx_rate_to_try="30")
+        trade = service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
 
         service.delete_trade(trade.id)
 
         assert service.get_trades(btc.id) == []
 
     def test_cannot_delete_buy_that_backs_a_later_sell(self, service, btc):
-        buy = service.record_trade(btc.id, TradeSide.BUY, "1", "100", date(2026, 1, 1), fx_rate_to_try="30")
-        service.record_trade(btc.id, TradeSide.SELL, "1", "120", date(2026, 1, 2), fx_rate_to_try="30")
+        buy = service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.SELL, "1", "120", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
 
         with pytest.raises(ValueError, match="yeterli miktar"):
             service.delete_trade(buy.id)

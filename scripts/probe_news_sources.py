@@ -67,6 +67,18 @@ SYMBOL_FEEDS = {
 KAP_URL = "https://www.kap.org.tr/tr/api/disclosure/members/byCriteria"
 
 
+def _first_entry_fields(entries):
+    """İlk öğenin (başlık, tarih) metni; yoksa boş."""
+    title = date_text = ""
+    for child in (entries[0] if entries else []):
+        tag = etree.QName(child).localname
+        if tag == "title" and not title:
+            title = (child.text or "").strip()
+        if tag in ("pubDate", "published", "updated", "date") and not date_text:
+            date_text = (child.text or "").strip()
+    return title, date_text
+
+
 def probe_feed(item):
     name, url = item
     try:
@@ -78,14 +90,7 @@ def probe_feed(item):
         return name, info
     root = etree.fromstring(response.content, parser=etree.XMLParser(recover=True, resolve_entities=False))
     entries = root.findall(".//item") or root.findall(".//{http://www.w3.org/2005/Atom}entry")
-    title = date_text = ""
-    if entries:
-        for child in entries[0]:
-            tag = etree.QName(child).localname
-            if tag == "title" and not title:
-                title = (child.text or "").strip()
-            if tag in ("pubDate", "published", "updated", "date") and not date_text:
-                date_text = (child.text or "").strip()
+    title, date_text = _first_entry_fields(entries)
     return name, f"{info} | {len(entries)} öğe | {date_text[:31]} | {title[:60]}"
 
 

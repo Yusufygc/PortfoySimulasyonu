@@ -24,10 +24,13 @@ def make_asset(**overrides) -> Asset:
     return Asset(**values)
 
 
-def make_trade(side=TradeSide.BUY, quantity="1", price="100", fx="1", day=date(2026, 1, 1), asset_id=1, trade_time=None, trade_id=None):
+def make_trade(side=TradeSide.BUY, quantity="1", price="100", **options):
+    """Seçenekler: fx, day, asset_id, trade_time, trade_id."""
     return AssetTrade(
-        id=trade_id, asset_id=asset_id, trade_date=day, trade_time=trade_time, side=side,
-        quantity=D(quantity), price=D(price), fx_rate_to_try=D(fx),
+        id=options.get("trade_id"), asset_id=options.get("asset_id", 1), trade_date=options.get("day", date(2026, 1, 1)),
+        trade_time=options.get("trade_time"), side=side,
+        quantity=D(quantity), price=D(price),
+        fx_rate_to_try=D(options.get("fx", "1")),
     )
 
 

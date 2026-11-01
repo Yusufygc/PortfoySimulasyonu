@@ -27,7 +27,10 @@ from src.ui_qml.controllers.portfolio_presenter import (
 D = Decimal
 
 
-def make_holding(symbol, cls, value, cost, quantity="2", currency="USD", daily=None, priced=True, ref_id=7, weight="10"):
+def make_holding(symbol, cls, value, cost, **options):
+    """Seçenekler: quantity, currency, daily, priced, ref_id, weight."""
+    quantity, currency, daily = options.get("quantity", "2"), options.get("currency", "USD"), options.get("daily")
+    priced, ref_id, weight = options.get("priced", True), options.get("ref_id", 7), options.get("weight", "10")
     return HoldingValuation(
         key=f"{cls.value}:{symbol}", symbol=symbol, name=f"{symbol} adı", allocation_class=cls, quantity=D(quantity),
         native_currency=currency, cost_native=D(cost) / 40, cost_try=D(cost), value_try=D(value),

@@ -6,10 +6,10 @@ from typing import List
 from src.domain.models.news_item import NewsScope, NewsSourceConfig, NewsSourceKind
 
 
-def _rss(source_id: str, name: str, url: str, *, language: str = "tr", enabled: bool = True, description: str = ""):
+def _rss(source_id: str, name: str, url: str, **options):
+    """`options`: `language` (varsayılan tr), `enabled` (varsayılan True), `description`."""
     return NewsSourceConfig(
-        source_id=f"rss:{source_id}", kind=NewsSourceKind.RSS, name=name, enabled=enabled, language=language,
-        scope=NewsScope.MARKET, url=url, description=description,
+        source_id=f"rss:{source_id}", kind=NewsSourceKind.RSS, name=name, url=url, scope=NewsScope.MARKET, **options
     )
 
 

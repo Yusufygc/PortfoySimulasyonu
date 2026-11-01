@@ -57,15 +57,17 @@ class NewsService:
         provider_factory: ProviderFactory,
         cache: INewsCache,
         default_sources: Callable[[], List[NewsSourceConfig]],
-        ttl: timedelta = DEFAULT_TTL,
-        clock: Callable[[], datetime] = _utc_now,
+        **options,
     ) -> None:
+        """`options`: `ttl` (önbellek süresi, varsayılan 10 dk) ve `clock` (test için enjekte edilen saat)."""
         self._repo = source_repo
         self._factory = provider_factory
         self._cache = cache
         self._defaults = default_sources
-        self._ttl = ttl
-        self._clock = clock
+        self._ttl: timedelta = options.pop("ttl", DEFAULT_TTL)
+        self._clock: Callable[[], datetime] = options.pop("clock", _utc_now)
+        if options:
+            raise TypeError(f"Bilinmeyen seçenek: {', '.join(sorted(options))}")
         self._seeded = False
         self._last_status: Dict[str, NewsSourceStatus] = {}
 
