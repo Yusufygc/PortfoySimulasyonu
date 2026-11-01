@@ -204,3 +204,21 @@ class TestMaxDrawdownHelperUsedByCalmar:
             date(2024, 1, 3): Decimal("200"),
         }
         assert compute_max_drawdown_pct(series) == pytest.approx(-20.0)
+
+
+class TestHolidayAndTwrCorrections:
+    def test_carried_forward_holiday_value_is_not_a_zero_return(self):
+        days = [date(2026, 10, 27), date(2026, 10, 28), date(2026, 10, 29), date(2026, 10, 30)]  # 29 Ekim tatil
+        values = [Decimal("100"), Decimal("110"), Decimal("110"), Decimal("99")]
+        returns = compute_daily_return_vector(dict(zip(days, values)))
+        assert returns == pytest.approx([0.10, -0.10])
+
+    def test_twr_first_day_counts_return_from_invested_capital(self):
+        from src.application.services.analysis.portfolio_series_builder import _advance_twr_index
+
+        # 1000 TL yatırılıp 10'dan alınan hisse ilk gün 11'den kapanır: endeks %10 artmalı
+        assert _advance_twr_index(Decimal("100"), Decimal("1100"), None, Decimal("1000")) == Decimal("110")
+        # İlk günde dış akış yoksa (seri mevcut pozisyonla başlıyor) endeks taban kalır
+        assert _advance_twr_index(Decimal("100"), Decimal("1100"), None, Decimal("0")) == Decimal("100")
+        # Sonraki gün akış başta: yatırma getiriyi değiştirmez
+        assert _advance_twr_index(Decimal("110"), Decimal("2200"), Decimal("1100"), Decimal("1100")) == Decimal("110")

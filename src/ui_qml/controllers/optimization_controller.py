@@ -19,6 +19,7 @@ from typing import Any, Dict, List
 import numpy as np
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.domain.constants.finance import DEFAULT_ANNUAL_RISK_FREE_RATE
 from src.domain.models.risk_profile import RiskLabel
 from src.ui_qml.controllers.optimization_chart_html import build_frontier_chart_html, build_weights_chart_html
 from src.ui_qml.controllers.optimization_pipeline import (
@@ -93,7 +94,7 @@ class OptimizationController(QObject):
         self._selected_portfolio_code: str = "dashboard"
         self._selected_risk_profile: str = RiskLabel.DENGELI
         self._max_single_weight: float = 20.0
-        self._risk_free_rate: float = 30.0
+        self._risk_free_rate: float = DEFAULT_ANNUAL_RISK_FREE_RATE * 100  # analiz ekranlarıyla aynı varsayım
         self._is_loading: bool = False
         self._has_results: bool = False
         self._active_tab: int = 0

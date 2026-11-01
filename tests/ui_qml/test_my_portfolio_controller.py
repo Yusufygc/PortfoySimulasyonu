@@ -192,3 +192,16 @@ class TestFailureAndPartial:
         controller.reloadPrices()
 
         assert service.calls == ["TRY", "TRY"] and emitted == [True]
+
+
+class TestMarketClosedLabel:
+    def test_uses_trading_calendar(self, qapp):
+        closed = SimpleNamespace(is_trading_day=lambda day: False)
+        open_ = SimpleNamespace(is_trading_day=lambda day: True)
+        service = FakeService()
+        assert MyPortfolioController(
+            container=SimpleNamespace(unified_portfolio_service=service, trading_calendar=closed)
+        ).isMarketDayClosed is True
+        assert MyPortfolioController(
+            container=SimpleNamespace(unified_portfolio_service=service, trading_calendar=open_)
+        ).isMarketDayClosed is False

@@ -4,9 +4,16 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import List, Optional, Tuple
 
-from src.domain.models.asset import Asset
+from src.domain.market_clock import market_today
+from src.domain.models.asset import Asset, AssetClass
 from src.domain.models.asset_position import AssetPosition
 from src.domain.models.unified_portfolio import HUNDRED, HoldingValuation, allocation_class_for, daily_gain
+
+
+# Bu kadar günden eski fiyat/kur "güncel değil" sayılır (hafta sonu ve tatilleri kapsar; kripto 7/24 işlem görür)
+STALE_PRICE_DAYS = {AssetClass.CRYPTO: 3}
+DEFAULT_STALE_PRICE_DAYS = 7
+STALE_FX_DAYS = 7
 
 
 class AssetHoldingsReader:
@@ -17,10 +24,11 @@ class AssetHoldingsReader:
     Gram birimli madenlerde ons fiyatı gram fiyatına çevrilir (`Asset.unit_price`).
     """
 
-    def __init__(self, ledger_service, price_repo, fx_rate_service) -> None:
+    def __init__(self, ledger_service, price_repo, fx_rate_service, today=market_today) -> None:
         self._ledger_service = ledger_service
         self._price_repo = price_repo
         self._fx = fx_rate_service
+        self._today = today
 
     def read(self) -> List[HoldingValuation]:
         positions = self._ledger_service.get_ledger().open_positions()
@@ -48,9 +56,10 @@ class AssetHoldingsReader:
             ref_id=asset.id,
         )
         quoted, reference_date = self._pick_price(asset, latest)
-        fx_rate = self._fx.get_rate(asset.quote_currency, "TRY")
-        if quoted is None or fx_rate is None:
+        fx = self._fx.get_rate_dated(asset.quote_currency, "TRY")
+        if quoted is None or fx is None:
             return HoldingValuation(**base, value_try=position.total_cost_try, is_priced=False)
+        fx_rate, fx_date = fx
 
         unit_price = asset.unit_price(quoted)
         value_native = position.total_quantity * unit_price
@@ -63,7 +72,15 @@ class AssetHoldingsReader:
             value_native=value_native,
             daily_change_pct=change,
             daily_gain_try=daily_gain(value_try, change),
+            is_stale=self._is_stale(asset, reference_date, fx_date),
         )
+
+    def _is_stale(self, asset: Asset, price_date: Optional[date], fx_date: date) -> bool:
+        today = self._today()
+        price_limit = STALE_PRICE_DAYS.get(asset.asset_class, DEFAULT_STALE_PRICE_DAYS)
+        price_old = price_date is None or (today - price_date).days > price_limit
+        fx_old = not asset.is_try_quoted and (today - fx_date).days > STALE_FX_DAYS
+        return price_old or fx_old
 
     def _pick_price(self, asset: Asset, latest) -> Tuple[Optional[Decimal], Optional[date]]:
         daily = self._price_repo.get_last_daily_price(asset.id)

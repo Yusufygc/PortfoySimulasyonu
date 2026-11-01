@@ -205,7 +205,7 @@ def test_stock_detail_controller_live_price_and_diff(container):
 
 
 def test_dashboard_controller_no_dot_is(container):
-    """DashboardController quickTickers ve allocationSlices içinde kesinlikle .IS bulunmadığını doğrular."""
+    """DashboardController quickTickers içinde kesinlikle .IS bulunmadığını doğrular."""
     dash = DashboardController(container=container)
     dash._load_portfolio_data()
 
@@ -213,8 +213,4 @@ def test_dashboard_controller_no_dot_is(container):
     for t in dash.quickTickers:
         assert not t.endswith(".IS"), f"quickTickers içinde .IS bulundu: {t}"
 
-    # allocationSlices içinde .IS olmamalı
-    for s in dash.allocationSlices:
-        lbl = s.get("label", "")
-        assert not lbl.endswith(".IS"), f"allocationSlices label içinde .IS bulundu: {lbl}"
 

@@ -60,6 +60,7 @@ class HoldingValuation:
     weight_pct: Decimal = ZERO
     is_priced: bool = True
     ref_id: Optional[int] = None   # BIST için stock_id, varlık defteri için asset_id
+    is_stale: bool = False         # fiyat veya kur eşikten eski (değer var ama güncel değil)
 
     @property
     def unrealized_pl_try(self) -> Decimal:
@@ -94,6 +95,7 @@ class UnifiedSummary:
     daily_gain_try: Decimal
     slices: Tuple[AllocationSlice, ...]
     unpriced_symbols: Tuple[str, ...] = ()
+    stale_symbols: Tuple[str, ...] = ()  # fiyatı/kuru eşikten eski pozisyonlar
     display_currency: str = "TRY"
     display_rate: Decimal = Decimal("1")     # 1 TRY = ? gösterim para birimi
     display_unavailable: bool = False        # USD istendi ama kur yok: TRY gösterildi

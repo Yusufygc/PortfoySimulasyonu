@@ -24,78 +24,55 @@ def qapp():
     return app
 
 
-def test_dashboard_kpis_and_positions_model(qapp):
+def _container(cash="100000"):
+    from decimal import Decimal
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    container = MagicMock()
+    container.portfolio_service.get_cash_balance.return_value = Decimal(cash)
+    container.portfolio_service.get_current_portfolio.return_value = SimpleNamespace(active_positions={1: object(), 2: object()})
+    container.stock_lookup_service.get_stocks.return_value = {
+        1: SimpleNamespace(ticker="THYAO.IS"), 2: SimpleNamespace(ticker="ASELS"),
+    }
+    return container
+
+
+def test_dashboard_exposes_only_bist_operations_not_valuation(qapp):
+    """Değerleme Portföyüm'dedir (UnifiedPortfolioService); bu denetleyici yalnızca BIST işlemlerini sunar."""
+    controller = DashboardController(container=_container())
+
+    assert controller.cashBalance == "₺100,000.00"
+    assert controller.quickTickers[:2] == ["THYAO", "ASELS"]
+    for removed in ("positionsModel", "totalValue", "allocationSlices", "dailyGainLoss", "holdingsCount"):
+        assert not hasattr(controller, removed)
+
+
+def test_dashboard_without_container_rejects_operations_instead_of_simulating(qapp):
     controller = DashboardController()
-
-    # Model doğrulaması
-    model = controller.positionsModel
-    assert model.rowCount() == 8
-    
-    first_idx = model.index(0)
-    ticker = model.data(first_idx, model.TickerRole)
-    assert ticker == "THYAO"
-
-    # KPI alanları
-    assert "₺" in controller.totalValue
-    assert "₺" in controller.cashBalance
-    assert "%" in controller.cashRatio
-    assert controller.holdingsCount == 8
-
-    # Varlık Dağılımı Slices (Decimal/Float tip uyuşmazlığı kontrolü)
-    slices = controller.allocationSlices
-    assert isinstance(slices, list)
-    assert len(slices) > 0
-    for s in slices:
-        assert "label" in s
-        assert isinstance(s["pct"], float)
-        assert "color" in s
-        assert "amount" in s
-
-
-def test_dashboard_trade_execution(qapp):
-    controller = DashboardController()
-    model = controller.positionsModel
-    initial_cash = controller._capital
-
     events = []
-    controller.tradeExecuted.connect(lambda s, msg: events.append((s, msg)))
+    controller.tradeExecuted.connect(lambda ok, msg: events.append(ok))
+    controller.capitalUpdated.connect(lambda ok, msg: events.append(ok))
 
-    # 1. Başarılı Alım
     controller.submitTrade("THYAO", "BUY", 100, 250.0, "Test buy")
-    assert len(events) == 1
-    assert events[0][0] is True
-    assert controller._capital == initial_cash - (100 * 250)
-
-    # 2. Yetersiz Nakit Alım Hatası
-    controller.submitTrade("THYAO", "BUY", 100000, 500.0, "Huge buy")
-    assert len(events) == 2
-    assert events[1][0] is False
-    assert "Yetersiz nakit" in events[1][1]
-
-    # 3. Başarılı Satış
-    controller.submitTrade("THYAO", "SELL", 50, 260.0, "Test sell")
-    assert len(events) == 3
-    assert events[2][0] is True
-
-
-def test_dashboard_capital_management(qapp):
-    controller = DashboardController()
-    initial_cash = controller._capital
-
-    events = []
-    controller.capitalUpdated.connect(lambda s, msg: events.append((s, msg)))
-
-    # Yatırma
     controller.manageCapital("deposit", 25000.0, "Ek birikim")
-    assert len(events) == 1
-    assert events[0][0] is True
-    assert controller._capital == initial_cash + 25000
 
-    # Çekme
-    controller.manageCapital("withdraw", 10000.0, "Nakit çekim")
-    assert len(events) == 2
-    assert events[1][0] is True
-    assert controller._capital == initial_cash + 25000 - 10000
+    assert events == [False, False]
+    assert controller.quickTickers == ["THYAO", "GARAN", "ASELS", "KCHOL"]
+
+
+def test_dashboard_capital_management_goes_through_service(qapp):
+    container = _container()
+    controller = DashboardController(container=container)
+    events = []
+    controller.capitalUpdated.connect(lambda ok, msg: events.append(ok))
+
+    controller.manageCapital("DEPOSIT", 25000.0, "Ek birikim")
+    controller.manageCapital("WITHDRAW", 10000.0, "Nakit çekim")
+
+    assert events == [True, True]
+    container.cash_movement_service.add_deposit.assert_called_once()
+    container.cash_movement_service.add_withdraw.assert_called_once()
 
 
 def test_dashboard_qml_full_load(qapp):
@@ -130,8 +107,8 @@ def test_dashboard_with_real_container(qapp):
     dash_ctrl = DashboardController(container=container)
     chart_ctrl = ChartController(container=container)
 
-    assert dash_ctrl.holdingsCount == 7
-    assert "₺" in dash_ctrl.totalValue
+    assert "₺" in dash_ctrl.cashBalance
+    assert all(not t.endswith(".IS") for t in dash_ctrl.quickTickers)
 
     chart_data = []
     chart_ctrl.chartDataLoaded.connect(lambda t, p: chart_data.append((t, p)))
@@ -141,7 +118,4 @@ def test_dashboard_with_real_container(qapp):
     parsed = json.loads(chart_data[0][1])
     assert len(parsed["candles"]) > 0
 
-    real_slices = dash_ctrl.allocationSlices
-    assert len(real_slices) >= 4
-    assert any("PSGYO" in s["label"] for s in real_slices)
 

@@ -1,5 +1,5 @@
 """
-Dashboard Controller — Portföy KPI'ları, varlık dağılımı ve işlem yönetimini sağlar.
+Dashboard Controller — BIST işlemleri, sermaye hareketi, BIST dönemsel getirileri ve Excel raporu.
 
 Fiyatları kendisi çekmez: `PriceRefreshController.pricesChanged` ile `reloadPrices` çağrılır ve görünüm yalnızca
 veritabanından (`CurrentPriceResolver`) yeniden okunur.
@@ -10,11 +10,10 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timedelta
 from decimal import Decimal
-from typing import Dict, Any, List, Optional
+from typing import Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
 from src.ui_qml.last_update_store import LastUpdateStore, format_return_pct
-from src.ui_qml.models.positions_table_model import PositionsTableModel
 from src.domain.market_clock import market_time, market_today
 
 logger = logging.getLogger(__name__)
@@ -33,6 +32,13 @@ def _parse_report_date(text: str):
 
 
 class DashboardController(QObject):
+    """BIST işlemleri denetleyicisi (QML adı `dashboardController`, geriye uyumluluk için korunur).
+
+    Portföy değerlemesi burada yapılmaz: Portföyüm sayfasının tüm rakamları `UnifiedPortfolioService`'ten gelir
+    (`MyPortfolioController`). Bu denetleyici yalnızca BIST hızlı al/sat, sermaye hareketi, BIST haftalık/aylık
+    getiri kartları, grafik hızlı seçicisinin portföy hisseleri ve tarihsel Excel raporunu sunar.
+    """
+
     kpisChanged = Signal()
     tradeExecuted = Signal(bool, str)   # success, message
     capitalUpdated = Signal(bool, str)  # success, message
@@ -45,7 +51,6 @@ class DashboardController(QObject):
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
         self._container = container
-        self._positions_model = PositionsTableModel(self)
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="DashboardWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
         self._asyncReturnsReady.connect(self._on_returns_ready)
@@ -54,90 +59,17 @@ class DashboardController(QObject):
         self._store = LastUpdateStore()
         self._weekly_pct, self._monthly_pct = self._store.saved_returns()
 
-        # Temel Portföy Durum Değişkenleri
-        self._capital: Decimal = Decimal("185000.00")
-        self._total_value: Decimal = Decimal("0")
-        self._total_cost: Decimal = Decimal("0")
-        self._total_pl: Decimal = Decimal("0")
-        self._daily_pl: Decimal = Decimal("0")
-
-        # Hazır/Gerçekçi başlangıç pozisyon havuzu
-        self._initial_positions = [
-            {"ticker": "THYAO", "companyName": "Türk Hava Yolları",   "quantity": 1250, "avgCost": 264.50, "currentPrice": 294.25, "dailyDiff": 2.15},
-            {"ticker": "GARAN", "companyName": "Garanti Bankası",     "quantity": 2800, "avgCost": 98.20,  "currentPrice": 118.40, "dailyDiff": 1.45},
-            {"ticker": "ASELS", "companyName": "Aselsan Elektronik",  "quantity": 3500, "avgCost": 62.10,  "currentPrice": 59.80,  "dailyDiff": -0.80},
-            {"ticker": "KCHOL", "companyName": "Koç Holding",         "quantity": 1500, "avgCost": 182.00, "currentPrice": 215.50, "dailyDiff": 3.10},
-            {"ticker": "TUPRS", "companyName": "Tüpraş Rafinerileri", "quantity": 1800, "avgCost": 142.50, "currentPrice": 164.20, "dailyDiff": 0.90},
-            {"ticker": "SISE",  "companyName": "Şişecam Cam Sanayi",  "quantity": 4200, "avgCost": 48.30,  "currentPrice": 46.90,  "dailyDiff": -1.20},
-            {"ticker": "BIMAS", "companyName": "BİM Mağazalar",       "quantity": 600,  "avgCost": 440.00, "currentPrice": 512.00, "dailyDiff": 1.80},
-            {"ticker": "FROTO", "companyName": "Ford Otomotiv",       "quantity": 300,  "avgCost": 920.00, "currentPrice": 1045.00,"dailyDiff": 2.45},
-        ]
+        self._capital: Decimal = Decimal("0")
+        self._tickers: List[str] = []
 
         self._load_portfolio_data()
         self._reload_returns()
 
     # --- Properties ---
 
-    @Property(QObject, constant=True)
-    def positionsModel(self) -> PositionsTableModel:
-        return self._positions_model
-
-    @Property(str, notify=kpisChanged)
-    def totalValue(self) -> str:
-        return f"₺{self._total_value:,.2f}"
-
-    @Property(str, notify=kpisChanged)
-    def totalCost(self) -> str:
-        return f"₺{self._total_cost:,.2f}"
-
     @Property(str, notify=kpisChanged)
     def cashBalance(self) -> str:
         return f"₺{self._capital:,.2f}"
-
-    @Property(str, notify=kpisChanged)
-    def cashRatio(self) -> str:
-        if self._total_value > 0:
-            ratio = (self._capital / self._total_value) * 100
-            return f"%{ratio:.1f}"
-        return "%0.0"
-
-    @Property(str, notify=kpisChanged)
-    def dailyGainLoss(self) -> str:
-        sign = "+" if self._daily_pl >= 0 else ""
-        return f"{sign}₺{self._daily_pl:,.2f}"
-
-    @Property(str, notify=kpisChanged)
-    def dailyGainLossPct(self) -> str:
-        if self._total_value > 0:
-            pct = (self._daily_pl / self._total_value) * 100
-            sign = "+" if pct >= 0 else ""
-            return f"{sign}%{pct:.2f}"
-        return "%0.00"
-
-    @Property(bool, notify=kpisChanged)
-    def isDailyPositive(self) -> bool:
-        return self._daily_pl >= 0
-
-    @Property(str, notify=kpisChanged)
-    def totalGainLoss(self) -> str:
-        sign = "+" if self._total_pl >= 0 else ""
-        return f"{sign}₺{self._total_pl:,.2f}"
-
-    @Property(str, notify=kpisChanged)
-    def totalGainLossPct(self) -> str:
-        if self._total_cost > 0:
-            pct = (self._total_pl / self._total_cost) * 100
-            sign = "+" if pct >= 0 else ""
-            return f"{sign}%{pct:.2f}"
-        return "%0.00"
-
-    @Property(bool, notify=kpisChanged)
-    def isTotalPositive(self) -> bool:
-        return self._total_pl >= 0
-
-    @Property(int, notify=kpisChanged)
-    def holdingsCount(self) -> int:
-        return self._positions_model.rowCount()
 
     @Property(str, notify=returnsChanged)
     def weeklyReturnText(self) -> str:
@@ -157,192 +89,32 @@ class DashboardController(QObject):
 
     @Property(list, notify=kpisChanged)
     def quickTickers(self) -> List[str]:
-        """Grafik üst çubuğu için portföy hisseleri ve popüler semboller."""
-        portfolio_tickers = [p["ticker"].replace(".IS", "").strip().upper() for p in self._positions_model._positions][:5]
+        """Grafik üst çubuğu için portföy hisseleri (en çok 5) ve popüler semboller."""
         defaults = ["THYAO", "GARAN", "ASELS", "KCHOL"]
-        res = list(portfolio_tickers)
+        res = list(self._tickers[:5])
         for d in defaults:
             if d not in res and len(res) < 6:
                 res.append(d)
         return res or defaults
 
-    @Property(list, notify=kpisChanged)
-    def allocationSlices(self) -> List[Dict[str, Any]]:
-        """Portföyün gerçek varlık ve hisse ağırlık dağılım dilimlerini döner."""
-        slices = []
-        palette = ["#2962ff", "#089981", "#ff9800", "#e91e63", "#9c27b0", "#00bcd4", "#ff5722"]
-
-        positions = self._positions_model._positions
-        if positions:
-            sorted_pos = sorted(positions, key=lambda x: float(x.get("marketValue", 0.0)), reverse=True)
-            top_4 = sorted_pos[:4]
-            other = sorted_pos[4:]
-
-            for i, p in enumerate(top_4):
-                weight_val = float(p.get("weight", 0.0))
-                pct = weight_val / 100.0
-                m_val = float(p.get("marketValue", 0.0))
-                raw_label = str(p.get("ticker", "")).replace(".IS", "").strip().upper()
-                slices.append({
-                    "label": raw_label,
-                    "pct": float(round(pct, 4)),
-                    "color": palette[i % len(palette)],
-                    "amount": f"₺{m_val:,.0f}",
-                })
-
-            if other:
-                other_val = sum(float(p.get("marketValue", 0.0)) for p in other)
-                tot_val = float(self._total_value) if self._total_value > 0 else 1.0
-                other_pct = other_val / tot_val if tot_val > 0 else 0.0
-                slices.append({
-                    "label": f"Diğer ({len(other)} Hisse)",
-                    "pct": float(round(other_pct, 4)),
-                    "color": "#787b86",
-                    "amount": f"₺{other_val:,.0f}",
-                })
-
-        # Nakit varsa dilime ekle
-        if self._capital > 0 and self._total_value > 0:
-            cash_pct = float(self._capital) / float(self._total_value)
-            slices.append({
-                "label": "Nakit Bakiye",
-                "pct": float(round(cash_pct, 4)),
-                "color": "#ff9800",
-                "amount": f"₺{float(self._capital):,.0f}",
-            })
-
-        return slices
-
-    # --- Veri Yükleme ve Hesaplama ---
+    # --- Veri Yükleme (değerleme yok: yalnızca nakit ve açık pozisyon kodları) ---
 
     def _load_portfolio_data(self) -> None:
-        """Gerçek servislerden veya gerçekçi simülasyondan verileri yükler."""
-        pos_list = []
-        stocks_market_val = Decimal("0")
-        total_cost = Decimal("0")
-        daily_gain = Decimal("0")
-
-        if self._container:
-            try:
-                lookup = getattr(self._container, "stock_lookup_service", None)
-                if hasattr(self._container, "portfolio_service") and lookup is not None:
-                    cash = self._container.portfolio_service.get_cash_balance()
-                    if cash is not None:
-                        self._capital = Decimal(str(cash))
-
-                    portfolio = self._container.portfolio_service.get_current_portfolio()
-                    active = portfolio.active_positions
-                    if active:
-                        stock_ids = list(active.keys())
-                        latest_prices = {}
-                        # Güncel fiyat: canlı fiyat yalnızca seans içinde alınmış ve son kapanıştan yeniyse (live_price_rule)
-                        resolver = getattr(self._container, "current_price_resolver", None)
-                        resolved_prices = {}
-                        if resolver is not None:
-                            try:
-                                resolved_prices = resolver.resolve(stock_ids)
-                            except Exception as e:
-                                logger.debug("Güncel fiyatlar çözümlenemedi: %s", e)
-                        else:
-                            latest_prices = lookup.get_latest_price_map(stock_ids)
-
-                        # N+1 Önleme: Hisseleri toplu sorguyla tek seferde çek
-                        stocks_map = lookup.get_stocks(stock_ids)
-
-                        for sid, pos in active.items():
-                            stock = stocks_map.get(sid) or lookup.get_stock(sid)
-                            raw_ticker = stock.ticker if stock else f"STOCK_{sid}"
-                            ticker = raw_ticker.replace(".IS", "").strip().upper()
-                            raw_company = stock.name if (stock and stock.name) else ticker
-                            company = raw_company.replace(".IS", "").strip()
-                            qty = pos.total_quantity
-                            cost = pos.average_cost if pos.average_cost is not None else Decimal("0")
-                            resolved = resolved_prices.get(sid)
-                            price = resolved.price if resolved is not None else latest_prices.get(sid, cost)
-
-                            diff_pct = Decimal("0")
-                            if resolved is not None:
-                                change = resolver.daily_change_pct(sid, resolved)
-                                diff_pct = change if change is not None else Decimal("0")
-                            else:
-                                prev_close = lookup.get_previous_close(sid)
-                                if prev_close:
-                                    diff_pct = ((price - prev_close) / prev_close) * 100
-
-                            m_val = pos.market_value(price)
-                            tot_c = pos.total_cost
-                            pl = pos.unrealized_pl(price)
-                            pl_pct = (pl / tot_c * 100) if tot_c > 0 else Decimal("0")
-                            day_gain = m_val * (diff_pct / Decimal("100"))
-
-                            stocks_market_val += m_val
-                            total_cost += tot_c
-                            daily_gain += day_gain
-
-                            pos_list.append({
-                                "ticker": ticker,
-                                "companyName": company,
-                                "quantity": int(qty),
-                                "avgCost": float(cost),
-                                "currentPrice": float(price),
-                                "dailyDiff": float(diff_pct),
-                                "marketValue": float(m_val),
-                                "unrealizedPL": float(pl),
-                                "unrealizedPLPct": float(pl_pct),
-                                "weight": 0.0,
-                                "isUp": pl >= 0,
-                                "flashState": 0,
-                            })
-            except Exception as exc:
-                logger.info("Canlı DB erişimi sağlanamadı, offline mod aktif: %s", exc)
-
-        # Demo pozisyonlar yalnızca konteynersiz (offline) modda gösterilir; gerçek DB'de boş portföy boş kalır
-        if not pos_list and self._container is None:
-            for item in self._initial_positions:
-                qty = Decimal(str(item["quantity"]))
-                cost = Decimal(str(item["avgCost"]))
-                price = Decimal(str(item["currentPrice"]))
-                diff_pct = Decimal(str(item["dailyDiff"]))
-
-                m_val = qty * price
-                tot_c = qty * cost
-                pl = m_val - tot_c
-                pl_pct = (pl / tot_c * 100) if tot_c > 0 else Decimal("0")
-                day_gain = m_val * (diff_pct / Decimal("100"))
-
-                stocks_market_val += m_val
-                total_cost += tot_c
-                daily_gain += day_gain
-
-                pos_list.append({
-                    "ticker": item["ticker"],
-                    "companyName": item["companyName"],
-                    "quantity": int(qty),
-                    "avgCost": float(cost),
-                    "currentPrice": float(price),
-                    "dailyDiff": float(diff_pct),
-                    "marketValue": float(m_val),
-                    "unrealizedPL": float(pl),
-                    "unrealizedPLPct": float(pl_pct),
-                    "weight": 0.0,  # aşağıda hesaplanacak
-                    "isUp": pl >= 0,
-                    "flashState": 0,
-                })
-
-        self._total_value = stocks_market_val + self._capital
-        self._total_cost = total_cost
-        self._total_pl = stocks_market_val - total_cost
-        self._daily_pl = daily_gain
-
-        # Ağırlıkları normalize et
-        for p in pos_list:
-            if self._total_value > 0:
-                p["weight"] = (Decimal(str(p["marketValue"])) / self._total_value) * 100
-
-        self._positions_model.set_positions(pos_list)
+        portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
+        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        if portfolio_service is None:
+            return
+        try:
+            cash = portfolio_service.get_cash_balance()
+            self._capital = Decimal(str(cash)) if cash is not None else Decimal("0")
+            active = portfolio_service.get_current_portfolio().active_positions
+            stocks = lookup.get_stocks(list(active)) if (lookup is not None and active) else {}
+            self._tickers = [
+                (stocks[sid].ticker or "").replace(".IS", "").strip().upper() for sid in active if sid in stocks
+            ]
+        except Exception as exc:
+            logger.info("Portföy verisi okunamadı: %s", exc)
         self.kpisChanged.emit()
-
-    # --- Slots ---
 
     @Slot()
     def reloadPortfolio(self) -> None:
@@ -443,7 +215,6 @@ class DashboardController(QObject):
             self.tradeExecuted.emit(False, "Geçersiz işlem parametreleri.")
             return
 
-        # 1. Gerçek veritabanı servisi varsa kullan
         if self._container and hasattr(self._container, "trade_entry_service"):
             try:
                 from src.application.services.portfolio.trade_entry_service import TradeRequest
@@ -467,49 +238,7 @@ class DashboardController(QObject):
                 self.tradeExecuted.emit(False, str(exc))
                 return
 
-        # 2. Offline / Mock fallback
-        total_amount = Decimal(str(quantity)) * Decimal(str(price))
-
-        if side.upper() == "BUY":
-            if self._capital < total_amount:
-                self.tradeExecuted.emit(False, f"Yetersiz nakit! Gerekli: ₺{total_amount:,.2f}, Mevcut: ₺{self._capital:,.2f}")
-                return
-            self._capital -= total_amount
-            found = False
-            for p in self._initial_positions:
-                if p["ticker"] == ticker:
-                    curr_qty = Decimal(str(p["quantity"]))
-                    curr_cost = Decimal(str(p["avgCost"]))
-                    new_qty = curr_qty + Decimal(str(quantity))
-                    new_cost = ((curr_qty * curr_cost) + total_amount) / new_qty
-                    p["quantity"] = int(new_qty)
-                    p["avgCost"] = float(round(new_cost, 2))
-                    p["currentPrice"] = price
-                    found = True
-                    break
-            if not found:
-                self._initial_positions.append({
-                    "ticker": ticker,
-                    "companyName": f"{ticker} Hissesi",
-                    "quantity": quantity,
-                    "avgCost": price,
-                    "currentPrice": price,
-                    "dailyDiff": 0.0,
-                })
-            msg = f"{quantity} adet {ticker} başarıyla satın alındı (₺{total_amount:,.2f})."
-        else: # SELL
-            target = next((p for p in self._initial_positions if p["ticker"] == ticker), None)
-            if not target or target["quantity"] < quantity:
-                self.tradeExecuted.emit(False, f"Satış için yetersiz lot! Mevcut: {target['quantity'] if target else 0}")
-                return
-            target["quantity"] -= quantity
-            self._capital += total_amount
-            if target["quantity"] == 0:
-                self._initial_positions.remove(target)
-            msg = f"{quantity} adet {ticker} başarıyla satıldı (₺{total_amount:,.2f})."
-
-        self._load_portfolio_data()
-        self.tradeExecuted.emit(True, msg)
+        self.tradeExecuted.emit(False, "İşlem servisi kullanılamıyor.")
 
     @Slot(str, float, str)
     def manageCapital(self, action: str, amount: float, note: str) -> None:
@@ -520,7 +249,6 @@ class DashboardController(QObject):
 
         dec_amount = Decimal(str(amount))
 
-        # 1. Gerçek veritabanı servisi varsa kullan
         if self._container and hasattr(self._container, "cash_movement_service"):
             try:
                 if action.upper() == "DEPOSIT":
@@ -537,19 +265,7 @@ class DashboardController(QObject):
                 self.capitalUpdated.emit(False, str(exc))
                 return
 
-        # 2. Offline / Mock fallback
-        if action.lower() == "deposit":
-            self._capital += dec_amount
-            msg = f"₺{dec_amount:,.2f} nakit portföye yatırıldı."
-        else:
-            if self._capital < dec_amount:
-                self.capitalUpdated.emit(False, "Yetersiz nakit bakiye.")
-                return
-            self._capital -= dec_amount
-            msg = f"₺{dec_amount:,.2f} nakit portföyden çekildi."
-
-        self._load_portfolio_data()
-        self.capitalUpdated.emit(True, msg)
+        self.capitalUpdated.emit(False, "Nakit servisi kullanılamıyor.")
 
     # -------------------------------------------------------------------------
     # EXCEL RAPOR DIŞA AKTARIMI
@@ -630,20 +346,7 @@ class DashboardController(QObject):
                 )
                 self._asyncExportFinished.emit(True, f"Excel portföy raporu kaydedildi:\n{target_file.name}")
             else:
-                import pandas as pd
-                positions_data = [
-                    {
-                        "Hisse": p.get("ticker", ""),
-                        "Şirket": p.get("companyName", ""),
-                        "Lot": p.get("quantity", 0),
-                        "Maliyet": p.get("avgCost", 0.0),
-                        "Son Fiyat": p.get("currentPrice", 0.0),
-                    }
-                    for p in self._initial_positions
-                ]
-                df = pd.DataFrame(positions_data)
-                df.to_excel(str(target_file), index=False)
-                self._asyncExportFinished.emit(True, f"Excel tablosu kaydedildi:\n{target_file.name}")
+                self._asyncExportFinished.emit(False, "Excel rapor servisi kullanılamıyor.")
         except Exception as exc:
             logger.exception("Dashboard Excel export hatası: %s", exc)
             self._asyncExportFinished.emit(False, f"Excel raporu oluşturulamadı: {exc}")

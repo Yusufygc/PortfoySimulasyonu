@@ -49,6 +49,19 @@ class Position:
         """
         return self.market_value(current_price) - self.total_cost
 
+    def preview_trade(self, side: TradeSide, quantity: int, price: Decimal) -> tuple[int, Optional[Decimal]]:
+        """Emir uygulanırsa (yeni lot, yeni ortalama maliyet); pozisyon değişmez.
+
+        Alımda ağırlıklı ortalama maliyet, satışta ortalama maliyet aynı kalır (`apply_trade` ile aynı kural).
+        Elden fazla satışta yeni lot negatif döner (çağıran reddeder); lot sıfırsa ortalama maliyet None.
+        """
+        if side == TradeSide.BUY:
+            new_quantity = self.total_quantity + quantity
+            new_cost = self.total_cost + price * Decimal(quantity)
+            return new_quantity, (new_cost / Decimal(new_quantity) if new_quantity > 0 else None)
+        new_quantity = self.total_quantity - quantity
+        return new_quantity, (self.average_cost if new_quantity > 0 else None)
+
     # --------- Pozisyonu trade'lerden oluşturma / güncelleme --------- #
 
     @classmethod

@@ -129,9 +129,8 @@ def _advance_twr_index(
     previous_total_value,
     daily_net_cash_flow: Decimal,
 ) -> Decimal:
-    if previous_total_value is None:
-        return twr_index
-    base_value = previous_total_value + daily_net_cash_flow
+    # İlk gün: önceki değer yoktur; o gün giren sermaye taban alınır (alım fiyatı -> kapanış getirisi kaybolmaz)
+    base_value = daily_net_cash_flow if previous_total_value is None else previous_total_value + daily_net_cash_flow
     if base_value > 0:
         twr_index = twr_index * (Decimal("1") + (total_value - base_value) / base_value)
     return twr_index

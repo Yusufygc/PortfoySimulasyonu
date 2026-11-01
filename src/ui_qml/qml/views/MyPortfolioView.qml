@@ -154,6 +154,16 @@ Item {
             }
 
             Text {
+                visible: myPortfolioController.staleSymbols.length > 0
+                Layout.fillWidth: true
+                text: Strings.myPortfolioStaleNote + myPortfolioController.staleSymbols.join(", ")
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.fontSm
+                color: Theme.warning
+                wrapMode: Text.WordWrap
+            }
+
+            Text {
                 visible: myPortfolioController.displayUnavailable
                 text: Strings.myPortfolioUsdUnavailable
                 font.family: Theme.fontFamily
@@ -185,7 +195,7 @@ Item {
                     value: myPortfolioController.totalValue
                     changeText: myPortfolioController.dailyGainPct
                     isPositive: myPortfolioController.isDailyPositive
-                    subText: Strings.kpiDailyChange
+                    subText: myPortfolioController.isMarketDayClosed ? Strings.kpiLastSessionChange : Strings.kpiDailyChange
                     iconName: "banknote"
                 }
 
@@ -195,7 +205,7 @@ Item {
                     value: myPortfolioController.dailyGain
                     changeText: myPortfolioController.dailyGainPct
                     isPositive: myPortfolioController.isDailyPositive
-                    subText: Strings.kpiTodayReturn
+                    subText: myPortfolioController.isMarketDayClosed ? Strings.kpiLastSessionReturn : Strings.kpiTodayReturn
                     iconName: "trendingup"
                 }
 

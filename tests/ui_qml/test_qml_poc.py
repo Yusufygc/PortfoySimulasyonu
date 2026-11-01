@@ -32,7 +32,7 @@ def test_controllers_initialization(qapp):
     assert shell.activePage == 0
     assert shell.pageTitle == "Ana Sayfa"
     assert chart.currentTicker == "THYAO"
-    assert "₺" in dash.totalValue
+    assert "₺" in dash.cashBalance
 
 
 def test_main_qml_syntax_and_load(qapp):

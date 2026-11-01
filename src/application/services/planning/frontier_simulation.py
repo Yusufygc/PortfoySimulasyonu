@@ -14,13 +14,15 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from scipy.optimize import minimize
 
+from src.domain.constants.finance import DEFAULT_ANNUAL_RISK_FREE_RATE
+
 logger = logging.getLogger(__name__)
 
 
 def simulate_monte_carlo(
     mean_returns: np.ndarray,
     cov_matrix: np.ndarray,
-    risk_free_rate: float = 0.30,
+    risk_free_rate: float = DEFAULT_ANNUAL_RISK_FREE_RATE,
     num_simulations: int = 1000,
 ) -> List[Dict[str, float]]:
     """Vektörel Monte Carlo portföy simülasyonu çalıştırır.

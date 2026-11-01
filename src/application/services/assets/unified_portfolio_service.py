@@ -47,6 +47,7 @@ class UnifiedPortfolioService:
             daily_gain_try=sum((h.daily_gain_try for h in holdings), ZERO),
             slices=tuple(self._slices(weighted, cash, total_value)),
             unpriced_symbols=tuple(h.symbol for h in weighted if not h.is_priced),
+            stale_symbols=tuple(h.symbol for h in weighted if h.is_priced and h.is_stale),
             **display,
         )
 

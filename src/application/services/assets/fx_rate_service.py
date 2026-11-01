@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional, Tuple
 
 from src.domain.market_clock import market_today
 from src.domain.models.asset_price import FxRate
@@ -37,6 +37,17 @@ class FxRateService:
             return direct.rate
         inverse = self._repo.get_rate_on_or_before(quote, base, cutoff)
         return Decimal("1") / inverse.rate if inverse is not None else None
+
+    def get_rate_dated(self, base_currency: str, quote_currency: str) -> Optional[Tuple[Decimal, date]]:
+        """En güncel kur ve tarihi (tazelik denetimi için); bilinmiyorsa None. Aynı para biriminde (1, bugün)."""
+        base, quote = base_currency.upper(), quote_currency.upper()
+        if base == quote:
+            return Decimal("1"), market_today()
+        direct = self._repo.get_rate_on_or_before(base, quote, date.max)
+        if direct is not None:
+            return direct.rate, direct.rate_date
+        inverse = self._repo.get_rate_on_or_before(quote, base, date.max)
+        return (Decimal("1") / inverse.rate, inverse.rate_date) if inverse is not None else None
 
     def convert(
         self, amount: Decimal, from_currency: str, to_currency: str, on_date: Optional[date] = None

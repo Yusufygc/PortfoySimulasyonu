@@ -34,6 +34,7 @@ QtObject {
     readonly property string currencyTRY: "TRY"
     readonly property string currencyUSD: "USD"
     readonly property string myPortfolioPartialNote: "Fiyatı veya kuru alınamayan pozisyonlar maliyet bedeliyle değerlendi: "
+    readonly property string myPortfolioStaleNote: "Fiyatı veya kuru güncel olmayan pozisyonlar (son bilinen değerle gösteriliyor): "
     readonly property string myPortfolioUsdUnavailable: "USD/TRY kuru bulunamadı; tutarlar TRY gösteriliyor."
     readonly property string myPortfolioUsdRateNote: "USD/TRY kuru: "
     readonly property string myPortfolioEmpty: "Bu sınıfta pozisyon yok."
@@ -110,6 +111,8 @@ QtObject {
     readonly property string kpiCashRatio: "Nakit Bakiye & Oran"
     readonly property string kpiDailyChange: "Günlük Değişim"
     readonly property string kpiTodayReturn: "Bugünkü Getiri"
+    readonly property string kpiLastSessionReturn: "Son İşlem Günü Getirisi (piyasa kapalı)"
+    readonly property string kpiLastSessionChange: "Son İşlem Günü Değişimi"
     readonly property string kpiCostPrefix: "Maliyet: "
     readonly property string kpiOpenPositionsSuffix: " Açık Pozisyon"
 

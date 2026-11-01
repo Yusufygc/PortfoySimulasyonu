@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, List, Optional, Tuple
 
+from src.domain.constants.finance import DEFAULT_ANNUAL_RISK_FREE_RATE
 from src.domain.models.portfolio import Portfolio
 
 
@@ -31,6 +32,8 @@ def compute_relative_gap_pct(
 
 
 def compute_daily_return_vector(series: Dict[date, Decimal]) -> List[float]:
+    """İşlem günü getirileri. Hafta sonu ve değeri bir önceki günle birebir aynı olan günler (resmî tatil gibi
+    fiyatın taşındığı işlem dışı günler) atlanır; aksi halde sıfır getiri sayılıp oynaklığı düşük gösterirdi."""
     dates = sorted(series.keys())
     returns: List[float] = []
     for prev_date, curr_date in zip(dates, dates[1:]):
@@ -38,6 +41,8 @@ def compute_daily_return_vector(series: Dict[date, Decimal]) -> List[float]:
             continue
         prev_val = float(series[prev_date] or 0)
         curr_val = float(series[curr_date] or 0)
+        if series[curr_date] == series[prev_date]:
+            continue
         if prev_val > 0:
             returns.append((curr_val - prev_val) / prev_val)
     return returns
@@ -51,7 +56,7 @@ def compute_volatility_pct(series: Dict[date, Decimal]) -> Optional[float]:
     variance = sum((item - mean) ** 2 for item in returns) / (len(returns) - 1)
     return math.sqrt(variance) * math.sqrt(252) * 100
 
-def compute_sharpe_ratio(series: Dict[date, Decimal], risk_free_rate: float = 0.40) -> Optional[float]:
+def compute_sharpe_ratio(series: Dict[date, Decimal], risk_free_rate: float = DEFAULT_ANNUAL_RISK_FREE_RATE) -> Optional[float]:
     returns = compute_daily_return_vector(series)
     if len(returns) < 2:
         return None
@@ -91,7 +96,7 @@ def compute_beta(portfolio_series: Dict[date, Decimal], benchmark_series: Dict[d
         return None
     return covariance / b_variance
 
-def compute_alpha(portfolio_series: Dict[date, Decimal], benchmark_series: Dict[date, Decimal], risk_free_rate: float = 0.40) -> Optional[float]:
+def compute_alpha(portfolio_series: Dict[date, Decimal], benchmark_series: Dict[date, Decimal], risk_free_rate: float = DEFAULT_ANNUAL_RISK_FREE_RATE) -> Optional[float]:
     beta = compute_beta(portfolio_series, benchmark_series)
     if beta is None:
         return None
@@ -107,7 +112,7 @@ def compute_alpha(portfolio_series: Dict[date, Decimal], benchmark_series: Dict[
     return p_return - (period_rf + beta * (b_return - period_rf))
 
 
-def compute_sortino_ratio(series: Dict[date, Decimal], risk_free_rate: float = 0.40) -> Optional[float]:
+def compute_sortino_ratio(series: Dict[date, Decimal], risk_free_rate: float = DEFAULT_ANNUAL_RISK_FREE_RATE) -> Optional[float]:
     """Sortino Ratio — Sharpe'a benzer ama sadece hedefin (risk-free) altındaki (downside)
     oynaklığı cezalandırır. downside_deviation=0 ise (hiç kayıp yok) None döner."""
     returns = compute_daily_return_vector(series)

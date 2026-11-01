@@ -94,6 +94,12 @@ class FakeFx:
             return D("1")
         return self._rates.get(f"{base}{quote}")
 
+    def get_rate_dated(self, base, quote):
+        rate = self.get_rate(base, quote)
+        return None if rate is None else (rate, self.rate_date)
+
+    rate_date = DAY
+
 
 # ---------------- kurulum yardımcıları ---------------- #
 
@@ -131,8 +137,10 @@ def build(**options):
         FakePortfolioService(list(bist_trades), cash), FakeStockLookup(stocks), FakeResolver(bist_prices or {}, bist_changes)
     )
     repo = price_repo or FakeAssetPriceRepo()
-    fx_service = FakeFx(fx if fx is not None else {"USDTRY": "40"})
-    asset_reader = AssetHoldingsReader(FakeLedgerService(list(assets), list(asset_trades)), repo, fx_service)
+    fx_service = options.get("fx_service") or FakeFx(fx if fx is not None else {"USDTRY": "40"})
+    asset_reader = AssetHoldingsReader(
+        FakeLedgerService(list(assets), list(asset_trades)), repo, fx_service, today=options.get("today", lambda: DAY)
+    )
     return UnifiedPortfolioService(bist, asset_reader, fx_service), repo
 
 
@@ -323,3 +331,27 @@ class TestDisplayCurrency:
     def test_unsupported_currency_is_rejected(self):
         with pytest.raises(ValueError, match="Desteklenmeyen"):
             build()[0].get_summary("EUR")
+
+
+class TestStaleness:
+    def test_fresh_price_and_fx_are_not_stale(self):
+        service, repo = build(assets=[BTC], asset_trades=[asset_trade(1, "1", "100", "30")])
+        repo.latest[1] = latest(1, "120")
+        summary = service.get_summary()
+        assert summary.stale_symbols == () and not summary.holdings[0].is_stale
+
+    def test_old_price_marks_holding_stale_but_keeps_value(self):
+        service, repo = build(
+            assets=[BTC], asset_trades=[asset_trade(1, "1", "100", "30")], today=lambda: date(2026, 1, 20)
+        )
+        repo.latest[1] = latest(1, "120")
+        summary = service.get_summary()
+        assert summary.stale_symbols == ("BTC",) and summary.holdings[0].is_priced
+        assert summary.holdings[0].value_try == D("120") * D("40")
+
+    def test_old_fx_marks_foreign_asset_stale(self):
+        fx = FakeFx({"USDTRY": "40"})
+        fx.rate_date = date(2025, 12, 1)
+        service, repo = build(assets=[AAPL], asset_trades=[asset_trade(2, "1", "100", "30")], fx_service=fx)
+        repo.latest[2] = latest(2, "120")
+        assert service.get_summary().stale_symbols == ("AAPL",)

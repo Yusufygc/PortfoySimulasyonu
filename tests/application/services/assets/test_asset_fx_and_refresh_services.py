@@ -158,6 +158,14 @@ class TestFxRateService:
         assert service.get_rate("USD", "TRY", date(2026, 1, 2)) == D("34.0")
         assert service.get_rate("USD", "TRY", date(2025, 12, 1)) is None
 
+    def test_get_rate_dated_returns_rate_date_for_staleness(self, parts):
+        _, repo, service = parts
+        assert service.get_rate_dated("USD", "TRY") is None
+        repo.upsert_rates([FxRate(None, "USD", "TRY", date(2026, 1, 3), D("35.0"), "yfinance")])
+
+        assert service.get_rate_dated("USD", "TRY") == (D("35.0"), date(2026, 1, 3))
+        assert service.get_rate_dated("TRY", "USD") == (D("1") / D("35.0"), date(2026, 1, 3))
+
     def test_inverse_rate_is_derived(self, parts):
         _, repo, service = parts
         repo.upsert_rates([FxRate(None, "USD", "TRY", date(2026, 1, 1), D("40"), "yfinance")])

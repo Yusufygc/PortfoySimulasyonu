@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.domain.market_clock import market_today
 from src.domain.models.unified_portfolio import HUNDRED, UnifiedSummary
 from src.ui_qml.controllers.portfolio_presenter import (
     TAB_ALL,
@@ -48,6 +49,7 @@ class MyPortfolioController(QObject):
     def __init__(self, container=None, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._service = getattr(container, "unified_portfolio_service", None) if container is not None else None
+        self._calendar = getattr(container, "trading_calendar", None) if container is not None else None
         self._model = HoldingsListModel(self)
         self._currency = "TRY"
         self._tab = TAB_ALL
@@ -137,6 +139,16 @@ class MyPortfolioController(QObject):
         return format_pct(self._summary.daily_change_pct)
 
     @Property(bool, notify=summaryChanged)
+    def isMarketDayClosed(self) -> bool:
+        """Bugün BIST işlem günü değil (hafta sonu/tatil): günlük K/Z son işlem gününün hareketidir."""
+        calendar = self._calendar
+        today = market_today()
+        try:
+            return not calendar.is_trading_day(today) if calendar is not None else today.weekday() >= 5
+        except Exception:
+            return today.weekday() >= 5
+
+    @Property(bool, notify=summaryChanged)
     def isDailyPositive(self) -> bool:
         return self._summary.daily_gain_try >= 0
 
@@ -163,6 +175,11 @@ class MyPortfolioController(QObject):
     @Property("QVariantList", notify=summaryChanged)
     def unpricedSymbols(self) -> List[str]:
         return list(self._summary.unpriced_symbols)
+
+    @Property("QVariantList", notify=summaryChanged)
+    def staleSymbols(self) -> List[str]:
+        """Fiyatı veya kuru güncel olmayan (eşikten eski) pozisyonlar."""
+        return list(self._summary.stale_symbols)
 
     @Property(str, notify=summaryChanged)
     def usdRate(self) -> str:

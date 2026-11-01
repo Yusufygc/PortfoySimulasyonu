@@ -196,5 +196,5 @@ def test_dashboard_with_real_container_and_empty_portfolio_shows_no_demo_positio
 
     ctrl = DashboardController(container=container)
 
-    assert ctrl.holdingsCount == 0
-    assert ctrl.positionsModel.rowCount() == 0
+    assert ctrl.cashBalance == "₺0.00"
+    assert ctrl.quickTickers == ["THYAO", "GARAN", "ASELS", "KCHOL"]  # boş portföy: demo pozisyon yok

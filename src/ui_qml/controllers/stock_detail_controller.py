@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.application.services.portfolio.trade_entry_service import TradeRequest
+from src.domain.models.position import Position
 from src.domain.models.trade import TradeSide
 from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.ticker import clean_ticker
@@ -258,27 +259,24 @@ class StockDetailController(QObject):
     def tradeImpact(self, side: str, quantity: int, price: float) -> Dict[str, Any]:
         """Emir girilirse pozisyonun alacağı hali (lot, ortalama maliyet, nakit) önceden hesaplar."""
         qty = max(0, int(quantity))
-        total = qty * float(price)
-        is_buy = side.upper() in ("BUY", "ALIM")
-        cur_qty, cur_avg = int(self._quantity), float(self._avg_cost)
-        result: Dict[str, Any] = {"valid": qty > 0 and price > 0, "message": ""}
-        if is_buy:
-            new_qty = cur_qty + qty
-            new_avg = ((cur_qty * cur_avg) + total) / new_qty if new_qty > 0 else 0.0
-            cash_after = None if self._cash is None else self._cash - total
-            if cash_after is not None and cash_after < 0:
-                result["valid"] = False
-                result["message"] = "Yetersiz nakit"
-        else:
-            new_qty = cur_qty - qty
-            new_avg = cur_avg if new_qty > 0 else 0.0
-            cash_after = None if self._cash is None else self._cash + total
-            if new_qty < 0:
-                result["valid"] = False
-                result["message"] = "Yetersiz lot"
+        unit_price = Decimal(str(price)) if price and price > 0 else Decimal("0")
+        total = unit_price * Decimal(qty)
+        trade_side = TradeSide.BUY if side.upper() in ("BUY", "ALIM") else TradeSide.SELL
+        cur_qty = int(self._quantity)
+        position = Position(stock_id=0, total_quantity=cur_qty, total_cost=Decimal(str(self._avg_cost)) * Decimal(cur_qty))
+        new_qty, new_avg = position.preview_trade(trade_side, qty, unit_price)  # domain kuralı, Decimal
+        cash = None if self._cash is None else Decimal(str(self._cash))
+        cash_after = None if cash is None else (cash - total if trade_side == TradeSide.BUY else cash + total)
+        result: Dict[str, Any] = {"valid": qty > 0 and unit_price > 0, "message": ""}
+        if trade_side == TradeSide.BUY and cash_after is not None and cash_after < 0:
+            result["valid"] = False
+            result["message"] = "Yetersiz nakit"
+        if trade_side == TradeSide.SELL and new_qty < 0:
+            result["valid"] = False
+            result["message"] = "Yetersiz lot"
         result.update({
             "newQty": f"{max(new_qty, 0):,}".replace(",", "."),
-            "newAvg": f"₺{new_avg:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if new_qty > 0 else "-",
+            "newAvg": f"₺{new_avg:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if new_avg is not None else "-",
             "cashAfter": "-" if cash_after is None else f"₺{cash_after:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
         })
         return result
