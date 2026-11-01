@@ -15,36 +15,7 @@ from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from PySide6.QtWidgets import QApplication
 
 from src.application.container import AppContainer
-from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
-from src.ui_qml.controllers.assets_controller import AssetsController
-from src.ui_qml.controllers.chart_controller import ChartController
-from src.ui_qml.controllers.comparison_controller import ComparisonController
-from src.ui_qml.controllers.corporate_action_controller import CorporateActionController
-from src.ui_qml.controllers.dashboard_controller import DashboardController
-from src.ui_qml.controllers.dividend_controller import DividendController
-from src.ui_qml.controllers.golden_cross_controller import GoldenCrossController
-from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustmentController
-from src.ui_qml.controllers.market_sync_controller import MarketSyncController
-from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
-from src.ui_qml.controllers.news_controller import NewsController
-from src.ui_qml.controllers.news_settings_controller import NewsSettingsController
-from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
-from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
-from src.ui_qml.controllers.my_portfolio_controller import MyPortfolioController
-from src.ui_qml.controllers.optimization_controller import OptimizationController
-from src.ui_qml.controllers.planning_controller import PlanningController
-from src.ui_qml.controllers.price_data_controller import PriceDataController
-from src.ui_qml.controllers.risk_profile_controller import RiskProfileController
-from src.ui_qml.controllers.screener_controller import ScreenerController
-from src.ui_qml.controllers.settings_controller import SettingsController
-from src.ui_qml.controllers.shell_controller import ShellController
-from src.ui_qml.controllers.startup_jobs_controller import StartupJobsController
-from src.ui_qml.controllers.stock_360_controller import Stock360Controller
-from src.ui_qml.controllers.stock_detail_controller import StockDetailController
-from src.ui_qml.controllers.strategy_backtest_controller import StrategyBacktestController
-from src.ui_qml.controllers.price_refresh_controller import PriceRefreshController
-from src.ui_qml.controllers.system_controller import SystemController
-from src.ui_qml.controllers.watchlist_controller import WatchlistController
+from src.ui_qml.app import create_controllers
 
 QML_DIR = Path(__file__).resolve().parents[2] / "src" / "ui_qml" / "qml"
 
@@ -75,39 +46,7 @@ def qapp():
 def qml_env(qapp):
     container = AppContainer()
     engine = QQmlApplicationEngine()
-    controllers = {
-        "shellController": ShellController(container=container, parent=engine),
-        "chartController": ChartController(container=container, parent=engine),
-        "dashboardController": DashboardController(container=container, parent=engine),
-        "myPortfolioController": MyPortfolioController(container=container, parent=engine),
-        "assetsController": AssetsController(container=container, parent=engine),
-        "watchlistController": WatchlistController(container=container, parent=engine),
-        "stock360Controller": Stock360Controller(container=container, parent=engine),
-        "portfolioController": ModelPortfolioController(container=container, parent=engine),
-        "comparisonController": ComparisonController(container=container, parent=engine),
-        "screenerController": ScreenerController(container=container, parent=engine),
-        "planningController": PlanningController(container=container, parent=engine),
-        "strategyBacktestController": StrategyBacktestController(container=container, parent=engine),
-        "marketSyncController": MarketSyncController(parent=engine, container=container),
-        "optimizationController": OptimizationController(container=container, parent=engine),
-        "aiAdvisorController": AiAdvisorController(container=container, parent=engine),
-        "settingsController": SettingsController(container=container, parent=engine),
-        "stockDetailController": StockDetailController(container=container, parent=engine),
-        "corporateActionController": CorporateActionController(container=container, parent=engine),
-        "dividendController": DividendController(container=container, parent=engine),
-        "priceDataController": PriceDataController(container=container, parent=engine),
-        "startupJobsController": StartupJobsController(container=container, parent=engine),
-        "goldenCrossController": GoldenCrossController(container=container, parent=engine),
-        "riskProfileController": RiskProfileController(container=container, parent=engine),
-        "marketAdjustmentController": MarketAdjustmentController(container=container, parent=engine),
-        "systemController": SystemController(container=container, parent=engine),
-        "marketTickerController": MarketTickerController(container=container, parent=engine),
-        "newsController": NewsController(container=container, parent=engine),
-        "newsSettingsController": NewsSettingsController(container=container, parent=engine),
-        "modelAnalysisController": ModelAnalysisController(container=container, parent=engine),
-    }
-    controllers["priceRefreshController"] = PriceRefreshController(
-        controllers["systemController"], controllers["marketSyncController"], container=container, parent=engine)
+    controllers = create_controllers(container, engine, autostart=False)  # uygulamadaki tek liste
     context = engine.rootContext()
     for name, controller in controllers.items():
         context.setContextProperty(name, controller)

@@ -66,52 +66,15 @@ def _build_engine():
     from PySide6.QtQml import QQmlApplicationEngine
 
     from src.application.container import AppContainer
-    from src.ui_qml.controllers import (
-        ai_advisor_controller, assets_controller, chart_controller, comparison_controller, corporate_action_controller,
-        dashboard_controller, dividend_controller, golden_cross_controller, market_adjustment_controller,
-        market_sync_controller, market_ticker_controller, model_analysis_controller, model_portfolio_controller, my_portfolio_controller,
-        news_controller, news_settings_controller,
-        optimization_controller, planning_controller, price_data_controller, price_refresh_controller, risk_profile_controller,
-        screener_controller, settings_controller, shell_controller, startup_jobs_controller, stock_360_controller,
-        stock_detail_controller, strategy_backtest_controller, system_controller, watchlist_controller,
-    )
+
+    try:
+        from src.ui_qml.app import create_controllers
+    except ImportError as exc:  # 2026-11-01 öncesi commitlerde denetleyici listesi app.py içinde gömülüydü
+        raise SystemExit(f"Bu commit'te create_controllers yok; betiğin o commit'teki sürümünü kullanın ({exc})")
 
     container = AppContainer()
     engine = QQmlApplicationEngine()
-    classes = {
-        "shellController": shell_controller.ShellController,
-        "chartController": chart_controller.ChartController,
-        "dashboardController": dashboard_controller.DashboardController,
-        "myPortfolioController": my_portfolio_controller.MyPortfolioController,
-        "assetsController": assets_controller.AssetsController,
-        "watchlistController": watchlist_controller.WatchlistController,
-        "stock360Controller": stock_360_controller.Stock360Controller,
-        "portfolioController": model_portfolio_controller.ModelPortfolioController,
-        "comparisonController": comparison_controller.ComparisonController,
-        "screenerController": screener_controller.ScreenerController,
-        "planningController": planning_controller.PlanningController,
-        "strategyBacktestController": strategy_backtest_controller.StrategyBacktestController,
-        "optimizationController": optimization_controller.OptimizationController,
-        "aiAdvisorController": ai_advisor_controller.AiAdvisorController,
-        "settingsController": settings_controller.SettingsController,
-        "stockDetailController": stock_detail_controller.StockDetailController,
-        "corporateActionController": corporate_action_controller.CorporateActionController,
-        "dividendController": dividend_controller.DividendController,
-        "priceDataController": price_data_controller.PriceDataController,
-        "startupJobsController": startup_jobs_controller.StartupJobsController,
-        "goldenCrossController": golden_cross_controller.GoldenCrossController,
-        "riskProfileController": risk_profile_controller.RiskProfileController,
-        "marketAdjustmentController": market_adjustment_controller.MarketAdjustmentController,
-        "systemController": system_controller.SystemController,
-        "marketTickerController": market_ticker_controller.MarketTickerController,
-        "newsController": news_controller.NewsController,
-        "newsSettingsController": news_settings_controller.NewsSettingsController,
-        "modelAnalysisController": model_analysis_controller.ModelAnalysisController,
-    }
-    controllers = {name: cls(container=container, parent=engine) for name, cls in classes.items()}
-    controllers["marketSyncController"] = market_sync_controller.MarketSyncController(parent=engine, container=container)
-    controllers["priceRefreshController"] = price_refresh_controller.PriceRefreshController(
-        controllers["systemController"], controllers["marketSyncController"], container=container, parent=engine)
+    controllers = create_controllers(container, engine, autostart=False)  # uygulamadaki tek liste
     for name, controller in controllers.items():
         engine.rootContext().setContextProperty(name, controller)
     engine.addImportPath(str(Path(os.getcwd()) / "src" / "ui_qml" / "qml"))

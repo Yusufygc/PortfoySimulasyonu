@@ -3,12 +3,12 @@ QML Uygulama Giriş Noktası — PySide6, QtQuick ve WebEngine tabanlı modern U
 """
 from __future__ import annotations
 
-import os
 import sys
 import logging
 from pathlib import Path
+from typing import Any, Dict
 
-from PySide6.QtCore import QUrl, QCoreApplication
+from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWebEngineQuick import QtWebEngineQuick
@@ -47,6 +47,8 @@ from src.ui_qml.controllers.risk_profile_controller import RiskProfileController
 
 logger = logging.getLogger(__name__)
 
+QML_DIR = Path(__file__).resolve().parent / "qml"
+
 
 def _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl, my_portfolio_ctrl=None) -> None:
     """Birleştirilmiş fiyat değişikliği: öncelik sırasıyla Ana Sayfa, Portföyüm, İzleme Listesi, Model Portföy DB'den yeniden okunur."""
@@ -55,6 +57,98 @@ def _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist
         price_refresh_ctrl.pricesChanged.connect(my_portfolio_ctrl.reloadPrices)
     price_refresh_ctrl.pricesChanged.connect(watchlist_ctrl.refreshPrices)
     price_refresh_ctrl.pricesChanged.connect(portfolio_ctrl.reloadPrices)
+
+
+def create_controllers(container, parent, autostart: bool = True) -> Dict[str, Any]:
+    """Tüm denetleyicileri QML bağlam adlarıyla kurar. `autostart=False` zamanlayıcıları başlatmaz (testler)."""
+    def make(cls, **kwargs):
+        return cls(container=container, parent=parent, **kwargs)
+
+    controllers: Dict[str, Any] = {
+        "shellController": make(ShellController),
+        "chartController": make(ChartController),
+        "dashboardController": make(DashboardController),
+        "myPortfolioController": make(MyPortfolioController),
+        "assetsController": make(AssetsController, autostart=autostart),
+        "watchlistController": make(WatchlistController),
+        "stock360Controller": make(Stock360Controller),
+        "portfolioController": make(ModelPortfolioController),
+        "comparisonController": make(ComparisonController),
+        "screenerController": make(ScreenerController),
+        "planningController": make(PlanningController),
+        "strategyBacktestController": make(StrategyBacktestController),
+        "marketSyncController": make(MarketSyncController),
+        "optimizationController": make(OptimizationController),
+        "aiAdvisorController": make(AiAdvisorController),
+        "settingsController": make(SettingsController),
+        "stockDetailController": make(StockDetailController),
+        "corporateActionController": make(CorporateActionController),
+        "dividendController": make(DividendController),
+        "priceDataController": make(PriceDataController),
+        "startupJobsController": make(StartupJobsController, autostart=False),
+        "goldenCrossController": make(GoldenCrossController),
+        "riskProfileController": make(RiskProfileController),
+        "marketAdjustmentController": make(MarketAdjustmentController),
+        "systemController": make(SystemController),
+        "marketTickerController": make(MarketTickerController),
+        "newsController": make(NewsController, autostart=autostart),
+        "newsSettingsController": make(NewsSettingsController),
+        "modelAnalysisController": make(ModelAnalysisController),
+    }
+    controllers["priceRefreshController"] = PriceRefreshController(
+        controllers["systemController"], controllers["marketSyncController"], container=container, parent=parent
+    )
+    return controllers
+
+
+def wire_controllers(c: Dict[str, Any]) -> None:
+    """Denetleyiciler arası sinyal bağlantıları (fiyat, portföy, varlık ve haber değişiklikleri)."""
+    news, my_portfolio, models = c["newsController"], c["myPortfolioController"], c["portfolioController"]
+    refresh, system = c["priceRefreshController"], c["systemController"]
+    c["newsSettingsController"].sourcesChanged.connect(news.refresh)  # kapatılan/açılan kaynak panele hemen yansır
+    c["newsSettingsController"].refreshMinutesChanged.connect(news.setRefreshMinutes)
+    # Açılış kapanış tamamlaması ilk BIST senkronundan sonra: aynı kapanışlar iki yoldan eşzamanlı indirilmesin
+    c["startupJobsController"].start_after(c["marketSyncController"].syncFinished)
+    _wire_price_refresh(refresh, c["dashboardController"], models, c["watchlistController"], my_portfolio)
+    for target in (my_portfolio.reload, news.refresh, c["chartController"].refreshAssets):  # varlık defteri değişti
+        c["assetsController"].dataChanged.connect(target)
+    for source in (c["marketSyncController"].dataSynced, system.pricesRefreshed, c["startupJobsController"].pricesUpdated,
+                   c["priceDataController"].pricesUpdated, c["goldenCrossController"].pricesUpdated):
+        refresh.watch(source)
+    # Portföy içeriği değişti (fiyat değil): son güncelleme zamanı değişmez, liste/özet yeniden okunur
+    for source in (c["corporateActionController"].portfolioChanged, c["dividendController"].portfolioChanged,
+                   system.systemReset):
+        refresh.watch(source, records_update=False)
+        for target in (models.refreshData, my_portfolio.reload, news.refresh):
+            source.connect(target)
+    system.systemReset.connect(c["watchlistController"].reloadAll)
+    c["riskProfileController"].profileSaved.connect(c["optimizationController"].reloadRiskProfile)
+
+
+def build_ui(engine, container, autostart: bool = True) -> Dict[str, Any]:
+    """Bileşim kökü: denetleyicileri kurar, bağlar ve QML bağlamına kaydeder (Main.qml yüklenmez)."""
+    controllers = create_controllers(container, engine, autostart=autostart)
+    wire_controllers(controllers)
+    context = engine.rootContext()
+    for name, controller in controllers.items():
+        context.setContextProperty(name, controller)
+    engine.addImportPath(str(QML_DIR))
+    return controllers
+
+
+def _fit_window_to_screen(app, engine) -> None:
+    """Ekran çözünürlüğüne göre pencereyi otomatik sınırla ve ekranda merkeze al."""
+    primary_screen = app.primaryScreen()
+    if not primary_screen:
+        return
+    geom = primary_screen.availableGeometry()
+    win = engine.rootObjects()[0]
+    w = max(960, min(int(win.property("width") or 1200), geom.width() - 40))
+    h = max(600, min(int(win.property("height") or 760), geom.height() - 60))
+    win.setProperty("width", w)
+    win.setProperty("height", h)
+    win.setProperty("x", geom.x() + max(0, (geom.width() - w) // 2))
+    win.setProperty("y", geom.y() + max(0, (geom.height() - h) // 2))
 
 
 def run_qml_app(container=None) -> int:
@@ -82,116 +176,12 @@ def run_qml_app(container=None) -> int:
         except Exception as exc:
             logger.warning("Container başlatılamadı, mock/offline modda devam ediliyor: %s", exc)
 
-    # Controller'ları (ViewModels) ilklendir
-    shell_ctrl = ShellController(container=container, parent=engine)
-    chart_ctrl = ChartController(container=container, parent=engine)
-    dash_ctrl = DashboardController(container=container, parent=engine)
-    my_portfolio_ctrl = MyPortfolioController(container=container, parent=engine)
-    assets_ctrl = AssetsController(container=container, parent=engine, autostart=True)
-    watchlist_ctrl = WatchlistController(container=container, parent=engine)
-    stock_360_ctrl = Stock360Controller(container=container, parent=engine)
-    portfolio_ctrl = ModelPortfolioController(container=container, parent=engine)
-    comparison_ctrl = ComparisonController(container=container, parent=engine)
-    screener_ctrl = ScreenerController(container=container, parent=engine)
-    planning_ctrl = PlanningController(container=container, parent=engine)
-    strategy_backtest_ctrl = StrategyBacktestController(container=container, parent=engine)
-    market_sync_ctrl = MarketSyncController(parent=engine, container=container)
-    optimization_ctrl = OptimizationController(container=container, parent=engine)
-    ai_advisor_ctrl = AiAdvisorController(container=container, parent=engine)
-    settings_ctrl = SettingsController(container=container, parent=engine)
-    stock_detail_ctrl = StockDetailController(container=container, parent=engine)
-    corporate_action_ctrl = CorporateActionController(container=container, parent=engine)
-    dividend_ctrl = DividendController(container=container, parent=engine)
-    price_data_ctrl = PriceDataController(container=container, parent=engine)
-    startup_jobs_ctrl = StartupJobsController(container=container, parent=engine, autostart=False)
-    golden_cross_ctrl = GoldenCrossController(container=container, parent=engine)
-    risk_profile_ctrl = RiskProfileController(container=container, parent=engine)
-    market_adjustment_ctrl = MarketAdjustmentController(container=container, parent=engine)
-    system_ctrl = SystemController(container=container, parent=engine)
-    market_ticker_ctrl = MarketTickerController(container=container, parent=engine)
-    news_ctrl = NewsController(container=container, parent=engine, autostart=True)
-    news_settings_ctrl = NewsSettingsController(container=container, parent=engine)
-    news_settings_ctrl.sourcesChanged.connect(news_ctrl.refresh)  # kapatılan/açılan kaynak panele hemen yansır
-    news_settings_ctrl.refreshMinutesChanged.connect(news_ctrl.setRefreshMinutes)
-    model_analysis_ctrl = ModelAnalysisController(container=container, parent=engine)
-
-    # Açılış kapanış tamamlaması ilk BIST senkronundan sonra: aynı kapanışlar iki yoldan eşzamanlı indirilmesin
-    startup_jobs_ctrl.start_after(market_sync_ctrl.syncFinished)
-    price_refresh_ctrl = PriceRefreshController(system_ctrl, market_sync_ctrl, container=container, parent=engine)
-    _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist_ctrl, my_portfolio_ctrl)
-    assets_ctrl.dataChanged.connect(my_portfolio_ctrl.reload)
-    assets_ctrl.dataChanged.connect(news_ctrl.refresh)  # takip hedefleri değişti
-    assets_ctrl.dataChanged.connect(chart_ctrl.refreshAssets)
-    for source in (market_sync_ctrl.dataSynced, system_ctrl.pricesRefreshed, startup_jobs_ctrl.pricesUpdated,
-                   price_data_ctrl.pricesUpdated, golden_cross_ctrl.pricesUpdated):
-        price_refresh_ctrl.watch(source)
-    # Portföy içeriği değişti (fiyat değil): son güncelleme zamanı değişmez, liste/özet yeniden okunur
-    for source in (corporate_action_ctrl.portfolioChanged, dividend_ctrl.portfolioChanged, system_ctrl.systemReset):
-        price_refresh_ctrl.watch(source, records_update=False)
-        source.connect(portfolio_ctrl.refreshData)
-        source.connect(my_portfolio_ctrl.reload)
-        source.connect(news_ctrl.refresh)
-    system_ctrl.systemReset.connect(watchlist_ctrl.reloadAll)
-    risk_profile_ctrl.profileSaved.connect(optimization_ctrl.reloadRiskProfile)
-
-    # QML Context Property olarak bağla
-    context = engine.rootContext()
-    context.setContextProperty("shellController", shell_ctrl)
-    context.setContextProperty("chartController", chart_ctrl)
-    context.setContextProperty("dashboardController", dash_ctrl)
-    context.setContextProperty("myPortfolioController", my_portfolio_ctrl)
-    context.setContextProperty("assetsController", assets_ctrl)
-    context.setContextProperty("watchlistController", watchlist_ctrl)
-    context.setContextProperty("stock360Controller", stock_360_ctrl)
-    context.setContextProperty("portfolioController", portfolio_ctrl)
-    context.setContextProperty("comparisonController", comparison_ctrl)
-    context.setContextProperty("screenerController", screener_ctrl)
-    context.setContextProperty("planningController", planning_ctrl)
-    context.setContextProperty("strategyBacktestController", strategy_backtest_ctrl)
-    context.setContextProperty("marketSyncController", market_sync_ctrl)
-    context.setContextProperty("optimizationController", optimization_ctrl)
-    context.setContextProperty("aiAdvisorController", ai_advisor_ctrl)
-    context.setContextProperty("settingsController", settings_ctrl)
-    context.setContextProperty("stockDetailController", stock_detail_ctrl)
-    context.setContextProperty("corporateActionController", corporate_action_ctrl)
-    context.setContextProperty("dividendController", dividend_ctrl)
-    context.setContextProperty("priceDataController", price_data_ctrl)
-    context.setContextProperty("startupJobsController", startup_jobs_ctrl)
-    context.setContextProperty("goldenCrossController", golden_cross_ctrl)
-    context.setContextProperty("riskProfileController", risk_profile_ctrl)
-    context.setContextProperty("marketAdjustmentController", market_adjustment_ctrl)
-    context.setContextProperty("systemController", system_ctrl)
-    context.setContextProperty("priceRefreshController", price_refresh_ctrl)
-    context.setContextProperty("marketTickerController", market_ticker_ctrl)
-    context.setContextProperty("newsController", news_ctrl)
-    context.setContextProperty("newsSettingsController", news_settings_ctrl)
-    context.setContextProperty("modelAnalysisController", model_analysis_ctrl)
-
-    # QML import dizinleri
-    qml_dir = Path(__file__).resolve().parent / "qml"
-    engine.addImportPath(str(qml_dir))
-
-    # Main.qml yükle
-    main_qml = qml_dir / "Main.qml"
-    engine.load(QUrl.fromLocalFile(str(main_qml)))
-
+    build_ui(engine, container)
+    engine.load(QUrl.fromLocalFile(str(QML_DIR / "Main.qml")))
     if not engine.rootObjects():
         logger.error("Main.qml yüklenemedi!")
         return -1
-
-    # Ekran çözünürlüğüne göre pencereyi otomatik sınırla ve ekranda merkeze al
-    primary_screen = app.primaryScreen()
-    if primary_screen:
-        geom = primary_screen.availableGeometry()
-        win = engine.rootObjects()[0]
-        cur_w = int(win.property("width") or 1200)
-        cur_h = int(win.property("height") or 760)
-        w = max(960, min(cur_w, geom.width() - 40))
-        h = max(600, min(cur_h, geom.height() - 60))
-        win.setProperty("width", w)
-        win.setProperty("height", h)
-        win.setProperty("x", geom.x() + max(0, (geom.width() - w) // 2))
-        win.setProperty("y", geom.y() + max(0, (geom.height() - h) // 2))
+    _fit_window_to_screen(app, engine)
 
     logger.info("QML Arayüzü başarıyla başlatıldı.")
     return app.exec()
