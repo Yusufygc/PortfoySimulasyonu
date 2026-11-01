@@ -90,6 +90,13 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 - **Biçim ailesi farkı bilerek korundu:** Hisse 360 (`₺1,234.50 Mr`) ve Portföyüm (`₺1,234.56`) İngilizce ayraçlı kompakt biçim kullanır, `strategy_backtest` ve ana sayfa getirisi `%+1,23` işaretini yüzdeden sonra yazar. Çıktıyı değiştirmemek için `tr_*` ailesine alınmadı; birleştirme ayrı bir görünür-değişiklik kararıdır.
 - **Kalan (E2 kapsamı dışı):** `Strings.qml` ile `messages.py` arasında aynı metnin iki yerde bulunmadığını denetleyen test yok.
 
+### E3 uygulama notları (2026-11-02)
+
+- **Sapma:** plan alt denetleyicileri QML'e ayrı bağlam adıyla açmayı öngörüyordu. Bunun yerine QML adları ve bağlama yüzeyi değişmeden, iş mantığı Qt'siz modüllere ve mixin sınıflarına ayrıldı: `model_portfolio_valuation`/`model_portfolio_export` (Qt'siz sınıf ve fonksiyonlar), `planning_dca_chart`/`planning_months` (fonksiyon), `stock_360_state` ve `stock_detail_loader`/`stock_detail_actions` (durum ve arka plan işini taşıyan mixin; sinyaller denetleyicide kalır). Sebep: bağlam adı değişimi her QML tüketicisini ve testi etkilerdi, kazanç yalnızca isimdi.
+- **Ölçüm kuralı:** `measure_code_quality.py` `@Property` getter'larını sayımdan düşer; getter'ları lambda'ya çevirmek metriği düşürmez, denendi ve geri alındı.
+- **Mixin sınırı:** mixin içindeki metotlar `self` üzerinden denetleyici durumuna bağlıdır (`_container`, `_ticker`...). Bu yüzden tam bağımsız birim değildir; bağımsız test edilebilir olanlar (değerleme, dışa aktarım, bütçe ayları, DCA grafiği) fonksiyon/sınıf olarak ayrıldı (`tests/ui_qml/test_controller_helpers.py`). Mixin'lerin Qt'siz bir hizmete dönüştürülmesi E4 ile birlikte ele alınır.
+- **Fonksiyon borcu:** hedef olan <= 50 bu aşamada sağlanmadı (72); borç `stock_detail_loader`'a (`_load_main_position_data` 85 satır) ve diğer büyük fonksiyonlara dağıldı. E4'te okuma servisleriyle birlikte erir.
+
 ## 3. Riskler
 
 | Risk | Önlem |
@@ -105,7 +112,7 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 |---|---|
 | E1 | Uygulandı (2026-11-01): `create_controllers` / `wire_controllers` / `build_ui`, `test_app_composition.py` (app.py %79), `test_twr_scenarios.py`, `test_portfolio_repository.py` (%100) |
 | E2 | Uygulandı (2026-11-02): `presenters/formatting.py` (tek Türkçe biçimleyici, 9 kopya kalktı), `messages.py` (Python metin kataloğu), mandal tavanı 538 -> 0 (67 satır `metin-muaf`). Sapma ve kalanlar aşağıda |
-| E3 | Açık |
+| E3 | Uygulandı (2026-11-02): sınıf ihlali 4 -> 0, fonksiyon 73 -> 72; CI tavanı 0 / 72. Sapma ve kalanlar aşağıda |
 | E4 | Açık |
 | E5 | Açık |
 | E6 | Açık (isteğe bağlı) |

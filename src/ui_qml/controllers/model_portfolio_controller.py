@@ -6,21 +6,17 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, time as dt_time, datetime
+from datetime import date, time as dt_time
 from decimal import Decimal
 from typing import Any, Dict, List
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
-from src.ui_qml.presenters.formatting import tr_money, tr_pct
+from src.ui_qml.controllers.model_portfolio_export import resolve_range, run_history_export
+from src.ui_qml.controllers.model_portfolio_valuation import ModelPortfolioValuation, display_ticker, empty_summary
 from src.ui_qml.messages import msg
 
 
 logger = logging.getLogger(__name__)
-
-
-def _display_ticker(ticker: str) -> str:
-    text = (ticker or "").strip()
-    return text[:-3] if text.upper().endswith(".IS") else text
 
 
 class ModelPortfolioController(QObject):
@@ -42,6 +38,7 @@ class ModelPortfolioController(QObject):
         self._container = container
         self._service = getattr(container, "model_portfolio_service", None) if container else None
         self._lookup = getattr(container, "stock_lookup_service", None) if container else None
+        self._valuation = ModelPortfolioValuation(self._service, self._lookup, container)
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ModelPortWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
 
@@ -134,15 +131,9 @@ class ModelPortfolioController(QObject):
 
     positionsList = Property("QVariantList", _get_positions_list, notify=positionsChanged)
 
-    def _get_has_positions(self):
-        return self._has_positions
+    hasPositions = Property(bool, lambda self: self._has_positions, notify=positionsChanged)
 
-    hasPositions = Property(bool, _get_has_positions, notify=positionsChanged)
-
-    def _get_is_loading(self):
-        return self._is_loading
-
-    isLoading = Property(bool, _get_is_loading, notify=loadingChanged)
+    isLoading = Property(bool, lambda self: self._is_loading, notify=loadingChanged)
 
     # =====================================================================
     #  Slots (QML'den çağrılan)
@@ -302,7 +293,7 @@ class ModelPortfolioController(QObject):
             )
             action = msg("model_portfolio.alindi") if side.upper() == "BUY" else msg("model_portfolio.satildi")
             self.refreshData()
-            self.operationResult.emit(True, f"{quantity} lot {_display_ticker(ticker)} {action}")
+            self.operationResult.emit(True, f"{quantity} lot {display_ticker(ticker)} {action}")
         except ValueError as exc:
             self.operationResult.emit(False, str(exc))
         except Exception as exc:
@@ -316,7 +307,7 @@ class ModelPortfolioController(QObject):
             return 0.0
         stock = self._lookup.find_stock(raw) if self._lookup else None
         if stock and stock.id:
-            price = self._resolve_prices([stock.id]).get(stock.id)
+            price = self._valuation.resolve_prices([stock.id]).get(stock.id)
             if price and price > 0:
                 return float(price)
         return 0.0
@@ -368,149 +359,27 @@ class ModelPortfolioController(QObject):
 
     def _load_price_map(self, portfolio_id: int):
         """Seçili portföyün hisse fiyatlarını yükler."""
-        try:
-            positions = self._service.get_positions(portfolio_id)
-            stock_ids = sorted(positions.keys())
-            self._current_price_map = self._resolve_prices(stock_ids)
-        except Exception as exc:
-            logger.warning("Fiyat haritası yüklenemedi: %s", exc)
-            self._current_price_map = {}
-
-    def _resolve_prices(self, stock_ids: list) -> Dict[int, Decimal]:
-        """Güncel fiyat: önce çözümleyici (canlı/kapanış), yoksa canlı önbellek, eksikler için son kapanış."""
-        price_map: Dict[int, Decimal] = {}
-        resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
-        if resolver is not None:
-            price_map.update(resolver.price_map(stock_ids))
-        elif self._lookup:
-            price_map.update(self._lookup.get_latest_price_map(stock_ids))
-        if self._lookup:
-            for sid in [sid for sid in stock_ids if sid not in price_map]:
-                close = self._lookup.get_previous_close(sid)
-                if close is not None:
-                    price_map[sid] = close
-        return price_map
+        self._current_price_map = self._valuation.price_map(portfolio_id)
 
     def _update_view(self):
         """Seçili portföyün özet ve pozisyon bilgilerini günceller."""
         if not self._service or self._current_portfolio_id <= 0:
             return
         try:
-            self._update_summary()
-            self._update_positions()
+            s = self._valuation.summary(self._current_portfolio_id, self._current_price_map)
+            self._summary_net_capital = s["net_capital"]
+            self._summary_remaining_cash = s["remaining_cash"]
+            self._summary_remaining_cash_raw = s["remaining_cash_raw"]
+            self._summary_total_value = s["total_value"]
+            self._summary_profit_loss = s["profit_loss"]
+            self._summary_profit_loss_pct = s["profit_loss_pct"]
+            self._summary_profit_loss_state = s["state"]
+            self.summaryChanged.emit()
+            self._positions_list = self._valuation.position_rows(self._current_portfolio_id, self._current_price_map)
+            self._has_positions = len(self._positions_list) > 0
+            self.positionsChanged.emit()
         except Exception as exc:
             logger.error("Görünüm güncellenemedi: %s", exc)
-
-    def _update_summary(self):
-        summary = self._service.get_portfolio_summary(
-            self._current_portfolio_id, self._current_price_map
-        )
-        net_capital = summary.get("net_capital", summary.get("initial_cash", Decimal("0")))
-        remaining_cash = summary.get("remaining_cash", Decimal("0"))
-        total_value = summary.get("total_value", Decimal("0"))
-        profit_loss = summary.get("profit_loss", Decimal("0"))
-        profit_loss_pct = summary.get("profit_loss_pct", Decimal("0"))
-
-        self._summary_net_capital = tr_money(net_capital)
-        self._summary_remaining_cash = tr_money(remaining_cash)
-        self._summary_remaining_cash_raw = remaining_cash
-        self._summary_total_value = tr_money(total_value)
-        self._summary_profit_loss = tr_money(profit_loss)
-        self._summary_profit_loss_pct = float(profit_loss_pct)
-
-        rounded = round(profit_loss, 2)
-        if rounded > 0:
-            self._summary_profit_loss_state = "positive"
-        elif rounded < 0:
-            self._summary_profit_loss_state = "negative"
-        else:
-            self._summary_profit_loss_state = "neutral"
-
-        self.summaryChanged.emit()
-
-    def _update_positions(self):
-        positions = self._service.get_positions_with_details(
-            self._current_portfolio_id, self._current_price_map
-        )
-        # Previous close map for daily change
-        prev_close_map = self._build_previous_close_map(positions)
-        # Ağırlık paydası: portföy toplam değeri bir kez hesaplanır (eskiden her pozisyonda yeniden: O(N²))
-        total_val = Decimal("0")
-        try:
-            summary = self._service.get_portfolio_summary(self._current_portfolio_id, self._current_price_map)
-            total_val = summary.get("total_value", Decimal("0"))
-        except Exception:
-            logger.warning("Model portföy toplam değeri hesaplanamadı; ağırlık 0 gösterilecek.", exc_info=True)
-
-        self._positions_list = []
-        for pos in positions:
-            stock_id = pos.get("stock_id")
-            current_price = pos.get("current_price")
-            avg_cost = pos.get("avg_cost")
-            quantity = pos.get("quantity", 0)
-            total_cost = pos.get("total_cost")
-            current_value = pos.get("current_value")
-            profit_loss = pos.get("profit_loss")
-
-            # Daily change %
-            prev_close = prev_close_map.get(stock_id)
-            daily_change_pct = None
-            if current_price and prev_close and prev_close > 0:
-                daily_change_pct = float(((current_price - prev_close) / prev_close) * 100)
-
-            # Total change %
-            total_change_pct = None
-            if current_price and avg_cost and avg_cost > 0:
-                total_change_pct = float(((current_price - avg_cost) / avg_cost) * 100)
-
-            weight = 0.0
-            if current_value and total_val and total_val > 0:
-                weight = float((current_value / total_val) * 100)
-
-            self._positions_list.append({
-                "stockId": stock_id,
-                "ticker": _display_ticker(pos.get("ticker", "")),
-                "companyName": pos.get("name", ""),
-                "quantity": quantity,
-                "avgCost": float(avg_cost) if avg_cost else 0.0,
-                "currentPrice": float(current_price) if current_price else 0.0,
-                "currentValue": float(current_value) if current_value else 0.0,
-                "totalCost": float(total_cost) if total_cost else 0.0,
-                "profitLoss": float(profit_loss) if profit_loss else 0.0,
-                "dailyChangePct": daily_change_pct if daily_change_pct is not None else 0.0,
-                "totalChangePct": total_change_pct if total_change_pct is not None else 0.0,
-                "weight": weight,
-                "profitLossFormatted": tr_money(profit_loss) if profit_loss else "₺0,00",
-                "dailyChangeFormatted": tr_pct(Decimal(str(daily_change_pct)), with_sign=True) if daily_change_pct is not None else "-",
-                "totalChangeFormatted": tr_pct(Decimal(str(total_change_pct)), with_sign=True) if total_change_pct is not None else "-",
-            })
-
-        self._has_positions = len(self._positions_list) > 0
-        self.positionsChanged.emit()
-
-    def _build_previous_close_map(self, positions: list) -> Dict[int, Decimal]:
-        """Pozisyondaki hisselerin bir önceki kapanış fiyatlarını çeker."""
-        result: Dict[int, Decimal] = {}
-        if not self._lookup:
-            return result
-        try:
-            stock_ids = [pos.get("stock_id") for pos in positions if pos.get("stock_id")]
-            resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
-            resolved_map = resolver.resolve(stock_ids) if resolver is not None else {}
-            for sid in stock_ids:
-                resolved = resolved_map.get(sid)
-                if resolved is not None:
-                    # Önceki kapanış, güncel fiyatın gününden önceki son kapanıştır
-                    previous = resolver.previous_close(sid, resolved)
-                    if previous is not None:
-                        result[sid] = previous
-                    continue
-                prev_close = self._lookup.get_previous_close(sid)
-                if prev_close is not None:
-                    result[sid] = prev_close
-        except Exception as exc:
-            logger.warning("Previous close map hatası: %s", exc)
-        return result
 
     def _clear_current(self):
         """Seçili portföy bilgilerini temizler."""
@@ -519,13 +388,11 @@ class ModelPortfolioController(QObject):
         self._current_portfolio_desc = ""
         self.currentPortfolioChanged.emit()
 
-        self._summary_net_capital = "₺0,00"
-        self._summary_remaining_cash = "₺0,00"
-        self._summary_total_value = "₺0,00"
-        self._summary_profit_loss = "₺0,00"
-        self._summary_profit_loss_pct = 0.0
-        self._summary_profit_loss_state = "neutral"
-        self._summary_remaining_cash_raw = Decimal("0")
+        s = empty_summary()
+        self._summary_net_capital, self._summary_remaining_cash = s["net_capital"], s["remaining_cash"]
+        self._summary_remaining_cash_raw, self._summary_total_value = s["remaining_cash_raw"], s["total_value"]
+        self._summary_profit_loss, self._summary_profit_loss_pct = s["profit_loss"], s["profit_loss_pct"]
+        self._summary_profit_loss_state = s["state"]
         self.summaryChanged.emit()
 
         self._positions_list = []
@@ -550,56 +417,19 @@ class ModelPortfolioController(QObject):
     @Slot(str, str, str, bool)
     def exportHistoryToFile(self, start_text: str, end_text: str, file_path: str, append: bool = False) -> None:
         """Seçili model portföyün tarihsel (günlük) Excel raporunu seçilen aralık ve dosyaya yazar."""
-        from datetime import datetime as _dt
-
-        def parse(text):
-            for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
-                try:
-                    return _dt.strptime((text or "").strip(), fmt).date()
-                except ValueError:
-                    continue
-            return None
-
         if self._current_portfolio_id < 0:
             self.operationResult.emit(False, msg("model_portfolio.disa_aktarmak_icin_bir_model_portfoy"))
             return
         first = self._service.get_first_trade_date(self._current_portfolio_id) if self._service else None
-        start = parse(start_text) or first
-        end = parse(end_text) or date.today()
-        if (start_text.strip() and parse(start_text) is None) or (end_text.strip() and parse(end_text) is None):
-            self.operationResult.emit(False, msg("model_portfolio.tarih_bicimi_gecersiz_bicim_gg_aa"))
+        start, end, error = resolve_range(start_text, end_text, first)
+        if error:
+            self.operationResult.emit(False, error)
             return
-        if start is None:
-            self.operationResult.emit(False, msg("model_portfolio.bu_model_portfoyde_islem_bulunamadi"))
-            return
-        if start > end:
-            self.operationResult.emit(False, msg("model_portfolio.baslangic_tarihi_bitis_tarihinden_buyuk_olam"))
-            return
+        excel_service = getattr(self._container, "model_portfolio_excel_export_service", None) if self._container else None
+        portfolio_id, path, do_append = self._current_portfolio_id, file_path.strip(), bool(append)
         self._executor.submit(
-            self._run_history_export_worker, self._current_portfolio_id, start, end, file_path.strip(), bool(append)
+            lambda: self._asyncExportFinished.emit(*run_history_export(excel_service, portfolio_id, start, end, path, do_append))
         )
-
-    def _run_history_export_worker(self, portfolio_id: int, start, end, file_path: str, append: bool = False) -> None:
-        try:
-            from pathlib import Path
-            from src.application.services.reporting.daily_history_models import ExportMode
-
-            excel_service = getattr(self._container, "model_portfolio_excel_export_service", None) if self._container else None
-            if excel_service is None:
-                self._asyncExportFinished.emit(False, msg("model_portfolio.excel_disa_aktarim_servisi_yapilandirilmamis"))
-                return
-            target = Path(file_path) if file_path else Path.home() / "Desktop" / f"Model_Portfoy_{portfolio_id}.xlsx"
-            if target.suffix.lower() != ".xlsx":
-                target = target.with_suffix(".xlsx")
-            target.parent.mkdir(parents=True, exist_ok=True)
-            excel_service.export_model_portfolio_history(
-                portfolio_id=portfolio_id, start_date=start, end_date=end, file_path=target,
-                mode=ExportMode.APPEND if append else ExportMode.OVERWRITE,
-            )
-            self._asyncExportFinished.emit(True, msg("model_portfolio.model_portfoy_raporu_olusturuldu", name=target.name))
-        except Exception as exc:
-            logger.exception("Model portföy tarihsel Excel export hatası: %s", exc)
-            self._asyncExportFinished.emit(False, msg("model_portfolio.excel_raporu_olusturulamadi", exc=exc))
 
     def _on_export_finished(self, success: bool, message: str) -> None:
         self.excelExported.emit(success, message)

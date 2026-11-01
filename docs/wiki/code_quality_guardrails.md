@@ -6,7 +6,7 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 
 ## 1. Ölçüm
 
-**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 4 sınıf, 73 fonksiyon, 0 dosya); yeni ihlal eklenemez. Ölçüm `tests/`, `scripts/` ve `src/` dosyalarının tümünü kapsar: test yardımcılarındaki 5'ten çok parametre de ihlaldir (2026-11-01'de Portföyüm/haber işi tavanı 92'ye çıkarmıştı; seçenek sözlüğü, `**options` ve küçük yardımcı fonksiyonlarla 75'e indirildi). Ölçüm `--output-dir` olmadan tarihsel baseline dosyalarının üzerine yazar; yerelde mutlaka `--output-dir` verin. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
+**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 0 sınıf, 72 fonksiyon, 0 dosya); yeni ihlal eklenemez. Ölçüm `tests/`, `scripts/` ve `src/` dosyalarının tümünü kapsar: test yardımcılarındaki 5'ten çok parametre de ihlaldir (2026-11-01'de Portföyüm/haber işi tavanı 92'ye çıkarmıştı; seçenek sözlüğü, `**options` ve küçük yardımcı fonksiyonlarla 75'e indirildi). Ölçüm `--output-dir` olmadan tarihsel baseline dosyalarının üzerine yazar; yerelde mutlaka `--output-dir` verin. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
 
 ```powershell
 .\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar
@@ -32,16 +32,16 @@ Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (do
 
 ## 3. Güncel Durum (2026-10-04 ölçümü)
 
-Python dosyası eşiği (400 satır) ihlali yoktur. **4 sınıf** ve **73 fonksiyon** eşik dışıdır (2026-11-01 ölçümü); sınıf ihlallerinin tamamı QML denetleyicileridir (`@Property` getter'ları hariç; eşik 400 satır / 30 metot):
+Python dosyası eşiği (400 satır) ve sınıf eşiği ihlali yoktur. **72 fonksiyon** eşik dışıdır (2026-11-02 ölçümü). 2026-11-02'ye kadar dört QML denetleyicisi sınıf eşiğini aşıyordu (eşik 400 satır / 30 metot, `@Property` getter'ları hariç); E3 ile ayrıştırıldı:
 
-| Denetleyici | Etkin satır | Metot |
-|---|---:|---:|
-| `ModelPortfolioController` | 518 | 41 |
-| `PlanningController` | 445 | 17 |
-| `Stock360Controller` | 455 | 39 |
-| `StockDetailController` | 507 | 19 |
+| Denetleyici | Önce (satır/metot) | Sonra | Ayrılan parça |
+|---|---:|---:|---|
+| `ModelPortfolioController` | 461 / 36 | 321 / 29 | `model_portfolio_valuation` (fiyat, özet, pozisyon satırı), `model_portfolio_export` (tarih aralığı, Excel) |
+| `PlanningController` | 445 / 17 | 373 / 16 | `planning_dca_chart`, `planning_months` |
+| `Stock360Controller` | 455 / 39 | 300 / 23 | `stock_360_state` (durum ilkleme ve uygulama, mixin) |
+| `StockDetailController` | 504 / 19 | 174 / 13 | `stock_detail_loader`, `stock_detail_actions` (arka plan iş parçacığı işleri, mixin) |
 
-Bunlar **kabul edilen borçtur** (denetim Bulgu 2, 2026-10-04): sırf eşik için ayrıştırılmaz; yeni davranış eklenen denetleyicide önce ilgili parça çıkarılır (bkz. §6). Karar gerekçesi için [log.md](log.md) "Bulgu 2 Kabul Edilen Borç" girdisine bakın.
+Yeni davranış eklenirken denetleyici eşiğe yaklaşırsa önce ilgili parça çıkarılır (bkz. §6).
 
 Fonksiyon ihlallerinin çoğu `stock_detail_controller.py` (8), `corporate_action_controller.py` ve `dashboard_controller.py` (5'er) dosyalarındadır. Bunlar geçici ve bilinen teknik borçtur ([roadmap.md](roadmap.md)); **yeni ihlal eklenmez**: bu denetleyicilere özellik eklemeden önce ilgili parça ayrı modüle (hesap yardımcısı, alt denetleyici) çıkarılır. `Stock360Controller` (`stock_360_calc/fallback/formatters/html/overview/remote`) `ComparisonController` (`comparison_chart_html`, `comparison_support`) `OptimizationController` (`optimization_pipeline`, `optimization_chart_html`) ve `AiAdvisorController` (`advisor_health`, `advisor_local_analysis`, `advisor_chat_support`) bu ayrımın örnekleridir. `@Property` getter'ları ölçümde sayılmadığı için kalan ihlaller gerçek mantık satırlarıdır.
 

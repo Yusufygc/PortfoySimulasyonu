@@ -11,32 +11,17 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime
 from decimal import Decimal
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
 from src.domain.models.budget import Budget, BudgetItem
-from src.domain.models.financial_goal import FinancialGoal, GoalStatus
+from src.ui_qml.controllers.planning_dca_chart import build_dca_chart_html
+from src.ui_qml.controllers.planning_months import budget_months
 from src.ui_qml.presenters.formatting import tr_money
 from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
-
-_JS_DIR = Path(__file__).resolve().parent.parent / "assets" / "js"
-_LW_CHARTS_JS: str = ""
-
-
-def _load_embedded_scripts() -> None:
-    global _LW_CHARTS_JS
-    if not _LW_CHARTS_JS:
-        lw_file = _JS_DIR / "lightweight-charts.standalone.production.js"
-        if lw_file.exists():
-            try:
-                _LW_CHARTS_JS = lw_file.read_text(encoding="utf-8")
-            except Exception as e:
-                logger.warning("lightweight-charts script okunamadı: %s", e)
-
 
 class PlanningController(QObject):
     """QML context property: planningController"""
@@ -184,43 +169,9 @@ class PlanningController(QObject):
         return self._dca_chart_html
 
     def _refresh_available_months(self) -> None:
-        """İlk veri tarihinden günümüze kadar bütçe aylarını üretir."""
-        now = datetime.now()
-        cur_year, cur_month = now.year, now.month
-
-        start_year = cur_year - 1
-        start_month = 1
-
-        try:
-            if self._service:
-                budgets = self._service.get_all_budgets()
-                if budgets:
-                    oldest_b = min(b.month for b in budgets if b.month)
-                    parts = oldest_b.split("-")
-                    start_year = min(start_year, int(parts[0]))
-                    start_month = min(start_month, int(parts[1]))
-
-            portfolio_service = getattr(self._container, "portfolio_service", None)
-            first_trade = portfolio_service.get_first_trade_date() if portfolio_service else None
-            if first_trade:
-                start_year = min(start_year, first_trade.year)
-                start_month = min(start_month, first_trade.month)
-        except Exception as exc:
-            logger.warning("Bütçe ayları listelenirken hata: %s", exc)
-
-        months = []
-        y, m = start_year, start_month
-        while (y < cur_year) or (y == cur_year and m <= cur_month):
-            months.append(f"{y}-{m:02d}")
-            m += 1
-            if m > 12:
-                m = 1
-                y += 1
-
-        months.reverse()  # En yeni ay en üstte olsun
-        if self._current_month not in months:
-            months.insert(0, self._current_month)
-        self._available_months = months
+        self._available_months = budget_months(
+            self._service, getattr(self._container, "portfolio_service", None), self._current_month
+        )
 
     # ──────────────────────────── Bütçe Slotları ────────────────────────────
 
@@ -588,7 +539,7 @@ class PlanningController(QObject):
             self._dca_shares_list = shares
 
             # Chart HTML
-            self._dca_chart_html = self._build_dca_chart_html(res.portfolio_value_series)
+            self._dca_chart_html = build_dca_chart_html(res.portfolio_value_series)
 
             self.dcaChanged.emit()
             self.operationResult.emit(True, msg("planning.dca_simulasyonu_tamamlandi_katki_donemi", contribution_count=res.contribution_count))
@@ -598,51 +549,3 @@ class PlanningController(QObject):
         finally:
             self._dca_is_running = False
             self.dcaRunningChanged.emit()
-
-    def _build_dca_chart_html(self, series: Dict[date, Decimal]) -> str:
-        if not series:
-            return ""
-        _load_embedded_scripts()
-        script_tag = f"<script>{_LW_CHARTS_JS}</script>" if _LW_CHARTS_JS else '<script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>'
-
-        data_points = []
-        for dt_val in sorted(series.keys()):
-            val = float(series[dt_val])
-            data_points.append(f"{{time:'{dt_val.isoformat()}',value:{val:.2f}}}")
-
-        # metin-muaf: HTML şablonu
-        return f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>
-body {{ margin: 0; background: #131722; overflow: hidden; }}
-#c {{ width: 100vw; height: 100vh; }}
-</style>
-{script_tag}
-</head><body><div id="c"></div>
-<script>
-var chart = LightweightCharts.createChart(document.getElementById('c'), {{
-    width: window.innerWidth || 800, height: window.innerHeight || 450,
-    layout: {{ background: {{ color: '#131722' }}, textColor: '#9db2ce' }},
-    grid: {{ vertLines: {{ color: '#1e222d' }}, horzLines: {{ color: '#1e222d' }} }},
-    rightPriceScale: {{ borderColor: '#2a2e39', scaleMargins: {{ top: 0.1, bottom: 0.1 }} }},
-    timeScale: {{ borderColor: '#2a2e39', timeVisible: false }},
-    crosshair: {{ mode: 0 }}
-}});
-var areaSeries = chart.addSeries(LightweightCharts.AreaSeries, {{
-    topColor: 'rgba(41, 98, 255, 0.45)',
-    bottomColor: 'rgba(41, 98, 255, 0.04)',
-    lineColor: '#2962ff',
-    lineWidth: 2,
-    priceFormat: {{
-        type: 'price',
-        precision: 2,
-        minMove: 0.01,
-    }},
-    title: 'Portföy Değeri (₺)',
-}});
-areaSeries.setData([{','.join(data_points)}]);
-chart.timeScale().fitContent();
-window.addEventListener('resize', function() {{
-    chart.applyOptions({{ width: window.innerWidth, height: window.innerHeight }});
-}});
-</script></body></html>"""

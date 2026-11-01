@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-02] güncelleme | Evrim Planı E3: Büyük Denetleyicilerin Ayrıştırılması
+
+- `ModelPortfolioController` 461 -> 321 satır (36 -> 29 metot): `model_portfolio_valuation.py` (fiyat haritası, önceki kapanış, özet, pozisyon satırları) ve `model_portfolio_export.py` (tarih aralığı doğrulama, Excel yazma) Qt'siz modüllere alındı.
+- `PlanningController` 445 -> 373: `planning_dca_chart.py` (DCA grafiği HTML'i, mevcut `lw_chart_html` betik etiketini yeniden kullanır) ve `planning_months.py` (bütçe ayı listesi).
+- `Stock360Controller` 455 -> 300: durum ilkleme ve uygulama metotları `stock_360_state.Stock360StateMixin`'e; `StockDetailController` 504 -> 174: veri yükleme `stock_detail_loader.StockDetailLoaderMixin`'e, emir ve Excel işleri `stock_detail_actions.StockDetailActionsMixin`'e taşındı. QML adları ve sinyaller değişmedi.
+- Sınıf ihlali 4 -> 0, fonksiyon 73 -> 72; CI tavanı 0 / 72. Yeni test: `tests/ui_qml/test_controller_helpers.py` (10 test). Test: tam paket yeşil.
+- Not: `@Property` getter'ları ölçümde zaten sayım dışı; lambda'ya çevirmek metriği değiştirmez (geri alındı). Bkz. [architecture_evolution_plan.md](architecture_evolution_plan.md).
+
+---
 ## [2026-11-02] güncelleme | Evrim Planı E2: Tek Biçimleyici ve Python Metin Kataloğu
 
 - `src/ui_qml/presenters/formatting.py`: `tr_number`, `tr_money`, `tr_pct`, `tr_number_or_dash`; denetleyicilerdeki dokuz biçimleyici kopyası kaldırıldı. `portfolio_presenter` `presenters/` altına taşındı.
