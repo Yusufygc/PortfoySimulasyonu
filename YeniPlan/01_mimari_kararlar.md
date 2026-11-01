@@ -60,4 +60,10 @@ Durum: **Onaylı**
 
 ## 6. Açık Sorular
 
-Şu an açık soru yok. Aşama 6 spike'ı sonucunda KAP ve RSS kaynak seçimi için karar notu eklenecek (bkz. [05](05_genel_bakis_ve_haber.md)).
+| Soru | Durum |
+|---|---|
+| Google News RSS varsayılan açık mı kapalı mı? | **Kullanıcı kararı bekliyor.** Türkçe şirket haberi için en geniş kaynak, ama kişisel okuyucu kullanımına yönelik; uygulama kişisel bir araç. Öneri: açık, Ayarlar'da koşul notuyla |
+| Çok hisseli kurum bildirimleri (SPK işlem yasağı vb.) varsayılan gizli mi? | Öneri: gizli (şirket haberinde ≤5 ilgili hisse kuralı); Ayarlar'da açılabilir |
+| KAP kimlik haritası hatası (45 şirket, GARAN dahil) ne zaman düzeltilsin? | Öneri: Aşama 6 başında, test ile; Hisse 360 ortaklık yapısını da düzeltir |
+
+Spike kayıtları: [tasarim_notlari/](tasarim_notlari/).

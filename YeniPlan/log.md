@@ -5,6 +5,16 @@
 > Başlık biçimi: `## [YYYY-AA-GG] işlem | Konu`
 
 ---
+## [2026-11-01] spike | Aşama 6 öncesi haber kaynakları yoklaması
+
+- **KAP:** `POST /tr/api/disclosure/members/byCriteria` şirket bazlı bildirimleri döndürüyor (ISO tarih zorunlu, çoklu şirket tek istekte, 0,2-1,2 sn); bağlantı `https://www.kap.org.tr/tr/Bildirim/{disclosureIndex}`. Gürültü: ~üçte bir çok hisseli kurum bildirimi ve çoklu `FR` kaydı.
+- **Hata bulundu (mevcut kod):** `kap_shareholder_provider._parse_bist_companies` birden fazla borsa kodu olan (`"GARAN, TGB"`) 45 şirketi atlıyor; GARAN dahil KAP kimliği çözülemiyor, Hisse 360 ortaklık yapısı da etkileniyor. Aşama 6'da test ile düzeltilecek.
+- **yfinance haberi:** `finance.yahoo.com/xhr/ncp` 404; `get_news` ve `Search.news` sessizce boş. `YFinanceNewsProvider` iptal; yerine Yahoo sembol RSS (AAPL, BTC-USD, GC=F çalışıyor) ve Google News RSS (Türkçe THYAO, gram altın, bitcoin).
+- **RSS:** 15 Türkçe + 6 global besleme doğrulandı; 5 adres çalışmıyor (Dünya Finans, Para Analiz, Borsagündem, Yahoo rssindex, KAP RSS). Tarih biçimleri karışık, bazı akışlar genel haber.
+- `scripts/probe_news_sources.py` eklendi; notlar `tasarim_notlari/spike_*.md`. 05, 06 ve 01 sayfaları spike sonucuna göre güncellendi.
+- Kullanıcı kararı bekleyen: Google News RSS varsayılan durumu ([01](01_mimari_kararlar.md) §6).
+
+---
 ## [2026-11-01] uygulama | Aşama 5: Portföyüm arayüzü
 
 - Portföyüm tüm rakamlarını `UnifiedPortfolioService`'ten okur (BIST sekmesi dahil; günlük kazanç tam formül). `MyPortfolioController`: KPI'lar, TRY/USD anahtarı, sınıf dilimleri, sekmeler, tablo modeli; `AssetsController`: varlık ekleme (arka plan), işlem kaydı, fiyat yenileme, öneri, kaldırma.

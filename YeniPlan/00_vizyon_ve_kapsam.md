@@ -14,7 +14,7 @@ Bugün Genel Bakış (`src/ui_qml/qml/views/DashboardView.qml`, 677 satır) hem 
 2. **Genel Bakış:** Grafik ve haber akışı (şirket haberleri + global/piyasa haberleri) sayfası olur.
 3. **Çoklu varlık:** Portföyüm'de BIST dışı varlıklar (emtia, kripto, NASDAQ hisseleri) eklenir ve takip edilir.
 4. **Sınıf bazlı dağılım:** Varlık dağılımı BIST, ABD hisse, kripto, emtia ve nakit sınıflarına göre yeniden tasarlanır.
-5. **Haber kaynağı yönetimi:** KAP, yfinance ve Türkçe RSS kaynakları Ayarlar sayfasından tek tek açılıp kapatılır.
+5. **Haber kaynağı yönetimi:** KAP, Yahoo RSS, Google News ve Türkçe RSS kaynakları Ayarlar sayfasından tek tek açılıp kapatılır.
 
 ## 3. v1 Kapsamı
 

@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Günlük: [log.md](log.md) | Önceki: [04_portfoyum_sayfasi.md](04_portfoyum_sayfasi.md) | Sonraki: [06_ayarlar_haber_kaynaklari.md](06_ayarlar_haber_kaynaklari.md)
 
-Durum: **Taslak** (Aşama 6)
+Durum: **Taslak** (Aşama 6); spike tamamlandı, sonuçlar aşağıda ve [tasarim_notlari/](tasarim_notlari/) altında
 
 ## 1. Sayfa Yerleşimi
 
@@ -24,13 +24,18 @@ Grafik şu an yalnızca BIST çizer (`ChartController._load_candles`: DuckDB →
 
 ### Infrastructure (`src/infrastructure/news/`)
 
-| Sağlayıcı | Kaynak | Not |
-|---|---|---|
-| `KapDisclosureNewsProvider` | KAP bildirimleri (Türkçe) | `kap_shareholder_provider.resolve_member_oid(ticker)` yeniden kullanılır; şirket bazlı uç nokta spike'ta doğrulanır |
-| `YFinanceNewsProvider` | `Ticker.get_news`, `Search.news` | `yfinance_lock` altında; haberler çoğunlukla İngilizce; yfinance sonuçları oturumda saklar |
-| `RssNewsProvider` | Yapılandırılabilir RSS/Atom listesi | `lxml` ile ayrıştırma; yeni paket gerekirse pinli eklenir |
+Spike sonrası kesinleşen sağlayıcılar:
 
-Hepsi `retry_call` kullanır, geçici hatayı `MarketDataUnavailableError`'a sarar. Gerçek ağ çağrısı testlerde yapılmaz; sağlayıcılara `fetcher` enjekte edilebilir (mevcut `KapMkkCorporateActionProvider(fetcher=...)` kalıbı).
+| Sağlayıcı | Kaynak | Kapsam | Not |
+|---|---|---|---|
+| `KapDisclosureNewsProvider` | `POST https://www.kap.org.tr/tr/api/disclosure/members/byCriteria` | BIST şirket bildirimleri (Türkçe) | Tek istekte çoklu şirket; ISO tarih; ortak/kurum bildirimi ve alt belge gürültüsü süzülür ([spike_kap_bildirim.md](tasarim_notlari/spike_kap_bildirim.md)). Ön koşul: KAP kimlik haritası hatasının düzeltilmesi |
+| `YahooRssNewsProvider` | `https://feeds.finance.yahoo.com/rss/2.0/headline?s={yf_symbol}` | ABD hissesi, kripto, emtia (İngilizce) | `YFinanceNewsProvider` **iptal**: `yfinance` haber API'si 404 veriyor ([spike_yfinance_haber.md](tasarim_notlari/spike_yfinance_haber.md)) |
+| `GoogleNewsRssProvider` | `https://news.google.com/rss/search?q=...&hl=tr&gl=TR&ceid=TR:tr` | BIST şirketleri ve varlık adları (Türkçe) | Kullanım koşulu notu; varsayılan açık/kapalı kararı kullanıcıda |
+| `RssNewsProvider` | Yapılandırılabilir RSS/Atom listesi | Piyasa ve global genel akış | `lxml`; doğrulanmış varsayılan liste [spike_rss_kaynaklari.md](tasarim_notlari/spike_rss_kaynaklari.md) §5 |
+
+Hepsi `retry_call` kullanır ve **HTTP durumunu açıkça denetler**: 4xx/5xx, boş gövde veya ayrıştırılamayan yanıt `MarketDataUnavailableError` olur (`yfinance`'in sessiz boş dönüşü tekrarlanmaz). Gerçek ağ çağrısı testlerde yapılmaz; sağlayıcılara `fetcher` enjekte edilir (mevcut `KapMkkCorporateActionProvider(fetcher=...)` kalıbı).
+
+Ortak ayrıştırma ilkeleri: tarihler UTC'ye normalize edilir (RFC 822, ISO 8601 ve saat dilimsiz biçimler); yalnızca ilk N öğe işlenir (Hürriyet 768 KB); genel akışlarda piyasa dışı içerik anahtar sözcük süzgeciyle elenebilir.
 
 ### Application (`src/application/services/news/`)
 
@@ -40,7 +45,7 @@ Hepsi `retry_call` kullanır, geçici hatayı `MarketDataUnavailableError`'a sar
 - Tekilleştirme: URL, yoksa normalize başlık hash'i.
 - Tarihe göre azalan sıralama.
 - Takip sembolleri: portföy (BIST + varlık defteri) + izleme listesi; servisler üzerinden alınır.
-- Önbellek: `data/_cache/news/` altında TTL'li JSON (yaklaşık 10 dakika); yfinance oturum önbelleği nedeniyle zorunlu.
+- Önbellek: `data/_cache/news/` altında TTL'li JSON (yaklaşık 10 dakika); sık yenilemede kaynakları gereksiz yüklememek için zorunlu.
 - Yalnızca başlık, özet ve bağlantı saklanır; haber tam metni saklanmaz.
 - İki akış: **şirket haberleri** (takip sembollerine bağlı) ve **piyasa/global haberleri** (sembolsüz genel akış).
 
@@ -54,13 +59,13 @@ SQLite `news_source_settings(source_id PK, enabled, config_json)` + infrastructu
 - `models/news_list_model.py`: `ListTableModel` tabanlı.
 - `qml/components/NewsPanel.qml`: iki sekme — "Portföyüm ve İzleme" (şirket) / "Piyasa ve Global". Her satırda kaynak rozeti, dil rozeti, göreli zaman; tıklayınca varsayılan tarayıcı açılır. Boş durum, yükleniyor ve hata durumları metinleri `Strings.qml`'de.
 
-## 3. Spike (kod öncesi)
+## 3. Spike Sonuçları (2026-11-01)
 
-Aşama 6 kodlamasından önce yapılır; sonuçlar [tasarim_notlari/](tasarim_notlari/) altına yazılır:
+Ayrıntılar `tasarim_notlari/` altındadır; yoklama betiği [scripts/probe_news_sources.py](../scripts/probe_news_sources.py) kaynaklar değişirse yeniden çalıştırılır.
 
-1. **KAP:** Şirket bazlı bildirim listesi uç noktası depoda doğrulanmadı. `scripts/` altında canlı yoklama betiği yazılır; çalışırsa `@pytest.mark.network` testi eklenir. Çalışmazsa mevcut `kap_mkk_provider` HTML yolu "best-effort" kullanılır veya KAP haberi kapsam dışı bırakılıp kullanıcıya bildirilir.
-2. **yfinance:** `.IS` hisseleri için haber kapsamı ve yanıt alanları (başlık, yayıncı, zaman, bağlantı) denenir.
-3. **RSS:** Aday Türkçe ekonomi/piyasa kaynakları denenir. Gerçek besleme adresleri bu adımda doğrulanır; doğrulanmamış adres koda yazılmaz.
+1. **KAP: kullanılabilir.** `POST .../tr/api/disclosure/members/byCriteria` şirket bazlı bildirim listesini döndürüyor (0,2-1,2 sn). İki ön koşul: (a) mevcut KAP kimlik haritası, birden fazla borsa kodu olan 45 şirketi (GARAN dahil) atlıyor; düzeltilmeli. (b) Sonuçların ~üçte biri çok hisseli kurum bildirimi / alt belge gürültüsü; süzgeç gerekli. Bkz. [spike_kap_bildirim.md](tasarim_notlari/spike_kap_bildirim.md).
+2. **yfinance haberi: çalışmıyor.** Yahoo uç noktası 404, kütüphane sessizce boş liste döndürüyor. Yerine Yahoo sembol RSS (ABD, kripto, emtia) ve Google News RSS (Türkçe, BIST). Bkz. [spike_yfinance_haber.md](tasarim_notlari/spike_yfinance_haber.md).
+3. **RSS: 15 Türkçe + 6 global besleme doğrulandı**, 5 adres çalışmıyor. Bkz. [spike_rss_kaynaklari.md](tasarim_notlari/spike_rss_kaynaklari.md).
 
 ## 4. Sınırlar
 

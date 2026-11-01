@@ -12,7 +12,7 @@ Kullanıcı istediği haber kaynağını Ayarlar sayfasından kapatabilir; örne
 
 | Bölüm | İçerik |
 |---|---|
-| Kaynak listesi | KAP bildirimleri, yfinance haberleri ve her RSS beslemesi için ad, açıklama, dil, aç/kapa anahtarı |
+| Kaynak listesi | KAP bildirimleri, Yahoo RSS, Google News ve her RSS beslemesi için ad, açıklama, dil, aç/kapa anahtarı |
 | Özel RSS | Besleme adı + adresi ekleme, silme; adres doğrulama ("Bağlantıyı test et") |
 | Yenileme aralığı | Haber panelinin otomatik yenileme süresi (varsayılan yaklaşık 10 dakika) |
 | Durum | Her kaynak için son başarılı çekim zamanı ve son hata |
@@ -34,11 +34,22 @@ SQLite `news_source_settings`:
 
 | Sütun | Anlam |
 |---|---|
-| `source_id` (PK) | `kap`, `yfinance`, `rss:<kimlik>` |
+| `source_id` (PK) | `kap`, `yahoo_rss`, `google_news`, `rss:<kimlik>` |
 | `enabled` | Açık/kapalı |
 | `config_json` | RSS adresi, ad, dil; yenileme aralığı gibi kaynak ayarları |
 
-İlk çalıştırmada varsayılan kaynaklar eklenir: KAP ve yfinance etkin; Türkçe RSS kaynakları spike sonucuna göre varsayılan listeye girer.
+İlk çalıştırmada varsayılan kaynaklar eklenir (spike sonucu, bkz. [tasarim_notlari/spike_rss_kaynaklari.md](tasarim_notlari/spike_rss_kaynaklari.md) §5):
+
+| Kaynak kimliği | Varsayılan | Not |
+|---|---|---|
+| `kap` | açık | BIST şirket bildirimleri; kapatılabilir |
+| `yahoo_rss` | açık | ABD hissesi, kripto, emtia (İngilizce) |
+| `google_news` | **kullanıcı kararı bekliyor** | Türkçe şirket/varlık haberi; kullanım koşulu notu |
+| `rss:aa_ekonomi`, `rss:bloomberght`, `rss:haberturk_ekonomi`, `rss:trt_ekonomi`, `rss:investing_tr` | açık | Türkçe piyasa akışı |
+| `rss:cnbc_top`, `rss:bbc_business` | açık | İngilizce global akış |
+| `rss:coindesk`, `rss:cointelegraph` | kapalı (kripto varlığı varsa önerilir) | Kripto |
+
+Önceki taslaktaki `yfinance` kaynağı kaldırıldı (haber API'si çalışmıyor).
 
 ## 4. Metin ve Kalite Kuralları
 

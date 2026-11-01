@@ -21,7 +21,7 @@ Durum etiketleri: **Taslak** (yazıldı, tartışılabilir), **Onaylı** (kullan
 | [06_ayarlar_haber_kaynaklari.md](06_ayarlar_haber_kaynaklari.md) | Ayarlar > Haber Kaynakları sekmesi, aç/kapa sistemi | Taslak |
 | [07_test_ve_kalite.md](07_test_ve_kalite.md) | Test stratejisi, koruma testleri, kalite kapıları | Taslak |
 | [08_wiki_entegrasyon.md](08_wiki_entegrasyon.md) | İş bitince wiki'ye taşıma kontrol listesi | Taslak |
-| [tasarim_notlari/](tasarim_notlari/) | Tartışma kayıtları ve spike sonuçları | Boş |
+| [tasarim_notlari/](tasarim_notlari/) | Spike sonuçları: KAP, yfinance haberi, RSS kaynakları | Spike tamamlandı |
 
 ## Aşama Durumu
 
@@ -33,7 +33,7 @@ Durum etiketleri: **Taslak** (yazıldı, tartışılabilir), **Onaylı** (kullan
 | 3 | Fiyat ve kur hattı | Uygulandı |
 | 4 | Birleşik portföy servisi | Uygulandı |
 | 5 | Portföyüm arayüzü | Uygulandı |
-| 6 | Genel Bakış + haber akışı (önce spike) | Açık |
+| 6 | Genel Bakış + haber akışı (önce spike) | Spike tamamlandı, kod açık |
 | 7 | Ayarlar > Haber Kaynakları | Açık |
 | 8 | Ertelenenler (v2) | Açık |
 | 9 | Wiki entegrasyonu ve klasörün silinmesi | Açık |
