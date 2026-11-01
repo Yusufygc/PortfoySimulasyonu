@@ -13,7 +13,7 @@ from typing import Dict, Any, List, Optional
 from PySide6.QtCore import QObject, Signal, Property, Slot
 from src.domain.market_clock import market_now, to_market_date
 from src.domain.ticker import clean_ticker
-from src.ui_qml.controllers.watchlist_pricing import DEFAULT_PRICING, price_row
+from src.application.services.market.watchlist_pricing import DEFAULT_PRICING, price_row
 from src.ui_qml.models.watchlist_table_model import WatchlistTableModel
 from src.ui_qml.messages import msg
 

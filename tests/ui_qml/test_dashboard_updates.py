@@ -114,8 +114,11 @@ def _model_controller(prices):
     resolver = MagicMock()
     resolver.price_map.side_effect = lambda ids: dict(prices)
     live = MagicMock()
+    from src.application.services.portfolio.position_query_service import PositionQueryService
+
+    query = PositionQueryService(None, service, None, resolver)
     container = SimpleNamespace(model_portfolio_service=service, current_price_resolver=resolver,
-                                live_price_refresh_service=live, event_bus=None)
+                                position_query_service=query, live_price_refresh_service=live, event_bus=None)
     ctrl = ModelPortfolioController(container=container)
     ctrl.selectPortfolio(7)
     return ctrl, prices, live

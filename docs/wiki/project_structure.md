@@ -44,6 +44,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | `services/simulation/` | `HistorySimulationService`, `BackfillService`, DCA ve strateji backtest, `price_series_loader`. |
 | `services/watchlist/` | `WatchlistService`. |
 | `services/assets/` | Varlık defteri ve Portföyüm: `AssetLedgerService`, `asset_catalog`, `AssetPriceRefreshService`, `asset_market_calendar`, `FxRateService`, `BistHoldingsReader`, `AssetHoldingsReader`, `UnifiedPortfolioService`, `AssetChartService` ([service_asset_ledger.md](service_asset_ledger.md), [service_asset_prices_fx.md](service_asset_prices_fx.md)). |
+| `services/portfolio/position_query_service.py` | `PositionQueryService`: ana ve model portföy pozisyonları ile hisse fiyatının tek okuma kaynağı ([service_asset_ledger.md](service_asset_ledger.md) §5). |
 | `services/news/` | `NewsService`, `NewsTargetService` ([service_news.md](service_news.md)). |
 | `services/reporting/` | Excel dışa aktarım (`ExcelExportService`, `ModelPortfolioExcelExportService`...) ve `html/` (Plotly/finansal/ortaklık HTML üreticileri). |
 | `services/ai/` | `AiAdvisorService`, `advisor_tools`, `AiChatService`, `AiAnalysisService`, `ChatSessionService`, `safety_guard`. |

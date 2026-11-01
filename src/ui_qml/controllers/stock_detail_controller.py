@@ -18,11 +18,12 @@ from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from src.domain.models.position import Position
 from src.domain.models.trade import TradeSide
+from src.domain.models.trade_impact import INSUFFICIENT_CASH, INSUFFICIENT_LOTS, preview_order
 from src.domain.ticker import clean_ticker
 from src.domain.market_clock import market_now, market_time, market_today
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 from src.ui_qml.controllers.stock_detail_actions import StockDetailActionsMixin
 from src.ui_qml.controllers.stock_detail_loader import StockDetailLoaderMixin
 
@@ -258,28 +259,17 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
     @Slot(str, int, float, result="QVariantMap")
     def tradeImpact(self, side: str, quantity: int, price: float) -> Dict[str, Any]:
         """Emir girilirse pozisyonun alacağı hali (lot, ortalama maliyet, nakit) önceden hesaplar."""
-        qty = max(0, int(quantity))
-        unit_price = Decimal(str(price)) if price and price > 0 else Decimal("0")
-        total = unit_price * Decimal(qty)
         trade_side = TradeSide.BUY if side.upper() in ("BUY", "ALIM") else TradeSide.SELL
-        cur_qty = int(self._quantity)
-        position = Position(stock_id=0, total_quantity=cur_qty, total_cost=Decimal(str(self._avg_cost)) * Decimal(cur_qty))
-        new_qty, new_avg = position.preview_trade(trade_side, qty, unit_price)  # domain kuralı, Decimal
         cash = None if self._cash is None else Decimal(str(self._cash))
-        cash_after = None if cash is None else (cash - total if trade_side == TradeSide.BUY else cash + total)
-        result: Dict[str, Any] = {"valid": qty > 0 and unit_price > 0, "message": ""}
-        if trade_side == TradeSide.BUY and cash_after is not None and cash_after < 0:
-            result["valid"] = False
-            result["message"] = "Yetersiz nakit"
-        if trade_side == TradeSide.SELL and new_qty < 0:
-            result["valid"] = False
-            result["message"] = "Yetersiz lot"
-        result.update({
-            "newQty": f"{max(new_qty, 0):,}".replace(",", "."),
-            "newAvg": f"₺{new_avg:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if new_avg is not None else "-",
-            "cashAfter": "-" if cash_after is None else f"₺{cash_after:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-        })
-        return result
+        impact = preview_order(trade_side, quantity, Decimal(str(price or 0)), int(self._quantity), Decimal(str(self._avg_cost)), cash)
+        reasons = {INSUFFICIENT_CASH: msg("stock_detail.insufficient_cash"), INSUFFICIENT_LOTS: msg("stock_detail.insufficient_lots")}
+        return {
+            "valid": impact.valid,
+            "message": reasons.get(impact.reason, ""),
+            "newQty": f"{max(impact.new_quantity, 0):,}".replace(",", "."),
+            "newAvg": "-" if impact.new_avg_cost is None else "₺" + tr_number(impact.new_avg_cost),
+            "cashAfter": "-" if impact.cash_after is None else "₺" + tr_number(impact.cash_after),
+        }
 
     @Slot(str, int, float, str, str)
     def submitTrade(self, side: str, quantity: int, price: float, date_str: str = "", time_str: str = "") -> None:

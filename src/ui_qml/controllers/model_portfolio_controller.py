@@ -38,7 +38,7 @@ class ModelPortfolioController(QObject):
         self._container = container
         self._service = getattr(container, "model_portfolio_service", None) if container else None
         self._lookup = getattr(container, "stock_lookup_service", None) if container else None
-        self._valuation = ModelPortfolioValuation(self._service, self._lookup, container)
+        self._valuation = ModelPortfolioValuation(self._service, getattr(container, "position_query_service", None))
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ModelPortWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
 

@@ -12,7 +12,7 @@ from PySide6.QtCore import QSettings
 from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
 from src.domain.market_clock import to_market_date
 from src.ui_qml.controllers import system_controller
-from src.ui_qml.controllers import watchlist_pricing as pricing
+from src.application.services.market import watchlist_pricing as pricing
 from src.ui_qml.controllers.system_controller import SystemController
 
 

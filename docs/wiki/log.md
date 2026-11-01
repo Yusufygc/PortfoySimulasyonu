@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-02] güncelleme | Evrim Planı E4: Pozisyon Rakamları İçin Tek Okuma Kaynağı
+
+- Yeni `PositionQueryService` (`ana portföy`, `model portföy`, `quote`) ve domain `PositionSnapshot`/`PortfolioPositions`; container `position_query_service` olarak bağlar. Ana portföy `BistHoldingsReader` ile Portföyüm'le aynı yoldan değerlenir.
+- Hisse Detay (`stock_detail_loader`) pozisyon, fiyat ve ağırlığı servisten alır; model portföy satırları (`model_portfolio_valuation`) yalnızca biçimler. Emir ön izlemesi domain `preview_order`'a taşındı. `watchlist_pricing` uygulama katmanına taşındı.
+- Düzeltme: Hisse Detay model portföy ağırlığı yalnızca nakde bölünüyordu; toplam değere bölünüyor.
+- Testler: `test_position_query_service.py` (Portföyüm = Hisse Detay = Excel karakterizasyonu), `test_trade_impact.py`, `test_controller_money_math_ratchet.py` (tavan 34). Fonksiyon ihlali 72 -> 71, CI tavanı 71. Test: 1806 geçti, 4 xfailed.
+
+---
 ## [2026-11-02] güncelleme | Evrim Planı E3: Büyük Denetleyicilerin Ayrıştırılması
 
 - `ModelPortfolioController` 461 -> 321 satır (36 -> 29 metot): `model_portfolio_valuation.py` (fiyat haritası, önceki kapanış, özet, pozisyon satırları) ve `model_portfolio_export.py` (tarih aralığı doğrulama, Excel yazma) Qt'siz modüllere alındı.

@@ -5,6 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 
+from src.application.services.portfolio.position_query_service import PositionQueryService
 from src.ui_qml.controllers.model_portfolio_export import parse_date, resolve_range, run_history_export
 from src.ui_qml.controllers.model_portfolio_valuation import ModelPortfolioValuation, empty_summary, profit_loss_state
 from src.ui_qml.controllers.planning_dca_chart import build_dca_chart_html
@@ -82,7 +83,8 @@ class _Service:
 
     def get_positions_with_details(self, portfolio_id, price_map):
         return [{"stock_id": 1, "ticker": "AAA.IS", "name": "A", "quantity": 10, "avg_cost": D("100"),
-                 "current_price": D("110"), "current_value": D("1100"), "total_cost": D("1000"), "profit_loss": D("100")}]
+                 "current_price": price_map.get(1), "current_value": price_map[1] * 10, "total_cost": D("1000"),
+                 "profit_loss": D("100")}]
 
 
 class _Lookup:
@@ -93,8 +95,13 @@ class _Lookup:
         return D("100") if stock_id == 1 else D("50")
 
 
+def _valuation(service=None):
+    service = service or _Service()
+    return ModelPortfolioValuation(service, PositionQueryService(None, service, _Lookup(), None))
+
+
 def test_valuation_summary_and_rows_match_hand_calculation():
-    valuation = ModelPortfolioValuation(_Service(), _Lookup())
+    valuation = _valuation()
 
     prices = valuation.price_map(5)
     assert prices == {1: D("110"), 2: D("50")}  # fiyatı olmayan hisse son kapanışa düşer
@@ -114,7 +121,16 @@ def test_valuation_price_map_is_empty_when_service_fails():
         def get_positions(self, _):
             raise RuntimeError("db")
 
-    assert ModelPortfolioValuation(Broken(), None).price_map(1) == {}
+    assert _valuation(Broken()).price_map(1) == {}
+
+
+def test_unpriced_model_position_shows_zero_value_but_keeps_cost():
+    service = _Service()
+    service.get_positions_with_details = lambda pid, pm: [
+        {"stock_id": 9, "ticker": "ZZZ", "name": "Z", "quantity": 4, "total_cost": D("400"),
+         "current_price": None, "current_value": None}]
+    row = _valuation(service).position_rows(5, {})[0]
+    assert (row["currentValue"], row["profitLoss"], row["totalChangeFormatted"], row["totalCost"]) == (0.0, 0.0, "-", 400.0)
 
 
 def test_profit_loss_state_and_empty_summary():

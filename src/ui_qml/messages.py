@@ -471,6 +471,9 @@ MESSAGES: Dict[str, str] = {
     "stock360.bim_birlesik_magazalar_a_s": "BİM Birleşik Mağazalar A.Ş.",
     # --- Hisse 360 ---
     "stock360.finansal_veriler_alinamadi": "Finansal veriler alınamadı ({exc})",
+    # --- Hisse detayı emir ön izlemesi ---
+    "stock_detail.insufficient_cash": "Yetersiz nakit",
+    "stock_detail.insufficient_lots": "Yetersiz lot",
 }
 
 

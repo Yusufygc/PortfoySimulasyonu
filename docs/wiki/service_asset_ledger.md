@@ -80,6 +80,16 @@ Kurallar:
 
 **Tek hesap yolu:** Eski `DashboardController` değerlemesi (yaklaşık günlük kazanç `değer x yüzde`) 2026-11-01'de kaldırıldı; portföy rakamlarının tek kaynağı bu servistir. `DashboardController` yalnızca BIST işlemleri, sermaye, BIST haftalık/aylık getiri ve Excel raporunu sunar. Piyasa kapalı günde günlük K/Z kartı "Son İşlem Günü" etiketiyle gösterilir.
 
+### Pozisyon okuma servisi (`PositionQueryService`)
+
+`src/application/services/portfolio/position_query_service.py`; domain modeli `position_snapshot.py` (`PositionSnapshot`, `PortfolioPositions`).
+
+- **Tek kaynak:** ana portföy pozisyonu `BistHoldingsReader` ile (Portföyüm'le aynı kod yolu) değerlenir; Hisse Detay ve Model Portföy ekranları aynı servisten okur. Aynı pozisyonun değeri, maliyeti ve K/Z'si Portföyüm, Hisse Detay ve Excel geçmişinde birebir aynıdır (`tests/application/test_position_query_service.py`).
+- **Model portföy:** `model_positions(portfolio_id)` fiyatı çözer (çözümleyici, canlı önbellek, son kapanış), önceki kapanışa göre günlük değişimi ve toplam değere göre ağırlığı hesaplar. Eskiden Hisse Detay model bağlamında ağırlığı yalnızca nakde böldüğünden şişkin çıkıyordu; düzeldi.
+- **Fiyat:** `quote(ticker, stock_id)` sırasıyla çözümleyici, canlı önbellek, DuckDB piyasa geçmişi, SQLite kapanışı.
+- **Ağırlık tanımları:** Portföyüm'de `weight_pct` BIST + varlık defteri + nakit toplamına, Hisse Detay'da yalnızca BIST portföyü + nakde göredir; Excel geçmişinde ağırlık nakit hariç pozisyon toplamınadır. Üç tanım bilinçli olarak ayrıdır.
+- **Emir ön izlemesi:** `src/domain/models/trade_impact.py::preview_order` (lot, ağırlıklı ortalama maliyet, nakit sonrası, yetersiz nakit/lot kararı); denetleyici yalnızca biçimler.
+
 ## 6. Container ve Test
 
 `RepositorySet`: `asset_repo`, `asset_trade_repo`, `asset_price_repo`, `fx_rate_repo`. `ServiceSet`: `asset_ledger_service`, `asset_price_refresh_service`, `fx_rate_service`, `unified_portfolio_service`, `asset_chart_service`.

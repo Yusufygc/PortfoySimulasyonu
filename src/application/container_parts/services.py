@@ -12,6 +12,7 @@ from src.application.services.assets.asset_price_refresh_service import AssetPri
 from src.application.services.assets.bist_holdings_reader import BistHoldingsReader
 from src.application.services.assets.fx_rate_service import FxRateService
 from src.application.services.assets.unified_portfolio_service import UnifiedPortfolioService
+from src.application.services.portfolio.position_query_service import PositionQueryService
 from src.application.services.news.news_service import NewsService
 from src.application.services.news.news_target_service import NewsTargetService
 from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
@@ -102,6 +103,7 @@ class ServiceSet:
     asset_price_refresh_service: AssetPriceRefreshService  # varlık son fiyat ve geçmiş yenileme
     fx_rate_service: FxRateService  # kur okuma ve yenileme
     unified_portfolio_service: UnifiedPortfolioService  # BIST + varlık defteri birleşik TRY özeti
+    position_query_service: PositionQueryService  # pozisyon rakamlarının tek okuma kaynağı (Portföyüm ile aynı değerleme)
     asset_chart_service: AssetChartService  # Genel Bakış grafiği için varlık fiyat serileri
     news_service: NewsService  # haber akışı (KAP, RSS, Yahoo, Google)
     news_target_service: NewsTargetService  # haber sorgusu yapılacak takip hedefleri
@@ -147,8 +149,9 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         provider=market_clients.asset_price_provider,
         repo=repositories.fx_rate_repo,
     )
+    bist_holdings_reader = BistHoldingsReader(foundation["portfolio_service"], stock_lookup_service, current_price_resolver)
     unified_portfolio_service = UnifiedPortfolioService(
-        bist_reader=BistHoldingsReader(foundation["portfolio_service"], stock_lookup_service, current_price_resolver),
+        bist_reader=bist_holdings_reader,
         asset_reader=AssetHoldingsReader(asset_ledger_service, repositories.asset_price_repo, fx_rate_service),
         fx_rate_service=fx_rate_service,
     )
@@ -203,6 +206,12 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         ),
         fx_rate_service=fx_rate_service,
         unified_portfolio_service=unified_portfolio_service,
+        position_query_service=PositionQueryService(
+            bist_reader=bist_holdings_reader,
+            model_portfolio_service=foundation["model_portfolio_service"],
+            stock_lookup_service=stock_lookup_service,
+            price_resolver=current_price_resolver,
+        ),
         asset_chart_service=AssetChartService(asset_ledger_service, repositories.asset_price_repo),
         news_service=NewsService(
             source_repo=repositories.news_source_repo,

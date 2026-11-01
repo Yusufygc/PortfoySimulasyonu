@@ -27,6 +27,8 @@
 | `tests/ui_qml/test_numbers_singleton.py` | QML `Numbers.parse` Python `parse_decimal_text` ile aynı sonucu verir; bileşenlerde kullanıcı girdisine `parseFloat`/`parseInt` yazılmaz. |
 | `tests/ui_qml/test_external_content_safety.py` | Bağlantı şeması, haber metni temizliği, grafik HTML'inde JS/HTML kaçışı. |
 | `tests/ui_qml/test_controller_text_ratchet.py`, `test_message_catalog.py`, `test_formatting.py` | Python metin kataloğu: denetleyicide Türkçe literal tavanı 0 (`controller_text_baseline.json`, güncelleme: `python tests/ui_qml/test_controller_text_ratchet.py`), katalog bütünlüğü, tek biçimleyici davranışı. |
+| `tests/application/test_position_query_service.py` | Pozisyon rakamlarının tek kaynağı: elle hesaplanmış değerler; Portföyüm = Hisse Detay = Excel geçmişi karakterizasyonu; model portföy ağırlığı; fiyat yedek sırası. |
+| `tests/ui_qml/test_controller_money_math_ratchet.py`, `test_controller_helpers.py` | Denetleyicide para/yüzde aritmetiği tavanı (güncelleme: `python tests/ui_qml/test_controller_money_math_ratchet.py`); E3/E4 ile ayrılan Qt'siz yardımcılar. |
 | `tests/ui_qml/test_app_composition.py` | Bileşim kökü: QML'de kullanılan her denetleyici bağlama kayıtlı; kritik denetleyiciler arası sinyaller bağlı; testte zamanlayıcı başlamaz. Yeni denetleyici `src/ui_qml/app.py::create_controllers` listesine eklenir (duman testi ve görsel anlık görüntü aynı listeyi kullanır). |
 | `tests/test_repo_guards.py` | Testlerde canlı ağ çağrısı yok; `src/ui` paketi geri gelmez; `app.py` `AA_ShareOpenGLContexts` ayarını `run_qml_app`'ten önce yapar. |
 | `tests/infrastructure/test_production_guards.py` | Depoda gerçek sır literal'i yok; derleme preflight statik koşulları. |

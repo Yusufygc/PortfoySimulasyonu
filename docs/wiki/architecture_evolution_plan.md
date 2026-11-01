@@ -97,6 +97,14 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 - **Mixin sınırı:** mixin içindeki metotlar `self` üzerinden denetleyici durumuna bağlıdır (`_container`, `_ticker`...). Bu yüzden tam bağımsız birim değildir; bağımsız test edilebilir olanlar (değerleme, dışa aktarım, bütçe ayları, DCA grafiği) fonksiyon/sınıf olarak ayrıldı (`tests/ui_qml/test_controller_helpers.py`). Mixin'lerin Qt'siz bir hizmete dönüştürülmesi E4 ile birlikte ele alınır.
 - **Fonksiyon borcu:** hedef olan <= 50 bu aşamada sağlanmadı (72); borç `stock_detail_loader`'a (`_load_main_position_data` 85 satır) ve diğer büyük fonksiyonlara dağıldı. E4'te okuma servisleriyle birlikte erir.
 
+### E4 uygulama notları (2026-11-02)
+
+- **Kapsam:** plan `*QueryService` ailesi öngörüyordu; tek `PositionQueryService` yeterli çıktı (ana portföy, model portföy, fiyat). Hisse Detay pozisyon rakamları, Model Portföy satırları ve emir ön izlemesi buraya/domain'e taşındı; `watchlist_pricing` saf fonksiyonları `src/application/services/market/`a taşındı (denetleyiciden hesap çıktı, davranış aynı).
+- **Düzelen hata:** Hisse Detay model portföy bağlamında portföy ağırlığı, özet fiyat haritası verilmeden alındığından yalnızca nakde bölünüyordu.
+- **Kabul:** aynı pozisyonun değeri Portföyüm, Hisse Detay ve Excel geçmişinde birebir aynı (`test_same_position_value_in_portfolio_page_detail_and_excel_history`). Excel'in günlük geçmişi gün gün kapanışla çalışır; bugünkü satırı aynı `Position.market_value` ile hesapladığı için eşleşir.
+- **Mandal:** `test_controller_money_math_ratchet.py` denetleyicilerdeki `Decimal` aritmetiği ve `* 100` / `/ 100` satırlarını sayar (tavan 34, artamaz). Kalanlar bilinçli ertelendi: Hisse 360 hesap modülleri, optimizasyon yüzde gösterimi, kurumsal aksiyon ve grafik yardımcıları. Bu dosyalar kendi ekranlarının sunum dönüşümüdür; ortak pozisyon rakamı üretmez.
+- **Kalan:** mixin'lerin (`stock_detail_loader` vb.) Qt'siz hizmete dönüşümü yapılmadı; izleme listesi canlı fiyat bindirmesi hâlâ denetleyicide karar veriyor (`watchlist_controller`, çözümleyici kuralını çağırır).
+
 ## 3. Riskler
 
 | Risk | Önlem |
@@ -113,6 +121,6 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 | E1 | Uygulandı (2026-11-01): `create_controllers` / `wire_controllers` / `build_ui`, `test_app_composition.py` (app.py %79), `test_twr_scenarios.py`, `test_portfolio_repository.py` (%100) |
 | E2 | Uygulandı (2026-11-02): `presenters/formatting.py` (tek Türkçe biçimleyici, 9 kopya kalktı), `messages.py` (Python metin kataloğu), mandal tavanı 538 -> 0 (67 satır `metin-muaf`). Sapma ve kalanlar aşağıda |
 | E3 | Uygulandı (2026-11-02): sınıf ihlali 4 -> 0, fonksiyon 73 -> 72; CI tavanı 0 / 72. Sapma ve kalanlar aşağıda |
-| E4 | Açık |
+| E4 | Uygulandı (2026-11-02): `PositionQueryService`, `PositionSnapshot`, `preview_order`; karakterizasyon testi Portföyüm = Hisse Detay = Excel; denetleyici para aritmetiği mandalı (36 -> 34 satır). Sapma ve kalanlar aşağıda |
 | E5 | Açık |
 | E6 | Açık (isteğe bağlı) |
