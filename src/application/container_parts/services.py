@@ -11,6 +11,8 @@ from src.application.services.assets.asset_price_refresh_service import AssetPri
 from src.application.services.assets.bist_holdings_reader import BistHoldingsReader
 from src.application.services.assets.fx_rate_service import FxRateService
 from src.application.services.assets.unified_portfolio_service import UnifiedPortfolioService
+from src.application.services.news.news_service import NewsService
+from src.application.services.news.news_target_service import NewsTargetService
 from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
 from src.application.services.analysis.portfolio_analytics_service import PortfolioAnalyticsService
 from src.application.services.analysis.shareholder_analysis_service import ShareholderAnalysisService
@@ -49,6 +51,9 @@ from src.application.services.simulation.model_portfolio_history_simulation_serv
 from src.application.services.watchlist.watchlist_service import WatchlistService
 from src.infrastructure.calendar.bist_holiday_provider import BistHolidayProvider
 from src.infrastructure.corporate_actions import KapMkkCorporateActionProvider
+from src.infrastructure.news.default_sources import default_news_sources
+from src.infrastructure.news.news_file_cache import JsonFileNewsCache
+from src.infrastructure.news.provider_factory import NewsProviderFactory
 
 
 
@@ -96,6 +101,8 @@ class ServiceSet:
     asset_price_refresh_service: AssetPriceRefreshService  # varlık son fiyat ve geçmiş yenileme
     fx_rate_service: FxRateService  # kur okuma ve yenileme
     unified_portfolio_service: UnifiedPortfolioService  # BIST + varlık defteri birleşik TRY özeti
+    news_service: NewsService  # haber akışı (KAP, RSS, Yahoo, Google)
+    news_target_service: NewsTargetService  # haber sorgusu yapılacak takip hedefleri
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet) -> ServiceSet:
@@ -194,6 +201,18 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         ),
         fx_rate_service=fx_rate_service,
         unified_portfolio_service=unified_portfolio_service,
+        news_service=NewsService(
+            source_repo=repositories.news_source_repo,
+            provider_factory=NewsProviderFactory(lambda ticker: market_clients.kap_shareholder_provider.resolve_member_oid(ticker)[0]),
+            cache=JsonFileNewsCache(),
+            default_sources=default_news_sources,
+        ),
+        news_target_service=NewsTargetService(
+            portfolio_service=foundation["portfolio_service"],
+            stock_lookup_service=stock_lookup_service,
+            asset_ledger_service=asset_ledger_service,
+            watchlist_service=feature_services["watchlist_service"],
+        ),
         market_data_sync_service=MarketDataSyncService(
             trading_calendar=market_clients.trading_calendar,
             price_repo=repositories.price_repo,

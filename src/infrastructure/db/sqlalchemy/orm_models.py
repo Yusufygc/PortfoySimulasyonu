@@ -561,6 +561,24 @@ class ORMFxRate(Base):
     )
 
 
+class ORMNewsSource(Base):
+    """Ayarlar'dan yönetilen haber kaynakları (KAP, Yahoo, Google, RSS) ve açık/kapalı tercihleri."""
+
+    __tablename__ = "news_sources"
+
+    source_id = Column(String(80), primary_key=True)
+    kind = Column(String(20), nullable=False)
+    name = Column(String(120), nullable=False)
+    enabled = Column(Boolean, nullable=False, default=True)
+    language = Column(String(5), nullable=False, default="tr")
+    scope = Column(String(10), nullable=False, default="market")
+    url = Column(String(500), nullable=False, default="")
+    description = Column(String(300), nullable=False, default="")
+    is_custom = Column(Boolean, nullable=False, default=False)
+    options_json = Column(Text, nullable=False, default="{}")
+    sort_order = Column(Integer, nullable=False, default=0)
+
+
 @event.listens_for(Base, "before_insert", propagate=True)
 def _assign_missing_bigint_id(mapper, connection, target) -> None:
     """SQLite'ta `BIGINT` birincil anahtar otomatik artmaz (yalnızca `INTEGER PRIMARY KEY` rowid takma adıdır).

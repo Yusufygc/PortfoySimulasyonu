@@ -12,6 +12,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_corporate_action_candidate
 from src.infrastructure.db.sqlalchemy.repositories.sa_corporate_action_repository import SQLAlchemyCorporateActionRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_fx_rate_repository import SQLAlchemyFxRateRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_latest_price_repository import SQLAlchemyLatestPriceRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_news_source_repository import SQLAlchemyNewsSourceRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_model_portfolio_repository import SQLAlchemyModelPortfolioRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_planning_repository import SQLAlchemyPlanningRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_portfolio_maintenance_repository import SQLAlchemyPortfolioMaintenanceRepository
@@ -51,6 +52,7 @@ class RepositorySet:
     asset_trade_repo: SQLAlchemyAssetTradeRepository
     asset_price_repo: SQLAlchemyAssetPriceRepository
     fx_rate_repo: SQLAlchemyFxRateRepository
+    news_source_repo: SQLAlchemyNewsSourceRepository  # haber kaynağı açık/kapalı tercihleri
 
 
 def build_repositories(conn_provider) -> RepositorySet:
@@ -77,4 +79,5 @@ def build_repositories(conn_provider) -> RepositorySet:
         asset_trade_repo=SQLAlchemyAssetTradeRepository(conn_provider),
         asset_price_repo=SQLAlchemyAssetPriceRepository(conn_provider),
         fx_rate_repo=SQLAlchemyFxRateRepository(conn_provider),
+        news_source_repo=SQLAlchemyNewsSourceRepository(conn_provider),
     )

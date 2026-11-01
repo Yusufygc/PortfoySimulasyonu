@@ -14,6 +14,17 @@ def test_container_exposes_asset_ledger_service_and_repositories():
     assert container.asset_ledger_service.get_ledger().open_positions() is not None
 
 
+def test_container_exposes_news_services_with_seeded_default_sources():
+    from src.application.services.news.news_service import NewsService
+
+    container = AppContainer()
+
+    assert isinstance(container.news_service, NewsService)
+    sources = {s.source_id: s for s in container.news_service.list_sources()}
+    assert {"kap", "yahoo_rss", "google_news", "rss:aa_ekonomi"} <= set(sources)
+    assert container.news_target_service.get_targets() is not None
+
+
 def test_unified_summary_reads_real_database_without_network():
     from src.domain.models.unified_portfolio import UnifiedSummary
 
