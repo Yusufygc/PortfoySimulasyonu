@@ -17,7 +17,7 @@ Rectangle {
     readonly property var assetList: assetsController.assets
     readonly property int currentAssetId: (assetList.length > 0 && assetCombo.currentIndex >= 0 && assetCombo.currentIndex < assetList.length)
                                           ? assetList[assetCombo.currentIndex].id : 0
-    readonly property real totalValue: (parseFloat(qtyInput.text.replace(",", ".")) || 0) * (parseFloat(priceInput.text.replace(",", ".")) || 0)
+    readonly property real totalValue: (Numbers.parse(qtyInput.text) || 0) * (Numbers.parse(priceInput.text) || 0)
 
     signal closed()
 

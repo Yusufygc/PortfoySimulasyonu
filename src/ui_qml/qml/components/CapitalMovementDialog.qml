@@ -383,7 +383,7 @@ Popup {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        var amt = parseFloat(txtAmount.text.replace(",", "."))
+                        var amt = Numbers.parse(txtAmount.text)
                         if (isNaN(amt) || amt <= 0) return
 
                         portfolioController.addCapitalMovement(

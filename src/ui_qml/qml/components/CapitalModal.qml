@@ -185,7 +185,8 @@ Rectangle {
                         font.pixelSize: Theme.fontBase
                         font.weight: Font.Bold
                         color: Theme.textPrimary
-                        validator: DoubleValidator { bottom: 1.0; top: 100000000.0; decimals: 2 }
+                        // Türkçe biçim ('10.000,50') sistem yerelinden bağımsız kabul edilir; okuma Numbers.parse ile
+                        validator: RegularExpressionValidator { regularExpression: /^[0-9.,]{0,16}$/ }
                     }
                 }
             }
@@ -233,7 +234,7 @@ Rectangle {
                     text: actionToggle.state === "deposit" ? Strings.btnDepositCapital : Strings.btnWithdrawCash
                     variant: "primary"
                     onClicked: {
-                        const amount = parseFloat(amountInput.text) || 0.0
+                        const amount = Numbers.parse(amountInput.text) || 0.0
                         dashboardController.manageCapital(actionToggle.state, amount, noteInput.text)
                         root.close()
                     }

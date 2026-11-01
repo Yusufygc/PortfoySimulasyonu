@@ -207,7 +207,7 @@ Item {
                         cursorShape: planningController.dcaIsRunning ? Qt.ArrowCursor : Qt.PointingHandCursor
                         enabled: !planningController.dcaIsRunning
                         onClicked: {
-                            var amt = parseFloat(txtAmount.text.replace(",", ".")) || 5000.0
+                            var amt = Numbers.parse(txtAmount.text) || 5000.0
                             planningController.runDcaBacktest(
                                 txtTickers.text.trim(),
                                 amt,

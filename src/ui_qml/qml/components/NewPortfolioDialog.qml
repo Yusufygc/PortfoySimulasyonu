@@ -269,7 +269,7 @@ Popup {
                         if (root.isEdit) {
                             portfolioController.updatePortfolio(root.editPortfolioId, txtName.text, txtDesc.text)
                         } else {
-                            var initialCash = parseFloat(txtCash.text.replace(",", ".")) || 100000.0
+                            var initialCash = Numbers.parse(txtCash.text) || 100000.0
                             portfolioController.createPortfolio(txtName.text, txtDesc.text, initialCash)
                         }
                         root.close()

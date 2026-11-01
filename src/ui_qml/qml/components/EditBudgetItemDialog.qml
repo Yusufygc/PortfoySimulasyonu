@@ -201,7 +201,7 @@ Popup {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         var name = txtName.text.trim()
-                        var amount = parseFloat(txtAmount.text.replace(",", "."))
+                        var amount = Numbers.parse(txtAmount.text)
                         if (!name || isNaN(amount) || amount <= 0) return
 
                         planningController.updateBudgetItem(root.itemType, root.itemIndex, name, amount)

@@ -28,7 +28,7 @@ ColumnLayout {
 
     function reload() {
         if (!hasController) return
-        const year = parseInt(txtSince.text)
+        const year = Numbers.parseInteger(txtSince.text)
         marketAdjustmentController.refresh(statusKeys[cmbStatus.currentIndex], txtTicker.text, isNaN(year) ? 0 : year)
     }
 

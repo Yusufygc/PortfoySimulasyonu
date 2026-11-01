@@ -276,7 +276,7 @@ Popup {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         var name = txtName.text.trim()
-                        var target = parseFloat(txtTarget.text.replace(",", "."))
+                        var target = Numbers.parse(txtTarget.text)
                         var deadline = txtDeadline.text.trim()
                         if (!name || isNaN(target) || target <= 0 || !deadline) return
 

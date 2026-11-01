@@ -24,8 +24,8 @@ Popup {
     }
 
     function calculateTotal() {
-        var p = parseFloat(txtPrice.text.replace(",", ".")) || 0.0
-        var q = parseInt(txtQty.text) || 0
+        var p = Numbers.parse(txtPrice.text) || 0.0
+        var q = Numbers.parseInteger(txtQty.text) || 0
         var tot = p * q
         return tot.toLocaleString(Qt.locale("tr_TR"), 'f', 2) + " ₺"
     }
@@ -495,10 +495,10 @@ Popup {
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         var ticker = txtTicker.text.trim()
-                        var price = parseFloat(txtPrice.text.replace(",", "."))
+                        var price = Numbers.parse(txtPrice.text)
                         if (!ticker || isNaN(price) || price <= 0) return
 
-                        var qty = parseInt(txtQty.text) || 0
+                        var qty = Numbers.parseInteger(txtQty.text) || 0
                         if (qty <= 0) return
 
                         portfolioController.addTrade(

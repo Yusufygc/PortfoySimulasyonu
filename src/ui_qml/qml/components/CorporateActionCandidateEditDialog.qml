@@ -21,8 +21,7 @@ Rectangle {
     Behavior on opacity { NumberAnimation { duration: 180 } }
 
     function parseNumber(text) {
-        const n = Number(String(text).replace(",", "."))
-        return isNaN(n) ? 0 : n
+        return Numbers.parseOr(text, 0)
     }
 
     function open(candidate) {

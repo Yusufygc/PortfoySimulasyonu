@@ -197,7 +197,7 @@ Popup {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        var amount = parseFloat(txtAmount.text.replace(",", "."))
+                        var amount = Numbers.parse(txtAmount.text)
                         if (isNaN(amount) || amount <= 0 || root.goalId < 0) return
 
                         planningController.addContribution(root.goalId, amount)

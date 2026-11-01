@@ -133,7 +133,7 @@ Rectangle {
                     font.weight: Font.Bold
                     inputMethodHints: Qt.ImhDigitsOnly
                     onTextChanged: {
-                        const q = parseInt(text)
+                        const q = Numbers.parseInteger(text)
                         if (!isNaN(q) && q > 0) root.tradeQty = q
                     }
                 }
@@ -170,7 +170,7 @@ Rectangle {
                     font.pixelSize: Theme.fontSm
                     font.weight: Font.Bold
                     onTextChanged: {
-                        const p = parseFloat(text.replace(",", "."))
+                        const p = Numbers.parse(text)
                         if (!isNaN(p) && p > 0) root.tradePrice = p
                     }
                 }

@@ -15,7 +15,7 @@ Rectangle {
     property string lookupHint: ""
 
     readonly property bool isBuy: side === "BUY"
-    readonly property real totalValue: (parseFloat(qtyInput.text.replace(",", ".")) || 0) * (parseFloat(priceInput.text.replace(",", ".")) || 0)
+    readonly property real totalValue: (Numbers.parse(qtyInput.text) || 0) * (Numbers.parse(priceInput.text) || 0)
 
     signal closed()
 
@@ -322,8 +322,8 @@ Rectangle {
                         text: root.isBuy ? Strings.btnBuyConfirm : Strings.btnSellConfirm
                         variant: root.isBuy ? "primary" : "danger"
                         onClicked: {
-                            const qty = parseInt(qtyInput.text) || 0
-                            const price = parseFloat(priceInput.text.replace(",", ".")) || 0.0
+                            const qty = Numbers.parseInteger(qtyInput.text) || 0
+                            const price = Numbers.parse(priceInput.text) || 0.0
                             const ticker = tickerInput.text.trim().toUpperCase()
                             dashboardController.submitTradeAt(
                                 ticker, root.side, qty, price, Strings.quickTradeNote,

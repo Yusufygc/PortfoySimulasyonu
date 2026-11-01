@@ -191,7 +191,7 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            var t = parseFloat(txtTarget.text.replace(",", ".")) || 0.0
+                            var t = Numbers.parse(txtTarget.text) || 0.0
                             planningController.saveCurrentBudget(t)
                         }
                     }
@@ -456,7 +456,7 @@ Item {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    var amt = parseFloat(txtIncAmount.text.replace(",", "."))
+                                    var amt = Numbers.parse(txtIncAmount.text)
                                     if (txtIncName.text.trim() && !isNaN(amt) && amt > 0) {
                                         planningController.addBudgetItem("INCOME", txtIncName.text.trim(), amt)
                                         txtIncName.text = ""
@@ -693,7 +693,7 @@ Item {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    var amt = parseFloat(txtExpAmount.text.replace(",", "."))
+                                    var amt = Numbers.parse(txtExpAmount.text)
                                     if (txtExpName.text.trim() && !isNaN(amt) && amt > 0) {
                                         planningController.addBudgetItem("EXPENSE", txtExpName.text.trim(), amt)
                                         txtExpName.text = ""
