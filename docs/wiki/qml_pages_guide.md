@@ -2,11 +2,12 @@
 
 # Sayfa ve Denetleyici Rehberi
 
-Uygulama 10 sayfadan oluşur. Sayfa dizini kenar çubuğu sırasıyladır (`ShellController.activePage`). Her bölüm sayfanın amacını, denetleyicisini, kullandığı servisleri ve önemli kurallarını verir. Genel mimari için bkz. [ui_architecture_and_events.md](ui_architecture_and_events.md).
+Uygulama 11 sayfadan oluşur. Sayfa dizini `ShellController.activePage` değeridir; Portföyüm dizini 10'dur ama kenar çubuğunda Genel Bakış'ın hemen altında (2. sıra) durur (dizinleri kaydırmamak için `Main.qml` StackLayout'una sona eklendi). Diğer sayfalar kenar çubuğunda dizin sırasıyladır. Her bölüm sayfanın amacını, denetleyicisini, kullandığı servisleri ve önemli kurallarını verir. Genel mimari için bkz. [ui_architecture_and_events.md](ui_architecture_and_events.md).
 
 | # | Sayfa | Görünüm | Ana denetleyici(ler) |
 |---|---|---|---|
-| 0 | Genel Bakış | `DashboardView` | `DashboardController`, `ChartController`, `StockDetailController`, `DividendController` |
+| 0 | Genel Bakış | `DashboardView` | `ChartController`, `NewsController` (grafik + haber paneli) |
+| 10 | Portföyüm | `MyPortfolioView` | `MyPortfolioController`, `AssetsController`, `DashboardController` (BIST modalları), `StockDetailController`, `DividendController` |
 | 1 | İzleme Listeleri | `WatchlistView` | `WatchlistController` |
 | 2 | Model Portföyler | `ModelPortfolioView` | `ModelPortfolioController` |
 | 3 | Hisse 360 | `Stock360View` | `Stock360Controller` |
@@ -15,24 +16,35 @@ Uygulama 10 sayfadan oluşur. Sayfa dizini kenar çubuğu sırasıyladır (`Shel
 | 6 | Finansal Planlama | `PlanningView` | `PlanningController`, `StrategyBacktestController` |
 | 7 | Optimizasyon | `OptimizationView` | `OptimizationController`, `RiskProfileController` |
 | 8 | AI Asistan | `AiAdvisorView` | `AiAdvisorController`, `ModelAnalysisController` |
-| 9 | Ayarlar | `SettingsView` | `SettingsController`, `SystemController`, `PriceDataController`, `CorporateActionController`, `MarketAdjustmentController` |
+| 9 | Ayarlar | `SettingsView` | `SettingsController`, `SystemController`, `PriceDataController`, `CorporateActionController`, `MarketAdjustmentController`, `NewsSettingsController` |
 
 Üst başlık (`WindowHeader`): hisse arama (Genel Bakış grafiğini açar), piyasa şeridi (`MarketTickerController`: altın, gümüş, USD/TRY, EUR/TRY, BIST 100) ve piyasa senkron rozeti.
 
 ---
 
-## 0. Genel Bakış (Dashboard)
+## 0. Genel Bakış
 
-Ana portföyün canlı özeti.
+Etkileşimli grafik ve haber akışı; portföy bilgisi bu sayfada **yoktur** (Portföyüm'e taşındı).
 
-- **KPI şeridi** (`PortfolioSummaryStrip`/`MetricCard`): toplam değer, kâr/zarar, günlük değişim, nakit, haftalık ve aylık getiri, "son güncelleme" zamanı (`last_update_store.py`).
-- **Açık pozisyonlar tablosu** (`PositionsTableModel`): lot, maliyet, güncel fiyat, günlük %, ağırlık; fiyat değişiminde yeşil/kırmızı yanıp sönme. Satıra tıklayınca **Hisse Detay modalı** açılır.
-- **Varlık dağılımı** (`AssetAllocationCard`, Canvas donut).
-- **TradingView grafiği** (`TradingViewChart`, `TradingViewToolbar`): zaman dilimi, mum/çizgi/alan/bar, göstergeler, tam ekran (`ChartFullscreenModal`); hisse detayından açıldığında ortalama maliyet çizgisi gösterilir.
-- **İşlemler:** hızlı alım/satım (`QuickTradeModal`, tarih ve saat alanlı), sermaye yatırma/çekme (`CapitalModal`), fiyat durumu (`PriceStatusChip`: ortak son güncelleme ve küçük yenile ikonu; fiyatlar kendiliğinden güncellenir), tarihsel Excel raporu (`ExcelExportDialog`; mevcut dosyaya ekleme modu).
+- **TradingView grafiği** (`TradingViewChart`, `TradingViewToolbar`): zaman dilimi, mum/çizgi/alan/bar, göstergeler, tam ekran (`ChartFullscreenModal`); hisse detayından açıldığında ortalama maliyet çizgisi gösterilir. Hızlı seçici portföy BIST hisselerini ve Portföyüm varlıklarını (BTC, altın vb.) listeler; BIST dışı semboller varlık defterindeki kapanışlardan çizilir ([service_asset_prices_fx.md](service_asset_prices_fx.md)).
+- **Haber paneli** (`NewsPanel`, `NewsController`): "Portföyüm ve İzleme" (şirket haberleri) ve "Piyasa ve Global" sekmeleri. Geniş pencerede (>= 1150 px) grafiğin sağında, dar pencerede altında. Ayrıntı: [service_news.md](service_news.md).
+- Fiyat durumu (`PriceStatusChip`): ortak son güncelleme ve küçük yenile ikonu; fiyatlar kendiliğinden güncellenir.
+
+## 0b. Portföyüm
+
+Tüm portföyün (BIST + BIST dışı varlıklar) tek özeti. Rakamların tamamı `UnifiedPortfolioService`'ten okunur ([service_asset_ledger.md](service_asset_ledger.md)).
+
+- **Başlık düğmeleri:** TRY/USD anahtarı, Fiyatları Yenile, Varlık Ekle, Varlık İşlemi, Sermaye Yönetimi, Excel Raporu, Hızlı Alım/Satım. Değerlenemeyen pozisyon ve USD kuru bulunamadı uyarıları sayfanın üstünde görünür; toplam kısmi veriyle hesaplanmışsa işaretlenir.
+- **KPI kartları:** toplam değer, günlük kazanç, gerçekleşmemiş K/Z, nakit (BIST). Haftalık/aylık getiri kartları yalnızca BIST'tir (etiketlerde "(BIST)"); birleşik TWR yoktur.
+- **Varlık dağılımı** (`AssetAllocationCard`, Canvas donut): BIST, ABD hisse, kripto, emtia ve nakit dilimleri; donut merkezi nakit dışı payı gösterir.
+- **Pozisyon tablosu** (`HoldingsTable`, `HoldingsListModel`): Tümü / BIST / ABD / Kripto / Emtia sekmeleri; tutarlar seçili para biriminde, fiyatlar varlığın kendi para biriminde; değerlenemeyen pozisyonda "Maliyet" işareti. BIST satırı: Grafik / Detay / İşlem (satıra tıklayınca **Hisse Detay modalı**); BIST dışı satır: İşlem / Kaldır. Emtia sekmesinde vadeli kontrat notu.
+- **Varlık ekleme** (`AssetAddModal`): katalogdan tek tıkla veya sembolle; doğrulama, geçmiş doldurma, son fiyat ve kur yükleme arka planda; bir adım başarısız olursa varlık yine eklenir ve mesaj belirtir.
+- **Varlık işlemi** (`AssetTradeModal`): kesirli miktar, fiyat ve kur önerisi veritabanından (ağ yok); TRY fiyatlı varlıkta kur gizli; elden fazla satış ve geriye dönük satış reddedilir.
+- **BIST işlemleri:** hızlı alım/satım (`QuickTradeModal`, tarih ve saat alanlı), sermaye yatırma/çekme (`CapitalModal`), tarihsel Excel raporu (`ExcelExportDialog`; mevcut dosyaya ekleme modu; yalnızca BIST).
 - **Hisse Detay modalı** (`StockDetailController`): lot, ortalama maliyet, piyasa değeri, K/Z; işlem geçmişi ve sermaye artırımları sekmeleri; işlem etkisi ön izlemesi; hızlı emir; **Sermaye Artırımı** (`CorporateActionDialog`), **Temettü** (`DividendDialog`), TradingView ve Hisse 360'a geçiş, hisse bazlı Excel. Sermaye artırımı ve temettü yalnızca ana portföy ve açık pozisyon için görünür.
+- **Bildirimler:** otomatik fiyat yenilemesi (5 dk, `AssetsController`) sessizdir; yalnızca "Fiyatları Yenile" ile istenen sonuç ve hatalar gösterilir.
 
-Servisler: `PortfolioService`, `TradeEntryService`, `CashMovementService`, `ReturnCalcService`, `CurrentPriceResolver`, `ExcelExportService`. Fiyat ve işlem kuralları: [service_portfolio_and_market.md](service_portfolio_and_market.md).
+Servisler: `UnifiedPortfolioService`, `AssetLedgerService`, `AssetPriceRefreshService`, `FxRateService` (varlıklar); `PortfolioService`, `TradeEntryService`, `CashMovementService`, `ReturnCalcService`, `CurrentPriceResolver`, `ExcelExportService` (BIST). Fiyat ve işlem kuralları: [service_portfolio_and_market.md](service_portfolio_and_market.md).
 
 ## 1. İzleme Listeleri
 
@@ -77,7 +89,7 @@ Markowitz maksimum Sharpe optimizasyonu: kaynak (ana portföy veya model portfö
 
 ## 9. Ayarlar
 
-Sekmeler: Görünüm & Tema, API Anahtarları, Veri Sağlığı & Senkronizasyon, Dışa Aktarım & Yedekleme, Kurumsal Aksiyonlar, Fiyat Verisi, Piyasa Düzeltmeleri, Sistem. Ayrıntı: [settings_and_system.md](settings_and_system.md).
+Sekmeler: Görünüm & Tema, API Anahtarları, Veri Sağlığı & Senkronizasyon, Dışa Aktarım & Yedekleme, Kurumsal Aksiyonlar, Fiyat Verisi, Piyasa Düzeltmeleri, Sistem, Haber Kaynakları (kaynak aç/kapa, özel RSS, bağlantı testi, yenileme aralığı; bkz. [service_news.md](service_news.md)). Ayrıntı: [settings_and_system.md](settings_and_system.md).
 
 ---
 
@@ -87,7 +99,7 @@ Beş büyük görünüm 2026-10-04'te bileşenlere bölündü (hiçbiri 900 sat�
 
 | Görünüm | Bileşenler |
 |---|---|
-| `SettingsView` (231 satır) | `SettingsAppearanceTab`, `SettingsApiKeysTab`, `SettingsDataHealthTab`, `SettingsExportTab` (+ önceden ayrı: `SettingsCorporateActionsTab`, `SettingsPriceDataTab`, `SettingsMarketAdjustmentsTab`, `SettingsSystemTab`) |
+| `SettingsView` | `SettingsAppearanceTab`, `SettingsApiKeysTab`, `SettingsDataHealthTab`, `SettingsExportTab` (+ önceden ayrı: `SettingsCorporateActionsTab`, `SettingsPriceDataTab`, `SettingsMarketAdjustmentsTab`, `SettingsSystemTab`, `SettingsNewsTab`) |
 | `OptimizationView` (101) | `OptimizationParamsPanel` (`stacked`, `riskQuestionnaireRequested`), `OptimizationKpiStrip` (`stacked`, `hostWidth`), `OptimizationResultsPanel` |
 | `Stock360View` (122) | `Stock360TopBar`, `Stock360ModeTabs`, `Stock360HeroCard`, `Stock360OverviewSection`, `Stock360FinancialsSection`, `Stock360ShareholdersSection` (`hostWidth` = Loader genişliği) |
 | `StockDetailModal` (178) | `StockDetailHeader` (sinyaller), `StockDetailKpiCards` (`boxWidth`), `StockDetailTabsPanel` (`activeTab`), `StockDetailOrderForm` (emir durumu, `resetTradeMoment()`, `syncPrice()`) |
@@ -102,8 +114,12 @@ Yeni bölme kuralları: bileşen yalnızca kendi kimliklerini ve `root` özellik
 | Denetleyici | Sorumluluk |
 |---|---|
 | `ShellController` | Etkin sayfa, piyasa seans durumu |
-| `DashboardController` | Portföy KPI, pozisyonlar, işlem, sermaye, kapanış güncelleme, haftalık/aylık getiri, Excel |
-| `ChartController` | OHLCV, zaman dilimi, grafik tipi, göstergeler (TradingView) |
+| `MyPortfolioController` | Portföyüm özeti (KPI, TRY/USD, sınıf dilimleri, sekmeler, tablo modeli); `UnifiedPortfolioService`'ten okur |
+| `AssetsController` | Varlık ekleme (arka plan), işlem kaydı, fiyat yenileme (5 dk sessiz), öneri, kaldırma |
+| `DashboardController` | BIST işlemleri (hızlı al/sat, sermaye, Excel), BIST haftalık/aylık getiri, kapanış güncelleme |
+| `NewsController` | Genel Bakış haber paneli: şirket ve piyasa haberleri, periyodik yenileme, `openUrl` |
+| `NewsSettingsController` | Ayarlar > Haber Kaynakları: aç/kapa, özel RSS, test, yenileme aralığı |
+| `ChartController` | OHLCV, zaman dilimi, grafik tipi, göstergeler (TradingView); BIST dışı semboller için varlık defteri yolu |
 | `StockDetailController` | Hisse detay modalı, hızlı emir, işlem etkisi, hisse Excel'i |
 | `DividendController` | Hisse temettü kayıtları (ekle, listele, sil) |
 | `CorporateActionController` | Bedelli/bedelsiz giriş ve ön izleme, KAP/MKK aday inceleme |

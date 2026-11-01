@@ -12,6 +12,8 @@
 
 ## Ticker biçimi (tek tip)
 
+Bu kural **BIST** içindir. Varlık defterindeki semboller (`BTC-USD`, `GC=F`, `AAPL`) `.IS` almaz ve olduğu gibi yfinance'e verilir (`src/domain/asset_symbols.py`; bkz. [service_asset_prices_fx.md](service_asset_prices_fx.md)).
+
 Kanonik ticker **uzantısız büyük harftir** (`THYAO`): `stocks.ticker`, DuckDB, KAP, Golden Cross olayları ve arayüz.
 `.IS` yalnızca yfinance gibi borsa son eki isteyen dış sınırlarda eklenir (`src/domain/ticker.py`: `clean_ticker`,
 `to_yf_symbol`). `SQLAlchemyStockRepository.get_stock_by_ticker` her iki biçimi de bulur; yazma (`insert/update`)
@@ -33,7 +35,7 @@ Dosyayı yalnızca `BistBulkDownloader` ve `MarketDataSyncService` (yazma), `Duc
 
 | Veri | Depo | Yazan | Okuyan |
 |---|---|---|---|
-| Portföy: `stocks`, `trades`, `cash_movements`, `trade_adjustments` | **SQLite** `data/portfolio.db` | `PortfolioService`, `TradeEntryService`, `CashMovementService` | Dashboard, Hisse Detay, Karşılaştırma, Optimizasyon, Excel |
+| Portföy: `stocks`, `trades`, `cash_movements`, `trade_adjustments` | **SQLite** `data/portfolio.db` | `PortfolioService`, `TradeEntryService`, `CashMovementService` | Portföyüm, Hisse Detay, Karşılaştırma, Optimizasyon, Excel |
 | Kullanıcı verisine (işlem, izleme listesi, model portföy, kurumsal aksiyon) bağlı hisselerin günlük kapanışları: `daily_prices` (~35 hisse) | **SQLite** | `MarketDataSyncService` (köprü + uzlaştırma), `PriceDataHealthService`, `BackfillService`, sermaye artırımı fiyat düzeltmesi | Portföy değerleme, Karşılaştırma, `CurrentPriceResolver` |
 | Canlı/gün içi fiyat önbelleği: `latest_prices` | **SQLite** | `LivePriceRefreshService` | `CurrentPriceResolver` ve İzleme Listesi (yalnızca seans penceresinde alınmış ve son kapanıştan yeni güne aitse kullanılır; `src/domain/live_price_rule.py`) |
 | Takip listeleri, model portföyler (+işlem/nakit), bütçe/hedef/sabit kalemler | **SQLite** | ilgili servisler | ilgili ekranlar |
@@ -42,9 +44,13 @@ Dosyayı yalnızca `BistBulkDownloader` ve `MarketDataSyncService` (yazma), `Duc
 | Golden/Death Cross olayları `cross_events` (ticker anahtarlı, türetilmiş) | **SQLite** | `TechnicalAnalysisService` | Hisse Tarayıcı |
 | **Tüm BIST günlük ham barları** (`daily_prices`, ticker bazlı, ~2,2 milyon bar, 2000-bugün) ve hisse kataloğu (`bist_stocks`, ~624) | **DuckDB** `data/market_history.duckdb` | `BistBulkDownloader` (ilk yükleme, script), `MarketDataSyncService.sync_daily_delta` (artımlı) | `DuckDBMarketHistoryRepository` (salt okunur) |
 | **Sermaye artırımı/bölünme olayları ve fiyat düzeltme faktörleri** (`market_corporate_actions`, ticker anahtarlı) | **DuckDB** | `DuckDBCorporateActionStore` (`MarketCorporateActionService` üzerinden) | `DuckDBMarketHistoryRepository` (düzeltilmiş okuma) |
-| Ayarlar: tema, otomatik iş işaretleri, sohbet geçmişi | Windows `QSettings` | `SettingsController`, `StartupJobsController` | aynı |
+| **BIST dışı varlık defteri** (`assets`, `asset_trades`), **varlık fiyatları** (`asset_prices`, `asset_latest_prices`) ve **kurlar** (`fx_rates`) | **SQLite** | `AssetLedgerService`, `AssetPriceRefreshService`, `FxRateService` | `UnifiedPortfolioService`, `AssetChartService` (Portföyüm, Genel Bakış grafiği) |
+| Haber kaynağı tercihleri (`news_sources`) | **SQLite** | `NewsService` | Ayarlar, haber paneli |
+| Ayarlar: tema, otomatik iş işaretleri, sohbet geçmişi, haber yenileme aralığı | Windows `QSettings` | `SettingsController`, `StartupJobsController` | aynı |
 | API anahtarları | İşletim sistemi sır deposu (Windows Kimlik Bilgisi Yöneticisi, `keyring`); depo yoksa `.env` | `persist_api_keys` (`config/secret_store.py`) | `settings_loader` |
-| Harici önbellekler (TÜFE, KAP) | `data/_cache/*.json` | sağlayıcılar | sağlayıcılar |
+| Harici önbellekler (TÜFE, KAP, haber) | `data/_cache/*.json` | sağlayıcılar | sağlayıcılar |
+
+**Varlık fiyatları DuckDB'de değildir:** DuckDB `market_history` yalnızca BIST içindir; kripto, emtia ve ABD hissesi kapanışları SQLite `asset_prices`'ta tutulur ([service_asset_prices_fx.md](service_asset_prices_fx.md)).
 
 DuckDB'yi okuyanlar: Hisse Tarayıcı ve Golden Cross (tüm evren), Hisse 360 (genel bakış/teknik seviyeler/şirket adı/hızlı liste),
 grafik, Hisse Detay son bar, DCA (birincil kaynak), Markowitz optimizasyonu, Ayarlar istatistikleri.

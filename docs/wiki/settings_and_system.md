@@ -16,6 +16,7 @@ Bu sayfa Ayarlar sayfasının sekmelerini, uygulama açılışında ve zamanlay�
 | Fiyat Verisi | `PriceDataController` | Kapsam seçili fiyat sağlığı: analiz, eksikleri tamamla, seçili hisseyi tamamla, son günden güncelle, aralığı sil, raporu kopyala ([service_portfolio_and_market.md](service_portfolio_and_market.md)). |
 | Piyasa Düzeltmeleri | `MarketAdjustmentController` | Tüm BIST için veriden tespit edilen sermaye artırımı adayları: tara, onayla (faktör düzenlenebilir), yoksay, yeniden aç ([market_corporate_actions.md](market_corporate_actions.md)). Liste olay sayacı gösterir. |
 | Sistem | `SystemController` | Otomatik canlı fiyat yenileme ve sistem sıfırlama (aşağıya bakın). |
+| Haber Kaynakları | `NewsSettingsController` | Haber kaynaklarını (KAP, Yahoo, Google News, RSS) tek tek aç/kapa, KAP toplu kurum bildirimi anahtarı, özel RSS ekleme/silme, "Bağlantıyı test et", kaynak durumu, haber paneli yenileme aralığı. Ayrıntı: [service_news.md](service_news.md). |
 
 Veritabanı istatistiği, bütünlük (`PRAGMA integrity_check` ve DuckDB okuma testi) ve yedek dışa aktarımı `DatabaseMaintenanceService` üzerinden yapılır ([database_maintenance_and_scripts.md](database_maintenance_and_scripts.md)).
 
@@ -39,13 +40,13 @@ Sonuçlar küresel toast ile bildirilir (yeni fiyat kaydı, yeni aday, yeni siny
 
 ### Fiyat güncellemesinin koordinasyonu (`PriceRefreshController`)
 
-Fiyat yazan yollar (`MarketSyncController.dataSynced`, `SystemController.pricesRefreshed`, `StartupJobsController.pricesUpdated`, `PriceDataController`/`GoldenCrossController.pricesUpdated`, `event_bus.prices_updated`) ve portföy içeriği değişiklikleri (`portfolioChanged`, `systemReset`) tek bir `pricesChanged` sinyalinde birleşir (400 ms; art arda gelen sinyaller tek yenilemeye iner). Ana Sayfa (`reloadPrices`), İzleme Listesi (`refreshPrices`) ve Model Portföy (`reloadPrices`) yalnızca DB'den yeniden okur; ekranlar kendisi ağ çağrısı yapmaz. Fiyat yazan kaynaklar ortak son güncelleme zamanını kaydeder (`dashboard/last_price_update_at`). Ekranlardaki `PriceStatusChip` bu zamanı ve küçük yenile ikonunu gösterir; ikon seans açıksa canlı yenilemeyi (`SystemController.start_refresh`, otomatik yenileme ayarından bağımsız), değilse kapanış senkronunu (`MarketSyncController.triggerSyncNow`) başlatır.
+Fiyat yazan yollar (`MarketSyncController.dataSynced`, `SystemController.pricesRefreshed`, `StartupJobsController.pricesUpdated`, `PriceDataController`/`GoldenCrossController.pricesUpdated`, `event_bus.prices_updated`) ve portföy içeriği değişiklikleri (`portfolioChanged`, `systemReset`) tek bir `pricesChanged` sinyalinde birleşir (400 ms; art arda gelen sinyaller tek yenilemeye iner). Genel Bakış (`reloadPrices`), Portföyüm (`reloadPrices`), İzleme Listesi (`refreshPrices`) ve Model Portföy (`reloadPrices`) yalnızca DB'den yeniden okur; ekranlar kendisi ağ çağrısı yapmaz. Fiyat yazan kaynaklar ortak son güncelleme zamanını kaydeder (`dashboard/last_price_update_at`). Ekranlardaki `PriceStatusChip` bu zamanı ve küçük yenile ikonunu gösterir; ikon seans açıksa canlı yenilemeyi (`SystemController.start_refresh`, otomatik yenileme ayarından bağımsız), değilse kapanış senkronunu (`MarketSyncController.triggerSyncNow`) başlatır.
 
 ## 3. Canlı Fiyat Yenileme ve Sıfırlama (`SystemController`)
 
 - Aç/kapa ve aralık (5/15/30/60 dk) ayarı kalıcıdır; "Şimdi Yenile" anında çalıştırır.
 - Tekil ticker hataları toast üretmez; art arda genel hata (eşik 3) birikirse kısa uyarı gösterilir.
-- **Sistemi sıfırla:** `PortfolioResetService.reset_all` model portföyleri, izleme listelerini, işlemleri, nakit hareketlerini, fiyatları ve hisse kayıtlarını siler. DuckDB piyasa verisi, bütçe/hedefler ve risk profili sıfırlanmaz. Geri alınamaz; onay ister. Sonrasında Dashboard, Model Portföy ve izleme listesi yeniden yüklenir.
+- **Sistemi sıfırla:** `PortfolioResetService.reset_all` model portföyleri, izleme listelerini, işlemleri, nakit hareketlerini, fiyatları ve hisse kayıtlarını siler. DuckDB piyasa verisi, bütçe/hedefler ve risk profili sıfırlanmaz. Geri alınamaz; onay ister. Sonrasında Genel Bakış, Portföyüm, Model Portföy ve izleme listesi yeniden yüklenir. **Bilinen sınır:** sıfırlama BIST dışı varlık defterini (`assets`, `asset_trades`, `asset_prices`, `asset_latest_prices`, `fx_rates`) ve haber kaynağı tercihlerini silmez; JSON yedeği de varlık defterini içermez ([roadmap.md](roadmap.md)).
 
 ## 4. `QSettings` Anahtarları
 
@@ -58,6 +59,7 @@ Kuruluş/uygulama adı `PortfoySimulasyonu`. Başlıca anahtarlar:
 | `settings/last_auto_corporate_action_discovery_at` | Günlük aday taraması işareti |
 | `settings/last_auto_technical_scan_at` | Golden Cross tarama zamanı |
 | `settings/live_price_refresh_enabled`, `settings/live_price_refresh_interval_minutes`, `settings/last_live_price_refresh_at` | Canlı fiyat yenileme |
+| `news/refresh_minutes` | Haber paneli yenileme aralığı (5/10/15/30/60 dk, varsayılan 10) |
 | `dashboard/last_price_update_at`, `dashboard/weekly_return_pct`, `dashboard/monthly_return_pct` | Ortak son fiyat güncellemesi ve dönemsel getiriler (`last_update_store.py`; model portföy başına ayrı zaman artık yok) |
 | Sohbet geçmişi anahtarları | AI sohbet oturumları (`QSettingsChatHistoryRepository`) |
 

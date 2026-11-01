@@ -13,7 +13,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | `src/` | Uygulama kodu (aşağıya bakın). |
 | `tests/` | pytest paketi; `src/` yapısını yansıtır ([testing_strategy.md](testing_strategy.md)). |
 | `scripts/` | Bakım, göç ve ölçüm betikleri ([database_maintenance_and_scripts.md](database_maintenance_and_scripts.md)). |
-| `data/` | `portfolio.db`, `market_history.duckdb`, `_cache/` (KAP ve mali tablo önbelleği), `backups/`. |
+| `data/` | `portfolio.db`, `market_history.duckdb`, `_cache/` (KAP, mali tablo ve haber önbelleği), `backups/`. |
 | `docs/wiki/` | Bu bilgi tabanı. |
 | `icons/` | Uygulama ve derleme simgeleri. |
 | `build_nuitka.bat`, `requirements*.txt` | Windows `.exe` derlemesi ve pinli bağımlılıklar ([project_build_and_deployment.md](project_build_and_deployment.md)). |
@@ -24,10 +24,10 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 
 | Alt dizin | İçerik |
 |---|---|
-| `models/` | Saf modeller: `stock`, `trade`, `position`, `portfolio`, `cash_movement`, `corporate_action`, `corporate_action_candidate`, `daily_price`, `latest_price`, `market_bar`, `market_corporate_action`, `market_indicator`, `model_portfolio`, `watchlist`, `budget`, `financial_goal`, `risk_profile`, `optimization_result`, `golden_cross_event`, `shareholder`, `trade_adjustment`, `ai_analysis`, `ai_tool`. |
-| `ports/repositories/` | Veri erişim arayüzleri (`i_portfolio_repo`, `i_price_repo`, `i_market_history_repo`, `i_cash_movement_repo`...). |
-| `ports/services/` | Dış sağlayıcı arayüzleri (`i_market_data_client`, `i_financial_statement_provider`, `i_inflation_data_provider`, `i_shareholder_provider`, `i_ai_chat_provider`...). |
-| `constants/`, `exceptions.py`, `ticker.py` | BIST ticker listesi, alan istisnaları, kanonik ticker yardımcıları (`clean_ticker`, `to_yf_symbol`). |
+| `models/` | Saf modeller: `stock`, `trade`, `position`, `portfolio`, `cash_movement`, `corporate_action`, `corporate_action_candidate`, `daily_price`, `latest_price`, `market_bar`, `market_corporate_action`, `market_indicator`, `model_portfolio`, `watchlist`, `budget`, `financial_goal`, `risk_profile`, `optimization_result`, `golden_cross_event`, `shareholder`, `trade_adjustment`, `ai_analysis`, `ai_tool`; BIST dışı varlıklar ve haber: `asset`, `asset_trade`, `asset_position` (`AssetLedger`), `asset_price`, `unified_portfolio`, `news_item`. |
+| `ports/repositories/` | Veri erişim arayüzleri (`i_portfolio_repo`, `i_price_repo`, `i_market_history_repo`, `i_cash_movement_repo`, `i_asset_*_repo`, `i_fx_rate_repo`, `i_news_source_repo`...). |
+| `ports/services/` | Dış sağlayıcı arayüzleri (`i_market_data_client`, `i_financial_statement_provider`, `i_inflation_data_provider`, `i_shareholder_provider`, `i_ai_chat_provider`, `i_asset_price_provider`, `i_asset_symbol_verifier`, `i_news_provider`...). |
+| `constants/`, `exceptions.py`, `ticker.py`, `asset_symbols.py`, `units.py`, `market_clock.py` | BIST ticker listesi, alan istisnaları, kanonik ticker yardımcıları (`clean_ticker`, `to_yf_symbol`), varlık sembolü çözümü (`resolve_yf_symbol`), ortak ölçü sabiti (`TROY_OUNCE_GRAMS`), piyasa saati. |
 
 ## 3. `src/application/`
 
@@ -43,6 +43,8 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | `services/planning/` | `PlanningService`, `OptimizationService`, `frontier_simulation`, `RiskProfileService`, `RiskOptimizationBridgeService`, model portföy servisleri. |
 | `services/simulation/` | `HistorySimulationService`, `BackfillService`, DCA ve strateji backtest, `price_series_loader`. |
 | `services/watchlist/` | `WatchlistService`. |
+| `services/assets/` | Varlık defteri ve Portföyüm: `AssetLedgerService`, `asset_catalog`, `AssetPriceRefreshService`, `asset_market_calendar`, `FxRateService`, `BistHoldingsReader`, `AssetHoldingsReader`, `UnifiedPortfolioService`, `AssetChartService` ([service_asset_ledger.md](service_asset_ledger.md), [service_asset_prices_fx.md](service_asset_prices_fx.md)). |
+| `services/news/` | `NewsService`, `NewsTargetService` ([service_news.md](service_news.md)). |
 | `services/reporting/` | Excel dışa aktarım (`ExcelExportService`, `ModelPortfolioExcelExportService`...) ve `html/` (Plotly/finansal/ortaklık HTML üreticileri). |
 | `services/ai/` | `AiAdvisorService`, `advisor_tools`, `AiChatService`, `AiAnalysisService`, `ChatSessionService`, `safety_guard`. |
 | `services/database/` | `DatabaseMaintenanceService`. |
@@ -51,8 +53,9 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 
 | Alt dizin | İçerik |
 |---|---|
-| `db/` | `paths.py` (veri dosyası yolları), `db_config.py`, `sqlalchemy/` (`database_engine`, `schema_migrations`, `orm_models`, 15 repository). |
-| `market_data/` | DuckDB deposu (`duckdb_market_history_repo`, `duckdb_corporate_action_store`, `duckdb_optimization_market_data_provider`), yfinance istemcileri, `evds_client`, `evds_tufe_provider`, `isyatirim_provider`, `scraped_benchmark_provider`. |
+| `db/` | `paths.py` (veri dosyası yolları), `db_config.py`, `sqlalchemy/` (`database_engine`, `schema_migrations`, `orm_models`, 20 repository). |
+| `market_data/` | DuckDB deposu (`duckdb_market_history_repo`, `duckdb_corporate_action_store`, `duckdb_optimization_market_data_provider`), yfinance istemcileri (`yfinance_asset_price_provider` varlık fiyatı ve kur), `evds_client`, `evds_tufe_provider`, `isyatirim_provider`, `scraped_benchmark_provider`. |
+| `news/` | Haber sağlayıcıları (`kap_news_provider`, `rss_providers`: RSS/Yahoo/Google), `feed_parser`, `_http`, `news_file_cache`, `default_sources`, `provider_factory`. |
 | `corporate_actions/` | `kap_mkk_provider` (kurumsal aksiyon duyuruları), `kap_shareholder_provider` (ortaklık yapısı). |
 | `calendar/` | BIST resmi tatil takvimi (2020-2030) ve işlem günü sağlayıcıları. |
 | `ai/` | `gemini_chat_provider`, `gemini_advisor_chat_provider`, `ai_core_fastapi_client`, `mock_ai_analysis_provider`, `qsettings_chat_history_repo`. |
@@ -64,11 +67,11 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | Yol | İçerik |
 |---|---|
 | `app.py` | `run_qml_app`: denetleyicileri kurar, context property olarak kaydeder, `Main.qml`'i yükler. |
-| `controllers/` | 25 denetleyici (`*_controller.py`) ve yardımcı modüller (`number_input`, `advisor_query_intent`, `chart_candle_sources`, `chart_indicators`, `stock_360_overview`, `lw_chart_html`, `stock_360_calc/fallback/formatters/html/remote`). Rehber: [qml_pages_guide.md](qml_pages_guide.md). |
-| `models/` | `PositionsTableModel`, `WatchlistTableModel` (`QAbstractTableModel`). |
+| `controllers/` | 30 denetleyici (`*_controller.py`) ve yardımcı modüller (`number_input`, `advisor_query_intent`, `chart_candle_sources`, `chart_indicators`, `stock_360_overview`, `lw_chart_html`, `stock_360_calc/fallback/formatters/html/remote`, `portfolio_presenter`). Rehber: [qml_pages_guide.md](qml_pages_guide.md). |
+| `models/` | `PositionsTableModel`, `WatchlistTableModel` (`QAbstractTableModel`), `HoldingsListModel`, `NewsListModel` (`QAbstractListModel`). |
 | `last_update_store.py` | Son fiyat güncelleme zamanı ve dönemsel getirilerin `QSettings`'te saklanması. |
 | `qml/Main.qml` | Ana pencere, kenar çubuğu, sayfa yükleyiciler (lazy `Loader`). |
-| `qml/views/` | 10 sayfa görünümü. |
+| `qml/views/` | 11 sayfa görünümü. |
 | `qml/components/` | Yeniden kullanılabilir bileşenler ve diyaloglar (`Modern*`, `*Dialog`, `*Tab`, `*Card`...). |
 | `qml/theme/` | `Theme`, `Strings`, `Icons` singleton'ları ve `qmldir`. |
 | `assets/` | `icons/` (Lucide SVG), `js/` (TradingView Lightweight Charts, Chart.js), `templates/`. |

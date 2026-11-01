@@ -1,4 +1,4 @@
-"""KAP şirket bildirimleri (BIST). Resmî olmayan `members/byCriteria` uç noktasını kullanır (bkz. YeniPlan spike notu)."""
+"""KAP şirket bildirimleri (BIST). Resmî olmayan `members/byCriteria` uç noktasını kullanır (bkz. docs/wiki/service_news.md)."""
 from __future__ import annotations
 
 import json

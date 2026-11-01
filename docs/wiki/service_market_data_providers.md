@@ -17,8 +17,11 @@ Bu sayfa uygulamanın dış veri kaynaklarını, bunları saran sağlayıcılar�
 | Çeyreklik mali tablolar | İş Yatırım (JSON uç noktası) | `isyatirim_provider.py` | `data/_cache/financials/<TICKER>_<PB>.json`, TTL 12 saat |
 | TÜFE (enflasyon) | TCMB EVDS | `EvdsTufeProvider` | `data/_cache/financials/tufe_index.json`, TTL 24 saat |
 | Mevduat faizi, benchmark serileri | TCMB EVDS, yfinance, kazıma (countryeconomy, exchange-rates.org, macrotrends) | `AnalysisBenchmarkService`, `ScrapedBenchmarkProvider`, `EvdsClient` | bellek içi |
-| KAP ortaklık yapısı | KAP (kamuya açık API) | `kap_shareholder_provider.py` | `data/_cache/kap/` (şirket listesi haftalık TTL), SQLite `kap_*` tabloları |
+| KAP ortaklık yapısı | KAP (kamuya açık API) | `kap_shareholder_provider.py` (şirket kimlik haritası haber sağlayıcısıyla ortak; virgüllü borsa kodları ayrıştırılır) | `data/_cache/kap/` (şirket listesi haftalık TTL), SQLite `kap_*` tabloları |
 | Kurumsal aksiyon duyuruları | KAP kamuya açık duyuru listesi ve bildirim sayfaları | `kap_mkk_provider.py` | `corporate_action_candidates` tablosu |
+| Varlık fiyatları (kripto, emtia, ABD hissesi) ve kurlar (`TRY=X`, `EURTRY=X`) | yfinance | `YFinanceAssetPriceProvider` | SQLite `asset_prices`, `asset_latest_prices`, `fx_rates` ([service_asset_prices_fx.md](service_asset_prices_fx.md)) |
+| Haber: KAP bildirimleri | KAP `members/byCriteria` (resmî olmayan iç API) | `KapDisclosureNewsProvider` | `data/_cache/news/` (10 dk) |
+| Haber: Yahoo sembol RSS, Google News, genel RSS | Yahoo Finance RSS, Google News RSS, yayıncı RSS/Atom | `YahooRssNewsProvider`, `GoogleNewsRssProvider`, `RssNewsProvider` | `data/_cache/news/` (10 dk); ayrıntı [service_news.md](service_news.md) |
 | Optimizasyon fiyatları | DuckDB (eksik hissede yfinance) | `DuckDBOptimizationMarketDataProvider`, `YFinanceOptimizationMarketDataProvider` | DuckDB |
 | BIST tatil takvimi | Kod içi liste (2020-2030) | `bist_holiday_calendar.py`, `BistHolidayProvider` | yok |
 | Gemini (LLM) | Google Gemini API | `GeminiChatProvider`, `GeminiAdvisorChatProvider` | yok |
@@ -64,5 +67,6 @@ Testlerde bekleme `tests/conftest.py` ile kapatılır (`retry._sleep` değiştir
 1. Domain'de port tanımla (`ports/services/`), `infrastructure/` altında uygula.
 2. Ağ çağrısını `retry_call` ile sar; beklenen hataları `MarketDataUnavailableError`'a çevir.
 3. Gerekirse dosya önbelleği ve TTL ekle (`data/_cache/`).
-4. Container fabrikasına (`container_parts/market_clients.py`) kaydet.
+4. Container fabrikasına (`container_parts/market_clients.py`; haber kaynakları için `infrastructure/news/provider_factory.py`) kaydet.
+   Haber ve benzeri sağlayıcılarda HTTP durumunu açıkça denetle: kütüphane 404'ü sessizce boş listeye çevirebilir (yfinance haber API'si bu yüzden kullanılmaz); sessiz boş dönüş yerine `NewsProviderUnavailable`/`MarketDataUnavailableError` fırlat.
 5. Testte ağ kullanma; sahte yanıt veya `monkeypatch` kullan (`tests/test_repo_guards.py` canlı ağ çağrısını yasaklar).

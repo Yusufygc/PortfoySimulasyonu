@@ -2,7 +2,7 @@
 
 Haber akışı tasarımının dayandığı kaynakların hâlâ çalışıp çalışmadığını doğrular: KAP şirket bazlı bildirim uç noktası,
 Türkçe/global RSS adayları, Yahoo ve Google News sembol bazlı RSS. Kaynaklar zamanla değişir; haber sağlayıcıları
-yazılırken veya bir kaynak bozulduğunda yeniden çalıştırın. Bulgular: YeniPlan/tasarim_notlari/spike_*.md.
+yazılırken veya bir kaynak bozulduğunda yeniden çalıştırın. Bulgular ve doğrulanmış adresler: docs/wiki/service_news.md.
 
 Kullanım (depo kökünden):
 

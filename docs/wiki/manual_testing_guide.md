@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Test stratejisi: [testing_strategy.md](testing_strategy.md) | Sayfa rehberi: [qml_pages_guide.md](qml_pages_guide.md)
 
-Bu belge, QML arayüzünün 10 sayfasını ve kritik akışlarını yayın öncesi elle doğrulamak içindir. Otomatik testler denetleyici ve QML derlemesini kapsar ama gerçek pencere davranışını, WebEngine grafiklerini, dış servisleri ve çapraz sayfa etkilerini kapsamaz. Amaç yalnızca ekranların açılmasını değil; kalıcılığı, hata mesajlarını, geri dönüşleri ve sayfalar arası etkileri doğrulamaktır.
+Bu belge, QML arayüzünün 11 sayfasını ve kritik akışlarını yayın öncesi elle doğrulamak içindir. Otomatik testler denetleyici ve QML derlemesini kapsar ama gerçek pencere davranışını, WebEngine grafiklerini, dış servisleri ve çapraz sayfa etkilerini kapsamaz. Amaç yalnızca ekranların açılmasını değil; kalıcılığı, hata mesajlarını, geri dönüşleri ve sayfalar arası etkileri doğrulamaktır.
 
 ---
 
@@ -47,7 +47,7 @@ Temizlik: Test temettüsü silindi.
 
 ### GLB-001 | Gezinme
 
-- **Adımlar:** Kenar çubuğundan sırayla: Genel Bakış, İzleme Listeleri, Model Portföyler, Hisse 360, Karşılaştırma Lab, Hisse Tarayıcı, Finansal Planlama, Optimizasyon, AI Asistan, Ayarlar. Dar pencerede (<1100 px) kenar çubuğunun daraldığını ve içeriğin yatay/dikey kaydırıldığını doğrula.
+- **Adımlar:** Kenar çubuğundan sırayla: Genel Bakış, Portföyüm, İzleme Listeleri, Model Portföyler, Hisse 360, Karşılaştırma Lab, Hisse Tarayıcı, Finansal Planlama, Optimizasyon, AI Asistan, Ayarlar. Dar pencerede (<1100 px) kenar çubuğunun daraldığını ve içeriğin yatay/dikey kaydırıldığını doğrula.
 - **Beklenen sonuç:** Donma, beyaz ekran veya yanlış aktif menü yok; sayfa ilk ziyarette yüklenir, sonra bellekte kalır.
 
 ### GLB-002 | Tema
@@ -72,41 +72,79 @@ Temizlik: Test temettüsü silindi.
 
 ---
 
-## 4. Genel Bakış (Dashboard)
+## 4. Genel Bakış (grafik ve haber)
 
-### DASH-001 | KPI ve tablo
+### DASH-001 | Sayfa içeriği
 
-- **Beklenen sonuç:** Toplam değer, K/Z, günlük değişim, nakit, haftalık/aylık getiri ve "son güncelleme" görünür; pozisyon tablosu lot, maliyet, güncel fiyat, günlük %, ağırlık gösterir; tutarlar Türkçe biçimlidir; varlık dağılımı donut'u pozisyonlarla uyumludur.
-
-### DASH-002 | Alım
-
-- **Adımlar:** Hızlı işlem: hisse kodu, lot, fiyat, tarih ve saat gir.
-- **Beklenen sonuç:** Yeterli nakit varsa kayıt oluşur ve tablo/KPI yenilenir; yetersiz nakit, seans dışı saat, hafta sonu/tatil ve geçersiz kod açık mesajla reddedilir.
-
-### DASH-003 | Satış
-
-- **Adımlar:** Eldeki lottan fazla satış dene; geçmiş tarihli satış dene.
-- **Beklenen sonuç:** Fazla satış ve sonraki akışı bozan geçmiş tarihli kayıt reddedilir.
-
-### DASH-004 | Sermaye
-
-- **Adımlar:** Yatır ve çek; bakiyeden fazla çekmeyi dene.
-- **Beklenen sonuç:** Bakiye güncellenir; fazla çekim reddedilir. Sermaye hareketleri seans kuralına tabi değildir.
+- **Beklenen sonuç:** Genel Bakış'ta portföy KPI'ları, pozisyon tablosu veya varlık dağılımı yoktur; yalnızca fiyat durumu, grafik ve haber paneli görünür. Pencere genişliği >= 1150 px iken haber paneli grafiğin sağındadır, daraltınca grafiğin altına iner; yatay taşma olmaz.
 
 ### DASH-005 | Otomatik fiyat güncelleme
 
 - **Adımlar:** (a) Uygulamayı BIST seansı içinde açın ve bekleyin. (b) Uygulamayı 18:30'dan sonra (veya gece/hafta sonu) açın ve bekleyin. (c) Başlık altındaki küçük yenile ikonuna tıklayın.
-- **Beklenen sonuç:** Düğmeye basmadan Ana Sayfa, İzleme Listesi ve Model Portföy aynı fiyatı gösterir. (a) Canlı fiyat gelir, "Son güncelleme" ilerler. (b) Bugünün kapanışı gelir; günlük değişim son iki kapanıştan hesaplanır (%0 değil). (c) Seans içinde canlı, dışında kapanış senkronu çalışır; ikon dönerken arayüz donmaz.
+- **Beklenen sonuç:** Düğmeye basmadan Genel Bakış, Portföyüm, İzleme Listesi ve Model Portföy aynı fiyatı gösterir. (a) Canlı fiyat gelir, "Son güncelleme" ilerler. (b) Bugünün kapanışı gelir; günlük değişim son iki kapanıştan hesaplanır (%0 değil). (c) Seans içinde canlı, dışında kapanış senkronu çalışır; ikon dönerken arayüz donmaz.
 
 ### DASH-006 | Grafik
 
-- **Adımlar:** Zaman dilimi (1D/1W/1M), grafik tipi, göstergeler (SMA/EMA, Bollinger, RSI, MACD), tam ekran.
-- **Beklenen sonuç:** Grafik tüm seçimlerde yeniden çizilir; boş veride açıklayıcı durum gösterilir.
+- **Adımlar:** Zaman dilimi (1D/1W/1M), grafik tipi, göstergeler (SMA/EMA, Bollinger, RSI, MACD), tam ekran. Hızlı seçicide portföy hisselerinin yanında Portföyüm varlıkları (ör. BTC, XAU) varsa birine tıkla.
+- **Beklenen sonuç:** Grafik tüm seçimlerde yeniden çizilir; boş veride açıklayıcı durum gösterilir. Varlık seçilince kapanış serisi çizilir (hacim yok), fiyat öneki varlığın para birimidir (`$`); BIST hissesine dönünce `₺` döner.
 
-### DASH-007 | Excel raporu
+### NEWS-001 | Haber paneli
+
+- **Adımlar:** Genel Bakış'ı aç; "Portföyüm ve İzleme" ve "Piyasa ve Global" sekmeleri arasında geç; bir habere tıkla; yenile düğmesine bas.
+- **Beklenen sonuç:** Birkaç saniye içinde haberler listelenir (kaynak adı, ilgili semboller, göreli zaman; İngilizce haberde `EN`); tıklama varsayılan tarayıcıda haberi açar; yenile sırasında düğme pasif olur. Portföyde BIST hissesi varsa KAP bildirimi görünür.
+
+### NEWS-002 | Haber hata durumları
+
+- **Adımlar:** İnternet bağlantısını kes ve yenile; sonra bağlantıyı aç.
+- **Beklenen sonuç:** Önceki (önbellekteki) haberler kalır, panelin üstünde "Ulaşılamayan kaynaklar: ..." uyarısı görünür; arayüz donmaz. Bağlantı gelince uyarı kalkar.
+
+---
+
+## 4b. Portföyüm
+
+### PF-001 | KPI ve tablo
+
+- **Beklenen sonuç:** Toplam değer, günlük kazanç, gerçekleşmemiş K/Z ve nakit görünür; tablo lot/miktar, maliyet, güncel fiyat, günlük %, ağırlık gösterir; tutarlar Türkçe biçimlidir; varlık dağılımı donut'u pozisyonlarla uyumludur; Tümü/BIST/ABD/Kripto/Emtia sekmeleri doğru satırları süzer. Fiyatsız pozisyonda "Maliyet" işareti ve sayfa üstünde uyarı görünür.
+
+### PF-002 | TRY/USD anahtarı
+
+- **Adımlar:** USD'ye geç ve TRY'ye dön; USD kuru yokken (ağ kapalı, boş veritabanı) dene.
+- **Beklenen sonuç:** Toplamlar güncel USD/TRY kuruyla değişir; kur yoksa TRY'de kalınır ve uyarı gösterilir.
+
+### PF-003 | Varlık ekleme
+
+- **Adımlar:** Katalogdan XAU ve BTC ekle; sembolle `AAPL` ekle; geçersiz sembol (`ZZZZZZ`) dene; uygulamayı kapatıp aç.
+- **Beklenen sonuç:** Doğrulama, geçmiş doldurma ve fiyat yükleme arka planda yürür, arayüz donmaz; geçersiz sembol açık mesajla reddedilir; varlıklar yeniden açılışta kalıcıdır.
+
+### PF-004 | Varlık alım/satım
+
+- **Adımlar:** Kesirli alım (`0,5`) ve kısmi satım yap; eldekinden fazla satmayı ve geriye dönük tarihli satışı dene; TRY fiyatlı varlıkta kur alanını kontrol et.
+- **Beklenen sonuç:** Kayıt oluşur, KPI ve dağılım yenilenir; fazla ve geriye dönük satış reddedilir; fiyat/kur önerisi veritabanından gelir.
+
+### PF-005 | BIST alım
+
+- **Adımlar:** Hızlı işlem: hisse kodu, lot, fiyat, tarih ve saat gir.
+- **Beklenen sonuç:** Yeterli nakit varsa kayıt oluşur ve tablo/KPI yenilenir; yetersiz nakit, seans dışı saat, hafta sonu/tatil ve geçersiz kod açık mesajla reddedilir.
+
+### PF-006 | BIST satış
+
+- **Adımlar:** Eldeki lottan fazla satış dene; geçmiş tarihli satış dene.
+- **Beklenen sonuç:** Fazla satış ve sonraki akışı bozan geçmiş tarihli kayıt reddedilir.
+
+### PF-007 | Sermaye
+
+- **Adımlar:** Yatır ve çek; bakiyeden fazla çekmeyi dene.
+- **Beklenen sonuç:** Bakiye güncellenir; fazla çekim reddedilir. Sermaye hareketleri seans kuralına tabi değildir.
+
+### PF-008 | Excel raporu
 
 - **Adımlar:** Excel Raporu: tarih aralığı, dosya, "ekle" modu açık/kapalı.
-- **Beklenen sonuç:** Dört sayfalı dosya oluşur (Özet Panel, Portföy Özeti, Günlük Detaylar, Hisse Özeti); ekleme modunda tarihler tekrarlanmaz; geçersiz tarih mesajla reddedilir.
+- **Beklenen sonuç:** Dört sayfalı dosya oluşur (Özet Panel, Portföy Özeti, Günlük Detaylar, Hisse Özeti); ekleme modunda tarihler tekrarlanmaz; geçersiz tarih mesajla reddedilir. Rapor yalnızca BIST portföyünü kapsar.
+
+### PF-009 | Fiyat yenileme
+
+- **Adımlar:** "Fiyatları Yenile"ye bas; 5 dakika bekle.
+- **Beklenen sonuç:** Düğmeyle sonuç mesajı gösterilir; otomatik yenileme sessizdir ve seansı kapalı sınıfları (ABD hissesi, metal) atlar.
 
 ---
 
@@ -120,7 +158,7 @@ Temizlik: Test temettüsü silindi.
 ### SD-002 | Sermaye artırımı
 
 - **Adımlar:** Bedelsiz (ör. %50) gir; ön izlemeyi incele; uygula. Ardından aynı aksiyonu tekrar dene.
-- **Beklenen sonuç:** Yeni lot aşağı yuvarlanır, ortalama maliyet düşer, geçmiş işlemler ve fiyat grafiği ex-date öncesi düzeltilir; tekrar uygulama reddedilir; Dashboard yenilenir. Bedelli için kullanım fiyatı zorunludur.
+- **Beklenen sonuç:** Yeni lot aşağı yuvarlanır, ortalama maliyet düşer, geçmiş işlemler ve fiyat grafiği ex-date öncesi düzeltilir; tekrar uygulama reddedilir; Portföyüm yenilenir. Bedelli için kullanım fiyatı zorunludur.
 
 ### SD-003 | Temettü (DIV)
 
@@ -303,7 +341,7 @@ Temizlik: Test temettüsü silindi.
 ### SET-002 | Veri sağlığı
 
 - **Adımlar:** İstatistikleri yenile; bütünlük kontrolü; "Eksik BIST Barlarını Şimdi Senkronize Et".
-- **Beklenen sonuç:** Dosya boyutları, tablo sayıları (finansal hedefler dahil), DuckDB hisse/bar sayısı ve son tarih doğru; bütünlük "sağlam" döner; senkron bitince toast ve Dashboard yenilemesi görülür.
+- **Beklenen sonuç:** Dosya boyutları, tablo sayıları (finansal hedefler dahil), DuckDB hisse/bar sayısı ve son tarih doğru; bütünlük "sağlam" döner; senkron bitince toast ve Genel Bakış/Portföyüm yenilemesi görülür.
 
 ### SET-003 | Dışa aktarım
 
@@ -327,7 +365,12 @@ Temizlik: Test temettüsü silindi.
 ### SET-007 | Sistem
 
 - **Adımlar:** Canlı yenilemeyi aç/kapat, aralık değiştir, "Şimdi Yenile"; (yalnızca kopya veride) "Sistemi Sıfırla".
-- **Beklenen sonuç:** Ayarlar yeniden açılışta korunur; yenileme yalnızca seans açıkken çalışır; sıfırlama onay ister ve portföy, işlem, nakit, izleme listesi, model portföy ve hisseleri siler (DuckDB ve bütçe silinmez).
+- **Beklenen sonuç:** Ayarlar yeniden açılışta korunur; yenileme yalnızca seans açıkken çalışır; sıfırlama onay ister ve portföy, işlem, nakit, izleme listesi, model portföy ve hisseleri siler (DuckDB, bütçe, Portföyüm varlık defteri ve haber kaynakları silinmez; bkz. [roadmap.md](roadmap.md)).
+
+### SET-008 | Haber kaynakları
+
+- **Adımlar:** Ayarlar > Haber Kaynakları: bir RSS kaynağını ve KAP'ı kapat/aç; KAP toplu bildirim anahtarını aç; "Bağlantıyı test et"; geçersiz (`ftp://x`) ve geçerli bir RSS adresi ekle, test et, sil; yenileme aralığını değiştir; uygulamayı kapatıp aç.
+- **Beklenen sonuç:** Kapatılan kaynağın haberleri Genel Bakış panelinden hemen kalkar, açınca geri gelir; test sonucu toast ve satır durumunda ("Son çekim SS:DD, N haber" veya "Hata: ...") görünür; geçersiz adres açık mesajla reddedilir; yalnızca özel besleme silinebilir; tüm ayarlar yeniden açılışta korunur.
 
 ---
 
@@ -341,4 +384,4 @@ Temizlik: Test temettüsü silindi.
 ### BG-002 | Ağ yokken
 
 - **Adımlar:** Ağı kes, uygulamayı aç.
-- **Beklenen sonuç:** Yerel veri (Dashboard, Hisse 360 genel bakış, tarayıcı) çalışır; dış veriye bağlı bölümler kısa hata mesajı verir; sayfa donmaz.
+- **Beklenen sonuç:** Yerel veri (Portföyüm, Genel Bakış grafiği, Hisse 360 genel bakış, tarayıcı) çalışır; dış veriye bağlı bölümler kısa hata mesajı verir; sayfa donmaz.

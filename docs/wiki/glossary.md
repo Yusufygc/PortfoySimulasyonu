@@ -11,6 +11,10 @@ Projede geçen alan ve teknik terimler. Ayrıntı için ilgili sayfaya bakın.
 | **BIST** | Borsa İstanbul. Seans: normal gün 10:00-18:10, yarım gün 10:00-13:00. |
 | **Ticker** | Hisse kodu. Kanonik biçim uzantısız büyük harftir (`THYAO`); `.IS` yalnızca yfinance sınırında eklenir. |
 | **Lot** | Hisse adedi birimi (portföyde `quantity`). |
+| **Varlık defteri** | BIST dışı varlıkların (altın, kripto, ABD hissesi) BIST `trades`/`stocks` hattından ayrı tutulan, kesirli miktarlı olay kaynaklı defteri ([service_asset_ledger.md](service_asset_ledger.md)). |
+| **Vadeli kontrat fiyatı** | `GC=F`, `SI=F`, `PL=F`, `PA=F` gibi emtia fiyatı; spot fiyattan küçük sapma gösterebilir. |
+| **Kısmi toplam** | Fiyatı veya kuru bulunamayan pozisyonun maliyetle değerlendiği ve özetin "kısmi" işaretlendiği Portföyüm toplamı. |
+| **KAP bildirimi** | Kamuyu Aydınlatma Platformu'nda şirketin yayımladığı resmî bildirim; haber panelinde şirket haberi olarak listelenir ([service_news.md](service_news.md)). |
 | **Bedelsiz sermaye artırımı** | Ortaklara bedel ödemeden yeni pay verilmesi; lot artar, toplam maliyet sabit, ortalama maliyet ve fiyat düşer. |
 | **Bedelli sermaye artırımı** | Ortakların kullanım fiyatı ödeyerek yeni pay alması; lot artar, toplam maliyete ödenen tutar eklenir. |
 | **Ex-date** | Artırımın fiyata yansıdığı ilk gün; düzeltme bu günden önceki kayıtlara uygulanır. |

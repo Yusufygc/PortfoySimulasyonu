@@ -85,6 +85,27 @@ Durum etiketleri: **Açık** (başlanmadı), **Kısmi** (bir bölümü var).
 | AI_Core tahmin servisinin gerçek bağlantısı | Kısmi | İstemci ve ayrıştırıcı hazırdır (`AICoreFastAPIClient`); servis kapalıyken demo sağlayıcıya düşülür. Servis ayrı bir projedir. |
 | Yazma yapan araçlar | Reddedildi | Danışman araçları bilerek salt okunurdur; emir/para hareketi aracı eklenmez ([ai_integration.md](ai_integration.md)). |
 
+### 2.8 Çoklu Varlık (Portföyüm) ve Haber
+
+Kapsam kararları ve ayrıntı: [service_asset_ledger.md](service_asset_ledger.md), [service_asset_prices_fx.md](service_asset_prices_fx.md), [service_news.md](service_news.md).
+
+| Fikir | Durum | Not |
+|---|---|---|
+| Birleşik TWR getirisi ve risk metrikleri | Açık | Yalnızca BIST portföyü için çalışır; Portföyüm'deki haftalık/aylık getiri kartları BIST'tir. |
+| Optimizasyon evreninde varlık sınıfları | Açık | `OptimizationService` BIST odaklıdır; `AnalysisSourceResolver`'a varlık kaynağı kodu eklenebilir. |
+| Excel raporunda varlık sayfaları | Açık | Mevcut rapor BIST portföyü içindir. |
+| AI danışman aracı (`get_assets_overview`) | Açık | Danışman araçları salt okunur kalır; varlık özeti aracı yoktur. |
+| Benchmark olarak BTC / NASDAQ | Açık | `AnalysisBenchmarkService` listesi sabittir. |
+| Varlık temettü / stake geliri | Açık | |
+| Varlık nakdi (USD vb.) defteri | Açık | Varlık alımı BIST nakdine bağlı değildir; tek TRY nakit defteri vardır. |
+| Sistem sıfırlama ve JSON yedeğinde varlık defteri | Açık | `PortfolioResetService.reset_all` ve yedek dışa aktarımı `assets`, `asset_trades`, `asset_prices`, `asset_latest_prices`, `fx_rates` tablolarını kapsamaz. |
+| Gram birimli maden kataloğu | Açık | `AssetUnit.GRAM` ve `Asset.unit_price` hazırdır; katalog yalnızca ons girdisi içerir. |
+| Varlık grafiğinde gerçek OHLC ve hacim | Açık | Varlık fiyatı yalnızca kapanış saklanır; haftalık/aylık yeniden örnekleme 2 ondalıkta yuvarlar. |
+| Abd/CME resmî tatil takvimi | Açık | Varlık seans takvimi tatilleri modellemez. |
+| Haber: kalıcı kaynak hata kaydı | Açık | Kaynak durumu yalnızca oturum içindedir. |
+| Haber: genel RSS akışlarında piyasa süzgeci | Açık | Bazı akışlar piyasa dışı içerik karıştırır (anahtar sözcük süzgeci yok). |
+| Haber duyarlılık analizi, bildirim (push), haber-fiyat korelasyonu | Açık | |
+
 ---
 
 ## 3. Belge Bakımı

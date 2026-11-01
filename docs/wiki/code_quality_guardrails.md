@@ -6,7 +6,7 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 
 ## 1. Ölçüm
 
-**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 5 sınıf, 75 fonksiyon, 0 dosya); yeni ihlal eklenemez. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
+**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 5 sınıf, 75 fonksiyon, 0 dosya); yeni ihlal eklenemez. Ölçüm `tests/`, `scripts/` ve `src/` dosyalarının tümünü kapsar: test yardımcılarındaki 5'ten çok parametre de ihlaldir (2026-11-01'de Portföyüm/haber işi tavanı 92'ye çıkarmıştı; seçenek sözlüğü, `**options` ve küçük yardımcı fonksiyonlarla 75'e indirildi). Ölçüm `--output-dir` olmadan tarihsel baseline dosyalarının üzerine yazar; yerelde mutlaka `--output-dir` verin. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
 
 ```powershell
 .\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar

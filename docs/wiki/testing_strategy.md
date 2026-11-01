@@ -4,7 +4,7 @@
 
 ## 1. Durum
 
-`pytest tests -q` (2026-10-04): **1118 geçti, 4 xfailed** (1122 toplanan). Dağılım: `domain` 74, `application` 584, `infrastructure` 170, `ui_qml` 282, `qt_compat` 3; kalan testler kök dizindeki koruma ve ölçüm testleridir. Dört `xfail`, `tests/application/test_friday_excel_export_bug.py` içindeki bilinen cuma/hafta sonu Excel davranışı vakalarıdır.
+`pytest tests -q` (2026-11-01): **1694 geçti, 4 xfailed**. Varlık defteri, Portföyüm ve haber özellikleri `tests/domain/test_asset_*`, `tests/application/services/assets|news/`, `tests/infrastructure/news/`, `tests/infrastructure/db/test_asset_repositories.py`, `tests/ui_qml/test_my_portfolio_*`, `test_assets_controller.py`, `test_news_*` dosyalarındadır; kalan testler kök dizindeki koruma ve ölçüm testleridir. Dört `xfail`, `tests/application/test_friday_excel_export_bug.py` içindeki bilinen cuma/hafta sonu Excel davranışı vakalarıdır.
 
 ## 2. Test Piramidi
 
@@ -69,7 +69,9 @@ Her yeniden düzenlemeden sonra ve yeni özellik eklemeden önce paketin yeşil 
 - Servis testinde mock repository kullanın; zaman çizelgesi, nakit ve geçmişe dönük girişler için gerçek `PortfolioService` + sahte repo birleşimi (`tests/application/test_dividend_cash_flow.py` örneği) tercih edilir.
 - SQLite davranışı (`BIGINT` id, göç, FK) için gerçek geçici veritabanı kullanın; mock bu sınıf hatayı yakalamaz (örnek: BIGINT id hatası yalnızca gerçek veritabanıyla görüldü).
 - QML bileşeni için `QQmlComponent` ile yükleyip uyarı listesinin boş olduğunu doğrulayın; bileşen nesnesini testin sonuna dek referansta tutun (aksi halde çöp toplanıp "already deleted" hatası verir).
-- Canlı ağ çağrısı eklemeyin; sağlayıcıları `monkeypatch` ile sahteleyin.
+- Canlı ağ çağrısı eklemeyin; sağlayıcıları `monkeypatch` ile sahteleyin. Haber sağlayıcılarında `fetcher`/`poster` enjekte edilir, ayrıştırıcılar kayıtlı örnek yanıtla saf fonksiyon olarak sınanır; kaynakların hâlâ çalışıp çalışmadığı `scripts/probe_news_sources.py` ile (salt okunur, elle) doğrulanır.
+- Arka plan işi yapan yeni denetleyiciler `autostart=False` varsayılanıyla yazılır ve testte `executor`'ı eşzamanlı sahte yürütücüyle değiştirir (`NewsController`, `AssetsController`, `NewsSettingsController`).
+- QML'de Repeater/ListView temsilcileri `findChildren` ile değil `count` özelliğiyle sınanır; QML dosyasında parametre sayısı çoksa test yardımcılarını `**options` ile yazın (kalite ölçümü test dosyalarını da sayar).
 - Yeni `Strings` anahtarı kullanılmıyorsa `test_strings_catalog` kırar; kullanılmayan anahtarı silin.
 - **Gerçek saate bağlı test yazmayın:** piyasa saati/günü kodu `src/domain/market_clock.py` (`market_now`, `market_today`) kullanır; testler bunları kodun içe aldığı modülde yamalar (`monkeypatch.setattr("...startup_jobs_controller.market_now", ...)`). Saat 19:00'dan sonra kırılan iki başlangıç işi testi bu hatadan çıktı.
 - **Yama hedefi kalkınca testleri tarayın:** koddan bir bağımlılık (ör. `datetime`) kalkarsa veya yer değiştirirse `grep -rn "<modül>.<ad>" tests` ile o hedefi yamalayan testler bulunup güncellenir; yama sessizce etkisiz kalıp test yalnızca belirli saatlerde geçer.

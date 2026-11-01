@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Değişiklik günlüğü: [log.md](log.md) | Kaynak ağacı: [project_structure.md](project_structure.md)
 
-Portföy Simülasyonu, BIST ve küresel hisseleri takip eden bir **PySide6 + QML (Qt Quick)** masaüstü uygulamasıdır. Kod tabanı **Clean Architecture** ilkesine göre katmanlanmıştır: bağımlılıklar yalnızca içe doğru akar, iç katmanlar dış katmanları tanımaz.
+Portföy Simülasyonu, BIST hisselerini ve BIST dışı varlıkları (kıymetli maden, kripto, ABD hissesi) takip eden bir **PySide6 + QML (Qt Quick)** masaüstü uygulamasıdır. Kod tabanı **Clean Architecture** ilkesine göre katmanlanmıştır: bağımlılıklar yalnızca içe doğru akar, iç katmanlar dış katmanları tanımaz.
 
 ```mermaid
 graph TD
@@ -86,7 +86,7 @@ Açılıştan sonra başlayan otomatik işler (ayrıntı: [settings_and_system.m
 - Ağ, veritabanı taraması ve ağır hesaplama ana (GUI) iş parçacığında çalıştırılmaz. Denetleyiciler `ThreadPoolExecutor` kullanır; sonuç, Qt kuyruklu sinyalleriyle (`_xxxFinished = Signal(...)`) ana iş parçacığına taşınır. Arka plan iş parçacığından QML özelliği değiştirilmez.
 - Açılış işleri tek bir iş parçacığında sırayla çalışır (veri kaynaklarını aynı anda yormamak için).
 - Etkileşimli `yfinance` çağrıları `yfinance_lock` kapısıyla serileştirilir; kapı 30 sn içinde alınamazsa uyarıp kilitsiz sürdürür (fail-open) ve kilit yeniden deneme beklemesi sırasında tutulmaz ([service_market_data_providers.md](service_market_data_providers.md)).
-- Fiyat güncellemeleri `GlobalEventBus.prices_updated` (Qt sinyali, yük: `dict[int, Decimal]`) ile yayınlanır; Dashboard ve Model Portföy bu sinyali dinleyerek yenilenir.
+- Fiyat güncellemeleri `GlobalEventBus.prices_updated` (Qt sinyali, yük: `dict[int, Decimal]`) ile yayınlanır; Genel Bakış, Portföyüm ve Model Portföy bu sinyali dinleyerek yenilenir.
 
 ---
 
@@ -96,7 +96,7 @@ Uygulama iki yerel dosya veritabanı kullanır; harici sunucu gerekmez:
 
 | Depo | Dosya | İçerik |
 |---|---|---|
-| SQLite (OLTP) | `data/portfolio.db` | Portföy işlemleri, nakit hareketleri, izleme listeleri, model portföyler, bütçe/hedefler, kurumsal aksiyonlar, risk profilleri, KAP önbelleği, portföy hisselerinin kapanışları |
+| SQLite (OLTP) | `data/portfolio.db` | Portföy işlemleri, nakit hareketleri, izleme listeleri, model portföyler, bütçe/hedefler, kurumsal aksiyonlar, risk profilleri, KAP önbelleği, portföy hisselerinin kapanışları, BIST dışı varlık defteri, varlık fiyatları ve kurlar, haber kaynağı tercihleri |
 | DuckDB (OLAP) | `data/market_history.duckdb` | Tüm BIST günlük ham barları (~624 hisse, 2000'den bugüne) ve sermaye artırımı düzeltme faktörleri |
 
 Sahiplik kuralları, ticker biçimi ve bilinen sınırlar: [data_architecture.md](data_architecture.md). Şema: [database_schema_and_orm.md](database_schema_and_orm.md).
@@ -116,6 +116,8 @@ Sahiplik kuralları, ticker biçimi ve bilinen sınırlar: [data_architecture.md
 | **Teknik göstergeler ve risk metrikleri özel NumPy/Pandas kodudur**, `pandas-ta`/`quantstats` kullanılmaz. | Bakımsız ve sürüm kırılgan bağımlılıklardan kaçınmak ([technical_analysis_and_screener.md](technical_analysis_and_screener.md)). |
 | **Arayüz yalnızca QML'dir** (eski Qt Widgets arayüzü 2026-10-03'te silindi). | GPU hızlandırmalı, akıcı arayüz ve temiz Python/QML ayrımı ([ui_architecture_and_events.md](ui_architecture_and_events.md)). |
 | **SQLite `BIGINT` birincil anahtarlara `before_insert` dinleyicisi `max(id)+1` atar.** | SQLite `BIGINT` anahtarı otomatik artırmaz. |
+| **BIST dışı varlıklar ayrı defterde tutulur** (`assets`/`asset_trades`), BIST `trades`/`stocks` hattı genişletilmedi. | BIST hattı BIST + TRY + tam sayı lot + tek TRY nakit + BIST seans kuralı varsayar; genişletmek TWR, nakit, optimizasyon, Excel ve AI araçlarını kırardı. Birleşik görünüm `UnifiedPortfolioService` ile okuma anında kurulur; eksik fiyat/kur sessizce atlanmaz, toplam "kısmi" işaretlenir ([service_asset_ledger.md](service_asset_ledger.md)). |
+| **Haber sağlayıcıları sessiz boş liste dönmez**; HTTP durumu açıkça denetlenir, kaynak başına hata yalıtılır, önbellek hatada eski haberi korur. | `yfinance` haber API'si 404'ü sessizce boş listeye çeviriyordu; "kaynak açık ama haber yok" ile "kaynak bozuk" ayırt edilemiyordu ([service_news.md](service_news.md)). |
 
 ---
 
@@ -126,7 +128,10 @@ Sahiplik kuralları, ticker biçimi ve bilinen sınırlar: [data_architecture.md
 | Geliştirme ortamı, komutlar, ayarlar | [development_guide.md](development_guide.md) |
 | Kaynak ağacı ve modül haritası | [project_structure.md](project_structure.md) |
 | Arayüz mimarisi ve QML kuralları | [ui_architecture_and_events.md](ui_architecture_and_events.md) |
-| 10 sayfa ve denetleyici rehberi | [qml_pages_guide.md](qml_pages_guide.md) |
+| 11 sayfa ve denetleyici rehberi | [qml_pages_guide.md](qml_pages_guide.md) |
+| Varlık defteri ve birleşik portföy (Portföyüm) | [service_asset_ledger.md](service_asset_ledger.md) |
+| Varlık fiyatları, kur ve Genel Bakış grafiği | [service_asset_prices_fx.md](service_asset_prices_fx.md) |
+| Haber akışı ve kaynak yönetimi | [service_news.md](service_news.md) |
 | Portföy, fiyat akışları, nakit | [service_portfolio_and_market.md](service_portfolio_and_market.md) |
 | Piyasa veri kaynakları ve yeniden deneme | [service_market_data_providers.md](service_market_data_providers.md) |
 | Kurumsal aksiyonlar ve temettü | [service_corporate_actions.md](service_corporate_actions.md), [market_corporate_actions.md](market_corporate_actions.md) |

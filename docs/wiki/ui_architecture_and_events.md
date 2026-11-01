@@ -21,8 +21,8 @@ Application servisleri
 
 ## 2. Ana Pencere ve Gezinme
 
-- `Main.qml`: `ApplicationWindow`, üstte `WindowHeader` (arama, piyasa şeridi, senkron rozeti), solda `Sidebar`, ortada `StackLayout` ile 10 sayfa. Her sayfa **lazy `Loader`** ile ilk açıldığında yüklenir; sonra bellekte kalır.
-- `ShellController` etkin sayfa dizinini (`activePage`) ve piyasa seans durumunu tutar; `navigateTo(i)` ile sayfa değişir. Sayfa dizinleri: 0 Genel Bakış, 1 İzleme Listeleri, 2 Model Portföyler, 3 Hisse 360, 4 Karşılaştırma Lab, 5 Hisse Tarayıcı, 6 Finansal Planlama, 7 Optimizasyon, 8 AI Asistan, 9 Ayarlar.
+- `Main.qml`: `ApplicationWindow`, üstte `WindowHeader` (arama, piyasa şeridi, senkron rozeti), solda `Sidebar`, ortada `StackLayout` ile 11 sayfa. Her sayfa **lazy `Loader`** ile ilk açıldığında yüklenir; sonra bellekte kalır.
+- `ShellController` etkin sayfa dizinini (`activePage`) ve piyasa seans durumunu tutar; `navigateTo(i)` ile sayfa değişir. Sayfa dizinleri: 0 Genel Bakış, 1 İzleme Listeleri, 2 Model Portföyler, 3 Hisse 360, 4 Karşılaştırma Lab, 5 Hisse Tarayıcı, 6 Finansal Planlama, 7 Optimizasyon, 8 AI Asistan, 9 Ayarlar, 10 Portföyüm (kenar çubuğunda Genel Bakış'ın altında; dizinler kaymasın diye sona eklendi).
 - Pencere dar olduğunda (`width < 1100`) kenar çubuğu otomatik daralır. İçerik asgari ölçünün altına inerse sayfa kaydırılır; sayfalar `minContentWidth`/`minContentHeight` bildirebilir.
 - `ToastNotification` ile küresel bildirimler gösterilir (senkron sonucu, açılış işleri); modallar kendi içinde yerel toast taşır.
 
@@ -71,7 +71,8 @@ Kurallar: arka plan iş parçacığından QML özelliği doğrudan değiştirilm
 | Mekanizma | Kullanım |
 |---|---|
 | `GlobalEventBus.prices_updated` (`dict[int, Decimal]`) | Fiyat güncellemesi (canlı yenileme, kapanış tamamlama, açılış işleri). Yalnızca `PriceRefreshController` dinler; ekranlar yükteki fiyatı kullanmaz, DB'den yeniden okur. Boş yük yayınlanmaz. |
-| Denetleyici sinyalleri (`dataSynced`, `pricesUpdated`, `portfolioChanged`, `pricesRefreshed`, `systemReset`) | `app.py` içinde `PriceRefreshController.watch` ile bağlanır ve tek `pricesChanged` sinyalinde birleşir (400 ms); Ana Sayfa (`reloadPrices`), İzleme Listesi (`refreshPrices`), Model Portföy (`reloadPrices`) DB'den yeniden okur. `portfolioChanged`/`systemReset` ayrıca Model Portföy listesini (`refreshData`) yeniler. |
+| Denetleyici sinyalleri (`dataSynced`, `pricesUpdated`, `portfolioChanged`, `pricesRefreshed`, `systemReset`) | `app.py` içinde `PriceRefreshController.watch` ile bağlanır ve tek `pricesChanged` sinyalinde birleşir (400 ms); Ana Sayfa (`reloadPrices`), Portföyüm (`myPortfolioController.reloadPrices`), İzleme Listesi (`refreshPrices`), Model Portföy (`reloadPrices`) DB'den yeniden okur. `portfolioChanged`/`systemReset` ayrıca Model Portföy listesini (`refreshData`) ve Portföyüm'ü (`reload`) yeniler. |
+| Varlık ve haber sinyalleri | `assetsController.dataChanged` Portföyüm'ü (`reload`), haber panelini (`newsController.refresh`) ve grafik hızlı seçicisini (`chartController.refreshAssets`) yeniler; `newsSettingsController.sourcesChanged` haber panelini, `refreshMinutesChanged` haber zamanlayıcısını günceller. `AssetsController(autostart=True)` 5 dakikada bir varlık fiyatlarını sessizce yeniler, `NewsController(autostart=True)` ayardaki aralıkta (varsayılan 10 dk) haberleri yeniler; ikisi de testte varsayılan olarak kapalıdır. |
 | `QSettings` | Tema, otomatik iş işaretleri, son güncelleme zamanları, sohbet geçmişi. |
 
 Güncel fiyat: `latest_prices` canlı kaydı yalnızca seans içinde alınmışsa, aksi halde son kapanış (`CurrentPriceResolver`; bkz. [service_portfolio_and_market.md](service_portfolio_and_market.md)). Tarihsel rapor ve backtest yalnızca `daily_prices` kapanışını kullanır.

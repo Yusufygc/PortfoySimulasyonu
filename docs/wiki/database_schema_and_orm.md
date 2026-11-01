@@ -6,9 +6,9 @@ Bu sayfa SQLite (işlemsel) şemasını ve ORM katmanını anlatır. DuckDB şem
 
 ## 1. Repository Deseni
 
-Domain katmanı SQL'den bağımsızdır: `src/domain/ports/repositories/` altındaki soyut arayüzler `src/infrastructure/db/sqlalchemy/repositories/` içindeki 15 SQLAlchemy repository'siyle (`sa_*.py`) uygulanır. Yazma yollarındaki `commit/rollback/refresh` tekrarları `_transaction.py` yardımcılarına (`commit_or_rollback`, `commit_refresh_or_rollback`) taşınmıştır; hata yakalama `SQLAlchemyError` ailesiyle sınırlıdır. `SQLAlchemyRiskProfileRepository` eski `risk_profiles` şeması için bilinçli bir uyumluluk yolu taşır.
+Domain katmanı SQL'den bağımsızdır: `src/domain/ports/repositories/` altındaki soyut arayüzler `src/infrastructure/db/sqlalchemy/repositories/` içindeki 20 SQLAlchemy repository'siyle (`sa_*.py`) uygulanır. Yazma yollarındaki `commit/rollback/refresh` tekrarları `_transaction.py` yardımcılarına (`commit_or_rollback`, `commit_refresh_or_rollback`) taşınmıştır; hata yakalama `SQLAlchemyError` ailesiyle sınırlıdır. `SQLAlchemyRiskProfileRepository` eski `risk_profiles` şeması için bilinçli bir uyumluluk yolu taşır.
 
-## 2. Tablolar (`orm_models.py`, 23 tablo)
+## 2. Tablolar (`orm_models.py`, 29 tablo)
 
 | Alan | Tablo | İçerik |
 |---|---|---|
@@ -28,7 +28,14 @@ Domain katmanı SQL'den bağımsızdır: `src/domain/ports/repositories/` altın
 | Risk | `risk_profiles` | Skor, etiket, anket sürümü, yanıt/boyut puanı/dağılım JSON'ları, uygunluk notları. |
 | Teknik | `cross_events` | Golden/Death Cross olayları: `(ticker, cross_date, cross_type)` benzersiz; türetilmiş veri. |
 | KAP | `kap_companies` (`ticker` benzersiz, `mkk_member_oid`), `kap_shareholder_snapshots`, `kap_shareholder_rows` | Ortaklık yapısı önbelleği. |
+| Varlık defteri (BIST dışı) | `assets` | `symbol`, `name`, `asset_class`, `quote_currency`, `yf_symbol`, `unit`, `is_active`; `(asset_class, symbol)` benzersiz. |
+| | `asset_trades` | BUY/SELL: `quantity`, `price` `Numeric(28,10)`, `fx_rate_to_try`, `trade_time`, `note`. |
+| | `asset_prices` | Günlük kapanış: `(asset_id, price_date)` benzersiz, `close_price`, `currency_code`, `source`. |
+| | `asset_latest_prices` | Varlık başına son fiyat ve zaman damgası. |
+| | `fx_rates` | Kur serisi: `(base_currency, quote_currency, rate_date)` benzersiz (`uq_fx_rate`), `rate`, `source`. |
+| Haber | `news_sources` | Haber kaynağı tercihleri: `source_id` (PK), `kind`, `name`, `enabled`, `language`, `scope`, `url`, `description`, `is_custom`, `options_json`, `sort_order`. |
 
+Varlık defteri tabloları `Integer` anahtar kullanır (BIGINT `max(id)+1` kancası yalnızca `BigInteger` `id` tablolarına uygulanır), üretilmiş sütun içermez; `news_sources` anahtarı metindir. Yeni tabloları `create_all` kurar, `schema_migrations.py` göçü gerekmedi. Ayrıntı: [service_asset_ledger.md](service_asset_ledger.md), [service_news.md](service_news.md).
 Sohbet geçmişi, tema ve açılış işaretleri veritabanında değil `QSettings`'tedir ([settings_and_system.md](settings_and_system.md)).
 
 ## 3. İlklendirme ve Şema Evrimi
@@ -50,7 +57,7 @@ Sermaye artırımı uygulandığında `trades.quantity` ve `price` bölünmüş 
 
 ## 5. Önbellek Dosyaları
 
-Mali tablo, TÜFE, değerleme ve KAP şirket listesi önbellekleri veritabanında değil `data/_cache/` altında JSON dosyalarıdır ([service_market_data_providers.md](service_market_data_providers.md)).
+Mali tablo, TÜFE, değerleme, KAP şirket listesi (`data/_cache/kap/bist_companies_v2.json`) ve haber önbellekleri (`data/_cache/news/`) veritabanında değil `data/_cache/` altında JSON dosyalarıdır ([service_market_data_providers.md](service_market_data_providers.md)).
 
 ## 6. Testler
 

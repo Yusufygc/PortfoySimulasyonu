@@ -23,16 +23,19 @@
 | Sayfa | Özet |
 |---|---|
 | [ui_architecture_and_events.md](ui_architecture_and_events.md) | QML mimarisi: ince QML + Python denetleyici, gezinme, Theme/Strings/Icons, grafikler, iş parçacığı ve sinyal modeli, denetleyici kuralları |
-| [qml_pages_guide.md](qml_pages_guide.md) | 10 sayfanın amacı, denetleyicileri, özellikleri ve denetleyici referansı |
+| [qml_pages_guide.md](qml_pages_guide.md) | 11 sayfanın (Genel Bakış, Portföyüm dahil) amacı, denetleyicileri, özellikleri ve denetleyici referansı |
 | [comparison_lab.md](comparison_lab.md) | Karşılaştırma Lab: seçim, mod, para birimi, grafik sekmeleri, yapay zekâ yorumu |
 | [stock_360.md](stock_360.md) | Hisse 360: genel bakış, teknik seviyeler, finansal analiz, KAP ortaklık yapısı |
-| [settings_and_system.md](settings_and_system.md) | Ayarlar sekmeleri, açılış ve zamanlayıcı işleri, canlı fiyat yenileme, `QSettings` |
+| [settings_and_system.md](settings_and_system.md) | Ayarlar sekmeleri (Haber Kaynakları dahil), açılış ve zamanlayıcı işleri, canlı fiyat yenileme, `QSettings` |
 
 ## Servisler ve Alan Mantığı
 
 | Sayfa | Özet |
 |---|---|
 | [service_portfolio_and_market.md](service_portfolio_and_market.md) | Olay kaynaklı portföy, işlem girişi ve seans koruması, nakit, iki fiyat akışı, fiyat sağlığı, model portföy nakit kuralları |
+| [service_asset_ledger.md](service_asset_ledger.md) | BIST dışı varlık defteri (altın, kripto, ABD hissesi), ayrı defter kararı, birleşik portföy değerlemesi ve Portföyüm kuralları |
+| [service_asset_prices_fx.md](service_asset_prices_fx.md) | Varlık sembol çözümü, fiyat sağlayıcı, seans takvimi, yenileme, kur ve Genel Bakış varlık grafiği |
+| [service_news.md](service_news.md) | Haber akışı: KAP, Yahoo, Google News ve RSS sağlayıcıları, `NewsService`, önbellek, kaynak yönetimi, haber paneli |
 | [service_corporate_actions.md](service_corporate_actions.md) | Bedelli/bedelsiz uygulaması, fiyat geçmişi düzeltmesi, KAP/MKK aday akışı, nakit temettü |
 | [market_corporate_actions.md](market_corporate_actions.md) | Tüm BIST için DuckDB'de veriden sermaye artırımı tespiti, faktör formülleri, onay, çift düzeltme koruması |
 | [service_analysis.md](service_analysis.md) | Analiz servisleri, TWR serisi, risk metrikleri, benchmark kaynakları |
@@ -48,7 +51,7 @@
 | Sayfa | Özet |
 |---|---|
 | [data_architecture.md](data_architecture.md) | SQLite ve DuckDB sahipliği, DuckDB şeması, ticker biçimi, yazma/okuma kuralları, bilinen sınırlar |
-| [database_schema_and_orm.md](database_schema_and_orm.md) | 23 tablo, repository deseni, açılış göçleri, BIGINT id atama |
+| [database_schema_and_orm.md](database_schema_and_orm.md) | 29 tablo, repository deseni, açılış göçleri, BIGINT id atama |
 | [service_market_data_providers.md](service_market_data_providers.md) | Dış veri kaynakları, önbellekler, ağ yeniden denemesi, hata aileleri, seans ve takvim |
 | [database_maintenance_and_scripts.md](database_maintenance_and_scripts.md) | `DatabaseMaintenanceService`, betikler, güvenli çalışma pratikleri |
 
@@ -57,7 +60,7 @@
 | Sayfa | Özet |
 |---|---|
 | [testing_strategy.md](testing_strategy.md) | Test piramidi, koruma testleri, fixture ve gerçek veri izolasyonu, komutlar, CI |
-| [manual_testing_guide.md](manual_testing_guide.md) | 10 sayfa ve arka plan davranışı için yayın öncesi manuel test listesi |
+| [manual_testing_guide.md](manual_testing_guide.md) | 11 sayfa ve arka plan davranışı için yayın öncesi manuel test listesi |
 | [code_quality_guardrails.md](code_quality_guardrails.md) | Eşikler, ölçüm komutu, güncel eşik ihlalleri, istisna protokolü |
 | [system_audit_report_2026-10-04.md](system_audit_report_2026-10-04.md) | Kapsamlı sistem denetimi: 16 bulgu (öncelik, kanıt, çözüm), aksiyon planı, metodoloji uyumu |
 | [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Tarihsel kod kalitesi baseline raporu (eski arayüz dönemi) |
@@ -81,4 +84,4 @@
 4. Mimari karar, yeni özellik veya önemli hata çözümünde ilgili servis sayfasını ve `architecture.md`'yi güncelle; tamamlanan özelliği `roadmap.md`'den sil.
 5. Belgeleri net, şematik ve doğrulanabilir tut; bir iddia kodla çelişiyorsa kod esastır.
 
-*Son güncelleme: 2026-10-04 — wiki kod tabanına göre baştan doğrulanıp yenilendi (bkz. [log.md](log.md)).*
+*Son güncelleme: 2026-11-01 — Portföyüm, varlık defteri ve haber akışı wiki'ye işlendi (bkz. [log.md](log.md)).*

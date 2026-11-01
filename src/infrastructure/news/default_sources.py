@@ -1,4 +1,4 @@
-"""İlk çalıştırmada eklenen haber kaynakları (doğrulanmış adresler: YeniPlan spike notları, 2026-11-01)."""
+"""İlk çalıştırmada eklenen haber kaynakları (doğrulanmış adresler: docs/wiki/service_news.md, 2026-11-01)."""
 from __future__ import annotations
 
 from typing import List

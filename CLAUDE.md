@@ -29,7 +29,7 @@ Bu projedeki tüm kurallar, süreçler ve yönergeler için bkz:
 
 ## Proje Özeti
 
-**Portföy Simülasyonu** — BIST ve küresel hisseleri takip eden PySide6 + QML masaüstü uygulaması.  
+**Portföy Simülasyonu** — BIST hisselerini ve BIST dışı varlıkları (altın, kripto, ABD hissesi) takip eden PySide6 + QML masaüstü uygulaması.  
 Markowitz optimizasyonu, risk profili analizi, backtest simülasyonu, Excel raporlama ve AI destekli analiz içerir.
 
 | Katman | Teknoloji |
@@ -96,6 +96,9 @@ unrealized_pl = portfolio.total_unrealized_pl(current_prices)
 | `corporate_actions` | Sermaye artırımı, temettü |
 | `budgets` | Aylık birikim hedefleri |
 | `watchlists` / `watchlist_items` | İzleme listeleri |
+| `assets` / `asset_trades` | BIST dışı varlık defteri (altın, gümüş, platin, paladyum, kripto, ABD hissesi); ayrı defter |
+| `asset_prices` / `asset_latest_prices` / `fx_rates` | Varlık günlük ve son fiyatları, kur serisi |
+| `news_sources` | Haber kaynağı açık/kapalı tercihleri (KAP, Yahoo, Google News, RSS) |
 
 ORM ilk çalıştırmada tabloları otomatik oluşturur.
 

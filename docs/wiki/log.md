@@ -5,6 +5,18 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-01] yeni-sayfa | Portföyüm, Varlık Defteri ve Haber Akışı Wiki'ye İşlendi
+
+- Üç büyük özellik tamamlandı ve geçici tasarım klasörü wiki'ye taşınıp silindi: **Portföyüm** sayfası (Genel Bakış artık yalnızca grafik + haber), **BIST dışı varlık defteri** (altın, gümüş, platin, paladyum, kripto, ABD hissesi; ayrı defter, TRY/USD, sınıf bazlı dağılım, birleşik değerleme) ve **haber akışı** (KAP, Yahoo Finance, Google News, RSS; Ayarlar'dan kaynak yönetimi).
+- Yeni sayfalar: [service_asset_ledger.md](service_asset_ledger.md) (ayrı defter kararı, domain, tablolar, `UnifiedPortfolioService`), [service_asset_prices_fx.md](service_asset_prices_fx.md) (sembol, sağlayıcı, takvim, yenileme, kur, Genel Bakış varlık grafiği), [service_news.md](service_news.md) (sağlayıcılar, `NewsService`, önbellek, ayarlar, spike bulguları ve bilinen sınırlar).
+- Güncellenen sayfalar: [qml_pages_guide.md](qml_pages_guide.md) (11 sayfa), [ui_architecture_and_events.md](ui_architecture_and_events.md), [database_schema_and_orm.md](database_schema_and_orm.md) (29 tablo), [data_architecture.md](data_architecture.md), [service_market_data_providers.md](service_market_data_providers.md), [project_structure.md](project_structure.md), [settings_and_system.md](settings_and_system.md), [architecture.md](architecture.md), [roadmap.md](roadmap.md) (§2.8 v2 maddeleri), [testing_strategy.md](testing_strategy.md), [code_quality_guardrails.md](code_quality_guardrails.md), [manual_testing_guide.md](manual_testing_guide.md), [glossary.md](glossary.md), [index.md](index.md); kökte `CLAUDE.md` ve `README.md`.
+- **Kararlar:** ayrı defter (BIST `trades` hattı genişletilmedi); eksik fiyat/kur sessizce atlanmaz; Portföyüm tüm rakamları birleşik servisten okur (günlük kazanç tam formül); haber sağlayıcıları sessiz boş dönmez; Google News varsayılan açık, toplu KAP bildirimleri varsayılan gizli; `yfinance` haber API'si kullanılmaz (404).
+- **Düzeltilen hata:** `kap_shareholder_provider._parse_bist_companies` virgüllü borsa kodlarını (`GARAN, TGB`, 45 şirket) atlıyordu; GARAN dahil KAP kimliği çözülemiyor, Hisse 360 ortaklık yapısı ve haber etkileniyordu. Önbellek `bist_companies_v2.json`.
+- **Kalite kapısı:** yeni kod fonksiyon ihlal tavanını (75) 92'ye çıkarmıştı; davranış değiştirmeden 75'e indirildi (seçenek sözlüğü imzaları, küçük yardımcılar). Ölçüm test ve betikleri de sayar.
+- **Bilinen açıklar (roadmap'te "Açık"):** sistem sıfırlama ve JSON yedeği varlık defterini kapsamaz; birleşik TWR/risk/optimizasyon/Excel/AI araçları yalnızca BIST; varlık grafiğinde gerçek OHLC/hacim yok; kalıcı haber kaynağı hata kaydı yok.
+- Test: tam paket 1694 geçti, 4 xfailed. Gerçek pencerede elle doğrulama [manual_testing_guide.md](manual_testing_guide.md) PF-*, NEWS-*, SET-008 maddeleriyle yapılmalıdır (yalnızca offscreen görüntü ve canlı yoklama denendi).
+
+---
 ## [2026-11-01] temizlik | Dönüşüm Devir Belgeleri Kaldırıldı
 
 - `QML_TRANSFORMATION_HANDOFF.md` ve `TRANSFORMATION_PLAN.md` silindi: QML dönüşümü tamamlandı, güncel bilgi wiki sayfalarında; uygulanmayan maddeler zaten [roadmap.md](roadmap.md) içinde. Belgeler git geçmişinden geri alınabilir.

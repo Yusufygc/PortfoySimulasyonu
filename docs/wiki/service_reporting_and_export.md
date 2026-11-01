@@ -34,7 +34,7 @@ Tarihsel raporlar yalnızca `daily_prices` kapanışını kullanır; canlı fiya
 
 | Yer | İşlev |
 |---|---|
-| Genel Bakış > Excel Raporu (`ExcelExportDialog`) | Tarih aralığı (boş = ilk işlemden bugüne), hedef dosya, ekleme modu; `DashboardController.exportToExcelFile`. |
+| Portföyüm > Excel Raporu (`ExcelExportDialog`) | Tarih aralığı (boş = ilk işlemden bugüne), hedef dosya, ekleme modu; `DashboardController.exportToExcelFile`. |
 | Model Portföy > Rapor | `ModelPortfolioController.exportHistoryToFile` aynı diyalogla. |
 | Hisse Detay > "Hisse Geçmişini Excel'e Aktar" | `StockDetailController.exportStockToExcel`: hisseye özel işlem ve pozisyon raporu. |
 | Ayarlar > Dışa Aktarım | Portföy Excel raporu (`exportPortfolioToExcel`) ve JSON yedeği ([database_maintenance_and_scripts.md](database_maintenance_and_scripts.md)). |

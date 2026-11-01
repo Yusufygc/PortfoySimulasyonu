@@ -4,7 +4,7 @@
   <img src="icons/portfoy-simulasyonu.png" alt="Portföy Simülasyonu ürün ikonu" width="140">
 </p>
 
-<h3 align="center">BIST ve küresel hisseler için portföy takibi, tüm BIST taraması, optimizasyon, backtest ve AI destekli analiz sunan masaüstü yatırım platformu</h3>
+<h3 align="center">BIST, kıymetli maden, kripto ve ABD hisseleri için portföy takibi, haber akışı, tüm BIST taraması, optimizasyon, backtest ve AI destekli analiz sunan masaüstü yatırım platformu</h3>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%2B-blue.svg" alt="Python 3.10+">
@@ -27,7 +27,8 @@ Portföy Simülasyonu, portföy işlemlerini, piyasa verisini, analizi ve planla
 
 | Sayfa | Yetenekler |
 |---|---|
-| **Genel Bakış** | Canlı portföy KPI'ları, pozisyonlar, varlık dağılımı, TradingView grafiği (göstergeler, tam ekran), hızlı alım/satım, sermaye yatırma/çekme, kapanış fiyatı güncelleme, haftalık/aylık getiri, tarihsel Excel raporu. Hisse detayında sermaye artırımı (bedelli/bedelsiz) ve **nakit temettü** kaydı. |
+| **Genel Bakış** | TradingView grafiği (göstergeler, tam ekran; BIST hisseleri ve Portföyüm varlıkları) ve **haber akışı**: portföy/izleme listesi için şirket haberleri (KAP bildirimleri, Yahoo Finance, Google Haberler) ile Türkçe/global piyasa haberleri (RSS). |
+| **Portföyüm** | BIST ve **BIST dışı varlıklar** (altın, gümüş, platin, paladyum, kripto, ABD hisseleri) için tek toplam, TRY/USD anahtarı, sınıf bazlı varlık dağılımı, kesirli alım/satım, canlı fiyat ve kur; BIST için hızlı alım/satım, sermaye yatırma/çekme, haftalık/aylık getiri, tarihsel Excel raporu. Hisse detayında sermaye artırımı (bedelli/bedelsiz) ve **nakit temettü** kaydı. |
 | **İzleme Listeleri** | Çoklu liste, sürükle-bırak sıralama, kod doğrulama, mini sparkline, notlar. |
 | **Model Portföyler** | Sanal portföyler: sermaye hareketleri, işlem, canlı fiyat, Excel raporu. |
 | **Hisse 360** | Fiyat ve teknik seviyeler, çeyreklik mali tablolar, rasyolar, DuPont, nakit akışı, KAP ortaklık yapısı. |
@@ -36,7 +37,7 @@ Portföy Simülasyonu, portföy işlemlerini, piyasa verisini, analizi ve planla
 | **Finansal Planlama** | Bütçe (pinli kalemler), hedefler ve fizibilite, DCA simülatörü, **Strateji Testi** (periyodik yeniden dengeleme eşit/Markowitz, stop-loss/take-profit; al-tut karşılaştırmalı). |
 | **Optimizasyon** | Markowitz maksimum Sharpe (Ledoit-Wolf), verimli sınır ve Monte Carlo, yeniden dengeleme planı, risk profili anketi ile tek hisse sınırı. |
 | **AI Asistan** | Gemini function-calling **Portföy Danışmanı** (salt okunur araçlar, sağlık skoru, girdi güvenliği, sohbet geçmişi) ve AI_Core **Hisse Modeli** analizi (kapalıysa demo). |
-| **Ayarlar** | Tema, API anahtarları, veri sağlığı ve senkron, yedek/dışa aktarım, KAP/MKK aday onayı, fiyat verisi yönetimi, tüm BIST sermaye artırımı düzeltmeleri, otomatik canlı fiyat yenileme, sistem sıfırlama. |
+| **Ayarlar** | Tema, API anahtarları, veri sağlığı ve senkron, yedek/dışa aktarım, KAP/MKK aday onayı, fiyat verisi yönetimi, tüm BIST sermaye artırımı düzeltmeleri, otomatik canlı fiyat yenileme, sistem sıfırlama, haber kaynaklarını aç/kapa ve özel RSS ekleme. |
 
 Otomatik arka plan işleri: açılışta ve her işlem günü 18:15'te DuckDB artımlı senkronu, seans açıkken canlı fiyat yenileme, günlük KAP/MKK aday taraması ve Golden Cross taraması.
 
@@ -51,7 +52,7 @@ flowchart LR
 ```
 
 - **Olay kaynaklı portföy:** lot, maliyet ve K/Z saklanmaz; işlem geçmişinden yeniden hesaplanır. Parasal hesaplar `Decimal`.
-- **İki veri deposu:** SQLite (işlem, nakit, listeler, planlama) ve DuckDB (tüm BIST ham barları, sermaye artırımı faktörleri). Ham barlar değişmez; düzeltme okuma anında uygulanır.
+- **İki veri deposu:** SQLite (işlem, nakit, listeler, planlama, BIST dışı varlık defteri ve fiyatları, haber tercihleri) ve DuckDB (tüm BIST ham barları, sermaye artırımı faktörleri). Ham barlar değişmez; düzeltme okuma anında uygulanır.
 - **Kanonik ticker uzantısızdır** (`THYAO`); `.IS` yalnızca yfinance sınırında eklenir.
 - **Katman kuralları testle korunur:** UI altyapıya doğrudan bağlanamaz; QML metinleri `Strings.qml`'de toplanır.
 - **Dış çağrılar dayanıklıdır:** geçici ağ hatalarında üstel geri çekilmeli yeniden deneme.
