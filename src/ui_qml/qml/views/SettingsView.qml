@@ -47,7 +47,7 @@ Rectangle {
                 }
             }
 
-            // Sekme Butonları (6 Sekme)
+            // Sekme Butonları (9 Sekme)
             Rectangle {
                 height: 38
                 width: rowTabs.implicitWidth + 8
@@ -70,7 +70,8 @@ Rectangle {
                             { name: Strings.settingsTabCorporate, icon: Icons.layers },
                             { name: Strings.settingsTabPriceData, icon: Icons.history },
                             { name: Strings.settingsTabMarketAdj, icon: Icons.layers },
-                            { name: Strings.settingsTabSystem, icon: Icons.settings }
+                            { name: Strings.settingsTabSystem, icon: Icons.settings },
+                            { name: Strings.settingsTabNews, icon: Icons.fileText }
                         ]
 
                         Rectangle {
@@ -209,6 +210,17 @@ Rectangle {
                         active: root.activeTabIndex === 7
                         visible: root.activeTabIndex === 7
                         source: "../components/SettingsSystemTab.qml"
+                        onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
+                    }
+
+                    // =========================================================
+                    // SEKME 8: HABER KAYNAKLARI (AÇ/KAPA, ÖZEL RSS, YENİLEME ARALIĞI)
+                    // =========================================================
+                    Loader {
+                        Layout.fillWidth: true
+                        active: root.activeTabIndex === 8
+                        visible: root.activeTabIndex === 8
+                        source: "../components/SettingsNewsTab.qml"
                         onLoaded: item.notify.connect(function(success, message) { settingsToast.show(message, success) })
                     }
                 }

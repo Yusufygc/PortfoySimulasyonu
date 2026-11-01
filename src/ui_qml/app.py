@@ -37,6 +37,7 @@ from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustment
 from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
 from src.ui_qml.controllers.news_controller import NewsController
+from src.ui_qml.controllers.news_settings_controller import NewsSettingsController
 from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
 from src.ui_qml.controllers.price_data_controller import PriceDataController
 from src.ui_qml.controllers.price_refresh_controller import PriceRefreshController
@@ -109,6 +110,9 @@ def run_qml_app(container=None) -> int:
     system_ctrl = SystemController(container=container, parent=engine)
     market_ticker_ctrl = MarketTickerController(container=container, parent=engine)
     news_ctrl = NewsController(container=container, parent=engine, autostart=True)
+    news_settings_ctrl = NewsSettingsController(container=container, parent=engine)
+    news_settings_ctrl.sourcesChanged.connect(news_ctrl.refresh)  # kapatılan/açılan kaynak panele hemen yansır
+    news_settings_ctrl.refreshMinutesChanged.connect(news_ctrl.setRefreshMinutes)
     model_analysis_ctrl = ModelAnalysisController(container=container, parent=engine)
 
     # Açılış kapanış tamamlaması ilk BIST senkronundan sonra: aynı kapanışlar iki yoldan eşzamanlı indirilmesin
@@ -160,6 +164,7 @@ def run_qml_app(container=None) -> int:
     context.setContextProperty("priceRefreshController", price_refresh_ctrl)
     context.setContextProperty("marketTickerController", market_ticker_ctrl)
     context.setContextProperty("newsController", news_ctrl)
+    context.setContextProperty("newsSettingsController", news_settings_ctrl)
     context.setContextProperty("modelAnalysisController", model_analysis_ctrl)
 
     # QML import dizinleri

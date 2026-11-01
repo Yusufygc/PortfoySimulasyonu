@@ -18,7 +18,7 @@ Durum etiketleri: **Taslak** (yazıldı, tartışılabilir), **Onaylı** (kullan
 | [03_fiyat_ve_kur_hatti.md](03_fiyat_ve_kur_hatti.md) | Sembol çözümleme, fiyat sağlayıcı, takvim, kur | Aşama 3 Uygulandı |
 | [04_portfoyum_sayfasi.md](04_portfoyum_sayfasi.md) | Portföyüm UI, controller'lar, dağılım, sayfa bölünmesi | Aşama 1, 4 ve 5 Uygulandı |
 | [05_genel_bakis_ve_haber.md](05_genel_bakis_ve_haber.md) | Genel Bakış yerleşimi, haber mimarisi, spike sonuçları | Aşama 6 Uygulandı |
-| [06_ayarlar_haber_kaynaklari.md](06_ayarlar_haber_kaynaklari.md) | Ayarlar > Haber Kaynakları sekmesi, aç/kapa sistemi | Taslak |
+| [06_ayarlar_haber_kaynaklari.md](06_ayarlar_haber_kaynaklari.md) | Ayarlar > Haber Kaynakları sekmesi, aç/kapa sistemi | Aşama 7 Uygulandı |
 | [07_test_ve_kalite.md](07_test_ve_kalite.md) | Test stratejisi, koruma testleri, kalite kapıları | Taslak |
 | [08_wiki_entegrasyon.md](08_wiki_entegrasyon.md) | İş bitince wiki'ye taşıma kontrol listesi | Taslak |
 | [tasarim_notlari/](tasarim_notlari/) | Spike sonuçları: KAP, yfinance haberi, RSS kaynakları | Spike tamamlandı |
@@ -34,7 +34,7 @@ Durum etiketleri: **Taslak** (yazıldı, tartışılabilir), **Onaylı** (kullan
 | 4 | Birleşik portföy servisi | Uygulandı |
 | 5 | Portföyüm arayüzü | Uygulandı |
 | 6 | Genel Bakış + haber akışı (önce spike) | Uygulandı |
-| 7 | Ayarlar > Haber Kaynakları | Açık |
+| 7 | Ayarlar > Haber Kaynakları | Uygulandı |
 | 8 | Ertelenenler (v2) | Açık |
 | 9 | Wiki entegrasyonu ve klasörün silinmesi | Açık |
 

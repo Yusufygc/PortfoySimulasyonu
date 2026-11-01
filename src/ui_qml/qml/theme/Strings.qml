@@ -579,6 +579,28 @@ QtObject {
     readonly property string settingsTabPriceData: "Fiyat Verisi"
     readonly property string settingsTabMarketAdj: "Piyasa Düzeltmeleri"
     readonly property string settingsTabSystem: "Sistem"
+    readonly property string settingsTabNews: "Haber Kaynakları"
+
+    // --- Ayarlar > Haber Kaynakları ---
+    readonly property string newsSetTitle: "Haber Kaynakları"
+    readonly property string newsSetDesc: "Genel Bakış haber panelinde hangi kaynakların gösterileceğini seç. Kapattığın kaynağın haberleri panelden hemen kalkar."
+    readonly property string newsSetCompanyGroup: "Şirket ve Varlık Haberleri"
+    readonly property string newsSetCompanyNote: "Portföyündeki ve izleme listendeki varlıklar için çekilir. Google Haberler kişisel okuyucu kullanımı içindir; kaynağın kullanım koşulları geçerlidir."
+    readonly property string newsSetMarketGroup: "Piyasa ve Global Akışlar"
+    readonly property string newsSetMassNotices: "Çok hisseli kurum bildirimlerini de göster (SPK, MKK toplu duyuruları)"
+    readonly property string newsSetTest: "Bağlantıyı test et"
+    readonly property string newsSetRemove: "Sil"
+    readonly property string newsSetCustomBadge: "Özel"
+    readonly property string newsSetAddTitle: "Özel RSS Beslemesi Ekle"
+    readonly property string newsSetAddDesc: "Kendi RSS veya Atom akışını piyasa haberlerine ekle."
+    readonly property string newsSetName: "Besleme adı"
+    readonly property string newsSetUrl: "Besleme adresi (https://...)"
+    readonly property string newsSetAdd: "Ekle"
+    readonly property string newsSetLangTr: "Türkçe"
+    readonly property string newsSetLangEn: "İngilizce"
+    readonly property string newsSetIntervalTitle: "Yenileme Aralığı"
+    readonly property string newsSetIntervalDesc: "Haber paneli bu aralıkla kendiliğinden yenilenir."
+    readonly property string newsSetMinuteSuffix: " dk"
 
     // --- Ortak onay diyaloğu ---
     readonly property string confirmDefault: "Onayla"

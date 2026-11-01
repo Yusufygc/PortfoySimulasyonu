@@ -186,3 +186,70 @@ def test_unsupported_provider_reported():
     h = Harness([_config("m", NewsScope.MARKET)])  # fabrikada sağlayıcı kayıtlı değil -> None
     result = h.service.get_market_news()
     assert result.failed_sources == ("m",)
+
+
+# ---------- Ayarlar yönetimi (Aşama 7) ---------- #
+
+def test_add_custom_rss_validates_and_persists():
+    import pytest
+
+    h = Harness([_config("m", NewsScope.MARKET)])
+    added = h.service.add_rss_source("  Benim Akışım ", "https://ex.com/feed.xml", "en")
+    assert added.is_custom and added.enabled and added.language == "en" and added.name == "Benim Akışım"
+    assert added.source_id.startswith("rss:custom_")
+    assert added.source_id in {c.source_id for c in h.service.list_sources()}
+    with pytest.raises(ValueError):
+        h.service.add_rss_source("Aynı", "https://ex.com/feed.xml")  # aynı adres
+    for name, url in (("", "https://ex.com/a"), ("x", "ftp://ex.com/a"), ("x", "ex.com/a"), ("x", "")):
+        with pytest.raises(ValueError):
+            h.service.add_rss_source(name, url)
+
+
+def test_only_custom_sources_can_be_removed():
+    import pytest
+
+    h = Harness([_config("m", NewsScope.MARKET)])
+    custom = h.service.add_rss_source("X", "https://ex.com/f")
+    with pytest.raises(ValueError):
+        h.service.remove_source("m")
+    h.service.remove_source(custom.source_id)
+    assert custom.source_id not in {c.source_id for c in h.service.list_sources()}
+
+
+def test_source_option_merged_and_persisted():
+    h = Harness([_config("m", NewsScope.MARKET)])
+    h.service.set_source_option("m", "include_mass_notices", "true")
+    h.service.set_source_option("m", "other", "1")
+    assert dict(h.service.list_sources()[0].options) == {"include_mass_notices": "true", "other": "1"}
+
+
+def test_status_remembered_after_fetch_and_cleared_on_remove():
+    h = Harness([_config("ok", NewsScope.MARKET), _config("bad", NewsScope.MARKET)])
+    h.provider("ok", [_item("x")])
+    h.provider("bad", error="HTTP 500")
+    assert h.service.get_status("ok") is None
+    h.service.get_market_news()
+    assert h.service.get_status("ok").ok and h.service.get_status("ok").item_count == 1
+    assert "500" in h.service.get_status("bad").error
+
+
+def test_test_source_uses_sample_targets_and_reports_error_without_cache_write():
+    config = NewsSourceConfig("kap", NewsSourceKind.KAP, "KAP", True, "tr", NewsScope.COMPANY)
+    h = Harness([config])
+    seen = []
+    provider = h.provider("kap", [_item("a"), _item("b")])
+    provider.fetch = lambda targets: seen.append(list(targets)) or [_item("a"), _item("b")]
+    status = h.service.test_source("kap")
+    assert status.ok and status.item_count == 2 and seen[0][0].symbol == "THYAO"
+    assert h.cache.data == {}
+    provider.fetch = lambda targets: (_ for _ in ()).throw(NewsProviderUnavailable("HTTP 500"))
+    assert not h.service.test_source("kap").ok
+
+
+def test_test_rss_url_rejects_bad_scheme_and_probes_without_saving():
+    h = Harness([_config("m", NewsScope.MARKET)])
+    assert "http" in h.service.test_rss_url("javascript:1").error
+    h.service._factory = lambda config: FakeProvider(config, [_item("x")])
+    status = h.service.test_rss_url("https://ex.com/f")
+    assert status.ok and status.item_count == 1
+    assert h.service.get_status("rss:test") is None

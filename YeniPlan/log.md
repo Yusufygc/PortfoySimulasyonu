@@ -5,6 +5,15 @@
 > Başlık biçimi: `## [YYYY-AA-GG] işlem | Konu`
 
 ---
+## [2026-11-01] uygulama | Aşama 7: Ayarlar > Haber Kaynakları
+
+- `NewsService`: özel RSS ekleme/silme, kaynak seçeneği, bağlantı testi (kayıtlı kaynak ve henüz eklenmemiş adres), oturum içi kaynak durumu.
+- `NewsSettingsController` + `SettingsNewsTab.qml` (Ayarlar 9. sekme): kaynak başına aç/kapa, KAP toplu bildirim anahtarı, özel RSS, "Bağlantıyı test et", yenileme aralığı (QSettings `news/refresh_minutes`).
+- Kapatılan/açılan kaynak haber paneline hemen yansır; yenileme aralığı `NewsController` zamanlayıcısını yeniden başlatır.
+- Test: tam paket 1694 geçti, 4 xfailed. Görsel anlık görüntü betiği 9 sekmeyi çizer.
+- Kalan: Aşama 8 (v2 ertelenenler: yalnızca kayıt) ve Aşama 9 (wiki entegrasyonu, YeniPlan silinmesi).
+
+---
 ## [2026-11-01] uygulama | Aşama 6: haber altyapısı, haber paneli ve global grafik
 
 - Kullanıcı kararları: Google News varsayılan **açık**; çok hisseli KAP kurum bildirimleri varsayılan **gizli**.

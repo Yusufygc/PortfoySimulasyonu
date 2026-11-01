@@ -27,6 +27,7 @@ from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustment
 from src.ui_qml.controllers.market_sync_controller import MarketSyncController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
 from src.ui_qml.controllers.news_controller import NewsController
+from src.ui_qml.controllers.news_settings_controller import NewsSettingsController
 from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
 from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
 from src.ui_qml.controllers.my_portfolio_controller import MyPortfolioController
@@ -51,7 +52,7 @@ QML_DIR = Path(__file__).resolve().parents[2] / "src" / "ui_qml" / "qml"
 TARGETS = {
     "DashboardView": ("views/DashboardView.qml", None, [None], None),
     "MyPortfolioView": ("views/MyPortfolioView.qml", None, [None], None),
-    "SettingsView": ("views/SettingsView.qml", "activeTabIndex", range(8), None),
+    "SettingsView": ("views/SettingsView.qml", "activeTabIndex", range(9), None),
     "AiAdvisorView": ("views/AiAdvisorView.qml", "mode", range(2), None),
     "OptimizationView": ("views/OptimizationView.qml", None, [None], None),
     # Hisse 360 görünüm modları (0 Genel Bakış, 1 Finansal, 2 KAP) bir denetleyici yuvasıyla değişir
@@ -102,6 +103,7 @@ def qml_env(qapp):
         "systemController": SystemController(container=container, parent=engine),
         "marketTickerController": MarketTickerController(container=container, parent=engine),
         "newsController": NewsController(container=container, parent=engine),
+        "newsSettingsController": NewsSettingsController(container=container, parent=engine),
         "modelAnalysisController": ModelAnalysisController(container=container, parent=engine),
     }
     controllers["priceRefreshController"] = PriceRefreshController(

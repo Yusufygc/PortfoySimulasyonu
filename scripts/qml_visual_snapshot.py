@@ -70,7 +70,7 @@ def _build_engine():
         ai_advisor_controller, assets_controller, chart_controller, comparison_controller, corporate_action_controller,
         dashboard_controller, dividend_controller, golden_cross_controller, market_adjustment_controller,
         market_sync_controller, market_ticker_controller, model_analysis_controller, model_portfolio_controller, my_portfolio_controller,
-        news_controller,
+        news_controller, news_settings_controller,
         optimization_controller, planning_controller, price_data_controller, price_refresh_controller, risk_profile_controller,
         screener_controller, settings_controller, shell_controller, startup_jobs_controller, stock_360_controller,
         stock_detail_controller, strategy_backtest_controller, system_controller, watchlist_controller,
@@ -105,6 +105,7 @@ def _build_engine():
         "systemController": system_controller.SystemController,
         "marketTickerController": market_ticker_controller.MarketTickerController,
         "newsController": news_controller.NewsController,
+        "newsSettingsController": news_settings_controller.NewsSettingsController,
         "modelAnalysisController": model_analysis_controller.ModelAnalysisController,
     }
     controllers = {name: cls(container=container, parent=engine) for name, cls in classes.items()}
@@ -191,7 +192,7 @@ def render(out_dir: Path, db_dir: Path | None) -> None:
                  [("default", None), ("narrow", _set_property("width", 900))])
     _render_view(engine, out_dir, "myportfolio", "views/MyPortfolioView.qml", [("default", None)])
     _render_view(engine, out_dir, "settings", "views/SettingsView.qml",
-                 [(f"tab{i}", _set_property("activeTabIndex", i)) for i in range(8)])
+                 [(f"tab{i}", _set_property("activeTabIndex", i)) for i in range(9)])
     _render_view(engine, out_dir, "aiadvisor", "views/AiAdvisorView.qml",
                  [("mode0", _set_property("mode", 0)), ("mode1", _set_property("mode", 1))])
     _render_view(engine, out_dir, "optimization", "views/OptimizationView.qml", [("default", None)])

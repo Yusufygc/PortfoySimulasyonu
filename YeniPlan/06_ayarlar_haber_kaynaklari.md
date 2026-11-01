@@ -2,7 +2,7 @@
 
 > Ana sayfa: [index.md](index.md) | Günlük: [log.md](log.md) | Önceki: [05_genel_bakis_ve_haber.md](05_genel_bakis_ve_haber.md) | Sonraki: [07_test_ve_kalite.md](07_test_ve_kalite.md)
 
-Durum: **Taslak** (Aşama 7)
+Durum: **Uygulandı** (Aşama 7)
 
 Kullanıcı istediği haber kaynağını Ayarlar sayfasından kapatabilir; örneğin KAP'tan bildirim almak istemiyorsa kaynağı kapatır.
 
@@ -52,6 +52,18 @@ SQLite `news_source_settings` (tasarım taslağı):
 | `rss:coindesk`, `rss:cointelegraph` | kapalı (kripto varlığı varsa önerilir) | Kripto |
 
 Önceki taslaktaki `yfinance` kaynağı kaldırıldı (haber API'si çalışmıyor).
+
+## 3b. Uygulama Notları (Aşama 7)
+
+| Konu | Uygulama |
+|---|---|
+| Sekme | Ayarlar sekme 8: `components/SettingsNewsTab.qml` (`SettingsView` Loader); şirket/varlık kaynakları ve piyasa akışları iki kartta, ardından özel RSS ve yenileme aralığı kartı |
+| Controller | `controllers/news_settings_controller.py` (`newsSettingsController`): `sources`, `setSourceEnabled`, `setMassNotices`, `addRssFeed`, `removeSource`, `testSource`, `testNewUrl` (arka plan), `setRefreshMinutes`; hata/başarı `notify` ile Ayarlar toast'ına gider |
+| Servis | `NewsService`: `set_source_option`, `add_rss_source` (ad boş değil, http/https, aynı adres reddedilir, kimlik `rss:custom_<sha1>`), `remove_source` (yalnızca özel), `test_source`, `test_rss_url`, `get_status` (oturumdaki son çekim/hata) |
+| Anında etki | `sourcesChanged` → `NewsController.refresh`; kapalı kaynak sorgulanmaz ve önbellek sonucu gösterilmez |
+| Yenileme aralığı | `QSettings` anahtarı `news/refresh_minutes` (5/10/15/30/60 dk, varsayılan 10); `NewsController` zamanlayıcısı değişimde yeniden başlar |
+| KAP toplu bildirim | `include_mass_notices` seçeneği KAP satırındaki anahtardan yazılır, `NewsProviderFactory` okur; değişiklik bir sonraki çekimde (önbellek süresi dolunca veya yenile düğmesiyle) etkili olur |
+| Durum metni | "Son çekim SS:DD, N haber" / "Hata: ..." / "Henüz çekilmedi" (yeniden başlatınca sıfırlanır; kalıcı hata kaydı yok) |
 
 ## 4. Metin ve Kalite Kuralları
 
