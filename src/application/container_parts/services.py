@@ -5,9 +5,12 @@ from dataclasses import dataclass
 from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
+from src.application.services.assets.asset_holdings_reader import AssetHoldingsReader
 from src.application.services.assets.asset_ledger_service import AssetLedgerService
 from src.application.services.assets.asset_price_refresh_service import AssetPriceRefreshService
+from src.application.services.assets.bist_holdings_reader import BistHoldingsReader
 from src.application.services.assets.fx_rate_service import FxRateService
+from src.application.services.assets.unified_portfolio_service import UnifiedPortfolioService
 from src.application.services.analysis.financial_analysis_service import FinancialAnalysisService
 from src.application.services.analysis.portfolio_analytics_service import PortfolioAnalyticsService
 from src.application.services.analysis.shareholder_analysis_service import ShareholderAnalysisService
@@ -92,6 +95,7 @@ class ServiceSet:
     asset_ledger_service: AssetLedgerService  # BIST dışı varlık defteri (Portföyüm)
     asset_price_refresh_service: AssetPriceRefreshService  # varlık son fiyat ve geçmiş yenileme
     fx_rate_service: FxRateService  # kur okuma ve yenileme
+    unified_portfolio_service: UnifiedPortfolioService  # BIST + varlık defteri birleşik TRY özeti
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet) -> ServiceSet:
@@ -111,6 +115,33 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
     shareholder_analysis_service = ShareholderAnalysisService(
         provider=market_clients.kap_shareholder_provider,
         repository=repositories.kap_shareholder_repo,
+    )
+
+    current_price_resolver = CurrentPriceResolver(
+        latest_price_repo=repositories.latest_price_repo,
+        price_repo=repositories.price_repo,
+        session_service=market_clients.bist_market_session_service,
+    )
+    stock_lookup_service = StockLookupService(
+        stock_repo=repositories.stock_repo,
+        price_repo=repositories.price_repo,
+        latest_price_repo=repositories.latest_price_repo,
+        market_history_repo=repositories.market_history_repo,
+        price_lookup_service=market_clients.price_lookup_service,
+    )
+    asset_ledger_service = AssetLedgerService(
+        asset_repo=repositories.asset_repo,
+        trade_repo=repositories.asset_trade_repo,
+        symbol_verifier=market_clients.asset_price_provider,
+    )
+    fx_rate_service = FxRateService(
+        provider=market_clients.asset_price_provider,
+        repo=repositories.fx_rate_repo,
+    )
+    unified_portfolio_service = UnifiedPortfolioService(
+        bist_reader=BistHoldingsReader(foundation["portfolio_service"], stock_lookup_service, current_price_resolver),
+        asset_reader=AssetHoldingsReader(asset_ledger_service, repositories.asset_price_repo, fx_rate_service),
+        fx_rate_service=fx_rate_service,
     )
 
     return ServiceSet(
@@ -138,18 +169,8 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
             golden_cross_repo=repositories.golden_cross_repo,
         ),
         screener_service=ScreenerService(market_history_repo=repositories.market_history_repo),
-        current_price_resolver=CurrentPriceResolver(
-            latest_price_repo=repositories.latest_price_repo,
-            price_repo=repositories.price_repo,
-            session_service=market_clients.bist_market_session_service,
-        ),
-        stock_lookup_service=StockLookupService(
-            stock_repo=repositories.stock_repo,
-            price_repo=repositories.price_repo,
-            latest_price_repo=repositories.latest_price_repo,
-            market_history_repo=repositories.market_history_repo,
-            price_lookup_service=market_clients.price_lookup_service,
-        ),
+        current_price_resolver=current_price_resolver,
+        stock_lookup_service=stock_lookup_service,
         dca_backtest_service=DCABacktestService(
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
@@ -165,20 +186,14 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
             if getattr(market_clients, "market_indicator_provider", None) is not None
             else None
         ),
-        asset_ledger_service=AssetLedgerService(
-            asset_repo=repositories.asset_repo,
-            trade_repo=repositories.asset_trade_repo,
-            symbol_verifier=market_clients.asset_price_provider,
-        ),
+        asset_ledger_service=asset_ledger_service,
         asset_price_refresh_service=AssetPriceRefreshService(
             asset_repo=repositories.asset_repo,
             price_repo=repositories.asset_price_repo,
             provider=market_clients.asset_price_provider,
         ),
-        fx_rate_service=FxRateService(
-            provider=market_clients.asset_price_provider,
-            repo=repositories.fx_rate_repo,
-        ),
+        fx_rate_service=fx_rate_service,
+        unified_portfolio_service=unified_portfolio_service,
         market_data_sync_service=MarketDataSyncService(
             trading_calendar=market_clients.trading_calendar,
             price_repo=repositories.price_repo,

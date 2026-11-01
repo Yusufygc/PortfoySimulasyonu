@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
 from typing import Optional
+
+from src.domain.units import ounce_price_to_gram_price
 
 
 class AssetClass(str, Enum):
@@ -77,3 +80,12 @@ class Asset:
     @property
     def is_try_quoted(self) -> bool:
         return self.quote_currency == "TRY"
+
+    def unit_price(self, quoted_price: Decimal) -> Decimal:
+        """Sağlayıcının verdiği fiyatı varlığın birimine çevirir.
+
+        Kıymetli maden vadeli kontratları ons başına fiyat verir; gram birimli varlık için gram fiyatına çevrilir.
+        """
+        if self.asset_class == AssetClass.PRECIOUS_METAL and self.unit == AssetUnit.GRAM:
+            return ounce_price_to_gram_price(quoted_price)
+        return quoted_price
