@@ -142,17 +142,6 @@ def test_optimization_controller_execution(qapp, container):
     assert ctrl.currentSharpeFormatted != ""
 
 
-def test_fmt_pct():
-    """_fmt_pct fonksiyonunun Türkçe standartlarında (negatifte eksi başta, virgüllü) biçimlendirmesini test eder."""
-    from src.ui_qml.controllers.optimization_controller import _fmt_pct
-    assert _fmt_pct(16.32) == "%16,32"
-    assert _fmt_pct(-5.82) == "-%5,82"
-    assert _fmt_pct(11.68, with_sign=True) == "+%11,68"
-    assert _fmt_pct(-8.45, with_sign=True) == "-%8,45"
-    assert _fmt_pct(0.0) == "%0,00"
-    assert _fmt_pct(None) == "%0,00"
-
-
 def test_calculate_rebalance_plan_rules():
     """calculate_rebalance_plan fonksiyonunun çıkış (sıfır ağırlık), tut ve .IS temizleme kurallarını test eder."""
     from src.application.services.planning.frontier_simulation import calculate_rebalance_plan

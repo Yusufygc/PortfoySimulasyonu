@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, List
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.models.golden_cross_event import CrossType
+from src.ui_qml.presenters.formatting import tr_number_or_dash
 
 logger = logging.getLogger(__name__)
 
@@ -24,16 +25,6 @@ logger = logging.getLogger(__name__)
 PERIOD_OPTIONS = [("7 gün", 7), ("30 gün", 30), ("90 gün", 90), ("180 gün", 180), ("1 yıl", 365), ("Tümü", 0)]
 TYPE_OPTIONS = [("Hepsi", ""), ("Golden", "GOLDEN"), ("Death", "DEATH")]
 _ALL_DAYS = 365 * 20
-
-
-def _fmt(value) -> str:
-    if value is None:
-        return "-"
-    try:
-        text = f"{float(value):,.2f}"
-    except (TypeError, ValueError):
-        return str(value)
-    return text.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def _clean_ticker(ticker: str) -> str:
@@ -219,6 +210,6 @@ class GoldenCrossController(QObject):
             "type": e.cross_type.value,
             "typeLabel": "Golden" if is_golden else "Death",
             "isGolden": is_golden,
-            "close": _fmt(e.close_price),
-            "ma": f"{_fmt(e.short_ma)} / {_fmt(e.long_ma)}",
+            "close": tr_number_or_dash(e.close_price),
+            "ma": f"{tr_number_or_dash(e.short_ma)} / {tr_number_or_dash(e.long_ma)}",
         }

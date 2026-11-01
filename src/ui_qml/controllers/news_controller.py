@@ -18,6 +18,7 @@ from src.domain.models.news_item import NewsFeedResult, NewsItem
 from src.ui_qml.controllers.news_settings_controller import load_refresh_minutes
 from src.ui_qml.controllers.url_opener import open_external_url
 from src.ui_qml.models.news_list_model import NewsListModel
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +30,13 @@ def relative_time_text(published: datetime, now: datetime | None = None) -> str:
     reference = now or datetime.now(timezone.utc)
     seconds = int((reference - published).total_seconds())
     if seconds < 60:
-        return "şimdi"
+        return msg("news.time.now")
     if seconds < 3600:
-        return f"{seconds // 60} dk önce"
+        return msg("news.time.minutes", n=seconds // 60)
     if seconds < 86400:
-        return f"{seconds // 3600} sa önce"
+        return msg("news.time.hours", n=seconds // 3600)
     if seconds < 7 * 86400:
-        return f"{seconds // 86400} gün önce"
+        return msg("news.time.days", n=seconds // 86400)
     return published.astimezone().strftime("%d.%m.%Y")
 
 

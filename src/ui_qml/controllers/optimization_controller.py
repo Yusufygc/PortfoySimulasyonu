@@ -16,7 +16,6 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List
 
-import numpy as np
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.constants.finance import DEFAULT_ANNUAL_RISK_FREE_RATE
@@ -28,22 +27,9 @@ from src.ui_qml.controllers.optimization_pipeline import (
     clean_ticker,
     compute_optimization,
 )
+from src.ui_qml.presenters.formatting import tr_pct
 
 logger = logging.getLogger(__name__)
-
-
-def _fmt_pct(val: float | None, with_sign: bool = False) -> str:
-    if val is None or not np.isfinite(val):
-        return "%0,00"
-    num = float(val)
-    if abs(num) < 0.0001:
-        return "%0,00"
-    formatted = f"{abs(num):.2f}".replace(".", ",")
-    if num < 0:
-        return f"-%{formatted}"
-    elif with_sign and num > 0:
-        return f"+%{formatted}"
-    return f"%{formatted}"
 
 
 class OptimizationController(QObject):
@@ -200,23 +186,23 @@ class OptimizationController(QObject):
 
     @Property(str, notify=kpiMetricsChanged)
     def optimalReturnFormatted(self) -> str:
-        return _fmt_pct(self._opt_return * 100)
+        return tr_pct(self._opt_return * 100)
 
     @Property(str, notify=kpiMetricsChanged)
     def currentReturnFormatted(self) -> str:
-        return _fmt_pct(self._curr_return * 100)
+        return tr_pct(self._curr_return * 100)
 
     @Property(str, notify=kpiMetricsChanged)
     def optimalVolFormatted(self) -> str:
-        return _fmt_pct(self._opt_vol * 100)
+        return tr_pct(self._opt_vol * 100)
 
     @Property(str, notify=kpiMetricsChanged)
     def currentVolFormatted(self) -> str:
-        return _fmt_pct(self._curr_vol * 100)
+        return tr_pct(self._curr_vol * 100)
 
     @Property(str, notify=kpiMetricsChanged)
     def minVolFormatted(self) -> str:
-        return _fmt_pct(self._min_vol_vol * 100)
+        return tr_pct(self._min_vol_vol * 100)
 
     @Property(bool, notify=kpiMetricsChanged)
     def isOptimalReturnPositive(self) -> bool:

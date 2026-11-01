@@ -18,6 +18,7 @@ from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
 from src.domain.models.budget import Budget, BudgetItem
 from src.domain.models.financial_goal import FinancialGoal, GoalStatus
+from src.ui_qml.presenters.formatting import tr_money
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +35,6 @@ def _load_embedded_scripts() -> None:
                 _LW_CHARTS_JS = lw_file.read_text(encoding="utf-8")
             except Exception as e:
                 logger.warning("lightweight-charts script okunamadı: %s", e)
-
-
-def _fmt_money(val: float | Decimal | None) -> str:
-    if val is None:
-        return "0,00 ₺"
-    try:
-        return f"{float(val):,.2f} ₺".replace(",", "X").replace(".", ",").replace("X", ".")
-    except Exception:
-        return f"{val} ₺"
 
 
 class PlanningController(QObject):
@@ -108,15 +100,15 @@ class PlanningController(QObject):
 
     @Property(str, notify=budgetChanged)
     def totalIncomeFormatted(self) -> str:
-        return _fmt_money(self._total_income)
+        return tr_money(self._total_income)
 
     @Property(str, notify=budgetChanged)
     def totalExpenseFormatted(self) -> str:
-        return _fmt_money(self._total_expense)
+        return tr_money(self._total_expense)
 
     @Property(str, notify=budgetChanged)
     def netSavingsPotentialFormatted(self) -> str:
-        return _fmt_money(self._net_savings_potential)
+        return tr_money(self._net_savings_potential)
 
     @Property(float, notify=budgetChanged)
     def netSavingsPotential(self) -> float:
@@ -150,11 +142,11 @@ class PlanningController(QObject):
 
     @Property(str, notify=feasibilityChanged)
     def totalMonthlyNeedFormatted(self) -> str:
-        return _fmt_money(self._total_monthly_need)
+        return tr_money(self._total_monthly_need)
 
     @Property(str, notify=feasibilityChanged)
     def monthlyPowerFormatted(self) -> str:
-        return _fmt_money(self._monthly_power)
+        return tr_money(self._monthly_power)
 
     # ──────────────────────────── DCA QML Properties ────────────────────────────
 
@@ -261,7 +253,7 @@ class PlanningController(QObject):
                     "id": item.id or -1,
                     "name": item.name,
                     "amount": float(item.amount),
-                    "amountFormatted": _fmt_money(item.amount),
+                    "amountFormatted": tr_money(item.amount),
                     "type": item.item_type,
                     "isPinned": is_pinned,
                 }
@@ -318,7 +310,7 @@ class PlanningController(QObject):
             "id": -1,
             "name": name.strip(),
             "amount": float(amount),
-            "amountFormatted": _fmt_money(amount),
+            "amountFormatted": tr_money(amount),
             "type": item_type.upper(),
             "isPinned": is_pinned,
         }
@@ -362,7 +354,7 @@ class PlanningController(QObject):
 
         target_item["name"] = new_name.strip()
         target_item["amount"] = float(new_amount)
-        target_item["amountFormatted"] = _fmt_money(new_amount)
+        target_item["amountFormatted"] = tr_money(new_amount)
 
         # Eğer sabitlenmiş (pinned) bir kalemse ve adı/tutarı değiştiyse şablonu da güncelle
         if old_pinned and self._service:
@@ -423,11 +415,11 @@ class PlanningController(QObject):
         self._net_savings_potential = self._total_income - self._total_expense
         if self._savings_target > 0:
             if self._net_savings_potential >= self._savings_target:
-                self._budget_status_msg = f"Hedef tutturuldu! (+{_fmt_money(self._net_savings_potential - self._savings_target)} fazlalık)"
+                self._budget_status_msg = f"Hedef tutturuldu! (+{tr_money(self._net_savings_potential - self._savings_target)} fazlalık)"
             else:
-                self._budget_status_msg = f"Hedefin altındasınız ({_fmt_money(self._savings_target - self._net_savings_potential)} eksik)"
+                self._budget_status_msg = f"Hedefin altındasınız ({tr_money(self._savings_target - self._net_savings_potential)} eksik)"
         else:
-            self._budget_status_msg = f"Net tasarruf gücü: {_fmt_money(self._net_savings_potential)}"
+            self._budget_status_msg = f"Net tasarruf gücü: {tr_money(self._net_savings_potential)}"
 
     # ──────────────────────────── Hedefler Slotları ────────────────────────────
 
@@ -447,11 +439,11 @@ class PlanningController(QObject):
                     "id": g.id,
                     "name": g.name,
                     "targetAmount": float(g.target_amount),
-                    "targetAmountFormatted": _fmt_money(g.target_amount),
+                    "targetAmountFormatted": tr_money(g.target_amount),
                     "currentAmount": float(g.current_amount),
-                    "currentAmountFormatted": _fmt_money(g.current_amount),
+                    "currentAmountFormatted": tr_money(g.current_amount),
                     "remainingAmount": float(g.remaining_amount),
-                    "remainingAmountFormatted": _fmt_money(g.remaining_amount),
+                    "remainingAmountFormatted": tr_money(g.remaining_amount),
                     "deadline": g.deadline.isoformat() if hasattr(g.deadline, "isoformat") else str(g.deadline),
                     "priority": prio_val,
                     "priorityTr": prio_tr,
@@ -460,7 +452,7 @@ class PlanningController(QObject):
                     "progress": progress,
                     "progressPct": f"%{progress * 100:.1f}",
                     "monthsRemaining": g.months_remaining(),
-                    "requiredMonthlyFormatted": _fmt_money(g.required_monthly_contribution()),
+                    "requiredMonthlyFormatted": tr_money(g.required_monthly_contribution()),
                 })
             self._goals_list = goals_list
             self.goalsChanged.emit()
@@ -530,7 +522,7 @@ class PlanningController(QObject):
         try:
             self._service.add_contribution(goal_id, amount)
             self.loadGoals()
-            self.operationResult.emit(True, f"Hedefe {_fmt_money(amount)} eklendi.")
+            self.operationResult.emit(True, f"Hedefe {tr_money(amount)} eklendi.")
         except Exception as exc:
             logger.exception("Katkı eklenemedi: %s", exc)
             self.operationResult.emit(False, str(exc))
@@ -578,8 +570,8 @@ class PlanningController(QObject):
                 end_date=e_date,
             )
 
-            self._dca_total_invested = _fmt_money(res.total_invested)
-            self._dca_final_value = _fmt_money(res.final_value)
+            self._dca_total_invested = tr_money(res.total_invested)
+            self._dca_final_value = tr_money(res.final_value)
             self._dca_return_pct = float(res.total_return_pct) if res.total_return_pct is not None else 0.0
             self._dca_return_formatted = f"%{self._dca_return_pct:+.2f}"
             self._dca_contribution_count = res.contribution_count

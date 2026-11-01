@@ -6,6 +6,7 @@ from __future__ import annotations
 import datetime
 import logging
 from PySide6.QtCore import QObject, Property, Signal, Slot, QTimer
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -17,17 +18,17 @@ class ShellController(QObject):
     timeTick = Signal(str)
 
     PAGE_TITLES = {
-        0: "Ana Sayfa",
-        1: "Listelerim",
-        2: "Model Portföyler",
-        3: "Hisse 360",
-        4: "Karşılaştırma Laboratuvarı",
-        5: "BIST Tarama",
-        6: "Finansal Planlama",
-        7: "Optimizasyon",
-        8: "AI Asistan",
-        9: "Ayarlar",
-        10: "Portföyüm",
+        0: msg("page.dashboard"),
+        1: msg("page.watchlists"),
+        2: msg("page.model_portfolios"),
+        3: msg("page.stock_360"),
+        4: msg("page.comparison"),
+        5: msg("page.screener"),
+        6: msg("page.planning"),
+        7: msg("page.optimization"),
+        8: msg("page.ai_advisor"),
+        9: msg("page.settings"),
+        10: msg("page.my_portfolio"),
     }
 
     def __init__(self, container=None, parent=None):
@@ -36,7 +37,7 @@ class ShellController(QObject):
         self._active_page: int = 0
         self._is_maximized: bool = False
         self._bist_open: bool = False
-        self._session_text: str = "Piyasa Kapalı"
+        self._session_text: str = msg("session.market_closed")
         self._current_time_str: str = ""
 
         # Clock & Session Timer
@@ -54,7 +55,7 @@ class ShellController(QObject):
 
         was_open = self._bist_open
         self._bist_open = self._is_session_open(now)
-        self._session_text = "BIST: Canlı Seans Açık" if self._bist_open else "BIST: Seans Kapalı"
+        self._session_text = msg("session.bist_open") if self._bist_open else msg("session.bist_closed")
 
         if was_open != self._bist_open:
             self.marketStatusChanged.emit()
@@ -78,7 +79,7 @@ class ShellController(QObject):
 
     @Property(str, notify=pageTitleChanged)
     def pageTitle(self) -> str:
-        return self.PAGE_TITLES.get(self._active_page, "Portföy Simülasyonu")
+        return self.PAGE_TITLES.get(self._active_page, msg("page.app_title"))
 
     @Property(bool, notify=marketStatusChanged)
     def isBistOpen(self) -> bool:

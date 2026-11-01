@@ -18,6 +18,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 from src.application.services.simulation.strategy_backtest import BacktestSetup, StrategyBacktestResult
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.controllers.lw_chart_html import line_chart_html
+from src.ui_qml.presenters.formatting import tr_money
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +31,6 @@ _ACTION_LABELS = {
 _STRATEGY_COLOR = "#2962ff"
 _BASELINE_COLOR = "#9db2ce"
 _MAX_LISTED_EVENTS = 200
-
-
-def _fmt_money(value: Decimal) -> str:
-    return f"{value:,.2f} ₺".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def _fmt_pct(value: Optional[float]) -> str:
@@ -231,8 +228,8 @@ class StrategyBacktestController(QObject):
             diff = result.total_return_pct - result.baseline_return_pct
         self._difference = _fmt_pct(diff)
         self._difference_positive = diff is None or diff >= 0
-        self._strategy_value = _fmt_money(result.final_value)
-        self._baseline_value = _fmt_money(result.baseline_final_value)
+        self._strategy_value = tr_money(result.final_value)
+        self._baseline_value = tr_money(result.baseline_final_value)
         self._drawdown = _fmt_pct(result.max_drawdown_pct)
         self._baseline_drawdown = _fmt_pct(result.baseline_max_drawdown_pct)
 

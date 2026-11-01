@@ -14,17 +14,14 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.ui_qml.controllers.number_input import parse_decimal_text
+from src.ui_qml.presenters.formatting import tr_number
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
 
 def _clean_ticker(ticker: str) -> str:
     return (ticker or "").replace(".IS", "").strip().upper()
-
-
-def _fmt_tr(value: Decimal) -> str:
-    """1234.5 -> '1.234,50' (Türkçe sayı biçimi)."""
-    return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def parse_amount(text: str) -> Optional[Decimal]:
@@ -75,7 +72,7 @@ class DividendController(QObject):
 
     @Property(str, notify=dividendsChanged)
     def totalText(self) -> str:
-        return f"{_fmt_tr(self._total)} ₺"
+        return f"{tr_number(self._total)} ₺"
 
     @Property(bool, notify=dividendsChanged)
     def hasDividends(self) -> bool:
@@ -98,37 +95,37 @@ class DividendController(QObject):
     def addDividend(self, amount_text: str, date_text: str, note: str) -> None:
         service = self._svc("cash_movement_service")
         if service is None or self._stock_id is None:
-            self.notification.emit(False, "Temettü servisi kullanılamıyor.")
+            self.notification.emit(False, msg("dividend.service_missing"))
             return
         amount = parse_amount(amount_text)
         if amount is None:
-            self.notification.emit(False, "Tutar 0'dan büyük geçerli bir sayı olmalıdır.")
+            self.notification.emit(False, msg("dividend.amount_invalid"))
             return
         movement_date = parse_date(date_text)
         if movement_date is None:
-            self.notification.emit(False, "Tarih geçersiz. Biçim: YYYY-AA-GG")
+            self.notification.emit(False, msg("dividend.date_invalid"))
             return
         try:
             service.add_dividend(
                 self._stock_id, amount, movement_date,
-                notes=(note or "").strip() or f"{self._ticker} temettü",
+                notes=(note or "").strip() or msg("dividend.default_note", ticker=self._ticker),
             )
         except ValueError as exc:
             self.notification.emit(False, str(exc))
             return
         except Exception as exc:
             logger.warning("Temettü kaydedilemedi (%s): %s", self._ticker, exc)
-            self.notification.emit(False, "Temettü kaydedilemedi.")
+            self.notification.emit(False, msg("dividend.save_failed"))
             return
         self._reload()
         self.portfolioChanged.emit()
-        self.notification.emit(True, f"{_fmt_tr(amount)} ₺ temettü nakit bakiyeye eklendi.")
+        self.notification.emit(True, msg("dividend.added", amount=tr_number(amount)))
 
     @Slot(int)
     def deleteDividend(self, movement_id: int) -> None:
         service = self._svc("cash_movement_service")
         if service is None:
-            self.notification.emit(False, "Temettü servisi kullanılamıyor.")
+            self.notification.emit(False, msg("dividend.service_missing"))
             return
         try:
             service.delete_dividend(movement_id)
@@ -137,11 +134,11 @@ class DividendController(QObject):
             return
         except Exception as exc:
             logger.warning("Temettü silinemedi (%s): %s", movement_id, exc)
-            self.notification.emit(False, "Temettü silinemedi.")
+            self.notification.emit(False, msg("dividend.delete_failed"))
             return
         self._reload()
         self.portfolioChanged.emit()
-        self.notification.emit(True, "Temettü kaydı silindi.")
+        self.notification.emit(True, msg("dividend.deleted"))
 
     # ------------------------------------------------------------------ internal
 
@@ -160,7 +157,7 @@ class DividendController(QObject):
                 rows.append({
                     "id": int(movement.id or 0),
                     "dateText": movement.movement_date.strftime("%d.%m.%Y"),
-                    "amountText": f"{_fmt_tr(movement.amount)} ₺",
+                    "amountText": f"{tr_number(movement.amount)} ₺",
                     "note": movement.notes or "",
                 })
         self._dividends = rows

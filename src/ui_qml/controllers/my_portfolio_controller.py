@@ -15,7 +15,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.market_clock import market_today
 from src.domain.models.unified_portfolio import HUNDRED, UnifiedSummary
-from src.ui_qml.controllers.portfolio_presenter import (
+from src.ui_qml.presenters.portfolio_presenter import (
     TAB_ALL,
     TAB_KEYS,
     filter_rows,

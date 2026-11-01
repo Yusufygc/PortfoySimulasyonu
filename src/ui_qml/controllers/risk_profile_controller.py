@@ -13,18 +13,19 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.application.services.planning.risk_profile_service import DIMENSION_LABELS
 from src.domain.models.risk_profile import RiskLabel, RiskProfile
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
 LABEL_NAMES = {
-    RiskLabel.COK_MUHAFAZAKAR: "Çok Muhafazakar",
-    RiskLabel.MUHAFAZAKAR: "Muhafazakar",
-    RiskLabel.DENGELI: "Dengeli",
-    RiskLabel.BUYUME_ODAKLI: "Büyüme Odaklı",
-    RiskLabel.AGRESIF: "Agresif",
+    RiskLabel.COK_MUHAFAZAKAR: msg("risk.label.very_conservative"),
+    RiskLabel.MUHAFAZAKAR: msg("risk.label.conservative"),
+    RiskLabel.DENGELI: msg("risk.label.balanced"),
+    RiskLabel.BUYUME_ODAKLI: msg("risk.label.growth"),
+    RiskLabel.AGRESIF: msg("risk.label.aggressive"),
 }
 # Eski veritabanı şeması uyarıları kullanıcıya gösterilmez
-_HIDDEN_NOTE_MARKER = "eski şema"
+_HIDDEN_NOTE_MARKER = "eski şema"  # metin-muaf: servis notunda aranan işaret
 
 
 def _empty_profile() -> Dict[str, Any]:
@@ -91,12 +92,12 @@ class RiskProfileController(QObject):
     def calculate(self, answers: dict) -> bool:
         """Anket yanıtlarını puanlar ve kaydeder. Başarılıysa True döner."""
         if self._service is None:
-            self.notification.emit(False, "Risk profili servisi kullanılamıyor.")
+            self.notification.emit(False, msg("risk.service_missing"))
             return False
         clean = {str(k): str(v) for k, v in (answers or {}).items()}
         missing = [q["id"] for s in self._sections for q in s["questions"] if q["id"] not in clean]
         if missing:
-            self.notification.emit(False, "Lütfen tüm soruları yanıtlayın.")
+            self.notification.emit(False, msg("risk.answer_all"))
             return False
         self._is_busy = True
         self.busyChanged.emit()
@@ -104,7 +105,7 @@ class RiskProfileController(QObject):
             profile = self._service.calculate_and_save_profile(answers=clean)
         except Exception as exc:
             logger.exception("Risk profili hesaplanamadı: %s", exc)
-            self.notification.emit(False, f"Profil hesaplanamadı: {exc}")
+            self.notification.emit(False, msg("risk.calc_failed", error=exc))
             return False
         finally:
             self._is_busy = False

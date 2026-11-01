@@ -24,6 +24,7 @@ from src.domain.models.corporate_action_candidate import (
     CorporateActionCandidate,
     CorporateActionCandidateStatus,
 )
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +42,6 @@ def _to_decimal(value: Any, default: Decimal = _ZERO) -> Decimal:
         return Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
         return default
-
-
-def _fmt_tr(value: Decimal, decimals: int) -> str:
-    """1234.5 -> '1.234,50' (Türkçe sayı biçimi)."""
-    text = f"{value:,.{decimals}f}"
-    return text.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def _parse_date(text: str) -> Optional[date]:
@@ -91,9 +86,9 @@ def compute_preview(
         "totalQty": total_qty,
         "newShareText": f"+ {new_shares:,} lot".replace(",", "."),
         "totalQtyText": f"{total_qty:,} lot".replace(",", "."),
-        "newAvgText": f"{_fmt_tr(new_avg, 4)} ₺" if new_avg is not None else "-",
-        "capitalText": f"{_fmt_tr(capital_spent, 2)} ₺",
-        "theoreticalText": f"{_fmt_tr(theoretical, 4)} ₺" if theoretical is not None else "-",
+        "newAvgText": f"{tr_number(new_avg, 4)} ₺" if new_avg is not None else "-",
+        "capitalText": f"{tr_number(capital_spent, 2)} ₺",
+        "theoreticalText": f"{tr_number(theoretical, 4)} ₺" if theoretical is not None else "-",
     }
 
 
@@ -524,9 +519,9 @@ class CorporateActionController(QObject):
             "actionType": c.action_type.value,
             "status": c.status.value,
             "ratioPct": ratio_pct,
-            "ratioText": f"%{_fmt_tr(_to_decimal(ratio_pct), 2)}" if c.ratio is not None else "-",
+            "ratioText": f"%{tr_number(_to_decimal(ratio_pct), 2)}" if c.ratio is not None else "-",
             "subscriptionPrice": float(c.subscription_price) if c.subscription_price is not None else 0.0,
-            "subscriptionText": f"{_fmt_tr(c.subscription_price, 4)} ₺" if c.subscription_price is not None else "-",
+            "subscriptionText": f"{tr_number(c.subscription_price, 4)} ₺" if c.subscription_price is not None else "-",
             "exDate": c.ex_date.isoformat() if c.ex_date else "",
             "exDateText": c.ex_date.strftime("%d.%m.%Y") if c.ex_date else "-",
             "confidenceText": f"%{int(c.confidence * _HUNDRED)}",

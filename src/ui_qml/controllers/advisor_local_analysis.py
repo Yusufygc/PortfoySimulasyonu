@@ -5,10 +5,10 @@ Danışman servisinin `call_tool` araçlarını kullanır; sonuç Markdown metni
 from __future__ import annotations
 
 import logging
-from decimal import Decimal
 from typing import Any, Dict, List, Tuple
 
 from src.ui_qml.controllers.advisor_query_intent import is_optimization_query
+from src.ui_qml.presenters.formatting import tr_money, tr_pct
 
 logger = logging.getLogger(__name__)
 
@@ -26,29 +26,6 @@ _LOCAL_NOTE_GENERAL = (
     "*Not: Yerel analiz motoru çalıştırıldı. Gemini API anahtarı tanımlandığında model ile doğrudan serbest sohbet edebilirsiniz.*"
 )
 _DISCLAIMER = "**Yatırım Tavsiyesi Değildir (YTD).**"
-
-
-def fmt_money_tr(val: float | Decimal | None) -> str:
-    if val is None:
-        return "0,00 ₺"
-    try:
-        return f"{float(val):,.2f} ₺".replace(",", "X").replace(".", ",").replace("X", ".")
-    except Exception:
-        return f"{val} ₺"
-
-
-def fmt_pct_tr(val: float | None, with_sign: bool = False) -> str:
-    if val is None:
-        return "%0,00"
-    num = float(val)
-    if abs(num) < 0.0001:
-        return "%0,00"
-    formatted = f"{abs(num):.2f}".replace(".", ",")
-    if num < 0:
-        return f"-%{formatted}"
-    elif with_sign and num > 0:
-        return f"+%{formatted}"
-    return f"%{formatted}"
 
 
 def _call_tool(advisor: Any, name: str, args: Dict[str, Any], used_tools: List[Dict[str, str]]) -> Dict[str, Any]:
@@ -69,7 +46,7 @@ def _optimization_report(total_val: float, opt_data: Dict[str, Any]) -> str:
     lines = [
         "### Modern Portföy Teorisi — Yeniden Dengeleme Analizi",
         "",
-        f"Mevcut portföyünüzün toplam büyüklüğü **{fmt_money_tr(total_val)}** seviyesindedir. "
+        f"Mevcut portföyünüzün toplam büyüklüğü **{tr_money(total_val)}** seviyesindedir. "
         f"Dengeli risk profili simülasyonuna göre portföyünüzün getiri/risk oranını maksimize etmek için aşağıdaki düzenlemeler önerilmektedir:",
         "",
     ]
@@ -78,9 +55,9 @@ def _optimization_report(total_val: float, opt_data: Dict[str, Any]) -> str:
         lines.append("| :--- | :--- | :--- | :--- | :--- |")
         for s in suggestions[:6]:
             sym = s.get("symbol", "").replace(".IS", "")
-            cur_w = fmt_pct_tr(s.get("current_weight_pct"))
-            opt_w = fmt_pct_tr(s.get("optimal_weight_pct"))
-            chg = fmt_pct_tr(s.get("change_pct"), with_sign=True)
+            cur_w = tr_pct(s.get("current_weight_pct"))
+            opt_w = tr_pct(s.get("optimal_weight_pct"))
+            chg = tr_pct(s.get("change_pct"), with_sign=True)
             act = s.get("action", "TUT")
             lines.append(f"| **{sym}** | {cur_w} | {opt_w} | {chg} | **{act}** |")
         lines.append("")
@@ -132,15 +109,15 @@ def _general_report(overview_data: Dict[str, Any], risk_data: Dict[str, Any]) ->
     lines = [
         "### Portföy Sağlık & Risk Durumu Raporu",
         "",
-        f"Portföyünüzün toplam değeri **{fmt_money_tr(total_val)}** olup piyasa hareketlerine karşı genel görünümü şöyledir:",
+        f"Portföyünüzün toplam değeri **{tr_money(total_val)}** olup piyasa hareketlerine karşı genel görünümü şöyledir:",
         "",
-        f"- **Dönem Getirisi:** {fmt_pct_tr(period_ret, with_sign=True)} "
-        f"(BIST 100 Endeksine Göre: {fmt_pct_tr(benchmark_gap, with_sign=True)})",
-        f"- **Yıllık Volatilite (Risk):** {fmt_pct_tr(volatility)}",
+        f"- **Dönem Getirisi:** {tr_pct(period_ret, with_sign=True)} "
+        f"(BIST 100 Endeksine Göre: {tr_pct(benchmark_gap, with_sign=True)})",
+        f"- **Yıllık Volatilite (Risk):** {tr_pct(volatility)}",
         f"- **Sharpe Oranı:** {f'{sharpe:.2f}' if sharpe is not None else 'N/A'} (Birim risk başına getiri kalitesi)",
-        f"- **Maksimum Geri Çekilme (Drawdown):** {fmt_pct_tr(max_dd)}",
-        f"- **En Büyük Pozisyon:** **{largest_stock.replace('.IS', '')}** ({fmt_pct_tr(largest_weight)})",
-        f"- **İlk 3 Hisse Yoğunlaşması:** {fmt_pct_tr(top3_weight)}",
+        f"- **Maksimum Geri Çekilme (Drawdown):** {tr_pct(max_dd)}",
+        f"- **En Büyük Pozisyon:** **{largest_stock.replace('.IS', '')}** ({tr_pct(largest_weight)})",
+        f"- **İlk 3 Hisse Yoğunlaşması:** {tr_pct(top3_weight)}",
         "",
     ]
     lines.extend(_advisor_assessment(top3_weight, sharpe))

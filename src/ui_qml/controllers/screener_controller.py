@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.application.services.analysis.technical.screener import SCREENER_FILTERS
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class ScreenerController(QObject):
         self._selected_filter: str = ""  # "" = Tüm Stratejiler
         self._matches: List[Dict[str, Any]] = []
         self._is_running: bool = False
-        self._status_text: str = "Taramaya hazır"
+        self._status_text: str = msg("screener.ready")
 
         self._build_filter_options()
 
@@ -80,7 +81,7 @@ class ScreenerController(QObject):
     def runScan(self) -> None:
         """Arka planda taramayı başlatır."""
         if self._screener_service is None:
-            self._status_text = "Tarayıcı servisi bulunamadı"
+            self._status_text = msg("screener.service_missing")
             self.statusTextChanged.emit()
             return
 
@@ -89,7 +90,7 @@ class ScreenerController(QObject):
 
         self._is_running = True
         self.isRunningChanged.emit()
-        self._status_text = "Piyasa taranıyor, lütfen bekleyin..."
+        self._status_text = msg("screener.running")
         self.statusTextChanged.emit()
 
         filter_keys = [self._selected_filter] if self._selected_filter else None
@@ -100,7 +101,7 @@ class ScreenerController(QObject):
 
     def _build_filter_options(self) -> None:
         """Hazır filtre tanımlarından seçenek listesini oluşturur."""
-        options = [{"key": "", "label": "Tüm Stratejiler"}]
+        options = [{"key": "", "label": msg("screener.all_strategies")}]
         for key, fdef in SCREENER_FILTERS.items():
             options.append({"key": key, "label": fdef.label})
         self._filter_options = options
@@ -127,9 +128,9 @@ class ScreenerController(QObject):
         self._matches = matches
         self.matchesChanged.emit()
         if not matches:
-            self._status_text = "Tarama tamamlandı: Kriterlere uyan hisse bulunamadı"
+            self._status_text = msg("screener.done_empty")
         else:
-            self._status_text = f"Tarama tamamlandı: {len(matches)} hisse sinyal verdi"
+            self._status_text = msg("screener.done_count", count=len(matches))
         self.statusTextChanged.emit()
         self._is_running = False
         self.isRunningChanged.emit()

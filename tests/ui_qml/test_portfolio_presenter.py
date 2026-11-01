@@ -11,7 +11,7 @@ from src.domain.models.unified_portfolio import (
     HoldingValuation,
     UnifiedSummary,
 )
-from src.ui_qml.controllers.portfolio_presenter import (
+from src.ui_qml.presenters.portfolio_presenter import (
     CLASS_COLORS,
     TAB_ALL,
     filter_rows,

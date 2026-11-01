@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +19,9 @@ REFRESH_INTERVAL_MS = 5 * 60 * 1000
 _STARTUP_DELAY_MS = 1500
 
 
-def _fmt(value: float) -> str:
-    return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-
 def indicator_to_dict(indicator) -> Dict[str, Any]:
     change = indicator.change_pct
-    value_text = _fmt(indicator.value) + (f" {indicator.currency}" if indicator.currency else "")
+    value_text = tr_number(indicator.value) + (f" {indicator.currency}" if indicator.currency else "")
     return {
         "label": indicator.label,
         "valueText": value_text,

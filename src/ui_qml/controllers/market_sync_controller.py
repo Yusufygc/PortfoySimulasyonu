@@ -22,6 +22,7 @@ from src.application.services.market_data.market_data_sync_service import (
     MarketSyncResult,
 )
 from src.domain.market_clock import market_today
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class MarketSyncController(QObject):
 
         # State
         self._is_syncing: bool = False
-        self._status_text: str = "Piyasa verisi hazır"
+        self._status_text: str = msg("market_sync.ready")
         self._last_sync_time: str = "-"
         self._is_up_to_date: bool = True
         self._last_auto_synced_date: Optional[date] = None
@@ -103,7 +104,7 @@ class MarketSyncController(QObject):
 
         self._is_syncing = True
         self.isSyncingChanged.emit()
-        self._status_text = "Borsa kapanış verileri senkronize ediliyor..."
+        self._status_text = msg("market_sync.syncing")
         self.statusTextChanged.emit()
 
         future = self._executor.submit(self._sync_service.sync_daily_delta)
@@ -165,8 +166,8 @@ class MarketSyncController(QObject):
         self.statusTextChanged.emit()
 
         if result.added_bars > 0:
-            msg = f"Borsa verileri güncellendi: {result.updated_stocks} hisse için {result.added_bars:,} yeni bar eklendi."
-            self.syncNotification.emit(True, msg)
+            text = msg("market_sync.updated", stocks=result.updated_stocks, bars=f"{result.added_bars:,}")
+            self.syncNotification.emit(True, text)
             self.dataSynced.emit()
         else:
             logger.info("MarketSyncController: %s", result.message)
@@ -175,7 +176,7 @@ class MarketSyncController(QObject):
     def _on_sync_failed(self, error_msg: str) -> None:
         self._is_syncing = False
         self.isSyncingChanged.emit()
-        self._status_text = f"Güncelleme hatası: {error_msg}"
+        self._status_text = msg("market_sync.status_failed", error=error_msg)
         self.statusTextChanged.emit()
-        self.syncNotification.emit(False, f"Piyasa verisi güncellenemedi: {error_msg}")
+        self.syncNotification.emit(False, msg("market_sync.notify_failed", error=error_msg))
         self.syncFinished.emit()

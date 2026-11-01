@@ -7,44 +7,14 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, time as dt_time, datetime
-from decimal import Decimal, InvalidOperation
-from typing import Dict, List, Optional, Any
+from decimal import Decimal
+from typing import Any, Dict, List
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
+from src.ui_qml.presenters.formatting import tr_money, tr_pct
 
 
 logger = logging.getLogger(__name__)
-
-
-def _fmt_currency(value: Decimal | float | None) -> str:
-    """Standart Türkçe para formatı: 1.000.000,00 ₺ veya -62.608,18 ₺."""
-    if value is None:
-        return "0,00 ₺"
-    try:
-        val = float(value)
-        sign = "-" if val < 0 else ""
-        abs_val = abs(val)
-        formatted = f"{abs_val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        return f"{sign}{formatted} ₺"
-    except Exception:
-        return f"{value} ₺"
-
-
-def _fmt_pct(value: Decimal | float | None) -> str:
-    """Standart getiri yüzdesi formatı: +%1,07 veya -%30,96."""
-    if value is None:
-        return "%0,00"
-    try:
-        val = float(value)
-        abs_val = abs(val)
-        formatted = f"{abs_val:.2f}".replace(".", ",")
-        if val > 0:
-            return f"+%{formatted}"
-        elif val < 0:
-            return f"-%{formatted}"
-        return f"%{formatted}"
-    except Exception:
-        return f"%{value}"
 
 
 def _display_ticker(ticker: str) -> str:
@@ -440,11 +410,11 @@ class ModelPortfolioController(QObject):
         profit_loss = summary.get("profit_loss", Decimal("0"))
         profit_loss_pct = summary.get("profit_loss_pct", Decimal("0"))
 
-        self._summary_net_capital = _fmt_currency(net_capital)
-        self._summary_remaining_cash = _fmt_currency(remaining_cash)
+        self._summary_net_capital = tr_money(net_capital)
+        self._summary_remaining_cash = tr_money(remaining_cash)
         self._summary_remaining_cash_raw = remaining_cash
-        self._summary_total_value = _fmt_currency(total_value)
-        self._summary_profit_loss = _fmt_currency(profit_loss)
+        self._summary_total_value = tr_money(total_value)
+        self._summary_profit_loss = tr_money(profit_loss)
         self._summary_profit_loss_pct = float(profit_loss_pct)
 
         rounded = round(profit_loss, 2)
@@ -509,9 +479,9 @@ class ModelPortfolioController(QObject):
                 "dailyChangePct": daily_change_pct if daily_change_pct is not None else 0.0,
                 "totalChangePct": total_change_pct if total_change_pct is not None else 0.0,
                 "weight": weight,
-                "profitLossFormatted": _fmt_currency(profit_loss) if profit_loss else "₺0,00",
-                "dailyChangeFormatted": _fmt_pct(Decimal(str(daily_change_pct))) if daily_change_pct is not None else "-",
-                "totalChangeFormatted": _fmt_pct(Decimal(str(total_change_pct))) if total_change_pct is not None else "-",
+                "profitLossFormatted": tr_money(profit_loss) if profit_loss else "₺0,00",
+                "dailyChangeFormatted": tr_pct(Decimal(str(daily_change_pct)), with_sign=True) if daily_change_pct is not None else "-",
+                "totalChangeFormatted": tr_pct(Decimal(str(total_change_pct)), with_sign=True) if total_change_pct is not None else "-",
             })
 
         self._has_positions = len(self._positions_list) > 0

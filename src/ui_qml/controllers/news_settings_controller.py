@@ -14,6 +14,7 @@ from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
 
 from src.domain.market_clock import to_market_datetime
 from src.domain.models.news_item import NewsScope, NewsSourceConfig, NewsSourceKind, NewsSourceStatus
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +34,14 @@ def load_refresh_minutes(settings: QSettings) -> int:
 
 def status_text(status: NewsSourceStatus | None) -> str:
     if status is None:
-        return "Henüz çekilmedi"
+        return msg("news_settings.never_fetched")
     if status.error:
-        suffix = " (önbellekteki haberler gösteriliyor)" if status.from_cache else ""
-        return f"Hata: {status.error}{suffix}"
+        suffix = msg("news_settings.from_cache_suffix") if status.from_cache else ""
+        return msg("news_settings.error", error=status.error, suffix=suffix)
     when = to_market_datetime(status.fetched_at).strftime("%H:%M") if status.fetched_at else ""
-    return f"Son çekim {when}, {status.item_count} haber" if when else f"{status.item_count} haber"
+    if when:
+        return msg("news_settings.last_fetch", when=when, count=status.item_count)
+    return msg("news_settings.count_only", count=status.item_count)
 
 
 def source_to_row(config: NewsSourceConfig, status: NewsSourceStatus | None) -> Dict[str, Any]:
@@ -160,7 +163,7 @@ class NewsSettingsController(QObject):
             return
         except Exception as exc:
             logger.warning("Haber kaynağı işlemi başarısız: %s", exc, exc_info=True)
-            self.notify.emit(False, f"İşlem başarısız: {exc}")
+            self.notify.emit(False, msg("news_settings.operation_failed", error=exc))
             return
         self._reload_rows()
         self.sourcesChanged.emit()
@@ -185,8 +188,8 @@ class NewsSettingsController(QObject):
         self._testing.discard(key)
         self.testingChanged.emit()
         if status.ok:
-            self.notify.emit(True, f"Bağlantı başarılı: {status.item_count} haber alındı")
+            self.notify.emit(True, msg("news_settings.test_ok", count=status.item_count))
         else:
-            self.notify.emit(False, f"Bağlantı başarısız: {status.error}")
+            self.notify.emit(False, msg("news_settings.test_failed", error=status.error))
         self._reload_rows()
         self.sourcesChanged.emit()

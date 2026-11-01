@@ -69,14 +69,6 @@ class _Advisor:
         return self.data.get(name, {})
 
 
-def test_money_and_percent_formats_follow_turkish_conventions():
-    assert local.fmt_money_tr(1234567.891) == "1.234.567,89 ₺"
-    assert local.fmt_money_tr(None) == "0,00 ₺"
-    assert local.fmt_pct_tr(12.345, with_sign=True) == "+%12,35"
-    assert local.fmt_pct_tr(-3.2) == "-%3,20"
-    assert local.fmt_pct_tr(0.00001) == "%0,00"
-
-
 def test_general_report_flags_concentration_and_lists_tools():
     advisor = _Advisor({
         "get_portfolio_overview": {"total_value_try": 1000.0, "largest_position_label": "THYAO.IS"},

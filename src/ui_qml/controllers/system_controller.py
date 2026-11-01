@@ -17,6 +17,7 @@ from typing import Any, Optional
 
 from PySide6.QtCore import Property, QObject, QSettings, QTimer, Signal, Slot
 from src.domain.market_clock import market_now, market_today
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ def _to_bool(value: Any, default: bool) -> bool:
     if value is None:
         return default
     if isinstance(value, str):
-        return value.strip().lower() not in {"0", "false", "hayir", "hayır", "no", "off"}
+        return value.strip().lower() not in {"0", "false", "hayir", "hayır", "no", "off"}  # metin-muaf: ayar değeri
     return bool(value)
 
 
@@ -206,7 +207,7 @@ class SystemController(QObject):
             self._consecutive_errors += 1
             if self._consecutive_errors >= _ERROR_TOAST_THRESHOLD:
                 self._consecutive_errors = 0
-                self.notification.emit(False, f"Otomatik fiyat yenileme çalıştırılamadı: {error}")
+                self.notification.emit(False, msg("system.auto_refresh_failed", error=error))
             return
         self._consecutive_errors = 0
         prices = getattr(result, "prices", None)
@@ -228,7 +229,7 @@ class SystemController(QObject):
         """Onay QML diyaloğunda alınır; tüm portföy/fiyat/hisse verisini siler."""
         service = self._svc("reset_service")
         if service is None:
-            self.notification.emit(False, "Sıfırlama servisi bulunamadı.")
+            self.notification.emit(False, msg("system.reset_service_missing"))
             return
         if self._is_resetting:
             return
@@ -249,7 +250,7 @@ class SystemController(QObject):
         self._is_resetting = False
         self.busyChanged.emit()
         if success:
-            self.notification.emit(True, "Sistem başarıyla sıfırlandı.")
+            self.notification.emit(True, msg("system.reset_done"))
             self.systemReset.emit()
         else:
-            self.notification.emit(False, f"Sistem sıfırlanamadı: {error}")
+            self.notification.emit(False, msg("system.reset_failed", error=error))
