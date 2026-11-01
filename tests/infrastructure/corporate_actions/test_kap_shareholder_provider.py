@@ -110,6 +110,18 @@ class TestParseBistCompanies:
         assert out["FROTO"]["mkkMemberOid"] == "4028e4a140f2ed71014106890fae0138"
         assert "FORD" in out["FROTO"]["kapMemberTitle"]
 
+    def test_multiple_stock_codes_map_to_same_oid(self):
+        """'GARAN, TGB' gibi virgüllü kodların her biri aynı kimliğe eşlenmeli."""
+        html = (
+            '{"mkkMemberOid":"4028e4a140f2ed71014106890fae0aaa",'
+            '"kapMemberTitle":"TÜRKİYE GARANTİ BANKASI A.Ş.",'
+            '"stockCode":"GARAN, TGB","cityName":"İSTANBUL"}'
+        )
+        out = _parse_bist_companies(html)
+        assert set(out) == {"GARAN", "TGB"}
+        assert out["GARAN"]["mkkMemberOid"] == out["TGB"]["mkkMemberOid"]
+        assert out["GARAN"]["stockCode"] == "GARAN"
+
     def test_empty_html(self):
         assert _parse_bist_companies("") == {}
 

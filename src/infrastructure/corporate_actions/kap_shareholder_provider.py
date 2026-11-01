@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT     = Path(__file__).parent.parent.parent.parent
 _CACHE_DIR        = _PROJECT_ROOT / "data" / "_cache" / "kap"
-_BIST_CACHE_FILE  = _CACHE_DIR / "bist_companies.json"
+# v2: virgüllü borsa kodları (GARAN, TGB) ayrıştırıldı; eski önbellek bu şirketleri içermez.
+_BIST_CACHE_FILE  = _CACHE_DIR / "bist_companies_v2.json"
 _BIST_TTL_HOURS   = 24 * 7  # haftalık refresh
 
 _BIST_URL = "https://www.kap.org.tr/tr/bist-sirketler"
@@ -148,7 +149,7 @@ class KapShareholderProvider(IShareholderProvider):
 _Q = r'\\?"'
 _OBJ_PATTERN  = re.compile(r"\{[^{}]*?" + _Q + r"mkkMemberOid" + _Q + r"[^{}]*?\}")
 _OID_PATTERN  = re.compile(_Q + r"mkkMemberOid" + _Q + r":" + _Q + r"([0-9a-fA-F]{32})" + _Q)
-_TICK_PATTERN = re.compile(_Q + r"stockCode" + _Q + r":" + _Q + r"([A-Z0-9]+)" + _Q)
+_TICK_PATTERN = re.compile(_Q + r"stockCode" + _Q + r":" + _Q + r"([A-Z0-9][A-Z0-9, ]*)" + _Q)
 _TITLE_PATTERN = re.compile(_Q + r"kapMemberTitle" + _Q + r":" + _Q + r"([^\"\\]+)")
 
 
@@ -162,14 +163,15 @@ def _parse_bist_companies(html: str) -> dict[str, dict]:
         title_m = _TITLE_PATTERN.search(obj)
         if not oid_m or not tick_m:
             continue
-        ticker = tick_m.group(1)
-        if ticker in out:
-            continue
-        out[ticker] = {
-            "mkkMemberOid":   oid_m.group(1),
-            "stockCode":      ticker,
-            "kapMemberTitle": title_m.group(1) if title_m else None,
-        }
+        # Birden fazla borsa kodu olan şirketler "GARAN, TGB" biçiminde gelir.
+        for ticker in (code.strip() for code in tick_m.group(1).split(",")):
+            if not ticker or ticker in out:
+                continue
+            out[ticker] = {
+                "mkkMemberOid":   oid_m.group(1),
+                "stockCode":      ticker,
+                "kapMemberTitle": title_m.group(1) if title_m else None,
+            }
     return out
 
 
