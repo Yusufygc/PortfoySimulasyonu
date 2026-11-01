@@ -18,11 +18,12 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.models.golden_cross_event import CrossType
 from src.ui_qml.presenters.formatting import tr_number_or_dash
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
 # (etiket, gün sayısı) — 0 = tümü
-PERIOD_OPTIONS = [("7 gün", 7), ("30 gün", 30), ("90 gün", 90), ("180 gün", 180), ("1 yıl", 365), ("Tümü", 0)]
+PERIOD_OPTIONS = [(msg("golden_cross.7_gun"), 7), (msg("golden_cross.30_gun"), 30), (msg("golden_cross.90_gun"), 90), (msg("golden_cross.180_gun"), 180), (msg("golden_cross.1_yil"), 365), (msg("golden_cross.tumu"), 0)]
 TYPE_OPTIONS = [("Hepsi", ""), ("Golden", "GOLDEN"), ("Death", "DEATH")]
 _ALL_DAYS = 365 * 20
 
@@ -57,7 +58,7 @@ class GoldenCrossController(QObject):
         self._ticker = ""
         self._is_busy = False
         self._busy_text = ""
-        self._status = "Sinyaller henüz yüklenmedi"
+        self._status = msg("golden_cross.sinyaller_henuz_yuklenmedi")
         self._jobFinished.connect(self._on_job_finished)
 
     def _svc(self, name: str):
@@ -117,7 +118,7 @@ class GoldenCrossController(QObject):
         """Kayıtlı sinyalleri listeler (hızlı DB okuması, ana thread'de)."""
         service = self._svc("technical_analysis_service")
         if service is None:
-            self._set_status("Teknik analiz servisi bulunamadı")
+            self._set_status(msg("golden_cross.teknik_analiz_servisi_bulunamadi"))
             return
         try:
             kind = CrossType(cross_type) if cross_type else None
@@ -126,7 +127,7 @@ class GoldenCrossController(QObject):
             logger.exception("Golden Cross sinyalleri okunamadı: %s", exc)
             self._events = []
             self.eventsChanged.emit()
-            self._set_status(f"Sinyaller okunamadı: {exc}")
+            self._set_status(msg("golden_cross.sinyaller_okunamadi", exc=exc))
             return
         self._events = [self._event_to_dict(e) for e in events]
         self.eventsChanged.emit()
@@ -137,7 +138,7 @@ class GoldenCrossController(QObject):
         service = self._svc("technical_analysis_service")
         if service is None or self._is_busy:
             return
-        self._set_busy(True, "Golden Cross taraması çalışıyor...")
+        self._set_busy(True, msg("golden_cross.golden_cross_taramasi_calisiyor"))
         self._submit("scan", service.scan_all)
 
     @Slot()
@@ -145,11 +146,11 @@ class GoldenCrossController(QObject):
         """Tüm BIST için eksik kapanışları DuckDB piyasa geçmişine (artımlı senkron) tamamlar."""
         service = self._svc("market_data_sync_service")
         if service is None:
-            self.notification.emit(False, "Piyasa veri senkron servisi bulunamadı.")
+            self.notification.emit(False, msg("golden_cross.piyasa_veri_senkron_servisi_bulunamadi"))
             return
         if self._is_busy:
             return
-        self._set_busy(True, "Eksik fiyat verisi tamamlanıyor...")
+        self._set_busy(True, msg("golden_cross.eksik_fiyat_verisi_tamamlaniyor"))
         self._submit("backfill", service.sync_daily_delta)
 
     @Slot(str)
@@ -183,19 +184,18 @@ class GoldenCrossController(QObject):
         self._set_busy(False)
         if error:
             self._set_status(f"Hata: {error}")
-            self.notification.emit(False, f"İşlem başarısız: {error}")
+            self.notification.emit(False, msg("golden_cross.islem_basarisiz", error=error))
             return
         if job == "scan":
             message = (
-                f"Tarama tamamlandı: {result.scanned_count} hisse, {result.new_event_count} yeni sinyal, "
-                f"{result.skipped_count} atlandı (yetersiz veri)."
+                msg("golden_cross.tarama_tamamlandi_hisse_yeni_sinyal_atlandi", scanned_count=result.scanned_count, new_event_count=result.new_event_count, skipped_count=result.skipped_count)
             )
             self._set_status(message)
             self.notification.emit(True, message)
             self.scanCompleted.emit()
         elif job == "backfill":
             count = getattr(result, "added_bars", 0)
-            message = f"Veri tamamlama bitti: {count} fiyat kaydı eklendi."
+            message = msg("golden_cross.veri_tamamlama_bitti_fiyat_kaydi_eklendi", count=count)
             self._set_status(message)
             self.notification.emit(True, message)
             if count:

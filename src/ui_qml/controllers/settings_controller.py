@@ -240,8 +240,8 @@ class SettingsController(QObject):
                 contents="Ping. Sadece 'PONG' cevabını ver.",
             )
             success = bool(resp and resp.text)
-            msg = "Bağlantı Başarılı! Gemini 2.5 Flash erişilebilir durumda." if success else "Sunucu yanıt vermedi."
-            self._asyncApiTestFinished.emit(success, msg)
+            text = "Bağlantı Başarılı! Gemini 2.5 Flash erişilebilir durumda." if success else "Sunucu yanıt vermedi."
+            self._asyncApiTestFinished.emit(success, text)
         except Exception as exc:
             logger.warning("Gemini API test hatası: %s", exc)
             self._asyncApiTestFinished.emit(False, f"Bağlantı Hatası: {exc}")
@@ -324,9 +324,9 @@ class SettingsController(QObject):
         self._is_syncing = False
         self.isSyncingChanged.emit(False)
         success = res.get("success", False)
-        msg = res.get("message", "Tamamlandı")
-        self._set_status(msg)
-        self.operationNotification.emit(success, msg)
+        text = res.get("message", "Tamamlandı")
+        self._set_status(text)
+        self.operationNotification.emit(success, text)
         # İstatistikleri otomatik tazele
         self.refreshDatabaseStats()
 

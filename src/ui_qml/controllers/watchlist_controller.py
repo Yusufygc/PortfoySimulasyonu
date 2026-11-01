@@ -15,6 +15,7 @@ from src.domain.market_clock import market_now, to_market_date
 from src.domain.ticker import clean_ticker
 from src.ui_qml.controllers.watchlist_pricing import DEFAULT_PRICING, price_row
 from src.ui_qml.models.watchlist_table_model import WatchlistTableModel
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,7 @@ class WatchlistController(QObject):
                 ws.reorder_watchlists([w["id"] for w in reordered])
             except Exception as exc:
                 logger.error("Watchlist sırası kaydedilemedi: %s", exc)
-                self.actionCompleted.emit(False, f"Sıra kaydedilemedi: {exc}")
+                self.actionCompleted.emit(False, msg("watchlist.sira_kaydedilemedi", exc=exc))
                 return
         self._watchlists = reordered
         self.watchlistsChanged.emit()
@@ -120,8 +121,8 @@ class WatchlistController(QObject):
         if not ws:
             # Fallback/Mock veri
             self._watchlists = [
-                {"id": 1, "name": "BIST 30 Favoriler", "description": "Öncü sanayi ve bankacılık hisseleri", "count": 3, "avgDiff": "+1.85%", "isUp": True},
-                {"id": 2, "name": "Büyüme & Teknoloji", "description": "Yüksek büyüme potansiyelli teknoloji şirketleri", "count": 2, "avgDiff": "-0.40%", "isUp": False},
+                {"id": 1, "name": "BIST 30 Favoriler", "description": "Öncü sanayi ve bankacılık hisseleri", "count": 3, "avgDiff": "+1.85%", "isUp": True},  # metin-muaf: demo yedek verisi (servis yokken)
+                {"id": 2, "name": "Büyüme & Teknoloji", "description": "Yüksek büyüme potansiyelli teknoloji şirketleri", "count": 2, "avgDiff": "-0.40%", "isUp": False},  # metin-muaf: demo yedek verisi (servis yokken)
             ]
             if self._watchlists:
                 self.selectWatchlist(self._watchlists[0]["id"])
@@ -167,7 +168,7 @@ class WatchlistController(QObject):
                 {
                     "ticker": "THYAO.IS",
                     "cleanTicker": "THYAO",
-                    "companyName": "Türk Hava Yolları",
+                    "companyName": "Türk Hava Yolları",  # metin-muaf: demo yedek verisi (servis yokken)
                     "priceRaw": 294.25,
                     "dailyDiffRaw": 2.15,
                     "dayLow": 289.50,
@@ -175,7 +176,7 @@ class WatchlistController(QObject):
                     "dayRangePct": 0.73,
                     "volume": "1.42 Mr ₺",
                     "sparkline": [282.0, 284.5, 283.0, 288.0, 289.5, 292.0, 294.25],
-                    "notes": "2026 Q3 güçlü kargo gelirleri bekleniyor",
+                    "notes": "2026 Q3 güçlü kargo gelirleri bekleniyor",  # metin-muaf: demo yedek verisi (servis yokken)
                     "stockId": 1,
                     "itemId": 1,
                     "flashState": 0,
@@ -191,7 +192,7 @@ class WatchlistController(QObject):
                     "dayRangePct": 0.43,
                     "volume": "840 Mn ₺",
                     "sparkline": [64.0, 63.5, 64.2, 63.0, 62.8, 62.9, 62.4],
-                    "notes": "Yeni radar ve haberleşme teslimatları",
+                    "notes": "Yeni radar ve haberleşme teslimatları",  # metin-muaf: demo yedek verisi (servis yokken)
                     "stockId": 2,
                     "itemId": 2,
                     "flashState": 0,
@@ -305,7 +306,7 @@ class WatchlistController(QObject):
     def createWatchlist(self, name: str, description: str = "") -> None:
         name = name.strip()
         if not name:
-            self.actionCompleted.emit(False, "Liste adı boş olamaz!")
+            self.actionCompleted.emit(False, msg("watchlist.liste_adi_bos_olamaz"))
             return
 
         ws = self._get_watchlist_service()
@@ -314,14 +315,14 @@ class WatchlistController(QObject):
             self._watchlists.append({"id": new_id, "name": name, "description": description, "count": 0})
             self.watchlistsChanged.emit()
             self.selectWatchlist(new_id)
-            self.actionCompleted.emit(True, f"'{name}' listesi oluşturuldu.")
+            self.actionCompleted.emit(True, msg("watchlist.listesi_olusturuldu", name=name))
             return
 
         try:
             created = ws.create_watchlist(name, description)
             self._load_watchlists()
             self.selectWatchlist(created.id)
-            self.actionCompleted.emit(True, f"'{name}' listesi başarıyla oluşturuldu.")
+            self.actionCompleted.emit(True, msg("watchlist.listesi_basariyla_olusturuldu", name=name))
         except Exception as exc:
             logger.error("Watchlist olusturulamadi: %s", exc)
             self.actionCompleted.emit(False, str(exc))
@@ -330,7 +331,7 @@ class WatchlistController(QObject):
     def updateWatchlist(self, watchlist_id: int, name: str, description: str = "") -> None:
         name = name.strip()
         if not name:
-            self.actionCompleted.emit(False, "Liste adı boş olamaz!")
+            self.actionCompleted.emit(False, msg("watchlist.liste_adi_bos_olamaz"))
             return
 
         ws = self._get_watchlist_service()
@@ -342,14 +343,14 @@ class WatchlistController(QObject):
                     break
             self.watchlistsChanged.emit()
             self.selectWatchlist(watchlist_id)
-            self.actionCompleted.emit(True, f"'{name}' güncellendi.")
+            self.actionCompleted.emit(True, msg("watchlist.guncellendi", name=name))
             return
 
         try:
             ws.update_watchlist(watchlist_id, name, description)
             self._load_watchlists()
             self.selectWatchlist(watchlist_id)
-            self.actionCompleted.emit(True, f"'{name}' listesi güncellendi.")
+            self.actionCompleted.emit(True, msg("watchlist.listesi_guncellendi", name=name))
         except Exception as exc:
             logger.error("Watchlist guncellenemedi: %s", exc)
             self.actionCompleted.emit(False, str(exc))
@@ -368,7 +369,7 @@ class WatchlistController(QObject):
         try:
             ws.delete_watchlist(watchlist_id)
             self._load_watchlists()
-            self.actionCompleted.emit(True, "Liste başarıyla silindi.")
+            self.actionCompleted.emit(True, msg("watchlist.liste_basariyla_silindi"))
         except Exception as exc:
             logger.error("Watchlist silinemedi: %s", exc)
             self.actionCompleted.emit(False, str(exc))
@@ -377,7 +378,7 @@ class WatchlistController(QObject):
     def addStock(self, watchlist_id: int, ticker: str, notes: str = "") -> None:
         ticker = clean_ticker(ticker)
         if not ticker:
-            self.actionCompleted.emit(False, "Hisse kodu boş olamaz!")
+            self.actionCompleted.emit(False, msg("watchlist.hisse_kodu_bos_olamaz"))
             return
 
         ws = self._get_watchlist_service()
@@ -418,7 +419,7 @@ class WatchlistController(QObject):
         if valid:
             self._add_stock_now(watchlist_id, ticker, notes)
         else:
-            self.actionCompleted.emit(False, f"Geçersiz hisse kodu: {ticker}")
+            self.actionCompleted.emit(False, msg("watchlist.gecersiz_hisse_kodu", ticker=ticker))
 
     def _add_stock_now(self, watchlist_id: int, ticker: str, notes: str) -> None:
         ws = self._get_watchlist_service()
@@ -428,7 +429,7 @@ class WatchlistController(QObject):
             # Listenin sayaç bilgisini yenile
             self._load_watchlists()
             self.selectWatchlist(watchlist_id)
-            self.actionCompleted.emit(True, f"{ticker} listeye başarıyla eklendi.")
+            self.actionCompleted.emit(True, msg("watchlist.listeye_basariyla_eklendi", ticker=ticker))
         except Exception as exc:
             logger.error("Hisse eklenemedi: %s", exc)
             self.actionCompleted.emit(False, str(exc))
@@ -440,7 +441,7 @@ class WatchlistController(QObject):
             current_stocks = [s for s in self._stocks_model._stocks if s["stockId"] != stock_id]
             self._stocks_model.set_stocks(current_stocks)
             self._update_summaries(current_stocks)
-            self.actionCompleted.emit(True, "Hisse listeden çıkarıldı.")
+            self.actionCompleted.emit(True, msg("watchlist.hisse_listeden_cikarildi"))
             return
 
         try:
@@ -448,7 +449,7 @@ class WatchlistController(QObject):
             self._load_stocks(watchlist_id)
             self._load_watchlists()
             self.selectWatchlist(watchlist_id)
-            self.actionCompleted.emit(True, "Hisse listeden başarıyla çıkarıldı.")
+            self.actionCompleted.emit(True, msg("watchlist.hisse_listeden_basariyla_cikarildi"))
         except Exception as exc:
             logger.error("Hisse cikarilamadi: %s", exc)
             self.actionCompleted.emit(False, str(exc))
@@ -462,13 +463,13 @@ class WatchlistController(QObject):
                     s["notes"] = notes
                     break
             self._stocks_model.set_stocks(self._stocks_model._stocks)
-            self.actionCompleted.emit(True, "Not güncellendi.")
+            self.actionCompleted.emit(True, msg("watchlist.not_guncellendi"))
             return
 
         try:
             ws.update_watchlist_item_notes(watchlist_id, stock_id, notes)
             self._load_stocks(watchlist_id)
-            self.actionCompleted.emit(True, "Hisse notu başarıyla güncellendi.")
+            self.actionCompleted.emit(True, msg("watchlist.hisse_notu_basariyla_guncellendi"))
         except Exception as exc:
             logger.error("Hisse notu guncellenemedi: %s", exc)
             self.actionCompleted.emit(False, str(exc))

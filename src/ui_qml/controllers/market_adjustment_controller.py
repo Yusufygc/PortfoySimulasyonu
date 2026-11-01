@@ -17,14 +17,15 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.models.market_corporate_action import MarketActionStatus, MarketCorporateAction
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
 STATUS_LABELS = {
     MarketActionStatus.CANDIDATE: "Onay bekliyor",
-    MarketActionStatus.CONFIRMED: "Onaylı (uygulanıyor)",
+    MarketActionStatus.CONFIRMED: msg("market_adjustment.onayli_uygulaniyor"),
     MarketActionStatus.IGNORED: "Reddedildi",
-    MarketActionStatus.NO_BREAK: "Ham veride kırılma yok",
+    MarketActionStatus.NO_BREAK: msg("market_adjustment.ham_veride_kirilma_yok"),
 }
 _MAX_ROWS = 400
 
@@ -144,36 +145,36 @@ class MarketAdjustmentController(QObject):
         service, when = self._service, _parse_iso(effective_date)
         factor = _parse_factor(factor_text) if factor_text else None
         if service is None or when is None or (factor_text and factor is None):
-            self.notification.emit(False, "Geçersiz faktör veya tarih.")
+            self.notification.emit(False, msg("market_adjustment.gecersiz_faktor_veya_tarih"))
             return
         try:
             service.confirm(ticker, when, factor)
         except Exception as exc:
-            self.notification.emit(False, f"Onaylanamadı: {exc}")
+            self.notification.emit(False, msg("market_adjustment.onaylanamadi", exc=exc))
             return
-        self.notification.emit(True, f"{ticker} düzeltmesi onaylandı; fiyat serileri düzeltilmiş okunacak.")
+        self.notification.emit(True, msg("market_adjustment.duzeltmesi_onaylandi_fiyat_serileri_duzeltil", ticker=ticker))
         self.adjustmentsChanged.emit()
 
     @Slot(str, str)
     def ignore(self, ticker: str, effective_date: str) -> None:
-        self._set_status(ticker, effective_date, MarketActionStatus.IGNORED, f"{ticker} adayı reddedildi.")
+        self._set_status(ticker, effective_date, MarketActionStatus.IGNORED, msg("market_adjustment.adayi_reddedildi", ticker=ticker))
 
     @Slot(str, str)
     def reopen(self, ticker: str, effective_date: str) -> None:
         """Onaylı/reddedilmiş olayı yeniden onay bekliyor durumuna alır (onaylıysa düzeltme geri alınır)."""
-        self._set_status(ticker, effective_date, MarketActionStatus.CANDIDATE, f"{ticker} olayı yeniden onay bekliyor.")
+        self._set_status(ticker, effective_date, MarketActionStatus.CANDIDATE, msg("market_adjustment.olayi_yeniden_onay_bekliyor", ticker=ticker))
 
     # ------------------------------------------------------------------ iç işleyiş
 
     def _set_status(self, ticker: str, effective_date: str, status: MarketActionStatus, message: str) -> None:
         service, when = self._service, _parse_iso(effective_date)
         if service is None or when is None:
-            self.notification.emit(False, "Geçersiz olay.")
+            self.notification.emit(False, msg("market_adjustment.gecersiz_olay"))
             return
         try:
             service.set_status(ticker, when, status)
         except Exception as exc:
-            self.notification.emit(False, f"İşlem başarısız: {exc}")
+            self.notification.emit(False, msg("market_adjustment.islem_basarisiz", exc=exc))
             return
         self.notification.emit(True, message)
         self.adjustmentsChanged.emit()
@@ -181,13 +182,12 @@ class MarketAdjustmentController(QObject):
     def _on_scan_finished(self, result: Any, error: str) -> None:
         self._set_busy(False)
         if error:
-            self.notification.emit(False, f"Tarama başarısız: {error}")
+            self.notification.emit(False, msg("market_adjustment.tarama_basarisiz", error=error))
             return
         count = len(result.new_candidates)
         self.notification.emit(
             True,
-            f"Tarama bitti: {count} yeni aday, {result.glitches} veri hatası/piyasa hareketi elendi, "
-            f"{result.already_known} zaten kayıtlı.",
+            msg("market_adjustment.tarama_bitti_yeni_aday_veri_hatasi", count=count, glitches=result.glitches, already_known=result.already_known),
         )
         self.adjustmentsChanged.emit()
 

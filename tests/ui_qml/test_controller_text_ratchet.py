@@ -65,3 +65,8 @@ def test_baseline_is_tight_so_progress_is_locked_in():
     assert not loose, (
         f"Metin sayısı düştü; tests/ui_qml/controller_text_baseline.json değerini düşürün (dosya: (tavan, şimdi)): {loose}"
     )
+
+
+if __name__ == "__main__":  # tavanı güncel sayıya indirir: python tests/ui_qml/test_controller_text_ratchet.py
+    BASELINE.write_text(json.dumps(current_counts(), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(sum(current_counts().values()), "literal kaldı")

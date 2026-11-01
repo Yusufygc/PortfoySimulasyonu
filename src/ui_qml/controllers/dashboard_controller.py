@@ -15,6 +15,7 @@ from typing import Any, List, Optional
 from PySide6.QtCore import QObject, Signal, Property, Slot
 from src.ui_qml.last_update_store import LastUpdateStore, format_return_pct
 from src.domain.market_clock import market_time, market_today
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -182,16 +183,16 @@ class DashboardController(QObject):
             try:
                 trade_date = datetime.strptime(date_text.strip(), "%d.%m.%Y").date()
             except ValueError:
-                self.tradeExecuted.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+                self.tradeExecuted.emit(False, msg("dashboard.tarih_bicimi_gecersiz_bicim_gg_aa"))
                 return
             if trade_date > market_today():
-                self.tradeExecuted.emit(False, "Gelecek tarihli işlem girilemez.")
+                self.tradeExecuted.emit(False, msg("dashboard.gelecek_tarihli_islem_girilemez"))
                 return
         if (time_text or "").strip():
             try:
                 trade_time = datetime.strptime(time_text.strip(), "%H:%M").time()
             except ValueError:
-                self.tradeExecuted.emit(False, "Saat biçimi geçersiz. Biçim: SS:DD")
+                self.tradeExecuted.emit(False, msg("dashboard.saat_bicimi_gecersiz_bicim_ss_dd"))
                 return
         self._submit_trade_impl(ticker, side, quantity, price, notes, trade_date, trade_time)
 
@@ -212,7 +213,7 @@ class DashboardController(QObject):
     ) -> None:
         ticker = ticker.strip().upper()
         if not ticker or quantity <= 0 or price <= 0:
-            self.tradeExecuted.emit(False, "Geçersiz işlem parametreleri.")
+            self.tradeExecuted.emit(False, msg("dashboard.gecersiz_islem_parametreleri"))
             return
 
         if self._container and hasattr(self._container, "trade_entry_service"):
@@ -231,20 +232,20 @@ class DashboardController(QObject):
                 )
                 self._container.trade_entry_service.submit_trade(req)
                 self._load_portfolio_data()
-                self.tradeExecuted.emit(True, f"{quantity} adet {ticker} {side.upper()} işlemi başarıyla kaydedildi.")
+                self.tradeExecuted.emit(True, msg("dashboard.adet_islemi_basariyla_kaydedildi", quantity=quantity, ticker=ticker, side=side.upper()))
                 return
             except Exception as exc:
                 logger.warning("TradeEntryService ile işlem kaydedilemedi: %s", exc)
                 self.tradeExecuted.emit(False, str(exc))
                 return
 
-        self.tradeExecuted.emit(False, "İşlem servisi kullanılamıyor.")
+        self.tradeExecuted.emit(False, msg("dashboard.islem_servisi_kullanilamiyor"))
 
     @Slot(str, float, str)
     def manageCapital(self, action: str, amount: float, note: str) -> None:
         """Sermaye yatırma veya çekme işlemi gerçekleştirir."""
         if amount <= 0:
-            self.capitalUpdated.emit(False, "Tutar 0'dan büyük olmalıdır.")
+            self.capitalUpdated.emit(False, msg("dashboard.tutar_0_dan_buyuk_olmalidir"))
             return
 
         dec_amount = Decimal(str(amount))
@@ -252,20 +253,20 @@ class DashboardController(QObject):
         if self._container and hasattr(self._container, "cash_movement_service"):
             try:
                 if action.upper() == "DEPOSIT":
-                    self._container.cash_movement_service.add_deposit(dec_amount, notes=note or "QML Sermaye Girişi")
-                    msg = f"₺{dec_amount:,.2f} nakit portföye yatırıldı."
+                    self._container.cash_movement_service.add_deposit(dec_amount, notes=note or msg("dashboard.qml_sermaye_girisi"))
+                    text = msg("dashboard.nakit_portfoye_yatirildi", dec_amount=dec_amount)
                 else:
-                    self._container.cash_movement_service.add_withdraw(dec_amount, notes=note or "QML Sermaye Çıkışı")
-                    msg = f"₺{dec_amount:,.2f} nakit portföyden çekildi."
+                    self._container.cash_movement_service.add_withdraw(dec_amount, notes=note or msg("dashboard.qml_sermaye_cikisi"))
+                    text = msg("dashboard.nakit_portfoyden_cekildi", dec_amount=dec_amount)
                 self._load_portfolio_data()
-                self.capitalUpdated.emit(True, msg)
+                self.capitalUpdated.emit(True, text)
                 return
             except Exception as exc:
                 logger.warning("CashMovementService ile sermaye güncellenemedi: %s", exc)
                 self.capitalUpdated.emit(False, str(exc))
                 return
 
-        self.capitalUpdated.emit(False, "Nakit servisi kullanılamıyor.")
+        self.capitalUpdated.emit(False, msg("dashboard.nakit_servisi_kullanilamiyor"))
 
     # -------------------------------------------------------------------------
     # EXCEL RAPOR DIŞA AKTARIMI
@@ -289,10 +290,10 @@ class DashboardController(QObject):
         start = _parse_report_date(start_text)
         end = _parse_report_date(end_text)
         if (start_text.strip() and start is None) or (end_text.strip() and end is None):
-            self.excelExported.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+            self.excelExported.emit(False, msg("dashboard.tarih_bicimi_gecersiz_bicim_gg_aa"))
             return
         if start and end and start > end:
-            self.excelExported.emit(False, "Başlangıç tarihi bitiş tarihinden büyük olamaz.")
+            self.excelExported.emit(False, msg("dashboard.baslangic_tarihi_bitis_tarihinden_buyuk_olam"))
             return
         self._executor.submit(
             self._run_excel_export_worker,
@@ -344,12 +345,12 @@ class DashboardController(QObject):
                     file_path=target_file,
                     mode=ExportMode.APPEND if append else ExportMode.OVERWRITE,
                 )
-                self._asyncExportFinished.emit(True, f"Excel portföy raporu kaydedildi:\n{target_file.name}")
+                self._asyncExportFinished.emit(True, msg("dashboard.excel_portfoy_raporu_kaydedildi", name=target_file.name))
             else:
-                self._asyncExportFinished.emit(False, "Excel rapor servisi kullanılamıyor.")
+                self._asyncExportFinished.emit(False, msg("dashboard.excel_rapor_servisi_kullanilamiyor"))
         except Exception as exc:
             logger.exception("Dashboard Excel export hatası: %s", exc)
-            self._asyncExportFinished.emit(False, f"Excel raporu oluşturulamadı: {exc}")
+            self._asyncExportFinished.emit(False, msg("dashboard.excel_raporu_olusturulamadi", exc=exc))
 
     def _on_export_finished(self, success: bool, message: str) -> None:
         self.excelExported.emit(success, message)

@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
 from src.ui_qml.presenters.formatting import tr_money, tr_pct
+from src.ui_qml.messages import msg
 
 
 logger = logging.getLogger(__name__)
@@ -160,7 +161,7 @@ class ModelPortfolioController(QObject):
             self._service.reorder_portfolios([p["portfolioId"] for p in reordered])
         except Exception as exc:
             logger.error("Model portföy sırası kaydedilemedi: %s", exc)
-            self.operationResult.emit(False, f"Sıra kaydedilemedi: {exc}")
+            self.operationResult.emit(False, msg("model_portfolio.sira_kaydedilemedi", exc=exc))
             return
         self._portfolio_list = reordered
         self.portfolioListChanged.emit()
@@ -197,7 +198,7 @@ class ModelPortfolioController(QObject):
                 self.selectPortfolio(self._portfolio_list[0]["portfolioId"])
         except Exception as exc:
             logger.error("Portföy listesi yüklenemedi: %s", exc)
-            self.operationResult.emit(False, f"Veri yükleme hatası: {exc}")
+            self.operationResult.emit(False, msg("model_portfolio.veri_yukleme_hatasi", exc=exc))
 
     @Slot(int)
     def selectPortfolio(self, portfolio_id: int):
@@ -224,7 +225,7 @@ class ModelPortfolioController(QObject):
             return
         name = name.strip()
         if not name:
-            self.operationResult.emit(False, "Portföy adı boş olamaz")
+            self.operationResult.emit(False, msg("model_portfolio.portfoy_adi_bos_olamaz"))
             return
         try:
             portfolio = self._service.create_portfolio(
@@ -235,9 +236,9 @@ class ModelPortfolioController(QObject):
             if portfolio and portfolio.id is not None:
                 self._current_portfolio_id = portfolio.id
             self.refreshData()
-            self.operationResult.emit(True, f"'{name}' portföyü oluşturuldu")
+            self.operationResult.emit(True, msg("model_portfolio.portfoyu_olusturuldu", name=name))
         except Exception as exc:
-            self.operationResult.emit(False, f"Portföy oluşturulamadı: {exc}")
+            self.operationResult.emit(False, msg("model_portfolio.portfoy_olusturulamadi", exc=exc))
 
     @Slot(int, str, str)
     def updatePortfolio(self, portfolio_id: int, name: str, description: str):
@@ -246,7 +247,7 @@ class ModelPortfolioController(QObject):
             return
         name = name.strip()
         if not name:
-            self.operationResult.emit(False, "Portföy adı boş olamaz")
+            self.operationResult.emit(False, msg("model_portfolio.portfoy_adi_bos_olamaz"))
             return
         try:
             self._service.update_portfolio(
@@ -255,9 +256,9 @@ class ModelPortfolioController(QObject):
                 description=description.strip() or None,
             )
             self.refreshData()
-            self.operationResult.emit(True, "Portföy güncellendi")
+            self.operationResult.emit(True, msg("model_portfolio.portfoy_guncellendi"))
         except Exception as exc:
-            self.operationResult.emit(False, f"Portföy güncellenemedi: {exc}")
+            self.operationResult.emit(False, msg("model_portfolio.portfoy_guncellenemedi", exc=exc))
 
     @Slot(int)
     def deletePortfolio(self, portfolio_id: int):
@@ -269,16 +270,16 @@ class ModelPortfolioController(QObject):
             if self._current_portfolio_id == portfolio_id:
                 self._current_portfolio_id = -1
             self.refreshData()
-            self.operationResult.emit(True, "Portföy silindi")
+            self.operationResult.emit(True, msg("model_portfolio.portfoy_silindi"))
         except Exception as exc:
-            self.operationResult.emit(False, f"Portföy silinemedi: {exc}")
+            self.operationResult.emit(False, msg("model_portfolio.portfoy_silinemedi", exc=exc))
 
     @Slot(str, str, int, float, str, str)
     def addTrade(self, ticker: str, side: str, quantity: int, price: float,
                  trade_date_str: str, trade_time_str: str):
         """Portföye yeni alım/satım işlemi ekler."""
         if not self._service or self._current_portfolio_id <= 0:
-            self.operationResult.emit(False, "Portföy seçili değil")
+            self.operationResult.emit(False, msg("model_portfolio.portfoy_secili_degil"))
             return
         try:
             from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
@@ -299,13 +300,13 @@ class ModelPortfolioController(QObject):
                     trade_time=trade_time,
                 ),
             )
-            action = "alındı" if side.upper() == "BUY" else "satıldı"
+            action = msg("model_portfolio.alindi") if side.upper() == "BUY" else msg("model_portfolio.satildi")
             self.refreshData()
             self.operationResult.emit(True, f"{quantity} lot {_display_ticker(ticker)} {action}")
         except ValueError as exc:
             self.operationResult.emit(False, str(exc))
         except Exception as exc:
-            self.operationResult.emit(False, f"İşlem gerçekleştirilemedi: {exc}")
+            self.operationResult.emit(False, msg("model_portfolio.islem_gerceklestirilemedi", exc=exc))
 
     @Slot(str, result=float)
     def getLatestPriceForTicker(self, ticker: str) -> float:
@@ -325,7 +326,7 @@ class ModelPortfolioController(QObject):
                            move_date_str: str, move_time_str: str, notes: str):
         """Sermaye hareketi ekler (yatır/çek)."""
         if not self._service or self._current_portfolio_id <= 0:
-            self.operationResult.emit(False, "Portföy seçili değil")
+            self.operationResult.emit(False, msg("model_portfolio.portfoy_secili_degil"))
             return
         try:
             from src.application.services.planning.model_portfolio_trade_service import CapitalMovementSpec
@@ -345,7 +346,7 @@ class ModelPortfolioController(QObject):
                     notes=notes.strip() or None,
                 )
             )
-            action = "yatırıldı" if movement_type.upper() == "DEPOSIT" else "çekildi"
+            action = msg("model_portfolio.yatirildi") if movement_type.upper() == "DEPOSIT" else msg("model_portfolio.cekildi")
             self.refreshData()
             self.operationResult.emit(True, f"₺{amount:,.2f} {action}")
         except ValueError as exc:
@@ -560,19 +561,19 @@ class ModelPortfolioController(QObject):
             return None
 
         if self._current_portfolio_id < 0:
-            self.operationResult.emit(False, "Dışa aktarmak için bir model portföy seçilmelidir.")
+            self.operationResult.emit(False, msg("model_portfolio.disa_aktarmak_icin_bir_model_portfoy"))
             return
         first = self._service.get_first_trade_date(self._current_portfolio_id) if self._service else None
         start = parse(start_text) or first
         end = parse(end_text) or date.today()
         if (start_text.strip() and parse(start_text) is None) or (end_text.strip() and parse(end_text) is None):
-            self.operationResult.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+            self.operationResult.emit(False, msg("model_portfolio.tarih_bicimi_gecersiz_bicim_gg_aa"))
             return
         if start is None:
-            self.operationResult.emit(False, "Bu model portföyde işlem bulunamadı.")
+            self.operationResult.emit(False, msg("model_portfolio.bu_model_portfoyde_islem_bulunamadi"))
             return
         if start > end:
-            self.operationResult.emit(False, "Başlangıç tarihi bitiş tarihinden büyük olamaz.")
+            self.operationResult.emit(False, msg("model_portfolio.baslangic_tarihi_bitis_tarihinden_buyuk_olam"))
             return
         self._executor.submit(
             self._run_history_export_worker, self._current_portfolio_id, start, end, file_path.strip(), bool(append)
@@ -585,7 +586,7 @@ class ModelPortfolioController(QObject):
 
             excel_service = getattr(self._container, "model_portfolio_excel_export_service", None) if self._container else None
             if excel_service is None:
-                self._asyncExportFinished.emit(False, "Excel dışa aktarım servisi yapılandırılmamış.")
+                self._asyncExportFinished.emit(False, msg("model_portfolio.excel_disa_aktarim_servisi_yapilandirilmamis"))
                 return
             target = Path(file_path) if file_path else Path.home() / "Desktop" / f"Model_Portfoy_{portfolio_id}.xlsx"
             if target.suffix.lower() != ".xlsx":
@@ -595,10 +596,10 @@ class ModelPortfolioController(QObject):
                 portfolio_id=portfolio_id, start_date=start, end_date=end, file_path=target,
                 mode=ExportMode.APPEND if append else ExportMode.OVERWRITE,
             )
-            self._asyncExportFinished.emit(True, f"Model portföy raporu oluşturuldu:\n{target.name}")
+            self._asyncExportFinished.emit(True, msg("model_portfolio.model_portfoy_raporu_olusturuldu", name=target.name))
         except Exception as exc:
             logger.exception("Model portföy tarihsel Excel export hatası: %s", exc)
-            self._asyncExportFinished.emit(False, f"Excel raporu oluşturulamadı: {exc}")
+            self._asyncExportFinished.emit(False, msg("model_portfolio.excel_raporu_olusturulamadi", exc=exc))
 
     def _on_export_finished(self, success: bool, message: str) -> None:
         self.excelExported.emit(success, message)

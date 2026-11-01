@@ -634,8 +634,8 @@ class StockDetailController(QObject):
                 )
                 total_amount = qty * price
                 action_tr = "satın alındı" if is_buy else "satıldı"
-                msg = f"{qty} adet {self._ticker} model portföye {action_tr} (₺{total_amount:,.2f})."
-                self._asyncTradeResult.emit(True, msg)
+                text = f"{qty} adet {self._ticker} model portföye {action_tr} (₺{total_amount:,.2f})."
+                self._asyncTradeResult.emit(True, text)
                 return
 
             trade_entry_service = getattr(self._container, "trade_entry_service", None) if self._container else None
@@ -656,8 +656,8 @@ class StockDetailController(QObject):
             )
             total_amount = qty * price
             action_tr = "satın alındı" if is_buy else "satıldı"
-            msg = f"{qty} adet {self._ticker} başarıyla {action_tr} (₺{total_amount:,.2f})."
-            self._asyncTradeResult.emit(True, msg)
+            text = f"{qty} adet {self._ticker} başarıyla {action_tr} (₺{total_amount:,.2f})."
+            self._asyncTradeResult.emit(True, text)
 
         except Exception as e:
             logger.exception("Emir iletim hatası (%s): %s", self._ticker, e)
@@ -736,8 +736,8 @@ class StockDetailController(QObject):
                     except Exception as fe:
                         logger.debug("ExcelFormatter opsiyonel stil uygulanamadı: %s", fe)
 
-            msg = f"{self._ticker} detay raporu başarıyla kaydedildi:\n{target_file.name}"
-            self._asyncExportResult.emit(True, msg)
+            text = f"{self._ticker} detay raporu başarıyla kaydedildi:\n{target_file.name}"
+            self._asyncExportResult.emit(True, text)
 
         except Exception as e:
             logger.exception("Excel hisse dökümü hatası: %s", e)

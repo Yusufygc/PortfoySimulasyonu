@@ -19,6 +19,7 @@ from src.application.services.simulation.strategy_backtest import BacktestSetup,
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.controllers.lw_chart_html import line_chart_html
 from src.ui_qml.presenters.formatting import tr_money
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ _ACTION_LABELS = {
     "REBALANCE": "Dengeleme",
     "STOP_LOSS": "Stop-loss",
     "TAKE_PROFIT": "Take-profit",
-    "FALLBACK": "Uyarı",
+    "FALLBACK": msg("backtest.uyari"),
 }
 _STRATEGY_COLOR = "#2962ff"
 _BASELINE_COLOR = "#9db2ce"
@@ -146,7 +147,7 @@ class StrategyBacktestController(QObject):
             return
         stop, take = parse_number(stop_pct), parse_number(take_pct)
         if stop is None and take is None:
-            self.notification.emit(False, "Stop-loss veya take-profit eşiklerinden en az birini girin.")
+            self.notification.emit(False, msg("backtest.stop_loss_veya_take_profit_esiklerinden"))
             return
         setup = self._setup(*args)
         self._submit("stop_take", lambda: self._service.run_stop_take(setup, stop, take))
@@ -161,18 +162,18 @@ class StrategyBacktestController(QObject):
 
     def _common_args(self, tickers: str, capital: str, start: str, end: str, commission_pct: str):
         if self._service is None:
-            self.notification.emit(False, "Strateji backtest servisi kullanılamıyor.")
+            self.notification.emit(False, msg("backtest.strateji_backtest_servisi_kullanilamiyor"))
             return None
         if self._is_running:
             return None
         names = [t for t in tickers.replace(",", " ").split() if t.strip()]
         amount_value = parse_number(capital)
         if amount_value is None or amount_value <= 0:
-            self.notification.emit(False, "Başlangıç sermayesi 0'dan büyük geçerli bir sayı olmalıdır.")
+            self.notification.emit(False, msg("backtest.baslangic_sermayesi_0_dan_buyuk_gecerli"))
             return None
         start_date, end_date = parse_date(start), parse_date(end)
         if start_date is None or end_date is None:
-            self.notification.emit(False, "Tarih geçersiz. Biçim: YYYY-AA-GG")
+            self.notification.emit(False, msg("backtest.tarih_gecersiz_bicim_yyyy_aa_gg"))
             return None
         commission_value = parse_number(commission_pct)
         commission = 0.0 if commission_value is None else commission_value / 100.0
@@ -190,7 +191,7 @@ class StrategyBacktestController(QObject):
                 self._finished.emit(None, str(exc))
             except Exception as exc:
                 logger.exception("Strateji backtest hatası (%s): %s", kind, exc)
-                self._finished.emit(None, "Simülasyon çalıştırılamadı.")
+                self._finished.emit(None, msg("backtest.simulasyon_calistirilamadi"))
 
         self._executor.submit(work)
 
@@ -203,11 +204,11 @@ class StrategyBacktestController(QObject):
         if result is None or not result.strategy_series:
             self._clear_result()
             self.resultChanged.emit()
-            self.notification.emit(False, "Seçilen tarih aralığında tüm hisselerin fiyatının bulunduğu işlem günü yok.")
+            self.notification.emit(False, msg("backtest.secilen_tarih_araliginda_tum_hisselerin_fiya"))
             return
         self._apply(result)
         self.resultChanged.emit()
-        self.notification.emit(True, "Strateji testi tamamlandı.")
+        self.notification.emit(True, msg("backtest.strateji_testi_tamamlandi"))
 
     def _clear_result(self) -> None:
         self._has_result = False
@@ -237,9 +238,9 @@ class StrategyBacktestController(QObject):
         if result.rebalance_count:
             parts.append(f"{result.rebalance_count} dengeleme")
         if result.exit_count:
-            parts.append(f"{result.exit_count} pozisyon çıkışı")
+            parts.append(msg("backtest.pozisyon_cikisi", exit_count=result.exit_count))
         if result.skipped_tickers:
-            parts.append("fiyatı olmayan: " + ", ".join(result.skipped_tickers))
+            parts.append(msg("backtest.fiyati_olmayan") + ", ".join(result.skipped_tickers))
         self._summary = " | ".join(parts)
 
         self._events = [

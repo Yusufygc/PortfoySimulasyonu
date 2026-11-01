@@ -25,6 +25,7 @@ from src.application.services.market.price_data_report_formatter import (
     is_healthy,
 )
 from src.domain.market_clock import market_today
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -153,8 +154,8 @@ class PriceDataController(QObject):
     # ------------------------------------------------------------------ yardımcılar
 
     def _load_scope_options(self) -> None:
-        options = [{"value": "all_active", "label": "Tüm aktif portföyler"},
-                   {"value": "dashboard", "label": "Ana Portföy"}]
+        options = [{"value": "all_active", "label": msg("price_data.tum_aktif_portfoyler")},
+                   {"value": "dashboard", "label": msg("price_data.ana_portfoy")}]
         if self._service is not None:
             try:
                 options = [{"value": o.value, "label": o.label} for o in self._service.portfolio_scope_options()]
@@ -184,10 +185,10 @@ class PriceDataController(QObject):
         """Tarih metinlerini doğrular; portföye ilk hisse eklenme tarihinden önceye inmez."""
         start, end = _parse_date(start_text), _parse_date(end_text)
         if start is None or end is None:
-            self.notification.emit(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")
+            self.notification.emit(False, msg("price_data.tarih_bicimi_gecersiz_bicim_gg_aa"))
             return None
         if start > end:
-            self.notification.emit(False, "Başlangıç tarihi bitiş tarihinden büyük olamaz.")
+            self.notification.emit(False, msg("price_data.baslangic_tarihi_bitis_tarihinden_buyuk_olam"))
             return None
         try:
             minimum = self._service.minimum_start_date(scope)
@@ -198,13 +199,13 @@ class PriceDataController(QObject):
             self._start_text = start.strftime(_DATE_FMT)
             self.rangeChanged.emit()
             self.notification.emit(
-                False, f"Başlangıç tarihi portföye ilk hisse eklenme tarihinden önce olamaz ({minimum:{_DATE_FMT}})."
+                False, f"Başlangıç tarihi portföye ilk hisse eklenme tarihinden önce olamaz ({minimum:{_DATE_FMT}})."  # metin-muaf: iç içe biçim belirtimi, elle taşınacak
             )
         return start, end
 
     def _ready(self) -> bool:
         if self._service is None:
-            self.notification.emit(False, "Fiyat verisi yönetim servisi kullanılamıyor.")
+            self.notification.emit(False, msg("price_data.fiyat_verisi_yonetim_servisi_kullanilamiyor"))
             return False
         return not self._is_busy
 
@@ -234,7 +235,7 @@ class PriceDataController(QObject):
         if resolved is None:
             return
         self._last_scope = scope
-        self._run("analyze", "Veri sağlığı analiz ediliyor...", self._service.analyze, resolved[0], resolved[1], scope)
+        self._run("analyze", msg("price_data.veri_sagligi_analiz_ediliyor"), self._service.analyze, resolved[0], resolved[1], scope)
 
     @Slot(str, str, str)
     def updateMissing(self, start_text: str, end_text: str, scope: str) -> None:
@@ -244,13 +245,13 @@ class PriceDataController(QObject):
         if resolved is None:
             return
         self._last_scope = scope
-        self._run("update", "Eksik fiyatlar güncelleniyor...", self._service.update_missing_prices,
+        self._run("update", msg("price_data.eksik_fiyatlar_guncelleniyor"), self._service.update_missing_prices,
                   resolved[0], resolved[1], None, scope)
 
     @Slot(int, str, str, str)
     def updateSelected(self, stock_id: int, start_text: str, end_text: str, scope: str) -> None:
         if stock_id <= 0:
-            self.notification.emit(False, "Önce tablodan bir hisse seçin.")
+            self.notification.emit(False, msg("price_data.once_tablodan_bir_hisse_secin"))
             return
         if not self._ready():
             return
@@ -258,7 +259,7 @@ class PriceDataController(QObject):
         if resolved is None:
             return
         self._last_scope = scope
-        self._run("update", "Seçili hisse güncelleniyor...", self._service.update_stock_range,
+        self._run("update", msg("price_data.secili_hisse_guncelleniyor"), self._service.update_stock_range,
                   stock_id, resolved[0], resolved[1])
 
     @Slot(str)
@@ -270,7 +271,7 @@ class PriceDataController(QObject):
         while calendar is not None and not calendar.is_trading_day(target):
             target -= timedelta(days=1)
         self._last_scope = scope
-        self._run("update", "Son güncel günden bugüne eksikler tamamlanıyor...",
+        self._run("update", msg("price_data.son_guncel_gunden_bugune_eksikler_tamamlaniy"),
                   self._service.update_from_latest_to_today, target, scope)
 
     @Slot(str, str, str)
@@ -282,7 +283,7 @@ class PriceDataController(QObject):
         if resolved is None:
             return
         self._last_scope = scope
-        self._run("delete", "Fiyat kayıtları siliniyor...", self._service.delete_range,
+        self._run("delete", msg("price_data.fiyat_kayitlari_siliniyor"), self._service.delete_range,
                   resolved[0], resolved[1], scope)
 
     @Slot(int)
@@ -303,29 +304,29 @@ class PriceDataController(QObject):
     @Slot()
     def copyReport(self) -> None:
         if self._report is None:
-            self.notification.emit(False, "Kopyalanacak analiz raporu yok. Önce analiz çalıştırın.")
+            self.notification.emit(False, msg("price_data.kopyalanacak_analiz_raporu_yok_once_analiz"))
             return
         clipboard = QGuiApplication.clipboard()
         if clipboard is not None:
             clipboard.setText(format_report_text(self._report))
-        self.notification.emit(True, "Veri sağlığı raporu panoya kopyalandı.")
+        self.notification.emit(True, msg("price_data.veri_sagligi_raporu_panoya_kopyalandi"))
 
     # ------------------------------------------------------------------ sonuç işleme
 
     def _on_job_finished(self, job: str, result: Any, error: str) -> None:
         self._set_busy(False)
         if error:
-            self.notification.emit(False, f"İşlem başarısız: {error}")
+            self.notification.emit(False, msg("price_data.islem_basarisiz", error=error))
             return
         if result is None:
             return
         if job == "analyze":
             self._apply_report(result)
-            self.notification.emit(True, f"Analiz tamamlandı: {result.health_label}")
+            self.notification.emit(True, msg("price_data.analiz_tamamlandi", health_label=result.health_label))
         elif job == "update":
             self._handle_update_result(result)
         elif job == "delete":
-            self.notification.emit(True, f"{result} fiyat kaydı silindi.")
+            self.notification.emit(True, msg("price_data.fiyat_kaydi_silindi", result=result))
             self.pricesUpdated.emit()
             self._reanalyze()
 
@@ -333,17 +334,17 @@ class PriceDataController(QObject):
         if result.updated_count:
             self.notification.emit(
                 True,
-                f"{result.updated_count} fiyat kaydı eklendi/güncellendi, {result.skipped_holiday_count} tatil günü atlandı.",
+                msg("price_data.fiyat_kaydi_eklendi_guncellendi_tatil_gunu", updated_count=result.updated_count, skipped_holiday_count=result.skipped_holiday_count),
             )
             self.pricesUpdated.emit()
         else:
-            self.notification.emit(False, "Güncellenecek fiyat kaydı bulunamadı.")
+            self.notification.emit(False, msg("price_data.guncellenecek_fiyat_kaydi_bulunamadi"))
         if result.errors:
             self._detail_html = (
-                "<b>Hata detayları:</b><br>" + "<br>".join(str(e) for e in result.errors[:30])
+                msg("price_data.b_hata_detaylari_b_br") + "<br>".join(str(e) for e in result.errors[:30])
             )
             self.detailChanged.emit()
-            self.notification.emit(False, f"Veri kaynağı uyarısı: {len(result.errors)} hata.")
+            self.notification.emit(False, msg("price_data.veri_kaynagi_uyarisi_hata", count=len(result.errors)))
         event_bus = getattr(self._container, "event_bus", None) if self._container else None
         if event_bus is not None and getattr(result, "prices", None):
             event_bus.prices_updated.emit(dict(result.prices))

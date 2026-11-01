@@ -25,6 +25,7 @@ from src.domain.models.corporate_action_candidate import (
     CorporateActionCandidateStatus,
 )
 from src.ui_qml.presenters.formatting import tr_number
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -239,17 +240,17 @@ class CorporateActionController(QObject):
     ) -> None:
         """Kaydet + portföye uygula + geçmiş fiyatları yeniden indir (arka planda)."""
         if self._action_service is None:
-            self.notification.emit(False, "Kurumsal aksiyon servisi kullanılamıyor.")
+            self.notification.emit(False, msg("corporate_action.service_missing"))
             return
         ex_date = _parse_date(ex_date_text)
         if ex_date is None:
-            self.notification.emit(False, "Ex-date geçersiz. Biçim: YYYY-AA-GG")
+            self.notification.emit(False, msg("corporate_action.ex_date_invalid"))
             return
         if ratio_pct <= 0:
-            self.notification.emit(False, "Artırım oranı 0'dan büyük olmalıdır.")
+            self.notification.emit(False, msg("corporate_action.ratio_positive"))
             return
         if action_type.upper() == "BEDELLI" and subscription_price <= 0:
-            self.notification.emit(False, "Bedelli işlem için kullanım fiyatı zorunludur.")
+            self.notification.emit(False, msg("corporate_action.subscription_price_required"))
             return
         self._set_busy(True)
         self._executor.submit(
@@ -271,7 +272,7 @@ class CorporateActionController(QObject):
             lookup = self._svc("stock_lookup_service")
             stock = lookup.find_stock(_clean_ticker(ticker)) if lookup else None
             if stock is None:
-                raise ValueError(f"Hisse bilgisi bulunamadı: {_clean_ticker(ticker)}")
+                raise ValueError(msg("corporate_action.stock_not_found", clean_ticker=_clean_ticker(ticker)))
 
             service = self._action_service
             ratio = ratio_pct / _HUNDRED
@@ -305,14 +306,13 @@ class CorporateActionController(QObject):
 
             type_label = "Bedelsiz" if result.action_type == ActionType.BEDELSIZ else "Bedelli"
             message = (
-                f"{type_label} sermaye artırımı uygulandı: {result.shares_before:,} lot -> "
-                f"{result.shares_after:,} lot."
+                msg("corporate_action.applied", type_label=type_label, shares_before=result.shares_before, shares_after=result.shares_after)
             ).replace(",", ".")
             message += self._refresh_prices_after_action(stock)
             self._applyFinished.emit(True, message)
         except Exception as exc:
             logger.exception("Sermaye artırımı uygulanamadı (%s): %s", ticker, exc)
-            self._applyFinished.emit(False, f"Sermaye artırımı uygulanamadı: {exc}")
+            self._applyFinished.emit(False, msg("corporate_action.apply_failed", exc=exc))
 
     def _refresh_prices_after_action(self, stock) -> str:
         """Retroaktif fiyat düzeltmesi sonrası geçmiş fiyatları yeniden indirir; sonuç mesaj eki döner."""
@@ -327,10 +327,10 @@ class CorporateActionController(QObject):
             count = backfill.backfill_for_single_stock(
                 stock_id=stock.id, ticker=stock.ticker, start_date=first_date, end_date=date.today(),
             )
-            return f" {count} günlük fiyat güncellendi."
+            return msg("corporate_action.prices_updated_suffix", count=count)
         except Exception as exc:
             logger.warning("Sermaye artırımı sonrası fiyat güncellemesi başarısız: %s", exc)
-            return f" Uyarı: geçmiş fiyatlar güncellenemedi ({exc}); Fiyat Verisi sekmesinden elle güncelleyin."
+            return msg("corporate_action.prices_failed_suffix", exc=exc)
 
     def _on_apply_finished(self, success: bool, message: str) -> None:
         self._set_busy(False)
@@ -345,7 +345,7 @@ class CorporateActionController(QObject):
     def refreshCandidates(self) -> None:
         review = self._review_service
         if review is None:
-            self._set_detail("Kurumsal aksiyon aday servisleri kullanılamıyor.")
+            self._set_detail(msg("corporate_action.candidate_services_missing"))
             return
         try:
             items = list(review.list_reviewable())
@@ -357,8 +357,7 @@ class CorporateActionController(QObject):
             self._candidate_objects = {}
             self.candidatesChanged.emit()
             self._set_detail(
-                "Aday tablosu okunamadı. Şema uygulama açılışında otomatik oluşturulur; sorun sürerse "
-                f"uygulamayı yeniden başlatın.\nHata: {exc}"
+                msg("corporate_action.candidate_table_unreadable", exc=exc)
             )
             return
         self._candidate_objects = candidate_objects
@@ -372,7 +371,7 @@ class CorporateActionController(QObject):
         """KAP/MKK kaynağından yeni adayları arka planda tarar."""
         service = self._discovery_service
         if service is None:
-            self.notification.emit(False, "Kurumsal aksiyon aday servisleri kullanılamıyor.")
+            self.notification.emit(False, msg("corporate_action.candidate_services_missing"))
             return
         if self._is_busy:
             return
@@ -390,16 +389,16 @@ class CorporateActionController(QObject):
     def _on_discover_finished(self, result: Any, error: str) -> None:
         self._set_busy(False)
         if result is None:
-            self.notification.emit(False, f"Kurumsal aksiyon taraması çalıştırılamadı: {error}")
+            self.notification.emit(False, msg("corporate_action.scan_failed", error=error))
             return
         self.refreshCandidates()
         if getattr(result, "source_unavailable", False):
             errors = getattr(result, "errors", []) or []
-            detail = "\n".join(str(e) for e in errors) or "KAP/MKK kaynağı geçici olarak okunamadı."
-            self._set_detail(f"KAP/MKK kaynağı geçici olarak okunamadı.\n\nTeknik detay:\n{detail}")
-            self.notification.emit(False, "KAP/MKK kaynağı geçici olarak okunamadı.")
+            detail = "\n".join(str(e) for e in errors) or msg("corporate_action.source_unreadable")
+            self._set_detail(msg("corporate_action.source_unreadable_detail", detail=detail))
+            self.notification.emit(False, msg("corporate_action.source_unreadable"))
             return
-        self.notification.emit(True, f"Kurumsal aksiyon taraması tamamlandı: {result.saved_count} aday.")
+        self.notification.emit(True, msg("corporate_action.scan_done", saved_count=result.saved_count))
 
     @Slot(int)
     def applyCandidate(self, candidate_id: int) -> None:
@@ -418,7 +417,7 @@ class CorporateActionController(QObject):
                 self._candidateActionFinished.emit(True, message)
             except Exception as exc:
                 logger.warning("Aday uygulanamadı (%s): %s", candidate_id, exc)
-                self._candidateActionFinished.emit(False, f"Aday uygulanamadı: {exc}")
+                self._candidateActionFinished.emit(False, msg("corporate_action.candidate_apply_failed", exc=exc))
 
         self._executor.submit(run)
 
@@ -442,9 +441,9 @@ class CorporateActionController(QObject):
             return
         try:
             review.ignore(candidate_id)
-            self.notification.emit(True, "Aday yoksayıldı.")
+            self.notification.emit(True, msg("corporate_action.candidate_ignored"))
         except Exception as exc:
-            self.notification.emit(False, f"Aday yoksayılamadı: {exc}")
+            self.notification.emit(False, msg("corporate_action.candidate_ignore_failed", exc=exc))
         self.refreshCandidates()
 
     @Slot(int, str, str, float, float, str, str)
@@ -464,7 +463,7 @@ class CorporateActionController(QObject):
             return
         ex_date = _parse_date(ex_date_text)
         if ex_date is None:
-            self.notification.emit(False, "Ex-date geçersiz. Biçim: YYYY-AA-GG")
+            self.notification.emit(False, msg("corporate_action.ex_date_invalid"))
             return
         try:
             clean = _clean_ticker(ticker)
@@ -492,9 +491,9 @@ class CorporateActionController(QObject):
                 updated_at=current.updated_at,
             )
             review.update_candidate(updated)
-            self.notification.emit(True, "Aday güncellendi.")
+            self.notification.emit(True, msg("corporate_action.candidate_updated"))
         except Exception as exc:
-            self.notification.emit(False, f"Aday güncellenemedi: {exc}")
+            self.notification.emit(False, msg("corporate_action.candidate_update_failed", exc=exc))
         self.refreshCandidates()
 
     @Slot(int)

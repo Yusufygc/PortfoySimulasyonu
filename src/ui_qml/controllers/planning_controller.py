@@ -19,6 +19,7 @@ from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 from src.domain.models.budget import Budget, BudgetItem
 from src.domain.models.financial_goal import FinancialGoal, GoalStatus
 from src.ui_qml.presenters.formatting import tr_money
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class PlanningController(QObject):
 
         # ── Hedefler Durumu ──
         self._goals_list: List[Dict[str, Any]] = []
-        self._feasibility_status: str = "BİLGİ"
+        self._feasibility_status: str = "BİLGİ"  # metin-muaf: servis durum değeri
         self._feasibility_msg: str = ""
         self._total_monthly_need: float = 0.0
         self._monthly_power: float = 0.0
@@ -276,10 +277,10 @@ class PlanningController(QObject):
         try:
             if pin:
                 self._service.pin_budget_item(item_type.upper(), name.strip(), amount)
-                self.operationResult.emit(True, f"'{name}' kalemi sabitlendi (gelecek aylara otomatik aktarılacak).")
+                self.operationResult.emit(True, msg("planning.kalemi_sabitlendi_gelecek_aylara_otomatik_ak", name=name))
             else:
                 self._service.unpin_budget_item(item_type.upper(), name.strip())
-                self.operationResult.emit(True, f"'{name}' kaleminin sabitlemesi kaldırıldı.")
+                self.operationResult.emit(True, msg("planning.kaleminin_sabitlemesi_kaldirildi", name=name))
 
             items = self._income_items if item_type.upper() == "INCOME" else self._expense_items
             clean_name = name.strip().lower()
@@ -338,14 +339,14 @@ class PlanningController(QObject):
     def updateBudgetItem(self, item_type: str, index: int, new_name: str, new_amount: float) -> None:
         """Bütçe kalemini düzenler, pinli ise şablonunu senkronize eder ve toplamları günceller."""
         if not new_name.strip() or new_amount <= 0:
-            self.operationResult.emit(False, "Kalem adı boş olamaz ve tutar 0'dan büyük olmalıdır.")
+            self.operationResult.emit(False, msg("planning.kalem_adi_bos_olamaz_ve_tutar"))
             return
 
         is_income = item_type.upper() == "INCOME"
         items_list = self._income_items if is_income else self._expense_items
 
         if not (0 <= index < len(items_list)):
-            self.operationResult.emit(False, "Geçersiz kalem seçimi.")
+            self.operationResult.emit(False, msg("planning.gecersiz_kalem_secimi"))
             return
 
         target_item = items_list[index]
@@ -367,7 +368,7 @@ class PlanningController(QObject):
 
         self._recalculate_budget_totals()
         self.budgetChanged.emit()
-        self.operationResult.emit(True, f"'{new_name.strip()}' kalemi güncellendi.")
+        self.operationResult.emit(True, msg("planning.kalemi_guncellendi", new_name=new_name.strip()))
 
     @Slot(float)
     def saveCurrentBudget(self, savings_target: float) -> None:
@@ -404,7 +405,7 @@ class PlanningController(QObject):
             self._recalculate_budget_totals()
             self.budgetChanged.emit()
             self.loadGoals()  # Bütçe değişince hedef fizibilitesi güncellensin
-            self.operationResult.emit(True, f"{self._current_month} bütçesi başarıyla kaydedildi.")
+            self.operationResult.emit(True, msg("planning.butcesi_basariyla_kaydedildi", current_month=self._current_month))
         except Exception as exc:
             logger.exception("Bütçe kaydedilemedi: %s", exc)
             self.operationResult.emit(False, str(exc))
@@ -415,11 +416,11 @@ class PlanningController(QObject):
         self._net_savings_potential = self._total_income - self._total_expense
         if self._savings_target > 0:
             if self._net_savings_potential >= self._savings_target:
-                self._budget_status_msg = f"Hedef tutturuldu! (+{tr_money(self._net_savings_potential - self._savings_target)} fazlalık)"
+                self._budget_status_msg = msg("planning.hedef_tutturuldu_fazlalik", amount=tr_money(self._net_savings_potential - self._savings_target))
             else:
-                self._budget_status_msg = f"Hedefin altındasınız ({tr_money(self._savings_target - self._net_savings_potential)} eksik)"
+                self._budget_status_msg = msg("planning.hedefin_altindasiniz_eksik", amount=tr_money(self._savings_target - self._net_savings_potential))
         else:
-            self._budget_status_msg = f"Net tasarruf gücü: {tr_money(self._net_savings_potential)}"
+            self._budget_status_msg = msg("planning.net_tasarruf_gucu", amount=tr_money(self._net_savings_potential))
 
     # ──────────────────────────── Hedefler Slotları ────────────────────────────
 
@@ -434,7 +435,7 @@ class PlanningController(QObject):
             for g in goals:
                 progress = min(1.0, float(g.progress_ratio))
                 prio_val = str(g.priority).upper()
-                prio_tr = "YÜKSEK" if prio_val == "HIGH" else ("DÜŞÜK" if prio_val == "LOW" else "ORTA")
+                prio_tr = msg("planning.priority_high") if prio_val == "HIGH" else (msg("planning.priority_low") if prio_val == "LOW" else msg("planning.priority_medium"))
                 goals_list.append({
                     "id": g.id,
                     "name": g.name,
@@ -459,7 +460,7 @@ class PlanningController(QObject):
 
             # Fizibilite
             feasibility = self._service.analyze_feasibility()
-            self._feasibility_status = feasibility.get("status", "BİLGİ")
+            self._feasibility_status = feasibility.get("status", "BİLGİ")  # metin-muaf: servis durum değeri
             self._feasibility_msg = feasibility.get("message", "")
             self._total_monthly_need = float(feasibility.get("total_monthly_need", 0.0))
             self._monthly_power = float(feasibility.get("monthly_power", 0.0))
@@ -475,7 +476,7 @@ class PlanningController(QObject):
         try:
             d_parts = [int(p) for p in deadline_str.split("-")]
             deadline = date(d_parts[0], d_parts[1], d_parts[2])
-            p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}
+            p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}  # metin-muaf: öncelik eşleme anahtarları
             prio_clean = p_map.get(str(priority).strip().upper(), "MEDIUM")
             self._service.add_goal(name, target, deadline, prio_clean)
             self.loadGoals()
@@ -492,11 +493,11 @@ class PlanningController(QObject):
         try:
             d_parts = [int(p) for p in deadline_str.split("-")]
             deadline = date(d_parts[0], d_parts[1], d_parts[2])
-            p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}
+            p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}  # metin-muaf: öncelik eşleme anahtarları
             prio_clean = p_map.get(str(priority).strip().upper(), "MEDIUM")
             self._service.update_goal(goal_id, name, target, deadline, prio_clean)
             self.loadGoals()
-            self.operationResult.emit(True, f"'{name}' hedefi güncellendi.")
+            self.operationResult.emit(True, msg("planning.hedefi_guncellendi", name=name))
         except Exception as exc:
             logger.exception("Hedef güncellenemedi: %s", exc)
             self.operationResult.emit(False, str(exc))
@@ -533,7 +534,7 @@ class PlanningController(QObject):
     def runDcaBacktest(self, tickers_str: str, amount: float, start_date_str: str, end_date_str: str) -> None:
         """DCA simülasyonunu çalıştırır."""
         if not self._dca_service:
-            self.operationResult.emit(False, "DCA simülasyon servisi bulunamadı.")
+            self.operationResult.emit(False, msg("planning.dca_simulasyon_servisi_bulunamadi"))
             return
 
         self._dca_is_running = True
@@ -590,7 +591,7 @@ class PlanningController(QObject):
             self._dca_chart_html = self._build_dca_chart_html(res.portfolio_value_series)
 
             self.dcaChanged.emit()
-            self.operationResult.emit(True, f"DCA simülasyonu tamamlandı ({res.contribution_count} katkı dönemi).")
+            self.operationResult.emit(True, msg("planning.dca_simulasyonu_tamamlandi_katki_donemi", contribution_count=res.contribution_count))
         except Exception as exc:
             logger.exception("DCA simülasyon hatası: %s", exc)
             self.operationResult.emit(False, str(exc))
@@ -609,7 +610,7 @@ class PlanningController(QObject):
             val = float(series[dt_val])
             data_points.append(f"{{time:'{dt_val.isoformat()}',value:{val:.2f}}}")
 
-        return f"""<!DOCTYPE html>
+        return f"""<!DOCTYPE html>  # metin-muaf: HTML şablonu
 <html><head><meta charset="utf-8">
 <style>
 body {{ margin: 0; background: #131722; overflow: hidden; }}

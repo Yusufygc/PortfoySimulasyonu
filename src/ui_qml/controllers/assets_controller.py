@@ -19,6 +19,7 @@ from src.domain.market_clock import market_time, market_today
 from src.domain.models.asset import AssetClass, AssetUnit
 from src.domain.models.trade import TradeSide
 from src.ui_qml.controllers.number_input import parse_decimal_text
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -60,21 +61,21 @@ def parse_time_text(text: str) -> Optional[time]:
 def _parse_amounts(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[tuple]]:
     side = str(form.get("side", "")).upper()
     if side not in ("BUY", "SELL"):
-        return "İşlem yönü geçersiz.", None
+        return msg("assets.islem_yonu_gecersiz"), None
     qty, unit_price = parse_decimal_text(form.get("quantity", "")), parse_decimal_text(form.get("price", ""))
     if qty is None or qty <= 0:
-        return "Miktar sıfırdan büyük bir sayı olmalı.", None
+        return msg("assets.miktar_sifirdan_buyuk_bir_sayi_olmali"), None
     if unit_price is None or unit_price <= 0:
-        return "Fiyat sıfırdan büyük bir sayı olmalı.", None
+        return msg("assets.fiyat_sifirdan_buyuk_bir_sayi_olmali"), None
     return None, (TradeSide(side), qty, unit_price)
 
 
 def _parse_moment(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[tuple]]:
     trade_date, trade_time = parse_date_text(form.get("date", "")), parse_time_text(form.get("time", ""))
     if trade_date is None:
-        return "Tarih GG.AA.YYYY biçiminde olmalı.", None
+        return msg("assets.tarih_gg_aa_yyyy_biciminde_olmali"), None
     if trade_time is None:
-        return "Saat SS:DD biçiminde olmalı.", None
+        return msg("assets.saat_ss_dd_biciminde_olmali"), None
     return None, (trade_date, trade_time)
 
 
@@ -84,7 +85,7 @@ def _parse_fx(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[Decimal]]:
         return None, None
     rate = parse_decimal_text(text)
     if rate is None or rate <= 0:
-        return "Kur sıfırdan büyük bir sayı olmalı.", None
+        return msg("assets.kur_sifirdan_buyuk_bir_sayi_olmali"), None
     return None, rate
 
 
@@ -160,7 +161,7 @@ class AssetsController(QObject):
     def _start(self, kind: str, work: Callable[[], str]) -> None:
         """`work` başarı mesajı döner ya da istisna fırlatır; sonuç `_asyncDone` ile ana iş parçacığına döner."""
         if self._busy:
-            self._result_signal(kind).emit(False, "Başka bir işlem sürüyor, bitmesini bekleyin.")
+            self._result_signal(kind).emit(False, msg("assets.baska_bir_islem_suruyor_bitmesini_bekleyin"))
             return
         self._busy = True
         self.busyChanged.emit()
@@ -189,7 +190,7 @@ class AssetsController(QObject):
         """Yeni varlık için geçmiş fiyat, son fiyat ve kur yüklemesi (her adım en iyi çabayla)."""
         notes: List[str] = []
         for step, action in (
-            ("geçmiş", lambda: self._refresh.backfill_history(asset.id)),
+            (msg("assets.gecmis"), lambda: self._refresh.backfill_history(asset.id)),
             ("fiyat", lambda: self._refresh.refresh_latest(only_open=False)),
             ("kur", lambda: self._ensure_fx(asset.quote_currency)),
         ):
@@ -198,7 +199,7 @@ class AssetsController(QObject):
             except Exception as exc:
                 logger.info("%s yüklenemedi (%s): %s", step, asset.symbol, exc)
                 notes.append(step)
-        suffix = f" ({', '.join(notes)} yüklenemedi; daha sonra yenilenecek)" if notes else ""
+        suffix = msg("assets.yuklenemedi_daha_sonra_yenilenecek", items=', '.join(notes)) if notes else ""
         return f"{asset.symbol} eklendi.{suffix}"
 
     def _ensure_fx(self, currency: str) -> None:
@@ -213,19 +214,19 @@ class AssetsController(QObject):
     @Slot(str)
     def addCatalogAsset(self, key: str) -> None:
         if self._ledger is None:
-            self.assetAdded.emit(False, "Varlık servisi kullanılamıyor.")
+            self.assetAdded.emit(False, msg("assets.varlik_servisi_kullanilamiyor"))
             return
         self._start("assetAdded", lambda: self._after_add(self._ledger.add_catalog_asset(key)))
 
     @Slot(str, str, str, str)
     def addAsset(self, symbol: str, name: str, class_key: str, currency: str) -> None:
         if self._ledger is None:
-            self.assetAdded.emit(False, "Varlık servisi kullanılamıyor.")
+            self.assetAdded.emit(False, msg("assets.varlik_servisi_kullanilamiyor"))
             return
         try:
             asset_class = AssetClass(class_key)
         except ValueError:
-            self.assetAdded.emit(False, "Varlık sınıfı geçersiz.")
+            self.assetAdded.emit(False, msg("assets.varlik_sinifi_gecersiz"))
             return
         label = (name or "").strip() or (symbol or "").strip().upper()
         self._start(
@@ -246,7 +247,7 @@ class AssetsController(QObject):
             if self._fx is not None and currencies:
                 self._fx.refresh_latest(currencies)
             result = self._refresh.refresh_latest(only_open=only_open)
-            return f"{len(result.updated)} varlık fiyatı güncellendi."
+            return msg("assets.varlik_fiyati_guncellendi", count=len(result.updated))
 
         self._start("pricesRefreshed", work)
 
@@ -269,7 +270,7 @@ class AssetsController(QObject):
     def recordTrade(self, asset_id: int, form: Dict[str, Any]) -> None:
         """`form`: side (BUY/SELL), quantity, price, date (GG.AA.YYYY), time (SS:DD), fx (boş olabilir) metinleri."""
         if self._ledger is None:
-            self.tradeRecorded.emit(False, "Varlık servisi kullanılamıyor.")
+            self.tradeRecorded.emit(False, msg("assets.varlik_servisi_kullanilamiyor"))
             return
         error, parsed = parse_trade_form(form)
         if error:
@@ -285,19 +286,19 @@ class AssetsController(QObject):
             return
         asset = self._ledger.get_asset(asset_id)
         label = "ALIM" if trade.side == TradeSide.BUY else "SATIM"
-        self.tradeRecorded.emit(True, f"{asset.symbol} {label} işlemi kaydedildi.")
+        self.tradeRecorded.emit(True, msg("assets.islemi_kaydedildi", symbol=asset.symbol, label=label))
         self.dataChanged.emit()
 
     @Slot(int)
     def removeAsset(self, asset_id: int) -> None:
         if self._ledger is None:
-            self.assetRemoved.emit(False, "Varlık servisi kullanılamıyor.")
+            self.assetRemoved.emit(False, msg("assets.varlik_servisi_kullanilamiyor"))
             return
         try:
             self._ledger.remove_asset(asset_id)
         except ValueError as exc:
             self.assetRemoved.emit(False, str(exc))
             return
-        self.assetRemoved.emit(True, "Varlık kaldırıldı.")
+        self.assetRemoved.emit(True, msg("assets.varlik_kaldirildi"))
         self.assetsChanged.emit()
         self.dataChanged.emit()

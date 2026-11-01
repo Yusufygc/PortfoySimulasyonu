@@ -135,8 +135,8 @@ class ScreenerController(QObject):
         self._is_running = False
         self.isRunningChanged.emit()
 
-    def _apply_error(self, msg: str) -> None:
-        self._status_text = f"Hata: {msg}"
+    def _apply_error(self, message: str) -> None:
+        self._status_text = f"Hata: {message}"
         self.statusTextChanged.emit()
         self._is_running = False
         self.isRunningChanged.emit()

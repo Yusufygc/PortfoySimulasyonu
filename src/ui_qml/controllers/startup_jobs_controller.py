@@ -21,6 +21,7 @@ from typing import Any, Callable, Optional
 from PySide6.QtCore import QObject, QSettings, QTimer, Signal
 from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.domain.market_clock import market_now, market_today
+from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
@@ -141,25 +142,25 @@ class StartupJobsController(QObject):
     def _on_job_done(self, job: str, result: Any, error: str) -> None:
         if error:
             messages = {
-                "price_backfill": "Otomatik veri güncelleme çalıştırılamadı",
-                "corporate_action_discovery": "Kurumsal aksiyon taraması çalıştırılamadı",
-                "technical_scan": "Otomatik Golden Cross taraması çalıştırılamadı",
+                "price_backfill": msg("startup.otomatik_veri_guncelleme_calistirilamadi"),
+                "corporate_action_discovery": msg("startup.kurumsal_aksiyon_taramasi_calistirilamadi"),
+                "technical_scan": msg("startup.otomatik_golden_cross_taramasi_calistirilama"),
             }
             logger.warning("%s: %s", messages.get(job, job), error)
             self.jobNotification.emit(False, f"{messages.get(job, job)}: {error}")
             return
         if job == "price_backfill":
-            self._finish_backfill(result, AUTO_BACKFILL_SETTINGS_KEY, "price_backfill", "Otomatik veri güncelleme")
+            self._finish_backfill(result, AUTO_BACKFILL_SETTINGS_KEY, "price_backfill", msg("startup.otomatik_veri_guncelleme"))
         elif job == "corporate_action_discovery":
             self._remember(AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY, market_today().isoformat())
             saved = getattr(result, "saved_count", 0)
             if saved > 0:
-                self.jobNotification.emit(True, f"{saved} yeni kurumsal aksiyon adayı bulundu. Ayarlar > Kurumsal Aksiyonlar'dan inceleyin.")
+                self.jobNotification.emit(True, msg("startup.yeni_kurumsal_aksiyon_adayi_bulundu_ayarlar", saved=saved))
         elif job == "technical_scan":
             self._remember(AUTO_TECHNICAL_SCAN_SETTINGS_KEY, datetime.now().isoformat())
             new_events = getattr(result, "new_event_count", 0)
             if new_events > 0:
-                self.jobNotification.emit(True, f"Golden Cross taraması tamamlandı: {new_events} yeni sinyal.")
+                self.jobNotification.emit(True, msg("startup.golden_cross_taramasi_tamamlandi_yeni_sinyal", new_events=new_events))
 
     def _finish_backfill(self, result: Any, key: str, target_key: str, label: str) -> None:
         target = self._targets.get(target_key) or last_completed_trading_day(market_now(), self._svc("trading_calendar"))
@@ -172,6 +173,6 @@ class StartupJobsController(QObject):
         errors = len(getattr(result, "errors", []) or [])
         if updated > 0:
             self.pricesUpdated.emit()
-            self.jobNotification.emit(True, f"{label} tamamlandı: {updated} fiyat kaydı eklendi.")
+            self.jobNotification.emit(True, msg("startup.tamamlandi_fiyat_kaydi_eklendi", label=label, updated=updated))
         elif errors:
-            self.jobNotification.emit(False, f"{label} sırasında {errors} hata oluştu.")
+            self.jobNotification.emit(False, msg("startup.sirasinda_hata_olustu", label=label, errors=errors))
