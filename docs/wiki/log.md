@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-01] güncelleme | Evrim Planı E1: Bileşim Kökü ve Sayısal Güvence Testleri
+
+- `src/ui_qml/app.py`: `create_controllers` (tek denetleyici listesi), `wire_controllers` (sinyal bağlantıları), `build_ui` (kayıt) ayrıldı; davranış aynı. Duman testi ve görsel anlık görüntü betiği aynı listeyi kullanır. `app.py` kapsamı %0 -> %79.
+- Yeni testler: `test_app_composition.py` (kayıt, sinyal bağlantıları, zamanlayıcı yok), `test_twr_scenarios.py` (elle hesaplanmış 6 TWR senaryosu), `test_portfolio_repository.py` (`sa_portfolio_repository` %54 -> %100).
+- Bulgu: nakit takibi olmayan portföylerde gün içi alım o günün getirisini sulandırır (gün başı akış yaklaşımı); [service_analysis.md](service_analysis.md) içinde belgelendi, değiştirilmedi.
+- Fonksiyon ihlali 75 -> 73; CI tavanı düşürüldü. Test: 1764 geçti, 4 xfailed. Bkz. [architecture_evolution_plan.md](architecture_evolution_plan.md).
+
+---
 ## [2026-11-01] düzeltme | QA Denetimi: Hesap, Güvenlik ve Katman Sızıntısı Düzeltmeleri
 
 - **Para girişi:** QML `parseFloat` Türkçe tutarları yanlış okuyordu (`50.000` -> 50; model portföy sermayesi, yeni portföy nakdi, bütçe/hedef, işlem fiyatı). Yeni `Numbers` QML tekili Python `parse_decimal_text` kurallarıyla okur; kullanıcı girdisinde `parseFloat` testle yasak.

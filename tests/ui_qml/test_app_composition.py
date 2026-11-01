@@ -82,3 +82,27 @@ def test_assets_change_refreshes_my_portfolio(built, monkeypatch):
     controllers["assetsController"].dataChanged.emit()
 
     assert calls, "assetsController.dataChanged Portföyüm'ü yeniden okutmadı"
+
+
+def test_window_is_fitted_and_centered_on_small_screen():
+    from types import SimpleNamespace
+
+    class Window:
+        def __init__(self):
+            self.props = {"width": 1600, "height": 1000}
+
+        def property(self, name):
+            return self.props.get(name)
+
+        def setProperty(self, name, value):  # noqa: N802 - Qt API adı
+            self.props[name] = value
+
+    window = Window()
+    geometry = SimpleNamespace(x=lambda: 0, y=lambda: 0, width=lambda: 1366, height=lambda: 728)
+    app = SimpleNamespace(primaryScreen=lambda: SimpleNamespace(availableGeometry=lambda: geometry))
+    engine = SimpleNamespace(rootObjects=lambda: [window])
+
+    app_module._fit_window_to_screen(app, engine)
+
+    assert window.props == {"width": 1326, "height": 668, "x": 20, "y": 30}
+    app_module._fit_window_to_screen(SimpleNamespace(primaryScreen=lambda: None), engine)  # ekran yoksa dokunmaz

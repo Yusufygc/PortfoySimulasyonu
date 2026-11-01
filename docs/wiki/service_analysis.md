@@ -27,7 +27,8 @@ Filtre durumu `AnalysisFilterState`: başlangıç/bitiş tarihi, seçili hissele
 `PortfolioSeriesBuilder.compute_portfolio_series` her takvim günü için portföy değerini (nakit + pozisyonların son bilinen fiyatla değeri) ve TWR endeksini (başlangıç 100) üretir:
 
 - Nakit takibi varsa (nakit hareketi bulunan portföy) yalnızca **dış sermaye akışı** (yatırma/çekme) akış sayılır; alım/satım içeride kalır. Nakit takibi yoksa alım tutarı giriş, satış tutarı çıkış akışı sayılır.
-- Gün getirisi: `(bugünkü değer - (dünkü değer + akış)) / (dünkü değer + akış)`; endeks bu getirilerle zincirlenir.
+- Gün getirisi: `(bugünkü değer - (dünkü değer + akış)) / (dünkü değer + akış)`; endeks bu getirilerle zincirlenir. Akış gün başında kabul edilir. Serinin ilk gününde önceki değer yoktur; o gün giren sermaye taban alınır (alım fiyatından kapanışa getiri sayılır).
+- **Bilinen yaklaşım:** nakit takibi yokken gün içinde alınan yeni lotun tutarı o günün tabanına girer; aynı gün öncesinden tutulan pozisyonların getirisi bu yüzden sulanır (ör. 1000 TL'lik pozisyon %10 artarken aynı gün 1100 TL'lik alım: gün getirisi %10 yerine 2200/2100 = %4,76). Alım saati bilinmediğinden doğru alt dönem ayrımı yapılamaz; nakit takibi olan ana portföy etkilenmez (alım nakitten hisseye geçiştir, akış değildir).
 - **Temettü** nakde girer ama akış sayılmaz; bu yüzden TWR temettü kadar yükselir. Aynı tutarda yatırma getiri üretmez ([service_corporate_actions.md](service_corporate_actions.md)).
 - Eksik fiyatlı günlerde son bilinen fiyat taşınır; hiç fiyatı olmayan açık pozisyon için uyarı üretilir. Model portföyler ve hisse filtreli görünümlerde nakit takibi kapalıdır.
 
@@ -76,4 +77,4 @@ Yedek kazıma kaynakları (countryeconomy, exchange-rates.org, macrotrends) ve a
 
 ## 7. Testler
 
-`tests/application/test_analysis_service.py`, `tests/application/services/analysis/test_risk_metrics.py`, `tests/application/services/test_comparison_service.py`, `tests/application/test_return_calc_service.py`, `tests/application/test_dividend_cash_flow.py` (TWR ve temettü).
+`tests/application/test_analysis_service.py`, `tests/application/services/analysis/test_risk_metrics.py`, `tests/application/services/test_comparison_service.py`, `tests/application/test_return_calc_service.py`, `tests/application/test_dividend_cash_flow.py` (TWR ve temettü), `tests/application/test_twr_scenarios.py` (elle hesaplanmış TWR senaryoları: ilk gün, yatırma/çekme, karma nakit, satış, temettü, nakit takibi olmadan alım).

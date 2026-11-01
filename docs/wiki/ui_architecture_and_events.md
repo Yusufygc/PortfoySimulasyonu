@@ -93,7 +93,7 @@ Güncel fiyat: `latest_prices` canlı kaydı yalnızca seans içinde alınmışs
 
 ## 9. Yeni Sayfa veya Bileşen Eklerken
 
-1. `controllers/` altında denetleyici yaz; `app.py`'de oluştur ve `setContextProperty` ile kaydet.
+1. `controllers/` altında denetleyici yaz; `app.py::create_controllers` sözlüğüne QML bağlam adıyla ekle (kayıt otomatik), denetleyiciler arası bağlantıyı `wire_controllers` içine yaz.
 2. `qml/views/` veya `qml/components/` altında QML yaz; metinleri `Strings.qml`'e ekle; ikonları `Icons.qml`'e kaydet.
 3. Sayfa ise `Main.qml` yükleyicisine ve `Sidebar.qml` listesine ekle.
 4. Denetleyici ve QML derleme testi yaz (`tests/ui_qml/`); QML'in uyarısız yüklendiğini doğrula.

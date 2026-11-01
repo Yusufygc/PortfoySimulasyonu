@@ -12,9 +12,9 @@ Durum: **Taslak** (2026-11-01). Clean Architecture korunur; bu plan yeni mimariy
 |---|---|
 | Arayüz metni iki yerde | `src/ui_qml/controllers/` içinde ~900 Türkçe metin satırı; `Strings.qml` dışında, tek yerden yönetilemez |
 | Büyük denetleyiciler | 4 sınıf eşik dışı: `StockDetailController` 504, `ModelPortfolioController` 461, `Stock360Controller` 455, `PlanningController` 445 etkin satır |
-| Fonksiyon borcu | 75 fonksiyon eşik dışı; CI tavanında, yeni iş için pay yok |
+| Fonksiyon borcu | 73 fonksiyon eşik dışı (E1 sonrası); CI tavanında, yeni iş için pay yok |
 | Denetleyicide hesap | Biçimlendirme ve küçük hesaplar denetleyicilerde (ör. model portföy ağırlıkları, KPI metinleri) |
-| Bileşim kökü testsiz | `src/ui_qml/app.py` kapsamı %0 (tüm sinyal bağlantıları burada) |
+| Bileşim kökü testsiz | `src/ui_qml/app.py` kapsamı %0 idi; E1 ile %79 |
 | Brüt K/Z | Komisyon/BSMV modellenmiyor |
 
 **Neden yeni mimari değil:** Tek kullanıcılı, yerel veritabanlı masaüstü uygulaması. Katmanlar, olay kaynaklı defter, port/adapter ve DI doğru seçim. Mikroservis, web arka ucu veya tam CQRS bu boyutta yalnızca karmaşıklık ekler.
@@ -95,7 +95,7 @@ Sıra bağımlılık sırasıdır. Her aşama ayrı commit dizisi, tam test pake
 
 | Aşama | Durum |
 |---|---|
-| E1 | Açık |
+| E1 | Uygulandı (2026-11-01): `create_controllers` / `wire_controllers` / `build_ui`, `test_app_composition.py` (app.py %79), `test_twr_scenarios.py`, `test_portfolio_repository.py` (%100) |
 | E2 | Açık |
 | E3 | Açık |
 | E4 | Açık |
