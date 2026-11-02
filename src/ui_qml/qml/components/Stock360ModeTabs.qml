@@ -43,7 +43,7 @@ Rectangle {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                     font.weight: (root.ctrl && root.ctrl.viewMode === 0) ? Font.Bold : Font.Normal
-                    color: (root.ctrl && root.ctrl.viewMode === 0) ? Theme.accent : Theme.textSecondary
+                    color: (root.ctrl && root.ctrl.viewMode === 0) ? Theme.textAccent : Theme.textSecondary
                 }
             }
 
@@ -80,7 +80,7 @@ Rectangle {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                     font.weight: (root.ctrl && root.ctrl.viewMode === 1) ? Font.Bold : Font.Normal
-                    color: (root.ctrl && root.ctrl.viewMode === 1) ? Theme.accent : Theme.textSecondary
+                    color: (root.ctrl && root.ctrl.viewMode === 1) ? Theme.textAccent : Theme.textSecondary
                 }
             }
 
@@ -117,7 +117,7 @@ Rectangle {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                     font.weight: (root.ctrl && root.ctrl.viewMode === 2) ? Font.Bold : Font.Normal
-                    color: (root.ctrl && root.ctrl.viewMode === 2) ? Theme.accent : Theme.textSecondary
+                    color: (root.ctrl && root.ctrl.viewMode === 2) ? Theme.textAccent : Theme.textSecondary
                 }
             }
 

@@ -84,7 +84,7 @@ Item {
                         Text {
                             text: Strings.tvPortfolioHoldings
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             font.weight: Font.Bold
                             color: Theme.textMuted
                             Layout.alignment: Qt.AlignVCenter

@@ -112,7 +112,7 @@ ColumnLayout {
                 Text {
                     text: Strings.labelLastKapUpdate + ": " + (root.ctrl ? root.ctrl.lastKapFilingDate : "—")
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     color: Theme.textMuted
                     elide: Text.ElideRight
                     Layout.fillWidth: true

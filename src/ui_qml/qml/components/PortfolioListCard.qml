@@ -139,7 +139,7 @@ Rectangle {
 
                             Text {
                                 text: modelData.name
-                                color: itemDelegate.isSelected ? Theme.accent : Theme.textPrimary
+                                color: itemDelegate.isSelected ? Theme.textAccent : Theme.textPrimary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontBase
                                 font.weight: itemDelegate.isSelected ? Font.DemiBold : Font.Normal

@@ -80,19 +80,19 @@ class TestSummaryProperties:
     def test_formats_kpis_in_try(self, parts):
         _, controller = parts
 
-        assert controller.totalValue == "₺10,000.00"
-        assert controller.totalCost == "₺9,000.00"
-        assert controller.cashBalance == "₺500.00" and controller.cashRatio == "%5.0"
-        assert controller.dailyGain == "₺120.00" and controller.isDailyPositive
-        assert controller.dailyGainPct == "+%1.21"        # 120 / (10000 - 120)
+        assert controller.totalValue == "₺10.000,00"
+        assert controller.totalCost == "₺9.000,00"
+        assert controller.cashBalance == "₺500,00" and controller.cashRatio == "%5,0"
+        assert controller.dailyGain == "₺120,00" and controller.isDailyPositive
+        assert controller.dailyGainPct == "+%1,21"        # 120 / (10000 - 120)
         assert controller.holdingsCount == 3 and not controller.isPartial
 
     def test_unrealized_pl_matches_holdings(self, parts):
         _, controller = parts
 
         # (6000-5000) + (3000-3500) + (500-500)
-        assert controller.unrealizedPL == "₺500.00"
-        assert controller.unrealizedPLPct == "+%5.56"     # 500 / 9000
+        assert controller.unrealizedPL == "₺500,00"
+        assert controller.unrealizedPLPct == "+%5,56"     # 500 / 9000
         assert controller.isPLPositive
 
     def test_allocation_slices_and_tab_counts(self, parts):
@@ -100,13 +100,13 @@ class TestSummaryProperties:
 
         slices = controller.allocationSlices
         assert [s["classKey"] for s in slices] == ["US_STOCK", "BIST_STOCK", "CRYPTO", "CASH"]
-        assert slices[0]["pct"] == 0.6 and slices[0]["amount"] == "₺6,000.00"
+        assert slices[0]["pct"] == 0.6 and slices[0]["amount"] == "₺6.000,00"
         assert controller.tabCounts == {"ALL": 3, "BIST_STOCK": 1, "US_STOCK": 1, "CRYPTO": 1, "PRECIOUS_METAL": 0}
 
     def test_no_container_yields_empty_page(self, qapp):
         controller = MyPortfolioController(container=None)
 
-        assert controller.totalValue == "₺0.00" and controller.holdingsCount == 0
+        assert controller.totalValue == "₺0,00" and controller.holdingsCount == 0
         assert controller.allocationSlices == [] and controller.holdingsModel.rowCount() == 0
         assert controller.dailyGainPct == "-"
 
@@ -120,8 +120,8 @@ class TestCurrencyAndTabs:
         controller.setDisplayCurrency("usd")
 
         assert service.calls == ["TRY", "USD"]
-        assert controller.displayCurrency == "USD" and controller.totalValue == "$250.00"
-        assert controller.usdRate == "40.0000" and changed == [True]
+        assert controller.displayCurrency == "USD" and controller.totalValue == "$250,00"
+        assert controller.usdRate == "40,0000" and changed == [True]
 
     def test_unsupported_or_same_currency_is_ignored(self, parts):
         service, controller = parts
@@ -163,7 +163,7 @@ class TestFailureAndPartial:
 
         controller.reload()
 
-        assert controller.totalValue == "₺10,000.00" and controller.holdingsCount == 3
+        assert controller.totalValue == "₺10.000,00" and controller.holdingsCount == 3
 
     def test_partial_flag_and_symbols(self, qapp):
         class Partial(FakeService):
@@ -182,7 +182,7 @@ class TestFailureAndPartial:
         controller = MyPortfolioController(container=SimpleNamespace(unified_portfolio_service=NoRate()))
         controller.setDisplayCurrency("USD")
 
-        assert controller.displayUnavailable and controller.totalValue == "₺10,000.00"
+        assert controller.displayUnavailable and controller.totalValue == "₺10.000,00"
 
     def test_reload_prices_alias_and_summary_signal(self, parts):
         service, controller = parts

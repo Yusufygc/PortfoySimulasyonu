@@ -328,7 +328,7 @@ ModernCard {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
-                    color: Theme.accent
+                    color: Theme.textAccent
                 }
 
                 Item { Layout.fillWidth: true }

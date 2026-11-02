@@ -64,7 +64,7 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: Strings.stockDetailBuyButton
-                    color: root.tradeSide === "BUY" ? "#FFFFFF" : Theme.bullGreen
+                    color: root.tradeSide === "BUY" ? "#FFFFFF" : Theme.textPositive
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.Bold
@@ -88,7 +88,7 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: Strings.stockDetailSellButton
-                    color: root.tradeSide === "SELL" ? "#FFFFFF" : Theme.bearRed
+                    color: root.tradeSide === "SELL" ? "#FFFFFF" : Theme.textNegative
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.Bold
@@ -248,7 +248,7 @@ Rectangle {
 
                 Text {
                     text: "₺" + (root.tradeQty * root.tradePrice).toLocaleString(Qt.locale("tr_TR"), "f", 2)
-                    color: root.tradeSide === "BUY" ? Theme.bullGreen : Theme.bearRed
+                    color: root.tradeSide === "BUY" ? Theme.textPositive : Theme.textNegative
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontBase
                     font.weight: Font.Bold
@@ -305,7 +305,7 @@ Rectangle {
                 Text {
                     visible: impactBox.impact.message !== undefined && impactBox.impact.message !== ""
                     text: impactBox.impact.message || ""
-                    color: Theme.bearRed
+                    color: Theme.textNegative
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold

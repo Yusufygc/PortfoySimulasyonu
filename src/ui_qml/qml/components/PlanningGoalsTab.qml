@@ -94,7 +94,7 @@ Item {
                     }
                     Text {
                         text: planningController.monthlyPowerFormatted
-                        color: Theme.bullGreen
+                        color: Theme.textPositive
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontBase
                         font.weight: Font.Bold
@@ -196,9 +196,9 @@ Item {
                                     id: pText
                                     anchors.centerIn: parent
                                     text: modelData.priorityTr || (modelData.priority === "HIGH" ? Strings.goalPriorityHigh : (modelData.priority === "LOW" ? Strings.goalPriorityLow : Strings.goalPriorityMedium))
-                                    color: (modelData.priority === "HIGH" || modelData.priorityTr === "YÜKSEK") ? Theme.bearRed : ((modelData.priority === "MEDIUM" || modelData.priorityTr === "ORTA") ? Theme.accent : Theme.textMuted)
+                                    color: (modelData.priority === "HIGH" || modelData.priorityTr === "YÜKSEK") ? Theme.textNegative : ((modelData.priority === "MEDIUM" || modelData.priorityTr === "ORTA") ? Theme.textAccent : Theme.textMuted)
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: 11
                                     font.weight: Font.Bold
                                 }
                             }
@@ -215,9 +215,9 @@ Item {
                                     id: compText
                                     anchors.centerIn: parent
                                     text: Strings.goalCompletedBadge
-                                    color: Theme.bullGreen
+                                    color: Theme.textPositive
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: 11
                                     font.weight: Font.Bold
                                 }
                             }
@@ -252,7 +252,7 @@ Item {
 
                                     Text {
                                         text: Strings.goalsBtnContribute
-                                        color: btnContrMouse.containsMouse ? Theme.textInverse : Theme.bullGreen
+                                        color: btnContrMouse.containsMouse ? Theme.textInverse : Theme.textPositive
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontXs
                                         font.weight: Font.DemiBold
@@ -338,7 +338,7 @@ Item {
 
                             Text {
                                 text: modelData.progressPct
-                                color: modelData.isCompleted ? Theme.bullGreen : Theme.accent
+                                color: modelData.isCompleted ? Theme.textPositive : Theme.textAccent
                                 font.family: Theme.fontMono
                                 font.pixelSize: Theme.fontSm
                                 font.weight: Font.Bold
@@ -379,7 +379,7 @@ Item {
 
                             Text {
                                 text: Strings.goalRemainingPrefix + modelData.remainingAmountFormatted
-                                color: Theme.bearRed
+                                color: Theme.textNegative
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                             }

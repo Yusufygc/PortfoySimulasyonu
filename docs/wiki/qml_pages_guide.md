@@ -36,7 +36,9 @@ Tüm portföyün (BIST + BIST dışı varlıklar) tek özeti. Rakamların tamam�
 
 - **Başlık düğmeleri:** TRY/USD anahtarı, Fiyatları Yenile, Varlık Ekle, Varlık İşlemi, Sermaye Yönetimi, Excel Raporu, Hızlı Alım/Satım. Değerlenemeyen pozisyon ve USD kuru bulunamadı uyarıları sayfanın üstünde görünür; toplam kısmi veriyle hesaplanmışsa işaretlenir.
 - **KPI kartları:** toplam değer, günlük kazanç, gerçekleşmemiş K/Z, nakit (BIST). Haftalık/aylık getiri kartları yalnızca BIST'tir (etiketlerde "(BIST)"); birleşik TWR yoktur.
-- **Varlık dağılımı** (`AssetAllocationCard`, Canvas donut): BIST, ABD hisse, kripto, emtia ve nakit dilimleri; donut merkezi nakit dışı payı gösterir.
+- **Varlık dağılımı** (`AssetAllocationCard`, Canvas donut): BIST, ABD hisse, kripto, emtia ve nakit dilimleri; donut merkezi nakit dışı payı gösterir. Kart yüksekliği içeriğe göre uyar (sınıf sayısı artınca taşmaz); veriden bağımsız sabit "denge durumu" kutusu kaldırıldı.
+- **Sayı biçimi:** Portföyüm Türkçe biçim kullanır (`₺1.234,56`, `-₺5.678,99`, `+%2,15`); giriş alanlarına önerilen değerler virgüllü ve kısadır (`74252,4051`). Nakit kartı havuzun tamamıdır (TL + USD karşılığı); USD varsa alt satır `TL ₺… + USD $…` yazar.
+- **Tablo:** Pozisyon tablosu 1440 piksel pencerede (kenar çubuğu açık) eylem sütunuyla birlikte sığar; daha darda yatay kayar. "Kaldır" onay penceresi ister.
 - **Pozisyon tablosu** (`HoldingsTable`, `HoldingsListModel`): Tümü / BIST / ABD / Kripto / Emtia sekmeleri; tutarlar seçili para biriminde, fiyatlar varlığın kendi para biriminde; değerlenemeyen pozisyonda "Maliyet" işareti. BIST satırı: Grafik / Detay / İşlem (satıra tıklayınca **Hisse Detay modalı**); BIST dışı satır: İşlem / Kaldır. Emtia sekmesinde vadeli kontrat notu.
 - **Varlık ekleme** (`AssetAddModal`): katalogdan tek tıkla veya sembolle; doğrulama, geçmiş doldurma, son fiyat ve kur yükleme arka planda; bir adım başarısız olursa varlık yine eklenir ve mesaj belirtir.
 - **Varlık işlemi** (`AssetTradeModal`): kesirli miktar, fiyat ve kur önerisi veritabanından (ağ yok); TL ile işlem gören varlıkta (altın gram dahil) kur gizli; ödeme para biriminin kullanılabilir nakdi ve tahmini ücret gösterilir; elden fazla satış, geriye dönük satış ve yetersiz nakit (USD için 'Önce Döviz Al') reddedilir.
@@ -82,7 +84,7 @@ Ayrıntı: [service_planning_optimization.md](service_planning_optimization.md),
 
 ## 7. Optimizasyon
 
-Markowitz maksimum Sharpe optimizasyonu: kaynak (ana portföy veya model portföy), risk profili seçici, tek hisse üst sınırı kaydırıcısı, risksiz faiz oranı. Üç sekme: Verimli Sınır (Monte Carlo bulutu, sınır eğrisi, mevcut/optimum/minimum risk noktaları), Ağırlık Dağılımı, Yeniden Dengeleme (EKLE/AZALT/TUT, tutar ve tahmini lot). Risk anketi `RiskQuestionnaireDialog` ile doldurulur ve kaydedilir; kayıtlı profil tek hisse sınırını belirler. Ayrıntı: [service_planning_optimization.md](service_planning_optimization.md).
+Markowitz maksimum Sharpe optimizasyonu: kaynak (ana portföy, Tüm Varlıklar veya model portföy), risk profili seçici, tek hisse üst sınırı kaydırıcısı, risksiz faiz oranı. Üç sekme: Verimli Sınır (Monte Carlo bulutu, sınır eğrisi, mevcut/optimum/minimum risk noktaları), Ağırlık Dağılımı, Yeniden Dengeleme (EKLE/AZALT/TUT, tutar ve tahmini lot). Risk anketi `RiskQuestionnaireDialog` ile doldurulur ve kaydedilir; kayıtlı profil tek hisse sınırını belirler. Ayrıntı: [service_planning_optimization.md](service_planning_optimization.md).
 
 ## 8. AI Asistan
 

@@ -153,7 +153,7 @@ Rectangle {
                 Text {
                     visible: root.statusText !== ""
                     text: root.statusText
-                    color: root.statusIsError ? Theme.bearRed : Theme.bullGreen
+                    color: root.statusIsError ? Theme.textNegative : Theme.textPositive
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                     wrapMode: Text.WordWrap
@@ -185,7 +185,7 @@ Rectangle {
                     Text {
                         visible: root.hasDividends
                         text: Strings.dividendTotalLabel + ": " + (root.ctl ? root.ctl.totalText : "")
-                        color: Theme.bullGreen
+                        color: Theme.textPositive
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.DemiBold

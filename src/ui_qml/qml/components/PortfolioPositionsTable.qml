@@ -283,7 +283,7 @@ Rectangle {
                     // 5. Günlük Değişim %
                     Text {
                         text: modelData.dailyChangeFormatted
-                        color: modelData.dailyChangePct > 0 ? Theme.bullGreen : (modelData.dailyChangePct < 0 ? Theme.bearRed : Theme.textMuted)
+                        color: modelData.dailyChangePct > 0 ? Theme.textPositive : (modelData.dailyChangePct < 0 ? Theme.textNegative : Theme.textMuted)
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.DemiBold
@@ -308,7 +308,7 @@ Rectangle {
                     // 7. Toplam Getiri %
                     Text {
                         text: modelData.totalChangeFormatted
-                        color: modelData.totalChangePct > 0 ? Theme.bullGreen : (modelData.totalChangePct < 0 ? Theme.bearRed : Theme.textMuted)
+                        color: modelData.totalChangePct > 0 ? Theme.textPositive : (modelData.totalChangePct < 0 ? Theme.textNegative : Theme.textMuted)
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.DemiBold
@@ -321,7 +321,7 @@ Rectangle {
                     // 8. Kâr / Zarar (₺)
                     Text {
                         text: modelData.profitLossFormatted
-                        color: modelData.profitLoss > 0 ? Theme.bullGreen : (modelData.profitLoss < 0 ? Theme.bearRed : Theme.textMuted)
+                        color: modelData.profitLoss > 0 ? Theme.textPositive : (modelData.profitLoss < 0 ? Theme.textNegative : Theme.textMuted)
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.Bold

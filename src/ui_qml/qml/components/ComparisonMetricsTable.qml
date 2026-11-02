@@ -124,7 +124,7 @@ Rectangle {
 
                     Text {
                         text: (modelData.totalReturn > 0 ? "+" : "") + modelData.totalReturn.toFixed(2) + " %"
-                        color: modelData.totalReturn > 0 ? Theme.bullGreen : (modelData.totalReturn < 0 ? Theme.bearRed : Theme.textMuted)
+                        color: modelData.totalReturn > 0 ? Theme.textPositive : (modelData.totalReturn < 0 ? Theme.textNegative : Theme.textMuted)
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
                         font.weight: Font.Bold

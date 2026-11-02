@@ -107,7 +107,7 @@ ColumnLayout {
 
             Text {
                 text: Strings.sysResetTitle
-                color: Theme.bearRed
+                color: Theme.textNegative
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontMd
                 font.weight: Font.Bold

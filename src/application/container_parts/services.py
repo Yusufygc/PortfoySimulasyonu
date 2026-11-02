@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
+from src.application.services.analysis.unified_series_builder import UnifiedSeriesBuilder, UnifiedSeriesDeps
 from src.application.services.assets.asset_chart_service import AssetChartService
 from src.application.services.assets.asset_holdings_reader import AssetHoldingsReader
 from src.application.services.assets.asset_ledger_service import AssetLedgerService
@@ -12,6 +13,7 @@ from src.application.services.assets.asset_price_refresh_service import AssetPri
 from src.application.services.assets.bist_holdings_reader import BistHoldingsReader
 from src.application.services.assets.fx_rate_service import FxRateService
 from src.application.services.assets.unified_portfolio_service import UnifiedPortfolioService
+from src.application.services.planning.unified_optimization_service import UnifiedOptimizationService
 from src.application.services.portfolio.position_query_service import PositionQueryService
 from src.application.services.portfolio.cash_pool_service import CashPoolService
 from src.application.services.portfolio.fx_conversion_service import FxConversionService
@@ -107,6 +109,7 @@ class ServiceSet:
     asset_price_refresh_service: AssetPriceRefreshService  # varlık son fiyat ve geçmiş yenileme
     fx_rate_service: FxRateService  # kur okuma ve yenileme
     unified_portfolio_service: UnifiedPortfolioService  # BIST + varlık defteri birleşik TRY özeti
+    unified_optimization_service: UnifiedOptimizationService  # Tüm Varlıklar optimizasyonu (TL fiyat matrisi)
     pooled_cash_repo: PooledCashMovementRepository  # TL nakit görünümü (gerçek hareketler + havuz çıkış/girişleri)
     cash_pool_service: CashPoolService  # ortak nakit havuzu bakiyeleri (TL ve USD)
     fx_conversion_service: FxConversionService  # TL <-> USD döviz al/sat
@@ -225,6 +228,10 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         ),
         fx_rate_service=fx_rate_service,
         unified_portfolio_service=unified_portfolio_service,
+        unified_optimization_service=UnifiedOptimizationService(
+            unified_portfolio_service, feature_services["optimization_service"],
+            repositories.asset_repo, repositories.asset_price_repo, repositories.fx_rate_repo,
+        ),
         fx_conversion_service=fx_conversion_service,
         position_query_service=PositionQueryService(
             bist_reader=bist_holdings_reader,
@@ -384,6 +391,21 @@ def _watchlist_stock_ids(watchlist_repo) -> set:
     }
 
 
+def _unified_series_builder(repositories) -> UnifiedSeriesBuilder:
+    """Birleşik analiz serisi: GERÇEK nakit hareketleri (havuz görünümü değil) ve varlık/döviz defterleri."""
+    return UnifiedSeriesBuilder(UnifiedSeriesDeps(
+        portfolio_repo=repositories.portfolio_repo,
+        price_repo=repositories.price_repo,
+        stock_repo=repositories.stock_repo,
+        cash_repo=repositories.cash_movement_repo,
+        asset_repo=repositories.asset_repo,
+        asset_trade_repo=repositories.asset_trade_repo,
+        asset_price_repo=repositories.asset_price_repo,
+        fx_rate_repo=repositories.fx_rate_repo,
+        fx_conversion_repo=repositories.fx_conversion_repo,
+    ))
+
+
 def _build_market_services(repositories, market_clients, price_data_health_service, model_portfolio_service, cash_movement_repo) -> dict:
     from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
     return {
@@ -404,6 +426,7 @@ def _build_market_services(repositories, market_clients, price_data_health_servi
             evds_client=market_clients.evds_client,
             cash_movement_repo=cash_movement_repo,
             model_portfolio_service=model_portfolio_service,
+            unified_builder=_unified_series_builder(repositories),
         ),
         "backfill_service": BackfillService(
             stock_repo=repositories.stock_repo,

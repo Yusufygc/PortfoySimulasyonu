@@ -177,7 +177,7 @@ Item {
             Text {
                 visible: root.statusText !== ""
                 text: root.statusText
-                color: root.statusIsError ? Theme.bearRed : Theme.bullGreen
+                color: root.statusIsError ? Theme.textNegative : Theme.textPositive
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm
                 wrapMode: Text.WordWrap
@@ -216,7 +216,7 @@ Item {
                             Text { text: modelData.label; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; elide: Text.ElideRight; Layout.fillWidth: true }
                             Text {
                                 text: modelData.value
-                                color: modelData.tint === "up" ? Theme.bullGreen : (modelData.tint === "down" ? Theme.bearRed : Theme.textPrimary)
+                                color: modelData.tint === "up" ? Theme.textPositive : (modelData.tint === "down" ? Theme.textNegative : Theme.textPrimary)
                                 font.family: Theme.fontMono
                                 font.pixelSize: Theme.fontLg
                                 font.weight: Font.Bold
@@ -365,7 +365,7 @@ Item {
                                 Text { text: modelData.dateText; color: Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm }
                                 Text {
                                     text: modelData.actionText
-                                    color: modelData.action === "STOP_LOSS" ? Theme.bearRed : (modelData.action === "TAKE_PROFIT" ? Theme.bullGreen : (modelData.action === "FALLBACK" ? Theme.warning : Theme.accent))
+                                    color: modelData.action === "STOP_LOSS" ? Theme.textNegative : (modelData.action === "TAKE_PROFIT" ? Theme.textPositive : (modelData.action === "FALLBACK" ? Theme.textWarning : Theme.textAccent))
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.DemiBold

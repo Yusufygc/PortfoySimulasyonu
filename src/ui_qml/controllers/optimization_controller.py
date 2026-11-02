@@ -64,6 +64,7 @@ class OptimizationController(QObject):
         self._portfolio_service = getattr(container, "portfolio_service", None)
         self._model_portfolio_service = getattr(container, "model_portfolio_service", None)
         self._lookup = getattr(container, "stock_lookup_service", None)
+        self._unified_service = getattr(container, "unified_optimization_service", None)
         self._risk_profile_service = getattr(container, "risk_profile_service", None)
 
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="OptWorker")
@@ -223,6 +224,8 @@ class OptimizationController(QObject):
     def refreshPortfolios(self) -> None:
         """Kullanılabilir portföyleri (Ana Portföy + Model Portföyler) yükler."""
         options = [{"code": "dashboard", "label": msg("optimization.ana_portfoy_canli")}]
+        if self._unified_service is not None:
+            options.append({"code": "unified", "label": msg("optimization.tum_varliklar_canli")})
         if self._model_portfolio_service:
             try:
                 models = self._model_portfolio_service.get_all_portfolios()
@@ -316,7 +319,7 @@ class OptimizationController(QObject):
     ) -> None:
         try:
             services = OptimizationServices(
-                self._opt_service, self._portfolio_service, self._model_portfolio_service, self._lookup
+                self._opt_service, self._portfolio_service, self._model_portfolio_service, self._lookup, self._unified_service
             )
             payload = compute_optimization(services, portfolio_code, max_single_weight, risk_free_rate)
             self._calcFinished.emit(payload)

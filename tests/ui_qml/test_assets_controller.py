@@ -279,6 +279,7 @@ class TestRecordTrade:
             ((1, "BUY", "1", "-5", "", "", ""), "Fiyat"),
             ((1, "BUY", "1", "1", "31/12/2026", "", ""), "Tarih"),
             ((1, "BUY", "1", "1", "05.01.2026", "99:99", ""), "Saat"),
+            ((1, "BUY", "1", "1", "31.12.2099", "10:30", ""), "Gelecek tarihli"),
             ((1, "BUY", "1", "1", "05.01.2026", "10:30", "0"), "Kur"),
         ],
     )
@@ -304,7 +305,7 @@ class TestRecordTrade:
 class TestSuggestAndRemove:
     def test_suggest_foreign_asset(self, parts):
         suggestion = parts[3].suggest(1)
-        assert {k: v for k, v in suggestion.items() if k != "cash"} == {"currency": "USD", "isTry": False, "price": "65000", "fxRate": "40.0000"}
+        assert {k: v for k, v in suggestion.items() if k != "cash"} == {"currency": "USD", "isTry": False, "price": "65000", "fxRate": "40"}
 
     def test_suggest_converts_ounce_quote_for_gram_asset(self, parts):
         suggestion = parts[3].suggest(2)

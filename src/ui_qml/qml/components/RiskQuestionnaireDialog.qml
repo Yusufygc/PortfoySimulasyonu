@@ -139,7 +139,7 @@ Rectangle {
                             Column {
                                 spacing: 2
                                 Text { text: Strings.riskProfileLabel; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; font.weight: Font.Bold }
-                                Text { text: root.profile.labelText; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontLg; font.weight: Font.Bold }
+                                Text { text: root.profile.labelText; color: Theme.textAccent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontLg; font.weight: Font.Bold }
                             }
                         }
                     }
@@ -205,7 +205,7 @@ Rectangle {
                     Text {
                         visible: root.profile.notes && root.profile.notes.length > 0
                         text: root.profile.notes ? root.profile.notes.join("\n") : ""
-                        color: Theme.warning
+                        color: Theme.textWarning
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
                         wrapMode: Text.WordWrap
@@ -225,7 +225,7 @@ Rectangle {
                     text: root.sections.length > 0
                           ? Strings.riskStepTmpl.replace("%1", root.step + 1).replace("%2", root.sections.length) + " — " + root.sections[root.step].title
                           : Strings.riskNoQuestionnaire
-                    color: Theme.accent
+                    color: Theme.textAccent
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                     font.weight: Font.DemiBold
@@ -328,7 +328,7 @@ Rectangle {
             Text {
                 visible: root.statusText !== ""
                 text: root.statusText
-                color: root.statusIsError ? Theme.bearRed : Theme.bullGreen
+                color: root.statusIsError ? Theme.textNegative : Theme.textPositive
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm
                 wrapMode: Text.WordWrap

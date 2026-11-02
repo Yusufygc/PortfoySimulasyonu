@@ -13,7 +13,7 @@ ModernCard {
     signal tradeRequested(string ticker)
     // BIST dışı varlık satırından işlem / kaldırma isteği
     signal assetTradeRequested(int assetId)
-    signal assetRemoveRequested(int assetId)
+    signal assetRemoveRequested(int assetId, string symbol)
 
     readonly property var tabKeys: ["ALL", "BIST_STOCK", "US_STOCK", "CRYPTO", "PRECIOUS_METAL"]
 
@@ -92,7 +92,7 @@ ModernCard {
             id: tableFlick
             Layout.fillWidth: true
             implicitHeight: tableInner.implicitHeight + 10
-            contentWidth: Math.max(width, 1250)
+            contentWidth: Math.max(width, 1130)
             contentHeight: tableInner.implicitHeight
             clip: true
             boundsBehavior: Flickable.StopAtBounds
@@ -119,15 +119,15 @@ ModernCard {
                         Repeater {
                             model: [
                                 { text: Strings.thSymbolCompany, width: 0, align: Text.AlignLeft },
-                                { text: Strings.thQuantity, width: 90, align: Text.AlignRight },
-                                { text: Strings.thAvgCost, width: 100, align: Text.AlignRight },
-                                { text: Strings.thLastPrice, width: 100, align: Text.AlignRight },
-                                { text: Strings.thDailyChange, width: 75, align: Text.AlignRight },
-                                { text: Strings.thMarketValue, width: 125, align: Text.AlignRight },
-                                { text: Strings.thPL, width: 120, align: Text.AlignRight },
-                                { text: Strings.thPLPct, width: 80, align: Text.AlignRight },
-                                { text: Strings.thWeight, width: 65, align: Text.AlignRight },
-                                { text: Strings.thActions, width: 195, align: Text.AlignRight }
+                                { text: Strings.thQuantity, width: 80, align: Text.AlignRight },
+                                { text: Strings.thAvgCost, width: 95, align: Text.AlignRight },
+                                { text: Strings.thLastPrice, width: 95, align: Text.AlignRight },
+                                { text: Strings.thDailyChange, width: 70, align: Text.AlignRight },
+                                { text: Strings.thMarketValue, width: 115, align: Text.AlignRight },
+                                { text: Strings.thPL, width: 110, align: Text.AlignRight },
+                                { text: Strings.thPLPct, width: 75, align: Text.AlignRight },
+                                { text: Strings.thWeight, width: 60, align: Text.AlignRight },
+                                { text: Strings.thActions, width: 185, align: Text.AlignRight }
                             ]
 
                             Text {
@@ -138,7 +138,7 @@ ModernCard {
                                 font.weight: Font.Bold
                                 horizontalAlignment: modelData.align
                                 Layout.fillWidth: modelData.width === 0
-                                Layout.minimumWidth: modelData.width === 0 ? 170 : modelData.width
+                                Layout.minimumWidth: modelData.width === 0 ? 150 : modelData.width
                                 Layout.preferredWidth: modelData.width === 0 ? -1 : modelData.width
                                 Layout.maximumWidth: modelData.width === 0 ? 100000 : modelData.width
                             }
@@ -196,7 +196,7 @@ ModernCard {
                             // Sembol ve ad (+ Tümü sekmesinde sınıf)
                             Column {
                                 Layout.fillWidth: true
-                                Layout.minimumWidth: 170
+                                Layout.minimumWidth: 150
                                 spacing: 2
                                 Text {
                                     text: model.symbol
@@ -222,9 +222,9 @@ ModernCard {
                                 font.family: Theme.monoFontFamily
                                 font.pixelSize: Theme.fontSm
                                 color: Theme.textSecondary
-                                Layout.preferredWidth: 90
-                                Layout.minimumWidth: 90
-                                Layout.maximumWidth: 90
+                                Layout.preferredWidth: 80
+                                Layout.minimumWidth: 80
+                                Layout.maximumWidth: 80
                                 horizontalAlignment: Text.AlignRight
                             }
 
@@ -233,9 +233,9 @@ ModernCard {
                                 font.family: Theme.monoFontFamily
                                 font.pixelSize: Theme.fontSm
                                 color: Theme.textSecondary
-                                Layout.preferredWidth: 100
-                                Layout.minimumWidth: 100
-                                Layout.maximumWidth: 100
+                                Layout.preferredWidth: 95
+                                Layout.minimumWidth: 95
+                                Layout.maximumWidth: 95
                                 horizontalAlignment: Text.AlignRight
                             }
 
@@ -245,9 +245,9 @@ ModernCard {
                                 font.pixelSize: Theme.fontSm
                                 font.weight: Font.Bold
                                 color: Theme.textPrimary
-                                Layout.preferredWidth: 100
-                                Layout.minimumWidth: 100
-                                Layout.maximumWidth: 100
+                                Layout.preferredWidth: 95
+                                Layout.minimumWidth: 95
+                                Layout.maximumWidth: 95
                                 horizontalAlignment: Text.AlignRight
                             }
 
@@ -256,18 +256,18 @@ ModernCard {
                                 font.family: Theme.monoFontFamily
                                 font.pixelSize: Theme.fontSm
                                 font.weight: Font.DemiBold
-                                color: model.dailyChange === "-" ? Theme.textMuted : (model.isDailyUp ? Theme.bullGreen : Theme.bearRed)
-                                Layout.preferredWidth: 75
-                                Layout.minimumWidth: 75
-                                Layout.maximumWidth: 75
+                                color: model.dailyChange === "-" ? Theme.textMuted : (model.isDailyUp ? Theme.textPositive : Theme.textNegative)
+                                Layout.preferredWidth: 70
+                                Layout.minimumWidth: 70
+                                Layout.maximumWidth: 70
                                 horizontalAlignment: Text.AlignRight
                             }
 
                             // Değer: değerlenemeyen pozisyon maliyet bedeliyle gösterilir ve işaretlenir
                             Column {
-                                Layout.preferredWidth: 125
-                                Layout.minimumWidth: 125
-                                Layout.maximumWidth: 125
+                                Layout.preferredWidth: 115
+                                Layout.minimumWidth: 115
+                                Layout.maximumWidth: 115
                                 spacing: 0
                                 Text {
                                     anchors.right: parent.right
@@ -283,7 +283,7 @@ ModernCard {
                                     text: Strings.holdingUnpriced
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontXs
-                                    color: Theme.warning
+                                    color: Theme.textWarning
                                 }
                             }
 
@@ -292,10 +292,10 @@ ModernCard {
                                 font.family: Theme.monoFontFamily
                                 font.pixelSize: Theme.fontSm
                                 font.weight: Font.Bold
-                                color: model.isUp ? Theme.bullGreen : Theme.bearRed
-                                Layout.preferredWidth: 120
-                                Layout.minimumWidth: 120
-                                Layout.maximumWidth: 120
+                                color: model.isUp ? Theme.textPositive : Theme.textNegative
+                                Layout.preferredWidth: 110
+                                Layout.minimumWidth: 110
+                                Layout.maximumWidth: 110
                                 horizontalAlignment: Text.AlignRight
                             }
 
@@ -304,10 +304,10 @@ ModernCard {
                                 font.family: Theme.monoFontFamily
                                 font.pixelSize: Theme.fontSm
                                 font.weight: Font.Bold
-                                color: model.plPct === "-" ? Theme.textMuted : (model.isUp ? Theme.bullGreen : Theme.bearRed)
-                                Layout.preferredWidth: 80
-                                Layout.minimumWidth: 80
-                                Layout.maximumWidth: 80
+                                color: model.plPct === "-" ? Theme.textMuted : (model.isUp ? Theme.textPositive : Theme.textNegative)
+                                Layout.preferredWidth: 75
+                                Layout.minimumWidth: 75
+                                Layout.maximumWidth: 75
                                 horizontalAlignment: Text.AlignRight
                             }
 
@@ -316,17 +316,17 @@ ModernCard {
                                 font.family: Theme.monoFontFamily
                                 font.pixelSize: Theme.fontSm
                                 color: Theme.textSecondary
-                                Layout.preferredWidth: 65
-                                Layout.minimumWidth: 65
-                                Layout.maximumWidth: 65
+                                Layout.preferredWidth: 60
+                                Layout.minimumWidth: 60
+                                Layout.maximumWidth: 60
                                 horizontalAlignment: Text.AlignRight
                             }
 
                             // Eylemler: BIST satırı Grafik / Detay / İşlem; BIST dışı satır İşlem / Kaldır
                             RowLayout {
-                                Layout.preferredWidth: 195
-                                Layout.minimumWidth: 195
-                                Layout.maximumWidth: 195
+                                Layout.preferredWidth: 185
+                                Layout.minimumWidth: 185
+                                Layout.maximumWidth: 185
                                 spacing: 4
                                 Layout.alignment: Qt.AlignRight
 
@@ -360,7 +360,7 @@ ModernCard {
                                     variant: "ghost"
                                     implicitHeight: 26
                                     implicitWidth: 70
-                                    onClicked: root.assetRemoveRequested(model.refId)
+                                    onClicked: root.assetRemoveRequested(model.refId, model.symbol)
                                 }
 
                                 ModernButton {

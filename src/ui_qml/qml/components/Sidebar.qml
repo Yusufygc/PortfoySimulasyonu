@@ -142,7 +142,7 @@ Rectangle {
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontBase
                         font.weight: navItem.isActive ? Font.Bold : Font.Normal
-                        color: navItem.isActive ? Theme.accent : (navItem.isHovered ? Theme.textPrimary : Theme.textSecondary)
+                        color: navItem.isActive ? Theme.textAccent : (navItem.isHovered ? Theme.textPrimary : Theme.textSecondary)
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                         Layout.alignment: Qt.AlignVCenter

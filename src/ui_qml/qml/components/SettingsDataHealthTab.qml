@@ -48,7 +48,7 @@ ColumnLayout {
                     }
                     Text {
                         text: (typeof settingsController !== "undefined") ? settingsController.sqliteDbSize : "0 B"
-                        color: Theme.bullGreen
+                        color: Theme.textPositive
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXs
                         font.weight: Font.Bold
@@ -208,7 +208,7 @@ ColumnLayout {
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: Strings.settingsDbLastSync; color: Theme.textSecondary; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
-                        Text { text: (typeof settingsController !== "undefined") ? settingsController.duckDbLastDate : "-"; color: Theme.bullGreen; font.weight: Font.Bold; font.pixelSize: Theme.fontXs }
+                        Text { text: (typeof settingsController !== "undefined") ? settingsController.duckDbLastDate : "-"; color: Theme.textPositive; font.weight: Font.Bold; font.pixelSize: Theme.fontXs }
                     }
 
                     RowLayout {
@@ -269,7 +269,7 @@ ColumnLayout {
     Text {
         visible: (typeof settingsController !== "undefined") && settingsController.integrityCheckResult.length > 0
         text: (typeof settingsController !== "undefined") ? settingsController.integrityCheckResult : ""
-        color: Theme.bullGreen
+        color: Theme.textPositive
         font.family: Theme.fontFamily
         font.pixelSize: Theme.fontXs
         font.weight: Font.Medium

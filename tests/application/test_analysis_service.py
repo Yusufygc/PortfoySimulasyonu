@@ -612,6 +612,6 @@ def test_stale_model_source_is_normalized_without_duplicate_comparison(analysis_
     comparison = analysis_service.get_comparison_view(filter_state)
     overview = analysis_service.get_overview(filter_state)
 
-    assert comparison.current_portfolio_label == "Ana Portfoy"
+    assert comparison.current_portfolio_label == "Ana Portföy"
     assert comparison.comparison_portfolios == []
-    assert overview.portfolio_label == "Ana Portfoy"
+    assert overview.portfolio_label == "Ana Portföy"

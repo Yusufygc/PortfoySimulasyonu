@@ -377,7 +377,7 @@ ModernCard {
                         Text {
                             text: Strings.tabRevenue + ":"
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                         Item { Layout.fillWidth: true }
@@ -386,9 +386,9 @@ ModernCard {
                                   ? ("" + (tooltip.activeItem.revenueStr || tooltip.activeItem.revenue_str))
                                   : "—"
                             font.family: Theme.fontMono
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             font.weight: Font.DemiBold
-                            color: Theme.accent
+                            color: Theme.textAccent
                         }
                     }
 
@@ -397,7 +397,7 @@ ModernCard {
                         Text {
                             text: Strings.tabNetIncome + ":"
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                         Item { Layout.fillWidth: true }
@@ -406,9 +406,9 @@ ModernCard {
                                   ? ("" + (tooltip.activeItem.netIncomeStr || tooltip.activeItem.net_income_str))
                                   : "—"
                             font.family: Theme.fontMono
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             font.weight: Font.DemiBold
-                            color: Theme.bullGreen
+                            color: Theme.textPositive
                         }
                     }
 
@@ -417,7 +417,7 @@ ModernCard {
                         Text {
                             text: Strings.labelNetMargin + ":"
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                         Item { Layout.fillWidth: true }
@@ -426,7 +426,7 @@ ModernCard {
                                   ? ("" + (tooltip.activeItem.marginStr || tooltip.activeItem.margin_str))
                                   : "—"
                             font.family: Theme.fontMono
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             font.weight: Font.Bold
                             color: "#f59e0b"
                         }
@@ -465,7 +465,7 @@ ModernCard {
                         Text {
                             text: Strings.revLastQuarterSales
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                         Text {
@@ -504,7 +504,7 @@ ModernCard {
                         Text {
                             text: Strings.revSalesGrowthYoY
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                         Text {
@@ -512,7 +512,7 @@ ModernCard {
                             font.family: Theme.fontMono
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.Bold
-                            color: (root.ctrl && root.ctrl.isRevenueYoYPositive) ? Theme.bullGreen : Theme.bearRed
+                            color: (root.ctrl && root.ctrl.isRevenueYoYPositive) ? Theme.textPositive : Theme.textNegative
                         }
                     }
                 }
@@ -543,7 +543,7 @@ ModernCard {
                         Text {
                             text: Strings.revLastQuarterNetIncome
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                         Text {
@@ -582,7 +582,7 @@ ModernCard {
                         Text {
                             text: Strings.revNetIncomeMargin
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                         Text {

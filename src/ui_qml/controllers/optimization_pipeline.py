@@ -31,6 +31,7 @@ class OptimizationServices:
     portfolio_service: Any
     model_portfolio_service: Any
     lookup: Any
+    unified: Any = None   # UnifiedOptimizationService (Tüm Varlıklar kaynağı)
 
 
 def clean_ticker(raw: str) -> str:
@@ -57,6 +58,35 @@ def _load_model(services: OptimizationServices, portfolio_code: str, policy: Opt
         raise OptimizationInputError(msg("optimization_input.optimizasyon_icin_model_portfoyde_en_az"))
     total_val = sum(qty * 100.0 for qty in positions.values())  # Yaklaşık baz değer
     return positions, total_val, services.opt_service.optimize_model_portfolio(pid, policy=policy)
+
+
+def _compute_unified(services: OptimizationServices, policy: OptimizationPolicy, max_single_weight: float, risk_free_rate: float) -> Dict[str, Optional[Any]]:
+    """Tüm Varlıklar: BIST + BIST dışı varlıklar, TL cinsinden; BIST dışı varlıkta kesirli miktar planı."""
+    if services.unified is None:
+        raise OptimizationInputError(msg("optimization_input.birlesik_optimizasyon_hazir_degil"))
+    try:
+        universe = services.unified.load_universe()
+        opt_result = services.unified.optimize(universe, policy)
+    except ValueError as exc:
+        raise OptimizationInputError(str(exc)) from exc
+    mean_returns, cov_matrix = _build_return_model(universe.price_df, trading_days_per_year=_TRADING_DAYS)
+    names_map = {symbol: universe.names.get(symbol, symbol) for symbol in universe.symbols}
+    plan = calculate_rebalance_plan(
+        total_portfolio_value=sum(universe.values_try.values()),
+        current_weights={s.symbol: s.current_weight for s in opt_result.suggestions},
+        optimal_weights={s.symbol: s.optimal_weight for s in opt_result.suggestions},
+        last_prices=universe.last_prices_try,
+        stock_names=names_map,
+        fractional=universe.fractional,
+    )
+    return {
+        "opt_result": opt_result,
+        "mc_points": simulate_monte_carlo(mean_returns.values, cov_matrix.values, risk_free_rate=risk_free_rate, num_simulations=1000),
+        "frontier_curve": calculate_efficient_frontier_curve(
+            mean_returns.values, cov_matrix.values, max_single_weight=max_single_weight, points_count=20),
+        "rebalance_plan": plan,
+        "min_vol_metrics": opt_result.min_volatility_metrics or opt_result.optimized_metrics,
+    }
 
 
 def build_names_map(stock_map: Dict[int, Any], stock_ids: List[int]) -> Dict[str, str]:
@@ -117,6 +147,9 @@ def compute_optimization(
         risk_free_rate=risk_free_rate,
         max_single_weight=max_single_weight,
     )
+
+    if portfolio_code == "unified":
+        return _compute_unified(services, policy, max_single_weight, risk_free_rate)
 
     # 1. Hisseleri ve Pozisyonları Çek
     if portfolio_code == "dashboard":

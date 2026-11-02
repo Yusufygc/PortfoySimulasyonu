@@ -6,7 +6,7 @@ ModernCard {
     id: root
 
     implicitWidth: 340
-    implicitHeight: 460
+    implicitHeight: contentColumn.implicitHeight + Theme.spaceMd * 2
 
     // Dilimler: [{ classKey, pct (0-1), color, amount }]; MyPortfolioController.allocationSlices ile beslenir
     property var slices: []
@@ -29,6 +29,7 @@ ModernCard {
     }
 
     ColumnLayout {
+        id: contentColumn
         anchors.fill: parent
         anchors.margins: Theme.spaceMd
         spacing: Theme.spaceMd
@@ -164,51 +165,6 @@ ModernCard {
                         color: Theme.textMuted
                         Layout.preferredWidth: 100
                         horizontalAlignment: Text.AlignRight
-                    }
-                }
-            }
-        }
-
-        Item { Layout.fillHeight: true }
-
-        // AI Analiz Kutusu
-        Rectangle {
-            Layout.fillWidth: true
-            implicitHeight: 64
-            radius: Theme.radiusSm
-            color: Theme.bgInput
-            border.color: Theme.borderSubtle
-            border.width: 1
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 10
-                spacing: 10
-
-                ModernIcon {
-                    name: "target"
-                    size: 18
-                    color: Theme.bullGreen
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                Column {
-                    Layout.fillWidth: true
-                    spacing: 2
-                    Text {
-                        text: Strings.portfolioBalanceStatus
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontXs
-                        font.weight: Font.Bold
-                        color: Theme.bullGreen
-                    }
-                    Text {
-                        text: Strings.portfolioBalanceGood
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.fontXs
-                        color: Theme.textSecondary
-                        wrapMode: Text.WordWrap
-                        width: 220
                     }
                 }
             }

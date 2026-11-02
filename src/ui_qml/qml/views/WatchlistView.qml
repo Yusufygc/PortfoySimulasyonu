@@ -228,7 +228,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: modelData.count
                                             font.family: Theme.monoFontFamily
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.weight: Font.Bold
                                             color: wlRow.isSelected ? "#ffffff" : Theme.textMuted
                                         }
@@ -484,7 +484,7 @@ Item {
                                         font.family: Theme.monoFontFamily
                                         font.pixelSize: Theme.fontSm
                                         font.weight: Font.DemiBold
-                                        color: model.isUp ? Theme.bullGreen : Theme.bearRed
+                                        color: model.isUp ? Theme.textPositive : Theme.textNegative
                                         Layout.preferredWidth: stocksFlick.colChange
                                         Layout.minimumWidth: stocksFlick.colChange
                                         Layout.maximumWidth: stocksFlick.colChange

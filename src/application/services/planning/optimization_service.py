@@ -286,11 +286,14 @@ class OptimizationService:
         tickers: List[str],
         current_weights: np.ndarray,
         policy: Optional[OptimizationPolicy] = None,
+        price_df: Optional[pd.DataFrame] = None,
     ) -> OptimizationResult:
         """policy verilirse (bkz. RiskOptimizationBridgeService, §5.3) yalnızca bu çağrı için
-        geçerlidir — DI singleton'ın varsayılan politikası (`self._policy`) değişmez."""
+        geçerlidir — DI singleton'ın varsayılan politikası (`self._policy`) değişmez.
+        `price_df` verilirse (birleşik portföy: TL cinsinden BIST + varlık matrisi) piyasa verisi sağlayıcısına gidilmez."""
         effective_policy = policy or self._policy
-        price_df = self._get_historical_prices(tickers, days=504)
+        if price_df is None:
+            price_df = self._get_historical_prices(tickers, days=504)
         valid_tickers, invalid_tickers = _split_tickers_by_price_history(price_df, tickers)
         _ensure_optimizable_history(price_df, valid_tickers, invalid_tickers)
 

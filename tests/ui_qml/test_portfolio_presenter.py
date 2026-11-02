@@ -52,10 +52,10 @@ class TestFormatting:
     @pytest.mark.parametrize(
         "amount,currency,expected",
         [
-            (D("1234.5"), "TRY", "₺1,234.50"),
-            (D("-13780.404"), "try", "₺-13,780.40"),
-            (D("1234.5"), "USD", "$1,234.50"),
-            (D("10"), "GBP", "10.00 GBP"),
+            (D("1234.5"), "TRY", "₺1.234,50"),
+            (D("-13780.404"), "try", "-₺13.780,40"),
+            (D("1234.5"), "USD", "$1.234,50"),
+            (D("10"), "GBP", "10,00 GBP"),
         ],
     )
     def test_format_money(self, amount, currency, expected):
@@ -64,9 +64,9 @@ class TestFormatting:
     @pytest.mark.parametrize(
         "amount,currency,expected",
         [
-            (D("65432.1"), "USD", "$65,432.10"),
-            (D("0.5"), "USD", "$0.5000"),
-            (D("0.00001234"), "USD", "$0.00001234"),
+            (D("65432.1"), "USD", "$65.432,10"),
+            (D("0.5"), "USD", "$0,5000"),
+            (D("0.00001234"), "USD", "$0,00001234"),
             (None, "USD", "-"),
         ],
     )
@@ -75,12 +75,12 @@ class TestFormatting:
 
     @pytest.mark.parametrize(
         "quantity,expected",
-        [(D("1250"), "1,250"), (D("0.5"), "0.5"), (D("0.12345678"), "0.12345678"), (D("3.10"), "3.1"), (D("0"), "0")],
+        [(D("1250"), "1.250"), (D("0.5"), "0,5"), (D("0.12345678"), "0,12345678"), (D("3.10"), "3,1"), (D("0"), "0")],
     )
     def test_format_quantity(self, quantity, expected):
         assert format_quantity(quantity) == expected
 
-    @pytest.mark.parametrize("value,expected", [(D("2.151"), "+%2.15"), (D("-1.2"), "-%1.20"), (D("0"), "+%0.00"), (None, "-")])
+    @pytest.mark.parametrize("value,expected", [(D("2.151"), "+%2,15"), (D("-1.2"), "-%1,20"), (D("0"), "%0,00"), (None, "-")])
     def test_format_pct(self, value, expected):
         assert format_pct(value) == expected
 
@@ -92,19 +92,19 @@ class TestHoldingRow:
 
         row = holding_row(holding, summary)
 
-        assert row["value"] == "$100.00" and row["pl"] == "$25.00"
-        assert row["price"] == "$50.00" and row["avgCost"] == "$37.50"   # 75 USD maliyet / 2
-        assert (row["plPct"], row["dailyChange"], row["isDailyUp"], row["isUp"]) == ("+%33.33", "+%2.50", True, True)
+        assert row["value"] == "$100,00" and row["pl"] == "$25,00"
+        assert row["price"] == "$50,00" and row["avgCost"] == "$37,50"   # 75 USD maliyet / 2
+        assert (row["plPct"], row["dailyChange"], row["isDailyUp"], row["isUp"]) == ("+%33,33", "+%2,50", True, True)
         assert row["classKey"] == "CRYPTO" and not row["isBist"] and row["refId"] == 7
-        assert row["weight"] == "%10.0"
+        assert row["weight"] == "%10,0"
 
     def test_bist_row_and_loss(self):
         holding = make_holding("THYAO", AllocationClass.BIST_STOCK, value="900", cost="1000", currency="TRY", daily="-1")
 
         row = holding_row(holding, make_summary([holding]))
 
-        assert row["isBist"] and row["value"] == "₺900.00" and row["pl"] == "₺-100.00"
-        assert (row["isUp"], row["isDailyUp"], row["plPct"]) == (False, False, "-%10.00")
+        assert row["isBist"] and row["value"] == "₺900,00" and row["pl"] == "-₺100,00"
+        assert (row["isUp"], row["isDailyUp"], row["plPct"]) == (False, False, "-%10,00")
 
     def test_unknown_daily_change_and_unpriced_flag(self):
         holding = make_holding("X", AllocationClass.CRYPTO, "100", "100", daily=None, priced=False, ref_id=None)
@@ -130,7 +130,7 @@ class TestSlicesAndTabs:
 
         result = slice_dict(item, summary)
 
-        assert result == {"classKey": "CRYPTO", "pct": 0.4, "color": CLASS_COLORS[AllocationClass.CRYPTO], "amount": "$100.00", "count": 2}
+        assert result == {"classKey": "CRYPTO", "pct": 0.4, "color": CLASS_COLORS[AllocationClass.CRYPTO], "amount": "$100,00", "count": 2}
 
     def test_every_class_has_a_color(self):
         assert set(CLASS_COLORS) == set(AllocationClass)

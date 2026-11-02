@@ -65,9 +65,9 @@ ModernCard {
                     anchors.centerIn: parent
                     text: root.cfData.debtStatus || root.cfData.leverage_status || Strings.financialDebtBalanced
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     font.weight: Font.DemiBold
-                    color: Theme.accent
+                    color: Theme.textAccent
                 }
             }
         }
@@ -101,7 +101,7 @@ ModernCard {
                     Text {
                         text: Strings.labelOperatingCashFlow
                         font.family: Theme.fontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: 11
                         color: Theme.textMuted
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -110,13 +110,13 @@ ModernCard {
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontMd
                         font.weight: Font.Bold
-                        color: Theme.bullGreen
+                        color: Theme.textPositive
                         Layout.alignment: Qt.AlignHCenter
                     }
                     Text {
                         text: Strings.cfOperatingInflow
                         font.family: Theme.fontFamily
-                        font.pixelSize: 9
+                        font.pixelSize: 10
                         color: Theme.textMuted
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -139,7 +139,7 @@ ModernCard {
                     Text {
                         text: Strings.labelCapex
                         font.family: Theme.fontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: 11
                         color: Theme.textMuted
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -154,7 +154,7 @@ ModernCard {
                     Text {
                         text: Strings.cfCapacityCapex
                         font.family: Theme.fontFamily
-                        font.pixelSize: 9
+                        font.pixelSize: 10
                         color: Theme.textMuted
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -177,7 +177,7 @@ ModernCard {
                     Text {
                         text: Strings.labelFreeCashFlow
                         font.family: Theme.fontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: 11
                         color: Theme.textMuted
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -186,13 +186,13 @@ ModernCard {
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontMd
                         font.weight: Font.Bold
-                        color: Theme.bullGreen
+                        color: Theme.textPositive
                         Layout.alignment: Qt.AlignHCenter
                     }
                     Text {
                         text: Strings.cfFreeCashToEquity
                         font.family: Theme.fontFamily
-                        font.pixelSize: 9
+                        font.pixelSize: 10
                         color: Theme.textMuted
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -215,7 +215,7 @@ ModernCard {
                     Text {
                         text: Strings.labelNetDebtToEbitda
                         font.family: Theme.fontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: 11
                         color: Theme.textMuted
                         Layout.alignment: Qt.AlignHCenter
                     }
@@ -230,7 +230,7 @@ ModernCard {
                     Text {
                         text: Strings.cfNetDebtPrefix + (root.cfData.netDebt || root.cfData.net_debt || "—")
                         font.family: Theme.fontFamily
-                        font.pixelSize: 9
+                        font.pixelSize: 10
                         color: Theme.textMuted
                         Layout.alignment: Qt.AlignHCenter
                     }

@@ -313,7 +313,7 @@ Item {
                         }
                         Text {
                             text: planningController.dcaFinalValue
-                            color: Theme.bullGreen
+                            color: Theme.textPositive
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontLg
                             font.weight: Font.Bold
@@ -360,7 +360,7 @@ Item {
                         }
                         Text {
                             text: planningController.dcaReturnFormatted
-                            color: planningController.dcaReturnPct >= 0 ? Theme.bullGreen : Theme.bearRed
+                            color: planningController.dcaReturnPct >= 0 ? Theme.textPositive : Theme.textNegative
                             font.family: Theme.fontMono
                             font.pixelSize: Theme.fontLg
                             font.weight: Font.Bold
@@ -490,7 +490,7 @@ Item {
 
                                 Text {
                                     text: modelData.ticker
-                                    color: Theme.accent
+                                    color: Theme.textAccent
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontBase
                                     font.weight: Font.Bold

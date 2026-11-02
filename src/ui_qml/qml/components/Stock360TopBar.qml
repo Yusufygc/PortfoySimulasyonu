@@ -183,7 +183,7 @@ ModernCard {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: stockPill.isCurrent ? Font.Bold : Font.Normal
-                                color: stockPill.isCurrent ? Theme.accent : Theme.textSecondary
+                                color: stockPill.isCurrent ? Theme.textAccent : Theme.textSecondary
                             }
 
                             MouseArea {

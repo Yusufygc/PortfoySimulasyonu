@@ -60,7 +60,7 @@ ColumnLayout {
                     Text {
                         visible: row.source.isCustom
                         text: Strings.newsSetCustomBadge
-                        color: Theme.accent
+                        color: Theme.textAccent
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXs
                     }
@@ -79,7 +79,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     text: row.source.statusText
                     textFormat: Text.PlainText  // dış kaynaklı metin zengin metin olarak işlenmez
-                    color: row.source.hasError ? Theme.bearRed : Theme.textMuted
+                    color: row.source.hasError ? Theme.textNegative : Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     wrapMode: Text.WordWrap

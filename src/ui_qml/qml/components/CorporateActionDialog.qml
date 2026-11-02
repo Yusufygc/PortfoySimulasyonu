@@ -264,7 +264,7 @@ Rectangle {
                         Text {
                             visible: root.ctx.found && !root.preview.valid
                             text: Strings.caInsufficientLots
-                            color: Theme.warning
+                            color: Theme.textWarning
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             wrapMode: Text.WordWrap
@@ -285,7 +285,7 @@ Rectangle {
                 Text {
                     visible: root.statusText !== ""
                     text: root.statusText
-                    color: root.statusIsError ? Theme.bearRed : Theme.bullGreen
+                    color: root.statusIsError ? Theme.textNegative : Theme.textPositive
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                     wrapMode: Text.WordWrap

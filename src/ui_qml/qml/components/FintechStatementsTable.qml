@@ -221,7 +221,7 @@ ModernCard {
                             font.family: Theme.fontFamily
                             font.pixelSize: 11
                             font.weight: parent.isSel ? Font.Bold : Font.Normal
-                            color: parent.isSel ? Theme.accent : Theme.textSecondary
+                            color: parent.isSel ? Theme.textAccent : Theme.textSecondary
                         }
 
                         MouseArea {
@@ -389,7 +389,7 @@ ModernCard {
                                             font.family: Theme.fontFamily
                                             font.pixelSize: rowRect.isHdr ? 11 : Theme.fontXs
                                             font.weight: rowRect.isHdr ? Font.Bold : Font.Normal
-                                            color: rowRect.isHdr ? Theme.accent : Theme.textPrimary
+                                            color: rowRect.isHdr ? Theme.textAccent : Theme.textPrimary
                                             elide: Text.ElideRight
                                         }
                                     }
@@ -439,9 +439,9 @@ ModernCard {
                                             anchors.centerIn: parent
                                             text: (modelData && (modelData.yoyChange || modelData.yoy)) ? ("" + (modelData.yoyChange || modelData.yoy)) : ""
                                             font.family: Theme.fontMono
-                                            font.pixelSize: 10
+                                            font.pixelSize: 11
                                             font.weight: Font.Bold
-                                            color: rowRect.isPosYoy ? Theme.bullGreen : Theme.bearRed
+                                            color: rowRect.isPosYoy ? Theme.textPositive : Theme.textNegative
                                         }
                                     }
 

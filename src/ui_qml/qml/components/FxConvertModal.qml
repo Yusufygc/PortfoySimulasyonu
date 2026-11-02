@@ -258,7 +258,7 @@ Rectangle {
                             font.family: Theme.monoFontFamily
                             font.pixelSize: Theme.fontMd
                             font.weight: Font.Bold
-                            color: root.isBuy ? Theme.bearRed : Theme.bullGreen
+                            color: root.isBuy ? Theme.textNegative : Theme.textPositive
                         }
                     }
                 }

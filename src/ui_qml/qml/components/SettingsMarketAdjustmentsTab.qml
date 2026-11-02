@@ -192,7 +192,7 @@ ColumnLayout {
                         Text { text: modelData.confidenceText; color: Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 60 }
                         Text {
                             text: modelData.statusLabel
-                            color: modelData.isActive ? Theme.bullGreen : Theme.warning
+                            color: modelData.isActive ? Theme.textPositive : Theme.textWarning
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.DemiBold

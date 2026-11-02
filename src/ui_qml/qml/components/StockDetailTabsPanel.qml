@@ -134,8 +134,8 @@ Rectangle {
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData.side || "ALIM"
-                                color: modelData.isBuy ? Theme.bullGreen : Theme.bearRed
-                                font.pixelSize: 10
+                                color: modelData.isBuy ? Theme.textPositive : Theme.textNegative
+                                font.pixelSize: 11
                                 font.weight: Font.Bold
                             }
                         }
@@ -169,8 +169,8 @@ Rectangle {
                                 Text {
                                     anchors.centerIn: parent
                                     text: "B"
-                                    color: Theme.accent
-                                    font.pixelSize: 9
+                                    color: Theme.textAccent
+                                    font.pixelSize: 10
                                     font.weight: Font.Bold
                                 }
 
@@ -243,7 +243,7 @@ Rectangle {
 
                         Text { text: modelData.date || ""; color: Theme.textSecondary; font.pixelSize: 11; Layout.preferredWidth: 100 }
                         Text { text: modelData.actionType || ""; color: Theme.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold; Layout.preferredWidth: 120 }
-                        Text { text: modelData.ratioStr || "%0.0"; color: Theme.bullGreen; font.pixelSize: 11; font.weight: Font.Bold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
+                        Text { text: modelData.ratioStr || "%0.0"; color: Theme.textPositive; font.pixelSize: 11; font.weight: Font.Bold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
                     }
                 }
 

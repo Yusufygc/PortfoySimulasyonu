@@ -148,7 +148,7 @@ ColumnLayout {
                         Text { text: modelData.actionType === "BEDELLI" ? Strings.caTypeBedelli : Strings.caTypeBedelsiz; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 80 }
                         Text {
                             text: Strings.candidateStatusLabel(modelData.status)
-                            color: modelData.canApply ? Theme.bullGreen : Theme.warning
+                            color: modelData.canApply ? Theme.textPositive : Theme.textWarning
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.DemiBold

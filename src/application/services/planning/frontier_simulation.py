@@ -136,8 +136,11 @@ def calculate_rebalance_plan(
     optimal_weights: Dict[str, float],
     last_prices: Optional[Dict[str, float]] = None,
     stock_names: Optional[Dict[str, str]] = None,
+    fractional: Optional[set] = None,
 ) -> List[Dict[str, Any]]:
-    """Mevcut ve optimum ağırlıklara göre parasal ve lot bazlı yeniden dengeleme planı oluşturur."""
+    """Mevcut ve optimum ağırlıklara göre parasal ve lot bazlı yeniden dengeleme planı oluşturur.
+
+    `fractional`: kesirli miktarla işlem gören semboller (BIST dışı varlıklar); tahmini miktar 4 ondalıkla verilir, diğerleri tam lottur."""
     all_symbols = sorted(set(list(current_weights.keys()) + list(optimal_weights.keys())))
     prices = last_prices or {}
     names = stock_names or {}
@@ -171,7 +174,8 @@ def calculate_rebalance_plan(
             est_shares = 0
             diff_amt = 0.0
         else:
-            est_shares = int(round(abs(diff_amt) / price))
+            raw_shares = abs(diff_amt) / price
+            est_shares = round(raw_shares, 4) if sym in (fractional or ()) else int(round(raw_shares))
 
         clean_sym = sym.replace(".IS", "").replace(".is", "").strip().upper()
         raw_name = names.get(sym) or names.get(clean_sym) or clean_sym

@@ -286,7 +286,7 @@ ColumnLayout {
                                 if (ch < 0) return "-%" + str
                                 return "%0,00"
                             }
-                            color: modelData.change > 0 ? Theme.bullGreen : (modelData.change < 0 ? Theme.bearRed : Theme.textMuted)
+                            color: modelData.change > 0 ? Theme.textPositive : (modelData.change < 0 ? Theme.textNegative : Theme.textMuted)
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.Bold
@@ -305,7 +305,7 @@ ColumnLayout {
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData.action
-                                color: modelData.action === "EKLE" ? Theme.bullGreen : (modelData.action === "AZALT" ? Theme.bearRed : Theme.textMuted)
+                                color: modelData.action === "EKLE" ? Theme.textPositive : (modelData.action === "AZALT" ? Theme.textNegative : Theme.textMuted)
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: Font.Bold
@@ -323,7 +323,7 @@ ColumnLayout {
                                 if (ad < 0) return "-" + str
                                 return "0,00 ₺"
                             }
-                            color: modelData.amountDiff > 0 ? Theme.bullGreen : (modelData.amountDiff < 0 ? Theme.bearRed : Theme.textMuted)
+                            color: modelData.amountDiff > 0 ? Theme.textPositive : (modelData.amountDiff < 0 ? Theme.textNegative : Theme.textMuted)
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.DemiBold

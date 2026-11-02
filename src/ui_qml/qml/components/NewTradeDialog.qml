@@ -427,7 +427,7 @@ Popup {
 
                 Text {
                     text: root.calculateTotal()
-                    color: root.side === "BUY" ? Theme.bullGreen : Theme.bearRed
+                    color: root.side === "BUY" ? Theme.textPositive : Theme.textNegative
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontMd
                     font.weight: Font.Bold

@@ -265,7 +265,7 @@ ColumnLayout {
         BusyIndicator { running: root.busy; implicitWidth: 22; implicitHeight: 22 }
         Text {
             text: root.hasController ? priceDataController.busyText : ""
-            color: Theme.accent
+            color: Theme.textAccent
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontSm
         }
@@ -341,10 +341,10 @@ ColumnLayout {
                             anchors.rightMargin: Theme.spaceSm
                             spacing: Theme.spaceSm
 
-                            Text { text: modelData.ticker; color: Theme.accent; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; font.weight: Font.Bold; Layout.preferredWidth: 80 }
+                            Text { text: modelData.ticker; color: Theme.textAccent; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; font.weight: Font.Bold; Layout.preferredWidth: 80 }
                             Text { text: modelData.lastDate; color: Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 90 }
-                            Text { text: modelData.missingCount; color: modelData.missingCount > 0 ? Theme.bearRed : Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 60 }
-                            Text { text: modelData.status; color: modelData.healthy ? Theme.bullGreen : Theme.bearRed; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { text: modelData.missingCount; color: modelData.missingCount > 0 ? Theme.textNegative : Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 60 }
+                            Text { text: modelData.status; color: modelData.healthy ? Theme.textPositive : Theme.textNegative; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true }
                             Text { text: modelData.firstMissing; color: Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 90 }
                             Text { text: modelData.lastMissing; color: Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 90 }
                         }

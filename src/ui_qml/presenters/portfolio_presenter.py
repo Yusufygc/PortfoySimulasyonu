@@ -4,6 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
+from src.ui_qml.presenters.formatting import tr_number, tr_pct
 from src.domain.models.unified_portfolio import (
     HUNDRED,
     AllocationClass,
@@ -29,11 +30,12 @@ TAB_KEYS = (TAB_ALL, "BIST_STOCK", "US_STOCK", "CRYPTO", "PRECIOUS_METAL")
 
 
 def format_money(amount: Decimal, currency: str = "TRY") -> str:
-    """`₺1,234.56` / `$1,234.56`; bilinmeyen para birimi kodu sonek olur. Negatifte `₺-1,234.56` (Ana Sayfa ile aynı)."""
+    """`₺1.234,56` / `$1.234,56`; bilinmeyen para birimi kodu sonek olur. Negatifte eksi simgeden önce: `-₺1.234,56`."""
     code = (currency or "TRY").upper()
     symbol = CURRENCY_SYMBOLS.get(code)
-    number = f"{amount:,.2f}"
-    return f"{symbol}{number}" if symbol else f"{number} {code}"
+    number = tr_number(abs(amount))
+    sign = "-" if amount < 0 and number.strip("0,.") else ""
+    return f"{sign}{symbol}{number}" if symbol else f"{sign}{number} {code}"
 
 
 def format_price(amount: Optional[Decimal], currency: str) -> str:
@@ -43,22 +45,21 @@ def format_price(amount: Optional[Decimal], currency: str) -> str:
     digits = 2 if abs(amount) >= 1 else (4 if abs(amount) >= Decimal("0.0001") else 8)
     code = (currency or "TRY").upper()
     symbol = CURRENCY_SYMBOLS.get(code)
-    number = f"{amount:,.{digits}f}"
+    number = tr_number(amount, digits)
     return f"{symbol}{number}" if symbol else f"{number} {code}"
 
 
 def format_quantity(quantity: Decimal) -> str:
-    """Binlik ayraçlı, sondaki sıfırsız miktar (en çok 8 ondalık): 1250, 0.5, 0.00012345."""
-    text = f"{quantity:,.8f}".rstrip("0").rstrip(".")
+    """Binlik ayraçlı, sondaki sıfırsız miktar (en çok 8 ondalık): 1.250, 0,5, 0,00012345."""
+    text = tr_number(quantity, 8).rstrip("0").rstrip(",")
     return text or "0"
 
 
 def format_pct(value: Optional[Decimal]) -> str:
-    """İşaretli yüzde: `+%2.15`, `-%1.20`; bilinmiyorsa `-`."""
+    """İşaretli yüzde: `+%2,15`, `-%1,20`; bilinmiyorsa `-`."""
     if value is None:
         return "-"
-    sign = "+" if value >= 0 else "-"
-    return f"{sign}%{abs(value):.2f}"
+    return tr_pct(value, with_sign=True)
 
 
 def holding_row(holding: HoldingValuation, summary: UnifiedSummary) -> Dict[str, Any]:
@@ -83,7 +84,7 @@ def holding_row(holding: HoldingValuation, summary: UnifiedSummary) -> Dict[str,
         "pl": format_money(summary.display_amount(holding.unrealized_pl_try), display),
         "plPct": format_pct(pl_pct),
         "isUp": holding.unrealized_pl_try >= 0,
-        "weight": f"%{holding.weight_pct:.1f}",
+        "weight": f"%{tr_number(holding.weight_pct, 1)}",
         "isPriced": holding.is_priced,
     }
 

@@ -489,6 +489,21 @@ MESSAGES: Dict[str, str] = {
     "cash_pool.done_buy": "{usd} USD alındı.",
     "cash_pool.done_sell": "{usd} USD satıldı.",
     "cash_pool.deleted": "Döviz işlemi silindi.",
+    # --- Portföyüm ---
+    "my_portfolio.cash_breakdown": "TL {tl} + USD {usd}",
+    # --- Karşılaştırma rozetleri ---
+    "comparison.kind_portfolio": "PORTFÖY",
+    "comparison.kind_unified": "TÜM VARLIKLAR",
+    "comparison.kind_model": "MODEL",
+    "comparison.kind_market": "PİYASA",
+    # --- Birleşik optimizasyon ---
+    "optimization.tum_varliklar_canli": "Tüm Varlıklar (Canlı)",
+    "optimization_input.birlesik_optimizasyon_hazir_degil": "Birleşik portföy optimizasyonu hazır değil.",
+    # --- Varlık ve döviz tarih doğrulama ---
+    "assets.gelecek_tarihli_islem_girilemez": "Gelecek tarihli işlem girilemez.",
+    "cash_pool.invalid_date": "Tarih GG.AA.YYYY biçiminde olmalı.",
+    "cash_pool.future_date": "Gelecek tarihli döviz işlemi girilemez.",
+    "cash_pool.invalid_time": "Saat SS:DD biçiminde olmalı.",
 }
 
 

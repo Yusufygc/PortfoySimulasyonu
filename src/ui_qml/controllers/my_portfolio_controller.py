@@ -15,6 +15,8 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.market_clock import market_today
 from src.domain.models.unified_portfolio import HUNDRED, UnifiedSummary
+from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 from src.ui_qml.presenters.portfolio_presenter import (
     TAB_ALL,
     TAB_KEYS,
@@ -122,12 +124,20 @@ class MyPortfolioController(QObject):
 
     @Property(str, notify=summaryChanged)
     def cashBalance(self) -> str:
-        return self._money(self._summary.cash_try)
+        """Ortak nakit havuzunun toplamı: TL nakit + USD nakdin TL karşılığı (dağılımdaki Nakit dilimiyle aynı)."""
+        return self._money(self._summary.cash_try + self._summary.usd_cash_try)
+
+    @Property(str, notify=summaryChanged)
+    def cashBreakdown(self) -> str:
+        """`TL ₺396.078,67 + USD $86,96`; USD nakit yoksa boş."""
+        if self._summary.usd_cash <= 0:
+            return ""
+        return msg("my_portfolio.cash_breakdown", tl=self._money(self._summary.cash_try), usd=self.usdCashBalance)
 
     @Property(str, notify=summaryChanged)
     def usdCashBalance(self) -> str:
         """Ortak havuzdaki USD nakit (USD cinsinden; gösterim para birimine çevrilmez)."""
-        return f"${self._summary.usd_cash:,.2f}"
+        return f"${tr_number(self._summary.usd_cash)}"
 
     @Property(bool, notify=summaryChanged)
     def hasUsdCash(self) -> bool:
@@ -135,7 +145,7 @@ class MyPortfolioController(QObject):
 
     @Property(str, notify=summaryChanged)
     def cashRatio(self) -> str:
-        return f"%{self._summary.cash_weight_pct:.1f}"
+        return f"%{tr_number(self._summary.cash_weight_pct, 1)}"
 
     @Property(str, notify=summaryChanged)
     def dailyGain(self) -> str:
@@ -191,7 +201,7 @@ class MyPortfolioController(QObject):
     @Property(str, notify=summaryChanged)
     def usdRate(self) -> str:
         rate: Optional[Decimal] = self._summary.usd_try_rate
-        return f"{rate:,.4f}" if rate is not None else "-"
+        return tr_number(rate, 4) if rate is not None else "-"
 
     @Property("QVariantList", notify=summaryChanged)
     def allocationSlices(self) -> List[Dict[str, Any]]:

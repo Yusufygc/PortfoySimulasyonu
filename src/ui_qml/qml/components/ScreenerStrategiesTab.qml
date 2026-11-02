@@ -277,7 +277,7 @@ ColumnLayout {
 
                                     Text {
                                         text: modelData.ticker
-                                        color: Theme.accent
+                                        color: Theme.textAccent
                                         font.family: Theme.fontFamily
                                         font.pixelSize: Theme.fontBase
                                         font.weight: Font.Bold

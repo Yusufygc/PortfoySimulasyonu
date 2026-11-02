@@ -89,9 +89,9 @@ ModernCard {
                     anchors.centerIn: parent
                     text: root.filteredList.length + " / " + root.timelineList.length + " " + Strings.labelTotalFilings
                     font.family: Theme.fontMono
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     font.weight: Font.DemiBold
-                    color: Theme.accent
+                    color: Theme.textAccent
                 }
             }
         }
@@ -160,7 +160,7 @@ ModernCard {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: root.filterMode === "increase" ? Font.Bold : Font.Normal
-                                color: root.filterMode === "increase" ? Theme.bullGreen : Theme.textSecondary
+                                color: root.filterMode === "increase" ? Theme.textPositive : Theme.textSecondary
                             }
                         }
 
@@ -192,7 +192,7 @@ ModernCard {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: root.filterMode === "decrease" ? Font.Bold : Font.Normal
-                                color: root.filterMode === "decrease" ? Theme.bearRed : Theme.textSecondary
+                                color: root.filterMode === "decrease" ? Theme.textNegative : Theme.textSecondary
                             }
                         }
 
@@ -435,7 +435,7 @@ ModernCard {
                                                 anchors.centerIn: parent
                                                 text: modelData.date || "—"
                                                 font.family: Theme.fontMono
-                                                font.pixelSize: 10
+                                                font.pixelSize: 11
                                                 font.weight: Font.DemiBold
                                                 color: Theme.textSecondary
                                             }
@@ -484,9 +484,9 @@ ModernCard {
                                                     id: diffTxt
                                                     text: modelData.diffStr || modelData.diff_str || ""
                                                     font.family: Theme.fontMono
-                                                    font.pixelSize: 10
+                                                    font.pixelSize: 11
                                                     font.weight: Font.Bold
-                                                    color: parent.parent.isInc ? Theme.bullGreen : Theme.bearRed
+                                                    color: parent.parent.isInc ? Theme.textPositive : Theme.textNegative
                                                 }
                                             }
                                         }
@@ -512,7 +512,7 @@ ModernCard {
                                                       ? (modelData.oldRatio + "  ->  " + modelData.newRatio)
                                                       : ("%" + (modelData.old_pct ? modelData.old_pct.toFixed(2) : "0.00") + "  ->  %" + (modelData.new_pct ? modelData.new_pct.toFixed(2) : "0.00"))
                                                 font.family: Theme.fontMono
-                                                font.pixelSize: 10
+                                                font.pixelSize: 11
                                                 font.weight: Font.Medium
                                                 color: Theme.textSecondary
                                             }
@@ -532,7 +532,7 @@ ModernCard {
                                                 anchors.centerIn: parent
                                                 text: Strings.labelVotingRatio + ": " + (modelData.votingRatio || "—")
                                                 font.family: Theme.fontMono
-                                                font.pixelSize: 9
+                                                font.pixelSize: 10
                                                 color: Theme.textMuted
                                             }
                                         }
@@ -547,7 +547,7 @@ ModernCard {
                                             Text {
                                                 text: Strings.labelCapitalShare + ":"
                                                 font.family: Theme.fontFamily
-                                                font.pixelSize: 9
+                                                font.pixelSize: 10
                                                 color: Theme.textMuted
                                             }
 

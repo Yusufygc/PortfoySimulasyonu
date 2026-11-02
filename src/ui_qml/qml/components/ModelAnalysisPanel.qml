@@ -124,7 +124,7 @@ Item {
                         Text {
                             visible: root.analysis.hasChange === true
                             text: (root.analysis.changeText || "") + "  (" + Strings.mdlVsLastClose + " " + (root.analysis.lastCloseText || "-") + ")"
-                            color: root.analysis.changeIsUp ? Theme.bullGreen : Theme.bearRed
+                            color: root.analysis.changeIsUp ? Theme.textPositive : Theme.textNegative
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.DemiBold
@@ -142,7 +142,7 @@ Item {
                         }
                         Repeater {
                             model: root.analysis.confidenceWarnings || []
-                            Text { text: modelData; color: Theme.warning; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { text: modelData; color: Theme.textWarning; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         }
                     }
                 }
@@ -161,7 +161,7 @@ Item {
                         Text { text: Strings.mdlOutlook; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; font.weight: Font.Bold }
                         Text {
                             text: root.analysis.outlookText || "-"
-                            color: root.analysis.outlookState === "up" ? Theme.bullGreen : (root.analysis.outlookState === "down" ? Theme.bearRed : Theme.textPrimary)
+                            color: root.analysis.outlookState === "up" ? Theme.textPositive : (root.analysis.outlookState === "down" ? Theme.textNegative : Theme.textPrimary)
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontLg
                             font.weight: Font.Bold
@@ -219,7 +219,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignTop
                             spacing: 4
-                            Text { text: Strings.mdlXaiPositive; color: Theme.bullGreen; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; font.weight: Font.DemiBold }
+                            Text { text: Strings.mdlXaiPositive; color: Theme.textPositive; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; font.weight: Font.DemiBold }
                             Repeater {
                                 model: root.analysis.xaiPositive || []
                                 RowLayout {
@@ -233,7 +233,7 @@ Item {
                             Layout.fillWidth: true
                             Layout.alignment: Qt.AlignTop
                             spacing: 4
-                            Text { text: Strings.mdlXaiNegative; color: Theme.bearRed; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; font.weight: Font.DemiBold }
+                            Text { text: Strings.mdlXaiNegative; color: Theme.textNegative; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; font.weight: Font.DemiBold }
                             Repeater {
                                 model: root.analysis.xaiNegative || []
                                 RowLayout {
@@ -265,7 +265,7 @@ Item {
                     Text { text: Strings.mdlProbUp + ": " + (root.analysis.peer ? root.analysis.peer.probUpText : "-") + "   " + Strings.mdlBand + ": " + (root.analysis.peer ? root.analysis.peer.bandText : "-"); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     Repeater {
                         model: (root.analysis.peer && root.analysis.peer.warnings) ? root.analysis.peer.warnings : []
-                        Text { text: modelData; color: Theme.warning; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: modelData; color: Theme.textWarning; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                 }
             }

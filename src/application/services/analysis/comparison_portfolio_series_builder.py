@@ -16,7 +16,9 @@ class ComparisonPortfolioSeriesBuilder:
         source_resolver: AnalysisSourceResolver,
         series_builder: PortfolioSeriesBuilder,
         currency_service: CurrencyConversionService,
+        unified_builder=None,
     ) -> None:
+        self._unified_builder = unified_builder
         self._source_resolver = source_resolver
         self._series_builder = series_builder
         self._currency_service = currency_service
@@ -49,6 +51,8 @@ class ComparisonPortfolioSeriesBuilder:
         source_code: str,
         filter_state: AnalysisFilterState,
     ) -> dict:
+        if source_code == AnalysisSourceResolver.SOURCE_UNIFIED and self._unified_builder is not None:
+            return self._unified_builder.build(filter_state.start_date, filter_state.end_date).twr
         trades = self._source_resolver.get_source_trades(source_code)
         scoped_trades = [trade for trade in trades if trade.trade_date <= filter_state.end_date]
         stock_ids = self._series_builder.resolve_valuation_stock_scope(

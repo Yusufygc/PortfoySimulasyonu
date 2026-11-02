@@ -17,7 +17,7 @@ from src.domain.market_clock import market_time, market_today
 from src.domain.models.fx_conversion import FxSide
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.messages import msg
-from src.ui_qml.presenters.formatting import tr_number
+from src.ui_qml.presenters.formatting import input_decimal, tr_number
 
 
 def _parse_date(text: str) -> Optional[date]:
@@ -32,6 +32,20 @@ def _parse_time(text: str) -> Optional[time]:
         return datetime.strptime((text or "").strip(), "%H:%M").time()
     except ValueError:
         return None
+
+
+def _parse_moment(day: str, at: str) -> Tuple[Optional[Tuple[date, time]], str]:
+    """(gün, saat) ve hata metni: boş alan bugün/şimdi sayılır; yazılmış ama geçersiz ya da gelecek değer hatadır."""
+    day_text, time_text = (day or "").strip(), (at or "").strip()
+    conversion_date = _parse_date(day_text) if day_text else market_today()
+    if conversion_date is None:
+        return None, msg("cash_pool.invalid_date")
+    if conversion_date > market_today():
+        return None, msg("cash_pool.future_date")
+    conversion_time = _parse_time(time_text) if time_text else market_time()
+    if conversion_time is None:
+        return None, msg("cash_pool.invalid_time")
+    return (conversion_date, conversion_time), ""
 
 
 def _positive(text: str) -> Optional[Decimal]:
@@ -111,7 +125,7 @@ class CashPoolController(QObject):
     def suggestRate(self) -> str:
         """Önerilen USD/TRY kuru (veritabanındaki en yeni kur); yoksa boş."""
         rate = self._rates.get_rate("USD", "TRY") if self._rates is not None else None
-        return format(rate.normalize(), "f").replace(".", ",") if rate is not None else ""
+        return input_decimal(rate) if rate is not None else ""
 
     @Slot(str, str, str, str, str)
     def buyUsd(self, amount: str, rate: str, day: str, at: str, fee: str) -> None:
@@ -130,8 +144,11 @@ class CashPoolController(QObject):
         for value, error in checks:
             if value is None:
                 return None, error
-        return {"usd": usd, "rate": rate_value, "conversion_date": _parse_date(day) or market_today(),
-                "conversion_time": _parse_time(at) or market_time(), "fee_try": fee_value}, ""
+        moment, error = _parse_moment(day, at)
+        if moment is None:
+            return None, error
+        return {"usd": usd, "rate": rate_value, "conversion_date": moment[0], "conversion_time": moment[1],
+                "fee_try": fee_value}, ""
 
     def _convert(self, buy: bool, form: Tuple[str, ...]) -> None:
         if self._fx is None:

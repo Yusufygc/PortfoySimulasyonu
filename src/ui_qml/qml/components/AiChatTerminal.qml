@@ -248,7 +248,7 @@ Rectangle {
                                                     text: modelData.label || modelData.name
                                                     color: Theme.textSecondary
                                                     font.family: Theme.fontFamily
-                                                    font.pixelSize: 10
+                                                    font.pixelSize: 11
                                                     font.weight: Font.Medium
                                                 }
                                             }
@@ -290,7 +290,7 @@ Rectangle {
                         text: modelData.timestamp || ""
                         color: Theme.textMuted
                         font.family: Theme.fontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: 11
                         Layout.alignment: (modelData.role === "user") ? Qt.AlignRight : Qt.AlignLeft
                         Layout.leftMargin: (modelData.role === "ai") ? 42 : 0
                         Layout.rightMargin: (modelData.role === "user") ? 4 : 0
@@ -414,7 +414,7 @@ Rectangle {
             text: Strings.aiDisclaimer
             color: Theme.textMuted
             font.family: Theme.fontFamily
-            font.pixelSize: 10
+            font.pixelSize: 11
             horizontalAlignment: Text.AlignHCenter
         }
     }

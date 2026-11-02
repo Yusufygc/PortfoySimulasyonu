@@ -9,6 +9,7 @@ Item {
 
     // "Fiyatları Yenile" düğmesine basıldı: sonuç bildirimi gösterilir (otomatik yenileme sessizdir)
     property bool manualRefresh: false
+    property int pendingRemoveId: 0
 
     ScrollView {
         id: mainScrollView
@@ -156,7 +157,7 @@ Item {
                     text: Strings.myPortfolioPartialNote + myPortfolioController.unpricedSymbols.join(", ")
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
-                    color: Theme.warning
+                    color: Theme.textWarning
                     wrapMode: Text.WordWrap
                 }
             }
@@ -167,7 +168,7 @@ Item {
                 text: Strings.myPortfolioStaleNote + myPortfolioController.staleSymbols.join(", ")
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm
-                color: Theme.warning
+                color: Theme.textWarning
                 wrapMode: Text.WordWrap
             }
 
@@ -176,7 +177,7 @@ Item {
                 text: Strings.myPortfolioUsdUnavailable
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm
-                color: Theme.warning
+                color: Theme.textWarning
                 Layout.fillWidth: true
             }
 
@@ -233,8 +234,8 @@ Item {
                     value: myPortfolioController.cashBalance
                     changeText: myPortfolioController.cashRatio
                     isPositive: true
-                    subText: (myPortfolioController.hasUsdCash ? Strings.kpiUsdCashPrefix + myPortfolioController.usdCashBalance + " - " : "")
-                             + myPortfolioController.holdingsCount + Strings.kpiOpenPositionsSuffix
+                    subText: myPortfolioController.hasUsdCash ? myPortfolioController.cashBreakdown
+                             : myPortfolioController.holdingsCount + Strings.kpiOpenPositionsSuffix
                     iconName: "portfolio"
                 }
             }
@@ -253,7 +254,7 @@ Item {
                     slices: myPortfolioController.allocationSlices
                     Layout.fillWidth: midGrid.stacked
                     Layout.preferredWidth: midGrid.stacked ? -1 : 320
-                    Layout.preferredHeight: 340
+                    Layout.alignment: Qt.AlignTop
                 }
 
                 ColumnLayout {
@@ -294,8 +295,9 @@ Item {
                 onAssetTradeRequested: function(assetId) {
                     assetTradeModal.open(assetId)
                 }
-                onAssetRemoveRequested: function(assetId) {
-                    assetsController.removeAsset(assetId)
+                onAssetRemoveRequested: function(assetId, symbol) {
+                    root.pendingRemoveId = assetId
+                    removeConfirm.ask(Strings.assetRemoveTitle, symbol + Strings.assetRemoveMessage, Strings.assetRemove)
                 }
             }
         }
@@ -320,6 +322,11 @@ Item {
 
     FxConvertModal {
         id: fxModal
+    }
+
+    ConfirmDialog {
+        id: removeConfirm
+        onConfirmed: assetsController.removeAsset(root.pendingRemoveId)
     }
 
     ExcelExportDialog {

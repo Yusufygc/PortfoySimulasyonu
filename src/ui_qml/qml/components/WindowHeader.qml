@@ -96,7 +96,7 @@ Rectangle {
                         Text {
                             visible: modelData.hasChange && root.width > 1280
                             text: modelData.changeText
-                            color: modelData.isUp ? Theme.bullGreen : Theme.bearRed
+                            color: modelData.isUp ? Theme.textPositive : Theme.textNegative
                             font.family: Theme.monoFontFamily
                             font.pixelSize: Theme.fontXs
                             anchors.verticalCenter: parent.verticalCenter
@@ -193,7 +193,7 @@ Rectangle {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
-                    color: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? Theme.accent : "#856404"
+                    color: (typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing) ? Theme.textAccent : "#856404"
                 }
             }
 
@@ -246,7 +246,7 @@ Rectangle {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
-                    color: shellController.isBistOpen ? Theme.bullGreen : Theme.bearRed
+                    color: shellController.isBistOpen ? Theme.textPositive : Theme.textNegative
                     anchors.verticalCenter: parent.verticalCenter
                 }
             }

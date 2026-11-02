@@ -78,7 +78,7 @@ ModernCard {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.Bold
-                    color: root.isPositive ? Theme.bullGreen : Theme.bearRed
+                    color: root.isPositive ? Theme.textPositive : Theme.textNegative
                 }
             }
 

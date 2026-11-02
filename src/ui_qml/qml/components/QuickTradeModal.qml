@@ -191,7 +191,7 @@ Rectangle {
                     Text {
                         visible: root.companyName !== "" || root.lookupHint !== ""
                         text: root.companyName !== "" ? root.companyName : root.lookupHint
-                        color: root.companyName !== "" ? Theme.textSecondary : Theme.warning
+                        color: root.companyName !== "" ? Theme.textSecondary : Theme.textWarning
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXs
                         elide: Text.ElideRight
@@ -289,7 +289,7 @@ Rectangle {
                             font.family: Theme.monoFontFamily
                             font.pixelSize: Theme.fontMd
                             font.weight: Font.Bold
-                            color: root.isBuy ? Theme.bullGreen : Theme.bearRed
+                            color: root.isBuy ? Theme.textPositive : Theme.textNegative
                         }
                     }
                 }

@@ -55,7 +55,7 @@ GridLayout {
                 }
                 Text {
                     text: optimizationController.optimalSharpeFormatted
-                    color: optimizationController.isOptimalSharpePositive ? Theme.textPrimary : Theme.bearRed
+                    color: optimizationController.isOptimalSharpePositive ? Theme.textPrimary : Theme.textNegative
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontLg
                     font.weight: Font.Bold
@@ -64,7 +64,7 @@ GridLayout {
                     text: Strings.optCurrentPrefix + optimizationController.currentSharpeFormatted
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                 }
             }
         }
@@ -111,16 +111,16 @@ GridLayout {
                 }
                 Text {
                     text: optimizationController.optimalReturnFormatted
-                    color: optimizationController.isOptimalReturnPositive ? Theme.bullGreen : Theme.bearRed
+                    color: optimizationController.isOptimalReturnPositive ? Theme.textPositive : Theme.textNegative
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontLg
                     font.weight: Font.Bold
                 }
                 Text {
                     text: Strings.optCurrentPrefix + optimizationController.currentReturnFormatted
-                    color: optimizationController.isCurrentReturnPositive ? Theme.textSecondary : Theme.bearRed
+                    color: optimizationController.isCurrentReturnPositive ? Theme.textSecondary : Theme.textNegative
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                 }
             }
         }
@@ -167,7 +167,7 @@ GridLayout {
                 }
                 Text {
                     text: optimizationController.optimalVolFormatted
-                    color: Theme.warningYellow
+                    color: Theme.textWarning
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontLg
                     font.weight: Font.Bold
@@ -176,7 +176,7 @@ GridLayout {
                     text: Strings.optCurrentPrefix + optimizationController.currentVolFormatted
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                 }
             }
         }
@@ -223,7 +223,7 @@ GridLayout {
                 }
                 Text {
                     text: optimizationController.minVolFormatted
-                    color: Theme.accent
+                    color: Theme.textAccent
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontLg
                     font.weight: Font.Bold
@@ -232,7 +232,7 @@ GridLayout {
                     text: Strings.optMinRiskLabel
                     color: Theme.textSecondary
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                 }
             }
         }

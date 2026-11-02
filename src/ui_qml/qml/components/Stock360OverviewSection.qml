@@ -170,7 +170,7 @@ ColumnLayout {
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontXs
                         font.weight: Font.DemiBold
-                        color: Theme.accent
+                        color: Theme.textAccent
                     }
                 }
             }
@@ -226,9 +226,9 @@ ColumnLayout {
                                     anchors.centerIn: parent
                                     text: root.ctrl ? root.ctrl.rsiStatus : Strings.stock360Neutral
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 9
+                                    font.pixelSize: 10
                                     font.weight: Font.DemiBold
-                                    color: Theme.accent
+                                    color: Theme.textAccent
                                 }
                             }
                         }
@@ -263,7 +263,7 @@ ColumnLayout {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: Font.Bold
-                                color: Theme.accent
+                                color: Theme.textAccent
                             }
                             Text {
                                 text: "/ " + (root.ctrl ? root.ctrl.macdSignal : "—")
@@ -303,7 +303,7 @@ ColumnLayout {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: Font.Bold
-                                color: Theme.accent
+                                color: Theme.textAccent
                             }
                             Text {
                                 text: "/ " + (root.ctrl ? root.ctrl.sma200 : "—")
@@ -343,14 +343,14 @@ ColumnLayout {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: Font.Bold
-                                color: Theme.bullGreen
+                                color: Theme.textPositive
                             }
                             Text {
                                 text: "/ " + (root.ctrl ? root.ctrl.resistance : "—")
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: Font.Bold
-                                color: Theme.bearRed
+                                color: Theme.textNegative
                             }
                         }
                     }

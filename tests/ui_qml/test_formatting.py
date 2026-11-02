@@ -5,7 +5,22 @@ from decimal import Decimal
 
 import pytest
 
-from src.ui_qml.presenters.formatting import tr_money, tr_number, tr_number_or_dash, tr_pct
+from src.ui_qml.presenters.formatting import input_decimal, tr_money, tr_number, tr_number_or_dash, tr_pct
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (Decimal("3089.19307608273554807223352"), "3089,1931"),   # uzun ondalık kırpılır
+        (Decimal("37.4131"), "37,4131"),
+        (Decimal("40.0000"), "40"),                               # gereksiz sıfır yok
+        (Decimal("0.00001234"), "0,00001234"),                    # 1'den küçükte 8 hane
+        (Decimal("74252.4051"), "74252,4051"),                    # binlik ayraç yok
+        (Decimal("0"), "0"),
+    ],
+)
+def test_input_decimal_is_short_comma_decimal_without_thousands(value, expected):
+    assert input_decimal(value) == expected
 
 
 @pytest.mark.parametrize(

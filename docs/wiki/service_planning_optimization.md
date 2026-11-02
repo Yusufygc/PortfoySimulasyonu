@@ -27,6 +27,11 @@ Arayüz: Finansal Planlama sayfası (`PlanningController`): Bütçe, Hedefler, D
 - **Veri yetersizliği:** en az 2 geçerli hisse ve 60 gün fiyat gerekir; yetersiz hisseler listelenir ve kısmi öneri üretilir. Sıfır volatilite, `NaN/inf` metrikler ve SLSQP başarısızlığı anlamlı hata verir.
 - **Sonuç:** `OptimizationResult` (mevcut, optimal ve minimum risk metrikleri; hisse bazlı EKLE/AZALT/TUT önerileri; geçersiz hisseler).
 - `compute_max_sharpe_weights(price_df, policy)`: canlı portföyden bağımsız saf fonksiyon; geçmiş backtest'te kullanılır.
+- `_optimize(tickers, weights, policy, price_df)`: `price_df` verilirse piyasa verisi sağlayıcısına gidilmez (birleşik portföy matrisi için).
+
+### Birleşik Portföy (`UnifiedOptimizationService`)
+
+Kaynak `unified` (Tüm Varlıklar): evren BIST hisseleri + BIST dışı varlıklardır (BTC, AAPL, gram altın...). `load_universe()` güncel pozisyonları `UnifiedPortfolioService`'ten alır (nakit kapsam dışı; ağırlıklar yalnızca pozisyonlar arasındadır) ve **TL cinsinden** tek fiyat matrisi kurar: BIST fiyatları piyasa verisi sağlayıcısından, varlık kapanışları varlık defterinden gelir ve gün gün USDTRY ile (gram altın: `ons / 31,1035 x USDTRY`) TL'ye çevrilir. Tarih ekseni BIST işlem günleridir; hafta sonu hareket eden varlıklar (kripto) sonraki BIST gününe ileri taşınarak yansır. Ortak geçmiş 60 günden kısaysa en kısa geçmişli sütun (yeni eklenen varlık) çıkarılır ve güncel ağırlığında bırakılır. En az 2 pozisyon gerekir. Yeniden dengeleme planında BIST dışı semboller kesirli miktar (4 ondalık), BIST hisseleri tam lot alır (`calculate_rebalance_plan(fractional=...)`). Not: DuckDB sağlayıcısı en az 2 BIST hissesi gerektirir; tek BIST hissesinde yfinance yedeğine düşer.
 
 ### Verimli Sınır ve Rebalance (`frontier_simulation.py`)
 
@@ -38,7 +43,7 @@ Arayüz: Finansal Planlama sayfası (`PlanningController`): Bütçe, Hedefler, D
 
 ## 3. Optimizasyon Arayüzü (`OptimizationController`)
 
-Kaynak seçimi (ana portföy veya model portföy), risk profili seçici (Çok Muhafazakar, Muhafazakar, Dengeli, Büyüme, Agresif, Manuel), tek hisse sınırı kaydırıcısı, risksiz faiz. Hesap `ThreadPoolExecutor` ile arka planda çalışır. Üç sekme: Verimli Sınır (Monte Carlo bulutu, sınır eğrisi; mevcut, maksimum Sharpe ve minimum risk noktaları), Ağırlık Dağılımı, Yeniden Dengeleme. Kaydırıcı kayıtlı profili değiştirmez; yalnızca bu görünüm için geçici bir etiket (`risk_label_override`) üretir. Model portföy optimizasyonu canlı API çağırmaz (`price_lookup_func` verilmez).
+Kaynak seçimi (ana portföy, Tüm Varlıklar veya model portföy), risk profili seçici (Çok Muhafazakar, Muhafazakar, Dengeli, Büyüme, Agresif, Manuel), tek hisse sınırı kaydırıcısı, risksiz faiz. Hesap `ThreadPoolExecutor` ile arka planda çalışır. Üç sekme: Verimli Sınır (Monte Carlo bulutu, sınır eğrisi; mevcut, maksimum Sharpe ve minimum risk noktaları), Ağırlık Dağılımı, Yeniden Dengeleme. Kaydırıcı kayıtlı profili değiştirmez; yalnızca bu görünüm için geçici bir etiket (`risk_label_override`) üretir. Model portföy optimizasyonu canlı API çağırmaz (`price_lookup_func` verilmez).
 
 Kod yapısı: `optimization_controller.py` QML yüzeyi, durum ve sinyal akışını; `optimization_pipeline.py` arka plan hesap hattını (pozisyon yükleme, Markowitz, Monte Carlo, verimli sınır, rebalance planı; girdi sorunları `OptimizationInputError`); `optimization_chart_html.py` Chart.js grafik HTML'lerini üretir.
 
@@ -78,4 +83,4 @@ Kurallar: başlangıç sermayesi `initial_cash`; sonradan eklenen/çekilen serma
 
 ## 7. Testler
 
-`tests/application/test_optimization_service.py` (sıfır volatilite, kısa geçmiş, politika geçersiz kılma), `test_risk_profile_service.py`, `test_risk_optimization_bridge_service.py`, `test_planning_service_budget.py`, `test_model_portfolio_service.py`, `tests/ui_qml/test_optimization_phase9.py`, `test_planning_phase8.py`.
+`tests/application/test_optimization_service.py` (sıfır volatilite, kısa geçmiş, politika geçersiz kılma), `test_unified_optimization_service.py` (TL matris, hizalama, ortak geçmiş, kesirli plan), `tests/ui_qml/test_optimization_pipeline.py` (birleşik kol), `test_risk_profile_service.py`, `test_risk_optimization_bridge_service.py`, `test_planning_service_budget.py`, `test_model_portfolio_service.py`, `tests/ui_qml/test_optimization_phase9.py`, `test_planning_phase8.py`.

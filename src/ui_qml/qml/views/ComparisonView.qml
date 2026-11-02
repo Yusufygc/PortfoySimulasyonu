@@ -79,7 +79,7 @@ Item {
                             id: badgeText
                             anchors.centerIn: parent
                             text: comparisonController.selectedAssets.length + Strings.compareSelectedSuffix
-                            color: Theme.accent
+                            color: Theme.textAccent
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
                             font.weight: Font.DemiBold
@@ -141,7 +141,7 @@ Item {
 
                             Text {
                                 text: modelData.label
-                                color: isSelected ? Theme.accent : Theme.textPrimary
+                                color: isSelected ? Theme.textAccent : Theme.textPrimary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontBase
                                 font.weight: isSelected ? Font.DemiBold : Font.Normal
@@ -162,7 +162,7 @@ Item {
                                     text: modelData.kind || "VARLIK"
                                     color: Theme.textMuted
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 9
+                                    font.pixelSize: 10
                                     font.weight: Font.DemiBold
                                 }
                             }

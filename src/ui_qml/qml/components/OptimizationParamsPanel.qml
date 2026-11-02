@@ -123,7 +123,7 @@ Rectangle {
 
                         contentItem: Text {
                             text: modelData.label
-                            color: highlighted ? Theme.accent : Theme.textPrimary
+                            color: highlighted ? Theme.textAccent : Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             verticalAlignment: Text.AlignVCenter
@@ -227,7 +227,7 @@ Rectangle {
 
                         contentItem: Text {
                             text: modelData.label
-                            color: highlighted ? Theme.accent : Theme.textPrimary
+                            color: highlighted ? Theme.textAccent : Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             verticalAlignment: Text.AlignVCenter
@@ -285,7 +285,7 @@ Rectangle {
                             id: weightValText
                             anchors.centerIn: parent
                             text: "%" + Math.round(optimizationController.maxSingleWeight)
-                            color: Theme.accent
+                            color: Theme.textAccent
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.Bold
@@ -385,7 +385,7 @@ Rectangle {
                         }
                         Text {
                             text: Strings.optMptTitle
-                            color: Theme.accent
+                            color: Theme.textAccent
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.DemiBold
@@ -420,7 +420,7 @@ Rectangle {
                     anchors.margins: 10
                     wrapMode: Text.WordWrap
                     text: optimizationController.statusMessage
-                    color: optimizationController.hasResults ? Theme.bullGreen : (optimizationController.statusMessage.indexOf("Hata") !== -1 ? Theme.bearRed : Theme.warningYellow)
+                    color: optimizationController.hasResults ? Theme.textPositive : (optimizationController.statusMessage.indexOf("Hata") !== -1 ? Theme.textNegative : Theme.textWarning)
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     verticalAlignment: Text.AlignVCenter

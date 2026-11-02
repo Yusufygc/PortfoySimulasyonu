@@ -20,7 +20,7 @@ from src.domain.models.asset import AssetClass, AssetUnit
 from src.domain.models.trade import TradeSide
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.messages import msg
-from src.ui_qml.presenters.formatting import tr_number
+from src.ui_qml.presenters.formatting import input_decimal, tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,8 @@ def _parse_moment(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[tuple]]
         return msg("assets.tarih_gg_aa_yyyy_biciminde_olmali"), None
     if trade_time is None:
         return msg("assets.saat_ss_dd_biciminde_olmali"), None
+    if trade_date > market_today():
+        return msg("assets.gelecek_tarihli_islem_girilemez"), None
     return None, (trade_date, trade_time)
 
 
@@ -267,7 +269,7 @@ class AssetsController(QObject):
             "currency": asset.settlement_currency,
             "isTry": asset.is_try_settled,
             "price": self._suggested_price(asset, price),
-            "fxRate": f"{rate:.4f}" if rate is not None and not asset.is_try_settled else "",
+            "fxRate": input_decimal(rate) if rate is not None and not asset.is_try_settled else "",
             "cash": self._available_cash_text(asset),
         }
 
@@ -299,7 +301,7 @@ class AssetsController(QObject):
             if conversion is None:
                 return ""
             unit_price = unit_price * conversion
-        return format(unit_price.normalize(), "f")
+        return input_decimal(unit_price)
 
     @Slot(int, "QVariantMap")
     def recordTrade(self, asset_id: int, form: Dict[str, Any]) -> None:

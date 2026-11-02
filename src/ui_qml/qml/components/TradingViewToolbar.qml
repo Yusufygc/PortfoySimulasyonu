@@ -62,7 +62,7 @@ Rectangle {
                         font.family: Theme.monoFontFamily
                         font.pixelSize: 11
                         font.weight: Font.Bold
-                        color: (chartController && chartController.isPositive) ? Theme.bullGreen : Theme.bearRed
+                        color: (chartController && chartController.isPositive) ? Theme.textPositive : Theme.textNegative
                     }
 
                     Text {
@@ -70,7 +70,7 @@ Rectangle {
                         font.family: Theme.monoFontFamily
                         font.pixelSize: 11
                         font.weight: Font.DemiBold
-                        color: (chartController && chartController.isPositive) ? Theme.bullGreen : Theme.bearRed
+                        color: (chartController && chartController.isPositive) ? Theme.textPositive : Theme.textNegative
                     }
                 }
             }

@@ -94,7 +94,7 @@ def _append_unique(target: list, value) -> None:
 
 
 def _is_portfolio_source(code: str) -> bool:
-    return code == "dashboard" or code.startswith(("model:", "portfolio:"))
+    return code in ("dashboard", "unified") or code.startswith(("model:", "portfolio:"))
 
 
 def _source_stock_ids(source: str, stock_ids_for_source: Callable[[str], Iterable[int]]) -> List[int]:
@@ -171,8 +171,6 @@ def fetch_portfolio_holdings(analysis_service, portfolio_code: str, period_label
         if not analysis_service:
             return []
 
-        from src.application.services.analysis.risk_metrics import compute_position_snapshot
-
         end_dt = date.today()
         start_dt = resolve_start_date(period_label, end_dt)
         filter_state = AnalysisFilterState(
@@ -185,8 +183,7 @@ def fetch_portfolio_holdings(analysis_service, portfolio_code: str, period_label
             currency_mode="TL",
         )
         bundle = analysis_service._build_analysis_bundle(filter_state)
-        ticker_map = analysis_service._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
-        snapshot = compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"])
+        snapshot = analysis_service.position_snapshot(bundle)
 
         holdings = []
         for item in snapshot:

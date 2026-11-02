@@ -65,9 +65,9 @@ ModernCard {
                     anchors.centerIn: parent
                     text: root.dupont.piotroskiStatus || root.dupont.roe_status || Strings.financialHighEfficiency
                     font.family: Theme.fontFamily
-                    font.pixelSize: 10
+                    font.pixelSize: 11
                     font.weight: Font.DemiBold
-                    color: Theme.bullGreen
+                    color: Theme.textPositive
                 }
             }
         }
@@ -108,7 +108,7 @@ ModernCard {
                         Text {
                             text: Strings.labelNetMargin
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -123,7 +123,7 @@ ModernCard {
                         Text {
                             text: Strings.dupontProfitEngine
                             font.family: Theme.fontFamily
-                            font.pixelSize: 9
+                            font.pixelSize: 10
                             color: Theme.textMuted
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -156,7 +156,7 @@ ModernCard {
                         Text {
                             text: Strings.labelAssetTurnover
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -165,13 +165,13 @@ ModernCard {
                             font.family: Theme.fontMono
                             font.pixelSize: Theme.fontMd
                             font.weight: Font.Bold
-                            color: Theme.accent
+                            color: Theme.textAccent
                             Layout.alignment: Qt.AlignHCenter
                         }
                         Text {
                             text: Strings.dupontAssetEfficiency
                             font.family: Theme.fontFamily
-                            font.pixelSize: 9
+                            font.pixelSize: 10
                             color: Theme.textMuted
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -204,7 +204,7 @@ ModernCard {
                         Text {
                             text: Strings.labelFinancialLeverage
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -219,7 +219,7 @@ ModernCard {
                         Text {
                             text: Strings.dupontDebtEquity
                             font.family: Theme.fontFamily
-                            font.pixelSize: 9
+                            font.pixelSize: 10
                             color: Theme.textMuted
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -252,9 +252,9 @@ ModernCard {
                         Text {
                             text: Strings.dupontRoeResult
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             font.weight: Font.Bold
-                            color: Theme.bullGreen
+                            color: Theme.textPositive
                             Layout.alignment: Qt.AlignHCenter
                         }
                         Text {
@@ -262,13 +262,13 @@ ModernCard {
                             font.family: Theme.fontMono
                             font.pixelSize: Theme.fontLg
                             font.weight: Font.Bold
-                            color: Theme.bullGreen
+                            color: Theme.textPositive
                             Layout.alignment: Qt.AlignHCenter
                         }
                         Text {
                             text: Strings.dupontEquityProfit
                             font.family: Theme.fontFamily
-                            font.pixelSize: 9
+                            font.pixelSize: 10
                             color: Theme.textMuted
                             Layout.alignment: Qt.AlignHCenter
                         }
@@ -319,14 +319,14 @@ ModernCard {
                             font.family: Theme.fontMono
                             font.pixelSize: Theme.fontMd
                             font.weight: Font.Bold
-                            color: Theme.accent
+                            color: Theme.textAccent
                         }
                     }
 
                     Text {
                         text: root.dupont.piotroskiStatus || root.dupont.piotroski_desc || Strings.financialHealthAnalysis
                         font.family: Theme.fontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: 11
                         color: Theme.textMuted
                     }
 

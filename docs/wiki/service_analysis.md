@@ -10,7 +10,8 @@ Kod: `src/application/services/analysis/`. Bu sayfa portföy analizinin servis k
 |---|---|
 | `AnalysisService` | Ana orkestratör: seçenekler, genel bakış, karşılaştırma, dağılım/risk görünümü. |
 | `PortfolioAnalyticsService` | `AnalysisService`'e delege eden facade; ek olarak `get_chart_panels()` ve `get_extended_risk_metrics()` sunar. |
-| `AnalysisSourceResolver` | Analiz kaynağını çözer: `dashboard` (ana portföy), `model:<id>` (model portföy); portföy seçenekleri, kaynak işlemleri, ilk işlem tarihi, hisse haritası. |
+| `AnalysisSourceResolver` | Analiz kaynağını çözer: `dashboard` (ana portföy), `unified` (Tüm Varlıklar), `model:<id>` (model portföy); portföy seçenekleri, kaynak işlemleri, ilk işlem tarihi, hisse haritası. |
+| `UnifiedSeriesBuilder` | `unified` kaynağın günlük TL değer ve TWR serisi (BIST + varlık defteri + TL/USD nakit havuzu); bitiş günü pozisyon özeti (aşağıya bakın). |
 | `AnalysisBundleBuilder` | Bir filtre için işlemleri, nakit hareketlerini, fiyat serilerini ve portföy serisini tek pakette toplar (aynı veriyi birden çok görünüm için yeniden okumamak için). |
 | `PortfolioSeriesBuilder` | Günlük portföy değer serisi ve zaman ağırlıklı getiri (TWR) serisi (aşağıya bakın). |
 | `ComparisonPortfolioSeriesBuilder`, `comparison_chart_series` | Karşılaştırma için portföy ve hisse serilerini üretir (`ComparisonSeriesBuilder.build_global_series`). |
@@ -67,6 +68,16 @@ Girdi: `Dict[date, Decimal]` seri; çıktı: `Optional[float]`.
 
 Yedek kazıma kaynakları (countryeconomy, exchange-rates.org, macrotrends) ve ağ davranışı için bkz. [service_market_data_providers.md](service_market_data_providers.md).
 
+### Birleşik (Tüm Varlıklar) Seri
+
+`UnifiedSeriesBuilder.build(başlangıç, bitiş)` olay kaynaklıdır: gerçek nakit hareketleri, döviz çevirmeleri, BIST işlemleri ve varlık işlemleri tarih/saat sırasıyla uygulanır; her gün sonunda toplam TL değer = TL nakit + USD nakit x USDTRY + BIST pozisyonları + varlık pozisyonları.
+
+- **Dış akış** yalnızca gerçek nakit yatırma/çekme ve **nakde bağlı olmayan eski varlık işlemleridir** (alım giriş, satım çıkış; TL tutarı işlem kuruyla). Döviz çevirme, nakde bağlı varlık işlemi ve BIST alım/satımı havuz içidir, akış değildir. Kur hareketi (USD nakit, USD fiyatlı varlık) getiridir.
+- Hiç gerçek nakit hareketi yoksa nakit izlenmez ve tüm işlemler (BIST ve varlık) dış akış sayılır (BIST'e özel serideki davranışla aynı).
+- Kıymetli maden gram TL fiyatı `ons / 31,1035 x USDTRY` (gün gün kur); varlık fiyatı ya da kuru yoksa son işlem TL fiyatı kullanılır ve uyarı üretilir (sahte düşüş olmaz). Kur günlere ileri taşınır.
+- Bitiş günü pozisyon özeti BIST ve varlıkları ağırlık/getiri ile verir (nakit hariç); `AnalysisService.position_snapshot(bundle)` BIST'te `Portfolio`'dan, birleşikte hazır listeden okur. `AnalysisBundleBuilder` birleşik kaynakta `UnifiedSeriesBuilder` kullanır, para birimi modu ve benchmark dönüşümü ortaktır. Karşılaştırmada `unified` ikinci portföy serisi olarak da seçilebilir; hisse filtresi yalnızca BIST hisselerine uygulanır.
+- Havuz görünümü (`PooledCashMovementRepository`) bu seriye verilmez; gerçek hareketler verilir. Aksi halde TL ile ödenen varlık alımı yapay çekme sayılırdı.
+
 ## 6. Veri Kapsamı Kuralları
 
 - Analiz kaynağı net açık pozisyonlardan üretilir; tamamen satılmış hisseler otomatik filtre/dağılım listesine girmez, ancak satış nakdi ve kapatılmış işlemler seriye dahil kalır (nakit yeniden oynatımı için tüm ilgili işlemler korunur).
@@ -77,4 +88,4 @@ Yedek kazıma kaynakları (countryeconomy, exchange-rates.org, macrotrends) ve a
 
 ## 7. Testler
 
-`tests/application/test_analysis_service.py`, `tests/application/services/analysis/test_risk_metrics.py`, `tests/application/services/test_comparison_service.py`, `tests/application/test_return_calc_service.py`, `tests/application/test_dividend_cash_flow.py` (TWR ve temettü), `tests/application/test_twr_scenarios.py` (elle hesaplanmış TWR senaryoları: ilk gün, yatırma/çekme, karma nakit, satış, temettü, nakit takibi olmadan alım).
+`tests/application/test_analysis_service.py`, `tests/application/services/analysis/test_risk_metrics.py`, `tests/application/services/test_comparison_service.py`, `tests/application/test_return_calc_service.py`, `tests/application/test_dividend_cash_flow.py` (TWR ve temettü), `tests/application/test_twr_scenarios.py` (elle hesaplanmış TWR senaryoları: ilk gün, yatırma/çekme, karma nakit, satış, temettü, nakit takibi olmadan alım), `tests/application/test_unified_series_builder.py` (birleşik seri: dış akış kuralları, döviz, nakde bağlı/eski varlık, gram altın, pozisyon özeti, AnalysisService entegrasyonu).

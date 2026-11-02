@@ -5,6 +5,25 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] güncelleme | QA turu (test veritabanı kopyası) ve Tüm Varlıklar analizi/optimizasyonu
+
+**QA (gerçek pencere, GPU çizimi, test veritabanı kopyası; gerçek veritabanına dokunulmadı).** Senaryolar: sermaye, döviz al/sat, USD ve TL ile varlık alımı/satımı, ücretler, yetersiz bakiye, hatalı girdiler, silme zinciri, USD gösterimi. Servis kuralları (yetersiz nakit, silme engeli, kısmi satış) beklendiği gibi çalıştı; bulunan hatalar düzeltildi:
+
+- **Varlık dağılımı kartı** 5 sınıfta taşıyordu (sabit yükseklik); yükseklik içeriğe uyar, veriden bağımsız sabit "denge durumu" kutusu kaldırıldı.
+- **Pozisyon tablosu** 1440 piksel pencerede eylem sütununu kırpıyordu; sütun genişlikleri daraltıldı (min. içerik 1130).
+- **Nakit kartı** yalnızca TL nakdi gösterirken dağılımdaki Nakit dilimi USD dahildi; kart artık havuzun tamamı, alt satırda `TL … + USD …`.
+- **Sayı biçimi karışıktı** (`₺863,159.38`, `₺396.078,67`, `%-7,10`, `$0,00` bir arada); Portföyüm Türkçe biçime geçti (`₺863.159,38`, `-₺5.678,99`, `+%2,15`). Giriş alanı önerileri virgüllü ve kısa (altın gram fiyatı 26 haneli geliyordu: `3089,1931`).
+- **Tarih doğrulama:** varlık işlemi ve döviz işlemi gelecek tarihi kabul ediyordu; geçersiz döviz tarihi sessizce bugüne dönüyordu. Artık reddedilir. Boş tarih/saat bugün/şimdi sayılır.
+- **"Kaldır"** onaysız anında varlığı takipten çıkarıyordu; onay penceresi eklendi.
+- Emtia notu (USD/ons) güncel değildi (gram TL); "Ana Portfoy" etiketi Türkçe karaktersizdi; işlem penceresinde miktar/fiyat etiketi birim yazar (gram); Optimizasyon tablosu başlıkları üst üste biniyordu (kısaltıldı, "LOT" yerine "MİKTAR"); karşılaştırma rozetleri İngilizceydi (`dashboard`, `market`).
+- **Soluk yazılar:** `textMuted` koyu temada 3,0:1, açık temada 2,4:1 kontrast veriyordu (379 kullanım, çoğu 10 px). Değerler WCAG AA'ya çıkarıldı (koyu `#8a98ae`, açık `#646c79`; açık `textSecondary` `#454d5b`), `Theme.fontXs` 10 -> 11 ve 9/10 px yazılar bir adım büyütüldü. Yazı rengi olarak kullanılan vurgu renkleri (yeşil, kırmızı, mavi, turuncu; 140 Text öğesi) yeni metin belirteçlerine (`textPositive`, `textNegative`, `textAccent`, `textWarning`) taşındı. Koruma: `tests/ui_qml/test_theme_contrast.py` (her metin belirteci her yüzeyde >= 4,5:1).
+
+**Tüm Varlıklar (birleşik) analiz ve optimizasyon (roadmap 2.8).**
+- `UnifiedSeriesBuilder`: BIST + varlık defteri + TL/USD nakit havuzunun günlük TL değeri ve TWR'si. Dış akış yalnızca gerçek yatırma/çekme ve nakde bağlı olmayan eski varlık işlemleri; döviz çevirme ve havuz içi alım/satım akış değildir, kur hareketi getiridir. Karşılaştırma/risk sayfalarında `Tüm Varlıklar` kaynağı (`AnalysisSourceResolver.SOURCE_UNIFIED`, `AnalysisBundleBuilder`, `ComparisonPortfolioSeriesBuilder`, `AnalysisService.position_snapshot`).
+- `UnifiedOptimizationService`: BIST + varlıkların TL fiyat matrisi (gün gün USDTRY, gram altın), BIST günlerine hizalı, kısa geçmiş sütun çıkarımı; Optimizasyon kaynağı `Tüm Varlıklar (Canlı)`. Yeniden dengelemede BIST dışı varlıklar kesirli miktar alır (`calculate_rebalance_plan(fractional=)`).
+- Testler: `test_unified_series_builder.py`, `test_unified_optimization_service.py`, `test_theme_contrast.py` ve ilgili denetleyici/hat testleri. Fonksiyon ihlali 72 (tavan 72), sınıf 0. Bilinen kısıt: DuckDB sağlayıcısı en az 2 BIST hissesi ister; tek BIST hissesinde yfinance yedeğine düşer. Roadmap 2.8'de kalanlar: Portföyüm haftalık/aylık kartları BIST'tir, optimizasyonda nakit/USD kısıtı yoktur.
+
+---
 ## [2026-11-03] güncelleme | Evrim Planı E5.4-E5.5: Birleşik Özette USD Nakit ve Arayüz
 
 - `UnifiedSummary`: `usd_cash`, `usd_cash_try`, `cash_weight_pct`; toplam değer ve nakit dilimi USD nakdi güncel kurla içerir, kur yoksa özet kısmi olur. Portföyüm nakit kartı USD nakdi de yazar.

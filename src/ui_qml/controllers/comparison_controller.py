@@ -189,16 +189,27 @@ class ComparisonController(QObject):
 
     # ──────────────────────────── QML Slots ────────────────────────────
 
+    @staticmethod
+    def _kind_label(kind: str) -> str:
+        """Seçenek rozeti: iç tür adı yerine Türkçe etiket."""
+        labels = {
+            "dashboard": msg("comparison.kind_portfolio"),
+            "unified": msg("comparison.kind_unified"),
+            "model": msg("comparison.kind_model"),
+            "market": msg("comparison.kind_market"),
+        }
+        return labels.get(kind, kind)
+
     def _collect_asset_options(self) -> tuple:
         """Portföy (ana + model, hisseleriyle) ve benchmark seçeneklerini ve portföy listesini döndürür."""
         options: List[Dict[str, str]] = []
         portfolio_opts: List[Dict[str, str]] = []
         for p in self._analysis_service.get_portfolio_options():
-            options.append({"code": p.code, "label": p.label, "kind": p.kind})
+            options.append({"code": p.code, "label": p.label, "kind": self._kind_label(p.kind)})
             options.append({"code": f"holdings:{p.code}", "label": f"{p.label} + Hisseleri", "kind": "HİSSELER"})  # metin-muaf: kimlik değerleri (QML ve destek modülüyle eşleşir)
             portfolio_opts.append({"code": p.code, "label": p.label})
         for b in self._analysis_service.get_benchmark_definitions():
-            options.append({"code": b.code, "label": b.label, "kind": b.kind})
+            options.append({"code": b.code, "label": b.label, "kind": self._kind_label(b.kind)})
         return options, portfolio_opts
 
     @Slot()

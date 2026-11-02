@@ -126,3 +126,54 @@ def test_frontier_html_embeds_points_and_series():
 def test_weights_html_embeds_labels_and_weights():
     html = charts.build_weights_chart_html([{"symbol": "A", "currentWeight": 10.5, "optimalWeight": 20.25}])
     assert 'labels: ["A"]' in html and "data: [10.5]" in html and "data: [20.25]" in html
+
+
+class _Universe:
+    def __init__(self):
+        index = pd.date_range("2025-01-01", periods=300, freq="B")
+        rs = np.random.RandomState(3)
+        self.price_df = pd.DataFrame({s: 100 * np.cumprod(1 + rs.normal(0.0005, 0.01, len(index))) for s in ("AAA", "BTC")}, index=index)
+        self.symbols = ["AAA", "BTC"]
+        self.names = {"AAA": "AAA Holding", "BTC": "Bitcoin"}
+        self.values_try = {"AAA": 60000.0, "BTC": 40000.0}
+        self.last_prices_try = {"AAA": 12.5, "BTC": 2_000_000.0}
+        self.fractional = {"BTC"}
+
+
+class _UnifiedService:
+    def __init__(self, error=None):
+        self.error = error
+
+    def load_universe(self):
+        if self.error:
+            raise self.error
+        return _Universe()
+
+    def optimize(self, universe, policy):
+        result = _OptService()._result()
+        result.suggestions = [
+            SimpleNamespace(symbol="AAA", current_weight=60.0, optimal_weight=40.0),
+            SimpleNamespace(symbol="BTC", current_weight=40.0, optimal_weight=60.0),
+        ]
+        return result
+
+
+def test_unified_requires_the_service():
+    with pytest.raises(pipeline.OptimizationInputError, match="Birleşik portföy optimizasyonu hazır değil"):
+        pipeline.compute_optimization(_services(), "unified", 0.2, 0.3)
+
+
+def test_unified_input_errors_are_shown_to_the_user():
+    services = _services(unified=_UnifiedService(ValueError("Optimizasyon için portföyde en az 2 farklı varlık olmalıdır.")))
+    with pytest.raises(pipeline.OptimizationInputError, match="en az 2 farklı varlık"):
+        pipeline.compute_optimization(services, "unified", 0.2, 0.3)
+
+
+def test_unified_plan_uses_try_prices_and_fractional_asset_quantities():
+    np.random.seed(0)
+    payload = pipeline.compute_optimization(_services(unified=_UnifiedService()), "unified", 0.6, 0.3)
+    rows = {row["symbol"]: row for row in payload["rebalance_plan"]}
+    assert rows["AAA"]["action"] == "AZALT" and rows["AAA"]["estShares"] == 1600       # 20.000 TL / 12,5 TL, tam lot
+    assert rows["BTC"]["action"] == "EKLE" and rows["BTC"]["estShares"] == pytest.approx(0.01)   # 20.000 TL / 2.000.000 TL
+    assert rows["BTC"]["companyName"] == "Bitcoin"
+    assert len(payload["mc_points"]) == 1000

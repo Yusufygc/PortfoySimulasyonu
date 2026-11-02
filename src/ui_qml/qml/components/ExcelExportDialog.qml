@@ -169,7 +169,7 @@ Rectangle {
             Text {
                 visible: root.statusText !== ""
                 text: root.statusText
-                color: Theme.bearRed
+                color: Theme.textNegative
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm
                 wrapMode: Text.WordWrap

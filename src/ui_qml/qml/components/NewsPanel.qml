@@ -87,7 +87,7 @@ ModernCard {
             text: root.ctrl ? Strings.newsFailedPrefix + root.ctrl.failedSources : ""
             font.family: Theme.fontFamily
             font.pixelSize: Theme.fontXs
-            color: Theme.warning
+            color: Theme.textWarning
             wrapMode: Text.WordWrap
         }
 
@@ -141,7 +141,7 @@ ModernCard {
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: Font.Bold
-                                color: Theme.accent
+                                color: Theme.textAccent
                             }
                             Text {
                                 visible: model.language === "en"

@@ -156,7 +156,7 @@ Rectangle {
                             id: modeText
                             anchors.centerIn: parent
                             text: modelData.text
-                            color: comparisonController.comparisonMode === modelData.key ? Theme.accent : Theme.textSecondary
+                            color: comparisonController.comparisonMode === modelData.key ? Theme.textAccent : Theme.textSecondary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
                             font.weight: comparisonController.comparisonMode === modelData.key ? Font.DemiBold : Font.Normal
@@ -296,7 +296,7 @@ Rectangle {
 
                             Text {
                                 text: modelData.text
-                                color: comparisonController.treemapMode === modelData.key ? Theme.accent : Theme.textSecondary
+                                color: comparisonController.treemapMode === modelData.key ? Theme.textAccent : Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: Theme.fontXs
                                 font.weight: comparisonController.treemapMode === modelData.key ? Font.DemiBold : Font.Normal
@@ -408,7 +408,7 @@ Rectangle {
 
                         contentItem: Text {
                             text: modelData.label
-                            color: highlighted ? Theme.accent : Theme.textPrimary
+                            color: highlighted ? Theme.textAccent : Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontXs
                             verticalAlignment: Text.AlignVCenter

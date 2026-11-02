@@ -85,7 +85,7 @@ Rectangle {
                                 text: "/ 100"
                                 color: Theme.textMuted
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 9
+                                font.pixelSize: 10
                                 Layout.alignment: Qt.AlignHCenter
                             }
                         }
@@ -200,7 +200,7 @@ Rectangle {
 
                                 Text {
                                     text: modelData.value
-                                    color: modelData.isGood ? Theme.bullGreen : Theme.accentWarning
+                                    color: modelData.isGood ? Theme.textPositive : Theme.accentWarning
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontXs
                                     font.weight: Font.Bold
@@ -226,7 +226,7 @@ Rectangle {
                                 text: modelData.status
                                 color: Theme.textMuted
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 10
+                                font.pixelSize: 11
                             }
                         }
                     }
@@ -286,7 +286,7 @@ Rectangle {
                         text: Strings.aiApiKeyMissingNotice
                         color: Theme.textSecondary
                         font.family: Theme.fontFamily
-                        font.pixelSize: 10
+                        font.pixelSize: 11
                         wrapMode: Text.Wrap
                     }
 
@@ -316,7 +316,7 @@ Rectangle {
                                     text: Strings.aiKeyPlaceholder
                                     color: Theme.textMuted
                                     font.family: Theme.fontFamily
-                                    font.pixelSize: 10
+                                    font.pixelSize: 11
                                     visible: !txtApiKey.text
                                     anchors.left: parent.left
                                     anchors.verticalCenter: parent.verticalCenter

@@ -22,6 +22,13 @@ def tr_number(value: Number, decimals: int = 2) -> str:
     return f"{value:,.{decimals}f}".translate(_SWAP_SEPARATORS)
 
 
+def input_decimal(value: Decimal) -> str:
+    """Giriş alanına önerilecek sade sayı: virgül ondalık, binlik ayraçsız, gereksiz sıfırsız (en çok 4; <1 ise 8 hane)."""
+    digits = 4 if abs(value) >= 1 else 8
+    text = f"{value:.{digits}f}".rstrip("0").rstrip(".")
+    return (text or "0").replace(".", ",")
+
+
 def tr_money(value: Optional[Number]) -> str:
     """1234.5 -> '1.234,50 ₺'; None -> '0,00 ₺'; negatifte '-62.608,18 ₺'. Sayıya çevrilemezse metin aynen yazılır."""
     if value is None:

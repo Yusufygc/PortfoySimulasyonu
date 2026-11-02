@@ -110,7 +110,7 @@ Item {
 
                         contentItem: Text {
                             text: modelData
-                            color: highlighted ? Theme.accent : Theme.textPrimary
+                            color: highlighted ? Theme.textAccent : Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             verticalAlignment: Text.AlignVCenter
@@ -245,7 +245,7 @@ Item {
                         }
                         Text {
                             text: planningController.totalIncomeFormatted
-                            color: Theme.bullGreen
+                            color: Theme.textPositive
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontLg
                             font.weight: Font.Bold
@@ -292,7 +292,7 @@ Item {
                         }
                         Text {
                             text: planningController.totalExpenseFormatted
-                            color: Theme.bearRed
+                            color: Theme.textNegative
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontLg
                             font.weight: Font.Bold
@@ -339,7 +339,7 @@ Item {
                         }
                         Text {
                             text: planningController.netSavingsPotentialFormatted
-                            color: planningController.netSavingsPotential >= 0 ? Theme.textPrimary : Theme.bearRed
+                            color: planningController.netSavingsPotential >= 0 ? Theme.textPrimary : Theme.textNegative
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontLg
                             font.weight: Font.Bold
@@ -386,7 +386,7 @@ Item {
 
                         Text {
                             text: Strings.budgetIncomeTitle
-                            color: Theme.bullGreen
+                            color: Theme.textPositive
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.DemiBold
@@ -500,7 +500,7 @@ Item {
 
                                 Text {
                                     text: modelData.amountFormatted
-                                    color: Theme.bullGreen
+                                    color: Theme.textPositive
                                     font.family: Theme.fontMono
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.DemiBold
@@ -623,7 +623,7 @@ Item {
 
                         Text {
                             text: Strings.budgetExpenseTitle
-                            color: Theme.bearRed
+                            color: Theme.textNegative
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm
                             font.weight: Font.DemiBold
@@ -737,7 +737,7 @@ Item {
 
                                 Text {
                                     text: modelData.amountFormatted
-                                    color: Theme.bearRed
+                                    color: Theme.textNegative
                                     font.family: Theme.fontMono
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.DemiBold

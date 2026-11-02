@@ -71,6 +71,28 @@ def test_invalid_inputs_and_insufficient_balances_are_reported_without_change(pa
     assert not changes and controller.usdBalance == "$0,00"
 
 
+@pytest.mark.parametrize("day, at, expected", [
+    ("yarin", "10:00", "Tarih GG.AA.YYYY"),          # yazılmış ama geçersiz tarih sessizce bugüne dönmez
+    ("31.12.2099", "10:00", "Gelecek tarihli"),
+    ("05.01.2026", "25:99", "Saat SS:DD"),
+])
+def test_invalid_or_future_moment_is_rejected_not_replaced_by_now(parts, day, at, expected):
+    _, controller, messages, changes = parts
+
+    controller.buyUsd("100", "30", day, at, "")
+
+    assert messages[-1][0] is False and expected in messages[-1][1]
+    assert not changes and controller.usdBalance == "$0,00"
+
+
+def test_blank_date_and_time_mean_today_and_now(parts):
+    _, controller, messages, _ = parts
+
+    controller.buyUsd("10", "30", "", "", "")
+
+    assert messages[-1] == (True, "10,00 USD alındı.")
+
+
 def test_delete_conversion_restores_try_and_blocks_when_usd_is_used(parts):
     container, controller, messages, _ = parts
     controller.buyUsd("100", "30", "05.01.2026", "10:00", "")

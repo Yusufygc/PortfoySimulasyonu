@@ -143,7 +143,7 @@ Item {
                     }
                     Text {
                         text: root.hasController ? goldenCrossController.busyText : ""
-                        color: Theme.accent
+                        color: Theme.textAccent
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
                         anchors.verticalCenter: parent.verticalCenter
@@ -243,10 +243,10 @@ Item {
                                 spacing: Theme.spaceSm
 
                                 Text { text: modelData.date; color: Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 90 }
-                                Text { text: modelData.ticker; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontBase; font.weight: Font.Bold; Layout.preferredWidth: 80 }
+                                Text { text: modelData.ticker; color: Theme.textAccent; font.family: Theme.fontFamily; font.pixelSize: Theme.fontBase; font.weight: Font.Bold; Layout.preferredWidth: 80 }
                                 Text {
                                     text: (modelData.isGolden ? "▲ " : "▼ ") + modelData.typeLabel
-                                    color: modelData.isGolden ? Theme.bullGreen : Theme.bearRed
+                                    color: modelData.isGolden ? Theme.textPositive : Theme.textNegative
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.DemiBold
@@ -365,7 +365,7 @@ Item {
                                 Text { text: modelData.date; color: Theme.textSecondary; font.family: Theme.fontMono; font.pixelSize: Theme.fontSm; Layout.preferredWidth: 90 }
                                 Text {
                                     text: (modelData.isGolden ? "▲ " : "▼ ") + modelData.typeLabel
-                                    color: modelData.isGolden ? Theme.bullGreen : Theme.bearRed
+                                    color: modelData.isGolden ? Theme.textPositive : Theme.textNegative
                                     font.family: Theme.fontFamily
                                     font.pixelSize: Theme.fontSm
                                     font.weight: Font.DemiBold

@@ -75,7 +75,7 @@ Rectangle {
                 BusyIndicator { running: root.busy; implicitWidth: 24; implicitHeight: 24 }
                 Text {
                     text: Strings.compareAiBusy
-                    color: Theme.accent
+                    color: Theme.textAccent
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
                 }

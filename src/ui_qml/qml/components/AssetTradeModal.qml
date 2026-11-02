@@ -19,6 +19,9 @@ Rectangle {
     readonly property var assetList: assetsController.assets
     readonly property int currentAssetId: (assetList.length > 0 && assetCombo.currentIndex >= 0 && assetCombo.currentIndex < assetList.length)
                                           ? assetList[assetCombo.currentIndex].id : 0
+    readonly property string assetUnit: (assetList.length > 0 && assetCombo.currentIndex >= 0 && assetCombo.currentIndex < assetList.length)
+                                         ? assetList[assetCombo.currentIndex].unit : "UNIT"
+    readonly property string unitName: assetUnit === "GRAM" ? Strings.assetUnitGram : (assetUnit === "OUNCE" ? Strings.assetUnitOunce : "")
     readonly property real totalValue: (Numbers.parse(qtyInput.text) || 0) * (Numbers.parse(priceInput.text) || 0)
 
     signal closed()
@@ -140,7 +143,7 @@ Rectangle {
                     text: Strings.assetTradeNoAssets
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm
-                    color: Theme.warning
+                    color: Theme.textWarning
                     Layout.fillWidth: true
                 }
 
@@ -219,7 +222,7 @@ Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
                         spacing: 4
-                        Text { text: Strings.assetTradeLabelQty; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
+                        Text { text: Strings.assetTradeLabelQty + (root.unitName ? " (" + root.unitName + ")" : ""); font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
                         ModernInput {
                             id: qtyInput
                             Layout.fillWidth: true
@@ -235,7 +238,7 @@ Rectangle {
                         Layout.preferredWidth: 1
                         spacing: 4
                         Text {
-                            text: Strings.assetTradeLabelPrice + " (" + root.currency + ")"
+                            text: Strings.assetTradeLabelPrice + " (" + root.currency + (root.unitName ? "/" + root.unitName : "") + ")"
                             font.pixelSize: 11
                             font.weight: Font.Bold
                             color: Theme.textMuted
@@ -321,7 +324,7 @@ Rectangle {
                             font.family: Theme.monoFontFamily
                             font.pixelSize: Theme.fontMd
                             font.weight: Font.Bold
-                            color: root.isBuy ? Theme.bullGreen : Theme.bearRed
+                            color: root.isBuy ? Theme.textPositive : Theme.textNegative
                         }
                     }
                 }

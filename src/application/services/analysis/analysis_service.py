@@ -71,13 +71,16 @@ class AnalysisService:
         evds_client: EvdsSeriesProvider | None = None,
         cash_movement_repo: Optional[ICashMovementRepository] = None,
         model_portfolio_service=None,
+        unified_builder=None,
     ) -> None:
         self._stock_repo = deps.stock_repo
         self._cash_movement_repo = cash_movement_repo
+        self._unified_builder = unified_builder
         self._source_resolver = AnalysisSourceResolver(
             portfolio_repo=deps.portfolio_repo,
             stock_repo=deps.stock_repo,
             model_portfolio_service=model_portfolio_service,
+            unified_enabled=unified_builder is not None,
         )
         self._series_builder = PortfolioSeriesBuilder(
             price_repo=deps.price_repo,
@@ -95,10 +98,12 @@ class AnalysisService:
             currency_service=self._currency_service,
             cash_movement_repo=cash_movement_repo,
         )
+        self._bundle_builder.use_unified(unified_builder)
         self._comparison_series_builder = ComparisonPortfolioSeriesBuilder(
             source_resolver=self._source_resolver,
             series_builder=self._series_builder,
             currency_service=self._currency_service,
+            unified_builder=unified_builder,
         )
 
     def get_benchmark_definitions(self):
@@ -108,7 +113,16 @@ class AnalysisService:
         return self._source_resolver.get_portfolio_options()
 
     def get_first_trade_date_for_source(self, source_code: str) -> Optional[date]:
+        if self._unified_builder is not None and self._source_resolver.normalize_source_code(source_code) == AnalysisSourceResolver.SOURCE_UNIFIED:
+            return self._unified_builder.first_event_date()
         return self._source_resolver.get_first_trade_date_for_source(source_code)
+
+    def position_snapshot(self, bundle: Dict[str, object]) -> List[dict]:
+        """Paket için pozisyon özeti (etiket, maliyet, değer, ağırlık, getiri); birleşik kaynakta hazır gelir."""
+        if bundle.get("position_snapshot") is not None:
+            return list(bundle["position_snapshot"])
+        ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
+        return compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"])
 
     def get_stock_map_for_source(self, source_code: str) -> Dict[int, str]:
         return self._source_resolver.get_stock_map_for_source(source_code)
@@ -116,8 +130,7 @@ class AnalysisService:
     def get_overview(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> AnalysisOverviewDTO:
         if bundle is None:
             bundle = self._build_analysis_bundle(filter_state)
-        ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
-        position_snapshot = compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"])
+        position_snapshot = self.position_snapshot(bundle)
         portfolio_series = bundle["portfolio_series"]
         primary_benchmark, benchmark_gap, benchmark_label = _get_benchmark_vars(bundle)
         top_position = max(position_snapshot, key=lambda item: item["weight"], default=None)
@@ -216,12 +229,7 @@ class AnalysisService:
     def get_allocation_risk_view(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> AllocationRiskDTO:
         if bundle is None:
             bundle = self._build_analysis_bundle(filter_state)
-        ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
-        position_snapshot = sorted(
-            compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"]),
-            key=lambda item: item["weight"],
-            reverse=True,
-        )
+        position_snapshot = sorted(self.position_snapshot(bundle), key=lambda item: item["weight"], reverse=True)
         items = [
             AllocationItem(
                 label=item["label"],

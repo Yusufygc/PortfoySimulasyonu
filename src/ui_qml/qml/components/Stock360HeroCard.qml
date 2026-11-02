@@ -50,9 +50,9 @@ ModernCard {
                             anchors.centerIn: parent
                             text: root.ctrl ? root.ctrl.sector : "—"
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             font.weight: Font.DemiBold
-                            color: Theme.accent
+                            color: Theme.textAccent
                         }
                     }
                 }
@@ -138,14 +138,14 @@ ModernCard {
                         Text {
                             text: Strings.stock360Low52Prefix + (root.ctrl ? root.ctrl.week52Low : "—")
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                         Item { Layout.fillWidth: true }
                         Text {
                             text: Strings.stock360High52Prefix + (root.ctrl ? root.ctrl.week52High : "—")
                             font.family: Theme.fontFamily
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             color: Theme.textMuted
                         }
                     }

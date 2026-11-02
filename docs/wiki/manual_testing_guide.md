@@ -151,6 +151,16 @@ Temizlik: Test temettüsü silindi.
 - **Adımlar:** Sermaye yatır; "Döviz Al/Sat" ile USD al (kuru değiştirip dene); USD yetmeyen bir varlık alımını dene; USD ile BTC al; USD sat; altın (gram) al.
 - **Beklenen sonuç:** TL nakit alımda düşer, nakit kartında USD nakit görünür, toplam değer TL ve USD gösterimde tutarlıdır. USD yetersizken varlık alımı "Önce Döviz Al" mesajıyla reddedilir. Altın alımı TL nakitten düşer ve TL/gram fiyatla gösterilir. Ayarlar > Ücretler'de oran girilirse ücret emir ön izlemesinde ve nakitte yansır.
 
+### PF-011 | Tüm Varlıklar analizi ve optimizasyonu
+
+- **Adımlar:** Birkaç BIST hissesi, bir kripto ve gram altın içeren portföyde Karşılaştırma Lab'da "Tüm Varlıklar" + "Ana Portföy" + BIST 100 seç ve Karşılaştır; Optimizasyon'da kaynak olarak "Tüm Varlıklar (Canlı)" seçip optimize et; yeniden dengeleme sekmesine bak.
+- **Beklenen sonuç:** Tüm Varlıklar serisi kur ve varlık hareketini içerir; sermaye yatırma/çekme ve döviz çevirme getiriyi bozmaz. Risk tablosunda getiri ve volatilite görünür. Optimizasyon BIST dışı varlıkları da ağırlıklandırır; kripto/altın/ABD hissesi için tahmini miktar kesirli, BIST hissesi için tam lottur. Tek varlıklı portföyde "en az 2 farklı varlık" mesajı çıkar.
+
+### PF-012 | Girdi doğrulama ve kaldırma onayı
+
+- **Adımlar:** Varlık işleminde ve Döviz Al/Sat'ta gelecek tarih, geçersiz tarih/saat, negatif ve metin miktar gir; bir pozisyonun "Kaldır" düğmesine bas.
+- **Beklenen sonuç:** Gelecek ve geçersiz tarih/saat reddedilir (bugüne sessizce dönmez), miktar/fiyat/kur hatası mesajla bildirilir. "Kaldır" onay penceresi açar; onaylanırsa varlık takipten çıkar (işlem geçmişi ve nakit etkisi korunur), yeniden eklenince pozisyon geri gelir.
+
 ---
 
 ## 5. Hisse Detay Modalı

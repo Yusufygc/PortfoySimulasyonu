@@ -25,8 +25,13 @@ QtObject {
 
     // --- Metin Renkleri ---
     readonly property color textPrimary: isDark ? "#e0e3eb" : "#131722"
-    readonly property color textSecondary: isDark ? "#9db2ce" : "#606775"
-    readonly property color textMuted: isDark ? "#637085" : "#959da8"
+    readonly property color textSecondary: isDark ? "#9db2ce" : "#454d5b"
+    readonly property color textMuted: isDark ? "#8a98ae" : "#646c79"      // her yüzeyde WCAG AA (>= 4,5:1)
+    // Metin olarak kullanılan vurgu renkleri (dolgu renkleri bullGreen/bearRed/accent/warning küçük yazıda yetersiz kontrast verir)
+    readonly property color textPositive: isDark ? "#14b89a" : "#007a65"
+    readonly property color textNegative: isDark ? "#ff6670" : "#cc2a38"
+    readonly property color textAccent: isDark ? "#6b9aff" : "#2457e6"
+    readonly property color textWarning: isDark ? "#ff9800" : "#9a5a00"
     readonly property color textInverse: isDark ? "#131722" : "#ffffff"
 
     // --- Finansal & Vurgu Renkleri (TradingView Standartı) ---
@@ -74,7 +79,7 @@ QtObject {
     readonly property int radiusFull: 9999
 
     // --- Font Boyutları ---
-    readonly property int fontXs: 10
+    readonly property int fontXs: 11
     readonly property int fontSm: 12
     readonly property int fontBase: 13
     readonly property int fontMd: 15

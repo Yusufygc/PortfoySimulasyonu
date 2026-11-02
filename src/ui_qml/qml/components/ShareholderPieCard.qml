@@ -274,7 +274,7 @@ ModernCard {
                                             Text {
                                                 text: modelData.share || ""
                                                 font.family: Theme.fontFamily
-                                                font.pixelSize: 10
+                                                font.pixelSize: 11
                                                 color: Theme.textMuted
                                             }
 
@@ -291,7 +291,7 @@ ModernCard {
                                                     anchors.centerIn: parent
                                                     text: Strings.labelVotingRatio + ": " + (modelData.votingRatio || "—")
                                                     font.family: Theme.fontMono
-                                                    font.pixelSize: 9
+                                                    font.pixelSize: 10
                                                     color: Theme.textSecondary
                                                 }
                                             }
@@ -315,7 +315,7 @@ ModernCard {
                                             font.family: Theme.fontMono
                                             font.pixelSize: Theme.fontSm
                                             font.weight: Font.Bold
-                                            color: Theme.accent
+                                            color: Theme.textAccent
                                         }
                                     }
                                 }
@@ -376,7 +376,7 @@ ModernCard {
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontXs
                     font.weight: Font.DemiBold
-                    color: Theme.accent
+                    color: Theme.textAccent
                 }
 
                 Item { Layout.fillWidth: true }

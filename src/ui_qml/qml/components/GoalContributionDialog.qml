@@ -185,7 +185,7 @@ Popup {
                 Text {
                     anchors.centerIn: parent
                     text: Strings.btnSave
-                    color: btnSaveMouse.containsMouse ? Theme.textInverse : Theme.bullGreen
+                    color: btnSaveMouse.containsMouse ? Theme.textInverse : Theme.textPositive
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontBase
                     font.weight: Font.DemiBold

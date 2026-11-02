@@ -135,14 +135,14 @@ class TestMyPortfolioPage:
         page.reload()
         pump()
 
-        assert page.totalValue == "₺1,400,000.00"           # 0,5 x 70.000 x 40
-        assert page.unrealizedPL == "₺500,000.00"          # maliyet 0,5 x 60.000 x 30 = 900.000
+        assert page.totalValue == "₺1.400.000,00"           # 0,5 x 70.000 x 40
+        assert page.unrealizedPL == "₺500.000,00"          # maliyet 0,5 x 60.000 x 30 = 900.000
         assert [s["classKey"] for s in page.allocationSlices] == ["CRYPTO"]
         assert page.tabCounts["CRYPTO"] == 1 and page.holdingsModel.rowCount() == 1
 
         page.setDisplayCurrency("USD")
         pump()
-        assert page.totalValue == "$35,000.00"
+        assert page.totalValue == "$35.000,00"
         page.setActiveClass("BIST_STOCK")
         pump()
         assert page.holdingsModel.rowCount() == 0
@@ -182,8 +182,11 @@ class TestMyPortfolioPage:
 
         assert results == [(True, "BTC SATIM işlemi kaydedildi.")]
         # kalan 0,25 x 70.000 x 40 = 700.000 TL + satıştan gelen 0,25 x 72.000 = 18.000 USD nakit x 40 = 720.000 TL
-        assert page.totalValue == "₺1,420,000.00"
-        assert page.hasUsdCash and page.usdCashBalance == "$18,000.00"
+        assert page.totalValue == "₺1.420.000,00"
+        assert page.hasUsdCash and page.usdCashBalance == "$18.000,00"
+        # Nakit kartı havuzun tamamıdır (TL + USD karşılığı); dağılımdaki Nakit dilimiyle aynı tutar
+        assert page.cashBalance == "₺720.000,00" and page.cashBreakdown == "TL ₺0,00 + USD $18.000,00"
+        assert next(s for s in page.allocationSlices if s["classKey"] == "CASH")["amount"] == page.cashBalance
         assert warnings == [], "\n".join(warnings)
         item.deleteLater()
 
@@ -198,7 +201,7 @@ class TestMyPortfolioPage:
         assets.recordTrade(asset.id, {"side": "SELL", "quantity": "2", "price": "72000", "date": "06.01.2026", "time": "10:00", "fx": "41"})
 
         assert results[0][0] is False and "yeterli miktar" in results[0][1]
-        assert page.totalValue == "₺1,400,000.00"
+        assert page.totalValue == "₺1.400.000,00"
 
     def test_removing_asset_with_history_keeps_ledger_but_hides_asset(self, env):
         container, _, controllers, _ = env
