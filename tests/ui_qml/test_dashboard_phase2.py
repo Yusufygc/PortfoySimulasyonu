@@ -42,7 +42,7 @@ def test_dashboard_exposes_only_bist_operations_not_valuation(qapp):
     """Değerleme Portföyüm'dedir (UnifiedPortfolioService); bu denetleyici yalnızca BIST işlemlerini sunar."""
     controller = DashboardController(container=_container())
 
-    assert controller.cashBalance == "₺100,000.00"
+    assert controller.cashBalance == "₺100.000,00"
     assert controller.quickTickers[:2] == ["THYAO", "ASELS"]
     for removed in ("positionsModel", "totalValue", "allocationSlices", "dailyGainLoss", "holdingsCount"):
         assert not hasattr(controller, removed)

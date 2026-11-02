@@ -20,12 +20,11 @@ class ImmediateExecutor:
         fn(*args, **kwargs)
 
 
-def _container(weekly=Decimal("0.0123"), monthly=Decimal("-0.05")):
+def _container(weekly=1.23, monthly=-5.0):
     container = MagicMock()
     container.portfolio_service.get_current_portfolio.return_value = SimpleNamespace(active_positions={})
     container.portfolio_service.get_cash_balance.return_value = Decimal("1000")
-    container.return_calc_service.compute_weekly_return.return_value = (weekly, None, None)
-    container.return_calc_service.compute_monthly_return.return_value = (monthly, None, None)
+    container.unified_return_service.returns.return_value = (weekly, monthly)
     return container
 
 
@@ -37,7 +36,7 @@ def _controller(container):
 
 
 def test_formatters():
-    assert format_return_pct(None) == "-" and format_return_pct(1.234) == "%+1,23" and format_return_pct(-0.5) == "%-0,50"
+    assert format_return_pct(None) == "-" and format_return_pct(1.234) == "+%1,23" and format_return_pct(-0.5) == "-%0,50"
     assert format_last_update(None) == ""
     assert format_last_update(datetime(2026, 10, 3, 14, 5)) == "Son güncelleme: 03.10.2026 14:05"
 
@@ -58,8 +57,8 @@ def test_returns_are_computed_saved_and_shown(qapp):
     ctrl._reload_returns()
     QCoreApplication.processEvents()
 
-    assert ctrl.weeklyReturnText == "%+1,23" and ctrl.isWeeklyPositive is True
-    assert ctrl.monthlyReturnText == "%-5,00" and ctrl.isMonthlyPositive is False
+    assert ctrl.weeklyReturnText == "+%1,23" and ctrl.isWeeklyPositive is True
+    assert ctrl.monthlyReturnText == "-%5,00" and ctrl.isMonthlyPositive is False
     weekly, monthly = LastUpdateStore().saved_returns()
     assert round(weekly, 2) == 1.23 and round(monthly, 2) == -5.0
 
@@ -69,31 +68,31 @@ def test_saved_returns_are_shown_before_recomputation(qapp):
 
     ctrl = DashboardController(container=None)
 
-    assert ctrl.weeklyReturnText == "%+2,00" and ctrl.monthlyReturnText == "%+3,00"
+    assert ctrl.weeklyReturnText == "+%2,00" and ctrl.monthlyReturnText == "+%3,00"
 
 
 def test_return_calculation_failure_keeps_previous_values(qapp):
     container = _container()
-    container.return_calc_service.compute_weekly_return.side_effect = RuntimeError("fiyat yok")
+    container.unified_return_service.returns.side_effect = RuntimeError("fiyat yok")
     ctrl = _controller(container)
     ctrl._weekly_pct, ctrl._monthly_pct = 4.0, 5.0
 
     ctrl._reload_returns()
     QCoreApplication.processEvents()
 
-    assert ctrl.weeklyReturnText == "%+4,00"
+    assert ctrl.weeklyReturnText == "+%4,00"
 
 
 def test_dashboard_reload_prices_rereads_db_and_returns_without_network(qapp):
     container = _container()
     ctrl = _controller(container)
     container.portfolio_service.get_current_portfolio.reset_mock()
-    container.return_calc_service.compute_weekly_return.reset_mock()
+    container.unified_return_service.returns.reset_mock()
 
     ctrl.reloadPrices()
 
     container.portfolio_service.get_current_portfolio.assert_called_once()
-    container.return_calc_service.compute_weekly_return.assert_called_once()
+    container.unified_return_service.returns.assert_called_once()
     container.live_price_refresh_service.refresh_active_prices.assert_not_called()
 
 

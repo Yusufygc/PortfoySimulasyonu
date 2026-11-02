@@ -93,7 +93,6 @@ Kapsam kararları ve ayrıntı: [service_asset_ledger.md](service_asset_ledger.m
 
 | Fikir | Durum | Not |
 |---|---|---|
-| Portföyüm haftalık/aylık getiri kartları birleşik olsun | Açık | Kartlar BIST'tir; birleşik TWR serisi Karşılaştırma/Analiz sayfalarında `Tüm Varlıklar` kaynağıyla vardır ([service_analysis.md](service_analysis.md)). |
 | Optimizasyonda nakit ve USD kısıtı | Açık | Birleşik optimizasyon pozisyonlar arasındadır; nakit ve döviz bakiyesi kısıt olarak modellenmez. |
 | Excel raporunda varlık sayfaları | Açık | Mevcut rapor BIST portföyü içindir. |
 | AI danışman aracı (`get_assets_overview`) | Açık | Danışman araçları salt okunur kalır; varlık özeti aracı yoktur. |

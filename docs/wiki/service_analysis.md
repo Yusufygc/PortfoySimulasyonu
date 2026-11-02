@@ -76,6 +76,7 @@ Yedek kazıma kaynakları (countryeconomy, exchange-rates.org, macrotrends) ve a
 - Hiç gerçek nakit hareketi yoksa nakit izlenmez ve tüm işlemler (BIST ve varlık) dış akış sayılır (BIST'e özel serideki davranışla aynı).
 - Kıymetli maden gram TL fiyatı `ons / 31,1035 x USDTRY` (gün gün kur); varlık fiyatı ya da kuru yoksa son işlem TL fiyatı kullanılır ve uyarı üretilir (sahte düşüş olmaz). Kur günlere ileri taşınır.
 - Bitiş günü pozisyon özeti BIST ve varlıkları ağırlık/getiri ile verir (nakit hariç); `AnalysisService.position_snapshot(bundle)` BIST'te `Portfolio`'dan, birleşikte hazır listeden okur. `AnalysisBundleBuilder` birleşik kaynakta `UnifiedSeriesBuilder` kullanır, para birimi modu ve benchmark dönüşümü ortaktır. Karşılaştırmada `unified` ikinci portföy serisi olarak da seçilebilir; hisse filtresi yalnızca BIST hisselerine uygulanır.
+- `UnifiedReturnService.returns(bugün)` aynı seriden haftalık (7 gün) ve aylık (30 gün) getiriyi TWR endeks oranı olarak verir (Portföyüm kartları; `DashboardController` bunu kullanır). Dönem başında portföy değeri yoksa o dönem `None` (kartta `-`).
 - Havuz görünümü (`PooledCashMovementRepository`) bu seriye verilmez; gerçek hareketler verilir. Aksi halde TL ile ödenen varlık alımı yapay çekme sayılırdı.
 
 ## 6. Veri Kapsamı Kuralları

@@ -12,6 +12,8 @@ from typing import Any
 
 import numpy as np
 
+from src.ui_qml.presenters.formatting import tr_number, tr_pct
+
 logger = logging.getLogger(__name__)
 
 Candles = list[dict[str, Any]]
@@ -174,9 +176,8 @@ def last_price_summary(candles: Candles, currency: str = "TRY") -> tuple[str, bo
     prev_close = candles[-2]["close"] if len(candles) > 1 else last["open"]
     diff = last_close - prev_close
     diff_pct = (diff / prev_close) * 100 if prev_close > 0 else 0.0
-    sign = "+" if diff >= 0 else ""
     prefix = CURRENCY_SYMBOLS.get(currency, f"{currency} ")
     # BIST (TRY) biçimi değişmez; düşük fiyatlı varlıklarda kuruş hassasiyeti yetmez
     small_asset = currency != "TRY" and last_close < 1
-    amount = f"{last_close:,.6f}".rstrip("0").rstrip(".") if small_asset else f"{last_close:,.2f}"
-    return f"{prefix}{amount}", diff >= 0, f"{sign}{diff_pct:.2f}%"
+    amount = tr_number(last_close, 6).rstrip("0").rstrip(",") if small_asset else tr_number(last_close)
+    return f"{prefix}{amount}", diff >= 0, tr_pct(diff_pct, with_sign=True)

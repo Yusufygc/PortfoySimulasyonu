@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
+from src.application.services.analysis.unified_return_service import UnifiedReturnService
 from src.application.services.analysis.unified_series_builder import UnifiedSeriesBuilder, UnifiedSeriesDeps
 from src.application.services.assets.asset_chart_service import AssetChartService
 from src.application.services.assets.asset_holdings_reader import AssetHoldingsReader
@@ -110,6 +111,7 @@ class ServiceSet:
     fx_rate_service: FxRateService  # kur okuma ve yenileme
     unified_portfolio_service: UnifiedPortfolioService  # BIST + varlık defteri birleşik TRY özeti
     unified_optimization_service: UnifiedOptimizationService  # Tüm Varlıklar optimizasyonu (TL fiyat matrisi)
+    unified_return_service: UnifiedReturnService  # Portföyüm haftalık/aylık getiri kartları (birleşik TWR)
     pooled_cash_repo: PooledCashMovementRepository  # TL nakit görünümü (gerçek hareketler + havuz çıkış/girişleri)
     cash_pool_service: CashPoolService  # ortak nakit havuzu bakiyeleri (TL ve USD)
     fx_conversion_service: FxConversionService  # TL <-> USD döviz al/sat
@@ -228,6 +230,7 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         ),
         fx_rate_service=fx_rate_service,
         unified_portfolio_service=unified_portfolio_service,
+        unified_return_service=UnifiedReturnService(_unified_series_builder(repositories)),
         unified_optimization_service=UnifiedOptimizationService(
             unified_portfolio_service, feature_services["optimization_service"],
             repositories.asset_repo, repositories.asset_price_repo, repositories.fx_rate_repo,

@@ -1,5 +1,5 @@
 """
-Dashboard Controller — BIST işlemleri, sermaye hareketi, BIST dönemsel getirileri ve Excel raporu.
+Dashboard Controller — BIST işlemleri, sermaye hareketi, birleşik dönemsel getiriler ve Excel raporu.
 
 Fiyatları kendisi çekmez: `PriceRefreshController.pricesChanged` ile `reloadPrices` çağrılır ve görünüm yalnızca
 veritabanından (`CurrentPriceResolver`) yeniden okunur.
@@ -16,6 +16,7 @@ from PySide6.QtCore import QObject, Signal, Property, Slot
 from src.ui_qml.last_update_store import LastUpdateStore, format_return_pct
 from src.domain.market_clock import market_time, market_today
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,9 @@ class DashboardController(QObject):
     """BIST işlemleri denetleyicisi (QML adı `dashboardController`, geriye uyumluluk için korunur).
 
     Portföy değerlemesi burada yapılmaz: Portföyüm sayfasının tüm rakamları `UnifiedPortfolioService`'ten gelir
-    (`MyPortfolioController`). Bu denetleyici yalnızca BIST hızlı al/sat, sermaye hareketi, BIST haftalık/aylık
-    getiri kartları, grafik hızlı seçicisinin portföy hisseleri ve tarihsel Excel raporunu sunar.
+    (`MyPortfolioController`). Bu denetleyici yalnızca BIST hızlı al/sat, sermaye hareketi, haftalık/aylık getiri
+    kartları (Tüm Varlıklar TWR'si: `UnifiedReturnService`), grafik hızlı seçicisinin portföy hisseleri ve tarihsel Excel
+    raporunu sunar.
     """
 
     kpisChanged = Signal()
@@ -70,7 +72,7 @@ class DashboardController(QObject):
 
     @Property(str, notify=kpisChanged)
     def cashBalance(self) -> str:
-        return f"₺{self._capital:,.2f}"
+        return f"₺{tr_number(self._capital)}"
 
     @Property(str, notify=returnsChanged)
     def weeklyReturnText(self) -> str:
@@ -129,22 +131,18 @@ class DashboardController(QObject):
         self._reload_returns()
 
     def _reload_returns(self) -> None:
-        service = getattr(self._container, "return_calc_service", None) if self._container else None
+        service = getattr(self._container, "unified_return_service", None) if self._container else None
         if service is not None:
             self._executor.submit(self._compute_returns_worker, service)
 
     def _compute_returns_worker(self, service) -> None:
         today = market_today()
         try:
-            weekly, _, _ = service.compute_weekly_return(today)
-            monthly, _, _ = service.compute_monthly_return(today)
+            weekly, monthly = service.returns(today)
         except Exception as exc:
             logger.error("Getiri hesaplama hatası: %s", exc)
             return
-        self._asyncReturnsReady.emit(
-            float(weekly) * 100 if weekly is not None else None,
-            float(monthly) * 100 if monthly is not None else None,
-        )
+        self._asyncReturnsReady.emit(weekly, monthly)
 
     def _on_returns_ready(self, weekly_pct: Any, monthly_pct: Any) -> None:
         self._weekly_pct, self._monthly_pct = weekly_pct, monthly_pct
@@ -254,10 +252,10 @@ class DashboardController(QObject):
             try:
                 if action.upper() == "DEPOSIT":
                     self._container.cash_movement_service.add_deposit(dec_amount, notes=note or msg("dashboard.qml_sermaye_girisi"))
-                    text = msg("dashboard.nakit_portfoye_yatirildi", dec_amount=dec_amount)
+                    text = msg("dashboard.nakit_portfoye_yatirildi", dec_amount=tr_number(dec_amount))
                 else:
                     self._container.cash_movement_service.add_withdraw(dec_amount, notes=note or msg("dashboard.qml_sermaye_cikisi"))
-                    text = msg("dashboard.nakit_portfoyden_cekildi", dec_amount=dec_amount)
+                    text = msg("dashboard.nakit_portfoyden_cekildi", dec_amount=tr_number(dec_amount))
                 self._load_portfolio_data()
                 self.capitalUpdated.emit(True, text)
                 return

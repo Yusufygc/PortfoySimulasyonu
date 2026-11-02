@@ -4,8 +4,8 @@
   "candle_count": 70,
   "companyName": "Test Şirketi A.Ş.",
   "controller_state": [
-   "₺135.70",
-   "+0.59%",
+   "₺135,70",
+   "+%0,59",
    true,
    "Test Şirketi A.Ş."
   ],
@@ -60,8 +60,8 @@
   "candle_count": 4,
   "companyName": "Test Şirketi A.Ş.",
   "controller_state": [
-   "₺135.70",
-   "+3.75%",
+   "₺135,70",
+   "+%3,75",
    true,
    "Test Şirketi A.Ş."
   ],
@@ -116,8 +116,8 @@
   "candle_count": 14,
   "companyName": "Test Şirketi A.Ş.",
   "controller_state": [
-   "₺135.70",
-   "+1.88%",
+   "₺135,70",
+   "+%1,88",
    true,
    "Test Şirketi A.Ş."
   ],
@@ -172,8 +172,8 @@
   "candle_count": 0,
   "companyName": "TEST",
   "controller_state": [
-   "₺0.00",
-   "+0.00%",
+   "₺0,00",
+   "%0,00",
    true,
    "TEST.IS"
   ],
@@ -208,8 +208,8 @@
   "candle_count": 70,
   "companyName": "Test Hisse",
   "controller_state": [
-   "₺135.70",
-   "+0.59%",
+   "₺135,70",
+   "+%0,59",
    true,
    "Test Hisse"
   ],
@@ -264,8 +264,8 @@
   "candle_count": 14,
   "companyName": "Test Hisse",
   "controller_state": [
-   "₺135.70",
-   "+1.88%",
+   "₺135,70",
+   "+%1,88",
    true,
    "Test Hisse"
   ],

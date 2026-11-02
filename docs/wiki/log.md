@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] güncelleme | Portföyüm Getiri Kartları Birleşik Seriye Bağlandı, Ana Sayfa Sayı Biçimi Türkçe
+
+- `UnifiedReturnService`: Haftalık (7 gün) ve aylık (30 gün) getiri `UnifiedSeriesBuilder` TWR endeksinin oranıdır; sermaye yatırma/çekme ve havuz içi hareketler getiriyi bozmaz, kur ve varlık fiyatı hareketi getiriye girer. `DashboardController` kartları bu servisle besler (kayıtlı son değer yine anında gösterilir); kart başlıkları "(BIST)" ekini kaybetti. Dönem başında portföy değeri yoksa kartta `-`.
+- Ana Sayfa (Genel Bakış) Türkçe biçime geçti: grafik şablonu (`tradingview_chart.html`) lejant, fiyat ve hacim ekseni, son fiyat balonu, gösterge etiketleri (`1.234,56`, `+%1,20`, `21,54M`); grafik başlık özeti (`chart_candle_sources.last_price_summary`); `dashboardController.cashBalance`, sermaye yatırma/çekme bildirimleri; dönemsel getiri biçimi `+%1,23` / `-%0,50`. Koruma: `test_chart_turkish_format.py`.
+- Hâlâ eski (ABD) biçimi kullananlar: Hisse Detay modalı, Hisse 360, İzleme Listesi, Tarayıcı, Planlama/DCA, Model Portföy bildirimleri, karşılaştırma ve planlama grafikleri.
+
+---
 ## [2026-11-03] güncelleme | QA turu (test veritabanı kopyası) ve Tüm Varlıklar analizi/optimizasyonu
 
 **QA (gerçek pencere, GPU çizimi, test veritabanı kopyası; gerçek veritabanına dokunulmadı).** Senaryolar: sermaye, döviz al/sat, USD ve TL ile varlık alımı/satımı, ücretler, yetersiz bakiye, hatalı girdiler, silme zinciri, USD gösterimi. Servis kuralları (yetersiz nakit, silme engeli, kısmi satış) beklendiği gibi çalıştı; bulunan hatalar düzeltildi:

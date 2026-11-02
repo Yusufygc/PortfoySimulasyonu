@@ -10,6 +10,8 @@ from typing import Optional, Tuple
 
 from PySide6.QtCore import QSettings
 
+from src.ui_qml.presenters.formatting import tr_pct
+
 PRICES_LAST_UPDATE_KEY = "dashboard/last_price_update_at"
 WEEKLY_RETURN_KEY = "dashboard/weekly_return_pct"
 MONTHLY_RETURN_KEY = "dashboard/monthly_return_pct"
@@ -20,7 +22,7 @@ def format_last_update(updated_at: Optional[datetime]) -> str:
 
 
 def format_return_pct(value: Optional[float]) -> str:
-    return "-" if value is None else f"%{value:+.2f}".replace(".", ",")
+    return "-" if value is None else tr_pct(value, with_sign=True)
 
 
 class LastUpdateStore:

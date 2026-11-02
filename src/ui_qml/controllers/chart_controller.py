@@ -39,8 +39,8 @@ class ChartController(QObject):
         self._active_indicators: set[str] = set()
         self._company_name: str = ""
         self._price_currency: str = "TRY"  # son fiyat önekinin para birimi (BIST dışı varlıkta USD vb.)
-        self._last_price_str: str = "₺0.00"
-        self._price_change_str: str = "+0.00%"
+        self._last_price_str: str = "₺0,00"
+        self._price_change_str: str = "%0,00"
         self._is_positive: bool = True
         self._average_cost: float | None = None  # Hisse Detay'dan açılan grafikte ortalama maliyet çizgisi
         self._average_cost_ticker: str = ""

@@ -75,10 +75,10 @@ class TestLastPriceSummary:
     CANDLES = [{"open": 100.0, "close": 100.0}, {"open": 100.0, "close": 110.0}]
 
     def test_try_default_unchanged(self):
-        assert last_price_summary(self.CANDLES) == ("₺110.00", True, "+10.00%")
+        assert last_price_summary(self.CANDLES) == ("₺110,00", True, "+%10,00")
 
     def test_usd_prefix_and_small_price_precision(self):
-        assert last_price_summary(self.CANDLES, "USD")[0] == "$110.00"
+        assert last_price_summary(self.CANDLES, "USD")[0] == "$110,00"
         small = [{"open": 0.15, "close": 0.15}, {"open": 0.15, "close": 0.153421}]
-        assert last_price_summary(small, "USD")[0] == "$0.153421"
-        assert last_price_summary(small, "TRY")[0] == "₺0.15"  # BIST biçimi korunur
+        assert last_price_summary(small, "USD")[0] == "$0,153421"
+        assert last_price_summary(small, "TRY")[0] == "₺0,15"  # BIST biçimi korunur

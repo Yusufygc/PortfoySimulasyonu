@@ -1,7 +1,7 @@
 """Birleşik TWR/değer serisi: dış akış kuralları, döviz, nakde bağlı ve eski varlık işlemleri, gram altın, pozisyon özeti."""
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date, time, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -292,3 +292,34 @@ class TestAnalysisServiceIntegration:
         service = AnalysisService(AnalysisServiceDeps(repos, repos, repos, SimpleNamespace(get_price_series=lambda *a, **k: {})))
 
         assert [o.code for o in service.get_portfolio_options()] == ["dashboard"]
+
+
+class TestUnifiedReturnService:
+    """Haftalık/aylık getiri kartları: TWR oranı, akıştan etkilenmez."""
+
+    @staticmethod
+    def _returns(repos, end):
+        from src.application.services.analysis.unified_return_service import UnifiedReturnService
+
+        return UnifiedReturnService(repos.builder()).returns(end)
+
+    def test_week_and_month_use_twr_so_deposits_do_not_count_as_return(self, repos):
+        end = date(2026, 3, 31)
+        repos.movements = [deposit("100000", date(2026, 2, 1)), deposit("100000", date(2026, 3, 28))]   # son hafta yeni para
+        repos.conversions = [fx_buy("1000", "40", date(2026, 2, 2))]
+        repos.fx = {date(2026, 2, 1) + timedelta(days=i): D("40") if i < 40 else D("44") for i in range(60)}   # kur 11 Mart'tan sonra 44
+
+        weekly, monthly = self._returns(repos, end)
+
+        assert weekly == pytest.approx(0.0, abs=1e-9)           # kur son 7 günde sabit; 28 Mart yatırması getiri değil
+        assert monthly == pytest.approx(4.0)                    # 1.000 USD x (44 - 40) = 4.000 TL / 100.000 TL; yatırma hariç
+
+    def test_empty_portfolio_has_no_return(self, repos):
+        assert self._returns(repos, date(2026, 3, 31)) == (None, None)
+
+    def test_period_without_value_at_start_is_none(self, repos):
+        repos.movements = [deposit("1000", date(2026, 3, 29))]
+
+        weekly, monthly = self._returns(repos, date(2026, 3, 31))
+
+        assert weekly is None and monthly is None

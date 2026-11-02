@@ -99,6 +99,26 @@
   </div>
 
   <script>
+    // Türkçe sayı biçimi: 1.234,56; yüzde: +%1,20 / -%0,57
+    function trFixed(value, digits) {
+      return Number(value).toLocaleString('tr-TR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+    function trPrice(value) {
+      const abs = Math.abs(value);
+      if (abs >= 1 || abs === 0) return trFixed(value, 2);
+      return Number(value).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+    }
+    function trVolume(value) {
+      if (value >= 1e6) return trFixed(value / 1e6, 2) + 'M';
+      return value >= 1e3 ? trFixed(value / 1e3, 0) + 'K' : trFixed(value, 0);
+    }
+    const TR_PRICE = { type: 'custom', formatter: trPrice, minMove: 0.01 };
+    function trPct(value) {
+      if (!isFinite(value) || Math.abs(value) < 0.005) return '%0,00';
+      return (value < 0 ? '-' : '+') + '%' + trFixed(Math.abs(value), 2);
+    }
+  </script>
+  <script>
     let chart = null;
     let mainSeries = null;
     let volumeSeries = null;
@@ -161,6 +181,7 @@
       chart = LightweightCharts.createChart(container, {
         width: containerW,
         height: containerH,
+        localization: { locale: 'tr-TR' },
         layout: {
           background: { type: 'solid', color: bgColor },
           textColor: textColor,
@@ -203,7 +224,7 @@
       // Volume Series (Hacim Çubukları)
       volumeSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
         color: '#26a69a',
-        priceFormat: { type: 'volume' },
+        priceFormat: { type: 'custom', formatter: trVolume, minMove: 1 },
         priceScaleId: '',
       }, 0);
 
@@ -279,12 +300,14 @@
 
       if (type === "line") {
         mainSeries = chart.addSeries(LightweightCharts.LineSeries, {
+          priceFormat: TR_PRICE,
           color: '#2962ff',
           lineWidth: 2,
           priceScaleId: 'right',
         }, 0);
       } else if (type === "area") {
         mainSeries = chart.addSeries(LightweightCharts.AreaSeries, {
+          priceFormat: TR_PRICE,
           lineColor: '#2962ff',
           topColor: 'rgba(41, 98, 255, 0.45)',
           bottomColor: 'rgba(41, 98, 255, 0.0)',
@@ -293,6 +316,7 @@
         }, 0);
       } else if (type === "bar") {
         mainSeries = chart.addSeries(LightweightCharts.BarSeries, {
+          priceFormat: TR_PRICE,
           upColor: '#089981',
           downColor: '#f23645',
           priceScaleId: 'right',
@@ -300,6 +324,7 @@
       } else {
         // Varsayılan: Candlestick
         mainSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
+          priceFormat: TR_PRICE,
           upColor: '#089981',
           downColor: '#f23645',
           borderVisible: false,
@@ -329,15 +354,13 @@
             } else {
               o = h = l = c = data.value;
             }
-            elOpen.innerText = o.toFixed(2);
-            elHigh.innerText = h.toFixed(2);
-            elLow.innerText = l.toFixed(2);
-            elClose.innerText = c.toFixed(2);
+            elOpen.innerText = trFixed(o, 2);
+            elHigh.innerText = trFixed(h, 2);
+            elLow.innerText = trFixed(l, 2);
+            elClose.innerText = trFixed(c, 2);
 
             const diff = c - o;
-            const pct = o > 0 ? ((diff / o) * 100).toFixed(2) : "0.00";
-            const sign = diff >= 0 ? '+' : '';
-            elChange.innerText = `${sign}${pct}%`;
+            elChange.innerText = trPct(o > 0 ? (diff / o) * 100 : 0);
             elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
           }
         }
@@ -347,8 +370,8 @@
           const vData = param.seriesData.get(volumeSeries);
           if (vData && vData.value !== undefined) {
             elVol.innerText = (vData.value >= 1e6)
-              ? (vData.value / 1e6).toFixed(2) + "M"
-              : (vData.value / 1e3).toFixed(0) + "K";
+              ? trFixed((vData.value / 1e6), 2) + "M"
+              : trFixed((vData.value / 1e3), 0) + "K";
           }
         }
 
@@ -363,30 +386,30 @@
 
       if (seriesMap.sma20 && param.seriesData.has(seriesMap.sma20)) {
         const v = param.seriesData.get(seriesMap.sma20);
-        if (v && v.value) fragments.push(`<span class="tag-sma20">SMA20: ${v.value.toFixed(2)}</span>`);
+        if (v && v.value) fragments.push(`<span class="tag-sma20">SMA20: ${trFixed(v.value, 2)}</span>`);
       }
       if (seriesMap.sma50 && param.seriesData.has(seriesMap.sma50)) {
         const v = param.seriesData.get(seriesMap.sma50);
-        if (v && v.value) fragments.push(`<span class="tag-sma50">SMA50: ${v.value.toFixed(2)}</span>`);
+        if (v && v.value) fragments.push(`<span class="tag-sma50">SMA50: ${trFixed(v.value, 2)}</span>`);
       }
       if (seriesMap.sma200 && param.seriesData.has(seriesMap.sma200)) {
         const v = param.seriesData.get(seriesMap.sma200);
-        if (v && v.value) fragments.push(`<span class="tag-sma200">SMA200: ${v.value.toFixed(2)}</span>`);
+        if (v && v.value) fragments.push(`<span class="tag-sma200">SMA200: ${trFixed(v.value, 2)}</span>`);
       }
       if (seriesMap.ema20 && param.seriesData.has(seriesMap.ema20)) {
         const v = param.seriesData.get(seriesMap.ema20);
-        if (v && v.value) fragments.push(`<span class="tag-ema20">EMA20: ${v.value.toFixed(2)}</span>`);
+        if (v && v.value) fragments.push(`<span class="tag-ema20">EMA20: ${trFixed(v.value, 2)}</span>`);
       }
       if (seriesMap.rsi && param.seriesData.has(seriesMap.rsi)) {
         const v = param.seriesData.get(seriesMap.rsi);
-        if (v && v.value) fragments.push(`<span class="tag-rsi">RSI(14): ${v.value.toFixed(2)}</span>`);
+        if (v && v.value) fragments.push(`<span class="tag-rsi">RSI(14): ${trFixed(v.value, 2)}</span>`);
       }
       if (seriesMap.macd_line && param.seriesData.has(seriesMap.macd_line)) {
         const m = param.seriesData.get(seriesMap.macd_line);
         const s = seriesMap.macd_signal && param.seriesData.has(seriesMap.macd_signal) ? param.seriesData.get(seriesMap.macd_signal) : null;
         if (m && m.value) {
-          const sigStr = s && s.value ? `  S: ${s.value.toFixed(2)}` : '';
-          fragments.push(`<span class="tag-macd">MACD: ${m.value.toFixed(2)}${sigStr}</span>`);
+          const sigStr = s && s.value ? `  S: ${trFixed(s.value, 2)}` : '';
+          fragments.push(`<span class="tag-macd">MACD: ${trFixed(m.value, 2)}${sigStr}</span>`);
         }
       }
 
@@ -470,21 +493,19 @@
       // Son mum değerlerini lejanta yaz
       if (candles.length > 0) {
         const last = candles[candles.length - 1];
-        if (elOpen && last.open !== undefined) elOpen.innerText = Number(last.open).toFixed(2);
-        if (elHigh && last.high !== undefined) elHigh.innerText = Number(last.high).toFixed(2);
-        if (elLow && last.low !== undefined) elLow.innerText = Number(last.low).toFixed(2);
-        if (elClose && last.close !== undefined) elClose.innerText = Number(last.close).toFixed(2);
+        if (elOpen && last.open !== undefined) elOpen.innerText = trFixed(Number(last.open), 2);
+        if (elHigh && last.high !== undefined) elHigh.innerText = trFixed(Number(last.high), 2);
+        if (elLow && last.low !== undefined) elLow.innerText = trFixed(Number(last.low), 2);
+        if (elClose && last.close !== undefined) elClose.innerText = trFixed(Number(last.close), 2);
         const diff = Number(last.close) - Number(last.open);
-        const pct = last.open > 0 ? ((diff / last.open) * 100).toFixed(2) : "0.00";
-        const sign = diff >= 0 ? '+' : '';
         if (elChange) {
-          elChange.innerText = `${sign}${pct}%`;
+          elChange.innerText = trPct(last.open > 0 ? (diff / last.open) * 100 : 0);
           elChange.className = 'stat-val ' + (diff >= 0 ? 'val-up' : 'val-down');
         }
 
         if (volumes.length > 0 && elVol) {
           const lastV = volumes[volumes.length - 1].value;
-          elVol.innerText = (lastV >= 1e6) ? (lastV / 1e6).toFixed(2) + "M" : (lastV / 1e3).toFixed(0) + "K";
+          elVol.innerText = (lastV >= 1e6) ? trFixed((lastV / 1e6), 2) + "M" : trFixed((lastV / 1e3), 0) + "K";
         }
       }
     }
@@ -505,17 +526,20 @@
       if (activeIndicators.has('bb') && cachedData.bb) {
         if (!seriesMap.bb_upper) {
           seriesMap.bb_upper = chart.addSeries(LightweightCharts.LineSeries, {
+          priceFormat: TR_PRICE,
             color: '#2196f3',
             lineWidth: 1,
             lineStyle: LightweightCharts.LineStyle.Dashed,
             title: 'BB Üst',
           }, 0);
           seriesMap.bb_middle = chart.addSeries(LightweightCharts.LineSeries, {
+          priceFormat: TR_PRICE,
             color: '#90caf9',
             lineWidth: 1,
             title: 'BB Orta',
           }, 0);
           seriesMap.bb_lower = chart.addSeries(LightweightCharts.LineSeries, {
+          priceFormat: TR_PRICE,
             color: '#2196f3',
             lineWidth: 1,
             lineStyle: LightweightCharts.LineStyle.Dashed,
@@ -541,6 +565,7 @@
       if (activeIndicators.has('rsi') && cachedData.rsi) {
         if (!seriesMap.rsi) {
           seriesMap.rsi = chart.addSeries(LightweightCharts.LineSeries, {
+          priceFormat: TR_PRICE,
             color: '#e040fb',
             lineWidth: 2,
             priceScaleId: 'rsi',
@@ -563,17 +588,20 @@
       if (activeIndicators.has('macd') && cachedData.macd) {
         if (!seriesMap.macd_hist) {
           seriesMap.macd_hist = chart.addSeries(LightweightCharts.HistogramSeries, {
+          priceFormat: TR_PRICE,
             color: '#26a69a',
             priceScaleId: 'macd',
             title: 'Histogram',
           }, macdPaneIndex);
           seriesMap.macd_line = chart.addSeries(LightweightCharts.LineSeries, {
+          priceFormat: TR_PRICE,
             color: '#2962ff',
             lineWidth: 1.5,
             priceScaleId: 'macd',
             title: 'MACD',
           }, macdPaneIndex);
           seriesMap.macd_signal = chart.addSeries(LightweightCharts.LineSeries, {
+          priceFormat: TR_PRICE,
             color: '#ff6d00',
             lineWidth: 1.5,
             priceScaleId: 'macd',
@@ -608,6 +636,7 @@
       if (activeIndicators.has(key) && data && data.length > 0) {
         if (!seriesMap[key]) {
           seriesMap[key] = chart.addSeries(LightweightCharts.LineSeries, {
+          priceFormat: TR_PRICE,
             color: color,
             lineWidth: width,
             priceScaleId: 'right',

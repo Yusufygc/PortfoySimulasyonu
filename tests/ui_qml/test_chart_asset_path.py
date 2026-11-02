@@ -54,7 +54,7 @@ def test_asset_symbol_chart_uses_ledger_prices_and_currency_prefix():
 def test_bist_ticker_without_data_still_returns_empty_chart_not_asset():
     container = SimpleNamespace(stock_lookup_service=_Lookup(), asset_chart_service=_chart_service())
     controller, payload = _run(container, "THYAO")
-    assert payload["candles"] == [] and controller.lastPrice == "₺0.00"
+    assert payload["candles"] == [] and controller.lastPrice == "₺0,00"
 
 
 def test_currency_resets_after_switching_back_from_asset():
