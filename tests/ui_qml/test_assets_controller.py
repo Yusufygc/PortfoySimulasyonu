@@ -147,7 +147,7 @@ class TestLists:
     def test_catalog_and_assets_are_plain_dicts(self, parts):
         controller = parts[3]
 
-        assert {"key": "XAU", "name": "Altın (ons)", "classKey": "PRECIOUS_METAL", "currency": "USD"} in controller.catalog
+        assert {"key": "XAU", "name": "Altın (gram)", "classKey": "PRECIOUS_METAL", "currency": "TRY"} in controller.catalog
         assert controller.assets[0] == {
             "id": 1, "symbol": "BTC", "name": "Bitcoin", "classKey": "CRYPTO", "currency": "USD", "isTry": False, "unit": "UNIT",
         }

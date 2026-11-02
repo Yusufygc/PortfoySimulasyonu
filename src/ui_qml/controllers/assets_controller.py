@@ -140,7 +140,7 @@ class AssetsController(QObject):
         if self._ledger is None:
             return []
         return [
-            {"key": e.key, "name": e.name, "classKey": e.asset_class.value, "currency": e.quote_currency}
+            {"key": e.key, "name": e.name, "classKey": e.asset_class.value, "currency": e.trade_currency or e.quote_currency}
             for e in self._ledger.catalog
         ]
 
@@ -151,7 +151,7 @@ class AssetsController(QObject):
         return [
             {
                 "id": a.id, "symbol": a.symbol, "name": a.name, "classKey": a.asset_class.value,
-                "currency": a.quote_currency, "isTry": a.is_try_quoted, "unit": a.unit.value,
+                "currency": a.settlement_currency, "isTry": a.is_try_settled, "unit": a.unit.value,
             }
             for a in self._ledger.list_assets()
         ]
@@ -192,7 +192,7 @@ class AssetsController(QObject):
         for step, action in (
             (msg("assets.gecmis"), lambda: self._refresh.backfill_history(asset.id)),
             ("fiyat", lambda: self._refresh.refresh_latest(only_open=False)),
-            ("kur", lambda: self._ensure_fx(asset.quote_currency)),
+            ("kur", lambda: self._ensure_fx(asset.quote_currency, asset.settlement_currency)),
         ):
             try:
                 action()
@@ -202,12 +202,14 @@ class AssetsController(QObject):
         suffix = msg("assets.yuklenemedi_daha_sonra_yenilenecek", items=', '.join(notes)) if notes else ""
         return f"{asset.symbol} eklendi.{suffix}"
 
-    def _ensure_fx(self, currency: str) -> None:
-        if self._fx is None or currency.upper() == "TRY":
-            return
-        if self._fx.get_rate(currency, "TRY") is None:
-            self._fx.backfill(currency, "TRY")
-        self._fx.refresh_latest([currency])
+    def _ensure_fx(self, *currencies: str) -> None:
+        """Verilen para birimlerinin TRY kurunu hazırlar (TRY ve zaten hazır olanlar atlanır)."""
+        for currency in {c.upper() for c in currencies if c.upper() != "TRY"}:
+            if self._fx is None:
+                return
+            if self._fx.get_rate(currency, "TRY") is None:
+                self._fx.backfill(currency, "TRY")
+            self._fx.refresh_latest([currency])
 
     # --- Slotlar ---
 
@@ -258,13 +260,25 @@ class AssetsController(QObject):
         if asset is None:
             return {}
         price = self._refresh.cached_price(asset_id) if self._refresh is not None else None
-        rate = self._fx.get_rate(asset.quote_currency, "TRY") if self._fx is not None else None
+        rate = self._fx.get_rate(asset.settlement_currency, "TRY") if self._fx is not None else None
         return {
-            "currency": asset.quote_currency,
-            "isTry": asset.is_try_quoted,
-            "price": format(asset.unit_price(price).normalize(), "f") if price is not None else "",
-            "fxRate": f"{rate:.4f}" if rate is not None and not asset.is_try_quoted else "",
+            "currency": asset.settlement_currency,
+            "isTry": asset.is_try_settled,
+            "price": self._suggested_price(asset, price),
+            "fxRate": f"{rate:.4f}" if rate is not None and not asset.is_try_settled else "",
         }
+
+    def _suggested_price(self, asset, quoted_price) -> str:
+        """Önerilen birim fiyat, işlem para biriminde (altın gram: USD/gram x USDTRY = TL/gram)."""
+        if quoted_price is None:
+            return ""
+        unit_price = asset.unit_price(quoted_price)
+        if asset.settlement_currency != asset.quote_currency:
+            conversion = self._fx.get_rate(asset.quote_currency, asset.settlement_currency) if self._fx is not None else None
+            if conversion is None:
+                return ""
+            unit_price = unit_price * conversion
+        return format(unit_price.normalize(), "f")
 
     @Slot(int, "QVariantMap")
     def recordTrade(self, asset_id: int, form: Dict[str, Any]) -> None:

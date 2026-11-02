@@ -44,6 +44,7 @@ class Asset:
     yf_symbol: str
     unit: AssetUnit = AssetUnit.UNIT
     is_active: bool = True
+    trade_currency: str = ""   # işlemin ödendiği nakit para birimi; boşsa fiyat para birimi (altın gram: fiyat USD, işlem TRY)
 
     def __post_init__(self) -> None:
         self._coerce_enum("asset_class", AssetClass, "asset class")
@@ -52,6 +53,10 @@ class Asset:
         self._set_required("name", "Asset name is required")
         self._set_required("yf_symbol", "Asset price symbol is required")
         self._set_required("quote_currency", "Asset quote currency must be a 3 letter code", str.upper, length=3)
+        trade = (self.trade_currency or "").strip().upper()
+        if trade and len(trade) != 3:
+            raise ValueError("Asset trade currency must be a 3 letter code")
+        object.__setattr__(self, "trade_currency", trade)
 
     def _coerce_enum(self, field_name: str, enum_type, label: str) -> None:
         value = getattr(self, field_name)
@@ -73,7 +78,11 @@ class Asset:
     @property
     def settlement_currency(self) -> str:
         """İşlemin ödendiği/tahsil edildiği nakit para birimi (ortak havuzdaki bakiye); işlem fiyatı bu birimdedir."""
-        return self.quote_currency
+        return self.trade_currency or self.quote_currency
+
+    @property
+    def is_try_settled(self) -> bool:
+        return self.settlement_currency == "TRY"
 
     @property
     def is_try_quoted(self) -> bool:

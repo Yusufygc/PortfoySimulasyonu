@@ -93,6 +93,12 @@ Tüm alım-satımlar tek nakit havuzundan yapılır; havuz para birimine göre t
 
 Kurallar: varlık alımı **ödeme para biriminin** (`Asset.settlement_currency`, şimdilik fiyat para birimi) bakiyesini aşamaz; USD yetmezse "Önce Döviz Al ile TL'den USD alın" hatası verilir (otomatik çevirme yoktur). Desteklenen nakit para birimleri TRY ve USD; başka birimle ödenen varlık reddedilir. Satış ödeme para birimine net gelir (tutar - ücret) ekler. Nakde bağlı USD satışını veya döviz alımını silmek, sonraki USD ödemelerini eksiye düşürüyorsa reddedilir; TL tarafı için yalnızca işlem anı bakiyesi denetlenir (silme sonrası TL zinciri denetlenmez). Sıfırlama döviz çevirmelerini de siler.
 
+### Gram altın ve işlem para birimi (E5.3)
+
+`Asset.trade_currency` (boşsa fiyat para birimi) işlemin ödendiği nakit para birimini belirler (`Asset.settlement_currency`); işlem fiyatı, ücret ve maliyet bu birimdedir. Katalogdaki **altın, gümüş, platin ve paladyum gram birimlidir ve TL ile işlem görür**: sağlayıcı fiyatı USD/ons (`GC=F` vb.) kalır, değerleme sırasında `ons fiyatı / 31,1035 x USDTRY` ile TL/gram'a çevrilir (`AssetHoldingsReader`), alım TL nakitten düşer, arayüz önerilen fiyatı TL/gram verir. Kur gerekmez (işlem kuru 1). Eski ons kayıtları değişmeden kalır (göç 6 mevcut varlıklara boş `trade_currency` verir); katalogdaki `XAU` zaten ekliyse gram altın için önce eski kaydı kaldırmak gerekir.
+
+Günlük değişim yüzdesi USD fiyat serisinden gelir (kur hareketini içermez); K/Z ise TL maliyete göre hesaplandığından kur etkisini içerir.
+
 ### Pozisyon okuma servisi (`PositionQueryService`)
 
 `src/application/services/portfolio/position_query_service.py`; domain modeli `position_snapshot.py` (`PositionSnapshot`, `PortfolioPositions`).

@@ -50,7 +50,7 @@ class AssetHoldingsReader:
             name=asset.name,
             allocation_class=allocation_class,
             quantity=position.total_quantity,
-            native_currency=asset.quote_currency,
+            native_currency=asset.settlement_currency,
             cost_native=position.total_cost,
             cost_try=position.total_cost_try,
             ref_id=asset.id,
@@ -62,18 +62,30 @@ class AssetHoldingsReader:
         fx_rate, fx_date = fx
 
         unit_price = asset.unit_price(quoted)
-        value_native = position.total_quantity * unit_price
-        value_try = value_native * fx_rate
+        value_try = position.total_quantity * unit_price * fx_rate
+        price_native = self._price_in_settlement(asset, unit_price, fx_rate)
+        if price_native is None:
+            return HoldingValuation(**base, value_try=position.total_cost_try, is_priced=False)
+        value_native = position.total_quantity * price_native
         change = self._daily_change_pct(asset, reference_date, quoted)
         return HoldingValuation(
             **base,
             value_try=value_try,
-            price_native=unit_price,
+            price_native=price_native,
             value_native=value_native,
             daily_change_pct=change,
             daily_gain_try=daily_gain(value_try, change),
             is_stale=self._is_stale(asset, reference_date, fx_date),
         )
+
+    def _price_in_settlement(self, asset: Asset, unit_price: Decimal, quote_to_try: Decimal) -> Optional[Decimal]:
+        """Birim fiyatı işlem para birimine çevirir (altın gram: USD/gram x USDTRY = TL/gram); çevrilemezse None."""
+        if asset.settlement_currency == asset.quote_currency:
+            return unit_price
+        if asset.is_try_settled:
+            return unit_price * quote_to_try
+        rate = self._fx.get_rate(asset.quote_currency, asset.settlement_currency)
+        return unit_price * rate if rate is not None else None
 
     def _is_stale(self, asset: Asset, price_date: Optional[date], fx_date: date) -> bool:
         today = self._today()

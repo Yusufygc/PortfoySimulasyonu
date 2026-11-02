@@ -153,3 +153,17 @@ def test_unsupported_settlement_currency_is_rejected(container):
     euro = container.asset_repo.add_asset(Asset(None, "XYZ", "Euro varlık", AssetClass.US_STOCK, "EUR", "XYZ"))
     with pytest.raises(ValueError, match="EUR"):
         container.asset_ledger_service.record_trade(euro.id, TradeSide.BUY, "1", "10", trade_date=DAY, fx_rate_to_try="35")
+
+
+def test_catalog_gold_is_gram_priced_in_try_and_paid_from_try_cash(container):
+    container.asset_ledger_service._symbol_verifier = None  # çevrimiçi sembol doğrulaması testte kapalı
+    gold = container.asset_ledger_service.add_catalog_asset("XAU")
+    _deposit(container, "50000")
+
+    trade = container.asset_ledger_service.record_trade(
+        gold.id, TradeSide.BUY, "10", "3000", trade_date=DAY, trade_time=time(11, 0))
+
+    assert (gold.unit, gold.settlement_currency, trade.fx_rate_to_try) == (AssetUnit.GRAM, "TRY", D("1"))
+    assert container.cash_pool_service.try_balance() == D("20000")   # 50.000 - 10 g x 3.000 TL
+    with pytest.raises(ValueError, match="Yetersiz TRY nakit"):
+        container.asset_ledger_service.record_trade(gold.id, TradeSide.BUY, "10", "3000", trade_date=DAY, trade_time=time(12, 0))

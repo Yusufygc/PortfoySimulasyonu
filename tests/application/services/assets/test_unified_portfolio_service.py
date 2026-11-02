@@ -209,6 +209,19 @@ class TestAssetValuation:
         assert holding.value_native == D("1000")
         assert holding.value_try == D("40000")
 
+    def test_gram_gold_traded_in_try_is_valued_in_try_per_gram(self):
+        gold_try = Asset(3, "XAU", "Altın (gram)", AssetClass.PRECIOUS_METAL, "USD", "GC=F", AssetUnit.GRAM, trade_currency="TRY")
+        repo = FakeAssetPriceRepo()
+        repo.latest[3] = latest(3, str(TROY_OUNCE_GRAMS * 100))   # 100 USD/gram, kur 40 -> 4.000 TL/gram
+        service, _ = build(assets=[gold_try], asset_trades=[asset_trade(3, "10", "3000", "1")], fx={"USDTRY": "40"}, price_repo=repo)
+
+        holding = service.get_summary().holdings[0]
+
+        # alım 10 g x 3.000 TL = 30.000 TL; şimdi 10 g x 4.000 TL = 40.000 TL
+        assert holding.native_currency == "TRY" and holding.price_native == D("4000")
+        assert (holding.value_native, holding.value_try) == (D("40000"), D("40000"))
+        assert (holding.cost_native, holding.cost_try, holding.unrealized_pl_try) == (D("30000"), D("30000"), D("10000"))
+
     def test_newer_daily_close_wins_over_stale_latest(self):
         repo = FakeAssetPriceRepo()
         repo.latest[1] = latest(1, "100", datetime(2026, 1, 2, 10, 0))

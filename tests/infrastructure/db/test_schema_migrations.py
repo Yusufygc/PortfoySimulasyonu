@@ -173,3 +173,27 @@ def test_fee_migration_adds_zero_fee_to_existing_trades_and_keeps_data(tmp_path)
         assert conn.execute("SELECT quantity, price, fee FROM trades").fetchall() == [(10, 100, 0)]
         assert conn.execute("SELECT quantity, price, fee FROM asset_trades").fetchall() == [(0.5, 60000, 0)]
     assert 4 in _versions(path)
+
+
+def test_cash_pool_and_gold_migrations_keep_existing_assets_and_trades_unlinked(tmp_path):
+    path = tmp_path / "pre_pool.db"
+    with sqlite3.connect(path) as conn:
+        conn.execute(OLD_ASSET_TRADES)
+        conn.execute(
+            "CREATE TABLE assets (id INTEGER NOT NULL, symbol VARCHAR(30) NOT NULL, name VARCHAR(150) NOT NULL, "
+            "asset_class VARCHAR(20) NOT NULL, quote_currency VARCHAR(3) NOT NULL, yf_symbol VARCHAR(40) NOT NULL, "
+            "unit VARCHAR(10) DEFAULT 'UNIT' NOT NULL, is_active BOOLEAN DEFAULT 1 NOT NULL, created_at DATETIME, PRIMARY KEY (id))"
+        )
+        conn.execute("INSERT INTO assets (id, symbol, name, asset_class, quote_currency, yf_symbol, unit) "
+                     "VALUES (1, 'XAU', 'Altın (ons)', 'PRECIOUS_METAL', 'USD', 'GC=F', 'OUNCE')")
+        conn.execute("INSERT INTO asset_trades (id, asset_id, trade_date, side, quantity, price) "
+                     "VALUES (1, 1, '2026-01-02', 'BUY', 2, 2000)")
+
+    SQLAlchemyEngineProvider(SQLiteConfig(db_path=str(path))).dispose()
+    SQLAlchemyEngineProvider(SQLiteConfig(db_path=str(path))).dispose()
+
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT cash_linked FROM asset_trades").fetchall() == [(0,)]     # nakde dokunmaz
+        assert conn.execute("SELECT unit, trade_currency FROM assets").fetchall() == [("OUNCE", "")]  # ons kaydı aynen
+        assert conn.execute("SELECT COUNT(*) FROM fx_conversions").fetchone() == (0,)
+    assert [5, 6] == [v for v in _versions(path) if v in (5, 6)]

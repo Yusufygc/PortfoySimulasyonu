@@ -81,12 +81,20 @@ def _add_asset_trade_cash_linked(conn: Connection) -> None:
         conn.exec_driver_sql("ALTER TABLE asset_trades ADD COLUMN cash_linked BOOLEAN NOT NULL DEFAULT 0")
 
 
+def _add_asset_trade_currency(conn: Connection) -> None:
+    """İşlem para birimi (altın gram: fiyat USD, işlem TRY); boş değer fiyat para birimi demektir."""
+    columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(assets)")}
+    if columns and "trade_currency" not in columns:
+        conn.exec_driver_sql("ALTER TABLE assets ADD COLUMN trade_currency VARCHAR(3) NOT NULL DEFAULT ''")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "drop_legacy_golden_cross_events", _drop_legacy_golden_cross_events),
     Migration(2, "canonicalize_stock_tickers", _canonicalize_stock_tickers),
     Migration(3, "add_cash_movements_stock_id", _add_cash_movements_stock_id),
     Migration(4, "add_trade_fee_columns", _add_trade_fee_columns),
     Migration(5, "add_asset_trade_cash_linked", _add_asset_trade_cash_linked),
+    Migration(6, "add_asset_trade_currency", _add_asset_trade_currency),
 )
 
 

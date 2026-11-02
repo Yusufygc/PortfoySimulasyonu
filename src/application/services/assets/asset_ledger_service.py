@@ -62,6 +62,7 @@ class AssetLedgerService:
     def add_asset(self, symbol: str, name: str, asset_class: AssetClass, quote_currency: str, **options) -> Asset:
         """`options`: `yf_symbol` (varsayılan sınıfa göre çözülür) ve `unit` (varsayılan `AssetUnit.UNIT`)."""
         yf_symbol, unit = options.pop("yf_symbol", None), options.pop("unit", AssetUnit.UNIT)
+        trade_currency = options.pop("trade_currency", "")
         if options:
             raise TypeError(f"Bilinmeyen varlık seçeneği: {', '.join(sorted(options))}")
         try:
@@ -73,6 +74,7 @@ class AssetLedgerService:
                 quote_currency=quote_currency,
                 yf_symbol=(yf_symbol or resolve_yf_symbol(AssetClass(asset_class), symbol)),
                 unit=unit,
+                trade_currency=trade_currency,
             )
         except ValueError as exc:
             raise ValueError(f"Varlık bilgisi geçersiz: {exc}") from exc
@@ -98,6 +100,7 @@ class AssetLedgerService:
             quote_currency=entry.quote_currency,
             yf_symbol=entry.yf_symbol,
             unit=entry.unit,
+            trade_currency=entry.trade_currency,
         )
 
     def remove_asset(self, asset_id: int) -> None:
@@ -211,10 +214,10 @@ class AssetLedgerService:
 
     @staticmethod
     def _resolve_fx_rate(asset: Asset, fx_rate_to_try) -> Decimal:
-        if asset.is_try_quoted:
+        if asset.is_try_settled:
             return Decimal("1")
         if fx_rate_to_try is None:
-            raise ValueError(f"{asset.quote_currency}/TRY kuru gerekli.")
+            raise ValueError(f"{asset.settlement_currency}/TRY kuru gerekli.")
         rate = _decimal(fx_rate_to_try, "Kur")
         if rate <= 0:
             raise ValueError("Kur sıfırdan büyük olmalı.")

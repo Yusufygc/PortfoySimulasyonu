@@ -486,6 +486,7 @@ class ORMAsset(Base):
     yf_symbol = Column(String(40), nullable=False)
     unit = Column(String(10), nullable=False, default="UNIT", server_default="UNIT")
     is_active = Column(Boolean, nullable=False, default=True, server_default="1")
+    trade_currency = Column(String(3), nullable=False, default="", server_default="")  # boşsa fiyat para birimi
     created_at = Column(DateTime, server_default=func.now())
 
     __table_args__ = (

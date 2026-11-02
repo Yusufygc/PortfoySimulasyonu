@@ -21,6 +21,7 @@ def _to_domain(orm: ORMAsset) -> Asset:
         yf_symbol=orm.yf_symbol,
         unit=orm.unit,
         is_active=bool(orm.is_active),
+        trade_currency=orm.trade_currency or "",
     )
 
 
@@ -34,6 +35,7 @@ def _to_orm(asset: Asset) -> ORMAsset:
         yf_symbol=asset.yf_symbol,
         unit=asset.unit.value,
         is_active=asset.is_active,
+        trade_currency=asset.trade_currency,
     )
 
 

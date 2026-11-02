@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] güncelleme | Evrim Planı E5.3: Gram Altın (TL Fiyat, TL Nakit)
+
+- `Asset.trade_currency` / `settlement_currency`: işlemin ödendiği nakit birimi (boşsa fiyat birimi). Katalogdaki altın, gümüş, platin, paladyum gram birimli ve TL ile işlem görür; fiyat USD/ons kalır, değerleme `ons / 31,1035 x USDTRY` ile TL/gram'a çevirir. Alım TL nakitten düşer, arayüz TL/gram fiyat önerir. Göç 6 (`assets.trade_currency`); eski ons kayıtları aynen kalır.
+- `AssetHoldingsReader` işlem para birimi != fiyat para biriminde birim fiyatı çevirir; `AssetLedgerService` kur gereksinimini işlem para birimine göre arar. Test: 1844 geçti, 1 gün-sınırı atlaması, 4 xfailed.
+
+---
 ## [2026-11-02] güncelleme | Evrim Planı E5.2: Ortak Nakit Havuzu (TL + USD) ve Döviz Al/Sat
 
 - Yeni: `FxConversion` (TL <-> USD, iç transfer), `FxConversionService`, `CashPoolService` (TL/USD bakiye, `usd_timeline_valid`), `PooledCashMovementRepository` (BIST TL nakit görünümü = gerçek hareketler + döviz TL bacağı + TL ile ödenen varlık işlemleri), `fx_conversions` tablosu, göç 5 (`asset_trades.cash_linked`, mevcutlar 0).

@@ -112,7 +112,8 @@ class TestCatalog:
 
         assert (asset.symbol, asset.yf_symbol, asset.quote_currency) == ("XAU", "GC=F", "USD")
         assert asset.asset_class == AssetClass.PRECIOUS_METAL
-        assert asset.unit == AssetUnit.OUNCE
+        assert asset.unit == AssetUnit.GRAM and asset.trade_currency == "TRY" and asset.settlement_currency == "TRY"
+        assert asset.is_try_settled and not asset.is_try_quoted  # fiyat USD/gram, işlem ve nakit TL
 
     def test_unknown_catalog_key_is_rejected(self, service):
         with pytest.raises(ValueError, match="Katalogda"):
