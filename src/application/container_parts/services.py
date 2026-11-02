@@ -202,6 +202,7 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         bist_reader=bist_holdings_reader,
         asset_reader=AssetHoldingsReader(asset_ledger_service, repositories.asset_price_repo, fx_rate_service),
         fx_rate_service=fx_rate_service,
+        cash_pool=foundation["cash_pool_service"],
     )
 
     return ServiceSet(

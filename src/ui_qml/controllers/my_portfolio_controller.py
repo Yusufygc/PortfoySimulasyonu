@@ -125,10 +125,17 @@ class MyPortfolioController(QObject):
         return self._money(self._summary.cash_try)
 
     @Property(str, notify=summaryChanged)
+    def usdCashBalance(self) -> str:
+        """Ortak havuzdaki USD nakit (USD cinsinden; gösterim para birimine çevrilmez)."""
+        return f"${self._summary.usd_cash:,.2f}"
+
+    @Property(bool, notify=summaryChanged)
+    def hasUsdCash(self) -> bool:
+        return self._summary.usd_cash > 0
+
+    @Property(str, notify=summaryChanged)
     def cashRatio(self) -> str:
-        total = self._summary.total_value_try
-        ratio = self._summary.cash_try / total * HUNDRED if total > 0 else ZERO
-        return f"%{ratio:.1f}"
+        return f"%{self._summary.cash_weight_pct:.1f}"
 
     @Property(str, notify=summaryChanged)
     def dailyGain(self) -> str:

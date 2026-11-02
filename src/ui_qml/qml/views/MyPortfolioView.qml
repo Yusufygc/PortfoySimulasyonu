@@ -101,6 +101,14 @@ Item {
                         onClicked: assetTradeModal.open(0)
                     }
 
+                    // Döviz Al/Sat (ortak nakit havuzu: TL <-> USD)
+                    ModernButton {
+                        text: Strings.btnFx
+                        iconName: "banknote"
+                        variant: "secondary"
+                        onClicked: fxModal.open()
+                    }
+
                     // Sermaye Yönetimi Butonu (BIST nakdi)
                     ModernButton {
                         text: Strings.btnCapital
@@ -225,7 +233,8 @@ Item {
                     value: myPortfolioController.cashBalance
                     changeText: myPortfolioController.cashRatio
                     isPositive: true
-                    subText: myPortfolioController.holdingsCount + Strings.kpiOpenPositionsSuffix
+                    subText: (myPortfolioController.hasUsdCash ? Strings.kpiUsdCashPrefix + myPortfolioController.usdCashBalance + " - " : "")
+                             + myPortfolioController.holdingsCount + Strings.kpiOpenPositionsSuffix
                     iconName: "portfolio"
                 }
             }
@@ -309,6 +318,10 @@ Item {
         id: assetTradeModal
     }
 
+    FxConvertModal {
+        id: fxModal
+    }
+
     ExcelExportDialog {
         id: excelDialog
         title: Strings.excelDialogTitlePortfolio
@@ -341,6 +354,13 @@ Item {
         function onExcelExported(success, message) {
             toast.show(message, success)
         }
+    }
+
+    // Döviz Al/Sat sonuçları
+    Connections {
+        target: cashPoolController
+
+        function onNotify(success, message) { toast.show(message, success) }
     }
 
     // Varlık defteri sonuçları; otomatik fiyat yenilemesi yalnızca elle istendiğinde bildirilir

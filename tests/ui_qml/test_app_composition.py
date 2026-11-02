@@ -63,6 +63,8 @@ def _receivers(obj, signature: str) -> int:
         ("newsSettingsController", "refreshMinutesChanged(int)", 1),
         ("riskProfileController", "profileSaved()", 1),
         ("marketSyncController", "syncFinished()", 1),             # açılış işleri ilk senkrondan sonra
+        ("cashPoolController", "balancesChanged()", 2),            # Portföyüm ve Ana Sayfa nakdi yeniden okur
+        ("dashboardController", "tradeExecuted(bool,QString)", 1), # BIST işlemi nakit havuzunu yeniler
     ],
 )
 def test_cross_controller_signals_are_wired(built, source, signature, minimum):

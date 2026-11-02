@@ -146,6 +146,11 @@ Temizlik: Test temettüsü silindi.
 - **Adımlar:** "Fiyatları Yenile"ye bas; 5 dakika bekle.
 - **Beklenen sonuç:** Düğmeyle sonuç mesajı gösterilir; otomatik yenileme sessizdir ve seansı kapalı sınıfları (ABD hissesi, metal) atlar.
 
+### PF-010 | Döviz Al/Sat ve ortak nakit
+
+- **Adımlar:** Sermaye yatır; "Döviz Al/Sat" ile USD al (kuru değiştirip dene); USD yetmeyen bir varlık alımını dene; USD ile BTC al; USD sat; altın (gram) al.
+- **Beklenen sonuç:** TL nakit alımda düşer, nakit kartında USD nakit görünür, toplam değer TL ve USD gösterimde tutarlıdır. USD yetersizken varlık alımı "Önce Döviz Al" mesajıyla reddedilir. Altın alımı TL nakitten düşer ve TL/gram fiyatla gösterilir. Ayarlar > Ücretler'de oran girilirse ücret emir ön izlemesinde ve nakitte yansır.
+
 ---
 
 ## 5. Hisse Detay Modalı

@@ -303,7 +303,8 @@ class TestRecordTrade:
 
 class TestSuggestAndRemove:
     def test_suggest_foreign_asset(self, parts):
-        assert parts[3].suggest(1) == {"currency": "USD", "isTry": False, "price": "65000", "fxRate": "40.0000"}
+        suggestion = parts[3].suggest(1)
+        assert {k: v for k, v in suggestion.items() if k != "cash"} == {"currency": "USD", "isTry": False, "price": "65000", "fxRate": "40.0000"}
 
     def test_suggest_converts_ounce_quote_for_gram_asset(self, parts):
         suggestion = parts[3].suggest(2)

@@ -20,6 +20,7 @@ from src.domain.models.asset import AssetClass, AssetUnit
 from src.domain.models.trade import TradeSide
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,7 @@ class AssetsController(QObject):
         self._ledger = getattr(container, "asset_ledger_service", None) if container is not None else None
         self._refresh = getattr(container, "asset_price_refresh_service", None) if container is not None else None
         self._fx = getattr(container, "fx_rate_service", None) if container is not None else None
+        self._pool = getattr(container, "cash_pool_service", None) if container is not None else None
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="AssetsWorker")
         self._busy = False
         self._asyncDone.connect(self._on_async_done)
@@ -266,7 +268,26 @@ class AssetsController(QObject):
             "isTry": asset.is_try_settled,
             "price": self._suggested_price(asset, price),
             "fxRate": f"{rate:.4f}" if rate is not None and not asset.is_try_settled else "",
+            "cash": self._available_cash_text(asset),
         }
+
+    def _available_cash_text(self, asset) -> str:
+        """Ödeme para biriminin ortak havuzdaki bakiyesi (ör. `1.234,50 USD`); havuz yoksa boş."""
+        if self._pool is None:
+            return ""
+        try:
+            return f"{tr_number(self._pool.balance(asset.settlement_currency))} {asset.settlement_currency}"
+        except ValueError:
+            return ""
+
+    @Slot(int, str, str, result=str)
+    def estimateFee(self, asset_id: int, quantity: str, price: str) -> str:
+        """Girilen miktar ve fiyat için tahmini ücret metni (işlem para biriminde); girdi eksikse boş."""
+        asset = self._ledger.get_asset(asset_id) if self._ledger is not None else None
+        qty, unit_price = parse_decimal_text(quantity), parse_decimal_text(price)
+        if asset is None or qty is None or unit_price is None or qty <= 0 or unit_price <= 0:
+            return ""
+        return f"{tr_number(self._ledger.estimate_fee(qty, unit_price))} {asset.settlement_currency}"
 
     def _suggested_price(self, asset, quoted_price) -> str:
         """Önerilen birim fiyat, işlem para biriminde (altın gram: USD/gram x USDTRY = TL/gram)."""

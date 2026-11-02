@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] güncelleme | Evrim Planı E5.4-E5.5: Birleşik Özette USD Nakit ve Arayüz
+
+- `UnifiedSummary`: `usd_cash`, `usd_cash_try`, `cash_weight_pct`; toplam değer ve nakit dilimi USD nakdi güncel kurla içerir, kur yoksa özet kısmi olur. Portföyüm nakit kartı USD nakdi de yazar.
+- `CashPoolController` (`cashPoolController`) ve `FxConvertModal`: Döviz Al/Sat (kur önerisi, ücret, son işlemler silinebilir). `AssetTradeModal`: kullanılabilir nakit ve tahmini ücret; `AssetsController.estimateFee`, `suggest()` içinde `cash`. Bağlantılar: döviz ve varlık işlemleri Portföyüm ile Ana Sayfa nakdini yeniler, BIST işlemi ve sermaye nakit havuzunu yeniler.
+- E5 tamam: ücretler, ortak nakit havuzu, döviz, gram altın, USD/TL gösterim. Fonksiyon ihlali 72 (CI tavanı 72). Test: 1856 geçti, 4 xfailed. Elle pencere doğrulaması PF-010.
+
+---
 ## [2026-11-03] güncelleme | Evrim Planı E5.3: Gram Altın (TL Fiyat, TL Nakit)
 
 - `Asset.trade_currency` / `settlement_currency`: işlemin ödendiği nakit birimi (boşsa fiyat birimi). Katalogdaki altın, gümüş, platin, paladyum gram birimli ve TL ile işlem görür; fiyat USD/ons kalır, değerleme `ons / 31,1035 x USDTRY` ile TL/gram'a çevirir. Alım TL nakitten düşer, arayüz TL/gram fiyat önerir. Göç 6 (`assets.trade_currency`); eski ons kayıtları aynen kalır.

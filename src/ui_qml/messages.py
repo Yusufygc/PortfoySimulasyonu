@@ -478,6 +478,17 @@ MESSAGES: Dict[str, str] = {
     "fees.service_missing": "Ücret ayarı servisi kullanılamıyor.",
     "fees.invalid_number": "Oranlar sayı olmalıdır (ör. 0,2).",
     "fees.saved": "Ücret oranları kaydedildi.",
+    # --- Nakit havuzu ---
+    "cash_pool.service_missing": "Döviz servisi kullanılamıyor.",
+    "cash_pool.invalid_amount": "USD miktarı sıfırdan büyük bir sayı olmalı.",
+    "cash_pool.invalid_rate": "Kur sıfırdan büyük bir sayı olmalı.",
+    "cash_pool.invalid_fee": "Ücret negatif olamaz.",
+    "cash_pool.buy": "Döviz alımı",
+    "cash_pool.sell": "Döviz satımı",
+    "cash_pool.row": "{day} - {side}: {usd} USD, kur {rate}",
+    "cash_pool.done_buy": "{usd} USD alındı.",
+    "cash_pool.done_sell": "{usd} USD satıldı.",
+    "cash_pool.deleted": "Döviz işlemi silindi.",
 }
 
 

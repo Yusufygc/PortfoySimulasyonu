@@ -322,6 +322,38 @@ class TestAllocation:
         assert result.total_value_try == D("0") and result.unrealized_pl_pct is None
 
 
+class TestUsdCash:
+    class Pool:
+        def __init__(self, usd):
+            self.usd = D(usd)
+
+        def usd_balance(self):
+            return self.usd
+
+    def _service(self, usd, fx):
+        service, _ = build(cash="1000", fx=fx)
+        return UnifiedPortfolioService(service._bist_reader, service._asset_reader, service._fx, cash_pool=self.Pool(usd))
+
+    def test_usd_cash_is_valued_at_current_rate_and_joins_total_and_cash_slice(self):
+        summary = self._service("100", {"USDTRY": "40"}).get_summary()
+
+        # TL nakit 1.000 + 100 USD x 40 = 4.000 TL karşılık; toplam 5.000, nakit dilimi 5.000
+        assert (summary.cash_try, summary.usd_cash, summary.usd_cash_try) == (D("1000"), D("100"), D("4000"))
+        assert summary.total_value_try == D("5000") and summary.cash_weight_pct == D("100")
+        assert summary.slices[0].allocation_class == AllocationClass.CASH and summary.slices[0].value_try == D("5000")
+        assert not summary.is_partial
+
+    def test_missing_usd_rate_marks_summary_partial_without_hiding_usd_cash(self):
+        summary = self._service("100", {}).get_summary()
+
+        assert summary.usd_cash == D("100") and summary.usd_cash_try == D("0")
+        assert summary.is_partial and "USD" in summary.unpriced_symbols
+
+    def test_zero_usd_cash_changes_nothing(self):
+        summary = self._service("0", {"USDTRY": "40"}).get_summary()
+        assert (summary.usd_cash, summary.total_value_try, summary.unpriced_symbols) == (D("0"), D("1000"), ())
+
+
 class TestDisplayCurrency:
     def test_try_is_default(self):
         result = build(cash="100")[0].get_summary()

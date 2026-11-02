@@ -12,6 +12,8 @@ Rectangle {
     property string side: "BUY"
     property string currency: "USD"
     property bool isTry: false
+    property string availableCash: ""
+    property string feeText: ""
 
     readonly property bool isBuy: side === "BUY"
     readonly property var assetList: assetsController.assets
@@ -67,6 +69,13 @@ Rectangle {
         isTry = hint.isTry === true
         priceInput.text = hint.price || ""
         fxInput.text = hint.fxRate || ""
+        availableCash = hint.cash || ""
+        refreshFee()
+    }
+
+    // Tahmini ücret (ayardaki oranlarla); miktar ya da fiyat eksikse boş
+    function refreshFee() {
+        feeText = currentAssetId > 0 ? assetsController.estimateFee(currentAssetId, qtyInput.text, priceInput.text) : ""
     }
 
     Connections {
@@ -217,6 +226,7 @@ Rectangle {
                             implicitHeight: 38
                             font.family: Theme.monoFontFamily
                             inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            onTextChanged: root.refreshFee()
                         }
                     }
 
@@ -236,6 +246,7 @@ Rectangle {
                             implicitHeight: 38
                             font.family: Theme.monoFontFamily
                             inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            onTextChanged: root.refreshFee()
                         }
                     }
                 }
@@ -313,6 +324,25 @@ Rectangle {
                             color: root.isBuy ? Theme.bullGreen : Theme.bearRed
                         }
                     }
+                }
+
+                // Kullanılabilir nakit (ödeme para birimi) ve tahmini ücret
+                Text {
+                    visible: root.availableCash !== ""
+                    text: Strings.assetTradeAvailableCash + root.availableCash
+                    font.family: Theme.monoFontFamily
+                    font.pixelSize: Theme.fontXs
+                    color: Theme.textSecondary
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    visible: root.feeText !== ""
+                    text: Strings.assetTradeEstimatedFee + root.feeText
+                    font.family: Theme.monoFontFamily
+                    font.pixelSize: Theme.fontXs
+                    color: Theme.textSecondary
+                    Layout.fillWidth: true
                 }
 
                 RowLayout {

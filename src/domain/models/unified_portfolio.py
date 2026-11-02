@@ -96,6 +96,8 @@ class UnifiedSummary:
     slices: Tuple[AllocationSlice, ...]
     unpriced_symbols: Tuple[str, ...] = ()
     stale_symbols: Tuple[str, ...] = ()  # fiyatı/kuru eşikten eski pozisyonlar
+    usd_cash: Decimal = ZERO                 # ortak havuzdaki USD nakit (USD cinsinden)
+    usd_cash_try: Decimal = ZERO             # USD nakdin güncel kurla TL karşılığı (toplam değere dahildir)
     display_currency: str = "TRY"
     display_rate: Decimal = Decimal("1")     # 1 TRY = ? gösterim para birimi
     display_unavailable: bool = False        # USD istendi ama kur yok: TRY gösterildi
@@ -104,6 +106,11 @@ class UnifiedSummary:
     @property
     def is_partial(self) -> bool:
         return bool(self.unpriced_symbols)
+
+    @property
+    def cash_weight_pct(self) -> Decimal:
+        """Nakdin (TL + USD karşılığı) toplam değere oranı (yüzde)."""
+        return (self.cash_try + self.usd_cash_try) / self.total_value_try * HUNDRED if self.total_value_try > 0 else ZERO
 
     @property
     def unrealized_pl_try(self) -> Decimal:

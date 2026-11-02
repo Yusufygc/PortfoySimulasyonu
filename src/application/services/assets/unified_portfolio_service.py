@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from decimal import Decimal
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from src.domain.models.unified_portfolio import (
     HUNDRED,
@@ -23,10 +23,19 @@ class UnifiedPortfolioService:
     Ana BIST hesapları (TWR, risk, optimizasyon) bu servisten etkilenmez.
     """
 
-    def __init__(self, bist_reader, asset_reader, fx_rate_service) -> None:
+    def __init__(self, bist_reader, asset_reader, fx_rate_service, cash_pool=None) -> None:
         self._bist_reader = bist_reader
         self._asset_reader = asset_reader
         self._fx = fx_rate_service
+        self._cash_pool = cash_pool
+
+    def _usd_cash(self) -> Tuple[Decimal, Decimal, bool]:
+        """(USD nakit, TL karşılığı, kur eksik mi). Kur yoksa USD nakit TL toplamına katılamaz ve özet kısmi olur."""
+        usd = self._cash_pool.usd_balance() if self._cash_pool is not None else ZERO
+        if usd <= 0:
+            return ZERO, ZERO, False
+        rate = self._fx.get_rate("USD", "TRY")
+        return (usd, usd * rate, False) if rate is not None else (usd, ZERO, True)
 
     def get_summary(self, display_currency: str = "TRY") -> UnifiedSummary:
         currency = (display_currency or "TRY").strip().upper()
@@ -34,8 +43,9 @@ class UnifiedPortfolioService:
             raise ValueError(f"Desteklenmeyen gösterim para birimi: {display_currency}")
 
         bist_holdings, cash = self._bist_reader.read()
+        usd_cash, usd_cash_try, usd_rate_missing = self._usd_cash()
         holdings = bist_holdings + self._asset_reader.read()
-        total_value = sum((h.value_try for h in holdings), ZERO) + cash
+        total_value = sum((h.value_try for h in holdings), ZERO) + cash + usd_cash_try
         weighted = sorted((self._with_weight(h, total_value) for h in holdings), key=lambda h: h.value_try, reverse=True)
 
         display = self._display(currency)
@@ -45,8 +55,10 @@ class UnifiedPortfolioService:
             total_value_try=total_value,
             total_cost_try=sum((h.cost_try for h in holdings), ZERO),
             daily_gain_try=sum((h.daily_gain_try for h in holdings), ZERO),
-            slices=tuple(self._slices(weighted, cash, total_value)),
-            unpriced_symbols=tuple(h.symbol for h in weighted if not h.is_priced),
+            slices=tuple(self._slices(weighted, cash + usd_cash_try, total_value)),
+            unpriced_symbols=tuple(h.symbol for h in weighted if not h.is_priced) + (("USD",) if usd_rate_missing else ()),
+            usd_cash=usd_cash,
+            usd_cash_try=usd_cash_try,
             stale_symbols=tuple(h.symbol for h in weighted if h.is_priced and h.is_stale),
             **display,
         )

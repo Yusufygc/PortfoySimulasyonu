@@ -203,6 +203,11 @@ class AssetLedgerService:
         if trade.side == TradeSide.SELL and asset.settlement_currency == "USD" and not self._cash_pool.usd_timeline_valid(exclude_trade_id=trade.id):
             raise ValueError("Bu satış silinemez: sonraki USD ile ödenen işlemler yetersiz bakiyeye düşer.")
 
+    def estimate_fee(self, quantity, price) -> Decimal:
+        """Ayarlardaki oranlarla tahmini ücret (işlem para biriminde); arayüz ön izlemesi içindir."""
+        gross = _decimal(quantity, "Miktar") * _decimal(price, "Fiyat")
+        return self._fee_service.asset_fee(gross) if self._fee_service is not None else Decimal("0")
+
     def _resolve_fee(self, fee_option, gross_amount: Decimal) -> Decimal:
         """Elle girilen ücret varsa o, yoksa ayardaki oranlarla hesaplanan (ayar yoksa 0)."""
         if fee_option is not None:

@@ -20,6 +20,7 @@ from src.domain.models.asset import Asset, AssetClass
 from src.domain.models.asset_price import AssetLatestPrice, FxRate
 from src.domain.models.trade import TradeSide
 from src.ui_qml.controllers.assets_controller import AssetsController
+from src.ui_qml.controllers.cash_pool_controller import CashPoolController
 from src.ui_qml.controllers.chart_controller import ChartController
 from src.ui_qml.controllers.dashboard_controller import DashboardController
 from src.ui_qml.controllers.market_sync_controller import MarketSyncController
@@ -70,6 +71,7 @@ def env(qapp, tmp_path, monkeypatch):
         "dashboardController": DashboardController(container=container, parent=engine),
         "myPortfolioController": MyPortfolioController(container=container, parent=engine),
         "assetsController": AssetsController(container=container, parent=engine),
+        "cashPoolController": CashPoolController(container=container, parent=engine),
         "stockDetailController": StockDetailController(container=container, parent=engine),
         "systemController": system,
         "marketSyncController": sync,
@@ -179,7 +181,9 @@ class TestMyPortfolioPage:
         pump()
 
         assert results == [(True, "BTC SATIM işlemi kaydedildi.")]
-        assert page.totalValue == "₺700,000.00"            # kalan 0,25 x 70.000 x 40
+        # kalan 0,25 x 70.000 x 40 = 700.000 TL + satıştan gelen 0,25 x 72.000 = 18.000 USD nakit x 40 = 720.000 TL
+        assert page.totalValue == "₺1,420,000.00"
+        assert page.hasUsdCash and page.usdCashBalance == "$18,000.00"
         assert warnings == [], "\n".join(warnings)
         item.deleteLater()
 

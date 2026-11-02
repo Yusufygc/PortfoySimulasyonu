@@ -37,6 +37,7 @@ from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustment
 from src.ui_qml.controllers.system_controller import SystemController
 from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
 from src.ui_qml.controllers.news_controller import NewsController
+from src.ui_qml.controllers.cash_pool_controller import CashPoolController
 from src.ui_qml.controllers.fee_settings_controller import FeeSettingsController
 from src.ui_qml.controllers.news_settings_controller import NewsSettingsController
 from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
@@ -95,6 +96,7 @@ def create_controllers(container, parent, autostart: bool = True) -> Dict[str, A
         "newsController": make(NewsController, autostart=autostart),
         "newsSettingsController": make(NewsSettingsController),
         "feeSettingsController": make(FeeSettingsController),
+        "cashPoolController": make(CashPoolController),
         "modelAnalysisController": make(ModelAnalysisController),
     }
     controllers["priceRefreshController"] = PriceRefreshController(
@@ -112,8 +114,14 @@ def wire_controllers(c: Dict[str, Any]) -> None:
     # Açılış kapanış tamamlaması ilk BIST senkronundan sonra: aynı kapanışlar iki yoldan eşzamanlı indirilmesin
     c["startupJobsController"].start_after(c["marketSyncController"].syncFinished)
     _wire_price_refresh(refresh, c["dashboardController"], models, c["watchlistController"], my_portfolio)
-    for target in (my_portfolio.reload, news.refresh, c["chartController"].refreshAssets):  # varlık defteri değişti
+    cash_pool = c["cashPoolController"]
+    for target in (my_portfolio.reload, news.refresh, c["chartController"].refreshAssets, cash_pool.reload,
+                   c["dashboardController"].reloadPortfolio):  # varlık defteri değişti: TL/USD nakit de değişir
         c["assetsController"].dataChanged.connect(target)
+    for target in (my_portfolio.reload, c["dashboardController"].reloadPortfolio):  # döviz al/sat: nakit havuzu değişti
+        cash_pool.balancesChanged.connect(target)
+    for source in (c["dashboardController"].tradeExecuted, c["dashboardController"].capitalUpdated):  # BIST işlemi/sermaye
+        source.connect(lambda *_: cash_pool.reload())
     for source in (c["marketSyncController"].dataSynced, system.pricesRefreshed, c["startupJobsController"].pricesUpdated,
                    c["priceDataController"].pricesUpdated, c["goldenCrossController"].pricesUpdated):
         refresh.watch(source)
