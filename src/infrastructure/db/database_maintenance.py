@@ -28,7 +28,7 @@ _SQLITE_TABLES = [
     ("Model Portföyler (Simülasyon)", "model_portfolios"),
     ("Finansal Hedefler (Planning)", "financial_goals"),
 ]
-_BACKUP_TABLES = ("stocks", "trades", "cash_movements", "watchlists", "assets", "asset_trades")
+_BACKUP_TABLES = ("stocks", "trades", "cash_movements", "watchlists", "assets", "asset_trades", "fx_conversions")
 
 
 def format_file_size(size_in_bytes: int) -> str:

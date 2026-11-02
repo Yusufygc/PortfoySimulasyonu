@@ -35,6 +35,7 @@ class AssetTrade:
     fx_rate_to_try: Decimal = Decimal("1")
     note: Optional[str] = None
     fee: Decimal = Decimal("0")   # komisyon + BSMV, işlemin para biriminde mutlak tutar
+    cash_linked: bool = False     # True: işlem ortak nakit havuzunu etkiler (eski kayıtlar nakde dokunmaz)
 
     def __post_init__(self) -> None:
         if not isinstance(self.side, TradeSide):

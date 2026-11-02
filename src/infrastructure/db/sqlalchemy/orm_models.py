@@ -507,6 +507,7 @@ class ORMAssetTrade(Base):
     price = Column(Numeric(28, 10), nullable=False)
     fx_rate_to_try = Column(Numeric(18, 8), nullable=False, default=1, server_default="1")
     fee = Column(Numeric(28, 10), nullable=False, default=0, server_default="0")  # işlem para biriminde
+    cash_linked = Column(Boolean, nullable=False, default=False, server_default="0")  # nakit havuzunu etkiler
     note = Column(String(255))
     created_at = Column(DateTime, server_default=func.now())
 
@@ -561,6 +562,24 @@ class ORMFxRate(Base):
     __table_args__ = (
         UniqueConstraint("base_currency", "quote_currency", "rate_date", name="uq_fx_rate"),
     )
+
+
+class ORMFxConversion(Base):
+    """Ortak nakit havuzunda TL <-> USD döviz çevirme kayıtları."""
+
+    __tablename__ = "fx_conversions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    conversion_date = Column(Date, nullable=False)
+    conversion_time = Column(Time, nullable=True)
+    side = Column(String(10), nullable=False)  # BUY_USD | SELL_USD
+    usd_amount = Column(Numeric(28, 10), nullable=False)
+    rate = Column(Numeric(18, 8), nullable=False)
+    fee_try = Column(Numeric(18, 4), nullable=False, default=0, server_default="0")
+    note = Column(String(255))
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (Index("idx_fx_conversions_date", "conversion_date", "conversion_time"),)
 
 
 class ORMAppSetting(Base):

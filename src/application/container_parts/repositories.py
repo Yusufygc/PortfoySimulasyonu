@@ -13,6 +13,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_corporate_action_repositor
 from src.infrastructure.db.sqlalchemy.repositories.sa_fx_rate_repository import SQLAlchemyFxRateRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_latest_price_repository import SQLAlchemyLatestPriceRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_app_settings_repository import SQLAlchemyAppSettingsRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_fx_conversion_repository import SQLAlchemyFxConversionRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_news_source_repository import SQLAlchemyNewsSourceRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_model_portfolio_repository import SQLAlchemyModelPortfolioRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_planning_repository import SQLAlchemyPlanningRepository
@@ -57,6 +58,7 @@ class RepositorySet:
     fx_rate_repo: SQLAlchemyFxRateRepository
     news_source_repo: SQLAlchemyNewsSourceRepository  # haber kaynağı açık/kapalı tercihleri
     app_settings_repo: SQLAlchemyAppSettingsRepository  # ücret oranları vb. küçük ayarlar
+    fx_conversion_repo: SQLAlchemyFxConversionRepository  # TL <-> USD döviz çevirmeleri (ortak nakit havuzu)
 
 
 def build_repositories(conn_provider) -> RepositorySet:
@@ -86,4 +88,5 @@ def build_repositories(conn_provider) -> RepositorySet:
         fx_rate_repo=SQLAlchemyFxRateRepository(conn_provider),
         news_source_repo=SQLAlchemyNewsSourceRepository(conn_provider),
         app_settings_repo=SQLAlchemyAppSettingsRepository(conn_provider),
+        fx_conversion_repo=SQLAlchemyFxConversionRepository(conn_provider),
     )

@@ -52,7 +52,7 @@
 | Sayfa | Özet |
 |---|---|
 | [data_architecture.md](data_architecture.md) | SQLite ve DuckDB sahipliği, DuckDB şeması, ticker biçimi, yazma/okuma kuralları, bilinen sınırlar |
-| [database_schema_and_orm.md](database_schema_and_orm.md) | 30 tablo, repository deseni, açılış göçleri, BIGINT id atama |
+| [database_schema_and_orm.md](database_schema_and_orm.md) | 31 tablo, repository deseni, açılış göçleri, BIGINT id atama |
 | [service_market_data_providers.md](service_market_data_providers.md) | Dış veri kaynakları, önbellekler, ağ yeniden denemesi, hata aileleri, seans ve takvim |
 | [database_maintenance_and_scripts.md](database_maintenance_and_scripts.md) | `DatabaseMaintenanceService`, betikler, güvenli çalışma pratikleri |
 

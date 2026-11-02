@@ -80,6 +80,19 @@ Kurallar:
 
 **Tek hesap yolu:** Eski `DashboardController` değerlemesi (yaklaşık günlük kazanç `değer x yüzde`) 2026-11-01'de kaldırıldı; portföy rakamlarının tek kaynağı bu servistir. `DashboardController` yalnızca BIST işlemleri, sermaye, BIST haftalık/aylık getiri ve Excel raporunu sunar. Piyasa kapalı günde günlük K/Z kartı "Son İşlem Günü" etiketiyle gösterilir.
 
+### Ortak nakit havuzu (E5.2)
+
+Tüm alım-satımlar tek nakit havuzundan yapılır; havuz para birimine göre tutulur (TL ve USD), bakiye saklanmaz, olaylardan türetilir.
+
+| Parça | Görev |
+|---|---|
+| `FxConversion` / `FxConversionService` | TL <-> USD döviz al/sat (`buy_usd`, `sell_usd`); kur kullanıcıdan (verilmezse güncel kur), ücret TL. Alım TL bakiyesini, satım USD bakiyesini aşamaz. İç transfer: TWR dış akışı değildir. |
+| `CashPoolService` | `try_balance`, `usd_balance`, `balances`; `usd_timeline_valid` silme/ekleme sonrası USD bakiyesinin hiçbir anda eksiye düşmediğini sorar. |
+| `PooledCashMovementRepository` | BIST'in TL nakit görünümü: gerçek hareketler + döviz çevirmelerinin TL bacağı + TL ile ödenen nakde bağlı varlık işlemleri (sentetik, negatif kimlikli WITHDRAW/DEPOSIT). `PortfolioService`, nakit servisi ve analiz/TWR bu depoyu okur; böylece BIST alım gücü ve TWR havuzla tutarlıdır. |
+| `AssetTrade.cash_linked` | Yeni işlemler `True` (havuzu etkiler); göç 5 ile mevcut kayıtlar `False` kalır ve nakde dokunmaz. |
+
+Kurallar: varlık alımı **ödeme para biriminin** (`Asset.settlement_currency`, şimdilik fiyat para birimi) bakiyesini aşamaz; USD yetmezse "Önce Döviz Al ile TL'den USD alın" hatası verilir (otomatik çevirme yoktur). Desteklenen nakit para birimleri TRY ve USD; başka birimle ödenen varlık reddedilir. Satış ödeme para birimine net gelir (tutar - ücret) ekler. Nakde bağlı USD satışını veya döviz alımını silmek, sonraki USD ödemelerini eksiye düşürüyorsa reddedilir; TL tarafı için yalnızca işlem anı bakiyesi denetlenir (silme sonrası TL zinciri denetlenmez). Sıfırlama döviz çevirmelerini de siler.
+
 ### Pozisyon okuma servisi (`PositionQueryService`)
 
 `src/application/services/portfolio/position_query_service.py`; domain modeli `position_snapshot.py` (`PositionSnapshot`, `PortfolioPositions`).

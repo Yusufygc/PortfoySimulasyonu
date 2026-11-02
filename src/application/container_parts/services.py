@@ -13,6 +13,9 @@ from src.application.services.assets.bist_holdings_reader import BistHoldingsRea
 from src.application.services.assets.fx_rate_service import FxRateService
 from src.application.services.assets.unified_portfolio_service import UnifiedPortfolioService
 from src.application.services.portfolio.position_query_service import PositionQueryService
+from src.application.services.portfolio.cash_pool_service import CashPoolService
+from src.application.services.portfolio.fx_conversion_service import FxConversionService
+from src.application.services.portfolio.pooled_cash_movement_repository import PooledCashMovementRepository
 from src.application.services.settings.fee_settings_service import FeeSettingsService
 from src.application.services.news.news_service import NewsService
 from src.application.services.news.news_target_service import NewsTargetService
@@ -104,11 +107,57 @@ class ServiceSet:
     asset_price_refresh_service: AssetPriceRefreshService  # varlık son fiyat ve geçmiş yenileme
     fx_rate_service: FxRateService  # kur okuma ve yenileme
     unified_portfolio_service: UnifiedPortfolioService  # BIST + varlık defteri birleşik TRY özeti
+    pooled_cash_repo: PooledCashMovementRepository  # TL nakit görünümü (gerçek hareketler + havuz çıkış/girişleri)
+    cash_pool_service: CashPoolService  # ortak nakit havuzu bakiyeleri (TL ve USD)
+    fx_conversion_service: FxConversionService  # TL <-> USD döviz al/sat
     fee_settings_service: FeeSettingsService  # komisyon ve BSMV oranları (varsayılan 0) ve ücret hesabı
     position_query_service: PositionQueryService  # pozisyon rakamlarının tek okuma kaynağı (Portföyüm ile aynı değerleme)
     asset_chart_service: AssetChartService  # Genel Bakış grafiği için varlık fiyat serileri
     news_service: NewsService  # haber akışı (KAP, RSS, Yahoo, Google)
     news_target_service: NewsTargetService  # haber sorgusu yapılacak takip hedefleri
+
+
+def _build_analysis_services(repositories, market_clients, feature_services: dict) -> dict:
+    financial_analysis_service = FinancialAnalysisService(
+        financial_statement_provider=market_clients.isyatirim_provider,
+        inflation_provider=market_clients.evds_tufe_provider,
+        valuation_provider=market_clients.yfinance_valuation_provider,
+    )
+    shareholder_analysis_service = ShareholderAnalysisService(
+        provider=market_clients.kap_shareholder_provider,
+        repository=repositories.kap_shareholder_repo,
+    )
+    return {
+        "financial_analysis_service": financial_analysis_service,
+        "shareholder_analysis_service": shareholder_analysis_service,
+        "stock_360_service": Stock360Service(
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
+            financial_analysis_service=financial_analysis_service,
+            shareholder_analysis_service=shareholder_analysis_service,
+            market_history_repo=repositories.market_history_repo,
+        ),
+        "portfolio_analytics_service": PortfolioAnalyticsService(analysis_service=feature_services["analysis_service"]),
+        "risk_optimization_bridge_service": RiskOptimizationBridgeService(
+            risk_profile_service=feature_services["risk_profile_service"],
+            optimization_service=feature_services["optimization_service"],
+        ),
+        "technical_analysis_service": TechnicalAnalysisService(
+            market_history_repo=repositories.market_history_repo,
+            golden_cross_repo=repositories.golden_cross_repo,
+        ),
+        "screener_service": ScreenerService(market_history_repo=repositories.market_history_repo),
+        "dca_backtest_service": DCABacktestService(
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
+            market_history_repo=repositories.market_history_repo,
+        ),
+        "strategy_backtest_service": StrategyBacktestService(
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
+            market_history_repo=repositories.market_history_repo,
+        ),
+    }
 
 
 def build_services(repositories: RepositorySet, market_clients: MarketClientSet) -> ServiceSet:
@@ -120,15 +169,7 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         foundation,
     )
 
-    financial_analysis_service = FinancialAnalysisService(
-        financial_statement_provider=market_clients.isyatirim_provider,
-        inflation_provider=market_clients.evds_tufe_provider,
-        valuation_provider=market_clients.yfinance_valuation_provider,
-    )
-    shareholder_analysis_service = ShareholderAnalysisService(
-        provider=market_clients.kap_shareholder_provider,
-        repository=repositories.kap_shareholder_repo,
-    )
+    analysis = _build_analysis_services(repositories, market_clients, feature_services)
 
     current_price_resolver = CurrentPriceResolver(
         latest_price_repo=repositories.latest_price_repo,
@@ -147,12 +188,16 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         trade_repo=repositories.asset_trade_repo,
         symbol_verifier=market_clients.asset_price_provider,
         fee_service=foundation["fee_settings_service"],
+        cash_pool=foundation["cash_pool_service"],
     )
     fx_rate_service = FxRateService(
         provider=market_clients.asset_price_provider,
         repo=repositories.fx_rate_repo,
     )
     bist_holdings_reader = BistHoldingsReader(foundation["portfolio_service"], stock_lookup_service, current_price_resolver)
+    fx_conversion_service = FxConversionService(
+        repositories.fx_conversion_repo, foundation["cash_pool_service"], fx_rate_service
+    )
     unified_portfolio_service = UnifiedPortfolioService(
         bist_reader=bist_holdings_reader,
         asset_reader=AssetHoldingsReader(asset_ledger_service, repositories.asset_price_repo, fx_rate_service),
@@ -163,39 +208,9 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         **foundation,
         **reporting,
         **feature_services,
-        financial_analysis_service=financial_analysis_service,
-        shareholder_analysis_service=shareholder_analysis_service,
-        stock_360_service=Stock360Service(
-            price_repo=repositories.price_repo,
-            stock_repo=repositories.stock_repo,
-            financial_analysis_service=financial_analysis_service,
-            shareholder_analysis_service=shareholder_analysis_service,
-            market_history_repo=repositories.market_history_repo,
-        ),
-        portfolio_analytics_service=PortfolioAnalyticsService(
-            analysis_service=feature_services["analysis_service"],
-        ),
-        risk_optimization_bridge_service=RiskOptimizationBridgeService(
-            risk_profile_service=feature_services["risk_profile_service"],
-            optimization_service=feature_services["optimization_service"],
-        ),
-        technical_analysis_service=TechnicalAnalysisService(
-            market_history_repo=repositories.market_history_repo,
-            golden_cross_repo=repositories.golden_cross_repo,
-        ),
-        screener_service=ScreenerService(market_history_repo=repositories.market_history_repo),
+        **analysis,
         current_price_resolver=current_price_resolver,
         stock_lookup_service=stock_lookup_service,
-        dca_backtest_service=DCABacktestService(
-            price_repo=repositories.price_repo,
-            stock_repo=repositories.stock_repo,
-            market_history_repo=repositories.market_history_repo,
-        ),
-        strategy_backtest_service=StrategyBacktestService(
-            price_repo=repositories.price_repo,
-            stock_repo=repositories.stock_repo,
-            market_history_repo=repositories.market_history_repo,
-        ),
         market_indicators_service=(
             MarketIndicatorsService(market_clients.market_indicator_provider)
             if getattr(market_clients, "market_indicator_provider", None) is not None
@@ -209,6 +224,7 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
         ),
         fx_rate_service=fx_rate_service,
         unified_portfolio_service=unified_portfolio_service,
+        fx_conversion_service=fx_conversion_service,
         position_query_service=PositionQueryService(
             bist_reader=bist_holdings_reader,
             model_portfolio_service=foundation["model_portfolio_service"],
@@ -241,14 +257,22 @@ def build_services(repositories: RepositorySet, market_clients: MarketClientSet)
 
 
 def _build_foundation_services(repositories: RepositorySet, market_clients: MarketClientSet) -> dict:
+    # TL nakit görünümü: gerçek hareketler + ortak havuzdan TL çıkış/girişleri (döviz çevirme, TL ile ödenen varlık)
+    pooled_cash_repo = PooledCashMovementRepository(
+        repositories.cash_movement_repo, repositories.fx_conversion_repo,
+        repositories.asset_trade_repo, repositories.asset_repo,
+    )
     portfolio_service = PortfolioService(
         repositories.portfolio_repo,
         repositories.price_repo,
-        cash_movement_repo=repositories.cash_movement_repo,
+        cash_movement_repo=pooled_cash_repo,
+    )
+    cash_pool_service = CashPoolService(
+        portfolio_service, repositories.fx_conversion_repo, repositories.asset_trade_repo, repositories.asset_repo
     )
     fee_settings_service = FeeSettingsService(repositories.app_settings_repo)
     cash_movement_service = CashMovementService(
-        cash_movement_repo=repositories.cash_movement_repo,
+        cash_movement_repo=pooled_cash_repo,
         portfolio_service=portfolio_service,
     )
     trade_entry_service = TradeEntryService(
@@ -265,6 +289,8 @@ def _build_foundation_services(repositories: RepositorySet, market_clients: Mark
     )
 
     return {
+        "pooled_cash_repo": pooled_cash_repo,
+        "cash_pool_service": cash_pool_service,
         "fee_settings_service": fee_settings_service,
         "portfolio_service": portfolio_service,
         "cash_movement_service": cash_movement_service,
@@ -357,7 +383,7 @@ def _watchlist_stock_ids(watchlist_repo) -> set:
     }
 
 
-def _build_market_services(repositories, market_clients, price_data_health_service, model_portfolio_service) -> dict:
+def _build_market_services(repositories, market_clients, price_data_health_service, model_portfolio_service, cash_movement_repo) -> dict:
     from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
     return {
         "live_price_refresh_service": LivePriceRefreshService(
@@ -375,7 +401,7 @@ def _build_market_services(repositories, market_clients, price_data_health_servi
                 market_data_client=market_clients.market_client,
             ),
             evds_client=market_clients.evds_client,
-            cash_movement_repo=repositories.cash_movement_repo,
+            cash_movement_repo=cash_movement_repo,
             model_portfolio_service=model_portfolio_service,
         ),
         "backfill_service": BackfillService(
@@ -397,6 +423,7 @@ def _build_portfolio_services(repositories, market_clients, foundation, model_po
             model_portfolio_repo=repositories.model_portfolio_repo,
             cash_movement_repo=repositories.cash_movement_repo,
             asset_repo=repositories.asset_repo,
+            fx_conversion_repo=repositories.fx_conversion_repo,
         ),
         "watchlist_service": WatchlistService(
             watchlist_repo=repositories.watchlist_repo,
@@ -448,7 +475,9 @@ def _build_feature_services(
         "price_data_health_service": price_data_health_service,
         "corporate_action_service": corp_action_service,
         "market_corporate_action_service": market_action_service,
-        **_build_market_services(repositories, market_clients, price_data_health_service, model_portfolio_service),
+        **_build_market_services(
+            repositories, market_clients, price_data_health_service, model_portfolio_service, foundation["pooled_cash_repo"]
+        ),
         **_build_portfolio_services(repositories, market_clients, foundation, model_portfolio_service),
         **_build_corporate_action_services(repositories, corp_action_service),
     }

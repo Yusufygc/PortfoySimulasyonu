@@ -99,6 +99,7 @@ unrealized_pl = portfolio.total_unrealized_pl(current_prices)
 | `assets` / `asset_trades` | BIST dışı varlık defteri (altın, gümüş, platin, paladyum, kripto, ABD hissesi); ayrı defter |
 | `asset_prices` / `asset_latest_prices` / `fx_rates` | Varlık günlük ve son fiyatları, kur serisi |
 | `news_sources` | Haber kaynağı açık/kapalı tercihleri (KAP, Yahoo, Google News, RSS) |
+| `fx_conversions` | Ortak nakit havuzunda TL <-> USD döviz çevirmeleri |
 | `app_settings` | Küçük anahtar-değer ayarları (komisyon ve BSMV oranları) |
 
 ORM ilk çalıştırmada tabloları otomatik oluşturur.

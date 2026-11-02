@@ -74,11 +74,19 @@ def _add_trade_fee_columns(conn: Connection) -> None:
             conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN fee {column_type} NOT NULL DEFAULT 0")
 
 
+def _add_asset_trade_cash_linked(conn: Connection) -> None:
+    """Ortak nakit havuzu: mevcut varlık işlemleri nakde bağlı değildir (0), yenileri bağlı kaydedilir."""
+    columns = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(asset_trades)")}
+    if columns and "cash_linked" not in columns:
+        conn.exec_driver_sql("ALTER TABLE asset_trades ADD COLUMN cash_linked BOOLEAN NOT NULL DEFAULT 0")
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "drop_legacy_golden_cross_events", _drop_legacy_golden_cross_events),
     Migration(2, "canonicalize_stock_tickers", _canonicalize_stock_tickers),
     Migration(3, "add_cash_movements_stock_id", _add_cash_movements_stock_id),
     Migration(4, "add_trade_fee_columns", _add_trade_fee_columns),
+    Migration(5, "add_asset_trade_cash_linked", _add_asset_trade_cash_linked),
 )
 
 

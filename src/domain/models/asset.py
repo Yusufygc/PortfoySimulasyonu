@@ -71,6 +71,11 @@ class Asset:
         object.__setattr__(self, field_name, value)
 
     @property
+    def settlement_currency(self) -> str:
+        """İşlemin ödendiği/tahsil edildiği nakit para birimi (ortak havuzdaki bakiye); işlem fiyatı bu birimdedir."""
+        return self.quote_currency
+
+    @property
     def is_try_quoted(self) -> bool:
         return self.quote_currency == "TRY"
 

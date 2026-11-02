@@ -140,5 +140,5 @@ Kullanıcı kararları: komisyon ve BSMV ayarlanabilir, varsayılan 0; geçmiş 
 | E2 | Uygulandı (2026-11-02): `presenters/formatting.py` (tek Türkçe biçimleyici, 9 kopya kalktı), `messages.py` (Python metin kataloğu), mandal tavanı 538 -> 0 (67 satır `metin-muaf`). Sapma ve kalanlar aşağıda |
 | E3 | Uygulandı (2026-11-02): sınıf ihlali 4 -> 0, fonksiyon 73 -> 72; CI tavanı 0 / 72. Sapma ve kalanlar aşağıda |
 | E4 | Uygulandı (2026-11-02): `PositionQueryService`, `PositionSnapshot`, `preview_order`; karakterizasyon testi Portföyüm = Hisse Detay = Excel; denetleyici para aritmetiği mandalı (36 -> 34 satır). Sapma ve kalanlar aşağıda |
-| E5 | E5.1 Uygulandı (2026-11-02): ücret alanları, göç 4, `FeeSettingsService`, Ayarlar > Ücretler, ücretli nakit/maliyet/K/Z/TWR/ön izleme. E5.2-E5.5 açık |
+| E5 | E5.1 Uygulandı (2026-11-02): ücret alanları, göç 4, `FeeSettingsService`, Ayarlar > Ücretler, ücretli nakit/maliyet/K/Z/TWR/ön izleme. E5.2 backend Uygulandı: `FxConversion`, `CashPoolService`, `PooledCashMovementRepository`, göç 5. E5.3-E5.5 açık |
 | E6 | Açık (isteğe bağlı) |

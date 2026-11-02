@@ -39,11 +39,13 @@ class AssetLedgerService:
         trade_repo: IAssetTradeRepository,
         symbol_verifier: Optional[IAssetSymbolVerifier] = None,
         fee_service=None,
+        cash_pool=None,
     ) -> None:
         self._asset_repo = asset_repo
         self._trade_repo = trade_repo
         self._symbol_verifier = symbol_verifier
         self._fee_service = fee_service
+        self._cash_pool = cash_pool
 
     # ---------- Varlık tanımı ---------- #
 
@@ -151,8 +153,10 @@ class AssetLedgerService:
             fx_rate_to_try=fx_value,
             note=(note or "").strip() or None,
             fee=fee_value,
+            cash_linked=self._cash_pool is not None,
         )
         self._ensure_ledger_valid(self._trade_repo.list_trades(asset_id) + [trade], asset)
+        self._ensure_cash_available(asset, trade)
         return self._trade_repo.add_trade(trade)
 
     def delete_trade(self, trade_id: int) -> None:
@@ -162,6 +166,7 @@ class AssetLedgerService:
         asset = self._asset_repo.get_asset(trade.asset_id)
         remaining = [t for t in self._trade_repo.list_trades(trade.asset_id) if t.id != trade_id]
         self._ensure_ledger_valid(remaining, asset)
+        self._ensure_cash_after_delete(trade, asset)
         self._trade_repo.delete_trade(trade_id)
 
     # ---------- Yardımcılar ---------- #
@@ -175,6 +180,25 @@ class AssetLedgerService:
             raise ValueError(f"{asset.yf_symbol} sembolü doğrulanamadı: fiyat kaynağına ulaşılamıyor.") from exc
         if not valid:
             raise ValueError(f"{asset.yf_symbol} sembolü için fiyat verisi bulunamadı.")
+
+    def _ensure_cash_available(self, asset: Asset, trade: AssetTrade) -> None:
+        """Alım, ortak nakit havuzundaki ödeme para birimi bakiyesini aşamaz (satış nakit ekler)."""
+        if self._cash_pool is None or trade.side != TradeSide.BUY:
+            return
+        currency = asset.settlement_currency
+        available = self._cash_pool.balance(currency, as_of=(trade.trade_date, trade.trade_time))
+        if trade.cash_amount > available:
+            hint = " Önce Döviz Al ile TL'den USD alın." if currency == "USD" else ""
+            raise ValueError(
+                f"Yetersiz {currency} nakit. Gerekli: {trade.cash_amount:,.2f} {currency}, Mevcut: {available:,.2f} {currency}.{hint}"
+            )
+
+    def _ensure_cash_after_delete(self, trade: AssetTrade, asset: Optional[Asset]) -> None:
+        """Nakde bağlı USD satışını silmek, sonraki USD ödemelerini eksiye düşürmemeli."""
+        if self._cash_pool is None or not trade.cash_linked or asset is None:
+            return
+        if trade.side == TradeSide.SELL and asset.settlement_currency == "USD" and not self._cash_pool.usd_timeline_valid(exclude_trade_id=trade.id):
+            raise ValueError("Bu satış silinemez: sonraki USD ile ödenen işlemler yetersiz bakiyeye düşer.")
 
     def _resolve_fee(self, fee_option, gross_amount: Decimal) -> Decimal:
         """Elle girilen ücret varsa o, yoksa ayardaki oranlarla hesaplanan (ayar yoksa 0)."""

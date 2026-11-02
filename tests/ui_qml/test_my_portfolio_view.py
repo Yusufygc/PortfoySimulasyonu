@@ -101,6 +101,9 @@ def load_view(engine):
 def seed_btc(container):
     """0,5 BTC: 60.000 USD'den, kur 30 ile alındı; güncel fiyat 70.000 USD, güncel kur 40."""
     asset = container.asset_repo.add_asset(Asset(None, "BTC", "Bitcoin", AssetClass.CRYPTO, "USD", "BTC-USD"))
+    # ortak nakit havuzu: 900.000 TL yatır, 30.000 USD'yi kur 30'dan al, sonra BTC'yi USD nakitten öde
+    container.cash_movement_service.add_deposit(D("900000"), movement_date=date(2026, 1, 1))
+    container.fx_conversion_service.buy_usd(30000, rate=30, conversion_date=date(2026, 1, 2))
     container.asset_ledger_service.record_trade(
         asset.id, TradeSide.BUY, "0.5", "60000", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
     now = datetime(2026, 1, 5, 12, 0)

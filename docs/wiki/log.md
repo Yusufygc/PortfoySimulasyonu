@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-02] güncelleme | Evrim Planı E5.2: Ortak Nakit Havuzu (TL + USD) ve Döviz Al/Sat
+
+- Yeni: `FxConversion` (TL <-> USD, iç transfer), `FxConversionService`, `CashPoolService` (TL/USD bakiye, `usd_timeline_valid`), `PooledCashMovementRepository` (BIST TL nakit görünümü = gerçek hareketler + döviz TL bacağı + TL ile ödenen varlık işlemleri), `fx_conversions` tablosu, göç 5 (`asset_trades.cash_linked`, mevcutlar 0).
+- Varlık alımı ödeme para biriminin havuz bakiyesini aşamaz; USD yetmezse "Önce Döviz Al" hatası. Satış net geliri ekler. Eski varlık işlemleri nakde dokunmaz. Sıfırlama döviz çevirmelerini de siler, yedeğe `fx_conversions` girer.
+- BIST alım gücü ve TWR havuzla tutarlı: TL ile ödenen varlık alımı BIST nakdinden düşer (TWR dış akışı olarak ayrılır, getiri etkilenmez).
+- Arayüz henüz yok (E5.5): Portföyüm'den varlık alımı için önce nakit ve USD gerekir. Test: 1842 geçti, 4 xfailed.
+
+---
 ## [2026-11-02] güncelleme | Evrim Planı E5.1: İşlem Ücreti (Komisyon + BSMV)
 
 - Kararlar: komisyon ve BSMV kullanıcı ayarı (varsayılan 0), geçmiş işlemler 0 ücretle kalır, tüm alım-satım ortak nakit havuzundan, USD varlık için önce TL ile USD alınır, altın gram/TL/TL nakit, eski varlık işlemleri nakde dokunmaz. E5 planı buna göre E5.1-E5.5 olarak yeniden yazıldı.
