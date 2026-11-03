@@ -49,13 +49,14 @@ Gürültü süzgeci: kendi bildirimi olmayan ve 5'ten çok hisseyi listeleyen ku
 - `get_company_news(targets, force)` ve `get_market_news(force)`: ilgili kapsamdaki **etkin** kaynakları paralel çeker (en çok 6 iş parçacığı).
 - **Hata yalıtımı:** bir kaynağın hatası (beklenmedik istisna dahil) diğerlerini etkilemez; kaynak başına `NewsSourceStatus` (çekim zamanı, haber sayısı, hata, önbellekten mi) döner.
 - **Önbellek:** kaynak + hedef parmak izi başına JSON dosya (`data/_cache/news/`, `JsonFileNewsCache`), TTL 10 dakika. Kaynak hata verirse varsa son başarılı çekim gösterilmeye devam eder ve hata raporlanır (yeniden başlatmada ve çevrimdışıyken de).
+- **Konu süzgeci (`news_relevance.py`):** genel piyasa akışında yalnızca ekonomi, finans, yatırım, borsa, siyaset ve diplomasi haberleri kalır (başlık + özette konu terimi aranır, Türkçe harf farkları katlanır; `terim$` tam kelime, diğerleri önek eşleşmesi). Şirket akışında (Yahoo, Google) yalnızca kesin magazin terimleri (`magazin`, `şarkıcı`, `celebrity` vb.) elenir; KAP bildirimleri süzülmez. Süzgeç önbellekten sonra uygulanır, kural değişince önbellek bozulmaz.
 - **Tekilleştirme:** URL, yoksa normalize başlık özeti; aynı haberin en yenisi kalır; tarihe göre azalan sıra; en çok 150 haber.
 - **Kaynak yönetimi:** `list_sources` (ilk çağrıda varsayılanları tohumlar), `set_source_enabled`, `set_source_option`, `add_rss_source` (ad boş olamaz, yalnızca http/https, aynı adres reddedilir), `remove_source` (yalnızca özel beslemeler), `test_source` / `test_rss_url` (önbelleksiz tek çekim, örnek hedeflerle), `get_status` (oturumdaki son çekim/hata).
 - **Hedefler (`NewsTargetService`):** BIST portföyünün açık pozisyonları, varlık defterindeki etkin varlıklar ve izleme listeleri; aynı (tür, sembol) bir kez, portföy önce, en çok 30; bir okuyucunun hatası diğerlerini engellemez.
 
 ## 4. Veri
 
-`news_sources` tablosu (`ORMNewsSource`): `source_id` (PK), `kind`, `name`, `enabled`, `language`, `scope`, `url`, `description`, `is_custom`, `options_json`, `sort_order`. Varsayılan kaynaklar ilk `list_sources()` çağrısında eklenir. Yenileme aralığı `QSettings` anahtarı `news/refresh_minutes` (5/10/15/30/60 dk, varsayılan 10).
+`news_sources` tablosu (`ORMNewsSource`): `source_id` (PK), `kind`, `name`, `enabled`, `language`, `scope`, `url`, `description`, `is_custom`, `options_json`, `sort_order`. Varsayılan kaynaklar `list_sources()` çağrısında eksik olanlar için eklenir (sonradan eklenen varsayılan kaynaklar mevcut kurulumlara da gelir; kullanıcının kapattığı kaynak ezilmez). Yenileme aralığı `QSettings` anahtarı `news/refresh_minutes` (5/10/15/30/60 dk, varsayılan 10).
 
 ## 5. Arayüz
 

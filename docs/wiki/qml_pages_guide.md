@@ -26,7 +26,7 @@ Uygulama 11 sayfadan oluşur. Sayfa dizini `ShellController.activePage` değerid
 
 Etkileşimli grafik ve haber akışı; portföy bilgisi bu sayfada **yoktur** (Portföyüm'e taşındı).
 
-- **TradingView grafiği** (`TradingViewChart`, `TradingViewToolbar`): zaman dilimi, mum/çizgi/alan/bar, göstergeler, tam ekran (`ChartFullscreenModal`); hisse detayından açıldığında ortalama maliyet çizgisi gösterilir. Hızlı seçici portföy BIST hisselerini ve Portföyüm varlıklarını (BTC, altın vb.) listeler; BIST dışı semboller varlık defterindeki kapanışlardan çizilir ([service_asset_prices_fx.md](service_asset_prices_fx.md)).
+- **TradingView grafiği** (`TradingViewChart`, `TradingViewToolbar`): zaman dilimi, mum/çizgi/alan/bar, göstergeler, tam ekran (`ChartFullscreenModal`); hisse detayından açıldığında ortalama maliyet çizgisi gösterilir. Grafiğin üstündeki "BIST HİSSELERİ" şeridi portföyden bağımsız rastgele BIST hisselerini (`chartController.marketTickers`, DuckDB evreninden 24 hisse, her açılışta yeni seçim) soldan sağa kesintisiz akıtır; fare üstündeyken durur, tıklanan hisse grafiğe yüklenir. BIST dışı semboller varlık defterindeki kapanışlardan çizilir ([service_asset_prices_fx.md](service_asset_prices_fx.md)).
 - **Haber paneli** (`NewsPanel`, `NewsController`): "Portföyüm ve İzleme" (şirket haberleri) ve "Piyasa ve Global" sekmeleri. Geniş pencerede (>= 1150 px) grafiğin sağında, dar pencerede altında. Ayrıntı: [service_news.md](service_news.md).
 - Fiyat durumu (`PriceStatusChip`): ortak son güncelleme ve küçük yenile ikonu; fiyatlar kendiliğinden güncellenir.
 

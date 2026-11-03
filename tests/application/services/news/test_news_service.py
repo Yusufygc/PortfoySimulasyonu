@@ -19,10 +19,10 @@ from src.domain.ports.services.i_news_provider import INewsProvider, NewsProvide
 T0 = datetime(2026, 11, 1, 12, 0, tzinfo=timezone.utc)
 
 
-def _item(title: str, source: str = "s", minutes: int = 0, url: str | None = None) -> NewsItem:
+def _item(title: str, source: str = "s", minutes: int = 0, url: str | None = None, summary: str = "Borsa ve ekonomi") -> NewsItem:
     return NewsItem(
         title=title, url=url or f"https://ex.com/{title}", source_id=source, source_name=source,
-        published_at=T0 - timedelta(minutes=minutes),
+        published_at=T0 - timedelta(minutes=minutes), summary=summary,
     )
 
 
@@ -253,3 +253,31 @@ def test_test_rss_url_rejects_bad_scheme_and_probes_without_saving():
     status = h.service.test_rss_url("https://ex.com/f")
     assert status.ok and status.item_count == 1
     assert h.service.get_status("rss:test") is None
+
+
+def test_market_feed_keeps_only_economy_politics_diplomacy():
+    h = Harness([_config("m", NewsScope.MARKET)])
+    h.provider("m", [
+        _item("Borsa güne yükselişle başladı", summary=""),
+        _item("Dışişleri Bakanı büyükelçilerle görüştü", summary=""),
+        _item("Ünlü şarkıcının düğün magazini", summary="Magazin gündemi"),
+        _item("Yarın hava nasıl olacak", summary="Sağanak yağış bekleniyor"),
+    ])
+    titles = [i.title for i in h.service.get_market_news().items]
+    assert sorted(titles) == ["Borsa güne yükselişle başladı", "Dışişleri Bakanı büyükelçilerle görüştü"]
+
+
+def test_company_feed_drops_only_gossip_and_kap_is_not_filtered():
+    h = Harness([_config("a", NewsScope.COMPANY), NewsSourceConfig("kap", NewsSourceKind.KAP, "KAP", True, "tr", NewsScope.COMPANY)])
+    h.provider("a", [_item("THYAO yeni uçak aldı", summary=""), _item("THYAO reklam yüzü ünlü manken", summary="magazin")])
+    h.provider("kap", [_item("Özel Durum Açıklaması", source="kap", summary="")])
+    titles = sorted(i.title for i in h.service.get_company_news(TARGETS).items)
+    assert titles == ["THYAO yeni uçak aldı", "Özel Durum Açıklaması"]
+
+
+def test_new_default_sources_are_added_to_existing_install():
+    h = Harness([_config("old", NewsScope.MARKET)])
+    h.repo.save_source(_config("old", NewsScope.MARKET, enabled=False))
+    h.configs = [_config("old", NewsScope.MARKET), _config("new", NewsScope.MARKET)]
+    ids = {c.source_id: c.enabled for c in h.service.list_sources()}
+    assert ids == {"old": False, "new": True}   # kullanıcının kapattığı kaynak ezilmez

@@ -9,6 +9,7 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
+from src.application.services.news.news_relevance import is_blocked, is_on_topic
 from src.domain.models.news_item import (
     NewsFeedResult,
     NewsItem,
@@ -150,8 +151,9 @@ class NewsService:
     def _ensure_defaults(self) -> None:
         if self._seeded:
             return
-        if not self._repo.list_sources():
-            for config in self._defaults():
+        known = {config.source_id for config in self._repo.list_sources()}
+        for config in self._defaults():
+            if config.source_id not in known:   # sonradan eklenen varsayılan kaynaklar mevcut kurulumlara da gelir
                 self._repo.save_source(config)
         self._seeded = True
 
@@ -172,7 +174,17 @@ class NewsService:
         with ThreadPoolExecutor(max_workers=min(_MAX_WORKERS, len(sources))) as pool:
             results = list(pool.map(lambda config: self._load_source(config, targets, force), sources))
         statuses = tuple(status for _, status in results)
-        return NewsFeedResult(items=self._merge(items for items, _ in results), statuses=statuses)
+        batches = (self._filter_topic(config, items) for config, (items, _) in zip(sources, results))
+        return NewsFeedResult(items=self._merge(batches), statuses=statuses)
+
+    @staticmethod
+    def _filter_topic(config: NewsSourceConfig, items: List[NewsItem]) -> List[NewsItem]:
+        """Genel akışta yalnızca ekonomi, finans, siyaset ve diplomasi haberleri kalır; şirket akışında yalnızca
+        magazin elenir (hisse koduyla aranan haber konu terimi içermeyebilir). KAP resmî bildirimleri süzülmez."""
+        if config.kind is NewsSourceKind.KAP:
+            return items
+        keep = is_on_topic if config.scope is NewsScope.MARKET else (lambda item: not is_blocked(item))
+        return [item for item in items if keep(item)]
 
     def _load_source(
         self, config: NewsSourceConfig, targets: Sequence[NewsTarget], force: bool

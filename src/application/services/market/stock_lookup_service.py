@@ -170,6 +170,16 @@ class StockLookupService:
             logger.debug("DuckDB son çubuklar okunamadı (%s): %s", ticker, exc)
             return []
 
+    def list_market_tickers(self) -> List[str]:
+        """DuckDB piyasa evrenindeki (tüm BIST) sade hisse kodları; okunamazsa boş liste."""
+        if self._market_history_repo is None:
+            return []
+        try:
+            return list(self._market_history_repo.list_tickers())
+        except Exception as exc:
+            logger.debug("DuckDB hisse listesi okunamadı: %s", exc)
+            return []
+
     def get_market_company_name(self, ticker: str) -> Optional[str]:
         if self._market_history_repo is None:
             return None

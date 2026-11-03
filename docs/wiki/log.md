@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] güncelleme | Kayan BIST Şeridi ve Haber Konu Süzgeci
+
+- **Genel Bakış şeridi:** "PORTFÖY VE VARLIKLAR" yerine "BIST HİSSELERİ"; portföyden bağımsız rastgele 24 BIST hissesi (`chartController.marketTickers`, `StockLookupService.list_market_tickers`, DuckDB evreni; yoksa `BIST_TICKERS`) soldan sağa kesintisiz akar, fare üstündeyken durur.
+- **Haber süzgeci:** `news_relevance.py`; genel akışta yalnızca ekonomi, finans, yatırım, borsa, siyaset ve diplomasi, şirket akışında yalnızca magazin elenir, KAP süzülmez. TRT Haber Gündem ve Dünya varsayılan kaynak olarak eklendi; `NewsService` eksik varsayılan kaynakları mevcut kurulumlara da ekler.
+
+---
 ## [2026-11-03] güncelleme | Kısıtların Kapatılması: TL Zinciri, Türkçe Biçim, Tek BIST Hissesi, Nakit Rezervi, Aylık Kart
 
 - **TL zinciri:** Döviz satımı ve TL ile ödenen (nakde bağlı) varlık satışı silinirken sonraki TL kullanımı (BIST alımı, nakit çekimi, TL ile varlık alımı) denetlenir; yetersiz kalacaksa reddedilir (`CashPoolService.ensure_try_after_removal`, mevcut zaman çizelgesi doğrulayıcısı, sentetik hareket kimlikleri).

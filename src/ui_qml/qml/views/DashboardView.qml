@@ -12,19 +12,8 @@ Item {
     // Sayfa bu yüksekliğin altına inerse kaydırılır (Main.qml activePageMetric)
     readonly property int minContentHeight: wide ? 560 : 960
 
-    // Hızlı seçici: portföy BIST hisseleri + Portföyüm varlıkları (BTC, altın vb.); ticker grafiğe verilen semboldür
-    readonly property var quickChips: {
-        const chips = []
-        const stocks = dashboardController ? dashboardController.quickTickers : ["OBAMS", "PSGYO", "BINHO"]
-        for (let i = 0; i < stocks.length; i++) {
-            chips.push({ ticker: stocks[i], label: (stocks[i] || "").replace(/\.IS$/i, "") })
-        }
-        const assets = chartController ? chartController.quickAssets : []
-        for (let j = 0; j < assets.length; j++) {
-            chips.push({ ticker: assets[j].ticker, label: assets[j].label })
-        }
-        return chips
-    }
+    // Kayan şerit: portföyden bağımsız rastgele BIST hisseleri (her açılışta yeni seçim)
+    readonly property var marketChips: chartController ? chartController.marketTickers : ["OBAMS", "PSGYO", "BINHO"]
 
     ColumnLayout {
         anchors.fill: parent
@@ -76,13 +65,13 @@ Item {
                         onToggleFullscreen: chartModal.open()
                     }
 
-                    // 2. Hızlı Portföy Hisseleri Seçici Barı (Taşmayı önleyen esnek kaydırma)
+                    // 2. Kayan BIST hisse şeridi: soldan sağa akar, fare üstündeyken durur
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: Theme.spaceSm
 
                         Text {
-                            text: Strings.tvPortfolioHoldings
+                            text: Strings.tvMarketTickers
                             font.family: Theme.fontFamily
                             font.pixelSize: 11
                             font.weight: Font.Bold
@@ -90,27 +79,56 @@ Item {
                             Layout.alignment: Qt.AlignVCenter
                         }
 
-                        Flickable {
-                            id: tickersFlickable
+                        Item {
+                            id: tickerMarquee
                             Layout.fillWidth: true
                             implicitHeight: 26
-                            contentWidth: tickersRow.implicitWidth
-                            contentHeight: 26
                             clip: true
-                            boundsBehavior: Flickable.StopAtBounds
+
+                            // Aynı satır iki kez dizilir; bir satır genişliği kadar kayınca başa sarar (kesintisiz akış)
+                            readonly property real loopWidth: firstRow.width + marqueeTrack.spacing
+                            readonly property bool scrolls: loopWidth > width
+
+                            HoverHandler { id: marqueeHover }
 
                             Row {
-                                id: tickersRow
+                                id: marqueeTrack
                                 spacing: Theme.spaceXs
+                                x: -tickerMarquee.loopWidth
 
-                                Repeater {
-                                    model: root.quickChips
-                                    ModernButton {
-                                        text: modelData.label
-                                        variant: (chartController && chartController.currentTicker === modelData.ticker) ? "primary" : "ghost"
-                                        implicitHeight: 24
-                                        onClicked: {
-                                            chartView.loadStock(modelData.ticker)
+                                NumberAnimation on x {
+                                    from: -tickerMarquee.loopWidth
+                                    to: 0
+                                    duration: Math.max(1000, tickerMarquee.loopWidth * 25)
+                                    loops: Animation.Infinite
+                                    running: tickerMarquee.scrolls
+                                    paused: marqueeHover.hovered
+                                }
+
+                                Row {
+                                    id: firstRow
+                                    spacing: Theme.spaceXs
+                                    Repeater {
+                                        model: root.marketChips
+                                        ModernButton {
+                                            text: modelData
+                                            variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
+                                            implicitHeight: 24
+                                            onClicked: chartView.loadStock(modelData)
+                                        }
+                                    }
+                                }
+
+                                Row {
+                                    spacing: Theme.spaceXs
+                                    visible: tickerMarquee.scrolls
+                                    Repeater {
+                                        model: root.marketChips
+                                        ModernButton {
+                                            text: modelData
+                                            variant: (chartController && chartController.currentTicker === modelData) ? "primary" : "ghost"
+                                            implicitHeight: 24
+                                            onClicked: chartView.loadStock(modelData)
                                         }
                                     }
                                 }

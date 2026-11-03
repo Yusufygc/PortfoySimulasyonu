@@ -85,7 +85,7 @@ Temizlik: Test temettüsü silindi.
 
 ### DASH-006 | Grafik
 
-- **Adımlar:** Zaman dilimi (1D/1W/1M), grafik tipi, göstergeler (SMA/EMA, Bollinger, RSI, MACD), tam ekran. Hızlı seçicide portföy hisselerinin yanında Portföyüm varlıkları (ör. BTC, XAU) varsa birine tıkla.
+- **Adımlar:** Zaman dilimi (1D/1W/1M), grafik tipi, göstergeler (SMA/EMA, Bollinger, RSI, MACD), tam ekran. Üstteki BIST hisse şeridinin soldan sağa aktığını, fare üstündeyken durduğunu ve bir hisseye tıklayınca grafiğin değiştiğini kontrol et.
 - **Beklenen sonuç:** Grafik tüm seçimlerde yeniden çizilir; boş veride açıklayıcı durum gösterilir. Varlık seçilince kapanış serisi çizilir (hacim yok), fiyat öneki varlığın para birimidir (`$`); BIST hissesine dönünce `₺` döner.
 
 ### NEWS-001 | Haber paneli

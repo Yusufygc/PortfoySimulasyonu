@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 from typing import List, Dict, Any, Optional
 import pandas as pd
 
 from PySide6.QtCore import QObject, Signal, Slot, Property
 
+from src.domain.constants.bist_tickers import BIST_TICKERS
 from src.ui_qml.controllers.chart_indicators import calculate_indicators
 from src.ui_qml.controllers.chart_candle_sources import (
     demo_candles,
@@ -21,6 +23,8 @@ from src.ui_qml.controllers.chart_candle_sources import (
 
 logger = logging.getLogger(__name__)
 
+_MARKET_TICKER_COUNT = 24
+
 
 class ChartController(QObject):
     chartDataLoaded = Signal(str, str)  # ticker, json_payload
@@ -29,10 +33,12 @@ class ChartController(QObject):
     chartTypeChanged = Signal(str)
     indicatorsChanged = Signal()
     assetsChanged = Signal()
+    marketTickersChanged = Signal()
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
         self._container = container
+        self._market_tickers: list[str] = self._pick_market_tickers()
         self._current_ticker: str = "THYAO"
         self._current_timeframe: str = "1D"
         self._current_chart_type: str = "candle"
@@ -92,6 +98,26 @@ class ChartController(QObject):
     @Property(bool, notify=tickerChanged)
     def isPositive(self) -> bool:
         return self._is_positive
+
+    @Property(list, notify=marketTickersChanged)
+    def marketTickers(self) -> list[str]:
+        """Grafik üstündeki kayan şerit için rastgele BIST hisse kodları (portföyden bağımsız)."""
+        return self._market_tickers
+
+    @Slot()
+    def shuffleMarketTickers(self) -> None:
+        self._market_tickers = self._pick_market_tickers()
+        self.marketTickersChanged.emit()
+
+    def _pick_market_tickers(self) -> list[str]:
+        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        try:
+            universe = [str(t) for t in lookup.list_market_tickers()] if lookup is not None else []
+        except Exception as exc:
+            logger.debug("Piyasa hisse listesi okunamadı: %s", exc)
+            universe = []
+        pool = universe or sorted(BIST_TICKERS)
+        return random.sample(pool, min(_MARKET_TICKER_COUNT, len(pool)))
 
     @Property(list, notify=assetsChanged)
     def quickAssets(self) -> list[dict[str, str]]:
