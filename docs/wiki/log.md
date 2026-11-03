@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] güncelleme | Kısıtların Kapatılması: TL Zinciri, Türkçe Biçim, Tek BIST Hissesi, Nakit Rezervi, Aylık Kart
+
+- **TL zinciri:** Döviz satımı ve TL ile ödenen (nakde bağlı) varlık satışı silinirken sonraki TL kullanımı (BIST alımı, nakit çekimi, TL ile varlık alımı) denetlenir; yetersiz kalacaksa reddedilir (`CashPoolService.ensure_try_after_removal`, mevcut zaman çizelgesi doğrulayıcısı, sentetik hareket kimlikleri).
+- **Türkçe sayı biçimi tüm arayüzde:** Hisse Detay, Hisse 360 (hesaplar, yedek veri, altın dosya), İzleme Listesi, Tarayıcı, Planlama/DCA, Model Portföy, danışman sağlık paneli, strateji sonuçları, karşılaştırma/ortaklık QML ve treemap, piyasa senkron ve sermaye artırımı mesajları. Yüzde yazımı tek biçim: `+%1,20` / `-%0,57`. Koruma: `test_turkish_number_format_guard.py` (ABD binlik biçimi yasak). `swap_separators` şablon çıktıları için eklendi.
+- **Tek BIST hissesi:** `get_historical_prices(tickers, days, min_columns)`; birleşik optimizasyon BIST kısmını `min_columns=1` ile ister, DuckDB'den okunur (yfinance yedeği yok).
+- **Nakit rezervi:** Optimizasyon sayfasında Tüm Varlıklar kaynağında "Nakit Rezervi (%)" (0-90). Plan nakit dahil toplam değere göre kurulur, pozisyon payları `1 - rezerv` ile ölçeklenir, plana `NAKİT` satırı girer. USD/TL ayrımı ve işlem maliyeti hâlâ modellenmez (roadmap).
+- **Aylık/haftalık kart:** Portföy dönem içinde başladıysa getiri ilk değerli günden hesaplanır (önceden `-`).
+
+---
 ## [2026-11-03] güncelleme | Portföyüm Getiri Kartları Birleşik Seriye Bağlandı, Ana Sayfa Sayı Biçimi Türkçe
 
 - `UnifiedReturnService`: Haftalık (7 gün) ve aylık (30 gün) getiri `UnifiedSeriesBuilder` TWR endeksinin oranıdır; sermaye yatırma/çekme ve havuz içi hareketler getiriyi bozmaz, kur ve varlık fiyatı hareketi getiriye girer. `DashboardController` kartları bu servisle besler (kayıtlı son değer yine anında gösterilir); kart başlıkları "(BIST)" ekini kaybetti. Dönem başında portföy değeri yoksa kartta `-`.

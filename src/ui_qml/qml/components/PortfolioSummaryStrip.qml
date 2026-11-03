@@ -250,7 +250,7 @@ GridLayout {
                             id: pctText
                             anchors.centerIn: parent
                             text: (portfolioController.summaryProfitLossPct >= 0 ? "+" : "") +
-                                  portfolioController.summaryProfitLossPct.toFixed(2) + "%"
+                                  portfolioController.summaryProfitLossPct.toFixed(2).replace(".", ",") + "%"
                             color: {
                                 if (portfolioController.summaryProfitLossState === "positive") return Theme.bullGreen
                                 if (portfolioController.summaryProfitLossState === "negative") return Theme.bearRed

@@ -123,7 +123,7 @@ Rectangle {
                     }
 
                     Text {
-                        text: (modelData.totalReturn > 0 ? "+" : "") + modelData.totalReturn.toFixed(2) + " %"
+                        text: (modelData.totalReturn > 0 ? "+" : "") + modelData.totalReturn.toFixed(2).replace(".", ",") + " %"
                         color: modelData.totalReturn > 0 ? Theme.textPositive : (modelData.totalReturn < 0 ? Theme.textNegative : Theme.textMuted)
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm
@@ -133,7 +133,7 @@ Rectangle {
                     }
 
                     Text {
-                        text: "%" + modelData.volatility.toFixed(2)
+                        text: "%" + modelData.volatility.toFixed(2).replace(".", ",")
                         color: Theme.textSecondary
                         font.family: Theme.fontMono
                         font.pixelSize: Theme.fontSm

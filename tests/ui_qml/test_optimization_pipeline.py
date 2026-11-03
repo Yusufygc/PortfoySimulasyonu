@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from src.application.services.planning.unified_optimization_service import UnifiedOptimizationService
 from src.ui_qml.controllers import optimization_chart_html as charts
 from src.ui_qml.controllers import optimization_pipeline as pipeline
 
@@ -138,16 +139,22 @@ class _Universe:
         self.values_try = {"AAA": 60000.0, "BTC": 40000.0}
         self.last_prices_try = {"AAA": 12.5, "BTC": 2_000_000.0}
         self.fractional = {"BTC"}
+        self.cash_try = 0.0
 
 
 class _UnifiedService:
-    def __init__(self, error=None):
+    plan_weights = staticmethod(UnifiedOptimizationService.plan_weights)
+
+    def __init__(self, error=None, cash=0.0):
         self.error = error
+        self.cash = cash
 
     def load_universe(self):
         if self.error:
             raise self.error
-        return _Universe()
+        universe = _Universe()
+        universe.cash_try = self.cash
+        return universe
 
     def optimize(self, universe, policy):
         result = _OptService()._result()
@@ -177,3 +184,18 @@ def test_unified_plan_uses_try_prices_and_fractional_asset_quantities():
     assert rows["BTC"]["action"] == "EKLE" and rows["BTC"]["estShares"] == pytest.approx(0.01)   # 20.000 TL / 2.000.000 TL
     assert rows["BTC"]["companyName"] == "Bitcoin"
     assert len(payload["mc_points"]) == 1000
+
+
+def test_unified_cash_reserve_adds_a_cash_row_and_scales_targets():
+    np.random.seed(0)
+    services = _services(unified=_UnifiedService(cash=100000.0))        # pozisyonlar 100.000 TL + nakit 100.000 TL
+
+    payload = pipeline.compute_optimization(services, "unified", 0.6, 0.3, cash_reserve_pct=25.0)
+
+    rows = {row["symbol"]: row for row in payload["rebalance_plan"]}
+    assert rows["NAKİT"]["currentWeight"] == pytest.approx(50.0) and rows["NAKİT"]["optimalWeight"] == pytest.approx(25.0)
+    assert rows["AAA"]["currentWeight"] == pytest.approx(30.0) and rows["AAA"]["optimalWeight"] == pytest.approx(30.0)   # 40 x (1 - 0,25)
+    assert rows["BTC"]["optimalWeight"] == pytest.approx(45.0) and rows["BTC"]["action"] == "EKLE"
+    assert rows["BTC"]["estShares"] == pytest.approx(0.025)             # 50.000 TL / 2.000.000 TL
+    assert rows["NAKİT"]["action"] == "AZALT" and rows["NAKİT"]["estShares"] == 0
+    assert sum(row["optimalWeight"] for row in rows.values()) == pytest.approx(100.0)

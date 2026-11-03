@@ -42,6 +42,8 @@ class OptimizationController(QObject):
     selectedRiskProfileChanged = Signal()
     maxSingleWeightChanged = Signal()
     riskFreeRateChanged = Signal()
+    cashReserveChanged = Signal()
+    selectedPortfolioChanged = Signal()
     isLoadingChanged = Signal()
     hasResultsChanged = Signal()
     activeTabChanged = Signal()
@@ -83,6 +85,7 @@ class OptimizationController(QObject):
         self._selected_risk_profile: str = RiskLabel.DENGELI
         self._max_single_weight: float = 20.0
         self._risk_free_rate: float = DEFAULT_ANNUAL_RISK_FREE_RATE * 100  # analiz ekranlarıyla aynı varsayım
+        self._cash_reserve: float = 0.0
         self._is_loading: bool = False
         self._has_results: bool = False
         self._active_tab: int = 0
@@ -147,6 +150,15 @@ class OptimizationController(QObject):
     @Property(float, notify=riskFreeRateChanged)
     def riskFreeRate(self) -> float:
         return self._risk_free_rate
+
+    @Property(float, notify=cashReserveChanged)
+    def cashReserve(self) -> float:
+        return self._cash_reserve
+
+    @Property(bool, notify=selectedPortfolioChanged)
+    def cashReserveEnabled(self) -> bool:
+        """Nakit rezervi yalnızca Tüm Varlıklar kaynağında anlamlıdır."""
+        return self._selected_portfolio_code == "unified"
 
     @Property(bool, notify=isLoadingChanged)
     def isLoading(self) -> bool:
@@ -240,6 +252,7 @@ class OptimizationController(QObject):
     def selectPortfolio(self, code: str) -> None:
         if self._selected_portfolio_code != code:
             self._selected_portfolio_code = code
+            self.selectedPortfolioChanged.emit()
 
     @Slot()
     def reloadRiskProfile(self) -> None:
@@ -284,6 +297,13 @@ class OptimizationController(QObject):
             self._risk_free_rate = val
             self.riskFreeRateChanged.emit()
 
+    @Slot(float)
+    def setCashReserve(self, percent: float) -> None:
+        val = max(0.0, min(90.0, float(percent)))
+        if abs(self._cash_reserve - val) > 0.01:
+            self._cash_reserve = val
+            self.cashReserveChanged.emit()
+
     @Slot(int)
     def setActiveTab(self, tab_index: int) -> None:
         if self._active_tab != tab_index:
@@ -307,6 +327,7 @@ class OptimizationController(QObject):
             self._selected_portfolio_code,
             self._max_single_weight / 100.0,
             self._risk_free_rate / 100.0,
+            self._cash_reserve if self._selected_portfolio_code == "unified" else 0.0,
         )
 
     # ──────────────────────────── Worker Metodları ────────────────────────────
@@ -316,12 +337,13 @@ class OptimizationController(QObject):
         portfolio_code: str,
         max_single_weight: float,
         risk_free_rate: float,
+        cash_reserve_pct: float = 0.0,
     ) -> None:
         try:
             services = OptimizationServices(
                 self._opt_service, self._portfolio_service, self._model_portfolio_service, self._lookup, self._unified_service
             )
-            payload = compute_optimization(services, portfolio_code, max_single_weight, risk_free_rate)
+            payload = compute_optimization(services, portfolio_code, max_single_weight, risk_free_rate, cash_reserve_pct)
             self._calcFinished.emit(payload)
         except OptimizationInputError as exc:
             self._calcError.emit(str(exc))

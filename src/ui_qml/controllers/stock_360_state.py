@@ -21,15 +21,15 @@ class Stock360StateMixin:
 
     def _init_overview_and_technical_state(self) -> None:
         # Genel Bakış
-        self._last_price_str: str = "₺0.00"
+        self._last_price_str: str = "₺0,00"
         self._last_price_raw: float = 0.0
         self._last_price_date_str: str = "—"
-        self._daily_change_str: str = "%0.00"
+        self._daily_change_str: str = "%0,00"
         self._daily_change_raw: float = 0.0
         self._is_daily_positive: bool = True
         self._volume_str: str = "0"
-        self._week52_low_str: str = "₺0.00"
-        self._week52_high_str: str = "₺0.00"
+        self._week52_low_str: str = "₺0,00"
+        self._week52_high_str: str = "₺0,00"
         self._week52_range_pct: float = 0.5
 
         # Teknik Seviyeler

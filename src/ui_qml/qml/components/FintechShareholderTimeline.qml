@@ -510,7 +510,7 @@ ModernCard {
                                                 anchors.centerIn: parent
                                                 text: (modelData.oldRatio && modelData.newRatio)
                                                       ? (modelData.oldRatio + "  ->  " + modelData.newRatio)
-                                                      : ("%" + (modelData.old_pct ? modelData.old_pct.toFixed(2) : "0.00") + "  ->  %" + (modelData.new_pct ? modelData.new_pct.toFixed(2) : "0.00"))
+                                                      : ("%" + (modelData.old_pct ? modelData.old_pct.toFixed(2).replace(".", ",") : "0,00") + "  ->  %" + (modelData.new_pct ? modelData.new_pct.toFixed(2).replace(".", ",") : "0,00"))
                                                 font.family: Theme.fontMono
                                                 font.pixelSize: 11
                                                 font.weight: Font.Medium

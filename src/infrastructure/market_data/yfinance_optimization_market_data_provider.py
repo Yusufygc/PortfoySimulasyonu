@@ -11,7 +11,7 @@ from src.infrastructure.market_data._errors import MARKET_DATA_FALLBACK_ERRORS
 
 
 class YFinanceOptimizationMarketDataProvider:
-    def get_historical_prices(self, tickers: List[str], days: int) -> pd.DataFrame:
+    def get_historical_prices(self, tickers: List[str], days: int, min_columns: int = 2) -> pd.DataFrame:
         from .yfinance_lock import yfinance_lock
         # Kanonik ticker uzantısızdır; yfinance `.IS` ister. Sonuç sütunları çağıranın ticker'larıyla döner.
         yf_symbols = [to_yf_symbol(t) for t in tickers]

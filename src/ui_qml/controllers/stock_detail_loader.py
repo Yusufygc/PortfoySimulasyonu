@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.models.trade import TradeSide
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ class StockDetailLoaderMixin:
                             data["corp_actions"].append({
                                 "date": a.ex_date.strftime("%d.%m.%Y"),
                                 "actionType": str(a.action_type.value if hasattr(a.action_type, "value") else a.action_type),
-                                "ratioStr": f"%{float(a.ratio_percent):.1f}",
+                                "ratioStr": f"%{tr_number(float(a.ratio_percent), 1)}",
                                 "applied": bool(a.applied),
                             })
                     except Exception as ca_exc:
@@ -137,15 +138,15 @@ class StockDetailLoaderMixin:
                         "side": "ALIM" if is_buy else "SATIM",
                         "isBuy": is_buy,
                         "quantity": qty,
-                        "quantityStr": f"{qty:,} Lot",
+                        "quantityStr": f"{tr_number(qty, 0)} Lot",
                         "price": price,
-                        "priceStr": f"₺{price:,.2f}",
+                        "priceStr": f"₺{tr_number(price)}",
                         "total": tot,
-                        "totalStr": f"₺{tot:,.2f}",
+                        "totalStr": f"₺{tr_number(tot)}",
                         "hasSplit": has_split,
                         "origQuantity": orig_qty,
                         "origPrice": orig_price,
-                        "splitNote": msg("stock_detail.bolunme_oncesi_lot", orig_qty=orig_qty, orig_price=orig_price) if has_split else "",
+                        "splitNote": msg("stock_detail.bolunme_oncesi_lot", orig_qty=tr_number(orig_qty, 0), orig_price=tr_number(orig_price)) if has_split else "",
                     })
             except Exception as tr_exc:
                 logger.warning("İşlem geçmişi okunamadı: %s", tr_exc)
@@ -189,11 +190,11 @@ class StockDetailLoaderMixin:
                         "side": "ALIM" if is_buy else "SATIM",
                         "isBuy": is_buy,
                         "quantity": qty,
-                        "quantityStr": f"{qty:,} Lot",
+                        "quantityStr": f"{tr_number(qty, 0)} Lot",
                         "price": price,
-                        "priceStr": f"₺{price:,.2f}",
+                        "priceStr": f"₺{tr_number(price)}",
                         "total": tot,
-                        "totalStr": f"₺{tot:,.2f}",
+                        "totalStr": f"₺{tr_number(tot)}",
                         "hasSplit": False,
                         "splitNote": "",
                     })

@@ -17,6 +17,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 from src.domain.models.ai_analysis import AnalysisResult, ModelOutlook, PeerInfo, XaiFactorItem
 from src.domain.ticker import clean_ticker
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,7 @@ _BLOCKING_STATUSES = {"no_model", "no_forecast", "error"}
 def _num(value: Optional[float], decimals: int = 2) -> str:
     if value is None:
         return "-"
-    text = f"{value:,.{decimals}f}"
-    return text.replace(",", "X").replace(".", ",").replace("X", ".")
+    return tr_number(value, decimals)
 
 
 def _price(value: Optional[float]) -> str:

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Sequence, Tuple
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 _FACTOR_MAX = 25
 _GOOD_SCORE = 18
@@ -66,10 +67,10 @@ def compute_health(risk_data: Dict[str, Any]) -> Tuple[int, str, List[Dict[str, 
 
     total = max(0, min(100, diversity[0] + vol[0] + shp[0] + dd[0]))
     factors = [
-        _factor(msg("advisor_health.varlik_cesitliligi"), msg("advisor_health.ilk_3", top3_w=top3_w), diversity),
-        _factor("Volatilite & Risk", f"%{volatility:.1f}", vol),
-        _factor("Sharpe Rasyosu", f"{sharpe_val:.2f}", shp),
-        _factor(msg("advisor_health.maksimum_dusus"), f"-%{max_dd:.1f}", dd),
+        _factor(msg("advisor_health.varlik_cesitliligi"), msg("advisor_health.ilk_3", top3_w=tr_number(top3_w, 1)), diversity),
+        _factor("Volatilite & Risk", f"%{tr_number(volatility, 1)}", vol),
+        _factor("Sharpe Rasyosu", tr_number(sharpe_val), shp),
+        _factor(msg("advisor_health.maksimum_dusus"), f"-%{tr_number(max_dd, 1)}", dd),
     ]
     return total, _overall_label(total), factors
 

@@ -14,6 +14,7 @@ from PySide6.QtCore import QObject, Signal, Property, Slot
 from src.ui_qml.controllers.model_portfolio_export import resolve_range, run_history_export
 from src.ui_qml.controllers.model_portfolio_valuation import ModelPortfolioValuation, display_ticker, empty_summary
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 
 logger = logging.getLogger(__name__)
@@ -339,7 +340,7 @@ class ModelPortfolioController(QObject):
             )
             action = msg("model_portfolio.yatirildi") if movement_type.upper() == "DEPOSIT" else msg("model_portfolio.cekildi")
             self.refreshData()
-            self.operationResult.emit(True, f"₺{amount:,.2f} {action}")
+            self.operationResult.emit(True, f"₺{tr_number(amount)} {action}")
         except ValueError as exc:
             self.operationResult.emit(False, str(exc))
         except Exception as exc:

@@ -359,6 +359,53 @@ Rectangle {
                 }
             }
 
+            // 5. Nakit Rezervi (yalnızca Tüm Varlıklar kaynağı)
+            ColumnLayout {
+                visible: optimizationController.cashReserveEnabled
+                Layout.fillWidth: true
+                spacing: Theme.spaceXs
+
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Text {
+                        text: Strings.optCashReserve
+                        color: Theme.textSecondary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSm
+                        font.weight: Font.Medium
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Text {
+                        text: "%" + Math.round(optimizationController.cashReserve)
+                        color: Theme.textPrimary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSm
+                        font.weight: Font.DemiBold
+                    }
+                }
+
+                Slider {
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 90
+                    stepSize: 1
+                    value: optimizationController.cashReserve
+                    onMoved: optimizationController.setCashReserve(value)
+                }
+
+                Text {
+                    text: Strings.optCashReserveHint
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontXs
+                }
+            }
+
             // Bilgi Notu
             Rectangle {
                 Layout.fillWidth: true

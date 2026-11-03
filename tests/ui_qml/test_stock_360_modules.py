@@ -43,21 +43,21 @@ from src.ui_qml.controllers.stock_360_calc import (
 def test_formatters():
     # Para birimi
     assert format_currency(None) == "—"
-    assert format_currency(1_500_000_000) == "₺1.50 Mr"
-    assert format_currency(25_000_000) == "₺25.00 Mn"
-    assert format_currency(1_500) == "₺1,500.00"
-    assert format_currency(45.5) == "₺45.50"
+    assert format_currency(1_500_000_000) == "₺1,50 Mr"
+    assert format_currency(25_000_000) == "₺25,00 Mn"
+    assert format_currency(1_500) == "₺1.500,00"
+    assert format_currency(45.5) == "₺45,50"
 
     # Fiyat
-    assert format_price(None) == "₺0.00"
-    assert format_price(123.456) == "₺123.46"
+    assert format_price(None) == "₺0,00"
+    assert format_price(123.456) == "₺123,46"
 
     # Hacim
     assert format_volume(None) == "0"
     assert format_volume(0) == "0"
-    assert format_volume(2_500_000_000) == "2.5 Mr"
-    assert format_volume(15_000_000) == "15.0 Mn"
-    assert format_volume(5_000) == "5.0 Bin"
+    assert format_volume(2_500_000_000) == "2,5 Mr"
+    assert format_volume(15_000_000) == "15,0 Mn"
+    assert format_volume(5_000) == "5,0 Bin"
 
 
 def test_fallback_data():
@@ -76,10 +76,10 @@ def test_fallback_data():
     fin = get_fallback_financials("BIMAS")
     assert "ratios" in fin
     assert "raw_data" in fin
-    assert fin["ratios"]["pe_ratio"] == "13.4"
+    assert fin["ratios"]["pe_ratio"] == "13,4"
 
     sh = get_fallback_shareholders("BIMAS")
-    assert sh["free_float_ratio_str"] == "%43.11"
+    assert sh["free_float_ratio_str"] == "%43,11"
     assert len(sh["shareholders_list"]) == 2
 
 
@@ -113,12 +113,12 @@ def test_calc_revenue_chart_and_dupont():
     # Revenue chart
     chart_data, kpis = compute_revenue_chart(metrics, metrics["periods"])
     assert len(chart_data) == 4
-    assert kpis["latest_quarter_revenue"] == "₺100.00"
-    assert kpis["revenue_yoy_growth"] == "+100.0%"
+    assert kpis["latest_quarter_revenue"] == "₺100,00"
+    assert kpis["revenue_yoy_growth"] == "+100,0%"
 
     # DuPont
     dupont = compute_dupont_data(metrics, metrics["periods"])
-    assert dupont["netMargin"] == "%15.00"
+    assert dupont["netMargin"] == "%15,00"
     assert dupont["piotroski"] == "8/9"
     assert dupont["piotroskiStatus"] == "Yüksek Finansal Güç"
 
@@ -132,7 +132,7 @@ def test_calc_cash_flow_and_bars():
         "net_borc_favok_ttm": {"2026/3": 1.2},
     }
     cf = compute_cash_flow_data(metrics, ["2026/3"])
-    assert cf["operatingCf"] == "₺50.00"
+    assert cf["operatingCf"] == "₺50,00"
     assert cf["isDebtSafe"] is True
     assert cf["debtStatus"] == "Sürdürülebilir & Sağlıklı"
 
@@ -174,7 +174,7 @@ def test_calc_shareholder_data_and_timeline():
     parsed = parse_shareholder_data(snap)
     assert parsed["date_str"] == "15.01.2026"
     assert len(parsed["shareholders_list"]) == 2
-    assert parsed["free_float_ratio_str"] == "%40.00"
+    assert parsed["free_float_ratio_str"] == "%40,00"
     assert parsed["free_float_pct"] == 0.40
 
     prev_snap = ShareholderSnapshot(

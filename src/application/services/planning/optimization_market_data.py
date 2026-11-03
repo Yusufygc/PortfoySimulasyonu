@@ -16,7 +16,8 @@ class OptimizationPolicy:
 
 
 class OptimizationMarketDataProvider(Protocol):
-    def get_historical_prices(self, tickers: List[str], days: int) -> pd.DataFrame:
+    def get_historical_prices(self, tickers: List[str], days: int, min_columns: int = 2) -> pd.DataFrame:
+        """`min_columns`: sonuçta en az bu kadar geçerli sütun yoksa kaynak yetersiz sayılır (portföy optimizasyonu 2, birleşik portföyün BIST kısmı 1)."""
         ...
 
     def get_last_price(self, ticker: str) -> Optional[float]:

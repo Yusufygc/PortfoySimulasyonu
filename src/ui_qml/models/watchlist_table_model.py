@@ -4,6 +4,7 @@ Watchlist Table Model — QML için optimize edilmiş takip listesi hisseleri li
 from __future__ import annotations
 
 from typing import List, Dict, Any
+from src.ui_qml.presenters.formatting import tr_number, tr_pct
 from PySide6.QtCore import (
     QAbstractListModel,
     QModelIndex,
@@ -78,27 +79,22 @@ class WatchlistTableModel(QAbstractListModel):
             return s.get("companyName", "")
         elif role == self.PriceRole:
             price = s.get("priceRaw", 0.0)
-            return f"₺{price:,.2f}"
+            return f"₺{tr_number(price)}"
         elif role == self.PriceRawRole:
             return float(s.get("priceRaw", 0.0))
         elif role == self.DailyDiffRole:
             diff = s.get("dailyDiffRaw", 0.0)
-            if diff > 0:
-                return f"+%{diff:.2f}"
-            elif diff < 0:
-                return f"-%{abs(diff):.2f}"
-            else:
-                return "%0.00"
+            return tr_pct(diff, with_sign=True)
         elif role == self.DailyDiffRawRole:
             return float(s.get("dailyDiffRaw", 0.0))
         elif role == self.IsUpRole:
             return s.get("dailyDiffRaw", 0.0) >= 0
         elif role == self.DayLowRole:
             low = s.get("dayLow", 0.0)
-            return f"₺{low:,.2f}"
+            return f"₺{tr_number(low)}"
         elif role == self.DayHighRole:
             high = s.get("dayHigh", 0.0)
-            return f"₺{high:,.2f}"
+            return f"₺{tr_number(high)}"
         elif role == self.DayRangePctRole:
             return float(s.get("dayRangePct", 0.5))
         elif role == self.VolumeRole:

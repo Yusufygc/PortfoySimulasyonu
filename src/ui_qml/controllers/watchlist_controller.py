@@ -16,6 +16,7 @@ from src.domain.ticker import clean_ticker
 from src.application.services.market.watchlist_pricing import DEFAULT_PRICING, price_row
 from src.ui_qml.models.watchlist_table_model import WatchlistTableModel
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_pct
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class WatchlistController(QObject):
 
         self._summary_gainers: int = 0
         self._summary_losers: int = 0
-        self._summary_avg_change: str = "%0.00"
+        self._summary_avg_change: str = "%0,00"
 
         self._load_watchlists()
 
@@ -278,10 +279,9 @@ class WatchlistController(QObject):
 
         if total > 0:
             avg_diff = sum(s.get("dailyDiffRaw", 0.0) for s in stocks_list) / total
-            sign = "+" if avg_diff >= 0 else ""
-            self._summary_avg_change = f"{sign}%{avg_diff:.2f}"
+            self._summary_avg_change = tr_pct(avg_diff, with_sign=True)
         else:
-            self._summary_avg_change = "%0.00"
+            self._summary_avg_change = "%0,00"
 
         self._summary_gainers = gainers
         self._summary_losers = losers

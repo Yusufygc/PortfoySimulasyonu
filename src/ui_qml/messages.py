@@ -81,7 +81,7 @@ MESSAGES: Dict[str, str] = {
     "corporate_action.ratio_positive": "Artırım oranı 0'dan büyük olmalıdır.",
     "corporate_action.subscription_price_required": "Bedelli işlem için kullanım fiyatı zorunludur.",
     "corporate_action.stock_not_found": "Hisse bilgisi bulunamadı: {clean_ticker}",
-    "corporate_action.applied": "{type_label} sermaye artırımı uygulandı: {shares_before:,} lot -> {shares_after:,} lot.",
+    "corporate_action.applied": "{type_label} sermaye artırımı uygulandı: {shares_before} lot -> {shares_after} lot.",
     "corporate_action.apply_failed": "Sermaye artırımı uygulanamadı: {exc}",
     "corporate_action.prices_updated_suffix": " {count} günlük fiyat güncellendi.",
     "corporate_action.prices_failed_suffix": " Uyarı: geçmiş fiyatlar güncellenemedi ({exc}); Fiyat Verisi sekmesinden elle güncelleyin.",
@@ -262,15 +262,15 @@ MESSAGES: Dict[str, str] = {
     "stock_detail.fiyat_0_dan_buyuk_olmalidir": "Fiyat 0'dan büyük olmalıdır.",
     "stock_detail.hisse_excel_raporu_hazirlaniyor": "Hisse Excel raporu hazırlanıyor...",
     "stock_detail.model_portfoy": "Model Portföy #{ctx_id}",
-    "stock_detail.bolunme_oncesi_lot": "Bölünme Öncesi: {orig_qty:,} Lot @ ₺{orig_price:,.2f}",
+    "stock_detail.bolunme_oncesi_lot": "Bölünme Öncesi: {orig_qty} Lot @ ₺{orig_price}",
     "stock_detail.portfoy": "Portföy",
     "stock_detail.hazir": "{ticker} hazır.",
     "stock_detail.model_portfoy_servisi_bulunamadi": "Model portföy servisi bulunamadı.",
     "stock_detail.satin_alindi": "satın alındı",
     "stock_detail.satildi": "satıldı",
-    "stock_detail.adet_model_portfoye": "{qty} adet {ticker} model portföye {action_tr} (₺{total_amount:,.2f}).",
+    "stock_detail.adet_model_portfoye": "{qty} adet {ticker} model portföye {action_tr} (₺{total_amount}).",
     "stock_detail.islem_giris_servisi_bulunamadi": "İşlem giriş servisi bulunamadı.",
-    "stock_detail.adet_basariyla": "{qty} adet {ticker} başarıyla {action_tr} (₺{total_amount:,.2f}).",
+    "stock_detail.adet_basariyla": "{qty} adet {ticker} başarıyla {action_tr} (₺{total_amount}).",
     "stock_detail.deger": "Değer",
     "stock_detail.sirket_adi": "Şirket Adı",
     "stock_detail.sektor": "Sektör",
@@ -412,7 +412,7 @@ MESSAGES: Dict[str, str] = {
     "advisor_health.cok_guclu": "Çok Güçlü",
     "advisor_health.yuksek_risk": "Yüksek Risk",
     "advisor_health.varlik_cesitliligi": "Varlık Çeşitliliği",
-    "advisor_health.ilk_3": "%{top3_w:.1f} (İlk 3)",
+    "advisor_health.ilk_3": "%{top3_w} (İlk 3)",
     "advisor_health.maksimum_dusus": "Maksimum Düşüş",
     # --- AI danışman sohbet ---
     "advisor_chat.merhaba_ben_gemini_destekli_yapay_zeka": "**Merhaba! Ben Gemini destekli Yapay Zeka Portföy Danışmanınız.**\n\nPortföyünüzün risk ve varlık dağılımını analiz edebilir, Modern Portföy Teorisi'ne göre yeniden dengeleme (rebalance) önerileri sunabilir ve hisselerinizin teknik/temel verilerini yorumlayabilirim.\n\nAşağıdaki **Hızlı Analiz Soruları**ndan birine tıklayabilir veya aklınızdaki soruyu doğrudan yazabilirsiniz.",
@@ -504,6 +504,9 @@ MESSAGES: Dict[str, str] = {
     "cash_pool.invalid_date": "Tarih GG.AA.YYYY biçiminde olmalı.",
     "cash_pool.future_date": "Gelecek tarihli döviz işlemi girilemez.",
     "cash_pool.invalid_time": "Saat SS:DD biçiminde olmalı.",
+    # --- Nakit rezervi ---
+    "optimization.nakit_etiketi": "NAKİT",
+    "optimization.nakit_adi": "Nakit (TL + USD)",
 }
 
 

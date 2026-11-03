@@ -18,7 +18,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 from src.application.services.simulation.strategy_backtest import BacktestSetup, StrategyBacktestResult
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.controllers.lw_chart_html import line_chart_html
-from src.ui_qml.presenters.formatting import tr_money
+from src.ui_qml.presenters.formatting import tr_money, tr_pct
 from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ _MAX_LISTED_EVENTS = 200
 
 
 def _fmt_pct(value: Optional[float]) -> str:
-    return "-" if value is None else f"%{value:+.2f}".replace(".", ",")
+    return "-" if value is None else tr_pct(value, with_sign=True)
 
 
 def parse_number(text: str) -> Optional[float]:

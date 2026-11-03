@@ -15,6 +15,7 @@ from src.ui_qml.controllers.stock_360_formatters import (
     format_price,
 )
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import swap_separators, tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,11 @@ def _series_value(f: Dict[str, Any], key: str, period: str) -> Any:
 
 
 def _format_or_dash(value: Any, template: str) -> str:
-    return template.format(value) if value is not None else "—"
+    return swap_separators(template.format(value)) if value is not None else "—"
 
 
 def _format_positive(value: Any, template: str, otherwise: str) -> str:
-    return template.format(value) if value is not None and value > 0 else otherwise
+    return swap_separators(template.format(value)) if value is not None and value > 0 else otherwise
 
 
 def parse_valuation_ratios(f: Dict[str, Any]) -> Dict[str, str]:
@@ -46,7 +47,7 @@ def parse_valuation_ratios(f: Dict[str, Any]) -> Dict[str, str]:
         "pe_ratio": _format_positive(fk, "{:.1f}", "—" if fk is None else "Negatif"),
         "pb_ratio": _format_or_dash(mv.get("pddd"), "{:.2f}"),
         "ev_ebitda": _format_positive(mv.get("ev_favok"), "{:.1f}", "—"),
-        "div_yield": _format_positive(mv.get("temettu_verimi"), "%{:.2f}", "%0.00"),
+        "div_yield": _format_positive(mv.get("temettu_verimi"), "%{:.2f}", "%0,00"),
         "market_cap_str": format_currency(market_cap) if market_cap is not None else "—",
         "roe": _format_or_dash(_series_value(f, "roe", p0), "%{:.1f}"),
         "net_debt_ebitda": _format_or_dash(_series_value(f, "net_borc_favok_ttm", p0), "{:.2f}"),
@@ -134,8 +135,8 @@ def _revenue_chart_items(satis_c, net_c, margin_c, chronological_periods) -> Lis
             "netIncomeStr": format_currency(net_val),
             "net_income_str": format_currency(net_val),
             "margin": mg_val,
-            "marginStr": f"%{mg_val:.1f}",
-            "margin_str": f"%{mg_val:.1f}",
+            "marginStr": f"%{tr_number(mg_val, 1)}",
+            "margin_str": f"%{tr_number(mg_val, 1)}",
             "isProfitable": net_val >= 0,
             "ratio": min(1.0, rev_val / max_rev) if max_rev > 0 else 0.0,
             "profitRatio": min(1.0, abs(net_val) / max_rev) if max_rev > 0 else 0.0,
@@ -150,7 +151,7 @@ def _revenue_yoy_growth(satis_c, period: str, last_rev: float) -> Optional[Tuple
         if prev_rev and prev_rev > 0:
             yoy_growth = (last_rev - prev_rev) / prev_rev * 100.0
             is_pos = yoy_growth >= 0
-            return f"{'+' if is_pos else ''}{yoy_growth:.1f}%", is_pos
+            return f"{'+' if is_pos else ''}{tr_number(yoy_growth, 1)}%", is_pos
     except (ValueError, TypeError, ZeroDivisionError) as exc:
         logger.debug("Yıllık ciro büyümesi hesaplanamadı: %s", exc)
     return None
@@ -180,7 +181,7 @@ def compute_revenue_chart(
         last_rev = float(satis_c.get(p0) or 0.0)
         kpis["latest_quarter_revenue"] = format_currency(last_rev)
         kpis["latest_quarter_net_income"] = format_currency(float(net_c.get(p0) or 0.0))
-        kpis["latest_quarter_margin"] = f"%{float(margin_c.get(p0) or 0.0):.2f}"
+        kpis["latest_quarter_margin"] = f"%{tr_number(float(margin_c.get(p0) or 0.0), 2)}"
 
         yoy = _revenue_yoy_growth(satis_c, p0, last_rev)
         if yoy is not None:
@@ -319,7 +320,7 @@ def _statement_yoy(name: str, p_dict: Dict[str, Any], periods: List[str]) -> Tup
         if v0 is not None and v_prev is not None and abs(v_prev) > 0:
             pct = (v0 - v_prev) / abs(v_prev) * 100.0
             is_pos_yoy = pct >= 0
-            return f"{'+' if is_pos_yoy else ''}{pct:.1f}%", is_pos_yoy
+            return f"{'+' if is_pos_yoy else ''}{tr_number(pct, 1)}%", is_pos_yoy
     except Exception as exc:
         logger.debug("YoY hesaplanamadı (%s): %s", name, exc)
     return "—", True
@@ -355,6 +356,11 @@ def compute_financial_table_rows(
     return rows
 
 
+def _signed_pct_suffix(value: float) -> str:
+    """`+1,25%` / `-0,40%` (işaretli, yüzde sonda: ortaklık değişim satırları)."""
+    return f"{'+' if value >= 0 else ''}{tr_number(value, 2)}%"
+
+
 def _snapshot_changes(curr: Any, prev: Any) -> List[Dict[str, Any]]:
     """İki ardışık KAP snapshot'ı arasında en az %0.05 değişen ortakları listeler."""
     curr_date = curr.creation_date.strftime("%d.%m.%Y") if curr.creation_date else "—"
@@ -372,12 +378,12 @@ def _snapshot_changes(curr: Any, prev: Any) -> List[Dict[str, Any]]:
             events.append({
                 "date": curr_date,
                 "name": name,
-                "newRatio": f"%{new_ratio:.2f}",
-                "oldRatio": f"%{old_ratio:.2f}",
+                "newRatio": f"%{tr_number(new_ratio, 2)}",
+                "oldRatio": f"%{tr_number(old_ratio, 2)}",
                 "diff": diff,
-                "diffStr": f"{diff:+.2f}%",
+                "diffStr": _signed_pct_suffix(diff),
                 "isIncrease": diff > 0,
-                "votingRatio": f"%{float(r.voting_right_ratio or 0):.2f}",
+                "votingRatio": f"%{tr_number(float(r.voting_right_ratio or 0), 2)}",
             })
     return events
 
@@ -411,9 +417,9 @@ def _donut_entry(index: int, row: Any) -> Tuple[Dict[str, Any], Dict[str, Any], 
     item = {
         "name": name,
         "ratio": ratio,
-        "ratioStr": f"%{ratio:.2f}",
+        "ratioStr": f"%{tr_number(ratio, 2)}",
         "share": format_currency(share_tl),
-        "votingRatio": f"%{voting:.2f}",
+        "votingRatio": f"%{tr_number(voting, 2)}",
         "color": color,
         "isFreeFloat": is_free_float,
     }
@@ -449,7 +455,7 @@ def parse_shareholder_data(snap: ShareholderSnapshot) -> Dict[str, Any]:
         shareholders.append(item)
         slices.append(donut_slice)
 
-    free_float_ratio_str = f"%{float(free_float_ratio):.2f}" if free_float_ratio > 0 else "—"
+    free_float_ratio_str = f"%{tr_number(float(free_float_ratio), 2)}" if free_float_ratio > 0 else "—"
     paid_capital_str = format_currency(total_nominal) if total_nominal > 0 else "—"
 
     return {

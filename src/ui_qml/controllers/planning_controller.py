@@ -18,7 +18,7 @@ from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 from src.domain.models.budget import Budget, BudgetItem
 from src.ui_qml.controllers.planning_dca_chart import build_dca_chart_html
 from src.ui_qml.controllers.planning_months import budget_months
-from src.ui_qml.presenters.formatting import tr_money
+from src.ui_qml.presenters.formatting import tr_money, tr_number, tr_pct
 from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class PlanningController(QObject):
         self._dca_total_invested: str = "0,00 ₺"
         self._dca_final_value: str = "0,00 ₺"
         self._dca_return_pct: float = 0.0
-        self._dca_return_formatted: str = "%0.00"
+        self._dca_return_formatted: str = "%0,00"
         self._dca_contribution_count: int = 0
         self._dca_shares_list: List[Dict[str, Any]] = []
         self._dca_chart_html: str = ""
@@ -402,7 +402,7 @@ class PlanningController(QObject):
                     "status": g.status.value if hasattr(g.status, "value") else str(g.status),
                     "isCompleted": g.is_completed,
                     "progress": progress,
-                    "progressPct": f"%{progress * 100:.1f}",
+                    "progressPct": f"%{tr_number(progress * 100, 1)}",
                     "monthsRemaining": g.months_remaining(),
                     "requiredMonthlyFormatted": tr_money(g.required_monthly_contribution()),
                 })
@@ -525,7 +525,7 @@ class PlanningController(QObject):
             self._dca_total_invested = tr_money(res.total_invested)
             self._dca_final_value = tr_money(res.final_value)
             self._dca_return_pct = float(res.total_return_pct) if res.total_return_pct is not None else 0.0
-            self._dca_return_formatted = f"%{self._dca_return_pct:+.2f}"
+            self._dca_return_formatted = tr_pct(self._dca_return_pct, with_sign=True)
             self._dca_contribution_count = res.contribution_count
 
             # Hisse lot adetleri
@@ -534,7 +534,7 @@ class PlanningController(QObject):
                 shares.append({
                     "ticker": t,
                     "quantity": float(q),
-                    "quantityFormatted": f"{float(q):,.2f} Lot",
+                    "quantityFormatted": f"{tr_number(float(q))} Lot",
                 })
             self._dca_shares_list = shares
 

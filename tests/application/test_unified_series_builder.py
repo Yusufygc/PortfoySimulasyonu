@@ -317,9 +317,16 @@ class TestUnifiedReturnService:
     def test_empty_portfolio_has_no_return(self, repos):
         assert self._returns(repos, date(2026, 3, 31)) == (None, None)
 
-    def test_period_without_value_at_start_is_none(self, repos):
-        repos.movements = [deposit("1000", date(2026, 3, 29))]
+    def test_portfolio_started_inside_the_period_is_measured_from_its_first_funded_day(self, repos):
+        repos.movements = [deposit("100000", date(2026, 3, 20))]
+        repos.conversions = [fx_buy("1000", "40", date(2026, 3, 20))]
+        repos.fx = {date(2026, 3, 20) + timedelta(days=i): D("40") if i < 5 else D("44") for i in range(12)}   # 25 Mart'ta 44
 
         weekly, monthly = self._returns(repos, date(2026, 3, 31))
 
-        assert weekly is None and monthly is None
+        assert weekly == pytest.approx(4.0) and monthly == pytest.approx(4.0)     # 7 günde ve açılıştan beri aynı +%4
+
+    def test_single_funded_day_has_no_return(self, repos):
+        repos.movements = [deposit("1000", date(2026, 3, 31))]
+
+        assert self._returns(repos, date(2026, 3, 31)) == (None, None)

@@ -60,8 +60,11 @@ def _load_model(services: OptimizationServices, portfolio_code: str, policy: Opt
     return positions, total_val, services.opt_service.optimize_model_portfolio(pid, policy=policy)
 
 
-def _compute_unified(services: OptimizationServices, policy: OptimizationPolicy, max_single_weight: float, risk_free_rate: float) -> Dict[str, Optional[Any]]:
-    """Tüm Varlıklar: BIST + BIST dışı varlıklar, TL cinsinden; BIST dışı varlıkta kesirli miktar planı."""
+def _compute_unified(
+    services: OptimizationServices, policy: OptimizationPolicy, max_single_weight: float, risk_free_rate: float,
+    cash_reserve_pct: float = 0.0,
+) -> Dict[str, Optional[Any]]:
+    """Tüm Varlıklar: BIST + BIST dışı varlıklar, TL cinsinden; BIST dışı varlıkta kesirli miktar planı ve nakit rezervi."""
     if services.unified is None:
         raise OptimizationInputError(msg("optimization_input.birlesik_optimizasyon_hazir_degil"))
     try:
@@ -70,11 +73,13 @@ def _compute_unified(services: OptimizationServices, policy: OptimizationPolicy,
     except ValueError as exc:
         raise OptimizationInputError(str(exc)) from exc
     mean_returns, cov_matrix = _build_return_model(universe.price_df, trading_days_per_year=_TRADING_DAYS)
-    names_map = {symbol: universe.names.get(symbol, symbol) for symbol in universe.symbols}
+    cash_label = msg("optimization.nakit_etiketi")
+    current, optimal, total = services.unified.plan_weights(universe, opt_result, cash_reserve_pct, cash_label)
+    names_map = {**{symbol: universe.names.get(symbol, symbol) for symbol in universe.symbols}, cash_label: msg("optimization.nakit_adi")}
     plan = calculate_rebalance_plan(
-        total_portfolio_value=sum(universe.values_try.values()),
-        current_weights={s.symbol: s.current_weight for s in opt_result.suggestions},
-        optimal_weights={s.symbol: s.optimal_weight for s in opt_result.suggestions},
+        total_portfolio_value=total,
+        current_weights=current,
+        optimal_weights=optimal,
         last_prices=universe.last_prices_try,
         stock_names=names_map,
         fractional=universe.fractional,
@@ -137,8 +142,11 @@ def compute_optimization(
     portfolio_code: str,
     max_single_weight: float,
     risk_free_rate: float,
+    cash_reserve_pct: float = 0.0,
 ) -> Dict[str, Optional[Any]]:
-    """Optimizasyonu, Monte Carlo simülasyonunu, verimli sınırı ve rebalance planını hesaplar."""
+    """Optimizasyonu, Monte Carlo simülasyonunu, verimli sınırı ve rebalance planını hesaplar.
+
+    `cash_reserve_pct` (0-90): yalnızca Tüm Varlıklar kaynağında, toplam portföy değerinin nakitte kalacak yüzdesi."""
     if not services.opt_service:
         raise OptimizationInputError(msg("optimization_input.optimizationservice_hazir_degil"))
 
@@ -149,7 +157,7 @@ def compute_optimization(
     )
 
     if portfolio_code == "unified":
-        return _compute_unified(services, policy, max_single_weight, risk_free_rate)
+        return _compute_unified(services, policy, max_single_weight, risk_free_rate, cash_reserve_pct)
 
     # 1. Hisseleri ve Pozisyonları Çek
     if portfolio_code == "dashboard":

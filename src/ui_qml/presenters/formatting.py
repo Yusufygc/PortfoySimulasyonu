@@ -17,6 +17,11 @@ ZERO_PCT = "%0,00"
 _ZERO_PCT_EPSILON = 0.0001  # bunun altı sıfır kabul edilir ("-%0,00" görünmesin)
 
 
+def swap_separators(text: str) -> str:
+    """Düz `str.format` çıktısındaki sayıyı Türkçe ayraçlara çevirir: '%12.5x' -> '%12,5x' (yalnızca sayı içeren şablon çıktıları için)."""
+    return text.translate(_SWAP_SEPARATORS)
+
+
 def tr_number(value: Number, decimals: int = 2) -> str:
     """1234.5 -> '1.234,50'. Decimal tam kalır, diğer sayılar olduğu gibi biçimlenir."""
     return f"{value:,.{decimals}f}".translate(_SWAP_SEPARATORS)

@@ -99,8 +99,8 @@ def test_dupont_derived_from_statements_when_ttm_missing():
         "toplam_varlik": {"2026/3": 400.0}, "ozkaynak": {"2026/3": 100.0},
     }
     data = calc.compute_dupont_data(metrics, ["2026/3"])
-    assert data["netMargin"] == "%10.00"
-    assert data["assetTurnover"] == "1.00x"
-    assert data["financialLeverage"] == "4.00x"
-    assert data["roe"] == "%40.00"  # %10 marj x 1.0 devir x 4.0 kaldıraç
+    assert data["netMargin"] == "%10,00"
+    assert data["assetTurnover"] == "1,00x"
+    assert data["financialLeverage"] == "4,00x"
+    assert data["roe"] == "%40,00"  # %10 marj x 1.0 devir x 4.0 kaldıraç
     assert data["piotroskiStatus"] == "Yüksek Finansal Güç"  # varsayılan skor 7

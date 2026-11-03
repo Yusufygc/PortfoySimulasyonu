@@ -18,13 +18,15 @@ class UnifiedReturnService:
         self._builder = series_builder
 
     def returns(self, end: date) -> Tuple[Optional[float], Optional[float]]:
-        """(haftalık %, aylık %); dönem başında portföy değeri yoksa o dönem None."""
+        """(haftalık %, aylık %); dönem içinde değerli gün yoksa None, portföy dönem içinde başladıysa ilk değerli günden hesaplanır."""
         series = self._builder.build(end - timedelta(days=MONTH_DAYS), end)
         return self._period(series, end, WEEK_DAYS), self._period(series, end, MONTH_DAYS)
 
     @staticmethod
     def _period(series, end: date, days: int) -> Optional[float]:
+        """Dönem başı yoksa (portföy dönem içinde başladıysa) ilk değerli günden başlar; tek günlük dönem None."""
         start = end - timedelta(days=days)
-        if start not in series.twr or end not in series.twr or series.values.get(start, Decimal("0")) <= 0:
+        funded = [day for day in sorted(series.twr) if start <= day <= end and series.values.get(day, Decimal("0")) > 0]
+        if not funded or funded[0] >= end or end not in series.twr:
             return None
-        return float((series.twr[end] / series.twr[start] - 1) * 100)
+        return float((series.twr[end] / series.twr[funded[0]] - 1) * 100)

@@ -104,9 +104,9 @@ class TestRun:
 
         assert service.calls[0][0] == "stop_take"
         assert ctrl.hasResult is True and ctrl.isRunning is False
-        assert ctrl.strategyReturnText == "%-10,00"
-        assert ctrl.baselineReturnText == "%-50,00"
-        assert ctrl.differenceText == "%+40,00" and ctrl.differencePositive is True
+        assert ctrl.strategyReturnText == "-%10,00"
+        assert ctrl.baselineReturnText == "-%50,00"
+        assert ctrl.differenceText == "+%40,00" and ctrl.differencePositive is True
         assert ctrl.strategyValueText == "900,00 ₺"
         assert "1 pozisyon çıkışı" in ctrl.summaryText
         assert ctrl.events == [

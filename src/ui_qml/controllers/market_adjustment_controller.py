@@ -18,6 +18,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.models.market_corporate_action import MarketActionStatus, MarketCorporateAction
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +202,7 @@ class MarketAdjustmentController(QObject):
             "factor": action.factor,
             "factorText": _fmt_factor(action.factor),
             "observedText": "-" if action.observed_ratio is None else _fmt_factor(action.observed_ratio),
-            "confidenceText": "-" if confidence is None else f"%{confidence * 100:.0f}",
+            "confidenceText": "-" if confidence is None else f"%{tr_number(confidence * 100, 0)}",
             "status": action.status.value,
             "statusLabel": STATUS_LABELS[action.status],
             "source": action.source.value,

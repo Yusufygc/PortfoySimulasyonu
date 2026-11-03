@@ -153,7 +153,7 @@ def test_screener_controller_initialization_and_filters(qapp, container, wait_un
     assert not ctrl.isRunning
     assert len(ctrl.matchesList) == 1
     assert ctrl.matchesList[0]["ticker"] == "THYAO"
-    assert "300.00 ₺" in ctrl.matchesList[0]["closePrice"]
+    assert "300,00 ₺" in ctrl.matchesList[0]["closePrice"]
 
 
 def test_comparison_qml_view_compilation(qapp, container):

@@ -93,7 +93,7 @@ Kapsam kararları ve ayrıntı: [service_asset_ledger.md](service_asset_ledger.m
 
 | Fikir | Durum | Not |
 |---|---|---|
-| Optimizasyonda nakit ve USD kısıtı | Açık | Birleşik optimizasyon pozisyonlar arasındadır; nakit ve döviz bakiyesi kısıt olarak modellenmez. |
+| Optimizasyonda USD/TL ayrımı ve işlem maliyeti | Açık | Birleşik optimizasyonda nakit rezervi vardır; USD ile TL nakdi ayrı kısıt değildir (USD ile ödenen varlık için gereken USD planda hesaplanmaz) ve komisyon/BSMV plana yansımaz. |
 | Excel raporunda varlık sayfaları | Açık | Mevcut rapor BIST portföyü içindir. |
 | AI danışman aracı (`get_assets_overview`) | Açık | Danışman araçları salt okunur kalır; varlık özeti aracı yoktur. |
 | Benchmark olarak BTC / NASDAQ | Açık | `AnalysisBenchmarkService` listesi sabittir. |

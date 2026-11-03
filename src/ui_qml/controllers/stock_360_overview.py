@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, Tuple
 from src.ui_qml.controllers.stock_360_fallback import guess_sector
 from src.ui_qml.controllers.stock_360_formatters import format_price, format_volume
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 _DEFAULT_SECTOR = msg("stock360.bist_sirketi")
 _MISSING = "—"
@@ -51,7 +52,7 @@ def overview_fields(overview: Any) -> Dict[str, Any]:
         "last_price_str": format_price(overview.last_price),
         "last_price_raw": last,
         "last_price_date_str": overview.last_price_date.strftime("%d.%m.%Y"),
-        "daily_change_str": f"{'+' if change >= 0 else ''}{change:.2f}%",
+        "daily_change_str": f"{'+' if change >= 0 else ''}{tr_number(change, 2)}%",
         "daily_change_raw": float(change),
         "is_daily_positive": change >= 0,
         "volume_str": format_volume(overview.volume),
@@ -83,10 +84,10 @@ def technical_fields(tech: Any) -> Dict[str, Any]:
     """Servis teknik seviye nesnesinden denetleyici alanları."""
     has_rsi = tech.rsi14 is not None
     return {
-        "rsi14_str": f"{tech.rsi14:.1f}" if has_rsi else _MISSING,
+        "rsi14_str": f"{tr_number(tech.rsi14, 1)}" if has_rsi else _MISSING,
         "rsi_status": rsi_status(tech.rsi14) if has_rsi else msg("stock360.notr"),
-        "macd_line_str": _formatted(tech.macd_line, lambda v: f"{v:.2f}"),
-        "macd_signal_str": _formatted(tech.macd_signal, lambda v: f"{v:.2f}"),
+        "macd_line_str": _formatted(tech.macd_line, lambda v: f"{tr_number(v, 2)}"),
+        "macd_signal_str": _formatted(tech.macd_signal, lambda v: f"{tr_number(v, 2)}"),
         "sma50_str": _formatted(tech.sma50, format_price),
         "sma200_str": _formatted(tech.sma200, format_price),
         "ema20_str": _formatted(tech.ema20, format_price),

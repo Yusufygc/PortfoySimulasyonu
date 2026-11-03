@@ -7,7 +7,7 @@ BIST hisse fiyatları mevcut piyasa verisinden, varlık fiyatları varlık defte
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Dict, List, NamedTuple, Optional, Set
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple
 
 import numpy as np
 import pandas as pd
@@ -28,6 +28,7 @@ class UnifiedUniverse(NamedTuple):
     values_try: Dict[str, float]    # güncel TL değer
     last_prices_try: Dict[str, float]
     fractional: Set[str]            # kesirli miktarla işlem gören (BIST dışı) semboller
+    cash_try: float = 0.0           # ortak nakit havuzu (TL + USD karşılığı); ağırlıklara girmez, nakit rezervi için kullanılır
 
 
 def asset_try_series(asset: Asset, closes: Dict, fx_rates: Dict) -> pd.Series:
@@ -77,11 +78,12 @@ class UnifiedOptimizationService:
         self._asset_price_repo = asset_price_repo
         self._fx_rate_repo = fx_rate_repo
 
-    def _holdings(self) -> List[HoldingValuation]:
-        holdings = [h for h in self._unified.get_summary("TRY").holdings if h.quantity > 0 and h.value_try > 0]
+    def _holdings(self) -> Tuple[List[HoldingValuation], float]:
+        summary = self._unified.get_summary("TRY")
+        holdings = [h for h in summary.holdings if h.quantity > 0 and h.value_try > 0]
         if len(holdings) < MIN_HOLDINGS:
             raise ValueError("Optimizasyon için portföyde en az 2 farklı varlık olmalıdır.")
-        return holdings
+        return holdings, float(summary.cash_try + summary.usd_cash_try)
 
     def _asset_series(self, holdings: List[HoldingValuation]) -> Dict[str, pd.Series]:
         end = market_today()
@@ -101,9 +103,9 @@ class UnifiedOptimizationService:
         return series
 
     def load_universe(self) -> UnifiedUniverse:
-        holdings = self._holdings()
+        holdings, cash = self._holdings()
         bist = [h.symbol for h in holdings if h.allocation_class == AllocationClass.BIST_STOCK]
-        bist_df = self._optimizer._get_historical_prices(bist, HISTORY_DAYS) if bist else pd.DataFrame()
+        bist_df = self._optimizer._get_historical_prices(bist, HISTORY_DAYS, min_columns=1) if bist else pd.DataFrame()
         frame = trim_to_common_history(combine_prices(bist_df, self._asset_series(holdings)))
         return UnifiedUniverse(
             price_df=frame,
@@ -112,7 +114,23 @@ class UnifiedOptimizationService:
             values_try={h.symbol: float(h.value_try) for h in holdings},
             last_prices_try={h.symbol: float(h.value_try / h.quantity) for h in holdings},
             fractional={h.symbol for h in holdings if h.allocation_class != AllocationClass.BIST_STOCK},
+            cash_try=cash,
         )
+
+    @staticmethod
+    def plan_weights(universe: UnifiedUniverse, opt_result, cash_reserve_pct: float, cash_label: str) -> Tuple[Dict[str, float], Dict[str, float], float]:
+        """(mevcut %, optimum %, toplam TL): ağırlıklar nakit dahil toplam değere göredir.
+
+        Pozisyonlar arası optimum paylar `1 - nakit rezervi` ile ölçeklenir; `cash_label` satırı hedef rezervi gösterir."""
+        reserve = max(0.0, min(0.9, cash_reserve_pct / 100.0))
+        positions_total = sum(universe.values_try.values())
+        total = positions_total + universe.cash_try
+        scale = positions_total / total if total > 0 else 1.0
+        current = {s.symbol: s.current_weight * scale for s in opt_result.suggestions}
+        optimal = {s.symbol: s.optimal_weight * (1.0 - reserve) for s in opt_result.suggestions}
+        current[cash_label] = universe.cash_try / total * 100.0 if total > 0 else 0.0
+        optimal[cash_label] = reserve * 100.0
+        return current, optimal, total
 
     def optimize(self, universe: UnifiedUniverse, policy=None):
         total = sum(universe.values_try.values())

@@ -45,7 +45,7 @@ ColumnLayout {
                 if (!root.ctrl) return "—";
                 var ff = root.ctrl.freeFloatPct || 0.0;
                 if (ff <= 0.0 || ff >= 1.0) return "—";
-                return "%" + ((1.0 - ff) * 100.0).toFixed(2);
+                return "%" + ((1.0 - ff) * 100.0).toFixed(2).replace(".", ",");
             }
             subtitle: Strings.labelControllingShareholderDesc
             iconName: "target"

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from typing import Optional
+from src.ui_qml.presenters.formatting import tr_number
 
 # Renk paleti (Donut ve grafikler için)
 DONUT_COLORS = [
@@ -25,19 +26,19 @@ def format_currency(val: Optional[float | Decimal]) -> str:
     v = float(val)
     abs_v = abs(v)
     if abs_v >= 1_000_000_000:
-        return f"₺{v / 1_000_000_000:,.2f} Mr"
+        return f"₺{tr_number(v / 1_000_000_000, 2)} Mr"
     elif abs_v >= 1_000_000:
-        return f"₺{v / 1_000_000:,.2f} Mn"
+        return f"₺{tr_number(v / 1_000_000, 2)} Mn"
     elif abs_v >= 1_000:
-        return f"₺{v:,.2f}"
-    return f"₺{v:.2f}"
+        return f"₺{tr_number(v, 2)}"
+    return f"₺{tr_number(v, 2)}"
 
 
 def format_price(val: Optional[float | Decimal]) -> str:
     """Fiyat formatlar (örn. ₺394.00)."""
     if val is None:
-        return "₺0.00"
-    return f"₺{float(val):.2f}"
+        return "₺0,00"
+    return f"₺{tr_number(float(val), 2)}"
 
 
 def format_volume(val: Optional[int | float]) -> str:
@@ -47,12 +48,12 @@ def format_volume(val: Optional[int | float]) -> str:
     v = float(val)
     abs_v = abs(v)
     if abs_v >= 1_000_000_000:
-        return f"{v / 1_000_000_000:.1f} Mr"
+        return f"{tr_number(v / 1_000_000_000, 1)} Mr"
     elif abs_v >= 1_000_000:
-        return f"{v / 1_000_000:.1f} Mn"
+        return f"{tr_number(v / 1_000_000, 1)} Mn"
     elif abs_v >= 1_000:
-        return f"{v / 1_000:.1f} Bin"
-    return f"{int(v):,}"
+        return f"{tr_number(v / 1_000, 1)} Bin"
+    return tr_number(int(v), 0)
 
 
 _format_currency = format_currency

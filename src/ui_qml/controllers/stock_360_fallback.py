@@ -37,15 +37,15 @@ def guess_sector(ticker: str) -> str:
 def get_default_overview(ticker: str) -> Dict[str, Any]:
     """Varsayılan genel bakış verilerini döner."""
     return {
-        "last_price_str": "₺394.00",
+        "last_price_str": "₺394,00",
         "last_price_raw": 394.00,
         "last_price_date_str": date.today().strftime("%d.%m.%Y"),
-        "daily_change_str": "+1.85%",
+        "daily_change_str": "+1,85%",
         "daily_change_raw": 1.85,
         "is_daily_positive": True,
         "volume_str": "12.4M",
-        "week52_low_str": "₺240.00",
-        "week52_high_str": "₺415.00",
+        "week52_low_str": "₺240,00",
+        "week52_high_str": "₺415,00",
         "week52_range_pct": 0.88,
     }
 
@@ -53,15 +53,15 @@ def get_default_overview(ticker: str) -> Dict[str, Any]:
 def get_default_technical() -> Dict[str, Any]:
     """Varsayılan teknik indikatör seviyelerini döner."""
     return {
-        "rsi14_str": "58.4",
+        "rsi14_str": "58,4",
         "rsi_status": "Dengeli",
-        "macd_line_str": "1.25",
-        "macd_signal_str": "0.80",
-        "sma50_str": "₺378.50",
-        "sma200_str": "₺315.00",
-        "ema20_str": "₺382.00",
-        "support_str": "₺385.00",
-        "resistance_str": "₺420.00",
+        "macd_line_str": "1,25",
+        "macd_signal_str": "0,80",
+        "sma50_str": "₺378,50",
+        "sma200_str": "₺315,00",
+        "ema20_str": "₺382,00",
+        "support_str": "₺385,00",
+        "resistance_str": "₺420,00",
         "trend_status": "Boğa / Golden Cross",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
     }
 
@@ -76,15 +76,15 @@ def _flat_series(value: float) -> Dict[str, float]:
 
 def _fallback_ratios() -> Dict[str, str]:
     return {
-        "pe_ratio": "13.4",
-        "pb_ratio": "2.46",
-        "ev_ebitda": "7.6",
-        "div_yield": "%2.40",
-        "roe": "%28.5",
-        "net_debt_ebitda": "0.80",
+        "pe_ratio": "13,4",
+        "pb_ratio": "2,46",
+        "ev_ebitda": "7,6",
+        "div_yield": "%2,40",
+        "roe": "%28,5",
+        "net_debt_ebitda": "0,80",
         "piotroski_score": "7/9",
-        "current_ratio": "1.42",
-        "market_cap_str": "₺499.51 Mr",
+        "current_ratio": "1,42",
+        "market_cap_str": "₺499,51 Mr",
     }
 
 
@@ -178,18 +178,18 @@ def _fallback_shareholder_rows() -> List[Dict[str, Any]]:
         {
             "name": "KURUCU ORTAK / HOLDİNG",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
             "ratio": 56.89,
-            "ratioStr": "%56.89",
-            "share": "₺147.83 Mn",
-            "votingRatio": "%56.89",
+            "ratioStr": "%56,89",
+            "share": "₺147,83 Mn",
+            "votingRatio": "%56,89",
             "color": DONUT_COLORS[0],
             "isFreeFloat": False,
         },
         {
             "name": "DİĞER (HALKA AÇIK)",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
             "ratio": 43.11,
-            "ratioStr": "%43.11",
-            "share": "₺112.03 Mn",
-            "votingRatio": "%43.11",
+            "ratioStr": "%43,11",
+            "share": "₺112,03 Mn",
+            "votingRatio": "%43,11",
             "color": DONUT_COLORS[-1],
             "isFreeFloat": True,
         },
@@ -201,22 +201,22 @@ def _fallback_shareholder_timeline() -> List[Dict[str, Any]]:
         {
             "date": "15.01.2026",
             "name": "KURUCU ORTAK / HOLDİNG",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
-            "newRatio": "%56.89",
-            "oldRatio": "%56.40",
+            "newRatio": "%56,89",
+            "oldRatio": "%56,40",
             "diff": 0.49,
-            "diffStr": "+0.49%",
+            "diffStr": "+0,49%",
             "isIncrease": True,
-            "votingRatio": "%56.89",
+            "votingRatio": "%56,89",
         },
         {
             "date": "12.11.2025",
             "name": "DİĞER (HALKA AÇIK)",  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
-            "newRatio": "%43.11",
-            "oldRatio": "%43.60",
+            "newRatio": "%43,11",
+            "oldRatio": "%43,60",
             "diff": -0.49,
-            "diffStr": "-0.49%",
+            "diffStr": "-0,49%",
             "isIncrease": False,
-            "votingRatio": "%43.11",
+            "votingRatio": "%43,11",
         },
     ]
 
@@ -225,13 +225,13 @@ def get_fallback_shareholders(ticker: str) -> Dict[str, Any]:
     """KAP veri sağlayıcısı çevrimdışı olduğunda kullanılacak ortaklık yapısı verileri."""
     return {
         "date_str": date.today().strftime("%d.%m.%Y"),
-        "free_float_ratio_str": "%43.11",
+        "free_float_ratio_str": "%43,11",
         "free_float_pct": 0.4311,
-        "paid_capital_str": "₺259.86 Mn",
+        "paid_capital_str": "₺259,86 Mn",
         "shareholders_list": _fallback_shareholder_rows(),
         "shareholder_slices": [
-            {"label": "KURUCU ORTAK / HOLDİNG", "pct": 0.5689, "color": DONUT_COLORS[0], "amount": "₺147.83 Mn"},  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
-            {"label": "DİĞER (HALKA AÇIK)", "pct": 0.4311, "color": DONUT_COLORS[-1], "amount": "₺112.03 Mn"},  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+            {"label": "KURUCU ORTAK / HOLDİNG", "pct": 0.5689, "color": DONUT_COLORS[0], "amount": "₺147,83 Mn"},  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
+            {"label": "DİĞER (HALKA AÇIK)", "pct": 0.4311, "color": DONUT_COLORS[-1], "amount": "₺112,03 Mn"},  # metin-muaf: yedek (demo) veri ve bilanço kalem adları
         ],
         "shareholder_timeline": _fallback_shareholder_timeline(),
     }

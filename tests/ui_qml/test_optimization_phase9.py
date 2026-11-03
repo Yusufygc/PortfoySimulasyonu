@@ -57,6 +57,15 @@ def test_duckdb_optimization_market_data_provider():
     assert last_price > 0.0
 
 
+def test_duckdb_provider_serves_a_single_ticker_when_min_columns_is_one():
+    """Birleşik portföyde tek BIST hissesi olabilir: min_columns=1 ile DuckDB sonuç verir (ağ yedeği yok)."""
+    provider = DuckDBOptimizationMarketDataProvider()          # yedek sağlayıcı yok
+
+    df = provider.get_historical_prices(["THYAO"], days=120, min_columns=1)
+
+    assert list(df.columns) == ["THYAO"] and len(df) >= 60
+
+
 def test_optimization_controller_initialization(qapp, container):
     """OptimizationController başlatma ve varsayılan property değerlerini test eder."""
     ctrl = OptimizationController(container=container)
@@ -242,3 +251,20 @@ def test_optimization_qml_view_compilation(qapp, container):
 
     item = component.create()
     assert item is not None, "OptimizationView item nesnesi oluşturulamadı!"
+
+
+def test_cash_reserve_is_clamped_and_only_enabled_for_unified_source(qapp, container):
+    ctrl = OptimizationController(container=container)
+    changes = []
+    ctrl.cashReserveChanged.connect(lambda: changes.append(ctrl.cashReserve))
+    ctrl.selectedPortfolioChanged.connect(lambda: changes.append("kaynak"))
+
+    assert ctrl.cashReserve == 0.0 and ctrl.cashReserveEnabled is False
+
+    ctrl.setCashReserve(250.0)
+    ctrl.selectPortfolio("unified")
+
+    assert ctrl.cashReserve == 90.0                      # üst sınır
+    assert ctrl.cashReserveEnabled is True
+    assert changes == [90.0, "kaynak"]
+    assert any(option["code"] == "unified" for option in ctrl.portfolioOptions)

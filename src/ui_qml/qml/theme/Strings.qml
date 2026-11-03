@@ -481,6 +481,8 @@ QtObject {
     readonly property string optRiskProfile: "Risk Toleransı & Profili"
     readonly property string optMaxSingleWeight: "Tek Hisse Max Ağırlık (%)"
     readonly property string optRiskFreeRate: "Risksiz Faiz Oranı (%)"
+    readonly property string optCashReserve: "Nakit Rezervi (%)"
+    readonly property string optCashReserveHint: "Toplam portföy değerinin bu kadarı nakitte kalır; kalanı varlıklara dağıtılır."
     readonly property string optBtnRun: "Portföyü Optimize Et"
     readonly property string optCalculating: "Optimizasyon ve Monte Carlo simülasyonu hesaplanıyor..."
     readonly property string optTabFrontier: "Verimli Sınır (Frontier)"

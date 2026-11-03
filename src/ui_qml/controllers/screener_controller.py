@@ -17,6 +17,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.application.services.analysis.technical.screener import SCREENER_FILTERS
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ class ScreenerController(QObject):
             matches.append({
                 "ticker": m.ticker,
                 "filterLabel": m.filter_label,
-                "closePrice": f"{m.close_price:,.2f} ₺" if m.close_price else "-",
+                "closePrice": f"{tr_number(m.close_price)} ₺" if m.close_price else "-",
                 "closePriceRaw": m.close_price or 0.0,
             })
         self._matches = matches

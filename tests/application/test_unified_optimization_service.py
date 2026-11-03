@@ -109,7 +109,8 @@ class FakeOptimizer:
         self._bist_df = bist_df
         self.calls = []
 
-    def _get_historical_prices(self, tickers, days):
+    def _get_historical_prices(self, tickers, days, min_columns=2):
+        self.min_columns = min_columns
         return self._bist_df[[t for t in tickers if t in self._bist_df.columns]]
 
     def _optimize(self, tickers, weights, policy=None, price_df=None):
@@ -120,7 +121,7 @@ class FakeOptimizer:
 class TestService:
     @staticmethod
     def _service(holdings, optimizer, asset_rows=None):
-        unified = SimpleNamespace(get_summary=lambda currency: SimpleNamespace(holdings=tuple(holdings)))
+        unified = SimpleNamespace(get_summary=lambda currency: SimpleNamespace(holdings=tuple(holdings), cash_try=D("1000"), usd_cash_try=D("500")))
         assets = {1: btc()}
         price_repo = SimpleNamespace(get_daily_prices=lambda aid, start, end: [
             SimpleNamespace(price_date=d, close_price=p) for d, p in (asset_rows or {}).get(aid, [])])
@@ -148,6 +149,8 @@ class TestService:
 
         assert result == "SONUC"
         assert set(universe.price_df.columns) == {"AAA", "BBB", "BTC"}
+        assert optimizer.min_columns == 1                         # tek BIST hissesi de DuckDB'den okunur (yfinance yedeğine düşmez)
+        assert universe.cash_try == 1500.0                        # TL + USD karşılığı
         assert universe.fractional == {"BTC"} and universe.last_prices_try["BTC"] == pytest.approx(4000.0)   # 2.000 / 0,5
         tickers, weights, frame = optimizer.calls[0]
         assert tickers == ["AAA", "BBB", "BTC"] and weights == [0.6, 0.2, 0.2]

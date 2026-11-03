@@ -23,7 +23,7 @@ from src.domain.models.trade_impact import INSUFFICIENT_CASH, INSUFFICIENT_LOTS,
 from src.domain.ticker import clean_ticker
 from src.domain.market_clock import market_now, market_time, market_today
 from src.ui_qml.messages import msg
-from src.ui_qml.presenters.formatting import tr_number
+from src.ui_qml.presenters.formatting import tr_number, tr_pct
 from src.ui_qml.controllers.stock_detail_actions import StockDetailActionsMixin
 from src.ui_qml.controllers.stock_detail_loader import StockDetailLoaderMixin
 
@@ -156,7 +156,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
 
     @Property(str, notify=stockChanged)
     def currentPriceStr(self) -> str:
-        return f"₺{self._current_price:,.2f}" if self._current_price > 0 else "₺-"
+        return f"₺{tr_number(self._current_price)}" if self._current_price > 0 else "₺-"
 
     @Property(float, notify=stockChanged)
     def dailyDiff(self) -> float:
@@ -164,8 +164,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
 
     @Property(str, notify=stockChanged)
     def dailyDiffStr(self) -> str:
-        sign = "+" if self._daily_diff > 0 else ""
-        return f"{sign}%{self._daily_diff:.2f}"
+        return tr_pct(self._daily_diff, with_sign=True)
 
     @Property(bool, notify=stockChanged)
     def isDailyPositive(self) -> bool:
@@ -177,7 +176,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
 
     @Property(str, notify=stockChanged)
     def quantityStr(self) -> str:
-        return f"{self._quantity:,} Lot"
+        return f"{tr_number(self._quantity, 0)} Lot"
 
     @Property(float, notify=stockChanged)
     def avgCost(self) -> float:
@@ -185,7 +184,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
 
     @Property(str, notify=stockChanged)
     def avgCostStr(self) -> str:
-        return f"₺{self._avg_cost:,.2f}" if self._avg_cost > 0 else "₺0.00"
+        return f"₺{tr_number(self._avg_cost)}" if self._avg_cost > 0 else "₺0,00"
 
     @Property(float, notify=stockChanged)
     def marketValue(self) -> float:
@@ -193,17 +192,16 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
 
     @Property(str, notify=stockChanged)
     def marketValueStr(self) -> str:
-        return f"₺{self._market_value:,.2f}"
+        return f"₺{tr_number(self._market_value)}"
 
     @Property(str, notify=stockChanged)
     def unrealizedPnlStr(self) -> str:
-        sign = "+" if self._unrealized_pnl >= 0 else ""
-        return f"{sign}₺{self._unrealized_pnl:,.2f}"
+        sign = "+" if self._unrealized_pnl >= 0 else "-"
+        return f"{sign}₺{tr_number(abs(self._unrealized_pnl))}"
 
     @Property(str, notify=stockChanged)
     def unrealizedPnlPctStr(self) -> str:
-        sign = "+" if self._unrealized_pnl_pct >= 0 else ""
-        return f"{sign}%{self._unrealized_pnl_pct:.2f}"
+        return tr_pct(self._unrealized_pnl_pct, with_sign=True)
 
     @Property(bool, notify=stockChanged)
     def isPnlPositive(self) -> bool:

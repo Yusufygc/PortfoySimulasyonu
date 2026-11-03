@@ -154,7 +154,7 @@ Temizlik: Test temettüsü silindi.
 ### PF-011 | Tüm Varlıklar analizi ve optimizasyonu
 
 - **Adımlar:** Birkaç BIST hissesi, bir kripto ve gram altın içeren portföyde Karşılaştırma Lab'da "Tüm Varlıklar" + "Ana Portföy" + BIST 100 seç ve Karşılaştır; Optimizasyon'da kaynak olarak "Tüm Varlıklar (Canlı)" seçip optimize et; yeniden dengeleme sekmesine bak.
-- **Beklenen sonuç:** Tüm Varlıklar serisi kur ve varlık hareketini içerir; sermaye yatırma/çekme ve döviz çevirme getiriyi bozmaz. Risk tablosunda getiri ve volatilite görünür. Optimizasyon BIST dışı varlıkları da ağırlıklandırır; kripto/altın/ABD hissesi için tahmini miktar kesirli, BIST hissesi için tam lottur. Tek varlıklı portföyde "en az 2 farklı varlık" mesajı çıkar.
+- **Beklenen sonuç:** Tüm Varlıklar serisi kur ve varlık hareketini içerir; sermaye yatırma/çekme ve döviz çevirme getiriyi bozmaz. Risk tablosunda getiri ve volatilite görünür. Optimizasyon BIST dışı varlıkları da ağırlıklandırır; kripto/altın/ABD hissesi için tahmini miktar kesirli, BIST hissesi için tam lottur. "Nakit Rezervi (%)" kaydırıcısı yalnızca bu kaynakta görünür; rezerv verilince yeniden dengelemede `NAKİT` satırı hedef payı gösterir ve ağırlıklar toplamı %100 kalır. Tek varlıklı portföyde "en az 2 farklı varlık" mesajı çıkar. Döviz satımını ya da TL ile satılmış altını, sonraki TL harcaması varken silmeyi dene: "silinemez" mesajı çıkar.
 
 ### PF-012 | Girdi doğrulama ve kaldırma onayı
 

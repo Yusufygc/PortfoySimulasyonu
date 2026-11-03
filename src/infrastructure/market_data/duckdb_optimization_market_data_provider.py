@@ -44,7 +44,7 @@ class DuckDBOptimizationMarketDataProvider:
             logger.warning("DuckDB bağlantısı açılamadı (%s): %s", self._duckdb_path, exc)
             return None
 
-    def get_historical_prices(self, tickers: List[str], days: int = 504) -> pd.DataFrame:
+    def get_historical_prices(self, tickers: List[str], days: int = 504, min_columns: int = 2) -> pd.DataFrame:
         """Belirtilen hisselerin son `days` günlük düzeltilmiş kapanış fiyatlarını DataFrame olarak döner."""
         if not tickers:
             return pd.DataFrame()
@@ -71,7 +71,7 @@ class DuckDBOptimizationMarketDataProvider:
 
                     # En az 60 geçerli barı olan kolonları koru
                     valid_cols = [c for c in pivoted.columns if pivoted[c].notna().sum() >= 60]
-                    if len(valid_cols) >= 2:
+                    if len(valid_cols) >= min_columns:
                         res_df = pivoted[valid_cols].tail(days).dropna()
                         if len(res_df) >= 60:
                             return res_df
@@ -86,7 +86,7 @@ class DuckDBOptimizationMarketDataProvider:
         # Fallback sağlayıcısına delege et
         if self._fallback_provider is not None:
             logger.info("DuckDB verisi yetersiz/bulunamadı; fallback sağlayıcı çağrılıyor...")
-            return self._fallback_provider.get_historical_prices(tickers, days)
+            return self._fallback_provider.get_historical_prices(tickers, days, min_columns)
 
         return pd.DataFrame()
 

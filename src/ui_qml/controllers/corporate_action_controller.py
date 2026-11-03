@@ -306,7 +306,7 @@ class CorporateActionController(QObject):
 
             type_label = "Bedelsiz" if result.action_type == ActionType.BEDELSIZ else "Bedelli"
             message = (
-                msg("corporate_action.applied", type_label=type_label, shares_before=result.shares_before, shares_after=result.shares_after)
+                msg("corporate_action.applied", type_label=type_label, shares_before=tr_number(result.shares_before, 0), shares_after=tr_number(result.shares_after, 0))
             ).replace(",", ".")
             message += self._refresh_prices_after_action(stock)
             self._applyFinished.emit(True, message)

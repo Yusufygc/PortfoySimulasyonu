@@ -8,7 +8,7 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 from src.ui_qml.controllers.advisor_query_intent import is_optimization_query
-from src.ui_qml.presenters.formatting import tr_money, tr_pct
+from src.ui_qml.presenters.formatting import tr_money, tr_number, tr_pct
 from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
@@ -111,7 +111,7 @@ def _general_report(overview_data: Dict[str, Any], risk_data: Dict[str, Any]) ->
         "",
         msg("advisor_local.donem_getirisi_bist_100_endeksine_gore", period=tr_pct(period_ret, with_sign=True), gap=tr_pct(benchmark_gap, with_sign=True)),
         msg("advisor_local.yillik_volatilite_risk", pct=tr_pct(volatility)),
-        msg("advisor_local.sharpe_orani_birim_risk_basina_getiri", sharpe=f'{sharpe:.2f}' if sharpe is not None else 'N/A'),
+        msg("advisor_local.sharpe_orani_birim_risk_basina_getiri", sharpe=tr_number(sharpe) if sharpe is not None else 'N/A'),
         msg("advisor_local.maksimum_geri_cekilme_drawdown", pct=tr_pct(max_dd)),
         msg("advisor_local.en_buyuk_pozisyon", ticker=largest_stock.replace('.IS', ''), weight=tr_pct(largest_weight)),
         msg("advisor_local.ilk_3_hisse_yogunlasmasi", pct=tr_pct(top3_weight)),

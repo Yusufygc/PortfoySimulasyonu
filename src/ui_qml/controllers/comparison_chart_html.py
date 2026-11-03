@@ -277,13 +277,13 @@ function render() {{
         const retSize = Math.max(10, Math.min(16, Math.floor(Math.min(r.w, r.h) / 5.5)));
 
         let content = `<div class="node-label" style="font-size: ${{titleSize}}px;">${{esc(r.item.label)}}</div>
-                       <div class="node-ret" style="font-size: ${{retSize}}px;">${{sign}}${{r.item.ret.toFixed(2)}}%</div>`;
+                       <div class="node-ret" style="font-size: ${{retSize}}px;">${{sign}}${{r.item.ret.toFixed(2).replace(".", ",")}}%</div>`;
 
         if (r.h >= 62 && r.w >= 70) {{
             if (isHoldings) {{
-                content += `<div class="node-sub">Pay: %${{r.item.weight.toFixed(1)}}</div>`;
+                content += `<div class="node-sub">Pay: %${{r.item.weight.toFixed(1).replace(".", ",")}}</div>`;
             }} else if (r.item.vol > 0) {{
-                content += `<div class="node-sub">Vol: %${{r.item.vol.toFixed(1)}}</div>`;
+                content += `<div class="node-sub">Vol: %${{r.item.vol.toFixed(1).replace(".", ",")}}</div>`;
             }}
         }}
 
@@ -294,16 +294,16 @@ function render() {{
             let ttHtml = `<div class="tt-title">${{esc(r.item.label)}} ${{isHoldings ? '(' + esc(portfolioName) + ' Pozisyonu)' : ''}}</div>`;
             if (isHoldings) {{
                 ttHtml += `
-                    <div><b>Portföy Payı:</b> %${{r.item.weight.toFixed(2)}}</div>
-                    <div><b>Kâr / Zarar Getirisi:</b> <span style="color:${{r.item.ret >= 0 ? '#10b981' : '#f43f5e'}}; font-weight:bold;">${{sign}}${{r.item.ret.toFixed(2)}}%</span></div>
+                    <div><b>Portföy Payı:</b> %${{r.item.weight.toFixed(2).replace(".", ",")}}</div>
+                    <div><b>Kâr / Zarar Getirisi:</b> <span style="color:${{r.item.ret >= 0 ? '#10b981' : '#f43f5e'}}; font-weight:bold;">${{sign}}${{r.item.ret.toFixed(2).replace(".", ",")}}%</span></div>
                     <div><b>Piyasa Değeri:</b> ₺${{Number(r.item.marketValue).toLocaleString('tr-TR', {{minimumFractionDigits: 2}})}}</div>
                     <div><b>Maliyet Tutarı:</b> ₺${{Number(r.item.costValue).toLocaleString('tr-TR', {{minimumFractionDigits: 2}})}}</div>
                 `;
             }} else {{
                 ttHtml += `
-                    <div><b>Toplam Getiri:</b> <span style="color:${{r.item.ret >= 0 ? '#10b981' : '#f43f5e'}}; font-weight:bold;">${{sign}}${{r.item.ret.toFixed(2)}}%</span></div>
-                    <div><b>Yıllık Oynaklık (Risk):</b> %${{r.item.vol.toFixed(2)}}</div>
-                    <div><b>Göreceli Katkı:</b> ${{r.item.value.toFixed(1)}} Puan</div>
+                    <div><b>Toplam Getiri:</b> <span style="color:${{r.item.ret >= 0 ? '#10b981' : '#f43f5e'}}; font-weight:bold;">${{sign}}${{r.item.ret.toFixed(2).replace(".", ",")}}%</span></div>
+                    <div><b>Yıllık Oynaklık (Risk):</b> %${{r.item.vol.toFixed(2).replace(".", ",")}}</div>
+                    <div><b>Göreceli Katkı:</b> ${{r.item.value.toFixed(1).replace(".", ",")}} Puan</div>
                 `;
             }}
             tooltip.innerHTML = ttHtml;

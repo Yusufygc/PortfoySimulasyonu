@@ -23,6 +23,7 @@ from src.application.services.market_data.market_data_sync_service import (
 )
 from src.domain.market_clock import market_today
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,7 @@ class MarketSyncController(QObject):
         self.statusTextChanged.emit()
 
         if result.added_bars > 0:
-            text = msg("market_sync.updated", stocks=result.updated_stocks, bars=f"{result.added_bars:,}")
+            text = msg("market_sync.updated", stocks=result.updated_stocks, bars=tr_number(result.added_bars, 0))
             self.syncNotification.emit(True, text)
             self.dataSynced.emit()
         else:

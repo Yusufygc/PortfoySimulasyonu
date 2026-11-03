@@ -9,6 +9,7 @@ from pathlib import Path
 from src.application.services.portfolio.trade_entry_service import TradeRequest
 from src.domain.models.trade import TradeSide
 from src.ui_qml.messages import msg
+from src.ui_qml.presenters.formatting import tr_number, tr_pct
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class StockDetailActionsMixin:
                 )
                 total_amount = qty * price
                 action_tr = msg("stock_detail.satin_alindi") if is_buy else msg("stock_detail.satildi")
-                text = msg("stock_detail.adet_model_portfoye", qty=qty, ticker=self._ticker, action_tr=action_tr, total_amount=total_amount)
+                text = msg("stock_detail.adet_model_portfoye", qty=qty, ticker=self._ticker, action_tr=action_tr, total_amount=tr_number(total_amount))
                 self._asyncTradeResult.emit(True, text)
                 return
 
@@ -60,7 +61,7 @@ class StockDetailActionsMixin:
             )
             total_amount = qty * price
             action_tr = msg("stock_detail.satin_alindi") if is_buy else msg("stock_detail.satildi")
-            text = msg("stock_detail.adet_basariyla", qty=qty, ticker=self._ticker, action_tr=action_tr, total_amount=total_amount)
+            text = msg("stock_detail.adet_basariyla", qty=qty, ticker=self._ticker, action_tr=action_tr, total_amount=tr_number(total_amount))
             self._asyncTradeResult.emit(True, text)
 
         except Exception as e:
@@ -89,8 +90,8 @@ class StockDetailActionsMixin:
                 {msg("stock_detail.metric"): msg("stock_detail.son_kapanis_fiyati_tl"), msg("stock_detail.deger"): self._current_price},
                 {msg("stock_detail.metric"): msg("stock_detail.toplam_piyasa_degeri_tl"), msg("stock_detail.deger"): self._market_value},
                 {msg("stock_detail.metric"): msg("stock_detail.net_pnl_tl"), msg("stock_detail.deger"): self._unrealized_pnl},
-                {msg("stock_detail.metric"): msg("stock_detail.kar_zarar_orani"), msg("stock_detail.deger"): f"%{self._unrealized_pnl_pct:.2f}"},
-                {msg("stock_detail.metric"): msg("stock_detail.portfoy_agirligi"), msg("stock_detail.deger"): f"%{self._portfolio_weight_pct:.1f}"},
+                {msg("stock_detail.metric"): msg("stock_detail.kar_zarar_orani"), msg("stock_detail.deger"): tr_pct(self._unrealized_pnl_pct)},
+                {msg("stock_detail.metric"): msg("stock_detail.portfoy_agirligi"), msg("stock_detail.deger"): f"%{tr_number(self._portfolio_weight_pct, 1)}"},
             ]
             df_summary = pd.DataFrame(summary_data)
 

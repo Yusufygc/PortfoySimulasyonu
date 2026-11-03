@@ -21,7 +21,7 @@ def test_health_perfect_portfolio_scores_100():
     assert (score, label) == (100, "Çok Güçlü")
     assert [f["score"] for f in factors] == [25, 25, 25, 25]
     assert all(f["isGood"] for f in factors)
-    assert factors[3]["value"] == "-%15.0"
+    assert factors[3]["value"] == "-%15,0"
 
 
 def test_health_worst_portfolio_hits_default_bands():
@@ -36,8 +36,8 @@ def test_health_worst_portfolio_hits_default_bands():
 
 def test_health_missing_data_uses_moderate_defaults():
     score, label, factors = health.compute_health({})
-    assert factors[0]["value"] == "%50.0 (İlk 3)"
-    assert factors[2]["value"] == "0.80"
+    assert factors[0]["value"] == "%50,0 (İlk 3)"
+    assert factors[2]["value"] == "0,80"
     assert (score, label) == (20 + 20 + 14 + 20, "Dengeli")
 
 

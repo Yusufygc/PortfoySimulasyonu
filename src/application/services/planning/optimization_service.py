@@ -383,8 +383,10 @@ class OptimizationService:
     def _portfolio_volatility(weights: np.ndarray, cov_matrix: np.ndarray) -> float:
         return _portfolio_volatility(weights, cov_matrix)
 
-    def _get_historical_prices(self, tickers: List[str], days: int = 365) -> pd.DataFrame:
-        return self._market_data_provider.get_historical_prices(tickers, days)
+    def _get_historical_prices(self, tickers: List[str], days: int = 365, min_columns: int = 2) -> pd.DataFrame:
+        if min_columns == 2:   # varsayılan: eski imzalı sağlayıcılar da çalışır
+            return self._market_data_provider.get_historical_prices(tickers, days)
+        return self._market_data_provider.get_historical_prices(tickers, days, min_columns)
 
     def _calculate_weights_from_positions(
         self,
