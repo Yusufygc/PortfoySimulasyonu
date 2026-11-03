@@ -15,11 +15,11 @@ from src.domain.units import TROY_OUNCE_GRAMS, ounce_price_to_gram_price
     [
         (AssetClass.US_STOCK, "aapl", "AAPL"),
         (AssetClass.US_STOCK, " nvda ", "NVDA"),
-        (AssetClass.US_STOCK, "BRK.B", "BRK.B"),
+        (AssetClass.US_STOCK, "BRK.B", "BRK-B"),   # tek harfli hisse sınıfı: Yahoo yazımı
+        (AssetClass.US_STOCK, "asml.as", "ASML.AS"),   # borsa eki olduğu gibi kalır
         (AssetClass.CRYPTO, "btc", "BTC-USD"),
         (AssetClass.CRYPTO, "eth-eur", "ETH-EUR"),
         (AssetClass.PRECIOUS_METAL, "gc=f", "GC=F"),
-        (AssetClass.US_STOCK, "^ixic", "^IXIC"),
     ],
 )
 def test_resolves_symbol_without_bist_suffix(asset_class, symbol, expected):
@@ -27,6 +27,13 @@ def test_resolves_symbol_without_bist_suffix(asset_class, symbol, expected):
 
     assert resolved == expected
     assert not resolved.endswith(".IS")
+
+
+def test_index_and_multi_symbol_text_are_rejected():
+    with pytest.raises(ValueError, match="ETF"):
+        resolve_yf_symbol(AssetClass.US_STOCK, "^ixic")
+    with pytest.raises(ValueError, match="tek sembol"):
+        resolve_yf_symbol(AssetClass.US_STOCK, "AAPL MSFT")
 
 
 def test_empty_symbol_is_rejected():

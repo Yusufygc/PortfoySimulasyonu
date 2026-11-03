@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, time
 from decimal import Decimal, InvalidOperation
 from typing import List, Optional
@@ -16,6 +17,9 @@ from src.domain.models.trade import TradeSide
 from src.domain.ports.repositories.i_asset_repo import IAssetRepository
 from src.domain.ports.repositories.i_asset_trade_repo import IAssetTradeRepository
 from src.domain.ports.services.i_asset_symbol_verifier import IAssetSymbolVerifier
+
+
+SUPPORTED_QUOTE_CURRENCIES = ("USD", "TRY")   # ortak nakit havuzu yalnızca bu iki para birimini taşır
 
 
 def _decimal(value, label: str) -> Decimal:
@@ -61,7 +65,9 @@ class AssetLedgerService:
         return self._asset_repo.get_asset(asset_id)
 
     def add_asset(self, symbol: str, name: str, asset_class: AssetClass, quote_currency: str, **options) -> Asset:
-        """`options`: `yf_symbol` (varsayılan sınıfa göre çözülür) ve `unit` (varsayılan `AssetUnit.UNIT`)."""
+        """`options`: `yf_symbol` (varsayılan sınıfa göre çözülür) ve `unit` (varsayılan `AssetUnit.UNIT`).
+
+        `quote_currency` yedektir: fiyat kaynağı sembolün para birimini bildirirse o geçerli olur."""
         yf_symbol, unit = options.pop("yf_symbol", None), options.pop("unit", AssetUnit.UNIT)
         trade_currency = options.pop("trade_currency", "")
         if options:
@@ -87,7 +93,10 @@ class AssetLedgerService:
             self._asset_repo.set_active(existing.id, True)
             return self._asset_repo.get_asset(existing.id)
 
-        self._verify_symbol(asset)
+        self._ensure_price_symbol_unused(asset)
+        detected = self._verify_symbol(asset)
+        if detected and detected != asset.quote_currency:
+            asset = replace(asset, quote_currency=detected)
         return self._asset_repo.add_asset(asset)
 
     def add_catalog_asset(self, key: str) -> Asset:
@@ -175,15 +184,28 @@ class AssetLedgerService:
 
     # ---------- Yardımcılar ---------- #
 
-    def _verify_symbol(self, asset: Asset) -> None:
+    def _ensure_price_symbol_unused(self, asset: Asset) -> None:
+        """Aynı fiyat sembolü iki varlık olarak eklenemez (ör. katalogdaki BTC ile elle girilen BTC-USD)."""
+        for other in self._asset_repo.list_assets(active_only=True):
+            if other.yf_symbol == asset.yf_symbol:
+                raise ValueError(f"{asset.yf_symbol} fiyat sembolü zaten {other.symbol} olarak ekli.")
+
+    def _verify_symbol(self, asset: Asset) -> Optional[str]:
+        """Sembolü çevrimiçi doğrular; kaynak para birimini bildiriyorsa döner. USD/TRY dışı para birimi reddedilir."""
         if self._symbol_verifier is None:
-            return
+            return None
         try:
             valid = self._symbol_verifier.verify(asset.yf_symbol)
         except MarketDataUnavailableError as exc:
             raise ValueError(f"{asset.yf_symbol} sembolü doğrulanamadı: fiyat kaynağına ulaşılamıyor.") from exc
         if not valid:
             raise ValueError(f"{asset.yf_symbol} sembolü için fiyat verisi bulunamadı.")
+        currency = (self._symbol_verifier.currency_of(asset.yf_symbol) or "").strip()
+        if currency and currency.upper() not in SUPPORTED_QUOTE_CURRENCIES:
+            raise ValueError(
+                f"{asset.yf_symbol} {currency} cinsinden işlem görüyor; yalnızca USD ve TRY cinsi varlıklar desteklenir."
+            )
+        return currency.upper() or None
 
     def _ensure_cash_available(self, asset: Asset, trade: AssetTrade) -> None:
         """Alım, ortak nakit havuzundaki ödeme para birimi bakiyesini aşamaz (satış nakit ekler)."""

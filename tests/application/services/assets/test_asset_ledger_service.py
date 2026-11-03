@@ -69,13 +69,17 @@ class FakeTradeRepo(IAssetTradeRepository):
 
 
 class StubVerifier(IAssetSymbolVerifier):
-    def __init__(self, valid: bool = True):
+    def __init__(self, valid: bool = True, currency: str | None = None):
         self.valid = valid
+        self.currency = currency
         self.checked: list[str] = []
 
     def verify(self, yf_symbol):
         self.checked.append(yf_symbol)
         return self.valid
+
+    def currency_of(self, yf_symbol):
+        return self.currency
 
 
 @pytest.fixture
@@ -173,6 +177,64 @@ class TestAddAsset:
         with pytest.raises(ValueError, match="fiyat verisi bulunamadı"):
             service.add_asset("ZZZZ", "Yok", AssetClass.US_STOCK, "USD")
         assert repos[0].list_assets() == []
+
+
+class TestSymbolAndCurrencyValidation:
+    @pytest.mark.parametrize("symbol", ["AAPL MSFT", "MSFT,GOOG", "AA;PL", "A" * 25, "-AAPL"])
+    def test_multi_symbol_or_malformed_text_is_rejected(self, service, symbol):
+        with pytest.raises(ValueError, match="tek sembol"):
+            service.add_asset(symbol, "X", AssetClass.US_STOCK, "USD")
+        assert service.list_assets(active_only=False) == []
+
+    def test_index_symbol_is_rejected_with_etf_hint(self, service):
+        with pytest.raises(ValueError, match="ETF"):
+            service.add_asset("^IXIC", "Nasdaq", AssetClass.US_STOCK, "USD")
+
+    def test_share_class_dot_becomes_yahoo_dash_but_exchange_suffix_is_kept(self, repos):
+        service = AssetLedgerService(repos[0], repos[1], StubVerifier())
+
+        brk = service.add_asset("brk.b", "Berkshire", AssetClass.US_STOCK, "USD")
+        asml = service.add_asset("ASML.AS", "ASML", AssetClass.US_STOCK, "USD")
+
+        assert (brk.symbol, brk.yf_symbol) == ("BRK.B", "BRK-B")
+        assert asml.yf_symbol == "ASML.AS"
+
+    def test_source_reported_currency_overrides_user_guess(self, repos):
+        service = AssetLedgerService(repos[0], repos[1], StubVerifier(currency="TRY"))
+
+        asset = service.add_asset("THYAO.IS", "THY", AssetClass.US_STOCK, "USD")
+
+        assert asset.quote_currency == "TRY" and asset.is_try_quoted
+
+    def test_unsupported_currency_is_rejected_before_saving(self, repos):
+        service = AssetLedgerService(repos[0], repos[1], StubVerifier(currency="EUR"))
+
+        with pytest.raises(ValueError, match="yalnızca USD ve TRY"):
+            service.add_asset("ASML.AS", "ASML", AssetClass.US_STOCK, "EUR")
+        assert repos[0].list_assets() == []
+
+    def test_pence_quoted_symbol_is_not_mistaken_for_gbp(self, repos):
+        service = AssetLedgerService(repos[0], repos[1], StubVerifier(currency="GBp"))
+
+        with pytest.raises(ValueError, match="GBp"):
+            service.add_asset("VOD.L", "Vodafone", AssetClass.US_STOCK, "USD")
+
+    def test_unknown_source_currency_keeps_given_currency(self, repos):
+        service = AssetLedgerService(repos[0], repos[1], StubVerifier(currency=None))
+
+        assert service.add_asset("MSFT", "Microsoft", AssetClass.US_STOCK, "USD").quote_currency == "USD"
+
+    def test_same_price_symbol_cannot_be_added_twice_under_another_name(self, service, btc):
+        with pytest.raises(ValueError, match="BTC-USD fiyat sembolü zaten BTC"):
+            service.add_asset("BTC-USD", "Bitcoin", AssetClass.CRYPTO, "USD")
+        with pytest.raises(ValueError, match="zaten"):
+            service.add_asset("btc", "Bitcoin", AssetClass.CRYPTO, "USD")
+
+    def test_inactive_duplicate_does_not_block_a_new_symbol(self, service, btc):
+        service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
+        service.remove_asset(btc.id)
+
+        assert service.add_asset("BTC-USD", "Bitcoin", AssetClass.CRYPTO, "USD").yf_symbol == "BTC-USD"
 
 
 class TestRemoveAsset:

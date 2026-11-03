@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] düzeltme | Varlık Ekleme Akışı: Sembol Biçimi, Para Birimi, Kopya Fiyat Sembolü
+
+Gerçek ağ ve test veritabanıyla 24 ekleme senaryosu koşuldu; bulunan hatalar:
+- **Para birimi kullanıcıya soruluyordu:** `THYAO.IS` "USD" denerek eklenebiliyor (TL fiyat USD sayılıp yaklaşık 50 kat şişiyordu), `ASML.AS` (EUR) USD sayılıyordu, EUR cinsi varlığın alımı ise "nakit havuzunda EUR desteklenmiyor" ile ekleme sonrası patlıyordu. Artık para birimi fiyat kaynağından okunur (`IAssetSymbolVerifier.currency_of`, yfinance `fast_info`); USD/TRY dışı (EUR, GBp vb.) eklemede reddedilir. Pencereden para birimi alanı kaldırıldı.
+- **Çoklu sembol:** `AAPL MSFT` ve `MSFT,GOOG` varlık olarak kaydediliyordu. Sembol biçimi doğrulanır (tek sembol; harf, rakam, `.` `-` `=`).
+- **Kopya fiyat sembolü:** Katalogdaki `BTC` varken elle `BTC-USD`, `XAU` varken `GC=F` ayrı varlık olarak eklenebiliyordu. Aynı fiyat sembolü ikinci kez eklenemez.
+- **BRK.B:** Yahoo yazımı `BRK-B`; tek harfli hisse sınıfı otomatik çevrilir, borsa ekleri (`ASML.AS`) olduğu gibi kalır.
+- **Endeks:** `^IXIC` gibi endeksler alınamaz; ETF önerilir.
+- Açık tasarım soruları (karar bekliyor): genel emtia sınıfı (petrol, bakır, doğal gaz) yok, `CL=F` "Kıymetli Maden" sınıfı altına giriyor; NASDAQ için hazır katalog yok.
+
+---
 ## [2026-11-03] düzeltme | Grafik Başlığı Eşzamanı, Canlı Fiyat Yansıması, Hisse 360 Hızlı Seçim Kaldırıldı
 
 - **Başlık bayatlığı:** Hisse adı, fiyat ve değişim `tickerChanged` ile bağlıydı; sinyal veri yüklenmeden önce yayıldığı için başlık bir önceki hissenin değerini gösteriyordu. Yeni `quoteChanged` veri yüklendikten sonra yayılır (`companyName`, `lastPrice`, `priceChange`, `isPositive`, `hasQuote`). Veri yoksa başlık sıfırlanır (önceden eski hissenin fiyatı kalıyordu); fiyat rozeti kontrolü eski nokta biçimine (`₺0.00`) bağlıydı, `hasQuote` ile değişti.

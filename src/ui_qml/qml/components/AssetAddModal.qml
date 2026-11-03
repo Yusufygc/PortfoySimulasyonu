@@ -30,7 +30,6 @@ Rectangle {
     function open() {
         symbolInput.text = ""
         nameInput.text = ""
-        currencyInput.text = "USD"
         classCombo.currentIndex = 0
         root.isOpen = true
     }
@@ -193,20 +192,6 @@ Rectangle {
                         }
                     }
 
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Layout.preferredWidth: 1
-                        spacing: 4
-                        Text { text: Strings.assetLabelCurrency; font.pixelSize: 11; font.weight: Font.Bold; color: Theme.textMuted }
-                        ModernInput {
-                            id: currencyInput
-                            Layout.fillWidth: true
-                            implicitHeight: 36
-                            font.family: Theme.monoFontFamily
-                            maximumLength: 3
-                            enabled: !root.busy
-                        }
-                    }
                 }
 
                 Text {
@@ -238,7 +223,7 @@ Rectangle {
                         variant: "primary"
                         enabled: !root.busy && symbolInput.text.trim() !== ""
                         onClicked: assetsController.addAsset(
-                            symbolInput.text, nameInput.text, root.classOptions[classCombo.currentIndex].key, currencyInput.text)
+                            symbolInput.text, nameInput.text, root.classOptions[classCombo.currentIndex].key, "")
                     }
                 }
             }

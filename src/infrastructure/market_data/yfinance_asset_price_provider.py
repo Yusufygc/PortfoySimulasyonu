@@ -127,6 +127,20 @@ class YFinanceAssetPriceProvider(IAssetPriceProvider, IAssetSymbolVerifier):
             raise MarketDataUnavailableError(f"{symbol} geçmiş fiyatı alınamadı: {exc}") from exc
         return [point for point in daily_closes_from_download(data, symbol) if start <= point[0] <= end]
 
+    def currency_of(self, yf_symbol: str) -> Optional[str]:
+        """Yahoo'nun bildirdiği işlem para birimi; alınamazsa `None` (doğrulama bundan etkilenmez)."""
+        from .yfinance_lock import yfinance_lock
+
+        def fetch():
+            with yfinance_lock:
+                return yf.Ticker(yf_symbol).fast_info["currency"]
+
+        try:
+            value = retry_call(fetch, label="YFinance para birimi")
+        except (KeyError, *MARKET_DATA_FALLBACK_ERRORS):
+            return None
+        return str(value).strip() or None if value else None
+
     def verify(self, yf_symbol: str) -> bool:
         """Son 5 günde en az bir geçerli kapanış varsa sembol geçerlidir. Ağ hatasında `MarketDataUnavailableError`."""
         from .yfinance_lock import yfinance_lock

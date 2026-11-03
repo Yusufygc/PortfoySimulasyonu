@@ -151,6 +151,24 @@ class TestProvider:
         monkeypatch.setattr(module.yf, "download", lambda *a, **k: pd.DataFrame())
         assert YFinanceAssetPriceProvider().verify("ZZZZ") is False
 
+    def test_currency_of_reads_fast_info_and_is_none_when_missing_or_unreachable(self, monkeypatch):
+        class Ticker:
+            def __init__(self, symbol):
+                self.fast_info = {"currency": "TRY"} if symbol == "THYAO.IS" else {}
+
+        monkeypatch.setattr(module.yf, "Ticker", Ticker)
+        monkeypatch.setattr("src.infrastructure.retry._sleep", lambda seconds: None)
+        provider = YFinanceAssetPriceProvider()
+
+        assert provider.currency_of("THYAO.IS") == "TRY"
+        assert provider.currency_of("ZZZZ") is None
+
+        def failing(symbol):
+            raise OSError("ağ yok")
+
+        monkeypatch.setattr(module.yf, "Ticker", failing)
+        assert provider.currency_of("AAPL") is None
+
     def test_verify_raises_when_source_unreachable(self, monkeypatch):
         def failing(*args, **kwargs):
             raise OSError("ağ yok")
