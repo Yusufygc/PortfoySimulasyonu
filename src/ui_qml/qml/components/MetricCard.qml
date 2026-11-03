@@ -7,7 +7,7 @@ ModernCard {
 
     property string title: "Metrik Başlığı"
     property string value: "₺0,00"
-    property string changeText: "+0.00%"
+    property string changeText: ""   // boşsa rozet gizlenir (anlamsız "+0,00%" göstermez)
     property bool isPositive: true
     property string subText: Strings.subtextLastUpdate
     property string iconName: ""
@@ -66,6 +66,7 @@ ModernCard {
 
             // Pill Badge
             Rectangle {
+                visible: root.changeText !== ""
                 implicitWidth: badgeText.implicitWidth + 12
                 implicitHeight: 20
                 radius: Theme.radiusFull

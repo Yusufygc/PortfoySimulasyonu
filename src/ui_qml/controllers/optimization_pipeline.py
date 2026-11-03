@@ -80,9 +80,9 @@ def _compute_unified(
         total_portfolio_value=total,
         current_weights=current,
         optimal_weights=optimal,
-        last_prices=universe.last_prices_try,
+        last_prices={**universe.last_prices_try, cash_label: 1.0},   # nakit: birim = 1 TL; fark tutarı ve miktarı TL gösterir
         stock_names=names_map,
-        fractional=universe.fractional,
+        fractional=universe.fractional | {cash_label},
     )
     return {
         "opt_result": opt_result,

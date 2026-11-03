@@ -197,5 +197,5 @@ def test_unified_cash_reserve_adds_a_cash_row_and_scales_targets():
     assert rows["AAA"]["currentWeight"] == pytest.approx(30.0) and rows["AAA"]["optimalWeight"] == pytest.approx(30.0)   # 40 x (1 - 0,25)
     assert rows["BTC"]["optimalWeight"] == pytest.approx(45.0) and rows["BTC"]["action"] == "EKLE"
     assert rows["BTC"]["estShares"] == pytest.approx(0.025)             # 50.000 TL / 2.000.000 TL
-    assert rows["NAKİT"]["action"] == "AZALT" and rows["NAKİT"]["estShares"] == 0
+    assert rows["NAKİT"]["action"] == "AZALT" and rows["NAKİT"]["amountDiff"] == pytest.approx(-50000.0)   # nakit satırı TL farkını gösterir
     assert sum(row["optimalWeight"] for row in rows.values()) == pytest.approx(100.0)
