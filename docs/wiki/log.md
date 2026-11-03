@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] ekle | Ürün Test Planı ve E2E İnsan Sürücü Otomasyonu
+
+- **Plan:** [product_test_plan.md](product_test_plan.md): kapsam, test veritabanı, persona yolculukları, manuel rehber kimlikleriyle izlenebilirlik, otomasyon sınırları, bulgular, çıkış ölçütleri.
+- **Otomasyon:** `tests/e2e/` (8 yolculuk dosyası, 69 test, ~6,5 dk). `Human` sürücüsü ekrandaki metni bulup fare tıklaması ve klavye olayı gönderir; QML bağlama, örtülü düğme ve görünmeyen öğe hataları da yakalanır. Taze SQLite + `market_history.duckdb` kopyası, ağ kapalı, başarısızlıkta ekran görüntüsü. `pytest.ini`: `e2e` işaretçisi ve varsayılan koşudan hariç tutma.
+- **Bulunanlar:** Karşılaştırma Lab verisiz durumda yanıltıcı mesaj (D-01); AI danışman toplam değeri Portföyüm'den farklı olabilir (D-02, doğrulanmalı); modallar Escape'e yanıt vermez (D-03). Test altyapısı: yfinance `curl_cffi` soket yamasını aşar (ağ kapatma kütüphane girişinde yapılır); offscreen yazı tipi yokluğu sahte taşma bulgusu üretir (`QT_QPA_FONTDIR`).
+
+---
 ## [2026-11-03] güncelleme | Kıymetli Maden Adı, NASDAQ Kataloğu, AI Danışman Varlıkları Görüyor, Kaldırma Düzeltmesi
 
 - **Emtia -> Kıymetli Maden:** Arayüz etiketi değişti (sınıf kodu `PRECIOUS_METAL` aynı, göç yok). Katalogdan paladyum çıktı (altın, gümüş, platin kaldı); sembolle ekleme penceresinde yalnızca ABD hissesi ve kripto seçilir.

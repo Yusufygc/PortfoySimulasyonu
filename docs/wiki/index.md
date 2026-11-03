@@ -62,6 +62,7 @@
 |---|---|
 | [testing_strategy.md](testing_strategy.md) | Test piramidi, koruma testleri, fixture ve gerçek veri izolasyonu, komutlar, CI |
 | [manual_testing_guide.md](manual_testing_guide.md) | 11 sayfa ve arka plan davranışı için yayın öncesi manuel test listesi |
+| [product_test_plan.md](product_test_plan.md) | Ürün test planı ve E2E otomasyonu: test veritabanı, insan sürücü (fare/klavye), yolculuklar, izlenebilirlik, bulgular |
 | [code_quality_guardrails.md](code_quality_guardrails.md) | Eşikler, ölçüm komutu, güncel eşik ihlalleri, istisna protokolü |
 | [system_audit_report_2026-10-04.md](system_audit_report_2026-10-04.md) | Kapsamlı sistem denetimi: 16 bulgu (öncelik, kanıt, çözüm), aksiyon planı, metodoloji uyumu |
 | [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Tarihsel kod kalitesi baseline raporu (eski arayüz dönemi) |
