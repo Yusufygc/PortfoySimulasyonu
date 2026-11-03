@@ -12,6 +12,10 @@ Rectangle {
     property string tooltip: ""
     signal clicked()
 
+    // Ekran okuyucu ve otomasyon: metinsiz (simge) düğme adını ipucundan alır
+    Accessible.role: Accessible.Button
+    Accessible.name: root.text !== "" ? root.text : root.tooltip
+
     readonly property color contentColor: {
         if (!root.enabled) return Theme.textMuted
         if (root.variant === "primary" || root.variant === "danger") return "#ffffff"

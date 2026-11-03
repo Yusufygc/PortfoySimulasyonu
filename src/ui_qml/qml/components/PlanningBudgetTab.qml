@@ -440,10 +440,16 @@ Item {
                         }
 
                         Rectangle {
+                            id: incomeButton
                             width: 32
                             height: 32
                             radius: Theme.radiusSm
                             color: Theme.bullGreen
+
+                            // Simge düğmesi: ipucu, erişilebilir ad ve otomasyon eşleşmesi
+                            property string tooltip: Strings.budgetAddIncome
+                            Accessible.role: Accessible.Button
+                            Accessible.name: tooltip
 
                             ModernIcon {
                                 anchors.centerIn: parent
@@ -677,10 +683,16 @@ Item {
                         }
 
                         Rectangle {
+                            id: expenseButton
                             width: 32
                             height: 32
                             radius: Theme.radiusSm
                             color: Theme.bearRed
+
+                            // Simge düğmesi: ipucu, erişilebilir ad ve otomasyon eşleşmesi
+                            property string tooltip: Strings.budgetAddExpense
+                            Accessible.role: Accessible.Button
+                            Accessible.name: tooltip
 
                             ModernIcon {
                                 anchors.centerIn: parent

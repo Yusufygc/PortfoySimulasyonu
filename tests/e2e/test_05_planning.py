@@ -2,8 +2,6 @@
 
 Plan kimlikleri: FP-BUD-001, FP-GOAL-001, FP-DCA-001, FP-STR-001 (docs/wiki/product_test_plan.md).
 """
-from PySide6.QtCore import QPoint
-
 TABS = {
     "Bütçe Yönetimi": "GELİR KALEMLERİ",
     "Finansal Hedefler": "FİZİBİLİTE ANALİZİ",
@@ -30,11 +28,11 @@ def test_budget_income_and_expense_update_totals(human):
     open_tab(human, "Bütçe Yönetimi")
     human.fill_hint("Maaş / Ek Gelir", "Maaş")
     human.fill_hint("Tutar", "50000", nth=0)
-    human.click_at(QPoint(785, 340))                       # yeşil '+' (gelir ekle)
+    human.click_icon("Gelir kalemi ekle")
     assert human.wait_sees("1 kalem"), f"Gelir eklenmedi: {human.visible_texts()[:60]}"
     human.fill_hint("Kira / Mutfak", "Kira")
     human.fill_hint("Tutar", "20000", nth=1)
-    human.click_at(QPoint(1392, 340))                      # kırmızı '+' (gider ekle)
+    human.click_icon("Gider kalemi ekle")
     assert human.wait_until(lambda: human.count("1 kalem") >= 2, 6), f"Gider eklenmedi: {human.visible_texts()[:60]}"
     assert human.wait_sees("50.000,00 ₺")
     assert human.wait_sees("20.000,00 ₺")

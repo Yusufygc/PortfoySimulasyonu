@@ -403,6 +403,8 @@ QtObject {
     readonly property string compareThVolatility: "YILLIK VOLATİLİTE"
     readonly property string compareEmptyTitle: "Karşılaştırmak için en az bir varlık seçin"
     readonly property string compareEmptySubtitle: "Sol panelden benchmark veya hisse seçerek getiri eğrilerini inceleyin"
+    readonly property string compareNoDataTitle: "Seçili varlıklar için karşılaştırılacak veri bulunamadı"
+    readonly property string compareNoDataSubtitle: "Portföyde işlem yok, fiyat geçmişi eksik ya da internet bağlantısı yok olabilir. Başka bir varlık seçin veya dönemi değiştirin"
     readonly property string compareTabCumulative: "Kümülatif Getiri"
     readonly property string compareTabDrawdown: "Maks. Düşüş (Drawdown)"
     readonly property string compareTabPeriodic: "Aylık Getiriler"
@@ -432,6 +434,8 @@ QtObject {
     readonly property string planningTitle: "Finansal Planlama & Simülasyon"
     readonly property string planningSubtitle: "Aylık bütçenizi yönetin, finansal hedeflerinizi takip edin ve kademeli alım (DCA) stratejilerini simüle edin"
     readonly property string planningTabBudget: "Bütçe Yönetimi"
+    readonly property string budgetAddIncome: "Gelir kalemi ekle"
+    readonly property string budgetAddExpense: "Gider kalemi ekle"
     readonly property string planningTabGoals: "Finansal Hedefler"
     readonly property string planningTabDca: "DCA Simülatörü"
 

@@ -206,6 +206,39 @@ class TestFxAndAssets:
         assert any("BTC" in warning for warning in series.warnings)
 
 
+class TestUnpricedBistPosition:
+    """D-02: fiyat geçmişi olmayan BIST pozisyonu toplamdan sessizce düşmez; Portföyüm gibi ortalama maliyetle değerlenir."""
+
+    def test_missing_bist_price_falls_back_to_average_cost_with_warning(self, repos):
+        repos.movements = [deposit("100000")]
+        repos.trades = [bist_buy(60, "260")]                      # kapanış serisi yok
+        repos.stock_prices = {}
+
+        series = repos.builder().build(START, END)
+
+        assert series.values[DAYS[-1]] == D("100000")             # nakit 84.400 + pozisyon 15.600
+        assert any("T1" in warning for warning in series.warnings)
+        assert [item["label"] for item in series.holdings] == ["T1"]
+
+    def test_fallback_uses_remaining_average_cost_after_partial_sell(self, repos):
+        repos.movements = [deposit("100000")]
+        repos.trades = [bist_buy(60, "260"), Trade.create_sell(1, DAYS[1], 20, D("300"), time(10, 0))]
+
+        series = repos.builder().build(START, END)
+
+        assert series.values[DAYS[-1]] == D("100000") + D("20") * D("300") - D("20") * D("260")   # 40 lot x 260 maliyet + nakit
+
+    def test_priced_bist_position_has_no_warning(self, repos):
+        repos.movements = [deposit("100000")]
+        repos.trades = [bist_buy(60, "260")]
+        repos.stock_prices = {1: {day: D("270") for day in DAYS}}
+
+        series = repos.builder().build(START, END)
+
+        assert series.values[DAYS[-1]] == D("100000") + D("600")
+        assert series.warnings == []
+
+
 class TestHoldingsSnapshot:
     def test_snapshot_lists_bist_and_asset_positions_with_weights_and_returns(self, repos):
         repos.movements = [deposit("100000")]

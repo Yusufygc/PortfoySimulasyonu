@@ -99,7 +99,7 @@ Durum: **Otomatik** (E2E), **Kısmi** (E2E bir bölümü doğrular), **Manuel** 
 1. `pytest -m e2e tests/e2e` yeşil (xfail/atlanan yok).
 2. `pytest tests/` yeşil; kalite kapıları ihlal sayısını artırmaz ([ARCHITECTURE_GATES.md](../../ARCHITECTURE_GATES.md)).
 3. `test_01` sonundaki QML uyarı denetimi: bilinen uyarı listesi dışında uyarı yok.
-4. Açık "Yüksek" ve "Orta" kusur yok ya da bilinçli kabul kaydı var (§9).
+4. Açık "Yüksek" ve "Orta" kusur yok ya da bilinçli kabul kaydı var (§9). Şu an açık Orta kusur yok.
 
 ## 8. Otomasyonun Sınırları (Manuel Kalanlar)
 
@@ -110,7 +110,7 @@ Durum: **Otomatik** (E2E), **Kısmi** (E2E bir bölümü doğrular), **Manuel** 
 | GPU ve gerçek yazı tipi | Yazılım çizimi; `QT_QPA_FONTDIR` ile ölçüler yaklaşıktır. | Görsel inceleme manuel; kontrast `test_theme_contrast.py`. |
 | WebEngine grafik içi | `QTest` Chromium içeriğine olay gönderemez. | Grafik verisi ve başlığı sınanır; çizim manuel. |
 | Dosya diyalogları | Yerel diyalog açılmaz. | Excel yolu alana yazılır. |
-| Koordinatla tıklanan ikon düğmeleri | Metinsiz (izleme listesi `+`, bütçe `+`). | Düzen değişirse `test_04`/`test_05` koordinatı güncellenir; kalıcı çözüm: bu düğmelere erişilebilir ad vermek. |
+| Simge (metinsiz) düğmeler | Metin yok. | `ModernButton` ve bütçe `+` düğmeleri `tooltip`/`Accessible.name` taşır; sürücü `click_icon(ad)` ile adından tıklar (koordinat yok). Yeni simge düğmesine ad verilmezse otomasyon bulamaz. |
 
 ## 9. Bulgular (Bu Koşuda Çıkan)
 
@@ -118,9 +118,9 @@ Durum: **Otomatik** (E2E), **Kısmi** (E2E bir bölümü doğrular), **Manuel** 
 
 | Kod | Önem | Bulgu | Durum |
 |---|---|---|---|
-| D-01 | Orta | Karşılaştırma Lab, boş portföy ve çevrimdışıyken iki varlık seçiliyken "Karşılaştırmak için en az bir varlık seçin" der; veri yokluğu açıklanmaz. Dizili koşuda (portföy dolu) tekrarlanmaz. | Açık, ayrıca doğrulanmalı |
-| D-02 | Orta | AI danışman yerel analizi toplam değeri 244.346,80 ₺ verir; Portföyüm 259.946,80 ₺ gösterir. Fark, fiyatı olmayan THYAO pozisyonudur (Portföyüm maliyetle değerler ve uyarır; danışman dışlar ve uyarmaz). Taze veritabanında (SQLite fiyatı yok) görüldü; gerçek veritabanında doğrulanmalı. | Açık, ayrıca doğrulanmalı |
-| D-03 | Düşük | Modal kutular (`Rectangle` karartma) Escape tuşuna yanıt vermez; yalnızca İptal/Vazgeç veya dışına tıklama kapatır. | Açık |
+| D-01 | Orta | Karşılaştırma Lab, seçili varlıklar için veri yokken "Karşılaştırmak için en az bir varlık seçin" diyordu. | **Düzeltildi:** `ComparisonController.noData` + "karşılaştırılacak veri bulunamadı" metni; birim testi `test_comparison_no_data_flag_...`. E2E'de verisiz durum dizili koşuda kararsız (önbellek/başka testlerin verisi), bu yüzden yalnızca birim testi ve koşullu e2e denetimi var. |
+| D-02 | Orta | AI danışman toplam değeri, kapanış fiyatı olmayan BIST pozisyonunu sessizce dışlıyordu (Portföyüm maliyetle değerleyip uyarıyordu): 244.346,80 ₺ ≠ 259.946,80 ₺. | **Düzeltildi:** `UnifiedSeriesBuilder` fiyat yoksa ortalama maliyetle değerler ve uyarı üretir (varlıklardaki kuralla aynı). Birim testleri `TestUnpricedBistPosition`; e2e `test_ai_advisor_total_matches_my_portfolio_total...`. |
+| D-03 | Düşük | Modal kutular (`Rectangle` karartma) Escape tuşuna yanıt vermiyordu. | **Düzeltildi:** 17 kutuya `Shortcut { sequence: "Escape" }` eklendi; e2e `test_escape_closes_modal_dialogs` (5 kutu). |
 | D-04 | Düşük | Varlık Ekle kutusu pencereden uzundur; "Sembolle Ekle" alanı kaydırmayla görünür. | Bilinen |
 | D-05 | Bilgi | Tutar alanları eksi işaretini sessizce atar ("-50" yazınca "50" kalır). Para yatırma yönünden güvenli; kullanıcıya geri bildirim yok. | Kabul edilebilir |
 | T-01 | Test altyapısı | Python soket yaması yfinance'i (curl_cffi) durdurmaz; ilk sürümde "ağ kapalı" test canlı Yahoo'ya çıkıyordu. Giriş noktaları kesilerek çözüldü. Aynı tuzak başka ağ-yasaklı testlerde de olabilir. | Çözüldü |

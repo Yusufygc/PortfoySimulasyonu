@@ -107,6 +107,17 @@ class Human:
                               "x": point.x(), "y": point.y(), "focus": bool(item.property("activeFocus"))})
         return sorted(found, key=lambda d: (d["y"], d["x"]))
 
+    def icon_buttons(self, name: str) -> List[QQuickItem]:
+        """Metinsiz (simge) düğmeler: `tooltip` özelliği (erişilebilir ad ile aynı) `name` olan görünür öğeler."""
+        return self._ordered([i for i in self._walk(self.window.contentItem())
+                              if str(i.property("tooltip") or "") == name and self._shown(i) and self._inside_window(i)])
+
+    def click_icon(self, name: str, nth: int = 0) -> None:
+        """Simge düğmesine adıyla tıklar (koordinat yerine erişilebilir ad)."""
+        buttons = self.icon_buttons(name)
+        assert len(buttons) > nth, f"'{name}' simge düğmesi yok. Görünen: {self.visible_texts()[:40]}"
+        self.click_item(buttons[nth])
+
     def visible_texts(self) -> List[str]:
         out = []
         for item in self._walk(self.window.contentItem()):

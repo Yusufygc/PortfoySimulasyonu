@@ -7,6 +7,13 @@ import "../theme"
 Rectangle {
     id: root
 
+    // Escape tuşu kutuyu kapatır (Popup tabanlı diyaloglarla aynı davranış)
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.isOpen
+        onActivated: root.close()
+    }
+
     property bool isOpen: false
     property string ticker: ""
     property var ctx: ({ found: false, quantity: 0, avgCost: 0, totalCost: 0, currentPrice: 0 })

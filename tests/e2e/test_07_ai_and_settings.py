@@ -2,6 +2,8 @@
 
 Plan kimlikleri: AI-001, AI-002, SET-001..SET-008 (docs/wiki/product_test_plan.md).
 """
+from decimal import Decimal
+
 import pytest
 from PySide6.QtCore import QPoint
 
@@ -26,6 +28,14 @@ def test_ai_quick_question_without_api_key_explains_how_to_fix(human):
     assert human.wait_until(lambda: human.sees("API") and (human.sees("anahtar") or human.sees("Anahtar")), 20), \
         f"Anahtarsız durumda açıklama yok: {human.visible_texts()[-25:]}"
     human.screenshot("ai_anahtarsiz")
+
+
+def test_ai_advisor_total_matches_my_portfolio_total_even_with_unpriced_position(human):
+    """[AI-001][D-02] Fiyatı olmayan THYAO pozisyonu danışman toplamından düşmez: Portföyüm ile aynı toplam ve uyarı."""
+    summary = human.container.unified_portfolio_service.get_summary("TRY")
+    overview = human.container.ai_advisor_service.call_tool("get_portfolio_overview", {})
+    assert "error" not in overview, overview
+    assert abs(Decimal(str(overview["total_value_try"])) - summary.total_value_try) < Decimal("1"),         f"Danışman {overview['total_value_try']} ≠ Portföyüm {summary.total_value_try}"
 
 
 def test_ai_prompt_injection_text_is_shown_as_plain_user_message_and_app_survives(human):

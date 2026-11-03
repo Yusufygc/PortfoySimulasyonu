@@ -46,6 +46,24 @@ def test_comparison_controller_initialization(qapp, container):
     assert ctrl.periodLabel == "3A"
 
 
+def test_comparison_no_data_flag_distinguishes_empty_result_from_empty_selection(qapp, container):
+    """D-01: seçim varken veri yoksa `noData` açılır (arayüz 'veri bulunamadı' der); yeni hesaplama ve sonuçla kapanır."""
+    import pandas as pd
+
+    ctrl = ComparisonController(container=container)
+    assert not ctrl.noData
+    seen = []
+    ctrl.noDataChanged.connect(lambda: seen.append(ctrl.noData))
+
+    ctrl._apply_empty_result()
+    assert ctrl.noData and ctrl.chartHtml == ""
+
+    aligned = pd.DataFrame({"A": [100.0, 101.0]}, index=pd.to_datetime(["2026-01-01", "2026-01-02"]))
+    ctrl._apply_calculation_result(aligned, {"A": "A"}, [])
+    assert not ctrl.noData
+    assert seen == [True, False]
+
+
 def test_comparison_controller_assets_and_run(qapp, container):
     """Varlık listesi yükleme, seçim ve karşılaştırma hesaplamasını test eder."""
     ctrl = ComparisonController(container=container)

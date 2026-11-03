@@ -2,14 +2,7 @@
 
 Plan kimlikleri: WL-001, WL-002, WL-003, MP-001, MP-002 (docs/wiki/product_test_plan.md).
 """
-from PySide6.QtCore import QPoint
-
 from tests.e2e.test_02_cash_and_trades import fmt_date, last_weekday
-
-
-def plus_button(human) -> QPoint:
-    """Sayfa başlığının sağındaki mavi '+' düğmesi (metinsiz, ikonlu)."""
-    return QPoint(human.window.width() - 34, 94)
 
 
 def watchlist_names(human):
@@ -19,7 +12,7 @@ def watchlist_names(human):
 def test_create_watchlist_by_clicking_plus(human):
     """[WL-001] '+' ile 'Teknoloji' listesi oluşturulur; liste panelde görünür ve seçilir."""
     human.open_page("İzleme Listeleri")
-    human.click_at(plus_button(human))
+    human.click_icon("Yeni Liste", nth=0)
     assert human.wait_sees("Yeni Takip Listesi Oluştur")
     human.fill("Liste Adı", "Teknoloji")
     human.fill("Açıklama (Opsiyonel)", "Büyük teknoloji ve savunma")
@@ -34,7 +27,7 @@ def test_empty_name_is_rejected(human):
     """[WL-001][GLB-004] Boş adla liste oluşturulamaz; liste sayısı değişmez."""
     human.open_page("İzleme Listeleri")
     count = len(watchlist_names(human))
-    human.click_at(plus_button(human))
+    human.click_icon("Yeni Liste", nth=0)
     assert human.wait_sees("Yeni Takip Listesi Oluştur")
     human.click("Kaydet", exact=True)
     human.pump(25, 0.01)
@@ -45,8 +38,8 @@ def open_add_stock(human):
     human.open_page("İzleme Listeleri")
     if human.sees("Hisse Ekle", exact=True):                # boş liste: ortadaki düğme
         human.click("Hisse Ekle", exact=True)
-    else:                                                   # dolu liste: tablo başlığındaki mavi '+'
-        human.click_at(QPoint(human.window.width() - 50, 311))
+    else:                                                   # dolu liste: tablo başlığındaki '+' (erişilebilir ad: Hisse Ekle)
+        human.click_icon("Hisse Ekle")
     assert human.wait_sees("Listeye Hisse Ekle"), f"Hisse ekleme kutusu açılmadı: {human.visible_texts()[-20:]}"
 
 

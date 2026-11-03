@@ -523,7 +523,7 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: Strings.compareEmptyTitle
+                    text: comparisonController.noData ? Strings.compareNoDataTitle : Strings.compareEmptyTitle
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontBase
@@ -532,7 +532,7 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: Strings.compareEmptySubtitle
+                    text: comparisonController.noData ? Strings.compareNoDataSubtitle : Strings.compareEmptySubtitle
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm

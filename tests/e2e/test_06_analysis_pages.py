@@ -39,6 +39,8 @@ def test_comparison_lab_computes_and_never_claims_nothing_is_selected_when_two_a
     assert human.wait_until(lambda: not human.sees("Karşılaştırma hesaplanıyor"), 40)
     human.screenshot("karsilastirma")
     assert human.sees("2 seçili")
+    if human.c["comparisonController"].noData:                # veri yokken sebep açıklanır (D-01)
+        assert human.sees("karşılaştırılacak veri bulunamadı")
     assert not human.sees("Karşılaştırmak için en az bir varlık seçin"),         "D-01: 2 varlık seçili olduğu hâlde 'en az bir varlık seçin' mesajı gösteriliyor (veri yok durumu açıklanmıyor)"
 
 
@@ -69,3 +71,4 @@ def test_optimization_risk_questionnaire_dialog_opens_and_cancels(human):
     human.screenshot("risk_anketi")
     human.cancel()
     assert human.sees("Risk Toleransı & Profili")
+

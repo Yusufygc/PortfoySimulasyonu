@@ -70,6 +70,8 @@ class _State:
     try_cash: Decimal = ZERO
     usd_cash: Decimal = ZERO
     bist_qty: Dict[int, Decimal] = field(default_factory=dict)
+    bist_cost: Dict[int, Decimal] = field(default_factory=dict)          # ortalama maliyet toplamı (fiyat yoksa yedek)
+    bist_unpriced: set = field(default_factory=set)                      # yedek fiyatla değerlenen hisse kimlikleri
     asset_qty: Dict[int, Decimal] = field(default_factory=dict)
     asset_trade_price: Dict[int, Decimal] = field(default_factory=dict)   # son işlem TL birim fiyatı (fiyat yoksa yedek)
     fx_hint: Optional[Decimal] = None                                   # son döviz işlemi kuru (kur serisi yoksa yedek)
@@ -97,9 +99,21 @@ class _EventApplier:
         return ZERO
 
     @staticmethod
+    def _track_bist_cost(state: _State, trade) -> None:
+        """Pozisyonun kalan maliyetini (ortalama maliyet yöntemi) izler; kapanış fiyatı yoksa değerleme yedeğidir."""
+        held_before = state.bist_qty.get(trade.stock_id, ZERO) - (Decimal(trade.quantity) if trade.side == TradeSide.BUY else -Decimal(trade.quantity))
+        cost = state.bist_cost.get(trade.stock_id, ZERO)
+        if trade.side == TradeSide.BUY:
+            cost += trade.cash_amount
+        elif held_before > 0:
+            cost -= cost / held_before * Decimal(trade.quantity)
+        state.bist_cost[trade.stock_id] = max(ZERO, cost)
+
+    @staticmethod
     def _apply_bist(state: _State, trade) -> Decimal:
         sign = 1 if trade.side == TradeSide.BUY else -1
         state.bist_qty[trade.stock_id] = state.bist_qty.get(trade.stock_id, ZERO) + sign * Decimal(trade.quantity)
+        _EventApplier._track_bist_cost(state, trade)
         if state.tracking:
             state.try_cash = max(ZERO, state.try_cash - sign * trade.cash_amount)
             return ZERO
@@ -244,11 +258,22 @@ class UnifiedSeriesBuilder:
         return total
 
     @staticmethod
-    def _bist_value(state: _State, books: dict, day: date) -> Decimal:
+    def _bist_price(state: _State, books: dict, stock_id: int, day: date) -> Optional[Decimal]:
+        """Günlük kapanış; yoksa ortalama maliyet (Portföyüm'deki maliyetle değerleme ile tutarlı)."""
+        price = books["bist"][stock_id].at(day)
+        quantity = state.bist_qty.get(stock_id, ZERO)
+        if price is None and quantity > 0 and stock_id in state.bist_cost:
+            price = state.bist_cost[stock_id] / quantity
+            state.bist_unpriced.add(stock_id)
+        return price
+
+    def _bist_value(self, state: _State, books: dict, day: date) -> Decimal:
         total = ZERO
         for stock_id, quantity in state.bist_qty.items():
-            price = books["bist"][stock_id].at(day)
-            if quantity > 0 and price is not None:
+            if quantity <= 0:
+                continue
+            price = self._bist_price(state, books, stock_id, day)
+            if price is not None:
                 total += quantity * price
         return total
 
@@ -292,6 +317,7 @@ class UnifiedSeriesBuilder:
             previous = total
             day += timedelta(days=1)
         result.holdings = self._holdings(state, data, books, end, notes)
+        notes |= self._unpriced_bist_names(state)
         result.warnings = [f"{name} için fiyat/kur bulunamadı; son işlem değeriyle değerlendi." for name in sorted(notes)]
         return result
 
@@ -302,7 +328,7 @@ class UnifiedSeriesBuilder:
         tickers = self._stock_repo.get_ticker_map_for_stock_ids(stock_ids) if stock_ids else {}
         items = []
         for stock_id in stock_ids:
-            price = books["bist"][stock_id].at(end)
+            price = self._bist_price(state, books, stock_id, end)
             if price is None:
                 continue
             label = tickers.get(stock_id, str(stock_id))
@@ -310,6 +336,13 @@ class UnifiedSeriesBuilder:
             cost = data["bist"].portfolio.positions[stock_id].total_cost
             items.append(self._item(label, state.bist_qty[stock_id] * price, cost))
         return items
+
+    def _unpriced_bist_names(self, state: _State) -> set:
+        """Fiyatı bulunamayıp son işlem fiyatıyla değerlenen BIST hisselerinin kodları (uyarı metni için)."""
+        ids = [sid for sid in state.bist_unpriced if state.bist_qty.get(sid, ZERO) > 0]
+        tickers = self._stock_repo.get_ticker_map_for_stock_ids(ids) if ids else {}
+        return {(tickers.get(sid, str(sid))[:-3] if tickers.get(sid, "").upper().endswith(".IS") else tickers.get(sid, str(sid)))
+                for sid in ids}
 
     def _asset_holdings(self, state: _State, data: dict, books: dict, end: date, notes: set) -> List[dict]:
         items = []

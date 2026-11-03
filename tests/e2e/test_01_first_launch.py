@@ -113,3 +113,19 @@ def test_no_unexpected_qml_warnings_after_full_tour(human, unexpected_qml_warnin
     for title, _ in PAGES:
         human.open_page(title)
     assert unexpected_qml_warnings() == []
+
+
+@pytest.mark.parametrize("opener,marker", [
+    ("Sermaye Yönetimi", "Mevcut Bakiye"),
+    ("Hızlı Alım / Satım", "Alım Emrini Onayla"),
+    ("Döviz Al/Sat", "USD Miktarı"),
+    ("Varlık Ekle", "Hazır Varlıklar"),
+    ("Excel Raporu", "Raporu Oluştur"),
+])
+def test_escape_closes_modal_dialogs(human, opener, marker):
+    """[GLB-004][D-03] Escape tuşu açık modal kutuyu veri yazmadan kapatır."""
+    human.open_page("Portföyüm")
+    human.click(opener, exact=True)
+    assert human.wait_sees(marker), f"{opener} kutusu açılmadı"
+    human.escape()
+    assert human.wait_gone(marker, timeout=3), f"{opener}: Escape kutuyu kapatmadı"

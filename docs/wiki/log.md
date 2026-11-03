@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] düzeltme | Ürün Testi Bulguları D-01, D-02, D-03 ve Simge Düğmesi Erişilebilirliği
+
+- **D-03 Escape:** 17 modal kutuya (`AddStockModal`, `QuickTradeModal`, `CapitalModal`, `FxConvertModal`, `ConfirmDialog` ...) `Shortcut { sequence: "Escape" }` eklendi; `Popup` tabanlı diyaloglarla aynı davranış. Varlık Ekle meşgulken (`busy`) kapanmaz.
+- **D-02 Birleşik değerleme:** `UnifiedSeriesBuilder` kapanış fiyatı olmayan BIST pozisyonunu artık düşürmez; ortalama maliyetle değerler ve "fiyat/kur bulunamadı" uyarısı üretir. AI danışman toplamı Portföyüm ile aynı olur. Risk, TWR ve karşılaştırma serileri de aynı kuralı kullanır.
+- **D-01 Karşılaştırma Lab:** `ComparisonController.noData`; seçim varken veri yoksa "karşılaştırılacak veri bulunamadı" nedenleriyle açıklanır ("en az bir varlık seçin" yalnızca seçim boşken).
+- **Erişilebilirlik:** `ModernButton` simge düğmesi `Accessible.name` = ipucu; bütçe `+` düğmeleri `tooltip` ve `Accessible.name` taşır. E2E sürücü `click_icon(ad)` ile koordinatsız tıklar.
+
+---
 ## [2026-11-03] ekle | Ürün Test Planı ve E2E İnsan Sürücü Otomasyonu
 
 - **Plan:** [product_test_plan.md](product_test_plan.md): kapsam, test veritabanı, persona yolculukları, manuel rehber kimlikleriyle izlenebilirlik, otomasyon sınırları, bulgular, çıkış ölçütleri.

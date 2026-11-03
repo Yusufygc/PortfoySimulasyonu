@@ -55,6 +55,7 @@ class ComparisonController(QObject):
     assetOptionsChanged = Signal()
     selectedAssetsChanged = Signal()
     chartHtmlChanged = Signal()
+    noDataChanged = Signal()
     metricsListChanged = Signal()
     isLoadingChanged = Signal()
     periodLabelChanged = Signal()
@@ -92,6 +93,7 @@ class ComparisonController(QObject):
         self._asset_options: List[Dict[str, str]] = []
         self._selected_codes: List[str] = ["dashboard", "bist100"]
         self._chart_html: str = ""
+        self._no_data: bool = False   # seçim var ama hesaplanacak veri yok (boş durum metni ayırt edilir)
         self._metrics_list: List[Dict[str, Any]] = []
         self._is_loading: bool = False
         self._period_label: str = "3A"
@@ -138,6 +140,16 @@ class ComparisonController(QObject):
     @Property(str, notify=chartHtmlChanged)
     def chartHtml(self) -> str:
         return self._chart_html
+
+    @Property(bool, notify=noDataChanged)
+    def noData(self) -> bool:
+        """Seçili varlıklar için veri bulunamadı (çevrimdışı, boş portföy ya da fiyat geçmişi yok)."""
+        return self._no_data
+
+    def _set_no_data(self, value: bool) -> None:
+        if self._no_data != value:
+            self._no_data = value
+            self.noDataChanged.emit()
 
     @Property(list, notify=metricsListChanged)
     def metricsList(self) -> list:
@@ -356,12 +368,14 @@ class ComparisonController(QObject):
     def runComparison(self) -> None:
         """Asenkron arka plan iş parçacığında karşılaştırmayı çalıştırır."""
         if not self._selected_codes:
+            self._set_no_data(False)
             self._chart_html = ""
             self._metrics_list = []
             self.chartHtmlChanged.emit()
             self.metricsListChanged.emit()
             return
 
+        self._set_no_data(False)
         self._is_loading = True
         self.isLoadingChanged.emit()
 
@@ -400,6 +414,7 @@ class ComparisonController(QObject):
             self._calcError.emit(str(exc))
 
     def _apply_empty_result(self) -> None:
+        self._set_no_data(True)
         self._cached_aligned = None
         self._chart_html = ""
         self._metrics_list = []
@@ -414,6 +429,7 @@ class ComparisonController(QObject):
         self.operationResult.emit(False, err_msg)
 
     def _apply_calculation_result(self, aligned: pd.DataFrame, code_to_label: Dict[str, str], metrics: List[Dict[str, Any]]) -> None:
+        self._set_no_data(False)
         self._cached_aligned = aligned
         self._cached_labels = code_to_label
         self._metrics_list = metrics
