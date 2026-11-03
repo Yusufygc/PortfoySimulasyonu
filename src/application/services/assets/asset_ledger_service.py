@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 from typing import List, Optional
 
 from src.application.services.assets.asset_catalog import ASSET_CATALOG, CatalogEntry, find_catalog_entry
+from src.application.services.portfolio.pooled_cash_movement_repository import ASSET_TRADE_ID_OFFSET
 from src.domain.asset_symbols import resolve_yf_symbol
 from src.domain.exceptions import MarketDataUnavailableError
 from src.domain.market_clock import market_today
@@ -197,11 +198,17 @@ class AssetLedgerService:
             )
 
     def _ensure_cash_after_delete(self, trade: AssetTrade, asset: Optional[Asset]) -> None:
-        """Nakde bağlı USD satışını silmek, sonraki USD ödemelerini eksiye düşürmemeli."""
-        if self._cash_pool is None or not trade.cash_linked or asset is None:
+        """Nakde bağlı satışı silmek, sonraki aynı para birimli ödemeleri (USD) ya da TL kullanımını eksiye düşürmemeli."""
+        if self._cash_pool is None or not trade.cash_linked or asset is None or trade.side != TradeSide.SELL:
             return
-        if trade.side == TradeSide.SELL and asset.settlement_currency == "USD" and not self._cash_pool.usd_timeline_valid(exclude_trade_id=trade.id):
-            raise ValueError("Bu satış silinemez: sonraki USD ile ödenen işlemler yetersiz bakiyeye düşer.")
+        if asset.settlement_currency == "USD":
+            if not self._cash_pool.usd_timeline_valid(exclude_trade_id=trade.id):
+                raise ValueError("Bu satış silinemez: sonraki USD ile ödenen işlemler yetersiz bakiyeye düşer.")
+        elif asset.is_try_settled:
+            self._cash_pool.ensure_try_after_removal(
+                ASSET_TRADE_ID_OFFSET - trade.id,
+                "Bu satış silinemez: sonraki TL ile yapılan alım veya çekim yetersiz bakiyeye düşer.",
+            )
 
     def estimate_fee(self, quantity, price) -> Decimal:
         """Ayarlardaki oranlarla tahmini ücret (işlem para biriminde); arayüz ön izlemesi içindir."""

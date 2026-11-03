@@ -12,6 +12,7 @@ import pytest
 from src.application.container import AppContainer
 from src.domain.models.asset import Asset, AssetClass, AssetUnit
 from src.domain.models.fx_conversion import FxConversion, FxSide
+from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
 
 D = Decimal
@@ -167,3 +168,36 @@ def test_catalog_gold_is_gram_priced_in_try_and_paid_from_try_cash(container):
     assert container.cash_pool_service.try_balance() == D("20000")   # 50.000 - 10 g x 3.000 TL
     with pytest.raises(ValueError, match="Yetersiz TRY nakit"):
         container.asset_ledger_service.record_trade(gold.id, TradeSide.BUY, "10", "3000", trade_date=DAY, trade_time=time(12, 0))
+
+
+def test_deleting_sell_usd_that_funds_a_later_bist_buy_is_rejected(container):
+    _deposit(container)                                                   # 10.000 TL
+    container.fx_conversion_service.buy_usd(100, rate=30, conversion_date=DAY)             # 7.000 TL, 100 USD
+    sell = container.fx_conversion_service.sell_usd(100, rate=31, conversion_date=date(2026, 1, 6))   # +3.100 -> 10.100 TL
+    stock = container.stock_repo.save_stock(Stock(None, "AAA", "AAA Holding"))
+    container.portfolio_service.add_trade(Trade.create_buy(stock.id, date(2026, 1, 7), 100, D("100"), time(10, 0)))   # 10.000 TL
+
+    with pytest.raises(ValueError, match="TL ile yapılan alım"):
+        container.fx_conversion_service.delete_conversion(sell.id)
+    assert len(container.fx_conversion_service.list_conversions()) == 2
+
+
+def test_deleting_unneeded_sell_usd_is_allowed(container):
+    _deposit(container)
+    container.fx_conversion_service.buy_usd(100, rate=30, conversion_date=DAY)
+    sell = container.fx_conversion_service.sell_usd(100, rate=31, conversion_date=date(2026, 1, 6))
+
+    container.fx_conversion_service.delete_conversion(sell.id)             # sonrasında TL harcaması yok
+
+    assert container.cash_pool_service.balances() == {"TRY": D("7000"), "USD": D("100")}
+
+
+def test_deleting_try_gold_sale_that_funds_a_later_purchase_is_rejected(container, gold_try):
+    _deposit(container, "5000")
+    ledger = container.asset_ledger_service
+    ledger.record_trade(gold_try.id, TradeSide.BUY, "10", "400", trade_date=DAY, trade_time=time(10, 0))     # 4.000 TL
+    sale = ledger.record_trade(gold_try.id, TradeSide.SELL, "10", "500", trade_date=date(2026, 1, 6), trade_time=time(10, 0))   # +5.000
+    ledger.record_trade(gold_try.id, TradeSide.BUY, "12", "400", trade_date=date(2026, 1, 7), trade_time=time(10, 0))    # 4.800 TL
+
+    with pytest.raises(ValueError, match="TL ile yapılan alım"):
+        ledger.delete_trade(sale.id)

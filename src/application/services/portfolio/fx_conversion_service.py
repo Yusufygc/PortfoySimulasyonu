@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import List, Optional
 
 from src.domain.market_clock import market_time, market_today
+from src.application.services.portfolio.pooled_cash_movement_repository import FX_ID_OFFSET
 from src.domain.models.fx_conversion import FxConversion, FxSide
 
 
@@ -35,6 +36,11 @@ class FxConversionService:
             raise ValueError("Döviz işlemi bulunamadı.")
         if not self._pool.usd_timeline_valid(exclude_fx_id=conversion_id):
             raise ValueError("Bu döviz işlemi silinemez: sonraki USD ile ödenen işlemler yetersiz bakiyeye düşer.")
+        if conversion.side == FxSide.SELL_USD:   # TL girişi kalkar: sonraki TL kullanımı yetersiz kalabilir
+            self._pool.ensure_try_after_removal(
+                FX_ID_OFFSET - conversion_id,
+                "Bu döviz satımı silinemez: sonraki TL ile yapılan alım veya çekim yetersiz bakiyeye düşer.",
+            )
         self._repo.delete(conversion_id)
 
     # ---- yardımcılar ------------------------------------------------------------------------------

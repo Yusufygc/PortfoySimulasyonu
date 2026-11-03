@@ -67,6 +67,14 @@ class CashPoolService:
                 return False
         return True
 
+    def ensure_try_after_removal(self, removed_event_id: int, message: str) -> None:
+        """TL girişi (döviz satımı, TL ile satılan varlık) silinirse sonraki BIST alımı, çekim ya da varlık alımı
+        yetersiz nakde düşüyorsa `message` ile ValueError fırlatır. `removed_event_id`: havuzdaki sentetik hareket kimliği."""
+        try:
+            self._portfolio_service.validate_cash_removal(removed_event_id)
+        except ValueError as exc:
+            raise ValueError(message) from exc
+
     def balance(self, currency: str, as_of: AsOf = None) -> Decimal:
         currency = (currency or "").upper()
         if currency == "TRY":
