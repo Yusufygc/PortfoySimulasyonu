@@ -17,7 +17,6 @@ class Stock360StateMixin:
         self._sector: str = "Perakende Ticaret"
         self._is_loading: bool = False
         self._error_message: str = ""
-        self._available_stocks: List[str] = []
 
     def _init_overview_and_technical_state(self) -> None:
         # Genel Bakış

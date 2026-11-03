@@ -19,6 +19,7 @@ from src.ui_qml.controllers.chart_candle_sources import (
     load_asset_candles,
     load_market_history_candles,
     load_price_series_candles,
+    overlay_live_price,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ class ChartController(QObject):
     indicatorsChanged = Signal()
     assetsChanged = Signal()
     marketTickersChanged = Signal()
+    quoteChanged = Signal()  # şirket adı, son fiyat ve değişim veri yüklendikten sonra güncellendi
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
@@ -45,6 +47,7 @@ class ChartController(QObject):
         self._active_indicators: set[str] = set()
         self._company_name: str = ""
         self._price_currency: str = "TRY"  # son fiyat önekinin para birimi (BIST dışı varlıkta USD vb.)
+        self._has_quote = False
         self._last_price_str: str = "₺0,00"
         self._price_change_str: str = "%0,00"
         self._is_positive: bool = True
@@ -83,21 +86,26 @@ class ChartController(QObject):
     def currentChartType(self) -> str:
         return self._current_chart_type
 
-    @Property(str, notify=tickerChanged)
+    @Property(str, notify=quoteChanged)
     def companyName(self) -> str:
         return self._company_name
 
-    @Property(str, notify=tickerChanged)
+    @Property(str, notify=quoteChanged)
     def lastPrice(self) -> str:
         return self._last_price_str
 
-    @Property(str, notify=tickerChanged)
+    @Property(str, notify=quoteChanged)
     def priceChange(self) -> str:
         return self._price_change_str
 
-    @Property(bool, notify=tickerChanged)
+    @Property(bool, notify=quoteChanged)
     def isPositive(self) -> bool:
         return self._is_positive
+
+    @Property(bool, notify=quoteChanged)
+    def hasQuote(self) -> bool:
+        """Seçili sembol için en az bir mum yüklendi (başlıktaki fiyat rozetini gösterir)."""
+        return self._has_quote
 
     @Property(list, notify=marketTickersChanged)
     def marketTickers(self) -> list[str]:
@@ -157,6 +165,12 @@ class ChartController(QObject):
         self._average_cost = float(average_cost) if average_cost and average_cost > 0 else None
         self._average_cost_ticker = clean if self._average_cost else ""
         self._load_ticker(ticker)
+
+    @Slot()
+    def reloadCurrent(self) -> None:
+        """Fiyatlar veritabanında değişti (`PriceRefreshController.pricesChanged`): grafik, fiyat ve göstergeler yeniden okunur."""
+        if self._container is not None:
+            self._fetch_and_emit_chart_data(self._current_ticker)
 
     @Slot()
     def refreshAssets(self) -> None:
@@ -222,10 +236,35 @@ class ChartController(QObject):
             return loaded
         return demo_candles(ticker)
 
-    def _update_last_price(self, candles: list[dict[str, Any]]) -> None:
-        summary = last_price_summary(candles, self._price_currency)
+    def _update_quote(self, daily_candles: list[dict[str, Any]]) -> None:
+        """Başlıktaki fiyat ve değişim; zaman dilimi ne olursa olsun günlük mumlardan hesaplanır, veri yoksa sıfırlanır."""
+        summary = last_price_summary(daily_candles, self._price_currency)
+        self._has_quote = summary is not None
         if summary is not None:
             self._last_price_str, self._is_positive, self._price_change_str = summary
+        else:
+            self._last_price_str, self._is_positive, self._price_change_str = "₺0,00", True, "%0,00"
+
+    def _live_price(self, ticker: str):
+        """Canlı fiyat önbelleği geçerliyse (CurrentPriceResolver kuralı) çözülmüş fiyat, değilse `None`."""
+        resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
+        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        if resolver is None or lookup is None:
+            return None
+        try:
+            stock = lookup.find_stock(ticker)
+            resolved = resolver.resolve([stock.id]).get(stock.id) if stock is not None else None
+        except Exception as exc:
+            logger.debug("Canlı fiyat okunamadı (%s): %s", ticker, exc)
+            return None
+        return resolved if resolved is not None and resolved.source == "live" else None
+
+    def _apply_live_price(self, ticker: str, candles: list[dict[str, Any]], volumes: list[dict[str, Any]]) -> None:
+        """Son mumu canlı fiyata çeker; yalnızca SQLite'ta kayıtlı (canlı fiyatı yenilenen) BIST hisseleri için,
+        diğer hisselerde günlük kapanış kalır."""
+        live = self._live_price(ticker) if self._price_currency == "TRY" and candles else None
+        if live is not None:
+            overlay_live_price(candles, volumes, float(live.price), live.price_date)
 
     def _build_payload(
         self,
@@ -253,9 +292,11 @@ class ChartController(QObject):
         tüm teknik indikatörleri (SMA, EMA, BB, RSI, MACD) hesaplar ve zengin JSON yayar.
         """
         raw_candles, raw_volumes, self._company_name = self._load_candles(ticker)
+        self._apply_live_price(ticker, raw_candles, raw_volumes)
+        self._update_quote(raw_candles)
         candles, volumes = self._resample_timeframe(raw_candles, raw_volumes, self._current_timeframe)
-        self._update_last_price(candles)
         payload = self._build_payload(ticker, candles, volumes, self._calculate_indicators(candles))
+        self.quoteChanged.emit()
         self.chartDataLoaded.emit(ticker, json.dumps(payload))
 
     def _resample_timeframe(

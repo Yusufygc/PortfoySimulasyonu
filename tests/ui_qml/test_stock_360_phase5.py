@@ -63,9 +63,6 @@ def test_stock_360_controller_initialization(qapp, container):
     assert ctrl.rsiStatus != ""
     assert ctrl.trendStatus != ""
 
-    # Hızlı hisse listesi
-    assert len(ctrl.availableStocks) > 0
-    assert "BIMAS" in ctrl.availableStocks or "ADEL" in ctrl.availableStocks
 
 
 def test_stock_360_controller_search_and_switch(qapp, container):

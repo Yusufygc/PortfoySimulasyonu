@@ -215,7 +215,6 @@ QtObject {
 
     // --- Hisse 360 & Temel Analiz (Faz 5) ---
     readonly property string searchStockPlaceholder: "Hisse senedi sembolü girin (örn. BIMAS, ADEL, THYAO)..."
-    readonly property string quickStocksLabel: "HIZLI HİSSE SEÇİMİ:"
     readonly property string btnAnalyze: "Analiz Et"
     readonly property string ratioPE: "F/K"
     readonly property string ratioPEDesc: "Fiyat / Kazanç Oranı"

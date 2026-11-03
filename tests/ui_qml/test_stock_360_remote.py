@@ -1,4 +1,4 @@
-"""Stock 360 uzak veri akışı (katalog keşfi, arka plan çekimi) ve bölünmüş hesap yardımcıları."""
+"""Stock 360 uzak veri akışı (arka plan çekimi) ve bölünmüş hesap yardımcıları."""
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -31,29 +31,6 @@ class _Service:
 
 def _container(service):
     return SimpleNamespace(stock_360_service=service)
-
-
-def test_rank_tickers_puts_candidates_first_and_caps_at_twelve():
-    tickers = ["ZZZ", "THYAO", "AAA", "BIMAS"] + [f"T{i}" for i in range(20)]
-    ranked = remote.rank_tickers(tickers)
-    assert ranked[:2] == ["BIMAS", "THYAO"]
-    assert len(ranked) == 12
-
-
-def test_discover_prefers_catalog_then_stored_stocks_then_defaults():
-    assert remote.discover_available_stocks(_container(_Service(catalog=["AAA", "BIMAS"]))) == ["BIMAS", "AAA"]
-    stocks = [SimpleNamespace(ticker="XYZ.IS"), SimpleNamespace(ticker=None)]
-    assert remote.discover_available_stocks(_container(_Service(catalog=[], stocks=stocks))) == ["XYZ"]
-    assert remote.discover_available_stocks(_container(_Service(catalog=[]))) == remote.DEFAULT_CANDIDATES
-    assert remote.discover_available_stocks(None) == remote.DEFAULT_CANDIDATES
-
-
-def test_discover_falls_back_when_catalog_lookup_raises():
-    class Broken(_Service):
-        def get_catalog_tickers(self):
-            raise RuntimeError("katalog yok")
-
-    assert remote.discover_available_stocks(_container(Broken())) == remote.DEFAULT_CANDIDATES
 
 
 def test_fetch_remote_data_without_service_returns_empty_result():

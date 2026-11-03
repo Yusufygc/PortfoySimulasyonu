@@ -50,7 +50,7 @@ Rectangle {
                 implicitWidth: priceRow.implicitWidth + 10
                 radius: Theme.radiusSm
                 color: (chartController && chartController.isPositive) ? Theme.bullGreenSoft : Theme.bearRedSoft
-                visible: chartController && chartController.lastPrice !== "₺0.00"
+                visible: chartController && chartController.hasQuote
 
                 Row {
                     id: priceRow

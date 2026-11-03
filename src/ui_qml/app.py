@@ -114,6 +114,7 @@ def wire_controllers(c: Dict[str, Any]) -> None:
     # Açılış kapanış tamamlaması ilk BIST senkronundan sonra: aynı kapanışlar iki yoldan eşzamanlı indirilmesin
     c["startupJobsController"].start_after(c["marketSyncController"].syncFinished)
     _wire_price_refresh(refresh, c["dashboardController"], models, c["watchlistController"], my_portfolio)
+    refresh.pricesChanged.connect(c["chartController"].reloadCurrent)  # grafik, başlık fiyatı ve göstergeler canlı fiyatla yenilenir
     cash_pool = c["cashPoolController"]
     for target in (my_portfolio.reload, news.refresh, c["chartController"].refreshAssets, cash_pool.reload,
                    c["dashboardController"].reloadPortfolio):  # varlık defteri değişti: TL/USD nakit de değişir

@@ -252,17 +252,9 @@ class Stock360Service:
     # Application Facade (UI Katman İzolasyonu - ARCHITECTURE_GATES §6)
     # ------------------------------------------------------------------
 
-    def get_all_stocks(self) -> List[Any]:
-        """Kayıtlı tüm hisseleri döner (UI Controller doğrudan repo çağırmaz)."""
-        return self._stock_repo.get_all_stocks()
-
     def get_stock_by_ticker(self, ticker: str) -> Optional[Any]:
         """Ticker ile hisse nesnesini döner."""
         return self._stock_repo.get_stock_by_ticker(ticker.strip().upper())
-
-    def get_catalog_tickers(self) -> List[str]:
-        """Piyasa kataloğundaki (DuckDB) tüm BIST kodları; katalog yoksa boş liste."""
-        return self._market_history_repo.list_tickers() if self._market_history_repo is not None else []
 
     def get_company_name(self, ticker: str) -> Optional[str]:
         """Piyasa kataloğundaki (DuckDB) şirket adı; portföyde olmayan hisseler için."""

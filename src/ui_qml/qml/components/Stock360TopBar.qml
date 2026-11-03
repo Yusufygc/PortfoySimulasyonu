@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import "../theme"
 
-// Hisse 360 üst araç çubuğu: hisse arama ve hızlı hisse butonları.
+// Hisse 360 üst araç çubuğu: hisse arama ve aksiyon butonları.
 ModernCard {
     id: root
     readonly property var ctrl: (typeof stock360Controller !== "undefined") ? stock360Controller : null
@@ -129,75 +129,6 @@ ModernCard {
                     }
                     if (typeof shellController !== "undefined" && shellController) {
                         shellController.navigateTo(0)
-                    }
-                }
-            }
-        }
-
-        // Alt Satır: Hızlı Hisse Seçimi (Flickable)
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Theme.spaceSm
-
-            Text {
-                text: Strings.quickStocksLabel
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontXs
-                font.weight: Font.DemiBold
-                color: Theme.textMuted
-                Layout.alignment: Qt.AlignVCenter
-            }
-
-            Flickable {
-                Layout.fillWidth: true
-                implicitHeight: 28
-                contentWidth: pillRow.implicitWidth
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-
-                Row {
-                    id: pillRow
-                    spacing: 6
-
-                    Repeater {
-                        model: root.ctrl ? root.ctrl.availableStocks : []
-
-                        Rectangle {
-                            id: stockPill
-                            property bool isCurrent: (root.ctrl && root.ctrl.currentTicker === modelData)
-                            implicitWidth: pillText.implicitWidth + 14
-                            implicitHeight: 26
-                            radius: Theme.radiusSm
-                            color: isCurrent
-                            ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.2)
-                            : (pillMouse.containsMouse ? Theme.bgCardHover : Theme.bgInput)
-                            border.color: isCurrent ? Theme.accent : Theme.borderSubtle
-                            border.width: 1
-
-                            Behavior on color { ColorAnimation { duration: 120 } }
-
-                            Text {
-                                id: pillText
-                                anchors.centerIn: parent
-                                text: (modelData || "").replace(/\.IS$/i, "")
-                                font.family: Theme.fontFamily
-                                font.pixelSize: Theme.fontXs
-                                font.weight: stockPill.isCurrent ? Font.Bold : Font.Normal
-                                color: stockPill.isCurrent ? Theme.textAccent : Theme.textSecondary
-                            }
-
-                            MouseArea {
-                                id: pillMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (root.ctrl) {
-                                        root.ctrl.searchTicker(modelData)
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }

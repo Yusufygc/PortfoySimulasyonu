@@ -15,7 +15,7 @@ Hisse 360, tek bir hisse için fiyat, teknik seviyeler, mali tablolar, değerlem
 | Mali tablolar | `get_financials(ticker, n_quarters, currency)` | `FinancialAnalysisService.analyze` (İş Yatırım verisi). |
 | Ortaklık yapısı | `get_shareholders(ticker, force_refresh)` | `ShareholderAnalysisService.get_history` (KAP). |
 | Birleşik | `get_snapshot(ticker)` | Dört boyutu birleştirir; `financials_error` ve `shareholders_error` alanlarıyla izole. AI danışmanı da bunu kullanır. |
-| Katalog | `get_catalog_tickers`, `get_company_name`, `get_all_stocks` | DuckDB kataloğu; portföyde olmayan hisselerin adı. |
+| Katalog | `get_company_name` | DuckDB kataloğu; portföyde olmayan hisselerin adı. |
 
 ## 2. Finansal Analiz (`financials/`)
 

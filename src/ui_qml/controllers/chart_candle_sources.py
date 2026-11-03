@@ -164,6 +164,23 @@ def demo_candles(ticker: str) -> Loaded:
     return candles, volumes, ticker
 
 
+def overlay_live_price(candles: Candles, volumes: Candles, price: float, price_date) -> None:
+    """Canlı fiyatı günlük mumlara yerinde işler: aynı günün mumu güncellenir, daha yeni günse yeni mum eklenir."""
+    if not candles or price <= 0:
+        return
+    date_text = price_date.strftime("%Y-%m-%d")
+    last = candles[-1]
+    if last["time"] == date_text:
+        last["close"] = round(price, 2)
+        last["high"] = max(last["high"], last["close"])
+        last["low"] = min(last["low"], last["close"])
+    elif last["time"] < date_text:
+        open_ = last["close"]
+        high, low = max(open_, price), min(open_, price)
+        candles.append(_candle(date_text, open_, high, low, price))
+        volumes.append(_volume(date_text, 0.0, open_, price))
+
+
 CURRENCY_SYMBOLS = {"TRY": "₺", "USD": "$", "EUR": "€"}
 
 

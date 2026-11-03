@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] düzeltme | Grafik Başlığı Eşzamanı, Canlı Fiyat Yansıması, Hisse 360 Hızlı Seçim Kaldırıldı
+
+- **Başlık bayatlığı:** Hisse adı, fiyat ve değişim `tickerChanged` ile bağlıydı; sinyal veri yüklenmeden önce yayıldığı için başlık bir önceki hissenin değerini gösteriyordu. Yeni `quoteChanged` veri yüklendikten sonra yayılır (`companyName`, `lastPrice`, `priceChange`, `isPositive`, `hasQuote`). Veri yoksa başlık sıfırlanır (önceden eski hissenin fiyatı kalıyordu); fiyat rozeti kontrolü eski nokta biçimine (`₺0.00`) bağlıydı, `hasQuote` ile değişti.
+- **Günlük değişim:** Başlıktaki değişim artık 1H/1A seçiliyken haftalık/aylık mum farkı değil, günlük farktır (karakterizasyon altın dosyası yalnızca bu üç değer için güncellendi).
+- **Canlı fiyat:** `PriceRefreshController.pricesChanged` artık grafiği yeniler (`reloadCurrent`). Seans içinde canlı fiyat geçerliyse son mum canlı fiyata çekilir (`overlay_live_price`), göstergeler buna göre hesaplanır. DuckDB'deki diğer BIST hisseleri günlük kapanışla kalır.
+- **Hisse 360:** "HIZLI HİSSE SEÇİMİ" satırı, `availableStocks`, `discover_available_stocks` / `rank_tickers` ve kullanılmayan `Stock360Service.get_catalog_tickers` / `get_all_stocks` kaldırıldı.
+
+---
 ## [2026-11-03] güncelleme | Kayan BIST Şeridi ve Haber Konu Süzgeci
 
 - **Genel Bakış şeridi:** "PORTFÖY VE VARLIKLAR" yerine "BIST HİSSELERİ"; portföyden bağımsız rastgele 24 BIST hissesi (`chartController.marketTickers`, `StockLookupService.list_market_tickers`, DuckDB evreni; yoksa `BIST_TICKERS`) soldan sağa kesintisiz akar, fare üstündeyken durur.

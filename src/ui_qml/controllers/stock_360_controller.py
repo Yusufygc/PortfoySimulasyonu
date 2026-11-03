@@ -22,7 +22,7 @@ from src.ui_qml.controllers.stock_360_html import (
     write_temp_html,
     cleanup_temp_files,
 )
-from src.ui_qml.controllers.stock_360_remote import RemoteResult, discover_available_stocks, fetch_remote_data
+from src.ui_qml.controllers.stock_360_remote import RemoteResult, fetch_remote_data
 from src.ui_qml.controllers.stock_360_calc import compute_revenue_chart, compute_dupont_data, compute_cash_flow_data
 from src.ui_qml.controllers.stock_360_state import Stock360StateMixin
 
@@ -57,9 +57,6 @@ class Stock360Controller(Stock360StateMixin, QObject):
     # 4. Ortaklık Yapısı Sinyalleri
     shareholdersChanged = Signal()
 
-    # 5. Ekstra Liste / Navigasyon Sinyalleri
-    availableStocksChanged = Signal()
-
     # Faz 5.1 & 5.2 — HTML Dashboard, Finansal Tablolar ve Fintech Modelleri
     financialsHtmlUrlChanged = Signal()
     shareholdersHtmlUrlChanged = Signal()
@@ -86,9 +83,6 @@ class Stock360Controller(Stock360StateMixin, QObject):
 
         # Sinyal bağlantısı
         self._remoteDataReady.connect(self._apply_remote_results)
-
-        # Hızlı seçim hisseleri
-        self._load_available_stocks()
 
         # Varsayılan başlangıç verisi (Hızlı açılış)
         self._set_default_overview(self._current_ticker)
@@ -263,11 +257,6 @@ class Stock360Controller(Stock360StateMixin, QObject):
     def shareholderDate(self) -> str:
         return self._shareholder_date_str
 
-    # Hızlı Hisse Listesi
-    @Property("QVariantList", notify=availableStocksChanged)
-    def availableStocks(self) -> List[str]:
-        return self._available_stocks
-
     # Faz 5.1 & 5.2 Property'leri
 
     @Property(int, notify=periodsCountChanged)
@@ -346,7 +335,6 @@ class Stock360Controller(Stock360StateMixin, QObject):
     def ensureLoaded(self) -> None:
         """QML sayfası ilk açıldığında veya geçiş yapıldığında çağrılır."""
         if not self._has_loaded_data:
-            self._load_available_stocks()
             self.loadStock(self._current_ticker)
 
     @Slot(str)
@@ -468,11 +456,6 @@ class Stock360Controller(Stock360StateMixin, QObject):
             daemon=True,
         )
         worker_thread.start()
-
-    def _load_available_stocks(self) -> None:
-        """Kullanıcının portföyündeki veya DB'de en çok fiyatı olan hisseleri listeler."""
-        self._available_stocks = discover_available_stocks(self._container)
-        self.availableStocksChanged.emit()
 
     def _load_local_overview_and_technical(self, ticker: str) -> None:
         """Yerel veritabanından şirket adı, sektör, fiyat ve TA seviyelerini yükler (`stock_360_overview`)."""

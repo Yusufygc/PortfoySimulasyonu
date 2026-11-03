@@ -61,7 +61,7 @@
   "companyName": "Test Şirketi A.Ş.",
   "controller_state": [
    "₺135,70",
-   "+%3,75",
+   "+%0,59",
    true,
    "Test Şirketi A.Ş."
   ],
@@ -117,7 +117,7 @@
   "companyName": "Test Şirketi A.Ş.",
   "controller_state": [
    "₺135,70",
-   "+%1,88",
+   "+%0,59",
    true,
    "Test Şirketi A.Ş."
   ],
@@ -265,7 +265,7 @@
   "companyName": "Test Hisse",
   "controller_state": [
    "₺135,70",
-   "+%1,88",
+   "+%0,59",
    true,
    "Test Hisse"
   ],
