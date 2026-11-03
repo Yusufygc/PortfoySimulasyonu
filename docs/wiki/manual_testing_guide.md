@@ -104,7 +104,7 @@ Temizlik: Test temettüsü silindi.
 
 ### PF-001 | KPI ve tablo
 
-- **Beklenen sonuç:** Toplam değer, günlük kazanç, gerçekleşmemiş K/Z ve nakit görünür; tablo lot/miktar, maliyet, güncel fiyat, günlük %, ağırlık gösterir; tutarlar Türkçe biçimlidir; varlık dağılımı donut'u pozisyonlarla uyumludur; Tümü/BIST/ABD/Kripto/Emtia sekmeleri doğru satırları süzer. Fiyatsız pozisyonda "Maliyet" işareti ve sayfa üstünde uyarı görünür.
+- **Beklenen sonuç:** Toplam değer, günlük kazanç, gerçekleşmemiş K/Z ve nakit görünür; tablo lot/miktar, maliyet, güncel fiyat, günlük %, ağırlık gösterir; tutarlar Türkçe biçimlidir; varlık dağılımı donut'u pozisyonlarla uyumludur; Tümü/BIST/ABD/Kripto/Kıymetli Maden sekmeleri doğru satırları süzer. Fiyatsız pozisyonda "Maliyet" işareti ve sayfa üstünde uyarı görünür.
 
 ### PF-002 | TRY/USD anahtarı
 

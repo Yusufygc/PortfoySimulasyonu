@@ -47,6 +47,7 @@ def test_container_uses_default_global_event_bus(monkeypatch):
         portfolio_analytics_service = object()
         risk_optimization_bridge_service = object()
         stock_360_service = object()
+        unified_portfolio_service = object()
 
     monkeypatch.setattr("src.application.container.build_repositories", lambda _provider: object())
     monkeypatch.setattr("src.application.container.build_market_clients", lambda _provider: object())
@@ -56,7 +57,7 @@ def test_container_uses_default_global_event_bus(monkeypatch):
     )
     monkeypatch.setattr(
         "src.application.container.build_ai",
-        lambda _ai, portfolio_analytics_service, risk_optimization_bridge_service, stock_360_service: object(),
+        lambda _ai, portfolio_analytics_service, risk_optimization_bridge_service, stock_360_service, unified_portfolio_service: object(),
     )
     monkeypatch.setattr("src.application.container.fields", lambda _group: [])
 

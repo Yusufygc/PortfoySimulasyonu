@@ -32,6 +32,7 @@ def build_ai(
     portfolio_analytics_service,
     risk_optimization_bridge_service,
     stock_360_service,
+    unified_portfolio_service=None,
 ) -> AiSet:
     live_provider = FastAPIAnalysisProvider(
         AICoreFastAPIClient(base_url=ai_settings.core_api_url)
@@ -52,5 +53,6 @@ def build_ai(
             risk_optimization_bridge_service=risk_optimization_bridge_service,
             stock_360_service=stock_360_service,
             chat_provider_factory=GeminiAdvisorChatProvider,
+            unified_portfolio_service=unified_portfolio_service,
         ),
     )

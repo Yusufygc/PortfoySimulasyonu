@@ -126,8 +126,18 @@ class TestGetPortfolioOverview:
         handler({})
 
         filter_state = portfolio_analytics_service.get_overview.call_args.args[0]
-        assert filter_state.portfolio_source == "dashboard"
+        assert filter_state.portfolio_source == "unified"   # varsayılan kapsam: tüm varlıklar
         assert filter_state.selected_benchmarks == ["bist100"]
+
+    def test_bist_scope_uses_dashboard_source_and_unknown_scope_falls_back_to_all(self):
+        services = _make_services()
+        analytics = services[0]
+        handler = _specs_by_name(*services)["get_portfolio_overview"].handler
+
+        handler({"scope": "bist"})
+        assert analytics.get_overview.call_args.args[0].portfolio_source == "dashboard"
+        handler({"scope": "uydurma"})
+        assert analytics.get_overview.call_args.args[0].portfolio_source == "unified"
 
 
 class TestGetAllocationAndRisk:
@@ -263,3 +273,54 @@ class TestGetStockOverview:
 
         assert "rsi14" not in result
         assert result["ticker"] == "AKBNK"
+
+
+class TestGetAssetsOverview:
+    @staticmethod
+    def _summary():
+        from decimal import Decimal
+        from types import SimpleNamespace
+
+        from src.domain.models.unified_portfolio import AllocationClass
+
+        holding = SimpleNamespace(
+            symbol="BTC", name="Bitcoin", allocation_class=AllocationClass.CRYPTO, quantity=Decimal("0.5"),
+            native_currency="USD", value_try=Decimal("2000000"), cost_try=Decimal("1500000"), weight_pct=Decimal("80"),
+            daily_change_pct=Decimal("1.5"), is_priced=True,
+        )
+        sl = SimpleNamespace(allocation_class=AllocationClass.CRYPTO, value_try=Decimal("2000000"), weight_pct=Decimal("80"), holdings_count=1)
+        return SimpleNamespace(
+            total_value_try=Decimal("2500000"), total_cost_try=Decimal("2000000"), daily_gain_try=Decimal("30000"),
+            cash_try=Decimal("500000"), usd_cash=Decimal("100"), slices=(sl,), holdings=(holding,), unpriced_symbols=("XRP",),
+        )
+
+    def test_tool_is_registered_only_when_service_given(self):
+        services = _make_services()
+        assert "get_assets_overview" not in _specs_by_name(*services)
+        names = {s.name for s in build_tool_specs(*services, unified_portfolio_service=object())}
+        assert "get_assets_overview" in names
+
+    def test_maps_classes_holdings_cash_and_unpriced(self):
+        from types import SimpleNamespace
+
+        service = SimpleNamespace(get_summary=lambda currency: self._summary())
+        handler = {s.name: s for s in build_tool_specs(*_make_services(), unified_portfolio_service=service)}["get_assets_overview"].handler
+
+        result = handler({})
+
+        assert result["total_value_try"] == 2500000.0 and result["cash_usd"] == 100.0
+        assert result["classes"] == [{"class": "CRYPTO", "value_try": 2000000.0, "weight_pct": 80.0, "holdings": 1}]
+        holding = result["holdings"][0]
+        assert holding["symbol"] == "BTC" and holding["class"] == "CRYPTO" and holding["unrealized_pl_try"] == 500000.0
+        assert result["unpriced_symbols"] == ["XRP"]
+
+    def test_backend_exception_becomes_error_dict(self):
+        from types import SimpleNamespace
+
+        def boom(currency):
+            raise RuntimeError("kur yok")
+
+        service = SimpleNamespace(get_summary=boom)
+        handler = {s.name: s for s in build_tool_specs(*_make_services(), unified_portfolio_service=service)}["get_assets_overview"].handler
+
+        assert handler({}) == {"error": "kur yok"}

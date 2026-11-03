@@ -12,7 +12,8 @@ Kapsam kararları:
 
 - **Nakit bağı yok:** Varlık alımı BIST TRY nakdini düşürmez; USD varlık alımının finansmanı ayrı bir soru açar.
 - **Analiz sınırı:** Birleşik TWR, risk metrikleri, optimizasyon evreni, Excel raporu, AI danışman araçları ve benchmark listesi yalnızca BIST portföyünde kalır ([roadmap.md](roadmap.md)).
-- **Emtia vadeli kontrattır:** `GC=F`, `SI=F`, `PL=F`, `PA=F` spot'tan küçük sapma gösterebilir; arayüzde not düşülür.
+- **Kıymetli maden vadeli kontrattır:** `GC=F`, `SI=F`, `PL=F` spot'tan küçük sapma gösterebilir; arayüzde not düşülür. Katalogda yalnızca altın, gümüş ve platin vardır; genel emtia (petrol, bakır vb.) kapsam dışıdır.
+- **Katalog:** altın/gümüş/platin (gram, TL işlem), 4 kripto ve 24 popüler NASDAQ hissesi/ETF'i (AAPL, MSFT, NVDA, QQQ ...). Katalog dışı ABD hissesi ve kripto sembolle eklenir; sembol ve para birimi kaynaktan doğrulanır.
 
 ## 2. Domain (`src/domain/models/`)
 

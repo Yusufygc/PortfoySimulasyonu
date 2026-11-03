@@ -296,6 +296,11 @@ Item {
                     assetTradeModal.open(assetId)
                 }
                 onAssetRemoveRequested: function(assetId, symbol) {
+                    const reason = assetsController.removeBlockReason(assetId)
+                    if (reason !== "") {
+                        toast.show(reason, false)
+                        return
+                    }
                     root.pendingRemoveId = assetId
                     removeConfirm.ask(Strings.assetRemoveTitle, symbol + Strings.assetRemoveMessage, Strings.assetRemove)
                 }

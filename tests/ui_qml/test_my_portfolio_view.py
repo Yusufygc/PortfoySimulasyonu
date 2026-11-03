@@ -203,12 +203,28 @@ class TestMyPortfolioPage:
         assert results[0][0] is False and "yeterli miktar" in results[0][1]
         assert page.totalValue == "₺1.400.000,00"
 
-    def test_removing_asset_with_history_keeps_ledger_but_hides_asset(self, env):
+    def test_asset_with_open_position_cannot_be_removed(self, env):
         container, _, controllers, _ = env
         asset = seed_btc(container)
         assets = controllers["assetsController"]
+        results = []
+        assets.assetRemoved.connect(lambda ok, message: results.append((ok, message)))
 
+        assert "açık pozisyon" in assets.removeBlockReason(asset.id)
+        assets.removeAsset(asset.id)
+
+        assert results and results[-1][0] is False and "önce satış" in results[-1][1]
+        assert len(assets.assets) == 1   # varlık takipte kalır, değeri portföyden düşmez
+
+    def test_removing_closed_asset_keeps_ledger_but_hides_asset(self, env):
+        container, _, controllers, _ = env
+        asset = seed_btc(container)
+        assets = controllers["assetsController"]
+        container.asset_ledger_service.record_trade(
+            asset.id, TradeSide.SELL, "0.5", "65000", trade_date=date(2026, 1, 3), fx_rate_to_try="31")
+
+        assert assets.removeBlockReason(asset.id) == ""
         assets.removeAsset(asset.id)
 
         assert assets.assets == []
-        assert len(container.asset_ledger_service.get_trades(asset.id)) == 1
+        assert len(container.asset_ledger_service.get_trades(asset.id)) == 2

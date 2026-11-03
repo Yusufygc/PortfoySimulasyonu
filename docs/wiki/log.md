@@ -5,6 +5,14 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-03] güncelleme | Kıymetli Maden Adı, NASDAQ Kataloğu, AI Danışman Varlıkları Görüyor, Kaldırma Düzeltmesi
+
+- **Emtia -> Kıymetli Maden:** Arayüz etiketi değişti (sınıf kodu `PRECIOUS_METAL` aynı, göç yok). Katalogdan paladyum çıktı (altın, gümüş, platin kaldı); sembolle ekleme penceresinde yalnızca ABD hissesi ve kripto seçilir.
+- **NASDAQ kataloğu:** 24 popüler hisse/ETF tek tıkla eklenir; pencere Kıymetli Madenler / Kripto / NASDAQ gruplarına ayrıldı.
+- **AI Danışman:** yeni `get_assets_overview` aracı (sınıf ve pozisyon bazında TL değer, maliyet, K/Z, ağırlık, TL/USD nakit); `get_portfolio_overview` ve `get_allocation_and_risk` varsayılan olarak tüm varlıkları kapsar (`scope=bist` yalnızca BIST). Sistem istemi güncellendi; Markowitz önerisi hâlâ yalnızca BIST portföyündedir ve danışman bunu belirtir.
+- **Kaldırma hatası:** "Kaldır" açık pozisyonlu varlığı pasife alıyor ama değeri portföyde saymaya devam ediyordu (uyarı metni "değere dahil edilmez" diyordu). Açık pozisyonlu varlık artık kaldırılamaz ("önce satış girin"); pozisyon kapanınca kaldırılır, geçmiş korunur.
+
+---
 ## [2026-11-03] düzeltme | Varlık Ekleme Akışı: Sembol Biçimi, Para Birimi, Kopya Fiyat Sembolü
 
 Gerçek ağ ve test veritabanıyla 24 ekleme senaryosu koşuldu; bulunan hatalar:

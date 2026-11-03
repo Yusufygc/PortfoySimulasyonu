@@ -119,6 +119,18 @@ class TestCatalog:
         assert asset.unit == AssetUnit.GRAM and asset.trade_currency == "TRY" and asset.settlement_currency == "TRY"
         assert asset.is_try_settled and not asset.is_try_quoted  # fiyat USD/gram, işlem ve nakit TL
 
+    def test_precious_metals_are_gold_silver_platinum_only(self):
+        metals = {e.key for e in ASSET_CATALOG if e.asset_class == AssetClass.PRECIOUS_METAL}
+
+        assert metals == {"XAU", "XAG", "XPT"}
+
+    def test_popular_nasdaq_list_is_usd_priced_plain_symbols(self, service):
+        stocks = [e for e in ASSET_CATALOG if e.asset_class == AssetClass.US_STOCK]
+
+        assert len(stocks) >= 20 and {"AAPL", "MSFT", "NVDA", "QQQ"} <= {e.key for e in stocks}
+        assert all(e.quote_currency == "USD" and e.yf_symbol == e.key and not e.trade_currency for e in stocks)
+        assert service.add_catalog_asset("nvda").yf_symbol == "NVDA"
+
     def test_unknown_catalog_key_is_rejected(self, service):
         with pytest.raises(ValueError, match="Katalogda"):
             service.add_catalog_asset("DOGE2")
@@ -131,6 +143,7 @@ class TestAddAsset:
 
     def test_readding_inactive_asset_reactivates_it(self, service, btc):
         service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.SELL, "1", "110", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
         service.remove_asset(btc.id)
         assert service.list_assets() == []
 
@@ -232,6 +245,7 @@ class TestSymbolAndCurrencyValidation:
 
     def test_inactive_duplicate_does_not_block_a_new_symbol(self, service, btc):
         service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.SELL, "1", "110", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
         service.remove_asset(btc.id)
 
         assert service.add_asset("BTC-USD", "Bitcoin", AssetClass.CRYPTO, "USD").yf_symbol == "BTC-USD"
@@ -245,12 +259,27 @@ class TestRemoveAsset:
 
     def test_asset_with_trades_is_only_deactivated(self, service, btc):
         service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.SELL, "1", "110", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
 
         service.remove_asset(btc.id)
 
         assert service.list_assets() == []
         assert len(service.list_assets(active_only=False)) == 1
-        assert len(service.get_trades(btc.id)) == 1
+        assert len(service.get_trades(btc.id)) == 2
+
+    def test_asset_with_open_position_cannot_be_removed(self, service, btc):
+        service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
+
+        reason = service.remove_block_reason(btc.id)
+
+        assert "açık pozisyon" in reason and "BTC" in reason and "(1 adet)" in reason
+        with pytest.raises(ValueError, match="açık pozisyon"):
+            service.remove_asset(btc.id)
+        assert service.list_assets() == [btc]
+
+    def test_closed_or_empty_asset_has_no_block_reason(self, service, btc):
+        assert service.remove_block_reason(btc.id) == ""
+        assert service.remove_block_reason(99) == "Varlık bulunamadı."
 
     def test_unknown_asset_raises(self, service):
         with pytest.raises(ValueError, match="bulunamadı"):
@@ -304,6 +333,7 @@ class TestRecordTrade:
 
     def test_inactive_or_missing_asset_is_rejected(self, service, btc):
         service.record_trade(btc.id, TradeSide.BUY, "1", "100", trade_date=date(2026, 1, 1), fx_rate_to_try="30")
+        service.record_trade(btc.id, TradeSide.SELL, "1", "110", trade_date=date(2026, 1, 2), fx_rate_to_try="30")
         service.remove_asset(btc.id)
 
         with pytest.raises(ValueError, match="pasif"):

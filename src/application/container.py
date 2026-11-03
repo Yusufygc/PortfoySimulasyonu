@@ -45,6 +45,7 @@ class AppContainer:
             portfolio_analytics_service=self.services.portfolio_analytics_service,
             risk_optimization_bridge_service=self.services.risk_optimization_bridge_service,
             stock_360_service=self.services.stock_360_service,
+            unified_portfolio_service=self.services.unified_portfolio_service,
         )
         self._expose_dataclass_fields(self.ai)
 

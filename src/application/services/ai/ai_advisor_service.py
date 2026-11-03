@@ -26,12 +26,13 @@ class AiAdvisorService:
         risk_optimization_bridge_service,
         stock_360_service,
         chat_provider_factory: Optional[Callable[..., Any]] = None,
+        unified_portfolio_service=None,
     ) -> None:
         # (api_key, tool_declarations, call_tool) -> `generate(system_prompt, turns)` sağlayıcısı; SDK sınıfı
         # container'da enjekte edilir, bu servis SDK'ya bağımlı kalmaz.
         self._chat_provider_factory = chat_provider_factory
         self._tool_specs: List[ToolSpec] = build_tool_specs(
-            portfolio_analytics_service, risk_optimization_bridge_service, stock_360_service,
+            portfolio_analytics_service, risk_optimization_bridge_service, stock_360_service, unified_portfolio_service,
         )
         self._tools_by_name: Dict[str, ToolSpec] = {spec.name: spec for spec in self._tool_specs}
 

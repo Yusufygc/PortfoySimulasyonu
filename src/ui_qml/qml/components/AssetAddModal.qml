@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import "../theme"
 
-// Varlık ekleme: hazır katalogdan (altın, gümüş, platin, kripto) tek tıkla ya da sembolle (ABD hissesi, kripto, emtia).
+// Varlık ekleme: hazır katalogdan (altın, gümüş, platin, kripto, popüler NASDAQ hisseleri) tek tıkla ya da sembolle (ABD hissesi, kripto).
 // Sembol arka planda fiyat kaynağında doğrulanır; sonuç assetsController.assetAdded sinyaliyle gelir.
 Rectangle {
     id: root
@@ -13,9 +13,18 @@ Rectangle {
 
     readonly property var classOptions: [
         { key: "US_STOCK", label: Strings.allocClassUs },
-        { key: "CRYPTO", label: Strings.allocClassCrypto },
-        { key: "PRECIOUS_METAL", label: Strings.allocClassMetal }
+        { key: "CRYPTO", label: Strings.allocClassCrypto }
     ]
+
+    readonly property var catalogGroups: [
+        { classKey: "PRECIOUS_METAL", label: Strings.assetCatalogMetal },
+        { classKey: "CRYPTO", label: Strings.assetCatalogCrypto },
+        { classKey: "US_STOCK", label: Strings.assetCatalogNasdaq }
+    ]
+
+    function catalogOf(classKey) {
+        return assetsController.catalog.filter(function (entry) { return entry.classKey === classKey })
+    }
 
     signal closed()
 
@@ -112,21 +121,42 @@ Rectangle {
                     color: Theme.textMuted
                 }
 
-                Flow {
-                    Layout.fillWidth: true
-                    spacing: Theme.spaceXs
+                Repeater {
+                    model: root.catalogGroups
 
-                    Repeater {
-                        model: assetsController.catalog
+                    ColumnLayout {
+                        id: groupColumn
+                        required property var modelData
+                        readonly property var entries: root.catalogOf(modelData.classKey)
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: entries.length > 0
 
-                        ModernButton {
-                            required property var modelData
-                            readonly property bool added: root.isAdded(modelData.key)
-                            text: modelData.name + (added ? "  ✓ " + Strings.assetAddedBadge : "")
-                            variant: added ? "ghost" : "secondary"
-                            enabled: !added && !root.busy
-                            implicitHeight: 30
-                            onClicked: assetsController.addCatalogAsset(modelData.key)
+                        Text {
+                            text: groupColumn.modelData.label
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.fontXs
+                            color: Theme.textSecondary
+                        }
+
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: Theme.spaceXs
+
+                            Repeater {
+                                model: groupColumn.entries
+
+                                ModernButton {
+                                    required property var modelData
+                                    readonly property bool added: root.isAdded(modelData.key)
+                                    text: (modelData.classKey === "US_STOCK" ? modelData.key + " · " : "") + modelData.name
+                                          + (added ? "  ✓ " + Strings.assetAddedBadge : "")
+                                    variant: added ? "ghost" : "secondary"
+                                    enabled: !added && !root.busy
+                                    implicitHeight: 30
+                                    onClicked: assetsController.addCatalogAsset(modelData.key)
+                                }
+                            }
                         }
                     }
                 }

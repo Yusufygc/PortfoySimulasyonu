@@ -4,7 +4,7 @@ import QtQuick.Controls
 import "../theme"
 
 // Portföyüm pozisyon tablosu: BIST ve BIST dışı tüm pozisyonlar myPortfolioController.holdingsModel'den okunur.
-// Sınıf sekmeleri (Tümü / BIST / ABD / Kripto / Emtia) modeli süzer; tutarlar seçili gösterim para biriminde,
+// Sınıf sekmeleri (Tümü / BIST / ABD / Kripto / Kıymetli Maden) modeli süzer; tutarlar seçili gösterim para biriminde,
 // fiyatlar varlığın kendi para biriminde gösterilir.
 ModernCard {
     id: root

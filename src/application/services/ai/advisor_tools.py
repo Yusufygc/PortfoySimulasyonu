@@ -23,6 +23,7 @@ from src.domain.market_clock import market_today
 
 _DEFAULT_LOOKBACK_DAYS = 365
 _DEFAULT_BENCHMARK = "bist100"
+_SCOPE_SOURCES = {"all": "unified", "bist": "dashboard"}   # varsayılan: tüm varlıklar (BIST + altın, kripto, ABD hissesi, nakit)
 
 _VALID_RISK_LABELS = {"COK_MUHAFAZAKAR", "MUHAFAZAKAR", "DENGELI", "BUYUME_ODAKLI", "AGRESIF"}
 
@@ -49,17 +50,25 @@ class ToolSpec:
     handler: Callable[[Dict[str, Any]], Dict[str, Any]]
 
 
-def _build_default_filter_state(portfolio_analytics_service) -> AnalysisFilterState:
-    """`DashboardController._build_filter_state()` ile aynı desen — dashboard
-    portföyü, BIST 100 benchmark, ilk işlem tarihinden bugüne."""
+_SCOPE_PROPERTY: Dict[str, Any] = {
+    "type": "string",
+    "enum": sorted(_SCOPE_SOURCES),
+    "description": "Kapsam: 'all' (varsayılan) BIST hisseleri, altın/gümüş/platin, kripto, ABD hisseleri ve nakit dahil "
+    "tüm varlıklar; 'bist' yalnızca BIST hisse portföyü.",
+}
+
+
+def _build_default_filter_state(portfolio_analytics_service, scope: Any = None) -> AnalysisFilterState:
+    """Seçilen kapsama göre portföy kaynağı (varsayılan tüm varlıklar), BIST 100 benchmark, ilk işlem tarihinden bugüne."""
+    source = _SCOPE_SOURCES.get(str(scope or "all").strip().lower(), _SCOPE_SOURCES["all"])
     today = market_today()
-    start = portfolio_analytics_service.get_first_trade_date_for_source("dashboard") or (
+    start = portfolio_analytics_service.get_first_trade_date_for_source(source) or (
         today - timedelta(days=_DEFAULT_LOOKBACK_DAYS)
     )
     return AnalysisFilterState(
         start_date=start,
         end_date=today,
-        portfolio_source="dashboard",
+        portfolio_source=source,
         selected_benchmarks=[_DEFAULT_BENCHMARK],
     )
 
@@ -77,8 +86,8 @@ def _metrics_to_dict(metrics) -> Dict[str, Optional[float]]:
 # ----------------------------------------------------------------------
 
 def _make_get_portfolio_overview_handler(portfolio_analytics_service) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
-    def handler(_arguments: Dict[str, Any]) -> Dict[str, Any]:
-        filter_state = _build_default_filter_state(portfolio_analytics_service)
+    def handler(arguments: Dict[str, Any]) -> Dict[str, Any]:
+        filter_state = _build_default_filter_state(portfolio_analytics_service, arguments.get("scope"))
         overview = portfolio_analytics_service.get_overview(filter_state)
         return {
             "portfolio_label": overview.portfolio_label,
@@ -99,7 +108,7 @@ def _make_get_portfolio_overview_handler(portfolio_analytics_service) -> Callabl
     return handler
 
 
-_GET_PORTFOLIO_OVERVIEW_SCHEMA: Dict[str, Any] = {"type": "object", "properties": {}}
+_GET_PORTFOLIO_OVERVIEW_SCHEMA: Dict[str, Any] = {"type": "object", "properties": {"scope": _SCOPE_PROPERTY}}
 
 
 # ----------------------------------------------------------------------
@@ -107,8 +116,8 @@ _GET_PORTFOLIO_OVERVIEW_SCHEMA: Dict[str, Any] = {"type": "object", "properties"
 # ----------------------------------------------------------------------
 
 def _make_get_allocation_and_risk_handler(portfolio_analytics_service) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
-    def handler(_arguments: Dict[str, Any]) -> Dict[str, Any]:
-        filter_state = _build_default_filter_state(portfolio_analytics_service)
+    def handler(arguments: Dict[str, Any]) -> Dict[str, Any]:
+        filter_state = _build_default_filter_state(portfolio_analytics_service, arguments.get("scope"))
         risk_view = portfolio_analytics_service.get_allocation_risk_view(filter_state)
         return {
             "items": [
@@ -132,7 +141,54 @@ def _make_get_allocation_and_risk_handler(portfolio_analytics_service) -> Callab
     return handler
 
 
-_GET_ALLOCATION_AND_RISK_SCHEMA: Dict[str, Any] = {"type": "object", "properties": {}}
+_GET_ALLOCATION_AND_RISK_SCHEMA: Dict[str, Any] = {"type": "object", "properties": {"scope": _SCOPE_PROPERTY}}
+
+
+# ----------------------------------------------------------------------
+# 2b. get_assets_overview
+# ----------------------------------------------------------------------
+
+def _holding_to_dict(holding) -> Dict[str, Any]:
+    return {
+        "symbol": holding.symbol,
+        "name": holding.name,
+        "class": holding.allocation_class.value,
+        "quantity": _to_float(holding.quantity),
+        "currency": holding.native_currency,
+        "value_try": _to_float(holding.value_try),
+        "cost_try": _to_float(holding.cost_try),
+        "unrealized_pl_try": _to_float(holding.value_try - holding.cost_try),
+        "weight_pct": _to_float(holding.weight_pct),
+        "daily_change_pct": _to_float(holding.daily_change_pct),
+        "is_priced": holding.is_priced,
+    }
+
+
+def _make_get_assets_overview_handler(unified_portfolio_service) -> Callable[[Dict[str, Any]], Dict[str, Any]]:
+    def handler(_arguments: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            summary = unified_portfolio_service.get_summary("TRY")
+        except Exception as exc:
+            return {"error": str(exc)}
+        return {
+            "total_value_try": _to_float(summary.total_value_try),
+            "total_cost_try": _to_float(summary.total_cost_try),
+            "daily_gain_try": _to_float(summary.daily_gain_try),
+            "cash_try": _to_float(summary.cash_try),
+            "cash_usd": _to_float(summary.usd_cash),
+            "classes": [
+                {"class": s.allocation_class.value, "value_try": _to_float(s.value_try),
+                 "weight_pct": _to_float(s.weight_pct), "holdings": s.holdings_count}
+                for s in summary.slices
+            ],
+            "holdings": [_holding_to_dict(h) for h in summary.holdings],
+            "unpriced_symbols": list(summary.unpriced_symbols),
+        }
+
+    return handler
+
+
+_GET_ASSETS_OVERVIEW_SCHEMA: Dict[str, Any] = {"type": "object", "properties": {}}
 
 
 # ----------------------------------------------------------------------
@@ -255,20 +311,22 @@ def build_tool_specs(
     portfolio_analytics_service,
     risk_optimization_bridge_service,
     stock_360_service,
+    unified_portfolio_service=None,
 ) -> List[ToolSpec]:
-    """v1 araç listesi (bkz. plan §6.2.3) — 4 salt-okunur araç."""
-    return [
+    """Salt-okunur araç listesi (bkz. plan §6.2.3); varlık defteri servisi verilirse `get_assets_overview` da eklenir."""
+    specs = [
         ToolSpec(
             name="get_portfolio_overview",
-            description="Kullanıcının dashboard portföyünün genel özetini döner: toplam değer, dönem getirisi, "
-            "benchmark (BIST 100) farkı, en büyük pozisyon, en iyi/kötü katkı sağlayan varlıklar.",
+            description="Kullanıcının portföyünün genel özetini döner: toplam değer, dönem getirisi, "
+            "benchmark (BIST 100) farkı, en büyük pozisyon, en iyi/kötü katkı sağlayan varlıklar. Varsayılan kapsam "
+            "tüm varlıklardır (BIST hisseleri, altın/gümüş/platin, kripto, ABD hisseleri, nakit).",
             parameters_schema=_GET_PORTFOLIO_OVERVIEW_SCHEMA,
             handler=_make_get_portfolio_overview_handler(portfolio_analytics_service),
         ),
         ToolSpec(
             name="get_allocation_and_risk",
             description="Kullanıcının portföyündeki varlık dağılımını (ağırlık %) ve risk metriklerini "
-            "(volatilite, maksimum drawdown, yoğunlaşma, Sharpe/Beta/Alfa) döner.",
+            "(volatilite, maksimum drawdown, yoğunlaşma, Sharpe/Beta/Alfa) döner. Varsayılan kapsam tüm varlıklardır.",
             parameters_schema=_GET_ALLOCATION_AND_RISK_SCHEMA,
             handler=_make_get_allocation_and_risk_handler(portfolio_analytics_service),
         ),
@@ -288,3 +346,12 @@ def build_tool_specs(
             handler=_make_get_stock_overview_handler(stock_360_service),
         ),
     ]
+    if unified_portfolio_service is not None:
+        specs.insert(2, ToolSpec(
+            name="get_assets_overview",
+            description="Portföyün güncel TL değerini sınıf (BIST hissesi, ABD hissesi, kripto, kıymetli maden, nakit) ve "
+            "pozisyon bazında döner: miktar, değer, maliyet, gerçekleşmemiş kâr/zarar, ağırlık, günlük değişim, TL ve USD nakit.",
+            parameters_schema=_GET_ASSETS_OVERVIEW_SCHEMA,
+            handler=_make_get_assets_overview_handler(unified_portfolio_service),
+        ))
+    return specs

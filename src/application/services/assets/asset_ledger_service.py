@@ -19,6 +19,7 @@ from src.domain.ports.repositories.i_asset_trade_repo import IAssetTradeReposito
 from src.domain.ports.services.i_asset_symbol_verifier import IAssetSymbolVerifier
 
 
+_UNIT_LABELS = {AssetUnit.UNIT: "adet", AssetUnit.GRAM: "gram", AssetUnit.OUNCE: "ons"}
 SUPPORTED_QUOTE_CURRENCIES = ("USD", "TRY")   # ortak nakit havuzu yalnızca bu iki para birimini taşır
 
 
@@ -113,10 +114,23 @@ class AssetLedgerService:
             trade_currency=entry.trade_currency,
         )
 
+    def remove_block_reason(self, asset_id: int) -> str:
+        """Varlık takipten çıkarılamıyorsa nedeni (açık pozisyon), çıkarılabiliyorsa boş metin.
+
+        Açık pozisyonlu varlık çıkarılırsa harcanan nakit geri gelmeden değer portföyden düşer; bu yüzden önce satış gerekir."""
+        asset = self._asset_repo.get_asset(asset_id)
+        if asset is None:
+            return "Varlık bulunamadı."
+        position = next((p for p in self.get_ledger().open_positions() if p.asset_id == asset_id), None)
+        if position is not None:
+            return f"{asset.symbol} için açık pozisyon var ({position.total_quantity.normalize():f} {_UNIT_LABELS[asset.unit]}); önce satış işlemi girerek pozisyonu kapatın."
+        return ""
+
     def remove_asset(self, asset_id: int) -> None:
-        """İşlem geçmişi varsa varlık pasife alınır (geçmiş korunur); yoksa silinir."""
-        if self._asset_repo.get_asset(asset_id) is None:
-            raise ValueError("Varlık bulunamadı.")
+        """İşlem geçmişi varsa varlık pasife alınır (geçmiş korunur); yoksa silinir. Açık pozisyon varken reddedilir."""
+        reason = self.remove_block_reason(asset_id)
+        if reason:
+            raise ValueError(reason)
         if self._trade_repo.list_trades(asset_id):
             self._asset_repo.set_active(asset_id, False)
         else:

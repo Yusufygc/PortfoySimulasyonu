@@ -326,6 +326,11 @@ class AssetsController(QObject):
         self.tradeRecorded.emit(True, msg("assets.islemi_kaydedildi", symbol=asset.symbol, label=label))
         self.dataChanged.emit()
 
+    @Slot(int, result=str)
+    def removeBlockReason(self, asset_id: int) -> str:
+        """Kaldırma onayından önce sorulur: açık pozisyon varsa gerekçe metni, kaldırılabiliyorsa boş."""
+        return self._ledger.remove_block_reason(asset_id) if self._ledger is not None else ""
+
     @Slot(int)
     def removeAsset(self, asset_id: int) -> None:
         if self._ledger is None:
