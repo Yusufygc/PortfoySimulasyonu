@@ -5,6 +5,16 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-04] REVIEW | CI Kırmızı Koşusu: Gerçek Veri Bağımlılığı, Saat Dilimi, Bağımlılık Açıkları
+
+İlk GitHub Actions koşusu (Tests #54) kırmızı; 10-04 koşusu da kırmızıydı. Ayrıntı: [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md) "İlk GitHub Actions koşusu".
+
+- 17 test gerçek `data/` veritabanı kopyasına dayanıyordu: `real_data` işareti, dosyalar yoksa atlanır (`conftest._skip_real_data_tests`; mevcut `pytest_collection_modifyitems` içinden çağrılır, ikinci bir aynı adlı hook ilkini gölgeler).
+- Piyasa saatine bağlı iki test `market_now()`/`market_today()` kullanır (CI UTC'de çalışır).
+- `constraints.txt` `pip freeze` yerine `requirements.txt` kapanışı (77 paket); `certifi` 2026.10.23, `pyasn1` 0.6.5.
+- CI `pip check` adımı runner'daki `pipx` uyarısını yok sayar.
+- Yerel doğrulama: tam paket 2051 geçti; CI taklidi (veri yok): 2033 geçti, 18 atlandı, kapsam %87.
+
 ## [2026-11-04] REVIEW | Sistem Denetimi 2 (15 Bulgu) Uygulandı
 
 Ayrıntı ve açık kalanlar: [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md). Bu giriş bir önceki 2026-11-04 girişindeki üç acil maddeden sonrasını kapsar.

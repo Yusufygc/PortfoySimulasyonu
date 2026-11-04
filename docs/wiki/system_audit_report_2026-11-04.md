@@ -59,10 +59,23 @@ Sızıntı: danışman aracı hataları `str(exc)` olarak Gemini'ye, işlem hata
 ### 12-15
 RSS akışı `MAX_BODY_BYTES` sınırında kesilir ve bağlantı kapatılır; `localhost`, `.local`, `.internal`, özel ve link-local IP sabitleri reddedilir (DNS çözümlemesi yapılmaz, bu yüzden alan adı ile iç ağa çözülen adresler yine geçer). `.bat` dosyaları `venv`, `.venv`, `PATH` sırasını kullanır. `load_app_settings` `.env` ve sır deposunu bir kez okur. Yeni testler: `test_ai_core_client_errors.py`, `test_yfinance_adapters_failure_modes.py`, `test_scraped_benchmark_provider.py` (eklemeler), `test_news_http_limits.py`.
 
+## İlk GitHub Actions koşusu ve düzeltmeleri (2026-11-04)
+
+Push sonrası CI kırmızı çıktı. **CI bu denetimden önce de kırmızıydı** (2026-10-04 koşusunda aynı 17 test düşüyordu); ilk denetimdeki "CI var" tespiti koşu sonucuna bakılmadan yapılmıştı. Nedenler ve düzeltmeler:
+
+| Sorun | Neden | Düzeltme |
+|---|---|---|
+| 3 test işi: 17 test düşüyor | Testler gerçek `data/portfolio.db` ve `market_history.duckdb` kopyasına dayanıyor (git dışı, kişisel veri); CI'da veritabanı boş | `real_data` işareti (`pytest.ini`); dosyalar yoksa `tests/conftest.py` testleri atlar (CI'da 18 atlama, yerelde 0). CI'ı gerçek veri olmadan taklit eden bir kopyada 2033 geçti, kapsam %87 |
+| `test_parse_trade_moment_rejects_future_time_today` | Test yerel saati, kod piyasa saatini (Europe/Istanbul) kullanıyor; CI UTC'de çalışıyor | Test `market_now()`/`market_today()` kullanır; aynısı `test_dashboard_submit_trade_keeps_default_now` için |
+| Dependency audit: 19 açık | `constraints.txt` `pip freeze` ile üretilmişti: `certifi` 2026.7.22, `pyasn1` 0.6.4 eski; `filelock` 4.0.10 `pip-audit`'in kendi bağımlılığıydı (projeye ait değil) ve pinlenmesi CI'da eski sürümde kalmasına yol açtı | Kilit artık yalnızca `requirements.txt` kapanışı (77 paket); `certifi` 2026.10.23, `pyasn1` 0.6.5. `filelock` kilitten çıktı. Yerelde `pip_audit`: proje paketlerinde açık yok; kalanlar `filelock` (CI'da güncellenir) ve `setuptools` (CI adımı yükseltir) |
+| Test (3.12): `pip check` | Runner'daki `pipx` kendi bağımlılığından şikayet ediyor | Adım `pipx` satırını yok sayar |
+
+Not: ilk denetim raporunda "`pip-audit` kurulu değil" yazmıştım; kurulu olduğu doğrulanmadan yazılmıştı (yerel `venv`'de 2.10.1 vardı).
+
 ## Açık kalanlar
 - `ExactNumeric` bozan yazmayı engeller ama değeri `REAL` saklar (Bulgu 4).
 - Yapıcı enjeksiyonu yapılmadı (Bulgu 8).
-- Bağımlılık hash doğrulaması yok (Bulgu 9); `pip-audit` yerelde çalıştırılmadı.
+- Bağımlılık hash doğrulaması yok (Bulgu 9).
 - Dosya borcu: 4 üretim dosyası 500 satırın üstünde.
 - GUI, Nuitka derlemesi ve GitHub Actions koşusu bu denetimde doğrulanmadı.
 - `ScrapedBenchmarkProvider` başarısız ay/yıl isteklerini örnek ömrü boyunca boş önbellekte tutar (yeniden deneme yok); davranış testle kayda geçti, değiştirilmedi.
