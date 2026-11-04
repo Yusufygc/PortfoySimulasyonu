@@ -157,17 +157,50 @@ class UnifiedSeriesDeps(NamedTuple):
     fx_conversion_repo: object
 
 
+class _PriceBookLoader:
+    """Fiyat/kur serilerini okuyup `_Carry` defterlerine çevirir (değerleme bu defterlerden okur)."""
+
+    def __init__(self, deps: UnifiedSeriesDeps) -> None:
+        self._price_repo = deps.price_repo
+        self._asset_price_repo = deps.asset_price_repo
+        self._fx_rate_repo = deps.fx_rate_repo
+
+    def _fx_carry(self, currency: str, start: date, end: date) -> _Carry:
+        rates = {r.rate_date: r.rate for r in self._fx_rate_repo.get_rates(currency, "TRY", start, end)}
+        before = self._fx_rate_repo.get_rate_on_or_before(currency, "TRY", start - timedelta(days=1))
+        return _Carry(rates, before.rate if before else None)
+
+    def _asset_carry(self, asset_id: int, start: date, end: date) -> _Carry:
+        rows = {p.price_date: p.close_price for p in self._asset_price_repo.get_daily_prices(asset_id, start, end)}
+        before = self._asset_price_repo.get_last_daily_price(asset_id, on_or_before=start - timedelta(days=1))
+        return _Carry(rows, before.close_price if before else None)
+
+    def _bist_carry(self, stock_id: int, start: date, end: date) -> _Carry:
+        rows = {p.price_date: p.close_price for p in self._price_repo.get_price_series(stock_id, start, end)}
+        before = self._price_repo.get_last_price_before(stock_id, start)
+        return _Carry(rows, before.close_price if before else None)
+
+    def load(self, data: dict, start: date, end: date) -> dict:
+        """Kur, BIST ve varlık kapanış defterleri (`books`): gün bazlı taşınan son değer."""
+        currencies = {"USD"} | {a.quote_currency for a in data["assets"].values() if a.quote_currency != "TRY"}
+        stock_ids = {t.stock_id for t in data["bist"].valid_trades}
+        asset_ids = {t.asset_id for t in data["asset_trades"]}
+        return {
+            "fx": {c: self._fx_carry(c, start, end) for c in currencies},
+            "bist": {sid: self._bist_carry(sid, start, end) for sid in stock_ids},
+            "asset": {aid: self._asset_carry(aid, start, end) for aid in asset_ids},
+        }
+
+
 class UnifiedSeriesBuilder:
     def __init__(self, deps: UnifiedSeriesDeps) -> None:
         self._portfolio_repo = deps.portfolio_repo
-        self._price_repo = deps.price_repo
         self._stock_repo = deps.stock_repo
         self._cash_repo = deps.cash_repo
         self._asset_repo = deps.asset_repo
         self._asset_trade_repo = deps.asset_trade_repo
-        self._asset_price_repo = deps.asset_price_repo
-        self._fx_rate_repo = deps.fx_rate_repo
         self._fx_conversion_repo = deps.fx_conversion_repo
+        self._price_books = _PriceBookLoader(deps)
 
     # ---- veri ---------------------------------------------------------------------------------------------
 
@@ -197,33 +230,6 @@ class UnifiedSeriesBuilder:
         events += [_Event(t.trade_date, t.trade_time or time.min, "bist", t) for t in data["bist"].valid_trades]
         events += [_Event(t.trade_date, t.trade_time or time.min, "asset", t) for t in data["asset_trades"]]
         return sorted(events, key=lambda e: e.sort_key)
-
-    # ---- fiyat defteri ------------------------------------------------------------------------------------
-
-    def _fx_carry(self, currency: str, start: date, end: date) -> _Carry:
-        rates = {r.rate_date: r.rate for r in self._fx_rate_repo.get_rates(currency, "TRY", start, end)}
-        before = self._fx_rate_repo.get_rate_on_or_before(currency, "TRY", start - timedelta(days=1))
-        return _Carry(rates, before.rate if before else None)
-
-    def _asset_carry(self, asset_id: int, start: date, end: date) -> _Carry:
-        rows = {p.price_date: p.close_price for p in self._asset_price_repo.get_daily_prices(asset_id, start, end)}
-        before = self._asset_price_repo.get_last_daily_price(asset_id, on_or_before=start - timedelta(days=1))
-        return _Carry(rows, before.close_price if before else None)
-
-    def _bist_carry(self, stock_id: int, start: date, end: date) -> _Carry:
-        rows = {p.price_date: p.close_price for p in self._price_repo.get_price_series(stock_id, start, end)}
-        before = self._price_repo.get_last_price_before(stock_id, start)
-        return _Carry(rows, before.close_price if before else None)
-
-    def _books(self, data: dict, start: date, end: date) -> dict:
-        currencies = {"USD"} | {a.quote_currency for a in data["assets"].values() if a.quote_currency != "TRY"}
-        stock_ids = {t.stock_id for t in data["bist"].valid_trades}
-        asset_ids = {t.asset_id for t in data["asset_trades"]}
-        return {
-            "fx": {c: self._fx_carry(c, start, end) for c in currencies},
-            "bist": {sid: self._bist_carry(sid, start, end) for sid in stock_ids},
-            "asset": {aid: self._asset_carry(aid, start, end) for aid in asset_ids},
-        }
 
     # ---- değerleme ----------------------------------------------------------------------------------------
 
@@ -302,7 +308,7 @@ class UnifiedSeriesBuilder:
         while index < len(events) and events[index].day < start:
             _EventApplier.apply(state, events[index], data["assets"])
             index += 1
-        books = self._books(data, start, end)
+        books = self._price_books.load(data, start, end)
         result, notes = UnifiedSeries(), set()
         twr_index, previous = Decimal("100"), None
         day = start

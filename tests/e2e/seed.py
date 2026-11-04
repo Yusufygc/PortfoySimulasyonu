@@ -35,7 +35,7 @@ def seed_fx(container, days: int = 130, start: str = "34.0") -> Decimal:
     return rate
 
 
-def seed_asset_prices(container, asset, start_price: float, days: int = 130, seed: int = 1, vol: float = 0.02):
+def seed_asset_prices(container, asset, start_price: float, days: int = 130, seed: int = 1):
     """Varlık günlük kapanış serisi ve son fiyat (varlığın kendi fiyat biriminde)."""
     from src.domain.models.asset_price import AssetLatestPrice, AssetPrice
 
@@ -43,7 +43,7 @@ def seed_asset_prices(container, asset, start_price: float, days: int = 130, see
     today = date.today()
     price, rows = Decimal(str(start_price)), []
     for i in range(days, -1, -1):
-        price = max(Decimal("0.01"), (price * Decimal(str(1 + rnd.uniform(-vol, vol * 1.2)))).quantize(Decimal("0.0001")))
+        price = max(Decimal("0.01"), (price * Decimal(str(1 + rnd.uniform(-0.02, 0.024)))).quantize(Decimal("0.0001")))
         rows.append(AssetPrice(None, asset.id, today - timedelta(days=i), price, asset.quote_currency, "e2e"))
     container.asset_price_repo.upsert_daily_prices(rows)
     now = datetime.now()

@@ -156,3 +156,16 @@ def test_ui_controllers_get_wider_class_limits_than_other_layers(tmp_path):
 
     assert measure_code_quality.measure_file(controller, tmp_path)["classes"][0]["violations"] == []
     assert measure_code_quality.measure_file(service, tmp_path)["classes"][0]["violations"] == ["class_methods"]
+
+
+def test_long_production_file_is_a_file_violation_but_long_test_file_is_exempt(tmp_path):
+    body = "\n".join(f"VALUE_{index} = {index}" for index in range(520)) + "\n"
+    production = _write(tmp_path / "src" / "application" / "big_module.py", body)
+    test_file = _write(tmp_path / "tests" / "test_big.py", body)
+
+    production_file = measure_code_quality.measure_file(production, tmp_path)["file"]
+    test_file_record = measure_code_quality.measure_file(test_file, tmp_path)["file"]
+
+    assert production_file["violations"] == ["file_effective_lines"]
+    assert production_file["threshold_status"] == "violation"
+    assert test_file_record["violations"] == []

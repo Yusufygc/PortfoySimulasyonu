@@ -41,6 +41,8 @@ THRESHOLDS = {
     # QML denetleyicileri (src/ui_qml/controllers/): bağlama yüzeyi (@Slot, sinyal, durum) nedeniyle daha geniş sınır.
     "ui_controller_effective_lines": 400,
     "ui_controller_methods": 30,
+    # Üretim dosyası (src/, scripts/); test dosyaları dosya uzunluğu eşiğinden muaftır.
+    "file_effective_lines": 500,
     "function_effective_lines": 50,
     "function_effective_params": 5,
     "function_complexity": 10,
@@ -270,6 +272,10 @@ def function_violations(record: dict[str, object]) -> list[str]:
 
 
 def file_violations(record: dict[str, object]) -> list[str]:
+    if record["layer"] == "tests":
+        return []
+    if int(record["effective_code_lines"]) > THRESHOLDS["file_effective_lines"]:
+        return ["file_effective_lines"]
     return []
 
 
