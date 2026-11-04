@@ -82,6 +82,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
         # Durum Değişkenleri
         self._is_open: bool = False
         self._is_loading: bool = False
+        self._trade_pending: bool = False  # emir işçide sürerken ikinci tıklamayı reddeder
         self._status_message: str = ""
 
         # Hisse & Pozisyon Bilgileri
@@ -291,6 +292,10 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
             self.tradeExecuted.emit(False, str(exc))
             return
 
+        if self._trade_pending:
+            self.tradeExecuted.emit(False, msg("stock_detail.onceki_islem_suruyor"))
+            return
+        self._trade_pending = True
         self._set_loading(True)
         self._executor.submit(self._execute_trade_worker, side, quantity, price, trade_date, trade_time)
 
@@ -334,6 +339,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
         self.corpActionsChanged.emit()
 
     def _on_trade_result(self, success: bool, message: str) -> None:
+        self._trade_pending = False
         self._set_loading(False)
         self._set_status(message)
         self.tradeExecuted.emit(success, message)

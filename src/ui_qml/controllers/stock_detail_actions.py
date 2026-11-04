@@ -14,6 +14,13 @@ from src.ui_qml.presenters.formatting import tr_number, tr_pct
 logger = logging.getLogger(__name__)
 
 
+def _trade_failure_text(exc: Exception) -> str:
+    """`ValueError` kullanıcıya yönelik doğrulama iletisidir (seans, nakit, lot); diğer istisna metinleri sızdırılmaz."""
+    if isinstance(exc, ValueError):
+        return msg("stock_detail.emir_iletilemedi_neden", exc=exc)
+    return msg("stock_detail.emir_iletilemedi")
+
+
 class StockDetailActionsMixin:
     def _execute_trade_worker(self, side: str, qty: int, price: float, tr_date: date, tr_time: dt_time) -> None:
         """Alım/satım işlemini veritabanında kaydeder."""
@@ -66,7 +73,7 @@ class StockDetailActionsMixin:
 
         except Exception as e:
             logger.exception("Emir iletim hatası (%s): %s", self._ticker, e)
-            self._asyncTradeResult.emit(False, f"Emir iletilemedi: {e}")
+            self._asyncTradeResult.emit(False, _trade_failure_text(e))
 
     def _export_excel_worker(self) -> None:
         """Bu hissenin işlem dökümünü ve pozisyon özetini Excel olarak kaydeder."""

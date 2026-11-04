@@ -49,6 +49,7 @@ class DashboardController(QObject):
     returnsChanged = Signal()
 
     _asyncExportFinished = Signal(bool, str)
+    _asyncTradeFinished = Signal(bool, str)
     _asyncReturnsReady = Signal(object, object)    # weekly_pct, monthly_pct (None olabilir)
 
     def __init__(self, container=None, parent=None):
@@ -56,6 +57,8 @@ class DashboardController(QObject):
         self._container = container
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="DashboardWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
+        self._asyncTradeFinished.connect(self._on_trade_finished)
+        self._trade_pending = False  # emir işçide sürerken ikinci tıklamayı reddeder
         self._asyncReturnsReady.connect(self._on_returns_ready)
 
         # Dönemsel getiriler (kayıtlı son değer anında gösterilir, sonra yeniden hesaplanır)
@@ -214,30 +217,44 @@ class DashboardController(QObject):
             self.tradeExecuted.emit(False, msg("dashboard.gecersiz_islem_parametreleri"))
             return
 
-        if self._container and hasattr(self._container, "trade_entry_service"):
-            try:
-                from src.application.services.portfolio.trade_entry_service import TradeRequest
-                from src.domain.models.trade import TradeSide
+        if not (self._container and hasattr(self._container, "trade_entry_service")):
+            self.tradeExecuted.emit(False, msg("dashboard.islem_servisi_kullanilamiyor"))
+            return
+        if self._trade_pending:
+            self.tradeExecuted.emit(False, msg("dashboard.onceki_islem_suruyor"))
+            return
 
-                trade_side = TradeSide.BUY if side.upper() == "BUY" else TradeSide.SELL
-                req = TradeRequest(
-                    ticker=ticker,
-                    side=trade_side,
-                    quantity=quantity,
-                    price=Decimal(str(price)),
-                    trade_date=trade_date or market_today(),
-                    trade_time=trade_time or market_time(),
-                )
-                self._container.trade_entry_service.submit_trade(req)
-                self._load_portfolio_data()
-                self.tradeExecuted.emit(True, msg("dashboard.adet_islemi_basariyla_kaydedildi", quantity=quantity, ticker=ticker, side=side.upper()))
-                return
-            except Exception as exc:
-                logger.warning("TradeEntryService ile işlem kaydedilemedi: %s", exc)
-                self.tradeExecuted.emit(False, str(exc))
-                return
+        from src.application.services.portfolio.trade_entry_service import TradeRequest
+        from src.domain.models.trade import TradeSide
 
-        self.tradeExecuted.emit(False, msg("dashboard.islem_servisi_kullanilamiyor"))
+        req = TradeRequest(
+            ticker=ticker,
+            side=TradeSide.BUY if side.upper() == "BUY" else TradeSide.SELL,
+            quantity=quantity,
+            price=Decimal(str(price)),
+            trade_date=trade_date or market_today(),
+            trade_time=trade_time or market_time(),
+        )
+        done_text = msg("dashboard.adet_islemi_basariyla_kaydedildi", quantity=quantity, ticker=ticker, side=side.upper())
+        self._trade_pending = True
+        self._executor.submit(self._submit_trade_worker, req, done_text)
+
+    def _submit_trade_worker(self, req, done_text: str) -> None:
+        """İşlemi arka planda kaydeder (SQLite yazma kilidi beklerken arayüz donmaz)."""
+        try:
+            self._container.trade_entry_service.submit_trade(req)
+        except Exception as exc:
+            logger.warning("TradeEntryService ile işlem kaydedilemedi: %s", exc, exc_info=not isinstance(exc, ValueError))
+            # ValueError: kullanıcıya yönelik doğrulama iletisi; diğer istisna metinleri (SQL, yol) arayüze sızdırılmaz
+            self._asyncTradeFinished.emit(False, str(exc) if isinstance(exc, ValueError) else msg("dashboard.islem_kaydedilemedi"))
+            return
+        self._asyncTradeFinished.emit(True, done_text)
+
+    def _on_trade_finished(self, success: bool, text: str) -> None:
+        self._trade_pending = False
+        if success:
+            self._load_portfolio_data()
+        self.tradeExecuted.emit(success, text)
 
     @Slot(str, float, str)
     def manageCapital(self, action: str, amount: float, note: str) -> None:
@@ -326,7 +343,7 @@ class DashboardController(QObject):
 
             # Tarih aralığını belirle
             s_date = date.fromisoformat(start_date_str) if start_date_str else None
-            e_date = date.fromisoformat(end_date_str) if end_date_str else date.today()
+            e_date = date.fromisoformat(end_date_str) if end_date_str else market_today()
 
             portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
             excel_service = getattr(self._container, "excel_export_service", None) if self._container else None
@@ -334,7 +351,7 @@ class DashboardController(QObject):
             if s_date is None and portfolio_service:
                 s_date = portfolio_service.get_first_trade_date()
             if s_date is None:
-                s_date = date.today()
+                s_date = market_today()
 
             if excel_service:
                 excel_service.export_history(

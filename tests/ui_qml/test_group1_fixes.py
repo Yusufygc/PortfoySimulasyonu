@@ -198,3 +198,29 @@ def test_dashboard_with_real_container_and_empty_portfolio_shows_no_demo_positio
 
     assert ctrl.cashBalance == "₺0,00"
     assert ctrl.quickTickers == ["THYAO", "GARAN", "ASELS", "KCHOL"]  # boş portföy: demo pozisyon yok
+
+
+def test_submit_trade_ignores_second_click_while_first_trade_is_running(qapp):
+    """Çift tıklama iki işçiye iki ayrı işlem göndermemeli (Bulgu 2)."""
+    ctrl, _ = _stock_detail_with_service(qapp, MagicMock())
+    ctrl._executor = MagicMock()
+    emitted = []
+    ctrl.tradeExecuted.connect(lambda ok, text: emitted.append((ok, text)))
+
+    ctrl.submitTrade("BUY", 10, 250.0, "", "")
+    ctrl.submitTrade("BUY", 10, 250.0, "", "")
+
+    assert ctrl._executor.submit.call_count == 1
+    assert emitted == [(False, "Önceki işlem hâlâ sürüyor.")]
+
+
+def test_submit_trade_accepts_new_trade_after_previous_one_finished(qapp):
+    ctrl, _ = _stock_detail_with_service(qapp, MagicMock())
+    ctrl._executor = MagicMock()
+    ctrl.refreshData = MagicMock()
+
+    ctrl.submitTrade("BUY", 10, 250.0, "", "")
+    ctrl._on_trade_result(True, "tamam")
+    ctrl.submitTrade("SELL", 5, 250.0, "", "")
+
+    assert ctrl._executor.submit.call_count == 2

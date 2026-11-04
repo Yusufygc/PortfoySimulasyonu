@@ -334,6 +334,7 @@ Rectangle {
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
+                enabled: typeof stockDetailController === "undefined" || !stockDetailController.isLoading
                 onClicked: {
                     if (typeof stockDetailController !== "undefined") {
                         stockDetailController.submitTrade(

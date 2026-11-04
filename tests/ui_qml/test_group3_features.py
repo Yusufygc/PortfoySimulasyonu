@@ -427,6 +427,7 @@ def test_dashboard_lookup_ticker(qapp):
 
 def test_dashboard_submit_trade_at_uses_given_date_and_time(qapp):
     ctrl, container = _dashboard(qapp)
+    ctrl._executor = ImmediateExecutor()
     results = _capture(ctrl.tradeExecuted)
 
     ctrl.submitTradeAt("THYAO", "BUY", 10, 250.0, "not", "05.01.2026", "11:30")
@@ -456,6 +457,7 @@ def test_dashboard_submit_trade_at_validates_input(qapp, date_text, time_text, e
 
 def test_dashboard_submit_trade_keeps_default_now(qapp):
     ctrl, container = _dashboard(qapp)
+    ctrl._executor = ImmediateExecutor()
 
     ctrl.submitTrade("THYAO", "BUY", 5, 100.0, "")
 
@@ -658,3 +660,31 @@ def test_excel_dialog_append_option_resets_on_open(qapp):
     QMetaObject.invokeMethod(item, "open", Q_ARG("QVariant", "01.01.2026"), Q_ARG("QVariant", "r.xlsx"))
 
     assert item.property("isOpen") is True and item.property("appendMode") is False
+
+
+def test_dashboard_submit_trade_runs_on_worker_and_rejects_second_click_while_pending(qapp):
+    from unittest.mock import MagicMock
+
+    ctrl, container = _dashboard(qapp)
+    ctrl._executor = MagicMock()
+    results = _capture(ctrl.tradeExecuted)
+
+    ctrl.submitTrade("THYAO", "BUY", 5, 100.0, "")
+    ctrl.submitTrade("THYAO", "BUY", 5, 100.0, "")
+
+    assert ctrl._executor.submit.call_count == 1
+    container.trade_entry_service.submit_trade.assert_not_called()  # UI iş parçacığında yazılmaz
+    assert results == [(False, "Önceki işlem hâlâ sürüyor.")]
+
+
+def test_dashboard_submit_trade_failure_reports_error_and_unlocks(qapp):
+    ctrl, container = _dashboard(qapp)
+    ctrl._executor = ImmediateExecutor()
+    container.trade_entry_service.submit_trade.side_effect = ValueError("Seans kapalı")
+    results = _capture(ctrl.tradeExecuted)
+
+    ctrl.submitTrade("THYAO", "BUY", 5, 100.0, "")
+    container.trade_entry_service.submit_trade.side_effect = None
+    ctrl.submitTrade("THYAO", "BUY", 5, 100.0, "")
+
+    assert results[0] == (False, "Seans kapalı") and results[1][0] is True
