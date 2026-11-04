@@ -51,6 +51,7 @@ jobs:
           $report = python -m pip check
           $problems = $report | Where-Object { $_ -notmatch '^(No broken requirements|pipx )' }
           if ($problems) { $problems; exit 1 }
+          exit 0  # aksi halde pwsh, pip check'in (yok sayılan pipx satırı yüzünden) 1 olan çıkış kodunu devralır
 
       - name: Collect tests
         run: python -m pytest --collect-only -q
