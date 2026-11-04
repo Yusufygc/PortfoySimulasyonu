@@ -42,7 +42,7 @@ Gürültü süzgeci: kendi bildirimi olmayan ve 5'ten çok hisseyi listeleyen ku
 
 ### RSS
 
-`RssNewsProvider` RSS 2.0 ve Atom'u `lxml` ile ayrıştırır (`resolve_entities=False`, `no_network=True`, en çok 40 öğe, gövde en çok 4 MB). Tarihler UTC'ye normalize edilir (RFC 822, ISO 8601, saat dilimsiz biçimler UTC kabul edilir); başlıksız, bağlantısız veya tarihsiz öğeler atlanır.
+`RssNewsProvider` RSS 2.0 ve Atom'u `lxml` ile ayrıştırır (`resolve_entities=False`, `no_network=True`, en çok 40 öğe, gövde en çok 4 MB: `requests` akışıyla okunur, sınırda kesilir, tamamı belleğe alınmaz). Tarihler UTC'ye normalize edilir (RFC 822, ISO 8601, saat dilimsiz biçimler UTC kabul edilir); başlıksız, bağlantısız veya tarihsiz öğeler atlanır.
 
 ## 3. `NewsService`
 
@@ -62,7 +62,7 @@ Gürültü süzgeci: kendi bildirimi olmayan ve 5'ten çok hisseyi listeleyen ku
 
 - **`NewsController`** (`newsController`): tek işçili `ThreadPoolExecutor` + `Signal`, `QTimer` ile periyodik yenileme (ayardaki aralık), portföy/varlık değişince yenileme (`app.py`), `forceRefresh`, `failedSources` (ulaşılamayan kaynak adları), `openUrl` (yalnızca `http`/`https`, `QDesktopServices`; QML'de `Qt.openUrlExternally` kullanılmaz). Hata durumunda önceki satırlar korunur.
 - **`NewsPanel.qml`:** "Portföyüm ve İzleme" (şirket) ve "Piyasa ve Global" sekmeleri; kaynak ve dil rozeti, ilgili semboller, göreli zaman, özet; tıklayınca varsayılan tarayıcı. Genel Bakış'ta ≥1150 px'te grafiğin sağında 380 px, dar pencerede grafiğin altında.
-- **Ayarlar > Haber Kaynakları** (`NewsSettingsController`, `SettingsNewsTab.qml`): kaynak başına aç/kapa, KAP toplu bildirim anahtarı, özel RSS ekleme/silme, "Bağlantıyı test et" (arka planda), her kaynak için durum metni, yenileme aralığı. Kapatılan kaynak `sourcesChanged` ile panele hemen yansır.
+- **Ayarlar > Haber Kaynakları** (`NewsSettingsController`, `SettingsNewsTab.qml`): kaynak başına aç/kapa, KAP toplu bildirim anahtarı, özel RSS ekleme/silme (yalnızca `http(s)`; `localhost`, `.local`, özel/loopback/link-local IP adresleri reddedilir), "Bağlantıyı test et" (arka planda), her kaynak için durum metni, yenileme aralığı. Kapatılan kaynak `sourcesChanged` ile panele hemen yansır.
 
 ## 6. Bilinen Sınırlar
 

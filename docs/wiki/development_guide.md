@@ -9,7 +9,7 @@ Bu sayfa projeyi kurmak, çalıştırmak, test etmek ve güvenle değişiklik ya
 ```powershell
 python -m venv venv
 .\venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
 - Tüm Python komutları proje kökündeki sanal ortamla çalıştırılır: `.\venv\Scripts\python.exe -m ...` ([RULES.md](../../RULES.md) §0.1).

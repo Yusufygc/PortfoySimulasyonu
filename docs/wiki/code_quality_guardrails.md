@@ -6,7 +6,7 @@ Bu sayfa kalıcı kalite kurallarını, ölçüm komutunu ve bilinen eşik ihlal
 
 ## 1. Ölçüm
 
-**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 0 sınıf, 72 fonksiyon, 0 dosya); yeni ihlal eklenemez. Ölçüm `tests/`, `scripts/` ve `src/` dosyalarının tümünü kapsar: test yardımcılarındaki 5'ten çok parametre de ihlaldir (2026-11-01'de Portföyüm/haber işi tavanı 92'ye çıkarmıştı; seçenek sözlüğü, `**options` ve küçük yardımcı fonksiyonlarla 75'e indirildi). Ölçüm `--output-dir` olmadan tarihsel baseline dosyalarının üzerine yazar; yerelde mutlaka `--output-dir` verin. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
+**CI kapısı:** `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ihlal sayısını tavanla karşılaştırır (aşılırsa çıkış kodu 1). CI mevcut borcu tavan alır (şu an 0 sınıf, 72 fonksiyon, 4 dosya); yeni ihlal eklenemez. Ölçüm `tests/`, `scripts/` ve `src/` dosyalarının tümünü kapsar: test yardımcılarındaki 5'ten çok parametre de ihlaldir (2026-11-01'de Portföyüm/haber işi tavanı 92'ye çıkarmıştı; seçenek sözlüğü, `**options` ve küçük yardımcı fonksiyonlarla 75'e indirildi). Ölçüm `--output-dir` olmadan tarihsel baseline dosyalarının üzerine yazar; yerelde mutlaka `--output-dir` verin. Borç azaltıldıkça `.github/workflows/tests.yml` içindeki tavanlar da düşürülmelidir.
 
 ```powershell
 .\venv\Scripts\python.exe scripts\measure_code_quality.py                    # varsayılan: docs/wiki/ altına yazar
@@ -24,15 +24,16 @@ Betik `code_quality_baseline_2026-06-13.md` ve `.json` dosyalarını üretir (do
 |---|---:|---|
 | Sınıf satırı | `>300` etkin satır (QML denetleyicileri: `>400`) | Yeni davranış eklemeden önce sorumluluk ayrımı (helper, servis, alt denetleyici). |
 | Sınıf metodu | `>20` metot (QML denetleyicileri: `>30`) | Sorumluluk ayrımı veya belgelenmiş geçici istisna. |
+| Üretim dosyası (`src/`, `scripts/`) | `>500` etkin satır (testler muaf) | Sorumluluk ayrımı; kalan 4 dosya kabul edilen borç (§3). |
 | Fonksiyon/metot satırı | `>50` etkin satır | Küçük fonksiyonlara bölünür. |
 | Parametre sayısı | `>5` | Parametre nesnesi veya daha dar API. |
 | Cyclomatic complexity | `>10` | Dallar ayrıştırılır, hedefli test eklenir. |
 
 **Sayım kuralı:** `@Property(...)` ile QML'e açılan getter'lar sınıfın metot sayısına ve etkin satırına dahil edilmez (saf bağlama yüzeyi; raporda `binding_method_count`). `@Slot` ve diğer metotlar sayılır. `src/ui_qml/controllers/` altındaki sınıflar bağlama yüzeyi nedeniyle 400 satır / 30 metot sınırıyla ölçülür; diğer katmanlar 300 / 20. Neden: getter sayısı QML sözleşmesinden gelir ve sınıf bölünmeden azalmaz; 14 denetleyici bu yüzden eşik dışı görünüyordu.
 
-## 3. Güncel Durum (2026-10-04 ölçümü)
+## 3. Güncel Durum (2026-11-04 ölçümü)
 
-Python dosyası eşiği (400 satır) ve sınıf eşiği ihlali yoktur. **72 fonksiyon** eşik dışıdır (2026-11-02 ölçümü). 2026-11-02'ye kadar dört QML denetleyicisi sınıf eşiğini aşıyordu (eşik 400 satır / 30 metot, `@Property` getter'ları hariç); E3 ile ayrıştırıldı:
+Sınıf eşiği ihlali yoktur. **4 üretim dosyası** 500 etkin satır eşiğini aşıyor (2026-11-04 ölçümü): `price_data_health_service.py` 713, `financials_charts.py` 660, `scripts/measure_code_quality.py` 633, `model_portfolio_trade_service.py` 508; ölçüm betiği bu eşiği 2026-11-04'e kadar hiç hesaplamıyordu (`file_violations` boş dönüyordu), bu yüzden "ihlal yok" yanlıştı. CI tavanı 4: yeni uzun dosya eklenemez. **72 fonksiyon** eşik dışıdır (2026-11-02 ölçümü). 2026-11-02'ye kadar dört QML denetleyicisi sınıf eşiğini aşıyordu (eşik 400 satır / 30 metot, `@Property` getter'ları hariç); E3 ile ayrıştırıldı:
 
 | Denetleyici | Önce (satır/metot) | Sonra | Ayrılan parça |
 |---|---:|---:|---|

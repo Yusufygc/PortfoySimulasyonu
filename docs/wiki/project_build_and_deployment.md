@@ -7,7 +7,7 @@
 PyInstaller yerine **Nuitka** kullanılır (Python'u C'ye çevirip derler; performansı artırır, tersine mühendisliği zorlaştırır). Betik sırasıyla:
 
 1. `venv` veya `.venv` içindeki Python'u (yoksa sistem Python'u) seçer.
-2. `pip install -r requirements.txt -r requirements-build.txt` (`nuitka==2.7.14` pinli).
+2. `pip install -r requirements.txt -r requirements-build.txt -c constraints.txt` (`nuitka==2.7.14` pinli; `constraints.txt` geçişli paketleri de sabitler).
 3. `scripts\build_preflight.py` ile yayın öncesi kontrolleri çalıştırır; başarısızsa durur.
 4. Nuitka'yı çalıştırır: `--standalone --onefile --enable-plugin=pyside6 --include-data-dir=src/ui_qml=src/ui_qml --disable-console`, `--include-package=yfinance/pandas/openpyxl/sqlalchemy/keyring` (+ `--include-distribution-metadata=keyring`; arka uç keşfi için), simge `icons/icon.ico`, çıktı `dist/`, giriş `app.py`. Test ve pytest paketleri dışarıda bırakılır.
 5. `dist\.env` varsa hata verip çıkar.
@@ -26,7 +26,7 @@ Testler preflight'ın statik koşullarını da denetler (`tests/infrastructure/t
 
 ## 3. Bağımlılık Yönetimi
 
-`requirements.txt` ve `requirements-build.txt` sürümleri **pinli** tutulur (`paket==sürüm`). Aksi halde yfinance, PySide6/WebEngine veya pandas'ın beklenmedik güncellemesi arayüz çöküşü ya da hesap hatası getirebilir. Uygulama Qt binding'i `PySide6`'dır (eski `PyQt5` pinleri kaldırılmıştır); kullanılmayan paketler (`tradingview-datafeed`, `websocket-client`) 2026-10-03'te kaldırılmıştır. Yeni paket eklerken sürüm yazılır ve `pip check` yeşil olmalıdır.
+`requirements.txt` ve `requirements-build.txt` sürümleri **pinli** tutulur (`paket==sürüm`). Aksi halde yfinance, PySide6/WebEngine veya pandas'ın beklenmedik güncellemesi arayüz çöküşü ya da hesap hatası getirebilir. Uygulama Qt binding'i `PySide6`'dır (eski `PyQt5` pinleri kaldırılmıştır); kullanılmayan paketler (`tradingview-datafeed`, `websocket-client`) 2026-10-03'te kaldırılmıştır. Yeni paket eklerken sürüm yazılır ve `pip check` yeşil olmalıdır. **Geçişli bağımlılıklar** `constraints.txt` ile sabitlenir (CI ve `build_nuitka.bat` `-c constraints.txt` kullanır); aynı commit'ten alınan derlemeler aynı paket sürümlerini taşır. `tests/test_dependency_lock.py` doğrudan pinlerin kilitle çelişmediğini denetler. Yenileme: `requirements.txt` temiz bir `venv`'e kurulur, `pip freeze` çıktısı dosyanın başlık satırlarının altına yazılır. Hash doğrulaması (`--require-hashes`) kullanılmıyor. 2026-11-04: `google-genai` pini 1.0.0 idi ama geliştirme ortamı (testlerin ve uygulamanın koştuğu) 2.27.0 kullanıyordu; pin gerçek ortama (2.27.0) çekildi.
 
 ## 4. Çalışma Zamanı Ayarları
 
@@ -34,7 +34,7 @@ Testler preflight'ın statik koşullarını da denetler (`tests/infrastructure/t
 
 ## 5. CI (GitHub Actions)
 
-`.github/workflows/tests.yml` üç iş çalıştırır (`push`, `pull_request` ve haftalık zamanlama): **test** (Windows; Python 3.10 ve 3.11 zorunlu, 3.12 deneysel/engelleyici değil; `QT_QPA_PLATFORM=offscreen`; `pip install -r requirements.txt`, `pip check`, `pytest --collect-only -q`, `pytest tests -q --cov=src --cov=config --cov-fail-under=80`, kapsam raporu artifact), **quality** (`scripts/measure_code_quality.py` tavanları: 14 sınıf, 98 fonksiyon, 0 dosya; yeni eşik ihlali eklenemez, borç azaldıkça tavanlar düşürülür) ve **security** (`pip-audit` ile kurulu ortamın tamamının, geçişli bağımlılıklar dahil, bilinen açıklara karşı taranması). `pytest.ini` filtresi `manual` ve `network` testlerini dışarıda bırakır. Nuitka derlemesi CI'da koşmaz. Lint (ruff/flake8) henüz yoktur: mevcut kodda toplu temizlik gerektirir.
+`.github/workflows/tests.yml` üç iş çalıştırır (`push`, `pull_request` ve haftalık zamanlama): **test** (Windows; Python 3.10 ve 3.11 zorunlu, 3.12 deneysel/engelleyici değil; `QT_QPA_PLATFORM=offscreen`; `pip install -r requirements.txt -c constraints.txt`, `pip check`, `pytest --collect-only -q`, `pytest tests -q --cov=src --cov=config --cov-fail-under=80`, kapsam raporu artifact), **quality** (`scripts/measure_code_quality.py` tavanları: 0 sınıf, 72 fonksiyon, 4 dosya; yeni eşik ihlali eklenemez, borç azaldıkça tavanlar düşürülür) ve **security** (`pip-audit` ile kurulu ortamın tamamının, geçişli bağımlılıklar dahil, bilinen açıklara karşı taranması). `pytest.ini` filtresi `manual` ve `network` testlerini dışarıda bırakır. Nuitka derlemesi CI'da koşmaz. Lint (ruff/flake8) henüz yoktur: mevcut kodda toplu temizlik gerektirir.
 
 ## 6. Çalıştırma Betikleri
 

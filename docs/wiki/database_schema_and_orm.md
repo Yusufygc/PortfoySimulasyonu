@@ -29,6 +29,7 @@ Domain katmanı SQL'den bağımsızdır: `src/domain/ports/repositories/` altın
 | Teknik | `cross_events` | Golden/Death Cross olayları: `(ticker, cross_date, cross_type)` benzersiz; türetilmiş veri. |
 | KAP | `kap_companies` (`ticker` benzersiz, `mkk_member_oid`), `kap_shareholder_snapshots`, `kap_shareholder_rows` | Ortaklık yapısı önbelleği. |
 | Varlık defteri (BIST dışı) | `assets` | `symbol`, `name`, `asset_class`, `quote_currency`, `yf_symbol`, `unit`, `is_active`; `(asset_class, symbol)` benzersiz. |
+| | **Para sütunları** | Tüm `Numeric` sütunlar `ExactNumeric` (`exact_numeric.py`) kullanır; DDL aynıdır (`NUMERIC(p, s)`), ancak SQLite değeri `REAL` (çift duyarlık) saklar. Float üzerinden gidince ölçeğe yuvarlanmış değer değişiyorsa (yaklaşık 15 anlamlı basamak üstü) yazma `ValueError` ile reddedilir; sessiz bozulma olmaz. Gerçek `Decimal` depolaması (TEXT/küçük birim tamsayı) tablo yeniden kurulumu gerektirdiğinden yapılmadı. |
 | | `asset_trades` | BUY/SELL: `quantity`, `price` `Numeric(28,10)`, `fx_rate_to_try`, `fee` (işlem para biriminde), `cash_linked` (nakit havuzunu etkiler; göçle mevcutlar 0), `trade_time`, `note`. |
 | | `fx_conversions` | Ortak nakit havuzunda TL <-> USD: `conversion_date/time`, `side` (BUY_USD/SELL_USD), `usd_amount`, `rate` (1 USD = X TRY), `fee_try`, `note`. |
 | Ayar | `app_settings` | Küçük anahtar-değer ayarları: `key` (PK), `value` (ücret oranları `fee.*`). |

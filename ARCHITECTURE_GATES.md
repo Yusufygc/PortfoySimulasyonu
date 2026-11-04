@@ -31,8 +31,8 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 
 ## 2. Test ve Bağımlılık Kapıları
 
-- Her refactor sonrası minimum komut: `C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests`.
-- UI-only değişiklikte `tests/ui`, servis değişikliğinde `tests/domain tests/application`, infrastructure değişikliğinde `tests/infrastructure` ayrıca hedefli çalıştırılır.
+- Her refactor sonrası minimum komut: `python -m pytest tests` (proje `venv` etkinken).
+- UI-only değişiklikte `tests/ui_qml`, servis değişikliğinde `tests/domain tests/application`, infrastructure değişikliğinde `tests/infrastructure` ayrıca hedefli çalıştırılır.
 - `requirements.txt` doğrudan kullanılan bağımlılıklar için pinli kalır. Yeni paket eklenirse test ortamındaki sürümle pinlenir.
 - Gerçek `.env` değerleri asla dokümana, loga veya test çıktısına yazılmaz. Ortam anahtarı değişirse `.env.example` güncellenir.
 
@@ -44,10 +44,10 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 
 | Ortam | Python | Amaç |
 |-------|--------|------|
-| Fintech (conda) | 3.11.x | Geliştirme ve çalıştırma |
-| GitHub Actions | 3.11.x | CI/CD |
+| Yerel `venv` | 3.10+ | Geliştirme ve çalıştırma |
+| GitHub Actions | 3.10, 3.11 (3.12 deneysel) | CI/CD |
 
-- Yerel geliştirme komutu: `C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe -m pytest tests`
+- Yerel geliştirme komutu: `python -m pytest tests` (proje `venv` etkinken)
 - CI komutu: `python -m pytest tests -q`
 - İki ortam arasındaki paket uyumsuzlukları `requirements.txt` pinleriyle önlenir.
 
@@ -61,14 +61,14 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 
 | Konum | İçerik |
 |-------|--------|
-| [src/domain/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/domain/) | Saf domain modelleri, dış bağımlılık yasak |
-| [src/application/services/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/application/services/) | İş mantığı servisleri |
-| [src/infrastructure/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/src/infrastructure/) | DB, API adaptörleri |
+| [src/domain/](src/domain/) | Saf domain modelleri, dış bağımlılık yasak |
+| [src/application/services/](src/application/services/) | İş mantığı servisleri |
+| [src/infrastructure/](src/infrastructure/) | DB, API adaptörleri |
 | [src/ui_qml/](src/ui_qml/) | QML görünümleri ve Python denetleyiciler |
-| [tests/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/tests/) | Mirror yapı: tests/domain/, tests/application/, tests/ui/ |
-| [scripts/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/scripts/) | Tek seferlik migration ve bakım script'leri |
-| [docs/wiki/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/docs/wiki/) | Kalıcı bilgi tabanı (bkz. [RULES.md §1](RULES.md)) |
-| [.github/workflows/](file:///d:/1KodCalismalari/Projeler/VIBE_CODING_UYGULAMA_DENEMELERI/Merge_PortfoySim/PortfoySimulasyonu/.github/workflows/) | CI/CD pipeline tanımları |
+| [tests/](tests/) | Mirror yapı: tests/domain/, tests/application/, tests/ui_qml/ |
+| [scripts/](scripts/) | Tek seferlik migration ve bakım script'leri |
+| [docs/wiki/](docs/wiki/) | Kalıcı bilgi tabanı (bkz. [RULES.md §1](RULES.md)) |
+| [.github/workflows/](.github/workflows/) | CI/CD pipeline tanımları |
 
 ### 3.4 LLM/Ajan İçin Özel Kurallar
 

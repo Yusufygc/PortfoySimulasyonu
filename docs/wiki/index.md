@@ -64,6 +64,7 @@
 | [manual_testing_guide.md](manual_testing_guide.md) | 11 sayfa ve arka plan davranışı için yayın öncesi manuel test listesi |
 | [product_test_plan.md](product_test_plan.md) | Ürün test planı ve E2E otomasyonu: test veritabanı, insan sürücü (fare/klavye), yolculuklar, izlenebilirlik, bulgular |
 | [code_quality_guardrails.md](code_quality_guardrails.md) | Eşikler, ölçüm komutu, güncel eşik ihlalleri, istisna protokolü |
+| [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md) | İkinci kapsamlı denetim: 15 bulgu ve uygulama sonucu (çift emir koruması, CI kapısı, `tr_fold`, `ExactNumeric`, bağımlılık kilidi), açık kalanlar |
 | [system_audit_report_2026-10-04.md](system_audit_report_2026-10-04.md) | Kapsamlı sistem denetimi: 16 bulgu (öncelik, kanıt, çözüm), aksiyon planı, metodoloji uyumu |
 | [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Tarihsel kod kalitesi baseline raporu (eski arayüz dönemi) |
 | [project_build_and_deployment.md](project_build_and_deployment.md) | Nuitka derlemesi, preflight, pinli bağımlılıklar, CI, `auto_commit.py` |
@@ -86,4 +87,4 @@
 4. Mimari karar, yeni özellik veya önemli hata çözümünde ilgili servis sayfasını ve `architecture.md`'yi güncelle; tamamlanan özelliği `roadmap.md`'den sil.
 5. Belgeleri net, şematik ve doğrulanabilir tut; bir iddia kodla çelişiyorsa kod esastır.
 
-*Son güncelleme: 2026-11-01 — Portföyüm, varlık defteri ve haber akışı wiki'ye işlendi (bkz. [log.md](log.md)).*
+*Son güncelleme: 2026-11-04 — ikinci sistem denetimi uygulandı (bkz. [log.md](log.md)).*

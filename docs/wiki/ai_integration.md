@@ -38,7 +38,7 @@ Araçlar (`advisor_tools.py`; hepsi **salt okunur**, JSON döner; mutasyon arac�
 | `suggest_optimization(risk_label?)` | `RiskOptimizationBridgeService`: Markowitz hedef ağırlıklar ve EKLE/AZALT/TUT önerileri ([service_planning_optimization.md](service_planning_optimization.md)). |
 | `get_stock_overview(ticker)` | `Stock360Service`: fiyat, 52 hafta aralığı, RSI/MACD/SMA ([stock_360.md](stock_360.md)). |
 
-Bilinmeyen araç adı veya araç içi hata exception fırlatmaz; `{"error": ...}` döner ve sohbet çökmez.
+Bilinmeyen araç adı veya araç içi hata exception fırlatmaz; `{"error": ...}` döner ve sohbet çökmez. `ValueError` iletisi (doğrulama) modele aynen gider; diğer istisnaların metni (yol, SQL parçası) üçüncü taraf modele gönderilmez, `tool_error()` günlüğe yazar ve sabit `GENERIC_TOOL_ERROR` döner.
 
 **Geri düşme:** API anahtarı yoksa veya Gemini çağrısı hata verirse denetleyici gerçek portföy verisiyle çalışan **yerel analiz motoruna** düşer (aynı araçları doğrudan çağırıp şablonla yanıt üretir); durum çubuğu "Simülasyon" rozetiyle belirtir. Anahtar varsa "Çevrimiçi".
 
@@ -53,7 +53,7 @@ Bilinmeyen araç adı veya araç içi hata exception fırlatmaz; `{"error": ...}
 `submitUserMessage(text)` (kullanıcının yazdığı mesaj) göndermeden önce `validate_user_input` çalıştırır:
 
 - En çok **750 karakter** (`MAX_CHAR_LIMIT`; giriş kutusu `maximumLength` ile sınırlıdır).
-- `config/safety_patterns.txt` içindeki regex kalıpları (İngilizce ve Türkçe prompt-injection/jailbreak ifadeleri, kod yazma talepleri, "yatırım tavsiyesi ver" gibi kapsam dışı istekler; büyük/küçük harf duyarsız). Dosya okunamazsa gömülü yedek liste kullanılır.
+- `config/safety_patterns.txt` içindeki regex kalıpları (İngilizce ve Türkçe prompt-injection/jailbreak ifadeleri, kod yazma talepleri, "yatırım tavsiyesi ver" gibi kapsam dışı istekler; büyük/küçük harf duyarsız; `class` kalıbı yalnızca sınıf tanımı biçimini yakalar, "asset class" geçer: `tests/application/test_safety_guard.py`). Dosya okunamazsa gömülü yedek liste kullanılır.
 - Riskli girdi reddedilir ve kullanıcıya "Güvenlik Uyarısı" gösterilir; model çağrılmaz.
 
 `wrap_user_message` kullanıcı girdisini yapısal sınırlar içine alır (veri/talimat ayrımı). Hızlı sorular ve model analizi özeti gibi **güvenilir** metinler doğrulamayı atlayan `sendMessage` yoludur.

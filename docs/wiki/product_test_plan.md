@@ -132,7 +132,7 @@ Durum: **Otomatik** (E2E), **Kısmi** (E2E bir bölümü doğrular), **Manuel** 
 - Etiket değişikliği: testler görünen metni bulur; `Strings.qml` değişince testteki metin güncellenir (kırılan test bunu bildirir).
 - Yeni dış ağ bağımlılığı: `tests/e2e/shell.py::_block_native_http_libraries` kapsamı gözden geçirilir.
 - Bulgu kapatılınca §9 satırı güncellenir ve ilgili testte regresyon doğrulaması bırakılır.
-- E2E testleri `Human` sürücüsünün (`tests/e2e/human.py`) yardımcılarını kullanır; yeni yardımcı gerekiyorsa orada genelleştirilir: `click`, `fill`, `click_beside`, `cancel`, `wait_sees`, `screenshot`.
+- E2E testleri `Human` sürücüsünün (`tests/e2e/human.py`; ekran okuma `human_screen.py`, fare/klavye `human_input.py`) yardımcılarını kullanır; yeni yardımcı gerekiyorsa orada genelleştirilir: `click`, `fill`, `click_beside`, `cancel`, `wait_sees`, `screenshot`.
 
 ## 11. Çalıştırma
 

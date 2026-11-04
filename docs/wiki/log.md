@@ -5,6 +5,31 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-04] REVIEW | Sistem Denetimi 2 (15 Bulgu) Uygulandı
+
+Ayrıntı ve açık kalanlar: [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md). Bu giriş bir önceki 2026-11-04 girişindeki üç acil maddeden sonrasını kapsar.
+
+- **Türkçe karşılaştırma (Bulgu 6):** `src/domain/text.py` (`tr_lower`, `tr_fold`); mali tablo filtresi, izleme listesi ad tekrarı, bütçe kalemi/sabit kalem eşleşmesi. `advisor_query_intent.turkish_lower` kaldırıldı (`tr_lower`).
+- **İşlem girişi (Bulgu 3):** `DashboardController` emri arka plan işçisinde kaydeder (`_asyncTradeFinished`, yeniden giriş koruması). İstisna iletisi: `ValueError` aynen, diğerleri sabit ileti (`dashboard.islem_kaydedilemedi`, `stock_detail.emir_iletilemedi`).
+- **Dosya eşiği (Bulgu 5):** `measure_code_quality.py` üretim dosyaları için 500 etkin satır eşiğini hesaplar (`file_violations` önceden boş dönüyordu). Gerçek durum 4 dosya; CI tavanı `--max-file-violations 4`.
+- **Hata yönetimi (Bulgu 10):** `tool_error()` ve `GENERIC_TOOL_ERROR` (danışman araç hataları modele sızmaz), `cash_pool_controller.reload` günlüğe yazar.
+- **Piyasa tarihi (Bulgu 11):** `chart_candle_sources`, `stock_360_fallback`, `planning_controller`, `isyatirim_provider` `market_today()`; koruma testi `test_repo_guards.py`.
+- **RSS (Bulgu 12):** gövde akışla `MAX_BODY_BYTES`'ta kesilir; yerel/özel adresler reddedilir.
+- **Çalıştırma betikleri ve belge yolları (Bulgu 13):** `run_prod.bat`/`run_test.bat` `venv` arar; `ARCHITECTURE_GATES.md` kullanıcıya özel yol ve `file:///` bağlantılarından temizlendi.
+- **Ayar yükleme (Bulgu 14):** `load_app_settings` `.env` ve sır deposunu bir kez okur.
+- **Bağımlılık kilidi (Bulgu 9):** `constraints.txt` (102 satır, geçişli paketler dahil); CI ve `build_nuitka.bat` `-c constraints.txt` kullanır; `tests/test_dependency_lock.py`. `google-genai` pini 1.0.0'dan geliştirme ortamının gerçek sürümüne (2.27.0) çekildi.
+- **Para depolaması (Bulgu 4):** `ExactNumeric` (`exact_numeric.py`) 43 `Numeric` sütununun yerine geçti; DDL aynı, bozan yazma `ValueError`. Depolama biçimi hâlâ `REAL`.
+- **Konteyner (Bulgu 8):** servis adı doğrulama testi (`test_container_service_names.py`); yapıcı enjeksiyonu yapılmadı (çevrimdışı mod tasarımı).
+- **Kapsam (Bulgu 15):** AI_Core istemcisi, yfinance adaptörleri, kıyas sağlayıcısı ve haber HTTP yardımcısı için hata ailesi testleri.
+- Doğrulama: tam paket 2049 geçti, 4 xfailed; E2E 75 geçti (Human bölünmesinden sonra); kalite kapısı 0 sınıf / 72 fonksiyon / 4 dosya, çıkış 0.
+
+## [2026-11-04] REVIEW | Denetim Bulguları: Çift Emir Koruması, CI Kalite Kapısı, AI Süzgeç Yanlış Pozitifi
+
+- **Çift emir:** `StockDetailController.submitTrade` emir işçide sürerken ikinci çağrıyı reddeder (`_trade_pending`, `_on_trade_result` temizler; ileti `stock_detail.onceki_islem_suruyor`). `StockDetailOrderForm.qml` onay düğmesi `isLoading` iken devre dışı. Önce kırmızı test (`test_group1_fixes.py`): iki hızlı çağrı havuza iki işçi görevi gönderiyordu (havuz 2 işçilik). `DashboardController.submitTradeAt` ve `ModelPortfolioController.addTrade` arayüz iş parçacığında eşzamanlı çalıştığından etkilenmez. QML düğme koruması GUI açılarak elle doğrulanmadı.
+- **CI kalite kapısı:** HEAD'de kapı kırıktı (2 sınıf / 73 fonksiyon, tavan 0 / 72). `tests/e2e/human.py` `Human` (42 metot) `human_screen.py` (ekran okuma) ve `human_input.py` (fare/klavye) karıştırıcılarına ayrıldı; `UnifiedSeriesBuilder`'dan fiyat defteri yükleme `_PriceBookLoader`'a taşındı (davranış değişmedi, mevcut testler geçti); `seed_asset_prices` kullanılmayan `vol` parametresini bıraktı. Kapı: 0 sınıf, 72 fonksiyon, çıkış 0. E2E paketi 75 geçti.
+- **AI süzgeci:** `class\s+\w+` kalıbı "asset class dağılımı" gibi finans sorularını engelliyordu; `class\s+\w+\s*[:({]` biçimine daraltıldı (`config/safety_patterns.txt` ve gömülü yedek liste). Yeni `tests/application/test_safety_guard.py`.
+- Sayılar `ARCHITECTURE_GATES.md` §3.4 gereği komutla doğrulandı. Kalan denetim bulguları (3-15) onay sırasıyla işlenir.
+
 ## [2026-11-03] düzeltme | Ürün Testi Bulguları D-01, D-02, D-03 ve Simge Düğmesi Erişilebilirliği
 
 - **D-03 Escape:** 17 modal kutuya (`AddStockModal`, `QuickTradeModal`, `CapitalModal`, `FxConvertModal`, `ConfirmDialog` ...) `Shortcut { sequence: "Escape" }` eklendi; `Popup` tabanlı diyaloglarla aynı davranış. Varlık Ekle meşgulken (`busy`) kapanmaz.
