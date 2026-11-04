@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import logging
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
@@ -38,6 +39,20 @@ _PROBE_TARGETS = {
     NewsSourceKind.YAHOO_RSS: [NewsTarget("AAPL", "Apple", TargetKind.US_STOCK)],
 }
 CUSTOM_PREFIX = "rss:custom_"
+
+
+def _is_local_host(host: Optional[str]) -> bool:
+    """`localhost`, `.local` ve özel/loopback/link-local IP sabitleri (DNS çözümlemesi yapılmaz)."""
+    if not host:
+        return True
+    name = host.strip("[]").lower()
+    if name == "localhost" or name.endswith((".localhost", ".local", ".internal")):
+        return True
+    try:
+        address = ipaddress.ip_address(name)
+    except ValueError:
+        return False
+    return address.is_private or address.is_loopback or address.is_link_local or address.is_unspecified
 
 
 def _utc_now() -> datetime:
@@ -93,6 +108,8 @@ class NewsService:
             raise ValueError("Besleme adı boş olamaz")
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
             raise ValueError("Besleme adresi http:// veya https:// ile başlamalıdır")
+        if _is_local_host(parsed.hostname):
+            raise ValueError("Yerel ağ veya localhost adresleri besleme olarak eklenemez")
         source_id = CUSTOM_PREFIX + hashlib.sha1(clean_url.lower().encode("utf-8")).hexdigest()[:8]
         if any(c.source_id == source_id for c in self.list_sources()):
             raise ValueError("Bu besleme adresi zaten ekli")

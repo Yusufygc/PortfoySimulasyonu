@@ -108,28 +108,36 @@ def _load_db_settings() -> DatabaseConfig:
     return SQLiteConfig(db_path=str(sqlite_db_path(_optional_env("DB_SQLITE_PATH") or DEFAULT_SQLITE_RELATIVE)))
 
 
-def load_ai_settings() -> AISettings:
-    _load_project_env()
+def _build_ai_settings() -> AISettings:
     return AISettings(
         gemini_api_key=_optional_env("GEMINI_API_KEY"),
         core_api_url=_url_env("AI_CORE_API_URL", "http://localhost:8000"),
     )
 
 
-def load_market_settings() -> MarketSettings:
-    _load_project_env()
+def _build_market_settings() -> MarketSettings:
     return MarketSettings(
         evds_api_key=_optional_env("EVDS_API_KEY"),
         tcmb_deposit_rate_fallback=_decimal_env("TCMB_DEPOSIT_RATE_FALLBACK", "45.0"),
     )
 
 
-def load_app_settings() -> AppSettings:
+def load_ai_settings() -> AISettings:
     _load_project_env()
+    return _build_ai_settings()
+
+
+def load_market_settings() -> MarketSettings:
+    _load_project_env()
+    return _build_market_settings()
+
+
+def load_app_settings() -> AppSettings:
+    _load_project_env()  # tek yükleme: .env ve sır deposu bir kez okunur
     return AppSettings(
         db=_load_db_settings(),
-        ai=load_ai_settings(),
-        market=load_market_settings(),
+        ai=_build_ai_settings(),
+        market=_build_market_settings(),
     )
 
 

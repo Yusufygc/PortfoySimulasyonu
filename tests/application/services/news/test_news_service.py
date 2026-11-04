@@ -205,6 +205,17 @@ def test_add_custom_rss_validates_and_persists():
             h.service.add_rss_source(name, url)
 
 
+def test_custom_rss_rejects_local_and_private_hosts():
+    import pytest
+
+    h = Harness([_config("m", NewsScope.MARKET)])
+    for url in ("http://localhost:8000/feed", "http://127.0.0.1/f", "http://192.168.1.10/rss", "http://10.0.0.5/x",
+                "http://169.254.169.254/latest", "http://[::1]/f", "http://nas.local/rss"):
+        with pytest.raises(ValueError, match="Yerel ağ"):
+            h.service.add_rss_source("Yerel", url)
+    assert h.service.add_rss_source("Açık", "https://8.8.8.8/feed.xml").is_custom  # genel IP geçer
+
+
 def test_only_custom_sources_can_be_removed():
     import pytest
 

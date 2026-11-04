@@ -28,11 +28,30 @@ GetFetcher = Callable[[str], bytes]
 PostFetcher = Callable[[str, Dict[str, Any], Dict[str, str]], bytes]
 
 
+def _read_limited(response: requests.Response) -> bytes:
+    """Gövdeyi `MAX_BODY_BYTES` sınırına kadar akışla okur; sınırdan büyük yanıtın tamamı belleğe alınmaz."""
+    chunks, size = [], 0
+    try:
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            chunks.append(chunk)
+            size += len(chunk)
+            if size >= MAX_BODY_BYTES:
+                break
+    finally:
+        response.close()
+    return b"".join(chunks)[:MAX_BODY_BYTES]
+
+
 def _check(response: requests.Response, label: str) -> bytes:
-    raise_for_transient_status(response)
+    try:
+        raise_for_transient_status(response)
+    except Exception:
+        response.close()
+        raise
     if response.status_code != 200:
+        response.close()
         raise NewsProviderUnavailable(f"{label}: HTTP {response.status_code}")
-    content = response.content[:MAX_BODY_BYTES]
+    content = _read_limited(response)
     if not content.strip():
         raise NewsProviderUnavailable(f"{label}: boş yanıt")
     return content
@@ -40,7 +59,9 @@ def _check(response: requests.Response, label: str) -> bytes:
 
 def http_get(url: str, label: str = "Haber", headers: Optional[Dict[str, str]] = None) -> bytes:
     def call() -> bytes:
-        response = requests.get(url, headers={**BROWSER_HEADERS, **(headers or {})}, timeout=DEFAULT_TIMEOUT_SECONDS)
+        response = requests.get(
+            url, headers={**BROWSER_HEADERS, **(headers or {})}, timeout=DEFAULT_TIMEOUT_SECONDS, stream=True
+        )
         return _check(response, label)
 
     try:
@@ -54,7 +75,7 @@ def http_get(url: str, label: str = "Haber", headers: Optional[Dict[str, str]] =
 def http_post_json(url: str, body: Dict[str, Any], headers: Dict[str, str], label: str = "Haber") -> bytes:
     def call() -> bytes:
         response = requests.post(
-            url, json=body, headers={**BROWSER_HEADERS, **headers}, timeout=DEFAULT_TIMEOUT_SECONDS
+            url, json=body, headers={**BROWSER_HEADERS, **headers}, timeout=DEFAULT_TIMEOUT_SECONDS, stream=True
         )
         return _check(response, label)
 

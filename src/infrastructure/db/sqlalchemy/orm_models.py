@@ -1,9 +1,11 @@
 # src/infrastructure/db/sqlalchemy/orm_models.py
 
-from sqlalchemy import BigInteger, Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, String, Text, Time, UniqueConstraint
 from sqlalchemy import event, false, select
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
+
+from src.infrastructure.db.sqlalchemy.exact_numeric import ExactNumeric
 import enum
 
 Base = declarative_base()
@@ -49,11 +51,11 @@ class ORMTrade(Base):
     trade_time = Column(Time, nullable=True)
     side = Column(Enum(TradeSideEnum), nullable=False)
     quantity = Column(BigInteger, nullable=False)
-    price = Column(Numeric(18, 4), nullable=False)
+    price = Column(ExactNumeric(18, 4), nullable=False)
     original_quantity = Column(BigInteger, nullable=False)
-    original_price = Column(Numeric(18, 4), nullable=False)
-    fee = Column(Numeric(18, 4), nullable=False, default=0, server_default="0")  # komisyon + BSMV (TL)
-    total_amount = Column(Numeric(18, 4), Computed("quantity * price", persisted=True))
+    original_price = Column(ExactNumeric(18, 4), nullable=False)
+    fee = Column(ExactNumeric(18, 4), nullable=False, default=0, server_default="0")  # komisyon + BSMV (TL)
+    total_amount = Column(ExactNumeric(18, 4), Computed("quantity * price", persisted=True))
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
@@ -71,7 +73,7 @@ class ORMCashMovement(Base):
     movement_date = Column(Date, nullable=False)
     movement_time = Column(Time, nullable=True)
     type = Column(Enum(CashMovementTypeEnum), nullable=False)
-    amount = Column(Numeric(18, 4), nullable=False)
+    amount = Column(ExactNumeric(18, 4), nullable=False)
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     # Yalnızca temettü hareketlerinde dolu (hangi hisseden geldiği)
@@ -87,15 +89,15 @@ class ORMDailyPrice(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
     price_date = Column(Date, nullable=False)
-    close_price = Column(Numeric(18, 4), nullable=False)
+    close_price = Column(ExactNumeric(18, 4), nullable=False)
     currency_code = Column(String(3), nullable=False, default="TRY", server_default="TRY")
     source = Column(String(50), nullable=False, default="yfinance", server_default="yfinance")
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     # OHLCV genişletmesi —ATR/Stochastic/CCI/VWAP/OBV için.
     # Nullable: eski kayıtlarda ve close-only kaynaklarda boş kalabilir.
-    open_price = Column(Numeric(18, 4), nullable=True)
-    high_price = Column(Numeric(18, 4), nullable=True)
-    low_price = Column(Numeric(18, 4), nullable=True)
+    open_price = Column(ExactNumeric(18, 4), nullable=True)
+    high_price = Column(ExactNumeric(18, 4), nullable=True)
+    low_price = Column(ExactNumeric(18, 4), nullable=True)
     volume = Column(BigInteger, nullable=True)
 
     __table_args__ = (
@@ -111,7 +113,7 @@ class ORMLatestPrice(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    price = Column(Numeric(18, 4), nullable=False)
+    price = Column(ExactNumeric(18, 4), nullable=False)
     as_of = Column(DateTime, nullable=False)
     source = Column(String(50), nullable=False)
     provider = Column(String(50), nullable=False)
@@ -160,7 +162,7 @@ class ORMModelPortfolio(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     description = Column(String(1000))
-    initial_cash = Column(Numeric(18, 2), nullable=False, default=100000.00, server_default="100000.00")
+    initial_cash = Column(ExactNumeric(18, 2), nullable=False, default=100000.00, server_default="100000.00")
     sort_order = Column(Integer, nullable=False, default=0, server_default="0")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -182,7 +184,7 @@ class ORMModelPortfolioTrade(Base):
     trade_time = Column(Time, nullable=True)
     side = Column(Enum(TradeSideEnum), nullable=False)
     quantity = Column(Integer, nullable=False)
-    price = Column(Numeric(18, 4), nullable=False)
+    price = Column(ExactNumeric(18, 4), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
     __table_args__ = (
@@ -202,7 +204,7 @@ class ORMModelPortfolioCashMovement(Base):
     movement_date = Column(Date, nullable=False)
     movement_time = Column(Time, nullable=True)
     type = Column(Enum(CashMovementTypeEnum), nullable=False)
-    amount = Column(Numeric(18, 4), nullable=False)
+    amount = Column(ExactNumeric(18, 4), nullable=False)
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
@@ -217,7 +219,7 @@ class ORMBudget(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     month = Column(String(7), unique=True, nullable=False)  # 'YYYY-MM'
-    savings_target = Column(Numeric(18, 2), default=0)
+    savings_target = Column(ExactNumeric(18, 2), default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -232,7 +234,7 @@ class ORMBudgetItem(Base):
     budget_id = Column(Integer, ForeignKey("budgets.id", ondelete="CASCADE"), nullable=False)
     item_type = Column(String(10), nullable=False)   # 'income' | 'expense'
     name = Column(String(100), nullable=False)
-    amount = Column(Numeric(18, 2), default=0)
+    amount = Column(ExactNumeric(18, 2), default=0)
 
     budget = relationship("ORMBudget", back_populates="items")
 
@@ -243,7 +245,7 @@ class ORMBudgetPinnedItem(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     item_type = Column(String(10), nullable=False)   # 'income' | 'expense'
     name = Column(String(100), nullable=False)
-    default_amount = Column(Numeric(18, 2), default=0)
+    default_amount = Column(ExactNumeric(18, 2), default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -257,8 +259,8 @@ class ORMFinancialGoal(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    target_amount = Column(Numeric(18, 2), nullable=False)
-    current_amount = Column(Numeric(18, 2), default=0)
+    target_amount = Column(ExactNumeric(18, 2), nullable=False)
+    current_amount = Column(ExactNumeric(18, 2), default=0)
     deadline = Column(Date, nullable=True)
     priority = Column(String(50), default="MEDIUM")
     status = Column(String(50), default="ACTIVE")
@@ -280,11 +282,11 @@ class ORMCorporateActionCandidate(Base):
     source_url           = Column(String(500), nullable=True)
     action_type          = Column(Enum(ActionTypeEnum), nullable=False)
     status               = Column(String(30), nullable=False, default="DISCOVERED", server_default="DISCOVERED")
-    ratio                = Column(Numeric(12, 8), nullable=True)
-    subscription_price   = Column(Numeric(18, 4), nullable=True)
+    ratio                = Column(ExactNumeric(12, 8), nullable=True)
+    subscription_price   = Column(ExactNumeric(18, 4), nullable=True)
     announcement_date    = Column(Date, nullable=True)
     ex_date              = Column(Date, nullable=True)
-    confidence           = Column(Numeric(5, 4), nullable=False, default=0, server_default="0")
+    confidence           = Column(ExactNumeric(5, 4), nullable=False, default=0, server_default="0")
     raw_payload_json     = Column(JSON, nullable=True)
     parse_notes          = Column(String(500), nullable=True)
     created_at           = Column(DateTime, nullable=False, server_default=func.now())
@@ -314,15 +316,15 @@ class ORMCorporateAction(Base):
     stock_id           = Column(BigInteger, ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
     action_type        = Column(Enum(ActionTypeEnum), nullable=False)
     ex_date            = Column(Date, nullable=False)
-    ratio              = Column(Numeric(12, 8), nullable=False)
-    subscription_price = Column(Numeric(18, 4), nullable=True)
+    ratio              = Column(ExactNumeric(12, 8), nullable=False)
+    subscription_price = Column(ExactNumeric(18, 4), nullable=True)
     announcement_date  = Column(Date, nullable=True)
     notes              = Column(String(500), nullable=True)
     applied            = Column(Boolean, nullable=False, default=False, server_default="0")
     applied_at         = Column(DateTime, nullable=True)
     prices_adjusted    = Column(Boolean, nullable=False, default=False, server_default="0")
     prices_adjusted_at = Column(DateTime, nullable=True)
-    price_adjustment_factor = Column(Numeric(18, 10), nullable=True)
+    price_adjustment_factor = Column(ExactNumeric(18, 10), nullable=True)
     price_adjustment_count  = Column(Integer, nullable=False, default=0, server_default="0")
     created_at         = Column(DateTime, nullable=False, server_default=func.now())
 
@@ -356,11 +358,11 @@ class ORMTradeAdjustment(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     trade_id = Column(BigInteger, ForeignKey("trades.id", ondelete="CASCADE"), nullable=False)
     corporate_action_id = Column(BigInteger, ForeignKey("corporate_actions.id", ondelete="RESTRICT"), nullable=False)
-    factor = Column(Numeric(18, 10), nullable=False)
+    factor = Column(ExactNumeric(18, 10), nullable=False)
     pre_quantity = Column(BigInteger, nullable=False)
     post_quantity = Column(BigInteger, nullable=False)
-    pre_price = Column(Numeric(18, 4), nullable=False)
-    post_price = Column(Numeric(18, 4), nullable=False)
+    pre_price = Column(ExactNumeric(18, 4), nullable=False)
+    post_price = Column(ExactNumeric(18, 4), nullable=False)
     applied_at = Column(DateTime, nullable=False, server_default=func.now())
 
     __table_args__ = (
@@ -438,9 +440,9 @@ class ORMGoldenCrossEvent(Base):
     ticker = Column(String(20), nullable=False)
     cross_date = Column(Date, nullable=False)
     cross_type = Column(Enum(CrossTypeEnum), nullable=False)
-    short_ma = Column(Numeric(18, 4))
-    long_ma = Column(Numeric(18, 4))
-    close_price = Column(Numeric(18, 4), nullable=False)
+    short_ma = Column(ExactNumeric(18, 4))
+    long_ma = Column(ExactNumeric(18, 4))
+    close_price = Column(ExactNumeric(18, 4), nullable=False)
     detected_at = Column(DateTime, nullable=False, server_default=func.now())
 
     __table_args__ = (
@@ -461,9 +463,9 @@ class ORMKapShareholderRow(Base):
         nullable=False,
     )
     shareholder_name = Column(String(500), nullable=False)
-    share_in_capital = Column(Numeric(24, 4))
-    ratio_in_capital = Column(Numeric(9, 4))
-    voting_right_ratio = Column(Numeric(9, 4))
+    share_in_capital = Column(ExactNumeric(24, 4))
+    ratio_in_capital = Column(ExactNumeric(9, 4))
+    voting_right_ratio = Column(ExactNumeric(9, 4))
     is_total = Column(Boolean, nullable=False, default=False, server_default="0")
 
     __table_args__ = (
@@ -504,10 +506,10 @@ class ORMAssetTrade(Base):
     trade_date = Column(Date, nullable=False)
     trade_time = Column(Time, nullable=True)
     side = Column(Enum(TradeSideEnum), nullable=False)
-    quantity = Column(Numeric(28, 10), nullable=False)
-    price = Column(Numeric(28, 10), nullable=False)
-    fx_rate_to_try = Column(Numeric(18, 8), nullable=False, default=1, server_default="1")
-    fee = Column(Numeric(28, 10), nullable=False, default=0, server_default="0")  # işlem para biriminde
+    quantity = Column(ExactNumeric(28, 10), nullable=False)
+    price = Column(ExactNumeric(28, 10), nullable=False)
+    fx_rate_to_try = Column(ExactNumeric(18, 8), nullable=False, default=1, server_default="1")
+    fee = Column(ExactNumeric(28, 10), nullable=False, default=0, server_default="0")  # işlem para biriminde
     cash_linked = Column(Boolean, nullable=False, default=False, server_default="0")  # nakit havuzunu etkiler
     note = Column(String(255))
     created_at = Column(DateTime, server_default=func.now())
@@ -525,7 +527,7 @@ class ORMAssetPrice(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
     price_date = Column(Date, nullable=False)
-    close_price = Column(Numeric(28, 10), nullable=False)
+    close_price = Column(ExactNumeric(28, 10), nullable=False)
     currency_code = Column(String(3), nullable=False)
     source = Column(String(30), nullable=False)
 
@@ -539,7 +541,7 @@ class ORMAssetLatestPrice(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
-    price = Column(Numeric(28, 10), nullable=False)
+    price = Column(ExactNumeric(28, 10), nullable=False)
     currency_code = Column(String(3), nullable=False)
     as_of = Column(DateTime, nullable=False)
     source = Column(String(30), nullable=False)
@@ -557,7 +559,7 @@ class ORMFxRate(Base):
     base_currency = Column(String(3), nullable=False)
     quote_currency = Column(String(3), nullable=False)
     rate_date = Column(Date, nullable=False)
-    rate = Column(Numeric(18, 8), nullable=False)
+    rate = Column(ExactNumeric(18, 8), nullable=False)
     source = Column(String(30), nullable=False)
 
     __table_args__ = (
@@ -574,9 +576,9 @@ class ORMFxConversion(Base):
     conversion_date = Column(Date, nullable=False)
     conversion_time = Column(Time, nullable=True)
     side = Column(String(10), nullable=False)  # BUY_USD | SELL_USD
-    usd_amount = Column(Numeric(28, 10), nullable=False)
-    rate = Column(Numeric(18, 8), nullable=False)
-    fee_try = Column(Numeric(18, 4), nullable=False, default=0, server_default="0")
+    usd_amount = Column(ExactNumeric(28, 10), nullable=False)
+    rate = Column(ExactNumeric(18, 8), nullable=False)
+    fee_try = Column(ExactNumeric(18, 4), nullable=False, default=0, server_default="0")
     note = Column(String(255))
     created_at = Column(DateTime, server_default=func.now())
 
