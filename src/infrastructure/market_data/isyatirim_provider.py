@@ -22,6 +22,7 @@ from typing import Iterator
 
 import requests
 
+from src.domain.market_clock import market_today
 from src.domain.ports.services.i_financial_statement_provider import (
     FinancialStatementProviderUnavailable,
 )
@@ -326,10 +327,8 @@ def _collect_periods(source: _StatementSource, probe: _Probe, n_quarters: int) -
 
 def _scrape(ticker: str, n_quarters: int, currency: str) -> dict:
     """isyatirim JSON API'sından veri çek. Hata → FinancialStatementProviderUnavailable."""
-    import datetime
-
     session = requests.Session()
-    candidates = _candidate_quarters(datetime.date.today())
+    candidates = _candidate_quarters(market_today())
     probe_batch = candidates[:4]
 
     # Önce son 4 çeyrek, bulunamazsa bir önceki 4 çeyrek denenir.

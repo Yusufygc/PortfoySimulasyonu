@@ -99,3 +99,30 @@ def test_qt_attribute_helper_enables_shared_opengl_contexts():
         for call in calls
         if call.args
     )
+
+
+# Piyasa tarihi (grafik bitişi, rapor aralığı, ay seçimi) üreten modüller: sistem saat dilimine bağlı
+# `datetime.now()` / `date.today()` yerine `market_today()` kullanmalıdır (ARCHITECTURE_GATES.md §1.1).
+_MARKET_DATE_MODULES = (
+    "src/ui_qml/controllers/chart_candle_sources.py",
+    "src/ui_qml/controllers/stock_360_fallback.py",
+    "src/ui_qml/controllers/planning_controller.py",
+    "src/infrastructure/market_data/isyatirim_provider.py",
+)
+
+
+def _is_naive_clock_call(node: ast.AST) -> bool:
+    """`datetime.now(...)` veya `date.today()` çağrısı mı."""
+    if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+        return False
+    owner = node.func.value
+    return isinstance(owner, ast.Name) and (owner.id, node.func.attr) in {("datetime", "now"), ("date", "today")}
+
+
+def test_market_date_modules_do_not_use_system_local_today():
+    offenders = []
+    for rel in _MARKET_DATE_MODULES:
+        tree = ast.parse((ROOT / rel).read_text(encoding="utf-8"))
+        offenders += [f"{rel}:{node.lineno}" for node in ast.walk(tree) if _is_naive_clock_call(node)]
+
+    assert not offenders, f"market_today() kullanın: {offenders}"

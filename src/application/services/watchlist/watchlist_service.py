@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from src.domain.models.watchlist import Watchlist, WatchlistItem
 from src.domain.models.stock import Stock
+from src.domain.text import tr_fold
 from src.domain.ticker import clean_ticker
 from src.domain.ports.repositories.i_watchlist_repo import IWatchlistRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
@@ -51,7 +52,7 @@ class WatchlistService:
             raise ValueError("Watchlist adı boş olamaz")
 
         name = name.strip()
-        if any(w.name.lower() == name.lower() for w in self.get_all_watchlists()):
+        if any(tr_fold(w.name) == tr_fold(name) for w in self.get_all_watchlists()):
             raise ValueError("Bu isimde bir liste zaten var.")
 
         watchlist = Watchlist(
@@ -79,7 +80,7 @@ class WatchlistService:
             raise ValueError("Watchlist adı boş olamaz")
 
         name = name.strip()
-        if any(w.name.lower() == name.lower() and w.id != watchlist_id for w in self.get_all_watchlists()):
+        if any(tr_fold(w.name) == tr_fold(name) and w.id != watchlist_id for w in self.get_all_watchlists()):
             raise ValueError("Bu isimde bir liste zaten var.")
 
         existing = self._watchlist_repo.get_watchlist_by_id(watchlist_id)

@@ -101,3 +101,11 @@ def test_watchlist_service_update_item_notes():
     # 5. Tekrar çek ve kontrol et
     stocks_in_list = service.get_watchlist_stocks(wl.id)
     assert stocks_in_list[0]["item"].notes == "Güncellenmiş not"
+
+
+def test_watchlist_name_uniqueness_is_turkish_case_insensitive():
+    service = WatchlistService(InMemoryWatchlistRepo(), InMemoryStockRepo())
+    service.create_watchlist("İş Bankası Listem")
+
+    with pytest.raises(ValueError, match="zaten var"):
+        service.create_watchlist("iş bankası listem")

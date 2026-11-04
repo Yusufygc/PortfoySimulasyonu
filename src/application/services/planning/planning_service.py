@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
 from src.domain.models.financial_goal import FinancialGoal, GoalStatus
 from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
+from src.domain.text import tr_fold
 
 
 def _to_decimal(value: Decimal | float | int | str) -> Decimal:
@@ -70,7 +71,7 @@ class PlanningService:
             budget = Budget(id=None, month=month, savings_target=Decimal("0"), items=[])
 
         target_type = item_type.lower()
-        old_name_clean = old_name.strip().lower()
+        old_name_clean = tr_fold(old_name.strip())
         found = False
         updated_items: List[BudgetItem] = []
 
@@ -78,7 +79,7 @@ class PlanningService:
             match = False
             if item_id is not None and item_id != -1 and item.id == item_id:
                 match = True
-            elif not found and item.item_type == target_type and item.name.strip().lower() == old_name_clean:
+            elif not found and item.item_type == target_type and tr_fold(item.name.strip()) == old_name_clean:
                 match = True
 
             if match and not found:

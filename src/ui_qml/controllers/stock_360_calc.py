@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.domain.models.shareholder import ShareholderSnapshot
+from src.domain.text import tr_fold
 from src.ui_qml.controllers.stock_360_formatters import (
     DONUT_COLORS,
     format_currency,
@@ -340,10 +341,10 @@ def compute_financial_table_rows(
     if not periods:
         periods = metrics.get("periods", [])[:8]
 
-    q = query.strip().lower()
+    q = tr_fold(query.strip())
     rows = []
     for name, p_dict in section_data.items():
-        if q and q not in name.lower():
+        if q and q not in tr_fold(name):
             continue
         yoy_str, is_pos_yoy = _statement_yoy(name, p_dict, periods)
         rows.append({

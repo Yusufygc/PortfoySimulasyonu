@@ -5,7 +5,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.ui_qml.controllers.advisor_query_intent import is_optimization_query, turkish_lower
+from src.domain.text import tr_lower
+from src.ui_qml.controllers.advisor_query_intent import is_optimization_query
 from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
 
 
@@ -44,8 +45,8 @@ def test_other_queries_are_not_treated_as_optimization(query):
 
 
 def test_turkish_lower_handles_dotted_and_dotless_i():
-    assert turkish_lower("RİSK") == "risk"
-    assert turkish_lower("SATIŞ") == "satış"
+    assert tr_lower("RİSK") == "risk"
+    assert tr_lower("SATIŞ") == "satış"
     assert "RİSK".lower() != "risk"
 
 

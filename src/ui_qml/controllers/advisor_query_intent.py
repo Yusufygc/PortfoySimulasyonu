@@ -8,14 +8,11 @@ from __future__ import annotations
 
 import re
 
+from src.domain.text import tr_lower
+
 _OPTIMIZATION_PATTERN = re.compile(
     r"\b(?:optimiz\w*|rebalance\w*|dengele\w*|öneri\w*|al|alım\w*|alm\w*|sat|satış\w*|satm\w*)\b"  # metin-muaf: sorgu niyet eşleme desenleri
 )
-
-
-def turkish_lower(text: str) -> str:
-    """`İ -> i`, `I -> ı` eşlemesiyle küçük harfe çevirir (Python varsayılanı `İ` için birleştirici nokta üretir)."""
-    return text.replace("İ", "i").replace("I", "ı").lower()  # metin-muaf: sorgu niyet eşleme desenleri
 
 
 def is_optimization_query(query: str) -> bool:
@@ -24,5 +21,5 @@ def is_optimization_query(query: str) -> bool:
     Hem Türkçe duyarlı hem varsayılan küçük harf biçimi denenir; böylece `OPTIMIZASYON` gibi noktasız
     büyük I ile yazılmış Latin girdiler de eşleşir.
     """
-    candidates = {turkish_lower(query), query.lower()}
+    candidates = {tr_lower(query), query.lower()}
     return any(_OPTIMIZATION_PATTERN.search(candidate) for candidate in candidates)

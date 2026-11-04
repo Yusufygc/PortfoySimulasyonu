@@ -9,13 +9,15 @@ Sorumluluk:
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 from typing import Any, Dict, List
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
+from src.domain.market_clock import market_today
 from src.domain.models.budget import Budget, BudgetItem
+from src.domain.text import tr_fold
 from src.ui_qml.controllers.planning_dca_chart import build_dca_chart_html
 from src.ui_qml.controllers.planning_months import budget_months
 from src.ui_qml.presenters.formatting import tr_money, tr_number, tr_pct
@@ -41,7 +43,7 @@ class PlanningController(QObject):
         self._dca_service = getattr(container, "dca_backtest_service", None)
 
         # ── Bütçe Durumu ──
-        now = datetime.now()
+        now = market_today()
         self._current_month = f"{now.year}-{now.month:02d}"
         self._total_income: float = 0.0
         self._total_expense: float = 0.0
@@ -184,7 +186,7 @@ class PlanningController(QObject):
         try:
             # Sabitlenmiş kalemler seti
             pinned_items = self._service.get_pinned_budget_items()
-            pinned_set = {(p.item_type.upper(), p.name.strip().lower()) for p in pinned_items}
+            pinned_set = {(p.item_type.upper(), tr_fold(p.name.strip())) for p in pinned_items}
 
             budget = self._service.get_budget_for_month(month)
             if budget is None:
@@ -200,7 +202,7 @@ class PlanningController(QObject):
             inc = []
             exp = []
             for item in budget.items:
-                is_pinned = (item.item_type.upper(), item.name.strip().lower()) in pinned_set
+                is_pinned = (item.item_type.upper(), tr_fold(item.name.strip())) in pinned_set
                 entry = {
                     "id": item.id or -1,
                     "name": item.name,
@@ -234,9 +236,9 @@ class PlanningController(QObject):
                 self.operationResult.emit(True, msg("planning.kaleminin_sabitlemesi_kaldirildi", name=name))
 
             items = self._income_items if item_type.upper() == "INCOME" else self._expense_items
-            clean_name = name.strip().lower()
+            clean_name = tr_fold(name.strip())
             for it in items:
-                if it["name"].strip().lower() == clean_name:
+                if tr_fold(it["name"].strip()) == clean_name:
                     it["isPinned"] = pin
             self.budgetChanged.emit()
         except Exception as exc:
@@ -253,8 +255,8 @@ class PlanningController(QObject):
         is_pinned = False
         try:
             pinned_items = self._service.get_pinned_budget_items()
-            pinned_set = {(p.item_type.upper(), p.name.strip().lower()) for p in pinned_items}
-            is_pinned = (item_type.upper(), name.strip().lower()) in pinned_set
+            pinned_set = {(p.item_type.upper(), tr_fold(p.name.strip())) for p in pinned_items}
+            is_pinned = (item_type.upper(), tr_fold(name.strip())) in pinned_set
         except Exception:
             logger.warning("Pinlenmiş bütçe kalemleri okunamadı.", exc_info=True)
 
@@ -311,7 +313,7 @@ class PlanningController(QObject):
         # Eğer sabitlenmiş (pinned) bir kalemse ve adı/tutarı değiştiyse şablonu da güncelle
         if old_pinned and self._service:
             try:
-                if old_name.strip().lower() != new_name.strip().lower():
+                if tr_fold(old_name.strip()) != tr_fold(new_name.strip()):
                     self._service.unpin_budget_item(item_type.upper(), old_name.strip())
                 self._service.pin_budget_item(item_type.upper(), new_name.strip(), float(new_amount))
             except Exception as exc:
@@ -505,7 +507,7 @@ class PlanningController(QObject):
             e_date = date(e_parts[0], e_parts[1], e_parts[2])
         except Exception:
             s_date = date(2023, 1, 1)
-            e_date = date.today()
+            e_date = market_today()
 
         # Timer ile UI dondurmadan hesapla
         QTimer.singleShot(50, lambda: self._execute_dca(tickers, Decimal(str(amount)), s_date, e_date))

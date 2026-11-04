@@ -7,11 +7,12 @@ demo veri. Her yükleyici `(mumlar, hacimler, şirket adı)` üçlüsü döner; 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 import numpy as np
 
+from src.domain.market_clock import market_today
 from src.ui_qml.presenters.formatting import tr_number, tr_pct
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ def _volume(date_text: str, value: float, open_: float, close: float) -> dict[st
 def load_market_history_candles(lookup, ticker: str) -> Loaded | None:
     """DuckDB piyasa geçmişinden günlük mumlar; veri yoksa veya okuma hatasında `None`."""
     try:
-        end_date = datetime.now().date()
+        end_date = market_today()
         bars = lookup.get_market_bars(ticker, end_date - timedelta(days=365 * _HISTORY_YEARS), end_date)
         if not bars:
             return None
@@ -92,7 +93,7 @@ def load_price_series_candles(lookup, ticker: str) -> Loaded:
         if not stock:
             return candles, volumes, company_name
         company_name = (getattr(stock, "name", None) or stock.ticker).replace(".IS", "").strip()
-        end_date = datetime.now().date()
+        end_date = market_today()
         prices = lookup.get_price_series(stock.id, end_date - timedelta(days=365 * _HISTORY_YEARS), end_date)
         prev_close = None
         for price in sorted(prices or [], key=lambda p: p.price_date):
@@ -144,7 +145,7 @@ def _asset_candle(date_text: str, open_: float, high: float, low: float, close: 
 def demo_candles(ticker: str) -> Loaded:
     """Çevrimdışı (konteynersiz) mod için rastgele yürüyüşlü ~1 yıllık demo mumlar."""
     base_price = 285.0 if "THY" in ticker else (110.0 if "GARAN" in ticker else 150.0)
-    today = datetime.now().date()
+    today = market_today()
     np.random.seed(abs(hash(ticker)) % (2**32))
     candles: Candles = []
     volumes: Candles = []

@@ -4,9 +4,9 @@ kullanıcı deneyimini kesintisiz kılan varsayılan ve sentetik veri üreticile
 """
 from __future__ import annotations
 
-from datetime import date
 from typing import Any, Dict
 
+from src.domain.market_clock import market_today
 from src.ui_qml.controllers.stock_360_formatters import DONUT_COLORS
 
 
@@ -39,7 +39,7 @@ def get_default_overview(ticker: str) -> Dict[str, Any]:
     return {
         "last_price_str": "₺394,00",
         "last_price_raw": 394.00,
-        "last_price_date_str": date.today().strftime("%d.%m.%Y"),
+        "last_price_date_str": market_today().strftime("%d.%m.%Y"),
         "daily_change_str": "+1,85%",
         "daily_change_raw": 1.85,
         "is_daily_positive": True,
@@ -224,7 +224,7 @@ def _fallback_shareholder_timeline() -> List[Dict[str, Any]]:
 def get_fallback_shareholders(ticker: str) -> Dict[str, Any]:
     """KAP veri sağlayıcısı çevrimdışı olduğunda kullanılacak ortaklık yapısı verileri."""
     return {
-        "date_str": date.today().strftime("%d.%m.%Y"),
+        "date_str": market_today().strftime("%d.%m.%Y"),
         "free_float_ratio_str": "%43,11",
         "free_float_pct": 0.4311,
         "paid_capital_str": "₺259,86 Mn",

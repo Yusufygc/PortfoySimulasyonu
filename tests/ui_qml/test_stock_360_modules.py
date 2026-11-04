@@ -207,3 +207,11 @@ def test_temp_html_management():
     assert path is not None
 
     cleanup_temp_files([path])
+
+
+def test_financial_table_filter_matches_turkish_capital_i_rows():
+    metrics = {"_raw_sections": {"balance": {"İştirakler": {"2025/Q1": 10.0, "2024/Q1": 8.0}}}, "periods": ["2025/Q1"]}
+
+    rows = compute_financial_table_rows(metrics, "balance", "iştirak", ["2025/Q1"])
+
+    assert [row["name"] for row in rows] == ["İştirakler"]
