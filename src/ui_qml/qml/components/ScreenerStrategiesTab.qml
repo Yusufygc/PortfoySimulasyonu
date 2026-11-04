@@ -91,11 +91,11 @@ ColumnLayout {
                         anchors.centerIn: parent
                         spacing: Theme.spaceXs
 
-                        BusyIndicator {
-                            implicitWidth: 16
-                            implicitHeight: 16
+                        LoadingSpinner {
                             running: screenerController.isRunning
-                            visible: screenerController.isRunning
+                            size: 16
+                            color: "#FFFFFF"
+                            trackColor: Qt.rgba(1, 1, 1, 0.25)
                         }
 
                         ModernIcon {
@@ -406,9 +406,10 @@ ColumnLayout {
                         visible: screenerController.isRunning
                         spacing: Theme.spaceSm
 
-                        BusyIndicator {
+                        LoadingSpinner {
                             Layout.alignment: Qt.AlignHCenter
                             running: screenerController.isRunning
+                            size: 28
                         }
 
                         Text {

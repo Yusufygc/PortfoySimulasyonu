@@ -79,7 +79,7 @@ Rectangle {
                 visible: root.busy
                 Layout.fillWidth: true
                 spacing: Theme.spaceSm
-                BusyIndicator { running: root.busy; implicitWidth: 24; implicitHeight: 24 }
+                LoadingSpinner { running: root.busy; size: 20 }
                 Text {
                     text: Strings.compareAiBusy
                     color: Theme.textAccent

@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-04] UI | Hisse Detay Penceresi, Yükleniyor Animasyonu, Uygulama Adı
+
+- Hisse detay modalı 1180×940'a büyüdü; emir formu yüksekliği içeriğinden hesaplanır (`StockDetailOrderForm.qml`), kaydırma gerekmez.
+- Tüm `BusyIndicator` kullanımları ortak `LoadingSpinner.qml` ile değişti (ince halka + dönen yay, `size` ile ölçeklenir; düğme içinde beyaz).
+- Görünen ad "Portföy Yönetimi" oldu (pencere başlığı, `Strings.appName`, sayfa başlığı, TradingView künyesi, README/CLAUDE.md). `QSettings`, keyring servis adı ve depo adı kayıtlı veriyi korumak için `PortfoySimulasyonu` olarak kaldı.
+
 ## [2026-11-04] REVIEW | CI Kırmızı Koşusu: Gerçek Veri Bağımlılığı, Saat Dilimi, Bağımlılık Açıkları
 
 İlk GitHub Actions koşusu (Tests #54) kırmızı; 10-04 koşusu da kırmızıydı. Ayrıntı: [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md) "İlk GitHub Actions koşusu".

@@ -66,7 +66,7 @@ MESSAGES: Dict[str, str] = {
     "page.ai_advisor": "AI Asistan",
     "page.settings": "Ayarlar",
     "page.my_portfolio": "Portföyüm",
-    "page.app_title": "Portföy Simülasyonu",
+    "page.app_title": "Portföy Yönetimi",
     "session.market_closed": "Piyasa Kapalı",
     "session.bist_open": "BIST: Canlı Seans Açık",
     "session.bist_closed": "BIST: Seans Kapalı",

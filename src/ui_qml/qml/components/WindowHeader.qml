@@ -173,9 +173,8 @@ Rectangle {
                 anchors.centerIn: parent
                 spacing: 5
 
-                BusyIndicator {
-                    width: 12
-                    height: 12
+                LoadingSpinner {
+                    size: 12
                     running: typeof marketSyncController !== "undefined" && marketSyncController && marketSyncController.isSyncing
                     visible: running
                 }

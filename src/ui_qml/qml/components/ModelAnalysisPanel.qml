@@ -57,11 +57,10 @@ Item {
                     enabled: root.hasController && modelAnalysisController.serviceAvailable && !root.busy && txtTicker.text.trim() !== ""
                     onClicked: root.submit()
                 }
-                BusyIndicator {
+                LoadingSpinner {
                     running: root.busy
                     visible: running
-                    implicitWidth: 24
-                    implicitHeight: 24
+                    size: 18
                 }
                 Item { Layout.fillWidth: true }
             }

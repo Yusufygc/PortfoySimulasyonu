@@ -493,11 +493,11 @@ Rectangle {
                         visible: !optimizationController.isLoading
                     }
 
-                    BusyIndicator {
-                        width: 20
-                        height: 20
+                    LoadingSpinner {
                         running: optimizationController.isLoading
-                        visible: optimizationController.isLoading
+                        size: 16
+                        color: "#FFFFFF"
+                        trackColor: Qt.rgba(1, 1, 1, 0.25)
                     }
 
                     Text {

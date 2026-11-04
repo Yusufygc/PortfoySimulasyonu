@@ -80,9 +80,10 @@ ColumnLayout {
             visible: optimizationController.isLoading
             spacing: Theme.spaceSm
 
-            BusyIndicator {
+            LoadingSpinner {
                 Layout.alignment: Qt.AlignHCenter
                 running: optimizationController.isLoading
+                size: 28
             }
 
             Text {

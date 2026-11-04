@@ -5,8 +5,8 @@ QtObject {
     id: root
 
     // --- Uygulama Başlıkları ---
-    readonly property string appName: "PORTFÖY SİMÜLASYONU"
-    readonly property string windowTitle: "Portföy Simülasyonu - Modern QML & TradingView"
+    readonly property string appName: "PORTFÖY YÖNETİMİ"
+    readonly property string windowTitle: "Portföy Yönetimi"
 
     // --- Navigasyon Başlıkları ---
     readonly property string navCollapse: "Menüyü Daralt"

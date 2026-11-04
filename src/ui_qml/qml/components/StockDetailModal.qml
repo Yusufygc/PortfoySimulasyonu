@@ -55,8 +55,8 @@ Item {
         id: modalBox
         // Dar pencerede modal tüm alanı kullanır; içerik tek sütuna iner ve kaydırılır
         readonly property bool stacked: width < 900
-        width: Math.min(parent.width - 24, 1020)
-        height: Math.min(parent.height - 24, 740)
+        width: Math.min(parent.width - 24, 1180)
+        height: Math.min(parent.height - 24, 940)
         anchors.centerIn: parent
         color: Theme.bgSecondary
         radius: Theme.radiusMd

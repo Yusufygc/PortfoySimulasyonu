@@ -494,9 +494,10 @@ Rectangle {
                 visible: comparisonController.isLoading
                 spacing: Theme.spaceSm
 
-                BusyIndicator {
+                LoadingSpinner {
                     Layout.alignment: Qt.AlignHCenter
                     running: comparisonController.isLoading
+                    size: 28
                 }
 
                 Text {

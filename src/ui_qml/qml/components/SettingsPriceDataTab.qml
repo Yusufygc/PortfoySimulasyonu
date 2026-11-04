@@ -262,7 +262,7 @@ ColumnLayout {
         visible: root.busy
         Layout.fillWidth: true
         spacing: Theme.spaceSm
-        BusyIndicator { running: root.busy; implicitWidth: 22; implicitHeight: 22 }
+        LoadingSpinner { running: root.busy; size: 18 }
         Text {
             text: root.hasController ? priceDataController.busyText : ""
             color: Theme.textAccent

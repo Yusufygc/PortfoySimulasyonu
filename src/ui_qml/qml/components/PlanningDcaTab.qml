@@ -177,11 +177,11 @@ Item {
                         anchors.centerIn: parent
                         spacing: Theme.spaceXs
 
-                        BusyIndicator {
-                            width: 16
-                            height: 16
+                        LoadingSpinner {
                             running: planningController.dcaIsRunning
-                            visible: planningController.dcaIsRunning
+                            size: 16
+                            color: "#FFFFFF"
+                            trackColor: Qt.rgba(1, 1, 1, 0.25)
                         }
 
                         ModernIcon {

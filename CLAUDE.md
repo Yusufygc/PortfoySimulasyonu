@@ -29,7 +29,7 @@ Bu projedeki tüm kurallar, süreçler ve yönergeler için bkz:
 
 ## Proje Özeti
 
-**Portföy Simülasyonu** — BIST hisselerini ve BIST dışı varlıkları (altın, kripto, ABD hissesi) takip eden PySide6 + QML masaüstü uygulaması.  
+**Portföy Yönetimi** — BIST hisselerini ve BIST dışı varlıkları (altın, kripto, ABD hissesi) takip eden PySide6 + QML masaüstü uygulaması.  
 Markowitz optimizasyonu, risk profili analizi, backtest simülasyonu, Excel raporlama ve AI destekli analiz içerir.
 
 | Katman | Teknoloji |

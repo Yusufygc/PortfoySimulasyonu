@@ -28,7 +28,8 @@ Rectangle {
     Component.onCompleted: resetTradeMoment()
     Layout.fillWidth: root.stacked
     Layout.preferredWidth: root.stacked ? -1 : 320
-    Layout.preferredHeight: 520
+    // Form içeriğinin doğal yüksekliği: etki kutusu/uyarı satırı eklense de form kırpılmaz
+    Layout.preferredHeight: formColumn.implicitHeight + 28
     Layout.fillHeight: true
     radius: Theme.radiusSm
     color: Theme.bgCard
@@ -36,6 +37,7 @@ Rectangle {
     border.width: 1
 
     ColumnLayout {
+        id: formColumn
         anchors.fill: parent
         anchors.margins: 14
         spacing: 12

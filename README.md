@@ -1,7 +1,7 @@
-# Portföy Simülasyonu
+# Portföy Yönetimi
 
 <p align="center">
-  <img src="icons/portfoy-simulasyonu.png" alt="Portföy Simülasyonu ürün ikonu" width="140">
+  <img src="icons/portfoy-simulasyonu.png" alt="Portföy Yönetimi ürün ikonu" width="140">
 </p>
 
 <h3 align="center">BIST, kıymetli maden, kripto ve ABD hisseleri için portföy takibi, haber akışı, tüm BIST taraması, optimizasyon, backtest ve AI destekli analiz sunan masaüstü yatırım platformu</h3>
@@ -19,7 +19,7 @@
 
 ## Genel Bakış
 
-Portföy Simülasyonu, portföy işlemlerini, piyasa verisini, analizi ve planlamayı tek bir yerel masaüstü uygulamada birleştirir. Harici sunucu gerekmez: işlemsel veriler SQLite'ta, tüm BIST'in 26 yıllık günlük verisi DuckDB'dedir. Arayüz GPU hızlandırmalı, koyu/açık temalı **PySide6 + QML (Qt Quick)** arayüzüdür.
+Portföy Yönetimi, portföy işlemlerini, piyasa verisini, analizi ve planlamayı tek bir yerel masaüstü uygulamada birleştirir. Harici sunucu gerekmez: işlemsel veriler SQLite'ta, tüm BIST'in 26 yıllık günlük verisi DuckDB'dedir. Arayüz GPU hızlandırmalı, koyu/açık temalı **PySide6 + QML (Qt Quick)** arayüzüdür.
 
 Üretilen analizler, optimizasyon çıktıları, backtest sonuçları ve yapay zekâ yorumları **karar desteğidir**, yatırım tavsiyesi değildir; nihai karar kullanıcıya aittir.
 
@@ -129,4 +129,4 @@ Testler gerçek veritabanlarına yazmaz (oturum başına geçici kopya kullanıl
 
 ## Yatırım Tavsiyesi Uyarısı
 
-Portföy Simülasyonu bir karar destek ve analiz uygulamasıdır. Optimizasyon, backtest, AI yorumları, model portföy çıktıları, benchmark karşılaştırmaları ve raporlar yatırım tavsiyesi değildir. Finansal kararlar kullanıcı sorumluluğundadır.
+Portföy Yönetimi bir karar destek ve analiz uygulamasıdır. Optimizasyon, backtest, AI yorumları, model portföy çıktıları, benchmark karşılaştırmaları ve raporlar yatırım tavsiyesi değildir. Finansal kararlar kullanıcı sorumluluğundadır.

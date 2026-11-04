@@ -135,10 +135,9 @@ Item {
                     spacing: Theme.spaceXs
                     height: 36
                     visible: root.busy
-                    BusyIndicator {
+                    LoadingSpinner {
                         running: root.busy
-                        implicitWidth: 22
-                        implicitHeight: 22
+                        size: 18
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     Text {
