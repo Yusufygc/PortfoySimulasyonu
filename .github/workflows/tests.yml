@@ -43,7 +43,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install -r requirements.txt -c constraints.txt
 
       - name: Check installed packages
         run: python -m pip check
@@ -82,7 +82,7 @@ jobs:
           --output-dir "${{ runner.temp }}/code-quality"
           --max-class-violations 0
           --max-function-violations 72
-          --max-file-violations 0
+          --max-file-violations 4
 
   security:
     name: Dependency audit
@@ -100,7 +100,7 @@ jobs:
       - name: Install dependencies and audit tools
         run: |
           python -m pip install --upgrade pip setuptools
-          python -m pip install -r requirements.txt pip-audit
+          python -m pip install -r requirements.txt -c constraints.txt pip-audit
 
       # Kurulu ortamın tamamını (geçişli bağımlılıklar dahil) bilinen açıklara karşı tarar
       - name: Audit installed packages

@@ -11,7 +11,7 @@ if exist .\venv\Scripts\python.exe (
 
 echo.
 echo Gerekli kutuphaneler kontrol ediliyor...
-"%PYTHON_EXEC%" -m pip install -r requirements.txt -r requirements-build.txt
+"%PYTHON_EXEC%" -m pip install -r requirements.txt -r requirements-build.txt -c constraints.txt
 if errorlevel 1 (
     echo Hata: Bagimlilik kurulumu basarisiz.
     exit /b 1
