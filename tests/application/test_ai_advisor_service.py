@@ -6,6 +6,7 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 
 from src.application.services.ai.ai_advisor_service import AiAdvisorService
+from src.application.services.ai.advisor_tools import GENERIC_TOOL_ERROR
 from src.application.services.analysis.models import AnalysisOverviewDTO
 from src.domain.models.ai_tool import ToolDeclaration
 
@@ -86,7 +87,17 @@ class TestCallTool:
 
         result = service.call_tool("get_portfolio_overview")
 
-        assert result == {"error": "beklenmeyen hata"}
+        assert result == {"error": GENERIC_TOOL_ERROR}
+
+    def test_value_error_message_is_kept_for_the_model(self):
+        service = _make_service()
+        spec = next(s for s in service.tool_specs if s.name == "get_portfolio_overview")
+        service._tools_by_name["get_portfolio_overview"] = spec.__class__(
+            name="get_portfolio_overview", description="x", parameters_schema={"type": "object", "properties": {}},
+            handler=lambda _args: (_ for _ in ()).throw(ValueError("en az 2 hisse gerekir")),
+        )
+
+        assert service.call_tool("get_portfolio_overview") == {"error": "en az 2 hisse gerekir"}
 
 
 class TestChat:

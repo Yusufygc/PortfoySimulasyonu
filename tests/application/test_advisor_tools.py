@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.application.services.ai.advisor_tools import build_tool_specs
+from src.application.services.ai.advisor_tools import GENERIC_TOOL_ERROR, build_tool_specs
 from src.application.services.analysis.models import AllocationItem, AllocationRiskDTO, AnalysisOverviewDTO
 from src.application.services.analysis.portfolio_analytics_service import ExtendedRiskMetricsDTO  # noqa: F401 (referans)
 from src.application.services.planning.risk_optimization_bridge_service import RiskAwareOptimizationResult
@@ -323,4 +323,4 @@ class TestGetAssetsOverview:
         service = SimpleNamespace(get_summary=boom)
         handler = {s.name: s for s in build_tool_specs(*_make_services(), unified_portfolio_service=service)}["get_assets_overview"].handler
 
-        assert handler({}) == {"error": "kur yok"}
+        assert handler({}) == {"error": GENERIC_TOOL_ERROR}  # iç hata metni modele gitmez

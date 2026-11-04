@@ -7,6 +7,7 @@ hızlıdır (yerel veritabanı), bu yüzden arka plan iş parçacığı kullanı
 """
 from __future__ import annotations
 
+import logging
 from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
@@ -18,6 +19,8 @@ from src.domain.models.fx_conversion import FxSide
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.messages import msg
 from src.ui_qml.presenters.formatting import input_decimal, tr_number
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_date(text: str) -> Optional[date]:
@@ -101,7 +104,8 @@ class CashPoolController(QObject):
         try:
             balances = self._pool.balances()
             conversions = self._conversion_rows()
-        except Exception:  # veri okunamazsa eski görünüm kalır
+        except Exception as exc:  # veri okunamazsa eski görünüm kalır
+            logger.warning("Nakit havuzu bakiyeleri okunamadı: %s", exc, exc_info=True)
             return
         if balances != self._balances or conversions != self._conversions:
             self._balances, self._conversions = balances, conversions

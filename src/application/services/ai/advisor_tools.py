@@ -13,6 +13,7 @@ JSON Schema'ya benzer `parameters_schema` dict'leri döner; SDK'ya özgü
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
@@ -20,6 +21,19 @@ from typing import Any, Callable, Dict, List, Optional
 
 from src.application.services.analysis.models import AnalysisFilterState
 from src.domain.market_clock import market_today
+
+logger = logging.getLogger(__name__)
+
+GENERIC_TOOL_ERROR = "Veri şu anda alınamadı (iç hata günlüğe yazıldı)."
+
+
+def tool_error(exc: Exception, tool_name: str = "") -> Dict[str, Any]:
+    """Araç hatasını modele döner. `ValueError` kullanıcıya yönelik doğrulama iletisidir; diğer istisnaların metni
+    (yol, SQL parçası) üçüncü taraf modele gönderilmez, yalnızca günlüğe yazılır."""
+    if isinstance(exc, ValueError):
+        return {"error": str(exc)}
+    logger.warning("Danışman aracı başarısız (%s): %s", tool_name or "?", exc, exc_info=True)
+    return {"error": GENERIC_TOOL_ERROR}
 
 _DEFAULT_LOOKBACK_DAYS = 365
 _DEFAULT_BENCHMARK = "bist100"
@@ -169,7 +183,7 @@ def _make_get_assets_overview_handler(unified_portfolio_service) -> Callable[[Di
         try:
             summary = unified_portfolio_service.get_summary("TRY")
         except Exception as exc:
-            return {"error": str(exc)}
+            return tool_error(exc, "get_assets_overview")
         return {
             "total_value_try": _to_float(summary.total_value_try),
             "total_cost_try": _to_float(summary.total_cost_try),
@@ -206,7 +220,7 @@ def _make_suggest_optimization_handler(risk_optimization_bridge_service) -> Call
                 risk_label_override=risk_label,
             )
         except Exception as exc:
-            return {"error": str(exc)}
+            return tool_error(exc, "suggest_optimization")
 
         result = outcome.result
         return {

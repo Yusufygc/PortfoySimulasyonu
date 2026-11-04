@@ -50,7 +50,7 @@ FALLBACK_PATTERNS = [
     r"create\s+a\s+class",
     r"define\s+a\s+function",
     r"def\s+\w+\(",
-    r"class\s+\w+",
+    r"\bclass\s+\w+\s*[:({]",  # yalnızca sınıf tanımı: "asset class" gibi finans ifadeleri geçmeli
 ]
 
 

@@ -47,4 +47,5 @@ programlama\s+dili
 create\s+a\s+class
 define\s+a\s+function
 def\s+\w+\(
-class\s+\w+
+# Yalnızca sınıf tanımı biçimi: "asset class" gibi finans ifadeleri geçmeli
+\bclass\s+\w+\s*[:({]

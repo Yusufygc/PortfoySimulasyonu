@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-from src.application.services.ai.advisor_tools import ToolSpec, build_tool_specs
+from src.application.services.ai.advisor_tools import ToolSpec, build_tool_specs, tool_error
 from src.domain.models.ai_tool import ToolDeclaration
 
 
@@ -73,4 +73,4 @@ class AiAdvisorService:
         try:
             return spec.handler(arguments or {})
         except Exception as exc:
-            return {"error": str(exc)}
+            return tool_error(exc, name)
