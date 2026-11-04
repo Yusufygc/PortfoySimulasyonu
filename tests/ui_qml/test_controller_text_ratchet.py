@@ -36,17 +36,32 @@ def _is_exempt(lines: list, lineno: int) -> bool:
     return EXEMPT_MARK in here or (above.startswith("#") and EXEMPT_MARK in above)
 
 
+def _fstring_start_lines(tree: ast.AST) -> dict:
+    """f-string içindeki sabit parçaların satırı, f-string'in ilk satırı sayılır.
+
+    Python 3.12 parçalara kendi konumunu verir (çok satırlı f-string'in ortasındaki satır); 3.11 ve öncesi tüm
+    parçalara f-string'in başlangıç satırını verir. Muaf işareti her sürümde aynı satırda aranır.
+    """
+    starts: dict = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.JoinedStr):
+            for sub in ast.walk(node):
+                starts.setdefault(id(sub), node.lineno)
+    return starts
+
+
 def count_turkish_literals(path: Path) -> int:
     source = path.read_text(encoding="utf-8")
     lines = source.splitlines()
     tree = ast.parse(source)
     skipped = _skipped_nodes(tree)
+    fstring_start = _fstring_start_lines(tree)
     return sum(
         1
         for node in ast.walk(tree)
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
         and id(node) not in skipped and TURKISH_LETTER.search(node.value)
-        and not _is_exempt(lines, node.lineno)
+        and not _is_exempt(lines, fstring_start.get(id(node), node.lineno))
     )
 
 
