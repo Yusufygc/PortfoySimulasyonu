@@ -45,8 +45,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt -c constraints.txt
 
+      # Runner'a önceden kurulu pipx kendi bağımlılık uyarısını verebilir (3.12 imajı); yalnızca diğer satırlar hatadır.
       - name: Check installed packages
-        run: python -m pip check
+        run: |
+          $report = python -m pip check
+          $problems = $report | Where-Object { $_ -notmatch '^(No broken requirements|pipx )' }
+          if ($problems) { $problems; exit 1 }
 
       - name: Collect tests
         run: python -m pytest --collect-only -q
