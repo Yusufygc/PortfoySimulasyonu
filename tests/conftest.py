@@ -16,6 +16,18 @@ sys.path.insert(0, str(ROOT))
 os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 
+def _skip_real_data_tests(items) -> None:
+    """`real_data` işaretli testler gerçek (git dışı) veritabanı kopyasına dayanır; dosyalar yoksa (CI) atlanır."""
+    from src.infrastructure.db.paths import duckdb_path, sqlite_db_path
+
+    if sqlite_db_path().exists() and duckdb_path().exists():
+        return
+    skip = pytest.mark.skip(reason="gerçek data/portfolio.db ve data/market_history.duckdb yok (kişisel veri, git dışı)")
+    for item in items:
+        if "real_data" in item.keywords:
+            item.add_marker(skip)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def _isolated_databases(tmp_path_factory):
     """Gerçek `AppContainer()` kullanan testler gerçek veritabanlarına yazmasın.
@@ -126,6 +138,7 @@ def _no_retry_sleep(monkeypatch):
 
 
 def pytest_collection_modifyitems(config, items):
+    _skip_real_data_tests(items)
     for item in items:
         path = Path(str(item.fspath)).as_posix()
         if "/tests/ui/" in path or path.startswith("tests/ui/"):

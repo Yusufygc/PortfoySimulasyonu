@@ -41,6 +41,7 @@ def container():
     return AppContainer()
 
 
+@pytest.mark.real_data
 def test_duckdb_optimization_market_data_provider():
     """DuckDBOptimizationMarketDataProvider'ın DuckDB'den çoklu hisse fiyatlarını ve son fiyatı okumasını test eder."""
     provider = DuckDBOptimizationMarketDataProvider()
@@ -57,6 +58,7 @@ def test_duckdb_optimization_market_data_provider():
     assert last_price > 0.0
 
 
+@pytest.mark.real_data
 def test_duckdb_provider_serves_a_single_ticker_when_min_columns_is_one():
     """Birleşik portföyde tek BIST hissesi olabilir: min_columns=1 ile DuckDB sonuç verir (ağ yedeği yok)."""
     provider = DuckDBOptimizationMarketDataProvider()          # yedek sağlayıcı yok
@@ -113,6 +115,7 @@ def test_optimization_controller_slots(qapp, container):
     assert ctrl.activeTab == 0
 
 
+@pytest.mark.real_data
 def test_optimization_controller_execution(qapp, container):
     """OptimizationController senkron/asenkron çalıştırma ve sonuç yükleme döngüsünü test eder."""
     ctrl = OptimizationController(container=container)

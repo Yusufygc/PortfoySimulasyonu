@@ -143,6 +143,7 @@ def test_planning_goals_lifecycle(qapp, container):
     assert deleted is None
 
 
+@pytest.mark.real_data
 def test_planning_dca_backtest_execution(qapp, container):
     """DCA simülasyon servisi çağrısını test eder."""
     ctrl = PlanningController(container=container)

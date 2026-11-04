@@ -33,6 +33,7 @@ def test_chart_controller_initialization(qapp):
     assert controller.currentChartType == "candle"
 
 
+@pytest.mark.real_data
 def test_chart_controller_timeframe_resampling(qapp):
     container = AppContainer()
     controller = ChartController(container=container)
@@ -67,6 +68,7 @@ def test_chart_controller_timeframe_resampling(qapp):
     assert len(data_1m["candles"]) < len(data_1w["candles"])
 
 
+@pytest.mark.real_data
 def test_chart_controller_technical_indicators_payload(qapp):
     container = AppContainer()
     controller = ChartController(container=container)

@@ -97,6 +97,7 @@ def test_settings_controller_save_api_keys(tmp_path, secret_store):
     assert "KEY" not in (tmp_path / ".env").read_text(encoding="utf-8")  # düz metin .env'ye yazılmaz
 
 
+@pytest.mark.real_data
 def test_settings_controller_db_stats(qapp, container):
     """refreshDatabaseStats slotunun SQLite ve DuckDB istatistiklerini doldurduğunu test eder."""
     from PySide6.QtCore import QCoreApplication
@@ -117,6 +118,7 @@ def test_settings_controller_db_stats(qapp, container):
     assert len(mock_payload.get("sqlite_table_stats", [])) >= 5
 
 
+@pytest.mark.real_data
 def test_settings_controller_integrity_check(container):
     """checkDatabaseIntegrity slotunun SQLite ve DuckDB için başarıyla çalıştığını test eder."""
     ctrl = SettingsController(container=container)
@@ -127,6 +129,7 @@ def test_settings_controller_integrity_check(container):
     assert ctrl._duckdb_path.exists()
 
 
+@pytest.mark.real_data
 def test_settings_controller_export_portfolio(tmp_path, container, monkeypatch):
     """Excel ve JSON dışa aktarım mekanizmasının sorunsuz çalıştığını test eder (gerçek masaüstüne yazmaz)."""
     import json

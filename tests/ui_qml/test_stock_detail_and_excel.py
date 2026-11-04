@@ -64,6 +64,7 @@ def test_stock_detail_controller_clean_ticker(qapp, container):
     assert ".IS" not in ctrl.ticker
 
 
+@pytest.mark.real_data
 def test_stock_detail_controller_load_position(qapp, container):
     """Portföyde var olan hissenin pozisyon ve işlem verilerini yüklemesini test eder."""
     ctrl = StockDetailController(container=container)
@@ -84,6 +85,7 @@ def test_stock_detail_controller_load_position(qapp, container):
     assert "price" in first_trade
 
 
+@pytest.mark.real_data
 def test_stock_detail_controller_corporate_actions(qapp, container):
     """Sermaye artırımı bulunan hissede (MERKO) kurumsal işlemlerin çekildiğini doğrular."""
     ctrl = StockDetailController(container=container)
@@ -98,6 +100,7 @@ def test_stock_detail_controller_corporate_actions(qapp, container):
     assert "%" in action.get("ratioStr", "")
 
 
+@pytest.mark.real_data
 def test_stock_detail_controller_export_excel(qapp, container):
     """Hisse detayından Excel dışa aktarımının çalıştığını doğrular."""
     ctrl = StockDetailController(container=container)
@@ -116,6 +119,7 @@ def test_stock_detail_controller_export_excel(qapp, container):
     assert "OBAMS" in message
 
 
+@pytest.mark.real_data
 def test_dashboard_controller_export_to_excel(qapp, container, tmp_path):
     """DashboardController üzerinden Excel raporu oluşturulabildiğini test eder."""
     dash = DashboardController(container=container)
@@ -176,6 +180,7 @@ def test_stock_detail_modal_qml_compilation(qapp, container):
     assert obj is not None, "StockDetailModal QML nesnesi oluşturulamadı!"
 
 
+@pytest.mark.real_data
 def test_stock_detail_controller_live_price_and_diff(container):
     """StockDetailController canlı fiyat ve günlük farkı hesaplayıp PnL ile eşleştirir.
 

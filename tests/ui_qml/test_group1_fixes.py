@@ -14,6 +14,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from src.domain.market_clock import market_now, market_today
 from config.settings_loader import AISettings, MarketSettings, persist_api_keys
 from src.infrastructure.market_data.duckdb_market_history_store import DuckDBMarketHistoryStore
 from src.application.services.market_data.market_data_sync_service import MarketSyncResult
@@ -101,7 +102,7 @@ def test_stock_detail_backdated_trade_uses_in_session_time(qapp):
 
 
 def test_parse_trade_moment_defaults_and_validation():
-    today = dt.date.today()
+    today = market_today()
 
     assert parse_trade_moment("", "")[0] == today
     assert parse_trade_moment("2026-01-05", "") == (dt.date(2026, 1, 5), dt.time(12, 0))
@@ -116,8 +117,8 @@ def test_parse_trade_moment_defaults_and_validation():
 
 
 def test_parse_trade_moment_rejects_future_time_today():
-    future = (dt.datetime.now() + dt.timedelta(minutes=30)).time()
-    if future < dt.datetime.now().time():  # gece yarısını aşan çalıştırma
+    future = (market_now() + dt.timedelta(minutes=30)).time()
+    if future < market_now().time():  # gece yarısını aşan çalıştırma
         pytest.skip("gün sınırı")
 
     with pytest.raises(ValueError, match="Gelecek saatli"):

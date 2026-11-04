@@ -12,6 +12,8 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+from src.domain.market_clock import market_today
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
@@ -462,7 +464,7 @@ def test_dashboard_submit_trade_keeps_default_now(qapp):
     ctrl.submitTrade("THYAO", "BUY", 5, 100.0, "")
 
     request = container.trade_entry_service.submit_trade.call_args.args[0]
-    assert request.trade_date == date.today()
+    assert request.trade_date == market_today()
 
 
 # ---------------------------------------------------------------------------

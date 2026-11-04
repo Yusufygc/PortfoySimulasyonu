@@ -33,6 +33,7 @@ def container():
     return AppContainer()
 
 
+@pytest.mark.real_data
 def test_watchlist_controller_initialization(qapp, container):
     controller = WatchlistController(container)
 
@@ -69,6 +70,7 @@ def test_watchlist_table_model_roles(qapp, container):
         assert 0.0 <= day_range <= 1.0
 
 
+@pytest.mark.real_data
 def test_watchlist_crud_operations(qapp, container):
     import uuid
     controller = WatchlistController(container)

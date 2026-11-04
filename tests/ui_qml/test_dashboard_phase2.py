@@ -99,6 +99,7 @@ def test_dashboard_qml_full_load(qapp):
     assert len(root_objects) > 0, f"Main.qml yüklenemedi! Hatalar: {warnings_list}"
 
 
+@pytest.mark.real_data
 def test_dashboard_with_real_container(qapp):
     import json
     from src.application.container import AppContainer
