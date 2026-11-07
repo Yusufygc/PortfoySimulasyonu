@@ -18,6 +18,7 @@ from typing import Any, Optional
 from PySide6.QtCore import Property, QObject, QSettings, QTimer, Signal, Slot
 from src.domain.market_clock import market_now, market_today
 from src.ui_qml.messages import msg
+from src.ui_qml.deferred import run_later
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ class SystemController(QObject):
         self._resetFinished.connect(self._on_reset_finished)
         self._apply_timer()
         if autostart:
-            QTimer.singleShot(_STARTUP_DELAY_MS, self.refreshNow)
+            run_later(self, _STARTUP_DELAY_MS, self.refreshNow)
 
     def _svc(self, name: str):
         return getattr(self._container, name, None) if self._container else None

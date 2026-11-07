@@ -67,7 +67,7 @@ Ana iş parçacığını bloke eden her iş denetleyicide `ThreadPoolExecutor` i
 3. İş bitince **iş parçacığından** özel bir Qt sinyali (`_scanCompleted = Signal(object)`) yayılır; sinyal kuyruklu bağlantıyla ana iş parçacığındaki yuvaya (`_apply_results`) ulaşır.
 4. Yuva özellikleri günceller ve `notify` sinyalleri QML bağlamalarını yeniler.
 
-Kurallar: arka plan iş parçacığından QML özelliği doğrudan değiştirilmez, `QTimer.singleShot` çağrılmaz. Test ortamında `ImmediateExecutor` ile işler eşzamanlı çalıştırılır.
+Kurallar: arka plan iş parçacığından QML özelliği doğrudan değiştirilmez. Gecikmeli iş (açılış yenilemesi vb.) `QTimer.singleShot` ile değil `src/ui_qml/deferred.run_later(sahip, ms, iş)` ile kurulur: zamanlayıcı sahibinin Qt çocuğudur, sahip silinince ateşlenmez, testler `cancel_pending` ile durdurur. `autostart` alan her denetleyici kayıtta (`controllers/registry.py`) `AUTOSTART` ile bayrağı alır. Koruma: `tests/ui_qml/test_background_work_lifecycle.py`. Test ortamında `ImmediateExecutor` ile işler eşzamanlı çalıştırılır.
 
 ## 6. Olay Akışı
 

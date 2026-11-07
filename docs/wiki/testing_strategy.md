@@ -41,11 +41,12 @@
 - **Gerçek veritabanı koruması** (oturum, otomatik): gerçek `data/portfolio.db` SQLite yedekleme API'siyle ve `data/market_history.duckdb` geçici klasöre kopyalanır; `DB_SQLITE_PATH` ve `DUCKDB_PATH` oraya yönlendirilir. Kopya alınamazsa boş geçici veritabanı kullanılır. Gerçek dosyalara asla yazılmaz.
 - `_isolate_env_file`: `.env` yazımı (API anahtarı kaydı) geçici dizine yönlenir.
 - `_no_retry_sleep`: ağ yeniden denemesi beklemesi kapatılır ([service_market_data_providers.md](service_market_data_providers.md)).
+- Otomatik: `_cancel_deferred_ui_work` her testten sonra `src/ui_qml/deferred.cancel_pending()` çağırır; testin kurduğu gecikmeli denetleyici işleri sonraki testte ateşlenmez.
 - Paylaşılan: `fake_event_bus`, `qapp`, `drain_qt_events`, `fixed_today`, `sample_stock_factory`, `sample_trade_factory`, `sample_daily_price_factory`.
 
 `tests/ui_qml/conftest.py` (otomatik):
 - Qt Quick Controls "Basic" stili (uygulamayla aynı).
-- `MarketSyncController` açılış zamanlayıcısı kapatılır (arka plan DuckDB erişimi başka testlerle çakışıp native çökmeye yol açıyordu).
+- `MarketSyncController` açılış zamanlayıcısı kapatılır (`run_later` yamalanır; arka plan DuckDB erişimi başka testlerle çakışıp native çökmeye yol açıyordu).
 - `QSettings` / `last_update_store` geçici INI dosyasına yönlendirilir (gerçek kayıt defterine yazılmaz).
 - `DashboardController._reload_returns` kapatılır (arka plan iş parçacığı test sonrası silinmiş QObject'e sinyal gönderip çökmeye yol açıyordu); ilgili testler işlemi doğrudan çağırır.
 

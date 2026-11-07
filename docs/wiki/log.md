@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-08] FIX | Testlerde Qt `access violation` çökmesi (CI Python 3.12)
+
+- **Belirti:** `test_market_sync_controller_trigger_sync` içindeki olay döngüsü beklemesinde süreç çöküyordu (CI ve yerelde ara sıra).
+- **Kök neden:** `create_controllers(autostart=False)` `SystemController` ve `MarketTickerController`'a bayrağı iletmiyordu; testler gerçek yfinance çağrısı başlatıyordu (çökme anında 8 şerit işçisi ağda). Gecikmeli işler iptal edilemeyen `QTimer.singleShot(ms, self.metot)` ile kurulduğundan biten testlerin işleri sonraki testlerde ateşleniyor, sonuç silinmiş denetleyiciye dönüyordu.
+- **Düzeltme:** kayıtta iki denetleyiciye `AUTOSTART`; yeni `src/ui_qml/deferred.run_later` (sahibine bağlı, iptal edilebilir) 8 `singleShot` çağrısının yerini aldı; `tests/conftest.py` her testten sonra `cancel_pending()`. Koruma: `tests/ui_qml/test_background_work_lifecycle.py` (kayıt bayrağı, sahip silinince ateşlenmeme, iptal, `singleShot` yasağı). Uygulamadaki davranış aynı.
+
 ## [2026-11-07] REFACTOR | Plan B: Yönetilebilirlik (özellik kaydı, tek fiyat yazıcısı, ortak defter, mesaj paketi)
 
 Dal: `refactor/yonetilebilirlik`. Ayrıntı: [architecture.md](architecture.md) §2, [data_architecture.md](data_architecture.md) kural 3-4, [architecture_evolution_plan.md](architecture_evolution_plan.md) §4.

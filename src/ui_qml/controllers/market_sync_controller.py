@@ -23,9 +23,12 @@ from src.application.services.market_data.market_data_sync_service import (
 )
 from src.domain.market_clock import market_today
 from src.ui_qml.messages import msg
+from src.ui_qml.deferred import run_later
 from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
+
+STARTUP_DELAY_MS = 5000  # açılıştan sonra eksik gün kontrolü
 
 
 class MarketSyncController(QObject):
@@ -67,7 +70,7 @@ class MarketSyncController(QObject):
         self._last_auto_synced_date: Optional[date] = None
 
         # 1. Başlangıç gecikmeli kontrolü (5 sn sonra)
-        QTimer.singleShot(5000, self._startup_check_and_sync)
+        run_later(self, STARTUP_DELAY_MS, self._startup_check_and_sync)
 
         # 2. Periyodik nöbetçi timer (Her 60 saniyede bir)
         self._watcher_timer = QTimer(self)

@@ -111,6 +111,21 @@ def secret_store():
     secret_store_module.set_secret_store(previous)
 
 
+@pytest.fixture(autouse=True)
+def _cancel_deferred_ui_work():
+    """Testin kurduğu gecikmeli denetleyici işleri (açılış yenilemesi vb.) sonraki testte ateşlenmesin.
+
+    2026-11-08: biten testlerin zamanlayıcıları sonraki testlerin olay döngüsünde gerçek ağ çağrısı başlatıyor,
+    sonuç silinmiş denetleyiciye dönünce süreç `access violation` ile çöküyordu.
+    """
+    yield
+    import sys
+
+    deferred = sys.modules.get("src.ui_qml.deferred")
+    if deferred is not None:
+        deferred.cancel_pending()
+
+
 @pytest.fixture
 def wait_until():
     """Arka plan iş parçacığı sonuçlarını Qt olay döngüsünü işleyerek bekler (sabit uyku yerine koşul + zaman aşımı)."""

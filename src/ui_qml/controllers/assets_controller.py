@@ -20,6 +20,7 @@ from src.domain.models.asset import AssetClass, AssetUnit
 from src.domain.models.trade import TradeSide
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.messages import msg
+from src.ui_qml.deferred import run_later
 from src.ui_qml.presenters.formatting import input_decimal, tr_number
 
 logger = logging.getLogger(__name__)
@@ -131,7 +132,7 @@ class AssetsController(QObject):
         self._timer.timeout.connect(lambda: self.refreshPrices(True))
         if self._refresh is not None and autostart:
             self._timer.start(REFRESH_INTERVAL_MS)
-            QTimer.singleShot(_STARTUP_DELAY_MS, lambda: self.refreshPrices(True))
+            run_later(self, _STARTUP_DELAY_MS, lambda: self.refreshPrices(True))
 
     # --- Özellikler ---
 

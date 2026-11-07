@@ -19,6 +19,7 @@ from src.ui_qml.controllers.news_settings_controller import load_refresh_minutes
 from src.ui_qml.controllers.url_opener import open_external_url
 from src.ui_qml.models.news_list_model import NewsListModel
 from src.ui_qml.messages import msg
+from src.ui_qml.deferred import run_later
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class NewsController(QObject):
         self._timer.timeout.connect(self.refresh)
         if self._service is not None and autostart:
             self._timer.start(self._interval_ms())
-            QTimer.singleShot(_STARTUP_DELAY_MS, self.refresh)
+            run_later(self, _STARTUP_DELAY_MS, self.refresh)
 
     @property
     def _service(self):

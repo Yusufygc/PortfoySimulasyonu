@@ -13,7 +13,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Dict, List
 
-from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.market_clock import market_today
 from src.domain.models.budget import Budget, BudgetItem
@@ -22,6 +22,7 @@ from src.ui_qml.controllers.planning_dca_chart import build_dca_chart_html
 from src.ui_qml.controllers.planning_months import budget_months
 from src.ui_qml.presenters.formatting import tr_money, tr_number, tr_pct
 from src.ui_qml.messages import msg
+from src.ui_qml.deferred import run_later
 
 logger = logging.getLogger(__name__)
 
@@ -510,7 +511,7 @@ class PlanningController(QObject):
             e_date = market_today()
 
         # Timer ile UI dondurmadan hesapla
-        QTimer.singleShot(50, lambda: self._execute_dca(tickers, Decimal(str(amount)), s_date, e_date))
+        run_later(self, 50, lambda: self._execute_dca(tickers, Decimal(str(amount)), s_date, e_date))
 
     def _execute_dca(self, tickers: List[str], amount: Decimal, s_date: date, e_date: date) -> None:
         try:

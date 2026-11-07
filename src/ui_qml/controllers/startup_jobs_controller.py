@@ -19,10 +19,11 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from typing import Any, Callable, Optional
 
-from PySide6.QtCore import QObject, QSettings, QTimer, Signal
+from PySide6.QtCore import QObject, QSettings, Signal
 from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.domain.market_clock import market_now, market_today
 from src.ui_qml.messages import msg
+from src.ui_qml.deferred import run_later
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class StartupJobsController(QObject):
         self._targets: dict[str, Any] = {}
         self._started = False
         if autostart:
-            QTimer.singleShot(STARTUP_DELAY_MS, self._start_once)
+            run_later(self, STARTUP_DELAY_MS, self._start_once)
 
     def _svc(self, name: str):
         return getattr(self._container, name, None) if self._container else None
@@ -78,7 +79,7 @@ class StartupJobsController(QObject):
         tek tek yeniden indirir ve aynı satırları eşzamanlı yazardı. Sinyal gelmezse yedek süre sonunda başlar.
         """
         signal.connect(self._start_once)
-        QTimer.singleShot(STARTUP_FALLBACK_MS, self._start_once)
+        run_later(self, STARTUP_FALLBACK_MS, self._start_once)
 
     def _start_once(self) -> None:
         if self._started:
