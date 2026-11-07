@@ -64,6 +64,7 @@
 | [manual_testing_guide.md](manual_testing_guide.md) | 11 sayfa ve arka plan davranışı için yayın öncesi manuel test listesi |
 | [product_test_plan.md](product_test_plan.md) | Ürün test planı ve E2E otomasyonu: test veritabanı, insan sürücü (fare/klavye), yolculuklar, izlenebilirlik, bulgular |
 | [code_quality_guardrails.md](code_quality_guardrails.md) | Eşikler, ölçüm komutu, güncel eşik ihlalleri, istisna protokolü |
+| [system_audit_report_2026-11-07.md](system_audit_report_2026-11-07.md) | Backend denetimi: hesaplama ve veri kaynakları (15 bulgu), otomatik hisse bölünmesi servisi, fiyat deposu onarım betikleri, açık kalanlar |
 | [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md) | İkinci kapsamlı denetim: 15 bulgu ve uygulama sonucu (çift emir koruması, CI kapısı, `tr_fold`, `ExactNumeric`, bağımlılık kilidi), açık kalanlar |
 | [system_audit_report_2026-10-04.md](system_audit_report_2026-10-04.md) | Kapsamlı sistem denetimi: 16 bulgu (öncelik, kanıt, çözüm), aksiyon planı, metodoloji uyumu |
 | [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Tarihsel kod kalitesi baseline raporu (eski arayüz dönemi) |
@@ -87,4 +88,4 @@
 4. Mimari karar, yeni özellik veya önemli hata çözümünde ilgili servis sayfasını ve `architecture.md`'yi güncelle; tamamlanan özelliği `roadmap.md`'den sil.
 5. Belgeleri net, şematik ve doğrulanabilir tut; bir iddia kodla çelişiyorsa kod esastır.
 
-*Son güncelleme: 2026-11-04 — ikinci sistem denetimi uygulandı (bkz. [log.md](log.md)).*
+*Son güncelleme: 2026-11-07 — backend denetimi ve otomatik bölünme servisi (bkz. [log.md](log.md)).*

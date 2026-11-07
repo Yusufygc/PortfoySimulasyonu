@@ -74,6 +74,12 @@ grafik, Hisse Detay son bar, DCA (birincil kaynak), Markowitz optimizasyonu, Aya
    (benchmark) kazıyıcısı ve `BistBulkDownloader`. Tek hisse anlık fiyat sorguları (`YFinancePriceLookupProvider`, değerleme)
    arayüzü bekletmemek için bilerek yeniden denenmez. Testlerde bekleme `tests/conftest.py` ile kapatılır.
 
+8. **Fiyat politikası (2026-11-07):** SQLite `daily_prices` ham kapanış + onaylı bölünme/sermaye artırımı faktörü tutar
+   (DuckDB okuma kuralıyla aynı); temettü düzeltmesi yoktur. Yahoo'dan SQLite'a yazan tüm yollar `auto_adjust=False` ve
+   `Close` kullanır. Eski karışık satırlar `scripts/rebuild_sqlite_prices.py` ile onarılır.
+9. **Hayalet bar:** BIST tatil günü (2020+ takvim, hacim 0) veya hacmi 0 ve fiyatı sabit bar yazılmaz
+   (`src/infrastructure/market_data/bar_quality.py`); eskileri `scripts/clean_ghost_bars.py` siler.
+
 ## Bilinen sınırlar
 
 - **Düzeltilmemiş adaylar:** Veriden tespit edilen sermaye artırımı adayları kullanıcı onayına kadar düzeltmeye girmez;

@@ -10,7 +10,8 @@ Bu sayfa uygulamanın dış veri kaynaklarını, bunları saran sağlayıcılar�
 |---|---|---|---|
 | Günlük OHLCV (tüm BIST, ham) | Yahoo Finance (`yfinance`, `auto_adjust=False`) | `BistBulkDownloader`, `MarketDataSyncService` | DuckDB (`data/market_history.duckdb`) |
 | Hisse listesi (BIST evreni) | TradingView Scanner API | `BistBulkDownloader.fetch_all_bist_tickers` | `bist_stocks` tablosu |
-| Portföy hisseleri kapanışı | yfinance | `YFinanceMarketDataClient` (`yfinance_client.py`, `yfinance_price_client.py`) | SQLite `daily_prices` |
+| Portföy hisseleri kapanışı | yfinance (`auto_adjust=False`, ham `Close`; BIST'te hayalet barlar elenir) | `YFinanceMarketDataClient` (`yfinance_client.py`, `yfinance_price_client.py`) | SQLite `daily_prices` |
+| Hisse bölünmesi kayıtları | yfinance `Ticker.splits` | `YahooSplitProvider` | `split_events` (uygulanınca) |
 | Anlık fiyat | yfinance toplu `download(period="1d", interval="1m")` (50'lik parçalar; `lookup_intraday_bulk`), gelmeyenler için tekli `fast_info` / `history` | `YFinancePriceLookupProvider` | SQLite `latest_prices` |
 | Üst piyasa şeridi | yfinance | `YFinanceIndicatorProvider` (`MarketIndicatorsService`) | yok (her yenilemede) |
 | Piyasa değeri, hisse adedi (Hisse 360) | yfinance | `YFinanceValuationProvider` | `data/_cache/financials/valuation_<TICKER>.json`, TTL 1 saat |
@@ -26,6 +27,8 @@ Bu sayfa uygulamanın dış veri kaynaklarını, bunları saran sağlayıcılar�
 | BIST tatil takvimi | Kod içi liste (2020-2030) | `bist_holiday_calendar.py`, `BistHolidayProvider` | yok |
 | Gemini (LLM) | Google Gemini API | `GeminiChatProvider`, `GeminiAdvisorChatProvider` | yok |
 | AI_Core tahmin servisi | Yerel FastAPI (`AI_CORE_API_URL`) | `AICoreFastAPIClient` | yok |
+
+Gram altın/gümüş `GC=F` / `SI=F` (USD/ons) x `TRY=X` / 31,1035 ile hesaplanır (`XAUTRY=X`, `XAGTRY=X`, `XAUUSD=X`, `XAGUSD=X` Yahoo'da 404); USD/TRY alınamazsa seri boş döner ve uyarı verilir. TÜFE ayı açıklandığı M+1 ayının başından uygulanır.
 
 Benchmark kodları (`AnalysisBenchmarkService`): `bist100` (XU100), `gold` (gram altın), `silver` (gram gümüş), `usd`, `euro`, `deposit` (TCMB mevduat, EVDS `TP.KTF10`), `cpi` (TÜFE, EVDS `TP.FG.J0`). EVDS anahtarı yoksa veya EVDS erişilemezse mevduat faizi `TCMB_DEPOSIT_RATE_FALLBACK` değerine (varsayılan %45) düşer.
 
@@ -57,6 +60,8 @@ Testlerde bekleme `tests/conftest.py` ile kapatılır (`retry._sleep` değiştir
 `DuckDBMarketHistoryRepository` (salt okunur, her çağrıda kısa ömürlü bağlantı) toplu okuma sunar: `list_tickers`, `get_price_series(_bulk)`, `get_latest_dates`, `find_price_breaks` ve sermaye artırımı faktörleriyle **düzeltilmiş** okuma. `DuckDBOptimizationMarketDataProvider` 504 günlük fiyatı ve kovaryans girdisini DuckDB'den çeker. Sahiplik ve yazma kuralları için [data_architecture.md](data_architecture.md), düzeltme formülleri için [market_corporate_actions.md](market_corporate_actions.md).
 
 ## 6. Seans ve Takvim
+
+**Takvim düzeltmesi (2026-11-07):** 2024 Kurban Bayramı 16-19 Haziran'dı; 20 Haziran kaydı kaldırıldı. 9-14 Şubat 2023 deprem kapanışı olağanüstü kapanış olarak eklendi. Takvim 2020+ hacim verisiyle karşılaştırıldı. Hayalet bar kuralı takvimdeki tatil gününü yalnızca hacim 0 ise eler; takvim hatası gerçek barı silemez.
 
 `BistMarketSessionService` normal gün 10:00-18:10, yarım gün 10:00-13:00 olarak seansı belirler. `MarketTradingCalendar` işlem günü ve yarım gün kararını verir; üretimde `BistTradingCalendarProvider` BIST resmi tatil takvimini kullanır. `BistMarketSessionService.session_window(gün)` seans açılışı ile kapanış verisinin hazır olduğu anı (kapanış + `CLOSE_DATA_DELAY` 20 dk: tam gün 18:30, yarım gün 13:20) verir; `last_completed_trading_day(şimdi)` kapanış verisi hazır olan son işlem gününü hesaplar ve `MarketDataSyncService.get_last_completed_trading_day` bunu kullanır (yfinance BIST verisi ~15 dk gecikmeli; 18:15'te çekilen bar kapanış fiyatı değildi ve sonradan düzeltilmiyordu). Otomatik senkron: açılıştan 5 sn sonra ve kapanış verisi hazır olunca ([settings_and_system.md](settings_and_system.md)).
 
