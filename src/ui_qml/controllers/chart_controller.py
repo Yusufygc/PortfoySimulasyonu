@@ -20,6 +20,7 @@ from src.ui_qml.controllers.chart_candle_sources import (
     load_market_history_candles,
     load_price_series_candles,
     overlay_live_price,
+    price_digits,
 )
 
 logger = logging.getLogger(__name__)
@@ -346,10 +347,10 @@ class ChartController(QObject):
 
                 out_candles.append({
                     "time": t,
-                    "open": round(o, 2),
-                    "high": round(h, 2),
-                    "low": round(l, 2),
-                    "close": round(c, 2),
+                    "open": round(o, price_digits(c)),
+                    "high": round(h, price_digits(c)),
+                    "low": round(l, price_digits(c)),
+                    "close": round(c, price_digits(c)),
                 })
                 out_volumes.append({
                     "time": t,
