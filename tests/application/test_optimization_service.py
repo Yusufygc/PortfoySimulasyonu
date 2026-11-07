@@ -7,7 +7,11 @@ import pandas as pd
 import pytest
 
 from src.application.services.planning.optimization_market_data import OptimizationPolicy
-from src.application.services.planning.optimization_service import OptimizationDeps, OptimizationService
+from src.application.services.planning.optimization_service import (
+    OptimizationDeps,
+    OptimizationService,
+    _build_return_model,
+)
 
 
 class FakeMarketDataProvider:
@@ -129,6 +133,53 @@ def test_optimization_metrics_guard_zero_volatility():
     assert metrics.expected_return == pytest.approx(0.15)
     assert metrics.volatility == 0.0
     assert metrics.sharpe_ratio == 0.0
+
+
+def _prices_from_simple_returns(returns_by_ticker: dict[str, list[float]]) -> pd.DataFrame:
+    columns = {}
+    for ticker, returns in returns_by_ticker.items():
+        prices = [100.0]
+        for daily_return in returns:
+            prices.append(prices[-1] * (1.0 + daily_return))
+        columns[ticker] = prices
+    return pd.DataFrame(columns)
+
+
+def test_return_model_uses_simple_returns_for_annual_mean_and_sharpe():
+    # Elle kurulan iki varlıklı tablo: günlük basit getiriler 4 günlük blokta tekrar eder.
+    #   AAA: +2%, 0%, +2%, 0%  -> ortalama 0,01, sapmalar +-0,01 (+,-,+,-)
+    #   BBB: +3%, +3%, +1%, +1% -> ortalama 0,02, sapmalar +-0,01 (+,+,-,-)
+    # Sapma vektörleri dik -> örneklem kovaryansı 0; varyanslar eşit (0,0001) ->
+    # örneklem matrisi Ledoit-Wolf hedefi (mu * I) ile aynı, büzülme matrisi değiştirmez.
+    # Yıllık beklenen getiri = günlük basit ortalama x 252:
+    #   AAA = 0,01 x 252 = 2,52   (log ortalaması ile 0,0099 x 252 = 2,495 çıkardı)
+    #   BBB = 0,02 x 252 = 5,04
+    # Yıllık kovaryans = diag(0,0001 x 252) = diag(0,0252).
+    # Eşit ağırlıklı portföy: getiri = 3,78; varyans = 0,25 x 0,0252 x 2 = 0,0126;
+    #   oynaklık = sqrt(0,0126) = 0,1122497...; Sharpe (rf = 0,30) = 3,48 / 0,1122497 = 31,00230...
+    price_df = _prices_from_simple_returns({
+        "AAA": [0.02, 0.00, 0.02, 0.00] * 2,
+        "BBB": [0.03, 0.03, 0.01, 0.01] * 2,
+    })
+
+    mean_returns, cov_matrix = _build_return_model(price_df, trading_days_per_year=252)
+
+    assert mean_returns["AAA"] == pytest.approx(2.52, rel=1e-9)
+    assert mean_returns["BBB"] == pytest.approx(5.04, rel=1e-9)
+    assert cov_matrix.loc["AAA", "AAA"] == pytest.approx(0.0252, rel=1e-9)
+    assert cov_matrix.loc["BBB", "BBB"] == pytest.approx(0.0252, rel=1e-9)
+    assert cov_matrix.loc["AAA", "BBB"] == pytest.approx(0.0, abs=1e-12)
+
+    metrics = _make_service(FakeMarketDataProvider())._calculate_metrics(
+        weights=np.array([0.5, 0.5]),
+        mean_returns=mean_returns.values,
+        cov_matrix=cov_matrix.values,
+        risk_free_rate=0.30,
+    )
+
+    assert metrics.expected_return == pytest.approx(3.78, rel=1e-9)
+    assert metrics.volatility == pytest.approx(0.1122497216, rel=1e-9)
+    assert metrics.sharpe_ratio == pytest.approx(31.0023041, rel=1e-7)
 
 
 class PartialMarketDataProvider(FakeMarketDataProvider):
