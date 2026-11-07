@@ -3,6 +3,8 @@ from datetime import date
 from decimal import Decimal
 from types import SimpleNamespace
 
+from pathlib import Path
+
 import duckdb
 import pandas as pd
 import pytest
@@ -102,24 +104,46 @@ def _delta_frame():
     ]]
 
 
-def test_sync_bridge_writes_new_bars_into_sqlite_via_repositories(tmp_path, sqlite_repos):
-    """Eski ham sqlite3 köprüsü 'NOT NULL constraint failed: daily_prices.id' ile sessizce başarısız oluyordu."""
-    price_repo, stock_repo = sqlite_repos
-    service = MarketDataSyncService(DuckDBMarketHistoryStore(str(tmp_path / "x.duckdb")), price_repo=price_repo, stock_repo=stock_repo)
+def _duck_with(tmp_path, rows: str) -> Path:
+    duck = tmp_path / "m.duckdb"
+    con = duckdb.connect(str(duck))
+    con.execute("CREATE TABLE bist_stocks (ticker VARCHAR PRIMARY KEY, last_date DATE)")
+    con.execute(
+        "CREATE TABLE daily_prices (ticker VARCHAR, price_date DATE, open_price DOUBLE, high_price DOUBLE, "
+        "low_price DOUBLE, close_price DOUBLE, volume BIGINT, PRIMARY KEY (ticker, price_date))"
+    )
+    con.execute(f"INSERT INTO daily_prices VALUES {rows}")
+    con.close()
+    return duck
 
-    assert service._sync_to_sqlite(_delta_frame()) == 2  # portföyde olmayan hisse atlanır
+
+def _sync_service(duck: Path, price_repo, stock_repo):
+    from src.application.services.market_data.price_projection_service import PriceProjectionService
+
+    projection = PriceProjectionService(DuckDBMarketHistoryRepository(str(duck)), price_repo, stock_repo)
+    return MarketDataSyncService(DuckDBMarketHistoryStore(str(duck)), stock_repo=stock_repo, projection=projection)
+
+
+def test_sync_bridge_projects_new_bars_into_sqlite(tmp_path, sqlite_repos):
+    """Yeni DuckDB barları SQLite yansımasına repository üzerinden yazılır (portföyde olmayan hisse atlanır)."""
+    price_repo, stock_repo = sqlite_repos
+    duck = _duck_with(tmp_path, "('ASELS', '2026-03-05', 11.0, 12.0, 10.5, 11.5, 5000), "
+                                "('THYAO', '2026-03-05', NULL, NULL, NULL, 300.0, 7), "
+                                "('YOKHISSE', '2026-03-05', 1, 1, 1, 1.0, 1)")
+    service = _sync_service(duck, price_repo, stock_repo)
+
+    assert service._sync_to_sqlite(_delta_frame()) == 2
 
     asels = price_repo.get_price_series(1, date(2026, 3, 1), date(2026, 3, 31))
     assert [p.close_price for p in asels] == [Decimal("11.5")] and asels[0].high_price == Decimal("12.0")
     thyao = price_repo.get_price_series(2, date(2026, 3, 1), date(2026, 3, 31))
-    assert thyao[0].open_price is None  # NaN -> None
+    assert thyao[0].open_price is None
 
-    # tekrar çalıştırma idempotent: aynı gün güncellenir, çoğalmaz
-    service._sync_to_sqlite(_delta_frame())
+    service._sync_to_sqlite(_delta_frame())  # idempotent: aynı gün güncellenir, çoğalmaz
     assert len(price_repo.get_price_series(1, date(2026, 3, 1), date(2026, 3, 31))) == 1
 
 
-def test_sync_bridge_is_noop_without_repositories(tmp_path):
+def test_sync_bridge_is_noop_without_projection(tmp_path):
     service = MarketDataSyncService(DuckDBMarketHistoryStore(str(tmp_path / "x.duckdb")))
     assert service._sync_to_sqlite(_delta_frame()) == 0
 
@@ -129,40 +153,27 @@ def test_container_exposes_single_duckdb_reader_and_sync_service():
 
     container = AppContainer()
     assert isinstance(container.market_history_repo, DuckDBMarketHistoryRepository)
-    assert container.market_data_sync_service._price_repo is container.price_repo
+    assert container.market_data_sync_service._projection is container.price_projection_service
     assert not hasattr(container, "duckdb_price_repo")
 
 
-def test_reconcile_copies_only_newer_bars_and_never_overwrites_history(tmp_path, sqlite_repos):
+def test_reconcile_makes_sqlite_mirror_duckdb(tmp_path, sqlite_repos):
+    """DuckDB fiyatın sahibidir: SQLite'taki farklı eski değer DuckDB değeriyle değişir, eksik günler eklenir."""
     from src.domain.models.daily_price import DailyPrice
 
     price_repo, stock_repo = sqlite_repos
-    # SQLite'ta (düzeltilmiş) geçmiş: 2 Mart
     price_repo.upsert_daily_prices_bulk([DailyPrice(None, 1, date(2026, 3, 2), Decimal("5.00"))])
+    duck = _duck_with(tmp_path, "('ASELS', '2026-03-02', 9, 9, 9, 10.0, 1), "
+                                "('ASELS', '2026-03-03', 10, 11, 10, 10.5, 2), ('ASELS', '2026-03-04', 10, 12, 10, 11.0, 3), "
+                                "('THYAO', '2026-03-03', 300, 301, 299, 300.5, 4), "
+                                "('VAKFN', '2026-03-03', 1, 1, 1, 1.0, 5)")
+    service = _sync_service(duck, price_repo, stock_repo)
 
-    duck = tmp_path / "m.duckdb"
-    con = duckdb.connect(str(duck))
-    con.execute("CREATE TABLE bist_stocks (ticker VARCHAR PRIMARY KEY, last_date DATE)")
-    con.execute(
-        "CREATE TABLE daily_prices (ticker VARCHAR, price_date DATE, open_price DOUBLE, high_price DOUBLE, "
-        "low_price DOUBLE, close_price DOUBLE, volume BIGINT, PRIMARY KEY (ticker, price_date))"
-    )
-    con.execute(
-        "INSERT INTO daily_prices VALUES "
-        "('ASELS', '2026-03-02', 9, 9, 9, 10.0, 1), "   # ham (düzeltilmemiş) eski bar: ezilmemeli
-        "('ASELS', '2026-03-03', 10, 11, 10, 10.5, 2), ('ASELS', '2026-03-04', 10, 12, 10, 11.0, 3), "
-        "('THYAO', '2026-03-03', 300, 301, 299, 300.5, 4), "
-        "('VAKFN', '2026-03-03', 1, 1, 1, 1.0, 5)"      # portföyde yok
-    )
-    con.close()
-    service = MarketDataSyncService(DuckDBMarketHistoryStore(str(duck)), price_repo=price_repo, stock_repo=stock_repo)
-
-    assert service.reconcile_sqlite_from_duckdb() == 3
+    assert service.reconcile_sqlite_from_duckdb() == 4
 
     asels = {p.price_date: p.close_price for p in price_repo.get_price_series(1, date(2026, 3, 1), date(2026, 3, 31))}
-    assert asels == {date(2026, 3, 2): Decimal("5.00"), date(2026, 3, 3): Decimal("10.5"), date(2026, 3, 4): Decimal("11.0")}
+    assert asels == {date(2026, 3, 2): Decimal("10.0"), date(2026, 3, 3): Decimal("10.5"), date(2026, 3, 4): Decimal("11.0")}
     assert len(price_repo.get_price_series(2, date(2026, 3, 1), date(2026, 3, 31))) == 1
-    assert service.reconcile_sqlite_from_duckdb() == 0  # tekrar: yeni bar yok
 
 
 def test_market_history_bulk_catalog_and_latest_dates(duck_file):

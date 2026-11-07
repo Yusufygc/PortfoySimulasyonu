@@ -282,6 +282,20 @@ class SQLAlchemyPriceRepository(IPriceRepository):
             session.query(ORMDailyPrice).delete()
             commit_or_rollback(session)
 
+    def delete_prices_for_dates(self, stock_id: int, dates: Sequence[date]) -> int:
+        days = sorted(set(dates))
+        if not days:
+            return 0
+        with self._provider.get_session() as session:
+            deleted = (
+                session.query(ORMDailyPrice)
+                .filter(ORMDailyPrice.stock_id == stock_id)
+                .filter(ORMDailyPrice.price_date.in_(days))
+                .delete(synchronize_session=False)
+            )
+            commit_or_rollback(session)
+            return int(deleted or 0)
+
     def delete_prices_in_range(
         self,
         start_date: date,

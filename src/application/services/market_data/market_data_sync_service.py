@@ -14,21 +14,15 @@ import logging
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from decimal import Decimal
 from typing import List, Optional, Sequence
 
 from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
 from src.domain.market_clock import market_now
-from src.domain.models.daily_price import DailyPrice
 from src.domain.models.market_bar import MarketBar
 from src.domain.ports.repositories.i_market_history_store import IMarketBarDownloader, IMarketHistoryStore
 
 logger = logging.getLogger(__name__)
-
-
-def _optional_decimal(value) -> Optional[Decimal]:
-    return None if value is None or value != value else Decimal(str(value))
 
 
 @dataclass(frozen=True)
@@ -64,8 +58,8 @@ class MarketDataSyncService:
     ) -> None:
         """
         store: DuckDB piyasa geçmişi (yazma portu); downloader: dış kaynaktan bar indirme (yoksa indirme yapılmaz).
-        `repos` (hepsi isteğe bağlı): `price_repo` / `stock_repo` verilirse portföyde kayıtlı hisselerin yeni
-        kapanışları SQLite `daily_prices` tablosuna da yazılır; `market_action_service` / `portfolio_action_repo`
+        `repos` (hepsi isteğe bağlı): `projection` (PriceProjectionService) ve `stock_repo` verilirse takip edilen
+        hisselerin SQLite `daily_prices` yansıması güncellenir; `market_action_service` / `portfolio_action_repo`
         verilirse her senkronda portföy kurumsal aksiyonları DuckDB'ye aktarılır ve onaylı olaylar doğrulanır.
         """
         self._store = store
@@ -74,6 +68,7 @@ class MarketDataSyncService:
         self._session = BistMarketSessionService(trading_calendar=self._trading_calendar)
         self._price_repo = repos.pop("price_repo", None)
         self._stock_repo = repos.pop("stock_repo", None)
+        self._projection = repos.pop("projection", None)  # PriceProjectionService: SQLite fiyat yansıması
         self._market_action_service = repos.pop("market_action_service", None)
         self._portfolio_action_repo = repos.pop("portfolio_action_repo", None)
         if repos:
@@ -219,65 +214,36 @@ class MarketDataSyncService:
         )
 
     def reconcile_sqlite_from_duckdb(self) -> int:
-        """DuckDB'de bulunup SQLite `daily_prices`'ta olmayan YENİ barları portföy hisseleri için SQLite'a taşır.
+        """Takip edilen hisselerin SQLite fiyatlarını DuckDB'den (ham + onaylı faktör) yeniden yansıtır.
 
-        Her hisse için yalnızca SQLite'taki son kapanış tarihinden sonraki barlar alınır; mevcut
-        (örneğin sermaye artırımıyla düzeltilmiş) geçmiş barlar asla üzerine yazılmaz.
-        Döndürür: yazılan bar sayısı.
+        DuckDB fiyatın tek sahibidir; SQLite yansımadır (`PriceProjectionService`). Onaylanan/geri alınan kurumsal
+        aksiyonlar ve hayalet bar temizliği böylece her senkronda SQLite'a da yansır. Döndürür: yazılan satır sayısı.
         """
-        if self._price_repo is None or self._stock_repo is None or not self._store.exists():
+        if self._projection is None or not self._store.exists():
             return 0
         try:
-            stocks = [s for s in self._stock_repo.get_all_stocks() if s.id is not None]
-            if not stocks:
-                return 0
-            ticker_by_id = {s.id: (s.ticker or "").replace(".IS", "").strip().upper() for s in stocks}
-            last_dates = self._price_repo.get_latest_price_dates(list(ticker_by_id))
-            floor = min((last_dates.get(sid) for sid in ticker_by_id if last_dates.get(sid)), default=None)
-            bars = self._store.bars_after(floor or date(2000, 1, 1), sorted(set(ticker_by_id.values())))
-            last_by_ticker = {
-                ticker_by_id[sid]: last_dates[sid] for sid in ticker_by_id if last_dates.get(sid)
-            }
-            newer = [bar for bar in bars if bar.price_date > last_by_ticker.get(bar.ticker, date(2000, 1, 1))]
-            return self._sync_to_sqlite(newer)
+            return self._projection.project().written_count
         except Exception as exc:
-            logger.warning("SQLite uzlaştırması başarısız: %s", exc)
+            logger.warning("SQLite fiyat yansıtması başarısız: %s", exc)
             return 0
 
     def _sync_to_sqlite(self, bars: Sequence[MarketBar]) -> int:
-        """SQLite'ta kayıtlı portföy hisselerine de yeni kapanışları repository üzerinden yazar.
+        """Yeni DuckDB barlarının SQLite yansımasını günceller (yalnızca `stocks` tablosundaki hisseler).
 
-        Döndürür: yazılan bar sayısı. Hata, DuckDB güncellemesini bozmaz (yalnızca loglanır).
+        Döndürür: yazılan satır sayısı. Hata, DuckDB güncellemesini bozmaz (yalnızca loglanır).
         """
-        if self._price_repo is None or self._stock_repo is None or not bars:
+        if self._projection is None or self._stock_repo is None or not bars:
             return 0
         try:
-            stock_ids = {
-                (stock.ticker or "").replace(".IS", "").strip().upper(): stock.id
-                for stock in self._stock_repo.get_all_stocks()
-                if stock.id is not None
-            }
-            prices: List[DailyPrice] = []
-            for row in bars:
-                stock_id = stock_ids.get(row.ticker)
-                if stock_id is None or not row.close_price or row.close_price <= 0:
-                    continue
-                prices.append(DailyPrice(
-                    id=None,
-                    stock_id=stock_id,
-                    price_date=row.price_date,
-                    close_price=Decimal(str(row.close_price)),
-                    currency_code="TRY",
-                    source="market_sync",
-                    open_price=_optional_decimal(row.open_price),
-                    high_price=_optional_decimal(row.high_price),
-                    low_price=_optional_decimal(row.low_price),
-                    volume=row.volume,
-                ))
-            if prices:
-                self._price_repo.upsert_daily_prices_bulk(prices)
-                logger.info("SQLite senkronizasyonu: %d satır güncellendi.", len(prices))
-            return len(prices)
+            tickers = {bar.ticker for bar in bars}
+            stock_ids = [
+                stock.id for stock in self._stock_repo.get_all_stocks()
+                if stock.id is not None and (stock.ticker or "").replace(".IS", "").strip().upper() in tickers
+            ]
+            if not stock_ids:
+                return 0
+            start, end = min(b.price_date for b in bars), max(b.price_date for b in bars)
+            return self._projection.project(stock_ids, start, end).written_count
         except Exception as exc:
-            logger.warning("SQLite senkronizasyon köprüsü hatası: %s", exc)
+            logger.warning("SQLite fiyat yansıtması başarısız: %s", exc)
             return 0

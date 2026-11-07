@@ -169,6 +169,10 @@ class IPriceRepository(ABC):
         """
         raise NotImplementedError
 
+    def delete_prices_for_dates(self, stock_id: int, dates: Sequence[date]) -> int:
+        """Bir hissenin verilen günlerdeki fiyat kayıtlarını siler (fiyat yansıtması). Silinen kayıt sayısı."""
+        raise NotImplementedError
+
     @abstractmethod
     def delete_prices_in_range(
         self,

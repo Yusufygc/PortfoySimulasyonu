@@ -12,11 +12,12 @@ from src.application.container_parts.features import (
     news,
     planning,
     portfolio,
+    prices,
     reporting,
 )
 from src.application.container_parts.features._context import BuildContext, ServiceRegistry, build_features
 
-FEATURES = (portfolio, reporting, corporate_actions, market, planning, analysis, assets, news)
+FEATURES = (portfolio, prices, reporting, corporate_actions, market, planning, analysis, assets, news)
 
 
 def service_names() -> tuple:

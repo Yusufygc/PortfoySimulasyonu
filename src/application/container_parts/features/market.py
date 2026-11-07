@@ -57,7 +57,7 @@ def build(ctx: BuildContext) -> dict:
         "market_indicators_service": MarketIndicatorsService(indicator_provider) if indicator_provider is not None else None,
         "market_data_sync_service": MarketDataSyncService(
             r.market_history_store, getattr(m, "market_bar_downloader", None), trading_calendar=m.trading_calendar,
-            price_repo=r.price_repo, stock_repo=r.stock_repo,
+            stock_repo=r.stock_repo, projection=ctx.services["price_projection_service"],
             market_action_service=ctx.services["market_corporate_action_service"],
             portfolio_action_repo=r.corporate_action_repo,
         ),
