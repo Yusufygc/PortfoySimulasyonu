@@ -74,7 +74,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | `controllers/` ayrıştırılan parçalar | `model_portfolio_valuation`, `model_portfolio_export`, `planning_dca_chart`, `planning_months` (Qt'siz yardımcılar); `stock_360_state`, `stock_detail_loader`, `stock_detail_actions` (denetleyiciye karışan mixin'ler). |
 | `controllers/cash_pool_controller.py`, `fee_settings_controller.py` | Ortak nakit havuzu ve Döviz Al/Sat (`cashPoolController`), Ayarlar > Ücretler (`feeSettingsController`). |
 | `presenters/` | Qt'siz sunum yardımcıları: `formatting.py` (`tr_number`, `tr_money`, `tr_pct`, `tr_number_or_dash`: tek Türkçe sayı biçimleyici), `portfolio_presenter.py` (Portföyüm satır/dilim sözlükleri). |
-| `messages.py` | Python tarafı kullanıcı metin kataloğu (`MESSAGES`, `msg(anahtar, **parametre)`); denetleyiciler metin yazmaz. |
+| `messages/` | Python tarafı kullanıcı metin kataloğu: anahtar önekine göre özellik modülleri (`portfolio`, `market`, `stock`, `model_portfolio`, `analysis`, `advisor`, `shell`); `__init__.py` birleştirir (`MESSAGES`, `msg(anahtar, **parametre)`), aynı anahtar iki modülde olursa içe aktarma hata verir. Denetleyiciler metin yazmaz. |
 | `last_update_store.py` | Son fiyat güncelleme zamanı ve dönemsel getirilerin `QSettings`'te saklanması. |
 | `qml/Main.qml` | Ana pencere, kenar çubuğu, sayfa yükleyiciler (lazy `Loader`). |
 | `qml/views/` | 11 sayfa görünümü. |
