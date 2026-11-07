@@ -1,4 +1,5 @@
-"""SplitApplier: gerçek SQLite repository'leriyle defter + fiyat geçmişi + kurumsal aksiyon kaydı."""
+"""SplitApplier: gerçek SQLite repository'leriyle defter + kurumsal aksiyon kaydı; fiyat geçmişi DuckDB'den
+(sahte okuyucu) PriceProjectionService ile yansıtılır."""
 from datetime import date, time, timedelta
 from decimal import Decimal as D
 from types import SimpleNamespace as NS
@@ -7,6 +8,7 @@ import pytest
 
 from src.application.services.corporate_actions.split_applier import SplitApplier, SplitApplierDeps
 from src.domain.models.daily_price import DailyPrice
+from src.domain.models.market_bar import MarketBar
 from src.domain.models.market_corporate_action import MarketActionStatus
 from src.domain.models.split_event import SplitEventStatus, SplitLedger
 from src.domain.models.split_signal import SplitDecision, SplitDecisionKind
@@ -60,10 +62,29 @@ def _prices(provider, before, after):
     SQLAlchemyPriceRepository(provider).upsert_daily_prices_bulk(rows)
 
 
-def _applier(provider, market=None):
+class FakeHistory:
+    """DuckDB düzeltilmiş seri (doğru kaynak): ex-date öncesi 23, sonrası 23,9 (Yahoo bölünmeyi geçmişe uygulamış)."""
+
+    def __init__(self, before="23", after="23.9"):
+        days = [EX + timedelta(days=i) for i in range(-6, 6)]
+        self.bars = [MarketBar("SDTTR", d, float(before if d < EX else after), volume=1000) for d in days]
+
+    def get_price_series_bulk(self, tickers, start, end, adjusted=True):
+        return {"SDTTR": [b for b in self.bars if start <= b.price_date <= end]} if "SDTTR" in tickers else {}
+
+    def get_last_bars(self, ticker, count=2, adjusted=True):
+        return self.bars[-count:]
+
+
+def _applier(provider, market=None, history=None):
+    from src.application.services.market_data.price_projection_service import PriceProjectionService
+    from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
+
+    prices = SQLAlchemyPriceRepository(provider)
+    projection = PriceProjectionService(history or FakeHistory(), prices, SQLAlchemyStockRepository(provider))
     return SplitApplier(SplitApplierDeps(
-        SQLAlchemySplitLedgerRepository(provider), SQLAlchemyPriceRepository(provider),
-        SQLAlchemyCorporateActionRepository(provider), market,
+        SQLAlchemySplitLedgerRepository(provider), prices, SQLAlchemyCorporateActionRepository(provider), market,
+        projection,
     ))
 
 
@@ -94,11 +115,11 @@ def test_sdttr_model_trade_and_unadjusted_prices_are_fixed(provider):
         assert (trade.quantity, trade.price) == (715, D("22.0000"))
     assert event.status == SplitEventStatus.APPLIED and event.auto_applied
     assert event.cash_entries == ()                                  # 65 x 11 tam sayı: küsurat yok
-    assert event.price_adjusted_before == EX and event.price_adjustment_count == 6
-    assert _close(provider, EX - timedelta(days=1)) == D("23")      # 253 / 11
-    assert _close(provider, EX) == D("23.9")                        # ex-date sonrası dokunulmaz
+    assert event.price_adjusted_before == EX and event.price_adjustment_count == 12  # 12 gün DuckDB'den yazıldı
+    assert _close(provider, EX - timedelta(days=1)) == D("23")      # eski 253 ham değer DuckDB'nin 23'ü oldu
+    assert _close(provider, EX) == D("23.9")
     action = SQLAlchemyCorporateActionRepository(provider).get_by_id(event.corporate_action_id)
-    assert action.applied and action.ratio == D("10") and action.price_adjustment_count == 6
+    assert action.applied and action.ratio == D("10") and action.price_adjustment_count == 12
     assert market.registered and event.market_effective_date == EX
 
 
@@ -108,8 +129,8 @@ def test_already_consistent_prices_are_not_adjusted_twice(provider):
 
     event = _applier(provider, FakeMarket(MarketActionStatus.NO_BREAK)).apply(_decision(), TARGET, auto_applied=True)
 
-    assert event.price_adjusted_before is None and event.price_adjustment_count == 0
-    assert _close(provider, EX - timedelta(days=1)) == D("23")
+    assert event.price_adjusted_before is None                      # NO_BREAK: DuckDB'ye faktör eklenmedi
+    assert _close(provider, EX - timedelta(days=1)) == D("23")      # çift düzeltme yok (23 / 11 değil)
     assert event.market_effective_date is None
 
 
@@ -142,7 +163,7 @@ def test_revert_restores_trades_prices_and_records(provider):
     assert reverted.status == SplitEventStatus.REVERTED
     with provider.get_session() as s:
         assert (s.get(ORMModelPortfolioTrade, 34).quantity, s.get(ORMModelPortfolioTrade, 34).price) == (65, D("242"))
-    assert _close(provider, EX - timedelta(days=1)) == D("253")
+    assert _close(provider, EX - timedelta(days=1)) == D("23")      # fiyatlar DuckDB'yi yansıtır (eski bozuk 253 değil)
     assert SQLAlchemyCorporateActionRepository(provider).get_by_id(event.corporate_action_id) is None
     assert market.ignored == [("SDTTR", EX, MarketActionStatus.IGNORED)]
 
@@ -166,10 +187,11 @@ def test_price_sync_failure_keeps_trade_changes(provider, caplog):
         assert s.get(ORMModelPortfolioTrade, 34).quantity == 715
     assert event.status == SplitEventStatus.APPLIED
     assert "fiyat geçmişi eşitlenemedi" in caplog.text
-    # fiyat düzeltmesi kayda geçti: geri alma fiyatları da geri çevirir
-    assert event.price_adjusted_before == EX and event.price_adjustment_count == 6
+    # kurumsal aksiyon kaydı olaya bağlandı: geri alma işlemleri ve kaydı yine temizler
+    assert event.corporate_action_id is not None
     _applier(provider, FakeMarket()).revert(event.id)
-    assert _close(provider, EX - timedelta(days=1)) == D("253")
+    with provider.get_session() as s:
+        assert s.get(ORMModelPortfolioTrade, 34).quantity == 65
 
 
 # ----------------------------------------------------------------- kullanıcının kaydettiği bedelsiz
@@ -202,7 +224,7 @@ def test_manual_bedelsiz_adjusts_main_and_model_portfolios(provider):
 
     assert (result.shares_before, result.new_shares, result.shares_after) == (10, 100, 110)
     assert result.avg_cost_after == D("22.7273")  # 250 / 11, işlem fiyatı 4 haneye yuvarlanır
-    assert result.price_adjustment_count == 6
+    assert result.price_adjustment_count == 12
     with provider.get_session() as s:
         assert s.get(ORMModelPortfolioTrade, 34).quantity == 715      # model portföy de düzeltildi
         assert s.get(ORMTrade, 1).original_quantity == 10

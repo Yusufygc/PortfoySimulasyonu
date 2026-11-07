@@ -33,11 +33,11 @@ PROVIDES = (
 )
 
 
-def _split_applier(r, market_action_service) -> SplitApplier:
+def _split_applier(r, market_action_service, projection) -> SplitApplier:
     """Tek uygulayıcı: otomatik bölünme ve kullanıcının onayladığı bedelsiz aynı yoldan uygulanır."""
     return SplitApplier(SplitApplierDeps(
-        ledger_repo=r.split_ledger_repo, price_repo=r.price_repo,
-        corporate_action_repo=r.corporate_action_repo, market_action_service=market_action_service,
+        ledger_repo=r.split_ledger_repo, price_repo=r.price_repo, corporate_action_repo=r.corporate_action_repo,
+        market_action_service=market_action_service, projection=projection,
     ))
 
 
@@ -59,11 +59,12 @@ def _split_automation(r, applier: SplitApplier) -> SplitAutomationService:
 def build(ctx: BuildContext) -> dict:
     r = ctx.repositories
     market_action_service = MarketCorporateActionService(history_repo=r.market_history_repo, action_repo=r.market_action_repo)
+    projection = ctx.services["price_projection_service"]
     price_adjustment = CorporateActionPriceAdjustmentService(
         action_repo=r.corporate_action_repo, price_repo=r.price_repo, stock_repo=r.stock_repo,
-        market_action_service=market_action_service,
+        market_action_service=market_action_service, projection=projection,
     )
-    applier = _split_applier(r, market_action_service)
+    applier = _split_applier(r, market_action_service, projection)
     ctx.internal["split_applier"] = applier
     corporate_action_service = CorporateActionService(
         action_repo=r.corporate_action_repo, portfolio_repo=r.portfolio_repo,

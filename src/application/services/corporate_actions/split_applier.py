@@ -3,10 +3,10 @@
 Sıra:
 1. Ana portföy, model portföy ve varlık defteri işlemleri `allocate_split` ile yeniden hesaplanır; küsurat lotlar
    ex-date sonrası ilk kapanışla nakde çevrilir. Hepsi `ISplitLedgerRepository.apply` ile tek işlemde yazılır.
-2. BIST hissesinde SQLite fiyat geçmişi yalnızca seri bölünme kırılmasını gerçekten gösteriyorsa düzeltilir;
-   Yahoo geçmişi zaten düzelttiyse (kırılma yok) fiyatlara dokunulmaz, böylece çift düzeltme olmaz.
-3. Olay `corporate_actions` tablosuna uygulanmış bedelsiz olarak, DuckDB'ye portföy olayı olarak kaydedilir
-   (mevcut aday eleme ve piyasa geçmişi düzeltmesi aynı kaydı görür).
+2. Olay `corporate_actions` tablosuna uygulanmış bedelsiz olarak, DuckDB'ye portföy olayı olarak kaydedilir.
+   DuckDB ham seride kırılma varsa olay ONAYLI faktör olur; Yahoo geçmişi zaten düzelttiyse NO_BREAK (faktör yok).
+3. BIST hissesinin SQLite fiyatları DuckDB'den yeniden yansıtılır (`PriceProjectionService`); SQLite doğrudan
+   çarpılmaz, böylece çift düzeltme olmaz.
 Fiyat adımı başarısız olsa bile işlem düzeltmesi geri alınmaz (işlemler doğrudur); hata loglanır.
 """
 from __future__ import annotations
@@ -31,13 +31,11 @@ from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActi
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_split_ledger_repo import ISplitLedgerRepository
 from src.domain.ports.services.i_split_signal_provider import SplitTarget
-from src.domain.split_detection import persistent_breaks
 from src.domain.split_math import allocate_split
 
 logger = logging.getLogger(__name__)
 
 _PRICE_WINDOW_DAYS = 15
-_BREAK_MATCH_TOLERANCE = Decimal("0.15")
 
 
 class SplitApplierDeps(NamedTuple):
@@ -45,6 +43,7 @@ class SplitApplierDeps(NamedTuple):
     price_repo: IPriceRepository
     corporate_action_repo: ICorporateActionRepository
     market_action_service: object = None  # MarketCorporateActionService; yoksa DuckDB kaydı atlanır
+    projection: object = None             # PriceProjectionService; yoksa SQLite fiyat yansıması yenilenmez
 
 
 def plan_changes(
@@ -67,20 +66,13 @@ def plan_changes(
     return tuple(changes), tuple(cash)
 
 
-def _matching_break(closes, expected: Decimal) -> Optional[date]:
-    """SQLite serisinde bölünme çarpanına (±%15) uyan kalıcı kırılmanın günü."""
-    for point_date, multiplier in persistent_breaks(closes):
-        if abs(Decimal(str(multiplier)) / expected - 1) <= _BREAK_MATCH_TOLERANCE:
-            return point_date
-    return None
-
-
 class SplitApplier:
     def __init__(self, deps: SplitApplierDeps) -> None:
         self._ledger = deps.ledger_repo
         self._prices = deps.price_repo
         self._actions = deps.corporate_action_repo
         self._market = deps.market_action_service
+        self._projection = deps.projection
 
     # ---- uygula ------------------------------------------------------------------------
     def apply(
@@ -120,26 +112,20 @@ class SplitApplier:
     def _sync_bist_history(self, event: SplitEvent, target: SplitTarget, existing_action=None) -> None:
         # Her adım tamamlanır tamamlanmaz kayda geçer: sonraki adım düşse bile geri alma neyi geri çevireceğini bilir.
         try:
-            before_date, count = self._adjust_sqlite_prices(event)
-            self._ledger.record_price_adjustment(event.id, before_date, count, None)
-            action = self._register_corporate_action(event, count, existing_action)
+            action = self._register_corporate_action(event, 0, existing_action)
             effective = self._register_market_action(target, action)
-            if effective is not None:
-                self._ledger.record_price_adjustment(event.id, before_date, count, effective)
-        except Exception as exc:  # işlemler doğru; fiyat geçmişi sonra yeniden kurulabilir
+            self._ledger.record_price_adjustment(event.id, effective, 0, effective)
+            count = self._project(event.stock_id)
+            self._actions.mark_prices_adjusted(action.id, Decimal("1") / event.multiplier, count)
+            self._ledger.record_price_adjustment(event.id, effective, count, effective)
+        except Exception as exc:  # işlemler doğru; fiyat geçmişi sonraki senkronda yeniden yansıtılır
             logger.warning("Bölünme fiyat geçmişi eşitlenemedi (%s %s): %s", event.ticker, event.ex_date, exc,
                            exc_info=True)
 
-    def _adjust_sqlite_prices(self, event: SplitEvent) -> Tuple[Optional[date], int]:
-        window = timedelta(days=_PRICE_WINDOW_DAYS)
-        series = self._prices.get_price_series(event.stock_id, event.ex_date - window, event.ex_date + window)
-        closes = [(p.price_date, float(p.close_price)) for p in series]
-        before_date = _matching_break(closes, event.multiplier)
-        if before_date is None:
-            logger.info("%s fiyat geçmişi bölünmeye göre zaten tutarlı; fiyatlar değişmedi", event.ticker)
-            return None, 0
-        count = self._prices.adjust_prices_before_date(event.stock_id, before_date, Decimal("1") / event.multiplier)
-        return before_date, count
+    def _project(self, stock_id: int) -> int:
+        if self._projection is None:
+            return 0
+        return self._projection.project([stock_id]).written_count
 
     def _register_corporate_action(self, event: SplitEvent, adjusted_count: int, existing=None) -> CorporateAction:
         action = existing or self._actions.insert(CorporateAction.create_bedelsiz(
@@ -163,12 +149,12 @@ class SplitApplier:
     # ---- geri al -----------------------------------------------------------------------
     def revert(self, event_id: int) -> SplitEvent:
         event = self._ledger.revert(event_id)  # çakışmada istisna: fiyatlara dokunulmaz
-        if event.stock_id is not None and event.price_adjusted_before and event.price_adjustment_count:
-            self._prices.adjust_prices_before_date(event.stock_id, event.price_adjusted_before, event.multiplier)
         if self._market is not None and event.market_effective_date:
             self._market.set_status(event.ticker, event.market_effective_date, MarketActionStatus.IGNORED)
         if event.corporate_action_id is not None:
             self._actions.delete(event.corporate_action_id)
+        if event.stock_id is not None:
+            self._project(event.stock_id)  # faktör kalktı: SQLite yansıması DuckDB'ye göre yenilenir
         return event
 
 
