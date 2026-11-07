@@ -99,6 +99,10 @@ SCENARIOS = {
 }
 
 
+# Bağımlılık tutucu (eski `_container`, yeni `_deps` ServiceView) davranış değil, karşılaştırma dışı
+_DEPENDENCY_HOLDERS = ("_container", "_deps")
+
+
 def run_scenario(name: str) -> dict:
     make_container, ticker = SCENARIOS[name]
     controller = Stock360Controller(container=make_container())
@@ -109,7 +113,7 @@ def run_scenario(name: str) -> dict:
 
     today = date.today().strftime("%d.%m.%Y")
     state = {k: (TODAY_PLACEHOLDER if v == today else v) for k, v in vars(controller).items()
-             if isinstance(v, (str, int, float, bool, type(None)))}
+             if isinstance(v, (str, int, float, bool, type(None))) and k not in _DEPENDENCY_HOLDERS}
     return {"state": state, "overview_changed_emits": len(emitted)}
 
 
@@ -117,5 +121,6 @@ def run_scenario(name: str) -> dict:
 def test_local_overview_and_technical_is_unchanged(name):
     golden = json.loads(GOLDEN_PATH.read_text(encoding="utf-8"))
 
-    expected = {**golden[name], "state": {k: (TODAY_PLACEHOLDER if v == GOLDEN_DAY else v) for k, v in golden[name]["state"].items()}}
+    expected = {**golden[name], "state": {k: (TODAY_PLACEHOLDER if v == GOLDEN_DAY else v)
+                                          for k, v in golden[name]["state"].items() if k not in _DEPENDENCY_HOLDERS}}
     assert json.loads(json.dumps(run_scenario(name))) == expected

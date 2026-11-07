@@ -38,6 +38,15 @@ def _container_request(node: ast.AST) -> str | None:
     return name.value if isinstance(name, ast.Constant) and isinstance(name.value, str) else None
 
 
+def _declared_requires(node: ast.AST) -> list[str]:
+    """Denetleyici sınıfındaki `REQUIRES = ("ad", ...)` bildirimi (ServiceView ile okunan servisler)."""
+    if not (isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "REQUIRES" for t in node.targets)):
+        return []
+    if not isinstance(node.value, ast.Tuple):
+        return []
+    return [e.value for e in node.value.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+
+
 def _requested_names() -> dict[str, list[str]]:
     requested: dict[str, list[str]] = {}
     for path in (ROOT / "src").rglob("*.py"):
@@ -45,8 +54,9 @@ def _requested_names() -> dict[str, list[str]]:
             continue
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             name = _container_request(node)
-            if name is not None:
-                requested.setdefault(name, []).append(f"{path.relative_to(ROOT).as_posix()}:{node.lineno}")
+            names = [name] if name is not None else _declared_requires(node)
+            for item in names:
+                requested.setdefault(item, []).append(f"{path.relative_to(ROOT).as_posix()}:{node.lineno}")
     return requested
 
 

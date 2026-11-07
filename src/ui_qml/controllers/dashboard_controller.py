@@ -15,6 +15,7 @@ from typing import Any, List, Optional
 from PySide6.QtCore import QObject, Signal, Property, Slot
 from src.ui_qml.last_update_store import LastUpdateStore, format_return_pct
 from src.domain.market_clock import market_time, market_today
+from src.ui_qml.controllers.deps import ServiceView
 from src.ui_qml.messages import msg
 from src.ui_qml.presenters.formatting import tr_number
 
@@ -41,6 +42,10 @@ class DashboardController(QObject):
     kartları (Tüm Varlıklar TWR'si: `UnifiedReturnService`), grafik hızlı seçicisinin portföy hisseleri ve tarihsel Excel
     raporunu sunar.
     """
+    REQUIRES = (
+        "cash_movement_service", "current_price_resolver", "excel_export_service", "portfolio_service",
+        "stock_lookup_service", "trade_entry_service", "unified_return_service",
+    )
 
     kpisChanged = Signal()
     tradeExecuted = Signal(bool, str)   # success, message
@@ -54,7 +59,7 @@ class DashboardController(QObject):
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
-        self._container = container
+        self._deps = ServiceView(container, self.REQUIRES)
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="DashboardWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
         self._asyncTradeFinished.connect(self._on_trade_finished)
@@ -106,8 +111,8 @@ class DashboardController(QObject):
     # --- Veri Yükleme (değerleme yok: yalnızca nakit ve açık pozisyon kodları) ---
 
     def _load_portfolio_data(self) -> None:
-        portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
-        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        portfolio_service = self._deps.portfolio_service
+        lookup = self._deps.stock_lookup_service
         if portfolio_service is None:
             return
         try:
@@ -134,7 +139,7 @@ class DashboardController(QObject):
         self._reload_returns()
 
     def _reload_returns(self) -> None:
-        service = getattr(self._container, "unified_return_service", None) if self._container else None
+        service = self._deps.unified_return_service
         if service is not None:
             self._executor.submit(self._compute_returns_worker, service)
 
@@ -157,7 +162,7 @@ class DashboardController(QObject):
         """Hisse kodu için kayıtlı şirket adı ve son bilinen fiyatı (DB'den, ağ çağrısı yapmadan) döndürür."""
         clean = (ticker or "").replace(".IS", "").strip().upper()
         result = {"found": False, "ticker": clean, "name": "", "price": 0.0}
-        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        lookup = self._deps.stock_lookup_service
         if not clean or lookup is None:
             return result
         try:
@@ -165,7 +170,7 @@ class DashboardController(QObject):
             if stock is None:
                 return result
             result.update({"found": True, "name": (stock.name or clean).replace(".IS", "").strip()})
-            resolver = getattr(self._container, "current_price_resolver", None)
+            resolver = self._deps.current_price_resolver
             price = resolver.price_map([stock.id]).get(stock.id) if resolver is not None else None
             if price:
                 result["price"] = float(price)
@@ -217,7 +222,7 @@ class DashboardController(QObject):
             self.tradeExecuted.emit(False, msg("dashboard.gecersiz_islem_parametreleri"))
             return
 
-        if not (self._container and hasattr(self._container, "trade_entry_service")):
+        if not (self._deps.trade_entry_service is not None):
             self.tradeExecuted.emit(False, msg("dashboard.islem_servisi_kullanilamiyor"))
             return
         if self._trade_pending:
@@ -242,7 +247,7 @@ class DashboardController(QObject):
     def _submit_trade_worker(self, req, done_text: str) -> None:
         """İşlemi arka planda kaydeder (SQLite yazma kilidi beklerken arayüz donmaz)."""
         try:
-            self._container.trade_entry_service.submit_trade(req)
+            self._deps.trade_entry_service.submit_trade(req)
         except Exception as exc:
             logger.warning("TradeEntryService ile işlem kaydedilemedi: %s", exc, exc_info=not isinstance(exc, ValueError))
             # ValueError: kullanıcıya yönelik doğrulama iletisi; diğer istisna metinleri (SQL, yol) arayüze sızdırılmaz
@@ -265,13 +270,13 @@ class DashboardController(QObject):
 
         dec_amount = Decimal(str(amount))
 
-        if self._container and hasattr(self._container, "cash_movement_service"):
+        if self._deps.cash_movement_service is not None:
             try:
                 if action.upper() == "DEPOSIT":
-                    self._container.cash_movement_service.add_deposit(dec_amount, notes=note or msg("dashboard.qml_sermaye_girisi"))
+                    self._deps.cash_movement_service.add_deposit(dec_amount, notes=note or msg("dashboard.qml_sermaye_girisi"))
                     text = msg("dashboard.nakit_portfoye_yatirildi", dec_amount=tr_number(dec_amount))
                 else:
-                    self._container.cash_movement_service.add_withdraw(dec_amount, notes=note or msg("dashboard.qml_sermaye_cikisi"))
+                    self._deps.cash_movement_service.add_withdraw(dec_amount, notes=note or msg("dashboard.qml_sermaye_cikisi"))
                     text = msg("dashboard.nakit_portfoyden_cekildi", dec_amount=tr_number(dec_amount))
                 self._load_portfolio_data()
                 self.capitalUpdated.emit(True, text)
@@ -290,7 +295,7 @@ class DashboardController(QObject):
     @Slot(result=str)
     def firstTradeDateText(self) -> str:
         """Rapor aralığı için varsayılan başlangıç: ilk işlem tarihi (GG.AA.YYYY), yoksa boş."""
-        service = getattr(self._container, "portfolio_service", None) if self._container else None
+        service = self._deps.portfolio_service
         try:
             first = service.get_first_trade_date() if service else None
         except Exception:
@@ -345,8 +350,8 @@ class DashboardController(QObject):
             s_date = date.fromisoformat(start_date_str) if start_date_str else None
             e_date = date.fromisoformat(end_date_str) if end_date_str else market_today()
 
-            portfolio_service = getattr(self._container, "portfolio_service", None) if self._container else None
-            excel_service = getattr(self._container, "excel_export_service", None) if self._container else None
+            portfolio_service = self._deps.portfolio_service
+            excel_service = self._deps.excel_export_service
 
             if s_date is None and portfolio_service:
                 s_date = portfolio_service.get_first_trade_date()

@@ -13,6 +13,7 @@ from typing import Any, Dict, List
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from src.domain.models.split_event import SplitEvent, SplitEventStatus
+from src.ui_qml.controllers.deps import ServiceView
 from src.ui_qml.messages import msg
 from src.ui_qml.presenters.formatting import tr_number
 
@@ -54,6 +55,7 @@ def split_event_row(event: SplitEvent) -> Dict[str, Any]:
 
 
 class SplitEventsController(QObject):
+    REQUIRES = ("split_automation_service",)
     eventsChanged = Signal()
     busyChanged = Signal()
     autoApplyChanged = Signal()
@@ -64,7 +66,7 @@ class SplitEventsController(QObject):
 
     def __init__(self, container=None, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self._container = container
+        self._deps = ServiceView(container, self.REQUIRES)
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._events: List[Dict[str, Any]] = []
         self._busy = False
@@ -72,7 +74,7 @@ class SplitEventsController(QObject):
 
     @property
     def _service(self):
-        return getattr(self._container, "split_automation_service", None) if self._container else None
+        return self._deps.split_automation_service
 
     # ------------------------------------------------------------------ özellikler
     @Property("QVariantList", notify=eventsChanged)

@@ -26,6 +26,7 @@ from src.ui_qml.messages import msg
 from src.ui_qml.presenters.formatting import tr_number, tr_pct
 from src.ui_qml.controllers.stock_detail_actions import StockDetailActionsMixin
 from src.ui_qml.controllers.stock_detail_loader import StockDetailLoaderMixin
+from src.ui_qml.controllers.deps import ServiceView
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,12 @@ def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
 
 
 class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QObject):
+    # denetleyici + yükleyici (stock_detail_loader) + eylemler (stock_detail_actions) mixin'lerinin bağımlılıkları
     """QML StockDetailModal / StockDetailView için ViewModel denetleyicisi."""
+    REQUIRES = (
+        "corporate_action_service", "excel_formatter", "model_portfolio_service", "portfolio_service",
+        "position_query_service", "stock_lookup_service", "trade_entry_service",
+    )
 
     # QML Property Değişim Sinyalleri
     stockChanged = Signal()
@@ -76,7 +82,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
 
     def __init__(self, container=None, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
-        self._container = container
+        self._deps = ServiceView(container, self.REQUIRES)
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="StockDetailWorker")
 
         # Durum Değişkenleri
@@ -261,7 +267,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
         trade_side = TradeSide.BUY if side.upper() in ("BUY", "ALIM") else TradeSide.SELL
         cash = None if self._cash is None else Decimal(str(self._cash))
         unit_price = Decimal(str(price or 0))
-        entry = getattr(self._container, "trade_entry_service", None) if self._container else None
+        entry = self._deps.trade_entry_service
         fee = entry.estimate_fee(max(0, int(quantity)), unit_price) if entry is not None and unit_price > 0 and quantity > 0 else Decimal("0")
         impact = preview_order(OrderSpec(trade_side, quantity, unit_price, fee), int(self._quantity), Decimal(str(self._avg_cost)), cash)
         reasons = {INSUFFICIENT_CASH: msg("stock_detail.insufficient_cash"), INSUFFICIENT_LOTS: msg("stock_detail.insufficient_lots")}

@@ -13,6 +13,7 @@ from PySide6.QtCore import QObject, Signal, Slot, Property
 
 from src.domain.constants.bist_tickers import BIST_TICKERS
 from src.ui_qml.controllers.chart_indicators import calculate_indicators
+from src.ui_qml.controllers.deps import ServiceView
 from src.ui_qml.controllers.chart_candle_sources import (
     demo_candles,
     last_price_summary,
@@ -29,6 +30,7 @@ _MARKET_TICKER_COUNT = 24
 
 
 class ChartController(QObject):
+    REQUIRES = ("asset_chart_service", "current_price_resolver", "portfolio_service", "stock_lookup_service")
     chartDataLoaded = Signal(str, str)  # ticker, json_payload
     tickerChanged = Signal(str)
     timeframeChanged = Signal(str)
@@ -40,7 +42,7 @@ class ChartController(QObject):
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
-        self._container = container
+        self._deps = ServiceView(container, self.REQUIRES)
         self._market_tickers: list[str] = self._pick_market_tickers()
         self._current_ticker: str = "THYAO"
         self._current_timeframe: str = "1D"
@@ -56,13 +58,11 @@ class ChartController(QObject):
         self._average_cost_ticker: str = ""
 
         # Eğer portföyde hisseler varsa ilk hisseyi varsayılan grafik yap
-        if self._container:
+        if self._deps.available:
             try:
-                port_service = getattr(self._container, "portfolio_service", None)
-                if not port_service and hasattr(self._container, "services"):
-                    port_service = getattr(self._container.services, "portfolio_service", None)
+                port_service = self._deps.portfolio_service  # ServiceView container.services'e de bakar
 
-                lookup = getattr(self._container, "stock_lookup_service", None)
+                lookup = self._deps.stock_lookup_service
                 if port_service and lookup:
                     port = port_service.get_current_portfolio()
                     if port and port.active_positions:
@@ -119,7 +119,7 @@ class ChartController(QObject):
         self.marketTickersChanged.emit()
 
     def _pick_market_tickers(self) -> list[str]:
-        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        lookup = self._deps.stock_lookup_service
         try:
             universe = [str(t) for t in lookup.list_market_tickers()] if lookup is not None else []
         except Exception as exc:
@@ -131,7 +131,7 @@ class ChartController(QObject):
     @Property(list, notify=assetsChanged)
     def quickAssets(self) -> list[dict[str, str]]:
         """Grafik hızlı seçicisi için varlık defterindeki BIST dışı semboller: [{ticker, label}]."""
-        service = getattr(self._container, "asset_chart_service", None) if self._container else None
+        service = self._deps.asset_chart_service
         if service is None:
             return []
         try:
@@ -170,7 +170,7 @@ class ChartController(QObject):
     @Slot()
     def reloadCurrent(self) -> None:
         """Fiyatlar veritabanında değişti (`PriceRefreshController.pricesChanged`): grafik, fiyat ve göstergeler yeniden okunur."""
-        if self._container is not None:
+        if self._deps.available:
             self._fetch_and_emit_chart_data(self._current_ticker)
 
     @Slot()
@@ -220,17 +220,17 @@ class ChartController(QObject):
     def _load_candles(self, ticker: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
         """Mum kaynağı sırası: DuckDB piyasa geçmişi, SQLite fiyatları; demo yalnızca konteynersiz modda."""
         self._price_currency = "TRY"
-        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        lookup = self._deps.stock_lookup_service
         if lookup is not None:
             loaded = load_market_history_candles(lookup, ticker)
             if loaded:
                 return loaded
-        if self._container:
+        if self._deps.available:
             loaded = load_price_series_candles(lookup, ticker)
             if loaded[0]:
                 return loaded
             # BIST'te bulunamadı: Portföyüm varlık defterindeki (kripto, emtia, ABD hissesi) sembol mü?
-            asset = load_asset_candles(getattr(self._container, "asset_chart_service", None), ticker)
+            asset = load_asset_candles(self._deps.asset_chart_service, ticker)
             if asset is not None:
                 candles, volumes, name, self._price_currency = asset
                 return candles, volumes, name
@@ -248,8 +248,8 @@ class ChartController(QObject):
 
     def _live_price(self, ticker: str):
         """Canlı fiyat önbelleği geçerliyse (CurrentPriceResolver kuralı) çözülmüş fiyat, değilse `None`."""
-        resolver = getattr(self._container, "current_price_resolver", None) if self._container else None
-        lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+        resolver = self._deps.current_price_resolver
+        lookup = self._deps.stock_lookup_service
         if resolver is None or lookup is None:
             return None
         try:

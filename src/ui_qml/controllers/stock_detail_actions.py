@@ -29,7 +29,7 @@ class StockDetailActionsMixin:
             tr_side = TradeSide.BUY if is_buy else TradeSide.SELL
 
             if self._context_type == "model" and self._context_id > 0:
-                model_service = getattr(self._container, "model_portfolio_service", None) if self._container else None
+                model_service = self._deps.model_portfolio_service
                 if not model_service:
                     raise RuntimeError(msg("stock_detail.model_portfoy_servisi_bulunamadi"))
                 from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
@@ -50,7 +50,7 @@ class StockDetailActionsMixin:
                 self._asyncTradeResult.emit(True, text)
                 return
 
-            trade_entry_service = getattr(self._container, "trade_entry_service", None) if self._container else None
+            trade_entry_service = self._deps.trade_entry_service
             if not trade_entry_service:
                 raise RuntimeError(msg("stock_detail.islem_giris_servisi_bulunamadi"))
 
@@ -132,7 +132,7 @@ class StockDetailActionsMixin:
                 df_corp.to_excel(writer, sheet_name=msg("stock_detail.sermaye_artirimlari"), index=False)
 
                 # Formatter mevcutsa profesyonel stilleri uygula
-                formatter = getattr(self._container, "excel_formatter", None) if self._container else None
+                formatter = self._deps.excel_formatter
                 if formatter:
                     try:
                         formatter.apply_formatting(writer, msg("stock_detail.pozisyon_ozeti"), df_summary)

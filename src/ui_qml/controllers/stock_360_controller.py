@@ -25,6 +25,7 @@ from src.ui_qml.controllers.stock_360_html import (
 from src.ui_qml.controllers.stock_360_remote import RemoteResult, fetch_remote_data
 from src.ui_qml.controllers.stock_360_calc import compute_revenue_chart, compute_dupont_data, compute_cash_flow_data
 from src.ui_qml.controllers.stock_360_state import Stock360StateMixin
+from src.ui_qml.controllers.deps import ServiceView
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class Stock360Controller(Stock360StateMixin, QObject):
     Yerel DB verilerini anında gösterir, derin bilanço ve KAP verilerini
     arka plan thread'inde çeker.
     """
+    REQUIRES = ("stock_360_service", "stock_lookup_service")  # stock_lookup_service: resolve_identity yedeği
 
     # --- Sinyaller ---
     currentTickerChanged = Signal()
@@ -73,7 +75,7 @@ class Stock360Controller(Stock360StateMixin, QObject):
 
     def __init__(self, container=None, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
-        self._container = container
+        self._deps = ServiceView(container, self.REQUIRES)
 
         self._init_identity_state()
         self._init_overview_and_technical_state()
@@ -459,10 +461,8 @@ class Stock360Controller(Stock360StateMixin, QObject):
 
     def _load_local_overview_and_technical(self, ticker: str) -> None:
         """Yerel veritabanından şirket adı, sektör, fiyat ve TA seviyelerini yükler (`stock_360_overview`)."""
-        s360_service: Optional[Stock360Service] = getattr(
-            getattr(self._container, "services", None), "stock_360_service", None
-        )
-        self._company_name, self._sector = resolve_identity(self._container, s360_service, ticker)
+        s360_service: Optional[Stock360Service] = self._deps.stock_360_service
+        self._company_name, self._sector = resolve_identity(self._deps, s360_service, ticker)
 
         if s360_service:
             overview = s360_service.get_overview(ticker) or s360_service.get_overview(f"{ticker}.IS")
@@ -478,9 +478,7 @@ class Stock360Controller(Stock360StateMixin, QObject):
 
     def _remote_fetch_worker(self, ticker: str, force_refresh_shareholders: bool) -> None:
         """Ağ üzerinden finansal bilanço ve KAP ortaklık verilerini çeker."""
-        s360_service: Optional[Stock360Service] = getattr(
-            getattr(self._container, "services", None), "stock_360_service", None
-        )
+        s360_service: Optional[Stock360Service] = self._deps.stock_360_service
         result = fetch_remote_data(s360_service, ticker, self._current_periods_count, force_refresh_shareholders)
         self._temp_files.extend(result.temp_files)
 
