@@ -9,6 +9,7 @@
 
 - **Belirti:** `test_market_sync_controller_trigger_sync` içindeki olay döngüsü beklemesinde süreç çöküyordu (CI ve yerelde ara sıra).
 - **Kök neden:** `create_controllers(autostart=False)` `SystemController` ve `MarketTickerController`'a bayrağı iletmiyordu; testler gerçek yfinance çağrısı başlatıyordu (çökme anında 8 şerit işçisi ağda). Gecikmeli işler iptal edilemeyen `QTimer.singleShot(ms, self.metot)` ile kurulduğundan biten testlerin işleri sonraki testlerde ateşleniyor, sonuç silinmiş denetleyiciye dönüyordu.
+- **Aynı gün, ikinci CI kırmızısı:** `test_stock_360_overview_characterization` bugünü `date.today()` (CI'da UTC) ile yer tutucuya çeviriyordu, denetleyici `market_today()` (İstanbul) yazar; 21:00-24:00 UTC arası 9 test düşüyordu. Test `market_today()` kullanır. Piyasa günü bir gün kaydırılarak (`market_clock._utc_now` +24 sa) tam paket koşuldu; başka etkilenen test yok.
 - **Düzeltme:** kayıtta iki denetleyiciye `AUTOSTART`; yeni `src/ui_qml/deferred.run_later` (sahibine bağlı, iptal edilebilir) 8 `singleShot` çağrısının yerini aldı; `tests/conftest.py` her testten sonra `cancel_pending()`. Koruma: `tests/ui_qml/test_background_work_lifecycle.py` (kayıt bayrağı, sahip silinince ateşlenmeme, iptal, `singleShot` yasağı). Uygulamadaki davranış aynı.
 
 ## [2026-11-07] REFACTOR | Plan B: Yönetilebilirlik (özellik kaydı, tek fiyat yazıcısı, ortak defter, mesaj paketi)

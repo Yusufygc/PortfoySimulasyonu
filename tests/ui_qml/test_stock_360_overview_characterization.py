@@ -9,10 +9,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from src.domain.market_clock import market_today
 from src.ui_qml.controllers.stock_360_controller import Stock360Controller
 
 GOLDEN_PATH = Path(__file__).parent / "golden" / "stock_360_overview_golden.json"
-# Yedek veriler bugünün tarihini taşır (`date.today()`); golden 04.10.2026'da üretildi. Bugünün tarihi yer tutucuya çevrilir,
+# Yedek veriler piyasa gününü taşır (`market_today()`, İstanbul); golden 04.10.2026'da üretildi. Bugünün tarihi yer tutucuya çevrilir,
 # böylece test günden bağımsızdır ama gerçek veriden gelen tarihler (ör. 02.10.2026) hâlâ karşılaştırılır.
 GOLDEN_DAY = "04.10.2026"
 TODAY_PLACEHOLDER = "<BUGUN>"
@@ -111,7 +112,7 @@ def run_scenario(name: str) -> dict:
 
     controller._load_local_overview_and_technical(ticker)
 
-    today = date.today().strftime("%d.%m.%Y")
+    today = market_today().strftime("%d.%m.%Y")  # denetleyici İstanbul gününü yazar; CI UTC'dedir
     state = {k: (TODAY_PLACEHOLDER if v == today else v) for k, v in vars(controller).items()
              if isinstance(v, (str, int, float, bool, type(None))) and k not in _DEPENDENCY_HOLDERS}
     return {"state": state, "overview_changed_emits": len(emitted)}
