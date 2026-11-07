@@ -45,6 +45,7 @@ class AnalysisServiceDeps(NamedTuple):
     price_repo: IPriceRepository
     stock_repo: IStockRepository
     market_data_client: IMarketDataClient
+    deposit_rate_fallback: Optional[Decimal] = None  # mevduat endeksi için yapılandırılmış yedek faiz (%)
 
 
 def _get_benchmark_vars(bundle: dict) -> "tuple":
@@ -73,7 +74,6 @@ class AnalysisService:
         cash_movement_repo: Optional[ICashMovementRepository] = None,
         model_portfolio_service=None,
         unified_builder=None,
-        deposit_rate_fallback: Decimal | None = None,
     ) -> None:
         self._stock_repo = deps.stock_repo
         self._cash_movement_repo = cash_movement_repo
@@ -91,7 +91,7 @@ class AnalysisService:
         self._benchmark_service = AnalysisBenchmarkService(
             market_data_client=deps.market_data_client,
             evds_client=evds_client,
-            deposit_rate_fallback=deposit_rate_fallback,
+            deposit_rate_fallback=deps.deposit_rate_fallback,
         )
         self._currency_service = CurrencyConversionService()
         self._bundle_builder = AnalysisBundleBuilder(

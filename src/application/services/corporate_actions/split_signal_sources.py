@@ -36,6 +36,30 @@ def _signal(key: str, point_date: date, multiplier: float, detail: str) -> Split
     return SplitSignal(key, point_date, value, SplitSource.PRICE_BREAK, detail=detail)
 
 
+def _found(key: str, points, detail: str) -> List[SplitSignal]:
+    signals = (_signal(key, point_date, mult, detail) for point_date, mult in points)
+    return [s for s in signals if s is not None]
+
+
+def _stored_signals(key: str, stored: dict, adjusted: dict) -> List[SplitSignal]:
+    """SQLite serisi: DuckDB varsa düzeltilmiş geçmişe göre basamak, yoksa serinin kendi kırılması."""
+    if not adjusted:
+        return _found(key, persistent_breaks(list(stored.items())), "SQLite seride kalıcı kırılma")
+    ratios = [(d, stored[d] / adjusted[d]) for d in sorted(stored) if adjusted.get(d, 0) > 0]
+    return _found(key, persistent_steps(ratios), "SQLite ile düzeltilmiş geçmiş arasında basamak")
+
+
+def _is_usable_kap(candidate, keys: set, since: date) -> bool:
+    if candidate.action_type != ActionType.BEDELSIZ or candidate.ratio is None or candidate.ex_date is None:
+        return False
+    return candidate.ex_date >= since and candidate.ticker.upper() in keys
+
+
+def _kap_signal(candidate) -> SplitSignal:
+    return SplitSignal(candidate.ticker, candidate.ex_date, Decimal("1") + candidate.ratio, SplitSource.KAP,
+                       detail=candidate.source_url or candidate.source_disclosure_id)
+
+
 class KapSplitSignalSource(ISplitSignalProvider):
     def __init__(self, provider: ICorporateActionProvider) -> None:
         self._provider = provider
@@ -50,15 +74,7 @@ class KapSplitSignalSource(ISplitSignalProvider):
         except CorporateActionProviderUnavailable as exc:
             logger.warning("KAP bölünme sinyali okunamadı: %s", exc)
             return []
-        signals: List[SplitSignal] = []
-        for candidate in candidates:
-            if candidate.action_type != ActionType.BEDELSIZ or candidate.ratio is None or candidate.ex_date is None:
-                continue
-            if candidate.ex_date < since or candidate.ticker.upper() not in keys:
-                continue
-            signals.append(SplitSignal(candidate.ticker, candidate.ex_date, Decimal("1") + candidate.ratio,
-                                       SplitSource.KAP, detail=candidate.source_url or candidate.source_disclosure_id))
-        return signals
+        return [_kap_signal(c) for c in candidates if _is_usable_kap(c, keys, since)]
 
 
 class PriceBreakSplitSignalSource(ISplitSignalProvider):
@@ -83,17 +99,9 @@ class PriceBreakSplitSignalSource(ISplitSignalProvider):
         raw = {b.price_date: b.close_price for b in self._history.get_price_series(target.key, start, end, adjusted=False)}
         adjusted = {b.price_date: b.close_price for b in self._history.get_price_series(target.key, start, end)}
         stored = {p.price_date: float(p.close_price) for p in self._prices.get_price_series(target.stock_id, start, end)}
-        found: List[SplitSignal] = []
-        for point_date, mult in persistent_breaks(list(raw.items())):
-            found.append(_signal(target.key, point_date, mult, "DuckDB ham seride kalıcı kırılma"))
-        if adjusted:
-            ratios = [(d, stored[d] / adjusted[d]) for d in sorted(stored) if d in adjusted and adjusted[d] > 0]
-            for point_date, mult in persistent_steps(ratios):
-                found.append(_signal(target.key, point_date, mult, "SQLite ile düzeltilmiş geçmiş arasında basamak"))
-        else:
-            for point_date, mult in persistent_breaks(list(stored.items())):
-                found.append(_signal(target.key, point_date, mult, "SQLite seride kalıcı kırılma"))
-        return [s for s in found if s is not None and s.ex_date >= since]
+        found = _found(target.key, persistent_breaks(list(raw.items())), "DuckDB ham seride kalıcı kırılma")
+        found += _stored_signals(target.key, stored, adjusted)
+        return [s for s in found if s.ex_date >= since]
 
 
 class CompositeSplitSignalSource(ISplitSignalProvider):

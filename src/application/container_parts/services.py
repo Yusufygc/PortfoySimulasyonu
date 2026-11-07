@@ -423,12 +423,12 @@ def _build_analysis_service(repositories, market_clients, foundation: dict, depo
             price_repo=repositories.price_repo,
             stock_repo=repositories.stock_repo,
             market_data_client=market_clients.market_client,
+            deposit_rate_fallback=deposit_rate_fallback,
         ),
         evds_client=market_clients.evds_client,
         cash_movement_repo=foundation["pooled_cash_repo"],
         model_portfolio_service=foundation["model_portfolio_service"],
         unified_builder=_unified_series_builder(repositories),
-        deposit_rate_fallback=deposit_rate_fallback,
     )
 
 
