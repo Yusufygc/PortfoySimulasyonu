@@ -6,6 +6,31 @@ from typing import Dict
 
 import pandas as pd
 
+from src.infrastructure.market_data.bar_quality import is_ghost_bar
+
+
+def _column(dataframe: pd.DataFrame, field: str, ticker: str):
+    """Tek veya çok sembollü `yf.download` çıktısından bir alanın serisi; alan yoksa None."""
+    if field not in dataframe.columns.get_level_values(0):
+        return None
+    column = dataframe[field]
+    if isinstance(dataframe.columns, pd.MultiIndex):
+        return column[ticker] if ticker in column.columns else column.iloc[:, 0]
+    return column
+
+
+def _ghost_dates(dataframe: pd.DataFrame, ticker: str) -> set:
+    """BIST tatil günü veya hacimsiz sabit (hayalet) barların tarihleri."""
+    fields = [_column(dataframe, f, ticker) for f in ("Open", "High", "Low", "Close", "Volume")]
+    if any(series is None for series in fields):
+        fields = [fields[3]] * 4 + [None]  # OHLCV yoksa yalnızca takvim kuralı (hacim bilinmiyor -> sabit sayılmaz)
+    ghosts = set()
+    for i, timestamp in enumerate(fields[3].index):
+        ohlcv = tuple(series.iloc[i] if series is not None else 1 for series in fields)
+        if is_ghost_bar(timestamp.date(), ohlcv):
+            ghosts.add(timestamp.date())
+    return ghosts
+
 
 class YFinancePriceClient:
     def __init__(self, owner) -> None:
@@ -48,18 +73,13 @@ class YFinancePriceClient:
         if dataframe.empty:
             return {}
 
-        close_col = dataframe["Close"]
-        if isinstance(dataframe.columns, pd.MultiIndex):
-            close_series = close_col[ticker] if ticker in close_col.columns else close_col.iloc[:, 0]
-        else:
-            close_series = close_col
-
+        close_series = _column(dataframe, "Close", ticker)
+        ghosts = _ghost_dates(dataframe, ticker) if ticker.upper().endswith(".IS") else set()
         result: Dict[date, Decimal] = {}
         for timestamp, value in close_series.items():
-            if pd.isna(value):
-                continue
             point_date = timestamp.date()
-            if point_date <= end_date:
-                result[point_date] = self.to_decimal(value)
+            if pd.isna(value) or point_date in ghosts or point_date > end_date:
+                continue
+            result[point_date] = self.to_decimal(value)
         return result
 

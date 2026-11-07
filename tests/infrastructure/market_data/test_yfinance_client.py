@@ -43,7 +43,7 @@ def test_get_price_series(monkeypatch):
     client = YFinanceMarketDataClient()
     
     df = pd.DataFrame({"Close": [100.0, 101.5, 102.0]}, 
-                      index=pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]))
+                      index=pd.to_datetime(["2026-01-05", "2026-01-06", "2026-01-07"]))  # BIST işlem günleri
                       
     download_calls = []
     def mock_download(tickers, start, end):
@@ -52,11 +52,11 @@ def test_get_price_series(monkeypatch):
         
     monkeypatch.setattr(client, "_download_dataframe", mock_download)
     
-    series = client.get_price_series("THYAO", date(2026, 1, 1), date(2026, 1, 3))
+    series = client.get_price_series("THYAO", date(2026, 1, 5), date(2026, 1, 7))
     assert series == {
-        date(2026, 1, 1): Decimal("100.0"),
-        date(2026, 1, 2): Decimal("101.5"),
-        date(2026, 1, 3): Decimal("102.0"),
+        date(2026, 1, 5): Decimal("100.0"),
+        date(2026, 1, 6): Decimal("101.5"),
+        date(2026, 1, 7): Decimal("102.0"),
     }
 
 

@@ -22,11 +22,16 @@ import requests
 import yfinance as yf
 
 from src.infrastructure.db.paths import duckdb_path as default_duckdb_path
+from src.infrastructure.market_data.bar_quality import is_ghost_bar
 from src.infrastructure.retry import retry_call
 
 logger = logging.getLogger(__name__)
 
 _TV_SCANNER_URL = "https://scanner.tradingview.com/turkey/scan"
+
+
+def _ghost_row(row) -> bool:
+    return is_ghost_bar(row.price_date, (row.open_price, row.high_price, row.low_price, row.close_price, row.volume))
 _DOWNLOAD_ATTEMPTS = 3
 _RETRY_BACKOFF_SECONDS = 2.0
 
@@ -147,6 +152,7 @@ class BistBulkDownloader:
             hist["close_price"] = hist["Close"].astype(float)
             hist["volume"] = hist["Volume"].fillna(0).astype(int)
             valid = hist[hist["close_price"] > 0]  # NaN karşılaştırması False verir
+            valid = valid[[not _ghost_row(row) for row in valid.itertuples(index=False)]]  # tatil / hacimsiz sabit bar
             if valid.empty:
                 return None
             return valid[["ticker", "price_date", "open_price", "high_price", "low_price", "close_price", "volume"]]
