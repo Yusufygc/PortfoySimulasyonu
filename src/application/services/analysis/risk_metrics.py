@@ -73,19 +73,7 @@ def _safe_float_0(v) -> float:
 
 
 def compute_beta(portfolio_series: Dict[date, Decimal], benchmark_series: Dict[date, Decimal]) -> Optional[float]:
-    dates = sorted(set(portfolio_series.keys()) & set(benchmark_series.keys()))
-    port_returns = []
-    bench_returns = []
-    for prev_date, curr_date in zip(dates, dates[1:]):
-        if curr_date.weekday() >= 5:
-            continue
-        p_prev = _safe_float_0(portfolio_series[prev_date])
-        p_curr = _safe_float_0(portfolio_series[curr_date])
-        b_prev = _safe_float_0(benchmark_series[prev_date])
-        b_curr = _safe_float_0(benchmark_series[curr_date])
-        if p_prev > 0 and b_prev > 0:
-            port_returns.append((p_curr - p_prev) / p_prev)
-            bench_returns.append((b_curr - b_prev) / b_prev)
+    port_returns, bench_returns = _paired_daily_returns(portfolio_series, benchmark_series)
     if len(port_returns) < 2:
         return None
     p_mean = sum(port_returns) / len(port_returns)
@@ -205,12 +193,15 @@ def _paired_daily_returns(
     a_series: Dict[date, Decimal],
     b_series: Dict[date, Decimal],
 ) -> Tuple[List[float], List[float]]:
-    """İki seri için ortak tarihlerde hizalanmış (hafta sonu hariç) günlük getiri çiftleri."""
+    """İki seri için ortak tarihlerde hizalanmış günlük getiri çiftleri. Hafta sonu ve iki seride de değerin bir
+    önceki günden taşındığı (tatil) günler atlanır; `compute_daily_return_vector` ile aynı kural."""
     dates = sorted(set(a_series.keys()) & set(b_series.keys()))
     a_returns: List[float] = []
     b_returns: List[float] = []
     for prev_date, curr_date in zip(dates, dates[1:]):
         if curr_date.weekday() >= 5:
+            continue
+        if a_series[curr_date] == a_series[prev_date] and b_series[curr_date] == b_series[prev_date]:
             continue
         a_prev, a_curr = _safe_float_0(a_series[prev_date]), _safe_float_0(a_series[curr_date])
         b_prev, b_curr = _safe_float_0(b_series[prev_date]), _safe_float_0(b_series[curr_date])
