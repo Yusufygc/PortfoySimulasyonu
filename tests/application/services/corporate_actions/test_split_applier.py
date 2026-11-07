@@ -170,3 +170,62 @@ def test_price_sync_failure_keeps_trade_changes(provider, caplog):
     assert event.price_adjusted_before == EX and event.price_adjustment_count == 6
     _applier(provider, FakeMarket()).revert(event.id)
     assert _close(provider, EX - timedelta(days=1)) == D("253")
+
+
+# ----------------------------------------------------------------- kullanıcının kaydettiği bedelsiz
+
+
+def _corporate_action_service(provider, market=None):
+    from src.application.services.corporate_actions.corporate_action_service import CorporateActionService
+    from src.application.services.corporate_actions.split_applier import CorporateActionSplitAdapter
+    from src.infrastructure.db.sqlalchemy.repositories.sa_portfolio_repository import SQLAlchemyPortfolioRepository
+    from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
+
+    return CorporateActionService(
+        action_repo=SQLAlchemyCorporateActionRepository(provider),
+        portfolio_repo=SQLAlchemyPortfolioRepository(provider),
+        split_applier=CorporateActionSplitAdapter(_applier(provider, market), SQLAlchemyStockRepository(provider)),
+    )
+
+
+def test_manual_bedelsiz_adjusts_main_and_model_portfolios(provider):
+    with provider.get_session() as s:
+        s.add(ORMTrade(id=1, stock_id=79, trade_date=date(2026, 8, 1), trade_time=time(10), side=TradeSideEnum.BUY,
+                       quantity=10, price=D("250"), original_quantity=10, original_price=D("250")))
+        s.commit()
+    _model_trade(provider)
+    _prices(provider, before="253", after="23.9")
+    service = _corporate_action_service(provider, FakeMarket())
+    action = service.register_bedelsiz(stock_id=79, ex_date=EX, ratio=D("10"))
+
+    result = service.apply_action(action.id, current_price=D("253"))
+
+    assert (result.shares_before, result.new_shares, result.shares_after) == (10, 100, 110)
+    assert result.avg_cost_after == D("22.7273")  # 250 / 11, işlem fiyatı 4 haneye yuvarlanır
+    assert result.price_adjustment_count == 6
+    with provider.get_session() as s:
+        assert s.get(ORMModelPortfolioTrade, 34).quantity == 715      # model portföy de düzeltildi
+        assert s.get(ORMTrade, 1).original_quantity == 10
+    stored = SQLAlchemyCorporateActionRepository(provider).get_by_id(action.id)
+    assert stored.applied and stored.prices_adjusted
+    assert len(SQLAlchemyCorporateActionRepository(provider).get_all()) == 1  # yeni kayıt açılmadı
+
+
+def test_manual_bedelsiz_for_model_only_stock_no_longer_refused(provider):
+    _model_trade(provider)
+    _prices(provider, before="253", after="23.9")
+    service = _corporate_action_service(provider)
+    action = service.register_bedelsiz(stock_id=79, ex_date=EX, ratio=D("10"))
+
+    result = service.apply_action(action.id)
+
+    assert result.shares_before == 0 and result.shares_after == 0
+    with provider.get_session() as s:
+        assert s.get(ORMModelPortfolioTrade, 34).quantity == 715
+
+
+def test_manual_bedelsiz_without_any_trades_is_refused(provider):
+    service = _corporate_action_service(provider)
+    action = service.register_bedelsiz(stock_id=79, ex_date=EX, ratio=D("10"))
+    with pytest.raises(ValueError, match="Portföyde bu hisse bulunmuyor"):
+        service.apply_action(action.id)

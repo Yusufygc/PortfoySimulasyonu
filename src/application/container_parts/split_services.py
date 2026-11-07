@@ -15,23 +15,26 @@ from src.infrastructure.corporate_actions.kap_mkk_provider import KapMkkCorporat
 from src.infrastructure.corporate_actions.yahoo_split_provider import YahooSplitProvider
 
 
-def build_split_automation_service(repositories, market_action_service) -> SplitAutomationService:
-    ledger_repo = repositories.split_ledger_repo
+def build_split_applier(repositories, market_action_service) -> SplitApplier:
+    """Tek uygulayıcı: otomatik bölünme ve kullanıcının onayladığı bedelsiz aynı yoldan uygulanır."""
+    return SplitApplier(SplitApplierDeps(
+        ledger_repo=repositories.split_ledger_repo,
+        price_repo=repositories.price_repo,
+        corporate_action_repo=repositories.corporate_action_repo,
+        market_action_service=market_action_service,
+    ))
+
+
+def build_split_automation_service(repositories, applier: SplitApplier) -> SplitAutomationService:
     signal_source = CompositeSplitSignalSource([
         YahooSplitProvider(),
         KapSplitSignalSource(KapMkkCorporateActionProvider()),
         PriceBreakSplitSignalSource(repositories.market_history_repo, repositories.price_repo),
     ])
-    applier = SplitApplier(SplitApplierDeps(
-        ledger_repo=ledger_repo,
-        price_repo=repositories.price_repo,
-        corporate_action_repo=repositories.corporate_action_repo,
-        market_action_service=market_action_service,
-    ))
     return SplitAutomationService(SplitAutomationDeps(
         signal_source=signal_source,
         applier=applier,
-        ledger_repo=ledger_repo,
+        ledger_repo=repositories.split_ledger_repo,
         stock_repo=repositories.stock_repo,
         corporate_action_repo=repositories.corporate_action_repo,
         candidate_repo=repositories.corporate_action_candidate_repo,

@@ -26,7 +26,7 @@ from src.domain.models.split_event import (
     SplitLedgerSnapshot,
     SplitTradeChange,
 )
-from src.domain.models.split_signal import SplitDecision
+from src.domain.models.split_signal import SplitDecision, SplitDecisionKind
 from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_split_ledger_repo import ISplitLedgerRepository
@@ -83,7 +83,15 @@ class SplitApplier:
         self._market = deps.market_action_service
 
     # ---- uygula ------------------------------------------------------------------------
-    def apply(self, decision: SplitDecision, target: SplitTarget, auto_applied: bool) -> SplitEvent:
+    def apply(
+        self,
+        decision: SplitDecision,
+        target: SplitTarget,
+        auto_applied: bool,
+        existing_action: Optional[CorporateAction] = None,
+    ) -> SplitEvent:
+        """`existing_action` verilirse (kullanıcının kaydettiği bedelsiz) yeni kurumsal aksiyon kaydı açılmaz;
+        o kayıt uygulanmış ve fiyatları düzeltilmiş işaretlenir."""
         if decision.multiplier <= 1:
             raise ValueError("Ters bölünme otomatik uygulanmaz; kullanıcı kararı gerekir.")
         snapshot = self._ledger.load_snapshot(stock_id=target.stock_id, asset_id=target.asset_id)
@@ -95,8 +103,12 @@ class SplitApplier:
             trade_changes=changes, cash_entries=cash,
         ))
         if target.stock_id is not None:
-            self._sync_bist_history(event, target)
+            self._sync_bist_history(event, target, existing_action)
         return self._ledger.get_event(event.id) or event
+
+    def has_holdings(self, target: SplitTarget) -> bool:
+        """Hissenin/varlığın herhangi bir defterde işlemi var mı (bölünme uygulanacak bir şey var mı)."""
+        return not self._ledger.load_snapshot(stock_id=target.stock_id, asset_id=target.asset_id).is_empty()
 
     def _post_ex_close(self, target: SplitTarget, ex_date: date) -> Optional[Decimal]:
         if target.stock_id is None:
@@ -105,12 +117,12 @@ class SplitApplier:
         first = min(series, key=lambda p: p.price_date, default=None)
         return first.close_price if first is not None else None
 
-    def _sync_bist_history(self, event: SplitEvent, target: SplitTarget) -> None:
+    def _sync_bist_history(self, event: SplitEvent, target: SplitTarget, existing_action=None) -> None:
         # Her adım tamamlanır tamamlanmaz kayda geçer: sonraki adım düşse bile geri alma neyi geri çevireceğini bilir.
         try:
             before_date, count = self._adjust_sqlite_prices(event)
             self._ledger.record_price_adjustment(event.id, before_date, count, None)
-            action = self._register_corporate_action(event, count)
+            action = self._register_corporate_action(event, count, existing_action)
             effective = self._register_market_action(target, action)
             if effective is not None:
                 self._ledger.record_price_adjustment(event.id, before_date, count, effective)
@@ -129,10 +141,10 @@ class SplitApplier:
         count = self._prices.adjust_prices_before_date(event.stock_id, before_date, Decimal("1") / event.multiplier)
         return before_date, count
 
-    def _register_corporate_action(self, event: SplitEvent, adjusted_count: int) -> CorporateAction:
-        note = f"Otomatik bölünme {event.multiplier.normalize()}:1 ({event.sources})"
-        action = self._actions.insert(CorporateAction.create_bedelsiz(
-            stock_id=event.stock_id, ex_date=event.ex_date, ratio=event.multiplier - Decimal("1"), notes=note,
+    def _register_corporate_action(self, event: SplitEvent, adjusted_count: int, existing=None) -> CorporateAction:
+        action = existing or self._actions.insert(CorporateAction.create_bedelsiz(
+            stock_id=event.stock_id, ex_date=event.ex_date, ratio=event.multiplier - Decimal("1"),
+            notes=f"Otomatik bölünme {event.multiplier.normalize()}:1 ({event.sources})",
         ))
         factor = Decimal("1") / event.multiplier
         self._actions.mark_applied(action.id)
@@ -158,3 +170,27 @@ class SplitApplier:
         if event.corporate_action_id is not None:
             self._actions.delete(event.corporate_action_id)
         return event
+
+
+class CorporateActionSplitAdapter:
+    """Kullanıcının kaydettiği bedelsizi (`CorporateActionService`) bölünme uygulayıcısına bağlar: hisse kodunu çözer,
+    kararı kurar ve mevcut kurumsal aksiyon kaydını kullanır (yeni kayıt açılmaz)."""
+
+    def __init__(self, applier: SplitApplier, stock_repo) -> None:
+        self._applier = applier
+        self._stocks = stock_repo
+
+    def _target(self, stock_id: int) -> SplitTarget:
+        ticker = (self._stocks.get_ticker_map_for_stock_ids([stock_id]) or {}).get(stock_id)
+        if not ticker:
+            raise ValueError(f"Hisse bulunamadı: stock_id={stock_id}")
+        ticker = ticker.strip().upper()
+        return SplitTarget(ticker, f"{ticker}.IS", stock_id=stock_id)
+
+    def has_holdings(self, stock_id: int) -> bool:
+        return self._applier.has_holdings(self._target(stock_id))
+
+    def apply_action(self, action: CorporateAction) -> SplitEvent:
+        target = self._target(action.stock_id)
+        decision = SplitDecision(target.key, action.ex_date, Decimal("1") + action.ratio, SplitDecisionKind.CANDIDATE)
+        return self._applier.apply(decision, target, auto_applied=False, existing_action=action)

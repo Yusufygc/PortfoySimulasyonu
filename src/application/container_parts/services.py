@@ -40,7 +40,8 @@ from src.application.services.corporate_actions.candidate_discovery_service impo
 from src.application.services.corporate_actions.candidate_review_service import CorporateActionCandidateReviewService
 from src.application.services.corporate_actions.market_action_service import MarketCorporateActionService
 from src.application.services.corporate_actions.split_automation_service import SplitAutomationService
-from src.application.container_parts.split_services import build_split_automation_service
+from src.application.container_parts.split_services import build_split_applier, build_split_automation_service
+from src.application.services.corporate_actions.split_applier import CorporateActionSplitAdapter
 from src.application.services.corporate_actions.price_adjustment_service import CorporateActionPriceAdjustmentService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.application.services.planning.optimization_service import OptimizationDeps, OptimizationService
@@ -375,11 +376,13 @@ def _build_prereq_services(repositories: RepositorySet, market_clients: MarketCl
         stock_repo=repositories.stock_repo,
         market_action_service=market_action_service,
     )
+    split_applier = build_split_applier(repositories, market_action_service)
     corp_action = CorporateActionService(
         action_repo=repositories.corporate_action_repo,
         portfolio_repo=repositories.portfolio_repo,
         trade_adjustment_repo=getattr(repositories, "trade_adjustment_repo", None),
         price_adjustment_service=corp_price_adj,
+        split_applier=CorporateActionSplitAdapter(split_applier, repositories.stock_repo),
     )
     health_service = PriceDataHealthService(
         deps=PriceHealthServiceDeps(
@@ -392,7 +395,7 @@ def _build_prereq_services(repositories: RepositorySet, market_clients: MarketCl
         ),
         holiday_provider=BistHolidayProvider(),
     )
-    return corp_action, health_service, market_action_service
+    return corp_action, health_service, market_action_service, split_applier
 
 
 def _watchlist_stock_ids(watchlist_repo) -> set:
@@ -510,7 +513,7 @@ def _build_feature_services(
     deposit_rate_fallback=None,
 ) -> dict:
     model_portfolio_service = foundation["model_portfolio_service"]
-    corp_action_service, price_data_health_service, market_action_service = _build_prereq_services(
+    corp_action_service, price_data_health_service, market_action_service, split_applier = _build_prereq_services(
         repositories, market_clients
     )
     return {
@@ -521,5 +524,5 @@ def _build_feature_services(
         "analysis_service": _build_analysis_service(repositories, market_clients, foundation, deposit_rate_fallback),
         **_build_portfolio_services(repositories, market_clients, foundation, model_portfolio_service),
         **_build_corporate_action_services(repositories, corp_action_service),
-        "split_automation_service": build_split_automation_service(repositories, market_action_service),
+        "split_automation_service": build_split_automation_service(repositories, split_applier),
     }
