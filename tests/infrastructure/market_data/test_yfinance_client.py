@@ -159,3 +159,24 @@ def test_price_lookup_history_requests_unadjusted_prices(monkeypatch):
     YFinancePriceLookupProvider().lookup("THYAO.IS")
 
     assert seen["auto_adjust"] is False
+
+
+def test_price_lookup_history_timestamp_is_converted_not_relabelled(monkeypatch):
+    from datetime import datetime, timezone
+
+    index = pd.to_datetime(["2026-11-06"]).tz_localize("Europe/Istanbul")  # gün başı İstanbul = 21:00 UTC önceki gün
+
+    class FakeTicker:
+        fast_info = {}
+        info = {}
+
+        def history(self, **_kwargs):
+            return pd.DataFrame({"Close": [42.5]}, index=index)
+
+    monkeypatch.setattr(
+        "src.infrastructure.market_data.yfinance_price_lookup_provider.yf.Ticker",
+        lambda _ticker: FakeTicker(),
+    )
+    snapshot = YFinancePriceLookupProvider().lookup("THYAO.IS")
+
+    assert snapshot.last_close_as_of == datetime(2026, 11, 5, 21, 0, tzinfo=timezone.utc)
