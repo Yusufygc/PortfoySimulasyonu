@@ -34,6 +34,7 @@ from src.ui_qml.controllers.price_data_controller import PriceDataController
 from src.ui_qml.controllers.startup_jobs_controller import (
     AUTO_BACKFILL_SETTINGS_KEY,
     AUTO_CORPORATE_ACTION_DISCOVERY_SETTINGS_KEY,
+    AUTO_SPLIT_SCAN_SETTINGS_KEY,
     StartupJobsController,
     last_completed_trading_day,
 )
@@ -458,6 +459,7 @@ def _startup_container(updated=5):
     container.corporate_action_discovery_service.discover.return_value = SimpleNamespace(saved_count=2)
     container.market_data_sync_service.sync_daily_delta.return_value = SimpleNamespace(added_bars=7, errors=[])
     container.technical_analysis_service = None  # teknik tarama ayrı test edilir
+    container.split_automation_service = None  # bölünme taraması ayrı test edilir
     return container
 
 
@@ -590,3 +592,36 @@ def test_corporate_action_dialog_open_computes_preview(qapp):
     preview = preview.toVariant() if hasattr(preview, "toVariant") else preview
     assert preview["valid"] is True
     assert preview["newShares"] == 500
+
+
+def _split_container(result):
+    container = _startup_container()
+    container.price_data_health_service = None
+    container.corporate_action_discovery_service = None
+    container.split_automation_service = MagicMock()
+    container.split_automation_service.run.return_value = result
+    return container
+
+
+def test_split_automation_notifies_applied_and_candidates_once_a_day(qapp, tmp_path):
+    result = SimpleNamespace(applied=[object()], candidates=[object(), object()], summary="SDTTR 11:1")
+    container = _split_container(result)
+    ctrl, settings = _startup_ctrl(qapp, tmp_path, container)
+    notes, refreshed = _capture(ctrl.jobNotification), _capture(ctrl.pricesUpdated)
+
+    ctrl.runAll()
+    ctrl.runAll()  # aynı gün ikinci kez çalışmaz
+
+    assert container.split_automation_service.run.call_count == 1
+    assert notes[0][0] is True and "SDTTR 11:1" in notes[0][1]
+    assert "2 hisse bölünmesi adayı" in notes[1][1]
+    assert len(notes) == 2 and len(refreshed) == 1
+    assert settings.value(AUTO_SPLIT_SCAN_SETTINGS_KEY, "", type=str)
+
+
+def test_split_automation_without_findings_is_silent(qapp, tmp_path):
+    container = _split_container(SimpleNamespace(applied=[], candidates=[], summary=""))
+    ctrl, _ = _startup_ctrl(qapp, tmp_path, container)
+    notes = _capture(ctrl.jobNotification)
+    ctrl.runAll()
+    assert notes == []

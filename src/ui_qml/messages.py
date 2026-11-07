@@ -227,6 +227,9 @@ MESSAGES: Dict[str, str] = {
     "startup.otomatik_golden_cross_taramasi_calistirilama": "Otomatik Golden Cross taraması çalıştırılamadı",
     "startup.otomatik_veri_guncelleme": "Otomatik veri güncelleme",
     "startup.yeni_kurumsal_aksiyon_adayi_bulundu_ayarlar": "{saved} yeni kurumsal aksiyon adayı bulundu. Ayarlar > Kurumsal Aksiyonlar'dan inceleyin.",
+    "startup.bolunme_taramasi_calistirilamadi": "Hisse bölünmesi taraması çalıştırılamadı",
+    "startup.bolunme_otomatik_uygulandi": "Hisse bölünmesi otomatik uygulandı: {summary}. İşlemler ve fiyat geçmişi düzeltildi; Ayarlar > Kurumsal Aksiyonlar'dan geri alabilirsiniz.",
+    "startup.bolunme_adayi_onay_bekliyor": "{count} hisse bölünmesi adayı tek kaynakla bulundu ve onay bekliyor. Ayarlar > Kurumsal Aksiyonlar'dan inceleyin.",
     "startup.golden_cross_taramasi_tamamlandi_yeni_sinyal": "Golden Cross taraması tamamlandı: {new_events} yeni sinyal.",
     "startup.tamamlandi_fiyat_kaydi_eklendi": "{label} tamamlandı: {updated} fiyat kaydı eklendi.",
     "startup.sirasinda_hata_olustu": "{label} sırasında {errors} hata oluştu.",
@@ -512,6 +515,19 @@ MESSAGES: Dict[str, str] = {
     # --- Nakit rezervi ---
     "optimization.nakit_etiketi": "NAKİT",
     "optimization.nakit_adi": "Nakit (TL + USD)",
+    # --- Hisse bölünmesi otomasyonu ---
+    "split.durum_uygulandi": "Uygulandı",
+    "split.durum_geri_alindi": "Geri alındı",
+    "split.defter_main": "Ana portföy",
+    "split.kaynak_fiyat_kirilmasi": "Fiyat kırılması",
+    "split.defter_model": "Model portföy",
+    "split.defter_asset": "Portföyüm",
+    "split.fiyat_duzeltildi": "{count} fiyat kaydı düzeltildi",
+    "split.fiyat_zaten_tutarli": "Fiyat geçmişi zaten tutarlıydı",
+    "split.geri_alindi": "{ticker} bölünmesi geri alındı; işlemler ve fiyat geçmişi önceki hâline döndü.",
+    "split.geri_alma_basarisiz": "Bölünme geri alınamadı: {error}",
+    "split.tarama_basarisiz": "Hisse bölünmesi taraması başarısız: {error}",
+    "split.yeni_bolunme_yok": "Yeni hisse bölünmesi bulunamadı.",
 }
 
 

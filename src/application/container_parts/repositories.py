@@ -24,6 +24,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_risk_profile_repository im
 from src.infrastructure.db.sqlalchemy.repositories.sa_golden_cross_repository import SQLAlchemyGoldenCrossRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_shareholder_repository import SQLAlchemyKapShareholderRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_split_ledger_repository import SQLAlchemySplitLedgerRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_trade_adjustment_repository import SQLAlchemyTradeAdjustmentRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_watchlist_repository import SQLAlchemyWatchlistRepository
 from src.infrastructure.market_data.duckdb_corporate_action_store import DuckDBCorporateActionStore
@@ -59,6 +60,7 @@ class RepositorySet:
     news_source_repo: SQLAlchemyNewsSourceRepository  # haber kaynağı açık/kapalı tercihleri
     app_settings_repo: SQLAlchemyAppSettingsRepository  # ücret oranları vb. küçük ayarlar
     fx_conversion_repo: SQLAlchemyFxConversionRepository  # TL <-> USD döviz çevirmeleri (ortak nakit havuzu)
+    split_ledger_repo: SQLAlchemySplitLedgerRepository  # bölünmenin defterlere tek işlemde uygulanması
 
 
 def build_repositories(conn_provider) -> RepositorySet:
@@ -89,4 +91,5 @@ def build_repositories(conn_provider) -> RepositorySet:
         news_source_repo=SQLAlchemyNewsSourceRepository(conn_provider),
         app_settings_repo=SQLAlchemyAppSettingsRepository(conn_provider),
         fx_conversion_repo=SQLAlchemyFxConversionRepository(conn_provider),
+        split_ledger_repo=SQLAlchemySplitLedgerRepository(conn_provider),
     )

@@ -39,6 +39,8 @@ from src.application.services.market_data.market_data_sync_service import Market
 from src.application.services.corporate_actions.candidate_discovery_service import CandidateDiscoveryDeps, CorporateActionDiscoveryService
 from src.application.services.corporate_actions.candidate_review_service import CorporateActionCandidateReviewService
 from src.application.services.corporate_actions.market_action_service import MarketCorporateActionService
+from src.application.services.corporate_actions.split_automation_service import SplitAutomationService
+from src.application.container_parts.split_services import build_split_automation_service
 from src.application.services.corporate_actions.price_adjustment_service import CorporateActionPriceAdjustmentService
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
 from src.application.services.planning.optimization_service import OptimizationDeps, OptimizationService
@@ -92,6 +94,7 @@ class ServiceSet:
     risk_profile_service: RiskProfileService
     corporate_action_service: CorporateActionService
     corporate_action_discovery_service: CorporateActionDiscoveryService
+    split_automation_service: SplitAutomationService
     corporate_action_candidate_review_service: CorporateActionCandidateReviewService
     backfill_service: BackfillService
     financial_analysis_service: FinancialAnalysisService
@@ -518,4 +521,5 @@ def _build_feature_services(
         "analysis_service": _build_analysis_service(repositories, market_clients, foundation, deposit_rate_fallback),
         **_build_portfolio_services(repositories, market_clients, foundation, model_portfolio_service),
         **_build_corporate_action_services(repositories, corp_action_service),
+        "split_automation_service": build_split_automation_service(repositories, market_action_service),
     }

@@ -32,6 +32,7 @@ from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
 from src.ui_qml.controllers.settings_controller import SettingsController
 from src.ui_qml.controllers.stock_detail_controller import StockDetailController
 from src.ui_qml.controllers.corporate_action_controller import CorporateActionController
+from src.ui_qml.controllers.split_events_controller import SplitEventsController
 from src.ui_qml.controllers.dividend_controller import DividendController
 from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustmentController
 from src.ui_qml.controllers.system_controller import SystemController
@@ -85,6 +86,7 @@ def create_controllers(container, parent, autostart: bool = True) -> Dict[str, A
         "settingsController": make(SettingsController),
         "stockDetailController": make(StockDetailController),
         "corporateActionController": make(CorporateActionController),
+        "splitEventsController": make(SplitEventsController),
         "dividendController": make(DividendController),
         "priceDataController": make(PriceDataController),
         "startupJobsController": make(StartupJobsController, autostart=False),
@@ -128,7 +130,7 @@ def wire_controllers(c: Dict[str, Any]) -> None:
         refresh.watch(source)
     # Portföy içeriği değişti (fiyat değil): son güncelleme zamanı değişmez, liste/özet yeniden okunur
     for source in (c["corporateActionController"].portfolioChanged, c["dividendController"].portfolioChanged,
-                   system.systemReset):
+                   c["splitEventsController"].portfolioChanged, system.systemReset):
         refresh.watch(source, records_update=False)
         for target in (models.refreshData, my_portfolio.reload, news.refresh):
             source.connect(target)

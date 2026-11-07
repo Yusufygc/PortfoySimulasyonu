@@ -6,6 +6,7 @@ from src.application.container_parts.services import build_services
 def _fake_repositories():
     return SimpleNamespace(
         cash_movement_repo=object(),
+        split_ledger_repo=object(),
         corporate_action_candidate_repo=object(),
         corporate_action_repo=object(),
         model_portfolio_repo=object(),
@@ -76,3 +77,10 @@ def test_build_services_injects_configured_deposit_fallback_into_benchmarks():
 
     benchmark_service = services.analysis_service._benchmark_service
     assert benchmark_service._deposit_rate_fallback == Decimal("42.25")
+
+
+def test_build_services_wires_split_automation():
+    services = build_services(repositories=_fake_repositories(), market_clients=_fake_market_clients())
+    automation = services.split_automation_service
+    assert automation._d.ledger_repo is automation._d.applier._ledger
+    assert automation._d.applier._market is services.market_corporate_action_service
