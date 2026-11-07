@@ -265,7 +265,12 @@ class SQLAlchemyPriceRepository(IPriceRepository):
                 .filter(ORMDailyPrice.stock_id == stock_id)
                 .filter(ORMDailyPrice.price_date < before_date)
                 .update(
-                    {ORMDailyPrice.close_price: ORMDailyPrice.close_price * factor},
+                    {  # OHLC birlikte: yalnızca kapanış düzeltilirse mum gövdesi kapanıştan kopar; hacim değişmez
+                        ORMDailyPrice.close_price: ORMDailyPrice.close_price * factor,
+                        ORMDailyPrice.open_price: ORMDailyPrice.open_price * factor,
+                        ORMDailyPrice.high_price: ORMDailyPrice.high_price * factor,
+                        ORMDailyPrice.low_price: ORMDailyPrice.low_price * factor,
+                    },
                     synchronize_session=False,
                 )
             )
