@@ -23,6 +23,10 @@ class ORMSplitEvent(Base):
     applied_at = Column(DateTime, nullable=False, server_default=func.now())
     reverted_at = Column(DateTime, nullable=True)
     note = Column(String(500), nullable=True)
+    # SQLite fiyat geçmişi düzeltmesi (geri almada ters faktörle geri çevrilir) ve DuckDB olay günü
+    price_adjusted_before = Column(Date, nullable=True)
+    price_adjustment_count = Column(Integer, nullable=False, default=0, server_default="0")
+    market_effective_date = Column(Date, nullable=True)
 
     __table_args__ = (Index("idx_split_events_ticker_date", "ticker", "ex_date"),)
 

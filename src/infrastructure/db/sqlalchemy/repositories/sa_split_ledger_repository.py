@@ -137,6 +137,16 @@ class SQLAlchemySplitLedgerRepository(ISplitLedgerRepository):
             orm_event.corporate_action_id = corporate_action_id
             commit_or_rollback(session)
 
+    def record_price_adjustment(self, event_id, before_date, count, market_effective_date) -> None:
+        with self._provider.get_session() as session:
+            orm_event = session.get(ORMSplitEvent, event_id)
+            if orm_event is None:
+                raise ValueError(f"Bölünme kaydı bulunamadı: id={event_id}")
+            orm_event.price_adjusted_before = before_date
+            orm_event.price_adjustment_count = int(count)
+            orm_event.market_effective_date = market_effective_date
+            commit_or_rollback(session)
+
     # ---- yardımcılar -------------------------------------------------------------------
     @staticmethod
     def _write_trade(session, change: SplitTradeChange, expected: tuple, target: tuple) -> None:
@@ -188,7 +198,8 @@ class SQLAlchemySplitLedgerRepository(ISplitLedgerRepository):
             id=orm.id, ticker=orm.ticker, ex_date=orm.ex_date, multiplier=_dec(orm.multiplier), sources=orm.sources,
             auto_applied=bool(orm.auto_applied), status=SplitEventStatus(orm.status), stock_id=orm.stock_id,
             asset_id=orm.asset_id, corporate_action_id=orm.corporate_action_id, applied_at=orm.applied_at,
-            reverted_at=orm.reverted_at, note=orm.note,
+            reverted_at=orm.reverted_at, note=orm.note, price_adjusted_before=orm.price_adjusted_before,
+            price_adjustment_count=int(orm.price_adjustment_count or 0), market_effective_date=orm.market_effective_date,
             trade_changes=tuple(self._change_domain(row) for row in changes),
             cash_entries=tuple(
                 SplitCashEntry(SplitLedger(row.ledger), _dec(row.amount), row.movement_date, row.portfolio_id, row.movement_id)

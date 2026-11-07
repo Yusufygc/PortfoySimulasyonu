@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import date
 from typing import List, Optional
 
 from src.domain.models.split_event import SplitEvent, SplitLedgerSnapshot
@@ -35,4 +36,11 @@ class ISplitLedgerRepository(ABC):
 
     @abstractmethod
     def set_corporate_action(self, event_id: int, corporate_action_id: int) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def record_price_adjustment(
+        self, event_id: int, before_date: Optional[date], count: int, market_effective_date: Optional[date]
+    ) -> None:
+        """Fiyat geçmişi düzeltmesinin kapsamını kaydeder (geri alma için)."""
         raise NotImplementedError

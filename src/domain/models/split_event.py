@@ -62,6 +62,9 @@ class SplitEvent:
     applied_at: Optional[datetime] = None
     reverted_at: Optional[datetime] = None
     note: Optional[str] = None
+    price_adjusted_before: Optional[date] = None
+    price_adjustment_count: int = 0
+    market_effective_date: Optional[date] = None
     trade_changes: Tuple[SplitTradeChange, ...] = field(default_factory=tuple)
     cash_entries: Tuple[SplitCashEntry, ...] = field(default_factory=tuple)
 
