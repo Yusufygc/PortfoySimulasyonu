@@ -11,11 +11,12 @@ class CashMovementType(str, Enum):
     DEPOSIT = "DEPOSIT"
     WITHDRAW = "WITHDRAW"
     DIVIDEND = "DIVIDEND"
+    FRACTION = "FRACTION"  # bölünme/bedelsiz küsurat lotunun nakit karşılığı
 
     @property
     def adds_cash(self) -> bool:
-        """Nakit bakiyesini artırır (yatırma ve temettü)."""
-        return self in (CashMovementType.DEPOSIT, CashMovementType.DIVIDEND)
+        """Nakit bakiyesini artırır (yatırma, temettü, küsurat nakdi)."""
+        return self in (CashMovementType.DEPOSIT, CashMovementType.DIVIDEND, CashMovementType.FRACTION)
 
     @property
     def is_external_flow(self) -> bool:

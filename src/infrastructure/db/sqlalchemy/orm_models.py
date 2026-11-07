@@ -18,6 +18,7 @@ class CashMovementTypeEnum(str, enum.Enum):
     DEPOSIT = "DEPOSIT"
     WITHDRAW = "WITHDRAW"
     DIVIDEND = "DIVIDEND"
+    FRACTION = "FRACTION"
 
 class CrossTypeEnum(str, enum.Enum):
     GOLDEN = "GOLDEN"
@@ -373,6 +374,7 @@ class ORMTradeAdjustment(Base):
     corporate_action = relationship("ORMCorporateAction")
 
 
+
 # ---------------------------------------------------------------------------
 # KAP Ortaklık Yapısı tabloları (Plan 6)
 # ---------------------------------------------------------------------------
@@ -635,3 +637,6 @@ def _assign_missing_bigint_id(mapper, connection, target) -> None:
     target.id = max(int(current_max), assigned.get(table.name, 0)) + 1
     assigned[table.name] = target.id
 
+
+# Bölünme otomasyonu tabloları ayrı modüldedir; metadata'ya kaydolmaları için burada yüklenir.
+from src.infrastructure.db.sqlalchemy import orm_split_models  # noqa: E402,F401

@@ -55,7 +55,7 @@ class PortfolioService:
     def get_cash_balance(self, as_of: date | tuple[date, dt_time | None] | None = None) -> Decimal:
         balance = Decimal("0")
         for _event_date, _event_time, _event_order, _event_id, event_type, amount in self._cash_events_until(as_of):
-            if event_type in (CashMovementType.DEPOSIT, CashMovementType.DIVIDEND, TradeSide.SELL):
+            if event_type == TradeSide.SELL or (isinstance(event_type, CashMovementType) and event_type.adds_cash):
                 balance += amount
             else:
                 balance -= amount

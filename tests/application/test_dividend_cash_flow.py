@@ -194,3 +194,32 @@ class TestSeriesTreatsDividendAsReturn:
 
         assert values[D3] == Decimal("1050")
         assert twr[D3] == Decimal("100")  # dış sermaye getiri değildir
+
+
+class TestFractionCash:
+    """Bölünme küsurat nakdi (FRACTION): bakiyeye girer, dış akış değildir, sonraki alımı karşılar."""
+
+    def _fraction(self, amount, day, movement_id):
+        return CashMovement(id=movement_id, movement_date=day, movement_time=None,
+                            type=CashMovementType.FRACTION, amount=Decimal(amount), stock_id=1)
+
+    def test_fraction_adds_cash_but_is_not_external_flow(self):
+        assert CashMovementType.FRACTION.adds_cash is True
+        assert CashMovementType.FRACTION.is_external_flow is False
+
+    def test_fraction_increases_cash_balance(self):
+        _, portfolio_service, _ = _services([BUY_10_AT_100], [_deposit("1000", D1, 1), self._fraction("1.95", D3, 2)])
+        assert portfolio_service.get_cash_balance() == Decimal("1.95")
+
+    def test_timeline_counts_fraction_cash(self):
+        from datetime import time
+
+        from src.application.services.portfolio.timeline_validator import PortfolioTimelineValidator
+
+        # depozit yalnızca ilk alımı karşılar; sonraki alım küsurat nakdiyle yapılır
+        events = [
+            (D1, time.min, 0, 1, CashMovementType.DEPOSIT, Decimal("1000")),
+            (D2, time.min, 0, 2, CashMovementType.FRACTION, Decimal("10")),
+        ]
+        later_buy = Trade.create_buy(stock_id=1, trade_date=D3, quantity=1, price=Decimal("10"))
+        PortfolioTimelineValidator.validate_candidate_timeline(later_buy, [BUY_10_AT_100], events)

@@ -25,6 +25,7 @@ class ModelTradeSide(str, Enum):
 class ModelPortfolioCashMovementType(str, Enum):
     DEPOSIT = "DEPOSIT"
     WITHDRAW = "WITHDRAW"
+    FRACTION = "FRACTION"  # bölünme küsurat nakdi: nakit ekler, yatırılan sermaye değildir
 
 
 @dataclass(frozen=True)

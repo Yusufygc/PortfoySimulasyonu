@@ -112,6 +112,9 @@ class ModelPortfolioTradeSimulator:
         if movement.type == ModelPortfolioCashMovementType.DEPOSIT:
             acc.valid_movements.append(movement)
             return cash + movement.amount, invested_capital + movement.amount
+        if movement.type == ModelPortfolioCashMovementType.FRACTION:
+            acc.valid_movements.append(movement)  # küsurat nakdi getiridir, yatırılan sermayeyi artırmaz
+            return cash + movement.amount, invested_capital
 
         if movement.amount > cash:
             acc.violations.append(

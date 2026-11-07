@@ -104,7 +104,7 @@ class PortfolioTimelineValidator:
 
     @classmethod
     def _apply_event(cls, ctx: _EventCtx, cash, positions, violations) -> Decimal:
-        if ctx.event_type in (CashMovementType.DEPOSIT, CashMovementType.DIVIDEND):
+        if isinstance(ctx.event_type, CashMovementType) and ctx.event_type.adds_cash:
             return cash + ctx.payload
         if ctx.event_type == CashMovementType.WITHDRAW:
             return cls._apply_withdraw(ctx.event_id, ctx.payload, ctx.marker, cash, violations)
