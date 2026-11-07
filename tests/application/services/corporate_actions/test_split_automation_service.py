@@ -11,6 +11,8 @@ from src.application.services.corporate_actions.split_automation_service import 
 )
 from src.domain.models.asset import AssetClass
 from src.domain.models.corporate_action import ActionType
+from src.domain.models.ledger import LedgerKind, LedgerSnapshot
+from src.domain.split_math import LedgerLot
 from src.domain.models.split_event import SplitEventStatus
 from src.domain.models.split_signal import SplitSignal, SplitSource
 from src.domain.ports.services.i_split_signal_provider import ISplitSignalProvider
@@ -70,9 +72,10 @@ def _service(signals, **options):
         corporate_action_repo=NS(get_all=lambda: list(options.get("applied_actions", ()))),
         candidate_repo=FakeCandidates(),
         settings_repo=options.get("settings"),
-        portfolio_repo=NS(get_all_stock_ids_in_portfolio=lambda: [41]),
-        model_portfolio_repo=NS(get_all_model_portfolios=lambda: [NS(id=9)],
-                                get_trades_by_portfolio_id=lambda pid: [NS(stock_id=79)]),
+        ledger_reader=NS(snapshot=lambda: LedgerSnapshot({
+            (LedgerKind.MAIN, None): [LedgerLot(1, EX, None, True, D("1"), D("1"), 41)],
+            (LedgerKind.MODEL, 9): [LedgerLot(2, EX, None, True, D("1"), D("1"), 79)],
+        })),
         asset_repo=NS(list_assets=lambda active_only=True: list(options.get("assets", ()))),
     )
     return SplitAutomationService(deps), deps

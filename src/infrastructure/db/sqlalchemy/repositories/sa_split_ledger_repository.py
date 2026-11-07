@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from src.domain.models.split_event import (
     SplitCashEntry,
@@ -14,7 +14,6 @@ from src.domain.models.split_event import (
     SplitTradeChange,
 )
 from src.domain.ports.repositories.i_split_ledger_repo import ISplitLedgerRepository
-from src.domain.split_math import LedgerLot
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 from src.infrastructure.db.sqlalchemy.orm_models import (
     CashMovementTypeEnum,
@@ -26,6 +25,7 @@ from src.infrastructure.db.sqlalchemy.orm_models import (
 )
 from src.infrastructure.db.sqlalchemy.orm_split_models import ORMSplitCashEntry, ORMSplitEvent, ORMSplitTradeChange
 from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback
+from src.infrastructure.db.sqlalchemy.repositories.sa_ledger_reader import SQLAlchemyLedgerReader
 
 _TRADE_TABLE = {SplitLedger.MAIN: ORMTrade, SplitLedger.MODEL: ORMModelPortfolioTrade, SplitLedger.ASSET: ORMAssetTrade}
 _CASH_NOTE = "Bölünme küsurat nakdi ({ticker} {multiplier}:1, {ex_date:%d.%m.%Y})"
@@ -39,14 +39,6 @@ def _dec(value) -> Decimal:
     return value if isinstance(value, Decimal) else Decimal(str(value))
 
 
-def _side_value(side) -> str:
-    return getattr(side, "value", side)
-
-
-def _lot(orm) -> LedgerLot:
-    return LedgerLot(orm.id, orm.trade_date, orm.trade_time, _side_value(orm.side) == "BUY", _dec(orm.quantity), _dec(orm.price))
-
-
 def _stored_quantity(ledger: SplitLedger, quantity: Decimal):
     return quantity if ledger == SplitLedger.ASSET else int(quantity)
 
@@ -57,19 +49,10 @@ class SQLAlchemySplitLedgerRepository(ISplitLedgerRepository):
 
     # ---- okuma -------------------------------------------------------------------------
     def load_snapshot(self, stock_id: Optional[int] = None, asset_id: Optional[int] = None) -> SplitLedgerSnapshot:
-        lots: Dict = {}
-        with self._provider.get_session() as session:
-            if stock_id is not None:
-                main = session.query(ORMTrade).filter_by(stock_id=stock_id).all()
-                if main:
-                    lots[(SplitLedger.MAIN, None)] = [_lot(t) for t in main]
-                for trade in session.query(ORMModelPortfolioTrade).filter_by(stock_id=stock_id).all():
-                    lots.setdefault((SplitLedger.MODEL, trade.portfolio_id), []).append(_lot(trade))
-            if asset_id is not None:
-                assets = session.query(ORMAssetTrade).filter_by(asset_id=asset_id).all()
-                if assets:
-                    lots[(SplitLedger.ASSET, None)] = [_lot(t) for t in assets]
-        return SplitLedgerSnapshot(lots)
+        """Tek hissenin veya varlığın defter lotları (ortak okuyucu `SQLAlchemyLedgerReader`)."""
+        if stock_id is None and asset_id is None:
+            return SplitLedgerSnapshot({})
+        return SQLAlchemyLedgerReader(self._provider).snapshot(stock_id=stock_id, asset_id=asset_id)
 
     def get_event(self, event_id: int) -> Optional[SplitEvent]:
         with self._provider.get_session() as session:

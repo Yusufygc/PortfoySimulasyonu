@@ -40,9 +40,8 @@ class SplitAutomationDeps(NamedTuple):
     corporate_action_repo: object
     candidate_repo: object
     settings_repo: object = None
-    portfolio_repo: object = None
+    ledger_reader: object = None   # ILedgerReader: ana + model portföy işlemleri
     watchlist_repo: object = None
-    model_portfolio_repo: object = None
     asset_repo: object = None
 
 
@@ -114,7 +113,7 @@ class SplitAutomationService:
 
     # ---- yardımcılar -------------------------------------------------------------------
     def _targets(self) -> List[SplitTarget]:
-        ids = tracked_stock_ids(self._d.portfolio_repo, self._d.watchlist_repo, self._d.model_portfolio_repo)
+        ids = tracked_stock_ids(self._d.ledger_reader, self._d.watchlist_repo)
         ticker_map = self._d.stock_repo.get_ticker_map_for_stock_ids(sorted(ids)) if ids else {}
         targets = [SplitTarget(t.upper(), to_yf_symbol(t), stock_id=sid) for sid, t in sorted(ticker_map.items())]
         if self._d.asset_repo is not None:

@@ -142,3 +142,14 @@ def test_list_events_filters_by_ticker(seeded):
     repo.apply(_event(cash_entries=()))
     assert [e.ticker for e in repo.list_events("sdttr")] == ["SDTTR"]
     assert repo.list_events("OTHER") == []
+
+
+def test_ledger_reader_returns_all_ledgers_with_instrument_ids(seeded):
+    from src.domain.models.ledger import LedgerKind
+    from src.infrastructure.db.sqlalchemy.repositories.sa_ledger_reader import SQLAlchemyLedgerReader
+
+    snapshot = SQLAlchemyLedgerReader(seeded).snapshot()
+    assert sorted(snapshot.lots, key=str) == [(LedgerKind.MAIN, None), (LedgerKind.MODEL, 9)]
+    assert snapshot.instruments() == {79} and snapshot.open_instruments() == {79}
+    assert [l.instrument_id for l in snapshot.lots[(LedgerKind.MODEL, 9)]] == [79]
+    assert SQLAlchemyLedgerReader(seeded).snapshot(stock_id=12345).is_empty()

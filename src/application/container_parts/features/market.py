@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from src.application.container_parts.features._context import BuildContext
+from src.application.services.corporate_actions.tracked_stocks import watchlist_stock_ids
 from src.application.services.market.current_price_resolver import CurrentPriceResolver
 from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
 from src.application.services.market.market_indicators_service import MarketIndicatorsService
@@ -21,21 +22,12 @@ PROVIDES = (
 )
 
 
-def _watchlist_stock_ids(watchlist_repo) -> set:
-    """Tüm izleme listelerindeki hisse kimlikleri (canlı fiyat yenilemesine dahil edilir)."""
-    return {
-        item.stock_id
-        for watchlist in watchlist_repo.get_all_watchlists()
-        for item in watchlist_repo.get_items_by_watchlist_id(watchlist.id)
-    }
-
-
 def build(ctx: BuildContext) -> dict:
     r, m = ctx.repositories, ctx.market_clients
     health = PriceDataHealthService(
         deps=PriceHealthServiceDeps(
             stock_repo=r.stock_repo, price_repo=r.price_repo, price_refresher=ctx.services["market_price_refresher"],
-            portfolio_repo=r.portfolio_repo, model_portfolio_repo=r.model_portfolio_repo,
+            ledger_reader=r.ledger_reader, model_portfolio_repo=r.model_portfolio_repo,
         ),
         holiday_provider=BistHolidayProvider(),
     )
@@ -44,7 +36,7 @@ def build(ctx: BuildContext) -> dict:
         "price_data_health_service": health,
         "live_price_refresh_service": LivePriceRefreshService(
             stock_repo=r.stock_repo, price_lookup_service=m.price_lookup_service, price_data_health_service=health,
-            latest_price_repo=r.latest_price_repo, extra_stock_ids_provider=lambda: _watchlist_stock_ids(r.watchlist_repo),
+            latest_price_repo=r.latest_price_repo, extra_stock_ids_provider=lambda: watchlist_stock_ids(r.watchlist_repo),
         ),
         "backfill_service": BackfillService(
             stock_repo=r.stock_repo, price_repo=r.price_repo, price_refresher=ctx.services["market_price_refresher"],

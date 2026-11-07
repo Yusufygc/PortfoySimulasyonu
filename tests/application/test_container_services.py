@@ -6,6 +6,7 @@ from src.application.container_parts.services import build_services
 def _fake_repositories():
     return SimpleNamespace(
         cash_movement_repo=object(),
+        ledger_reader=object(),
         split_ledger_repo=object(),
         corporate_action_candidate_repo=object(),
         corporate_action_repo=object(),

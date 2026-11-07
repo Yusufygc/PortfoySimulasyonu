@@ -24,6 +24,7 @@ from src.infrastructure.db.sqlalchemy.repositories.sa_risk_profile_repository im
 from src.infrastructure.db.sqlalchemy.repositories.sa_golden_cross_repository import SQLAlchemyGoldenCrossRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_shareholder_repository import SQLAlchemyKapShareholderRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_stock_repository import SQLAlchemyStockRepository
+from src.infrastructure.db.sqlalchemy.repositories.sa_ledger_reader import SQLAlchemyLedgerReader
 from src.infrastructure.db.sqlalchemy.repositories.sa_split_ledger_repository import SQLAlchemySplitLedgerRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_trade_adjustment_repository import SQLAlchemyTradeAdjustmentRepository
 from src.infrastructure.db.sqlalchemy.repositories.sa_watchlist_repository import SQLAlchemyWatchlistRepository
@@ -61,6 +62,7 @@ class RepositorySet:
     app_settings_repo: SQLAlchemyAppSettingsRepository  # ücret oranları vb. küçük ayarlar
     fx_conversion_repo: SQLAlchemyFxConversionRepository  # TL <-> USD döviz çevirmeleri (ortak nakit havuzu)
     split_ledger_repo: SQLAlchemySplitLedgerRepository  # bölünmenin defterlere tek işlemde uygulanması
+    ledger_reader: SQLAlchemyLedgerReader  # üç işlem defterinin tek okuma noktası
 
 
 def build_repositories(conn_provider) -> RepositorySet:
@@ -92,4 +94,5 @@ def build_repositories(conn_provider) -> RepositorySet:
         app_settings_repo=SQLAlchemyAppSettingsRepository(conn_provider),
         fx_conversion_repo=SQLAlchemyFxConversionRepository(conn_provider),
         split_ledger_repo=SQLAlchemySplitLedgerRepository(conn_provider),
+        ledger_reader=SQLAlchemyLedgerReader(conn_provider),
     )

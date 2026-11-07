@@ -135,6 +135,29 @@ class FakeRefresher:
         return 0
 
 
+def ledger_reader_from(trades=None, model_trades_by_portfolio=None):
+    """Eski sahte portföy/model depolarındaki işlemleri ortak defter anlık görüntüsüne çevirir."""
+    from src.domain.models.ledger import LedgerKind, LedgerSnapshot
+    from src.domain.split_math import LedgerLot
+
+    def lot(trade, index):
+        is_buy = getattr(trade.side, "value", trade.side) == "BUY"
+        return LedgerLot(trade.id or index, trade.trade_date, trade.trade_time, is_buy,
+                         Decimal(trade.quantity), Decimal(str(trade.price)), trade.stock_id)
+
+    lots = {}
+    if trades:
+        lots[(LedgerKind.MAIN, None)] = [lot(tr, i) for i, tr in enumerate(trades, 1)]
+    for portfolio_id, model_trades in (model_trades_by_portfolio or {}).items():
+        lots[(LedgerKind.MODEL, portfolio_id)] = [lot(tr, i) for i, tr in enumerate(model_trades, 1)]
+
+    class Reader:
+        def snapshot(self, **_kwargs):
+            return LedgerSnapshot(lots)
+
+    return Reader()
+
+
 def make_service(
     prices_by_stock,
     series_by_ticker=None,
@@ -152,7 +175,11 @@ def make_service(
             stock_repo=FakeStockRepo(stocks),
             price_repo=price_repo,
             price_refresher=FakeRefresher(market_client, price_repo),
-            portfolio_repo=FakePortfolioRepo(trades or []) if trades is not None else None,
+            ledger_reader=(
+                ledger_reader_from(trades, model_trades_by_portfolio)
+                if trades is not None or model_trades_by_portfolio is not None
+                else None
+            ),
             model_portfolio_repo=(
                 FakeModelPortfolioRepo(model_trades_by_portfolio)
                 if model_trades_by_portfolio is not None
@@ -590,7 +617,7 @@ def test_all_bist_scope_first_trade_dates_empty():
     stocks = [Stock(id=1, ticker="AAA.IS", name="AAA")]
     resolver = PriceScopeResolver(
         stock_repo=FakeStockRepo(stocks),
-        portfolio_repo=FakePortfolioRepo(trades),
+        ledger_reader=ledger_reader_from(trades),
         model_portfolio_repo=None,
     )
     result = resolver.first_trade_dates_by_stock(PRICE_SCOPE_ALL_BIST)

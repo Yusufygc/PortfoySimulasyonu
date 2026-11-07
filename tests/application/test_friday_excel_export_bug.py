@@ -105,6 +105,20 @@ class _FakeMarketClient:
 # ────── Yardımcı fabrikalar ──────────────────────────────────────────────────
 
 
+def ledger_reader_from(trades):
+    from src.domain.models.ledger import LedgerKind, LedgerSnapshot
+    from src.domain.split_math import LedgerLot
+
+    lots = [LedgerLot(t.id or n, t.trade_date, t.trade_time, getattr(t.side, "value", t.side) == "BUY",
+                      Decimal(t.quantity), Decimal(str(t.price)), t.stock_id) for n, t in enumerate(trades, 1)]
+
+    class Reader:
+        def snapshot(self, **_kwargs):
+            return LedgerSnapshot({(LedgerKind.MAIN, None): lots} if lots else {})
+
+    return Reader()
+
+
 def _make_health_service(prices_by_stock, trades):
     stocks = [
         Stock(id=1, ticker="AAA.IS", name="AAA"),
@@ -115,7 +129,7 @@ def _make_health_service(prices_by_stock, trades):
             stock_repo=_FakeStockRepo(stocks),
             price_repo=_FakePriceRepo(prices_by_stock),
             price_refresher=None,  # bu testler yalnızca analizi kullanır
-            portfolio_repo=_FakePortfolioRepo(trades),
+            ledger_reader=ledger_reader_from(trades),
         ),
     )
 

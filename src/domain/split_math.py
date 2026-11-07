@@ -19,13 +19,16 @@ CASH_PLACES = Decimal("0.01")
 
 @dataclass(frozen=True)
 class LedgerLot:
-    """Bir defter işleminin bölünme hesabına giren alanları (ana portföy, model portföy veya varlık defteri)."""
+    """Bir defter işleminin ortak görünümü (ana portföy, model portföy veya varlık defteri).
+
+    `instrument_id`: hisse için `stock_id`, varlık için `asset_id` (çok enstrümanlı anlık görüntülerde dolu)."""
     trade_id: int
     trade_date: date
     trade_time: Optional[time]
     is_buy: bool
     quantity: Decimal
     price: Decimal
+    instrument_id: Optional[int] = None
 
 
 @dataclass(frozen=True)

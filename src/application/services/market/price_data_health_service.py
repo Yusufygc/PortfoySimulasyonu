@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, timedelta, time
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Dict, List, NamedTuple, Protocol, Sequence, Set
 
-from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.models.stock import Stock
-from src.domain.models.trade import TradeSide
-from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
 from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
-from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.models.ledger import LedgerKind
+from src.domain.ports.repositories.i_ledger_reader import ILedgerReader
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.market_clock import market_today
@@ -189,8 +187,8 @@ class PriceHealthServiceDeps(NamedTuple):
     stock_repo: IStockRepository
     price_repo: IPriceRepository
     price_refresher: object  # MarketPriceRefresher: kaynak -> DuckDB -> SQLite yansıması
-    portfolio_repo: "IPortfolioRepository | None" = None
-    model_portfolio_repo: "IModelPortfolioRepository | None" = None
+    ledger_reader: "ILedgerReader | None" = None  # ana + model portföy işlemleri (kapsam)
+    model_portfolio_repo: "IModelPortfolioRepository | None" = None  # kapsam seçeneklerinin adları
 
 
 class _UpdaterCtx(NamedTuple):
@@ -207,15 +205,34 @@ class _RowBuildCtx(NamedTuple):
     holiday_candidate_set: "Set[date]"
 
 
+def _scope_filter(scope: str | None):
+    """Kapsamın kapsadığı defter anahtarları: ana portföy, tüm model portföyler veya tek model portföy."""
+    model_id = _model_scope_id(scope)
+    include_main, include_models = _includes_dashboard(scope), _includes_models(scope)
+
+    def include(key) -> bool:
+        ledger, portfolio_id = key
+        if ledger == LedgerKind.MAIN:
+            return include_main
+        if ledger == LedgerKind.MODEL:
+            return include_models and (model_id is None or portfolio_id == model_id)
+        return False
+
+    return include
+
+
 class PriceScopeResolver:
+    """Fiyat sağlığı kapsamı. Defterler tek okuma noktasından (`ILedgerReader`) okunur; model portföy deposu
+    yalnızca kapsam seçeneklerinin adları içindir."""
+
     def __init__(
         self,
         stock_repo: IStockRepository,
-        portfolio_repo: IPortfolioRepository | None = None,
+        ledger_reader: ILedgerReader | None = None,
         model_portfolio_repo: IModelPortfolioRepository | None = None,
     ) -> None:
         self._stock_repo = stock_repo
-        self._portfolio_repo = portfolio_repo
+        self._ledger_reader = ledger_reader
         self._model_portfolio_repo = model_portfolio_repo
 
     def scope_options(self) -> List[PriceDataScopeOption]:
@@ -237,88 +254,23 @@ class PriceScopeResolver:
         return options
 
     def first_trade_dates_by_stock(self, scope: str | None = None) -> Dict[int, date]:
-        if _normalize_scope(scope) == PRICE_SCOPE_ALL_BIST:
+        if _normalize_scope(scope) == PRICE_SCOPE_ALL_BIST or self._ledger_reader is None:
             return {}
-        if self._portfolio_repo is None and self._model_portfolio_repo is None:
-            return {}
-        active_stock_ids = self.active_stock_ids(scope)
-        result: Dict[int, date] = {}
-        for trade in self.price_scope_trades(scope):
-            if trade.stock_id not in active_stock_ids:
-                continue
-            current = result.get(trade.stock_id)
-            if current is None or trade.trade_date < current:
-                result[trade.stock_id] = trade.trade_date
-        return result
+        snapshot, include = self._ledger_reader.snapshot(), _scope_filter(scope)
+        active = snapshot.open_instruments(include)
+        return {sid: day for sid, day in snapshot.first_trade_dates(include).items() if sid in active}
 
     def stocks_in_scope(self, first_trade_dates: Dict[int, date], scope: str | None = None) -> List[Stock]:
         stocks = self._stock_repo.get_all_stocks()
-        if _normalize_scope(scope) == PRICE_SCOPE_ALL_BIST:
-            return stocks
-        if self._portfolio_repo is None and self._model_portfolio_repo is None:
+        if _normalize_scope(scope) == PRICE_SCOPE_ALL_BIST or self._ledger_reader is None:
             return stocks
         active_stock_ids = self.active_stock_ids(scope)
         return [stock for stock in stocks if stock.id in active_stock_ids]
 
     def active_stock_ids(self, scope: str | None = None) -> set[int]:
-        if self._portfolio_repo is None and self._model_portfolio_repo is None:
+        if self._ledger_reader is None:
             return set()
-
-        stock_ids: set[int] = set()
-        if self._portfolio_repo is not None and _includes_dashboard(scope):
-            portfolio = build_portfolio_safely(self._portfolio_repo.get_all_trades()).portfolio
-            stock_ids.update(portfolio.active_positions)
-
-        if self._model_portfolio_repo is not None and _includes_models(scope):
-            for portfolio_id in self._model_portfolio_ids(scope):
-                stock_ids.update(
-                    _open_stock_ids_from_trade_like(
-                        self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
-                    )
-                )
-
-        return stock_ids
-
-    def price_scope_trades(self, scope: str | None = None):
-        if self._portfolio_repo is not None and _includes_dashboard(scope):
-            yield from self._portfolio_repo.get_all_trades()
-        if self._model_portfolio_repo is None or not _includes_models(scope):
-            return
-        for portfolio_id in self._model_portfolio_ids(scope):
-            yield from self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
-
-    def _model_portfolio_ids(self, scope: str | None = None) -> List[int]:
-        if self._model_portfolio_repo is None:
-            return []
-        selected_id = _model_scope_id(scope)
-        if selected_id is not None:
-            return [selected_id]
-        if _normalize_scope(scope) != PRICE_SCOPE_ALL_ACTIVE:
-            return []
-        return [
-            portfolio.id
-            for portfolio in self._model_portfolio_repo.get_all_model_portfolios()
-            if portfolio.id is not None
-        ]
-
-
-def _open_stock_ids_from_trade_like(trades) -> set[int]:
-    quantities: Dict[int, int] = {}
-    ordered = sorted(
-        trades,
-        key=lambda trade: (
-            trade.trade_date,
-            trade.trade_time if getattr(trade, "trade_time", None) is not None else time.min,
-            getattr(trade, "id", 0) or 0,
-        ),
-    )
-    for trade in ordered:
-        side = trade.side
-        if side in (TradeSide.BUY, ModelTradeSide.BUY) or getattr(side, "value", side) == "BUY":
-            quantities[trade.stock_id] = quantities.get(trade.stock_id, 0) + trade.quantity
-        else:
-            quantities[trade.stock_id] = quantities.get(trade.stock_id, 0) - trade.quantity
-    return {stock_id for stock_id, quantity in quantities.items() if quantity > 0}
+        return self._ledger_reader.snapshot().open_instruments(_scope_filter(scope))
 
 
 class PriceHealthAnalyzer:
@@ -635,11 +587,9 @@ class PriceDataHealthService:
         self._stock_repo = deps.stock_repo
         self._price_repo = deps.price_repo
         self._refresher = deps.price_refresher
-        self._portfolio_repo = deps.portfolio_repo
-        self._model_portfolio_repo = deps.model_portfolio_repo
         self._holiday_provider = holiday_provider or NoKnownMarketHolidayProvider()
         self._default_lookback_days = default_lookback_days
-        self._scope_resolver = PriceScopeResolver(deps.stock_repo, deps.portfolio_repo, deps.model_portfolio_repo)
+        self._scope_resolver = PriceScopeResolver(deps.stock_repo, deps.ledger_reader, deps.model_portfolio_repo)
         self._analyzer = PriceHealthAnalyzer(
             price_repo=deps.price_repo,
             scope_resolver=self._scope_resolver,

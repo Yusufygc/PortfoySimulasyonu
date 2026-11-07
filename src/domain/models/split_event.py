@@ -10,15 +10,13 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Optional, Tuple
 
-from src.domain.split_math import LedgerLot
+from src.domain.models.ledger import LedgerKey, LedgerKind, LedgerSnapshot
 
-
-class SplitLedger(str, Enum):
-    MAIN = "MAIN"
-    MODEL = "MODEL"
-    ASSET = "ASSET"
+# Bölünme kayıtları ortak defter modelini kullanır (eski adlar uyumluluk için korunur)
+SplitLedger = LedgerKind
+SplitLedgerSnapshot = LedgerSnapshot
 
 
 class SplitEventStatus(str, Enum):
@@ -73,15 +71,3 @@ class SplitEvent:
             raise ValueError("Split event needs exactly one of stock_id or asset_id")
         if not isinstance(self.status, SplitEventStatus):
             object.__setattr__(self, "status", SplitEventStatus(self.status))
-
-
-LedgerKey = Tuple[SplitLedger, Optional[int]]  # (defter, model portföy id)
-
-
-@dataclass(frozen=True)
-class SplitLedgerSnapshot:
-    """Bir hisse/varlığın tüm defterlerdeki işlemleri: anahtar (defter, model portföy id) -> lotlar."""
-    lots: Dict[LedgerKey, List[LedgerLot]] = field(default_factory=dict)
-
-    def is_empty(self) -> bool:
-        return not any(self.lots.values())

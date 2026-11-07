@@ -50,8 +50,8 @@ def _split_automation(r, applier: SplitApplier) -> SplitAutomationService:
     return SplitAutomationService(SplitAutomationDeps(
         signal_source=signal_source, applier=applier, ledger_repo=r.split_ledger_repo, stock_repo=r.stock_repo,
         corporate_action_repo=r.corporate_action_repo, candidate_repo=r.corporate_action_candidate_repo,
-        settings_repo=getattr(r, "app_settings_repo", None), portfolio_repo=r.portfolio_repo,
-        watchlist_repo=r.watchlist_repo, model_portfolio_repo=r.model_portfolio_repo,
+        settings_repo=getattr(r, "app_settings_repo", None), ledger_reader=r.ledger_reader,
+        watchlist_repo=r.watchlist_repo,
         asset_repo=getattr(r, "asset_repo", None),
     ))
 
@@ -76,8 +76,8 @@ def build(ctx: BuildContext) -> dict:
         "corporate_action_service": corporate_action_service,
         "corporate_action_discovery_service": CorporateActionDiscoveryService(deps=CandidateDiscoveryDeps(
             provider=KapMkkCorporateActionProvider(), candidate_repo=r.corporate_action_candidate_repo,
-            stock_repo=r.stock_repo, action_repo=r.corporate_action_repo, portfolio_repo=r.portfolio_repo,
-            watchlist_repo=r.watchlist_repo, model_portfolio_repo=r.model_portfolio_repo,
+            stock_repo=r.stock_repo, action_repo=r.corporate_action_repo, ledger_reader=r.ledger_reader,
+            watchlist_repo=r.watchlist_repo,
         )),
         "corporate_action_candidate_review_service": CorporateActionCandidateReviewService(
             candidate_repo=r.corporate_action_candidate_repo, corporate_action_service=corporate_action_service,
