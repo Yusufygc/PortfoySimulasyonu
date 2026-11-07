@@ -6,8 +6,9 @@ kayar, sıfır getirili günler oynaklığı düşürür ve grafikte sahte mumla
 
 Kural (yalnızca BIST hisseleri için):
 - hacim 0 ve açılış = yüksek = düşük = kapanış -> hayalet;
-- tatil takviminin kapsadığı yıllarda (2020+) BIST'in kapalı olduğu gün -> hayalet. Takvim öncesi yıllarda yalnızca
-  ilk kural uygulanır (ör. 15 Temmuz 2017'den önce işlem günüydü).
+- tatil takviminin kapsadığı yıllarda (2020+) BIST'in kapalı olduğu gün ve hacim 0 -> hayalet. Hacimli bar takvimde
+  tatil görünse de korunur: takvim elle tutulur ve hatalı olabilir (20.06.2024 tatil sanılıyordu, işlem günüydü).
+  Takvim öncesi yıllarda yalnızca ilk kural uygulanır (ör. 15 Temmuz 2017'den önce işlem günüydü).
 Arife (yarım gün) barı gerçek hacimliyse korunur.
 """
 from __future__ import annotations
@@ -35,12 +36,14 @@ OHLCV = Tuple[object, object, object, object, object]  # (açılış, yüksek, d
 def is_flat_zero_volume(ohlcv: OHLCV) -> bool:
     *raw_prices, volume = ohlcv
     prices = [_num(p) for p in raw_prices]
-    if any(p is None for p in prices) or (_num(volume) or 0) != 0:
+    if any(p is None for p in prices) or _num(volume) != 0:  # hacim bilinmiyorsa sabit bar sayılmaz
         return False
     return max(prices) == min(prices)
 
 
 def is_ghost_bar(price_date: date, ohlcv: OHLCV) -> bool:
-    if price_date >= CALENDAR_FROM and not is_bist_trading_day(price_date):
+    if is_flat_zero_volume(ohlcv):
         return True
-    return is_flat_zero_volume(ohlcv)
+    volume = _num(ohlcv[4])
+    calendar_closed = price_date >= CALENDAR_FROM and not is_bist_trading_day(price_date)
+    return calendar_closed and (volume is None or volume == 0)

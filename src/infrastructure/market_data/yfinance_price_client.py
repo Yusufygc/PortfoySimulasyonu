@@ -26,7 +26,7 @@ def _ghost_dates(dataframe: pd.DataFrame, ticker: str) -> set:
         fields = [fields[3]] * 4 + [None]  # OHLCV yoksa yalnızca takvim kuralı (hacim bilinmiyor -> sabit sayılmaz)
     ghosts = set()
     for i, timestamp in enumerate(fields[3].index):
-        ohlcv = tuple(series.iloc[i] if series is not None else 1 for series in fields)
+        ohlcv = tuple(series.iloc[i] if series is not None else None for series in fields)
         if is_ghost_bar(timestamp.date(), ohlcv):
             ghosts.add(timestamp.date())
     return ghosts
