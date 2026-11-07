@@ -113,3 +113,49 @@ def test_get_price_series_keeps_explicit_exchange_suffix_and_index_symbols(monke
     client.get_price_series("asels.is", date(2026, 1, 1), date(2026, 1, 2))
 
     assert seen == ["^XU100", "SAP.DE", "ASELS.IS"]
+
+
+def test_download_dataframe_requests_unadjusted_prices(monkeypatch):
+    """SQLite fiyat politikası: ham kapanış (bölünme düzeltmeli `Close`), temettü düzeltmesi yok."""
+    client = YFinanceMarketDataClient()
+    seen = {}
+
+    def fake_download(**kwargs):
+        seen.update(kwargs)
+        return pd.DataFrame()
+
+    monkeypatch.setattr("src.infrastructure.market_data.yfinance_client.yf.download", fake_download)
+    client._download_dataframe("THYAO.IS", date(2026, 1, 1), date(2026, 1, 2))
+
+    assert seen["auto_adjust"] is False
+
+
+def test_get_price_series_uses_close_not_adj_close(monkeypatch):
+    client = YFinanceMarketDataClient()
+    index = pd.to_datetime(["2026-01-05", "2026-01-06"])
+    df = pd.DataFrame({"Close": [10.26, 9.98], "Adj Close": [9.90, 9.63]}, index=index)
+    monkeypatch.setattr(client, "_download_dataframe", lambda tickers, start, end: df)
+
+    series = client.get_price_series("UNLU", date(2026, 1, 5), date(2026, 1, 6))
+
+    assert series == {date(2026, 1, 5): Decimal("10.26"), date(2026, 1, 6): Decimal("9.98")}
+
+
+def test_price_lookup_history_requests_unadjusted_prices(monkeypatch):
+    seen = {}
+
+    class FakeTicker:
+        fast_info = {}
+        info = {}
+
+        def history(self, **kwargs):
+            seen.update(kwargs)
+            return pd.DataFrame()
+
+    monkeypatch.setattr(
+        "src.infrastructure.market_data.yfinance_price_lookup_provider.yf.Ticker",
+        lambda _ticker: FakeTicker(),
+    )
+    YFinancePriceLookupProvider().lookup("THYAO.IS")
+
+    assert seen["auto_adjust"] is False

@@ -85,7 +85,7 @@ class YFinancePriceLookupProvider:
                 )
 
             try:
-                history = yf_ticker.history(period="7d", auto_adjust=True)
+                history = yf_ticker.history(period="7d", auto_adjust=False)
             except MARKET_DATA_FALLBACK_ERRORS as exc:
                 logger.error("YF history failed for %s: %s", normalized_ticker, exc)
                 return None
