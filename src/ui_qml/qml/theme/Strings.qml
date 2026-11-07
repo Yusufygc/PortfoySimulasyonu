@@ -227,7 +227,7 @@ QtObject {
     readonly property string ratioDivYield: "Temettü Verimi"
     readonly property string ratioDivYieldDesc: "Yıllık Temettü Getirisi"
     readonly property string ratioROE: "ROE (Özsermaye Kârlılığı)"
-    readonly property string ratioROEDesc: "Net Kâr / Özkaynaklar"
+    readonly property string ratioROEDesc: "Son 12 Ay Net Kâr / Özkaynaklar"
     readonly property string ratioNetDebtEbitda: "Net Borç / FAVÖK"
     readonly property string ratioNetDebtEbitdaDesc: "Kaldıraç ve Borçlanma Düzeyi"
     readonly property string ratioPiotroski: "Piotroski F-Score"

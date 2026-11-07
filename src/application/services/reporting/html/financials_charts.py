@@ -110,7 +110,7 @@ _KPI_DEFS = [
     ("Net Kar Marj %",  "net_kar_marji",  1,   "pct"),
     ("Net Borç/FAVÖK",  "net_borc_favok", 1,   "ratio"),
     ("Cari Oran",       "cari_oran",      1,   "ratio"),
-    ("ROE %",           "roe",            1,   "pct"),
+    ("ROE % (TTM)",     "roe",            1,   "pct"),
     ("DSO (gün)",       "dso",            1,   "days"),
     ("CCC (gün)",       "ccc",            1,   "days"),
 ]
