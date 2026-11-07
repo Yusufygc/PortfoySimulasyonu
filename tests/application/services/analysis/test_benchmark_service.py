@@ -95,3 +95,19 @@ def test_deposit_index_without_fallback_starts_at_first_published_rate():
     points = series[0].points
     assert D1 not in points
     assert points[D2] == Decimal("100")
+
+
+def test_cpi_month_is_applied_from_its_publication_month():
+    """Ekim TÜFE'si Kasım başında açıklanır: Ekim günlerinde Eylül endeksi, Kasım'dan itibaren Ekim endeksi geçerli."""
+    evds = StubEvds([
+        {"Tarih": "2026-9", "TP_FG_J0": "3000"},
+        {"Tarih": "2026-10", "TP_FG_J0": "3100"},
+    ])
+    service = AnalysisBenchmarkService(RecordingMarketClient({}), evds_client=evds)
+
+    series, _ = service.build_benchmark_series(date(2026, 10, 15), date(2026, 11, 2), ["cpi"])
+
+    points = series[0].points
+    assert points[date(2026, 10, 15)] == Decimal("3000")
+    assert points[date(2026, 10, 31)] == Decimal("3000")
+    assert points[date(2026, 11, 1)] == Decimal("3100")

@@ -29,6 +29,10 @@ def _parse_evds_month_date(value: str) -> date:
     return datetime.strptime(val_str, "%d-%m-%Y").date().replace(day=1)
 
 
+def _next_month(month_start: date) -> date:
+    return date(month_start.year + (month_start.month == 12), month_start.month % 12 + 1, 1)
+
+
 class EvdsSeriesProvider(Protocol):
     def get_series(self, series_code: str, start_date: date, end_date: date) -> List[dict]:
         ...
@@ -274,7 +278,9 @@ class AnalysisBenchmarkService:
         cpi_series = self._evds_cpi_series(start_date, end_date)
         if not cpi_series:
             return {}
-        return self._ffill_monthly_index(cpi_series, start_date, end_date)
+        # Ay M endeksi M+1 ayının başında açıklanır; açıklanmadan önceki günlerde kullanılmaz (ileriye bakma yok)
+        published = {_next_month(month): value for month, value in cpi_series.items()}
+        return self._ffill_monthly_index(published, start_date, end_date)
 
     def _evds_cpi_series(self, start_date: date, end_date: date) -> Dict[date, Decimal]:
         if not self._evds_client:
