@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-07] REFACTOR | Plan B: Yönetilebilirlik (özellik kaydı, tek fiyat yazıcısı, ortak defter, mesaj paketi)
+
+Dal: `refactor/yonetilebilirlik`. Ayrıntı: [architecture.md](architecture.md) §2, [data_architecture.md](data_architecture.md) kural 3-4, [architecture_evolution_plan.md](architecture_evolution_plan.md) §4.
+
+- **B1:** servisler `container_parts/features/` modüllerinde (`PROVIDES` + `build`), `ServiceRegistry`; denetleyiciler `controllers/registry.py`; `REQUIRES` + `ServiceView` 6 denetleyicide, kalanlar tavanlı.
+- **B2:** fiyatın tek yazıcısı DuckDB; SQLite `PriceProjectionService` yansıması. Sağlık/backfill `MarketPriceRefresher`, kurumsal aksiyon ve bölünme DuckDB faktörü + yansıtma. İlk senkronda bir kez `SinglePriceSourceMigration`. `scripts/rebuild_sqlite_prices.py`, `adjust_prices_before_date`, `adjust_downloaded_series` kaldırıldı. Koruma: `tests/test_price_single_writer_guard.py`.
+- **B3:** `ILedgerReader` / `LedgerSnapshot` (ana, model, varlık). Bölünme hedefleri, aday keşfi, fiyat sağlığı kapsamı geçti; gerçek veri kopyasında kapsamlar eski mantıkla birebir. Koruma: `tests/test_ledger_reader_guard.py`.
+- **B4:** `src/ui_qml/messages/` paketi (7 modül, yinelenen anahtar hata, 472 anahtar aynı).
+- **B5:** `scripts/measure_change_footprint.py`: Plan B öncesi medyan 7 kaynak dosya, merkeze dokunma %59; dal commit'lerinde medyan 5, %0 ([code_quality_guardrails.md](code_quality_guardrails.md) §9).
+- Gerçek veritabanında ilk senkron geçişi çalıştırır (kopyada ~31 sn). Kalite kapısı tavanda; tam paket geçti.
+
 ## [2026-11-07] REVIEW | Backend Denetimi 3 ve Otomatik Hisse Bölünmesi
 
 Ayrıntı ve açık kalanlar: [system_audit_report_2026-11-07.md](system_audit_report_2026-11-07.md).

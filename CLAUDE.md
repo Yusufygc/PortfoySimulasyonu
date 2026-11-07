@@ -138,9 +138,10 @@ GEMINI_API_KEY=your_gemini_key
 
 ## Yeni Özellik Ekleme Kalıbı
 
-1. **Servis:** `src/domain/ports/` → interface → `src/application/services/` → impl → `container.py` kaydı
-2. **Repository:** `src/domain/ports/repositories/` → ORM modeli → `src/infrastructure/db/sqlalchemy/repositories/` → `container.py`
-3. **UI Sayfası:** `src/ui_qml/controllers/` altında denetleyici → `src/ui_qml/app.py` içinde context property kaydı → `qml/views/` görünümü → `Sidebar.qml` / `Main.qml` yönlendirme → metinler `Strings.qml`
+1. **Servis:** `src/domain/ports/` → interface → `src/application/services/` → impl → ilgili `src/application/container_parts/features/<özellik>.py` modülünde `PROVIDES` + `build` satırı
+2. **Repository:** `src/domain/ports/repositories/` → ORM modeli → `src/infrastructure/db/sqlalchemy/repositories/` → `container_parts/repositories.py`
+3. **UI Sayfası:** `src/ui_qml/controllers/` altında denetleyici (`REQUIRES = (...)`, servislere `self._deps.<ad>`) → `src/ui_qml/controllers/registry.py` `CONTROLLERS` satırı → `qml/views/` görünümü → `Sidebar.qml` / `Main.qml` yönlendirme → QML metinleri `Strings.qml`, Python metinleri `src/ui_qml/messages/<alan>.py`
+4. **Fiyat ve defter:** Fiyat yalnızca DuckDB'ye yazılır, SQLite `PriceProjectionService.project` ile yansıtılır. Ana/model/varlık işlemlerini birlikte okuyan kod `ILedgerReader` kullanır.
 
 ---
 

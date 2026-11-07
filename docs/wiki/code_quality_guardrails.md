@@ -77,3 +77,24 @@ Kurallar [ARCHITECTURE_GATES.md](../../ARCHITECTURE_GATES.md) §1.1'dedir; özet
 - **Değer şartı:** refaktör okunabilirlik, hata riski veya test edilebilirlik kazandırmalıdır. Yalnızca ölçüt sayısını düşürmek (yeni modül, yeni sarmalayıcı) gerekçe değildir; ölçüt gerçek sorunu yansıtmıyorsa ölçüt düzeltilir (§2 sayım kuralı).
 - **Karakterizasyon önce:** davranışı koruyan taşıma/bölmeden önce mevcut kodun çıktısı sabit girdilerle kaydedilir, sonra karşılaştırılır; geçici betik yerine kalıcı test tercih edilir.
 - **Küçük adım, ölçülü kapsam:** bir oturumda çok sayıda benzer sınıfa girişmeden önce ilk örnekten kazanç/maliyet raporlanır ve devam kararı kullanıcıdan alınır.
+
+## 9. Değişiklik Ayak İzi (2026-11-07)
+
+Yönetilebilirlik ölçüsü: bir özelliğin kaç kaynak dosyasını ve kaç ortak kayıt dosyasını (`Strings.qml`, `ui_qml/app.py`,
+`controllers/registry.py`, `container.py`, `container_parts/services.py`, `repositories.py`, eski `messages.py`) değiştirdiği.
+
+```powershell
+.\venv\Scripts\python.exe scripts\measure_change_footprint.py                 # son 200 commit
+.\venv\Scripts\python.exe scripts\measure_change_footprint.py --range main..HEAD
+```
+
+Özellik commit'i: mesajı `ekle:` / `güncelle:` ile başlayan commit; kaynak dosya: `src/` altındaki `.py` / `.qml`.
+**Hedef:** kaynak dosya medyanı <= 5, commit başına kayıt merkezi dokunuşu <= 1.
+
+| Ölçüm | Özellik commit'i | Medyan kaynak dosya | Merkeze dokunan | Commit başına merkez |
+|---|---:|---:|---:|---:|
+| Plan B öncesi (son 200 commit) | 41 | 7 | %59 | 1,27 |
+| Plan B dalı (`refactor/yonetilebilirlik`, B2 özellik commit'leri) | 4 | 5 | %0 | 0,00 |
+
+Plan B dalındaki örneklem küçüktür (4 commit); hedefin tuttuğu sonraki özelliklerle doğrulanır.
+

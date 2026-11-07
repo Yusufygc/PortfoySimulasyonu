@@ -9,7 +9,7 @@ Kapsam: servisler ve hesaplamalar (portföy, TWR, risk metrikleri, optimizasyon,
 | # | Bulgu | Öncelik | Sonuç |
 |---|---|---|---|
 | 1 | SDTTR 11:1 bölünme SQLite'ta yok; model portföy 9 (65 lot @242) %-93 sahte zarar. Bölünme tespiti yalnızca DuckDB kırılmasına bakıyordu, DuckDB Yahoo'nun düzelttiği geçmişi tuttuğu için kırılma görünmüyordu | 🔴 | Çözüldü: otomatik bölünme servisi (aşağıda). Gerçek DB'ye uygulanması kullanıcı onayı bekliyor |
-| 2 | SQLite `daily_prices` iki tür fiyat karışık: senkron ham, sağlık/backfill temettü-düzeltmeli (`auto_adjust=True`). 56.413 çakışan satırın 6.914'ü DuckDB'den >%0,5 farklı | 🔴 | Çözüldü (kod): yazıcılar ham `Close`. Veri onarımı `scripts/rebuild_sqlite_prices.py` (kopyada 6.914 -> 1.043) |
+| 2 | SQLite `daily_prices` iki tür fiyat karışık: senkron ham, sağlık/backfill temettü-düzeltmeli (`auto_adjust=True`). 56.413 çakışan satırın 6.914'ü DuckDB'den >%0,5 farklı | 🔴 | Çözüldü (kod): yazıcılar ham `Close`. Veri onarımı `scripts/rebuild_sqlite_prices.py` (kopyada 6.914 -> 1.043; betik Plan B2'de kaldırıldı, yerini `PriceProjectionService` aldı) |
 | 3 | DuckDB'de 81.294 hayalet bar (bayram, hacimsiz sabit); göstergeleri, kovaryansı ve mumları bozuyordu | 🟠 | Çözüldü (kod): `bar_quality` üç indiriciye bağlı. Temizlik `scripts/clean_ghost_bars.py` (81.154 bar) |
 | 4 | TWR: nakitten büyük alımda kırpma (sabit fiyatta TWR 100 -> 600) | 🟠 | Çözüldü: açık dış akış sayılır |
 | 5 | Başlangıç nakdinde komisyon yok; değer başlangıç tarihine göre değişiyordu | 🟡 | Çözüldü |
@@ -37,11 +37,11 @@ Kopyada çalıştırma (2026-11-07): SDTTR otomatik uygulandı (model işlem 715
 
 ## Veri onarımı (gerçek veritabanı)
 
-Sıra: (1) uygulamada bölünme taraması (SDTTR) veya kopyadaki aynı çalıştırma, (2) `python scripts/clean_ghost_bars.py --execute`, (3) `python scripts/rebuild_sqlite_prices.py --execute`. Betikler varsayılan olarak kuru çalışır ve uygulamada yedek alır. Kopyada sonuç: uyuşmazlık 6.914 -> 1.043, tek günlük >%60 kırılma yok, kalan hacimsiz sabit bar 142.
+Sıra: (1) uygulamada bölünme taraması (SDTTR) veya kopyadaki aynı çalıştırma, (2) `python scripts/clean_ghost_bars.py --execute`, (3) `python scripts/rebuild_sqlite_prices.py --execute` (2026-11-07'de uygulandı; betik sonra Plan B2'de kaldırıldı, SQLite artık her senkronda DuckDB'den yansıtılır). Betikler varsayılan olarak kuru çalışır ve uygulamada yedek alır. Kopyada sonuç: uyuşmazlık 6.914 -> 1.043, tek günlük >%60 kırılma yok, kalan hacimsiz sabit bar 142.
 
 ## Açık kalanlar
 
-- **RUZYE:** SQLite 2019 öncesi geçmişi ~0,76 faktörle düzeltilmiş, DuckDB'deki 2019-03-18 olayı aday (onaysız). Ayarlar > Piyasa Düzeltmeleri'nden onaylanınca `rebuild_sqlite_prices.py` onu da eşitler.
+- **RUZYE:** SQLite 2019 öncesi geçmişi ~0,76 faktörle düzeltilmiş, DuckDB'deki 2019-03-18 olayı aday (onaysız). Ayarlar > Piyasa Düzeltmeleri'nden onaylanınca yansıtma onu da eşitler; `SinglePriceSourceMigration` 2021 öncesi faktörü içe alamaz (DuckDB'de kırılma yok), raporlar.
 - **Takvim 2027 ve 2030 Kurban kayıtları** 2024'teki hatayla aynı kalıbı taşıyabilir (bayram 1. günü Pazar); açıklanınca doğrulanmalı.
 - **Tek kaynaklı bölünme adayı onayı** artık ana ve model portföyü düzeltir; varlık defteri (ABD hissesi) adayı yalnızca raporlanır, onay arayüzü yok.
 - **Mevduat endeksi** brüt faizle günlük bileşik (stopaj yok); arayüz notu eklenmedi.

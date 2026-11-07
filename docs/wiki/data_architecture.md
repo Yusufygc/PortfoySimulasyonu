@@ -36,14 +36,14 @@ Dosyayı yalnızca altyapı sınıfları açar: `BistBulkDownloader` (ilk yükle
 | Veri | Depo | Yazan | Okuyan |
 |---|---|---|---|
 | Portföy: `stocks`, `trades`, `cash_movements`, `trade_adjustments` | **SQLite** `data/portfolio.db` | `PortfolioService`, `TradeEntryService`, `CashMovementService` | Portföyüm, Hisse Detay, Karşılaştırma, Optimizasyon, Excel |
-| Kullanıcı verisine (işlem, izleme listesi, model portföy, kurumsal aksiyon) bağlı hisselerin günlük kapanışları: `daily_prices` (~35 hisse) | **SQLite** | `MarketDataSyncService` (köprü + uzlaştırma), `PriceDataHealthService`, `BackfillService`, sermaye artırımı fiyat düzeltmesi | Portföy değerleme, Karşılaştırma, `CurrentPriceResolver` |
+| Kullanıcı verisine (işlem, izleme listesi, model portföy, kurumsal aksiyon) bağlı hisselerin günlük kapanışları: `daily_prices` (~35 hisse) | **SQLite** (DuckDB'nin yansıması) | yalnızca `PriceProjectionService` (`tests/test_price_single_writer_guard.py`) | Portföy değerleme, Karşılaştırma, `CurrentPriceResolver` |
 | Canlı/gün içi fiyat önbelleği: `latest_prices` | **SQLite** | `LivePriceRefreshService` | `CurrentPriceResolver` ve İzleme Listesi (yalnızca seans penceresinde alınmış ve son kapanıştan yeni güne aitse kullanılır; `src/domain/live_price_rule.py`) |
 | Takip listeleri, model portföyler (+işlem/nakit), bütçe/hedef/sabit kalemler | **SQLite** | ilgili servisler | ilgili ekranlar |
 | Portföy kurumsal aksiyonları ve KAP/MKK adayları (`corporate_actions`, `corporate_action_candidates`) | **SQLite** | `CorporateActionService`, aday servisleri | Hisse Detay, Ayarlar |
 | Risk profilleri, KAP ortaklık anlık görüntüleri | **SQLite** | `RiskProfileService`, `ShareholderAnalysisService` | Optimizasyon, Hisse 360 |
 | Golden/Death Cross olayları `cross_events` (ticker anahtarlı, türetilmiş) | **SQLite** | `TechnicalAnalysisService` | Hisse Tarayıcı |
-| **Tüm BIST günlük ham barları** (`daily_prices`, ticker bazlı, ~2,2 milyon bar, 2000-bugün) ve hisse kataloğu (`bist_stocks`, ~624) | **DuckDB** `data/market_history.duckdb` | `BistBulkDownloader` (ilk yükleme, script), `MarketDataSyncService.sync_daily_delta` (artımlı) | `DuckDBMarketHistoryRepository` (salt okunur) |
-| **Sermaye artırımı/bölünme olayları ve fiyat düzeltme faktörleri** (`market_corporate_actions`, ticker anahtarlı) | **DuckDB** | `DuckDBCorporateActionStore` (`MarketCorporateActionService` üzerinden) | `DuckDBMarketHistoryRepository` (düzeltilmiş okuma) |
+| **Tüm BIST günlük ham barları** (`daily_prices`, ticker bazlı, ~2,2 milyon bar, 2000-bugün) ve hisse kataloğu (`bist_stocks`, ~624) | **DuckDB** `data/market_history.duckdb` | `BistBulkDownloader` (ilk yükleme, script), `MarketDataSyncService.sync_daily_delta` (artımlı), `MarketPriceRefresher` (fiyat sağlığı ve backfill indirmeleri) | `DuckDBMarketHistoryRepository` (salt okunur) |
+| **Sermaye artırımı/bölünme olayları ve fiyat düzeltme faktörleri** (`market_corporate_actions`, ticker anahtarlı) | **DuckDB** | `DuckDBCorporateActionStore` (`MarketCorporateActionService` üzerinden; portföy aksiyonu ve bölünme uygulayıcısı onaylı faktör kaydeder) | `DuckDBMarketHistoryRepository` (düzeltilmiş okuma) |
 | **BIST dışı varlık defteri** (`assets`, `asset_trades`), **varlık fiyatları** (`asset_prices`, `asset_latest_prices`) ve **kurlar** (`fx_rates`) | **SQLite** | `AssetLedgerService`, `AssetPriceRefreshService`, `FxRateService` | `UnifiedPortfolioService`, `AssetChartService` (Portföyüm, Genel Bakış grafiği) |
 | Haber kaynağı tercihleri (`news_sources`) | **SQLite** | `NewsService` | Ayarlar, haber paneli |
 | Ayarlar: tema, otomatik iş işaretleri, sohbet geçmişi, haber yenileme aralığı | Windows `QSettings` | `SettingsController`, `StartupJobsController` | aynı |
@@ -60,11 +60,18 @@ grafik, Hisse Detay son bar, DCA (birincil kaynak), Markowitz optimizasyonu, Aya
 1. **İşlemsel veri SQLite'tadır; piyasa verisinin sahibi DuckDB'dir.** SQLite `daily_prices` yalnızca kullanıcı verisine
    bağlı hisseler içindir (kullanıcı verisine bağlı olmayan 133 hissenin fiyatı ve kaydı 2026-10-03'te silindi).
 2. **DuckDB'ye yalnızca `IMarketHistoryRepository` (okuma), `IMarketCorporateActionRepository` ve
-   `MarketDataSyncService` / `BistBulkDownloader` (yazma) erişir.** Controller veya servislerde ham `duckdb.connect` kullanılmaz.
-3. **DuckDB -> SQLite köprüsü repository üzerinden yapılır** (`price_repo.upsert_daily_prices_bulk`). Ham `sqlite3` yazımı yasaktır
-   (BIGINT birincil anahtar otomatik artmadığı için eski köprü sessizce `NOT NULL constraint failed` ile başarısız oluyordu).
-4. `MarketDataSyncService.reconcile_sqlite_from_duckdb` her senkronda DuckDB'de olup SQLite'ta olmayan **yeni** barları
-   kullanıcı verisine bağlı hisseler için SQLite'a taşır; mevcut (düzeltilmiş) geçmiş barların üzerine asla yazmaz.
+   `MarketDataSyncService` / `BistBulkDownloader` / `MarketPriceRefresher` (yazma) erişir.** Controller veya servislerde ham
+   `duckdb.connect` kullanılmaz.
+3. **Fiyatın tek yazıcısı DuckDB'dir; SQLite `daily_prices` onun yansımasıdır (2026-11-07, Plan B2).** Yansıtma
+   `PriceProjectionService.project(stock_ids, start, end)`: takip edilen hisselerin DuckDB düzeltilmiş barlarını (hayalet ve
+   hacmi 0 bar hariç) repository üzerinden (`upsert_daily_prices_bulk`) yazar; yalnızca 0,0001'den çok farklı satırlar
+   yazılır, aralıkta DuckDB'de olmayan SQLite günleri silinir, DuckDB'de hiç barı olmayan hisseye dokunulmaz (raporlanır).
+   Başka kod SQLite fiyatı yazmaz (`tests/test_price_single_writer_guard.py`). Ham `sqlite3` yazımı yasaktır.
+4. **İndirme ve düzeltme önce DuckDB'ye, sonra yansıtma:** senkron (`reconcile_sqlite_from_duckdb`), fiyat sağlığı ve
+   backfill (`MarketPriceRefresher.refresh`: kaynak -> DuckDB -> `project`), kurumsal aksiyon ve bölünme (onaylı DuckDB
+   faktörü -> `project`; geri alma: olay `IGNORED` -> `project`). SQLite fiyatı yerinde çarpılmaz. İlk senkron bir kez
+   `SinglePriceSourceMigration` çalıştırır (`app_settings` `prices.single_source_migrated`): SQLite'taki faktör izini DuckDB'ye
+   onaylı olay olarak alır, alınamayanı raporlar (DuckDB kazanır), sonra tam `project()`.
 5. SQLite BIGINT birincil anahtarı otomatik artmaz. `orm_models.py` içindeki `before_insert` dinleyicisi `id` verilmeden eklenen kayıtlara `max(id)+1` atar (işlem, nakit hareketi, model portföy, bütçe vb.). Kimliği repository'de elle atayanlar etkilenmez. Dinleyici eşzamanlı yazıcılarda çakışmayı önlemek için `max(id)` okumadan önce yazma kilidini alır ([database_schema_and_orm.md](database_schema_and_orm.md)).
 6. **DuckDB'deki ham barlar asla değiştirilmez.** Düzeltme `market_corporate_actions` faktörleriyle okuma anında uygulanır
    (bkz. [market_corporate_actions.md](market_corporate_actions.md)).
@@ -74,9 +81,9 @@ grafik, Hisse Detay son bar, DCA (birincil kaynak), Markowitz optimizasyonu, Aya
    (benchmark) kazıyıcısı ve `BistBulkDownloader`. Tek hisse anlık fiyat sorguları (`YFinancePriceLookupProvider`, değerleme)
    arayüzü bekletmemek için bilerek yeniden denenmez. Testlerde bekleme `tests/conftest.py` ile kapatılır.
 
-8. **Fiyat politikası (2026-11-07):** SQLite `daily_prices` ham kapanış + onaylı bölünme/sermaye artırımı faktörü tutar
-   (DuckDB okuma kuralıyla aynı); temettü düzeltmesi yoktur. Yahoo'dan SQLite'a yazan tüm yollar `auto_adjust=False` ve
-   `Close` kullanır. Eski karışık satırlar `scripts/rebuild_sqlite_prices.py` ile onarılır.
+8. **Fiyat politikası (2026-11-07):** SQLite `daily_prices` = DuckDB ham kapanış + onaylı bölünme/sermaye artırımı
+   faktörü (kural 3); temettü düzeltmesi yoktur. Yahoo'dan DuckDB'ye yazan tüm yollar `auto_adjust=False` ve `Close` kullanır.
+   Eski karışık satırları yansıtma onarır (ayrı onarım betiği yok).
 9. **Hayalet bar:** BIST tatil günü (2020+ takvim, hacim 0) veya hacmi 0 ve fiyatı sabit bar yazılmaz
    (`src/infrastructure/market_data/bar_quality.py`); eskileri `scripts/clean_ghost_bars.py` siler.
 
@@ -85,6 +92,7 @@ grafik, Hisse Detay son bar, DCA (birincil kaynak), Markowitz optimizasyonu, Aya
 - **Düzeltilmemiş adaylar:** Veriden tespit edilen sermaye artırımı adayları kullanıcı onayına kadar düzeltmeye girmez;
   onaylanana dek tarayıcı o hisse için ham seriyi görür.
 - **Hacim:** Düzeltilmiş okumada OHLC faktörlenir, hacim ham kalır.
-- **SQLite fiyatları (35 hisse):** Portföy değerlemesi SQLite'tan okur; DuckDB düzeltmesi ile otomatik eşitlenmez. Portföy aksiyonu
-  uygulandığında her iki depo da güncellenir.
+- **SQLite fiyatları (35 hisse):** Portföy değerlemesi SQLite'tan okur; değerler her yazımdan sonra `PriceProjectionService`
+  ile DuckDB'den yansıtılır. DuckDB'de geçmişi olmayan bir faktör izi (ör. RUZYE 2021 öncesi) geçişte içe alınamaz; o hissede
+  DuckDB ham değeri geçerlidir.
 - **`candidate.ticker` eski kayıtları** `.IS` uzantılı olabilir (yalnızca `corporate_action_candidates`); aramalar iki biçimi de tolere eder.
