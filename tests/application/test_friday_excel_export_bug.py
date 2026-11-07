@@ -114,7 +114,7 @@ def _make_health_service(prices_by_stock, trades):
         deps=PriceHealthServiceDeps(
             stock_repo=_FakeStockRepo(stocks),
             price_repo=_FakePriceRepo(prices_by_stock),
-            market_data_client=_FakeMarketClient(),
+            price_refresher=None,  # bu testler yalnızca analizi kullanır
             portfolio_repo=_FakePortfolioRepo(trades),
         ),
     )

@@ -2,7 +2,6 @@ from datetime import date
 from decimal import Decimal
 
 from src.application.services.market.price_data_health_service import PriceDataHealthService, PriceHealthServiceDeps
-from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade, ModelPortfolioTradeSpec
 from src.domain.models.stock import Stock
@@ -110,12 +109,30 @@ class FakeMarketClient:
         return self._single_prices_by_ticker[ticker][price_date]
 
 
-class FakeCorporateActionRepo:
-    def __init__(self, actions_by_stock):
-        self._actions_by_stock = actions_by_stock
+class FakeRefresher:
+    """MarketPriceRefresher yerine: piyasa istemcisinden okur, SQLite yansımasını taklit eder (DuckDB'siz)."""
 
-    def get_by_stock(self, stock_id):
-        return list(self._actions_by_stock.get(stock_id, []))
+    def __init__(self, market_client, price_repo):
+        from src.application.services.market_data.market_price_refresher import RefreshResult
+
+        self._client, self._prices, self._result_type = market_client, price_repo, RefreshResult
+        self.delete_calls = []
+
+    def refresh(self, stocks, start, end):
+        result = self._result_type()
+        for stock in stocks:
+            series = self._client.get_price_series(stock.ticker, start, end)
+            self._prices.upsert_daily_prices_bulk(
+                [DailyPrice(None, stock.id, day, price) for day, price in sorted(series.items())]
+            )
+            if series:
+                result.updated[stock.id] = len(series)
+                result.last_prices[stock.id] = series[max(series)]
+        return result
+
+    def delete_range(self, stocks, start, end):
+        self.delete_calls.append(([s.id for s in stocks], start, end))
+        return 0
 
 
 def make_service(
@@ -123,29 +140,22 @@ def make_service(
     series_by_ticker=None,
     trades=None,
     model_trades_by_portfolio=None,
-    single_prices_by_ticker=None,
-    corporate_actions_by_stock=None,
 ):
     stocks = [
         Stock(id=1, ticker="AAA.IS", name="AAA"),
         Stock(id=2, ticker="BBB.IS", name="BBB"),
     ]
     price_repo = FakePriceRepo(prices_by_stock)
-    market_client = FakeMarketClient(series_by_ticker or {}, single_prices_by_ticker)
+    market_client = FakeMarketClient(series_by_ticker or {})
     service = PriceDataHealthService(
         deps=PriceHealthServiceDeps(
             stock_repo=FakeStockRepo(stocks),
             price_repo=price_repo,
-            market_data_client=market_client,
+            price_refresher=FakeRefresher(market_client, price_repo),
             portfolio_repo=FakePortfolioRepo(trades or []) if trades is not None else None,
             model_portfolio_repo=(
                 FakeModelPortfolioRepo(model_trades_by_portfolio)
                 if model_trades_by_portfolio is not None
-                else None
-            ),
-            corporate_action_repo=(
-                FakeCorporateActionRepo(corporate_actions_by_stock)
-                if corporate_actions_by_stock is not None
                 else None
             ),
         ),
@@ -259,23 +269,6 @@ def test_empty_market_series_does_not_crash_update():
     assert result.updated_count == 0
     assert "AAA.IS" in result.errors[0]
     assert price_repo.saved_prices == []
-
-
-def test_empty_market_series_falls_back_to_single_day_closing_prices():
-    service, price_repo, market_client = make_service(
-        {1: {}, 2: {}},
-        {},
-        single_prices_by_ticker={
-            "AAA.IS": {date(2026, 1, 5): Decimal("12")},
-        },
-    )
-
-    result = service.update_stock_range(1, date(2026, 1, 5), date(2026, 1, 5))
-
-    assert result.updated_count == 1
-    assert price_repo.prices_by_stock[1][date(2026, 1, 5)] == Decimal("12")
-    assert market_client.requests == [("AAA.IS", date(2026, 1, 5), date(2026, 1, 5))]
-    assert market_client.single_requests == [("AAA.IS", date(2026, 1, 5))]
 
 
 def test_dates_before_stock_first_trade_are_not_counted_as_missing():
@@ -496,36 +489,6 @@ def test_closed_model_portfolio_position_is_not_scanned_by_default():
     report = service.analyze(date(2026, 1, 2), date(2026, 1, 5))
 
     assert [row.stock_id for row in report.rows] == [1]
-
-
-def test_price_health_update_normalizes_pre_ex_market_prices_for_adjusted_actions():
-    action = CorporateAction(
-        id=1,
-        stock_id=1,
-        action_type=ActionType.BEDELSIZ,
-        ex_date=date(2026, 5, 5),
-        ratio=Decimal("1"),
-        subscription_price=None,
-        announcement_date=None,
-        notes=None,
-        applied=True,
-        prices_adjusted=True,
-        price_adjustment_factor=Decimal("0.5"),
-    )
-    service, price_repo, _ = make_service(
-        {1: {}, 2: {}},
-        {"AAA.IS": {date(2026, 5, 4): Decimal("20"), date(2026, 5, 5): Decimal("10")}},
-        trades=[
-            Trade.create_buy(stock_id=1, trade_date=date(2026, 5, 4), quantity=1, price=Decimal("20")),
-        ],
-        corporate_actions_by_stock={1: [action]},
-    )
-
-    result = service.update_stock_range(1, date(2026, 5, 4), date(2026, 5, 5))
-
-    assert result.updated_count == 2
-    assert price_repo.prices_by_stock[1][date(2026, 5, 4)] == Decimal("10.0")
-    assert price_repo.prices_by_stock[1][date(2026, 5, 5)] == Decimal("10")
 
 
 def test_delete_range_uses_selected_model_scope_stock_ids():

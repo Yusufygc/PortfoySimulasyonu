@@ -30,9 +30,8 @@ def build(ctx: BuildContext) -> dict:
     r, m = ctx.repositories, ctx.market_clients
     health = PriceDataHealthService(
         deps=PriceHealthServiceDeps(
-            stock_repo=r.stock_repo, price_repo=r.price_repo, market_data_client=m.market_client,
+            stock_repo=r.stock_repo, price_repo=r.price_repo, price_refresher=ctx.services["market_price_refresher"],
             portfolio_repo=r.portfolio_repo, model_portfolio_repo=r.model_portfolio_repo,
-            corporate_action_repo=r.corporate_action_repo,
         ),
         holiday_provider=BistHolidayProvider(),
     )
@@ -44,8 +43,7 @@ def build(ctx: BuildContext) -> dict:
             latest_price_repo=r.latest_price_repo, extra_stock_ids_provider=lambda: _watchlist_stock_ids(r.watchlist_repo),
         ),
         "backfill_service": BackfillService(
-            stock_repo=r.stock_repo, price_repo=r.price_repo, market_data_client=m.market_client,
-            corporate_action_repo=r.corporate_action_repo,
+            stock_repo=r.stock_repo, price_repo=r.price_repo, price_refresher=ctx.services["market_price_refresher"],
         ),
         "current_price_resolver": CurrentPriceResolver(
             latest_price_repo=r.latest_price_repo, price_repo=r.price_repo, session_service=m.bist_market_session_service,

@@ -37,6 +37,7 @@ EXPECTED = {
     'fee_settings_service': 'FeeSettingsService', 'position_query_service': 'PositionQueryService',
     'asset_chart_service': 'AssetChartService', 'news_service': 'NewsService', 'news_target_service': 'NewsTargetService',
     'price_projection_service': 'PriceProjectionService',  # B2: tek fiyat kaynağı
+    'market_price_refresher': 'MarketPriceRefresher',
 }
 
 

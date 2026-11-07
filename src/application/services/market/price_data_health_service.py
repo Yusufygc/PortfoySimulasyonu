@@ -5,18 +5,14 @@ from datetime import date, timedelta, time
 from decimal import Decimal
 from typing import Dict, List, NamedTuple, Protocol, Sequence, Set
 
-from src.domain.models.daily_price import DailyPrice
 from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.models.stock import Stock
 from src.domain.models.trade import TradeSide
 from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
-from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
 from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
-from src.domain.ports.services.i_market_data_client import IMarketDataClient
-from src.application.services.corporate_actions.price_adjustment_service import adjusted_market_price
 from src.domain.market_clock import market_today
 
 PRICE_SCOPE_ALL_ACTIVE = "all_active"
@@ -192,10 +188,9 @@ def _active_stock_ids_for_date(
 class PriceHealthServiceDeps(NamedTuple):
     stock_repo: IStockRepository
     price_repo: IPriceRepository
-    market_data_client: IMarketDataClient
+    price_refresher: object  # MarketPriceRefresher: kaynak -> DuckDB -> SQLite yansıması
     portfolio_repo: "IPortfolioRepository | None" = None
     model_portfolio_repo: "IModelPortfolioRepository | None" = None
-    corporate_action_repo: "ICorporateActionRepository | None" = None
 
 
 class _UpdaterCtx(NamedTuple):
@@ -492,18 +487,17 @@ class PriceHealthUpdater:
         self,
         stock_repo: IStockRepository,
         price_repo: IPriceRepository,
-        market_data_client: IMarketDataClient,
+        refresher,
         ctx: "_UpdaterCtx",
-        corporate_action_repo: "ICorporateActionRepository | None" = None,
     ) -> None:
+        """`refresher` (MarketPriceRefresher): indirme DuckDB'ye, SQLite'a yalnızca yansıtma yazar."""
         self._stock_repo = stock_repo
         self._price_repo = price_repo
-        self._market_data_client = market_data_client
+        self._refresher = refresher
         self._scope_resolver = ctx.scope_resolver
         self._analyzer = ctx.analyzer
         self._holiday_provider = ctx.holiday_provider
         self._default_start_date_func = ctx.default_start_date_func
-        self._corporate_action_repo = corporate_action_repo
 
     def update_missing_prices(
         self,
@@ -611,135 +605,24 @@ class PriceHealthUpdater:
         end_date: date,
         allowed_dates: set[date] | None = None,
     ) -> PriceDataUpdateResult:
+        """Aralığı kaynaktan DuckDB'ye indirir ve SQLite yansımasını günceller (`MarketPriceRefresher`).
+
+        `allowed_dates` yalnızca raporlama içindir: yansıtma DuckDB'deki tüm geçerli günleri yazar.
+        """
         if stock.id is None:
             return PriceDataUpdateResult(scanned_stock_count=0, updated_count=0)
-        try:
-            series = self._market_data_client.get_price_series(stock.ticker, start_date, end_date)
-        except Exception as exc:
-            series = {}
-            fetch_errors = [f"{stock.ticker}: seri alinamadi ({exc})"]
-        else:
-            fetch_errors = []
-        if not series:
-            return self._fallback_stock_range(
-                stock=stock,
-                start_date=start_date,
-                end_date=end_date,
-                allowed_dates=allowed_dates,
-                fetch_errors=fetch_errors,
+        result = self._refresher.refresh([stock], start_date, end_date)
+        errors = [f"{stock.ticker}: {error}" for error in result.errors]
+        if not result.updated_count and stock.id not in result.last_prices:
+            errors.append(
+                f"{stock.ticker}: {start_date:%d.%m.%Y} - {end_date:%d.%m.%Y} araliginda fiyat verisi bulunamadi."
             )
-
-        prices_to_save, last_price = self._daily_prices_from_series(stock, series, allowed_dates)
-        if not prices_to_save and allowed_dates:
-            return self._fallback_stock_range(
-                stock=stock,
-                start_date=start_date,
-                end_date=end_date,
-                allowed_dates=allowed_dates,
-                fetch_errors=fetch_errors,
-            )
-
-        if prices_to_save:
-            self._price_repo.upsert_daily_prices_bulk(prices_to_save)
         return PriceDataUpdateResult(
             scanned_stock_count=1,
-            updated_count=len(prices_to_save),
-            prices={stock.id: last_price} if last_price is not None else {},
-            errors=fetch_errors,
-        )
-
-    def _fallback_stock_range(
-        self,
-        stock: Stock,
-        start_date: date,
-        end_date: date,
-        allowed_dates: set[date] | None,
-        fetch_errors: List[str],
-    ) -> PriceDataUpdateResult:
-        fallback_result = self._fetch_and_save_stock_dates(
-            stock=stock,
-            dates=sorted(allowed_dates) if allowed_dates is not None else _business_days(start_date, end_date),
-            base_errors=fetch_errors,
-        )
-        if fallback_result.updated_count > 0:
-            return fallback_result
-        return PriceDataUpdateResult(
-            scanned_stock_count=1,
-            updated_count=0,
-            errors=fetch_errors
-            + [f"{stock.ticker}: {start_date:%d.%m.%Y} - {end_date:%d.%m.%Y} araliginda fiyat verisi bulunamadi."],
-        )
-
-    def _daily_prices_from_series(
-        self,
-        stock: Stock,
-        series: Dict[date, Decimal],
-        allowed_dates: set[date] | None,
-    ) -> tuple[List[DailyPrice], Decimal | None]:
-        prices_to_save: List[DailyPrice] = []
-        last_price: Decimal | None = None
-        actions = self._actions_for_stock(stock.id)
-        from src.application.services.corporate_actions.price_adjustment_service import adjust_downloaded_series
-        adjusted_series = adjust_downloaded_series(series, actions)
-        for point_date, close_price in sorted(adjusted_series.items()):
-            if allowed_dates is not None and point_date not in allowed_dates:
-                continue
-            prices_to_save.append(DailyPrice(id=None, stock_id=stock.id, price_date=point_date, close_price=close_price))
-            last_price = close_price
-        return prices_to_save, last_price
-
-    def _actions_for_stock(self, stock_id: int | None):
-        if stock_id is None or self._corporate_action_repo is None:
-            return []
-        return self._corporate_action_repo.get_by_stock(stock_id)
-
-    def _fetch_and_save_stock_dates(
-        self,
-        stock: Stock,
-        dates: Sequence[date],
-        base_errors: List[str] | None = None,
-    ) -> PriceDataUpdateResult:
-        if stock.id is None:
-            return PriceDataUpdateResult(scanned_stock_count=0, updated_count=0)
-
-        errors = list(base_errors or [])
-        downloaded_series: Dict[date, Decimal] = {}
-        for point_date in dates:
-            try:
-                close_price = self._market_data_client.get_closing_price(stock.id, stock.ticker, point_date)
-            except Exception as exc:
-                errors.append(f"{stock.ticker} {point_date:%d.%m.%Y}: {exc}")
-                continue
-            val = close_price if isinstance(close_price, Decimal) else Decimal(str(close_price))
-            downloaded_series[point_date] = val
-
-        actions = self._actions_for_stock(stock.id)
-        from src.application.services.corporate_actions.price_adjustment_service import adjust_downloaded_series
-        adjusted_series = adjust_downloaded_series(downloaded_series, actions)
-
-        prices_to_save: List[DailyPrice] = []
-        last_price: Decimal | None = None
-        for point_date, close_price in sorted(adjusted_series.items()):
-            prices_to_save.append(
-                DailyPrice(
-                    id=None,
-                    stock_id=stock.id,
-                    price_date=point_date,
-                    close_price=close_price,
-                )
-            )
-            last_price = close_price
-
-        if prices_to_save:
-            self._price_repo.upsert_daily_prices_bulk(prices_to_save)
-
-        return PriceDataUpdateResult(
-            scanned_stock_count=1,
-            updated_count=len(prices_to_save),
+            updated_count=result.updated_count,
             errors=errors,
-            prices={stock.id: last_price} if last_price is not None else {},
+            prices={stock.id: result.last_prices[stock.id]} if stock.id in result.last_prices else {},
         )
-
 
 
 class PriceDataHealthService:
@@ -751,7 +634,7 @@ class PriceDataHealthService:
     ) -> None:
         self._stock_repo = deps.stock_repo
         self._price_repo = deps.price_repo
-        self._market_data_client = deps.market_data_client
+        self._refresher = deps.price_refresher
         self._portfolio_repo = deps.portfolio_repo
         self._model_portfolio_repo = deps.model_portfolio_repo
         self._holiday_provider = holiday_provider or NoKnownMarketHolidayProvider()
@@ -765,14 +648,13 @@ class PriceDataHealthService:
         self._updater = PriceHealthUpdater(
             stock_repo=deps.stock_repo,
             price_repo=deps.price_repo,
-            market_data_client=deps.market_data_client,
+            refresher=deps.price_refresher,
             ctx=_UpdaterCtx(
                 scope_resolver=self._scope_resolver,
                 analyzer=self._analyzer,
                 holiday_provider=self._holiday_provider,
                 default_start_date_func=self.default_start_date,
             ),
-            corporate_action_repo=deps.corporate_action_repo,
         )
 
     def portfolio_scope_options(self) -> List[PriceDataScopeOption]:
@@ -810,10 +692,15 @@ class PriceDataHealthService:
         return self._updater.update_from_latest_to_today(today, scope)
 
     def delete_range(self, start_date: date, end_date: date, scope: str | None = None) -> int:
+        """Aralıktaki fiyatları DuckDB'den (kaynak) ve SQLite'tan (yansıma) siler; yeniden indirmeden önce bakım."""
         _validate_range(start_date, end_date)
+        stocks = [s for s in self._stock_repo.get_all_stocks() if s.id is not None]
+        if scope is not None:
+            scoped = self._scope_resolver.active_stock_ids(scope)
+            stocks = [s for s in stocks if s.id in scoped]
+            if not stocks:
+                return 0
+        self._refresher.delete_range(stocks, start_date, end_date)
         if scope is None:
             return self._price_repo.delete_prices_in_range(start_date, end_date)
-        stock_ids = sorted(self._scope_resolver.active_stock_ids(scope))
-        if not stock_ids:
-            return 0
-        return self._price_repo.delete_prices_in_range(start_date, end_date, stock_ids)
+        return self._price_repo.delete_prices_in_range(start_date, end_date, sorted(s.id for s in stocks))
