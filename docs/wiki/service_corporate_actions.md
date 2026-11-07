@@ -18,7 +18,7 @@ Kod: `src/application/services/corporate_actions/` ve `portfolio/cash_movement_s
 
 Akış: `register_bedelsiz` / `register_bedelli` aksiyonu kaydeder (`corporate_actions`) -> `apply_action(action_id, current_price)` portföye uygular.
 
-- **Bedelsiz** bölünme uygulayıcısıyla uygulanır (bkz. §7): ana portföy, model portföyler, küsurat nakdi ve fiyat geçmişi birlikte; ana portföyde pozisyon şart değildir, hiçbir defterde işlem yoksa `ValueError`. Bedelli eski yoldan (yalnızca ana portföy, açık pozisyon) uygulanır.
+- **Bedelsiz** bölünme uygulayıcısıyla uygulanır (bkz. §6): ana portföy, model portföyler, küsurat nakdi ve fiyat geçmişi birlikte; ana portföyde pozisyon şart değildir, hiçbir defterde işlem yoksa `ValueError`. Bedelli eski yoldan (yalnızca ana portföy, açık pozisyon) uygulanır.
 - Aksiyon daha önce uygulanmışsa veya hesaplanan yeni lot sıfırsa `ValueError` fırlatılır.
 - **Yeni pay hesabı** (BIST kuralı): `int(mevcut_lot x oran)` (aşağı yuvarlama). **Teorik baz fiyat** `CorporateAction.theoretical_price(güncel_fiyat)` ile hesaplanır.
 - **Geriye dönük düzeltme modeli:** ex-date öncesi işlemlerin lot ve fiyatı faktörle ayarlanır; `trades.original_quantity` ve `original_price` özgün değerleri korur, her değişiklik `trade_adjustments` tablosuna (faktör, önceki/sonraki lot ve fiyat) denetim izi olarak yazılır. Bedelsiz lot katsayısı `1 + oran`, fiyat katsayısı `1 / (1 + oran)`.
@@ -49,7 +49,7 @@ Bedelli artırımda ham fiyat geçmişi düzeltme olmadan grafikte sahte düşü
 - **Arayüz:** Hisse Detay modalı > **Temettü** (yalnızca ana portföy, açık pozisyon): `DividendDialog` ve `DividendController`; net tutar (`1.234,5`, `50.000` biçimleri), tarih, not ve geçmiş listesi/silme. Kayıt veya silme sonrası Portföyüm yenilenir. Girilen metin Türkçe sayı ayrıştırıcısıyla okunur.
 - **Sınırlar:** Brüt/stopaj hesabı ve otomatik temettü tespiti yoktur; tutar kullanıcıdan net alınır. Model portföy için temettü yoktur. Portföyüm "Gerçekleşmemiş K/Z" kartı yalnızca pozisyon kâr/zararıdır; temettü getiri grafiklerine ve nakit bakiyeye yansır ([roadmap.md](roadmap.md)).
 
-## 7. Otomatik Hisse Bölünmesi (`SplitAutomationService`)
+## 6. Otomatik Hisse Bölünmesi (`SplitAutomationService`)
 
 - **Sinyal kaynakları** (`ISplitSignalProvider`): `YahooSplitProvider` (`Ticker.splits`), `KapSplitSignalSource` (KAP bedelsiz adayı, çarpan = 1 + oran), `PriceBreakSplitSignalSource` (DuckDB ham seride kalıcı kırılma; SQLite ile DuckDB düzeltilmiş geçmişi arasında kalıcı basamak; DuckDB'de olmayan hissede SQLite kırılması). Saf tespit: `src/domain/split_detection.py`.
 - **Uzlaşı** (`src/domain/split_consensus.py`): aynı hisse için 7 takvim günü ve %2 çarpan toleransı tek olay; en az iki farklı kaynak -> `AUTO`, tek kaynak veya ters bölünme -> `CANDIDATE`, uygulanmış aksiyon veya bölünme kaydıyla eşleşen -> `ALREADY_APPLIED`. Ex-date önceliği KAP > fiyat kırılması > Yahoo; çarpan önceliği KAP > Yahoo > fiyat kırılması.
@@ -59,6 +59,6 @@ Bedelli artırımda ham fiyat geçmişi düzeltme olmadan grafikte sahte düşü
 - **Tetik:** açılışta günde bir kez (`StartupJobsController`, `settings/last_auto_split_scan_at`); varsayılan tarama penceresi 400 gün. Ayar `app_settings.splits.auto_apply` (varsayılan açık); kapalıysa her olay aday olur. Tek kaynaklı BIST olayı `SPLIT_AUTO` kaynaklı aday olarak §3 listesine düşer.
 - **Arayüz:** Ayarlar > Kurumsal Aksiyonlar > Hisse Bölünmeleri (`SplitEventsController`): otomatik uygula anahtarı, Şimdi Tara, uygulanmış olaylar (kaynaklar, defterler, küsurat nakdi, fiyat düzeltmesi) ve Geri Al.
 
-## 8. Testler
+## 7. Testler
 
 `tests/domain/test_corporate_action.py`, `tests/application/test_corporate_action_service.py`, `test_corporate_action_candidate_services.py`, `test_cash_movement_service.py`, `test_dividend_cash_flow.py`; `tests/infrastructure/db/test_cash_movement_dividend_repository.py`; `tests/ui_qml/test_group2_corporate_price_startup.py`, `test_dividend_controller.py`.

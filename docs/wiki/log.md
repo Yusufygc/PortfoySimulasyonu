@@ -10,7 +10,7 @@
 Ayrıntı ve açık kalanlar: [system_audit_report_2026-11-07.md](system_audit_report_2026-11-07.md).
 
 - **Fiyat politikası:** SQLite'a yazan Yahoo yolları ham `Close` (`auto_adjust=False`); karışık eski satırlar için `scripts/rebuild_sqlite_prices.py` (faktör izi taşıyan hisse ve hacimsiz/hayalet DuckDB referansı atlanır).
-- **Otomatik bölünme:** Yahoo + KAP + fiyat kırılması uzlaşısı; iki kaynak otomatik, tek kaynak aday. Ana/model portföy ve Portföyüm işlemleri tek işlemde, küsurat `FRACTION` nakdi, fiyat geçmişi yalnızca kırılma varsa. Geri alma, açılış işi, Ayarlar listesi. Manuel bedelsiz de aynı uygulayıcıyı kullanır ([service_corporate_actions.md](service_corporate_actions.md) §7).
+- **Otomatik bölünme:** Yahoo + KAP + fiyat kırılması uzlaşısı; iki kaynak otomatik, tek kaynak aday. Ana/model portföy ve Portföyüm işlemleri tek işlemde, küsurat `FRACTION` nakdi, fiyat geçmişi yalnızca kırılma varsa. Geri alma, açılış işi, Ayarlar listesi. Manuel bedelsiz de aynı uygulayıcıyı kullanır ([service_corporate_actions.md](service_corporate_actions.md) §6).
 - **Hayalet bar:** `bar_quality` üç indiriciye bağlı; `scripts/clean_ghost_bars.py`. BIST takvimi 20.06.2024 düzeltildi, 2023 deprem kapanışı eklendi.
 - **Hesaplama düzeltmeleri:** TWR nakit açığı ve başlangıç komisyonu, optimizasyon basit getiri, altın/gümüş sembolleri ve mevduat yedeği, bilanço TTM/ROE, grafik hassasiyeti, eşleştirilmiş risk metrikleri, TÜFE yayın kaydırması, saat dilimi, OHLC fiyat düzeltmesi.
 - Kalite kapısı tavanda (72 fonksiyon / 4 dosya / 0 sınıf). Tam paket 2164 geçti. Gerçek veritabanına uygulama kullanıcı onayı bekliyor.
