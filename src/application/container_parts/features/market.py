@@ -8,6 +8,10 @@ from src.application.services.market.market_indicators_service import MarketIndi
 from src.application.services.market.price_data_health_service import PriceDataHealthService, PriceHealthServiceDeps
 from src.application.services.market.stock_lookup_service import StockLookupService
 from src.application.services.market_data.market_data_sync_service import MarketDataSyncService
+from src.application.services.market_data.single_price_source_migration import (
+    MigrationDeps,
+    SinglePriceSourceMigration,
+)
 from src.application.services.simulation.backfill_service import BackfillService
 from src.infrastructure.calendar.bist_holiday_provider import BistHolidayProvider
 
@@ -56,6 +60,11 @@ def build(ctx: BuildContext) -> dict:
         "market_data_sync_service": MarketDataSyncService(
             r.market_history_store, getattr(m, "market_bar_downloader", None), trading_calendar=m.trading_calendar,
             stock_repo=r.stock_repo, projection=ctx.services["price_projection_service"],
+            migration=SinglePriceSourceMigration(MigrationDeps(
+                stock_repo=r.stock_repo, price_repo=r.price_repo, history_repo=r.market_history_repo,
+                market_action_service=ctx.services["market_corporate_action_service"],
+                projection=ctx.services["price_projection_service"], settings_repo=getattr(r, "app_settings_repo", None),
+            )),
             market_action_service=ctx.services["market_corporate_action_service"],
             portfolio_action_repo=r.corporate_action_repo,
         ),

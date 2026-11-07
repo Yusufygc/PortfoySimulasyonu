@@ -69,6 +69,7 @@ class MarketDataSyncService:
         self._price_repo = repos.pop("price_repo", None)
         self._stock_repo = repos.pop("stock_repo", None)
         self._projection = repos.pop("projection", None)  # PriceProjectionService: SQLite fiyat yansıması
+        self._migration = repos.pop("migration", None)  # SinglePriceSourceMigration: ilk yansıtmadan önce bir kez
         self._market_action_service = repos.pop("market_action_service", None)
         self._portfolio_action_repo = repos.pop("portfolio_action_repo", None)
         if repos:
@@ -222,6 +223,8 @@ class MarketDataSyncService:
         if self._projection is None or not self._store.exists():
             return 0
         try:
+            if self._migration is not None and not self._migration.is_done():
+                return self._migration.run_once().projected_rows  # faktörleri aktarır ve tam yansıtır
             return self._projection.project().written_count
         except Exception as exc:
             logger.warning("SQLite fiyat yansıtması başarısız: %s", exc)
