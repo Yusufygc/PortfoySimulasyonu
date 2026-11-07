@@ -6,6 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Iterable, NamedTuple, Optional, Sequence
 
+from src.application.services.corporate_actions.tracked_stocks import tracked_stock_ids
 from src.domain.models.corporate_action import CorporateAction, ActionType
 from src.domain.models.corporate_action_candidate import (
     CorporateActionCandidate,
@@ -137,38 +138,8 @@ class CorporateActionDiscoveryService:
                 return True
         return False
 
-    def _stock_ids_from_portfolio(self) -> set:
-        if self._portfolio_repo is None:
-            return set()
-        return {int(sid) for sid in self._portfolio_repo.get_all_stock_ids_in_portfolio()}
-
-    def _stock_ids_from_watchlists(self) -> set:
-        if self._watchlist_repo is None:
-            return set()
-        ids: set = set()
-        for watchlist in self._watchlist_repo.get_all_watchlists():
-            if watchlist.id is None:
-                continue
-            ids.update(item.stock_id for item in self._watchlist_repo.get_items_by_watchlist_id(watchlist.id))
-        return ids
-
-    def _stock_ids_from_model_portfolios(self) -> set:
-        if self._model_portfolio_repo is None:
-            return set()
-        ids: set = set()
-        for portfolio in self._model_portfolio_repo.get_all_model_portfolios():
-            if portfolio.id is None:
-                continue
-            trades = self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio.id)
-            ids.update(trade.stock_id for trade in trades)
-        return ids
-
     def _target_tickers(self) -> list[str]:
-        stock_ids = (
-            self._stock_ids_from_portfolio()
-            | self._stock_ids_from_watchlists()
-            | self._stock_ids_from_model_portfolios()
-        )
+        stock_ids = tracked_stock_ids(self._portfolio_repo, self._watchlist_repo, self._model_portfolio_repo)
         if not stock_ids:
             return []
         ticker_map = self._stock_repo.get_ticker_map_for_stock_ids(sorted(stock_ids))
