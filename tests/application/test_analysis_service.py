@@ -341,7 +341,7 @@ def test_gold_benchmark_can_be_composed_from_gold_and_usd_series():
     ]
     market_client = FakeMarketDataClient(
         {
-            "XAUUSD=X": {
+            "GC=F": {
                 date(2026, 1, 1): Decimal("100"),
                 date(2026, 1, 2): Decimal("102"),
                 date(2026, 1, 3): Decimal("104"),
@@ -380,45 +380,7 @@ def test_gold_benchmark_can_be_composed_from_gold_and_usd_series():
         Decimal("3328") / Decimal("31.1034768"),
     ]
     assert [float(value) for value in gold_series.values()] == pytest.approx([float(value) for value in expected])
-    assert market_client.requested_tickers[:3] == ["XAUTRY=X", "XAUUSD=X", "TRY=X"]
-
-
-def test_gold_benchmark_converts_direct_xautry_ounce_value_to_gram():
-    trades = [
-        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("100")),
-    ]
-    market_client = FakeMarketDataClient(
-        {
-            "XAUTRY=X": {
-                date(2026, 1, 1): Decimal("31000"),
-                date(2026, 1, 2): Decimal("31100"),
-            },
-        }
-    )
-    service = _make_service(
-        FakePortfolioRepo(trades),
-        FakePriceRepo({1: {
-            date(2026, 1, 1): Decimal("100"),
-            date(2026, 1, 2): Decimal("105"),
-        }}),
-        FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
-        market_client,
-    )
-    filter_state = AnalysisFilterState(
-        start_date=date(2026, 1, 1),
-        end_date=date(2026, 1, 2),
-        selected_benchmarks=["gold"],
-        portfolio_source="dashboard",
-    )
-
-    comparison = service.get_comparison_view(filter_state, ["gold"])
-
-    values = list(comparison.benchmark_series[0].points.values())
-    assert [float(value) for value in values] == pytest.approx([
-        float(Decimal("31000") / Decimal("31.1034768")),
-        float(Decimal("31100") / Decimal("31.1034768")),
-    ])
-    assert market_client.requested_tickers == ["XAUTRY=X"]
+    assert market_client.requested_tickers[:2] == ["GC=F", "TRY=X"]
 
 
 def test_deposit_benchmark_warns_when_real_rate_data_missing():

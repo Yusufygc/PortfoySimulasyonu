@@ -61,3 +61,18 @@ def test_build_services_wires_corporate_action_services():
     )
     assert services.live_price_refresh_service._price_data_health_service is services.price_data_health_service
     assert services.live_price_refresh_service._latest_price_repo is not None
+
+
+def test_build_services_injects_configured_deposit_fallback_into_benchmarks():
+    from decimal import Decimal
+
+    from config.settings_loader import MarketSettings
+
+    services = build_services(
+        repositories=_fake_repositories(),
+        market_clients=_fake_market_clients(),
+        market_settings=MarketSettings(evds_api_key=None, tcmb_deposit_rate_fallback=Decimal("42.25")),
+    )
+
+    benchmark_service = services.analysis_service._benchmark_service
+    assert benchmark_service._deposit_rate_fallback == Decimal("42.25")

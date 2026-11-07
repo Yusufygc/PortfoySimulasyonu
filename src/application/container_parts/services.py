@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from config.settings_loader import MarketSettings
+
 from src.application.container_parts.market_clients import MarketClientSet
 from src.application.container_parts.repositories import RepositorySet
 from src.application.services.analysis.analysis_service import AnalysisService, AnalysisServiceDeps
@@ -165,13 +167,18 @@ def _build_analysis_services(repositories, market_clients, feature_services: dic
     }
 
 
-def build_services(repositories: RepositorySet, market_clients: MarketClientSet) -> ServiceSet:
+def build_services(
+    repositories: RepositorySet,
+    market_clients: MarketClientSet,
+    market_settings: MarketSettings | None = None,
+) -> ServiceSet:
     foundation = _build_foundation_services(repositories, market_clients)
     reporting = _build_reporting_services(repositories, market_clients, foundation)
     feature_services = _build_feature_services(
         repositories,
         market_clients,
         foundation,
+        deposit_rate_fallback=market_settings.tcmb_deposit_rate_fallback if market_settings else None,
     )
 
     analysis = _build_analysis_services(repositories, market_clients, feature_services)
@@ -409,7 +416,23 @@ def _unified_series_builder(repositories) -> UnifiedSeriesBuilder:
     ))
 
 
-def _build_market_services(repositories, market_clients, price_data_health_service, model_portfolio_service, cash_movement_repo) -> dict:
+def _build_analysis_service(repositories, market_clients, foundation: dict, deposit_rate_fallback) -> AnalysisService:
+    return AnalysisService(
+        deps=AnalysisServiceDeps(
+            portfolio_repo=repositories.portfolio_repo,
+            price_repo=repositories.price_repo,
+            stock_repo=repositories.stock_repo,
+            market_data_client=market_clients.market_client,
+        ),
+        evds_client=market_clients.evds_client,
+        cash_movement_repo=foundation["pooled_cash_repo"],
+        model_portfolio_service=foundation["model_portfolio_service"],
+        unified_builder=_unified_series_builder(repositories),
+        deposit_rate_fallback=deposit_rate_fallback,
+    )
+
+
+def _build_market_services(repositories, market_clients, price_data_health_service) -> dict:
     from src.application.services.market.live_price_refresh_service import LivePriceRefreshService
     return {
         "live_price_refresh_service": LivePriceRefreshService(
@@ -418,18 +441,6 @@ def _build_market_services(repositories, market_clients, price_data_health_servi
             price_data_health_service=price_data_health_service,
             latest_price_repo=repositories.latest_price_repo,
             extra_stock_ids_provider=lambda: _watchlist_stock_ids(repositories.watchlist_repo),
-        ),
-        "analysis_service": AnalysisService(
-            deps=AnalysisServiceDeps(
-                portfolio_repo=repositories.portfolio_repo,
-                price_repo=repositories.price_repo,
-                stock_repo=repositories.stock_repo,
-                market_data_client=market_clients.market_client,
-            ),
-            evds_client=market_clients.evds_client,
-            cash_movement_repo=cash_movement_repo,
-            model_portfolio_service=model_portfolio_service,
-            unified_builder=_unified_series_builder(repositories),
         ),
         "backfill_service": BackfillService(
             stock_repo=repositories.stock_repo,
@@ -493,6 +504,7 @@ def _build_feature_services(
     repositories: RepositorySet,
     market_clients: MarketClientSet,
     foundation: dict,
+    deposit_rate_fallback=None,
 ) -> dict:
     model_portfolio_service = foundation["model_portfolio_service"]
     corp_action_service, price_data_health_service, market_action_service = _build_prereq_services(
@@ -502,9 +514,8 @@ def _build_feature_services(
         "price_data_health_service": price_data_health_service,
         "corporate_action_service": corp_action_service,
         "market_corporate_action_service": market_action_service,
-        **_build_market_services(
-            repositories, market_clients, price_data_health_service, model_portfolio_service, foundation["pooled_cash_repo"]
-        ),
+        **_build_market_services(repositories, market_clients, price_data_health_service),
+        "analysis_service": _build_analysis_service(repositories, market_clients, foundation, deposit_rate_fallback),
         **_build_portfolio_services(repositories, market_clients, foundation, model_portfolio_service),
         **_build_corporate_action_services(repositories, corp_action_service),
     }

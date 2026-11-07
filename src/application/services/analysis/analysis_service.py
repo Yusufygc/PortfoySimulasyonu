@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from typing import Dict, List, Optional, Sequence
 
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
@@ -72,6 +73,7 @@ class AnalysisService:
         cash_movement_repo: Optional[ICashMovementRepository] = None,
         model_portfolio_service=None,
         unified_builder=None,
+        deposit_rate_fallback: Decimal | None = None,
     ) -> None:
         self._stock_repo = deps.stock_repo
         self._cash_movement_repo = cash_movement_repo
@@ -88,7 +90,8 @@ class AnalysisService:
         )
         self._benchmark_service = AnalysisBenchmarkService(
             market_data_client=deps.market_data_client,
-            evds_client=evds_client
+            evds_client=evds_client,
+            deposit_rate_fallback=deposit_rate_fallback,
         )
         self._currency_service = CurrencyConversionService()
         self._bundle_builder = AnalysisBundleBuilder(

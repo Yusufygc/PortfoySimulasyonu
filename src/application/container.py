@@ -32,6 +32,7 @@ class AppContainer:
         self.services = build_services(
             repositories=self.repositories,
             market_clients=self.market_clients,
+            market_settings=self.settings.market,
         )
         self._expose_dataclass_fields(self.services)
 

@@ -82,12 +82,8 @@ class ScrapedBenchmarkProvider:
             return self._fetch_countryeconomy_bist_series(start_date, end_date)
         if normalized_ticker in {"TRY=X", "USDTRY=X"}:
             return self._fetch_exchange_rates_usdtry_series(start_date, end_date)
-        if normalized_ticker in {"XAUUSD=X", "GC=F"}:
+        if normalized_ticker == "GC=F":
             return self._fetch_macrotrends_gold_series(start_date, end_date)
-        if normalized_ticker == "XAUTRY=X":
-            gold_series = self._fetch_macrotrends_gold_series(start_date, end_date)
-            usd_try_series = self._fetch_exchange_rates_usdtry_series(start_date, end_date)
-            return self._combine_series(gold_series, usd_try_series)
         if normalized_ticker == "TCMB_TRY_DEPOSIT_3M":
             return self._fetch_tcmb_try_deposit_3m_rates(start_date, end_date)
         return None
@@ -215,17 +211,6 @@ class ScrapedBenchmarkProvider:
         end_date: date,
     ) -> Dict[date, Decimal]:
         return self._filter_series_for_range(self._fetch_macrotrends_gold_daily_series(), start_date, end_date)
-
-    def _combine_series(
-        self,
-        left_series: Dict[date, Decimal],
-        right_series: Dict[date, Decimal],
-    ) -> Dict[date, Decimal]:
-        shared_dates = sorted(set(left_series).intersection(right_series))
-        return {
-            point_date: left_series[point_date] * right_series[point_date]
-            for point_date in shared_dates
-        }
 
     def _fetch_tcmb_try_deposit_3m_rates(
         self,
