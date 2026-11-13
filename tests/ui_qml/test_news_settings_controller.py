@@ -1,5 +1,6 @@
 """NewsSettingsController ve Ayarlar > Haber Kaynakları sekmesi (gerçek NewsService, bellek içi depo)."""
 from __future__ import annotations
+from shiboken6 import isValid  # silinmiş QML nesnesine metaObject() çağrısı (3.12 CI yarışı)
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -156,7 +157,7 @@ def test_settings_tab_loads_without_warnings_and_lists_sources(qapp, tmp_path):
     item._engine, item._component = engine, component
     item.setProperty("width", 900)
     _pump()
-    repeaters = [o for o in item.findChildren(QObject) if "Repeater" in o.metaObject().className()]
+    repeaters = [o for o in item.findChildren(QObject) if isValid(o) and "Repeater" in o.metaObject().className()]
     assert sorted(int(r.property("count")) for r in repeaters) == [1, 1]  # şirket grubunda KAP, piyasa grubunda rss:a
     ctrl.setSourceEnabled("rss:a", False)
     _pump()

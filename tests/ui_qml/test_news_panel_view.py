@@ -1,5 +1,6 @@
 """NewsPanel.qml: dolu/boş/hata durumları uyarısız yüklenir, sekme geçişi ve bağlantı açma çalışır."""
 from __future__ import annotations
+from shiboken6 import isValid  # silinmiş QML nesnesine metaObject() çağrısı (3.12 CI yarışı)
 
 from pathlib import Path
 from types import SimpleNamespace
@@ -50,7 +51,7 @@ def _panel(qapp, service):
 
 
 def _list_count(item) -> int:
-    lists = [o for o in item.findChildren(QObject) if "ListView" in o.metaObject().className()]
+    lists = [o for o in item.findChildren(QObject) if isValid(o) and "ListView" in o.metaObject().className()]
     return int(lists[0].property("count"))
 
 

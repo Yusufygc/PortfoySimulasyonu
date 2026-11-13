@@ -4,6 +4,7 @@ Varlık ve fiyat kayıtları servis/repository üzerinden yazılır (sembol doğ
 sınıf sekmeleri ve USD anahtarı uyarısız çalışmalı, işlem kaydı özeti yeniden okutmalıdır.
 """
 from __future__ import annotations
+from shiboken6 import isValid  # silinmiş QML nesnesine metaObject() çağrısı (3.12 CI yarışı)
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -49,7 +50,7 @@ def pump(times: int = 8) -> None:
 
 
 def find(item, class_fragment):
-    matches = [o for o in item.findChildren(QObject) if class_fragment in o.metaObject().className()]
+    matches = [o for o in item.findChildren(QObject) if isValid(o) and class_fragment in o.metaObject().className()]
     assert matches, f"{class_fragment} bulunamadı"
     return matches[0]
 
