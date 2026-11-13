@@ -14,27 +14,49 @@ from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 
 
-def _movement_time_key(item):
-    return item.movement_time or time.min
+ZERO = Decimal("0")
 
 
 def _trade_time_key(item):
     return item.trade_time or time.min
 
 
-def _apply_cash_movements(cash_movements, current_cash: Decimal) -> tuple:
-    net_flow = Decimal("0")
-    for cm in sorted(cash_movements, key=_movement_time_key):
-        if cm.type.adds_cash:
-            current_cash += cm.amount
-            if cm.type.is_external_flow:  # temettü getiridir, dış sermaye akışı değildir
-                net_flow += cm.amount
-        elif cm.type == CashMovementType.WITHDRAW:
-            current_cash -= cm.amount
-            net_flow -= cm.amount
-            if current_cash < 0:
-                current_cash = Decimal("0")
-    return current_cash, net_flow
+def _cash_events_in_order(cash_movements, trades) -> list:
+    """Nakit hareketleri ve işlemler tek kronolojik sırada: (gün, aynı gün önce nakit, saat).
+
+    Gün içi döngü ile başlangıç nakdi hesabı bu sırayı paylaşır; böylece seri başlangıç gününden bağımsızdır.
+    """
+    events = [((cm.movement_date, 0, cm.movement_time or time.min), True, cm) for cm in cash_movements]
+    events += [((t.trade_date, 1, t.trade_time or time.min), False, t) for t in trades]
+    return [(is_cash, item) for _, is_cash, item in sorted(events, key=lambda event: event[0])]
+
+
+def _apply_cash_movement(movement, current_cash: Decimal) -> tuple[Decimal, Decimal]:
+    """Nakit hareketini uygular; (yeni nakit, dış sermaye akışı) döner. Temettü getiridir, akış değildir."""
+    if movement.type.adds_cash:
+        return current_cash + movement.amount, (movement.amount if movement.type.is_external_flow else ZERO)
+    if movement.type == CashMovementType.WITHDRAW:
+        return max(ZERO, current_cash - movement.amount), -movement.amount
+    return current_cash, ZERO
+
+
+def _apply_trade_cash(trade, current_cash: Decimal) -> tuple[Decimal, Decimal]:
+    """İşlemin nakit etkisini (ücret dahil) uygular; (yeni nakit, dış sermaye akışı) döner.
+
+    Nakdi aşan alımda karşılanmayan kısım dışarıdan gelen sermayedir: nakit 0'da kalır, eksik tutar akış sayılır.
+    """
+    trade_value = trade.cash_amount  # alımda tutar + ücret, satışta tutar - ücret
+    if trade.side.name == "BUY":
+        return max(ZERO, current_cash - trade_value), max(ZERO, trade_value - current_cash)
+    if trade.side.name == "SELL":
+        return current_cash + trade_value, ZERO
+    return current_cash, ZERO
+
+
+def _apply_cash_event(is_cash: bool, item, current_cash: Decimal) -> tuple[Decimal, Decimal]:
+    if is_cash:
+        return _apply_cash_movement(item, current_cash)
+    return _apply_trade_cash(item, current_cash)
 
 
 class PortfolioSeriesRequest(NamedTuple):
@@ -90,19 +112,12 @@ def _process_cash_tracking_day(
     current_positions: Dict[int, Position],
     current_cash: Decimal,
 ) -> tuple[Decimal, Decimal]:
-    current_cash, daily_net_cash_flow = _apply_cash_movements(
-        cash_by_date.get(current_day, []), current_cash
-    )
-    for trade in sorted(trades_by_date.get(current_day, []), key=_trade_time_key):
-        if trade.stock_id in current_positions:
-            current_positions[trade.stock_id].apply_trade(trade)
-        trade_value = trade.cash_amount  # ücret dahil (alımda tutar + ücret, satışta tutar - ücret)
-        if trade.side.name == "BUY":
-            current_cash -= trade_value
-            if current_cash < 0:
-                current_cash = Decimal("0")
-        elif trade.side.name == "SELL":
-            current_cash += trade_value
+    daily_net_cash_flow = ZERO
+    for is_cash, item in _cash_events_in_order(cash_by_date.get(current_day, []), trades_by_date.get(current_day, [])):
+        if not is_cash and item.stock_id in current_positions:
+            current_positions[item.stock_id].apply_trade(item)
+        current_cash, flow = _apply_cash_event(is_cash, item, current_cash)
+        daily_net_cash_flow += flow
     return current_cash, daily_net_cash_flow
 
 
@@ -294,22 +309,10 @@ class PortfolioSeriesBuilder:
         cash_before: List[CashMovement],
         trades_before: List[Trade],
     ) -> Decimal:
-        cash = Decimal("0")
-        for cm in cash_before:
-            if cm.type.adds_cash:
-                cash += cm.amount
-            elif cm.type == CashMovementType.WITHDRAW:
-                cash -= cm.amount
-                if cash < 0:
-                    cash = Decimal("0")
-        for t in trades_before:
-            trade_value = t.quantity * t.price
-            if t.side.name == "BUY":
-                cash -= trade_value
-                if cash < 0:
-                    cash = Decimal("0")
-            elif t.side.name == "SELL":
-                cash += trade_value
+        """Başlangıç öncesi nakit: gün içi döngüyle aynı sıra ve kural (ücret dahil, nakdi aşan alımda 0'da kalır)."""
+        cash = ZERO
+        for is_cash, item in _cash_events_in_order(cash_before, trades_before):
+            cash, _ = _apply_cash_event(is_cash, item, cash)
         return cash
 
     def _calc_initial_cash_and_positions(

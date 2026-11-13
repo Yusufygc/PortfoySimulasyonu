@@ -10,6 +10,7 @@ import yfinance as yf
 
 from src.domain.models.market_bar import MarketBar
 from src.domain.ports.repositories.i_market_history_store import IMarketBarDownloader
+from src.infrastructure.market_data.bar_quality import is_ghost_bar
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +26,12 @@ def _bars_from_frame(ticker: str, frame: pd.DataFrame) -> List[MarketBar]:
         if not close > 0:  # geçerli kapanışı olmayan satırlar alınmaz
             continue
         volume = record.get("Volume")
+        price_date = pd.to_datetime(record[date_col]).date()
+        if is_ghost_bar(price_date, (record.get("Open"), record.get("High"), record.get("Low"), close, volume)):
+            continue  # tatil günü veya hacimsiz sabit bar: işlem günü değil
         bars.append(MarketBar(
             ticker=ticker,
-            price_date=pd.to_datetime(record[date_col]).date(),
+            price_date=price_date,
             close_price=close,
             open_price=float(record["Open"]),
             high_price=float(record["High"]),

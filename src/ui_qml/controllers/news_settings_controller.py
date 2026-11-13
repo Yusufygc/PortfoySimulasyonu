@@ -12,6 +12,7 @@ from typing import Any, Dict, List
 
 from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
 
+from src.qt_compat.user_settings import user_settings
 from src.domain.market_clock import to_market_datetime
 from src.domain.models.news_item import NewsScope, NewsSourceConfig, NewsSourceKind, NewsSourceStatus
 from src.ui_qml.messages import msg
@@ -73,7 +74,7 @@ class NewsSettingsController(QObject):
     def __init__(self, container=None, parent: QObject | None = None, settings: QSettings | None = None) -> None:
         super().__init__(parent)
         self._container = container
-        self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._settings = settings or user_settings()
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._testing: set[str] = set()
         self._rows: List[Dict[str, Any]] = []

@@ -30,6 +30,13 @@ ApplicationWindow {
         return (value !== undefined && value !== null && value > 0) ? value : fallback
     }
 
+    // Tema tercihi (kayıtlı ayar) açılışta ve her değişiklikte Theme'e yansır; başlık düğmesi de aynı yolu kullanır
+    Binding {
+        target: Theme
+        property: "isDark"
+        value: (typeof settingsController !== "undefined") ? settingsController.isDarkTheme : true
+    }
+
     Component.onCompleted: {
         x = Math.max(0, (Screen.desktopAvailableWidth - width) / 2)
         y = Math.max(0, (Screen.desktopAvailableHeight - height) / 2)

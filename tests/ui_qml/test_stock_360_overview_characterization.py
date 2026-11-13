@@ -9,10 +9,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from src.domain.market_clock import market_today
 from src.ui_qml.controllers.stock_360_controller import Stock360Controller
 
 GOLDEN_PATH = Path(__file__).parent / "golden" / "stock_360_overview_golden.json"
-# Yedek veriler bugünün tarihini taşır (`date.today()`); golden 04.10.2026'da üretildi. Bugünün tarihi yer tutucuya çevrilir,
+# Yedek veriler piyasa gününü taşır (`market_today()`, İstanbul); golden 04.10.2026'da üretildi. Bugünün tarihi yer tutucuya çevrilir,
 # böylece test günden bağımsızdır ama gerçek veriden gelen tarihler (ör. 02.10.2026) hâlâ karşılaştırılır.
 GOLDEN_DAY = "04.10.2026"
 TODAY_PLACEHOLDER = "<BUGUN>"
@@ -99,6 +100,10 @@ SCENARIOS = {
 }
 
 
+# Bağımlılık tutucu (eski `_container`, yeni `_deps` ServiceView) davranış değil, karşılaştırma dışı
+_DEPENDENCY_HOLDERS = ("_container", "_deps")
+
+
 def run_scenario(name: str) -> dict:
     make_container, ticker = SCENARIOS[name]
     controller = Stock360Controller(container=make_container())
@@ -107,9 +112,9 @@ def run_scenario(name: str) -> dict:
 
     controller._load_local_overview_and_technical(ticker)
 
-    today = date.today().strftime("%d.%m.%Y")
+    today = market_today().strftime("%d.%m.%Y")  # denetleyici İstanbul gününü yazar; CI UTC'dedir
     state = {k: (TODAY_PLACEHOLDER if v == today else v) for k, v in vars(controller).items()
-             if isinstance(v, (str, int, float, bool, type(None)))}
+             if isinstance(v, (str, int, float, bool, type(None))) and k not in _DEPENDENCY_HOLDERS}
     return {"state": state, "overview_changed_emits": len(emitted)}
 
 
@@ -117,5 +122,6 @@ def run_scenario(name: str) -> dict:
 def test_local_overview_and_technical_is_unchanged(name):
     golden = json.loads(GOLDEN_PATH.read_text(encoding="utf-8"))
 
-    expected = {**golden[name], "state": {k: (TODAY_PLACEHOLDER if v == GOLDEN_DAY else v) for k, v in golden[name]["state"].items()}}
+    expected = {**golden[name], "state": {k: (TODAY_PLACEHOLDER if v == GOLDEN_DAY else v)
+                                          for k, v in golden[name]["state"].items() if k not in _DEPENDENCY_HOLDERS}}
     assert json.loads(json.dumps(run_scenario(name))) == expected

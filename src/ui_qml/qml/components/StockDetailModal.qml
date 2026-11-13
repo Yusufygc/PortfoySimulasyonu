@@ -14,6 +14,15 @@ Item {
     anchors.fill: parent
     z: 998
 
+    // Escape tuşu pencereyi kapatır (diğer modallarla aynı davranış; D-03)
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.visible
+        onActivated: {
+            if (typeof stockDetailController !== "undefined") stockDetailController.close()
+        }
+    }
+
     // Emir formu durumu (yön, lot, fiyat, zaman) StockDetailOrderForm içindedir; sekme durumu StockDetailTabsPanel içindedir.
     Connections {
         target: (typeof stockDetailController !== "undefined") ? stockDetailController : null

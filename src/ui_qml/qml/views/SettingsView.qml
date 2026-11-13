@@ -47,8 +47,27 @@ Rectangle {
                 }
             }
 
-            // Sekme Butonları (9 Sekme)
+            // Sekme Butonları: dar pencerede satıra sığmazsa yatay kaydırılır (son sekme kesilmesin)
+            Flickable {
+                id: tabsFlick
+                width: Math.min(tabsBar.width, parent.width)
+                height: 38
+                contentWidth: tabsBar.width
+                contentHeight: height
+                clip: true
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                    onWheel: function(event) {
+                        const delta = event.angleDelta.x !== 0 ? event.angleDelta.x : event.angleDelta.y
+                        tabsFlick.contentX = Math.max(0, Math.min(tabsFlick.contentWidth - tabsFlick.width, tabsFlick.contentX - delta))
+                    }
+                }
+
             Rectangle {
+                id: tabsBar
                 height: 38
                 width: rowTabs.implicitWidth + 8
                 radius: Theme.radiusMd
@@ -113,6 +132,7 @@ Rectangle {
                         }
                     }
                 }
+            }
             }
         }
 

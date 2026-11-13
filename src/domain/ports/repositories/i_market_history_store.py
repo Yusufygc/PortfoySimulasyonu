@@ -29,6 +29,10 @@ class IMarketHistoryStore(ABC):
     def write_bars(self, bars: Sequence[MarketBar]) -> None:
         """Barları ekler/değiştirir, geçersiz kapanışları atar ve katalog istatistiklerini günceller."""
 
+    def delete_range(self, tickers: Sequence[str], start: date, end: date) -> int:
+        """Verilen hisselerin aralıktaki barlarını siler (bakım: yeniden indirmeden önce). Silinen bar sayısı."""
+        raise NotImplementedError
+
     @abstractmethod
     def bars_after(self, after: date, tickers: Sequence[str]) -> List[MarketBar]:
         """`after` tarihinden sonraki geçerli kapanışlı barlar (yalnızca verilen hisseler)."""

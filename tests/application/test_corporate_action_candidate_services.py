@@ -114,6 +114,14 @@ def _candidate(**overrides):
     return CorporateActionCandidate(**data)
 
 
+def _ledger_with(*stock_ids):
+    from src.domain.models.ledger import LedgerKind, LedgerSnapshot
+    from src.domain.split_math import LedgerLot
+
+    lots = [LedgerLot(n, date(2026, 1, 2), None, True, Decimal("1"), Decimal("1"), sid) for n, sid in enumerate(stock_ids)]
+    return MagicMock(snapshot=MagicMock(return_value=LedgerSnapshot({(LedgerKind.MAIN, None): lots})))
+
+
 def test_discovery_matches_stock_and_deduplicates():
     repo = FakeCandidateRepo()
     service = CorporateActionDiscoveryService(
@@ -122,7 +130,7 @@ def test_discovery_matches_stock_and_deduplicates():
             candidate_repo=repo,
             stock_repo=FakeStockRepo(),
             action_repo=MagicMock(get_by_stock=MagicMock(return_value=[])),
-            portfolio_repo=MagicMock(get_all_stock_ids_in_portfolio=MagicMock(return_value=[47])),
+            ledger_reader=_ledger_with(47),
         ),
     )
 
@@ -158,7 +166,7 @@ def test_discovery_skips_already_applied_action():
             candidate_repo=FakeCandidateRepo(),
             stock_repo=FakeStockRepo(),
             action_repo=action_repo,
-            portfolio_repo=MagicMock(get_all_stock_ids_in_portfolio=MagicMock(return_value=[47])),
+            ledger_reader=_ledger_with(47),
         ),
     )
 
@@ -175,7 +183,7 @@ def test_discovery_returns_unavailable_result_without_raising():
             candidate_repo=FakeCandidateRepo(),
             stock_repo=FakeStockRepo(),
             action_repo=MagicMock(get_by_stock=MagicMock(return_value=[])),
-            portfolio_repo=MagicMock(get_all_stock_ids_in_portfolio=MagicMock(return_value=[47])),
+            ledger_reader=_ledger_with(47),
         ),
     )
 

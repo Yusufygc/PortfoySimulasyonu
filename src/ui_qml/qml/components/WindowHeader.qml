@@ -290,7 +290,11 @@ Rectangle {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: Theme.isDark = !Theme.isDark
+                onClicked: {
+                    // Tercih settingsController'da saklanır; Main.qml'deki Binding Theme.isDark'ı ondan okur
+                    if (typeof settingsController !== "undefined") settingsController.toggleTheme()
+                    else Theme.isDark = !Theme.isDark
+                }
             }
         }
     }

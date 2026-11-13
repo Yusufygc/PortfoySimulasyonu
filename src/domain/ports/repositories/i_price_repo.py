@@ -152,21 +152,15 @@ class IPriceRepository(ABC):
         raise NotImplementedError
     # ------------------ DELETE operasyonları ------------------ #
     @abstractmethod
-    def adjust_prices_before_date(self, stock_id: int, before_date: date, factor: Decimal) -> int:
-        """
-        Belirli bir hissenin before_date oncesindeki fiyatlarini factor ile carpar.
-
-        Returns:
-            Guncellenen kayit sayisi.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def delete_all_prices(self) -> None:
         """
         Tüm daily_prices ve ilgili snapshot kayıtlarını siler.
         (Uygulamada günlük fiyat ve snapshot'ları sıfırlamak için.)
         """
+        raise NotImplementedError
+
+    def delete_prices_for_dates(self, stock_id: int, dates: Sequence[date]) -> int:
+        """Bir hissenin verilen günlerdeki fiyat kayıtlarını siler (fiyat yansıtması). Silinen kayıt sayısı."""
         raise NotImplementedError
 
     @abstractmethod

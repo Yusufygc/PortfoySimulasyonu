@@ -13,8 +13,9 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Dict, List
 
-from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import format_date_text, parse_date_text
 from src.domain.market_clock import market_today
 from src.domain.models.budget import Budget, BudgetItem
 from src.domain.text import tr_fold
@@ -22,6 +23,7 @@ from src.ui_qml.controllers.planning_dca_chart import build_dca_chart_html
 from src.ui_qml.controllers.planning_months import budget_months
 from src.ui_qml.presenters.formatting import tr_money, tr_number, tr_pct
 from src.ui_qml.messages import msg
+from src.ui_qml.deferred import run_later
 
 logger = logging.getLogger(__name__)
 
@@ -398,7 +400,7 @@ class PlanningController(QObject):
                     "currentAmountFormatted": tr_money(g.current_amount),
                     "remainingAmount": float(g.remaining_amount),
                     "remainingAmountFormatted": tr_money(g.remaining_amount),
-                    "deadline": g.deadline.isoformat() if hasattr(g.deadline, "isoformat") else str(g.deadline),
+                    "deadline": format_date_text(g.deadline) if hasattr(g.deadline, "isoformat") else str(g.deadline),
                     "priority": prio_val,
                     "priorityTr": prio_tr,
                     "status": g.status.value if hasattr(g.status, "value") else str(g.status),
@@ -427,8 +429,9 @@ class PlanningController(QObject):
         if not self._service:
             return
         try:
-            d_parts = [int(p) for p in deadline_str.split("-")]
-            deadline = date(d_parts[0], d_parts[1], d_parts[2])
+            deadline = parse_date_text(deadline_str)
+            if deadline is None:
+                raise ValueError(msg("planning.tarih_bicimi_gecersiz"))
             p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}  # metin-muaf: öncelik eşleme anahtarları
             prio_clean = p_map.get(str(priority).strip().upper(), "MEDIUM")
             self._service.add_goal(name, target, deadline, prio_clean)
@@ -444,8 +447,9 @@ class PlanningController(QObject):
         if not self._service:
             return
         try:
-            d_parts = [int(p) for p in deadline_str.split("-")]
-            deadline = date(d_parts[0], d_parts[1], d_parts[2])
+            deadline = parse_date_text(deadline_str)
+            if deadline is None:
+                raise ValueError(msg("planning.tarih_bicimi_gecersiz"))
             p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}  # metin-muaf: öncelik eşleme anahtarları
             prio_clean = p_map.get(str(priority).strip().upper(), "MEDIUM")
             self._service.update_goal(goal_id, name, target, deadline, prio_clean)
@@ -501,16 +505,14 @@ class PlanningController(QObject):
             return
 
         try:
-            s_parts = [int(p) for p in start_date_str.split("-")]
-            e_parts = [int(p) for p in end_date_str.split("-")]
-            s_date = date(s_parts[0], s_parts[1], s_parts[2])
-            e_date = date(e_parts[0], e_parts[1], e_parts[2])
+            s_date = parse_date_text(start_date_str) or date(2023, 1, 1)
+            e_date = parse_date_text(end_date_str) or market_today()
         except Exception:
             s_date = date(2023, 1, 1)
             e_date = market_today()
 
         # Timer ile UI dondurmadan hesapla
-        QTimer.singleShot(50, lambda: self._execute_dca(tickers, Decimal(str(amount)), s_date, e_date))
+        run_later(self, 50, lambda: self._execute_dca(tickers, Decimal(str(amount)), s_date, e_date))
 
     def _execute_dca(self, tickers: List[str], amount: Decimal, s_date: date, e_date: date) -> None:
         try:

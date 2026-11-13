@@ -12,20 +12,22 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, time as dt_time
+from datetime import date, time as dt_time
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text, parse_time_text
 from src.domain.models.trade import TradeSide
 from src.domain.models.trade_impact import INSUFFICIENT_CASH, INSUFFICIENT_LOTS, OrderSpec, preview_order
 from src.domain.ticker import clean_ticker
 from src.domain.market_clock import market_now, market_time, market_today
 from src.ui_qml.messages import msg
-from src.ui_qml.presenters.formatting import tr_number, tr_pct
+from src.ui_qml.presenters.formatting import tr_lira, tr_number, tr_pct
 from src.ui_qml.controllers.stock_detail_actions import StockDetailActionsMixin
 from src.ui_qml.controllers.stock_detail_loader import StockDetailLoaderMixin
+from src.ui_qml.controllers.deps import ServiceView
 
 logger = logging.getLogger(__name__)
 
@@ -35,28 +37,30 @@ def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
 
     Geçersiz biçim veya gelecek tarih için ValueError (kullanıcıya gösterilecek mesajla) fırlatır."""
     today = market_today()
-    text = (date_str or "").strip()
-    try:
-        trade_date = datetime.strptime(text, "%Y-%m-%d").date() if text else today
-    except ValueError:
-        raise ValueError(msg("stock_detail.tarih_bicimi_gecersiz_ornek_2026_10")) from None
+    trade_date = parse_date_text(date_str) if (date_str or "").strip() else today
+    if trade_date is None:
+        raise ValueError(msg("stock_detail.tarih_bicimi_gecersiz_ornek_2026_10"))
     if trade_date > today:
         raise ValueError(msg("stock_detail.gelecek_tarihli_islem_girilemez"))
 
     text = (time_str or "").strip()
     if not text:
         return trade_date, (market_time() if trade_date == today else dt_time(12, 0))
-    try:
-        trade_time = datetime.strptime(text, "%H:%M").time()
-    except ValueError:
-        raise ValueError(msg("stock_detail.saat_bicimi_gecersiz_ornek_14_30")) from None
+    trade_time = parse_time_text(text)
+    if trade_time is None:
+        raise ValueError(msg("stock_detail.saat_bicimi_gecersiz_ornek_14_30"))
     if trade_date == today and trade_time > market_now().time():
         raise ValueError(msg("stock_detail.gelecek_saatli_islem_girilemez"))
     return trade_date, trade_time
 
 
 class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QObject):
+    # denetleyici + yükleyici (stock_detail_loader) + eylemler (stock_detail_actions) mixin'lerinin bağımlılıkları
     """QML StockDetailModal / StockDetailView için ViewModel denetleyicisi."""
+    REQUIRES = (
+        "corporate_action_service", "excel_formatter", "model_portfolio_service", "portfolio_service",
+        "position_query_service", "stock_lookup_service", "trade_entry_service",
+    )
 
     # QML Property Değişim Sinyalleri
     stockChanged = Signal()
@@ -76,7 +80,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
 
     def __init__(self, container=None, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
-        self._container = container
+        self._deps = ServiceView(container, self.REQUIRES)
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="StockDetailWorker")
 
         # Durum Değişkenleri
@@ -261,7 +265,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
         trade_side = TradeSide.BUY if side.upper() in ("BUY", "ALIM") else TradeSide.SELL
         cash = None if self._cash is None else Decimal(str(self._cash))
         unit_price = Decimal(str(price or 0))
-        entry = getattr(self._container, "trade_entry_service", None) if self._container else None
+        entry = self._deps.trade_entry_service
         fee = entry.estimate_fee(max(0, int(quantity)), unit_price) if entry is not None and unit_price > 0 and quantity > 0 else Decimal("0")
         impact = preview_order(OrderSpec(trade_side, quantity, unit_price, fee), int(self._quantity), Decimal(str(self._avg_cost)), cash)
         reasons = {INSUFFICIENT_CASH: msg("stock_detail.insufficient_cash"), INSUFFICIENT_LOTS: msg("stock_detail.insufficient_lots")}
@@ -271,14 +275,14 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
             "fee": "₺" + tr_number(fee),
             "newQty": f"{max(impact.new_quantity, 0):,}".replace(",", "."),
             "newAvg": "-" if impact.new_avg_cost is None else "₺" + tr_number(impact.new_avg_cost),
-            "cashAfter": "-" if impact.cash_after is None else "₺" + tr_number(impact.cash_after),
+            "cashAfter": "-" if impact.cash_after is None else tr_lira(impact.cash_after),
         }
 
     @Slot(str, int, float, str, str)
     def submitTrade(self, side: str, quantity: int, price: float, date_str: str = "", time_str: str = "") -> None:
         """Hisse detayından doğrudan hızlı alım veya satım emri gönderir.
 
-        `date_str` (YYYY-AA-GG) ve `time_str` (SS:DD) boşsa bugün/şimdi kullanılır."""
+        `date_str` (GG.AA.YYYY) ve `time_str` (SS:DD) boşsa bugün/şimdi kullanılır."""
         if quantity <= 0:
             self.tradeExecuted.emit(False, msg("stock_detail.lot_adedi_0_dan_buyuk_olmalidir"))
             return

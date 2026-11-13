@@ -9,7 +9,7 @@ Desteklenen metrikler:
   - Marjlar (%): Brüt Kar Marjı, FAVÖK Marjı, Net Kar Marjı
   - Borç:        Net Borç, Net Borç/FAVÖK
   - Likidite:    Cari Oran
-  - Karlılık:    ROE, ROA, DuPont ayrıştırma (TTM)
+  - Karlılık:    ROE, ROA (son 12 ay net kâr), DuPont ayrıştırma (TTM)
   - Nakit:       FCF, FCF Marjı, Capex/Satış
   - İşletme:     DSO, DIO, DPO, Nakit Dönüşüm Döngüsü (CCC)
   - Değerleme:   TTM Satış, FAVÖK, Net Kar (valuation multiples için)
@@ -102,19 +102,19 @@ def _prev_quarter_same_year(period: str, periods: list[str]) -> str | None:
     return p if p in periods else None
 
 
-def _prev_period(period: str, periods: list[str]) -> str | None:
-    """Periods listesinde bir sonraki (daha eski) dönem."""
-    try:
-        idx = periods.index(period)
-        return periods[idx + 1] if idx + 1 < len(periods) else None
-    except ValueError:
+def _prev_quarter(period: str) -> str | None:
+    """Takvimde bir önceki çeyrek sonu (2024/3 → 2023/12); çeyrek sonu değilse None."""
+    y, m = _quarter_index(period)
+    if m not in (3, 6, 9, 12):
         return None
+    return f"{y - 1}/12" if m == 3 else f"{y}/{m - 3}"
 
 
 def _discrete(series: dict, period: str, periods: list[str]) -> float | None:
     """
     YTD kümülatif seriyi diskret çeyreğe çevirir.
     Q1: YTD = diskret. Diğerleri: YTD_şimdi − YTD_aynı_yıl_önceki_çeyrek.
+    Aynı yılın önceki çeyreği yoksa None: YTD birden çok çeyrek içerir, tek çeyrek sayılamaz.
     """
     cur = series.get(period)
     if cur is None:
@@ -123,7 +123,7 @@ def _discrete(series: dict, period: str, periods: list[str]) -> float | None:
         return cur
     prev_p = _prev_quarter_same_year(period, periods)
     if prev_p is None:
-        return cur
+        return None
     prev = series.get(prev_p)
     if prev is None:
         return None
@@ -131,17 +131,44 @@ def _discrete(series: dict, period: str, periods: list[str]) -> float | None:
 
 
 def _ttm(series: dict, period: str, periods: list[str]) -> float | None:
-    """Son 4 diskret çeyreğin toplamı (Trailing Twelve Months)."""
-    parts: list[float] = []
+    """
+    Son 4 diskret çeyreğin toplamı (Trailing Twelve Months).
+    Çeyrekler liste sırasından değil (yıl, ay) takviminden yürünür; dört ardışık
+    çeyreğin hepsi `periods` içinde olmalıdır, aksi halde None.
+    """
+    available = set(periods)
+    total = 0.0
     p: str | None = period
-    while p is not None and len(parts) < 4:
+    for _ in range(4):
+        if p is None or p not in available:
+            return None
         d = _discrete(series, p, periods)
         if d is None:
             return None
-        parts.append(d)
-        if len(parts) < 4:
-            p = _prev_period(p, periods)
-    return sum(parts) if len(parts) == 4 else None
+        total += d
+        p = _prev_quarter(p)
+    return total
+
+
+def _trailing_net_profit(all_single: dict, period: str) -> float | None:
+    """ROE/ROA payı: TTM net kâr; TTM yoksa yalnız yıl sonunda 12 aylık YTD (aynı büyüklük)."""
+    ttm = all_single.get("net_kar_ttm", {}).get(period)
+    if ttm is not None:
+        return ttm
+    if _quarter_index(period)[1] == 12:
+        return all_single.get("net_kar", {}).get(period)
+    return None
+
+
+def _ttm_returns(all_single: dict, periods: list[str]) -> dict[str, dict[str, float | None]]:
+    """Son 12 ay net kâr bazlı ROE ve ROA (%); çeyrekler arası karşılaştırılabilir."""
+    roe: dict[str, float | None] = {}
+    roa: dict[str, float | None] = {}
+    for p in periods:
+        net_profit = _trailing_net_profit(all_single, p)
+        roe[p] = _pct(_safe_div(net_profit, all_single.get("ozkaynak", {}).get(p)))
+        roa[p] = _pct(_safe_div(net_profit, all_single.get("toplam_varlik", {}).get(p)))
+    return {"roe": roe, "roa": roa}
 
 
 # ---------------------------------------------------------------------------
@@ -327,8 +354,6 @@ def _ratio_metrics(raw: dict[str, float | None], favok: float | None) -> dict[st
         "net_kar_marji":    _pct(_safe_div(net_kar, satis)),
         "fcf_marji":        _pct(_safe_div(raw["fcf"], satis)),
         "capex_satis":      _pct(_safe_div(raw["capex"], satis)),
-        "roe":              _pct(_safe_div(net_kar, ozkaynak)),
-        "roa":              _pct(_safe_div(net_kar, toplam_varlik)),
         "cari_oran":        _safe_div(raw["donen"], raw["kvy"]),
         "varlik_devir_ytd": _safe_div(satis, toplam_varlik),
         "fin_kaldirac":     _safe_div(toplam_varlik, ozkaynak),
@@ -520,6 +545,9 @@ def compute_metrics(data: dict) -> dict[str, Any]:
     ]:
         src = all_single.get(src_key, {})
         all_single[dst_key] = {p: _ttm(src, p, periods) for p in periods}
+
+    # ROE / ROA (TTM net kâr baz; Piotroski F3 de bunu kullanır)
+    all_single.update(_ttm_returns(all_single, periods))
 
     # DuPont (TTM baz)
     sttm  = all_single.get("satis_ttm",    {})

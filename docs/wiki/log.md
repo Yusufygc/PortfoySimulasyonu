@@ -5,6 +5,68 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-14] FIX | Toast bildirimi uzun mesajda kutudan taşıyordu
+
+`ToastNotification.qml` genişliği 420 ile sınırlıyordu ama metin sarılmıyordu (`elide` kutu genişliğini bilmediği için işlemiyordu); "5 hisse bölünmesi adayı..." gibi uzun mesaj kutunun iki yanından taşıyordu. Metin artık `TextMetrics` ile ölçülür, en çok 420 genişlikte satıra sarılır ve kutu yüksekliği metne uyar (kısa mesajda 46 aynı). Test: `tests/ui_qml/test_toast_overflow.py` (pencerede yerleşim; uzun, kısa, boşluksuz uzun metin). Tüm toast kullanımları (8 yer) aynı bileşeni kullandığı için tek düzeltme yeterli.
+
+## [2026-11-14] REFACTOR | Tarih girişi: tek ayrıştırıcı, her yerde GG.AA.YYYY
+
+Manuel QA'dan kalan bulgu: Hisse Detay emir formu `YYYY-AA-GG` istiyordu, uygulamanın geri kalanı `GG.AA.YYYY`.
+
+- **Kök neden:** kullanıcı tarihini 12 ayrı yer kendi biçim listesiyle ayrıştırıyordu (bazısı yalnız ISO, bazısı yalnız GG.AA.YYYY; hedef vadesi, DCA ve model portföy `split("-")`/`fromisoformat`), alan başlangıç değerlerini 15 QML bileşeni kendi JavaScript'iyle üretiyordu.
+- **Çözüm:** `controllers/date_input.py` (`parse_date_text`: GG.AA.YYYY, eski ISO de kabul; `format_date_text`) ve `qml/theme/Dates.qml`. 12 ayrıştırıcı ve 5 elle ayrıştırma kalktı. Dokuz alan GG.AA.YYYY gösterir: Hisse Detay emri, model portföy işlem ve sermaye, temettü, ex-date, hedef vadesi (ekle/düzenle), DCA, strateji testi. Hedef listesi ve aday `exDate` GG.AA.YYYY döner.
+- **Davranış değişikliği:** geçersiz hedef/model portföy tarihi artık ham `ValueError` yerine "Biçim: GG.AA.YYYY" uyarısı verir; `cash_pool` ISO'yu da kabul eder.
+- **Koruma:** `tests/ui_qml/test_date_input_guard.py`. Kırmızı testler `test_date_entry_formats.py`, `test_date_input.py`.
+- **Doğrulama (yalnızca QA kopyasında):** dokuz alanın ekranı; 10.11.2026 ile ve eski 2026-11-11 ile satış kaydı doğru tarihle yazıldı.
+- Aynı gün devamı (saat): `parse_time_text`/`format_time_text` (`SS:DD`, `SS:DD:SS`) aynı modüle; beş saat ayrıştırıcısı (assets, cash_pool, dashboard, Hisse Detay, model portföy `split(":")`) tek yere indi. Geçersiz model portföy saati artık "Biçim: SS:DD" uyarısı verir. QML'de `Dates.nowTime()`/`formatTime()`; yedi bileşenin elle `getHours()`/`todayText()` kodu kalktı, koruma testi saat/tarih üretimini de yasaklar. Hızlı Alım fiyat alanı virgüllü doldurulur.
+
+## [2026-11-13] FIX | Manuel QA'nın orta ve düşük bulguları, bağımlılık açığı, e2e yarışı
+
+Tümü gerçek verinin kopyasında (QA kopyası) doğrulandı; gerçek `data/` dosyalarına yazılmadı.
+
+- **Tema kalıcılığı:** `Main.qml`'deki `Binding` `Theme.isDark`'ı `settingsController.isDarkTheme`'ten okur; başlık düğmesi de `toggleTheme()` çağırır. Önceden açılışta hep koyu başlar, başlık düğmesi tercihi kaydetmez ve Ayarlar yanlış "Aktif Tema" gösterirdi. Yeniden başlatmada kalıcılık doğrulandı.
+- **Hisse Detay Escape:** `StockDetailModal` tek modaldı ki Escape'e yanıt vermiyordu; pencere açık kaldığı için kenar çubuğundaki ilk tıklama yalnızca pencereyi kapatıyordu. `Shortcut` eklendi; koruma `tests/ui_qml/test_modal_escape_guard.py` (tüm `*Modal*`/`*Dialog*` bileşenleri).
+- **Biçim ve yerleşim:** işlem geçmişi tablosunda Adet/Fiyat sütunları başlıkla hizalı (iç `RowLayout` `fillWidth` taşıyordu); emir önizlemesinde `-₺962,00` (`tr_lira`) ve fiyat alanı virgüllü; Karşılaştırma/DCA/Lightweight grafiklerinde eksen ondalık virgül (`localization`, `tests/ui_qml/test_chart_locale.py`); TL fiyat her zaman 2 hane (`₺0,92`); yeniden dengeleme lotu tam sayıda ondalıksız; başlıklardan "(Allocation)/(Watchlist)/(Planning)" kalktı; optimizasyon kartları çalışana kadar "—"; temalı `ThemedSlider` (siyah tutamak); Ayarlar sekme çubuğu dar pencerede yatay kaydırılır.
+- **Bağımlılık açığı (CI Dependency audit):** `soupsieve` 2.10 için üç CVE (düzeltme 4.0, Python >= 3.11.5). `constraints.txt` ortam işaretiyle ikiye bölündü; Python 3.10 hattı 2.10'da kalır (denetim 3.11'de çalışır). `tests/test_dependency_lock.py` ortam işaretli sabitleri kabul eder.
+- **e2e yarışı:** `test_sell_more_than_held...` onay düğmesinin kutuyu kapatma animasyonu bitmeden kararı verip kutu `fill` sırasında kayboluyordu; `wait_gone` ile beklenir.
+- Kayıt defteri temizliği: `data/backups/registry_PortfoySimulasyonu_20261113.reg` yedeğiyle sahte NVDA sohbet oturumu, QA'nın bastığı açılış işi damgaları ve QA kopyasından hesaplanmış getiri önbelleği silindi.
+- Bilinçli bırakılanlar: işlem tarihi alanı `YYYY-AA-GG` (uygulamada tarih biçimleri üç farklı denetleyicide ayrı ayrıştırılıyor, ortak biçime geçiş ayrı iş), Reel (TÜFE) modu EVDS anahtarı olmadan TL serisini gösterir ve uyarır.
+
+## [2026-11-13] FIX | Manuel QA'da çıkan iki yüksek önemli hata
+
+Gerçek verinin kopyasıyla elle test (11 sayfa, ana akışlar) ve e2e (75/75) sonrası.
+
+- **Para birimi seçimi uygulanmıyordu:** `AnalysisService.get_comparison_view` filtre durumunu yeniden kurarken `currency_mode`'u düşürüyordu (varsayılan TL); Karşılaştırma Lab'de TL/USD/Reel aynı sonucu veriyordu (24.04.2026'dan beri). Kırmızı test `test_comparison_view_applies_selected_currency_mode`; kopyada USD artık 48,19 yerine 45,79. Reel mod TÜFE verisi (EVDS anahtarı) olmadan seriyi TL bırakır ve "TÜFE alınamadı" uyarısı gösterir.
+- **Testler ve QA gerçek kayıt defterine yazıyordu:** `QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")` `setDefaultFormat`'tan etkilenmez; e2e koşuları gerçek sohbet geçmişine ve açılış işi damgalarına yazıyordu. Yedi çağrı yeni `src/qt_compat/user_settings.py::user_settings()` fabrikasına geçti; `tests/conftest.py` oturumda INI'ye yönlendirir, e2e kabuğu `use_ini_file` kullanır. Koruma: `tests/test_user_settings_isolation.py` (doğrudan `QSettings(org, app)` yasak). Tam paket + e2e sonrası kayıt defteri değişmedi. Önceki koşuların bıraktığı gerçek kayıt defteri kirliliği (sohbet geçmişinde NVDA oturumları, `settings/last_auto_*` damgaları) otomatik temizlenmedi.
+
+## [2026-11-08] FIX | Testlerde Qt `access violation` çökmesi (CI Python 3.12)
+
+- **Belirti:** `test_market_sync_controller_trigger_sync` içindeki olay döngüsü beklemesinde süreç çöküyordu (CI ve yerelde ara sıra).
+- **Kök neden:** `create_controllers(autostart=False)` `SystemController` ve `MarketTickerController`'a bayrağı iletmiyordu; testler gerçek yfinance çağrısı başlatıyordu (çökme anında 8 şerit işçisi ağda). Gecikmeli işler iptal edilemeyen `QTimer.singleShot(ms, self.metot)` ile kurulduğundan biten testlerin işleri sonraki testlerde ateşleniyor, sonuç silinmiş denetleyiciye dönüyordu.
+- **Aynı gün, ikinci CI kırmızısı:** `test_stock_360_overview_characterization` bugünü `date.today()` (CI'da UTC) ile yer tutucuya çeviriyordu, denetleyici `market_today()` (İstanbul) yazar; 21:00-24:00 UTC arası 9 test düşüyordu. Test `market_today()` kullanır. Piyasa günü bir gün kaydırılarak (`market_clock._utc_now` +24 sa) tam paket koşuldu; başka etkilenen test yok.
+- **Düzeltme:** kayıtta iki denetleyiciye `AUTOSTART`; yeni `src/ui_qml/deferred.run_later` (sahibine bağlı, iptal edilebilir) 8 `singleShot` çağrısının yerini aldı; `tests/conftest.py` her testten sonra `cancel_pending()`. Koruma: `tests/ui_qml/test_background_work_lifecycle.py` (kayıt bayrağı, sahip silinince ateşlenmeme, iptal, `singleShot` yasağı). Uygulamadaki davranış aynı.
+
+## [2026-11-07] REFACTOR | Plan B: Yönetilebilirlik (özellik kaydı, tek fiyat yazıcısı, ortak defter, mesaj paketi)
+
+Dal: `refactor/yonetilebilirlik`. Ayrıntı: [architecture.md](architecture.md) §2, [data_architecture.md](data_architecture.md) kural 3-4, [architecture_evolution_plan.md](architecture_evolution_plan.md) §4.
+
+- **B1:** servisler `container_parts/features/` modüllerinde (`PROVIDES` + `build`), `ServiceRegistry`; denetleyiciler `controllers/registry.py`; `REQUIRES` + `ServiceView` 6 denetleyicide, kalanlar tavanlı.
+- **B2:** fiyatın tek yazıcısı DuckDB; SQLite `PriceProjectionService` yansıması. Sağlık/backfill `MarketPriceRefresher`, kurumsal aksiyon ve bölünme DuckDB faktörü + yansıtma. İlk senkronda bir kez `SinglePriceSourceMigration`. `scripts/rebuild_sqlite_prices.py`, `adjust_prices_before_date`, `adjust_downloaded_series` kaldırıldı. Koruma: `tests/test_price_single_writer_guard.py`.
+- **B3:** `ILedgerReader` / `LedgerSnapshot` (ana, model, varlık). Bölünme hedefleri, aday keşfi, fiyat sağlığı kapsamı geçti; gerçek veri kopyasında kapsamlar eski mantıkla birebir. Koruma: `tests/test_ledger_reader_guard.py`.
+- **B4:** `src/ui_qml/messages/` paketi (7 modül, yinelenen anahtar hata, 472 anahtar aynı).
+- **B5:** `scripts/measure_change_footprint.py`: Plan B öncesi medyan 7 kaynak dosya, merkeze dokunma %59; dal commit'lerinde medyan 5, %0 ([code_quality_guardrails.md](code_quality_guardrails.md) §9).
+- Gerçek veritabanında ilk senkron geçişi çalıştırır (kopyada ~31 sn). Kalite kapısı tavanda; tam paket geçti.
+
+## [2026-11-07] REVIEW | Backend Denetimi 3 ve Otomatik Hisse Bölünmesi
+
+Ayrıntı ve açık kalanlar: [system_audit_report_2026-11-07.md](system_audit_report_2026-11-07.md).
+
+- **Fiyat politikası:** SQLite'a yazan Yahoo yolları ham `Close` (`auto_adjust=False`); karışık eski satırlar için `scripts/rebuild_sqlite_prices.py` (faktör izi taşıyan hisse ve hacimsiz/hayalet DuckDB referansı atlanır).
+- **Otomatik bölünme:** Yahoo + KAP + fiyat kırılması uzlaşısı; iki kaynak otomatik, tek kaynak aday. Ana/model portföy ve Portföyüm işlemleri tek işlemde, küsurat `FRACTION` nakdi, fiyat geçmişi yalnızca kırılma varsa. Geri alma, açılış işi, Ayarlar listesi. Manuel bedelsiz de aynı uygulayıcıyı kullanır ([service_corporate_actions.md](service_corporate_actions.md) §6).
+- **Hayalet bar:** `bar_quality` üç indiriciye bağlı; `scripts/clean_ghost_bars.py`. BIST takvimi 20.06.2024 düzeltildi, 2023 deprem kapanışı eklendi.
+- **Hesaplama düzeltmeleri:** TWR nakit açığı ve başlangıç komisyonu, optimizasyon basit getiri, altın/gümüş sembolleri ve mevduat yedeği, bilanço TTM/ROE, grafik hassasiyeti, eşleştirilmiş risk metrikleri, TÜFE yayın kaydırması, saat dilimi, OHLC fiyat düzeltmesi.
+- Kalite kapısı tavanda (72 fonksiyon / 4 dosya / 0 sınıf). Tam paket 2164 geçti. Gerçek veritabanına uygulama kullanıcı onayı bekliyor.
+
 ## [2026-11-04] UI | Hisse Detay Penceresi, Yükleniyor Animasyonu, Uygulama Adı
 
 - Hisse detay modalı 1180×940'a büyüdü; emir formu yüksekliği içeriğinden hesaplanır (`StockDetailOrderForm.qml`), kaydırma gerekmez.

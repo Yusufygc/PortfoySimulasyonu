@@ -36,7 +36,7 @@ class StockDetailLoaderMixin:
             }
 
             # 1. Hisse Tanımını Bul
-            lookup = getattr(self._container, "stock_lookup_service", None) if self._container else None
+            lookup = self._deps.stock_lookup_service
             stock_obj = lookup.find_stock(ticker) if lookup else None
             if stock_obj:
                 data["stock_id"] = stock_obj.id
@@ -56,8 +56,8 @@ class StockDetailLoaderMixin:
                 self._load_main_position_data(data, stock_obj, cur_price)
 
             # 4. Sermaye Artırımları (Corporate Actions)
-            if stock_obj and stock_obj.id and self._container:
-                corp_service = getattr(self._container, "corporate_action_service", None)
+            if stock_obj and stock_obj.id and self._deps.available:
+                corp_service = self._deps.corporate_action_service
                 if corp_service:
                     try:
                         actions = corp_service.get_by_stock(stock_obj.id)
@@ -80,7 +80,7 @@ class StockDetailLoaderMixin:
 
     def _get_latest_price(self, ticker: str, stock_id: Optional[int] = None) -> tuple[float, float]:
         """En güncel fiyatı ve dünkü kapanışa göre yüzdesel farkı döndürür (`PositionQueryService.quote`)."""
-        service = getattr(self._container, "position_query_service", None) if self._container else None
+        service = self._deps.position_query_service
         if service is None:
             return 0.0, 0.0
         quote = service.quote(ticker, stock_id)
@@ -99,14 +99,14 @@ class StockDetailLoaderMixin:
 
     def _load_main_position_data(self, data: Dict[str, Any], stock_obj: Any, cur_price: float) -> None:
         """Ana portföyden bu hisseye ait pozisyon ve işlem listesini yükler."""
-        if not self._container:
+        if not self._deps.available:
             return
 
-        portfolio_service = getattr(self._container, "portfolio_service", None)
+        portfolio_service = self._deps.portfolio_service
         if not portfolio_service:
             return
 
-        query = getattr(self._container, "position_query_service", None)
+        query = self._deps.position_query_service
         if query is not None:
             positions = query.main_positions()
             data["cash"] = float(positions.cash)
@@ -153,10 +153,10 @@ class StockDetailLoaderMixin:
 
     def _load_model_position_data(self, data: Dict[str, Any], port_id: int, stock_obj: Any, cur_price: float) -> None:
         """Model portföyden bu hisseye ait pozisyon ve işlem listesini yükler."""
-        if not self._container:
+        if not self._deps.available:
             return
 
-        model_service = getattr(self._container, "model_portfolio_service", None)
+        model_service = self._deps.model_portfolio_service
         if not model_service:
             return
 
@@ -164,7 +164,7 @@ class StockDetailLoaderMixin:
         if port:
             data["portfolio_name"] = port.name
 
-        query = getattr(self._container, "position_query_service", None)
+        query = self._deps.position_query_service
         try:
             if query is not None:
                 positions = query.model_positions(port_id)

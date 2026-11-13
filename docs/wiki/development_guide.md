@@ -65,16 +65,20 @@ Kurallar:
 
 | Hedef | Adımlar |
 |---|---|
-| Servis | `src/domain/ports/` arayüzü -> `src/application/services/` uygulaması -> `container_parts/services.py` kaydı -> test |
+| Servis | `src/domain/ports/` arayüzü -> `src/application/services/` uygulaması -> ilgili `container_parts/features/<özellik>.py` modülünde `PROVIDES` + `build` satırı (yeni özellik alanıysa yeni modül + `features/__init__.py` `FEATURES` satırı) -> test |
 | Repository | `src/domain/ports/repositories/` -> ORM modeli (`orm_models.py`) -> `src/infrastructure/db/sqlalchemy/repositories/` -> `container_parts/repositories.py`. Mevcut tabloya sütun eklemek `database_engine._add_missing_columns` ile idempotent yapılır. |
-| UI sayfası/sekmesi | `src/ui_qml/controllers/` altında denetleyici -> `app.py` içinde `setContextProperty` -> `qml/views/` veya `qml/components/` -> `Sidebar.qml`/`Main.qml` yönlendirmesi -> metinler `Strings.qml` |
+| UI sayfası/sekmesi | `src/ui_qml/controllers/` altında denetleyici (`REQUIRES = (...)` + `self._deps.<servis>`) -> `controllers/registry.py` `CONTROLLERS` satırı -> `qml/views/` veya `qml/components/` -> `Sidebar.qml`/`Main.qml` yönlendirmesi -> QML metinleri `Strings.qml`, Python metinleri `src/ui_qml/messages/<alan>.py` |
 | Harici veri kaynağı | `src/infrastructure/` sağlayıcısı; ağ çağrısı `retry_call` ile sarılır ([service_market_data_providers.md](service_market_data_providers.md)); testte ağ kullanılmaz |
 
 Her özellik için: birim test, `Strings.qml` metinleri, ilgili wiki sayfası ve `log.md` girişi ([RULES.md](../../RULES.md) §1).
 
+Fiyat yazan yeni kod SQLite'a yazmaz: DuckDB'ye yazar ve `PriceProjectionService.project` çağırır. Defter-arası işlem okuyan yeni
+kod `ILedgerReader` kullanır. Değişiklik ayak izi: `python scripts/measure_change_footprint.py` ([code_quality_guardrails.md](code_quality_guardrails.md) §9).
+
 ## 6. Kod ve Arayüz Kuralları (Özet)
 
 - Emoji yok; ikonlar `Icons.qml` + `ModernIcon`. Metinler `Strings.qml`. Taşmasız, esnek düzen. Ayrıntı: [RULES.md](../../RULES.md) §2 ve [ui_architecture_and_events.md](ui_architecture_and_events.md).
+- Tarih alanı: Python'da `date_input.parse_date_text`/`format_date_text`, QML'de `Dates.*`; kullanıcıya her yerde `GG.AA.YYYY` gösterilir.
 - Para değerleri `Decimal`. Katman ihlali ve boyut eşikleri testle ve ölçümle denetlenir ([code_quality_guardrails.md](code_quality_guardrails.md)).
 - Commit mesajları Türkçedir ve tek mantıksal değişikliği anlatır ([GOVERNANCE.md](../../GOVERNANCE.md)).
 

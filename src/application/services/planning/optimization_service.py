@@ -50,17 +50,25 @@ def _build_return_model(
     price_df: pd.DataFrame,
     trading_days_per_year: int,
 ) -> tuple[pd.Series, pd.DataFrame]:
-    log_returns = np.log(price_df / price_df.shift(1)).replace([np.inf, -np.inf], np.nan).dropna()
-    if log_returns.empty or len(log_returns) < 2:
+    """Yıllık beklenen getiri ve Ledoit-Wolf kovaryansı.
+
+    Günlük *basit* getiri (`pct_change`) kullanılır: Sharpe payında basit yıllık
+    risksiz faizle karşılaştırılan getiri de basit olmalıdır. Log getiri ortalaması
+    beklenen getiriyi ~sigma^2/2 kadar düşük gösterir ve max-Sharpe'ı düşük oynaklığa iter.
+    """
+    simple_returns = (
+        price_df.pct_change(fill_method=None).replace([np.inf, -np.inf], np.nan).dropna()
+    )
+    if simple_returns.empty or len(simple_returns) < 2:
         raise ValueError("Yeterli fiyat gecmisi bulunamadi (en az 60 gun gerekli).")
 
-    mean_returns = log_returns.mean() * trading_days_per_year
+    mean_returns = simple_returns.mean() * trading_days_per_year
     estimator = LedoitWolf()
-    estimator.fit(log_returns.values)
+    estimator.fit(simple_returns.values)
     cov_matrix = pd.DataFrame(
         estimator.covariance_ * trading_days_per_year,
-        index=log_returns.columns,
-        columns=log_returns.columns,
+        index=simple_returns.columns,
+        columns=simple_returns.columns,
     )
     return mean_returns, cov_matrix
 
@@ -216,7 +224,6 @@ class OptimizationDeps(NamedTuple):
 
 class OptimizationService:
     TRADING_DAYS_PER_YEAR = 252
-    DEFAULT_RISK_FREE_RATE = 0.30
     MAX_SINGLE_WEIGHT = 0.40
 
     def __init__(

@@ -28,13 +28,8 @@ Popup {
         txtAmount.text = "10000"
         txtNotes.text = ""
         var today = new Date()
-        var yyyy = today.getFullYear()
-        var mm = String(today.getMonth() + 1).padStart(2, '0')
-        var dd = String(today.getDate()).padStart(2, '0')
-        txtDate.text = yyyy + "-" + mm + "-" + dd
-        var hh = String(today.getHours()).padStart(2, '0')
-        var min = String(today.getMinutes()).padStart(2, '0')
-        txtTime.text = hh + ":" + min
+        txtDate.text = Dates.format(today)
+        txtTime.text = Dates.formatTime(today)
         txtAmount.forceActiveFocus()
     }
 

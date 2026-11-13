@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.application.services.analysis.comparison_chart_series import ComparisonSeriesBuilder
 from src.application.services.analysis.comparison_service import ComparisonService
 from src.domain.models.ai_analysis import ChatMessage, MessageRole
@@ -40,7 +41,6 @@ from src.ui_qml.controllers.comparison_support import (
     build_risk_return_metrics,
     fetch_portfolio_holdings,
     find_column,
-    parse_date,
     resolve_range,
 )
 from src.ui_qml.messages import msg
@@ -264,7 +264,7 @@ class ComparisonController(QObject):
     @Slot(str, str, result=bool)
     def setCustomRange(self, start_text: str, end_text: str) -> bool:
         """Serbest tarih aralığı (GG.AA.YYYY veya YYYY-AA-GG) seçer ve karşılaştırmayı çalıştırır."""
-        start, end = parse_date(start_text), parse_date(end_text)
+        start, end = parse_date_text(start_text), parse_date_text(end_text)
         if start is None or end is None:
             self.operationResult.emit(False, msg("comparison.tarih_bicimi_gecersiz_bicim_gg_aa"))
             return False

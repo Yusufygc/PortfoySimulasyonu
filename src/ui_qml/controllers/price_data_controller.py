@@ -11,12 +11,13 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 from typing import Any, Callable, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.application.services.market.price_data_report_formatter import (
     display_ticker,
     format_report_html,
@@ -30,16 +31,6 @@ from src.ui_qml.messages import msg
 logger = logging.getLogger(__name__)
 
 _DATE_FMT = "%d.%m.%Y"
-
-
-def _parse_date(text: str) -> Optional[date]:
-    text = (text or "").strip()
-    for fmt in ("%Y-%m-%d", _DATE_FMT):
-        try:
-            return datetime.strptime(text, fmt).date()
-        except ValueError:
-            continue
-    return None
 
 
 class PriceDataController(QObject):
@@ -183,7 +174,7 @@ class PriceDataController(QObject):
 
     def _resolve_range(self, start_text: str, end_text: str, scope: str) -> Optional[tuple]:
         """Tarih metinlerini doğrular; portföye ilk hisse eklenme tarihinden önceye inmez."""
-        start, end = _parse_date(start_text), _parse_date(end_text)
+        start, end = parse_date_text(start_text), parse_date_text(end_text)
         if start is None or end is None:
             self.notification.emit(False, msg("price_data.tarih_bicimi_gecersiz_bicim_gg_aa"))
             return None

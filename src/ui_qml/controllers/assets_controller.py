@@ -15,48 +15,33 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text as parse_typed_date, parse_time_text as parse_typed_time
 from src.domain.market_clock import market_time, market_today
 from src.domain.models.asset import AssetClass, AssetUnit
 from src.domain.models.trade import TradeSide
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.messages import msg
+from src.ui_qml.deferred import run_later
 from src.ui_qml.presenters.formatting import input_decimal, tr_number
 
 logger = logging.getLogger(__name__)
 
 REFRESH_INTERVAL_MS = 5 * 60 * 1000
 _STARTUP_DELAY_MS = 3000
-_DATE_FORMATS = ("%d.%m.%Y", "%Y-%m-%d")
 
 
 def parse_date_text(text: str) -> Optional[date]:
-    """GG.AA.YYYY veya YYYY-AA-GG; boşsa bugün (piyasa saati), geçersizse None."""
-    from datetime import datetime
-
-    raw = (text or "").strip()
-    if not raw:
+    """GG.AA.YYYY (eski YYYY-AA-GG de kabul); boşsa bugün (piyasa saati), geçersizse None."""
+    if not (text or "").strip():
         return market_today()
-    for fmt in _DATE_FORMATS:
-        try:
-            return datetime.strptime(raw, fmt).date()
-        except ValueError:
-            continue
-    return None
+    return parse_typed_date(text)
 
 
 def parse_time_text(text: str) -> Optional[time]:
-    """SS:DD veya SS:DD:SS; boşsa şimdi (piyasa saati), geçersizse None."""
-    from datetime import datetime
-
-    raw = (text or "").strip()
-    if not raw:
+    """SS:DD veya SS:DD:SS (eski sürümlerle aynı); boşsa şimdi (piyasa saati), geçersizse None."""
+    if not (text or "").strip():
         return market_time()
-    for fmt in ("%H:%M", "%H:%M:%S"):
-        try:
-            return datetime.strptime(raw, fmt).time()
-        except ValueError:
-            continue
-    return None
+    return parse_typed_time(text)
 
 
 def _parse_amounts(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[tuple]]:
@@ -131,7 +116,7 @@ class AssetsController(QObject):
         self._timer.timeout.connect(lambda: self.refreshPrices(True))
         if self._refresh is not None and autostart:
             self._timer.start(REFRESH_INTERVAL_MS)
-            QTimer.singleShot(_STARTUP_DELAY_MS, lambda: self.refreshPrices(True))
+            run_later(self, _STARTUP_DELAY_MS, lambda: self.refreshPrices(True))
 
     # --- Özellikler ---
 

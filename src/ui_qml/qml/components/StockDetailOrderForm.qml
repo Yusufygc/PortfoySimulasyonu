@@ -14,15 +14,14 @@ Rectangle {
     property real tradePrice: (typeof stockDetailController !== "undefined" && stockDetailController.currentPrice > 0) ? stockDetailController.currentPrice : 10.0
     function resetTradeMoment() {
         const now = new Date()
-        const pad = (n) => String(n).padStart(2, "0")
-        tradeDateText = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate())
-        tradeTimeText = pad(now.getHours()) + ":" + pad(now.getMinutes())
+        tradeDateText = Dates.format(now)
+        tradeTimeText = Dates.formatTime(now)
     }
     // Denetleyicideki güncel fiyatı forma yansıtır (hisse değişince ve modal açılınca çağrılır)
     function syncPrice() {
         if (typeof stockDetailController !== "undefined" && stockDetailController && stockDetailController.currentPrice > 0) {
             root.tradePrice = stockDetailController.currentPrice
-            txtPrice.text = stockDetailController.currentPrice.toFixed(2)
+            txtPrice.text = stockDetailController.currentPrice.toFixed(2).replace(".", ",")
         }
     }
     Component.onCompleted: resetTradeMoment()
@@ -166,7 +165,7 @@ Rectangle {
                     id: txtPrice
                     anchors.fill: parent
                     anchors.margins: 8
-                    text: root.tradePrice.toFixed(2)
+                    text: root.tradePrice.toFixed(2).replace(".", ",")
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm

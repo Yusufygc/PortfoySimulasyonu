@@ -17,11 +17,6 @@ Item {
     readonly property bool hasResult: ctl ? ctl.hasResult : false
     readonly property var intervalMonths: [1, 3, 6, 12]
 
-    function todayIso() {
-        const d = new Date()
-        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
-    }
-
     function run() {
         if (!ctl) return
         root.statusText = ""
@@ -108,13 +103,13 @@ Item {
                         width: 120
                         spacing: 2
                         Text { text: Strings.strategyStartLabel; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs }
-                        ModernInput { id: txtStart; Layout.fillWidth: true; text: "2023-01-02" }
+                        ModernInput { id: txtStart; Layout.fillWidth: true; text: "02.01.2023" }
                     }
                     ColumnLayout {
                         width: 120
                         spacing: 2
                         Text { text: Strings.strategyEndLabel; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs }
-                        ModernInput { id: txtEnd; Layout.fillWidth: true; text: root.todayIso() }
+                        ModernInput { id: txtEnd; Layout.fillWidth: true; text: Dates.today() }
                     }
                     ColumnLayout {
                         visible: root.rebalanceMode

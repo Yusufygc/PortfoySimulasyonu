@@ -8,11 +8,13 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, time as dt_time
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
+from src.ui_qml.controllers.date_input import parse_date_text, parse_time_text
 from src.ui_qml.controllers.model_portfolio_export import resolve_range, run_history_export
 from src.ui_qml.controllers.model_portfolio_valuation import ModelPortfolioValuation, display_ticker, empty_summary
+from src.ui_qml.controllers.deps import ServiceView
 from src.ui_qml.messages import msg
 from src.ui_qml.presenters.formatting import tr_number
 
@@ -20,8 +22,32 @@ from src.ui_qml.presenters.formatting import tr_number
 logger = logging.getLogger(__name__)
 
 
+def _entry_date(text: str) -> date:
+    """Formdaki tarih; boşsa bugün, geçersizse kullanıcıya gösterilecek `ValueError`."""
+    if not (text or "").strip():
+        return date.today()
+    parsed = parse_date_text(text)
+    if parsed is None:
+        raise ValueError(msg("model_portfolio.tarih_bicimi_gecersiz_bicim_gg_aa"))
+    return parsed
+
+
+def _entry_time(text: str) -> Optional[dt_time]:
+    """Formdaki saat; boşsa None (servis varsayılanı), geçersizse kullanıcıya gösterilecek `ValueError`."""
+    if not (text or "").strip():
+        return None
+    parsed = parse_time_text(text)
+    if parsed is None:
+        raise ValueError(msg("model_portfolio.saat_bicimi_gecersiz_bicim_ss_dd"))
+    return parsed
+
+
 class ModelPortfolioController(QObject):
     """QML ↔ Python köprüsü: Model Portföy yönetimi."""
+    REQUIRES = (
+        "model_portfolio_excel_export_service", "model_portfolio_service", "position_query_service",
+        "stock_lookup_service",
+    )
 
     # --- Signals ---
     portfolioListChanged = Signal()
@@ -36,10 +62,10 @@ class ModelPortfolioController(QObject):
 
     def __init__(self, container=None, parent=None):
         super().__init__(parent)
-        self._container = container
-        self._service = getattr(container, "model_portfolio_service", None) if container else None
-        self._lookup = getattr(container, "stock_lookup_service", None) if container else None
-        self._valuation = ModelPortfolioValuation(self._service, getattr(container, "position_query_service", None))
+        self._deps = ServiceView(container, self.REQUIRES)
+        self._service = self._deps.model_portfolio_service
+        self._lookup = self._deps.stock_lookup_service
+        self._valuation = ModelPortfolioValuation(self._service, self._deps.position_query_service)
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ModelPortWorker")
         self._asyncExportFinished.connect(self._on_export_finished)
 
@@ -275,11 +301,8 @@ class ModelPortfolioController(QObject):
             return
         try:
             from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
-            trade_date = date.fromisoformat(trade_date_str) if trade_date_str else date.today()
-            trade_time = None
-            if trade_time_str:
-                parts = trade_time_str.split(":")
-                trade_time = dt_time(int(parts[0]), int(parts[1]))
+            trade_date = _entry_date(trade_date_str)
+            trade_time = _entry_time(trade_time_str)
 
             self._service.add_trade_by_ticker(
                 portfolio_id=self._current_portfolio_id,
@@ -322,11 +345,8 @@ class ModelPortfolioController(QObject):
             return
         try:
             from src.application.services.planning.model_portfolio_trade_service import CapitalMovementSpec
-            move_date = date.fromisoformat(move_date_str) if move_date_str else date.today()
-            move_time = None
-            if move_time_str:
-                parts = move_time_str.split(":")
-                move_time = dt_time(int(parts[0]), int(parts[1]))
+            move_date = _entry_date(move_date_str)
+            move_time = _entry_time(move_time_str)
 
             self._service.add_capital_movement(
                 CapitalMovementSpec(
@@ -426,7 +446,7 @@ class ModelPortfolioController(QObject):
         if error:
             self.operationResult.emit(False, error)
             return
-        excel_service = getattr(self._container, "model_portfolio_excel_export_service", None) if self._container else None
+        excel_service = self._deps.model_portfolio_excel_export_service
         portfolio_id, path, do_append = self._current_portfolio_id, file_path.strip(), bool(append)
         self._executor.submit(
             lambda: self._asyncExportFinished.emit(*run_history_export(excel_service, portfolio_id, start, end, path, do_append))

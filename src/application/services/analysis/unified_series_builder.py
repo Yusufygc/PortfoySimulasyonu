@@ -4,7 +4,8 @@ Her gün sonunda toplam değer TL cinsinden hesaplanır: TL nakit + USD nakit x 
 pozisyonları. TWR'yi bozmamak için yalnızca portföye dışarıdan giren/çıkan sermaye "dış akış" sayılır:
 
 - gerçek nakit yatırma/çekme (temettü getiridir, akış değildir),
-- nakde bağlı olmayan eski varlık işlemleri (alım giriş, satım çıkış sayılır).
+- nakde bağlı olmayan eski varlık işlemleri (alım giriş, satım çıkış sayılır),
+- TL nakdini aşan harcamanın (alım, döviz çevirme) karşılanmayan kısmı (dışarıdan gelen sermaye; nakit 0'da kalır).
 
 Havuz içi hareketler (döviz çevirme, nakde bağlı varlık ve BIST işlemleri) akış değildir. Hiç gerçek nakit hareketi
 yoksa nakit izlenmez ve tüm işlemler (BIST ve varlık) dış akış olarak sayılır; bu BIST'e özel serideki davranışla aynıdır.
@@ -81,6 +82,14 @@ class _EventApplier:
     """Olayın durum (nakit ve miktarlar) üzerindeki etkisini uygular; dış sermaye akışını (TL) döner."""
 
     @staticmethod
+    def _change_try_cash(state: _State, delta: Decimal) -> Decimal:
+        """TL nakdi `delta` kadar değiştirir. Nakdi aşan harcamada nakit 0'da kalır; karşılanmayan kısım
+        dışarıdan gelen sermayedir ve dış akış olarak döner (aksi halde getiri gibi görünürdü)."""
+        new_cash = state.try_cash + delta
+        state.try_cash = max(ZERO, new_cash)
+        return max(ZERO, -new_cash)
+
+    @staticmethod
     def _apply_cash(state: _State, movement) -> Decimal:
         if movement.type.adds_cash:
             state.try_cash += movement.amount
@@ -94,8 +103,8 @@ class _EventApplier:
     def _apply_fx(state: _State, conversion) -> Decimal:
         state.fx_hint = conversion.rate
         if state.tracking:
-            state.try_cash = max(ZERO, state.try_cash + conversion.try_effect)
             state.usd_cash += conversion.usd_effect
+            return _EventApplier._change_try_cash(state, conversion.try_effect)
         return ZERO
 
     @staticmethod
@@ -115,8 +124,7 @@ class _EventApplier:
         state.bist_qty[trade.stock_id] = state.bist_qty.get(trade.stock_id, ZERO) + sign * Decimal(trade.quantity)
         _EventApplier._track_bist_cost(state, trade)
         if state.tracking:
-            state.try_cash = max(ZERO, state.try_cash - sign * trade.cash_amount)
-            return ZERO
+            return _EventApplier._change_try_cash(state, -sign * trade.cash_amount)
         return sign * trade.cash_amount
 
     @staticmethod
@@ -129,9 +137,8 @@ class _EventApplier:
         if state.tracking and trade.cash_linked and asset is not None:
             if asset.settlement_currency == "USD":
                 state.usd_cash -= sign * trade.cash_amount
-            else:
-                state.try_cash = max(ZERO, state.try_cash - sign * trade.cash_amount)
-            return ZERO
+                return ZERO
+            return _EventApplier._change_try_cash(state, -sign * trade.cash_amount)
         return sign * value_try
 
     @classmethod

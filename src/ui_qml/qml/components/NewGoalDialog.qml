@@ -23,12 +23,7 @@ Popup {
     onOpened: {
         txtName.text = ""
         txtTarget.text = "100000"
-        var d = new Date()
-        d.setFullYear(d.getFullYear() + 1)
-        var yyyy = d.getFullYear()
-        var mm = String(d.getMonth() + 1).padStart(2, '0')
-        var dd = String(d.getDate()).padStart(2, '0')
-        txtDeadline.text = yyyy + "-" + mm + "-" + dd
+        txtDeadline.text = Dates.todayPlusYears(1)
         comboPriority.currentIndex = 1 // ORTA
         txtName.forceActiveFocus()
     }
@@ -154,7 +149,7 @@ Popup {
             spacing: Theme.spaceXs
 
             Text {
-                text: Strings.goalsDialogDeadlineLabel + " (YYYY-AA-GG)"
+                text: Strings.goalsDialogDeadlineLabel + " (GG.AA.YYYY)"
                 color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm

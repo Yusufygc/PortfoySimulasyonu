@@ -1,6 +1,6 @@
 """Mandal: denetleyicilerdeki Türkçe kullanıcı metni literali sayısı artamaz, hedef 0.
 
-Kullanıcıya görünen metin `src/ui_qml/messages.py` kataloğundadır (QML'in kendi metni `Strings.qml`'de). Sayım: log çağrıları
+Kullanıcıya görünen metin `src/ui_qml/messages/` kataloğundadır (QML'in kendi metni `Strings.qml`'de). Sayım: log çağrıları
 ve docstring hariç (satır sonunda ya da hemen üstünde `# metin-muaf: neden` yorumu olanlar da hariç), Türkçe harf içeren her metin sabiti. Bir dosyada sayı düşerse `controller_text_baseline.json` aynı
 commit'te düşürülür (test bunu zorlar); yeni dosyanın tavanı 0'dır.
 """
@@ -75,7 +75,7 @@ def test_controller_user_text_never_grows():
     current = current_counts()
     grew = {n: (baseline.get(n, 0), c) for n, c in current.items() if c > baseline.get(n, 0)}
     assert not grew, (
-        "Denetleyicide yeni Türkçe metin literali: metni src/ui_qml/messages.py kataloğuna taşıyıp msg() çağırın. "
+        "Denetleyicide yeni Türkçe metin literali: metni src/ui_qml/messages/ kataloğuna taşıyıp msg() çağırın. "
         f"(dosya: (tavan, şimdi)) {grew}"
     )
 

@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional
 from PySide6.QtCore import Property, QObject, QSettings, Signal, Slot
 
 from config.settings_loader import persist_api_keys
+from src.qt_compat.user_settings import user_settings
 from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ class SettingsController(QObject):
         super().__init__(parent)
         self._container = container
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="SettingsWorker")
-        self._settings = QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._settings = user_settings()
 
         # Dahili Durumlar
         self._is_loading = False

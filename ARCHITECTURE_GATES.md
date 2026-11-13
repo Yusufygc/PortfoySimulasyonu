@@ -16,7 +16,7 @@ Bu dosya, projedeki kod kalitesi, refactor sınırları, test kapıları, dizin 
 - `except Exception` ancak hata loglandığında, kullanıcıya anlamlı sonuç döndürüldüğünde ve ilgili davranış testle kapatıldığında kabul edilir.
 - PySide6 global `QApplication` ayarları çalışan arayüz varken yeniden uygulanmaz. Tema değişimi `Theme.qml` singleton'ı üzerinden yapılır; font ve global state değişimi kontrollü yapılır.
 - Her production bug fix önce kırmızı testi kanıtlar, sonra fix ve tam test koşumu ile kapanır.
-- Kullanıcıya gösterilen arayüz metinlerinde Türkçe karakterlerin doğru kullanımı zorunludur. Arayüz dosyalarındaki sabit metinler doğrudan QML'e gömülmemeli, `src/ui_qml/qml/theme/Strings.qml` (`Strings` singleton) altından çağrılmalıdır. `tests/ui_qml/test_strings_catalog.py` bunu denetler. Python denetleyicilerinde kullanıcı metni `src/ui_qml/messages.py` kataloğundan (`msg()`) gelir; `tests/ui_qml/test_controller_text_ratchet.py` ve `test_message_catalog.py` denetler.
+- Kullanıcıya gösterilen arayüz metinlerinde Türkçe karakterlerin doğru kullanımı zorunludur. Arayüz dosyalarındaki sabit metinler doğrudan QML'e gömülmemeli, `src/ui_qml/qml/theme/Strings.qml` (`Strings` singleton) altından çağrılmalıdır. `tests/ui_qml/test_strings_catalog.py` bunu denetler. Python denetleyicilerinde kullanıcı metni `src/ui_qml/messages/` kataloğundan (anahtar önekine göre özellik modülleri, `msg()`) gelir; `tests/ui_qml/test_controller_text_ratchet.py` ve `test_message_catalog.py` denetler.
 
 ### 1.1 Refaktör Disiplini
 

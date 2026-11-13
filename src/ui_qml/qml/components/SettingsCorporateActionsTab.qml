@@ -3,7 +3,8 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import "../theme"
 
-// Ayarlar > Kurumsal Aksiyonlar: KAP/MKK aday listesi, tarama, onaylayıp uygulama, düzenleme, yoksayma.
+// Ayarlar > Kurumsal Aksiyonlar: otomatik hisse bölünmeleri (üstte) ve KAP/MKK aday listesi, tarama, onaylayıp
+// uygulama, düzenleme, yoksayma.
 ColumnLayout {
     id: root
 
@@ -36,6 +37,11 @@ ColumnLayout {
 
     onSelectedChanged: {
         if (hasController) corporateActionController.selectCandidate(selected ? selected.id : -1)
+    }
+
+    SettingsSplitEventsSection {
+        Layout.fillWidth: true
+        onNotify: function(success, message) { root.notify(success, message) }
     }
 
     // Başlık ve üst butonlar

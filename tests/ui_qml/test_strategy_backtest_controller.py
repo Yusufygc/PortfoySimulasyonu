@@ -19,7 +19,6 @@ from src.application.services.simulation.strategy_backtest import (
 )
 from src.ui_qml.controllers.strategy_backtest_controller import (
     StrategyBacktestController,
-    parse_date,
     parse_number,
 )
 
@@ -87,11 +86,6 @@ class TestParsing:
     @pytest.mark.parametrize("text", ["", "abc", "nan", "inf"])
     def test_parse_number_rejects_invalid(self, text):
         assert parse_number(text) is None
-
-    def test_parse_date(self):
-        assert parse_date("2026-03-02") == date(2026, 3, 2)
-        assert parse_date("02.03.2026") == date(2026, 3, 2)
-        assert parse_date("x") is None
 
 
 class TestRun:

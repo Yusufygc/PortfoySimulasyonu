@@ -120,7 +120,7 @@ Projede profesyonel masaüstü deneyimi ve tutarlı bir tasarım dili sağlamak 
 ### 2.3 Merkezi Metin ve Yerelleştirme Mekanizması (`Strings.qml`)
 - Kullanıcıya görünen hiçbir arayüz metni, sayfa başlığı, buton etiketi, tablo sütun adı veya modal mesajı bileşenler içine **hardcoded** yazılmaz.
 - Tüm metinler `src/ui_qml/qml/theme/Strings.qml` singleton'ında tanımlanır ve buradan çağrılır (`Strings.dashboardTitle`, `Strings.btnRefresh` vb.). Bu sayede merkezi metin yönetimi ve gelecekteki çoklu dil desteği korunur.
-- Python denetleyicilerinin ürettiği kullanıcı metinleri (bildirim, durum, hata) `src/ui_qml/messages.py` kataloğundan `msg("anahtar", ad=değer)` ile alınır; denetleyiciye Türkçe metin literali yazılmaz (`tests/ui_qml/test_controller_text_ratchet.py`). Veri/anahtar niteliğindeki istisnalar satırda `# metin-muaf: neden` ile işaretlenir.
+- Python denetleyicilerinin ürettiği kullanıcı metinleri (bildirim, durum, hata) `src/ui_qml/messages/` kataloğundan (anahtar önekinin modülü: `portfolio.py`, `market.py` ...) `msg("anahtar", ad=değer)` ile alınır; denetleyiciye Türkçe metin literali yazılmaz (`tests/ui_qml/test_controller_text_ratchet.py`). Veri/anahtar niteliğindeki istisnalar satırda `# metin-muaf: neden` ile işaretlenir.
 
 ### 2.4 Taşma (Overflow) ve Esnek Düzen Standartları
 - Hiçbir buton veya toolbar öğesi sabit piksel genişliğine hapsedilerek metin kırpılmasına yol açmamalıdır. Butonlar içeriğine göre esnek genişlik almalıdır (`ModernButton.qml`).

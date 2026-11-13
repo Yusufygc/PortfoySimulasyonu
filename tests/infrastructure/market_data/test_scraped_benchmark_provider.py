@@ -84,17 +84,21 @@ def test_bist_month_fetch_failure_returns_empty_and_is_cached_for_the_instance(m
     assert len(calls) == 1  # başarısızlık örnek ömrü boyunca önbellekte kalır (yeniden deneme yok)
 
 
-def test_gold_try_series_multiplies_gold_by_usd_try_on_shared_dates_only(monkeypatch):
+def test_gold_futures_ticker_returns_macrotrends_usd_ounce_series(monkeypatch):
     provider = ScrapedBenchmarkProvider()
     # 2026-01-05 ve 2026-01-06 UTC gece yarısı (ms)
     payload = {"data": [[1767571200000, 2000.0], [1767657600000, 2010.0], [1767744000000, None], "bozuk"]}
     monkeypatch.setattr(provider, "_request_json", lambda url: payload)
-    monkeypatch.setattr(provider, "_fetch_exchange_rates_usdtry_series",
-                        lambda s, e: {date(2026, 1, 5): Decimal("40"), date(2026, 1, 9): Decimal("41")})
 
-    series = provider.fetch_series_for_ticker("XAUTRY=X", date(2026, 1, 1), date(2026, 1, 31))
+    series = provider.fetch_series_for_ticker("GC=F", date(2026, 1, 1), date(2026, 1, 31))
 
-    assert series == {date(2026, 1, 5): Decimal("80000.0")}
+    assert series == {date(2026, 1, 5): Decimal("2000.0"), date(2026, 1, 6): Decimal("2010.0")}
+
+
+@pytest.mark.parametrize("dead_symbol", ["XAUTRY=X", "XAUUSD=X"])
+def test_dead_yahoo_gold_symbols_are_not_served(dead_symbol):
+    # Yahoo bu sembollerde 404 döner; servis artık GC=F × TRY=X kullanır.
+    assert ScrapedBenchmarkProvider().fetch_series_for_ticker(dead_symbol, date(2026, 1, 1), date(2026, 1, 31)) is None
 
 
 def test_unknown_ticker_has_no_scraped_series():

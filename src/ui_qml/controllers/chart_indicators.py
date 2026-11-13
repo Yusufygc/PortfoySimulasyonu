@@ -12,6 +12,7 @@ import pandas as pd
 
 from src.application.services.analysis.technical.golden_cross import CrossType, detect_crosses
 from src.application.services.analysis.technical.indicators import bollinger_bands, ema, macd, rsi, sma
+from src.ui_qml.controllers.chart_candle_sources import price_digits
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +35,15 @@ def empty_indicators() -> dict[str, Any]:
     }
 
 
-def to_line_data(series: pd.Series) -> list[dict[str, Any]]:
-    return [{"time": str(t), "value": round(float(v), 2)} for t, v in series.dropna().items()]
+def to_line_data(series: pd.Series, digits: int = 2) -> list[dict[str, Any]]:
+    return [{"time": str(t), "value": round(float(v), digits)} for t, v in series.dropna().items()]
 
 
-def _histogram_data(hist: pd.Series) -> list[dict[str, Any]]:
+def _histogram_data(hist: pd.Series, digits: int = 2) -> list[dict[str, Any]]:
     return [
         {
             "time": str(t),
-            "value": round(float(v), 2),
+            "value": round(float(v), digits),
             "color": _HIST_UP_COLOR if v >= 0 else _HIST_DOWN_COLOR,
         }
         for t, v in hist.dropna().items()
@@ -96,22 +97,23 @@ def calculate_indicators(candles: list[dict[str, Any]]) -> dict[str, Any]:
     s20, s50, s200 = sma(closes, 20), sma(closes, 50), sma(closes, 200)
     bb_upper, bb_mid, bb_lower = bollinger_bands(closes, 20, 2.0)
     macd_line, signal_line, hist_line = macd(closes, 12, 26, 9)
+    digits = price_digits(float(closes.iloc[-1]))  # düşük fiyatlı hissede MACD/ortalama 2 hanede düzleşmesin
 
     return {
-        "sma20": to_line_data(s20),
-        "sma50": to_line_data(s50),
-        "sma200": to_line_data(s200),
-        "ema20": to_line_data(ema(closes, 20)),
+        "sma20": to_line_data(s20, digits),
+        "sma50": to_line_data(s50, digits),
+        "sma200": to_line_data(s200, digits),
+        "ema20": to_line_data(ema(closes, 20), digits),
         "bb": {
-            "upper": to_line_data(bb_upper),
-            "middle": to_line_data(bb_mid),
-            "lower": to_line_data(bb_lower),
+            "upper": to_line_data(bb_upper, digits),
+            "middle": to_line_data(bb_mid, digits),
+            "lower": to_line_data(bb_lower, digits),
         },
         "rsi": to_line_data(rsi(closes, 14)),
         "macd": {
-            "macd": to_line_data(macd_line),
-            "signal": to_line_data(signal_line),
-            "hist": _histogram_data(hist_line),
+            "macd": to_line_data(macd_line, digits),
+            "signal": to_line_data(signal_line, digits),
+            "hist": _histogram_data(hist_line, digits),
         },
         "markers": cross_markers(closes, s50, s200),
     }

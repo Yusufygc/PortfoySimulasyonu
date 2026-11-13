@@ -14,38 +14,8 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from src.ui_qml.controllers.shell_controller import ShellController
-from src.ui_qml.controllers.chart_controller import ChartController
-from src.ui_qml.controllers.dashboard_controller import DashboardController
-from src.ui_qml.controllers.my_portfolio_controller import MyPortfolioController
-from src.ui_qml.controllers.assets_controller import AssetsController
-from src.ui_qml.controllers.watchlist_controller import WatchlistController
-from src.ui_qml.controllers.stock_360_controller import Stock360Controller
-from src.ui_qml.controllers.model_portfolio_controller import ModelPortfolioController
-from src.ui_qml.controllers.comparison_controller import ComparisonController
-from src.ui_qml.controllers.screener_controller import ScreenerController
-from src.ui_qml.controllers.planning_controller import PlanningController
-from src.ui_qml.controllers.strategy_backtest_controller import StrategyBacktestController
-from src.ui_qml.controllers.market_sync_controller import MarketSyncController
-from src.ui_qml.controllers.optimization_controller import OptimizationController
-from src.ui_qml.controllers.ai_advisor_controller import AiAdvisorController
-from src.ui_qml.controllers.settings_controller import SettingsController
-from src.ui_qml.controllers.stock_detail_controller import StockDetailController
-from src.ui_qml.controllers.corporate_action_controller import CorporateActionController
-from src.ui_qml.controllers.dividend_controller import DividendController
-from src.ui_qml.controllers.market_adjustment_controller import MarketAdjustmentController
-from src.ui_qml.controllers.system_controller import SystemController
-from src.ui_qml.controllers.market_ticker_controller import MarketTickerController
-from src.ui_qml.controllers.news_controller import NewsController
-from src.ui_qml.controllers.cash_pool_controller import CashPoolController
-from src.ui_qml.controllers.fee_settings_controller import FeeSettingsController
-from src.ui_qml.controllers.news_settings_controller import NewsSettingsController
-from src.ui_qml.controllers.model_analysis_controller import ModelAnalysisController
-from src.ui_qml.controllers.price_data_controller import PriceDataController
 from src.ui_qml.controllers.price_refresh_controller import PriceRefreshController
-from src.ui_qml.controllers.startup_jobs_controller import StartupJobsController
-from src.ui_qml.controllers.golden_cross_controller import GoldenCrossController
-from src.ui_qml.controllers.risk_profile_controller import RiskProfileController
+from src.ui_qml.controllers.registry import AUTOSTART, CONTROLLERS
 
 logger = logging.getLogger(__name__)
 
@@ -62,43 +32,12 @@ def _wire_price_refresh(price_refresh_ctrl, dash_ctrl, portfolio_ctrl, watchlist
 
 
 def create_controllers(container, parent, autostart: bool = True) -> Dict[str, Any]:
-    """Tüm denetleyicileri QML bağlam adlarıyla kurar. `autostart=False` zamanlayıcıları başlatmaz (testler)."""
-    def make(cls, **kwargs):
-        return cls(container=container, parent=parent, **kwargs)
-
-    controllers: Dict[str, Any] = {
-        "shellController": make(ShellController),
-        "chartController": make(ChartController),
-        "dashboardController": make(DashboardController),
-        "myPortfolioController": make(MyPortfolioController),
-        "assetsController": make(AssetsController, autostart=autostart),
-        "watchlistController": make(WatchlistController),
-        "stock360Controller": make(Stock360Controller),
-        "portfolioController": make(ModelPortfolioController),
-        "comparisonController": make(ComparisonController),
-        "screenerController": make(ScreenerController),
-        "planningController": make(PlanningController),
-        "strategyBacktestController": make(StrategyBacktestController),
-        "marketSyncController": make(MarketSyncController),
-        "optimizationController": make(OptimizationController),
-        "aiAdvisorController": make(AiAdvisorController),
-        "settingsController": make(SettingsController),
-        "stockDetailController": make(StockDetailController),
-        "corporateActionController": make(CorporateActionController),
-        "dividendController": make(DividendController),
-        "priceDataController": make(PriceDataController),
-        "startupJobsController": make(StartupJobsController, autostart=False),
-        "goldenCrossController": make(GoldenCrossController),
-        "riskProfileController": make(RiskProfileController),
-        "marketAdjustmentController": make(MarketAdjustmentController),
-        "systemController": make(SystemController),
-        "marketTickerController": make(MarketTickerController),
-        "newsController": make(NewsController, autostart=autostart),
-        "newsSettingsController": make(NewsSettingsController),
-        "feeSettingsController": make(FeeSettingsController),
-        "cashPoolController": make(CashPoolController),
-        "modelAnalysisController": make(ModelAnalysisController),
-    }
+    """Kayıttaki (`controllers/registry.py`) tüm denetleyicileri QML bağlam adlarıyla kurar. `autostart=False`
+    zamanlayıcıları başlatmaz (testler)."""
+    controllers: Dict[str, Any] = {}
+    for name, cls, options in CONTROLLERS:
+        kwargs = {key: (autostart if value is AUTOSTART else value) for key, value in options.items()}
+        controllers[name] = cls(container=container, parent=parent, **kwargs)
     controllers["priceRefreshController"] = PriceRefreshController(
         controllers["systemController"], controllers["marketSyncController"], container=container, parent=parent
     )
@@ -128,7 +67,7 @@ def wire_controllers(c: Dict[str, Any]) -> None:
         refresh.watch(source)
     # Portföy içeriği değişti (fiyat değil): son güncelleme zamanı değişmez, liste/özet yeniden okunur
     for source in (c["corporateActionController"].portfolioChanged, c["dividendController"].portfolioChanged,
-                   system.systemReset):
+                   c["splitEventsController"].portfolioChanged, system.systemReset):
         refresh.watch(source, records_update=False)
         for target in (models.refreshData, my_portfolio.reload, news.refresh):
             source.connect(target)

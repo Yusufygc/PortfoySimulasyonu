@@ -110,7 +110,6 @@ ColumnLayout {
                         onClicked: {
                             if (typeof settingsController !== "undefined" && !settingsController.isDarkTheme) {
                                 settingsController.toggleTheme()
-                                Theme.isDark = settingsController.isDarkTheme
                             }
                         }
                     }
@@ -201,7 +200,6 @@ ColumnLayout {
                         onClicked: {
                             if (typeof settingsController !== "undefined" && settingsController.isDarkTheme) {
                                 settingsController.toggleTheme()
-                                Theme.isDark = settingsController.isDarkTheme
                             }
                         }
                     }

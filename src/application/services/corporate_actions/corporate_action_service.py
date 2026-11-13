@@ -81,9 +81,10 @@ def _bedelsiz_description(
     desc = (
         f"Bedelsiz Sermaye Artırımı %{pct:.0f} — "
         f"ex-date: {action.ex_date} | "
-        f"{sc.before} lot + {sc.new} bedelsiz lot = {sc.after} lot | "
-        f"Ort. maliyet: {cc.before:.4f} → {cc.after:.4f} TL"
+        f"{sc.before} lot + {sc.new} bedelsiz lot = {sc.after} lot"
     )
+    if cc.before is not None:  # ana portföyde pozisyon yoksa (yalnızca model portföy) maliyet satırı yok
+        desc += f" | Ort. maliyet: {cc.before:.4f} → {cc.after:.4f} TL"
     if theoretical_price is not None:
         desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
     return desc
@@ -156,11 +157,15 @@ class CorporateActionService:
         portfolio_repo: IPortfolioRepository,
         trade_adjustment_repo: ITradeAdjustmentRepository | None = None,
         price_adjustment_service: CorporateActionPriceAdjustmentService | None = None,
+        split_applier=None,
     ) -> None:
+        """`split_applier` (CorporateActionSplitAdapter) verilirse bedelsiz, bölünme uygulayıcısıyla ana portföy, model
+        portföy ve fiyat geçmişine birlikte uygulanır; yoksa yalnızca ana portföy (eski yol)."""
         self._action_repo = action_repo
         self._portfolio_repo = portfolio_repo
         self._trade_adjustment_repo = trade_adjustment_repo
         self._price_adjustment_service = price_adjustment_service
+        self._split_applier = split_applier
 
     # ══════════════════════════════════════════════════════════
     #  KAYIT (REGISTRATION)
@@ -242,6 +247,9 @@ class CorporateActionService:
                 f"({action.action_type.value} — ex_date={action.ex_date})"
             )
 
+        if action.action_type == ActionType.BEDELSIZ and self._split_applier is not None:
+            return self._apply_bedelsiz_as_split(action, current_price)
+
         trades = self._portfolio_repo.get_trades_by_stock(action.stock_id)
         position = Position.from_trades(action.stock_id, trades)
 
@@ -300,6 +308,28 @@ class CorporateActionService:
         )
 
     # ──────────────── İç Uygulama Metotları ────────────────
+
+    def _apply_bedelsiz_as_split(self, action: CorporateAction, current_price: Optional[Decimal]) -> CorporateActionResult:
+        """Bedelsizi bölünme uygulayıcısıyla uygular: ana ve model portföy işlemleri, küsurat nakdi, fiyat geçmişi."""
+        if not self._split_applier.has_holdings(action.stock_id):
+            raise ValueError(
+                f"Portföyde bu hisse bulunmuyor (stock_id={action.stock_id}). "
+                "Kurumsal işlem uygulamak için ana veya model portföyde işlem gereklidir."
+            )
+        before = Position.from_trades(action.stock_id, self._portfolio_repo.get_trades_by_stock(action.stock_id))
+        self._split_applier.apply_action(action)
+        after = Position.from_trades(action.stock_id, self._portfolio_repo.get_trades_by_stock(action.stock_id))
+        stored = self._action_repo.get_by_id(action.id) or action
+        theoretical = action.theoretical_price(current_price) if current_price else None
+        shares = _ShareChange(before.total_quantity, after.total_quantity - before.total_quantity, after.total_quantity)
+        costs = _CostChange(before.average_cost, after.average_cost or Decimal("0"))
+        return CorporateActionResult(
+            action_id=action.id, action_type=action.action_type, stock_id=action.stock_id,
+            shares_before=shares.before, new_shares=shares.new, shares_after=shares.after,
+            avg_cost_before=costs.before, avg_cost_after=costs.after, theoretical_ex_price=theoretical,
+            capital_spent=Decimal("0"), description=_bedelsiz_description(action, shares, costs, theoretical),
+            price_adjustment_factor=stored.price_adjustment_factor, price_adjustment_count=stored.price_adjustment_count,
+        )
 
     def _apply_bedelsiz(
         self,

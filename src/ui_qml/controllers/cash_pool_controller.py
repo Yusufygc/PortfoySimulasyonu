@@ -8,12 +8,13 @@ hızlıdır (yerel veritabanı), bu yüzden arka plan iş parçacığı kullanı
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, time
+from datetime import date, time
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text, parse_time_text
 from src.domain.market_clock import market_time, market_today
 from src.domain.models.fx_conversion import FxSide
 from src.ui_qml.controllers.number_input import parse_decimal_text
@@ -23,29 +24,15 @@ from src.ui_qml.presenters.formatting import input_decimal, tr_number
 logger = logging.getLogger(__name__)
 
 
-def _parse_date(text: str) -> Optional[date]:
-    try:
-        return datetime.strptime((text or "").strip(), "%d.%m.%Y").date()
-    except ValueError:
-        return None
-
-
-def _parse_time(text: str) -> Optional[time]:
-    try:
-        return datetime.strptime((text or "").strip(), "%H:%M").time()
-    except ValueError:
-        return None
-
-
 def _parse_moment(day: str, at: str) -> Tuple[Optional[Tuple[date, time]], str]:
     """(gün, saat) ve hata metni: boş alan bugün/şimdi sayılır; yazılmış ama geçersiz ya da gelecek değer hatadır."""
     day_text, time_text = (day or "").strip(), (at or "").strip()
-    conversion_date = _parse_date(day_text) if day_text else market_today()
+    conversion_date = parse_date_text(day_text) if day_text else market_today()
     if conversion_date is None:
         return None, msg("cash_pool.invalid_date")
     if conversion_date > market_today():
         return None, msg("cash_pool.future_date")
-    conversion_time = _parse_time(time_text) if time_text else market_time()
+    conversion_time = parse_time_text(time_text) if time_text else market_time()
     if conversion_time is None:
         return None, msg("cash_pool.invalid_time")
     return (conversion_date, conversion_time), ""

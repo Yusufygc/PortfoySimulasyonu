@@ -93,7 +93,7 @@ def build_shell(sqlite_path: Path, duck_path: Path, size=(1440, 900)):
     os.environ["DUCKDB_PATH"] = str(duck_path)
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
-    from PySide6.QtCore import QSettings, QUrl
+    from PySide6.QtCore import QUrl
     from PySide6.QtQml import QQmlApplicationEngine
     from PySide6.QtQuick import QQuickWindow
     from PySide6.QtWebEngineQuick import QtWebEngineQuick
@@ -105,8 +105,9 @@ def build_shell(sqlite_path: Path, duck_path: Path, size=(1440, 900)):
     from src.ui_qml.app import build_ui
 
     # QSettings (son güncelleme, sohbet geçmişi, tema) gerçek kullanıcı kayıt defterine yazmasın: test klasöründe INI.
-    QSettings.setDefaultFormat(QSettings.IniFormat)
-    QSettings.setPath(QSettings.IniFormat, QSettings.UserScope, str(sqlite_path.parent / "qsettings"))
+    from src.qt_compat.user_settings import use_ini_file
+
+    use_ini_file(str(sqlite_path.parent / "qsettings.ini"))
     assert Path(load_app_settings().db.db_path).resolve() == sqlite_path.resolve(), "SQLite yolu test kopyası değil"
     assert Path(duckdb_path()).resolve() == duck_path.resolve(), "DuckDB yolu test kopyası değil"
 

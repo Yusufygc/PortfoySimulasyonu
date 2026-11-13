@@ -9,6 +9,7 @@ from PySide6.QtCore import QCoreApplication, QObject, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
+from tests.ui_qml.qobject_utils import children_of_class
 from src.domain.models.news_item import NewsFeedResult, NewsSourceStatus
 from src.ui_qml.controllers import url_opener as module
 from src.ui_qml.controllers.news_controller import NewsController
@@ -50,7 +51,7 @@ def _panel(qapp, service):
 
 
 def _list_count(item) -> int:
-    lists = [o for o in item.findChildren(QObject) if "ListView" in o.metaObject().className()]
+    lists = children_of_class(item, "ListView")
     return int(lists[0].property("count"))
 
 

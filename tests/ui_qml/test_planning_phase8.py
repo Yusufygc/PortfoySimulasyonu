@@ -125,7 +125,7 @@ def test_planning_goals_lifecycle(qapp, container):
     assert updated_goal is not None
     assert updated_goal["name"] == "FZ8_TEST_HEDEF_GUNCELLENDI"
     assert updated_goal["targetAmount"] == 75000.0
-    assert updated_goal["deadline"] == "2028-06-30"
+    assert updated_goal["deadline"] == "30.06.2028"
     assert updated_goal["priority"] == "MEDIUM"
     assert updated_goal["priorityTr"] == "ORTA"
 

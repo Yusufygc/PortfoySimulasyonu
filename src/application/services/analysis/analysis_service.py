@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from typing import Dict, List, Optional, Sequence
 
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
@@ -44,6 +45,7 @@ class AnalysisServiceDeps(NamedTuple):
     price_repo: IPriceRepository
     stock_repo: IStockRepository
     market_data_client: IMarketDataClient
+    deposit_rate_fallback: Optional[Decimal] = None  # mevduat endeksi için yapılandırılmış yedek faiz (%)
 
 
 def _get_benchmark_vars(bundle: dict) -> "tuple":
@@ -88,7 +90,8 @@ class AnalysisService:
         )
         self._benchmark_service = AnalysisBenchmarkService(
             market_data_client=deps.market_data_client,
-            evds_client=evds_client
+            evds_client=evds_client,
+            deposit_rate_fallback=deps.deposit_rate_fallback,
         )
         self._currency_service = CurrencyConversionService()
         self._bundle_builder = AnalysisBundleBuilder(
@@ -180,6 +183,7 @@ class AnalysisService:
             selected_benchmarks=list(benchmark_codes),
             portfolio_source=filter_state.portfolio_source,
             comparison_portfolio_sources=list(filter_state.comparison_portfolio_sources),
+            currency_mode=filter_state.currency_mode,
         )
         if bundle is None:
             bundle = self._build_analysis_bundle(state)

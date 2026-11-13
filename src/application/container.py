@@ -32,8 +32,10 @@ class AppContainer:
         self.services = build_services(
             repositories=self.repositories,
             market_clients=self.market_clients,
+            market_settings=self.settings.market,
         )
-        self._expose_dataclass_fields(self.services)
+        for name, service in self.services.items():
+            setattr(self, name, service)
 
         configured_path = getattr(self.db_config, "db_path", None)
         self.database_maintenance_service = DatabaseMaintenanceService(

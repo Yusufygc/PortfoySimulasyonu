@@ -11,6 +11,8 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+
+from src.ui_qml.deferred import run_later
 from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
@@ -50,7 +52,7 @@ class MarketTickerController(QObject):
         self._timer.timeout.connect(self.refresh)
         if self._service is not None and autostart:
             self._timer.start(REFRESH_INTERVAL_MS)
-            QTimer.singleShot(_STARTUP_DELAY_MS, self.refresh)
+            run_later(self, _STARTUP_DELAY_MS, self.refresh)
 
     @property
     def _service(self):

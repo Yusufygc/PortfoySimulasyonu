@@ -7,12 +7,12 @@ Temettü, hissenin portföyde bulunduğu bir tarihte alınan net nakit tutardır
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.presenters.formatting import tr_number
 from src.ui_qml.messages import msg
@@ -28,16 +28,6 @@ def parse_amount(text: str) -> Optional[Decimal]:
     """'1.234,56', '1234.56' veya '50.000' -> Decimal; geçersiz veya pozitif olmayan değer için None."""
     value = parse_decimal_text(text)
     return value if value is not None and value > 0 else None
-
-
-def parse_date(text: str) -> Optional[date]:
-    text = (text or "").strip()
-    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
-        try:
-            return datetime.strptime(text, fmt).date()
-        except ValueError:
-            continue
-    return None
 
 
 class DividendController(QObject):
@@ -101,7 +91,7 @@ class DividendController(QObject):
         if amount is None:
             self.notification.emit(False, msg("dividend.amount_invalid"))
             return
-        movement_date = parse_date(date_text)
+        movement_date = parse_date_text(date_text)
         if movement_date is None:
             self.notification.emit(False, msg("dividend.date_invalid"))
             return

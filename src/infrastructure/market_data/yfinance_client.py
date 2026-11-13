@@ -54,7 +54,9 @@ class YFinanceMarketDataClient(IMarketDataClient):
                     end=end,
                     interval="1d",
                     progress=False,
-                    auto_adjust=True,
+                    # SQLite fiyat politikası: ham kapanış. Yahoo `Close` bölünme düzeltmelidir, temettü düzeltmesi
+                    # içermez; bölünme/bedelsiz faktörleri uygulamada (onaylı kurumsal aksiyonlar) uygulanır.
+                    auto_adjust=False,
                     timeout=self._timeout,
                 )
 

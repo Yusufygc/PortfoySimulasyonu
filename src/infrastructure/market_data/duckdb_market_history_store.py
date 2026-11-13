@@ -102,6 +102,16 @@ class DuckDBMarketHistoryStore(IMarketHistoryStore):
             """, [datetime.now()])
             con.unregister("temp_delta")
 
+    def delete_range(self, tickers: Sequence[str], start: date, end: date) -> int:
+        cleaned = sorted({(t or "").strip().upper().replace(".IS", "") for t in tickers if t})
+        if not self.exists() or not cleaned:
+            return 0
+        with self.connect(read_only=False) as con:
+            where = "ticker IN (SELECT UNNEST(?)) AND price_date >= ? AND price_date <= ?"
+            count = con.execute(f"SELECT COUNT(*) FROM daily_prices WHERE {where}", [cleaned, start, end]).fetchone()[0]
+            con.execute(f"DELETE FROM daily_prices WHERE {where}", [cleaned, start, end])
+        return int(count)
+
     def bars_after(self, after: date, tickers: Sequence[str]) -> List[MarketBar]:
         if not self.exists() or not tickers:
             return []

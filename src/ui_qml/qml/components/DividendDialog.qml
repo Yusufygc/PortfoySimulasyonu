@@ -32,18 +32,13 @@ Rectangle {
 
     Behavior on opacity { NumberAnimation { duration: 180 } }
 
-    function todayIso() {
-        const d = new Date()
-        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
-    }
-
     function open(tickerSym) {
         ticker = tickerSym || ""
         if (ctl) {
             ctl.loadFor(ticker)
         }
         txtAmount.text = ""
-        txtDate.text = todayIso()
+        txtDate.text = Dates.today()
         txtNote.text = ""
         statusText = ""
         isOpen = true

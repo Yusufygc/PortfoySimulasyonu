@@ -5,16 +5,20 @@ import ast
 import string
 from pathlib import Path
 
-from src.ui_qml.messages import MESSAGES, msg
+import pytest
+
+from src.ui_qml import messages as catalog
+from src.ui_qml.messages import MESSAGES, merge_catalogs, msg
 
 UI_DIR = Path(__file__).resolve().parents[2] / "src" / "ui_qml"
+MESSAGES_DIR = UI_DIR / "messages"
 
 
 def _msg_calls():
     """(dosya, anahtar, parametre adları) — yalnızca sabit anahtarlı çağrılar; dinamik anahtar yasak."""
     calls = []
     for path in UI_DIR.rglob("*.py"):
-        if path.name == "messages.py":
+        if MESSAGES_DIR in path.parents:
             continue
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Call) and getattr(node.func, "id", None) == "msg":
@@ -57,3 +61,19 @@ def test_msg_formats_parameters():
         assert msg("_test.sample", n=3) == "3 adet"
     finally:
         del MESSAGES["_test.sample"]
+
+
+def test_duplicate_key_across_modules_fails_on_import():
+    with pytest.raises(ValueError, match="dividend.added"):
+        merge_catalogs([{"dividend.added": "a"}, {"dividend.added": "b"}])
+
+
+def test_each_key_prefix_lives_in_exactly_one_module():
+    """Bir alanın (anahtar öneki) metinleri tek modülde durur; yeni metin nereye eklenir sorusu tek cevaplıdır."""
+    owners = {}
+    for module in catalog.MODULES:
+        for key in module.MESSAGES:
+            owners.setdefault(key.split(".", 1)[0], set()).add(module.__name__.rsplit(".", 1)[-1])
+    shared = {prefix: sorted(names) for prefix, names in owners.items() if len(names) > 1}
+    assert not shared, f"Önek birden çok modülde: {shared}"
+    assert sum(len(module.MESSAGES) for module in catalog.MODULES) == len(MESSAGES)

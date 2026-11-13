@@ -67,6 +67,7 @@ class TestFormatting:
             (D("65432.1"), "USD", "$65.432,10"),
             (D("0.5"), "USD", "$0,5000"),
             (D("0.00001234"), "USD", "$0,00001234"),
+            (D("0.92"), "TRY", "₺0,92"),  # BIST fiyat adımı 0,01: izleme listesiyle aynı gösterim
             (None, "USD", "-"),
         ],
     )

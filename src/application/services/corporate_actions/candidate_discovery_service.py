@@ -6,6 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Iterable, NamedTuple, Optional, Sequence
 
+from src.application.services.corporate_actions.tracked_stocks import tracked_stock_ids
 from src.domain.models.corporate_action import CorporateAction, ActionType
 from src.domain.models.corporate_action_candidate import (
     CorporateActionCandidate,
@@ -15,8 +16,7 @@ from src.domain.ports.repositories.i_corporate_action_candidate_repo import (
     ICorporateActionCandidateRepository,
 )
 from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
-from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
-from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.ports.repositories.i_ledger_reader import ILedgerReader
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.repositories.i_watchlist_repo import IWatchlistRepository
 from src.domain.ports.services.i_corporate_action_provider import (
@@ -33,9 +33,8 @@ class CandidateDiscoveryDeps(NamedTuple):
     candidate_repo: ICorporateActionCandidateRepository
     stock_repo: IStockRepository
     action_repo: ICorporateActionRepository
-    portfolio_repo: Optional[IPortfolioRepository] = None
+    ledger_reader: Optional[ILedgerReader] = None  # ana + model portföy işlemleri (tek okuma noktası)
     watchlist_repo: Optional[IWatchlistRepository] = None
-    model_portfolio_repo: Optional[IModelPortfolioRepository] = None
 
 
 @dataclass(frozen=True)
@@ -54,9 +53,8 @@ class CorporateActionDiscoveryService:
         self._candidate_repo = deps.candidate_repo
         self._stock_repo = deps.stock_repo
         self._action_repo = deps.action_repo
-        self._portfolio_repo = deps.portfolio_repo
+        self._ledger_reader = deps.ledger_reader
         self._watchlist_repo = deps.watchlist_repo
-        self._model_portfolio_repo = deps.model_portfolio_repo
 
     def discover(
         self,
@@ -137,38 +135,8 @@ class CorporateActionDiscoveryService:
                 return True
         return False
 
-    def _stock_ids_from_portfolio(self) -> set:
-        if self._portfolio_repo is None:
-            return set()
-        return {int(sid) for sid in self._portfolio_repo.get_all_stock_ids_in_portfolio()}
-
-    def _stock_ids_from_watchlists(self) -> set:
-        if self._watchlist_repo is None:
-            return set()
-        ids: set = set()
-        for watchlist in self._watchlist_repo.get_all_watchlists():
-            if watchlist.id is None:
-                continue
-            ids.update(item.stock_id for item in self._watchlist_repo.get_items_by_watchlist_id(watchlist.id))
-        return ids
-
-    def _stock_ids_from_model_portfolios(self) -> set:
-        if self._model_portfolio_repo is None:
-            return set()
-        ids: set = set()
-        for portfolio in self._model_portfolio_repo.get_all_model_portfolios():
-            if portfolio.id is None:
-                continue
-            trades = self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio.id)
-            ids.update(trade.stock_id for trade in trades)
-        return ids
-
     def _target_tickers(self) -> list[str]:
-        stock_ids = (
-            self._stock_ids_from_portfolio()
-            | self._stock_ids_from_watchlists()
-            | self._stock_ids_from_model_portfolios()
-        )
+        stock_ids = tracked_stock_ids(self._ledger_reader, self._watchlist_repo)
         if not stock_ids:
             return []
         ticker_map = self._stock_repo.get_ticker_map_for_stock_ids(sorted(stock_ids))

@@ -169,8 +169,8 @@ QtObject {
     readonly property string btnChart: "Grafik"
     readonly property string btnTrade: "İşlem"
 
-    // --- Varlık Dağılımı (Allocation) ---
-    readonly property string allocationTitle: "Varlık Dağılımı (Allocation)"
+    // --- Varlık Dağılımı ---
+    readonly property string allocationTitle: "Varlık Dağılımı"
     readonly property string allocationShare: "Yatırım Payı"
 
     // --- Modallar ---
@@ -193,7 +193,7 @@ QtObject {
     readonly property string btnCancel: "İptal"
 
     // --- İzleme Listeleri (Watchlist - Faz 4) ---
-    readonly property string watchlistTitle: "İzleme Listelerim (Watchlist)"
+    readonly property string watchlistTitle: "İzleme Listelerim"
     readonly property string watchlistSubtitle: "Kişiselleştirilmiş hisse takip portföyleri, canlı fiyat hareketleri ve mini trend analizleri"
     readonly property string btnNewWatchlist: "Yeni Liste"
     readonly property string btnAddStockToWatchlist: "Hisse Ekle"
@@ -227,7 +227,7 @@ QtObject {
     readonly property string ratioDivYield: "Temettü Verimi"
     readonly property string ratioDivYieldDesc: "Yıllık Temettü Getirisi"
     readonly property string ratioROE: "ROE (Özsermaye Kârlılığı)"
-    readonly property string ratioROEDesc: "Net Kâr / Özkaynaklar"
+    readonly property string ratioROEDesc: "Son 12 Ay Net Kâr / Özkaynaklar"
     readonly property string ratioNetDebtEbitda: "Net Borç / FAVÖK"
     readonly property string ratioNetDebtEbitdaDesc: "Kaldıraç ve Borçlanma Düzeyi"
     readonly property string ratioPiotroski: "Piotroski F-Score"
@@ -686,7 +686,7 @@ QtObject {
     readonly property string caTypeBedelli: "Bedelli"
     readonly property string caLabelType: "İşlem Türü"
     readonly property string caLabelRatio: "Artırım Oranı (%)"
-    readonly property string caLabelExDate: "Ex-Date / Baz Fiyat Günü (YYYY-AA-GG)"
+    readonly property string caLabelExDate: "Ex-Date / Baz Fiyat Günü (GG.AA.YYYY)"
     readonly property string caLabelSubPrice: "Kullanım Fiyatı / Rüçhan (₺)"
     readonly property string caLabelNotes: "Not (opsiyonel)"
     readonly property string caCurrentLot: "Mevcut Lot"
@@ -704,6 +704,19 @@ QtObject {
     readonly property string caNoPosition: "Bu hisse için ana portföyde açık pozisyon bulunamadı."
 
     // --- Kurumsal Aksiyon Aday Paneli ---
+    readonly property string splitTitle: "Hisse Bölünmeleri"
+    readonly property string splitDesc: "Yahoo bölünme kayıtları, KAP bedelsiz duyuruları ve fiyat kırılmaları günde bir kez taranır. En az iki kaynağın doğruladığı bölünme ana portföy, model portföy ve Portföyüm işlemlerine ve fiyat geçmişine otomatik uygulanır; küsurat lot nakde çevrilir. Tek kaynaklı bulgular aşağıdaki aday listesine düşer."
+    readonly property string splitAutoApply: "İki kaynak doğrularsa otomatik uygula"
+    readonly property string splitBtnScan: "Şimdi Tara"
+    readonly property string splitBtnRevert: "Geri Al"
+    readonly property string splitEmpty: "Uygulanmış hisse bölünmesi yok."
+    readonly property string splitUnavailable: "Bölünme servisi yüklenemedi."
+    readonly property string splitThSources: "Kaynaklar"
+    readonly property string splitThLedgers: "Defterler"
+    readonly property string splitThPrices: "Fiyat geçmişi"
+    readonly property string splitThStatus: "Durum"
+    readonly property string splitAuto: "Otomatik"
+    readonly property string splitManual: "Manuel"
     readonly property string caCandTitle: "Kurumsal Aksiyon Takibi"
     readonly property string caCandDesc: "Bedelli ve bedelsiz sermaye artırımı bildirimleri önce aday olarak listelenir. Portföy ve fiyat düzeltmesi yalnızca onayınızdan sonra uygulanır."
     readonly property string caBtnScan: "KAP/MKK Tara"
@@ -865,7 +878,7 @@ QtObject {
     readonly property string stockDetailLotLabel: "Lot Adedi:"
     readonly property string stockDetailPriceLabel: "Birim Fiyat (₺):"
     readonly property string stockDetailTotalLabel: "Toplam Tutar:"
-    readonly property string stockDetailDateLabel: "Tarih (YYYY-AA-GG):"
+    readonly property string stockDetailDateLabel: "Tarih (GG.AA.YYYY):"
     readonly property string stockDetailTimeLabel: "Saat (SS:DD):"
     readonly property string stockDetailConfirmBuy: "ALIM EMRİNİ ONAYLA"
     readonly property string stockDetailConfirmSell: "SATIM EMRİNİ ONAYLA"
@@ -959,7 +972,7 @@ QtObject {
     readonly property string dividendTitle: "Temettü"
     readonly property string dividendBtnOpen: "Temettü"
     readonly property string dividendLabelAmount: "Net Temettü Tutarı (₺)"
-    readonly property string dividendLabelDate: "Tahsilat Tarihi (YYYY-AA-GG)"
+    readonly property string dividendLabelDate: "Tahsilat Tarihi (GG.AA.YYYY)"
     readonly property string dividendLabelNote: "Not (opsiyonel)"
     readonly property string dividendBtnAdd: "Nakit Bakiyeye Ekle"
     readonly property string dividendHistoryTitle: "GEÇMİŞ TEMETTÜLER"

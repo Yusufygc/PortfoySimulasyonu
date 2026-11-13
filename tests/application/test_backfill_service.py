@@ -1,184 +1,79 @@
-"""BackfillService unit testleri."""
-from __future__ import annotations
+"""BackfillService: indirme MarketPriceRefresher üzerinden (DuckDB + SQLite yansıması), silme iki depoda."""
+from datetime import date
+from types import SimpleNamespace as NS
 
 import pytest
 
-from datetime import date
-from decimal import Decimal
-from unittest.mock import MagicMock
-
+from src.application.services.market_data.market_price_refresher import RefreshResult
 from src.application.services.simulation.backfill_service import BackfillService
-from src.domain.models.corporate_action import ActionType, CorporateAction
-from src.domain.models.daily_price import DailyPrice
-from src.domain.models.stock import Stock
+
+A, B = NS(id=1, ticker="AAA"), NS(id=2, ticker="BBB")
 
 
-# ────── Yardımcı fabrikalar ──────────────────────────────────────────────────
+class FakeStocks:
+    def __init__(self, stocks):
+        self._stocks = stocks
 
-def _make_stock(ticker: str, stock_id: int = 1) -> Stock:
-    return Stock(id=stock_id, ticker=ticker, name=ticker, currency_code="TRY")
+    def get_all_stocks(self):
+        return list(self._stocks)
 
-
-class FakeMarketDataClient:
-    def __init__(self, series_by_ticker=None):
-        self.series_by_ticker = series_by_ticker or {}
-        self.series_requests = []
-
-    def get_closing_price(self, stock_id: int, ticker: str, price_date: date):
-        raise NotImplementedError
-
-    def get_price_series(self, ticker: str, start_date: date, end_date: date):
-        self.series_requests.append((ticker, start_date, end_date))
-        return self.series_by_ticker.get(ticker, {})
+    def get_stock_by_id(self, stock_id):
+        return next((s for s in self._stocks if s.id == stock_id), None)
 
 
-def _make_service(stocks=None, series_by_ticker=None, corporate_actions_by_stock=None):
-    stock_repo = MagicMock()
-    stock_repo.get_all_stocks.return_value = stocks or []
+class FakeRefresher:
+    def __init__(self, updated=None, errors=()):
+        self.calls, self.deleted = [], []
+        self._updated, self._errors = updated or {}, list(errors)
 
-    price_repo = MagicMock()
-    price_repo.upsert_daily_prices_bulk.return_value = None
-    action_repo = MagicMock()
-    action_repo.get_by_stock.side_effect = lambda stock_id: list(
-        (corporate_actions_by_stock or {}).get(stock_id, [])
-    )
+    def refresh(self, stocks, start, end):
+        self.calls.append(([s.id for s in stocks], start, end))
+        return RefreshResult(updated=dict(self._updated), errors=list(self._errors))
 
-    market_client = FakeMarketDataClient(series_by_ticker=series_by_ticker)
-    service = BackfillService(
-        stock_repo=stock_repo,
-        price_repo=price_repo,
-        market_data_client=market_client,
-        corporate_action_repo=action_repo if corporate_actions_by_stock is not None else None,
-    )
-
-    return service, stock_repo, price_repo, market_client
+    def delete_range(self, stocks, start, end):
+        self.deleted.append(([s.id for s in stocks], start, end))
+        return 3
 
 
-# ────── backfill_range ───────────────────────────────────────────────────────
+class FakePrices:
+    def __init__(self):
+        self.deletes = []
 
-def test_backfill_range_raises_if_start_after_end():
-    svc, _, _, _ = _make_service()
-    with pytest.raises(ValueError, match="Başlangıç tarihi"):
-        svc.backfill_range(date(2026, 2, 1), date(2026, 1, 1))
-
-
-def test_backfill_range_raises_if_no_stocks():
-    svc, _, _, _ = _make_service(stocks=[])
-    with pytest.raises(ValueError, match="kayıtlı hisse"):
-        svc.backfill_range(date(2026, 1, 1), date(2026, 1, 5))
+    def delete_prices_in_range(self, start, end, stock_ids=None):
+        self.deletes.append((start, end, stock_ids))
+        return 4
 
 
-def test_backfill_range_returns_zero_on_empty_series():
-    stock = _make_stock("MERKO.IS")
-    svc, _, price_repo, market_client = _make_service(stocks=[stock])
-
-    count = svc.backfill_range(date(2026, 1, 1), date(2026, 1, 5))
-
-    assert count == 0
-    price_repo.upsert_daily_prices_bulk.assert_not_called()
-    assert market_client.series_requests == [("MERKO.IS", date(2026, 1, 1), date(2026, 1, 5))]
+def _service(stocks=(A, B), refresher=None):
+    refresher = refresher or FakeRefresher({1: 5, 2: 7})
+    return BackfillService(FakeStocks(stocks), FakePrices(), refresher), refresher
 
 
-def test_backfill_range_saves_prices_for_single_ticker():
-    stock = _make_stock("MERKO.IS", stock_id=7)
-    svc, _, price_repo, _ = _make_service(
-        stocks=[stock],
-        series_by_ticker={
-            "MERKO.IS": {
-                date(2026, 1, 2): Decimal("10.5"),
-                date(2026, 1, 5): Decimal("11.0"),
-            }
-        },
-    )
-
-    count = svc.backfill_range(date(2026, 1, 1), date(2026, 1, 5))
-
-    assert count == 2
-    saved: list[DailyPrice] = price_repo.upsert_daily_prices_bulk.call_args[0][0]
-    assert saved[0].stock_id == 7
-    assert saved[0].close_price == Decimal("10.5")
-    assert saved[1].close_price == Decimal("11.0")
+def test_backfill_range_refreshes_all_stocks_and_returns_written_rows():
+    service, refresher = _service()
+    assert service.backfill_range(date(2026, 1, 1), date(2026, 1, 31)) == 12
+    assert refresher.calls == [([1, 2], date(2026, 1, 1), date(2026, 1, 31))]
 
 
-# ────── backfill_for_single_stock ────────────────────────────────────────────
-
-def test_backfill_for_single_stock_raises_if_start_after_end():
-    svc, _, _, _ = _make_service()
-    with pytest.raises(ValueError, match="Başlangıç tarihi"):
-        svc.backfill_for_single_stock(1, "MERKO.IS", date(2026, 2, 1), date(2026, 1, 1))
-
-
-def test_backfill_for_single_stock_returns_zero_on_empty():
-    svc, _, price_repo, _ = _make_service()
-    count = svc.backfill_for_single_stock(1, "MERKO.IS", date(2026, 1, 1), date(2026, 1, 5))
-    assert count == 0
-    price_repo.upsert_daily_prices_bulk.assert_not_called()
+def test_backfill_range_validates_input():
+    service, _ = _service()
+    with pytest.raises(ValueError):
+        service.backfill_range(date(2026, 2, 1), date(2026, 1, 1))
+    with pytest.raises(ValueError, match="kayıtlı hisse yok"):
+        _service(stocks=())[0].backfill_range(date(2026, 1, 1), date(2026, 1, 2))
 
 
-def test_backfill_for_single_stock_saves_price_series():
-    svc, _, price_repo, market_client = _make_service(
-        series_by_ticker={
-            "MERKO.IS": {
-                date(2026, 1, 2): Decimal("15.0"),
-                date(2026, 1, 5): Decimal("16.25"),
-            }
-        }
-    )
-
-    count = svc.backfill_for_single_stock(1, "MERKO.IS", date(2026, 1, 1), date(2026, 1, 5))
-
-    assert count == 2
-    saved = price_repo.upsert_daily_prices_bulk.call_args[0][0]
-    assert saved[0].close_price == Decimal("15.0")
-    assert saved[1].close_price == Decimal("16.25")
-    assert market_client.series_requests == [("MERKO.IS", date(2026, 1, 1), date(2026, 1, 5))]
+def test_backfill_for_single_stock_refreshes_only_that_stock():
+    service, refresher = _service(refresher=FakeRefresher({2: 9}))
+    assert service.backfill_for_single_stock(2, "BBB", date(2026, 1, 1), date(2026, 1, 2)) == 9
+    assert refresher.calls == [([2], date(2026, 1, 1), date(2026, 1, 2))]
+    with pytest.raises(ValueError):
+        service.backfill_for_single_stock(99, "YOK", date(2026, 1, 1), date(2026, 1, 2))
 
 
-def test_backfill_for_single_stock_normalizes_pre_ex_prices_for_adjusted_actions():
-    action = CorporateAction(
-        id=1,
-        stock_id=1,
-        action_type=ActionType.BEDELSIZ,
-        ex_date=date(2026, 5, 5),
-        ratio=Decimal("6.3833834"),
-        subscription_price=None,
-        announcement_date=None,
-        notes=None,
-        applied=True,
-        prices_adjusted=True,
-        price_adjustment_factor=Decimal("0.1354392670"),
-    )
-    svc, _, price_repo, _ = _make_service(
-        series_by_ticker={
-            "MERKO.IS": {
-                date(2026, 5, 4): Decimal("73.833834"),
-                date(2026, 5, 5): Decimal("10.00"),
-            }
-        },
-        corporate_actions_by_stock={1: [action]},
-    )
-
-    count = svc.backfill_for_single_stock(1, "MERKO.IS", date(2026, 5, 4), date(2026, 5, 5))
-
-    assert count == 2
-    saved = price_repo.upsert_daily_prices_bulk.call_args[0][0]
-    assert saved[0].close_price == Decimal("73.833834") * Decimal("0.1354392670")
-    assert saved[1].close_price == Decimal("10.00")
-
-
-# ────── delete_range ─────────────────────────────────────────────────────────
-
-def test_delete_range_raises_if_start_after_end():
-    svc, _, _, _ = _make_service()
-    with pytest.raises(ValueError, match="Başlangıç tarihi"):
-        svc.delete_range(date(2026, 2, 1), date(2026, 1, 1))
-
-
-def test_delete_range_delegates_to_repo():
-    svc, _, price_repo, _ = _make_service()
-    price_repo.delete_prices_in_range.return_value = 42
-
-    result = svc.delete_range(date(2026, 1, 1), date(2026, 1, 31))
-
-    assert result == 42
-    price_repo.delete_prices_in_range.assert_called_once_with(date(2026, 1, 1), date(2026, 1, 31))
+def test_delete_range_removes_from_duckdb_and_sqlite():
+    service, refresher = _service()
+    assert service.delete_range(date(2026, 1, 1), date(2026, 1, 31)) == 4
+    assert refresher.deleted == [([1, 2], date(2026, 1, 1), date(2026, 1, 31))]
+    with pytest.raises(ValueError):
+        service.delete_range(date(2026, 2, 1), date(2026, 1, 1))

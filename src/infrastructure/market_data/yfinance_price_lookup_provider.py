@@ -45,6 +45,14 @@ def latest_bars_from_download(data: Any, symbols: Sequence[str]) -> Dict[str, Tu
     return result
 
 
+def _to_utc(stamp: Any) -> datetime | None:
+    """Bar zamanını UTC'ye dönüştürür; saat dilimi yoksa UTC kabul edilir (etiketi değiştirmek saati kaydırırdı)."""
+    if not hasattr(stamp, "to_pydatetime"):
+        return None
+    value = stamp.to_pydatetime()
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
+
 class YFinancePriceLookupProvider:
     def lookup_intraday_bulk(self, normalized_tickers: Sequence[str]) -> Dict[str, Tuple[Decimal, datetime]]:
         """Son dakika barları tek `yf.download` isteğiyle (50'lik parçalar); hisse başına `fast_info` + `info` yerine."""
@@ -85,7 +93,7 @@ class YFinancePriceLookupProvider:
                 )
 
             try:
-                history = yf_ticker.history(period="7d", auto_adjust=True)
+                history = yf_ticker.history(period="7d", auto_adjust=False)
             except MARKET_DATA_FALLBACK_ERRORS as exc:
                 logger.error("YF history failed for %s: %s", normalized_ticker, exc)
                 return None
@@ -102,11 +110,7 @@ class YFinancePriceLookupProvider:
             if last_price is None:
                 return None
 
-            as_of = (
-                last_ts.to_pydatetime().replace(tzinfo=timezone.utc)
-                if hasattr(last_ts, "to_pydatetime")
-                else None
-            )
+            as_of = _to_utc(last_ts)
             return PriceLookupSnapshot(
                 last_close_price=last_price,
                 last_close_as_of=as_of,

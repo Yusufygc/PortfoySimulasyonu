@@ -44,12 +44,25 @@ Denetleyiciler veriyi application servislerinden okur. Tek okuma yüzeyleri: `St
 
 1. `build_repositories(conn_provider)` -> SQLAlchemy repository'leri ve DuckDB piyasa deposu (`container_parts/repositories.py`)
 2. `build_market_clients(conn_provider)` -> yfinance istemcisi, fiyat lookup, benchmark ve değerleme sağlayıcıları, takvim (`market_clients.py`)
-3. `build_services(...)` -> tüm application servisleri (`services.py`)
+3. `build_services(...)` -> tüm application servisleri: `services.py` yalnızca `container_parts/features/` modüllerini sırayla dolaşır
+   (`portfolio`, `reporting`, `corporate_actions`, `prices`, `market`, `planning`, `analysis`, `assets`, `news`). Her modül
+   `PROVIDES` adlarını bildirir ve `build(ctx) -> dict` döner; sonuç `ServiceRegistry`'dir (bilinmeyen ad `AttributeError`).
+   Yeni servis = kendi özellik modülünde bir satır (`tests/application/test_service_registry_characterization.py`).
 4. `build_ai(...)` -> yapay zeka servisleri (`ai.py`)
 
 Ayarlar `config/settings_loader.py` içindeki `AppSettings` (veritabanı, AI, piyasa) ile merkezî okunur; ayrıntı için bkz. [development_guide.md](development_guide.md). Veritabanı bağlantısı `SQLAlchemyEngineProvider` ile kurulur ve ilk açılışta şemayı oluşturur ([database_schema_and_orm.md](database_schema_and_orm.md)).
 
 Container kurulamazsa (ör. veritabanı yolu bozuk) `app.py` uyarı loglar ve arayüz çevrimdışı modda açılır.
+
+**Denetleyiciler:** `src/ui_qml/controllers/registry.py` (`CONTROLLERS`, `AUTOSTART`) bağlam adlarını ve sınıfları listeler; yeni
+denetleyici = bir satır. Denetleyici kullandığı servisleri `REQUIRES = (...)` ile bildirir ve `self._deps.<ad>` (`ServiceView`,
+`controllers/deps.py`) ile erişir; bildirilmeyen ad `AttributeError`, container yoksa `None`. Koruma:
+`tests/ui_qml/test_controller_dependencies.py` (REQUIRES bildiren denetleyici `_container`'a dokunmaz, her ad container'da var,
+bildirmeyen denetleyicilerin doğrudan erişim tavanı yalnızca düşer).
+
+**Defterler:** ana portföy, model portföyler ve Portföyüm varlık defteri tek okuma noktasından okunur
+(`ILedgerReader.snapshot()` -> `LedgerSnapshot`, `src/domain/models/ledger.py`). Defter-arası özellikler (bölünme hedefleri,
+fiyat sağlığı kapsamı, aday keşfi) üç depoyu ayrı taramaz (`tests/test_ledger_reader_guard.py`).
 
 ---
 
@@ -109,6 +122,7 @@ Sahiplik kuralları, ticker biçimi ve bilinen sınırlar: [data_architecture.md
 |---|---|
 | **Portföy olay kaynaklıdır**: türev değerler (K/Z, maliyet, lot) saklanmaz, `Portfolio.from_trades()` ile işlem geçmişinden yeniden hesaplanır. | Geçmişe dönük işlem, bedelsiz veya düzeltme tek doğruluk kaynağından tutarlı kalır ([service_portfolio_and_market.md](service_portfolio_and_market.md)). |
 | **Parasal hesaplar `Decimal`** ile yapılır. | Kayan nokta yuvarlama hataları para değerlerine sızmaz. |
+| **Fiyatın tek yazıcısı DuckDB'dir; SQLite `daily_prices` onun yansımasıdır** (`PriceProjectionService`). | İki depoya ayrı yazmak 2026-11-07'de 6.914 farklı satır ve yalnızca bir depoda uygulanmış bölünme üretti ([data_architecture.md](data_architecture.md) kural 3-4). |
 | **Ham fiyat barları değişmez**; sermaye artırımı düzeltmesi okuma anında faktörle uygulanır. | Geri alınabilir, yeniden indirmeye dayanıklı, denetlenebilir ([market_corporate_actions.md](market_corporate_actions.md)). |
 | **Kanonik ticker uzantısızdır** (`THYAO`); `.IS` yalnızca yfinance sınırında eklenir. | Tek biçim, aramada tutarsızlığı önler (`src/domain/ticker.py`). |
 | **Temettü getiridir, sermaye girişi değildir** (`CashMovementType.DIVIDEND`). | Zaman ağırlıklı getiri temettüyü yansıtır ([service_corporate_actions.md](service_corporate_actions.md)). |

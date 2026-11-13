@@ -36,6 +36,7 @@ def test_container_uses_default_global_event_bus(monkeypatch):
     class DummySettings:
         db = object()
         ai = object()
+        market = None
 
     class DummyEngineProvider:
         def __init__(self, db_config):
@@ -43,17 +44,19 @@ def test_container_uses_default_global_event_bus(monkeypatch):
 
     monkeypatch.setattr("src.application.container.load_app_settings", lambda: DummySettings())
     monkeypatch.setattr("src.application.container.SQLAlchemyEngineProvider", DummyEngineProvider)
-    class DummyServices:
-        portfolio_analytics_service = object()
-        risk_optimization_bridge_service = object()
-        stock_360_service = object()
-        unified_portfolio_service = object()
+    from src.application.container_parts.features import ServiceRegistry
+
+    def DummyServices():
+        return ServiceRegistry({name: object() for name in (
+            "portfolio_analytics_service", "risk_optimization_bridge_service", "stock_360_service",
+            "unified_portfolio_service",
+        )})
 
     monkeypatch.setattr("src.application.container.build_repositories", lambda _provider: object())
     monkeypatch.setattr("src.application.container.build_market_clients", lambda _provider: object())
     monkeypatch.setattr(
         "src.application.container.build_services",
-        lambda repositories, market_clients: DummyServices(),
+        lambda repositories, market_clients, market_settings=None: DummyServices(),
     )
     monkeypatch.setattr(
         "src.application.container.build_ai",

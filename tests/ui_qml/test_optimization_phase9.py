@@ -271,3 +271,12 @@ def test_cash_reserve_is_clamped_and_only_enabled_for_unified_source(qapp, conta
     assert ctrl.cashReserveEnabled is True
     assert changes == [90.0, "kaynak"]
     assert any(option["code"] == "unified" for option in ctrl.portfolioOptions)
+
+
+def test_kpi_cards_show_a_dash_until_an_optimization_has_run(qapp, container):
+    """Çalıştırılmadan '0,00 / %0,00' gerçek değermiş gibi görünüyordu (2026-11-08 QA)."""
+    ctrl = OptimizationController(container=container)
+    assert not ctrl.hasResults
+    for name in ("optimalSharpeFormatted", "currentSharpeFormatted", "optimalReturnFormatted", "currentReturnFormatted",
+                 "optimalVolFormatted", "currentVolFormatted", "minVolFormatted"):
+        assert getattr(ctrl, name) == "—", name

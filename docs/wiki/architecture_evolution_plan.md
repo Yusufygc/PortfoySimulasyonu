@@ -137,8 +137,13 @@ Kullanıcı kararları: komisyon ve BSMV ayarlanabilir, varsayılan 0; geçmiş 
 | Aşama | Durum |
 |---|---|
 | E1 | Uygulandı (2026-11-01): `create_controllers` / `wire_controllers` / `build_ui`, `test_app_composition.py` (app.py %79), `test_twr_scenarios.py`, `test_portfolio_repository.py` (%100) |
-| E2 | Uygulandı (2026-11-02): `presenters/formatting.py` (tek Türkçe biçimleyici, 9 kopya kalktı), `messages.py` (Python metin kataloğu), mandal tavanı 538 -> 0 (67 satır `metin-muaf`). Sapma ve kalanlar aşağıda |
+| E2 | Uygulandı (2026-11-02): `presenters/formatting.py` (tek Türkçe biçimleyici, 9 kopya kalktı), `messages.py` (Python metin kataloğu; B4'te `messages/` paketi), mandal tavanı 538 -> 0 (67 satır `metin-muaf`). Sapma ve kalanlar aşağıda |
 | E3 | Uygulandı (2026-11-02): sınıf ihlali 4 -> 0, fonksiyon 73 -> 72; CI tavanı 0 / 72. Sapma ve kalanlar aşağıda |
 | E4 | Uygulandı (2026-11-02): `PositionQueryService`, `PositionSnapshot`, `preview_order`; karakterizasyon testi Portföyüm = Hisse Detay = Excel; denetleyici para aritmetiği mandalı (36 -> 34 satır). Sapma ve kalanlar aşağıda |
 | E5 | Uygulandı (2026-11-03). E5.1 Uygulandı (2026-11-02): ücret alanları, göç 4, `FeeSettingsService`, Ayarlar > Ücretler, ücretli nakit/maliyet/K/Z/TWR/ön izleme. E5.2 backend Uygulandı: `FxConversion`, `CashPoolService`, `PooledCashMovementRepository`, göç 5. E5.3 Uygulandı: `Asset.trade_currency`, gram altın TL, göç 6. E5.4 (birleşik özette USD nakit) ve E5.5 (Döviz Al/Sat penceresi, nakit kartı, varlık işleminde nakit ve ücret) Uygulandı |
 | E6 | Açık (isteğe bağlı) |
+| B1 | Uygulandı (2026-11-07): özellik başına servis kaydı (`container_parts/features/`, `ServiceRegistry`), denetleyici kaydı (`controllers/registry.py`) ve bildirilmiş bağımlılıklar (`REQUIRES` + `ServiceView`; 6 denetleyici geçti, kalanlar doğrudan erişim tavanıyla aşamalı) |
+| B2 | Uygulandı (2026-11-07): DuckDB tek fiyat yazıcısı, SQLite yansıması (`PriceProjectionService`, `MarketPriceRefresher`, `SinglePriceSourceMigration`), tek yazıcı koruma testi |
+| B3 | Uygulandı (2026-11-07): ortak defter okuma noktası `ILedgerReader` / `LedgerSnapshot`; bölünme, aday keşfi ve fiyat sağlığı kapsamı geçti |
+| B4 | Uygulandı (2026-11-07): `src/ui_qml/messages/` paketi (anahtar önekine göre 7 modül, yinelenen anahtar hata); `Strings.qml` bilerek bölünmedi |
+| B5 | Uygulandı (2026-11-07): `scripts/measure_change_footprint.py`, hedef ve ölçüm [code_quality_guardrails.md](code_quality_guardrails.md) §9 |

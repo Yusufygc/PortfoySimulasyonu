@@ -107,8 +107,9 @@ def test_parse_trade_moment_defaults_and_validation():
     assert parse_trade_moment("", "")[0] == today
     assert parse_trade_moment("2026-01-05", "") == (dt.date(2026, 1, 5), dt.time(12, 0))
     assert parse_trade_moment("2026-01-05", "14:30") == (dt.date(2026, 1, 5), dt.time(14, 30))
+    assert parse_trade_moment("05.01.2026", "14:30") == (dt.date(2026, 1, 5), dt.time(14, 30))
     for date_text, time_text, message in [
-        ("05.01.2026", "", "Tarih biçimi"),
+        ("05/01/2026", "", "Tarih biçimi"),
         ((today + dt.timedelta(days=1)).isoformat(), "", "Gelecek tarihli"),
         ("2026-01-05", "25:99", "Saat biçimi"),
     ]:
@@ -132,7 +133,7 @@ def test_submit_trade_reports_invalid_date_without_starting_worker(qapp):
 
     ctrl.submitTrade("BUY", 10, 250.0, "yarin", "")
 
-    assert emitted == [(False, "Tarih biçimi geçersiz. Örnek: 2026-10-03")] and ctrl.isLoading is False
+    assert emitted == [(False, "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY")] and ctrl.isLoading is False
 
 
 def test_submit_trade_passes_chosen_time_to_trade_entry_service(qapp):

@@ -10,6 +10,7 @@ from PySide6.QtCore import QCoreApplication, QObject, QSettings, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
+from tests.ui_qml.qobject_utils import children_of_class
 from src.domain.models.news_item import NewsScope, NewsSourceConfig, NewsSourceKind, NewsSourceStatus
 from src.ui_qml.controllers.news_controller import NewsController
 from src.ui_qml.controllers.news_settings_controller import (
@@ -156,7 +157,7 @@ def test_settings_tab_loads_without_warnings_and_lists_sources(qapp, tmp_path):
     item._engine, item._component = engine, component
     item.setProperty("width", 900)
     _pump()
-    repeaters = [o for o in item.findChildren(QObject) if "Repeater" in o.metaObject().className()]
+    repeaters = children_of_class(item, "Repeater")
     assert sorted(int(r.property("count")) for r in repeaters) == [1, 1]  # şirket grubunda KAP, piyasa grubunda rss:a
     ctrl.setSourceEnabled("rss:a", False)
     _pump()

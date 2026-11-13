@@ -293,7 +293,7 @@ Rectangle {
                     }
                 }
 
-                Slider {
+                ThemedSlider {
                     id: weightSlider
                     Layout.fillWidth: true
                     from: 5
@@ -345,7 +345,7 @@ Rectangle {
                     }
                 }
 
-                Slider {
+                ThemedSlider {
                     id: rfSlider
                     Layout.fillWidth: true
                     from: 0
@@ -387,7 +387,7 @@ Rectangle {
                     }
                 }
 
-                Slider {
+                ThemedSlider {
                     Layout.fillWidth: true
                     from: 0
                     to: 90

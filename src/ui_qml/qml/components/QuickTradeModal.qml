@@ -34,16 +34,6 @@ Rectangle {
 
     Behavior on opacity { NumberAnimation { duration: 180 } }
 
-    function todayText() {
-        const d = new Date()
-        return String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + d.getFullYear()
-    }
-
-    function nowText() {
-        const d = new Date()
-        return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")
-    }
-
     // Hisse kodundan şirket adı ve son bilinen fiyatı doldurur (yalnızca yerel veritabanı)
     function lookup(fillPrice) {
         companyName = ""
@@ -52,7 +42,7 @@ Rectangle {
         const info = dashboardController.lookupTicker(tickerInput.text)
         if (info.found) {
             companyName = info.name
-            if (fillPrice && info.price > 0) priceInput.text = info.price.toFixed(2)
+            if (fillPrice && info.price > 0) priceInput.text = info.price.toFixed(2).replace(".", ",")
         } else if (tickerInput.text.trim() !== "") {
             lookupHint = Strings.tradeTickerUnknown
         }
@@ -62,10 +52,10 @@ Rectangle {
         if (ticker) root.defaultTicker = ticker
         root.defaultPrice = price || 0
         tickerInput.text = root.defaultTicker
-        priceInput.text = root.defaultPrice > 0 ? root.defaultPrice.toFixed(2) : ""
+        priceInput.text = root.defaultPrice > 0 ? root.defaultPrice.toFixed(2).replace(".", ",") : ""
         qtyInput.text = "100"
-        dateInput.text = todayText()
-        timeInput.text = nowText()
+        dateInput.text = Dates.today()
+        timeInput.text = Dates.nowTime()
         side = "BUY"
         lookup(root.defaultPrice <= 0)
         root.isOpen = true

@@ -5,11 +5,12 @@ Denetleyici durumundan bağımsız saf fonksiyonlardır; yalnızca verilen servi
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import pandas as pd
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.application.services.analysis.models import AnalysisFilterState
 from src.ui_qml.messages import msg
 
@@ -26,16 +27,6 @@ _MODE_LABELS = {"NORMALIZED": "Normalize (Baz 100)", "NORMAL": "Normal", "RATIO"
 _CURRENCY_LABELS = {"TL": "TL", "USD": "USD", "REAL": msg("comparison.enflasyondan_arindirilmis_reel")}
 
 
-def parse_date(text: str) -> Optional[date]:
-    text = (text or "").strip()
-    for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(text, fmt).date()
-        except ValueError:
-            continue
-    return None
-
-
 def resolve_start_date(label: str, end_dt: date) -> date:
     if label in _PERIOD_DELTAS:
         return end_dt - _PERIOD_DELTAS[label]
@@ -47,8 +38,8 @@ def resolve_start_date(label: str, end_dt: date) -> date:
 def resolve_range(period_label: str, custom_start: str, custom_end: str) -> Tuple[date, date]:
     end_dt = date.today()
     if period_label == "ÖZEL":  # metin-muaf: dönem kimliği ve yapay zeka istemi
-        start = parse_date(custom_start)
-        end = parse_date(custom_end)
+        start = parse_date_text(custom_start)
+        end = parse_date_text(custom_end)
         if start is not None and end is not None and start < end:
             return start, end
     return resolve_start_date(period_label, end_dt), end_dt

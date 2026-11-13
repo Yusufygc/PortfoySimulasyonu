@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Optional, Tuple
 
 from PySide6.QtCore import QSettings
+from src.qt_compat.user_settings import user_settings
 
 from src.ui_qml.presenters.formatting import tr_pct
 
@@ -27,7 +28,7 @@ def format_return_pct(value: Optional[float]) -> str:
 
 class LastUpdateStore:
     def __init__(self, settings: Optional[QSettings] = None) -> None:
-        self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._settings = settings or user_settings()
 
     # ---- son güncelleme zamanı ----------------------------------------------------------
     def prices_last_update(self) -> Optional[datetime]:

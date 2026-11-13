@@ -26,9 +26,15 @@ _DOWN_VOLUME_COLOR = "rgba(242, 54, 69, 0.4)"
 _DEFAULT_SQLITE_VOLUME = 250000
 
 
+def price_digits(reference: float) -> int:
+    """Grafik hassasiyeti: 10 TL ve üzeri 2 hane; altı 4 hane (düzeltilmiş eski fiyatlar 0,17 gibi küçüktür)."""
+    return 2 if abs(reference) >= 10 else 4
+
+
 def _candle(date_text: str, open_: float, high: float, low: float, close: float) -> dict[str, Any]:
-    return {"time": date_text, "open": round(open_, 2), "high": round(high, 2),
-            "low": round(low, 2), "close": round(close, 2)}
+    digits = price_digits(close)
+    return {"time": date_text, "open": round(open_, digits), "high": round(high, digits),
+            "low": round(low, digits), "close": round(close, digits)}
 
 
 def _volume(date_text: str, value: float, open_: float, close: float) -> dict[str, Any]:
@@ -172,7 +178,7 @@ def overlay_live_price(candles: Candles, volumes: Candles, price: float, price_d
     date_text = price_date.strftime("%Y-%m-%d")
     last = candles[-1]
     if last["time"] == date_text:
-        last["close"] = round(price, 2)
+        last["close"] = round(price, price_digits(price))
         last["high"] = max(last["high"], last["close"])
         last["low"] = min(last["low"], last["close"])
     elif last["time"] < date_text:
