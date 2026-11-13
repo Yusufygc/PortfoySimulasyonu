@@ -15,7 +15,7 @@ Rectangle {
     function resetTradeMoment() {
         const now = new Date()
         const pad = (n) => String(n).padStart(2, "0")
-        tradeDateText = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate())
+        tradeDateText = Dates.format(now)
         tradeTimeText = pad(now.getHours()) + ":" + pad(now.getMinutes())
     }
     // Denetleyicideki güncel fiyatı forma yansıtır (hisse değişince ve modal açılınca çağrılır)

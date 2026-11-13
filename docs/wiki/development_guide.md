@@ -78,6 +78,7 @@ kod `ILedgerReader` kullanır. Değişiklik ayak izi: `python scripts/measure_ch
 ## 6. Kod ve Arayüz Kuralları (Özet)
 
 - Emoji yok; ikonlar `Icons.qml` + `ModernIcon`. Metinler `Strings.qml`. Taşmasız, esnek düzen. Ayrıntı: [RULES.md](../../RULES.md) §2 ve [ui_architecture_and_events.md](ui_architecture_and_events.md).
+- Tarih alanı: Python'da `date_input.parse_date_text`/`format_date_text`, QML'de `Dates.*`; kullanıcıya her yerde `GG.AA.YYYY` gösterilir.
 - Para değerleri `Decimal`. Katman ihlali ve boyut eşikleri testle ve ölçümle denetlenir ([code_quality_guardrails.md](code_quality_guardrails.md)).
 - Commit mesajları Türkçedir ve tek mantıksal değişikliği anlatır ([GOVERNANCE.md](../../GOVERNANCE.md)).
 

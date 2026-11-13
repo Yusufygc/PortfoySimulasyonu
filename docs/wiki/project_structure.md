@@ -69,7 +69,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 | Yol | İçerik |
 |---|---|
 | `app.py` | `run_qml_app`: denetleyicileri kurar, context property olarak kaydeder, `Main.qml`'i yükler. |
-| `controllers/` | 30 denetleyici (`*_controller.py`) ve yardımcı modüller (`number_input`, `advisor_query_intent`, `chart_candle_sources`, `chart_indicators`, `stock_360_overview`, `lw_chart_html`, `stock_360_calc/fallback/formatters/html/remote`). Rehber: [qml_pages_guide.md](qml_pages_guide.md). |
+| `controllers/` | 30 denetleyici (`*_controller.py`) ve yardımcı modüller (`number_input`, `date_input`, `advisor_query_intent`, `chart_candle_sources`, `chart_indicators`, `stock_360_overview`, `lw_chart_html`, `stock_360_calc/fallback/formatters/html/remote`). Rehber: [qml_pages_guide.md](qml_pages_guide.md). |
 | `models/` | `PositionsTableModel`, `WatchlistTableModel` (`QAbstractTableModel`), `HoldingsListModel`, `NewsListModel` (`QAbstractListModel`). |
 | `controllers/` ayrıştırılan parçalar | `model_portfolio_valuation`, `model_portfolio_export`, `planning_dca_chart`, `planning_months` (Qt'siz yardımcılar); `stock_360_state`, `stock_detail_loader`, `stock_detail_actions` (denetleyiciye karışan mixin'ler). |
 | `controllers/cash_pool_controller.py`, `fee_settings_controller.py` | Ortak nakit havuzu ve Döviz Al/Sat (`cashPoolController`), Ayarlar > Ücretler (`feeSettingsController`). |

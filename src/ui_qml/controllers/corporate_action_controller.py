@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from src.ui_qml.controllers.date_input import parse_date_text
+from src.ui_qml.controllers.date_input import format_date_text, parse_date_text
 from src.ui_qml.controllers.url_opener import open_external_url
 from src.domain.models.corporate_action import ActionType, BedelliSpec
 from src.domain.models.corporate_action_candidate import (
@@ -512,8 +512,8 @@ class CorporateActionController(QObject):
             "ratioText": f"%{tr_number(_to_decimal(ratio_pct), 2)}" if c.ratio is not None else "-",
             "subscriptionPrice": float(c.subscription_price) if c.subscription_price is not None else 0.0,
             "subscriptionText": f"{tr_number(c.subscription_price, 4)} ₺" if c.subscription_price is not None else "-",
-            "exDate": c.ex_date.isoformat() if c.ex_date else "",
-            "exDateText": c.ex_date.strftime("%d.%m.%Y") if c.ex_date else "-",
+            "exDate": format_date_text(c.ex_date) if c.ex_date else "",
+            "exDateText": format_date_text(c.ex_date) if c.ex_date else "-",
             "confidenceText": f"%{int(c.confidence * _HUNDRED)}",
             "source": c.source,
             "sourceUrl": c.source_url or "",

@@ -175,9 +175,8 @@ class DashboardController(QObject):
         trade_date = market_today()
         trade_time = market_time()
         if (date_text or "").strip():
-            try:
-                trade_date = datetime.strptime(date_text.strip(), "%d.%m.%Y").date()
-            except ValueError:
+            trade_date = parse_date_text(date_text)
+            if trade_date is None:
                 self.tradeExecuted.emit(False, msg("dashboard.tarih_bicimi_gecersiz_bicim_gg_aa"))
                 return
             if trade_date > market_today():

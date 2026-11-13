@@ -439,6 +439,15 @@ def test_dashboard_submit_trade_at_uses_given_date_and_time(qapp):
     assert request.quantity == 10 and results[-1][0] is True
 
 
+def test_dashboard_submit_trade_at_accepts_the_legacy_iso_date(qapp):
+    ctrl, container = _dashboard(qapp)
+    ctrl._executor = ImmediateExecutor()
+
+    ctrl.submitTradeAt("THYAO", "BUY", 10, 250.0, "", "2026-01-05", "11:30")
+
+    assert container.trade_entry_service.submit_trade.call_args.args[0].trade_date == date(2026, 1, 5)
+
+
 @pytest.mark.parametrize(
     "date_text, time_text, expected",
     [

@@ -50,11 +50,6 @@ Rectangle {
             parseNumber(txtRatio.text), parseNumber(txtSubPrice.text))
     }
 
-    function todayIso() {
-        const d = new Date()
-        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
-    }
-
     function open(tickerSym) {
         ticker = tickerSym || ""
         ctx = (typeof corporateActionController !== "undefined")
@@ -62,7 +57,7 @@ Rectangle {
               : { found: false, quantity: 0, avgCost: 0, totalCost: 0, currentPrice: 0 }
         actionType = "BEDELSIZ"
         txtRatio.text = "50"
-        txtExDate.text = todayIso()
+        txtExDate.text = Dates.today()
         txtSubPrice.text = "1"
         txtNotes.text = ""
         statusText = ctx.found ? "" : Strings.caNoPosition

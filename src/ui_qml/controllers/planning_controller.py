@@ -15,7 +15,7 @@ from typing import Any, Dict, List
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from src.ui_qml.controllers.date_input import parse_date_text
+from src.ui_qml.controllers.date_input import format_date_text, parse_date_text
 from src.domain.market_clock import market_today
 from src.domain.models.budget import Budget, BudgetItem
 from src.domain.text import tr_fold
@@ -400,7 +400,7 @@ class PlanningController(QObject):
                     "currentAmountFormatted": tr_money(g.current_amount),
                     "remainingAmount": float(g.remaining_amount),
                     "remainingAmountFormatted": tr_money(g.remaining_amount),
-                    "deadline": g.deadline.isoformat() if hasattr(g.deadline, "isoformat") else str(g.deadline),
+                    "deadline": format_date_text(g.deadline) if hasattr(g.deadline, "isoformat") else str(g.deadline),
                     "priority": prio_val,
                     "priorityTr": prio_tr,
                     "status": g.status.value if hasattr(g.status, "value") else str(g.status),

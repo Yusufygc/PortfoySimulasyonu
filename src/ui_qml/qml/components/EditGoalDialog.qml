@@ -162,7 +162,7 @@ Popup {
             spacing: Theme.spaceXs
 
             Text {
-                text: Strings.goalsDialogDeadlineLabel + " (YYYY-AA-GG)"
+                text: Strings.goalsDialogDeadlineLabel + " (GG.AA.YYYY)"
                 color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.fontSm

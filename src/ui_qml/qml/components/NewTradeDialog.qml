@@ -36,10 +36,7 @@ Popup {
         txtPrice.text = ""
         side = "BUY"
         var today = new Date()
-        var yyyy = today.getFullYear()
-        var mm = String(today.getMonth() + 1).padStart(2, '0')
-        var dd = String(today.getDate()).padStart(2, '0')
-        txtDate.text = yyyy + "-" + mm + "-" + dd
+        txtDate.text = Dates.format(today)
         var hh = String(today.getHours()).padStart(2, '0')
         var min = String(today.getMinutes()).padStart(2, '0')
         txtTime.text = hh + ":" + min

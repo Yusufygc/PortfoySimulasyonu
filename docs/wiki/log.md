@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-14] REFACTOR | Tarih girişi: tek ayrıştırıcı, her yerde GG.AA.YYYY
+
+Manuel QA'dan kalan bulgu: Hisse Detay emir formu `YYYY-AA-GG` istiyordu, uygulamanın geri kalanı `GG.AA.YYYY`.
+
+- **Kök neden:** kullanıcı tarihini 12 ayrı yer kendi biçim listesiyle ayrıştırıyordu (bazısı yalnız ISO, bazısı yalnız GG.AA.YYYY; hedef vadesi, DCA ve model portföy `split("-")`/`fromisoformat`), alan başlangıç değerlerini 15 QML bileşeni kendi JavaScript'iyle üretiyordu.
+- **Çözüm:** `controllers/date_input.py` (`parse_date_text`: GG.AA.YYYY, eski ISO de kabul; `format_date_text`) ve `qml/theme/Dates.qml`. 12 ayrıştırıcı ve 5 elle ayrıştırma kalktı. Dokuz alan GG.AA.YYYY gösterir: Hisse Detay emri, model portföy işlem ve sermaye, temettü, ex-date, hedef vadesi (ekle/düzenle), DCA, strateji testi. Hedef listesi ve aday `exDate` GG.AA.YYYY döner.
+- **Davranış değişikliği:** geçersiz hedef/model portföy tarihi artık ham `ValueError` yerine "Biçim: GG.AA.YYYY" uyarısı verir; `cash_pool` ISO'yu da kabul eder.
+- **Koruma:** `tests/ui_qml/test_date_input_guard.py`. Kırmızı testler `test_date_entry_formats.py`, `test_date_input.py`.
+- **Doğrulama (yalnızca QA kopyasında):** dokuz alanın ekranı; 10.11.2026 ile ve eski 2026-11-11 ile satış kaydı doğru tarihle yazıldı.
+- Kapsam dışı: saat (`SS:DD`) ayrıştırıcıları ayrı iş olarak bırakıldı.
+
 ## [2026-11-13] FIX | Manuel QA'nın orta ve düşük bulguları, bağımlılık açığı, e2e yarışı
 
 Tümü gerçek verinin kopyasında (QA kopyası) doğrulandı; gerçek `data/` dosyalarına yazılmadı.

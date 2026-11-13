@@ -108,7 +108,7 @@ Item {
                         id: txtStart
                         Layout.fillWidth: true
                         Layout.preferredHeight: 32
-                        text: "2023-01-01"
+                        text: "01.01.2023"
                         color: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
@@ -140,13 +140,7 @@ Item {
                         id: txtEnd
                         Layout.fillWidth: true
                         Layout.preferredHeight: 32
-                        text: {
-                            var today = new Date()
-                            var yyyy = today.getFullYear()
-                            var mm = String(today.getMonth() + 1).padStart(2, '0')
-                            var dd = String(today.getDate()).padStart(2, '0')
-                            return yyyy + "-" + mm + "-" + dd
-                        }
+                        text: Dates.today()
                         color: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.fontSm
