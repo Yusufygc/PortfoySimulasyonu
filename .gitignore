@@ -3,12 +3,10 @@
 *.xlsx
 .vscode
 .claude
-CLAUDE.md
-RULES.md
-auto_commit.py
 REFACTOR.md
 backups
 
+/data
 
 .env.test
 /Eklenebilirler.txt
@@ -17,6 +15,7 @@ backups
 docs/**/.obsidian/
 docs/MyDocs
 .icon_cache/
+scratch/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -226,3 +225,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# E2E ürün testi çıktıları (ekran görüntüleri)
+/reports/e2e/

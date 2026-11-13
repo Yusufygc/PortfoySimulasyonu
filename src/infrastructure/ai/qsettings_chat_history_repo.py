@@ -10,7 +10,8 @@ from __future__ import annotations
 import json
 from datetime import datetime
 
-from PyQt5.QtCore import QSettings
+from src.qt_compat.qtcore import QSettings
+from src.qt_compat.user_settings import user_settings
 
 from src.domain.models.ai_analysis import ChatMessage, ChatSession, MessageRole
 from src.domain.ports.repositories.i_chat_history_repo import IChatHistoryRepository
@@ -21,7 +22,7 @@ LAST_ACTIVE_SESSION_KEY = "ai_chat/last_active_session_id"
 
 class QSettingsChatHistoryRepository(IChatHistoryRepository):
     def __init__(self, settings: QSettings | None = None) -> None:
-        self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._settings = settings or user_settings()
 
     def load_sessions(self) -> list[ChatSession]:
         raw = self._settings.value(SESSIONS_KEY, "", type=str)

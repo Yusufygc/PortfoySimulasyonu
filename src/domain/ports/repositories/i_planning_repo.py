@@ -14,7 +14,7 @@ class IPlanningRepository(ABC):
     Finansal Planlama (Bütçe & Hedefler) verilerine erişim arayüzü.
 
     Bu interface sayesinde:
-        - MySQLPlanningRepository → Gerçek veritabanı
+        - SQLAlchemyPlanningRepository → Gerçek veritabanı (SQLite)
         - InMemoryPlanningRepository → Unit test
     şeklinde farklı implementasyonlar kullanılabilir.
     """

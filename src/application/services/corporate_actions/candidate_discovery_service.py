@@ -4,8 +4,9 @@ import logging
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from typing import Iterable, Sequence
+from typing import Iterable, NamedTuple, Optional, Sequence
 
+from src.application.services.corporate_actions.tracked_stocks import tracked_stock_ids
 from src.domain.models.corporate_action import CorporateAction, ActionType
 from src.domain.models.corporate_action_candidate import (
     CorporateActionCandidate,
@@ -15,8 +16,7 @@ from src.domain.ports.repositories.i_corporate_action_candidate_repo import (
     ICorporateActionCandidateRepository,
 )
 from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
-from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
-from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.ports.repositories.i_ledger_reader import ILedgerReader
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
 from src.domain.ports.repositories.i_watchlist_repo import IWatchlistRepository
 from src.domain.ports.services.i_corporate_action_provider import (
@@ -26,6 +26,15 @@ from src.domain.ports.services.i_corporate_action_provider import (
 
 
 logger = logging.getLogger(__name__)
+
+
+class CandidateDiscoveryDeps(NamedTuple):
+    provider: ICorporateActionProvider
+    candidate_repo: ICorporateActionCandidateRepository
+    stock_repo: IStockRepository
+    action_repo: ICorporateActionRepository
+    ledger_reader: Optional[ILedgerReader] = None  # ana + model portföy işlemleri (tek okuma noktası)
+    watchlist_repo: Optional[IWatchlistRepository] = None
 
 
 @dataclass(frozen=True)
@@ -39,24 +48,13 @@ class CorporateActionDiscoveryResult:
 
 
 class CorporateActionDiscoveryService:
-    def __init__(
-        self,
-        *,
-        provider: ICorporateActionProvider,
-        candidate_repo: ICorporateActionCandidateRepository,
-        stock_repo: IStockRepository,
-        action_repo: ICorporateActionRepository,
-        portfolio_repo: IPortfolioRepository | None = None,
-        watchlist_repo: IWatchlistRepository | None = None,
-        model_portfolio_repo: IModelPortfolioRepository | None = None,
-    ) -> None:
-        self._provider = provider
-        self._candidate_repo = candidate_repo
-        self._stock_repo = stock_repo
-        self._action_repo = action_repo
-        self._portfolio_repo = portfolio_repo
-        self._watchlist_repo = watchlist_repo
-        self._model_portfolio_repo = model_portfolio_repo
+    def __init__(self, deps: CandidateDiscoveryDeps) -> None:
+        self._provider = deps.provider
+        self._candidate_repo = deps.candidate_repo
+        self._stock_repo = deps.stock_repo
+        self._action_repo = deps.action_repo
+        self._ledger_reader = deps.ledger_reader
+        self._watchlist_repo = deps.watchlist_repo
 
     def discover(
         self,
@@ -99,16 +97,6 @@ class CorporateActionDiscoveryService:
             candidates=saved,
         )
 
-    def reviewable_candidates(self) -> list[CorporateActionCandidate]:
-        return self._candidate_repo.get_by_statuses(
-            [
-                CorporateActionCandidateStatus.READY,
-                CorporateActionCandidateStatus.NEEDS_REVIEW,
-                CorporateActionCandidateStatus.DISCOVERED,
-                CorporateActionCandidateStatus.APPROVED,
-            ]
-        )
-
     def _prepare_candidate(self, candidate: CorporateActionCandidate) -> CorporateActionCandidate:
         stock = self._stock_repo.get_stock_by_ticker(candidate.ticker)
         stock_id = stock.id if stock is not None else None
@@ -148,23 +136,7 @@ class CorporateActionDiscoveryService:
         return False
 
     def _target_tickers(self) -> list[str]:
-        stock_ids = set()
-        if self._portfolio_repo is not None:
-            stock_ids.update(int(stock_id) for stock_id in self._portfolio_repo.get_all_stock_ids_in_portfolio())
-
-        if self._watchlist_repo is not None:
-            for watchlist in self._watchlist_repo.get_all_watchlists():
-                if watchlist.id is None:
-                    continue
-                stock_ids.update(item.stock_id for item in self._watchlist_repo.get_items_by_watchlist_id(watchlist.id))
-
-        if self._model_portfolio_repo is not None:
-            for portfolio in self._model_portfolio_repo.get_all_model_portfolios():
-                if portfolio.id is None:
-                    continue
-                trades = self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio.id)
-                stock_ids.update(trade.stock_id for trade in trades)
-
+        stock_ids = tracked_stock_ids(self._ledger_reader, self._watchlist_repo)
         if not stock_ids:
             return []
         ticker_map = self._stock_repo.get_ticker_map_for_stock_ids(sorted(stock_ids))

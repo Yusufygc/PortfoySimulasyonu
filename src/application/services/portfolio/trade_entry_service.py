@@ -3,11 +3,24 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, time
 from decimal import Decimal
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from src.application.services.market.trade_session_guard import ensure_trade_session_open
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade, TradeSide
+from src.domain.constants.bist_tickers import is_valid_bist_ticker
+from src.domain.ticker import clean_ticker
+
+
+class TradeRequest(NamedTuple):
+    ticker: str
+    side: "TradeSide | str"
+    quantity: int
+    price: Decimal
+    trade_date: date
+    trade_time: "Optional[time]" = None
+    name: "Optional[str]" = None
+    stock_id: "Optional[int]" = None
 
 
 @dataclass(frozen=True)
@@ -18,18 +31,23 @@ class TradeEntryResult:
 
 
 class TradeEntryService:
-    def __init__(self, stock_repo, portfolio_service, market_session_service=None) -> None:
+    def __init__(self, stock_repo, portfolio_service, market_session_service=None, fee_service=None) -> None:
         self._stock_repo = stock_repo
         self._portfolio_service = portfolio_service
         self._market_session_service = market_session_service
+        self._fee_service = fee_service
+
+    def estimate_fee(self, quantity: int, price: Decimal) -> Decimal:
+        """Verilen emir için ayarlardaki oranlarla ücret (ayar yoksa 0); arayüz ön izlemesi de bunu kullanır."""
+        if self._fee_service is None:
+            return Decimal("0")
+        return self._fee_service.bist_fee(Decimal(quantity) * price)
 
     @staticmethod
     def normalize_ticker(ticker: str) -> str:
-        normalized = (ticker or "").strip().upper()
+        normalized = clean_ticker(ticker)
         if not normalized:
             raise ValueError("Ticker bos olamaz.")
-        if "." not in normalized:
-            normalized += ".IS"
         return normalized
 
     def ensure_stock(
@@ -52,6 +70,9 @@ class TradeEntryService:
         if not create_if_missing:
             raise ValueError(f"Hisse bulunamadı: {normalized_ticker}")
 
+        if not is_valid_bist_ticker(normalized_ticker, name):
+            raise ValueError(f"Geçersiz hisse kodu: {normalized_ticker}")
+
         new_stock = Stock(
             id=None,
             ticker=normalized_ticker,
@@ -60,45 +81,37 @@ class TradeEntryService:
         )
         return self._stock_repo.insert_stock(new_stock)
 
-    def submit_trade(
-        self,
-        ticker: str,
-        side: TradeSide | str,
-        quantity: int,
-        price: Decimal,
-        trade_date: date,
-        trade_time: Optional[time] = None,
-        name: Optional[str] = None,
-        stock_id: Optional[int] = None,
-    ) -> TradeEntryResult:
-        trade_side = side if isinstance(side, TradeSide) else TradeSide(side)
-        if quantity <= 0:
+    def submit_trade(self, req: TradeRequest) -> TradeEntryResult:
+        trade_side = req.side if isinstance(req.side, TradeSide) else TradeSide(req.side)
+        if req.quantity <= 0:
             raise ValueError("Lot adedi pozitif olmalıdır.")
-        if price <= 0:
+        if req.price <= 0:
             raise ValueError("Fiyat pozitif olmalıdır.")
-        ensure_trade_session_open(self._market_session_service, trade_date, trade_time)
+        ensure_trade_session_open(self._market_session_service, req.trade_date, req.trade_time)
+        fee = self.estimate_fee(req.quantity, req.price)
         if trade_side == TradeSide.BUY:
-            total_amount = Decimal(quantity) * price
-            cash_balance = self._portfolio_service.get_cash_balance(as_of=(trade_date, trade_time))
+            total_amount = Decimal(req.quantity) * req.price + fee
+            cash_balance = self._portfolio_service.get_cash_balance(as_of=(req.trade_date, req.trade_time))
             if total_amount > cash_balance:
-                date_str = trade_date.strftime("%d.%m.%Y")
+                date_str = req.trade_date.strftime("%d.%m.%Y")
                 raise ValueError(
                     f"Bu işlemi gerçekleştirmek istediğiniz tarihte ({date_str}) yeterli sermayeniz yoktu.\n\n"
                     f"Gerekli: {total_amount:,.2f} TL, Mevcut: {cash_balance:,.2f} TL"
                 )
         stock = self.ensure_stock(
-            ticker=ticker,
-            name=name,
-            stock_id=stock_id,
+            ticker=req.ticker,
+            name=req.name,
+            stock_id=req.stock_id,
             create_if_missing=trade_side == TradeSide.BUY,
         )
         trade_factory = Trade.create_buy if trade_side == TradeSide.BUY else Trade.create_sell
         trade = trade_factory(
             stock_id=stock.id,
-            trade_date=trade_date,
-            trade_time=trade_time,
-            quantity=quantity,
-            price=price,
+            trade_date=req.trade_date,
+            trade_time=req.trade_time,
+            quantity=req.quantity,
+            price=req.price,
+            fee=fee,
         )
         self._portfolio_service.validate_trade(trade)
         saved_trade = self._portfolio_service.add_trade(trade)

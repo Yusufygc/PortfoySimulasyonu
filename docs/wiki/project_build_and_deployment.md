@@ -1,54 +1,45 @@
-# Proje Derleme ve Dağıtım (Build & Deployment)
+# Derleme, Dağıtım ve CI
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Geliştirme: [development_guide.md](development_guide.md)
 
-Bu belge, kodun son kullanıcıya sunulabilir bir masaüstü uygulaması haline (Windows `.exe`) nasıl getirildiğini ve versiyonlama süreçlerini kapsar.
+## 1. Nuitka ile Windows `.exe` (`build_nuitka.bat`)
 
-## 1. Nuitka ile Derleme (`build_nuitka.bat`)
+PyInstaller yerine **Nuitka** kullanılır (Python'u C'ye çevirip derler; performansı artırır, tersine mühendisliği zorlaştırır). Betik sırasıyla:
 
-Python kodlarını paketlemek için PyInstaller yerine **Nuitka** kullanılır. Nuitka, Python kodunu C diline çevirip (transpile) derleyerek, performans artışı sağlar ve tersine mühendisliği (reverse engineering) PyInstaller'a kıyasla zorlaştırır.
+1. `venv` veya `.venv` içindeki Python'u (yoksa sistem Python'u) seçer.
+2. `pip install -r requirements.txt -r requirements-build.txt -c constraints.txt` (`nuitka==2.7.14` pinli; `constraints.txt` geçişli paketleri de sabitler).
+3. `scripts\build_preflight.py` ile yayın öncesi kontrolleri çalıştırır; başarısızsa durur.
+4. Nuitka'yı çalıştırır: `--standalone --onefile --enable-plugin=pyside6 --include-data-dir=src/ui_qml=src/ui_qml --disable-console`, `--include-package=yfinance/pandas/openpyxl/sqlalchemy/keyring` (+ `--include-distribution-metadata=keyring`; arka uç keşfi için), simge `icons/icon.ico`, çıktı `dist/`, giriş `app.py`. Test ve pytest paketleri dışarıda bırakılır.
+5. `dist\.env` varsa hata verip çıkar.
 
-### Derleme Süreci
-1. `build_nuitka.bat` scripti çalıştırılır.
-2. Script `requirements.txt` ve `requirements-build.txt` dosyalarındaki pinli bağımlılıkları kurar.
-3. Nuitka, `app.py` ana dosyasından başlayarak tüm iç ve dış bağımlılıkları (`PyQt5`, `PyQtWebEngine`, `pandas`, `scipy` vb.) C koduna çevirir.
-4. Uygulamanın ikonu `icons/portfoy-simulasyonu.ico` dosyasıyla ayarlanır.
-5. `.exe` çıktısı oluşturulur.
+Dikkat:
+- `src/ui_qml` dizini QML dosyaları, SVG ikonlar, JS kütüphaneleri ve HTML şablonlarıyla pakete dahildir.
+- `data/` klasörü pakete **gömülmez** (2026-10-04'e kadar gömülüyordu; gerçek `portfolio.db` ve ~150 MB DuckDB kişisel veri taşıdığından kaldırıldı). Uygulama `.exe` dizininde boş `data/` oluşturur; piyasa verisi açılış senkronuyla veya `scripts/sync_bist_to_duckdb.py` ile dolar. **Doğrulanmadı:** `onefile` paketinde `sys.executable` dizininin kalıcı olup olmadığı (`app_root()`) gerçek bir derlemeyle denenmeli.
+- Bilimsel kütüphaneler (SciPy, pandas, scikit-learn) ve WebEngine paketlemeyi ağırlaştırır; derleme uzun sürebilir.
+- Gerçek `.env` pakete **gömülmez**. Paketlenen uygulama, çalıştığı dizindeki `.env` dosyasını okur (`settings_loader`, `sys.frozen` ise `sys.executable` dizini); `.env` yanına konulmalıdır.
 
-Güvenlik kuralı: Gerçek `.env` dosyası build çıktısına gömülmez. Paketlenen uygulama, çalıştığı dizindeki kullanıcıya/ortama özel `.env` dosyasını runtime sırasında okur.
+## 2. Release Preflight (`scripts/build_preflight.py`)
 
-*Not:* Bilimsel kütüphanelerin (SciPy, Pandas, YFinance) paketlenmesi Nuitka için ağırdır. Derleme süreci bilgisayar gücüne bağlı olarak uzun sürebilir.
+Denetler: Python >= 3.10; `requirements.txt` ve `requirements-build.txt` aktif satırlarının `==` ile pinli olması; `nuitka==` varlığı; `icons/icon.ico`, `.env.example`, `build_nuitka.bat`, `pytest.ini` dosyalarının varlığı; `pytest.ini` marker'larının (`manual`, `network`, `ui`, `integration`) tanımlı olması; `dist/.env` yokluğu; `build_nuitka.bat`'ın `data/` klasörünü gömmemesi; etkin Python'da `nuitka` import edilebilirliği. `nuitka import` adımı düşerse yayın engelleyicidir: `python -m pip install -r requirements-build.txt`.
 
-## 2. Bağımlılık Yönetimi (`requirements.txt`)
+Testler preflight'ın statik koşullarını da denetler (`tests/infrastructure/test_production_guards.py`).
 
-Uygulamanın sürdürülebilirliği için `requirements.txt` ve `requirements-build.txt` dosyalarındaki kütüphane versiyonları "Pinli" (sabitlenmiş) olarak tutulmalıdır (`paket==versiyon`). Aksi halde YFinance, PyQtWebEngine veya Pandas'ın bir anda yeni versiyona geçmesi, beklenmedik arayüz çöküşlerine veya hesaplama hatalarına yol açabilir.
+## 3. Bağımlılık Yönetimi
 
-Yeni bir paket eklendiğinde sürüm numarası açıkça belirtilmelidir.
+`requirements.txt` ve `requirements-build.txt` sürümleri **pinli** tutulur (`paket==sürüm`). Aksi halde yfinance, PySide6/WebEngine veya pandas'ın beklenmedik güncellemesi arayüz çöküşü ya da hesap hatası getirebilir. Uygulama Qt binding'i `PySide6`'dır (eski `PyQt5` pinleri kaldırılmıştır); kullanılmayan paketler (`tradingview-datafeed`, `websocket-client`) 2026-10-03'te kaldırılmıştır. Yeni paket eklerken sürüm yazılır ve `pip check` yeşil olmalıdır. **Geçişli bağımlılıklar** `constraints.txt` ile sabitlenir (CI ve `build_nuitka.bat` `-c constraints.txt` kullanır); aynı commit'ten alınan derlemeler aynı paket sürümlerini taşır. `tests/test_dependency_lock.py` doğrudan pinlerin kilitle çelişmediğini denetler. Dosya `requirements.txt`'in geçişli **kapanışını** taşır (`pip freeze` değil: freeze ortamdaki yabancı araçları, ör. `pip-audit` bağımlılığı `filelock`'u da pinler ve CI denetimini eski sürümde tutar). Yenileme: `requirements.txt` temiz bir `venv`'e kurulur, kapanış yazılır, `python -m pip_audit` çalıştırılır ve açık bildiren paketler düzeltilmiş sürüme çekilir. Hash doğrulaması (`--require-hashes`) kullanılmıyor. 2026-11-04: `google-genai` pini 1.0.0 idi ama geliştirme ortamı (testlerin ve uygulamanın koştuğu) 2.27.0 kullanıyordu; pin gerçek ortama (2.27.0) çekildi.
 
-## 3. Faz 6 Release Preflight ve CI
+## 4. Çalışma Zamanı Ayarları
 
-Faz 6 ile release akışına `scripts/build_preflight.py` eklenmiştir. Script aşağıdaki kontrolleri yapar:
+`.env.example` yüzeyi: `DB_SQLITE_PATH`, `DUCKDB_PATH` (isteğe bağlı), `GEMINI_API_KEY`, `AI_CORE_API_URL`, `EVDS_API_KEY`, `TCMB_DEPOSIT_RATE_FALLBACK`, `LOG_DIR`, `LOG_LEVEL`, `LOG_CONSOLE_LEVEL`, `LOG_FILE_LEVEL`. Donmuş (`frozen`) uygulamada yollar `sys.executable` dizinine göre çözülür; loglar `logs/` altında dönen dosyadır (5 MB x 5 yedek). Ayrıntı: [development_guide.md](development_guide.md).
 
-- Python sürümü `>= 3.11`.
-- `requirements.txt` ve `requirements-build.txt` içindeki aktif dependency satırları `==` ile pinlidir.
-- `requirements-build.txt` içinde `nuitka==...` bulunur.
-- `icons/portfoy-simulasyonu.ico`, `.env.example`, `build_nuitka.bat` ve `pytest.ini` mevcuttur.
-- `pytest.ini` içinde `manual`, `network`, `ui`, `integration` marker'ları tanımlıdır.
-- `dist/.env` bulunmaz.
-- Aktif Python ortamında `nuitka` import edilebilir.
+## 5. CI (GitHub Actions)
 
-Aktif ortamda `python scripts/build_preflight.py` komutu `nuitka import` adımında fail verirse bu production blocker'dır; build ortamı `python -m pip install -r requirements-build.txt` ile tamamlanmalıdır.
+`.github/workflows/tests.yml` üç iş çalıştırır (`push`, `pull_request` ve haftalık zamanlama): **test** (Windows; Python 3.10 ve 3.11 zorunlu, 3.12 deneysel/engelleyici değil; `QT_QPA_PLATFORM=offscreen`; `pip install -r requirements.txt -c constraints.txt`, `pip check`, `pytest --collect-only -q`, `pytest tests -q --cov=src --cov=config --cov-fail-under=80`, kapsam raporu artifact), **quality** (`scripts/measure_code_quality.py` tavanları: 0 sınıf, 72 fonksiyon, 4 dosya; yeni eşik ihlali eklenemez, borç azaldıkça tavanlar düşürülür) ve **security** (`pip-audit` ile kurulu ortamın tamamının, geçişli bağımlılıklar dahil, bilinen açıklara karşı taranması). `pytest.ini` filtresi `manual` ve `network` testlerini dışarıda bırakır. Nuitka derlemesi CI'da koşmaz. Lint (ruff/flake8) henüz yoktur: mevcut kodda toplu temizlik gerektirir.
 
-GitHub Actions workflow'u `.github/workflows/tests.yml` altında tutulur. Windows + Python 3.11 üzerinde dependency install, `pip check`, `pytest --collect-only -q` ve `pytest tests -q` çalışır. Nuitka build CI'da koşmaz; manuel release öncesi preflight ile doğrulanır.
+## 6. Çalıştırma Betikleri
 
-## 4. Production Ortam Anahtarları
+`run_prod.bat` (`PORTFOYSIM_ENV` boş) ve `run_test.bat` (`PORTFOYSIM_ENV=test`, `.env.test` okunur) uygulamayı başlatır; içlerinde bir geliştiricinin Python yolu yazılıdır ve başka makinede güncellenmelidir.
 
-`.env.example` aşağıdaki production yüzeyini belgelemelidir:
+## 7. `auto_commit.py`
 
-- DB: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `POOL_NAME`, `POOL_SIZE`, `DB_POOL_RECYCLE_SECONDS`, `DB_POOL_PRE_PING`
-- AI/Market: `GEMINI_API_KEY`, `AI_CORE_API_URL`, `EVDS_API_KEY`, `TCMB_DEPOSIT_RATE_FALLBACK`
-- Logging: `LOG_DIR`, `LOG_LEVEL`, `LOG_CONSOLE_LEVEL`, `LOG_FILE_LEVEL`
-
-## 5. Git ve Otomatik Commit (`auto_commit.py`)
-
-Proje geliştirilirken `auto_commit.py` scripti kullanılarak, yapılan değişikliklerin Git geçmişine daha düzenli ve proje kurallarındaki (`RULES.md` içindeki `güncelle:`, `ekle:`, `düzelt:` formatına uygun) şekilde atılması teşvik edilir. CI/CD (Sürekli Entegrasyon) eklenecekse, pipeline'lar bu formatları baz alarak versiyonlama (Semantic Versioning) yapabilir.
+Kök dizindeki `auto_commit.py`, değişen dosyaların diff'ini Gemini API'ye (`gemini-2.5-flash`) göndererek Türkçe commit mesajı önerir. Hassas dosyalar (`.env*`, anahtar/sertifika uzantıları, `.db`, `.sqlite`, adında `secret`/`password`/`token`/`api_key` geçenler) dış API'ye gönderilmez; yine de diff içeriği dış servise gider. Zorunlu bir süreç adımı değildir. Gemini anahtarını önce işletim sistemi sır deposundan (Ayarlar sayfasının yazdığı yer), sonra ortam değişkeninden, en son `.env` dosyasından okur. Commit kuralları için [GOVERNANCE.md](../../GOVERNANCE.md).

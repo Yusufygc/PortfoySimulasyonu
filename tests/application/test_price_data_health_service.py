@@ -1,10 +1,9 @@
 from datetime import date
 from decimal import Decimal
 
-from src.application.services.market.price_data_health_service import PriceDataHealthService
-from src.domain.models.corporate_action import ActionType, CorporateAction
+from src.application.services.market.price_data_health_service import PriceDataHealthService, PriceHealthServiceDeps
 from src.domain.models.daily_price import DailyPrice
-from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade
+from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioTrade, ModelPortfolioTradeSpec
 from src.domain.models.stock import Stock
 from src.domain.models.trade import Trade
 
@@ -49,6 +48,7 @@ class FakePriceRepo:
             for stock_id, points in prices_by_stock.items()
         }
         self.saved_prices = []
+        self.delete_calls = []
 
     def get_price_presence_map(self, stock_ids, start_date, end_date):
         return {
@@ -68,9 +68,13 @@ class FakePriceRepo:
                 result[stock_id] = dates[-1]
         return result
 
-    def delete_prices_in_range(self, start_date, end_date):
+    def delete_prices_in_range(self, start_date, end_date, stock_ids=None):
+        self.delete_calls.append((start_date, end_date, stock_ids))
+        scoped_stock_ids = set(stock_ids) if stock_ids is not None else None
         deleted = 0
-        for points in self.prices_by_stock.values():
+        for stock_id, points in self.prices_by_stock.items():
+            if scoped_stock_ids is not None and stock_id not in scoped_stock_ids:
+                continue
             for point_date in list(points):
                 if start_date <= point_date <= end_date:
                     deleted += 1
@@ -105,12 +109,53 @@ class FakeMarketClient:
         return self._single_prices_by_ticker[ticker][price_date]
 
 
-class FakeCorporateActionRepo:
-    def __init__(self, actions_by_stock):
-        self._actions_by_stock = actions_by_stock
+class FakeRefresher:
+    """MarketPriceRefresher yerine: piyasa istemcisinden okur, SQLite yansımasını taklit eder (DuckDB'siz)."""
 
-    def get_by_stock(self, stock_id):
-        return list(self._actions_by_stock.get(stock_id, []))
+    def __init__(self, market_client, price_repo):
+        from src.application.services.market_data.market_price_refresher import RefreshResult
+
+        self._client, self._prices, self._result_type = market_client, price_repo, RefreshResult
+        self.delete_calls = []
+
+    def refresh(self, stocks, start, end):
+        result = self._result_type()
+        for stock in stocks:
+            series = self._client.get_price_series(stock.ticker, start, end)
+            self._prices.upsert_daily_prices_bulk(
+                [DailyPrice(None, stock.id, day, price) for day, price in sorted(series.items())]
+            )
+            if series:
+                result.updated[stock.id] = len(series)
+                result.last_prices[stock.id] = series[max(series)]
+        return result
+
+    def delete_range(self, stocks, start, end):
+        self.delete_calls.append(([s.id for s in stocks], start, end))
+        return 0
+
+
+def ledger_reader_from(trades=None, model_trades_by_portfolio=None):
+    """Eski sahte portföy/model depolarındaki işlemleri ortak defter anlık görüntüsüne çevirir."""
+    from src.domain.models.ledger import LedgerKind, LedgerSnapshot
+    from src.domain.split_math import LedgerLot
+
+    def lot(trade, index):
+        is_buy = getattr(trade.side, "value", trade.side) == "BUY"
+        return LedgerLot(trade.id or index, trade.trade_date, trade.trade_time, is_buy,
+                         Decimal(trade.quantity), Decimal(str(trade.price)), trade.stock_id)
+
+    lots = {}
+    if trades:
+        lots[(LedgerKind.MAIN, None)] = [lot(tr, i) for i, tr in enumerate(trades, 1)]
+    for portfolio_id, model_trades in (model_trades_by_portfolio or {}).items():
+        lots[(LedgerKind.MODEL, portfolio_id)] = [lot(tr, i) for i, tr in enumerate(model_trades, 1)]
+
+    class Reader:
+        def snapshot(self, **_kwargs):
+            return LedgerSnapshot(lots)
+
+    return Reader()
 
 
 def make_service(
@@ -118,29 +163,28 @@ def make_service(
     series_by_ticker=None,
     trades=None,
     model_trades_by_portfolio=None,
-    single_prices_by_ticker=None,
-    corporate_actions_by_stock=None,
 ):
     stocks = [
         Stock(id=1, ticker="AAA.IS", name="AAA"),
         Stock(id=2, ticker="BBB.IS", name="BBB"),
     ]
     price_repo = FakePriceRepo(prices_by_stock)
-    market_client = FakeMarketClient(series_by_ticker or {}, single_prices_by_ticker)
+    market_client = FakeMarketClient(series_by_ticker or {})
     service = PriceDataHealthService(
-        stock_repo=FakeStockRepo(stocks),
-        price_repo=price_repo,
-        market_data_client=market_client,
-        portfolio_repo=FakePortfolioRepo(trades or []) if trades is not None else None,
-        model_portfolio_repo=(
-            FakeModelPortfolioRepo(model_trades_by_portfolio)
-            if model_trades_by_portfolio is not None
-            else None
-        ),
-        corporate_action_repo=(
-            FakeCorporateActionRepo(corporate_actions_by_stock)
-            if corporate_actions_by_stock is not None
-            else None
+        deps=PriceHealthServiceDeps(
+            stock_repo=FakeStockRepo(stocks),
+            price_repo=price_repo,
+            price_refresher=FakeRefresher(market_client, price_repo),
+            ledger_reader=(
+                ledger_reader_from(trades, model_trades_by_portfolio)
+                if trades is not None or model_trades_by_portfolio is not None
+                else None
+            ),
+            model_portfolio_repo=(
+                FakeModelPortfolioRepo(model_trades_by_portfolio)
+                if model_trades_by_portfolio is not None
+                else None
+            ),
         ),
     )
     return service, price_repo, market_client
@@ -182,13 +226,9 @@ def test_model_scope_all_missing_weekday_stays_missing_when_dashboard_has_prices
         quantity=1,
         price=Decimal("10"),
     )
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, _, _ = make_service(
         {
             1: {date(2026, 1, 2): Decimal("10"), date(2026, 1, 5): Decimal("11")},
@@ -258,23 +298,6 @@ def test_empty_market_series_does_not_crash_update():
     assert price_repo.saved_prices == []
 
 
-def test_empty_market_series_falls_back_to_single_day_closing_prices():
-    service, price_repo, market_client = make_service(
-        {1: {}, 2: {}},
-        {},
-        single_prices_by_ticker={
-            "AAA.IS": {date(2026, 1, 5): Decimal("12")},
-        },
-    )
-
-    result = service.update_stock_range(1, date(2026, 1, 5), date(2026, 1, 5))
-
-    assert result.updated_count == 1
-    assert price_repo.prices_by_stock[1][date(2026, 1, 5)] == Decimal("12")
-    assert market_client.requests == [("AAA.IS", date(2026, 1, 5), date(2026, 1, 5))]
-    assert market_client.single_requests == [("AAA.IS", date(2026, 1, 5))]
-
-
 def test_dates_before_stock_first_trade_are_not_counted_as_missing():
     service, _, _ = make_service(
         {
@@ -340,13 +363,9 @@ def test_closed_dashboard_position_is_not_scanned_by_default():
 
 
 def test_model_portfolio_stocks_are_scanned_and_stored_like_dashboard_stocks():
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, price_repo, market_client = make_service(
         {
             1: {date(2026, 1, 2): Decimal("10")},
@@ -371,13 +390,9 @@ def test_model_portfolio_stocks_are_scanned_and_stored_like_dashboard_stocks():
 
 
 def test_dashboard_scope_excludes_model_portfolio_positions():
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, _, _ = make_service(
         {
             1: {date(2026, 1, 2): Decimal("10")},
@@ -395,13 +410,9 @@ def test_dashboard_scope_excludes_model_portfolio_positions():
 
 
 def test_active_stock_ids_uses_same_scope_rules_as_health_analysis():
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, _, _ = make_service(
         {1: {}, 2: {}},
         trades=[
@@ -416,20 +427,12 @@ def test_active_stock_ids_uses_same_scope_rules_as_health_analysis():
 
 
 def test_model_scope_scans_only_selected_model_portfolio():
-    model_4_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=1,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("10"),
-    )
-    model_5_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=5,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
+    model_4_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10"),
+    ))
+    model_5_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=5, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, _, _ = make_service(
         {1: {date(2026, 1, 2): Decimal("10")}, 2: {}},
         {"AAA.IS": {date(2026, 1, 5): Decimal("12")}, "BBB.IS": {date(2026, 1, 5): Decimal("22")}},
@@ -446,20 +449,12 @@ def test_model_scope_scans_only_selected_model_portfolio():
 
 def test_update_missing_prices_uses_selected_model_scope_rows():
     model_4_trades = [
-        ModelPortfolioTrade.create_buy(
-            portfolio_id=4,
-            stock_id=1,
-            trade_date=date(2026, 1, 2),
-            quantity=1,
-            price=Decimal("10"),
-        ),
-        ModelPortfolioTrade.create_buy(
-            portfolio_id=4,
-            stock_id=2,
-            trade_date=date(2026, 1, 2),
-            quantity=1,
-            price=Decimal("20"),
-        ),
+        ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+            portfolio_id=4, stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10"),
+        )),
+        ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+            portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+        )),
     ]
     service, price_repo, market_client = make_service(
         {
@@ -485,13 +480,9 @@ def test_scope_minimum_start_date_uses_selected_portfolio_first_trade():
         quantity=1,
         price=Decimal("10"),
     )
-    model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=1,
-        trade_date=date(2026, 3, 2),
-        quantity=1,
-        price=Decimal("12"),
-    )
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=1, trade_date=date(2026, 3, 2), quantity=1, price=Decimal("12"),
+    ))
     service, _, _ = make_service(
         {1: {}, 2: {}},
         trades=[dashboard_trade],
@@ -504,27 +495,15 @@ def test_scope_minimum_start_date_uses_selected_portfolio_first_trade():
 
 
 def test_closed_model_portfolio_position_is_not_scanned_by_default():
-    open_model_trade = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=1,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("10"),
-    )
-    closed_model_buy = ModelPortfolioTrade.create_buy(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 2),
-        quantity=1,
-        price=Decimal("20"),
-    )
-    closed_model_sell = ModelPortfolioTrade.create_sell(
-        portfolio_id=4,
-        stock_id=2,
-        trade_date=date(2026, 1, 3),
-        quantity=1,
-        price=Decimal("21"),
-    )
+    open_model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=1, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("10"),
+    ))
+    closed_model_buy = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
+    closed_model_sell = ModelPortfolioTrade.create_sell(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 3), quantity=1, price=Decimal("21"),
+    ))
     service, _, _ = make_service(
         {
             1: {date(2026, 1, 2): Decimal("10")},
@@ -539,31 +518,128 @@ def test_closed_model_portfolio_position_is_not_scanned_by_default():
     assert [row.stock_id for row in report.rows] == [1]
 
 
-def test_price_health_update_normalizes_pre_ex_market_prices_for_adjusted_actions():
-    action = CorporateAction(
-        id=1,
-        stock_id=1,
-        action_type=ActionType.BEDELSIZ,
-        ex_date=date(2026, 5, 5),
-        ratio=Decimal("1"),
-        subscription_price=None,
-        announcement_date=None,
-        notes=None,
-        applied=True,
-        prices_adjusted=True,
-        price_adjustment_factor=Decimal("0.5"),
-    )
+def test_delete_range_uses_selected_model_scope_stock_ids():
+    model_trade = ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+        portfolio_id=4, stock_id=2, trade_date=date(2026, 1, 2), quantity=1, price=Decimal("20"),
+    ))
     service, price_repo, _ = make_service(
-        {1: {}, 2: {}},
-        {"AAA.IS": {date(2026, 5, 4): Decimal("20"), date(2026, 5, 5): Decimal("10")}},
-        trades=[
-            Trade.create_buy(stock_id=1, trade_date=date(2026, 5, 4), quantity=1, price=Decimal("20")),
-        ],
-        corporate_actions_by_stock={1: [action]},
+        {
+            1: {date(2026, 1, 5): Decimal("11")},
+            2: {date(2026, 1, 5): Decimal("22")},
+        },
+        trades=[],
+        model_trades_by_portfolio={4: [model_trade]},
     )
 
-    result = service.update_stock_range(1, date(2026, 5, 4), date(2026, 5, 5))
+    deleted = service.delete_range(date(2026, 1, 1), date(2026, 1, 31), scope="model:4")
 
-    assert result.updated_count == 2
-    assert price_repo.prices_by_stock[1][date(2026, 5, 4)] == Decimal("10.0")
-    assert price_repo.prices_by_stock[1][date(2026, 5, 5)] == Decimal("10")
+    assert deleted == 1
+    assert price_repo.delete_calls == [(date(2026, 1, 1), date(2026, 1, 31), [2])]
+    assert date(2026, 1, 5) in price_repo.prices_by_stock[1]
+    assert date(2026, 1, 5) not in price_repo.prices_by_stock[2]
+
+
+def test_delete_range_returns_zero_when_scope_has_no_active_stocks():
+    service, price_repo, _ = make_service(
+        {1: {date(2026, 1, 5): Decimal("11")}, 2: {date(2026, 1, 5): Decimal("22")}},
+        trades=[],
+        model_trades_by_portfolio={4: []},
+    )
+
+    deleted = service.delete_range(date(2026, 1, 1), date(2026, 1, 31), scope="model:4")
+
+    assert deleted == 0
+    assert price_repo.delete_calls == []
+    assert price_repo.prices_by_stock[1]
+    assert price_repo.prices_by_stock[2]
+
+
+def test_delete_range_without_scope_keeps_global_delete_behavior():
+    service, price_repo, _ = make_service(
+        {1: {date(2026, 1, 5): Decimal("11")}, 2: {date(2026, 1, 5): Decimal("22")}},
+    )
+
+    deleted = service.delete_range(date(2026, 1, 1), date(2026, 1, 31))
+
+    assert deleted == 2
+    assert price_repo.delete_calls == [(date(2026, 1, 1), date(2026, 1, 31), None)]
+    assert price_repo.prices_by_stock[1] == {}
+    assert price_repo.prices_by_stock[2] == {}
+
+
+# ---------------------------------------------------------------------------
+# Phase A2: PRICE_SCOPE_ALL_BIST davranışı
+# ---------------------------------------------------------------------------
+
+
+def test_all_bist_scope_returns_all_stocks_regardless_of_portfolio():
+    """ALL_BIST scope verilse portföye bakmadan tüm stocks'u target alır."""
+    from src.application.services.market.price_data_health_service import PRICE_SCOPE_ALL_BIST
+
+    # Portfolio sadece stock 1'i içerir; ama all_bist scope ile 2'si de hedeflenir.
+    trades = [
+        Trade(id=None, stock_id=1, trade_date=date(2025, 1, 1), trade_time=None,
+              side="BUY", quantity=10, price=Decimal("100")),
+    ]
+    series_by_ticker = {
+        "AAA.IS": {date(2026, 6, 13): Decimal("110")},
+        "BBB.IS": {date(2026, 6, 13): Decimal("220")},
+    }
+    service, price_repo, market_client = make_service(
+        prices_by_stock={1: {}, 2: {}},
+        series_by_ticker=series_by_ticker,
+        trades=trades,
+    )
+
+    result = service.update_from_latest_to_today(
+        today=date(2026, 6, 13),
+        scope=PRICE_SCOPE_ALL_BIST,
+    )
+
+    # Hem AAA hem BBB çekildi → 2 ticker fetch isteği
+    fetched_tickers = {req[0] for req in market_client.requests}
+    assert "AAA.IS" in fetched_tickers
+    assert "BBB.IS" in fetched_tickers
+    assert result.scanned_stock_count == 2
+
+
+def test_all_bist_scope_first_trade_dates_empty():
+    """ALL_BIST scope first_trade_dates_by_stock {} döner (portföye bağlı kısıt yok)."""
+    from src.application.services.market.price_data_health_service import (
+        PRICE_SCOPE_ALL_BIST,
+        PriceScopeResolver,
+    )
+
+    trades = [
+        Trade(id=None, stock_id=1, trade_date=date(2024, 1, 1), trade_time=None,
+              side="BUY", quantity=10, price=Decimal("100")),
+    ]
+    stocks = [Stock(id=1, ticker="AAA.IS", name="AAA")]
+    resolver = PriceScopeResolver(
+        stock_repo=FakeStockRepo(stocks),
+        ledger_reader=ledger_reader_from(trades),
+        model_portfolio_repo=None,
+    )
+    result = resolver.first_trade_dates_by_stock(PRICE_SCOPE_ALL_BIST)
+    assert result == {}
+
+
+def test_default_scope_still_filters_to_active_portfolio():
+    """Mevcut davranış (scope=None → all_active) bozulmamış olmalı."""
+    trades = [
+        Trade(id=None, stock_id=1, trade_date=date(2025, 1, 1), trade_time=None,
+              side="BUY", quantity=10, price=Decimal("100")),
+    ]
+    series_by_ticker = {
+        "AAA.IS": {date(2026, 6, 13): Decimal("110")},
+        "BBB.IS": {date(2026, 6, 13): Decimal("220")},
+    }
+    service, price_repo, market_client = make_service(
+        prices_by_stock={1: {}, 2: {}},
+        series_by_ticker=series_by_ticker,
+        trades=trades,
+    )
+    result = service.update_from_latest_to_today(today=date(2026, 6, 13))
+    fetched_tickers = {req[0] for req in market_client.requests}
+    assert fetched_tickers == {"AAA.IS"}  # sadece portföydeki
+    assert result.scanned_stock_count == 1

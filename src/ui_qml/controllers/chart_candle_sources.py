@@ -1,0 +1,207 @@
+"""Grafik için mum ve hacim kaynakları (saf fonksiyonlar).
+
+`ChartController` bu modüldeki yükleyicileri sırayla dener: DuckDB piyasa geçmişi (tüm BIST, sermaye artırımı
+düzeltmeli), SQLite portföy fiyatları (DuckDB'de olmayan hisseler) ve yalnızca konteynersiz (çevrimdışı) modda
+demo veri. Her yükleyici `(mumlar, hacimler, şirket adı)` üçlüsü döner; veri yoksa `None` ya da boş liste.
+"""
+from __future__ import annotations
+
+import logging
+from datetime import timedelta
+from typing import Any
+
+import numpy as np
+
+from src.domain.market_clock import market_today
+from src.ui_qml.presenters.formatting import tr_number, tr_pct
+
+logger = logging.getLogger(__name__)
+
+Candles = list[dict[str, Any]]
+Loaded = tuple[Candles, Candles, str]
+
+_HISTORY_YEARS = 3
+_UP_VOLUME_COLOR = "rgba(8, 153, 129, 0.4)"
+_DOWN_VOLUME_COLOR = "rgba(242, 54, 69, 0.4)"
+_DEFAULT_SQLITE_VOLUME = 250000
+
+
+def price_digits(reference: float) -> int:
+    """Grafik hassasiyeti: 10 TL ve üzeri 2 hane; altı 4 hane (düzeltilmiş eski fiyatlar 0,17 gibi küçüktür)."""
+    return 2 if abs(reference) >= 10 else 4
+
+
+def _candle(date_text: str, open_: float, high: float, low: float, close: float) -> dict[str, Any]:
+    digits = price_digits(close)
+    return {"time": date_text, "open": round(open_, digits), "high": round(high, digits),
+            "low": round(low, digits), "close": round(close, digits)}
+
+
+def _volume(date_text: str, value: float, open_: float, close: float) -> dict[str, Any]:
+    return {"time": date_text, "value": value,
+            "color": _UP_VOLUME_COLOR if close >= open_ else _DOWN_VOLUME_COLOR}
+
+
+def load_market_history_candles(lookup, ticker: str) -> Loaded | None:
+    """DuckDB piyasa geçmişinden günlük mumlar; veri yoksa veya okuma hatasında `None`."""
+    try:
+        end_date = market_today()
+        bars = lookup.get_market_bars(ticker, end_date - timedelta(days=365 * _HISTORY_YEARS), end_date)
+        if not bars:
+            return None
+        company_name = lookup.get_market_company_name(ticker) or ticker
+        candles: Candles = []
+        volumes: Candles = []
+        prev_close = None
+        for bar in bars:
+            close = bar.close_price
+            open_ = bar.open_price if bar.open_price else (prev_close if prev_close is not None else close)
+            high = bar.high_price if bar.high_price else max(open_, close)
+            low = bar.low_price if bar.low_price else min(open_, close)
+            prev_close = close
+            date_text = bar.price_date.strftime("%Y-%m-%d")
+            candles.append(_candle(date_text, open_, high, low, close))
+            volumes.append(_volume(date_text, float(bar.volume or 0), open_, close))
+        logger.info("DuckDB'den %s icin %d adet 1D mum verisi yuklendi.", ticker, len(candles))
+        return candles, volumes, company_name
+    except Exception as exc:
+        logger.warning("DuckDB fiyat verisi okunamadi (%s): %s", ticker, exc)
+        return None
+
+
+def _synthetic_ohlc(close: float, prev_close: float | None) -> tuple[float, float, float]:
+    """Açılış/yüksek/düşük kaydı olmayan günler için kapanıştan türetilen yaklaşık değerler."""
+    open_ = prev_close if prev_close is not None else close
+    spread = max(abs(close - open_), close * 0.008)
+    return open_, max(open_, close) + spread * 0.35, max(0.01, min(open_, close) - spread * 0.35)
+
+
+def _price_ohlc(price, prev_close: float | None) -> tuple[float, float, float, float]:
+    """`(açılış, yüksek, düşük, kapanış)`; OHLC kaydı eksikse kapanıştan türetilir."""
+    close = float(price.close_price)
+    if price.open_price is not None and price.high_price is not None and price.low_price is not None:
+        return float(price.open_price), float(price.high_price), float(price.low_price), close
+    return (*_synthetic_ohlc(close, prev_close), close)
+
+
+def _price_volume(price) -> float:
+    has_volume = price.volume is not None and price.volume > 0
+    return float(price.volume if has_volume else _DEFAULT_SQLITE_VOLUME)
+
+
+def load_price_series_candles(lookup, ticker: str) -> Loaded:
+    """SQLite fiyat serisinden günlük mumlar. Hisse bulunamazsa boş; bulunup fiyat yoksa yalnızca şirket adı döner."""
+    company_name = ticker
+    candles: Candles = []
+    volumes: Candles = []
+    try:
+        stock = lookup.find_stock(ticker) if lookup else None
+        if not stock:
+            return candles, volumes, company_name
+        company_name = (getattr(stock, "name", None) or stock.ticker).replace(".IS", "").strip()
+        end_date = market_today()
+        prices = lookup.get_price_series(stock.id, end_date - timedelta(days=365 * _HISTORY_YEARS), end_date)
+        prev_close = None
+        for price in sorted(prices or [], key=lambda p: p.price_date):
+            open_, high, low, close = _price_ohlc(price, prev_close)
+            prev_close = close
+            date_text = price.price_date.strftime("%Y-%m-%d")
+            candles.append(_candle(date_text, open_, high, low, close))
+            volumes.append(_volume(date_text, _price_volume(price), open_, close))
+        if candles:
+            logger.info("SQLite'tan %s icin %d adet 1D mum verisi yuklendi.", ticker, len(candles))
+    except Exception as exc:
+        logger.warning("Fiyat verisi cekilirken hata: %s", exc)
+    return candles, volumes, company_name
+
+
+def load_asset_candles(asset_chart_service, ticker: str) -> tuple[Candles, Candles, str, str] | None:
+    """Varlık defterindeki (BIST dışı) sembolün günlük mumları: `(mumlar, hacimler, ad, para birimi)`.
+
+    Varlık fiyatları yalnızca kapanış olarak saklanır; açılış/yüksek/düşük kapanıştan türetilir, hacim yoktur.
+    Varlık bulunmaz veya fiyat yoksa `None`.
+    """
+    try:
+        series = asset_chart_service.get_series(ticker) if asset_chart_service else None
+    except Exception as exc:
+        logger.warning("Varlık grafik verisi okunamadi (%s): %s", ticker, exc)
+        return None
+    if series is None or not series.points:
+        return None
+    candles: Candles = []
+    volumes: Candles = []
+    prev_close = None
+    for price_date, close_price in series.points:
+        close = float(close_price)
+        open_, high, low = _synthetic_ohlc(close, prev_close)
+        prev_close = close
+        date_text = price_date.strftime("%Y-%m-%d")
+        candles.append(_asset_candle(date_text, open_, high, low, close))
+        volumes.append(_volume(date_text, 0.0, open_, close))
+    return candles, volumes, series.name, series.currency
+
+
+def _asset_candle(date_text: str, open_: float, high: float, low: float, close: float) -> dict[str, Any]:
+    """Düşük fiyatlı varlıklar (ör. 0,15 USD kripto) için kuruş yerine 6 hane hassasiyet."""
+    digits = 2 if close >= 100 else 6
+    return {"time": date_text, "open": round(open_, digits), "high": round(high, digits),
+            "low": round(low, digits), "close": round(close, digits)}
+
+
+def demo_candles(ticker: str) -> Loaded:
+    """Çevrimdışı (konteynersiz) mod için rastgele yürüyüşlü ~1 yıllık demo mumlar."""
+    base_price = 285.0 if "THY" in ticker else (110.0 if "GARAN" in ticker else 150.0)
+    today = market_today()
+    np.random.seed(abs(hash(ticker)) % (2**32))
+    candles: Candles = []
+    volumes: Candles = []
+    current_price = base_price
+    for offset in range(260, -1, -1):
+        day = today - timedelta(days=offset)
+        if day.weekday() >= 5:
+            continue
+        open_ = current_price
+        close = open_ * (1 + np.random.normal(0.001, 0.02))
+        high = max(open_, close) * (1 + abs(np.random.normal(0, 0.008)))
+        low = min(open_, close) * (1 - abs(np.random.normal(0, 0.008)))
+        date_text = day.strftime("%Y-%m-%d")
+        candles.append(_candle(date_text, open_, high, low, close))
+        volumes.append(_volume(date_text, int(np.random.uniform(500000, 3500000)), open_, close))
+        current_price = close
+    return candles, volumes, ticker
+
+
+def overlay_live_price(candles: Candles, volumes: Candles, price: float, price_date) -> None:
+    """Canlı fiyatı günlük mumlara yerinde işler: aynı günün mumu güncellenir, daha yeni günse yeni mum eklenir."""
+    if not candles or price <= 0:
+        return
+    date_text = price_date.strftime("%Y-%m-%d")
+    last = candles[-1]
+    if last["time"] == date_text:
+        last["close"] = round(price, price_digits(price))
+        last["high"] = max(last["high"], last["close"])
+        last["low"] = min(last["low"], last["close"])
+    elif last["time"] < date_text:
+        open_ = last["close"]
+        high, low = max(open_, price), min(open_, price)
+        candles.append(_candle(date_text, open_, high, low, price))
+        volumes.append(_volume(date_text, 0.0, open_, price))
+
+
+CURRENCY_SYMBOLS = {"TRY": "₺", "USD": "$", "EUR": "€"}
+
+
+def last_price_summary(candles: Candles, currency: str = "TRY") -> tuple[str, bool, str] | None:
+    """Son mumdan `(fiyat metni, artışta mı, yüzde değişim metni)`; mum yoksa `None`."""
+    if not candles:
+        return None
+    last = candles[-1]
+    last_close = last["close"]
+    prev_close = candles[-2]["close"] if len(candles) > 1 else last["open"]
+    diff = last_close - prev_close
+    diff_pct = (diff / prev_close) * 100 if prev_close > 0 else 0.0
+    prefix = CURRENCY_SYMBOLS.get(currency, f"{currency} ")
+    # BIST (TRY) biçimi değişmez; düşük fiyatlı varlıklarda kuruş hassasiyeti yetmez
+    small_asset = currency != "TRY" and last_close < 1
+    amount = tr_number(last_close, 6).rstrip("0").rstrip(",") if small_asset else tr_number(last_close)
+    return f"{prefix}{amount}", diff >= 0, tr_pct(diff_pct, with_sign=True)

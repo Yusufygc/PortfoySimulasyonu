@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 
 @dataclass(frozen=True)
@@ -39,3 +39,7 @@ class OptimizationResult:
     current_metrics: OptimizationMetrics
     optimized_metrics: OptimizationMetrics
     suggestions: List[OptimizationSuggestion]
+    # Verimli Sınır (Efficient Frontier) grafiğinin 3. noktası — minimum volatilite portföyü
+    # (bkz. plan §7.3 madde 5, AnalyticsView'daki OptimizationView). Opsiyonel/varsayılan None:
+    # mevcut çağıranlar (QtWidgets OptimizationPage) bu alanı hiç bilmiyor, geriye dönük kırmaz.
+    min_volatility_metrics: Optional[OptimizationMetrics] = None

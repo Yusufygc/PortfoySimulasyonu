@@ -22,10 +22,6 @@ class AiAnalysisService:
         self._fallback = fallback_provider
         self._live_available = False
 
-    @property
-    def live_available(self) -> bool:
-        return self._live_available
-
     def probe(self) -> bool:
         """Canlı sağlayıcının erişilebilirliğini yoklar (Worker thread)."""
         self._live_available = self._live.is_available()

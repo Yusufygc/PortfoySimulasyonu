@@ -5,6 +5,8 @@ from dataclasses import fields
 from config.settings_loader import AppSettings, load_app_settings
 from src.application.container_parts import build_ai, build_market_clients, build_repositories, build_services
 from src.application.events import GlobalEventBus
+from src.application.services.database.database_maintenance_service import DatabaseMaintenanceService
+from src.infrastructure.db.database_maintenance import SqliteDuckDbMaintenance
 from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
 
 
@@ -30,11 +32,23 @@ class AppContainer:
         self.services = build_services(
             repositories=self.repositories,
             market_clients=self.market_clients,
-            event_bus=self.event_bus,
+            market_settings=self.settings.market,
         )
-        self._expose_dataclass_fields(self.services)
+        for name, service in self.services.items():
+            setattr(self, name, service)
 
-        self.ai = build_ai(self.settings.ai)
+        configured_path = getattr(self.db_config, "db_path", None)
+        self.database_maintenance_service = DatabaseMaintenanceService(
+            SqliteDuckDbMaintenance.from_config(configured_path if isinstance(configured_path, str) else None)
+        )
+
+        self.ai = build_ai(
+            self.settings.ai,
+            portfolio_analytics_service=self.services.portfolio_analytics_service,
+            risk_optimization_bridge_service=self.services.risk_optimization_bridge_service,
+            stock_360_service=self.services.stock_360_service,
+            unified_portfolio_service=self.services.unified_portfolio_service,
+        )
         self._expose_dataclass_fields(self.ai)
 
     def _expose_dataclass_fields(self, group) -> None:

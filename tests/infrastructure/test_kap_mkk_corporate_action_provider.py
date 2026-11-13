@@ -22,7 +22,7 @@ def test_parse_bedelsiz_kap_payload():
         }
     )
 
-    assert candidate.ticker == "MERKO.IS"
+    assert candidate.ticker == "MERKO"
     assert candidate.action_type == ActionType.BEDELSIZ
     assert candidate.ratio == Decimal("6.3833834")
     assert candidate.ex_date == date(2026, 5, 5)
@@ -52,7 +52,7 @@ def test_provider_uses_injected_fetcher_and_filters_tickers():
 
     result = provider.fetch_candidates(["MERKO.IS"])
 
-    assert [candidate.ticker for candidate in result] == ["MERKO.IS"]
+    assert [candidate.ticker for candidate in result] == ["MERKO"]
 
 
 def test_fetch_url_text_maps_http_404_to_provider_unavailable(monkeypatch):
@@ -102,7 +102,7 @@ def test_public_listing_html_payload_is_parsed_with_detail_fallback(monkeypatch)
     )
     candidate = parse_kap_mkk_disclosure(payloads[0])
 
-    assert candidate.ticker == "MERKO.IS"
+    assert candidate.ticker == "MERKO"
     assert candidate.action_type == ActionType.BEDELSIZ
     assert candidate.ratio == Decimal("6.3833834")
     assert candidate.ex_date == date(2026, 5, 5)

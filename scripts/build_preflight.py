@@ -62,12 +62,12 @@ def _nuitka_requirement(root: Path) -> CheckResult:
 
 
 def _python_version() -> CheckResult:
-    ok = sys.version_info >= (3, 11)
+    ok = sys.version_info >= (3, 10)
     version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     return CheckResult(
         "python version",
         ok,
-        f"Python {version}" if ok else f"Python {version}; expected >= 3.11",
+        f"Python {version}" if ok else f"Python {version}; expected >= 3.10",
     )
 
 
@@ -112,6 +112,22 @@ def _dist_env_guard(root: Path) -> CheckResult:
     )
 
 
+def _bundled_data_guard(root: Path) -> CheckResult:
+    """Gerçek `data/` klasörü (kişisel veritabanları) derleme paketine gömülmemeli."""
+    path = root / "build_nuitka.bat"
+    if not path.exists():
+        return CheckResult("bundled data guard", False, "build_nuitka.bat missing")
+    bundled = any(
+        "--include-data-dir=data" in line and not line.lstrip().upper().startswith("REM")
+        for line in path.read_text(encoding="utf-8").splitlines()
+    )
+    return CheckResult(
+        "bundled data guard",
+        not bundled,
+        "data/ is not bundled" if not bundled else "build_nuitka.bat must not bundle the data/ directory",
+    )
+
+
 def run_checks(
     root: Path = ROOT,
     python_executable: str = sys.executable,
@@ -120,13 +136,14 @@ def run_checks(
     checks = [
         _python_version(),
         _require_file(root, ".env.example"),
-        _require_file(root, "icons/portfoy-simulasyonu.ico"),
+        _require_file(root, "icons/icon.ico"),
         _require_file(root, "build_nuitka.bat"),
         _pinned_requirements(root, "requirements.txt"),
         _pinned_requirements(root, "requirements-build.txt"),
         _nuitka_requirement(root),
         _pytest_ini_markers(root),
         _dist_env_guard(root),
+        _bundled_data_guard(root),
     ]
     if include_runtime_imports:
         checks.append(_nuitka_import(python_executable))

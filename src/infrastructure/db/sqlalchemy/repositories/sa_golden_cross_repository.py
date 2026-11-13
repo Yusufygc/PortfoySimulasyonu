@@ -1,0 +1,129 @@
+"""Golden Cross olay SQLAlchemy repository (ticker anahtarlı, türetilmiş veri)."""
+from __future__ import annotations
+
+from datetime import date
+from typing import Iterable, List, Optional
+
+from sqlalchemy import func
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+from src.domain.models.golden_cross_event import CrossType, GoldenCrossEvent
+from src.domain.ports.repositories.i_golden_cross_repo import IGoldenCrossRepository
+from src.infrastructure.db.sqlalchemy.database_engine import SQLAlchemyEngineProvider
+from src.infrastructure.db.sqlalchemy.orm_models import CrossTypeEnum, ORMGoldenCrossEvent
+from src.infrastructure.db.sqlalchemy.repositories._transaction import commit_or_rollback
+
+
+def _clean_ticker(ticker: str) -> str:
+    return (ticker or "").strip().upper().replace(".IS", "")
+
+
+class SQLAlchemyGoldenCrossRepository(IGoldenCrossRepository):
+    """Golden / Death Cross olayları için SQLite repo (ON CONFLICT DO NOTHING ile idempotent)."""
+
+    def __init__(self, db_provider: SQLAlchemyEngineProvider) -> None:
+        self._provider = db_provider
+
+    # ------------------------------------------------------------------
+    # WRITE
+    # ------------------------------------------------------------------
+
+    def upsert_events_bulk(self, events: Iterable[GoldenCrossEvent]) -> int:
+        rows = [self._to_row(e) for e in events]
+        if not rows:
+            return 0
+        with self._provider.get_session() as session:
+            return self._insert_new_sqlite(session, rows)
+
+    @staticmethod
+    def _insert_new_sqlite(session, rows: list) -> int:
+        """SQLite: yalnızca yeni olayları ekler (mevcut korunur), eklenen sayıyı döndürür.
+
+        BIGINT birincil anahtar otomatik artmadığı için id elle verilir.
+        """
+        max_id = int(session.execute(func.coalesce(func.max(ORMGoldenCrossEvent.id), 0)).scalar() or 0)
+        inserted = 0
+        chunk_size = 100
+        for start in range(0, len(rows), chunk_size):
+            chunk = []
+            for row in rows[start:start + chunk_size]:
+                max_id += 1
+                chunk.append({**row, "id": max_id})
+            stmt = sqlite_insert(ORMGoldenCrossEvent).values(chunk).on_conflict_do_nothing(
+                index_elements=["ticker", "cross_date", "cross_type"]
+            )
+            inserted += int(session.execute(stmt).rowcount or 0)
+        commit_or_rollback(session)
+        return inserted
+
+    def delete_all(self) -> int:
+        with self._provider.get_session() as session:
+            n = session.query(ORMGoldenCrossEvent).delete()
+            commit_or_rollback(session)
+            return int(n)
+
+    # ------------------------------------------------------------------
+    # READ
+    # ------------------------------------------------------------------
+
+    def get_recent_events(
+        self,
+        since: date,
+        cross_type: Optional[CrossType] = None,
+        limit: int = 200,
+    ) -> List[GoldenCrossEvent]:
+        with self._provider.get_session() as session:
+            q = session.query(ORMGoldenCrossEvent).filter(ORMGoldenCrossEvent.cross_date >= since)
+            if cross_type is not None:
+                ct_val = cross_type if isinstance(cross_type, str) else cross_type.value
+                q = q.filter(ORMGoldenCrossEvent.cross_type == CrossTypeEnum(ct_val))
+            rows = q.order_by(ORMGoldenCrossEvent.cross_date.desc(), ORMGoldenCrossEvent.ticker).limit(limit).all()
+            return [self._to_domain(row) for row in rows]
+
+    def get_events_for_ticker(self, ticker: str) -> List[GoldenCrossEvent]:
+        with self._provider.get_session() as session:
+            rows = (
+                session.query(ORMGoldenCrossEvent)
+                .filter_by(ticker=_clean_ticker(ticker))
+                .order_by(ORMGoldenCrossEvent.cross_date.desc())
+                .all()
+            )
+            return [self._to_domain(r) for r in rows]
+
+    def get_last_cross_date_for_ticker(self, ticker: str) -> Optional[date]:
+        with self._provider.get_session() as session:
+            row = (
+                session.query(ORMGoldenCrossEvent.cross_date)
+                .filter_by(ticker=_clean_ticker(ticker))
+                .order_by(ORMGoldenCrossEvent.cross_date.desc())
+                .first()
+            )
+            return row[0] if row else None
+
+    # ------------------------------------------------------------------
+    # Mappers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _to_row(e: GoldenCrossEvent) -> dict:
+        return {
+            "ticker":      _clean_ticker(e.ticker),
+            "cross_date":  e.cross_date,
+            "cross_type":  CrossTypeEnum(e.cross_type.value),
+            "short_ma":    e.short_ma,
+            "long_ma":     e.long_ma,
+            "close_price": e.close_price,
+        }
+
+    @staticmethod
+    def _to_domain(orm: ORMGoldenCrossEvent) -> GoldenCrossEvent:
+        return GoldenCrossEvent(
+            id=orm.id,
+            ticker=orm.ticker,
+            cross_date=orm.cross_date,
+            cross_type=CrossType(orm.cross_type.value if hasattr(orm.cross_type, "value") else orm.cross_type),
+            short_ma=orm.short_ma,
+            long_ma=orm.long_ma,
+            close_price=orm.close_price,
+            detected_at=orm.detected_at,
+        )

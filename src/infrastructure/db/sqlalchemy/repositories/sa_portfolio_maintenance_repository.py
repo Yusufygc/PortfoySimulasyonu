@@ -60,6 +60,44 @@ class SQLAlchemyPortfolioMaintenanceRepository:
         finally:
             session.close()
 
+    def unreferenced_stock_ids(self) -> list[int]:
+        """Kullanıcı verisinden (işlem, izleme listesi, model portföy işlemi, kurumsal aksiyon) hiçbirine bağlı olmayan hisse id'leri."""
+        session = self._provider.get_session()
+        try:
+            referenced: set[int] = set()
+            for model in (ORMTrade, ORMWatchlistItem, ORMModelPortfolioTrade, ORMCorporateAction):
+                referenced.update(int(row[0]) for row in session.query(model.stock_id).distinct().all())
+            return sorted(int(row[0]) for row in session.query(ORMStock.id).all() if int(row[0]) not in referenced)
+        finally:
+            session.close()
+
+    def delete_unreferenced_stocks(self, stock_ids: list[int]) -> tuple[int, int]:
+        """Verilen hisselerin fiyat geçmişini ve kayıtlarını siler; yalnızca hâlâ referanssız olanlara dokunur.
+
+        Döndürür: (silinen fiyat satırı, silinen hisse). `latest_prices` ON DELETE CASCADE ile temizlenir.
+        """
+        safe_ids = tuple(sorted(set(stock_ids) & set(self.unreferenced_stock_ids())))
+        if not safe_ids:
+            return 0, 0
+        session = self._provider.get_session()
+        try:
+            deleted_prices = 0
+            deleted_stocks = 0
+            chunk = 500  # SQLite değişken sınırı için parçalı silme
+            for start in range(0, len(safe_ids), chunk):
+                part = safe_ids[start:start + chunk]
+                deleted_prices += self._delete_by_stock_ids(session, ORMDailyPrice, part)
+                deleted_stocks += (
+                    session.query(ORMStock).filter(ORMStock.id.in_(part)).delete(synchronize_session=False)
+                )
+            session.commit()
+            return deleted_prices, deleted_stocks
+        except SQLAlchemyError:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     @staticmethod
     def _delete_by_stock_ids(session, orm_model, stock_ids: tuple[int, ...]) -> int:
         return (

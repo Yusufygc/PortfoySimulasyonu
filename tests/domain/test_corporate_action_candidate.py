@@ -5,6 +5,7 @@ import pytest
 
 from src.domain.models.corporate_action import ActionType
 from src.domain.models.corporate_action_candidate import (
+    CandidateDiscoveryData,
     CorporateActionCandidate,
     CorporateActionCandidateStatus,
 )
@@ -12,13 +13,15 @@ from src.domain.models.corporate_action_candidate import (
 
 def test_bedelsiz_candidate_with_required_fields_is_ready():
     candidate = CorporateActionCandidate.discovered(
-        ticker="MERKO",
-        stock_id=47,
-        source="kap_mkk",
-        source_disclosure_id="1603760",
-        action_type=ActionType.BEDELSIZ,
-        ratio=Decimal("6.3833834"),
-        ex_date=date(2026, 5, 5),
+        CandidateDiscoveryData(
+            ticker="MERKO",
+            stock_id=47,
+            source="kap_mkk",
+            source_disclosure_id="1603760",
+            action_type=ActionType.BEDELSIZ,
+            ratio=Decimal("6.3833834"),
+            ex_date=date(2026, 5, 5),
+        )
     )
 
     assert candidate.ticker == "MERKO"
@@ -28,13 +31,15 @@ def test_bedelsiz_candidate_with_required_fields_is_ready():
 
 def test_bedelli_candidate_without_subscription_price_needs_review():
     candidate = CorporateActionCandidate.discovered(
-        ticker="ABC.IS",
-        stock_id=1,
-        source="KAP_MKK",
-        source_disclosure_id="1",
-        action_type=ActionType.BEDELLI,
-        ratio=Decimal("0.50"),
-        ex_date=date(2026, 6, 1),
+        CandidateDiscoveryData(
+            ticker="ABC.IS",
+            stock_id=1,
+            source="KAP_MKK",
+            source_disclosure_id="1",
+            action_type=ActionType.BEDELLI,
+            ratio=Decimal("0.50"),
+            ex_date=date(2026, 6, 1),
+        )
     )
 
     assert candidate.status == CorporateActionCandidateStatus.NEEDS_REVIEW
@@ -43,12 +48,14 @@ def test_bedelli_candidate_without_subscription_price_needs_review():
 def test_candidate_rejects_invalid_confidence():
     with pytest.raises(ValueError, match="confidence"):
         CorporateActionCandidate.discovered(
-            ticker="ABC.IS",
-            stock_id=1,
-            source="KAP_MKK",
-            source_disclosure_id="1",
-            action_type=ActionType.BEDELSIZ,
-            ratio=Decimal("0.50"),
-            ex_date=date(2026, 6, 1),
-            confidence=Decimal("1.5"),
+            CandidateDiscoveryData(
+                ticker="ABC.IS",
+                stock_id=1,
+                source="KAP_MKK",
+                source_disclosure_id="1",
+                action_type=ActionType.BEDELSIZ,
+                ratio=Decimal("0.50"),
+                ex_date=date(2026, 6, 1),
+                confidence=Decimal("1.5"),
+            )
         )

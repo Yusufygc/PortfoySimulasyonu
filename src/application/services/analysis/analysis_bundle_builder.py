@@ -8,7 +8,7 @@ from src.application.services.portfolio.safe_portfolio_builder import build_port
 from .benchmark_service import AnalysisBenchmarkService
 from .currency_conversion_service import CurrencyConversionService
 from .models import AnalysisFilterState, BenchmarkSeries
-from .portfolio_series_builder import PortfolioSeriesBuilder
+from .portfolio_series_builder import PortfolioSeriesBuilder, PortfolioSeriesRequest
 from .source_resolver import AnalysisSourceResolver
 
 
@@ -21,106 +21,122 @@ class AnalysisBundleBuilder:
         currency_service: CurrencyConversionService,
         cash_movement_repo=None,
     ) -> None:
+        self._unified_builder = None
         self._source_resolver = source_resolver
         self._series_builder = series_builder
         self._benchmark_service = benchmark_service
         self._currency_service = currency_service
         self._cash_movement_repo = cash_movement_repo
 
+    def use_unified(self, unified_builder) -> None:
+        """Birleşik (Tüm Varlıklar) kaynak serisi için `UnifiedSeriesBuilder` bağlar."""
+        self._unified_builder = unified_builder
+
     def build(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
         warnings: List[str] = []
+        if self._is_unified(filter_state):
+            return self._build_unified(filter_state, warnings)
+        data = self._resolve_trade_data(filter_state)
+        series = self._compute_series_and_benchmarks(filter_state, data, warnings)
+        end_total_value = next(reversed(series["raw_portfolio_series"].values())) if series["raw_portfolio_series"] else Decimal("0")
+        return {
+            "portfolio": data["build_result"].portfolio,
+            "portfolio_series": series["twr_series"],
+            "benchmarks": series["benchmark_series"],
+            "stock_series": series["stock_series"],
+            "position_values_end": series["position_values_end"],
+            "end_total_value": end_total_value,
+            "warnings": warnings,
+            "portfolio_label": data["portfolio_label"],
+            "usd_series_dict": series["usd_series"],
+            "cpi_series_dict": series["cpi_series"],
+        }
+
+    def _is_unified(self, filter_state: AnalysisFilterState) -> bool:
+        return (self._unified_builder is not None
+                and self._source_resolver.normalize_source_code(filter_state.portfolio_source) == AnalysisSourceResolver.SOURCE_UNIFIED)
+
+    def _build_unified(self, filter_state: AnalysisFilterState, warnings: List[str]) -> Dict[str, object]:
+        """Birleşik kaynak: BIST + varlık + nakit havuzu serisi; pozisyon özeti hazır gelir (`position_snapshot`)."""
+        series = self._unified_builder.build(filter_state.start_date, filter_state.end_date)
+        warnings.extend(series.warnings)
+        converted = self._convert_series(filter_state, series.values, series.twr, warnings)
+        raw = converted["raw_portfolio_series"]
+        return {
+            "portfolio": None,
+            "position_snapshot": series.holdings,
+            "portfolio_series": converted["twr_series"],
+            "benchmarks": converted["benchmark_series"],
+            "stock_series": {},
+            "position_values_end": {},
+            "end_total_value": next(reversed(raw.values())) if raw else Decimal("0"),
+            "warnings": warnings,
+            "portfolio_label": self._source_resolver.get_source_label(AnalysisSourceResolver.SOURCE_UNIFIED),
+            "usd_series_dict": converted["usd_series"],
+            "cpi_series_dict": converted["cpi_series"],
+        }
+
+    def _resolve_trade_data(self, filter_state: AnalysisFilterState) -> dict:
         trades = self._source_resolver.get_source_trades(filter_state.portfolio_source)
         portfolio_label = self._source_resolver.get_source_label(filter_state.portfolio_source)
         scoped_trades = [trade for trade in trades if trade.trade_date <= filter_state.end_date]
         display_stock_ids = self._series_builder.resolve_stock_scope(
-            scoped_trades,
-            filter_state.selected_stock_ids,
-            as_of=filter_state.end_date,
+            scoped_trades, filter_state.selected_stock_ids, as_of=filter_state.end_date,
         )
         valuation_stock_ids = self._series_builder.resolve_valuation_stock_scope(
-            scoped_trades,
-            filter_state.selected_stock_ids,
-            filter_state.start_date,
-            filter_state.end_date,
+            scoped_trades, filter_state.selected_stock_ids, filter_state.start_date, filter_state.end_date,
         )
         trade_stock_ids = display_stock_ids if filter_state.selected_stock_ids else None
         ticker_map = self._series_builder.get_ticker_map(sorted(set(display_stock_ids) | set(valuation_stock_ids)))
         build_result = build_portfolio_safely(
             [trade for trade in scoped_trades if not trade_stock_ids or trade.stock_id in trade_stock_ids]
         )
-        cash_movements = self._cash_movements_for(filter_state)
+        return {
+            "portfolio_label": portfolio_label,
+            "display_stock_ids": display_stock_ids,
+            "valuation_stock_ids": valuation_stock_ids,
+            "trade_stock_ids": trade_stock_ids,
+            "ticker_map": ticker_map,
+            "build_result": build_result,
+            "cash_movements": self._cash_movements_for(filter_state),
+        }
+
+    def _compute_series_and_benchmarks(self, filter_state: AnalysisFilterState, data: dict, warnings: list) -> dict:
+        build_result = data["build_result"]
+        ticker_map = data["ticker_map"]
         portfolio_series, twr_series, position_values_end, series_warnings = self._series_builder.compute_portfolio_series(
-            build_result.valid_trades,
-            cash_movements,
-            valuation_stock_ids,
-            ticker_map,
-            filter_state.start_date,
-            filter_state.end_date,
-            build_result.portfolio,
-            trade_stock_ids=trade_stock_ids,
+            PortfolioSeriesRequest(
+                trades=build_result.valid_trades,
+                cash_movements=data["cash_movements"],
+                stock_ids=data["valuation_stock_ids"],
+                ticker_map=ticker_map,
+                start_date=filter_state.start_date,
+                end_date=filter_state.end_date,
+                portfolio=build_result.portfolio,
+                trade_stock_ids=data["trade_stock_ids"],
+            )
         )
         warnings.extend(series_warnings)
+        converted = self._convert_series(filter_state, portfolio_series, twr_series, warnings)
+        stock_series, stock_warnings = self._converted_stock_series(
+            filter_state, data["display_stock_ids"], ticker_map, converted["usd_series"], converted["cpi_series"])
+        warnings.extend(stock_warnings)
+        return {**converted, "position_values_end": position_values_end, "stock_series": stock_series}
+
+    def _convert_series(self, filter_state: AnalysisFilterState, portfolio_series: dict, twr_series: dict, warnings: list) -> dict:
+        """Değer ve TWR serilerini para birimi moduna çevirir, benchmark serilerini hazırlar."""
         raw_benchmarks, benchmark_warnings = self._benchmark_service.build_benchmark_series(
-            filter_state.start_date,
-            filter_state.end_date,
-            self._needed_benchmarks(filter_state),
+            filter_state.start_date, filter_state.end_date, self._needed_benchmarks(filter_state),
         )
         warnings.extend(benchmark_warnings)
-        usd_series = next((benchmark.points for benchmark in raw_benchmarks if benchmark.code == "usd"), {})
-        cpi_series = next((benchmark.points for benchmark in raw_benchmarks if benchmark.code == "cpi"), {})
-        raw_portfolio_series = self._currency_service.apply_currency_mode(
-            portfolio_series,
-            filter_state.currency_mode,
-            usd_series,
-            cpi_series,
-        )
-        twr_series = self._currency_service.apply_currency_mode(
-            twr_series,
-            filter_state.currency_mode,
-            usd_series,
-            cpi_series,
-            is_normalized=True,
-        )
-        benchmark_series = self._converted_benchmarks(filter_state, raw_benchmarks, usd_series, cpi_series)
-        stock_series, stock_warnings = self._converted_stock_series(filter_state, display_stock_ids, ticker_map, usd_series, cpi_series)
-        warnings.extend(stock_warnings)
-        return self._bundle_dict(
-            portfolio=build_result.portfolio,
-            portfolio_series=twr_series,
-            end_total_value=next(reversed(raw_portfolio_series.values())) if raw_portfolio_series else Decimal("0"),
-            benchmark_series=benchmark_series,
-            stock_series=stock_series,
-            position_values_end=position_values_end,
-            warnings=warnings,
-            portfolio_label=portfolio_label,
-            usd_series=usd_series,
-            cpi_series=cpi_series,
-        )
-
-    @staticmethod
-    def _bundle_dict(
-        portfolio,
-        portfolio_series,
-        end_total_value,
-        benchmark_series,
-        stock_series,
-        position_values_end,
-        warnings,
-        portfolio_label,
-        usd_series,
-        cpi_series,
-    ) -> Dict[str, object]:
+        usd_series = next((b.points for b in raw_benchmarks if b.code == "usd"), {})
+        cpi_series = next((b.points for b in raw_benchmarks if b.code == "cpi"), {})
+        mode = filter_state.currency_mode
         return {
-            "portfolio": portfolio,
-            "portfolio_series": portfolio_series,
-            "benchmarks": benchmark_series,
-            "stock_series": stock_series,
-            "position_values_end": position_values_end,
-            "end_total_value": end_total_value,
-            "warnings": warnings,
-            "portfolio_label": portfolio_label,
-            "usd_series_dict": usd_series,
-            "cpi_series_dict": cpi_series,
+            "twr_series": self._currency_service.apply_currency_mode(twr_series, mode, usd_series, cpi_series, is_normalized=True),
+            "raw_portfolio_series": self._currency_service.apply_currency_mode(portfolio_series, mode, usd_series, cpi_series),
+            "benchmark_series": self._converted_benchmarks(filter_state, raw_benchmarks, usd_series, cpi_series),
+            "usd_series": usd_series, "cpi_series": cpi_series,
         }
 
     def _cash_movements_for(self, filter_state: AnalysisFilterState) -> list:

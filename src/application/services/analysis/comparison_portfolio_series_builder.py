@@ -6,7 +6,7 @@ from src.application.services.portfolio.safe_portfolio_builder import build_port
 
 from .currency_conversion_service import CurrencyConversionService
 from .models import AnalysisFilterState, BenchmarkSeries
-from .portfolio_series_builder import PortfolioSeriesBuilder
+from .portfolio_series_builder import PortfolioSeriesBuilder, PortfolioSeriesRequest
 from .source_resolver import AnalysisSourceResolver
 
 
@@ -16,7 +16,9 @@ class ComparisonPortfolioSeriesBuilder:
         source_resolver: AnalysisSourceResolver,
         series_builder: PortfolioSeriesBuilder,
         currency_service: CurrencyConversionService,
+        unified_builder=None,
     ) -> None:
+        self._unified_builder = unified_builder
         self._source_resolver = source_resolver
         self._series_builder = series_builder
         self._currency_service = currency_service
@@ -49,6 +51,8 @@ class ComparisonPortfolioSeriesBuilder:
         source_code: str,
         filter_state: AnalysisFilterState,
     ) -> dict:
+        if source_code == AnalysisSourceResolver.SOURCE_UNIFIED and self._unified_builder is not None:
+            return self._unified_builder.build(filter_state.start_date, filter_state.end_date).twr
         trades = self._source_resolver.get_source_trades(source_code)
         scoped_trades = [trade for trade in trades if trade.trade_date <= filter_state.end_date]
         stock_ids = self._series_builder.resolve_valuation_stock_scope(
@@ -61,14 +65,16 @@ class ComparisonPortfolioSeriesBuilder:
         ticker_map = self._series_builder.get_ticker_map(stock_ids)
         build_result = build_portfolio_safely(scoped_trades)
         raw_series, twr_series, _, _ = self._series_builder.compute_portfolio_series(
-            build_result.valid_trades,
-            [],
-            stock_ids,
-            ticker_map,
-            filter_state.start_date,
-            filter_state.end_date,
-            build_result.portfolio,
-            trade_stock_ids=trade_stock_ids,
+            PortfolioSeriesRequest(
+                trades=build_result.valid_trades,
+                cash_movements=[],
+                stock_ids=stock_ids,
+                ticker_map=ticker_map,
+                start_date=filter_state.start_date,
+                end_date=filter_state.end_date,
+                portfolio=build_result.portfolio,
+                trade_stock_ids=trade_stock_ids,
+            )
         )
         return twr_series
 

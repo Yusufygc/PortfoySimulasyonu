@@ -87,3 +87,23 @@ def test_build_preflight_static_checks_pass_without_runtime_imports():
     ]
 
     assert not failures, [f"{failure.name}: {failure.message}" for failure in failures]
+
+
+def test_build_preflight_rejects_bundling_real_data_directory(tmp_path):
+    (tmp_path / "build_nuitka.bat").write_text(
+        "python -m nuitka --include-data-dir=data=data app.py\n", encoding="utf-8"
+    )
+
+    result = build_preflight._bundled_data_guard(tmp_path)
+
+    assert not result.ok
+
+
+def test_build_preflight_ignores_commented_data_directory_mention(tmp_path):
+    (tmp_path / "build_nuitka.bat").write_text(
+        "REM --include-data-dir=data=data kullanilmaz\npython -m nuitka app.py\n", encoding="utf-8"
+    )
+
+    result = build_preflight._bundled_data_guard(tmp_path)
+
+    assert result.ok

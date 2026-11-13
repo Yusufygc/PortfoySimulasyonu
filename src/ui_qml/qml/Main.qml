@@ -1,0 +1,257 @@
+import QtQuick
+import QtQuick.Window
+import QtQuick.Layouts
+import QtQuick.Controls
+import "theme"
+import "components"
+import "views"
+
+ApplicationWindow {
+    id: appWindow
+    visible: true
+    width: Math.min(1320, Math.max(960, Screen.desktopAvailableWidth * 0.90))
+    height: Math.min(840, Math.max(600, Screen.desktopAvailableHeight * 0.90))
+    minimumWidth: 720
+    minimumHeight: 480
+    title: Strings.windowTitle
+    color: Theme.bgPrimary
+
+    // Dar pencerede kenar çubuğu otomatik daralır, boşluklar küçülür
+    readonly property bool compact: width < 1100
+    // İçerik bu genişliğin/yüksekliğin altına inerse sayfa kaydırılır (taşma/bozulma yerine)
+    readonly property int pageMinWidth: 760
+    readonly property int pageMinHeight: 480
+
+    // Etkin sayfanın bildirdiği asgari içerik ölçüsü (minContentWidth / minContentHeight); yoksa varsayılan
+    function activePageMetric(name, fallback) {
+        const page = pageStack.children[shellController.activePage]
+        const target = (page && page.item !== undefined) ? page.item : page
+        const value = target ? target[name] : undefined
+        return (value !== undefined && value !== null && value > 0) ? value : fallback
+    }
+
+    // Tema tercihi (kayıtlı ayar) açılışta ve her değişiklikte Theme'e yansır; başlık düğmesi de aynı yolu kullanır
+    Binding {
+        target: Theme
+        property: "isDark"
+        value: (typeof settingsController !== "undefined") ? settingsController.isDarkTheme : true
+    }
+
+    Component.onCompleted: {
+        x = Math.max(0, (Screen.desktopAvailableWidth - width) / 2)
+        y = Math.max(0, (Screen.desktopAvailableHeight - height) / 2)
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        // Üst Başlık Çubuğu & Piyasa Göstergeleri
+        WindowHeader {
+            id: header
+            Layout.fillWidth: true
+            onSearchRequested: function(ticker) {
+                shellController.navigateTo(0)
+                chartController.loadTicker(ticker)
+            }
+        }
+
+        // Ana Gövde (Sidebar + İçerik)
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 0
+
+            // Sol Navigasyon Barı
+            Sidebar {
+                id: sidebar
+                Layout.fillHeight: true
+                autoCollapse: appWindow.compact
+            }
+
+            // Sayfa İçerik Alanı
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: Theme.bgPrimary
+
+                Flickable {
+                    id: pageScroll
+                    anchors.fill: parent
+                    anchors.margins: appWindow.compact ? Theme.spaceSm : Theme.spaceMd
+                    contentWidth: Math.max(width, appWindow.activePageMetric("minContentWidth", appWindow.pageMinWidth))
+                    contentHeight: Math.max(height, appWindow.activePageMetric("minContentHeight", appWindow.pageMinHeight))
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    ScrollBar.vertical: ModernScrollBar {}
+                    ScrollBar.horizontal: ModernScrollBar {}
+
+                StackLayout {
+                    id: pageStack
+                    width: pageScroll.contentWidth
+                    height: pageScroll.contentHeight
+                    currentIndex: shellController.activePage
+
+                    // 0: Dashboard (Canlı QML & TradingView)
+                    DashboardView {
+                        id: dashboardView
+                    }
+
+                    // 1: Watchlist (Faz 4 - Canlı Çoklu Liste & Sparkline - Tembel Yükleme)
+                    Loader {
+                        id: watchlistLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 1 || (status === Loader.Ready)
+                        source: "views/WatchlistView.qml"
+                    }
+
+                    // 2: Model Portföyler (Faz 6 - Canlı Sanal Simülasyon, Nakit Akışı & Al/Sat - Tembel Yükleme)
+                    Loader {
+                        id: modelPortfolioLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 2 || (status === Loader.Ready)
+                        source: "views/ModelPortfolioView.qml"
+                    }
+
+                    // 3: Hisse 360 & Temel Analiz (Faz 5 - Canlı Rasyolar, Bilanço & KAP Ortaklık - Tembel Yükleme)
+                    Loader {
+                        id: stock360Loader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 3 || (status === Loader.Ready)
+                        source: "views/Stock360View.qml"
+                    }
+
+                    // 4: Karşılaştırma Laboratuvarı (Faz 7 - Normalize Getiri & Risk Metrikleri - Tembel Yükleme)
+                    Loader {
+                        id: comparisonLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 4 || (status === Loader.Ready)
+                        source: "views/ComparisonView.qml"
+                    }
+
+                    // 5: BIST Sinyal Tarayıcısı (Faz 7 - Algoritmik Strateji Taraması - Tembel Yükleme)
+                    Loader {
+                        id: screenerLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 5 || (status === Loader.Ready)
+                        source: "views/ScreenerView.qml"
+                    }
+
+                    // 6: Finansal Planlama (Faz 8 - Bütçe, Hedefler & DCA Simülasyonu - Tembel Yükleme)
+                    Loader {
+                        id: planningLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 6 || (status === Loader.Ready)
+                        source: "views/PlanningView.qml"
+                    }
+
+                    // 7: Optimizasyon (Faz 9 - Markowitz Portföy Optimizasyonu & Verimli Sınır - Tembel Yükleme)
+                    Loader {
+                        id: optimizationLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 7 || (status === Loader.Ready)
+                        source: "views/OptimizationView.qml"
+                    }
+
+                    // 8: AI Danışman (Faz 10 - Gemini AI Karar Destek & Portföy Danışmanı - Tembel Yükleme)
+                    Loader {
+                        id: aiAdvisorLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 8 || (status === Loader.Ready)
+                        source: "views/AiAdvisorView.qml"
+                    }
+
+                    // 9: Ayarlar (Faz 11 - Uygulama Ayarları & Veritabanı Yönetimi - Tembel Yükleme)
+                    Loader {
+                        id: settingsLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 9 || (status === Loader.Ready)
+                        source: "views/SettingsView.qml"
+                    }
+
+                    // 10: Portföyüm (Pozisyonlar, KPI'lar, Varlık Dağılımı - Tembel Yükleme)
+                    Loader {
+                        id: myPortfolioLoader
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        active: shellController.activePage === 10 || (status === Loader.Ready)
+                        source: "views/MyPortfolioView.qml"
+                    }
+                }
+                }
+            }
+        }
+    }
+
+    // Global Toast Bildirimi (Piyasa Verisi Senkronizasyonu & Sistem Mesajları)
+    ToastNotification {
+        id: globalToast
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 24
+        z: 999
+    }
+
+    Connections {
+        target: (typeof marketSyncController !== "undefined") ? marketSyncController : null
+        function onSyncNotification(success, message) {
+            globalToast.show(message, success)
+        }
+    }
+
+    Connections {
+        target: (typeof startupJobsController !== "undefined") ? startupJobsController : null
+        function onJobNotification(success, message) {
+            globalToast.show(message, success)
+        }
+    }
+
+    // Hisse Detayı & Pozisyon Analitiği Modalı (Global)
+    StockDetailModal {
+        id: globalStockDetailModal
+
+        onOpenChartRequested: function(ticker) {
+            if (typeof chartController !== "undefined") {
+                // Pozisyonun ortalama maliyeti grafikte çizgi olarak gösterilir
+                const cost = (typeof stockDetailController !== "undefined") ? stockDetailController.avgCost : 0
+                chartController.loadTickerWithCost(ticker, cost)
+            }
+            shellController.navigateTo(0)
+        }
+
+        onOpenStock360Requested: function(ticker) {
+            if (typeof stock360Controller !== "undefined") {
+                stock360Controller.searchTicker(ticker)
+            }
+            shellController.navigateTo(3)
+        }
+    }
+
+    Connections {
+        target: (typeof stockDetailController !== "undefined") ? stockDetailController : null
+        function onTradeExecuted(success, message) {
+            if (success) {
+                // Yeni pozisyon: ekranlar DB'den yeniden okunur; seans açıksa yeni hissenin canlı fiyatı da çekilir
+                if (typeof priceRefreshController !== "undefined") {
+                    priceRefreshController.notifyDataChanged()
+                    priceRefreshController.refreshNow()
+                }
+                if (typeof portfolioController !== "undefined") {
+                    portfolioController.refreshData()
+                }
+                if (typeof myPortfolioController !== "undefined") {
+                    myPortfolioController.reload()
+                }
+            }
+        }
+    }
+}

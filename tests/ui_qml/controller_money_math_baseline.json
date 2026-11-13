@@ -1,0 +1,13 @@
+{
+  "chart_candle_sources.py": 1,
+  "comparison_controller.py": 1,
+  "corporate_action_controller.py": 3,
+  "market_adjustment_controller.py": 1,
+  "model_analysis_controller.py": 6,
+  "optimization_controller.py": 11,
+  "optimization_pipeline.py": 1,
+  "planning_controller.py": 1,
+  "risk_profile_controller.py": 1,
+  "stock_360_calc.py": 5,
+  "strategy_backtest_controller.py": 1
+}

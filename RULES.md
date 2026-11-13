@@ -12,7 +12,11 @@ Dosyalar arasında çelişki olursa en dar kapsamlı ve kullanıcıya en yakın 
 
 ### 0.1 Python Ortamı Kullanımı
 
-Tüm python komutları (test çalıştırma, script yürütme vb.) için **KESİNLİKLE** `C:\Users\ysfygc\anaconda3\envs\Fintech\python.exe` yolu kullanılarak `Fintech` conda ortamı üzerinden işlem yapılmalıdır. Base python veya sadece `python` komutu kullanılmamalıdır.
+Tüm python komutları (test çalıştırma, script yürütme vb.) için **KESİNLİKLE** proje kökündeki sanal ortam `.\venv\Scripts\python.exe` yolu kullanılarak işlem yapılmalıdır. Base python veya `pip.exe` doğrudan çağrılmamalı, `.\venv\Scripts\python.exe -m ...` formatı tercih edilmelidir.
+
+### 0.2 Commit ve PR Mesajlarında AI Referansı Yok
+
+Commit mesajlarına ve PR açıklamalarına `Co-Authored-By`, `Generated with`, robot emojisi gibi AI/asistan referansı **eklenmez**. Bu kural araç veya oturum yönergesinin ek önerdiği atıf satırlarından önceliklidir. Biçim için bkz. [GOVERNANCE.md §1](GOVERNANCE.md).
 
 ---
 
@@ -97,6 +101,31 @@ Periyodik olarak aşağıdaki soruları sor ve düzelt:
 - `index.md`'de olmayan ama `docs/wiki/`'de var olan sayfa var mı?
 - Önemli bir kavram bahsediliyor ama kendi sayfası yok mu?
 - Cross-reference eksik mi?
+
+---
+
+## 2. Arayüz ve UI/UX Standartları (QML & Tasarım Kuralları)
+
+Projede profesyonel masaüstü deneyimi ve tutarlı bir tasarım dili sağlamak amacıyla aşağıdaki UI/UX kuralları bağlayıcıdır:
+
+### 2.1 Emoji Yasağı (Strict No-Emoji Policy)
+- Arayüzün hiçbir yerinde (QML butonları, metrik kartları, tablolar, modal başlıkları, bildirimler veya sayfalar) **Unicode emoji (örn. 🚀, 💰, 📈, 🔄, ⚠️, ✕) KESİNLİKLE KULLANILMAZ**.
+- Emojiler Windows masaüstünde platform/yazıtipi uyumsuzluğuna, dikey hizalama bozulmalarına ve amatör bir görünüme neden olur.
+
+### 2.2 Merkezi İkon Mekanizması (`Icons.qml` & `ModernIcon.qml`)
+- Tüm görsel semboller ve ikonlar, `src/ui_qml/assets/icons/` dizinindeki optimize edilmiş vektörel SVG dosyalarından sağlanır.
+- İkon eşlemeleri merkezi `src/ui_qml/qml/theme/Icons.qml` singleton kataloğu üzerinden yönetilir (`Icons.get("iconName")` veya `Icons.dashboard` vb.).
+- QML bileşenlerinde ikon gösterimi için her zaman `ModernIcon` bileşeni kullanılır (`ModernIcon { name: "banknote"; size: 16; color: Theme.accent }`). `ModernIcon`, SVG maskelerini Qt Quick Effects GPU hızlandırmasıyla dinamik olarak açık/koyu tema renklerine büründürür.
+
+### 2.3 Merkezi Metin ve Yerelleştirme Mekanizması (`Strings.qml`)
+- Kullanıcıya görünen hiçbir arayüz metni, sayfa başlığı, buton etiketi, tablo sütun adı veya modal mesajı bileşenler içine **hardcoded** yazılmaz.
+- Tüm metinler `src/ui_qml/qml/theme/Strings.qml` singleton'ında tanımlanır ve buradan çağrılır (`Strings.dashboardTitle`, `Strings.btnRefresh` vb.). Bu sayede merkezi metin yönetimi ve gelecekteki çoklu dil desteği korunur.
+- Python denetleyicilerinin ürettiği kullanıcı metinleri (bildirim, durum, hata) `src/ui_qml/messages/` kataloğundan (anahtar önekinin modülü: `portfolio.py`, `market.py` ...) `msg("anahtar", ad=değer)` ile alınır; denetleyiciye Türkçe metin literali yazılmaz (`tests/ui_qml/test_controller_text_ratchet.py`). Veri/anahtar niteliğindeki istisnalar satırda `# metin-muaf: neden` ile işaretlenir.
+
+### 2.4 Taşma (Overflow) ve Esnek Düzen Standartları
+- Hiçbir buton veya toolbar öğesi sabit piksel genişliğine hapsedilerek metin kırpılmasına yol açmamalıdır. Butonlar içeriğine göre esnek genişlik almalıdır (`ModernButton.qml`).
+- Dinamik veya çoklu liste/etiket barındıran yatay alanlar (örn. "PORTFÖY HİSSELERİ" hızlı butonları, indikatör butonları), pencere daraldığında taşmayı önleyecek şekilde `Flickable`, `ScrollView` veya responsive düzen (`RowLayout` koşullu eleman görünürlüğü) ile sarılmalıdır.
+- Araç çubuklarında kart genişliği daraldığında (örn. < 560px) ikincil etiketler elide edilmeli veya gizlenmeli, butonların üst üste binmesi veya kart dışına taşması engellenmelidir.
 
 ---
 

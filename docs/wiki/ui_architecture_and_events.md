@@ -1,127 +1,103 @@
-# Kullanıcı Arayüzü (UI) ve Olay (Event) Mimarisi
+# Kullanıcı Arayüzü Mimarisi (QML) ve Olay Akışı
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Sayfa rehberi: [qml_pages_guide.md](qml_pages_guide.md)
 
-Bu belge, `src/ui/` dizini altındaki PyQt5 bileşenleri, yönlendirme, asenkron iletişim ve tema mimarisini açıklar.
+Arayüz yalnızca **PySide6 + Qt Quick (QML)** ile yazılmıştır (`src/ui_qml`). Eski Qt Widgets arayüzü (`src/ui`) 2026-10-03'te silinmiştir; tarihsel anlatımına git geçmişinden (`git log -- src/ui`) ulaşılır. Bu sayfa kalıcı arayüz kurallarını ve olay akışını açıklar; sayfa ve denetleyici ayrıntıları [qml_pages_guide.md](qml_pages_guide.md) içindedir.
 
-## 1. PyQt5 Thread ve Worker Yapısı
+## 1. Katmanlı Yapı: İnce QML + Python Denetleyici
 
-Masaüstü uygulamalarında, API istekleri veya yoğun hesaplamalar Ana Thread'i (Main GUI Thread) kilitlerse arayüz donar. Bunu engellemek için tüm işlemler `QRunnable` ve `QThreadPool` tabanlı `worker.py` mekanizması ile arka planda çalıştırılır.
+```
+QML görünümü (qml/views, qml/components)
+   ^ özellik bağlama, sinyal/slot
+Python denetleyici (controllers/*.py, QObject)  -- context property olarak kaydedilir (app.py)
+   v yalnızca application/domain
+Application servisleri
+```
 
-### Temel Akış
-1. Kullanıcı butona basar.
-2. UI nesnesi (örn. Buton), Worker nesnesini ilklendirir ve `QThreadPool.globalInstance().start(worker)` çağrılır.
-3. Worker, hesaplamayı arka planda yapar ve PyQt Sinyalleri (`signals`) ile sonucu (`success`, `error` vb.) ana thread'deki UI bileşenine iletir.
-4. UI bileşeni sadece gelen sinyali dinleyerek ekrana yansıtır.
+- QML yalnızca sunum ve etkileşimden sorumludur; iş mantığı, biçimlendirme ve veri erişimi denetleyicide/servistedir.
+- Her denetleyici `QObject` alt sınıfıdır; `Property` (okunur, `notify` sinyalli), `Slot` (QML'den çağrılır) ve `Signal` (bildirim, sonuç) sunar. `app.py` denetleyicileri oluşturur ve `engine.rootContext().setContextProperty("xxxController", ctrl)` ile kaydeder.
+- QML bileşenleri denetleyiciye `typeof xxxController !== "undefined"` koruması ile erişir; böylece bileşen denetleyicisiz de (testte) uyarısız derlenir.
+- Tablolar için `QAbstractTableModel` tabanlı modeller kullanılır (`PositionsTableModel`, `WatchlistTableModel`); satır güncellemelerinde yeşil/kırmızı yanıp sönme animasyonu uygulanır.
 
-### Faz 4 Standardı
+## 2. Ana Pencere ve Gezinme
 
-- UI tarafındaki uzun işlemler ortak `src/ui/worker.py` içindeki `Worker(QRunnable)` ile çalışır; özel `QThread` sınıfı yalnızca gerekçeli ve testli istisna olarak kabul edilir.
-- `Worker.signals.error` mevcut tuple sözleşmesini korur: `(exception_type, exception_value, traceback_text)`.
-- AI analizi, Gemini chat/yorum üretimi ve optimizasyon akışları `Worker + QThreadPool` modeline taşınmıştır.
-- Async UI sonuçlarında request-id kontrolü kullanılır; eski worker sonucu yeni filtre veya ekran durumunu ezmez.
+- `Main.qml`: `ApplicationWindow`, üstte `WindowHeader` (arama, piyasa şeridi, senkron rozeti), solda `Sidebar`, ortada `StackLayout` ile 11 sayfa. Her sayfa **lazy `Loader`** ile ilk açıldığında yüklenir; sonra bellekte kalır.
+- `ShellController` etkin sayfa dizinini (`activePage`) ve piyasa seans durumunu tutar; `navigateTo(i)` ile sayfa değişir. Sayfa dizinleri: 0 Genel Bakış, 1 İzleme Listeleri, 2 Model Portföyler, 3 Hisse 360, 4 Karşılaştırma Lab, 5 Hisse Tarayıcı, 6 Finansal Planlama, 7 Optimizasyon, 8 AI Asistan, 9 Ayarlar, 10 Portföyüm (kenar çubuğunda Genel Bakış'ın altında; dizinler kaymasın diye sona eklendi).
+- Pencere dar olduğunda (`width < 1100`) kenar çubuğu otomatik daralır. İçerik asgari ölçünün altına inerse sayfa kaydırılır; sayfalar `minContentWidth`/`minContentHeight` bildirebilir.
+- `ToastNotification` ile küresel bildirimler gösterilir (senkron sonucu, açılış işleri); modallar kendi içinde yerel toast taşır.
 
-## 2. Global Event Bus (Pub/Sub)
+## 3. Tema, Metin ve İkon Sistemi
 
-Farklı ekranların birbirini doğrudan bilmeden haberleşmesini sağlamak için `container.event_bus` kullanılır. Bu, modüllerin (coupling) sıkı bağlanmasını önler.
+`src/ui_qml/qml/theme/` altındaki üç singleton `qmldir` ile kayıtlıdır (`pragma Singleton` kullanan her dosya `qmldir`'e eklenmelidir):
 
-- Örneğin fiyat sağlığı ekranında fiyatlar güncellendiğinde, arka plandaki servis `event_bus.prices_updated.emit()` sinyalini yayar.
-- Hem Ana Sayfa (Dashboard teknik modülü) hem de Analiz Ekranı bu sinyali dinler ve eğer güncellenen hisse kendi listelerindeyse UI grafiklerini otomatik olarak yeniler.
+| Singleton | Görev |
+|---|---|
+| `Theme` | Renk paleti (koyu/açık), yazı tipleri, boşluk ve köşe yarıçapı sabitleri. `Theme.isDark` ile tema değişir; seçim `QSettings` (`ui/isDarkTheme`) ile kalıcıdır (`SettingsController.toggleTheme`). Koyu temanın ana renkleri: zemin `#131722`, kart `#242731`, vurgu mavi. |
+| `Strings` | Kullanıcıya görünen **tüm** metinler (`Strings.navDashboard`, `Strings.btnCancel`...). Doğru Türkçe karakterler kullanılır. |
+| `Icons` | `src/ui_qml/assets/icons/` altındaki Lucide SVG'lerinin kataloğu; `Icons.get("ad")` veya adla `ModernIcon { name: "banknote" }`. |
 
-### Fiyat Güncelleme Olayı
+Kurallar ([RULES.md](../../RULES.md) §2):
+- **Emoji yok.** Simgeler yalnızca SVG ikonlardır (`ModernIcon`, GPU renklendirmeli).
+- **Metin kataloğu:** QML'e sabit kullanıcı metni yazılmaz; yeni metin önce `Strings.qml`'e eklenir. `tests/ui_qml/test_strings_catalog.py` tanımsız/yinelenen/kullanılmayan anahtarı ve Türkçe sabit literal'i yakalar. Örnek veri ve bileşen varsayılanları testteki izin listesindedir.
+- **Python tarafı metin kataloğu:** Denetleyiciler Türkçe kullanıcı metni yazmaz; `src/ui_qml/messages/` paketindeki (anahtar önekine göre özellik modülleri) `msg("anahtar", ad=değer)` çağrılır (anahtar adı `<alan>.<olay>`). Sayı/para/yüzde biçimi `src/ui_qml/presenters/formatting.py` (`tr_number`, `tr_money`, `tr_pct`). Koruma: `tests/ui_qml/test_controller_text_ratchet.py` (denetleyicide Türkçe literal tavanı **0**; log, docstring ve `# metin-muaf: neden` yorumlu veri/istem/HTML şablonu hariç) ve `tests/ui_qml/test_message_catalog.py` (tanımsız ve kullanılmayan anahtar yok, çağrı parametreleri yer tutucularla eşleşir, anahtar sabit olmalı, bir önek tek modülde, yinelenen anahtar hata).
+- **Sayı biçimi:** Kullanıcıya görünen sayılar Türkçe biçimlenir (`1.234,56`, `₺1.234,56`, `+%1,20`): Python tarafında `tr_number`/`tr_pct` (şablon çıktısı için `swap_separators`), QML'de `toLocaleString(Qt.locale("tr_TR"), "f", n)` ya da `toFixed(n).replace(".", ",")`, grafik şablonlarında `trFixed/trPct`. Giriş alanlarına önerilen değer `input_decimal` (virgüllü, binliksiz). Elle yazılan `:,.2f` biçimi kullanılmaz.
+- **Kontrast (WCAG AA):** Metin renkleri her yüzeyde en az 4,5:1 kontrast verir. `Theme.textMuted` (en soluk metin) koyu `#8a98ae`, açık `#646c79`; yazı rengi olarak vurgu gerektiğinde dolgu renkleri (`bullGreen`, `bearRed`, `accent`, `warning`) değil metin belirteçleri (`textPositive`, `textNegative`, `textAccent`, `textWarning`) kullanılır. En küçük yazı boyutu `Theme.fontXs` = 11. Kontrol: kontrast oranları WCAG formülüyle `Theme` değerlerinden hesaplanır (bkz. [log.md](log.md) 2026-11-03 QA girişi).
+- **Taşma yok:** Butonlar içeriğe göre esner (`ModernButton`); çok öğeli yatay alanlar `Flickable`/`Flow`/`GridLayout` ile sarılır; dar kartlarda ikincil etiketler elide edilir.
+- Ortak bileşenler: `ModernCard`, `ModernButton`, `ModernInput`, `ModernComboBox`, `ModernScrollBar`, `ModernIcon`, `MetricCard`, `ConfirmDialog`, `ToastNotification`.
 
-- Public import yüzeyi `src.application.events.GlobalEventBus` olarak sabitlenmiştir.
-- `prices_updated` payload sözleşmesi `dict[int, Decimal]` şeklindedir.
-- UI katmanında fiyat güncelleme yayını `src/ui/shared/price_event_publisher.py` içindeki `publish_prices_updated(event_bus, prices)` helper'ı üzerinden yapılır.
-- Helper boş payload'u yayınlamaz; dolu payload'u kopyalayarak emit eder ve Decimal fiyat değerlerini dönüştürmez.
+## 4. Grafikler ve Web İçerik
 
-### Otomatik Canli Fiyat Yenileme
+| Alan | Teknoloji |
+|---|---|
+| Fiyat grafiği (Genel Bakış, hisse detayı, tam ekran) | TradingView Lightweight Charts, `assets/templates/tradingview_chart.html` şablonu; `ChartController` OHLCV, zaman dilimi (`1D/1W/1M`), grafik tipi ve göstergeleri (SMA/EMA, Bollinger, RSI, MACD, Golden/Death Cross okları) sağlar. |
+| DCA ve strateji testi değer eğrisi | Lightweight Charts (`lw_chart_html.py`, `PlanningController`). |
+| Karşılaştırma Lab, Optimizasyon sınırı | Lightweight Charts ve Chart.js (`assets/js/chart.umd.min.js`); denetleyici HTML üretir, QML `WebEngineView` gösterir ([comparison_lab.md](comparison_lab.md)). |
+| Hisse 360 finansal dashboard ve ortaklık yapısı | Plotly HTML (`reporting/html/`); yama uygulanmış yerel Plotly JS'i kullanılır, CDN yoktur. |
+| Hisse 360 | Denetleyicinin ürettiği geçici HTML dosyaları (`stock_360_html.py`); uygulama kapanırken temizlenir. |
+| Küçük çizimler | QML `Canvas` (varlık dağılımı donut'u, treemap, mini sparkline). |
 
-- `LivePriceRefreshController`, MainWindow icinde uygulama geneli intraday fiyat yenileme timer'ini yonetir; isleri ortak `Worker + QThreadPool` ile arka planda calistirir.
-- Otomatik yenileme BIST islem gunlerinde, acikken ve baska yenileme worker'i kosmuyorken baslar; basarili sonuc once `latest_prices` cache'ine yazilir, sonra `prices_updated` olarak yayilir.
-- Periyodik intraday hatalarinda tekil ticker hatalari loglanir, kullanici toast ile rahatsiz edilmez; ard arda genel hata birikirse kisa warning gosterilir.
-- `prices_updated` UI degerlemesi icin anlik kaynaktir; tarihsel rapor, backtest ve fiyat sagligi `daily_prices` kapanis sozlesmesini kullanmaya devam eder.
+`QtWebEngineQuick.initialize()` `QApplication`'dan önce çağrılır (`ui_qml/app.py`); `app.py` ayrıca `AA_ShareOpenGLContexts` özniteliğini açar (`tests/test_repo_guards.py` bunu denetler). Uygulama Qt Quick Controls "Basic" stilini kullanır (özelleştirilmiş bileşenler yerel stille ezilmesin diye).
 
-## 3. Tema ve Design Tokens (Tasarım Değişkenleri)
+## 5. İş Parçacıkları ve Sinyaller
 
-`ThemeManager` ve `tokens.py` kullanılarak gelişmiş ve modüler bir QSS mimarisi kurgulanmıştır:
+Ana iş parçacığını bloke eden her iş denetleyicide `ThreadPoolExecutor` ile arka planda çalışır:
 
-- **Tokens (`src/ui/styles/tokens.py`):** Uygulamanın tüm renk paleti (Dark/Light modu), font boyutları, yuvarlama yarıçapları (border-radius) tek bir merkezde, Python sözlüğü (dict) olarak tutulur.
-- **Modüler QSS:** Büyük bir `.qss` dosyası yerine, farklı bileşenler için (primitives, shared, feature) ayrı `.qss` dosyaları mevcuttur. Uygulama ayağa kalkarken bu dosyalar derlenir ve ilgili "Token" stringleri asıl renk kodlarıyla değiştirilerek arayüze basılır.
-- Faz 4 itibarıyla yeni görsel stiller inline `setStyleSheet` yerine `cssClass`/dynamic property ve QSS manifest dosyalarıyla eklenir. Bilinçli istisna olarak tema önizleme swatch'ları runtime renk kullandığı için `AppearancePanel` içinde kalabilir.
+1. QML bir `Slot` çağırır (ör. `runScan()`).
+2. Denetleyici işi `executor.submit(...)` ile başlatır ve `isRunning` özelliğini `true` yapar.
+3. İş bitince **iş parçacığından** özel bir Qt sinyali (`_scanCompleted = Signal(object)`) yayılır; sinyal kuyruklu bağlantıyla ana iş parçacığındaki yuvaya (`_apply_results`) ulaşır.
+4. Yuva özellikleri günceller ve `notify` sinyalleri QML bağlamalarını yeniler.
 
-## 4. Yönlendirme ve PageFactory
+Kurallar: arka plan iş parçacığından QML özelliği doğrudan değiştirilmez. Gecikmeli iş (açılış yenilemesi vb.) `QTimer.singleShot` ile değil `src/ui_qml/deferred.run_later(sahip, ms, iş)` ile kurulur: zamanlayıcı sahibinin Qt çocuğudur, sahip silinince ateşlenmez, testler `cancel_pending` ile durdurur. `autostart` alan her denetleyici kayıtta (`controllers/registry.py`) `AUTOSTART` ile bayrağı alır. Koruma: `tests/ui_qml/test_background_work_lifecycle.py`. Test ortamında `ImmediateExecutor` ile işler eşzamanlı çalıştırılır.
 
-Bütün ekranlar `main_window.py` üzerinde barınır. Ancak kod kalabalığını engellemek adına, her ekran `src/ui/pages/` altındaki kendi dizininden `page_factory.py` aracılığı ile çağrılır. Ana pencere sadece bir QStackedWidget kullanarak sayfalar arası geçişi yönetir.
+## 6. Olay Akışı
 
-## 5. Faz 4 UI Refactor Notları
+| Mekanizma | Kullanım |
+|---|---|
+| `GlobalEventBus.prices_updated` (`dict[int, Decimal]`) | Fiyat güncellemesi (canlı yenileme, kapanış tamamlama, açılış işleri). Qt'den bağımsız olaydır; abone yayının yapıldığı iş parçacığında çağrılır. Yalnızca `PriceRefreshController` dinler ve yükü kendi Qt sinyaliyle ana iş parçacığına aktarır; ekranlar yükteki fiyatı kullanmaz, DB'den yeniden okur. Boş yük yayınlanmaz. |
+| Denetleyici sinyalleri (`dataSynced`, `pricesUpdated`, `portfolioChanged`, `pricesRefreshed`, `systemReset`) | `app.py` içinde `PriceRefreshController.watch` ile bağlanır ve tek `pricesChanged` sinyalinde birleşir (400 ms); Ana Sayfa (`reloadPrices`), grafik (`chartController.reloadCurrent`), Portföyüm (`myPortfolioController.reloadPrices`), İzleme Listesi (`refreshPrices`), Model Portföy (`reloadPrices`) DB'den yeniden okur. `portfolioChanged`/`systemReset` ayrıca Model Portföy listesini (`refreshData`) ve Portföyüm'ü (`reload`) yeniler. |
+| Varlık ve haber sinyalleri | `assetsController.dataChanged` Portföyüm'ü (`reload`), haber panelini (`newsController.refresh`) ve grafik hızlı seçicisini (`chartController.refreshAssets`) yeniler; `newsSettingsController.sourcesChanged` haber panelini, `refreshMinutesChanged` haber zamanlayıcısını günceller. `AssetsController(autostart=True)` 5 dakikada bir varlık fiyatlarını sessizce yeniler, `NewsController(autostart=True)` ayardaki aralıkta (varsayılan 10 dk) haberleri yeniler; ikisi de testte varsayılan olarak kapalıdır. |
+| `QSettings` | Tema, otomatik iş işaretleri, son güncelleme zamanları, sohbet geçmişi. |
 
-- `DashboardActions` export ve corporate-action sorumluluklarını ayrı handler sınıflarına devreder; public action metotları geriye uyum için korunur.
-- `ComparisonDataManager` varlık seçenekleri, filter-state üretimi, uyarı üretimi ve DTO/Series dönüşümünü helper sınıflara böler.
-- `StockDetailPage` işlem kaydetme orchestration'ını `StockTradeSubmitter` helper'ına devreder; sayfa layout, state ve wiring sorumluluğunda kalır.
+Güncel fiyat: `latest_prices` canlı kaydı yalnızca seans içinde alınmışsa, aksi halde son kapanış (`CurrentPriceResolver`; bkz. [service_portfolio_and_market.md](service_portfolio_and_market.md)). Tarihsel rapor ve backtest yalnızca `daily_prices` kapanışını kullanır.
 
-## 6. Faz 5 QA ve Regresyon Kapıları
+## 7. Denetleyici Kuralları
 
-- UI worker/event akışları `tests/ui/test_worker.py`, `tests/ui/pages/ai_page/test_ai_worker_stale.py` ve `tests/ui/test_refactor_guards.py` ile korunur.
-- UI katmanı doğrudan `QThread` sınıfı kullanmaz; yeni async işler `Worker + QThreadPool` standardına uyar.
-- Fiyat event yayınları UI tarafında yalnız `publish_prices_updated(event_bus, prices)` helper'ı ile yapılır; application coordinator kendi EventBus orkestrasyonunu korur.
-- UI testlerinde event döngüsü boşaltma için ortak `drain_qt_events` fixture'ı kullanılır.
-- `pytest.ini` manual/network marker'ları default suite'i canlı dış kaynaklardan ayırır; benchmark canlı veri kontrolü manuel operasyon olarak kalır.
-- Dialog davranis guard'i `tests/ui/widgets/test_dialog_behavior.py` ile korunur: context-help `?` butonu kapali, Enter primary aksiyona bagli ve model portfoy tutar alani readonly kalir.
+- Denetleyici yalnızca `container.<servis>` üzerinden application servisine bağlanır; repository, `sqlite3`, `duckdb`, `sqlalchemy` ve `src.infrastructure` import edilmez (`tests/ui_qml/test_architecture_guards.py`).
+- Hisse ve fiyat okuma: `StockLookupService`. Veritabanı istatistiği/bütünlük/yedek: `DatabaseMaintenanceService`. Piyasa düzeltme listesi: `MarketCorporateActionService`. Gemini sağlayıcısı: container'dan enjekte edilen `chat_provider_factory`.
+- Servis bulunamazsa (çevrimdışı mod) denetleyici boş durum gösterir ve çökmez; hata kullanıcıya kısa Türkçe metinle yansıtılır, ayrıntı loga yazılır.
+- Kullanıcı girdisi denetleyicide doğrulanır: sayılar `number_input.parse_decimal_text` (`1.234,5`, `50.000`, `1234.5`), tarihler yalnızca `date_input.parse_date_text` ile (arayüzde tek biçim `GG.AA.YYYY`; eski `YYYY-AA-GG` girişi sessizce kabul edilir). Denetleyiciden QML'e giden tarih `format_date_text`, QML'de alan başlangıç değeri `Dates.today()` / `Dates.format()` (tema tekili, aynı biçim; `test_date_input.py`). Saat aynı modülde (`parse_time_text`, `format_time_text`; QML `Dates.nowTime()`). Koruma: `test_date_input_guard.py` (denetleyicide kendi `strptime`/`fromisoformat` ayrıştırıcısı ve QML'de elle tarih/saat üretimi yasak). Toast bildirimi uzun metni satıra sarar (`ToastNotification.qml`, `test_toast_overflow.py`). QML'de sayı okumak gerekiyorsa yalnızca `Numbers.parse` / `Numbers.parseInteger` (tema tekili, Python kurallarıyla aynı) kullanılır; JavaScript `parseFloat` Türkçe biçimi yanlış okur (`50.000` -> 50) ve kullanıcı girdisinde testle yasaktır (`test_numbers_singleton.py`).
+- Denetleyiciler servis kurmaz: `DatabaseMaintenanceService`, `MarketDataSyncService` gibi servisler yalnızca container'dan alınır; container yoksa ilgili işlem "kullanılamıyor" döner.
+- Dış kaynaklı metin (haber, KAP, ortak adları) QML'de `textFormat: Text.PlainText` ile gösterilir; dış bağlantılar yalnızca `url_opener.open_external_url` ile (http/https) açılır; WebEngine HTML'ine gömülen adlar `js_literal` ile kaçışlanır.
+- İşlem girişi (alım/satım) için BIST seans koruması servis katmanındadır (`TradeEntryService`, `ModelPortfolioTradeService`): hafta sonu, tatil ve seans dışı saatte kayıt oluşmaz. Nakit/sermaye hareketleri bu kurala dahil değildir.
 
-## Dialog Davranis Standardi (2026-06-02)
+## 8. Ekran Ölçeği
 
-- Uygulama `QDialog` pencereleri `src/ui/widgets/dialog_behavior.py` icindeki `configure_dialog_behavior(...)` helper'i ile `?` context-help butonunu kapatir.
-- Ayni helper Enter/Return tusunu primary aksiyona baglar; `Esc` iptal davranisini, cok satirli metin alanlari ve acik popup girisleri kendi davranisini korur.
-- Model portfoy al/sat dialogu lot ve fiyat degisimlerinde readonly `Tutar` alanini canli hesaplar; dialog sonucu ve servis API'si degismez.
+`src/qt_compat/scaling.py`, `QApplication` oluşmadan önce Windows'ta %100 üzerindeki ekran ölçeğini ters `QT_SCALE_FACTOR` ile normalize eder (PySide6/Qt6'da %125 ölçekte içeriğin büyümesini önler). Kapatmak için `PORTFOYSIM_DISABLE_QT_SCALE_NORMALIZATION=1` verilir.
 
-## Finansal Input Standardi (2026-06-06)
+## 9. Yeni Sayfa veya Bileşen Eklerken
 
-- TL tutar/fiyat girisleri ortak `CurrencySpinBox` bilesenini kullanir; ticker, not, isim, oran ve lot alanlari bu kapsama dahil degildir.
-- Finansal input focus aldiginda `TL` suffix'ini gizler ve binlik ayraclari canli uygular (`1.234,56`); focus disinda Turkce gorunumle formatlanir (`1.234,56 TL`).
-- Hesaplama ve servis sonucunda formatli metin parse edilmez; raw deger `value()` veya Decimal icin `decimal_value()` uzerinden okunur.
-- Eski `InstantDoubleSpinBox` adi geriye uyumlu olarak `CurrencySpinBox` davranisina baglanmistir.
-
-## Islem Tarihi / Piyasa Seansi Guard (2026-06-06)
-
-- Hisse al/sat kaydi icin secilen tarih ve saat BIST acik seansina denk gelmek zorundadir; hafta sonu, BIST tatili, yarim gun kapanis sonrasi ve normal seans disi saatler kesin blokajdir.
-- UI helper'i kapali seansta artik `Yes/No` onayi sormaz; kullaniciya yonlendirici uyari gosterir ve kayit akisina devam etmez.
-- `TradeEntryService` ve `ModelPortfolioTradeService` production container'da `BistMarketSessionService` ile guard edilir; UI kontrolu atlansa bile kapali seans trade kaydi olusmaz.
-- Sermaye/nakit hareketleri bu kurala dahil degildir; kural yalniz hisse al/sat islemleri icindir.
-
-## Model Portfoy UI State Notu (2026-06-03)
-
-- Model portfoy sayfasi acildiginda son secim bulunamazsa listedeki ilk portfoy otomatik secilir; liste bos ise sag panel temizlenir ve islem butonlari pasif kalir.
-- Secili portfoyde acik pozisyon yoksa `Hisse Sat` pasif kalir; `Hisse Al`, `Fiyat Guncelle`, `Rapor Al` ve `Sermaye Yonetimi` secili portfoy kapsaminda aktif olur.
-- `Sermaye Yonetimi` dialogu tarih, saat, tutar, islem tipi ve not alanlariyla model portfoy sermaye hareketi olusturur.
-
-## Stock Detail Grafik UX Geliştirmesi (2026-06-06)
-
-- `StockChartWidget` `pyqtgraph` tabanlı, artık tamamen Türkçe lokal:
-  - **X-ekseni TR ay**: `DateAxisItem.tickStrings` `L10N.AYLAR_KISA` ile `"15 Oca"` üretir (`%d %b` → "Jan" kalktı). `locale.setlocale` bağımlılığı yok; deterministik map.
-  - **Y-ekseni `₺` formatı**: yeni `CurrencyAxisItem` Türkçe binlik/ondalık (`₺ 1.234,56`).
-  - **Crosshair + tooltip**: `pg.SignalProxy(scene.sigMouseMoved, rateLimit=60)` ile `vLine/hLine` ve `TextItem` etiketi. Fare gerçek noktalara `bisect` ile snap'lenir. Etiket `L10N.GRAFIK_TOOLTIP_TMPL` (`"15 Oca 2026  ·  ₺ 125,40"`). Viewport sağ kenarında otomatik sol-anchor.
-  - **Reference legend konumu**: `pg.LegendItem(offset=(14, 44))` — başlık satırının altına çekildi; başlık/eksen tick'leri ile çakışma yok.
-  - **Başlık L10N**: `L10N.FIYAT_GECMISI_TMPL = "{ticker} — Fiyat Geçmişi"` (em-dash).
-- Mimari kural: UI doğrudan `yfinance` çağırmaz; DB serisi boşsa enjekte edilen `market_client.get_price_series` provider'ı kullanılır (P0'dan korunmuş).
-- `optimization_page.py` `_load_sources` artık sessiz `except Exception: pass` yerine `logger.warning` + combo'ya `L10N.MODEL_PORTFOY_YOK` placeholder ekler.
-
-## AI Katmanı Temiz Mimariye Taşındı (2026-06-06)
-
-- Eski `src/ui/pages/ai_page/core/` klasörü (HTTP istemci, Gemini SDK, QSettings sohbet deposu, iş kuralları) UI katmanından çıkarıldı ve kaldırıldı; bu kod doğru katmanlara dağıtıldı:
-  - **Domain:** `src/domain/models/ai_analysis.py` (saf modeller, L10N içermez; `ModelOutlook` değerleri `up/down/neutral` semantik) + portlar `src/domain/ports/services/i_ai_analysis_provider.py`, `i_ai_chat_provider.py`, `src/domain/ports/repositories/i_chat_history_repo.py`.
-  - **Infrastructure:** `src/infrastructure/ai/` — `ai_core_fastapi_client.py` (`requests` + `FastAPIAnalysisProvider` + `_parse_api_response`), `gemini_chat_provider.py` (`google.genai`), `mock_ai_analysis_provider.py`, `qsettings_chat_history_repo.py`.
-  - **Application:** `src/application/services/ai/` — `ai_analysis_service.py` (canlı/demo fallback), `ai_chat_service.py` (`SYSTEM_PROMPT` + güvenlik sarmalama + rol eşleme), `safety_guard.py`.
-  - **UI:** kullanıcıya dönük Türkçe etiket/disclaimer `src/ui/pages/ai_page/labels.py` (`outlook_label`), sohbet oturum yönetimi `src/ui/pages/ai_page/right_panel/chat_session_manager.py`.
-- DI: `container.ai_analysis_service`, `container.ai_chat_service`, `container.chat_history_repo`. `AIPage` servisleri panellere enjekte eder; tekrarlı `load_ai_settings()` çağrıları kaldırıldı (ayar tek noktada).
-- `StockChartWidget` artık `yfinance`'i doğrudan çağırmaz; DB serisi boşken `container.market_client.get_price_series` provider'ı kullanılır (`set_price_series_provider`).
-- Regresyon kapısı: `tests/ui/test_refactor_guards.py` — `src/ui` altında `requests`/`yfinance`/`google` importu ve `ai_page/core` klasörü yasak.
-
-## AI Asistanı Sidebar ve Arayüz Güncellemesi (2026-06-04)
-
-- AI Finans Asistanı sayfasındaki "Sohbetler" butonu kaldırılmış ve yüzen (`floating`) bir sidebar aç/kapat ikon butonu (`btn_toggle_sidebar`) eklenmiştir.
-- Sidebar uzunluğu chat panelinin sol/üst köşesinden (`x=0, y=0`) tam yükseklikte (`self.height()`) başlayacak şekilde hizalanmıştır.
-- Aç/kapat ikon butonu ve sidebar, `QParallelAnimationGroup` ve `QPropertyAnimation` (`geometry` özelliği) kullanılarak 250 ms süreyle smooth bir geçişle eş zamanlı olarak hareket ettirilir.
-- Sidebar kapalıyken buton chat panelinin sol üst köşesinde (`x=20, y=14`) "Merhaba" mesajının üstünde yer alır; sidebar açıldığında ise başlıklar arası çakışmayı önlemek için otomatik olarak sidebar'ın sağ üst köşesine (`x=sidebar_width - 46, y=14`) kayar.
-- Sidebar içindeki eski "Kapat" butonu kaldırılmış, kapatma işlemi de bu hareketli ikon butonuyla birleştirilmiştir.
-- Uygulama başlangıcında son aktif sohbetin otomatik olarak açılması yerine, her zaman yeni ve temiz bir sohbet oturumu açılması sağlanmıştır.
+1. `controllers/` altında denetleyici yaz; `app.py::create_controllers` sözlüğüne QML bağlam adıyla ekle (kayıt otomatik), denetleyiciler arası bağlantıyı `wire_controllers` içine yaz.
+2. `qml/views/` veya `qml/components/` altında QML yaz; metinleri `Strings.qml`'e ekle; ikonları `Icons.qml`'e kaydet.
+3. Sayfa ise `Main.qml` yükleyicisine ve `Sidebar.qml` listesine ekle.
+4. Denetleyici ve QML derleme testi yaz (`tests/ui_qml/`); QML'in uyarısız yüklendiğini doğrula.
+5. [qml_pages_guide.md](qml_pages_guide.md) ve [log.md](log.md) güncelle.

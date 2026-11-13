@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 from src.domain.models.budget import Budget, BudgetItem, BudgetPinnedItem
 from src.domain.models.financial_goal import FinancialGoal, GoalStatus
 from src.domain.ports.repositories.i_planning_repo import IPlanningRepository
+from src.domain.text import tr_fold
 
 
 def _to_decimal(value: Decimal | float | int | str) -> Decimal:
@@ -51,6 +52,58 @@ class PlanningService:
         """
         if not budget.month or len(budget.month) != 7:
             raise ValueError("Ay formatı 'YYYY-MM' olmalıdır.")
+        return self._repo.upsert_budget(budget)
+
+    def update_budget_item(
+        self,
+        month: str,
+        old_name: str,
+        new_name: str,
+        new_amount: float,
+        item_type: str,
+        item_id: Optional[int] = None,
+    ) -> Optional[Budget]:
+        """
+        Belirtilen ayın bütçesindeki kalemi günceller ve bütçeyi kaydeder.
+        """
+        budget = self._repo.get_budget_by_month(month)
+        if not budget:
+            budget = Budget(id=None, month=month, savings_target=Decimal("0"), items=[])
+
+        target_type = item_type.lower()
+        old_name_clean = tr_fold(old_name.strip())
+        found = False
+        updated_items: List[BudgetItem] = []
+
+        for item in budget.items:
+            match = False
+            if item_id is not None and item_id != -1 and item.id == item_id:
+                match = True
+            elif not found and item.item_type == target_type and tr_fold(item.name.strip()) == old_name_clean:
+                match = True
+
+            if match and not found:
+                updated_items.append(BudgetItem(
+                    id=item.id,
+                    budget_id=item.budget_id,
+                    item_type=target_type,
+                    name=new_name.strip(),
+                    amount=_to_decimal(new_amount),
+                ))
+                found = True
+            else:
+                updated_items.append(item)
+
+        if not found:
+            updated_items.append(BudgetItem(
+                id=None,
+                budget_id=budget.id,
+                item_type=target_type,
+                name=new_name.strip(),
+                amount=_to_decimal(new_amount),
+            ))
+
+        budget.items = updated_items
         return self._repo.upsert_budget(budget)
 
     def get_monthly_analysis(self, month: str) -> Optional[Dict[str, Any]]:
@@ -212,6 +265,9 @@ class PlanningService:
         goal = self._repo.get_goal_by_id(goal_id)
         if goal is None:
             raise ValueError(f"Hedef bulunamadı: {goal_id}")
+
+        if goal.status == GoalStatus.COMPLETED or goal.is_completed:
+            raise ValueError("Tamamlanan hedefe katkÄ± eklenemez.")
 
         new_amount = goal.current_amount + amount_decimal
         new_status = GoalStatus.COMPLETED if new_amount >= goal.target_amount else goal.status

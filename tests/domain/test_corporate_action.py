@@ -4,7 +4,7 @@ import pytest
 from datetime import date
 from decimal import Decimal
 
-from src.domain.models.corporate_action import ActionType, CorporateAction
+from src.domain.models.corporate_action import ActionType, BedelliSpec, CorporateAction
 
 
 # ══════════════════════════════════════════════════════════
@@ -56,12 +56,12 @@ class TestCreateBedelsiz:
 class TestCreateBedelli:
 
     def test_normal_creation(self):
-        action = CorporateAction.create_bedelli(
+        action = CorporateAction.create_bedelli(BedelliSpec(
             stock_id=2,
             ex_date=date(2026, 4, 10),
             ratio=Decimal("0.20"),
             subscription_price=Decimal("1.00"),
-        )
+        ))
         assert action.action_type == ActionType.BEDELLI
         assert action.ratio == Decimal("0.20")
         assert action.subscription_price == Decimal("1.00")
@@ -69,30 +69,30 @@ class TestCreateBedelli:
 
     def test_zero_subscription_price_raises(self):
         with pytest.raises(ValueError, match="kullanım fiyatı"):
-            CorporateAction.create_bedelli(
+            CorporateAction.create_bedelli(BedelliSpec(
                 stock_id=1,
                 ex_date=date(2026, 1, 1),
                 ratio=Decimal("0.20"),
                 subscription_price=Decimal("0"),
-            )
+            ))
 
     def test_negative_subscription_price_raises(self):
         with pytest.raises(ValueError):
-            CorporateAction.create_bedelli(
+            CorporateAction.create_bedelli(BedelliSpec(
                 stock_id=1,
                 ex_date=date(2026, 1, 1),
                 ratio=Decimal("0.20"),
                 subscription_price=Decimal("-1.00"),
-            )
+            ))
 
     def test_zero_ratio_raises(self):
         with pytest.raises(ValueError, match="sıfırdan büyük"):
-            CorporateAction.create_bedelli(
+            CorporateAction.create_bedelli(BedelliSpec(
                 stock_id=1,
                 ex_date=date(2026, 1, 1),
                 ratio=Decimal("0"),
                 subscription_price=Decimal("1.00"),
-            )
+            ))
 
 
 # ══════════════════════════════════════════════════════════
@@ -141,10 +141,10 @@ class TestCalculateNewShares:
         assert action.calculate_new_shares(200) == 200
 
     def test_bedelli_new_shares(self):
-        action = CorporateAction.create_bedelli(
+        action = CorporateAction.create_bedelli(BedelliSpec(
             stock_id=1, ex_date=date(2026, 1, 1),
-            ratio=Decimal("0.20"), subscription_price=Decimal("1.00")
-        )
+            ratio=Decimal("0.20"), subscription_price=Decimal("1.00"),
+        ))
         # 500 lot * 0.20 = 100 yeni lot
         assert action.calculate_new_shares(500) == 100
 
@@ -175,10 +175,10 @@ class TestTheoreticalPrice:
     def test_bedelli_formula(self):
         # P=15 TL, oran=%20, K=1 TL
         # Teorik = (1 * 15 + 0.20 * 1) / (1 + 0.20) = 15.20 / 1.20 ≈ 12.6667
-        action = CorporateAction.create_bedelli(
+        action = CorporateAction.create_bedelli(BedelliSpec(
             stock_id=1, ex_date=date(2026, 1, 1),
-            ratio=Decimal("0.20"), subscription_price=Decimal("1.00")
-        )
+            ratio=Decimal("0.20"), subscription_price=Decimal("1.00"),
+        ))
         result = action.theoretical_price(Decimal("15"))
         expected = (Decimal("15") + Decimal("0.20") * Decimal("1")) / Decimal("1.20")
         assert abs(result - expected) < Decimal("0.0001")
@@ -186,9 +186,9 @@ class TestTheoreticalPrice:
     def test_bedelli_high_subscription_price(self):
         # P=50 TL, oran=%25, K=10 TL
         # Teorik = (50 + 0.25 * 10) / 1.25 = 52.50 / 1.25 = 42.00
-        action = CorporateAction.create_bedelli(
+        action = CorporateAction.create_bedelli(BedelliSpec(
             stock_id=1, ex_date=date(2026, 1, 1),
-            ratio=Decimal("0.25"), subscription_price=Decimal("10.00")
-        )
+            ratio=Decimal("0.25"), subscription_price=Decimal("10.00"),
+        ))
         result = action.theoretical_price(Decimal("50"))
         assert abs(result - Decimal("42")) < Decimal("0.0001")

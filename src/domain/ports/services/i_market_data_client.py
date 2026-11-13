@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
 from decimal import Decimal
-from typing import Dict, Iterable, Sequence
+from typing import Dict, Iterable
 
 class IMarketDataClient(ABC):
     """
@@ -13,7 +13,7 @@ class IMarketDataClient(ABC):
 
     Yatırım uygulamamız şu an yfinance kullanacak,
     fakat bu interface sayesinde:
-        - yfinance → MySQLPriceRepository                 (gerçek senaryo)
+        - yfinance → SQLAlchemyPriceRepository            (gerçek senaryo)
         - FakeMarketClient → Unit test                   (test senaryosu)
         - AlphaVantageMarketClient → İleride genişleme
 
@@ -39,33 +39,6 @@ class IMarketDataClient(ABC):
             Eğer veri yoksa implementasyon
             - Exception fırlatabilir
             - veya NaN/None yerine bir özel hata oluşturabilir.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_closing_prices(
-        self,
-        stock_ids: Sequence[int],
-        tickers: Sequence[str],
-        price_date: date
-    ) -> Dict[int, Decimal]:
-        """
-        Birden fazla hisse için toplu kapanış fiyatı döner.
-
-        Parametreler:
-            stock_ids : [1, 3, 7, ...]
-            tickers   : ['AKBNK.IS', 'ASELS.IS', ...] — aynı sırada matching olacak
-            price_date : kapanış tarihi
-
-        Dönüş:
-            {
-              stock_id: close_price (Decimal),
-              ...
-            }
-
-        Not:
-            UI’da “Gün Sonu Fiyatlarını Güncelle” butonu tıklandığında
-            PriceUpdateService bu fonksiyonu kullanacak.
         """
         raise NotImplementedError
 

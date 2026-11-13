@@ -14,6 +14,7 @@ from .models import PortfolioOption
 
 class AnalysisSourceResolver:
     SOURCE_DASHBOARD = "dashboard"
+    SOURCE_UNIFIED = "unified"     # BIST + BIST dışı varlıklar + TL/USD nakit (birleşik portföy)
     SOURCE_MODEL_PREFIX = "model:"
 
     def __init__(
@@ -21,13 +22,17 @@ class AnalysisSourceResolver:
         portfolio_repo: IPortfolioRepository,
         stock_repo: IStockRepository,
         model_portfolio_service=None,
+        unified_enabled: bool = False,
     ) -> None:
         self._portfolio_repo = portfolio_repo
         self._stock_repo = stock_repo
         self._model_portfolio_service = model_portfolio_service
+        self._unified_enabled = unified_enabled
 
     def get_portfolio_options(self) -> List[PortfolioOption]:
-        options = [PortfolioOption(code=self.SOURCE_DASHBOARD, label="Ana Portfoy", kind="dashboard")]
+        options = [PortfolioOption(code=self.SOURCE_DASHBOARD, label="Ana Portföy", kind="dashboard")]
+        if self._unified_enabled:
+            options.append(PortfolioOption(code=self.SOURCE_UNIFIED, label="Tüm Varlıklar", kind="unified"))
         if self._model_portfolio_service is not None:
             for portfolio in self._model_portfolio_service.get_all_portfolios():
                 options.append(
@@ -62,7 +67,7 @@ class AnalysisSourceResolver:
 
     def get_source_trades(self, source_code: str) -> List[Trade]:
         source_code = self.normalize_source_code(source_code)
-        if source_code == self.SOURCE_DASHBOARD:
+        if source_code in (self.SOURCE_DASHBOARD, self.SOURCE_UNIFIED):   # birleşikte BIST işlemleri hisse kapsamı içindir
             return list(self._portfolio_repo.get_all_trades())
         if source_code.startswith(self.SOURCE_MODEL_PREFIX) and self._model_portfolio_service is not None:
             portfolio_id = int(source_code.split(":", 1)[1])
@@ -87,12 +92,14 @@ class AnalysisSourceResolver:
         for option in self.get_portfolio_options():
             if option.code == source_code:
                 return option.label
-        return "Portfoy"
+        return "Portföy"
 
     def normalize_source_code(self, source_code: str) -> str:
         source_code = source_code or self.SOURCE_DASHBOARD
         if source_code == self.SOURCE_DASHBOARD:
             return self.SOURCE_DASHBOARD
+        if source_code == self.SOURCE_UNIFIED and self._unified_enabled:
+            return self.SOURCE_UNIFIED
         if source_code.startswith(self.SOURCE_MODEL_PREFIX) and self._model_portfolio_service is not None:
             try:
                 portfolio_id = int(source_code.split(":", 1)[1])

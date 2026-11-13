@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import timezone
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Dict, Sequence, Tuple
 
+import pandas as pd
 import yfinance as yf
 
 from src.application.services.market.price_lookup_service import PriceLookupSnapshot
@@ -12,54 +13,109 @@ from src.infrastructure.market_data._errors import MARKET_DATA_FALLBACK_ERRORS
 
 logger = logging.getLogger(__name__)
 
+BULK_CHUNK_SIZE = 50
+
+
+def _symbol_frame(data: Any, symbol: str, symbol_count: int) -> Any:
+    """Çok düzeyli sütunlarda sembolün alt tablosu; tek sembollü düz tabloda tablonun kendisi; yoksa None."""
+    if isinstance(data.columns, pd.MultiIndex):
+        return data[symbol] if symbol in data.columns.get_level_values(0) else None
+    return data if symbol_count == 1 else None
+
+
+def latest_bars_from_download(data: Any, symbols: Sequence[str]) -> Dict[str, Tuple[Decimal, datetime]]:
+    """`yf.download(..., group_by="ticker")` çıktısından her sembolün son geçerli kapanışı ve bar zamanı (UTC)."""
+    if data is None or getattr(data, "empty", True):
+        return {}
+    result: Dict[str, Tuple[Decimal, datetime]] = {}
+    for symbol in symbols:
+        frame = _symbol_frame(data, symbol, len(symbols))
+        if frame is None or "Close" not in frame:
+            continue
+        closes = frame["Close"].dropna()
+        closes = closes[closes > 0]
+        if closes.empty:
+            continue
+        stamp = pd.Timestamp(closes.index[-1])
+        stamp = stamp.tz_localize("UTC") if stamp.tzinfo is None else stamp.tz_convert("UTC")
+        # yfinance dakika barları float32 kalıntısı taşır (0.98 -> 0.9800000190734863); BIST fiyat adımı 2 hanedir
+        price = YFinancePriceLookupProvider._to_decimal(round(float(closes.iloc[-1]), 4))
+        if price is not None:
+            result[symbol] = (price, stamp.to_pydatetime())
+    return result
+
+
+def _to_utc(stamp: Any) -> datetime | None:
+    """Bar zamanını UTC'ye dönüştürür; saat dilimi yoksa UTC kabul edilir (etiketi değiştirmek saati kaydırırdı)."""
+    if not hasattr(stamp, "to_pydatetime"):
+        return None
+    value = stamp.to_pydatetime()
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+
 
 class YFinancePriceLookupProvider:
+    def lookup_intraday_bulk(self, normalized_tickers: Sequence[str]) -> Dict[str, Tuple[Decimal, datetime]]:
+        """Son dakika barları tek `yf.download` isteğiyle (50'lik parçalar); hisse başına `fast_info` + `info` yerine."""
+        from .yfinance_lock import yfinance_lock
+
+        result: Dict[str, Tuple[Decimal, datetime]] = {}
+        symbols = list(dict.fromkeys(normalized_tickers))
+        for start in range(0, len(symbols), BULK_CHUNK_SIZE):
+            chunk = symbols[start:start + BULK_CHUNK_SIZE]
+            with yfinance_lock:
+                try:
+                    data = yf.download(" ".join(chunk), period="1d", interval="1m", group_by="ticker",
+                                       auto_adjust=False, threads=True, progress=False)
+                except MARKET_DATA_FALLBACK_ERRORS as exc:
+                    logger.warning("Toplu dakika barı indirilemedi (%d hisse): %s", len(chunk), exc)
+                    continue
+            result.update(latest_bars_from_download(data, chunk))
+        return result
+
     def lookup(self, normalized_ticker: str) -> PriceLookupSnapshot | None:
-        try:
-            yf_ticker = yf.Ticker(normalized_ticker)
-        except MARKET_DATA_FALLBACK_ERRORS as exc:
-            logger.error("YF Ticker init failed for %s: %s", normalized_ticker, exc)
-            return None
+        from .yfinance_lock import yfinance_lock
+        with yfinance_lock:
+            try:
+                yf_ticker = yf.Ticker(normalized_ticker)
+            except MARKET_DATA_FALLBACK_ERRORS as exc:
+                logger.error("YF Ticker init failed for %s: %s", normalized_ticker, exc)
+                return None
 
-        fast_info = self._safe_mapping(getattr(yf_ticker, "fast_info", None))
-        info = self._safe_mapping(getattr(yf_ticker, "info", None))
-        company_name = self._extract_company_name(info)
+            fast_info = self._safe_mapping(getattr(yf_ticker, "fast_info", None))
+            info = self._safe_mapping(getattr(yf_ticker, "info", None))
+            company_name = self._extract_company_name(info)
 
-        intraday_price = self._extract_intraday_price(fast_info, info)
-        if intraday_price is not None:
+            intraday_price = self._extract_intraday_price(fast_info, info)
+            if intraday_price is not None:
+                return PriceLookupSnapshot(
+                    intraday_price=intraday_price,
+                    company_name=company_name,
+                )
+
+            try:
+                history = yf_ticker.history(period="7d", auto_adjust=False)
+            except MARKET_DATA_FALLBACK_ERRORS as exc:
+                logger.error("YF history failed for %s: %s", normalized_ticker, exc)
+                return None
+
+            if history is None or history.empty or "Close" not in history:
+                return None
+
+            close_series = history["Close"].dropna()
+            if close_series.empty:
+                return None
+
+            last_ts = close_series.index[-1]
+            last_price = self._to_decimal(close_series.iloc[-1])
+            if last_price is None:
+                return None
+
+            as_of = _to_utc(last_ts)
             return PriceLookupSnapshot(
-                intraday_price=intraday_price,
+                last_close_price=last_price,
+                last_close_as_of=as_of,
                 company_name=company_name,
             )
-
-        try:
-            history = yf_ticker.history(period="7d", auto_adjust=False)
-        except MARKET_DATA_FALLBACK_ERRORS as exc:
-            logger.error("YF history failed for %s: %s", normalized_ticker, exc)
-            return None
-
-        if history is None or history.empty or "Close" not in history:
-            return None
-
-        close_series = history["Close"].dropna()
-        if close_series.empty:
-            return None
-
-        last_ts = close_series.index[-1]
-        last_price = self._to_decimal(close_series.iloc[-1])
-        if last_price is None:
-            return None
-
-        as_of = (
-            last_ts.to_pydatetime().replace(tzinfo=timezone.utc)
-            if hasattr(last_ts, "to_pydatetime")
-            else None
-        )
-        return PriceLookupSnapshot(
-            last_close_price=last_price,
-            last_close_as_of=as_of,
-            company_name=company_name,
-        )
 
     def _safe_mapping(self, value: Any) -> dict:
         try:

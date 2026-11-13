@@ -4,6 +4,14 @@ from decimal import Decimal
 import pytest
 
 from src.application.services.analysis import AnalysisFilterState, AnalysisService
+from src.application.services.analysis.analysis_service import AnalysisServiceDeps
+
+
+def _make_service(portfolio_repo, price_repo, stock_repo, market_data_client, **kwargs):
+    return AnalysisService(
+        deps=AnalysisServiceDeps(portfolio_repo, price_repo, stock_repo, market_data_client),
+        **kwargs,
+    )
 from src.domain.models.cash_movement import CashMovement
 from src.domain.models.daily_price import DailyPrice
 from src.domain.models.stock import Stock
@@ -117,11 +125,11 @@ def analysis_service():
             date(2026, 1, 1): Decimal("36"),
         },
     }
-    return AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo(prices),
-        stock_repo=FakeStockRepo(stocks),
-        market_data_client=FakeMarketDataClient(benchmark_series),
+    return _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo(prices),
+        FakeStockRepo(stocks),
+        FakeMarketDataClient(benchmark_series),
     )
 
 
@@ -172,11 +180,11 @@ def test_missing_price_data_creates_warning():
     trades = [
         Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("100")),
     ]
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({1: {}}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
-        market_data_client=FakeMarketDataClient({}),
+    service = _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo({1: {}}),
+        FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
+        FakeMarketDataClient({}),
     )
     filter_state = AnalysisFilterState(
         start_date=date(2026, 1, 1),
@@ -197,11 +205,11 @@ def test_sold_dashboard_stock_is_not_exposed_as_active_analysis_stock():
         Trade.create_sell(stock_id=1, trade_date=date(2026, 1, 2), quantity=10, price=Decimal("11")),
         Trade.create_buy(stock_id=2, trade_date=date(2026, 1, 3), quantity=5, price=Decimal("20")),
     ]
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({2: {date(2026, 1, 3): Decimal("21")}}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS"), Stock(id=2, ticker="AKBNK.IS")]),
-        market_data_client=FakeMarketDataClient({}),
+    service = _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo({2: {date(2026, 1, 3): Decimal("21")}}),
+        FakeStockRepo([Stock(id=1, ticker="BORSK.IS"), Stock(id=2, ticker="AKBNK.IS")]),
+        FakeMarketDataClient({}),
     )
 
     stock_map = service.get_stock_map_for_source("dashboard")
@@ -215,11 +223,11 @@ def test_sold_stock_without_prices_does_not_create_analysis_warning():
         Trade.create_sell(stock_id=1, trade_date=date(2026, 1, 2), quantity=10, price=Decimal("11")),
         Trade.create_buy(stock_id=2, trade_date=date(2026, 1, 3), quantity=5, price=Decimal("20")),
     ]
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({2: {date(2026, 1, 3): Decimal("21")}}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS"), Stock(id=2, ticker="AKBNK.IS")]),
-        market_data_client=FakeMarketDataClient({}),
+    service = _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo({2: {date(2026, 1, 3): Decimal("21")}}),
+        FakeStockRepo([Stock(id=1, ticker="BORSK.IS"), Stock(id=2, ticker="AKBNK.IS")]),
+        FakeMarketDataClient({}),
     )
     filter_state = AnalysisFilterState(
         start_date=date(2026, 1, 3),
@@ -240,11 +248,11 @@ def test_dashboard_analysis_total_value_keeps_cash_from_closed_trade():
         Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("10")),
         Trade.create_sell(stock_id=1, trade_date=date(2026, 1, 2), quantity=10, price=Decimal("11")),
     ]
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS")]),
-        market_data_client=FakeMarketDataClient({}),
+    service = _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo({}),
+        FakeStockRepo([Stock(id=1, ticker="BORSK.IS")]),
+        FakeMarketDataClient({}),
         cash_movement_repo=FakeCashMovementRepo(
             [CashMovement.create_deposit(amount=Decimal("100"), movement_date=date(2026, 1, 1))]
         ),
@@ -267,11 +275,11 @@ def test_stock_sold_inside_analysis_range_is_valued_until_closed():
         Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("10")),
         Trade.create_sell(stock_id=1, trade_date=date(2026, 1, 3), quantity=10, price=Decimal("12")),
     ]
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({1: {date(2026, 1, 1): Decimal("10"), date(2026, 1, 2): Decimal("11"), date(2026, 1, 3): Decimal("12")}}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="BORSK.IS")]),
-        market_data_client=FakeMarketDataClient({}),
+    service = _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo({1: {date(2026, 1, 1): Decimal("10"), date(2026, 1, 2): Decimal("11"), date(2026, 1, 3): Decimal("12")}}),
+        FakeStockRepo([Stock(id=1, ticker="BORSK.IS")]),
+        FakeMarketDataClient({}),
         cash_movement_repo=FakeCashMovementRepo(
             [CashMovement.create_deposit(amount=Decimal("100"), movement_date=date(2026, 1, 1))]
         ),
@@ -303,15 +311,15 @@ def test_market_benchmark_falls_back_to_secondary_ticker():
             }
         }
     )
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({1: {
+    service = _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo({1: {
             date(2026, 1, 1): Decimal("100"),
             date(2026, 1, 2): Decimal("105"),
             date(2026, 1, 3): Decimal("110"),
         }}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
-        market_data_client=market_client,
+        FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
+        market_client,
     )
     filter_state = AnalysisFilterState(
         start_date=date(2026, 1, 1),
@@ -333,7 +341,7 @@ def test_gold_benchmark_can_be_composed_from_gold_and_usd_series():
     ]
     market_client = FakeMarketDataClient(
         {
-            "XAUUSD=X": {
+            "GC=F": {
                 date(2026, 1, 1): Decimal("100"),
                 date(2026, 1, 2): Decimal("102"),
                 date(2026, 1, 3): Decimal("104"),
@@ -345,15 +353,15 @@ def test_gold_benchmark_can_be_composed_from_gold_and_usd_series():
             },
         }
     )
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({1: {
+    service = _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo({1: {
             date(2026, 1, 1): Decimal("100"),
             date(2026, 1, 2): Decimal("105"),
             date(2026, 1, 3): Decimal("110"),
         }}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
-        market_data_client=market_client,
+        FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
+        market_client,
     )
     filter_state = AnalysisFilterState(
         start_date=date(2026, 1, 1),
@@ -372,60 +380,22 @@ def test_gold_benchmark_can_be_composed_from_gold_and_usd_series():
         Decimal("3328") / Decimal("31.1034768"),
     ]
     assert [float(value) for value in gold_series.values()] == pytest.approx([float(value) for value in expected])
-    assert market_client.requested_tickers[:3] == ["XAUTRY=X", "XAUUSD=X", "TRY=X"]
-
-
-def test_gold_benchmark_converts_direct_xautry_ounce_value_to_gram():
-    trades = [
-        Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("100")),
-    ]
-    market_client = FakeMarketDataClient(
-        {
-            "XAUTRY=X": {
-                date(2026, 1, 1): Decimal("31000"),
-                date(2026, 1, 2): Decimal("31100"),
-            },
-        }
-    )
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({1: {
-            date(2026, 1, 1): Decimal("100"),
-            date(2026, 1, 2): Decimal("105"),
-        }}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
-        market_data_client=market_client,
-    )
-    filter_state = AnalysisFilterState(
-        start_date=date(2026, 1, 1),
-        end_date=date(2026, 1, 2),
-        selected_benchmarks=["gold"],
-        portfolio_source="dashboard",
-    )
-
-    comparison = service.get_comparison_view(filter_state, ["gold"])
-
-    values = list(comparison.benchmark_series[0].points.values())
-    assert [float(value) for value in values] == pytest.approx([
-        float(Decimal("31000") / Decimal("31.1034768")),
-        float(Decimal("31100") / Decimal("31.1034768")),
-    ])
-    assert market_client.requested_tickers == ["XAUTRY=X"]
+    assert market_client.requested_tickers[:2] == ["GC=F", "TRY=X"]
 
 
 def test_deposit_benchmark_warns_when_real_rate_data_missing():
     trades = [
         Trade.create_buy(stock_id=1, trade_date=date(2026, 1, 1), quantity=10, price=Decimal("100")),
     ]
-    service = AnalysisService(
-        portfolio_repo=FakePortfolioRepo(trades),
-        price_repo=FakePriceRepo({1: {
+    service = _make_service(
+        FakePortfolioRepo(trades),
+        FakePriceRepo({1: {
             date(2026, 1, 1): Decimal("100"),
             date(2026, 1, 2): Decimal("105"),
             date(2026, 1, 3): Decimal("110"),
         }}),
-        stock_repo=FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
-        market_data_client=FakeMarketDataClient({}),
+        FakeStockRepo([Stock(id=1, ticker="AKBNK")]),
+        FakeMarketDataClient({}),
     )
     filter_state = AnalysisFilterState(
         start_date=date(2026, 1, 1),
@@ -462,6 +432,26 @@ def test_page_payload_contains_all_sections(analysis_service):
     payload = analysis_service.get_page_payload(filter_state)
 
     assert set(payload.keys()) == {"overview", "comparison", "risk"}
+
+
+def test_overview_risk_payload_skips_comparison_section(analysis_service, monkeypatch):
+    filter_state = AnalysisFilterState(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 3),
+        selected_stock_ids=[],
+        selected_benchmarks=["bist100"],
+        portfolio_source="dashboard",
+    )
+
+    monkeypatch.setattr(
+        analysis_service,
+        "get_comparison_view",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("comparison should not be built")),
+    )
+
+    payload = analysis_service.get_overview_risk_payload(filter_state)
+
+    assert set(payload.keys()) == {"overview", "risk"}
 
 
 def test_empty_benchmark_selection_disables_benchmark_series(analysis_service):
@@ -584,6 +574,19 @@ def test_stale_model_source_is_normalized_without_duplicate_comparison(analysis_
     comparison = analysis_service.get_comparison_view(filter_state)
     overview = analysis_service.get_overview(filter_state)
 
-    assert comparison.current_portfolio_label == "Ana Portfoy"
+    assert comparison.current_portfolio_label == "Ana Portföy"
     assert comparison.comparison_portfolios == []
-    assert overview.portfolio_label == "Ana Portfoy"
+    assert overview.portfolio_label == "Ana Portföy"
+
+
+def test_comparison_view_applies_selected_currency_mode(analysis_service):
+    """Karşılaştırma Lab'de USD seçimi seriyi gerçekten dolara çevirmeli (2026-11-08 QA: TL/USD/Reel sonuçları aynıydı)."""
+    def view(currency_mode):
+        return analysis_service.get_comparison_view(AnalysisFilterState(
+            start_date=date(2026, 1, 1), end_date=date(2026, 1, 3), selected_stock_ids=[],
+            selected_benchmarks=[], portfolio_source="dashboard", currency_mode=currency_mode,
+        ))
+
+    tl_end = list(view("TL").portfolio_series.values())[-1]
+    converted_end = list(view("USD").portfolio_series.values())[-1]
+    assert converted_end != tl_end

@@ -13,6 +13,7 @@ import pandas as pd
 
 from config.settings_loader import load_market_settings
 from src.domain.exceptions import MarketDataUnavailableError
+from src.infrastructure.retry import retry_call
 from ._errors import MARKET_DATA_FALLBACK_ERRORS
 from .evds_client import EvdsClient
 
@@ -55,9 +56,12 @@ class ScrapedBenchmarkProvider:
                 "Accept-Language": "en-US,en;q=0.9",
             },
         )
-        try:
+        def fetch() -> str:
             with urlopen(request, timeout=self._timeout) as response:
                 return response.read().decode("utf-8")
+
+        try:
+            return retry_call(fetch, label="Benchmark kaynağı")
         except urllib.error.URLError as e:
             raise MarketDataUnavailableError(f"Veri kaynagina erisilemiyor: {url}") from e
 
@@ -78,12 +82,8 @@ class ScrapedBenchmarkProvider:
             return self._fetch_countryeconomy_bist_series(start_date, end_date)
         if normalized_ticker in {"TRY=X", "USDTRY=X"}:
             return self._fetch_exchange_rates_usdtry_series(start_date, end_date)
-        if normalized_ticker in {"XAUUSD=X", "GC=F"}:
+        if normalized_ticker == "GC=F":
             return self._fetch_macrotrends_gold_series(start_date, end_date)
-        if normalized_ticker == "XAUTRY=X":
-            gold_series = self._fetch_macrotrends_gold_series(start_date, end_date)
-            usd_try_series = self._fetch_exchange_rates_usdtry_series(start_date, end_date)
-            return self._combine_series(gold_series, usd_try_series)
         if normalized_ticker == "TCMB_TRY_DEPOSIT_3M":
             return self._fetch_tcmb_try_deposit_3m_rates(start_date, end_date)
         return None
@@ -211,17 +211,6 @@ class ScrapedBenchmarkProvider:
         end_date: date,
     ) -> Dict[date, Decimal]:
         return self._filter_series_for_range(self._fetch_macrotrends_gold_daily_series(), start_date, end_date)
-
-    def _combine_series(
-        self,
-        left_series: Dict[date, Decimal],
-        right_series: Dict[date, Decimal],
-    ) -> Dict[date, Decimal]:
-        shared_dates = sorted(set(left_series).intersection(right_series))
-        return {
-            point_date: left_series[point_date] * right_series[point_date]
-            for point_date in shared_dates
-        }
 
     def _fetch_tcmb_try_deposit_3m_rates(
         self,

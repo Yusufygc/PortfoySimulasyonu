@@ -91,3 +91,25 @@ def test_reset_all_keeps_backward_compatible_core_reset():
     service.reset_all()
 
     assert recorder.calls == ["trades", "prices", "stocks"]
+
+
+class FakeAssetRepo:
+    def __init__(self, recorder):
+        self._recorder = recorder
+
+    def delete_all_assets(self):
+        self._recorder.record("assets")
+
+
+def test_reset_all_also_clears_asset_ledger():
+    recorder = CallRecorder()
+    service = PortfolioResetService(
+        portfolio_repo=FakePortfolioRepo(recorder),
+        price_repo=FakePriceRepo(recorder),
+        stock_repo=FakeStockRepo(recorder),
+        asset_repo=FakeAssetRepo(recorder),
+    )
+
+    service.reset_all()
+
+    assert "assets" in recorder.calls

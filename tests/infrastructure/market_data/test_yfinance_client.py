@@ -24,10 +24,11 @@ def test_get_closing_price_success(monkeypatch):
         
     monkeypatch.setattr(client, "_download_dataframe", mock_download)
     
-    price = client.get_closing_price(1, "AAPL", date(2026, 1, 1))
+    price = client.get_closing_price(1, "THYAO", date(2026, 1, 1))
     assert price == Decimal("10.5")
     assert len(download_calls) == 1
-    assert download_calls[0] == ("AAPL", date(2026, 1, 1), date(2026, 1, 2))
+    # kanonik ticker uzantısızdır; yfinance sınırında `.IS` eklenir
+    assert download_calls[0] == ("THYAO.IS", date(2026, 1, 1), date(2026, 1, 2))
 
 def test_get_closing_price_empty_response(monkeypatch):
     client = YFinanceMarketDataClient()
@@ -35,32 +36,14 @@ def test_get_closing_price_empty_response(monkeypatch):
     
     monkeypatch.setattr(client, "_download_dataframe", lambda *a: df)
     
-    with pytest.raises(ValueError, match="AAPL icin 2026-01-01 gun sonu fiyati bulunamadi"):
-        client.get_closing_price(1, "AAPL", date(2026, 1, 1))
-
-def test_get_closing_prices_multi_ticker(monkeypatch):
-    client = YFinanceMarketDataClient()
-    
-    # yfinance returns multi-index columns for multi-ticker download
-    columns = pd.MultiIndex.from_tuples([("Close", "AAPL"), ("Close", "MSFT")])
-    df = pd.DataFrame([[150.0, 400.0]], index=[pd.Timestamp("2026-01-01")], columns=columns)
-    
-    download_calls = []
-    def mock_download(tickers, start, end):
-        download_calls.append((tickers, start, end))
-        return df
-        
-    monkeypatch.setattr(client, "_download_dataframe", mock_download)
-    
-    prices = client.get_closing_prices([1, 2], ["AAPL", "MSFT"], date(2026, 1, 1))
-    assert prices == {1: Decimal("150.0"), 2: Decimal("400.0")}
-    assert download_calls[0][0] == ["AAPL", "MSFT"]
+    with pytest.raises(ValueError, match="THYAO.IS icin 2026-01-01 gun sonu fiyati bulunamadi"):
+        client.get_closing_price(1, "THYAO", date(2026, 1, 1))
 
 def test_get_price_series(monkeypatch):
     client = YFinanceMarketDataClient()
     
     df = pd.DataFrame({"Close": [100.0, 101.5, 102.0]}, 
-                      index=pd.to_datetime(["2026-01-01", "2026-01-02", "2026-01-03"]))
+                      index=pd.to_datetime(["2026-01-05", "2026-01-06", "2026-01-07"]))  # BIST işlem günleri
                       
     download_calls = []
     def mock_download(tickers, start, end):
@@ -69,11 +52,11 @@ def test_get_price_series(monkeypatch):
         
     monkeypatch.setattr(client, "_download_dataframe", mock_download)
     
-    series = client.get_price_series("AAPL", date(2026, 1, 1), date(2026, 1, 3))
+    series = client.get_price_series("THYAO", date(2026, 1, 5), date(2026, 1, 7))
     assert series == {
-        date(2026, 1, 1): Decimal("100.0"),
-        date(2026, 1, 2): Decimal("101.5"),
-        date(2026, 1, 3): Decimal("102.0"),
+        date(2026, 1, 5): Decimal("100.0"),
+        date(2026, 1, 6): Decimal("101.5"),
+        date(2026, 1, 7): Decimal("102.0"),
     }
 
 
@@ -117,3 +100,83 @@ def test_optimization_last_price_returns_none_on_yfinance_failure(monkeypatch):
     )
 
     assert YFinanceOptimizationMarketDataProvider().get_last_price("AAPL") is None
+
+
+def test_get_price_series_keeps_explicit_exchange_suffix_and_index_symbols(monkeypatch):
+    client = YFinanceMarketDataClient()
+    df = pd.DataFrame({"Close": [1.0, 2.0]}, index=pd.to_datetime(["2026-01-01", "2026-01-02"]))
+    seen = []
+    monkeypatch.setattr(client, "_download_dataframe", lambda tickers, start, end: seen.append(tickers) or df)
+
+    client.get_price_series("^XU100", date(2026, 1, 1), date(2026, 1, 2))
+    client.get_price_series("sap.de", date(2026, 1, 1), date(2026, 1, 2))
+    client.get_price_series("asels.is", date(2026, 1, 1), date(2026, 1, 2))
+
+    assert seen == ["^XU100", "SAP.DE", "ASELS.IS"]
+
+
+def test_download_dataframe_requests_unadjusted_prices(monkeypatch):
+    """SQLite fiyat politikası: ham kapanış (bölünme düzeltmeli `Close`), temettü düzeltmesi yok."""
+    client = YFinanceMarketDataClient()
+    seen = {}
+
+    def fake_download(**kwargs):
+        seen.update(kwargs)
+        return pd.DataFrame()
+
+    monkeypatch.setattr("src.infrastructure.market_data.yfinance_client.yf.download", fake_download)
+    client._download_dataframe("THYAO.IS", date(2026, 1, 1), date(2026, 1, 2))
+
+    assert seen["auto_adjust"] is False
+
+
+def test_get_price_series_uses_close_not_adj_close(monkeypatch):
+    client = YFinanceMarketDataClient()
+    index = pd.to_datetime(["2026-01-05", "2026-01-06"])
+    df = pd.DataFrame({"Close": [10.26, 9.98], "Adj Close": [9.90, 9.63]}, index=index)
+    monkeypatch.setattr(client, "_download_dataframe", lambda tickers, start, end: df)
+
+    series = client.get_price_series("UNLU", date(2026, 1, 5), date(2026, 1, 6))
+
+    assert series == {date(2026, 1, 5): Decimal("10.26"), date(2026, 1, 6): Decimal("9.98")}
+
+
+def test_price_lookup_history_requests_unadjusted_prices(monkeypatch):
+    seen = {}
+
+    class FakeTicker:
+        fast_info = {}
+        info = {}
+
+        def history(self, **kwargs):
+            seen.update(kwargs)
+            return pd.DataFrame()
+
+    monkeypatch.setattr(
+        "src.infrastructure.market_data.yfinance_price_lookup_provider.yf.Ticker",
+        lambda _ticker: FakeTicker(),
+    )
+    YFinancePriceLookupProvider().lookup("THYAO.IS")
+
+    assert seen["auto_adjust"] is False
+
+
+def test_price_lookup_history_timestamp_is_converted_not_relabelled(monkeypatch):
+    from datetime import datetime, timezone
+
+    index = pd.to_datetime(["2026-11-06"]).tz_localize("Europe/Istanbul")  # gün başı İstanbul = 21:00 UTC önceki gün
+
+    class FakeTicker:
+        fast_info = {}
+        info = {}
+
+        def history(self, **_kwargs):
+            return pd.DataFrame({"Close": [42.5]}, index=index)
+
+    monkeypatch.setattr(
+        "src.infrastructure.market_data.yfinance_price_lookup_provider.yf.Ticker",
+        lambda _ticker: FakeTicker(),
+    )
+    snapshot = YFinancePriceLookupProvider().lookup("THYAO.IS")
+
+    assert snapshot.last_close_as_of == datetime(2026, 11, 5, 21, 0, tzinfo=timezone.utc)

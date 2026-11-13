@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, time
+from datetime import date, datetime, time, timedelta
+from typing import Optional, Tuple
 
 from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
+
+# Seans kapanışından sonra kesin kapanış fiyatının veri kaynağında (yfinance ~15 dk gecikmeli) görünmesi için beklenen süre
+CLOSE_DATA_DELAY = timedelta(minutes=20)
 
 
 @dataclass(frozen=True)
@@ -27,6 +31,32 @@ class BistMarketSessionService:
     def __init__(self, trading_calendar: MarketTradingCalendar | None = None) -> None:
         self._trading_calendar = trading_calendar or WeekdayTradingCalendar()
 
+    def _is_half_day(self, day: date) -> bool:
+        is_half = getattr(self._trading_calendar, "is_half_trading_day", None)
+        return bool(is_half(day)) if is_half is not None else False
+
+    def session_window(self, day: date) -> Optional[Tuple[datetime, datetime]]:
+        """İşlem günü için (seans açılışı, kapanış verisinin hazır olduğu an); işlem günü değilse None.
+
+        Canlı fiyatın geçerli sayıldığı aralık budur: kapanış verisi hazır olduktan sonra o günün günlük barı esastır.
+        """
+        if not self._trading_calendar.is_trading_day(day):
+            return None
+        half = self._is_half_day(day)
+        open_time = self.HALF_DAY_OPEN if half else self.FULL_DAY_OPEN
+        close_time = self.HALF_DAY_CLOSE if half else self.FULL_DAY_CLOSE
+        return datetime.combine(day, open_time), datetime.combine(day, close_time) + CLOSE_DATA_DELAY
+
+    def last_completed_trading_day(self, now: datetime) -> date:
+        """Kapanış verisi hazır olan son işlem günü: bugün işlem günüyse ve kapanış verisi hazırsa bugün, değilse önceki."""
+        window = self.session_window(now.date())
+        if window is not None and now >= window[1]:
+            return now.date()
+        candidate = now.date() - timedelta(days=1)
+        while not self._trading_calendar.is_trading_day(candidate):
+            candidate -= timedelta(days=1)
+        return candidate
+
     def status_for(self, trade_date: date, trade_time: time | None = None) -> MarketSessionStatus:
         if not self._trading_calendar.is_trading_day(trade_date):
             return MarketSessionStatus(
@@ -39,7 +69,7 @@ class BistMarketSessionService:
                 ),
             )
 
-        is_half_day = self._trading_calendar.is_half_trading_day(trade_date)
+        is_half_day = self._is_half_day(trade_date)
         open_time = self.HALF_DAY_OPEN if is_half_day else self.FULL_DAY_OPEN
         close_time = self.HALF_DAY_CLOSE if is_half_day else self.FULL_DAY_CLOSE
         day_type = "half_day" if is_half_day else "full_day"

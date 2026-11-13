@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 from datetime import date, time as dt_time, timedelta
-from typing import List, Tuple
+from typing import List, NamedTuple, Tuple
 
 from src.application.services.market.trading_calendar import MarketTradingCalendar, WeekdayTradingCalendar
 from src.application.services.reporting.daily_history_models import DailyPortfolioSnapshot, DailyPosition
 from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
 from src.application.services.simulation.history_position_builder import HistoryPositionBuilder
 from src.application.services.simulation.history_simulation_state import SimulationState
-from src.application.services.simulation.history_snapshot_builder import HistorySnapshotBuilder
+from src.application.services.simulation.history_snapshot_builder import HistorySnapshotBuilder, SnapshotValuation
 from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.models.trade import Trade, TradeSide
+
+
+class _SimDayCtx(NamedTuple):
+    relevant_trades: list
+    price_series: dict
+    ticker_map: "dict[int, str]"
 
 
 class ModelPortfolioHistorySimulationService:
@@ -53,16 +59,9 @@ class ModelPortfolioHistorySimulationService:
         state = SimulationState()
         daily_positions: list[DailyPosition] = []
         daily_snapshots: list[DailyPortfolioSnapshot] = []
+        ctx = _SimDayCtx(relevant_trades=relevant_trades, price_series=price_series, ticker_map=ticker_map)
         for current_date in self._date_range(start_date, end_date):
-            self._simulate_day(
-                current_date=current_date,
-                state=state,
-                relevant_trades=relevant_trades,
-                price_series=price_series,
-                ticker_map=ticker_map,
-                daily_positions=daily_positions,
-                daily_snapshots=daily_snapshots,
-            )
+            self._simulate_day(current_date, state, ctx, daily_positions, daily_snapshots)
 
         return daily_positions, daily_snapshots
 
@@ -111,16 +110,14 @@ class ModelPortfolioHistorySimulationService:
         self,
         current_date: date,
         state: SimulationState,
-        relevant_trades: list[Trade],
-        price_series: dict,
-        ticker_map: dict[int, str],
-        daily_positions: list[DailyPosition],
-        daily_snapshots: list[DailyPortfolioSnapshot],
+        ctx: "_SimDayCtx",
+        daily_positions: list,
+        daily_snapshots: list,
     ) -> None:
-        self._apply_due_trades(state, relevant_trades, current_date)
+        self._apply_due_trades(state, ctx.relevant_trades, current_date)
         is_trading_day = self._trading_calendar.is_trading_day(current_date)
-        prices_for_day = price_series.get(current_date, {}) if is_trading_day else {}
-        position_result = self._build_positions_for_day(current_date, state, prices_for_day, ticker_map)
+        prices_for_day = ctx.price_series.get(current_date, {}) if is_trading_day else {}
+        position_result = self._build_positions_for_day(current_date, state, prices_for_day, ctx.ticker_map)
         if position_result is not None:
             daily_positions.extend(position_result.positions)
             total_cost_basis = position_result.total_cost_basis
@@ -132,10 +129,12 @@ class ModelPortfolioHistorySimulationService:
 
         snapshot_result = self._snapshot_builder.build(
             current_date=current_date,
-            portfolio_value=portfolio_value,
-            total_cost_basis=total_cost_basis,
-            last_portfolio_value=state.last_portfolio_value,
-            base_portfolio_value=state.base_portfolio_value,
+            val=SnapshotValuation(
+                portfolio_value=portfolio_value,
+                total_cost_basis=total_cost_basis,
+                last_portfolio_value=state.last_portfolio_value,
+                base_portfolio_value=state.base_portfolio_value,
+            ),
             has_prices=bool(prices_for_day),
             is_trading_day=is_trading_day,
         )

@@ -9,6 +9,7 @@ import urllib.error
 import urllib.parse
 from config.settings_loader import load_market_settings
 from src.domain.exceptions import MarketDataUnavailableError
+from src.infrastructure.retry import retry_call
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +40,12 @@ class EvdsClient:
             },
             method="GET",
         )
-        try:
+        def fetch():
             with urlopen(request, timeout=self._timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-                return payload.get("items", [])
+                return json.loads(response.read().decode("utf-8"))
+
+        try:
+            return retry_call(fetch, label="EVDS").get("items", [])
         except urllib.error.URLError as e:
             logger.error("EVDS API baglanti hatasi: %s", e)
             raise MarketDataUnavailableError(f"EVDS API baglanti hatasi: {e}") from e

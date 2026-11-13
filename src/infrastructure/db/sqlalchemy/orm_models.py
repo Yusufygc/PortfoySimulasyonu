@@ -1,9 +1,11 @@
 # src/infrastructure/db/sqlalchemy/orm_models.py
 
-from sqlalchemy import Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, Numeric, String, Text, Time, UniqueConstraint
-from sqlalchemy.dialects.mysql import BIGINT
+from sqlalchemy import BigInteger, Boolean, Column, Computed, Date, DateTime, Enum, ForeignKey, Index, Integer, JSON, String, Text, Time, UniqueConstraint
+from sqlalchemy import event, false, select
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
+
+from src.infrastructure.db.sqlalchemy.exact_numeric import ExactNumeric
 import enum
 
 Base = declarative_base()
@@ -15,11 +17,18 @@ class TradeSideEnum(str, enum.Enum):
 class CashMovementTypeEnum(str, enum.Enum):
     DEPOSIT = "DEPOSIT"
     WITHDRAW = "WITHDRAW"
+    DIVIDEND = "DIVIDEND"
+    FRACTION = "FRACTION"
+
+class CrossTypeEnum(str, enum.Enum):
+    GOLDEN = "GOLDEN"
+    DEATH  = "DEATH"
+
 
 class ORMStock(Base):
     __tablename__ = "stocks"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     ticker = Column(String(20), nullable=False)
     name = Column(String(100))
     currency_code = Column(String(3), nullable=False, default="TRY", server_default="TRY")
@@ -37,16 +46,17 @@ class ORMStock(Base):
 class ORMTrade(Base):
     __tablename__ = "trades"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
-    stock_id = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
     trade_date = Column(Date, nullable=False)
     trade_time = Column(Time, nullable=True)
     side = Column(Enum(TradeSideEnum), nullable=False)
-    quantity = Column(BIGINT(unsigned=True), nullable=False)
-    price = Column(Numeric(18, 4), nullable=False)
-    original_quantity = Column(BIGINT(unsigned=True), nullable=False)
-    original_price = Column(Numeric(18, 4), nullable=False)
-    total_amount = Column(Numeric(18, 4), Computed("quantity * price", persisted=True))
+    quantity = Column(BigInteger, nullable=False)
+    price = Column(ExactNumeric(18, 4), nullable=False)
+    original_quantity = Column(BigInteger, nullable=False)
+    original_price = Column(ExactNumeric(18, 4), nullable=False)
+    fee = Column(ExactNumeric(18, 4), nullable=False, default=0, server_default="0")  # komisyon + BSMV (TL)
+    total_amount = Column(ExactNumeric(18, 4), Computed("quantity * price", persisted=True))
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
@@ -60,13 +70,15 @@ class ORMTrade(Base):
 class ORMCashMovement(Base):
     __tablename__ = "cash_movements"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     movement_date = Column(Date, nullable=False)
     movement_time = Column(Time, nullable=True)
     type = Column(Enum(CashMovementTypeEnum), nullable=False)
-    amount = Column(Numeric(18, 4), nullable=False)
+    amount = Column(ExactNumeric(18, 4), nullable=False)
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+    # Yalnızca temettü hareketlerinde dolu (hangi hisseden geldiği)
+    stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="SET NULL"), nullable=True)
 
     __table_args__ = (
         Index("idx_cash_movements_date", "movement_date", "movement_time"),
@@ -75,13 +87,19 @@ class ORMCashMovement(Base):
 class ORMDailyPrice(Base):
     __tablename__ = "daily_prices"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
-    stock_id = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
     price_date = Column(Date, nullable=False)
-    close_price = Column(Numeric(18, 4), nullable=False)
+    close_price = Column(ExactNumeric(18, 4), nullable=False)
     currency_code = Column(String(3), nullable=False, default="TRY", server_default="TRY")
     source = Column(String(50), nullable=False, default="yfinance", server_default="yfinance")
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+    # OHLCV genişletmesi —ATR/Stochastic/CCI/VWAP/OBV için.
+    # Nullable: eski kayıtlarda ve close-only kaynaklarda boş kalabilir.
+    open_price = Column(ExactNumeric(18, 4), nullable=True)
+    high_price = Column(ExactNumeric(18, 4), nullable=True)
+    low_price = Column(ExactNumeric(18, 4), nullable=True)
+    volume = Column(BigInteger, nullable=True)
 
     __table_args__ = (
         UniqueConstraint("stock_id", "price_date", name="uq_daily_price"),
@@ -94,9 +112,9 @@ class ORMDailyPrice(Base):
 class ORMLatestPrice(Base):
     __tablename__ = "latest_prices"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
-    stock_id = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    price = Column(Numeric(18, 4), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    price = Column(ExactNumeric(18, 4), nullable=False)
     as_of = Column(DateTime, nullable=False)
     source = Column(String(50), nullable=False)
     provider = Column(String(50), nullable=False)
@@ -126,9 +144,9 @@ class ORMWatchlist(Base):
 class ORMWatchlistItem(Base):
     __tablename__ = "watchlist_items"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     watchlist_id = Column(Integer, ForeignKey("watchlists.id", ondelete="CASCADE"), nullable=False)
-    stock_id = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
     notes = Column(String(1000))
     added_at = Column(DateTime, server_default=func.now())
 
@@ -145,7 +163,7 @@ class ORMModelPortfolio(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     description = Column(String(1000))
-    initial_cash = Column(Numeric(18, 2), nullable=False, default=100000.00, server_default="100000.00")
+    initial_cash = Column(ExactNumeric(18, 2), nullable=False, default=100000.00, server_default="100000.00")
     sort_order = Column(Integer, nullable=False, default=0, server_default="0")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -160,14 +178,14 @@ class ORMModelPortfolio(Base):
 class ORMModelPortfolioTrade(Base):
     __tablename__ = "model_portfolio_trades"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     portfolio_id = Column(Integer, ForeignKey("model_portfolios.id", ondelete="CASCADE"), nullable=False)
-    stock_id = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    stock_id = Column(BigInteger, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
     trade_date = Column(Date, nullable=False)
     trade_time = Column(Time, nullable=True)
     side = Column(Enum(TradeSideEnum), nullable=False)
     quantity = Column(Integer, nullable=False)
-    price = Column(Numeric(18, 4), nullable=False)
+    price = Column(ExactNumeric(18, 4), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
     __table_args__ = (
@@ -182,12 +200,12 @@ class ORMModelPortfolioTrade(Base):
 class ORMModelPortfolioCashMovement(Base):
     __tablename__ = "model_portfolio_cash_movements"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     portfolio_id = Column(Integer, ForeignKey("model_portfolios.id", ondelete="CASCADE"), nullable=False)
     movement_date = Column(Date, nullable=False)
     movement_time = Column(Time, nullable=True)
     type = Column(Enum(CashMovementTypeEnum), nullable=False)
-    amount = Column(Numeric(18, 4), nullable=False)
+    amount = Column(ExactNumeric(18, 4), nullable=False)
     notes = Column(String(255))
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
@@ -202,7 +220,7 @@ class ORMBudget(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     month = Column(String(7), unique=True, nullable=False)  # 'YYYY-MM'
-    savings_target = Column(Numeric(18, 2), default=0)
+    savings_target = Column(ExactNumeric(18, 2), default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -217,7 +235,7 @@ class ORMBudgetItem(Base):
     budget_id = Column(Integer, ForeignKey("budgets.id", ondelete="CASCADE"), nullable=False)
     item_type = Column(String(10), nullable=False)   # 'income' | 'expense'
     name = Column(String(100), nullable=False)
-    amount = Column(Numeric(18, 2), default=0)
+    amount = Column(ExactNumeric(18, 2), default=0)
 
     budget = relationship("ORMBudget", back_populates="items")
 
@@ -228,7 +246,7 @@ class ORMBudgetPinnedItem(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     item_type = Column(String(10), nullable=False)   # 'income' | 'expense'
     name = Column(String(100), nullable=False)
-    default_amount = Column(Numeric(18, 2), default=0)
+    default_amount = Column(ExactNumeric(18, 2), default=0)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -242,8 +260,8 @@ class ORMFinancialGoal(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    target_amount = Column(Numeric(18, 2), nullable=False)
-    current_amount = Column(Numeric(18, 2), default=0)
+    target_amount = Column(ExactNumeric(18, 2), nullable=False)
+    current_amount = Column(ExactNumeric(18, 2), default=0)
     deadline = Column(Date, nullable=True)
     priority = Column(String(50), default="MEDIUM")
     status = Column(String(50), default="ACTIVE")
@@ -257,19 +275,19 @@ class ActionTypeEnum(str, enum.Enum):
 class ORMCorporateActionCandidate(Base):
     __tablename__ = "corporate_action_candidates"
 
-    id                   = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
+    id                   = Column(BigInteger, primary_key=True, autoincrement=True)
     ticker               = Column(String(20), nullable=False)
-    stock_id             = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
+    stock_id             = Column(BigInteger, ForeignKey("stocks.id", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
     source               = Column(String(30), nullable=False)
     source_disclosure_id = Column(String(100), nullable=False)
     source_url           = Column(String(500), nullable=True)
     action_type          = Column(Enum(ActionTypeEnum), nullable=False)
     status               = Column(String(30), nullable=False, default="DISCOVERED", server_default="DISCOVERED")
-    ratio                = Column(Numeric(12, 8), nullable=True)
-    subscription_price   = Column(Numeric(18, 4), nullable=True)
+    ratio                = Column(ExactNumeric(12, 8), nullable=True)
+    subscription_price   = Column(ExactNumeric(18, 4), nullable=True)
     announcement_date    = Column(Date, nullable=True)
     ex_date              = Column(Date, nullable=True)
-    confidence           = Column(Numeric(5, 4), nullable=False, default=0, server_default="0")
+    confidence           = Column(ExactNumeric(5, 4), nullable=False, default=0, server_default="0")
     raw_payload_json     = Column(JSON, nullable=True)
     parse_notes          = Column(String(500), nullable=True)
     created_at           = Column(DateTime, nullable=False, server_default=func.now())
@@ -295,19 +313,19 @@ class ORMCorporateAction(Base):
     """
     __tablename__ = "corporate_actions"
 
-    id                 = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
-    stock_id           = Column(BIGINT(unsigned=True), ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
+    id                 = Column(BigInteger, primary_key=True, autoincrement=True)
+    stock_id           = Column(BigInteger, ForeignKey("stocks.id", ondelete="RESTRICT", onupdate="CASCADE"), nullable=False)
     action_type        = Column(Enum(ActionTypeEnum), nullable=False)
     ex_date            = Column(Date, nullable=False)
-    ratio              = Column(Numeric(12, 8), nullable=False)
-    subscription_price = Column(Numeric(18, 4), nullable=True)
+    ratio              = Column(ExactNumeric(12, 8), nullable=False)
+    subscription_price = Column(ExactNumeric(18, 4), nullable=True)
     announcement_date  = Column(Date, nullable=True)
     notes              = Column(String(500), nullable=True)
     applied            = Column(Boolean, nullable=False, default=False, server_default="0")
     applied_at         = Column(DateTime, nullable=True)
     prices_adjusted    = Column(Boolean, nullable=False, default=False, server_default="0")
     prices_adjusted_at = Column(DateTime, nullable=True)
-    price_adjustment_factor = Column(Numeric(18, 10), nullable=True)
+    price_adjustment_factor = Column(ExactNumeric(18, 10), nullable=True)
     price_adjustment_count  = Column(Integer, nullable=False, default=0, server_default="0")
     created_at         = Column(DateTime, nullable=False, server_default=func.now())
 
@@ -338,14 +356,14 @@ class ORMRiskProfile(Base):
 class ORMTradeAdjustment(Base):
     __tablename__ = "trade_adjustments"
 
-    id = Column(BIGINT(unsigned=True), primary_key=True, autoincrement=True)
-    trade_id = Column(BIGINT(unsigned=True), ForeignKey("trades.id", ondelete="CASCADE"), nullable=False)
-    corporate_action_id = Column(BIGINT(unsigned=True), ForeignKey("corporate_actions.id", ondelete="RESTRICT"), nullable=False)
-    factor = Column(Numeric(18, 10), nullable=False)
-    pre_quantity = Column(BIGINT(unsigned=True), nullable=False)
-    post_quantity = Column(BIGINT(unsigned=True), nullable=False)
-    pre_price = Column(Numeric(18, 4), nullable=False)
-    post_price = Column(Numeric(18, 4), nullable=False)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    trade_id = Column(BigInteger, ForeignKey("trades.id", ondelete="CASCADE"), nullable=False)
+    corporate_action_id = Column(BigInteger, ForeignKey("corporate_actions.id", ondelete="RESTRICT"), nullable=False)
+    factor = Column(ExactNumeric(18, 10), nullable=False)
+    pre_quantity = Column(BigInteger, nullable=False)
+    post_quantity = Column(BigInteger, nullable=False)
+    pre_price = Column(ExactNumeric(18, 4), nullable=False)
+    post_price = Column(ExactNumeric(18, 4), nullable=False)
     applied_at = Column(DateTime, nullable=False, server_default=func.now())
 
     __table_args__ = (
@@ -354,3 +372,271 @@ class ORMTradeAdjustment(Base):
 
     trade = relationship("ORMTrade")
     corporate_action = relationship("ORMCorporateAction")
+
+
+
+# ---------------------------------------------------------------------------
+# KAP Ortaklık Yapısı tabloları (Plan 6)
+# ---------------------------------------------------------------------------
+
+class ORMKapCompany(Base):
+    """KAP'tan bilinen şirket: ticker → mkkMemberOid eşleşmesi."""
+    __tablename__ = "kap_companies"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    ticker = Column(String(20), nullable=False)
+    mkk_member_oid = Column(String(40), nullable=False)
+    title = Column(String(255))
+    last_fetched_at = Column(DateTime)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("ticker", name="uq_kap_companies_ticker"),
+        Index("idx_kap_companies_oid", "mkk_member_oid"),
+    )
+
+    shareholder_snapshots = relationship(
+        "ORMKapShareholderSnapshot",
+        back_populates="company",
+        cascade="all, delete-orphan",
+    )
+
+
+class ORMKapShareholderSnapshot(Base):
+    """KAP 'Sermayede %5+ pay sahibi' bildirimi (tek tarih için snapshot)."""
+    __tablename__ = "kap_shareholder_snapshots"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    company_id = Column(
+        BigInteger,
+        ForeignKey("kap_companies.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
+    creation_date = Column(Date, nullable=False)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "creation_date", name="uq_kap_shareholder_snapshot"),
+        Index("idx_kap_shareholder_snap_date", "creation_date"),
+    )
+
+    company = relationship("ORMKapCompany", back_populates="shareholder_snapshots")
+    rows = relationship(
+        "ORMKapShareholderRow",
+        back_populates="snapshot",
+        cascade="all, delete-orphan",
+    )
+
+
+class ORMGoldenCrossEvent(Base):
+    """EMA50/EMA200 kesişimi (Golden / Death Cross taraması).
+
+    Türetilmiş veridir (DuckDB piyasa geçmişinden yeniden üretilebilir) ve ticker anahtarlıdır:
+    tüm BIST taranır, `stocks` tablosuna bağımlı değildir. Eski `golden_cross_events` (stock_id anahtarlı)
+    tablosu açılışta silinir.
+    """
+    __tablename__ = "cross_events"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    ticker = Column(String(20), nullable=False)
+    cross_date = Column(Date, nullable=False)
+    cross_type = Column(Enum(CrossTypeEnum), nullable=False)
+    short_ma = Column(ExactNumeric(18, 4))
+    long_ma = Column(ExactNumeric(18, 4))
+    close_price = Column(ExactNumeric(18, 4), nullable=False)
+    detected_at = Column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("ticker", "cross_date", "cross_type", name="uq_cross_event"),
+        Index("idx_cross_event_date", "cross_date"),
+        Index("idx_cross_event_type_date", "cross_type", "cross_date"),
+    )
+
+
+class ORMKapShareholderRow(Base):
+    """Snapshot içindeki tek pay sahibi satırı."""
+    __tablename__ = "kap_shareholder_rows"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    snapshot_id = Column(
+        BigInteger,
+        ForeignKey("kap_shareholder_snapshots.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+    )
+    shareholder_name = Column(String(500), nullable=False)
+    share_in_capital = Column(ExactNumeric(24, 4))
+    ratio_in_capital = Column(ExactNumeric(9, 4))
+    voting_right_ratio = Column(ExactNumeric(9, 4))
+    is_total = Column(Boolean, nullable=False, default=False, server_default="0")
+
+    __table_args__ = (
+        Index("idx_kap_shareholder_rows_snap", "snapshot_id"),
+    )
+
+    snapshot = relationship("ORMKapShareholderSnapshot", back_populates="rows")
+
+
+class ORMAsset(Base):
+    """BIST dışı varlık (ABD hissesi, kripto, kıymetli maden). `Integer` anahtar: otomatik artar."""
+
+    __tablename__ = "assets"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    symbol = Column(String(30), nullable=False)
+    name = Column(String(150), nullable=False)
+    asset_class = Column(String(20), nullable=False)
+    quote_currency = Column(String(3), nullable=False)
+    yf_symbol = Column(String(40), nullable=False)
+    unit = Column(String(10), nullable=False, default="UNIT", server_default="UNIT")
+    is_active = Column(Boolean, nullable=False, default=True, server_default="1")
+    trade_currency = Column(String(3), nullable=False, default="", server_default="")  # boşsa fiyat para birimi
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("asset_class", "symbol", name="uq_assets_class_symbol"),
+    )
+
+    trades = relationship("ORMAssetTrade", back_populates="asset", cascade="all, delete")
+
+
+class ORMAssetTrade(Base):
+    __tablename__ = "asset_trades"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
+    trade_date = Column(Date, nullable=False)
+    trade_time = Column(Time, nullable=True)
+    side = Column(Enum(TradeSideEnum), nullable=False)
+    quantity = Column(ExactNumeric(28, 10), nullable=False)
+    price = Column(ExactNumeric(28, 10), nullable=False)
+    fx_rate_to_try = Column(ExactNumeric(18, 8), nullable=False, default=1, server_default="1")
+    fee = Column(ExactNumeric(28, 10), nullable=False, default=0, server_default="0")  # işlem para biriminde
+    cash_linked = Column(Boolean, nullable=False, default=False, server_default="0")  # nakit havuzunu etkiler
+    note = Column(String(255))
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_asset_trades_asset_date", "asset_id", "trade_date"),
+    )
+
+    asset = relationship("ORMAsset", back_populates="trades")
+
+
+class ORMAssetPrice(Base):
+    __tablename__ = "asset_prices"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
+    price_date = Column(Date, nullable=False)
+    close_price = Column(ExactNumeric(28, 10), nullable=False)
+    currency_code = Column(String(3), nullable=False)
+    source = Column(String(30), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("asset_id", "price_date", name="uq_asset_price"),
+    )
+
+
+class ORMAssetLatestPrice(Base):
+    __tablename__ = "asset_latest_prices"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False)
+    price = Column(ExactNumeric(28, 10), nullable=False)
+    currency_code = Column(String(3), nullable=False)
+    as_of = Column(DateTime, nullable=False)
+    source = Column(String(30), nullable=False)
+    fetched_at = Column(DateTime, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("asset_id", name="uq_asset_latest_prices_asset"),
+    )
+
+
+class ORMFxRate(Base):
+    __tablename__ = "fx_rates"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    base_currency = Column(String(3), nullable=False)
+    quote_currency = Column(String(3), nullable=False)
+    rate_date = Column(Date, nullable=False)
+    rate = Column(ExactNumeric(18, 8), nullable=False)
+    source = Column(String(30), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("base_currency", "quote_currency", "rate_date", name="uq_fx_rate"),
+    )
+
+
+class ORMFxConversion(Base):
+    """Ortak nakit havuzunda TL <-> USD döviz çevirme kayıtları."""
+
+    __tablename__ = "fx_conversions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    conversion_date = Column(Date, nullable=False)
+    conversion_time = Column(Time, nullable=True)
+    side = Column(String(10), nullable=False)  # BUY_USD | SELL_USD
+    usd_amount = Column(ExactNumeric(28, 10), nullable=False)
+    rate = Column(ExactNumeric(18, 8), nullable=False)
+    fee_try = Column(ExactNumeric(18, 4), nullable=False, default=0, server_default="0")
+    note = Column(String(255))
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (Index("idx_fx_conversions_date", "conversion_date", "conversion_time"),)
+
+
+class ORMAppSetting(Base):
+    """Küçük anahtar-değer ayarları (ücret oranları vb.); veritabanında tutulur, yedeğe girer."""
+
+    __tablename__ = "app_settings"
+
+    key = Column(String(80), primary_key=True)
+    value = Column(String(200), nullable=False, default="")
+
+
+class ORMNewsSource(Base):
+    """Ayarlar'dan yönetilen haber kaynakları (KAP, Yahoo, Google, RSS) ve açık/kapalı tercihleri."""
+
+    __tablename__ = "news_sources"
+
+    source_id = Column(String(80), primary_key=True)
+    kind = Column(String(20), nullable=False)
+    name = Column(String(120), nullable=False)
+    enabled = Column(Boolean, nullable=False, default=True)
+    language = Column(String(5), nullable=False, default="tr")
+    scope = Column(String(10), nullable=False, default="market")
+    url = Column(String(500), nullable=False, default="")
+    description = Column(String(300), nullable=False, default="")
+    is_custom = Column(Boolean, nullable=False, default=False)
+    options_json = Column(Text, nullable=False, default="{}")
+    sort_order = Column(Integer, nullable=False, default=0)
+
+
+@event.listens_for(Base, "before_insert", propagate=True)
+def _assign_missing_bigint_id(mapper, connection, target) -> None:
+    """SQLite'ta `BIGINT` birincil anahtar otomatik artmaz (yalnızca `INTEGER PRIMARY KEY` rowid takma adıdır).
+
+    `id` verilmeden eklenen kayıtlara `max(id) + 1` atanır. Aynı flush içindeki kayıtlar için sayaç bağlantıda tutulur.
+    Kimliği repository'de elle atayan kodlar etkilenmez (`id` dolu).
+
+    Eşzamanlı yazıcılarda çakışmayı önlemek için `max(id)` okunmadan önce hiçbir satırı değiştirmeyen bir `UPDATE`
+    ile SQLite yazma kilidi alınır: ikinci yazıcı, ilki commit edene kadar burada bekler ve sonra güncel `max(id)`
+    değerini görür. Kilit olmadan iki bağlantı aynı `max(id)` değerini okuyup aynı kimliği atardı.
+    """
+    table = mapper.local_table
+    key = list(table.primary_key.columns)
+    if len(key) != 1 or key[0].name != "id" or not isinstance(key[0].type, BigInteger):
+        return
+    if getattr(target, "id", None) is not None:
+        return
+    connection.execute(table.update().where(false()).values({key[0].name: key[0]}))
+    assigned = connection.info.setdefault("assigned_bigint_ids", {})
+    current_max = connection.execute(select(func.coalesce(func.max(key[0]), 0))).scalar() or 0
+    target.id = max(int(current_max), assigned.get(table.name, 0)) + 1
+    assigned[table.name] = target.id
+
+
+# Bölünme otomasyonu tabloları ayrı modüldedir; metadata'ya kaydolmaları için burada yüklenir.
+from src.infrastructure.db.sqlalchemy import orm_split_models  # noqa: E402,F401

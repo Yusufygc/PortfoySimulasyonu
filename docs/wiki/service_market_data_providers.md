@@ -1,0 +1,77 @@
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Veri sahipliği: [data_architecture.md](data_architecture.md)
+
+# Piyasa Veri Kaynakları ve Dayanıklılık
+
+Bu sayfa uygulamanın dış veri kaynaklarını, bunları saran sağlayıcıları, önbellek davranışını ve ağ hatası dayanıklılığını özetler. Fiyatın veritabanına nasıl yazıldığı ve iki fiyat akışı için bkz. [service_portfolio_and_market.md](service_portfolio_and_market.md).
+
+## 1. Kaynak Haritası
+
+| Veri | Kaynak | Sağlayıcı (kod) | Önbellek |
+|---|---|---|---|
+| Günlük OHLCV (tüm BIST, ham) | Yahoo Finance (`yfinance`, `auto_adjust=False`) | `BistBulkDownloader`, `MarketDataSyncService` | DuckDB (`data/market_history.duckdb`) |
+| Hisse listesi (BIST evreni) | TradingView Scanner API | `BistBulkDownloader.fetch_all_bist_tickers` | `bist_stocks` tablosu |
+| Portföy hisseleri kapanışı | yfinance (`auto_adjust=False`, ham `Close`; BIST'te hayalet barlar elenir) | `YFinanceMarketDataClient` (`yfinance_client.py`, `yfinance_price_client.py`) | SQLite `daily_prices` |
+| Hisse bölünmesi kayıtları | yfinance `Ticker.splits` | `YahooSplitProvider` | `split_events` (uygulanınca) |
+| Anlık fiyat | yfinance toplu `download(period="1d", interval="1m")` (50'lik parçalar; `lookup_intraday_bulk`), gelmeyenler için tekli `fast_info` / `history` | `YFinancePriceLookupProvider` | SQLite `latest_prices` |
+| Üst piyasa şeridi | yfinance | `YFinanceIndicatorProvider` (`MarketIndicatorsService`) | yok (her yenilemede) |
+| Piyasa değeri, hisse adedi (Hisse 360) | yfinance | `YFinanceValuationProvider` | `data/_cache/financials/valuation_<TICKER>.json`, TTL 1 saat |
+| Çeyreklik mali tablolar | İş Yatırım (JSON uç noktası) | `isyatirim_provider.py` | `data/_cache/financials/<TICKER>_<PB>.json`, TTL 12 saat |
+| TÜFE (enflasyon) | TCMB EVDS | `EvdsTufeProvider` | `data/_cache/financials/tufe_index.json`, TTL 24 saat |
+| Mevduat faizi, benchmark serileri | TCMB EVDS, yfinance, kazıma (countryeconomy, exchange-rates.org, macrotrends) | `AnalysisBenchmarkService`, `ScrapedBenchmarkProvider`, `EvdsClient` | bellek içi |
+| KAP ortaklık yapısı | KAP (kamuya açık API) | `kap_shareholder_provider.py` (şirket kimlik haritası haber sağlayıcısıyla ortak; virgüllü borsa kodları ayrıştırılır) | `data/_cache/kap/` (şirket listesi haftalık TTL), SQLite `kap_*` tabloları |
+| Kurumsal aksiyon duyuruları | KAP kamuya açık duyuru listesi ve bildirim sayfaları | `kap_mkk_provider.py` | `corporate_action_candidates` tablosu |
+| Varlık fiyatları (kripto, emtia, ABD hissesi) ve kurlar (`TRY=X`, `EURTRY=X`) | yfinance | `YFinanceAssetPriceProvider` | SQLite `asset_prices`, `asset_latest_prices`, `fx_rates` ([service_asset_prices_fx.md](service_asset_prices_fx.md)) |
+| Haber: KAP bildirimleri | KAP `members/byCriteria` (resmî olmayan iç API) | `KapDisclosureNewsProvider` | `data/_cache/news/` (10 dk) |
+| Haber: Yahoo sembol RSS, Google News, genel RSS | Yahoo Finance RSS, Google News RSS, yayıncı RSS/Atom | `YahooRssNewsProvider`, `GoogleNewsRssProvider`, `RssNewsProvider` | `data/_cache/news/` (10 dk); ayrıntı [service_news.md](service_news.md) |
+| Optimizasyon fiyatları | DuckDB (eksik hissede yfinance) | `DuckDBOptimizationMarketDataProvider`, `YFinanceOptimizationMarketDataProvider` | DuckDB |
+| BIST tatil takvimi | Kod içi liste (2020-2030) | `bist_holiday_calendar.py`, `BistHolidayProvider` | yok |
+| Gemini (LLM) | Google Gemini API | `GeminiChatProvider`, `GeminiAdvisorChatProvider` | yok |
+| AI_Core tahmin servisi | Yerel FastAPI (`AI_CORE_API_URL`) | `AICoreFastAPIClient` | yok |
+
+Gram altın/gümüş `GC=F` / `SI=F` (USD/ons) x `TRY=X` / 31,1035 ile hesaplanır (`XAUTRY=X`, `XAGTRY=X`, `XAUUSD=X`, `XAGUSD=X` Yahoo'da 404); USD/TRY alınamazsa seri boş döner ve uyarı verilir. TÜFE ayı açıklandığı M+1 ayının başından uygulanır.
+
+Benchmark kodları (`AnalysisBenchmarkService`): `bist100` (XU100), `gold` (gram altın), `silver` (gram gümüş), `usd`, `euro`, `deposit` (TCMB mevduat, EVDS `TP.KTF10`), `cpi` (TÜFE, EVDS `TP.FG.J0`). EVDS anahtarı yoksa veya EVDS erişilemezse mevduat faizi `TCMB_DEPOSIT_RATE_FALLBACK` değerine (varsayılan %45) düşer.
+
+## 2. Ticker Biçimi
+
+Kanonik ticker uzantısızdır (`THYAO`). `.IS` yalnızca yfinance sınırında eklenir (`src/domain/ticker.py`: `clean_ticker`, `to_yf_symbol`). Endeks (`^XU100`), kur (`USDTRY=X`) ve zaten uzantılı semboller olduğu gibi kalır. Ayrıntı: [data_architecture.md](data_architecture.md).
+
+## 3. Yeniden Deneme (`src/infrastructure/retry.py`)
+
+`retry_call(operation, attempts=3, base_delay=1.0, is_retryable=..., label=...)` geçici hatalarda üstel bekleyerek (1 sn, 2 sn...) yeniden dener; son denemede veya kalıcı hatada özgün istisna fırlatılır.
+
+Geçici sayılan hatalar (`is_transient_error`): `URLError`, `TimeoutError`, `ConnectionError`, `socket.timeout`, HTTP 408/429/500/502/503/504 (`HTTPError`), `requests` bağlantı/zaman aşımı/5xx ve `YFRateLimitError`. 4xx ve ayrıştırma hataları denenmez. `raise_for_transient_status(response)` ile `requests` yanıtındaki 429/5xx durumu hataya çevrilir.
+
+Kullanan istemciler: yfinance indirme (`YFinanceMarketDataClient._download_dataframe`) ve optimizasyon verisi, EVDS, KAP (kamuya açık kaynak ve ortaklık), İş Yatırım toplu çekim, ölçüt kazıyıcısı ve `BistBulkDownloader` (burada her hata yeniden denenir: yfinance çoğu hatayı genel istisna olarak döndürür; bekleme 2 sn, 4 sn).
+
+Bilinçli olarak denenmeyenler: tek hisse anlık fiyat sorguları (`YFinancePriceLookupProvider`) ve değerleme sağlayıcısı; arayüzü bekletmemek için hata `None` veya boş sonuç olarak döner.
+
+Testlerde bekleme `tests/conftest.py` ile kapatılır (`retry._sleep` değiştirilir).
+
+## 4. Hata Aileleri ve Geri Düşme
+
+- `MARKET_DATA_FALLBACK_ERRORS` (`infrastructure/market_data/_errors.py`): yfinance, `urllib`, JSON ayrıştırma, `MarketDataUnavailableError` ve benzeri beklenen hataları tek ailede toplar; kontrolsüz `except Exception` kullanılmaz.
+- İstemci hataları `MarketDataUnavailableError` ile sarılır; çağıran katman deterministik geri düşmeyi seçer (ör. EVDS yok -> sabit mevduat faizi; AI_Core yok -> demo sağlayıcı; İş Yatırım yok -> Hisse 360 yedek veri).
+- `yfinance_lock` (`YFinanceGate`): etkileşimli sağlayıcılar (tek fiyat, değerleme, gösterge, optimizasyon, istemci) birbirini süreç genelinde serileştirir; toplu BIST indirmeleri (`BistBulkDownloader`, `MarketDataSyncService`) kapıyı kullanmaz ve eşzamanlı çalışır. Kapı `LOCK_WAIT_TIMEOUT_SECONDS` (30 sn) içinde alınamazsa uyarı yazılıp çağrı kilitsiz sürdürülür (fail-open): takılan tek bir istek tüm yfinance kullanıcılarını sonsuza dek bekletmez; zaman aşımına düşen giriş, başkasının tuttuğu kilidi serbest bırakmaz. Kilit yeniden deneme beklemesi sırasında tutulmaz. yfinance 1.7.0 indirme yolu paylaşılan küresel durum kullanmadığından kilitsiz devam güvenlidir.
+- yfinance zaman dilimi önbelleği geçici klasörde tutulur (`<temp>/portfoy-simulasyonu/yfinance-cache`).
+
+## 5. DuckDB Okuyucuları
+
+`DuckDBMarketHistoryRepository` (salt okunur, her çağrıda kısa ömürlü bağlantı) toplu okuma sunar: `list_tickers`, `get_price_series(_bulk)`, `get_latest_dates`, `find_price_breaks` ve sermaye artırımı faktörleriyle **düzeltilmiş** okuma. `DuckDBOptimizationMarketDataProvider` 504 günlük fiyatı ve kovaryans girdisini DuckDB'den çeker. Sahiplik ve yazma kuralları için [data_architecture.md](data_architecture.md), düzeltme formülleri için [market_corporate_actions.md](market_corporate_actions.md).
+
+## 6. Seans ve Takvim
+
+**Takvim düzeltmesi (2026-11-07):** 2024 Kurban Bayramı 16-19 Haziran'dı; 20 Haziran kaydı kaldırıldı. 9-14 Şubat 2023 deprem kapanışı olağanüstü kapanış olarak eklendi. Takvim 2020+ hacim verisiyle karşılaştırıldı. Hayalet bar kuralı takvimdeki tatil gününü yalnızca hacim 0 ise eler; takvim hatası gerçek barı silemez.
+
+`BistMarketSessionService` normal gün 10:00-18:10, yarım gün 10:00-13:00 olarak seansı belirler. `MarketTradingCalendar` işlem günü ve yarım gün kararını verir; üretimde `BistTradingCalendarProvider` BIST resmi tatil takvimini kullanır. `BistMarketSessionService.session_window(gün)` seans açılışı ile kapanış verisinin hazır olduğu anı (kapanış + `CLOSE_DATA_DELAY` 20 dk: tam gün 18:30, yarım gün 13:20) verir; `last_completed_trading_day(şimdi)` kapanış verisi hazır olan son işlem gününü hesaplar ve `MarketDataSyncService.get_last_completed_trading_day` bunu kullanır (yfinance BIST verisi ~15 dk gecikmeli; 18:15'te çekilen bar kapanış fiyatı değildi ve sonradan düzeltilmiyordu). Otomatik senkron: açılıştan 5 sn sonra ve kapanış verisi hazır olunca ([settings_and_system.md](settings_and_system.md)).
+
+**Piyasa saati (`src/domain/market_clock.py`):** BIST takvimine bağlı "şimdi/bugün" (seans koruması, bugünkü fiyat kontrolü, işlem tarihi/saati varsayılanı, zamanlanmış senkron hedef günü, tarayıcı "bugün"ü) `date.today()` / `datetime.now()` yerine `market_today()`, `market_now()`, `market_time()` ile alınır. Bunlar `Europe/Istanbul` duvar saatini **saat dilimi bilgisi taşımayan** değer olarak döner (mevcut naive tarih/saat değerleriyle karşılaştırılabilir). `tzdata` yoksa Türkiye'nin sabit UTC+3 değeri kullanılır. Bilgisayar saat dilimi Türkiye'den farklıysa bu, seans penceresinin ve "bugün" gününün kaymasını önler. Yerel zamanın doğru olduğu yerler (sohbet saati, dosya adı damgası, kayıt oluşturma damgaları, tarama aralığı süresi) bilinçli olarak yerel saatte kalır. `tests/test_market_clock_guard.py` tamamen dönüştürülmüş modülleri korur.
+
+## 7. Yeni Kaynak Eklerken
+
+1. Domain'de port tanımla (`ports/services/`), `infrastructure/` altında uygula.
+2. Ağ çağrısını `retry_call` ile sar; beklenen hataları `MarketDataUnavailableError`'a çevir.
+3. Gerekirse dosya önbelleği ve TTL ekle (`data/_cache/`).
+4. Container fabrikasına (`container_parts/market_clients.py`; haber kaynakları için `infrastructure/news/provider_factory.py`) kaydet.
+   Haber ve benzeri sağlayıcılarda HTTP durumunu açıkça denetle: kütüphane 404'ü sessizce boş listeye çevirebilir (yfinance haber API'si bu yüzden kullanılmaz); sessiz boş dönüş yerine `NewsProviderUnavailable`/`MarketDataUnavailableError` fırlat.
+5. Testte ağ kullanma; sahte yanıt veya `monkeypatch` kullan (`tests/test_repo_guards.py` canlı ağ çağrısını yasaklar).

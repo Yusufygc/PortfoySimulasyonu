@@ -1,77 +1,91 @@
 # Wiki — İçerik Kataloğu
 
-> Bu dosya tüm wiki sayfalarının ve teknik tasarım belgelerinin ana dizinidir.  
-> Değişiklik günlüğü: [log.md](log.md) | Yol haritası: [Plans.md](Plans.md)
+> Bu dosya tüm wiki sayfalarının ana dizinidir. Değişiklik günlüğü: [log.md](log.md) | Yapılacaklar: [roadmap.md](roadmap.md) | Kurallar: [RULES.md](../../RULES.md)
+
+**Portföy Simülasyonu**, BIST ve küresel hisseleri takip eden bir PySide6 + QML masaüstü uygulamasıdır: olay kaynaklı portföy, SQLite + DuckDB çift veri deposu, tüm BIST için tarayıcı ve sermaye artırımı düzeltmesi, Markowitz optimizasyonu, backtest, Excel raporlama ve Gemini destekli analiz. Geliştirme komutları: [development_guide.md](development_guide.md).
+
+Önce okunacaklar: [architecture.md](architecture.md) -> [project_structure.md](project_structure.md) -> ilgili konu sayfası.
 
 ---
 
-## 🏗️ Mimari ve Teknik Belgeler
+## Başlangıç ve Genel Bakış
 
 | Sayfa | Özet |
-|-------|------|
-| [architecture.md](architecture.md) | Katmanlı mimari (Clean Architecture) özeti ve teknik belgelerin ana yönlendiricisi (Hub) |
-| [ai_integration.md](ai_integration.md) | Gemini API asistan entegrasyonu, XAI faktörleri ve prompt yapıları |
-| [database_schema_and_orm.md](database_schema_and_orm.md) | SQLAlchemy modelleri, Repo arayüzleri, veritabanı tabloları ve migration |
-| [service_analysis.md](service_analysis.md) | Risk/Getiri metrikleri, benchmark hesaplamaları ve fallback veri kuralları |
-| [service_planning_optimization.md](service_planning_optimization.md) | Markowitz optimizasyonu, SciPy, ağırlık kısıtları ve risk anketi |
-| [service_portfolio_and_market.md](service_portfolio_and_market.md) | Event-sourcing portföy hesaplaması, YFinance veri çekimi ve tatil takvimi |
-| [service_simulation.md](service_simulation.md) | Tarihsel backtest (simülasyon) altyapısı, snapshot üretimi ve uç vakalar |
-| [ui_architecture_and_events.md](ui_architecture_and_events.md) | PyQt5 arayüz mimarisi, Worker yapıları, Global Event Bus ve QSS Tema Yöneticisi |
-| [comparison_lab.md](comparison_lab.md) | Karşılaştırma Laboratuvarı mimarisi, görsel bileşenleri, veri entegrasyonu ve Gemini AI asistan yapısı |
-| [service_reporting_and_export.md](service_reporting_and_export.md) | OpenPyXL Excel formatter ve dışa aktarım raporlaması |
-| [service_corporate_actions.md](service_corporate_actions.md) | Temettü, bölünme işlemleri ve portföy maliyetine etkileri |
-| [service_watchlist.md](service_watchlist.md) | İzleme listesi, potansiyel varlıklar ve hedef fiyatlar |
----
+|---|---|
+| [architecture.md](architecture.md) | Katmanlar, katman kuralları ve koruma testleri, DI container, açılış akışı, eşzamanlılık, tasarım kararları ve belge haritası |
+| [project_structure.md](project_structure.md) | Kaynak ağacı ve her dizinin/modülün sorumluluğu |
+| [development_guide.md](development_guide.md) | Kurulum, `.env` ayarları, komutlar, gerçek veriyi koruma, yeni özellik kalıpları, sık sorunlar |
+| [glossary.md](glossary.md) | Finans, risk ve mimari terimler sözlüğü |
+| [roadmap.md](roadmap.md) | Kodda olmayan özellikler (fikir havuzu) ve bilinen teknik borç |
+| [architecture_evolution_plan.md](architecture_evolution_plan.md) | Mimari evrim planı: presenter katmanı, tek metin kataloğu, büyük denetleyicilerin bölünmesi, okuma servisleri, komisyon |
 
-## 📈 Tasarım Spesifikasyonları (Tarihsel Aşamalar)
-
-Comparison Lab geliştirme sürecinde takip edilen teknik şartnameler ve uygulama blueprints dosyaları:
-
-| Dosya | Açıklama |
-|-------|----------|
-| [1_COMPARISON_SERVICE.md](../../analizSayfasi/1_COMPARISON_SERVICE.md) | Aşama 1: Matematiksel altyapı ve veri motorunun (`ComparisonService`) teknik gereksinimleri |
-| [2_COMPARISON_CHART_FACTORY.md](../../analizSayfasi/2_COMPARISON_CHART_FACTORY.md) | Aşama 2: Plotly grafik üreticisi (`ComparisonChartFactory`) ve JSON şablon tasarımı |
-| [3_UI_LAYERS_AND_SIGNALS.md](../../analizSayfasi/3_UI_LAYERS_AND_SIGNALS.md) | Aşama 3: PyQt5 UI bileşenleri, `CheckableComboBox` ve veri güncelleme sinyal ağı |
-| [4_NAVIGATION_AND_INTEGRATION.md](../../analizSayfasi/4_NAVIGATION_AND_INTEGRATION.md) | Aşama 4: Sol navigasyon barı, sayfa geçişleri, DI container entegrasyonu ve Gemini analist prompt tasarımı |
-
----
-
-## 🛠️ Operasyon ve Süreç
+## Arayüz
 
 | Sayfa | Özet |
-|-------|------|
-| [database_maintenance_and_scripts.md](database_maintenance_and_scripts.md) | DB Bütünlük onarımı, geçersiz trade temizliği, scriptler (purge vb.) |
-| [testing_strategy.md](testing_strategy.md) | Birim/Servis ve PyQt testlerinin (pytest) mimarisi ve fixture yapısı |
-| [manual_testing_guide.md](manual_testing_guide.md) | Uygulama sayfaları ve kritik akışlar için kapsamlı manuel test yönergesi |
-| [project_build_and_deployment.md](project_build_and_deployment.md) | Nuitka ile derleme (.exe), CI commit kancaları ve pip pinleme |
-| [log.md](log.md) | Kronolojik, yalnızca ekleme yapılan wiki güncelleme ve commit kaydı |
-| [Plans.md](Plans.md) | Gelecek geliştirmeler, teknik borç notları ve code review ihtiyaçları |
+|---|---|
+| [ui_architecture_and_events.md](ui_architecture_and_events.md) | QML mimarisi: ince QML + Python denetleyici, gezinme, Theme/Strings/Icons, grafikler, iş parçacığı ve sinyal modeli, denetleyici kuralları |
+| [qml_pages_guide.md](qml_pages_guide.md) | 11 sayfanın (Genel Bakış, Portföyüm dahil) amacı, denetleyicileri, özellikleri ve denetleyici referansı |
+| [comparison_lab.md](comparison_lab.md) | Karşılaştırma Lab: seçim, mod, para birimi, grafik sekmeleri, yapay zekâ yorumu |
+| [stock_360.md](stock_360.md) | Hisse 360: genel bakış, teknik seviyeler, finansal analiz, KAP ortaklık yapısı |
+| [settings_and_system.md](settings_and_system.md) | Ayarlar sekmeleri (Haber Kaynakları dahil), açılış ve zamanlayıcı işleri, canlı fiyat yenileme, `QSettings` |
+
+## Servisler ve Alan Mantığı
+
+| Sayfa | Özet |
+|---|---|
+| [service_portfolio_and_market.md](service_portfolio_and_market.md) | Olay kaynaklı portföy, işlem girişi ve seans koruması, nakit, iki fiyat akışı, fiyat sağlığı, model portföy nakit kuralları |
+| [service_asset_ledger.md](service_asset_ledger.md) | BIST dışı varlık defteri (altın, kripto, ABD hissesi), ayrı defter kararı, birleşik portföy değerlemesi ve Portföyüm kuralları |
+| [service_asset_prices_fx.md](service_asset_prices_fx.md) | Varlık sembol çözümü, fiyat sağlayıcı, seans takvimi, yenileme, kur ve Genel Bakış varlık grafiği |
+| [service_news.md](service_news.md) | Haber akışı: KAP, Yahoo, Google News ve RSS sağlayıcıları, `NewsService`, önbellek, kaynak yönetimi, haber paneli |
+| [service_corporate_actions.md](service_corporate_actions.md) | Bedelli/bedelsiz uygulaması, fiyat geçmişi düzeltmesi, KAP/MKK aday akışı, nakit temettü |
+| [market_corporate_actions.md](market_corporate_actions.md) | Tüm BIST için DuckDB'de veriden sermaye artırımı tespiti, faktör formülleri, onay, çift düzeltme koruması |
+| [service_analysis.md](service_analysis.md) | Analiz servisleri, TWR serisi, risk metrikleri, benchmark kaynakları |
+| [technical_analysis_and_screener.md](technical_analysis_and_screener.md) | Göstergeler (ADX, Supertrend dahil), 10 stratejili tarayıcı, Golden/Death Cross |
+| [service_planning_optimization.md](service_planning_optimization.md) | Bütçe ve hedefler, Markowitz optimizasyonu, verimli sınır, risk profili ve köprüsü, model portföyler |
+| [service_simulation.md](service_simulation.md) | Tarihsel simülasyon, DCA ve strateji backtest (yeniden dengeleme, stop-loss/take-profit) |
+| [service_watchlist.md](service_watchlist.md) | İzleme listeleri, kod doğrulama, tablo davranışı |
+| [service_reporting_and_export.md](service_reporting_and_export.md) | Excel raporları (ekleme modu, fiyat sözleşmesi) ve HTML üreticileri |
+| [ai_integration.md](ai_integration.md) | Portföy Danışmanı (tool-calling), girdi güvenliği, hisse modeli (AI_Core), sohbet geçmişi |
+
+## Veri ve Altyapı
+
+| Sayfa | Özet |
+|---|---|
+| [data_architecture.md](data_architecture.md) | SQLite ve DuckDB sahipliği, DuckDB şeması, ticker biçimi, yazma/okuma kuralları, bilinen sınırlar |
+| [database_schema_and_orm.md](database_schema_and_orm.md) | 31 tablo, repository deseni, açılış göçleri, BIGINT id atama |
+| [service_market_data_providers.md](service_market_data_providers.md) | Dış veri kaynakları, önbellekler, ağ yeniden denemesi, hata aileleri, seans ve takvim |
+| [database_maintenance_and_scripts.md](database_maintenance_and_scripts.md) | `DatabaseMaintenanceService`, betikler, güvenli çalışma pratikleri |
+
+## Test, Kalite ve Yayın
+
+| Sayfa | Özet |
+|---|---|
+| [testing_strategy.md](testing_strategy.md) | Test piramidi, koruma testleri, fixture ve gerçek veri izolasyonu, komutlar, CI |
+| [manual_testing_guide.md](manual_testing_guide.md) | 11 sayfa ve arka plan davranışı için yayın öncesi manuel test listesi |
+| [product_test_plan.md](product_test_plan.md) | Ürün test planı ve E2E otomasyonu: test veritabanı, insan sürücü (fare/klavye), yolculuklar, izlenebilirlik, bulgular |
+| [code_quality_guardrails.md](code_quality_guardrails.md) | Eşikler, ölçüm komutu, güncel eşik ihlalleri, istisna protokolü |
+| [system_audit_report_2026-11-07.md](system_audit_report_2026-11-07.md) | Backend denetimi: hesaplama ve veri kaynakları (15 bulgu), otomatik hisse bölünmesi servisi, fiyat deposu onarım betikleri, açık kalanlar |
+| [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md) | İkinci kapsamlı denetim: 15 bulgu ve uygulama sonucu (çift emir koruması, CI kapısı, `tr_fold`, `ExactNumeric`, bağımlılık kilidi), açık kalanlar |
+| [system_audit_report_2026-10-04.md](system_audit_report_2026-10-04.md) | Kapsamlı sistem denetimi: 16 bulgu (öncelik, kanıt, çözüm), aksiyon planı, metodoloji uyumu |
+| [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md) | Tarihsel kod kalitesi baseline raporu (eski arayüz dönemi) |
+| [project_build_and_deployment.md](project_build_and_deployment.md) | Nuitka derlemesi, preflight, pinli bağımlılıklar, CI, `auto_commit.py` |
+
+## Tarihsel ve Proje Kök Belgeleri
+
+| Belge | Özet |
+|---|---|
+| [tasarim_notlari/teknik_analiz_tartisma.md](tasarim_notlari/teknik_analiz_tartisma.md) | Trend kırılım tarayıcısı tasarım tartışması (kısmen uygulanmadı) |
+| [tasarim_notlari/temel_analiz_filtre_tartisma.md](tasarim_notlari/temel_analiz_filtre_tartisma.md) | Toplu temel analiz taraması tasarım tartışması (uygulanmadı) |
+| [log.md](log.md) | Kronolojik, yalnızca ekleme yapılan değişiklik günlüğü |
 
 ---
 
-## 🌐 Proje Genel Bakış
+## Sayfa Ekleme ve Güncelleme Talimatı
 
-**Portföy Simülasyonu** — PyQt5 masaüstü portföy yönetim uygulaması.
+1. Yeni sayfanın en üstüne navigasyon satırı koy (`> Ana sayfa: [index.md](index.md) | ...`).
+2. Bu tabloya ilgili satırı ekle; silinen sayfayı kataloğdan çıkar.
+3. `log.md`'ye (en üste) giriş ekle.
+4. Mimari karar, yeni özellik veya önemli hata çözümünde ilgili servis sayfasını ve `architecture.md`'yi güncelle; tamamlanan özelliği `roadmap.md`'den sil.
+5. Belgeleri net, şematik ve doğrulanabilir tut; bir iddia kodla çelişiyorsa kod esastır.
 
-- YFinance ile gerçek zamanlı fiyat takibi
-- Markowitz optimizasyonu (SciPy + Ledoit-Wolf)
-- BIST ve küresel hisse desteği
-- Model/sanal portföy simülasyonu ve backtest
-- Risk profili analizi, Excel raporlama, Gemini AI entegrasyonu
-
-Geliştirme komutları ve kurulum için bkz. [../../CLAUDE.md](../../CLAUDE.md).  
-Commit ve wiki kuralları için bkz. [../../RULES.md](../../RULES.md).
-
----
-
-## 📌 Sayfa Ekleme ve Güncelleme Talimatı
-
-Yeni bir wiki sayfası veya teknik doküman eklendiğinde:
-1. Bu dizin (`index.md`) tablosuna ilgili satırı ekle.
-2. `log.md` dosyasına `yeni-sayfa` veya `güncelleme` türünde kronolojik kaydı işle.
-3. Yeni sayfanın en üstüne index ve log sayfalarına kolay erişim sunan yönlendirme satırını ekle (örn. `> Ana sayfa: [index.md](index.md)...`).
-4. **Token Tasarrufu**: Belgeleri net, şematik ve yapılandırılmış tutarak gelecekteki LLM oturumlarının hızlıca bağlam kazanmasını ve gereksiz token tüketimini engellemesini sağlayın.
-
----
-
-*Son güncelleme: 2026-06-01 — Gelişmiş karşılaştırma laboratuvarı ve tasarım spesifikasyonları dizine bağlandı.*
+*Son güncelleme: 2026-11-07 — backend denetimi ve otomatik bölünme servisi (bkz. [log.md](log.md)).*

@@ -61,6 +61,18 @@ class IPriceRepository(ABC):
         """
         raise NotImplementedError
 
+    def get_price_series_bulk(
+        self,
+        stock_ids: Sequence[int],
+        start_date: date,
+        end_date: date,
+    ) -> Dict[int, List[DailyPrice]]:
+        """
+        Birden çok hisse için verilen tarih aralığındaki günlük fiyat serilerini toplu olarak döner.
+        N+1 sorgu problemini engellemek için kullanılır.
+        """
+        return {sid: self.get_price_series(sid, start_date, end_date) for sid in stock_ids}
+
     @abstractmethod
     def get_portfolio_value_series(
         self,
@@ -140,16 +152,6 @@ class IPriceRepository(ABC):
         raise NotImplementedError
     # ------------------ DELETE operasyonları ------------------ #
     @abstractmethod
-    def adjust_prices_before_date(self, stock_id: int, before_date: date, factor: Decimal) -> int:
-        """
-        Belirli bir hissenin before_date oncesindeki fiyatlarini factor ile carpar.
-
-        Returns:
-            Guncellenen kayit sayisi.
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def delete_all_prices(self) -> None:
         """
         Tüm daily_prices ve ilgili snapshot kayıtlarını siler.
@@ -157,10 +159,20 @@ class IPriceRepository(ABC):
         """
         raise NotImplementedError
 
+    def delete_prices_for_dates(self, stock_id: int, dates: Sequence[date]) -> int:
+        """Bir hissenin verilen günlerdeki fiyat kayıtlarını siler (fiyat yansıtması). Silinen kayıt sayısı."""
+        raise NotImplementedError
+
     @abstractmethod
-    def delete_prices_in_range(self, start_date: date, end_date: date) -> int:
+    def delete_prices_in_range(
+        self,
+        start_date: date,
+        end_date: date,
+        stock_ids: Sequence[int] | None = None,
+    ) -> int:
         """
         Belirtilen tarih aralığındaki fiyat kayıtlarını siler.
+        stock_ids None ise tüm hisseler, dolu liste ise yalnızca bu hisseler etkilenir.
 
         Returns:
             Silinen kayıt sayısı

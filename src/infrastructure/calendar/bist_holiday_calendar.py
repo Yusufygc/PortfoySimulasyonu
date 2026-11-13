@@ -64,8 +64,9 @@ _KURBAN = [
     (2022, 7, 11), (2022, 7, 12),
     # 2023 — Çar-Per-Cum-Cmt → Çar-Per-Cum iş günü
     (2023, 6, 28), (2023, 6, 29), (2023, 6, 30),
-    # 2024 — Pzt-Sal-Çar-Per (Arife Paz)
-    (2024, 6, 17), (2024, 6, 18), (2024, 6, 19), (2024, 6, 20),
+    # 2024 — Bayram 16-19 Haziran (Paz-Çar; Arife Cmt) → Pzt-Sal-Çar iş günü. 20 Haziran Perşembe işlem
+    # günüydü (piyasa verisinde 553 hisse hacimli işlem görmüş).
+    (2024, 6, 17), (2024, 6, 18), (2024, 6, 19),
     # 2025 — Cum-Cmt-Paz-Pzt → Cum-Pzt iş günü
     (2025, 6,  6), (2025, 6,  9),
     # 2026 — Çar-Per-Cum-Cmt → Çar-Per-Cum iş günü (Arife Sal)
@@ -80,9 +81,15 @@ _KURBAN = [
     (2030, 4, 14), (2030, 4, 15), (2030, 4, 16), (2030, 4, 17),
 ]
 
+# ─── Olağanüstü kapanışlar ───────────────────────────────────────────────────
+_CLOSURES = [
+    # 6 Şubat 2023 depremleri sonrası işlemler durduruldu (8 Şubat yarım gün açıktı); 15 Şubat'ta yeniden açıldı.
+    (2023, 2, 9), (2023, 2, 10), (2023, 2, 13), (2023, 2, 14),
+]
+
 # Önceden hesaplanmış set — sorgularda O(1)
 _VARIABLE_SET: Set[tuple] = {
-    (y, m, d) for y, m, d in _RAMAZAN + _KURBAN
+    (y, m, d) for y, m, d in _RAMAZAN + _KURBAN + _CLOSURES
 }
 
 _FIXED_MONTHDAY: Set[tuple] = set(_FIXED)

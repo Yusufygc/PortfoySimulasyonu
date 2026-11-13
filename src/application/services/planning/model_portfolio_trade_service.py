@@ -4,16 +4,45 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, time
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict, NamedTuple, Optional
 
 from src.application.services.market.trade_session_guard import ensure_trade_session_open
 from src.domain.models.model_portfolio import (
     ModelPortfolioCashMovement,
     ModelPortfolioCashMovementType,
     ModelPortfolioTrade,
+    ModelPortfolioTradeSpec,
     ModelTradeSide,
 )
 from src.domain.models.stock import Stock
+from src.domain.constants.bist_tickers import is_valid_bist_ticker
+from src.domain.ticker import clean_ticker
+
+
+class _SimAccumulators(NamedTuple):
+    positions: "Dict[int, int]"
+    valid_trades: list
+    valid_movements: list
+    violations: list
+
+
+class CapitalMovementSpec(NamedTuple):
+    portfolio_id: int
+    movement_type: str
+    amount: Decimal
+    movement_date: date
+    movement_time: "Optional[time]" = None
+    notes: "Optional[str]" = None
+
+
+class ModelTradeSpec(NamedTuple):
+    portfolio_id: int
+    stock_id: int
+    side: str
+    quantity: int
+    price: Decimal
+    trade_date: date
+    trade_time: "Optional[time]" = None
 
 
 @dataclass(frozen=True)
@@ -41,27 +70,21 @@ class ModelPortfolioTradeSimulator:
         valid_trades = []
         valid_movements = []
         violations = []
+        acc = _SimAccumulators(positions, valid_trades, valid_movements, violations)
         prepared = self._prepared_events(trades, movements or [], candidate_marker, candidate_object)
 
         for event, marker in sorted(prepared, key=lambda item: self._event_sort_key(item[0])):
             if isinstance(event, ModelPortfolioCashMovement):
-                cash, invested_capital = self._apply_movement(
-                    event,
-                    marker,
-                    cash,
-                    invested_capital,
-                    valid_movements,
-                    violations,
-                )
+                cash, invested_capital = self._apply_movement(event, marker, cash, invested_capital, acc)
                 continue
 
             if event.side == ModelTradeSide.BUY:
-                self._apply_buy(event, marker, positions, valid_trades, violations, lambda: cash)
+                self._apply_buy(event, marker, acc, lambda: cash)
                 if not violations or violations[-1][0] != marker:
                     cash -= event.total_amount
                 continue
 
-            self._apply_sell(event, marker, positions, valid_trades, violations)
+            self._apply_sell(event, marker, acc)
             if not violations or violations[-1][0] != marker:
                 cash += event.total_amount
 
@@ -85,13 +108,16 @@ class ModelPortfolioTradeSimulator:
         ]
 
     @staticmethod
-    def _apply_movement(movement, marker, cash, invested_capital, valid_movements, violations):
+    def _apply_movement(movement, marker, cash, invested_capital, acc: "_SimAccumulators"):
         if movement.type == ModelPortfolioCashMovementType.DEPOSIT:
-            valid_movements.append(movement)
+            acc.valid_movements.append(movement)
             return cash + movement.amount, invested_capital + movement.amount
+        if movement.type == ModelPortfolioCashMovementType.FRACTION:
+            acc.valid_movements.append(movement)  # küsurat nakdi getiridir, yatırılan sermayeyi artırmaz
+            return cash + movement.amount, invested_capital
 
         if movement.amount > cash:
-            violations.append(
+            acc.violations.append(
                 (
                     marker,
                     f"Yetersiz nakit. Cekilecek: {movement.amount:.2f} TL, Mevcut: {cash:.2f} TL",
@@ -99,36 +125,36 @@ class ModelPortfolioTradeSimulator:
             )
             return cash, invested_capital
 
-        valid_movements.append(movement)
+        acc.valid_movements.append(movement)
         return cash - movement.amount, invested_capital - movement.amount
 
     @staticmethod
-    def _apply_buy(trade, marker, positions, valid_trades, violations, cash_getter) -> None:
+    def _apply_buy(trade, marker, acc: "_SimAccumulators", cash_getter) -> None:
         cash = cash_getter()
         if trade.total_amount > cash:
-            violations.append(
+            acc.violations.append(
                 (
                     marker,
                     f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash:.2f} TL",
                 )
             )
             return
-        positions[trade.stock_id] += trade.quantity
-        valid_trades.append(trade)
+        acc.positions[trade.stock_id] += trade.quantity
+        acc.valid_trades.append(trade)
 
     @staticmethod
-    def _apply_sell(trade, marker, positions, valid_trades, violations) -> None:
-        available = positions[trade.stock_id]
+    def _apply_sell(trade, marker, acc: "_SimAccumulators") -> None:
+        available = acc.positions[trade.stock_id]
         if trade.quantity > available:
-            violations.append(
+            acc.violations.append(
                 (
                     marker,
                     f"Yetersiz pozisyon. Satmak istediğiniz: {trade.quantity}, Mevcut: {available}",
                 )
             )
             return
-        positions[trade.stock_id] -= trade.quantity
-        valid_trades.append(trade)
+        acc.positions[trade.stock_id] -= trade.quantity
+        acc.valid_trades.append(trade)
 
     @staticmethod
     def _trade_sort_key(trade: ModelPortfolioTrade) -> tuple:
@@ -166,6 +192,126 @@ class ModelPortfolioTradeSimulator:
         return key[0], key[1], 1, key[2]
 
 
+def _trade_sort_key(trade: ModelPortfolioTrade) -> tuple:
+    return (
+        trade.trade_date,
+        trade.trade_time if trade.trade_time is not None else time.min,
+        trade.id or 0,
+    )
+
+
+def _movement_sort_key(movement: ModelPortfolioCashMovement) -> tuple:
+    return (
+        movement.movement_date,
+        movement.movement_time if movement.movement_time is not None else time.min,
+        movement.id or 0,
+    )
+
+
+def _filter_trades_until(trades, as_of: date | tuple[date, time | None] | None = None):
+    if as_of is None:
+        return sorted(trades, key=_trade_sort_key)
+    as_date, as_time = (as_of, None) if isinstance(as_of, date) else as_of
+    max_key = (as_date, as_time if as_time is not None else time.max, float("inf"))
+    return sorted((trade for trade in trades if _trade_sort_key(trade) <= max_key), key=_trade_sort_key)
+
+
+def _filter_movements_until(movements, as_of: date | tuple[date, time | None] | None = None):
+    if as_of is None:
+        return sorted(movements, key=_movement_sort_key)
+    as_date, as_time = (as_of, None) if isinstance(as_of, date) else as_of
+    max_key = (as_date, as_time if as_time is not None else time.max, float("inf"))
+    return sorted(
+        (movement for movement in movements if _movement_sort_key(movement) <= max_key),
+        key=_movement_sort_key,
+    )
+
+
+class _ModelTradeTarget(NamedTuple):
+    portfolio_id: int
+    stock_id: int
+    trade_side: ModelTradeSide
+
+
+def _build_trade(
+    target: _ModelTradeTarget,
+    quantity: int,
+    price: Decimal,
+    trade_date: date,
+    trade_time: Optional[time],
+) -> ModelPortfolioTrade:
+    spec = ModelPortfolioTradeSpec(
+        portfolio_id=target.portfolio_id,
+        stock_id=target.stock_id,
+        trade_date=trade_date,
+        quantity=quantity,
+        price=price,
+        trade_time=trade_time,
+    )
+    factory = (
+        ModelPortfolioTrade.create_buy
+        if target.trade_side == ModelTradeSide.BUY
+        else ModelPortfolioTrade.create_sell
+    )
+    return factory(spec)
+
+
+def _build_capital_movement(spec: "CapitalMovementSpec") -> ModelPortfolioCashMovement:
+    movement_kind = ModelPortfolioCashMovementType(spec.movement_type)
+    factory = (
+        ModelPortfolioCashMovement.create_deposit
+        if movement_kind == ModelPortfolioCashMovementType.DEPOSIT
+        else ModelPortfolioCashMovement.create_withdraw
+    )
+    return factory(
+        portfolio_id=spec.portfolio_id,
+        amount=spec.amount,
+        movement_date=spec.movement_date,
+        movement_time=spec.movement_time,
+        notes=spec.notes,
+    )
+
+
+class ModelTradeInput(NamedTuple):
+    side: str
+    quantity: int
+    price: Decimal
+    trade_date: date
+    trade_time: Optional[time] = None
+    name: Optional[str] = None
+
+
+def _normalize_ticker(ticker: str) -> str:
+    if not ticker or not ticker.strip():
+        raise ValueError("Ticker bos olamaz")
+    return clean_ticker(ticker)
+
+
+def _validate_quantity_price(quantity: int, price: Decimal) -> None:
+    if quantity <= 0:
+        raise ValueError("Lot adedi pozitif olmalidir.")
+    if price <= 0:
+        raise ValueError("Fiyat pozitif olmalidir.")
+
+
+def _resolve_or_create_stock(stock_repo, ticker: str, trade_side, name: Optional[str]):
+    stock = stock_repo.get_stock_by_ticker(ticker)
+    if stock is None:
+        if trade_side != ModelTradeSide.BUY:
+            raise ValueError(f"Hisse bulunamadi: {ticker}")
+        if not is_valid_bist_ticker(ticker, name):
+            raise ValueError(f"Geçersiz hisse kodu: {ticker}")
+        stock = stock_repo.insert_stock(
+            Stock(
+                id=None,
+                ticker=ticker,
+                name=(name or ticker).strip() or ticker,
+                currency_code="TRY",
+            )
+        )
+    return stock
+
+
 class ModelPortfolioTradeService:
     def __init__(self, portfolio_repo, stock_repo, market_session_service=None) -> None:
         self._portfolio_repo = portfolio_repo
@@ -189,52 +335,40 @@ class ModelPortfolioTradeService:
             if trade.stock_id == stock_id
         ]
 
-    def add_trade(
-        self,
-        portfolio_id: int,
-        stock_id: int,
-        side: str,
-        quantity: int,
-        price: Decimal,
-        trade_date: date,
-        trade_time: Optional[time] = None,
-    ) -> ModelPortfolioTrade:
+    def add_trade(self, spec: "ModelTradeSpec") -> ModelPortfolioTrade:
         portfolio, trade_side, all_trades, all_movements = self._prepare_add_trade(
-            portfolio_id=portfolio_id,
-            stock_id=stock_id,
-            side=side,
-            quantity=quantity,
-            price=price,
+            portfolio_id=spec.portfolio_id,
+            stock_id=spec.stock_id,
+            side=spec.side,
+            quantity=spec.quantity,
+            price=spec.price,
         )
-        ensure_trade_session_open(self._market_session_service, trade_date, trade_time)
+        ensure_trade_session_open(self._market_session_service, spec.trade_date, spec.trade_time)
 
-        trades_at = self._filter_trades_until(all_trades, as_of=(trade_date, trade_time))
-        movements_at = self._filter_movements_until(all_movements, as_of=(trade_date, trade_time))
+        trades_at = _filter_trades_until(all_trades, as_of=(spec.trade_date, spec.trade_time))
+        movements_at = _filter_movements_until(all_movements, as_of=(spec.trade_date, spec.trade_time))
         sim_at = self._simulator.simulate(portfolio, trades_at, movements_at)
         self._validate_trade_capacity(
             trade_side=trade_side,
-            stock_id=stock_id,
-            quantity=quantity,
-            price=price,
+            stock_id=spec.stock_id,
+            quantity=spec.quantity,
+            price=spec.price,
             sim_at=sim_at,
         )
 
-        trade = self._build_trade(
-            portfolio_id=portfolio_id,
-            stock_id=stock_id,
-            trade_side=trade_side,
-            quantity=quantity,
-            price=price,
-            trade_date=trade_date,
-            trade_time=trade_time,
+        trade = _build_trade(
+            _ModelTradeTarget(spec.portfolio_id, spec.stock_id, trade_side),
+            quantity=spec.quantity,
+            price=spec.price,
+            trade_date=spec.trade_date,
+            trade_time=spec.trade_time,
         )
 
-        # Timeline doğrulama — önceden çekilen verilerle çalışır, yeniden DB'ye gitme.
-        all_trades_sorted = sorted(all_trades, key=self._trade_sort_key)
-        all_movements_sorted = sorted(all_movements, key=self._movement_sort_key)
+        all_trades_sorted = sorted(all_trades, key=_trade_sort_key)
+        all_movements_sorted = sorted(all_movements, key=_movement_sort_key)
         existing_result = self._simulator.simulate(portfolio, all_trades_sorted, all_movements_sorted)
         self._validate_candidate_timeline(
-            portfolio_id,
+            spec.portfolio_id,
             trade,
             portfolio=portfolio,
             existing_trades=existing_result.valid_trades,
@@ -290,73 +424,27 @@ class ModelPortfolioTradeService:
                 f"Yetersiz pozisyon. Satmak istediğiniz: {quantity}, Mevcut: {available}"
             )
 
-    @staticmethod
-    def _build_trade(
-        portfolio_id: int,
-        stock_id: int,
-        trade_side: ModelTradeSide,
-        quantity: int,
-        price: Decimal,
-        trade_date: date,
-        trade_time: Optional[time],
-    ) -> ModelPortfolioTrade:
-        if trade_side == ModelTradeSide.BUY:
-            return ModelPortfolioTrade.create_buy(
-                portfolio_id=portfolio_id,
-                stock_id=stock_id,
-                trade_date=trade_date,
-                quantity=quantity,
-                price=price,
-                trade_time=trade_time,
-            )
-        return ModelPortfolioTrade.create_sell(
-            portfolio_id=portfolio_id,
-            stock_id=stock_id,
-            trade_date=trade_date,
-            quantity=quantity,
-            price=price,
-            trade_time=trade_time,
-        )
-
     def add_trade_by_ticker(
         self,
         portfolio_id: int,
         ticker: str,
-        side: str,
-        quantity: int,
-        price: Decimal,
-        trade_date: date,
-        trade_time: Optional[time] = None,
+        trade_input: ModelTradeInput,
     ) -> ModelPortfolioTrade:
-        if not ticker or not ticker.strip():
-            raise ValueError("Ticker bos olamaz")
-
-        normalized_ticker = ticker.strip().upper()
-        if "." not in normalized_ticker:
-            normalized_ticker += ".IS"
-
-        trade_side = ModelTradeSide(side)
-        if quantity <= 0:
-            raise ValueError("Lot adedi pozitif olmalidir.")
-        if price <= 0:
-            raise ValueError("Fiyat pozitif olmalidir.")
-        ensure_trade_session_open(self._market_session_service, trade_date, trade_time)
-        stock = self._stock_repo.get_stock_by_ticker(normalized_ticker)
-        if stock is None:
-            if trade_side != ModelTradeSide.BUY:
-                raise ValueError(f"Hisse bulunamadi: {normalized_ticker}")
-            stock = self._stock_repo.insert_stock(
-                Stock(id=None, ticker=normalized_ticker, name=normalized_ticker, currency_code="TRY")
-            )
-
+        normalized_ticker = _normalize_ticker(ticker)
+        trade_side = ModelTradeSide(trade_input.side)
+        _validate_quantity_price(trade_input.quantity, trade_input.price)
+        ensure_trade_session_open(self._market_session_service, trade_input.trade_date, trade_input.trade_time)
+        stock = _resolve_or_create_stock(self._stock_repo, normalized_ticker, trade_side, trade_input.name)
         return self.add_trade(
-            portfolio_id=portfolio_id,
-            stock_id=stock.id,
-            side=side,
-            quantity=quantity,
-            price=price,
-            trade_date=trade_date,
-            trade_time=trade_time,
+            ModelTradeSpec(
+                portfolio_id=portfolio_id,
+                stock_id=stock.id,
+                side=trade_input.side,
+                quantity=trade_input.quantity,
+                price=trade_input.price,
+                trade_date=trade_input.trade_date,
+                trade_time=trade_input.trade_time,
+            )
         )
 
     def delete_trade(self, trade_id: int) -> None:
@@ -395,52 +483,34 @@ class ModelPortfolioTradeService:
     ):
         return self._simulate(portfolio_id, self._trades_until(portfolio_id, as_of), as_of=as_of).valid_trades
 
-    def get_capital_movements(self, portfolio_id: int):
-        return self._get_cash_movements(portfolio_id)
-
     def get_invested_capital(self, portfolio_id: int) -> Decimal:
         return self._simulate(portfolio_id, self._trades_until(portfolio_id)).invested_capital
 
-    def add_capital_movement(
-        self,
-        portfolio_id: int,
-        movement_type: str,
-        amount: Decimal,
-        movement_date: date,
-        movement_time: Optional[time] = None,
-        notes: Optional[str] = None,
-    ) -> ModelPortfolioCashMovement:
-        portfolio = self._portfolio_repo.get_model_portfolio_by_id(portfolio_id)
+    def add_capital_movement(self, spec: "CapitalMovementSpec") -> ModelPortfolioCashMovement:
+        portfolio = self._portfolio_repo.get_model_portfolio_by_id(spec.portfolio_id)
         if portfolio is None:
-            raise ValueError(f"Portfoy bulunamadi: {portfolio_id}")
-        movement_kind = ModelPortfolioCashMovementType(movement_type)
-        if amount <= 0:
+            raise ValueError(f"Portfoy bulunamadi: {spec.portfolio_id}")
+        movement_kind = ModelPortfolioCashMovementType(spec.movement_type)
+        if spec.amount <= 0:
             raise ValueError("Tutar pozitif olmalidir.")
 
-        movement = self._build_capital_movement(
-            portfolio_id=portfolio_id,
-            movement_type=movement_kind,
-            amount=amount,
-            movement_date=movement_date,
-            movement_time=movement_time,
-            notes=notes,
-        )
-        all_trades = self._portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
-        all_movements = self._get_cash_movements(portfolio_id)
+        movement = _build_capital_movement(spec)
+        all_trades = self._portfolio_repo.get_trades_by_portfolio_id(spec.portfolio_id)
+        all_movements = self._get_cash_movements(spec.portfolio_id)
 
-        trades_at = self._filter_trades_until(all_trades, as_of=(movement_date, movement_time))
-        movements_at = self._filter_movements_until(all_movements, as_of=(movement_date, movement_time))
+        trades_at = _filter_trades_until(all_trades, as_of=(spec.movement_date, spec.movement_time))
+        movements_at = _filter_movements_until(all_movements, as_of=(spec.movement_date, spec.movement_time))
         sim_at = self._simulator.simulate(portfolio, trades_at, movements_at)
-        if movement_kind == ModelPortfolioCashMovementType.WITHDRAW and amount > sim_at.cash:
-            raise ValueError(f"Yetersiz nakit. Cekilecek: {amount:.2f} TL, Mevcut: {sim_at.cash:.2f} TL")
+        if movement_kind == ModelPortfolioCashMovementType.WITHDRAW and spec.amount > sim_at.cash:
+            raise ValueError(f"Yetersiz nakit. Cekilecek: {spec.amount:.2f} TL, Mevcut: {sim_at.cash:.2f} TL")
 
         existing_result = self._simulator.simulate(
             portfolio,
-            sorted(all_trades, key=self._trade_sort_key),
-            sorted(all_movements, key=self._movement_sort_key),
+            sorted(all_trades, key=_trade_sort_key),
+            sorted(all_movements, key=_movement_sort_key),
         )
         self._validate_candidate_timeline(
-            portfolio_id,
+            spec.portfolio_id,
             movement,
             portfolio=portfolio,
             existing_trades=existing_result.valid_trades,
@@ -448,38 +518,13 @@ class ModelPortfolioTradeService:
         )
         return self._portfolio_repo.insert_cash_movement(movement)
 
-    @staticmethod
-    def _build_capital_movement(
-        portfolio_id: int,
-        movement_type: ModelPortfolioCashMovementType,
-        amount: Decimal,
-        movement_date: date,
-        movement_time: Optional[time],
-        notes: Optional[str],
-    ) -> ModelPortfolioCashMovement:
-        if movement_type == ModelPortfolioCashMovementType.DEPOSIT:
-            return ModelPortfolioCashMovement.create_deposit(
-                portfolio_id=portfolio_id,
-                amount=amount,
-                movement_date=movement_date,
-                movement_time=movement_time,
-                notes=notes,
-            )
-        return ModelPortfolioCashMovement.create_withdraw(
-            portfolio_id=portfolio_id,
-            amount=amount,
-            movement_date=movement_date,
-            movement_time=movement_time,
-            notes=notes,
-        )
-
     def _trades_until(
         self,
         portfolio_id: int,
         as_of: date | tuple[date, time | None] | None = None,
     ):
         trades = self._portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
-        return self._filter_trades_until(trades, as_of)
+        return _filter_trades_until(trades, as_of)
 
     def _validate_candidate_timeline(
         self,
@@ -498,8 +543,8 @@ class ModelPortfolioTradeService:
             all_movements = self._get_cash_movements(portfolio_id)
             existing_result = self._simulator.simulate(
                 portfolio,
-                sorted(all_trades, key=self._trade_sort_key),
-                sorted(all_movements, key=self._movement_sort_key),
+                sorted(all_trades, key=_trade_sort_key),
+                sorted(all_movements, key=_movement_sort_key),
             )
             existing_trades = existing_result.valid_trades
             existing_movements = existing_result.valid_movements
@@ -525,27 +570,6 @@ class ModelPortfolioTradeService:
                 "Bu tarih/saat ile işlem, sonraki model portföy nakit veya lot akışını geçersiz hale getiriyor."
             )
 
-    def _filter_trades_until(self, trades, as_of: date | tuple[date, time | None] | None = None):
-        """Pre-fetched trade listesini as_of noktasına göre filtreler (DB çağrısı yok)."""
-        if as_of is None:
-            return sorted(trades, key=self._trade_sort_key)
-        as_date, as_time = (as_of, None) if isinstance(as_of, date) else as_of
-        max_key = (as_date, as_time if as_time is not None else time.max, float("inf"))
-        return sorted(
-            (t for t in trades if self._trade_sort_key(t) <= max_key),
-            key=self._trade_sort_key,
-        )
-
-    def _filter_movements_until(self, movements, as_of: date | tuple[date, time | None] | None = None):
-        if as_of is None:
-            return sorted(movements, key=self._movement_sort_key)
-        as_date, as_time = (as_of, None) if isinstance(as_of, date) else as_of
-        max_key = (as_date, as_time if as_time is not None else time.max, float("inf"))
-        return sorted(
-            (movement for movement in movements if self._movement_sort_key(movement) <= max_key),
-            key=self._movement_sort_key,
-        )
-
     def _simulate(
         self,
         portfolio_id: int,
@@ -556,7 +580,7 @@ class ModelPortfolioTradeService:
         portfolio = self._portfolio_repo.get_model_portfolio_by_id(portfolio_id)
         if portfolio is None:
             raise ValueError(f"Portfoy bulunamadi: {portfolio_id}")
-        movements = self._filter_movements_until(
+        movements = _filter_movements_until(
             self._get_cash_movements(portfolio_id),
             as_of=as_of,
         )
@@ -568,19 +592,4 @@ class ModelPortfolioTradeService:
             return []
         return get_movements(portfolio_id)
 
-    @staticmethod
-    def _trade_sort_key(trade: ModelPortfolioTrade) -> tuple:
-        return (
-            trade.trade_date,
-            trade.trade_time if trade.trade_time is not None else time.min,
-            trade.id or 0,
-        )
-
-    @staticmethod
-    def _movement_sort_key(movement: ModelPortfolioCashMovement) -> tuple:
-        return (
-            movement.movement_date,
-            movement.movement_time if movement.movement_time is not None else time.min,
-            movement.id or 0,
-        )
 

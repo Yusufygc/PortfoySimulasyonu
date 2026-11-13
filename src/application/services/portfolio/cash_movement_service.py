@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import date, time
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
-from src.domain.models.cash_movement import CashMovement
+from src.domain.models.cash_movement import CashMovement, CashMovementType
+from src.domain.market_clock import market_time, market_today
 
 
 class CashMovementService:
@@ -21,8 +22,8 @@ class CashMovementService:
     ) -> CashMovement:
         movement = CashMovement.create_deposit(
             amount=amount,
-            movement_date=movement_date or date.today(),
-            movement_time=movement_time or datetime.now().time().replace(microsecond=0),
+            movement_date=movement_date or market_today(),
+            movement_time=movement_time or market_time(),
             notes=notes,
         )
         return self._cash_movement_repo.insert_movement(movement)
@@ -40,11 +41,48 @@ class CashMovementService:
                 raise ValueError(f"Yetersiz nakit. Çekilecek: {amount:.2f} TL, Mevcut: {balance:.2f} TL")
         movement = CashMovement.create_withdraw(
             amount=amount,
-            movement_date=movement_date or date.today(),
-            movement_time=movement_time or datetime.now().time().replace(microsecond=0),
+            movement_date=movement_date or market_today(),
+            movement_time=movement_time or market_time(),
             notes=notes,
         )
         return self._cash_movement_repo.insert_movement(movement)
+
+    def add_dividend(
+        self,
+        stock_id: int,
+        amount: Decimal,
+        movement_date: Optional[date] = None,
+        notes: Optional[str] = None,
+    ) -> CashMovement:
+        """Hissenin nakit temettüsünü (net tutar) nakit bakiyeye ekler.
+
+        Temettü portföyün getirisidir: bakiyeye girer ancak dış sermaye akışı (yatırma) sayılmaz.
+        Hissenin o tarihte portföyde pozisyonu olmalıdır.
+        """
+        movement_date = movement_date or market_today()
+        if movement_date > market_today():
+            raise ValueError("Temettü tarihi gelecekte olamaz.")
+        if self._portfolio_service is not None:
+            if self._portfolio_service.get_position_quantity_as_of(stock_id, as_of=movement_date) <= 0:
+                raise ValueError("Bu tarihte hissenin portföyde pozisyonu yoktu; temettü kaydedilemez.")
+        movement = CashMovement.create_dividend(
+            stock_id=stock_id, amount=amount, movement_date=movement_date, notes=notes
+        )
+        return self._cash_movement_repo.insert_movement(movement)
+
+    def get_dividends(self, stock_id: Optional[int] = None) -> List[CashMovement]:
+        return self._cash_movement_repo.get_movements_by_type(CashMovementType.DIVIDEND, stock_id)
+
+    def get_total_dividends(self, stock_id: Optional[int] = None) -> Decimal:
+        return sum((movement.amount for movement in self.get_dividends(stock_id)), Decimal("0"))
+
+    def delete_dividend(self, movement_id: int) -> None:
+        movement = self._cash_movement_repo.get_movement(movement_id)
+        if movement is None or movement.type != CashMovementType.DIVIDEND:
+            raise ValueError("Temettü kaydı bulunamadı.")
+        if self._portfolio_service is not None:
+            self._portfolio_service.validate_cash_removal(movement_id)
+        self._cash_movement_repo.delete_movement(movement_id)
 
     def get_cash_balance(self, as_of: date | tuple[date, time | None] | None = None) -> Decimal:
         if self._portfolio_service is not None:
@@ -63,7 +101,7 @@ class CashMovementService:
     def _movement_balance(movements) -> Decimal:
         balance = Decimal("0")
         for movement in movements:
-            if movement.type.value == "DEPOSIT":
+            if movement.type.adds_cash:
                 balance += movement.amount
             else:
                 balance -= movement.amount

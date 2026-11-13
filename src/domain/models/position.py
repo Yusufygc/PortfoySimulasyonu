@@ -49,6 +49,19 @@ class Position:
         """
         return self.market_value(current_price) - self.total_cost
 
+    def preview_trade(self, side: TradeSide, quantity: int, price: Decimal, fee: Decimal = Decimal("0")) -> tuple[int, Optional[Decimal]]:
+        """Emir uygulanırsa (yeni lot, yeni ortalama maliyet); pozisyon değişmez.
+
+        Alımda ağırlıklı ortalama maliyet, satışta ortalama maliyet aynı kalır (`apply_trade` ile aynı kural).
+        Elden fazla satışta yeni lot negatif döner (çağıran reddeder); lot sıfırsa ortalama maliyet None.
+        """
+        if side == TradeSide.BUY:
+            new_quantity = self.total_quantity + quantity
+            new_cost = self.total_cost + price * Decimal(quantity) + fee
+            return new_quantity, (new_cost / Decimal(new_quantity) if new_quantity > 0 else None)
+        new_quantity = self.total_quantity - quantity
+        return new_quantity, (self.average_cost if new_quantity > 0 else None)
+
     # --------- Pozisyonu trade'lerden oluşturma / güncelleme --------- #
 
     @classmethod
@@ -91,7 +104,7 @@ class Position:
             yeni_total_cost = eski_total_cost + (quantity * price)
             yeni_total_quantity = eski_quantity + quantity
         """
-        trade_total = trade.total_amount
+        trade_total = trade.total_amount + trade.fee  # ücret maliyete dahildir
         self.total_cost += trade_total
         self.total_quantity += trade.quantity
 
@@ -107,7 +120,7 @@ class Position:
             raise ValueError("Cannot sell more than current position quantity")
 
         avg_cost = self.average_cost or Decimal("0")
-        sell_proceeds = trade.total_amount       # satış tutarı
+        sell_proceeds = trade.total_amount - trade.fee   # satış tutarı (ücret düşülmüş net gelir)
         cost_of_sold = avg_cost * Decimal(trade.quantity)
 
         realized = sell_proceeds - cost_of_sold

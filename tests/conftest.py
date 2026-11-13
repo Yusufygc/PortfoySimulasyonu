@@ -1,4 +1,6 @@
+import os
 import sys
+import time
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -9,15 +11,163 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+# Uygulamayla aynı Qt Quick Controls stili (Basic): QML'i yükleyen her test (yalnızca tests/ui_qml değil) özelleştirme
+# uyarısı almasın. Tek başına koşan QML testlerinin sıraya bağlı kırılmasını önler.
+os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+
+
+def _skip_real_data_tests(items) -> None:
+    """`real_data` işaretli testler gerçek (git dışı) veritabanı kopyasına dayanır; dosyalar yoksa (CI) atlanır."""
+    from src.infrastructure.db.paths import duckdb_path, sqlite_db_path
+
+    if sqlite_db_path().exists() and duckdb_path().exists():
+        return
+    skip = pytest.mark.skip(reason="gerçek data/portfolio.db ve data/market_history.duckdb yok (kişisel veri, git dışı)")
+    for item in items:
+        if "real_data" in item.keywords:
+            item.add_marker(skip)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_user_settings(tmp_path_factory):
+    """Kullanıcı ayarları (tema, sohbet geçmişi, açılış işi damgaları) gerçek Windows kayıt defterine yazılmasın."""
+    from src.qt_compat.user_settings import use_ini_file
+
+    previous = use_ini_file(str(tmp_path_factory.mktemp("user_settings") / "settings.ini"))
+    yield
+    use_ini_file(previous)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_databases(tmp_path_factory):
+    """Gerçek `AppContainer()` kullanan testler gerçek veritabanlarına yazmasın.
+
+    Gerçek `data/portfolio.db` (tutarlı SQLite yedekleme API'siyle) ve `data/market_history.duckdb` oturum başına
+    geçici bir klasöre kopyalanır; `DB_SQLITE_PATH`/`DUCKDB_PATH` oraya yönlendirilir. Kopya alınamazsa
+    (dosya yok/kilitli) boş geçici veritabanları kullanılır; gerçek dosyalara asla yazılmaz.
+    """
+    import os
+    import shutil
+    import sqlite3
+
+    from src.infrastructure.db.paths import duckdb_path, sqlite_db_path
+
+    work = tmp_path_factory.mktemp("isolated_db")
+    real_sqlite, real_duck = sqlite_db_path(), duckdb_path()
+    test_sqlite, test_duck = work / "portfolio.db", work / "market_history.duckdb"
+    if real_sqlite.exists():
+        try:
+            src, dst = sqlite3.connect(real_sqlite), sqlite3.connect(test_sqlite)
+            try:
+                src.backup(dst)
+            finally:
+                dst.close()
+                src.close()
+        except Exception:
+            test_sqlite.unlink(missing_ok=True)
+    if real_duck.exists():
+        try:
+            shutil.copy2(real_duck, test_duck)
+        except Exception:
+            test_duck.unlink(missing_ok=True)
+
+    previous = {key: os.environ.get(key) for key in ("DB_SQLITE_PATH", "DUCKDB_PATH")}
+    os.environ["DB_SQLITE_PATH"] = str(test_sqlite)
+    os.environ["DUCKDB_PATH"] = str(test_duck)
+    yield work
+    for key, value in previous.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+
+
+@pytest.fixture(autouse=True)
+def _isolate_env_file(tmp_path, monkeypatch):
+    """Testler gerçek .env dosyasına (API anahtarı kaydı vb.) asla yazmasın."""
+    import config.settings_loader as settings_loader
+
+    monkeypatch.setattr(settings_loader, "_env_write_path", lambda: tmp_path / ".env")
+
+
+class InMemorySecretStore:
+    """Testlerde gerçek Windows Kimlik Bilgisi Yöneticisi yerine kullanılan bellek içi sır deposu."""
+
+    def __init__(self, fail_writes: bool = False) -> None:
+        self.values: dict[str, str] = {}
+        self.fail_writes = fail_writes
+
+    def get(self, name):
+        return self.values.get(name)
+
+    def set(self, name, value):
+        if self.fail_writes:
+            return False
+        self.values[name] = value
+        return True
+
+    def delete(self, name):
+        return self.values.pop(name, None) is not None
+
+
+@pytest.fixture(autouse=True)
+def secret_store():
+    """Testler gerçek işletim sistemi sır deposuna (anahtar okuma/yazma) asla dokunmasın."""
+    from config import secret_store as secret_store_module
+
+    store = InMemorySecretStore()
+    previous = secret_store_module.set_secret_store(store)
+    yield store
+    secret_store_module.set_secret_store(previous)
+
+
+@pytest.fixture(autouse=True)
+def _cancel_deferred_ui_work():
+    """Testin kurduğu gecikmeli denetleyici işleri (açılış yenilemesi vb.) sonraki testte ateşlenmesin.
+
+    2026-11-08: biten testlerin zamanlayıcıları sonraki testlerin olay döngüsünde gerçek ağ çağrısı başlatıyor,
+    sonuç silinmiş denetleyiciye dönünce süreç `access violation` ile çöküyordu.
+    """
+    yield
+    import sys
+
+    deferred = sys.modules.get("src.ui_qml.deferred")
+    if deferred is not None:
+        deferred.cancel_pending()
+
+
+@pytest.fixture
+def wait_until():
+    """Arka plan iş parçacığı sonuçlarını Qt olay döngüsünü işleyerek bekler (sabit uyku yerine koşul + zaman aşımı)."""
+    from PySide6.QtCore import QCoreApplication
+
+    def _wait(condition, timeout: float = 10.0, interval: float = 0.01) -> bool:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            QCoreApplication.processEvents()
+            if condition():
+                return True
+            time.sleep(interval)
+        QCoreApplication.processEvents()
+        return bool(condition())
+
+    return _wait
+
+
+@pytest.fixture(autouse=True)
+def _no_retry_sleep(monkeypatch):
+    """Yeniden deneme bekleme süreleri testleri yavaşlatmasın."""
+    import src.infrastructure.retry as retry
+
+    monkeypatch.setattr(retry, "_sleep", lambda _seconds: None)
+
 
 def pytest_collection_modifyitems(config, items):
+    _skip_real_data_tests(items)
     for item in items:
         path = Path(str(item.fspath)).as_posix()
         if "/tests/ui/" in path or path.startswith("tests/ui/"):
             item.add_marker(pytest.mark.ui)
-        if path.endswith("tests/infrastructure/market_data/test_benchmark_fetch_manual.py"):
-            item.add_marker(pytest.mark.manual)
-            item.add_marker(pytest.mark.network)
 
 
 @pytest.fixture
@@ -51,16 +201,16 @@ def fake_event_bus():
 
 @pytest.fixture
 def qapp():
-    pytest.importorskip("PyQt5")
-    from PyQt5.QtWidgets import QApplication
+    pytest.importorskip("PySide6")
+    from src.qt_compat.qtwidgets import QApplication
 
     return QApplication.instance() or QApplication(sys.argv)
 
 
 @pytest.fixture
 def drain_qt_events(qapp):
-    pytest.importorskip("PyQt5")
-    from PyQt5.QtCore import QThreadPool
+    pytest.importorskip("PySide6")
+    from src.qt_compat.qtcore import QThreadPool
 
     def _drain(timeout_ms: int = 1000):
         QThreadPool.globalInstance().waitForDone(timeout_ms)

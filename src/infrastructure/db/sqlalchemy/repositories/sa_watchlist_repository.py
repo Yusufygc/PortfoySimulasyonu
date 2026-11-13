@@ -14,6 +14,8 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
 
     def __init__(self, db_provider: SQLAlchemyEngineProvider) -> None:
         self._provider = db_provider
+        ORMWatchlist.__table__.create(bind=self._provider._engine, checkfirst=True)
+        ORMWatchlistItem.__table__.create(bind=self._provider._engine, checkfirst=True)
 
     # ---------- Mappers ---------- #
     def _to_domain_watchlist(self, orm: ORMWatchlist) -> Watchlist:
@@ -115,6 +117,10 @@ class SQLAlchemyWatchlistRepository(IWatchlistRepository):
     def add_item_to_watchlist(self, item: WatchlistItem) -> WatchlistItem:
         with self._provider.get_session() as session:
             orm_obj = self._to_orm_item(item)
+            if orm_obj.id is None:
+                from sqlalchemy import func
+                max_id = session.query(func.max(ORMWatchlistItem.id)).scalar() or 0
+                orm_obj.id = max_id + 1
             session.add(orm_obj)
             commit_refresh_or_rollback(session, orm_obj)
             return self._to_domain_item(orm_obj)

@@ -6,9 +6,11 @@ Akış:
   1. Kullanıcı register_bedelli / register_bedelsiz ile aksiyonu sisteme kaydeder.
   2. Uygun zamanda apply_action çağrılır.
   3. Servis, mevcut pozisyonu hesaplar ve BİST kuralına göre yeni hisse adetini belirler.
-  4. Bedelsiz → sıfır maliyetli sentetik BUY eklenir (toplam maliyet sabit kalır, ortalama düşer).
-     Bedelli → kullanım fiyatından sentetik BUY eklenir (sermayeden düşer, ortalama değişir).
-  5. Aksiyon "applied" olarak işaretlenir.
+  4. Geriye dönük düzeltme modeli: ex-date öncesi işlemlerin lot ve fiyatı faktörle ayarlanır (özgün değerler
+     `original_quantity/original_price` ile korunur, denetim izi `trade_adjustments` tablosundadır).
+     Bedelsiz → toplam maliyet sabit kalır, ortalama maliyet düşer.
+     Bedelli → kullanım fiyatı x yeni lot kadar sermaye toplam maliyete eklenir, ortalama maliyet yeniden hesaplanır.
+  5. Aksiyon "applied" olarak işaretlenir ve geçmiş fiyatlar aynı faktörle düzeltilir.
 """
 
 from __future__ import annotations
@@ -16,9 +18,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, NamedTuple, Optional
 
-from src.domain.models.corporate_action import ActionType, CorporateAction
+from src.domain.models.corporate_action import ActionType, BedelliSpec, CorporateAction
 from src.domain.models.position import Position
 from src.domain.models.trade import Trade, TradeSide
 from src.domain.models.trade_adjustment import TradeAdjustment
@@ -28,6 +30,23 @@ from src.domain.ports.repositories.i_trade_adjustment_repo import ITradeAdjustme
 from src.application.services.corporate_actions.price_adjustment_service import (
     CorporateActionPriceAdjustmentService,
 )
+
+
+class _ShareChange(NamedTuple):
+    before: int
+    new: int
+    after: int
+
+
+class _CostChange(NamedTuple):
+    before: "Optional[Decimal]"
+    after: Decimal
+
+
+class _TradeUpdate(NamedTuple):
+    factor: Decimal
+    post_qty: int
+    post_price: Decimal
 
 
 @dataclass
@@ -54,20 +73,18 @@ class CorporateActionResult:
 
 def _bedelsiz_description(
     action: CorporateAction,
-    shares_before: int,
-    new_shares: int,
-    new_qty: int,
-    avg_cost_before: Decimal,
-    avg_cost_after: Decimal,
+    sc: _ShareChange,
+    cc: _CostChange,
     theoretical_price: Optional[Decimal],
 ) -> str:
     pct = float(action.ratio_percent)
     desc = (
         f"Bedelsiz Sermaye Artırımı %{pct:.0f} — "
         f"ex-date: {action.ex_date} | "
-        f"{shares_before} lot + {new_shares} bedelsiz lot = {new_qty} lot | "
-        f"Ort. maliyet: {avg_cost_before:.4f} → {avg_cost_after:.4f} TL"
+        f"{sc.before} lot + {sc.new} bedelsiz lot = {sc.after} lot"
     )
+    if cc.before is not None:  # ana portföyde pozisyon yoksa (yalnızca model portföy) maliyet satırı yok
+        desc += f" | Ort. maliyet: {cc.before:.4f} → {cc.after:.4f} TL"
     if theoretical_price is not None:
         desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
     return desc
@@ -75,11 +92,8 @@ def _bedelsiz_description(
 
 def _bedelli_description(
     action: CorporateAction,
-    shares_before: int,
-    new_shares: int,
-    new_qty: int,
-    avg_cost_before: Decimal,
-    avg_cost_after: Decimal,
+    sc: _ShareChange,
+    cc: _CostChange,
     capital_spent: Decimal,
     theoretical_price: Optional[Decimal],
 ) -> str:
@@ -89,43 +103,43 @@ def _bedelli_description(
         f"Bedelli Sermaye Artırımı %{pct:.0f} — "
         f"ex-date: {action.ex_date} | "
         f"Kullanım fiyatı: {sub_price:.4f} TL | "
-        f"{shares_before} lot + {new_shares} yeni lot = {new_qty} lot | "
+        f"{sc.before} lot + {sc.new} yeni lot = {sc.after} lot | "
         f"Sermaye kullanımı: {capital_spent:.2f} TL | "
-        f"Ort. maliyet: {avg_cost_before:.4f} → {avg_cost_after:.4f} TL"
+        f"Ort. maliyet: {cc.before:.4f} → {cc.after:.4f} TL"
     )
     if theoretical_price is not None:
         desc += f" | Teorik baz fiyat: {theoretical_price:.4f} TL"
     return desc
 
 
-def _build_action_result(
-    action: CorporateAction,
-    shares_before: int,
-    new_shares: int,
-    shares_after: int,
-    avg_cost_before: Optional[Decimal],
-    avg_cost_after: Optional[Decimal],
-    theoretical_price: Optional[Decimal],
-    capital_spent: Decimal,
-    description: str,
-    price_adjustment_factor: Optional[Decimal] = None,
-    price_adjustment_count: int = 0,
-) -> CorporateActionResult:
-    return CorporateActionResult(
-        action_id=action.id,
-        action_type=action.action_type,
-        stock_id=action.stock_id,
-        shares_before=shares_before,
-        new_shares=new_shares,
-        shares_after=shares_after,
-        avg_cost_before=avg_cost_before,
-        avg_cost_after=avg_cost_after,
-        theoretical_ex_price=theoretical_price,
-        capital_spent=capital_spent,
-        description=description,
-        price_adjustment_factor=price_adjustment_factor,
-        price_adjustment_count=price_adjustment_count,
+
+def _record_and_update_trade(portfolio_repo, trade_adjustment_repo, trade, action_id, upd: _TradeUpdate):
+    if trade_adjustment_repo is not None:
+        adjustment = TradeAdjustment(
+            id=None,
+            trade_id=trade.id,
+            corporate_action_id=action_id,
+            factor=upd.factor,
+            pre_quantity=trade.quantity,
+            post_quantity=upd.post_qty,
+            pre_price=trade.price,
+            post_price=upd.post_price,
+            applied_at=datetime.now(),
+        )
+        trade_adjustment_repo.insert(adjustment)
+    updated_trade = Trade(
+        id=trade.id,
+        stock_id=trade.stock_id,
+        trade_date=trade.trade_date,
+        trade_time=trade.trade_time,
+        side=trade.side,
+        quantity=upd.post_qty,
+        price=upd.post_price,
+        original_quantity=trade.original_quantity,
+        original_price=trade.original_price,
+        fee=trade.fee,  # bölünme/bedelli ücreti değiştirmez
     )
+    portfolio_repo.update_trade(updated_trade)
 
 
 class CorporateActionService:
@@ -143,11 +157,15 @@ class CorporateActionService:
         portfolio_repo: IPortfolioRepository,
         trade_adjustment_repo: ITradeAdjustmentRepository | None = None,
         price_adjustment_service: CorporateActionPriceAdjustmentService | None = None,
+        split_applier=None,
     ) -> None:
+        """`split_applier` (CorporateActionSplitAdapter) verilirse bedelsiz, bölünme uygulayıcısıyla ana portföy, model
+        portföy ve fiyat geçmişine birlikte uygulanır; yoksa yalnızca ana portföy (eski yol)."""
         self._action_repo = action_repo
         self._portfolio_repo = portfolio_repo
         self._trade_adjustment_repo = trade_adjustment_repo
         self._price_adjustment_service = price_adjustment_service
+        self._split_applier = split_applier
 
     # ══════════════════════════════════════════════════════════
     #  KAYIT (REGISTRATION)
@@ -177,29 +195,9 @@ class CorporateActionService:
         self._ensure_not_registered(action)
         return self._action_repo.insert(action)
 
-    def register_bedelli(
-        self,
-        stock_id: int,
-        ex_date: date,
-        ratio: Decimal,
-        subscription_price: Decimal,
-        announcement_date: Optional[date] = None,
-        notes: Optional[str] = None,
-    ) -> CorporateAction:
-        """
-        Bedelli sermaye artırımı (rüçhan hakkı kullanımı) kaydeder.
-
-        ratio             : Artırım oranı (örn. 0.20 → %20)
-        subscription_price: Rüçhan hakkı kullanım fiyatı (genellikle nominal değer = 1 TL)
-        """
-        action = CorporateAction.create_bedelli(
-            stock_id=stock_id,
-            ex_date=ex_date,
-            ratio=ratio,
-            subscription_price=subscription_price,
-            announcement_date=announcement_date,
-            notes=notes,
-        )
+    def register_bedelli(self, spec: BedelliSpec) -> CorporateAction:
+        """Bedelli sermaye artırımı (rüçhan hakkı kullanımı) kaydeder."""
+        action = CorporateAction.create_bedelli(spec)
         self._ensure_not_registered(action)
         return self._action_repo.insert(action)
 
@@ -212,9 +210,6 @@ class CorporateActionService:
 
     def get_by_stock(self, stock_id: int) -> List[CorporateAction]:
         return self._action_repo.get_by_stock(stock_id)
-
-    def get_pending(self) -> List[CorporateAction]:
-        return self._action_repo.get_all_pending()
 
     def get_pending_by_stock(self, stock_id: int) -> List[CorporateAction]:
         return self._action_repo.get_pending_by_stock(stock_id)
@@ -251,6 +246,9 @@ class CorporateActionService:
                 f"Bu kurumsal işlem zaten uygulanmış: id={action_id} "
                 f"({action.action_type.value} — ex_date={action.ex_date})"
             )
+
+        if action.action_type == ActionType.BEDELSIZ and self._split_applier is not None:
+            return self._apply_bedelsiz_as_split(action, current_price)
 
         trades = self._portfolio_repo.get_trades_by_stock(action.stock_id)
         position = Position.from_trades(action.stock_id, trades)
@@ -293,14 +291,16 @@ class CorporateActionService:
             return result
 
         adjustment = self._price_adjustment_service.adjust_prices_for_applied_action(action)
-        return _build_action_result(
-            action=action,
+        return CorporateActionResult(
+            action_id=action.id,
+            action_type=action.action_type,
+            stock_id=action.stock_id,
             shares_before=result.shares_before,
             new_shares=result.new_shares,
             shares_after=result.shares_after,
             avg_cost_before=result.avg_cost_before,
             avg_cost_after=result.avg_cost_after,
-            theoretical_price=result.theoretical_ex_price,
+            theoretical_ex_price=result.theoretical_ex_price,
             capital_spent=result.capital_spent,
             description=result.description,
             price_adjustment_factor=adjustment.factor,
@@ -308,6 +308,28 @@ class CorporateActionService:
         )
 
     # ──────────────── İç Uygulama Metotları ────────────────
+
+    def _apply_bedelsiz_as_split(self, action: CorporateAction, current_price: Optional[Decimal]) -> CorporateActionResult:
+        """Bedelsizi bölünme uygulayıcısıyla uygular: ana ve model portföy işlemleri, küsurat nakdi, fiyat geçmişi."""
+        if not self._split_applier.has_holdings(action.stock_id):
+            raise ValueError(
+                f"Portföyde bu hisse bulunmuyor (stock_id={action.stock_id}). "
+                "Kurumsal işlem uygulamak için ana veya model portföyde işlem gereklidir."
+            )
+        before = Position.from_trades(action.stock_id, self._portfolio_repo.get_trades_by_stock(action.stock_id))
+        self._split_applier.apply_action(action)
+        after = Position.from_trades(action.stock_id, self._portfolio_repo.get_trades_by_stock(action.stock_id))
+        stored = self._action_repo.get_by_id(action.id) or action
+        theoretical = action.theoretical_price(current_price) if current_price else None
+        shares = _ShareChange(before.total_quantity, after.total_quantity - before.total_quantity, after.total_quantity)
+        costs = _CostChange(before.average_cost, after.average_cost or Decimal("0"))
+        return CorporateActionResult(
+            action_id=action.id, action_type=action.action_type, stock_id=action.stock_id,
+            shares_before=shares.before, new_shares=shares.new, shares_after=shares.after,
+            avg_cost_before=costs.before, avg_cost_after=costs.after, theoretical_ex_price=theoretical,
+            capital_spent=Decimal("0"), description=_bedelsiz_description(action, shares, costs, theoretical),
+            price_adjustment_factor=stored.price_adjustment_factor, price_adjustment_count=stored.price_adjustment_count,
+        )
 
     def _apply_bedelsiz(
         self,
@@ -322,61 +344,34 @@ class CorporateActionService:
         """
         avg_cost_before = position.average_cost
         shares_before = position.total_quantity
-        
         factor = Decimal("1") / (Decimal("1") + action.ratio)
-        
-        # ex-date öncesi tüm işlemleri güncelle
         trades = self._portfolio_repo.get_trades_by_stock(action.stock_id)
         trades_before = [t for t in trades if t.trade_date < action.ex_date]
-        
         for trade in trades_before:
             post_qty = int(trade.quantity * (Decimal("1") + action.ratio))
             post_price = (trade.price * factor).quantize(Decimal("1.0000"))
-            
-            # Günlük logunu kaydet
-            if self._trade_adjustment_repo is not None:
-                adjustment = TradeAdjustment(
-                    id=None,
-                    trade_id=trade.id,
-                    corporate_action_id=action.id,
-                    factor=factor,
-                    pre_quantity=trade.quantity,
-                    post_quantity=post_qty,
-                    pre_price=trade.price,
-                    post_price=post_price,
-                    applied_at=datetime.now()
-                )
-                self._trade_adjustment_repo.insert(adjustment)
-            
-            # İşlemi güncelle
-            updated_trade = Trade(
-                id=trade.id,
-                stock_id=trade.stock_id,
-                trade_date=trade.trade_date,
-                trade_time=trade.trade_time,
-                side=trade.side,
-                quantity=post_qty,
-                price=post_price,
-                original_quantity=trade.original_quantity,
-                original_price=trade.original_price,
+            _record_and_update_trade(
+                self._portfolio_repo, self._trade_adjustment_repo,
+                trade, action.id, _TradeUpdate(factor, post_qty, post_price),
             )
-            self._portfolio_repo.update_trade(updated_trade)
-
-        # Yeni ortalama maliyet: aynı toplam maliyet / daha fazla hisse
         new_qty = shares_before + new_shares
         avg_cost_after = (position.total_cost / Decimal(str(new_qty))) if new_qty > 0 else Decimal("0")
-
-        return _build_action_result(
-            action=action,
+        return CorporateActionResult(
+            action_id=action.id,
+            action_type=action.action_type,
+            stock_id=action.stock_id,
             shares_before=shares_before,
             new_shares=new_shares,
             shares_after=new_qty,
             avg_cost_before=avg_cost_before,
             avg_cost_after=avg_cost_after,
-            theoretical_price=theoretical_price,
+            theoretical_ex_price=theoretical_price,
             capital_spent=Decimal("0"),
             description=_bedelsiz_description(
-                action, shares_before, new_shares, new_qty, avg_cost_before, avg_cost_after, theoretical_price
+                action,
+                _ShareChange(shares_before, new_shares, new_qty),
+                _CostChange(avg_cost_before, avg_cost_after),
+                theoretical_price,
             ),
         )
 
@@ -395,61 +390,36 @@ class CorporateActionService:
         shares_before = position.total_quantity
         sub_price = action.subscription_price
         capital_spent = sub_price * Decimal(str(new_shares))
-        
         factor = self._price_adjustment_service._factor_for_action(action) if self._price_adjustment_service else Decimal("1")
-
-        # ex-date öncesi tüm işlemleri güncelle
         trades = self._portfolio_repo.get_trades_by_stock(action.stock_id)
         trades_before = [t for t in trades if t.trade_date < action.ex_date]
-        
         for trade in trades_before:
             post_qty = int(trade.quantity / factor)
             post_price = (trade.price * factor).quantize(Decimal("1.0000"))
-            
-            # Günlük logunu kaydet
-            if self._trade_adjustment_repo is not None:
-                adjustment = TradeAdjustment(
-                    id=None,
-                    trade_id=trade.id,
-                    corporate_action_id=action.id,
-                    factor=factor,
-                    pre_quantity=trade.quantity,
-                    post_quantity=post_qty,
-                    pre_price=trade.price,
-                    post_price=post_price,
-                    applied_at=datetime.now()
-                )
-                self._trade_adjustment_repo.insert(adjustment)
-            
-            # İşlemi güncelle
-            updated_trade = Trade(
-                id=trade.id,
-                stock_id=trade.stock_id,
-                trade_date=trade.trade_date,
-                trade_time=trade.trade_time,
-                side=trade.side,
-                quantity=post_qty,
-                price=post_price,
-                original_quantity=trade.original_quantity,
-                original_price=trade.original_price,
+            _record_and_update_trade(
+                self._portfolio_repo, self._trade_adjustment_repo,
+                trade, action.id, _TradeUpdate(factor, post_qty, post_price),
             )
-            self._portfolio_repo.update_trade(updated_trade)
-
         new_qty = shares_before + new_shares
         new_total_cost = position.total_cost + capital_spent
         avg_cost_after = new_total_cost / Decimal(str(new_qty)) if new_qty > 0 else Decimal("0")
-
-        return _build_action_result(
-            action=action,
+        return CorporateActionResult(
+            action_id=action.id,
+            action_type=action.action_type,
+            stock_id=action.stock_id,
             shares_before=shares_before,
             new_shares=new_shares,
             shares_after=new_qty,
             avg_cost_before=avg_cost_before,
             avg_cost_after=avg_cost_after,
-            theoretical_price=theoretical_price,
+            theoretical_ex_price=theoretical_price,
             capital_spent=capital_spent,
             description=_bedelli_description(
-                action, shares_before, new_shares, new_qty, avg_cost_before, avg_cost_after, capital_spent, theoretical_price
+                action,
+                _ShareChange(shares_before, new_shares, new_qty),
+                _CostChange(avg_cost_before, avg_cost_after),
+                capital_spent,
+                theoretical_price,
             ),
         )
 

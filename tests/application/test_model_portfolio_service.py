@@ -4,9 +4,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.application.services.portfolio.trade_entry_service import TradeEntryService
+from src.application.services.portfolio.trade_entry_service import TradeEntryService, TradeRequest
 from src.application.services.planning.model_portfolio_service import ModelPortfolioService
-from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade
+from src.application.services.planning.model_portfolio_trade_service import CapitalMovementSpec, ModelTradeInput
+from src.domain.models.model_portfolio import ModelPortfolio, ModelPortfolioCashMovement, ModelPortfolioTrade, ModelPortfolioTradeSpec
 from src.domain.models.stock import Stock
 from src.domain.models.trade import TradeSide
 
@@ -18,20 +19,14 @@ class FakeModelPortfolioRepo:
         }
         self.trades = {
             1: [
-                ModelPortfolioTrade.create_buy(
-                    portfolio_id=1,
-                    stock_id=10,
-                    trade_date=date(2026, 1, 1),
-                    quantity=10,
-                    price=Decimal("10"),
-                ),
-                ModelPortfolioTrade.create_sell(
-                    portfolio_id=1,
-                    stock_id=10,
-                    trade_date=date(2026, 1, 2),
-                    quantity=2,
-                    price=Decimal("15"),
-                ),
+                ModelPortfolioTrade.create_buy(ModelPortfolioTradeSpec(
+                    portfolio_id=1, stock_id=10, trade_date=date(2026, 1, 1),
+                    quantity=10, price=Decimal("10"),
+                )),
+                ModelPortfolioTrade.create_sell(ModelPortfolioTradeSpec(
+                    portfolio_id=1, stock_id=10, trade_date=date(2026, 1, 2),
+                    quantity=2, price=Decimal("15"),
+                )),
             ]
         }
         self.cash_movements = {1: []}
@@ -85,7 +80,7 @@ class FakeModelPortfolioRepo:
 class FakeStockRepo:
     def __init__(self):
         self.stocks = {
-            10: Stock(id=10, ticker="ASELS.IS", name="ASELSAN", currency_code="TRY"),
+            10: Stock(id=10, ticker="ASELS", name="ASELSAN", currency_code="TRY"),
         }
 
     def get_stock_by_id(self, stock_id):
@@ -127,7 +122,7 @@ def test_model_portfolio_service_returns_positions_with_details():
     positions = service.get_positions_with_details(1, price_map={10: Decimal("12")})
 
     assert len(positions) == 1
-    assert positions[0]["ticker"] == "ASELS.IS"
+    assert positions[0]["ticker"] == "ASELS"
     assert positions[0]["quantity"] == 8
     assert positions[0]["current_value"] == Decimal("96")
     assert positions[0]["profit_loss"] == Decimal("16")
@@ -145,11 +140,13 @@ def test_model_portfolio_rejects_closed_market_session_before_saving_trade():
         service.add_trade_by_ticker(
             portfolio_id=1,
             ticker="ASELS",
-            side="BUY",
-            quantity=1,
-            price=Decimal("10"),
-            trade_date=date(2026, 6, 6),
-            trade_time=time(11, 0),
+            trade_input=ModelTradeInput(
+                side="BUY",
+                quantity=1,
+                price=Decimal("10"),
+                trade_date=date(2026, 6, 6),
+                trade_time=time(11, 0),
+            ),
         )
 
     assert len(repo.trades[1]) == 2
@@ -179,20 +176,24 @@ def test_dashboard_and_model_portfolio_reuse_same_stock_for_same_ticker():
     model_service = ModelPortfolioService(FakeModelPortfolioRepo(), stock_repo)
 
     dashboard_result = dashboard_service.submit_trade(
-        ticker="asels",
-        side=TradeSide.BUY,
-        quantity=1,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 3),
-        name="ASELSAN",
+        TradeRequest(
+            ticker="asels",
+            side=TradeSide.BUY,
+            quantity=1,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+            name="ASELSAN",
+        )
     )
     model_trade = model_service.add_trade_by_ticker(
         portfolio_id=1,
         ticker="ASELS",
-        side="BUY",
-        quantity=1,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 3),
+        trade_input=ModelTradeInput(
+            side="BUY",
+            quantity=1,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+        ),
     )
 
     assert dashboard_result.stock_id == 10
@@ -206,10 +207,12 @@ def test_model_portfolio_rejects_buy_when_cash_is_insufficient():
         service.add_trade_by_ticker(
             portfolio_id=1,
             ticker="ASELS",
-            side="BUY",
-            quantity=1000,
-            price=Decimal("10"),
-            trade_date=date(2026, 1, 3),
+            trade_input=ModelTradeInput(
+                side="BUY",
+                quantity=1000,
+                price=Decimal("10"),
+                trade_date=date(2026, 1, 3),
+            ),
         )
     except ValueError as exc:
         assert "Yetersiz nakit" in str(exc)
@@ -226,10 +229,12 @@ def test_model_portfolio_rejects_sell_for_missing_stock_without_creating_stock()
         service.add_trade_by_ticker(
             portfolio_id=1,
             ticker="XXXX",
-            side="SELL",
-            quantity=1,
-            price=Decimal("10"),
-            trade_date=date(2026, 1, 3),
+            trade_input=ModelTradeInput(
+                side="SELL",
+                quantity=1,
+                price=Decimal("10"),
+                trade_date=date(2026, 1, 3),
+            ),
         )
     except ValueError as exc:
         assert "Hisse bulunamadi" in str(exc)
@@ -243,11 +248,13 @@ def test_model_portfolio_capital_deposit_increases_cash_without_profit():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
 
     movement = service.add_capital_movement(
-        portfolio_id=1,
-        movement_type="DEPOSIT",
-        amount=Decimal("500"),
-        movement_date=date(2026, 1, 3),
-        movement_time=time(10, 0),
+        CapitalMovementSpec(
+            portfolio_id=1,
+            movement_type="DEPOSIT",
+            amount=Decimal("500"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(10, 0),
+        )
     )
     summary = service.get_portfolio_summary(1, price_map={10: Decimal("12")})
 
@@ -262,11 +269,13 @@ def test_model_portfolio_capital_withdraw_reduces_cash_and_net_capital():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
 
     service.add_capital_movement(
-        portfolio_id=1,
-        movement_type="WITHDRAW",
-        amount=Decimal("100"),
-        movement_date=date(2026, 1, 3),
-        movement_time=time(10, 0),
+        CapitalMovementSpec(
+            portfolio_id=1,
+            movement_type="WITHDRAW",
+            amount=Decimal("100"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(10, 0),
+        )
     )
     summary = service.get_portfolio_summary(1, price_map={10: Decimal("12")})
 
@@ -280,11 +289,13 @@ def test_model_portfolio_rejects_withdraw_above_cash():
 
     try:
         service.add_capital_movement(
-            portfolio_id=1,
-            movement_type="WITHDRAW",
-            amount=Decimal("5000"),
-            movement_date=date(2026, 1, 3),
-            movement_time=time(10, 0),
+            CapitalMovementSpec(
+                portfolio_id=1,
+                movement_type="WITHDRAW",
+                amount=Decimal("5000"),
+                movement_date=date(2026, 1, 3),
+                movement_time=time(10, 0),
+            )
         )
     except ValueError as exc:
         assert "Yetersiz nakit" in str(exc)
@@ -296,20 +307,24 @@ def test_model_portfolio_deposit_allows_larger_later_buy():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
 
     service.add_capital_movement(
-        portfolio_id=1,
-        movement_type="DEPOSIT",
-        amount=Decimal("1000"),
-        movement_date=date(2026, 1, 3),
-        movement_time=time(9, 0),
+        CapitalMovementSpec(
+            portfolio_id=1,
+            movement_type="DEPOSIT",
+            amount=Decimal("1000"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(9, 0),
+        )
     )
     trade = service.add_trade_by_ticker(
         portfolio_id=1,
         ticker="ASELS",
-        side="BUY",
-        quantity=100,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 3),
-        trade_time=time(10, 0),
+        trade_input=ModelTradeInput(
+            side="BUY",
+            quantity=100,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+            trade_time=time(10, 0),
+        ),
     )
 
     assert trade.quantity == 100
@@ -319,29 +334,35 @@ def test_model_portfolio_deposit_allows_larger_later_buy():
 def test_model_portfolio_rejects_retroactive_withdraw_that_breaks_later_buy():
     service = ModelPortfolioService(FakeModelPortfolioRepo(), FakeStockRepo())
     service.add_capital_movement(
-        portfolio_id=1,
-        movement_type="DEPOSIT",
-        amount=Decimal("1000"),
-        movement_date=date(2026, 1, 3),
-        movement_time=time(9, 0),
+        CapitalMovementSpec(
+            portfolio_id=1,
+            movement_type="DEPOSIT",
+            amount=Decimal("1000"),
+            movement_date=date(2026, 1, 3),
+            movement_time=time(9, 0),
+        )
     )
     service.add_trade_by_ticker(
         portfolio_id=1,
         ticker="ASELS",
-        side="BUY",
-        quantity=100,
-        price=Decimal("10"),
-        trade_date=date(2026, 1, 3),
-        trade_time=time(10, 0),
+        trade_input=ModelTradeInput(
+            side="BUY",
+            quantity=100,
+            price=Decimal("10"),
+            trade_date=date(2026, 1, 3),
+            trade_time=time(10, 0),
+        ),
     )
 
     try:
         service.add_capital_movement(
-            portfolio_id=1,
-            movement_type="WITHDRAW",
-            amount=Decimal("950"),
-            movement_date=date(2026, 1, 3),
-            movement_time=time(9, 30),
+            CapitalMovementSpec(
+                portfolio_id=1,
+                movement_type="WITHDRAW",
+                amount=Decimal("950"),
+                movement_date=date(2026, 1, 3),
+                movement_time=time(9, 30),
+            )
         )
     except ValueError as exc:
         assert "sonraki model portf" in str(exc)

@@ -5,6 +5,1404 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-14] FIX | Toast bildirimi uzun mesajda kutudan taşıyordu
+
+`ToastNotification.qml` genişliği 420 ile sınırlıyordu ama metin sarılmıyordu (`elide` kutu genişliğini bilmediği için işlemiyordu); "5 hisse bölünmesi adayı..." gibi uzun mesaj kutunun iki yanından taşıyordu. Metin artık `TextMetrics` ile ölçülür, en çok 420 genişlikte satıra sarılır ve kutu yüksekliği metne uyar (kısa mesajda 46 aynı). Test: `tests/ui_qml/test_toast_overflow.py` (pencerede yerleşim; uzun, kısa, boşluksuz uzun metin). Tüm toast kullanımları (8 yer) aynı bileşeni kullandığı için tek düzeltme yeterli.
+
+## [2026-11-14] REFACTOR | Tarih girişi: tek ayrıştırıcı, her yerde GG.AA.YYYY
+
+Manuel QA'dan kalan bulgu: Hisse Detay emir formu `YYYY-AA-GG` istiyordu, uygulamanın geri kalanı `GG.AA.YYYY`.
+
+- **Kök neden:** kullanıcı tarihini 12 ayrı yer kendi biçim listesiyle ayrıştırıyordu (bazısı yalnız ISO, bazısı yalnız GG.AA.YYYY; hedef vadesi, DCA ve model portföy `split("-")`/`fromisoformat`), alan başlangıç değerlerini 15 QML bileşeni kendi JavaScript'iyle üretiyordu.
+- **Çözüm:** `controllers/date_input.py` (`parse_date_text`: GG.AA.YYYY, eski ISO de kabul; `format_date_text`) ve `qml/theme/Dates.qml`. 12 ayrıştırıcı ve 5 elle ayrıştırma kalktı. Dokuz alan GG.AA.YYYY gösterir: Hisse Detay emri, model portföy işlem ve sermaye, temettü, ex-date, hedef vadesi (ekle/düzenle), DCA, strateji testi. Hedef listesi ve aday `exDate` GG.AA.YYYY döner.
+- **Davranış değişikliği:** geçersiz hedef/model portföy tarihi artık ham `ValueError` yerine "Biçim: GG.AA.YYYY" uyarısı verir; `cash_pool` ISO'yu da kabul eder.
+- **Koruma:** `tests/ui_qml/test_date_input_guard.py`. Kırmızı testler `test_date_entry_formats.py`, `test_date_input.py`.
+- **Doğrulama (yalnızca QA kopyasında):** dokuz alanın ekranı; 10.11.2026 ile ve eski 2026-11-11 ile satış kaydı doğru tarihle yazıldı.
+- Aynı gün devamı (saat): `parse_time_text`/`format_time_text` (`SS:DD`, `SS:DD:SS`) aynı modüle; beş saat ayrıştırıcısı (assets, cash_pool, dashboard, Hisse Detay, model portföy `split(":")`) tek yere indi. Geçersiz model portföy saati artık "Biçim: SS:DD" uyarısı verir. QML'de `Dates.nowTime()`/`formatTime()`; yedi bileşenin elle `getHours()`/`todayText()` kodu kalktı, koruma testi saat/tarih üretimini de yasaklar. Hızlı Alım fiyat alanı virgüllü doldurulur.
+
+## [2026-11-13] FIX | Manuel QA'nın orta ve düşük bulguları, bağımlılık açığı, e2e yarışı
+
+Tümü gerçek verinin kopyasında (QA kopyası) doğrulandı; gerçek `data/` dosyalarına yazılmadı.
+
+- **Tema kalıcılığı:** `Main.qml`'deki `Binding` `Theme.isDark`'ı `settingsController.isDarkTheme`'ten okur; başlık düğmesi de `toggleTheme()` çağırır. Önceden açılışta hep koyu başlar, başlık düğmesi tercihi kaydetmez ve Ayarlar yanlış "Aktif Tema" gösterirdi. Yeniden başlatmada kalıcılık doğrulandı.
+- **Hisse Detay Escape:** `StockDetailModal` tek modaldı ki Escape'e yanıt vermiyordu; pencere açık kaldığı için kenar çubuğundaki ilk tıklama yalnızca pencereyi kapatıyordu. `Shortcut` eklendi; koruma `tests/ui_qml/test_modal_escape_guard.py` (tüm `*Modal*`/`*Dialog*` bileşenleri).
+- **Biçim ve yerleşim:** işlem geçmişi tablosunda Adet/Fiyat sütunları başlıkla hizalı (iç `RowLayout` `fillWidth` taşıyordu); emir önizlemesinde `-₺962,00` (`tr_lira`) ve fiyat alanı virgüllü; Karşılaştırma/DCA/Lightweight grafiklerinde eksen ondalık virgül (`localization`, `tests/ui_qml/test_chart_locale.py`); TL fiyat her zaman 2 hane (`₺0,92`); yeniden dengeleme lotu tam sayıda ondalıksız; başlıklardan "(Allocation)/(Watchlist)/(Planning)" kalktı; optimizasyon kartları çalışana kadar "—"; temalı `ThemedSlider` (siyah tutamak); Ayarlar sekme çubuğu dar pencerede yatay kaydırılır.
+- **Bağımlılık açığı (CI Dependency audit):** `soupsieve` 2.10 için üç CVE (düzeltme 4.0, Python >= 3.11.5). `constraints.txt` ortam işaretiyle ikiye bölündü; Python 3.10 hattı 2.10'da kalır (denetim 3.11'de çalışır). `tests/test_dependency_lock.py` ortam işaretli sabitleri kabul eder.
+- **e2e yarışı:** `test_sell_more_than_held...` onay düğmesinin kutuyu kapatma animasyonu bitmeden kararı verip kutu `fill` sırasında kayboluyordu; `wait_gone` ile beklenir.
+- Kayıt defteri temizliği: `data/backups/registry_PortfoySimulasyonu_20261113.reg` yedeğiyle sahte NVDA sohbet oturumu, QA'nın bastığı açılış işi damgaları ve QA kopyasından hesaplanmış getiri önbelleği silindi.
+- Bilinçli bırakılanlar: işlem tarihi alanı `YYYY-AA-GG` (uygulamada tarih biçimleri üç farklı denetleyicide ayrı ayrıştırılıyor, ortak biçime geçiş ayrı iş), Reel (TÜFE) modu EVDS anahtarı olmadan TL serisini gösterir ve uyarır.
+
+## [2026-11-13] FIX | Manuel QA'da çıkan iki yüksek önemli hata
+
+Gerçek verinin kopyasıyla elle test (11 sayfa, ana akışlar) ve e2e (75/75) sonrası.
+
+- **Para birimi seçimi uygulanmıyordu:** `AnalysisService.get_comparison_view` filtre durumunu yeniden kurarken `currency_mode`'u düşürüyordu (varsayılan TL); Karşılaştırma Lab'de TL/USD/Reel aynı sonucu veriyordu (24.04.2026'dan beri). Kırmızı test `test_comparison_view_applies_selected_currency_mode`; kopyada USD artık 48,19 yerine 45,79. Reel mod TÜFE verisi (EVDS anahtarı) olmadan seriyi TL bırakır ve "TÜFE alınamadı" uyarısı gösterir.
+- **Testler ve QA gerçek kayıt defterine yazıyordu:** `QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")` `setDefaultFormat`'tan etkilenmez; e2e koşuları gerçek sohbet geçmişine ve açılış işi damgalarına yazıyordu. Yedi çağrı yeni `src/qt_compat/user_settings.py::user_settings()` fabrikasına geçti; `tests/conftest.py` oturumda INI'ye yönlendirir, e2e kabuğu `use_ini_file` kullanır. Koruma: `tests/test_user_settings_isolation.py` (doğrudan `QSettings(org, app)` yasak). Tam paket + e2e sonrası kayıt defteri değişmedi. Önceki koşuların bıraktığı gerçek kayıt defteri kirliliği (sohbet geçmişinde NVDA oturumları, `settings/last_auto_*` damgaları) otomatik temizlenmedi.
+
+## [2026-11-08] FIX | Testlerde Qt `access violation` çökmesi (CI Python 3.12)
+
+- **Belirti:** `test_market_sync_controller_trigger_sync` içindeki olay döngüsü beklemesinde süreç çöküyordu (CI ve yerelde ara sıra).
+- **Kök neden:** `create_controllers(autostart=False)` `SystemController` ve `MarketTickerController`'a bayrağı iletmiyordu; testler gerçek yfinance çağrısı başlatıyordu (çökme anında 8 şerit işçisi ağda). Gecikmeli işler iptal edilemeyen `QTimer.singleShot(ms, self.metot)` ile kurulduğundan biten testlerin işleri sonraki testlerde ateşleniyor, sonuç silinmiş denetleyiciye dönüyordu.
+- **Aynı gün, ikinci CI kırmızısı:** `test_stock_360_overview_characterization` bugünü `date.today()` (CI'da UTC) ile yer tutucuya çeviriyordu, denetleyici `market_today()` (İstanbul) yazar; 21:00-24:00 UTC arası 9 test düşüyordu. Test `market_today()` kullanır. Piyasa günü bir gün kaydırılarak (`market_clock._utc_now` +24 sa) tam paket koşuldu; başka etkilenen test yok.
+- **Düzeltme:** kayıtta iki denetleyiciye `AUTOSTART`; yeni `src/ui_qml/deferred.run_later` (sahibine bağlı, iptal edilebilir) 8 `singleShot` çağrısının yerini aldı; `tests/conftest.py` her testten sonra `cancel_pending()`. Koruma: `tests/ui_qml/test_background_work_lifecycle.py` (kayıt bayrağı, sahip silinince ateşlenmeme, iptal, `singleShot` yasağı). Uygulamadaki davranış aynı.
+
+## [2026-11-07] REFACTOR | Plan B: Yönetilebilirlik (özellik kaydı, tek fiyat yazıcısı, ortak defter, mesaj paketi)
+
+Dal: `refactor/yonetilebilirlik`. Ayrıntı: [architecture.md](architecture.md) §2, [data_architecture.md](data_architecture.md) kural 3-4, [architecture_evolution_plan.md](architecture_evolution_plan.md) §4.
+
+- **B1:** servisler `container_parts/features/` modüllerinde (`PROVIDES` + `build`), `ServiceRegistry`; denetleyiciler `controllers/registry.py`; `REQUIRES` + `ServiceView` 6 denetleyicide, kalanlar tavanlı.
+- **B2:** fiyatın tek yazıcısı DuckDB; SQLite `PriceProjectionService` yansıması. Sağlık/backfill `MarketPriceRefresher`, kurumsal aksiyon ve bölünme DuckDB faktörü + yansıtma. İlk senkronda bir kez `SinglePriceSourceMigration`. `scripts/rebuild_sqlite_prices.py`, `adjust_prices_before_date`, `adjust_downloaded_series` kaldırıldı. Koruma: `tests/test_price_single_writer_guard.py`.
+- **B3:** `ILedgerReader` / `LedgerSnapshot` (ana, model, varlık). Bölünme hedefleri, aday keşfi, fiyat sağlığı kapsamı geçti; gerçek veri kopyasında kapsamlar eski mantıkla birebir. Koruma: `tests/test_ledger_reader_guard.py`.
+- **B4:** `src/ui_qml/messages/` paketi (7 modül, yinelenen anahtar hata, 472 anahtar aynı).
+- **B5:** `scripts/measure_change_footprint.py`: Plan B öncesi medyan 7 kaynak dosya, merkeze dokunma %59; dal commit'lerinde medyan 5, %0 ([code_quality_guardrails.md](code_quality_guardrails.md) §9).
+- Gerçek veritabanında ilk senkron geçişi çalıştırır (kopyada ~31 sn). Kalite kapısı tavanda; tam paket geçti.
+
+## [2026-11-07] REVIEW | Backend Denetimi 3 ve Otomatik Hisse Bölünmesi
+
+Ayrıntı ve açık kalanlar: [system_audit_report_2026-11-07.md](system_audit_report_2026-11-07.md).
+
+- **Fiyat politikası:** SQLite'a yazan Yahoo yolları ham `Close` (`auto_adjust=False`); karışık eski satırlar için `scripts/rebuild_sqlite_prices.py` (faktör izi taşıyan hisse ve hacimsiz/hayalet DuckDB referansı atlanır).
+- **Otomatik bölünme:** Yahoo + KAP + fiyat kırılması uzlaşısı; iki kaynak otomatik, tek kaynak aday. Ana/model portföy ve Portföyüm işlemleri tek işlemde, küsurat `FRACTION` nakdi, fiyat geçmişi yalnızca kırılma varsa. Geri alma, açılış işi, Ayarlar listesi. Manuel bedelsiz de aynı uygulayıcıyı kullanır ([service_corporate_actions.md](service_corporate_actions.md) §6).
+- **Hayalet bar:** `bar_quality` üç indiriciye bağlı; `scripts/clean_ghost_bars.py`. BIST takvimi 20.06.2024 düzeltildi, 2023 deprem kapanışı eklendi.
+- **Hesaplama düzeltmeleri:** TWR nakit açığı ve başlangıç komisyonu, optimizasyon basit getiri, altın/gümüş sembolleri ve mevduat yedeği, bilanço TTM/ROE, grafik hassasiyeti, eşleştirilmiş risk metrikleri, TÜFE yayın kaydırması, saat dilimi, OHLC fiyat düzeltmesi.
+- Kalite kapısı tavanda (72 fonksiyon / 4 dosya / 0 sınıf). Tam paket 2164 geçti. Gerçek veritabanına uygulama kullanıcı onayı bekliyor.
+
+## [2026-11-04] UI | Hisse Detay Penceresi, Yükleniyor Animasyonu, Uygulama Adı
+
+- Hisse detay modalı 1180×940'a büyüdü; emir formu yüksekliği içeriğinden hesaplanır (`StockDetailOrderForm.qml`), kaydırma gerekmez.
+- Tüm `BusyIndicator` kullanımları ortak `LoadingSpinner.qml` ile değişti (ince halka + dönen yay, `size` ile ölçeklenir; düğme içinde beyaz).
+- Görünen ad "Portföy Yönetimi" oldu (pencere başlığı, `Strings.appName`, sayfa başlığı, TradingView künyesi, README/CLAUDE.md). `QSettings`, keyring servis adı ve depo adı kayıtlı veriyi korumak için `PortfoySimulasyonu` olarak kaldı.
+
+## [2026-11-04] REVIEW | CI Kırmızı Koşusu: Gerçek Veri Bağımlılığı, Saat Dilimi, Bağımlılık Açıkları
+
+İlk GitHub Actions koşusu (Tests #54) kırmızı; 10-04 koşusu da kırmızıydı. Ayrıntı: [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md) "İlk GitHub Actions koşusu".
+
+- 17 test gerçek `data/` veritabanı kopyasına dayanıyordu: `real_data` işareti, dosyalar yoksa atlanır (`conftest._skip_real_data_tests`; mevcut `pytest_collection_modifyitems` içinden çağrılır, ikinci bir aynı adlı hook ilkini gölgeler).
+- Piyasa saatine bağlı iki test `market_now()`/`market_today()` kullanır (CI UTC'de çalışır).
+- `constraints.txt` `pip freeze` yerine `requirements.txt` kapanışı (77 paket); `certifi` 2026.10.23, `pyasn1` 0.6.5.
+- CI `pip check` adımı runner'daki `pipx` uyarısını yok sayar.
+- Yerel doğrulama: tam paket 2051 geçti; CI taklidi (veri yok): 2033 geçti, 18 atlandı, kapsam %87.
+
+## [2026-11-04] REVIEW | Sistem Denetimi 2 (15 Bulgu) Uygulandı
+
+Ayrıntı ve açık kalanlar: [system_audit_report_2026-11-04.md](system_audit_report_2026-11-04.md). Bu giriş bir önceki 2026-11-04 girişindeki üç acil maddeden sonrasını kapsar.
+
+- **Türkçe karşılaştırma (Bulgu 6):** `src/domain/text.py` (`tr_lower`, `tr_fold`); mali tablo filtresi, izleme listesi ad tekrarı, bütçe kalemi/sabit kalem eşleşmesi. `advisor_query_intent.turkish_lower` kaldırıldı (`tr_lower`).
+- **İşlem girişi (Bulgu 3):** `DashboardController` emri arka plan işçisinde kaydeder (`_asyncTradeFinished`, yeniden giriş koruması). İstisna iletisi: `ValueError` aynen, diğerleri sabit ileti (`dashboard.islem_kaydedilemedi`, `stock_detail.emir_iletilemedi`).
+- **Dosya eşiği (Bulgu 5):** `measure_code_quality.py` üretim dosyaları için 500 etkin satır eşiğini hesaplar (`file_violations` önceden boş dönüyordu). Gerçek durum 4 dosya; CI tavanı `--max-file-violations 4`.
+- **Hata yönetimi (Bulgu 10):** `tool_error()` ve `GENERIC_TOOL_ERROR` (danışman araç hataları modele sızmaz), `cash_pool_controller.reload` günlüğe yazar.
+- **Piyasa tarihi (Bulgu 11):** `chart_candle_sources`, `stock_360_fallback`, `planning_controller`, `isyatirim_provider` `market_today()`; koruma testi `test_repo_guards.py`.
+- **RSS (Bulgu 12):** gövde akışla `MAX_BODY_BYTES`'ta kesilir; yerel/özel adresler reddedilir.
+- **Çalıştırma betikleri ve belge yolları (Bulgu 13):** `run_prod.bat`/`run_test.bat` `venv` arar; `ARCHITECTURE_GATES.md` kullanıcıya özel yol ve `file:///` bağlantılarından temizlendi.
+- **Ayar yükleme (Bulgu 14):** `load_app_settings` `.env` ve sır deposunu bir kez okur.
+- **Bağımlılık kilidi (Bulgu 9):** `constraints.txt` (102 satır, geçişli paketler dahil); CI ve `build_nuitka.bat` `-c constraints.txt` kullanır; `tests/test_dependency_lock.py`. `google-genai` pini 1.0.0'dan geliştirme ortamının gerçek sürümüne (2.27.0) çekildi.
+- **Para depolaması (Bulgu 4):** `ExactNumeric` (`exact_numeric.py`) 43 `Numeric` sütununun yerine geçti; DDL aynı, bozan yazma `ValueError`. Depolama biçimi hâlâ `REAL`.
+- **Konteyner (Bulgu 8):** servis adı doğrulama testi (`test_container_service_names.py`); yapıcı enjeksiyonu yapılmadı (çevrimdışı mod tasarımı).
+- **Kapsam (Bulgu 15):** AI_Core istemcisi, yfinance adaptörleri, kıyas sağlayıcısı ve haber HTTP yardımcısı için hata ailesi testleri.
+- Doğrulama: tam paket 2049 geçti, 4 xfailed; E2E 75 geçti (Human bölünmesinden sonra); kalite kapısı 0 sınıf / 72 fonksiyon / 4 dosya, çıkış 0.
+
+## [2026-11-04] REVIEW | Denetim Bulguları: Çift Emir Koruması, CI Kalite Kapısı, AI Süzgeç Yanlış Pozitifi
+
+- **Çift emir:** `StockDetailController.submitTrade` emir işçide sürerken ikinci çağrıyı reddeder (`_trade_pending`, `_on_trade_result` temizler; ileti `stock_detail.onceki_islem_suruyor`). `StockDetailOrderForm.qml` onay düğmesi `isLoading` iken devre dışı. Önce kırmızı test (`test_group1_fixes.py`): iki hızlı çağrı havuza iki işçi görevi gönderiyordu (havuz 2 işçilik). `DashboardController.submitTradeAt` ve `ModelPortfolioController.addTrade` arayüz iş parçacığında eşzamanlı çalıştığından etkilenmez. QML düğme koruması GUI açılarak elle doğrulanmadı.
+- **CI kalite kapısı:** HEAD'de kapı kırıktı (2 sınıf / 73 fonksiyon, tavan 0 / 72). `tests/e2e/human.py` `Human` (42 metot) `human_screen.py` (ekran okuma) ve `human_input.py` (fare/klavye) karıştırıcılarına ayrıldı; `UnifiedSeriesBuilder`'dan fiyat defteri yükleme `_PriceBookLoader`'a taşındı (davranış değişmedi, mevcut testler geçti); `seed_asset_prices` kullanılmayan `vol` parametresini bıraktı. Kapı: 0 sınıf, 72 fonksiyon, çıkış 0. E2E paketi 75 geçti.
+- **AI süzgeci:** `class\s+\w+` kalıbı "asset class dağılımı" gibi finans sorularını engelliyordu; `class\s+\w+\s*[:({]` biçimine daraltıldı (`config/safety_patterns.txt` ve gömülü yedek liste). Yeni `tests/application/test_safety_guard.py`.
+- Sayılar `ARCHITECTURE_GATES.md` §3.4 gereği komutla doğrulandı. Kalan denetim bulguları (3-15) onay sırasıyla işlenir.
+
+## [2026-11-03] düzeltme | Ürün Testi Bulguları D-01, D-02, D-03 ve Simge Düğmesi Erişilebilirliği
+
+- **D-03 Escape:** 17 modal kutuya (`AddStockModal`, `QuickTradeModal`, `CapitalModal`, `FxConvertModal`, `ConfirmDialog` ...) `Shortcut { sequence: "Escape" }` eklendi; `Popup` tabanlı diyaloglarla aynı davranış. Varlık Ekle meşgulken (`busy`) kapanmaz.
+- **D-02 Birleşik değerleme:** `UnifiedSeriesBuilder` kapanış fiyatı olmayan BIST pozisyonunu artık düşürmez; ortalama maliyetle değerler ve "fiyat/kur bulunamadı" uyarısı üretir. AI danışman toplamı Portföyüm ile aynı olur. Risk, TWR ve karşılaştırma serileri de aynı kuralı kullanır.
+- **D-01 Karşılaştırma Lab:** `ComparisonController.noData`; seçim varken veri yoksa "karşılaştırılacak veri bulunamadı" nedenleriyle açıklanır ("en az bir varlık seçin" yalnızca seçim boşken).
+- **Erişilebilirlik:** `ModernButton` simge düğmesi `Accessible.name` = ipucu; bütçe `+` düğmeleri `tooltip` ve `Accessible.name` taşır. E2E sürücü `click_icon(ad)` ile koordinatsız tıklar.
+
+---
+## [2026-11-03] ekle | Ürün Test Planı ve E2E İnsan Sürücü Otomasyonu
+
+- **Plan:** [product_test_plan.md](product_test_plan.md): kapsam, test veritabanı, persona yolculukları, manuel rehber kimlikleriyle izlenebilirlik, otomasyon sınırları, bulgular, çıkış ölçütleri.
+- **Otomasyon:** `tests/e2e/` (8 yolculuk dosyası, 69 test, ~6,5 dk). `Human` sürücüsü ekrandaki metni bulup fare tıklaması ve klavye olayı gönderir; QML bağlama, örtülü düğme ve görünmeyen öğe hataları da yakalanır. Taze SQLite + `market_history.duckdb` kopyası, ağ kapalı, başarısızlıkta ekran görüntüsü. `pytest.ini`: `e2e` işaretçisi ve varsayılan koşudan hariç tutma.
+- **Bulunanlar:** Karşılaştırma Lab verisiz durumda yanıltıcı mesaj (D-01); AI danışman toplam değeri Portföyüm'den farklı olabilir (D-02, doğrulanmalı); modallar Escape'e yanıt vermez (D-03). Test altyapısı: yfinance `curl_cffi` soket yamasını aşar (ağ kapatma kütüphane girişinde yapılır); offscreen yazı tipi yokluğu sahte taşma bulgusu üretir (`QT_QPA_FONTDIR`).
+
+---
+## [2026-11-03] güncelleme | Kıymetli Maden Adı, NASDAQ Kataloğu, AI Danışman Varlıkları Görüyor, Kaldırma Düzeltmesi
+
+- **Emtia -> Kıymetli Maden:** Arayüz etiketi değişti (sınıf kodu `PRECIOUS_METAL` aynı, göç yok). Katalogdan paladyum çıktı (altın, gümüş, platin kaldı); sembolle ekleme penceresinde yalnızca ABD hissesi ve kripto seçilir.
+- **NASDAQ kataloğu:** 24 popüler hisse/ETF tek tıkla eklenir; pencere Kıymetli Madenler / Kripto / NASDAQ gruplarına ayrıldı.
+- **AI Danışman:** yeni `get_assets_overview` aracı (sınıf ve pozisyon bazında TL değer, maliyet, K/Z, ağırlık, TL/USD nakit); `get_portfolio_overview` ve `get_allocation_and_risk` varsayılan olarak tüm varlıkları kapsar (`scope=bist` yalnızca BIST). Sistem istemi güncellendi; Markowitz önerisi hâlâ yalnızca BIST portföyündedir ve danışman bunu belirtir.
+- **Kaldırma hatası:** "Kaldır" açık pozisyonlu varlığı pasife alıyor ama değeri portföyde saymaya devam ediyordu (uyarı metni "değere dahil edilmez" diyordu). Açık pozisyonlu varlık artık kaldırılamaz ("önce satış girin"); pozisyon kapanınca kaldırılır, geçmiş korunur.
+
+---
+## [2026-11-03] düzeltme | Varlık Ekleme Akışı: Sembol Biçimi, Para Birimi, Kopya Fiyat Sembolü
+
+Gerçek ağ ve test veritabanıyla 24 ekleme senaryosu koşuldu; bulunan hatalar:
+- **Para birimi kullanıcıya soruluyordu:** `THYAO.IS` "USD" denerek eklenebiliyor (TL fiyat USD sayılıp yaklaşık 50 kat şişiyordu), `ASML.AS` (EUR) USD sayılıyordu, EUR cinsi varlığın alımı ise "nakit havuzunda EUR desteklenmiyor" ile ekleme sonrası patlıyordu. Artık para birimi fiyat kaynağından okunur (`IAssetSymbolVerifier.currency_of`, yfinance `fast_info`); USD/TRY dışı (EUR, GBp vb.) eklemede reddedilir. Pencereden para birimi alanı kaldırıldı.
+- **Çoklu sembol:** `AAPL MSFT` ve `MSFT,GOOG` varlık olarak kaydediliyordu. Sembol biçimi doğrulanır (tek sembol; harf, rakam, `.` `-` `=`).
+- **Kopya fiyat sembolü:** Katalogdaki `BTC` varken elle `BTC-USD`, `XAU` varken `GC=F` ayrı varlık olarak eklenebiliyordu. Aynı fiyat sembolü ikinci kez eklenemez.
+- **BRK.B:** Yahoo yazımı `BRK-B`; tek harfli hisse sınıfı otomatik çevrilir, borsa ekleri (`ASML.AS`) olduğu gibi kalır.
+- **Endeks:** `^IXIC` gibi endeksler alınamaz; ETF önerilir.
+- Açık tasarım soruları (karar bekliyor): genel emtia sınıfı (petrol, bakır, doğal gaz) yok, `CL=F` "Kıymetli Maden" sınıfı altına giriyor; NASDAQ için hazır katalog yok.
+
+---
+## [2026-11-03] düzeltme | Grafik Başlığı Eşzamanı, Canlı Fiyat Yansıması, Hisse 360 Hızlı Seçim Kaldırıldı
+
+- **Başlık bayatlığı:** Hisse adı, fiyat ve değişim `tickerChanged` ile bağlıydı; sinyal veri yüklenmeden önce yayıldığı için başlık bir önceki hissenin değerini gösteriyordu. Yeni `quoteChanged` veri yüklendikten sonra yayılır (`companyName`, `lastPrice`, `priceChange`, `isPositive`, `hasQuote`). Veri yoksa başlık sıfırlanır (önceden eski hissenin fiyatı kalıyordu); fiyat rozeti kontrolü eski nokta biçimine (`₺0.00`) bağlıydı, `hasQuote` ile değişti.
+- **Günlük değişim:** Başlıktaki değişim artık 1H/1A seçiliyken haftalık/aylık mum farkı değil, günlük farktır (karakterizasyon altın dosyası yalnızca bu üç değer için güncellendi).
+- **Canlı fiyat:** `PriceRefreshController.pricesChanged` artık grafiği yeniler (`reloadCurrent`). Seans içinde canlı fiyat geçerliyse son mum canlı fiyata çekilir (`overlay_live_price`), göstergeler buna göre hesaplanır. DuckDB'deki diğer BIST hisseleri günlük kapanışla kalır.
+- **Hisse 360:** "HIZLI HİSSE SEÇİMİ" satırı, `availableStocks`, `discover_available_stocks` / `rank_tickers` ve kullanılmayan `Stock360Service.get_catalog_tickers` / `get_all_stocks` kaldırıldı.
+
+---
+## [2026-11-03] güncelleme | Kayan BIST Şeridi ve Haber Konu Süzgeci
+
+- **Genel Bakış şeridi:** "PORTFÖY VE VARLIKLAR" yerine "BIST HİSSELERİ"; portföyden bağımsız rastgele 24 BIST hissesi (`chartController.marketTickers`, `StockLookupService.list_market_tickers`, DuckDB evreni; yoksa `BIST_TICKERS`) soldan sağa kesintisiz akar, fare üstündeyken durur.
+- **Haber süzgeci:** `news_relevance.py`; genel akışta yalnızca ekonomi, finans, yatırım, borsa, siyaset ve diplomasi, şirket akışında yalnızca magazin elenir, KAP süzülmez. TRT Haber Gündem ve Dünya varsayılan kaynak olarak eklendi; `NewsService` eksik varsayılan kaynakları mevcut kurulumlara da ekler.
+
+---
+## [2026-11-03] güncelleme | Kısıtların Kapatılması: TL Zinciri, Türkçe Biçim, Tek BIST Hissesi, Nakit Rezervi, Aylık Kart
+
+- **TL zinciri:** Döviz satımı ve TL ile ödenen (nakde bağlı) varlık satışı silinirken sonraki TL kullanımı (BIST alımı, nakit çekimi, TL ile varlık alımı) denetlenir; yetersiz kalacaksa reddedilir (`CashPoolService.ensure_try_after_removal`, mevcut zaman çizelgesi doğrulayıcısı, sentetik hareket kimlikleri).
+- **Türkçe sayı biçimi tüm arayüzde:** Hisse Detay, Hisse 360 (hesaplar, yedek veri, altın dosya), İzleme Listesi, Tarayıcı, Planlama/DCA, Model Portföy, danışman sağlık paneli, strateji sonuçları, karşılaştırma/ortaklık QML ve treemap, piyasa senkron ve sermaye artırımı mesajları. Yüzde yazımı tek biçim: `+%1,20` / `-%0,57`. Koruma: `test_turkish_number_format_guard.py` (ABD binlik biçimi yasak). `swap_separators` şablon çıktıları için eklendi.
+- **Tek BIST hissesi:** `get_historical_prices(tickers, days, min_columns)`; birleşik optimizasyon BIST kısmını `min_columns=1` ile ister, DuckDB'den okunur (yfinance yedeği yok).
+- **Nakit rezervi:** Optimizasyon sayfasında Tüm Varlıklar kaynağında "Nakit Rezervi (%)" (0-90). Plan nakit dahil toplam değere göre kurulur, pozisyon payları `1 - rezerv` ile ölçeklenir, plana `NAKİT` satırı girer. USD/TL ayrımı ve işlem maliyeti hâlâ modellenmez (roadmap).
+- **Aylık/haftalık kart:** Portföy dönem içinde başladıysa getiri ilk değerli günden hesaplanır (önceden `-`).
+
+---
+## [2026-11-03] güncelleme | Portföyüm Getiri Kartları Birleşik Seriye Bağlandı, Ana Sayfa Sayı Biçimi Türkçe
+
+- `UnifiedReturnService`: Haftalık (7 gün) ve aylık (30 gün) getiri `UnifiedSeriesBuilder` TWR endeksinin oranıdır; sermaye yatırma/çekme ve havuz içi hareketler getiriyi bozmaz, kur ve varlık fiyatı hareketi getiriye girer. `DashboardController` kartları bu servisle besler (kayıtlı son değer yine anında gösterilir); kart başlıkları "(BIST)" ekini kaybetti. Dönem başında portföy değeri yoksa kartta `-`.
+- Ana Sayfa (Genel Bakış) Türkçe biçime geçti: grafik şablonu (`tradingview_chart.html`) lejant, fiyat ve hacim ekseni, son fiyat balonu, gösterge etiketleri (`1.234,56`, `+%1,20`, `21,54M`); grafik başlık özeti (`chart_candle_sources.last_price_summary`); `dashboardController.cashBalance`, sermaye yatırma/çekme bildirimleri; dönemsel getiri biçimi `+%1,23` / `-%0,50`. Koruma: `test_chart_turkish_format.py`.
+- Hâlâ eski (ABD) biçimi kullananlar: Hisse Detay modalı, Hisse 360, İzleme Listesi, Tarayıcı, Planlama/DCA, Model Portföy bildirimleri, karşılaştırma ve planlama grafikleri.
+
+---
+## [2026-11-03] güncelleme | QA turu (test veritabanı kopyası) ve Tüm Varlıklar analizi/optimizasyonu
+
+**QA (gerçek pencere, GPU çizimi, test veritabanı kopyası; gerçek veritabanına dokunulmadı).** Senaryolar: sermaye, döviz al/sat, USD ve TL ile varlık alımı/satımı, ücretler, yetersiz bakiye, hatalı girdiler, silme zinciri, USD gösterimi. Servis kuralları (yetersiz nakit, silme engeli, kısmi satış) beklendiği gibi çalıştı; bulunan hatalar düzeltildi:
+
+- **Varlık dağılımı kartı** 5 sınıfta taşıyordu (sabit yükseklik); yükseklik içeriğe uyar, veriden bağımsız sabit "denge durumu" kutusu kaldırıldı.
+- **Pozisyon tablosu** 1440 piksel pencerede eylem sütununu kırpıyordu; sütun genişlikleri daraltıldı (min. içerik 1130).
+- **Nakit kartı** yalnızca TL nakdi gösterirken dağılımdaki Nakit dilimi USD dahildi; kart artık havuzun tamamı, alt satırda `TL … + USD …`.
+- **Sayı biçimi karışıktı** (`₺863,159.38`, `₺396.078,67`, `%-7,10`, `$0,00` bir arada); Portföyüm Türkçe biçime geçti (`₺863.159,38`, `-₺5.678,99`, `+%2,15`). Giriş alanı önerileri virgüllü ve kısa (altın gram fiyatı 26 haneli geliyordu: `3089,1931`).
+- **Tarih doğrulama:** varlık işlemi ve döviz işlemi gelecek tarihi kabul ediyordu; geçersiz döviz tarihi sessizce bugüne dönüyordu. Artık reddedilir. Boş tarih/saat bugün/şimdi sayılır.
+- **"Kaldır"** onaysız anında varlığı takipten çıkarıyordu; onay penceresi eklendi.
+- Emtia notu (USD/ons) güncel değildi (gram TL); "Ana Portfoy" etiketi Türkçe karaktersizdi; işlem penceresinde miktar/fiyat etiketi birim yazar (gram); Optimizasyon tablosu başlıkları üst üste biniyordu (kısaltıldı, "LOT" yerine "MİKTAR"); karşılaştırma rozetleri İngilizceydi (`dashboard`, `market`).
+- **Soluk yazılar:** `textMuted` koyu temada 3,0:1, açık temada 2,4:1 kontrast veriyordu (379 kullanım, çoğu 10 px). Değerler WCAG AA'ya çıkarıldı (koyu `#8a98ae`, açık `#646c79`; açık `textSecondary` `#454d5b`), `Theme.fontXs` 10 -> 11 ve 9/10 px yazılar bir adım büyütüldü. Yazı rengi olarak kullanılan vurgu renkleri (yeşil, kırmızı, mavi, turuncu; 140 Text öğesi) yeni metin belirteçlerine (`textPositive`, `textNegative`, `textAccent`, `textWarning`) taşındı. Koruma: `tests/ui_qml/test_theme_contrast.py` (her metin belirteci her yüzeyde >= 4,5:1).
+
+**Tüm Varlıklar (birleşik) analiz ve optimizasyon (roadmap 2.8).**
+- `UnifiedSeriesBuilder`: BIST + varlık defteri + TL/USD nakit havuzunun günlük TL değeri ve TWR'si. Dış akış yalnızca gerçek yatırma/çekme ve nakde bağlı olmayan eski varlık işlemleri; döviz çevirme ve havuz içi alım/satım akış değildir, kur hareketi getiridir. Karşılaştırma/risk sayfalarında `Tüm Varlıklar` kaynağı (`AnalysisSourceResolver.SOURCE_UNIFIED`, `AnalysisBundleBuilder`, `ComparisonPortfolioSeriesBuilder`, `AnalysisService.position_snapshot`).
+- `UnifiedOptimizationService`: BIST + varlıkların TL fiyat matrisi (gün gün USDTRY, gram altın), BIST günlerine hizalı, kısa geçmiş sütun çıkarımı; Optimizasyon kaynağı `Tüm Varlıklar (Canlı)`. Yeniden dengelemede BIST dışı varlıklar kesirli miktar alır (`calculate_rebalance_plan(fractional=)`).
+- Testler: `test_unified_series_builder.py`, `test_unified_optimization_service.py`, `test_theme_contrast.py` ve ilgili denetleyici/hat testleri. Fonksiyon ihlali 72 (tavan 72), sınıf 0. Bilinen kısıt: DuckDB sağlayıcısı en az 2 BIST hissesi ister; tek BIST hissesinde yfinance yedeğine düşer. Roadmap 2.8'de kalanlar: Portföyüm haftalık/aylık kartları BIST'tir, optimizasyonda nakit/USD kısıtı yoktur.
+
+---
+## [2026-11-03] güncelleme | Evrim Planı E5.4-E5.5: Birleşik Özette USD Nakit ve Arayüz
+
+- `UnifiedSummary`: `usd_cash`, `usd_cash_try`, `cash_weight_pct`; toplam değer ve nakit dilimi USD nakdi güncel kurla içerir, kur yoksa özet kısmi olur. Portföyüm nakit kartı USD nakdi de yazar.
+- `CashPoolController` (`cashPoolController`) ve `FxConvertModal`: Döviz Al/Sat (kur önerisi, ücret, son işlemler silinebilir). `AssetTradeModal`: kullanılabilir nakit ve tahmini ücret; `AssetsController.estimateFee`, `suggest()` içinde `cash`. Bağlantılar: döviz ve varlık işlemleri Portföyüm ile Ana Sayfa nakdini yeniler, BIST işlemi ve sermaye nakit havuzunu yeniler.
+- E5 tamam: ücretler, ortak nakit havuzu, döviz, gram altın, USD/TL gösterim. Fonksiyon ihlali 72 (CI tavanı 72). Test: 1856 geçti, 4 xfailed. Elle pencere doğrulaması PF-010.
+
+---
+## [2026-11-03] güncelleme | Evrim Planı E5.3: Gram Altın (TL Fiyat, TL Nakit)
+
+- `Asset.trade_currency` / `settlement_currency`: işlemin ödendiği nakit birimi (boşsa fiyat birimi). Katalogdaki altın, gümüş, platin, paladyum gram birimli ve TL ile işlem görür; fiyat USD/ons kalır, değerleme `ons / 31,1035 x USDTRY` ile TL/gram'a çevirir. Alım TL nakitten düşer, arayüz TL/gram fiyat önerir. Göç 6 (`assets.trade_currency`); eski ons kayıtları aynen kalır.
+- `AssetHoldingsReader` işlem para birimi != fiyat para biriminde birim fiyatı çevirir; `AssetLedgerService` kur gereksinimini işlem para birimine göre arar. Test: 1844 geçti, 1 gün-sınırı atlaması, 4 xfailed.
+
+---
+## [2026-11-02] güncelleme | Evrim Planı E5.2: Ortak Nakit Havuzu (TL + USD) ve Döviz Al/Sat
+
+- Yeni: `FxConversion` (TL <-> USD, iç transfer), `FxConversionService`, `CashPoolService` (TL/USD bakiye, `usd_timeline_valid`), `PooledCashMovementRepository` (BIST TL nakit görünümü = gerçek hareketler + döviz TL bacağı + TL ile ödenen varlık işlemleri), `fx_conversions` tablosu, göç 5 (`asset_trades.cash_linked`, mevcutlar 0).
+- Varlık alımı ödeme para biriminin havuz bakiyesini aşamaz; USD yetmezse "Önce Döviz Al" hatası. Satış net geliri ekler. Eski varlık işlemleri nakde dokunmaz. Sıfırlama döviz çevirmelerini de siler, yedeğe `fx_conversions` girer.
+- BIST alım gücü ve TWR havuzla tutarlı: TL ile ödenen varlık alımı BIST nakdinden düşer (TWR dış akışı olarak ayrılır, getiri etkilenmez).
+- Arayüz henüz yok (E5.5): Portföyüm'den varlık alımı için önce nakit ve USD gerekir. Test: 1842 geçti, 4 xfailed.
+
+---
+## [2026-11-02] güncelleme | Evrim Planı E5.1: İşlem Ücreti (Komisyon + BSMV)
+
+- Kararlar: komisyon ve BSMV kullanıcı ayarı (varsayılan 0), geçmiş işlemler 0 ücretle kalır, tüm alım-satım ortak nakit havuzundan, USD varlık için önce TL ile USD alınır, altın gram/TL/TL nakit, eski varlık işlemleri nakde dokunmaz. E5 planı buna göre E5.1-E5.5 olarak yeniden yazıldı.
+- Domain: `Trade.fee` / `AssetTrade.fee`, `cash_amount` (alımda tutar + ücret, satışta tutar - ücret); `Position`/`AssetPosition` maliyete ücret ekler, satış gelirini ücretten düşer; `FeeRates` + `calculate_fee`; `preview_order` ücretli (`OrderSpec`).
+- Altyapı: göç 4 (`trades.fee`, `asset_trades.fee`, 0 varsayılan, otomatik yedekli), `app_settings` tablosu, `SQLAlchemyAppSettingsRepository`. Nakit hesapları (`PortfolioService`, `PortfolioTimelineValidator`, `portfolio_series_builder`), `TradeEntryService` ve `AssetLedgerService.record_trade` ücretli.
+- Arayüz: Ayarlar > Ücretler sekmesi (`FeeSettingsController`, `SettingsFeesTab.qml`), Hisse Detay emir ön izlemesinde "Tahmini Ücret".
+- Testler: elle hesaplanmış ücret senaryoları, eski şemadan göç testi, ayar ve denetleyici testleri. Fonksiyon ihlali 71 -> 72 (CI tavanı 72). Test: 1830 geçti, 4 xfailed. Model portföyler ücret taşımaz.
+
+---
+## [2026-11-02] güncelleme | Evrim Planı E4: Pozisyon Rakamları İçin Tek Okuma Kaynağı
+
+- Yeni `PositionQueryService` (`ana portföy`, `model portföy`, `quote`) ve domain `PositionSnapshot`/`PortfolioPositions`; container `position_query_service` olarak bağlar. Ana portföy `BistHoldingsReader` ile Portföyüm'le aynı yoldan değerlenir.
+- Hisse Detay (`stock_detail_loader`) pozisyon, fiyat ve ağırlığı servisten alır; model portföy satırları (`model_portfolio_valuation`) yalnızca biçimler. Emir ön izlemesi domain `preview_order`'a taşındı. `watchlist_pricing` uygulama katmanına taşındı.
+- Düzeltme: Hisse Detay model portföy ağırlığı yalnızca nakde bölünüyordu; toplam değere bölünüyor.
+- Testler: `test_position_query_service.py` (Portföyüm = Hisse Detay = Excel karakterizasyonu), `test_trade_impact.py`, `test_controller_money_math_ratchet.py` (tavan 34). Fonksiyon ihlali 72 -> 71, CI tavanı 71. Test: 1806 geçti, 4 xfailed.
+
+---
+## [2026-11-02] güncelleme | Evrim Planı E3: Büyük Denetleyicilerin Ayrıştırılması
+
+- `ModelPortfolioController` 461 -> 321 satır (36 -> 29 metot): `model_portfolio_valuation.py` (fiyat haritası, önceki kapanış, özet, pozisyon satırları) ve `model_portfolio_export.py` (tarih aralığı doğrulama, Excel yazma) Qt'siz modüllere alındı.
+- `PlanningController` 445 -> 373: `planning_dca_chart.py` (DCA grafiği HTML'i, mevcut `lw_chart_html` betik etiketini yeniden kullanır) ve `planning_months.py` (bütçe ayı listesi).
+- `Stock360Controller` 455 -> 300: durum ilkleme ve uygulama metotları `stock_360_state.Stock360StateMixin`'e; `StockDetailController` 504 -> 174: veri yükleme `stock_detail_loader.StockDetailLoaderMixin`'e, emir ve Excel işleri `stock_detail_actions.StockDetailActionsMixin`'e taşındı. QML adları ve sinyaller değişmedi.
+- Sınıf ihlali 4 -> 0, fonksiyon 73 -> 72; CI tavanı 0 / 72. Yeni test: `tests/ui_qml/test_controller_helpers.py` (10 test). Test: tam paket yeşil.
+- Not: `@Property` getter'ları ölçümde zaten sayım dışı; lambda'ya çevirmek metriği değiştirmez (geri alındı). Bkz. [architecture_evolution_plan.md](architecture_evolution_plan.md).
+
+---
+## [2026-11-02] güncelleme | Evrim Planı E2: Tek Biçimleyici ve Python Metin Kataloğu
+
+- `src/ui_qml/presenters/formatting.py`: `tr_number`, `tr_money`, `tr_pct`, `tr_number_or_dash`; denetleyicilerdeki dokuz biçimleyici kopyası kaldırıldı. `portfolio_presenter` `presenters/` altına taşındı.
+- `src/ui_qml/messages.py`: `MESSAGES` + `msg(anahtar, **parametre)`; 38 denetleyicideki kullanıcı metni (bildirim, durum, hata, Excel sütun adları, AI danışman raporları) kataloğa taşındı. Yerel `msg` değişkenleri `text`/`message` olarak yeniden adlandırıldı.
+- Korumalar: `test_controller_text_ratchet.py` (denetleyicide Türkçe literal tavanı 538 -> 0; veri/istem/HTML şablonu satırları `# metin-muaf: neden` ile işaretli, 67 satır), `test_message_catalog.py` (tanımsız/kullanılmayan anahtar yok, parametre-yer tutucu eşleşir, anahtar sabit), `test_formatting.py`.
+- Sapma: plandaki "QML'de `Strings.message` ile çöz" yerine anahtar Python'da çözülür (QML tüketicileri ve testleri değişmez). Ayrıntı: [architecture_evolution_plan.md](architecture_evolution_plan.md).
+- Kalite tavanları değişmedi (sınıf 4, fonksiyon 73). Test: 1782 geçti, 4 xfailed.
+
+---
+## [2026-11-01] güncelleme | Evrim Planı E1: Bileşim Kökü ve Sayısal Güvence Testleri
+
+- `src/ui_qml/app.py`: `create_controllers` (tek denetleyici listesi), `wire_controllers` (sinyal bağlantıları), `build_ui` (kayıt) ayrıldı; davranış aynı. Duman testi ve görsel anlık görüntü betiği aynı listeyi kullanır. `app.py` kapsamı %0 -> %79.
+- Yeni testler: `test_app_composition.py` (kayıt, sinyal bağlantıları, zamanlayıcı yok), `test_twr_scenarios.py` (elle hesaplanmış 6 TWR senaryosu), `test_portfolio_repository.py` (`sa_portfolio_repository` %54 -> %100).
+- Bulgu: nakit takibi olmayan portföylerde gün içi alım o günün getirisini sulandırır (gün başı akış yaklaşımı); [service_analysis.md](service_analysis.md) içinde belgelendi, değiştirilmedi.
+- Fonksiyon ihlali 75 -> 73; CI tavanı düşürüldü. Test: 1764 geçti, 4 xfailed. Bkz. [architecture_evolution_plan.md](architecture_evolution_plan.md).
+
+---
+## [2026-11-01] düzeltme | QA Denetimi: Hesap, Güvenlik ve Katman Sızıntısı Düzeltmeleri
+
+- **Para girişi:** QML `parseFloat` Türkçe tutarları yanlış okuyordu (`50.000` -> 50; model portföy sermayesi, yeni portföy nakdi, bütçe/hedef, işlem fiyatı). Yeni `Numbers` QML tekili Python `parse_decimal_text` kurallarıyla okur; kullanıcı girdisinde `parseFloat` testle yasak.
+- **Sıfırlama/yedek:** sistem sıfırlama varlık defterini de siler; JSON yedeği `assets` ve `asset_trades` içerir.
+- **Hesaplar:** eski fiyat/kur tespiti (`stale_symbols`, Portföyüm uyarısı); tek risksiz faiz (`DEFAULT_ANNUAL_RISK_FREE_RATE` %40, önce %30 ve %40 karışıktı); TWR ilk gün getirisi; oynaklıkta tatil günleri sıfır getiri sayılmaz; `DashboardController` değerleme kodu ve demo/sahte işlem yolu kaldırıldı (rakamların tek kaynağı `UnifiedPortfolioService`); emir ön izlemesi `Position.preview_trade` (Decimal); piyasa kapalı günde "Son İşlem Günü" etiketi.
+- **Güvenlik:** haber metninde kaçışlı HTML etiketi gerçek etikete dönüşmüyor (temizleme sırası), dış kaynaklı metin `PlainText`; dış bağlantılar yalnızca http/https (`url_opener`, KAP aday kaynağı dahil); grafik HTML'inde adlar `js_literal` ile kaçışlı (kesme işaretli portföy adı grafiği bozuyordu); mali tablo WebEngine görünümü uzak adrese erişemez.
+- **Katman sızıntıları:** `DatabaseMaintenanceService` -> `IDatabaseMaintenance` (`SqliteDuckDbMaintenance`); `MarketDataSyncService` -> `IMarketHistoryStore` + `IMarketBarDownloader`; `BistBulkDownloader` altyapıya taşındı; `GlobalEventBus` Qt'den bağımsız; denetleyiciler servis kurmaz. Yeni koruma: `tests/test_layer_guards.py`.
+- **Kalite:** sınıf ihlali 5 -> 4 (CI tavanı düşürüldü), fonksiyon 75 (tavanda). Test: 1743 geçti, 4 xfailed.
+- **Kalan (plan):** [architecture_evolution_plan.md](architecture_evolution_plan.md) (presenter katmanı, tek metin kataloğu, büyük denetleyiciler, okuma servisleri, komisyon/BSMV, `app.py` testi).
+
+---
+## [2026-11-01] yeni-sayfa | Portföyüm, Varlık Defteri ve Haber Akışı Wiki'ye İşlendi
+
+- Üç büyük özellik tamamlandı ve geçici tasarım klasörü wiki'ye taşınıp silindi: **Portföyüm** sayfası (Genel Bakış artık yalnızca grafik + haber), **BIST dışı varlık defteri** (altın, gümüş, platin, paladyum, kripto, ABD hissesi; ayrı defter, TRY/USD, sınıf bazlı dağılım, birleşik değerleme) ve **haber akışı** (KAP, Yahoo Finance, Google News, RSS; Ayarlar'dan kaynak yönetimi).
+- Yeni sayfalar: [service_asset_ledger.md](service_asset_ledger.md) (ayrı defter kararı, domain, tablolar, `UnifiedPortfolioService`), [service_asset_prices_fx.md](service_asset_prices_fx.md) (sembol, sağlayıcı, takvim, yenileme, kur, Genel Bakış varlık grafiği), [service_news.md](service_news.md) (sağlayıcılar, `NewsService`, önbellek, ayarlar, spike bulguları ve bilinen sınırlar).
+- Güncellenen sayfalar: [qml_pages_guide.md](qml_pages_guide.md) (11 sayfa), [ui_architecture_and_events.md](ui_architecture_and_events.md), [database_schema_and_orm.md](database_schema_and_orm.md) (29 tablo), [data_architecture.md](data_architecture.md), [service_market_data_providers.md](service_market_data_providers.md), [project_structure.md](project_structure.md), [settings_and_system.md](settings_and_system.md), [architecture.md](architecture.md), [roadmap.md](roadmap.md) (§2.8 v2 maddeleri), [testing_strategy.md](testing_strategy.md), [code_quality_guardrails.md](code_quality_guardrails.md), [manual_testing_guide.md](manual_testing_guide.md), [glossary.md](glossary.md), [index.md](index.md); kökte `CLAUDE.md` ve `README.md`.
+- **Kararlar:** ayrı defter (BIST `trades` hattı genişletilmedi); eksik fiyat/kur sessizce atlanmaz; Portföyüm tüm rakamları birleşik servisten okur (günlük kazanç tam formül); haber sağlayıcıları sessiz boş dönmez; Google News varsayılan açık, toplu KAP bildirimleri varsayılan gizli; `yfinance` haber API'si kullanılmaz (404).
+- **Düzeltilen hata:** `kap_shareholder_provider._parse_bist_companies` virgüllü borsa kodlarını (`GARAN, TGB`, 45 şirket) atlıyordu; GARAN dahil KAP kimliği çözülemiyor, Hisse 360 ortaklık yapısı ve haber etkileniyordu. Önbellek `bist_companies_v2.json`.
+- **Kalite kapısı:** yeni kod fonksiyon ihlal tavanını (75) 92'ye çıkarmıştı; davranış değiştirmeden 75'e indirildi (seçenek sözlüğü imzaları, küçük yardımcılar). Ölçüm test ve betikleri de sayar.
+- **Bilinen açıklar (roadmap'te "Açık"):** sistem sıfırlama ve JSON yedeği varlık defterini kapsamaz; birleşik TWR/risk/optimizasyon/Excel/AI araçları yalnızca BIST; varlık grafiğinde gerçek OHLC/hacim yok; kalıcı haber kaynağı hata kaydı yok.
+- Test: tam paket 1694 geçti, 4 xfailed. Gerçek pencerede elle doğrulama [manual_testing_guide.md](manual_testing_guide.md) PF-*, NEWS-*, SET-008 maddeleriyle yapılmalıdır (yalnızca offscreen görüntü ve canlı yoklama denendi).
+
+---
+## [2026-11-01] temizlik | Dönüşüm Devir Belgeleri Kaldırıldı
+
+- `QML_TRANSFORMATION_HANDOFF.md` ve `TRANSFORMATION_PLAN.md` silindi: QML dönüşümü tamamlandı, güncel bilgi wiki sayfalarında; uygulanmayan maddeler zaten [roadmap.md](roadmap.md) içinde. Belgeler git geçmişinden geri alınabilir.
+- README, `docs/wiki/index.md`, `roadmap.md`, `project_structure.md` ve kod yorumlarındaki bu belgelere bağlantılar kaldırıldı.
+
+---
+## [2026-10-05] temizlik | Kullanılmayan get_closing_prices Kaldırıldı
+
+- `IMarketDataClient.get_closing_prices`, `YFinanceMarketDataClient` ve `YFinancePriceClient` uygulamaları ile yardımcıları (`_extract_multiindex_close`, `_extract_single_close`) kaldırıldı; tek çağıranı `PriceUpdateService` önceki temizlikte silinmişti. Tekli kapanış (`get_closing_price`) ve seri (`get_price_series`) yerinde; fiyat tamamlama bunları kullanır.
+
+---
+## [2026-10-05] düzeltme | Açılış İşleri İlk Senkrondan Sonra, Geçersiz Bar Tanı Logu
+
+- **Sorun:** Açılışta BIST senkronu (5. sn, ~18 sn) bitmeden portföy kapanış tamamlaması (8. sn) başlıyordu; senkronun SQLite köprüsünün birazdan yazacağı ~35 portföy hissesini tek tek yeniden indiriyor ve aynı `daily_prices` satırlarını eşzamanlı yazıyordu (tamamlama sermaye artırımı düzeltmesi uygular, köprü ham kapanış yazar).
+- **Düzeltme:** `MarketSyncController.syncFinished` her senkron turunun sonunda (başarılı/başarısız; başlangıç kontrolü hata verirse de) yayınlanır. `StartupJobsController.start_after(signal)` açılış işlerini ilk turdan sonra bir kez başlatır (sinyal gelmezse 120 sn yedek süre); `app.py` bunu kullanır (`autostart=False`).
+- **Tanı logu:** `MarketDataSyncService._find_invalid_bar_start` geçersiz kapanışlı bar bulunca sayıyı ve ilk 10 hisse/günü uyarı olarak loglar ("Geçersiz kapanışlı N bar bulundu (ilk 10: ...)"). Her açılışta yeniden indirme tekrar ederse kaynak bu satırdan bulunur.
+- **Test:** `test_startup_sequencing.py` (senkrondan önce başlamaz, bir kez çalışır; `syncFinished` başarı ve hatada), tanı logu testi.
+
+---
+## [2026-10-05] temizlik | PortfolioUpdateCoordinator ve PriceUpdateService Kaldırıldı
+
+- Dashboard "Fiyatları Güncelle" düğmesi kalkınca `PortfolioUpdateCoordinator` arayüzden çağrılmıyordu; tek bağımlılığı olan `PriceUpdateService` de öksüz kaldı. İkisi, testleri, container kaydı ve `build_services`'in artık kullanılmayan `event_bus` parametresi kaldırıldı. Kapanış tamamlama `PriceDataHealthService` (açılış işi) ve `MarketDataSyncService` (BIST) üzerinden yapılır.
+- `IMarketDataClient.get_closing_prices` artık çağrılmıyor; port ve altyapı uygulaması yerinde bırakıldı (ayrı karar).
+
+---
+## [2026-10-05] iyileştirme | Toplu Canlı Fiyat ve Model Portföy Pozisyon Hesabı
+
+- **Ölçüm (gerçek verinin kopyası, ağ yok, ana iş parçacığı):** Ana Sayfa yeniden yükleme ~11 ms, İzleme Listesi ~6 ms, Model Portföy 34-84 ms (13 pozisyonlu portföy en yavaşı). Hepsi 100 ms altında: arka plana taşıma yapılmadı (ölçmeden taşıma yok kuralı).
+- **Model Portföy:** `_update_positions` her pozisyon için `get_portfolio_summary()` yeniden hesaplıyordu (O(N²)); toplam değer döngüden önce bir kez hesaplanır. Çıktı eski kodla birebir karşılaştırıldı (3 portföy, JSON aynı).
+- **Toplu canlı fiyat:** Canlı yenileme hisse başına `fast_info` + `info` (iki HTTP isteği) yerine önce tek `yf.download(period="1d", interval="1m", group_by="ticker")` isteği kullanır (`YFinancePriceLookupProvider.lookup_intraday_bulk`, 50'lik parçalar, `yfinance_lock` altında; `PriceLookupService.lookup_prices_bulk`). Gelmeyen hisseler eski tekli yoldan, zaman bütçesi içinde denenir. Gerçek denemede 8 hisse ~2 sn. `as_of` son dakika barının zamanıdır (eskiden sorgu anı); bu, `live_price_rule` penceresiyle tutarlıdır. Fiyat float32 kalıntısına karşı 4 haneye yuvarlanır.
+- **Bilinen sınır:** Dakika barı kapanış seansını içermez (ör. 02.10 THYAO 17:59 barı 292,25, resmi kapanış 292,0). 18:00-18:30 arasında son sürekli işlem fiyatı görünür; 18:30'dan sonra kural kesin günlük kapanışı esas alır.
+- **Test:** `tests/application/test_bulk_live_prices.py` (sahte DataFrame ayrıştırma, UTC zaman, float32 yuvarlama, servis eşlemesi, tekli yola düşme).
+
+---
+## [2026-10-05] mimari | Fiyat Güncellemesinin Tek Koordinatörü ve Düğmesiz Güncelleme
+
+- **Sorun 1 - Ana Sayfa ağ zinciri:** Dashboard her `event_bus.prices_updated` olayında ve piyasa senkronu sonrası (`dataSynced`) `refreshMetrics` ile ağdan **tüm** canlı fiyatları yeniden çekiyordu; kapanıştan sonra gereksiz 30-120 sn ağ turu açıyor ve seans dışı "intraday" kaydı üretiyordu. Yenileme ham `threading.Thread` ve iş parçacığından `QTimer.singleShot` ile bitiyordu (proje kuralına aykırı), yeniden giriş koruması yoktu.
+- **Sorun 2 - Model Portföy eski fiyat:** `refreshData` seçili portföy değişmediyse fiyat haritasını yeniden okumuyordu; senkron/tamamlama sonrası Model Portföy eski fiyatta kalıyordu.
+- **Sorun 3 - İzleme Listesi güncellenmiyordu:** Piyasa senkronu ve açılış tamamlaması sonrası İzleme Listesi yenilenmiyordu; `refreshPrices` ağ çağrısı yapmadan sahte 600 ms "güncellendi" gösteriyordu.
+- **Düzeltme:** Yeni `PriceRefreshController` (`priceRefreshController`): fiyat yazan tüm sinyalleri ve portföy değişikliklerini tek `pricesChanged` sinyalinde birleştirir (400 ms), ortak son güncelleme zamanını tutar ve tek yenile ikonunu sağlar (seans içinde `SystemController.start_refresh`, dışında `MarketSyncController.triggerSyncNow`). Ana Sayfa `reloadPrices`, İzleme Listesi `refreshPrices`, Model Portföy `reloadPrices` yalnızca DB'den yeniden okur. Dashboard'dan `refreshMetrics`/`updateClosingPrices` ve event bus aboneliği, Model Portföy'den `refreshPrices` ve ham iş parçacığı, İzleme Listesi'nden sahte zamanlayıcı kaldırıldı; `refreshData` seçim değişmese de fiyat haritasını okur.
+- **Arayüz:** Ana Sayfa "Fiyatları Yenile" ve "Fiyatları Güncelle", Model Portföy "Fiyat Güncelle", İzleme Listesi yenile düğmeleri kaldırıldı; yerine ortak `PriceStatusChip` (son güncelleme + küçük yenile ikonu, yenilenirken döner). Başarılı işlem sonrası (`StockDetail`) eski `refreshMetrics` ve var olmayan `modelPortfolioController` çağrıları düzeltildi.
+- **Son güncelleme:** tek ortak zaman (`dashboard/last_price_update_at`); model portföy başına zaman kaldırıldı.
+- **H10 incelemesi:** Açılışlarda (03.10 ve 05.10) 624 hissenin 01.10-02.10 için yeniden indirilmesi ve her seferinde 35 satır uzlaştırma, gerçek verinin kopyasında yeniden üretilemedi: geçersiz bar yok, uzlaştırma iki turda 0 satır, yinelenen ticker yok; iki DuckDB yazıcısı da geçersiz kapanışı eler. 03.10'daki tek seferlik veri göçünün kalıntısı olarak değerlendirildi; kod değişikliği yapılmadı. Sonraki açılış loglarında "geçersiz kapanışlı barlar" satırı tekrar görünürse yeniden incelenmeli.
+- **Test:** `test_price_refresh_controller.py` (5 sinyal -> 1 yenileme, portföy değişikliği zaman kaydetmez, event bus, ikon seans içi/dışı, meşgulken yok sayılır), `test_dashboard_updates.py` (DB'den yeniden okuma, Model fiyat haritası yenilenir).
+
+---
+## [2026-10-05] düzeltme | Açılış İşlerinde Çift BIST Senkronu ve "Dün" Hedefi
+
+- **Sorun 1:** `StartupJobsController._queue_bist_backfill`, `MarketSyncController` ile aynı `MarketDataSyncService.sync_daily_delta`'yı ayrı yürütücüde eşzamanlı çalıştırıyordu (kilit yok, DuckDB yazma çakışması riski, çift indirme). Ayrıca 18:30 saat kapısı sabah/gece açılışlarında işi atlatıyordu (log: "00:47 BIST backfill atlandı (saat < 18:30)").
+- **Sorun 2:** Portföy kapanış tamamlamanın hedefi her zaman dündü (`last_completed_trading_day` bugünü hiç vermiyordu); kapanıştan sonra açılışta BIST dışı pozisyonların bugünkü kapanışı bu yoldan gelmiyordu.
+- **Düzeltme:** Açılış BIST işi kaldırıldı (`settings/last_auto_bist_backfill_at` artık kullanılmıyor); BIST tamamı yalnızca `MarketSyncController`'da. Portföy tamamlama hedefi tek kaynaktan: `BistMarketSessionService.last_completed_trading_day(market_now())` (18:30'dan sonra bugün). Kurumsal aksiyon taraması günü `market_today()`.
+
+---
+## [2026-10-05] düzeltme | Kapanış Saati Tek Kaynak ve Canlı Fiyat Seçim Kuralı
+
+- **Sorun 1 - gece/hafta sonu günlük değişim %0:** Seans dışında canlı fiyat çekilince yfinance `fast_info` son kapanışı verir ve kayıt `source="intraday"`, `as_of=şimdi` ile yazılır. `CurrentPriceResolver` bunu "son kapanıştan yeni gün" sayıp önceki kapanışı aynı fiyat olarak buluyordu: Ana Sayfa ve Model Portföy günlük değişimi %0. Ayrıca gün `as_of.date()` (UTC) ile alınıyordu.
+- **Düzeltme:** Yeni saf kural `src/domain/live_price_rule.live_price_applies`: canlı kayıt yalnızca bir işlem gününün seans penceresinde (açılış ile kapanış verisinin hazır olduğu an) alınmışsa ve son bardan yeni güne aitse (aynı günse yalnızca kapanış verisi henüz hazır değilken) kullanılır. `CurrentPriceResolver.live_applies` kuralı uygular (Istanbul saati, `to_market_datetime`); İzleme Listesi de aynı kuralı kullanır (önceki "fiyat son kapanışla aynıysa bindirme" sezgisi kaldırıldı).
+- **Sorun 2 - kapanış verisi erken çekiliyordu:** Senkron 18:15'te çalışıyordu; yfinance BIST verisi ~15 dk gecikmeli, kapanış seansı 18:10'da bitiyor. 18:15 barı kapanış fiyatı değildi ve gün "güncel" sayıldığı için hiç düzeltilmiyordu. Kod tabanında üç ayrı kapanış saati vardı (18:10 / 18:15 / 18:30); nöbetçi yerel saat ve `weekday()` kullanıyordu (tatil ve saat dilimi hatası); yarım gün yok sayılıyordu.
+- **Düzeltme:** `BistMarketSessionService.session_window` ve `last_completed_trading_day` tek kaynak: kapanış + `CLOSE_DATA_DELAY` (20 dk) = tam gün 18:30, yarım gün 13:20. `MarketDataSyncService.get_last_completed_trading_day` ve `MarketSyncController` nöbetçisi bunu kullanır (nöbetçi: servisin kapanış verisi hazır günü bugünse günde bir kez).
+- **Test:** `tests/domain/test_live_price_rule.py` (pencere, yarım gün, tatil, gece/hafta sonu/seans öncesi kaydı, aynı gün kapanış hazır, resolver gece açılışı %10 değişim), nöbetçi testi, 18:20 senkron testi.
+
+---
+## [2026-10-05] düzeltme | Canlı Fiyat Yenileme Donması ve İzleme Listesi Arayüzü
+
+- **Sorun 1 - izleme listesi fiyatı donuk:** `LivePriceRefreshService` yalnızca ana/model portföy pozisyonlarını yeniliyordu; izleme listesi hisseleri hiç yenilenmiyordu. Ayrıca `WatchlistController._load_stocks` yalnızca günlük barlardan (gün sonunda yazılır) fiyat/değişim hesaplıyor, `latest_prices` önbelleğini hiç okumuyordu: seans içinde fiyat bir önceki kapanışta kalıyordu.
+- **Düzeltme:** `LivePriceRefreshService` ek hisse kaynağı alır (`extra_stock_ids_provider`; container izleme listesi hisselerini verir) ve tur başına zaman bütçesi (120 sn, `time_budget_seconds`) uygular. `StockLookupService.get_latest_prices` eklendi. Yeni `watchlist_pricing.py` canlı fiyatı günlük barların üzerine bindirir: canlı fiyat son bardan eskiyse (ör. Ağustos tarihli kalıntı kayıt) veya `source != intraday` ise yok sayılır; yeni gün canlı fiyatı son kapanışla aynıysa (hafta sonu, seans öncesi) bindirilmez, çünkü günlük değişim %0 görünürdü. `market_clock.to_market_date` eklendi.
+- **Sorun 2 - yenileme takılabiliyordu:** `SystemController.refreshNow` bir yenileme ağ çağrısında asılı kalırsa `_is_refreshing` hiç temizlenmiyor ve tek işçili yürütücü kilitleniyordu; sonraki zamanlayıcı turları sessizce atlanıyordu (donma). 300 sn'yi aşan yenileme artık takılmış sayılır, yeni yürütücüyle yeniden başlatılır; eski çalışanın geç sonucu nesil sayacıyla yok sayılır.
+- **Sorun 3 - gece de çalışıyordu:** Seans kontrolü (`_session_open`) saati vermeden `status_for` çağırdığı için işlem günü olan her günün 00:00-24:00'ı "açık" sayılıyordu (belgede "yalnızca seans açıkken" yazıyordu). Artık `market_now().time()` verilir (BIST 10:00-18:10).
+- **Arayüz (`WatchlistView.qml`):** soldaki liste satırında liste adı/açıklama metni sabit 150 px genişlikteydi ve hisse adedi rozetinin üstüne biniyordu; metin artık kalan genişliğe uyar, rozet ve düzenle/sil ikonları sabit yer kaplar (hover'da yeniden akış yok). Tabloda başlık ve satırlar tek yerde tanımlı sabit sütun genişliklerini (`min=max=preferred`) paylaşır, Gün Aralığı sütunu satırlar arasında kaymaz; yazılar büyütüldü (şirket adı/aralık değerleri `fontSm`/`fontXs` ve `textSecondary`, notlar `fontSm` ve `textPrimary`, 2 satıra kadar sarılır), satır yüksekliği 54.
+- **Test:** `test_watchlist_live_pricing.py` (13 test). `test_stock_360_overview_characterization.py` gün değiştiğinde kırılıyordu (yedek veri `date.today()` taşıyor); bugünün tarihi yer tutucuya çevrilerek günden bağımsız hale getirildi (zaman bağımlı test kuralı).
+- Doğrulanmadı: gerçek `yfinance` ağıyla izleme listesi yenilemesi ve ekran etkileşimi (yalnızca ofscreen render ve gerçek verinin kopyası ile okuma denendi).
+
+---
+## [2026-10-04] karar | Kural Dosyaları Takibi (.gitignore Çelişkisi Giderildi)
+
+- `CLAUDE.md` ve `RULES.md` hem `.gitignore`'da hem git'te izleniyordu (ignore etkisizdi) ve `ARCHITECTURE_GATES.md` ajanın bu dosyaları commit'lememesini ignore listesine dayandırıyordu; sonuç: kural değişiklikleri commit'siz kalıyordu. Karar (kullanıcı): kural dosyaları izlenir. `.gitignore`'dan iki satır kaldırıldı; `ARCHITECTURE_GATES.md` §3.4 ve `GOVERNANCE.md` §2.6 güncellendi (kural dosyaları normal commit kurallarıyla commit'lenir). `.env`, `data/`, `logs/`, `backups/` hâlâ ignore'dadır ve commit'lenmez.
+
+---
+## [2026-10-04] karar | Bulgu 2 Kabul Edilen Borç Olarak Kapatıldı, Kalite Kuralları Esnetildi
+
+- **Karar:** Dört denetleyici ayrıştırıldı (Comparison, Stock360, Optimization, AiAdvisor); sınıf ihlali sayısı 14 olarak kaldı, çünkü sınıf metot eşiği (20) QML'e açık `@Property` getter'larını da sayıyordu ve bu yüzey sınıf bölünmeden azalmaz. Ayrıştırma işi ölçüt sayısını değil, okunabilirlik ve test edilebilirliği iyileştirdiğinde değerli bulundu (CC 20-40 fonksiyonların bölünmesi, hata düzeltmeleri); yalnızca eşik için yeni modül açmaya devam edilmeyecek. Kalan denetleyiciler ayrıştırılmadı.
+- **Ölçüm kuralı değişti (`scripts/measure_code_quality.py`):** (1) `@Property` getter'ları sınıf metot sayısına ve etkin satırına dahil edilmez (`binding_method_count` ayrıca raporlanır); (2) `src/ui_qml/controllers/` sınıfları için eşik 400 etkin satır / 30 metot (diğer katmanlar 300 / 20 kalır). Fonksiyon eşikleri (50 satır, 5 parametre, CC 10) değişmedi. Yeni kuralla eşik dışı sınıf 14 -> 5 (`DashboardController`, `ModelPortfolioController`, `PlanningController`, `Stock360Controller`, `StockDetailController`); CI sınıf tavanı 5, fonksiyon tavanı 75. İki yeni test (`tests/test_code_quality_measurement.py`).
+- **Yeni kurallar** (`ARCHITECTURE_GATES.md` §1.1 ve §3.4, `testing_strategy.md` §7): refaktör ölçülebilir fayda gerektirir; taşıma öncesi karakterizasyon; yüzde/oran formülleri elle hesaplanmış beklenen değerle test edilir (DuPont ROE hatası); testler gerçek saate bağlı olamaz ve kaldırılan yama hedefleri taranır (iki saat bağımlı test); denetim iddiaları kod okunarak doğrulanır (Bulgu 4, 13, 16 düzeltmeleri, "43" yerine ~110 kullanım).
+- Denetim raporunda Bulgu 2 durumu "Kapatıldı (kabul edilen borç)" olarak güncellendi.
+
+---
+## [2026-10-04] refaktör | AiAdvisorController Ayrıştırması, 4. Adım (Denetim Bulgu 2)
+
+- **Karakterizasyon:** Refaktör öncesi kod sahte danışman/oturum servisleriyle iki altın çıktı üretti (25 + 10 senaryo): sağlık skoru (tüm eşik bantları, eksik veri, bozuk girdi, araç hatası, danışman yok; sinyal sırası dahil), yerel analiz (genel/optimizasyon, tüm araçların başarılı/başarısız/yok durumları), araç etiketleri, arka plan çalışanı (Gemini başarılı/hata/anahtar yok/servis yok), karşılama, hızlı sorular, oturum listesi (kısmi hata dahil), kalıcılaştırma ve oturum açma. Sonrasında bayt düzeyinde özdeş.
+- **Yeni `advisor_health.py`:** eşik tabloları (`_DIVERSITY_BANDS`, ...) ve `compute_health` / `default_health`; `refreshHealthScore` (110 satır, CC 22) ~15 satıra indi.
+- **Yeni `advisor_local_analysis.py`:** yerel analiz motoru (`generate_local_portfolio_analysis`, `fmt_money_tr`, `fmt_pct_tr`, `TOOL_LABELS`); `_generate_local_portfolio_analysis` (113 satır, CC 18) rapor üreticilerine bölündü, tekrarlayan araç çağrısı `_call_tool` oldu.
+- **Yeni `advisor_chat_support.py`:** `ADVISOR_SYSTEM_PROMPT`, karşılama mesajı, hızlı sorular, mesaj/oturum dönüşümleri ve `try_gemini_chat`.
+- **`AiAdvisorController`:** 835 -> 458 satır; kullanılmayan üç servis erişimcisi (`_get_portfolio_analytics_service`, `_get_risk_optimization_bridge`, `_get_stock_360_service`) silindi. QML yüzeyi değişmedi.
+- **Ölçüm:** etkin satır 613 -> 299: **300 satır eşiğinin altına indi** (sınıf ihlali yalnızca metot sayısı: 40 > 20). Eşik dışı fonksiyon 77 -> 75, CI tavanı 75.
+- **Testler:** Yeni `tests/ui_qml/test_advisor_modules.py` (21 test); mevcut testler değişmeden geçti.
+
+---
+## [2026-10-04] refaktör | OptimizationController Ayrıştırması, 3. Adım (Denetim Bulgu 2)
+
+- **Karakterizasyon:** Refaktör öncesi kod sahte servislerle 33 senaryoda çalıştırıldı: açılış ve kayıtlı risk profili durumları, ana/model portföy hesabı, tüm hata dalları (servis yok, 2'den az pozisyon, bozuk portföy kodu, arama servisi yok), `_on_calc_finished` sonrası tüm QML özellikleri, öneri tabloları, iki grafik HTML'inin SHA-256 özetleri ve slot davranışları (Monte Carlo için sabit tohum). Refaktör sonrası bayt düzeyinde özdeş.
+- **Yeni `optimization_pipeline.py`:** `compute_optimization` (pozisyonlar, Markowitz sonucu, Monte Carlo, verimli sınır, rebalance planı), `build_names_map`, `clean_ticker`, `OptimizationServices`. Girdi sorunları (eksik servis, yetersiz pozisyon) `OptimizationInputError` ile bildirilir; denetleyici bunu kullanıcı mesajına, diğer hataları günlüklenen hataya çevirir (önceki davranış korundu).
+- **Yeni `optimization_chart_html.py`:** `build_frontier_chart_html`, `build_weights_chart_html`; HTML şablonları fonksiyon gövdesinden modül sabitine alındı, Chart.js yükleyici buraya taşındı.
+- **`OptimizationController`:** 818 -> 402 satır; `_async_compute_optimization` (102 satır, CC 25) ~10 satıra indi, `_on_calc_finished` `_apply_kpis` / `_apply_tables` / `_render_charts` olarak bölündü, `__init__` durum ve risk profili gruplarına ayrıldı. Kullanılmayan `_fmt_money` silindi. QML yüzeyi değişmedi.
+- **Ölçüm:** etkin satır 628 -> 279: **300 satır eşiğinin altına indi** (sınıf ihlali artık yalnızca metot sayısı: 39 > 20). Eşik dışı fonksiyon 81 -> 77, CI tavanı 77.
+- **Testler:** Yeni `tests/ui_qml/test_optimization_pipeline.py` (10 test); mevcut testler değişmeden geçti.
+
+---
+## [2026-10-04] düzeltme | DuPont Yedek ROE Hesabı ve Saate Bağlı Test
+
+- `stock_360_calc.compute_dupont_data` yedek yolunda (TTM DuPont yokken bilanço kalemlerinden türetme) ROE `marj * devir * kaldıraç / 100` hesaplanıyordu; marj zaten yüzde olduğundan sonuç 100 kat küçüktü (marj %10, devir 1, kaldıraç 4 -> `%0.40`). `/ 100` kaldırıldı (`%40.00`); regresyon testi `test_dupont_derived_from_statements_when_ttm_missing` ROE'yi doğrular. Önceki girişteki "düzeltilmedi" notu bu girişle kapanmıştır.
+- `test_group2_corporate_price_startup.py` içindeki iki test (`..._skipped_before_market_close_time`, `..._job_error_does_not_mark_as_done`) hâlâ kaldırılmış `datetime` yamasını kullanıyordu ve yalnızca gerçek saat 19:00'dan önceyken geçiyordu; `market_now` yamasına çevrildi (saatten bağımsız).
+
+---
+## [2026-10-04] refaktör | Stock360Controller Ayrıştırması, 2. Adım (Denetim Bulgu 2)
+
+- **Karakterizasyon:** Refaktör öncesi kod üzerinde iki altın çıktı alındı: (1) `stock_360_calc` / `stock_360_fallback` fonksiyonları 173 girdi/senaryo için (boş, eksik, bozuk dönem, farklı sekmeler ve arama sorguları, 0-6 KAP snapshot'ı); (2) denetleyicinin tüm QML özellikleri 26 senaryoda (açılış varsayılanları, arka plan çekimi başarılı/finans hatası/KAP hatası/veri yok/boş dönem, dönem-sekme-tablo yuvaları, hisse uyuşmazlığı, katalog/portföy/hata durumunda hızlı seçim hisseleri). Refaktör sonrası ikisi de bayt düzeyinde özdeş.
+- **Yeni `stock_360_remote.py`:** `discover_available_stocks` / `rank_tickers` (hızlı seçim hisseleri), `fetch_remote_data` (arka plan finansal + KAP çekimi, HTML panoları, geçici dosya listesi) ve `RemoteResult`. `_remoteDataReady` sinyali artık tek `RemoteResult` nesnesi taşır (önceki 6 parametre yerine); `_apply_remote_results` finans ve ortaklık uygulamasını `_apply_financials_result` / `_apply_shareholders_result` olarak ayırır.
+- **`stock_360_calc.py`:** eşik dışı 6 fonksiyonun tamamı bölündü (`parse_valuation_ratios` CC 19, `compute_revenue_chart` 19, `compute_dupont_data` 27, `compute_financial_table_rows` 15, `compute_shareholder_timeline` 14, `parse_shareholder_data` 16): ortak yardımcılar `_series_value`, `_first_period_with_data`, `_prior_year_period`, `_statement_yoy`, `_snapshot_changes`, `_donut_entry`. `stock_360_fallback.get_fallback_shareholders` veri sabitleri ayrı üreticilere alındı.
+- **`Stock360Controller`:** `__init__` (85 satır) durum gruplarına bölündü; `setFinancialsPeriods` HTML yenileme `_refresh_financials_html`'e, rasyo atama `_apply_ratios`'a çıkarıldı. QML yüzeyi (Property/Slot/Signal adları) değişmedi.
+- **Ölçüm:** `Stock360Controller` 623 -> 567 etkin satır; metot 86 -> 95 (`__init__` ve uygulama adımları bölününce metot sayısı arttı, sınıf hâlâ eşiğin üstünde). Stock 360 modüllerinde eşik dışı fonksiyon 10 -> 0 (kalan ikisi test fonksiyonu); toplam 91 -> 81, CI tavanı 81.
+- **Testler:** Yeni `tests/ui_qml/test_stock_360_remote.py` (8 test); mevcut tüm testler değişmeden geçti.
+- **Bulunan (düzeltilmedi):** `compute_dupont_data` yedek yolunda (TTM DuPont yokken bilanço kalemlerinden türetme) ROE `nm * devir * kaldıraç / 100` ile hesaplanıyor; marj zaten yüzde olduğundan sonuç 100 kat küçük çıkıyor (ör. marj %10, devir 1, kaldıraç 4 -> `%0.40`, beklenen `%40`). Refaktör davranışı korudu; düzeltme ayrı iş olarak bırakıldı.
+
+---
+## [2026-10-04] refaktör | ComparisonController Ayrıştırması, 1. Adım (Denetim Bulgu 2)
+
+- **Karakterizasyon:** Refaktör öncesi `ComparisonController` HTML üreticileri (çizgi/drawdown/aylık/saçılım/treemap), istem metni, başlangıç tarihi ve tarih ayrıştırma sabit girdilerle çalıştırılıp SHA-256 özetleri alındı; sonrasında aynı girdiler yeni modüllerle özdeş çıktı verdi (11/11).
+- **Yeni `comparison_chart_html.py`:** saf grafik HTML üreticileri (`build_line_chart_html`, `build_drawdown_html`, `build_periodic_html`, `build_scatter_html`, `build_treemap_html`, `treemap_items_from_metrics`), `PALETTE` ve gömülü JS yükleyici. Büyük HTML şablonları fonksiyon gövdesinden modül sabitine alındı.
+- **Yeni `comparison_support.py`:** `parse_date`, `resolve_start_date`, `resolve_range`, `find_column`, `split_selection`, `build_filter_state`, `build_risk_return_metrics`, `build_commentary_prompt`, `fetch_portfolio_holdings`. Denetleyici durumuna bağımlı değil.
+- **`ComparisonController`:** 1109 -> 477 satır; `_render_current_chart` sekme dağıtımına indirildi (`_build_returns_html` ayrıldı), `loadAssetOptions` seçenek toplamayı `_collect_asset_options`'a verdi. QML yüzeyi (Property, Slot, Signal) değişmedi.
+- **Testler:** Yeni `tests/ui_qml/test_comparison_support.py` (11 test). Mevcut denetleyici testleri değişmeden geçti (`_resolve_range`, `_get_portfolio_holdings` ince bağlayıcı olarak denetleyicide kaldı).
+- **Ölçüm:** `ComparisonController` 884 -> 339 etkin satır, 50 -> 43 metot; hâlâ 300 satır / 20 metot eşiğinin üstünde (kalan metotların çoğu QML'e açık `@Property` getter'ı ve `@Slot`; bunlar sınıf bölünmeden, yani QML API'si değişmeden azaltılamaz). Eşik dışı fonksiyon 98 -> 91; CI tavanı 91.
+
+---
+## [2026-10-04] temizlik | Parametre Nesnesi ve Bakım Artıkları (Denetim Bulgu 15-16)
+
+- **Bulgu 15:** `BacktestSetup` (`strategy_backtest.py`) parametre nesnesi: `simulate_rebalancing` / `simulate_stop_take` 7 -> 4 parametre, `StrategyBacktestService.run_rebalancing` / `run_stop_take` 7 -> 3, `_build_result` 7 -> 4 (`_RunLog`). Denetleyici ve testler uyarlandı (78 test). QML `@Slot` imzaları, `MarketDataSyncService.__init__` ve import sayısı yüksek kompozisyon modülleri bilinçli bırakıldı.
+- **Bulgu 16:** Silindi: `scripts/import_bist_ohlcv_to_db.py`, `backfill_missing_friday_prices.py`, `fix_technical_analysis.py` (eskimiş tek seferlik betikler). `auto_commit.py` Gemini anahtarını artık sır deposundan, ortamdan, en son `.env`'den okuyor (Bulgu 10 sonrası `.env`'de anahtar kalmadığı için bozulmuştu). `.gitignore`'daki `CLAUDE.md`/`RULES.md` satırlarına dokunulmadı (bkz. denetim raporu).
+- Eşik dışı fonksiyon sayısı 103 -> 98; CI tavanı 98'e çekildi.
+
+---
+## [2026-10-04] refaktör | Dev QML Görünümlerinin Bölünmesi (Denetim Bulgu 14)
+
+- **Güvence:** Yeni `tests/ui_qml/test_qml_views_runtime_smoke.py`: beş büyük görünüm uygulamadaki tüm bağlam özellikleriyle oluşturulur, her sekme/mod etkinleştirilir ve QML motorunun **hiç uyarı** üretmediği doğrulanır (kopan `root.*` / kimlik başvurularını yakalar). Test başlangıçta `ModelAnalysisPanel.qml` içinde 3 `Unable to assign undefined to QString` uyarısı buldu (analiz verisi yokken); boş metin yedeğiyle giderildi.
+- **Adım 1 - `SettingsView.qml`** (1117 -> 231 satır): sekme 0-3 yeni bileşenlere çıkarıldı (`SettingsAppearanceTab`, `SettingsApiKeysTab`, `SettingsDataHealthTab`, `SettingsExportTab`); sekme 4-7 zaten ayrı bileşendi. Bileşenler eskisi gibi doğrudan örneklenir (yük/bellek davranışı ve sekmeler arası durum korunur, `Loader` kullanılmadı). `test_strings_catalog.py` izin listesi taşınan `Başarılı` literali için güncellendi.
+- **Adım 2 - `OptimizationView.qml`** (1128 -> 101 satır): sol parametre paneli `OptimizationParamsPanel` (`stacked` özelliği, `riskQuestionnaireRequested` sinyali; diyalog görünümde kalır), KPI şeridi `OptimizationKpiStrip` (`stacked`, `hostWidth`), sekme çubuğu + içerik kartı `OptimizationResultsPanel`.
+- **Adım 3 - `Stock360View.qml`** (1113 -> 122 satır): üç `Component` gövdesi `Stock360OverviewSection`, `Stock360FinancialsSection`, `Stock360ShareholdersSection` (`hostWidth` = Loader genişliği), satır içi bölümler `Stock360TopBar`, `Stock360ModeTabs`, `Stock360HeroCard` (`root.ctrl` her bileşende yeniden tanımlı). Duman testi artık Hisse 360 görünüm modlarını (0/1/2) `setViewMode` ile sürer; üç bölümün de örneklendiği doğrulandı.
+- **Adım 5 - `AiAdvisorView.qml`** (1080 -> 122 satır): `AiAdvisorHeader` (`historyRequested`), `AiChatTerminal` (`scrollToEnd()`; yeni mesajda sayfa bu işlevi çağırır), `AiHealthPanel` (`stacked`).
+- **Görsel doğrulama:** bölmeden önceki commit (`b3169fb`, geçici git worktree) ve güncel kod ofscreen yazılımsal render ile 17 durumda karşılaştırıldı: 0 farklı piksel (Hisse 360 ilk denemede 2 388-111 801 piksel fark gösterdi; aynı kodu iki kez çalıştırmak aynı farkı üretti, yani asenkron yükleme gürültüsüydü; aynı koşuda eski/yeni özdeş çıktı). Araç depoya `scripts/qml_visual_snapshot.py` (`render` / `compare`) olarak eklendi.
+- **Kalite kapısı:** araçtaki `compare` ve `schema_migrations.run_migrations` (CC 12) parçalandı; eşik dışı fonksiyon 103'e indi, CI tavanı 103'e çekildi.
+- **Sonuç:** beş görünümün hiçbiri 900 satırı aşmıyor (en büyük QML dosyası `Strings.qml` 879, sonra `PlanningBudgetTab` 840); `test_qml_file_size_guard.py` 900 satır tavanını korur. `qml_pages_guide.md`'ye bileşen tablosu eklendi.
+- **Adım 4 - `StockDetailModal.qml`** (1107 -> 178 satır): `StockDetailHeader` (sinyaller: grafik, Hisse 360, sermaye artırımı, temettü), `StockDetailKpiCards` (`boxWidth`), `StockDetailTabsPanel` (`activeTab` durumu burada), `StockDetailOrderForm` (yön/lot/fiyat/zaman durumu, `resetTradeMoment()` ve `syncPrice()` burada; modal görünür olunca ve hisse değişince çağırır). Diyaloglar ve toast modalda kaldı. Duman testi alt sekme durumunu çocuk bileşen üzerinden sürer.
+
+---
+## [2026-10-04] düzeltme | yfinance Kapısı Zaman Aşımı (Denetim Bulgu 13)
+
+- Denetim bulgusu kodla doğrulandı ve **kısmen düzeltildi**: toplu BIST indirmeleri (`bist_bulk_downloader.py`, `market_data_sync_service.py`) `yfinance_lock` kullanmıyor ve zaten eşzamanlı çalışıyor; yani "toplu senkron kullanıcının fiyat sorgusunu bekletir" iddiası yanlıştı. yfinance 1.7.0 `multi.py` paylaşılan küresel durum (`shared._DFS`) kullanmıyor. Gerçek risk: kilit alma süresiz olduğundan takılan tek bir etkileşimli çağrı diğer tüm etkileşimli yfinance çağrılarını bekletebilir.
+- `yfinance_lock` artık zaman aşımlı `YFinanceGate`: 30 sn içinde alınamazsa uyarı yazılır ve çağrı kilitsiz sürdürülür (fail-open); 2 sn üzeri beklemeler bilgi olarak loglanır; zaman aşımına düşen giriş başkasının kilidini serbest bırakmaz (iş parçacığı başına yığın). Mevcut `with yfinance_lock:` kullanımları değişmedi.
+- Testler: `test_yfinance_gate.py` (serileştirme, takılan tutucuya karşı fail-open, istisnada serbest bırakma, iç içe kullanım).
+- Kasıtlı olarak yapılmadı: kilidi tamamen kaldırmak (yfinance'in tüm yolları için kanıt yok) veya iki kilide bölmek.
+
+---
+## [2026-10-04] düzeltme | Test Hijyeni (Denetim Bulgu 12)
+
+- Silindi: `tests/infrastructure/market_data/test_benchmark_fetch_manual.py` (kaldırılmış `_investing_client` alanına başvuruyordu, çalışamazdı); `conftest.py` marker dalı ve `test_repo_guards.py` izin listesi temizlendi.
+- Kök `conftest.py`: `wait_until` fixture'ı (koşul + zaman aşımı + Qt olay döngüsü) ve `QT_QUICK_CONTROLS_STYLE=Basic`. Stil ayarı daha önce yalnızca `tests/ui_qml/conftest.py`'deydi; bu yüzden `test_chat_session_service.py::test_chat_history_dialog...` tek başına koşunca kırılıyordu (roadmap'teki "sıra bağımlı QML testi" kalemi kapandı).
+- `test_market_sync_controller.py`: 0,05 sn uyku yerine `threading.Event` kapısı (`isSyncing` durumu deterministik), 1 sn'lik sınırlı döngü yerine `wait_until`. `test_comparison_screener_phase7.py`: aynı şekilde `wait_until` (10 sn).
+- Bilinçli bırakılan: `test_stock_360_phase5.py` ve `test_stock_detail_and_excel.py` zaten 4 sn / 15 sn zaman aşımlı koşul beklemesi kullanıyor (sabit uyku değil); `test_bigint_id_concurrency.py` içindeki 0,3 sn bekleme yarışı kurmak için gerekli ve yorumlu.
+
+---
+## [2026-10-04] güncelleme | CI Genişletildi (Denetim Bulgu 11)
+
+- `.github/workflows/tests.yml`: Python matrisi 3.10 ve 3.11 (zorunlu) + 3.12 (deneysel, `continue-on-error`); `QT_QPA_PLATFORM=offscreen`; pip önbelleği; `pytest-cov` ile kapsam (`--cov=src --cov=config --cov-fail-under=80`, yerel taban %84, `coverage.xml` artifact); eşzamanlı çalışma iptali.
+- Yeni **quality** işi: `measure_code_quality.py` tavan kapısı (14 sınıf, 104 fonksiyon, 0 dosya). Betiğe `--max-class-violations`, `--max-function-violations`, `--max-file-violations` bayrakları ve `ceiling_failures` eklendi (`tests/test_code_quality_measurement.py` içinde 3 test).
+- Yeni **security** işi: `pip-audit` kurulu ortamı tarar (push, PR ve haftalık zamanlama). Yerelde: doğrudan bağımlılıklarda açık yok; yerel `venv` içindeki `setuptools 65.5.0` için 4 açık raporlanıyor (çalışma zamanı bağımlılığı değil, derleme aracı; `pip install -U setuptools` önerilir).
+- `requirements.txt`'e `pytest-cov==7.1.0`. **Doğrulanmadı:** iş akışı GitHub üzerinde koşmadı (YAML yerelde ayrıştırıldı; testler yerelde `QT_QPA_PLATFORM=offscreen` ile 1257 geçti, Python 3.12 denenmedi). Lint (ruff) bilinçli eklenmedi.
+
+---
+## [2026-10-04] güncelleme | API Anahtarları İşletim Sistemi Sır Deposunda (Denetim Bulgu 10)
+
+- Yeni `config/secret_store.py` (`SecretStore`, `KeyringSecretStore`): Gemini ve EVDS anahtarları Windows Kimlik Bilgisi Yöneticisi'nde (`keyring==25.7.0`, hizmet `PortfoySimulasyonu`) saklanır. `persist_api_keys` depoya yazar ve `.env`'deki düz metin kalıntıyı siler; depo yoksa/hata verirse `.env` yedeğine düşer. Boş değer depodan, `.env`'den ve ortamdan siler. Yükleme sırasında depo `.env`'den önceliklidir. Değer hiçbir zaman log'a yazılmaz.
+- Testler gerçek depoya asla dokunmaz: `conftest.py` autouse `secret_store` fixture'ı bellek içi depo kullanır. `test_secret_store.py` (öncelik, kalıntı temizliği, yedek, silme, güvenli hata, log sızıntısı, gerçek depoda elle koşulan `manual` testi); `test_group1_fixes.py` ve `test_settings_phase11.py` yeni davranışa uyarlandı.
+- `requirements.txt` `keyring==25.7.0`; `build_nuitka.bat` `--include-package=keyring --include-distribution-metadata=keyring`. **Doğrulanmadı:** Nuitka derlemesinde `keyring` arka uç keşfi (derleme denenmedi; başarısız olursa uygulama `.env` yedeğiyle çalışır). Gerçek Windows deposu `pytest -m manual` ve elle deneme ile doğrulandı (yazma/okuma/silme).
+
+---
+## [2026-10-04] düzeltme | Piyasa Saati: Istanbul Saat Dilimi (Denetim Bulgu 8)
+
+- Yeni `src/domain/market_clock.py` (`market_now`, `market_today`, `market_time`): `Europe/Istanbul` duvar saati, naive döner; `tzdata` yoksa sabit UTC+3 yedeği.
+- Piyasa takvimine bağlı 17 modülde (seans/bugün kontrolü, işlem ve nakit tarihi varsayılanları, açılış işleri, tarayıcı ve teknik analiz, fiyat sağlığı, Hisse 360, AI araçları, hedef ilerlemesi) `date.today()` / `datetime.now()` değiştirildi; yerel zamanın doğru olduğu yerler (sohbet saati, dosya damgaları, kayıt damgaları) bilinçli bırakıldı.
+- Testler: `tests/domain/test_market_clock.py` (UTC 22:30 -> ertesi gün, mikrosaniyesiz saat, UTC+3 yedeği), `tests/test_market_clock_guard.py` (dönüştürülen modüller). `test_group2_corporate_price_startup.py` artık `market_now` yamalıyor.
+- Kullanılmayan `date`/`datetime` importları temizlendi. `service_market_data_providers.md` §6 güncellendi.
+
+---
+## [2026-10-04] refaktör | Karmaşık Fonksiyonların Bölünmesi (Denetim Bulgu 3)
+
+- **Adım 1 - `financials/metrics.py::_single_period`** (140 satır, CC 41 -> 12 satır, CC 2): ham kalem okuma (`_income_items`, `_balance_items`, `_note_and_cash_flow_items`), türetilmiş metrikler (`_derived_metrics`, `_favok`, `_net_debt`, `_export_ratio`, `_payout_ratio`), oranlar (`_ratio_metrics`), işletme sermayesi (`_working_capital_metrics`) ve ham-çıktı ad eşlemesi (`_RAW_TO_OUTPUT`) olarak ayrıldı. Çıktı değişmedi: `test_metrics_single_period.py` refaktör öncesi koddan alınan 6 senaryolu karakterizasyon testidir (tam veri, boş, kısmi, sıfır payda, enflasyon bayrağı, FAVÖK amortismansız).
+- **Adım 2 - `isyatirim_provider.py::_scrape`** (92 satır, CC 43 -> 25 satır, CC 5): iki kopya probe döngüsü tek `_probe_financial_group` fonksiyonunda birleşti (iki turdaki mantık aynıydı); çeyrek toplama `_collect_periods` (+ `_StatementSource`, `_Probe`, `_rows_for_batch`, `_register_periods`, `_add_rows_to_store`) olarak ayrıldı. İstek sırası ve çıktı değişmedi: `test_isyatirim_scrape_characterization.py` ve `golden/isyatirim_scrape_golden.json` (5 senaryo, sahte `_fetch_batch`, sabit tarih) refaktör öncesi koddan üretildi. Korunan eski tuhaflık: ilk paket yeniden kullanımı her zaman *ilk* 4 aday çeyreğin etiketleriyle karşılaştırılır; veri ikinci pakette bulunursa önbellek hiç kullanılmaz ve bir fazla istek atılır (çıktıyı etkilemez, bilerek değiştirilmedi).
+- **Adım 3 - `ChartController._fetch_and_emit_chart_data`** (131 satır, CC 42 -> 7 satır): mum kaynakları yeni saf modül `chart_candle_sources.py`'ye taşındı (`load_market_history_candles`, `load_price_series_candles`, `demo_candles`, `last_price_summary`); denetleyicide yalnızca `_load_candles`, `_update_last_price`, `_build_payload` ve ince orkestratör kaldı (`ChartController` 392 -> 298 etkin satır). Karakterizasyon: `test_chart_fetch_characterization.py` + `golden/chart_fetch_golden.json` (6 senaryo: DuckDB günlük/haftalık/aylık, SQLite yedeği iki yoldan, veri yok; tüm paketin SHA-256 özeti). Küçük davranış farkı: DuckDB okuması kısmen ilerleyip hata verirse artık yarım mum listesi SQLite yedeğine karışmıyor.
+- **Adım 4 - `ChartController._calculate_indicators`** (101 satır, CC 22 -> 1 satır delege): saf modül `chart_indicators.py` (`calculate_indicators`, `cross_markers`, `_markers_from_events`, `_markers_from_sma_difference`, `to_line_data`, `empty_indicators`); `ChartController` 392 -> 199 etkin satır. Karakterizasyon: `test_chart_indicators_characterization.py` + `golden/chart_indicators_golden.json` (8 durum: boş, tek mum, 70/260/300/420 mum, SMA yedeği, `detect_crosses` istisnası; SHA-256 özetli). Küçük fark: yedek SMA işaretçi hesabı ortasında istisna olursa artık kısmi liste yerine boş liste dönüyor.
+- **Adım 5 - `financials/metrics.py::_piotroski`** (48 satır, CC 24 -> 5 satır, CC 2): `_compare` yardımcısı, `_PeriodView` (dönem ve bir önceki yılın aynı dönemi için `cur/prv/rose/fell/positive`) ve `_piotroski_period` olarak ayrıldı; iç içe kapanışlar kalktı. Karakterizasyon: `test_piotroski_characterization.py` + `golden/piotroski_golden.json` (8 sınır durumu: tümü iyileşen/kötüleşen, eşit değerler, YoY dönemi yok, eksik ölçüler, boş dönem, nakit akışı = kâr, pay azalması + 40 tohumlu rastgele girdi).
+- **Adım 6 - `stock_360_fallback.py::get_fallback_financials`** (89 satır, CC 31 -> 11 satır, CC 1): çevrimdışı örnek veri kümesi sabit bir sözlük değişmezi + onlarca sözlük kavrayışıydı; `_fallback_ratios`, `_fallback_quarterly_series`, `_fallback_flat_metrics`, `_fallback_raw_sections` ve tek `_flat_series` yardımcısına ayrıldı. Her çağrı yeni sözlük üretir (paylaşılan değişebilir sabit yok). Karakterizasyon: `test_stock_360_fallback_characterization.py` + `golden/stock_360_fallback_financials_golden.json` (tüm veri kümesi birebir, tickerdan bağımsızlık, bağımsız kopya).
+- **Adım 7 - `Stock360Controller._load_local_overview_and_technical`** (79 satır, CC 34 -> 15 satır, CC 6): şirket adı/sektör çözümü, genel bakış alanları ve teknik seviye alanları yeni saf modül `stock_360_overview.py`'ye taşındı (`resolve_identity`, `overview_fields`, `technical_fields`, `rsi_status`, `trend_status`). Gerçek ve varsayılan veri artık aynı yoldan uygulanır: `_apply_overview` / `_apply_technical` (`_set_default_*` bunları çağıran ince sarmalayıcılar). Karakterizasyon: `test_stock_360_overview_characterization.py` + `golden/stock_360_overview_golden.json` (9 senaryo; denetleyicinin tüm basit durum alanları ve sinyal sayısı). `Stock360Controller` 685 -> 623 etkin satır (hâlâ eşik dışı).
+- **Bulgu 3 sonucu:** raporda adı geçen yedi fonksiyonun hepsi eşik altına indi; eşik dışı fonksiyon sayısı 110 -> 104. Kalan eşik ihlalleri `code_quality_guardrails.md` §3'te.
+- Not: `test_chat_session_service.py::test_chat_history_dialog_compiles_and_lists_sessions` tek başına koşunca "native style" QML uyarısıyla kırılıyor (tam pakette geçiyor); bu refaktörden bağımsız, sıra bağımlılığı.
+
+---
+## [2026-10-04] düzeltme | BIGINT Kimlik Atamasında Eşzamanlı Yazıcı Çakışması (Denetim Bulgu 7)
+
+- `before_insert` dinleyicisi (`orm_models.py`) `max(id)` okumadan önce `UPDATE ... WHERE 0` ile SQLite yazma kilidini alıyor. İkinci yazıcı ilki commit edene kadar bekler ve güncel `max(id)` değerini görür.
+- Çakışma önce yeniden üretildi: iki oturum, A flush edilmiş ama commit edilmemişken B kayıt ekleyince `UNIQUE constraint failed: stocks.id`. Test: `tests/infrastructure/db/test_bigint_id_concurrency.py` (düzeltmeden önce kırmızı, sonra yeşil; 5 tekrarda kararlı).
+- Kalıcı çözüm (`INTEGER PRIMARY KEY`, tablo yeniden kurulumu) `roadmap.md`'ye eklendi; `database_schema_and_orm.md` ve `data_architecture.md` güncellendi.
+
+---
+## [2026-10-04] düzeltme | AI Yerel Motoru Sorgu Niyeti Eşleştirmesi (Denetim Bulgu 6)
+
+- `AiAdvisorController._generate_local_portfolio_analysis` optimizasyon raporuna karar verirken `"al"` ve `"sat"` için alt dize araması yapıyordu; `maliyet`, `analiz`, `altın` gibi sözcükler her soruda Markowitz aracını tetikliyordu.
+- Yeni saf modül `advisor_query_intent.py` (`is_optimization_query`, `turkish_lower`): sözcük sınırlı regex, açık sözcük kökleri, `İ/I` duyarlı küçük harf. Denetleyiciye yeni mantık eklenmedi (eşik ihlali olan sınıf).
+- Testler: `tests/ui_qml/test_advisor_query_intent.py` (19 test, denetleyici düzeyinde iki davranış testi dahil).
+
+---
+## [2026-10-04] düzeltme | Sürümlü Şema Göçleri (Denetim Bulgu 5)
+
+- Yeni `src/infrastructure/db/sqlalchemy/schema_migrations.py`: numaralı `Migration` listesi, `schema_migrations` sürüm tablosu, göç öncesi `data/backups/` yedeği (son 5), göç başına transaction, hata yükseltme (`SchemaMigrationError`). Üç eski açılış adımı (golden_cross DROP, `.IS` ticker, `cash_movements.stock_id`) 1-3 numaralı göçlere taşındı.
+- `SQLAlchemyEngineProvider._init_db_schema` artık göç hatasını yutmuyor (eskiden tüm blok `except Exception` ile loglanıp geçiliyordu).
+- Gerçek `portfolio.db` kopyasında doğrulandı: satır sayıları değişmedi, 59 MB yedek alındı, ikinci açılışta göç yok.
+- Testler: `test_schema_migrations.py` (taze veritabanı, yedek, tek seferlik uygulama, hatada yedek ve yükselme, yedek hatasında durma, yedek budama); `test_database_engine.py` şema kurulumunu sahte engine ile atlayacak şekilde düzeltildi.
+- Açık: göç hatası `app.py` tarafından çevrimdışı modda sessizce karşılanıyor; kullanıcıya hata penceresi gösterilmiyor.
+
+---
+## [2026-10-04] düzeltme | Sessiz Yutulan İstisnaların Giderilmesi (Denetim Bulgu 4)
+
+- Sessiz `except ... pass/continue` yerleri görünür hale getirildi: AI yerel analiz araçları, model portföy toplam değeri, planlama pin kalemleri (`logger.warning`, `exc_info`); EVDS TÜFE ayrıştırma ve önbellek, Stock 360 YoY hesabı, verimli sınır noktası, DuckDB bağlantı kapatma (`logger.debug`, dar istisna türleri).
+- `DashboardController` Excel işçisi tarihleri `date.fromisoformat` ile okur; geçersiz değer sessizce yok sayılmaz, `excelExported(False, ...)` ile bildirilir.
+- `BistBulkDownloader` şema göçü `ADD COLUMN IF NOT EXISTS` kullanır (hata yutan `try/except` kaldırıldı).
+- `stock_360_controller.py` `__del__` temizliği bilinçli olarak bırakıldı. Test: `test_dashboard_excel_worker_reports_invalid_iso_date_instead_of_silent_fallback`.
+
+---
+## [2026-10-04] düzeltme | Derlemeden Gerçek `data/` Klasörünün Çıkarılması (Denetim Bulgu 1)
+
+- `build_nuitka.bat` artık `--include-data-dir=data=data` kullanmıyor; kişisel `portfolio.db` ve DuckDB `.exe`'ye girmez.
+- `scripts/build_preflight.py` yeni `bundled data guard` denetimi ekledi (REM satırları yok sayılır); `test_production_guards.py` içinde iki test.
+- `project_build_and_deployment.md` güncellendi. Açık nokta: `onefile` derlemede `app_root()` (`sys.executable` dizini) gerçek derlemeyle doğrulanmadı.
+
+---
+## [2026-10-04] inceleme | Kapsamlı Sistem Denetim Raporu
+
+- **Eklenen:** `system_audit_report_2026-10-04.md` (V2 denetim şablonu ve AI geliştirme metodolojisine göre). 16 bulgu: kritik yok; öne çıkanlar `build_nuitka.bat` gerçek `data/` klasörünü `.exe`'ye gömüyor, 14 denetleyici sınıfı ve CC>40 fonksiyonlar, 18 sessiz `except`, sürümsüz şema göçü, AI yerel motorunda `"al"/"sat"` alt dize eşleşmesi.
+- **Durum:** Bulgular sırayla uygulanıyor (1-7); biten bulgu ayrı `düzeltme` girişiyle kaydedilir.
+
+---
+## [2026-10-04] temizlik | Kullanılmayan Keşif Betiklerinin Silinmesi
+
+- **Silinenler:** `scripts/bencmarkVeri.py`, `tcmbApi.py`, `tcmbFaizApi.py`, `inspect_db.py`, `show_violations.py` ve `scripts/finansal_lab/` (prototipler ve üretilen örnek veri dosyaları). Hiçbiri kod, test, derleme veya CI tarafından çağrılmıyordu.
+- **Etkilenen belgeler:** `database_maintenance_and_scripts.md` (betik tablosu), `roadmap.md` (teknik borç satırı artık yalnızca kalan eskimiş tek seferlik betikleri listeler), `code_quality_guardrails.md` (fonksiyon eşik ihlali 129 -> 110).
+- **Kalanlar:** `import_bist_ohlcv_to_db.py`, `backfill_missing_friday_prices.py`, `fix_technical_analysis.py` eskimiş tek seferlik betikler olarak belgelendi; silme kararı bekliyor.
+
+---
+## [2026-10-04] güncelleme | Dokümantasyonun Kod Tabanına Göre Baştan Doğrulanması ve Yenilenmesi
+
+- **Silinenler:** Gitignore'daki `docs/MyDocs` (37 dosya: eski widget arayüzü planları, MySQL dönemi raporları, tamamlanmış görev listeleri, eski denetimler) kaldırıldı; silmeden önce yedeği alındı. Yalnızca hâlâ uygulanmamış fikirler `roadmap.md`'ye taşındı. Wiki'den `refactor_handoff_2026-06-13.md`, `pyside6_migration_analysis.md` ve çözülmüş bulgulardan oluşan `system_audit_report_2026-09-30.md` silindi (tarihçe `log.md` ve git geçmişinde).
+- **Yeni sayfalar:** `project_structure.md`, `development_guide.md`, `qml_pages_guide.md`, `service_market_data_providers.md`, `technical_analysis_and_screener.md`, `stock_360.md`, `settings_and_system.md`, `glossary.md`; `Plans.md` -> `roadmap.md` (doğrulanmış fikir havuzu ve teknik borç).
+- **Baştan yazılanlar:** `architecture.md`, `ui_architecture_and_events.md` (yalnızca QML), `qml_pages_guide.md`, `comparison_lab.md` (Plotly değil Lightweight Charts/Chart.js), `ai_integration.md` (tool-calling, girdi güvenliği, AI_Core), `service_portfolio_and_market.md`, `service_corporate_actions.md` (eski tablodaki `STOCK_SPLIT/DIVIDEND/RIGHTS_ISSUE` türleri kodda yoktu), `service_analysis.md`, `service_planning_optimization.md`, `service_simulation.md`, `service_watchlist.md`, `service_reporting_and_export.md`, `database_schema_and_orm.md` (23 tablo), `database_maintenance_and_scripts.md` (olmayan `replicate_db.py`, `DbIntegrityService` anlatımı kaldırıldı), `testing_strategy.md`, `manual_testing_guide.md` (QML sayfalarına göre), `project_build_and_deployment.md`, `code_quality_guardrails.md` (güncel 14 sınıf/129 fonksiyon ihlali), `index.md`.
+- **Güncellenenler:** `data_architecture.md` (DuckDB şeması), `market_corporate_actions.md` (gezinme), kök `README.md` (PyQt5/MySQL dönemi anlatımı kaldırıldı).
+- **Taşınanlar:** Kök `teknik_analiz_tartisma.md` ve `temel_analiz_filtre_tartisma.md` -> `docs/wiki/tasarim_notlari/` (üstlerine durum notu eklendi).
+- **Kodda bulunan hatalar:** `DatabaseMaintenanceService` finansal hedef sayısını olmayan `dca_goals` tablosundan okuyordu (`financial_goals` olarak düzeltildi); `CorporateActionService` modül açıklaması eski sentetik BUY modelini anlatıyordu (geriye dönük düzeltme modeli olarak düzeltildi); `pytest.ini` `ui` marker açıklaması güncellendi.
+- Doğrulama: wiki içi bağlantılar ve dizin kapsamı betikle denetlendi (kırık bağlantı, dizinde olmayan sayfa ve yetim sayfa yok).
+
+---
+## [2026-10-03] ekle | Strateji Backtest (Periyodik Yeniden Dengeleme, Stop-Loss / Take-Profit)
+
+- **Motor:** `strategy_backtest.py` (saf) + `StrategyBacktestService`. Yeniden dengeleme eşit veya Markowitz ağırlığıyla (her dengeleme gününde yalnızca geçmiş veriden maksimum Sharpe, `optimization_service.compute_max_sharpe_weights`); stop-loss/take-profit giriş fiyatına göre günlük kapanışla. Her ikisi de "al ve tut" taban çizgisiyle ve maksimum düşüşle karşılaştırılır.
+- **Ortak fiyat okuyucu:** `price_series_loader.py` (DCA servisi de bunu kullanır).
+- **Arayüz:** Planlama > "Strateji Testi" sekmesi (`PlanningStrategyTab.qml`, `StrategyBacktestController`, çok serili `lw_chart_html.py` grafiği); sayı girişleri `number_input.py` (Türkçe `1.234,5` ve `50.000` biçimleri; temettü tutarı da aynı ayrıştırıcıyı kullanır).
+- Gerçek DuckDB kopyasında THYAO/ASELS/BIMAS/FROTO 2023-2026 doğrulaması: yeniden dengeleme ~0,4 sn. Plan §9.13 güncellendi. Wiki: `service_simulation.md`.
+
+---
+## [2026-10-03] ekle | Nakit Temettü Kaydı
+
+- **Backend:** `CashMovementType.DIVIDEND`, `cash_movements.stock_id` (açılışta idempotent ALTER; gerçek veritabanı kopyasında doğrulandı), `CashMovementService.add/get/delete_dividend`, `PortfolioService.validate_cash_removal`. Temettü nakit bakiyeye girer ve TWR getirisi olarak sayılır; yatırma gibi dış sermaye akışı değildir.
+- **Arayüz:** Hisse Detay modalına "Temettü" düğmesi (ana portföy, açık pozisyon), `DividendDialog.qml` ve `DividendController` (kayıt, geçmiş, silme). `app.py`'de bağlandı; kayıt/silme sonrası Dashboard ve model portföy ekranları yenilenir.
+- **Doğrulama kuralları:** O tarihte pozisyon olmalı, gelecek tarih yok, silme sonraki nakit akışını bozamaz.
+- Testler: `tests/application/test_dividend_cash_flow.py`, `tests/infrastructure/db/test_cash_movement_dividend_repository.py`, `tests/ui_qml/test_dividend_controller.py`. Wiki: `service_corporate_actions.md`.
+
+---
+## [2026-10-03] düzelt | SQLite BIGINT Birincil Anahtar Otomatik Atama
+
+- **Hata:** SQLite'ta `BIGINT` birincil anahtar rowid takma adı olmadığı için otomatik artmaz. `id` vermeden kayıt ekleyen repository'ler (`insert_trade`, `insert_movement`, model portföy, bütçe vb.) gerçek veritabanında `NOT NULL constraint failed: ...id` ile başarısız oluyordu; yalnızca `id`'yi elle atayan repository'ler (fiyat, hisse, izleme listesi) çalışıyordu. Mock'lu testler bunu yakalamıyordu.
+- **Düzeltme:** `orm_models.py` içine `Base` için `before_insert` dinleyicisi eklendi; tek `BIGINT id` birincil anahtarlı tabloda `id` boşsa `max(id)+1` (aynı flush içinde sayaç) atanır. Elle `id` verenler etkilenmez.
+- Testler: `tests/infrastructure/db/test_cash_movement_dividend_repository.py` (gerçek geçici SQLite). Wiki: `data_architecture.md` kural 5.
+
+---
+## [2026-10-03] ekle | ADX ve Supertrend Göstergeleri, İki Yeni Tarayıcı Stratejisi
+
+- **Göstergeler:** `indicators.py` içine `adx` (Wilder; ADX, +DI, -DI) ve `supertrend` (çizgi ve yön) eklendi.
+- **Tarayıcı:** `IndicatorSnapshot` ADX/DI ve Supertrend yönü (son ve önceki bar) alanlarını kazandı; `SCREENER_FILTERS` 8'den 10'a çıktı: "Güçlü Yükseliş Trendi (ADX > 25, +DI > -DI)" ve "Supertrend Al Sinyali (Trend Dönüşü)". Açılır liste filtreleri `SCREENER_FILTERS`'tan okuduğundan arayüz değişikliği gerekmedi.
+- Gerçek DuckDB kopyasında tam BIST taraması ~3,6 sn; ADX filtresi 18, Supertrend al sinyali 6 hisse yakaladı.
+- Testler: `test_indicators_trend.py`, `test_screener_trend_filters.py`. Wiki: `service_analysis.md`.
+
+---
+## [2026-10-03] ekle | Ağ Çağrılarına Ortak Yeniden Deneme (Retry/Backoff)
+
+- **`src/infrastructure/retry.py`:** `retry_call` (üstel geri çekilme, varsayılan 3 deneme) ve `is_transient_error` (URLError, zaman aşımı, bağlantı hatası, HTTP 408/429/5xx, `YFRateLimitError`). Kalıcı hatalar ilk denemede çağırana döner.
+- **Bağlanan istemciler:** `YFinanceMarketDataClient`, yfinance optimizasyon sağlayıcısı, `EvdsClient`, KAP kamuya açık kaynak ve ortaklık sağlayıcıları, İş Yatırım toplu çekimi, ölçüt kazıyıcısı. `BistBulkDownloader` kendi döngüsü yerine ortak yardımcıyı kullanır (davranış aynı: her hata 2 sn, 4 sn bekleyerek denenir).
+- yfinance kilidi denemeler arasında bırakılır. Tek hisse anlık fiyat sorguları arayüzü bekletmemek için bilerek denenmez.
+- Testler: `tests/infrastructure/test_retry.py`, `tests/infrastructure/market_data/test_network_retry_integration.py`; `tests/conftest.py` testlerde beklemeyi kapatır. Wiki: `data_architecture.md` kural 7.
+
+---
+## [2026-10-03] belge | Dönüşüm Belgeleri Güncel Duruma Çekildi
+
+- **`QML_TRANSFORMATION_HANDOFF.md`:** Test sayısı (964 geçti, 4 xfailed), veritabanı boyutları, denetleyici listesi ve Faz 9-11 durumu düzeltildi; "Faz 11 Sonrası Eklemeler" bölümü (tek piyasa evreni, sermaye artırımı düzeltmesi, eski arayüzün kaldırılması, koruma testleri, ölü kod temizliği) eklendi.
+- **`TRANSFORMATION_PLAN.md`:** Başa tarihsel plan notu eklendi (gerçek arayüz yapısı, WebEngine kararı, eski arayüz silinmesi). §9.11 ve §9.12 çözüldü olarak işaretlendi, Aşama 5 kapatıldı, uygulanmayan maddeler §9.13'te listelendi.
+- **Wiki `index.md`:** Handoff satırı güncellendi.
+- **Silinen:** kullanılmayan `views/PlaceholderView.qml` ve `test_strings_catalog.py` izin listesindeki girdileri.
+
+---
+## [2026-10-03] sil | Ölü Kod Temizliği
+
+Eski arayüz kaldırıldıktan sonra `vulture` + dize/QML çapraz kontrolüyle yapılan tarama sonucu (AI_Core istemcisine dokunulmadı):
+
+- **Silinen dosyalar:** `investing_fallback_client.py`, `tvdatafeed_client.py`, `db_integrity_service.py` (hiçbir arayüzde kullanılmıyordu), `qt_compat` altındaki 7 kullanılmayan sarmalayıcı. Container'dan `tv_backfill_service`, `tv_client`, `db_integrity_service` alanları; `requirements.txt`'ten `tradingview-datafeed` ve `websocket-client` kalktı.
+- **Silinen metotlar:** application/domain katmanında çağrılmayan ~15 metot ve kullanılmayan importlar.
+- **Denetleyici üyeleri:** QML'den çağrılmayan üyeler silindi (Dashboard/model portföy `exportToExcel*` tarihsel rapor diyaloğu ile değiştirilmişti, `deleteTrade`, Stock 360 ve Hisse Detay kullanılmayan alanları vb.); artık dinleyicisiz 3 sinyal kaldırıldı. Kullanılabilir olanlar arayüze bağlandı: Ayarlar > veritabanı kartlarında SQLite/DuckDB dosya yolları, Piyasa Düzeltmeleri sekmesinde "listelenen / toplam olay" sayısı.
+- **Strings.qml:** kullanılmayan 77 anahtar silindi; `test_strings_catalog.py` artık kullanılmayan anahtarı da yakalar.
+- **Doğrulama (denetim):** silinenlerin hiçbirinin eski arayüzde, betikte, testte veya QML'de çağrısı yoktu (`git grep` ile önceki commit'te doğrulandı); yalnızca `DatabaseIntegrityService` ve TradingView istemcisi dokümanlarda anılıyordu, ilgili wiki sayfaları güncellendi. Tüm sayfalar (10) açılarak QML çalışma zamanı uyarısı olmadığı doğrulandı.
+- Bilinçli olarak bırakılanlar: repository port/implementasyon çiftleri (CRUD tamlığı), `IInflationDataProvider`/`IMarketValuationProvider` protokolleri (modülleri başka istisna sınıfları için kullanılıyor), openpyxl/DTO alanı yanlış pozitifleri.
+
+---
+## [2026-10-03] sil | Eski Qt Widgets Arayüzü (`src/ui`) Kaldırıldı
+
+- **Kaldırılanlar:** `src/ui` (sayfalar, widget'lar, QSS stilleri, tema yöneticisi, `L10N`), `tests/ui` (eski arayüz testleri), `scripts/migrate_ui_strings.py` (L10N göç betiği).
+- **Giriş noktası:** `app.py` artık doğrudan QML arayüzünü açar (`run_qml_app`). `--ui=qml` bayrağı ve `PORTFOYSIM_UI` ortam değişkeni kaldırıldı; AppContainer kurulamazsa arayüz çevrimdışı modda açılır.
+- **Korunan testler taşındı:** HTML üretici testleri `tests/application/reporting_html/`, Qt ölçek testi `tests/qt_compat/`; ağ çağrısı koruması ve giriş noktası testleri `tests/test_repo_guards.py` içinde. Yeni test `src/ui` paketinin ve ona yapılan importların geri gelmemesini denetler.
+- **Betikler:** `fix_technical_analysis.py` son işlem günü için `price_update_service` kullanır; `measure_code_quality.py` içindeki `src/ui/pages` sayfa boyutu kuralı kaldırıldı.
+- **Dokümanlar:** CLAUDE.md, ARCHITECTURE_GATES.md, README.md ve ilgili wiki sayfaları QML'e göre güncellendi; tarihsel wiki anlatımları (comparison_lab, ui_architecture_and_events, ai_integration) üstte not bırakılarak korundu.
+- Silinen her şey git geçmişinde durur (`git log -- src/ui`); önceki commit'ten geri alınabilir.
+
+---
+## [2026-10-03] ekle | Eski Arayüzde Olup QML'de Eksik Kalan Özellikler Tamamlandı
+
+Eski `src/ui` ile QML karşılaştırması sonunda bulunan 7 eksik giderildi:
+
+- **Hisse detay hızlı işlem formu:** tarih (YYYY-AA-GG) ve saat (SS:DD) alanları; `parse_trade_moment` geçersiz biçim ve gelecek tarih/saati engeller. Boş bırakılırsa bugün/şimdi (geçmiş günde 12:00).
+- **Dashboard:** "Fiyatları Güncelle" (`update_coordinator`, son kapanış fiyatları), haftalık/aylık getiri kartları (`return_calc_service`) ve "Son güncelleme" bilgisi. `ui_qml/last_update_store.py` eski arayüzle aynı QSettings anahtarlarını kullanır.
+- **Model portföy "Fiyat Güncelle":** yalnızca veritabanını yeniden okuyordu; artık `live_price_refresh_service` ile (`model:{id}` kapsamı) çevrimiçi fiyat çeker, portföy bazlı son güncelleme zamanı gösterilir.
+- **Listeye hisse eklerken kod doğrulaması:** `StockLookupService.is_known_ticker` (SQLite + DuckDB kataloğu, ağsız) ve bilinmeyen kodlar için arka planda `verify_ticker_online`; geçersizse "Geçersiz hisse kodu" ve kayıt oluşmaz.
+- **Karşılaştırma grafik açıklama kartları** (`ChartInfoCard.qml`): sekmeye ve ana grafik moduna göre "Nedir / Nasıl Yorumlanır".
+- **Sabit metinler:** ikinci geçişte ternary ve JS içindeki 29 Türkçe metin daha `Strings.qml`'e taşındı. `test_strings_catalog.py` artık property adından bağımsız, Türkçe harf içeren her dize literalini yakalar (controller ile değiş tokuş edilen durum kodları izin listesinde).
+- Test kararlılığı: `DashboardController` açılışta getiri hesaplayan iş parçacığı başlattığından testlerde devre dışı bırakıldı (silinmiş QObject'e sinyal gönderip tam suitte ara sıra native çökme yapıyordu).
+- Bilinçli fark: karşılaştırma metrik tablosu eski "Dönem Sonu Getiri Özeti" ile aynı içerikte olmadığı için ona açıklama kartı eklenmedi; TradingView yükleme butonu kaldırılmış kalır.
+
+---
+## [2026-10-03] duzelt | Mimari/Kalite Borcu: QML Katmanı Temizliği
+
+- **`src.ui` bağımlılıkları kalktı:** Plotly/finansal/ortaklık HTML üreticileri `src/application/services/reporting/html/` altına, `ComparisonSeriesBuilder` `analysis/comparison_chart_series.py` altına taşındı; eski sayfalar ve testler yeni yolu kullanır. `L10N` ve `display_ticker` bağımlılıkları kaldırıldı. Eski `src/ui` hâlâ varsayılan giriş noktasıdır, silinmedi.
+- **Denetleyicilerde doğrudan repository çağrısı kalmadı:** yeni `StockLookupService` (hisse, fiyat, önceki kapanış, canlı fiyat, DuckDB piyasa verisi) ve `DatabaseMaintenanceService`; piyasa düzeltmeleri `MarketCorporateActionService` üzerinden; planlama ham SQL yerine `portfolio_service.get_first_trade_date`; Gemini sağlayıcısı enjekte edilir.
+- **Bu geçişte görülen mevcut hatalar giderildi:** model portföy Excel dışa aktarımı var olmayan repo metodu yüzünden tüm fiyatları 100 yazıyordu; hisse detayında var olmayan `price_repo.get_latest_price` yutulan hataydı.
+- **QML sabit metinleri `Strings.qml`'e taşındı** (58 yeni anahtar, 19 dosya). Denetim testleri: `test_architecture_guards.py`, `test_strings_catalog.py`.
+- Bilinçli olarak yapılmadı: denetleyicilerdeki dinamik Türkçe bildirim metinleri (biçimlendirme verisiyle iç içe), `AssetAllocationCard` örnek verisi, `settings_controller` içindeki `db_config` okuması.
+
+---
+## [2026-10-03] ekle | QML'de Kalan Backend Özellikleri Tamamlandı
+
+- **Ayarlar > Sistem sekmesi:** otomatik canlı fiyat yenileme (aç/kapa, 5/15/30/60 dk; eski kodda aralık 15'e sabitti, düzeltildi; yalnızca seans açıkken) ve sistem sıfırlama (ortak `ConfirmDialog.qml` ile onaylı). `SystemController`.
+- **Üst piyasa şeridi:** ALTIN, GÜMÜŞ, USD/TRY, EUR/TRY, BIST 100 (`MarketIndicatorsService`, `IMarketIndicatorProvider`, yfinance `fast_info`; 5 dk yenileme; dar pencerede gizli).
+- **Excel "mevcut dosyaya ekle"** (`ExportMode.APPEND`) seçeneği; Dashboard ve model portföy dışa aktarımında.
+- **Sürükle-bırak sıralama:** izleme listeleri ve model portföyler (`ReorderHandle.qml`, `moveWatchlist`, `movePortfolio`).
+- **AI sohbet geçmişi:** `ChatSessionService` (uygulama katmanı, eski arayüzle aynı QSettings deposu), oturum listesi/devam/silme/yeni sohbet (`ChatHistoryDialog.qml`).
+- **Hisse bazlı AI model analizi:** Yapay Zeka sayfası "Hisse Modeli" modu (`ModelAnalysisController`, `ModelAnalysisPanel.qml`). AI_Core erişilemezse sonuçlar rastgele DEMO verisidir ve belirgin biçimde işaretlenir.
+- **Hisse Detay grafiğinde ortalama maliyet çizgisi** (`ChartController.loadTickerWithCost`, şablonda `renderAverageCostLine`).
+
+---
+## [2026-10-03] düzelt | Test ve Betik Güvenliği: Gerçek Veritabanına Yazma Engellendi
+
+- **Sorun:** `.env` `override=True` ile yüklendiği için kabuktan verilen `DB_SQLITE_PATH` ezildi; "kopyada deneme" gerçek `portfolio.db` üzerinde çalıştı. `tests/ui_qml` içindeki gerçek `AppContainer()` kullanan testler de gerçek veritabanlarına yazıyordu (ör. izleme listesi testi `stocks` tablosuna kayıt bırakıyordu).
+- **Düzeltme:** `_load_project_env` açıkça verilmiş `DB_SQLITE_PATH`/`DUCKDB_PATH` değerlerini korur. `tests/conftest.py` oturum başına gerçek SQLite (yedekleme API'siyle) ve DuckDB dosyalarını geçici klasöre kopyalayıp yolları oraya yönlendirir; test koşumu öncesi/sonrası gerçek dosya özetleri aynı kalır. Göç betiği çalışmadan önce çözümlenen SQLite/DuckDB yollarını yazdırır.
+- Testler: 839 geçti, 4 xfail.
+
+---
+## [2026-10-03] degistir | Piyasa Evreni DuckDB'ye Taşındı, Sermaye Artırımı Düzeltmesi DuckDB'de, Ticker Tek Tip
+
+- **Tüm BIST taraması:** Hisse Tarayıcı, Golden Cross, Hisse 360, grafik ve DCA evreni/fiyatlarını DuckDB'den (624 hisse) alır; `IMarketHistoryRepository` toplu okuma (`list_tickers`, `get_price_series_bulk`, `get_latest_dates`, `find_price_breaks`) kazandı. Gerçek veride tarayıcı ~2 sn, Golden Cross ~5 sn. Golden Cross olayları ticker anahtarlı `cross_events` tablosuna taşındı (eski `golden_cross_events` açılışta silinir). Açılışta BIST güncellemesi `MarketDataSyncService.sync_daily_delta` kullanır; TradingView yükleme düğmesi kaldırıldı.
+- **Sermaye artırımı DuckDB'de:** ham barlar değişmez; `market_corporate_actions` faktörleriyle düzeltilmiş okuma (`adjusted=True` varsayılan). Veri güdümlü tespit (tek barlık hata ve kriz günü piyasa hareketi ayıklanır), onay/red, ham veride kırılma kalmayan olayları `NO_BREAK` yapan çift düzeltme koruması. Ayrıntı: [market_corporate_actions.md](market_corporate_actions.md).
+- **SQLite göçü:** kullanıcı verisine bağlı olmayan 133 hissenin SQLite fiyatı ve kaydı silindi (305.692 satır, yedekli); 35 hisse kaldı. SQLite düzeltilmiş geçmişinden 10 geçmiş olay DuckDB'ye türetildi (yalnızca ham seri aynı kırılmayı gösteriyorsa; ham seri sürekliyse SQLite'ın hatalı olduğu anlaşılıp olay üretilmedi).
+- **Ticker tek tip:** kanonik biçim uzantısız (`THYAO`); `.IS` yalnızca yfinance sınırında (`src/domain/ticker.py`). `stocks` kayıtları açılışta çevrilir; yazıcılar uzantı eklemez.
+- **DuckDB bakımı:** kısmi (NULL kapanışlı) son 30 günlük barlar yeniden indirilir; indirici NaN/0 kapanışı eler ve 3 denemeli geri çekilme yapar.
+- Testler: 831 geçti, 4 xfail.
+
+---
+## [2026-10-02] temizle | MySQL Kalıntıları Kaldırıldı ve SQLite/DuckDB Veri Katmanı Tutarlı Hale Getirildi
+
+- **MySQL kaldırıldı:** `MySQLConfig`, `_create_mysql_engine`, MySQL `ON DUPLICATE KEY` dalları, `mysql-connector-python`, `DB_ENGINE/DB_HOST/DB_USER/DB_PASSWORD/DB_NAME/POOL_*` ortam değişkenleri (eski `.env` dosyalarında kalsa da yok sayılır), MySQL ORM `BIGINT(unsigned)` tipi (genel `BigInteger`), MySQL'e özgü betikler (`backup_mysql`, `migrate_mysql_to_sqlite`, `sync_mysql_backup_to_sqlite`, `compare_backup_to_sqlite`, `replicate_db`, 8 adet `apply_*_schema.py`, tüm `scripts/*.sql` DDL dosyaları) ve ilgili testler silindi. Tablolar `create_all` ile otomatik oluşur. `backups/` altındaki veri yedeklerine dokunulmadı.
+- **Tek yol kaynağı:** `src/infrastructure/db/paths.py`; göreli yollar artık çalışma dizinine değil uygulama köküne göre çözülür (`DB_SQLITE_PATH`, `DUCKDB_PATH`). Dağınık `"data/market_history.duckdb"` sabitleri kaldırıldı.
+- **DuckDB kalıntıları:**
+  - `DuckDBPriceRepository` kullanılmıyordu ama her `AppContainer()` oluşturulurken DuckDB'ye yazma bağlantısı açıp tablo oluşturuyordu; silindi. Yerine salt okunur `DuckDBMarketHistoryRepository` (`IMarketHistoryRepository`) geldi.
+  - **Köprü hatası:** `MarketDataSyncService._sync_to_sqlite` ham `sqlite3` ile `id` vermeden yazıyordu; her senkronda `NOT NULL constraint failed: daily_prices.id` ile sessizce başarısız oluyordu (SQLite portföy fiyatları güncellenmiyordu). Artık repository üzerinden yazılır, ayrıca `reconcile_sqlite_from_duckdb` geçmişte kaçan yeni barları (gerçek veride ~10 bin bar) kapatır.
+  - Ayarlar > "Senkronize et" olmayan `sync_missing_data` metodunu çağırıyordu; `sync_daily_delta` ile düzeltildi.
+  - DCA'daki "DuckDB fallback" `price_repo.get_price_series_by_ticker` varlığına bakıyordu (SQLAlchemy repo'da yok, ölü koddu); gerçek `market_history_repo` fallback'i bağlandı.
+  - Grafik: portföyde (SQLite) olmayan hisseler için DuckDB'den veri okunur. Hisse Detay ham `duckdb.connect(read_only=False)` yerine salt okunur depoyu kullanır.
+- Yeni wiki sayfası: [data_architecture.md](data_architecture.md) (hangi veri hangi veritabanında, kurallar, bilinen sınırlar).
+- Testler: 791 geçti (yeni: yol çözümleme, DuckDB okuyucu, DCA fallback, köprü, uzlaştırma).
+
+---
+## [2026-10-02] düzelt | Bayat Fiyat: Dashboard Günlük Değişimi, Canlı Fiyat Önbelleği SQLite Upsert'i ve Golden Cross Yazımı
+
+- **Belirti:** Dashboard "Günlük Kâr/Zarar +%81" gibi anlamsız değerler gösteriyordu.
+- **Kök neden 1:** `latest_prices` (canlı fiyat önbelleği) 11 Eylül'den kalmıştı; `daily_prices` ise 1 Ekim'e kadar güncel. Dashboard eski canlı fiyatı yeni kapanışla karşılaştırıyordu. Canlı yenileme hiç kalıcı olmuyordu çünkü `SQLAlchemyLatestPriceRepository.upsert_latest_prices` MySQL'e özgü `ON DUPLICATE KEY UPDATE` kullanıyordu ve SQLite'ta `UnsupportedCompilationError` fırlatıyordu (hata arka plan thread'inde yutuluyordu).
+- **Kök neden 2:** `SQLAlchemyGoldenCrossRepository.upsert_events_bulk` aynı MySQL SQL'ini kullanıyordu; yeni Golden Cross taraması SQLite'ta kayıt yazamazdı.
+- **Çözüm:**
+  - Her iki repository'ye SQLite dalı eklendi (`ON CONFLICT`, BIGINT birincil anahtar otomatik artmadığı için id elle verilir; golden cross yalnızca yeni olayları sayar).
+  - Yeni `CurrentPriceResolver` (`src/application/services/market/current_price_resolver.py`, container'da `current_price_resolver`): canlı fiyat yalnızca son günlük kapanıştan daha yeni bir güne aitse kullanılır, aksi halde son kapanış. Günlük değişim, seçilen fiyatın gününden önceki kapanışa göre hesaplanır (`get_last_price_before` "verilen gün dahil" olduğu için bir gün öncesi istenir).
+  - Dashboard, Model Portföy (fiyat haritası, önceki kapanış, son fiyat arama), Hisse Detay ve Sermaye Artırımı fiyat okumaları resolver'a bağlandı.
+- **Doğrulama (gerçek veri):** Toplam değer ₺598.908 -> ₺376.970, günlük +%1.53 (OBAMS +%6.74, grafikle aynı).
+- Testler: resolver birim testleri, SQLite upsert testleri (`tests/infrastructure/db/test_sqlite_upserts.py`); `test_production_guards` sahte API anahtarı literalini yakalıyordu, test değeri değiştirildi. 791 test geçti.
+
+---
+## [2026-10-02] ekle | QML: Golden Cross, Risk Anketi, Karşılaştırma Eklentileri, Excel Aralığı, İşlem Tarih/Saat ve Responsive Düzen (Eski UI Eşitleme - Grup 3)
+
+- **Hisse Tarayıcı > Golden Cross sekmesi:** `GoldenCrossController` + `GoldenCrossTab.qml`. EMA50/EMA200 kesişim sinyalleri (dönem/tip filtresi), tüm BIST taraması, veri tamamlama, TradingView'den yükleme, hisse bazlı geçmiş. Açılışta son taramadan 24 saat geçmişse otomatik tarama (`StartupJobsController`). Tarayıcı ekranı `ScreenerStrategiesTab` + `GoldenCrossTab` sekmelerine bölündü; tek tıkta Hisse 360'a gidişteki yanlış slot adı (`searchStock` -> `searchTicker`) düzeltildi.
+- **Risk profili anketi:** `RiskProfileController` + `RiskQuestionnaireDialog.qml` (Optimizasyon > Risk Anketi). Kayıtlı profil seçimi ve tek hisse ağırlık kısıtı anket sonrası güncellenir; risk combo'su controller durumuna bağlandı.
+- **Karşılaştırma:** özel tarih aralığı, TL/USD/Reel para birimi, "Portföy + Hisseleri" (tek tek hisse kıyası), Gemini AI yorumu (`ComparisonAiDialog`). `GeminiChatProvider` anahtarı artık her istekte okur (Ayarlar'dan değiştirince yeniden başlatma gerekmez).
+- **Excel:** `ExcelExportDialog` ile tarih aralığı + kayıt konumu (Dashboard günlük rapor, Model Portföy tarihsel rapor).
+- **İşlem:** Hızlı işlem modalına tarih/saat, hisse kodundan şirket adı ve son fiyat (sabit 294.25 fiyat kaldırıldı); Hisse Detay'da işlem etkisi tahmini (yeni lot, ortalama maliyet, kalan nakit).
+- **Responsive/esnek düzen:** pencere asgari boyutu 720x480; 1100 px altında kenar çubuğu otomatik daralır; sayfa içeriği asgari ölçünün (`minContentWidth/minContentHeight`) altında kaydırılır; iki panelli sayfalar (Model Portföy, Karşılaştırma, Optimizasyon, AI, İzleme Listeleri, Planlama) dar pencerede alt alta dizilir; KPI şeritleri 2x2'ye iner; pozisyon/izleme tabloları yatay kaydırılır; Hisse Detay modalı tek sütuna iner; başlık ve sekme çubukları `Flow`/`GridLayout` ile sarar. Ofscreen render ile 780x560, 900x600, 1024x640, 1366x768 boyutlarında görsel doğrulandı.
+- Test: eski kodda gerçek piyasa verisine sabit sayıyla bağlı `test_stock_detail_controller_live_price_and_diff` repository'lerden beklenen değeri hesaplayacak şekilde güncellendi. 168/168 QML testi yeşil.
+
+---
+## [2026-10-02] ekle | QML: Kurumsal Aksiyon, Fiyat Verisi Sağlığı ve Açılış Veri Bakım İşleri (Eski UI Eşitleme - Grup 2)
+
+- Eski PyQt5 arayüzünde olup QML'e taşınmamış backend özellikleri bağlandı:
+  - **Sermaye artırımı girişi:** `CorporateActionController` + `CorporateActionDialog.qml`. Hisse Detay modalındaki "Sermaye Artırımı" butonundan (yalnızca ana portföy pozisyonu) bedelli/bedelsiz kaydı, canlı ön izleme (yeni lot, yeni ort. maliyet, teorik baz fiyat), portföye uygulama ve geçmiş fiyatları yeniden indirme. Uygulama başarısız olursa kaydedilen bekleyen aksiyon silinir (yeniden denemeyi engellemesin).
+  - **KAP/MKK aday paneli:** Ayarlar > Kurumsal Aksiyonlar sekmesi (`SettingsCorporateActionsTab.qml`): tarama, düzenleme, onayla ve uygula, yoksay, kaynağı aç.
+  - **Fiyat Verisi Yönetimi:** `PriceDataController` + Ayarlar > Fiyat Verisi sekmesi (`SettingsPriceDataTab.qml`): eksik gün analizi, toplu/seçili/son günden bugüne güncelleme, aralık silme, raporu panoya kopyalama. Rapor biçimlendirmesi UI'dan bağımsız `price_data_report_formatter.py` modülüne alındı.
+  - **Açılış otomatik işleri:** `StartupJobsController` portföy hisseleri backfill'i, 18:30 sonrası tüm BIST backfill'i ve günlük KAP/MKK taramasını eski UI ile aynı QSettings anahtarlarıyla (günde bir kez) çalıştırır; sonuçlar global toast ve ekran yenilemesiyle bildirilir.
+- Ayarlar ekranı toast'ı hiç görünmüyordu (`settingsToast` mesajı bağlı değildi ve `visible` bağlaması `isVisible`'ı gizliyordu); doğrudan `show()` çağrılarına çevrildi. Başlık/sekme çubuğu 6 sekme için `Flow`'a alındı (dar pencerede alt satıra sarar).
+- **Grup 1 (kırık akışlar):** API anahtarı kaydı frozen ayarlarda `FrozenInstanceError` veriyordu, artık `persist_api_keys` ile `.env`'ye yazılıyor; Hisse Detay işlemi `TradeEntryService` üzerinden geçiyor; seans durumu `bist_market_session_service`'ten okunuyor; piyasa senkronu sonrası Dashboard/Model Portföy yenileniyor; demo veri yalnızca container yokken üretiliyor.
+- Test altyapısı: `tests/conftest.py` testlerin gerçek `.env`'ye yazmasını engeller; `tests/ui_qml/conftest.py` Basic stili ayarlar ve `MarketSyncController` açılış zamanlayıcısını devre dışı bırakır (test süresi uzayınca gerçek DuckDB senkronu başka testlerle çakışıp native çökmeye yol açıyordu). 128/128 QML testi yeşil.
+- Etkilenen modüller: src/ui_qml/controllers/corporate_action_controller.py, price_data_controller.py, startup_jobs_controller.py, src/application/services/market/price_data_report_formatter.py, src/ui_qml/qml/components/ (CorporateActionDialog, CorporateActionCandidateEditDialog, SettingsCorporateActionsTab, SettingsPriceDataTab, ModernInput, StockDetailModal), src/ui_qml/qml/views/SettingsView.qml, src/ui_qml/qml/theme/Strings.qml, src/ui_qml/app.py, tests/ui_qml/
+
+---
+## [2026-10-02] düzelt | Dashboard Açık Pozisyonlar Tablosu Kolon Başlıkları ve Hücre Hizalaması
+
+- `DashboardView.qml` içerisindeki açık pozisyonlar tablosunda başlık satırı (`RowLayout`) ile veri satırları (`RowLayout`) arasındaki kolon kayması sorunu giderildi:
+  - Sorun: Tablo başlığı ile veri delegesinde esnek/sabit genişlik tanımlarının tam kilitlenmemesi ve Qt Quick `RowLayout` yerleşim motorunun kalan alanı metin uzunluklarına göre paylaştırması nedeniyle kolon başlıkları ile veri hücreleri bir basamak sağa kayıyordu (örneğin LOT başlığı boşluğa, MALİYET başlığı lot adedine denk geliyordu).
+  - Çözüm: Başlık ve veri satırlarındaki tüm sayısal sütunlar ve aksiyon butonları (`SEMBOL & ŞİRKET`, `LOT: 70px`, `MALİYET: 85px`, `SON FİYAT: 85px`, `GÜNLÜK %: 75px`, `PİYASA DEĞERİ: 115px`, `K/Z (₺): 110px`, `K/Z %: 75px`, `AĞIRLIK: 65px`, `İŞLEMLER: 195px`) `Layout.preferredWidth`, `Layout.minimumWidth` ve `Layout.maximumWidth` değerleriyle 1:1 piksel kilitlendi.
+  - Esnek genişlik sadece ilk sütuna (`Layout.fillWidth: true; Layout.minimumWidth: 160`) verilerek pencere yeniden boyutlandırılsa dahi tüm sayısal hücrelerin başlıklarıyla kusursuz hizada kalması sağlandı.
+  - Testler: 82/82 QML testi başarıyla tamamlandı.
+- Etkilenen modüller: src/ui_qml/qml/views/DashboardView.qml, docs/wiki/log.md
+
+## [2026-10-02] düzelt | Hisse Detay Modalı Fiyat & K/Z Senkronizasyonu ve UI .IS Temizliği
+
+- Hisse Detay Modalı (`StockDetailModal`) ve `StockDetailController` bünyesindeki canlı fiyat, günlük değişim, piyasa değeri ve K/Z uyumsuzlukları giderildi:
+  - Fiyat Kaynağı Senkronizasyonu: `_get_latest_price` metodu öncelikle `latest_price_repo` ve `price_repo` üzerinden canlı portföy değerlendirme fiyatlarını (`1.21` TL MERKO, `3.15` TL PSGYO) çekecek şekilde güncellendi; DuckDB'de eksik/boş barlardan kaynaklanan `₺ - %-100.00` anomalisine karşı `WHERE close_price IS NOT NULL AND close_price > 0` filtresi uygulandı.
+  - Pozisyon & K/Z Hesaplaması: Piyasa değeri (`market_value`), kâr/zarar tutarı (`unrealized_pnl`) ve yüzdesi (`unrealized_pnl_pct`) Dashboard tablosuyla kuruşu kuruşuna eşitlendi.
+  - Hızlı Emir Formu: Modal açıldığında veya hisse değiştiğinde birim fiyatın hardcoded `10.00` kalması engellendi; hissenin anlık fiyatına otomatik senkronize edildi.
+  - Sermaye Artırımı Şeffaflığı: MERKO gibi bölünme (bedelsiz %638.34) yaşamış hisselerde işlem geçmişindeki lot adedi güncel bölünmüş pozisyonla eşleştirildi; bölünme öncesi orijinal işlem tutarı için "B" (Bölünme/Bedelsiz) rozeti ve hover tooltip desteği eklendi.
+  - Model Portföy Entegrasyonu: Modal model portföy bağlamında açıldığında pozisyon metriklerinin ve alım/satım emirlerinin model portföy servisine yönlendirilmesi sağlandı.
+  - UI .IS Temizliği: Varlık dağılımı donut pasta grafiği legend etiketleri (`allocationSlices`), hızlı butonlar (`quickTickers`) ve TradingView grafik başlığındaki `.IS` kalıntıları temizlendi.
+- Testler: `tests/ui_qml/test_stock_detail_and_excel.py` (10/10 yeni test), toplam QML testleri 82/82 %100 yeşil.
+- Etkilenen modüller: src/ui_qml/controllers/stock_detail_controller.py, src/ui_qml/controllers/dashboard_controller.py, src/ui_qml/controllers/chart_controller.py, src/ui_qml/qml/components/StockDetailModal.qml, src/ui_qml/qml/Main.qml, src/ui_qml/assets/templates/tradingview_chart.html, tests/ui_qml/test_stock_detail_and_excel.py, docs/wiki/log.md
+
+## [2026-10-02] özellik | Hisse Detay Modalı ve Çok Sayfalı Profesyonel Excel Dışa Aktarımı QML Mimarisine Eklendi
+
+- Eski PyQt5 arayüzündeki hisse detay sayfası ve Excel raporlama motorları taranarak QML mimarisine temiz bir Clean Architecture adaptörüyle kazandırıldı:
+  - `StockDetailController` (`src/ui_qml/controllers/stock_detail_controller.py`): Asenkron ThreadPoolExecutor, pozisyon metrikleri (lot, maliyet, k/z, ağırlık), hisseye özel geçmiş işlem listesi (`portfolio_service.get_trades_for_stock`), sermaye artırımları/bedelsiz/bedelli geçmişi (`corporate_action_service.get_by_stock`), doğrudan hisse alım/satım emri (`submitTrade`), ve hisseye özel açık/kapalı işlem ve sermaye hareketlerini içeren biçimlendirilmiş Excel raporu üretimi (`exportStockToExcel`).
+  - `StockDetailModal.qml` (`src/ui_qml/qml/components/StockDetailModal.qml`): Modern fintech koyu tema overlay modalı. Canlı fiyat başlığı, 4 KPI kartı, sekmeli geçmiş işlemler & sermaye artırımları tablosu, hızlı alım/satım işlem formu ve TradingView / Hisse 360 / Excel kısayol butonları.
+  - Suffix Temizliği: UI üzerinde hiçbir yerde `.IS` uzantısı kalmaması kuralı titizlikle uygulandı (`_clean_ticker`).
+  - Excel Raporlama: `ExcelExportService` (Dashboard, Günlük Getiriler, Hisse Dağılımı ve KPI'lar) ve `ModelPortfolioExcelExportService` (Model Portföy pozisyon ve performans dökümü) servisleri `DashboardController`, `ModelPortfolioController` ve `SettingsController` bileşenlerine tek tıkla Excel dışa aktarım (`exportToExcel`) aksiyonları olarak entegre edildi.
+  - Testler: `tests/ui_qml/test_stock_detail_and_excel.py` (8/8 yeni test), toplam QML testleri 80/80 %100 yeşil.
+- Etkilenen modüller: src/ui_qml/controllers/stock_detail_controller.py, src/ui_qml/controllers/dashboard_controller.py, src/ui_qml/controllers/model_portfolio_controller.py, src/ui_qml/controllers/settings_controller.py, src/ui_qml/app.py, src/ui_qml/qml/theme/Strings.qml, src/ui_qml/qml/components/StockDetailModal.qml, src/ui_qml/qml/views/DashboardView.qml, src/ui_qml/qml/views/ModelPortfolioView.qml, src/ui_qml/qml/Main.qml, tests/ui_qml/test_stock_detail_and_excel.py, docs/wiki/log.md
+
+## [2026-10-02] güncelleme | FAZ 9: Markowitz Portföy Optimizasyonu & Efficient Frontier Tamamlandı
+
+- PySide6 + Qt Quick (QML) mimarisi için Faz 9 Markowitz Portföy Optimizasyonu ve Verimli Sınır modülü eksiksiz tamamlandı.
+- `DuckDBOptimizationMarketDataProvider` geliştirilerek `market_history.duckdb` (624 BIST hissesi, 2.2M bar) ile kovaryans matrisi ve tarihsel fiyatlar milisaniyeler içinde çekilebilir kılındı.
+- `frontier_simulation.py` modülü ile vektörel Monte Carlo simülasyonu (1.000 portföy noktası), SLSQP Verimli Sınır eğrisi koordinatları ve parasal/lot bazlı yeniden dengeleme (rebalance) planlayıcısı uygulandı.
+- `OptimizationController` (asenkron ThreadPoolExecutor, Qt Queued Signals, Chart.js HTML5 scatter/bar grafiği, risk profili/ağırlık kısıtı yönetimi) ve `OptimizationView.qml` (modern fintech arayüzü, 4 KPI kartı, 3 sekme, dinamik rebalance tablosu) geliştirildi.
+- Testler: `tests/ui_qml/test_optimization_phase9.py` (5/5 yeni test), toplam QML testleri 56/56 %100 yeşil.
+- Etkilenen modüller: src/infrastructure/market_data/duckdb_optimization_market_data_provider.py, src/application/services/planning/frontier_simulation.py, src/ui_qml/controllers/optimization_controller.py, src/ui_qml/qml/views/OptimizationView.qml, src/ui_qml/qml/theme/Strings.qml, src/ui_qml/app.py, src/ui_qml/qml/Main.qml, tests/ui_qml/test_optimization_phase9.py, QML_TRANSFORMATION_HANDOFF.md, docs/wiki/log.md
+
+## [2026-10-02] belge | QML Dönüşüm Handoff Kılavuzu Faz 6-8, DuckDB ve Otomatik Senkronizasyonla Güncellendi
+
+- `QML_TRANSFORMATION_HANDOFF.md` dosyası projenin yeni oturumlardan pürüzsüzce devralınabilmesi için baştan sona güncellendi.
+- Tamamlanan aşamalar (Faz 6: Model Portföyler, Faz 7: Karşılaştırma & Screener & Treemap, Faz 8: Bütçe & Hedefler & DCA Simülatörü, DuckDB 624 BIST hissesi 2.2M bar OLAP altyapısı, 18:15 otomatik seans kapanış senkronizasyonu) detaylıca belgelendi.
+- Kalan fazların (Faz 9: Markowitz Portföy Optimizasyonu & Efficient Frontier, Faz 10: Gemini AI Karar Destek Danışmanı, Faz 11: Ayarlar & Veritabanı Yönetimi & Dağıtım) kapsamı, servis gereksinimleri, QML bileşenleri ve test planları yazıldı.
+- Yeni oturumlarda asistana verilecek doğrudan komut şablonu eklendi.
+- Etkilenen modüller: QML_TRANSFORMATION_HANDOFF.md, docs/wiki/index.md, docs/wiki/log.md
+
+## [2026-09-30] refaktör | Bulgu 5: Stock360Controller Monolit Yapısı Modüler Alt Bileşenlere Ayrıştırıldı
+
+- `Stock360Controller` bünyesindeki 1.442 satırlık monolit "God Object" yapısı Clean Architecture ve tek sorumluluk prensibi (SRP) doğrultusunda modüler alt bileşenlere ayrıştırıldı:
+  - `src/ui_qml/controllers/stock_360_formatters.py`: Finansal para birimi, fiyat, hacim ve grafik renk paleti mantığı taşındı.
+  - `src/ui_qml/controllers/stock_360_fallback.py`: Dış servisler çevrimdışı olduğunda kullanıcı deneyimini kesintisiz kılan sektör haritası ve fallback bilanço/rasyo/KAP verileri izole edildi.
+  - `src/ui_qml/controllers/stock_360_html.py`: QML WebEngine için geçici HTML dashboard derleme ve geçici dosya temizleme lojiği modülerleştirildi.
+  - `src/ui_qml/controllers/stock_360_calc.py`: DuPont analizi, serbest nakit akımı, gelir grafiği, bilanço detay tablosu ve KAP pay sahipliği çizelgesi hesaplama motorları saf fonksiyonlara dönüştürüldü.
+- `Stock360Controller` satır sayısı 1.442'den 834'e düşürüldü; sınıf salt QML ViewModel durumunu ve sinyallerini yönetir hale getirildi.
+- Geriye dönük uyumluluk ve tüm QML test sözleşmesi (`tests/ui_qml/test_stock_360_phase5.py`, 11 test; `test_stock_360_modules.py`, 6 test) %100 korundu.
+- Etkilenen modüller: src/ui_qml/controllers/stock_360_controller.py, src/ui_qml/controllers/stock_360_formatters.py, src/ui_qml/controllers/stock_360_fallback.py, src/ui_qml/controllers/stock_360_html.py, src/ui_qml/controllers/stock_360_calc.py, tests/ui_qml/test_stock_360_modules.py, docs/wiki/log.md
+
+## [2026-09-30] refaktör | Bulgu 6: QML Controller Doğrudan Repository Katman İhlalleri Application Servislerine Bağlandı
+
+- `ARCHITECTURE_GATES.md §6` ("UI katmanı asla doğrudan Repository çağırmaz; tüm veri erişimleri Application servisleri üzerinden gerçekleşmelidir") kuralı sağlandı.
+- `Stock360Service` bünyesine Application facade metodları (`get_all_stocks`, `get_stock_by_ticker`, `get_price_series`) eklendi.
+- `ChartController` ve `Stock360Controller` içindeki doğrudan `stock_repo` ve `price_repo` çağrıları temizlenerek `Stock360Service` ve `PortfolioService` servis katmanlarına devredildi.
+- Etkilenen modüller: src/application/services/analysis/stock_360_service.py, src/ui_qml/controllers/chart_controller.py, src/ui_qml/controllers/stock_360_controller.py, docs/wiki/log.md
+
+## [2026-09-30] refaktör | Bulgu 7: ChartController Teknik İndikatör ve Cross Hesaplamaları DRY Standardına Bağlandı
+
+- `ChartController` bünyesinde elle yazılan ve kod tekrarına (DRY ihlali) yol açan Golden/Death Cross tespit döngüsü, `src/application/services/analysis/technical/golden_cross.py` içindeki `detect_crosses` motoruna delege edildi.
+- Kısa vadeli veya az verili seriler için SMA bazlı zarif geri dönüş (graceful fallback) mekanizması korunarak TradingView sinyal işaretçileri merkezi domain kurallarıyla üretildi.
+- Etkilenen modüller: src/ui_qml/controllers/chart_controller.py, docs/wiki/log.md
+
+## [2026-09-30] optimize | Bulgu 8: QML Controller'larında N+1 Senkron DB Sorguları Toplu Sorguya (Bulk) Dönüştürüldü
+
+- `WatchlistController` ve `DashboardController` döngüleri içinde her hisse için ayrı ayrı çalıştırılan senkron veritabanı sorguları (N+1 problemi) tespit edilerek toplu (bulk) yöntemlere geçirildi.
+- `IPriceRepository` arayüzüne ve `SQLAlchemyPriceRepository` uygulamasına `get_price_series_bulk(stock_ids, start_date, end_date)` metodu eklendi; takip listesindeki hisselerin geçmiş fiyat serileri tek bir `WHERE stock_id IN (...)` sorgusuna indirildi.
+- `DashboardController._load_portfolio_data` içinde her pozisyon için tekrarlanan `get_stock_by_id` çağrıları `get_stocks_by_ids` toplu sorgusuna bağlanarak bellek içi O(1) eşleşmeye dönüştürüldü; UI thread bloklanmaları ortadan kaldırıldı.
+- Etkilenen modüller: src/domain/ports/repositories/i_price_repo.py, src/infrastructure/db/sqlalchemy/repositories/sa_price_repository.py, src/ui_qml/controllers/watchlist_controller.py, src/ui_qml/controllers/dashboard_controller.py, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 12: PositionsTableModel İçindeki K/Z ve Piyasa Değeri Hesaplamaları Decimal Hassasiyetine Bağlandı
+
+- `RULES.md` ve `ARCHITECTURE_GATES.md` finansal hesaplama standartları gereğince açık pozisyonlar tablosundaki canlı fiyat güncelleme mantığı (`PositionsTableModel.update_prices`) `Decimal` hassasiyetine bağlandı.
+- Ham kayan nokta (`float`) işlemlerinden kaynaklanabilecek yuvarlama hataları ve parasal tutar sapmaları önlendi; piyasa değeri, gerçekleşmemiş kâr/zarar ve yüzde değişimleri kesin matematiksel aritmetik üzerinden hesaplandı.
+- Etkilenen modüller: src/ui_qml/models/positions_table_model.py, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 17: Deprecated datetime.utcnow() Çağrıları timezone.utc ile Modernize Edildi
+
+- Python 3.12+ ile kullanımdan kaldırılan ve saat dilimi (timezone) uyuşmazlıklarına neden olabilen `datetime.utcnow()` çağrıları `datetime.now(timezone.utc)` ile modernize edildi.
+- `src/application/services/analysis/shareholder_analysis_service.py` ve `src/infrastructure/db/sqlalchemy/repositories/sa_shareholder_repository.py` dosyalarında UTC zaman karşılaştırmaları naive/aware istisnalarına karşı korumalı hale getirildi.
+- Etkilenen modüller: src/application/services/analysis/shareholder_analysis_service.py, src/infrastructure/db/sqlalchemy/repositories/sa_shareholder_repository.py, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 19: Sayı ve Hacim Formatları Türkçe Kısaltma Standardına (Mr/Mn/Bin) Çevrildi
+
+- `RULES.md §3` kuralı ("Para ve sayı formatları Türkçe standartlarında olmalıdır") uyarınca İngilizce kalan `B` (Billion), `M` (Million) ve `K` (Thousand) sayı/hacim kısaltmaları Türkçe finansal standart olan `Mr` (Milyar), `Mn` (Milyon) ve `Bin` olarak güncellendi.
+- `src/ui_qml/controllers/stock_360_controller.py` içindeki `_format_volume` fonksiyonu ve `src/ui_qml/controllers/watchlist_controller.py` bünyesindeki hacim gösterimleri tutarlı hale getirildi.
+- Etkilenen modüller: src/ui_qml/controllers/stock_360_controller.py, src/ui_qml/controllers/watchlist_controller.py, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 14: QML Arayüzündeki Sabit (Hardcoded) Metinler Strings Sözlüğüne Taşındı
+
+- `RULES.md §3` kuralı ("Tüm kullanıcı metinleri ve etiketler Strings.qml içinde toplanmalıdır") uyarınca QML bileşenlerinde sabit gömülü kalan tüm metinler `src/ui_qml/qml/theme/Strings.qml` merkezi sözlüğüne aktarıldı.
+- `CapitalModal.qml`, `QuickTradeModal.qml`, `FintechDuPontCard.qml`, `FintechCashFlowCard.qml`, `FintechRevenueChart.qml`, `MetricCard.qml`, `WatchlistView.qml` ve `Stock360View.qml` içerisindeki form başlıkları, rasyo rozetleri (badge), finansal gösterge adları ve alt metinler `Strings.<değişken>` çağrılarına bağlandı.
+- Etkilenen modüller: src/ui_qml/qml/theme/Strings.qml, src/ui_qml/qml/components/CapitalModal.qml, src/ui_qml/qml/components/QuickTradeModal.qml, src/ui_qml/qml/components/FintechDuPontCard.qml, src/ui_qml/qml/components/FintechCashFlowCard.qml, src/ui_qml/qml/components/FintechRevenueChart.qml, src/ui_qml/qml/components/MetricCard.qml, src/ui_qml/qml/views/Stock360View.qml, src/ui_qml/qml/views/WatchlistView.qml, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 20: auto_commit.py Hassas Dosya ve Anahtar Sızıntısı Koruması Eklendi
+
+- `auto_commit.py` scriptinde `.env`, gizli anahtarlar, veritabanı dosyaları ve kimlik bilgilerini (`*.pem`, `*.key`, `*secret*`, `*credential*`, `*token*`, `*.db`, `.env*`) tespit eden `is_sensitive_file` güvenlik süzgeci entegre edildi.
+- Hassas dosyaların ve diff içeriklerinin harici yapay zeka modeline (Gemini API) kazara sızdırılması hem dosya listeleme aşamasında hem de diff üretim aşamasında çift katmanlı olarak engellendi.
+- Etkilenen modüller: auto_commit.py, docs/wiki/log.md
+
+## [2026-09-30] yapılandır | Bulgu 10: requirements.txt Bağımlılıkları ve Sürümleri Sanal Ortamla Eşitlendi
+
+- `requirements.txt` dosyasındaki gerçek dışı / yayınlanmamış sürüm pinleri (numpy 2.4.4, pandas 3.0.2, scipy 1.17.1, scikit-learn 1.8.0, plotly 6.7.0, pytest 9.0.3) sanal ortamdaki fiili kararlı sürümlerle (`numpy==2.2.6`, `pandas==2.3.3`, `scipy==1.15.3`, `scikit-learn==1.7.2`, `PySide6==6.11.2`, `SQLAlchemy==2.0.54`, `yfinance==1.7.0`, `plotly==7.1.0` vb.) senkronize edildi.
+- yfinance ve scraping için zorunlu olan `beautifulsoup4`, `lxml` ve `curl_cffi` bağımlılıkları açıkça listeye eklendi; `pip check` ve `scripts/build_preflight.py` statik pin kontrolü (%100 yeşil) başarıyla doğrulandı.
+- Etkilenen modüller: requirements.txt, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 13: Sessiz Hata Yutma (except Exception: pass) Blokları Logger İle Değiştirildi
+
+- `ARCHITECTURE_GATES.md` ve temiz kod standartları gereğince sistem genelinde istisnaların sessizce yutulduğu (`except Exception: pass`) 7 kritik nokta refaktör edildi.
+- `src/ui_qml/controllers/chart_controller.py`, `src/ui_qml/controllers/dashboard_controller.py`, `src/ui_qml/controllers/stock_360_controller.py`, `src/infrastructure/db/sqlalchemy/database_engine.py`, `src/infrastructure/market_data/yfinance_valuation_provider.py`, `src/application/services/ai/safety_guard.py` ve `src/application/services/planning/optimization_service.py` dosyalarında oluşan tüm istisnalar seviyesine uygun logger (`logger.warning` veya `logger.debug`) çağrılarıyla kayıt altına alındı.
+- Etkilenen modüller: src/ui_qml/controllers/chart_controller.py, src/ui_qml/controllers/dashboard_controller.py, src/ui_qml/controllers/stock_360_controller.py, src/infrastructure/db/sqlalchemy/database_engine.py, src/infrastructure/market_data/yfinance_valuation_provider.py, src/application/services/ai/safety_guard.py, src/application/services/planning/optimization_service.py, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 9 & Bulgu 15: Flaky UI Testleri Deterministik Yapıldı ve Geçici Dosya Temizliği Bağlandı
+
+- `tests/ui_qml/test_stock_360_phase5.py` içindeki `time.sleep(1.5)` statik beklemeleri kaldırılarak `_wait_for_condition` (Qt event loop polling) deterministik asenkron beklemeye dönüştürüldü; test koşum süresi 11 saniyeden 6.6 saniyeye indi (%40 hızlanma).
+- `Stock360Controller` bünyesine `QCoreApplication.aboutToQuit`, `destroyed` sinyalleri ve `__del__` yıkıcısı bağlanarak `_cleanup_temp_files()` otomatik çağrıma kavuşturuldu; diskte biriken geçici HTML raporlarının sızıntısı kalıcı olarak önlendi.
+- Etkilenen modüller: src/ui_qml/controllers/stock_360_controller.py, tests/ui_qml/test_stock_360_phase5.py, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 18: FintechShareholderTimeline.qml İçindeki Unicode Ok Karakteri Temizlendi
+
+- `RULES.md §2.1` ve `§2.2` strict no-emoji ve merkezi vektörel ikon politikası uyarınca `FintechShareholderTimeline.qml` dosyasındaki ham Unicode ok karakterleri (`\u2794`) temizlendi ve standart `->` formatına dönüştürüldü.
+- `src/ui_qml` genelinde kalan emoji sayısı 0'a indirildi.
+- Etkilenen modüller: src/ui_qml/qml/components/FintechShareholderTimeline.qml, docs/wiki/log.md
+
+## [2026-09-30] test | Bulgu 11 & Bulgu 16: İş Yatırım Cache Testi ve Python Sürüm Preflight Guard Düzeltildi
+
+- `tests/infrastructure/market_data/test_isyatirim_provider.py` içindeki `_MINIMAL_RAW` fixture'ına 4 çeyrek veri eklenerek cache hit testi başarılı kılındı (11/11 test yeşil).
+- `scripts/build_preflight.py` içerisindeki Python sürüm eşiği, `CLAUDE.md` standardı olan `Python >= 3.10` ile uyumlandırıldı; `test_production_guards.py` yeşile döndü.
+- Tüm `tests/infrastructure` testleri (120/120) sıfır hatayla geçti.
+- Etkilenen modüller: tests/infrastructure/market_data/test_isyatirim_provider.py, scripts/build_preflight.py, docs/wiki/log.md
+
+## [2026-09-30] yapılandır | Bulgu 4: Nuitka Build Betiği PySide6 ve QML Mimarisine Uyurlandı
+
+- `build_nuitka.bat` içindeki sabit geliştirici yolu (`C:\Users\ysfygc\...`) kaldırılıp yerel sanal ortam dinamik tespitine bağlandı (`.\venv\Scripts\python.exe`).
+- Nuitka derleyicisine `--enable-plugin=pyside6`, `--include-data-dir=src/ui_qml=src/ui_qml` ve `--include-data-dir=data=data` parametreleri eklendi; eski PyQt5 plugin'i kaldırıldı.
+- Etkilenen modüller: build_nuitka.bat, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 3: test_settings_loader.py Test Ortam İzolasyonu ve SQLite Desteği Eklendi
+
+- `tests/infrastructure/test_settings_loader.py` içindeki `OPTIONAL_ENV` kümesine `DB_ENGINE` ve `DB_SQLITE_PATH` eklendi; işletim sistemi ortamından sızan SQLite değişkenlerinin MySQL testlerini patlatması önlendi (7 test yeşile döndü).
+- `test_load_settings_builds_sqlite_config` birim testi eklenerek SQLite yapılandırmasının dinamik yüklenmesi test kapsamına alındı (10/10 test %100 yeşil).
+- Etkilenen modüller: tests/infrastructure/test_settings_loader.py, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 2: Dashboard Fiyat Yenilemedeki Sahte Veri Kaldırıldı ve Canlı Servise Bağlandı
+
+- `DashboardController.refreshMetrics()` içindeki sentetik `np.random.normal` fiyat üretim mantığı tamamen kaldırıldı.
+- Fiyat yenileme işlemi asenkron arka plan iş parçacığı üzerinden gerçek `LivePriceRefreshService` servisine bağlandı; yenileme bittiğinde güvenli bir şekilde `_load_portfolio_data()` tetiklendi.
+- Etkilenen modüller: src/ui_qml/controllers/dashboard_controller.py, docs/wiki/log.md
+
+## [2026-09-30] düzelt | Bulgu 1: QtWebEngine XSS ve Ham JS Enjeksiyon Açığı Kapatıldı
+
+- `TradingViewChart.qml` içinde `settings.localContentCanAccessRemoteUrls: false` ve `localContentCanAccessFileUrls: false` yapılarak yerel dosya ve harici URL erişimi sınırlandırıldı.
+- `${jsonPayload}` ve parametrik JS yürütmeleri string interpolation yerine `JSON.stringify(...)` ile güvenli parametre geçişine bağlandı; XSS ve kod enjeksiyonu engellendi.
+- Etkilenen modüller: src/ui_qml/qml/components/TradingViewChart.qml, docs/wiki/log.md
+
+## [2026-09-30] belge | Kapsamlı Sistem Denetim ve Mimari İnceleme Raporu
+
+- QML arayüz katmanı (`src/ui_qml`), Domain, Application, Infrastructure, güvenlik, build ve test altyapısı kıdemli denetim ekibi perspektifiyle (Mimari, DevSecOps, QA, SRE) incelendi.
+- 4 öncelik seviyesinde 20 detaylı teknik bulgu, etki analizleri ve kanıt kod blokları belgelendi.
+- Kriz yönetimi ve 24 saat / bu hafta / bu ay aksiyon planı oluşturuldu.
+- Bağlantılı sayfa: [system_audit_report_2026-09-30.md](system_audit_report_2026-09-30.md)
+
+## [2026-09-30] özellik | Faz 5 — Hisse 360 & Temel Analiz Görünümü (Rasyolar, Bilanço Çubuk Grafiği ve KAP Ortaklık Donut'ı)
+
+- **Hisse 360 Denetleyicisi (`Stock360Controller` — `src/ui_qml/controllers/stock_360_controller.py`):**
+  - Genel Bakış (son fiyat, günlük değişim, hacim, 52 haftalık aralık [min-max]), Teknik Seviyeler (RSI, MACD, SMA 50/200, EMA 20, Destek, Direnç), Değerleme Rasyoları (F/K, PD/DD, FD/FAVÖK, Temettü Verimi, ROE, Net Borç / FAVÖK, Piotroski, Cari Oran), Çeyreklik Bilanço ve KAP Ortaklık Yapısı tek merkezden yönetildi.
+  - Asenkron Arka Plan İş Parçacığı (Threading): Ağ ve dış API çağrıları (`Stock360Service.get_financials`, `get_shareholders`) UI'ı bloke etmeden arka planda çalıştırılıp Qt ana iş parçacığına `_remoteDataReady` sinyaliyle güvenli aktarılarak 60 FPS akıcı arayüz garantilendi.
+- **KAP SQLAlchemy Repository SQLite Desteği (`sa_shareholder_repository.py`):**
+  - `kap_companies`, `kap_shareholder_snapshots` ve `kap_shareholder_rows` tablolarındaki `BIGINT PRIMARY KEY` sütunları için SQLite uyumlu dinamik `max_id + 1` koruma mantığı eklendi.
+- **Finansal Rasyo Rozetleri (`RatioCard.qml`):**
+  - F/K, PD/DD, FD/FAVÖK, Temettü Verimi, ROE, Net Borç/FAVÖK, Piotroski F-Score ve Cari Oran için yeniden kullanılabilir, şık, GPU hızlandırmalı ve taşmasız rozet bileşeni geliştirildi.
+- **Çeyreklik Bilanço ve Gelir Tablosu Çubuk Grafiği (`FinancialBarChart.qml`):**
+  - QML `Canvas` üzerinde anti-aliased, degrade dolgulu, yuvarlatılmış köşeli ve interaktif hover destekli çubuk grafik motoru inşa edildi.
+  - Sekme değiştirici ile tek tıkla "Net Satışlar", "Brüt Kâr", "FAVÖK" ve "Net Kâr" serileri arasında anında geçiş desteği sağlandı.
+- **KAP Ortaklık Yapısı & Halka Açıklık Kartı (`ShareholderPieCard.qml`):**
+  - QML `Canvas` üzerinde dinamik Donut grafik, ortasında Halka Açıklık Oranı (% Free Float) göstergesi ve sağ tarafında pay sahipleri, nominal tutarlar ve oy hakkı oranları tablosu geliştirildi.
+- **Hisse 360 Görünümü (`Stock360View.qml`):**
+  - Tek arama kutusu ve hızlı hisse hapları (`Flickable`) ile anında BIST hissesi arama ve seçme.
+  - "TradingView'da Aç" butonu ile tek tıkla hisseyi tam kapsamlı teknik grafik sayfasına aktarma.
+  - `Main.qml` içerisinde indeks 3'e canlı olarak bağlandı.
+- **Kural Uyumu (`RULES.md`):** Sıfır emoji kuralı titizlikle korundu; tüm ikonlar `Icons.qml` üzerinden Lucide SVG ve `ModernIcon` ile sağlandı; tüm metinler `Strings.qml`'e eklendi.
+- **Test Kapsamı:** `tests/ui_qml/test_stock_360_phase5.py` test paketi yazılarak controller başlatma, hisse arama/temizleme, çeyreklik sekmeler, ortaklık yapısı ve QML tam render test edildi (23/23 test %100 yeşil).
+
+## [2026-09-30] düzelt | İzleme Listesi Aksiyon Butonları, İkon Tema Renklendirmesi ve Sade Ekle Butonları
+
+- **İzleme Listesi Aksiyon Butonları Tıklama Hiyerarşisi (`WatchlistView.qml`):**
+  - Sol takip listesi delegatında (`wlRow`) ve sağ hisse tablosu delegatında (`stockRow`) satırı saran ana `MouseArea`'ların en arkada kalması (`z: 0`) sağlandı.
+  - Aksiyon butonları (`RowLayout` z: 1, aksiyonlar z: 2) ön plana taşınarak; liste düzenleme (kalem), liste silme (çöp kutusu), hisse notu düzenleme (kalem), listeden çıkarma (çöp kutusu), TradingView'a aktarma ("Grafik") ve hızlı alım/satım ("İşlem") butonlarının tıklanabilirliği eksiksiz sağlandı.
+  - `ChartController` bünyesine `@Slot(str) def loadStock` takma adı eklendi ve QML çağrısı `loadTicker` ile senkronize edilerek `TypeError: Property 'loadStock' is not a function` hatası giderildi.
+  - "Grafik" butonuna basıldığında hem hissenin TradingView grafiğine yüklenmesi hem de otomatik olarak Dashboard'a yönlendirilmesi sağlandı (`shellController.navigateTo(0)`).
+  - "İşlem" butonu tıklandığında ilgili hissenin sembol ve fiyatıyla `QuickTradeModal` penceresini açması bağlandı.
+- **ModernIcon Koyu/Açık Tema Renklendirmesi (`ModernIcon.qml`):**
+  - Siyah/monokrom SVG ikonların Qt Quick Effects `MultiEffect` modunda luminance sıfır olduğu için koyu temada siyah kalması sorunu tespit edildi.
+  - `ModernIcon.qml` bileşeni `Qt5Compat.GraphicalEffects.ColorOverlay` motoruna geçirilerek tüm SVG ikonların hem koyu hem de açık temada dinamik olarak hedef renklerine (`Theme.accent`, `Theme.textMuted`, `Theme.bearRed`, `#ffffff` vb.) tam bürünmesi sağlandı.
+- **Ekle Butonlarının Sadeleştirilmesi (Çift Artı ve String Temizliği):**
+  - `Strings.qml` dosyasındaki `btnNewWatchlist`, `btnAddStockToWatchlist` ve `btnQuickTrade` metinlerindeki fazladan `+ ` karakterleri temizlendi.
+  - Kullanıcı talebi doğrultusunda araç çubuğu ve panel başlıklarındaki ekle butonları kompakt, şık ikon-only (`iconName: "plus"`, `tooltip: ...`) formatına getirildi; üzerine gelindiğinde açıklamayı gösteren `ToolTip` desteği `ModernButton.qml` içine entegre edildi.
+- **Test Kapsamı:** `test_watchlist_phase4.py` içine `test_chart_controller_load_stock_alias` ve `test_modern_icon_color_overlay_rendering` birim testleri eklenerek tüm testler %100 yeşil doğrulandı (17/17 test geçti).
+
+## [2026-09-30] yeni-sayfa | QML Dönüşümü Handoff & Devam Kılavuzu (QML_TRANSFORMATION_HANDOFF.md)
+
+- Başka bir sohbet veya yeni bir ajanla çalışmaya devam edilebilmesi amacıyla kapsamlı el devir belgesi oluşturuldu.
+- Belge; projenin amacı ve QML dönüşüm vizyonunu, bağlayıcı UI/UX ve sistem kurallarını (`RULES.md`: emoji yasağı, Icons.qml, Strings.qml, taşmasız düzen), tamamlanan Faz 0, 2, 3, 4 detaylarını, `Main.qml` sayfa indekslerini ve Faz 5'ten Faz 11'e kadar tüm kalan aşamaların yol haritasını içermektedir.
+- Bağlantılı sayfa: [QML_TRANSFORMATION_HANDOFF.md](../../QML_TRANSFORMATION_HANDOFF.md)
+
+## [2026-09-30] özellik | Faz 4 — Çoklu Takip Listeleri (Watchlist), Mini Sparkline Trendleri ve Hisse Yönetimi
+
+- **Çoklu Takip Listesi Mimarisi (`WatchlistController` & `WatchlistTableModel`):**
+  - Kullanıcının SQLite veritabanında saklanan mevcut takip listeleri ("Spek hisseler", "indikatör grubu", "Uzun Vadeli") ve hisse notları QML tarafına tam reaktif bağlandı.
+  - CRUD yetenekleri: Liste oluşturma, isim/açıklama güncelleme, liste silme, hisse ekleme, hisse notu güncelleme ve listeden hisse çıkarma işlemleri Python slotları ve QML bağlantılarıyla tamamlandı.
+  - SQLite auto-increment uyumluluğu: `stocks` ve `watchlist_items` tablolarında `BIGINT PRIMARY KEY` için SQLite uyumlu dinamik ID üretimi sağlandı.
+- **7 Günlük Mini Sparkline Trend Bileşeni (`MiniSparkline.qml`):**
+  - QML `Canvas` üzerinde anti-aliased çizim ve dikey degrade dolgu (bullGreen / bearRed) ile TradingView tarzı ultra hafif mini trend grafiği geliştirildi.
+  - Veritabanındaki geçmiş kapanış fiyatları dinamik normalize edilerek tablo satırlarına gömüldü.
+- **Gün İçi Aralık Göstergesi (Day Range Bar):**
+  - Günün en düşük (Low) ve en yüksek (High) fiyatları arasında mevcut fiyatın yüzdelik konumunu dinamik gösteren kapsül progress bar eklendi.
+- **Modallar ve Etkileşimler:**
+  - `AddStockModal.qml`: Hisse sembolü ve kişisel strateji notu girişi.
+  - `ManageWatchlistModal.qml`: Yeni liste oluşturma ve mevcut listeyi düzenleme.
+  - `EditStockNoteModal.qml`: Hisseye özel hedef fiyat ve not düzenleme.
+  - Tek tıkla TradingView grafiğine aktarma ("Grafik" butonu) ve Dashboard hızlı işlem modalına ("İşlem" butonu) geçiş desteği.
+- **Tasarım ve Kural Uyumu (`RULES.md`):**
+  - Sıfır emoji politikası eksiksiz uygulandı; tüm ikonlar `Icons.qml` ve `ModernIcon` üzerinden SVG ile sağlandı.
+  - Tüm kullanıcı arayüzü metinleri `Strings.qml` içine taşındı.
+- **Test Kapsamı:** `tests/ui_qml/test_watchlist_phase4.py` geliştirilerek controller, model rolleri, CRUD döngüsü ve QML Main.qml rendering test edildi (15/15 test %100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `src/infrastructure/db/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
+## [2026-09-30] düzelt | Merkezi SVG İkon ve String Mimarisi, Emoji Temizliği ve Buton Taşmalarının Giderilmesi
+
+- **Katı Emoji Yasağı (Strict No-Emoji Policy):** Windows masaüstünde yazıtipi uyumsuzluğuna, dikey hizalama problemlerine ve gayriciddi görünüme yol açan tüm Unicode emojiler (🚀, 💰, 📈, 🔄, ⚠️, ✕ vb.) arayüzden ve kod tabanından tamamen kaldırıldı (`RULES.md` Madde 2.1).
+- **Merkezi Vektörel İkon Sistemi (`Icons.qml` & `ModernIcon.qml`):**
+  - `src/ui_qml/assets/icons/` altına 50'yi aşkın optimize Lucide SVG ikonu yerleştirildi.
+  - `Icons.qml` singleton kataloğu oluşturuldu ve `theme/qmldir` kaydı sağlandı.
+  - `ModernIcon.qml` bileşeni geliştirilerek Qt Quick Effects `MultiEffect` GPU renklendirmesi (`colorization: 1.0`, `colorizationColor`) ile açık/koyu tema uyumlu dinamik renklendirme uygulandı.
+- **Merkezi Metin ve Yerelleştirme Kataloğu (`Strings.qml`):**
+  - Tüm sayfa başlıkları, buton etiketleri, KPI başlıkları, tablo sütun adları ve modal mesajları `Strings.qml` singleton'ına taşınarak hardcoded metin bağımlılığı ortadan kaldırıldı (`RULES.md` Madde 2.3).
+- **Buton Taşmalarının (Overflow) Çözümü:**
+  - `TradingViewToolbar.qml`: Ekran genişliği < 560px olduğunda şirket unvanı elide/gizlenerek, buton yükseklikleri (24-26px) ve aralıkları optimize edilerek dar ekranlarda butonların kart dışına taşması engellendi.
+  - `DashboardView.qml`: "PORTFÖY HİSSELERİ" hızlı butonları esnek ve taşmasız `Flickable` kapsayıcısı içine alındı.
+  - `ModernButton.qml`: İçeriğe göre otomatik esnek genişlik alacak şekilde (`implicitWidth: contentRow.implicitWidth + 20`) güncellendi.
+- **Tüm Bileşenlerin Dönüşümü:** `Sidebar.qml`, `WindowHeader.qml`, `TradingViewToolbar.qml`, `MetricCard.qml`, `AssetAllocationCard.qml`, `QuickTradeModal.qml`, `CapitalModal.qml`, `ChartFullscreenModal.qml`, `PlaceholderView.qml`, `ToastNotification.qml` ve `Main.qml` eksiksiz dönüştürüldü.
+- **Yönetişim & Kurallar (`RULES.md`):** `2. Arayüz ve UI/UX Standartları (QML & Tasarım Kuralları)` başlığı altında emoji yasağı, merkezi ikon, merkezi string ve responsive taşma önleme standartları kalıcı proje kuralı haline getirildi.
+
+Etkilenen modüller: `RULES.md`, `src/ui_qml/`, `docs/wiki/log.md`
+
+## [2026-09-30] düzelt | TradingView İndikatörlerinin Menüden Geri Kapatılamaması Sorununun Çözümü
+
+- **QML Reaktif Durum Bağlantısı Düzeltildi:** `TradingViewToolbar.qml` içerisindeki `isChecked` alanı daha önce `chartController.isIndicatorActive()` slot çağrısına bağlıydı. Slot çağrılarının QML tarafında otomatik dinleme (dependency tracking) mekanizması bulunmadığından `isChecked` her zaman ilk değerinde (`false`) kalıyor ve kullanıcı menüden tekrar tıkladığında `!isChecked` sürekli `True` olarak Python'a gidiyordu. `isChecked` alanı doğrudan `activeIndicators` Qt özelliğine (`indexOf(id) !== -1`) bağlanarak tam reaktif hale getirildi.
+- **Python Tek Parametreli Slot Aşırı Yüklemesi:** `ChartController.toggleIndicator` metodu tek parametreli çağrıyı destekleyecek şekilde aşırı yüklendi (`@Slot(str)` / `@Slot(str, bool)`). İndikatör aktifse Python içinde doğrudan `discard`, pasifse `add` yapılarak UI ile Python arasındaki olası durum uyumsuzlukları tamamen ortadan kaldırıldı.
+- **JS Motoru Boolean Doğrulaması & Lejant Güncellemesi:** `tradingview_chart.html` içerisindeki `toggleIndicator` fonksiyonuna string/boolean dönüşüm koruması eklendi (`boolVal = (isEnabled === true || isEnabled === "true" || isEnabled === 1)`). İndikatör kapatıldığında ilgili çizgi veya alt panel (RSI/MACD) grafikten kaldırılırken, üst bilgi lejantındaki etiketler de anında senkronize şekilde temizlenmektedir.
+- **Test Kapsamı:** `test_chart_phase3.py` testlerine tek ve çift parametreli indikatör açma/kapama doğrulamaları eklendi (11/11 test %100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
+## [2026-09-30] özellik | Faz 3 — TradingView Teknik Analiz Laboratuvarı, Çoklu Zaman Dilimleri ve İndikatör Paketi
+
+- **Çoklu Zaman Dilimleri (Timeframes):** `ChartController` bünyesinde günlük (`1D` / `1G`), haftalık (`1W` / `1H`) ve aylık (`1M` / `1A`) yeniden örnekleme (resampling) mekanizması geliştirildi. BIST takvimine uygun şekilde haftalık ve aylık OHLCV barları vektörize üretilerek TradingView grafiğine dinamik aktarılıyor.
+- **Teknik İndikatör Paketi Entegrasyonu:** `src/application/services/analysis/technical/indicators.py` saf NumPy/Pandas fonksiyonları kullanılarak hesaplanan indikatörler TradingView motoruna bağlandı:
+  - **Ana Grafik Üstü (Overlay):** SMA 20 (Turkuaz), SMA 50 (Turuncu), SMA 200 (Mor), EMA 20 (Yeşil) ve Bollinger Bantları (Üst, Orta, Alt bantlar).
+  - **Alt Osilatör Panelleri (Multi-Pane):** Lightweight Charts v5.2 çoklu bölme mimarisi ile RSI (14) (70 aşırı alım / 30 aşırı satım kesikli referans çizgili) ve MACD (12, 26, 9) (histogram, MACD ve sinyal çizgili) dinamik alt panelleri eklendi.
+  - **Al / Sat Sinyal İşaretçileri (Markers):** SMA 50 ve SMA 200 kesişimlerini takip eden otomatik Golden Cross (`▲ Golden Cross`, yeşil ok) ve Death Cross (`▼ Death Cross`, kırmızı ok) görsel işaretçileri oluşturuldu.
+- **Grafik Türü Değişimi:** Mum (`candle`), Çizgi (`line`), Alan (`area`) ve Bar (`bar`) grafik türleri arasında anında akıcı geçiş desteği sağlandı.
+- **TradingView Üst Kontrol Araç Çubuğu (`TradingViewToolbar.qml`):**
+  - Aktif hisse sembolü, tam şirket unvanı ve canlı fiyat / yüzde değişim rozeti (`₺4.90  ▲ +2.08%`).
+  - Hızlı zaman dilimi butonları (`1G`, `1H`, `1A`).
+  - Grafik türü seçici butonları (`🕯️`, `📈`, `🌊`, `📊`).
+  - İndikatör açılır menüsü (Popup) ile anlık indikatör açma/kapatma.
+  - Otomatik sığdırma (`🎯`) ve tam ekran analiz butonu (`⛶`).
+- **Tam Ekran Teknik Analiz Modalı (`ChartFullscreenModal.qml`):** Masaüstü analiz derinliği için ekranın %96'sını kaplayan, tüm indikatör ve çizim alanı ferahlığı sunan tam ekran analiz laboratuvarı geliştirildi.
+- **Birim Testleri (`test_chart_phase3.py`):** 4 yeni test ile zaman dilimi yeniden örneklemesi, indikatör veri yapısı, toggle kontrolleri ve SQLite entegrasyonu %100 doğrulandı (toplam 11 QML testi yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
+## [2026-09-30] düzelt | Donut Varlık Dağılımı Decimal Hatası Giderimi ve Modern Kapsül ScrollBar Tasarımı
+
+- **Decimal Bölme Hatası Giderildi:** `DashboardController.allocationSlices` içinde `pct = (p.get("weight", 0.0)) / 100.0` hesaplanırken ortaya çıkan `TypeError: unsupported operand type(s) for /: 'decimal.Decimal' and 'float'` hatası giderildi; tüm ağırlık, piyasa değeri ve nakit değerleri açıkça `float()`'a cast edildi.
+- **Donut Grafiği Güncelleme Tetikleyicisi:** `AssetAllocationCard.qml` üzerinde `onSlicesChanged` ve `Component.onCompleted` sinyallerine `donutCanvas.requestPaint()` eklenerek, sayfa açılışında ve hisse geçişlerinde donut grafiğinin anında yeniden çizilmesi sağlandı.
+- **Modern Kapsül ScrollBar Bileşeni (`ModernScrollBar.qml`):** Varsayılan hantal Windows işletim sistemi kaydırma çubuğu yerine TradingView & modern web standartlarında ince, yarı saydam ve akıcı bir kaydırma çubuğu geliştirildi:
+  - Dinamik genişlik: Normalde 6px ince kapsül, üzerine gelindiğinde (hover) veya sürüklendiğinde (drag) yumuşak geçişle (`NumberAnimation`, 140ms) 10px'e genişleme.
+  - Akıllı opaklık: Sayfada kaydırma yapılmadığında dikkat dağıtmamak için zarif yarı saydam (0.35), kaydırma anında veya hover durumunda belirgin (0.90), sayfa taşmıyorsa tamamen görünmez (0.0).
+  - TradingView teması ile uyumlu renkler (`Theme.scrollbarThumb`, `Theme.scrollbarThumbHover`, `Theme.scrollbarThumbActive`).
+  - `DashboardView.qml` içerisindeki `ScrollView`'a dikey kaydırma olarak bağlandı; yatay çubuk kapatıldı (`ScrollBar.AlwaysOff`) ve `contentWidth` döngüsel bağlanma (binding loop) uyarısı giderildi.
+- **QQuickStyle "Basic" Ayarı:** Windows native stilinin özel QML kontrollerini (özel `contentItem` ve `background`) ezmesini engellemek için `src/ui_qml/app.py` başlangıcında `QQuickStyle.setStyle("Basic")` etkinleştirildi.
+- **Test Kapsamı:** `test_dashboard_phase2.py` testlerine `allocationSlices` yapısı ve gerçek SQLite portföy dilimleri doğrulaması eklendi; tüm QML testleri sıfır uyarı ve sıfır hata ile doğrulandı.
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
+## [2026-09-30] düzelt | TradingView Fiyat Ölçeği Otomatik Uyumlandırması, Mum Gövde/Fitil Türetimi ve Dinamik Varlık Dağılımı
+
+- **Fiyat Ölçeği Kilitlenmesi Giderildi:** Farklı fiyat seviyelerine sahip hisseler arasında geçiş yapıldığında (örn. THYAO ~300 TL'den OBAMS.IS ~5 TL'ye), TradingView motorunun fiyat skalasını kilitleyip mumları ekran dışına atması sorunu çözüldü. `setCandleData` fonksiyonunda `rightPriceScale` ve `candleSeries` için `autoScale: true` zorunlu kılındı; `priceScaleId: 'right'` açıkça atandı.
+- **Close-Only Veriler İçin Mum Gövdesi ve Fitil Türetildi:** SQLite'ta `open_price`/`high_price`/`low_price` değerleri `NULL` olan hisselerde `open == high == low == close` eşitliğinden kaynaklanan 0 piksellik çizgi görünümü giderildi; `prev_close` ve tipik gün içi spread baz alınarak gerçekçi yeşil/kırmızı mum gövdeleri ve fitilleri üretildi.
+- **Dinamik Varlık Dağılımı (Allocation) Kartı:** `AssetAllocationCard.qml` içerisindeki sabit/mock değerler kaldırıldı; `DashboardController.allocationSlices` üzerinden kullanıcının SQLite portföyündeki gerçek hisse ağırlıkları (`PSGYO`, `BINHO`, `BINBN`, `RUZYE`, `Diğer` ve `Nakit`) Donut grafiğe ve lejant listesine dinamik bağlandı.
+- **Dinamik Hızlı Hisse Seçici Barı:** Grafik üstündeki hızlı seçim butonları portföydeki gerçek hisseler (`dashboardController.quickTickers`) ile dinamik hale getirildi; seçili hisseye göre butonun maviye dönmesi sağlandı ve varsayılan grafik portföyün ilk hissesine (`OBAMS.IS`) ayarlandı.
+
+## [2026-09-30] düzelt | TradingView Lightweight Charts v5 API Uyumluluğu & Ekran Konumlandırması
+
+- **Lightweight Charts v5.2 API Geçişi:** Bundle edilen Lightweight Charts sürümünün v5.2 olması sebebiyle meydana gelen `chart.addHistogramSeries is not a function` ve `chart.addCandlestickSeries` hataları, v5 `chart.addSeries(LightweightCharts.HistogramSeries, ...)` ve `chart.addSeries(LightweightCharts.CandlestickSeries, ...)` API formatına geçirilerek giderildi.
+- **Pencerenin Ekran Dışında Açılması Çözüldü:** Sabit `1320x840` boyutu özellikle %125/%150 DPI ölçekli veya 1366x768 çözünürlüklü ekranlarda pencereyi ekran dışına taşıyordu. Hem `Main.qml` hem de `src/ui_qml/app.py` üzerinde birincil ekranın kullanılabilir geometrisine göre dinamik boyutlandırma (`availableGeometry()`) ve otomatik ortalama (`center`) eklendi.
+
+## [2026-09-30] düzelt | TradingView Mum Çizimi, ₺ Glif Desteği ve SQLite Portföy Pozisyonları Bağlantısı
+
+- **TradingView Mum Çizimi Düzeltildi:** `TradingViewChart.qml` içerisindeki çift JSON serileştirme (`JSON.stringify`) hatası giderildi; `ChartController` üzerinden `stock_repo` ve `price_repo` kullanılarak SQLite veritabanındaki gerçek günlük OHLCV mum verileri artan tarih sırasıyla Lightweight Charts motoruna aktarıldı.
+- **₺ Para Birimi Glifi Düzeltildi:** Windows üzerinde `Consolas` yazı tipinin Türk Lirası sembolünü (`₺` / `\u20ba`) desteklemeyip `b` harfi olarak render etmesi sorunu, `Theme.monoFontFamily` için `'Segoe UI'` ve `'Cascadia Code'` önceliklendirilerek çözüldü.
+- **Pencere Başlığı Encoding Düzeltildi:** Win32 başlık çubuğundaki Unicode tire bozulması ASCII standart tireye çevrildi.
+- **SQLite Gerçek Portföy Entegrasyonu:** `DashboardController._load_portfolio_data()` mock liste yerine `portfolio_service.get_current_portfolio()` üzerinden veritabanındaki 7 adet aktif pozisyonu (`OBAMS.IS`, `RUZYE.IS`, `UNLU.IS`, `BINHO.IS`, `BINBN.IS`, `PSGYO.IS`, `MERKO.IS`), güncel kapanış fiyatlarını ve gerçekleşmemiş K/Z metriklerini hesaplayacak şekilde bağlandı.
+- `submitTrade` ve `manageCapital` slotları `trade_entry_service` ve `cash_movement_service` üzerinden SQLite'a kalıcı kayıt yapacak şekilde entegre edildi.
+- Birim testleri güncellendi (`test_dashboard_phase2.py`, 7 test %100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
+## [2026-09-30] özellik | MySQL'den SQLite'a Tam Geçiş & Yedek Senkronizasyonu
+
+- Masaüstündeki MySQL yedekleri (`portfoysim.sql` vb.) `backups/mysql/` dizinine güvenle kopyalandı.
+- `.env` yapılandırması `DB_ENGINE=sqlite` ve `DB_SQLITE_PATH=data/portfolio.db` olarak güncellendi.
+- `scripts/sync_mysql_backup_to_sqlite.py` script'i ile MySQL dump'ındaki en son veriler (362.158 günlük fiyat, KAP ortaklık ve hisse kayıtları) `data/portfolio.db` içerisine başarıyla aktarıldı.
+- `AppContainer`, repository ve servis katmanları SQLite ile test edildi; sistem MySQL servis bağımlılığından tamamen kurtarıldı.
+- Hem klasik Qt Widgets hem de yeni QML arayüzü doğrudan SQLite üzerinden sıfır konfigürasyonla çalışır hale getirildi.
+
+Etkilenen modüller: `.env`, `data/portfolio.db`, `scripts/`, `docs/wiki/log.md`
+
+## [2026-09-30] özellik | Faz 2 — QML Dashboard, Açık Pozisyonlar Tablosu, Canlı Fiyat & İşlem Modalları
+
+- QML için `PositionsTableModel` list/table modeli yazıldı; anlık fiyat değişimlerinde yeşil/kırmızı tick yanıp sönme (flash) animasyonu eklendi.
+- `DashboardController` zenginleştirildi; canlı portföy KPI'ları (Toplam Değer, Gerçekleşmemiş K/Z, Günlük K/Z, Nakit Oranı), Al/Sat emir kaydı ve sermaye yatırma/çekme işlevleri eklendi.
+- `QuickTradeModal` bileşeni ile canlı fiyat/lot çarpımlı hisse alım ve satım penceresi oluşturuldu.
+- `CapitalModal` bileşeni ile portföye nakit ekleme ve çekme penceresi eklendi.
+- `AssetAllocationCard` ile QML Canvas tabanlı modern Donut varlık dağılım grafiği entegre edildi.
+- `ToastNotification` bildirim bileşeni ile kullanıcı geri bildirimleri görselleştirildi.
+- `DashboardView.qml` tam interaktif hale getirildi; satır tıklamasıyla TradingView grafiğine hisse aktarımı bağlandı.
+- Faz 2 birim testleri yazıldı (`tests/ui_qml/test_dashboard_phase2.py`, %100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/models/`, `src/ui_qml/controllers/`, `src/ui_qml/qml/`, `tests/ui_qml/`, `docs/wiki/log.md`
+
+## [2026-09-29] özellik | Faz 0 — QML Branch Başlatma, venv Ortamı ve TradingView Entegrasyon POC
+
+- `qml` branch'i açılarak paralel QML UI geliştirme süreci başlatıldı.
+- Proje içi `venv` sanal ortamı kuruldu, RULES.md güncellendi.
+- PySide6 + QtQuick + QtWebEngineQuick bağımlılıkları doğrulandı.
+- TradingView Lightweight Charts (v4.x) yerel standalone kütüphanesi ve HTML şablonu eklendi.
+- `src/ui_qml/` altında Controller'lar (Shell, Chart, Dashboard) ve Theme mimarisi oluşturuldu.
+- `app.py` içine `--ui=qml` parametresi eklendi; eski ve yeni UI paralel yaşatıldı.
+- QML POC yükleme ve kontrolcü testleri yazıldı (`tests/ui_qml/test_qml_poc.py`).
+
+Etkilenen modüller: `src/ui_qml/`, `tests/ui_qml/`, `app.py`, `RULES.md`, `docs/wiki/log.md`
+
+## [2026-09-12] refaktör | PyQt5/PySide6 UI Konsolidasyonu & Yeni Özellik Sayfaları Entegrasyonu
+
+- Deneysel `src/ui_qml/` katmanı temizlendi; ana PyQt5/PySide6 mimarisi korundu.
+- `ScreenerPage` (Hisse Tarayıcı) ve `Stock360Page` (Hisse 360 Görünümü) PyQt5/PySide6 sayfaları olarak yazıldı.
+- Finansal Planlama sayfasına DCA Simülasyon paneli (`DcaSimulationPanel`) entegre edildi.
+- `CheckableComboBox` bileşeni `src/ui/widgets/shared/controls/` altına taşındı.
+- UI sayfa ve panel birim testleri güncellendi (935 test %100 yeşil).
+
+Etkilenen modüller: `src/ui/pages/`, `src/ui/widgets/`, `src/ui/navigation/page_factory.py`, `docs/wiki/log.md`
+
+## [2026-09-12] özellik | Faz 3–6 — Servis Konsolidasyonu, QML UI Katmanı & AI Karar Destek Ajanı
+
+- Clean Architecture uygulama katmanı 5 yeni servis (Stock360, PortfolioAnalytics, RiskOptimizationBridge, DcaBacktest, AiAdvisor) ile konsolide edildi.
+- Destek/Direnç (Pivot points + Cluster) ve DCA Backtest simülasyon motorları tamamlandı.
+- Gemini 2.5/3.6 Flash tabanlı Function Calling / Tool Use altyapısı (`AiAdvisorService`, `AdvisorTools`) ve `GeminiAdvisorChatProvider` uygulandı.
+- PySide6 QML UI katmanı 9 görünüm (Dashboard, Portfolio, Stock360, Analytics, Screener, Optimization, Simulation, Cashflow, AiAdvisor) ve QQuickPaintedItem grafikleriyle sıfırdan inşa edildi.
+- 388 yeni test yazılarak toplam test sayısı 1234'e çıkarıldı (%100 yeşil).
+
+Etkilenen modüller: `src/ui_qml/`, `src/application/services/`, `src/infrastructure/ai/`, `src/qt_compat/`, `tests/`
+
+## [2026-09-11] özellik | Faz 2 — OHLCV Veri Genişletmesi, Vektörel İndikatör Motoru & Teknik Tarayıcı Servisi
+
+- `DailyPrice` domain modeli ve `ORMDailyPrice` şeması `open_price`, `high_price`, `low_price`, `volume` kolonlarıyla genişletildi.
+- Safe upsert COALESCE stratejisi ile close-only güncellemelerin önceden çekilmiş OHLCV verisini ezmesi önlendi.
+- Vektörel indikatör motoru (`indicators.py`), 10 kural kriterli teknik tarayıcı çekirdeği (`screener.py`) ve `TechnicalScreenerService` eklendi.
+- Risk metrikleri modülü (`risk_metrics.py`) VaR, CVaR, Sortino, Calmar, Ulcer Index, Gain-to-Pain, Win Rate gibi 10+ finansal metrikle zenginleştirildi.
+- 90 yeni unit test eklendi (toplam 846 test yeşil).
+
+Etkilenen modüller: `src/domain/models/daily_price.py`, `src/infrastructure/db/sqlalchemy/`, `src/application/services/analysis/technical/`, `src/application/services/analysis/risk_metrics.py`, `scripts/import_bist_ohlcv_to_db.py`, `tests/`
+
+## [2026-09-11] yeni-sayfa | Portföy Simülasyonu Modernizasyon ve Mimari Dönüşüm Planı
+
+- Backend Clean Architecture omurgası korunarak; SQLite geçişi, pandas-ta/quantstats entegrasyonu, servis konsolidasyonu, AI karar destek mimarisi ve QML entegrasyon köprüsünü kapsayan ana plan hazırlandı.
+- Arayüz (UI-UX) tasarımı QML ile sıfırdan planlanacak şekilde köprü katmanı tasarlandı.
+- Bağlantılı dosya: [TRANSFORMATION_PLAN.md](../../TRANSFORMATION_PLAN.md)
+
+## [2026-08-21] güncelleme | ATC2.5 İndikatörü ve Trend Sinyal Alt Sisteminin Temizlenmesi
+
+- ATC2.5 (Alpha Trader Capital) indikatörü, Bayesian istatistik motoru ve trend tarayıcı modülleri (`atc/`, `trend_scanner_service.py`, `trend_backtest_service.py`) kaldırıldı.
+- Trend sinyali domain modelleri (`TrendSignal`, `TrendSignalPerformance`), portlar ve SQLAlchemy repository'leri silindi.
+- `TechnicalAnalysisPage` üzerinden ATC sekmesi ve ilgili buton/slotlar temizlendi; Golden/Death Cross ve Ticker Detay sekmeleri korundu.
+- `requirements.txt` ve `locale_tr.py` içindeki kullanılmayan ATC referansları ve bağımlılıkları temizlendi.
+- Tüm test seti (753 test) başarıyla yeşile ulaştırıldı.
+
+Etkilenen modüller: `src/application/services/analysis/technical/`, `src/infrastructure/db/sqlalchemy/`, `src/ui/pages/technical/`, `src/ui/shared/locale_tr.py`, `requirements.txt`
+
+## [2026-08-14] commit | Finansallar dashboard 4 ana grup ve UI geliştirmeleri
+
+- Finansallar dashboard'unda 18 sekme 4 ana kategori grubu altında toplandı (Finansal Tablolar & Özet, Performans & Büyüme, Kârlılık & Değerleme, Borç/Likidite/Kalite).
+- İki kademeli Kategori + Sekme nav arayüzü ve akıllı Plotly grafik boyutlandırması eklendi.
+- Finansal tablo dikey scrollbar ve QComboBox aşağı ok stili güncellendi.
+
+Etkilenen dosyalar: `src/ui/pages/financials/utils/dashboard_html.py`, `src/ui/pages/financials/utils/finansal_tablo.py`, `src/ui/styles/primitives/forms.qss`, `src/ui/pages/financials/financials_page.py`, `docs/wiki/log.md`
+
+## [2026-08-14] commit | TradingView entegrasyonu, teknik analiz güncellemeleri ve Cuma verisi tamamlama
+
+- TradingView datafeed istemcisi entegre edildi (`tvdatafeed_client.py`, `tradingview-datafeed==2.1.1`).
+- Golden cross ve teknik analiz servisi/repository güncellemeleri yapıldı.
+- Eksik Cuma fiyatlarını tamamlamak için backfill scripti ve testleri eklendi (`scripts/backfill_missing_friday_prices.py`).
+- Teknik analiz ve Temel analiz filtre tartışma dokümanları eklendi (`teknik_analiz_tartisma.md`, `temel_analiz_filtre_tartisma.md`).
+- UI ve ticker bar geliştirmeleri yapıldı.
+
+Etkilenen dosyalar: `src/infrastructure/market_data/tvdatafeed_client.py`, `src/application/services/analysis/technical/`, `scripts/backfill_missing_friday_prices.py`, `teknik_analiz_tartisma.md`, `temel_analiz_filtre_tartisma.md`, `requirements.txt`, `docs/wiki/log.md`
+
+## [2026-06-16] özellik | Phase B — Golden / Death Cross detect + DB + servis (backend)
+
+SMA50 / SMA200 kesişimi (klasik teknik analiz boğa/ayı sinyali) tüm BIST için backend
+olarak entegre edildi. UI sonraki turda (Teknik Analiz sayfası).
+
+- **Domain:** `GoldenCrossEvent` + `CrossType (GOLDEN/DEATH)` + `IGoldenCrossRepository` port
+  (`src/domain/models/golden_cross_event.py`, `i_golden_cross_repo.py`).
+- **Saf detect** (`src/application/services/analysis/technical/golden_cross.py`):
+  vektörel pandas `rolling().mean()` + sign flip; `detect_crosses(closes, short=50, long=200)`
+  → `list[DetectedCross]` (date, type, short_ma, long_ma, close). Ağsız, IO yok.
+- **Infra:**
+  - `ORMGoldenCrossEvent` + `CrossTypeEnum('GOLDEN','DEATH')` (`orm_models.py`); unique
+    (stock_id, cross_date, cross_type) + index'ler.
+  - `scripts/apply_golden_cross_schema.py` (mevcut apply_*_schema kalıbı).
+  - `SQLAlchemyGoldenCrossRepository` — `INSERT ON DUPLICATE KEY` idempotent upsert + JOIN'lu
+    recent/per-stock query.
+- **Application servisi:** `TechnicalAnalysisService` (`src/application/services/analysis/technical/`)
+  - `scan_all(today)` → tüm 641 ticker tara, yeni cross'ları DB'ye yaz.
+  - `scan_ticker(ticker)` → tek ticker scan.
+  - `get_recent_events(days, cross_type)`, `get_events_for_ticker(ticker)` — UI sorgu API'leri.
+- **Container:** `repositories.golden_cross_repo`, `services.technical_analysis_service`.
+- **Testler:** 15 yeni test (8 saf detect + 7 servis mock — yetersiz veri, cross tespiti,
+  query delegate). Toplam 404/404 yeşil.
+- **İlk scan (test env):** 641 ticker × ~60s → **6385 cross eventi**, 58 atlandı (≤200 gün veri).
+
+**Sonraki:**
+- UI fazı — "Teknik Analiz" sayfası (sidebar): Son Sinyaller sekme (tablo + filtre) +
+  Ticker Detay sekme (Plotly kapanış + SMA50/200 + cross marker'lar) + manuel
+  "Taramayı Çalıştır" / "Veri Tamamla" butonları.
+
+---
+## [2026-06-16] özellik | Phase A2 — Tüm BIST için günlük otomatik veri tamamlama
+
+Phase A1 (CSV import, commit `34b14e8`) ile 586 ticker × 10y verisi `daily_prices` tablosuna
+yüklendi. Phase A2: her gün BIST kapanışı (18:30) sonrası app açılışında otomatik tamamlama.
+
+**Anahtar karar:** Yeni servis yazılmadı; mevcut `PriceDataHealthService.update_from_latest_to_today(today, scope)`
+genişletildi (yeni scope sabiti).
+
+- **Yeni scope:** `PRICE_SCOPE_ALL_BIST = "all_bist"` (`price_data_health_service.py:24`).
+  - `PriceScopeResolver.stocks_in_scope()`: scope == "all_bist" → portföye bakmadan `stock_repo.get_all_stocks()` döner.
+  - `PriceScopeResolver.first_trade_dates_by_stock()`: scope == "all_bist" → `{}` (portföye ait first-trade kısıtı yok).
+- **Auto-trigger** (`main_window.py`): yeni method `_start_auto_bist_backfill_once()` —
+  saat ≥ 18:30 ise + last_run != target_date ise Worker tetikler. QSettings cache
+  (`AUTO_BIST_BACKFILL_SETTINGS_KEY`) aynı işlem günü tekrar tetiklemez.
+  `BIST_MARKET_CLOSE_TIME = 18:30` modül sabiti.
+- **"Açmayı unuttum" desteği:** her ticker için `latest_date + 1 → today` aralığı çekilir.
+  2-3 gün boşluk birikmişse otomatik dolar — `update_from_latest_to_today` mevcut davranışı,
+  ek kod yok.
+- **L10N:** `OTOMATIK_BIST_GUNCELLEME_{TAMAMLANDI,HATA,CALISTIRILAMADI}_TMPL`.
+- **Test:** `test_price_data_health_service.py`'ye 3 yeni test
+  (all_bist tüm stocks döner, first_trade_dates {}, default scope mevcut davranış korunur).
+  389/389 yeşil.
+
+**Verification:**
+- `PORTFOYSIM_ENV=test python app.py` saat 18:30 öncesi → log "BIST backfill atlandı" + DB değişmez.
+- 18:30 sonrası → Worker tetiklenir, `daily_prices`'a yeni satırlar; Toast.success.
+- Aynı gün tekrar açılış → trigger atlanır (QSettings cache).
+
+**Sonraki:** Phase B (Golden Cross detect + `golden_cross_events` tablo + scan servisi) ve
+UI fazı (Teknik Analiz sayfası + manuel "Veri Tamamla" + "Taramayı Çalıştır" butonları).
+
+---
+## [2026-06-16] özellik | Ortaklık Yapısı sayfası MVP — KAP pay sahipliği tarihçesi
+
+- **Veri kaynağı:** KAP (kap.org.tr) `/api/company-detail/get-history/{OID}/kpy41_acc5_sermayede_dogrudan/N` endpoint'i; tek istek tüm tarihçe (~60-70 snapshot).
+- **Ticker → KAP OID:** `https://www.kap.org.tr/tr/bist-sirketler` sayfasının inline JSON'undan haftalık cache (`data/_cache/kap/bist_companies.json`).
+- **Yeni Domain:** `src/domain/models/shareholder.py` (`ShareholderRow`, `ShareholderSnapshot`); port `src/domain/ports/services/i_shareholder_provider.py`; repo port `src/domain/ports/repositories/i_shareholder_repo.py`.
+- **Yeni Infra:**
+  - `src/infrastructure/corporate_actions/kap_shareholder_provider.py` — HTTP + TR locale parse + cache.
+  - `src/infrastructure/db/sqlalchemy/orm_models.py` — `ORMKapCompany`, `ORMKapShareholderSnapshot`, `ORMKapShareholderRow` (auto-create).
+  - `src/infrastructure/db/sqlalchemy/repositories/sa_shareholder_repository.py` — atomik history replace.
+- **Yeni Application:** `src/application/services/analysis/shareholder_analysis_service.py` — TTL 24h, force_refresh seçeneği.
+- **Container:** `market_clients.py` + `repositories.py` + `services.py` wiring.
+- **Yeni UI sayfa:** `src/ui/pages/shareholders/` paketi — `ShareholdersPage` (sidebar PAGE_SHAREHOLDERS=12, PAGE_COUNT 12→13).
+  - Üst: Plotly çoklu çizgi grafiği (X=tarih, Y=pay %, her shareholder ayrı çizgi). Pay sahipliği değişim trendi tek bakışta görünür.
+  - Alt: snapshot timeline — her bildirim için card + dark-tema tablo (Ad, Pay TL, Pay %, Oy %).
+- **L10N:** `ORTAKLIK_YAPISI`, `ORTAKLIK_YAPISI_ACIKLAMA`, `ORTAKLIK_YUKLENIYOR_TMPL`, `ORTAKLIK_TAMAMLANDI_TMPL`, `YENILE`.
+- **Mimari kararlar:**
+  - §15: Application servisi KAP'a doğrudan değil port üzerinden erişir.
+  - §1: ShareholdersPage 158 satır (BasePage extension), dashboard_html.py ≤200 satır.
+  - Veri kalıcılığı: dosya cache (BIST haritası) + MySQL (tarihçe denormalize) — sorgu hızı için.
+- **Yeni testler:** `test_kap_shareholder_provider.py` (17 birim test — TR sayı parse, tarih parse, history parse, BIST regex), `test_shareholder_analysis_service.py` (5 mock test — TTL davranışı).
+- **Sonraki faz (bu PR'da DEĞİL):** Yönetim Kurulu (`kpy41_acc6_yonetim_kurulu_uyeleri`), Bağlı Ortaklıklar (`kpy41_acc7_bagli_ortakliklar`), Genel Bilgiler (sektör vs.) sekmeleri.
+
+---
+## [2026-06-15] iyileştirme | Finansallar sayfası Plan 4 — UX düzeltmeleri (7 madde)
+
+- **EVDS hata propagasyonu:** `_enrich_tufe` catch bloğuna `metrics["_tufe_error"] = str(exc)` eklendi. `_chart_reel_buyume` gerçek hata mesajını gösterir; artık yanıltıcı "EVDS_API_KEY ortam değişkenini ayarlayın" mesajı yok.
+- **USD uyarı göstergesi:** `_chart_kpi_table` ve `_chart_satis_favok` başlıklarına `currency != "TRY"` kontrolü; başlıkta "⚠ USD verisi yaklaşık" notu görünür.
+- **Dönem esnekliği:** `financials_page.py`'e QComboBox (4 / 8 / 12 / Tümü) eklendi. `_on_analysis_done` seçime göre `n_periods` hesaplar.
+- **Font büyütme + max-height kaldırma:** `finansal_tablo.py` CSS güncellemesi — `.76rem→.88rem`, `.7rem→.82rem`, `.68rem→.78rem`, `.68em→.75em`; `max-height:68vh` kaldırıldı; satır padding `4px→6px`.
+- **Grafik yüksekliği artırıldı:** `_layout(height=520)` varsayılan; heatmap `height=420`, piotroski `height=460`, KPI tablo `height=480`; margin `{"t":60,"b":50,"l":70,"r":30}`.
+- **Teknik bilgi kutucukları:** `dashboard_html.py`'e `_INSIGHTS` dict eklendi (17 sekme için). Pane loop `_INSIGHTS.get(tid, "")` enjekte eder. Mavi kenarlıklı `.insight-box` CSS.
+- **SVG ikonlar:** Emoji yerine Tabler Icons (MIT) inline SVG. `_IP` dict + `_ic(key)` helper; her sekme butonunda 13×13 SVG + metin.
+
+---
+## [2026-06-15] özellik | Finansallar sayfası Faz 3 — kalan 7 grafik + Finansal Tablo (18 sekme)
+
+- **Kapsam:** `scripts/finansal_lab/viz_prototype.py`'deki tüm eksik özellikler entegre edildi. Dashboard 10 → 18 sekmeye çıktı.
+- **7 yeni Plotly grafik** (`charts.py` ekleri):
+  - `_chart_net_borc` — Bar (kırmızı/yeşil işarete göre) + Scatter secondary_y (Net Borç/FAVÖK).
+  - `_chart_waterfall` — `go.Waterfall` Gelir Köprüsü (Satışlar → Net Kar, en son dönem).
+  - `_chart_fcf_vs_netkar` — FCF fill-area + Net Kar dashed-line (Kazanç Kalitesi).
+  - `_chart_nakit_akis` — Grouped Bar: İşletme CF, FCF, Capex.
+  - `_chart_heatmap` — `go.Heatmap` 8 metrik × n dönem YoY% (özel colorscale, annotated).
+  - `_chart_bedelsiz` — Bar (bedelsiz_potansiyel_x) + Scatter × 2 (özkaynak, ödenmiş sermaye); enflasyon muhasebesi subtitle.
+  - `_chart_satis_breakdown` — Stacked Bar (Yurtiçi/Yurtdışı) + Scatter secondary_y (İhracat Oranı); banka graceful.
+- **`_bedelsiz_ef_info` helper:** §1 (≤50 satır) uyumu için `_chart_bedelsiz`'den ayrıştırıldı.
+- **Finansal Tablo sekmesi** (`utils/finansal_tablo.py`, YENİ):
+  - Interaktif HTML tablo — Plotly değil; kendi CSS/JS'i.
+  - `build_finansal_tablo_pane(m, n)` → `<style>+<div>+<script>` (tab pane'e gömülür).
+  - `_raw_sections` (compute_metrics çıktısı) ham veriyi BİLANÇO / GELİR / DİPNOT / NAKİT AKIŞ tablolarında gösterir.
+  - Dönem seçici, satır paketleri (localStorage), YoY Δ% badge.
+- **`dashboard_html.py` güncellemesi:** 18 sekme (Finansal Tablo ilk); `_content(x)` helper `go.Figure | str` birleştirmesi; tüm 17 yeni import.
+- **Testler:** `test_finansal_dashboard.py` — 19 test (HTML yapısı, JS değişkenler, graceful boş veri, 7 chart tipi kontrolü).
+- Doğrulama: 19 yeni test yeşil; toplam pre-existing hariç yeşil set değişmedi.
+- **Yalnız UI katmanı değişti** — Domain/App/Infra dokunulmadı.
+
+## [2026-06-15] özellik | Finansallar sayfası Faz 2 — 7 yeni sekme + TÜFE + Değerleme
+
+- **Grafik sekmeleri (Faz 1):** `charts.py` yeni modülü — tüm chart builder'lar + paylaşılan yardımcılar buraya taşındı. `dashboard_html.py` yalnız orkestratör kaldı. 10 sekme: KPI, Satışlar & Marjlar, Bilanço, DuPont, İşletme Sermayesi, Piotroski, Sezonsellik, Temettü, Reel Büyüme, Değerleme.
+- **Reel Büyüme — TÜFE (Faz 2):**
+  - Domain port: `i_inflation_data_provider.py` (`IInflationDataProvider` + `InflationDataUnavailable`).
+  - Infrastructure adapter: `evds_tufe_provider.py` — `EvdsClient.get_series("TP.FG.J0")` + parse + dosya cache 24 saat TTL (`tufe_index.json`).
+  - Application saf math: `financials/inflation.py` — `real_growth`, `get_yoy_tufe`, `period_to_month` (ağsız).
+  - Service enrichment: `_enrich_tufe(metrics)` helper (opsiyonel, graceful hata).
+- **Değerleme — yfinance (Faz 3):**
+  - Domain port: `i_market_valuation_provider.py` (`IMarketValuationProvider` + `MarketValuationUnavailable`).
+  - Infrastructure adapter: `yfinance_valuation_provider.py` — `yf.Ticker.fast_info` + `.info` fallback + dosya cache 1 saat TTL (`valuation_{TICKER}.json`).
+  - Application saf math: `financials/valuation.py` — `compute_valuation` F/K, PD/DD, EV/FAVÖK, F/S, `_safe_div`.
+  - Service enrichment: `_enrich_valuation(metrics, ticker)` helper (opsiyonel, graceful hata).
+- **Container wiring:** `MarketClientSet` → `evds_tufe_provider`, `yfinance_valuation_provider`; `FinancialAnalysisService` iki opsiyonel provider alıyor.
+- **Testler:** 4 yeni test modülü (inflation, valuation, evds_tufe_provider, yfinance_valuation_provider); `test_financial_analysis_service.py` genişletildi (enrichment mock); `test_container_services.py` mock güncellendi.
+- Doğrulama: 363 application/infra/domain testi yeşil; önceki pre-existing UI hataları değişmedi.
+- Bağlantılı sayfa: [service_analysis.md](service_analysis.md)
+
+## [2026-06-15] özellik | Bilanço ve Finansallar sayfası — Clean Architecture entegrasyonu
+
+- **Mimari karar:** `scripts/finansal_lab/` prototipinden tam Clean Architecture entegrasyonu.
+  - Domain port: `src/domain/ports/services/i_financial_statement_provider.py` (`IFinancialStatementProvider` Protocol + `FinancialStatementProviderUnavailable`).
+  - Infrastructure adapter: `src/infrastructure/market_data/isyatirim_provider.py` — isyatirim.com.tr JSON API scraper, dosya cache + 12 saat TTL (`data/_cache/financials/`).
+  - Application metrics: `src/application/services/analysis/financials/metrics.py` — saf, ağsız metrik hesabı (de-kümülasyon, TTM, Piotroski, DuPont, işletme sermayesi).
+  - Application service: `src/application/services/analysis/financial_analysis_service.py` — §15 uyumlu (dış API doğrudan çağrılmaz).
+  - DI kaydı: `market_clients.py` + `services.py` container parts güncellendi.
+- **UI katmanı** (§1: sayfa ≤400 satır):
+  - `src/ui/pages/financials/financials_page.py` — orkestrasyon (layout+wiring+Worker).
+  - `src/ui/pages/financials/panels/ticker_input_panel.py` — ticker + para birimi girişi.
+  - `src/ui/pages/financials/panels/financials_chart_panel.py` — SilentWebEngineView + offline Plotly.
+  - `src/ui/pages/financials/utils/dashboard_html.py` — 3-sekme Plotly HTML builder (CDN yok, `ensure_patched_plotly_js()`).
+- **Sidebar entegrasyonu:** `PAGE_FINANCIALS=11`, `PAGE_COUNT=12`, `page_factory.py` index 11, `_build_sidebar_nav` güncellendi.
+- **L10N:** 7 yeni giriş — `BILANCO_VE_FINANSALLAR`, `FINANSALLAR_*`.
+- **Testler:** 16 yeni test; `test_container_services.py` mock güncellendi.
+- Doğrulama: yeni 22 test yeşil; pre-existing 2 hata değişmedi.
+- Bağlantılı sayfa: [service_analysis.md](service_analysis.md)
+
+## [2026-06-14] refaktor | Faz 2+3 tamamlandı; src fonksiyon satır ihlalleri giderildi; violations=134→109 (src:115→90)
+
+- Faz 2 (UI _init_ui döngüsü, 12 fonksiyon): peer_card, appearance_panel, goal_input_dialog, goals_panel, corporate_action_candidates_panel, date_range_dialog, action_list_item, model_panel, trade_dialog, main_window — modül düzeyi builder'lara bölündü.
+- Faz 3 (application servisleri + UI handler'lar, 14 fonksiyon): corporate_action_service._apply_bedelli/_apply_bedelsiz → _record_and_update_trade; price_adjustment_service → _find_price_transition_date + _determine_adjust_before_date; portfolio_series_builder._run_simulation_loop → _advance_twr_index; dashboard_corporate_action_actions → _register_action, _on_ca_backfill_success/_error; model_portfolio_ui_builder.build_ui → _build_action_buttons; ai_helper → _collect_table_rows, _build_commentary_prompt, _build_ai_panel_title_row, _build_ai_browser_widget; xai_card → _build_factor_header_row; stock_chart_widget → _draw_price_series, _draw_reference_lines; analysis_comparison_section → _build_mode_selector_panel; performance_card → _build_metric_row; chatbot_panel → _build_prompt_data_sections; risk_profile_page → _build_survey_header_row, _build_survey_btn_row; comparison_data_manager → _start_comparison_worker; price_data_report → _build_problematic_html.
+- Kalan 90 src ihlali: fonksiyon_satır ihlali ≈0 (parse_kap_mkk_disclosure tam sınırda=50); **cyclomatic complexity ihlali 49** + **parametre sayısı ihlali 44** — farklı refactor türü.
+- Doğrulama: 582 test geçti, 2 pre-existing hata değişmedi.
+- Bağlantılı sayfa: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
+
+## [2026-06-14] refaktor | UI sınıf ihlalleri giderildi; violating_classes=4→1
+
+- `WatchlistPage._load_stocks` içindeki aksiyon buton bloğu `_make_stock_action_cell()` modül fonksiyonuna taşındı.
+- `NewStockTradeDialog._init_page1` ve `_init_page2` widget oluşturma bloklarının tamamı `_build_page1_widgets()` ve `_build_page2_widgets()` modül fonksiyonlarına taşındı.
+- `StockDetailPage._build_left_scroll_area`, `_build_history_table`, `_build_corp_actions_table` modül düzeyine taşındı; `_build_header` içeriği `_build_header_widgets(back_cb)` modül fonksiyonuna çıkarıldı.
+- Önceki oturumda: `SAModelPortfolioRepository`, `CurrencySpinBox`, `NewStockTradeDialog`, `ChatbotPanel` sınıf metod sayısı ve satır eşikleri düşürüldü.
+- Baseline güncellendi: **sınıf ihlali 4→1** (`L10N` belgeli istisna); fonksiyon/metot ihlali `134`.
+- Doğrulama: `tests -q` → 612/612 passed.
+- Etkilenen dosyalar: `src/ui/pages/watchlist_page.py`, `src/ui/widgets/dashboard/dialogs/new_stock_trade_dialog.py`, `src/ui/pages/stock_detail/stock_detail_page.py`, `docs/wiki/code_quality_baseline_2026-06-13.md`, `docs/wiki/refactor_handoff_2026-06-13.md`.
+- Bağlantılı sayfa: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
+
+## [2026-06-13] refaktor | Application Faz 1 servis eşik azaltımı
+
+- `ModelPortfolioService` public facade API'si korunarak method-count ihlali kaldırıldı.
+- `OptimizationService._optimize` fiyat geçmişi doğrulama, return model, ağırlık optimizasyonu ve öneri üretimi helper'larına ayrıldı; `_optimize` eşik altına indirildi.
+- Baseline yeniden üretildi: sınıf ihlali `9`, fonksiyon/metot ihlali `153`, sağlık raporu crosswalk `84/84`.
+- Doğrulama: hedefli application testleri geçti; final test kapısı commit öncesi çalıştırılacak.
+- Etkilenen dosyalar: `src/application/services/planning/model_portfolio_service.py`, `src/application/services/planning/optimization_service.py`, `docs/wiki/code_quality_baseline_2026-06-13.md`, `docs/wiki/code_quality_baseline_2026-06-13.json`, `docs/wiki/refactor_handoff_2026-06-13.md`.
+- Bağlantılı sayfa: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
+
+## [2026-06-13] yeni-sayfa | Refactor handoff ve devam notu
+
+- Sağlık baseline refactorunun amacı, tamamlanan commitleri, kalan fazları, dirty worktree uyarılarını ve devam komutlarını tek sayfada toplandı.
+- Application Faz 1 için hedefler ve kabul kriterleri başka bir ajan tarafından sürdürülebilecek şekilde kaydedildi.
+- Etkilenen dosyalar: `docs/wiki/refactor_handoff_2026-06-13.md`, `docs/wiki/index.md`, `docs/wiki/Plans.md`, `docs/wiki/log.md`.
+- Bağlantılı sayfa: [refactor_handoff_2026-06-13.md](refactor_handoff_2026-06-13.md)
+
+## [2026-06-13] refaktor | İlk kalite baseline refactor dilimi
+
+- `ModelPortfolioTradeService` içindeki builder, sıralama ve zaman filtresi helper'ları sınıf dışına taşındı; sınıf `299 effective satır / 20 metot` ile eşik altına indi.
+- `ChartRenderer` figure üretimi ve dosya adı helper'ları sınıf dışına taşındı; sınıf `299 effective satır / 19 metot` ile UI whitelist'inden çıkarıldı.
+- Doğrulama: `tests/application -q` -> 188 passed; `tests/ui/pages/test_comparison_page.py -q` -> 24 passed; `tests/ui/test_refactor_guards.py -q` -> 8 passed; `tests -q` -> 612 passed.
+- Etkilenen dosyalar: `src/application/services/planning/model_portfolio_trade_service.py`, `src/ui/pages/comparison/utils/chart_renderer.py`, `tests/ui/test_refactor_guards.py`.
+- Bağlantılı sayfa: [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md)
+
+## [2026-06-13] yeni-sayfa | Kod kalitesi guardrail rehberi
+
+- Sağlık raporu sonrası kalıcı eşikler, istisna protokolü, UI page/component standardı ve application service facade standardı belgelendi.
+- Yeni ölçüm çıktıları ve refactor öncesi kontrol akışı rehbere bağlandı.
+- Etkilenen dosyalar: `docs/wiki/code_quality_guardrails.md`, `docs/wiki/index.md`, `docs/wiki/architecture.md`, `docs/wiki/testing_strategy.md`, `docs/wiki/Plans.md`.
+- Bağlantılı sayfa: [code_quality_guardrails.md](code_quality_guardrails.md)
+
+## [2026-06-13] guncelleme | Sağlık raporu ölçüm baseline'ı
+
+- `scripts/measure_code_quality.py` ile yorum, boş satır ve docstring ayrıştırmalı kod kalitesi ölçümü üretildi.
+- Baseline JSON ve Markdown raporları `code_quality_baseline_2026-06-13` adıyla wiki'ye kaydedildi.
+- Sağlık HTML'i tek karar kaynağı olmaktan çıkarıldı; HTML path'leri yeni ölçüm raporuyla crosswalk edildi.
+- Etkilenen dosyalar: `scripts/measure_code_quality.py`, `tests/test_code_quality_measurement.py`, `docs/wiki/code_quality_baseline_2026-06-13.md`, `docs/wiki/code_quality_baseline_2026-06-13.json`.
+- Bağlantılı sayfa: [code_quality_baseline_2026-06-13.md](code_quality_baseline_2026-06-13.md)
+
+## [2026-06-13] duzeltme | Toast kapatma ikonu ve tema kontrasti
+
+- Toast kapatma kontrolu metin tabanli `x` yerine IconManager uzerinden uretilen tema-duyarli SVG `x` ikonuna tasindi.
+- `TOAST_CLOSE_ICON` ve `TOAST_CLOSE_HOVER_BG` tokenlari eklendi; dark/light toast zeminlerinde kapatma ikon kontrasti testle korunur.
+- Parent argumani eksik Toast API cagrisini yakalayan AST guard eklendi; Finansal Planlama'daki eksik parent cagrisi duzeltildi.
+- Dogrulama: `python -m pytest tests -q -p no:cacheprovider` -> 537 passed.
+- Etkilenen dosyalar: `src/ui/widgets/shared/feedback/toast.py`, `src/ui/styles/`, `src/ui/assets/icons/x.svg`, `tests/ui/`.
+
+## [2026-06-13] duzeltme | Analiz async lifecycle ve WebEngine lazy init
+
+- PySide6 sonrasi Analiz sayfasinda payload render edilmesine ragmen `Analiz Hesaplaniyor...` butonunun acik kalmasi, Worker cleanup ve sayfa request-id tamamlama akisi ile kapatildi.
+- `Worker` aktif referansi artik `finished` sinyali dis dinleyicilere teslim edildikten sonra internal cleanup sinyaliyle birakilir; QThreadPool event-loop regresyon testleri eklendi.
+- Analiz sayfasi ilk acilista yalniz overview+risk payload ister; eski `get_page_payload()` kontrati korunur, UI icin `get_overview_risk_payload()` kullanilir.
+- Risk tabindaki Plotly/WebEngine view'lari sayfa kurulumunda degil, kullanici `Dagilim & Risk` tabina gecince lazy olusturulur; ilk Analiz girisindeki odak/sicrama maliyeti azaltildi.
+- Dogrulama: `python -m pytest tests -q -p no:cacheprovider` -> 531 passed.
+- Etkilenen dosyalar: `src/ui/worker.py`, `src/ui/pages/analysis/`, `src/application/services/analysis/analysis_service.py`, `tests/ui/`, `tests/application/test_analysis_service.py`.
+
+## [2026-06-12] duzeltme | PySide6 sonrasi UI etkileşim ve tema regresyonları
+
+- Karşılaştırma WebEngine grafiklerinde mouse wheel artık event tekrar gönderimi yerine doğrudan sayfa scroll bar'ını hareket ettirir; grafik üzerindeyken sayfa scroll davranışı geri getirildi.
+- `SilentWebEngineView` focus almayacak şekilde ayarlandı; analiz/karşılaştırma grafik yüklenirken ana pencere odağının zıplaması azaltıldı.
+- Analiz dağılım grafiklerinde Plotly metin rengi Qt palette yerine aktif tema tokenlarından alınır; koyu temada legend ve başlıklar okunur.
+- Dialoglarda `WindowCloseButtonHint` açıkça korunur; context help butonu kaldırılırken X ile kapatma davranışı bozulmaz.
+- Global QSS kök fontu pixel-size yerine `10pt` olarak tanımlandı; Qt/pyqtgraph tarafındaki `QFont::setPointSize <= 0` uyarısı hedeflendi.
+- Doğrulama: `python -m pytest tests -q -p no:cacheprovider` -> 522 passed.
+- Etkilenen dosyalar: `src/ui/pages/comparison/widgets/chart_panels.py`, `src/ui/widgets/shared/controls/silent_web_view.py`, `src/ui/pages/analysis/`, `src/ui/widgets/**/dialogs/`, `src/ui/styles/themes/`, `tests/ui/`.
+
+## [2026-06-12] duzeltme | PySide6 sonrasi Windows DPI buyumesi normalize edildi
+
+- PySide6/Qt6'nin Windows 125% ekran olcegini otomatik uygulamasi nedeniyle sayfa icerikleri, sidebar ve sabit px tabanli QSS metrikleri buyuyordu.
+- `src/qt_compat/scaling.py` eklendi; `QApplication` olusmadan once Windows scale percent okunup 100% ustunde ters `QT_SCALE_FACTOR` uygulanir.
+- Bu makinede duz PySide6 `dpr=1.25`, `geom=1536x864`; app baslangic normalizasyonu sonrasi `QT_SCALE_FACTOR=0.8`, `dpr=1.0`, `geom=1920x1080` olarak dogrulandi.
+- Acil durum kapatma anahtari: `PORTFOYSIM_DISABLE_QT_SCALE_NORMALIZATION=1`; elle override icin mevcut `QT_SCALE_FACTOR` korunur.
+- Etkilenen dosyalar: `app.py`, `src/qt_compat/scaling.py`, `tests/ui/test_qt_scale_normalization.py`, `docs/wiki/ui_architecture_and_events.md`, `docs/wiki/log.md`.
+
+## [2026-06-12] refaktor | PySide6 göçü ve Qt compat katmanı uygulandı
+
+- `src/qt_compat/` paketi eklendi; QtCore/QtGui/QtWidgets/QtSvg/QtWebEngine/QtTest re-exportları ve `shiboken6.isValid` tabanlı lifecycle helper merkezi hale getirildi.
+- Üretim ve test importları PyQt5/PyQtWebEngine/sip yüzeyinden compat katmanına taşındı; `pyqtSignal/pyqtSlot`, `exec_()` ve `sip.isdeleted` kalıntıları temizlendi.
+- WebEngine download akışı Qt6 API'sine geçirildi: `setDownloadDirectory`, `setDownloadFileName`, `accept`.
+- PySide6 runtime farkları kapatıldı: `QDate.toPyDate`, `QTime.toPyTime`, eski enum alias'ları, `QVariant` yerine `None`, Qt6 `QWheelEvent` test fixture'ı ve QRunnable worker yaşam süresi.
+- Dependency pinleri güncellendi: `PySide6==6.11.1`; `PyQt5` ve `PyQtWebEngine` kaldırıldı.
+- Doğrulama: `python -m pytest tests` -> 517 passed; `pip check` -> temiz; `rg "PyQt5|PyQtWebEngine|pyqtSignal|pyqtSlot|import sip|sip\.isdeleted|exec_\(" app.py src tests` -> temiz.
+- Etkilenen ana yüzeyler: `src/qt_compat/`, `app.py`, `src/ui/**`, `tests/**`, `requirements.txt`, `docs/wiki/*`.
+
+## [2026-06-12] yeni-sayfa | PySide6 göç analizi ve faz planı
+
+- PyQt5 -> PySide6 geçişi için kod tabanı katmanlara ve UI alt parçalarına bölünerek analiz edildi.
+- PyQt5 import yüzeyi, `pyqtSignal`, `QThreadPool`, `QSettings`, `sip`, `exec_`, WebEngine/Plotly ve QSS riskleri belgelendi.
+- Önerilen göç modeli `compat-first, page-by-page` olarak kaydedildi; test, WebEngine ve Nuitka kabul kriterleri eklendi.
+- Etkilenen dosyalar: `docs/wiki/pyside6_migration_analysis.md`, `docs/wiki/index.md`, `docs/wiki/log.md`
+- Bağlantılı sayfa: [pyside6_migration_analysis.md](pyside6_migration_analysis.md)
+
 ## [2026-06-06] iyilestirme | Stock Detail grafik UX (TR aylar, crosshair, sembol Y-ekseni)
 
 - `StockChartWidget` (`pyqtgraph`) tamamen Turkce lokal: X-ekseni TR ay kisaltmalari (`"15 Oca"`), Y-ekseni `₺ 1.234,56` formati.

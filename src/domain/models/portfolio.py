@@ -105,21 +105,3 @@ class Portfolio:
         return total
 
     # --------- UI için basit özet/dto çıkarma --------- #
-
-    def to_summary_dict(
-        self, price_map: Mapping[int, Decimal]
-    ) -> Dict[str, Decimal]:
-        """
-        UI veya servis katmanı için basit bir özet sözlük.
-        """
-        total_cost = self.total_cost()
-        total_value = self.total_market_value(price_map)
-        total_unrealized = self.total_unrealized_pl(price_map)
-        total_realized = self.total_realized_pl()
-
-        return {
-            "total_cost": total_cost,
-            "total_value": total_value,
-            "total_unrealized_pl": total_unrealized,
-            "total_realized_pl": total_realized,
-        }

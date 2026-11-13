@@ -3,11 +3,73 @@ name: Tests
 on:
   push:
   pull_request:
+  schedule:
+    # Haftalık: yeni yayımlanan açıklar için bağımlılık güvenlik taraması
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: windows-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python-version: "3.10"
+            experimental: false
+          - python-version: "3.11"
+            experimental: false
+          # 3.12 henüz desteklenen sürüm değil; uyumsuzluk erken görünsün, birleştirmeyi engellemesin
+          - python-version: "3.12"
+            experimental: true
+    env:
+      QT_QPA_PLATFORM: offscreen
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt -c constraints.txt
+
+      # Runner'a önceden kurulu pipx kendi bağımlılık uyarısını verebilir (3.12 imajı); yalnızca diğer satırlar hatadır.
+      - name: Check installed packages
+        run: |
+          $report = python -m pip check
+          $problems = $report | Where-Object { $_ -notmatch '^(No broken requirements|pipx )' }
+          if ($problems) { $problems; exit 1 }
+          exit 0  # aksi halde pwsh, pip check'in (yok sayılan pipx satırı yüzünden) 1 olan çıkış kodunu devralır
+
+      - name: Collect tests
+        run: python -m pytest --collect-only -q
+
+      # Kapsam tabanı 2026-10-04'te %84 (src + config); eşik, tabanın birkaç puan altındadır.
+      - name: Run tests with coverage
+        run: python -m pytest tests -q --cov=src --cov=config --cov-report=term --cov-report=xml --cov-fail-under=80
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  quality:
+    name: Code quality gate
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,16 +79,34 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      # Mevcut teknik borç tavan kabul edilir (docs/wiki/code_quality_guardrails.md); yeni eşik ihlali eklenemez.
+      # Borç azaldıkça tavanları aşağı çekin.
+      - name: Measure code quality ceilings
+        run: >
+          python scripts/measure_code_quality.py
+          --output-dir "${{ runner.temp }}/code-quality"
+          --max-class-violations 0
+          --max-function-violations 72
+          --max-file-violations 4
+
+  security:
+    name: Dependency audit
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies and audit tools
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r requirements.txt -c constraints.txt pip-audit
 
-      - name: Check installed packages
-        run: python -m pip check
-
-      - name: Collect tests
-        run: python -m pytest --collect-only -q
-
-      - name: Run tests
-        run: python -m pytest tests -q
+      # Kurulu ortamın tamamını (geçişli bağımlılıklar dahil) bilinen açıklara karşı tarar
+      - name: Audit installed packages
+        run: python -m pip_audit

@@ -1,54 +1,92 @@
-# Analiz ve Benchmark Servisleri
+# Analiz, Risk Metrikleri ve Benchmark Servisleri
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Karşılaştırma ekranı: [comparison_lab.md](comparison_lab.md)
 
-Bu belge, `src/application/services/analysis` dizinindeki özellikleri detaylandırır.
+Kod: `src/application/services/analysis/`. Bu sayfa portföy analizinin servis katmanını (kaynak çözümleme, seri üretimi, getiri ve risk metrikleri, benchmark) anlatır. Teknik göstergeler için [technical_analysis_and_screener.md](technical_analysis_and_screener.md), tek hisse analizi için [stock_360.md](stock_360.md).
 
-## 1. Analiz Servisi (`AnalysisService`)
+## 1. Servis Haritası
 
-Bu servis, tek bir varlığın veya tüm portföyün risk, getiri ve benchmark'a göre performansını analiz eden genel merkezdir.
-Bileşenleri:
-- `ComparisonService`: Çoklu varlıkların ve rasyoların karşılaştırılmasını üstlenir. 
-- `ReturnCalcService`: Zaman serisi bazında mutlak ve oransal getiri hesaplamalarını yapar.
-- `RiskMetrics`: Sharpe rasyosu, volatilite, maksimum düşüş (Max Drawdown) gibi gelişmiş finansal metrikleri hesaplar.
+| Servis | Görev |
+|---|---|
+| `AnalysisService` | Ana orkestratör: seçenekler, genel bakış, karşılaştırma, dağılım/risk görünümü. |
+| `PortfolioAnalyticsService` | `AnalysisService`'e delege eden facade; ek olarak `get_chart_panels()` ve `get_extended_risk_metrics()` sunar. |
+| `AnalysisSourceResolver` | Analiz kaynağını çözer: `dashboard` (ana portföy), `unified` (Tüm Varlıklar), `model:<id>` (model portföy); portföy seçenekleri, kaynak işlemleri, ilk işlem tarihi, hisse haritası. |
+| `UnifiedSeriesBuilder` | `unified` kaynağın günlük TL değer ve TWR serisi (BIST + varlık defteri + TL/USD nakit havuzu); bitiş günü pozisyon özeti (aşağıya bakın). |
+| `AnalysisBundleBuilder` | Bir filtre için işlemleri, nakit hareketlerini, fiyat serilerini ve portföy serisini tek pakette toplar (aynı veriyi birden çok görünüm için yeniden okumamak için). |
+| `PortfolioSeriesBuilder` | Günlük portföy değer serisi ve zaman ağırlıklı getiri (TWR) serisi (aşağıya bakın). |
+| `ComparisonPortfolioSeriesBuilder`, `comparison_chart_series` | Karşılaştırma için portföy ve hisse serilerini üretir (`ComparisonSeriesBuilder.build_global_series`). |
+| `ComparisonService` | Saf pandas hesapları: seri hizalama, rasyo, drawdown, dönemsel getiri, risk/getiri. |
+| `AnalysisBenchmarkService` | Benchmark serileri (aşağıya bakın). |
+| `CurrencyConversionService` | Seriyi TL, USD veya reel (TÜFE'den arındırılmış) cinse çevirir. |
+| `ReturnCalcService` | Belirli tarihte portföy değeri, iki tarih arası, haftalık ve aylık getiri ([service_portfolio_and_market.md](service_portfolio_and_market.md)). |
+| `risk_metrics.py` | Saf risk/getiri metrik fonksiyonları. |
 
-## 2. Benchmark Mantığı ve Fallback
+Filtre durumu `AnalysisFilterState`: başlangıç/bitiş tarihi, seçili hisseler, seçili benchmark'lar, `portfolio_source`, `comparison_portfolio_sources`, `currency_mode` (`TL`, `USD`, `REAL`).
 
-Kullanıcının portföy performansının iyi olup olmadığını anlaması için bir kıyaslama (benchmark) gerekir.
-Desteklenen benchmark türleri:
-- **Döviz / Altın:** Piyasa verisi (YFinance vb.) kullanılarak `BenchmarkService` üzerinden hesaplanır.
-- **Mevduat (Risk-Free Rate):** Sabit getiri hesaplaması gerektirir. 
+## 2. Portföy Serisi ve TWR
 
-### Fallback Kaynaklar (TCMB)
-Analiz motoru, internet kesintisi veya YFinance verisinin geç gelmesi durumunda bir fallback mekanizmasına sahiptir. Mevduat ve faiz verisi için çevresel değişkenlerden (örneğin `.env` dosyasındaki `TCMB_DEPOSIT_RATE_FALLBACK=45.0`) veri çekilir ve kullanılır.
+`PortfolioSeriesBuilder.compute_portfolio_series` her takvim günü için portföy değerini (nakit + pozisyonların son bilinen fiyatla değeri) ve TWR endeksini (başlangıç 100) üretir:
 
-## 3. Comparison Lab (Karşılaştırma Laboratuvarı)
+- Nakit takibi varsa (nakit hareketi bulunan portföy) yalnızca **dış sermaye akışı** (yatırma/çekme) akış sayılır; alım/satım içeride kalır. Nakit takibi yoksa alım tutarı giriş, satış tutarı çıkış akışı sayılır.
+- Gün getirisi: `(bugünkü değer - (dünkü değer + akış)) / (dünkü değer + akış)`; endeks bu getirilerle zincirlenir. Akış gün başında kabul edilir. Serinin ilk gününde önceki değer yoktur; o gün giren sermaye taban alınır (alım fiyatından kapanışa getiri sayılır).
+- **Bilinen yaklaşım:** nakit takibi yokken gün içinde alınan yeni lotun tutarı o günün tabanına girer; aynı gün öncesinden tutulan pozisyonların getirisi bu yüzden sulanır (ör. 1000 TL'lik pozisyon %10 artarken aynı gün 1100 TL'lik alım: gün getirisi %10 yerine 2200/2100 = %4,76). Alım saati bilinmediğinden doğru alt dönem ayrımı yapılamaz; nakit takibi olan ana portföy etkilenmez (alım nakitten hisseye geçiştir, akış değildir).
+- **Temettü** nakde girer ama akış sayılmaz; bu yüzden TWR temettü kadar yükselir. Aynı tutarda yatırma getiri üretmez ([service_corporate_actions.md](service_corporate_actions.md)).
+- Eksik fiyatlı günlerde son bilinen fiyat taşınır; hiç fiyatı olmayan açık pozisyon için uyarı üretilir. Model portföyler ve hisse filtreli görünümlerde nakit takibi kapalıdır.
 
-Gelişmiş bir veri motoru olarak çalışan `ComparisonService`, UI katmanındaki Plotly grafikleriyle doğrudan haberleşir. Detaylı teknik özellikleri için `docs/wiki/comparison_lab.md` ve `analizSayfasi` belgelerine başvurulabilir.
+## 3. Risk ve Getiri Metrikleri (`risk_metrics.py`)
 
-```mermaid
-graph LR
-    A[Portföy Zaman Serisi] --> C[RiskMetrics]
-    B[Benchmark Zaman Serisi] --> C
-    C --> D[Sharpe Rasyosu]
-    C --> E[Max Drawdown]
-    C --> F[Volatilite]
-```
-## Faz 2 Notu (2026-06-02)
+Girdi: `Dict[date, Decimal]` seri; çıktı: `Optional[float]`.
 
-- `AnalysisBenchmarkService` EVDS concrete client yerine `EvdsSeriesProvider` protocol'üne bağlıdır; production `EvdsClient` container üzerinden structural provider olarak verilir.
-- `AnalysisService` artık domain `Position` nesnelerine `_analysis_current_value` runtime attribute'u eklemez; current value bilgisi bundle içindeki `position_values_end` snapshot map'iyle taşınır.
-- Currency conversion ve benchmark fallback davranışı mevcut public DTO sözleşmesi korunarak test edilmiştir.
+| Grup | Metrikler |
+|---|---|
+| Getiri | `compute_return_pct`, `compute_relative_gap_pct`, günlük getiri vektörü |
+| Risk | Yıllık volatilite, maksimum drawdown (`compute_max_drawdown_pct`), VaR (%95/%99, tarihsel), CVaR / Expected Shortfall |
+| Risk ayarlı | Sharpe, Sortino, Calmar, Omega |
+| Piyasa ilişkisi | Beta, Alpha, R-kare, izleme hatası (tracking error) |
+| Dönemsellik | `compute_monthly_returns_matrix` (yıl -> ay -> getiri %) |
+| Dağılım | `get_concentration_label`, `compute_position_snapshot` (ilk üç pozisyon ağırlığı, katkı) |
 
-## Faz 2D Notu (2026-06-02)
+`PortfolioAnalyticsService.get_extended_risk_metrics()` (Sortino, Calmar, Omega, VaR, CVaR, R-kare, izleme hatası, aylık ısı haritası) ve `get_chart_panels()` (drawdown, dönemsel getiri, risk/getiri ham verisi) hazırdır ancak şu an QML arayüzüne bağlı değildir; Karşılaştırma ekranı kendi hesaplarını `ComparisonService` ile yapar. Yapay zekâ danışmanı `get_overview` ve `get_allocation_risk_view` çıktılarını kullanır.
 
-- `AnalysisService` orchestration servisi olarak kalır; bundle kurma `AnalysisBundleBuilder`, TL/USD/REAL dönüşümü `CurrencyConversionService`, karşılaştırma portföy serileri `ComparisonPortfolioSeriesBuilder` tarafından yapılır.
-- Benchmark EVDS parsing yardımcı metodlara ayrıldı; veri akışı hatalarında broad exception noktaları log + empty series fallback contract olarak korunur.
-- Public DTO shape ve UI-facing payload anahtarları değişmedi.
+## 4. Karşılaştırma Hesapları (`ComparisonService`)
 
-## Aktif Kapsam ve Nakit Dahil Toplam Deger Notu (2026-06-03)
+1. `align_financial_series`: farklı tatil günlü varlıkları ortak tarih indeksinde dış birleştirme ve ileri doldurma (`ffill`) ile hizalar.
+2. `calculate_asset_ratio`: `A / B` rasyosu, sıfıra bölme ve `NaN/inf` korumalı.
+3. `calculate_drawdowns`: `DD = (fiyat - tarihsel zirve) / tarihsel zirve * 100`.
+4. `calculate_risk_return_metrics`: günlük getiri standart sapmasından yıllık volatilite (`σ_daily * sqrt(252) * 100`) ve dönem toplam getirisi.
+5. `calculate_periodic_returns`: aylık (`ME`) veya yıllık (`YE`) net getiri yüzdeleri.
 
-- Analiz kaynak secimi ve hisse filtreleri event-sourced net acik pozisyon kapsamindan uretilir; tamamen satilmis hisseler otomatik filtre/holdings listesine girmez.
-- Tarihsel portfoy serisi kapatilmis islemleri silmez; cash replay icin tum ilgili trade'ler korunur, fiyat uyarilari ise yalniz analiz araliginda degerleme gereken hisseler icin uretilir.
-- Ana portfoy `Toplam Portfoy Degeri` nakit bakiye + acik pozisyon piyasa degeri olarak hesaplanir.
-- Silinmis model portfoy secimi stale kalirsa analiz kaynagi dashboard'a normalize edilir ve karsilastirma serisi olarak tekrar eklenmez.
+## 5. Benchmark Kaynakları
+
+| Kod | Tanım | Kaynak |
+|---|---|---|
+| `bist100` | BIST 100 | yfinance `XU100.IS` |
+| `gold` / `silver` | Gram altın / gümüş (TL) | yfinance `XAUTRY=X` / `XAGTRY=X` |
+| `usd` / `euro` | USD/TRY, EUR/TRY | yfinance `TRY=X` / `EURTRY=X` |
+| `deposit` | Mevduat faizi | TCMB EVDS `TP.KTF10`; erişilemezse `TCMB_DEPOSIT_RATE_FALLBACK` |
+| `cpi` | TÜFE | TCMB EVDS `TP.FG.J0` |
+
+Yedek kazıma kaynakları (countryeconomy, exchange-rates.org, macrotrends) ve ağ davranışı için bkz. [service_market_data_providers.md](service_market_data_providers.md).
+
+### Birleşik (Tüm Varlıklar) Seri
+
+`UnifiedSeriesBuilder.build(başlangıç, bitiş)` olay kaynaklıdır: gerçek nakit hareketleri, döviz çevirmeleri, BIST işlemleri ve varlık işlemleri tarih/saat sırasıyla uygulanır; her gün sonunda toplam TL değer = TL nakit + USD nakit x USDTRY + BIST pozisyonları + varlık pozisyonları.
+
+- **Dış akış** yalnızca gerçek nakit yatırma/çekme ve **nakde bağlı olmayan eski varlık işlemleridir** (alım giriş, satım çıkış; TL tutarı işlem kuruyla). Döviz çevirme, nakde bağlı varlık işlemi ve BIST alım/satımı havuz içidir, akış değildir. Kur hareketi (USD nakit, USD fiyatlı varlık) getiridir.
+- Hiç gerçek nakit hareketi yoksa nakit izlenmez ve tüm işlemler (BIST ve varlık) dış akış sayılır (BIST'e özel serideki davranışla aynı).
+- Kıymetli maden gram TL fiyatı `ons / 31,1035 x USDTRY` (gün gün kur); varlık fiyatı ya da kuru yoksa son işlem TL fiyatı kullanılır ve uyarı üretilir (sahte düşüş olmaz). Kur günlere ileri taşınır.
+- Bitiş günü pozisyon özeti BIST ve varlıkları ağırlık/getiri ile verir (nakit hariç); `AnalysisService.position_snapshot(bundle)` BIST'te `Portfolio`'dan, birleşikte hazır listeden okur. `AnalysisBundleBuilder` birleşik kaynakta `UnifiedSeriesBuilder` kullanır, para birimi modu ve benchmark dönüşümü ortaktır. Karşılaştırmada `unified` ikinci portföy serisi olarak da seçilebilir; hisse filtresi yalnızca BIST hisselerine uygulanır.
+- `UnifiedReturnService.returns(bugün)` aynı seriden haftalık (7 gün) ve aylık (30 gün) getiriyi TWR endeks oranı olarak verir (Portföyüm kartları; `DashboardController` bunu kullanır). Portföy dönem içinde başladıysa getiri ilk değerli günden hesaplanır; dönemde tek değerli gün ya da hiç değer yoksa `None` (kartta `-`).
+- Havuz görünümü (`PooledCashMovementRepository`) bu seriye verilmez; gerçek hareketler verilir. Aksi halde TL ile ödenen varlık alımı yapay çekme sayılırdı.
+
+## 6. Veri Kapsamı Kuralları
+
+- Analiz kaynağı net açık pozisyonlardan üretilir; tamamen satılmış hisseler otomatik filtre/dağılım listesine girmez, ancak satış nakdi ve kapatılmış işlemler seriye dahil kalır (nakit yeniden oynatımı için tüm ilgili işlemler korunur).
+- Ana portföyün toplam değeri: nakit bakiye + açık pozisyon piyasa değeri.
+- Silinmiş model portföy seçimi kalırsa kaynak `dashboard`'a normalize edilir.
+- Fiyat uyarıları yalnızca analiz aralığında değerleme gerektiren hisseler için üretilir.
+- Tarihsel seri `daily_prices` kapanışını kullanır; canlı fiyat tarihsel analize karışmaz.
+
+## 7. Testler
+
+`tests/application/test_analysis_service.py`, `tests/application/services/analysis/test_risk_metrics.py`, `tests/application/services/test_comparison_service.py`, `tests/application/test_return_calc_service.py`, `tests/application/test_dividend_cash_flow.py` (TWR ve temettü), `tests/application/test_twr_scenarios.py` (elle hesaplanmış TWR senaryoları: ilk gün, yatırma/çekme, karma nakit, satış, temettü, nakit takibi olmadan alım), `tests/application/test_unified_series_builder.py` (birleşik seri: dış akış kuralları, döviz, nakde bağlı/eski varlık, gram altın, pozisyon özeti, AnalysisService entegrasyonu).

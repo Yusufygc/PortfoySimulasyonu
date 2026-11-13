@@ -43,14 +43,6 @@ class PortfolioService:
     def get_valid_trades(self, as_of: date | tuple[date, dt_time | None] | None = None) -> List[Trade]:
         return self.get_portfolio_health(as_of=as_of).valid_trades
 
-    def get_portfolio_with_prices_for_date(
-        self,
-        value_date: date,
-    ) -> Tuple[Portfolio, Dict[int, Decimal]]:
-        portfolio = self.get_current_portfolio()
-        price_map = self._price_repo.get_prices_for_date(value_date)
-        return portfolio, price_map
-
     def add_trade(self, trade: Trade) -> Trade:
         return self._portfolio_repo.insert_trade(trade)
 
@@ -63,13 +55,21 @@ class PortfolioService:
     def get_cash_balance(self, as_of: date | tuple[date, dt_time | None] | None = None) -> Decimal:
         balance = Decimal("0")
         for _event_date, _event_time, _event_order, _event_id, event_type, amount in self._cash_events_until(as_of):
-            if event_type in (CashMovementType.DEPOSIT, TradeSide.SELL):
+            if event_type == TradeSide.SELL or (isinstance(event_type, CashMovementType) and event_type.adds_cash):
                 balance += amount
             else:
                 balance -= amount
                 if balance < 0:
                     balance = Decimal("0")
         return balance
+
+    def validate_cash_removal(self, movement_id: int) -> None:
+        """Nakit girişini silmek sonraki işlemleri geçersiz kılıyorsa ValueError fırlatır."""
+        PortfolioTimelineValidator.validate_cash_removal(
+            trades=self.get_valid_trades(),
+            cash_movements=self._cash_movement_events_until(),
+            removed_id=movement_id,
+        )
 
     def validate_trade(self, trade: Trade) -> None:
         if trade.quantity <= 0:
@@ -80,9 +80,9 @@ class PortfolioService:
         as_of = (trade.trade_date, trade.trade_time)
         if trade.side == TradeSide.BUY:
             cash_balance = self.get_cash_balance(as_of=as_of)
-            if trade.total_amount > cash_balance:
+            if trade.cash_amount > cash_balance:
                 raise ValueError(
-                    f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash_balance:.2f} TL"
+                    f"Yetersiz nakit. Gerekli: {trade.cash_amount:.2f} TL, Mevcut: {cash_balance:.2f} TL"
                 )
             PortfolioTimelineValidator.validate_candidate_timeline(
                 candidate=trade,
@@ -116,10 +116,6 @@ class PortfolioService:
         position = portfolio.positions.get(stock_id)
         return position.total_quantity if position else 0
 
-    def get_active_stock_ids(self) -> list[int]:
-        portfolio = self.get_current_portfolio()
-        return sorted(portfolio.active_positions)
-
     def get_all_trades(self) -> List[Trade]:
         return self._portfolio_repo.get_all_trades()
 
@@ -137,17 +133,6 @@ class PortfolioService:
         max_key = (as_date, as_time or dt_time.max, float("inf"))
         return [trade for trade in trades if trade_sort_key(trade) <= max_key]
 
-    def _cash_movements_balance(self, as_of: date | tuple[date, dt_time | None] | None = None) -> Decimal:
-        balance = Decimal("0")
-        for _event_date, _event_time, _event_order, _event_id, event_type, amount in self._cash_movement_events_until(as_of):
-            if event_type == CashMovementType.DEPOSIT:
-                balance += amount
-            else:
-                balance -= amount
-                if balance < 0:
-                    balance = Decimal("0")
-        return balance
-
     def _cash_events_until(
         self,
         as_of: date | tuple[date, dt_time | None] | None = None,
@@ -161,7 +146,7 @@ class PortfolioService:
                     20,
                     int(trade.id or 0),
                     trade.side,
-                    trade.total_amount,
+                    trade.cash_amount,
                 )
             )
         return sorted(events, key=lambda event: (event[0], event[1], event[2], event[3]))
@@ -182,7 +167,7 @@ class PortfolioService:
 
         events: list[tuple[date, dt_time, int, int, object, Decimal]] = []
         for movement in movements:
-            event_order = 0 if movement.type == CashMovementType.DEPOSIT else 30
+            event_order = 0 if movement.type.adds_cash else 30
             events.append(
                 (
                     movement.movement_date,

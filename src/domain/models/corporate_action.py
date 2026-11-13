@@ -6,12 +6,29 @@ from datetime import date
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
+from typing import NamedTuple, Optional
 
 
 class ActionType(str, Enum):
     BEDELLI = "BEDELLI"
     BEDELSIZ = "BEDELSIZ"
+
+
+class BedelliSpec(NamedTuple):
+    stock_id: int
+    ex_date: date
+    ratio: Decimal
+    subscription_price: Decimal
+    announcement_date: Optional[date] = None
+    notes: Optional[str] = None
+
+
+def _validate_subscription_price(action_type: "ActionType", subscription_price: "Optional[Decimal]") -> None:
+    if action_type == ActionType.BEDELLI:
+        if subscription_price is None or subscription_price <= 0:
+            raise ValueError("Subscription price must be positive for BEDELLI actions")
+    elif subscription_price is not None:
+        raise ValueError("Subscription price must be empty for BEDELSIZ actions")
 
 
 @dataclass(frozen=True)
@@ -56,11 +73,7 @@ class CorporateAction:
         if self.ratio <= 0:
             raise ValueError("Corporate action ratio must be positive")
 
-        if self.action_type == ActionType.BEDELLI:
-            if self.subscription_price is None or self.subscription_price <= 0:
-                raise ValueError("Subscription price must be positive for BEDELLI actions")
-        elif self.subscription_price is not None:
-            raise ValueError("Subscription price must be empty for BEDELSIZ actions")
+        _validate_subscription_price(self.action_type, self.subscription_price)
 
         if self.price_adjustment_factor is not None and self.price_adjustment_factor <= 0:
             raise ValueError("Price adjustment factor must be positive")
@@ -92,28 +105,20 @@ class CorporateAction:
         )
 
     @classmethod
-    def create_bedelli(
-        cls,
-        stock_id: int,
-        ex_date: date,
-        ratio: Decimal,
-        subscription_price: Decimal,
-        announcement_date: Optional[date] = None,
-        notes: Optional[str] = None,
-    ) -> "CorporateAction":
-        if ratio <= 0:
+    def create_bedelli(cls, spec: "BedelliSpec") -> "CorporateAction":
+        if spec.ratio <= 0:
             raise ValueError("Artırım oranı sıfırdan büyük olmalıdır")
-        if subscription_price is None or subscription_price <= 0:
+        if spec.subscription_price is None or spec.subscription_price <= 0:
             raise ValueError("Bedelli artırım için kullanım fiyatı (rüçhan fiyatı) sıfırdan büyük olmalıdır")
         return cls(
             id=None,
-            stock_id=stock_id,
+            stock_id=spec.stock_id,
             action_type=ActionType.BEDELLI,
-            ex_date=ex_date,
-            ratio=ratio,
-            subscription_price=subscription_price,
-            announcement_date=announcement_date,
-            notes=notes,
+            ex_date=spec.ex_date,
+            ratio=spec.ratio,
+            subscription_price=spec.subscription_price,
+            announcement_date=spec.announcement_date,
+            notes=spec.notes,
             applied=False,
         )
 

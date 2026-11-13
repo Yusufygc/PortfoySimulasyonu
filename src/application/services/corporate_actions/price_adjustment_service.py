@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date, timedelta, datetime
+import logging
+from dataclasses import dataclass, replace
+from datetime import timedelta
 from decimal import Decimal
-from typing import Iterable, Dict
 
 from src.domain.models.corporate_action import ActionType, CorporateAction
 from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -38,97 +41,23 @@ def calculate_price_adjustment_factor(
     )
 
 
-def cumulative_adjustment_factor(actions: Iterable[CorporateAction], price_date) -> Decimal:
-    factor = Decimal("1")
-    for action in actions:
-        if not action.applied or not action.prices_adjusted:
-            continue
-        if action.price_adjustment_factor is None:
-            continue
-        if price_date < action.ex_date:
-            factor *= action.price_adjustment_factor
-    return factor
-
-
-def adjusted_market_price(
-    close_price: Decimal | int | float | str,
-    price_date,
-    actions: Iterable[CorporateAction],
-) -> Decimal:
-    value = close_price if isinstance(close_price, Decimal) else Decimal(str(close_price))
-    return value * cumulative_adjustment_factor(actions, price_date)
-
-
-def adjust_downloaded_series(
-    series: Dict[date, Decimal],
-    actions: Iterable[CorporateAction],
-) -> Dict[date, Decimal]:
-    """
-    Downloads raw series and adjusts for applied corporate actions,
-    avoiding double-adjusting if the series is already adjusted in Yahoo Finance.
-    """
-    if not series or not actions:
-        return series
-
-    # Sort actions by ex_date descending (latest first)
-    sorted_actions = sorted(
-        [a for a in actions if a.applied and a.prices_adjusted],
-        key=lambda a: a.ex_date,
-        reverse=True
-    )
-    
-    if not sorted_actions:
-        return series
-
-    adjusted_series = {k: (v if isinstance(v, Decimal) else Decimal(str(v))) for k, v in series.items()}
-    sorted_dates = sorted(adjusted_series.keys())
-
-    for action in sorted_actions:
-        factor = action.price_adjustment_factor
-        if factor is None or factor == Decimal("1"):
-            continue
-
-        # Look for split transition in the series (within 7 days of ex_date)
-        transition_date = None
-        for i in range(len(sorted_dates) - 1):
-            d = sorted_dates[i]
-            d_next = sorted_dates[i + 1]
-            if abs((d_next - action.ex_date).days) > 7:
-                continue
-            p = adjusted_series[d]
-            p_next = adjusted_series[d_next]
-            if p <= 0 or p_next <= 0:
-                continue
-            r = p / p_next
-            target_ratio = Decimal("1") / factor
-            if abs(r - target_ratio) / target_ratio < Decimal("0.15"):
-                transition_date = d_next
-                break
-
-        if transition_date is not None:
-            # Transition found: adjust only dates before transition
-            for d in sorted_dates:
-                if d < transition_date:
-                    adjusted_series[d] = adjusted_series[d] * factor
-        else:
-            # Transition not found: check if the series is entirely before the ex_date
-            max_date = sorted_dates[-1]
-            if max_date < action.ex_date:
-                # Entire series is before split, so adjust all of them
-                for d in sorted_dates:
-                    adjusted_series[d] = adjusted_series[d] * factor
-                    
-    return adjusted_series
-
-
 class CorporateActionPriceAdjustmentService:
     def __init__(
         self,
         action_repo: ICorporateActionRepository,
         price_repo: IPriceRepository,
+        stock_repo=None,
+        market_action_service=None,
+        projection=None,
     ) -> None:
+        """`price_repo` yalnızca bedelli faktörü için ex-date öncesi kapanışı okur; `projection`
+        (PriceProjectionService) SQLite yansımasını yeniler."""
         self._action_repo = action_repo
         self._price_repo = price_repo
+        self._projection = projection
+        # Verilirse olay DuckDB piyasa geçmişine ONAYLI faktör olarak kaydedilir (yansıtma bu faktörü kullanır)
+        self._stock_repo = stock_repo
+        self._market_action_service = market_action_service
 
     def adjust_prices_for_action(self, action_id: int) -> PriceAdjustmentResult:
         action = self._action_repo.get_by_id(action_id)
@@ -139,6 +68,12 @@ class CorporateActionPriceAdjustmentService:
         return self.adjust_prices_for_applied_action(action)
 
     def adjust_prices_for_applied_action(self, action: CorporateAction) -> PriceAdjustmentResult:
+        """Faktörü DuckDB piyasa geçmişine onaylı olay olarak kaydeder ve hissenin SQLite yansımasını yeniler.
+
+        SQLite fiyatları doğrudan çarpılmaz: fiyatın sahibi DuckDB'dir, faktör okuma anında uygulanır
+        (`PriceProjectionService`). Kaynak geçmişi zaten düzelttiyse (ham seride kırılma yok) olay NO_BREAK
+        kaydedilir ve fiyatlar değişmez.
+        """
         if action.id is None:
             raise ValueError("Fiyat duzeltmesi icin kurumsal islem id degeri gereklidir.")
         if action.prices_adjusted:
@@ -151,49 +86,8 @@ class CorporateActionPriceAdjustmentService:
             )
 
         factor = self._factor_for_action(action)
-
-        # Dynamic search for transition date in database prices to avoid double adjusting
-        start_search = action.ex_date - timedelta(days=10)
-        end_search = action.ex_date + timedelta(days=10)
-        db_prices = self._price_repo.get_price_series(action.stock_id, start_search, end_search)
-        db_prices_sorted = sorted(db_prices, key=lambda dp: dp.price_date)
-
-        transition_date = None
-        for i in range(len(db_prices_sorted) - 1):
-            dp1 = db_prices_sorted[i]
-            dp2 = db_prices_sorted[i + 1]
-            if abs((dp2.price_date - action.ex_date).days) > 7:
-                continue
-            if dp1.close_price <= 0 or dp2.close_price <= 0:
-                continue
-            r = dp1.close_price / dp2.close_price
-            target_ratio = Decimal("1") / factor
-            if abs(r - target_ratio) / target_ratio < Decimal("0.15"):
-                transition_date = dp2.price_date
-                break
-
-        before_date = action.ex_date
-        if transition_date is not None:
-            before_date = transition_date
-        else:
-            # If no transition is found, check if prices before ex_date are already adjusted
-            prices_before = [dp for dp in db_prices_sorted if dp.price_date < action.ex_date]
-            prices_after = [dp for dp in db_prices_sorted if dp.price_date >= action.ex_date]
-            if prices_before and prices_after:
-                p_before = prices_before[-1].close_price
-                p_after = prices_after[0].close_price
-                if p_before > 0 and p_after > 0:
-                    r = p_before / p_after
-                    target_ratio = Decimal("1") / factor
-                    if target_ratio > Decimal("1.3") and r < Decimal("1.3"):
-                        # Prices in the database before ex_date are already adjusted! Do not adjust again.
-                        before_date = date(2000, 1, 1)
-
-        adjusted_count = self._price_repo.adjust_prices_before_date(
-            stock_id=action.stock_id,
-            before_date=before_date,
-            factor=factor,
-        )
+        self._register_in_market_history(action, factor)
+        adjusted_count = self._project(action.stock_id)
         self._action_repo.mark_prices_adjusted(action.id, factor, adjusted_count)
         return PriceAdjustmentResult(
             action_id=action.id,
@@ -201,6 +95,25 @@ class CorporateActionPriceAdjustmentService:
             factor=factor,
             adjusted_count=adjusted_count,
         )
+
+    def _project(self, stock_id: int) -> int:
+        if self._projection is None:
+            logger.warning("Fiyat yansıtması yapılandırılmamış; SQLite fiyat geçmişi güncellenmedi (stock_id=%s)", stock_id)
+            return 0
+        return self._projection.project([stock_id]).written_count
+
+    def _register_in_market_history(self, action: CorporateAction, factor: Decimal) -> None:
+        """DuckDB tarafı başarısız olursa yansıtma eski faktörlerle yapılır; hata loglanır."""
+        if self._market_action_service is None or self._stock_repo is None:
+            return
+        try:
+            stock = next((s for s in self._stock_repo.get_all_stocks() if s.id == action.stock_id), None)
+            if stock is not None:
+                self._market_action_service.register_portfolio_action(
+                    stock.ticker, replace(action, price_adjustment_factor=factor)
+                )
+        except Exception as exc:
+            logger.warning("Kurumsal aksiyon DuckDB piyasa geçmişine kaydedilemedi: %s", exc)
 
     def _factor_for_action(self, action: CorporateAction) -> Decimal:
         if action.action_type == ActionType.BEDELSIZ:

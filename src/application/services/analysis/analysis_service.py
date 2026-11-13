@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from typing import Dict, List, Optional, Sequence
 
 from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
@@ -36,32 +37,61 @@ from .risk_metrics import (
 )
 from .source_resolver import AnalysisSourceResolver
 
+from typing import NamedTuple
+
+
+class AnalysisServiceDeps(NamedTuple):
+    portfolio_repo: IPortfolioRepository
+    price_repo: IPriceRepository
+    stock_repo: IStockRepository
+    market_data_client: IMarketDataClient
+    deposit_rate_fallback: Optional[Decimal] = None  # mevduat endeksi için yapılandırılmış yedek faiz (%)
+
+
+def _get_benchmark_vars(bundle: dict) -> "tuple":
+    primary = bundle["benchmarks"][0] if bundle["benchmarks"] else None
+    gap = compute_relative_gap_pct(bundle["portfolio_series"], primary.points) if primary else None
+    label = primary.label if primary else "Benchmark"
+    return primary, gap, label
+
+
+def _get_contributor_stats(top, best, worst) -> dict:
+    return {
+        "top_label": top["label"] if top else "-",
+        "top_weight": top["weight"] if top else None,
+        "best_label": best["label"] if best else "-",
+        "best_pct": best["return_pct"] if best else None,
+        "worst_label": worst["label"] if worst else "-",
+        "worst_pct": worst["return_pct"] if worst else None,
+    }
+
 
 class AnalysisService:
     def __init__(
         self,
-        portfolio_repo: IPortfolioRepository,
-        price_repo: IPriceRepository,
-        stock_repo: IStockRepository,
-        market_data_client: IMarketDataClient,
+        deps: AnalysisServiceDeps,
         evds_client: EvdsSeriesProvider | None = None,
         cash_movement_repo: Optional[ICashMovementRepository] = None,
         model_portfolio_service=None,
+        unified_builder=None,
     ) -> None:
-        self._stock_repo = stock_repo
+        self._stock_repo = deps.stock_repo
         self._cash_movement_repo = cash_movement_repo
+        self._unified_builder = unified_builder
         self._source_resolver = AnalysisSourceResolver(
-            portfolio_repo=portfolio_repo,
-            stock_repo=stock_repo,
+            portfolio_repo=deps.portfolio_repo,
+            stock_repo=deps.stock_repo,
             model_portfolio_service=model_portfolio_service,
+            unified_enabled=unified_builder is not None,
         )
         self._series_builder = PortfolioSeriesBuilder(
-            price_repo=price_repo,
-            stock_repo=stock_repo,
+            price_repo=deps.price_repo,
+            stock_repo=deps.stock_repo,
         )
         self._benchmark_service = AnalysisBenchmarkService(
-            market_data_client=market_data_client,
-            evds_client=evds_client
+            market_data_client=deps.market_data_client,
+            evds_client=evds_client,
+            deposit_rate_fallback=deps.deposit_rate_fallback,
         )
         self._currency_service = CurrencyConversionService()
         self._bundle_builder = AnalysisBundleBuilder(
@@ -71,10 +101,12 @@ class AnalysisService:
             currency_service=self._currency_service,
             cash_movement_repo=cash_movement_repo,
         )
+        self._bundle_builder.use_unified(unified_builder)
         self._comparison_series_builder = ComparisonPortfolioSeriesBuilder(
             source_resolver=self._source_resolver,
             series_builder=self._series_builder,
             currency_service=self._currency_service,
+            unified_builder=unified_builder,
         )
 
     def get_benchmark_definitions(self):
@@ -84,7 +116,16 @@ class AnalysisService:
         return self._source_resolver.get_portfolio_options()
 
     def get_first_trade_date_for_source(self, source_code: str) -> Optional[date]:
+        if self._unified_builder is not None and self._source_resolver.normalize_source_code(source_code) == AnalysisSourceResolver.SOURCE_UNIFIED:
+            return self._unified_builder.first_event_date()
         return self._source_resolver.get_first_trade_date_for_source(source_code)
+
+    def position_snapshot(self, bundle: Dict[str, object]) -> List[dict]:
+        """Paket için pozisyon özeti (etiket, maliyet, değer, ağırlık, getiri); birleşik kaynakta hazır gelir."""
+        if bundle.get("position_snapshot") is not None:
+            return list(bundle["position_snapshot"])
+        ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
+        return compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"])
 
     def get_stock_map_for_source(self, source_code: str) -> Dict[int, str]:
         return self._source_resolver.get_stock_map_for_source(source_code)
@@ -92,48 +133,35 @@ class AnalysisService:
     def get_overview(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> AnalysisOverviewDTO:
         if bundle is None:
             bundle = self._build_analysis_bundle(filter_state)
-        ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
-        position_snapshot = compute_position_snapshot(
-            bundle["portfolio"],
-            ticker_map,
-            bundle["position_values_end"],
-        )
+        position_snapshot = self.position_snapshot(bundle)
         portfolio_series = bundle["portfolio_series"]
-        primary_benchmark = bundle["benchmarks"][0] if bundle["benchmarks"] else None
-        benchmark_gap = (
-            compute_relative_gap_pct(portfolio_series, primary_benchmark.points)
-            if primary_benchmark
-            else None
-        )
-
+        primary_benchmark, benchmark_gap, benchmark_label = _get_benchmark_vars(bundle)
         top_position = max(position_snapshot, key=lambda item: item["weight"], default=None)
         best = max(position_snapshot, key=lambda item: item["return_pct"], default=None)
         worst = min(position_snapshot, key=lambda item: item["return_pct"], default=None) if len(position_snapshot) > 1 else None
         max_drawdown = compute_max_drawdown_pct(portfolio_series)
         concentration_label = get_concentration_label(
             sum(item["weight"] for item in sorted(position_snapshot, key=lambda x: x["weight"], reverse=True)[:3])
-            if position_snapshot
-            else None
+            if position_snapshot else None
         )
-
         insights = [
             build_benchmark_insight(primary_benchmark.label if primary_benchmark else "benchmark", benchmark_gap),
             f"Risk yoğunluğu: {concentration_label}",
         ]
         if best and best["label"] != "-":
             insights.append(f"En güçlü performans: {best['label']} (%{best['return_pct']:+.2f})")
-
+        stats = _get_contributor_stats(top_position, best, worst)
         return AnalysisOverviewDTO(
             total_value=bundle["end_total_value"],
             period_return_pct=compute_return_pct(portfolio_series),
             benchmark_gap_pct=benchmark_gap,
-            benchmark_label=primary_benchmark.label if primary_benchmark else "Benchmark",
-            largest_position_label=top_position["label"] if top_position else "-",
-            largest_position_weight_pct=top_position["weight"] if top_position else None,
-            best_contributor_label=best["label"] if best else "-",
-            best_contributor_pct=best["return_pct"] if best else None,
-            worst_contributor_label=worst["label"] if worst else "-",
-            worst_contributor_pct=worst["return_pct"] if worst else None,
+            benchmark_label=benchmark_label,
+            largest_position_label=stats["top_label"],
+            largest_position_weight_pct=stats["top_weight"],
+            best_contributor_label=stats["best_label"],
+            best_contributor_pct=stats["best_pct"],
+            worst_contributor_label=stats["worst_label"],
+            worst_contributor_pct=stats["worst_pct"],
             max_drawdown_pct=max_drawdown,
             insights=insights,
             warnings=bundle["warnings"],
@@ -155,6 +183,7 @@ class AnalysisService:
             selected_benchmarks=list(benchmark_codes),
             portfolio_source=filter_state.portfolio_source,
             comparison_portfolio_sources=list(filter_state.comparison_portfolio_sources),
+            currency_mode=filter_state.currency_mode,
         )
         if bundle is None:
             bundle = self._build_analysis_bundle(state)
@@ -204,12 +233,7 @@ class AnalysisService:
     def get_allocation_risk_view(self, filter_state: AnalysisFilterState, bundle: Optional[Dict[str, object]] = None) -> AllocationRiskDTO:
         if bundle is None:
             bundle = self._build_analysis_bundle(filter_state)
-        ticker_map = self._series_builder.get_ticker_map(list(bundle["portfolio"].positions.keys()))
-        position_snapshot = sorted(
-            compute_position_snapshot(bundle["portfolio"], ticker_map, bundle["position_values_end"]),
-            key=lambda item: item["weight"],
-            reverse=True,
-        )
+        position_snapshot = sorted(self.position_snapshot(bundle), key=lambda item: item["weight"], reverse=True)
         items = [
             AllocationItem(
                 label=item["label"],
@@ -242,25 +266,16 @@ class AnalysisService:
             "risk": self.get_allocation_risk_view(filter_state, bundle=bundle),
         }
 
+    def get_overview_risk_payload(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
+        bundle = self._build_analysis_bundle(filter_state)
+        return {
+            "overview": self.get_overview(filter_state, bundle=bundle),
+            "risk": self.get_allocation_risk_view(filter_state, bundle=bundle),
+        }
+
     def _build_analysis_bundle(self, filter_state: AnalysisFilterState) -> Dict[str, object]:
         self._validate_filter_state(filter_state)
         return self._bundle_builder.build(filter_state)
-
-    def _apply_currency_mode(
-        self, 
-        series: dict, 
-        currency_mode: str, 
-        usd_try_series: dict, 
-        cpi_series: dict,
-        is_normalized: bool = False
-    ) -> dict:
-        return self._currency_service.apply_currency_mode(
-            series,
-            currency_mode,
-            usd_try_series,
-            cpi_series,
-            is_normalized=is_normalized,
-        )
 
     def _build_comparison_portfolio_series(
         self,

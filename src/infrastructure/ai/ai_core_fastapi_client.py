@@ -17,6 +17,7 @@ from src.domain.models.ai_analysis import (
     AnalysisResult,
     ForecastPoint,
     ModelOutlook,
+    PeerInfo,
     XaiFactorItem,
 )
 from src.domain.ports.services.i_ai_analysis_provider import IAIAnalysisProvider
@@ -166,6 +167,57 @@ def _xai_factor_summary(item: XaiFactorItem) -> str:
     return f"{name}{group}{reason}"
 
 
+def _parse_float(block: dict, key: str) -> Optional[float]:
+    val = block.get(key)
+    try:
+        return None if val is None else float(val)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_int_safe(val) -> Optional[int]:
+    try:
+        return None if val is None else int(val)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_peer(block: Optional[Dict[str, Any]]) -> Optional[PeerInfo]:
+    """API `peer` bloğunu PeerInfo'ya taşır. Blok yok/boş ise None."""
+    if not block:
+        return None
+    xai_pos = [_parse_xai_factor(f, "positive") for f in block.get("xai_top_positive", [])]
+    xai_neg = [_parse_xai_factor(f, "negative") for f in block.get("xai_top_negative", [])]
+    return PeerInfo(
+        available=bool(block.get("available", False)),
+        as_of_date=block.get("as_of_date"),
+        peer_score=_parse_float(block, "peer_score"),
+        peer_percentile=_parse_float(block, "peer_percentile"),
+        peer_label=block.get("peer_label"),
+        universe_size=_parse_int_safe(block.get("universe_size")),
+        segment_liq=block.get("segment_liq"),
+        segment_vol=block.get("segment_vol"),
+        segment_sector=block.get("segment_sector"),
+        segment_icir=_parse_float(block, "segment_icir"),
+        confidence_label=block.get("confidence_label"),
+        confidence_reasons=list(block.get("confidence_reasons") or []),
+        confidence_warnings=list(block.get("confidence_warnings") or []),
+        trend_label=block.get("trend_label"),
+        trend_prob_up=_parse_float(block, "trend_prob_up"),
+        trend_expected_return=_parse_float(block, "trend_expected_return"),
+        kolb_price_p50=_parse_float(block, "kolb_price_p50"),
+        kolb_price_low=_parse_float(block, "kolb_price_low"),
+        kolb_price_high=_parse_float(block, "kolb_price_high"),
+        kolb_horizon_days=_parse_int_safe(block.get("kolb_horizon_days")),
+        kolb_band_level=_parse_float(block, "kolb_band_level"),
+        xai_available=bool(block.get("xai_available", False)),
+        xai_method=block.get("xai_method") or "",
+        xai_caveat=block.get("xai_caveat") or "",
+        xai_top_positive=xai_pos,
+        xai_top_negative=xai_neg,
+    )
+
+
 def _outlook_from_trend_label(trend_label: str | None) -> ModelOutlook:
     trend_norm = str(trend_label or "").strip().lower()
     if trend_norm == "up":
@@ -175,104 +227,121 @@ def _outlook_from_trend_label(trend_label: str | None) -> ModelOutlook:
     return ModelOutlook.NEUTRAL
 
 
-def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
-    """FastAPI /analysis/{symbol} JSON yanıtını AnalysisResult'a dönüştürür."""
-    data_block = data.get("data", {})
-    model_block = data.get("model", {})
-    forecast_block = data.get("forecast", {})
-    perf_block = data.get("performance", {})
-    conf_block = data.get("confidence", {})
-    xai_block = data.get("xai", {})
-
-    conf_label = conf_block.get("label", "low")
-    conf_numeric = _CONFIDENCE_MAP.get(conf_label, 0.25)
-
-    raw_points = forecast_block.get("points", [])
-    forecast_points = [
+def _parse_forecast_points(forecast_block: Dict[str, Any]):
+    points = [
         ForecastPoint(
             target_date=str(p.get("target_date", "")),
             horizon_index=int(p.get("horizon_index", 0)),
             bounded_predicted_close=p.get("bounded_predicted_close"),
             predicted_return=p.get("predicted_return"),
+            p10_close=p.get("p10_close"),
+            p50_close=p.get("p50_close"),
+            p90_close=p.get("p90_close"),
+            predicted_return_p10=p.get("predicted_return_p10"),
+            predicted_return_p50=p.get("predicted_return_p50"),
+            predicted_return_p90=p.get("predicted_return_p90"),
+            interval_method=p.get("interval_method"),
         )
-        for p in raw_points
+        for p in forecast_block.get("points", [])
     ]
+    predicted_price = predicted_price_low = predicted_price_high = interval_method = None
+    if points:
+        last = points[-1]
+        predicted_price = last.bounded_predicted_close
+        predicted_price_low = last.p10_close
+        predicted_price_high = last.p90_close
+        interval_method = last.interval_method
+    return points, predicted_price, predicted_price_low, predicted_price_high, interval_method
 
-    predicted_price = None
-    if forecast_points:
-        predicted_price = forecast_points[-1].bounded_predicted_close
+
+def _parse_xai_block(xai_block: Dict[str, Any]):
+    xai_pos = [_parse_xai_factor(f, "positive") for f in xai_block.get("top_positive_reasons", [])]
+    xai_neg = [_parse_xai_factor(f, "negative") for f in xai_block.get("top_negative_reasons", [])]
+    xai_features: Dict[str, float] = {}
+    for item in xai_pos + xai_neg:
+        xai_features[item.human_label or item.feature_name] = item.importance
+    xai_text = ""
+    if xai_pos or xai_neg:
+        parts = []
+        if xai_pos:
+            parts.append(f"Fiyatı yukarı çeken en önemli faktör: {_xai_factor_summary(xai_pos[0])}")
+        if xai_neg:
+            parts.append(f"Aşağı yönlü baskı yapan faktör: {_xai_factor_summary(xai_neg[0])}")
+        xai_text = ". ".join(parts) + "."
+    return xai_pos, xai_neg, xai_features, xai_text
+
+
+def _parse_core_fields(data: Dict[str, Any]) -> Dict[str, Any]:
+    data_block = data.get("data", {})
+    model_block = data.get("model", {})
+    conf_block = data.get("confidence", {})
+    perf_block = data.get("performance", {})
+    xai_block = data.get("xai", {})
+    conf_label = conf_block.get("label", "low")
+    return {
+        "ticker": data.get("symbol", ""),
+        "analysis_status": data.get("analysis_status", "error"),
+        "confidence": _CONFIDENCE_MAP.get(conf_label, 0.25),
+        "confidence_label": conf_label,
+        "confidence_reasons": conf_block.get("reasons", []),
+        "confidence_warnings": conf_block.get("warnings", []),
+        "last_close": data_block.get("last_close"),
+        "last_observed_date": data_block.get("last_observed_date"),
+        "data_freshness": data_block.get("data_freshness", "unknown"),
+        "staleness_days": data_block.get("staleness_days", 0),
+        "model_name": model_block.get("model_name", ""),
+        "model_family": model_block.get("model_family", ""),
+        "validation_mode": model_block.get("validation_mode"),
+        "trained_at": model_block.get("trained_at"),
+        "eligibility_status": model_block.get("eligibility_status", "eligible"),
+        "rmse": perf_block.get("rmse"),
+        "mae": perf_block.get("mae"),
+        "directional_accuracy": perf_block.get("directional_accuracy"),
+        "hit_rate": perf_block.get("hit_rate"),
+        "composite_score": perf_block.get("composite_score"),
+        "sharpe": perf_block.get("sharpe"),
+        "stability_score": perf_block.get("stability_score"),
+        "xai_available": xai_block.get("available", False),
+        "xai_method": xai_block.get("method", ""),
+        "xai_caveat": xai_block.get("caveat", ""),
+        "xai_model_family_caveat": xai_block.get("model_family_caveat", ""),
+        "disclaimer": data.get("disclaimer") or "",
+        "raw_output": data,
+        "generated_at": data.get("generated_at", ""),
+    }
+
+
+def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
+    """FastAPI /analysis/{symbol} JSON yanıtını AnalysisResult'a dönüştürür."""
+    forecast_block = data.get("forecast", {})
+    xai_block = data.get("xai", {})
+
+    core = _parse_core_fields(data)
+    forecast_points, predicted_price, pred_low, pred_high, interval_method = _parse_forecast_points(forecast_block)
+    xai_pos, xai_neg, xai_features, xai_text = _parse_xai_block(xai_block)
 
     trend_label = forecast_block.get("trend_label")
     trend_norm = str(trend_label or "").strip().lower()
     outlook = _outlook_from_trend_label(trend_label)
     outlook_strength = min(abs(forecast_block.get("weekly_expected_return", 0) or 0) * 10, 1.0)
 
-    xai_pos = [
-        _parse_xai_factor(f, "positive")
-        for f in xai_block.get("top_positive_reasons", [])
-    ]
-    xai_neg = [
-        _parse_xai_factor(f, "negative")
-        for f in xai_block.get("top_negative_reasons", [])
-    ]
-
-    xai_features: Dict[str, float] = {}
-    for item in xai_pos + xai_neg:
-        label = item.human_label or item.feature_name
-        xai_features[label] = item.importance
-
-    xai_text = ""
-    if xai_pos or xai_neg:
-        parts = []
-        if xai_pos:
-            top = xai_pos[0]
-            parts.append(f"Fiyatı yukarı çeken en önemli faktör: {_xai_factor_summary(top)}")
-        if xai_neg:
-            top = xai_neg[0]
-            parts.append(f"Aşağı yönlü baskı yapan faktör: {_xai_factor_summary(top)}")
-        xai_text = ". ".join(parts) + "."
-
     return AnalysisResult(
-        ticker=data.get("symbol", ""),
-        analysis_status=data.get("analysis_status", "error"),
+        **core,
+        peer=_parse_peer(data.get("peer")),
         predicted_price=predicted_price,
-        confidence=conf_numeric,
-        confidence_label=conf_label,
-        confidence_reasons=conf_block.get("reasons", []),
-        confidence_warnings=conf_block.get("warnings", []),
-        outlook=outlook,
-        outlook_strength=outlook_strength,
-        last_close=data_block.get("last_close"),
-        last_observed_date=data_block.get("last_observed_date"),
-        data_freshness=data_block.get("data_freshness", "unknown"),
-        staleness_days=data_block.get("staleness_days", 0),
-        model_name=model_block.get("model_name", ""),
-        model_family=model_block.get("model_family", ""),
-        validation_mode=model_block.get("validation_mode"),
-        trained_at=model_block.get("trained_at"),
-        eligibility_status=model_block.get("eligibility_status", "eligible"),
-        trend_label=trend_norm or trend_label,
+        predicted_price_low=pred_low,
+        predicted_price_high=pred_high,
+        interval_method=interval_method,
+        forecast_points=forecast_points,
         horizon_days=forecast_block.get("horizon_days"),
         weekly_expected_return=forecast_block.get("weekly_expected_return"),
-        forecast_points=forecast_points,
-        rmse=perf_block.get("rmse"),
-        mae=perf_block.get("mae"),
-        directional_accuracy=perf_block.get("directional_accuracy"),
-        hit_rate=perf_block.get("hit_rate"),
-        composite_score=perf_block.get("composite_score"),
-        sharpe=perf_block.get("sharpe"),
-        stability_score=perf_block.get("stability_score"),
-        xai_available=xai_block.get("available", False),
-        xai_method=xai_block.get("method", ""),
+        outlook=outlook,
+        outlook_strength=outlook_strength,
+        trend_label=trend_norm or trend_label,
         xai_features=xai_features,
         xai_positive_reasons=xai_pos,
         xai_negative_reasons=xai_neg,
         xai_text=xai_text,
-        xai_caveat=xai_block.get("caveat", ""),
-        xai_model_family_caveat=xai_block.get("model_family_caveat", ""),
-        disclaimer=data.get("disclaimer") or "",
-        raw_output=data,
-        generated_at=data.get("generated_at", ""),
     )
 
 

@@ -11,7 +11,9 @@ from html import unescape
 from typing import Any, Callable, Iterable, Sequence
 
 from src.domain.models.corporate_action import ActionType
-from src.domain.models.corporate_action_candidate import CorporateActionCandidate
+from src.domain.ticker import clean_ticker
+from src.infrastructure.retry import retry_call
+from src.domain.models.corporate_action_candidate import CandidateDiscoveryData, CorporateActionCandidate
 from src.domain.ports.services.i_corporate_action_provider import (
     CorporateActionProviderUnavailable,
     ICorporateActionProvider,
@@ -41,9 +43,39 @@ class KapMkkCorporateActionProvider(ICorporateActionProvider):
         candidates: list[CorporateActionCandidate] = []
         for payload in self._fetcher(tickers, start_date, end_date):
             candidate = parse_kap_mkk_disclosure(payload)
-            if candidate is not None and candidate.ticker in {ticker.upper() for ticker in tickers}:
+            if candidate is not None and candidate.ticker in {clean_ticker(ticker) for ticker in tickers}:
                 candidates.append(candidate)
         return candidates
+
+
+def _resolve_ticker_from_payload(payload: dict[str, Any], text: str) -> str | None:
+    ticker = _first_string(payload, "ticker", "stockCode", "stock_code", "code", "symbol")
+    if not ticker:
+        ticker = _extract_ticker(text)
+    return ticker
+
+
+def _resolve_source_url(payload: dict[str, Any], disclosure_id: str) -> str | None:
+    source_url = _first_string(payload, "sourceUrl", "url", "link")
+    if not source_url and disclosure_id:
+        source_url = f"https://www.kap.org.tr/tr/Bildirim/{disclosure_id}"
+    return source_url
+
+
+def _resolve_ratio(payload: dict[str, Any], text: str, action_type) -> "Decimal | None":
+    ratio = _decimal_from_known_keys(payload, "ratio", "rate", "bonusRatio", "paidRatio")
+    if ratio is None:
+        ratio = _extract_ratio(text, action_type)
+    return ratio
+
+
+def _resolve_subscription_price(payload: dict[str, Any], text: str, action_type) -> "Decimal | None":
+    subscription_price = _decimal_from_known_keys(
+        payload, "subscriptionPrice", "subscription_price", "rightIssuePrice", "kullanimFiyati"
+    )
+    if subscription_price is None and action_type == ActionType.BEDELLI:
+        subscription_price = _extract_subscription_price(text)
+    return subscription_price
 
 
 def parse_kap_mkk_disclosure(payload: dict[str, Any]) -> CorporateActionCandidate | None:
@@ -52,9 +84,7 @@ def parse_kap_mkk_disclosure(payload: dict[str, Any]) -> CorporateActionCandidat
     if action_type is None:
         return None
 
-    ticker = _first_string(payload, "ticker", "stockCode", "stock_code", "code", "symbol")
-    if not ticker:
-        ticker = _extract_ticker(text)
+    ticker = _resolve_ticker_from_payload(payload, text)
     if not ticker:
         return None
 
@@ -62,23 +92,9 @@ def parse_kap_mkk_disclosure(payload: dict[str, Any]) -> CorporateActionCandidat
     if not disclosure_id:
         disclosure_id = f"{ticker}:{_first_string(payload, 'publishDate', 'date') or hash(text)}"
 
-    source_url = _first_string(payload, "sourceUrl", "url", "link")
-    if not source_url and disclosure_id:
-        source_url = f"https://www.kap.org.tr/tr/Bildirim/{disclosure_id}"
-
-    ratio = _decimal_from_known_keys(payload, "ratio", "rate", "bonusRatio", "paidRatio")
-    if ratio is None:
-        ratio = _extract_ratio(text, action_type)
-
-    subscription_price = _decimal_from_known_keys(
-        payload,
-        "subscriptionPrice",
-        "subscription_price",
-        "rightIssuePrice",
-        "kullanimFiyati",
-    )
-    if subscription_price is None and action_type == ActionType.BEDELLI:
-        subscription_price = _extract_subscription_price(text)
+    source_url = _resolve_source_url(payload, str(disclosure_id))
+    ratio = _resolve_ratio(payload, text, action_type)
+    subscription_price = _resolve_subscription_price(payload, text, action_type)
 
     ex_date = _date_from_known_keys(payload, "exDate", "ex_date", "rightsUseDate", "hakKullanimTarihi")
     if ex_date is None:
@@ -92,18 +108,20 @@ def parse_kap_mkk_disclosure(payload: dict[str, Any]) -> CorporateActionCandidat
         parse_notes = "Bildirim iptal/duzeltme/tarih degisikligi ifadesi iceriyor; manuel inceleme gerekir."
 
     return CorporateActionCandidate.discovered(
-        ticker=_normalize_ticker(ticker),
-        source="KAP_MKK",
-        source_disclosure_id=str(disclosure_id),
-        source_url=source_url,
-        action_type=action_type,
-        ratio=ratio,
-        subscription_price=subscription_price,
-        announcement_date=announcement_date,
-        ex_date=ex_date,
-        confidence=confidence,
-        raw_payload_json=payload,
-        parse_notes=parse_notes,
+        CandidateDiscoveryData(
+            ticker=_normalize_ticker(ticker),
+            source="KAP_MKK",
+            source_disclosure_id=str(disclosure_id),
+            source_url=source_url,
+            action_type=action_type,
+            ratio=ratio,
+            ex_date=ex_date,
+            subscription_price=subscription_price,
+            announcement_date=announcement_date,
+            confidence=confidence,
+            raw_payload_json=payload,
+            parse_notes=parse_notes,
+        )
     )
 
 
@@ -148,9 +166,12 @@ def _fetch_url_text(url: str, timeout: int = 15) -> str:
         headers={"User-Agent": "PortfoySim/1.0"},
         method="GET",
     )
-    try:
+    def fetch() -> str:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.read().decode("utf-8", errors="replace")
+
+    try:
+        return retry_call(fetch, label="KAP kamuya açık kaynak")
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, socket.timeout, OSError) as exc:
         raise CorporateActionProviderUnavailable(f"KAP public source unavailable: {url} ({exc})") from exc
 
@@ -289,8 +310,7 @@ def _extract_ticker(text: str) -> str | None:
 
 
 def _normalize_ticker(ticker: str) -> str:
-    ticker = ticker.strip().upper()
-    return ticker if ticker.endswith(".IS") else f"{ticker}.IS"
+    return clean_ticker(ticker)
 
 
 def _extract_ratio(text: str, action_type: ActionType) -> Decimal | None:

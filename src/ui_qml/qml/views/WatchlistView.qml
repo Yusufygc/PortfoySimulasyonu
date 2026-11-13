@@ -1,0 +1,714 @@
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import "../theme"
+import "../components"
+
+Item {
+    id: root
+
+    // Dar pencerede liste seçici tablonun üstüne geçer
+    readonly property bool stacked: width < 960
+
+    ScrollView {
+        id: mainScrollView
+        anchors.fill: parent
+        clip: true
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+        ScrollBar.vertical: ModernScrollBar {
+            parent: mainScrollView
+            x: mainScrollView.mirrored ? 2 : mainScrollView.width - width - 3
+            y: mainScrollView.topPadding + 2
+            height: mainScrollView.availableHeight - 4
+            active: mainScrollView.ScrollBar.vertical.active
+        }
+
+        ColumnLayout {
+            width: mainScrollView.availableWidth
+            spacing: Theme.spaceMd
+
+            // 1. Üst Başlık ve Aksiyon Butonları
+            RowLayout {
+                Layout.fillWidth: true
+
+                Column {
+                    spacing: 2
+                    Text {
+                        text: Strings.watchlistTitle
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontXl
+                        font.weight: Font.Bold
+                        color: Theme.textPrimary
+                    }
+                    Text {
+                        text: Strings.watchlistSubtitle
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.fontSm
+                        color: Theme.textMuted
+                    }
+                    PriceStatusChip {}
+                }
+
+                Item { Layout.fillWidth: true }
+
+                // Yeni Liste Oluştur Butonu
+                ModernButton {
+                    iconName: "plus"
+                    tooltip: Strings.btnNewWatchlist
+                    variant: "primary"
+                    onClicked: manageModal.openCreate()
+                }
+            }
+
+            // 2. KPI Özet Metrik Kartları
+            GridLayout {
+                Layout.fillWidth: true
+                columns: root.width < 700 ? 1 : 3
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
+                uniformCellWidths: true
+
+                MetricCard {
+                    Layout.fillWidth: true
+                    title: Strings.kpiActiveList
+                    value: (watchlistController && watchlistController.currentWatchlistName) ? watchlistController.currentWatchlistName : "-"
+                    subText: (watchlistController ? watchlistController.currentWatchlistCount : 0) + " Takip Edilen Hisse"
+                    iconName: "list"
+                    isPositive: true
+                }
+
+                MetricCard {
+                    Layout.fillWidth: true
+                    title: Strings.kpiGainersLosers
+                    value: (watchlistController ? (watchlistController.summaryGainersCount + Strings.watchlistGainersSep + watchlistController.summaryLosersCount + Strings.watchlistLosersSuffix) : "-")
+                    isPositive: watchlistController ? (watchlistController.summaryGainersCount >= watchlistController.summaryLosersCount) : true
+                    subText: Strings.subtextActiveListDistribution
+                    iconName: "trendingup"
+                }
+
+                MetricCard {
+                    Layout.fillWidth: true
+                    title: Strings.kpiAvgChange
+                    value: (watchlistController && watchlistController.summaryAvgChange) ? watchlistController.summaryAvgChange : "%0.00"
+                    isPositive: (watchlistController && watchlistController.summaryAvgChange.indexOf("+") !== -1)
+                    subText: Strings.subtextEqualWeightAverage
+                    iconName: "linechart"
+                }
+            }
+
+            // 3. Ana İçerik: Sol Liste Seçici & Sağ Hisse Tablosu
+            GridLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.stacked ? (270 + 560 + Theme.spaceMd) : Math.max(520, stocksColumn.implicitHeight + 40)
+                columns: root.stacked ? 1 : 2
+                columnSpacing: Theme.spaceMd
+                rowSpacing: Theme.spaceMd
+
+                // Sol Panel: Takip Listelerim (Watchlist Selector)
+                ModernCard {
+                    Layout.fillWidth: root.stacked
+                    Layout.preferredWidth: root.stacked ? -1 : 280
+                    Layout.preferredHeight: 270
+                    Layout.fillHeight: true
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.spaceMd
+                        spacing: Theme.spaceSm
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            ModernIcon {
+                                name: "bookmark"
+                                size: 15
+                                color: Theme.accent
+                            }
+                            Text {
+                                text: Strings.watchlistMyLists
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                                color: Theme.textMuted
+                                Layout.fillWidth: true
+                            }
+                            Text {
+                                text: (watchlistController && watchlistController.watchlists) ? (watchlistController.watchlists.length + " Liste") : ""
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.fontXs
+                                color: Theme.textMuted
+                            }
+                        }
+
+                        // Listeler Listesi (ListView)
+                        ListView {
+                            id: watchlistsListView
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            spacing: 6
+                            model: watchlistController ? watchlistController.watchlists : []
+
+                            delegate: Rectangle {
+                                id: wlRow
+                                width: watchlistsListView.width
+                                height: 48
+                                radius: Theme.radiusSm
+                                property real dragOffset: 0
+                                transform: Translate { y: wlRow.dragOffset }
+
+                                readonly property bool isSelected: watchlistController && (modelData.id === watchlistController.currentWatchlistId)
+                                readonly property bool isHovered: wlMouse.containsMouse || editMouse.containsMouse || deleteMouse.containsMouse
+                                color: isSelected ? Theme.bgCardHover : (isHovered ? Theme.bgInput : "transparent")
+                                border.color: isSelected ? Theme.accent : "transparent"
+                                border.width: isSelected ? 1 : 0
+
+                                MouseArea {
+                                    id: wlMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (watchlistController) watchlistController.selectWatchlist(modelData.id)
+                                    }
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 8
+                                    spacing: 8
+                                    z: 1
+
+                                    ReorderHandle {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        target: wlRow
+                                        rowIndex: index
+                                        rowCount: watchlistsListView.count
+                                        step: wlRow.height + watchlistsListView.spacing
+                                        onMoveRequested: function(fromIndex, toIndex) {
+                                            if (watchlistController) watchlistController.moveWatchlist(fromIndex, toIndex)
+                                        }
+                                    }
+
+                                    Column {
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 2
+                                        Text {
+                                            text: modelData.name
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSm
+                                            font.weight: wlRow.isSelected ? Font.Bold : Font.DemiBold
+                                            color: wlRow.isSelected ? Theme.textPrimary : Theme.textSecondary
+                                            elide: Text.ElideRight
+                                            width: parent.width
+                                        }
+                                        Text {
+                                            text: (modelData.description && modelData.description !== "") ? modelData.description : (modelData.count + " Hisse")
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontXs
+                                            color: Theme.textMuted
+                                            elide: Text.ElideRight
+                                            width: parent.width
+                                        }
+                                    }
+
+                                    // Hisse Adedi Rozeti
+                                    Rectangle {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        Layout.preferredWidth: Math.max(22, countText.implicitWidth + 12)
+                                        Layout.preferredHeight: 20
+                                        radius: 10
+                                        color: wlRow.isSelected ? Theme.accent : Theme.bgInput
+
+                                        Text {
+                                            id: countText
+                                            anchors.centerIn: parent
+                                            text: modelData.count
+                                            font.family: Theme.monoFontFamily
+                                            font.pixelSize: 11
+                                            font.weight: Font.Bold
+                                            color: wlRow.isSelected ? "#ffffff" : Theme.textMuted
+                                        }
+                                    }
+
+                                    // Düzenle İkon Butonu
+                                    Item {
+                                        Layout.preferredWidth: 24
+                                        Layout.preferredHeight: 24
+                                        opacity: (wlRow.isHovered || wlRow.isSelected) ? 1.0 : 0.0
+                                        z: 2
+
+                                        ModernIcon {
+                                            name: "pencil"
+                                            size: 13
+                                            color: editMouse.containsMouse ? Theme.accent : Theme.textMuted
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            id: editMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: manageModal.openEdit(modelData.id, modelData.name, modelData.description)
+                                        }
+                                    }
+
+                                    // Sil İkon Butonu
+                                    Item {
+                                        Layout.preferredWidth: 24
+                                        Layout.preferredHeight: 24
+                                        opacity: (wlRow.isHovered || wlRow.isSelected) ? 1.0 : 0.0
+                                        z: 2
+
+                                        ModernIcon {
+                                            name: "trash-2"
+                                            size: 13
+                                            color: deleteMouse.containsMouse ? "#ff5252" : Theme.bearRed
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            id: deleteMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                if (watchlistController) watchlistController.deleteWatchlist(modelData.id)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Alt Yeni Liste Butonu
+                        ModernButton {
+                            Layout.fillWidth: true
+                            iconName: "plus"
+                            tooltip: Strings.btnNewWatchlist
+                            variant: "secondary"
+                            onClicked: manageModal.openCreate()
+                        }
+                    }
+                }
+
+                // Sağ Panel: Seçili Liste Hisseleri Tablosu
+                ModernCard {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredHeight: 560
+
+                    ColumnLayout {
+                        id: stocksColumn
+                        anchors.fill: parent
+                        anchors.margins: Theme.spaceMd
+                        spacing: Theme.spaceSm
+
+                        // Liste Başlığı & Hisse Ekle Butonu
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            Column {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Text {
+                                    text: (watchlistController && watchlistController.currentWatchlistName !== "") ? watchlistController.currentWatchlistName : Strings.watchlistTitle
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontMd
+                                    font.weight: Font.Bold
+                                    color: Theme.textPrimary
+                                }
+                                Text {
+                                    text: (watchlistController && watchlistController.currentWatchlistDesc !== "") ? watchlistController.currentWatchlistDesc : Strings.watchlistDefaultDesc
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSm
+                                    color: Theme.textMuted
+                                }
+                            }
+
+                            ModernButton {
+                                iconName: "plus"
+                                tooltip: Strings.btnAddStockToWatchlist
+                                variant: "primary"
+                                enabled: watchlistController && (watchlistController.currentWatchlistId > 0)
+                                onClicked: addStockModal.open(watchlistController.currentWatchlistId)
+                            }
+                        }
+
+                        // Tablo: dar alanda yatay kaydırılır (sütun hizası bozulur)
+                        Flickable {
+                            id: stocksFlick
+                            // Başlık ve satırlar aynı sabit sütun genişliklerini kullanır (hizalama bozulmaz)
+                            readonly property int colGap: 12
+                            readonly property int colSymbol: 170
+                            readonly property int colPrice: 90
+                            readonly property int colChange: 84
+                            readonly property int colRange: 124
+                            readonly property int colTrend: 90
+                            readonly property int colActions: 172
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            visible: stocksListView.count > 0
+                            contentWidth: Math.max(width, 1060)
+                            contentHeight: height
+                            clip: true
+                            boundsBehavior: Flickable.StopAtBounds
+                            flickableDirection: Flickable.HorizontalFlick
+                            ScrollBar.horizontal: ModernScrollBar {}
+
+                            ColumnLayout {
+                                width: stocksFlick.contentWidth
+                                height: stocksFlick.height
+                                spacing: Theme.spaceSm
+
+                        // Tablo Başlık Satırı
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: 34
+                            radius: Theme.radiusSm
+                            color: Theme.bgInput
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: stocksFlick.colGap
+
+                                Text { text: Strings.thSymbolCompany; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colSymbol; Layout.minimumWidth: stocksFlick.colSymbol; Layout.maximumWidth: stocksFlick.colSymbol }
+                                Text { text: Strings.thLastPrice; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colPrice; Layout.minimumWidth: stocksFlick.colPrice; Layout.maximumWidth: stocksFlick.colPrice; horizontalAlignment: Text.AlignRight }
+                                Text { text: Strings.thDailyChange; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colChange; Layout.minimumWidth: stocksFlick.colChange; Layout.maximumWidth: stocksFlick.colChange; horizontalAlignment: Text.AlignRight }
+                                Text { text: Strings.thDayRange; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colRange; Layout.minimumWidth: stocksFlick.colRange; Layout.maximumWidth: stocksFlick.colRange; horizontalAlignment: Text.AlignHCenter }
+                                Text { text: Strings.thTrend7D; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colTrend; Layout.minimumWidth: stocksFlick.colTrend; Layout.maximumWidth: stocksFlick.colTrend; horizontalAlignment: Text.AlignHCenter }
+                                Text { text: Strings.thNotes; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.fillWidth: true; Layout.minimumWidth: 200 }
+                                Text { text: Strings.thActions; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11; font.weight: Font.Bold; Layout.preferredWidth: stocksFlick.colActions; Layout.minimumWidth: stocksFlick.colActions; Layout.maximumWidth: stocksFlick.colActions; horizontalAlignment: Text.AlignRight }
+                            }
+                        }
+
+                        // Dinamik Hisse Satırları (ListView)
+                        ListView {
+                            id: stocksListView
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            model: watchlistController ? watchlistController.stocksModel : null
+                            visible: count > 0
+
+                            delegate: Rectangle {
+                                id: stockRow
+                                width: stocksListView.width
+                                height: 54
+                                radius: Theme.radiusSm
+                                color: stockMouse.containsMouse ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgInput)
+
+                                Behavior on color { ColorAnimation { duration: 150 } }
+
+                                MouseArea {
+                                    id: stockMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (chartController) chartController.loadTicker(model.ticker)
+                                        if (shellController) shellController.navigateTo(0)
+                                    }
+                                }
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 12
+                                    spacing: stocksFlick.colGap
+                                    z: 1
+
+                                    // 1. Sembol & Şirket
+                                    Column {
+                                        Layout.preferredWidth: stocksFlick.colSymbol
+                                        Layout.minimumWidth: stocksFlick.colSymbol
+                                        Layout.maximumWidth: stocksFlick.colSymbol
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: 2
+                                        Row {
+                                            spacing: 6
+                                            Text {
+                                                text: (model.cleanTicker || "").replace(/\.IS$/i, "")
+                                                font.family: Theme.monoFontFamily
+                                                font.pixelSize: Theme.fontBase
+                                                font.weight: Font.Bold
+                                                color: Theme.textPrimary
+                                            }
+                                            Rectangle {
+                                                width: 24
+                                                height: 14
+                                                radius: 3
+                                                color: Theme.bgInput
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: Strings.marketBist
+                                                    font.pixelSize: 8
+                                                    font.weight: Font.Bold
+                                                    color: Theme.textMuted
+                                                }
+                                            }
+                                        }
+                                        Text {
+                                            text: (model.companyName || "").replace(/\.IS$/i, "")
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: Theme.fontSm
+                                            color: Theme.textSecondary
+                                            elide: Text.ElideRight
+                                            width: stocksFlick.colSymbol
+                                        }
+                                    }
+
+                                    // 2. Son Fiyat
+                                    Text {
+                                        text: model.price
+                                        font.family: Theme.monoFontFamily
+                                        font.pixelSize: Theme.fontSm
+                                        font.weight: Font.Bold
+                                        color: Theme.textPrimary
+                                        Layout.preferredWidth: stocksFlick.colPrice
+                                        Layout.minimumWidth: stocksFlick.colPrice
+                                        Layout.maximumWidth: stocksFlick.colPrice
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+
+                                    // 3. Günlük Fark %
+                                    Text {
+                                        text: model.dailyDiff
+                                        font.family: Theme.monoFontFamily
+                                        font.pixelSize: Theme.fontSm
+                                        font.weight: Font.DemiBold
+                                        color: model.isUp ? Theme.textPositive : Theme.textNegative
+                                        Layout.preferredWidth: stocksFlick.colChange
+                                        Layout.minimumWidth: stocksFlick.colChange
+                                        Layout.maximumWidth: stocksFlick.colChange
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+
+                                    // 4. Gün İçi Aralık (Low - High Mini Bar)
+                                    ColumnLayout {
+                                        Layout.preferredWidth: stocksFlick.colRange
+                                        Layout.minimumWidth: stocksFlick.colRange
+                                        Layout.maximumWidth: stocksFlick.colRange
+                                        spacing: 3
+                                        Layout.alignment: Qt.AlignVCenter
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text { text: model.dayLow; font.family: Theme.monoFontFamily; font.pixelSize: Theme.fontXs; color: Theme.textSecondary }
+                                            Item { Layout.fillWidth: true }
+                                            Text { text: model.dayHigh; font.family: Theme.monoFontFamily; font.pixelSize: Theme.fontXs; color: Theme.textSecondary }
+                                        }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            implicitHeight: 4
+                                            radius: 2
+                                            color: Theme.bgInput
+
+                                            Rectangle {
+                                                width: 8
+                                                height: 8
+                                                radius: 4
+                                                y: -2
+                                                x: Math.max(0, Math.min(parent.width - 8, parent.width * model.dayRangePct - 4))
+                                                color: model.isUp ? Theme.bullGreen : Theme.bearRed
+                                            }
+                                        }
+                                    }
+
+                                    // 5. 7G Trend Mini Sparkline
+                                    MiniSparkline {
+                                        Layout.preferredWidth: stocksFlick.colTrend
+                                        Layout.minimumWidth: stocksFlick.colTrend
+                                        Layout.maximumWidth: stocksFlick.colTrend
+                                        Layout.preferredHeight: 24
+                                        Layout.alignment: Qt.AlignVCenter
+                                        points: model.sparkline
+                                        isUp: model.isUp
+                                    }
+
+                                    // 6. Notlar & Strateji
+                                    Text {
+                                        text: model.notes !== "" ? model.notes : "-"
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: Theme.fontSm
+                                        color: model.notes !== "" ? Theme.textPrimary : Theme.textMuted
+                                        wrapMode: Text.WordWrap
+                                        maximumLineCount: 2
+                                        elide: Text.ElideRight
+                                        verticalAlignment: Text.AlignVCenter
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 200
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    // 7. Aksiyonlar (Grafik, İşlem, Not Düzenle, Sil)
+                                    RowLayout {
+                                        Layout.preferredWidth: stocksFlick.colActions
+                                        Layout.minimumWidth: stocksFlick.colActions
+                                        Layout.maximumWidth: stocksFlick.colActions
+                                        spacing: 4
+                                        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                                        z: 2
+
+                                        ModernButton {
+                                            text: Strings.btnChart
+                                            variant: "ghost"
+                                            implicitHeight: 26
+                                            implicitWidth: 55
+                                            onClicked: {
+                                                if (chartController) chartController.loadTicker(model.ticker)
+                                                if (shellController) shellController.navigateTo(0)
+                                            }
+                                        }
+
+                                        ModernButton {
+                                            text: Strings.btnTrade
+                                            variant: "secondary"
+                                            implicitHeight: 26
+                                            implicitWidth: 50
+                                            onClicked: {
+                                                tradeModal.open(model.cleanTicker || model.ticker, model.priceRaw || 0.0)
+                                            }
+                                        }
+
+                                        // Not Düzenle İkonu
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            ModernIcon {
+                                                name: "pencil"
+                                                size: 13
+                                                color: editStockMouse.containsMouse ? Theme.accent : Theme.textMuted
+                                                anchors.centerIn: parent
+                                            }
+                                            MouseArea {
+                                                id: editStockMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: editNoteModal.open(watchlistController.currentWatchlistId, model.stockId, model.cleanTicker, model.notes)
+                                            }
+                                        }
+
+                                        // Listeden Kaldır İkonu
+                                        Item {
+                                            width: 24
+                                            height: 24
+                                            ModernIcon {
+                                                name: "trash-2"
+                                                size: 13
+                                                color: deleteStockMouse.containsMouse ? "#ff5252" : Theme.bearRed
+                                                anchors.centerIn: parent
+                                            }
+                                            MouseArea {
+                                                id: deleteStockMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    if (watchlistController) watchlistController.removeStock(watchlistController.currentWatchlistId, model.stockId)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                            }
+                        }
+
+                        // Boş Liste Durumu (Empty State)
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            visible: stocksListView.count === 0
+                            color: "transparent"
+
+                            ColumnLayout {
+                                anchors.centerIn: parent
+                                spacing: Theme.spaceSm
+
+                                ModernIcon {
+                                    name: "star"
+                                    size: 36
+                                    color: Theme.textMuted
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+
+                                Text {
+                                    text: Strings.emptyWatchlistTitle
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontBase
+                                    font.weight: Font.Bold
+                                    color: Theme.textPrimary
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+
+                                Text {
+                                    text: Strings.emptyWatchlistSubtitle
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.fontSm
+                                    color: Theme.textMuted
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+
+                                Item { height: 6 }
+
+                                ModernButton {
+                                    text: Strings.btnAddStockToWatchlist
+                                    iconName: "plus"
+                                    variant: "primary"
+                                    Layout.alignment: Qt.AlignHCenter
+                                    enabled: watchlistController && (watchlistController.currentWatchlistId > 0)
+                                    onClicked: addStockModal.open(watchlistController.currentWatchlistId)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // --- Modallar & Bildirimler ---
+
+    AddStockModal {
+        id: addStockModal
+    }
+
+    ManageWatchlistModal {
+        id: manageModal
+    }
+
+    EditStockNoteModal {
+        id: editNoteModal
+    }
+
+    QuickTradeModal {
+        id: tradeModal
+    }
+
+    ToastNotification {
+        id: toast
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        anchors.margins: Theme.spaceLg
+    }
+
+    // Python WatchlistController Sinyal Bağlantısı
+    Connections {
+        target: watchlistController
+
+        function onActionCompleted(success, message) {
+            toast.show(message, success)
+        }
+    }
+}

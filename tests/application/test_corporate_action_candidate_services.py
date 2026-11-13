@@ -6,6 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.application.services.corporate_actions.candidate_discovery_service import (
+    CandidateDiscoveryDeps,
     CorporateActionDiscoveryService,
 )
 from src.application.services.corporate_actions.candidate_review_service import (
@@ -113,14 +114,24 @@ def _candidate(**overrides):
     return CorporateActionCandidate(**data)
 
 
+def _ledger_with(*stock_ids):
+    from src.domain.models.ledger import LedgerKind, LedgerSnapshot
+    from src.domain.split_math import LedgerLot
+
+    lots = [LedgerLot(n, date(2026, 1, 2), None, True, Decimal("1"), Decimal("1"), sid) for n, sid in enumerate(stock_ids)]
+    return MagicMock(snapshot=MagicMock(return_value=LedgerSnapshot({(LedgerKind.MAIN, None): lots})))
+
+
 def test_discovery_matches_stock_and_deduplicates():
     repo = FakeCandidateRepo()
     service = CorporateActionDiscoveryService(
-        provider=FakeProvider([_candidate()]),
-        candidate_repo=repo,
-        stock_repo=FakeStockRepo(),
-        action_repo=MagicMock(get_by_stock=MagicMock(return_value=[])),
-        portfolio_repo=MagicMock(get_all_stock_ids_in_portfolio=MagicMock(return_value=[47])),
+        deps=CandidateDiscoveryDeps(
+            provider=FakeProvider([_candidate()]),
+            candidate_repo=repo,
+            stock_repo=FakeStockRepo(),
+            action_repo=MagicMock(get_by_stock=MagicMock(return_value=[])),
+            ledger_reader=_ledger_with(47),
+        ),
     )
 
     first = service.discover()
@@ -150,11 +161,13 @@ def test_discovery_skips_already_applied_action():
         )
     ]
     service = CorporateActionDiscoveryService(
-        provider=FakeProvider([_candidate()]),
-        candidate_repo=FakeCandidateRepo(),
-        stock_repo=FakeStockRepo(),
-        action_repo=action_repo,
-        portfolio_repo=MagicMock(get_all_stock_ids_in_portfolio=MagicMock(return_value=[47])),
+        deps=CandidateDiscoveryDeps(
+            provider=FakeProvider([_candidate()]),
+            candidate_repo=FakeCandidateRepo(),
+            stock_repo=FakeStockRepo(),
+            action_repo=action_repo,
+            ledger_reader=_ledger_with(47),
+        ),
     )
 
     result = service.discover()
@@ -165,11 +178,13 @@ def test_discovery_skips_already_applied_action():
 
 def test_discovery_returns_unavailable_result_without_raising():
     service = CorporateActionDiscoveryService(
-        provider=UnavailableProvider(),
-        candidate_repo=FakeCandidateRepo(),
-        stock_repo=FakeStockRepo(),
-        action_repo=MagicMock(get_by_stock=MagicMock(return_value=[])),
-        portfolio_repo=MagicMock(get_all_stock_ids_in_portfolio=MagicMock(return_value=[47])),
+        deps=CandidateDiscoveryDeps(
+            provider=UnavailableProvider(),
+            candidate_repo=FakeCandidateRepo(),
+            stock_repo=FakeStockRepo(),
+            action_repo=MagicMock(get_by_stock=MagicMock(return_value=[])),
+            ledger_reader=_ledger_with(47),
+        ),
     )
 
     result = service.discover()

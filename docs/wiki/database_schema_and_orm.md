@@ -1,60 +1,67 @@
 # Veritabanı Şeması ve SQLAlchemy ORM
 
-> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md)
+> Ana sayfa: [index.md](index.md) | Mimari: [architecture.md](architecture.md) | Veri sahipliği: [data_architecture.md](data_architecture.md)
 
-Bu belge, uygulamanın `src/infrastructure/db/sqlalchemy` dizini altındaki veritabanı yapısını detaylandırır.
+Bu sayfa SQLite (işlemsel) şemasını ve ORM katmanını anlatır. DuckDB şeması [data_architecture.md](data_architecture.md) ve [market_corporate_actions.md](market_corporate_actions.md) içindedir.
 
-## 1. Veritabanı Yaklaşımı ve Repository Pattern
+## 1. Repository Deseni
 
-Uygulamanın çekirdek kodları (Domain) SQL veya MySQL teknolojisinden tamamen bağımsızdır. `src/domain/ports/repositories` altında tanımlı soyut arayüzler (Interfaces), SQLAlchemy Repository'leri tarafından `src/infrastructure` içinde somutlaştırılır.
+Domain katmanı SQL'den bağımsızdır: `src/domain/ports/repositories/` altındaki soyut arayüzler `src/infrastructure/db/sqlalchemy/repositories/` içindeki 20 SQLAlchemy repository'siyle (`sa_*.py`) uygulanır. Yazma yollarındaki `commit/rollback/refresh` tekrarları `_transaction.py` yardımcılarına (`commit_or_rollback`, `commit_refresh_or_rollback`) taşınmıştır; hata yakalama `SQLAlchemyError` ailesiyle sınırlıdır. `SQLAlchemyRiskProfileRepository` eski `risk_profiles` şeması için bilinçli bir uyumluluk yolu taşır.
 
-Bu sayede, ileride veritabanı SQLite veya PostgreSQL ile değiştirilmek istenirse sadece Infrastructure katmanında değişiklik yapılması yeterli olacaktır.
+## 2. Tablolar (`orm_models.py`, 31 tablo)
 
-## 2. Tablo Şeması Özetleri (`orm_models.py`)
+| Alan | Tablo | İçerik |
+|---|---|---|
+| Hisse ve işlem | `stocks` | `ticker` (benzersiz, kanonik uzantısız), `name`, `currency_code`. |
+| | `trades` | BUY/SELL: `stock_id`, tarih, saat, `quantity`, `price`, `original_quantity`, `original_price` (sermaye artırımı öncesi özgün değerler), `fee` (komisyon + BSMV, TL, varsayılan 0; alımda maliyete eklenir), `total_amount` (üretilmiş sütun: `quantity * price`), `notes`. |
+| | `trade_adjustments` | Sermaye artırımı düzeltme denetim izi: `trade_id`, `corporate_action_id`, `factor`, önceki/sonraki lot ve fiyat. |
+| | `cash_movements` | `DEPOSIT`/`WITHDRAW`/`DIVIDEND`, `amount`, tarih/saat, `notes`, `stock_id` (yalnızca temettü; `ON DELETE SET NULL`). |
+| Fiyat | `daily_prices` | `(stock_id, price_date)` benzersiz; `close_price`, `open/high/low`, `volume`, `source`. Yalnızca portföy hisseleri (kullanıcı verisine bağlı). |
+| | `latest_prices` | Hisse başına tek satır canlı/gün içi fiyat: `price`, `as_of`, `source`, `provider`, `fetched_at`, `updated_at`. Tarihsel rapor kaynağı değildir. |
+| Kurumsal aksiyon | `corporate_actions` | `BEDELLI`/`BEDELSIZ`, `ex_date`, `ratio`, `subscription_price`, `applied`, `prices_adjusted` ve düzeltme faktörü/sayısı (idempotency). |
+| | `corporate_action_candidates` | KAP/MKK adayları: kaynak, duyuru kimliği, tür, durum, oran, güven, ham yük, ayrıştırma notu; `(source, source_disclosure_id, action_type, ticker)` benzersiz. |
+| İzleme listesi | `watchlists`, `watchlist_items` | [service_watchlist.md](service_watchlist.md). |
+| Model portföy | `model_portfolios` | `name`, `description`, `initial_cash`, `sort_order`. |
+| | `model_portfolio_trades` | Portföye bağlı işlemler. |
+| | `model_portfolio_cash_movements` | Sonradan eklenen/çekilen sermaye (tarih-saatli). |
+| Planlama | `budgets` (`month` benzersiz), `budget_items`, `budget_pinned_items` (`item_type + name` benzersiz), `financial_goals` | Bütçe, kalemler, pinli şablonlar, hedefler. |
+| Risk | `risk_profiles` | Skor, etiket, anket sürümü, yanıt/boyut puanı/dağılım JSON'ları, uygunluk notları. |
+| Teknik | `cross_events` | Golden/Death Cross olayları: `(ticker, cross_date, cross_type)` benzersiz; türetilmiş veri. |
+| KAP | `kap_companies` (`ticker` benzersiz, `mkk_member_oid`), `kap_shareholder_snapshots`, `kap_shareholder_rows` | Ortaklık yapısı önbelleği. |
+| Varlık defteri (BIST dışı) | `assets` | `symbol`, `name`, `asset_class`, `quote_currency`, `yf_symbol`, `unit`, `is_active`; `(asset_class, symbol)` benzersiz. |
+| | **Para sütunları** | Tüm `Numeric` sütunlar `ExactNumeric` (`exact_numeric.py`) kullanır; DDL aynıdır (`NUMERIC(p, s)`), ancak SQLite değeri `REAL` (çift duyarlık) saklar. Float üzerinden gidince ölçeğe yuvarlanmış değer değişiyorsa (yaklaşık 15 anlamlı basamak üstü) yazma `ValueError` ile reddedilir; sessiz bozulma olmaz. Gerçek `Decimal` depolaması (TEXT/küçük birim tamsayı) tablo yeniden kurulumu gerektirdiğinden yapılmadı. |
+| | `asset_trades` | BUY/SELL: `quantity`, `price` `Numeric(28,10)`, `fx_rate_to_try`, `fee` (işlem para biriminde), `cash_linked` (nakit havuzunu etkiler; göçle mevcutlar 0), `trade_time`, `note`. |
+| | `fx_conversions` | Ortak nakit havuzunda TL <-> USD: `conversion_date/time`, `side` (BUY_USD/SELL_USD), `usd_amount`, `rate` (1 USD = X TRY), `fee_try`, `note`. |
+| Ayar | `app_settings` | Küçük anahtar-değer ayarları: `key` (PK), `value` (ücret oranları `fee.*`). |
+| | `asset_prices` | Günlük kapanış: `(asset_id, price_date)` benzersiz, `close_price`, `currency_code`, `source`. |
+| | `asset_latest_prices` | Varlık başına son fiyat ve zaman damgası. |
+| | `fx_rates` | Kur serisi: `(base_currency, quote_currency, rate_date)` benzersiz (`uq_fx_rate`), `rate`, `source`. |
+| Haber | `news_sources` | Haber kaynağı tercihleri: `source_id` (PK), `kind`, `name`, `enabled`, `language`, `scope`, `url`, `description`, `is_custom`, `options_json`, `sort_order`. |
 
-Aşağıda SQLAlchemy Declarative Base ile oluşturulan ana tablolar listelenmiştir:
+Varlık defteri tabloları `Integer` anahtar kullanır (BIGINT `max(id)+1` kancası yalnızca `BigInteger` `id` tablolarına uygulanır), üretilmiş sütun içermez; `news_sources` anahtarı metindir. Yeni tabloları `create_all` kurar, `schema_migrations.py` göçü gerekmedi. Ayrıntı: [service_asset_ledger.md](service_asset_ledger.md), [service_news.md](service_news.md).
+Sohbet geçmişi, tema ve açılış işaretleri veritabanında değil `QSettings`'tedir ([settings_and_system.md](settings_and_system.md)).
 
-| Tablo Adı | İçerik ve İşlev |
-| --- | --- |
-| `stocks` | Hisselerin (Varlıkların) ana kimlik bilgilerini (Ticker, İsim, Para Birimi) tutar. |
-| `trades` | Alım/Satım işlemleri. Miktar, fiyat, tarih ve varlık referansını içerir. |
-| `daily_prices` | Zaman serisi fiyatları. Hissenin günlük kapanış değerini tutar. |
-| `latest_prices` | Hisse başına tek satır intraday/latest fiyat cache'i. UI güncel değerlemeleri içindir; tarihsel rapor ve backtest kaynağı değildir. |
-| `model_portfolios` | Gerçek portföy dışında, sanal (test) amaçlı hedef ağırlıkları saklar. |
-| `risk_profiles` | Risk anketindeki kullanıcı yanıtlarını ve finansal profilleri barındırır. |
-| `corporate_actions` | Temettü veya bölünme gibi işlemleri tutar. |
-| `budgets` | Tasarruf ve hedef bütçelerini tanımlar. |
-| `budget_items` | Aylık bütçeye bağlı gelir/gider kalemlerini tutar. |
-| `budget_pinned_items` | Boş aylara otomatik taşınan tekrar eden gelir/gider başlıklarını ve varsayılan tutarlarını saklar. |
-| `watchlists` | Kullanıcının ana portföyde olmadığı halde takip etmek istediği hisse listeleridir. |
+## 3. İlklendirme ve Şema Evrimi
 
-## 3. İlklendirme ve Migration
+- `SQLAlchemyEngineProvider` bağlantıyı `check_same_thread=False` ile kurar, SQLite PRAGMA'larını uygular (WAL günlük modu, `synchronous=NORMAL`, `foreign_keys=ON`) ve `Base.metadata.create_all(checkfirst=True)` ile eksik tabloları oluşturur. Alembic kullanılmaz.
+- **Sürümlü şema göçleri** (`schema_migrations.py`, `_init_db_schema` çağırır): uygulanan göçler `schema_migrations` tablosunda (`version`, `name`, `applied_at`) tutulur ve her biri yalnızca bir kez çalışır. Mevcut göçler: 1 eski `golden_cross_events` tablosunu siler (türetilmiş veri), 2 `.IS` uzantılı `stocks.ticker` kayıtlarını çakışma yoksa uzantısıza çevirir, 3 `cash_movements.stock_id` sütununu ekler, 4 `trades.fee` ve `asset_trades.fee` sütunlarını 0 varsayılanıyla ekler, 5 `asset_trades.cash_linked` sütununu 0 varsayılanıyla ekler, 6 `assets.trade_currency` sütununu boş varsayılanıyla ekler (boş = fiyat para birimi).
+  - Bekleyen göç varsa ve veritabanı doluysa göçten önce `data/backups/portfolio_pre_migration_<zaman>.db` yedeği alınır (SQLite `backup` API'si, son 5 tutulur). Yedek alınamazsa göç başlamaz.
+  - Her göç kendi transaction'ında çalışır, sürüm kaydı aynı transaction'dadır. SQLite DDL'i her sürücüde geri alınamayabileceğinden göçler **idempotent** yazılır.
+  - Hata yutulmaz: `SchemaMigrationError` yükselir; `app.py` bunu yakalayıp uygulamayı çevrimdışı modda açar ve log'a yazar.
+  - Taze veritabanında `create_all` güncel şemayı kurar, mevcut göçler çalıştırılmadan uygulanmış işaretlenir.
+  - **Yeni sütun/veri dönüşümü eklemek:** `MIGRATIONS` listesinin sonuna bir sonraki numarayla `Migration` ekleyin; numara ve sırayı değiştirmeyin. `create_all` var olan tabloya sütun eklemez.
+- Bazı repository'ler kendi tablosunu `checkfirst=True` ile oluşturur (ör. nakit hareketi, bütçe pinleri).
+- **BIGINT birincil anahtar:** SQLite `BIGINT` anahtarı otomatik artırmaz. `orm_models.py` içindeki `before_insert` dinleyicisi `id` boşsa `max(id)+1` atar (aynı flush içinde sayaç tutar); `id`'yi elle atayan repository'ler (fiyat, hisse, izleme listesi) etkilenmez. Eşzamanlı yazıcılar için dinleyici, `max(id)` okunmadan önce hiçbir satırı değiştirmeyen bir `UPDATE ... WHERE 0` ile SQLite yazma kilidini alır; ikinci yazıcı ilki commit edene kadar bekler ve güncel `max(id)` değerini görür (`test_bigint_id_concurrency.py`). Kalıcı çözüm `id` sütununu SQLite'ta `INTEGER PRIMARY KEY` (rowid) yapmaktır; bunun için ~19 tablonun yeniden kurulması gerektiğinden yapılmadı ([roadmap.md](roadmap.md)).
+- Yabancı anahtarlar: `daily_prices`, `corporate_actions`, `trades` hisse silmeyi engeller (`RESTRICT`); izleme listesi öğeleri ve model işlemleri CASCADE. Hisse silmek için `PortfolioMaintenanceService.purge_stock_by_ticker` bağlı kayıtları doğru sırayla siler ([database_maintenance_and_scripts.md](database_maintenance_and_scripts.md)).
 
-İlk çalıştırmada `database_engine.py` üzerinden MySQL/SQLite motoruna bağlanılır ve ORM modelleri otomatik olarak tabloları oluşturur (`metadata.create_all()`). Alembic veya benzeri ağır migration toollarından ziyade, uygulamanın esnek yapısı gereği modeller kendi tablolarını doğrudan oluşturacak şekilde yapılandırılmıştır. (Gelecekteki ölçeklenme planlarında Alembic eklenebilir).
+## 4. Sermaye Artırımı ve İşlem Düzeltmesi
 
-## Faz 3 Notu (2026-06-02)
+Sermaye artırımı uygulandığında `trades.quantity` ve `price` bölünmüş değerleri tutar; özgün değerler `original_quantity` ve `original_price` sütunlarında salt okunur korunur ve her değişiklik `trade_adjustments`'a yazılır ([service_corporate_actions.md](service_corporate_actions.md)).
 
-- SQLAlchemy repository yazma yollarında tekrar eden `commit/rollback/refresh` blokları `commit_or_rollback` ve `commit_refresh_or_rollback` helper'larına taşındı.
-- Repository tarafında kontrolsüz `except Exception` kullanılmıyor; DB transaction rollback davranışı `SQLAlchemyError` ailesiyle sınırlandı.
-- `SQLAlchemyModelPortfolioRepository` içindeki ulaşılamayan ORM mapper kodu gerçek `_to_orm_portfolio` metoduna taşındı ve regression testi eklendi.
-- `SQLAlchemyRiskProfileRepository` legacy schema fallback'i bilinçli istisna olarak korunur; raw SQL yalnız eski `risk_profiles` şeması uyumluluğu için kullanılır.
+## 5. Önbellek Dosyaları
 
-## Bütçe Pinleme Notu (2026-06-03)
+Mali tablo, TÜFE, değerleme, KAP şirket listesi (`data/_cache/kap/bist_companies_v2.json`) ve haber önbellekleri (`data/_cache/news/`) veritabanında değil `data/_cache/` altında JSON dosyalarıdır ([service_market_data_providers.md](service_market_data_providers.md)).
 
-- `budget_pinned_items`, `item_type + name` benzersizliğiyle tekrar eden gelir/gider şablonlarını saklar.
-- Aylık kayıtlar yine `budgets` ve `budget_items` üzerinde kalır; pinli şablonlar yalnız bütçesi olmayan aylar için form taslağı üretir.
-- Repository başlangıcında tablo `checkfirst=True` ile oluşturulur; mevcut bütçe kayıtları migrate edilmez veya değiştirilmez.
+## 6. Testler
 
-## Kurumsal İşlemler ve İşlem Düzeltme Notu (2026-06-04)
-
-- `trades` tablosuna `original_quantity` ve `original_price` kolonları eklendi.
-- Kurumsal işlemler uygulandığında düzeltme geçmişini (factor, pre_quantity, post_quantity, pre_price, post_price) denetim izli olarak saklayan `trade_adjustments` tablosu oluşturuldu.
-- Düzeltilen işlemler için `trades.quantity` ve `trades.price` kolonları bölünmüş değerleri tutarken, orijinal işlem bilgileri `trades.original_quantity` ve `trades.original_price` kolonlarında salt-okunur şekilde korunur.
-
-## Latest Fiyat Cache Notu (2026-06-06)
-
-- `latest_prices` tablosu `stock_id` üzerinde unique constraint ve `stocks.id` FK ile tanımlanır; bir hisse için yalnız son canlı/latest fiyat saklanır.
-- Alanlar: `price`, `as_of`, `source`, `provider`, `fetched_at`, `updated_at`. `updated_at` upsert sırasında DB tarafında yenilenir.
-- `SQLAlchemyLatestPriceRepository`, `ILatestPriceRepository` portunu uygular ve 15 dakikalık canlı yenileme ile model portföy manuel fiyat güncellemelerinin kalıcı cache yazma yoludur.
-- Migration için `scripts/apply_latest_prices_schema.py` vardır; mevcut `daily_prices` kapanış verisi migrate edilmez veya değiştirilmez.
-
+`tests/infrastructure/db/` (`test_database_engine.py`, `test_schema_migrations.py`, `test_orm_schema.py`, `test_sqlite_upserts.py`, `test_transaction_helper.py`, repository testleri, `test_cash_movement_dividend_repository.py`: id atama ve sütun göçü).

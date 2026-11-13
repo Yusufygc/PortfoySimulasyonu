@@ -23,20 +23,20 @@ Bu projedeki tüm kurallar, süreçler ve yönergeler için bkz:
 - Mimari karar, yeni özellik veya önemli hata çözümü → ilgili wiki sayfası güncellenir + `log.md`'ye eklenir.
 - Tüm commit mesajları Türkçe, detaylı gövde ile yazılır (`güncelle:`, `ekle:`, `düzelt:` vb.).
 - Büyük sınıf/fonksiyon eşiklerinde refactor zorunluluğu ve tam test koşumu için `ARCHITECTURE_GATES.md` içindeki kalite kapıları takip edilir.
-- Arayüzdeki (UI) tüm kullanıcı metinlerinde doğru Türkçe karakterler kullanılmalı ve bu metinler `src/ui/shared/locale_tr.py` (`L10N`) içinde yönetilmelidir.
+- Arayüzdeki (UI) tüm kullanıcı metinlerinde doğru Türkçe karakterler kullanılmalı ve bu metinler `src/ui_qml/qml/theme/Strings.qml` (`Strings` singleton) içinde yönetilmelidir.
 
 ---
 
 ## Proje Özeti
 
-**Portföy Simülasyonu** — BIST ve küresel hisseleri takip eden PyQt5 masaüstü uygulaması.  
+**Portföy Yönetimi** — BIST hisselerini ve BIST dışı varlıkları (altın, kripto, ABD hissesi) takip eden PySide6 + QML masaüstü uygulaması.  
 Markowitz optimizasyonu, risk profili analizi, backtest simülasyonu, Excel raporlama ve AI destekli analiz içerir.
 
 | Katman | Teknoloji |
 |--------|-----------|
-| UI | PyQt5, QSS theming, pyqtgraph |
+| UI | PySide6 + QML (Qt Quick), TradingView Lightweight Charts, Plotly (WebEngine) |
 | Uygulama Mantığı | Python 3.10+, DI Container |
-| Veritabanı | MySQL 8.0+ / SQLAlchemy ORM |
+| Veritabanı | SQLite (OLTP) + DuckDB (piyasa geçmişi, OLAP) / SQLAlchemy ORM |
 | Piyasa Verisi | YFinance |
 | Veri Bilimi | NumPy, Pandas, SciPy, scikit-learn |
 | Build | Nuitka (Windows .exe) |
@@ -56,13 +56,13 @@ UI  →  Application  →  Infrastructure  →  Domain
 - **Domain** (`src/domain/`): Saf iş modelleri ve port arayüzleri. Hiçbir dış bağımlılık yok.
 - **Application** (`src/application/`): Servisler, DI container (`container.py`), EventBus (Pub/Sub).
 - **Infrastructure** (`src/infrastructure/`): SQLAlchemy repository'ler, YFinanceClient, logger.
-- **UI** (`src/ui/`): PyQt5 sayfalar, ThemeManager, PageFactory, QThread Worker.
+- **UI** (`src/ui_qml/`): QML görünümleri (`qml/`), Python denetleyiciler (`controllers/`), `Strings.qml` metin kataloğu. Denetleyiciler yalnızca application/domain katmanına bağlanır.
 
 Detay için bkz. [docs/wiki/architecture.md](docs/wiki/architecture.md).
 
 ### Event Bus
 
-`GlobalEventBus` (PyQt5 QObject sinyalleri) arka plan iş parçacıklarından UI'a thread-safe veri iletir:
+`GlobalEventBus` (PySide6 QObject sinyalleri) arka plan iş parçacıklarından UI'a thread-safe veri iletir:
 
 ```python
 container.event_bus.prices_updated.emit({"stock_id": Decimal("123.45")})
@@ -96,6 +96,11 @@ unrealized_pl = portfolio.total_unrealized_pl(current_prices)
 | `corporate_actions` | Sermaye artırımı, temettü |
 | `budgets` | Aylık birikim hedefleri |
 | `watchlists` / `watchlist_items` | İzleme listeleri |
+| `assets` / `asset_trades` | BIST dışı varlık defteri (altın, gümüş, platin, paladyum, kripto, ABD hissesi); ayrı defter |
+| `asset_prices` / `asset_latest_prices` / `fx_rates` | Varlık günlük ve son fiyatları, kur serisi |
+| `news_sources` | Haber kaynağı açık/kapalı tercihleri (KAP, Yahoo, Google News, RSS) |
+| `fx_conversions` | Ortak nakit havuzunda TL <-> USD döviz çevirmeleri |
+| `app_settings` | Küçük anahtar-değer ayarları (komisyon ve BSMV oranları) |
 
 ORM ilk çalıştırmada tabloları otomatik oluşturur.
 
@@ -111,13 +116,7 @@ pip install -r requirements.txt
 
 `.env` dosyası (proje kökünde):
 ```ini
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=portfoySim
-POOL_NAME=portfoy_pool
-POOL_SIZE=5
+DB_SQLITE_PATH=data/portfolio.db
 TCMB_DEPOSIT_RATE_FALLBACK=45.0
 GEMINI_API_KEY=your_gemini_key
 ```
@@ -139,9 +138,10 @@ GEMINI_API_KEY=your_gemini_key
 
 ## Yeni Özellik Ekleme Kalıbı
 
-1. **Servis:** `src/domain/ports/` → interface → `src/application/services/` → impl → `container.py` kaydı
-2. **Repository:** `src/domain/ports/repositories/` → ORM modeli → `src/infrastructure/db/sqlalchemy/repositories/` → `container.py`
-3. **UI Sayfası:** `BasePage` alt sınıfı → `page_factory.py` kaydı → `MainWindow` yönlendirme
+1. **Servis:** `src/domain/ports/` → interface → `src/application/services/` → impl → ilgili `src/application/container_parts/features/<özellik>.py` modülünde `PROVIDES` + `build` satırı
+2. **Repository:** `src/domain/ports/repositories/` → ORM modeli → `src/infrastructure/db/sqlalchemy/repositories/` → `container_parts/repositories.py`
+3. **UI Sayfası:** `src/ui_qml/controllers/` altında denetleyici (`REQUIRES = (...)`, servislere `self._deps.<ad>`) → `src/ui_qml/controllers/registry.py` `CONTROLLERS` satırı → `qml/views/` görünümü → `Sidebar.qml` / `Main.qml` yönlendirme → QML metinleri `Strings.qml`, Python metinleri `src/ui_qml/messages/<alan>.py`
+4. **Fiyat ve defter:** Fiyat yalnızca DuckDB'ye yazılır, SQLite `PriceProjectionService.project` ile yansıtılır. Ana/model/varlık işlemlerini birlikte okuyan kod `ILedgerReader` kullanır.
 
 ---
 

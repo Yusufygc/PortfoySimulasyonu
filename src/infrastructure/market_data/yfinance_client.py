@@ -5,7 +5,6 @@ import tempfile
 import warnings
 from datetime import date
 from pathlib import Path
-from typing import Sequence
 
 import yfinance as yf
 try:
@@ -15,6 +14,8 @@ except ImportError:
         pass
 
 from src.domain.exceptions import MarketDataUnavailableError
+from src.domain.ticker import to_yf_symbol
+from src.infrastructure.retry import retry_call
 from ._errors import MARKET_DATA_FALLBACK_ERRORS
 from .yfinance_price_client import YFinancePriceClient
 
@@ -42,29 +43,31 @@ class YFinanceMarketDataClient(IMarketDataClient):
         self._price_client = YFinancePriceClient(self)
 
     def _download_dataframe(self, tickers, start: date, end: date):
+        from .yfinance_lock import yfinance_lock
+
+        def download():
+            # Kilit denemeler arasında bırakılır; bekleme sırasında diğer yfinance çağrıları engellenmez.
+            with yfinance_lock:
+                return yf.download(
+                    tickers=tickers,
+                    start=start,
+                    end=end,
+                    interval="1d",
+                    progress=False,
+                    # SQLite fiyat politikası: ham kapanış. Yahoo `Close` bölünme düzeltmelidir, temettü düzeltmesi
+                    # içermez; bölünme/bedelsiz faktörleri uygulamada (onaylı kurumsal aksiyonlar) uygulanır.
+                    auto_adjust=False,
+                    timeout=self._timeout,
+                )
+
         try:
-            return yf.download(
-                tickers=tickers,
-                start=start,
-                end=end,
-                interval="1d",
-                progress=False,
-                auto_adjust=False,
-                timeout=self._timeout,
-            )
+            return retry_call(download, label="YFinance indirme")
         except MARKET_DATA_FALLBACK_ERRORS as e:
             raise MarketDataUnavailableError(f"YFinance indirme hatasi: {e}") from e
 
+    # Kanonik ticker uzantısızdır (`THYAO`); yfinance borsa son eki (`THYAO.IS`) ister, bu yüzden sınırda çevrilir.
     def get_closing_price(self, stock_id: int, ticker: str, price_date: date):
-        return self._price_client.get_closing_price(ticker=ticker, price_date=price_date)
-
-    def get_closing_prices(
-        self,
-        stock_ids: Sequence[int],
-        tickers: Sequence[str],
-        price_date: date,
-    ):
-        return self._price_client.get_closing_prices(stock_ids=stock_ids, tickers=tickers, price_date=price_date)
+        return self._price_client.get_closing_price(ticker=to_yf_symbol(ticker), price_date=price_date)
 
     def get_price_series(
         self,
@@ -72,4 +75,6 @@ class YFinanceMarketDataClient(IMarketDataClient):
         start_date: date,
         end_date: date,
     ):
-        return self._price_client.get_price_series(ticker=ticker, start_date=start_date, end_date=end_date)
+        return self._price_client.get_price_series(
+            ticker=to_yf_symbol(ticker), start_date=start_date, end_date=end_date
+        )

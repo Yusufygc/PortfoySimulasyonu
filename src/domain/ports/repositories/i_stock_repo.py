@@ -14,7 +14,7 @@ class IStockRepository(ABC):
 
     Amaç:
       - Uygulama & servis katmanı bu interface'e göre programlar.
-      - MySQL/başka DB implementasyonları bu interface'i uygular.
+      - SQLAlchemy (SQLite) implementasyonu ve test sahteleri bu interface'i uygular.
     """
 
     # ---------- READ operasyonları ---------- #
@@ -60,8 +60,7 @@ class IStockRepository(ABC):
 
         map'i döner.
 
-        Gün sonu fiyat güncellemesi (PriceUpdateService) için
-        tam ihtiyacımız olan şey.
+        Canlı fiyat yenilemesi ve fiyat tamamlama bunu kullanır.
         """
         raise NotImplementedError
 

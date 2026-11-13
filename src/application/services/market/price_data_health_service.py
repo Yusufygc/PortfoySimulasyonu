@@ -1,26 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, timedelta, time
+from datetime import date, timedelta
 from decimal import Decimal
-from typing import Dict, List, Protocol, Sequence, Set
+from typing import Dict, List, NamedTuple, Protocol, Sequence, Set
 
-from src.domain.models.daily_price import DailyPrice
-from src.domain.models.model_portfolio import ModelTradeSide
 from src.domain.models.stock import Stock
-from src.domain.models.trade import TradeSide
-from src.application.services.portfolio.safe_portfolio_builder import build_portfolio_safely
-from src.domain.ports.repositories.i_corporate_action_repo import ICorporateActionRepository
 from src.domain.ports.repositories.i_model_portfolio_repo import IModelPortfolioRepository
-from src.domain.ports.repositories.i_portfolio_repo import IPortfolioRepository
+from src.domain.models.ledger import LedgerKind
+from src.domain.ports.repositories.i_ledger_reader import ILedgerReader
 from src.domain.ports.repositories.i_price_repo import IPriceRepository
 from src.domain.ports.repositories.i_stock_repo import IStockRepository
-from src.domain.ports.services.i_market_data_client import IMarketDataClient
-from src.application.services.corporate_actions.price_adjustment_service import adjusted_market_price
+from src.domain.market_clock import market_today
 
 PRICE_SCOPE_ALL_ACTIVE = "all_active"
 PRICE_SCOPE_DASHBOARD = "dashboard"
 PRICE_SCOPE_MODEL_PREFIX = "model:"
+PRICE_SCOPE_ALL_BIST = "all_bist"  # Phase A2: tüm BIST tickerleri (portföye bakmaksızın)
 
 
 class MarketHolidayProvider(Protocol):
@@ -77,10 +73,6 @@ class PriceDataHealthReport:
     @property
     def known_holiday_count(self) -> int:
         return len(self.known_holiday_dates)
-
-    @property
-    def total_excluded_holiday_count(self) -> int:
-        return self.known_holiday_count + self.holiday_candidate_count
 
     @property
     def health_label(self) -> str:
@@ -191,15 +183,56 @@ def _active_stock_ids_for_date(
     ]
 
 
+class PriceHealthServiceDeps(NamedTuple):
+    stock_repo: IStockRepository
+    price_repo: IPriceRepository
+    price_refresher: object  # MarketPriceRefresher: kaynak -> DuckDB -> SQLite yansıması
+    ledger_reader: "ILedgerReader | None" = None  # ana + model portföy işlemleri (kapsam)
+    model_portfolio_repo: "IModelPortfolioRepository | None" = None  # kapsam seçeneklerinin adları
+
+
+class _UpdaterCtx(NamedTuple):
+    scope_resolver: "PriceScopeResolver"
+    analyzer: "PriceHealthAnalyzer"
+    holiday_provider: "MarketHolidayProvider"
+    default_start_date_func: object
+
+
+class _RowBuildCtx(NamedTuple):
+    first_trade_dates: "Dict[int, date]"
+    presence_map: "Dict[int, Set[date]]"
+    latest_dates: "Dict[int, date]"
+    holiday_candidate_set: "Set[date]"
+
+
+def _scope_filter(scope: str | None):
+    """Kapsamın kapsadığı defter anahtarları: ana portföy, tüm model portföyler veya tek model portföy."""
+    model_id = _model_scope_id(scope)
+    include_main, include_models = _includes_dashboard(scope), _includes_models(scope)
+
+    def include(key) -> bool:
+        ledger, portfolio_id = key
+        if ledger == LedgerKind.MAIN:
+            return include_main
+        if ledger == LedgerKind.MODEL:
+            return include_models and (model_id is None or portfolio_id == model_id)
+        return False
+
+    return include
+
+
 class PriceScopeResolver:
+    """Fiyat sağlığı kapsamı. Defterler tek okuma noktasından (`ILedgerReader`) okunur; model portföy deposu
+    yalnızca kapsam seçeneklerinin adları içindir."""
+
     def __init__(
         self,
         stock_repo: IStockRepository,
-        portfolio_repo: IPortfolioRepository | None = None,
+        ledger_reader: ILedgerReader | None = None,
         model_portfolio_repo: IModelPortfolioRepository | None = None,
     ) -> None:
         self._stock_repo = stock_repo
-        self._portfolio_repo = portfolio_repo
+        self._ledger_reader = ledger_reader
         self._model_portfolio_repo = model_portfolio_repo
 
     def scope_options(self) -> List[PriceDataScopeOption]:
@@ -221,84 +254,23 @@ class PriceScopeResolver:
         return options
 
     def first_trade_dates_by_stock(self, scope: str | None = None) -> Dict[int, date]:
-        if self._portfolio_repo is None and self._model_portfolio_repo is None:
+        if _normalize_scope(scope) == PRICE_SCOPE_ALL_BIST or self._ledger_reader is None:
             return {}
-        active_stock_ids = self.active_stock_ids(scope)
-        result: Dict[int, date] = {}
-        for trade in self.price_scope_trades(scope):
-            if trade.stock_id not in active_stock_ids:
-                continue
-            current = result.get(trade.stock_id)
-            if current is None or trade.trade_date < current:
-                result[trade.stock_id] = trade.trade_date
-        return result
+        snapshot, include = self._ledger_reader.snapshot(), _scope_filter(scope)
+        active = snapshot.open_instruments(include)
+        return {sid: day for sid, day in snapshot.first_trade_dates(include).items() if sid in active}
 
     def stocks_in_scope(self, first_trade_dates: Dict[int, date], scope: str | None = None) -> List[Stock]:
         stocks = self._stock_repo.get_all_stocks()
-        if self._portfolio_repo is None and self._model_portfolio_repo is None:
+        if _normalize_scope(scope) == PRICE_SCOPE_ALL_BIST or self._ledger_reader is None:
             return stocks
         active_stock_ids = self.active_stock_ids(scope)
         return [stock for stock in stocks if stock.id in active_stock_ids]
 
     def active_stock_ids(self, scope: str | None = None) -> set[int]:
-        if self._portfolio_repo is None and self._model_portfolio_repo is None:
+        if self._ledger_reader is None:
             return set()
-
-        stock_ids: set[int] = set()
-        if self._portfolio_repo is not None and _includes_dashboard(scope):
-            portfolio = build_portfolio_safely(self._portfolio_repo.get_all_trades()).portfolio
-            stock_ids.update(portfolio.active_positions)
-
-        if self._model_portfolio_repo is not None and _includes_models(scope):
-            for portfolio_id in self._model_portfolio_ids(scope):
-                stock_ids.update(
-                    _open_stock_ids_from_trade_like(
-                        self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
-                    )
-                )
-
-        return stock_ids
-
-    def price_scope_trades(self, scope: str | None = None):
-        if self._portfolio_repo is not None and _includes_dashboard(scope):
-            yield from self._portfolio_repo.get_all_trades()
-        if self._model_portfolio_repo is None or not _includes_models(scope):
-            return
-        for portfolio_id in self._model_portfolio_ids(scope):
-            yield from self._model_portfolio_repo.get_trades_by_portfolio_id(portfolio_id)
-
-    def _model_portfolio_ids(self, scope: str | None = None) -> List[int]:
-        if self._model_portfolio_repo is None:
-            return []
-        selected_id = _model_scope_id(scope)
-        if selected_id is not None:
-            return [selected_id]
-        if _normalize_scope(scope) != PRICE_SCOPE_ALL_ACTIVE:
-            return []
-        return [
-            portfolio.id
-            for portfolio in self._model_portfolio_repo.get_all_model_portfolios()
-            if portfolio.id is not None
-        ]
-
-
-def _open_stock_ids_from_trade_like(trades) -> set[int]:
-    quantities: Dict[int, int] = {}
-    ordered = sorted(
-        trades,
-        key=lambda trade: (
-            trade.trade_date,
-            trade.trade_time if getattr(trade, "trade_time", None) is not None else time.min,
-            getattr(trade, "id", 0) or 0,
-        ),
-    )
-    for trade in ordered:
-        side = trade.side
-        if side in (TradeSide.BUY, ModelTradeSide.BUY) or getattr(side, "value", side) == "BUY":
-            quantities[trade.stock_id] = quantities.get(trade.stock_id, 0) + trade.quantity
-        else:
-            quantities[trade.stock_id] = quantities.get(trade.stock_id, 0) - trade.quantity
-    return {stock_id for stock_id, quantity in quantities.items() if quantity > 0}
+        return self._ledger_reader.snapshot().open_instruments(_scope_filter(scope))
 
 
 class PriceHealthAnalyzer:
@@ -349,10 +321,12 @@ class PriceHealthAnalyzer:
                 stocks=stocks,
                 start_date=start_date,
                 business_days=business_days,
-                first_trade_dates=first_trade_dates,
-                presence_map=presence_map,
-                latest_dates=latest_dates,
-                holiday_candidate_set=set(holiday_candidates),
+                ctx=_RowBuildCtx(
+                    first_trade_dates=first_trade_dates,
+                    presence_map=presence_map,
+                    latest_dates=latest_dates,
+                    holiday_candidate_set=set(holiday_candidates),
+                ),
             ),
             latest_price_date=max(latest_dates.values(), default=None),
             known_holiday_dates=sorted(known_holidays),
@@ -414,10 +388,7 @@ class PriceHealthAnalyzer:
         stocks: Sequence[Stock],
         start_date: date,
         business_days: Sequence[date],
-        first_trade_dates: Dict[int, date],
-        presence_map: Dict[int, Set[date]],
-        latest_dates: Dict[int, date],
-        holiday_candidate_set: Set[date],
+        ctx: "_RowBuildCtx",
     ) -> List[StockPriceHealthRow]:
         rows: List[StockPriceHealthRow] = []
         for stock in stocks:
@@ -427,20 +398,18 @@ class PriceHealthAnalyzer:
                 stock_id=stock.id,
                 start_date=start_date,
                 business_days=business_days,
-                first_trade_dates=first_trade_dates,
-                presence_map=presence_map,
-                holiday_candidate_set=holiday_candidate_set,
+                ctx=ctx,
             )
             rows.append(
                 StockPriceHealthRow(
                     stock_id=stock.id,
                     ticker=stock.ticker,
-                    last_price_date=latest_dates.get(stock.id),
+                    last_price_date=ctx.latest_dates.get(stock.id),
                     missing_dates=missing_dates,
                     first_missing_date=missing_dates[0] if missing_dates else None,
                     last_missing_date=missing_dates[-1] if missing_dates else None,
                     status=_status_for_missing_count(len(missing_dates), expected_count),
-                    first_trade_date=first_trade_dates.get(stock.id),
+                    first_trade_date=ctx.first_trade_dates.get(stock.id),
                 )
             )
         return rows
@@ -450,17 +419,15 @@ class PriceHealthAnalyzer:
         stock_id: int,
         start_date: date,
         business_days: Sequence[date],
-        first_trade_dates: Dict[int, date],
-        presence_map: Dict[int, Set[date]],
-        holiday_candidate_set: Set[date],
+        ctx: "_RowBuildCtx",
     ) -> tuple[List[date], int]:
-        existing_dates = presence_map.get(stock_id, set())
-        active_start_date = max(start_date, first_trade_dates.get(stock_id, start_date))
+        existing_dates = ctx.presence_map.get(stock_id, set())
+        active_start_date = max(start_date, ctx.first_trade_dates.get(stock_id, start_date))
         missing_dates = [
             point_date
             for point_date in business_days
             if point_date >= active_start_date
-            and point_date not in holiday_candidate_set
+            and point_date not in ctx.holiday_candidate_set
             and point_date not in existing_dates
         ]
         expected_count = len([point_date for point_date in business_days if point_date >= active_start_date])
@@ -472,21 +439,17 @@ class PriceHealthUpdater:
         self,
         stock_repo: IStockRepository,
         price_repo: IPriceRepository,
-        market_data_client: IMarketDataClient,
-        scope_resolver: PriceScopeResolver,
-        analyzer: PriceHealthAnalyzer,
-        holiday_provider: MarketHolidayProvider,
-        default_start_date_func,
-        corporate_action_repo: ICorporateActionRepository | None = None,
+        refresher,
+        ctx: "_UpdaterCtx",
     ) -> None:
+        """`refresher` (MarketPriceRefresher): indirme DuckDB'ye, SQLite'a yalnızca yansıtma yazar."""
         self._stock_repo = stock_repo
         self._price_repo = price_repo
-        self._market_data_client = market_data_client
-        self._scope_resolver = scope_resolver
-        self._analyzer = analyzer
-        self._holiday_provider = holiday_provider
-        self._default_start_date_func = default_start_date_func
-        self._corporate_action_repo = corporate_action_repo
+        self._refresher = refresher
+        self._scope_resolver = ctx.scope_resolver
+        self._analyzer = ctx.analyzer
+        self._holiday_provider = ctx.holiday_provider
+        self._default_start_date_func = ctx.default_start_date_func
 
     def update_missing_prices(
         self,
@@ -551,7 +514,7 @@ class PriceHealthUpdater:
         )
 
     def update_from_latest_to_today(self, today: date | None = None, scope: str | None = None) -> PriceDataUpdateResult:
-        today = today or date.today()
+        today = today or market_today()
         first_trade_dates = self._scope_resolver.first_trade_dates_by_stock(scope)
         stocks = [
             stock for stock in self._scope_resolver.stocks_in_scope(first_trade_dates, scope) if stock.id is not None
@@ -594,161 +557,54 @@ class PriceHealthUpdater:
         end_date: date,
         allowed_dates: set[date] | None = None,
     ) -> PriceDataUpdateResult:
+        """Aralığı kaynaktan DuckDB'ye indirir ve SQLite yansımasını günceller (`MarketPriceRefresher`).
+
+        `allowed_dates` yalnızca raporlama içindir: yansıtma DuckDB'deki tüm geçerli günleri yazar.
+        """
         if stock.id is None:
             return PriceDataUpdateResult(scanned_stock_count=0, updated_count=0)
-        try:
-            series = self._market_data_client.get_price_series(stock.ticker, start_date, end_date)
-        except Exception as exc:
-            series = {}
-            fetch_errors = [f"{stock.ticker}: seri alinamadi ({exc})"]
-        else:
-            fetch_errors = []
-        if not series:
-            return self._fallback_stock_range(
-                stock=stock,
-                start_date=start_date,
-                end_date=end_date,
-                allowed_dates=allowed_dates,
-                fetch_errors=fetch_errors,
+        result = self._refresher.refresh([stock], start_date, end_date)
+        errors = [f"{stock.ticker}: {error}" for error in result.errors]
+        if not result.updated_count and stock.id not in result.last_prices:
+            errors.append(
+                f"{stock.ticker}: {start_date:%d.%m.%Y} - {end_date:%d.%m.%Y} araliginda fiyat verisi bulunamadi."
             )
-
-        prices_to_save, last_price = self._daily_prices_from_series(stock, series, allowed_dates)
-        if prices_to_save:
-            self._price_repo.upsert_daily_prices_bulk(prices_to_save)
         return PriceDataUpdateResult(
             scanned_stock_count=1,
-            updated_count=len(prices_to_save),
-            prices={stock.id: last_price} if last_price is not None else {},
-        )
-
-    def _fallback_stock_range(
-        self,
-        stock: Stock,
-        start_date: date,
-        end_date: date,
-        allowed_dates: set[date] | None,
-        fetch_errors: List[str],
-    ) -> PriceDataUpdateResult:
-        fallback_result = self._fetch_and_save_stock_dates(
-            stock=stock,
-            dates=sorted(allowed_dates) if allowed_dates is not None else _business_days(start_date, end_date),
-            base_errors=fetch_errors,
-        )
-        if fallback_result.updated_count > 0:
-            return fallback_result
-        return PriceDataUpdateResult(
-            scanned_stock_count=1,
-            updated_count=0,
-            errors=fetch_errors
-            + [f"{stock.ticker}: {start_date:%d.%m.%Y} - {end_date:%d.%m.%Y} araliginda fiyat verisi bulunamadi."],
-        )
-
-    def _daily_prices_from_series(
-        self,
-        stock: Stock,
-        series: Dict[date, Decimal],
-        allowed_dates: set[date] | None,
-    ) -> tuple[List[DailyPrice], Decimal | None]:
-        prices_to_save: List[DailyPrice] = []
-        last_price: Decimal | None = None
-        actions = self._actions_for_stock(stock.id)
-        from src.application.services.corporate_actions.price_adjustment_service import adjust_downloaded_series
-        adjusted_series = adjust_downloaded_series(series, actions)
-        for point_date, close_price in sorted(adjusted_series.items()):
-            if allowed_dates is not None and point_date not in allowed_dates:
-                continue
-            prices_to_save.append(DailyPrice(id=None, stock_id=stock.id, price_date=point_date, close_price=close_price))
-            last_price = close_price
-        return prices_to_save, last_price
-
-    def _actions_for_stock(self, stock_id: int | None):
-        if stock_id is None or self._corporate_action_repo is None:
-            return []
-        return self._corporate_action_repo.get_by_stock(stock_id)
-
-    def _fetch_and_save_stock_dates(
-        self,
-        stock: Stock,
-        dates: Sequence[date],
-        base_errors: List[str] | None = None,
-    ) -> PriceDataUpdateResult:
-        if stock.id is None:
-            return PriceDataUpdateResult(scanned_stock_count=0, updated_count=0)
-
-        errors = list(base_errors or [])
-        downloaded_series: Dict[date, Decimal] = {}
-        for point_date in dates:
-            try:
-                close_price = self._market_data_client.get_closing_price(stock.id, stock.ticker, point_date)
-            except Exception as exc:
-                errors.append(f"{stock.ticker} {point_date:%d.%m.%Y}: {exc}")
-                continue
-            val = close_price if isinstance(close_price, Decimal) else Decimal(str(close_price))
-            downloaded_series[point_date] = val
-
-        actions = self._actions_for_stock(stock.id)
-        from src.application.services.corporate_actions.price_adjustment_service import adjust_downloaded_series
-        adjusted_series = adjust_downloaded_series(downloaded_series, actions)
-
-        prices_to_save: List[DailyPrice] = []
-        last_price: Decimal | None = None
-        for point_date, close_price in sorted(adjusted_series.items()):
-            prices_to_save.append(
-                DailyPrice(
-                    id=None,
-                    stock_id=stock.id,
-                    price_date=point_date,
-                    close_price=close_price,
-                )
-            )
-            last_price = close_price
-
-        if prices_to_save:
-            self._price_repo.upsert_daily_prices_bulk(prices_to_save)
-
-        return PriceDataUpdateResult(
-            scanned_stock_count=1,
-            updated_count=len(prices_to_save),
+            updated_count=result.updated_count,
             errors=errors,
-            prices={stock.id: last_price} if last_price is not None else {},
+            prices={stock.id: result.last_prices[stock.id]} if stock.id in result.last_prices else {},
         )
-
 
 
 class PriceDataHealthService:
     def __init__(
         self,
-        stock_repo: IStockRepository,
-        price_repo: IPriceRepository,
-        market_data_client: IMarketDataClient,
-        portfolio_repo: IPortfolioRepository | None = None,
-        model_portfolio_repo: IModelPortfolioRepository | None = None,
-        corporate_action_repo: ICorporateActionRepository | None = None,
-        holiday_provider: MarketHolidayProvider | None = None,
+        deps: "PriceHealthServiceDeps",
+        holiday_provider: "MarketHolidayProvider | None" = None,
         default_lookback_days: int = 90,
     ) -> None:
-        self._stock_repo = stock_repo
-        self._price_repo = price_repo
-        self._market_data_client = market_data_client
-        self._portfolio_repo = portfolio_repo
-        self._model_portfolio_repo = model_portfolio_repo
+        self._stock_repo = deps.stock_repo
+        self._price_repo = deps.price_repo
+        self._refresher = deps.price_refresher
         self._holiday_provider = holiday_provider or NoKnownMarketHolidayProvider()
         self._default_lookback_days = default_lookback_days
-        self._scope_resolver = PriceScopeResolver(stock_repo, portfolio_repo, model_portfolio_repo)
+        self._scope_resolver = PriceScopeResolver(deps.stock_repo, deps.ledger_reader, deps.model_portfolio_repo)
         self._analyzer = PriceHealthAnalyzer(
-            price_repo=price_repo,
+            price_repo=deps.price_repo,
             scope_resolver=self._scope_resolver,
             holiday_provider=self._holiday_provider,
         )
         self._updater = PriceHealthUpdater(
-            stock_repo=stock_repo,
-            price_repo=price_repo,
-            market_data_client=market_data_client,
-            scope_resolver=self._scope_resolver,
-            analyzer=self._analyzer,
-            holiday_provider=self._holiday_provider,
-            default_start_date_func=self.default_start_date,
-            corporate_action_repo=corporate_action_repo,
+            stock_repo=deps.stock_repo,
+            price_repo=deps.price_repo,
+            refresher=deps.price_refresher,
+            ctx=_UpdaterCtx(
+                scope_resolver=self._scope_resolver,
+                analyzer=self._analyzer,
+                holiday_provider=self._holiday_provider,
+                default_start_date_func=self.default_start_date,
+            ),
         )
 
     def portfolio_scope_options(self) -> List[PriceDataScopeOption]:
@@ -758,7 +614,7 @@ class PriceDataHealthService:
         return self._scope_resolver.active_stock_ids(scope)
 
     def default_start_date(self, today: date | None = None, scope: str | None = None) -> date:
-        today = today or date.today()
+        today = today or market_today()
         candidate = today - timedelta(days=self._default_lookback_days)
         minimum = self.minimum_start_date(scope)
         return max(candidate, minimum) if minimum else candidate
@@ -785,6 +641,16 @@ class PriceDataHealthService:
     def update_from_latest_to_today(self, today: date | None = None, scope: str | None = None) -> PriceDataUpdateResult:
         return self._updater.update_from_latest_to_today(today, scope)
 
-    def delete_range(self, start_date: date, end_date: date) -> int:
+    def delete_range(self, start_date: date, end_date: date, scope: str | None = None) -> int:
+        """Aralıktaki fiyatları DuckDB'den (kaynak) ve SQLite'tan (yansıma) siler; yeniden indirmeden önce bakım."""
         _validate_range(start_date, end_date)
-        return self._price_repo.delete_prices_in_range(start_date, end_date)
+        stocks = [s for s in self._stock_repo.get_all_stocks() if s.id is not None]
+        if scope is not None:
+            scoped = self._scope_resolver.active_stock_ids(scope)
+            stocks = [s for s in stocks if s.id in scoped]
+            if not stocks:
+                return 0
+        self._refresher.delete_range(stocks, start_date, end_date)
+        if scope is None:
+            return self._price_repo.delete_prices_in_range(start_date, end_date)
+        return self._price_repo.delete_prices_in_range(start_date, end_date, sorted(s.id for s in stocks))

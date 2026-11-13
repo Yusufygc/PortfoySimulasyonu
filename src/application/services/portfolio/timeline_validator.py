@@ -1,7 +1,14 @@
 from collections import defaultdict
 from datetime import date, time as dt_time
 from decimal import Decimal
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, NamedTuple, Optional, Tuple
+
+
+class _EventCtx(NamedTuple):
+    event_id: object
+    event_type: object
+    payload: object
+    marker: object
 
 from src.domain.models.cash_movement import CashMovementType
 from src.domain.models.trade import Trade, TradeSide
@@ -38,6 +45,20 @@ class PortfolioTimelineValidator:
                 )
 
     @classmethod
+    def validate_cash_removal(
+        cls,
+        trades: list[Trade],
+        cash_movements: list[tuple[date, dt_time, int, int, object, Decimal]],
+        removed_id: int,
+    ) -> None:
+        """Bir nakit girişi (ör. temettü) silinirse sonraki alım/çekimlerin yetersiz nakde düşüp düşmediğini denetler."""
+        baseline = {marker for marker, _reason in cls._timeline_violations(trades, cash_movements)}
+        remaining = [event for event in cash_movements if event[3] != removed_id]
+        for marker, _reason in cls._timeline_violations(trades, remaining):
+            if marker not in baseline:
+                raise ValueError("Bu kayıt silinirse sonraki alım veya nakit çekimi için nakit yetersiz kalır.")
+
+    @classmethod
     def _timeline_violations(
         cls,
         trades: list[Trade],
@@ -50,7 +71,7 @@ class PortfolioTimelineValidator:
         events = cls._timeline_events(trades, cash_movements, candidate_marker)
 
         for _event_date, _event_time, _event_order, event_id, event_type, payload, marker in events:
-            cash = cls._apply_event(event_id, event_type, payload, marker, cash, positions, violations)
+            cash = cls._apply_event(_EventCtx(event_id, event_type, payload, marker), cash, positions, violations)
         return violations
 
     @classmethod
@@ -82,12 +103,12 @@ class PortfolioTimelineValidator:
         return events
 
     @classmethod
-    def _apply_event(cls, event_id, event_type, payload, marker, cash, positions, violations) -> Decimal:
-        if event_type == CashMovementType.DEPOSIT:
-            return cash + payload
-        if event_type == CashMovementType.WITHDRAW:
-            return cls._apply_withdraw(event_id, payload, marker, cash, violations)
-        return cls._apply_trade_event(payload, marker, cash, positions, violations)
+    def _apply_event(cls, ctx: _EventCtx, cash, positions, violations) -> Decimal:
+        if isinstance(ctx.event_type, CashMovementType) and ctx.event_type.adds_cash:
+            return cash + ctx.payload
+        if ctx.event_type == CashMovementType.WITHDRAW:
+            return cls._apply_withdraw(ctx.event_id, ctx.payload, ctx.marker, cash, violations)
+        return cls._apply_trade_event(ctx.payload, ctx.marker, cash, positions, violations)
 
     @staticmethod
     def _apply_withdraw(event_id, amount: Decimal, marker, cash: Decimal, violations) -> Decimal:
@@ -105,15 +126,15 @@ class PortfolioTimelineValidator:
             violations.append((marker, f"Yetersiz pozisyon. Satmak istediğiniz: {trade.quantity}, Mevcut: {available}"))
             return cash
         positions[trade.stock_id] -= trade.quantity
-        return cash + trade.total_amount
+        return cash + trade.cash_amount
 
     @staticmethod
     def _apply_buy_trade(trade: Trade, marker, cash: Decimal, positions, violations) -> Decimal:
-        if trade.total_amount > cash:
-            violations.append((marker, f"Yetersiz nakit. Gerekli: {trade.total_amount:.2f} TL, Mevcut: {cash:.2f} TL"))
+        if trade.cash_amount > cash:
+            violations.append((marker, f"Yetersiz nakit. Gerekli: {trade.cash_amount:.2f} TL, Mevcut: {cash:.2f} TL"))
             cash = Decimal("0")
         else:
-            cash -= trade.total_amount
+            cash -= trade.cash_amount
         positions[trade.stock_id] += trade.quantity
         return cash
 
