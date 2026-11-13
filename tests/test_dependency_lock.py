@@ -5,7 +5,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-_PIN = re.compile(r"^([A-Za-z0-9_.-]+)==(\S+)$")
+# Tam sürüm sabiti; isteğe bağlı ortam işareti (`; python_full_version >= "3.11.5"`) Python sürümüne göre farklı sabit verir
+_PIN = re.compile(r"^([A-Za-z0-9_.-]+)==([^\s;]+)(\s*;\s*\S.*)?$")
 
 
 def _pins(name: str) -> dict[str, str]:
