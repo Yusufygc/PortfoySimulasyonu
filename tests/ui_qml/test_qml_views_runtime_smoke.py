@@ -5,7 +5,6 @@ etkinleştirilir ve QML motorunun hiçbir uyarı (tanımsız kimlik, bağlama ha
 Bölme/yeniden düzenleme sırasında koparılan bağlamaları (`root.*`, üst kimlik başvuruları) yakalamak içindir.
 """
 from __future__ import annotations
-from shiboken6 import isValid  # silinmiş QML nesnesine metaObject() çağrısı (3.12 CI yarışı)
 
 from pathlib import Path
 
@@ -15,6 +14,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from PySide6.QtWidgets import QApplication
 
+from tests.ui_qml.qobject_utils import children_of_class
 from src.application.container import AppContainer
 from src.ui_qml.app import create_controllers
 
@@ -82,7 +82,7 @@ def test_view_loads_every_tab_without_qml_warnings(qml_env, name):
 
     if driver is not None and driver[0] == "child":
         _, class_name, property_name, driver_values = driver
-        children = [o for o in item.findChildren(QObject) if isValid(o) and class_name in o.metaObject().className()]
+        children = children_of_class(item, class_name)
         assert children, f"{class_name} bulunamadı"
         for value in driver_values:
             assert children[0].setProperty(property_name, value), f"{class_name}.{property_name} ayarlanamadı"

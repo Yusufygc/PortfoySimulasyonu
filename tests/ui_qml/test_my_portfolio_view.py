@@ -4,7 +4,6 @@ Varlık ve fiyat kayıtları servis/repository üzerinden yazılır (sembol doğ
 sınıf sekmeleri ve USD anahtarı uyarısız çalışmalı, işlem kaydı özeti yeniden okutmalıdır.
 """
 from __future__ import annotations
-from shiboken6 import isValid  # silinmiş QML nesnesine metaObject() çağrısı (3.12 CI yarışı)
 
 from datetime import date, datetime
 from decimal import Decimal
@@ -16,6 +15,7 @@ from PySide6.QtQml import QQmlComponent, QQmlApplicationEngine
 from PySide6.QtWebEngineQuick import QtWebEngineQuick
 from PySide6.QtWidgets import QApplication
 
+from tests.ui_qml.qobject_utils import children_of_class
 from src.application.container import AppContainer
 from src.domain.models.asset import Asset, AssetClass
 from src.domain.models.asset_price import AssetLatestPrice, FxRate
@@ -50,7 +50,7 @@ def pump(times: int = 8) -> None:
 
 
 def find(item, class_fragment):
-    matches = [o for o in item.findChildren(QObject) if isValid(o) and class_fragment in o.metaObject().className()]
+    matches = children_of_class(item, class_fragment)
     assert matches, f"{class_fragment} bulunamadı"
     return matches[0]
 

@@ -396,7 +396,7 @@ def test_price_data_update_from_latest_uses_last_trading_day(qapp):
 
     target, scope = service.update_from_latest_to_today.call_args.args
     assert scope == "dashboard"
-    assert target < date.today() and target.weekday() < 5
+    assert target < market_today() and target.weekday() < 5  # denetleyici İstanbul gününü kullanır; CI UTC'dedir
 
 
 def test_price_data_delete_range(qapp):
