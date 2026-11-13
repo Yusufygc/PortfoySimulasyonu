@@ -334,7 +334,7 @@ ColumnLayout {
                         Text {
                             Layout.preferredWidth: 70
                             horizontalAlignment: Text.AlignRight
-                            text: modelData.estShares > 0 ? modelData.estShares.toLocaleString(Qt.locale("tr_TR")) : "-"
+                            text: modelData.estShares > 0 ? modelData.estShares.toLocaleString(Qt.locale("tr_TR"), "f", Number.isInteger(modelData.estShares) ? 0 : 2) : "-"  // tam lotta ondalık yok
                             color: Theme.textSecondary
                             font.family: Theme.fontFamily
                             font.pixelSize: Theme.fontSm

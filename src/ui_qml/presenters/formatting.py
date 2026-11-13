@@ -45,6 +45,12 @@ def tr_money(value: Optional[Number]) -> str:
         return f"{value} ₺"
 
 
+def tr_lira(value: Optional[Number]) -> str:
+    """Lira işaretini öne yazan biçim: 1234.5 -> '₺1.234,50'; negatifte eksi lira işaretinden önce: '-₺962,00'."""
+    text = tr_number(value if isinstance(value, Decimal) else float(value or 0))
+    return f"-₺{text[1:]}" if text.startswith("-") else f"₺{text}"
+
+
 def tr_pct(value: Optional[Number], with_sign: bool = False) -> str:
     """12.345 -> '%12,35'. Eksi her zaman yazılır ('-%1,20'); artı yalnızca with_sign ile ('+%1,20').
 

@@ -190,33 +190,37 @@ class OptimizationController(QObject):
 
     # --- KPI Properties ---
 
+    def _kpi_text(self, text: str) -> str:
+        """Optimizasyon çalışana kadar kartlar '—' gösterir (0,00 gerçek değer gibi okunuyordu)."""
+        return text if self._has_results else "—"
+
     @Property(str, notify=kpiMetricsChanged)
     def optimalSharpeFormatted(self) -> str:
-        return f"{self._opt_sharpe:.2f}".replace(".", ",")
+        return self._kpi_text(f"{self._opt_sharpe:.2f}".replace(".", ","))
 
     @Property(str, notify=kpiMetricsChanged)
     def currentSharpeFormatted(self) -> str:
-        return f"{self._curr_sharpe:.2f}".replace(".", ",")
+        return self._kpi_text(f"{self._curr_sharpe:.2f}".replace(".", ","))
 
     @Property(str, notify=kpiMetricsChanged)
     def optimalReturnFormatted(self) -> str:
-        return tr_pct(self._opt_return * 100)
+        return self._kpi_text(tr_pct(self._opt_return * 100))
 
     @Property(str, notify=kpiMetricsChanged)
     def currentReturnFormatted(self) -> str:
-        return tr_pct(self._curr_return * 100)
+        return self._kpi_text(tr_pct(self._curr_return * 100))
 
     @Property(str, notify=kpiMetricsChanged)
     def optimalVolFormatted(self) -> str:
-        return tr_pct(self._opt_vol * 100)
+        return self._kpi_text(tr_pct(self._opt_vol * 100))
 
     @Property(str, notify=kpiMetricsChanged)
     def currentVolFormatted(self) -> str:
-        return tr_pct(self._curr_vol * 100)
+        return self._kpi_text(tr_pct(self._curr_vol * 100))
 
     @Property(str, notify=kpiMetricsChanged)
     def minVolFormatted(self) -> str:
-        return tr_pct(self._min_vol_vol * 100)
+        return self._kpi_text(tr_pct(self._min_vol_vol * 100))
 
     @Property(bool, notify=kpiMetricsChanged)
     def isOptimalReturnPositive(self) -> bool:

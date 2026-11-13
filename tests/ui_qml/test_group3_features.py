@@ -690,3 +690,11 @@ def test_dashboard_submit_trade_failure_reports_error_and_unlocks(qapp):
     ctrl.submitTrade("THYAO", "BUY", 5, 100.0, "")
 
     assert results[0] == (False, "Seans kapalı") and results[1][0] is True
+
+
+def test_trade_impact_negative_cash_puts_minus_before_the_lira_sign(qapp):
+    """Uygulamanın geri kalanı '-₺962,00' yazar; emir önizlemesi '₺-962,00' yazıyordu (2026-11-08 QA)."""
+    ctrl = StockDetailController(container=SimpleNamespace())
+    ctrl._quantity, ctrl._avg_cost, ctrl._cash = 0, 0.0, 0.0
+    short = ctrl.tradeImpact("BUY", 100, 9.62)
+    assert short["cashAfter"] == "-₺962,00"

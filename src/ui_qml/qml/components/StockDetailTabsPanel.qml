@@ -127,6 +127,7 @@ Rectangle {
 
                         Rectangle {
                             Layout.preferredWidth: 56
+                            Layout.rightMargin: 14  // başlıktaki "İşlem Türü" sütunu (70) ile aynı genişlik
                             Layout.preferredHeight: 20
                             radius: 10
                             color: modelData.isBuy ? Theme.bullGreenSoft : Theme.bearRedSoft
@@ -140,11 +141,10 @@ Rectangle {
                             }
                         }
 
-                        Item { Layout.preferredWidth: 14 }
-
                         RowLayout {
                             Layout.preferredWidth: 80
-                            Layout.alignment: Qt.AlignRight
+                            Layout.maximumWidth: 80
+                            Layout.fillWidth: false  // içteki Text fillWidth taşıdığı için dış sütunu şişirip fiyat sütununu kaydırıyordu
                             spacing: 4
 
                             Text {
@@ -181,8 +181,8 @@ Rectangle {
                                 }
                             }
                         }
-                        Text { text: modelData.priceStr || "₺0.00"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: 11; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
-                        Text { text: modelData.totalStr || "₺0.00"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: 11; font.weight: Font.DemiBold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
+                        Text { text: modelData.priceStr || "₺0,00"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: 11; Layout.preferredWidth: 90; horizontalAlignment: Text.AlignRight }
+                        Text { text: modelData.totalStr || "₺0,00"; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: 11; font.weight: Font.DemiBold; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
                     }
                 }
 

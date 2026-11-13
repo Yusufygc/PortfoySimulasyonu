@@ -22,7 +22,7 @@ Rectangle {
     function syncPrice() {
         if (typeof stockDetailController !== "undefined" && stockDetailController && stockDetailController.currentPrice > 0) {
             root.tradePrice = stockDetailController.currentPrice
-            txtPrice.text = stockDetailController.currentPrice.toFixed(2)
+            txtPrice.text = stockDetailController.currentPrice.toFixed(2).replace(".", ",")
         }
     }
     Component.onCompleted: resetTradeMoment()
@@ -166,7 +166,7 @@ Rectangle {
                     id: txtPrice
                     anchors.fill: parent
                     anchors.margins: 8
-                    text: root.tradePrice.toFixed(2)
+                    text: root.tradePrice.toFixed(2).replace(".", ",")
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSm

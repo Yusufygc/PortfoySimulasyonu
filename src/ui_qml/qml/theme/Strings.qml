@@ -169,8 +169,8 @@ QtObject {
     readonly property string btnChart: "Grafik"
     readonly property string btnTrade: "İşlem"
 
-    // --- Varlık Dağılımı (Allocation) ---
-    readonly property string allocationTitle: "Varlık Dağılımı (Allocation)"
+    // --- Varlık Dağılımı ---
+    readonly property string allocationTitle: "Varlık Dağılımı"
     readonly property string allocationShare: "Yatırım Payı"
 
     // --- Modallar ---
@@ -193,7 +193,7 @@ QtObject {
     readonly property string btnCancel: "İptal"
 
     // --- İzleme Listeleri (Watchlist - Faz 4) ---
-    readonly property string watchlistTitle: "İzleme Listelerim (Watchlist)"
+    readonly property string watchlistTitle: "İzleme Listelerim"
     readonly property string watchlistSubtitle: "Kişiselleştirilmiş hisse takip portföyleri, canlı fiyat hareketleri ve mini trend analizleri"
     readonly property string btnNewWatchlist: "Yeni Liste"
     readonly property string btnAddStockToWatchlist: "Hisse Ekle"

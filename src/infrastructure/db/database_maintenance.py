@@ -24,9 +24,9 @@ _SQLITE_TABLES = [
     ("Hisse Senetleri (Katalog)", "stocks"),
     ("Gerçekleşen İşlemler (Emirler)", "trades"),
     ("Nakit Hareketleri & Sermaye", "cash_movements"),
-    ("İzleme Listeleri (Watchlist)", "watchlists"),
+    ("İzleme Listeleri", "watchlists"),
     ("Model Portföyler (Simülasyon)", "model_portfolios"),
-    ("Finansal Hedefler (Planning)", "financial_goals"),
+    ("Finansal Hedefler", "financial_goals"),
 ]
 _BACKUP_TABLES = ("stocks", "trades", "cash_movements", "watchlists", "assets", "asset_trades", "fx_conversions")
 

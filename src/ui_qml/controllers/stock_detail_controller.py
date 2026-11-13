@@ -23,7 +23,7 @@ from src.domain.models.trade_impact import INSUFFICIENT_CASH, INSUFFICIENT_LOTS,
 from src.domain.ticker import clean_ticker
 from src.domain.market_clock import market_now, market_time, market_today
 from src.ui_qml.messages import msg
-from src.ui_qml.presenters.formatting import tr_number, tr_pct
+from src.ui_qml.presenters.formatting import tr_lira, tr_number, tr_pct
 from src.ui_qml.controllers.stock_detail_actions import StockDetailActionsMixin
 from src.ui_qml.controllers.stock_detail_loader import StockDetailLoaderMixin
 from src.ui_qml.controllers.deps import ServiceView
@@ -277,7 +277,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
             "fee": "₺" + tr_number(fee),
             "newQty": f"{max(impact.new_quantity, 0):,}".replace(",", "."),
             "newAvg": "-" if impact.new_avg_cost is None else "₺" + tr_number(impact.new_avg_cost),
-            "cashAfter": "-" if impact.cash_after is None else "₺" + tr_number(impact.cash_after),
+            "cashAfter": "-" if impact.cash_after is None else tr_lira(impact.cash_after),
         }
 
     @Slot(str, int, float, str, str)

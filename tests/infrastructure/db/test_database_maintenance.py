@@ -47,7 +47,7 @@ def test_collect_stats_reads_both_databases(tmp_path):
     stats = service.collect_stats()
 
     by_name = {row["name"]: row["count"] for row in stats["sqlite_table_stats"]}
-    assert by_name["Hisse Senetleri (Katalog)"] == "2" and by_name["Finansal Hedefler (Planning)"] == "0"
+    assert by_name["Hisse Senetleri (Katalog)"] == "2" and by_name["Finansal Hedefler"] == "0"
     assert stats["duckdb_stock_count"] == 1 and stats["duckdb_total_bars"] == "3"
     assert stats["duckdb_last_date"] == "03.01.2026"
     assert stats["duckdb_is_up_to_date"] is True

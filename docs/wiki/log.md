@@ -5,6 +5,18 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-13] FIX | Manuel QA'nın orta ve düşük bulguları, bağımlılık açığı, e2e yarışı
+
+Tümü gerçek verinin kopyasında (QA kopyası) doğrulandı; gerçek `data/` dosyalarına yazılmadı.
+
+- **Tema kalıcılığı:** `Main.qml`'deki `Binding` `Theme.isDark`'ı `settingsController.isDarkTheme`'ten okur; başlık düğmesi de `toggleTheme()` çağırır. Önceden açılışta hep koyu başlar, başlık düğmesi tercihi kaydetmez ve Ayarlar yanlış "Aktif Tema" gösterirdi. Yeniden başlatmada kalıcılık doğrulandı.
+- **Hisse Detay Escape:** `StockDetailModal` tek modaldı ki Escape'e yanıt vermiyordu; pencere açık kaldığı için kenar çubuğundaki ilk tıklama yalnızca pencereyi kapatıyordu. `Shortcut` eklendi; koruma `tests/ui_qml/test_modal_escape_guard.py` (tüm `*Modal*`/`*Dialog*` bileşenleri).
+- **Biçim ve yerleşim:** işlem geçmişi tablosunda Adet/Fiyat sütunları başlıkla hizalı (iç `RowLayout` `fillWidth` taşıyordu); emir önizlemesinde `-₺962,00` (`tr_lira`) ve fiyat alanı virgüllü; Karşılaştırma/DCA/Lightweight grafiklerinde eksen ondalık virgül (`localization`, `tests/ui_qml/test_chart_locale.py`); TL fiyat her zaman 2 hane (`₺0,92`); yeniden dengeleme lotu tam sayıda ondalıksız; başlıklardan "(Allocation)/(Watchlist)/(Planning)" kalktı; optimizasyon kartları çalışana kadar "—"; temalı `ThemedSlider` (siyah tutamak); Ayarlar sekme çubuğu dar pencerede yatay kaydırılır.
+- **Bağımlılık açığı (CI Dependency audit):** `soupsieve` 2.10 için üç CVE (düzeltme 4.0, Python >= 3.11.5). `constraints.txt` ortam işaretiyle ikiye bölündü; Python 3.10 hattı 2.10'da kalır (denetim 3.11'de çalışır). `tests/test_dependency_lock.py` ortam işaretli sabitleri kabul eder.
+- **e2e yarışı:** `test_sell_more_than_held...` onay düğmesinin kutuyu kapatma animasyonu bitmeden kararı verip kutu `fill` sırasında kayboluyordu; `wait_gone` ile beklenir.
+- Kayıt defteri temizliği: `data/backups/registry_PortfoySimulasyonu_20261113.reg` yedeğiyle sahte NVDA sohbet oturumu, QA'nın bastığı açılış işi damgaları ve QA kopyasından hesaplanmış getiri önbelleği silindi.
+- Bilinçli bırakılanlar: işlem tarihi alanı `YYYY-AA-GG` (uygulamada tarih biçimleri üç farklı denetleyicide ayrı ayrıştırılıyor, ortak biçime geçiş ayrı iş), Reel (TÜFE) modu EVDS anahtarı olmadan TL serisini gösterir ve uyarır.
+
 ## [2026-11-13] FIX | Manuel QA'da çıkan iki yüksek önemli hata
 
 Gerçek verinin kopyasıyla elle test (11 sayfa, ana akışlar) ve e2e (75/75) sonrası.

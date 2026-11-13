@@ -33,7 +33,8 @@ var chart = LightweightCharts.createChart(document.getElementById('c'), {{
     grid: {{ vertLines: {{ color: '#1e222d' }}, horzLines: {{ color: '#1e222d' }} }},
     rightPriceScale: {{ borderColor: '#2a2e39', scaleMargins: {{ top: 0.1, bottom: 0.1 }} }},
     timeScale: {{ borderColor: '#2a2e39', timeVisible: false }},
-    crosshair: {{ mode: 0 }}
+    crosshair: {{ mode: 0 }},
+    localization: {{ locale: 'tr-TR', priceFormatter: function(p) {{ return Number(p).toLocaleString('tr-TR', {{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}); }} }}
 }});
 var areaSeries = chart.addSeries(LightweightCharts.AreaSeries, {{
     topColor: 'rgba(41, 98, 255, 0.45)',

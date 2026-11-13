@@ -39,11 +39,11 @@ def format_money(amount: Decimal, currency: str = "TRY") -> str:
 
 
 def format_price(amount: Optional[Decimal], currency: str) -> str:
-    """Birim fiyat: küçük kripto fiyatları için 4 haneye kadar (0,0001 altında 8 hane)."""
+    """Birim fiyat: TL her zaman 2 hane (BIST adımı 0,01); küçük döviz/kripto fiyatları için 4 haneye kadar (0,0001 altında 8 hane)."""
     if amount is None:
         return "-"
-    digits = 2 if abs(amount) >= 1 else (4 if abs(amount) >= Decimal("0.0001") else 8)
     code = (currency or "TRY").upper()
+    digits = 2 if code == "TRY" or abs(amount) >= 1 else (4 if abs(amount) >= Decimal("0.0001") else 8)
     symbol = CURRENCY_SYMBOLS.get(code)
     number = tr_number(amount, digits)
     return f"{symbol}{number}" if symbol else f"{number} {code}"

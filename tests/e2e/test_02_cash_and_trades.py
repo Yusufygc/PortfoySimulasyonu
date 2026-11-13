@@ -138,7 +138,8 @@ def test_sell_more_than_held_is_rejected_and_partial_sell_works(human):
     human.click("Satış Emrini Onayla", exact=True)
     assert human.wait_sees("yeterli pozisyonunuz yoktu", timeout=5), f"Uyarı yok: {human.visible_texts()[-20:]}"
     assert cash(human) == before, "Eldekinden fazla satış nakdi değiştirdi"
-    if not human.sees("Satış Emrini Onayla", exact=True):     # hata sonrası kutu kapandıysa yeniden aç
+    # Onay düğmesi kutuyu hemen kapatır; kapanış animasyonu bitmeden karar verilirse kutu fill sırasında kaybolur (yarış)
+    if human.wait_gone("Satış Emrini Onayla", timeout=3, exact=True):     # hata sonrası kutu kapandıysa yeniden aç
         human.click("Hızlı Alım / Satım", exact=True)
         human.click("HİSSE SAT (SELL)", exact=True)
         human.fill("Hisse Kodu (Ticker)", "THYAO")
