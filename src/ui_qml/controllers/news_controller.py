@@ -19,6 +19,7 @@ from src.ui_qml.controllers.news_settings_controller import load_refresh_minutes
 from src.ui_qml.controllers.url_opener import open_external_url
 from src.ui_qml.models.news_list_model import NewsListModel
 from src.ui_qml.messages import msg
+from src.qt_compat.user_settings import user_settings
 from src.ui_qml.deferred import run_later
 
 logger = logging.getLogger(__name__)
@@ -68,7 +69,7 @@ class NewsController(QObject):
         self, container=None, parent: QObject | None = None, autostart: bool = False, settings: QSettings | None = None
     ) -> None:
         super().__init__(parent)
-        self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._settings = settings or user_settings()
         self._container = container
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._company = NewsListModel(self)

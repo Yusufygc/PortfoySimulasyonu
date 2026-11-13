@@ -577,3 +577,16 @@ def test_stale_model_source_is_normalized_without_duplicate_comparison(analysis_
     assert comparison.current_portfolio_label == "Ana Portföy"
     assert comparison.comparison_portfolios == []
     assert overview.portfolio_label == "Ana Portföy"
+
+
+def test_comparison_view_applies_selected_currency_mode(analysis_service):
+    """Karşılaştırma Lab'de USD seçimi seriyi gerçekten dolara çevirmeli (2026-11-08 QA: TL/USD/Reel sonuçları aynıydı)."""
+    def view(currency_mode):
+        return analysis_service.get_comparison_view(AnalysisFilterState(
+            start_date=date(2026, 1, 1), end_date=date(2026, 1, 3), selected_stock_ids=[],
+            selected_benchmarks=[], portfolio_source="dashboard", currency_mode=currency_mode,
+        ))
+
+    tl_end = list(view("TL").portfolio_series.values())[-1]
+    converted_end = list(view("USD").portfolio_series.values())[-1]
+    assert converted_end != tl_end

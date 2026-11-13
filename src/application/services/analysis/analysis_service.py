@@ -183,6 +183,7 @@ class AnalysisService:
             selected_benchmarks=list(benchmark_codes),
             portfolio_source=filter_state.portfolio_source,
             comparison_portfolio_sources=list(filter_state.comparison_portfolio_sources),
+            currency_mode=filter_state.currency_mode,
         )
         if bundle is None:
             bundle = self._build_analysis_bundle(state)

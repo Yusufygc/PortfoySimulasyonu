@@ -23,6 +23,7 @@ from PySide6.QtCore import QObject, QSettings, Signal
 from src.application.services.market.bist_market_session_service import BistMarketSessionService
 from src.domain.market_clock import market_now, market_today
 from src.ui_qml.messages import msg
+from src.qt_compat.user_settings import user_settings
 from src.ui_qml.deferred import run_later
 
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ class StartupJobsController(QObject):
     ) -> None:
         super().__init__(parent)
         self._container = container
-        self._settings = settings or QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")
+        self._settings = settings or user_settings()
         self._executor = ThreadPoolExecutor(max_workers=1)
         self._jobDone.connect(self._on_job_done)
         self._targets: dict[str, Any] = {}

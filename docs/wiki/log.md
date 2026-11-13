@@ -5,6 +5,13 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-13] FIX | Manuel QA'da çıkan iki yüksek önemli hata
+
+Gerçek verinin kopyasıyla elle test (11 sayfa, ana akışlar) ve e2e (75/75) sonrası.
+
+- **Para birimi seçimi uygulanmıyordu:** `AnalysisService.get_comparison_view` filtre durumunu yeniden kurarken `currency_mode`'u düşürüyordu (varsayılan TL); Karşılaştırma Lab'de TL/USD/Reel aynı sonucu veriyordu (24.04.2026'dan beri). Kırmızı test `test_comparison_view_applies_selected_currency_mode`; kopyada USD artık 48,19 yerine 45,79. Reel mod TÜFE verisi (EVDS anahtarı) olmadan seriyi TL bırakır ve "TÜFE alınamadı" uyarısı gösterir.
+- **Testler ve QA gerçek kayıt defterine yazıyordu:** `QSettings("PortfoySimulasyonu", "PortfoySimulasyonu")` `setDefaultFormat`'tan etkilenmez; e2e koşuları gerçek sohbet geçmişine ve açılış işi damgalarına yazıyordu. Yedi çağrı yeni `src/qt_compat/user_settings.py::user_settings()` fabrikasına geçti; `tests/conftest.py` oturumda INI'ye yönlendirir, e2e kabuğu `use_ini_file` kullanır. Koruma: `tests/test_user_settings_isolation.py` (doğrudan `QSettings(org, app)` yasak). Tam paket + e2e sonrası kayıt defteri değişmedi. Önceki koşuların bıraktığı gerçek kayıt defteri kirliliği (sohbet geçmişinde NVDA oturumları, `settings/last_auto_*` damgaları) otomatik temizlenmedi.
+
 ## [2026-11-08] FIX | Testlerde Qt `access violation` çökmesi (CI Python 3.12)
 
 - **Belirti:** `test_market_sync_controller_trigger_sync` içindeki olay döngüsü beklemesinde süreç çöküyordu (CI ve yerelde ara sıra).

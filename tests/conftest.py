@@ -29,6 +29,16 @@ def _skip_real_data_tests(items) -> None:
 
 
 @pytest.fixture(scope="session", autouse=True)
+def _isolated_user_settings(tmp_path_factory):
+    """Kullanıcı ayarları (tema, sohbet geçmişi, açılış işi damgaları) gerçek Windows kayıt defterine yazılmasın."""
+    from src.qt_compat.user_settings import use_ini_file
+
+    previous = use_ini_file(str(tmp_path_factory.mktemp("user_settings") / "settings.ini"))
+    yield
+    use_ini_file(previous)
+
+
+@pytest.fixture(scope="session", autouse=True)
 def _isolated_databases(tmp_path_factory):
     """Gerçek `AppContainer()` kullanan testler gerçek veritabanlarına yazmasın.
 

@@ -41,6 +41,7 @@
 - **Gerçek veritabanı koruması** (oturum, otomatik): gerçek `data/portfolio.db` SQLite yedekleme API'siyle ve `data/market_history.duckdb` geçici klasöre kopyalanır; `DB_SQLITE_PATH` ve `DUCKDB_PATH` oraya yönlendirilir. Kopya alınamazsa boş geçici veritabanı kullanılır. Gerçek dosyalara asla yazılmaz.
 - `_isolate_env_file`: `.env` yazımı (API anahtarı kaydı) geçici dizine yönlenir.
 - `_no_retry_sleep`: ağ yeniden denemesi beklemesi kapatılır ([service_market_data_providers.md](service_market_data_providers.md)).
+- Otomatik (oturum): `_isolated_user_settings` kullanıcı ayarlarını (`src/qt_compat/user_settings.py`) geçici INI dosyasına yönlendirir; `QSettings(org, app)` kayıt defterine yazar, bu yüzden uygulama kodu ayarı yalnızca `user_settings()` ile açar (`tests/test_user_settings_isolation.py`).
 - Otomatik: `_cancel_deferred_ui_work` her testten sonra `src/ui_qml/deferred.cancel_pending()` çağırır; testin kurduğu gecikmeli denetleyici işleri sonraki testte ateşlenmez.
 - Paylaşılan: `fake_event_bus`, `qapp`, `drain_qt_events`, `fixed_today`, `sample_stock_factory`, `sample_trade_factory`, `sample_daily_price_factory`.
 

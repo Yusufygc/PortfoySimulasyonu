@@ -20,17 +20,6 @@ def _no_background_market_sync(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def _isolated_last_update_settings(monkeypatch, tmp_path):
-    """Son güncelleme/getiri kayıtları gerçek kullanıcı ayarlarına (kayıt defteri) yazılmasın."""
-    from PySide6.QtCore import QSettings
-
-    import src.ui_qml.last_update_store as module
-
-    ini_path = str(tmp_path / "last_update.ini")
-    monkeypatch.setattr(module, "QSettings", lambda *args, **kwargs: QSettings(ini_path, QSettings.IniFormat))
-
-
-@pytest.fixture(autouse=True)
 def _no_background_returns_worker(monkeypatch):
     """DashboardController açılışta getirileri arka plan iş parçacığında hesaplar. Test bittikten sonra çalışan
     iş parçacığı silinmiş QObject'e sinyal gönderip native çökmeye yol açmasın; ilgili testler işlemi doğrudan çağırır."""
