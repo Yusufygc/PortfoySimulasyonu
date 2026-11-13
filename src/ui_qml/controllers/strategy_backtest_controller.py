@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.application.services.simulation.strategy_backtest import BacktestSetup, StrategyBacktestResult
 from src.ui_qml.controllers.number_input import parse_decimal_text
 from src.ui_qml.controllers.lw_chart_html import line_chart_html
@@ -42,16 +42,6 @@ def parse_number(text: str) -> Optional[float]:
     """'1.234,5', '1234.5' veya '50.000' -> float; boş veya geçersiz metin için None."""
     value = parse_decimal_text(text)
     return None if value is None else float(value)
-
-
-def parse_date(text: str) -> Optional[date]:
-    text = (text or "").strip()
-    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
-        try:
-            return datetime.strptime(text, fmt).date()
-        except ValueError:
-            continue
-    return None
 
 
 class StrategyBacktestController(QObject):
@@ -171,7 +161,7 @@ class StrategyBacktestController(QObject):
         if amount_value is None or amount_value <= 0:
             self.notification.emit(False, msg("backtest.baslangic_sermayesi_0_dan_buyuk_gecerli"))
             return None
-        start_date, end_date = parse_date(start), parse_date(end)
+        start_date, end_date = parse_date_text(start), parse_date_text(end)
         if start_date is None or end_date is None:
             self.notification.emit(False, msg("backtest.tarih_gecersiz_bicim_yyyy_aa_gg"))
             return None

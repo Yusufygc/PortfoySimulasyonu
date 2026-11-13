@@ -2,29 +2,21 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Optional, Tuple
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.ui_qml.messages import msg
 
 logger = logging.getLogger(__name__)
 
 
-def parse_date(text: str) -> Optional[date]:
-    for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
-        try:
-            return datetime.strptime((text or "").strip(), fmt).date()
-        except ValueError:
-            continue
-    return None
-
-
 def resolve_range(start_text: str, end_text: str, first_trade: Optional[date]) -> Tuple[Optional[date], Optional[date], str]:
     """(başlangıç, bitiş, hata metni); hata boşsa aralık geçerlidir. Boş başlangıç ilk işlem gününe, boş bitiş bugüne düşer."""
-    start = parse_date(start_text) or first_trade
-    end = parse_date(end_text) or date.today()
-    if (start_text.strip() and parse_date(start_text) is None) or (end_text.strip() and parse_date(end_text) is None):
+    start = parse_date_text(start_text) or first_trade
+    end = parse_date_text(end_text) or date.today()
+    if (start_text.strip() and parse_date_text(start_text) is None) or (end_text.strip() and parse_date_text(end_text) is None):
         return None, None, msg("model_portfolio.tarih_bicimi_gecersiz_bicim_gg_aa")
     if start is None:
         return None, None, msg("model_portfolio.bu_model_portfoyde_islem_bulunamadi")

@@ -14,7 +14,7 @@ from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 
 from src.application.services.portfolio.cash_movement_service import CashMovementService
 from src.domain.models.cash_movement import CashMovement
-from src.ui_qml.controllers.dividend_controller import DividendController, parse_amount, parse_date
+from src.ui_qml.controllers.dividend_controller import DividendController, parse_amount
 
 QML_DIR = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
 
@@ -74,11 +74,6 @@ class TestParsing:
     @pytest.mark.parametrize("text", ["", "abc", "0", "-5", "nan", "inf"])
     def test_parse_amount_rejects_invalid_or_non_positive(self, text):
         assert parse_amount(text) is None
-
-    def test_parse_date_accepts_iso_and_turkish(self):
-        assert parse_date("2026-03-02") == date(2026, 3, 2)
-        assert parse_date("02.03.2026") == date(2026, 3, 2)
-        assert parse_date("yarın") is None
 
 
 class TestDividendController:

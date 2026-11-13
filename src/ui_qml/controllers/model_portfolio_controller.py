@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Any, Dict, List
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.ui_qml.controllers.model_portfolio_export import resolve_range, run_history_export
 from src.ui_qml.controllers.model_portfolio_valuation import ModelPortfolioValuation, display_ticker, empty_summary
 from src.ui_qml.controllers.deps import ServiceView
@@ -19,6 +20,16 @@ from src.ui_qml.presenters.formatting import tr_number
 
 
 logger = logging.getLogger(__name__)
+
+
+def _entry_date(text: str) -> date:
+    """Formdaki tarih; boşsa bugün, geçersizse kullanıcıya gösterilecek `ValueError`."""
+    if not (text or "").strip():
+        return date.today()
+    parsed = parse_date_text(text)
+    if parsed is None:
+        raise ValueError(msg("model_portfolio.tarih_bicimi_gecersiz_bicim_gg_aa"))
+    return parsed
 
 
 class ModelPortfolioController(QObject):
@@ -280,7 +291,7 @@ class ModelPortfolioController(QObject):
             return
         try:
             from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
-            trade_date = date.fromisoformat(trade_date_str) if trade_date_str else date.today()
+            trade_date = _entry_date(trade_date_str)
             trade_time = None
             if trade_time_str:
                 parts = trade_time_str.split(":")
@@ -327,7 +338,7 @@ class ModelPortfolioController(QObject):
             return
         try:
             from src.application.services.planning.model_portfolio_trade_service import CapitalMovementSpec
-            move_date = date.fromisoformat(move_date_str) if move_date_str else date.today()
+            move_date = _entry_date(move_date_str)
             move_time = None
             if move_time_str:
                 parts = move_time_str.split(":")

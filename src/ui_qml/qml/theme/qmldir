@@ -2,3 +2,4 @@ singleton Theme 1.0 Theme.qml
 singleton Icons 1.0 Icons.qml
 singleton Strings 1.0 Strings.qml
 singleton Numbers 1.0 Numbers.qml
+singleton Dates 1.0 Dates.qml

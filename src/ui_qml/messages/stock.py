@@ -31,7 +31,7 @@ MESSAGES: Dict[str, str] = {
     "golden_cross.tarama_tamamlandi_hisse_yeni_sinyal_atlandi": "Tarama tamamlandı: {scanned_count} hisse, {new_event_count} yeni sinyal, {skipped_count} atlandı (yetersiz veri).",
     "golden_cross.veri_tamamlama_bitti_fiyat_kaydi_eklendi": "Veri tamamlama bitti: {count} fiyat kaydı eklendi.",
     # --- Hisse detayı ---
-    "stock_detail.tarih_bicimi_gecersiz_ornek_2026_10": "Tarih biçimi geçersiz. Örnek: 2026-10-03",
+    "stock_detail.tarih_bicimi_gecersiz_ornek_2026_10": "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY",
     "stock_detail.gelecek_tarihli_islem_girilemez": "Gelecek tarihli işlem girilemez.",
     "stock_detail.saat_bicimi_gecersiz_ornek_14_30": "Saat biçimi geçersiz. Örnek: 14:30",
     "stock_detail.gelecek_saatli_islem_girilemez": "Gelecek saatli işlem girilemez.",

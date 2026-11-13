@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.domain.models.trade import TradeSide
 from src.domain.models.trade_impact import INSUFFICIENT_CASH, INSUFFICIENT_LOTS, OrderSpec, preview_order
 from src.domain.ticker import clean_ticker
@@ -36,11 +37,9 @@ def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
 
     Geçersiz biçim veya gelecek tarih için ValueError (kullanıcıya gösterilecek mesajla) fırlatır."""
     today = market_today()
-    text = (date_str or "").strip()
-    try:
-        trade_date = datetime.strptime(text, "%Y-%m-%d").date() if text else today
-    except ValueError:
-        raise ValueError(msg("stock_detail.tarih_bicimi_gecersiz_ornek_2026_10")) from None
+    trade_date = parse_date_text(date_str) if (date_str or "").strip() else today
+    if trade_date is None:
+        raise ValueError(msg("stock_detail.tarih_bicimi_gecersiz_ornek_2026_10"))
     if trade_date > today:
         raise ValueError(msg("stock_detail.gelecek_tarihli_islem_girilemez"))
 
@@ -284,7 +283,7 @@ class StockDetailController(StockDetailLoaderMixin, StockDetailActionsMixin, QOb
     def submitTrade(self, side: str, quantity: int, price: float, date_str: str = "", time_str: str = "") -> None:
         """Hisse detayından doğrudan hızlı alım veya satım emri gönderir.
 
-        `date_str` (YYYY-AA-GG) ve `time_str` (SS:DD) boşsa bugün/şimdi kullanılır."""
+        `date_str` (GG.AA.YYYY) ve `time_str` (SS:DD) boşsa bugün/şimdi kullanılır."""
         if quantity <= 0:
             self.tradeExecuted.emit(False, msg("stock_detail.lot_adedi_0_dan_buyuk_olmalidir"))
             return

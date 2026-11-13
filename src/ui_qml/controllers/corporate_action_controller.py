@@ -12,12 +12,13 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.ui_qml.controllers.url_opener import open_external_url
 from src.domain.models.corporate_action import ActionType, BedelliSpec
 from src.domain.models.corporate_action_candidate import (
@@ -43,16 +44,6 @@ def _to_decimal(value: Any, default: Decimal = _ZERO) -> Decimal:
         return Decimal(str(value))
     except (InvalidOperation, ValueError, TypeError):
         return default
-
-
-def _parse_date(text: str) -> Optional[date]:
-    text = (text or "").strip()
-    for fmt in ("%Y-%m-%d", "%d.%m.%Y"):
-        try:
-            return datetime.strptime(text, fmt).date()
-        except ValueError:
-            continue
-    return None
 
 
 def compute_preview(
@@ -242,7 +233,7 @@ class CorporateActionController(QObject):
         if self._action_service is None:
             self.notification.emit(False, msg("corporate_action.service_missing"))
             return
-        ex_date = _parse_date(ex_date_text)
+        ex_date = parse_date_text(ex_date_text)
         if ex_date is None:
             self.notification.emit(False, msg("corporate_action.ex_date_invalid"))
             return
@@ -461,7 +452,7 @@ class CorporateActionController(QObject):
         current = self._candidate_objects.get(candidate_id)
         if review is None or current is None:
             return
-        ex_date = _parse_date(ex_date_text)
+        ex_date = parse_date_text(ex_date_text)
         if ex_date is None:
             self.notification.emit(False, msg("corporate_action.ex_date_invalid"))
             return

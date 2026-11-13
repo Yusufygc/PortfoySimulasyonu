@@ -11,11 +11,11 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.domain.models.market_corporate_action import MarketActionStatus, MarketCorporateAction
 from src.ui_qml.messages import msg
 from src.ui_qml.presenters.formatting import tr_number
@@ -41,13 +41,6 @@ def _parse_factor(text: str) -> Optional[float]:
     except ValueError:
         return None
     return value if value > 0 else None
-
-
-def _parse_iso(text: str) -> Optional[date]:
-    try:
-        return datetime.strptime((text or "").strip(), "%Y-%m-%d").date()
-    except ValueError:
-        return None
 
 
 class MarketAdjustmentController(QObject):
@@ -143,7 +136,7 @@ class MarketAdjustmentController(QObject):
 
     @Slot(str, str, str)
     def confirm(self, ticker: str, effective_date: str, factor_text: str) -> None:
-        service, when = self._service, _parse_iso(effective_date)
+        service, when = self._service, parse_date_text(effective_date)
         factor = _parse_factor(factor_text) if factor_text else None
         if service is None or when is None or (factor_text and factor is None):
             self.notification.emit(False, msg("market_adjustment.gecersiz_faktor_veya_tarih"))
@@ -168,7 +161,7 @@ class MarketAdjustmentController(QObject):
     # ------------------------------------------------------------------ iç işleyiş
 
     def _set_status(self, ticker: str, effective_date: str, status: MarketActionStatus, message: str) -> None:
-        service, when = self._service, _parse_iso(effective_date)
+        service, when = self._service, parse_date_text(effective_date)
         if service is None or when is None:
             self.notification.emit(False, msg("market_adjustment.gecersiz_olay"))
             return

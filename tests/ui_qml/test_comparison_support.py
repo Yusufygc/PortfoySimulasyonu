@@ -9,13 +9,6 @@ from src.ui_qml.controllers import comparison_chart_html as charts
 from src.ui_qml.controllers import comparison_support as support
 
 
-def test_parse_date_accepts_both_formats_and_rejects_garbage():
-    assert support.parse_date("01.02.2026") == date(2026, 2, 1)
-    assert support.parse_date("2026-02-01") == date(2026, 2, 1)
-    assert support.parse_date("zz") is None
-    assert support.parse_date("") is None
-
-
 def test_resolve_start_date_labels():
     end = date(2026, 10, 4)
     assert support.resolve_start_date("1A", end) == date(2026, 9, 4)

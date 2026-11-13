@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text as parse_typed_date
 from src.domain.market_clock import market_time, market_today
 from src.domain.models.asset import AssetClass, AssetUnit
 from src.domain.models.trade import TradeSide
@@ -27,22 +28,13 @@ logger = logging.getLogger(__name__)
 
 REFRESH_INTERVAL_MS = 5 * 60 * 1000
 _STARTUP_DELAY_MS = 3000
-_DATE_FORMATS = ("%d.%m.%Y", "%Y-%m-%d")
 
 
 def parse_date_text(text: str) -> Optional[date]:
-    """GG.AA.YYYY veya YYYY-AA-GG; boşsa bugün (piyasa saati), geçersizse None."""
-    from datetime import datetime
-
-    raw = (text or "").strip()
-    if not raw:
+    """GG.AA.YYYY (eski YYYY-AA-GG de kabul); boşsa bugün (piyasa saati), geçersizse None."""
+    if not (text or "").strip():
         return market_today()
-    for fmt in _DATE_FORMATS:
-        try:
-            return datetime.strptime(raw, fmt).date()
-        except ValueError:
-            continue
-    return None
+    return parse_typed_date(text)
 
 
 def parse_time_text(text: str) -> Optional[time]:

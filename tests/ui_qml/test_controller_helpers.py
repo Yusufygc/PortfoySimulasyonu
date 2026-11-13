@@ -6,7 +6,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from src.application.services.portfolio.position_query_service import PositionQueryService
-from src.ui_qml.controllers.model_portfolio_export import parse_date, resolve_range, run_history_export
+from src.ui_qml.controllers.model_portfolio_export import resolve_range, run_history_export
 from src.ui_qml.controllers.model_portfolio_valuation import ModelPortfolioValuation, empty_summary, profit_loss_state
 from src.ui_qml.controllers.planning_dca_chart import build_dca_chart_html
 from src.ui_qml.controllers.planning_months import budget_months
@@ -48,7 +48,6 @@ def test_resolve_range_defaults_and_errors():
     assert resolve_range("31/02/2026", "", first)[2]  # biçim hatası
     assert resolve_range("", "", None)[2]  # işlem yok
     assert resolve_range("01.03.2026", "01.02.2026", first)[2]  # başlangıç > bitiş
-    assert parse_date("x") is None
 
 
 def test_run_history_export_reports_missing_service_and_failure(tmp_path):

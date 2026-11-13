@@ -30,6 +30,7 @@ MESSAGES: Dict[str, str] = {
     "planning.priority_low": "DÜŞÜK",
     "planning.priority_medium": "ORTA",
     "planning.hedefi_guncellendi": "'{name}' hedefi güncellendi.",
+    "planning.tarih_bicimi_gecersiz": "Tarih geçersiz. Biçim: GG.AA.YYYY",
     "planning.dca_simulasyon_servisi_bulunamadi": "DCA simülasyon servisi bulunamadı.",
     "planning.dca_simulasyonu_tamamlandi_katki_donemi": "DCA simülasyonu tamamlandı ({contribution_count} katkı dönemi).",
     # --- Strateji testi ---

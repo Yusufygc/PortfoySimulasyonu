@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.ui_qml.last_update_store import LastUpdateStore, format_return_pct
 from src.domain.market_clock import market_time, market_today
 from src.ui_qml.controllers.deps import ServiceView
@@ -20,18 +21,6 @@ from src.ui_qml.messages import msg
 from src.ui_qml.presenters.formatting import tr_number
 
 logger = logging.getLogger(__name__)
-
-
-def _parse_report_date(text: str):
-    """GG.AA.YYYY veya YYYY-AA-GG biçimindeki metni tarihe çevirir; boş/geçersizse None."""
-    from datetime import datetime as _dt
-
-    for fmt in ("%d.%m.%Y", "%Y-%m-%d"):
-        try:
-            return _dt.strptime((text or "").strip(), fmt).date()
-        except ValueError:
-            continue
-    return None
 
 
 class DashboardController(QObject):
@@ -307,8 +296,8 @@ class DashboardController(QObject):
         """Seçilen tarih aralığı ve hedef dosya için Excel raporu üretir (boş tarih = ilk işlemden bugüne).
 
         append=True mevcut dosyaya yeni günleri ekler (dosya yoksa yeni oluşturulur)."""
-        start = _parse_report_date(start_text)
-        end = _parse_report_date(end_text)
+        start = parse_date_text(start_text)
+        end = parse_date_text(end_text)
         if (start_text.strip() and start is None) or (end_text.strip() and end is None):
             self.excelExported.emit(False, msg("dashboard.tarih_bicimi_gecersiz_bicim_gg_aa"))
             return

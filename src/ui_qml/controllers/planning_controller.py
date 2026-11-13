@@ -15,6 +15,7 @@ from typing import Any, Dict, List
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from src.ui_qml.controllers.date_input import parse_date_text
 from src.domain.market_clock import market_today
 from src.domain.models.budget import Budget, BudgetItem
 from src.domain.text import tr_fold
@@ -428,8 +429,9 @@ class PlanningController(QObject):
         if not self._service:
             return
         try:
-            d_parts = [int(p) for p in deadline_str.split("-")]
-            deadline = date(d_parts[0], d_parts[1], d_parts[2])
+            deadline = parse_date_text(deadline_str)
+            if deadline is None:
+                raise ValueError(msg("planning.tarih_bicimi_gecersiz"))
             p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}  # metin-muaf: öncelik eşleme anahtarları
             prio_clean = p_map.get(str(priority).strip().upper(), "MEDIUM")
             self._service.add_goal(name, target, deadline, prio_clean)
@@ -445,8 +447,9 @@ class PlanningController(QObject):
         if not self._service:
             return
         try:
-            d_parts = [int(p) for p in deadline_str.split("-")]
-            deadline = date(d_parts[0], d_parts[1], d_parts[2])
+            deadline = parse_date_text(deadline_str)
+            if deadline is None:
+                raise ValueError(msg("planning.tarih_bicimi_gecersiz"))
             p_map = {"DÜŞÜK": "LOW", "ORTA": "MEDIUM", "YÜKSEK": "HIGH", "LOW": "LOW", "MEDIUM": "MEDIUM", "HIGH": "HIGH"}  # metin-muaf: öncelik eşleme anahtarları
             prio_clean = p_map.get(str(priority).strip().upper(), "MEDIUM")
             self._service.update_goal(goal_id, name, target, deadline, prio_clean)
@@ -502,10 +505,8 @@ class PlanningController(QObject):
             return
 
         try:
-            s_parts = [int(p) for p in start_date_str.split("-")]
-            e_parts = [int(p) for p in end_date_str.split("-")]
-            s_date = date(s_parts[0], s_parts[1], s_parts[2])
-            e_date = date(e_parts[0], e_parts[1], e_parts[2])
+            s_date = parse_date_text(start_date_str) or date(2023, 1, 1)
+            e_date = parse_date_text(end_date_str) or market_today()
         except Exception:
             s_date = date(2023, 1, 1)
             e_date = market_today()
