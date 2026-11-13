@@ -8,10 +8,10 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, time as dt_time
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
-from src.ui_qml.controllers.date_input import parse_date_text
+from src.ui_qml.controllers.date_input import parse_date_text, parse_time_text
 from src.ui_qml.controllers.model_portfolio_export import resolve_range, run_history_export
 from src.ui_qml.controllers.model_portfolio_valuation import ModelPortfolioValuation, display_ticker, empty_summary
 from src.ui_qml.controllers.deps import ServiceView
@@ -29,6 +29,16 @@ def _entry_date(text: str) -> date:
     parsed = parse_date_text(text)
     if parsed is None:
         raise ValueError(msg("model_portfolio.tarih_bicimi_gecersiz_bicim_gg_aa"))
+    return parsed
+
+
+def _entry_time(text: str) -> Optional[dt_time]:
+    """Formdaki saat; boşsa None (servis varsayılanı), geçersizse kullanıcıya gösterilecek `ValueError`."""
+    if not (text or "").strip():
+        return None
+    parsed = parse_time_text(text)
+    if parsed is None:
+        raise ValueError(msg("model_portfolio.saat_bicimi_gecersiz_bicim_ss_dd"))
     return parsed
 
 
@@ -292,10 +302,7 @@ class ModelPortfolioController(QObject):
         try:
             from src.application.services.planning.model_portfolio_trade_service import ModelTradeInput
             trade_date = _entry_date(trade_date_str)
-            trade_time = None
-            if trade_time_str:
-                parts = trade_time_str.split(":")
-                trade_time = dt_time(int(parts[0]), int(parts[1]))
+            trade_time = _entry_time(trade_time_str)
 
             self._service.add_trade_by_ticker(
                 portfolio_id=self._current_portfolio_id,
@@ -339,10 +346,7 @@ class ModelPortfolioController(QObject):
         try:
             from src.application.services.planning.model_portfolio_trade_service import CapitalMovementSpec
             move_date = _entry_date(move_date_str)
-            move_time = None
-            if move_time_str:
-                parts = move_time_str.split(":")
-                move_time = dt_time(int(parts[0]), int(parts[1]))
+            move_time = _entry_time(move_time_str)
 
             self._service.add_capital_movement(
                 CapitalMovementSpec(

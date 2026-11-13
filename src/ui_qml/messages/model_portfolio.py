@@ -25,6 +25,7 @@ MESSAGES: Dict[str, str] = {
     "model_portfolio.cekildi": "çekildi",
     "model_portfolio.disa_aktarmak_icin_bir_model_portfoy": "Dışa aktarmak için bir model portföy seçilmelidir.",
     "model_portfolio.tarih_bicimi_gecersiz_bicim_gg_aa": "Tarih biçimi geçersiz. Biçim: GG.AA.YYYY",
+    "model_portfolio.saat_bicimi_gecersiz_bicim_ss_dd": "Saat biçimi geçersiz. Biçim: SS:DD",
     "model_portfolio.bu_model_portfoyde_islem_bulunamadi": "Bu model portföyde işlem bulunamadı.",
     "model_portfolio.baslangic_tarihi_bitis_tarihinden_buyuk_olam": "Başlangıç tarihi bitiş tarihinden büyük olamaz.",
     "model_portfolio.excel_disa_aktarim_servisi_yapilandirilmamis": "Excel dışa aktarım servisi yapılandırılmamış.",

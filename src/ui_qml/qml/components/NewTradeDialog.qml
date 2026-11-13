@@ -37,9 +37,7 @@ Popup {
         side = "BUY"
         var today = new Date()
         txtDate.text = Dates.format(today)
-        var hh = String(today.getHours()).padStart(2, '0')
-        var min = String(today.getMinutes()).padStart(2, '0')
-        txtTime.text = hh + ":" + min
+        txtTime.text = Dates.formatTime(today)
         txtTicker.forceActiveFocus()
     }
 

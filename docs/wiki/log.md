@@ -5,6 +5,10 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-14] FIX | Toast bildirimi uzun mesajda kutudan taşıyordu
+
+`ToastNotification.qml` genişliği 420 ile sınırlıyordu ama metin sarılmıyordu (`elide` kutu genişliğini bilmediği için işlemiyordu); "5 hisse bölünmesi adayı..." gibi uzun mesaj kutunun iki yanından taşıyordu. Metin artık `TextMetrics` ile ölçülür, en çok 420 genişlikte satıra sarılır ve kutu yüksekliği metne uyar (kısa mesajda 46 aynı). Test: `tests/ui_qml/test_toast_overflow.py` (pencerede yerleşim; uzun, kısa, boşluksuz uzun metin). Tüm toast kullanımları (8 yer) aynı bileşeni kullandığı için tek düzeltme yeterli.
+
 ## [2026-11-14] REFACTOR | Tarih girişi: tek ayrıştırıcı, her yerde GG.AA.YYYY
 
 Manuel QA'dan kalan bulgu: Hisse Detay emir formu `YYYY-AA-GG` istiyordu, uygulamanın geri kalanı `GG.AA.YYYY`.
@@ -14,7 +18,7 @@ Manuel QA'dan kalan bulgu: Hisse Detay emir formu `YYYY-AA-GG` istiyordu, uygula
 - **Davranış değişikliği:** geçersiz hedef/model portföy tarihi artık ham `ValueError` yerine "Biçim: GG.AA.YYYY" uyarısı verir; `cash_pool` ISO'yu da kabul eder.
 - **Koruma:** `tests/ui_qml/test_date_input_guard.py`. Kırmızı testler `test_date_entry_formats.py`, `test_date_input.py`.
 - **Doğrulama (yalnızca QA kopyasında):** dokuz alanın ekranı; 10.11.2026 ile ve eski 2026-11-11 ile satış kaydı doğru tarihle yazıldı.
-- Kapsam dışı: saat (`SS:DD`) ayrıştırıcıları ayrı iş olarak bırakıldı.
+- Aynı gün devamı (saat): `parse_time_text`/`format_time_text` (`SS:DD`, `SS:DD:SS`) aynı modüle; beş saat ayrıştırıcısı (assets, cash_pool, dashboard, Hisse Detay, model portföy `split(":")`) tek yere indi. Geçersiz model portföy saati artık "Biçim: SS:DD" uyarısı verir. QML'de `Dates.nowTime()`/`formatTime()`; yedi bileşenin elle `getHours()`/`todayText()` kodu kalktı, koruma testi saat/tarih üretimini de yasaklar. Hızlı Alım fiyat alanı virgüllü doldurulur.
 
 ## [2026-11-13] FIX | Manuel QA'nın orta ve düşük bulguları, bağımlılık açığı, e2e yarışı
 

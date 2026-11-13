@@ -12,13 +12,13 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, time as dt_time
+from datetime import date, time as dt_time
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from src.ui_qml.controllers.date_input import parse_date_text
+from src.ui_qml.controllers.date_input import parse_date_text, parse_time_text
 from src.domain.models.trade import TradeSide
 from src.domain.models.trade_impact import INSUFFICIENT_CASH, INSUFFICIENT_LOTS, OrderSpec, preview_order
 from src.domain.ticker import clean_ticker
@@ -46,10 +46,9 @@ def parse_trade_moment(date_str: str, time_str: str) -> tuple[date, dt_time]:
     text = (time_str or "").strip()
     if not text:
         return trade_date, (market_time() if trade_date == today else dt_time(12, 0))
-    try:
-        trade_time = datetime.strptime(text, "%H:%M").time()
-    except ValueError:
-        raise ValueError(msg("stock_detail.saat_bicimi_gecersiz_ornek_14_30")) from None
+    trade_time = parse_time_text(text)
+    if trade_time is None:
+        raise ValueError(msg("stock_detail.saat_bicimi_gecersiz_ornek_14_30"))
     if trade_date == today and trade_time > market_now().time():
         raise ValueError(msg("stock_detail.gelecek_saatli_islem_girilemez"))
     return trade_date, trade_time

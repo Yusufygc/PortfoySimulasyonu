@@ -9,7 +9,7 @@ import ast
 from pathlib import Path
 
 UI = Path(__file__).resolve().parents[2] / "src" / "ui_qml"
-DATE_FORMATS = ("%d.%m.%Y", "%Y-%m-%d")
+DATE_FORMATS = ("%d.%m.%Y", "%Y-%m-%d", "%H:%M")  # tarih ve saat
 # Kullanıcı girişi olmayan iç ISO okumaları: kendi ürettiği damga/aralık metni.
 INTERNAL_ISO_READERS = {"dashboard_controller.py", "startup_jobs_controller.py", "system_controller.py"}
 
@@ -45,14 +45,14 @@ def test_no_controller_parses_a_typed_date_on_its_own():
 
 
 def test_qml_never_builds_an_iso_date_by_hand():
-    """Alan başlangıç değerleri `Dates.today()` / `Dates.format()` ile üretilir (GG.AA.YYYY)."""
+    """Alan başlangıç değerleri `Dates.today()` / `Dates.nowTime()` ile üretilir (GG.AA.YYYY, SS:DD)."""
     offenders = []
     for path in (UI / "qml").rglob("*.qml"):
         if path.name == "Dates.qml":
             continue
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            if "getFullYear()" in line and '"-"' in line:
+            if ("getFullYear()" in line and '"-"' in line) or "getHours()" in line:
                 offenders.append(f"{path.name}:{number}")
             if "YYYY-AA-GG" in line:
                 offenders.append(f"{path.name}:{number} etiket")
-    assert not offenders, f"Elle ISO tarih üretimi/etiketi: {offenders}"
+    assert not offenders, f"Elle tarih/saat üretimi veya ISO etiketi: {offenders}"

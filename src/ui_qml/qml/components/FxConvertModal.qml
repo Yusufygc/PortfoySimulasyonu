@@ -34,23 +34,13 @@ Rectangle {
 
     Behavior on opacity { NumberAnimation { duration: 180 } }
 
-    function todayText() {
-        const d = new Date()
-        return String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + d.getFullYear()
-    }
-
-    function nowText() {
-        const d = new Date()
-        return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")
-    }
-
     function open() {
         isBuy = true
         amountInput.text = ""
         feeInput.text = ""
         rateInput.text = cashPoolController.suggestRate()
-        dateInput.text = todayText()
-        timeInput.text = nowText()
+        dateInput.text = Dates.today()
+        timeInput.text = Dates.nowTime()
         root.isOpen = true
     }
 

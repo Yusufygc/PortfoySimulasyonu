@@ -34,17 +34,12 @@ Rectangle {
 
     Behavior on opacity { NumberAnimation { duration: 180 } }
 
-    function todayText() {
-        const d = new Date()
-        return String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + d.getFullYear()
-    }
-
     function open(firstDate, fileName) {
         firstDateText = firstDate || ""
         defaultFileName = fileName || "Portfoy_Raporu.xlsx"
         useRange = false
         txtStart.text = firstDateText
-        txtEnd.text = todayText()
+        txtEnd.text = Dates.today()
         txtFile.text = ""
         chkAppend.checked = false
         statusText = ""

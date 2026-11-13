@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
-from src.ui_qml.controllers.date_input import parse_date_text as parse_typed_date
+from src.ui_qml.controllers.date_input import parse_date_text as parse_typed_date, parse_time_text as parse_typed_time
 from src.domain.market_clock import market_time, market_today
 from src.domain.models.asset import AssetClass, AssetUnit
 from src.domain.models.trade import TradeSide
@@ -38,18 +38,10 @@ def parse_date_text(text: str) -> Optional[date]:
 
 
 def parse_time_text(text: str) -> Optional[time]:
-    """SS:DD veya SS:DD:SS; boşsa şimdi (piyasa saati), geçersizse None."""
-    from datetime import datetime
-
-    raw = (text or "").strip()
-    if not raw:
+    """SS:DD veya SS:DD:SS (eski sürümlerle aynı); boşsa şimdi (piyasa saati), geçersizse None."""
+    if not (text or "").strip():
         return market_time()
-    for fmt in ("%H:%M", "%H:%M:%S"):
-        try:
-            return datetime.strptime(raw, fmt).time()
-        except ValueError:
-            continue
-    return None
+    return parse_typed_time(text)
 
 
 def _parse_amounts(form: Dict[str, Any]) -> Tuple[Optional[str], Optional[tuple]]:

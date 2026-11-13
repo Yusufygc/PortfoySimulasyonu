@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import Any, List, Optional
 
 from PySide6.QtCore import QObject, Signal, Property, Slot
-from src.ui_qml.controllers.date_input import parse_date_text
+from src.ui_qml.controllers.date_input import parse_date_text, parse_time_text
 from src.ui_qml.last_update_store import LastUpdateStore, format_return_pct
 from src.domain.market_clock import market_time, market_today
 from src.ui_qml.controllers.deps import ServiceView
@@ -183,9 +183,8 @@ class DashboardController(QObject):
                 self.tradeExecuted.emit(False, msg("dashboard.gelecek_tarihli_islem_girilemez"))
                 return
         if (time_text or "").strip():
-            try:
-                trade_time = datetime.strptime(time_text.strip(), "%H:%M").time()
-            except ValueError:
+            trade_time = parse_time_text(time_text)
+            if trade_time is None:
                 self.tradeExecuted.emit(False, msg("dashboard.saat_bicimi_gecersiz_bicim_ss_dd"))
                 return
         self._submit_trade_impl(ticker, side, quantity, price, notes, trade_date, trade_time)

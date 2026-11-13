@@ -41,16 +41,6 @@ Rectangle {
 
     Behavior on opacity { NumberAnimation { duration: 180 } }
 
-    function todayText() {
-        const d = new Date()
-        return String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0") + "." + d.getFullYear()
-    }
-
-    function nowText() {
-        const d = new Date()
-        return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0")
-    }
-
     // assetId > 0 ise o varlık seçilir; yoksa ilk varlık
     function open(assetId) {
         let index = 0
@@ -60,8 +50,8 @@ Rectangle {
         assetCombo.currentIndex = index
         side = "BUY"
         qtyInput.text = ""
-        dateInput.text = todayText()
-        timeInput.text = nowText()
+        dateInput.text = Dates.today()
+        timeInput.text = Dates.nowTime()
         refreshSuggestion()
         root.isOpen = true
     }

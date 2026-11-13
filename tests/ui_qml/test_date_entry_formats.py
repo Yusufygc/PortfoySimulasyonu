@@ -103,3 +103,14 @@ def test_model_portfolio_invalid_date_reports_the_turkish_format(qapp):
     ctrl.operationResult.connect(lambda ok, message: results.append((ok, message)))
     ctrl.addTrade("THYAO", "BUY", 10, 100.0, "yarın", "10:00")
     assert ctrl._service.trades == [] and results and results[0][0] is False and "GG.AA.YYYY" in results[0][1]
+
+
+@pytest.mark.parametrize("time_text", ["25:99", "10.30", "abc"])
+def test_model_portfolio_invalid_time_reports_the_hh_mm_format(qapp, time_text):
+    ctrl = _model_controller(qapp)
+    results = []
+    ctrl.operationResult.connect(lambda ok, message: results.append((ok, message)))
+    ctrl.addTrade("THYAO", "BUY", 10, 100.0, "06.03.2026", time_text)
+    ctrl.addCapitalMovement("DEPOSIT", 500.0, "06.03.2026", time_text, "")
+    assert ctrl._service.trades == [] and ctrl._service.moves == []
+    assert len(results) == 2 and all(ok is False and "SS:DD" in message for ok, message in results)

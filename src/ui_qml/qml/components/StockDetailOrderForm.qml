@@ -14,9 +14,8 @@ Rectangle {
     property real tradePrice: (typeof stockDetailController !== "undefined" && stockDetailController.currentPrice > 0) ? stockDetailController.currentPrice : 10.0
     function resetTradeMoment() {
         const now = new Date()
-        const pad = (n) => String(n).padStart(2, "0")
         tradeDateText = Dates.format(now)
-        tradeTimeText = pad(now.getHours()) + ":" + pad(now.getMinutes())
+        tradeTimeText = Dates.formatTime(now)
     }
     // Denetleyicideki güncel fiyatı forma yansıtır (hisse değişince ve modal açılınca çağrılır)
     function syncPrice() {
