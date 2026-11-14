@@ -9,8 +9,9 @@ import "views"
 ApplicationWindow {
     id: appWindow
     visible: true
-    width: Math.min(1320, Math.max(960, Screen.desktopAvailableWidth * 0.90))
-    height: Math.min(840, Math.max(600, Screen.desktopAvailableHeight * 0.90))
+    // Ekran çalışma alanını asla aşmaz (düşük çözünürlük / yüksek ölçek); büyük ekranda 1320x840 ile sınırlı
+    width: Math.min(Screen.desktopAvailableWidth, 1320, Math.max(960, Screen.desktopAvailableWidth * 0.90))
+    height: Math.min(Screen.desktopAvailableHeight, 840, Math.max(600, Screen.desktopAvailableHeight * 0.90))
     minimumWidth: 720
     minimumHeight: 480
     title: Strings.windowTitle
@@ -38,8 +39,9 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        x = Math.max(0, (Screen.desktopAvailableWidth - width) / 2)
-        y = Math.max(0, (Screen.desktopAvailableHeight - height) / 2)
+        // Çok monitörde pencere kendi ekranının ortasına gelir (sanal masaüstü koordinatı: virtualX/Y)
+        x = Screen.virtualX + Math.max(0, (Screen.desktopAvailableWidth - width) / 2)
+        y = Screen.virtualY + Math.max(0, (Screen.desktopAvailableHeight - height) / 2)
     }
 
     ColumnLayout {

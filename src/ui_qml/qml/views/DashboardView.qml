@@ -102,7 +102,8 @@ Item {
                                     duration: Math.max(1000, tickerMarquee.loopWidth * 25)
                                     loops: Animation.Infinite
                                     running: tickerMarquee.scrolls
-                                    paused: marqueeHover.hovered
+                                    // Yalnızca kayarken duraklatılır; durmuş animasyonda setPaused() uyarı verir
+                                    paused: tickerMarquee.scrolls && marqueeHover.hovered
                                 }
 
                                 Row {

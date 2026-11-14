@@ -150,10 +150,18 @@ class MarketSyncController(QObject):
     def _on_future_done(self, future) -> None:
         try:
             res = future.result()
-            self._syncWorkerFinished.emit(res)
         except Exception as exc:
             logger.exception("Arka plan senkronizasyon hatası: %s", exc)
-            self._syncWorkerFailed.emit(str(exc))
+            self._emit_if_alive("_syncWorkerFailed", str(exc))
+            return
+        self._emit_if_alive("_syncWorkerFinished", res)
+
+    def _emit_if_alive(self, signal_name: str, payload) -> None:
+        """Sonucu arayüze iletir; pencere sync sürerken kapandıysa (QObject silinmiş) sessizce atlar."""
+        try:
+            getattr(self, signal_name).emit(payload)
+        except RuntimeError:
+            logger.info("Arayüz kapandı; senkron sonucu iletilmedi (veri yazımı tamamlanmıştı).")
 
     def _on_sync_finished(self, result: MarketSyncResult) -> None:
         self._is_syncing = False
