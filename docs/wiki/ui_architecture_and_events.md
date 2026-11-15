@@ -92,7 +92,7 @@ Güncel fiyat: `latest_prices` canlı kaydı yalnızca seans içinde alınmışs
 
 ## 8. Ekran Ölçeği
 
-`src/qt_compat/scaling.py`, `QApplication` oluşmadan önce Windows'ta %100 üzerindeki ekran ölçeğini ters `QT_SCALE_FACTOR` ile normalize eder (PySide6/Qt6'da %125 ölçekte içeriğin büyümesini önler). Kapatmak için `PORTFOYSIM_DISABLE_QT_SCALE_NORMALIZATION=1` verilir.
+`src/qt_compat/scaling.py`, `QApplication` oluşmadan önce Windows'ta `QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough` ayarlayarak kesirli ölçeklerde (%125, %150) Qt6'nın doğal Per-Monitor DPI ölçeklemesinin tam sayıya yuvarlanmasını önler. Eski QWidgets döneminden kalan ters `QT_SCALE_FACTOR` ataması (%200 ölçekli 2560×1600 laptop ekranlarında QML arayüzünü yarı boyuta küçültüyordu) kaldırılmıştır. Kapatmak için `PORTFOYSIM_DISABLE_QT_SCALE_NORMALIZATION=1` verilir.
 
 ## 9. Yeni Sayfa veya Bileşen Eklerken
 

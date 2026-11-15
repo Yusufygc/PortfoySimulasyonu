@@ -84,7 +84,7 @@ Bu sayfa kaynak ağacını ve her dizinin sorumluluğunu özetler. Katman ilkele
 
 ## 6. `src/qt_compat/`
 
-Qt binding sınırı: `qtcore`, `qtwidgets` ve `scaling` (Windows ekran ölçeğini ters `QT_SCALE_FACTOR` ile normalize eder). Uygulama katmanı Qt kullanmaz (`tests/test_layer_guards.py`).
+Qt binding sınırı: `qtcore`, `qtwidgets` ve `scaling` (Windows'ta kesirli ölçekler için `QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough` ayarlar; Qt6 doğal Per-Monitor DPI ölçeklemesini korur). Uygulama katmanı Qt kullanmaz (`tests/test_layer_guards.py`).
 
 ## 7. Test Dizini
 

@@ -93,8 +93,8 @@ def _fit_window_to_screen(app, engine) -> None:
         return
     geom = primary_screen.availableGeometry()
     win = engine.rootObjects()[0]
-    w = max(960, min(int(win.property("width") or 1200), geom.width() - 40))
-    h = max(600, min(int(win.property("height") or 760), geom.height() - 60))
+    w = min(geom.width(), max(720, min(int(win.property("width") or 1200), geom.width() - 40)))
+    h = min(geom.height(), max(480, min(int(win.property("height") or 760), geom.height() - 60)))
     win.setProperty("width", w)
     win.setProperty("height", h)
     win.setProperty("x", geom.x() + max(0, (geom.width() - w) // 2))

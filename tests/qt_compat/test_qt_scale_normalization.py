@@ -4,32 +4,41 @@ from src.qt_compat.scaling import (
 )
 
 
-def test_qt_scale_factor_for_percent_counter_scales_common_windows_scale():
+def test_qt_scale_factor_for_percent_does_not_counter_scale_windows_dpi():
     assert qt_scale_factor_for_percent(100) is None
-    assert qt_scale_factor_for_percent(125) == "0.8"
-    assert qt_scale_factor_for_percent(150) == "0.667"
+    assert qt_scale_factor_for_percent(125) is None
+    assert qt_scale_factor_for_percent(150) is None
+    assert qt_scale_factor_for_percent(200) is None
 
 
-def test_configure_qt_scale_normalization_sets_env_when_needed():
+def test_configure_qt_scale_normalization_sets_passthrough_without_qt_scale_factor():
     env = {}
 
-    factor = configure_qt_scale_normalization(
+    result = configure_qt_scale_normalization(
         env=env,
-        scale_percent_provider=lambda: 125,
+        scale_percent_provider=lambda: 200,
     )
 
-    assert factor == "0.8"
-    assert env["QT_SCALE_FACTOR"] == "0.8"
+    assert result == "PassThrough"
+    assert env.get("QT_SCALE_FACTOR") is None
     assert env["QT_SCALE_FACTOR_ROUNDING_POLICY"] == "PassThrough"
 
 
-def test_configure_qt_scale_normalization_respects_existing_env():
-    env = {"QT_SCALE_FACTOR": "1.25"}
-
-    factor = configure_qt_scale_normalization(
-        env=env,
+def test_configure_qt_scale_normalization_respects_existing_env_and_disable_flag():
+    env_explicit = {"QT_SCALE_FACTOR": "1.25", "QT_SCALE_FACTOR_ROUNDING_POLICY": "Round"}
+    result_explicit = configure_qt_scale_normalization(
+        env=env_explicit,
         scale_percent_provider=lambda: 125,
     )
+    assert result_explicit is None
+    assert env_explicit["QT_SCALE_FACTOR"] == "1.25"
+    assert env_explicit["QT_SCALE_FACTOR_ROUNDING_POLICY"] == "Round"
 
-    assert factor is None
-    assert env["QT_SCALE_FACTOR"] == "1.25"
+    env_disabled = {"PORTFOYSIM_DISABLE_QT_SCALE_NORMALIZATION": "1"}
+    result_disabled = configure_qt_scale_normalization(
+        env=env_disabled,
+        scale_percent_provider=lambda: 200,
+    )
+    assert result_disabled is None
+    assert "QT_SCALE_FACTOR" not in env_disabled
+    assert "QT_SCALE_FACTOR_ROUNDING_POLICY" not in env_disabled

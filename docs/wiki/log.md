@@ -5,6 +5,15 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-15] güncelleme | Yüksek DPI laptop ekranında ters ölçekleme kaldırıldı
+
+Harici monitör çıkarılıp %200 Windows ölçekli laptop ekranına (2560×1600, 192 DPI) geçildiğinde arayüz yarı boyuta küçülüp basık görünüyordu.
+
+- **Kök neden:** `src/qt_compat/scaling.py` içindeki `configure_qt_scale_normalization()` eski QWidgets döneminden kalma ters ölçeklemeyi (`100 / 200 = 0.5`) `QT_SCALE_FACTOR` olarak atıyordu; QML arayüzü Qt6'da mantıksal piksel kullandığı için `2.0 × 0.5 = 1.0` çarpanıyla 2560×1600 mantıksal alana sıkışıyordu.
+- **Çözüm:** `src/qt_compat/scaling.py` artık `QT_SCALE_FACTOR` atamaz, yalnızca kesirli ölçekler için `QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough` ayarlar (kullanıcı tanımlı değerleri ve `PORTFOYSIM_DISABLE_QT_SCALE_NORMALIZATION=1` bayrağını korur). `src/ui_qml/app.py::_fit_window_to_screen` yüksek ölçekli düşük mantıksal çözünürlüklerde `Main.qml` (`minimumWidth: 720`, `minimumHeight: 480`) ile uyumlu olacak şekilde sınırlandı.
+- **Doğrulama:** `tests/qt_compat/test_qt_scale_normalization.py` (önce kırmızı, düzeltme sonrası yeşil).
+- **Bağlantılı sayfalar:** [ui_architecture_and_events.md](ui_architecture_and_events.md), [project_structure.md](project_structure.md).
+
 ## [2026-11-14] FIX | Toast bildirimi uzun mesajda kutudan taşıyordu
 
 `ToastNotification.qml` genişliği 420 ile sınırlıyordu ama metin sarılmıyordu (`elide` kutu genişliğini bilmediği için işlemiyordu); "5 hisse bölünmesi adayı..." gibi uzun mesaj kutunun iki yanından taşıyordu. Metin artık `TextMetrics` ile ölçülür, en çok 420 genişlikte satıra sarılır ve kutu yüksekliği metne uyar (kısa mesajda 46 aynı). Test: `tests/ui_qml/test_toast_overflow.py` (pencerede yerleşim; uzun, kısa, boşluksuz uzun metin). Tüm toast kullanımları (8 yer) aynı bileşeni kullandığı için tek düzeltme yeterli.
