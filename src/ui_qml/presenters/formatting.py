@@ -78,3 +78,10 @@ def tr_number_or_dash(value: object, decimals: int = 2) -> str:
         return tr_number(float(value), decimals)
     except (TypeError, ValueError):
         return str(value)
+
+
+def fraction_pct(value: Optional[Number], decimals: int = 0) -> str:
+    """0..1 oranı Türkçe yüzdeye çevirir: 0.93 -> '%93'. None -> '-'."""
+    if value is None:
+        return "-"
+    return "%" + f"{float(value) * 100:.{decimals}f}".replace(".", ",")

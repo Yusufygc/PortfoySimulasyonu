@@ -100,6 +100,11 @@ class PeerInfo:
     risk_sigma_5d: float | None = None
     risk_level: str | None = None   # düşük | orta | yüksek
     risk_method: str | None = None  # har_x_ridge | naive_fallback
+    # Model doğrulama metrikleri (gecelik koşunun örneklem dışı sonuçları)
+    ic_mean: float | None = None          # kesitsel sıralama korelasyonu ortalaması
+    icir_overall: float | None = None     # IC ortalaması / std
+    pct_ic_positive: float | None = None  # IC > 0 gün oranı (0..1)
+    risk_validation: dict = field(default_factory=dict)  # mse_ratio, dm_t, coverage, ...
     # Kol-B XAI — pooled modelin per-symbol sıra sürücüleri (SHAP)
     xai_available: bool = False
     xai_method: str = ""

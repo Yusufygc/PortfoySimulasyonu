@@ -31,12 +31,16 @@ Item {
     }
 
     ScrollView {
+        id: analysisScroll
         anchors.fill: parent
         clip: true
+        rightPadding: Theme.scrollbarGutter
         contentWidth: availableWidth
+        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+        ScrollBar.vertical: ModernScrollBar {}
 
         ColumnLayout {
-            width: parent.width
+            width: analysisScroll.availableWidth
             spacing: Theme.spaceMd
 
             // Ticker girişi
@@ -175,17 +179,20 @@ Item {
 
                         // Performans metrikleri
                         Text { text: Strings.mdlPerformance; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; font.weight: Font.Bold; Layout.topMargin: Theme.spaceSm }
-                        GridLayout {
-                            columns: 2
-                            columnSpacing: Theme.spaceLg
-                            rowSpacing: 4
+                        ColumnLayout {
+                            spacing: 6
                             Layout.fillWidth: true
                             Repeater {
                                 model: root.analysis.performance || []
-                                RowLayout {
+                                ColumnLayout {
+                                    spacing: 1
                                     Layout.fillWidth: true
-                                    Text { text: modelData.label; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
-                                    Text { text: modelData.valueText; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.fontXs }
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text { text: modelData.label; color: Theme.textMuted; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; Layout.fillWidth: true }
+                                        Text { text: modelData.valueText; color: Theme.textPrimary; font.family: Theme.monoFontFamily; font.pixelSize: Theme.fontXs }
+                                    }
+                                    Text { visible: (modelData.hint || "") !== ""; text: modelData.hint || ""; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; wrapMode: Text.WordWrap; opacity: 0.8; Layout.fillWidth: true }
                                 }
                             }
                         }

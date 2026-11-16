@@ -17,7 +17,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot
 from src.domain.models.ai_analysis import AnalysisResult, ModelOutlook, PeerInfo, XaiFactorItem
 from src.domain.ticker import clean_ticker
 from src.ui_qml.messages import msg
-from src.ui_qml.presenters.formatting import tr_number
+from src.ui_qml.presenters.formatting import fraction_pct, tr_number
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +91,29 @@ def _peer(peer: Optional[PeerInfo]) -> Dict[str, Any]:
     }
 
 
+def _performance_rows(peer: Optional[PeerInfo]) -> list:
+    """Gecelik koşunun doğrulanmış metrikleri: (etiket, değer, açıklama)."""
+    if peer is None:
+        return []
+    rv = peer.risk_validation or {}
+    ratio = rv.get("mse_ratio")
+    error_text = "-" if ratio is None else msg(
+        "model_analysis.perf_risk_hata_deger", ratio=_num(ratio, 2), reduction=fraction_pct(1 - ratio))
+    method_text = {
+        "har_x_ridge": msg("model_analysis.perf_yontem_model"),
+        "naive_fallback": msg("model_analysis.perf_yontem_yedek"),
+    }.get(peer.risk_method or "", "-")
+    return [
+        (msg("model_analysis.perf_ic"), _num(peer.ic_mean, 3), msg("model_analysis.perf_ic_hint")),
+        (msg("model_analysis.perf_icir"), _num(peer.icir_overall, 2), msg("model_analysis.perf_icir_hint")),
+        (msg("model_analysis.perf_ic_pozitif"), fraction_pct(peer.pct_ic_positive), msg("model_analysis.perf_ic_pozitif_hint")),
+        (msg("model_analysis.perf_segment"), _num(peer.segment_icir, 2), msg("model_analysis.perf_segment_hint")),
+        (msg("model_analysis.perf_risk_hata"), error_text, msg("model_analysis.perf_risk_hata_hint")),
+        (msg("model_analysis.perf_kapsama"), fraction_pct(rv.get("coverage"), 1), msg("model_analysis.perf_kapsama_hint")),
+        (msg("model_analysis.perf_dm"), _num(rv.get("dm_t"), 1), msg("model_analysis.perf_dm_hint")),
+        (msg("model_analysis.perf_yontem"), method_text, msg("model_analysis.perf_yontem_hint")),
+    ]
+
 def analysis_to_dict(result: AnalysisResult) -> Dict[str, Any]:
     """Domain sonucunu QML'in doğrudan gösterebileceği biçimli sözlüğe çevirir."""
     outlook_text, outlook_state = _OUTLOOK_LABELS.get(result.outlook, _OUTLOOK_LABELS[ModelOutlook.NEUTRAL])
@@ -101,15 +124,7 @@ def analysis_to_dict(result: AnalysisResult) -> Dict[str, Any]:
     if result.predicted_price_low is not None and result.predicted_price_high is not None:
         interval = f"{_price(result.predicted_price_low)} - {_price(result.predicted_price_high)}"
     trend = _TREND_LABELS.get((result.trend_label or "").lower(), result.trend_label or "")
-    performance = [
-        (msg("model_analysis.bilesik_skor"), _num(result.composite_score, 1)),
-        (msg("model_analysis.yon_dogrulugu"), "-" if result.directional_accuracy is None else _pct(result.directional_accuracy, 1)),
-        (msg("model_analysis.isabet_orani"), "-" if result.hit_rate is None else _pct(result.hit_rate, 1)),
-        ("Sharpe", _num(result.sharpe, 2)),
-        ("RMSE", _num(result.rmse, 2)),
-        ("MAE", _num(result.mae, 2)),
-        (msg("model_analysis.kararlilik"), _num(result.stability_score, 2)),
-    ]
+    performance = _performance_rows(result.peer)
     return {
         "ticker": result.ticker,
         "modelName": result.model_name or "-",
@@ -135,7 +150,7 @@ def analysis_to_dict(result: AnalysisResult) -> Dict[str, Any]:
             f"Son veri: {result.last_observed_date or '-'}"
             + (msg("model_analysis.islem_gunu_geride", staleness_days=result.staleness_days) if result.staleness_days else "")
         ),
-        "performance": [{"label": label, "valueText": value} for label, value in performance],
+        "performance": [{"label": label, "valueText": value, "hint": hint} for label, value, hint in performance],
         "xaiAvailable": result.xai_available,
         "xaiMethod": result.xai_method or "",
         "xaiPositive": [_factor(i) for i in result.xai_positive_reasons],

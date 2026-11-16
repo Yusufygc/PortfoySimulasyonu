@@ -45,7 +45,9 @@ def _result(**overrides):
         xai_positive_reasons=[XaiFactorItem("RSI_14", "RSI (14 gün)", 0.4, "positive")],
         xai_negative_reasons=[XaiFactorItem("VOL", "Hacim", 0.2, "negative")],
         peer=PeerInfo(available=True, peer_percentile=82.0, peer_label="outperform", universe_size=300,
-                      trend_prob_up=0.64, kolb_price_low=305.0, kolb_price_high=340.0),
+                      trend_prob_up=0.64, kolb_price_low=305.0, kolb_price_high=340.0,
+                      ic_mean=0.099, icir_overall=1.55, pct_ic_positive=0.93, risk_method="har_x_ridge",
+                      risk_validation={"mse_ratio": 0.8, "coverage": 0.798, "dm_t": 18.0}),
         forecast_points=[ForecastPoint("2026-10-06", 1, bounded_predicted_close=305.0, predicted_return=0.016,
                                        p10_close=295.0, p90_close=315.0)],
         last_observed_date="2026-10-02",
@@ -87,7 +89,13 @@ def test_analysis_to_dict_formats_turkish_values():
     assert data["outlookText"] == "Yükseliş eğilimi" and data["outlookState"] == "up" and data["outlookStrengthPct"] == 70
     assert data["peer"]["available"] and data["peer"]["percentileText"] == "%82" and data["peer"]["probUpText"] == "%64"
     assert data["forecastPoints"][0]["rangeText"] == "295,00 ₺ - 315,00 ₺"
-    assert data["xaiPositive"][0]["label"] == "RSI (14 gün)" and data["performance"][1]["valueText"] == "%58,2"
+    assert data["xaiPositive"][0]["label"] == "RSI (14 gün)" 
+    perf = {row["label"]: row for row in data["performance"]}
+    assert perf["Sıralama isabeti (IC)"]["valueText"] == "0,099" and "korelasyon" in perf["Sıralama isabeti (IC)"]["hint"]
+    assert perf["İsabetli gün oranı"]["valueText"] == "%93" and perf["Bant kapsaması"]["valueText"] == "%79,8"
+    assert perf["Risk modeli hatası"]["valueText"] == "0,80 (%20 daha az)" and perf["Bant yöntemi"]["valueText"] == "Oynaklık modeli"
+    assert all(row["hint"] for row in data["performance"])
+    assert analysis_to_dict(_result(peer=None))["performance"] == []
     assert "tavsiyesi değildir" in data["disclaimer"]
     assert analysis_to_dict(_result(predicted_price=None, peer=None))["hasChange"] is False
 
