@@ -17,6 +17,7 @@ Bu sayfa Ayarlar sayfasının sekmelerini, uygulama açılışında ve zamanlay�
 | Piyasa Düzeltmeleri | `MarketAdjustmentController` | Tüm BIST için veriden tespit edilen sermaye artırımı adayları: tara, onayla (faktör düzenlenebilir), yoksay, yeniden aç ([market_corporate_actions.md](market_corporate_actions.md)). Liste olay sayacı gösterir. |
 | Sistem | `SystemController` | Otomatik canlı fiyat yenileme ve sistem sıfırlama (aşağıya bakın). |
 | Haber Kaynakları | `NewsSettingsController` | Haber kaynaklarını (KAP, Yahoo, Google News, RSS) tek tek aç/kapa, KAP toplu kurum bildirimi anahtarı, özel RSS ekleme/silme, "Bağlantıyı test et", kaynak durumu, haber paneli yenileme aralığı. Ayrıntı: [service_news.md](service_news.md). |
+| Ücretler | `FeeSettingsController` | BIST hisse komisyonu, varlık komisyonu ve BSMV değerlerini satır bazında `Oran (%)` (`PCT`) veya `Sabit` (`FIXED`) modunda kaydetme ve `app_settings` içinde saklama ([service_portfolio_and_market.md](service_portfolio_and_market.md)). |
 
 Veritabanı istatistiği, bütünlük (`PRAGMA integrity_check` ve DuckDB okuma testi) ve yedek dışa aktarımı `DatabaseMaintenanceService` üzerinden yapılır ([database_maintenance_and_scripts.md](database_maintenance_and_scripts.md)).
 

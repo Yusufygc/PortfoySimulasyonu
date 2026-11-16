@@ -102,3 +102,64 @@ def test_fees_tab_loads_without_warnings(qapp):
 
     assert warnings == []
     item._engine, item._component = engine, component
+
+
+def test_set_mode_and_save_fixed_fee_persists_and_reloads(qapp):
+    controller, service = _controller(qapp)
+    assert (controller.bistMode, controller.assetMode, controller.bsmvMode) == ("PCT", "PCT", "PCT")
+
+    controller.setMode("bist", "FIXED")
+    controller.setMode("asset", "fixed")
+    controller.setMode("bsmv", "PCT")
+    controller.setMode("unknown", "FIXED")
+    controller.setMode("bist", "BOGUS")
+
+    assert (controller.bistMode, controller.assetMode, controller.bsmvMode) == ("FIXED", "FIXED", "PCT")
+
+    results = []
+    controller.notify.connect(lambda ok, text: results.append((ok, text)))
+    controller.save("25", "1,5", "5")
+
+    assert results == [(True, "Ücret oranları kaydedildi.")]
+    saved = service.get_rates()
+    assert (saved.bist_mode, saved.asset_mode, saved.bsmv_mode) == ("FIXED", "FIXED", "PCT")
+    assert service.bist_fee(Decimal("1000")) == Decimal("26.2500")
+    assert service.asset_fee(Decimal("1000")) == Decimal("1.5750")
+
+    reloaded = FeeSettingsController(container=SimpleNamespace(fee_settings_service=service))
+    assert (reloaded.bistMode, reloaded.assetMode, reloaded.bsmvMode) == ("FIXED", "FIXED", "PCT")
+    assert (reloaded.bistCommission, reloaded.assetCommission, reloaded.bsmv) == ("25", "1,5", "5")
+
+
+def test_fixed_mode_validation_rejects_above_max_fixed_fee(qapp):
+    controller, service = _controller(qapp)
+    results = []
+    controller.notify.connect(lambda ok, text: results.append(ok))
+    controller.setMode("bist", "FIXED")
+
+    controller.save("100001", "0", "0")
+    assert results == [False]
+    assert service.get_rates().bist_commission_pct == Decimal("0")
+
+
+def test_fees_tab_mode_buttons_toggle_mode_in_qml(qapp):
+    controller, _ = _controller(qapp)
+    engine = QQmlApplicationEngine()
+    engine.rootContext().setContextProperty("feeSettingsController", controller)
+    engine.addImportPath(str(QML_DIR))
+    warnings: list[str] = []
+    engine.warnings.connect(lambda items: warnings.extend(w.toString() for w in items))
+
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(QML_DIR / "components" / "SettingsFeesTab.qml")))
+    assert component.isReady(), "; ".join(e.toString() for e in component.errors())
+    item = component.create()
+    assert item is not None
+    for _ in range(5):
+        QCoreApplication.processEvents()
+
+    controller.setMode("bist", "FIXED")
+    for _ in range(5):
+        QCoreApplication.processEvents()
+    assert controller.bistMode == "FIXED"
+    assert warnings == []
+    item._engine, item._component = engine, component

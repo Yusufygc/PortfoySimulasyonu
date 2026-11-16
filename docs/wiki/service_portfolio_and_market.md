@@ -26,7 +26,7 @@ Avantajı: geçmişe dönük işlem, bedelsiz sermaye artırımı veya düzeltme
 
 ### İşlem ücreti (komisyon + BSMV)
 
-Ücret oranları **Ayarlar > Ücretler**'den girilir ve varsayılan 0'dır (`FeeSettingsService`, `app_settings` tablosu): BIST komisyonu, varlık komisyonu ve BSMV (yüzde). Ücret `komisyon + komisyon x BSMV` olarak işlem anında hesaplanır (4 haneye yuvarlanır) ve `Trade.fee` / `AssetTrade.fee` olarak işlemle saklanır; oranlar sonradan değişse eski işlem aynı kalır, mevcut işlemler göç 4 ile 0 ücretle açılır.
+Ücret ayarları **Ayarlar > Ücretler**'den girilir ve varsayılan 0 (`PCT`) olarak başlar (`FeeSettingsService`, `app_settings` tablosu): BIST komisyonu, varlık komisyonu ve BSMV satırlarının her biri için `Oran (%)` (`PCT`) veya işlem başına sabit tutar (`Sabit`, `FIXED`) seçilebilir (`fee.bist_mode`, `fee.asset_mode`, `fee.bsmv_mode`). Ücret, komisyonun yüzde veya sabit değerine eklenen yüzde veya sabit BSMV toplamı olarak işlem anında hesaplanır (4 haneye yuvarlanır) ve `Trade.fee` / `AssetTrade.fee` olarak işlemle saklanır; ayarlar sonradan değişse eski işlem aynı kalır, mevcut işlemler göç 4 ile 0 ücretle açılır.
 
 - **Alım:** ücret maliyete eklenir (`Position.total_cost`, ortalama maliyet ücretli). Nakit düşüşü `Trade.cash_amount = tutar + ücret`.
 - **Satış:** gelir ücret düşülerek yazılır (gerçekleşmiş K/Z ve nakit girişi net). Ortalama maliyet değişmez.

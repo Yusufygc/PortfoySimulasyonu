@@ -189,3 +189,46 @@ def test_asset_trade_without_fee_service_has_zero_fee():
     asset = Asset(id=1, symbol="BTC", name="Bitcoin", asset_class=AssetClass.CRYPTO, quote_currency="USD", yf_symbol="BTC-USD")
     ledger = AssetLedgerService(_AssetRepo(asset), _TradeRepo())
     assert ledger.record_trade(1, TradeSide.BUY, "1", "1000", fx_rate_to_try="30").fee == D("0")
+
+
+def test_calculate_fee_supports_fixed_and_mixed_modes():
+    from src.domain.models.fees import FEE_MODE_FIXED, FEE_MODE_PCT
+
+    # Sabit komisyon 25 TL + %5 BSMV (25 x %5 = 1,25) = 26,25
+    assert calculate_fee(D("10000"), D("25"), D("5"), FEE_MODE_FIXED, FEE_MODE_PCT) == D("26.2500")
+    # %0,2 komisyon (10000 x %0,2 = 20) + sabit BSMV 3 TL = 23
+    assert calculate_fee(D("10000"), D("0.2"), D("3"), FEE_MODE_PCT, FEE_MODE_FIXED) == D("23.0000")
+    # Tamamen sabit: 15 TL komisyon + 2,5 TL BSMV = 17,5
+    assert calculate_fee(D("500"), D("15"), D("2.5"), FEE_MODE_FIXED, FEE_MODE_FIXED) == D("17.5000")
+    # İşlem tutarı 0 ise sabit ücret uygulanmaz
+    assert calculate_fee(D("0"), D("15"), D("2.5"), FEE_MODE_FIXED, FEE_MODE_FIXED) == D("0.0000")
+
+
+def test_fixed_fee_rates_validation_and_persistence():
+    from src.domain.models.fees import FEE_MODE_FIXED, FEE_MODE_PCT
+
+    settings = MemorySettings()
+    service = FeeSettingsService(settings)
+    rates = FeeRates(
+        bist_commission_pct=D("25"),
+        asset_commission_pct=D("2"),
+        bsmv_pct=D("10"),
+        bist_mode=FEE_MODE_FIXED,
+        asset_mode=FEE_MODE_FIXED,
+        bsmv_mode=FEE_MODE_PCT,
+    )
+    service.set_rates(rates)
+
+    loaded = FeeSettingsService(settings).get_rates()
+    assert loaded == rates
+    # 10.000 TL BIST işlemi: 25 TL + %10 BSMV = 27,50 TL
+    assert service.bist_fee(D("10000")) == D("27.5000")
+    # 500 USD varlık işlemi: 2 USD + %10 BSMV = 2,20 USD
+    assert service.asset_fee(D("500")) == D("2.2000")
+
+    with pytest.raises(ValueError):
+        FeeRates(D("100001"), D("0"), D("0"), bist_mode=FEE_MODE_FIXED)
+    with pytest.raises(ValueError):
+        FeeRates(D("-1"), D("0"), D("0"), bist_mode=FEE_MODE_FIXED)
+    with pytest.raises(ValueError):
+        FeeRates(D("0"), D("0"), D("0"), bist_mode="UNKNOWN")
