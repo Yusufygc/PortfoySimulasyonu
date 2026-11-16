@@ -86,6 +86,7 @@ def _peer(peer: Optional[PeerInfo]) -> Dict[str, Any]:
         "trendText": peer.trend_label or "-",
         "probUpText": "-" if peer.trend_prob_up is None else _pct(peer.trend_prob_up * 100, 0),
         "bandText": band or "-",
+        "riskText": peer.risk_level or "-",
         "confidenceText": _CONFIDENCE_LABELS.get((peer.confidence_label or "").lower(), peer.confidence_label or "-"),
         "warnings": list(peer.confidence_warnings),
     }
@@ -175,9 +176,21 @@ def analysis_to_dict(result: AnalysisResult) -> Dict[str, Any]:
 
 
 def advisor_prompt(data: Dict[str, Any]) -> str:
-    """Analiz özetini portföy danışmanına soru olarak gönderilecek metne çevirir."""
-    return (
-        msg("model_analysis.icin_model_analizi_sonucu_tahmin_son", ticker=data["ticker"], predicted=data["predictedText"], last_close=data["lastCloseText"], change=data["changeText"], outlook=data["outlookText"], confidence=data["confidenceText"])
+    """Analiz özetini portföy danışmanına soru olarak gönderilecek metne çevirir (göreli, olasılıksal çerçeve)."""
+    peer = data.get("peer") or {}
+    warnings = list(data.get("confidenceWarnings") or [])
+    return msg(
+        "model_analysis.danisman_ozeti",
+        ticker=data["ticker"],
+        label=peer.get("labelText", "-"),
+        percentile=peer.get("percentileText", "-"),
+        universe=peer.get("universeText", "-"),
+        prob_up=peer.get("probUpText", "-"),
+        risk=peer.get("riskText", "-"),
+        band=peer.get("bandText", "-"),
+        last_close=data["lastCloseText"],
+        confidence=data["confidenceText"],
+        warnings=msg("model_analysis.danisman_uyarilar", warnings=" ".join(warnings)) if warnings else "",
     )
 
 

@@ -165,7 +165,11 @@ def test_send_to_advisor_emits_summary_prompt(qapp):
     ctrl.analyze("THYAO")
     ctrl.sendToAdvisor()
 
-    assert prompts and "THYAO" in prompts[0][0] and "330,00 ₺" in prompts[0][0]
+    text = prompts[0][0] if prompts else ""
+    assert "THYAO" in text and "%82 dilim" in text and "yükselme olasılığı %64" in text
+    assert "305,00 ₺ - 340,00 ₺" in text and "son kapanış 300,00 ₺" in text
+    assert "fiyat tahmini değildir" in text and "Uyarılar: Veri kısıtlı" in text
+    assert "330,00" not in text  # bant merkezi fiyat tahmini gibi sunulmaz
     assert advisor_prompt(ctrl.result) == prompts[0][0]
 
 
