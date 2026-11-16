@@ -25,7 +25,7 @@ Proje kökündeki `.env` dosyası `config/settings_loader.py` ile okunur (`.env.
 | `DB_SQLITE_PATH` | SQLite dosyası (göreli yol uygulama köküne göre çözülür) | `data/portfolio.db` |
 | `DUCKDB_PATH` | DuckDB dosyası | SQLite dosyasının yanındaki `market_history.duckdb` |
 | `GEMINI_API_KEY` | Gemini API anahtarı (Yapay Zeka sayfası) | yok |
-| `AI_CORE_API_URL` | AI_Core tahmin servisi adresi | `http://localhost:8000` |
+| `AI_CORE_API_URL` | AI_Core tahmin servisi adresi | `http://localhost:8001` |
 | `EVDS_API_KEY` | TCMB EVDS anahtarı (TÜFE, mevduat faizi) | yok |
 | `TCMB_DEPOSIT_RATE_FALLBACK` | EVDS erişilemezse yıllık mevduat faizi (%) | `45.0` |
 | `LOG_DIR`, `LOG_LEVEL`, `LOG_CONSOLE_LEVEL`, `LOG_FILE_LEVEL` | Loglama | `logs/`, `INFO`... |

@@ -24,7 +24,7 @@ from src.domain.ports.services.i_ai_analysis_provider import IAIAnalysisProvider
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_BASE_URL = "http://localhost:8000"
+_DEFAULT_BASE_URL = "http://localhost:8001"
 _DEFAULT_TIMEOUT = 15  # saniye
 
 # Güven etiketi → sayısal değer eşleme

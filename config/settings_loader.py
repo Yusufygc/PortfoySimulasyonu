@@ -111,7 +111,7 @@ def _load_db_settings() -> DatabaseConfig:
 def _build_ai_settings() -> AISettings:
     return AISettings(
         gemini_api_key=_optional_env("GEMINI_API_KEY"),
-        core_api_url=_url_env("AI_CORE_API_URL", "http://localhost:8000"),
+        core_api_url=_url_env("AI_CORE_API_URL", "http://localhost:8001"),
     )
 
 
