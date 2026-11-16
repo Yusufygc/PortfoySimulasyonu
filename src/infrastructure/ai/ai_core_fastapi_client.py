@@ -153,10 +153,8 @@ def _parse_xai_factor(raw: Dict[str, Any], default_direction: str) -> XaiFactorI
 
 
 def _xai_factor_summary(item: XaiFactorItem) -> str:
-    name = item.human_label or item.feature_name
-    group = f" [{item.feature_group}]" if item.feature_group else ""
-    reason = f" — {item.reason}" if item.reason else ""
-    return f"{name}{group}{reason}"
+    """Faktörün tek cümlelik özeti: açıklama varsa o (zaten faktör adını içerir), yoksa ad."""
+    return (item.reason or item.human_label or item.feature_name).strip().rstrip(".")
 
 
 def _parse_float(block: dict, key: str) -> Optional[float]:
@@ -223,6 +221,8 @@ _OUTLOOK_BY_TREND = {
     "aşağı": ModelOutlook.DOWN,
     "down": ModelOutlook.DOWN,
 }
+# Kol-B Türkçe trend etiketi -> arayüzün beklediği kanonik etiket
+_CANONICAL_TREND = {"yukarı": "up", "aşağı": "down", "yatay": "neutral", "belirsiz": "neutral"}
 
 
 def _xai_text(xai_pos: List[XaiFactorItem], xai_neg: List[XaiFactorItem]) -> str:
@@ -279,7 +279,7 @@ def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
         weekly_expected_return=weekly_return,
         outlook=_OUTLOOK_BY_TREND.get(str(trend_label or "").strip().lower(), ModelOutlook.NEUTRAL),
         outlook_strength=min(abs(weekly_return or 0.0) * 10, 1.0),
-        trend_label=trend_label,
+        trend_label=_CANONICAL_TREND.get(str(trend_label or "").strip().lower(), trend_label),
         xai_available=bool(peer and peer.xai_available),
         xai_method=peer.xai_method if peer else "",
         xai_caveat=peer.xai_caveat if peer else "",

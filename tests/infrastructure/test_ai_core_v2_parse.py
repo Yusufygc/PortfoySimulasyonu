@@ -43,11 +43,19 @@ def test_v2_maps_peer_and_risk_into_result():
     assert r.model_name == "GlobalPooledModel" and r.trained_at == "2026-09-16"
     assert (r.predicted_price, r.predicted_price_low, r.predicted_price_high) == (65.6, 59.5, 72.4)
     assert r.interval_method == "har_x_ridge" and r.horizon_days == 5
-    assert r.outlook is ModelOutlook.UP and r.trend_label == "yukarı"
+    assert r.outlook is ModelOutlook.UP and r.trend_label == "up"
     assert math.isclose(r.weekly_expected_return, math.expm1(0.01))
     assert r.peer.risk_level == "orta" and r.peer.risk_sigma_5d == 0.09
     assert r.xai_available and r.xai_positive_reasons[0].feature_name == "NATR_14"
-    assert "Oynaklık" in r.xai_text
+    assert "Oynaklık" in r.xai_text and ".." not in r.xai_text
+
+
+def test_xai_summary_does_not_repeat_label_when_reason_has_it():
+    raw = dict(_V2, peer=dict(_V2["peer"], xai_top_positive=[
+        {"feature_name": "RSI_14", "human_label": "RSI 14", "importance": 0.2,
+         "reason": "RSI 14: aşırı alım bölgesine yaklaşma sinyali."}]))
+    text = _parse_api_response(raw).xai_text
+    assert text.count("RSI 14") == 1 and ".." not in text
 
 
 def test_v2_without_peer_block_is_neutral_and_empty():
