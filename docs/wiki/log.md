@@ -5,6 +5,12 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-16] güncelleme | Model analizi: akranlarını geçme olasılığı
+- AI_Core kalibrasyon ölçümü mutlak `trend_prob_up`'ın yazı-turadan ayırt edilemediğini gösterdi.
+  Model analizi panelinde ve "Danışmana Gönder" metninde artık `trend_prob_outperform`
+  (5 günde evren medyanını geçme olasılığı) gösteriliyor. `PeerInfo.trend_prob_outperform` eklendi;
+  `Strings.mdlProbUp` → `Strings.mdlProbBeat`.
+
 ## [2026-11-15] güncelleme | Uygulama genelinde kaydırma çubuğu oluğu (scrollbar gutter)
 - **Sorun:** `Main.qml`, `ScrollView`, `Flickable` ve etkileşimli `ListView` konteynerlerinde sağdaki/alttaki `ModernScrollBar` doğrudan içerik alanının üzerine binerek kartları, rozetleri ve tablo butonlarını kısmen kapatıyordu.
 - **Çözüm:** [Theme.qml](../../src/ui_qml/qml/theme/Theme.qml) içine `scrollbarGutter: 12` token'ı eklendi. [Main.qml](../../src/ui_qml/qml/Main.qml) `pageScroll` dış alanında sayfa marjı ile çubuk oluğu ayrıldı ve tam sayfa kaydırma kullanan görünümler (`Stock360View`, `MyPortfolioView`, `WatchlistView`) için `hasOwnScroll: 1` sinyali tanımlandı. Tüm `ScrollView` (`rightPadding`), dikey/yatay `Flickable` (`contentWidth`/`height` oluğu) ve etkileşimli `ListView` bileşenlerinde (tablo başlık hizalamaları dahil) içerik genişliği `Theme.scrollbarGutter` kadar içeride tutularak kaydırma çubuğunun bileşenlerin üzerine gelmesi engellendi.

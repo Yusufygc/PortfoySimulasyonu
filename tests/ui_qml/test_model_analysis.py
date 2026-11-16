@@ -45,7 +45,7 @@ def _result(**overrides):
         xai_positive_reasons=[XaiFactorItem("RSI_14", "RSI (14 gün)", 0.4, "positive")],
         xai_negative_reasons=[XaiFactorItem("VOL", "Hacim", 0.2, "negative")],
         peer=PeerInfo(available=True, peer_percentile=82.0, peer_label="outperform", universe_size=300,
-                      trend_prob_up=0.64, kolb_price_low=305.0, kolb_price_high=340.0,
+                      trend_prob_up=0.53, trend_prob_outperform=0.64, kolb_price_low=305.0, kolb_price_high=340.0,
                       ic_mean=0.099, icir_overall=1.55, pct_ic_positive=0.93, risk_method="har_x_ridge",
                       risk_validation={"mse_ratio": 0.8, "coverage": 0.798, "dm_t": 18.0}),
         forecast_points=[ForecastPoint("2026-10-06", 1, bounded_predicted_close=305.0, predicted_return=0.016,
@@ -87,7 +87,7 @@ def test_analysis_to_dict_formats_turkish_values():
     assert data["intervalText"] == "310,00 ₺ - 350,00 ₺" and data["horizonText"] == "5 gün"
     assert data["confidenceText"] == "Orta" and data["confidencePct"] == 60
     assert data["outlookText"] == "Yükseliş eğilimi" and data["outlookState"] == "up" and data["outlookStrengthPct"] == 70
-    assert data["peer"]["available"] and data["peer"]["percentileText"] == "%82" and data["peer"]["probUpText"] == "%64"
+    assert data["peer"]["available"] and data["peer"]["percentileText"] == "%82" and data["peer"]["probBeatText"] == "%64"
     assert data["forecastPoints"][0]["rangeText"] == "295,00 ₺ - 315,00 ₺"
     assert data["xaiPositive"][0]["label"] == "RSI (14 gün)" 
     perf = {row["label"]: row for row in data["performance"]}
@@ -166,7 +166,7 @@ def test_send_to_advisor_emits_summary_prompt(qapp):
     ctrl.sendToAdvisor()
 
     text = prompts[0][0] if prompts else ""
-    assert "THYAO" in text and "%82 dilim" in text and "yükselme olasılığı %64" in text
+    assert "THYAO" in text and "%82 dilim" in text and "geçme olasılığı %64" in text
     assert "305,00 ₺ - 340,00 ₺" in text and "son kapanış 300,00 ₺" in text
     assert "fiyat tahmini değildir" in text and "Uyarılar: Veri kısıtlı" in text
     assert "330,00" not in text  # bant merkezi fiyat tahmini gibi sunulmaz

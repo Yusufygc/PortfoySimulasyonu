@@ -71,7 +71,7 @@ MESSAGES: Dict[str, str] = {
     "model_analysis.perf_yontem_yedek": "Basit yedek",
     "model_analysis.gun": "{horizon_days} gün",
     "model_analysis.islem_gunu_geride": " ({staleness_days} işlem günü geride)",
-    "model_analysis.danisman_ozeti": "{ticker} için model analizi: {label} ({percentile} dilim, {universe}), 5 günlük yükselme olasılığı {prob_up}, risk seviyesi {risk}, %80 olasılıkla 5 günlük fiyat aralığı {band} (son kapanış {last_close}), güven: {confidence}.{warnings} Bu göreli ve olasılıksal bir sinyaldir, fiyat tahmini değildir. Bu sonucu portföyüm bağlamında yorumlar mısın?",
+    "model_analysis.danisman_ozeti": "{ticker} için model analizi: {label} ({percentile} dilim, {universe}), 5 günde akranlarını (evren medyanını) geçme olasılığı {prob_beat}, risk seviyesi {risk}, %80 olasılıkla 5 günlük fiyat aralığı {band} (son kapanış {last_close}), güven: {confidence}.{warnings} Bu göreli ve olasılıksal bir sinyaldir, fiyat tahmini değildir. Bu sonucu portföyüm bağlamında yorumlar mısın?",
     "model_analysis.danisman_uyarilar": " Uyarılar: {warnings}",
     "model_analysis.yapay_zeka_motoruna_baglaniliyor": "Yapay zeka motoruna bağlanılıyor...",
     "model_analysis.ai_core_modeli_bagli": "AI_Core modeli bağlı.",

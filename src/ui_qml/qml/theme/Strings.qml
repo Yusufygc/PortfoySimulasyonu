@@ -540,7 +540,7 @@ QtObject {
     readonly property string mdlXaiNegative: "Aşağı çeken faktörler"
     readonly property string mdlPeer: "Akran Karşılaştırması"
     readonly property string mdlPercentile: "Yüzdelik"
-    readonly property string mdlProbUp: "Yükseliş olasılığı"
+    readonly property string mdlProbBeat: "Akranlarını geçme olasılığı (5 gün)"
     readonly property string mdlBand: "Fiyat bandı"
     readonly property string mdlForecastPoints: "Günlük Tahmin Noktaları"
     readonly property string mdlSendToAdvisor: "Danışmana Gönder"

@@ -194,6 +194,7 @@ def _parse_peer(block: Optional[Dict[str, Any]]) -> Optional[PeerInfo]:
         confidence_warnings=list(block.get("confidence_warnings") or []),
         trend_label=block.get("trend_label"),
         trend_prob_up=_parse_float(block, "trend_prob_up"),
+        trend_prob_outperform=_parse_float(block, "trend_prob_outperform"),
         trend_expected_return=_parse_float(block, "trend_expected_return"),
         kolb_price_p50=_parse_float(block, "kolb_price_p50"),
         kolb_price_low=_parse_float(block, "kolb_price_low"),

@@ -88,7 +88,8 @@ class PeerInfo:
     confidence_warnings: list[str] = field(default_factory=list)
     # Kalibre akran-rank → mutlak trend eğilimi (olasılıksal)
     trend_label: str | None = None             # yukarı | yatay | aşağı | belirsiz
-    trend_prob_up: float | None = None         # P(h-gün getiri > 0)
+    trend_prob_up: float | None = None         # P(h-gün getiri > 0); OOS'ta yazı-turadan ayırt edilemez
+    trend_prob_outperform: float | None = None  # P(h-gün getiri > evren medyanı); arayüzde bu gösterilir
     trend_expected_return: float | None = None  # ort. h-gün log-getiri
     # Kol-B pooled fiyat bandı
     kolb_price_p50: float | None = None

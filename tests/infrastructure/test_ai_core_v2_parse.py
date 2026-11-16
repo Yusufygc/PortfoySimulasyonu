@@ -20,6 +20,7 @@ _V2 = {
         "peer_label": "inline",
         "trend_label": "yukarı",
         "trend_prob_up": 0.56,
+        "trend_prob_outperform": 0.58,
         "trend_expected_return": 0.01,
         "kolb_price_p50": 65.6,
         "kolb_price_low": 59.5,
@@ -46,6 +47,7 @@ def test_v2_maps_peer_and_risk_into_result():
     assert r.outlook is ModelOutlook.UP and r.trend_label == "up"
     assert math.isclose(r.weekly_expected_return, math.expm1(0.01))
     assert r.peer.risk_level == "orta" and r.peer.risk_sigma_5d == 0.09
+    assert r.peer.trend_prob_outperform == 0.58
     assert r.xai_available and r.xai_positive_reasons[0].feature_name == "NATR_14"
     assert "Oynaklık" in r.xai_text and ".." not in r.xai_text
 

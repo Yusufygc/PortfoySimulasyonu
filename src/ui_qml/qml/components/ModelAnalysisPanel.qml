@@ -268,7 +268,7 @@ Item {
 
                     Text { text: Strings.mdlPeer; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; font.weight: Font.Bold }
                     Text { text: (root.analysis.peer ? root.analysis.peer.labelText : "") + "   " + Strings.mdlPercentile + ": " + (root.analysis.peer ? root.analysis.peer.percentileText : "-") + "   (" + (root.analysis.peer ? root.analysis.peer.universeText : "-") + ")"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                    Text { text: Strings.mdlProbUp + ": " + (root.analysis.peer ? root.analysis.peer.probUpText : "-") + "   " + Strings.mdlBand + ": " + (root.analysis.peer ? root.analysis.peer.bandText : "-"); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { text: Strings.mdlProbBeat + ": " + (root.analysis.peer ? root.analysis.peer.probBeatText : "-") + "   " + Strings.mdlBand + ": " + (root.analysis.peer ? root.analysis.peer.bandText : "-"); color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: Theme.fontSm; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     Repeater {
                         model: (root.analysis.peer && root.analysis.peer.warnings) ? root.analysis.peer.warnings : []
                         Text { text: modelData; color: Theme.textWarning; font.family: Theme.fontFamily; font.pixelSize: Theme.fontXs; wrapMode: Text.WordWrap; Layout.fillWidth: true }
