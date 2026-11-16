@@ -100,6 +100,7 @@ ColumnLayout {
             // Başlık satırı
             Rectangle {
                 Layout.fillWidth: true
+                Layout.rightMargin: Theme.scrollbarGutter
                 Layout.preferredHeight: 32
                 color: Theme.bgCard
 
@@ -138,7 +139,7 @@ ColumnLayout {
                 ScrollBar.vertical: ModernScrollBar {}
 
                 delegate: Rectangle {
-                    width: candidateList.width
+                    width: Math.max(0, candidateList.width - Theme.scrollbarGutter)
                     height: 34
                     color: modelData.id === root.selectedId
                            ? Theme.accentSoft
@@ -228,12 +229,19 @@ ColumnLayout {
         border.color: Theme.borderSubtle
 
         ScrollView {
+            id: detailScroll
             anchors.fill: parent
-            anchors.margins: Theme.spaceSm
+            anchors.leftMargin: Theme.spaceSm
+            anchors.topMargin: Theme.spaceSm
+            anchors.bottomMargin: Theme.spaceSm
+            anchors.rightMargin: 2
+            rightPadding: Theme.scrollbarGutter
             clip: true
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.vertical: ModernScrollBar {}
 
             Text {
-                width: parent.width
+                width: detailScroll.availableWidth
                 text: root.selected === null && root.hasController && corporateActionController.detailText === ""
                       ? Strings.caNoSelection
                       : (root.hasController ? corporateActionController.detailText : "")

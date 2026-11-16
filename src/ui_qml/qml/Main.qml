@@ -79,8 +79,14 @@ ApplicationWindow {
 
                 Flickable {
                     id: pageScroll
+                    readonly property int pageMargin: appWindow.compact ? Theme.spaceSm : Theme.spaceMd
+                    readonly property int rightGutter: appWindow.activePageMetric("hasOwnScroll", 0) > 0 ? 0 : Theme.scrollbarGutter
+                    readonly property int bottomGutter: Theme.scrollbarGutter
                     anchors.fill: parent
-                    anchors.margins: appWindow.compact ? Theme.spaceSm : Theme.spaceMd
+                    anchors.leftMargin: pageMargin
+                    anchors.topMargin: pageMargin
+                    anchors.rightMargin: Math.max(2, pageMargin - Theme.scrollbarGutter)
+                    anchors.bottomMargin: Math.max(2, pageMargin - Theme.scrollbarGutter)
                     contentWidth: Math.max(width, appWindow.activePageMetric("minContentWidth", appWindow.pageMinWidth))
                     contentHeight: Math.max(height, appWindow.activePageMetric("minContentHeight", appWindow.pageMinHeight))
                     clip: true
@@ -90,8 +96,8 @@ ApplicationWindow {
 
                 StackLayout {
                     id: pageStack
-                    width: pageScroll.contentWidth
-                    height: pageScroll.contentHeight
+                    width: Math.max(0, pageScroll.contentWidth - pageScroll.rightGutter)
+                    height: Math.max(0, pageScroll.contentHeight - pageScroll.bottomGutter)
                     currentIndex: shellController.activePage
 
                     // 0: Dashboard (Canlı QML & TradingView)

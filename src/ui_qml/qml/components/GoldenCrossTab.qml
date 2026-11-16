@@ -200,6 +200,7 @@ Item {
 
                     Rectangle {
                         Layout.fillWidth: true
+                        Layout.rightMargin: Theme.scrollbarGutter
                         Layout.preferredHeight: 32
                         color: Theme.bgSecondary
                         radius: Theme.radiusSm
@@ -228,7 +229,7 @@ Item {
                         ScrollBar.vertical: ModernScrollBar {}
 
                         delegate: Rectangle {
-                            width: eventList.width
+                            width: Math.max(0, eventList.width - Theme.scrollbarGutter)
                             height: 36
                             radius: Theme.radiusSm
                             color: modelData.ticker === root.selectedTicker
@@ -350,7 +351,7 @@ Item {
                         ScrollBar.vertical: ModernScrollBar {}
 
                         delegate: Rectangle {
-                            width: tickerList.width
+                            width: Math.max(0, tickerList.width - Theme.scrollbarGutter)
                             height: 34
                             radius: Theme.radiusSm
                             color: index % 2 === 0 ? "transparent" : Theme.bgSecondary

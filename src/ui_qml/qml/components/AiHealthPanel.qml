@@ -19,7 +19,11 @@ Rectangle {
     ScrollView {
         id: rightScroll
         anchors.fill: parent
-        anchors.margins: Theme.spaceMd
+        anchors.leftMargin: Theme.spaceMd
+        anchors.topMargin: Theme.spaceMd
+        anchors.bottomMargin: Theme.spaceMd
+        anchors.rightMargin: 4
+        rightPadding: Theme.spaceMd - 4
         clip: true
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         ScrollBar.vertical: ModernScrollBar {}

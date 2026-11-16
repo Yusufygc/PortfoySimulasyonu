@@ -44,15 +44,16 @@ Item {
     }
 
     Flickable {
+        id: strategyFlick
         anchors.fill: parent
-        contentWidth: width
+        contentWidth: Math.max(0, width - Theme.scrollbarGutter)
         contentHeight: column.implicitHeight
         clip: true
         ScrollBar.vertical: ModernScrollBar {}
 
         ColumnLayout {
             id: column
-            width: parent.width
+            width: Math.max(0, strategyFlick.width - Theme.scrollbarGutter)
             spacing: Theme.spaceMd
 
             // Strateji türü
@@ -346,7 +347,7 @@ Item {
                         ScrollBar.vertical: ModernScrollBar {}
 
                         delegate: Rectangle {
-                            width: eventList.width
+                            width: Math.max(0, eventList.width - Theme.scrollbarGutter)
                             height: 34
                             radius: Theme.radiusSm
                             color: Theme.bgSecondary

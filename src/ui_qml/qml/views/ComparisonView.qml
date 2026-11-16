@@ -105,7 +105,7 @@ Item {
                     ScrollBar.vertical: ModernScrollBar {}
 
                     delegate: Rectangle {
-                        width: assetListView.width
+                        width: Math.max(0, assetListView.width - Theme.scrollbarGutter)
                         height: 38
                         radius: Theme.radiusSm
 

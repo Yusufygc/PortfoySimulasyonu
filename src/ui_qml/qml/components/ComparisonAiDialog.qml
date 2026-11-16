@@ -89,16 +89,17 @@ Rectangle {
             }
 
             Flickable {
+                id: commentFlick
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                contentWidth: width
+                contentWidth: Math.max(0, width - Theme.scrollbarGutter)
                 contentHeight: commentText.implicitHeight
                 clip: true
                 ScrollBar.vertical: ModernScrollBar {}
 
                 Text {
                     id: commentText
-                    width: parent.width
+                    width: Math.max(0, commentFlick.width - Theme.scrollbarGutter)
                     text: root.comment !== "" ? root.comment : (root.busy ? "" : Strings.compareAiEmpty)
                     textFormat: root.comment !== "" ? Text.MarkdownText : Text.PlainText
                     color: Theme.textSecondary

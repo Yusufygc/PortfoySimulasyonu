@@ -48,6 +48,7 @@ Rectangle {
         // Kolon Başlıkları
         Rectangle {
             Layout.fillWidth: true
+            Layout.rightMargin: Theme.scrollbarGutter
             height: 32
             color: Theme.bgSecondary
             radius: Theme.radiusSm
@@ -101,7 +102,7 @@ Rectangle {
             ScrollBar.vertical: ModernScrollBar {}
 
             delegate: Rectangle {
-                width: metricsListView.width
+                width: Math.max(0, metricsListView.width - Theme.scrollbarGutter)
                 height: 38
                 radius: Theme.radiusSm
                 color: rowMouse.containsMouse ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgSecondary)

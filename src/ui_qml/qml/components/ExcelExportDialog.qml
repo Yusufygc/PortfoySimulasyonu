@@ -159,13 +159,10 @@ Rectangle {
                 }
             }
 
-            CheckBox {
+            ModernCheckBox {
                 id: chkAppend
                 Layout.fillWidth: true
                 text: Strings.excelAppend
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSm
-                palette.windowText: Theme.textSecondary
             }
 
             Text {

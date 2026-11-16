@@ -84,6 +84,7 @@ Rectangle {
             // Başlık Satırı
             Rectangle {
                 Layout.fillWidth: true
+                Layout.rightMargin: Theme.scrollbarGutter
                 height: 28
                 radius: 4
                 color: Theme.bgSecondary
@@ -110,9 +111,10 @@ Rectangle {
                 clip: true
                 model: (typeof stockDetailController !== "undefined") ? stockDetailController.tradesList : []
                 spacing: 4
+                ScrollBar.vertical: ModernScrollBar {}
 
                 delegate: Rectangle {
-                    width: tradesListView.width
+                    width: Math.max(0, tradesListView.width - Theme.scrollbarGutter)
                     height: 32
                     radius: 4
                     color: index % 2 === 0 ? Theme.bgSecondary : "transparent"
@@ -207,6 +209,7 @@ Rectangle {
             // Başlık Satırı
             Rectangle {
                 Layout.fillWidth: true
+                Layout.rightMargin: Theme.scrollbarGutter
                 height: 28
                 radius: 4
                 color: Theme.bgSecondary
@@ -229,9 +232,10 @@ Rectangle {
                 clip: true
                 model: (typeof stockDetailController !== "undefined") ? stockDetailController.corpActionsList : []
                 spacing: 4
+                ScrollBar.vertical: ModernScrollBar {}
 
                 delegate: Rectangle {
-                    width: corpListView.width
+                    width: Math.max(0, corpListView.width - Theme.scrollbarGutter)
                     height: 32
                     radius: 4
                     color: index % 2 === 0 ? Theme.bgSecondary : "transparent"

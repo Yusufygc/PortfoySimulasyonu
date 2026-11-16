@@ -154,7 +154,7 @@ Item {
                 ScrollBar.vertical: ModernScrollBar {}
 
                 delegate: Rectangle {
-                    width: goalsListView.width
+                    width: Math.max(0, goalsListView.width - Theme.scrollbarGutter)
                     height: 104
                     radius: Theme.radiusMd
                     color: Theme.bgCard

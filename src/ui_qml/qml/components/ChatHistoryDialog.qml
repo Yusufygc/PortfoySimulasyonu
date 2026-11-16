@@ -81,7 +81,7 @@ Rectangle {
 
                 delegate: Rectangle {
                     readonly property bool isActive: root.hasController && modelData.id === aiAdvisorController.activeSessionId
-                    width: sessionList.width
+                    width: Math.max(0, sessionList.width - Theme.scrollbarGutter)
                     height: 54
                     radius: Theme.radiusSm
                     color: isActive ? Theme.accentSoft : (rowMouse.containsMouse ? Theme.bgCardHover : Theme.bgSecondary)

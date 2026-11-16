@@ -31,7 +31,7 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: Theme.spaceSm
 
-            Switch {
+            ModernSwitch {
                 checked: row.source.enabled
                 onToggled: newsSettingsController.setSourceEnabled(row.source.sourceId, checked)
             }
@@ -107,7 +107,7 @@ ColumnLayout {
             Layout.leftMargin: 40
             spacing: Theme.spaceSm
 
-            Switch {
+            ModernSwitch {
                 checked: row.source.massNotices
                 onToggled: newsSettingsController.setMassNotices(checked)
             }

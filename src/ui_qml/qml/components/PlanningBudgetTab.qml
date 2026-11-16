@@ -485,7 +485,7 @@ Item {
                         ScrollBar.vertical: ModernScrollBar {}
 
                         delegate: Rectangle {
-                            width: incListView.width
+                            width: Math.max(0, incListView.width - Theme.scrollbarGutter)
                             height: 38
                             radius: Theme.radiusSm
                             color: Theme.bgSecondary
@@ -728,7 +728,7 @@ Item {
                         ScrollBar.vertical: ModernScrollBar {}
 
                         delegate: Rectangle {
-                            width: expListView.width
+                            width: Math.max(0, expListView.width - Theme.scrollbarGutter)
                             height: 38
                             radius: Theme.radiusSm
                             color: Theme.bgSecondary

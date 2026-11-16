@@ -61,12 +61,13 @@ Rectangle {
 
             ColumnLayout {
                 width: tableFlick.contentWidth
-                height: tableFlick.height
+                height: Math.max(0, tableFlick.height - Theme.scrollbarGutter)
                 spacing: Theme.spaceSm
 
         // Tablo Kolon Başlıkları
         Rectangle {
             Layout.fillWidth: true
+            Layout.rightMargin: Theme.scrollbarGutter
             height: 32
             color: Theme.bgSecondary
             radius: Theme.radiusSm
@@ -207,7 +208,7 @@ Rectangle {
 
             delegate: Rectangle {
                 id: rowDelegate
-                width: positionsListView.width
+                width: Math.max(0, positionsListView.width - Theme.scrollbarGutter)
                 height: 46
                 radius: Theme.radiusSm
                 color: rowMouse.containsMouse ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgSecondary)

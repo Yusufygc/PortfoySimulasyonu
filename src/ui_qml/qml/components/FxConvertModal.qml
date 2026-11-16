@@ -72,15 +72,21 @@ Rectangle {
         MouseArea { anchors.fill: parent }
 
         ScrollView {
+            id: modalScroll
             anchors.fill: parent
-            anchors.margins: Theme.spaceLg
+            anchors.leftMargin: Theme.spaceLg
+            anchors.topMargin: Theme.spaceLg
+            anchors.bottomMargin: Theme.spaceLg
+            anchors.rightMargin: 6
+            rightPadding: Theme.spaceLg - 6
             clip: true
             contentWidth: availableWidth
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            ScrollBar.vertical: ModernScrollBar {}
 
             ColumnLayout {
                 id: contentColumn
-                width: parent.width
+                width: modalScroll.availableWidth
                 spacing: Theme.spaceMd
 
                 RowLayout {

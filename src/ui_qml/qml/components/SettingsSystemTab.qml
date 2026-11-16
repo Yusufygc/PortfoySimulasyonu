@@ -51,7 +51,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 spacing: Theme.spaceMd
 
-                Switch {
+                ModernSwitch {
                     id: swRefresh
                     text: Strings.sysRefreshEnable
                     checked: root.hasController && systemController.liveRefreshEnabled

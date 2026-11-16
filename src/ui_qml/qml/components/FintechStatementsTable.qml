@@ -258,15 +258,17 @@ ModernCard {
             property real colLabelWidth: 260
             property real colPeriodWidth: 115
             property real colYoyWidth: 120
-            property real totalTableWidth: Math.max(tableContainer.width, colLabelWidth + periods.length * colPeriodWidth + colYoyWidth)
+            property real totalTableWidth: Math.max(tableContainer.width - Theme.scrollbarGutter, colLabelWidth + periods.length * colPeriodWidth + colYoyWidth)
 
             Flickable {
                 id: hFlickable
                 anchors.fill: parent
-                contentWidth: tableContainer.totalTableWidth
-                contentHeight: tableContentCol.implicitHeight
+                contentWidth: tableContainer.totalTableWidth + Theme.scrollbarGutter
+                contentHeight: tableContentCol.implicitHeight + Theme.scrollbarGutter
                 boundsBehavior: Flickable.StopAtBounds
                 clip: true
+                ScrollBar.vertical: ModernScrollBar {}
+                ScrollBar.horizontal: ModernScrollBar {}
 
                 ColumnLayout {
                     id: tableContentCol

@@ -472,7 +472,7 @@ Item {
                         ScrollBar.vertical: ModernScrollBar {}
 
                         delegate: Rectangle {
-                            width: sharesListView.width
+                            width: Math.max(0, sharesListView.width - Theme.scrollbarGutter)
                             height: 40
                             radius: Theme.radiusSm
                             color: Theme.bgSecondary

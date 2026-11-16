@@ -82,8 +82,11 @@ Item {
         Flickable {
             id: modalScroll
             anchors.fill: parent
-            anchors.margins: Theme.spaceLg
-            contentWidth: width
+            anchors.leftMargin: Theme.spaceLg
+            anchors.topMargin: Theme.spaceLg
+            anchors.bottomMargin: Theme.spaceLg
+            anchors.rightMargin: 6
+            contentWidth: modalColumn.width
             contentHeight: Math.max(height, modalColumn.implicitHeight)
             clip: true
             boundsBehavior: Flickable.StopAtBounds
@@ -91,7 +94,7 @@ Item {
 
         ColumnLayout {
             id: modalColumn
-            width: modalScroll.width
+            width: Math.max(0, modalScroll.width - (Theme.spaceLg - 6))
             height: modalScroll.contentHeight
             spacing: Theme.spaceMd
 

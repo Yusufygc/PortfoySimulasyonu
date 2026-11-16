@@ -8,6 +8,7 @@ Item {
     id: root
 
     // "Fiyatları Yenile" düğmesine basıldı: sonuç bildirimi gösterilir (otomatik yenileme sessizdir)
+    readonly property int hasOwnScroll: 1
     property bool manualRefresh: false
     property int pendingRemoveId: 0
 
@@ -15,11 +16,12 @@ Item {
         id: mainScrollView
         anchors.fill: parent
         clip: true
+        rightPadding: Theme.scrollbarGutter + 2
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         ScrollBar.vertical: ModernScrollBar {
             parent: mainScrollView
-            x: mainScrollView.mirrored ? 2 : mainScrollView.width - width - 3
+            x: mainScrollView.mirrored ? 2 : mainScrollView.width - width - 2
             y: mainScrollView.topPadding + 2
             height: mainScrollView.availableHeight - 4
             active: mainScrollView.ScrollBar.vertical.active

@@ -112,17 +112,18 @@ Rectangle {
 
             // ---------------- Sonuç görünümü ----------------
             Flickable {
+                id: resultFlick
                 visible: root.showResult && root.profile.exists === true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                contentWidth: width
+                contentWidth: Math.max(0, width - Theme.scrollbarGutter)
                 contentHeight: resultColumn.implicitHeight
                 clip: true
                 ScrollBar.vertical: ModernScrollBar {}
 
                 ColumnLayout {
                     id: resultColumn
-                    width: parent.width
+                    width: Math.max(0, resultFlick.width - Theme.scrollbarGutter)
                     spacing: Theme.spaceMd
 
                     Rectangle {
@@ -241,16 +242,17 @@ Rectangle {
                 }
 
                 Flickable {
+                    id: questionFlick
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    contentWidth: width
+                    contentWidth: Math.max(0, width - Theme.scrollbarGutter)
                     contentHeight: questionColumn.implicitHeight
                     clip: true
                     ScrollBar.vertical: ModernScrollBar {}
 
                     ColumnLayout {
                         id: questionColumn
-                        width: parent.width
+                        width: Math.max(0, questionFlick.width - Theme.scrollbarGutter)
                         spacing: Theme.spaceMd
 
                         Repeater {

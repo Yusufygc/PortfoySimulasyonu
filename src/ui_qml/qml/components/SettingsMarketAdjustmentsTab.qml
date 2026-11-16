@@ -134,6 +134,7 @@ ColumnLayout {
 
             Rectangle {
                 Layout.fillWidth: true
+                Layout.rightMargin: Theme.scrollbarGutter
                 Layout.preferredHeight: 32
                 color: Theme.bgCard
 
@@ -173,7 +174,7 @@ ColumnLayout {
 
                 delegate: Rectangle {
                     readonly property string rowKey: modelData.ticker + "|" + modelData.dateIso
-                    width: actionList.width
+                    width: Math.max(0, actionList.width - Theme.scrollbarGutter)
                     height: 34
                     color: rowKey === root.selectedKey
                            ? Theme.accentSoft

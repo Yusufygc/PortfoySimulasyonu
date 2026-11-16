@@ -63,6 +63,7 @@ QtObject {
     readonly property color scrollbarThumb: isDark ? "#363a45" : "#c2c8d4"
     readonly property color scrollbarThumbHover: isDark ? "#505666" : "#8c94a6"
     readonly property color scrollbarThumbActive: accent
+    readonly property int scrollbarGutter: 12
 
     // --- Boyutlar & Boşluklar ---
     readonly property int spaceXs: 4

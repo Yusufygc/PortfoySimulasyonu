@@ -41,19 +41,11 @@ ColumnLayout {
             font.weight: Font.Bold
             Layout.fillWidth: true
         }
-        CheckBox {
+        ModernCheckBox {
             id: chkProblem
             text: Strings.pdProblemOnly
             checked: root.hasController && priceDataController.problemOnly
             onToggled: priceDataController.setProblemOnly(checked)
-            contentItem: Text {
-                text: chkProblem.text
-                color: Theme.textSecondary
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.fontSm
-                leftPadding: chkProblem.indicator.width + 6
-                verticalAlignment: Text.AlignVCenter
-            }
         }
     }
 
@@ -292,6 +284,7 @@ ColumnLayout {
 
                 Rectangle {
                     Layout.fillWidth: true
+                    Layout.rightMargin: Theme.scrollbarGutter
                     Layout.preferredHeight: 32
                     color: Theme.bgCard
 
@@ -329,7 +322,7 @@ ColumnLayout {
                     ScrollBar.vertical: ModernScrollBar {}
 
                     delegate: Rectangle {
-                        width: healthList.width
+                        width: Math.max(0, healthList.width - Theme.scrollbarGutter)
                         height: 32
                         color: modelData.stockId === priceDataController.selectedStockId
                                ? Theme.accentSoft
@@ -380,13 +373,19 @@ ColumnLayout {
             clip: true
 
             ScrollView {
+                id: detailScroll
                 anchors.fill: parent
-                anchors.margins: Theme.spaceSm
+                anchors.leftMargin: Theme.spaceSm
+                anchors.topMargin: Theme.spaceSm
+                anchors.bottomMargin: Theme.spaceSm
+                anchors.rightMargin: 2
+                rightPadding: Theme.scrollbarGutter
                 clip: true
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                 ScrollBar.vertical: ModernScrollBar {}
 
                 Text {
-                    width: parent.width
+                    width: detailScroll.availableWidth
                     text: root.hasController && priceDataController.detailHtml !== "" ? priceDataController.detailHtml : Strings.pdWaiting
                     textFormat: Text.RichText
                     color: Theme.textSecondary

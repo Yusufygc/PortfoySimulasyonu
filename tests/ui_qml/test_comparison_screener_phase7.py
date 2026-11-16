@@ -248,3 +248,199 @@ def test_screener_qml_view_compilation(qapp, container):
 
     item = component.create()
     assert item is not None, "ScreenerView item nesnesi oluşturulamadı!"
+
+
+def _find_text_item(root_obj, target_text: str):
+    from PySide6.QtQuick import QQuickItem
+
+    queue = [root_obj]
+    while queue:
+        obj = queue.pop(0)
+        if isinstance(obj, QQuickItem) and obj.isVisible() and obj.property("text") == target_text:
+            return obj
+        queue.extend(obj.childItems() if isinstance(obj, QQuickItem) else [])
+    return None
+
+
+def _make_fake_click_screener(parent):
+    from PySide6.QtCore import QObject, Property, Signal, Slot
+
+    class FakeScreener(QObject):
+        filterOptionsChanged = Signal()
+        matchesChanged = Signal()
+        isRunningChanged = Signal()
+        statusTextChanged = Signal()
+
+        def __init__(self, obj_parent=None):
+            super().__init__(obj_parent)
+            self._matches = [
+                {
+                    "ticker": "BALAT.IS",
+                    "filterLabel": "MACD Kesişim + Hacim Patlaması",
+                    "closePrice": "56,25 ₺",
+                    "closePriceRaw": 56.25,
+                }
+            ]
+
+        @Property(list, notify=filterOptionsChanged)
+        def filterOptions(self):
+            return [{"key": "", "label": "Tüm Stratejiler"}]
+
+        @Property(list, notify=matchesChanged)
+        def matchesList(self):
+            return self._matches
+
+        @Property(bool, notify=isRunningChanged)
+        def isRunning(self):
+            return False
+
+        @Property(str, notify=statusTextChanged)
+        def statusText(self):
+            return "Tarama tamamlandı: 1 hisse sinyal verdi"
+
+        @Slot(str)
+        def setFilter(self, _key):
+            pass
+
+        @Slot()
+        def runScan(self):
+            pass
+
+    return FakeScreener(parent)
+
+
+def _make_screener_click_fakes(parent):
+    from PySide6.QtCore import QObject, Slot
+
+    class _RecorderCtrl(QObject):
+        def __init__(self, obj_parent=None):
+            super().__init__(obj_parent)
+            self.calls = []
+
+    class FakeChart(_RecorderCtrl):
+        @Slot(str)
+        def loadTicker(self, ticker):
+            self.calls.append(ticker)
+
+    class FakeStock360(_RecorderCtrl):
+        @Slot(str)
+        def searchTicker(self, ticker):
+            self.calls.append(ticker)
+
+    class FakeShell(_RecorderCtrl):
+        @Slot(int)
+        def navigateTo(self, page):
+            self.calls.append(page)
+
+    chart_ctrl = FakeChart(parent)
+    chart_ctrl.loaded = chart_ctrl.calls
+    stock360_ctrl = FakeStock360(parent)
+    stock360_ctrl.searched = stock360_ctrl.calls
+    shell_ctrl = FakeShell(parent)
+    shell_ctrl.pages = shell_ctrl.calls
+    return _make_fake_click_screener(parent), chart_ctrl, stock360_ctrl, shell_ctrl
+
+
+def _mount_screener_for_clicks(qapp):
+    from PySide6.QtCore import QCoreApplication
+    from PySide6.QtQuick import QQuickWindow
+
+    engine = QQmlApplicationEngine()
+    screener_ctrl, chart_ctrl, stock360_ctrl, shell_ctrl = _make_screener_click_fakes(engine)
+
+    ctx = engine.rootContext()
+    ctx.setContextProperty("screenerController", screener_ctrl)
+    ctx.setContextProperty("chartController", chart_ctrl)
+    ctx.setContextProperty("stock360Controller", stock360_ctrl)
+    ctx.setContextProperty("shellController", shell_ctrl)
+
+    qml_dir = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
+    engine.addImportPath(str(qml_dir))
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(qml_dir / "views" / "ScreenerView.qml")))
+    assert component.isReady(), "; ".join(e.toString() for e in component.errors())
+
+    window = QQuickWindow()
+    window.resize(1000, 600)
+    item = component.create()
+    assert item is not None
+    item.setParentItem(window.contentItem())
+    item.setWidth(1000)
+    item.setHeight(600)
+    window.show()
+    for _ in range(12):
+        QCoreApplication.processEvents()
+
+    return window, item, chart_ctrl, stock360_ctrl, shell_ctrl, engine, component
+
+
+def test_screener_chart_button_opens_chart_not_stock360(qapp, wait_until):
+    """Grafik butonuna tek tıklama doğrudan Grafik sayfasını (0) açar; Hisse 360'a (3) gitmez."""
+    from PySide6.QtCore import QCoreApplication, QPointF, Qt
+    from PySide6.QtTest import QTest
+
+    window, item, chart_ctrl, stock360_ctrl, shell_ctrl, engine, component = _mount_screener_for_clicks(qapp)
+    try:
+        chart_label = _find_text_item(item, "Grafik")
+        assert chart_label is not None, "Grafik butonu metni bulunamadı"
+        pt = chart_label.mapToScene(QPointF(chart_label.width() / 2, chart_label.height() / 2)).toPoint()
+        QTest.mouseClick(window, Qt.LeftButton, Qt.NoModifier, pt)
+        assert wait_until(lambda: shell_ctrl.pages == [0], timeout=1.0), (
+            f"Grafik butonu Grafik (0) yerine {shell_ctrl.pages} sayfasına gitti"
+        )
+        # Tek tık timer'ı tetiklenmeyeceğinden emin olmak için bekle
+        QTest.qWait(300)
+        QCoreApplication.processEvents()
+        assert chart_ctrl.loaded == ["BALAT"]
+        assert stock360_ctrl.searched == []
+        assert shell_ctrl.pages == [0]
+    finally:
+        window.close()
+        item.deleteLater()
+        engine.deleteLater()
+
+
+def test_screener_row_double_click_opens_chart_without_opening_stock360(qapp, wait_until):
+    """Sonuç satırına çift tıklama Hisse 360'a gitmeden doğrudan Grafik sayfasını (0) açar."""
+    from PySide6.QtCore import QCoreApplication, QPointF, Qt
+    from PySide6.QtTest import QTest
+
+    window, item, chart_ctrl, stock360_ctrl, shell_ctrl, engine, component = _mount_screener_for_clicks(qapp)
+    try:
+        ticker_label = _find_text_item(item, "BALAT.IS")
+        assert ticker_label is not None, "Satır sembolü bulunamadı"
+        pt = ticker_label.mapToScene(QPointF(ticker_label.width() / 2, ticker_label.height() / 2)).toPoint()
+        QTest.mouseDClick(window, Qt.LeftButton, Qt.NoModifier, pt)
+        assert wait_until(lambda: shell_ctrl.pages == [0], timeout=1.0), (
+            f"Çift tıklama Grafik (0) yerine {shell_ctrl.pages} sayfasına gitti"
+        )
+        QTest.qWait(300)
+        QCoreApplication.processEvents()
+        assert chart_ctrl.loaded == ["BALAT"]
+        assert stock360_ctrl.searched == []
+        assert shell_ctrl.pages == [0]
+    finally:
+        window.close()
+        item.deleteLater()
+        engine.deleteLater()
+
+
+def test_screener_row_single_click_opens_stock360(qapp, wait_until):
+    """Sonuç satırına tek tıklama kısa gecikme sonrası Hisse 360 (3) sayfasını açar."""
+    from PySide6.QtCore import QPointF, Qt
+    from PySide6.QtTest import QTest
+
+    window, item, chart_ctrl, stock360_ctrl, shell_ctrl, engine, component = _mount_screener_for_clicks(qapp)
+    try:
+        ticker_label = _find_text_item(item, "BALAT.IS")
+        assert ticker_label is not None, "Satır sembolü bulunamadı"
+        pt = ticker_label.mapToScene(QPointF(ticker_label.width() / 2, ticker_label.height() / 2)).toPoint()
+        QTest.mouseClick(window, Qt.LeftButton, Qt.NoModifier, pt)
+        assert wait_until(lambda: shell_ctrl.pages == [3], timeout=1.5), (
+            f"Tek tıklama Hisse 360 (3) açmadı: {shell_ctrl.pages}"
+        )
+        assert stock360_ctrl.searched == ["BALAT"]
+        assert chart_ctrl.loaded == ["BALAT"]
+    finally:
+        window.close()
+        item.deleteLater()
+        engine.deleteLater()

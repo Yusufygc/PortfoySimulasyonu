@@ -84,7 +84,7 @@ Rectangle {
 
             delegate: Rectangle {
                 id: itemDelegate
-                width: portfolioListView.width
+                width: Math.max(0, portfolioListView.width - Theme.scrollbarGutter)
                 height: modelData.description ? 62 : 46
                 radius: Theme.radiusSm
                 property real dragOffset: 0

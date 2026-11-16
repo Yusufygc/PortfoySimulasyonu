@@ -79,16 +79,20 @@ Rectangle {
         MouseArea { anchors.fill: parent }
 
         Flickable {
+            id: formFlick
             anchors.fill: parent
-            anchors.margins: Theme.spaceLg
-            contentWidth: width
+            anchors.leftMargin: Theme.spaceLg
+            anchors.topMargin: Theme.spaceLg
+            anchors.bottomMargin: Theme.spaceLg
+            anchors.rightMargin: 6
+            contentWidth: formColumn.width
             contentHeight: formColumn.implicitHeight
             clip: true
             ScrollBar.vertical: ModernScrollBar {}
 
             ColumnLayout {
                 id: formColumn
-                width: parent.width
+                width: Math.max(0, formFlick.width - (Theme.spaceLg - 6))
                 spacing: Theme.spaceMd
 
                 RowLayout {

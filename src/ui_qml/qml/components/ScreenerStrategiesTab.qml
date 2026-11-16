@@ -184,6 +184,7 @@ ColumnLayout {
                 // Kolon Başlıkları
                 Rectangle {
                     Layout.fillWidth: true
+                    Layout.rightMargin: Theme.scrollbarGutter
                     height: 32
                     color: Theme.bgSecondary
                     radius: Theme.radiusSm
@@ -245,12 +246,29 @@ ColumnLayout {
                         ScrollBar.vertical: ModernScrollBar {}
 
                         delegate: Rectangle {
-                            width: resultsListView.width
+                            id: delegateRoot
+                            width: Math.max(0, resultsListView.width - Theme.scrollbarGutter)
                             height: 44
                             radius: Theme.radiusSm
-                            color: rowMouse.containsMouse ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgSecondary)
+                            color: (rowMouse.containsMouse || btnChartMouse.containsMouse) ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgSecondary)
+
+                            property string pendingTicker: ""
+
+                            Timer {
+                                id: singleClickTimer
+                                interval: 220
+                                repeat: false
+                                onTriggered: {
+                                    if (delegateRoot.pendingTicker !== "") {
+                                        chartController.loadTicker(delegateRoot.pendingTicker)
+                                        stock360Controller.searchTicker(delegateRoot.pendingTicker)
+                                        shellController.navigateTo(3) // Tek tık: Hisse 360 detay
+                                    }
+                                }
+                            }
 
                             RowLayout {
+                                z: 2
                                 anchors.fill: parent
                                 anchors.leftMargin: Theme.spaceMd
                                 anchors.rightMargin: Theme.spaceMd
@@ -340,6 +358,8 @@ ColumnLayout {
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
+                                            singleClickTimer.stop()
+                                            delegateRoot.pendingTicker = ""
                                             var clean = modelData.ticker.replace(".IS", "")
                                             chartController.loadTicker(clean)
                                             shellController.navigateTo(0)
@@ -356,11 +376,12 @@ ColumnLayout {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     var clean = modelData.ticker.replace(".IS", "")
-                                    chartController.loadTicker(clean)
-                                    stock360Controller.searchTicker(clean)
-                                    shellController.navigateTo(3) // Tek tık: Hisse 360 detay
+                                    delegateRoot.pendingTicker = clean
+                                    singleClickTimer.restart()
                                 }
                                 onDoubleClicked: {
+                                    singleClickTimer.stop()
+                                    delegateRoot.pendingTicker = ""
                                     var clean = modelData.ticker.replace(".IS", "")
                                     chartController.loadTicker(clean)
                                     shellController.navigateTo(0) // Çift tık: TradingView Grafik

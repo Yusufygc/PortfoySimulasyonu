@@ -7,6 +7,7 @@ import "../components"
 Item {
     id: root
 
+    readonly property int hasOwnScroll: 1
     readonly property var ctrl: (typeof stock360Controller !== "undefined") ? stock360Controller : null
 
     Connections {
@@ -28,12 +29,13 @@ Item {
         id: mainScrollView
         anchors.fill: parent
         clip: true
+        rightPadding: Theme.scrollbarGutter + 2
         contentHeight: mainColumn.childrenRect.height + Theme.spaceMd * 2
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         ScrollBar.vertical: ModernScrollBar {
             parent: mainScrollView
-            x: mainScrollView.mirrored ? 2 : mainScrollView.width - width - 3
+            x: mainScrollView.mirrored ? 2 : mainScrollView.width - width - 2
             y: mainScrollView.topPadding + 2
             height: mainScrollView.availableHeight - 4
             active: mainScrollView.ScrollBar.vertical.active

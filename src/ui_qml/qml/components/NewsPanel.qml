@@ -106,7 +106,7 @@ ModernCard {
 
                 delegate: Rectangle {
                     id: row
-                    width: newsList.width - 8
+                    width: Math.max(0, newsList.width - Theme.scrollbarGutter)
                     implicitHeight: rowContent.implicitHeight + 2 * Theme.spaceSm
                     height: implicitHeight
                     radius: Theme.radiusSm

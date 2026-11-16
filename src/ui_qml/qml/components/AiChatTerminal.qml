@@ -124,7 +124,7 @@ Rectangle {
             }
 
             delegate: Item {
-                width: chatListView.width
+                width: Math.max(0, chatListView.width - Theme.scrollbarGutter)
                 height: colMsg.implicitHeight
 
                 ColumnLayout {

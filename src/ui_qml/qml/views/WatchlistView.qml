@@ -8,17 +8,19 @@ Item {
     id: root
 
     // Dar pencerede liste seçici tablonun üstüne geçer
+    readonly property int hasOwnScroll: 1
     readonly property bool stacked: width < 960
 
     ScrollView {
         id: mainScrollView
         anchors.fill: parent
         clip: true
+        rightPadding: Theme.scrollbarGutter + 2
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         ScrollBar.vertical: ModernScrollBar {
             parent: mainScrollView
-            x: mainScrollView.mirrored ? 2 : mainScrollView.width - width - 3
+            x: mainScrollView.mirrored ? 2 : mainScrollView.width - width - 2
             y: mainScrollView.topPadding + 2
             height: mainScrollView.availableHeight - 4
             active: mainScrollView.ScrollBar.vertical.active
@@ -148,10 +150,11 @@ Item {
                             clip: true
                             spacing: 6
                             model: watchlistController ? watchlistController.watchlists : []
+                            ScrollBar.vertical: ModernScrollBar {}
 
                             delegate: Rectangle {
                                 id: wlRow
-                                width: watchlistsListView.width
+                                width: Math.max(0, watchlistsListView.width - Theme.scrollbarGutter)
                                 height: 48
                                 radius: Theme.radiusSm
                                 property real dragOffset: 0
@@ -362,12 +365,13 @@ Item {
 
                             ColumnLayout {
                                 width: stocksFlick.contentWidth
-                                height: stocksFlick.height
+                                height: Math.max(0, stocksFlick.height - Theme.scrollbarGutter)
                                 spacing: Theme.spaceSm
 
                         // Tablo Başlık Satırı
                         Rectangle {
                             Layout.fillWidth: true
+                            Layout.rightMargin: Theme.scrollbarGutter
                             implicitHeight: 34
                             radius: Theme.radiusSm
                             color: Theme.bgInput
@@ -396,10 +400,11 @@ Item {
                             clip: true
                             model: watchlistController ? watchlistController.stocksModel : null
                             visible: count > 0
+                            ScrollBar.vertical: ModernScrollBar {}
 
                             delegate: Rectangle {
                                 id: stockRow
-                                width: stocksListView.width
+                                width: Math.max(0, stocksListView.width - Theme.scrollbarGutter)
                                 height: 54
                                 radius: Theme.radiusSm
                                 color: stockMouse.containsMouse ? Theme.bgCardHover : (index % 2 === 0 ? "transparent" : Theme.bgInput)

@@ -195,3 +195,40 @@ def test_settings_qml_view_compilation(qapp, container):
 
     item = component.create()
     assert item is not None, "SettingsView item nesnesi oluşturulamadı!"
+
+
+@pytest.mark.parametrize(
+    "component_name",
+    [
+        "SettingsPriceDataTab.qml",
+        "SettingsSplitEventsSection.qml",
+        "SettingsSystemTab.qml",
+        "SettingsNewsTab.qml",
+        "SettingsFeesTab.qml",
+    ],
+)
+def test_settings_tabs_with_modern_controls_load_without_warnings(qapp, container, component_name):
+    """ModernCheckBox ve ModernSwitch kullanan ayar bileşenleri QML uyarısı olmadan yüklenir."""
+    from PySide6.QtCore import QCoreApplication
+    from src.ui_qml.app import create_controllers
+
+    engine = QQmlApplicationEngine()
+    controllers = create_controllers(container, engine, autostart=False)
+    ctx = engine.rootContext()
+    for name, ctrl in controllers.items():
+        ctx.setContextProperty(name, ctrl)
+
+    qml_dir = Path(__file__).resolve().parent.parent.parent / "src" / "ui_qml" / "qml"
+    engine.addImportPath(str(qml_dir))
+    warnings: list[str] = []
+    engine.warnings.connect(lambda items: warnings.extend(w.toString() for w in items))
+
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(qml_dir / "components" / component_name)))
+    assert component.isReady(), "; ".join(e.toString() for e in component.errors())
+    item = component.create()
+    assert item is not None, f"{component_name} oluşturulamadı!"
+    for _ in range(6):
+        QCoreApplication.processEvents()
+
+    assert warnings == [], f"{component_name} QML uyarıları:\n" + "\n".join(warnings)
+    item._engine, item._component = engine, component

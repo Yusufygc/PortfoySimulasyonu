@@ -7,6 +7,7 @@ Bölme/yeniden düzenleme sırasında koparılan bağlamaları (`root.*`, üst k
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QObject, QUrl
@@ -94,3 +95,72 @@ def test_view_loads_every_tab_without_qml_warnings(qml_env, name):
             _pump(10)
 
     assert warnings == [], "\n".join(warnings)
+
+
+def _extract_qml_blocks(text: str, component_name: str) -> list[str]:
+    blocks: list[str] = []
+    pattern = re.compile(rf"\b{component_name}\s*\{{")
+    for match in pattern.finditer(text):
+        depth = 0
+        end = match.end()
+        for idx in range(match.end() - 1, len(text)):
+            ch = text[idx]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = idx + 1
+                    break
+        blocks.append(text[match.start():end])
+    return blocks
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "views/Stock360View.qml",
+        "views/MyPortfolioView.qml",
+        "views/WatchlistView.qml",
+        "views/SettingsView.qml",
+    ],
+)
+def test_page_scroll_views_reserve_right_gutter_for_vertical_scrollbar(qml_env, relative_path):
+    engine, _warnings, _controllers = qml_env
+    component = QQmlComponent(engine, QUrl.fromLocalFile(str(QML_DIR / relative_path)))
+    assert component.isReady(), "; ".join(e.toString() for e in component.errors())
+
+    item = component.create()
+    assert item is not None
+    item.setProperty("width", 1280)
+    item.setProperty("height", 820)
+    _pump()
+
+    scroll_views = children_of_class(item, "ScrollView")
+    assert scroll_views, f"{relative_path} içinde ScrollView bulunamadı"
+    sv = scroll_views[0]
+    assert float(sv.property("rightPadding")) >= 12.0
+    assert float(sv.property("availableWidth")) <= float(sv.property("width")) - 12.0
+
+
+def test_interactive_listviews_and_scrollviews_do_not_let_scrollbar_overlap_content():
+    offending_scrollviews: list[str] = []
+    offending_listviews: list[str] = []
+    for path in sorted(QML_DIR.rglob("*.qml")):
+        rel = path.relative_to(QML_DIR).as_posix()
+        text = path.read_text(encoding="utf-8")
+        for block in _extract_qml_blocks(text, "ScrollView"):
+            if not re.search(r"\brightPadding\s*:", block):
+                offending_scrollviews.append(rel)
+        for block in _extract_qml_blocks(text, "ListView"):
+            if re.search(r"\binteractive\s*:\s*false\b", block):
+                continue
+            id_match = re.search(r"\bid\s*:\s*(\w+)", block)
+            if not id_match:
+                continue
+            list_id = id_match.group(1)
+            if re.search(rf"\bwidth\s*:\s*{re.escape(list_id)}\.width(?:\s*[;\n\r}}]|$)", block):
+                offending_listviews.append(f"{rel} ({list_id})")
+
+    assert not offending_scrollviews, f"ScrollView sağ boşluğu (rightPadding) eksik: {offending_scrollviews}"
+    assert not offending_listviews, f"Etkileşimli ListView delegate scrollbar altında kalıyor: {offending_listviews}"

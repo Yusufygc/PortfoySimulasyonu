@@ -34,16 +34,11 @@ ColumnLayout {
             font.weight: Font.Bold
             Layout.fillWidth: true
         }
-        Switch {
+        ModernSwitch {
+            text: Strings.splitAutoApply
             enabled: root.ok
             checked: root.ok && splitEventsController.autoApply
             onToggled: splitEventsController.setAutoApply(checked)
-        }
-        Text {
-            text: Strings.splitAutoApply
-            color: Theme.textSecondary
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSm
         }
         ModernButton {
             text: Strings.splitBtnScan
@@ -77,6 +72,7 @@ ColumnLayout {
 
             Rectangle {
                 Layout.fillWidth: true
+                Layout.rightMargin: Theme.scrollbarGutter
                 Layout.preferredHeight: 32
                 color: Theme.bgCard
 
@@ -114,7 +110,7 @@ ColumnLayout {
                 ScrollBar.vertical: ModernScrollBar {}
 
                 delegate: Rectangle {
-                    width: eventList.width
+                    width: Math.max(0, eventList.width - Theme.scrollbarGutter)
                     height: 36
                     color: "transparent"
 

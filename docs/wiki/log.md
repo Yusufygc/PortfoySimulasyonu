@@ -5,6 +5,17 @@
 > Grep ile son girişler: `grep "^## \[" docs/wiki/log.md | head -10`
 
 ---
+## [2026-11-15] güncelleme | Uygulama genelinde kaydırma çubuğu oluğu (scrollbar gutter)
+- **Sorun:** `Main.qml`, `ScrollView`, `Flickable` ve etkileşimli `ListView` konteynerlerinde sağdaki/alttaki `ModernScrollBar` doğrudan içerik alanının üzerine binerek kartları, rozetleri ve tablo butonlarını kısmen kapatıyordu.
+- **Çözüm:** [Theme.qml](../../src/ui_qml/qml/theme/Theme.qml) içine `scrollbarGutter: 12` token'ı eklendi. [Main.qml](../../src/ui_qml/qml/Main.qml) `pageScroll` dış alanında sayfa marjı ile çubuk oluğu ayrıldı ve tam sayfa kaydırma kullanan görünümler (`Stock360View`, `MyPortfolioView`, `WatchlistView`) için `hasOwnScroll: 1` sinyali tanımlandı. Tüm `ScrollView` (`rightPadding`), dikey/yatay `Flickable` (`contentWidth`/`height` oluğu) ve etkileşimli `ListView` bileşenlerinde (tablo başlık hizalamaları dahil) içerik genişliği `Theme.scrollbarGutter` kadar içeride tutularak kaydırma çubuğunun bileşenlerin üzerine gelmesi engellendi.
+- **Doğrulama:** `tests/ui_qml/test_qml_views_runtime_smoke.py` içine sayfa `ScrollView` oluk testi ve QML tarama guard testi eklendi.
+
+## [2026-11-15] güncelleme | Tarayıcı tıklama düzeltmesi, sabit/oransal ücretler ve temalı CheckBox/Switch
+- **BIST Sinyal Tarayıcısı (`ScreenerStrategiesTab.qml`):** Sonuç satırındaki `RowLayout` `z: 2` üzerine alınarak `Grafik` butonunun tıklanabilirliği düzeltildi; tek tıklama 220 ms gecikmeyle Hisse 360 analizine, çift tıklama veya `Grafik` butonu doğrudan Grafik sekmesine yönlendirildi.
+- **İşlem Ücretleri (`fees.py`, `FeeSettingsService`, `FeeSettingsController`, `SettingsFeesTab.qml`):** BIST hisse komisyonu, varlık komisyonu ve BSMV satırlarına satır bazında `Oran (%)` (`PCT`) ve işlem başına `Sabit` (`FIXED`) modu eklendi; modlar `fee.bist_mode`, `fee.asset_mode`, `fee.bsmv_mode` anahtarlarıyla `app_settings` tablosunda kalıcılaştırıldı.
+- **Temalı seçiciler (`ModernCheckBox.qml`, `ModernSwitch.qml`):** Karanlık temada siyah dolgu/tutamak gösteren ham Qt Quick Controls `CheckBox` ve `Switch` bileşenlerinin yerine tema tokenlarıyla hizalı özel bileşenler eklenip `SettingsPriceDataTab.qml`, `ExcelExportDialog.qml`, `SettingsSplitEventsSection.qml`, `SettingsSystemTab.qml` ve `SettingsNewsTab.qml` dosyalarında uygulandı.
+- **İlgili sayfalar:** [service_portfolio_and_market.md](service_portfolio_and_market.md), [settings_and_system.md](settings_and_system.md)
+
 ## [2026-11-15] güncelleme | Yüksek DPI laptop ekranında ters ölçekleme kaldırıldı
 
 Harici monitör çıkarılıp %200 Windows ölçekli laptop ekranına (2560×1600, 192 DPI) geçildiğinde arayüz yarı boyuta küçülüp basık görünüyordu.

@@ -186,6 +186,7 @@ ColumnLayout {
             // Tablo Başlık Satırı
             Rectangle {
                 Layout.fillWidth: true
+                Layout.rightMargin: Theme.scrollbarGutter
                 height: 36
                 radius: Theme.radiusSm
                 color: Theme.bgSecondary
@@ -219,7 +220,7 @@ ColumnLayout {
                 ScrollBar.vertical: ModernScrollBar {}
 
                 delegate: Rectangle {
-                    width: rebalanceList.width
+                    width: Math.max(0, rebalanceList.width - Theme.scrollbarGutter)
                     height: 42
                     radius: Theme.radiusSm
                     color: rowMouse.containsMouse ? Theme.bgCardHover : Theme.bgSecondary

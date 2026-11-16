@@ -91,7 +91,7 @@ ModernCard {
         Flickable {
             id: tableFlick
             Layout.fillWidth: true
-            implicitHeight: tableInner.implicitHeight + 10
+            implicitHeight: tableInner.implicitHeight + 14
             contentWidth: Math.max(width, 1130)
             contentHeight: tableInner.implicitHeight
             clip: true
