@@ -3,6 +3,7 @@ QML Uygulama Giriş Noktası — PySide6, QtQuick ve WebEngine tabanlı modern U
 """
 from __future__ import annotations
 
+import os
 import sys
 import logging
 from pathlib import Path
@@ -75,6 +76,11 @@ def wire_controllers(c: Dict[str, Any]) -> None:
     c["riskProfileController"].profileSaved.connect(c["optimizationController"].reloadRiskProfile)
 
 
+def environment_badge() -> str:
+    """Test ortamında başlık çubuğu ve pencere başlığında gösterilen etiket; diğer ortamlarda boş."""
+    return "TEST ORTAMI" if os.getenv("PORTFOYSIM_ENV", "").strip().lower() == "test" else ""
+
+
 def build_ui(engine, container, autostart: bool = True) -> Dict[str, Any]:
     """Bileşim kökü: denetleyicileri kurar, bağlar ve QML bağlamına kaydeder (Main.qml yüklenmez)."""
     controllers = create_controllers(container, engine, autostart=autostart)
@@ -82,6 +88,7 @@ def build_ui(engine, container, autostart: bool = True) -> Dict[str, Any]:
     context = engine.rootContext()
     for name, controller in controllers.items():
         context.setContextProperty(name, controller)
+    context.setContextProperty("environmentBadge", environment_badge())
     engine.addImportPath(str(QML_DIR))
     return controllers
 
@@ -132,6 +139,10 @@ def run_qml_app(container=None) -> int:
         logger.error("Main.qml yüklenemedi!")
         return -1
     _fit_window_to_screen(app, engine)
+    badge = environment_badge()
+    if badge:
+        win = engine.rootObjects()[0]
+        win.setProperty("title", f"{win.property('title')} — {badge}")
 
     logger.info("QML Arayüzü başarıyla başlatıldı.")
     return app.exec()

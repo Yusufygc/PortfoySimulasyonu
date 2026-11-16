@@ -54,6 +54,29 @@ Rectangle {
                 font.letterSpacing: 0.5
                 anchors.verticalCenter: parent.verticalCenter
             }
+
+            // Test ortamı rozeti (metin app.py'den gelir; üretimde boş, görünmez)
+            Rectangle {
+                readonly property string badge: typeof environmentBadge !== "undefined" ? environmentBadge : ""
+                visible: badge !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                height: 22
+                width: badgeText.implicitWidth + Theme.spaceSm * 2
+                radius: Theme.radiusSm
+                color: Theme.warningYellowSoft
+                border.color: Theme.warningYellow
+                border.width: 1
+
+                Text {
+                    id: badgeText
+                    anchors.centerIn: parent
+                    text: parent.badge
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.fontXs
+                    font.weight: Font.Bold
+                    color: Theme.warningYellow
+                }
+            }
         }
 
         // Piyasa şeridi: ALTIN | GÜMÜŞ | USD/TRY | EUR/TRY | BIST 100 (dar pencerede gizlenir)
