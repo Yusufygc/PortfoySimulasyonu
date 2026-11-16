@@ -9,13 +9,13 @@ gerekirse bunları L10N ile zenginleştirebilir. Bu modül UI'a bağımlı deği
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any, Dict, List, Optional
 
 import requests
 
 from src.domain.models.ai_analysis import (
     AnalysisResult,
-    ForecastPoint,
     ModelOutlook,
     PeerInfo,
     XaiFactorItem,
@@ -85,14 +85,6 @@ class AICoreFastAPIClient:
         """GET /symbols — kayıtlı hisse kodlarını döner."""
         data = self._get("/symbols")
         return data.get("symbols", [])
-
-    def get_best_model(self, symbol: str) -> Dict[str, Any]:
-        """GET /best-model/{symbol} — en iyi model bilgisini döner."""
-        return self._get(f"/best-model/{symbol.upper()}")
-
-    def get_leaderboard(self, top_n: int = 20) -> Dict[str, Any]:
-        """GET /leaderboard — hisseler arası lider tablosu."""
-        return self._get("/leaderboard", params={"top_n": top_n})
 
     def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """GET isteği gönderir; hata yönetimini merkezleştirir."""
@@ -210,6 +202,9 @@ def _parse_peer(block: Optional[Dict[str, Any]]) -> Optional[PeerInfo]:
         kolb_price_high=_parse_float(block, "kolb_price_high"),
         kolb_horizon_days=_parse_int_safe(block.get("kolb_horizon_days")),
         kolb_band_level=_parse_float(block, "kolb_band_level"),
+        risk_sigma_5d=_parse_float(block, "risk_sigma_5d"),
+        risk_level=block.get("risk_level"),
+        risk_method=block.get("risk_method"),
         xai_available=bool(block.get("xai_available", False)),
         xai_method=block.get("xai_method") or "",
         xai_caveat=block.get("xai_caveat") or "",
@@ -218,130 +213,76 @@ def _parse_peer(block: Optional[Dict[str, Any]]) -> Optional[PeerInfo]:
     )
 
 
-def _outlook_from_trend_label(trend_label: str | None) -> ModelOutlook:
-    trend_norm = str(trend_label or "").strip().lower()
-    if trend_norm == "up":
-        return ModelOutlook.UP
-    if trend_norm == "down":
-        return ModelOutlook.DOWN
-    return ModelOutlook.NEUTRAL
+_OUTLOOK_BY_TREND = {
+    "yukarı": ModelOutlook.UP,
+    "up": ModelOutlook.UP,
+    "aşağı": ModelOutlook.DOWN,
+    "down": ModelOutlook.DOWN,
+}
 
 
-def _parse_forecast_points(forecast_block: Dict[str, Any]):
-    points = [
-        ForecastPoint(
-            target_date=str(p.get("target_date", "")),
-            horizon_index=int(p.get("horizon_index", 0)),
-            bounded_predicted_close=p.get("bounded_predicted_close"),
-            predicted_return=p.get("predicted_return"),
-            p10_close=p.get("p10_close"),
-            p50_close=p.get("p50_close"),
-            p90_close=p.get("p90_close"),
-            predicted_return_p10=p.get("predicted_return_p10"),
-            predicted_return_p50=p.get("predicted_return_p50"),
-            predicted_return_p90=p.get("predicted_return_p90"),
-            interval_method=p.get("interval_method"),
-        )
-        for p in forecast_block.get("points", [])
-    ]
-    predicted_price = predicted_price_low = predicted_price_high = interval_method = None
-    if points:
-        last = points[-1]
-        predicted_price = last.bounded_predicted_close
-        predicted_price_low = last.p10_close
-        predicted_price_high = last.p90_close
-        interval_method = last.interval_method
-    return points, predicted_price, predicted_price_low, predicted_price_high, interval_method
-
-
-def _parse_xai_block(xai_block: Dict[str, Any]):
-    xai_pos = [_parse_xai_factor(f, "positive") for f in xai_block.get("top_positive_reasons", [])]
-    xai_neg = [_parse_xai_factor(f, "negative") for f in xai_block.get("top_negative_reasons", [])]
-    xai_features: Dict[str, float] = {}
-    for item in xai_pos + xai_neg:
-        xai_features[item.human_label or item.feature_name] = item.importance
-    xai_text = ""
-    if xai_pos or xai_neg:
-        parts = []
-        if xai_pos:
-            parts.append(f"Fiyatı yukarı çeken en önemli faktör: {_xai_factor_summary(xai_pos[0])}")
-        if xai_neg:
-            parts.append(f"Aşağı yönlü baskı yapan faktör: {_xai_factor_summary(xai_neg[0])}")
-        xai_text = ". ".join(parts) + "."
-    return xai_pos, xai_neg, xai_features, xai_text
-
-
-def _parse_core_fields(data: Dict[str, Any]) -> Dict[str, Any]:
-    data_block = data.get("data", {})
-    model_block = data.get("model", {})
-    conf_block = data.get("confidence", {})
-    perf_block = data.get("performance", {})
-    xai_block = data.get("xai", {})
-    conf_label = conf_block.get("label", "low")
-    return {
-        "ticker": data.get("symbol", ""),
-        "analysis_status": data.get("analysis_status", "error"),
-        "confidence": _CONFIDENCE_MAP.get(conf_label, 0.25),
-        "confidence_label": conf_label,
-        "confidence_reasons": conf_block.get("reasons", []),
-        "confidence_warnings": conf_block.get("warnings", []),
-        "last_close": data_block.get("last_close"),
-        "last_observed_date": data_block.get("last_observed_date"),
-        "data_freshness": data_block.get("data_freshness", "unknown"),
-        "staleness_days": data_block.get("staleness_days", 0),
-        "model_name": model_block.get("model_name", ""),
-        "model_family": model_block.get("model_family", ""),
-        "validation_mode": model_block.get("validation_mode"),
-        "trained_at": model_block.get("trained_at"),
-        "eligibility_status": model_block.get("eligibility_status", "eligible"),
-        "rmse": perf_block.get("rmse"),
-        "mae": perf_block.get("mae"),
-        "directional_accuracy": perf_block.get("directional_accuracy"),
-        "hit_rate": perf_block.get("hit_rate"),
-        "composite_score": perf_block.get("composite_score"),
-        "sharpe": perf_block.get("sharpe"),
-        "stability_score": perf_block.get("stability_score"),
-        "xai_available": xai_block.get("available", False),
-        "xai_method": xai_block.get("method", ""),
-        "xai_caveat": xai_block.get("caveat", ""),
-        "xai_model_family_caveat": xai_block.get("model_family_caveat", ""),
-        "disclaimer": data.get("disclaimer") or "",
-        "raw_output": data,
-        "generated_at": data.get("generated_at", ""),
-    }
+def _xai_text(xai_pos: List[XaiFactorItem], xai_neg: List[XaiFactorItem]) -> str:
+    parts = []
+    if xai_pos:
+        parts.append(f"Akranlara göre sırayı yukarı iten en önemli faktör: {_xai_factor_summary(xai_pos[0])}")
+    if xai_neg:
+        parts.append(f"Sırayı aşağı çeken faktör: {_xai_factor_summary(xai_neg[0])}")
+    return ". ".join(parts) + "." if parts else ""
 
 
 def _parse_api_response(data: Dict[str, Any]) -> AnalysisResult:
-    """FastAPI /analysis/{symbol} JSON yanıtını AnalysisResult'a dönüştürür."""
-    forecast_block = data.get("forecast", {})
-    xai_block = data.get("xai", {})
+    """FastAPI /analysis/{symbol} v2 yanıtını AnalysisResult'a dönüştürür.
 
-    core = _parse_core_fields(data)
-    forecast_points, predicted_price, pred_low, pred_high, interval_method = _parse_forecast_points(forecast_block)
-    xai_pos, xai_neg, xai_features, xai_text = _parse_xai_block(xai_block)
+    API v2'de hisse bazlı model/forecast/performance/xai blokları yoktur:
+    yön ve göreli sinyal Kol-B `peer` bloğundan, fiyat bandı havuz risk
+    modelinden (`peer.kolb_price_*`) gelir.
+    """
+    data_block = data.get("data") or {}
+    conf_block = data.get("confidence") or {}
+    run_block = data.get("serving_run") or {}
+    conf_label = conf_block.get("label", "low")
+    peer = _parse_peer(data.get("peer"))
 
-    trend_label = forecast_block.get("trend_label")
-    trend_norm = str(trend_label or "").strip().lower()
-    outlook = _outlook_from_trend_label(trend_label)
-    outlook_strength = min(abs(forecast_block.get("weekly_expected_return", 0) or 0) * 10, 1.0)
+    trend_label = peer.trend_label if peer else None
+    expected_log_ret = peer.trend_expected_return if peer else None
+    weekly_return = None if expected_log_ret is None else math.expm1(expected_log_ret)
+    xai_pos = peer.xai_top_positive if peer else []
+    xai_neg = peer.xai_top_negative if peer else []
 
     return AnalysisResult(
-        **core,
-        peer=_parse_peer(data.get("peer")),
-        predicted_price=predicted_price,
-        predicted_price_low=pred_low,
-        predicted_price_high=pred_high,
-        interval_method=interval_method,
-        forecast_points=forecast_points,
-        horizon_days=forecast_block.get("horizon_days"),
-        weekly_expected_return=forecast_block.get("weekly_expected_return"),
-        outlook=outlook,
-        outlook_strength=outlook_strength,
-        trend_label=trend_norm or trend_label,
-        xai_features=xai_features,
+        ticker=data.get("symbol", ""),
+        analysis_status=data.get("analysis_status", "error"),
+        confidence=_CONFIDENCE_MAP.get(conf_label, 0.25),
+        confidence_label=conf_label,
+        confidence_reasons=conf_block.get("reasons", []),
+        confidence_warnings=conf_block.get("warnings", []),
+        last_close=data_block.get("last_close"),
+        last_observed_date=data_block.get("last_observed_date"),
+        data_freshness=data_block.get("data_freshness", "unknown"),
+        staleness_days=data_block.get("staleness_days", 0),
+        model_name=run_block.get("model_name") or "",
+        model_family="pooled",
+        trained_at=run_block.get("as_of_date"),
+        disclaimer=data.get("disclaimer") or "",
+        raw_output=data,
+        generated_at=data.get("generated_at", ""),
+        peer=peer,
+        predicted_price=peer.kolb_price_p50 if peer else None,
+        predicted_price_low=peer.kolb_price_low if peer else None,
+        predicted_price_high=peer.kolb_price_high if peer else None,
+        interval_method=(peer.risk_method or None) if peer else None,
+        horizon_days=peer.kolb_horizon_days if peer else None,
+        weekly_expected_return=weekly_return,
+        outlook=_OUTLOOK_BY_TREND.get(str(trend_label or "").strip().lower(), ModelOutlook.NEUTRAL),
+        outlook_strength=min(abs(weekly_return or 0.0) * 10, 1.0),
+        trend_label=trend_label,
+        xai_available=bool(peer and peer.xai_available),
+        xai_method=peer.xai_method if peer else "",
+        xai_caveat=peer.xai_caveat if peer else "",
+        xai_features={(i.human_label or i.feature_name): i.importance for i in xai_pos + xai_neg},
         xai_positive_reasons=xai_pos,
         xai_negative_reasons=xai_neg,
-        xai_text=xai_text,
+        xai_text=_xai_text(xai_pos, xai_neg),
     )
 
 

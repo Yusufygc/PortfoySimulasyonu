@@ -96,6 +96,10 @@ class PeerInfo:
     kolb_price_high: float | None = None
     kolb_horizon_days: int | None = None
     kolb_band_level: float | None = None
+    # Havuz risk modeli: 5 günlük getiri std'si, evren tertili, yöntem
+    risk_sigma_5d: float | None = None
+    risk_level: str | None = None   # düşük | orta | yüksek
+    risk_method: str | None = None  # har_x_ridge | naive_fallback
     # Kol-B XAI — pooled modelin per-symbol sıra sürücüleri (SHAP)
     xai_available: bool = False
     xai_method: str = ""

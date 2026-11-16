@@ -57,7 +57,7 @@ def test_timeout_becomes_api_connection_error(monkeypatch):
     client = _client(monkeypatch, requests.Timeout("yavaş"))
 
     with pytest.raises(APIConnectionError, match="zaman aşımına"):
-        client.get_best_model("THYAO")
+        client.get_analysis("THYAO")
 
 
 def test_http_error_uses_json_detail(monkeypatch):
@@ -73,7 +73,7 @@ def test_http_error_with_non_json_body_keeps_truncated_text(monkeypatch):
     client = _client(monkeypatch, _Response(status_code=502, text="x" * 500, json_error=True))
 
     with pytest.raises(APIResponseError) as info:
-        client.get_leaderboard()
+        client.get_symbols()
 
     assert info.value.status_code == 502 and len(info.value.detail) == 200
 
